@@ -44,7 +44,7 @@ def die(msg, code=1):
 
 
 def root():
-    r = os.environ.get("CLAUDE_PROJECT_DIR") or os.getcwd()
+    r = (os.environ.get("HARNESS_PROJECT_DIR") or os.environ.get("CLAUDE_PROJECT_DIR")) or os.getcwd()
     # Walk up to the checkout holding .harness/, so cwd inside a feature dir still works.
     d = os.path.abspath(r)
     while d != "/":

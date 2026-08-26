@@ -191,7 +191,7 @@ def _moves_head(sub, operands, project_root):
 if agent.startswith("harness-"):
     _cmd_head = ((d.get("tool_input") or {}).get("command") or "")
     if _cmd_head:
-        _proot = os.environ.get("CLAUDE_PROJECT_DIR") or _derived
+        _proot = (os.environ.get("HARNESS_PROJECT_DIR") or os.environ.get("CLAUDE_PROJECT_DIR")) or _derived
 
         def _refuse_head(what):
             print(f"bash-write-guard: BLOCKED — {what}", file=sys.stderr)
@@ -229,7 +229,7 @@ if agent == "harness-dev-ops":
 if not agent.startswith("harness-"):
     sys.exit(0)
 
-root = os.environ.get("CLAUDE_PROJECT_DIR") or ""
+root = (os.environ.get("HARNESS_PROJECT_DIR") or os.environ.get("CLAUDE_PROJECT_DIR")) or ""
 if not root or not os.access(os.path.join(root, ".harness", "team-config.yaml"), os.R_OK):
     if os.access(os.path.join(_derived, ".harness", "team-config.yaml"), os.R_OK):
         root = _derived
@@ -257,7 +257,7 @@ except Exception as _be:
           "not be imported, so no domain can be checked.", file=sys.stderr)
     print(f"  {type(_be).__name__}: {_be}", file=sys.stderr)
     print("  Enforcement is CLOSED rather than partial. Restore "
-          ".claude/skills/harness/bin/harness_boundary.py, then retry.", file=sys.stderr)
+          ".agents/skills/harness/bin/harness_boundary.py, then retry.", file=sys.stderr)
     sys.exit(2)
 
 # The RETURN VALUE IS THE DECISION — see check-domain.sh's note. A bare call leaves
@@ -555,7 +555,7 @@ for seg_tokens in tokens:
             if any(a in ("-f", "--force") or a.startswith("--force=") for a in _args):
                 print(f"bash-write-guard: BLOCKED — `git worktree {_sub}` carrying a "
                       f"force flag.", file=sys.stderr)
-                print("  Use `.claude/skills/harness/bin/feature-worktree.py remove`: it "
+                print("  Use `.agents/skills/harness/bin/feature-worktree.py remove`: it "
                       "refuses on a dirty tree and reports every path it would discard.",
                       file=sys.stderr)
                 print("  Without --force git refuses a dirty tree itself; forcing is how "

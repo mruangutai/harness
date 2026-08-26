@@ -1,0 +1,5 @@
+modelRoles:
+  deep: anthropic/claude-opus-5:high
+  strong: anthropic/claude-opus-5:medium
+  standard: anthropic/claude-sonnet-5:medium
+  review: anthropic/claude-sonnet-5:high

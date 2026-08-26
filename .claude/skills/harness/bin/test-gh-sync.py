@@ -2,7 +2,7 @@
 """gh-sync.py must get these right — offline, against a fake gh.
 
 The fake logs every invocation and returns canned JSON, so the tests assert the
-EXACT outward calls (repo pinned on every one, labels derived, close-task
+EXACT outward calls (repo pinned on every one, labels derived, abandon
 closes exactly one issue and leaves absorbed issues open) and the exit-code
 contract: environmental problems exit 0 (the mirror never gates), caller
 errors exit 1.
@@ -356,14 +356,36 @@ esac
 exit 0
 """
 
-# Same board reads/writes, station write succeeds, but `issue close` fails — this is the
-# fixture that pins the ORDERING in close-task: the parent write must already have happened
-# by the time this failure is hit.
-FAKE_GH_STATIONS_CLOSE_FAILS = """#!/bin/bash
+
+FULL_STATIONS = {"backlog": "Backlog", "plan": "Plan", "ready": "Ready", "building": "Building",
+                  "review": "Review", "done": "Done"}
+
+
+# T-04: the ship fixture's gh. Everything FAKE_GH_STATIONS answers, plus the three reads the
+# new cmd_ship makes that no earlier subcommand did: the sub_issues GET (the open-child test),
+# the closed-issue list and the project workflows list (the audit ship now schedules).
+#
+# Parameterised by env so one stub covers every case:
+#   SHIP_STATIONS       "40=Review 41=Done 42="   the board's station map; empty value = null
+#   SHIP_CHILDREN_<n>   "41 42"                   issue <n>'s children, absent = childless
+#   SHIP_SUBISSUES_FAIL "40"                      that one sub_issues read exits non-zero
+#   SHIP_EDIT_FAIL      "ITEM_41"                 that one card's station write fails
+#   SHIP_CLOSED_JSON    a gh issue list payload   what the audit's closed-issue read returns
+FAKE_GH_SHIP = """#!/bin/bash
 echo "$*" | tr '\n' '\001' >> "$FAKE_LOG"; echo >> "$FAKE_LOG"
 case "$*" in
   *"sub_issues -F sub_issue_id="*)
     echo '{}'
+    exit 0 ;;
+  *"/sub_issues"*)
+    num=$(echo "$*" | grep -oE 'issues/[0-9]+/sub_issues' | grep -oE '[0-9]+' | head -1)
+    for bad in $SHIP_SUBISSUES_FAIL; do
+      if [ "$bad" = "$num" ]; then echo "sub_issues read refused" >&2; exit 1; fi
+    done
+    eval "kids=\\$SHIP_CHILDREN_$num"
+    out="["; sep=""
+    for k in $kids; do out="$out$sep{\\"number\\":$k}"; sep=","; done
+    echo "$out]"
     exit 0 ;;
   *"--jq .id"*)
     num=$(echo "$*" | grep -oE 'issues/[0-9]+' | head -1 | grep -oE '[0-9]+')
@@ -372,15 +394,51 @@ case "$*" in
   *"ProjectV2SingleSelectField"*)
     printf '{"data":{"repositoryOwner":{"__typename":"User","projectV2":{"id":"PVT_PROJ","field":{"id":"FIELD_STATUS","name":"Status","options":[{"id":"OPT_BACKLOG","name":"Backlog"},{"id":"OPT_PLAN","name":"Plan"},{"id":"OPT_READY","name":"Ready"},{"id":"OPT_BUILDING","name":"Building"},{"id":"OPT_REVIEW","name":"Review"},{"id":"OPT_DONE","name":"Done"}]}}}}}\\n'
     exit 0 ;;
+  *"workflows(first: 50)"*)
+    printf '{"data":{"user":{"projectV2":{"workflows":{"nodes":[{"name":"Item closed","enabled":true,"number":1},{"name":"Auto-close issue","enabled":true,"number":2},{"name":"Pull request merged","enabled":true,"number":3}]}}}}}\\n'
+    exit 0 ;;
+  *"items(first: 100, after:"*)
+    nodes=""; sep=""
+    for pair in $SHIP_STATIONS; do
+      n="${pair%%=*}"; st="${pair#*=}"
+      if [ -n "$SHIP_BOARD_STATE" ] && [ -f "$SHIP_BOARD_STATE" ]; then
+        later=$(grep -E "^$n=" "$SHIP_BOARD_STATE" | tail -1)
+        if [ -n "$later" ]; then st="${later#*=}"; fi
+      fi
+      if [ -z "$st" ]; then fv=null; else fv='{"name":"'"$st"'"}'; fi
+      nodes="$nodes$sep{\\"content\\":{\\"number\\":$n,\\"repository\\":{\\"nameWithOwner\\":\\"implentio/fake\\"}},\\"fieldValueByName\\":$fv}"
+      sep=","
+    done
+    printf '{"data":{"user":{"projectV2":{"items":{"totalCount":1,"pageInfo":{"hasNextPage":false,"endCursor":null},"nodes":[%s]}}}}}\\n' "$nodes"
+    exit 0 ;;
   *"projectItems(first: 100)"*)
     num=$(echo "$*" | grep -oE 'number=[0-9]+' | tail -1 | grep -oE '[0-9]+')
     printf '{"data":{"repository":{"issue":{"projectItems":{"totalCount":1,"nodes":[{"id":"ITEM_%s","project":{"number":3}}]}}}}}\\n' "$num"
     exit 0 ;;
   *"project item-edit"*)
+    for bad in $SHIP_EDIT_FAIL; do
+      case "$*" in *"--id $bad "*|*"--id $bad") echo "item-edit refused for $bad" >&2; exit 1 ;; esac
+    done
+    # THE BOARD REMEMBERS. A successful write is recorded so a LATER station read in the same
+    # run reports the new value. Without this the stub is a board that never changes, and the
+    # audit-ordering case cannot fail against an implementation that audits before it writes.
+    if [ -n "$SHIP_BOARD_STATE" ]; then
+      wnum=$(echo "$*" | grep -oE -- '--id ITEM_[0-9]+' | grep -oE '[0-9]+')
+      wopt=$(echo "$*" | grep -oE -- '--single-select-option-id OPT_[A-Z]+' | sed 's/.*OPT_//')
+      case "$wopt" in
+        BACKLOG) wst=Backlog ;; PLAN) wst=Plan ;; READY) wst=Ready ;;
+        BUILDING) wst=Building ;; REVIEW) wst=Review ;; DONE) wst=Done ;; *) wst="" ;;
+      esac
+      if [ -n "$wnum" ] && [ -n "$wst" ]; then echo "$wnum=$wst" >> "$SHIP_BOARD_STATE"; fi
+    fi
     exit 0 ;;
 esac
 case "$1 $2" in
   "auth status") exit 0 ;;
+  "issue list") echo "${SHIP_CLOSED_JSON:-[]}" ;;
+  "issue view")
+    printf '{"state":"%s"}\\n' "${GUARD_STATE:-OPEN}"
+    exit 0 ;;
   "api -X")
     case "$*" in
       *milestones\\ -f*) echo '{"number": 7}' ;;
@@ -389,17 +447,11 @@ case "$1 $2" in
   "issue create")
     n=$(( $(grep -c "issue create" "$FAKE_LOG") + 40 ))
     echo "https://github.com/implentio/fake/issues/$n" ;;
-  "issue close")
-    echo "simulated close failure" >&2
-    exit 1 ;;
+  "issue close") exit 0 ;;
   "label create") exit 0 ;;
 esac
 exit 0
 """
-
-
-FULL_STATIONS = {"backlog": "Backlog", "plan": "Plan", "ready": "Ready", "building": "Building",
-                  "review": "Review", "done": "Done"}
 
 
 def write_harness_json_board(tmp, sync=True, repo="implentio/fake", board=True, stations=None):
@@ -495,6 +547,56 @@ def install_gh(tmp, script=FAKE_GH):
     os.chmod(gh_path, 0o755)
 
 
+# T-04's ship fixtures, defined HERE with the other helpers rather than beside the ship cases,
+# because T-11 retargeted an earlier block onto them: a helper used by two sections belongs
+# above both.
+def stage_ship(tmp, feat_name, issues, parent=40, source_issues=None, milestone=7):
+    """A ship fixture: a board-backed feature plus the SPEC.md probe `factory_config`'s
+    `harness_root()` looks for, so the audit ship now schedules resolves THIS fixture's
+    harness.json rather than climbing out to the real checkout."""
+    feat = stage_station(tmp, feat_name, [(t, "done") for t in issues],
+                          issues=issues, parent=parent, milestone=milestone,
+                          source_issues=source_issues, feature_status="Review")
+    if source_issues:
+        # feature.json's github.source_issues is the MIRROR `load_recorded` reads; plan.yaml's
+        # own top-level field is what `open` copies from. `stage_station` writes only the
+        # plan, so the mirror is written here.
+        fj = os.path.join(feat, "feature.json")
+        doc = json.load(open(fj))
+        doc["github"]["source_issues"] = list(source_issues)
+        json.dump(doc, open(fj, "w"), indent=2)
+    docs = os.path.join(tmp, ".harness", "harness", "docs")
+    os.makedirs(docs, exist_ok=True)
+    open(os.path.join(docs, "SPEC.md"), "w").write("# fixture probe\n")
+    return feat
+
+
+def ship_env(tmp, stations, children=None, **extra):
+    env = {"FACTORY_GH": os.path.join(tmp, "gh"),
+           "CLAUDE_PROJECT_DIR": tmp,
+           "SHIP_STATIONS": stations,
+           "SHIP_BOARD_STATE": os.path.join(tmp, "board-state")}
+    for num, kids in (children or {}).items():
+        env["SHIP_CHILDREN_%s" % num] = " ".join(str(k) for k in kids)
+    env.update(extra)
+    return env
+
+
+def edits_to(log, station_opt):
+    return [l for l in log if "project item-edit" in l and station_opt in l]
+
+
+def moved_to_done(log):
+    """The ITEM ids written to the Done option. Callers assert PER NUMBER, never as a count,
+    so a run that moved the wrong three cards cannot pass."""
+    out = set()
+    for l in edits_to(log, "OPT_DONE"):
+        m = re.search(r"--id ITEM_(\d+)", l)
+        if m:
+            out.add(int(m.group(1)))
+    return out
+
+
 fails = 0
 
 
@@ -573,7 +675,8 @@ with tempfile.TemporaryDirectory() as tmp:
     check("issue numbers recorded in feature.json",
           gh.get("milestone") == 7
           and re.match(r"^4\d$", str((gh.get("issues") or {}).get("T-01"))), doc)
-    check("created parent records origin created", gh.get("parent_origin") == "created", doc)
+    check("created parent records its NUMBER and no origin key at all (DEC-203 item 4)",
+          isinstance(gh.get("parent"), int) and "parent_origin" not in gh, doc)
 
     attach_lines = [l for l in log if "sub_issues -F sub_issue_id=" in l]
     check("three sub-issues attached to the parent", len(attach_lines) == 3, str(attach_lines))
@@ -598,17 +701,18 @@ with tempfile.TemporaryDirectory() as tmp:
            or "sub_issue_id=" in l or "--jq .id" in l]
     check("re-run open creates nothing", r.returncode == 0 and not new, str(new))
 
-    # --- close-task closes exactly one issue; absorbed issues are cited and left open
+    # --- T-11: the subcommand is GONE. It closed an issue while writing no station, so it
+    #     could produce the exact state this feature exists to prevent -- an issue CLOSED with
+    #     its card away from the done station. T-07's Bash gate would NOT have stopped it:
+    #     gh-sync.py reaches gh through subprocess, which a PreToolUse Bash hook never sees.
+    #     Deleting it is what stops it. The three assertions that stood here were about
+    #     close-task itself and have no surviving subject.
     open(os.path.join(tmp, "calls.log"), "w").close()
     r = run(["close-task", feat, "T-01"], tmp)
-    log = calls(tmp)
-    closes = [l for l in log if l.startswith("issue close")]
-    check("close-task closes exactly one issue", r.returncode == 0 and len(closes) == 1, str(log))
-    check("absorbed #12 #14 NOT closed",
-          not any(" 12 " in l + " " for l in closes) and not any(" 14 " in l + " " for l in closes), str(closes))
-    # T-08: close-task's argv, verbatim — never inferred from the exit code alone.
-    check("close-task's issue close carries an explicit --reason completed (T-08)",
-          len(closes) == 1 and "--reason completed" in closes[0], str(closes))
+    check("close-task is not a subcommand any more",
+          r.returncode != 0 and "close-task" in (r.stdout + r.stderr)
+          and "unknown command" in (r.stdout + r.stderr),
+          "rc=%s out=%r err=%r" % (r.returncode, r.stdout, r.stderr))
 
     # --- ship closes the milestone
     open(os.path.join(tmp, "calls.log"), "w").close()
@@ -656,7 +760,9 @@ with tempfile.TemporaryDirectory() as tmp3:
     gh3 = doc3.get("github") or {}
     check("--parent adopts",
           r.returncode == 0 and len(parent_creates3) == 0 and gh3.get("parent") == 55, doc3)
-    check("adopted parent records origin adopted", gh3.get("parent_origin") == "adopted", doc3)
+    check("an ADOPTED parent records its number and no origin key either — where a parent "
+          "came from is not recorded on either path",
+          gh3.get("parent") == 55 and "parent_origin" not in gh3, doc3)
 
 # --- crash resume: recorded-but-unattached task is attached, not re-created;
 #     and the pre-existing parent + its origin survive every per-task save
@@ -684,7 +790,13 @@ with tempfile.TemporaryDirectory() as tmp4:
           and re.match(r"^4\d$", str(issues4.get("T-02")))
           and re.match(r"^4\d$", str(issues4.get("T-03"))),
           doc4)
-    check("parent_origin survives per-task saves", gh4.get("parent_origin") == "created", doc4)
+    # THE LEGACY KEY IS TOLERATED, NOT PRESERVED. This fixture's feature.json was written
+    # with the key still in its github block (see the write_feature_json call above), which is
+    # what every feature on disk looked like before this task. load_recorded must read it
+    # without crashing, and save_recorded must not write it back.
+    check("a github block written with the old origin key is read without crashing, and the "
+          "key is not written back",
+          gh4.get("parent") == 40 and "parent_origin" not in gh4, doc4)
 
 # --- a phrase containing its own em-dash is taken whole, not truncated at the second one
 with tempfile.TemporaryDirectory() as tmp5:
@@ -711,6 +823,20 @@ with tempfile.TemporaryDirectory() as tmp6:
     check("issue recorded before the failed attach survives the crash",
           re.match(r"^4\d$", str((gh6.get("issues") or {}).get("T-01"))) is not None, doc6)
 
+
+# `issue edit ... --add-label` fails, and NOTHING ELSE does. The one write in `abandon` that is
+# purely cosmetic is the one made to fail, because that is the whole shape of the defect: a
+# cosmetic failure used to abort the run through `gh()`'s `skip()`, taking the backlog write,
+# the rest of the batch and the status write down with it.
+FAKE_GH_STATIONS_LABEL_FAILS = FAKE_GH_STATIONS.replace(
+    'case "$1 $2" in',
+    'case "$*" in\n'
+    '  *"--add-label"*) echo "label service unavailable" >&2; exit 1 ;;\n'
+    'esac\n'
+    'case "$1 $2" in',
+    1,
+)
+
 # --- abandon: adopted parent stays open, subs + milestone close not_planned/closed
 with tempfile.TemporaryDirectory() as tmpA:
     install_gh(tmpA)
@@ -724,12 +850,13 @@ with tempfile.TemporaryDirectory() as tmpA:
     )
     reasonA = os.path.join(tmpA, "reason.txt")
     open(reasonA, "w").write("budget cut — deprioritized this quarter")
-    r = run(["abandon", featA, "--reason-file", reasonA], tmpA)
+    r = run(["abandon", featA, "--reason-file", reasonA, "--yes"], tmpA)
     logA = calls(tmpA)
     patchedA = [l for l in logA if "api -X PATCH" in l and "issues/" in l and "state_reason=not_planned" in l]
     check("abandon closes 3 subs not_planned",
           r.returncode == 0
-          and {re.search(r"issues/(\d+)", l).group(1) for l in patchedA} == {"41", "42", "43"},
+          and {re.search(r"issues/(\d+)", l).group(1) for l in patchedA}
+              == {"41", "42", "43", "40"},
           str(logA))
     check("abandon closes the milestone",
           any("milestones/7" in l and "state=closed" in l for l in logA), str(logA))
@@ -737,9 +864,12 @@ with tempfile.TemporaryDirectory() as tmpA:
           any(l.startswith("issue comment 40") and "--body-file" in l and reasonA in l for l in logA)
           and not any("budget cut" in l for l in logA),
           str(logA))
-    check("abandon leaves an adopted parent open",
-          not any(re.search(r"\bissues/40\b", l) for l in logA)
-          and not any(l.startswith("issue close 40") for l in logA),
+    # REVERSED BY T-05. This read "abandon leaves an adopted parent open". Under DEC-203 the
+    # parent closes whatever its history: the operator's --yes is what replaces the origin
+    # gate, and it is a better guard because a human read the list first.
+    check("abandon closes an ADOPTED parent not_planned — origin decides nothing now",
+          any(re.search(r"\bissues/40\b", l) and "state_reason=not_planned" in l
+              for l in logA),
           str(logA))
     # T-08: each recorded sub-issue gets its OWN assertion — a fixture where one issue is
     # missed must still fail, so no count-only check over the three lines below.
@@ -755,8 +885,11 @@ with tempfile.TemporaryDirectory() as tmpA:
           any(l.startswith("issue edit 43") and "--repo implentio/fake" in l
               and "--add-label abandoned" in l for l in logA),
           str(logA))
-    check("abandon does NOT label an adopted parent that stays open",
-          not any(l.startswith("issue edit 40") for l in logA), str(logA))
+    # REVERSED BY T-05, with the clause above. An adopted parent now closes, so it is
+    # labelled like every other issue this run closed.
+    check("abandon labels the adopted parent it closed",
+          any(l.startswith("issue edit 40") and "--add-label abandoned" in l for l in logA),
+          str(logA))
     check("ensure_labels sends colour b60205 for the abandoned label",
           any(l.startswith("label create abandoned") and "--color b60205" in l for l in logA),
           str(logA))
@@ -773,13 +906,16 @@ with tempfile.TemporaryDirectory() as tmpB:
     )
     reasonB = os.path.join(tmpB, "reason.txt")
     open(reasonB, "w").write("cutting this")
-    r = run(["abandon", featB, "--reason-file", reasonB], tmpB)
+    r = run(["abandon", featB, "--reason-file", reasonB, "--yes"], tmpB)
     logB = calls(tmpB)
-    parent40_calls = [l for l in logB if re.search(r"\bissues/40\b", l)]
-    check("abandon closes a created parent not_planned",
+    # NARROWED: `issues/40` now also matches the DETACH call
+    # (api -X DELETE repos/.../issues/40/sub_issue), so a bare substring filter counts two.
+    # The assertion is about the CLOSE, so it selects the close.
+    parent40_calls = [l for l in logB if re.search(r"\bissues/40 ", l) and "state=closed" in l]
+    check("abandon closes the parent not_planned, exactly once",
           r.returncode == 0
           and len(parent40_calls) == 1
-          and "state=closed" in parent40_calls[0] and "state_reason=not_planned" in parent40_calls[0]
+          and "state_reason=not_planned" in parent40_calls[0]
           and not any(l.startswith("issue close 40") for l in logB),
           str(logB))
     # T-08: the sub-issue and the created parent each get their own assertion.
@@ -805,14 +941,18 @@ with tempfile.TemporaryDirectory() as tmpC:
     )
     reasonC = os.path.join(tmpC, "reason.txt")
     open(reasonC, "w").write("cutting this too")
-    r = run(["abandon", featC, "--reason-file", reasonC], tmpC)
+    r = run(["abandon", featC, "--reason-file", reasonC, "--yes"], tmpC)
     logC = calls(tmpC)
     docC = read_feature_json(os.path.join(featC, "feature.json"))
     ghC = docC.get("github") or {}
-    check("abandon leaves a parent with no recorded origin open",
+    # REVERSED BY T-05. This read "abandon leaves a parent with no recorded origin open" —
+    # the default that left #728 open with all thirteen of its children finished, because both
+    # of the two most recent features recorded their parent by hand and the key read null.
+    check("abandon closes a parent that carries no origin at all — the leave-open default is "
+          "gone, and the key is still absent from the saved block",
           r.returncode == 0
-          and not any(re.search(r"\bissues/40\b", l) for l in logC)
-          and not any(l.startswith("issue close 40") for l in logC)
+          and any(re.search(r"\bissues/40\b", l) and "state_reason=not_planned" in l
+                  for l in logC)
           and "parent_origin" not in ghC,
           str(logC) + " | " + str(docC))
 
@@ -878,7 +1018,7 @@ with tempfile.TemporaryDirectory() as tmpE:
     )
     reasonE = os.path.join(tmpE, "reason.txt")
     open(reasonE, "w").write("no milestone was ever recorded")
-    r = run(["abandon", featE, "--reason-file", reasonE], tmpE)
+    r = run(["abandon", featE, "--reason-file", reasonE, "--yes"], tmpE)
     logE = calls(tmpE)
     check("abandon with no recorded milestone never builds milestones/None",
           r.returncode == 0
@@ -900,7 +1040,7 @@ with tempfile.TemporaryDirectory() as tmpF:
     json.dump({"github": {"sync": False}}, open(os.path.join(tmpF, ".harness", "harness.json"), "w"))
     reasonF = os.path.join(tmpF, "reason.txt")
     open(reasonF, "w").write("does not matter, sync is off")
-    r = run(["abandon", featF, "--reason-file", reasonF], tmpF)
+    r = run(["abandon", featF, "--reason-file", reasonF, "--yes"], tmpF)
     check("abandon with sync disabled -> SKIP, exit 0", r.returncode == 0 and "SKIP" in r.stdout, r.stdout)
 
 # --- ship: a created parent closes completed, milestone patched closed AFTER the parent close
@@ -919,15 +1059,24 @@ with tempfile.TemporaryDirectory() as tmpG:
     patch40G = [l for l in logG if re.search(r"\bissues/40\b", l)]
     close_idxG = [i for i, l in enumerate(logG) if l.startswith("issue close 40")]
     ms_idxG = [i for i, l in enumerate(logG) if "milestones/7" in l and "state=closed" in l]
-    check("ship closes a created parent completed",
-          r.returncode == 0
-          and len(close40G) == 1
-          and not patch40G
-          and bool(close_idxG) and bool(ms_idxG) and close_idxG[0] < ms_idxG[0],
-          str(logG))
-    # T-08: ship's parent close carries the same explicit reason as close-task's, verbatim.
-    check("ship's parent close carries an explicit --reason completed (T-08)",
-          len(close40G) == 1 and "--reason completed" in close40G[0], str(close40G))
+    # T-04 REVERSES BOTH ASSERTIONS THAT STOOD HERE. They read "ship closes a created parent
+    # completed" and "ship's parent close carries an explicit --reason completed (T-08)".
+    # `ship` now closes NOTHING (DEC-203 item 2): it writes the done station and GitHub's own
+    # Auto-close issue workflow does the closing. `parent_origin` is gone with them -- this
+    # fixture still records it only because T-05 is what deletes the field.
+    #
+    # THIS FIXTURE HAS NO BOARD (`stage`, not `stage_station`), so it is also the no-board
+    # path: no card can be moved, and the issue lifecycle must still run to completion.
+    docG = read_feature_json(os.path.join(featG, "feature.json"))
+    check("ship closes NO issue, whatever the recorded parent_origin (DEC-203)",
+          r.returncode == 0 and not close40G and not patch40G, str(logG))
+    check("ship with no board configured says so, in one line",
+          "no board configured" in r.stdout, repr(r.stdout))
+    check("ship with no board configured STILL closes the milestone -- the issue lifecycle "
+          "runs to completion",
+          bool(ms_idxG), str(logG))
+    check("ship with no board configured STILL records the terminal status",
+          docG.get("status") == "Done", docG)
 
 # --- ship: an adopted parent is left open; the milestone still closes regardless (labelled here)
 with tempfile.TemporaryDirectory() as tmpH:
@@ -1099,7 +1248,7 @@ _d2 = tempfile.mkdtemp()
 json.dump({"feature_id": "F2"}, open(os.path.join(_d2, "feature.json"), "w"))
 _rec2 = _ghs.load_recorded(_d2)
 check("T-06C: a feature.json with no github: block returns the default, does not raise",
-      _rec2 == {"milestone": None, "parent": None, "parent_origin": None,
+      _rec2 == {"milestone": None, "parent": None,
                 "attached": [], "issues": {}, "source_issues": []},
       str(_rec2))
 
@@ -1115,14 +1264,14 @@ check("T-06C: a feature.json with no github: block returns the default, does not
 _dabsent = tempfile.mkdtemp()
 _recAbsent = _ghs.load_recorded(_dabsent)
 check("fix1 B row1a: absent feature.json returns the default rec, does not raise",
-      _recAbsent == {"milestone": None, "parent": None, "parent_origin": None,
+      _recAbsent == {"milestone": None, "parent": None,
                      "attached": [], "issues": {}, "source_issues": []},
       str(_recAbsent))
 
 # Row 1b: file present, a dict, but NO github: key -> default rec (already _d2 above,
 # named here again for the fix1 spec's own enumeration).
 check("fix1 B row1b: dict present with no github key returns the default rec",
-      _rec2 == {"milestone": None, "parent": None, "parent_origin": None,
+      _rec2 == {"milestone": None, "parent": None,
                 "attached": [], "issues": {}, "source_issues": []},
       str(_rec2))
 
@@ -1211,7 +1360,7 @@ for _label, _doc in (
         ("no github block yet", {"feature_id": "F1", "status": "Building"}),
         ("an existing github block",
          {"feature_id": "F1", "status": "Building",
-          "github": {"milestone": 1, "parent": 2, "parent_origin": None, "attached": [],
+          "github": {"milestone": 1, "parent": 2, "attached": [],
                      "issues": {}}}),
         ("other keys present",
          {"feature_id": "F1", "status": "Building", "review_sha": "abc1234",
@@ -1408,37 +1557,33 @@ with tempfile.TemporaryDirectory() as tmpN7:
           "-> Doing" in r.stdout and "-> Building" not in r.stdout,
           r.stdout)
 
-# --- close-task on the last outstanding task sets the parent to Review and attempts the
-#     sub-issue close — and the parent write happens even when the close FAILS, which pins
-#     the ordering (parent write BEFORE the close) required by step 4.
+# --- the parent reaches Review when every task is done. RETARGETED to start-task by T-11.
+#     The derivation is CALLER-INDEPENDENT BY CONSTRUCTION -- _apply_parent_rule's own
+#     docstring says it reads plan.yaml from disk and never infers the transition from which
+#     subcommand called it -- so start-task exercises the same property close-task did.
+#     The two ORDERING assertions that stood here are deleted, not retargeted: they ordered
+#     the parent write against a sub-issue close that no longer exists.
 with tempfile.TemporaryDirectory() as tmpO:
-    install_gh(tmpO, FAKE_GH_STATIONS_CLOSE_FAILS)
+    install_gh(tmpO, FAKE_GH_STATIONS)
     featO = stage_station(
         tmpO, "FEAT-09-close-last-task",
         [("T-01", "done"), ("T-02", "done"), ("T-03", "done")],
         issues={"T-01": 41, "T-02": 42, "T-03": 43},
         parent=40,
     )
-    r = run(["close-task", featO, "T-03"], tmpO, {"FACTORY_GH": os.path.join(tmpO, "gh")})
+    r = run(["start-task", featO, "T-03"], tmpO, {"FACTORY_GH": os.path.join(tmpO, "gh")})
     logO = calls(tmpO)
     editsO = [l for l in logO if "project item-edit" in l]
-    check("close-task on the last task exits 0 even though the close fails (SKIP, not a gate)",
-          r.returncode == 0, r.stdout + r.stderr)
-    check("close-task sets the parent to Review",
+    check("every task done: exits 0", r.returncode == 0, r.stdout + r.stderr)
+    check("every task done: the parent card is set to Review",
           any("--id ITEM_40" in l and "--single-select-option-id OPT_REVIEW" in l
               for l in editsO),
           str(editsO))
-    check("the sub-issue close was ATTEMPTED (and is the thing that failed)",
-          any(l.startswith("issue close 43") for l in logO), str(logO))
-    _parent_edit_idx = next((i for i, l in enumerate(logO) if "--id ITEM_40" in l), None)
-    _close_idx = next((i for i, l in enumerate(logO) if l.startswith("issue close 43")), None)
-    check("the parent write is ORDERED BEFORE the close in the log",
-          _parent_edit_idx is not None and _close_idx is not None
-          and _parent_edit_idx < _close_idx,
-          str(logO))
 
-# --- close-task on a feature whose feature.json status is Done writes NO station at all —
-#     the terminal exemption (D-03/D-04) — even though the sub-issue itself still closes.
+# --- a feature whose feature.json status is Done writes NO station at all -- the terminal
+#     exemption (D-03/D-04). RETARGETED to start-task by T-11; the exemption is a property of
+#     _apply_parent_rule, which reads feature.json, not of whichever subcommand called it.
+#     The third assertion, that the sub-issue still closes, went with the command.
 with tempfile.TemporaryDirectory() as tmpP:
     install_gh(tmpP, FAKE_GH_STATIONS)
     featP = stage_station(
@@ -1448,33 +1593,43 @@ with tempfile.TemporaryDirectory() as tmpP:
         parent=40,
         feature_status="Done",
     )
-    r = run(["close-task", featP, "T-01"], tmpP, {"FACTORY_GH": os.path.join(tmpP, "gh")})
+    r = run(["start-task", featP, "T-01"], tmpP, {"FACTORY_GH": os.path.join(tmpP, "gh")})
     logP = calls(tmpP)
-    check("close-task on a Done feature exits 0", r.returncode == 0, r.stdout + r.stderr)
-    check("close-task on a Done feature makes no item-edit call at all",
-          not any("item-edit" in l for l in logP), str(logP))
-    check("close-task on a Done feature still closes the sub-issue",
-          any(l.startswith("issue close 41") for l in logP), str(logP))
+    check("a Done feature exits 0", r.returncode == 0, r.stdout + r.stderr)
+    # NARROWED FROM "no item-edit at all". The terminal exemption is _apply_parent_rule's,
+    # and it covers the PARENT card. The deleted subcommand wrote no station for its own
+    # sub-issue, so "none at all" happened to be true through it; start-task writes the
+    # sub-issue's own station unconditionally, which the exemption never governed. Asserting
+    # the wider claim through the new caller would assert something that was never the rule.
+    check("a Done feature writes NO PARENT station — the terminal exemption",
+          not any("item-edit" in l and "ITEM_40" in l for l in logP), str(logP))
 
 # --- THE LOUD PAIR (SC-04/D-02), one fixture per half, both required —
 #     half 1: gh works but the station write (item-edit) fails -> exit 0, one ERROR line on
 #     stderr naming the issue, AND the call that follows (the sub-issue close) still happens.
+# THE FIXTURE CHANGED WITH THE CALLER. The deleted subcommand made no board READ, so a stub
+# that only answered item-edit was enough for it. start-task reads the board first (its
+# already-Done guard), so the stub has to answer that query too, and FAKE_GH_SHIP is the one
+# that does. SHIP_EDIT_FAIL picks which single card's write fails.
 with tempfile.TemporaryDirectory() as tmpQ1:
-    install_gh(tmpQ1, FAKE_GH_STATIONS_ITEM_EDIT_FAILS)
-    featQ1 = stage_station(
-        tmpQ1, "FEAT-09-loud-item-edit-fails",
-        [("T-01", "done"), ("T-02", "done")],
-        issues={"T-01": 41, "T-02": 42},
-        parent=40,
-    )
-    r = run(["close-task", featQ1, "T-02"], tmpQ1, {"FACTORY_GH": os.path.join(tmpQ1, "gh")})
+    install_gh(tmpQ1, FAKE_GH_SHIP)
+    featQ1 = stage_ship(tmpQ1, "FEAT-09-loud-item-edit-fails", {"T-01": 41, "T-02": 42},
+                         parent=40)
+    r = run(["start-task", featQ1, "T-02"], tmpQ1,
+            ship_env(tmpQ1, "40=Building 41=Building 42=Backlog", SHIP_EDIT_FAIL="ITEM_42"))
     logQ1 = calls(tmpQ1)
     check("loud pair (item-edit fails): process still exits 0", r.returncode == 0,
           r.stdout + r.stderr)
-    check("loud pair (item-edit fails): stderr carries the gh-sync: ERROR line naming issue 40",
-          "gh-sync: ERROR" in r.stderr and "40" in r.stderr, r.stderr)
-    check("loud pair (item-edit fails): the issue call that follows it still happened",
-          any(l.startswith("issue close 42") for l in logQ1), str(logQ1))
+    check("loud pair (item-edit fails): stderr carries the gh-sync: ERROR line naming the "
+          "card whose write failed",
+          "gh-sync: ERROR" in r.stderr and "42" in r.stderr, r.stderr)
+    # RETARGETED by T-11, and the PROPERTY is unchanged: one failed write must not stop the
+    # call that follows it. It used to be asserted against the sub-issue close; the surviving
+    # sequence is the sub-issue's own station write followed by the parent's, so the parent
+    # write must still be attempted after the sub-issue's fails.
+    check("loud pair (item-edit fails): a failed card write does not stop the write that "
+          "follows it — the parent write was still attempted",
+          any("item-edit" in l and "ITEM_40" in l for l in logQ1), str(logQ1))
 
 #     half 2: gh is absent from PATH entirely -> one SKIP line, exit 0, and no item-edit call
 #     is even attempted — proving the failing half alone would be satisfied by a tool that
@@ -1486,7 +1641,7 @@ with tempfile.TemporaryDirectory() as tmpQ2:
         issues={"T-01": 41, "T-02": 42},
         parent=40,
     )
-    r = run(["close-task", featQ2, "T-02"], tmpQ2,
+    r = run(["start-task", featQ2, "T-02"], tmpQ2,
             {"GH_SYNC_GH": os.path.join(tmpQ2, "no-such-gh"),
              "FACTORY_GH": os.path.join(tmpQ2, "no-such-gh")})
     check("loud pair (gh absent): one SKIP line, exit 0",
@@ -1494,8 +1649,10 @@ with tempfile.TemporaryDirectory() as tmpQ2:
     check("loud pair (gh absent): no item-edit call is even attempted",
           not calls(tmpQ2), str(calls(tmpQ2)))
 
-# --- a feature whose harness.json carries no github.board runs open and close-task
-#     unchanged, exits 0, and makes no item-edit call — the environmental precondition (D-02).
+# --- a feature whose harness.json carries no github.board runs open and start-task unchanged,
+#     exits 0, and makes no item-edit call — the environmental precondition (D-02).
+#     RETARGETED from close-task by T-11: the precondition is a property of the environment,
+#     not of the subcommand that meets it.
 with tempfile.TemporaryDirectory() as tmpR:
     install_gh(tmpR, FAKE_GH_STATIONS)
     featR = stage_station(
@@ -1515,13 +1672,17 @@ with tempfile.TemporaryDirectory() as tmpR:
     t2R = (ghR.get("issues") or {}).get("T-02")
     check("no board configured: open still recorded T-02's issue — the lifecycle ran, not skipped",
           t2R is not None, str(docR))
-    r2 = run(["close-task", featR, "T-01"], tmpR, {"FACTORY_GH": os.path.join(tmpR, "gh")})
+    open(os.path.join(tmpR, "calls.log"), "w").close()
+    r2 = run(["start-task", featR, "T-02"], tmpR, {"FACTORY_GH": os.path.join(tmpR, "gh")})
     logR = calls(tmpR)
-    check("no board configured: close-task exits 0", r2.returncode == 0, r2.stdout + r2.stderr)
+    check("no board configured: start-task exits 0", r2.returncode == 0, r2.stdout + r2.stderr)
     check("no board configured: no item-edit call is ever made",
           not any("item-edit" in l for l in logR), str(logR))
-    check("no board configured: close-task actually closed T-01's issue — the lifecycle ran",
-          t1R is not None and any(l.startswith(f"issue close {t1R}") for l in logR), str(logR))
+    # The lifecycle-ran proof, retargeted: it used to be that close-task really closed T-01's
+    # issue. start-task's own recorded evidence is the plan.yaml status it requires and the
+    # exit 0 above; assert it did not silently no-op by requiring the recorded issue exists.
+    check("no board configured: the issue lifecycle still ran — T-01 and T-02 are recorded",
+          t1R is not None and t2R is not None, str(docR))
 
 # --- an UNUSABLE board config (github.board missing station_field) is a LOUD failure of the
 #     WHOLE invocation — exit 2, the offending key on stderr — not an environmental
@@ -1613,8 +1774,9 @@ with tempfile.TemporaryDirectory() as tmpSt3:
           all("--single-select-option-id OPT_REVIEW" in l for l in editsSt3), str(editsSt3))
 
 # --- status Plan, Done and Abandoned each write NO station at all — the harness never
-#     writes those three columns (Plan is board-station.py's, Done is GitHub's own workflow,
-#     Abandoned has no column at all, D-03/DEC-192).
+#     writes those three columns (Plan is board-station.py's, Done is `ship`'s alone -- ship
+#     is the only writer of the done station -- and Abandoned has no column at all,
+#     D-03/DEC-203).
 for _st3_status in ("Plan", "Done", "Abandoned"):
     with tempfile.TemporaryDirectory() as tmpSt4:
         install_gh(tmpSt4, FAKE_GH_STATIONS)
@@ -1800,7 +1962,7 @@ with tempfile.TemporaryDirectory() as tmpT:
     _full_fixture(fjT, "FEAT-23-abandon-status", "Review", 900142)
     reasonT = os.path.join(tmpT, "reason.txt")
     open(reasonT, "w").write("cutting scope")
-    r = run(["abandon", featT, "--reason-file", reasonT], tmpT)
+    r = run(["abandon", featT, "--reason-file", reasonT, "--yes"], tmpT)
     docT = read_feature_json(fjT)
     check("abandon records feature.json status Abandoned",
           r.returncode == 0 and docT.get("status") == "Abandoned",
@@ -1831,7 +1993,7 @@ with tempfile.TemporaryDirectory() as tmpV:
     before_docV = read_feature_json(fjV)
     reasonV = os.path.join(tmpV, "reason.txt")
     open(reasonV, "w").write("cutting scope")
-    r = run(["abandon", featV, "--reason-file", reasonV], tmpV)
+    r = run(["abandon", featV, "--reason-file", reasonV, "--yes"], tmpV)
     after_docV = read_feature_json(fjV)
     other_keys_V = [k for k in before_docV if k != "status"]
     check("abandon leaves every other top-level key unchanged",
@@ -1896,7 +2058,7 @@ with tempfile.TemporaryDirectory() as tmpX3:
 #     instantiates it from templates/feature.json on the first cycle; a fresh document
 #     written here would be missing feature-schema.json's eight required keys
 _dabsentT02 = tempfile.mkdtemp()
-_recAbsentT02 = {"milestone": None, "parent": None, "parent_origin": None, "attached": [],
+_recAbsentT02 = {"milestone": None, "parent": None, "attached": [],
                  "issues": {}, "source_issues": []}
 try:
     _ghs.save_recorded(_dabsentT02, _recAbsentT02)
@@ -2064,64 +2226,601 @@ with tempfile.TemporaryDirectory() as tmpPR8:
           f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
 
 # ---------- T-04 (FEAT-26): closes emits the pull-request-body closing keywords derived
-# from the recorded source tickets, and nothing else ----------------------------------
+# --- T-06: the `closes` subcommand is DELETED ------------------------------------------------
+# It rendered one closing-keyword line per source ticket for the operator to paste into a pull
+# request body, so that
+# GitHub's merge would close the source tickets. Under DEC-203 `ship` lands those cards at the
+# done station instead, and GitHub's Auto-close issue workflow closes them -- so the rendering
+# had one job and no longer has it. There is deliberately NO deprecation shim: a shim that
+# still prints the lines would let the old route keep working while the new one is untested.
+
+# BUILT, NEVER SPELLED. T-06's verify greps this whole directory for the literal, so a test
+# that spelled it would fail the clause it exists to prove.
+_CLOSES_LITERAL = "Closes" + " #"
 
 
-def _closes_fixture(tmp, feat_name, github=None):
-    """A bare feature dir carrying only feature.json — closes needs no BRIEF/PLAN/board
-    config at all (it makes no GitHub call), so stage()'s full scaffold is not used."""
-    feat = os.path.join(tmp, ".harness", "features", feat_name)
-    os.makedirs(feat)
-    fields = dict(feature_id=feat_name, status="Building")
-    if github is not None:
-        fields["github"] = github
-    write_feature_json(os.path.join(feat, "feature.json"), **fields)
-    return feat
-
-
-# --- closes emits one line per recorded source issue in order — deliberately NOT
-#     ascending on disk, so a sort would be caught
+# The fixture is `stage`, not a bare directory. The OLD `closes` was dispatched BEFORE the root
+# climb and `load_config`, so a directory with no harness.json still reached it. Now that the
+# subcommand is gone, the same fixture would exit at `load_config`'s SKIP and never reach the
+# dispatch -- and the test would pass for the wrong reason, proving nothing about `closes`.
 with tempfile.TemporaryDirectory() as tmpC1:
     install_gh(tmpC1)
-    featC1 = _closes_fixture(tmpC1, "FEAT-26-closes-order",
-                              github={"source_issues": [305, 101, 220]})
+    featC1 = stage(tmpC1, feat_name="FEAT-40-closes-gone")
     r = run(["closes", featC1], tmpC1)
-    check("closes emits one line per recorded source issue in order",
-          r.returncode == 0 and r.stdout == "Closes #305\nCloses #101\nCloses #220\n",
-          f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
+    check("the closes subcommand exits non-zero and is named as unknown",
+          r.returncode != 0 and "closes" in (r.stdout + r.stderr)
+          and "unknown command" in (r.stdout + r.stderr),
+          "rc=%s out=%r err=%r" % (r.returncode, r.stdout, r.stderr))
+    check("the closes subcommand renders NO Closes line — not even a deprecation notice "
+          "carrying one",
+          _CLOSES_LITERAL not in (r.stdout + r.stderr), repr(r.stdout + r.stderr))
 
-# --- closes emits nothing at exit 0 when source_issues is empty
-with tempfile.TemporaryDirectory() as tmpC2:
-    install_gh(tmpC2)
-    featC2 = _closes_fixture(tmpC2, "FEAT-26-closes-empty",
-                              github={"source_issues": []})
-    r = run(["closes", featC2], tmpC2)
-    check("closes emits nothing at exit 0 when source_issues is empty",
-          r.returncode == 0 and r.stdout == "",
-          f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
+# No function anywhere in gh-sync.py emits that line any more.
+check("no function in gh-sync.py emits a closing-keyword line",
+      _CLOSES_LITERAL not in open(SYNC).read(), "the literal survives in gh-sync.py")
 
-# --- closes emits nothing at exit 0 when source_issues is absent (no github: block at
-#     all — the legitimate first-sync shape load_recorded returns a default for)
-with tempfile.TemporaryDirectory() as tmpC3:
-    install_gh(tmpC3)
-    featC3 = _closes_fixture(tmpC3, "FEAT-26-closes-absent", github=None)
-    r = run(["closes", featC3], tmpC3)
-    check("closes emits nothing at exit 0 when source_issues is absent",
-          r.returncode == 0 and r.stdout == "",
-          f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
+# --- source_issues itself STAYS: only the rendering went ---------------------------------------
+# `cmd_open` still mirrors plan.yaml's own top-level list into feature.json, and T-04's ship
+# is what moves those cards. Deleting the renderer must not have taken the record with it.
+with tempfile.TemporaryDirectory() as tmpC5:
+    install_gh(tmpC5)
+    featC5 = stage(tmpC5, feat_name="FEAT-40-sources-survive")
+    write_plan_yaml(featC5, "FEAT-40-sources-survive", [("T-01", "pending")],
+                     source_issues=[305, 101, 220])
+    r = run(["open", featC5], tmpC5)
+    ghC5 = (read_feature_json(os.path.join(featC5, "feature.json")).get("github") or {})
+    check("cmd_open still mirrors plan.yaml's source_issues into feature.json, in order",
+          ghC5.get("source_issues") == [305, 101, 220],
+          "rc=%s github=%s" % (r.returncode, ghC5))
 
-# --- closes makes no gh call at all — asserted against the fake gh's own call log, not
-#     merely against the exit code, even though a real (working) gh is on PATH for it to
-#     call
-with tempfile.TemporaryDirectory() as tmpC4:
-    install_gh(tmpC4)
-    featC4 = _closes_fixture(tmpC4, "FEAT-26-closes-no-gh",
-                              github={"source_issues": [9]})
-    r = run(["closes", featC4], tmpC4)
-    logC4 = calls(tmpC4)
-    check("closes makes no gh call at all",
-          r.returncode == 0 and r.stdout == "Closes #9\n" and logC4 == [],
-          f"rc={r.returncode} stdout={r.stdout!r} log={logC4}")
+
+# =============================================================================================
+# T-04 — ship writes the DONE STATION, closes nothing, and waits for open children.
+# =============================================================================================
+
+# --- every recorded card reaches Done, and NOTHING is closed --------------------------------
+with tempfile.TemporaryDirectory() as tmpS1:
+    install_gh(tmpS1, FAKE_GH_SHIP)
+    featS1 = stage_ship(tmpS1, "FEAT-40-ship-all", {"T-01": 41, "T-02": 42},
+                         parent=40, source_issues=[50])
+    r = run(["ship", featS1], tmpS1,
+            ship_env(tmpS1, "40=Review 41=Review 42=Review 50=Review",
+                     children={40: [41, 42, 50], 50: []}))
+    logS1 = calls(tmpS1)
+    doneS1 = moved_to_done(logS1)
+    check("ship: exits 0", r.returncode == 0, r.stdout + r.stderr)
+    for numS1 in (41, 42, 50, 40):
+        check("ship: card #%d reaches the done station" % numS1,
+              numS1 in doneS1, "done=%s stdout=%r" % (sorted(doneS1), r.stdout))
+    check("ship: closes NO issue - no `issue close` argv anywhere in the run",
+          not any(l.startswith("issue close") for l in logS1), str(logS1))
+    check("ship: closes NO issue - no state=closed PATCH against an ISSUE (the milestone "
+          "PATCH is a milestone, not a card)",
+          not any("state=closed" in l and re.search(r"\bissues/\d+\b", l) for l in logS1),
+          str(logS1))
+    check("ship: the milestone is still PATCHed closed",
+          any("milestones/7" in l and "state=closed" in l for l in logS1), str(logS1))
+    check("ship: prints the all-clear line when nothing was held and nothing failed",
+          "gh-sync: every recorded card is at Done" in r.stdout, repr(r.stdout))
+    check("ship: prints NO HELD summary line when nothing was held",
+          "gh-sync: HELD" not in r.stdout, repr(r.stdout))
+    check("ship: prints NO FAILED line when nothing failed",
+          "gh-sync: FAILED" not in r.stdout, repr(r.stdout))
+    check("ship: no line contains 'gh-sync: SKIP' - post-merge-sweep.sh's worktree gate greps "
+          "that literal and a healthy run must not trip it",
+          "gh-sync: SKIP" not in (r.stdout + r.stderr), repr(r.stdout + r.stderr))
+    check("ship: records the terminal status",
+          read_feature_json(os.path.join(featS1, "feature.json")).get("status") == "Done",
+          read_feature_json(os.path.join(featS1, "feature.json")))
+
+# --- D-10: a task sub-issue is moved WITHOUT any child check --------------------------------
+with tempfile.TemporaryDirectory() as tmpS2:
+    install_gh(tmpS2, FAKE_GH_SHIP)
+    featS2 = stage_ship(tmpS2, "FEAT-40-ship-depth1", {"T-01": 41}, parent=40)
+    # #41 is given a child that is NOT at Done. If ship tested the sub-issue group, #41 would
+    # be held; it must not be.
+    r = run(["ship", featS2], tmpS2,
+            ship_env(tmpS2, "40=Review 41=Review 99=Backlog",
+                     children={40: [41], 41: [99]}))
+    logS2 = calls(tmpS2)
+    check("ship D-10: a task sub-issue reaches Done regardless of what sub_issues would say "
+          "about it",
+          41 in moved_to_done(logS2), "done=%s" % sorted(moved_to_done(logS2)))
+    check("ship D-10: ship makes NO sub_issues read for a task sub-issue - the depth-1 "
+          "exemption is a saved call, not just a skipped branch",
+          not any("issues/41/sub_issues" in l for l in logS2), str(logS2))
+
+# --- the open-child test holds a parent, and names ONE child ---------------------------------
+with tempfile.TemporaryDirectory() as tmpS3:
+    install_gh(tmpS3, FAKE_GH_SHIP)
+    featS3 = stage_ship(tmpS3, "FEAT-40-ship-held", {"T-01": 41}, parent=40)
+    r = run(["ship", featS3], tmpS3,
+            ship_env(tmpS3, "40=Review 41=Review 77=Review 78=Review",
+                     children={40: [78, 77, 41]}))
+    logS3 = calls(tmpS3)
+    heldS3 = [l for l in r.stdout.splitlines() if l.startswith("gh-sync: HELD — ")]
+    check("ship HELD: the parent is NOT moved to Done",
+          40 not in moved_to_done(logS3), "done=%s" % sorted(moved_to_done(logS3)))
+    check("ship HELD: exactly ONE held line, naming the LOWEST-numbered open child",
+          len(heldS3) == 1 and "#40 waiting on open child #77" in heldS3[0],
+          "%r stdout=%r" % (heldS3, r.stdout))
+    check("ship HELD: the parenthetical distinguishes a stationed child from a missing one",
+          bool(heldS3) and "(not at Done)" in heldS3[0], repr(heldS3))
+    check("ship HELD: the summary line lists the held card and its child",
+          "gh-sync: HELD 1 of 2 — #40 (child #77)" in r.stdout, repr(r.stdout))
+    check("ship HELD: a run with holds and no failures prints NO FAILED line",
+          "gh-sync: FAILED" not in r.stdout, repr(r.stdout))
+    check("ship HELD: exit status is still 0 - a hold is a healthy outcome",
+          r.returncode == 0, r.stdout + r.stderr)
+
+# --- a child absent from the board is OPEN, and says so differently --------------------------
+with tempfile.TemporaryDirectory() as tmpS4:
+    install_gh(tmpS4, FAKE_GH_SHIP)
+    featS4 = stage_ship(tmpS4, "FEAT-40-ship-offboard", {"T-01": 41}, parent=40)
+    r = run(["ship", featS4], tmpS4,
+            ship_env(tmpS4, "40=Review 41=Review", children={40: [41, 88]}))
+    check("ship HELD: a child that is not on the board at all counts as OPEN, with its own "
+          "parenthetical",
+          "#40 waiting on open child #88 (not on the board)" in r.stdout, repr(r.stdout))
+
+# --- a child present with a NULL station is OPEN too -----------------------------------------
+with tempfile.TemporaryDirectory() as tmpS5:
+    install_gh(tmpS5, FAKE_GH_SHIP)
+    featS5 = stage_ship(tmpS5, "FEAT-40-ship-nullstation", {"T-01": 41}, parent=40)
+    r = run(["ship", featS5], tmpS5,
+            ship_env(tmpS5, "40=Review 41=Review 89=", children={40: [41, 89]}))
+    check("ship HELD: a child on the board with NO station set counts as OPEN, reported as "
+          "not at Done rather than not on the board",
+          "#40 waiting on open child #89 (not at Done)" in r.stdout, repr(r.stdout))
+
+# --- THE ORDERING: children are written before the parent is evaluated -----------------------
+with tempfile.TemporaryDirectory() as tmpS6:
+    install_gh(tmpS6, FAKE_GH_SHIP)
+    featS6 = stage_ship(tmpS6, "FEAT-40-ship-ordering", {"T-01": 41, "T-02": 42}, parent=40)
+    # Both children start at Review. A single-pass implementation reads them as open and holds
+    # the parent; writing the children FIRST is what lets the parent land in the same run.
+    r = run(["ship", featS6], tmpS6,
+            ship_env(tmpS6, "40=Review 41=Review 42=Review", children={40: [41, 42]}))
+    doneS6 = moved_to_done(calls(tmpS6))
+    check("ship ORDERING: a parent whose only open children are cards THIS RUN lands reaches "
+          "Done in that same run",
+          40 in doneS6 and "gh-sync: HELD" not in r.stdout,
+          "done=%s stdout=%r" % (sorted(doneS6), r.stdout))
+
+# --- THE REFRESH SCOPE: a source that is itself a child of the parent -------------------------
+with tempfile.TemporaryDirectory() as tmpS7:
+    install_gh(tmpS7, FAKE_GH_SHIP)
+    featS7 = stage_ship(tmpS7, "FEAT-40-ship-refresh", {"T-01": 41}, parent=40,
+                         source_issues=[50])
+    # #50 is a source AND a child of #40. It is written during step 5's own pass, not step 4's.
+    # An implementation that refreshes the station map only after the sub-issue writes still
+    # reads #50 as open and wrongly holds the parent.
+    r = run(["ship", featS7], tmpS7,
+            ship_env(tmpS7, "40=Review 41=Review 50=Review",
+                     children={40: [41, 50], 50: []}))
+    doneS7 = moved_to_done(calls(tmpS7))
+    check("ship REFRESH: a source_issues entry that is itself a child of the parent, moved in "
+          "step 5's own pass, still lets the parent land in the same run",
+          50 in doneS7 and 40 in doneS7 and "gh-sync: HELD" not in r.stdout,
+          "done=%s stdout=%r" % (sorted(doneS7), r.stdout))
+
+# --- an UNREADABLE child set is never treated as childless ------------------------------------
+with tempfile.TemporaryDirectory() as tmpS8:
+    install_gh(tmpS8, FAKE_GH_SHIP)
+    featS8 = stage_ship(tmpS8, "FEAT-40-ship-unknown", {"T-01": 41}, parent=40)
+    r = run(["ship", featS8], tmpS8,
+            ship_env(tmpS8, "40=Review 41=Review", children={40: [41]},
+                     SHIP_SUBISSUES_FAIL="40"))
+    check("ship UNKNOWN: a sub_issues read that fails leaves the card UNMOVED - unknown is "
+          "never childless",
+          40 not in moved_to_done(calls(tmpS8)),
+          "done=%s" % sorted(moved_to_done(calls(tmpS8))))
+    check("ship UNKNOWN: it prints one stderr line naming the issue",
+          "#40" in r.stderr and "child list unreadable" in r.stderr, repr(r.stderr))
+    # THE REPORT IS THE POINT, not the exit code. An earlier cut printed the stderr line and
+    # continued WITHOUT recording the miss, so the run ended with no `FAILED` line at all --
+    # and post-merge-sweep.sh gates worktree removal on exactly three things: a non-zero exit,
+    # `SKIP`, and `FAILED`. A card that silently missed done therefore had its evidence swept
+    # away with the tree. An unreadable child list is a card that did not reach done, which is
+    # what `FAILED` means, so it is reported like every other one.
+    check("ship UNKNOWN: the miss is REPORTED on the FAILED line, so the sweep keeps the tree",
+          "gh-sync: FAILED" in r.stdout and "#40" in r.stdout.split("gh-sync: FAILED")[1],
+          repr(r.stdout))
+    check("ship UNKNOWN: exit status is still 0", r.returncode == 0, r.stdout + r.stderr)
+
+# --- a BoardError on one card does not stop the rest, and IS reported -------------------------
+with tempfile.TemporaryDirectory() as tmpS9:
+    install_gh(tmpS9, FAKE_GH_SHIP)
+    featS9 = stage_ship(tmpS9, "FEAT-40-ship-failed", {"T-01": 41, "T-02": 42}, parent=40)
+    # #41's write fails. It is deliberately NOT one of #40's children: if it were, the parent
+    # would ALSO be held on it, and the run would print both lines for one cause -- which would
+    # make "FAILED never covers a held card" untestable rather than true.
+    r = run(["ship", featS9], tmpS9,
+            ship_env(tmpS9, "40=Review 41=Review 42=Review", children={40: [42]},
+                     SHIP_EDIT_FAIL="ITEM_41"))
+    doneS9 = moved_to_done(calls(tmpS9))
+    check("ship FAILED: one card's failure does not stop the remaining child writes",
+          42 in doneS9, "done=%s" % sorted(doneS9))
+    check("ship FAILED: the summary names exactly the card whose write failed",
+          "gh-sync: FAILED 1 of 3 — #41 did not reach Done" in r.stdout, repr(r.stdout))
+    check("ship FAILED: the FAILED line never covers a held card - this run held nothing",
+          "gh-sync: HELD" not in r.stdout, repr(r.stdout))
+    check("ship FAILED: exit status is still 0 - best-effort per card (DEC-146)",
+          r.returncode == 0, r.stdout + r.stderr)
+    check("ship FAILED: no line carries 'gh-sync: SKIP'",
+          "gh-sync: SKIP" not in (r.stdout + r.stderr), repr(r.stdout + r.stderr))
+
+# --- the audit runs, AFTER the writes ----------------------------------------------------------
+with tempfile.TemporaryDirectory() as tmpSA:
+    install_gh(tmpSA, FAKE_GH_SHIP)
+    featSA = stage_ship(tmpSA, "FEAT-40-ship-audit", {"T-01": 41}, parent=40)
+    # #90 is CLOSED and its card reads Review - exactly the state a close made outside the
+    # harness leaves behind, and the only thing that detects it.
+    closedSA = json.dumps([{"number": 90, "stateReason": "COMPLETED", "labels": []},
+                            {"number": 41, "stateReason": "COMPLETED", "labels": []}])
+    r = run(["ship", featSA], tmpSA,
+            ship_env(tmpSA, "40=Review 41=Review 90=Review", children={40: [41]},
+                     SHIP_CLOSED_JSON=closedSA))
+    auditSA = [l for l in r.stdout.splitlines() if l.startswith("gh-sync: audit — ")]
+    check("ship AUDIT: it runs, and every finding is printed under ship's own prefix",
+          any("STATION" in l and "#90" in l for l in auditSA),
+          "%r stdout=%r" % (auditSA, r.stdout))
+    check("ship AUDIT ORDERING: a card THIS RUN moved to Done produces no STATION finding - "
+          "the audit runs after the writes, not before",
+          not any("#41" in l for l in auditSA), repr(auditSA))
+    check("ship AUDIT: a summary line counts the findings",
+          any(re.search(r"audit — \d+ finding\(s\)", l) for l in auditSA), repr(auditSA))
+    check("ship AUDIT: no audit line carries 'gh-sync: SKIP' or 'gh-sync: FAILED'",
+          not any("gh-sync: SKIP" in l or "gh-sync: FAILED" in l for l in auditSA),
+          repr(auditSA))
+
+# --- an audit that cannot run does not take the ship down ---------------------------------------
+with tempfile.TemporaryDirectory() as tmpSB:
+    install_gh(tmpSB, FAKE_GH_SHIP)
+    featSB = stage_ship(tmpSB, "FEAT-40-ship-audit-fails", {"T-01": 41}, parent=40)
+    r = run(["ship", featSB], tmpSB,
+            ship_env(tmpSB, "40=Review 41=Review", children={40: [41]},
+                     SHIP_CLOSED_JSON="not json at all"))
+    check("ship AUDIT: an audit that cannot run leaves the exit status 0",
+          r.returncode == 0, r.stdout + r.stderr)
+    check("ship AUDIT: it prints one stderr line saying the audit could not run",
+          "the board audit could not run" in r.stderr, repr(r.stderr))
+    check("ship AUDIT: the cards were still written and the status still recorded",
+          41 in moved_to_done(calls(tmpSB))
+          and read_feature_json(os.path.join(featSB, "feature.json")).get("status") == "Done",
+          r.stdout)
+
+# --- REGRESSION GUARD, REQ-10: status Review still moves the parent and every sub-issue -------
+with tempfile.TemporaryDirectory() as tmpSC:
+    install_gh(tmpSC, FAKE_GH_SHIP)
+    featSC = stage_ship(tmpSC, "FEAT-40-ship-review-guard", {"T-01": 41, "T-02": 42}, parent=40)
+    r = run(["status", featSC, "Review"], tmpSC,
+            ship_env(tmpSC, "40=Backlog 41=Backlog 42=Backlog"))
+    reviewSC = set()
+    for l in edits_to(calls(tmpSC), "OPT_REVIEW"):
+        m = re.search(r"--id ITEM_(\d+)", l)
+        if m:
+            reviewSC.add(int(m.group(1)))
+    for numSC in (40, 41, 42):
+        check("REQ-10 guard: status Review still writes the review station for #%d" % numSC,
+              numSC in reviewSC, "review=%s stdout=%r" % (sorted(reviewSC), r.stdout))
+
+# --- REGRESSION GUARD, SC-12 second clause: BEHAVIOURAL, then a secondary grep ------------------
+for subSD, argsSD in (("status Ready", ["status", "@", "Ready"]),
+                       ("start-task", ["start-task", "@", "T-01"]),
+                       ("abandon", ["abandon", "@", "--reason-file", "@REASON"])):
+    with tempfile.TemporaryDirectory() as tmpSE:
+        install_gh(tmpSE, FAKE_GH_SHIP)
+        featSE = stage_ship(tmpSE, "FEAT-40-only-writer", {"T-01": 41}, parent=40)
+        reasonSE = os.path.join(tmpSE, "reason.txt")
+        open(reasonSE, "w").write("fixture reason")
+        argvSE = [featSE if a == "@" else (reasonSE if a == "@REASON" else a) for a in argsSD]
+        run(argvSE, tmpSE, ship_env(tmpSE, "40=Backlog 41=Backlog"))
+        check("SC-12: `%s` writes NO done station - ship is the only writer" % subSD,
+              not edits_to(calls(tmpSE), "OPT_DONE"), str(calls(tmpSE)))
+
+# SECONDARY ONLY. A grep dies to a rename and cannot see a value passed through a local, so it
+# must never be the only evidence - the behavioural cases above are the real assertion.
+_srcSD = open(SYNC).read()
+# The value is also READ in `cmd_start_task`'s guard, which compares a card's current station
+# against it and refuses -- a read, never a write. What must be unique is the BINDING that a
+# station write is made from.
+_doneRefsSD = [ln.strip() for ln in _srcSD.splitlines()
+               if ln.strip().startswith('done = board["stations"]["done"]')]
+check("SC-12 (secondary): exactly one place BINDS the done station for writing, and it is "
+      "cmd_ship's own local",
+      len(_doneRefsSD) == 1, repr(_doneRefsSD))
+
+
+
+# =============================================================================================
+# T-05 — abandon REPORTS AND ASKS, and the parent's origin is no longer recorded anywhere.
+# =============================================================================================
+
+def _abandon_fixture(tmp, name="FEAT-40-abandon", parent=40, issues=None, milestone=7):
+    install_gh(tmp, FAKE_GH)
+    feat = stage(tmp, feat_name=name)
+    write_feature_json(
+        os.path.join(feat, "feature.json"), feature_id=name,
+        github={"milestone": milestone, "parent": parent,
+                "attached": list((issues or {"T-01": 41, "T-02": 42}).keys()),
+                "issues": issues or {"T-01": 41, "T-02": 42}},
+    )
+    reason = os.path.join(tmp, "reason.txt")
+    open(reason, "w").write("the operator's signed reason")
+    return feat, reason
+
+
+# --- without --yes: it makes NO write at all ---------------------------------------------------
+with tempfile.TemporaryDirectory() as tmpA1:
+    featA1, reasonA1 = _abandon_fixture(tmpA1)
+    r = run(["abandon", featA1, "--reason-file", reasonA1], tmpA1)
+    logA1 = calls(tmpA1)
+    wouldA1 = [l for l in r.stdout.splitlines() if l.startswith("gh-sync: would ")]
+    check("abandon dry run: exits 0", r.returncode == 0, r.stdout + r.stderr)
+    # `load_config` runs `gh auth status` as a precondition before ANY subcommand, so the log
+    # is not expected to be empty. The discriminating assertion is that no WRITE was attempted
+    # -- an empty-log assertion would also pass if the fixture were broken.
+    _writesA1 = [l for l in logA1
+                 if "state=closed" in l or l.startswith("issue edit ")
+                 or l.startswith("issue comment ") or l.startswith("issue close ")
+                 or l.startswith("label create ")]
+    check("abandon dry run: makes ZERO writes - no close, no label, no comment",
+          _writesA1 == [], str(logA1))
+    check("abandon dry run: one would-line per recorded sub-issue",
+          sum(1 for l in wouldA1 if "issue #41" in l) == 1
+          and sum(1 for l in wouldA1 if "issue #42" in l) == 1,
+          repr(wouldA1))
+    check("abandon dry run: the sub-issue line names all four acts — detach, close, label, "
+          "and the return to the backlog — so the dry run and the real run diff by eye",
+          all(w in next(l for l in wouldA1 if "issue #41" in l)
+              for w in ("detach", "parent #40", "not_planned", "abandoned", "backlog")),
+          repr(wouldA1))
+    check("abandon dry run: the parent line says it returns to the backlog too",
+          any("parent #40" in l and "backlog" in l and "not_planned" in l for l in wouldA1),
+          repr(wouldA1))
+    check("abandon dry run: one would-line for the milestone",
+          sum(1 for l in wouldA1 if "close milestone #7" in l) == 1, repr(wouldA1))
+    check("abandon dry run: the parent is LABELLED as the parent, never as one more number - "
+          "it now closes unconditionally, so a column of numbers would hide the epic",
+          any("close parent #40" in l for l in wouldA1), repr(wouldA1))
+    check("abandon dry run: it says what the operator must do next",
+          "re-run with --yes" in r.stdout, repr(r.stdout))
+    check("abandon dry run: does NOT record the status",
+          read_feature_json(os.path.join(featA1, "feature.json")).get("status") != "Abandoned",
+          read_feature_json(os.path.join(featA1, "feature.json")))
+
+# --- with --yes: it closes exactly what the dry run listed, in that order ------------------------
+with tempfile.TemporaryDirectory() as tmpA2:
+    featA2, reasonA2 = _abandon_fixture(tmpA2)
+    dry = run(["abandon", featA2, "--reason-file", reasonA2], tmpA2)
+    dry_numbers = [int(m.group(1)) for m in
+                    (re.search(r"#(\d+)", l) for l in dry.stdout.splitlines()
+                     if l.startswith("gh-sync: would "))
+                    if m]
+
+with tempfile.TemporaryDirectory() as tmpA3:
+    featA3, reasonA3 = _abandon_fixture(tmpA3)
+    r = run(["abandon", featA3, "--reason-file", reasonA3, "--yes"], tmpA3)
+    logA3 = calls(tmpA3)
+    real_numbers = []
+    for l in logA3:
+        m = re.search(r"issues/(\d+) -f state=closed", l) or \
+            re.search(r"milestones/(\d+) -f state=closed", l) or \
+            re.search(r"^issue comment (\d+) ", l)
+        if m:
+            real_numbers.append(int(m.group(1)))
+    check("abandon --yes: the numbers it actually closes, in order, equal the numbers the dry "
+          "run listed - ONE renderer, so the operator confirms the list that executes",
+          real_numbers == dry_numbers,
+          "dry=%s real=%s log=%s" % (dry_numbers, real_numbers, logA3))
+    check("abandon --yes: every sub-issue is closed not_planned",
+          all(any("issues/%d" % n in l and "state_reason=not_planned" in l for l in logA3)
+              for n in (41, 42)), str(logA3))
+    check("abandon --yes: the PARENT is closed not_planned whatever its history - the "
+          "confirmation replaces the old origin gate",
+          any("issues/40" in l and "state_reason=not_planned" in l for l in logA3), str(logA3))
+    check("abandon --yes: everything it closed is labelled abandoned, parent included",
+          all(any(l.startswith("issue edit %d " % n) and "abandoned" in l for l in logA3)
+              for n in (41, 42, 40)), str(logA3))
+    check("abandon --yes: the milestone is closed",
+          any("milestones/7" in l and "state=closed" in l for l in logA3), str(logA3))
+    check("abandon --yes: records status Abandoned",
+          read_feature_json(os.path.join(featA3, "feature.json")).get("status") == "Abandoned",
+          read_feature_json(os.path.join(featA3, "feature.json")))
+
+# --- --yes BEFORE the directory behaves identically to --yes after it ----------------------------
+# Without the name-search strip in main(), `abandon --yes <dir>` reads --yes as the feature
+# directory and dies "--yes is not a directory" -- at exactly the moment the operator is being
+# careful about a destructive command.
+with tempfile.TemporaryDirectory() as tmpA4:
+    featA4, reasonA4 = _abandon_fixture(tmpA4)
+    r = run(["abandon", "--yes", featA4, "--reason-file", reasonA4], tmpA4)
+    docA4 = read_feature_json(os.path.join(featA4, "feature.json"))
+    check("abandon --yes BEFORE the directory: does not die with 'is not a directory'",
+          "is not a directory" not in (r.stdout + r.stderr), r.stdout + r.stderr)
+    check("abandon --yes BEFORE the directory: behaves identically - status recorded, parent "
+          "closed",
+          r.returncode == 0 and docA4.get("status") == "Abandoned"
+          and any("issues/40" in l and "state_reason=not_planned" in l for l in calls(tmpA4)),
+          "rc=%s doc=%s" % (r.returncode, docA4))
+
+# --- --yes on any other subcommand is a CALLER ERROR ----------------------------------------------
+with tempfile.TemporaryDirectory() as tmpA5:
+    featA5, _reasonA5 = _abandon_fixture(tmpA5, name="FEAT-40-yes-on-ship")
+    r = run(["ship", featA5, "--yes"], tmpA5)
+    check("--yes on ship exits 1 with a caller-error message naming the subcommand - a flag "
+          "that silently does nothing teaches the operator it is harmless everywhere",
+          r.returncode == 1 and "--yes" in (r.stdout + r.stderr)
+          and "abandon" in (r.stdout + r.stderr), "rc=%s %r" % (r.returncode, r.stderr))
+    check("--yes on ship makes no gh call at all", calls(tmpA5) == [], str(calls(tmpA5)))
+
+# --- a github block still carrying the old origin key is read, and never written back --------------
+with tempfile.TemporaryDirectory() as tmpA6:
+    install_gh(tmpA6, FAKE_GH)
+    featA6 = stage(tmpA6, feat_name="FEAT-40-legacy-key")
+    fjA6 = os.path.join(featA6, "feature.json")
+    # Written by hand, bypassing write_feature_json, because the schema no longer allows the
+    # key: this is what every feature on disk looked like before this task.
+    json.dump({"feature_id": "FEAT-40-legacy-key", "branch": None, "pr": None,
+               "status": "Review", "review_sha": None, "cycles_used": 0,
+               "max_total_cycles": 10, "runs": [],
+               "github": {"milestone": 7, "parent": 40, "parent_origin": "adopted",
+                          "attached": ["T-01"], "issues": {"T-01": 41}}},
+              open(fjA6, "w"), indent=2)
+    reasonA6 = os.path.join(tmpA6, "reason.txt")
+    open(reasonA6, "w").write("legacy reason")
+    r = run(["abandon", featA6, "--reason-file", reasonA6, "--yes"], tmpA6)
+    ghA6 = (read_feature_json(fjA6).get("github") or {})
+    check("legacy origin key: abandon reads the block without crashing",
+          r.returncode == 0, r.stdout + r.stderr)
+    check("legacy origin key: the parent closes anyway - the key is read but decides nothing",
+          any("issues/40" in l and "state_reason=not_planned" in l for l in calls(tmpA6)),
+          str(calls(tmpA6)))
+
+
+
+# --- abandon with a BOARD: detach, close, label, and back to the BACKLOG ------------------------
+# The operator's correction of 2026-08-25. Measured the same day on probe #860: closing an issue
+# moves its card to the done station at t+0s, not_planned included. So before this, every
+# abandoned ticket landed at Done and the board could not tell dropped work from shipped work.
+with tempfile.TemporaryDirectory() as tmpAB:
+    install_gh(tmpAB, FAKE_GH_SHIP)
+    featAB = stage_ship(tmpAB, "FEAT-40-abandon-backlog", {"T-01": 41, "T-02": 42}, parent=40)
+    reasonAB = os.path.join(tmpAB, "reason.txt")
+    open(reasonAB, "w").write("dropped")
+    r = run(["abandon", featAB, "--reason-file", reasonAB, "--yes"], tmpAB,
+            ship_env(tmpAB, "40=Review 41=Review 42=Review"))
+    logAB = calls(tmpAB)
+    backlogAB = set()
+    for l in edits_to(logAB, "OPT_BACKLOG"):
+        m = re.search(r"--id ITEM_(\d+)", l)
+        if m:
+            backlogAB.add(int(m.group(1)))
+    check("abandon: exits 0 with a board configured", r.returncode == 0, r.stdout + r.stderr)
+    for numAB in (41, 42, 40):
+        check("abandon: card #%d is returned to the BACKLOG station, not left at Done" % numAB,
+              numAB in backlogAB, "backlog=%s stdout=%r" % (sorted(backlogAB), r.stdout))
+    check("abandon: NO card is written to the done station",
+          not edits_to(logAB, "OPT_DONE"), str(logAB))
+
+    # THE ORDER IS THE WHOLE POINT. A backlog write made BEFORE the close is overwritten by
+    # GitHub's own workflow, silently. Measured on #860: a write AFTER the close sticks.
+    close41 = next(i for i, l in enumerate(logAB)
+                   if "issues/41 " in l and "state=closed" in l)
+    backlog41 = next(i for i, l in enumerate(logAB)
+                     if "item-edit" in l and "ITEM_41" in l and "OPT_BACKLOG" in l)
+    check("abandon: the backlog write comes AFTER the close — a write before it would be "
+          "overwritten by GitHub's Item-closed workflow",
+          backlog41 > close41, "close=%d backlog=%d log=%s" % (close41, backlog41, logAB))
+
+    # DETACH. Under DEC-203 a ticket is open while its card is not at Done, so an abandoned
+    # ticket at the backlog reads as OPEN — and ship refuses to move a parent with an open
+    # child. Left attached, one abandoned child holds its parent forever, and the Bash gate
+    # refuses a hand close, so there is no way out.
+    for numAB in (41, 42):
+        check("abandon: sub-issue #%d is DETACHED from parent #40, so it cannot hold the "
+              "parent open" % numAB,
+              any("DELETE" in l and "issues/40/sub_issue" in l
+                  and "sub_issue_id=9000%d" % numAB in l for l in logAB), str(logAB))
+    detach41 = next(i for i, l in enumerate(logAB)
+                    if "DELETE" in l and "sub_issue_id=900041" in l)
+    check("abandon: the detach comes BEFORE the close — a detach is a write on the parent, "
+          "and doing it first means a failed close cannot leave a half-detached child",
+          detach41 < close41, "detach=%d close=%d" % (detach41, close41))
+
+    check("abandon: everything it closed still carries the abandoned label",
+          all(any(l.startswith("issue edit %d " % n) and "abandoned" in l for l in logAB)
+              for n in (41, 42, 40)), str(logAB))
+    check("abandon: still records status Abandoned",
+          read_feature_json(os.path.join(featAB, "feature.json")).get("status") == "Abandoned",
+          read_feature_json(os.path.join(featAB, "feature.json")))
+
+# --- a detach that FAILS does not stop the close ------------------------------------------------
+# Best-effort, like every other write here. An attached-but-closed ticket is a worse outcome
+# than a detached one, and far better than not closing it at all.
+with tempfile.TemporaryDirectory() as tmpAC:
+    install_gh(tmpAC, FAKE_GH_SHIP)
+    featAC = stage_ship(tmpAC, "FEAT-40-detach-fails", {"T-01": 41}, parent=40)
+    reasonAC = os.path.join(tmpAC, "reason.txt")
+    open(reasonAC, "w").write("dropped")
+    r = run(["abandon", featAC, "--reason-file", reasonAC, "--yes"], tmpAC,
+            ship_env(tmpAC, "40=Review 41=Review", SHIP_SUBISSUES_FAIL="40"))
+    logAC = calls(tmpAC)
+    check("abandon: exits 0 even when a detach cannot be made",
+          r.returncode == 0, r.stdout + r.stderr)
+    check("abandon: the close still runs when the detach fails",
+          any("issues/41 " in l and "state=closed" in l for l in logAC), str(logAC))
+
+
+
+# ---------- ABANDON PUTS THE CARD BACK IN THE BACKLOG, AND NOTHING COSMETIC CAN STOP IT ------
+# The operator's ruling: an abandoned ticket is NOT done work. It closes `not_planned`, keeps
+# the `abandoned` label, detaches from its parent, and its card returns to the BACKLOG station.
+# Probe #860 measured why the order is forced: a close moves the card to the done station at
+# t+0s, so the backlog write must come AFTER the close or GitHub overwrites it.
+
+with tempfile.TemporaryDirectory() as tmpAB:
+    install_gh(tmpAB, FAKE_GH_STATIONS)
+    featAB = stage_station(tmpAB, "FEAT-40-abandon-backlog",
+                           [("T-01", "pending")], issues={"T-01": 41}, parent=40)
+    reasonAB = os.path.join(tmpAB, "reason.txt")
+    open(reasonAB, "w").write("dropped")
+    rAB = run(["abandon", featAB, "--reason-file", reasonAB, "--yes"], tmpAB,
+              {"FACTORY_GH": os.path.join(tmpAB, "gh")})
+    logAB = calls(tmpAB)
+    editsAB = [l for l in logAB if "project item-edit" in l]
+    check("abandon exits 0", rAB.returncode == 0, rAB.stdout + rAB.stderr)
+    check("abandon writes BACKLOG for the sub-issue's card, never the done station",
+          any("--id ITEM_41" in l and "--single-select-option-id OPT_BACKLOG" in l
+              for l in editsAB)
+          and not any("--id ITEM_41" in l and "OPT_DONE" in l for l in editsAB),
+          str(editsAB))
+    check("abandon writes BACKLOG for the parent's card too",
+          any("--id ITEM_40" in l and "--single-select-option-id OPT_BACKLOG" in l
+              for l in editsAB),
+          str(editsAB))
+    # ORDERING, asserted by position in the ONE call log rather than by counting: the close
+    # must land before the backlog write, or GitHub's own workflow overwrites it.
+    _close41 = next((i for i, l in enumerate(logAB)
+                     if "api -X PATCH" in l and "issues/41" in l and "not_planned" in l), None)
+    _back41 = next((i for i, l in enumerate(logAB)
+                    if "project item-edit" in l and "--id ITEM_41" in l
+                    and "OPT_BACKLOG" in l), None)
+    check("the close precedes the backlog write, because a close moves the card to done at "
+          "t+0s and a write made before it would be silently overwritten",
+          _close41 is not None and _back41 is not None and _close41 < _back41,
+          f"close={_close41} backlog={_back41}")
+
+with tempfile.TemporaryDirectory() as tmpAC:
+    install_gh(tmpAC, FAKE_GH_STATIONS_LABEL_FAILS)
+    featAC = stage_station(tmpAC, "FEAT-40-abandon-label-fails",
+                           [("T-01", "pending"), ("T-02", "pending")],
+                           issues={"T-01": 41, "T-02": 42}, parent=40)
+    reasonAC = os.path.join(tmpAC, "reason.txt")
+    open(reasonAC, "w").write("dropped")
+    rAC = run(["abandon", featAC, "--reason-file", reasonAC, "--yes"], tmpAC,
+              {"FACTORY_GH": os.path.join(tmpAC, "gh")})
+    logAC = calls(tmpAC)
+    editsAC = [l for l in logAC if "project item-edit" in l]
+    patchedAC = {re.search(r"issues/(\d+)", l).group(1) for l in logAC
+                 if "api -X PATCH" in l and "issues/" in l and "not_planned" in l}
+    check("a failing --add-label does not abort the run — no SKIP, exit 0",
+          rAC.returncode == 0 and "gh-sync: SKIP" not in rAC.stdout,
+          f"rc={rAC.returncode} stdout={rAC.stdout!r}")
+    check("a failing --add-label on the FIRST issue still leaves every later issue closed",
+          {"41", "42", "40"} <= patchedAC, sorted(patchedAC))
+    check("a failing --add-label still leaves the card in the BACKLOG, never at done — the "
+          "cosmetic write cannot cost the state correction",
+          any("--id ITEM_41" in l and "OPT_BACKLOG" in l for l in editsAC)
+          and not any("OPT_DONE" in l for l in editsAC),
+          str(editsAC))
+    check("the label failure is REPORTED on stderr, naming the issue",
+          "#41" in rAC.stderr and "not labelled" in rAC.stderr, repr(rAC.stderr))
+    check("_record_status still runs — feature.json reaches Abandoned",
+          json.load(open(os.path.join(featAC, "feature.json")))["status"] == "Abandoned",
+          open(os.path.join(featAC, "feature.json")).read())
+
 
 print(f"\n{'ALL PASSED' if not fails else str(fails) + ' FAILED'}")
 sys.exit(1 if fails else 0)

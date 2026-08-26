@@ -33,7 +33,7 @@ Append through the merge tool instead — it merges under a lock and replaces at
 both contexts keep their bullets:
 
 ```bash
-python3 .claude/skills/harness/bin/observations-merge.py apply \
+python3 .agents/skills/harness/bin/observations-merge.py apply \
   --file .harness/<repo>/features/<FEAT>/observations/<your-agent-name>.md --entries -
 ```
 
@@ -68,7 +68,7 @@ Those rules — the procedure, the entry format, the ops schema, the caps — ar
 (DEC-158): they governed ~33 spawns per feature that never write the file.
 
 **When your dispatch says "distill", read
-`.claude/skills/harness-distill/SKILL.md` first.** Until then the only thing you need to know is
+`.agents/skills/harness-distill/SKILL.md` first.** Until then the only thing you need to know is
 that you do not touch `.harness/expertise/<your-agent-name>.md`.
 
 ## Red flags

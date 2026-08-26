@@ -6,7 +6,7 @@ description: Run a harness team — a small DAG of agents hosted by a domain lea
 # Harness: Team Runner
 
 A team is a **DAG of steps, each dispatched to one agent**, hosted by a domain lead. This skill is
-the algorithm; the teams are data at `.claude/skills/harness/teams/*.yaml`.
+the algorithm; the teams are data at `.agents/skills/harness/teams/*.yaml`.
 
 **You are the host, and you are a lead.** You are running your own squad's DAG.
 
@@ -33,7 +33,7 @@ outputs disjoint when steps run in parallel.
 
 ### 1. Resolve the team
 
-`.harness/teams/<name>.yaml` first, then `.claude/skills/harness/teams/<name>.yaml`. Project
+`.harness/teams/<name>.yaml` first, then `.agents/skills/harness/teams/<name>.yaml`. Project
 overrides win, and anything project-specific has to live outside the shipped directory (DEC-113).
 
 **No team named?** List `name` + `purpose` from both directories and stop. The filesystem is the

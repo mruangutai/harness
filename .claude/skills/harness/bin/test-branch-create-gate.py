@@ -23,7 +23,7 @@ import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 GATE = os.path.join(HERE, "branch-create-gate.sh")
-# HERE = <repo>/.claude/skills/harness/bin — four levels up is the repo root.
+# HERE = <repo>/.agents/skills/harness/bin — four levels up is the repo root.
 REPO_ROOT = os.path.abspath(os.path.join(HERE, "..", "..", "..", ".."))
 
 RESULTS = []

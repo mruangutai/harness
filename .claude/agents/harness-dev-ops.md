@@ -1,16 +1,24 @@
 ---
 name: harness-dev-ops
 description: DevOps engineer — infrastructure, CI/CD, build tooling, deployment, environment config, scaffolding, dependency management, and test-runner detection. Use for work that is not feature code.
-tools: [Read, Glob, Grep, Edit, Write, Bash]
+tools:
+- Read
+- Glob
+- Grep
+- Edit
+- Write
+- Bash
 color: cyan
 model: sonnet
 effort: medium
 skills:
-  - harness-handoff
-  - harness-expertise
-  - harness-principles
-  - harness-tdd-enforcement
+- harness-handoff
+- harness-expertise
+- harness-principles
+- harness-tdd-enforcement
 ---
+
+HARNESS_AGENT_ID: harness-dev-ops
 
 # Harness: DevOps Engineer
 

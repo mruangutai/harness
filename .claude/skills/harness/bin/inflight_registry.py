@@ -40,7 +40,7 @@ CLAIM_TTL_SECONDS = 3600
 LOCK_TIMEOUT_SECONDS = 1.0
 REGISTRY_REL = ".harness/.inflight-claims.json"
 
-CLI_REL_PATH = ".claude/skills/harness/bin/inflight_registry.py"
+CLI_REL_PATH = ".agents/skills/harness/bin/inflight_registry.py"
 RELEASE_ALL_CMD = f"python3 {CLI_REL_PATH} release-all"
 
 
@@ -314,7 +314,7 @@ def _cli_list(root):
 
 
 def _resolve_root(rest):
-    root = os.environ.get("CLAUDE_PROJECT_DIR")
+    root = (os.environ.get("HARNESS_PROJECT_DIR") or os.environ.get("CLAUDE_PROJECT_DIR"))
     if "--root" in rest:
         i = rest.index("--root")
         root = rest[i + 1]

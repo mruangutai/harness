@@ -23,7 +23,7 @@ import tempfile
 
 BIN_DIR = os.path.dirname(os.path.realpath(__file__))
 RUNNER = os.path.join(BIN_DIR, "run-unit-tests.sh")
-REPO_ROOT = os.environ.get("CLAUDE_PROJECT_DIR") or os.path.abspath(
+REPO_ROOT = (os.environ.get("HARNESS_PROJECT_DIR") or os.environ.get("CLAUDE_PROJECT_DIR")) or os.path.abspath(
     os.path.join(BIN_DIR, "..", "..", "..", ".."))
 REAL_CONFIG = os.path.join(REPO_ROOT, ".harness", "harness.json")
 

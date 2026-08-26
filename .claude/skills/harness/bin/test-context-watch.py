@@ -8,7 +8,7 @@ context-watch.py beside this file, so a mutation run points both the loader used
 "real" assertions and the mutant-copy red proofs at the SAME on-disk file.
 
 Every fixture is a LITERAL written under tempfile.mkdtemp() and removed in a finally block.
-Nothing is added under .harness or .claude/skills (SC-11, D-08).
+Nothing is added under .harness or .agents/skills (SC-11, D-08).
 
 CASE GROUP A — the corrected arithmetic (D-11): a single transcript entry whose top-level
 message.usage sums to 1494870 while its per-iteration MAX is 747992. The two are deliberately

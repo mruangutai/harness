@@ -18,7 +18,7 @@ BIN_DIR = os.path.dirname(os.path.realpath(__file__))
 if BIN_DIR not in sys.path:
     sys.path.insert(0, BIN_DIR)
 
-REPO_ROOT = os.environ.get("CLAUDE_PROJECT_DIR") or os.path.abspath(
+REPO_ROOT = (os.environ.get("HARNESS_PROJECT_DIR") or os.environ.get("CLAUDE_PROJECT_DIR")) or os.path.abspath(
     os.path.join(BIN_DIR, "..", "..", "..", "..")
 )
 
@@ -55,12 +55,10 @@ def full_doc(status="Building"):
         "runs": [{"id": "r1", "squad": "code", "verdict": "PASS", "agent": "harness-qa"}],
         "max_total_runs": 10,
         "github": {
-            "milestone": 1, "parent": 2, "parent_origin": "x",
-            "attached": ["a"], "issues": {"T-01": 10},
+            "milestone": 1, "parent": 2,             "attached": ["a"], "issues": {"T-01": 10},
         },
         "factory": {
-            "repo": "r", "parent": 1, "parent_origin": "x",
-            "issues": {}, "items": {}, "edges": {"parent": [], "blocked_by": {}},
+            "repo": "r", "parent": 1,             "issues": {}, "items": {}, "edges": {"parent": [], "blocked_by": {}},
         },
     }
 
@@ -504,7 +502,7 @@ def case_t15_red():
 
 def _tree_with_schema(root, extra_github_key=None):
     """A checkout-shaped tree with its OWN feature-schema.json under
-    .claude/skills/harness/bin/, optionally declaring one extra key under `github`."""
+    .agents/skills/harness/bin/, optionally declaring one extra key under `github`."""
     binp = os.path.join(root, ".claude", "skills", "harness", "bin")
     os.makedirs(binp, exist_ok=True)
     sch = json.loads(open(feature_schema.SCHEMA_PATH, encoding="utf-8").read())

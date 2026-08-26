@@ -1,9 +1,14 @@
 #!/usr/bin/env python3
-"""Tests that the orchestrator playbook (SKILL.md) still describes the never-wait loop,
-never the receive-and-wait one it replaced (FEAT-35).
+"""Tests that the orchestrator playbook (SKILL.md) never returns to the receive-and-wait
+loop it replaced (FEAT-35).
+
+The positive `NEVER WAIT FOR A LEAD` assertion was retired when that block left the
+playbook: FEAT-35 REQ-07 puts the rule and its reason in DECISIONS.md (DEC-201), and
+REQ-02 is met by the loop's own "There is no waiting anywhere in this loop". The
+retired-wording absences below are what still guards the direction of travel.
 
 Stdlib only, no subprocess: reads the playbook text straight off disk from PLAYBOOK_PATH
-(default .claude/skills/harness/SKILL.md), so the same eight assertions can be pointed at
+(default .agents/skills/harness/SKILL.md), so the same seven assertions can be pointed at
 an older copy (e.g. a `git show <rev>:...SKILL.md` extract) to prove they discriminate.
 
 Case 6 is worded as a PRESENCE assertion, not a pure negative, on purpose. The intent's
@@ -19,7 +24,7 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, "..", "..", "..", ".."))
-DEFAULT_PLAYBOOK = os.path.join(ROOT, ".claude", "skills", "harness", "SKILL.md")
+DEFAULT_PLAYBOOK = os.path.join(ROOT, ".agents", "skills", "harness", "SKILL.md")
 
 failures = []
 
@@ -52,12 +57,6 @@ def case2_absence_loop_until_done(text):
     literal = "Loop until DONE"
     check("case2_absence_loop_until_done", literal not in text,
           f"found the retired literal {literal!r}")
-
-
-def case3_presence_never_wait_for_a_lead(text):
-    literal = "NEVER WAIT FOR A LEAD"
-    check("case3_presence_never_wait_for_a_lead", literal in text,
-          f"literal {literal!r} not found")
 
 
 def case4_presence_context_watch(text):
@@ -107,7 +106,6 @@ def main():
 
     case1_absence_receive_team_digest(text)
     case2_absence_loop_until_done(text)
-    case3_presence_never_wait_for_a_lead(text)
     case4_presence_context_watch(text)
     case5_presence_context_warn_tokens(text)
     case6_context_warn_tokens_never_paired_with_refusal(text)

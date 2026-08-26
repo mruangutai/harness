@@ -17,7 +17,7 @@ run-unit-tests.sh's header comment already standardise on, copied here rather th
 prefer CLAUDE_PROJECT_DIR when it is set AND `.harness/harness/docs/SPEC.md` is readable under it;
 otherwise derive the root from this file's own location, walking up out of the bin directory.
 `.harness/harness/docs/SPEC.md` is the probe, never `bin/` or a script file: no mechanism copies the skill
-directory (scripts, no docs) to `$HOME/.claude/skills` any more, and the probe stays a docs path
+directory (scripts, no docs) to `$HOME/.agents/skills` any more, and the probe stays a docs path
 because the derived root must be a full checkout of this repository, which a bare skills tree is
 not — probing for the bin directory or for a script would re-accept that tree and read a fleet
 declaration that is not this checkout's own.
@@ -44,7 +44,7 @@ _STATION_KEYS = ("backlog", "plan", "ready", "building", "review", "done")
 def harness_root():
     """Return the absolute root of this harness checkout. See the module docstring for why."""
     derived = os.path.abspath(os.path.join(_BIN_DIR, "..", "..", "..", ".."))
-    asked = os.environ.get("CLAUDE_PROJECT_DIR") or ""
+    asked = (os.environ.get("HARNESS_PROJECT_DIR") or os.environ.get("CLAUDE_PROJECT_DIR")) or ""
     if asked and os.access(os.path.join(asked, _PROBE), os.R_OK):
         return asked
     if asked:

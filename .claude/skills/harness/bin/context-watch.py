@@ -66,7 +66,7 @@ DEFAULT_LOG_RETENTION_DAYS = 30
 
 def _repo_root_from_script():
     """The repo root, derived from this script's own on-disk location:
-    .claude/skills/harness/bin/context-watch.py -> repo root, four
+    .agents/skills/harness/bin/context-watch.py -> repo root, four
     directories up. No environment lookup, no cwd dependence."""
     bin_dir = os.path.dirname(os.path.abspath(__file__))
     harness_skill_dir = os.path.dirname(bin_dir)

@@ -1,17 +1,25 @@
 ---
 name: harness-data-engineer
 description: Data engineer — schemas, migrations, pipelines, data models, queries, indexes and serialization contracts. Use when the work changes how data is shaped, stored, moved or queried.
-tools: [Read, Glob, Grep, Edit, Write, Bash]
+tools:
+- Read
+- Glob
+- Grep
+- Edit
+- Write
+- Bash
 color: cyan
 model: sonnet
 effort: medium
 skills:
-  - harness-handoff
-  - harness-expertise
-  - harness-principles
-  - harness-tdd-enforcement
-  - harness-digest-dev
+- harness-handoff
+- harness-expertise
+- harness-principles
+- harness-tdd-enforcement
+- harness-digest-dev
 ---
+
+HARNESS_AGENT_ID: harness-data-engineer
 
 # Harness: Data Engineer
 
@@ -57,7 +65,7 @@ deterministic.
 
 ## When you are handed a bug
 
-Read `.claude/skills/harness-systematic-debugging/SKILL.md` first (not preloaded, DEC-158) and
+Read `.agents/skills/harness-systematic-debugging/SKILL.md` first (not preloaded, DEC-158) and
 follow it — including the three-failed-fixes stop (`BLOCKED` with what you tested).
 
 ## Reaching a boundary

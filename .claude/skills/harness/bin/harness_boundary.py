@@ -159,30 +159,33 @@ def matches(path, pat):
 # a resolver that granted a base the hook refuses is the build-time discovery
 # check-plan-routes.py exists to prevent.
 #
-# The operator's verbatim four, and the list is CLOSED. The docs entry
-# `.harness/*/docs/**` is logically redundant: the `.harness/` short-circuit in
-# `is_control_plane_glob` fires first. Kept so this list remains the complete
-# statement of what harness owns. It is
-# not widened to `docs/**` and no fifth entry is added. The accepted risk, signed: a
-# future harness-owned path starting with neither `.harness/` nor `.claude/` must be
-# added here or it silently becomes a product path. No machinery detects the
-# omission — that was ruled out deliberately. This is one more place to remember.
+# Harness-owned paths with product-shaped names must be explicit. Hidden
+# control-plane roots are additionally recognized by `is_control_plane_glob`
+# below so their grants never bleed into a product checkout. Provider-neutral
+# OMP adds `.agents`, `.omp`, and `AGENTS.md`; the older `.claude` root remains
+# a compatibility surface.
 HARNESS_CONTROL_PLANE = [
     ".harness/*/docs/**",
     "docs/PRINCIPLES.md",
     "README.md",
+    "AGENTS.md",
+    ".agents/**",
+    ".omp/**",
     ".github/**",
 ]
 
 
 def is_control_plane_glob(pat):
-    """First segment is `.harness` or `.claude`. Used to FILTER GLOBS on the product
-    side — a `.harness/expertise/**` grant must not reach a product checkout's own
-    `.harness/`."""
+    """Whether a grant belongs only to the Harness checkout.
+
+    Hidden Harness roots must not reach a product checkout's same-named
+    directory. `.claude` remains included for compatibility while `.agents`
+    and `.omp` are the provider-neutral OMP surfaces.
+    """
     p = pat.lstrip("/")
     if p.startswith("./"):
         p = p[2:]
-    return p.split("/", 1)[0] in (".harness", ".claude")
+    return p.split("/", 1)[0] in (".harness", ".claude", ".agents", ".omp")
 
 
 def real(path):

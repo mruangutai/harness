@@ -1,0 +1,97 @@
+<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>Ship review — FEAT-34 Worktree act 3, enforced</title><style>
+:root{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:ui-sans-serif,-apple-system,"Segoe UI","Helvetica Neue",Arial,sans-serif;
+}
+/* Token-level theming: components style through the tokens and never inside the
+   media query, so the viewer's explicit toggle can override the OS in BOTH
+   directions. */
+@media (prefers-color-scheme:dark){
+  :root{ --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+         --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733; }
+}
+:root[data-theme="dark"]{
+  --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+  --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733;
+}
+:root[data-theme="light"]{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+}
+*{box-sizing:border-box}
+body{margin:0; background:var(--paper); color:var(--ink);
+  font:400 16px/1.65 var(--sans); padding:clamp(1.5rem,5vw,4rem) clamp(1rem,5vw,2rem) 6rem}
+.wrap{max-width:56rem; margin:0 auto}
+/* Layout owns the spacing: gap between siblings, not per-element margins that
+   collapse or double. */
+.wrap{display:flex; flex-direction:column; gap:1rem}
+.eyebrow{font:500 11px/1 var(--mono); letter-spacing:.14em; text-transform:uppercase;
+  color:var(--quiet); margin:0}
+h1{font:600 clamp(1.6rem,4vw,2.3rem)/1.15 var(--sans); letter-spacing:-.02em;
+  margin:.4rem 0 .2rem; text-wrap:balance}
+h2{font:600 1.15rem/1.3 var(--sans); letter-spacing:-.01em; margin:2rem 0 0;
+  padding-top:1.25rem; border-top:1px solid var(--line); text-wrap:balance}
+h3{font:600 .98rem/1.4 var(--sans); margin:1.1rem 0 0}
+h4,h5,h6{font:500 11px/1.4 var(--mono); letter-spacing:.1em; text-transform:uppercase;
+  color:var(--quiet); margin:1rem 0 0}
+p,li{max-width:65ch; margin:0}
+ul,ol{margin:0; padding-left:1.4rem; display:flex; flex-direction:column; gap:.4rem}
+li>ul,li>ol{margin-top:.4rem}
+strong{font-weight:600}
+code{font:400 .875em/1.5 var(--mono); background:var(--sunk); padding:.1em .35em; border-radius:3px}
+pre{background:var(--sunk); border:1px solid var(--line); border-radius:6px;
+  padding:.85rem 1rem; overflow-x:auto; margin:0}
+pre code{background:none; padding:0}
+blockquote{margin:0; padding:.75rem 1rem; border-left:3px solid var(--accent);
+  background:var(--accent-soft); border-radius:0 5px 5px 0}
+blockquote p{max-width:none}
+hr{border:0; border-top:1px solid var(--line); margin:.5rem 0}
+/* Wide content pans inside its OWN container; the page body never scrolls sideways. */
+.scroll{overflow-x:auto; border:1px solid var(--line); border-radius:6px}
+table{border-collapse:collapse; width:100%; font-size:.9rem}
+th,td{text-align:left; padding:.6rem .8rem; border-bottom:1px solid var(--line); vertical-align:top}
+thead th{font:500 10px/1.3 var(--mono); letter-spacing:.11em; text-transform:uppercase;
+  color:var(--quiet); background:var(--sunk); white-space:nowrap}
+tbody tr:last-child td{border-bottom:0}
+/* Figures in a column line up. */
+td,th{font-variant-numeric:tabular-nums}
+.derived{color:var(--slate); font-size:.85rem; margin-top:2.5rem;
+  padding-top:1rem; border-top:1px solid var(--line)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style></head><body><div class='wrap'><p class='eyebrow'>Ship review · reading view</p><h1 id="ship-review-feat-34-worktree-act-3-enforced">Ship review — FEAT-34 Worktree act 3, enforced</h1>
+<p><strong>Validate phase, at <code>review_sha</code> 513c4a4. Prepared for the operator.</strong></p>
+<h2 id="the-conclusion">The conclusion</h2>
+<p><strong>The feature works, its test suite is unusually strong, and it ships one defect that all sixteen of its own success criteria are blind to.</strong> Do not merge yet. Four things are yours and no squad can do any of them.</p>
+<p>The defect is small and the failure is loud in the worst way — it wastes your time at exactly the moment the system is trying to help you. You hit a blocked commit. <code>check-state.sh</code> refuses and tells you a worktree is stale. You copy the removal command it prints, run it, and get <code>not a linked worktree</code> for a directory that is plainly sitting there. The refusal is correct. The remedy it hands you is not.</p>
+<p>It only bites <strong>short-named</strong> worktrees — one whose directory is <code>FEAT-33</code> while the landed feature directory is <code>FEAT-33-some-longer-name</code>. That is precisely why nothing caught it.</p>
+<h2 id="why-sixteen-criteria-and-a-four-reviewer-panel-all-missed-it">Why sixteen criteria and a four-reviewer panel all missed it</h2>
+<p><code>worktree_terminal.py:248-251</code> resolves a short name to the <strong>landed</strong> directory name and stores that as the record&#x27;s <code>feature_id</code>, while <code>path</code> keeps the <strong>short</strong> worktree path. <code>check-state.sh:1326-1329</code> builds <code>--id</code> from <code>feature_id</code>. <code>feature-worktree.py:56-59</code> joins that id into a path literally, and its first gate at <code>:207-214</code> exits 3 because no such directory exists.</p>
+<p>The hook does it correctly: <code>post-merge-sweep.sh:150</code> derives the id from the record&#x27;s own path. So the gate and the hook disagree — which is the exact thing decision D-02 exists to prevent — and the hook is the one that is right.</p>
+<p>The criteria could not see it:</p>
+<ul><li><strong>SC-01</strong> asserts the printed command, but on an <strong>exact-named</strong> fixture, where the two derivations produce the same string and the bug is invisible.</li><li><strong>SC-05</strong> does use a short-named fixture, but only asserts that a finding <em>appears</em>. It never reads the command text.</li></ul>
+<p>So <code>REQ-02</code> — &quot;the refusal names the exact command that removes it&quot; — is violated in practice while both criteria that touch it are <strong>met as written</strong>. pm graded them <code>met</code>, and I want to flag that this was the harder and better call: grading SC-01 <code>not_met</code> would have pointed the fix at the code and left the blind spot standing. Grading it <code>met</code> is what forces a new criterion to exist. A criterion reworded until it fails has caught nothing.</p>
+<h2 id="the-four-decisions-that-are-yours">The four decisions that are yours</h2>
+<p><strong>1. The code fix — two files, and they must move together.</strong> Derive <code>--id</code> from <code>os.path.basename(_r29[&#x27;path&#x27;])</code>, as the hook already does, and add a message-content assertion to <code>test-check-state.py</code> group (f.3). Change only the first and the defect class regresses silently the next time someone touches it. Both files are DEC-174 enforcement layer, so this is main-session-direct: no squad can do it.</p>
+<p><strong>2. Adopt SC-17.</strong> Drafted paste-ready in <code>notes/research-goal-check-2026-08-24.md</code>. Its clause (c) executes the printed command and asserts the worktree is gone — something no current criterion does. Without it, REQ-02 keeps a requirement no test can falsify.</p>
+<p><strong>3. Amend SC-06. It is unsatisfiable as written, and this is forced by git, not chosen.</strong> pm reproduced it directly: <code>git merge --squash</code> fires <code>post-merge</code> while HEAD is still pre-squash, so the landed <code>feature.json</code> cannot be read at that moment, and the completing commit never re-fires the hook. REQ-07 is genuinely unmet on the squash path and <strong>no implementation could satisfy it</strong>. The remedy is a criterion change plus a stated verification gap. It is never a code change.</p>
+<p><strong>4. Rule on SC-08 — my dispatch&#x27;s premise did not survive the artifact.</strong> I was told SC-08 is operator-run UAT and must stay <code>not_met</code>. It is not. <code>BRIEF.md:202-205</code> declares it <code>verify: automated  evidence: integration</code>; <code>plan.yaml</code> names <code>test-hooks-install.py</code> as its grader under T-13, which is done; and <code>grep -i uat</code> across BRIEF.md and plan.yaml returns exactly two hits, both <code>## Verification gaps</code> entries and neither a criterion. <strong>SC-08 is met.</strong> What is genuinely outstanding is the gap at <code>BRIEF.md:217-221</code> and <code>:346-352</code>: whether <em>your own clone</em> ever gets <code>core.hooksPath</code> repointed — which the brief deliberately refuses to make a criterion, because a fixture can fake it and this cannot. I held SC-08&#x27;s disposition open rather than grading it either way, because only you can say which you meant.</p>
+<h2 id="the-goal-check">The goal-check</h2>
+<p><strong>14 of 16 met, 1 not met, 1 concern.</strong> Full evidence per criterion in <code>runs/2026-08-24-05-product/digest.md</code>.</p>
+<ul><li><strong>SC-06 — not met.</strong> The squash path, above.</li><li><strong>SC-11 — concern, found this run and graded <code>pass</code> by the panel.</strong> Its first half — &quot;records each feature&#x27;s terminal status, asserted per feature&quot; — has <strong>no assertion at all</strong>. The fixture lands both features already <code>Done</code>, so the status write is unobservable. The milestone half is properly asserted.</li><li>The other fourteen are met, several with genuine red proofs. SC-09 was verified by parsing each of the sixteen agents&#x27; <code>skills:</code> blocks individually rather than by a global grep.</li></ul>
+<h2 id="where-the-quality-actually-is">Where the quality actually is</h2>
+<p>Worth saying plainly, because the defect above is the loud part. The panel&#x27;s code reviewer called the suite behind this feature unusually strong, and the evidence supports it: SC-14&#x27;s red proof demonstrates that a shim pointing at a nonexistent target passes every other criterion and leaves the worktree standing; SC-16 asserts six separate clauses; SC-15 tests three failure branches each with its own red proof. The security reviewer checked five surfaces and found nothing exploitable. The UI reviewer scoped itself out on measurement rather than assumption.</p>
+<h2 id="disclosure">Disclosure</h2>
+<p><strong>No report round was spawned.</strong> This is assembled by reading run digests from disk directly. Sources: <code>runs/2026-08-24-03-eng/digest.md</code> (simplify), <code>runs/2026-08-24-04-validator/digest.md</code> (panel), <code>runs/2026-08-24-05-product/digest.md</code> (goal-check), plus the nine earlier plan- and build-phase digests under <code>runs/</code>.</p>
+<p><strong>Two recorded runs have no digest on disk</strong> — <code>2026-08-23-1-product</code> and <code>brief-fix-1-product</code>, both recorded PASS, both plan-phase. Their run directories do not exist. This document&#x27;s account of the earliest planning therefore rests on <code>BRIEF.md</code> and <code>plan.yaml</code> themselves, not on a digest.</p>
+<p><strong>Three claims that did not survive re-derivation this phase, recorded rather than smoothed:</strong> Q6&#x27;s premise reached me inverted (the code and tests are correct; <code>plan.yaml:499-500</code> is the wrong artifact). The validator lead retracted its own &quot;stale-citation class falsified&quot; claim after its pattern proved unable to match two-thirds of the citations. And the product lead&#x27;s SC-09 corroboration was a text grep that reported 16/16 where a proper per-agent parse finds 15 — it said so itself rather than letting the number stand.</p>
+<p><strong>The 15.6s suite baseline is dead.</strong> The integration suite measures <strong>235-236s</strong>, reproduced twice as confirmed sole runner. The earlier &quot;concurrent machine load&quot; explanation is falsified, and nobody has attributed the 15x gap to a cause. Do not cite either number as this suite&#x27;s cost.</p>
+<h2 id="proposed-backlog">Proposed backlog</h2>
+<p>Anything not listed here dies silently, so everything that survived collation is listed. Strike any row by ID.</p>
+<div class="scroll"><table><thead><tr><th>ID</th><th>Nature</th><th>What</th></tr></thead><tbody><tr><td>B-1</td><td>chore</td><td><code>test-post-merge-sweep.py</code>&#x27;s module docstring omits <code>case_linked_worktree_main_checkout</code> entirely — the only red proof for the FEAT-35 wrong-copy defect. Corrected wording is paste-ready in the simplify receipt</td></tr><tr><td>B-2</td><td>chore</td><td>Stale line citations: 3 of 12 checked are wrong, including <code>check-state.sh:1209</code> citing INV-26 at <code>:1203</code> when it is at <code>:1363</code>. INV-29&#x27;s insertion shifted them</td></tr><tr><td>B-3</td><td>enhancement</td><td>INV-30 budgets 15s+60s of timeout on a call measured at 0.475s — 75s worst case on a pre-commit gate whose common path costs 0.78s — and repeats a <code>gh auth</code> round trip INV-26 already makes at <code>:1397</code>. Two constants</td></tr><tr><td>B-4</td><td>chore</td><td>The segment-resolution helper is duplicated at <code>worktree_terminal.py:107-129</code> and <code>post-merge-sweep.sh:100-118</code>. De-duplicating widens a public surface D-10 pinned, so it needs a decision, not a refactor</td></tr><tr><td>B-5</td><td>bug</td><td>T-10&#x27;s <code>verify:</code> cannot go red: the agent loop discards its result via `</td></tr><tr><td>B-6</td><td>chore</td><td><code>BRIEF.md:246</code> and <code>:359</code> still read &quot;NOT YET RE-SIGNED&quot; against <code>:449</code> recording all three signed. The cause is structural — the banner is pasted from pm&#x27;s draft block and is false the instant you sign — so fix the convention, not the two lines</td></tr><tr><td>B-7</td><td>bug</td><td>SC-11&#x27;s first half has no assertion; the fixture lands both features already <code>Done</code>, making the status write unobservable. Widen the fixture or narrow the criterion</td></tr><tr><td>B-8</td><td>enhancement</td><td>SC-09 is met 16/16, but <code>harness-orchestrator</code> is covered by a different skill with different wording than the other fifteen — and it is the tier most likely to be asked to remove a worktree</td></tr><tr><td>B-9</td><td>chore</td><td>Integration suite runs 235-236s against a documented 15.6s baseline, sole-runner reproduced twice. Cause unattributed</td></tr><tr><td>B-10</td><td>bug</td><td>Leads hold <code>Agent</code> but no way to message an in-flight member, so continuing one costs a duplicate spawn. Two leads hit this independently; one burned ~74,000 tokens on unusable output</td></tr><tr><td>B-11</td><td>bug</td><td>The orchestrator has no <code>Edit</code> tool, so D-04&#x27;s prescribed route for a task status change does not exist as written</td></tr><tr><td>B-12</td><td>bug</td><td><code>feature-worktree.py remove</code> exits 5 DIFFERS when the default branch is ahead</td></tr><tr><td>B-13</td><td>chore</td><td><code>plan.yaml:499-500</code> — T-04 case (f)&#x27;s prose describes a shape the code does not have. The code is correct; the plan text is wrong</td></tr><tr><td>B-14</td><td>chore</td><td>Two runs are recorded in <code>feature.json</code> with no digest directory on disk</td></tr><tr><td>B-15</td><td>chore</td><td>At distillation, drop <code>harness-backend-dev</code> observations line 5 — it records a conclusion D-10 falsified, and left standing it teaches a falsehood into permanent Expertise</td></tr></tbody></table></div>
+<h2 id="budget-and-process">Budget and process</h2>
+<p><strong>Runs 16 of 20. Cycles 6 of 10.</strong> Both inside budget, and no crossing to report. No cycle was charged this phase: a cycle is rework routed back to the lead whose member produced it, and nothing here was produced by a squad — the defect is in hand-written, main-session-direct files.</p>
+<p><strong>I did not commit and did not open a PR.</strong> Both are yours, by your instruction. The working tree carries only the <code>review_sha</code> pin write and your log append; nothing under <code>.claude/</code> was modified by any agent this phase, so the pin the panel and the goal-check both graded is intact.</p><p class='derived'>Derived from <code>ship-review-2026-08-24-validate.md</code> — the markdown is the record; do not edit this file. Regenerate with <code>bin/render-brief.py</code>.</p></div></body></html>

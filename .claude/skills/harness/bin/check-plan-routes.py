@@ -464,7 +464,7 @@ def discover_plans():
     this from anywhere but the repo root printed `0 violation(s) across 0 plan(s)` and
     EXITED 0 — a checker that found nothing because it was looking in the wrong place
     was byte-identical to a clean tree (issue #133, B-7). Measured before this fix:
-    `cd /tmp && python3 <repo>/.claude/skills/harness/bin/check-plan-routes.py` exited 0.
+    `cd /tmp && python3 <repo>/.agents/skills/harness/bin/check-plan-routes.py` exited 0.
 
     Root precedence follows check-domain.sh (`:178-180`, and again at `:276-281` for
     its hook path — two call sites, one rule), because a third derivation is a third
@@ -493,7 +493,7 @@ def discover_plans():
     # `test-check-plan-routes.py` case (20) pins every copy of this probe to the same
     # filename for that reason. Do not "simplify" it to a directory check.
     derived = os.path.abspath(os.path.join(BIN_DIR, "..", "..", "..", ".."))
-    asked = os.environ.get("CLAUDE_PROJECT_DIR") or ""
+    asked = (os.environ.get("HARNESS_PROJECT_DIR") or os.environ.get("CLAUDE_PROJECT_DIR")) or ""
     root = asked
     if not root or not os.access(os.path.join(root, ".harness", "team-config.yaml"), os.R_OK):
         # SAY SO WHEN THE CALLER'S ROOT IS DISCARDED. The fallback itself is right — it is
@@ -702,7 +702,7 @@ def check_invariant_number_collisions(root, findings):
     live = live_invariant_numbers(root)
     if live is None:
         findings.append("NOTE invariant-collision check SKIPPED — "
-                        ".claude/skills/harness/bin/check-state.sh could not be read, so "
+                        ".agents/skills/harness/bin/check-state.sh could not be read, so "
                         "a claimed number cannot be told from a cited one.")
         return 0
 

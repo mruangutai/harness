@@ -4,7 +4,7 @@
 # Registered in .claude/settings.json — NOT in agent frontmatter:
 #   "PreToolUse": [{ "matcher": "Write|Edit",
 #     "hooks": [{ "type": "command",
-#       "command": "${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/check-domain.sh" }] }]
+#       "command": "${CLAUDE_PROJECT_DIR}/.agents/skills/harness/bin/check-domain.sh" }] }]
 #
 # Agent identity comes from `agent_type` in the hook payload, because one global
 # registration serves all 16 agents. Agent-frontmatter PreToolUse hooks DO NOT FIRE
@@ -82,7 +82,7 @@ export HARNESS_HOOK_MODE="$mode"
 # Locate the project root WITHOUT depending on cwd. A hook's working directory is
 # not guaranteed, and deriving root from pwd made this script fail OPEN whenever it
 # ran from anywhere else — silently disabling enforcement rather than reporting it.
-# This script lives at <root>/.claude/skills/harness/bin/, so walk up four levels.
+# This script lives at <root>/.agents/skills/harness/bin/, so walk up four levels.
 # BASH_SOURCE is the one thing only bash can answer, which is why any bash remains.
 _self="${BASH_SOURCE[0]:-$0}"
 _selfdir="$(cd "$(dirname "$_self")" && pwd)"
@@ -149,7 +149,7 @@ if _resolve_target is not None:
     # sits AFTER the agent-identity early exits and this path has no agent identity
     # to satisfy — reaching it would mean exiting 0 in silence, which is the exact
     # fail-open this mode exists to remove. Same derivation, same precedence.
-    root = os.environ.get("CLAUDE_PROJECT_DIR") or ""
+    root = (os.environ.get("HARNESS_PROJECT_DIR") or os.environ.get("CLAUDE_PROJECT_DIR")) or ""
     if not root or not os.access(os.path.join(root, ".harness", "team-config.yaml"), os.R_OK):
         root = _derived if os.access(os.path.join(_derived, ".harness", "team-config.yaml"), os.R_OK) else (root or os.getcwd())
     manifest = os.path.join(root, ".harness", "team-config.yaml")
@@ -171,7 +171,7 @@ if _resolve_target is not None:
               "not be imported, so no domain can be checked.", file=sys.stderr)
         print(f"  {type(_be).__name__}: {_be}", file=sys.stderr)
         print("  Enforcement is CLOSED rather than partial. Restore "
-              ".claude/skills/harness/bin/harness_boundary.py, then retry.",
+              ".agents/skills/harness/bin/harness_boundary.py, then retry.",
               file=sys.stderr)
         sys.exit(2)
 
@@ -293,7 +293,7 @@ _tool = d.get("tool_name") or ""
 # with the domain message, after the file was already written.
 _domain_phase = _governed and not _post
 
-root = os.environ.get("CLAUDE_PROJECT_DIR") or ""
+root = (os.environ.get("HARNESS_PROJECT_DIR") or os.environ.get("CLAUDE_PROJECT_DIR")) or ""
 if not root or not os.access(os.path.join(root, ".harness", "team-config.yaml"), os.R_OK):
     if os.access(os.path.join(_derived, ".harness", "team-config.yaml"), os.R_OK):
         root = _derived
@@ -358,7 +358,7 @@ if _run_domain:
               "not be imported, so no domain can be checked.", file=sys.stderr)
         print(f"  {type(_be).__name__}: {_be}", file=sys.stderr)
         print("  Enforcement is CLOSED rather than partial. Restore "
-              ".claude/skills/harness/bin/harness_boundary.py, then retry.",
+              ".agents/skills/harness/bin/harness_boundary.py, then retry.",
               file=sys.stderr)
         sys.exit(2)
 
@@ -1121,7 +1121,7 @@ def shape_problems(rel, content, display=None):
                 for_path=os.path.join(root, rel) if root else rel)
         except ImportError:
             _sp = ["feature_schema is not importable, so this file CANNOT be checked. "
-                   "Expected at .claude/skills/harness/bin/feature_schema.py, reachable on "
+                   "Expected at .agents/skills/harness/bin/feature_schema.py, reachable on "
                    "PYTHONPATH. Repair the module or reinstall the harness bin directory."]
         except Exception as _se:
             # A BARE `except ImportError` HERE WAS A FAIL-OPEN, and the panel measured it:
@@ -1138,7 +1138,7 @@ def shape_problems(rel, content, display=None):
             # finding, the defect DEC-180 fixed twice in this file.
             _sp = ["feature_schema CRASHED while checking this file, so it CANNOT be "
                    "checked: %s: %s. The module IMPORTED — this is a fault inside it or "
-                   "in .claude/skills/harness/bin/feature-schema.json, not a missing "
+                   "in .agents/skills/harness/bin/feature-schema.json, not a missing "
                    "dependency. The write is DENIED rather than allowed through, because "
                    "a checker that cannot run must never be the reason a file passes."
                    % (type(_se).__name__, _se)]

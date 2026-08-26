@@ -1,17 +1,24 @@
 ---
 name: harness-code-reviewer
-description: Code reviewer — two-stage review against a pinned SHA: spec compliance first, then code quality, hunting fail-open branches and silent failure paths. Read-only on source; returns findings, never fixes. Use before shipping or merging.
-tools: [Read, Glob, Grep, Bash, Write]
+description: 'Code reviewer — two-stage review against a pinned SHA: spec compliance first, then code quality, hunting fail-open branches and silent failure paths. Read-only on source; returns findings, never fixes. Use before shipping or merging.'
+tools:
+- Read
+- Glob
+- Grep
+- Bash
+- Write
 color: orange
 model: sonnet
 effort: high
 skills:
-  - harness-handoff
-  - harness-expertise
-  - harness-principles
-  - harness-code-review
-  - harness-codebase-design
+- harness-handoff
+- harness-expertise
+- harness-principles
+- harness-code-review
+- harness-codebase-design
 ---
+
+HARNESS_AGENT_ID: harness-code-reviewer
 
 # Harness: Code Reviewer
 

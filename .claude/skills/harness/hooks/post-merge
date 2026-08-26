@@ -1,0 +1,36 @@
+#!/bin/sh
+# post-merge — FEAT-34 T-11. A SHIM AND NOTHING ELSE.
+#
+# THE WHOLE CONTENT OF THIS FILE IS A PATH. That is deliberate (D-08): the sweep body lives in
+# post-merge-sweep.sh, where a real test can reach it, and SC-14 is the assertion that the path
+# here is real. A shim pointing at a file that does not exist satisfies SC-08 in full — it
+# resolves and it is executable — and would leave the automation dead. Never move sweep logic
+# into this file; there would then be two implementations of one rule and no test on this one.
+#
+# core.hooksPath REPLACES the clone's hook directory ENTIRELY. Every hook git looks for is
+# resolved in this directory and .git/hooks is bypassed. Any hook this repository later wants
+# must live here beside this file.
+#
+# THE ROOT COMES FROM $0, NOT FROM THE CALLER'S CWD. git runs a hook with cwd at the top of the
+# working tree for a normal merge, but that is not guaranteed for every invocation, and a hook
+# that silently resolves the wrong tree would sweep the wrong repository's worktrees.
+# This file sits at <root>/.claude/skills/harness/hooks/post-merge, so the root is four
+# directories above the one holding it. `pwd -P` rather than `pwd` so a symlinked checkout
+# resolves to the real tree.
+_here=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P) || exit 0
+_root=$(CDPATH= cd -- "$_here/../../../.." && pwd -P) || exit 0
+
+_sweep="$_root/.claude/skills/harness/bin/post-merge-sweep.sh"
+
+# EXIT 0 WHEN THE SWEEP IS MISSING, AND SAY SO ONCE. A post-merge hook that exits non-zero makes
+# git print an error after a merge that SUCCEEDED, which reads as a broken pull. A missing sweep
+# is a broken tree, not a broken merge. Nothing is silently swallowed: INV-29 is what turns the
+# resulting missed removal into a refusal at the next gate run.
+if [ ! -x "$_sweep" ]; then
+  echo "post-merge: $_sweep is missing or not executable — no worktree sweep ran."
+  exit 0
+fi
+
+# "$@" PASSES THROUGH UNCHANGED so git's squash flag reaches the sweep, which per T-03's
+# contract ignores it. exec rather than a call: there is nothing to do after this.
+exec "$_sweep" "$@"

@@ -56,12 +56,12 @@ except ModuleNotFoundError:
           "fallback by design.", file=sys.stderr)
     sys.exit(1)
 
-REPO = os.environ.get("CLAUDE_PROJECT_DIR") or os.getcwd()
+REPO = (os.environ.get("HARNESS_PROJECT_DIR") or os.environ.get("CLAUDE_PROJECT_DIR")) or os.getcwd()
 
 
 def _rel(p, root):
     """Report from the REPO root where possible, so a failure names which tree it
-    came from — `.claude/skills/harness/teams/build.yaml`, not a bare `build.yaml`.
+    came from — `.agents/skills/harness/teams/build.yaml`, not a bare `build.yaml`.
     Falls back to `root` for the throwaway fixture roots, which live outside REPO."""
     ap = os.path.abspath(p)
     try:
@@ -195,7 +195,7 @@ def _fixture(body):
 def _fixture_teams(body):
     """A throwaway repo root containing a shipped-team-definition tree (SC-06).
 
-    Deliberately NOT written into the real `.claude/skills/harness/teams/` — a gate
+    Deliberately NOT written into the real `.agents/skills/harness/teams/` — a gate
     proved by mutating the tree it guards is a gate that has been switched off for
     the duration of its own test."""
     d = tempfile.mkdtemp()
@@ -225,7 +225,7 @@ def check(name, ok, detail=""):
 
 
 # --- 1. the real corpus, across BOTH shipped trees ---------------------------
-# `.claude/skills/harness/teams` is here because it was outside this gate's reach
+# `.agents/skills/harness/teams` is here because it was outside this gate's reach
 # while both files in it failed to parse — the gate's own blind spot, not a new tree.
 bad, counts = scan_roots(ROOTS)
 total = sum(counts.values())
@@ -317,7 +317,7 @@ check("a correctly quoted/folded file is NOT flagged", not nb, nb)
 # reported green, because it could not see the directory at all.
 d = _fixture_teams("outputs: [a/{{x}}/b]\nnext_key: 1\n")
 _, nb = scan(d)
-check("detects a broken team definition under .claude/skills/harness/teams (SC-06)",
+check("detects a broken team definition under .agents/skills/harness/teams (SC-06)",
       len(nb) == 1, f"expected exactly 1 finding, got {len(nb)}: {nb}")
 
 # --- 7. the message has to be actionable ------------------------------------

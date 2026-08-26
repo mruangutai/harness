@@ -29,7 +29,7 @@ You touch `.harness/expertise/<your-agent-name>.md` **only when your dispatch ex
    scratch file, then run:
 
    ```
-   python3 .claude/skills/harness/bin/expertise-merge.py apply \
+   python3 .agents/skills/harness/bin/expertise-merge.py apply \
      --file .harness/expertise/<your-agent-name>.md --entries <your scratch file>
    ```
 
@@ -47,7 +47,7 @@ You touch `.harness/expertise/<your-agent-name>.md` **only when your dispatch ex
    | 9 | `--file` is not an Expertise file | you named the wrong path — fix it, never work around it |
 
    Report the ops in your DIGEST's `expertise_update` as the receipt.
-4. Run `.claude/skills/harness/bin/check-expertise.sh <file>` and fix every violation before
+4. Run `.agents/skills/harness/bin/check-expertise.sh <file>` and fix every violation before
    returning. Report per-section entry counts before and after.
 
 ## The entry format — rules, not stories

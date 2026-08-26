@@ -382,7 +382,7 @@ def test_committed_index_matches_a_fresh_regeneration():
                 detail += f" rows the generator produces that the file lacks: {only_fresh[:3]}"
             print(f"FAIL - {name}: .harness/harness/docs/DECISIONS-INDEX.md is not what the generator "
                   f"produces.{detail or ' (difference is outside the DEC rows)'} "
-                  f"Fix: .claude/skills/harness/bin/gen-decisions-index.py")
+                  f"Fix: .agents/skills/harness/bin/gen-decisions-index.py")
             return False
 
         print(f"ok - {name}")
@@ -418,7 +418,7 @@ def test_committed_index_is_complete_and_within_budget():
             ]
             print(
                 f"FAIL - {name}: {len(unwritten)} row(s) unwritten in {REAL_INDEX} — a decision was "
-                f"appended without its ruling. Run .claude/skills/harness/bin/gen-decisions-index.py "
+                f"appended without its ruling. Run .agents/skills/harness/bin/gen-decisions-index.py "
                 f"and write the ruling after ' :: ' on each listed row, in this commit (REQ-09). "
                 f"Offending: {', '.join(unwritten)}"
             )

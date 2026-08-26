@@ -44,20 +44,15 @@ skill; it is not restated here.
   `/harness-wayfinding` (a persistent map under `.harness/efforts/`). Then `pm` plans it:
   `/harness-plan`.
 - **"where are we?"** → relay a briefing request to that feature's orchestrator (trigger 3, §10.3).
-- **A bug report** ("X is broken", a stack trace, a failing repro) → mission **debug**: cause
+- **A bug report** ("X is broken", a stack trace, a failing repro) → mission **debug** (the
+  orchestrator reads `.claude/skills/harness/references/debug-mission.md`): cause
   unknown → an investigation segment runs FIRST and its root-cause report seeds the plan; cause
   already known → straight to `/harness-plan` (the FEAT-02 pattern). Either way the fix ships
   through the normal gates under a `BUG-NN-<slug>` id — there is no ungated bug lane (DEC-139).
 - **"what should we do next?"** → mission **triage**: the one sanctioned direct dispatch to
   `harness-product-lead` (no feature exists for an orchestrator to own; triage writes no state).
-  pm reads the backlog (GitHub Issues if `github.sync`), the codebase map, and shipped history,
+  pm reads the backlog (GitHub Issues if `github.sync`) and shipped history,
   and returns ranked candidates with rationale. You pick; the pick seeds `/harness-plan` (DEC-138).
-- **"deepen" / "review the architecture"** → mission **deepen** (DEC-149) — between features
-  only; `/harness-deepen` is the explicit door.
-- **"map the codebase"** (or INV-14 warning of code without a map) → mission **map**
-  (`/harness-map` is the explicit door). Normally
-  this ran AT INIT (DEC-140) and this route is for re-maps and projects onboarded before the rule;
-  everything plans against the map, so run it before the next feature if it is missing.
 
 ## 2. Approvals are yours
 
@@ -97,7 +92,7 @@ authoring the criteria. Wording, numbering and verify methods stay pm's — and 
 | `awaiting_user` + `open_questions` | `AskUserQuestion` (batch them), write the answers to `.harness/harness/features/<FEAT>/notes/answers-<runid>.md`, re-spawn the orchestrator with that path and mission `resume` |
 | `briefing: <path>` | present the briefing verbatim, take the instruction (ship / fix / re-scope / stop), send it back down as the next mission. A `.html` sibling is rendered beside it for reading — offer it, and if it is missing or older than the markdown run `bin/render-brief.py <path>` |
 | `blocked` | tell the user what blocked and what was spent; the decision is theirs |
-| `shipped` / `PASS` | report it, log it, and if `github.sync` is on run `bin/gh-sync.py ship <feature-dir>` (closes the milestone), and offer the briefing's residual-findings list as proposed backlog — entries the user does not strike become plain backlog issues via `gh-sync.py backlog` (labeled by nature, no milestone; DEC-138 am.4). PR and merge remain the user's call — never automatic |
+| `shipped` / `PASS` | report it, log it, and if `github.sync` is on run `bin/gh-sync.py ship <feature-dir>` (PATCHes the milestone shut and lands every recorded card at the `Done` station, from which GitHub closes the issues), and — **in the same act** — re-dispatch the orchestrator with a **distill** mission (feature-close distillation runs at MERGE, not at close-out; DEC-145). Then offer the briefing's residual-findings list as proposed backlog — entries the user does not strike become plain backlog issues via `gh-sync.py backlog` (labeled by nature, no milestone; DEC-138 am.4). PR and merge remain the user's call — never automatic |
 
 **Probe a bounded environment question before any claim about it reaches the user.** When what you
 are about to relay rests on how the runtime *resolves* something — which copy of a file executes,

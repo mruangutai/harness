@@ -9,12 +9,12 @@ user-invocable: false
 You author `BRIEF.md` and `plan.yaml`. They are the spec — there is no separate spec artifact.
 
 **`plan.yaml` is REAL YAML, and nothing in it is prose for a human** (DEC-182). The human reads
-`BRIEF.md`. Instantiate from `.claude/skills/harness/templates/plan.yaml`.
+`BRIEF.md`. Instantiate from `.agents/skills/harness/templates/plan.yaml`.
 
 **Write it through the merge tool, never whole:**
 
 ```bash
-python3 .claude/skills/harness/bin/plan-merge.py apply \
+python3 .agents/skills/harness/bin/plan-merge.py apply \
   --file .harness/<repo>/features/<FEAT>/plan.yaml --proposal -
 ```
 
@@ -75,7 +75,7 @@ And every plan opens with a `lanes:` block, resolved against `.harness/team-conf
 SHA.
 
 **Before handing a plan back, run
-`python3 .claude/skills/harness/bin/check-plan-routes.py <plan path>` and fix every
+`python3 .agents/skills/harness/bin/check-plan-routes.py <plan path>` and fix every
 violation. A non-zero exit is not a plan that is ready for signature.**
 Run it here because plan time is when the fix is one edit, not a rewrite of work already built.
 The `integration` CI job runs the same checker over every live plan and is a required check on
@@ -85,7 +85,7 @@ The `integration` CI job runs the same checker over every live plan and is a req
 
 ```yaml
 verify: |            # correct — newlines survive
-  python3 .claude/skills/harness/bin/run-unit-tests.sh
+  python3 .agents/skills/harness/bin/run-unit-tests.sh
 
 verify: >            # WRONG — folding turns every newline into a space
   python3 ...
@@ -129,7 +129,7 @@ classic D-NN: record the load-bearing reason so it is not re-litigated.
 
 ## The glossary — the domain's language is yours to keep sharp
 
-`.harness/codebase/glossary.md` is your map lens for the domain's **ubiquitous language**: one
+`.harness/glossary.md` is the domain's **ubiquitous language**: one
 canonical term per concept, no implementation detail — a glossary, never a spec or scratch pad.
 Working rules (DEC-149, adapted from domain-modeling practice):
 
@@ -141,7 +141,7 @@ Working rules (DEC-149, adapted from domain-modeling practice):
 - **Code wins:** when a stated meaning contradicts what the code does, surface the contradiction —
   the same re-derive discipline you already apply to anchors, aimed at language.
 - **Update inline, at the moment a term is settled** — a feature that pins a vocabulary (an enum,
-  a status set) updates the glossary in the same ship-refresh pass that updates your
+  a status set) updates the glossary in the same pass that updates your
   product-surface lens. Create the file lazily; empty is worse than absent.
 
 ## Citations and baselines rot — anchor them so they cannot (B-11, B-12)

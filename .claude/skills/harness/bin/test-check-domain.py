@@ -38,7 +38,7 @@ case("documentor writing its own expertise",
 # EXPECTATION CHANGED by FEAT-15 T-02, and it is the only one in this file that moved.
 # All eight entries in the manifest's `shared:` block are dependency manifests and
 # lockfiles — package.json, pyproject.toml, uv.lock and the rest. None has a
-# control-plane first segment and none is among the four named harness entries, so in
+# control-plane first segment and none is among the explicit Harness entries, so in
 # the HARNESS base every one of them is a product-shaped target and stops being
 # serialized-allow. No such file exists in this repo today, so nothing live changed —
 # but the rule did, and the assertion says so rather than being quietly deleted.
@@ -50,7 +50,7 @@ case("a shared path in the harness base is now REFUSED (product-shaped target)",
 case("documentor may not write source", f"{ROOT}/src/main.py", 2)
 case("documentor may not write another agent's expertise",
      f"{ROOT}/.harness/expertise/harness-qa.md", 2)
-case("documentor may not write bin/", f"{ROOT}/.claude/skills/harness/bin/x.py", 2)
+case("documentor may not write bin/", f"{ROOT}/.agents/skills/harness/bin/x.py", 2)
 # The carve-out must key on being outside the repo, NOT on the string "..".
 case("a repo path reached via .. still blocks",
      f"{ROOT}/docs/../src/main.py", 2)
@@ -630,7 +630,7 @@ shared:
         j.returncode == 0,
         f"got {j.returncode} (want 0), stderr={j.stderr.strip()[:180]!r}")
 
-    # ---- T-03: the mirror image, both directions, and the four named entries ----
+    # ---- T-03: the mirror image, both directions, and explicit Harness entries ----
     #
     # Every group below is a PAIR asserted from ONE fixture and ONE manifest. Either
     # half alone is what a broken guard produces: a guard that widened both bases
@@ -689,13 +689,13 @@ teams:
         f"{b_out.returncode} (want 2 — a .harness/** grant must not reach a product's "
         f"own control plane)")
 
-    # PAIR C — THE FOUR NAMED ENTRIES, which are the only paths that resolve in BOTH
-    # bases, and the only place the PRODUCT side of the operator's ruling is checked at
-    # all. The routing measurement behind the ruling models in-harness resolution only
-    # and is structurally blind to a product-side regression.
+    # PAIR C — EXPLICIT HARNESS ENTRIES. These are target-side exceptions for paths
+    # whose names are otherwise product-shaped. Hidden control roots are also
+    # filtered from product checkouts by `is_control_plane_glob`.
     #
-    # Its own manifest, because neither of the two above carries these globs. Two
-    # personas: one holds docs/** and README.md, the other .github/**.
+    # Its own manifest, because neither fixture above carries these globs. Two
+    # personas: documentor holds docs, shared instructions and neutral OMP roots;
+    # dev-ops holds `.github/**`.
     ws_c = tempfile.mkdtemp()
     c_root = fixture_fleet("""schema_version: 1
 teams:
@@ -706,6 +706,9 @@ teams:
           - { path: docs/**, upsert: true }
           - { path: .harness/*/docs/**, upsert: true }
           - { path: README.md, upsert: true }
+          - { path: AGENTS.md, upsert: true }
+          - { path: .agents/**, upsert: true }
+          - { path: .omp/**, upsert: true }
       - name: harness-dev-ops
         domain:
           - { path: .github/**, upsert: true }
@@ -715,12 +718,18 @@ teams:
     c_h_prin = fire_abs(c_root, os.path.join(c_root, "docs", "PRINCIPLES.md"), DOC)
     c_h_read = fire_abs(c_root, os.path.join(c_root, "README.md"), DOC)
     c_h_gh = fire_abs(c_root, os.path.join(c_root, ".github", "workflows", "tests.yml"), OPS)
+    c_h_agents_doc = fire_abs(c_root, os.path.join(c_root, "AGENTS.md"), DOC)
+    c_h_agents_root = fire_abs(c_root, os.path.join(c_root, ".agents", "skills", "x", "SKILL.md"), DOC)
+    c_h_omp = fire_abs(c_root, os.path.join(c_root, ".omp", "agents", "x.md"), DOC)
     fleet_case(
-        "C harness base: all four named entries resolve — .harness/*/docs/**, "
-        "docs/PRINCIPLES.md, README.md, .github/**",
-        all(r.returncode == 0 for r in (c_h_docs, c_h_prin, c_h_read, c_h_gh)),
+        "C harness base: explicit Harness entries resolve, including AGENTS.md, "
+        ".agents/** and .omp/**",
+        all(r.returncode == 0 for r in (
+            c_h_docs, c_h_prin, c_h_read, c_h_agents_doc, c_h_agents_root, c_h_omp, c_h_gh)),
         f".harness/*/docs {c_h_docs.returncode}, PRINCIPLES {c_h_prin.returncode}, "
-        f"README {c_h_read.returncode}, .github {c_h_gh.returncode} (all want 0)")
+        f"README {c_h_read.returncode}, AGENTS {c_h_agents_doc.returncode}, "
+        f".agents {c_h_agents_root.returncode}, .omp {c_h_omp.returncode}, "
+        f".github {c_h_gh.returncode} (all want 0)")
 
     # THE NOT-WIDENED ASSERTION, and the persona is part of it. Fired against a persona
     # never granted docs/**, this exits 2 for the wrong reason and would pass under
@@ -737,12 +746,16 @@ teams:
     c_p_read = fire_abs(c_root, os.path.join(ws_c, "widget", "README.md"), DOC)
     c_p_docs = fire_abs(c_root, os.path.join(ws_c, "widget", "docs", "guide.md"), DOC)
     c_p_gh = fire_abs(c_root, os.path.join(ws_c, "widget", ".github", "workflows", "ci.yml"), OPS)
+    c_p_agents = fire_abs(c_root, os.path.join(ws_c, "widget", ".agents", "skills", "x", "SKILL.md"), DOC)
+    c_p_omp = fire_abs(c_root, os.path.join(ws_c, "widget", ".omp", "agents", "x.md"), DOC)
     fleet_case(
-        "C product base: a product checkout keeps its OWN README.md, docs/ and .github/ "
-        "— the named entries are target-side only and must not refuse them",
-        all(r.returncode == 0 for r in (c_p_read, c_p_docs, c_p_gh)),
+        "C product base: product README.md, docs/ and .github/ remain writable, "
+        "while Harness grants to .agents/ and .omp/ stay checkout-local",
+        all(r.returncode == 0 for r in (c_p_read, c_p_docs, c_p_gh))
+        and c_p_agents.returncode == 2 and c_p_omp.returncode == 2,
         f"README {c_p_read.returncode}, docs/guide.md {c_p_docs.returncode}, "
-        f".github {c_p_gh.returncode} (all want 0)")
+        f".github {c_p_gh.returncode} (want 0); .agents {c_p_agents.returncode}, "
+        f".omp {c_p_omp.returncode} (want 2)")
 
     # ---- T-04: the RESOLVE path gets the same base treatment (REQ-07) ----
     #
@@ -879,13 +892,13 @@ def run_resolve():
           r.stdout.split() == ["harness-dev-ops"], f"got {r.stdout.split()!r}")
 
     # (b) a doubly-granted path returns BOTH, sorted
-    r = resolve(".claude/skills/harness/bin/run-unit-tests.sh")
+    r = resolve(".agents/skills/harness/bin/run-unit-tests.sh")
     check("(b) --resolve: a doubly-granted path returns both grantees",
           sorted(r.stdout.split()) == ["harness-backend-dev", "harness-dev-ops"],
           f"got {r.stdout.split()!r}")
 
     # (c) NOBODY is a LITERAL EMITTED TOKEN, not silence
-    r_nobody = resolve(".claude/skills/harness-spec-driven/SKILL.md")
+    r_nobody = resolve(".agents/skills/harness-spec-driven/SKILL.md")
     check("(c) --resolve: an ungranted path prints the literal NOBODY",
           r_nobody.stdout.split() == ["NOBODY"], f"got {r_nobody.stdout!r}")
 
@@ -920,7 +933,7 @@ def run_resolve():
                    "tool_input": {"file_path": path, "content": "x"}}
         return subprocess.run([HOOK], input=json.dumps(payload), capture_output=True,
                               text=True, env=dict(os.environ, CLAUDE_PROJECT_DIR=ROOT))
-    r = hook(".claude/skills/harness/bin/check-domain.sh", "harness-documentor")
+    r = hook(".agents/skills/harness/bin/check-domain.sh", "harness-documentor")
     check("(g) no --resolve: an out-of-domain Write still exits 2",
           r.returncode == 2, f"got {r.returncode}")
     r = hook(".harness/harness/docs/SPEC.md", "harness-documentor")
@@ -947,11 +960,11 @@ def run_resolve():
     # emits — the same convention cases (c)/(d) already use.
     def denied(r):
         return r.returncode == 2 and "may not write" in (r.stderr or "")
-    r = hook_env(".claude/skills/harness/bin/check-domain.sh", "harness-documentor",
+    r = hook_env(".agents/skills/harness/bin/check-domain.sh", "harness-documentor",
                  ".harness/harness.json")
     check("(i) VF-1: HARNESS_RESOLVE_PATH set in the env does NOT disable the hook",
           denied(r), f"got {r.returncode}, stderr={r.stderr!r}")
-    r = hook_env(".claude/skills/harness/bin/check-domain.sh", "harness-documentor", "")
+    r = hook_env(".agents/skills/harness/bin/check-domain.sh", "harness-documentor", "")
     check("(j) VF-1: an EMPTY HARNESS_RESOLVE_PATH does NOT disable the hook",
           denied(r), f"got {r.returncode}, stderr={r.stderr!r}")
 
@@ -2587,7 +2600,7 @@ def run_t14():
     # T-15 SUPPLIES the entry. It runs here as well as in T-15's verify because this file
     # runs in the integration kind on every CI run, so it is what keeps noticing if the
     # entry is ever deleted.
-    real = os.path.join(os.environ.get("CLAUDE_PROJECT_DIR") or ".",
+    real = os.path.join((os.environ.get("HARNESS_PROJECT_DIR") or os.environ.get("CLAUDE_PROJECT_DIR")) or ".",
                         ".harness", "team-config.yaml")
     try:
         import yaml as _y

@@ -27,7 +27,7 @@
 # cannot verify must say so rather than wave work through (this one is a gate, not
 # a mirror — the gh-sync skip rule deliberately does not apply).
 set -uo pipefail
-root="${CLAUDE_PROJECT_DIR:-$(pwd)}"
+root="${HARNESS_PROJECT_DIR:-${CLAUDE_PROJECT_DIR:-$(pwd)}}"
 GH="${GH_BIN:-gh}"
 
 input=$(cat)

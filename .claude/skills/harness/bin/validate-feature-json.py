@@ -37,7 +37,7 @@ KEEP_SUFFIXES = ("json", "yaml", "yml")
 
 
 def discover_paths():
-    root = os.environ.get("CLAUDE_PROJECT_DIR") or os.getcwd()
+    root = (os.environ.get("HARNESS_PROJECT_DIR") or os.environ.get("CLAUDE_PROJECT_DIR")) or os.getcwd()
     pattern = os.path.join(root, ".harness", "*", "features", "*", "feature.*")
     paths = sorted(
         p for p in glob.glob(pattern)

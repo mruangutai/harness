@@ -24,7 +24,7 @@ TEMPLATES = [
     ("SPEC §10.4", os.path.join(REPO_ROOT, ".harness/harness/docs/SPEC.md"),
      "### 10.4 The team digest"),
     ("harness-team \"Reporting up\"",
-     os.path.join(REPO_ROOT, ".claude/skills/harness-team/SKILL.md"),
+     os.path.join(REPO_ROOT, ".agents/skills/harness-team/SKILL.md"),
      "## Reporting up"),
 ]
 

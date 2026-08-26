@@ -771,7 +771,7 @@ with tempfile.TemporaryDirectory() as td:
 check("(20) FLEET_PATH is an absolute path", os.path.isabs(fc.FLEET_PATH), fc.FLEET_PATH)
 
 # --- CLAUDE_PROJECT_DIR pointed at a dir with no probe file: discarded, announced, still works
-_saved_env = os.environ.get("CLAUDE_PROJECT_DIR")
+_saved_env = (os.environ.get("HARNESS_PROJECT_DIR") or os.environ.get("CLAUDE_PROJECT_DIR"))
 try:
     with tempfile.TemporaryDirectory() as td:
         os.environ["CLAUDE_PROJECT_DIR"] = td

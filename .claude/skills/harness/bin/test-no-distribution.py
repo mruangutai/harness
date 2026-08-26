@@ -68,7 +68,10 @@ def case1():
 
     cmd_dir = os.path.join(ROOT, ".claude", "commands")
     other_cmds = [f for f in os.listdir(cmd_dir) if f.startswith("harness") and f.endswith(".md")]
-    check("case1_presence_six_other_command_doors_survive", len(other_cmds) >= 6,
+    # Four doors, not six: /harness-map and /harness-deepen were deleted when the
+    # codebase map tier was retired (DEC-137, struck 2026-08-24). The guard is that a
+    # distribution sweep does not take the REMAINING doors with it.
+    check("case1_presence_four_other_command_doors_survive", len(other_cmds) >= 4,
           f"only {len(other_cmds)} harness*.md commands remain: {other_cmds}")
 
     bin_dir = os.path.join(ROOT, ".claude", "skills", "harness", "bin")

@@ -6,6 +6,7 @@ with CLAUDE_PROJECT_DIR pointed at each, never against the real repo state.
 No test invokes a real `gh` binary and none asserts on `sub_issues_summary` (SC-09).
 """
 import json, os
+import re
 import subprocess
 import sys
 import shutil
@@ -31,7 +32,6 @@ HARNESS_JSON_SYNC_OFF = """{
 def feature_yaml(parent_line):
     return f"""github:
 {parent_line}
-  parent_origin: none
   issues:
     T-01: 41
 """
@@ -143,7 +143,6 @@ runs:
     verdict: FAIL
 github:
   parent: 40
-  parent_origin: none
   issues:
     T-01: 41
 """
@@ -1276,7 +1275,7 @@ def case_u():
     # different file. An isolated copy is required — a check-state running from the real
     # bin/ finds the real module whatever the fixture looks like.
     with tempfile.TemporaryDirectory() as tmp2:
-        isobin = os.path.join(tmp2, ".claude", "skills", "harness", "bin")
+        isobin = os.path.join(tmp2, ".agents", "skills", "harness", "bin")
         os.makedirs(isobin)
         _bin = os.path.dirname(os.path.abspath(SCRIPT))
         for fn in ("check-state.sh", "harness_yaml.py"):
@@ -1810,7 +1809,7 @@ def case_x():
     # evidence the session-entry call site renders them at all.
     with tempfile.TemporaryDirectory() as tmp:
         build(tmp, overrides={
-            ".claude/skills/harness/bin/gen-decisions-index.py":
+            ".agents/skills/harness/bin/gen-decisions-index.py":
                 'HEADER = "the authority is .harness/repoA/docs/DECISIONS.md"\n'})
         code, out = run(tmp)
         ls = inv(out)
@@ -1823,7 +1822,7 @@ def case_x():
     # x.2 a tree it CANNOT JUDGE: one reader carries neither form.
     with tempfile.TemporaryDirectory() as tmp:
         build(tmp, overrides={
-            ".claude/skills/harness/bin/factory_config.py": "nothing relevant\n"})
+            ".agents/skills/harness/bin/factory_config.py": "nothing relevant\n"})
         code, out = run(tmp)
         ls = inv(out)
         ok = code == 1 and any("CANNOT VERIFY" in l and "[neither]" in l for l in ls)
@@ -2297,6 +2296,581 @@ def case_inv28_silent_sync_off():
         return ok
 
 
+# --- FEAT-34 T-07 — INV-29 -----------------------------------------------------------
+#
+# BUILT WITH REAL GIT, for case_u's stated reason and one more of its own. INV-29 reads
+# `git worktree list --porcelain` through worktree_terminal, so a hand-built `.git` pointer
+# never appears in that output and every assertion would pass vacuously. It ALSO reads the
+# feature's status from the DEFAULT BRANCH via `git show`, so a fixture that only writes a
+# file on disk grades nothing about REQ-05.
+
+def _i29_repo(path, branch="main"):
+    os.makedirs(path, exist_ok=True)
+    for cmd in (["git", "init", "-q", "-b", branch],
+                ["git", "config", "user.email", "t@example.com"],
+                ["git", "config", "user.name", "t"]):
+        subprocess.run(cmd, cwd=path, capture_output=True)
+    with open(os.path.join(path, "f.txt"), "w") as f:
+        f.write("x\n")
+    subprocess.run(["git", "add", "f.txt"], cwd=path, capture_output=True)
+    subprocess.run(["git", "commit", "-qm", "init"], cwd=path, capture_output=True)
+    return path
+
+
+def _i29_land(repo, feature_id, status_or_raw, repo_segment="harness"):
+    """Commit the feature's `feature.json` ON THE CURRENT BRANCH. `status_or_raw` is a dict
+    written as JSON, or a raw string written verbatim for the unparseable case."""
+    rel = os.path.join(".harness", repo_segment, "features", feature_id, "feature.json")
+    ab = os.path.join(repo, rel)
+    os.makedirs(os.path.dirname(ab), exist_ok=True)
+    with open(ab, "w") as f:
+        if isinstance(status_or_raw, str):
+            f.write(status_or_raw)
+        else:
+            json.dump(status_or_raw, f)
+    subprocess.run(["git", "add", rel], cwd=repo, capture_output=True)
+    subprocess.run(["git", "commit", "-qm", "land " + feature_id], cwd=repo, capture_output=True)
+
+
+def _i29_wt(repo, worktree_id, repo_segment="harness"):
+    dest = os.path.join(repo, ".claude", "worktrees", repo_segment, worktree_id)
+    subprocess.run(["git", "worktree", "add", "-q", "-b", "wt-" + worktree_id,
+                    dest, "HEAD"], cwd=repo, capture_output=True)
+    return dest
+
+
+def _i29_lines(out):
+    return [l for l in out.splitlines() if "INV-29" in l]
+
+
+def _i29_for(out, path):
+    real = os.path.realpath(path)
+    return [l for l in _i29_lines(out) if path in l or real in l]
+
+
+def case_inv29():
+    """INV-29 (FEAT-34 T-07): a worktree must not survive its feature reaching a terminal
+    state. Six lettered groups, each asserted separately.
+
+    SEVERITY IS ASSERTED ON THE FINDING LINE'S OWN PREFIX, NEVER ON THE RUN'S EXIT CODE.
+    `:1214-1218` above already records as a measurement that these fixtures are red for other
+    reasons, so a comparison against a non-zero exit code passes whether or not the invariant
+    fired. Every assertion below reads the INV-29 line itself.
+    """
+    results = []
+
+    # ---- (a) the firing pair, and its PAIRED SILENCE ------------------------------------
+    with tempfile.TemporaryDirectory() as tmp:
+        r = _i29_repo(os.path.join(tmp, "A"))
+        _i29_land(r, "FEAT-T29", {"feature_id": "FEAT-T29", "status": "Done"})
+        wt = _i29_wt(r, "FEAT-T29")
+        make_fixture(r, '{}', "  parent: 40")
+        _c, out = run(r)
+        lines = _i29_for(out, wt)
+        ok = len(lines) == 1 and lines[0].strip().startswith("VIOLATION")
+        results.append(("(a.1) default branch Done + standing worktree -> one INV-29 at "
+                        "VIOLATION", ok, "\n".join(_i29_lines(out))))
+
+    with tempfile.TemporaryDirectory() as tmp:
+        r = _i29_repo(os.path.join(tmp, "A2"))
+        _i29_land(r, "FEAT-T29", {"feature_id": "FEAT-T29", "status": "Review"})
+        wt = _i29_wt(r, "FEAT-T29")
+        make_fixture(r, '{}', "  parent: 40")
+        _c, out = run(r)
+        # THE PAIRED SILENCE IS NOT DECORATION. Without it the group cannot tell a working
+        # invariant from one that flags every worktree it sees.
+        ok = not _i29_for(out, wt)
+        results.append(("(a.2) the SAME fixture at Review -> no INV-29 line at all", ok,
+                        "\n".join(_i29_lines(out))))
+
+    # ---- (b) the message, graded as composed content, not as a substring ----------------
+    with tempfile.TemporaryDirectory() as tmp:
+        r = _i29_repo(os.path.join(tmp, "B"))
+        _i29_land(r, "FEAT-T29", {"feature_id": "FEAT-T29", "status": "Done"})
+        _i29_land(r, "FEAT-OTHER", {"feature_id": "FEAT-OTHER", "status": "Done"})
+        wt = _i29_wt(r, "FEAT-T29")
+        other = _i29_wt(r, "FEAT-OTHER")
+        make_fixture(r, '{}', "  parent: 40")
+        _c, out = run(r)
+        mine = _i29_for(out, wt)
+        line = mine[0] if mine else ""
+        # THE THREE RED INPUTS THE CRITERION NAMES, each its own claim:
+        #   1. a message naming the directory but carrying NO command;
+        #   2. a bare removal command with no identity in it;
+        #   3. a command carrying ANOTHER worktree's identity.
+        names_dir = wt in line or os.path.realpath(wt) in line
+        has_cmd = "feature-worktree.py remove" in line
+        carries_own = "--id FEAT-T29" in line and "--repo harness" in line
+        not_other = "FEAT-OTHER" not in line
+        results.append(("(b.1) the line NAMES the worktree directory found", names_dir, line))
+        results.append(("(b.2) the line CARRIES the removal command", has_cmd, line))
+        results.append(("(b.3) the command carries THIS worktree's own repo and id",
+                        carries_own, line))
+        results.append(("(b.4) and NOT the sibling worktree's identity", not_other, line))
+        # The sibling must get its OWN line — proving the composition is per record and not
+        # one message reused.
+        theirs = _i29_for(out, other)
+        ok_sib = len(theirs) == 1 and "--id FEAT-OTHER" in theirs[0]
+        results.append(("(b.5) the sibling worktree gets its own line with its own id",
+                        ok_sib, "\n".join(theirs)))
+
+    # ---- (c) SC-02, THE DEADLOCK: the default branch decides, never the working tree -----
+    with tempfile.TemporaryDirectory() as tmp:
+        r = _i29_repo(os.path.join(tmp, "C"))
+        _i29_land(r, "FEAT-T29", {"feature_id": "FEAT-T29", "status": "Review"})
+        wt = _i29_wt(r, "FEAT-T29")
+        # The WORKING TREE inside the worktree says Done; the default branch still says
+        # Review. An implementation reading the working tree fires here and must not.
+        wpath = os.path.join(wt, ".harness", "harness", "features", "FEAT-T29",
+                             "feature.json")
+        os.makedirs(os.path.dirname(wpath), exist_ok=True)
+        with open(wpath, "w") as f:
+            json.dump({"feature_id": "FEAT-T29", "status": "Done"}, f)
+        make_fixture(r, '{}', "  parent: 40")
+        _c, out = run(r)
+        ok = not _i29_for(out, wt)
+        results.append(("(c.1) working tree Done, default branch Review -> silent", ok,
+                        "\n".join(_i29_lines(out))))
+
+    with tempfile.TemporaryDirectory() as tmp:
+        r = _i29_repo(os.path.join(tmp, "C2"))
+        _i29_land(r, "FEAT-T29", {"feature_id": "FEAT-T29", "status": "Done"})
+        wt = _i29_wt(r, "FEAT-T29")
+        wpath = os.path.join(wt, ".harness", "harness", "features", "FEAT-T29",
+                             "feature.json")
+        with open(wpath, "w") as f:
+            json.dump({"feature_id": "FEAT-T29", "status": "Review"}, f)
+        make_fixture(r, '{}', "  parent: 40")
+        _c, out = run(r)
+        ok = len(_i29_for(out, wt)) == 1
+        # BOTH HALVES ARE ASSERTED. A working-tree read fails c.1 by firing and fails c.2 by
+        # staying silent, so the pair is what demonstrates the failing state, not either one.
+        results.append(("(c.2) the INVERSE — default branch Done, working tree Review -> "
+                        "one line", ok, "\n".join(_i29_lines(out))))
+
+    # ---- (d) SC-03, the dirty clauses, graded ONE AT A TIME -----------------------------
+    with tempfile.TemporaryDirectory() as tmp:
+        r = _i29_repo(os.path.join(tmp, "D"))
+        _i29_land(r, "FEAT-T29", {"feature_id": "FEAT-T29", "status": "Done"})
+        wt = _i29_wt(r, "FEAT-T29")
+        with open(os.path.join(wt, "f.txt"), "a") as f:
+            f.write("dirty\n")
+        make_fixture(r, '{}', "  parent: 40")
+        _c, out = run(r)
+        mine = _i29_for(out, wt)
+        line = mine[0] if mine else ""
+        results.append(("(d.1) a dirty Done worktree still fires", bool(mine), line))
+        results.append(("(d.2) the message says the tree is DIRTY", "dirty" in line.lower(),
+                        line))
+        # NOT ONE COMBINED SUBSTRING. The two claims are separate because a message could
+        # carry either alone and a single match would not notice.
+        results.append(("(d.3) and says remove will DECLINE until the changes are dealt with",
+                        "DECLINE" in line, line))
+
+    # ---- (e) SC-04, a SECOND repository, from ONE check-state.sh run --------------------
+    #
+    # THE FIXTURE IS FLEET-RESOLVED, per D-10, and is NOT a directory placed under the
+    # harness checkout's own WORKTREES_SEGMENT — no such second repository can exist, because
+    # feature-worktree.py's dest_for joins WORKTREES_SEGMENT only to a resolved owner_root.
+    # RED PROOF: an INV-29 built on classify(root) rather than classify_all(root) satisfies
+    # (a) through (d) and (f) and fails exactly this.
+    with tempfile.TemporaryDirectory() as tmp:
+        probe = _i29_repo(os.path.join(tmp, "P"))
+        # THE SPEC.md IS LOAD-BEARING, not scaffolding. factory_config.harness_root() honours
+        # CLAUDE_PROJECT_DIR only when that directory holds a READABLE
+        # `.harness/harness/docs/SPEC.md` (factory_config.py:39, :48) — otherwise it falls back
+        # to the SCRIPT's own location and FLEET_PATH resolves to the REAL harness fleet.
+        # Without this file the case reads the live fleet.yaml, finds no declared checkout on
+        # disk, and passes or fails for a reason that has nothing to do with the fixture.
+        _sd = os.path.join(probe, ".harness", "harness", "docs")
+        os.makedirs(_sd, exist_ok=True)
+        with open(os.path.join(_sd, "SPEC.md"), "w") as f:
+            f.write("probe\n")
+        ws = os.path.join(tmp, "ws")
+        os.makedirs(ws, exist_ok=True)
+        second = _i29_repo(os.path.join(ws, "second"))
+        _i29_land(second, "FEAT-T29B", {"feature_id": "FEAT-T29B", "status": "Done"},
+                  repo_segment="second")
+        wt2 = _i29_wt(second, "FEAT-T29B", repo_segment="second")
+        fdir = os.path.join(probe, ".harness", "factory")
+        os.makedirs(fdir, exist_ok=True)
+        with open(os.path.join(fdir, "fleet.yaml"), "w") as f:
+            f.write("schema: factory-fleet/1\n"
+                    "repos:\n"
+                    "  - name: t/second\n"
+                    "    default_branch: main\n"
+                    "workspace_root: %s\n" % ws)
+        make_fixture(probe, '{}', "  parent: 40")
+        _c, out = run(probe)
+        lines = _i29_for(out, wt2)
+        ok = len(lines) == 1 and lines[0].strip().startswith("VIOLATION")
+        results.append(("(e) a Done feature's worktree in a SECOND fleet-declared repository "
+                        "produces an INV-29 line from ONE run", ok,
+                        "\n".join(_i29_lines(out))))
+
+    # ---- (f) SC-05, ONE fixture, four worktrees, four separate assertions ---------------
+    with tempfile.TemporaryDirectory() as tmp:
+        r = _i29_repo(os.path.join(tmp, "F"))
+        _i29_land(r, "FEAT-FULL", {"feature_id": "FEAT-FULL", "status": "Done"})
+        _i29_land(r, "FEAT-SHORT-named-in-full",
+                  {"feature_id": "FEAT-SHORT-named-in-full", "status": "Done"})
+        _i29_land(r, "FEAT-BAD", "{not json at all")
+        wt_absent = _i29_wt(r, "FEAT-GONE")          # no landed dir at all
+        wt_full = _i29_wt(r, "FEAT-FULL")
+        wt_short = _i29_wt(r, "FEAT-SHORT")          # landed dir is the FULL name
+        wt_bad = _i29_wt(r, "FEAT-BAD")
+        make_fixture(r, '{}', "  parent: 40")
+        _c, out = run(r)
+        results.append(("(f.1) genuinely absent from the default branch -> SILENT",
+                        not _i29_for(out, wt_absent), "\n".join(_i29_lines(out))))
+        results.append(("(f.2) a full-named Done sibling -> fires",
+                        len(_i29_for(out, wt_full)) == 1, "\n".join(_i29_lines(out))))
+        # f.3 AND f.4 ARE THE RED PROOF. An implementation keying the exemption on "the
+        # lookup returned nothing" passes f.1 and f.2 and fails both of these — which is the
+        # over-suppression that would make every refusal in REQ-01..REQ-05 silently stop.
+        short_lines = _i29_for(out, wt_short)
+        results.append(("(f.3) a SHORT-named worktree whose landed dir is full-named and "
+                        "Done -> fires", len(short_lines) == 1,
+                        "\n".join(_i29_lines(out))))
+        # THE MESSAGE IS READ, NOT JUST COUNTED. Firing is not enough: the printed command has to
+        # be RUNNABLE. `--id` must be the worktree DIRECTORY's own name, because that is what
+        # `feature-worktree.py remove` matches; the record's feature_id is the LANDED directory,
+        # which for a short-named worktree is a different string and yields
+        # "not a linked worktree" for a directory plainly sitting in front of the reader.
+        # (f.3) counted the line and never read it, which is exactly how that shipped.
+        short_line = short_lines[0] if short_lines else ""
+        results.append(("(f.4) the SHORT-named worktree's command carries its OWN directory name",
+                        "--id FEAT-SHORT`" in short_line, short_line))
+        results.append(("(f.5) and NOT the landed full name",
+                        "--id FEAT-SHORT-named-in-full" not in short_line, short_line))
+        # ---- SC-17 clause (c): THE PRINTED COMMAND IS EXECUTED, not merely read ----------
+        #
+        # (f.4) and (f.5) grade the command's TEXT. Text can be right and the command still fail,
+        # which is the whole reason SC-17 exists: sixteen criteria graded INV-29 and none of them
+        # ever ran what it printed. This clause runs it verbatim and asserts the worktree is gone.
+        #
+        # THE SAFETY ASSERTION IS NOT OPTIONAL. feature-worktree.py resolves owner_root from
+        # factory_config.harness_root(), which honours CLAUDE_PROJECT_DIR only when that directory
+        # holds a readable .harness/harness/docs/SPEC.md. Without the probe file it falls back to
+        # the SCRIPT's own location — the REAL harness checkout — and this case would delete a live
+        # worktree. So the probe is written first and the resolved path is asserted inside the
+        # fixture BEFORE anything is removed.
+        _sd = os.path.join(r, ".harness", "harness", "docs")
+        os.makedirs(_sd, exist_ok=True)
+        with open(os.path.join(_sd, "SPEC.md"), "w") as f:
+            f.write("fixture\n")
+        import shlex
+        m = re.search(r"`python3 ([^`]+)`", short_line) if short_line else None
+        ran_ok = False
+        gone = False
+        detail = "no command found in the line"
+        if m:
+            argv = [sys.executable] + shlex.split(m.group(1))
+            # THE SCRIPT PATH IS RESOLVED AGAINST THE REAL BIN DIR; EVERY OTHER ARGUMENT IS
+            # VERBATIM. The printed command is repo-relative, and an operator runs it from their
+            # own checkout where that path exists. A tmpdir fixture has no bin/ of its own, so
+            # only argv[1] is rewritten to the real script — the `--repo` and `--id` values SC-17
+            # actually grades are untouched, and CLAUDE_PROJECT_DIR still points the resolver at
+            # the fixture. Copying the whole bin dir in would test the copy, not the message.
+            argv[1] = os.path.join(os.path.dirname(SCRIPT), os.path.basename(argv[1]))
+            env = dict(os.environ)
+            env["CLAUDE_PROJECT_DIR"] = r
+            probe = subprocess.run(argv,
+                                   capture_output=True, text=True, env=env, cwd=r)
+            ran_ok = probe.returncode == 0
+            gone = not os.path.exists(wt_short)
+            detail = ("exit=%d inside_fixture=%s stdout=%s stderr=%s"
+                      % (probe.returncode,
+                         os.path.realpath(wt_short).startswith(os.path.realpath(r)),
+                         probe.stdout.strip()[-200:], probe.stderr.strip()[-200:]))
+        # THE REWRITE ABOVE HAS A COST AND THIS CLOSES IT. Rewriting argv[1] means the run does
+        # NOT prove the printed script path resolves in a real checkout — so that is asserted
+        # separately, against the real root. The path is repo-relative and may reach the tree
+        # through the .agents compatibility symlink; what matters is that it resolves at all.
+        printed_rel = shlex.split(m.group(1))[0] if m else ""
+        real_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(
+            os.path.dirname(SCRIPT)))))
+        results.append(("(f.9) SC-17(c): the printed script path resolves in a real checkout",
+                        bool(printed_rel) and os.path.exists(
+                            os.path.join(real_root, printed_rel)),
+                        "printed=%r real_root=%r" % (printed_rel, real_root)))
+        results.append(("(f.7) SC-17(c): the printed command RUNS and exits 0", ran_ok, detail))
+        results.append(("(f.8) SC-17(c): and that worktree is GONE afterwards", gone, detail))
+
+        results.append(("(f.6) a landed feature.json that is present but UNPARSEABLE -> "
+                        "fires", len(_i29_for(out, wt_bad)) == 1,
+                        "\n".join(_i29_lines(out))))
+
+    ok_all = True
+    for label, ok, detail in results:
+        print(f"{'ok' if ok else 'FAIL'} - INV-29 {label}")
+        if not ok and detail:
+            print("      saw: " + detail.replace("\n", "\n      "))
+        ok_all = ok_all and ok
+    return ok_all
+
+
+def _inv30_fixture(tmp, features):
+    """features: list of (feat_id, status, milestone_or_None). milestone None writes
+    `"milestone": null`, which is the shape eight real features carry at 9165162."""
+    h = os.path.join(tmp, ".harness")
+    os.makedirs(h, exist_ok=True)
+    with open(os.path.join(h, "harness.json"), "w") as f:
+        f.write(HARNESS_JSON_SYNC_ON)
+    for feat, status, ms in features:
+        d = os.path.join(h, "harness", "features", feat)
+        os.makedirs(d, exist_ok=True)
+        body = ('{\n  "feature_id": "%s",\n  "status": "%s",\n'
+                '  "github": {"milestone": %s}\n}\n'
+                % (feat, status, "null" if ms is None else int(ms)))
+        with open(os.path.join(d, "feature.json"), "w") as f:
+            f.write(body)
+    return h
+
+
+def _inv30_gh_stub(tmp, open_numbers, auth_ok=True):
+    """A fake `gh` on FACTORY_GH. NO CASE HERE MAKES A REAL NETWORK CALL.
+
+    It answers exactly the two shapes INV-30 issues: `auth status`, and the paginated
+    milestone list filtered to `.[].number`. Anything else exits 1, so a future INV-30 that
+    started asking a THIRD question would fail loudly here rather than silently reading an
+    empty answer as "nothing is open"."""
+    path = os.path.join(tmp, "gh-stub-%d" % (0 if auth_ok else 1))
+    with open(path, "w") as f:
+        f.write("#!/bin/sh\n")
+        f.write('if [ "$1" = "auth" ]; then exit %d; fi\n' % (0 if auth_ok else 1))
+        f.write('case "$*" in\n')
+        f.write('  *milestones*)\n')
+        if auth_ok:
+            for n in open_numbers:
+                f.write('    echo %d\n' % int(n))
+        f.write('    exit %d ;;\n' % (0 if auth_ok else 1))
+        f.write('  *) exit 1 ;;\n')
+        f.write('esac\n')
+    os.chmod(path, 0o755)
+    return path
+
+
+def _inv30_lines(out):
+    return [l for l in out.splitlines() if "INV-30" in l]
+
+
+def case_inv30_fires_on_open_milestone():
+    """SC-12 clause one. SEVERITY IS ASSERTED ON THE LINE'S OWN PREFIX, never on the run's
+    exit code — `test-check-state.py:1214` already records that these fixtures are red for
+    other reasons, so `code != 0` would pass whether or not the invariant fired."""
+    with tempfile.TemporaryDirectory() as tmp:
+        _inv30_fixture(tmp, [("FEAT-T30", "Done", 77)])
+        gh = _inv30_gh_stub(tmp, [77])
+        _code, out = _run_with_gh(tmp, gh)
+        lines = _inv30_lines(out)
+        ok = (len(lines) == 1
+              and lines[0].strip().startswith("VIOLATION")
+              and "FEAT-T30" in lines[0]
+              and "77" in lines[0]
+              and "gh-sync.py ship" in lines[0])
+        print(f"{'ok' if ok else 'FAIL'} - INV-30 fires at VIOLATION on a Done feature whose "
+              f"milestone is open, naming the feature, the number and the remedy")
+        return ok
+
+
+def case_inv30_silent_on_closed_milestone():
+    """SC-12 clause two, THE DISCRIMINATING ONE. Same fixture, same `status: Done` — only the
+    stub's answer changes. An implementation keying on status alone passes the case above and
+    fails this one, which is exactly the red proof the criterion names."""
+    with tempfile.TemporaryDirectory() as tmp:
+        _inv30_fixture(tmp, [("FEAT-T30", "Done", 77)])
+        gh = _inv30_gh_stub(tmp, [])          # 77 is not in the open list
+        _code, out = _run_with_gh(tmp, gh)
+        lines = _inv30_lines(out)
+        ok = not lines
+        print(f"{'ok' if ok else 'FAIL'} - INV-30 is silent when the SAME Done feature's "
+              f"milestone is closed (status is Done in both halves)")
+        return ok
+
+
+def case_inv30_silent_offline():
+    """SC-12 clause three, and it is TWO claims, not one: no INV-30 line AND no error. This
+    grades the INV-26 offline posture the design copies deliberately — `check-state.sh` runs
+    before every commit, so an unreachable network must never become a red gate."""
+    with tempfile.TemporaryDirectory() as tmp:
+        _inv30_fixture(tmp, [("FEAT-T30", "Done", 77)])
+        gh = _inv30_gh_stub(tmp, [77], auth_ok=False)
+        _code, out, err = _run_with_gh_streams(tmp, gh)
+        lines = _inv30_lines(out)
+        # THE SECOND READER IS NOT DECORATION. A traceback goes to stderr, so a case that
+        # reads stdout alone cannot see the gate abort — the measurement recorded at
+        # `_run_with_gh_streams`.
+        ok = (not lines
+              and "INV-30 CANNOT RUN" not in out
+              and "Traceback" not in err)
+        print(f"{'ok' if ok else 'FAIL'} - INV-30 records nothing and raises no error when "
+              f"gh is unauthenticated")
+        return ok
+
+
+def case_inv30_silent_on_null_milestone():
+    """A Done feature with no recorded milestone is OUTSIDE this invariant's reach, not a
+    finding. Eight real features are in that state at `9165162`; firing on them would make the
+    gate permanently red for a condition INV-30 cannot speak to."""
+    with tempfile.TemporaryDirectory() as tmp:
+        _inv30_fixture(tmp, [("FEAT-T30", "Done", None)])
+        gh = _inv30_gh_stub(tmp, [77])
+        _code, out = _run_with_gh(tmp, gh)
+        ok = not _inv30_lines(out)
+        print(f"{'ok' if ok else 'FAIL'} - INV-30 is silent on a Done feature whose recorded "
+              f"milestone is null")
+        return ok
+
+
+def case_inv30_silent_on_nonterminal():
+    """DEC-192's six status values are case sensitive and only the exact string `Done` is
+    checked. A feature still in Review has not claimed that ship ran, so an open milestone is
+    the CORRECT state for it and reporting it would be noise."""
+    with tempfile.TemporaryDirectory() as tmp:
+        _inv30_fixture(tmp, [("FEAT-T30", "Review", 77)])
+        gh = _inv30_gh_stub(tmp, [77])
+        _code, out = _run_with_gh(tmp, gh)
+        ok = not _inv30_lines(out)
+        print(f"{'ok' if ok else 'FAIL'} - INV-30 is silent on a non-terminal feature whose "
+              f"milestone is open")
+        return ok
+
+
+
+# ---------------------------------------------------------------------------------------------
+# INV-31 (FEAT-40 T-08): this clone's merge hook is not installed.
+#
+# EVERY FIXTURE IS A REAL GIT REPOSITORY, because the invariant reads `git config --get
+# core.hooksPath` in the checkout it is invoked in. A plain temp directory would answer "unset"
+# for the wrong reason and the silent case could never be built at all.
+# ---------------------------------------------------------------------------------------------
+
+_HOOKS_REL_T = os.path.join(".claude", "skills", "harness", "hooks")
+
+
+def _inv31_fixture(tmp, hooks_path=None, post_merge="executable"):
+    """A git repo carrying a minimal .harness, with core.hooksPath and the hook file under the
+    caller's control.
+
+    `hooks_path` None leaves the config unset. `post_merge` is "executable", "plain" (present
+    but mode 0644) or "absent"."""
+    subprocess.run(["git", "init", "-q"], cwd=tmp, capture_output=True)
+    h = os.path.join(tmp, ".harness")
+    os.makedirs(os.path.join(h, "harness", "features"), exist_ok=True)
+    with open(os.path.join(h, "harness.json"), "w") as f:
+        f.write('{"github": {"sync": false}}\n')
+    hooks_dir = os.path.join(tmp, _HOOKS_REL_T)
+    os.makedirs(hooks_dir, exist_ok=True)
+    if post_merge != "absent":
+        pm = os.path.join(hooks_dir, "post-merge")
+        with open(pm, "w") as f:
+            f.write("#!/usr/bin/env bash\nexit 0\n")
+        os.chmod(pm, 0o755 if post_merge == "executable" else 0o644)
+    if hooks_path is not None:
+        subprocess.run(["git", "config", "core.hooksPath", hooks_path],
+                       cwd=tmp, capture_output=True)
+    return h
+
+
+def _inv31_lines(out):
+    return [l for l in out.splitlines() if "INV-31" in l]
+
+
+def case_inv31_unset():
+    with tempfile.TemporaryDirectory() as tmp:
+        _inv31_fixture(tmp, hooks_path=None)
+        _code, out = run(tmp)
+        lines = _inv31_lines(out)
+        ok = (len(lines) == 1
+              and lines[0].strip().startswith("VIOLATION")
+              and "unset" in lines[0]
+              and _HOOKS_REL_T in lines[0]
+              and "git config core.hooksPath" in lines[0])
+        print(f"{'ok' if ok else 'FAIL'} - INV-31 fires at VIOLATION when core.hooksPath is "
+              f"unset, saying so and carrying the fix command"
+              + ("" if ok else f"\n      {lines}"))
+        return ok
+
+
+def case_inv31_wrong_value():
+    """THE VALUE FOUND IS REPORTED. An operator who cannot see what it currently reads has to
+    go and run the command themselves before they can act on the line."""
+    with tempfile.TemporaryDirectory() as tmp:
+        _inv31_fixture(tmp, hooks_path=".git/hooks")
+        _code, out = run(tmp)
+        lines = _inv31_lines(out)
+        ok = (len(lines) == 1
+              and lines[0].strip().startswith("VIOLATION")
+              and ".git/hooks" in lines[0]
+              and "no harness hook runs" in lines[0])
+        print(f"{'ok' if ok else 'FAIL'} - INV-31 fires when core.hooksPath names another "
+              f"directory, quoting the value found"
+              + ("" if ok else f"\n      {lines}"))
+        return ok
+
+
+def case_inv31_absolute_same_dir_passes():
+    """AN ABSOLUTE VALUE NAMING THE SAME DIRECTORY IS FINE. The comparison resolves both sides
+    to real paths on purpose; a string comparison would call a working clone broken."""
+    with tempfile.TemporaryDirectory() as tmp:
+        _inv31_fixture(tmp, hooks_path=os.path.join(tmp, _HOOKS_REL_T))
+        _code, out = run(tmp)
+        lines = _inv31_lines(out)
+        ok = not lines
+        print(f"{'ok' if ok else 'FAIL'} - INV-31 is silent when an ABSOLUTE core.hooksPath "
+              f"names the same directory"
+              + ("" if ok else f"\n      {lines}"))
+        return ok
+
+
+def case_inv31_post_merge_absent():
+    """A SECOND FINDING WITH A DIFFERENT SUBJECT. The first is a misconfigured clone; this is a
+    damaged checkout. Different fixes, so they must never collapse into one message."""
+    with tempfile.TemporaryDirectory() as tmp:
+        _inv31_fixture(tmp, hooks_path=_HOOKS_REL_T, post_merge="absent")
+        _code, out = run(tmp)
+        lines = _inv31_lines(out)
+        ok = (len(lines) == 1
+              and lines[0].strip().startswith("VIOLATION")
+              and "post-merge is missing" in lines[0]
+              and "restore it" in lines[0]
+              and "core.hooksPath" not in lines[0])
+        print(f"{'ok' if ok else 'FAIL'} - INV-31 reports a MISSING post-merge as its own "
+              f"finding, with its own fix, never as a tail on the config one"
+              + ("" if ok else f"\n      {lines}"))
+        return ok
+
+
+def case_inv31_post_merge_not_executable():
+    with tempfile.TemporaryDirectory() as tmp:
+        _inv31_fixture(tmp, hooks_path=_HOOKS_REL_T, post_merge="plain")
+        _code, out = run(tmp)
+        lines = _inv31_lines(out)
+        ok = (len(lines) == 1
+              and lines[0].strip().startswith("VIOLATION")
+              and "not executable" in lines[0]
+              and "644" in lines[0]
+              and "chmod +x" in lines[0])
+        print(f"{'ok' if ok else 'FAIL'} - INV-31 reports a NON-EXECUTABLE post-merge, naming "
+              f"the mode it found and the fix"
+              + ("" if ok else f"\n      {lines}"))
+        return ok
+
+
+def case_inv31_silent_when_installed():
+    """THE DISCRIMINATING CASE. An invariant that fires on everything is not a check."""
+    with tempfile.TemporaryDirectory() as tmp:
+        _inv31_fixture(tmp, hooks_path=_HOOKS_REL_T, post_merge="executable")
+        _code, out = run(tmp)
+        lines = _inv31_lines(out)
+        ok = not lines
+        print(f"{'ok' if ok else 'FAIL'} - INV-31 is SILENT when the hook is installed and "
+              f"executable"
+              + ("" if ok else f"\n      {lines}"))
+        return ok
+
+
 def main():
     ok_a, code_a = case_a()
     ok_b, code_b = case_b()
@@ -2331,6 +2905,20 @@ def main():
     ok_w = case_w()
     ok_x = case_x()
 
+    # FEAT-34 T-09 — INV-30's three SC-12 clauses plus the two silences that keep it from
+    # firing on states it cannot speak to. Every case stubs `gh` through FACTORY_GH; none
+    # makes a network call.
+    # FEAT-34 T-07 — INV-29's six lettered groups.
+    ok_i29 = case_inv29()
+
+    ok_i30 = all([
+        case_inv30_fires_on_open_milestone(),
+        case_inv30_silent_on_closed_milestone(),
+        case_inv30_silent_offline(),
+        case_inv30_silent_on_null_milestone(),
+        case_inv30_silent_on_nonterminal(),
+    ])
+
     # FEAT-31 T-14 — INV-17's shape pass over every handoff stem.
     ok_t14 = all([
         case_t14_widening(),
@@ -2351,6 +2939,15 @@ def main():
         case_t10_red(),
     ])
 
+    ok_i31 = all([
+        case_inv31_unset(),
+        case_inv31_wrong_value(),
+        case_inv31_absolute_same_dir_passes(),
+        case_inv31_post_merge_absent(),
+        case_inv31_post_merge_not_executable(),
+        case_inv31_silent_when_installed(),
+    ])
+
     ok_exit_unchanged = code_a == code_b
     print(
         f"{'ok' if ok_exit_unchanged else 'FAIL'} - exit code unchanged by INV-21 "
@@ -2360,6 +2957,7 @@ def main():
     if (ok_a and ok_b and ok_c and ok_d and ok_e and ok_f and ok_g
             and ok_h and ok_i and ok_j and ok_k and ok_l and ok_m and ok_m2 and ok_m3 and ok_n and ok_o and ok_p and ok_q and ok_r and ok_s and ok_t and ok_u and ok_v and ok_w and ok_x and ok_t14 and ok_t10
             and ok_i28a and ok_i28b and ok_i28c and ok_i28d and ok_i28e and ok_i28f
+            and ok_i29 and ok_i30 and ok_i31
             and ok_exit_unchanged):
         sys.exit(0)
     sys.exit(1)

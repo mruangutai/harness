@@ -174,7 +174,7 @@ def main():
         tdir = os.path.join(root, ".claude", "skills", "harness", "templates")
     if not os.path.isdir(tdir):
         print(f"upgrade-config: no templates at {tdir} — the templates ship inside "
-              f"this repository at .claude/skills/harness/bin/../templates, so a "
+              f"this repository at .agents/skills/harness/bin/../templates, so a "
               f"missing templates directory means the checkout is incomplete.")
         return 1
 

@@ -68,7 +68,7 @@ TOPIC_VOCAB = {
 
 HEADER = """<!-- index-contract v1 -->
 <!-- GENERATED except the text after ` :: ` on each row.
-     Regenerate: .claude/skills/harness/bin/gen-decisions-index.py -->
+     Regenerate: .agents/skills/harness/bin/gen-decisions-index.py -->
 
 # DECISIONS — index
 
@@ -400,7 +400,7 @@ def parse_argv(argv):
 def main():
     stdout_mode = parse_argv(sys.argv[1:])
 
-    project_dir = os.environ.get("CLAUDE_PROJECT_DIR") or os.getcwd()
+    project_dir = (os.environ.get("HARNESS_PROJECT_DIR") or os.environ.get("CLAUDE_PROJECT_DIR")) or os.getcwd()
     os.chdir(project_dir)
 
     if not os.path.isfile(DECISIONS_PATH):

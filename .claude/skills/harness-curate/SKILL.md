@@ -16,14 +16,14 @@ asks for a cleanup.
    applies it by path, so an audit that reads one tier reports clean over the other.
 
    ```
-   .claude/skills/harness/bin/check-expertise.sh .harness/expertise/
+   .agents/skills/harness/bin/check-expertise.sh .harness/expertise/
    for d in .harness/*/expertise/; do
-     [ -d "$d" ] && .claude/skills/harness/bin/check-expertise.sh "$d"
+     [ -d "$d" ] && .agents/skills/harness/bin/check-expertise.sh "$d"
    done
    ```
 
    Files reported `OK` are done — do not touch them.
-2. **Distill each failing file.** The contract lives in `.claude/skills/harness-distill/SKILL.md`
+2. **Distill each failing file.** The contract lives in `.agents/skills/harness-distill/SKILL.md`
    — **read it first; it is NOT preloaded** (DEC-158). The summary below is a checklist, not the
    contract, and the ops schema and read-modify-write rule are only in that file. For each:
    - Every entry becomes **WHEN <situation> DO <action>**, ≤50 words, or a durable repo fact.
@@ -40,9 +40,9 @@ asks for a cleanup.
 4. **Verify:** re-run the same two-tier audit until every file passes:
 
    ```
-   .claude/skills/harness/bin/check-expertise.sh .harness/expertise/
+   .agents/skills/harness/bin/check-expertise.sh .harness/expertise/
    for d in .harness/*/expertise/; do
-     [ -d "$d" ] && .claude/skills/harness/bin/check-expertise.sh "$d"
+     [ -d "$d" ] && .agents/skills/harness/bin/check-expertise.sh "$d"
    done
    ```
 

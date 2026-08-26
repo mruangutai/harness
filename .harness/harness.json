@@ -104,7 +104,7 @@
     "unit": {
       "detect": "tests/unit/**|**/*.test.*|**/*_test.*|**/test_*.py|.claude/skills/harness/bin/test-*.py",
       "exclude": ".claude/worktrees/**|node_modules/**|vendor/**|.venv/**|dist/**|build/**",
-      "cmd": ".claude/skills/harness/bin/run-unit-tests.sh --kind unit",
+      "cmd": ".agents/skills/harness/bin/run-unit-tests.sh --kind unit",
       "status": "active"
     },
     "functional": {
@@ -116,9 +116,9 @@
       "signed": "DEC-187"
     },
     "integration": {
-      "detect": "tests/integration/**|.claude/skills/harness/bin/test-check-state.py|.claude/skills/harness/bin/test-factory-integration.py|.claude/skills/harness/bin/test-gh-sync.py|.claude/skills/harness/bin/test-check-plan-routes.py|.claude/skills/harness/bin/test-feature-worktree.py|.claude/skills/harness/bin/test-expertise-merge.py|.claude/skills/harness/bin/test-validate-digest.py|.claude/skills/harness/bin/test-check-expertise.py|.claude/skills/harness/bin/test-gen-decisions-index.py|.claude/skills/harness/bin/test-bash-write-guard.py|.claude/skills/harness/bin/test-check-domain.py|.claude/skills/harness/bin/test-harness-yaml.py|.claude/skills/harness/bin/test-upgrade-config.py|.claude/skills/harness/bin/test-merge-settings.py|.claude/skills/harness/bin/test-context-watch-cli.py|.claude/skills/harness/bin/test-run-unit-tests-kinds.py|.claude/skills/harness/bin/test-context-watch-hook.py|.claude/skills/harness/bin/test-harness-merge.py|.claude/skills/harness/bin/test-plan-merge.py|.claude/skills/harness/bin/test-observations-merge.py|.claude/skills/harness/bin/test-inflight-registry.py|.claude/skills/harness/bin/test-dispatch-guard.py",
+      "detect": "tests/integration/**|.claude/skills/harness/bin/test-check-state.py|.claude/skills/harness/bin/test-factory-integration.py|.claude/skills/harness/bin/test-gh-sync.py|.claude/skills/harness/bin/test-check-plan-routes.py|.claude/skills/harness/bin/test-feature-worktree.py|.claude/skills/harness/bin/test-expertise-merge.py|.claude/skills/harness/bin/test-validate-digest.py|.claude/skills/harness/bin/test-check-expertise.py|.claude/skills/harness/bin/test-gen-decisions-index.py|.claude/skills/harness/bin/test-bash-write-guard.py|.claude/skills/harness/bin/test-check-domain.py|.claude/skills/harness/bin/test-harness-yaml.py|.claude/skills/harness/bin/test-upgrade-config.py|.claude/skills/harness/bin/test-merge-settings.py|.claude/skills/harness/bin/test-context-watch-cli.py|.claude/skills/harness/bin/test-run-unit-tests-kinds.py|.claude/skills/harness/bin/test-context-watch-hook.py|.claude/skills/harness/bin/test-harness-merge.py|.claude/skills/harness/bin/test-plan-merge.py|.claude/skills/harness/bin/test-observations-merge.py|.claude/skills/harness/bin/test-inflight-registry.py|.claude/skills/harness/bin/test-dispatch-guard.py|.claude/skills/harness/bin/test-merge-gitignore.py|.claude/skills/harness/bin/test-worktree-terminal.py|.claude/skills/harness/bin/test-post-merge-sweep.py|.claude/skills/harness/bin/test-hooks-install.py|.claude/skills/harness/bin/test-gh-close-gate.py",
       "exclude": ".claude/worktrees/**|node_modules/**|vendor/**|.venv/**",
-      "cmd": ".claude/skills/harness/bin/run-unit-tests.sh --kind integration",
+      "cmd": ".agents/skills/harness/bin/run-unit-tests.sh --kind integration",
       "status": "active"
     },
     "component": {

@@ -346,16 +346,16 @@ def _served_board_contents_b64(board):
     return base64.b64encode(json.dumps(doc).encode("utf-8")).decode("ascii")
 
 
-def run(root, args, resolve=_RESOLVE_EXISTS, probe=_PROBE_SINGLE_SELECT,
-        options=None, issues=None, stations=None, workflows=None, fail_match=None, cwd=None,
-        item_id=None, fake_state=None, issues_after=None, stations_after=None,
-        workflows_after=None, contents_b64=None, linked_repos=None, malformed_match=None):
-    """Fork the real script. Returns (CompletedProcess, log_lines).
+def _stub_env(root, resolve=_RESOLVE_EXISTS, probe=_PROBE_SINGLE_SELECT,
+              options=None, issues=None, stations=None, workflows=None, fail_match=None,
+              item_id=None, fake_state=None, issues_after=None, stations_after=None,
+              workflows_after=None, contents_b64=None, linked_repos=None, malformed_match=None):
+    """The stub environment `run` forks with, built once so a SECOND entry point can reuse it.
 
-    The T-06 `*_after` params (and `fake_state`) are the reconcile-only "before" vs "after"
-    switch FAKE_GH_SRC's `_after` helper reads -- see its own comment for why a single marker
-    file is enough: success/failure per record is already deterministic given `fail_match`, so
-    the test author computes the correct after-state rather than the fake deriving it live."""
+    Extracted for T-04: `audit_findings` is a library function, so its contract -- what it
+    RETURNS, and that it prints NOTHING -- cannot be asserted through a subcommand's stdout.
+    `run_module` forks a `python -c` against this same environment instead. Nothing about
+    `run`'s behaviour changes; it calls this and adds the argv."""
     tmp = os.path.dirname(root) if os.path.basename(root) == "root" else root
     gh_path = install_gh(tmp)
     log_path = os.path.join(tmp, "calls.log")
@@ -380,15 +380,41 @@ def run(root, args, resolve=_RESOLVE_EXISTS, probe=_PROBE_SINGLE_SELECT,
     env["CONTENTS_B64"] = contents_b64 or ""
     env["LINKED_REPOS_JSON"] = linked_repos if linked_repos is not None else _LINKED_REPOS_DEFAULT
     env.pop("HARNESS_GH_COST_LOG", None)
+    return env, tmp, log_path
+
+
+def _log_lines(log_path):
+    if not os.path.isfile(log_path):
+        return []
+    with open(log_path) as f:
+        return [l for l in f.read().splitlines() if l]
+
+
+def run(root, args, cwd=None, **kw):
+    """Fork the real script. Returns (CompletedProcess, log_lines)."""
+    env, tmp, log_path = _stub_env(root, **kw)
     r = subprocess.run(
         [sys.executable, SCRIPT] + args,
         capture_output=True, text=True, env=env, cwd=cwd or tmp,
     )
-    lines = []
-    if os.path.isfile(log_path):
-        with open(log_path) as f:
-            lines = [l for l in f.read().splitlines() if l]
-    return r, lines
+    return r, _log_lines(log_path)
+
+
+def run_module(root, code, cwd=None, **kw):
+    """Fork `python -c <code>` against the same stub environment, with board_lifecycle
+    importable. Returns (CompletedProcess, log_lines).
+
+    This is how the `audit_findings` contract is asserted: the function must RETURN the
+    finding list and PRINT NOTHING, and neither claim is visible through `cmd_audit`'s
+    stdout -- which prints. The forked process imports the module directly, so anything the
+    function writes to stdout lands in `r.stdout` and fails the absence assertion."""
+    env, tmp, log_path = _stub_env(root, **kw)
+    env["PYTHONPATH"] = os.path.dirname(SCRIPT) + os.pathsep + env.get("PYTHONPATH", "")
+    r = subprocess.run(
+        [sys.executable, "-c", code],
+        capture_output=True, text=True, env=env, cwd=cwd or tmp,
+    )
+    return r, _log_lines(log_path)
 
 
 def mutation_calls(log):
@@ -1445,6 +1471,107 @@ with tempfile.TemporaryDirectory() as base:
     check("retitle unknown --repo: exits 2, naming the repo, with no gh call at all",
           r.returncode == 2 and not log and "acme/unknown-repo" in r.stderr,
           f"rc={r.returncode} stderr={r.stderr!r} log={log}")
+
+# ---------------- T-04: audit_findings -- the LIBRARY entry point ship calls ---------------
+# `gh-sync.py ship` runs the audit once per feature as REQ-06's compensating control, so the
+# audit has to be callable as a function. The contract is three clauses, and each is a clause
+# `cmd_audit` breaks today: it PRINTS (the workflow header, the STATUS skip line, the no-board
+# line), and it EXITS (factory_cli.refuse, and sys.exit(4) on a GhError). A caller inside ship
+# can tolerate none of that -- ship must never exit on the audit, and ship prefixes every audit
+# line with its own literal, so a line printed from inside board_lifecycle would appear
+# unprefixed and unfindable.
+
+_AF_RETURNS = (
+    "import json, board_lifecycle as bl;"
+    "fs = bl.audit_findings(%r);"
+    "print('RESULT=' + json.dumps([f.message for f in fs]))"
+)
+
+# --- clause 1: it returns the findings cmd_audit prints, and prints NOTHING itself ---------
+
+with tempfile.TemporaryDirectory() as base:
+    root = os.path.join(base, "root")
+    write_root(root, default_github())
+    issues = json.dumps([{"number": 10, "stateReason": "COMPLETED", "labels": []}])
+    stations = _stations_json({10: "Building"})
+
+    r_cmd, _ = run(root, ["audit"], issues=issues, stations=stations)
+    r_fn, _ = run_module(root, _AF_RETURNS % None, issues=issues, stations=stations)
+
+    got = ""
+    for line in r_fn.stdout.splitlines():
+        if line.startswith("RESULT="):
+            got = line[len("RESULT="):]
+    messages = json.loads(got) if got else None
+
+    check("audit_findings: returns the same STATION finding cmd_audit prints",
+          messages is not None and any("STATION: issue #10" in m for m in messages),
+          f"stdout={r_fn.stdout!r} stderr={r_fn.stderr!r}")
+    check("audit_findings: returns a LIST, not an exit code -- the caller decides what to do",
+          isinstance(messages, list), repr(messages))
+    check("audit_findings: prints NOTHING -- no workflow header",
+          "workflow detection matches by NAME only" not in r_fn.stdout,
+          f"stdout={r_fn.stdout!r}")
+    check("audit_findings: prints NOTHING -- no finding line of its own, and no count line",
+          "STATION: issue #10" not in r_fn.stdout.replace(got, "")
+          and "finding(s)" not in r_fn.stdout,
+          f"stdout={r_fn.stdout!r}")
+    check("audit_findings: writes nothing to stderr either",
+          r_fn.stderr.strip() == "", repr(r_fn.stderr))
+    check("audit_findings: cmd_audit's own output is UNCHANGED by the move -- it still prints "
+          "the workflow header before its findings",
+          "workflow detection matches by NAME only" in r_cmd.stdout
+          and r_cmd.stdout.index("workflow detection") < r_cmd.stdout.index("STATION: issue #10"),
+          repr(r_cmd.stdout))
+
+# --- clause 2: a failed read RAISES, it never exits ---------------------------------------
+# cmd_audit turns this into exit 4. audit_findings must let it propagate, because ship catches
+# GhError and continues: an audit that could not run must not stop a ship that already wrote
+# every card.
+
+with tempfile.TemporaryDirectory() as base:
+    root = os.path.join(base, "root")
+    write_root(root, default_github())
+    code = (
+        "import board_lifecycle as bl, factory_gh;"
+        "\ntry:"
+        "\n    bl.audit_findings(None)"
+        "\n    print('RESULT=no-exception')"
+        "\nexcept factory_gh.GhError as e:"
+        "\n    print('RESULT=GhError')"
+        "\nexcept SystemExit as e:"
+        "\n    print('RESULT=SystemExit-' + str(e.code))"
+    )
+    r_fn, _ = run_module(root, code, fail_match="options { id name }")
+    check("audit_findings: a failed read raises GhError -- it never calls sys.exit",
+          "RESULT=GhError" in r_fn.stdout,
+          f"stdout={r_fn.stdout!r} stderr={r_fn.stderr!r}")
+
+# --- clause 3: no board declared returns [], matching cmd_audit's own branch ---------------
+
+with tempfile.TemporaryDirectory() as base:
+    root = os.path.join(base, "root")
+    write_root(root, {"sync": True, "repo": "acme/widget", "board": None})
+    r_fn, _ = run_module(root, _AF_RETURNS % None)
+    check("audit_findings: no board declared returns an EMPTY LIST, not an error",
+          "RESULT=[]" in r_fn.stdout, f"stdout={r_fn.stdout!r} stderr={r_fn.stderr!r}")
+    check("audit_findings: no board declared prints nothing -- cmd_audit keeps that line",
+          "nothing to audit" not in r_fn.stdout, repr(r_fn.stdout))
+    r_cmd, _ = run(root, ["audit"])
+    check("audit_findings: cmd_audit STILL prints its own no-board line",
+          "no board declared" in r_cmd.stdout and r_cmd.returncode == 0,
+          f"rc={r_cmd.returncode} stdout={r_cmd.stdout!r}")
+
+# --- clause 4: cmd_audit keeps its refuse when github.repo is not declared -----------------
+
+with tempfile.TemporaryDirectory() as base:
+    root = os.path.join(base, "root")
+    write_root(root, {"sync": True, "repo": "", "board": _BOARD})
+    r_cmd, _ = run(root, ["audit"])
+    check("audit_findings: cmd_audit STILL refuses when github.repo is not declared -- the "
+          "exit stays inside the subcommand",
+          r_cmd.returncode != 0 and "github.repo" in (r_cmd.stderr + r_cmd.stdout),
+          f"rc={r_cmd.returncode} stderr={r_cmd.stderr!r} stdout={r_cmd.stdout!r}")
 
 print(f"\n{len(FAILURES)} failing." if FAILURES else "\nall checks passed.")
 sys.exit(1 if FAILURES else 0)

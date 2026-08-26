@@ -17,9 +17,9 @@ BIN_DIR = os.path.dirname(os.path.realpath(__file__))
 if BIN_DIR not in sys.path:
     sys.path.insert(0, BIN_DIR)
 
-# Repo root: four levels above .claude/skills/harness/bin. CLAUDE_PROJECT_DIR
+# Repo root: four levels above .agents/skills/harness/bin. CLAUDE_PROJECT_DIR
 # overrides when the caller has already resolved it (run-unit-tests.sh does).
-REPO_ROOT = os.environ.get("CLAUDE_PROJECT_DIR") or os.path.abspath(
+REPO_ROOT = (os.environ.get("HARNESS_PROJECT_DIR") or os.environ.get("CLAUDE_PROJECT_DIR")) or os.path.abspath(
     os.path.join(BIN_DIR, "..", "..", "..", "..")
 )
 MANIFEST_PATH = os.path.join(REPO_ROOT, ".harness", "team-config.yaml")
@@ -33,8 +33,6 @@ COLLECT_FIXTURE = {
         [
             "src/**",
             ".claude/skills/harness/bin/**",
-            ".harness/codebase/api-surface.md",
-            ".harness/codebase/domains/**",
             ".harness/*/features/*/notes/receipt-harness-backend-dev-*.md",
             ".harness/expertise/harness-backend-dev.md",
             ".harness/*/expertise/harness-backend-dev.md",
@@ -51,7 +49,6 @@ COLLECT_FIXTURE = {
             "Dockerfile",
             ".harness/harness.json",
             ".claude/skills/harness/bin/**",
-            ".harness/codebase/stack.md",
             ".harness/*/features/*/notes/receipt-harness-dev-ops-*.md",
             ".harness/expertise/harness-dev-ops.md",
             ".harness/*/expertise/harness-dev-ops.md",
@@ -70,8 +67,7 @@ COLLECT_FIXTURE = {
             ".harness/*/features/*/notes/research-*.md",
             ".harness/notes/research-*.md",
             ".harness/*/features/*/notes/uat-*.md",
-            ".harness/codebase/product-surface.md",
-            ".harness/codebase/glossary.md",
+            ".harness/glossary.md",
             ".harness/expertise/harness-pm.md",
             ".harness/*/expertise/harness-pm.md",
             ".harness/*/features/*/observations/harness-pm.md",
@@ -87,8 +83,6 @@ COLLECT_FIXTURE = {
             ".harness/*/docs/**",
             "README.md",
             ".harness/README.md",
-            ".harness/codebase/INDEX.md",
-            ".harness/codebase/architecture.md",
             ".harness/*/features/*/notes/receipt-harness-documentor-*.md",
             ".harness/expertise/harness-documentor.md",
             ".harness/*/expertise/harness-documentor.md",
@@ -282,7 +276,7 @@ def test_marker_self_unlinks_when_yaml_imports():
         with open(marker, "w", encoding="utf-8") as f:
             f.write("sess-A")
 
-        orig_project_dir = os.environ.get("CLAUDE_PROJECT_DIR")
+        orig_project_dir = (os.environ.get("HARNESS_PROJECT_DIR") or os.environ.get("CLAUDE_PROJECT_DIR"))
         os.environ["CLAUDE_PROJECT_DIR"] = tmp
         try:
             hy.require_or_die()  # yaml is importable in this environment (T-01)

@@ -162,7 +162,7 @@ with tempfile.TemporaryDirectory() as tmp:
 # ------------------------------------------------------------------- case 5
 with tempfile.TemporaryDirectory() as tmp:
     forms = {r: "migrated" for r in DOCS_READERS}
-    forms[".claude/skills/harness/bin/gen-decisions-index.py"] = "legacy"
+    forms[".agents/skills/harness/bin/gen-decisions-index.py"] = "legacy"
     build(tmp, docs_evidence=("migrated",), forms=forms)
     code, out = run(tmp)
     line = reader_line(out, "gen-decisions-index.py")
@@ -170,7 +170,7 @@ with tempfile.TemporaryDirectory() as tmp:
           code == 1 and "[legacy]" in line, out)
 with tempfile.TemporaryDirectory() as tmp:
     build(tmp, docs_evidence=("legacy",),
-          forms={".claude/skills/harness/bin/gen-decisions-index.py": "migrated"})
+          forms={".agents/skills/harness/bin/gen-decisions-index.py": "migrated"})
     code, out = run(tmp)
     line = reader_line(out, "gen-decisions-index.py")
     check("case 5b: legacy docs, one migrated reader -> exit 1, tagged [migrated] (REVERT it)",
@@ -199,7 +199,7 @@ with tempfile.TemporaryDirectory() as tmp:
 
 # ------------------------------------------------------------------- case 9
 with tempfile.TemporaryDirectory() as tmp:
-    build(tmp, forms={".claude/skills/harness/bin/check-domain.sh": "neither"})
+    build(tmp, forms={".agents/skills/harness/bin/check-domain.sh": "neither"})
     code, out = run(tmp)
     line = reader_line(out, "check-domain.sh")
     check("case 9: a reader carrying NEITHER form -> exit 2, named, tagged [neither]",
@@ -207,7 +207,7 @@ with tempfile.TemporaryDirectory() as tmp:
 
 # ------------------------------------------------------------------- case 10
 with tempfile.TemporaryDirectory() as tmp:
-    build(tmp, forms={".claude/skills/harness/bin/check-domain.sh": "unreadable"})
+    build(tmp, forms={".agents/skills/harness/bin/check-domain.sh": "unreadable"})
     code, out = run(tmp)
     line = reader_line(out, "check-domain.sh")
     check("case 10: an unreadable reader -> exit 2, tagged [unreadable], distinct in text",
@@ -307,7 +307,7 @@ with tempfile.TemporaryDirectory() as tmp:
     r_mixed = lm.scan(tmp)
     check("case 18: mixed -> exit_code 1", lm.exit_code(r_mixed) == 1)
 with tempfile.TemporaryDirectory() as tmp:
-    build(tmp, forms={".claude/skills/harness/bin/check-domain.sh": "neither"})
+    build(tmp, forms={".agents/skills/harness/bin/check-domain.sh": "neither"})
     r_cv = lm.scan(tmp)
     check("case 18: cannot-verify -> exit_code 2", lm.exit_code(r_cv) == 2)
 
@@ -373,9 +373,9 @@ def _parity(label, build_kwargs, extra=None):
 _parity("MIXED, one migrated reader on legacy evidence",
         dict(forms={".harness/team-config.yaml": "migrated"}))
 _parity("CANNOT_VERIFY neither",
-        dict(forms={".claude/skills/harness/bin/check-domain.sh": "neither"}))
+        dict(forms={".agents/skills/harness/bin/check-domain.sh": "neither"}))
 _parity("CANNOT_VERIFY unreadable",
-        dict(forms={".claude/skills/harness/bin/check-domain.sh": "unreadable"}))
+        dict(forms={".agents/skills/harness/bin/check-domain.sh": "unreadable"}))
 _parity("CANNOT_VERIFY no-evidence",
         dict(features_evidence=(), docs_evidence=("legacy",)))
 _parity("CANNOT_VERIFY undeclared-segment (carries detail)",

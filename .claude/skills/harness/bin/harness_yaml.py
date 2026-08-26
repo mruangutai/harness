@@ -446,7 +446,7 @@ def require_or_die():
     """For check-state.sh and the plain .py scripts. No bootstrap escape
     (D-06) — this gates the orchestrator, not a write, so a hard block here
     costs no recovery path."""
-    root = os.environ.get("CLAUDE_PROJECT_DIR") or os.getcwd()
+    root = (os.environ.get("HARNESS_PROJECT_DIR") or os.environ.get("CLAUDE_PROJECT_DIR")) or os.getcwd()
     marker = _marker_path(root)
     if yaml is not None:
         try:

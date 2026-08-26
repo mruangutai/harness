@@ -10,7 +10,7 @@
 # PreToolUse hooks do not fire for spawned subagents, DEC-110):
 #   "PreToolUse": [{ "matcher": "Task|Agent",
 #     "hooks": [{ "type": "command",
-#       "command": "${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/dispatch-guard.sh" }] }]
+#       "command": "${CLAUDE_PROJECT_DIR}/.agents/skills/harness/bin/dispatch-guard.sh" }] }]
 #
 # Only exit 2 blocks (DEC-100). Fail OPEN on our own parse failure — a guard that
 # blocks every spawn the moment the payload shape changes is worse than no guard.
@@ -80,7 +80,7 @@ def _root_from(payload):
     because the FEAT-32 pm is live — breaking parallel features to fix a within-feature
     defect. Operator ruling, recorded in D-06 terms as per-checkout.
     """
-    start = payload.get("cwd") or os.environ.get("CLAUDE_PROJECT_DIR") or ""
+    start = payload.get("cwd") or (os.environ.get("HARNESS_PROJECT_DIR") or os.environ.get("CLAUDE_PROJECT_DIR")) or ""
     cur = os.path.abspath(start) if start else ""
     while cur and cur != os.path.dirname(cur):
         # THE MANIFEST FILE, not the .harness DIRECTORY. Probing the directory resolves
@@ -89,7 +89,7 @@ def _root_from(payload):
         if os.path.isfile(os.path.join(cur, ".harness", "team-config.yaml")):
             return cur
         cur = os.path.dirname(cur)
-    return os.environ.get("CLAUDE_PROJECT_DIR") or None
+    return (os.environ.get("HARNESS_PROJECT_DIR") or os.environ.get("CLAUDE_PROJECT_DIR")) or None
 
 
 root = _root_from(d)

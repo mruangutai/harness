@@ -77,7 +77,7 @@ READER_TABLE = [
     Row("features", ".harness/team-config.yaml",
         r"\.harness/features/",
         r"\.harness/[^/ ]+/features/"),
-    Row("features", ".claude/skills/harness/bin/check-domain.sh",
+    Row("features", ".agents/skills/harness/bin/check-domain.sh",
         r"\.harness/features/",
         r"\.harness/(\*|\[\^/\]\+)/features/"),
     # The trailing `# balance:` comments below are LOAD-BEARING for a meta-gate, not
@@ -86,22 +86,22 @@ READER_TABLE = [
     # unmatched ( or ) inside their pattern strings would merge the whole table into
     # one logical line that swallows this module's real marker probe and misreports
     # it. Each comment restores that row's textual paren balance to zero.
-    Row("features", ".claude/skills/harness/bin/check-plan-routes.py",
+    Row("features", ".agents/skills/harness/bin/check-plan-routes.py",
         r'"\.harness", "features"',
         r'"\.harness", [^,)]+, "features"'),  # balance: (
-    Row("features", ".claude/skills/harness/bin/factory_claim.py",
+    Row("features", ".agents/skills/harness/bin/factory_claim.py",
         r'"\.harness", "features"',
         r'"\.harness", [^,)]+, "features"'),  # balance: (
-    Row("features", ".claude/skills/harness/bin/check-state.sh",
+    Row("features", ".agents/skills/harness/bin/check-state.sh",
         r'os\.path\.join\(H, "features"',  # balance: )
         r'os\.path\.join\(H, [^,)]+, "features"'),
-    Row("docs", ".claude/skills/harness/bin/factory_config.py",
+    Row("docs", ".agents/skills/harness/bin/factory_config.py",
         r'os\.path\.join\("docs", "harness"',  # balance: )
         r'os\.path\.join\("\.harness", [^,)]+, "docs"'),
-    Row("docs", ".claude/skills/harness/bin/gen-decisions-index.py",
+    Row("docs", ".agents/skills/harness/bin/gen-decisions-index.py",
         r'os\.path\.join\("docs", "harness"|docs/harness/',  # balance: )
         r'os\.path\.join\("\.harness", [^,)]+, "docs"|\.harness/[^/ ]+/docs/'),
-    Row("docs", ".claude/skills/harness/bin/harness_boundary.py",
+    Row("docs", ".agents/skills/harness/bin/harness_boundary.py",
         r"docs/harness/\*\*",
         r'\.harness/[^/"]+/docs/\*\*'),
 ]

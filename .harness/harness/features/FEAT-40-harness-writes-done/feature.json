@@ -1,0 +1,87 @@
+{
+  "feature_id": "FEAT-40-harness-writes-done",
+  "branch": "feat/FEAT-40-harness-writes-done",
+  "pr": null,
+  "status": "Review",
+  "review_sha": "3a548fe8c3eb1905d5b1cb9936266a30bc9b7489",
+  "cycles_used": 6,
+  "max_total_cycles": 10,
+  "max_total_runs": 20,
+  "runs": [
+    {
+      "id": "2026-08-25-01-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "ESCALATE"
+    },
+    {
+      "id": "2026-08-25-02-eng",
+      "squad": "eng",
+      "agent": "harness-eng-lead",
+      "verdict": "FAIL"
+    },
+    {
+      "id": "2026-08-25-03-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "BLOCKED"
+    },
+    {
+      "id": "2026-08-25-04-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-25-05-eng",
+      "squad": "eng",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-25-06-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-25-07-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS"
+    }
+  ],
+  "github": {
+    "milestone": 27,
+    "parent": 842,
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03",
+      "T-04",
+      "T-05",
+      "T-06",
+      "T-07",
+      "T-08",
+      "T-09",
+      "T-10",
+      "T-11"
+    ],
+    "issues": {
+      "T-01": 848,
+      "T-02": 849,
+      "T-03": 850,
+      "T-04": 851,
+      "T-05": 852,
+      "T-06": 853,
+      "T-07": 854,
+      "T-08": 855,
+      "T-09": 856,
+      "T-10": 857,
+      "T-11": 858
+    },
+    "source_issues": [
+      842
+    ]
+  }
+}

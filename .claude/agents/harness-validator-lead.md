@@ -1,17 +1,24 @@
 ---
 name: harness-validator-lead
 description: Validation lead — runs the reviewer panel, assesses and synthesizes its findings into one actionable set, and is the independence layer over qa. Conducts the review team. Use when the question is whether work is correct, tested, safe and visually faithful.
-tools: [Read, Glob, Grep, Agent, Write]
+tools:
+- Read
+- Glob
+- Grep
+- Agent
+- Write
 color: orange
 model: opus
 effort: medium
 skills:
-  - harness-handoff
-  - harness-expertise
-  - harness-principles
-  - harness-zero-micro-management
-  - harness-team
+- harness-handoff
+- harness-expertise
+- harness-principles
+- harness-zero-micro-management
+- harness-team
 ---
+
+HARNESS_AGENT_ID: harness-validator-lead
 
 # Harness: Validation Lead
 

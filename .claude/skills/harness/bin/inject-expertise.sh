@@ -28,7 +28,7 @@ if ! printf '%s' "$agent" | grep -Eq '^harness-[a-z0-9-]+$'; then
   exit 0
 fi
 
-root="${CLAUDE_PROJECT_DIR:-$(pwd)}"
+root="${HARNESS_PROJECT_DIR:-${CLAUDE_PROJECT_DIR:-$(pwd)}}"
 proj="$root/.harness/expertise/$agent.md"
 glob="$HOME/.harness/expertise/$agent.md"
 
@@ -43,8 +43,6 @@ if body.strip():
     }}))
 '
 }
-
-index="$root/.harness/codebase/INDEX.md"
 
 # Expertise file budget (DEC-145): 150 lines for craft tiers, 40 for repository
 # tiers, enforced at authoring time by check-expertise.sh and hard-capped here
@@ -114,17 +112,6 @@ fi
       printf '## Your Expertise — %s repository (repository tier)\n\n' "$segment"
       cap_body "$file" 40; printf '\n\n'
     done
-  fi
-  # The codebase map's index (DEC-137) — the third knowledge tier, delivered the same
-  # way as Expertise because preload is the only delivery path with a clean record
-  # (DEC-125 x4: everything that relied on being pointed at failed silently at least
-  # once). Absent on an unmapped project, and that is normal — silence is correct here.
-  # ONLY the index rides the spawn; details are fetched by path. Cap enforced at
-  # authoring time (60 lines); truncated here as a backstop so one runaway index
-  # cannot re-create the CLAUDE.md bloat (DEC-135) across every spawn.
-  if [ -r "$index" ]; then
-    printf '## Codebase map — index (details on disk; every claim carries file:line anchors; the map is a hint, code is truth)\n\n'
-    head -n 80 "$index"; printf '\n'
   fi
 } | emit
 

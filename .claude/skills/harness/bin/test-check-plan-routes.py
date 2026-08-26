@@ -299,7 +299,7 @@ def case_19():
     """(19) issue #133 B-7: an ARGV-LESS run must never mistake 'wrong directory' for 'clean'.
 
     Measured on main at a5edb13, with CLAUDE_PROJECT_DIR unset:
-      cd /tmp && python3 <repo>/.claude/skills/harness/bin/check-plan-routes.py
+      cd /tmp && python3 <repo>/.agents/skills/harness/bin/check-plan-routes.py
       -> `0 violation(s) across 0 plan(s)`, EXIT 0
     The glob was cwd-relative, so a checker that found nothing because it was looking
     in the wrong place was byte-identical to a clean tree — the VF-1/VF-2 failure class.
@@ -698,7 +698,7 @@ def case_23():
               f"exit {r.returncode}: {r.stdout[:200]!r}")
 
     with tempfile.TemporaryDirectory() as td:
-        _yaml_project(td, files=".claude/skills/harness-spec-driven/SKILL.md")
+        _yaml_project(td, files=".agents/skills/harness-spec-driven/SKILL.md")
         r = run(project_dir=td)
         check("case_23b_plan_yaml_ungranted_path_is_a_VIOLATION",
               r.returncode == 1 and "ungranted (NOBODY)" in r.stdout,
@@ -896,7 +896,7 @@ def case_24():
                                  ("Building", True), ("Review", True), ("Done", False),
                                  ("done", True)):
         with tempfile.TemporaryDirectory() as td:
-            fd = _yaml_project(td, files=".claude/skills/harness-spec-driven/SKILL.md")
+            fd = _yaml_project(td, files=".agents/skills/harness-spec-driven/SKILL.md")
             with open(os.path.join(fd, "feature.json"), "w") as f:
                 f.write(f"feature_id: FEAT-A\nstatus: {status}\n")
             r = run(project_dir=td)
@@ -924,7 +924,7 @@ def case_24():
     # A feature we CANNOT classify is checked, never skipped. The failure that matters is a
     # live plan going unexamined; an old one examined twice costs nothing.
     with tempfile.TemporaryDirectory() as td:
-        _yaml_project(td, files=".claude/skills/harness-spec-driven/SKILL.md")
+        _yaml_project(td, files=".agents/skills/harness-spec-driven/SKILL.md")
         r = run(project_dir=td)              # no feature.json at all
         check("case_24_no_feature_yaml_is_checked_not_skipped",
               "ungranted (NOBODY)" in r.stdout, r.stdout[:200])
@@ -961,7 +961,7 @@ def case_24():
                         # how a load-bearing assertion gets deleted as redundant.
                         ("a_mapping_with_no_status", '{"feature_id": "FEAT-A"}\n')):
         with tempfile.TemporaryDirectory() as td:
-            fd = _yaml_project(td, files=".claude/skills/harness-spec-driven/SKILL.md")
+            fd = _yaml_project(td, files=".agents/skills/harness-spec-driven/SKILL.md")
             with open(os.path.join(fd, "feature.json"), "w") as f:
                 f.write(body)
             r = run(project_dir=td)
@@ -1006,7 +1006,7 @@ def case_24():
         }
 
     with tempfile.TemporaryDirectory() as td:
-        fd = _yaml_project(td, files=".claude/skills/harness-spec-driven/SKILL.md")
+        fd = _yaml_project(td, files=".agents/skills/harness-spec-driven/SKILL.md")
         with open(os.path.join(fd, "feature.json"), "w") as f:
             f.write(json.dumps(_eleven_key_doc("Done")))
         r_done = run(project_dir=td)

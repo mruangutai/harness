@@ -777,7 +777,7 @@ def check_artifact_file(agent, text, payload):
 
     cands = ([path] if os.path.isabs(path) else
              [os.path.join(b, path) for b in
-              (payload.get("cwd"), os.environ.get("CLAUDE_PROJECT_DIR"), os.getcwd()) if b])
+              (payload.get("cwd"), (os.environ.get("HARNESS_PROJECT_DIR") or os.environ.get("CLAUDE_PROJECT_DIR")), os.getcwd()) if b])
     found = next((p for p in cands if os.path.isfile(p)), None)
     if not found:
         print(f"check-digest: {agent}'s artifact {path} not found from the hook's vantage — "
@@ -869,7 +869,7 @@ def hook_mode():
         # the MAIN checkout — so preferring the env var here would release from a registry
         # the claim was never written to, and every claim would leak silently.
         _root = None
-        for _b in (d.get("cwd"), os.environ.get("CLAUDE_PROJECT_DIR"), os.getcwd()):
+        for _b in (d.get("cwd"), (os.environ.get("HARNESS_PROJECT_DIR") or os.environ.get("CLAUDE_PROJECT_DIR")), os.getcwd()):
             if not _b:
                 continue
             _cur = os.path.abspath(_b)
