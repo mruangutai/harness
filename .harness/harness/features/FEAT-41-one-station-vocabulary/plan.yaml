@@ -1,0 +1,1055 @@
+schema: plan/1
+feature: FEAT-41-one-station-vocabulary
+
+source_issues: [845]
+
+approval:
+  status: pending
+  approved_by: none
+  date: none
+
+lanes:
+  resolved_at: ee66ae2
+  rows:
+    - surface: .claude/skills/harness/bin/**
+      lane: main-session-direct
+      reason: DEC-174 carve-out - hooks, validators and gate scripts are changed directly, and every module here is imported by check-state.sh or check-domain.sh
+    - surface: .claude/settings.json
+      lane: main-session-direct
+      reason: resolves to NOBODY and registers the PreToolUse hooks this feature adds
+    - surface: .omp/agents/**
+      lane: main-session-direct
+      reason: resolves to NOBODY, and DEC-202 makes .omp the canonical agent tree
+    - surface: .claude/agents/**
+      lane: main-session-direct
+      reason: resolves to NOBODY, generated from .omp by sync-agent-adapters.py
+    - surface: .claude/skills/harness/SKILL.md
+      lane: main-session-direct
+      reason: resolves to NOBODY
+    - surface: .claude/skills/harness-spec-driven/SKILL.md
+      lane: main-session-direct
+      reason: resolves to NOBODY
+    - surface: .agents/skills/harness/templates/**
+      lane: main-session-direct
+      reason: resolves to NOBODY
+    - surface: .harness/harness.json
+      lane: main-session-direct
+      reason: granted to harness-dev-ops, taken directly because DEC-160 makes a harness.json key change part of the enforcement surface changed here
+    - surface: .harness/harness/features/*/plan.yaml
+      lane: main-session-direct
+      reason: the migration rewrites station values in 28 signed plans through the tool being built
+    - surface: .harness/harness/features/*/feature.json
+      lane: main-session-direct
+      reason: the schema key being deleted is enforced on check-domain.sh's own write path
+    - surface: .harness/harness/docs/**
+      lane: team
+      agent: harness-documentor
+
+decisions:
+  - id: D-01
+    choice: plan-merge.py is renamed to plan-write.py, and the rename lands in this feature as the last task
+    because: the tool gains four station verbs, so a name that says merge describes one verb out of five
+    dec: none
+  - id: D-02
+    choice: the feature's station is a top-level status scalar in plan.yaml, one lowercase station name
+    because: it is the same word and the same field name the eleven former feature.json readers already compare against, so each repoints without changing shape
+    dec: none
+  - id: D-03
+    choice: T-03 and T-05 close the plan.yaml write window and T-09 opens it, so no ordering exists in which plan.yaml has zero writers
+    because: denying the Edit before the verbs ship and are documented leaves the orchestrator no legal route to record a task status, which already cost five unrecorded statuses
+    dec: none
+  - id: D-04
+    choice: harness.json declares the stations as an ORDERED list of six lowercase names, not a mapping
+    because: under the mandate the key and the name are the same word, and the order is read - check-state.sh STATUS_ORDER drives the seam-note table
+    dec: none
+  - id: D-05
+    choice: abandoned is a terminal marker declared once in code as factory_config.TERMINAL_MARKER, not a seventh entry in harness.json
+    because: declaring it beside the stations would assert a column the operator must create; it names no column and never reaches the board. It sits in factory_config beside MANDATED_STATIONS because plan-merge, check-plan-routes and check-domain each need it and each already imports factory_config, where a declaration in plan-merge.py - a module nothing imports - would be respelled as a bare literal at every other site and make this decision false the day it landed
+    dec: none
+  - id: D-06
+    choice: the plan.yaml write denial lives in check-domain.sh's SHAPE region, not its domain region
+    because: check-domain exits 0 for a payload with no agent_type, so a domain-region denial would exempt the main session, and DEC-180 makes the shape gate bind every author
+    dec: DEC-180
+  - id: D-07
+    choice: the sign-approval refusal is a NEW PreToolUse Bash gate modelled on gh-close-gate.py, not an extension of bash-write-guard.sh
+    because: bash-write-guard exempts harness-dev-ops by design, and an exempt agent that can sign an approval is the whole hole this closes; the cost is one more interpreter start per Bash call, measured at a 26.2 ms median (min 25.8, max 30.2) against a 16.4 ms bare interpreter start, at ee66ae2 on this worktree
+    dec: none
+  - id: D-08
+    choice: gh_board.py is the case boundary - set_station capitalises on the write, board_stations lowercases on the read, and factory_config.station_column is the one derivation
+    because: everything stored or compared stays lowercase while the board still receives the exact option name its API matches on
+    dec: none
+  - id: D-09
+    choice: DEC-203 section 6, DEC-191 and DEC-182 are AMENDED, not struck
+    because: only one clause of each is contradicted - the casing, the required key, and the shape-gate exclusion - and striking whole entries would remove rules this feature depends on
+    dec: DEC-188
+  - id: D-10
+    choice: ship commits the terminal station write in the main checkout and does not push it
+    because: the uncommitted write is the live INV-26 violation, and pushing from a post-merge hook would move a remote branch nobody asked it to move
+    dec: none
+  - id: D-11
+    choice: INV-26's compare side is routed through gh_board.project and T-06 is widened to cover check-state.sh, rather than patching check-state.sh's pending literals in place. The lookup miss stops being silent - an unmappable station becomes a loud failure naming the feature, the task and the value.
+    because: check-state.sh circa 1475-1477 reads _want = _EXPECT.get(...) then if _want is None; continue, so a lookup MISS and nothing-to-check-here are the same code path. While the compare side keeps its own copy of the station vocabulary, any future divergence from the write side is invisible by construction rather than by oversight. The rejected option - patching the six pending literals - is genuinely cheaper - about six edits, no new import surface inside the embedded python, zero risk to INV-26's runtime - and it fixes today's divergence while preserving the mechanism that hides tomorrow's. The cost bought instead is one more file on T-06 and a gh_board import that could fail at gate time; that import already exists and already fails LOUDLY at check-state.sh circa 1337-1349, so the new failure mode is already paid for. Loud beats silent, and converting exactly this class of silence into noise is why the feature exists. T-04 still repoints the literals it renames out from under, so no build ordering leaves INV-26 blind between T-04 and T-06; that is T-04 not breaking a gate, not a substitute for this decision.
+    dec: none
+
+tasks:
+  - id: T-01
+    title: Declare the six stations once, as an ordered lowercase list in harness.json
+    traces: [REQ-01]
+    change_type: config
+    execution_mode: main-session-direct
+    execution_reason: factory_config.py is the board validator every factory and mirror tool loads through
+    depends_on: []
+    status: pending
+    files:
+      - .harness/harness.json
+      - .agents/skills/harness/templates/harness.json
+      - .claude/skills/harness/bin/factory_config.py
+      - .claude/skills/harness/bin/test-factory-config.py
+    verify: |
+      python3 .claude/skills/harness/bin/test-factory-config.py
+      grep -rn "_STATION_KEYS" .claude/skills/harness/bin/ ; test $? -eq 1
+    intent: |
+      Make harness.json the one place the station vocabulary is declared, and mandate its content.
+
+      In .harness/harness.json, replace github.board.stations (today a mapping of six keys to six
+      capitalised names) with an ordered list of the six lowercase names:
+      ["backlog", "plan", "ready", "building", "review", "done"]. Rewrite the note that sits
+      beside it - in .harness/harness.json the key is github.board._note, NOT _board_note - so it
+      states the mandate: these six names are fixed, an operator may not rename them, and extra
+      columns an operator adds to the board are untouched by the harness.
+      Make the same change to .agents/skills/harness/templates/harness.json, where the key IS
+      github._board_note and sits one level up, outside a board value that stays null. The two
+      files spell this key differently today; do not assume either spelling, open both.
+
+      In factory_config.py:
+      - Delete _STATION_KEYS (line 41).
+      - Add MANDATED_STATIONS = ("backlog", "plan", "ready", "building", "review", "done") as the
+        single literal, with a comment saying it is the mandate the declaration is checked
+        against, not a second vocabulary.
+      - Add TERMINAL_MARKER = "abandoned" beside it, with a comment that it names no board column,
+        never reaches the board, and is therefore not a seventh station. This module is where it
+        lives because plan-merge.py, check-plan-routes.py and check-domain.sh each need it and
+        each already imports or can import factory_config; every one of those sites imports the
+        name rather than respelling the literal.
+      - validate_board: require board["stations"] to be a list whose value equals
+        list(MANDATED_STATIONS) exactly, in that order. Anything else raises FleetError with
+        where=<key_base>.stations and a remedy line naming the exact list to write. Keep the
+        existing FleetError shape (kind, key, remedy) unchanged. The returned board carries
+        stations as a tuple of the six lowercase names.
+      - Add station_names(board) returning that tuple.
+      - Add station_column(name): the ONE derivation of the board's exact column name. It raises
+        FleetError("unknown station", name, "known stations: ...") when name is not one of the
+        six, and otherwise returns name.capitalize(). Its docstring states that this is the only
+        place in the tree a capitalised station name is produced, and that .capitalize()
+        reproduces all six declared names exactly.
+      - board_station(fleet, repo_name, key) keeps its name and signature but now returns
+        station_column(key) after checking membership in station_names(board_for(...)).
+
+      In test-factory-config.py, replace the mapping-shaped fixtures with the list shape and add
+      cases: (a) a declaration that renames one station is refused, and the message names the
+      offending key; (b) a declaration with the six names in a different order is refused;
+      (c) station_column returns each of the six exact column names, asserted ONE CASE PER
+      STATION rather than by a set comparison; (d) station_column raises on TERMINAL_MARKER and
+      on "Done". Each new case must be shown failing before the change lands.
+
+  - id: T-02
+    title: Lowercase everything the harness stores or compares, capitalise only at the GitHub boundary
+    traces: [REQ-02]
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_reason: gh_board.py is imported by check-state.sh's INV-26, the validator that gates this run
+    depends_on: [T-01]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/gh_board.py
+      - .claude/skills/harness/bin/gh-sync.py
+      - .claude/skills/harness/bin/board_lifecycle.py
+      - .claude/skills/harness/bin/board-station.py
+      - .claude/skills/harness/bin/factory_claim.py
+      - .claude/skills/harness/bin/factory_land.py
+      - .claude/skills/harness/bin/factory_decompose.py
+      - .claude/skills/harness/bin/check-state.sh
+      - .claude/skills/harness/bin/test-gh-board.py
+      - .claude/skills/harness/bin/test-board-lifecycle.py
+      - .claude/skills/harness/bin/test-board-station.py
+      - .claude/skills/harness/bin/test-factory-claim.py
+      - .claude/skills/harness/bin/test-factory-land.py
+      - .claude/skills/harness/bin/test-factory-decompose.py
+      - .claude/skills/harness/bin/test-check-state.py
+    verify: |
+      python3 .claude/skills/harness/bin/test-gh-board.py
+      python3 .claude/skills/harness/bin/test-board-lifecycle.py
+      python3 .claude/skills/harness/bin/test-factory-claim.py
+      python3 .claude/skills/harness/bin/test-factory-land.py
+      python3 .claude/skills/harness/bin/test-check-state.py
+    intent: |
+      Make gh_board.py the single case boundary, and lowercase every other site.
+
+      In gh_board.py:
+      - set_station(board, repo, issue_number, station): station now arrives lowercase. Call
+        factory_config.station_column(station) and pass THAT to factory_gh.project_field_set.
+        A station outside the six raises FleetError from station_column; let it propagate.
+        The BoardError message keeps naming the station the caller asked for, lowercase.
+      - board_stations(board, repo): lowercase each item's station value before storing it
+        (item.get("station") or None, then .lower() when it is a string). None stays None.
+        Say in the docstring that a value read back from the board is lowercased here so no
+        comparison anywhere else has to know the board's casing.
+      - derive_station: return the lowercase names "building" and "review" directly rather than
+        indexing board["stations"]. Keep the rule unchanged: building when any task is building,
+        review when there is at least one task and every task is done, otherwise None. The board
+        parameter is then DEAD - its only two uses are the two indexings just removed - so drop it
+        from the signature and from both call sites, which are check-state.sh's INV-26 and
+        board_lifecycle. Leaving a parameter the body never reads contradicts the docstring's own
+        claim that plan.yaml is the sole input.
+      - The absent-status default at gh_board.py:113 and the docstring sentence at :97 both say
+        pending. Both become the not-started station name "ready". This is inert until T-04
+        migrates the plans - neither derive_station branch tests the default - which is exactly
+        why it belongs here rather than in T-04: it changes no behaviour and removes the word.
+
+      Everywhere else, replace board["stations"][k] with the lowercase literal k, EXCEPT where the
+      value is sent to GitHub or compared against a value GitHub returned outside board_stations:
+      - factory_claim.py:302 builds a search query containing the column name - use
+        factory_config.station_column("ready") there.
+      - factory_claim.py:419 and factory_land.py:95 pass a station to a factory_gh field write -
+        use station_column at that call.
+      - factory_decompose.py:328 validates the board's declared options against the config - use
+        station_column for each name it compares.
+      - board_lifecycle.py:438 _declared_stations returns the names it audits the board's columns
+        against - it must return the column names, so map station_column over the six.
+      - board_lifecycle.py:522 and :809-843 compare against values that now come from
+        board_stations, which are lowercase - compare lowercase, delete the value_to_key
+        inversion at :820 (a lowercase station IS its own key).
+      - gh-sync.py:844, 850, 941, 949, 998, 1231 become the lowercase literals.
+      - check-state.sh circa 1403 _st26 becomes the six lowercase names, and every INV-26
+        comparison is then lowercase on both sides because board_stations lowercased the board's
+        answer. T-06 later DELETES _st26 and _EXPECT outright under D-11; this task only
+        lowercases them, so the tree is green at each step. Do not anticipate T-06 here.
+      - board-station.py keeps accepting an operator-supplied station on the command line, but now
+        validates it against factory_config.station_names before calling set_station, and exits
+        non-zero naming the six when it is not one of them. Update its module docstring, which
+        currently says the station is never validated against a list.
+
+      Update each named test to the lowercase expectations, and add one case to test-gh-board.py
+      asserting that set_station passes "Done" to project_field_set when given "done", and that
+      board_stations lowercases a board value of "Review" to "review".
+
+  - id: T-03
+    title: Give the plan writer its station verbs, each validating against harness.json
+    traces: [REQ-03, REQ-05]
+    change_type: api
+    execution_mode: main-session-direct
+    execution_reason: plan-merge.py is the only code that writes plan.yaml and this run records its own task statuses through it
+    depends_on: [T-01]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/plan-merge.py
+      - .claude/skills/harness/bin/test-plan-merge.py
+    verify: |
+      python3 .claude/skills/harness/bin/test-plan-merge.py
+    intent: |
+      Extend plan-merge.py from one verb to five. Every verb writes through
+      harness_merge.locked_update and the existing text splice - nothing re-renders through a YAML
+      dumper, and require_destination (exit 9) still guards every path.
+
+      Verbs:
+      - apply --file <plan.yaml> --proposal <path or ->: unchanged behaviour, including exit 7 on
+        a changed value and exit 8 on a differing approval mapping. ADD-ONLY IS NOW A PROPERTY OF
+        THIS VERB, not of the tool: say so in the module docstring and in this verb's help, and
+        state that the lock and the splice are what fix issue 628, while add-only is a separate
+        promise this verb alone makes.
+      - add-tasks --file <plan.yaml> --proposal <path or ->: an alias of apply kept for callers
+        that only add tasks; identical code path, no second implementation.
+      - set-task-station --file <plan.yaml> --task T-NN --station <name>: replaces that task's
+        status value in place, under the lock, by splicing the one line. Exit 3 when the task id
+        is absent, naming the ids the plan does carry.
+      - set-feature-station --file <plan.yaml> --station <name>: sets or inserts the TOP-LEVEL
+        status key. Insert it immediately after the feature: key when absent, so the file keeps a
+        stable order.
+      - sign-approval --file <plan.yaml> --by <name> --date <YYYY-MM-DD>: the ONLY way the
+        approval mapping is ever written. It sets status: approved, approved_by and date, under
+        the lock. Every other verb still leaves the base's approval bytes byte-identical, and
+        exit 8 still refuses a proposal carrying a different one.
+
+      Station validation, shared by set-task-station and set-feature-station: load the station
+      vocabulary through factory_config.station_names against the harness.json of the checkout the
+      target plan.yaml belongs to, and accept a value only if it is one of those six or
+      factory_config.TERMINAL_MARKER, which T-01 declares. IMPORT IT; do not declare a second copy
+      here and do not spell the literal. This module is imported by nothing, so a declaration here
+      would be respelled as a bare literal by check-plan-routes.py and check-domain.sh and D-05's
+      own claim that the marker is declared once in code would be false the day it landed.
+      Anything else exits 4 with one line naming the offending value and listing the legal ones.
+      The check happens BEFORE the lock is taken, so a refused value never opens the file.
+
+      Exit codes are the interface, so extend the docstring's table: 3 unknown task id, 4 illegal
+      station, and the existing 5, 6, 7, 8, 9 unchanged.
+
+      In test-plan-merge.py add cases, each demonstrated failing first: set-task-station changes
+      exactly one task's line and leaves every other byte identical; set-feature-station inserts
+      the key when absent and replaces it when present; an illegal station exits 4 and writes
+      nothing; sign-approval writes the three approval fields and is the only verb that can;
+      apply still exits 7 on a changed task value after the new verbs exist.
+
+  - id: T-04
+    title: Retire pending, building, done - plan.yaml adopts the station vocabulary
+    traces: [REQ-03]
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_reason: check-plan-routes.py is named in DEC-174 amendment 4 as a carve-out surface
+    depends_on: [T-03]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/check-plan-routes.py
+      - .claude/skills/harness/bin/test-check-plan-routes.py
+      - .claude/skills/harness/bin/harness_yaml.py
+      - .claude/skills/harness/bin/check-state.sh
+      - .claude/skills/harness/bin/test-check-state.py
+      - .agents/skills/harness/templates/plan.yaml
+    verify: |
+      python3 .claude/skills/harness/bin/test-check-plan-routes.py
+      python3 .claude/skills/harness/bin/test-check-state.py
+      python3 .claude/skills/harness/bin/check-plan-routes.py
+      grep -rn "^    status: pending" .harness/harness/features/*/plan.yaml ; test $? -eq 1
+    intent: |
+      Replace plan.yaml's private three-value vocabulary with the mandated station vocabulary, and
+      migrate every live plan onto it.
+
+      In check-plan-routes.py:
+      - Delete LEGAL_TASK_STATUSES (line 415) and its paragraph of comment. Read the legal set
+        from factory_config.station_names plus factory_config.TERMINAL_MARKER, exactly as the
+        writer does; import the marker, never respell it. Keep the comparison case sensitive and
+        keep the existing violation message shape, which already names the offending value.
+      - Add the same check for the TOP-LEVEL status key when present: a feature station outside
+        the vocabulary is a violation naming the value.
+      - FINISHED_STATUSES (line 408) currently holds the capitalised feature.json values. It now
+        holds the lowercase ("done", factory_config.TERMINAL_MARKER). Leave _is_shipped reading
+        feature.json in this task - T-07 repoints it.
+      - Two COMMENTS in this file still spell the old capitalised vocabulary and go stale with
+        this change: :336, which uses "Building" as the example of the capital-B typo, and :455,
+        which says done is not "Done" and stays checked. Rewrite both against the one vocabulary
+        rather than leaving prose that teaches the reader a distinction the code no longer makes.
+        SC-02 grades quoted capitalised literals without excusing comments, so these two count.
+
+      In harness_yaml.py's load_plan, leave REQUIRED_TASK_FIELDS alone: status stays optional, and
+      an absent status still reads as the not-started station.
+
+      In .agents/skills/harness/templates/plan.yaml, change the task status comment from
+      "pending | done" to the six station names plus abandoned, add the top-level status key with
+      a one-line comment saying it is the feature's station and is written only by the tool, and
+      replace the paragraph telling an author to edit the file with one naming the verbs.
+
+      ALSO IN THIS TASK, because this task is what makes the word dead: check-state.sh's INV-26
+      compare side still keys on pending. Circa 1403-1405 _EXPECT maps building, done and pending;
+      rename the pending key to ready, still mapping to the backlog station, and keep the comment
+      that explains why - gh-sync open lands every sub-issue in backlog and nothing moves it until
+      start-task, which is as true of ready as it was of pending. Then fix the four remaining
+      pending literals circa 1437, 1438, 1471 and 1475, where an absent task status defaults to
+      pending: the default becomes ready. The guard circa 1440, not any(_s != "pending"), INVERTS
+      under the rename - every migrated task would read ready, so the not-any test that means
+      nothing has started would become false for every feature and the skip would stop firing.
+      Rewrite it against the not-started station. Add one test-check-state.py case per _EXPECT key
+      - one for ready, one for building, one for done - because a single fixture cannot see a key
+      that was never migrated. This is NOT the D-11 fix; T-06 deletes _EXPECT entirely and routes
+      the compare side through gh_board.project. This clause exists only so no build ordering
+      leaves INV-26 blind in the window between the two tasks.
+
+      MIGRATION, and it goes through the tool, never by hand: for every plan.yaml under
+      .harness/harness/features/, rewrite each task status pending -> ready, building -> building,
+      done -> done, by calling plan-merge.py set-task-station once per task. pending maps to ready
+      because a planned, unstarted task is exactly what the ready station means. DO NOT TOUCH THE
+      APPROVAL BLOCKS: three plan.yaml files carry status: pending inside approval: at two-space
+      indent - FEAT-19 line 5, FEAT-28 line 5, and THIS FEATURE'S OWN plan.yaml line 7 - and the
+      set-task-station verb cannot reach them. Measured at ee66ae2: the unanchored grep returns 72
+      hits, the four-space-anchored grep in verify returns 55, and the 17-hit difference is those
+      approval blocks and prose. The verify uses the four-space anchor for exactly that reason; an
+      unanchored grep can never reach zero and so can never pass.
+
+  - id: T-05
+    title: Document the one legal route to plan.yaml before anything denies the old one
+    traces: [REQ-05]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: .omp/agents, .claude/agents and both SKILL.md paths resolve to NOBODY
+    depends_on: [T-03]
+    status: pending
+    files:
+      - .omp/agents/harness-orchestrator.md
+      - .claude/agents/harness-orchestrator.md
+      - .claude/skills/harness/SKILL.md
+      - .claude/skills/harness-spec-driven/SKILL.md
+      - .claude/skills/harness/bin/test-orchestrator-playbook.py
+    verify: |
+      grep -n "set-task-station" .omp/agents/harness-orchestrator.md .claude/agents/harness-orchestrator.md
+      grep -n "surgical .Edit" .omp/agents/harness-orchestrator.md ; test $? -eq 1
+      python3 .claude/skills/harness/bin/test-orchestrator-playbook.py
+    intent: |
+      THIS TASK IS HALF OF WHAT CLOSES THE WRITE WINDOW. It must land before T-09 denies the Edit
+      route, because an agent denied a route it was never told to replace has no legal way to
+      record a task status - which is the failure the orchestrator playbook itself records at
+      line 78, five statuses lost.
+
+      Edit .omp/agents/harness-orchestrator.md, which DEC-202 makes canonical, then regenerate the
+      Claude adapter with
+      python3 .claude/skills/harness/bin/sync-agent-adapters.py --apply
+      rather than editing .claude/agents/harness-orchestrator.md by hand.
+
+      Replace the "Writing plan.yaml (D-04)" section's three bullets with the single route:
+      - adding tasks or decisions: plan-merge.py apply, unchanged;
+      - changing a task's station: plan-merge.py set-task-station --file <plan.yaml> --task T-NN
+        --station <one of backlog plan ready building review done>;
+      - changing the feature's station: plan-merge.py set-feature-station;
+      - the approval signature: the main session only, through plan-merge.py sign-approval;
+      - no Edit, no Write, no shell redirect, ever - the shape gate denies all three, and the
+        station is validated against harness.json before the file is opened.
+      Keep the sentence recording that five task statuses went unrecorded, restated as the reason
+      the tool now owns the write rather than as an argument for a surgical Edit.
+
+      In .claude/skills/harness/SKILL.md and .claude/skills/harness-spec-driven/SKILL.md, replace
+      every instruction that has an agent write plan.yaml directly with the verb that does it.
+      harness-spec-driven already tells the plan author to write through the tool - extend that
+      paragraph with the four new verbs and the sentence that no other route exists.
+
+      Extend test-orchestrator-playbook.py with a case asserting the playbook names
+      set-task-station and does NOT tell the orchestrator to Edit plan.yaml.
+
+  - id: T-06
+    title: One function projects plan.yaml onto the board
+    traces: [REQ-04]
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 carve-out - check-state.sh is a gate script and gh_board.py is the module its INV-26 imports; widened to check-state.sh under D-11, and the lane is unchanged because both files already sit under the .claude/skills/harness/bin surface the lanes block resolves to main-session-direct
+    depends_on: [T-02, T-04]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/gh_board.py
+      - .claude/skills/harness/bin/gh-sync.py
+      - .claude/skills/harness/bin/check-state.sh
+      - .claude/skills/harness/bin/test-gh-board.py
+      - .claude/skills/harness/bin/test-gh-sync.py
+      - .claude/skills/harness/bin/test-check-state.py
+    verify: |
+      python3 .claude/skills/harness/bin/test-gh-board.py
+      python3 .claude/skills/harness/bin/test-check-state.py
+      python3 .claude/skills/harness/bin/test-gh-sync.py
+      test "$(grep -rn "gh_board.set_station(" .claude/skills/harness/bin/*.py | grep -v "/test-" | wc -l | tr -d ' ')" = "4"
+      grep -n "_EXPECT\|_st26" .claude/skills/harness/bin/check-state.sh ; test $? -eq 1
+    intent: |
+      Collapse the station POLICY - which card goes where, and when - into one function, so that
+      plan.yaml is the only input to the answer.
+
+      Add to gh_board.py:
+
+      def project(plan_doc, rec):
+          """Return {issue number: lowercase station} for every card this feature records."""
+
+      No board parameter: every value it returns is lowercase, and station_column is the one place
+      a column name is produced. rec is what gh-sync.load_recorded returns: rec["issues"] maps task
+      id to sub-issue number, rec["source_issues"] is a list, rec["parent"] is a number or None.
+      The rules, stated once and nowhere else:
+      - each task sub-issue gets its own task's station from plan_doc, with ONE documented
+        exception carried forward from check-state.sh's _EXPECT comment: a task at the ready
+        station projects to the BACKLOG station, because gh-sync open lands every sub-issue there
+        and nothing moves it until start-task. State that in the docstring. Without it, routing
+        INV-26 through this function would newly report every unstarted card on board 3 as
+        mis-columned, which is a board-wide behaviour change nobody asked for;
+      - the parent gets derive_station(plan_doc) when that is not None, otherwise the feature's
+        top-level status when present, otherwise it is absent from the mapping;
+      - each source issue gets the parent's station;
+      - a task whose station is NOT one of the six stations and is not TERMINAL_MARKER raises
+        FleetError naming the task id and the value. This is the one case that must NOT be silent:
+        it is a vocabulary miss, which is the defect this feature exists to end;
+      - a card whose station is legal but not derivable - the parent with no derivation and no
+        top-level status - is ABSENT from the mapping, never guessed. An absent key means no
+        write, which is the same silence derive_station already returns. Absent and illegal are
+        DIFFERENT outcomes and must not share a code path.
+      It performs no I/O and calls no gh binary; it is pure and unit-testable.
+
+      D-11 - THE COMPARE SIDE MOVES HERE TOO, and this is the point of the task. In check-state.sh:
+      - THE DELETION IS ADDRESSED BY NAME, NOT BY LINE SPAN. After this task neither the
+        identifier _st26 nor the identifier _EXPECT may appear ANYWHERE in check-state.sh -
+        definitions, uses AND COMMENTS alike. The last verify line asserts exactly that, so the
+        verify IS the address; every line number in this task is non-binding orientation,
+        measured at ee66ae2, and must be re-derived when you execute because sibling tasks edit
+        this file too. A span-shaped instruction is what this plan has already got wrong three
+        times: a live occurrence sits outside the span and the task reds while correctly done.
+        THE COUNT, so the address stays falsifiable: at ee66ae2,
+        grep -n "_EXPECT\|_st26" .claude/skills/harness/bin/check-state.sh returns SIX lines -
+        _st26 on four of them, _EXPECT on three, one line carrying both. If your own grep returns
+        a different number, a site has been added or moved: dispose of every line it reports, not
+        only the four dispositions below.
+        The six lines fall into four dispositions:
+        circa 1403-1405, the _st26 and _EXPECT definitions together with the comment directly
+        above them that explains the pending-to-backlog mapping - DELETED outright, because the
+        rule they encode now lives in project and nowhere else;
+        circa 1432, a COMMENT naming _EXPECT, inside a different paragraph 27 lines below the
+        definitions - REWRITTEN, see the next bullet. It lies between the two spans this task
+        names and inside neither, so a span-shaped deletion leaves the token in the file and reds
+        the verify;
+        circa 1475, the per-task lookup - REPLACED, see the projected.get bullet below;
+        circa 1501, inside the Review widening, _accept |= {_st26["review"], _st26["building"]} -
+        REPLACED with lowercase literals, see the Review-widening bullet below. This is _st26's
+        only use outside its own definition, so deleting the definitions alone leaves a NameError
+        on every done-task-at-Review comparison and reds this task's own verify at
+        test-check-state.py cases v.T22a-d. The verify greps for the absence of BOTH names for
+        this reason - an _EXPECT-only grep passes while 1501 still references a deleted _st26.
+      - REWRITE THE COMMENT AT circa 1432; DO NOT SILENTLY DROP IT. It is the third line of the
+        paragraph that opens "A None derivation silences the PARENT claim ONLY", directly above
+        the _statuses list comprehension. That paragraph records a lesson that must survive the
+        rename: the per-task comparison must NOT be skipped when the parent derivation is None,
+        because it never depended on that derivation, and no fixture could see the gap since
+        every INV-26 fixture was single-task. Keep the paragraph and change ONLY the clause that
+        names the deleted identifier, so it names what does that job per task now. Replace
+          since _EXPECT maps each
+          task's status on its own
+        with
+          since project places each
+          task's card from that task's own status
+        rewrapping the comment lines as needed. Everything else in the paragraph is unchanged:
+        the None-silences-the-parent-claim-only rule, the exact cost (a plan with one task done
+        and the rest pending derives None, so the mis-columned done card SC-05 names went
+        unreported), and the single-task-fixture lesson.
+      - Build rec from the feature.json the loop already has - {"issues": _issues, "parent":
+        (_fj.get("github") or {}).get("parent"), "source_issues": []} - and call
+        _gb.project(_pdoc, rec) once per feature, inside the existing try that already treats a
+        gh_board failure as a violation.
+      - Replace the per-task lookup circa 1471-1477. _want becomes projected.get(_num), and the
+        line if _want is None; continue - the FAIL-OPEN - is DELETED. A task id with a recorded
+        sub-issue that project did not place is now a violation line naming the feature, the task
+        id and the station the plan carries. A FleetError out of project is likewise a violation
+        line, not a skip.
+      - The Review widening circa 1495-1501 keeps its force and its bound exactly, and its two
+        station names become the lowercase literals: _accept |= {"review", "building"}. Both
+        sides of the comparison are then lowercase, because board_stations lowercased what the
+        board returned. Leave the guard on the line above it alone - it reads feature.json's
+        capitalised status and T-07 is what repoints it; do not lowercase it early here.
+        WHY THE LITERALS ARE NOT THE DUPLICATION D-11 EXISTS TO END, because an executor will
+        reasonably ask: after T-01 a station's key and its name are the same word, so a lookup
+        could only ever return the literal it was indexed by and carries no information. What
+        the deleted _st26 lookup did carry was a status-to-COLUMN mapping between two different
+        vocabularies, and that mapping is exactly what moved into project and station_column.
+        SC-02 grades CAPITALISED quoted literals; these two are lowercase, and SC-01 makes the
+        lowercase names the declared vocabulary itself.
+        WHY THIS DOES NOT BELONG IN project EITHER. The widening is a PHASE-SCOPED TOLERANCE -
+        which observed stations are acceptable while the feature sits at the Review phase - not
+        a placement rule saying where a card belongs. project answers the placement question and
+        returns ONE station per card, which is what gh-sync's decision points write through
+        gh_board.set_station and what this task's own count verify pins at four call sites
+        tree-wide. Returning an accept-set instead would break every one of those write sites or
+        force a second function, widening this task past issue 845's scope. So the tolerance
+        stays here, deliberately, as the one piece of station policy left outside project.
+        And do NOT source the two names from factory_config to avoid spelling them: station_names
+        returns the six as an ordered tuple, so selecting review and building out of it spells
+        both words anyway, with an indirection added and nothing checked.
+      - gh_board is ALREADY imported here and an import failure is ALREADY a loud violation
+        circa 1337-1349, so this adds no new import surface and no new silent failure mode. Do
+        not add a second import or a try/except around it.
+      In test-check-state.py add cases, each shown failing first: a plan carrying a station outside
+      the vocabulary produces a violation naming the task and the value rather than being skipped;
+      a task with a recorded sub-issue that project omits produces a violation; and one case per
+      station - ready, building, done - so a key that was never migrated cannot hide behind a
+      fixture that does not exercise it.
+
+      In gh-sync.py, every place that decides a station now calls project and writes what it
+      returns through gh_board.set_station:
+      - cmd_start_task (line 813): FIRST record the task's station in plan.yaml by invoking
+        plan-merge.py set-task-station as a subprocess (python3, the bin dir, --file, --task,
+        --station building), refusing loudly on a non-zero exit; THEN project and write. This
+        makes the docstring at line 815 true for the first time - today it claims a plan.yaml
+        write the 54-line body does not contain. Say in the docstring that the write is the
+        subprocess call and name it.
+      - cmd_status (circa 882), the parent rule (circa 269), _to_backlog (def at 987, its
+        station write at 998 - NOT cmd_backlog at 1166, which creates plain backlog issues and
+        carries no station logic at all) and cmd_ship's done pass (circa 1231-1257) each stop
+        computing a station and instead consult project.
+      - STATUS_VALUES (line 104) is deleted; the vocabulary comes from factory_config.
+      Keep the failure posture unchanged: best effort per card, one stderr line per failure, exit
+      status untouched, and ship's held-parent rule and FAILED summary exactly as they are.
+
+      board_lifecycle.py is NOT touched here and its set_station calls are the DISCLOSED
+      residual, not an oversight: reconcile audits the board against the record rather than
+      deciding a station, and _apply_fix at 1007 - whose two set_station calls are at 1013 and
+      1016 - applies a finding reconcile already made. board-station.py:153 is the second
+      disclosed residual: it is the operator's manual override, kept deliberately by T-02 and
+      validated there against factory_config.station_names. Those three sites - board_lifecycle
+      1013 and 1016, board-station 153 - plus gh-sync's single remaining write call are the FOUR
+      the verify asserts. Measured at ee66ae2 the same grep returns TEN, so the assertion is
+      discriminating today. More than four means a policy site survived; fewer means one of the
+      disclosed residuals was removed without a decision. The verify asserts the COUNT rather than
+      grepping and discarding the result, because a bare grep pipeline exits 0 at ten callers and
+      at one and therefore asserts nothing.
+
+      Tests: add unit cases for project covering a plan with one task building, a plan with every
+      task done, a plan with a top-level station and no derivable one, and a feature with source
+      issues. Add a gh-sync case asserting start-task fails loudly when the plan write fails, and
+      that it never writes a card in that case.
+
+  - id: T-07
+    title: Delete feature.json.status and repoint its eleven readers at plan.yaml
+    traces: [REQ-06]
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_reason: feature-schema.json is enforced on check-domain.sh's write path and read by check-state.sh
+    depends_on: [T-04, T-06]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/feature-schema.json
+      - .claude/skills/harness/bin/feature_schema.py
+      - .claude/skills/harness/bin/check-state.sh
+      - .claude/skills/harness/bin/check-plan-routes.py
+      - .claude/skills/harness/bin/board_lifecycle.py
+      - .claude/skills/harness/bin/gh-sync.py
+      - .claude/skills/harness/bin/worktree_terminal.py
+      - .agents/skills/harness/templates/feature.json
+      - .claude/skills/harness/bin/test-validate-feature-json.py
+      - .claude/skills/harness/bin/test-check-state.py
+      - .claude/skills/harness/bin/test-check-plan-routes.py
+      - .claude/skills/harness/bin/test-board-lifecycle.py
+      - .claude/skills/harness/bin/test-gh-sync.py
+      - .claude/skills/harness/bin/test-worktree-terminal.py
+      - .claude/skills/harness/bin/test-check-domain.py
+      - .claude/skills/harness/bin/test-factory-claim.py
+      - .claude/skills/harness/bin/test-factory-gh.py
+      - .claude/skills/harness/bin/test-factory-decompose.py
+      - .claude/skills/harness/bin/test-factory-integration.py
+    verify: |
+      python3 .claude/skills/harness/bin/test-validate-feature-json.py
+      python3 .claude/skills/harness/bin/test-check-state.py
+      python3 .claude/skills/harness/bin/test-worktree-terminal.py
+      grep -l '"status"' .harness/harness/features/*/feature.json ; test $? -eq 1
+      python3 -c "import json;d=json.load(open('.claude/skills/harness/bin/feature-schema.json'));assert len(d['properties'])==10 and len(d['required'])==7 and 'status' not in d['properties'],(len(d['properties']),len(d['required']))"
+
+    intent: |
+      One file records a feature's station, and it is plan.yaml.
+
+      Schema: remove status from feature-schema.json's properties and from its required list.
+      Measured at ee66ae2: properties holds eleven keys and required holds eight, so the result is
+      ten and seven. Do not retype those numbers from this sentence - the verify asserts them
+      against the file, which is the check the prose in T-12 does not get.
+      additionalProperties: false already makes a leftover status key an error, which is what the
+      migration below relies on. Update the template
+      .agents/skills/harness/templates/feature.json the same way.
+
+      A-03, and it is not optional: check-state.sh circa 507-512 carries a comment justifying its
+      silent skip of a status outside STATUS_ORDER on the grounds that status is schema-required
+      with a closed value set, already denied at write time. This task deletes that key from the
+      schema and so removes the compensating control the comment cites. Rewrite the comment
+      against what is true afterwards - the station is read from plan.yaml, where the writer
+      validates it before the file is opened - and make the skip loud if nothing else now denies
+      the value at write time.
+
+      Migrate the data BEFORE the readers, in one pass: for every
+      .harness/harness/features/*/feature.json carrying a status, call plan-merge.py
+      set-feature-station on the sibling plan.yaml with the lowercased value (Done -> done,
+      Review -> review, Abandoned -> abandoned, and so on), then delete the status key from the
+      feature.json. A feature directory with no plan.yaml - the PLAN.md-era records - keeps
+      nothing: delete the key and record the station nowhere, because those features are finished
+      and no reader needs a station for them; state that in the task receipt.
+
+      RE-DERIVE EVERY LINE NUMBER BELOW BEFORE EDITING. Each was measured at ee66ae2 and is
+      navigation only - the identifier named beside it is the address. T-02, T-04 and T-06 all
+      land before this task and all three edit check-state.sh, check-plan-routes.py,
+      board_lifecycle.py and gh-sync.py ABOVE these anchors: T-04 deletes check-plan-routes.py's
+      LEGAL_TASK_STATUSES and its comment paragraph, which sit above _is_shipped, and T-06 deletes
+      _st26 and _EXPECT from check-state.sh, which sit above INV-30's gate. The one span here that
+      is a deletion address rather than navigation is the _STATUS_TO_STATION_KEY table: find it by
+      name and delete its own extent, whatever lines it occupies by then.
+
+      Repoint each reader to the sibling plan.yaml's top-level status, reading it with
+      harness_yaml.load_file and treating an absent or unparseable plan as an absent station,
+      which is what each site already does for an absent feature.json:
+      - check-state.sh:113 (the abandoned skip); STATUS_ORDER, whose DEFINITION is at :513 and
+        whose use is at :604 - both change, and it becomes the six lowercase names read from
+        factory_config plus factory_config.TERMINAL_MARKER; :1048 (INV-28's Done gate); :1425
+        (INV-26's terminal exemption) and :1500 (its Review widening), both of which T-06 has
+        already rewritten around, so read the file rather than this list for their line numbers;
+        :1577 (INV-30's Done gate). Every comparison becomes lowercase.
+      - check-plan-routes.py _is_shipped, defined at :418. It does NOT have the plan in hand: its
+        two callers pass a DIRECTORY, and at :609 the shipped skip runs before plan is resolved at
+        :611-618 - with the examined count pinned at :605-608 above the skip - while the caller at
+        :711 reads the files as raw text afterwards. So _is_shipped opens the sibling plan.yaml
+        itself, in the same shape and with the same error posture as its current feature.json
+        open: unreadable or absent means NOT finished, and every exit is False or a membership
+        test. Do not move the skip or the counter.
+      - board_lifecycle.py:504, and the _STATUS_TO_STATION_KEY table at :445-448 that feeds it.
+        Once the station is read lowercase from plan.yaml that table is an identity map and is
+        DELETED, not lowercased. Its guard at :505-508, station_key is None then continue, is the
+        same fail-open shape D-11 removes from INV-26: an unrecognised station and an exempt one
+        share a code path. Keep the Abandoned exemption explicit and make an unrecognised value a
+        finding. Also board_lifecycle.py:988.
+      - gh-sync.py:226 _feature_status, and its writer at :580 becomes a plan-merge.py
+        set-feature-station subprocess call rather than a json.dumps of feature.json.
+      - worktree_terminal.py:271, which reads the LANDED file on the default branch through
+        git show: it now reads plan.yaml at that same ref and compares against the lowercase done.
+        This one is easy to get wrong - keep the existing err handling, and treat an unreadable
+        plan.yaml at that ref exactly as an unreadable feature.json is treated today.
+
+      Update every named test to the new shape. Where a test asserts a capitalised feature.json
+      status, it now asserts the lowercase plan.yaml station.
+
+  - id: T-08
+    title: Gate sign-approval on identity, so only the main session can sign
+    traces: [REQ-05]
+    change_type: config
+    execution_mode: main-session-direct
+    execution_reason: registers a new PreToolUse Bash hook in settings.json
+    depends_on: [T-03]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/plan-sign-gate.py
+      - .claude/skills/harness/bin/plan-sign-gate.sh
+      - .claude/skills/harness/bin/test-plan-sign-gate.py
+      - .claude/settings.json
+      - .agents/skills/harness/templates/settings.snippet.json
+      - .claude/skills/harness/bin/run-unit-tests.sh
+      - .harness/harness.json
+    verify: |
+      python3 .claude/skills/harness/bin/test-plan-sign-gate.py
+      python3 -c "import json;d=json.load(open('.harness/harness.json'));assert '.claude/skills/harness/bin/test-plan-sign-gate.py' in d['test_kinds']['integration']['detect'].split('|')"
+      grep -q 'test-plan-sign-gate.py' .claude/skills/harness/bin/run-unit-tests.sh
+      python3 -c "import json;d=json.load(open('.claude/settings.json'));print('plan-sign-gate' in json.dumps(d))" | grep True
+    intent: |
+      Make DEC-120 mechanical: an agent may ask for a signature, and be refused; only the main
+      session can write one.
+
+      Create plan-sign-gate.py modelled on gh-close-gate.py, which is the working precedent for
+      this shape and whose reasoning DEC-203 section 8 records. It reads the PreToolUse payload on
+      stdin and:
+      - exits 0 immediately when d.get("agent_type") is empty or absent - an absent agent_type IS
+        the main session, as check-domain.sh:512 records;
+      - otherwise tokenizes tool_input.command with shlex (posix=True, punctuation_chars=True),
+        comparing os.path.basename of each command word so an absolute path, a leading backslash
+        or a quoted form all read the same, and re-scanning the argument of eval and of bash -c
+        to a depth of 3;
+      - denies with exit 2 when a token whose basename is plan-merge.py (plan-write.py after
+        T-13) is followed by the verb sign-approval;
+      - keeps a raw-regex fallback for a command line shlex cannot lex at all, exactly as
+        gh-close-gate.py does;
+      - prints ONE refusal text, used verbatim for every denial: that the approval signature is
+        the user's, relayed by the main session alone, that the agent should return
+        awaiting_user rather than sign, and that the main session runs the verb itself.
+      Record in the module docstring the one class that survives: a binary produced only by shell
+      expansion, which a PreToolUse hook cannot see.
+
+      plan-sign-gate.sh is the registration wrapper: it passes the repo root as argv[1] and pipes
+      stdin through, matching gh-close-gate.sh line for line.
+
+      Register it in .claude/settings.json as a PreToolUse Bash hook alongside the existing ones,
+      and add the same entry to .agents/skills/harness/templates/settings.snippet.json.
+
+      REGISTERING THE TEST IS TWO EDITS, NOT ONE, and missing the second is a loud failure on
+      every subsequent test run. Add test-plan-sign-gate.py to run-unit-tests.sh's
+      INTEGRATION_SCRIPTS array - integration, because SC-07 declares evidence: integration - AND
+      add the explicit literal path .claude/skills/harness/bin/test-plan-sign-gate.py to
+      test_kinds.integration.detect in .harness/harness.json. run-unit-tests.sh's KIND CROSS-CHECK
+      circa 62-117 requires every INTEGRATION_SCRIPTS name to appear as PREFIX + name among
+      detect's pipe-separated entries, where PREFIX is the literal .claude/skills/harness/bin/
+      (:101). It runs on EVERY invocation, for every kind, and exits 2. The prefix in that block's
+      own comment reads .agents/... and is stale - use the one the code holds, at :101.
+
+      test-plan-sign-gate.py asserts, each shown failing first: a payload with no agent_type
+      passes; a payload with agent_type harness-orchestrator invoking sign-approval exits 2; the
+      same via an absolute path, via eval, and via bash -c all exit 2; a payload with agent_type
+      invoking set-task-station exits 0; and an unlexable command line still denies through the
+      fallback.
+
+  - id: T-09
+    title: Deny every editor and shell write of plan.yaml, and sweep what lands on disk
+    traces: [REQ-05]
+    change_type: config
+    execution_mode: main-session-direct
+    execution_reason: check-domain.sh is the registered PreToolUse and PostToolUse gate script
+    depends_on: [T-03, T-04, T-05, T-08]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/check-domain.sh
+      - .claude/skills/harness/bin/test-check-domain.py
+      - .harness/team-config.yaml
+    verify: |
+      python3 .claude/skills/harness/bin/test-check-domain.py
+    intent: |
+      THIS TASK OPENS THE DENIAL. It must not land before T-03 and T-05, or the orchestrator has
+      no legal route to record a task status.
+
+      In check-domain.sh, add plan.yaml to the SHAPE region, not the domain region. The domain
+      region is the wrong home: check-domain exits 0 for a payload with no agent_type, so a
+      denial there would exempt the main session, and item 5 denies every LLM. DEC-180 makes the
+      shape gate independent of domain and binding on every author.
+
+      Concretely:
+      - Add RE_PLAN_YAML = re.compile(r"^\.harness/[^/]+/features/[^/]+/plan\.yaml$") to the
+        pattern block, whose five existing RE_ definitions are at 1004-1010, and add the name to
+        the SHAPE_PATTERNS tuple, which is the SINGLE LINE 1018.
+      - REPLACE the comment at lines 1011-1017 - and only those lines - which argues plan.yaml is
+        deliberately absent under DEC-182. Line 1018 is the SHAPE_PATTERNS tuple itself: a replace
+        that runs to 1022 deletes it and the has_shape_rules def below it. Open the file and
+        confirm the span before editing. The new comment states the reversal and why: plan.yaml
+        now has exactly one writer, a command that validates a station before it opens the file,
+        so an editor write is not a shape violation to be measured but a route that no longer
+        exists.
+      - On the Write and Edit routes: deny with exit 2 and a message naming the four verbs and the
+        tool path. The message must name set-task-station explicitly, because recording a task
+        status is the write an agent will actually attempt.
+      - Add the plan.yaml pattern to _SWEEP_PATTERNS so the PostToolUse Bash route reaches it,
+        and give it a VOCABULARY shape rule in shape_problems: every task status, and the
+        top-level status WHEN PRESENT, must be one of factory_config.station_names or
+        factory_config.TERMINAL_MARKER - imported, never respelled - and anything else is
+        reported naming the file and the offending value. A MISSING top-level status is LEGAL
+        and is never a violation. This is a shape-gate contract, so it is stated rather than
+        inferred: T-07 is what adds that key to most plans and is NOT a dependency of this task,
+        so the two are unordered, and a rule that required the key would report a violation on
+        every un-migrated plan the sweep touches. It matches check-plan-routes.py, which T-04
+        tells to check the top-level key when present. An absent TASK status is legal for the
+        same reason: T-04 leaves status out of harness_yaml REQUIRED_TASK_FIELDS and an absent
+        one reads as the not-started station. Only a value OUTSIDE the vocabulary is reported.
+        State plainly in the comment what this
+        does and does not catch - a dead word or a broken file, yes; a shell write of a legal
+        value, no, because the sweep reads disk and cannot attribute an author.
+      - Leave the main_session.writes entry for the plan.yaml approval fragment in place: the
+        approval_guard reads that list, and deleting the line deletes a denial.
+
+      In .harness/team-config.yaml, leave both plan.yaml grants but replace their trailing
+      comments with one naming the tool as the only write route and the shape gate as what
+      enforces it.
+
+      In test-check-domain.py add cases, each shown failing first: an Edit of a plan.yaml by an
+      agent exits 2 and the message names set-task-station; an Edit of a plan.yaml by a payload
+      with NO agent_type also exits 2; a Bash write that lands an illegal station value is
+      reported by the post sweep; a Bash write that lands a legal one is not; and a plan.yaml
+      carrying NO top-level status key at all is not reported, which is the un-migrated plan the
+      sweep meets while T-07 is still pending.
+
+  - id: T-10
+    title: Fix both ship defects and close the live INV-26 violation
+    traces: [REQ-07]
+    change_type: bugfix
+    execution_mode: main-session-direct
+    execution_reason: the assertion is a run of check-state.sh, the validator that gates this run
+    depends_on: [T-06, T-07]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/gh-sync.py
+      - .claude/skills/harness/bin/test-gh-sync.py
+      - .claude/skills/harness/bin/test-post-merge-sweep.py
+      - .harness/harness/features/FEAT-40-harness-writes-done/plan.yaml
+    verify: |
+      python3 .claude/skills/harness/bin/test-gh-sync.py
+      python3 .claude/skills/harness/bin/test-post-merge-sweep.py
+      git -C . diff --quiet -- .harness/harness/features/FEAT-40-harness-writes-done/plan.yaml
+    intent: |
+      Two defects, both measured, plus the repair of the record they already damaged.
+
+      RUNTIME DISCLOSURE. test-gh-sync.py is measured at 149 s and is the slowest verify in this
+      plan by an order of magnitude - test-plan-merge.py 2.8 s, test-post-merge-sweep.py 8.7 s,
+      test-check-domain.py 15.3 s, test-check-state.py 20.1 s - and both this task and T-06 run it
+      in full, about 298 s across the plan. That is over the 60 s a verify is meant to hold to.
+      It is accepted here rather than fixed: adding case selection to the test harness is a change
+      to the harness itself, not to this feature. The deferral has an instrument rather than only
+      prose - it is proposed backlog row PB-01 in BRIEF.md, which the main session opens as a
+      GitHub issue at ship acceptance. So the 298 s is accepted, not permanent. Do not narrow
+      either verify to buy the time back; the file is the only proof either task has.
+
+      Defect one - the terminal write is never committed. cmd_ship records the feature's terminal
+      station as its last statement and leaves it uncommitted, so main reads Review while the
+      board reads Done, which is the INV-26 violation check-state.sh reports today. After the
+      station write succeeds, stage that one file and commit it in the checkout the feature dir
+      belongs to, with the message "FEAT-NN: station done at ship" and nothing else in the commit.
+      DO NOT PUSH: a post-merge hook moving a remote branch is a second, larger surprise. Print
+      one line naming the commit. A failure to commit is a loud stderr line and does NOT change
+      the exit status, matching the best-effort posture the rest of ship already has - but it must
+      NOT print the string that post-merge-sweep.sh treats as positive evidence.
+
+      Defect two - ship accepts a feature dir inside a worktree that is about to be deleted. At
+      the top of cmd_ship, resolve the feature dir with os.path.realpath and refuse when it lies
+      under harness_boundary.WORKTREES_SEGMENT: exit 1 with one line naming the equivalent path in
+      the main checkout, derived by replacing everything up to the worktree root with the owner
+      root that harness_boundary.worktree_owner returns. This is a refusal, not a skip: skip()
+      exits 0 and post-merge-sweep.sh would then delete the worktree.
+
+      The repair: FEAT-40's plan.yaml must record the done station. Set it with plan-merge.py
+      set-feature-station --file .harness/harness/features/FEAT-40-harness-writes-done/plan.yaml
+      --station done, and commit it. Then RUN
+      .claude/skills/harness/bin/check-state.sh
+      and paste into the task receipt the before and after: the INV-26 line naming FEAT-40 and
+      issue 842 as it reads at ee66ae2, and its absence afterwards. A run that cannot reach the
+      board reports CANNOT VERIFY, which is NOT the assertion - re-run it authenticated.
+
+      Tests: assert ship refuses a worktree feature dir and names the main-checkout path; assert
+      the file is clean against HEAD after a successful ship; assert the post-merge sweep's
+      positive-signal gate still fires unchanged when ship reports SKIP or FAILED.
+
+  - id: T-11
+    title: Delete the renamed-board test the mandate makes unreachable
+    traces: [REQ-01]
+    change_type: config
+    execution_mode: main-session-direct
+    execution_reason: test-check-state.py is a validator test named in the DEC-174 carve-out
+    depends_on: [T-01, T-02, T-04, T-06, T-07]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/test-check-state.py
+    verify: |
+      python3 .claude/skills/harness/bin/test-check-state.py
+      grep -n "Icebox\|Drafted\|Primed\|Shipped" .claude/skills/harness/bin/test-check-state.py ; test $? -eq 1
+      grep -n "_renamed\|_no_finding" .claude/skills/harness/bin/test-check-state.py ; test $? -eq 1
+      grep -q "FEAT-41" .claude/skills/harness/bin/test-check-state.py
+    intent: |
+      Delete the renamed-board unit from test-check-state.py, and ADDRESS IT BY CONTENT, NEVER BY
+      LINE NUMBER. Four sibling tasks - T-02, T-04, T-06 and T-07 - edit this same file. This task
+      runs after every one of them, so any absolute line number written here would be stale by the
+      time it executes, and a line-addressed deletion would execute correctly against the wrong
+      lines. Re-derive the extent at execution time from the anchors below. Measured at ee66ae2
+      they are unique to this unit: _renamed occurs four times, _no_finding four times, and neither
+      name appears anywhere else in the file.
+
+      The unit runs from the comment line beginning
+      # --- ONE CASE PER KEY, AND THAT IS THE POINT.
+      through the last statement referencing _no_finding, which is the third results.append whose
+      label ends: INV-26 expects the declared station for status: done
+      Between those it contains, in order, that comment paragraph; the _renamed board dict, which
+      declares the six columns as Icebox, Drafted, Primed, WIP, Review and Shipped; the
+      def _no_finding(out) helper; and three with tempfile.TemporaryDirectory() blocks, each
+      passing board_override=_renamed. STOP AT THE BLANK LINE BEFORE the line allok = True - that
+      line and the results loop below it are outside the unit and are untouched.
+
+      After the deletion neither _renamed nor _no_finding may appear anywhere in the file, which is
+      what the second grep asserts: an earlier draft of this task named a narrower span that cut
+      between the two definitions and their four uses, leaving two NameErrors and a live Shipped
+      literal behind. That failure mode is now caught by the verify rather than by the reader.
+
+      It is deleted, not retargeted: once the six names are mandated, harness.json can only ever
+      hold those six strings and every read lowercases them, so there is no declaration variability
+      left for a test to exercise. Leave a one-line comment where it stood naming FEAT-41 and the
+      mandate, so the next reader does not restore it; the fourth verify line asserts that comment
+      exists, and FEAT-41 appears nowhere in this file today, so it discriminates.
+
+      BOUNDARY, because two predecessors add cases to this same file: T-04 and T-06 each add one
+      case per station against the MANDATED vocabulary. Those are not part of this unit and
+      survive. If either landed its cases inside this unit or reused _no_finding, move them out
+      beside the other mandated-vocabulary cases with their own local helper FIRST, then delete
+      only the renamed-board dict, the helper and the three cases passing board_override=_renamed.
+
+      Do NOT touch the case-5g regression guard in test-board-lifecycle.py - the block whose checks
+      are labelled c3 regression: and whose fixture declares existing = ["Backlog", "Icebox",
+      "Plan", "Ready"]. It is named by content for the same reason: T-02 and T-07 both edit that
+      file. It guards an operator's EXTRA column against deletion, and extra columns still survive
+      untouched. Its Icebox literal lives in a different file, and this task's grep names
+      test-check-state.py only, so the two do not interact.
+
+  - id: T-12
+    title: Record the vocabulary decision and amend the three entries it contradicts
+    traces: [REQ-01, REQ-02, REQ-05, REQ-06]
+    change_type: docs
+    execution_mode: team
+    execution_agent: harness-documentor
+    depends_on: [T-01, T-02, T-03, T-04, T-05, T-06, T-07, T-08, T-09]
+    status: pending
+    files:
+      - .harness/harness/docs/DECISIONS.md
+      - .harness/harness/docs/DECISIONS-INDEX.md
+      - .harness/harness/docs/SPEC.md
+    verify: |
+      python3 .claude/skills/harness/bin/gen-decisions-index.py --check
+    intent: |
+      Write ONE new decision entry and three amendments. Nothing is struck: each contradiction is
+      one clause of an entry whose remainder still binds.
+
+      The new entry, taking the next free DEC number, states four things and no biography:
+      1. The six station names - backlog, plan, ready, building, review, done - are MANDATED. An
+         operator may not rename a column; extra columns an operator adds survive untouched.
+      2. harness.json declares them once, as an ordered lowercase list. Everything the harness
+         stores or compares is lowercase; factory_config.station_column is the ONE place a
+         capitalised name is produced, and it is used only where the harness talks to GitHub.
+      3. plan.yaml carries a station per task and a top-level station for the feature, from that
+         same vocabulary, plus one terminal marker, abandoned, which names no column.
+      4. plan.yaml has exactly one writer and it is code. Every editor and shell write is denied
+         by the shape gate, which binds every author including the main session, and the approval
+         signature goes through a verb an identity-gated Bash hook refuses to any agent.
+      Record the one thing this does not achieve: a shell write of a LEGAL station value is not
+      attributable, and the post-Bash sweep reads disk rather than authors.
+
+      DEC-203 amendment 1: section 6's field moves out of feature.json into plan.yaml, and its
+      values are the lowercase station names. The clause it replaces is "They are case sensitive,
+      byte for byte" as a property of the STORED value - the board's own column names are still
+      case sensitive at the write, which is why station_column exists. Everything else in DEC-203
+      stands: a ticket is open until its card reaches Done, the harness writes Done at ship, the
+      parent rule, and the seven-purpose read-back bound.
+
+      DEC-191 amendment 1: status leaves the closed key set. Read the two counts OUT OF
+      .claude/skills/harness/bin/feature-schema.json as it stands after T-07 rather than copying
+      them from this sentence or from T-07's - gen-decisions-index.py --check gates word count,
+      not numeric accuracy, so a hand-typed number here is unverified by any gate. At ee66ae2 the
+      file held eleven properties and eight required, so the expected result is ten and seven.
+      State the reader test DEC-191 itself sets - a key survives because code reads it - and that
+      status now has zero readers in that file.
+
+      DEC-182 amendment 1: plan.yaml joins the shape gate. The entry currently states it is
+      deliberately excluded because it carries neither a budget nor a vocabulary rule; it now
+      carries a vocabulary rule, which is exactly the criterion that entry names.
+
+      Then regenerate the index with
+      python3 .claude/skills/harness/bin/gen-decisions-index.py
+      Every index row is capped at 30 words - a row over the cap is what turned CI red on 2026-08-23.
+
+      In SPEC.md, update the section describing feature state and the plan format so it names
+      plan.yaml as the station record and the tool as its only writer. Do not restate the decision
+      text; cite the number.
+
+  - id: T-13
+    title: Rename plan-merge.py to plan-write.py across every live caller
+    traces: [REQ-05]
+    change_type: config
+    execution_mode: main-session-direct
+    execution_reason: check-domain.sh and run-unit-tests.sh name the script path
+    depends_on: [T-03, T-04, T-05, T-06, T-07, T-08, T-09, T-10, T-11, T-12]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/plan-merge.py
+      - .claude/skills/harness/bin/plan-write.py
+      - .claude/skills/harness/bin/test-plan-merge.py
+      - .claude/skills/harness/bin/test-plan-write.py
+      - .claude/skills/harness/bin/check-domain.sh
+      - .claude/skills/harness/bin/test-check-domain.py
+      - .claude/skills/harness/bin/test-observations-merge.py
+      - .claude/skills/harness/bin/run-unit-tests.sh
+      - .claude/skills/harness/bin/harness_yaml.py
+      - .claude/skills/harness/bin/expertise-merge.py
+      - .claude/skills/harness/bin/gh-sync.py
+      - .claude/skills/harness/bin/plan-sign-gate.py
+      - .omp/agents/harness-orchestrator.md
+      - .claude/agents/harness-orchestrator.md
+      - .claude/skills/harness-spec-driven/SKILL.md
+      - .harness/harness/docs/DECISIONS.md
+      - .harness/harness.json
+    verify: |
+      grep -rn --exclude-dir=worktrees "plan-merge" .claude .omp .agents .harness/harness.json .harness/harness/docs .harness/team-config.yaml ; test $? -eq 1
+      python3 .claude/skills/harness/bin/test-plan-write.py
+      python3 .claude/skills/harness/bin/test-check-domain.py
+    intent: |
+      THIS TASK IS SEPARATELY STRIKEABLE. Striking it leaves every behaviour in this feature
+      intact and only the name wrong; nothing else depends on it.
+
+      Rename the tool to plan-write.py, because after T-03 it owns five verbs of which merge is
+      one, and a name that says merge describes the smallest of them. Use git mv for both the
+      script and its test so history follows, then update every live caller:
+      test-plan-write.py, check-domain.sh (3 references, including the refusal text T-09 added),
+      test-check-domain.py, test-observations-merge.py, run-unit-tests.sh, harness_yaml.py,
+      expertise-merge.py, gh-sync.py (the subprocess calls T-06 and T-07 added), plan-sign-gate.py
+      (the basename it matches), .omp/agents/harness-orchestrator.md, DECISIONS.md and
+      .harness/harness.json. Regenerate the Claude adapter with sync-agent-adapters.py --apply
+      rather than editing .claude/agents/harness-orchestrator.md by hand.
+
+      Measured at ee66ae2: 13 live files and 35 lines reference the old name, and
+      .omp/agents/harness-orchestrator.md is one of them - it is the canonical agent source under
+      DEC-202, not a generated adapter.
+
+      THE EXCLUDE IN THE VERIFY IS LOAD-BEARING, not tidiness. .claude/worktrees/ holds every
+      in-flight checkout of this repository, each a full copy carrying the old name, and this task
+      must not rewrite them. Measured at ee66ae2 in the MAIN checkout: the same grep returns 1100
+      lines without --exclude-dir=worktrees and 35 with it; in a worktree checkout, which has no
+      .claude/worktrees/ of its own, both return 35. So without the exclude the verify reds on a
+      correct execution, and WHICH checkout the main session runs it in decides whether it reds -
+      a location-dependent silent break, which is the class of defect this feature exists to end.
+      Do not substitute a narrower path list that happens to work today.
+
+      LEAVE THE RECORDS ALONE. Every reference under .harness/harness/features/ - the FEAT-32
+      receipts, and the observations and notes of FEAT-26, FEAT-33, FEAT-34, FEAT-35 and FEAT-40 -
+      records what was true when it was written. Rewriting them would falsify the record.

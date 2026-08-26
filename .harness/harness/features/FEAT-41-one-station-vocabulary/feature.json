@@ -1,0 +1,47 @@
+{
+  "feature_id": "FEAT-41-one-station-vocabulary",
+  "branch": "feat/FEAT-41-one-station-vocabulary",
+  "pr": null,
+  "status": "Plan",
+  "review_sha": "none",
+  "cycles_used": 4,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "2026-08-25-01-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-25-01-eng",
+      "squad": "eng",
+      "agent": "harness-eng-lead",
+      "verdict": "FAIL"
+    },
+    {
+      "id": "2026-08-25-02-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-25-01-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-25-02-eng",
+      "squad": "eng",
+      "agent": "harness-eng-lead",
+      "verdict": "FAIL"
+    },
+    {
+      "id": "2026-08-25-03-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS"
+    }
+  ]
+}
