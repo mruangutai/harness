@@ -79,8 +79,8 @@ decisions:
     because: everything stored or compared stays lowercase while the board still receives the exact option name its API matches on
     dec: none
   - id: D-09
-    choice: in DEC-203 section 6, in DEC-191 and in DEC-182 the ONE contradicted clause is marked STRUCK in place under DEC-188, inside an entry that survives. The clause text stays on the page, marked; it is never rewritten
-    because: the entries survive, so the rules this feature depends on are not removed - only the contradicted clauses stop holding, and a citation to a struck clause still RESOLVES while announcing that it no longer holds. An amendment that rewrote the clause would leave a later reader unable to tell it ever said otherwise, which is the falsified-record failure. The established in-place form is already live twice in DECISIONS.md - at line 3228 and at line 4436, both measured at 8f8a6a3 - and reads, in the record's own voice, that the citation which recorded a thing is STRUCK on a date under DEC-188, see amendment N
+    choice: in DEC-203 section 6, in DEC-191 and in DEC-182 the ONE contradicted clause is recorded as no longer holding, inside an entry that survives. WHICH clause, and what holds instead of it, is fixed here. The RECORDING FORM is deliberately left OPEN as a named dependency - either (a) an in-place clause strike under DEC-188 or (b) subsuming the correction into the entry in one voice - and T-12 executes whichever form the decisions-authority triage lands, read at execution time rather than chosen here
+    because: the entries survive, so the rules this feature depends on are not removed - only the contradicted clauses stop holding, and a citation to the clause still RESOLVES while announcing that it no longer holds. THE FORM IS PENDING, and both candidates are recorded here so a later reader can see what was weighed rather than find one choice silently swapped for the other. FORM (a), the in-place strike - the clause text stays on the page, marked, and is never rewritten - the argument for it is that an amendment which rewrote the clause would leave a later reader unable to tell it ever said otherwise, which is the falsified-record failure; and the form is already live twice in DECISIONS.md, at line 3228 and at line 4436, both measured at 8f8a6a3, reading in the record's own voice that the citation which recorded a thing is STRUCK on a date under DEC-188, see amendment N. FORM (b), subsuming the correction - the operator's reading is that a struck decision should be REMOVED from DECISIONS.md and the correction absorbed into the entry, because STRUCK does not today mean deleted - eight entries currently sit in DECISIONS.md marked STRUCK - so the annotation layer accumulates rules that no longer hold while still reading as though they might. THE FALSIFIED-RECORD ARGUMENT SURVIVES AS AN ARGUMENT, NOT AS A VERDICT - if form (b) wins, how the earlier reading stays recoverable is that triage's question, not this feature's. WHY IT IS PENDING RATHER THAN DECIDED HERE - which form the tree uses is a decisions-authority question being settled as separate work, and this feature has no standing to settle it - so this decision names the dependency instead of choosing under it. Nothing about which clauses are contradicted, or what holds instead, depends on the answer
     dec: DEC-188
   - id: D-10
     choice: ship commits the terminal station write in the main checkout and does not push it
@@ -765,9 +765,12 @@ tasks:
         T-13) is followed by the verb sign-approval;
       - keeps a raw-regex fallback for a command line shlex cannot lex at all, exactly as
         gh-close-gate.py does;
-      - prints ONE refusal text, used verbatim for every denial: that the approval signature is
-        the user's, relayed by the main session alone, that the agent should return
-        awaiting_user rather than sign, and that the main session runs the verb itself.
+      - prints ONE refusal text, used verbatim for every denial, which NAMES sign-approval
+        LITERALLY as the verb it refused rather than saying the verb: that sign-approval writes the
+        approval signature, which is the user's and is relayed by the main session alone, that the
+        agent should return awaiting_user rather than call sign-approval, and that the main session
+        runs sign-approval itself. A log line read without the command that triggered it must still
+        say what was refused.
       Record in the module docstring the one class that survives: a binary produced only by shell
       expansion, which a PreToolUse hook cannot see.
 
@@ -788,8 +791,9 @@ tasks:
       own comment reads .agents/... and is stale - use the one the code holds, at :101.
 
       test-plan-sign-gate.py asserts, each shown failing first: a payload with no agent_type
-      passes; a payload with agent_type harness-orchestrator invoking sign-approval exits 2; the
-      same via an absolute path, via eval, and via bash -c all exit 2; a payload with agent_type
+      passes; a payload with agent_type harness-orchestrator invoking sign-approval exits 2 AND its
+      refusal text contains the literal string sign-approval, the exit code alone not being the
+      assertion; the same via an absolute path, via eval, and via bash -c all exit 2; a payload with agent_type
       invoking set-task-station exits 0; and an unlexable command line still denies through the
       fallback.
 
@@ -827,9 +831,23 @@ tasks:
         now has exactly one writer, a command that validates a station before it opens the file,
         so an editor write is not a shape violation to be measured but a route that no longer
         exists.
-      - On the Write and Edit routes: deny with exit 2 and a message naming the four verbs and the
-        tool path. The message must name set-task-station explicitly, because recording a task
-        status is the write an agent will actually attempt.
+      - On the Write and Edit routes: deny with exit 2 and a message that STATES THE REASON FIRST -
+        that plan.yaml now has exactly one writer, plan-write.py, because every station value must
+        be validated before it lands - and then names the four verbs and the tool path. The message
+        must name set-task-station explicitly, because recording a task status is the write an
+        agent will actually attempt. THE REASON CLAUSE IS LOAD-BEARING, NOT DECORATION: a denial
+        that says only what to use instead is indistinguishable from a stuck or over-broad gate to
+        an agent that has not loaded T-05's updated playbook, and a reader who takes it for a
+        harness malfunction routes around it through a shell write of a LEGAL station value - the
+        one channel the sweep below admits it cannot attribute to an author.
+      - DO NOT EMIT THIS REFUSAL THROUGH deny(). check-domain.sh defines deny() at 1063-1066 and
+        its last line appends the module-level ROUTING constant defined at 879, which speaks about
+        STATE.md, digests and notes/ - a different file class entirely. Emitting ROUTING beside a
+        plan.yaml refusal puts two routing sentences in one stderr stream contradicting each other
+        about the same file. The comment at 1161-1167 already records this exact trap, in these
+        words: ONE ROUTING SENTENCE PER FINDING, which is why this does not call deny(). Build the
+        refusal through the same accumulator the rest of the shape region already uses -
+        out.append(...) - and do not reach for deny() by reflex.
       - Add the plan.yaml pattern to _SWEEP_PATTERNS so the PostToolUse Bash route reaches it,
         and give it a VOCABULARY shape rule in shape_problems: every task status, and the
         top-level status WHEN PRESENT, must be one of factory_config.station_names or
@@ -853,8 +871,12 @@ tasks:
       enforces it.
 
       In test-check-domain.py add cases, each shown failing first: an Edit of a plan.yaml by an
-      agent exits 2 and the message names set-task-station; an Edit of a plan.yaml by a payload
-      with NO agent_type also exits 2; a Bash write that lands an illegal station value is
+      agent exits 2 and the message names set-task-station; the SAME message CONTAINS the reason
+      clause - it names plan-write.py as plan.yaml's one writer and says station values are
+      validated before they land - and DOES NOT CONTAIN the ROUTING text, asserted by searching the
+      denial for a distinctive substring of the ROUTING constant at 879, such as its STATE.md
+      mention, and requiring it absent; an Edit of a plan.yaml by a payload with NO agent_type also
+      exits 2; a Bash write that lands an illegal station value is
       reported by the post sweep; a Bash write that lands a legal one is not; and a plan.yaml
       carrying NO top-level status key at all is not reported, which is the un-migrated plan the
       sweep meets while T-07 is still pending.
@@ -876,7 +898,7 @@ tasks:
       python3 .claude/skills/harness/bin/test-gh-sync.py
       python3 .claude/skills/harness/bin/test-post-merge-sweep.py
       git -C . diff --quiet -- .harness/harness/features/FEAT-40-harness-writes-done/plan.yaml
-      python3 -c "import sys,glob,json,os,yaml;sys.path.insert(0,'.claude/skills/harness/bin');import gh_board as g,factory_config as fc;b=g.load_board('.');st=g.board_stations(b,json.load(open('.harness/harness.json'))['github']['repo']);rec=lambda d:(lambda j:{'issues':((j.get('github') or {}).get('issues') or {}),'parent':(j.get('github') or {}).get('parent'),'source_issues':[]})(json.load(open(os.path.join(d,'feature.json'))) if os.path.exists(os.path.join(d,'feature.json')) else {});bad=sorted((n,w,st.get(n)) for p in glob.glob('.harness/harness/features/*/plan.yaml') for n,w in g.project(yaml.safe_load(open(p)),rec(os.path.dirname(p))).items() if st.get(n)!=fc.station_column(w));assert not bad,bad;print('board agrees with plan.yaml for all',len(st),'cards read')"
+      python3 -c "import sys,glob,json,os,yaml;sys.path.insert(0,'.claude/skills/harness/bin');import gh_board as g,factory_config as fc;b=g.load_board('.');st=g.board_stations(b,json.load(open('.harness/harness.json'))['github']['repo']);rec=lambda d:(lambda j:{'issues':((j.get('github') or {}).get('issues') or {}),'parent':(j.get('github') or {}).get('parent'),'source_issues':[]})(json.load(open(os.path.join(d,'feature.json'))) if os.path.exists(os.path.join(d,'feature.json')) else {});placed=sorted(set((n,w) for p in glob.glob('.harness/harness/features/*/plan.yaml') for n,w in g.project(yaml.safe_load(open(p)),rec(os.path.dirname(p))).items()));skipped=sorted(n for n,w in placed if n not in st);compared=[(n,w) for n,w in placed if n in st];bad=sorted((n,w,st[n]) for n,w in compared if st[n]!=fc.station_column(w));assert placed,'nothing was projected';assert compared,'every projected card was skipped - nothing was compared';assert not bad,bad;print('board agrees with plan.yaml for',len(compared),'of',len(placed),'projected cards, against',len(st),'board items; SKIPPED as absent from board 3:',skipped)"
     intent: |
       Two defects, both measured, plus the repair of the record they already damaged.
 
@@ -925,24 +947,35 @@ tasks:
       - compare each placed card against gh_board.board_stations and write ONLY the differences,
         through gh_board.set_station. Print one line per write naming the issue, the column it
         held and the column it now holds, and paste that list into the task receipt;
-      - a card project places that carries NO item on the board is ADDED with
-        factory_gh.project_item_add and then stationed. Measured at 8f8a6a3 against the live board
-        on 2026-08-25 there is exactly one - issue 223, FEAT-12's parent - and it is a real gap,
-        not an environmental accident: the feature shipped and its parent was never put on the
-        board. If your own run finds a second, add it and record it; do not widen the rule;
+      - THE PASS ADDS NOTHING TO THE BOARD. A card project places that carries NO item on board 3
+        is SKIPPED, and every skip PRINTS ONE LINE naming the issue, so the gap is recorded rather
+        than hidden. Do NOT call factory_gh.project_item_add. THIS IS AN EXEMPTION, granted by the
+        operator, and it is stated here in the task rather than in a code comment: a migration
+        MOVES cards, it does not CREATE them - adding a card is a side effect nobody asked for, and
+        a migration that quietly grows the board is harder to verify than one that only moves what
+        is already there. Measured at 8f8a6a3 against the live board on 2026-08-25 there is exactly
+        one such card - issue 223, FEAT-12's parent - and it is a real gap, not an environmental
+        accident: the feature shipped and its parent was never put on the board. If your own run
+        finds a second, skip and print it too; do not widen the rule and do not add either one;
       - the pass is idempotent by construction, because it writes only differences. Running it
         twice is safe and the second run must write nothing.
       WHAT THIS COSTS, MEASURED RATHER THAN FEARED, at 8f8a6a3 against live board 3 on 2026-08-25:
       board 3 holds 656 cards for this repository, 211 of them task sub-issues and 23 of them
       feature parents. Comparing every one against what project returns after T-04's migration and
-      repair and T-06's terminal-first parent rule, the pass writes ZERO stations and adds ONE
-      card. The exception was protecting nothing: not one of the 211 task cards sits at Backlog
+      repair and T-06's terminal-first parent rule, the pass writes ZERO stations and adds ZERO
+      cards, skipping exactly one issue - 223, FEAT-12's parent - which it prints. The exception
+      was protecting nothing: not one of the 211 task cards sits at Backlog
       today. AND THE RED IS BOUNDED: no INV-26 red window opens between T-04 and this task either,
       because T-04's record repair lands in the same task as the migration, so no card is ever
-      compared against a station the plan only briefly held. The single expected red is FEAT-12's
-      absent parent card, which appears when T-06 routes the compare through project and closes
-      here. If your own measurement differs, STOP and report the number rather than writing the
-      difference to the board.
+      compared against a station the plan only briefly held. FEAT-12's absent parent card is the
+      one projected name with no board item, and under the exemption above THIS TASK DOES NOT CLOSE
+      IT: the pass prints it as a skip, this task's verify prints it in its skipped list rather
+      than asserting over it, and the gap itself is carried as proposed backlog row PB-03 in
+      BRIEF.md, which the main session opens as an issue at ship acceptance. It is a parent card
+      rather than a task sub-issue, so it is outside the set INV-26's per-task compare walks. If a
+      run of check-state.sh nonetheless reports that absent parent card as a violation, STOP and
+      report it - do not add the card to buy the gate green. If your own measurement differs
+      anywhere, STOP and report the number rather than writing the difference to the board.
 
       Tests: assert ship refuses a worktree feature dir and names the main-checkout path; assert
       the file is clean against HEAD after a successful ship; assert the post-merge sweep's
@@ -1007,7 +1040,7 @@ tasks:
       test-check-state.py only, so the two do not interact.
 
   - id: T-12
-    title: Record the vocabulary decision and strike, in place, the three clauses it contradicts
+    title: Record the vocabulary decision, and record that the three clauses it contradicts no longer hold
     traces: [REQ-01, REQ-02, REQ-05, REQ-06]
     change_type: docs
     execution_mode: team
@@ -1021,27 +1054,46 @@ tasks:
     verify: |
       python3 .claude/skills/harness/bin/gen-decisions-index.py --check
     intent: |
-      Write ONE new decision entry and THREE IN-PLACE STRIKES.
+      Write ONE new decision entry, and record on THREE existing entries that one clause of each no
+      longer holds.
 
       THE ENTRIES SURVIVE. Each contradiction is one clause of an entry whose remainder still
       binds, so nothing this feature depends on is removed - only the contradicted clause stops
-      holding, and a citation to it still RESOLVES while announcing that it no longer holds. DO NOT
-      REWRITE A STRUCK CLAUSE. A rewrite leaves a later reader unable to tell it ever said
+      holding, and a citation to it still RESOLVES while announcing that it no longer holds.
+
+      THE RECORDING FORM IS NOT DECIDED YET. YOU READ WHAT IT IS AT EXECUTION TIME RATHER THAN
+      CHOOSING IT HERE. Two candidates are live, per D-09:
+      FORM (a) - an IN-PLACE CLAUSE STRIKE under DEC-188. The clause text stays on the page,
+        marked. This form is already live twice in DECISIONS.md, at line 3228 and at line 4436,
+        both measured at 8f8a6a3.
+      FORM (b) - SUBSUMING THE CORRECTION INTO THE ENTRY in one voice, so the entry reads as a
+        single current statement rather than an older statement with an annotation layer on it.
+      A decisions-authority triage is settling which form the tree uses, as work separate from this
+      feature. BEFORE YOU WRITE A WORD, find what that triage landed and execute THAT form; if it
+      has not landed when this task runs, STOP and return the question rather than picking one.
+      WHAT is recorded does not depend on the form: the three clauses named below, and what holds
+      instead of each, are fixed by this plan and are identical either way.
+
+      IF THE FORM IS (a), AND ONLY THEN, the following mechanics apply.
+      DO NOT REWRITE A STRUCK CLAUSE. A rewrite leaves a later reader unable to tell it ever said
       otherwise, which is the falsified record PRINCIPLES rule 15 forbids. The struck text stays on
       the page, marked.
-
       THE FORM IS ALREADY LIVE IN THIS FILE, TWICE, AND YOU REPRODUCE IT RATHER THAN INVENT IT.
       Read DECISIONS.md at line 3228 and at line 4436 before writing a word - both measured at
       8f8a6a3 - and read enough of the surrounding paragraphs to catch the voice. The shape is two
       parts per strike:
-      (a) AT THE CLAUSE ITSELF, one bold sentence in the record's own voice naming what is struck,
+      (a1) AT THE CLAUSE ITSELF, one bold sentence in the record's own voice naming what is struck,
           the date, DEC-188, and where the record is - the live example at 3228 reads that the
           citation that recorded a thing is STRUCK on a date under DEC-188, see amendment 7. Every
           other sentence around it is untouched.
-      (b) A NEW AMENDMENT SECTION on that entry, headed in the file's existing style, which states
+      (a2) A NEW AMENDMENT SECTION on that entry, headed in the file's existing style, which states
           what the struck clause SAID, that it is struck under DEC-188 on that date, and what holds
           instead. Measured at 8f8a6a3 none of these three entries carries an amendment today, so
           each is amendment 1; re-derive that before you write it.
+
+      IF THE FORM IS (b): the entry is rewritten so its surviving rules and the correction read as
+      one current statement in the file's own voice, with no annotation layer - and the strike
+      sentence, the amendment section and the amendment numbering above do not apply at all.
 
       The new entry, taking the next free DEC number, states four things and no biography:
       1. The six station names - backlog, plan, ready, building, review, done - are MANDATED. An
@@ -1064,8 +1116,8 @@ tasks:
       its values are case sensitive byte for byte AS A PROPERTY OF THE STORED VALUE. What holds
       instead: the field is plan.yaml's top-level station and its values are the mandated lowercase
       names. The board's own column names are still case sensitive at the write, which is exactly
-      why factory_config.station_column exists - so say that in the amendment, or the strike reads
-      wider than it is. Everything else in DEC-203 stands and is NOT struck: a ticket is open until
+      why factory_config.station_column exists - so say that in whatever you write, or the record
+      reads wider than it is. Everything else in DEC-203 stands and is NOT struck: a ticket is open until
       its card reaches Done, the harness writes Done at ship, the parent rule, and the
       seven-purpose read-back bound.
 
@@ -1081,8 +1133,8 @@ tasks:
 
       DEC-182. STRUCK: the clause excluding plan.yaml from the shape gate on the grounds that it
       carries neither a budget nor a vocabulary rule. What holds instead: plan.yaml carries a
-      vocabulary rule and joins the shape gate. Note in the amendment that the entry's own
-      criterion is what turned - the rule did not change, the file did - so the strike is the
+      vocabulary rule and joins the shape gate. Note in what you write that the entry's own
+      criterion is what turned - the rule did not change, the file did - so the correction is the
       entry applying itself, not being overruled.
 
       Then regenerate the index with

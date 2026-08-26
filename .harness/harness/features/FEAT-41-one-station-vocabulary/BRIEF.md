@@ -109,14 +109,18 @@ Which of these BLOCK and which SUPPLY is stated for each, because most of them s
   the work and **ten** at `ee66ae2`. More than four means a policy site survived; fewer means a
   disclosed residual was removed without a decision.
   verify: automated        evidence: unit
-- SC-05: A `Write` or `Edit` of a `plan.yaml` is denied with exit 2 and a message naming the verb
-  to use instead — for a payload carrying an `agent_type` AND for a payload without one.
+- SC-05: A `Write` or `Edit` of a `plan.yaml` is denied with exit 2 and a message that BOTH names
+  the verb to use instead AND states the reason the previously-legal route is now closed — that
+  `plan.yaml` has exactly one writer, `plan-write.py`, because every station value must be
+  validated before it lands — for a payload carrying an `agent_type` AND for a payload without one.
+  A denial carrying only the verb does not meet this criterion.
   verify: automated        evidence: integration
 - SC-06: A shell write that lands a station value outside the vocabulary in a `plan.yaml` is
   reported by the post-Bash sweep, naming the file and the offending value.
   verify: automated        evidence: integration
 - SC-07: `sign-approval` is refused when the hook payload carries an `agent_type` and permitted
-  when it does not, and the refusal names the sanctioned route.
+  when it does not, and the refusal names BOTH the refused verb — the literal string
+  `sign-approval` — and the sanctioned route.
   verify: automated        evidence: integration
 - SC-08: No `feature.json` in the tree carries a `status` key, the schema rejects one, and each of
   the eleven former readers reads the feature's station from `plan.yaml` instead.
@@ -168,6 +172,18 @@ living in prose that nothing ever reads again.
   Deferred out of FEAT-41 because it edits the test harness — whose KIND CROSS-CHECK this feature
   already touches at T-08 and T-13 — and changing the harness inside a feature that is rewriting
   the harness's own enforcement surface buys a failure mode worth more than the time it saves.
+- **PB-02 — where an abandoned feature's card belongs.** FEAT-28 is abandoned and its card sits at
+  `Done`, which reads as shipped to anyone scanning board 3. Deferred out of FEAT-41 because it
+  predates this feature, is not one of issue #845's seven items, and — more to the point — this
+  feature decides `abandoned` names no column at all, so there is no station to move the card to.
+  Recovers a truthful board: the question of what the board shows for an abandoned feature is its
+  own decision, and answering it here would be deciding it by accident.
+- **PB-03 — FEAT-12's parent issue has no card on board 3.** Issue 223 is projected by
+  `gh_board.project` but carries no item on the board (measured at `8f8a6a3`, 2026-08-25): the
+  feature shipped and its parent was never added. Deferred out of FEAT-41 because T-10's one-time
+  pass is a migration — it moves cards and adds none — so the gap is printed as a skip and left
+  visible rather than closed by a side effect nobody asked for. Recovers full board coverage for
+  shipped features, and closing it is one deliberate add rather than a rule inside a migration.
 
 ## Approval
 
