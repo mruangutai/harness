@@ -51,7 +51,7 @@ decisions:
     because: all three lead agents preload harness-team, so one file reaches the whole tier and three copies cannot drift apart
     dec: none
   - id: D-02
-    choice: DEC-201 is AMENDED to cover the lead tier rather than a new entry being created, and the amendment restates the scope its title narrows to the orchestrator
+    choice: DEC-201 is corrected IN PLACE (D-09) to cover the lead tier rather than by a new entry, and its body widens the scope its title narrows to the orchestrator
     because: one rule keeps one home under DEC-158, and a second entry would leave two statements of the never-wait rule free to drift
     dec: DEC-201
   - id: D-03
@@ -79,7 +79,7 @@ decisions:
     because: DEC-174 amendment 4 says a module a gate imports is not itself a gate and a squad may write the library, and this change alters the refusal's message text only, leaving the gate's violation set identical
     dec: DEC-174
   - id: D-11
-    choice: The falsified once-only bound is corrected at all three sites unconditionally, and DEC-199 is AMENDED rather than STRUCK
+    choice: The falsified once-only bound is fixed at all three sites unconditionally, and DEC-199 is corrected IN PLACE, not STRUCK
     because: PRINCIPLES rule 15 forbids leaving a falsified statement standing and this repository has no propagation checker, so nothing detects it if the correction does not actually happen; DEC-188 governs a decision the tree FLATLY CONTRADICTS, and DEC-199's ruling - that a verdict about a member still running is a verdict about something the reporter cannot see - still holds, so only the subordinate clause about how often the refusal fires is false and only that clause changes
     dec: DEC-199
 

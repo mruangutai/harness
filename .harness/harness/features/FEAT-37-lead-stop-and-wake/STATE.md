@@ -9,6 +9,14 @@
 
 **MISSION: plan. The plan is complete at 6 tasks and both approval blocks read `pending`.**
 
+**THE `decisions:` BLOCK NOW MATCHES ITS OWN RULING.** D-02 and D-11 still said DEC-201 and
+DEC-199 were AMENDED, so the block the documentor reads immediately before executing T-05 was
+instructing in the form T-05 forbids. Both now read `corrected IN PLACE` and point at D-09 rather
+than restating it. Substance unchanged on both: DEC-201 still gains the lead tier, DEC-199 still
+keeps its holding and loses only the falsified once-only clause, and the DEC-188 not-STRUCK
+contrast survives. Two lines changed; the six tasks, their `verify:` blocks, D-09 and BRIEF.md are
+byte-identical, and both approval blocks still read `pending`.
+
 **THE FORM RULING IS APPLIED.** The operator ruled that `DECISIONS.md` stops being append-only: a
 decision SUBSUMES its correction IN PLACE and reads as current knowledge in one voice; git holds the
 history. T-05 and T-06 were written before that ruling and both instructed the documentor to ADD an
