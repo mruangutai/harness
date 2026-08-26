@@ -1,7 +1,7 @@
 schema: plan/1
 feature: FEAT-41-one-station-vocabulary
 
-source_issues: [845]
+source_issues: [845, 867]
 
 approval:
   status: pending
@@ -1250,3 +1250,104 @@ tasks:
       LEAVE THE RECORDS ALONE. Every reference under .harness/harness/features/ - the FEAT-32
       receipts, and the observations and notes of FEAT-26, FEAT-33, FEAT-34, FEAT-35 and FEAT-40 -
       records what was true when it was written. Rewriting them would falsify the record.
+  - id: T-14
+    title: Detect a stale review_sha, not only an absent one, as INV-32
+    traces: [REQ-07]
+    change_type: bugfix
+    execution_mode: main-session-direct
+    execution_reason: check-state.sh and test-check-state.py are gate scripts under the DEC-174 carve-out
+    depends_on: [T-07, T-11]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/check-state.sh
+      - .claude/skills/harness/bin/test-check-state.py
+    verify: |
+      python3 .claude/skills/harness/bin/test-check-state.py > /tmp/feat41-t14.out 2>&1 ; rc=$? ; cat /tmp/feat41-t14.out ; test $rc -eq 0
+      grep -q "ok - case (inv32.a) a stale review_sha is reported" /tmp/feat41-t14.out
+      grep -q "ok - case (inv32.b) a current review_sha is silent" /tmp/feat41-t14.out
+    intent: |
+      Closes issue #867. INV-6 detects an ABSENT or placeholder review_sha; nothing detects a STALE
+      one. Add that detection as INV-32 in check-state.sh, and two fixtures in test-check-state.py.
+
+      WHY IT MATTERS. An absent pin is honest: it says nobody reviewed this. A stale pin makes a
+      claim - this text was reviewed at this commit - and once the text has moved that claim is
+      false while looking byte-identical to a true one. Measured live on FEAT-41 itself:
+      feature.json read review_sha e5afc19 while plan.yaml had been committed at c056f49, 54
+      insertions and 9 deletions later, and a run of check-state.sh reported no GAP-7 and no INV-6
+      line for FEAT-41.
+
+      WHY INV-32 AND NOT A SECOND INV-6 FINDING. INV-6 asserts a pin EXISTS; INV-32 asserts the pin
+      is CURRENT. They have different preconditions - INV-6 needs only feature.json, INV-32 needs a
+      git work tree and a plan file - and therefore different silences, so folding them into one
+      number would put two fail-open surfaces behind one grep-able string. Six existing cases
+      (e, h, i, j and their siblings) assert on INV-6's exact text; a distinct number leaves them
+      untouched and makes each invariant separately searchable. INV-32 is free: it is absent from
+      check-state.sh and claimed by no unbuilt feature, checked at ee66ae2.
+
+      WHERE IT GOES. Inside the existing per-feature loop over
+      glob.glob(... "feature.json") in check-state.sh, in or immediately after the INV-6 block
+      (circa :221-229 at ee66ae2 - re-derive by content, since T-02, T-04, T-06 and T-07 all edit
+      this file first). runs, the (id, squad, verdict) tuples, and the val() helper are already in
+      scope, as is the validator-run predicate any(sq == "validator" for _, sq, _ in runs).
+
+      THE CHECK, STATED NARROWLY. For a feature whose feature.json records a validator run and
+      whose review_sha is a real pin (not empty, not in harness_yaml.PLACEHOLDER_UNSET):
+      resolve the feature's plan file - plan.yaml if present, else PLAN.md; compute its path
+      RELATIVE TO THE GIT TOP LEVEL, from git -C root rev-parse --show-toplevel, never relative to
+      root, because root is CLAUDE_PROJECT_DIR and need not be the repository top; read
+      git show <review_sha>:<relative path> as BYTES; compare against the working copy's BYTES.
+      Report only when both reads succeed and the bytes DIFFER.
+
+      A BYTE COMPARISON, NEVER A COMMIT COMPARISON. Comparing review_sha to the last commit that
+      touched the plan file reports a feature whose plan was changed and changed back, and reports
+      any feature reviewed before an unrelated commit landed on that path. The bytes are what the
+      pin actually claims. Case (inv32.b) below exists to kill the commit-equality implementation.
+
+      SILENT, DELIBERATELY, ON FOUR STATES: no git work tree; review_sha does not resolve to an
+      object; no plan.yaml and no PLAN.md in the feature directory; no validator run. Each is a
+      state this invariant cannot speak to, and firing on any of them would light up every
+      non-git fixture in test-check-state.py. That the rest of the file stays green is the
+      regression net for over-firing; treat any newly red existing case as this task's defect.
+
+      THE FINDING NAMES THREE THINGS - the feature, the pinned sha, and the short sha of the last
+      commit that touched that plan file, from git log -1 --format=%h -- <path>. A finding that
+      says only stale makes the reader redo the measurement. Shape it like the INV-6 line beside
+      it, ending with the INV-32 token so it is grep-able.
+
+      THE TESTS, AND THE FAILING STATE FIRST. Before writing the check, add both cases and run
+      them against the unmodified check-state.sh: case (inv32.a) MUST fail and case (inv32.b) MUST
+      pass. Record that RED result in the receipt. A case (inv32.a) that is green before the
+      change is measuring nothing, and this feature has already spent two cycles on verifies that
+      could not fail. The overridable CHECK_STATE_BIN env var at the top of test-check-state.py is
+      how to point the suite at a reverted copy.
+
+      Build both fixtures with REAL git, the way case_u already does - git init -q, then
+      user.email and user.name config - because a hand-built .git pointer produces no rev-parse
+      top level and both cases would pass vacuously. Every run root also gets the standard
+      .harness/harness.json plus .harness/harness/features/FEAT-TEST/feature.json carrying a
+      validator run, or check-state.sh exits early with project not onboarded and prints no
+      invariant lines at all. Run each through the existing run(tmp) helper.
+
+      case (inv32.a) - THE REPORT. Commit plan.yaml with content X; commit again with content Y;
+      leave Y in the working copy; set review_sha to the FIRST commit's short sha. Assert the
+      output contains an INV-32 line that carries FEAT-TEST, the first sha and the second sha.
+      Print exactly: ok - case (inv32.a) a stale review_sha is reported
+
+      case (inv32.b) - THE SILENCE, and the discriminator. Commit plan.yaml with content X; commit
+      content Y; commit content X again; leave X in the working copy; set review_sha to the FIRST
+      commit's short sha. The pinned bytes equal the working copy's, so INV-32 must be SILENT even
+      though a LATER commit touched the file. Assert no line of the output contains INV-32.
+      Print exactly: ok - case (inv32.b) a current review_sha is silent
+      Those two label strings are asserted by this task's verify, so they must match character for
+      character. Wire both into main()'s aggregate the way the sibling groups are wired, so a
+      failure changes the process exit code.
+
+      WHY THIS TASK IS LAST, AND WHY IT DEPENDS ON T-07 AND T-11. check-state.sh is opened by
+      T-02, T-04, T-06 and T-07; test-check-state.py by T-02, T-04, T-06, T-07 and T-11, which
+      DELETES a unit from it. T-07 is the last task to touch check-state.sh and T-11 the last to
+      touch its test, so depends_on: [T-07, T-11] places T-14 after every task that opens either
+      file and collides with none of them. Address every edit BY CONTENT, never by line number:
+      five sibling tasks rewrite these two files before this one runs.
+
+      DO NOT TOUCH review_sha in any real feature.json. FEAT-41's own pin is knowingly stale and
+      the orchestrator re-pins it after this lands. Do not touch the approval block in any file.
