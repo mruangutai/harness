@@ -3,68 +3,70 @@
 ## Current
 
 - feature: FEAT-37-lead-stop-and-wake
-- run: .harness/harness/features/FEAT-37-lead-stop-and-wake/runs/2026-08-24-03-product/digest.md
-- squad: none — plan phase at its seam; two BRIEF edits still UNAPPLIED
+- run: .harness/harness/features/FEAT-37-lead-stop-and-wake/runs/2026-08-26-01-product/digest.md
+- squad: none — plan phase at its seam, awaiting the operator's signature
 - status: awaiting-user
 
-**MISSION: debug (DEC-139). DIAGNOSIS COMPLETE. `source_issues` = [811, 831], split ruling PENDING.**
+**MISSION: plan. The plan is complete at 6 tasks and both approval blocks read `pending`.**
 
-**THE CAUSE IS MEASURED — and it is #831's missing rule, NOT the hook.** Specimen
-`agent-a8f1c68d9a0d69f25` (`harness-product-lead`, "FEAT-34 emergent SC judgment") carries the loop
-signature with **ZERO** `returned with children in flight`. That lead never attempted to stop, so the
-#551 hook was never in that loop. #831's own stated cause was an INFERENCE; the absence was measured,
-the causation was not. Two compounding causes:
-1. No end-your-turn rule in the five lead-preloaded files — necessary and sufficient.
-2. The `Agent` tool's result text ("continue other work... in the meantime"), which the transcript
-   literally obeys. **PLATFORM-SUPPLIED** — absent from `.claude/`, `.harness/`, `docs/` — so the
-   harness cannot edit it and the rule must EXPLICITLY OVERRIDE it.
+**THE FORM RULING IS APPLIED.** The operator ruled that `DECISIONS.md` stops being append-only: a
+decision SUBSUMES its correction IN PLACE and reads as current knowledge in one voice; git holds the
+history. T-05 and T-06 were written before that ruling and both instructed the documentor to ADD an
+amendment sub-section. Both are rewritten to subsume in place — no `### DEC-NNN amendment N`
+heading, no bold `**Amendment N (date)**` marker, no changelog voice. The content objective is
+UNCHANGED: DEC-201 still gains the lead tier, DEC-199 still gets the measured bound and its
+falsified once-only clauses corrected. **D-09 records the ruling and its cost** — a citation to a
+specific amendment number no longer resolves in the file, and the diff is the only place superseded
+wording survives.
 
-**THE ONCE-ONLY BOUND IS SETTLED: "at most once per CONSECUTIVE STOP SEQUENCE; it re-fires on each
-wake while a child is still live."** I re-verified the decisive pair myself in
-`agent-a89be3fd837d1b779` (an orchestrator): line 178 names TWO children (eng-lead
-`22:59:07.135172`, product-lead `22:59:28.731235`); line 392 names ONE — the SAME eng-lead claim.
-Different child sets prove 392 is a distinct event, not replayed context. (`grep -c` gives 19
-matching LINES; the reported 9 is distinct EVENTS — consistent, a line can carry replayed context.)
-Corroborated first-hand on me: refused, second stop SHIPPED; woken, refused again next sequence.
+**DEC-158 forced a survives-or-cut call on every item**, made in the task intents so the documentor
+does not re-judge it. CUT as biography: specimen ids as narrative, sidecar line numbers, microsecond
+`started_at` values, cycle counts, durations, "the hook was ruled out", the platform's
+consecutive-block cap of eight. SURVIVES: the rule, the consequence, one clause of why, and the
+DISCRIMINATING evidence compressed — two refusals named DIFFERENT CHILD SETS, which is what proves a
+distinct event rather than replayed context.
 
-**CONSEQUENCE FOR THE FIX — the reason this was blocking.** After the fix every dispatch's first stop
-meets a live child and IS refused. So the fix MUST carry an **INOCULATION**, not merely an
-end-your-turn sentence: the refusal is EXPECTED and the correct response is to stop again, never "you
-may not return". `.claude/skills/harness/SKILL.md:50` already does this for the orchestrator and it
-demonstrably works — I was refused three times today and did not loop.
+**NEITHER `verify:` BLOCK NEEDED CHANGING, and that was measured, not assumed.**
+`gen-decisions-index.py` emits an `am.N` span only inside `if amend_span:`, and `compute_amendments`
+returns nothing when neither amendment regex matches — absence of the form is SILENT, not an error.
+DEC-199 and DEC-201 carry no `am.` token in the index today (DECISIONS-INDEX.md 217, 219), so
+removing the form removes nothing that exists. Both verify blocks are byte-identical to the
+originals.
 
-**DEC-199 IS CONTRADICTED AS WRITTEN.** `DECISIONS.md` ~:6698-6705: "so a stop refusal fires at most
-once." Must be corrected whatever the split ruling is (never falsify the record); amend-or-STRIKE
-(DEC-188) is the operator's call, documentor's execution.
+**T-01 to T-04 STILL COVER #831 AND ARE UNTOUCHED.** T-01's `coverage` group slices the DEC-201
+entry "to the next level-3 heading that introduces a different DEC number" — under the new form that
+clause simply never fires and the slice becomes the whole entry, so T-01 needs no change. T-04
+remains DELIBERATELY NARROW: it corrects `children_refusal_lines` only. **This feature does NOT fix
+issue #866** — see Q6.
 
-**MY SPLIT RECOMMENDATION (REVERSAL, awaiting the operator): SPLIT #811 BACK OUT.** My earlier "do not
-split" rested on the hook being causal; measurement overturned that. With the inoculation, #831 ships
-safely and is independently verifiable, which was my own stated criterion. **NO RULING HAS BEEN
-GIVEN — no approval or consent exists.** pm is instructed to plan the #831 core as the spine and put
-any #811 hook work in a separately STRIKE-ABLE block with its own D-NN.
-
-**LANE — two independent sources, never conflate (verified at `9165162`):**
-- `.claude/skills/harness-team/SKILL.md` -> **NOBODY**. The GUARD forces main-session-direct.
-- `validate-digest.py` / `test-validate-digest.py` -> **harness-backend-dev harness-dev-ops**. The
-  guard PERMITS a squad; only **DEC-174's carve-out** (`DECISIONS.md:4709`, am.4 `:4854-4877`) forbids
-  it. `check-plan-routes.py` will print DEVIATION; the D-NN must cite the POLICY, never a NOBODY
-  resolve.
-- `.harness/harness/docs/DECISIONS.md` -> `harness-documentor` (team).
-
-**Unchanged:** DEC-201 is orchestrator-scoped, so extending it to leads is a decision change; #610 and
-#552 closed, `SendMessage` NOT reintroduced; #804's four exact-literal greps are defeated by a reword;
-any hook change must PRESERVE the false-reporting catch (`:903-907`, occurrence 7).
-
-**cycles_used stays 0.** The pm re-plan is triggered by an operator amendment and an overturned
-premise, not by a FAIL, an unmet SC, or a send-back — DEC-157's three rework categories. Counting it
-would penalise the feature for a scope change, the exact failure DEC-157 names. Flagged, not silent.
+**cycles_used stays 0.** The rewrite was triggered by an operator ruling on the form of the record,
+not by a FAIL, an unmet SC, or a send-back — none of DEC-157's three rework categories. Flagged, not
+silent.
 
 ## Open Questions
 
-- Q1 (BLOCKING): split ruling on #811 — recommendation above.
-- Q2: DEC-199 amend or STRIKE (DEC-188)?
-- Q3: `notes/root-cause-*.md` is in no member's domain, so debug reports fall back to receipt paths.
-- Q4: engineer DIGESTs carry no `files_touched`, so a member that wrote a receipt reported no files;
+- Q1 (BLOCKING): `plan.yaml` D-02 (line 54) and D-11 (line 82) still read "DEC-201 is AMENDED" and
+  "DEC-199 is AMENDED rather than STRUCK", and D-02 further instructs "the amendment restates the
+  scope its title narrows to the orchestrator". That is the SUPERSEDED form sitting in the
+  `decisions:` block the documentor reads immediately before executing T-05, which now says DO NOT
+  ADD AN AMENDMENT — one document, two contradictory instructions. The SUBSTANCE of both decisions
+  survives the ruling intact; only the form word is wrong. Reword both, or let D-09 carry the
+  supersession? Out of this run's authorized scope (one pm cycle, two tasks).
+- Q2 (was: DEC-199 amend or STRIKE) — RESOLVED. Amend, now expressed as subsume-in-place. D-11 and
+  T-06 carry the reasoning: DEC-188 governs a decision the tree FLATLY CONTRADICTS, and DEC-199's
+  actual ruling still holds; only the frequency clause was false.
+- Q3 (was: the #811 split ruling) — RESOLVED by operator ruling of 2026-08-24. The three-task #811
+  block was STRUCK WHOLE before approval; D-07 is the strike record. Issue #811 stays OPEN and
+  returns to the backlog.
+- Q4: `notes/root-cause-*.md` is in no member's domain, so debug reports fall back to receipt paths.
+- Q5: engineer DIGESTs carry no `files_touched`, so a member that wrote a receipt reported no files;
   the lead reconstructs it by hand. Schema gap or intended?
-- Q5: single-flight is keyed per checkout; this session's cwd is the FEAT-34 worktree, so several
-  orchestrators' children share one registry.
+- Q6: **this feature does not close issue #866, and the plan never claimed it did.** The deadlock has
+  TWO ends — a dispatch refused on a claim, and `validate-digest.py` refusing the RETURN that reads
+  the same claim — and a lead holds no Bash (`.claude/agents/harness-*-lead.md` grant Read, Glob,
+  Grep, Agent, Write), so it can act on neither. T-04 corrects one sentence of
+  `children_refusal_lines`, the RETURN end. The DISPATCH end is untouched: `refusal_lines` still
+  prints `RELEASE_ALL_CMD` (`inflight_registry.py:44`), and `release-all` wipes EVERY feature's live
+  claims, not the one blocking. Separate work, and the operator's call whether it joins this feature.
+- Q7: single-flight is keyed per checkout, so several orchestrators' children can share one registry
+  when they run from one cwd.
