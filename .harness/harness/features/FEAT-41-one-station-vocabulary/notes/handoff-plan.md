@@ -2,46 +2,53 @@
 
 ## Next
 
-The plan is COMPLETE and awaiting the operator's signature. Nothing is built.
-The next act is NOT an agent's: the main session signs `approval:` in both
-`plan.yaml` and `BRIEF.md`. Until both read `approved`, a build orchestrator
-stops at step 0 and returns BLOCKED.
+BLOCKED ON AN EXTERNAL CLAIM. Do not attempt to clear it.
+Every harness-pm dispatch is refused by dispatch-guard.sh on a single-flight
+claim held by a DIFFERENT product-lead's pm, claimed 03:49:40Z against this
+same repo root. The operator confirmed it belongs to the decisions-authority
+triage and is LIVE. The operator's instruction is explicit: report the refusal,
+never clear the claim, and NEVER run inflight_registry release-all. A lead will
+recommend `release --agent harness-pm` on the reasoning that the claim predates
+its own spawn; that reasoning is WRONG and the operator holds the fact refuting it.
 
-After signature, the build phase starts at T-01 and T-03 (the only tasks with
-`depends_on: []` or depending solely on T-01). TWELVE of the thirteen tasks are
-`main-session-direct` under DEC-174 and are NOT dispatchable to a squad; only
-T-12 (docs, harness-documentor) is a team lane. A build orchestrator that tries
-to dispatch T-01 through T-11 or T-13 to eng-lead is making a planning error the
-route checker already anticipates.
-
-Sequencing hazard, encoded not narrated: T-09 denies every LLM Edit of plan.yaml.
-It depends on T-03, T-04, T-05 and T-08 so the write verbs exist and are proven
-before the denial lands. Do not reorder around it.
+When the claim clears on its own, the pm work is, in order:
+1. plan.yaml DOES NOT PARSE. D-09's `because:` at line 83 is a 616-char plain
+   scalar containing a colon-space. Quote it or use a literal block, then audit
+   every value written in that cycle for the same shape.
+2. RULING 2 IS ON HOLD. Do NOT write the three clause strikes. T-12 stays, and
+   its recording form becomes a NAMED OPEN DEPENDENCY: in-place clause strike
+   under DEC-188, versus subsuming the correction in one voice. D-09's because
+   must say the form is pending and name both candidates.
+3. F-1 (high): T-09 must state WHY the Edit route closed and must NOT call deny().
+   Amend SC-05, which today accepts a message with no reason.
+4. F-2 (med): T-08 must assert the refusal names sign-approval, not exit codes only.
+5. A contradiction pm found: T-04 circa 372-374 says "exactly two" terminal
+   features while T-06 circa 490 names FEAT-28 abandoned. D-11's arithmetic rests
+   on this count.
 
 ## Trust
 
-- 13 tasks, 12 main-session-direct, 11 decisions, approval pending — verified by me, safe_load at ee66ae2
-- check-plan-routes.py exits 0, "0 violation(s) across 2 plan(s)" — verified by me at ee66ae2
-- INV-26 FEAT-40 violation is LIVE and in scope; T-10 closes it, SC-09 asserts it — verified by me, check-state.sh run at ee66ae2
-- T-06's deletion set is exactly six lines (1403,1404,1405,1432,1475,1501) — verified by me, grep at ee66ae2
-- T-13's grep excludes worktrees; without it, 338 worktree files vs 10 live — verified by me at ee66ae2
-- D-07's gate costs about 26 ms, not the 40 ms first estimated — measured by me, 10 runs
-- SC-02's corrected count is 27 across 5 files — pm measured, I did NOT re-verify the per-file split | UNVERIFIED
-- D-11 reprices gh_board import as already-paid — eng-lead verified at source; I did not | UNVERIFIED
-- "every sub-issue lands at backlog on open", the premise under D-11's ready-projects-to-backlog exception — pm's claim | UNVERIFIED
+- plan.yaml fails safe_load at line 83 col 530 — verified by me AFTER the run closed, so real and not a torn read
+- The blocking claim is 1787716180.77 which IS 03:49:40Z, matching the live triage pm the operator named — verified by me against the operator's own message
+- Nothing is signed; BRIEF.md:174 status pending — verified by me, so the reviewer's "signed SC" premise is false and SC edits need no ruling
+- F-1 is well founded: check-domain.sh circa 1161-1167 says deny() appends ROUTING speaking about STATE.md — verified by me
+- Six features carry a pending task, not 28, and all six are Done or Abandoned — measured by me across 29 plan files
+- Rulings 1 and 5 were applied by cycle 5 into the now-unparseable file | UNVERIFIED, cannot confirm until it parses
+- T-04 vs T-06 terminal-count contradiction — pm's claim, I did not check | UNVERIFIED
 
 ## Dead Ends
 
-- Do not re-run the four-angle simplify pass on this plan — it ran, returned nine blocking findings, all applied, and the architecture passed twice
-- Do not re-open the tool name, the feature-level `status:` field, the mandate, or lowercase-everywhere — settled in the grilling and in D-01/D-02
-- Do not propose a team lane for any file under .claude/skills/harness/bin/ — DEC-174 forbids it and check-plan-routes.py will call it a deviation
-- Do not add a glossary task without the operator's word — it is a WARN that fires independently of this feature
-- Do not cite runs/*/digest.md as durable evidence — .gitignore:7 makes run dirs worktree-local and they die with the checkout; notes/ survives
+- Never run inflight_registry release-all, and do not release the harness-pm claim — operator instruction, and it admits a second writer onto one file
+- Do not edit plan.yaml or BRIEF.md yourself — check-domain.sh grants both to harness-pm alone
+- Do not plan the struck-decisions removal — separate triage, explicitly not this feature
+- Do not add a glossary task — ruled out of scope
+- Do not re-run the simplify pass, the design-contract gate or the code-review pass — all three ran
+- Do not read cycle 6's digest as evidence about T-12 — it ran pre-amendment and zero members ran anyway
 
 ## Working Set
 
 - .harness/harness/features/FEAT-41-one-station-vocabulary/plan.yaml
 - .harness/harness/features/FEAT-41-one-station-vocabulary/BRIEF.md
 - .harness/harness/features/FEAT-41-one-station-vocabulary/notes/orchestrator-measurements-2026-08-25.md
+- .harness/harness/features/FEAT-41-one-station-vocabulary/notes/review-harness-code-reviewer-refusal-text.md
 - .harness/harness/features/FEAT-41-one-station-vocabulary/feature.json
-- .harness/notes/grilling-845-one-vocabulary-2026-08-25.md

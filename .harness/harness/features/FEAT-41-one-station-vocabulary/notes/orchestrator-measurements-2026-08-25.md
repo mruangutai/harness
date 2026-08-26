@@ -156,3 +156,99 @@ as an open question rather than working around it.
    known, in-scope defect. T-10 closes it and SC-09 asserts the closure.
 Plus one note: FEAT-41 plan.yaml approval is pending, awaiting the user.
 The earlier "has STATE.md but no BRIEF.md" violation has cleared.
+
+## Ruling 1: how many features ACTUALLY move. My independent measurement.
+
+The operator declined to carry "28" forward unchecked and told pm to measure. I measured
+independently so pm's number can be checked rather than received.
+
+29 `plan.yaml` files on disk. 28 of them are features other than FEAT-41, which is almost
+certainly where "28" came from — it is the count of OTHER PLANS, not the count of features that
+MOVE.
+
+Features carrying any task at `pending`, which is the only status ruling 1 repoints:
+  FEAT-10 (11 pending, feature Done)
+  FEAT-12 (14 pending, feature Done)
+  FEAT-13 (2 pending, feature Done)
+  FEAT-15 (5 pending, feature Done)
+  FEAT-19 (7 pending, feature Abandoned)
+  FEAT-28 (3 pending, feature Abandoned)
+  FEAT-41 (13 pending, this feature)
+
+So SIX existing features carry a pending task, not 28 — and every one of the six is Done or
+Abandoned. The other 22 carry only `done` tasks, which ruling 1 does not touch.
+
+The consequence worth pm's judgment: the one-time gh-sync pass may need to move ZERO cards that
+matter. A Done or Abandoned feature's sub-issues are terminal; bringing their stale `pending`
+cards up to Ready would move cards BACKWARD into an active column on features that are finished.
+That is not what ruling 1 asks for and would be a worse board than today's.
+
+I am NOT overriding the ruling — the ruling is that plan.yaml and the board must agree with no
+exception, and that stands. What I am flagging is that its stated cost ("28 features") is roughly
+five times the real live surface, and that the pass probably needs to EXCLUDE terminal features
+rather than sweep all of them. pm owns that judgment; I am supplying the measurement.
+
+## The code-review pass: what I settled, and one error of my own
+
+### Its blocking Q1 is answered at my rung. Nothing is signed.
+harness-code-reviewer asked whether SIGNED success criteria (SC-05, SC-07) may be amended in the
+same pm pass as task intent, or whether that needs its own operator ruling. The premise is false:
+BRIEF.md:174 reads `status: pending` and the operator has stated they will not sign until this
+revision lands. The SCs are DRAFT. pm may edit them freely. No ruling required, and I did not
+spend an operator round-trip on it.
+
+### F-1's mechanism claim is CONFIRMED, and the source documents the hazard itself.
+check-domain.sh at roughly 1161-1167 carries this comment in its own voice:
+"ONE ROUTING SENTENCE PER FINDING, which is why this does not call deny(): deny() appends the
+module-level ROUTING constant, speaking about STATE.md, digests and notes/ ... Two routing
+sentences in one stderr stream contradict each other about the same file class."
+So the file already knows deny() emits state-file routing advice. An orchestrator blocked from
+recording a task station via deny() would be told to put it in STATE.md. F-1's remedy — forbid
+deny(), use _head with plan.yaml's own routing sentence — matches what three existing branches
+already do.
+
+### An error of mine, recorded because the record must carry failures.
+I ran a safe_load against plan.yaml WHILE harness-pm was mid-edit and got
+"yaml.scanner.ScannerError: mapping values are not allowed here, line 83". I did NOT report this
+as a defect, because it is almost certainly a torn read of an in-flight write. Two dispatches
+earlier I warned harness-code-reviewer about exactly this hazard and told it to treat
+half-written passages as in-flight rather than filing them. I then did the thing I warned against.
+STATUS: UNVERIFIED. plan.yaml must be re-parsed after pm's run closes, and if it still fails at
+line 83 that is a REAL defect that blocks signature.
+
+## AMENDMENT to Ruling 2 — HOLD. Received after cycle 6 was already dispatched.
+
+The operator wants struck decisions REMOVED from DECISIONS.md outright and amendments subsumed in
+place, because "struck" does not today mean deleted — eight entries are marked STRUCK and still
+sit in the file. That triage is SEPARATE WORK and is NOT FEAT-41's. Do not plan it here.
+
+What changes for FEAT-41, narrowly:
+- DO NOT write the three clause strikes (DEC-203 s6, DEC-191, DEC-182) yet.
+- KEEP T-12 and keep its scope. Each of those three entries has one clause this feature
+  contradicts and that must still be recorded somehow.
+- T-12's text must make the RECORDING FORM a NAMED OPEN DEPENDENCY: in-place clause strike under
+  DEC-188, versus subsuming the correction into the entry in one voice. The decisions-authority
+  triage decides; T-12 executes whichever form lands.
+- D-09's `because:` must say the form is PENDING, name both candidates, and say why it is pending
+  — not silently swap the choice.
+- Rulings 1, 3, 4 and 5 are UNCHANGED.
+- This does NOT block signature. The signature covers the TASK SET; the form is a documented
+  dependency inside one task. Do not wait on the triage.
+
+TIMING PROBLEM, recorded honestly: cycle 6 was already dispatched when this arrived, and I have
+NO SendMessage tool — Read, Agent, Write and Bash only. So cycle 6 is running against the
+pre-amendment understanding. Its return is NOT the final state of T-12. A further cycle must
+apply this hold. Anyone reading cycle 6's digest alone will believe ruling 2 is settled. It is not.
+
+## SINGLE-FLIGHT CLAIM ON harness-pm — DO NOT CLEAR IT
+
+As of 03:49:40Z a harness-pm dispatched by a DIFFERENT product-lead is live in the session
+registry, claimed against this same repo root. It belongs to the decisions triage, not to FEAT-41.
+
+If our product-lead hits a single-flight refusal on harness-pm, that is the cause. REPORT IT
+UPWARD. Do not clear the claim.
+
+NEVER run `inflight_registry release-all`. Clearing a live claim admits a second pm onto the same
+output path, which is issue #551 exactly — two writers, one file, and the second erases the first.
+This is written down because it is precisely the instruction a context-pressed successor would
+talk itself out of.

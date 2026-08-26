@@ -37,7 +37,7 @@ lanes:
       reason: granted to harness-dev-ops, taken directly because DEC-160 makes a harness.json key change part of the enforcement surface changed here
     - surface: .harness/harness/features/*/plan.yaml
       lane: main-session-direct
-      reason: the migration rewrites station values in 28 signed plans through the tool being built
+      reason: the migration rewrites task station values through the tool being built. Measured at 8f8a6a3, not inherited - 29 plan.yaml files exist under .harness/harness/features/, of which 7 carry at least one task status the migration rewrites, 55 task lines in all. The earlier figure 28 was a plan-file count and was wrong on both readings
     - surface: .harness/harness/features/*/feature.json
       lane: main-session-direct
       reason: the schema key being deleted is enforced on check-domain.sh's own write path
@@ -79,16 +79,20 @@ decisions:
     because: everything stored or compared stays lowercase while the board still receives the exact option name its API matches on
     dec: none
   - id: D-09
-    choice: DEC-203 section 6, DEC-191 and DEC-182 are AMENDED, not struck
-    because: only one clause of each is contradicted - the casing, the required key, and the shape-gate exclusion - and striking whole entries would remove rules this feature depends on
+    choice: in DEC-203 section 6, in DEC-191 and in DEC-182 the ONE contradicted clause is marked STRUCK in place under DEC-188, inside an entry that survives. The clause text stays on the page, marked; it is never rewritten
+    because: the entries survive, so the rules this feature depends on are not removed - only the contradicted clauses stop holding, and a citation to a struck clause still RESOLVES while announcing that it no longer holds. An amendment that rewrote the clause would leave a later reader unable to tell it ever said otherwise, which is the falsified-record failure. The established in-place form is already live twice in DECISIONS.md - at line 3228 and at line 4436, both measured at 8f8a6a3 - and reads, in the record's own voice, that the citation which recorded a thing is STRUCK on a date under DEC-188, see amendment N
     dec: DEC-188
   - id: D-10
     choice: ship commits the terminal station write in the main checkout and does not push it
     because: the uncommitted write is the live INV-26 violation, and pushing from a post-merge hook would move a remote branch nobody asked it to move
     dec: none
   - id: D-11
-    choice: INV-26's compare side is routed through gh_board.project and T-06 is widened to cover check-state.sh, rather than patching check-state.sh's pending literals in place. The lookup miss stops being silent - an unmappable station becomes a loud failure naming the feature, the task and the value.
-    because: check-state.sh circa 1475-1477 reads _want = _EXPECT.get(...) then if _want is None; continue, so a lookup MISS and nothing-to-check-here are the same code path. While the compare side keeps its own copy of the station vocabulary, any future divergence from the write side is invisible by construction rather than by oversight. The rejected option - patching the six pending literals - is genuinely cheaper - about six edits, no new import surface inside the embedded python, zero risk to INV-26's runtime - and it fixes today's divergence while preserving the mechanism that hides tomorrow's. The cost bought instead is one more file on T-06 and a gh_board import that could fail at gate time; that import already exists and already fails LOUDLY at check-state.sh circa 1337-1349, so the new failure mode is already paid for. Loud beats silent, and converting exactly this class of silence into noise is why the feature exists. T-04 still repoints the literals it renames out from under, so no build ordering leaves INV-26 blind between T-04 and T-06; that is T-04 not breaking a gate, not a substitute for this decision.
+    choice: INV-26's compare side is routed through gh_board.project and T-06 is widened to cover check-state.sh, rather than patching check-state.sh's pending literals in place. The lookup miss stops being silent - an unmappable station becomes a loud failure naming the feature, the task and the value. AND project carries NO exception - a task at the ready station projects to the READY column, so plan.yaml and the board agree exactly, with nothing derived, mapped or translated between them.
+    because: a task reading ready in plan.yaml while its card sits at Backlog is the two-words-two-meanings defect this feature exists to delete, so the exception is removed and the one-time board pass is accepted as work rather than avoided. THE COST WAS MEASURED, NOT INHERITED, at 8f8a6a3 against live board 3 on 2026-08-25 - the command is recorded in notes/research-FEAT-41-rulings-cycle5.md and reproduced by T-10's verify. 656 cards sit on board 3 for this repository, 211 of them the task sub-issues that plan.yaml places. ZERO of those 211 sit at Backlog today, so the exception protects nothing that exists. Comparing every recorded task card's projected station against its live column three ways - with the exception, 16 cards mismatch; without the exception, the SAME 16 mismatch, only their destination changes from Backlog to Ready; without the exception AND with the record repair T-04 now carries, ZERO mismatch. So removing the exception moves no card. All 16 belong to FEAT-12 and FEAT-13, two shipped features whose closed cards sit at Done while their plan.yaml still reads pending, and that stale record - not this ruling - is what would otherwise drag 16 closed cards backwards. T-04 repairs it and T-10 proves the board clean. The second half of this decision, unchanged - check-state.sh circa 1475-1477 reads _want = _EXPECT.get(...) then if _want is None; continue, so a lookup MISS and nothing-to-check-here are the same code path. While the compare side keeps its own copy of the station vocabulary, any future divergence from the write side is invisible by construction rather than by oversight. The rejected option - patching the six pending literals - is genuinely cheaper - about six edits, no new import surface inside the embedded python, zero risk to INV-26's runtime - and it fixes today's divergence while preserving the mechanism that hides tomorrow's. The cost bought instead is one more file on T-06 and a gh_board import that could fail at gate time; that import already exists and already fails LOUDLY at check-state.sh circa 1337-1349, so the new failure mode is already paid for. Loud beats silent, and converting exactly this class of silence into noise is why the feature exists. T-04 still repoints the literals it renames out from under, so no build ordering leaves INV-26 blind between T-04 and T-06; that is T-04 not breaking a gate, not a substitute for this decision.
+    dec: none
+  - id: D-12
+    choice: the design-contract gate RE-FIRES at build if implementation introduces a user-facing surface. The plan-phase scope-out holds only for the plan as approved; any task that lands a UI-shaped file, a rendered surface or operator-facing output stops and routes that surface through the design contract before it merges
+    because: the scope-out was correct against a plan whose every file is a validator, a hook, a config or a decision record, but a scope-out has no shelf life past the plan. Accepting it with no re-trigger is exactly how a UI-shaped file arrives unreviewed. This is a condition on the build, not a task - there is no work to do unless the condition fires, and manufacturing a task for it would put a permanently-green step in the plan
     dec: none
 
 tasks:
@@ -309,6 +313,7 @@ tasks:
       python3 .claude/skills/harness/bin/test-check-state.py
       python3 .claude/skills/harness/bin/check-plan-routes.py
       grep -rn "^    status: pending" .harness/harness/features/*/plan.yaml ; test $? -eq 1
+      python3 -c "import glob,json,os,yaml;f=lambda p:(json.load(open(p)).get('status') or '').lower() if os.path.exists(p) else '';bad=[(p,t.get('id')) for p in glob.glob('.harness/harness/features/*/plan.yaml') for t in (yaml.safe_load(open(p)).get('tasks') or []) if t.get('status')=='ready' and f(os.path.join(os.path.dirname(p),'feature.json')) in ('done','abandoned')];assert not bad,bad"
     intent: |
       Replace plan.yaml's private three-value vocabulary with the mandated station vocabulary, and
       migrate every live plan onto it.
@@ -339,9 +344,11 @@ tasks:
 
       ALSO IN THIS TASK, because this task is what makes the word dead: check-state.sh's INV-26
       compare side still keys on pending. Circa 1403-1405 _EXPECT maps building, done and pending;
-      rename the pending key to ready, still mapping to the backlog station, and keep the comment
-      that explains why - gh-sync open lands every sub-issue in backlog and nothing moves it until
-      start-task, which is as true of ready as it was of pending. Then fix the four remaining
+      rename the pending key to ready AND MAP IT TO THE READY STATION, not to backlog. D-11 removes
+      the ready-to-backlog exception outright: plan.yaml and the board carry the same word with the
+      same meaning, and nothing is derived between them. DELETE the comment above the definitions
+      that justified the old mapping rather than rewriting it - the rule it explained no longer
+      exists, and T-06 deletes the definitions themselves a step later. Then fix the four remaining
       pending literals circa 1437, 1438, 1471 and 1475, where an absent task status defaults to
       pending: the default becomes ready. The guard circa 1440, not any(_s != "pending"), INVERTS
       under the rename - every migrated task would read ready, so the not-any test that means
@@ -355,7 +362,20 @@ tasks:
       MIGRATION, and it goes through the tool, never by hand: for every plan.yaml under
       .harness/harness/features/, rewrite each task status pending -> ready, building -> building,
       done -> done, by calling plan-merge.py set-task-station once per task. pending maps to ready
-      because a planned, unstarted task is exactly what the ready station means. DO NOT TOUCH THE
+      because a planned, unstarted task is exactly what the ready station means.
+
+      ONE REPAIR INSIDE THE MIGRATION, AND IT IS NOT OPTIONAL. A pending task inside a feature
+      whose feature.json status is Done or Abandoned migrates to done, NOT to ready. Those task
+      statuses were never recorded when the feature shipped - the same unrecorded-status defect the
+      orchestrator playbook logs - so the plan says pending while the sub-issue is CLOSED and its
+      card sits at Done. Migrating those to ready would make the new single record contradict the
+      closed issue and would drag closed cards backwards at T-10's board pass. Measured at 8f8a6a3
+      against live board 3 on 2026-08-25: exactly two features are in this state, FEAT-12 with 14
+      such tasks and FEAT-13 with 2, all 16 issues CLOSED and all 16 cards at Done; every other
+      pending task in the tree belongs to a feature that has not shipped. Do not hardcode those two
+      names - read feature.json status per directory and apply the rule, so a third case that
+      appears before this task runs is repaired too. State the count you actually repaired in the
+      task receipt. DO NOT TOUCH THE
       APPROVAL BLOCKS: three plan.yaml files carry status: pending inside approval: at two-space
       indent - FEAT-19 line 5, FEAT-28 line 5, and THIS FEATURE'S OWN plan.yaml line 7 - and the
       set-task-station verb cannot reach them. Measured at ee66ae2: the unanchored grep returns 72
@@ -445,14 +465,29 @@ tasks:
       a column name is produced. rec is what gh-sync.load_recorded returns: rec["issues"] maps task
       id to sub-issue number, rec["source_issues"] is a list, rec["parent"] is a number or None.
       The rules, stated once and nowhere else:
-      - each task sub-issue gets its own task's station from plan_doc, with ONE documented
-        exception carried forward from check-state.sh's _EXPECT comment: a task at the ready
-        station projects to the BACKLOG station, because gh-sync open lands every sub-issue there
-        and nothing moves it until start-task. State that in the docstring. Without it, routing
-        INV-26 through this function would newly report every unstarted card on board 3 as
-        mis-columned, which is a board-wide behaviour change nobody asked for;
-      - the parent gets derive_station(plan_doc) when that is not None, otherwise the feature's
-        top-level status when present, otherwise it is absent from the mapping;
+      - each task sub-issue gets its own task's station from plan_doc, VERBATIM AND WITH NO
+        EXCEPTION. A task at the ready station projects to the ready station. There is no mapping,
+        no translation and no documented carve-out: the word in plan.yaml and the column on the
+        board are the same word with the same meaning, which is the whole point of the feature.
+        State in the docstring that the function derives nothing - it selects. The old
+        ready-to-backlog exception, carried from check-state.sh's _EXPECT comment on the grounds
+        that gh-sync open lands every sub-issue in backlog, is DELETED by D-11, and the one-time
+        board pass that settles the consequence is T-10's, ordered and verified there;
+      - the parent's rule is TERMINAL FIRST, and this ordering is load-bearing. When the feature's
+        top-level station is done or is TERMINAL_MARKER, that wins outright and derive_station is
+        not consulted. Only when it is not terminal does the parent get derive_station(plan_doc)
+        when that is not None, then the top-level station when present, then it is absent from the
+        mapping. WHY THE ORDER, measured at 8f8a6a3 against live board 3 on 2026-08-25: every
+        shipped feature has all tasks done, so derive_station returns review for all of them. With
+        derive_station first, 22 of the 23 parent cards on the board project to Review while
+        sitting correctly at Done, and T-10's one-time pass would drag 22 shipped parents
+        backwards. With terminal first, that count is zero. DEC-203 says the harness writes Done at
+        ship; derive_station is an in-flight review detector and was never meant to outrank a
+        recorded terminal station;
+      - A CARD WHOSE STATION IS TERMINAL_MARKER IS ABSENT FROM THE MAPPING, never placed. D-05
+        already says the marker names no column and never reaches the board, and project is where
+        that becomes true rather than merely stated. Without this clause FEAT-28, which is
+        abandoned with its card at Done, becomes a write of a column that does not exist;
       - each source issue gets the parent's station;
       - a task whose station is NOT one of the six stations and is not TERMINAL_MARKER raises
         FleetError naming the task id and the value. This is the one case that must NOT be silent:
@@ -477,9 +512,12 @@ tasks:
         a different number, a site has been added or moved: dispose of every line it reports, not
         only the four dispositions below.
         The six lines fall into four dispositions:
-        circa 1403-1405, the _st26 and _EXPECT definitions together with the comment directly
-        above them that explains the pending-to-backlog mapping - DELETED outright, because the
-        rule they encode now lives in project and nowhere else;
+        circa 1403-1405, the _st26 and _EXPECT definitions - DELETED outright, because the rule
+        they encode now lives in project and nowhere else. The comment directly above them, which
+        justified a ready-to-backlog mapping, is ALREADY GONE by the time this task runs: T-04
+        deletes it when D-11 removes the exception. It was never one of the six lines below -
+        measured at 8f8a6a3 it occupies 1399-1402 and names neither identifier - so the count is
+        unaffected. If you still find it, delete it here;
         circa 1432, a COMMENT naming _EXPECT, inside a different paragraph 27 lines below the
         definitions - REWRITTEN, see the next bullet. It lies between the two spans this task
         names and inside neither, so a span-shaped deletion leaves the token in the file and reds
@@ -579,7 +617,11 @@ tasks:
 
       Tests: add unit cases for project covering a plan with one task building, a plan with every
       task done, a plan with a top-level station and no derivable one, and a feature with source
-      issues. Add a gh-sync case asserting start-task fails loudly when the plan write fails, and
+      issues. Add three more, each shown failing first, because each pins a rule this task changed:
+      a task at the ready station projects to ready and NOT to backlog, which is the deleted
+      exception; a plan with every task done AND a top-level station of done projects its parent to
+      done, not to review, which is the terminal-first ordering; and a feature whose top-level
+      station is TERMINAL_MARKER places no parent card at all. Add a gh-sync case asserting start-task fails loudly when the plan write fails, and
       that it never writes a card in that case.
 
   - id: T-07
@@ -834,6 +876,7 @@ tasks:
       python3 .claude/skills/harness/bin/test-gh-sync.py
       python3 .claude/skills/harness/bin/test-post-merge-sweep.py
       git -C . diff --quiet -- .harness/harness/features/FEAT-40-harness-writes-done/plan.yaml
+      python3 -c "import sys,glob,json,os,yaml;sys.path.insert(0,'.claude/skills/harness/bin');import gh_board as g,factory_config as fc;b=g.load_board('.');st=g.board_stations(b,json.load(open('.harness/harness.json'))['github']['repo']);rec=lambda d:(lambda j:{'issues':((j.get('github') or {}).get('issues') or {}),'parent':(j.get('github') or {}).get('parent'),'source_issues':[]})(json.load(open(os.path.join(d,'feature.json'))) if os.path.exists(os.path.join(d,'feature.json')) else {});bad=sorted((n,w,st.get(n)) for p in glob.glob('.harness/harness/features/*/plan.yaml') for n,w in g.project(yaml.safe_load(open(p)),rec(os.path.dirname(p))).items() if st.get(n)!=fc.station_column(w));assert not bad,bad;print('board agrees with plan.yaml for all',len(st),'cards read')"
     intent: |
       Two defects, both measured, plus the repair of the record they already damaged.
 
@@ -871,6 +914,35 @@ tasks:
       and paste into the task receipt the before and after: the INV-26 line naming FEAT-40 and
       issue 842 as it reads at ee66ae2, and its absence afterwards. A run that cannot reach the
       board reports CANNOT VERIFY, which is NOT the assertion - re-run it authenticated.
+
+      THE ONE-TIME BOARD PASS, and it is a step of this task rather than a footnote. D-11 removes
+      the ready-to-backlog exception, so plan.yaml and board 3 must agree exactly with nothing
+      derived between them. Run the pass ONCE, after the FEAT-40 repair above and before this
+      task's last verify line:
+      - for every plan.yaml under .harness/harness/features/, build rec the way T-06 specifies and
+        call gh_board.project once, exactly as check-state.sh's INV-26 now does. Use the shipped
+        functions; do not re-implement the placement rule here;
+      - compare each placed card against gh_board.board_stations and write ONLY the differences,
+        through gh_board.set_station. Print one line per write naming the issue, the column it
+        held and the column it now holds, and paste that list into the task receipt;
+      - a card project places that carries NO item on the board is ADDED with
+        factory_gh.project_item_add and then stationed. Measured at 8f8a6a3 against the live board
+        on 2026-08-25 there is exactly one - issue 223, FEAT-12's parent - and it is a real gap,
+        not an environmental accident: the feature shipped and its parent was never put on the
+        board. If your own run finds a second, add it and record it; do not widen the rule;
+      - the pass is idempotent by construction, because it writes only differences. Running it
+        twice is safe and the second run must write nothing.
+      WHAT THIS COSTS, MEASURED RATHER THAN FEARED, at 8f8a6a3 against live board 3 on 2026-08-25:
+      board 3 holds 656 cards for this repository, 211 of them task sub-issues and 23 of them
+      feature parents. Comparing every one against what project returns after T-04's migration and
+      repair and T-06's terminal-first parent rule, the pass writes ZERO stations and adds ONE
+      card. The exception was protecting nothing: not one of the 211 task cards sits at Backlog
+      today. AND THE RED IS BOUNDED: no INV-26 red window opens between T-04 and this task either,
+      because T-04's record repair lands in the same task as the migration, so no card is ever
+      compared against a station the plan only briefly held. The single expected red is FEAT-12's
+      absent parent card, which appears when T-06 routes the compare through project and closes
+      here. If your own measurement differs, STOP and report the number rather than writing the
+      difference to the board.
 
       Tests: assert ship refuses a worktree feature dir and names the main-checkout path; assert
       the file is clean against HEAD after a successful ship; assert the post-merge sweep's
@@ -935,7 +1007,7 @@ tasks:
       test-check-state.py only, so the two do not interact.
 
   - id: T-12
-    title: Record the vocabulary decision and amend the three entries it contradicts
+    title: Record the vocabulary decision and strike, in place, the three clauses it contradicts
     traces: [REQ-01, REQ-02, REQ-05, REQ-06]
     change_type: docs
     execution_mode: team
@@ -949,8 +1021,27 @@ tasks:
     verify: |
       python3 .claude/skills/harness/bin/gen-decisions-index.py --check
     intent: |
-      Write ONE new decision entry and three amendments. Nothing is struck: each contradiction is
-      one clause of an entry whose remainder still binds.
+      Write ONE new decision entry and THREE IN-PLACE STRIKES.
+
+      THE ENTRIES SURVIVE. Each contradiction is one clause of an entry whose remainder still
+      binds, so nothing this feature depends on is removed - only the contradicted clause stops
+      holding, and a citation to it still RESOLVES while announcing that it no longer holds. DO NOT
+      REWRITE A STRUCK CLAUSE. A rewrite leaves a later reader unable to tell it ever said
+      otherwise, which is the falsified record PRINCIPLES rule 15 forbids. The struck text stays on
+      the page, marked.
+
+      THE FORM IS ALREADY LIVE IN THIS FILE, TWICE, AND YOU REPRODUCE IT RATHER THAN INVENT IT.
+      Read DECISIONS.md at line 3228 and at line 4436 before writing a word - both measured at
+      8f8a6a3 - and read enough of the surrounding paragraphs to catch the voice. The shape is two
+      parts per strike:
+      (a) AT THE CLAUSE ITSELF, one bold sentence in the record's own voice naming what is struck,
+          the date, DEC-188, and where the record is - the live example at 3228 reads that the
+          citation that recorded a thing is STRUCK on a date under DEC-188, see amendment 7. Every
+          other sentence around it is untouched.
+      (b) A NEW AMENDMENT SECTION on that entry, headed in the file's existing style, which states
+          what the struck clause SAID, that it is struck under DEC-188 on that date, and what holds
+          instead. Measured at 8f8a6a3 none of these three entries carries an amendment today, so
+          each is amendment 1; re-derive that before you write it.
 
       The new entry, taking the next free DEC number, states four things and no biography:
       1. The six station names - backlog, plan, ready, building, review, done - are MANDATED. An
@@ -959,21 +1050,28 @@ tasks:
          stores or compares is lowercase; factory_config.station_column is the ONE place a
          capitalised name is produced, and it is used only where the harness talks to GitHub.
       3. plan.yaml carries a station per task and a top-level station for the feature, from that
-         same vocabulary, plus one terminal marker, abandoned, which names no column.
+         same vocabulary, plus one terminal marker, abandoned, which names no column. NOTHING IS
+         DERIVED BETWEEN plan.yaml AND THE BOARD: a card sits in the column its station names,
+         with no mapping, exception or translation. The one ordering rule worth recording is that
+         a recorded terminal station outranks the in-flight review derivation.
       4. plan.yaml has exactly one writer and it is code. Every editor and shell write is denied
          by the shape gate, which binds every author including the main session, and the approval
          signature goes through a verb an identity-gated Bash hook refuses to any agent.
       Record the one thing this does not achieve: a shell write of a LEGAL station value is not
       attributable, and the post-Bash sweep reads disk rather than authors.
 
-      DEC-203 amendment 1: section 6's field moves out of feature.json into plan.yaml, and its
-      values are the lowercase station names. The clause it replaces is "They are case sensitive,
-      byte for byte" as a property of the STORED value - the board's own column names are still
-      case sensitive at the write, which is why station_column exists. Everything else in DEC-203
-      stands: a ticket is open until its card reaches Done, the harness writes Done at ship, the
-      parent rule, and the seven-purpose read-back bound.
+      DEC-203, section 6. STRUCK: the clause placing the field in feature.json and asserting that
+      its values are case sensitive byte for byte AS A PROPERTY OF THE STORED VALUE. What holds
+      instead: the field is plan.yaml's top-level station and its values are the mandated lowercase
+      names. The board's own column names are still case sensitive at the write, which is exactly
+      why factory_config.station_column exists - so say that in the amendment, or the strike reads
+      wider than it is. Everything else in DEC-203 stands and is NOT struck: a ticket is open until
+      its card reaches Done, the harness writes Done at ship, the parent rule, and the
+      seven-purpose read-back bound.
 
-      DEC-191 amendment 1: status leaves the closed key set. Read the two counts OUT OF
+      DEC-191. STRUCK: the clause that makes status a member of the closed key set. What holds
+      instead: the key set is closed without it, and a feature's station is read from plan.yaml.
+      Read the two counts OUT OF
       .claude/skills/harness/bin/feature-schema.json as it stands after T-07 rather than copying
       them from this sentence or from T-07's - gen-decisions-index.py --check gates word count,
       not numeric accuracy, so a hand-typed number here is unverified by any gate. At ee66ae2 the
@@ -981,9 +1079,11 @@ tasks:
       State the reader test DEC-191 itself sets - a key survives because code reads it - and that
       status now has zero readers in that file.
 
-      DEC-182 amendment 1: plan.yaml joins the shape gate. The entry currently states it is
-      deliberately excluded because it carries neither a budget nor a vocabulary rule; it now
-      carries a vocabulary rule, which is exactly the criterion that entry names.
+      DEC-182. STRUCK: the clause excluding plan.yaml from the shape gate on the grounds that it
+      carries neither a budget nor a vocabulary rule. What holds instead: plan.yaml carries a
+      vocabulary rule and joins the shape gate. Note in the amendment that the entry's own
+      criterion is what turned - the rule did not change, the file did - so the strike is the
+      entry applying itself, not being overruled.
 
       Then regenerate the index with
       python3 .claude/skills/harness/bin/gen-decisions-index.py
