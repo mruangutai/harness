@@ -336,8 +336,9 @@ def children_refusal_lines(agent, children):
         "something the reporter cannot see."
     )
     lines.append(
-        "  this refusal fires ONCE; a second identical return will ship, so the correction has "
-        "to be made now."
+        "  this refusal fires at most once per consecutive stop sequence; an immediate second "
+        "identical return ships, and it re-fires on a later wake while a child is still live — "
+        "correct any claim about a child you cannot see and end the turn again."
     )
     return lines
 

@@ -3,9 +3,47 @@
 ## Current
 
 - feature: FEAT-37-lead-stop-and-wake
-- run: eng segment, T-01 in flight with harness-eng-lead (slug t01-eng)
+- run: eng segment, T-04 in flight with harness-eng-lead (slug t04-eng)
 - squad: eng
-- status: Building — build phase entered 2026-08-27, cycles 0/10, runs 8/20
+- status: Building — cycles 1/10, runs 9/20
+
+**T-01 IS DONE AND COMMITTED at `79c2a46`.** Verify re-run independently by the orchestrator, not
+taken on report: `selfcheck=0 playbook=1 coverage=1 checkkinds=0` then `T01_PASS`. One send-back
+inside the run, so cycles is 1, not 0.
+
+**THE EXPECTED-FAIL SET, RECORDED SO A NEW FAILURE IS NOT ABSORBED INTO IT (answers t01-eng Q2).**
+`run-unit-tests.sh --kind unit` exits 1 and MUST stay red until T-02, T-05 and T-06 all land. The
+red is exactly and only `test-lead-stop-and-wake.py`, and exactly these groups:
+  - `--group playbook` exits 1 — turns green when **T-02** writes the lead playbook text
+  - `--group coverage` exits 1 — turns green when **T-05** widens DEC-201 to the lead tier
+  - `--group bound` exits 1 with FOUR named failures — `case_occurrence_DECISIONS.md_6869_1`,
+    `case_occurrence_DECISIONS.md_6870_2`, and two on `inflight_registry.py_339`. The registry pair
+    turns green at **T-04**, the DECISIONS.md pair at **T-06**.
+`--self-check` and `--check-kinds` exit 0 TODAY and must never go red. **Any failure outside that
+enumerated set is NEW and gates.** The qa segment therefore runs AFTER all five tasks, not before —
+its matrix cannot be green until the last one lands.
+
+**t01-eng Q1 IS ANSWERED BY MEASUREMENT, AND IT NAMED THE WRONG LINE.** The worry was that D-11
+lists three DECISIONS.md sites while the detector matches two, leaving 6872 ungraded. Measured:
+`grep -nEi` for the once-only alternation matches DECISIONS.md at **6869 and 6870 only**. Line 6872
+is not a separate falsified claim in the way suggested — the clause "the `PreToolUse` hook, whose
+refusals have no once-only bound" is TRUE and must not be touched, and it already sits INSIDE the
+sentence the 6870 occurrence is graded on. **T-06's scope is not in doubt:** its intent names the
+6872 residual sentence explicitly and tells the documentor to correct it.
+
+**BUT THE REAL GAP IS ONE PHRASE OVER, AND IT IS A DETECTOR GAP, NOT A SCOPE GAP.** DECISIONS.md:6872
+reads "a second identical return **ships**"; `inflight_registry.py:339` reads "a second identical
+return **will ship**". T-01's approved alternation spells only the "will ship" variant, so the
+DECISIONS.md sentence is not an occurrence at all. Consequence: after T-06 corrects 6869 and 6870,
+`--group bound --only DECISIONS.md` exits 0 **whether or not the documentor also fixed 6872** — so
+T-06's own verify cannot see the third correction D-11 mandates. Closing this is an orchestrator
+execution-time call, folded into the T-04 run because backend-dev owns that test file; it changes no
+requirement, and is disclosed to the operator for overrule.
+
+**DEPENDENCY REALITY — THE CRITICAL PATH IS BLOCKED ON THE OPERATOR.** `T-01 -> {T-02, T-04}`;
+`T-02 -> T-05 -> T-06`. T-01 is done, so **T-04 is the ONLY task the squad can run.** T-02 is
+main-session-direct, and T-05 and T-06 sit behind it. When T-04 returns there is nothing further to
+dispatch until the operator executes T-02.
 
 **BUILD STARTED.** feature.json is `Building`; `gh-sync.py open` created milestone #29, parent issue
 **#904**, and sub-issues **#905 (T-01), #906 (T-02), #907 (T-04), #908 (T-05), #909 (T-06)**.

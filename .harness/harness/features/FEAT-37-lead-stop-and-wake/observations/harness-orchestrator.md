@@ -22,3 +22,18 @@
   the surviving "There is no waiting anywhere in this loop" (:60) kept me from reading it as "you
   may not return yet". An orchestrator without that clause reinstalls the wait loop this feature
   removes at the tier below.
+- 2026-08-27: FEAT-37 build run, direct runtime evidence for the bound T-06 corrects. The
+  SubagentStop children-in-flight refusal fired at MY tier on THREE separate stop sequences in one
+  session (after the T-01 dispatch, after the T-04 dispatch, and once more), each time printing
+  "this refusal fires ONCE; a second identical return will ship". It is not once per session; it is
+  once per consecutive stop sequence and it re-fires on every later wake while a child is live. The
+  eng lead independently reported the same recurrence twice at ITS tier in the t01-eng run. These
+  are fresh #551 occurrences beyond the eight DEC-199 records; DEC-199 warns its count is a FLOOR
+  and that writing a bare total there becomes a false statement nothing detects, so this is logged
+  as occurrences, never as a new total.
+- 2026-08-27: FEAT-37, the shape of a gate that cannot see its own mandate. D-11 and T-06 both
+  mandate correcting DECISIONS.md:6872, but T-01's approved once-only alternation spells only "a
+  second identical return will ship" while 6872 reads "a second identical return ships". T-06's
+  verify would therefore have exited 0 whether or not the mandated correction happened. Found by
+  grepping each site's literal wording rather than trusting that one detector covers all sites of
+  "the same" claim - the two sites were worded differently by different authors.
