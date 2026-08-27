@@ -1,0 +1,93 @@
+<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>FEAT-37 — the build is done and green; the qa gate blocks on a missing eval. One decision is yours.</title><style>
+:root{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:ui-sans-serif,-apple-system,"Segoe UI","Helvetica Neue",Arial,sans-serif;
+}
+/* Token-level theming: components style through the tokens and never inside the
+   media query, so the viewer's explicit toggle can override the OS in BOTH
+   directions. */
+@media (prefers-color-scheme:dark){
+  :root{ --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+         --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733; }
+}
+:root[data-theme="dark"]{
+  --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+  --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733;
+}
+:root[data-theme="light"]{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+}
+*{box-sizing:border-box}
+body{margin:0; background:var(--paper); color:var(--ink);
+  font:400 16px/1.65 var(--sans); padding:clamp(1.5rem,5vw,4rem) clamp(1rem,5vw,2rem) 6rem}
+.wrap{max-width:56rem; margin:0 auto}
+/* Layout owns the spacing: gap between siblings, not per-element margins that
+   collapse or double. */
+.wrap{display:flex; flex-direction:column; gap:1rem}
+.eyebrow{font:500 11px/1 var(--mono); letter-spacing:.14em; text-transform:uppercase;
+  color:var(--quiet); margin:0}
+h1{font:600 clamp(1.6rem,4vw,2.3rem)/1.15 var(--sans); letter-spacing:-.02em;
+  margin:.4rem 0 .2rem; text-wrap:balance}
+h2{font:600 1.15rem/1.3 var(--sans); letter-spacing:-.01em; margin:2rem 0 0;
+  padding-top:1.25rem; border-top:1px solid var(--line); text-wrap:balance}
+h3{font:600 .98rem/1.4 var(--sans); margin:1.1rem 0 0}
+h4,h5,h6{font:500 11px/1.4 var(--mono); letter-spacing:.1em; text-transform:uppercase;
+  color:var(--quiet); margin:1rem 0 0}
+p,li{max-width:65ch; margin:0}
+ul,ol{margin:0; padding-left:1.4rem; display:flex; flex-direction:column; gap:.4rem}
+li>ul,li>ol{margin-top:.4rem}
+strong{font-weight:600}
+code{font:400 .875em/1.5 var(--mono); background:var(--sunk); padding:.1em .35em; border-radius:3px}
+pre{background:var(--sunk); border:1px solid var(--line); border-radius:6px;
+  padding:.85rem 1rem; overflow-x:auto; margin:0}
+pre code{background:none; padding:0}
+blockquote{margin:0; padding:.75rem 1rem; border-left:3px solid var(--accent);
+  background:var(--accent-soft); border-radius:0 5px 5px 0}
+blockquote p{max-width:none}
+hr{border:0; border-top:1px solid var(--line); margin:.5rem 0}
+/* Wide content pans inside its OWN container; the page body never scrolls sideways. */
+.scroll{overflow-x:auto; border:1px solid var(--line); border-radius:6px}
+table{border-collapse:collapse; width:100%; font-size:.9rem}
+th,td{text-align:left; padding:.6rem .8rem; border-bottom:1px solid var(--line); vertical-align:top}
+thead th{font:500 10px/1.3 var(--mono); letter-spacing:.11em; text-transform:uppercase;
+  color:var(--quiet); background:var(--sunk); white-space:nowrap}
+tbody tr:last-child td{border-bottom:0}
+/* Figures in a column line up. */
+td,th{font-variant-numeric:tabular-nums}
+.derived{color:var(--slate); font-size:.85rem; margin-top:2.5rem;
+  padding-top:1rem; border-top:1px solid var(--line)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style></head><body><div class='wrap'><p class='eyebrow'>Ship review · reading view</p><h1 id="feat-37-the-build-is-done-and-green-the-qa-gate-blocks-on-a-missing-eval-one-decision-is-yours">FEAT-37 — the build is done and green; the qa gate blocks on a missing eval. One decision is yours.</h1>
+<p><strong>All five tasks are built, committed and independently verified. Every suite is green. The feature cannot ship anyway, because a signed decision requires an <code>eval</code> for the one task that changed agent behaviour, and no eval exists — not an unset runner, an unwritten test. Only you can resolve it.</strong></p>
+<p>Runs 13 of 20, cycles 1 of 10. Seven runs and nine cycles left — the budget is not the problem.</p>
+<h2 id="the-decision-i-need-from-you">The decision I need from you</h2>
+<p><strong>T-02 rewrote <code>.claude/skills/harness-team/SKILL.md</code> — prompt text that shapes how three lead agents behave. The approved plan types it <code>change_type: ai_behavior</code>. DEC-70 (<code>DECISIONS.md:852</code>) says an <code>ai_behavior</code> change requires an <code>eval</code>: <code>ai-dev</code> authors it, <code>qa</code> runs it, <code>validator-lead</code> judges its adequacy, and &quot;an AI change with no eval FAILs exactly as a missing unit test does.&quot;</strong></p>
+<p>There is no eval. <code>harness.json</code> <code>test_kinds.eval</code> is <code>cmd: null</code>, <code>status: unresolved</code>. And the deeper problem is not the missing runner — <strong>the plan contains no <code>ai-dev</code> task at all</strong>, because T-02 was routed <code>main-session-direct</code> under DEC-179 and you executed it yourself. So pointing a runner at the existing text-assertion suite would register a runner for an eval nobody wrote.</p>
+<p><code>gates.qa_gate</code> is <code>blocking</code> — the only blocking gate this project has. DEC-36 (<code>:448</code>) and DEC-187 (<code>:5861</code>) both say a null <code>cmd</code> is <strong>BLOCKED, never a soft skip</strong>.</p>
+<p><strong>Your two routes, and both edit files outside every FEAT-37 task&#x27;s declared set:</strong></p>
+<ol><li><strong>Author the eval.</strong> <code>ai-dev</code> writes failure modes, a rubric, a reference dataset and a threshold for the playbook rewrite. That is a new task, so it is a plan change — pm&#x27;s to draft, yours to approve. It is the route DEC-70 actually describes. It costs at least two runs and it is the only route that produces evidence about <em>conduct</em>.</li><li><strong>Sign an exclusion.</strong> Set <code>test_kinds.eval</code> to <code>status: excluded</code> with an <code>excluded_because</code> and a <code>signed:</code> reference, the same shape <code>functional</code> already carries under DEC-187. Cheap, honest about what this repo can actually measure, and it concedes that <code>ai_behavior</code> changes here are graded by text assertions plus your post-merge UAT.</li></ol>
+<p><strong>I am not neutral, and here is the reasoning rather than the preference.</strong> The thing this feature changes is what three lead agents <em>do</em>. Route 2 ships that change with no behavioural evidence from any source, because SC-08 — the only criterion that measures conduct — is also ungradable from this build (below). Route 1 is the only one where anything ever tests the behaviour. But route 1 is expensive, and an eval you commission reluctantly tends to be a rubric written to pass. If you take route 2, the honest form is to say out loud that this repo grades prompt changes by text and by your own post-merge read, and to make SC-08&#x27;s UAT a hard precondition of merge rather than a nicety.</p>
+<p><strong>One thing you should weigh before deciding: your own approved BRIEF disagrees with the decisions.</strong> <code>BRIEF.md:275-278</code> states the eval requirement &quot;resolves to a soft skip and proves nothing&quot; and calls it a standing dev-ops gap this feature does not close. You signed that. But DEC-36 and DEC-187 say it blocks, and a signed BRIEF does not override a signed decision. I am surfacing the contradiction rather than picking the reading that lets me proceed. If your intent when signing was route 2, say so — but it still wants the <code>harness.json</code> change, because the BRIEF governs this feature and the config governs the gate.</p>
+<h2 id="how-this-briefing-was-assembled-dec-69-disclosure">How this briefing was assembled (DEC-69 disclosure)</h2>
+<p><strong>No report round was spawned.</strong> I read from disk:</p>
+<ul><li><code>runs/2026-08-27-01-validator/digest.md</code> — the blocking qa result</li><li><code>runs/2026-08-27-01-t01-eng/digest.md</code> and <code>runs/2026-08-27-01-t04-eng/digest.md</code> — build</li><li><code>runs/t06-product/digest.md</code> — T-06</li><li><code>notes/ship-review-2026-08-26-02-product.md</code> — the plan phase, already synthesised for you there</li><li><code>notes/qa-FEAT-37-2026-08-27-01.md</code> and <code>-02.md</code> — qa&#x27;s own artifacts</li></ul>
+<p><strong>One digest cannot be read, because it no longer exists.</strong> <code>runs/2026-08-27-01-product/digest.md</code> held T-05&#x27;s result; the T-06 run reused the same <code>run_id</code> and overwrote it in place. I separated T-06&#x27;s artifacts into <code>runs/t06-product/</code> and left an honest loss note at the old path rather than reconstructing it. T-05&#x27;s PASS is not in doubt — I re-ran its verify myself — but its digest is gone.</p>
+<p><strong>I did not read the six plan-phase digests from 2026-08-24.</strong> The earlier ship review covers that phase and you wrote the history that produced it.</p>
+<p><strong>I took nothing on report.</strong> Every task&#x27;s own <code>verify:</code> block I re-ran myself. I re-derived DEC-70&#x27;s text, <code>BRIEF.md</code>&#x27;s wording, the <code>check-state.sh</code> output and the suite results at disk before writing any of the claims above — including the ones that make the validator lead right and me wrong.</p>
+<h2 id="what-actually-got-built-and-it-is-good-work">What actually got built, and it is good work</h2>
+<div class="scroll"><table><thead><tr><th>Task</th><th>Commit</th><th>What it does</th></tr></thead><tbody><tr><td>T-01</td><td><code>79c2a46</code></td><td>adds the guard suite <code>test-lead-stop-and-wake.py</code>, red by design</td></tr><tr><td>T-02</td><td><code>8f784b5</code></td><td>gives the lead tier the never-wait rule and its inoculation (you executed this)</td></tr><tr><td>T-04</td><td><code>e73d545</code></td><td>states the measured refusal bound in the text an agent actually reads</td></tr><tr><td>T-05</td><td><code>1449c66</code></td><td>binds DEC-201&#x27;s never-wait rule to the three domain leads, in place, one voice</td></tr><tr><td>T-06</td><td><code>5e09992</code></td><td>corrects DEC-199&#x27;s falsified once-only clauses to the measured bound</td></tr></tbody></table></div>
+<p><code>run-unit-tests.sh --kind unit</code> exits <strong>0</strong>. It was red by design for the entire build and T-06 closed the last group. <code>--kind integration</code> exits <strong>0</strong> with 532 passing assertions and zero failures. All three <code>test-lead-stop-and-wake.py</code> groups pass and <code>--self-check</code> exits 0. qa added the <code>integration</code> kind itself under DEC-35 — not required by the <code>logic</code> floor, and it is the only thing that <em>executes</em> <code>children_refusal_lines()</code> rather than grepping its source. That was good judgement and I want it on the record.</p>
+<p><strong>Two members exercised judgement I endorsed, where following the plan literally would have put a falsehood into the decision record.</strong> T-05&#x27;s intent told the documentor to write that the platform&#x27;s dispatch nudge &quot;appears nowhere under <code>.claude/</code>&quot; — false, and false <em>because of this feature&#x27;s own T-02</em>, which denies that nudge at <code>harness-team/SKILL.md:119</code>. T-06&#x27;s intent told it to cite <code>harness/SKILL.md</code> as stating the same refusal bound — a paragraph <code>c5e59aa</code> had already deleted. Both wrote the true form of the same constraint and declared the departure. I verified both by grep.</p>
+<h2 id="sc-08-cannot-be-scored-from-this-build-and-that-is-not-a-dodge">SC-08 cannot be scored from this build, and that is not a dodge</h2>
+<p>A spawned agent loads its skills from the <strong>main checkout</strong>, while the rewritten playbook sits in this worktree. So nothing observed during this run is evidence about the shipped behaviour. This has now been corroborated four times, most recently by this run&#x27;s own <code>SubagentStop</code> refusals, which kept printing the <strong>old pre-T-04 sentence</strong> even though <code>inflight_registry.py:339-340</code> in this worktree carries the corrected one. SC-08 stays <code>not_met</code>. <strong>It needs you to run its UAT after merge, from the main checkout.</strong> Nobody inside the factory can close it.</p>
+<p>The goal-check has not run — the blocking gate stopped the sequence before it. So has simplify, the <code>review_sha</code> pin, the review panel and the docs sweep. <code>review_sha</code> is still <code>none</code>, deliberately: an apply commit after a pin invalidates the panel&#x27;s verdict.</p>
+<h2 id="proposed-backlog-strike-any-row-by-id">Proposed backlog — strike any row by ID</h2>
+<div class="scroll"><table><thead><tr><th>ID</th><th>Nature</th><th>What</th></tr></thead><tbody><tr><td>B-1</td><td>bug</td><td><code>gh-sync.py</code> has no subcommand that moves a single task card to Done, so every finished task trips INV-26 until <code>ship</code> runs. Six live violations here: #905, #906 (at Backlog), #907, #908, #909, parent #904. Structural, enforcement-layer, DEC-174 makes it yours</td></tr><tr><td>B-2</td><td>bug</td><td><code>BRIEF.md:275-278</code> says the eval requirement is a soft skip; DEC-36 and DEC-187 say it blocks. An approved artifact contradicts two signed decisions</td></tr><tr><td>B-3</td><td>bug</td><td><code>harness.json</code> <code>test_kinds.ui._reason</code> still licenses &quot;qa records skipped and does NOT fail&quot; while <code>status: unresolved</code>. DEC-187 settled against exactly that phrasing and corrected the top-level note but not this per-kind one. Latent today; it licenses the silent no-op DEC-36 exists to prevent</td></tr><tr><td>B-4</td><td>bug</td><td>Nothing prevents a lead reusing a <code>run_id</code>, and the second run overwrites the first&#x27;s <code>digest.md</code> and <code>state.yaml</code> in place. It destroyed T-05&#x27;s digest this run. The playbook&#x27;s <code>&lt;task-or-purpose&gt;-&lt;squad&gt;</code> slug convention would have prevented it but nothing enforces it</td></tr><tr><td>B-5</td><td>chore</td><td>T-01&#x27;s <code>verify:</code> block asserts its suite is red (<code>pb=1 cv=1</code>), true only at its own commit. Re-running it at HEAD now prints <code>T01_FAIL</code>. Not a defect, but a successor reads it as a regression</td></tr><tr><td>B-6</td><td>bug</td><td><code>SendMessage</code> was unavailable to the validator lead, so an intended follow-up probe to its running qa member spawned a second member instead. It paid for itself but nearly collided two contexts on one artifact path</td></tr><tr><td>B-7</td><td>chore</td><td>Engineer DIGESTs carry no <code>files_touched</code>, so a member that wrote a receipt reports no files and the lead reconstructs it by hand. Schema gap or intended?</td></tr><tr><td>B-8</td><td>chore</td><td><code>notes/root-cause-*.md</code> is in no member&#x27;s domain, so debug reports fall back to receipt paths</td></tr><tr><td>B-9</td><td>chore</td><td>Single-flight is keyed per checkout, so several orchestrators&#x27; children can share one registry when they run from one cwd</td></tr><tr><td>B-10</td><td>chore</td><td>Issue #811 stays OPEN and returns to the backlog, per your ruling of 2026-08-24 (plan D-07 is the strike record)</td></tr><tr><td>B-11</td><td>chore</td><td>Issue #903 holds the regression struck from this plan at signature, with REQ-08 and SC-09. It stays struck; the row exists so it is not forgotten</td></tr></tbody></table></div>
+<h2 id="what-i-need-back">What I need back</h2>
+<p><strong>Pick route 1 or route 2 on the eval.</strong> Everything else waits on it. Once it resolves I run simplify, pin <code>review_sha</code>, run the panel and the goal-check, then the docs sweep — five runs of the seven left, which fits.</p>
+<p>If you want the run count read: 13 of 20, and I think they earned their place. One send-back in the whole feature, zero this session, and every run either landed a task or closed a real question. The one genuinely wasted spawn is B-6, and the validator lead reported it against itself.</p><p class='derived'>Derived from <code>ship-review-2026-08-27-01.md</code> — the markdown is the record; do not edit this file. Regenerate with <code>bin/render-brief.py</code>.</p></div></body></html>
