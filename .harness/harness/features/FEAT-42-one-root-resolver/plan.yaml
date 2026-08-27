@@ -258,7 +258,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: the suite runner — a wrong cd on line 3 runs every gate against the wrong checkout and still exits 0, which no gate in this repository can see
     depends_on: [T-01, T-02]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/run-unit-tests.sh
     verify: |
@@ -271,9 +271,14 @@ tasks:
       bash $B/run-unit-tests.sh --check-kinds || exit 1
       ( cd /tmp && bash "$OLDPWD/$B/run-unit-tests.sh" --kind unit > /tmp/f42-t03-away.txt 2>&1 )
       bash $B/run-unit-tests.sh --kind unit > /tmp/f42-t03-here.txt 2>&1
-      grep -cE '^(PASS|FAIL)' /tmp/f42-t03-away.txt > /tmp/f42-t03-a
-      grep -cE '^(PASS|FAIL)' /tmp/f42-t03-here.txt > /tmp/f42-t03-h
-      diff /tmp/f42-t03-a /tmp/f42-t03-h || { echo "cwd changed the suite"; exit 1; }
+      A=$(grep -cE '^(PASS|FAIL)' /tmp/f42-t03-away.txt)
+      H=$(grep -cE '^(PASS|FAIL)' /tmp/f42-t03-here.txt)
+      # grep -c writes 0 on no match, so equal counts alone are satisfied by a suite that
+      # ran NOTHING from both cwds - a suite exiting 2 gives 0 vs 0 and diff succeeds.
+      # Assert the run happened before comparing it. 300 is a floor under a MEASURED 342
+      # result lines across the 24 pre-T-03 unit scripts, 0 failing, taken 2026-08-27.
+      test "$H" -gt 300 || { echo "suite produced only $H result lines from the root - it did not run"; exit 1; }
+      test "$A" = "$H" || { echo "cwd changed the suite: $A away vs $H here"; exit 1; }
       echo T-03-OK
     intent: |
       Two edits to .claude/skills/harness/bin/run-unit-tests.sh, and nothing else in the file.
@@ -316,6 +321,8 @@ tasks:
       - .claude/skills/harness/bin/test-factory-config.py
       - .claude/skills/harness/bin/test-factory-claim.py
       - .claude/skills/harness/bin/test-gh-cost-log.py
+      - .claude/skills/harness/bin/harness_boundary.py
+      - .claude/skills/harness/bin/test-harness-boundary.py
     verify: |
       cd "$(git rev-parse --show-toplevel)"
       B=.claude/skills/harness/bin
@@ -355,6 +362,17 @@ tasks:
       board_lifecycle.py:158, feature-worktree.py:10, gh_cost_log.py:109, worktree_terminal.py:112,
       :113 and :301. worktree_terminal's are load-bearing warnings about the cwd trap; keep the
       warning and change the name it cites.
+
+      NORMALISE THE OVERRIDE RETURN, folded in here on the orchestrator's finding at the T-01/T-02
+      run and the operator's ruling of 2026-08-27. resolve_root returns the accepted
+      HARNESS_PROJECT_DIR value VERBATIM, while every other return path is already absolute because
+      root_from_script builds it with os.path.abspath. Measured: a relative override returns '.',
+      and a trailing-slash override returns the slash. Wrap that one return in os.path.abspath and
+      add a case to test-harness-boundary.py asserting a relative marker-carrying override resolves
+      to the same absolute path an absolute one does. It cannot bite today - the variable is unset
+      in this checkout and OMP injects an absolute cwd - so this is closing a latent inconsistency,
+      not a live defect. It is folded into this task rather than given its own because you are
+      already in the resolver's callers and a separate cycle would buy nothing.
 
       Three test files bind to the name and break on the delete. test-gh-cost-log.py:40, :45 and :52
       monkeypatch factory_config.harness_root by attribute — repoint them at whatever
