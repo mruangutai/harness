@@ -141,7 +141,15 @@ function runPolicy(
 ): PolicyResult {
   const proc = spawnSync(join(cwd, BIN, script), args, {
     cwd,
-    env: { ...process.env, HARNESS_PROJECT_DIR: cwd },
+    // The child inherits the host environment and NOTHING IS ADDED to it (FEAT-42 T-20).
+    // A root override used to be injected here, set to the host process working directory.
+    // Every script this helper invokes now derives its own root from its own file location,
+    // so handing it one is redundant — and worse: a feature worktree carries the harness
+    // marker, so a wrong-but-plausible cwd probes VALID and is honoured in preference to the
+    // script's own derivation. That is the fail-open this feature closes, reopened from
+    // outside the directory the invariant scans. Once a parent sets it every descendant
+    // inherits it, which is how one bad value reaches a whole process tree.
+    env: { ...process.env },
     input: JSON.stringify(payload),
     encoding: "utf8",
   });

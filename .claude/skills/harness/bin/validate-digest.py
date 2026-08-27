@@ -783,6 +783,24 @@ def validate(persona, text):
                    "it is an active routing signal, not a tally.")
     return err
 
+
+def _root_or_none():
+    """This checkout's root, from harness_boundary — or None if there is not one (FEAT-42
+    T-17).
+
+    NONE RATHER THAN A RAISE. Every caller here treats an unresolvable root as "the errand
+    could not be run", never as a verdict: this hook validates digests, and the registry and
+    the artifact-shape check are side errands that may not change what it returns.
+    """
+    try:
+        sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
+        import harness_boundary
+        return harness_boundary.resolve_root(
+            os.path.dirname(os.path.realpath(__file__)), strict=False)
+    except Exception:
+        return None
+
+
 def check_artifact_file(agent, text, payload):
     """DEC-156: a lead's WRITTEN digest.md must carry the same §10.4 block.
 
@@ -816,9 +834,13 @@ def check_artifact_file(agent, text, payload):
         # artifact is INV-15's finding (it can see the run dir), not this hook's.
         return 0
 
-    cands = ([path] if os.path.isabs(path) else
-             [os.path.join(b, path) for b in
-              (payload.get("cwd"), (os.environ.get("HARNESS_PROJECT_DIR") or os.environ.get("CLAUDE_PROJECT_DIR")), os.getcwd()) if b])
+    # ONE ROOT, NOT A CANDIDATE WALK (FEAT-42 T-17). What stood here tried the payload cwd,
+    # then the two-name environment chain, then os.getcwd(). Payload cwd is DELETED as a root
+    # input and that is a ruling, not a preference: NOTHING sets where an agent stands — the
+    # Agent tool has no cwd parameter, `cd` does not persist between Bash calls, and
+    # bash-write-guard refuses it — so cwd stays inherited from the spawning session and
+    # varies by accident.
+    cands = ([path] if os.path.isabs(path) else [os.path.join(_root_or_none() or "", path)])
     found = next((p for p in cands if os.path.isfile(p)), None)
     if not found:
         print(f"check-digest: {agent}'s artifact {path} not found from the hook's vantage — "
@@ -904,26 +926,13 @@ def hook_mode():
               f"neither released nor checked. This is our gap, not theirs.", file=sys.stderr)
 
     if _reg is not None:
-        # THE ROOT: payload cwd first, exactly the precedence check_artifact_file already
-        # uses, and it MUST match what dispatch-guard.sh wrote. The guard takes the root
-        # from the payload cwd (the FEATURE worktree) while CLAUDE_PROJECT_DIR resolves to
-        # the MAIN checkout — so preferring the env var here would release from a registry
-        # the claim was never written to, and every claim would leak silently.
-        _root = None
-        for _b in (d.get("cwd"), (os.environ.get("HARNESS_PROJECT_DIR") or os.environ.get("CLAUDE_PROJECT_DIR")), os.getcwd()):
-            if not _b:
-                continue
-            _cur = os.path.abspath(_b)
-            while _cur and _cur != os.path.dirname(_cur):
-                # THE MANIFEST FILE, not the .harness DIRECTORY: probing the directory
-                # resolves $HOME as a root in the global install (B-7), and case_20 of the
-                # invariant suite refuses it by name.
-                if os.path.isfile(os.path.join(_cur, ".harness", "team-config.yaml")):
-                    _root = _cur
-                    break
-                _cur = os.path.dirname(_cur)
-            if _root:
-                break
+        # THE ROOT COMES FROM THE ONE RESOLVER (FEAT-42 T-17), not from a walk starting at
+        # the payload cwd. The old note here said cwd had to come first so this released from
+        # the same registry dispatch-guard.sh wrote to — but that guard now takes its root
+        # from the DECLARED feature (T-18), not from where the dispatcher happened to stand,
+        # so the two agree without either of them reading a cwd. Nothing sets an agent's cwd,
+        # which is why it was never a root.
+        _root = _root_or_none()
 
         if _root is None:
             print("check-digest: no checkout root from this vantage — the #551 claim was "
@@ -949,7 +958,13 @@ def hook_mode():
             # returned PASS.
             if norm(agent) in ("lead", "orchestrator"):
                 try:
-                    _kids = _reg.live_children(_root, agent)
+                    # THE SESSION FILTER IS THE FIX FOR THE CASCADE (FEAT-42 T-17, #742/#866).
+                    # A claim stranded by ANOTHER session is not a live child of THIS return.
+                    # Measured 2026-08-26: one stranded pm claim refused the pm spawn at
+                    # dispatch-guard, then refused the LEAD's return here, then refused the
+                    # ORCHESTRATOR's return here again — three tiers locked out of reporting
+                    # by one strand, each stranding creating the next.
+                    _kids = _reg.live_children(_root, agent, session=d.get("session_id"))
                 except Exception as _e:
                     _kids = []
                     print(f"check-digest: could not read children of {agent} ({_e!r}) — the "
@@ -958,6 +973,18 @@ def hook_mode():
                 if _kids:
                     for _line in _reg.children_refusal_lines(agent, _kids):
                         print(_line, file=sys.stderr)
+                    # AND THE PRECISE REMEDY, ONE COMMAND PER STRANDED CHILD. The refusal
+                    # named the problem and no cure, so a reader reached for release-all —
+                    # which sets the registry to {} and wipes every claim of every agent.
+                    # On 2026-08-26 following that advice would have destroyed a live claim.
+                    try:
+                        print("  if one of these is stranded rather than running, release "
+                              "exactly it:", file=sys.stderr)
+                        for _persona, _c in _kids:
+                            print("  %s" % _reg.release_cmd(_root, _persona), file=sys.stderr)
+                    except Exception as _e:
+                        print(f"check-digest: could not compose the release command "
+                              f"({_e!r}).", file=sys.stderr)
                     return 2
 
     text = d.get("last_assistant_message") or ""

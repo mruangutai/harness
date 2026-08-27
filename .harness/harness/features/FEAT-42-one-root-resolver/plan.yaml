@@ -1257,7 +1257,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 am.4 names validate-digest.py in the enforcement layer
     depends_on: [T-03, T-06]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/validate-digest.py
       - .claude/skills/harness/bin/test-validate-digest.py
@@ -1304,6 +1304,16 @@ tasks:
       assertion that the return is ADMITTED. Run it before the fix, confirm it fails, and paste the
       verbatim FAIL line into
       .harness/harness/features/FEAT-42-one-root-resolver/notes/receipt-main-session-T-17.md.
+
+      THE HOOK CASES NEEDED ISOLATING, and that was not in the signed text. Every case that
+      does not name its own root now runs against one throwaway checkout. Without it they run
+      against the LIVE registry: a claim left behind by anything else in this repository
+      refuses cases that have nothing to do with it, and three digest-shape cases failed
+      exactly that way while T-18 was being written. A suite whose verdict depends on what
+      else touched the machine is not a suite. The DEC-156 cases carry their own root: they
+      used to find their artifact by joining onto the payload cwd, and cwd is gone as a root
+      input, so each fixture is now a real harness root handed over through the override.
+
   - id: T-18
     title: Make the dispatch declare its feature, and record the claim in that feature's checkout
     traces: [REQ-01, REQ-02, REQ-05, REQ-06, REQ-09]
@@ -1311,7 +1321,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 am.4 names dispatch-guard.sh and its test file in the enforcement layer
     depends_on: [T-03, T-06]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/dispatch-guard.sh
       - .claude/skills/harness/bin/test-dispatch-guard.py
@@ -1383,6 +1393,30 @@ tasks:
       :83 resolves from payload cwd — and paste the verbatim FAIL lines into
       .harness/harness/features/FEAT-42-one-root-resolver/notes/receipt-main-session-T-18.md.
 
+      FOUR THINGS BEYOND THE SIGNED TEXT, all forced by the change itself.
+
+      owner_root comes from resolve_root, not root_above. root_above answers "which checkout
+      is this PATH in" and cannot be steered, which leaves this gate untestable against a
+      fixture without copying the whole bin tree per case. resolve_root is the same rule plus
+      the override the other eight gates already honour, and the override is only accepted
+      when it carries the MARKER - so nothing is loosened.
+
+      The program is fed to python3 -c and has NO __file__. The bash wrapper already exports
+      HARNESS_GUARD_BIN_DIR from BASH_SOURCE; that is the only thing that knows where this
+      script lives.
+
+      Case 6 asserted the refusal carries release-all. That assertion is inverted here, not
+      deleted: it now requires the single-agent command AND requires release-all to be absent,
+      so the retired remedy cannot creep back. inflight_registry.refusal_lines takes the
+      command as a parameter, so no shared module changes.
+
+      Case 2 is the one ALLOW case reaching the claim step and had no root of its own, so it
+      recorded a claim in the LIVE registry every run and asserted an EMPTY stderr that
+      anything already in that registry could break from outside. It gets a throwaway root.
+
+      The two mandated case names are carried IN THE CHECK LABELS, because the receipt is
+      matched by name and a case whose label does not carry it cannot be found.
+
   - id: T-19
     title: Make every governed dispatch carry the HARNESS-FEATURE line the gate now requires
     traces: [REQ-05]
@@ -1390,7 +1424,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: check-domain.sh --resolve returns NOBODY for .claude/skills/** and .claude/agents/** at sha 3952814
     depends_on: [T-18]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness-zero-micro-management/SKILL.md
       - .claude/agents/harness-orchestrator.md
@@ -1437,7 +1471,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: enforcement-adjacent host adapter; check-domain.sh --resolve returns NOBODY for .omp/** at sha 3952814, so no agent domain grants it
     depends_on: [T-10, T-11, T-14, T-16, T-17]
-    status: pending
+    status: done
     files:
       - .omp/extensions/harness-hooks.ts
     verify: |
