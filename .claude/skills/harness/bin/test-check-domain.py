@@ -951,10 +951,15 @@ def run_resolve():
                    "tool_input": {"file_path": path, "content": "x"}}
         return subprocess.run([HOOK], input=json.dumps(payload), capture_output=True,
                               text=True, env=_env(ROOT))
-    r = hook(".agents/skills/harness/bin/check-domain.sh", "harness-documentor")
+    # ABSOLUTE, like every other case in this file. These two were the only relative
+    # paths in the suite, and the gate resolves a relative target with os.path.abspath —
+    # against the CWD, not the root — so (h) read out-of-domain whenever the runner was
+    # launched from anywhere but the repository root. That is the other half of #556.
+    # Claude Code sends an absolute file_path; these now say what production sends.
+    r = hook(f"{ROOT}/.agents/skills/harness/bin/check-domain.sh", "harness-documentor")
     check("(g) no --resolve: an out-of-domain Write still exits 2",
           r.returncode == 2, f"got {r.returncode}")
-    r = hook(".harness/harness/docs/SPEC.md", "harness-documentor")
+    r = hook(f"{ROOT}/.harness/harness/docs/SPEC.md", "harness-documentor")
     check("(h) no --resolve: an in-domain Write still exits 0",
           r.returncode == 0, f"got {r.returncode}")
 
@@ -1669,6 +1674,35 @@ def run_worktree():
     wt("with the module absent AND no manifest, DEC-101 still fails OPEN, loudly",
        r.returncode == 0 and "enforcement OFF" in r.stderr,
        f"exit {r.returncode}: {r.stderr.strip()[:200]}")
+
+    # --- #556: THE CWD MUST NOT SUPPLY THE BOUNDARY RULE. Python puts the invoking
+    # directory at sys.path[0] AHEAD of PYTHONPATH, so before `python3 -P` a
+    # harness_boundary.py sitting in the agent's cwd WAS the resolver this gate consulted.
+    # Measured on 2026-08-27 at sha 7179095: a module returning a bogus root turned a
+    # refusal (exit 2) into "enforcement OFF" (exit 0) — the domain gate switched off
+    # entirely by a file the governed agent controls. Both halves are asserted: the clean
+    # cwd must refuse, and the hostile cwd must return the SAME verdict.
+    _hostile = tempfile.mkdtemp()
+    with open(os.path.join(_hostile, "harness_boundary.py"), "w") as _hf:
+        _hf.write("MARKER = 'nope'\n"
+                  "def resolve_root(bin_dir, strict=True): return '/definitely/not/here'\n"
+                  "def root_from_script(bin_dir): return '/definitely/not/here'\n"
+                  "def root_above(start): return None\n")
+    _p556 = {"agent_type": "harness-backend-dev", "tool_name": "Write",
+             "tool_input": {"file_path": os.path.join(ROOT, ".harness", "harness",
+                                                      "docs", "SPEC.md"),
+                            "content": "x"}}
+    _clean = subprocess.run([HOOK], input=json.dumps(_p556), capture_output=True,
+                            text=True, env=_env(ROOT), cwd=tempfile.gettempdir())
+    wt("#556 control: from a clean cwd the out-of-domain write is REFUSED",
+       _clean.returncode == 2, f"exit {_clean.returncode}: {_clean.stderr.strip()[:200]}")
+    _hijack = subprocess.run([HOOK], input=json.dumps(_p556), capture_output=True,
+                             text=True, env=_env(ROOT), cwd=_hostile)
+    wt("#556: a harness_boundary.py in the CWD does not become the gate's resolver",
+       _hijack.returncode == 2 and _hijack.returncode == _clean.returncode
+       and "enforcement OFF" not in _hijack.stderr,
+       f"clean={_clean.returncode} hijacked={_hijack.returncode}: "
+       f"{_hijack.stderr.strip()[:200]}")
 
     fails = 0
     for name, ok, detail in WT:
@@ -2627,8 +2661,11 @@ def run_t14():
     # T-15 SUPPLIES the entry. It runs here as well as in T-15's verify because this file
     # runs in the integration kind on every CI run, so it is what keeps noticing if the
     # entry is ever deleted.
-    real = os.path.join((os.environ.get("HARNESS_PROJECT_DIR") or os.environ.get("CLAUDE_PROJECT_DIR")) or ".",
-                        ".harness", "team-config.yaml")
+    # ROOT, NOT THE ENVIRONMENT. What stood here was the retired two-name chain falling
+    # through to "." — the cwd — so this case read a different file depending on where the
+    # runner was launched from, and reported the repository's own record missing when it
+    # was not. That is half of #556. ROOT comes from __file__ and cannot move (FEAT-42).
+    real = os.path.join(ROOT, ".harness", "team-config.yaml")
     try:
         import yaml as _y
         w = (_y.safe_load(open(real)) or {}).get("main_session", {}).get("writes") or []

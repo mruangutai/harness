@@ -8,7 +8,7 @@ set -uo pipefail
 # in prose: the invariant that keeps them gone counts the name in every tracked source file.
 # REFUSING IS THE POINT — there is deliberately no fallback.
 _SELF_BIN="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-_ROOT="$(python3 -c 'import sys; sys.path.insert(0, sys.argv[1]); import harness_boundary; print(harness_boundary.resolve_root(sys.argv[1]))' "$_SELF_BIN" 2>/dev/null)"
+_ROOT="$(python3 -P -c 'import sys; sys.path.insert(0, sys.argv[1]); import harness_boundary; print(harness_boundary.resolve_root(sys.argv[1]))' "$_SELF_BIN" 2>/dev/null)"
 if [ -z "$_ROOT" ] || [ ! -d "$_ROOT" ]; then
   echo "run-unit-tests.sh: no harness root could be resolved from $_SELF_BIN — refusing to run" >&2
   exit 2
@@ -98,7 +98,7 @@ kind_drift_out="$(
   HARNESS_JSON="$HARNESS_JSON" \
   UNIT_LIST="$(printf '%s\n' "${UNIT_SCRIPTS[@]}")" \
   INTEGRATION_LIST="$(printf '%s\n' "${INTEGRATION_SCRIPTS[@]}")" \
-  python3 - <<'KINDCHECK'
+  python3 -P - <<'KINDCHECK'
 import json, os, sys
 
 path = os.environ["HARNESS_JSON"]

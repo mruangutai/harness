@@ -93,8 +93,15 @@ _derived="$(cd "$_selfdir/../../../.." && pwd)"
 # full governed path, of which the interpreter is most. Behaviour is unchanged:
 # every early exit, every exit code and every stderr message is identical, and the
 # unchanged test suite is the equivalence proof (D-10, REQ-07).
+# `-P` IS LOAD-BEARING, NOT TIDINESS (#556). Python puts the invoking directory at
+# sys.path[0] AHEAD of PYTHONPATH, so the harness_boundary import below took a
+# harness_boundary.py sitting in the GOVERNED AGENT's cwd in preference to ours. Measured
+# 2026-08-27 at sha 7179095: a stub returning a bogus root turned this hook from exit 2
+# (refused) into exit 0 ("enforcement OFF"). -P removes the cwd at the interpreter, so no
+# later line can put it back. Needs python 3.11+; an older one rejects the flag loudly,
+# which is the safe direction here. test-no-distribution.py case 7 is the invariant.
 HOOK_PAYLOAD="$payload" PYTHONPATH="$_selfdir${PYTHONPATH:+:$PYTHONPATH}" \
-  python3 - "$_derived" "${1:-}" "$_selfdir" <<'PY'
+  python3 -P - "$_derived" "${1:-}" "$_selfdir" <<'PY'
 import sys, os, re, json, fnmatch
 
 # THE BOUNDARY RULE LIVES IN harness_boundary.py (FEAT-17 T-01), NOT HERE.

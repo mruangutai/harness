@@ -31,8 +31,15 @@ _derived="$(cd "$_selfdir/../../../.." && pwd)"
 # it. Behaviour is unchanged: the dev-ops exemption, the harness-* prefix filter, the
 # absent-manifest fail-open and every exit-2 message are identical, and the unchanged
 # test suite is the equivalence proof (D-10, REQ-07).
+# `-P` IS LOAD-BEARING, NOT TIDINESS (#556). Python puts the invoking directory at
+# sys.path[0] AHEAD of PYTHONPATH, so the harness_boundary import below took a
+# harness_boundary.py sitting in the GOVERNED AGENT's cwd in preference to ours. Measured
+# 2026-08-27 at sha 7179095: a stub returning a bogus root turned this hook from exit 2
+# (refused) into exit 0 ("enforcement OFF"). -P removes the cwd at the interpreter, so no
+# later line can put it back. Needs python 3.11+; an older one rejects the flag loudly,
+# which is the safe direction here. test-no-distribution.py case 7 is the invariant.
 HOOK_PAYLOAD="$payload" PYTHONPATH="$_selfdir${PYTHONPATH:+:$PYTHONPATH}" \
-  python3 - "$_derived" "$_selfdir" <<'PY'
+  python3 -P - "$_derived" "$_selfdir" <<'PY'
 import sys, os, re, json, shlex
 
 # harness_yaml is imported LAZILY, after the manifest check — NOT here. Ordering is

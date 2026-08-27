@@ -24,7 +24,7 @@ payload=$(cat)
 # copied tree and the guard imports THAT copy of inflight_registry.py.
 GUARD_BIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-printf '%s' "$payload" | HARNESS_GUARD_BIN_DIR="$GUARD_BIN_DIR" python3 -c '
+printf '%s' "$payload" | HARNESS_GUARD_BIN_DIR="$GUARD_BIN_DIR" python3 -P -c '
 import sys, json, os
 
 try:

@@ -585,6 +585,36 @@ def run_worktree():
     wtb("worktree creation — the relative refusal NAMES relativity as the reason",
         "RELATIVE" in r.stderr, f"stderr: {r.stderr.strip()[:250]}")
 
+    # --- #556: THE CWD MUST NOT SUPPLY THE BOUNDARY RULE. Same defect and same proof as
+    # test-check-domain.py's pair — python puts the invoking directory at sys.path[0]
+    # ahead of PYTHONPATH, so before `python3 -P` a harness_boundary.py in the agent's cwd
+    # was the resolver this guard consulted. Both halves: clean cwd refuses, hostile cwd
+    # returns the SAME verdict.
+    _hostile = tempfile.mkdtemp()
+    with open(os.path.join(_hostile, "harness_boundary.py"), "w") as _hf:
+        _hf.write("MARKER = 'nope'\n"
+                  "def resolve_root(bin_dir, strict=True): return '/definitely/not/here'\n"
+                  "def root_from_script(bin_dir): return '/definitely/not/here'\n"
+                  "def root_above(start): return None\n")
+    _real_root = os.path.abspath(os.path.join(HERE, "..", "..", "..", ".."))
+    _p556 = {"agent_type": "harness-backend-dev", "tool_name": "Bash",
+             "tool_input": {"command": "echo x > "
+                            + os.path.join(_real_root, ".harness", "harness", "docs",
+                                           "SPEC.md")}}
+    _clean = subprocess.run([GUARD], input=json.dumps(_p556), capture_output=True,
+                            text=True, env=_env(_real_root),
+                            cwd=tempfile.gettempdir())
+    wtb("#556 control: from a clean cwd the out-of-domain shell write is REFUSED",
+        _clean.returncode == 2,
+        f"exit {_clean.returncode}: {_clean.stderr.strip()[:200]}")
+    _hijack = subprocess.run([GUARD], input=json.dumps(_p556), capture_output=True,
+                             text=True, env=_env(_real_root), cwd=_hostile)
+    wtb("#556: a harness_boundary.py in the CWD does not become the guard's resolver",
+        _hijack.returncode == 2 and _hijack.returncode == _clean.returncode
+        and "enforcement OFF" not in _hijack.stderr,
+        f"clean={_clean.returncode} hijacked={_hijack.returncode}: "
+        f"{_hijack.stderr.strip()[:200]}")
+
     fails = 0
     for name, ok_, detail in WTB:
         if ok_:
