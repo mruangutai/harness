@@ -91,6 +91,12 @@
       "squad": "product",
       "agent": "harness-product-lead",
       "verdict": "ESCALATE"
+    },
+    {
+      "id": "2026-08-27-02-t07-t08-eng",
+      "squad": "eng",
+      "agent": "harness-eng-lead",
+      "verdict": "BLOCKED"
     }
   ],
   "github": {
