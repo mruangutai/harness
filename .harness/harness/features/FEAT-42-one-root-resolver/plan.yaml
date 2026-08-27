@@ -1431,6 +1431,10 @@ tasks:
       - .claude/agents/harness-product-lead.md
       - .claude/agents/harness-eng-lead.md
       - .claude/agents/harness-validator-lead.md
+      - .omp/agents/harness-orchestrator.md
+      - .omp/agents/harness-product-lead.md
+      - .omp/agents/harness-eng-lead.md
+      - .omp/agents/harness-validator-lead.md
     verify: |
       cd "$(git rev-parse --show-toplevel)"
       for f in .claude/skills/harness-zero-micro-management/SKILL.md .claude/agents/harness-orchestrator.md \
@@ -1464,6 +1468,13 @@ tasks:
       Do not restate the mechanism in more than one place beyond these five files. If any of these
       documents already carries a nearby rule about dispatch prompt contents, extend that rule
       rather than adding a second one beside it.
+
+      FOUR OF THE FIVE FILES ARE GENERATED, and the signed text names only the generated
+      copies. `.claude/agents/*.md` are Claude-compatibility adapters; the canonical role
+      policy lives in `.omp/agents/` and sync-agent-adapters.py regenerates from it. Writing
+      the rule into the adapters made check-state report OMP-PORT stale, and running the sync
+      DELETED all four statements. State it in the OMP sources and regenerate.
+
   - id: T-20
     title: Remove the HARNESS_PROJECT_DIR injection from the OMP policy-script spawn
     traces: [REQ-01, REQ-02]
