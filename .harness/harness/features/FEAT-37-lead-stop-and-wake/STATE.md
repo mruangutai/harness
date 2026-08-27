@@ -3,95 +3,57 @@
 ## Current
 
 - feature: FEAT-37-lead-stop-and-wake
-- run: eng segment, T-04 in flight with harness-eng-lead (slug t04-eng)
-- squad: eng
-- status: Building — cycles 1/10, runs 9/20
+- run: eng segment complete for every task the squad can reach; blocked on the operator
+- squad: none — awaiting the main-session-direct task
+- status: Building — cycles 1/10, runs 10/20, HEAD e73d545
 
-**T-01 IS DONE AND COMMITTED at `79c2a46`.** Verify re-run independently by the orchestrator, not
-taken on report: `selfcheck=0 playbook=1 coverage=1 checkkinds=0` then `T01_PASS`. One send-back
-inside the run, so cycles is 1, not 0.
+**BOTH ARTIFACTS APPROVED 2026-08-27. FIVE tasks: T-01, T-02, T-04, T-05, T-06.** One task was
+struck at signature with REQ-08 and SC-09; its id is not cited here because a live STATE.md may not
+name a task its plan no longer holds. **plan.yaml D-12 is the strike record**, the regression is
+issue #903, and any proposal to restore it is refused on that citation. Numbering is NOT compacted.
 
-**THE EXPECTED-FAIL SET, RECORDED SO A NEW FAILURE IS NOT ABSORBED INTO IT (answers t01-eng Q2).**
-`run-unit-tests.sh --kind unit` exits 1 and MUST stay red until T-02, T-05 and T-06 all land. The
-red is exactly and only `test-lead-stop-and-wake.py`, and exactly these groups:
-  - `--group playbook` exits 1 — turns green when **T-02** writes the lead playbook text
-  - `--group coverage` exits 1 — turns green when **T-05** widens DEC-201 to the lead tier
-  - `--group bound` exits 1 with FOUR named failures — `case_occurrence_DECISIONS.md_6869_1`,
-    `case_occurrence_DECISIONS.md_6870_2`, and two on `inflight_registry.py_339`. The registry pair
-    turns green at **T-04**, the DECISIONS.md pair at **T-06**.
-`--self-check` and `--check-kinds` exit 0 TODAY and must never go red. **Any failure outside that
-enumerated set is NEW and gates.** The qa segment therefore runs AFTER all five tasks, not before —
-its matrix cannot be green until the last one lands.
+**DONE: T-01 (`79c2a46`) and T-04 (`e73d545`).** A third commit, `0c46bfb`, carries an
+orchestrator-directed detector widening — split out because it touches a file outside T-04's
+`files:` list. Every verify block was re-run by the orchestrator rather than taken on report:
+`T01_PASS` and `T04_PASS`, and `test-validate-digest.py` exits 0 both before and after T-04's edit.
 
-**t01-eng Q1 IS ANSWERED BY MEASUREMENT, AND IT NAMED THE WRONG LINE.** The worry was that D-11
-lists three DECISIONS.md sites while the detector matches two, leaving 6872 ungraded. Measured:
-`grep -nEi` for the once-only alternation matches DECISIONS.md at **6869 and 6870 only**. Line 6872
-is not a separate falsified claim in the way suggested — the clause "the `PreToolUse` hook, whose
-refusals have no once-only bound" is TRUE and must not be touched, and it already sits INSIDE the
-sentence the 6870 occurrence is graded on. **T-06's scope is not in doubt:** its intent names the
-6872 residual sentence explicitly and tells the documentor to correct it.
+**BLOCKED ON THE OPERATOR — THIS IS THE WHOLE REASON THE RUN STOPPED.** Dependencies are
+`T-01 -> {T-02, T-04}` and `T-02 -> T-05 -> T-06`. T-01 and T-04 are done, so **T-02 is the only
+runnable task and it is main-session-direct** (`check-domain.sh --resolve` returns NOBODY on
+`.claude/skills/harness-team/SKILL.md`; issue #906). T-05 and T-06 sit behind it. After the strike,
+T-02 is the ONLY main-session-direct task, though the `lanes:` block still lists two NOBODY surfaces.
 
-**BUT THE REAL GAP IS ONE PHRASE OVER, AND IT IS A DETECTOR GAP, NOT A SCOPE GAP.** DECISIONS.md:6872
-reads "a second identical return **ships**"; `inflight_registry.py:339` reads "a second identical
-return **will ship**". T-01's approved alternation spells only the "will ship" variant, so the
-DECISIONS.md sentence is not an occurrence at all. Consequence: after T-06 corrects 6869 and 6870,
-`--group bound --only DECISIONS.md` exits 0 **whether or not the documentor also fixed 6872** — so
-T-06's own verify cannot see the third correction D-11 mandates. Closing this is an orchestrator
-execution-time call, folded into the T-04 run because backend-dev owns that test file; it changes no
-requirement, and is disclosed to the operator for overrule.
+**THE EXPECTED-FAIL SET. Anything outside it is NEW and gates.** `run-unit-tests.sh --kind unit`
+exits 1 by design until T-02, T-05 and T-06 land. The red is exactly `test-lead-stop-and-wake.py`:
+  - `--group playbook` exits 1 — closes at **T-02**
+  - `--group coverage` exits 1 — closes at **T-05**
+  - `--group bound` exits 1 with THREE failures, all DECISIONS.md: `_6869_1`, `_6870_2`, `_6872_3`
+    — all close at **T-06**. The two former `inflight_registry.py_339` failures are CLOSED by T-04;
+    if either returns it is a regression, not expected red.
+`--self-check` and `--check-kinds` exit 0 today and must never go red. The qa segment therefore runs
+AFTER the last task, not before — its matrix cannot be green until T-06 lands.
 
-**DEPENDENCY REALITY — THE CRITICAL PATH IS BLOCKED ON THE OPERATOR.** `T-01 -> {T-02, T-04}`;
-`T-02 -> T-05 -> T-06`. T-01 is done, so **T-04 is the ONLY task the squad can run.** T-02 is
-main-session-direct, and T-05 and T-06 sit behind it. When T-04 returns there is nothing further to
-dispatch until the operator executes T-02.
+**THE DETECTOR WIDENING, DISCLOSED FOR OVERRULE.** DECISIONS.md:6872 reads "a second identical
+return ships"; the alternation spelled only the "will ship" variant at `inflight_registry.py:339`.
+D-11 and T-06 both mandate correcting 6872, but T-06's verify would have exited 0 whether or not it
+was touched. Widening it took DECISIONS.md from two occurrence failures to three — predicted, then
+confirmed. It changes no requirement; if the operator reads it as a spec change it backs out to pm.
 
-**BUILD STARTED.** feature.json is `Building`; `gh-sync.py open` created milestone #29, parent issue
-**#904**, and sub-issues **#905 (T-01), #906 (T-02), #907 (T-04), #908 (T-05), #909 (T-06)**.
-`status Building` and `start-task T-01` are both written. T-01 is `building` in plan.yaml.
+**SC-08 IS NOT GRADABLE FROM THIS BUILD AND MUST NOT BE SCORED FROM IT** (D-13, BRIEF.md). A spawned
+agent loads skills from the MAIN CHECKOUT while the rewritten playbook sits in this worktree.
+CORROBORATED THIS RUN: the eng lead reported the refusal that fired on it mid-run still printed the
+OLD sentence, because the `SubagentStop` hook resolves `inflight_registry.py` from the main checkout.
+Read nothing post-merge into this run's evidence. SC-08 stays `not_met` at ship.
 
-**ONE STALE ANCHOR ALREADY CONFIRMED.** T-01's intent calls `UNIT_SCRIPTS` line 17 of
-`run-unit-tests.sh`; it is **line 30** at HEAD. Every other number in the plan is orientation only
-and must be re-derived — `origin/main` carrying FEAT-42 was merged after the 8fc87f8 measurement.
-Two anchors DO still hold at HEAD: `.claude/skills/harness-team/SKILL.md` is 240 lines and
-`.harness/harness/docs/DECISIONS.md` is 7276.
+**EVERY LINE ANCHOR IN plan.yaml IS ORIENTATION ONLY** — measured at 8fc87f8 before `origin/main`
+(FEAT-42) merged. Four were found stale so far: `UNIT_SCRIPTS` is line 30 not 17, and the registry
+site is 339 not 274. Re-derive by TEXT, never by number.
 
-**AFTER THE STRIKE, EXACTLY ONE TASK IS main-session-direct: T-02.** The plan's `lanes:` block lists
-two NOBODY surfaces, but the second (`.claude/skills/harness/SKILL.md`) was T-03's and T-03 is
-struck. Re-measured at HEAD: `check-domain.sh --resolve` returns NOBODY for
-`.claude/skills/harness-team/SKILL.md` only; T-01/T-04 resolve to backend-dev and T-05/T-06 to
-documentor.
-
-**PLAN AND BRIEF ARE APPROVED, 2026-08-27, by the operator. FIVE tasks: T-01, T-02, T-04, T-05,
-T-06. Runs 8 of 20, cycles 0/10.**
-
-**ONE TASK WAS STRUCK AT SIGNATURE, with REQ-08 and SC-09.** It would have restored the
-orchestrator tier's own never-wait rule, which `c5e59aa` deleted one tier up. The operator ruled the
-lead-tier rule ships sooner without it. **The strike record is `plan.yaml` D-12** — that is the
-authority, and the struck id is named there rather than here, because a live STATE.md may not cite a
-task its plan no longer holds. The knock-on is applied: T-01 dropped its `orchestrator` group and
-that group's line from its verify block. Task numbering is NOT compacted, so every citation to T-04
-and later still resolves. The regression is real and returns to the backlog.
-
-**THE FALSE ATTRIBUTION IS CORRECTED.** `plan.yaml` D-12 and `BRIEF.md`'s scope section claimed the
-REQ-08 restore was the operator's own scope call. It was not — the operator delegated that call at
-re-plan and the orchestrator took it, then labelled its own choice as the operator's. Both documents
-now record that plainly, and the operator ruled on it for the first time at this signature.
-
-**`origin/main` WAS MERGED IN BEFORE THE SIGNATURE, and that was not routine.** The worktree sat
-**20 commits behind** — FEAT-42 had landed. Signing against a stale tree is exactly what forced the
-first withdrawal. Merge was clean, and every anchor was re-measured on the merged tree: the refusal
-sentence T-04 rewrites survives verbatim, DEC-174 amendment 4's write grant is at `DECISIONS.md:5011`,
-`DECISIONS.md` holds 201 level-two `DEC-` headings against 28 level-three, and the never-wait
-paragraph is still absent from the orchestrator playbook.
-
-**TWO PARAGRAPHS WENT FALSE WHEN FEAT-42 LANDED; ONE IS FIXED HERE.** T-04's intent said
-`refusal_lines` cites issue 551 where 866 measures 628, held deliberately out of scope. **FEAT-42
-already fixed it** — at `origin/main` that function cites 628, and `RELEASE_ALL_CMD` is retired as a
-printed remedy in favour of `release_cmd`, which is absolute and single-agent. T-04's paragraph is
-rewritten to say so; the instruction not to touch that function is unchanged.
-
-**BUILD ORDER.** T-01 alone first — it is the test file every other task's `verify:` calls, and
-nothing can be graded until it exists. T-02, T-04, T-05 and T-06 follow in plan order.
+**CHECK-STATE HAS TWO OPEN INV-26 VIOLATIONS THAT I CANNOT CLEAR** — T-01 and T-04 cards read
+Building while the plan says done. INV-26 accepts a non-Done card only when feature.json status is
+`Review`; `gh-sync.py` exposes no subcommand that moves a single task card to Done; and the mirror
+reference says to record `done` in plan.yaml and "run nothing else". Structural, not a missed step.
+`check-state.sh` is enforcement-layer, so under DEC-174 the fix is the operator's, not the squad's.
 
 ## Open Questions
 
