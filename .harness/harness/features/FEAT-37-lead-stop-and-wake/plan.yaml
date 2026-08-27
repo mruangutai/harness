@@ -238,7 +238,16 @@ tasks:
       this whole group green while grading nothing. The floor is what makes the group falsifiable.
       For each site, find every occurrence of the once-only phrasing with an alternation covering -
       fires at most once, fires ONCE, refusal fires once, a second identical return will ship,
-      one-correction-round. For EACH occurrence, take the SENTENCE containing it, defined as the text
+      A SECOND IDENTICAL RETURN SHIPS, one-correction-round.
+      THE PRESENT-TENSE MEMBER WAS ADDED AT BUILD TIME, 2026-08-27, AND THIS LINE IS THE
+      RECONCILIATION. The signed list spelled only the future-tense variant, which is the wording at
+      inflight_registry.py. DECISIONS.md:6872 carries the PRESENT tense - "a second identical return
+      ships" - and T-06's own intent mandates correcting exactly that sentence. So the signed
+      alternation could not see the one occurrence T-06 is told to fix, and T-06's verify would have
+      exited 0 whether the correction was made or not: the issue-804 shape D-05 exists to refuse,
+      reached through a self-contradiction inside this plan rather than through drift. The shipped
+      detector at test-lead-stop-and-wake.py ONCE_RE holds both members and the guard now names
+      three occurrences on DECISIONS.md where it named two. Do not narrow it back. For EACH occurrence, take the SENTENCE containing it, defined as the text
       between the previous and the next sentence-terminating period-space or newline-newline
       boundary. The occurrence is ACCEPTABLE when either
         (a) that sentence also matches a qualifier alternation covering - per consecutive stop
