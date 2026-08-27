@@ -708,7 +708,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 am.4 category — its body is exec_module-loaded by context-watch-hook.py, a registered PostToolUse hook
     depends_on: [T-03]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/context-watch.py
     verify: |
@@ -742,7 +742,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: not in the am.4 enumeration and it refuses nothing, but it DELETES worktrees and this build runs inside one
     depends_on: [T-03]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/post-merge-sweep.sh
     verify: |

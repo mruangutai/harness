@@ -46,6 +46,14 @@ import re
 import sys
 import time
 
+# THE BIN DIRECTORY, AND THE ONE IMPORT THAT NEEDS IT. context-watch-hook.py already puts
+# this directory on sys.path before exec_module, and running this file as a CLI puts it
+# there too - the insert is here so neither entry point is the reason the other works.
+_BIN_DIR = os.path.dirname(os.path.abspath(__file__))
+if _BIN_DIR not in sys.path:
+    sys.path.insert(0, _BIN_DIR)
+import harness_boundary  # noqa: E402  (the path insert above has to come first)
+
 DEFAULT_PROJECTS_ROOT = os.path.expanduser("~/.claude/projects")
 
 FEATURE_RE = re.compile(r"FEAT-[0-9]+")
@@ -64,19 +72,20 @@ DEFAULT_CONTEXT_WARN_TOKENS = 200000
 DEFAULT_LOG_RETENTION_DAYS = 30
 
 
-def _repo_root_from_script():
-    """The repo root, derived from this script's own on-disk location:
-    .agents/skills/harness/bin/context-watch.py -> repo root, four
-    directories up. No environment lookup, no cwd dependence."""
-    bin_dir = os.path.dirname(os.path.abspath(__file__))
-    harness_skill_dir = os.path.dirname(bin_dir)
-    skills_dir = os.path.dirname(harness_skill_dir)
-    claude_dir = os.path.dirname(skills_dir)
-    return os.path.dirname(claude_dir)
-
-
 def default_config_path():
-    return os.path.join(_repo_root_from_script(), ".harness", "harness.json")
+    """The config path, rooted at harness_boundary's NON-PROBING entry point.
+
+    What stood above this was four-levels-up arithmetic written a third time, identical
+    to the copies in factory_config and post-merge-sweep (FEAT-42 T-08).
+
+    root_from_script, NOT resolve_root, and the difference is the point: this module is
+    loaded through exec_module by context-watch-hook.py on every PostToolUse, so it must
+    touch no filesystem and must not raise on a tree nobody has probed. root_from_script
+    is pure path arithmetic and is the deleted function's exact behaviour, with one
+    implementation instead of three.
+    """
+    return os.path.join(harness_boundary.root_from_script(_BIN_DIR),
+                        ".harness", "harness.json")
 
 
 def resolve_threshold(config_path):
