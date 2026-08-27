@@ -2476,7 +2476,7 @@ def case_inv29():
     # (a) through (d) and (f) and fails exactly this.
     with tempfile.TemporaryDirectory() as tmp:
         probe = _i29_repo(os.path.join(tmp, "P"))
-        # THE SPEC.md IS LOAD-BEARING, not scaffolding. factory_config.harness_root() honours
+        # THE SPEC.md IS LOAD-BEARING, not scaffolding. factory_config's own root resolver honours
         # CLAUDE_PROJECT_DIR only when that directory holds a READABLE
         # `.harness/harness/docs/SPEC.md` (factory_config.py:39, :48) — otherwise it falls back
         # to the SCRIPT's own location and FLEET_PATH resolves to the REAL harness fleet.
@@ -2550,7 +2550,7 @@ def case_inv29():
         # ever ran what it printed. This clause runs it verbatim and asserts the worktree is gone.
         #
         # THE SAFETY ASSERTION IS NOT OPTIONAL. feature-worktree.py resolves owner_root from
-        # factory_config.harness_root(), which honours CLAUDE_PROJECT_DIR only when that directory
+        # factory_config's own root resolver, which honours CLAUDE_PROJECT_DIR only when that directory
         # holds a readable .harness/harness/docs/SPEC.md. Without the probe file it falls back to
         # the SCRIPT's own location — the REAL harness checkout — and this case would delete a live
         # worktree. So the probe is written first and the resolved path is asserted inside the

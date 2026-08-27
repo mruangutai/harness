@@ -310,7 +310,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: [T-03]
-    status: pending
+    status: building
     files:
       - .claude/skills/harness/bin/factory_config.py
       - .claude/skills/harness/bin/board_lifecycle.py
@@ -387,7 +387,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: [T-03]
-    status: pending
+    status: building
     files:
       - .claude/skills/harness/bin/gen-decisions-index.py
       - .claude/skills/harness/bin/validate-feature-json.py
@@ -437,7 +437,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: [T-03]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/inflight_registry.py
       - .claude/skills/harness/bin/test-inflight-registry.py

@@ -146,6 +146,51 @@ def case_resolve_root_strict():
         shutil.rmtree(tmp_derived, ignore_errors=True)
 
 
+# ==================== resolve_root_override_normalises_relative ====================
+
+def case_resolve_root_override_normalises_relative():
+    """A marker-carrying override must resolve to the SAME absolute path whether it
+    is spelled absolute or relative — resolve_root's other return path already goes
+    through os.path.abspath via root_from_script, so a bare relative override is the
+    one path that used to return non-normalised (e.g. '.')."""
+    mod = hb()
+    tmp_override = tempfile.mkdtemp()
+    tmp_derived = tempfile.mkdtemp()
+    old_env = os.environ.get("HARNESS_PROJECT_DIR")
+    old_cwd = os.getcwd()
+    try:
+        write_marker(tmp_override)
+        bin_dir = os.path.join(tmp_derived, "a", "b", "c", "bin")
+        os.makedirs(bin_dir)
+
+        os.environ["HARNESS_PROJECT_DIR"] = tmp_override
+        absolute_got = mod.resolve_root(bin_dir, strict=True)
+
+        parent = os.path.dirname(tmp_override)
+        rel = os.path.relpath(tmp_override, parent)
+        os.chdir(parent)
+        os.environ["HARNESS_PROJECT_DIR"] = rel
+        relative_got = mod.resolve_root(bin_dir, strict=True)
+
+        # realpath, not just abspath, on both sides for the comparison: on macOS
+        # os.getcwd() after os.chdir() resolves /tmp's symlink to /private/tmp, so a
+        # literal-string compare against mkdtemp()'s unresolved path would fail on an
+        # OS artifact unrelated to resolve_root's own normalisation, which is what
+        # this case exists to check.
+        check("resolve_root_override_relative_normalises_to_same_absolute_path",
+              os.path.realpath(relative_got) == os.path.realpath(absolute_got)
+              and os.path.isabs(relative_got),
+              f"absolute override -> {absolute_got!r}, relative override -> {relative_got!r}")
+    finally:
+        os.chdir(old_cwd)
+        if old_env is None:
+            os.environ.pop("HARNESS_PROJECT_DIR", None)
+        else:
+            os.environ["HARNESS_PROJECT_DIR"] = old_env
+        shutil.rmtree(tmp_override, ignore_errors=True)
+        shutil.rmtree(tmp_derived, ignore_errors=True)
+
+
 # ============================== root_above ==============================
 
 def case_root_above():
@@ -197,6 +242,7 @@ def main():
     run_case(case_marker_constant)
     run_case(case_root_from_script)
     run_case(case_resolve_root_strict)
+    run_case(case_resolve_root_override_normalises_relative)
     run_case(case_root_above)
 
     if failures:

@@ -4,7 +4,7 @@
   "pr": null,
   "status": "Building",
   "review_sha": "none",
-  "cycles_used": 4,
+  "cycles_used": 5,
   "max_total_cycles": 10,
   "max_total_runs": 20,
   "runs": [
@@ -43,6 +43,12 @@
       "squad": "engineering",
       "agent": "harness-eng-lead",
       "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-26-7-eng",
+      "squad": "engineering",
+      "agent": "harness-eng-lead",
+      "verdict": "BLOCKED"
     }
   ],
   "github": {

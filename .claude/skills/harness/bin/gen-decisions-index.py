@@ -17,6 +17,10 @@ import os
 import re
 import sys
 
+import harness_boundary
+
+_BIN_DIR = os.path.dirname(os.path.abspath(__file__))
+
 DOCS_DIR = os.path.join(".harness", "harness", "docs")
 DECISIONS_PATH = os.path.join(DOCS_DIR, "DECISIONS.md")
 INDEX_PATH = os.path.join(DOCS_DIR, "DECISIONS-INDEX.md")
@@ -400,7 +404,7 @@ def parse_argv(argv):
 def main():
     stdout_mode = parse_argv(sys.argv[1:])
 
-    project_dir = (os.environ.get("HARNESS_PROJECT_DIR") or os.environ.get("CLAUDE_PROJECT_DIR")) or os.getcwd()
+    project_dir = harness_boundary.resolve_root(_BIN_DIR)
     os.chdir(project_dir)
 
     if not os.path.isfile(DECISIONS_PATH):

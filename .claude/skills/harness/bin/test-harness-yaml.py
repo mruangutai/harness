@@ -269,26 +269,34 @@ def test_bootstrap_marker_lifecycle():
 def test_marker_self_unlinks_when_yaml_imports():
     """require_or_die() unlinks an existing marker and returns normally when
     yaml is importable. A bare `import harness_yaml` must NOT touch the marker
-    — the module's only import-time behaviour is the single `import yaml`."""
+    — the module's only import-time behaviour is the single `import yaml`.
+
+    require_or_die()'s root comes from harness_boundary.resolve_root(_BIN_DIR)
+    (FEAT-42 T-05), which reads HARNESS_PROJECT_DIR only and requires the override
+    to carry team-config.yaml (MARKER) — the retired CLAUDE_PROJECT_DIR no longer
+    redirects it at all."""
     import harness_yaml as hy
 
     with tempfile.TemporaryDirectory() as tmp:
         harness_dir = os.path.join(tmp, ".harness")
         os.makedirs(harness_dir, exist_ok=True)
         marker = os.path.join(harness_dir, ".pyyaml-bootstrap")
+        with open(os.path.join(harness_dir, "team-config.yaml"), "w", encoding="utf-8") as f:
+            f.write("")  # MARKER, required for HARNESS_PROJECT_DIR to be honoured
 
         with open(marker, "w", encoding="utf-8") as f:
             f.write("sess-A")
 
-        orig_project_dir = (os.environ.get("HARNESS_PROJECT_DIR") or os.environ.get("CLAUDE_PROJECT_DIR"))
-        os.environ["CLAUDE_PROJECT_DIR"] = tmp
+        orig_project_dir = os.environ.get("HARNESS_PROJECT_DIR")
+        os.environ.pop("CLAUDE_PROJECT_DIR", None)
+        os.environ["HARNESS_PROJECT_DIR"] = tmp
         try:
             hy.require_or_die()  # yaml is importable in this environment (T-01)
         finally:
             if orig_project_dir is None:
-                os.environ.pop("CLAUDE_PROJECT_DIR", None)
+                os.environ.pop("HARNESS_PROJECT_DIR", None)
             else:
-                os.environ["CLAUDE_PROJECT_DIR"] = orig_project_dir
+                os.environ["HARNESS_PROJECT_DIR"] = orig_project_dir
         assert not os.path.exists(marker), "require_or_die() must unlink the marker"
 
         # Recreate the marker; a bare import (no require_or_die/require_or_bootstrap
@@ -296,12 +304,85 @@ def test_marker_self_unlinks_when_yaml_imports():
         with open(marker, "w", encoding="utf-8") as f:
             f.write("sess-A")
         env = dict(os.environ)
-        env["CLAUDE_PROJECT_DIR"] = tmp
+        env.pop("CLAUDE_PROJECT_DIR", None)
+        env["HARNESS_PROJECT_DIR"] = tmp
         subprocess.run(
             [sys.executable, "-c", "import harness_yaml"],
             cwd=BIN_DIR, env=env, check=True,
         )
         assert os.path.exists(marker), "a bare import must not unlink the marker"
+
+
+def test_require_or_die_ignores_the_retired_project_dir_variable():
+    """CLAUDE_PROJECT_DIR alone must not redirect require_or_die()'s root — only
+    HARNESS_PROJECT_DIR does (FEAT-42 T-05). Proven by pointing CLAUDE_PROJECT_DIR at
+    a tmp tree carrying a stale marker and confirming that marker is left untouched
+    — require_or_die() fell through to the real repo root instead, exactly as
+    harness_boundary.resolve_root's contract requires."""
+    import harness_yaml as hy
+
+    with tempfile.TemporaryDirectory() as tmp:
+        harness_dir = os.path.join(tmp, ".harness")
+        os.makedirs(harness_dir, exist_ok=True)
+        marker = os.path.join(harness_dir, ".pyyaml-bootstrap")
+        with open(marker, "w", encoding="utf-8") as f:
+            f.write("sess-A")
+
+        orig_claude = os.environ.get("CLAUDE_PROJECT_DIR")
+        orig_harness = os.environ.get("HARNESS_PROJECT_DIR")
+        os.environ.pop("HARNESS_PROJECT_DIR", None)
+        os.environ["CLAUDE_PROJECT_DIR"] = tmp
+        try:
+            hy.require_or_die()
+        finally:
+            os.environ.pop("CLAUDE_PROJECT_DIR", None)
+            if orig_claude is not None:
+                os.environ["CLAUDE_PROJECT_DIR"] = orig_claude
+            if orig_harness is not None:
+                os.environ["HARNESS_PROJECT_DIR"] = orig_harness
+        assert os.path.exists(marker), (
+            "CLAUDE_PROJECT_DIR redirected require_or_die()'s root — it must be inert"
+        )
+
+
+def test_require_or_die_survives_a_missing_harness_boundary():
+    """require_or_die()'s root-resolution is used for exactly one thing: best-effort
+    unlink of the PyYAML bootstrap marker (`_marker_path`, reached only inside
+    `if yaml is not None:`). That cleanup must not be able to abort every caller of
+    require_or_die() — including check-state.sh, the canonical pre-commit state
+    checker — when harness_boundary.py (a DIFFERENT module) is missing or its
+    resolve_root() raises.
+
+    Regression: FEAT-42 T-05 added a lazy `import harness_boundary` inside
+    require_or_die(). In an isolated bin/ carrying only harness_yaml.py (no
+    harness_boundary.py — check-state.sh's own u.7/x.5 fixtures build exactly this),
+    that import raised ModuleNotFoundError UNCAUGHT, so require_or_die() crashed with
+    a raw traceback and exit 1 instead of returning normally — exit 1 is
+    NON-BLOCKING, and worse, check-state.sh never reached its own later, PROPERLY
+    guarded INV-25/INV-27 checks at all. Fail-open, same class as the module-level
+    import T-05 already fixed for bash-write-guard.sh/check-domain.sh, one caller
+    later."""
+    import shutil
+
+    with tempfile.TemporaryDirectory() as tmp:
+        isobin = os.path.join(tmp, "bin")
+        os.makedirs(isobin)
+        shutil.copy(os.path.join(BIN_DIR, "harness_yaml.py"),
+                    os.path.join(isobin, "harness_yaml.py"))
+        # Deliberately NO harness_boundary.py in isobin.
+        env = dict(os.environ)
+        env.pop("CLAUDE_PROJECT_DIR", None)
+        env.pop("HARNESS_PROJECT_DIR", None)
+        r = subprocess.run(
+            [sys.executable, "-c",
+             "import harness_yaml; harness_yaml.require_or_die(); print('OK')"],
+            cwd=isobin, capture_output=True, text=True, env=env,
+        )
+        assert r.returncode == 0 and r.stdout.strip() == "OK", (
+            f"require_or_die() must survive a missing harness_boundary.py, not crash "
+            f"before its caller's own guarded checks ever run: exit {r.returncode}, "
+            f"stdout={r.stdout!r} stderr={r.stderr!r}"
+        )
 
 
 def test_exactly_one_guarded_import_in_the_tree():
@@ -719,6 +800,8 @@ TESTS = [
     test_manifest_domains_excludes_non_canonical_read_true,
     test_bootstrap_marker_lifecycle,
     test_marker_self_unlinks_when_yaml_imports,
+    test_require_or_die_ignores_the_retired_project_dir_variable,
+    test_require_or_die_survives_a_missing_harness_boundary,
     test_exactly_one_guarded_import_in_the_tree,
     # REGISTERED, and the first attempt was not. This file collects from an
     # explicit list, so a test appended after it is defined and never run —

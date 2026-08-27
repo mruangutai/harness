@@ -34,7 +34,9 @@ import json
 import os
 import subprocess
 
-import factory_config
+import harness_boundary
+
+_BIN_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # The exact call this module issues to read the counter — nothing else. Also the recursion
 # guard: measured() must never wrap this call with another measurement, or reading the counter
@@ -106,9 +108,9 @@ def _sanitize_argv(argv):
 
 
 def _log_path():
-    """Resolved INSIDE record(), never cached at import — factory_config.harness_root() honours
-    CLAUDE_PROJECT_DIR only when it is set at call time (see factory_config.py's docstring)."""
-    root = factory_config.harness_root()
+    """Resolved INSIDE record(), never cached at import — harness_boundary.resolve_root() honours
+    HARNESS_PROJECT_DIR only when it is set at call time (see harness_boundary.py's docstring)."""
+    root = harness_boundary.resolve_root(_BIN_DIR)
     day = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d")
     return os.path.join(root, ".harness", "logs", f"gh-cost-{day}.jsonl")
 

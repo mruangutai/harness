@@ -65,7 +65,7 @@ def resolve_root(bin_dir, strict=True):
     override = os.environ.get("HARNESS_PROJECT_DIR")
     if override:
         if os.path.isfile(os.path.join(override, MARKER)):
-            return override
+            return os.path.abspath(override)
         print(
             f"harness_boundary: discarding HARNESS_PROJECT_DIR={override!r} — it does "
             f"not carry {MARKER}. Falling back to the derived root {derived!r}.",
@@ -290,17 +290,19 @@ def resolve_fleet(root, label):
     if not os.path.exists(fleet_path):
         return None, [], fleet_path
     try:
-        # LAZY, and stderr-muzzled for the import statement ONLY. Measured: under a root
-        # holding no .harness/harness/docs/SPEC.md, importing factory_config prints a discard
-        # notice to stderr — which would reach the agent on every governed write from a
-        # fixture root, as noise indistinguishable from a real verdict.
+        # LAZY, and stderr-muzzled for the import statement ONLY. factory_config's own
+        # FLEET_PATH resolves at import time from ITS OWN on-disk location, never from
+        # `root` below — so importing it can still print a discard notice to stderr if
+        # the caller's HARNESS_PROJECT_DIR happens to be set without carrying MARKER.
+        # Muzzled so that noise never reaches the agent on a governed write, indistinguishable
+        # from a real verdict.
         import io
         import contextlib
         with contextlib.redirect_stderr(io.StringIO()):
             import factory_config
         # The EXPLICIT path, never factory_config.FLEET_PATH: that constant is computed
-        # at import time from that module's own root probe (.harness/harness/docs/SPEC.md), which
-        # is not this hook's probe (.harness/team-config.yaml). Under a fixture root the
+        # at import time from resolve_root(factory_config's own bin dir) — always the LIVE
+        # checkout's fleet.yaml, never this hook's `root` argument. Under a fixture root the
         # two disagree and the constant names the live repository.
         fleet = factory_config.load_fleet(fleet_path)
         bases = [real(factory_config.workspace_path(fleet, e["name"]))

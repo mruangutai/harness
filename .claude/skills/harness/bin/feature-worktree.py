@@ -7,7 +7,7 @@ cannot be asserted (D-01) — so the worktree lifecycle ships as one CLI here, w
 
 --repo accepts exactly two forms:
 
-  harness            the harness repository itself. owner_root is factory_config.harness_root().
+  harness            the harness repository itself. owner_root is harness_boundary.resolve_root.
                       The repository path segment is the literal "harness". The default branch
                       is "main".
   owner/repo         a repository declared in .harness/factory/fleet.yaml's repos list. The
@@ -30,6 +30,8 @@ import os
 import re
 import subprocess
 import sys
+
+_BIN_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # Module-level gate constants. T-01 declares them; T-02's `remove` reads them by name to decide
 # whether to refuse a dirty tree or an unlanded artifact directory. A test proves its assertions
@@ -63,8 +65,8 @@ def resolve_repo(repo):
     """Return (owner_root, segment, default_branch) for --repo's two accepted forms. Exits 2 on
     every failure to resolve, per the CLI's contract."""
     if repo == "harness":
-        import factory_config
-        return factory_config.harness_root(), "harness", "main"
+        hb = _harness_boundary()
+        return hb.resolve_root(_BIN_DIR), "harness", "main"
 
     if "/" not in repo:
         sys.stderr.write(

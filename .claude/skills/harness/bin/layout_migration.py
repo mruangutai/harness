@@ -95,9 +95,13 @@ READER_TABLE = [
     Row("features", ".agents/skills/harness/bin/check-state.sh",
         r'os\.path\.join\(H, "features"',  # balance: )
         r'os\.path\.join\(H, [^,)]+, "features"'),
-    Row("docs", ".agents/skills/harness/bin/factory_config.py",
-        r'os\.path\.join\("docs", "harness"',  # balance: )
-        r'os\.path\.join\("\.harness", [^,)]+, "docs"'),
+    # factory_config.py's own docs-path row was removed here (FEAT-42 T-04): the root
+    # resolution that used to build a literal .harness/<seg>/docs path in this file was
+    # deleted wholesale and delegated to harness_boundary.resolve_root, which resolves
+    # from HARNESS_PROJECT_DIR + the team-config.yaml MARKER, never from a docs/SPEC.md
+    # path string — so this file is no longer a coupled reader of the docs surface at
+    # all, and no regex on its text can distinguish legacy from migrated any more. The
+    # docs surface stays covered by its other two rows below.
     Row("docs", ".agents/skills/harness/bin/gen-decisions-index.py",
         r'os\.path\.join\("docs", "harness"|docs/harness/',  # balance: )
         r'os\.path\.join\("\.harness", [^,)]+, "docs"|\.harness/[^/ ]+/docs/'),

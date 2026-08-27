@@ -2,8 +2,9 @@
 """board_lifecycle.py provision must get these right — offline, against a fake gh (FEAT-33 T-04).
 
 Modeled on test-board-station.py's shape (same `check()` convention) but board_lifecycle.py
-resolves its root via `factory_config.harness_root()` (CLAUDE_PROJECT_DIR + the SPEC.md probe),
-never board-station.py's own team-config.yaml walk-up, so the fixture writes that probe instead.
+resolves its root via `harness_boundary.resolve_root()` (HARNESS_PROJECT_DIR + the
+team-config.yaml MARKER), never board-station.py's own team-config.yaml walk-up, so the fixture
+writes that marker instead.
 
 THE FAKE-BINARY TRAP (D-11): every case sets BOTH FACTORY_GH and GH_SYNC_GH to the SAME fake, even
 though board_lifecycle.py itself only imports factory_gh — a future refactor routing some call
@@ -22,7 +23,7 @@ import tempfile
 HERE = os.path.dirname(os.path.abspath(__file__))
 SCRIPT = os.path.join(HERE, "board_lifecycle.py")
 sys.path.insert(0, HERE)
-import factory_config  # noqa: E402 -- only to read the SPEC.md probe path, never imported twice
+import harness_boundary  # noqa: E402 -- only to read the MARKER path, never imported twice
 
 FAILURES = []
 
@@ -36,13 +37,14 @@ def check(name, cond, detail=""):
 
 
 def write_root(root, github, fleet=None):
-    """A temp root carrying the SPEC.md probe factory_config.harness_root() needs, plus
-    harness.json's github block. `fleet` (dict or None) writes .harness/factory/fleet.yaml only
-    when given -- most cases never touch a fleet at all, mirroring test-factory-integration.py's
-    own make_root, which never carries fleet.yaml unless a case needs it."""
-    os.makedirs(os.path.join(root, os.path.dirname(factory_config._PROBE)), exist_ok=True)
-    with open(os.path.join(root, factory_config._PROBE), "w", encoding="utf-8") as f:
-        f.write("stub probe for T-04\n")
+    """A temp root carrying the team-config.yaml MARKER harness_boundary.resolve_root() needs,
+    plus harness.json's github block. `fleet` (dict or None) writes .harness/factory/fleet.yaml
+    only when given -- most cases never touch a fleet at all, mirroring
+    test-factory-integration.py's own make_root, which never carries fleet.yaml unless a case
+    needs it."""
+    os.makedirs(os.path.join(root, os.path.dirname(harness_boundary.MARKER)), exist_ok=True)
+    with open(os.path.join(root, harness_boundary.MARKER), "w", encoding="utf-8") as f:
+        f.write("teams: []\n")
     os.makedirs(os.path.join(root, ".harness"), exist_ok=True)
     with open(os.path.join(root, ".harness", "harness.json"), "w", encoding="utf-8") as f:
         json.dump({"schema_version": 1, "github": github}, f)
@@ -360,7 +362,7 @@ def _stub_env(root, resolve=_RESOLVE_EXISTS, probe=_PROBE_SINGLE_SELECT,
     gh_path = install_gh(tmp)
     log_path = os.path.join(tmp, "calls.log")
     env = dict(os.environ)
-    env["CLAUDE_PROJECT_DIR"] = root
+    env["HARNESS_PROJECT_DIR"] = root
     env["FACTORY_GH"] = gh_path
     env["GH_SYNC_GH"] = gh_path
     env["FAKE_LOG"] = log_path
