@@ -117,6 +117,14 @@ decisions:
     choice: SC-08 is DEFERRED to a post-merge run by the operator and is not graded from this feature's own build phase, even though this build is a real lead dispatching real members
     because: the option was tested first because it costs no extra run and it fails on a measured fact already in the record - DEC-201 states that a spawned agent loads its skills from the MAIN CHECKOUT while the rewritten playbook is committed in a worktree, so no lead spawned during this build reads the edited .claude/skills/harness-team/SKILL.md and any sidecar produced here grades the OLD text. Grading SC-08 from this build would therefore be evidence for the wrong file, which is worse than no evidence; issue 866's registry keying is a second, weaker reason and not the deciding one
     dec: DEC-201
+  - id: D-14
+    choice: THE EVAL IS AUTHORED, NOT EXCLUDED, and the amendment carries its runner with it. Three parts. ONE - DEC-70 requires eval for change_type ai_behavior and T-02 is ai_behavior, so the requirement stands; test_kinds.eval reads cmd null with status unresolved, and unresolved is NOT excluded. The excluded shape carries excluded_because and signed, which DEC-187 gave functional and nobody ever gave eval, so no soft-skip reading is available and none is to be revived. TWO - the eval is authored by the MAIN SESSION, not by harness-ai-dev, because at 899e4a6 check-domain.sh --resolve returns NOBODY for evals/ and the PreToolUse guard BLOCKS harness-ai-dev on evals/lead-never-wait/cases.yaml with exit 2, the permitted set for that agent in this checkout being only its notes, expertise and observations; DEC-179 makes a NOBODY surface a declared main-session step, exactly as it did for T-02. DEC-70's authorship rationale survives the substitution because the hand that wrote the playbook text under test IS the main session - T-02 is itself main-session-direct - and the split DEC-70 actually protects is author versus gate, which is untouched - qa runs and gates the eval, validator-lead assesses its adequacy in the panel. THREE - the runner is resolved INSIDE this feature by T-08, harness-dev-ops writing test_kinds.eval.cmd in .harness/harness.json, because a perfect eval behind a null cmd leaves the qa gate exactly as blocked as it is now
+    because: an exclusion would have been a signature on a claim the config does not support, and PRINCIPLES rule 7 makes a gate that resolves to nothing worse than an absent one; deferring the runner to work outside the feature was tested first and rejected on its terminal state - the feature would ship with an authored eval that nothing executes and a qa gate that stays BLOCKED on ai_behavior indefinitely, which is the hole the amendment exists to close, and it saves no run because the eval still has to be authored either way. The cost of the chosen route is named - the main session authoring the eval is a deviation from DEC-70's named author, and a deterministic grader over a dataset its own author labelled is weaker evidence than a unit test, which DEC-70 already states as its accepted tradeoff
+    dec: DEC-70
+  - id: D-15
+    choice: T-07 carries change_type scaffolding, not ai_behavior, even though its subject is the ai_behavior change T-02 made
+    because: the test matrix maps ai_behavior to always eval, so a task whose DELIVERABLE is the eval would be gated by the artifact it is producing and could never pass its own gate; scaffolding maps to always empty, which is the honest classification for building test apparatus. The discrimination that would otherwise be lost is not dropped - it moves into T-07's own verify block, which must prove the eval flags every labelled violating case and none of the compliant ones before the task is done
+    dec: DEC-70
 tasks:
   - id: T-01
     title: Add test-lead-stop-and-wake.py guarding the lead rule, the corrected bound and DEC-201's lead-tier coverage
@@ -753,3 +761,132 @@ tasks:
       The regeneration is still required and is not optional: your edit to DEC-199's body shifts
       every line anchor below it, including DEC-200's, DEC-201's and DEC-202's, and those anchors are
       the generated half of each row.
+  - id: T-07
+    title: Author the eval that discriminates the lead playbook's never-wait rule and its inoculation clauses
+    traces: [REQ-01, REQ-02, REQ-03, REQ-04]
+    change_type: scaffolding
+    execution_mode: main-session-direct
+    execution_reason: check-domain.sh --resolve returns NOBODY for evals/lead-never-wait/run-eval.py at 899e4a6 and the PreToolUse guard BLOCKS harness-ai-dev writing evals/lead-never-wait/cases.yaml with exit 2, so DEC-179 forces a declared main-session step; this is the same lane T-02 took, and D-14 records why DEC-70's named author cannot hold in this checkout
+    depends_on: [T-02]
+    status: pending
+    files:
+      - evals/lead-never-wait/run-eval.py
+      - evals/lead-never-wait/cases.yaml
+      - evals/lead-never-wait/RUBRIC.md
+    verify: |
+      cd "$(git rev-parse --show-toplevel)"
+      python3 evals/lead-never-wait/run-eval.py --dataset evals/lead-never-wait/cases.yaml; e=$?
+      python3 evals/lead-never-wait/run-eval.py --dataset evals/lead-never-wait/cases.yaml --prove-discrimination; d=$?
+      echo "eval=$e discrimination=$d"
+      test "$e" -eq 0 -a "$d" -eq 0 && echo T07_PASS || echo T07_FAIL
+    intent: |
+      Author the eval DEC-70 requires for T-02. You are writing the eval itself, its reference
+      dataset, its rubric and its threshold - four things, and DEC-70 names all four.
+
+      THE PATH IS NOT NEGOTIABLE. test_kinds.eval.detect is "evals/**|tests/**eval**" in
+      .harness/harness.json, so an eval written anywhere else is invisible to the kind that is
+      supposed to gate it. Write under evals/lead-never-wait/ at the repository root. The directory
+      does not exist at 899e4a6; create it.
+
+      WHAT THE EVAL MUST DISCRIMINATE - this is the whole of its job, and a general "does the lead
+      behave well" grader does NOT satisfy it. The subject is a LEAD'S TURN AFTER IT DISPATCHED A
+      MEMBER, and the four behaviours the T-02 playbook rewrite installs, each of which needs its own
+      labelled positive and its own labelled negative in the dataset:
+        ONE - NEVER WAIT. A compliant turn ENDS after the dispatch. A violating turn polls, sleeps,
+        re-reads files to look busy, or restates that it is waiting. The violating shapes are the
+        discriminating cases; a dataset that only holds compliant turns proves nothing.
+        TWO - THE OVERRIDE OF THE TOOL'S OWN NUDGE. The dispatch result tells the caller to continue
+        other work in the meantime. A violating turn cites that nudge, explicitly or in substance, as
+        licence to stay alive and manufacture activity. This case must be present and it must be
+        distinguishable from case ONE - a turn that stays alive doing plausible REAL work is the
+        exact state SC-04 calls not_met while SC-01 passes, so an eval blind to it repeats the gap
+        the feature was built to close.
+        THREE - THE INOCULATION. A turn-ending return meeting a live child is REFUSED; stderr reads
+        BLOCKED, returned with children in flight. A compliant turn ENDS THE TURN AGAIN. A violating
+        turn reads the refusal as an instruction to stay alive, or claims a verdict about the child
+        it cannot see. Include a case where the refusal RECURS on a later wake while a child is still
+        live, because a lead told only that it fires once is being told something false.
+        FOUR - THE LOOP SPANS TURNS. A violating turn treats the dispatch-to-collect loop as one
+        continuous turn, or collects returns by staying alive to receive them rather than on waking.
+
+      THE REFERENCE DATASET. evals/lead-never-wait/cases.yaml holds labelled lead-turn transcripts,
+      each with an id, the transcript text, a label of compliant or violating, and for a violating
+      case which of the four behaviours it violates. AT LEAST ONE CASE PER BEHAVIOUR ON EACH SIDE,
+      and the violating side is the one that must be rich. Draw the violating cases from REAL
+      RECORDED MATERIAL where it exists - this feature's own run notes and probe transcripts under
+      .harness/harness/features/FEAT-37-lead-stop-and-wake/ carry observed lead turns and observed
+      refusals - and synthesise only what the record does not supply. Say in RUBRIC.md which cases
+      are recorded and which are synthetic. A dataset entirely written by the same hand that wrote
+      the grader is a closed loop and its result is worth less; naming the closure is the minimum,
+      reducing it with real transcripts is better.
+
+      THE RUBRIC AND THE THRESHOLD. RUBRIC.md states, in prose, what a compliant turn looks like,
+      what each of the four violations looks like, and the threshold the eval passes at. The
+      threshold is a DISCRIMINATION requirement, not a quality score - the eval passes when the
+      grader flags every labelled violating case and flags none of the labelled compliant ones. When
+      the eval is later pointed at unlabelled live transcripts it reports a measured compliance RATE
+      against the same rubric; DEC-70 requires a threshold and a measured rate rather than a boolean,
+      so print both the per-case verdicts and the rate.
+
+      THE RUNNER. evals/lead-never-wait/run-eval.py takes --dataset, grades every case, prints one
+      line per case and a final rate line, and exits 0 only if the threshold is met. It must also
+      accept --prove-discrimination, which asserts the grader's RED state: that each labelled
+      violating case is in fact flagged, and that a compliant case with the key sentence removed
+      becomes flagged. A grader that cannot be shown to fail is not evidence. Keep the whole run
+      under 60 seconds and free of network calls - the grader is deterministic and reads text.
+
+      WHAT THIS EVAL DOES NOT PROVE, and you must not write anything implying otherwise: it does not
+      prove that any live lead OBEYS the rule. It grades transcripts. SC-08 carries conduct and stays
+      not_met until the operator runs it after merge from the main checkout (D-13). This eval is the
+      instrument that run can be graded WITH, which is the strongest honest claim available for it.
+
+  - id: T-08
+    title: Resolve the eval runner so the qa gate has something to execute
+    traces: [REQ-01, REQ-02, REQ-03, REQ-04]
+    change_type: config
+    execution_mode: team
+    execution_agent: harness-dev-ops
+    depends_on: [T-07]
+    status: pending
+    files:
+      - .harness/harness.json
+    verify: |
+      cd "$(git rev-parse --show-toplevel)"
+      python3 -c 'import json,sys; k=json.load(open(".harness/harness.json"))["test_kinds"]["eval"]; sys.exit(0 if k.get("cmd") and k.get("status")=="active" and "_reason" not in k else 1)'; c=$?
+      cmd=$(python3 -c 'import json; print(json.load(open(".harness/harness.json"))["test_kinds"]["eval"]["cmd"])')
+      eval "$cmd"; r=$?
+      echo "config=$c run=$r"
+      test "$c" -eq 0 -a "$r" -eq 0 && echo T08_PASS || echo T08_FAIL
+    intent: |
+      test_kinds.eval in .harness/harness.json reads cmd null, status unresolved, with a _reason
+      saying detection has not run. T-07 has by now written an eval under evals/lead-never-wait/.
+      Your job is to make the eval kind EXECUTABLE, so the qa gate has a command to run for
+      change_type ai_behavior instead of a null it must treat as BLOCKED.
+
+      RUN THE COMMAND BEFORE YOU WRITE IT. The _test_kinds_note in this same file is explicit and it
+      is the rule you are working under: dev-ops replaces a null cmd with a command it has RUN and
+      SEEN PASS, never with a plausible-looking one. A command that reports a module-load error as a
+      failing suite is worse than the null it replaced.
+
+      THE EDIT, in .harness/harness.json, test_kinds.eval only:
+        set cmd to the command that runs the eval over its dataset and exits non-zero when the
+        threshold is not met;
+        set status to active;
+        DELETE the _reason field - leaving "detection has not run yet" beside a verified command is a
+        lie about the project's own config, and the note in this file says so.
+      Leave detect and exclude alone: detect is "evals/**|tests/**eval**" and T-07's files sit under
+      evals/, so it already matches. If they do not match when you check, STOP and report it rather
+      than widening the glob - a detect change is a scope question, not yours.
+
+      TOUCH NOTHING ELSE IN THIS FILE. Not functional, which is excluded under DEC-187 with a signed
+      decision; not component, ui or typecheck, which stay unresolved because no surface this feature
+      touches needs them; not the matrix, not the gates block, not the limits.
+
+      DEC-174 IS THE ONE THING TO CHECK BEFORE YOU WRITE. The carve-out covers hooks, validators and
+      gate SCRIPTS - check-domain.sh, bash-write-guard.sh, validate-digest.py, check-state.sh,
+      check-plan-routes.py, dispatch-guard.sh and their tests. .harness/harness.json is data, not a
+      script, and it is not in that set; check-domain.sh --resolve names harness-dev-ops as its
+      owner and the write guard admits you. The operator has been told this and has laned the task
+      to you. If anything you find at HEAD contradicts that - a gate script that reads
+      test_kinds.eval.cmd and changes its own behaviour on it - report it and STOP rather than
+      deciding it yourself.

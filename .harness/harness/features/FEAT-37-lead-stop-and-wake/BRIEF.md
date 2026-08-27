@@ -272,10 +272,12 @@ execute a markdown playbook. Conduct is carried by SC-08 alone, and SC-08 is `ua
   disk*. SC-04 and SC-05 are human reads. **SC-08 is the only evidence of
   conduct**, and it stays `not_met` until the operator runs it — after merge, from the main checkout,
   because a spawned agent loads its skills from there and not from this worktree (D-13).
-- `test_kinds.eval` has `cmd: null` and `status: unresolved`. T-02 is
-  `change_type: ai_behavior`, whose matrix requirement is `eval`, so that requirement **resolves to a
-  soft skip and proves nothing**. Disclosed, not routed around: the criteria above carry the feature,
-  and the missing `eval` runner is a standing dev-ops backlog gap this feature does not close.
+- `test_kinds.eval` has `cmd: null` and `status: unresolved` — and **`unresolved` is not
+  `excluded`**. The excluded shape carries `excluded_because` and a signed decision, which only
+  `functional` has (DEC-187). T-02 is `change_type: ai_behavior`, whose matrix requirement is `eval`,
+  so that requirement **BLOCKS at the qa gate** rather than resolving to a skip (DEC-36), and
+  DEC-70 makes the eval owed. The feature closes it rather than disclosing it: T-07 authors the eval
+  and T-08 gives the kind a runner it has run and seen pass.
 - `test_kinds.functional` (excluded, DEC-187), `component`, `ui` and `typecheck` are also null; none
   covers a surface this feature touches.
 - **SC-08's evidence is confounded by design** (see the run note

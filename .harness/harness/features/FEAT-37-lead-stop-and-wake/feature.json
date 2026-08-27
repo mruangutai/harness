@@ -85,6 +85,12 @@
       "squad": "validation",
       "agent": "harness-validator-lead",
       "verdict": "BLOCKED"
+    },
+    {
+      "id": "amend-eval-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "ESCALATE"
     }
   ],
   "github": {
