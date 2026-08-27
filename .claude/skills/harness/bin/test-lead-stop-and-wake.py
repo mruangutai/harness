@@ -265,7 +265,7 @@ def playbook_cases(text):
 
 ONCE_RE = re.compile(
     r"fires at most once|fires once|refusal fires once|a second identical return will ship"
-    r"|one-correction-round",
+    r"|a second identical return ships|one-correction-round",
     re.I,
 )
 QUALIFIER_RE = re.compile(
