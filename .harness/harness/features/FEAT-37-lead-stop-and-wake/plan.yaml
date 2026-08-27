@@ -11,9 +11,17 @@ feature: FEAT-37-lead-stop-and-wake
 
 approval:
   # Written by the MAIN SESSION only — the only tier with a user channel (DEC-120).
-  status: approved
-  approved_by: Mike Ruangutai
-  date: 2026-08-26
+  # WITHDRAWN 2026-08-27 by the operator. An eight-reader panel found three blockers:
+  # T-03's target paragraph was deleted by c5e59aa (#815) nine hours after this plan's
+  # 9165162 pin, so the task has no subject and its verify passes on zero occurrences;
+  # T-01 slices DECISIONS.md entries at level-3 headings when all 201 are level-2, so the
+  # coverage group can never pass and T-05/T-06 stall behind it; and SC-04's required
+  # override of the dispatch tool's own text is written into T-05's DECISIONS.md edit and
+  # never into T-02's playbook edit, so nothing delivers it. Re-plan against HEAD, then
+  # re-sign.
+  status: pending
+  approved_by:
+  date:
 
 source_issues: [831]
 

@@ -254,6 +254,11 @@ standing in another feature's worktree. Noted, no action.
 
 ## Approval
 
-status: approved
-approved_by: Mike Ruangutai
-date: 2026-08-26
+status: pending
+approved_by:
+date:
+withdrawn: 2026-08-27 — the plan is being re-derived against HEAD. SC-04 has no delivering
+instruction (the required override of the dispatch tool's text lives only in T-05's decision-record
+edit, never in T-02's playbook edit), and SC-07's third site carries no once-only claim at all
+because c5e59aa deleted the paragraph, so its check grades an empty set. BRIEF.md:213 and :216 also
+still spell the DEC-199 ruling AMEND, which plan.yaml's D-09 retired as a form.
