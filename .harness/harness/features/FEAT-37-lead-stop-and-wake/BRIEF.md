@@ -62,7 +62,8 @@ falsify the record — this is corrected here, whatever the operator rules on sc
 `grep -nEi "single-flight refusal|fires at most once|fires ONCE" .claude/skills/harness/SKILL.md`
 **exits 1**. The false sentence went — and so did the rule and the inoculation around it. What
 survives is `:60`, *"There is no waiting anywhere in this loop"*, **with nothing saying the refusal
-for stopping is expected.** That is the regression REQ-08 closes; see the scope call below.
+for stopping is expected.** That is a real regression, one tier up. It was offered as REQ-08 and **the operator STRUCK it at
+signature** — see the scope call below. It returns to the backlog as its own ticket.
 
 ## Goal
 
@@ -71,15 +72,16 @@ for a member, it ends its turn, the member's completion wakes it, the dispatch t
 not licence to stay alive, and a refusal on that turn-end is expected and answered by stopping again.
 Record its measured reason where the org's decisions live, correct the bound the record states
 falsely, and guard all of it with assertions a reword cannot silently defeat. **The orchestrator had
-this rule and lost it to `c5e59aa`'s trim on 2026-08-24; restoring it is REQ-08, the one addition the
-operator made at re-plan, and it is strikable on its own.**
+this rule and lost it to `c5e59aa`'s trim on 2026-08-24. Restoring it was offered as REQ-08 and the
+operator STRUCK it at signature; that regression returns to the backlog and is not this feature's
+work.**
 
 ## Scope — #831 only, by ruling
 
-`source_issues` is **`[831]`**. This feature fixes the loop, the record corrections rule 15 forces,
-and — by the operator's call at re-plan — the regression `c5e59aa` left one tier up. Nothing else.
-`plan.yaml` carries six tasks, T-01 to T-06; **T-03 was rewritten at re-plan** because its old
-subject no longer exists.
+`source_issues` is **`[831]`**. This feature fixes the loop and the record corrections rule 15
+forces. Nothing else. `plan.yaml` carries **five tasks — T-01, T-02, T-04, T-05, T-06** — after the
+operator struck T-03 at signature. **The numbering is not compacted**, so every existing citation to
+T-04 and later still resolves.
 
 **The #811 block was struck, and the shape it was struck from was chosen on purpose.** The plan
 originally isolated the #811 hook work as three contiguous tasks with nothing depending on them,
@@ -93,18 +95,20 @@ lead never attempted to stop and #551's refusal was never in that loop. With the
 the once-only bound this feature falsifies, so the ticket needs its premise rewritten before anyone
 works it. The operator does that himself; no task here spends effort on it.
 
-### The one scope addition — the operator's call, taken on 2026-08-27, and strikable in one line
+### The one scope addition — offered, and STRUCK by the operator at signature
 
-**This is the operator's decision, not the planner's.** He made it when he commissioned this re-plan,
-after the eight-reader panel surfaced the `c5e59aa` regression; it is written here because he signs
-this BRIEF and the signature is the approval.
+**Correcting the record first: this was never the operator's call, and an earlier draft of this
+BRIEF said it was.** The operator delegated the scope decision to the harness when commissioning the
+re-plan; the orchestrator took it and then labelled its own choice as the operator's. That
+attribution was false. The operator ruled on it for the first time at signature — and **struck it**.
 
-The orchestrator tier lost its never-wait rule and its inoculation to `c5e59aa`, nine hours after the
-withdrawn plan pinned `9165162`. It enters this feature as **REQ-08**, carried by **T-03 alone**, and
-graded by **SC-09 alone**. T-03 depends only on T-01's guard, **nothing depends on T-03**, and
-striking `REQ-08`, `T-03` and `SC-09` leaves #831 whole — one line at signature does it, and the only
-knock-on is that T-01 drops its `orchestrator` test group. It is not folded into REQ-04 or any other
-requirement, and it is deliberately not deferred to a ticket.
+What was offered: the orchestrator tier lost its never-wait rule and its inoculation to `c5e59aa`,
+nine hours after the withdrawn plan pinned `9165162`. Restoring it would have entered as **REQ-08**,
+carried by **T-03 alone** and graded by **SC-09 alone**.
+
+**All three are removed from this feature.** #831 is complete without them. The only knock-on, and it
+is already applied: T-01 drops its `orchestrator` test group and that group's line from its verify
+block. The regression is real and goes to the backlog as its own ticket.
 
 **Why not a ticket.** Deferring would ship a lead-tier never-wait rule while the tier directly above
 it stays uninoculated. It is live, not theoretical: `inflight_registry.py:263`
@@ -136,11 +140,6 @@ orchestrator can wait for its own reasons should strike it; nothing else in the 
   paragraph.
 - REQ-07: Neither the rule nor the corrected bound can silently revert, and the assertions guarding
   them survive a reword of the sentences they guard.
-- REQ-08 *(the operator's scope addition — strike this line, T-03 and SC-09 together to remove it)*:
-  The orchestrator's playbook again tells the orchestrator that it never waits for a lead, that
-  ending its turn is how it waits, that the dispatch tool's own nudge does not license staying alive,
-  and that the refusal on that turn-end is expected, answered by ending the turn again, and recurs —
-  stated at the measured bound.
 
 ## Success Criteria
 
@@ -206,8 +205,8 @@ orchestrator can wait for its own reasons should strike it; nothing else in the 
   **A third site was in this criterion and has been removed, deliberately.**
   `.claude/skills/harness/SKILL.md` carried the claim at `9165162` and carries nothing at `8fc87f8`
   (`c5e59aa`); grading it would have run an occurrence loop over an empty list and exited 0 having
-  proven nothing — the #804 shape, arriving by drift. That file is graded on **presence** by SC-09
-  instead.
+  proven nothing — the #804 shape, arriving by drift. That file is **not graded by this feature at
+  all**: SC-09, which would have graded it on presence, was struck at signature.
   verify: automated      evidence: unit
 - SC-08: A real domain lead dispatches a member under the merged skill and does not invent activity:
   its sidecar shows no tool call made only to stay alive between dispatch and wake, and no lead
@@ -216,15 +215,6 @@ orchestrator can wait for its own reasons should strike it; nothing else in the 
   and the dispatch-to-resume timestamps. **Run AFTER MERGE, from the main checkout** — see the note
   below.
   verify: uat
-- SC-09 *(the operator's scope addition — strike with REQ-08 and T-03)*: At the reviewed sha, the
-  window around `.claude/skills/harness/SKILL.md`'s "There is no waiting anywhere in this loop"
-  sentence carries all of: a turn-ending directive; a statement that the platform resumes the
-  orchestrator when the child completes; the refusal being EXPECTED; the response being to end the
-  turn again; the refusal RECURRING; and the measured per-consecutive-stop-sequence bound in one
-  sentence. Six separate assertions, matched by the same synonym alternations SC-01 to SC-03 use.
-  **Graded on presence, not on absence**, so it cannot pass on an empty subject. All six fail at
-  `8fc87f8`.
-  verify: automated      evidence: unit
 
 **SC-08 stays `not_met` at ship, and the reason is measured rather than procedural.** The cheapest
 option was tested first: **can this feature's own build phase grade it**, since the build is a real
@@ -252,10 +242,6 @@ Each of these is what *done* also requires. One sentence on what breaks without 
 - **SC-03 — the guard is proven discriminating against six fixtures.** Without it the guard can be
   green while grading nothing, which is exactly what #804 measured on
   `test-orchestrator-playbook.py`, so the rule could silently revert with the suite still passing.
-- **SC-09 — the orchestrator's own rule and inoculation are back.** Without it the tier directly
-  above the one this feature fixes keeps a bare "no waiting" instruction and no clause telling it the
-  refusal for obeying is expected — the same defect, one level up, which `c5e59aa` introduced
-  unnoticed. Strike it and nothing else in the feature moves.
 - **SC-07 — no unqualified once-only claim survives at the two remaining sites.** Without it a statement
   measurement has falsified stays standing in the decision record and in the message an agent reads
   at the moment it is refused — and this repository has no propagation checker, so nothing else would
@@ -282,11 +268,11 @@ execute a markdown playbook. Conduct is carried by SC-08 alone, and SC-08 is `ua
 
 ## Verification gaps
 
-- **A markdown playbook cannot be executed by any runner.** SC-01, SC-02, SC-03, SC-06, SC-07 and
-  SC-09 grade *text on disk*. SC-04 and SC-05 are human reads. **SC-08 is the only evidence of
+- **A markdown playbook cannot be executed by any runner.** SC-01, SC-02, SC-03, SC-06 and SC-07 grade *text on
+  disk*. SC-04 and SC-05 are human reads. **SC-08 is the only evidence of
   conduct**, and it stays `not_met` until the operator runs it — after merge, from the main checkout,
   because a spawned agent loads its skills from there and not from this worktree (D-13).
-- `test_kinds.eval` has `cmd: null` and `status: unresolved`. T-02 and T-03 are
+- `test_kinds.eval` has `cmd: null` and `status: unresolved`. T-02 is
   `change_type: ai_behavior`, whose matrix requirement is `eval`, so that requirement **resolves to a
   soft skip and proves nothing**. Disclosed, not routed around: the criteria above carry the feature,
   and the missing `eval` runner is a standing dev-ops backlog gap this feature does not close.
@@ -308,7 +294,8 @@ execute a markdown playbook. Conduct is carried by SC-08 alone, and SC-08 is `ua
   response to an event the rule itself makes certain. A later DEC-158 reader must not strip it as
   bloat: without it the rule installs the loop it removes (measurement 3). **This is not
   hypothetical — it already happened once.** `c5e59aa` trimmed the orchestrator playbook 51% and the
-  inoculation went out with the bulk, which is the whole of REQ-08's case.
+  inoculation went out with the bulk. That was the whole case for REQ-08, struck here and now a
+  backlog row — the risk it names is real and this feature does not close it.
 - **No lead gains a message-sending tool, in any form.** #610 and #552 are CLOSED. A lead that has
   ended its turn cannot send anything, and a message tool gives it a fresh reason to stay awake and
   watch. Recorded as D-03 so a future scan does not re-suggest it.
@@ -383,11 +370,15 @@ higher stop/wake rate never reaches `refusal_lines` and this feature adds no exp
 
 ## Approval
 
-status: pending
-approved_by:
-date:
-withdrawn: 2026-08-27 — the plan is being re-derived against HEAD. SC-04 has no delivering
-instruction (the required override of the dispatch tool's text lives only in T-05's decision-record
-edit, never in T-02's playbook edit), and SC-07's third site carries no once-only claim at all
-because c5e59aa deleted the paragraph, so its check grades an empty set. BRIEF.md:213 and :216 also
-still spell the DEC-199 ruling AMEND, which plan.yaml's D-09 retired as a form.
+status: approved
+approved_by: operator
+date: 2026-08-27
+
+**Struck at this signature: REQ-08, T-03 and SC-09** — the orchestrator-tier restore. The operator
+ruled that the lead-tier rule ships sooner without it. The regression returns to the backlog.
+
+**History.** Signed once at `81be55a`, withdrawn 2026-08-27 when an eight-reader panel found three
+blockers — T-03's target paragraph deleted by `c5e59aa` after the `9165162` pin, T-01 slicing
+DECISIONS.md entries at level-3 headings when all 201 are level-2, and SC-04 with no delivering
+instruction. All three closed at re-plan, re-anchored at `8fc87f8`, and re-verified at this
+signature after `origin/main` was merged into the worktree.

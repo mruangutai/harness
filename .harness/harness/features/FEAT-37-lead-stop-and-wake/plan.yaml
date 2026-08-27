@@ -1,7 +1,10 @@
 # plan.yaml — the approval-gated plan. REAL YAML, loaded with safe_load (DEC-182).
 # Nothing here is prose for a human; BRIEF.md is what the operator reads.
 #
-# TASKS = T-01 .. T-06 (issue 831 plus the record corrections PRINCIPLES rule 15 forces).
+# TASKS = T-01, T-02, T-04, T-05, T-06 (issue 831 plus the record corrections PRINCIPLES
+# rule 15 forces). T-03 was STRUCK AT SIGNATURE by the operator on 2026-08-27; D-12 is the
+# strike record. The numbering is NOT compacted, so every citation to T-04 and later still
+# resolves against this file.
 # An issue-811 block was planned alongside these and then STRUCK WHOLE by operator ruling on
 # 2026-08-24, before approval. The strike record is D-07. Issue 811 stays OPEN and returns to
 # the backlog; no task in this plan touches it.
@@ -12,27 +15,27 @@
 # it any more, and nothing here is to be read at that sha. The event that
 # forced the re-plan is c5e59aa (issue 815), which trimmed .claude/skills/harness/SKILL.md from
 # 527 lines to 288 and deleted the orchestrator's never-wait rule and its inoculation whole.
-# T-03 was rewritten as a result: its old subject, the falsified once-only sentence in that
-# playbook, no longer exists, and what took its place is the regression c5e59aa introduced.
-# T-03 is now the ONLY carrier of REQ-08 and SC-09, depends on nothing and nothing depends on
-# it, so the operator can strike it with one line at signature and leave issue 831 whole.
+# T-03 was rewritten at re-plan to carry REQ-08 and SC-09 - restoring the orchestrator's own
+# never-wait rule, one tier up. THE OPERATOR STRUCK REQ-08, T-03 AND SC-09 AT SIGNATURE on
+# 2026-08-27, on the ground that the lead-tier rule ships sooner without them. Issue 831 is
+# complete without T-03 and the orchestrator regression returns to the backlog as its own
+# ticket. D-12 is the strike record.
 
 schema: plan/1
 feature: FEAT-37-lead-stop-and-wake
 
 approval:
   # Written by the MAIN SESSION only — the only tier with a user channel (DEC-120).
-  # WITHDRAWN 2026-08-27 by the operator. An eight-reader panel found three blockers:
-  # T-03's target paragraph was deleted by c5e59aa (#815) nine hours after this plan's
-  # 9165162 pin, so the task has no subject and its verify passes on zero occurrences;
-  # T-01 slices DECISIONS.md entries at level-3 headings when all 201 are level-2, so the
-  # coverage group can never pass and T-05/T-06 stall behind it; and SC-04's required
-  # override of the dispatch tool's own text is written into T-05's DECISIONS.md edit and
-  # never into T-02's playbook edit, so nothing delivers it. Re-plan against HEAD, then
-  # re-sign.
-  status: pending
-  approved_by:
-  date:
+  # HISTORY. Signed once at 81be55a, then WITHDRAWN 2026-08-27 when an eight-reader panel
+  # found three blockers: T-03's target paragraph was deleted by c5e59aa (#815) nine hours
+  # after the 9165162 pin; T-01 sliced DECISIONS.md entries at level-3 headings when all 201
+  # are level-2; and SC-04 had no delivering instruction. All three were closed at re-plan,
+  # re-anchored at 8fc87f8, and re-verified at this signature after origin/main was merged in.
+  # AT THIS SIGNATURE the operator STRUCK REQ-08, T-03 and SC-09 — the orchestrator-tier
+  # restore — so the lead-tier rule ships without waiting on it. Five tasks remain.
+  status: approved
+  approved_by: operator
+  date: 2026-08-27
 
 source_issues: [831]
 
@@ -107,8 +110,8 @@ decisions:
     because: an entry that grows a correction beside the falsehood makes the reader reconstruct the current rule from a stack of dated layers, which is the failure PRINCIPLES rule 15 guards against in reverse - the record stays honest only if the honest statement is the one the reader finds first; DEC-158 already limits an entry to the rule and one clause of why, so an append-only form was accumulating exactly the biography that limit forbids, and the version control system already holds what changed and when. The cost is that a citation to a specific amendment number no longer resolves in the file and the diff is the only place the superseded wording survives; the operator accepted that cost on 2026-08-24.
     dec: DEC-158
   - id: D-12
-    choice: The orchestrator tier's lost never-wait rule and inoculation are RESTORED inside this feature, as a new REQ-08 with its own task T-03 and its own SC-09, labelled so the operator can strike all three with one line at signature. This is the OPERATOR'S SCOPE CALL of 2026-08-27, taken before this re-plan was written and not a planner's judgement
-    because: c5e59aa (issue 815) trimmed .claude/skills/harness/SKILL.md from 527 lines to 288 and deleted the whole NEVER WAIT FOR A LEAD paragraph including the clause saying the refusal on a turn-end is expected; at 8fc87f8 the file states only that there is no waiting anywhere in this loop (line 60) with nothing telling the orchestrator that the refusal it will then take is expected. inflight_registry.py children_refusal_lines (line 263) is keyed on HAVING CHILDREN and not on SINGLE_FLIGHT_AGENTS (line 32, harness-pm alone), so an orchestrator with a lead in flight takes that refusal routinely - the same uninoculated state T-02's own intent names as installing the loop it removes. Deferring it to a ticket would ship a lead-tier never-wait rule while the tier above it stays uninoculated, and T-04 already edits the exact function whose text the orchestrator reads
+    choice: STRUCK AT SIGNATURE, 2026-08-27, by the operator. REQ-08, T-03 and SC-09 - which would have restored the orchestrator tier's own never-wait rule and inoculation inside this feature - are removed whole. The regression is real and returns to the backlog as its own ticket. Nothing else in the feature moves - T-03 was the only carrier of REQ-08 and SC-09, nothing depended on it, and issue 831 is complete without it. The knock-on, already applied - T-01 drops its orchestrator group and that group's line from its verify block
+    because: the operator ruled at signature that the lead-tier rule ships sooner without waiting on the orchestrator-tier restore. THE PRIOR DRAFT OF THIS ENTRY CLAIMED THE RESTORE WAS THE OPERATOR'S OWN SCOPE CALL. That attribution was FALSE - the operator delegated the call to the harness at re-plan and the orchestrator took it, then the operator ruled the other way at signature. The cost of the strike is named and accepted - the tier directly above the one this feature fixes keeps a bare no-waiting instruction with no clause telling it the refusal for obeying is expected, and c5e59aa introduced that unnoticed
     dec: DEC-201
   - id: D-13
     choice: SC-08 is DEFERRED to a post-merge run by the operator and is not graded from this feature's own build phase, even though this build is a real lead dispatching real members
@@ -117,7 +120,7 @@ decisions:
 tasks:
   - id: T-01
     title: Add test-lead-stop-and-wake.py guarding the lead rule, the corrected bound and DEC-201's lead-tier coverage
-    traces: [REQ-07, REQ-08]
+    traces: [REQ-07]
     change_type: logic
     execution_mode: team
     execution_agent: harness-backend-dev
@@ -130,11 +133,10 @@ tasks:
       cd "$(git rev-parse --show-toplevel)"
       python3 .claude/skills/harness/bin/test-lead-stop-and-wake.py --self-check; sc=$?
       python3 .claude/skills/harness/bin/test-lead-stop-and-wake.py --group playbook; pb=$?
-      python3 .claude/skills/harness/bin/test-lead-stop-and-wake.py --group orchestrator; orc=$?
       python3 .claude/skills/harness/bin/test-lead-stop-and-wake.py --group coverage; cv=$?
       .claude/skills/harness/bin/run-unit-tests.sh --check-kinds; ck=$?
-      echo "selfcheck=$sc playbook=$pb orchestrator=$orc coverage=$cv checkkinds=$ck"
-      test "$sc" -eq 0 -a "$pb" -eq 1 -a "$orc" -eq 1 -a "$cv" -eq 1 -a "$ck" -eq 0 && echo T01_PASS || echo T01_FAIL
+      echo "selfcheck=$sc playbook=$pb coverage=$cv checkkinds=$ck"
+      test "$sc" -eq 0 -a "$pb" -eq 1 -a "$cv" -eq 1 -a "$ck" -eq 0 && echo T01_PASS || echo T01_FAIL
     intent: |
       Create .claude/skills/harness/bin/test-lead-stop-and-wake.py, a stdlib-only Python 3 test, and
       register it in run-unit-tests.sh. It guards three invariants of FEAT-37. It must FAIL today —
@@ -146,11 +148,10 @@ tasks:
 
       CLI. Accept these arguments and nothing else.
         --self-check          run the fixture self-check only, reading no live file
-        --group NAME          run one group only; NAME is one of playbook, orchestrator, bound,
-                              coverage
+        --group NAME          run one group only; NAME is one of playbook, bound, coverage
         --only PATH           valid with --group bound only; restrict the bound group to that one
                               site path
-      With no arguments, run all four groups. Print the path each group read at the top of its run.
+      With no arguments, run all three groups. Print the path each group read at the top of its run.
       Use the PASS/FAIL print shape, failures list and exit codes of test-orchestrator-playbook.py -
       exit 0 when every selected case passes, exit 1 with a trailing "N FAILURE(S)" line otherwise.
       A missing marker or an unreadable file is a named FAIL, never an exception traceback.
@@ -228,7 +229,8 @@ tasks:
       c5e59aa deleted the paragraph that carried the claim and grep -nEi for single-flight refusal
       or fires at most once or fires ONCE over that file exits 1. A third case would grade the empty
       set and exit 0 having proven nothing, which is the issue-804 shape D-05 exists to refuse. That
-      file is graded instead by the "orchestrator" group below, on PRESENCE.
+      file is NOT graded by this test at all: the "orchestrator" group that would have graded it
+      on presence was STRUCK with T-03 at signature. Do not add a case for it.
       EACH SITE CASE HAS A FLOOR, AND THIS IS NOT OPTIONAL. Before grading occurrences, assert that
       the site yields AT LEAST ONE occurrence of the once-only alternation. Zero occurrences is a
       NAMED FAIL - case_floor_<site> - never a pass. An occurrence-grading loop over an empty list
@@ -258,31 +260,6 @@ tasks:
       entry must not fail this guard. At 8fc87f8 no struck entry carries the once-only phrasing, so
       (b) exempts nothing today; it exists so the guard stays correct when one does.
       This group must not read any other file, and must not treat a file it cannot open as a pass.
-
-      GROUP "orchestrator". Subject is .claude/skills/harness/SKILL.md, read from
-      os.environ.get("ORCH_PLAYBOOK_PATH") falling back to the repo-root path. This group grades
-      PRESENCE, so it cannot pass on an empty subject the way an occurrence grader can.
-      Region. From the line matching "There is no waiting anywhere in this loop" (line 60 at
-      8fc87f8) back 1500 characters and forward 1500 characters - a window, not a paragraph, because
-      T-03 chooses where inside step 7 or step 3 the restored text sits. RE-DERIVE the anchor by its
-      text; the line number is orientation only and this file was 527 lines at 9165162 and is 288 at
-      8fc87f8.
-      Cases, each its own assertion, reusing the playbook group's detector functions against this
-      window so one reword-resistant alternation serves both tiers.
-        case_o1_stop_half       STOP_RE searches the window successfully
-        case_o2_wake_half       WAKE_RE searches the window successfully
-        case_o3_refusal_expected  EXPECT_RE searches the window successfully
-        case_o4_stop_again      AGAIN_RE searches the window successfully
-        case_o5_refusal_recurs  RECUR_RE searches the window successfully
-        case_o6_measured_bound  some single sentence of the window matches the qualifier alternation
-                                the bound group uses - per consecutive stop sequence, per stop
-                                sequence, each stop sequence, consecutive stop sequence, re-fires,
-                                refires, on each wake, every wake. This is how the restored text is
-                                held to the MEASURED bound without re-introducing an unqualified
-                                once-only sentence for the bound group to fail on.
-      All six FAIL at 8fc87f8: the window carries the no-waiting sentence and nothing else of the
-      deleted paragraph. That failing state is this group's proof it discriminates, and it is what
-      T-03's verify turns green.
 
       GROUP "coverage". Three cases against the decision record. LEAD_RE is a lead-tier alternation
       covering - lead, leads, domain lead, lead tier - case-insensitively. ENDTURN_RE is a
@@ -341,16 +318,15 @@ tasks:
       Variants D and E are what prove case4, case5 and case6 are not vacuous. Variant F is what
       proves case7 is not vacuous, and case7 is the only command-checkable thing standing behind
       SC-04 - without F, a green case7 would be indistinguishable from a detector that matches
-      anything. The orchestrator group reuses these same detector FUNCTIONS against its own window,
-      so D and E prove its cases too and it needs no fixtures of its own. All six variants are
+      anything. All six variants are
       worded by this test and never copied from the shipped playbook, so a later reword of the
       shipped sentence cannot make the self-check vacuous. Print SELFCHECK PASS or SELFCHECK FAIL per
       variant and exit 0 only when all six verdicts are as stated, 1 otherwise. Structure the case
       functions so they run against a passed-in text and return a boolean verdict without touching
       module-level state, resetting the failures list between variants.
 
-      IF T-03 IS STRUCK AT SIGNATURE, drop the "orchestrator" group from this file and its line from
-      this task's verify block. Nothing else in this task changes; no other group reads
+      T-03 WAS STRUCK AT SIGNATURE, so the "orchestrator" group and its verify line are ALREADY
+      removed above. Do not add them back. No group in this file reads
       .claude/skills/harness/SKILL.md.
 
       REGISTRATION. Append the string test-lead-stop-and-wake.py to the UNIT_SCRIPTS array, which is
@@ -454,79 +430,6 @@ tasks:
       python3 .claude/skills/harness/bin/test-lead-stop-and-wake.py --group playbook
       expecting exit 0.
 
-  - id: T-03
-    title: Restore the orchestrator's never-wait rule and its inoculation, stated at the measured bound
-    traces: [REQ-08]
-    change_type: ai_behavior
-    execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve on .claude/skills/harness/SKILL.md returns NOBODY at 8fc87f8, so DEC-179 makes this a declared main-session step
-    depends_on: [T-01]
-    status: pending
-    files:
-      - .claude/skills/harness/SKILL.md
-    verify: |
-      cd "$(git rev-parse --show-toplevel)"
-      python3 .claude/skills/harness/bin/test-lead-stop-and-wake.py --group orchestrator; o=$?
-      python3 .claude/skills/harness/bin/test-orchestrator-playbook.py; p=$?
-      echo "orchestrator=$o playbook=$p"
-      test "$o" -eq 0 -a "$p" -eq 0 && echo T03_PASS || echo T03_FAIL
-    intent: |
-      THIS TASK REPLACED A DIFFERENT ONE, AND THE REASON IS THE WHOLE JUSTIFICATION FOR IT. Until
-      2026-08-27 this task corrected a falsified once-only sentence at line 53 of
-      .claude/skills/harness/SKILL.md. That sentence is gone. c5e59aa (issue 815) trimmed the file
-      from 527 lines to 288 on 2026-08-24 and deleted the whole NEVER WAIT FOR A LEAD paragraph it
-      sat in. At 8fc87f8, grep -nEi for single-flight refusal or fires at most once or fires ONCE
-      over that file EXITS 1. There is nothing there to correct. What the trim left behind is a
-      REGRESSION, and closing it is this task.
-
-      WHAT THE TRIM LEFT. At 8fc87f8 the only never-wait text in the orchestrator playbook is line
-      60, "There is no waiting anywhere in this loop.", inside step 7. There is no clause telling the
-      orchestrator that the refusal it will take on its next turn-end is EXPECTED. That is precisely
-      the state T-02's own intent warns about - a rule that says stop, with nothing saying the
-      refusal for stopping is normal, installs the loop it removes. It is live, not theoretical:
-      inflight_registry.py children_refusal_lines (line 263 at 8fc87f8) is the refusal an agent gets
-      for returning while CHILDREN are in flight, keyed on having children and NOT on
-      SINGLE_FLIGHT_AGENTS (line 32, which holds harness-pm alone), so an orchestrator with a lead in
-      flight - which is every orchestrator ending a dispatch turn - takes it routinely.
-
-      WHAT TO WRITE. Restore, in the file's own present-tense voice, a short paragraph inside step 7
-      adjacent to the no-waiting sentence, or inside step 3 next to the dispatch instruction -
-      wherever it reads best, and you choose. Six to ten lines is the ceiling. It carries the same
-      four things T-02 writes for the lead tier, addressed to the orchestrator: that it never waits
-      for a lead and ends its turn; that the platform resumes it when the child completes, so ending
-      the turn is HOW it waits; that the dispatch tool's own "continue other work in the meantime" is
-      not licence to manufacture activity and this rule overrides it, NAMED AND DENIED IN ONE
-      SENTENCE; and the inoculation - the refusal on that return is EXPECTED, the response is to end
-      the turn again, and it RECURS on a later wake while a child is still live.
-
-      STATE THE MEASURED BOUND, NOT THE OLD ONE. The refusal fires at most once per CONSECUTIVE STOP
-      SEQUENCE, so an immediate second identical return ships, and it re-fires on a later wake while
-      a child is still live. DO NOT write that it fires ONCE or that a second identical return ships
-      unconditionally - that is the falsehood c5e59aa happened to delete and this task must not
-      reintroduce it. The qualifier has to sit in the SAME SENTENCE as any once-only phrasing you
-      use.
-
-      RE-DERIVE EVERY ANCHOR BEFORE YOU EDIT. Line 60 and line 263 above were measured at 8fc87f8 and
-      are orientation only. This task exists because a signed plan's line anchors went stale under a
-      trim; do not repeat that by trusting a number.
-
-      WRITE IT IN THE DOCUMENT'S OWN VOICE. This is the rule, not a changelog. No amendment note, no
-      dated marker, no reference to the trim, to issue 815, to who deleted what or when. A reader
-      must find one paragraph that reads as though it always said this. Bound by DEC-158 - the rule,
-      one clause of why, a bare DEC-201 pointer. The measurement behind the bound is T-06's and lives
-      in DECISIONS.md; quote none of it here.
-
-      Change nothing else in this file, and in particular do not undo any other part of c5e59aa's
-      trim - the trim was correct and only this paragraph is being restored.
-
-      THIS TASK IS STRIKABLE IN ONE LINE. It is the only carrier of REQ-08 and SC-09, nothing depends
-      on it and it depends on T-01 only for the guard. Striking it also drops T-01's orchestrator
-      group. Issue 831 remains complete without it.
-
-      Verify with COMPLETED runs of both commands in this task's verify block, expecting exit 0 from
-      each. test-orchestrator-playbook.py is in there as a regression guard: it passes at 8fc87f8 and
-      must still pass after your edit.
-
   - id: T-04
     title: Correct the once-only sentence in the refusal message an agent reads, and its assertion
     traces: [REQ-06]
@@ -564,11 +467,16 @@ tasks:
       - the BLOCKED marker line, the per-child lines, and the issue 551 sentence at line 270. Change
       no other function and no other file except the test named below.
 
-      DO NOT TOUCH refusal_lines, the OTHER function in this module (def at line 251 at 8fc87f8). Its
-      line 258 cites issue 551 for the two-writers bug where issue 866 measures issue 628. That is a
-      real defect and it is DELIBERATELY OUT OF SCOPE: different function, different code path,
-      different tests, and it rests on issue 866's measurement rather than on this feature's. It is
-      disclosed in BRIEF.md as a backlog residual. Leave the citation exactly as it stands.
+      DO NOT TOUCH refusal_lines, the OTHER function in this module. THIS PARAGRAPH WAS REWRITTEN
+      AT SIGNATURE, 2026-08-27, because FEAT-42 landed on main and made its previous claim FALSE.
+      What it used to say: refusal_lines cites issue 551 for the two-writers bug where issue 866
+      measures issue 628, a real defect held deliberately out of scope. THAT DEFECT IS ALREADY
+      FIXED. At origin/main refusal_lines cites issue 628 and adds a parenthetical naming 551 as the
+      original single-flight report, and RELEASE_ALL_CMD is retired as a printed remedy in favour of
+      release_cmd, which is absolute and single-agent. Nothing is left for this task to do there.
+      The instruction is unchanged and still binding: change no line of refusal_lines. Re-derive
+      children_refusal_lines by its text before you edit - the merge moved every line number in this
+      module.
 
       Then update .claude/skills/harness/bin/test-inflight-registry.py case_6b_children_refusal_lines
       (def at line 226 at 8fc87f8; the stale assertion is at line 246). Its current assertion
