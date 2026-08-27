@@ -613,9 +613,11 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: the mutation proof writes docs/invalid-states-audit.html; check-domain.sh --resolve returns NOBODY for that path at sha 3952814, so no agent domain grants the mutant target
     depends_on: [T-02, T-04, T-05, T-06, T-08, T-09, T-10, T-11, T-12, T-13, T-14, T-15, T-16, T-17, T-18, T-20]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/test-no-distribution.py
+      - .claude/skills/harness/bin/gh_cost_log.py
+      - .claude/skills/harness/bin/layout_migration.py
     verify: |
       cd "$(git rev-parse --show-toplevel)"
       B=.claude/skills/harness/bin
@@ -686,6 +688,18 @@ tasks:
       NAMES the mutated file, restores it from the backup and re-runs green, and only then judges.
       A surviving mutant here means the invariant is decorative, which is the exact failure this
       repository has been burned by.
+
+      TWO PROSE OCCURRENCES HAD TO BE REWORDED FIRST, and they were introduced by this
+      feature itself: gh_cost_log.py and layout_migration.py each explained the new resolver
+      by naming the old one. Both now cite the override without spelling it. The count could
+      not reach zero until they did, and the squad recorded them in STATE.md at e51b814.
+
+      THE DELETED-NAME SCAN CARRIES THE SAME test-* EXCLUSION as the absence half, which the
+      signed text does not say. Those files discuss the names in prose that stays true as
+      written - test-post-merge-sweep.py records the measured defect _resolve_repo_root
+      existed to fix - and this file names all four in its own DELETED_NAMES tuple, so
+      without the exclusion the case fails itself.
+
   - id: T-08
     title: Delete context-watch._repo_root_from_script in favour of root_from_script
     traces: [REQ-01, REQ-03, REQ-09]
@@ -905,6 +919,7 @@ tasks:
     files:
       - .claude/skills/harness/bin/check-state.sh
       - .claude/skills/harness/bin/test-check-state.py
+      - .claude/skills/harness/bin/test-layout-migration.py
     verify: |
       cd "$(git rev-parse --show-toplevel)"
       B=.claude/skills/harness/bin
@@ -980,6 +995,13 @@ tasks:
       different things arrive on it and both matter: the discard notice for an override with
       no marker, and the ImportError when the module is absent. Swallowing either turns a
       refusal into "no harness root could be resolved", which names the symptom, not the cause.
+
+      A NINTH TEST FILE, VISIBLE ONLY IN THE FULL SUITE. test-layout-migration.py drives the
+      REAL check-state.sh against a fixture to prove its INV-27 block and layout_migration.render()
+      name the same reader set. With one name set the gate resolved to the LIVE checkout,
+      reported nothing about the fixture, and seven parity comparisons saw an EMPTY gate side
+      and called it a mismatch. Its verify runs only the targeted suites, so nothing in this
+      task could have caught it.
 
   - id: T-13
     title: Cut check-plan-routes.py over and retire the wayfind directory-probe allowlist

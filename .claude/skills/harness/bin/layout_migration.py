@@ -98,7 +98,7 @@ READER_TABLE = [
     # factory_config.py's own docs-path row was removed here (FEAT-42 T-04): the root
     # resolution that used to build a literal .harness/<seg>/docs path in this file was
     # deleted wholesale and delegated to harness_boundary.resolve_root, which resolves
-    # from HARNESS_PROJECT_DIR + the team-config.yaml MARKER, never from a docs/SPEC.md
+    # from its own override plus the team-config.yaml MARKER, never from a docs/SPEC.md
     # path string — so this file is no longer a coupled reader of the docs surface at
     # all, and no regex on its text can distinguish legacy from migrated any more. The
     # docs surface stays covered by its other two rows below.

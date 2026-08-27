@@ -108,8 +108,11 @@ def _sanitize_argv(argv):
 
 
 def _log_path():
-    """Resolved INSIDE record(), never cached at import — harness_boundary.resolve_root() honours
-    HARNESS_PROJECT_DIR only when it is set at call time (see harness_boundary.py's docstring)."""
+    """Resolved INSIDE record(), never cached at import — harness_boundary.resolve_root() reads
+    its override at CALL time, so caching this at import would freeze whatever the environment
+    happened to hold then. The override is named once, in that module's own docstring, and is
+    deliberately not spelled again here: the invariant that keeps the retired name gone counts
+    it in every tracked source file."""
     root = harness_boundary.resolve_root(_BIN_DIR)
     day = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d")
     return os.path.join(root, ".harness", "logs", f"gh-cost-{day}.jsonl")
