@@ -18,6 +18,13 @@ SCRIPT = os.environ.get("CHECK_STATE_BIN") or os.path.join(
     os.path.dirname(os.path.realpath(__file__)), "check-state.sh"
 )
 
+# THE MARKER IS READ FROM THE RESOLVER ITSELF, never spelled again here: a fixture that
+# writes its own copy of the filename stops being a fixture for the rule the moment the
+# rule moves (FEAT-42 T-21). Imported from THIS file's directory, not SCRIPT's, so a
+# reverted CHECK_STATE_BIN still grades against the live rule.
+sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
+import harness_boundary as _hb
+
 HARNESS_JSON_SYNC_ON = """{
   "github": {"sync": true, "repo": "org/repo"}
 }
@@ -52,6 +59,13 @@ def make_fixture(tmp, harness_json, parent_line):
 def run(tmp):
     env = dict(os.environ)
     env["CLAUDE_PROJECT_DIR"] = tmp
+    # BOTH NAMES, deliberately (FEAT-42 T-21). check-state.sh still reads the host-owned
+    # name; anything it imports now resolves through harness_boundary.resolve_root, which
+    # reads only HARNESS_PROJECT_DIR and honours it only when the directory carries
+    # .harness/team-config.yaml. A fixture without that marker gets the override discarded
+    # on stderr and falls back to the derived root — which is the REAL checkout. Cases that
+    # depend on the resolved root therefore write the marker themselves; see (e) and (f).
+    env["HARNESS_PROJECT_DIR"] = tmp
     r = subprocess.run([SCRIPT], cwd=tmp, capture_output=True, text=True, env=env)
     return r.returncode, r.stdout
 
@@ -1821,8 +1835,14 @@ def case_x():
 
     # x.2 a tree it CANNOT JUDGE: one reader carries neither form.
     with tempfile.TemporaryDirectory() as tmp:
+        # THE BLANKED FILE MUST STILL BE A READER. factory_config.py stood here until
+        # FEAT-42 T-04 deleted its root resolution wholesale and its row left
+        # layout_migration.READER_TABLE with it, so blanking it stopped producing
+        # [neither] and produced silence. harness_boundary.py is a docs-surface reader
+        # that survives, and layout_fixtures asserts STUB and READER_TABLE agree, so a
+        # future row deletion breaks this at import rather than here.
         build(tmp, overrides={
-            ".agents/skills/harness/bin/factory_config.py": "nothing relevant\n"})
+            ".agents/skills/harness/bin/harness_boundary.py": "nothing relevant\n"})
         code, out = run(tmp)
         ls = inv(out)
         ok = code == 1 and any("CANNOT VERIFY" in l and "[neither]" in l for l in ls)
@@ -2476,16 +2496,17 @@ def case_inv29():
     # (a) through (d) and (f) and fails exactly this.
     with tempfile.TemporaryDirectory() as tmp:
         probe = _i29_repo(os.path.join(tmp, "P"))
-        # THE SPEC.md IS LOAD-BEARING, not scaffolding. factory_config's own root resolver honours
-        # CLAUDE_PROJECT_DIR only when that directory holds a READABLE
-        # `.harness/harness/docs/SPEC.md` (factory_config.py:39, :48) — otherwise it falls back
-        # to the SCRIPT's own location and FLEET_PATH resolves to the REAL harness fleet.
+        # THE MARKER IS LOAD-BEARING, not scaffolding. factory_config resolves FLEET_PATH
+        # through harness_boundary.resolve_root, which honours the override only when that
+        # directory holds a readable .harness/team-config.yaml — otherwise it falls back to
+        # the SCRIPT's own location and FLEET_PATH resolves to the REAL harness fleet.
         # Without this file the case reads the live fleet.yaml, finds no declared checkout on
         # disk, and passes or fails for a reason that has nothing to do with the fixture.
-        _sd = os.path.join(probe, ".harness", "harness", "docs")
-        os.makedirs(_sd, exist_ok=True)
-        with open(os.path.join(_sd, "SPEC.md"), "w") as f:
-            f.write("probe\n")
+        # A docs/SPEC.md probe stood here until FEAT-42 T-04 replaced the resolver.
+        _mp = os.path.join(probe, _hb.MARKER)
+        os.makedirs(os.path.dirname(_mp), exist_ok=True)
+        with open(_mp, "w") as f:
+            f.write("agents: {}\n")
         ws = os.path.join(tmp, "ws")
         os.makedirs(ws, exist_ok=True)
         second = _i29_repo(os.path.join(ws, "second"))
@@ -2549,20 +2570,23 @@ def case_inv29():
         # which is the whole reason SC-17 exists: sixteen criteria graded INV-29 and none of them
         # ever ran what it printed. This clause runs it verbatim and asserts the worktree is gone.
         #
-        # THE SAFETY ASSERTION IS NOT OPTIONAL. feature-worktree.py resolves owner_root from
-        # factory_config's own root resolver, which honours CLAUDE_PROJECT_DIR only when that directory
-        # holds a readable .harness/harness/docs/SPEC.md. Without the probe file it falls back to
-        # the SCRIPT's own location — the REAL harness checkout — and this case would delete a live
-        # worktree. So the probe is written first and the resolved path is asserted inside the
-        # fixture BEFORE anything is removed.
-        _sd = os.path.join(r, ".harness", "harness", "docs")
-        os.makedirs(_sd, exist_ok=True)
-        with open(os.path.join(_sd, "SPEC.md"), "w") as f:
-            f.write("fixture\n")
+        # THE SAFETY ASSERTION IS NOT OPTIONAL. feature-worktree.py resolves owner_root
+        # through harness_boundary.resolve_root, which honours the override only when that
+        # directory holds a readable .harness/team-config.yaml. Without the marker it falls
+        # back to the SCRIPT's own location — the REAL harness checkout — and this case
+        # would run a DELETE against a live worktree. So the marker is written first and the
+        # resolver is asked, in a separate process with this case's exact environment, where
+        # it lands BEFORE anything is removed.
+        _mp = os.path.join(r, _hb.MARKER)
+        os.makedirs(os.path.dirname(_mp), exist_ok=True)
+        with open(_mp, "w") as f:
+            f.write("agents: {}\n")
         import shlex
         m = re.search(r"`python3 ([^`]+)`", short_line) if short_line else None
         ran_ok = False
         gone = False
+        run_it = False
+        inside = False
         detail = "no command found in the line"
         if m:
             argv = [sys.executable] + shlex.split(m.group(1))
@@ -2570,18 +2594,34 @@ def case_inv29():
             # VERBATIM. The printed command is repo-relative, and an operator runs it from their
             # own checkout where that path exists. A tmpdir fixture has no bin/ of its own, so
             # only argv[1] is rewritten to the real script — the `--repo` and `--id` values SC-17
-            # actually grades are untouched, and CLAUDE_PROJECT_DIR still points the resolver at
+            # actually grades are untouched, and the override below points the resolver at
             # the fixture. Copying the whole bin dir in would test the copy, not the message.
             argv[1] = os.path.join(os.path.dirname(SCRIPT), os.path.basename(argv[1]))
             env = dict(os.environ)
             env["CLAUDE_PROJECT_DIR"] = r
+            env["HARNESS_PROJECT_DIR"] = r
+            # THE GUARD THAT ACTUALLY BITES. What stood here compared wt_short against r —
+            # both built from r, so it was true whatever the resolver decided and protected
+            # nothing. Ask the resolver instead, with this case's exact environment, and
+            # REFUSE to run the delete unless it lands inside the fixture.
+            _bin = os.path.dirname(os.path.realpath(__file__))
+            _where = subprocess.run(
+                [sys.executable, "-c",
+                 "import sys; sys.path.insert(0, sys.argv[1]); import harness_boundary as h; "
+                 "print(h.resolve_root(sys.argv[1]))", _bin],
+                capture_output=True, text=True, env=env, cwd=r).stdout.strip()
+            inside = bool(_where) and os.path.realpath(_where) == os.path.realpath(r)
+            run_it = inside
+            if not inside:
+                detail = ("REFUSED to run the delete: the resolver landed on %r, not the "
+                          "fixture %r" % (_where, r))
+        if run_it:
             probe = subprocess.run(argv,
                                    capture_output=True, text=True, env=env, cwd=r)
             ran_ok = probe.returncode == 0
             gone = not os.path.exists(wt_short)
-            detail = ("exit=%d inside_fixture=%s stdout=%s stderr=%s"
-                      % (probe.returncode,
-                         os.path.realpath(wt_short).startswith(os.path.realpath(r)),
+            detail = ("exit=%d resolved_root_is_fixture=%s stdout=%s stderr=%s"
+                      % (probe.returncode, inside,
                          probe.stdout.strip()[-200:], probe.stderr.strip()[-200:]))
         # THE REWRITE ABOVE HAS A COST AND THIS CLOSES IT. Rewriting argv[1] means the run does
         # NOT prove the printed script path resolves in a real checkout — so that is asserted

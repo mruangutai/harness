@@ -310,7 +310,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: [T-03]
-    status: building
+    status: done
     files:
       - .claude/skills/harness/bin/factory_config.py
       - .claude/skills/harness/bin/board_lifecycle.py
@@ -387,7 +387,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: [T-03]
-    status: building
+    status: done
     files:
       - .claude/skills/harness/bin/gen-decisions-index.py
       - .claude/skills/harness/bin/validate-feature-json.py
@@ -398,11 +398,41 @@ tasks:
       for f in gen-decisions-index.py validate-feature-json.py harness_yaml.py; do
         grep -q "HARNESS_PROJECT_DIR" $B/$f && { echo "chain survives in $f"; exit 1; }
       done
-      git show 3952814:$B/check-plan-routes.py > /tmp/f42-cpr-old.py
-      P=$(git ls-files '.harness/harness/features/*/plan.yaml')
-      CHECK_PLAN_ROUTES_BIN=/tmp/f42-cpr-old.py python3 $B/test-check-plan-routes.py 2>&1 | grep -E '^(PASS|FAIL)' | sort > /tmp/f42-t05-before.txt
+      # THE OLD COPY NEEDS ITS SIBLINGS. Restoring check-plan-routes.py alone to a bare
+      # /tmp path leaves it with no bin directory to import harness_yaml from, so every
+      # case dies in a traceback, the grep filters all of them away, and an EMPTY
+      # before-set diffs clean against an empty after-set - a two-way proof that proves
+      # nothing. Mirror the whole bin, then revert INSIDE the mirror the two files whose
+      # pairing this task is claiming it did not move. The floor below is what makes the
+      # diff mean something: 87 result lines, MEASURED 2026-08-27.
+      M=/tmp/f42-t05-old
+      rm -rf $M; mkdir -p $M/.claude/skills/harness $M/.harness
+      cp -R $B $M/.claude/skills/harness/bin
+      cp .harness/team-config.yaml $M/.harness/
+      git show 3952814:$B/check-plan-routes.py > $M/.claude/skills/harness/bin/check-plan-routes.py
+      git show 3952814:$B/harness_yaml.py > $M/.claude/skills/harness/bin/harness_yaml.py
+      # NO HARNESS_PROJECT_DIR HERE. run() at test-check-plan-routes.py:45-53 sets and unsets
+      # CLAUDE_PROJECT_DIR per case and leaves the other name alone, so an outer
+      # HARNESS_PROJECT_DIR wins the old gate's chain in EVERY case and points all 87 of them
+      # at the mirror instead of their own fixtures. Measured: 40 of them failed that way.
+      # The mirror exists only so the reverted copy has a bin directory to import from.
+      CHECK_PLAN_ROUTES_BIN=$M/.claude/skills/harness/bin/check-plan-routes.py \
+        python3 $B/test-check-plan-routes.py 2>&1 | grep -E '^(PASS|FAIL)' | sort > /tmp/f42-t05-before.txt
       python3 $B/test-check-plan-routes.py 2>&1 | grep -E '^(PASS|FAIL)' | sort > /tmp/f42-t05-after.txt
-      diff /tmp/f42-t05-before.txt /tmp/f42-t05-after.txt || { echo "harness_yaml change moved the gate"; exit 1; }
+      N=$(wc -l < /tmp/f42-t05-before.txt)
+      test "$N" -ge 80 || { echo "before set holds only $N lines - the old copy did not run"; exit 1; }
+      # ONE CASE CANNOT BE GRADED THROUGH A MIRROR, and it is excluded BY NAME rather than by
+      # loosening the comparison. case_19a2 asserts the argv-less run names REPO_ROOT - the
+      # root derived from the TEST FILE's own location, which is the live checkout. The
+      # mirrored copy correctly scans the mirror, so it fails there by construction and
+      # passes here, and that difference is the technique's, not the change's. The line below
+      # fails if the case ever stops existing, so this exclusion cannot rot into a silent hole.
+      X=case_19a2_argvless_names_the_root_it_scanned
+      grep -q "$X" /tmp/f42-t05-after.txt || { echo "the excluded case $X no longer exists"; exit 1; }
+      grep -v "$X" /tmp/f42-t05-before.txt > /tmp/f42-t05-before-cmp.txt
+      grep -v "$X" /tmp/f42-t05-after.txt > /tmp/f42-t05-after-cmp.txt
+      grep -q "^PASS $X" /tmp/f42-t05-after.txt || { echo "$X does not pass against the live tree"; exit 1; }
+      diff /tmp/f42-t05-before-cmp.txt /tmp/f42-t05-after-cmp.txt || { echo "harness_yaml change moved the gate"; exit 1; }
       bash $B/run-unit-tests.sh --kind all || exit 1
       echo T-05-OK
     intent: |
@@ -508,6 +538,88 @@ tasks:
       is the single-flight refusal, so it becomes #628 as well. test-inflight-registry.py:218
       currently asserts case6 references #551 and must move to #628 with the string it pins; :244
       covers children_refusal_lines and keeps #551.
+
+  - id: T-21
+    title: Re-point check-state's three root-dependent fixtures at the resolver's own marker
+    traces: [REQ-02, REQ-04, REQ-08, REQ-09]
+    change_type: test
+    execution_mode: main-session-direct
+    execution_reason: >-
+      test-check-state.py is enforcement-layer test code under DEC-174 amendment 4, and the
+      change it needs is a consequence of T-04 deleting the resolver those fixtures steered.
+      A squad repairing its own gate through the gate it just moved is exactly the path the
+      carve-out closes, so the main session writes this one directly.
+    depends_on: [T-04, T-05]
+    status: done
+    files:
+      - .claude/skills/harness/bin/test-check-state.py
+    verify: |
+      cd "$(git rev-parse --show-toplevel)"
+      B=.claude/skills/harness/bin
+      grep -q "harness/docs" $B/test-check-state.py && { echo "a SPEC.md probe survives"; exit 1; }
+      python3 $B/test-check-state.py || exit 1
+      # THE GUARD MUST BITE. Delete the marker write and f.7/f.8 have to REFUSE, naming the
+      # real checkout they declined to delete from - not pass, and not silently run.
+      cp $B/test-check-state.py /tmp/f42-t21-orig.py
+      python3 - <<'MUT'
+      p = ".claude/skills/harness/bin/test-check-state.py"
+      s = open(p, encoding="utf-8").read()
+      old = '        _mp = os.path.join(r, _hb.MARKER)\n        os.makedirs(os.path.dirname(_mp), exist_ok=True)\n        with open(_mp, "w") as f:\n            f.write("agents: {}\\n")\n        import shlex'
+      assert s.count(old) == 1, "mutation target not found - the proof would be inert"
+      open(p, "w", encoding="utf-8").write(s.replace(old, "        import shlex"))
+      MUT
+      python3 $B/test-check-state.py > /tmp/f42-t21-mut.txt 2>&1
+      cp /tmp/f42-t21-orig.py $B/test-check-state.py
+      grep -q "REFUSED to run the delete" /tmp/f42-t21-mut.txt || { echo "the mutant did not refuse - the guard is inert"; exit 1; }
+      echo T-21-OK
+    intent: |
+      THREE CASES IN test-check-state.py STEERED THE ROOT THROUGH A RESOLVER T-04 DELETED, and
+      one of them steered a `git worktree remove` with it.
+
+      All three set CLAUDE_PROJECT_DIR and wrote `.harness/harness/docs/SPEC.md`, because
+      factory_config's own resolver honoured that variable only when that probe file was
+      readable underneath it. T-04 replaced that whole resolver with
+      harness_boundary.resolve_root, which reads HARNESS_PROJECT_DIR only and accepts it only
+      when `.harness/team-config.yaml` - its MARKER - is readable underneath. The fixtures kept
+      writing a probe nothing reads and setting a variable nothing consults, so every one of
+      them fell back to the derived root: the live harness checkout.
+
+      Measured at e51b814: INV-29 (e), (f.7) and (f.8) fail, and (f.7)'s own detail line shows
+      feature-worktree.py resolving into
+      `.claude/worktrees/harness/FEAT-42-one-root-resolver` and exiting 3.
+
+      Do three things and nothing else.
+
+      FIRST, `run()` sets HARNESS_PROJECT_DIR alongside the host-owned name. Both, not one:
+      check-state.sh still reads the host name at this point in the plan, and T-12 has not run.
+
+      SECOND, cases (e) and (f) write MARKER instead of the SPEC.md probe, and take the path
+      from `harness_boundary.MARKER` rather than spelling it again - a fixture that hard-codes
+      the filename stops testing the rule the moment the rule moves. Import harness_boundary
+      from THIS file's own directory, never from SCRIPT's, so a reverted CHECK_STATE_BIN still
+      grades against the live rule.
+
+      THIRD, and this is the part that is not a repair: (f.7)'s safety assertion did not assert
+      anything. It compared `wt_short` against `r`, and wt_short is built by joining onto r, so
+      it was true whatever the resolver decided. The case that runs a DELETE was protected by a
+      tautology. Replace it: ask the resolver, in a separate process carrying this case's exact
+      environment, where it lands, and REFUSE to run the command at all unless the answer is the
+      fixture. The refusal must name the root it declined to delete from.
+
+      REQ-02 in miniature - a site that cannot establish its root refuses rather than proceeding
+      against a guessed one - which is why this carries a mutation proof rather than a green
+      suite. A green suite here is also what a deleted guard looks like.
+
+      x.2 MOVES FOR A DIFFERENT REASON, and it belongs here because it has the same cause.
+      That case blanks one reader's text to force an INV-27 CANNOT VERIFY at [neither]. It
+      blanked factory_config.py - whose row left layout_migration.READER_TABLE in T-04, because
+      the file stopped building a docs path at all. A blanked non-reader produces silence, not
+      [neither]. Re-point it at harness_boundary.py, a docs-surface reader that survives;
+      layout_fixtures already raises at import if STUB and READER_TABLE disagree, so a future
+      row deletion breaks loudly there rather than quietly here.
+
+      DO NOT touch x.1, x.3, x.4, or any INV-29 case other than (e), (f.7) and (f.8). DO NOT
+      change check-state.sh; its cutover is T-12 and it still reads the host-owned name today.
 
   - id: T-07
     title: Add the zero-occurrence invariant for the env chain, with a mutation proof that it can fail
