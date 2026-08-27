@@ -275,9 +275,14 @@ execute a markdown playbook. Conduct is carried by SC-08 alone, and SC-08 is `ua
 - `test_kinds.eval` has `cmd: null` and `status: unresolved` — and **`unresolved` is not
   `excluded`**. The excluded shape carries `excluded_because` and a signed decision, which only
   `functional` has (DEC-187). T-02 is `change_type: ai_behavior`, whose matrix requirement is `eval`,
-  so that requirement **BLOCKS at the qa gate** rather than resolving to a skip (DEC-36), and
-  DEC-70 makes the eval owed. The feature closes it rather than disclosing it: T-07 authors the eval
-  and T-08 gives the kind a runner it has run and seen pass.
+  so that requirement **BLOCKS at the qa gate** rather than resolving to a skip (DEC-36).
+  **The feature answers it by NARROWING DEC-70, not by excluding the kind.** An eval was drafted and
+  then struck at build time on the operator's ruling: it graded a labelled dataset in which one agent
+  wrote **both the grader and the labels**, so a failure meant only that those two disagreed and said
+  nothing about the playbook under test. T-09 scopes DEC-70 in its own body to prompt, model and
+  tool-integration changes, and records that a markdown playbook an agent preloads is graded by
+  **conduct** — SC-08, reading a real dispatch — rather than by a dataset eval. `test_kinds.eval`
+  stays available and is NOT excluded; real prompt and model work still owes one.
 - `test_kinds.functional` (excluded, DEC-187), `component`, `ui` and `typecheck` are also null; none
   covers a surface this feature touches.
 - **SC-08's evidence is confounded by design** (see the run note

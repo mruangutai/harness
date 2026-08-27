@@ -180,15 +180,7 @@ teams:
           retrieval, evals, and anything whose output is non-deterministic.
         domain:
           - { path: src/**/prompts/**, upsert: true }     # seeded by /harness-init
-          - { path: evals/**, upsert: true }                    # a SERVED repository's evals
-          # THE HARNESS'S OWN evals, and this line is why they resolve at all (FEAT-37, 2026-08-27).
-          # In the harness base check-domain filters NO globs -- harness_boundary.select_base returns
-          # (lambda _g: True) there -- and rejects on the TARGET side instead: a path is reachable only
-          # when is_control_plane_target says so. `evals/` at the repository root is not control plane,
-          # so the line above resolves to NOBODY in this self-hosted checkout and only in it. Measured,
-          # not inferred: a NONEXISTENT path under a control-plane glob resolves cleanly, so absence was
-          # never the cause. Without this line DEC-70's named author cannot write the eval it names.
-          - { path: .claude/skills/harness/evals/**, upsert: true }
+          - { path: evals/**, upsert: true }
           - { path: .harness/*/features/*/notes/receipt-harness-ai-dev-*.md, upsert: true }   # its verification receipt (B-7)
           - { path: .harness/expertise/harness-ai-dev.md, upsert: true }
           - { path: .harness/*/expertise/harness-ai-dev.md, upsert: true }  # repository tier, 40-line budget
