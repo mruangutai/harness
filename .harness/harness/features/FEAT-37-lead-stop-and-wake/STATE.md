@@ -3,9 +3,25 @@
 ## Current
 
 - feature: FEAT-37-lead-stop-and-wake
-- run: .harness/harness/features/FEAT-37-lead-stop-and-wake/runs/2026-08-26-02-product/digest.md
-- squad: none — plan SIGNED, build not started
-- status: ready-for-build
+- run: eng segment, T-01 in flight with harness-eng-lead (slug t01-eng)
+- squad: eng
+- status: Building — build phase entered 2026-08-27, cycles 0/10, runs 8/20
+
+**BUILD STARTED.** feature.json is `Building`; `gh-sync.py open` created milestone #29, parent issue
+**#904**, and sub-issues **#905 (T-01), #906 (T-02), #907 (T-04), #908 (T-05), #909 (T-06)**.
+`status Building` and `start-task T-01` are both written. T-01 is `building` in plan.yaml.
+
+**ONE STALE ANCHOR ALREADY CONFIRMED.** T-01's intent calls `UNIT_SCRIPTS` line 17 of
+`run-unit-tests.sh`; it is **line 30** at HEAD. Every other number in the plan is orientation only
+and must be re-derived — `origin/main` carrying FEAT-42 was merged after the 8fc87f8 measurement.
+Two anchors DO still hold at HEAD: `.claude/skills/harness-team/SKILL.md` is 240 lines and
+`.harness/harness/docs/DECISIONS.md` is 7276.
+
+**AFTER THE STRIKE, EXACTLY ONE TASK IS main-session-direct: T-02.** The plan's `lanes:` block lists
+two NOBODY surfaces, but the second (`.claude/skills/harness/SKILL.md`) was T-03's and T-03 is
+struck. Re-measured at HEAD: `check-domain.sh --resolve` returns NOBODY for
+`.claude/skills/harness-team/SKILL.md` only; T-01/T-04 resolve to backend-dev and T-05/T-06 to
+documentor.
 
 **PLAN AND BRIEF ARE APPROVED, 2026-08-27, by the operator. FIVE tasks: T-01, T-02, T-04, T-05,
 T-06. Runs 8 of 20, cycles 0/10.**

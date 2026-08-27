@@ -125,7 +125,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: []
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/test-lead-stop-and-wake.py
       - .claude/skills/harness/bin/run-unit-tests.sh
