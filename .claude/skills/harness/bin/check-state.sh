@@ -19,8 +19,32 @@ set -uo pipefail
 # ordering passed every check I ran only because I always ran from the repo root.
 _selfdir="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
 
-root="${HARNESS_PROJECT_DIR:-${CLAUDE_PROJECT_DIR:-$(pwd)}}"
-cd "$root"
+# THE ROOT COMES FROM harness_boundary, reached through this script's own directory, never
+# from the environment and never from the caller's cwd (FEAT-42 T-12). What stood here was a
+# two-name chain with a pwd fallback, and this is the canonical pre-commit gate for the whole
+# repository: a state checker that silently examines the wrong checkout reports a clean tree
+# while the real one is broken, and nothing says so.
+#
+# REFUSING IS THE POINT — exit 2, never a fallback. The file's contract is 0 clean, 1 findings,
+# so an unresolvable root needs a code that cannot be read as either. Do not name the retired
+# variables here even in prose: the invariant that keeps them gone counts the name in every
+# tracked source file.
+# THE RESOLVER'S OWN STDERR IS KEPT AND REPLAYED, never swallowed. Two different things
+# arrive on it and both matter: the discard notice for an override that carries no MARKER,
+# and the ImportError when harness_boundary.py is not beside this script at all. Sending
+# either to /dev/null turns a refusal into "no harness root could be resolved", which names
+# the symptom and not the cause.
+_rooterr="$(mktemp)"
+root="$(python3 -c 'import sys; sys.path.insert(0, sys.argv[1]); import harness_boundary; print(harness_boundary.resolve_root(sys.argv[1]))' "$_selfdir" 2>"$_rooterr")"
+if [ -z "$root" ] || [ ! -d "$root" ]; then
+  echo "check-state.sh: no harness root could be resolved from $_selfdir — refusing to run." >&2
+  cat "$_rooterr" >&2
+  rm -f "$_rooterr"
+  exit 2
+fi
+cat "$_rooterr" >&2
+rm -f "$_rooterr"
+cd "$root" || exit 2
 PYTHONPATH="$_selfdir${PYTHONPATH:+:$PYTHONPATH}" python3 - "$root" <<'PY'
 import sys, os, re, glob, json, subprocess
 

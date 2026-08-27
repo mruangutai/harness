@@ -901,9 +901,10 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 am.4 names check-state.sh in the enforcement layer
     depends_on: [T-03, T-05]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/check-state.sh
+      - .claude/skills/harness/bin/test-check-state.py
     verify: |
       cd "$(git rev-parse --show-toplevel)"
       B=.claude/skills/harness/bin
@@ -926,7 +927,18 @@ tasks:
       # 145 verdict lines, taken 2026-08-27.
       N=$(wc -l < /tmp/f42-t12-before.txt)
       test "$N" -ge 135 || { echo "before set holds only $N verdict lines, want 135+ - the reverted copy did not run"; exit 1; }
-      diff /tmp/f42-t12-before.txt /tmp/f42-t12-after.txt || { echo "violation set MOVED"; exit 1; }
+      # ONE CASE MOVES ON PURPOSE and is excluded BY NAME, never by loosening the diff. (u.7)
+      # makes harness_boundary unimportable: the reverted copy read its root from the
+      # environment, reached INV-25 and reported CANNOT RUN at exit 1; the edited copy cannot
+      # locate the tree at all and refuses at exit 2 naming the module. That is the cutover,
+      # not a regression. The two lines below fail if the case stops existing or stops
+      # passing, so the exclusion cannot rot into a silent hole.
+      X='case (u.7)'
+      grep -q "$X" /tmp/f42-t12-after.txt || { echo "the excluded case $X no longer exists"; exit 1; }
+      grep -q "^ok - $X" /tmp/f42-t12-after.txt || { echo "$X does not pass against the live tree"; exit 1; }
+      grep -v "$X" /tmp/f42-t12-before.txt > /tmp/f42-t12-before-cmp.txt
+      grep -v "$X" /tmp/f42-t12-after.txt > /tmp/f42-t12-after-cmp.txt
+      diff /tmp/f42-t12-before-cmp.txt /tmp/f42-t12-after-cmp.txt || { echo "violation set MOVED"; exit 1; }
       bash $B/$G; test $? -le 1 || { echo "state checker crashed rather than reporting"; exit 1; }
       echo T-12-OK
     intent: |
@@ -948,6 +960,27 @@ tasks:
       am.4's proof obligation is discharged through the CHECK_STATE_BIN seam at
       test-check-state.py:17 over two isolated mirror checkouts, with a non-empty before-set
       asserted.
+
+      THE TEST FILE MOVES TOO, and it was not in this task's files when the plan was signed.
+      Its fixtures steer the gate with CLAUDE_PROJECT_DIR and carry no
+      .harness/team-config.yaml. resolve_root reads the other name and honours it only when
+      that marker is readable underneath, so after the cutover every case points the gate at
+      the LIVE checkout. Set BOTH names to one value - the reverted sha-3952814 copy reads
+      HARNESS first and the host-owned name second, and the two copies must resolve the same
+      root - and write the marker into each fixture root.
+      TWO CASES CHANGE SUBJECT, not property. (u.7) makes harness_boundary unimportable and
+      expected an INV-25 CANNOT RUN line at exit 1; this script now resolves its own root
+      through that module, so such a tree is one it cannot locate at all and it refuses at
+      exit 2 naming the module on stderr. That is LOUDER, not quieter, and the case still
+      asserts in full that an unimportable resolver is never silent and never reports a clean
+      tree. (x.5) omits layout_migration.py from an isolated bin to prove INV-27 CANNOT RUN;
+      it must now copy harness_boundary.py in as well, or it goes red for the wrong module.
+
+      The resolver's own stderr is kept and replayed rather than sent to /dev/null. Two
+      different things arrive on it and both matter: the discard notice for an override with
+      no marker, and the ImportError when the module is absent. Swallowing either turns a
+      refusal into "no harness root could be resolved", which names the symptom, not the cause.
+
   - id: T-13
     title: Cut check-plan-routes.py over and retire the wayfind directory-probe allowlist
     traces: [REQ-01, REQ-02, REQ-08, REQ-09]
@@ -955,7 +988,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 am.4 names check-plan-routes.py and its test file in the enforcement layer
     depends_on: [T-02, T-03, T-05]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/check-plan-routes.py
       - .claude/skills/harness/bin/test-check-plan-routes.py
@@ -1000,6 +1033,16 @@ tasks:
       identical output when run from /tmp and from the repository root — which is the property the
       cutover is supposed to buy and which the env chain silently did not provide.
 
+      THREE THINGS IN THE TEST FILE BEYOND THE ALLOWLIST, none of them in the signed text.
+      run() sets and unsets CLAUDE_PROJECT_DIR only; it must set and unset BOTH names, because
+      the checker now reads the other one and case 19's whole point is that NOTHING is set.
+      Cases 19b3/19b4 grade the discard announcement by its wording, and that wording is
+      resolve_root's now - they still grade the same property, that an unusable override is
+      announced rather than swapped in silence, and still require it to name the path dropped.
+      And the (b) fixture, which neutralises BOTH root sources, copies the script alone into a
+      fake bin: harness_boundary.py must go with it, or the copy dies on ImportError at exit 1
+      before it can refuse and both cases go red for a missing module rather than a missing root.
+
   - id: T-14
     title: Cut branch-create-gate.sh over, adding the missing test seam first
     traces: [REQ-01, REQ-02, REQ-09]
@@ -1007,7 +1050,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: a registered PreToolUse hook that refuses branch creation — DEC-174 am.4 says the category decides and the list records
     depends_on: [T-03]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/branch-create-gate.sh
       - .claude/skills/harness/bin/test-branch-create-gate.py
@@ -1056,6 +1099,17 @@ tasks:
 
       Run the seam edit and the gate edit as one task on purpose: splitting them would leave a
       committed test file whose only change is unused.
+
+      THE TEST FILE MOVES TOO, and it was not in this task's files when the plan was signed.
+      Its fixtures steer the gate with CLAUDE_PROJECT_DIR and carry no
+      .harness/team-config.yaml. resolve_root reads the other name and honours it only when
+      that marker is readable underneath, so after the cutover every case points the gate at
+      the LIVE checkout. Set BOTH names to one value - the reverted sha-3952814 copy reads
+      HARNESS first and the host-owned name second, and the two copies must resolve the same
+      root - and write the marker into each fixture root.
+      The fixture builder writes only .harness/harness.json, so it is no longer a root at all
+      under the MARKER rule: three self-gate cases read the LIVE github block that way.
+
   - id: T-15
     title: Cut gh-close-gate.sh over, adding the missing test seam first
     traces: [REQ-01, REQ-02, REQ-09]
@@ -1063,7 +1117,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: a registered PreToolUse hook that refuses a hand-typed issue close — DEC-174 am.4 category
     depends_on: [T-03]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/gh-close-gate.sh
       - .claude/skills/harness/bin/test-gh-close-gate.py
@@ -1109,6 +1163,18 @@ tasks:
       no target path of its own to resolve against — it reads tool_input.command — so the correct
       input is the script's own location, which is what resolve_root takes.
 
+      THE TEST FILE MOVES TOO, and it was not in this task's files when the plan was signed.
+      Its fixtures steer the gate with CLAUDE_PROJECT_DIR and carry no
+      .harness/team-config.yaml. resolve_root reads the other name and honours it only when
+      that marker is readable underneath, so after the cutover every case points the gate at
+      the LIVE checkout. Set BOTH names to one value - the reverted sha-3952814 copy reads
+      HARNESS first and the host-owned name second, and the two copies must resolve the same
+      root - and write the marker into each fixture root.
+      THE "no harness.json at all" CASE CHANGES FIXTURE, not meaning. A bare tmpdir stood
+      there, and a directory with no .harness/team-config.yaml is not a root - resolve_root
+      discards it and the gate falls back to the live checkout. The case is about a MISSING
+      harness.json, so the fixture now carries the marker and omits only harness.json.
+
   - id: T-16
     title: Cut inject-expertise.sh off the pwd fallback that blocked the previous planning run
     traces: [REQ-01, REQ-02, REQ-09]
@@ -1116,9 +1182,10 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: a registered SubagentStart hook — every agent in this build is spawned through it
     depends_on: [T-03]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/inject-expertise.sh
+      - .claude/skills/harness/bin/test-inject-expertise.py
     verify: |
       cd "$(git rev-parse --show-toplevel)"
       B=.claude/skills/harness/bin
@@ -1163,6 +1230,25 @@ tasks:
       test-inject-expertise.py:26, and a direct check that piping a minimal SubagentStart payload
       to the gate from /tmp and from the repository root produces byte identical output. The second
       one could not have passed before this task.
+
+      THE TEST FILE MOVES TOO, and it was not in this task's files when the plan was signed.
+      Its fixtures steer the gate with CLAUDE_PROJECT_DIR and carry no
+      .harness/team-config.yaml. resolve_root reads the other name and honours it only when
+      that marker is readable underneath, so after the cutover every case points the gate at
+      the LIVE checkout. Set BOTH names to one value - the reverted sha-3952814 copy reads
+      HARNESS first and the host-owned name second, and the two copies must resolve the same
+      root - and write the marker into each fixture root.
+      EXIT 0 ON FAILURE, NOT 2, AND THIS OVERRIDES THE SENTENCE ABOVE. DECISIONS.md:1503
+      records this hook's contract as "always exits 0 so it can never block a spawn", the
+      file's own header at :8 says the same, and all seventeen of its cases assert exit 0. A
+      decision outranks a task instruction written without it. The failure is still NOT
+      SILENT - it goes to stderr - and the only tree that can reach it has no
+      .harness/team-config.yaml anywhere above this script, so it has no Expertise to inject
+      either. Operator informed, 2026-08-27.
+
+      The marker is written for EVERY fixture root, not only ones that already have .harness:
+      case 4's root is empty on purpose - "nothing on disk" means no Expertise files, not "not
+      a harness checkout" - and without the marker it injects the live checkout's Expertise.
 
   - id: T-17
     title: Cut validate-digest.py over, and stop the children-in-flight check compounding a strand

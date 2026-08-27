@@ -42,15 +42,23 @@ failures = []
 
 
 def run(*args, cwd=None, project_dir=None, script=None):
-    """Invoke the checker. `project_dir` sets CLAUDE_PROJECT_DIR; None UNSETS it.
+    """Invoke the checker. `project_dir` sets the root override; None UNSETS it.
 
     Unsetting is not cosmetic (case 19). Under a hook-invoked suite run the variable
     IS set to the repo, at which point a wrong-directory test would pass through the
     env var and prove nothing about the from-__file__ derivation it exists to check.
+
+    BOTH NAMES, SET AND UNSET TOGETHER (FEAT-42 T-13). The checker now resolves through
+    harness_boundary.resolve_root, which reads HARNESS_PROJECT_DIR and no other name, while
+    the reverted sha-3952814 copy read HARNESS first and the host-owned name second. Clearing
+    only one leaves the other set by whatever invoked this suite, and case 19's whole point is
+    that NOTHING is set.
     """
-    env = {k: v for k, v in os.environ.items() if k != "CLAUDE_PROJECT_DIR"}
+    _OVERRIDES = ("CLAUDE_PROJECT_DIR", "HARNESS_PROJECT_DIR")
+    env = {k: v for k, v in os.environ.items() if k not in _OVERRIDES}
     if project_dir is not None:
-        env["CLAUDE_PROJECT_DIR"] = project_dir
+        for _k in _OVERRIDES:
+            env[_k] = project_dir
     return subprocess.run(
         [sys.executable, script or SCRIPT, *args],
         cwd=cwd or REPO_ROOT,
@@ -400,6 +408,13 @@ def case_19():
         copy = os.path.join(fake_bin, "check-plan-routes.py")
         with open(SCRIPT) as src, open(copy, "w") as dst:
             dst.write(src.read())
+        # THE RESOLVER GOES WITH IT (FEAT-42 T-13). This case neutralises both ROOT sources;
+        # it is not about a missing module. Without harness_boundary.py beside the copy the
+        # script dies on ImportError at exit 1 before it can refuse, and both assertions go
+        # red for a reason that has nothing to do with an unresolvable root.
+        shutil.copy(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                 "harness_boundary.py"),
+                    os.path.join(fake_bin, "harness_boundary.py"))
         r = run(cwd=td, project_dir=td, script=copy)
         check("case_19b_unresolvable_root_exits_2_not_0", r.returncode == 2,
               f"exit {r.returncode} stdout={r.stdout[:200]!r} stderr={r.stderr[:200]!r}")
@@ -415,8 +430,12 @@ def case_19():
     # confirmation rather than as a correction.
     with tempfile.TemporaryDirectory() as td:
         r = run(project_dir=os.path.join(td, "does-not-exist"))
+        # THE WORDING IS harness_boundary's NOW, not this script's (FEAT-42 T-13). The
+        # assertion still grades the same property — an override that cannot be used is
+        # ANNOUNCED, never swapped in silence — and still names the discarded path, so a
+        # message that stopped saying which root it dropped still fails here.
         check("case_19b3_unusable_project_dir_is_reported_not_silently_replaced",
-              "IGNORING it" in r.stderr and "does-not-exist" in r.stderr,
+              "discarding" in r.stderr and "does-not-exist" in r.stderr,
               f"stderr={r.stderr[:300]!r}")
         # ...and a VALID one is not warned about, or the message becomes noise on every run.
         os.makedirs(os.path.join(td, ".harness", "harness", "features"))
@@ -424,7 +443,7 @@ def case_19():
             f.write("agents: {}\n")
         r2 = run(project_dir=td)
         check("case_19b4_a_valid_project_dir_is_not_warned_about",
-              "IGNORING it" not in r2.stderr, f"stderr={r2.stderr[:300]!r}")
+              "discarding" not in r2.stderr, f"stderr={r2.stderr[:300]!r}")
     # ...and neither is an UNSET one, which is the common case and the one a valid-dir
     # fixture cannot reach: with the env var unset the discard branch IS entered (there is
     # nothing to discard), so a warning keyed on entering the branch rather than on the
@@ -1156,15 +1175,12 @@ def case_20():
     # CODED exception, not prose: it genuinely has no root probe (verified — 0 matches),
     # which is issue #156, and encoding it here keeps this assertion honest rather than
     # quietly passing on a file that has the very defect the case is about.
-    # CODED EXCEPTIONS, each naming its issue — never a silent skip, and never prose.
-    # wayfind.py:46-54 probes the `.harness` DIRECTORY on purpose: it walks UP from the cwd
-    # so a session inside a feature dir still resolves. That upward walk is also why it is
-    # exposed — `$HOME/.harness/` exists on this machine because it holds the 2026-08-10
-    # backup archives, so from anywhere under $HOME with no project of its own it resolves
-    # $HOME as the project root. Found by THIS case on its first full-tree run, filed as
-    # its own issue, and listed here rather than fixed inside PR #153, which is about a
-    # different script.
-    KNOWN_DIRECTORY_PROBE = {"wayfind.py"}
+    # NO CODED EXCEPTIONS. There was one — wayfind.py, which probed the `.harness` DIRECTORY
+    # while walking up from the cwd, so from anywhere under a $HOME holding its own `.harness`
+    # it resolved $HOME as the project root. FEAT-42 T-02 moved wayfind onto the MARKER file,
+    # which is what this case demands of every other reader, so the exemption became stale the
+    # moment that landed. A stale allowlist is worse than no coverage: it reports green while
+    # hiding exactly the regression it was written to tolerate.
     ok, seen_any = True, 0
     for fname in sorted(os.listdir(here)):
         if not (fname.endswith(".py") or fname.endswith(".sh")) or fname.startswith("test-"):
@@ -1182,8 +1198,6 @@ def case_20():
         if not probes:
             continue
         seen_any += 1
-        if fname in KNOWN_DIRECTORY_PROBE:
-            continue
         disagree = [l.strip()[:90] for l in probes if MANIFEST not in l]
         good = not disagree
         ok &= good

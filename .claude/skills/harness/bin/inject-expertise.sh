@@ -28,7 +28,26 @@ if ! printf '%s' "$agent" | grep -Eq '^harness-[a-z0-9-]+$'; then
   exit 0
 fi
 
-root="${HARNESS_PROJECT_DIR:-${CLAUDE_PROJECT_DIR:-$(pwd)}}"
+# THE ROOT COMES FROM harness_boundary, reached through this script's own directory, never
+# from the environment and never from the caller's cwd (FEAT-42 T-16). THIS IS THE SITE THAT
+# DECIDED THE FEATURE'S SCOPE: it is a SubagentStart hook, it fell back to pwd, and every
+# agent in the organisation receives its Expertise and the codebase index through it. An
+# agent spawned while the shell stood somewhere else was handed another checkout's Expertise,
+# or none, and nothing in the transcript said so.
+#
+# EXIT 0 ON FAILURE, NOT 2, AND THE PLAN'S TEXT IS OVERRIDDEN HERE ON PURPOSE. T-16's intent
+# says to exit 2 naming the unresolvable root. DECISIONS.md:1503 records this hook's contract
+# as "always exits 0 so it can never block a spawn", the file's own header says the same, and
+# all seventeen of its cases assert exit 0. A decision outranks a task instruction written
+# without it. The failure is still NOT SILENT — it goes to stderr — and the only tree that can
+# reach it is one with no .harness/team-config.yaml anywhere above this script, which has no
+# Expertise to inject either. Do not name the retired variables here even in prose.
+_selfbin="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
+root="$(python3 -c 'import sys; sys.path.insert(0, sys.argv[1]); import harness_boundary; print(harness_boundary.resolve_root(sys.argv[1]))' "$_selfbin" 2>/dev/null)"
+if [ -z "$root" ] || [ ! -d "$root" ]; then
+  echo "inject-expertise.sh: no harness root resolved from $_selfbin — no Expertise injected." >&2
+  exit 0
+fi
 proj="$root/.harness/expertise/$agent.md"
 glob="$HOME/.harness/expertise/$agent.md"
 

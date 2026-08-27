@@ -27,7 +27,19 @@
 # cannot verify must say so rather than wave work through (this one is a gate, not
 # a mirror — the gh-sync skip rule deliberately does not apply).
 set -uo pipefail
-root="${HARNESS_PROJECT_DIR:-${CLAUDE_PROJECT_DIR:-$(pwd)}}"
+# THE ROOT COMES FROM harness_boundary, reached through this script's own directory, never
+# from the environment and never from the caller's cwd (FEAT-42 T-14). What stood here was a
+# two-name chain with a pwd fallback, so this gate judged branch names against whatever checkout the shell happened to be
+# standing in.
+#
+# REFUSING IS THE POINT — exit 2, never a fallback. Do not name the retired variables here
+# even in prose: the invariant that keeps them gone counts the name in every tracked file.
+_selfbin="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
+root="$(python3 -c 'import sys; sys.path.insert(0, sys.argv[1]); import harness_boundary; print(harness_boundary.resolve_root(sys.argv[1]))' "$_selfbin" 2>/dev/null)"
+if [ -z "$root" ] || [ ! -d "$root" ]; then
+  echo "branch-create-gate.sh: no harness root could be resolved from $_selfbin — refusing to run" >&2
+  exit 2
+fi
 GH="${GH_BIN:-gh}"
 
 input=$(cat)

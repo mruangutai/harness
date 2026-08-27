@@ -61,6 +61,19 @@
 # already consumed and every command would be allowed. `exec`ing a file keeps stdin the
 # hook's, and replaces this shell rather than adding a process to it.
 set -uo pipefail
-root="${HARNESS_PROJECT_DIR:-${CLAUDE_PROJECT_DIR:-$(pwd)}}"
+# THE ROOT COMES FROM harness_boundary, reached through this script's own directory, never
+# from the environment and never from the caller's cwd (FEAT-42 T-15). What stood here was a
+# two-name chain with a pwd fallback, so this gate read its config from whatever checkout the shell happened to be standing
+# in. It has no target path of its own — it reads tool_input.command — so the correct
+# input is this script's own location, which is what resolve_root takes.
+#
+# REFUSING IS THE POINT — exit 2, never a fallback. Do not name the retired variables here
+# even in prose: the invariant that keeps them gone counts the name in every tracked file.
+_selfbin="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
+root="$(python3 -c 'import sys; sys.path.insert(0, sys.argv[1]); import harness_boundary; print(harness_boundary.resolve_root(sys.argv[1]))' "$_selfbin" 2>/dev/null)"
+if [ -z "$root" ] || [ ! -d "$root" ]; then
+  echo "gh-close-gate.sh: no harness root could be resolved from $_selfbin — refusing to run" >&2
+  exit 2
+fi
 
 exec python3 "$(dirname "$0")/gh-close-gate.py" "$root"
