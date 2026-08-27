@@ -116,7 +116,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: []
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/harness_boundary.py
       - .claude/skills/harness/bin/test-harness-boundary.py
@@ -209,7 +209,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: [T-01]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/wayfind.py
       - .claude/skills/harness/bin/test-wayfind.py
