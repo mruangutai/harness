@@ -348,7 +348,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: check-domain.sh --resolve on .claude/skills/harness-team/SKILL.md returns NOBODY at 8fc87f8, so DEC-179 makes this a declared main-session step and no squad may write it
     depends_on: [T-01]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness-team/SKILL.md
     verify: |
