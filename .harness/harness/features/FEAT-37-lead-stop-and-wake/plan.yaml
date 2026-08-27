@@ -33,6 +33,10 @@ approval:
   # re-anchored at 8fc87f8, and re-verified at this signature after origin/main was merged in.
   # AT THIS SIGNATURE the operator STRUCK REQ-08, T-03 and SC-09 — the orchestrator-tier
   # restore — so the lead-tier rule ships without waiting on it. Five tasks remain.
+  # RE-SIGNED 2026-08-27 after the eval amendment. The first signature covered FIVE tasks; this one
+  # covers SEVEN - T-07 authors the eval DEC-70 requires for T-02, T-08 gives the eval kind a runner.
+  # At this signature the operator also ruled that harness-ai-dev authors the eval rather than the
+  # main session, which required moving the harness's own evals into the control plane (D-16).
   status: approved
   approved_by: operator
   date: 2026-08-27
@@ -118,8 +122,12 @@ decisions:
     because: the option was tested first because it costs no extra run and it fails on a measured fact already in the record - DEC-201 states that a spawned agent loads its skills from the MAIN CHECKOUT while the rewritten playbook is committed in a worktree, so no lead spawned during this build reads the edited .claude/skills/harness-team/SKILL.md and any sidecar produced here grades the OLD text. Grading SC-08 from this build would therefore be evidence for the wrong file, which is worse than no evidence; issue 866's registry keying is a second, weaker reason and not the deciding one
     dec: DEC-201
   - id: D-14
-    choice: THE EVAL IS AUTHORED, NOT EXCLUDED, and the amendment carries its runner with it. Three parts. ONE - DEC-70 requires eval for change_type ai_behavior and T-02 is ai_behavior, so the requirement stands; test_kinds.eval reads cmd null with status unresolved, and unresolved is NOT excluded. The excluded shape carries excluded_because and signed, which DEC-187 gave functional and nobody ever gave eval, so no soft-skip reading is available and none is to be revived. TWO - the eval is authored by the MAIN SESSION, not by harness-ai-dev, because at 899e4a6 check-domain.sh --resolve returns NOBODY for evals/ and the PreToolUse guard BLOCKS harness-ai-dev on evals/lead-never-wait/cases.yaml with exit 2, the permitted set for that agent in this checkout being only its notes, expertise and observations; DEC-179 makes a NOBODY surface a declared main-session step, exactly as it did for T-02. DEC-70's authorship rationale survives the substitution because the hand that wrote the playbook text under test IS the main session - T-02 is itself main-session-direct - and the split DEC-70 actually protects is author versus gate, which is untouched - qa runs and gates the eval, validator-lead assesses its adequacy in the panel. THREE - the runner is resolved INSIDE this feature by T-08, harness-dev-ops writing test_kinds.eval.cmd in .harness/harness.json, because a perfect eval behind a null cmd leaves the qa gate exactly as blocked as it is now
+    choice: THE EVAL IS AUTHORED, NOT EXCLUDED, and the amendment carries its runner with it. Three parts. ONE - DEC-70 requires eval for change_type ai_behavior and T-02 is ai_behavior, so the requirement stands; test_kinds.eval reads cmd null with status unresolved, and unresolved is NOT excluded. The excluded shape carries excluded_because and signed, which DEC-187 gave functional and nobody ever gave eval, so no soft-skip reading is available and none is to be revived. TWO - the eval is authored by HARNESS-AI-DEV, the author DEC-70 names. An earlier draft of this entry said the main session must author it because check-domain.sh --resolve returned NOBODY for evals/. THAT REASONING WAS OVERTURNED AT SIGNATURE by a measurement, and D-16 carries it - the resolver rejects on the TARGET side, not the glob side, so the fix was to move the eval into the control plane rather than to change its author. THREE - the runner is resolved INSIDE this feature by T-08, harness-dev-ops writing test_kinds.eval.cmd in .harness/harness.json, because a perfect eval behind a null cmd leaves the qa gate exactly as blocked as it is now
     because: an exclusion would have been a signature on a claim the config does not support, and PRINCIPLES rule 7 makes a gate that resolves to nothing worse than an absent one; deferring the runner to work outside the feature was tested first and rejected on its terminal state - the feature would ship with an authored eval that nothing executes and a qa gate that stays BLOCKED on ai_behavior indefinitely, which is the hole the amendment exists to close, and it saves no run because the eval still has to be authored either way. The cost of the chosen route is named - the main session authoring the eval is a deviation from DEC-70's named author, and a deterministic grader over a dataset its own author labelled is weaker evidence than a unit test, which DEC-70 already states as its accepted tradeoff
+    dec: DEC-70
+  - id: D-16
+    choice: The harness's own evals live INSIDE the control plane, at .claude/skills/harness/evals/, and harness-ai-dev holds a domain grant there. The repository-root evals/** grant stays exactly as it is - it serves a SERVED repository's evals and is not wrong. T-08 widens test_kinds.eval.detect to match the new path, keeping both existing alternatives
+    because: MEASURED AT SIGNATURE, 2026-08-27, and it overturned the reading the amendment was drafted on. harness_boundary.select_base returns a glob filter that accepts everything in the harness base - NOTHING is filtered on the glob side there - and rejects on the TARGET side through is_control_plane_target instead. So evals/lead-never-wait/run-eval.py resolves to NOBODY because `evals/` is not control plane, NOT because it is a product-base glob and NOT because the directory is absent - a nonexistent path under a control-plane glob resolves cleanly, which is the probe that discriminates. The alternative was the main session authoring the eval for playbook text the main session itself wrote, and the operator rejected that closed loop on independence. The cost is that the harness's evals and a served repository's evals now live at different paths, which is a real asymmetry and the honest one, because the control plane and the product tree are different things and the resolver already treats them so
     dec: DEC-70
   - id: D-15
     choice: T-07 carries change_type scaffolding, not ai_behavior, even though its subject is the ai_behavior change T-02 made
@@ -765,28 +773,37 @@ tasks:
     title: Author the eval that discriminates the lead playbook's never-wait rule and its inoculation clauses
     traces: [REQ-01, REQ-02, REQ-03, REQ-04]
     change_type: scaffolding
-    execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve returns NOBODY for evals/lead-never-wait/run-eval.py at 899e4a6 and the PreToolUse guard BLOCKS harness-ai-dev writing evals/lead-never-wait/cases.yaml with exit 2, so DEC-179 forces a declared main-session step; this is the same lane T-02 took, and D-14 records why DEC-70's named author cannot hold in this checkout
+    execution_mode: team
+    execution_agent: harness-ai-dev
+    execution_reason: DEC-70 names harness-ai-dev as the eval's author and that holds here after the operator's 2026-08-27 ruling. The eval moved from evals/ to .claude/skills/harness/evals/ and ai-dev gained a grant there, so check-domain.sh --resolve names it and the write guard admits it. D-16 records the measurement that made the move the right fix rather than a workaround
     depends_on: [T-02]
     status: pending
     files:
-      - evals/lead-never-wait/run-eval.py
-      - evals/lead-never-wait/cases.yaml
-      - evals/lead-never-wait/RUBRIC.md
+      - .claude/skills/harness/evals/lead-never-wait/run-eval.py
+      - .claude/skills/harness/evals/lead-never-wait/cases.yaml
+      - .claude/skills/harness/evals/lead-never-wait/RUBRIC.md
     verify: |
       cd "$(git rev-parse --show-toplevel)"
-      python3 evals/lead-never-wait/run-eval.py --dataset evals/lead-never-wait/cases.yaml; e=$?
-      python3 evals/lead-never-wait/run-eval.py --dataset evals/lead-never-wait/cases.yaml --prove-discrimination; d=$?
+      python3 .claude/skills/harness/evals/lead-never-wait/run-eval.py --dataset .claude/skills/harness/evals/lead-never-wait/cases.yaml; e=$?
+      python3 .claude/skills/harness/evals/lead-never-wait/run-eval.py --dataset .claude/skills/harness/evals/lead-never-wait/cases.yaml --prove-discrimination; d=$?
       echo "eval=$e discrimination=$d"
       test "$e" -eq 0 -a "$d" -eq 0 && echo T07_PASS || echo T07_FAIL
     intent: |
       Author the eval DEC-70 requires for T-02. You are writing the eval itself, its reference
       dataset, its rubric and its threshold - four things, and DEC-70 names all four.
 
-      THE PATH IS NOT NEGOTIABLE. test_kinds.eval.detect is "evals/**|tests/**eval**" in
-      .harness/harness.json, so an eval written anywhere else is invisible to the kind that is
-      supposed to gate it. Write under evals/lead-never-wait/ at the repository root. The directory
-      does not exist at 899e4a6; create it.
+      THE PATH IS NOT NEGOTIABLE, AND IT CHANGED AT SIGNATURE. Write under
+      .claude/skills/harness/evals/lead-never-wait/ -- INSIDE the control plane, NOT at the
+      repository root. The directory does not exist; create it.
+
+      WHY IT MOVED, because you will otherwise read the old path in the record and think this is a
+      mistake. A repository-root evals/ path resolves to NOBODY in this self-hosted checkout, so you
+      could not have written it. That is not because the directory is missing: in the harness base
+      check-domain filters no globs at all and rejects on the TARGET side, and a nonexistent path
+      under a control-plane glob resolves cleanly. `evals/` simply is not control plane. Moving the
+      eval inside it and granting you that path is the fix; the alternative was the main session
+      authoring the test of text the main session wrote, and the operator rejected that on
+      independence. T-08 widens test_kinds.eval.detect to match the new path.
 
       WHAT THE EVAL MUST DISCRIMINATE - this is the whole of its job, and a general "does the lead
       behave well" grader does NOT satisfy it. The subject is a LEAD'S TURN AFTER IT DISPATCHED A
@@ -874,9 +891,13 @@ tasks:
         set status to active;
         DELETE the _reason field - leaving "detection has not run yet" beside a verified command is a
         lie about the project's own config, and the note in this file says so.
-      Leave detect and exclude alone: detect is "evals/**|tests/**eval**" and T-07's files sit under
-      evals/, so it already matches. If they do not match when you check, STOP and report it rather
-      than widening the glob - a detect change is a scope question, not yours.
+      WIDEN detect, AND THIS IS AN APPROVED SCOPE CHANGE, not a judgement call you are making.
+      detect reads "evals/**|tests/**eval**". T-07's files sit under
+      .claude/skills/harness/evals/lead-never-wait/, which NEITHER pattern matches, so the eval kind
+      would not see its own eval. Add the control-plane path as a third alternative and leave the two
+      existing alternatives standing - a served repository's evals still live at its root. VERIFY the
+      match rather than asserting it: print the files the widened detect selects and confirm T-07's
+      three files are among them. Leave exclude alone.
 
       TOUCH NOTHING ELSE IN THIS FILE. Not functional, which is excluded under DEC-187 with a signed
       decision; not component, ui or typecheck, which stay unresolved because no surface this feature
