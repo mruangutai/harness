@@ -12,7 +12,7 @@ import sys
 import tempfile
 
 BIN = os.path.dirname(os.path.abspath(__file__))
-GATE = os.path.join(BIN, "gh-close-gate.sh")
+GATE = os.environ.get("GH_CLOSE_GATE_BIN") or os.path.join(BIN, "gh-close-gate.sh")
 
 fails = 0
 
@@ -32,6 +32,13 @@ def _root(sync=True):
     os.makedirs(os.path.join(d, ".harness"))
     json.dump({"github": {"sync": sync, "repo": "o/r"}},
               open(os.path.join(d, ".harness", "harness.json"), "w"))
+    # THE MARKER, WITHOUT WHICH THE OVERRIDE IS DISCARDED (FEAT-42 T-15). gh-close-gate.sh
+    # resolves through harness_boundary.resolve_root, which honours HARNESS_PROJECT_DIR only
+    # when .harness/team-config.yaml is readable underneath it. A fixture holding only
+    # harness.json falls back to the derived root — the LIVE checkout — so every case would
+    # read the real github.sync instead of the one it just wrote.
+    with open(os.path.join(d, ".harness", "team-config.yaml"), "w") as f:
+        f.write("agents: {}\n")
     return d
 
 
@@ -204,7 +211,15 @@ check("github.sync false: the gate exits 0 with no output, even for gh issue clo
       "nothing where the mirror is off",
       _rc == 0 and _d is None, f"rc={_rc} decision={_d!r}")
 
-_noroot = tempfile.mkdtemp()   # no .harness/harness.json at all
+# A HARNESS ROOT WITH NO CONFIG — which is what "no harness.json" now means (FEAT-42 T-15).
+# A bare tmpdir stood here, and under the MARKER rule a directory with no
+# .harness/team-config.yaml is not a root at all: resolve_root discards it and the gate falls
+# back to the LIVE checkout, reading the real github block and denying. The case is about a
+# MISSING harness.json, so the fixture carries the marker and omits only harness.json.
+_noroot = tempfile.mkdtemp()
+os.makedirs(os.path.join(_noroot, ".harness"))
+with open(os.path.join(_noroot, ".harness", "team-config.yaml"), "w") as _f:
+    _f.write("agents: {}\n")
 _rc, _d, _ = gate("gh issue close 728", root=_noroot)
 check("no harness.json at all: the gate exits 0 with no output",
       _rc == 0 and _d is None, f"rc={_rc} decision={_d!r}")

@@ -12,16 +12,15 @@ It lives in THAT repository's own .harness/harness.json, under the github.board 
 module is the only reader of it too: product_config() reads it, always REMOTELY at the member's
 default_branch, via factory_gh.file_at_ref, never from a checkout on disk.
 
-ROOT RESOLUTION, THREE TIERS — the same rule check-plan-routes.py's _resolve_root and
-run-unit-tests.sh's header comment already standardise on, copied here rather than re-derived:
-prefer CLAUDE_PROJECT_DIR when it is set AND `.harness/harness/docs/SPEC.md` is readable under it;
-otherwise derive the root from this file's own location, walking up out of the bin directory.
-`.harness/harness/docs/SPEC.md` is the probe, never `bin/` or a script file: no mechanism copies the skill
-directory (scripts, no docs) to `$HOME/.agents/skills` any more, and the probe stays a docs path
-because the derived root must be a full checkout of this repository, which a bare skills tree is
-not — probing for the bin directory or for a script would re-accept that tree and read a fleet
-declaration that is not this checkout's own.
-A discarded CLAUDE_PROJECT_DIR is announced on stderr, never swapped in silence.
+ROOT RESOLUTION is delegated whole to `harness_boundary.resolve_root(_BIN_DIR)` — the one
+resolver every caller in this tree now shares (FEAT-42), never a second copy standardised on
+here. It reads its one override variable (see that module's own docstring for the exact name)
+only, honours it when `.harness/team-config.yaml` (its MARKER) is readable underneath, and
+otherwise derives the root from this file's own location, walking up out of the bin directory.
+`strict=True` (the default) raises rather than returning a confident wrong answer when neither
+candidate carries MARKER; see FLEET_PATH below for why that raise cannot fire in practice. A
+discarded override is announced on stderr, never swapped in silence — resolve_root's own
+contract, not restated here.
 
 Importing this module has no side effects beyond resolving that root and computing FLEET_PATH:
 no fleet file is read, nothing is written, and no GitHub call is made until a caller asks.
@@ -29,34 +28,23 @@ no fleet file is read, nothing is written, and no GitHub call is made until a ca
 import argparse
 import json
 import os
-import sys
 
 import factory_cli
 import factory_gh
+import harness_boundary
 import harness_yaml
 
 _BIN_DIR = os.path.dirname(os.path.abspath(__file__))
-_PROBE = os.path.join(".harness", "harness", "docs", "SPEC.md")
 
 _STATION_KEYS = ("backlog", "plan", "ready", "building", "review", "done")
 
-
-def harness_root():
-    """Return the absolute root of this harness checkout. See the module docstring for why."""
-    derived = os.path.abspath(os.path.join(_BIN_DIR, "..", "..", "..", ".."))
-    asked = (os.environ.get("HARNESS_PROJECT_DIR") or os.environ.get("CLAUDE_PROJECT_DIR")) or ""
-    if asked and os.access(os.path.join(asked, _PROBE), os.R_OK):
-        return asked
-    if asked:
-        print(
-            f"factory_config: CLAUDE_PROJECT_DIR={asked!r} has no readable {_PROBE} — "
-            f"IGNORING it and using {derived}.",
-            file=sys.stderr,
-        )
-    return derived
-
-
-FLEET_PATH = os.path.join(harness_root(), ".harness", "factory", "fleet.yaml")
+# FLEET_PATH's root always resolves inside the LIVE checkout under any test fixture root,
+# because _BIN_DIR is this module's own on-disk location, and the live checkout always carries
+# harness_boundary.MARKER — so resolve_root's strict raise cannot fire here. strict stays True
+# rather than being weakened to False (FEAT-42).
+FLEET_PATH = os.path.join(
+    harness_boundary.resolve_root(_BIN_DIR), ".harness", "factory", "fleet.yaml"
+)
 
 
 class FleetError(Exception):

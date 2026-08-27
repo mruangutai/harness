@@ -31,7 +31,24 @@ case_count = 0
 
 def run_hook(root, home, payload_bytes):
     env = dict(os.environ)
+    # BOTH NAMES, AND THE MARKER (FEAT-42 T-16). inject-expertise.sh resolves through
+    # harness_boundary.resolve_root, which reads HARNESS_PROJECT_DIR and no other name, and
+    # honours it only when .harness/team-config.yaml is readable underneath. A fixture
+    # holding only .harness/expertise/ is discarded and the hook falls back to the LIVE
+    # checkout, injecting the real Expertise instead of the fixture's. Both names, because
+    # the reverted sha-3952814 copy the parity proof diffs against reads HARNESS first and
+    # the host-owned name second, and the two copies must resolve the same root.
     env["CLAUDE_PROJECT_DIR"] = root
+    env["HARNESS_PROJECT_DIR"] = root
+    # ALWAYS, not only when .harness already exists. Case 4's fixture is an EMPTY root -
+    # "nothing on disk" means no Expertise files, not "not a harness checkout" - and without
+    # the marker that root is discarded and the hook injects the LIVE checkout's Expertise,
+    # which is the opposite of what the case asserts.
+    _m = os.path.join(root, ".harness", "team-config.yaml")
+    if not os.path.exists(_m):
+        os.makedirs(os.path.dirname(_m), exist_ok=True)
+        with open(_m, "w") as _f:
+            _f.write("agents: {}\n")
     env["HOME"] = home
     r = subprocess.run(
         [SCRIPT],

@@ -1,0 +1,92 @@
+<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>CEO briefing — FEAT-42 One root resolver — plan phase, BLOCKED</title><style>
+:root{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:ui-sans-serif,-apple-system,"Segoe UI","Helvetica Neue",Arial,sans-serif;
+}
+/* Token-level theming: components style through the tokens and never inside the
+   media query, so the viewer's explicit toggle can override the OS in BOTH
+   directions. */
+@media (prefers-color-scheme:dark){
+  :root{ --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+         --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733; }
+}
+:root[data-theme="dark"]{
+  --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+  --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733;
+}
+:root[data-theme="light"]{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+}
+*{box-sizing:border-box}
+body{margin:0; background:var(--paper); color:var(--ink);
+  font:400 16px/1.65 var(--sans); padding:clamp(1.5rem,5vw,4rem) clamp(1rem,5vw,2rem) 6rem}
+.wrap{max-width:56rem; margin:0 auto}
+/* Layout owns the spacing: gap between siblings, not per-element margins that
+   collapse or double. */
+.wrap{display:flex; flex-direction:column; gap:1rem}
+.eyebrow{font:500 11px/1 var(--mono); letter-spacing:.14em; text-transform:uppercase;
+  color:var(--quiet); margin:0}
+h1{font:600 clamp(1.6rem,4vw,2.3rem)/1.15 var(--sans); letter-spacing:-.02em;
+  margin:.4rem 0 .2rem; text-wrap:balance}
+h2{font:600 1.15rem/1.3 var(--sans); letter-spacing:-.01em; margin:2rem 0 0;
+  padding-top:1.25rem; border-top:1px solid var(--line); text-wrap:balance}
+h3{font:600 .98rem/1.4 var(--sans); margin:1.1rem 0 0}
+h4,h5,h6{font:500 11px/1.4 var(--mono); letter-spacing:.1em; text-transform:uppercase;
+  color:var(--quiet); margin:1rem 0 0}
+p,li{max-width:65ch; margin:0}
+ul,ol{margin:0; padding-left:1.4rem; display:flex; flex-direction:column; gap:.4rem}
+li>ul,li>ol{margin-top:.4rem}
+strong{font-weight:600}
+code{font:400 .875em/1.5 var(--mono); background:var(--sunk); padding:.1em .35em; border-radius:3px}
+pre{background:var(--sunk); border:1px solid var(--line); border-radius:6px;
+  padding:.85rem 1rem; overflow-x:auto; margin:0}
+pre code{background:none; padding:0}
+blockquote{margin:0; padding:.75rem 1rem; border-left:3px solid var(--accent);
+  background:var(--accent-soft); border-radius:0 5px 5px 0}
+blockquote p{max-width:none}
+hr{border:0; border-top:1px solid var(--line); margin:.5rem 0}
+/* Wide content pans inside its OWN container; the page body never scrolls sideways. */
+.scroll{overflow-x:auto; border:1px solid var(--line); border-radius:6px}
+table{border-collapse:collapse; width:100%; font-size:.9rem}
+th,td{text-align:left; padding:.6rem .8rem; border-bottom:1px solid var(--line); vertical-align:top}
+thead th{font:500 10px/1.3 var(--mono); letter-spacing:.11em; text-transform:uppercase;
+  color:var(--quiet); background:var(--sunk); white-space:nowrap}
+tbody tr:last-child td{border-bottom:0}
+/* Figures in a column line up. */
+td,th{font-variant-numeric:tabular-nums}
+.derived{color:var(--slate); font-size:.85rem; margin-top:2.5rem;
+  padding-top:1rem; border-top:1px solid var(--line)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style></head><body><div class='wrap'><p class='eyebrow'>Ship review · reading view</p><h1 id="ceo-briefing-feat-42-one-root-resolver-plan-phase-blocked">CEO briefing — FEAT-42 One root resolver — plan phase, BLOCKED</h1>
+<h2 id="the-one-liner">The one-liner</h2>
+<p><strong>FEAT-42 is blocked by the exact bug it was created to fix.</strong> A stranded single-flight claim from an abandoned run refused the planner&#x27;s spawn, so <code>plan.yaml</code> does not exist. One command from a tier with an unrestricted shell clears it, and the run resumes from prepared inputs with nothing re-spent.</p>
+<h2 id="how-this-briefing-was-assembled">How this briefing was assembled</h2>
+<p>No report round was spawned. I read the run digest from disk: <code>.harness/harness/features/FEAT-42-one-root-resolver/runs/2026-08-26-2-plan-product/digest.md</code> — the only run this feature has. Everything else here is my own measurement at sha <code>3952814</code>, cited inline.</p>
+<h2 id="what-you-need-to-do">What you need to do</h2>
+<p>Run these two, in the <strong>main checkout</strong>, then re-dispatch the plan phase:</p>
+<pre><code>python3 /Users/molchairuangutai/GitHub/harness/.claude/skills/harness/bin/inflight_registry.py release --agent harness-pm --root /Users/molchairuangutai/GitHub/harness
+python3 /Users/molchairuangutai/GitHub/harness/.claude/skills/harness/bin/inflight_registry.py release --agent harness-product-lead --root /Users/molchairuangutai/GitHub/harness</code></pre>
+<p><strong>Never <code>release-all</code>.</strong> It mutates the registry to <code>{}</code> (<code>inflight_registry.py:238-248</code>) — every claim of every agent, including other features&#x27; live work. That is REQ-06&#x27;s defect, and the printed remedy the tool itself suggests.</p>
+<p>I attempted the first command twice. The host permission layer denied both. I did not work around it.</p>
+<h2 id="what-blocked-it-precisely">What blocked it, precisely</h2>
+<p><code>dispatch-guard.sh</code> refused the <code>harness-pm</code> spawn at <code>PreToolUse</code> on single-flight, against a claim left behind when a predecessor orchestrator context ended mid-run (<code>runs/2026-08-26-1-product/state.yaml</code> still records <code>s1-plan</code> dispatched, never completed). The claim was ~17 minutes old against a TTL of 3600s, so it had no chance of expiring inside the cycle it was guarding — REQ-06 verbatim.</p>
+<p>The same stale entry then refused the lead&#x27;s <em>return</em>, because <code>validate-digest.py</code>&#x27;s children-in-flight check reads the same registry. <strong>One stranded claim blocks both ends of a run.</strong></p>
+<p>It then refused <strong>my own return too</strong> — a third consumer, in a single planning attempt. The chain is now: (1) <code>dispatch-guard.sh</code> refused pm&#x27;s spawn, (2) <code>validate-digest.py</code> refused the lead&#x27;s return against pm&#x27;s stranded claim, (3) <code>validate-digest.py</code> refused the orchestrator&#x27;s return against the lead&#x27;s stranded claim. <strong>The defect propagates up the tier chain</strong>, each stranded claim creating the next. That is a materially stronger case than BRIEF&#x27;s REQ-06 currently makes, and the plan should say so.</p>
+<h2 id="the-feature-s-own-defect-measured-live">The feature&#x27;s own defect, measured live</h2>
+<p>Both claims were recorded in the <strong>main checkout&#x27;s</strong> registry with <code>cwd: /Users/molchairuangutai/GitHub/harness</code>, though every agent involved was assigned to the FEAT-42 worktree — which has no registry file at all. A guard was green and watching the wrong tree. This is #866 reproduced by the attempt to plan its fix, and it is the strongest evidence the feature is worth building.</p>
+<h2 id="three-findings-that-change-the-plan-s-shape">Three findings that change the plan&#x27;s shape</h2>
+<p><strong>1. SC-01 cannot prove REQ-01 — a weak gate, and this repo has been burned there.</strong> REQ-01 says no site outside the resolver carries its own env fallback chain. The chain occurs <strong>20 times across 15 files</strong>; D-5&#x27;s map removes 7 definitions covering 6 of them; <strong>14 occurrences in 9 files survive, and SC-01&#x27;s file list cannot see one of them.</strong> SC-01 would go green with REQ-01 plainly unmet. Seven survivors are enforcement layer (<code>check-plan-routes.py:496</code> — the model implementation the design was copied from — plus <code>check-domain.sh:152/:296</code>, <code>bash-write-guard.sh:194/:232</code>, <code>validate-digest.py:821/:913</code>). Seven are not, and one of those, <code>inject-expertise.sh:31</code>, is a <strong>SubagentStart hook falling back to <code>$(pwd)</code></strong> — #866&#x27;s defect verbatim in a file nobody scoped. <strong>This needs your call: widen scope, or narrow REQ-01 to the truth and backlog the rest.</strong> What must not ship is a broad requirement with a narrow gate.</p>
+<p><strong>2. A test exemption goes stale on delivery.</strong> <code>test-check-plan-routes.py:1167</code> carries <code>KNOWN_DIRECTORY_PROBE = {&quot;wayfind.py&quot;}</code>, exempting it from the rule that every root probe names the manifest. D-5 moves <code>wayfind.root()</code> onto the marker file, so the exemption stops being true and starts hiding future regressions. Enforcement-layer test file, so main-session-direct. (The analysis note&#x27;s claim that <code>wayfind</code> has zero test coverage is false at HEAD — this is the coverage, and it is an exemption rather than a test.)</p>
+<p><strong>3. A fourth registry defect, not in BRIEF.</strong> <code>release(root, agent)</code> (<code>:224-232</code>) pops the <strong>oldest</strong> claim for a persona, but a returning agent means to release its <strong>own</strong>, newest. Measured live across the lead&#x27;s two returns: the stop hook released the abandoned lead&#x27;s claim (<code>started_at 1787783953</code>) and left the returning lead&#x27;s own (<code>1787784855</code>) stranded. With two live same-persona agents, each stop releases the other&#x27;s — the still-running agent loses protection mid-run and the last claim leaks permanently.</p>
+<h2 id="one-correction-to-the-record">One correction to the record</h2>
+<p>The dispatch and the analysis note both state the printed remedy names a path that does not exist in this checkout. <strong>That is false.</strong> <code>inflight_registry.py</code> exists and executes. The real defects are that <code>CLI_REL_PATH</code> (<code>:42</code>) is relative, so the remedy only resolves when cwd happens to be the root, and that <code>release-all</code> wipes everything. BRIEF SC-07 already encodes the corrected version; no plan work rests on the wrong premise.</p>
+<h2 id="budget">Budget</h2>
+<p>Cycles 0 of 10, runs 1 of 20. No rework has occurred — nothing was produced to rework. The blocked run cost one spawn and produced usable artifacts (a corrected <code>send-back-criteria.md</code> written before dispatch, so it could not be fitted to the answer). A re-dispatch resumes from those.</p>
+<h2 id="proposed-backlog">Proposed backlog</h2>
+<div class="scroll"><table><thead><tr><th>ID</th><th>Finding</th><th>Nature</th></tr></thead><tbody><tr><td>B-1</td><td>The 9 files carrying the env fallback chain that D-5 does not touch, if you choose to narrow REQ-01 rather than widen scope</td><td>bug</td></tr><tr><td>B-2</td><td><code>release()</code> releases the oldest same-persona claim, not the returner&#x27;s own (<code>inflight_registry.py:224-232</code>)</td><td>bug</td></tr><tr><td>B-3</td><td><code>validate-digest.py</code>&#x27;s children-in-flight check shares the dispatch guard&#x27;s registry, so one stranded claim blocks a return as well as a dispatch</td><td>bug</td></tr><tr><td>B-4</td><td>The analysis note&#x27;s Section 5 item 2 (&quot;wayfind has ZERO test coverage&quot;) is false at HEAD; the note is a signed input and carries a wrong fact</td><td>chore</td></tr><tr><td>B-5</td><td>An orchestrator cannot clear a stranded claim — no tier below the main session has both the need and the permission</td><td>enhancement</td></tr><tr><td>B-6</td><td>SC-11 may now be settleable from disk, contrary to BRIEF:104 which calls it operator-only</td><td>chore</td></tr></tbody></table></div>
+<p>Anything you do not strike becomes a backlog issue on acceptance. Anything not listed here dies silently.</p><p class='derived'>Derived from <code>ship-review-2026-08-26-2-plan-product.md</code> — the markdown is the record; do not edit this file. Regenerate with <code>bin/render-brief.py</code>.</p></div></body></html>

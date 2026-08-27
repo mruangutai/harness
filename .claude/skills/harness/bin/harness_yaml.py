@@ -23,6 +23,8 @@ try:
 except ImportError:
     yaml = None
 
+_BIN_DIR = os.path.dirname(os.path.abspath(__file__))
+
 
 # --- Errors -----------------------------------------------------------------
 # Two distinct types on purpose (T-03 goal #5): check-domain.sh's converted
@@ -446,9 +448,30 @@ def require_or_die():
     """For check-state.sh and the plain .py scripts. No bootstrap escape
     (D-06) — this gates the orchestrator, not a write, so a hard block here
     costs no recovery path."""
-    root = (os.environ.get("HARNESS_PROJECT_DIR") or os.environ.get("CLAUDE_PROJECT_DIR")) or os.getcwd()
-    marker = _marker_path(root)
     if yaml is not None:
+        # The resolved root is used for exactly one thing below: best-effort
+        # unlink of the PyYAML bootstrap marker. That cleanup must never be able
+        # to abort THIS caller's caller — check-state.sh, the canonical
+        # pre-commit state checker, calls require_or_die() near its own top
+        # (check-state.sh:35), BEFORE its own later, properly guarded INV-25/
+        # INV-27 checks ever run. A missing harness_boundary.py (ImportError) or
+        # a root the resolver cannot verify (resolve_root's own strict raise) is
+        # a DIFFERENT module's problem, not a reason to deny PyYAML availability
+        # for every downstream consumer including checks that exist to REPORT
+        # exactly that kind of breakage. Confirmed live: an isolated bin/
+        # carrying only harness_yaml.py (no harness_boundary.py — check-state.sh's
+        # own u.7/x.5 fixtures build exactly this) made this raise UNCAUGHT,
+        # so require_or_die() died with a raw traceback before check-state.sh
+        # ever reached its guarded `import harness_boundary as _hb` at :1080 to
+        # report the INV-25 CANNOT RUN violation that fixture exists to prove.
+        # Fail-open, the same class T-05 already fixed one caller earlier for
+        # bash-write-guard.sh/check-domain.sh.
+        try:
+            import harness_boundary
+            root = harness_boundary.resolve_root(_BIN_DIR)
+        except Exception:
+            return
+        marker = _marker_path(root)
         try:
             os.unlink(marker)
         except OSError:

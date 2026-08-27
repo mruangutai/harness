@@ -75,8 +75,16 @@ def strip_ruling_prose(s):
 
 
 def run_gen(tree, extra_env=None, args=None):
+    # The generator resolves its root via harness_boundary.resolve_root, which reads
+    # HARNESS_PROJECT_DIR only and requires the override to carry team-config.yaml
+    # (MARKER) — CLAUDE_PROJECT_DIR no longer redirects it at all (FEAT-42 T-05).
+    os.makedirs(os.path.join(tree, ".harness"), exist_ok=True)
+    marker = os.path.join(tree, ".harness", "team-config.yaml")
+    if not os.path.exists(marker):
+        open(marker, "w", encoding="utf-8").write("")
     env = dict(os.environ)
-    env["CLAUDE_PROJECT_DIR"] = tree
+    env.pop("CLAUDE_PROJECT_DIR", None)
+    env["HARNESS_PROJECT_DIR"] = tree
     if extra_env:
         env.update(extra_env)
     return subprocess.run(
@@ -728,6 +736,98 @@ def test_argv_is_validated_and_only_the_write_path_writes():
         return False
 
 
+def test_root_resolves_through_harness_boundary_not_the_retired_variable():
+    """FEAT-42 T-05: the generator's root comes from `harness_boundary.resolve_root`,
+    never from CLAUDE_PROJECT_DIR or a bare cwd fallback.
+
+    (a) An override that does not carry team-config.yaml (MARKER) must not be silently
+    honoured — the old chain would `os.chdir` straight into it and either crash on a
+    missing DECISIONS.md or, worse, quietly walk back to whatever `os.getcwd()` was.
+    The new resolver discards it LOUDLY on stderr (naming both candidates) rather than
+    chdir-ing into it, and falls back to the real repo root, which does carry MARKER.
+    (b) CLAUDE_PROJECT_DIR alone (the retired name) must NOT redirect the root at all
+    — only HARNESS_PROJECT_DIR does. A tmp dir with no marker, addressed only via
+    CLAUDE_PROJECT_DIR, must fall through to the real derived root rather than error,
+    proving the retired variable is inert.
+    (c) HARNESS_PROJECT_DIR pointing at a directory that DOES carry the marker must be
+    honoured — the generator reads and writes inside that tree, not the real repo.
+    """
+    name = "test_root_resolves_through_harness_boundary_not_the_retired_variable"
+    try:
+        with tempfile.TemporaryDirectory() as tmp:
+            # (a) HARNESS_PROJECT_DIR set, no marker -> discarded loudly, falls back to
+            # the real repo root (which carries MARKER), matches the real --stdout output.
+            env = dict(os.environ)
+            env.pop("CLAUDE_PROJECT_DIR", None)
+            env["HARNESS_PROJECT_DIR"] = tmp
+            r = subprocess.run([sys.executable, GEN, "--stdout"], cwd=tmp,
+                                capture_output=True, text=True, env=env)
+            if r.returncode != 0:
+                print(f"FAIL - {name} (a): a markerless HARNESS_PROJECT_DIR override "
+                      f"exited {r.returncode}: {r.stderr.strip()[:200]}")
+                return False
+            if "team-config.yaml" not in r.stderr:
+                print(f"FAIL - {name} (a): discarding the markerless override did not "
+                      f"name the missing marker on stderr: {r.stderr.strip()[-300:]!r}")
+                return False
+            real_stdout = subprocess.run([sys.executable, GEN, "--stdout"], cwd=REPO_ROOT,
+                                          capture_output=True, text=True).stdout
+            if r.stdout != real_stdout:
+                print(f"FAIL - {name} (a): fallback root did not produce the real repo's "
+                      f"own output")
+                return False
+
+        with tempfile.TemporaryDirectory() as tmp:
+            # (b) CLAUDE_PROJECT_DIR alone (retired name) does not redirect the root.
+            docs_dir = os.path.join(tmp, DOCS_DIR)
+            os.makedirs(docs_dir, exist_ok=True)
+            shutil.copy(REAL_DECISIONS, os.path.join(docs_dir, "DECISIONS.md"))
+            env = dict(os.environ)
+            env.pop("HARNESS_PROJECT_DIR", None)
+            env["CLAUDE_PROJECT_DIR"] = tmp
+            r = subprocess.run([sys.executable, GEN, "--stdout"], cwd=tmp,
+                                capture_output=True, text=True, env=env)
+            if r.returncode != 0:
+                print(f"FAIL - {name} (b): expected the real repo's DECISIONS.md to be "
+                      f"read (CLAUDE_PROJECT_DIR ignored), generator exited "
+                      f"{r.returncode}: {r.stderr.strip()[:200]}")
+                return False
+            real_stdout = subprocess.run([sys.executable, GEN, "--stdout"], cwd=REPO_ROOT,
+                                          capture_output=True, text=True).stdout
+            if r.stdout != real_stdout:
+                print(f"FAIL - {name} (b): CLAUDE_PROJECT_DIR redirected the root — "
+                      f"output diverged from the real repo's own --stdout")
+                return False
+
+        with tempfile.TemporaryDirectory() as tmp:
+            # (c) HARNESS_PROJECT_DIR + marker IS honoured.
+            docs_dir = os.path.join(tmp, DOCS_DIR)
+            os.makedirs(docs_dir, exist_ok=True)
+            shutil.copy(REAL_DECISIONS, os.path.join(docs_dir, "DECISIONS.md"))
+            os.makedirs(os.path.join(tmp, ".harness"), exist_ok=True)
+            open(os.path.join(tmp, ".harness", "team-config.yaml"), "w",
+                 encoding="utf-8").write("")
+            env = dict(os.environ)
+            env.pop("CLAUDE_PROJECT_DIR", None)
+            env["HARNESS_PROJECT_DIR"] = tmp
+            r = subprocess.run([sys.executable, GEN, "--stdout"], cwd=tmp,
+                                capture_output=True, text=True, env=env)
+            if r.returncode != 0:
+                print(f"FAIL - {name} (c): marker-carrying HARNESS_PROJECT_DIR exited "
+                      f"{r.returncode}: {r.stderr.strip()[:300]}")
+                return False
+            if "- DEC-01 " not in r.stdout:
+                print(f"FAIL - {name} (c): did not regenerate against the tmp tree: "
+                      f"{r.stdout[:200]!r}")
+                return False
+
+        print(f"ok - {name}")
+        return True
+    except Exception as e:
+        print(f"FAIL - {name}: {type(e).__name__}: {e}")
+        return False
+
+
 TESTS = [
     test_row_per_distinct_dec_matches_authority,
     test_argv_is_validated_and_only_the_write_path_writes,
@@ -738,6 +838,7 @@ TESTS = [
     test_committed_index_matches_a_fresh_regeneration,
     test_committed_index_is_complete_and_within_budget,
     test_orphaned_ruling_is_reported_not_silently_dropped,
+    test_root_resolves_through_harness_boundary_not_the_retired_variable,
 ]
 
 

@@ -23,8 +23,8 @@ gated at all (D-09's tolerant read); a `feature:` label that resolves but whose 
 be read reports the absolute path that was tried (D-03), while one whose plan loads but holds no
 matching task is edge (i).
 
-FEATURES_ROOT resolves to `.harness/harness/features` under `factory_config.harness_root()`, never
-the current working directory — this tool runs from inside a workspace checkout of ANOTHER
+FEATURES_ROOT resolves to `.harness/harness/features` under `harness_boundary.resolve_root`,
+never the current working directory — this tool runs from inside a workspace checkout of ANOTHER
 repository (T-06), and a cwd-relative path would silently read the wrong DAG or none at all
 (R-03).
 """
@@ -36,13 +36,18 @@ import sys
 import factory_cli
 import factory_config
 import factory_gh
+import harness_boundary
 import harness_yaml
 
 TOOL = "claim"
 
+_BIN_DIR = os.path.dirname(os.path.abspath(__file__))
+
 # Overridable for tests — read as a module global inside _main/_BlockerCache, never bound as a
 # default argument value, so a test monkeypatching this attribute after import is honoured.
-FEATURES_ROOT = os.path.join(factory_config.harness_root(), ".harness", "harness", "features")
+FEATURES_ROOT = os.path.join(
+    harness_boundary.resolve_root(_BIN_DIR), ".harness", "harness", "features"
+)
 
 _TASK_ID_RE = re.compile(r"(T-\d+)")
 

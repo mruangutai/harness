@@ -348,16 +348,18 @@ def case_second_repo():
     classify that worktree terminal.
 
     Fleet resolution requires factory_config.FLEET_PATH, computed at IMPORT time from
-    CLAUDE_PROJECT_DIR, so this case runs in a FRESH SUBPROCESS rather than reusing the
+    HARNESS_PROJECT_DIR, so this case runs in a FRESH SUBPROCESS rather than reusing the
     already-imported worktree_terminal/factory_config from this process."""
     results = []
     with tempfile.TemporaryDirectory() as tmp:
-        # The factory_config.harness_root() probe: CLAUDE_PROJECT_DIR is honored only when
-        # this exact file underneath it is readable.
+        # The harness_boundary.resolve_root() MARKER: HARNESS_PROJECT_DIR is honored only
+        # when .harness/team-config.yaml underneath it is readable.
         probe_root = os.path.join(tmp, "probe")
         os.makedirs(os.path.join(probe_root, ".harness", "harness", "docs"), exist_ok=True)
         with open(os.path.join(probe_root, ".harness", "harness", "docs", "SPEC.md"), "w") as f:
             f.write("probe\n")
+        with open(os.path.join(probe_root, ".harness", "team-config.yaml"), "w") as f:
+            f.write("teams: []\n")
 
         workspace_root = os.path.join(tmp, "workspace")
         os.makedirs(workspace_root, exist_ok=True)
@@ -389,7 +391,7 @@ def case_second_repo():
             "print(json.dumps(recs))\n"
         )
         env = dict(os.environ)
-        env["CLAUDE_PROJECT_DIR"] = probe_root
+        env["HARNESS_PROJECT_DIR"] = probe_root
         proc = subprocess.run([sys.executable, "-c", script], cwd=repo2,
                                capture_output=True, text=True, env=env, timeout=30)
 
@@ -433,8 +435,11 @@ def _build_probe_repo(tmp):
     os.makedirs(docs_dir, exist_ok=True)
     with open(os.path.join(docs_dir, "SPEC.md"), "w") as f:
         f.write("probe\n")
-    subprocess.run(["git", "add", ".harness/harness/docs/SPEC.md"], cwd=probe_root,
-                    capture_output=True)
+    # harness_boundary.resolve_root's MARKER — see the module docstring at :351-352.
+    with open(os.path.join(probe_root, ".harness", "team-config.yaml"), "w") as f:
+        f.write("teams: []\n")
+    subprocess.run(["git", "add", ".harness/harness/docs/SPEC.md", ".harness/team-config.yaml"],
+                    cwd=probe_root, capture_output=True)
     subprocess.run(["git", "commit", "-qm", "spec"], cwd=probe_root, capture_output=True)
     _commit_feature(repo, "FEAT-10-probe-done", {"status": "Done"}, repo_segment="harness")
     dest_probe = _add_wt(repo, "FEAT-10-probe-done", repo_segment="harness")
@@ -466,7 +471,7 @@ def _write_fleet(probe_root, workspace_root, repos_yaml):
 
 def _run_classify_all_subprocess(probe_root, script):
     env = dict(os.environ)
-    env["CLAUDE_PROJECT_DIR"] = probe_root
+    env["HARNESS_PROJECT_DIR"] = probe_root
     return subprocess.run([sys.executable, "-c", script], cwd=probe_root,
                            capture_output=True, text=True, env=env, timeout=30)
 

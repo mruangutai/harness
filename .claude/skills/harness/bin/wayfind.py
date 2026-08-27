@@ -31,6 +31,7 @@ import json, os, subprocess, sys
 
 sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
 import gh_issues as ghi
+import harness_boundary
 
 TYPES = ("research", "prototype", "grilling", "task")
 LABELS = {"wayfinder:map": ("0e8a16", "A wayfinding effort map (DEC-166)")}
@@ -43,19 +44,12 @@ def die(msg, code=1):
     sys.exit(code)
 
 
-def root():
-    r = (os.environ.get("HARNESS_PROJECT_DIR") or os.environ.get("CLAUDE_PROJECT_DIR")) or os.getcwd()
-    # Walk up to the checkout holding .harness/, so cwd inside a feature dir still works.
-    d = os.path.abspath(r)
-    while d != "/":
-        if os.path.isdir(os.path.join(d, ".harness")):
-            return d
-        d = os.path.dirname(d)
-    die("no .harness/ found from here — run inside an onboarded project.")
-
-
 def cfg():
-    p = os.path.join(root(), ".harness", "harness.json")
+    r = harness_boundary.root_above(os.getcwd())
+    if r is None:
+        die("no .harness/team-config.yaml found walking up from here — run inside an "
+            "onboarded project.")
+    p = os.path.join(r, ".harness", "harness.json")
     try:
         gh = (json.load(open(p)).get("github") or {})
     except Exception as e:

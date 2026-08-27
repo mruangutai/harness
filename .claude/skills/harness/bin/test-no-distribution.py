@@ -324,12 +324,166 @@ def case5():
     # kaya-ai's own `.harness/harness.json` on `master`, by T-07's verify over `gh api`.
 
 
+# ============================== Case 6 ==============================
+# FEAT-42 T-07 — ONE root resolver, and the retired environment chain occurs NOWHERE.
+#
+# THE ABSENCE HALF SCANS EVERY TRACKED SOURCE FILE IN THE REPOSITORY, not one directory, and
+# it is derived from `git ls-files` rather than a fixed list ON PURPOSE. A fixed list proves
+# that the sites someone remembered were fixed and says nothing about the seventh. The site
+# that decided this scope was `.omp/extensions/harness-hooks.ts` — outside
+# `.claude/skills/harness/bin/` entirely, and invisible to any directory-scoped sweep.
+#
+# FOUR EXCLUSIONS, AND A READER WILL WIDEN THEM UNLESS THE REASONS ARE HERE.
+#   test-* files SET the variable. It is the test-injection seam, assigned repo-wide in
+#     exactly one place — test-gh-close-gate.py:41 — and read by the fixtures. Removing the
+#     seam would leave the gates untestable against anything but the live checkout.
+#   harness_boundary.py is the ONE module allowed to read it, because it is the resolver.
+#     That is the whole point of the invariant, not an exception to it.
+#   *.md files are prose. Notes, decisions and observations discuss the variable by name and
+#     always will; a record that stays true as written is not a site.
+#   The record tree — .harness/logs/, .harness/notes/, .harness/harness/features/ — is that
+#     same prose rule at a wider extension, and it arrives at the identical three prefixes
+#     EXCLUDED_PREFIXES already holds under "Historical records that stay true as written".
+#     This feature's own plan.yaml names the variable dozens of times and a ship-review page
+#     twice, because their job is describing its removal; committing them would move the
+#     count from 21 to 72 and it could never return to zero. Operator ruling, 2026-08-27.
+#
+# EXCLUDED_PREFIXES IS REUSED, is_excluded_from_scan IS NOT. That helper also consults
+# EXCLUDED_EXACT, which exempts DECISIONS.md alone among markdown — every other tracked *.md
+# would then count, inflating the total past the 21 baseline this case was written against.
+#
+# THE PRESENCE HALF IS WHAT STOPS THE ABSENCE HALF PASSING VACUOUSLY. A grep that finds
+# nothing because the resolver was deleted looks identical to one that finds nothing because
+# every caller was migrated.
+CHAIN_NAME = "HARNESS" + "_PROJECT_DIR"      # assembled so this line is not itself a site
+
+RESOLVER_REL = ".claude/skills/harness/bin/harness_boundary.py"
+
+# Names this feature DELETED. Each was a second implementation of the one rule.
+DELETED_NAMES = ("harness_root", "_repo_root_from_script", "_root_from", "_resolve_repo_root")
+
+
+def case6():
+    tracked = git_ls_files()
+    scanned = [
+        f for f in tracked
+        if not os.path.basename(f).startswith("test-")
+        and os.path.basename(f) != "harness_boundary.py"
+        and not f.endswith(".md")
+        and not f.startswith(EXCLUDED_PREFIXES)
+    ]
+    offenders = []
+    for rel in scanned:
+        text = read_text(rel)
+        if text is None:
+            continue
+        for n, line in enumerate(text.splitlines(), 1):
+            if CHAIN_NAME in line:
+                offenders.append(f"{rel}:{n}: {line.strip()[:100]}")
+    check("case6_absence_the_env_chain_occurs_nowhere", not offenders,
+          "%d occurrence(s) of the retired chain survive:\n  %s"
+          % (len(offenders), "\n  ".join(offenders[:20])))
+
+    # --- the presence half ---
+    resolver = read_text(RESOLVER_REL) or ""
+    missing = [n for n in ("MARKER", "def resolve_root(", "def root_above(",
+                           "def root_from_script(") if n not in resolver]
+    check("case6_presence_the_resolver_defines_all_four", not missing,
+          f"{RESOLVER_REL} is missing: {missing}")
+
+    importers = {rel for rel in tracked
+                 if "import harness_boundary" in (read_text(rel) or "")}
+    check("case6_presence_sixteen_files_reach_the_resolver", len(importers) >= 16,
+          f"only {len(importers)} tracked file(s) import harness_boundary: "
+          f"{sorted(importers)[:20]}")
+
+    # --- the deleted names, and the two survivors that are NOT them ---
+    # SAME test-* EXCLUSION AS THE ABSENCE HALF ABOVE, and for the same reason: those files
+    # discuss the deleted names in prose — test-post-merge-sweep.py's docstring records the
+    # measured defect _resolve_repo_root was written to fix, and stays true as written — and
+    # this file names all four in DELETED_NAMES, so without the exclusion it fails itself.
+    bin_rel = ".claude/skills/harness/bin/"
+    bin_files = [f for f in tracked
+                 if f.startswith(bin_rel) and not os.path.basename(f).startswith("test-")]
+    for name in DELETED_NAMES:
+        hits = []
+        for rel in bin_files:
+            for n, line in enumerate((read_text(rel) or "").splitlines(), 1):
+                if re.search(r"\b%s\b" % re.escape(name), line):
+                    hits.append(f"{rel}:{n}")
+        check(f"case6_absence_{name.strip('_')}_is_gone", not hits,
+              f"{name} survives at: {hits[:8]}")
+
+    wayfind = read_text(bin_rel + "wayfind.py") or ""
+    check("case6_absence_wayfind_defines_no_root_of_its_own",
+          not re.search(r"^def root\(", wayfind, re.M),
+          "wayfind.py still defines a module-level root()")
+
+    # THE TWO SURVIVORS. Both answer a DIFFERENT question from resolve_root, and a sweep that
+    # took them with it would be over-broad rather than complete.
+    check("case6_presence_worktree_owner_survives",
+          "def worktree_owner(" in resolver,
+          "harness_boundary.worktree_owner is gone — it answers which checkout owns a PATH")
+    sweep = read_text(bin_rel + "post-merge-sweep.sh") or ""
+    check("case6_presence_main_checkout_resolver_survives",
+          "_resolve_main_checkout_root" in sweep,
+          "post-merge-sweep._resolve_main_checkout_root is gone — it asks git which linked "
+          "worktree is main, which is not this question")
+
+
+# ============================== Case 7 ==============================
+# THE INVOKING DIRECTORY IS NOT ON THE IMPORT PATH.
+
+def case7():
+    """Every gate that launches python must pass -P (#556).
+
+    Python puts the invoking directory at sys.path[0] AHEAD of PYTHONPATH. The gate scripts
+    set PYTHONPATH to their own bin/ and then `import harness_boundary`, so a
+    harness_boundary.py sitting in the governed agent's cwd was imported INSTEAD. Measured
+    2026-08-27 at sha 7179095: a stub returning a bogus root turned check-domain.sh from
+    exit 2 (refused) into exit 0 ("enforcement OFF") — the domain gate switched off by a
+    file the agent it governs can write. The same shadowing reaches stdlib: a json.py in
+    the cwd is imported by every `python3 -c 'import json'` line here.
+
+    -P is the fix at the interpreter, so nothing later in a script can put the cwd back.
+    It needs python 3.11+; CI runs whatever ubuntu-latest ships (3.12+) BY OWNER DECISION,
+    and an older interpreter rejects the flag loudly rather than silently ignoring it,
+    which is the safe direction for an enforcement gate.
+
+    This case is the invariant, not the two pairs in test-check-domain.py and
+    test-bash-write-guard.py: those prove the two hooks are shut, this one catches the
+    NEXT gate script somebody adds without the flag.
+    """
+    pat = re.compile(r"(?<!`)python3 (?!-P )(-c |- )(?=[\'\"$]|<<)")
+    scripts = [f for f in git_ls_files()
+               if f.startswith(".claude/skills/harness/bin/") and f.endswith(".sh")]
+    check("case7_scripts_found", len(scripts) >= 9,
+          f"only {len(scripts)} gate scripts scanned — the glob stopped matching")
+    naked = []
+    for rel in scripts:
+        for i, line in enumerate(read_text(rel).splitlines(), 1):
+            if pat.search(line):
+                naked.append(f"{rel}:{i}")
+    check("case7_every_python_launch_isolates_the_cwd", not naked,
+          f"python3 launched without -P, so the cwd shadows imports: {naked}")
+
+    # THE PAIRED HALF. Without it the case above is satisfied by a regex that matches
+    # nothing at all — a typo in the pattern would read as a clean tree.
+    guarded = re.compile(r"python3 -P (-c |- )")
+    hits = sum(1 for rel in scripts for line in read_text(rel).splitlines()
+               if guarded.search(line))
+    check("case7_the_scan_can_see_the_invocations", hits >= 19,
+          f"only {hits} guarded python3 launches found — the pattern stopped matching")
+
+
 def main():
     case1()
     case2()
     case3()
     case4()
     case5()
+    case6()
+    case7()
 
     if failures:
         print(f"\n{len(failures)} FAILURE(S): {failures}")

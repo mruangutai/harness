@@ -29,6 +29,7 @@ import factory_claim as claim
 import factory_cli
 import factory_config as fc
 import factory_gh
+import harness_boundary as hb
 import harness_yaml
 
 FAILS = 0
@@ -51,7 +52,8 @@ def check(name, cond, detail=""):
 # unpatched default rather than a fixture standing in for it (D-04, REQ-03).
 check(
     "the unpatched FEATURES_ROOT default is the migrated harness features tree",
-    claim.FEATURES_ROOT == os.path.join(fc.harness_root(), ".harness", "harness", "features"),
+    claim.FEATURES_ROOT
+    == os.path.join(hb.resolve_root(claim._BIN_DIR), ".harness", "harness", "features"),
     detail=repr(claim.FEATURES_ROOT),
 )
 check(
