@@ -26,7 +26,7 @@ done
 
 BIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-POST_MERGE_SWEEP_BIN_DIR="$BIN_DIR" POST_MERGE_SWEEP_DRY_RUN="$DRY_RUN" python3 - <<'PYEOF'
+POST_MERGE_SWEEP_BIN_DIR="$BIN_DIR" POST_MERGE_SWEEP_DRY_RUN="$DRY_RUN" python3 -P - <<'PYEOF'
 import os
 import subprocess
 import sys
@@ -35,36 +35,36 @@ BIN_DIR = os.environ["POST_MERGE_SWEEP_BIN_DIR"]
 DRY_RUN = os.environ.get("POST_MERGE_SWEEP_DRY_RUN") == "1"
 
 sys.path.insert(0, BIN_DIR)
+import harness_boundary    # noqa: E402  (FEAT-42 T-09: the one root resolver)
 import worktree_terminal   # noqa: E402  (D-02: the one shared eligibility predicate)
 import factory_config      # noqa: E402
 
 
-def _resolve_repo_root():
-    """The repository root, derived from THIS SCRIPT's OWN on-disk location — never from the
-    caller's cwd. BIN_DIR (set by the bash wrapper's
-    `cd "$(dirname "${BASH_SOURCE[0]}")" && pwd`) is always `<root>/.claude/skills/harness/bin`,
-    the same four path segments the T-11 shim (`.claude/skills/harness/hooks/post-merge`) already
-    walks up from its own location — so walking BIN_DIR up those same four segments recovers
-    `<root>` exactly, regardless of what directory the sweep happens to be invoked from.
-
-    MEASURED DEFECT this replaces: the previous implementation ran
-    `git worktree list --porcelain` with `cwd=os.getcwd()`, which discarded the root the T-11
-    shim derived from `$0` and substituted the CALLER's cwd instead — invoked from outside the
-    repository entirely, that command failed and the sweep did nothing, actively defeating T-11's
-    own $0-based resolution. Deriving root from BIN_DIR instead means the caller's cwd — inside
-    the repository, inside a linked worktree, or entirely outside any git repository — can never
-    change what this resolves to.
-
-    None only if BIN_DIR's own directory math points somewhere that does not exist as a
-    directory at all — a broken installation, never a property of the caller's cwd. The caller
-    treats that as nothing to sweep, never as an error that should abort the hook."""
-    root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(BIN_DIR))))
-    return root if os.path.isdir(root) else None
+# THE REPOSITORY ROOT COMES FROM harness_boundary.root_from_script(BIN_DIR), and main() below
+# keeps the isdir guard that decides whether there is anything to sweep (FEAT-42 T-09). What
+# stood here was a fourth copy of the same four-levels-up arithmetic, wrapped in a docstring;
+# the arithmetic moved to one implementation and the docstring's claims stay true of it.
+#
+# root_from_script, not resolve_root: this is a post-merge hook body that must never abort the
+# hook, the contract stated at _resolve_main_checkout_root's docstring below and again in
+# main(), and a strict raise would break it.
+#
+# MEASURED DEFECT this ORIGINALLY replaced, kept on the record because it is the reason any of
+# this is derived rather than asked of the environment: an earlier implementation ran
+# `git worktree list --porcelain` with `cwd=os.getcwd()`, which discarded the root the shim
+# derived from `$0` and substituted the CALLER's cwd. Invoked from outside the repository, that
+# command failed and the sweep did nothing, defeating the shim's own $0-based resolution.
+#
+# BIN_DIR is set by the bash wrapper's `cd "$(dirname "${BASH_SOURCE[0]}")" && pwd`, so it is
+# always `<root>/.claude/skills/harness/bin` — the same four segments the post-merge shim walks
+# up from its own location. The caller's cwd, inside the repository or outside any git
+# repository at all, can never change what this resolves to.
 
 
 def _resolve_main_checkout_root(root):
     """The repository's MAIN checkout root — porcelain index 0, run with `cwd=root` (the
-    BIN_DIR-derived root from `_resolve_repo_root()`, NEVER `os.getcwd()`). `root` answers "where
+    BIN_DIR-derived root from `harness_boundary.root_from_script(BIN_DIR)`, NEVER
+    `os.getcwd()`). `root` answers "where
     do the bin scripts live" and can itself BE a linked worktree (a relative core.hooksPath
     resolves per-worktree — harness-init SKILL.md:73/:78 — so each worktree gets its own hooks
     dir and its own copy of this script). This function answers a SEPARATE question — "which
@@ -77,13 +77,13 @@ def _resolve_main_checkout_root(root):
     precedent (check-state.sh:1138-1143, `worktree_terminal.classify`'s docstring): the first
     porcelain entry is always the main checkout, even queried from inside a linked worktree, and
     a repository with no linked worktrees returns itself. Running `git worktree list` with
-    `cwd=root` therefore stays exactly as cwd-independent as `_resolve_repo_root()` itself —
-    never `os.getcwd()`, which would reintroduce the original defect this module's docstring
-    already warns about.
+    `cwd=root` therefore stays exactly as cwd-independent as
+    `harness_boundary.root_from_script(BIN_DIR)` itself — never `os.getcwd()`, which would
+    reintroduce the original defect this module's docstring already warns about.
 
     None only if the subprocess cannot be run, times out, exits non-zero, or produces no
     parseable `worktree <path>` line at all — the caller treats that as nothing to sweep, the
-    same "never abort the hook" contract `_resolve_repo_root()` follows."""
+    same "never abort the hook" contract main()'s own root resolution follows."""
     try:
         proc = subprocess.run(["git", "worktree", "list", "--porcelain"], cwd=root,
                                capture_output=True, text=True, timeout=10)
@@ -224,8 +224,12 @@ def _handle_record(rec, main_checkout_root, cwd_real):
 
 
 def main():
-    root = _resolve_repo_root()
-    if root is None:
+    # THE isdir GUARD STAYS AND IS NOW EXPLICIT. root_from_script is pure path arithmetic and
+    # always returns a string; the deleted wrapper returned None when that string was not a
+    # directory, and this branch is that behaviour, unchanged. A broken installation is
+    # nothing to sweep, never an error that aborts the hook.
+    root = harness_boundary.root_from_script(BIN_DIR)
+    if not os.path.isdir(root):
         print("post-merge-sweep: could not resolve the repository root from this script's own "
               "on-disk location — nothing to sweep")
         return 0

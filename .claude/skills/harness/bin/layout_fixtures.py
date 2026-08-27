@@ -46,10 +46,6 @@ STUB = {
         "legacy":   'FEATURES_ROOT = os.path.join(r(), ".harness", "features")\n',
         "migrated": 'FEATURES_ROOT = os.path.join(r(), ".harness", _seg, "features")\n',
     },
-    ".agents/skills/harness/bin/factory_config.py": {
-        "legacy":   '_PROBE = os.path.join("docs", "harness", "SPEC.md")\n',
-        "migrated": '_PROBE = os.path.join(".harness", _name, "docs", "SPEC.md")\n',
-    },
     ".agents/skills/harness/bin/gen-decisions-index.py": {
         "legacy":   'HEADER = "the authority is docs/harness/DECISIONS.md"\n',
         "migrated": 'HEADER = "the authority is .harness/repoA/docs/DECISIONS.md"\n',

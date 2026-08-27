@@ -551,9 +551,10 @@ def install_gh(tmp, script=FAKE_GH):
 # because T-11 retargeted an earlier block onto them: a helper used by two sections belongs
 # above both.
 def stage_ship(tmp, feat_name, issues, parent=40, source_issues=None, milestone=7):
-    """A ship fixture: a board-backed feature plus the SPEC.md probe `factory_config`'s
-    `harness_root()` looks for, so the audit ship now schedules resolves THIS fixture's
-    harness.json rather than climbing out to the real checkout."""
+    """A ship fixture: a board-backed feature plus the SPEC.md probe and the
+    team-config.yaml MARKER `harness_boundary.resolve_root()` needs, so the audit ship now
+    schedules resolves THIS fixture's harness.json rather than climbing out to the real
+    checkout."""
     feat = stage_station(tmp, feat_name, [(t, "done") for t in issues],
                           issues=issues, parent=parent, milestone=milestone,
                           source_issues=source_issues, feature_status="Review")
@@ -568,12 +569,15 @@ def stage_ship(tmp, feat_name, issues, parent=40, source_issues=None, milestone=
     docs = os.path.join(tmp, ".harness", "harness", "docs")
     os.makedirs(docs, exist_ok=True)
     open(os.path.join(docs, "SPEC.md"), "w").write("# fixture probe\n")
+    marker = os.path.join(tmp, ".harness", "team-config.yaml")
+    if not os.path.isfile(marker):
+        open(marker, "w").write("teams: []\n")
     return feat
 
 
 def ship_env(tmp, stations, children=None, **extra):
     env = {"FACTORY_GH": os.path.join(tmp, "gh"),
-           "CLAUDE_PROJECT_DIR": tmp,
+           "HARNESS_PROJECT_DIR": tmp,
            "SHIP_STATIONS": stations,
            "SHIP_BOARD_STATE": os.path.join(tmp, "board-state")}
     for num, kids in (children or {}).items():

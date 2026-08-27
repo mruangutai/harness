@@ -542,13 +542,22 @@ def _dec156_case(name, file_content, expect_exit, mentions=None,
     rd = tempfile.mkdtemp(dir=_D156)
     rel = os.path.join("runs", "r1", fname)
     os.makedirs(os.path.dirname(os.path.join(rd, rel)))
+    # THE ROOT IS THE OVERRIDE NOW, NOT THE PAYLOAD cwd (FEAT-42 T-17). These fixtures used
+    # to be found by joining the artifact path onto payload["cwd"]; cwd was deleted as a root
+    # input because nothing SETS where an agent stands. The tmpdir therefore has to be a real
+    # harness root — resolve_root honours the override only when the marker is under it — and
+    # the runner has to hand it over per case.
+    os.makedirs(os.path.join(rd, ".harness"), exist_ok=True)
+    with open(os.path.join(rd, ".harness", "team-config.yaml"), "w") as f:
+        f.write("agents: {}\n")
     if file_content is not None:
         with open(os.path.join(rd, rel), "w") as f:
             f.write(file_content)
     msg = LEAD_BLOCK.replace(
         "artifact: .harness/features/FEAT-01/runs/r1/digest.md", f"artifact: {rel}")
     HOOK_CASES.append((name,
-                       {"agent_type": agent, "last_assistant_message": msg, "cwd": rd},
+                       {"agent_type": agent, "last_assistant_message": msg, "cwd": rd,
+                        "_root": rd},
                        expect_exit, mentions))
 
 _dec156_case("DEC-156: narrative digest.md with no contract block is exit 2",
@@ -960,7 +969,11 @@ def _t09_fire(root, agent, text, hook=None, **extra):
     payload.update(extra)
     return subprocess.run([hook or VALIDATE, "--hook"], input=json.dumps(payload),
                           capture_output=True, text=True,
-                          env=dict(os.environ, CLAUDE_PROJECT_DIR=root))
+                          # BOTH NAMES, ONE VALUE (FEAT-42 T-17). The hook resolves through
+                          # harness_boundary.resolve_root, which reads HARNESS_PROJECT_DIR
+                          # and no other name, and payload cwd is no longer a root input.
+                          env=dict(os.environ, CLAUDE_PROJECT_DIR=root,
+                                   HARNESS_PROJECT_DIR=root))
 
 
 PM_OK = """
@@ -1088,6 +1101,41 @@ def run_t09():
         len(claims(root, "harness-backend-dev")) == 1,
         repr(claims(root, "harness-backend-dev")))
 
+    # 10. children_in_flight_stale_claim — THE CASCADE (FEAT-42 T-17, issue #742/#866).
+    #     A claim left behind by a DIFFERENT session is not a live child of this return.
+    #     MEASURED 2026-08-26 and written up in
+    #     runs/2026-08-26-2-plan-product/digest.md: one stranded pm claim refused the pm
+    #     spawn at dispatch-guard, then refused the LEAD's return here, then refused the
+    #     ORCHESTRATOR's return here again — three tiers locked out of reporting by one
+    #     strand, each stranding creating the next. The payload carries session_id; the
+    #     registry entry carries the session that made the claim; a mismatch means the
+    #     claim belongs to somebody else's run and this return must be ADMITTED.
+    root = _t09_root()
+    reg.claim(root, "harness-eng-lead", "harness-orchestrator", root, session="THIS-SESSION")
+    reg.claim(root, "harness-backend-dev", "harness-eng-lead", root, session="OTHER-SESSION")
+    r = _t09_fire(root, "harness-eng-lead", LEAD_BLOCK, session_id="THIS-SESSION")
+    t09("10: children_in_flight_stale_claim — a FOREIGN session's claim does not refuse "
+        "this return", r.returncode == 0,
+        f"exit {r.returncode}, stderr={r.stderr.strip()[:240]!r}")
+    t09("10: children_in_flight_stale_claim — and no children marker is printed",
+        CHILD_MARK not in r.stderr, r.stderr.strip()[:240])
+
+    # 11. THE OTHER HALF, so 10 cannot pass by never refusing anyone. Same shape, same
+    #     session on both claims: this one MUST still refuse, and the refusal must name the
+    #     precise single-agent release command rather than release-all, which wipes every
+    #     claim of every agent (following the old advice on 2026-08-26 would have destroyed
+    #     a live one).
+    root = _t09_root()
+    reg.claim(root, "harness-eng-lead", "harness-orchestrator", root, session="THIS-SESSION")
+    reg.claim(root, "harness-backend-dev", "harness-eng-lead", root, session="THIS-SESSION")
+    r = _t09_fire(root, "harness-eng-lead", LEAD_BLOCK, session_id="THIS-SESSION")
+    t09("11: a SAME-session child still refuses, so case 10 is not a blanket pass",
+        r.returncode == 2 and CHILD_MARK in r.stderr,
+        f"exit {r.returncode}, stderr={r.stderr.strip()[:240]!r}")
+    t09("11: and the refusal names the single-agent release command for that child",
+        "--agent harness-backend-dev" in r.stderr and "release-all" not in r.stderr,
+        r.stderr.strip()[:400])
+
     fails = 0
     for name, ok, detail in T09:
         if ok:
@@ -1100,6 +1148,28 @@ def run_t09():
     return fails
 
 
+_ISOLATED_ROOT = None
+
+
+def _isolated_root():
+    """A throwaway checkout every hook case that does not name its own root runs against.
+
+    WITHOUT THIS THEY RUN AGAINST THE LIVE ONE. The hook releases and inspects the in-flight
+    claim registry, and that registry lives under the resolved root — so a claim left behind
+    by anything else in this repository refuses cases that have nothing to do with it. It
+    happened during FEAT-42 T-18: a reverted-gate run stranded eight claims here, and three
+    unrelated digest-shape cases then failed with a children-in-flight refusal. A suite whose
+    verdict depends on what else touched the machine is not a suite.
+    """
+    global _ISOLATED_ROOT
+    if _ISOLATED_ROOT is None:
+        _ISOLATED_ROOT = tempfile.mkdtemp(prefix="vd-hookcases-")
+        os.makedirs(os.path.join(_ISOLATED_ROOT, ".harness"), exist_ok=True)
+        with open(os.path.join(_ISOLATED_ROOT, ".harness", "team-config.yaml"), "w") as f:
+            f.write("agents: {}\n")
+    return _ISOLATED_ROOT
+
+
 def run_hook_cases():
     """Drive --hook mode directly: JSON payload on stdin, EXACT exit code
     asserted (2 reject / 0 pass — never just 'nonzero'), rejection text
@@ -1109,8 +1179,16 @@ def run_hook_cases():
     """
     fails = 0
     for name, payload, want_exit, mentions in HOOK_CASES:
+        # `_root` is the test harness's own key, stripped before the payload is sent: it names
+        # the root this case's artifact lives under, which the hook now takes from the
+        # override rather than from the payload cwd (FEAT-42 T-17).
+        payload = dict(payload)
+        _root = payload.pop("_root", None) or _isolated_root()
+        env = dict(os.environ)
+        env["HARNESS_PROJECT_DIR"] = _root
+        env["CLAUDE_PROJECT_DIR"] = _root
         r = subprocess.run([VALIDATE, "--hook"], input=json.dumps(payload),
-                           capture_output=True, text=True)
+                           capture_output=True, text=True, env=env)
         bad = []
         if r.returncode != want_exit:
             bad.append(f"expected exit {want_exit}, got {r.returncode}")
@@ -1155,6 +1233,69 @@ case("dev refusing an under-specified task can say suite: n/a", "harness-backend
 
 case("suite: n/a with VERDICT PASS is a fail-open and is REJECTED", "harness-backend-dev",
      DEV_NA.replace("VERDICT: BLOCKED", "VERDICT: PASS"), False, "pass")
+
+# --- 2026-08-26: an ANALYSIS dispatch owes no test result --------------------------
+# A dev asked to READ and REPORT writes no production code, so the Iron Law binds on
+# nothing: there is no code owed a passing test. Before this, such a return had NO
+# truthful digest -- `suite: n/a` + PASS was rejected, it was re-prompted, and the
+# re-emission dropped its report body. MEASURED on 2026-08-26: three of four member
+# runs lost their report that way, and TWO agents reasoned themselves into a
+# fabricated `suite: pass` to satisfy the schema.
+#
+# THE GATE OPENS ON BOTH CONDITIONS, NEVER ONE. `files_touched: []` alone is not
+# enough -- DEV_NA above is `task: T-01` refused with nothing touched, and that must
+# STAY rejected. `task: none` alone is not enough either: it is a CLAIM, and a return
+# can write it while editing ten files. Only the pair -- no task declared AND nothing
+# touched -- separates "had nothing to test" from "declined to test".
+DEV_ANALYSIS = """
+VERDICT: PASS
+DIGEST:
+  headline: censused 84 path-returning functions; harness_boundary.py is the candidate
+  tests_added: 0
+  suite: n/a
+  blocked_on: none
+  task: none
+  task_verify: n/a
+  open_questions: []
+  files_touched: []
+  expertise_update: []
+artifact: none
+"""
+case("an analysis dev -- task: none AND files_touched: [] -- may say suite: n/a with PASS",
+     "harness-backend-dev", DEV_ANALYSIS, True)
+
+case("task: none but files WERE touched -- suite: n/a with PASS is still REJECTED, "
+     "because `task: none` is a claim and the edit is the fact",
+     "harness-backend-dev",
+     DEV_ANALYSIS.replace("files_touched: []", "files_touched: [gh-sync.py]"),
+     False, "pass")
+
+# THE SUITE GATE, ISOLATED. Found by mutation on 2026-08-26: deleting the `task: none`
+# half of `_nothing_to_gate` broke NO test, because the case above it -- DEV_NA with
+# PASS -- is rejected over `task_verify: n/a`, never over `suite`. It asserts the right
+# outcome for the wrong reason, so it could not pin this half.
+#
+# This return satisfies EVERY other gate: a real task, its verify PASSED, nothing
+# touched. The ONLY thing wrong with it is `suite: n/a` alongside PASS. It must stay
+# REJECTED -- a task was worked and the suite still did not run -- and it is the only
+# case that can go red when the task half is removed.
+DEV_REAL_TASK_NO_SUITE = """
+VERDICT: PASS
+DIGEST:
+  headline: T-01 verified against its own command; the full suite was not run
+  tests_added: 0
+  suite: n/a
+  blocked_on: none
+  task: T-01
+  task_verify: pass
+  open_questions: []
+  files_touched: []
+  expertise_update: []
+artifact: none
+"""
+case("a REAL task whose verify passed still owes a suite result -- suite: n/a with "
+     "PASS is REJECTED even with nothing touched",
+     "harness-backend-dev", DEV_REAL_TASK_NO_SUITE, False, "pass")
 
 QA_NA = """
 VERDICT: BLOCKED

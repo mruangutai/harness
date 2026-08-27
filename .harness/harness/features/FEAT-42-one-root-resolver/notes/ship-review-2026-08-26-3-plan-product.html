@@ -1,0 +1,85 @@
+<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>CEO briefing — FEAT-42 One root resolver — plan phase complete, awaiting signature</title><style>
+:root{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:ui-sans-serif,-apple-system,"Segoe UI","Helvetica Neue",Arial,sans-serif;
+}
+/* Token-level theming: components style through the tokens and never inside the
+   media query, so the viewer's explicit toggle can override the OS in BOTH
+   directions. */
+@media (prefers-color-scheme:dark){
+  :root{ --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+         --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733; }
+}
+:root[data-theme="dark"]{
+  --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+  --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733;
+}
+:root[data-theme="light"]{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+}
+*{box-sizing:border-box}
+body{margin:0; background:var(--paper); color:var(--ink);
+  font:400 16px/1.65 var(--sans); padding:clamp(1.5rem,5vw,4rem) clamp(1rem,5vw,2rem) 6rem}
+.wrap{max-width:56rem; margin:0 auto}
+/* Layout owns the spacing: gap between siblings, not per-element margins that
+   collapse or double. */
+.wrap{display:flex; flex-direction:column; gap:1rem}
+.eyebrow{font:500 11px/1 var(--mono); letter-spacing:.14em; text-transform:uppercase;
+  color:var(--quiet); margin:0}
+h1{font:600 clamp(1.6rem,4vw,2.3rem)/1.15 var(--sans); letter-spacing:-.02em;
+  margin:.4rem 0 .2rem; text-wrap:balance}
+h2{font:600 1.15rem/1.3 var(--sans); letter-spacing:-.01em; margin:2rem 0 0;
+  padding-top:1.25rem; border-top:1px solid var(--line); text-wrap:balance}
+h3{font:600 .98rem/1.4 var(--sans); margin:1.1rem 0 0}
+h4,h5,h6{font:500 11px/1.4 var(--mono); letter-spacing:.1em; text-transform:uppercase;
+  color:var(--quiet); margin:1rem 0 0}
+p,li{max-width:65ch; margin:0}
+ul,ol{margin:0; padding-left:1.4rem; display:flex; flex-direction:column; gap:.4rem}
+li>ul,li>ol{margin-top:.4rem}
+strong{font-weight:600}
+code{font:400 .875em/1.5 var(--mono); background:var(--sunk); padding:.1em .35em; border-radius:3px}
+pre{background:var(--sunk); border:1px solid var(--line); border-radius:6px;
+  padding:.85rem 1rem; overflow-x:auto; margin:0}
+pre code{background:none; padding:0}
+blockquote{margin:0; padding:.75rem 1rem; border-left:3px solid var(--accent);
+  background:var(--accent-soft); border-radius:0 5px 5px 0}
+blockquote p{max-width:none}
+hr{border:0; border-top:1px solid var(--line); margin:.5rem 0}
+/* Wide content pans inside its OWN container; the page body never scrolls sideways. */
+.scroll{overflow-x:auto; border:1px solid var(--line); border-radius:6px}
+table{border-collapse:collapse; width:100%; font-size:.9rem}
+th,td{text-align:left; padding:.6rem .8rem; border-bottom:1px solid var(--line); vertical-align:top}
+thead th{font:500 10px/1.3 var(--mono); letter-spacing:.11em; text-transform:uppercase;
+  color:var(--quiet); background:var(--sunk); white-space:nowrap}
+tbody tr:last-child td{border-bottom:0}
+/* Figures in a column line up. */
+td,th{font-variant-numeric:tabular-nums}
+.derived{color:var(--slate); font-size:.85rem; margin-top:2.5rem;
+  padding-top:1rem; border-top:1px solid var(--line)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style></head><body><div class='wrap'><p class='eyebrow'>Ship review · reading view</p><h1 id="ceo-briefing-feat-42-one-root-resolver-plan-phase-complete-awaiting-signature">CEO briefing — FEAT-42 One root resolver — plan phase complete, awaiting signature</h1>
+<h2 id="the-one-liner">The one-liner</h2>
+<p><strong>The plan is signature-ready: 19 tasks, 13 main-session-direct / 6 squad, all 20 chain sites covered and SC-01 rewritten as a count-to-zero with no file list in it.</strong> One question should be answered knowingly before you sign — a hole the plan&#x27;s own gate structurally cannot see — and I have measured how far it actually reaches.</p>
+<h2 id="how-this-briefing-was-assembled">How this briefing was assembled</h2>
+<p>No report round was spawned. I read the two run digests from disk: <code>runs/2026-08-26-2-plan-product/digest.md</code> (BLOCKED) and <code>runs/2026-08-26-3-plan-product/digest.md</code> (PASS). Everything I assert about <code>plan.yaml</code> below I verified against the file myself rather than relaying the lead&#x27;s numbers.</p>
+<h2 id="what-i-verified-rather-than-took-on-trust">What I verified rather than took on trust</h2>
+<div class="scroll"><table><thead><tr><th>Claim</th><th>Verified</th></tr></thead><tbody><tr><td><code>plan.yaml</code> exists, 71,702 bytes</td><td>yes</td></tr><tr><td>19 tasks</td><td>yes — parsed the YAML</td></tr><tr><td>13 <code>main-session-direct</code> / 6 <code>team</code></td><td>yes</td></tr><tr><td>Every task has <code>id</code>, <code>files:</code>, <code>execution_mode</code>, <code>verify:</code></td><td>yes — zero omissions</td></tr><tr><td>All 16 env-chain files tasked</td><td>yes — each named in at least one task</td></tr><tr><td><code>approval: pending</code> in plan.yaml and BRIEF.md</td><td>yes — <code>plan.yaml:5-6</code>, <code>BRIEF.md:172-174</code></td></tr><tr><td>The 20-occurrence / 16-file baseline</td><td>yes — re-derived independently at <code>3952814</code></td></tr></tbody></table></div>
+<p>My earlier &quot;15 files&quot; was an undercount. Your 16 is correct, and I confirmed it before dispatching.</p>
+<h2 id="the-one-thing-to-decide-before-signing">The one thing to decide before signing</h2>
+<p>pm found, and I verified verbatim, that <code>.omp/extensions/harness-hooks.ts:144</code> runs every policy script with <code>env: { ...process.env, HARNESS_PROJECT_DIR: cwd }</code>. Under D-2/D-3 a worktree legitimately carries <code>.harness/team-config.yaml</code>, so an accidental cwd probes <strong>valid</strong> and is honoured as the override. That is the input this feature exists to remove, walking back in through the override the design deliberately keeps. The file sits outside <code>.claude/skills/harness/bin/</code>, so SC-01 cannot see it and no task touches it.</p>
+<p><strong>How far it actually reaches — my measurement, and it changes the answer.</strong> <code>.claude/settings.json</code> wires all nine live hooks to <code>${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/&lt;script&gt;</code>. None of them is <code>harness-hooks.ts</code>. <strong>So <code>:144</code> does not execute under Claude Code, the host running this feature.</strong> It executes under OMP — which DEC-202 makes canonical. The hole is real but host-conditional: it opens when OMP becomes the runtime, not today.</p>
+<p>That converts the question from &quot;the plan ships a live hole&quot; to &quot;the plan ships a hole that arms itself at the OMP cutover&quot;. Both answers let you sign. My recommendation: <strong>accept knowingly and file it against the OMP cutover</strong> rather than widening FEAT-42 again — the feature already grew from 7 sites to 20 this cycle, and the defect cannot fire on the current host. But it must be a decision in the record, not an omission, because the whole point of widening SC-01 was to stop exactly this shape of gap from being invisible.</p>
+<h2 id="three-smaller-calls-none-blocking">Three smaller calls, none blocking</h2>
+<ul><li><strong>The lane split is 13/6, not 7/12</strong>, because pm read DEC-174 am.4 as naming a <em>category</em> rather than a closed six-file list. The lead checked the wording verbatim at <code>DECISIONS.md:5008-5009</code> and endorses it. This is the single biggest determinant of task shape — worth a nod at signature.</li><li><strong>am.4 itself needs amending.</strong> It says a script joining the enforcement category means &quot;this entry is amended when that happens&quot;. pm&#x27;s reading adds six such scripts, and no task carries the amendment.</li><li><strong><code>CLAIM_TTL_SECONDS</code> becomes 1200.</strong> The cost is stated rather than hidden: a legitimate run over 20 minutes loses its protection.</li></ul>
+<p>pm also took <strong>SC-11 off <code>verify: uat</code></strong>, settling it with a <code>test-dispatch-guard.py</code> case that drives the real gate through its existing payload seam. That is the right instinct — an operator-only check that is not really operator-only is a gate nobody fires.</p>
+<h2 id="what-it-cost">What it cost</h2>
+<p>Cycles 0 of 10. Runs 2 of 20. <strong>Zero send-backs</strong> — the plan passed first time. The one BLOCKED run cost a spawn and produced the send-back criteria the successful run reused, so it was not wasted. Both runs wrote their criteria <em>before</em> dispatching, so they could not be fitted to the answer.</p>
+<p>Nothing is committed. No doer produced source and no gate ran; the tree holds plan artifacts only.</p>
+<h2 id="proposed-backlog">Proposed backlog</h2>
+<div class="scroll"><table><thead><tr><th>ID</th><th>Finding</th><th>Nature</th></tr></thead><tbody><tr><td>B-1</td><td><code>harness-hooks.ts:144</code> injects cwd as <code>HARNESS_PROJECT_DIR</code>, re-opening the override hole under the OMP host — if you accept rather than scope it</td><td>bug</td></tr><tr><td>B-2</td><td>DEC-174 am.4 needs amending to record the six scripts pm&#x27;s category reading adds to the enforcement layer</td><td>chore</td></tr><tr><td>B-3</td><td><code>validate-digest.py</code>&#x27;s children-in-flight check shares the dispatch guard&#x27;s registry, so one stranded claim blocks a return as well as a dispatch — tasked in this plan, listed here in case the task is cut</td><td>bug</td></tr><tr><td>B-4</td><td>The analysis note&#x27;s Section 5 item 2 (&quot;wayfind has ZERO test coverage&quot;) is false at HEAD; it is a signed input carrying a wrong fact</td><td>chore</td></tr><tr><td>B-5</td><td>An orchestrator cannot clear a stranded claim — no tier below the main session has both the need and the permission</td><td>enhancement</td></tr><tr><td>B-6</td><td><code>gh_cost_log.py:111</code> derives root from its own file location; pm found it as a caller cluster D-5&#x27;s map omitted</td><td>bug</td></tr></tbody></table></div>
+<p>Anything you do not strike becomes a backlog issue on acceptance. Anything not listed dies silently.</p><p class='derived'>Derived from <code>ship-review-2026-08-26-3-plan-product.md</code> — the markdown is the record; do not edit this file. Regenerate with <code>bin/render-brief.py</code>.</p></div></body></html>

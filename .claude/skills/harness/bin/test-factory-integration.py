@@ -23,17 +23,16 @@ gh_issues.py emit — read from those two files directly, not guessed. The stub 
 (`_FAKE_GIT_OK_SRC`) always exits 0 with empty output; T-06's own real argv forms are unit-tested
 by recorder in test-factory-workspace.py, and are exercised for REAL only in the bottom section.
 
-CLAUDE_PROJECT_DIR IS THE ROOT-REDIRECT SEAM, NOT A WORKAROUND: factory_config.harness_root()
-documents (and test-factory-config.py exercises) a three-tier resolution — CLAUDE_PROJECT_DIR
-wins when `<it>/.harness/harness/docs/SPEC.md` is readable. Every case sets CLAUDE_PROJECT_DIR to its own
-temp root with a stub SPEC.md, so `factory_claim.py`'s import-time FEATURES_ROOT resolves under
+HARNESS_PROJECT_DIR IS THE ROOT-REDIRECT SEAM, NOT A WORKAROUND: harness_boundary.resolve_root()
+honours HARNESS_PROJECT_DIR only when `.harness/team-config.yaml` (its MARKER) is readable
+underneath it. Every case sets HARNESS_PROJECT_DIR to its own temp root carrying both that
+MARKER and a stub SPEC.md, so `factory_claim.py`'s import-time FEATURES_ROOT resolves under
 the temp root instead of this checkout's real `.harness/harness/features`. This is also why a case's
 own `.harness/factory/fleet.yaml` is never created next to the probe — every case passes `--fleet`
 explicitly and the DEFAULT FLEET_PATH is left to 404, which is exactly what the "no arguments" and
-"missing --fleet" cases need. Every case asserts stderr never contains "IGNORING it" — that phrase
-means the probe missed and harness_root() silently fell back to this checkout's own root, which
-would make the case's
-CLAUDE_PROJECT_DIR redirect a no-op without ever failing loudly.
+"missing --fleet" cases need. Every case asserts stderr never contains a discard notice — that
+would mean the override missed and resolve_root() silently fell back to this checkout's own root,
+which would make the case's HARNESS_PROJECT_DIR redirect a no-op without ever failing loudly.
 
 TWO OF THE FIVE TOOLS NEVER CALL gh AT ALL (grep-verified: factory_config.py and
 factory_workspace.py import neither factory_gh nor gh_issues), so the SC-10 "bad-auth exits 2"
@@ -521,13 +520,16 @@ def read_state(path):
 
 
 def make_root(base):
-    """A temp root with the .harness/harness/docs/SPEC.md probe CLAUDE_PROJECT_DIR
-    redirection needs (FEAT-22: the probe moved with the docs).
+    """A temp root with the .harness/harness/docs/SPEC.md probe and the team-config.yaml
+    MARKER the HARNESS_PROJECT_DIR redirection needs (harness_boundary.resolve_root()).
     Never carries .harness/factory/fleet.yaml — every case passes --fleet explicitly."""
     root = os.path.join(base, "root")
-    os.makedirs(os.path.join(root, os.path.dirname(factory_config._PROBE)), exist_ok=True)
-    with open(os.path.join(root, factory_config._PROBE), "w", encoding="utf-8") as f:
+    os.makedirs(os.path.join(root, ".harness", "harness", "docs"), exist_ok=True)
+    with open(os.path.join(root, ".harness", "harness", "docs", "SPEC.md"),
+              "w", encoding="utf-8") as f:
         f.write("stub probe for T-12\n")
+    with open(os.path.join(root, ".harness", "team-config.yaml"), "w", encoding="utf-8") as f:
+        f.write("teams: []\n")
     return root
 
 
@@ -546,7 +548,7 @@ def fleet_dict(workspace_root, repo=REPO, default_branch=DEFAULT_BRANCH):
 
 def base_env(root, gh_bin=None, git_bin=None, gh_state=None):
     env = dict(os.environ)
-    env["CLAUDE_PROJECT_DIR"] = root
+    env["HARNESS_PROJECT_DIR"] = root
     if gh_bin:
         env["FACTORY_GH"] = gh_bin
     else:
@@ -571,8 +573,9 @@ def run_tool(tool_key, args, env, cwd):
 
 
 def not_ignored(label, r):
-    check(f"{label}: harness_root probe was not silently discarded (no 'IGNORING it')",
-          "IGNORING it" not in r.stderr, r.stderr)
+    check(f"{label}: the root override was not silently discarded (no 'discarding "
+          "HARNESS_PROJECT_DIR')",
+          "discarding HARNESS_PROJECT_DIR" not in r.stderr, r.stderr)
 
 
 # ============================================================================
@@ -860,7 +863,7 @@ with tempfile.TemporaryDirectory() as td:
     env["FACTORY_GIT_LOG"] = git_log
 
     # The fixture plan lives exactly where factory_claim's (import-time) FEATURES_ROOT will
-    # look for it under this case's CLAUDE_PROJECT_DIR: <root>/.harness/harness/features/<feature>.
+    # look for it under this case's HARNESS_PROJECT_DIR: <root>/.harness/harness/features/<feature>.
     feat = "FEAT-INTEG-HAPPY"
     feat_dir = os.path.join(root, ".harness", "harness", "features", feat)
     os.makedirs(feat_dir, exist_ok=True)
@@ -1395,7 +1398,7 @@ with tempfile.TemporaryDirectory() as td:
     state_path = write_state(os.path.join(td, "gh_state.json"))
     call_log = os.path.join(td, "gh_call_log.jsonl")
     env = dict(os.environ)
-    env["CLAUDE_PROJECT_DIR"] = root
+    env["HARNESS_PROJECT_DIR"] = root
     env["FACTORY_GH"] = gh
     env["GH_SYNC_GH"] = gh
     env["GH_STATE"] = state_path
@@ -1450,7 +1453,7 @@ with tempfile.TemporaryDirectory() as td:
     })
     call_log = os.path.join(td, "gh_call_log.jsonl")
     env = dict(os.environ)
-    env["CLAUDE_PROJECT_DIR"] = root
+    env["HARNESS_PROJECT_DIR"] = root
     env["FACTORY_GH"] = gh
     env["GH_SYNC_GH"] = gh
     env["GH_STATE"] = state_path
@@ -1496,7 +1499,7 @@ with tempfile.TemporaryDirectory() as td:
     })
     call_log = os.path.join(td, "gh_call_log.jsonl")
     env = dict(os.environ)
-    env["CLAUDE_PROJECT_DIR"] = root
+    env["HARNESS_PROJECT_DIR"] = root
     env["FACTORY_GH"] = gh
     env["GH_SYNC_GH"] = gh
     env["GH_STATE"] = state_path
@@ -1541,7 +1544,7 @@ with tempfile.TemporaryDirectory() as td:
     })
     call_log = os.path.join(td, "gh_call_log.jsonl")
     env = dict(os.environ)
-    env["CLAUDE_PROJECT_DIR"] = root
+    env["HARNESS_PROJECT_DIR"] = root
     env["FACTORY_GH"] = gh
     env["GH_SYNC_GH"] = gh
     env["GH_STATE"] = state_path
@@ -1592,7 +1595,7 @@ with tempfile.TemporaryDirectory() as td:
     })
     call_log = os.path.join(td, "gh_call_log.jsonl")
     env = dict(os.environ)
-    env["CLAUDE_PROJECT_DIR"] = root
+    env["HARNESS_PROJECT_DIR"] = root
     env["FACTORY_GH"] = gh
     env["GH_SYNC_GH"] = gh
     env["GH_STATE"] = state_path

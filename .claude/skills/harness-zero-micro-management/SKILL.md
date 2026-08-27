@@ -23,6 +23,18 @@ writing a deliverable is.
    (DEC-158). The member cross-checks your string against the plan — `plan.yaml`, or `PLAN.md` for a
    feature still on the pre-DEC-182 format — and returns `BLOCKED` on a
    mismatch, so a paraphrase stops the task rather than silently verifying something else.
+**Every dispatch you make opens with the feature it belongs to**, on its own first line, spelled
+exactly:
+
+```
+HARNESS-FEATURE: FEAT-42-one-root-resolver
+```
+
+with the id of the feature you are working. `dispatch-guard.sh` refuses a governed dispatch
+without it at exit 2. It is the only signal that tells the guard which checkout you were
+assigned to: your process working directory does not follow your assignment, and a claim
+recorded in the wrong checkout is why the previous planning run could not spawn at all.
+
 3. **Assess what comes back.** Read their artifact and DIGEST. You are the one tier permitted to read
    member artifacts, and assessing is the half of your job that is not routing.
 4. **Consolidate and report up** — one DIGEST per team, with a per-member block preserved.

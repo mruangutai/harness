@@ -38,18 +38,20 @@ FIXTURE MECHANICS SHARED BY EVERY CASE THAT INVOKES A REAL `gh-sync.py ship` OR
 `feature-worktree.py remove`:
 
   - `_bootstrap_repo` lays down `.harness/team-config.yaml` (gh-sync.py's own root-walk probe,
-    independent of any environment variable), `.harness/harness/docs/SPEC.md` (the
-    CLAUDE_PROJECT_DIR probe `factory_config.harness_root()` reads) and `.harness/harness.json`
-    (github.sync enabled, github.repo pinned, github.board an EXPLICIT null so
-    `gh_board.load_board` never raises `factory_config.FleetError`).
-  - `_sweep_env` sets CLAUDE_PROJECT_DIR to the fixture repo. `worktree_terminal.classify()`
+    AND the MARKER `harness_boundary.resolve_root()` needs, independent of any environment
+    variable), `.harness/harness/docs/SPEC.md` and `.harness/harness.json` (github.sync
+    enabled, github.repo pinned, github.board an EXPLICIT null so `gh_board.load_board` never
+    raises `factory_config.FleetError`).
+  - `_sweep_env` sets HARNESS_PROJECT_DIR to the fixture repo. `worktree_terminal.classify()`
     itself never needs this — a worktree's owner_root is parsed straight out of its own path by
     `_split_owner_segment_id`, and "harness"'s default_branch is the hardcoded literal "main" —
     but `feature-worktree.py`'s OWN `resolve_repo("harness")` (invoked as a SEPARATE subprocess
-    for the actual `remove`) calls `factory_config.harness_root()`, which prefers
-    CLAUDE_PROJECT_DIR when the probe file is readable underneath it. Without this, `remove`
-    would compute `dest_for()` against the REAL checkout running this test rather than the
-    fixture, and GATE 1 ("not a linked worktree of <owner_root>") would refuse every removal —
+    for the actual `remove`) calls `harness_boundary.resolve_root()`, which prefers
+    HARNESS_PROJECT_DIR when the MARKER is readable underneath it. Without this, `remove`
+    would compute `dest_for()` against wherever that subprocess's OWN on-disk bin dir derives a
+    root from — the fixture-local bin dir installed inside a LINKED WORKTREE in the
+    linked-worktree case below, never the main checkout the terminal worktree actually lives
+    under — and GATE 1 ("not a linked worktree of <owner_root>") would refuse every removal —
     a false negative in either direction (the fixture worktree looks unremovable, OR — far
     worse — an unset var could resolve against a real checkout at all). Every case that expects
     an actual removal to happen therefore sets it.
@@ -215,6 +217,13 @@ def case_dry_run_safety():
     results = []
     with tempfile.TemporaryDirectory() as tmp:
         repo = _repo(os.path.join(tmp, "R"))
+        # harness_boundary.resolve_root()'s MARKER (FEAT-42 T-04): post-merge-sweep.sh imports
+        # factory_config unconditionally, even under --dry-run, and FLEET_PATH's own resolution
+        # now raises rather than silently accepting a markerless root — see this file's own
+        # docstring on why the fixture-local bin dir's structural derivation needs it too.
+        os.makedirs(os.path.join(repo, ".harness"), exist_ok=True)
+        with open(os.path.join(repo, ".harness", "team-config.yaml"), "w") as f:
+            f.write("schema: team-config/1\n")
         sweep = _install_fixture_bin(repo)
         _commit_feature(repo, "FEAT-01-dry-run-thing", "Done")
         dest = _add_wt(repo, "FEAT-01-dry-run-thing")
@@ -256,7 +265,7 @@ def _bootstrap_repo(path, github_repo="acme/repo-x"):
 
 def _sweep_env(repo, gh_env):
     env = dict(gh_env)
-    env["CLAUDE_PROJECT_DIR"] = repo
+    env["HARNESS_PROJECT_DIR"] = repo
     return env
 
 

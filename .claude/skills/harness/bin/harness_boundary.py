@@ -32,6 +32,73 @@ import sys
 # then blocks the main session on.
 WORKTREES_SEGMENT = ".claude/worktrees"
 
+# A directory is a harness checkout when it contains MARKER. Never a caller-supplied
+# parameter (FEAT-42 T-01): a parameter is what let each caller invent its own
+# definition — check-plan-routes.py probed team-config.yaml, factory_config.py probed
+# SPEC.md, wayfind.py probed the bare .harness DIRECTORY, and that last probe is the
+# fail-open recorded at check-plan-routes.py:489-495: $HOME/.harness holds two backup
+# tarballs and no team-config.yaml, so the bare-directory probe resolved $HOME as a root.
+MARKER = os.path.join(".harness", "team-config.yaml")
+
+
+def root_from_script(bin_dir):
+    """The root implied by `bin_dir`'s location, by pure arithmetic. ZERO filesystem
+    access and ZERO environment reads — for callers that must not touch cwd or disk.
+
+    `bin_dir` is `<root>/.claude/skills/harness/bin`, so four levels up is `<root>`.
+    """
+    return os.path.abspath(os.path.join(bin_dir, "..", "..", "..", ".."))
+
+
+def resolve_root(bin_dir, strict=True):
+    """The root: environment-aware, the only one of the three that reads os.environ.
+
+    Reads HARNESS_PROJECT_DIR ONLY — never CLAUDE_PROJECT_DIR, which is host-owned,
+    always names the session project root, and is one of the three spellings of a
+    single value this feature exists to delete. If the override is set and carries
+    MARKER, it wins. If it is set and does NOT carry MARKER, the override is
+    discarded — reported on stderr naming both candidates — and resolution falls
+    through to the derived root. If nothing carries MARKER: raise ValueError naming
+    both candidates when `strict`, else return the derived root anyway.
+    """
+    derived = root_from_script(bin_dir)
+    override = os.environ.get("HARNESS_PROJECT_DIR")
+    if override:
+        if os.path.isfile(os.path.join(override, MARKER)):
+            return os.path.abspath(override)
+        print(
+            f"harness_boundary: discarding HARNESS_PROJECT_DIR={override!r} — it does "
+            f"not carry {MARKER}. Falling back to the derived root {derived!r}.",
+            file=sys.stderr,
+        )
+    if os.path.isfile(os.path.join(derived, MARKER)):
+        return derived
+    if strict:
+        raise ValueError(
+            f"no harness root found: neither HARNESS_PROJECT_DIR ({override!r}) nor "
+            f"the derived root ({derived!r}) carries {MARKER}"
+        )
+    return derived
+
+
+def root_above(start):
+    """Walk up from `start`, returning the first directory at or above it that
+    carries MARKER, or None at the filesystem root. No environment read — the only
+    one of the three permitted to see a cwd, and only because a caller hands one in.
+
+    Answers "which checkout is this PATH in". A directory merely NAMED `.harness`
+    with no `team-config.yaml` inside it does not satisfy this — that bare-directory
+    probe is the $HOME/.harness fail-open this function exists to close.
+    """
+    cur = os.path.abspath(start)
+    while True:
+        if os.path.isfile(os.path.join(cur, MARKER)):
+            return cur
+        parent = os.path.dirname(cur)
+        if parent == cur:
+            return None
+        cur = parent
+
 def checkout_relative(abs_path):
     """Return `(checkout_dir, path relative to that checkout)`, or None.
 
@@ -223,17 +290,19 @@ def resolve_fleet(root, label):
     if not os.path.exists(fleet_path):
         return None, [], fleet_path
     try:
-        # LAZY, and stderr-muzzled for the import statement ONLY. Measured: under a root
-        # holding no .harness/harness/docs/SPEC.md, importing factory_config prints a discard
-        # notice to stderr — which would reach the agent on every governed write from a
-        # fixture root, as noise indistinguishable from a real verdict.
+        # LAZY, and stderr-muzzled for the import statement ONLY. factory_config's own
+        # FLEET_PATH resolves at import time from ITS OWN on-disk location, never from
+        # `root` below — so importing it can still print a discard notice to stderr if
+        # the caller's HARNESS_PROJECT_DIR happens to be set without carrying MARKER.
+        # Muzzled so that noise never reaches the agent on a governed write, indistinguishable
+        # from a real verdict.
         import io
         import contextlib
         with contextlib.redirect_stderr(io.StringIO()):
             import factory_config
         # The EXPLICIT path, never factory_config.FLEET_PATH: that constant is computed
-        # at import time from that module's own root probe (.harness/harness/docs/SPEC.md), which
-        # is not this hook's probe (.harness/team-config.yaml). Under a fixture root the
+        # at import time from resolve_root(factory_config's own bin dir) — always the LIVE
+        # checkout's fleet.yaml, never this hook's `root` argument. Under a fixture root the
         # two disagree and the constant names the live repository.
         fleet = factory_config.load_fleet(fleet_path)
         bases = [real(factory_config.workspace_path(fleet, e["name"]))
