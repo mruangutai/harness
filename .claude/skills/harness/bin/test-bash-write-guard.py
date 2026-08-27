@@ -16,6 +16,24 @@ import json, os, subprocess, sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 GUARD = os.environ.get("BASH_WRITE_GUARD_BIN") or os.path.join(HERE, "bash-write-guard.sh")
 
+
+def _env(root, **kw):
+    """The guard's environment for a fixture rooted at `root` — BOTH names, one value.
+
+    FEAT-42 T-11. bash-write-guard.sh resolves its root through
+    harness_boundary.resolve_root, which reads HARNESS_PROJECT_DIR and no other name. The
+    reverted sha-3952814 copy this suite is diffed against reads HARNESS_PROJECT_DIR first
+    and CLAUDE_PROJECT_DIR second. Setting both to the same value is the ONE spelling under
+    which the two copies resolve the same root, which is what makes the
+    identical-violation-set proof mean anything. Setting only the host-owned name points the
+    new copy at the live checkout instead.
+
+    resolve_root honours the override only when `.harness/team-config.yaml` is readable
+    underneath it. A fixture without that marker gets the override discarded and falls back
+    to the derived root — the same answer the deleted chain gave it.
+    """
+    return dict(os.environ, CLAUDE_PROJECT_DIR=root, HARNESS_PROJECT_DIR=root, **kw)
+
 CASES = []
 
 def case(name, cmd, want, agent="harness-eng-lead"):
@@ -165,7 +183,7 @@ def fixture(text):
 def fire(root, cmd, agent="harness-backend-dev"):
     payload = {"agent_type": agent, "tool_name": "Bash", "tool_input": {"command": cmd}}
     return subprocess.run([GUARD], input=json.dumps(payload), capture_output=True,
-                          text=True, env=dict(os.environ, CLAUDE_PROJECT_DIR=root))
+                          text=True, env=_env(root))
 
 
 def run_t14():
@@ -221,7 +239,7 @@ def run_t14():
                "tool_input": {"command": f"echo hi > {os.path.join(iso, 'x.txt')}"}}
     r = subprocess.run([os.path.join(isobin, "bash-write-guard.sh")],
                        input=json.dumps(payload), capture_output=True, text=True,
-                       env=dict(os.environ, CLAUDE_PROJECT_DIR=iso))
+                       env=_env(iso))
     T14.append(("an ABSENT manifest still fails OPEN (DEC-151 carve-out intact)",
                 r.returncode == 0, f"exit {r.returncode}: {r.stderr.strip()[:160]}"))
 
@@ -253,7 +271,7 @@ def run_t14():
         w = subprocess.run([cd], input=json.dumps(
             {"agent_type": "harness-backend-dev", "tool_name": "Write",
              "tool_input": {"file_path": tgt, "content": "x"}}),
-            capture_output=True, text=True, env=dict(os.environ, CLAUDE_PROJECT_DIR=root))
+            capture_output=True, text=True, env=_env(root))
         T14.append((f"both write surfaces agree on {rel} (D-03, one shared rule)",
                     b.returncode == want and w.returncode == want,
                     f"bash got {b.returncode}, write got {w.returncode}, want {want}"))
@@ -325,7 +343,7 @@ def run_worktree():
                    "tool_input": {"command": cmd}}
         return subprocess.run([GUARD], input=json.dumps(payload), capture_output=True,
                               text=True,
-                              env=dict(os.environ, CLAUDE_PROJECT_DIR=session_root))
+                              env=_env(session_root))
 
     # TARGET-SIDE: a shell write INTO the sibling, from a session rooted in the
     # checkout. The sibling is outside root, so this half discriminates whatever the
@@ -426,7 +444,7 @@ def run_worktree():
                               % os.path.join(iso, ".harness", "allowed", "x.txt")}}
     r = subprocess.run([os.path.join(isobin, "bash-write-guard.sh")],
                        input=json.dumps(payload), capture_output=True, text=True,
-                       env=dict(os.environ, CLAUDE_PROJECT_DIR=iso))
+                       env=_env(iso))
     wtb("a MISSING harness_boundary.py blocks the bash write and NAMES the module",
         r.returncode == 2 and "harness_boundary" in r.stderr,
         f"exit {r.returncode}: {r.stderr.strip()[:200]}")
@@ -467,7 +485,7 @@ def run_worktree():
     m_target = os.path.join(m_wt, ".harness", "allowed", "x.txt")
 
     def _both_routes():
-        env = dict(os.environ, CLAUDE_PROJECT_DIR=m_wt,
+        env = _env(m_wt,
                    PYTHONPATH=m_bin + os.pathsep + os.environ.get("PYTHONPATH", ""))
         b = subprocess.run([os.path.join(m_bin, "bash-write-guard.sh")],
                            input=json.dumps({"agent_type": "harness-backend-dev",
@@ -722,7 +740,7 @@ def run_head_move():
     # 5 — the main session is not governed. No agent_type key at all.
     r5 = subprocess.run([GUARD], input=json.dumps(
         {"tool_name": "Bash", "tool_input": {"command": "git checkout main"}}),
-        capture_output=True, text=True, env=dict(os.environ, CLAUDE_PROJECT_DIR=root))
+        capture_output=True, text=True, env=_env(root))
     headc("5. the main session is NOT governed: the same checkout with no agent_type "
           "exits 0", r5.returncode == 0,
           f"exit {r5.returncode}: {r5.stderr.strip()[:200]}")

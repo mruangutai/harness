@@ -18,6 +18,24 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 HOOK = os.environ.get("CHECK_DOMAIN_BIN") or os.path.join(HERE, "check-domain.sh")
 ROOT = os.path.abspath(os.path.join(HERE, "..", "..", "..", ".."))
 
+
+def _env(root, **kw):
+    """The hook's environment for a fixture rooted at `root` — BOTH names, one value.
+
+    FEAT-42 T-10. check-domain.sh resolves its root through harness_boundary.resolve_root,
+    which reads HARNESS_PROJECT_DIR and no other name. The reverted sha-3952814 copy this
+    suite is diffed against reads HARNESS_PROJECT_DIR first and CLAUDE_PROJECT_DIR second.
+    Setting both to the same value is therefore the ONE spelling under which the two copies
+    resolve the same root, which is what makes the identical-violation-set proof mean
+    anything. Setting only the host-owned name — what every call here did before — points
+    the new copy at the live checkout instead, and 20 cases failed exactly that way.
+
+    resolve_root honours the override only when `.harness/team-config.yaml` is readable
+    underneath it. A fixture without that marker gets the override discarded and falls back
+    to the derived root, which is the same answer the deleted chain gave it.
+    """
+    return dict(os.environ, CLAUDE_PROJECT_DIR=root, HARNESS_PROJECT_DIR=root, **kw)
+
 CASES = []
 
 def case(name, path, want, agent="harness-documentor", tool="Write"):
@@ -132,7 +150,7 @@ def fire(root, path, content="x", agent="harness-documentor"):
     payload = {"agent_type": agent, "tool_name": "Write",
                "tool_input": {"file_path": os.path.join(root, path), "content": content}}
     return subprocess.run([HOOK], input=json.dumps(payload), capture_output=True,
-                          text=True, env=dict(os.environ, CLAUDE_PROJECT_DIR=root))
+                          text=True, env=_env(root))
 
 
 T12 = []
@@ -195,7 +213,7 @@ def run_t12():
                "tool_input": {"file_path": os.path.join(iso, "anything.md"), "content": "x"}}
     r = subprocess.run([os.path.join(isobin, "check-domain.sh")], input=json.dumps(payload),
                        capture_output=True, text=True,
-                       env=dict(os.environ, CLAUDE_PROJECT_DIR=iso))
+                       env=_env(iso))
     t12("an ABSENT manifest still fails OPEN, loudly (DEC-101 carve-out intact)",
         r.returncode == 0 and "enforcement OFF" in r.stderr,
         f"exit {r.returncode}: {r.stderr.strip()[:160]}")
@@ -325,7 +343,7 @@ def run_t12():
     def fire_noyaml(root, path, session, content="x"):
         payload = {"agent_type": "harness-documentor", "tool_name": "Write",
                    "tool_input": {"file_path": os.path.join(root, path), "content": content}}
-        env = dict(os.environ, CLAUDE_PROJECT_DIR=root, PYTHONPATH=fake,
+        env = _env(root, PYTHONPATH=fake,
                    CLAUDE_CODE_SESSION_ID=session)
         env.pop("CLAUDE_CODE_BRIDGE_SESSION_ID", None)
         return subprocess.run([HOOK], input=json.dumps(payload), capture_output=True,
@@ -488,7 +506,7 @@ def run_fleet():
                           "tool_input": {"file_path": "/tmp/uat-no-fleet-scratch.py",
                                          "content": "x"}}),
         capture_output=True, text=True,
-        env=dict(os.environ, CLAUDE_PROJECT_DIR=none_root))
+        env=_env(none_root))
 
     # (b) fleet.yaml is BROKEN YAML — the same write the agent owns, inside the same
     # fixture root, must now be refused.
@@ -573,7 +591,7 @@ shared:
             input=json.dumps({"agent_type": agent, "tool_name": "Write",
                               "tool_input": {"file_path": abspath, "content": "x"}}),
             capture_output=True, text=True,
-            env=dict(os.environ, CLAUDE_PROJECT_DIR=root))
+            env=_env(root))
 
     # (f) THE PRODUCT BASE, as a discriminating pair from ONE fixture. Either half
     # alone is what a broken guard produces: an allow-all passes the granted write, a
@@ -778,7 +796,7 @@ teams:
     def resolve_in(root, path):
         return subprocess.run([HOOK, "--resolve", path], capture_output=True, text=True,
                               stdin=subprocess.DEVNULL, timeout=20,
-                              env=dict(os.environ, CLAUDE_PROJECT_DIR=root))
+                              env=_env(root))
 
     r_prod = resolve_in(r_root, os.path.join(ws_r, "widget", "src", "main.py"))
     r_harn = resolve_in(r_root, os.path.join(r_root, "src", "main.py"))
@@ -803,7 +821,7 @@ teams:
     # exercised by the fleet cases above.
     r_live = subprocess.run([HOOK, "--resolve", ".harness/harness/docs/SPEC.md"],
                             capture_output=True, text=True, stdin=subprocess.DEVNULL,
-                            timeout=20, env=dict(os.environ, CLAUDE_PROJECT_DIR=ROOT))
+                            timeout=20, env=_env(ROOT))
     fleet_case(
         "T-04 resolve, LIVE tree: .harness/harness/docs/SPEC.md names harness-documentor — the "
         "named entries hold target-side",
@@ -875,7 +893,7 @@ def run_resolve():
     def resolve(path, stdin_mode="closed", timeout=10):
         kw = {"stdin": subprocess.DEVNULL} if stdin_mode == "closed" else {"stdin": os.pipe()[0]}
         r = subprocess.run([HOOK, "--resolve", path], capture_output=True, text=True,
-                           timeout=timeout, env=dict(os.environ, CLAUDE_PROJECT_DIR=ROOT), **kw)
+                           timeout=timeout, env=_env(ROOT), **kw)
         return r
 
     def check(name, ok, detail=""):
@@ -932,7 +950,7 @@ def run_resolve():
         payload = {"agent_type": agent, "tool_name": "Write",
                    "tool_input": {"file_path": path, "content": "x"}}
         return subprocess.run([HOOK], input=json.dumps(payload), capture_output=True,
-                              text=True, env=dict(os.environ, CLAUDE_PROJECT_DIR=ROOT))
+                              text=True, env=_env(ROOT))
     r = hook(".agents/skills/harness/bin/check-domain.sh", "harness-documentor")
     check("(g) no --resolve: an out-of-domain Write still exits 2",
           r.returncode == 2, f"got {r.returncode}")
@@ -950,7 +968,7 @@ def run_resolve():
         payload = {"agent_type": agent, "tool_name": "Write",
                    "tool_input": {"file_path": path, "content": "x"}}
         return subprocess.run([HOOK], input=json.dumps(payload), capture_output=True,
-                              text=True, env=dict(os.environ, CLAUDE_PROJECT_DIR=ROOT,
+                              text=True, env=_env(ROOT,
                                                   HARNESS_RESOLVE_PATH=resolve_value))
     # EXIT 2 ALONE IS NOT ENOUGH, and the delta review caught this. There are five distinct
     # exit-2 sites in this script and FOUR of them are inside the resolve branch (missing
@@ -989,7 +1007,7 @@ def post(name, ok, detail=""):
 def fire_post(root, payload, flag="--post"):
     argv = [HOOK] + ([flag] if flag else [])
     return subprocess.run(argv, input=json.dumps(payload), capture_output=True,
-                          text=True, env=dict(os.environ, CLAUDE_PROJECT_DIR=root))
+                          text=True, env=_env(root))
 
 
 
@@ -1052,7 +1070,7 @@ def run_post():
     pre = subprocess.run([HOOK], input=json.dumps({
         "agent_type": "harness-orchestrator", "tool_name": "Edit",
         "tool_input": {"file_path": fy, "old_string": "a", "new_string": "b"}}),
-        capture_output=True, text=True, env=dict(os.environ, CLAUDE_PROJECT_DIR=d))
+        capture_output=True, text=True, env=_env(d))
     # The claim is about the SHAPE finding, not the exit code, and the difference is not
     # pedantry: harness-orchestrator has no domain in FIXTURE_MANIFEST, so the pre hook
     # exits 2 here for a DOMAIN reason. A first draft asserted `returncode == 0` and
@@ -1072,7 +1090,7 @@ def run_post():
     r = subprocess.run([HOOK], input=json.dumps({
         "tool_name": "Write",
         "tool_input": {"file_path": fy, "content": "\n".join(["x: 1"] * 400)}}),
-        capture_output=True, text=True, env=dict(os.environ, CLAUDE_PROJECT_DIR=d))
+        capture_output=True, text=True, env=_env(d))
     post("route 4 — the MAIN SESSION is no longer exempt from the shape gate",
          r.returncode == 2 and "budget is 300" in r.stderr,
          f"exit {r.returncode}: {r.stderr.strip().splitlines()[:1]}")
@@ -1162,7 +1180,7 @@ def run_post():
             "tool_name": "Write",
             "tool_input": {"file_path": _cm,
                            "content": "\n".join(f"line {i}" for i in range(_n))}}),
-            capture_output=True, text=True, env=dict(os.environ, CLAUDE_PROJECT_DIR=d))
+            capture_output=True, text=True, env=_env(d))
         # route 2: main-session Edit, measured on disk
         os.utime(_cm, None)
         re_ = fire_post(d, {"tool_name": "Edit", "hook_event_name": "PostToolUse",
@@ -1228,7 +1246,7 @@ def run_post():
         "tool_name": "Write",
         "tool_input": {"file_path": _wcm,
                        "content": "\n".join(f"x{i}" for i in range(81))}}),
-        capture_output=True, text=True, env=dict(os.environ, CLAUDE_PROJECT_DIR=d))
+        capture_output=True, text=True, env=_env(d))
     post("pre Write on a worktree file names the WORKTREE it came from",
          rw.returncode == 2 and ".claude/worktrees/wt1" in rw.stderr,
          f"exit {rw.returncode}: {rw.stderr.strip().splitlines()[:1]}")
@@ -1531,7 +1549,7 @@ def run_worktree():
                    "tool_input": {"file_path": abs_target, "content": "x"}}
         return subprocess.run([HOOK], input=json.dumps(payload), capture_output=True,
                               text=True,
-                              env=dict(os.environ, CLAUDE_PROJECT_DIR=session_root))
+                              env=_env(session_root))
 
     # --- TARGET-SIDE: a write INTO the sibling, from a session rooted in the checkout.
     # The sibling is outside root, so select_base returns None and no grant can reach
@@ -1636,7 +1654,7 @@ def run_worktree():
                               "content": "x"}}
     r = subprocess.run([os.path.join(isobin, "check-domain.sh")], input=json.dumps(payload),
                        capture_output=True, text=True,
-                       env=dict(os.environ, CLAUDE_PROJECT_DIR=iso))
+                       env=_env(iso))
     wt("a MISSING harness_boundary.py blocks the write and NAMES the module",
        r.returncode == 2 and "harness_boundary" in r.stderr,
        f"exit {r.returncode}: {r.stderr.strip()[:200]}")
@@ -1647,7 +1665,7 @@ def run_worktree():
     os.remove(os.path.join(iso, ".harness", "team-config.yaml"))
     r = subprocess.run([os.path.join(isobin, "check-domain.sh")], input=json.dumps(payload),
                        capture_output=True, text=True,
-                       env=dict(os.environ, CLAUDE_PROJECT_DIR=iso))
+                       env=_env(iso))
     wt("with the module absent AND no manifest, DEC-101 still fails OPEN, loudly",
        r.returncode == 0 and "enforcement OFF" in r.stderr,
        f"exit {r.returncode}: {r.stderr.strip()[:200]}")
@@ -1783,7 +1801,7 @@ def run_worktree_grant_parity():
     def resolve(path):
         r = subprocess.run([HOOK, "--resolve", path], capture_output=True, text=True,
                            stdin=subprocess.DEVNULL, timeout=20,
-                           env=dict(os.environ, CLAUDE_PROJECT_DIR=root))
+                           env=_env(root))
         return set(r.stdout.split())
 
     for agent, domain in sorted(roster):
@@ -2113,7 +2131,7 @@ def run_sweep_clean_tracked():
             argv = [hook_path or HOOK, "--post"]
             return subprocess.run(argv, input=json.dumps(bash_payload),
                                   capture_output=True, text=True,
-                                  env=dict(os.environ, CLAUDE_PROJECT_DIR=root))
+                                  env=_env(root))
 
         def inv_lines(r):
             return [l for l in (r.stdout + r.stderr).splitlines()
@@ -2192,6 +2210,15 @@ def run_sweep_clean_tracked():
             with open(mutant, "w") as f:
                 f.write(mutant_text)
             os.chmod(mutant, 0o755)
+            # THE MUTANT NEEDS THE RESOLVER BESIDE IT (FEAT-42 T-10). The hook prepends its
+            # OWN directory to PYTHONPATH, and this copy sits in a bare tmpdir, so without
+            # this the import of harness_boundary fails, the root falls back to the wrapper's
+            # BASH_SOURCE walk out of that tmpdir, no manifest is found, and the mutant
+            # prints "enforcement OFF" and sweeps nothing — reporting 0 lines for a reason
+            # that has nothing to do with the mutation. An inconclusive red proof reads
+            # exactly like a surviving mutant, which is why this is not left to chance.
+            shutil.copy(os.path.join(HERE, "harness_boundary.py"),
+                        os.path.join(d, "harness_boundary.py"))
             # Restore case A's exact state: the committed file clean again, nothing else
             # of FEAT-OLD's on disk changed.
             git(wt, ["checkout", "--", rel_state])
@@ -2263,7 +2290,7 @@ def run_runs_agent_write_path():
                    "tool_input": {"file_path": os.path.join(root, rel),
                                   "content": content}}
         return subprocess.run([hook], input=json.dumps(payload), capture_output=True,
-                              text=True, env=dict(os.environ, CLAUDE_PROJECT_DIR=root))
+                              text=True, env=_env(root))
 
     # A MANIFEST THAT GRANTS THE PATH, and this is the whole difference between a real
     # case and a green-looking one. FIXTURE_MANIFEST grants harness-orchestrator
@@ -2423,7 +2450,7 @@ def _fire_write(root, full, content, agent="harness-pm"):
     payload = {"agent_type": agent, "tool_name": "Write",
                "tool_input": {"file_path": full, "content": content}}
     return subprocess.run([HOOK], input=json.dumps(payload), capture_output=True,
-                          text=True, env=dict(os.environ, CLAUDE_PROJECT_DIR=root))
+                          text=True, env=_env(root))
 
 
 def _fire_edit(root, full, old_s, new_s, agent="harness-pm", replace_all=False):
@@ -2432,7 +2459,7 @@ def _fire_edit(root, full, old_s, new_s, agent="harness-pm", replace_all=False):
         ti["replace_all"] = True
     payload = {"agent_type": agent, "tool_name": "Edit", "tool_input": ti}
     return subprocess.run([HOOK], input=json.dumps(payload), capture_output=True,
-                          text=True, env=dict(os.environ, CLAUDE_PROJECT_DIR=root))
+                          text=True, env=_env(root))
 
 
 def run_t14():
@@ -2467,7 +2494,7 @@ def run_t14():
     root, full = _approval_root()
     payload = {"tool_name": "Write", "tool_input": {"file_path": full, "content": APPROVED}}
     r = subprocess.run([HOOK], input=json.dumps(payload), capture_output=True, text=True,
-                       env=dict(os.environ, CLAUDE_PROJECT_DIR=root))
+                       env=_env(root))
     t14("4: the MAIN SESSION signing is ALLOWED, by the mechanism not a special case",
         r.returncode == 0, f"exit {r.returncode}, stderr={r.stderr.strip()[:200]!r}")
 
@@ -2634,7 +2661,7 @@ def main():
                    "tool_input": {"file_path": path, "content": "x"}}
         r = subprocess.run([HOOK], input=json.dumps(payload),
                            capture_output=True, text=True,
-                           env=dict(os.environ, CLAUDE_PROJECT_DIR=ROOT))
+                           env=_env(ROOT))
         if r.returncode != want:
             fails += 1
             verb = "should have BLOCKED (2)" if want == 2 else "should have PASSED (0)"

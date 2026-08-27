@@ -32,7 +32,7 @@ _derived="$(cd "$_selfdir/../../../.." && pwd)"
 # absent-manifest fail-open and every exit-2 message are identical, and the unchanged
 # test suite is the equivalence proof (D-10, REQ-07).
 HOOK_PAYLOAD="$payload" PYTHONPATH="$_selfdir${PYTHONPATH:+:$PYTHONPATH}" \
-  python3 - "$_derived" <<'PY'
+  python3 - "$_derived" "$_selfdir" <<'PY'
 import sys, os, re, json, shlex
 
 # harness_yaml is imported LAZILY, after the manifest check — NOT here. Ordering is
@@ -40,7 +40,31 @@ import sys, os, re, json, shlex
 # before any interpreter needed the module, so a guard whose module is missing must
 # still exit 0 there rather than crash. (T-13 shipped this bug on the sibling hook and
 # a test caught it.)
-_derived = sys.argv[1]
+_derived, _bin_dir = sys.argv[1:3]
+
+
+def _root():
+    """WHERE THIS HARNESS IS ROOTED — asked of harness_boundary, the one resolver (FEAT-42
+    T-11). Both call sites below carried the two-name environment chain: one falling through
+    to `_derived`, the other to `""`. The `""` is why an unset environment left every
+    subsequent join relative to whatever directory the hook inherited.
+
+    strict=False, and for the same reason as check-domain.sh's twin of this function: a tree
+    with no manifest must fail OPEN at exit 0 (DEC-101), and a strict raise fires on exactly
+    that tree. strict=False returns the derived root, which is what the deleted code returned
+    there too. What is gone is the `""` and the cwd fall-through, and the override now has to
+    carry the MARKER before it is honoured — a probe neither deleted site performed.
+
+    THE except CLAUSE IS THE BOOTSTRAP, not a second resolver. `_derived` is the bash
+    wrapper's own BASH_SOURCE walk, and it is the only root computable when
+    harness_boundary.py is not on the path at all — the isolated-copy fixture, which exists
+    to prove the fail-open still fires.
+    """
+    try:
+        import harness_boundary as _hb_root
+    except Exception:
+        return _derived
+    return _hb_root.resolve_root(_bin_dir, strict=False)
 
 try:
     d = json.loads(os.environ.get("HOOK_PAYLOAD") or "")
@@ -191,7 +215,7 @@ def _moves_head(sub, operands, project_root):
 if agent.startswith("harness-"):
     _cmd_head = ((d.get("tool_input") or {}).get("command") or "")
     if _cmd_head:
-        _proot = (os.environ.get("HARNESS_PROJECT_DIR") or os.environ.get("CLAUDE_PROJECT_DIR")) or _derived
+        _proot = _root()
 
         def _refuse_head(what):
             print(f"bash-write-guard: BLOCKED — {what}", file=sys.stderr)
@@ -229,12 +253,7 @@ if agent == "harness-dev-ops":
 if not agent.startswith("harness-"):
     sys.exit(0)
 
-root = (os.environ.get("HARNESS_PROJECT_DIR") or os.environ.get("CLAUDE_PROJECT_DIR")) or ""
-if not root or not os.access(os.path.join(root, ".harness", "team-config.yaml"), os.R_OK):
-    if os.access(os.path.join(_derived, ".harness", "team-config.yaml"), os.R_OK):
-        root = _derived
-    else:
-        root = root or os.getcwd()
+root = _root()
 manifest = os.path.join(root, ".harness", "team-config.yaml")
 
 # not onboarded — fail open like check-domain

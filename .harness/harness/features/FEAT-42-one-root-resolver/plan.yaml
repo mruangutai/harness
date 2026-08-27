@@ -398,35 +398,20 @@ tasks:
       for f in gen-decisions-index.py validate-feature-json.py harness_yaml.py; do
         grep -q "HARNESS_PROJECT_DIR" $B/$f && { echo "chain survives in $f"; exit 1; }
       done
-      # THE OLD COPY NEEDS ITS SIBLINGS. Restoring check-plan-routes.py alone to a bare
-      # /tmp path leaves it with no bin directory to import harness_yaml from, so every
-      # case dies in a traceback, the grep filters all of them away, and an EMPTY
-      # before-set diffs clean against an empty after-set - a two-way proof that proves
-      # nothing. Mirror the whole bin, then revert INSIDE the mirror the two files whose
-      # pairing this task is claiming it did not move. The floor below is what makes the
-      # diff mean something: 87 result lines, MEASURED 2026-08-27.
+      # Technique and its three measured traps: notes/verify-technique-2026-08-27.md
       M=/tmp/f42-t05-old
       rm -rf $M; mkdir -p $M/.claude/skills/harness $M/.harness
       cp -R $B $M/.claude/skills/harness/bin
       cp .harness/team-config.yaml $M/.harness/
       git show 3952814:$B/check-plan-routes.py > $M/.claude/skills/harness/bin/check-plan-routes.py
       git show 3952814:$B/harness_yaml.py > $M/.claude/skills/harness/bin/harness_yaml.py
-      # NO HARNESS_PROJECT_DIR HERE. run() at test-check-plan-routes.py:45-53 sets and unsets
-      # CLAUDE_PROJECT_DIR per case and leaves the other name alone, so an outer
-      # HARNESS_PROJECT_DIR wins the old gate's chain in EVERY case and points all 87 of them
-      # at the mirror instead of their own fixtures. Measured: 40 of them failed that way.
-      # The mirror exists only so the reverted copy has a bin directory to import from.
+      # NO HARNESS_PROJECT_DIR HERE - it would win every case's own root.
       CHECK_PLAN_ROUTES_BIN=$M/.claude/skills/harness/bin/check-plan-routes.py \
         python3 $B/test-check-plan-routes.py 2>&1 | grep -E '^(PASS|FAIL)' | sort > /tmp/f42-t05-before.txt
       python3 $B/test-check-plan-routes.py 2>&1 | grep -E '^(PASS|FAIL)' | sort > /tmp/f42-t05-after.txt
       N=$(wc -l < /tmp/f42-t05-before.txt)
       test "$N" -ge 80 || { echo "before set holds only $N lines - the old copy did not run"; exit 1; }
-      # ONE CASE CANNOT BE GRADED THROUGH A MIRROR, and it is excluded BY NAME rather than by
-      # loosening the comparison. case_19a2 asserts the argv-less run names REPO_ROOT - the
-      # root derived from the TEST FILE's own location, which is the live checkout. The
-      # mirrored copy correctly scans the mirror, so it fails there by construction and
-      # passes here, and that difference is the technique's, not the change's. The line below
-      # fails if the case ever stops existing, so this exclusion cannot rot into a silent hole.
+      # case_19a2 asserts the LIVE root by name, so a mirror fails it by construction.
       X=case_19a2_argvless_names_the_root_it_scanned
       grep -q "$X" /tmp/f42-t05-after.txt || { echo "the excluded case $X no longer exists"; exit 1; }
       grep -v "$X" /tmp/f42-t05-before.txt > /tmp/f42-t05-before-cmp.txt
@@ -775,9 +760,10 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 am.4 names check-domain.sh in the enforcement layer
     depends_on: [T-03]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/check-domain.sh
+      - .claude/skills/harness/bin/test-check-domain.py
     verify: |
       cd "$(git rev-parse --show-toplevel)"
       B=.claude/skills/harness/bin
@@ -790,10 +776,15 @@ tasks:
       git show 3952814:$B/check-domain.sh > /tmp/f42-old/.claude/skills/harness/bin/check-domain.sh
       chmod +x /tmp/f42-old/.claude/skills/harness/bin/check-domain.sh
       HARNESS_PROJECT_DIR=/tmp/f42-old CHECK_DOMAIN_BIN=/tmp/f42-old/.claude/skills/harness/bin/check-domain.sh \
-        python3 $B/test-check-domain.py 2>&1 | grep -E '^(PASS|FAIL)' | sort > /tmp/f42-t10-before.txt
+        python3 $B/test-check-domain.py 2>&1 | grep -E '^(ok|PASS|FAIL)' | sort > /tmp/f42-t10-before.txt
       HARNESS_PROJECT_DIR=/tmp/f42-new CHECK_DOMAIN_BIN=/tmp/f42-new/.claude/skills/harness/bin/check-domain.sh \
-        python3 $B/test-check-domain.py 2>&1 | grep -E '^(PASS|FAIL)' | sort > /tmp/f42-t10-after.txt
-      test -s /tmp/f42-t10-before.txt || { echo "before set is EMPTY - the proof proves nothing"; exit 1; }
+        python3 $B/test-check-domain.py 2>&1 | grep -E '^(ok|PASS|FAIL)' | sort > /tmp/f42-t10-after.txt
+      # THE FLOOR, NOT `test -s`. This capture used to match ^(PASS|FAIL) while the suite
+      # prints its verdicts as `ok`, so it caught nothing but the occasional failure and a
+      # ONE-LINE before-set satisfied a non-empty check. 190 is a floor under a MEASURED
+      # 201 verdict lines, taken 2026-08-27.
+      N=$(wc -l < /tmp/f42-t10-before.txt)
+      test "$N" -ge 190 || { echo "before set holds only $N verdict lines, want 190+ - the reverted copy did not run"; exit 1; }
       diff /tmp/f42-t10-before.txt /tmp/f42-t10-after.txt || { echo "violation set MOVED"; exit 1; }
       python3 $B/test-check-domain.py || exit 1
       echo T-10-OK
@@ -820,6 +811,23 @@ tasks:
       against each. The two PASS/FAIL sets must be byte identical, and the before-set must be
       non-empty — an empty capture would make the diff pass vacuously, which is the shape of
       failure this repository has shipped before.
+
+      THE TEST FILE MOVES TOO, and it was not in this task's files when the plan was signed.
+      Every fixture in it steers the gate with CLAUDE_PROJECT_DIR alone. resolve_root reads
+      HARNESS_PROJECT_DIR and no other name, so after the cutover every one of those cases
+      points the gate at the LIVE checkout instead of its own fixture. Measured 2026-08-27:
+      20 cases failed exactly that way. Add one `_env(root, **kw)` helper that sets BOTH names
+      to the same value and route every call through it - both, because the reverted
+      sha-3952814 copy the proof diffs against reads HARNESS_PROJECT_DIR first and
+      CLAUDE_PROJECT_DIR second, and the two copies must resolve the same root or the proof
+      compares two different trees.
+      ONE MORE THING IN THAT FILE. The SWEEP_SKIP_CLEAN_TRACKED red proof writes a mutant copy
+      of the hook into a bare tmpdir. The hook prepends its OWN directory to PYTHONPATH, so
+      that copy cannot import harness_boundary, falls back to the wrapper's BASH_SOURCE walk
+      out of the tmpdir, finds no manifest and sweeps nothing - reporting zero lines for a
+      reason unrelated to the mutation. Copy harness_boundary.py in beside the mutant. An
+      inconclusive red proof reads exactly like a surviving mutant.
+
   - id: T-11
     title: Cut bash-write-guard.sh over to the resolver, with the identical-violation-set proof
     traces: [REQ-01, REQ-02, REQ-09]
@@ -827,9 +835,10 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 am.4 names bash-write-guard.sh in the enforcement layer
     depends_on: [T-03]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/bash-write-guard.sh
+      - .claude/skills/harness/bin/test-bash-write-guard.py
     verify: |
       cd "$(git rev-parse --show-toplevel)"
       B=.claude/skills/harness/bin
@@ -843,10 +852,15 @@ tasks:
       git show 3952814:$B/$G > /tmp/f42-old/.claude/skills/harness/bin/$G
       chmod +x /tmp/f42-old/.claude/skills/harness/bin/$G
       HARNESS_PROJECT_DIR=/tmp/f42-old BASH_WRITE_GUARD_BIN=/tmp/f42-old/.claude/skills/harness/bin/$G \
-        python3 $B/test-bash-write-guard.py 2>&1 | grep -E '^(PASS|FAIL)' | sort > /tmp/f42-t11-before.txt
+        python3 $B/test-bash-write-guard.py 2>&1 | grep -E '^(ok|PASS|FAIL)' | sort > /tmp/f42-t11-before.txt
       HARNESS_PROJECT_DIR=/tmp/f42-new BASH_WRITE_GUARD_BIN=/tmp/f42-new/.claude/skills/harness/bin/$G \
-        python3 $B/test-bash-write-guard.py 2>&1 | grep -E '^(PASS|FAIL)' | sort > /tmp/f42-t11-after.txt
-      test -s /tmp/f42-t11-before.txt || { echo "before set is EMPTY"; exit 1; }
+        python3 $B/test-bash-write-guard.py 2>&1 | grep -E '^(ok|PASS|FAIL)' | sort > /tmp/f42-t11-after.txt
+      # THE FLOOR, NOT `test -s`. This capture used to match ^(PASS|FAIL) while the suite
+      # prints its verdicts as `ok`, so it caught nothing but the occasional failure and a
+      # ONE-LINE before-set satisfied a non-empty check. 90 is a floor under a MEASURED
+      # 99 verdict lines, taken 2026-08-27.
+      N=$(wc -l < /tmp/f42-t11-before.txt)
+      test "$N" -ge 90 || { echo "before set holds only $N verdict lines, want 90+ - the reverted copy did not run"; exit 1; }
       diff /tmp/f42-t11-before.txt /tmp/f42-t11-after.txt || { echo "violation set MOVED"; exit 1; }
       python3 $B/test-bash-write-guard.py || exit 1
       echo T-11-OK
@@ -869,6 +883,16 @@ tasks:
       am.4's proof obligation: the sha-3952814 copy and the edited copy are driven over the gate's
       own case set and the two PASS/FAIL sets must be byte identical, with a non-empty before-set
       asserted so the diff cannot pass on nothing.
+
+      THE TEST FILE MOVES TOO, and it was not in this task's files when the plan was signed.
+      Every fixture in it steers the gate with CLAUDE_PROJECT_DIR alone. resolve_root reads
+      HARNESS_PROJECT_DIR and no other name, so after the cutover every one of those cases
+      points the gate at the LIVE checkout instead of its own fixture. Measured 2026-08-27:
+      20 cases failed exactly that way. Add one `_env(root, **kw)` helper that sets BOTH names
+      to the same value and route every call through it - both, because the reverted
+      sha-3952814 copy the proof diffs against reads HARNESS_PROJECT_DIR first and
+      CLAUDE_PROJECT_DIR second, and the two copies must resolve the same root or the proof
+      compares two different trees.
 
   - id: T-12
     title: Cut check-state.sh over to the resolver, with the identical-violation-set proof
@@ -893,10 +917,15 @@ tasks:
       git show 3952814:$B/$G > /tmp/f42-old/.claude/skills/harness/bin/$G
       chmod +x /tmp/f42-old/.claude/skills/harness/bin/$G
       HARNESS_PROJECT_DIR=/tmp/f42-old CHECK_STATE_BIN=/tmp/f42-old/.claude/skills/harness/bin/$G \
-        python3 $B/test-check-state.py 2>&1 | grep -E '^(PASS|FAIL)' | sort > /tmp/f42-t12-before.txt
+        python3 $B/test-check-state.py 2>&1 | grep -E '^(ok|PASS|FAIL)' | sort > /tmp/f42-t12-before.txt
       HARNESS_PROJECT_DIR=/tmp/f42-new CHECK_STATE_BIN=/tmp/f42-new/.claude/skills/harness/bin/$G \
-        python3 $B/test-check-state.py 2>&1 | grep -E '^(PASS|FAIL)' | sort > /tmp/f42-t12-after.txt
-      test -s /tmp/f42-t12-before.txt || { echo "before set is EMPTY"; exit 1; }
+        python3 $B/test-check-state.py 2>&1 | grep -E '^(ok|PASS|FAIL)' | sort > /tmp/f42-t12-after.txt
+      # THE FLOOR, NOT `test -s`. This capture used to match ^(PASS|FAIL) while the suite
+      # prints its verdicts as `ok`, so it caught nothing but the occasional failure and a
+      # ONE-LINE before-set satisfied a non-empty check. 135 is a floor under a MEASURED
+      # 145 verdict lines, taken 2026-08-27.
+      N=$(wc -l < /tmp/f42-t12-before.txt)
+      test "$N" -ge 135 || { echo "before set holds only $N verdict lines, want 135+ - the reverted copy did not run"; exit 1; }
       diff /tmp/f42-t12-before.txt /tmp/f42-t12-after.txt || { echo "violation set MOVED"; exit 1; }
       bash $B/$G; test $? -le 1 || { echo "state checker crashed rather than reporting"; exit 1; }
       echo T-12-OK
@@ -996,10 +1025,15 @@ tasks:
       git show 3952814:$B/$G > /tmp/f42-old/.claude/skills/harness/bin/$G
       chmod +x /tmp/f42-old/.claude/skills/harness/bin/$G
       HARNESS_PROJECT_DIR=/tmp/f42-old BRANCH_CREATE_GATE_BIN=/tmp/f42-old/.claude/skills/harness/bin/$G \
-        python3 $B/test-branch-create-gate.py 2>&1 | grep -E '^(PASS|FAIL)' | sort > /tmp/f42-t14-before.txt
+        python3 $B/test-branch-create-gate.py 2>&1 | grep -E '^(ok|PASS|FAIL)' | sort > /tmp/f42-t14-before.txt
       HARNESS_PROJECT_DIR=/tmp/f42-new BRANCH_CREATE_GATE_BIN=/tmp/f42-new/.claude/skills/harness/bin/$G \
-        python3 $B/test-branch-create-gate.py 2>&1 | grep -E '^(PASS|FAIL)' | sort > /tmp/f42-t14-after.txt
-      test -s /tmp/f42-t14-before.txt || { echo "before set is EMPTY"; exit 1; }
+        python3 $B/test-branch-create-gate.py 2>&1 | grep -E '^(ok|PASS|FAIL)' | sort > /tmp/f42-t14-after.txt
+      # THE FLOOR, NOT `test -s`. This capture used to match ^(PASS|FAIL) while the suite
+      # prints its verdicts as `ok`, so it caught nothing but the occasional failure and a
+      # ONE-LINE before-set satisfied a non-empty check. 8 is a floor under a MEASURED
+      # 8 verdict lines, taken 2026-08-27.
+      N=$(wc -l < /tmp/f42-t14-before.txt)
+      test "$N" -ge 8 || { echo "before set holds only $N verdict lines, want 8+ - the reverted copy did not run"; exit 1; }
       diff /tmp/f42-t14-before.txt /tmp/f42-t14-after.txt || { echo "violation set MOVED"; exit 1; }
       python3 $B/test-branch-create-gate.py || exit 1
       echo T-14-OK
@@ -1047,10 +1081,15 @@ tasks:
       git show 3952814:$B/$G > /tmp/f42-old/.claude/skills/harness/bin/$G
       chmod +x /tmp/f42-old/.claude/skills/harness/bin/$G
       HARNESS_PROJECT_DIR=/tmp/f42-old GH_CLOSE_GATE_BIN=/tmp/f42-old/.claude/skills/harness/bin/$G \
-        python3 $B/test-gh-close-gate.py 2>&1 | grep -E '^(PASS|FAIL)' | sort > /tmp/f42-t15-before.txt
+        python3 $B/test-gh-close-gate.py 2>&1 | grep -E '^(ok|PASS|FAIL)' | sort > /tmp/f42-t15-before.txt
       HARNESS_PROJECT_DIR=/tmp/f42-new GH_CLOSE_GATE_BIN=/tmp/f42-new/.claude/skills/harness/bin/$G \
-        python3 $B/test-gh-close-gate.py 2>&1 | grep -E '^(PASS|FAIL)' | sort > /tmp/f42-t15-after.txt
-      test -s /tmp/f42-t15-before.txt || { echo "before set is EMPTY"; exit 1; }
+        python3 $B/test-gh-close-gate.py 2>&1 | grep -E '^(ok|PASS|FAIL)' | sort > /tmp/f42-t15-after.txt
+      # THE FLOOR, NOT `test -s`. This capture used to match ^(PASS|FAIL) while the suite
+      # prints its verdicts as `ok`, so it caught nothing but the occasional failure and a
+      # ONE-LINE before-set satisfied a non-empty check. 44 is a floor under a MEASURED
+      # 48 verdict lines, taken 2026-08-27.
+      N=$(wc -l < /tmp/f42-t15-before.txt)
+      test "$N" -ge 44 || { echo "before set holds only $N verdict lines, want 44+ - the reverted copy did not run"; exit 1; }
       diff /tmp/f42-t15-before.txt /tmp/f42-t15-after.txt || { echo "violation set MOVED"; exit 1; }
       python3 $B/test-gh-close-gate.py || exit 1
       echo T-15-OK
@@ -1093,10 +1132,15 @@ tasks:
       git show 3952814:$B/$G > /tmp/f42-old/.claude/skills/harness/bin/$G
       chmod +x /tmp/f42-old/.claude/skills/harness/bin/$G
       HARNESS_PROJECT_DIR=/tmp/f42-old INJECT_EXPERTISE_BIN=/tmp/f42-old/.claude/skills/harness/bin/$G \
-        python3 $B/test-inject-expertise.py 2>&1 | grep -E '^(PASS|FAIL)' | sort > /tmp/f42-t16-before.txt
+        python3 $B/test-inject-expertise.py 2>&1 | grep -E '^(ok|PASS|FAIL)' | sort > /tmp/f42-t16-before.txt
       HARNESS_PROJECT_DIR=/tmp/f42-new INJECT_EXPERTISE_BIN=/tmp/f42-new/.claude/skills/harness/bin/$G \
-        python3 $B/test-inject-expertise.py 2>&1 | grep -E '^(PASS|FAIL)' | sort > /tmp/f42-t16-after.txt
-      test -s /tmp/f42-t16-before.txt || { echo "before set is EMPTY"; exit 1; }
+        python3 $B/test-inject-expertise.py 2>&1 | grep -E '^(ok|PASS|FAIL)' | sort > /tmp/f42-t16-after.txt
+      # THE FLOOR, NOT `test -s`. This capture used to match ^(PASS|FAIL) while the suite
+      # prints its verdicts as `ok`, so it caught nothing but the occasional failure and a
+      # ONE-LINE before-set satisfied a non-empty check. 16 is a floor under a MEASURED
+      # 17 verdict lines, taken 2026-08-27.
+      N=$(wc -l < /tmp/f42-t16-before.txt)
+      test "$N" -ge 16 || { echo "before set holds only $N verdict lines, want 16+ - the reverted copy did not run"; exit 1; }
       diff /tmp/f42-t16-before.txt /tmp/f42-t16-after.txt || { echo "violation set MOVED"; exit 1; }
       ( cd /tmp && printf '{"agent_type":"harness-pm"}' | bash "$OLDPWD/$B/$G" > /tmp/f42-t16-away.txt 2>&1 )
       printf '{"agent_type":"harness-pm"}' | bash $B/$G > /tmp/f42-t16-here.txt 2>&1
