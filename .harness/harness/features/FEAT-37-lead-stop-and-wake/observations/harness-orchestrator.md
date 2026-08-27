@@ -14,3 +14,11 @@
 - 2026-08-25: FEAT-37. `bash-write-guard.sh` scans heredoc BODY text for redirect operators: an observation containing the two characters of an ASCII arrow was refused as a `redirect` targeting the words after it. Avoid arrows and stray angle brackets inside heredoc prose, or the write is blocked with a message that looks like a domain violation rather than a parse artifact.
 - 2026-08-25: FEAT-37. SINGLE-FLIGHT IS A GLOBAL PER-PERSONA BOTTLENECK ACROSS CONCURRENT FEATURES, not a per-flow guard. A `harness-pm` claim with `cwd: /Users/molchairuangutai/GitHub/harness` (the MAIN checkout) blocked my product-lead's pm dispatch in the FEAT-37 worktree, because the registry keys claims by PERSONA NAME only. With three features live, exactly ONE pm can run in the whole factory at a time, and a lead cannot tell a foreign claim from its own. The discriminator that settles ownership is the claim's `cwd` field compared against your own children's `cwd`, plus `started_at` age — read those before ever considering a release. NEVER blind-release: `release_all` drops every persona's claim and re-opens the #551 write hazard for the other live flows.
 - 2026-08-25: FEAT-37. A lead reporting "children in flight" may be reporting a claim it never created: a refused dispatch never reaches `claim()`, so the guard's own refusal cannot have registered anything. When a lead returns BLOCKED citing an in-flight child, verify ownership from the registry yourself rather than accepting or dismissing it — mine was genuinely foreign, and both the credulous and the dismissive reading would have been wrong.
+- 2026-08-27: B1b is live, measured on my own return. Ending my turn with harness-product-lead in
+  flight took `check-digest: BLOCKED - returned with children in flight (harness-orchestrator)`.
+  The refusal keys on HAVING CHILDREN, not on SINGLE_FLIGHT_AGENTS (`inflight_registry.py:32` is
+  `("harness-pm",)`), so it is the orchestrator's routine path — and `c5e59aa` deleted the clause
+  at `.claude/skills/harness/SKILL.md` that told the orchestrator the refusal is EXPECTED. Only
+  the surviving "There is no waiting anywhere in this loop" (:60) kept me from reading it as "you
+  may not return yet". An orchestrator without that clause reinstalls the wait loop this feature
+  removes at the tier below.

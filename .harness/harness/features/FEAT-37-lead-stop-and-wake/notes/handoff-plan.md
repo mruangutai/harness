@@ -1,54 +1,35 @@
-# Handoff — FEAT-37, plan → build — written at 9165162, seq-3
+# Handoff — FEAT-37, plan → build — written at 8fc87f8, seq-4
 
 ## Next
 
-**TWO BRIEF EDITS ARE STILL UNAPPLIED. `BRIEF.md` is unchanged and NOT signature-ready.** Dispatch
-product-lead once, with the prompt already proven in run `2026-08-24-04-product` (it needs no
-rework): (a) reword **SC-08 at `BRIEF.md:136`** — it says "Expect exactly one refused return per
-dispatch", the falsified bound restated inside the verifying criterion. Operator ruling: refusals are
-EXPECTED and NOT SCORED AT ALL — no count, no bound, no "exactly", no "at least", any number correct,
-phrased so a later reader cannot reintroduce a count believing they are TIGHTENING it. The criterion
-asserts only: no stay-alive tool call between dispatch and wake; no lead killed at ~600s; evidence is
-the sidecar path and dispatch-to-resume timestamps. (b) Fix **`BRIEF.md:46`**, still reading
-"whatever the operator rules on scope below" — the ruling is made. Then re-run both gates. **Do NOT
-start build; the operator signs first.**
+**Do NOT start build. The operator signs first — both `approval:` blocks read `pending` and only
+the main session writes them (DEC-120).** Once both read `approved`, the first build step is the eng
+segment: dispatch `harness-eng-lead` with **T-01 alone** (`plan.yaml:118`), because T-01 is the test
+file every other task's `verify:` calls and nothing can be graded until it exists. T-02..T-06 follow
+in plan order; **T-03 is strikeable** (`plan.yaml:17`, `:522`) — if the operator struck REQ-08, drop
+it and renumber nothing. Inputs: `plan.yaml`, `BRIEF.md`, this note.
 
 ## Trust
 
-- **The dispatch was blocked by a FOREIGN `harness-pm` claim, not by anything wrong with the work** —
-  `cwd: /Users/molchairuangutai/GitHub/harness` (main checkout) in
-  `.harness/.inflight-claims.json`, started `04:46:42Z`, read by me at `04:54:40Z` — verified-at
-  9165162. My own children all register under `.../FEAT-34-worktree-act3-enforced`. **DO NOT
-  release it**: not ours, and `release_all` drops every persona's claim across all live flows.
-  Retry once the claim clears; TTL is 3600s from `04:46:42Z`.
-- The loop's cause is the MISSING RULE, not the #551 hook — specimen `agent-a8f1c68d9a0d69f25` has
-  the loop signature with ZERO `returned with children in flight` — verified-at 9165162.
-- The refusal bound is "at most once per CONSECUTIVE STOP SEQUENCE; re-fires each wake while a child
-  is live" — `agent-a89be3fd837d1b779` lines 178 vs 392, same eng-lead claim, different child sets —
-  verified-at 9165162.
-- The #811 strike is clean: struck ids survive ONLY inside D-07's strike record; `source_issues:
-  [831]`; `approval.status: pending` — verified-at 9165162 by my own grep.
-- `check-plan-routes.py` 0 violations with the T-08 DEVIATION gone, and `check-state.sh`'s single
-  FEAT-37 violation being the unapproved BRIEF — **UNVERIFIED**; lead-reported post-strike, re-run
-  both before acting.
-- DEC-199 carries the falsified bound in TWO sentences (`:6701`, `:6702`), and the bound guard grades
-  the amendment's own text — **UNVERIFIED**, lead-reported. T-06 claims to handle both.
+- All four blockers are closed in the artifacts, each re-opened at disk by me after the lead's PASS — `notes/ship-review-2026-08-26-02-product.md` — verified-at 8fc87f8
+- `^## DEC-` matches 201 lines and `^### DEC-` matches 28 in DECISIONS.md, so entries are level TWO — measured twice, by me and by pm — verified-at 8fc87f8
+- The single-flight paragraph is gone from the orchestrator playbook; the grep exits 1 — `.claude/skills/harness/SKILL.md`, 288 lines vs 527 at 9165162 — verified-at 8fc87f8
+- `children_refusal_lines` keys on HAVING CHILDREN, not on `SINGLE_FLIGHT_AGENTS` — `inflight_registry.py:32`, `:263`; fired live on my return and on the lead's — verified-at 8fc87f8
+- REQ-08/SC-09 are MISATTRIBUTED to the operator in `plan.yaml:110`, `BRIEF.md:139`, `BRIEF.md:219`; the call was the orchestrator's — `notes/ship-review-2026-08-26-02-product.md` — verified-at 8fc87f8
+- SC-08 cannot be graded from this build: a spawned agent loads skills from the MAIN CHECKOUT — `DECISIONS.md:7023`, D-13 at `plan.yaml:113` — verified-at 8fc87f8
+- `check-state.sh` exits 0; its two VIOLATIONs are the expected unapproved-BRIEF halt and a FEAT-40 INV-26 finding that is not this feature's — verified-at 8fc87f8
 
 ## Dead ends
 
-- Do NOT blind-release the inflight registry — it clears every live flow's claims — verified-at
-  9165162 by reading the registry's `cwd` fields.
-- Do NOT pass `model:` on any dispatch — `dispatch-guard.sh:41-53` blocks it; this cost a spawn in
-  run `2026-08-24-04-product` — source: that run's digest.
-- Do NOT reintroduce `SendMessage` for leads — source: #831 comment, #610 closed won't-do.
-- Do NOT spend a task on #811 — struck by user ruling; the operator rewrites its premise himself —
-  source: `notes/answers-plan-2026-08-24.md` Q1.
-- Do NOT let the goal-check grade SC-08 — operator-run uat, outstanding by ruling — source: same, Q5.
+- Do NOT add a third `bound` site for `.claude/skills/harness/SKILL.md` — the text it graded was deleted and the case would grade the empty set — `plan.yaml:227-231` — verified-at 8fc87f8
+- Do NOT correct `inflight_registry.py:258`'s #551 citation in T-04 — orchestrator scope call, different function and code path, backlog row B-2 — `notes/ship-review-2026-08-26-02-product.md` — verified-at 8fc87f8
+- Do NOT re-open Q2 (DEC-199 corrected in place, not struck), Q3 (#811 struck whole, stays open) or the never-wait premise — operator rulings; probe #746 measured the premise — source: operator dispatch 2026-08-27
+- Do NOT act on the old 13-anchor amendment list — 12 of the 13 line numbers were wrong and the enumeration is deleted — `plan.yaml` has zero matches — verified-at 8fc87f8
 
 ## Working set
 
-- `.harness/harness/features/FEAT-37-lead-stop-and-wake/BRIEF.md`
 - `.harness/harness/features/FEAT-37-lead-stop-and-wake/plan.yaml`
+- `.harness/harness/features/FEAT-37-lead-stop-and-wake/BRIEF.md`
+- `.harness/harness/features/FEAT-37-lead-stop-and-wake/notes/ship-review-2026-08-26-02-product.md`
+- `.harness/harness/features/FEAT-37-lead-stop-and-wake/runs/2026-08-26-02-product/digest.md`
 - `.harness/harness/features/FEAT-37-lead-stop-and-wake/STATE.md`
-- `.harness/harness/features/FEAT-37-lead-stop-and-wake/notes/answers-plan-2026-08-24.md`
-- `.harness/harness/features/FEAT-37-lead-stop-and-wake/runs/2026-08-24-04-product/digest.md`

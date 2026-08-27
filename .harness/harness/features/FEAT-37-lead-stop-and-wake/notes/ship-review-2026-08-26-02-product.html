@@ -1,0 +1,89 @@
+<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>FEAT-37 — re-plan complete, ready for your signature</title><style>
+:root{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:ui-sans-serif,-apple-system,"Segoe UI","Helvetica Neue",Arial,sans-serif;
+}
+/* Token-level theming: components style through the tokens and never inside the
+   media query, so the viewer's explicit toggle can override the OS in BOTH
+   directions. */
+@media (prefers-color-scheme:dark){
+  :root{ --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+         --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733; }
+}
+:root[data-theme="dark"]{
+  --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+  --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733;
+}
+:root[data-theme="light"]{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+}
+*{box-sizing:border-box}
+body{margin:0; background:var(--paper); color:var(--ink);
+  font:400 16px/1.65 var(--sans); padding:clamp(1.5rem,5vw,4rem) clamp(1rem,5vw,2rem) 6rem}
+.wrap{max-width:56rem; margin:0 auto}
+/* Layout owns the spacing: gap between siblings, not per-element margins that
+   collapse or double. */
+.wrap{display:flex; flex-direction:column; gap:1rem}
+.eyebrow{font:500 11px/1 var(--mono); letter-spacing:.14em; text-transform:uppercase;
+  color:var(--quiet); margin:0}
+h1{font:600 clamp(1.6rem,4vw,2.3rem)/1.15 var(--sans); letter-spacing:-.02em;
+  margin:.4rem 0 .2rem; text-wrap:balance}
+h2{font:600 1.15rem/1.3 var(--sans); letter-spacing:-.01em; margin:2rem 0 0;
+  padding-top:1.25rem; border-top:1px solid var(--line); text-wrap:balance}
+h3{font:600 .98rem/1.4 var(--sans); margin:1.1rem 0 0}
+h4,h5,h6{font:500 11px/1.4 var(--mono); letter-spacing:.1em; text-transform:uppercase;
+  color:var(--quiet); margin:1rem 0 0}
+p,li{max-width:65ch; margin:0}
+ul,ol{margin:0; padding-left:1.4rem; display:flex; flex-direction:column; gap:.4rem}
+li>ul,li>ol{margin-top:.4rem}
+strong{font-weight:600}
+code{font:400 .875em/1.5 var(--mono); background:var(--sunk); padding:.1em .35em; border-radius:3px}
+pre{background:var(--sunk); border:1px solid var(--line); border-radius:6px;
+  padding:.85rem 1rem; overflow-x:auto; margin:0}
+pre code{background:none; padding:0}
+blockquote{margin:0; padding:.75rem 1rem; border-left:3px solid var(--accent);
+  background:var(--accent-soft); border-radius:0 5px 5px 0}
+blockquote p{max-width:none}
+hr{border:0; border-top:1px solid var(--line); margin:.5rem 0}
+/* Wide content pans inside its OWN container; the page body never scrolls sideways. */
+.scroll{overflow-x:auto; border:1px solid var(--line); border-radius:6px}
+table{border-collapse:collapse; width:100%; font-size:.9rem}
+th,td{text-align:left; padding:.6rem .8rem; border-bottom:1px solid var(--line); vertical-align:top}
+thead th{font:500 10px/1.3 var(--mono); letter-spacing:.11em; text-transform:uppercase;
+  color:var(--quiet); background:var(--sunk); white-space:nowrap}
+tbody tr:last-child td{border-bottom:0}
+/* Figures in a column line up. */
+td,th{font-variant-numeric:tabular-nums}
+.derived{color:var(--slate); font-size:.85rem; margin-top:2.5rem;
+  padding-top:1rem; border-top:1px solid var(--line)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style></head><body><div class='wrap'><p class='eyebrow'>Ship review · reading view</p><h1 id="feat-37-re-plan-complete-ready-for-your-signature">FEAT-37 — re-plan complete, ready for your signature</h1>
+<p><strong>The plan is re-anchored at <code>8fc87f8</code> and both approval blocks read <code>pending</code>. All four blockers are closed. It cost one product run and zero send-backs: runs 7 → 8 of 20, cycles 0 of 10, twelve runs left for the entire build.</strong></p>
+<p><strong>Correct one thing before you sign.</strong> <code>plan.yaml:110</code>, <code>BRIEF.md:139</code> and <code>BRIEF.md:219</code> label REQ-08/T-03/SC-09 <em>&quot;the operator&#x27;s scope call/addition&quot;</em>. <strong>That attribution is false.</strong> You delegated the B1b decision to me — <em>&quot;Decide whether it enters this feature or opens a ticket, and say which&quot;</em> — and I decided it. My dispatch told pm to state it as mine; pm rendered it as yours. It matters because you will read that label and may believe you already approved the one item in this plan that most needs your fresh judgement. I did not spend a run and a cycle correcting three words. It is row B-1 below.</p>
+<h2 id="how-the-briefing-was-assembled-dec-69-disclosure">How the briefing was assembled (DEC-69 disclosure)</h2>
+<p><strong>No report round was spawned.</strong> I read one digest from disk: <code>.harness/harness/features/FEAT-37-lead-stop-and-wake/runs/2026-08-26-02-product/digest.md</code>.</p>
+<p><strong>I did not read the six earlier plan-phase digests</strong>, and you should know that. This briefing is scoped to the re-plan you asked for, and the history that produced the withdrawn plan is history you wrote. If you want a full-phase account, say so and I will read them.</p>
+<p><strong>I did not take the lead&#x27;s PASS on trust.</strong> B1, B1b and B2 I measured myself at HEAD <em>before</em> dispatching, and I re-opened every claimed fix at disk afterwards. Where a number appears below, I ran the command.</p>
+<h2 id="what-the-plan-now-does-about-each-blocker">What the plan now does about each blocker</h2>
+<p><strong>B1 — T-03 had no subject and its verify passed on the empty set. Closed, both halves.</strong> <code>.claude/skills/harness/SKILL.md</code> is <strong>removed from T-01&#x27;s <code>bound</code> group</strong> (<code>plan.yaml:227-231</code>). <code>c5e59aa</code> deleted the only text that group graded there — the single-flight grep exits 1 — so a third case would grade the empty set and exit 0 having proven nothing. The plan says so in those words and names it as the issue-804 shape D-05 refuses. <strong>The second half is the real fix:</strong> every surviving site now carries <code>case_floor_&lt;site&gt;</code> (<code>plan.yaml:234</code>), which asserts at least one occurrence <em>before</em> grading and makes zero occurrences a <strong>named FAIL</strong>. No occurrence-grading check in this plan can pass on an empty subject again — including checks nobody has written yet.</p>
+<p><strong>B1b — the orchestrator lost its inoculation. Folded in, as REQ-08 / T-03 / SC-09.</strong> T-03 is repurposed from bound-correction to restoring the orchestrator&#x27;s never-wait rule <em>and</em> its expected-refusal clause. <code>plan.yaml:17</code> and <code>:522</code> record that T-03 depends on nothing and nothing depends on it, so striking <code>REQ-08</code>, <code>T-03</code> and <code>SC-09</code> together leaves issue #831 whole. <strong>It is three lines to strike, not the one I promised you</strong> — they cross-reference, so the set is traceable, but I said one line and it is three. SC-09 is graded by a new <code>orchestrator</code> group of six presence cases, all of which fail at <code>8fc87f8</code> today.</p>
+<p><strong>The regression is live, and it was corroborated twice during this run itself.</strong> The <code>children_refusal_lines</code> refusal fired on my own return with a lead in flight, and again on the product lead&#x27;s return with pm in flight. It keys on <em>having children</em>, not on <code>SINGLE_FLIGHT_AGENTS</code> (<code>inflight_registry.py:32</code> is <code>(&quot;harness-pm&quot;,)</code>), so it is the routine path for every parent in the org. Only the surviving line 60, <em>&quot;There is no waiting anywhere in this loop&quot;</em>, stopped me reading it as &quot;you may not return yet&quot;. <strong>Neither instance can serve as SC-08 evidence</strong> — by DEC-201 both playbooks were loaded from the main checkout.</p>
+<p><strong>B2 — entries sliced at the wrong heading level. Closed, re-derived at level two.</strong> <code>case_entry_scope</code> now slices <em>&quot;from its LEVEL-TWO heading to the next LEVEL-TWO heading beginning with DEC-&quot;</em> (<code>plan.yaml:302-303</code>), and <code>case_entry_heading</code> reads the level-two line (<code>plan.yaml:298</code>). Measured independently by me and by pm: <strong>201 lines match <code>^## DEC-</code>, 28 match <code>^### DEC-</code>.</strong> T-05 can now reach exit 0, so T-06 no longer stalls behind it.</p>
+<p><strong>B3 — SC-04 had nothing delivering it. Closed at both ends.</strong> The contradicting clause is now written into <strong>T-02 part THREE</strong> (<code>plan.yaml:405-408</code>), the playbook edit the decision governs, not only into T-05&#x27;s decision record. And T-01 <code>case7_overrides_tool_text</code> (<code>plan.yaml:200</code>) makes it gradable: <strong>one single sentence</strong> must match both the tool&#x27;s nudge and a denial. A region that quotes <em>&quot;continue other work in the meantime&quot;</em> in one place and denies something unrelated somewhere else <strong>fails</strong> — which is precisely the silent-beside-it state SC-04 exists to catch.</p>
+<h2 id="sc-08-deferred-on-a-measurement-and-it-overturned-my-own-instruction">SC-08 — deferred on a measurement, and it overturned my own instruction</h2>
+<p>I directed that the zero-cost option be tested <strong>first</strong>: grade SC-08 from this feature&#x27;s own build, since that build is a real lead dispatching real members. <strong>It genuinely fails, and I verified the reason at source rather than accepting it.</strong> <code>DECISIONS.md:7023</code> records that a spawned agent loads its skills from the <strong>main checkout</strong> while the rewrite sits in a worktree. Every lead spawned during this build would therefore read the <em>unedited</em> playbook, and any evidence collected would grade the old text — evidence for the wrong file, which is worse than no evidence.</p>
+<p>SC-08 is deferred to a <strong>post-merge run by you</strong> (D-13). Issue #866&#x27;s registry keying is a second, weaker reason and explicitly not the deciding one. This is a forced deferral, not an evasion.</p>
+<h2 id="every-scope-call-i-took-rather-than-escalated">Every scope call I took rather than escalated</h2>
+<ol><li><strong>B1b enters the feature</strong> as a new labelled REQ + task + SC, rather than opening a ticket. Deferring it would ship a lead-tier never-wait rule while the tier directly above stays uninoculated — the exact failure T-02&#x27;s own intent names. You sign the BRIEF, so your signature is the approval, and the item is built to be struck in one act.</li><li><strong><code>inflight_registry.py:258</code>&#x27;s <code>#551</code> citation is NOT corrected here.</strong> It sits in <code>refusal_lines</code> — a different function, a different code path from the <code>children_refusal_lines</code> T-04 corrects, with its own tests — and it rests on #866&#x27;s measurement rather than this feature&#x27;s. T-04 stays narrow. Row B-2.</li><li><strong>I did not spend a cycle on the false attribution</strong> described at the top. Named here instead.</li><li><strong>I scoped this briefing to the re-plan</strong> and did not read the six earlier plan-phase digests.</li></ol>
+<h2 id="what-needs-your-decision">What needs your decision</h2>
+<div class="scroll"><table><thead><tr><th>#</th><th>Question</th></tr></thead><tbody><tr><td>Q1</td><td>Sign, or strike <code>REQ-08</code> / <code>T-03</code> / <code>SC-09</code> together. It is three lines, not one</td></tr><tr><td>Q2</td><td>Confirm the narrower DEC-174 reading: amendment 4&#x27;s proof burden attaches to the <strong>cutover</strong>, not to a squad writing a gate&#x27;s library. The BRIEF&#x27;s earlier &quot;conditional grant&quot; framing was wrong and is corrected</td></tr><tr><td>Q3</td><td>Confirm SC-08&#x27;s post-merge deferral (D-13)</td></tr><tr><td>Q4</td><td>Correct the REQ-08 attribution before signing, or accept it knowing it is wrong</td></tr></tbody></table></div>
+<h2 id="proposed-backlog">Proposed backlog</h2>
+<div class="scroll"><table><thead><tr><th>ID</th><th>Finding</th><th>Nature</th></tr></thead><tbody><tr><td>B-1</td><td><code>plan.yaml:110</code>, <code>BRIEF.md:139</code>, <code>BRIEF.md:219</code> attribute the REQ-08 scope call to the operator; it was the orchestrator&#x27;s</td><td>chore</td></tr><tr><td>B-2</td><td><code>inflight_registry.py:258</code> cites issue #551 where #866 measures #628 as the two-writers bug</td><td>bug</td></tr><tr><td>B-3</td><td>Issue #866 — the dispatch end of the deadlock is untouched by this feature; <code>refusal_lines</code> still prints <code>release-all</code>, which wipes every feature&#x27;s live claims</td><td>bug</td></tr><tr><td>B-4</td><td>Issue #811 — the three-task block was struck whole before approval (D-07); #811 stays open and returns to backlog</td><td>enhancement</td></tr><tr><td>B-5</td><td>SC-08 needs a post-merge operator run to be graded at all (D-13)</td><td>chore</td></tr><tr><td>B-6</td><td>Engineer DIGESTs carry no <code>files_touched</code>, so a member that wrote a receipt reports no files and the lead reconstructs it by hand</td><td>bug</td></tr><tr><td>B-7</td><td><code>notes/root-cause-*.md</code> is in no member&#x27;s domain, so debug reports fall back to receipt paths</td><td>chore</td></tr><tr><td>B-8</td><td>Single-flight is keyed per checkout, so several orchestrators&#x27; children can share one registry when run from one cwd</td><td>enhancement</td></tr></tbody></table></div>
+<p><strong>Anything not listed here dies silently.</strong> Strike rows by ID.</p>
+<h2 id="budget">Budget</h2>
+<p>Runs <strong>8 of 20</strong>, cycles <strong>0 of 10</strong>. The re-plan hit its one-run target with no rework, so nothing in DEC-157&#x27;s three categories fired. Twelve runs remain, which is comfortable for a six-task build plus qa, simplify, the panel and the goal-check. No budget concern.</p><p class='derived'>Derived from <code>ship-review-2026-08-26-02-product.md</code> — the markdown is the record; do not edit this file. Regenerate with <code>bin/render-brief.py</code>.</p></div></body></html>
