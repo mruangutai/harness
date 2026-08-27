@@ -6965,14 +6965,37 @@ the operator confirmed from the pull request titles, their branch being shared o
 gated on `github.sync` like INV-21. It follows INV-21's recorded reason rather than a fresh judgement:
 the mirror never gates a flow, so a missing mirror value must not fail the state check.
 
-## DEC-201 — An orchestrator never waits: every dispatch ends its turn, and the platform's wake is measured, not documented
+## DEC-201 — Neither an orchestrator nor a lead ever waits: every dispatch ends its turn, and the platform's wake is measured, not documented
 
-**Chose:** an orchestrator ends its turn at every dispatch. It does not poll, does not sleep, and
-does not invent activity to stay alive. The platform resumes it when the child completes, and on
-waking it (a) re-reads `STATE.md` and `feature.json` from disk, because its context may have reset,
+**Chose:** the never-wait rule binds the orchestrator AND THE THREE DOMAIN LEADS. A lead that has
+dispatched a member ends its turn, and the member's completion is what wakes it; an orchestrator
+ends its turn at every dispatch on the same terms. Neither tier polls, sleeps, or invents activity
+to stay alive. The platform resumes the caller when the child completes, and on waking an
+orchestrator (a) re-reads `STATE.md` and `feature.json` from disk, because its context may have reset,
 (b) treats a reported completion as a CLAIM until an artifact on disk confirms it, and (c) weighs its
 own context against `budgets.orchestrator_context_warn_tokens` to decide whether to finish this phase
 or hand it to a fresh orchestrator. That threshold ADVISES and never refuses (DEC-198).
+
+**A waiting agent has no mechanism for waiting.** An agent has exactly two moves — end its turn or
+call a tool — and a tool call keeps the turn alive, so an agent that believes it must wait burns
+turns alternating filler tool calls with restatements that it is waiting (issue 831).
+
+**The rule EXPLICITLY OVERRIDES the platform's own text.** The `Agent` tool's dispatch result tells
+the caller to continue other work or respond to the user in the meantime; that text is
+platform-supplied, with no file the harness can edit to change it, so the rule has to override it
+rather than merely fill a silence.
+
+**The rule carries an INOCULATION, and would install the loop it removes without one.** Every
+dispatch's first turn-end meets a live child and is refused, so the rule states that the refusal is
+expected, that the response is to end the turn again, and that it can recur on a later wake.
+
+**One file reaches the whole lead tier.** The lead-tier rule is written once into
+`.claude/skills/harness-team/SKILL.md`, which all three lead agents preload.
+
+**No lead is granted `SendMessage` or any message-sending tool.** A lead that has ended its turn
+cannot send anything, and a lead holding a message tool gains a fresh reason to stay awake and
+watch, which is the loop this rule removes. Issues 610 and 552 are closed on that ruling, recorded
+here precisely so a future scan does not re-suggest it.
 
 **Over keeping the orchestrator alive across the wait**, which is what it was doing. One orchestrator
 spent 354 of its 450 Bash calls on `echo hold` and `sleep` — 341 of them `echo hold` — went quiet,
