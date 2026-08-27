@@ -52,6 +52,18 @@
   it exits 1 with exactly those 6 failures; with the registry at `{}`, same tree, it exits 0 ALL
   PASSED. FEAT-42 T-17 should close it. Until then the qa gate's result depends on whether an agent
   happens to be running.
+- Q13 (BLOCKING, harness defect, operator's call): **INV-26 has no green branch for a mid-build
+  feature with a finished task, and I hit both sides of it this run.** With no mirror it refuses
+  ("tasks are in flight or finished but feature.json records no mirrored issues — run
+  `gh-sync.py open`"); after `open` it refuses per task ("plan says done, so the card should read
+  Done — the board reads Backlog"). `_EXPECT` at `check-state.sh:1404` maps `done` to the DONE
+  station, and the widening at `:1499-1501` applies ONLY while feature.json status is `Review`, so
+  the whole Building phase is red from the first done task. Only `cmd_ship` (`gh-sync.py:1231`)
+  writes the done station, and that is the main session's act at ship acceptance. So the gate is
+  red at 98bd4b3 and will stay red for every actor until ship, including the main session's 15
+  direct tasks. Marking the tasks anything but `done` would falsify the record; running `ship`
+  would close a feature that is 2/20 built. This needs a ruling.
+
 - Q3 (OPEN, non-blocking — DEC-179 gap): the route check resolves from each task's literal `files:`
   paths and is structurally blind to what a `verify:` block touches. Widen it to verify blocks?
 - Q4 (OPEN, non-blocking): D-05 records 20/16, D-12 supersedes with 21/17. Whether D-05 is corrected
