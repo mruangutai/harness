@@ -28,3 +28,76 @@
 - 2026-08-27 (FEAT-42, the finding that triggered the above and is worth the trouble): MEASURED - `factory_config.harness_root()` honouring CLAUDE_PROJECT_DIR when the directory holds a readable `.harness/harness/docs/SPEC.md` is not an implementation detail, it is a TEST-FIXTURE REDIRECT SEAM. I built a tmp fixture carrying only SPEC.md, set CLAUDE_PROJECT_DIR to it, and called `resolve_root` against the real bin dir: it returned the REAL worktree, because resolve_root reads HARNESS_PROJECT_DIR only and its MARKER is `.harness/team-config.yaml`. So T-04's repointing of feature-worktree.py:67 silently removes the redirect for every suite that relies on it. The sharpest consumer is test-check-state.py's SC-17(c) clause, which EXECUTES the real `feature-worktree.py remove` as a subprocess against the fixture and whose own comment says that without the probe file it "would delete a live worktree". Lesson: when deleting a resolver, grep for what its ENV PRECEDENCE was being used for, not just for its name. A precedence rule that looks like legacy cruft can be the only thing keeping a destructive test pointed at a tmpdir.
 - 2026-08-27 (FEAT-42, the population of the fixture-redirect seam, for T-08 through T-20): THIRTEEN test files both write a fixture `.harness/harness/docs/SPEC.md` AND set CLAUDE_PROJECT_DIR - test-check-domain (4/28), test-check-plan-routes (7/9), test-check-state (6/13), test-factory-integration (3/12), test-feature-worktree (2/1), test-gh-sync (2/1), test-harness-yaml (3/7), test-hooks-install (1/1), test-layout-migration (3/1), test-post-merge-sweep (2/4), test-team-catalog (2/1), test-validate-digest (2/1), test-worktree-terminal (4/4). That pairing IS the redirect seam, and every cutover task retires it for whichever script the fixture drives. The new seam is `.harness/team-config.yaml` plus HARNESS_PROJECT_DIR, which SC-01 explicitly sanctions for test-*.py. Practical consequence: each of T-08 through T-18 should expect to fix the fixtures of the suites that drive ITS script, and the count above is the map of where to look. It also explains why so many of these tasks are main-session-direct - most of those files are tests of hooks, validators or gate scripts.
 - 2026-08-27 (FEAT-42, found by MY OWN post-run verification, missed by member, lead and every gate): the squad moved SC-01 from 19 occurrences across 15 files to 16 across 12, but the arithmetic should have been 14. Five were removed as planned and TWO WERE ADDED. `gh_cost_log.py:112` and `layout_migration.py:101` both had ZERO at a1658c2 and now each carry one, in a docstring and a comment respectively, each explaining the new resolver by naming the variable it replaced. That is the identical prose trap that failed T-03 and that I explicitly warned the member about for `harness_root` - I named one identifier and the same rule applied to the other, which I did not say. NO GATE CAN SEE THIS: T-04's verify greps only `factory_config.py` for the chain, T-05's only its own three files, T-06's only inflight_registry.py. The whole-directory count exists solely in T-07, which runs LAST and depends on sixteen tasks. Lesson: when an invariant is a repo-wide COUNT, a per-task verify that greps only the task's own files cannot defend it, and the count will drift upward on exactly the tasks that are trying to drive it down. Check the global count after every task, not at the end.
+- 2026-08-27 (FEAT-42 validate): the LIVE claim written for harness-qa at 11:34 carries only cwd,
+  dispatcher and started_at — no `session` key. `inflight_registry.claim()` writes that key ONLY
+  when session is not None, and `dispatch-guard.sh:167` sources it from the top-level payload key
+  `session_id`. So the real Agent-tool PreToolUse payload delivered no session_id, and
+  `_filter_session` treats a session-less entry as live to every caller. The session scoping T-06
+  and T-17 built is therefore INERT in production even though its unit cases pass. Handed to the
+  review panel rather than judged here; the discriminating probe is a fixture-root dispatch-guard
+  invocation with a synthetic payload, which must not run against the live registry.
+- 2026-08-27 (FEAT-42 validate): commit e51b814 is tagged with three TEAM-lane tasks
+  ([harness:t-04,t-05,t-06]) and its diff touches test-check-state.py and test-post-merge-sweep.py,
+  both enforcement-layer test files. The hunks read as comment-only renames plus fixture env
+  changes, but the commit record cannot distinguish a squad edit from a main-session repair folded
+  into the same commit. A mixed-lane commit destroys the only evidence DEC-174 compliance has.
+- 2026-08-27 (FEAT-42 validate, found by my own read): three enforcement-layer files still carry
+  comments that describe the DELETED root-precedence rule as if it were current —
+  `check-state.sh:1143` ("`root` is CLAUDE_PROJECT_DIR or the cwd"), `check-plan-routes.py:477`
+  ("CLAUDE_PROJECT_DIR if it holds a readable manifest, else the root DERIVED from this file's
+  location") and `validate-digest.py:815` ("unset CLAUDE_PROJECT_DIR"). All three were cut over to
+  `resolve_root` by T-12/T-13/T-17. SC-01 structurally cannot see them: it greps the OTHER variable
+  name. A zero-occurrence invariant scoped to one identifier leaves the retired mechanism described
+  as live wherever the prose used the sibling name. Not fixable on this branch (DEC-174).
+- 2026-08-27 (FEAT-42 validate): MEASURED, not inferred — no production file under
+  `.claude/skills/harness/bin/` READS `CLAUDE_PROJECT_DIR` any more. All nine non-test occurrences
+  are prose or the `${CLAUDE_PROJECT_DIR}/...` hook-registration path template, which is host-owned
+  and correct. The "one resolver" claim holds on the sibling-name axis too, which SC-04 does not
+  assert and nobody had checked.
+- 2026-08-27 (FEAT-42 validate) CORRECTION AND STRENGTHENING of my earlier claim-registry entry,
+  from a second measurement I took rather than reasoning from the first. Dispatching
+  harness-product-lead at 11:48 DID record a claim: dispatcher harness-orchestrator, cwd the
+  worktree, written to the WORKTREE registry and not the main checkout's. So SC-11's property holds
+  in production and the orchestrator-to-lead claim path is NOT broken — my earlier entry implied it
+  might be, on the strength of one absence. Two things survive the correction, both now confirmed
+  twice: (1) NEITHER claim carries a `session` key, so `_filter_session` counts both as live for
+  every caller and the session scoping T-06 and T-17 built is inert in production even though its
+  unit cases pass; (2) harness-validator-lead has NO claim at all while it is demonstrably live —
+  it dispatched harness-qa at 11:35 — and `claim()` mutates only `data[agent]` under a lock, so a
+  later write cannot have clobbered it. Two same-shaped dispatches, different outcomes. The one
+  difference on record: the validator-lead dispatch was preceded by an exit-2 refusal for a `model:`
+  parameter. That is a hypothesis, not a finding, and the discriminating probe belongs in a fixture.
+- 2026-08-27 (FEAT-42 validate) THE MEASUREMENT THAT REFRAMES THE WHOLE PHASE, and it RETRACTS my
+  two earlier claim-registry entries. I dispatched a governed harness agent with NO
+  `HARNESS-FEATURE:` line. This branch's `dispatch-guard.sh` refuses exactly that at exit 2,
+  unconditionally, before any other logic — it is the ONE fail-closed branch in the file. The
+  dispatch was ADMITTED and the agent ran. Therefore `${CLAUDE_PROJECT_DIR}` in
+  `.claude/settings.json` resolves to the MAIN CHECKOUT, which sits at 3952814, and every hook
+  firing during this run is the PRE-FEATURE code. Confirmed independently: the main copy is 6366
+  bytes with zero occurrences of `HARNESS-FEATURE`/`_root_for` and passes no `session=`; the
+  worktree copy is 9447 bytes with four. RETRACTED: "the session scoping T-06 and T-17 built is
+  inert in production" — the session-less claims are explained by the OLD guard running, and say
+  NOTHING about the new code. THE LESSON, which is the durable part: a live hook measurement taken
+  from inside a worktree measures `main`, not the branch. I asserted a defect twice off that
+  mistake before the probe caught it. THE CONSEQUENCE, which the operator must hear: no line of
+  this branch's enforcement-layer change has run against a live agent, by DEC-174 design, so the
+  test suite is the entire evidence base and the first production exercise is every agent at once,
+  at merge, with no staged rollout.
+- 2026-08-27 (FEAT-42 validate, the panel corrected me and I verified the correction myself): my
+  "no line of this branch has executed live" is a CLAUDE CODE fact only, and I stated it without
+  the qualifier. Under Claude Code the hooks resolve through `${CLAUDE_PROJECT_DIR}`, which is the
+  main checkout. Under OMP — canonical per DEC-202 — `.omp/extensions/harness-hooks.ts:142` does
+  `spawnSync(join(cwd, BIN, script))` with `BIN` a RELATIVE ".agents/skills/harness/bin", so the
+  gate SCRIPT ITSELF is selected from `ctx.cwd`. An agent working in a feature worktree therefore
+  runs THAT BRANCH's gates. Two consequences, and the second is bigger than the panel's framing:
+  (1) #556 substituted an imported module; this substitutes the whole gate, across 6 scripts and 11
+  call sites, in a file THIS diff edited (0a5bd49, T-20), with zero test coverage; (2) independent
+  of whether `ctx.cwd` is agent-steerable, DEC-174's carve-out is enforced by CONVENTION ONLY under
+  the canonical host — a branch that weakens a gate is governed by the weakened gate. THE LESSON:
+  when I state a runtime fact about "the system", name the HOST, because this repo has two adapters
+  with opposite root-selection semantics and I generalised from the one I happened to run on.
+- 2026-08-27 (FEAT-42 validate): T-20's own comment inside `runPolicy` is what hides the defect. It
+  says "Every script this helper invokes now derives its own root from its own file location, so
+  handing it one is redundant" — true, and it reassures the reader about root DERIVATION on the
+  line directly below the one that chooses WHICH FILE to execute. A correct comment about the
+  adjacent concern is better camouflage than no comment.

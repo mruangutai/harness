@@ -1,8 +1,30 @@
 import { spawnSync } from "node:child_process";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 const AGENT_MARKER = /^HARNESS_AGENT_ID: (harness-[a-z0-9-]+)$/gm;
 const BIN = ".agents/skills/harness/bin";
+
+// THE GATE DIRECTORY IS DERIVED FROM THIS FILE, NOT FROM ANY CALLER (FEAT-42, panel B-1).
+// This module ships at <root>/.omp/extensions/harness-hooks.ts, so <root> is two levels up.
+// What stood here was `join(cwd, BIN, script)` against a caller-supplied ctx.cwd: the
+// executable that enforces a policy was CHOSEN by the party the policy governs. Issue #556,
+// which this feature closes, was the same defect one level down — a harness_boundary.py in
+// an agent's working directory became the module a gate imported, taking check-domain.sh
+// from `exit 2 BLOCKED` to `exit 0 enforcement OFF`. That substituted an imported module.
+// This substituted the whole gate, across six gates and eleven call sites.
+//
+// `cwd` is still passed to the child, deliberately — a gate must judge the tree the agent is
+// working in. What must not come from the caller is WHICH BINARY judges it.
+export function gateRoot(): string {
+  return join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
+}
+
+// Exported so the executable path can be asserted without spawning anything. runPolicy is
+// not exported and had no coverage at all, which is how B-1 survived four review passes.
+export function gatePath(script: string): string {
+  return join(gateRoot(), BIN, script);
+}
 
 type Dict = Record<string, unknown>;
 type PolicyResult = { blocked: boolean; reason?: string; stdout: string };
@@ -139,7 +161,7 @@ function runPolicy(
   args: string[],
   payload: Dict,
 ): PolicyResult {
-  const proc = spawnSync(join(cwd, BIN, script), args, {
+  const proc = spawnSync(gatePath(script), args, {
     cwd,
     // The child inherits the host environment and NOTHING IS ADDED to it (FEAT-42 T-20).
     // A root override used to be injected here, set to the host process working directory.

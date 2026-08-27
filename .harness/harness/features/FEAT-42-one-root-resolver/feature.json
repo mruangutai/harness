@@ -3,8 +3,8 @@
   "branch": "feat/FEAT-42-one-root-resolver",
   "pr": null,
   "status": "Review",
-  "review_sha": "none",
-  "cycles_used": 5,
+  "review_sha": "9d12e3a",
+  "cycles_used": 6,
   "max_total_cycles": 10,
   "max_total_runs": 20,
   "runs": [
@@ -49,6 +49,30 @@
       "squad": "engineering",
       "agent": "harness-eng-lead",
       "verdict": "BLOCKED"
+    },
+    {
+      "id": "2026-08-27-1-validator",
+      "squad": "validation",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-27-2-docs-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-27-3-goalcheck-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-27-4-panel-validation-validator",
+      "squad": "validation",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL"
     }
   ],
   "github": {

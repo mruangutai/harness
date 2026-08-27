@@ -2,64 +2,44 @@
 
 ## Current
 
-- feature: FEAT-42-one-root-resolver
-- run: none. The main session executed the whole remaining lane directly under DEC-174; no
-  orchestrator or squad ran after `2026-08-26-7-eng`.
-- squad: none
-- status: Building, ALL 21 TASKS `done`. Plan and BRIEF approved 2026-08-27.
-- cycles_used: 5 of 10. runs: 7 of 20. Neither moved during the main-session lane, which spends
-  neither.
-- T-21 was ADDED during the build, main-session-direct, and is the only task not in the signed
-  plan. It repairs the three `test-check-state.py` fixtures T-04 broke. Its number is high and
-  its position is between T-06 and T-07, which is where it ran.
+- feature: FEAT-42-one-root-resolver. phase VALIDATE COMPLETE, mission ship. status Review.
+- review_sha PINNED at `9d12e3a` = HEAD (INV-6). Zero SOURCE files dirty at the pin.
+- GitHub mirror at Review: parent #870 and all 20 sub-issues #871-#890.
+- cycles_used 6 of 10, runs 11 of 20. Both inside budget. ONE cycle spent in this whole phase —
+  the goal-check lead's first pass graded the wrong scope on SC-09 and was sent back. The qa gate,
+  the docs sweep and the review panel were clean first passes.
+- BRIEFING WRITTEN, and it is the terminus of this run:
+  `notes/ship-review-2026-08-27-validate.md` (+ rendered `.html`). No PR, no merge, nothing
+  committed. The operator decides ship / fix first / re-scope / stop.
 
-There is ONE resolver. `git ls-files` minus `test-*`, `harness_boundary.py`, `*.md` and the three
-record-tree roots holds ZERO occurrences of the retired environment chain, down from 21 across 17
-files at `3952814`. `test-no-distribution.py` case 6 asserts it over that derived set, never a
-fixed list, and its mutation proof plants a chain line in `docs/invalid-states-audit.html` —
-outside `bin/` on purpose, so a mutant only the repo-wide scan can see is what proves the
-widening.
+VERDICT OF THE PHASE: the feature MEETS ALL ELEVEN SUCCESS CRITERIA and the blocking qa gate is
+GREEN, and the review panel FAILED it on ONE HIGH finding. `.omp/extensions/harness-hooks.ts:142`
+does `spawnSync(join(cwd, BIN, script))` with `BIN` a RELATIVE ".agents/skills/harness/bin", so the
+OMP host selects the gate SCRIPT ITSELF from caller-supplied `ctx.cwd` — six gates across eleven
+call sites, in a file this diff edited (0a5bd49, T-20), with zero test coverage. #556 substituted an
+imported MODULE; this substitutes the WHOLE GATE. `.omp/**` resolves to NOBODY, so no squad can fix
+it: it is main-session-direct. Second repair recommended with it: `test-check-plan-routes.py:453-454`
+asserts `"IGNORING it" not in stderr` and that string occurs EXACTLY ONCE in `.claude/skills` — in
+the assertion itself. The case is green, counted in every zero-failure claim, and CANNOT FAIL.
 
-Verified BY ME at disk, 2026-08-27:
+HOST SPLIT, and I stated it wrong once before the panel corrected me. I measured that no line of
+this branch's enforcement code had executed against a live agent, by dispatching a governed agent
+with no `HARNESS-FEATURE:` line and watching it be ADMITTED where this branch's guard refuses at
+exit 2. That is sound but CLAUDE-CODE-SPECIFIC: hooks resolve through `${CLAUDE_PROJECT_DIR}`, the
+main checkout at 3952814. Under OMP the gate is selected from the cwd, so an agent in a worktree
+runs THAT BRANCH's gates. Consequence bigger than exploitability: under the canonical host DEC-174's
+carve-out is enforced by CONVENTION ALONE.
 
-- `run-unit-tests.sh --kind all`: EXIT 0, 1040 verdict lines, ZERO failures. The
-  baseline before this feature was 1013 lines and zero failures at `a1658c2`.
-- `check-state.sh`: 0 violations.
-- `check-plan-routes.py` over this plan: 0 violations.
-- `.harness/.inflight-claims.json`: `{}`.
-- Every task printed its own verify block's OK line.
-- Cards #871 through #890 are at Done. T-21 has no card; see Q24.
-
-WHAT THE PLAN DID NOT SAY, and had to. Recorded because the next feature of this shape will hit
-all of it again:
-
-- **Every gate's test steered its fixtures with the host-owned variable alone.** `resolve_root`
-  reads one name and honours it only when `.harness/team-config.yaml` sits underneath, so after
-  each cutover the cases pointed at the LIVE checkout. Eight test files needed both names set to
-  one value and a marker written into each fixture root. Four of them were not in their task's
-  `files:` at signature.
-  The last one surfaced only in the FULL suite: `test-layout-migration.py` drives the REAL
-  `check-state.sh` against a fixture to prove its INV-27 block and `layout_migration.render()`
-  name the same readers. With one name set the gate resolved to the live checkout, reported
-  nothing about the fixture, and seven parity comparisons saw an EMPTY gate side and called it
-  a mismatch. Nine test files in total, not eight.
-- **Three isolated-copy fixtures needed `harness_boundary.py` copied in beside the script under
-  test.** Each exists to neutralise exactly one thing; without the resolver they died on
-  ImportError instead, red for the wrong reason. An inconclusive red proof reads exactly like a
-  surviving mutant.
-- **Six parity proofs were vacuous.** They captured `^(PASS|FAIL)` while those suites print `ok`,
-  so T-10's before-set held ONE line and satisfied its `test -s` check. All six now capture
-  `^(ok|PASS|FAIL)` against a measured floor. The technique and its three traps are in
-  `notes/verify-technique-2026-08-27.md`.
-- **Two suites were writing into the LIVE claim registry.** Eight stranded claims accumulated
-  during this work and then refused unrelated cases — issue #742 in miniature, from the same
-  cause, during the fix for it. Written up in `notes/receipt-main-session-T-18.md`.
-- **T-16's instruction contradicted a decision.** It said exit 2 on an unresolvable root;
-  `DECISIONS.md:1503` records this hook as "always exits 0 so it can never block a spawn". The
-  decision won; the failure still reaches stderr.
-- **T-19's five documents are four generated adapters and one skill.** `.claude/agents/*.md` are
-  regenerated from `.omp/agents/` by `sync-agent-adapters.py`, which silently deleted all four
-  statements the first time. Found by running `check-state.sh` before committing.
+VERIFIED BY ME at 9d12e3a, independent of any squad:
+- SC-01: 0 occurrences across 0 files over 1669 tracked files; discriminating (21/17 at 3952814).
+  Presence half is METHOD-SENSITIVE: `.py`+`.sh` gives 23 importers, strict `.py` imports alone
+  gives 14, below its own floor of 16. It passes on the wording; worth knowing.
+- SC-04: each deleted symbol checked SEPARATELY, all 0. Survivors intact at `harness_boundary.py:515`
+  and `post-merge-sweep.sh:64`.
+- `harness-hooks.ts` finding re-derived line by line before it entered the briefing.
+- `"IGNORING it"` occurs exactly once tree-wide — the tautology confirmed.
+- No production file under `bin/` reads `CLAUDE_PROJECT_DIR`; `python3 -P` on 19 launches / 10 files.
+- `check-state.sh` exit 0, 0 violations.
 
 ## Open Questions
 

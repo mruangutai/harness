@@ -450,8 +450,14 @@ def case_19():
     # caller having asked for something fires on every ordinary run. A first draft of
     # 19b4 used only the valid-dir fixture and a `if asked:` -> `if True:` mutant walked
     # straight past it.
+    # B-2 (FEAT-42 review panel). This asserted "IGNORING it", a string that occurs exactly
+    # once in the whole .claude/skills tree — in this assertion. Nothing could produce it, so
+    # the case was green and could not fail, while being counted in every zero-failure claim
+    # on this feature. Its siblings 19b3/19b4 moved to the resolver's own wording when T-13
+    # landed and this one was left behind. Now on "discarding", which harness_boundary
+    # actually prints (harness_boundary.py:70), so the mutant named above is killed.
     check("case_19b5_an_unset_project_dir_is_not_warned_about",
-          "IGNORING it" not in r_root.stderr, f"stderr={r_root.stderr[:300]!r}")
+          "discarding" not in r_root.stderr, f"stderr={r_root.stderr[:300]!r}")
 
     # (a4) THE PLAN SET, PINNED — "found the right things", not merely "found something".
     #
