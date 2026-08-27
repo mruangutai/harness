@@ -1,0 +1,1227 @@
+schema: plan/1
+feature: FEAT-42-one-root-resolver
+source_issues: [742, 866]
+
+approval:
+  # Written by the MAIN SESSION only, because it is the only tier with a user channel
+  # (DEC-120). Neither pm nor the orchestrator writes it, and check-domain.sh denies an
+  # agent's write of this mapping. Any change to the task set resets this to pending.
+  status: approved
+  approved_by: Mike Ruangutai
+  date: 2026-08-27
+
+lanes:
+  resolved_at: "3952814"
+  rows:
+    - surface: .claude/skills/harness/bin/**
+      lane: team
+      agent: harness-backend-dev
+    - surface: .claude/skills/harness/bin/check-domain.sh
+      lane: main-session-direct
+      reason: DEC-174 am.4 enforcement layer, and its test file with it
+    - surface: .claude/skills/harness/bin/bash-write-guard.sh
+      lane: main-session-direct
+      reason: DEC-174 am.4 enforcement layer, and its test file with it
+    - surface: .claude/skills/harness/bin/validate-digest.py
+      lane: main-session-direct
+      reason: DEC-174 am.4 enforcement layer, and its test file with it
+    - surface: .claude/skills/harness/bin/check-state.sh
+      lane: main-session-direct
+      reason: DEC-174 am.4 enforcement layer, and its test file with it
+    - surface: .claude/skills/harness/bin/check-plan-routes.py
+      lane: main-session-direct
+      reason: DEC-174 am.4 enforcement layer, and its test file with it
+    - surface: .claude/skills/harness/bin/dispatch-guard.sh
+      lane: main-session-direct
+      reason: DEC-174 am.4 enforcement layer, and its test file with it
+    - surface: .claude/skills/harness/bin/branch-create-gate.sh
+      lane: main-session-direct
+      reason: a registered PreToolUse hook that refuses; DEC-174 am.4 says the category decides and the list records
+    - surface: .claude/skills/harness/bin/gh-close-gate.sh
+      lane: main-session-direct
+      reason: a registered PreToolUse hook that refuses; DEC-174 am.4 says the category decides and the list records
+    - surface: .claude/skills/harness/bin/inject-expertise.sh
+      lane: main-session-direct
+      reason: a registered SubagentStart hook; every agent in this build is spawned through it
+    - surface: .claude/skills/harness/bin/context-watch.py
+      lane: main-session-direct
+      reason: its body is exec_module-loaded by the registered context-watch-hook.py
+    - surface: .claude/skills/harness/bin/post-merge-sweep.sh
+      lane: main-session-direct
+      reason: not in the am.4 enumeration and refuses nothing, but it DELETES worktrees and this build lives in one
+    - surface: .claude/skills/harness/bin/run-unit-tests.sh
+      lane: main-session-direct
+      reason: the suite runner; a wrong cd on line 3 runs every gate against the wrong checkout and still exits 0, which no gate can see
+    - surface: .claude/skills/harness-zero-micro-management/**
+      lane: main-session-direct
+      reason: check-domain.sh --resolve returns NOBODY at 3952814
+    - surface: .claude/agents/**
+      lane: main-session-direct
+      reason: check-domain.sh --resolve returns NOBODY at 3952814
+
+decisions:
+  - id: D-01
+    choice: The seven former resolver definitions are deleted outright, never left as thin forwarders.
+    because: A surviving forwarder is a second door, and a second door is how nine names grew.
+    dec: none
+  - id: D-02
+    choice: One module constant MARKER equal to .harness/team-config.yaml identifies a harness, never a per-caller parameter.
+    because: team-config.yaml is the same path in every project, unlike SPEC.md which carries the project name.
+    dec: none
+  - id: D-03
+    choice: resolve_root is strict — it raises when neither the override nor the derived root carries MARKER.
+    because: A wrong root gives confident answers about the wrong tree; 36 violations were once reported from a different checkout.
+    dec: none
+  - id: D-04
+    choice: Four names live in harness_boundary.py, extended in place with no new file, and worktree_owner does not change.
+    because: harness_boundary imports only os, re and sys, and a PreToolUse hook cannot afford factory_config's eager network import.
+    dec: none
+  - id: D-05
+    choice: Scope is all 20 occurrences of the environment chain across 16 files, not the 7 definitions of the original migration map.
+    because: inject-expertise.sh line 31 falls back to pwd and is a SubagentStart hook, the exact failure that blocked the previous run.
+    dec: none
+  - id: D-06
+    choice: The claim registry stays PER-CHECKOUT; only its input changes, from accidental payload cwd to the feature the dispatch declares.
+    because: One shared registry would refuse a second feature's pm while the first is live, breaking parallel features to fix a within-feature defect.
+    dec: none
+  - id: D-07
+    choice: When two live claims of one persona cannot be told apart, release removes NEITHER and says so on stderr.
+    because: No claim carries an identity either payload can match, so oldest-pop and newest-pop are each wrong half the time; the shortened TTL reaps instead.
+    dec: none
+  - id: D-08
+    choice: A claim records its session_id, a foreign-session claim is expired regardless of age, and CLAIM_TTL_SECONDS drops from 3600 to 1200.
+    because: The measured strand outlived a 10-20 minute cycle by design; the cost is that a run past 20 minutes loses its protection.
+    dec: none
+  - id: D-09
+    choice: dispatch-guard resolves the declared feature id to its worktree through harness_boundary.linked_worktrees, not a feature-worktree.py subprocess.
+    because: It runs at PreToolUse before every governed dispatch, and a subprocess there is a new failure mode on the hot path.
+    dec: none
+  - id: D-10
+    choice: Every gate touched here gains the established NAME_BIN environment seam if it lacks one.
+    because: Five sibling test files already use it, and it is what lets the identical-violation-set proof drive the base-sha copy and the edited copy over one case set.
+    dec: DEC-174
+  - id: D-11
+    choice: SC-11 moves from verify uat to verify automated, evidence integration.
+    because: The only thing a live dispatch adds is the payload shape, and two probe notes already measured that shape off real spawns.
+    dec: none
+  - id: D-12
+    choice: The measured scope of the environment chain is 21 occurrences across 17 files, not the 20 across 16 recorded in D-05; the seventeenth is .omp/extensions/harness-hooks.ts:144 and it is IN scope.
+    because: Operator ruling of 2026-08-26 - that line hands every OMP-hosted policy script a root taken from the host process cwd, which under D-3 probes valid in a worktree and is honoured, reopening the exact hole D-4 closes.
+    dec: none
+tasks:
+  - id: T-01
+    title: Add MARKER and the three resolver functions to harness_boundary.py, with a new test file and a red receipt
+    traces: [REQ-01, REQ-02, REQ-04, REQ-08]
+    change_type: logic
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: []
+    status: pending
+    files:
+      - .claude/skills/harness/bin/harness_boundary.py
+      - .claude/skills/harness/bin/test-harness-boundary.py
+    verify: |
+      cd "$(git rev-parse --show-toplevel)"
+      B=.claude/skills/harness/bin
+      N=.harness/harness/features/FEAT-42-one-root-resolver/notes
+      python3 $B/test-harness-boundary.py || exit 1
+      for c in root_from_script resolve_root_strict root_above marker_constant; do
+        grep -rqE "FAIL.*$c" $N/receipt-*.md || { echo "SC-10: no red receipt line for $c"; exit 1; }
+      done
+      git show 3952814:$B/harness_boundary.py > /tmp/f42-hb-old.py
+      python3 - <<'P'
+      import ast, re, sys
+      def fn(p, n):
+          t = ast.parse(open(p).read())
+          return next((ast.unparse(x) for x in ast.walk(t)
+                       if isinstance(x, ast.FunctionDef) and x.name == n), None)
+      new = ".claude/skills/harness/bin/harness_boundary.py"
+      s = open(new).read()
+      ok = re.search(r'MARKER\s*=\s*os\.path\.join\(\s*"\.harness"\s*,\s*"team-config\.yaml"\s*\)', s)
+      ok = ok and all(fn(new, f) for f in ("root_from_script", "resolve_root", "root_above"))
+      ok = ok and fn("/tmp/f42-hb-old.py", "worktree_owner") == fn(new, "worktree_owner")
+      sys.exit(0 if ok else 1)
+      P
+      echo T-01-OK
+    intent: |
+      Extend .claude/skills/harness/bin/harness_boundary.py IN PLACE. Do not create a new module.
+      Do not import anything beyond os, re and sys: this module is imported by PreToolUse hooks that
+      run before every Bash call, so an eager network import is not affordable.
+
+      Add one module constant and three functions. worktree_owner MUST NOT CHANGE BY ONE LINE; the
+      verify compares its AST between sha 3952814 and your edit.
+
+      MARKER = os.path.join(".harness", "team-config.yaml")
+      A directory is a harness checkout when it contains MARKER. Never a caller-supplied parameter:
+      a parameter left every caller inventing its own definition, which is how check-plan-routes.py
+      came to probe team-config.yaml, factory_config.py to probe SPEC.md, and wayfind.py to probe the
+      bare .harness DIRECTORY. $HOME/.harness exists on this machine and holds two backup tarballs
+      and no team-config.yaml, so the directory probe resolves $HOME as a root — that is the
+      fail-open recorded at check-plan-routes.py:489-495.
+
+      def root_from_script(bin_dir): return the root that four-levels-up arithmetic from bin_dir
+      gives. Absolute path. ZERO filesystem checks and no environment read. This is the pure
+      derivation the callers that must not read cwd need.
+
+      def resolve_root(bin_dir, strict=True): the root. Read os.environ HARNESS_PROJECT_DIR. If it
+      is set AND os.path.isfile(join(it, MARKER)), return it. If it is set and does NOT carry
+      MARKER, print to stderr a line naming the discarded value and the derived value being used
+      instead, then fall through. Falling through means root_from_script(bin_dir): return it if it
+      carries MARKER. If nothing carries MARKER and strict is true, raise ValueError naming both
+      candidates. If strict is false, return the derived root. CLAUDE_PROJECT_DIR IS NOT READ
+      ANYWHERE IN THIS MODULE: it is host-owned, always names the session project root, and is one
+      of the three spellings of a single value this feature is deleting.
+
+      def root_above(start): walk up from os.path.abspath(start), returning the first directory at
+      or above it that contains MARKER, or None at the filesystem root. No environment read. This is
+      the walk that answers "which checkout is this PATH in", and it is deliberately the only one of
+      the three that can ever see a cwd, because a caller has to hand one in.
+
+      Then write .claude/skills/harness/bin/test-harness-boundary.py in the idiom of its siblings
+      (see test-no-distribution.py): a module-level failures list, a check(name, cond, detail)
+      helper, plain functions named case_N_..., and a main that exits 1 if failures. It must be
+      runnable directly with python3 and must not need pytest. Do not register it in
+      run-unit-tests.sh — T-03 does that, and until then the drift detector will refuse the suite,
+      which is why this task's verify runs your file directly.
+
+      Cases required, each one named so the receipt can cite it:
+      marker_constant — MARKER equals .harness/team-config.yaml exactly.
+      root_from_script — given a fake bin dir four levels below a tmp root, returns that tmp root,
+      and returns it unchanged when no MARKER exists anywhere (it does no filesystem check).
+      resolve_root_strict — three cases: an override carrying MARKER is honoured; an override NOT
+      carrying MARKER is discarded, the derived root is used, and the discard is reported on stderr;
+      neither carrying MARKER raises. Build the tmp trees with tempfile.mkdtemp.
+      root_above — a start point several directories below a MARKER-carrying root returns that root;
+      a start point below a directory named .harness that contains NO team-config.yaml does NOT
+      return it and keeps walking to the real root above; nothing above returns None. The second of
+      those is the $HOME/.harness fail-open and it is the reason this function exists.
+
+      TDD ORDER IS THE DELIVERABLE, NOT AN INTERNAL PREFERENCE. Write the test file first, run it
+      against the untouched harness_boundary.py, and paste the VERBATIM failing output into
+      .harness/harness/features/FEAT-42-one-root-resolver/notes/receipt-<your-agent-name>-<runid>.md
+      before writing any implementation. The receipt must contain a FAIL line naming each of
+      root_from_script, resolve_root_strict, root_above and marker_constant. The verify greps for
+      exactly those four tokens on FAIL lines and fails the task if any is missing.
+  - id: T-02
+    title: Delete wayfind.root and move wayfind onto root_above, closing the bare-directory fail-open
+    traces: [REQ-01, REQ-03, REQ-04, REQ-08]
+    change_type: bugfix
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-01]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/wayfind.py
+      - .claude/skills/harness/bin/test-wayfind.py
+    verify: |
+      cd "$(git rev-parse --show-toplevel)"
+      B=.claude/skills/harness/bin
+      N=.harness/harness/features/FEAT-42-one-root-resolver/notes
+      python3 $B/test-wayfind.py || exit 1
+      grep -q "HARNESS_PROJECT_DIR" $B/wayfind.py && { echo "chain survives"; exit 1; }
+      grep -qE "^def root\(" $B/wayfind.py && { echo "root() survives"; exit 1; }
+      grep -rqE "FAIL.*wayfind_directory_probe" $N/receipt-*.md || { echo "SC-10: no red receipt"; exit 1; }
+      echo T-02-OK
+    intent: |
+      In .claude/skills/harness/bin/wayfind.py, DELETE the function root() at :46-53 entirely. It is
+      not kept as a forwarder. Replace its single call site — cfg() at :57, which builds
+      os.path.join(root(), ".harness", "harness.json") — so that it calls
+      harness_boundary.root_above(os.getcwd()) and calls the module's existing die() with a clear
+      message when that returns None. Import harness_boundary the way its existing importers under
+      this directory already do.
+
+      Two behaviours change and both are intended. First, the env chain
+      HARNESS_PROJECT_DIR or CLAUDE_PROJECT_DIR or os.getcwd() is gone; the walk now starts from
+      os.getcwd() only, which is correct for a CLI a human invokes and is the one function of the
+      three that is allowed to see a cwd. Second, the probe moves from the bare .harness DIRECTORY
+      to the MARKER file. That closes the fail-open documented by measurement at
+      check-plan-routes.py:489-495: $HOME/.harness exists on this machine, holds two backup tarballs
+      and no team-config.yaml, and today's directory probe resolves $HOME as a harness root.
+
+      Write .claude/skills/harness/bin/test-wayfind.py in the sibling idiom (failures list,
+      check(name, cond, detail), case_N_ functions, exits 1 on failure, no pytest). Do not register
+      it in run-unit-tests.sh — T-03 does that. Required case, named wayfind_directory_probe: build
+      a tmp tree with a real MARKER-carrying root, a child directory holding a bare .harness
+      directory with NO team-config.yaml in it, and a start point below that child; assert cfg()
+      resolves against the real root and not the decoy. Add a second case asserting cfg() dies with
+      a non-zero exit when no MARKER exists anywhere above the start point.
+
+      Run the wayfind_directory_probe case against the untouched wayfind.py first — it fails,
+      because the directory probe returns the decoy — and paste that verbatim FAIL line into
+      .harness/harness/features/FEAT-42-one-root-resolver/notes/receipt-<your-agent-name>-<runid>.md
+      before writing the fix.
+
+  - id: T-03
+    title: Move run-unit-tests.sh off the env chain and register the two new test files
+    traces: [REQ-01, REQ-02, REQ-08]
+    change_type: config
+    execution_mode: main-session-direct
+    execution_reason: the suite runner — a wrong cd on line 3 runs every gate against the wrong checkout and still exits 0, which no gate in this repository can see
+    depends_on: [T-01, T-02]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/run-unit-tests.sh
+    verify: |
+      cd "$(git rev-parse --show-toplevel)"
+      B=.claude/skills/harness/bin
+      grep -q "HARNESS_PROJECT_DIR" $B/run-unit-tests.sh && { echo "chain survives"; exit 1; }
+      for t in test-harness-boundary.py test-wayfind.py; do
+        grep -q "$t" $B/run-unit-tests.sh || { echo "$t unregistered"; exit 1; }
+      done
+      bash $B/run-unit-tests.sh --check-kinds || exit 1
+      ( cd /tmp && bash "$OLDPWD/$B/run-unit-tests.sh" --kind unit > /tmp/f42-t03-away.txt 2>&1 )
+      bash $B/run-unit-tests.sh --kind unit > /tmp/f42-t03-here.txt 2>&1
+      grep -cE '^(PASS|FAIL)' /tmp/f42-t03-away.txt > /tmp/f42-t03-a
+      grep -cE '^(PASS|FAIL)' /tmp/f42-t03-here.txt > /tmp/f42-t03-h
+      diff /tmp/f42-t03-a /tmp/f42-t03-h || { echo "cwd changed the suite"; exit 1; }
+      echo T-03-OK
+    intent: |
+      Two edits to .claude/skills/harness/bin/run-unit-tests.sh, and nothing else in the file.
+
+      1. Line 3 is currently cd "${HARNESS_PROJECT_DIR:-${CLAUDE_PROJECT_DIR:-$(pwd)}}". Replace it
+      with a cd to the root that harness_boundary resolves from THIS SCRIPT's own location. The file
+      is bash, so shell out once: assign the result of a short python3 -c that appends
+      .claude/skills/harness/bin to sys.path relative to the script's own directory, imports
+      harness_boundary, and prints resolve_root(<that bin dir>). If that command fails or prints
+      nothing, exit 2 with a message naming the script and saying no harness root could be resolved
+      — do NOT fall back to pwd. Refusing is the point: a suite that silently runs against the wrong
+      checkout is the failure this whole feature exists to remove, and it is invisible because the
+      suite still exits 0.
+
+      2. Append "test-harness-boundary.py" and "test-wayfind.py" to the UNIT_SCRIPTS array. Both are
+      pure filesystem tests that spawn no subprocess, which is the split principle recorded at
+      :6-16, so neither belongs in INTEGRATION_SCRIPTS. The unit test_kinds detect glob in
+      .harness/harness.json is .claude/skills/harness/bin/test-*.py and already matches both, so
+      harness.json needs no edit — do not touch it.
+
+      The verify proves the cd is now cwd-independent by running the suite from /tmp and from the
+      root and comparing the number of PASS/FAIL result lines. Before this task that comparison
+      could not fail, because $(pwd) made /tmp the root and the run collapsed; that collapse is the
+      red state, and there is no need to stage it separately.
+  - id: T-04
+    title: Delete factory_config.harness_root and repoint every caller at resolve_root
+    traces: [REQ-01, REQ-02, REQ-03]
+    change_type: cross_module
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-03]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/factory_config.py
+      - .claude/skills/harness/bin/board_lifecycle.py
+      - .claude/skills/harness/bin/factory_claim.py
+      - .claude/skills/harness/bin/feature-worktree.py
+      - .claude/skills/harness/bin/gh_cost_log.py
+      - .claude/skills/harness/bin/worktree_terminal.py
+      - .claude/skills/harness/bin/test-factory-config.py
+      - .claude/skills/harness/bin/test-factory-claim.py
+      - .claude/skills/harness/bin/test-gh-cost-log.py
+    verify: |
+      cd "$(git rev-parse --show-toplevel)"
+      B=.claude/skills/harness/bin
+      grep -rn "harness_root" $B/ && { echo "harness_root survives"; exit 1; }
+      grep -q "HARNESS_PROJECT_DIR" $B/factory_config.py && { echo "chain survives"; exit 1; }
+      bash $B/run-unit-tests.sh --kind all || exit 1
+      echo T-04-OK
+    intent: |
+      DELETE the function harness_root() at .claude/skills/harness/bin/factory_config.py:44-58. It
+      does not survive as a forwarder. Every reference to the NAME harness_root must be gone from
+      .claude/skills/harness/bin, including the ones inside docstrings and comments — the verify
+      greps for the bare name across the whole directory and fails on any hit, because a name left
+      in prose is the second door this feature exists to close.
+
+      Replace it with harness_boundary.resolve_root(_BIN_DIR), where _BIN_DIR is the constant
+      factory_config already derives from its own __file__. resolve_root is strict, so a broken
+      install now raises instead of returning a confident wrong answer.
+
+      The import-time risk is real and has been checked: FLEET_PATH at :59 calls this at MODULE
+      IMPORT for all 23 importers, and check-domain.sh:196 reaches it through resolve_fleet's lazy
+      import inside a try whose except is sys.exit(2). A strict raise there would BLOCK a governed
+      write. It cannot fire: factory_config resolves from its own _BIN_DIR, which under any test
+      fixture root still sits inside the LIVE checkout, and the live checkout always carries
+      .harness/team-config.yaml. Strict raises only when the bin directory itself is outside every
+      harness checkout, which is a broken install where refusing is correct. Do not weaken this to
+      strict=False; if you find a path where it does fire, stop and report it rather than
+      downgrading the flag.
+
+      Repoint these production call sites, all of which want the install root:
+      factory_config.py:59 FLEET_PATH; factory_claim.py:45 FEATURES_ROOT;
+      feature-worktree.py:67; gh_cost_log.py:111; and board_lifecycle.py at :671, :922, :934, :1034
+      and :1121. Each becomes harness_boundary.resolve_root(<that module's own bin dir constant>) —
+      resolve from the calling module's own location, never by importing factory_config just to
+      reach a root.
+
+      Prose-only references that must be reworded rather than repointed: factory_claim.py:26,
+      board_lifecycle.py:158, feature-worktree.py:10, gh_cost_log.py:109, worktree_terminal.py:112,
+      :113 and :301. worktree_terminal's are load-bearing warnings about the cwd trap; keep the
+      warning and change the name it cites.
+
+      Three test files bind to the name and break on the delete. test-gh-cost-log.py:40, :45 and :52
+      monkeypatch factory_config.harness_root by attribute — repoint them at whatever
+      gh_cost_log.py now calls, keeping the same tmp-root redirection. test-factory-claim.py:54 and
+      test-factory-config.py:780 assert against it — same treatment. Do not delete a case to make
+      the grep pass; if a case can no longer be expressed, say so in your return.
+
+  - id: T-05
+    title: Move the three remaining library and script chains onto resolve_root
+    traces: [REQ-01, REQ-02, REQ-03]
+    change_type: logic
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-03]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/gen-decisions-index.py
+      - .claude/skills/harness/bin/validate-feature-json.py
+      - .claude/skills/harness/bin/harness_yaml.py
+    verify: |
+      cd "$(git rev-parse --show-toplevel)"
+      B=.claude/skills/harness/bin
+      for f in gen-decisions-index.py validate-feature-json.py harness_yaml.py; do
+        grep -q "HARNESS_PROJECT_DIR" $B/$f && { echo "chain survives in $f"; exit 1; }
+      done
+      git show 3952814:$B/check-plan-routes.py > /tmp/f42-cpr-old.py
+      P=$(git ls-files '.harness/harness/features/*/plan.yaml')
+      CHECK_PLAN_ROUTES_BIN=/tmp/f42-cpr-old.py python3 $B/test-check-plan-routes.py 2>&1 | grep -E '^(PASS|FAIL)' | sort > /tmp/f42-t05-before.txt
+      python3 $B/test-check-plan-routes.py 2>&1 | grep -E '^(PASS|FAIL)' | sort > /tmp/f42-t05-after.txt
+      diff /tmp/f42-t05-before.txt /tmp/f42-t05-after.txt || { echo "harness_yaml change moved the gate"; exit 1; }
+      bash $B/run-unit-tests.sh --kind all || exit 1
+      echo T-05-OK
+    intent: |
+      Three independent chain sites, all resolving to the same replacement.
+
+      gen-decisions-index.py:403 — project_dir = (HARNESS_PROJECT_DIR or CLAUDE_PROJECT_DIR) or
+      os.getcwd(). Replace with harness_boundary.resolve_root(<this module's own bin dir>).
+      validate-feature-json.py:40 — root = the same chain. Same replacement.
+      harness_yaml.py:449, inside require_or_die() — root = the same chain. Same replacement. This
+      one is the eighth resolver the AST census structurally could not see, because its join lives
+      in _marker_path rather than in the function body.
+
+      In all three, resolve_root is strict and its raise is the intended behaviour: these scripts
+      currently proceed against os.getcwd() and then report findings about whichever tree the caller
+      happened to be standing in. Let the exception surface with its message rather than catching it
+      to preserve today's exit code.
+
+      harness_yaml.require_or_die() is reached by check-plan-routes.py, check-state.sh, gh-sync.py
+      and upgrade-config.py. check-plan-routes.py is a gate under DEC-174 am.4, so this task carries
+      am.4's library proof: the verify drives the gate's OWN test suite twice through the
+      CHECK_PLAN_ROUTES_BIN seam at test-check-plan-routes.py:18 — once against the check-plan-routes
+      copy restored from sha 3952814, once against the live one — and requires the two PASS/FAIL
+      sets to be byte identical. The gate's own file is not edited by this task at all; that is what
+      makes it a library change and not a cutover.
+
+      Do not touch check-plan-routes.py here. Its own chain at :496 is T-13, which is
+      main-session-direct.
+  - id: T-06
+    title: Make a single-flight claim reapable, its remedy absolute and targeted, and its release safe
+    traces: [REQ-01, REQ-06, REQ-07, REQ-08]
+    change_type: bugfix
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-03]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/inflight_registry.py
+      - .claude/skills/harness/bin/test-inflight-registry.py
+    verify: |
+      cd "$(git rev-parse --show-toplevel)"
+      B=.claude/skills/harness/bin
+      N=.harness/harness/features/FEAT-42-one-root-resolver/notes
+      grep -q "HARNESS_PROJECT_DIR" $B/inflight_registry.py && { echo "chain survives"; exit 1; }
+      grep -q 'CLI_REL_PATH' $B/inflight_registry.py && { echo "relative CLI path survives"; exit 1; }
+      grep -n '#551' $B/inflight_registry.py | grep -q 'plan.yaml' && { echo "#551 still cited for the plan.yaml overwrite"; exit 1; }
+      grep -q '#628' $B/inflight_registry.py || { echo "#628 not cited"; exit 1; }
+      for c in ttl_shorter_than_cycle foreign_session_expired release_refuses_ambiguous remedy_is_absolute; do
+        grep -rqE "FAIL.*$c" $N/receipt-*.md || { echo "SC-10: no red receipt for $c"; exit 1; }
+      done
+      python3 $B/test-inflight-registry.py || exit 1
+      python3 $B/test-dispatch-guard.py || exit 1
+      python3 $B/test-validate-digest.py || exit 1
+      echo T-06-OK
+    intent: |
+      Five changes in .claude/skills/harness/bin/inflight_registry.py. Every one of them was
+      measured live on 2026-08-26 and the measurements are in
+      .harness/harness/features/FEAT-42-one-root-resolver/runs/2026-08-26-2-plan-product/digest.md
+      and in that feature's STATE.md. Write the failing case for each BEFORE its fix and paste the
+      verbatim FAIL line into
+      .harness/harness/features/FEAT-42-one-root-resolver/notes/receipt-<your-agent-name>-<runid>.md.
+      The four case names the verify greps for are ttl_shorter_than_cycle, foreign_session_expired,
+      release_refuses_ambiguous and remedy_is_absolute.
+
+      1. The chain at :317 in _resolve_root. Replace with harness_boundary.resolve_root(<this
+      module's own bin dir>), keeping the existing --root argv override ahead of it because the CLI
+      is the operator's manual escape hatch.
+
+      2. CLAIM_TTL_SECONDS at :33 goes from 3600 to 1200. A pm cycle is 10 to 20 minutes, so an hour
+      is four cycles of a claim outliving the run it guards. State the cost in a comment rather than
+      hiding it: a legitimate run longer than 20 minutes loses its protection, and that is preferred
+      to a strand that locks a tier chain out of reporting.
+
+      3. Claims gain a session. claim(root, agent, dispatcher, cwd, now=None) gains a keyword
+      session=None and records it in the entry dict alongside started_at, dispatcher and cwd.
+      live_claim and live_children gain a keyword session=None; when the CALLER supplies a session
+      and the ENTRY carries a different one, the entry is not live, whatever its age. An entry with
+      no recorded session keeps today's age-only behaviour, so nothing already on disk changes
+      meaning. This is what kills a cross-session strand outright instead of waiting out a timer.
+
+      4. release(root, agent) at :224-232 stops popping min(started_at). It must never remove a
+      claim that is not the caller's. There is no identity on either payload that could match a
+      claim to its holder — the dispatch payload has tool_use_id and the stop payload has agent_id,
+      and the sidecar join between them is unbuilt and rests on an undocumented format. So: if
+      exactly one live claim exists for the agent, remove it. If more than one exists and nothing
+      distinguishes them, remove NONE, print one stderr line saying how many were left and why, and
+      return 0. Expired entries are still swept in both cases. Oldest-pop is the defect measured on
+      2026-08-26: the stop hook released the abandoned run's claim and left the returning lead's
+      stranded.
+
+      5. The remedy the guard prints. CLI_REL_PATH at :42 is relative, so the printed command only
+      resolves when cwd happens to be the root. Delete CLI_REL_PATH and RELEASE_ALL_CMD; the verify
+      greps for the name CLI_REL_PATH and fails on any hit. Add release_cmd(root, agent) returning
+      an absolute, single-agent command built from root: python3 <root>/.agents/skills/harness/bin/
+      inflight_registry.py release --agent <agent> --root <root>. release_all stays in the module as
+      an operator command but is NEVER what a refusal prints, because it mutates the registry to {}
+      and wipes every claim of every agent.
+
+      6. The issue citations, decided one occurrence at a time. :258, inside refusal_lines — "the
+      second writer would otherwise overwrite the first's plan.yaml" — becomes #628; that sentence
+      is about concurrent writes, not about a verdict. :270, inside children_refusal_lines — "a
+      verdict about a member still running" — KEEPS #551. :252's docstring describes refusal_lines,
+      so it becomes #628. :91's comment describes the refusal path being taken down silently, which
+      is the single-flight refusal, so it becomes #628 as well. test-inflight-registry.py:218
+      currently asserts case6 references #551 and must move to #628 with the string it pins; :244
+      covers children_refusal_lines and keeps #551.
+
+  - id: T-07
+    title: Add the zero-occurrence invariant for the env chain, with a mutation proof that it can fail
+    traces: [REQ-01, REQ-03, REQ-08]
+    change_type: logic
+    execution_mode: main-session-direct
+    execution_reason: the mutation proof writes docs/invalid-states-audit.html; check-domain.sh --resolve returns NOBODY for that path at sha 3952814, so no agent domain grants the mutant target
+    depends_on: [T-02, T-04, T-05, T-06, T-08, T-09, T-10, T-11, T-12, T-13, T-14, T-15, T-16, T-17, T-18, T-20]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/test-no-distribution.py
+    verify: |
+      cd "$(git rev-parse --show-toplevel)"
+      B=.claude/skills/harness/bin
+      python3 $B/test-no-distribution.py || exit 1
+      cp docs/invalid-states-audit.html /tmp/f42-t07-restore.html
+      printf '\n<!-- mutant -->\nroot="${HARNESS_PROJECT_DIR:-x}"\n' >> docs/invalid-states-audit.html
+      grep -q HARNESS_PROJECT_DIR docs/invalid-states-audit.html || { echo "mutation did not apply"; exit 1; }
+      python3 $B/test-no-distribution.py > /tmp/f42-t07-mut.txt 2>&1
+      RC=$?
+      cp /tmp/f42-t07-restore.html docs/invalid-states-audit.html
+      test $RC -ne 0 || { echo "MUTANT SURVIVED - the invariant cannot fail"; exit 1; }
+      grep -q "invalid-states-audit.html" /tmp/f42-t07-mut.txt || { echo "failed for the wrong reason"; exit 1; }
+      python3 $B/test-no-distribution.py || { echo "restore failed"; exit 1; }
+      echo T-07-OK
+    intent: |
+      Add one case to .claude/skills/harness/bin/test-no-distribution.py, in that file's existing
+      idiom: it already resolves ROOT from its own location, already lists tracked files through
+      git -C ROOT ls-files, and already pairs every absence assertion with a presence assertion
+      under DEC-169. Follow all three. Reuse that file's EXCLUDED_PREFIXES tuple at :92 - it already
+      holds exactly (.harness/logs/, .harness/notes/, .harness/harness/features/) under the comment
+      "Historical records that stay true as written", which is this case's record-tree exclusion
+      arriving at the identical three paths by the identical reasoning. Do NOT reuse the
+      is_excluded_from_scan HELPER, because it also consults EXCLUDED_EXACT, which exempts only
+      DECISIONS.md among markdown; every other tracked *.md would then inflate the count past the 21
+      baseline. Take the prefixes, write this case's own *.md, test-* and harness_boundary.py
+      filter alongside them.
+
+      THE ABSENCE HALF. The scan root is EVERY TRACKED SOURCE FILE IN THE REPOSITORY, not one
+      directory: git -C ROOT ls-files, keeping every file whose basename does not start with
+      "test-", excluding harness_boundary.py, excluding every *.md file, and excluding every path
+      under the three EXCLUDED_PREFIXES record-tree roots. Over that set, count
+      the lines matching the literal HARNESS_PROJECT_DIR. Assert the count is ZERO and, on failure,
+      print every offending file:line. DO NOT ENUMERATE A FILE LIST in the assertion. The set is
+      derived from git ls-files so that a site added next month is caught too, and so that a site
+      outside .claude/skills/harness/bin/ is caught at all; a fixed list is a gate that proves six
+      were fixed and says nothing about the seventh. Baseline for the record: 21 occurrences across
+      17 files at sha 3952814.
+
+      Say in a comment why the four exclusions are there, because a reader will otherwise widen
+      them. test-*.py files SET the variable — it is the test-injection seam, assigned repo-wide in
+      exactly one place, test-gh-close-gate.py:41, and read by the fixtures. harness_boundary.py is
+      the one module allowed to read it, because it is the resolver. *.md files are prose — notes
+      and observations discuss the variable by name and always will. The record tree is the same
+      prose rule at a wider extension: this feature's own plan.yaml names the variable 49 times and
+      a ship-review .html twice, because their job is describing its removal, so committing them
+      would move the count from 21 to 72 and it could never return to zero. Operator ruling,
+      2026-08-27. Keep the exclusion at those three roots exactly — .harness/harness.json,
+      .harness/team-config.yaml, all of .claude/ and .omp/extensions/harness-hooks.ts stay in scope,
+      the last being the site the repo-wide scan root exists to reach.
+
+      THE PRESENCE HALF, which is what stops the absence half passing vacuously: assert that
+      harness_boundary.py defines MARKER, resolve_root, root_above and root_from_script, and that at
+      least sixteen distinct files under that directory import harness_boundary. An absence grep
+      that would have passed anyway proves nothing; this pair is what makes the count meaningful.
+
+      Also assert, in the same case or a sibling, that the names deleted by this feature appear
+      nowhere in that directory: harness_root, _repo_root_from_script, _root_from,
+      _resolve_repo_root, and a def root( at module level in wayfind.py. Assert the two survivors
+      are still present and still theirs: harness_boundary.worktree_owner and
+      post-merge-sweep._resolve_main_checkout_root, which asks git a different question.
+
+      The verify does not stage a red window. It proves the case CAN fail by appending a mutant
+      chain line to docs/invalid-states-audit.html — a tracked, non-test, non-markdown file OUTSIDE
+      .claude/skills/harness/bin/, chosen so that the mutant is visible ONLY to the repo-wide scan
+      root and would be invisible to the old directory-scoped one. A mutant planted inside that
+      directory cannot discriminate the widening it exists to prove. The verify then asserts the
+      mutation is on disk before trusting anything, runs the suite, asserts the failure output
+      NAMES the mutated file, restores it from the backup and re-runs green, and only then judges.
+      A surviving mutant here means the invariant is decorative, which is the exact failure this
+      repository has been burned by.
+  - id: T-08
+    title: Delete context-watch._repo_root_from_script in favour of root_from_script
+    traces: [REQ-01, REQ-03, REQ-09]
+    change_type: logic
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 am.4 category — its body is exec_module-loaded by context-watch-hook.py, a registered PostToolUse hook
+    depends_on: [T-03]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/context-watch.py
+    verify: |
+      cd "$(git rev-parse --show-toplevel)"
+      B=.claude/skills/harness/bin
+      grep -q "_repo_root_from_script" $B/context-watch.py && { echo "old name survives"; exit 1; }
+      grep -q "root_from_script" $B/context-watch.py || { echo "not repointed"; exit 1; }
+      for t in test-context-watch.py test-context-watch-cli.py test-context-watch-hook.py; do
+        python3 $B/$t || { echo "$t failed"; exit 1; }
+      done
+      echo T-08-OK
+    intent: |
+      DELETE _repo_root_from_script() at .claude/skills/harness/bin/context-watch.py:67-74. It is
+      four-levels-up arithmetic duplicated verbatim from factory_config and post-merge-sweep. Its
+      single call site is :79, which joins the result to .harness/harness.json. Repoint that site to
+      harness_boundary.root_from_script(<this module's own bin dir constant>).
+
+      root_from_script, NOT resolve_root, and the difference is the point. This module is loaded
+      through exec_module by context-watch-hook.py, which runs on every PostToolUse. It must do no
+      filesystem probing and must not raise on a tree that has not been probed; the deleted function
+      did neither, and root_from_script is its exact behaviour with one implementation instead of
+      three.
+
+      Do not touch :164 or :572. Those operate on ~/.claude/projects, not on the harness root, and
+      the path census mis-bucketed them.
+
+  - id: T-09
+    title: Delete post-merge-sweep._resolve_repo_root, keeping _resolve_main_checkout_root untouched
+    traces: [REQ-01, REQ-03, REQ-09]
+    change_type: logic
+    execution_mode: main-session-direct
+    execution_reason: not in the am.4 enumeration and it refuses nothing, but it DELETES worktrees and this build runs inside one
+    depends_on: [T-03]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/post-merge-sweep.sh
+    verify: |
+      cd "$(git rev-parse --show-toplevel)"
+      B=.claude/skills/harness/bin
+      grep -q "_resolve_repo_root" $B/post-merge-sweep.sh && { echo "old name survives"; exit 1; }
+      grep -q "_resolve_main_checkout_root" $B/post-merge-sweep.sh || { echo "the git-question survivor was removed"; exit 1; }
+      grep -q "HARNESS_PROJECT_DIR" $B/post-merge-sweep.sh && { echo "chain survives"; exit 1; }
+      python3 $B/test-post-merge-sweep.py || exit 1
+      echo T-09-OK
+    intent: |
+      DELETE _resolve_repo_root() at .claude/skills/harness/bin/post-merge-sweep.sh:42-58 and
+      repoint its one call site at :227 to harness_boundary.root_from_script(BIN_DIR). The embedded
+      python already computes BIN_DIR from the script's own location; reuse it.
+
+      root_from_script, not resolve_root: this is a post-merge hook body that must never abort the
+      hook, a contract its own comments at :80 and :86 record, and a strict raise would break it.
+
+      _resolve_main_checkout_root() at :65 STAYS and is not touched. It asks git which linked
+      worktree is main — a different question — and its own docstring at :71-72 insists the two
+      never fuse. The verify fails if that name disappears.
+
+      The docstrings at :67, :80 and :86 cite _resolve_repo_root by name. Reword them to cite what
+      replaces it; the claim they make about cwd-independence stays true and stays stated.
+
+  - id: T-10
+    title: Cut check-domain.sh over to the resolver, with the identical-violation-set proof
+    traces: [REQ-01, REQ-02, REQ-09]
+    change_type: logic
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 am.4 names check-domain.sh in the enforcement layer
+    depends_on: [T-03]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/check-domain.sh
+    verify: |
+      cd "$(git rev-parse --show-toplevel)"
+      B=.claude/skills/harness/bin
+      grep -q "HARNESS_PROJECT_DIR" $B/check-domain.sh && { echo "chain survives"; exit 1; }
+      for M in /tmp/f42-old /tmp/f42-new; do
+        rm -rf $M; mkdir -p $M/.claude/skills/harness $M/.harness
+        cp -R $B $M/.claude/skills/harness/bin
+        cp .harness/team-config.yaml $M/.harness/
+      done
+      git show 3952814:$B/check-domain.sh > /tmp/f42-old/.claude/skills/harness/bin/check-domain.sh
+      chmod +x /tmp/f42-old/.claude/skills/harness/bin/check-domain.sh
+      HARNESS_PROJECT_DIR=/tmp/f42-old CHECK_DOMAIN_BIN=/tmp/f42-old/.claude/skills/harness/bin/check-domain.sh \
+        python3 $B/test-check-domain.py 2>&1 | grep -E '^(PASS|FAIL)' | sort > /tmp/f42-t10-before.txt
+      HARNESS_PROJECT_DIR=/tmp/f42-new CHECK_DOMAIN_BIN=/tmp/f42-new/.claude/skills/harness/bin/check-domain.sh \
+        python3 $B/test-check-domain.py 2>&1 | grep -E '^(PASS|FAIL)' | sort > /tmp/f42-t10-after.txt
+      test -s /tmp/f42-t10-before.txt || { echo "before set is EMPTY - the proof proves nothing"; exit 1; }
+      diff /tmp/f42-t10-before.txt /tmp/f42-t10-after.txt || { echo "violation set MOVED"; exit 1; }
+      python3 $B/test-check-domain.py || exit 1
+      echo T-10-OK
+    intent: |
+      Two chain sites in .claude/skills/harness/bin/check-domain.sh: :152 and :296, both
+      root = (HARNESS_PROJECT_DIR or CLAUDE_PROJECT_DIR) or "". Replace both with
+      harness_boundary.resolve_root(<the bin dir this script derives from its own location>),
+      importing harness_boundary the way the file already imports shared modules.
+
+      Keep the empty-string fallback semantics OUT of the new code. Today an unset environment
+      leaves root as "" and every subsequent join produces a relative path judged against whatever
+      cwd the hook inherited. resolve_root is strict; let it raise. If a raise here would turn a
+      governed write into a crash rather than a verdict, catch it at the one outermost place the
+      file already handles failure and exit with the file's existing refusal code and a message
+      naming the unresolvable root — never fall back to "" or to cwd.
+
+      Do not touch the linked_worktrees sweep at :885-890. It already solved a different problem
+      correctly and this feature does not change it.
+
+      THE PROOF IS THE POINT AND IT IS am.4's REQUIREMENT, not a nicety. The verify builds two
+      isolated mirror checkouts, each carrying .harness/team-config.yaml so BOTH copies resolve the
+      same root, puts the sha-3952814 copy of the gate in one and the edited copy in the other, and
+      drives the gate's own test suite through the CHECK_DOMAIN_BIN seam at test-check-domain.py:18
+      against each. The two PASS/FAIL sets must be byte identical, and the before-set must be
+      non-empty — an empty capture would make the diff pass vacuously, which is the shape of
+      failure this repository has shipped before.
+  - id: T-11
+    title: Cut bash-write-guard.sh over to the resolver, with the identical-violation-set proof
+    traces: [REQ-01, REQ-02, REQ-09]
+    change_type: logic
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 am.4 names bash-write-guard.sh in the enforcement layer
+    depends_on: [T-03]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/bash-write-guard.sh
+    verify: |
+      cd "$(git rev-parse --show-toplevel)"
+      B=.claude/skills/harness/bin
+      G=bash-write-guard.sh
+      grep -q "HARNESS_PROJECT_DIR" $B/$G && { echo "chain survives"; exit 1; }
+      for M in /tmp/f42-old /tmp/f42-new; do
+        rm -rf $M; mkdir -p $M/.claude/skills/harness $M/.harness
+        cp -R $B $M/.claude/skills/harness/bin
+        cp .harness/team-config.yaml $M/.harness/
+      done
+      git show 3952814:$B/$G > /tmp/f42-old/.claude/skills/harness/bin/$G
+      chmod +x /tmp/f42-old/.claude/skills/harness/bin/$G
+      HARNESS_PROJECT_DIR=/tmp/f42-old BASH_WRITE_GUARD_BIN=/tmp/f42-old/.claude/skills/harness/bin/$G \
+        python3 $B/test-bash-write-guard.py 2>&1 | grep -E '^(PASS|FAIL)' | sort > /tmp/f42-t11-before.txt
+      HARNESS_PROJECT_DIR=/tmp/f42-new BASH_WRITE_GUARD_BIN=/tmp/f42-new/.claude/skills/harness/bin/$G \
+        python3 $B/test-bash-write-guard.py 2>&1 | grep -E '^(PASS|FAIL)' | sort > /tmp/f42-t11-after.txt
+      test -s /tmp/f42-t11-before.txt || { echo "before set is EMPTY"; exit 1; }
+      diff /tmp/f42-t11-before.txt /tmp/f42-t11-after.txt || { echo "violation set MOVED"; exit 1; }
+      python3 $B/test-bash-write-guard.py || exit 1
+      echo T-11-OK
+    intent: |
+      Two chain sites in .claude/skills/harness/bin/bash-write-guard.sh. :194 is
+      _proot = (HARNESS_PROJECT_DIR or CLAUDE_PROJECT_DIR) or _derived, inside the isolated-bin
+      path. :232 is root = (HARNESS_PROJECT_DIR or CLAUDE_PROJECT_DIR) or "". Replace both with
+      harness_boundary.resolve_root(<the bin dir the script derives from its own location>).
+
+      At :194 the existing _derived value is exactly root_from_script's answer, so resolve_root
+      subsumes both halves of that expression: the env read AND the derivation, now with a MARKER
+      probe on the override that the current code does not perform. At :232 the "" fallback goes;
+      the strict raise is the intended behaviour and must not be caught back into "".
+
+      This gate runs at PreToolUse before every Bash call in the build, including the ones this very
+      task runs. Do not test it by overwriting the live file. The verify uses two isolated mirror
+      checkouts and the BASH_WRITE_GUARD_BIN seam that test-bash-write-guard.py:17 already provides,
+      so the live hook is never in an intermediate state.
+
+      am.4's proof obligation: the sha-3952814 copy and the edited copy are driven over the gate's
+      own case set and the two PASS/FAIL sets must be byte identical, with a non-empty before-set
+      asserted so the diff cannot pass on nothing.
+
+  - id: T-12
+    title: Cut check-state.sh over to the resolver, with the identical-violation-set proof
+    traces: [REQ-01, REQ-02, REQ-09]
+    change_type: logic
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 am.4 names check-state.sh in the enforcement layer
+    depends_on: [T-03, T-05]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/check-state.sh
+    verify: |
+      cd "$(git rev-parse --show-toplevel)"
+      B=.claude/skills/harness/bin
+      G=check-state.sh
+      grep -q "HARNESS_PROJECT_DIR" $B/$G && { echo "chain survives"; exit 1; }
+      for M in /tmp/f42-old /tmp/f42-new; do
+        rm -rf $M; mkdir -p $M/.claude/skills/harness $M/.harness
+        cp -R $B $M/.claude/skills/harness/bin
+        cp .harness/team-config.yaml $M/.harness/
+      done
+      git show 3952814:$B/$G > /tmp/f42-old/.claude/skills/harness/bin/$G
+      chmod +x /tmp/f42-old/.claude/skills/harness/bin/$G
+      HARNESS_PROJECT_DIR=/tmp/f42-old CHECK_STATE_BIN=/tmp/f42-old/.claude/skills/harness/bin/$G \
+        python3 $B/test-check-state.py 2>&1 | grep -E '^(PASS|FAIL)' | sort > /tmp/f42-t12-before.txt
+      HARNESS_PROJECT_DIR=/tmp/f42-new CHECK_STATE_BIN=/tmp/f42-new/.claude/skills/harness/bin/$G \
+        python3 $B/test-check-state.py 2>&1 | grep -E '^(PASS|FAIL)' | sort > /tmp/f42-t12-after.txt
+      test -s /tmp/f42-t12-before.txt || { echo "before set is EMPTY"; exit 1; }
+      diff /tmp/f42-t12-before.txt /tmp/f42-t12-after.txt || { echo "violation set MOVED"; exit 1; }
+      bash $B/$G; test $? -le 1 || { echo "state checker crashed rather than reporting"; exit 1; }
+      echo T-12-OK
+    intent: |
+      One chain site: .claude/skills/harness/bin/check-state.sh:22, the module-level assignment
+      root="${HARNESS_PROJECT_DIR:-${CLAUDE_PROJECT_DIR:-$(pwd)}}". This is the ninth resolver, and
+      the AST census could not see it because it is a shell assignment rather than a function.
+
+      The file already shells into python3 and already calls harness_yaml.require_or_die() at :35.
+      Resolve root the same way: a short python3 invocation that appends the script's own bin
+      directory to sys.path, imports harness_boundary, and prints resolve_root(<that bin dir>). If
+      it prints nothing or exits non-zero, exit 2 naming the failure — never fall back to pwd. A
+      state checker that silently examines the wrong checkout reports a clean tree while the real
+      one is broken, and it is the canonical pre-commit gate for this whole repository.
+
+      Preserve the file's exit-code contract exactly: 0 clean, 1 findings. The verify asserts the
+      live checker still exits 0 or 1 and never above, because a crash is also non-zero and would
+      otherwise read as findings.
+
+      am.4's proof obligation is discharged through the CHECK_STATE_BIN seam at
+      test-check-state.py:17 over two isolated mirror checkouts, with a non-empty before-set
+      asserted.
+  - id: T-13
+    title: Cut check-plan-routes.py over and retire the wayfind directory-probe allowlist
+    traces: [REQ-01, REQ-02, REQ-08, REQ-09]
+    change_type: logic
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 am.4 names check-plan-routes.py and its test file in the enforcement layer
+    depends_on: [T-02, T-03, T-05]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/check-plan-routes.py
+      - .claude/skills/harness/bin/test-check-plan-routes.py
+    verify: |
+      cd "$(git rev-parse --show-toplevel)"
+      B=.claude/skills/harness/bin
+      grep -q "HARNESS_PROJECT_DIR" $B/check-plan-routes.py && { echo "chain survives"; exit 1; }
+      grep -q "KNOWN_DIRECTORY_PROBE" $B/test-check-plan-routes.py && { echo "stale allowlist survives"; exit 1; }
+      for c in 324 330 935 983; do :; done
+      git diff 3952814 -- $B/test-check-plan-routes.py | grep -E '^-' | grep -qE 'no cwd fallback|getcwd' && { echo "the issue-133 cases were touched"; exit 1; }
+      python3 $B/test-check-plan-routes.py || exit 1
+      python3 $B/check-plan-routes.py .harness/harness/features/FEAT-42-one-root-resolver/plan.yaml || exit 1
+      ( cd /tmp && python3 "$OLDPWD/$B/check-plan-routes.py" > /tmp/f42-t13-away.txt 2>&1 )
+      python3 $B/check-plan-routes.py > /tmp/f42-t13-here.txt 2>&1
+      diff /tmp/f42-t13-away.txt /tmp/f42-t13-here.txt || { echo "the gate still depends on cwd"; exit 1; }
+      echo T-13-OK
+    intent: |
+      Two edits, and the second is the one that matters most.
+
+      1. .claude/skills/harness/bin/check-plan-routes.py:496 is
+      asked = (HARNESS_PROJECT_DIR or CLAUDE_PROJECT_DIR) or "". This is the model implementation
+      the rest of this feature's design was copied from — it already probes
+      .harness/team-config.yaml at :498 and already carries the measurement about 36 violations
+      reported from a different checkout. Replace the chain with
+      harness_boundary.resolve_root(<the bin dir derived from this file's own location>) and delete
+      the local probe that resolve_root now performs. Do NOT introduce a cwd fallback: the absence
+      of one is the issue-#133 fix, pinned by test-check-plan-routes.py at :324-330, :935 and :983,
+      and those three cases must pass UNMODIFIED. The verify fails if the diff against sha 3952814
+      removes a line in that test file mentioning the cwd fallback.
+
+      2. DELETE KNOWN_DIRECTORY_PROBE = {"wayfind.py"} at test-check-plan-routes.py:1167 and the
+      exemption logic that reads it, so case (20)'s manifest rule applies to wayfind.py like every
+      other file. T-02 moves wayfind onto the MARKER file, so the allowlist is stale the moment it
+      lands, and a stale allowlist is worse than no coverage: it reports green while hiding exactly
+      the regression it was written to tolerate. If removing it makes case (20) fail, that is a real
+      finding about wayfind.py, not a reason to keep the allowlist — report it rather than
+      restoring the exemption.
+
+      The parity proof for this gate is NOT the usual before/after case diff, because this task
+      edits the test file itself and the two sets are therefore not comparable. It is instead: the
+      three issue-#133 cases pass unmodified, the full suite passes, and the gate produces byte
+      identical output when run from /tmp and from the repository root — which is the property the
+      cutover is supposed to buy and which the env chain silently did not provide.
+
+  - id: T-14
+    title: Cut branch-create-gate.sh over, adding the missing test seam first
+    traces: [REQ-01, REQ-02, REQ-09]
+    change_type: logic
+    execution_mode: main-session-direct
+    execution_reason: a registered PreToolUse hook that refuses branch creation — DEC-174 am.4 says the category decides and the list records
+    depends_on: [T-03]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/branch-create-gate.sh
+      - .claude/skills/harness/bin/test-branch-create-gate.py
+    verify: |
+      cd "$(git rev-parse --show-toplevel)"
+      B=.claude/skills/harness/bin
+      G=branch-create-gate.sh
+      grep -q "HARNESS_PROJECT_DIR" $B/$G && { echo "chain survives"; exit 1; }
+      grep -q "BRANCH_CREATE_GATE_BIN" $B/test-branch-create-gate.py || { echo "seam missing"; exit 1; }
+      for M in /tmp/f42-old /tmp/f42-new; do
+        rm -rf $M; mkdir -p $M/.claude/skills/harness $M/.harness
+        cp -R $B $M/.claude/skills/harness/bin
+        cp .harness/team-config.yaml $M/.harness/
+      done
+      git show 3952814:$B/$G > /tmp/f42-old/.claude/skills/harness/bin/$G
+      chmod +x /tmp/f42-old/.claude/skills/harness/bin/$G
+      HARNESS_PROJECT_DIR=/tmp/f42-old BRANCH_CREATE_GATE_BIN=/tmp/f42-old/.claude/skills/harness/bin/$G \
+        python3 $B/test-branch-create-gate.py 2>&1 | grep -E '^(PASS|FAIL)' | sort > /tmp/f42-t14-before.txt
+      HARNESS_PROJECT_DIR=/tmp/f42-new BRANCH_CREATE_GATE_BIN=/tmp/f42-new/.claude/skills/harness/bin/$G \
+        python3 $B/test-branch-create-gate.py 2>&1 | grep -E '^(PASS|FAIL)' | sort > /tmp/f42-t14-after.txt
+      test -s /tmp/f42-t14-before.txt || { echo "before set is EMPTY"; exit 1; }
+      diff /tmp/f42-t14-before.txt /tmp/f42-t14-after.txt || { echo "violation set MOVED"; exit 1; }
+      python3 $B/test-branch-create-gate.py || exit 1
+      echo T-14-OK
+    intent: |
+      Two edits, in this order.
+
+      1. test-branch-create-gate.py:25 hardcodes GATE = os.path.join(HERE,
+      "branch-create-gate.sh"). Give it the environment seam five sibling suites already use —
+      GATE = os.environ.get("BRANCH_CREATE_GATE_BIN") or os.path.join(HERE, "branch-create-gate.sh")
+      — matching the spelling at test-check-domain.py:18 and test-bash-write-guard.py:17. Nothing
+      else in that file changes. Without this seam am.4's identical-violation-set proof cannot be
+      run at all, which is why it comes first.
+
+      2. .claude/skills/harness/bin/branch-create-gate.sh:30 is
+      root="${HARNESS_PROJECT_DIR:-${CLAUDE_PROJECT_DIR:-$(pwd)}}". This gate refuses branch
+      creation outside the allowed shapes, and with a pwd fallback it judges branch names against
+      whatever checkout the shell was standing in. Resolve the root through a short python3
+      invocation that imports harness_boundary from the script's own bin directory and prints
+      resolve_root of it; on failure exit 2 naming the unresolvable root rather than falling back.
+
+      Run the seam edit and the gate edit as one task on purpose: splitting them would leave a
+      committed test file whose only change is unused.
+  - id: T-15
+    title: Cut gh-close-gate.sh over, adding the missing test seam first
+    traces: [REQ-01, REQ-02, REQ-09]
+    change_type: logic
+    execution_mode: main-session-direct
+    execution_reason: a registered PreToolUse hook that refuses a hand-typed issue close — DEC-174 am.4 category
+    depends_on: [T-03]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/gh-close-gate.sh
+      - .claude/skills/harness/bin/test-gh-close-gate.py
+    verify: |
+      cd "$(git rev-parse --show-toplevel)"
+      B=.claude/skills/harness/bin
+      G=gh-close-gate.sh
+      grep -q "HARNESS_PROJECT_DIR" $B/$G && { echo "chain survives"; exit 1; }
+      grep -q "GH_CLOSE_GATE_BIN" $B/test-gh-close-gate.py || { echo "seam missing"; exit 1; }
+      for M in /tmp/f42-old /tmp/f42-new; do
+        rm -rf $M; mkdir -p $M/.claude/skills/harness $M/.harness
+        cp -R $B $M/.claude/skills/harness/bin
+        cp .harness/team-config.yaml $M/.harness/
+      done
+      git show 3952814:$B/$G > /tmp/f42-old/.claude/skills/harness/bin/$G
+      chmod +x /tmp/f42-old/.claude/skills/harness/bin/$G
+      HARNESS_PROJECT_DIR=/tmp/f42-old GH_CLOSE_GATE_BIN=/tmp/f42-old/.claude/skills/harness/bin/$G \
+        python3 $B/test-gh-close-gate.py 2>&1 | grep -E '^(PASS|FAIL)' | sort > /tmp/f42-t15-before.txt
+      HARNESS_PROJECT_DIR=/tmp/f42-new GH_CLOSE_GATE_BIN=/tmp/f42-new/.claude/skills/harness/bin/$G \
+        python3 $B/test-gh-close-gate.py 2>&1 | grep -E '^(PASS|FAIL)' | sort > /tmp/f42-t15-after.txt
+      test -s /tmp/f42-t15-before.txt || { echo "before set is EMPTY"; exit 1; }
+      diff /tmp/f42-t15-before.txt /tmp/f42-t15-after.txt || { echo "violation set MOVED"; exit 1; }
+      python3 $B/test-gh-close-gate.py || exit 1
+      echo T-15-OK
+    intent: |
+      Two edits, in this order.
+
+      1. test-gh-close-gate.py:15 hardcodes GATE = os.path.join(BIN, "gh-close-gate.sh"). Give it
+      the seam its siblings use: GATE = os.environ.get("GH_CLOSE_GATE_BIN") or the existing join.
+      Leave :41 exactly as it is — that line is the one place in the repository that ASSIGNS
+      HARNESS_PROJECT_DIR, it is the test-injection seam the whole design depends on, and T-07's
+      invariant excludes test files precisely so it can stay.
+
+      2. .claude/skills/harness/bin/gh-close-gate.sh:64 is
+      root="${HARNESS_PROJECT_DIR:-${CLAUDE_PROJECT_DIR:-$(pwd)}}". Replace it with a short python3
+      invocation that imports harness_boundary from the script's own bin directory and prints
+      resolve_root of it; exit 2 naming the failure rather than falling back to pwd. This gate has
+      no target path of its own to resolve against — it reads tool_input.command — so the correct
+      input is the script's own location, which is what resolve_root takes.
+
+  - id: T-16
+    title: Cut inject-expertise.sh off the pwd fallback that blocked the previous planning run
+    traces: [REQ-01, REQ-02, REQ-09]
+    change_type: logic
+    execution_mode: main-session-direct
+    execution_reason: a registered SubagentStart hook — every agent in this build is spawned through it
+    depends_on: [T-03]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/inject-expertise.sh
+    verify: |
+      cd "$(git rev-parse --show-toplevel)"
+      B=.claude/skills/harness/bin
+      G=inject-expertise.sh
+      grep -q "HARNESS_PROJECT_DIR" $B/$G && { echo "chain survives"; exit 1; }
+      for M in /tmp/f42-old /tmp/f42-new; do
+        rm -rf $M; mkdir -p $M/.claude/skills/harness $M/.harness
+        cp -R $B $M/.claude/skills/harness/bin
+        cp .harness/team-config.yaml $M/.harness/
+      done
+      git show 3952814:$B/$G > /tmp/f42-old/.claude/skills/harness/bin/$G
+      chmod +x /tmp/f42-old/.claude/skills/harness/bin/$G
+      HARNESS_PROJECT_DIR=/tmp/f42-old INJECT_EXPERTISE_BIN=/tmp/f42-old/.claude/skills/harness/bin/$G \
+        python3 $B/test-inject-expertise.py 2>&1 | grep -E '^(PASS|FAIL)' | sort > /tmp/f42-t16-before.txt
+      HARNESS_PROJECT_DIR=/tmp/f42-new INJECT_EXPERTISE_BIN=/tmp/f42-new/.claude/skills/harness/bin/$G \
+        python3 $B/test-inject-expertise.py 2>&1 | grep -E '^(PASS|FAIL)' | sort > /tmp/f42-t16-after.txt
+      test -s /tmp/f42-t16-before.txt || { echo "before set is EMPTY"; exit 1; }
+      diff /tmp/f42-t16-before.txt /tmp/f42-t16-after.txt || { echo "violation set MOVED"; exit 1; }
+      ( cd /tmp && printf '{"agent_type":"harness-pm"}' | bash "$OLDPWD/$B/$G" > /tmp/f42-t16-away.txt 2>&1 )
+      printf '{"agent_type":"harness-pm"}' | bash $B/$G > /tmp/f42-t16-here.txt 2>&1
+      diff /tmp/f42-t16-away.txt /tmp/f42-t16-here.txt || { echo "injection still depends on cwd"; exit 1; }
+      echo T-16-OK
+    intent: |
+      One chain site: .claude/skills/harness/bin/inject-expertise.sh:31,
+      root="${HARNESS_PROJECT_DIR:-${CLAUDE_PROJECT_DIR:-$(pwd)}}". Replace it with a short python3
+      invocation that imports harness_boundary from the script's own bin directory and prints
+      resolve_root of it; exit 2 naming the failure rather than falling back.
+
+      THIS IS THE SITE THAT DECIDED THIS FEATURE'S SCOPE. It is a SubagentStart hook, it falls back
+      to pwd, and every agent in the organisation receives its Expertise and the codebase index
+      through it. An agent spawned while the shell stood somewhere else is handed another
+      checkout's Expertise, or none, and nothing in the transcript says so. The original migration
+      map did not scope this file at all, which is why the map became a floor.
+
+      The verify carries two proofs, and the second is specific to this defect: the usual
+      identical-violation-set diff through the INJECT_EXPERTISE_BIN seam at
+      test-inject-expertise.py:26, and a direct check that piping a minimal SubagentStart payload
+      to the gate from /tmp and from the repository root produces byte identical output. The second
+      one could not have passed before this task.
+
+  - id: T-17
+    title: Cut validate-digest.py over, and stop the children-in-flight check compounding a strand
+    traces: [REQ-01, REQ-02, REQ-06, REQ-09]
+    change_type: bugfix
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 am.4 names validate-digest.py in the enforcement layer
+    depends_on: [T-03, T-06]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/validate-digest.py
+      - .claude/skills/harness/bin/test-validate-digest.py
+    verify: |
+      cd "$(git rev-parse --show-toplevel)"
+      B=.claude/skills/harness/bin
+      G=validate-digest.py
+      grep -q "HARNESS_PROJECT_DIR" $B/$G && { echo "chain survives"; exit 1; }
+      grep -qE 'payload\.get\("cwd"\)|d\.get\("cwd"\)' $B/$G && { echo "payload cwd still a root input"; exit 1; }
+      python3 $B/test-validate-digest.py || exit 1
+      python3 $B/test-inflight-registry.py || exit 1
+      grep -rqE "FAIL.*children_in_flight_stale_claim" .harness/harness/features/FEAT-42-one-root-resolver/notes/receipt-*.md \
+        || { echo "SC-10: no red receipt for the cascade case"; exit 1; }
+      echo T-17-OK
+    intent: |
+      Three changes in .claude/skills/harness/bin/validate-digest.py.
+
+      1. The two chain sites, :821 and :913. Both build a candidate list beginning with the payload
+      cwd, then the environment chain, then os.getcwd(). Replace the whole candidate walk with
+      harness_boundary.resolve_root(<the bin dir derived from this file's own location>). Payload
+      cwd is DELETED as a root input, and this is the ruling rather than a preference: nothing SETS
+      where an agent stands — the Agent tool has no cwd parameter, cd does not persist between Bash
+      calls, and bash-write-guard refuses it — so cwd stays inherited from the spawning session and
+      varies by accident. The verify greps for the cwd reads and fails on either.
+
+      2. The children-in-flight check at :890-956 is the SECOND CONSUMER of the stranded-claim
+      defect, and that is new information neither #742 nor #866 records. Measured on 2026-08-26 and
+      written up in
+      .harness/harness/features/FEAT-42-one-root-resolver/runs/2026-08-26-2-plan-product/digest.md:
+      one stranded pm claim refused the pm spawn at dispatch-guard, then refused the LEAD's return
+      here, then refused the ORCHESTRATOR's return here again — three tiers locked out of reporting
+      by one strand, each stranding creating the next. Pass this reader's own session id into
+      inflight_registry.live_children so a claim from another session is not counted as a live
+      child, which T-06 makes possible. The payload carries session_id; use it.
+
+      3. When the check DOES refuse, the message must name the precise remedy. Replace whatever
+      release command it prints with inflight_registry.release_cmd(root, agent) from T-06 — an
+      absolute, single-agent command. release-all must never be printed by a refusal: it mutates
+      the registry to {} and wipes every claim of every agent, and on 2026-08-26 following the
+      printed advice would have destroyed a live claim.
+
+      Add a case to test-validate-digest.py named children_in_flight_stale_claim: a registry holding
+      a claim stamped with a DIFFERENT session id, a return from the parent persona, and the
+      assertion that the return is ADMITTED. Run it before the fix, confirm it fails, and paste the
+      verbatim FAIL line into
+      .harness/harness/features/FEAT-42-one-root-resolver/notes/receipt-main-session-T-17.md.
+  - id: T-18
+    title: Make the dispatch declare its feature, and record the claim in that feature's checkout
+    traces: [REQ-01, REQ-02, REQ-05, REQ-06, REQ-09]
+    change_type: api
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 am.4 names dispatch-guard.sh and its test file in the enforcement layer
+    depends_on: [T-03, T-06]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/dispatch-guard.sh
+      - .claude/skills/harness/bin/test-dispatch-guard.py
+    verify: |
+      cd "$(git rev-parse --show-toplevel)"
+      B=.claude/skills/harness/bin
+      grep -q "HARNESS_PROJECT_DIR" $B/dispatch-guard.sh && { echo "chain survives"; exit 1; }
+      grep -q "_root_from" $B/dispatch-guard.sh && { echo "old resolver survives"; exit 1; }
+      grep -q 'RELEASE_ALL_CMD' $B/dispatch-guard.sh && { echo "release-all still printed"; exit 1; }
+      grep -q "HARNESS-FEATURE" $B/dispatch-guard.sh || { echo "the declared-feature field is not read"; exit 1; }
+      for c in missing_feature_line_refused claim_lands_in_declared_worktree; do
+        grep -rqE "FAIL.*$c" .harness/harness/features/FEAT-42-one-root-resolver/notes/receipt-*.md \
+          || { echo "SC-10: no red receipt for $c"; exit 1; }
+      done
+      python3 $B/test-dispatch-guard.py || exit 1
+      python3 $B/test-validate-digest.py || exit 1
+      echo T-18-OK
+    intent: |
+      This is issue #742's ruling, and it is the one site in the whole system that can see the
+      dispatch prompt. Measured and recorded in
+      .harness/harness/features/FEAT-31-orchestrator-context-watch/notes/probe-hook-payload-identity.md:
+      a PreToolUse payload carries eleven keys and tool_input.prompt exists only on the DISPATCH
+      payload. So this field fixes this gate and reaches no other hook, and the plan does not
+      pretend otherwise.
+
+      1. Every governed dispatch must open with a machine-readable line HARNESS-FEATURE: <flow-id>.
+      Read it out of tool_input.prompt with a fullmatch-anchored regex on its own line. A governed
+      dispatch WITHOUT the line is refused at sys.exit(2) with a message naming the missing field
+      and showing the exact line to add. Governed means the existing gate already applies: the
+      dispatching agent_type starts with harness-, and the dispatched tool_input.subagent_type
+      starts with harness-. The main session stays exempt at :38 — measured, governing it would have
+      caught NONE of the six collisions, because every pm in them was dispatched by an orchestrator
+      this gate already governs.
+
+      2. DELETE _root_from(payload) at :75-93 entirely, both of its chain reads and its payload cwd
+      read. The root now comes from the DECLARED feature. Resolve it without a subprocess, because
+      this runs before every governed dispatch: take owner_root from
+      harness_boundary.root_above(__file__), then look for the declared flow id among
+      harness_boundary.linked_worktrees(owner_root), matching on the worktree directory's segment
+      name. A worktree whose segment equals the declared id is the root. If no worktree carries that
+      id, the feature is being worked in the main checkout and owner_root is the root. This is what
+      makes the claim land where the assignment says rather than where the dispatcher was standing,
+      which is the whole defect: on 2026-08-26 the same mechanism put one claim in the main checkout
+      and another in a worktree, and the guard then saw six collisions and refused none.
+
+      3. The registry stays PER-CHECKOUT. Do not merge it into one file. The reason is on record in
+      the deleted function's own docstring: one shared registry would refuse a second feature's pm
+      while the first feature's pm is live, breaking parallel features to fix a within-feature
+      defect. What changes is the INPUT, not the shape.
+
+      4. Pass the payload session_id into reg.claim as the session keyword T-06 adds, and pass it to
+      reg.live_claim so a foreign-session claim is not counted live.
+
+      5. The refusal must print reg.release_cmd(root, dispatched) — absolute and single-agent —
+      never RELEASE_ALL_CMD. The verify greps for that name and fails on any hit.
+
+      Every branch you add FAILS OPEN, matching the contract stated at :56, with ONE exception: the
+      missing HARNESS-FEATURE line, which fails closed at exit 2 because that is the requirement.
+
+      In test-dispatch-guard.py, _checkout() at :121-124 builds a tree carrying only a bare .harness
+      DIRECTORY. Under the MARKER rule that is no longer a harness checkout, so write
+      .harness/team-config.yaml into those fixtures — otherwise every case silently stops exercising
+      the gate. Add the two cases the verify names. missing_feature_line_refused: a governed
+      dispatch whose prompt has no HARNESS-FEATURE line exits 2 and the stderr names the field.
+      claim_lands_in_declared_worktree: a fixture main checkout with a worktree under
+      .claude/worktrees whose segment is the declared id, a payload whose cwd is the MAIN checkout,
+      and the assertion that the claim file appears under the WORKTREE and that the main checkout's
+      registry is untouched. Run both against the untouched gate first — the second fails because
+      :83 resolves from payload cwd — and paste the verbatim FAIL lines into
+      .harness/harness/features/FEAT-42-one-root-resolver/notes/receipt-main-session-T-18.md.
+
+  - id: T-19
+    title: Make every governed dispatch carry the HARNESS-FEATURE line the gate now requires
+    traces: [REQ-05]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: check-domain.sh --resolve returns NOBODY for .claude/skills/** and .claude/agents/** at sha 3952814
+    depends_on: [T-18]
+    status: pending
+    files:
+      - .claude/skills/harness-zero-micro-management/SKILL.md
+      - .claude/agents/harness-orchestrator.md
+      - .claude/agents/harness-product-lead.md
+      - .claude/agents/harness-eng-lead.md
+      - .claude/agents/harness-validator-lead.md
+    verify: |
+      cd "$(git rev-parse --show-toplevel)"
+      for f in .claude/skills/harness-zero-micro-management/SKILL.md .claude/agents/harness-orchestrator.md \
+               .claude/agents/harness-product-lead.md .claude/agents/harness-eng-lead.md \
+               .claude/agents/harness-validator-lead.md; do
+        grep -q "HARNESS-FEATURE" "$f" || { echo "$f does not state the required field"; exit 1; }
+      done
+      bash .claude/skills/harness/bin/check-state.sh; test $? -le 1 || exit 1
+      python3 .claude/skills/harness/bin/test-orchestrator-playbook.py || exit 1
+      echo T-19-OK
+    intent: |
+      T-18 makes dispatch-guard.sh refuse, at exit 2, any governed dispatch whose prompt lacks a
+      HARNESS-FEATURE line. Without this task every dispatch in the organisation is refused the
+      moment T-18 lands, so the two are one change split across two lanes and T-19 must follow
+      T-18 immediately.
+
+      In each of the four dispatching agents — harness-orchestrator, harness-product-lead,
+      harness-eng-lead, harness-validator-lead — and in the dispatch-authoring skill
+      .claude/skills/harness-zero-micro-management/SKILL.md, state the rule once, in that
+      document's own voice, at the point where it already describes what a dispatch prompt
+      contains: the first line of a governed dispatch prompt is
+      HARNESS-FEATURE: <the feature id>, spelled exactly, and a dispatch without it is refused at
+      exit 2 by dispatch-guard.sh. Give the literal line with a real feature id shape, not a
+      placeholder token a copier would paste verbatim.
+
+      Say WHY in one clause, because a rule with no reason gets dropped in the next rewrite: it is
+      the only signal that tells the guard which checkout an agent was assigned to. The agent's
+      process working directory does not follow its assignment, which is the defect this feature
+      fixes and the reason the previous planning run could not spawn at all.
+
+      Do not restate the mechanism in more than one place beyond these five files. If any of these
+      documents already carries a nearby rule about dispatch prompt contents, extend that rule
+      rather than adding a second one beside it.
+  - id: T-20
+    title: Remove the HARNESS_PROJECT_DIR injection from the OMP policy-script spawn
+    traces: [REQ-01, REQ-02]
+    change_type: bugfix
+    execution_mode: main-session-direct
+    execution_reason: enforcement-adjacent host adapter; check-domain.sh --resolve returns NOBODY for .omp/** at sha 3952814, so no agent domain grants it
+    depends_on: [T-10, T-11, T-14, T-16, T-17]
+    status: pending
+    files:
+      - .omp/extensions/harness-hooks.ts
+    verify: |
+      cd "$(git rev-parse --show-toplevel)"
+      F=.omp/extensions/harness-hooks.ts
+      test -f "$F" || { echo "$F is missing - this task removes one option key, not the file"; exit 1; }
+      HITS=$(git ls-files -z -- '*.ts' '*.js' '*.json' | xargs -0 grep -n 'HARNESS_PROJECT_DIR' 2>/dev/null | grep -v '/bin/' | wc -l | tr -d ' ')
+      test "$HITS" = "0" || { echo "HARNESS_PROJECT_DIR still set outside bin/ in $HITS place(s)"; git ls-files -z -- '*.ts' '*.js' '*.json' | xargs -0 grep -n 'HARNESS_PROJECT_DIR' 2>/dev/null | grep -v '/bin/'; exit 1; }
+      grep -q 'spawnSync(join(cwd, BIN, script)' "$F" || { echo "the policy-script spawn no longer resolves through join(cwd, BIN, script)"; exit 1; }
+      grep -q 'process.env' "$F" || { echo "the child no longer inherits the host environment at all - too much was removed"; exit 1; }
+      bash .claude/skills/harness/bin/check-domain.sh --resolve .omp/extensions/harness-hooks.ts > /dev/null 2>&1
+      bash .claude/skills/harness/bin/check-state.sh; test $? -le 1 || exit 1
+      echo T-20-OK
+    intent: |
+      In .omp/extensions/harness-hooks.ts, the runPolicy helper at line 142 spawns every OMP-hosted
+      policy script with an env option that injects the host process working directory as the
+      harness root. At sha 3952814 line 144 reads exactly:
+
+      env: { ...process.env, HARNESS_PROJECT_DIR: cwd },
+
+      Delete the HARNESS_PROJECT_DIR key from that object literal and nothing else. The child must
+      still inherit the rest of the host environment, so the option becomes a plain spread of
+      process.env; if removing the key leaves the env option semantically identical to the default
+      inheritance, you may drop the option entirely, but do not remove or reorder any other option
+      of the spawnSync call and do not change cwd, args, input or encoding.
+
+      WHY, because a reader will otherwise put it back. This is the only place outside
+      .claude/skills/harness/bin/ that sets the variable - a repo-wide grep over tracked .ts, .js
+      and .json files excluding /bin/ returns exactly this one line at sha 3952814; every other
+      match in the tree is prose. After T-10, T-11, T-14, T-16 and T-17 each of the five scripts
+      this helper invokes - check-domain.sh, bash-write-guard.sh, branch-create-gate.sh,
+      inject-expertise.sh and validate-digest.py - derives its own root from its own file location
+      under D-4. Handing it one is therefore redundant. Worse, the value handed over is the host
+      process working directory, and under D-2 and D-3 a feature worktree carries
+      .harness/team-config.yaml, so a wrong-but-plausible cwd probes VALID and is honoured in
+      preference to the script's own derivation. That is the fail-open this feature exists to
+      close, reopened from outside the directory the invariant scans.
+
+      A supporting mechanism, recorded because it makes the blast radius larger than one process:
+      once a parent sets HARNESS_PROJECT_DIR, every descendant inherits it. During FEAT-40 that
+      inheritance misled an orchestrator far enough that it nearly filed a wrong finding about a
+      failing test - see FEAT-40/observations/harness-orchestrator.md:58, where the author records
+      the reasoning and then rejects it. It is the mechanism that is evidenced, not a confirmed
+      wrong-root failure.
+
+      This task is ordered after the five cutovers on purpose: removing the injection before those
+      scripts can derive their own root would leave them with no root at all.

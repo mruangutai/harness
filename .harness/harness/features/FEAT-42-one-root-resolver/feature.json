@@ -1,0 +1,42 @@
+{
+  "feature_id": "FEAT-42-one-root-resolver",
+  "branch": "feat/FEAT-42-one-root-resolver",
+  "pr": null,
+  "status": "Ready",
+  "review_sha": "none",
+  "cycles_used": 3,
+  "max_total_cycles": 10,
+  "max_total_runs": 20,
+  "runs": [
+    {
+      "id": "2026-08-26-2-plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "BLOCKED"
+    },
+    {
+      "id": "2026-08-26-3-plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-26-4-plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "ESCALATE"
+    },
+    {
+      "id": "2026-08-26-5-plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "ESCALATE"
+    },
+    {
+      "id": "2026-08-26-6-plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "ESCALATE"
+    }
+  ]
+}
