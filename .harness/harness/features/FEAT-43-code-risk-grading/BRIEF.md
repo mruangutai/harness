@@ -151,10 +151,23 @@ answerable to from that point on.
   and `harness-dev-ops`, in both the canonical agent definitions and the generated Claude adapters,
   read at the review sha — ten assertions, one per agent per tree, never a repository-wide count.
   verify: automated      evidence: unit
-- SC-11: A developer who has read the guidance and has not run the tool predicts the grade of five
-  unseen functions by eye, and at least four of the five match the tool. This is the only check that
-  can fail the teaching rather than the tooling, and a failure here is a finding against the skill,
-  not against the developer.
+- SC-11: **The guidance changes what gets written, and it is measured rather than argued.** Four
+  engineering specialists are given one identical non-trivial task. Two load the shipped skill; two
+  are told nothing about complexity, metrics or grades. The tool grades all four outputs. The
+  criterion is met when **the worst cognitive complexity in the skill-loading arm is lower than in
+  the control arm, AND the gap between the arms is larger than the spread within either arm** — the
+  second half is what separates an effect from noise, and without it two samples prove nothing.
+  This is the only check that can fail the **teaching** rather than the tooling, and a failure here
+  is a finding against the skill, not against the developer.
+  **It replaced a prediction quiz** — read the skill, guess five grades by eye — which measured
+  reading comprehension and not writing behaviour. Someone can score a function correctly and still
+  produce a tangle under deadline.
+  **A probe of this shape has already been run against a DRAFT skill**, before the build, and is
+  recorded at `notes/ab-probe-does-the-skill-change-the-code-2026-08-27.md`: worst cognitive
+  complexity **8.5 with the skill against 38.0 without**, the two skill-readers differing from each
+  other by 3 where the two controls differed by 38, and no overlap between the arms. That probe is
+  **evidence for the plan's premise, not evidence for this criterion** — it graded a draft. The
+  shipped skill must earn its own run.
   verify: uat
 - SC-12: A clean grade report cannot pass a review on its own. With every graded function at grade 5,
   the gate evaluation still returns FAIL when `must_fix` is non-empty, and returns PASS when
@@ -263,6 +276,12 @@ approved_by: operator
 date: 2026-08-27
 
 Signed 2026-08-27. One signature covers this brief and `plan.yaml`.
+
+**AMENDED AFTER SIGNATURE, 2026-08-27, on the operator's instruction: SC-11 was rewritten from a
+prediction quiz into an A/B test.** The quiz asked a developer to guess five grades by eye. It
+measured reading comprehension, not writing behaviour, and it was the ONLY criterion aimed at the
+teaching. The replacement dispatches four specialists on one task — two with the skill, two without
+— and grades what they write. No requirement, task or decision changed; only SC-11's method.
 
 **The operator also ruled on the product lead's `high` finding: it is false and nothing fixes it.**
 `.agents/skills` is a symlink to `../.claude/skills`; the exact command from `harness.json` runs from
