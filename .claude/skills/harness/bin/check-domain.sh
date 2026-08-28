@@ -93,15 +93,14 @@ _derived="$(cd "$_selfdir/../../../.." && pwd)"
 # full governed path, of which the interpreter is most. Behaviour is unchanged:
 # every early exit, every exit code and every stderr message is identical, and the
 # unchanged test suite is the equivalence proof (D-10, REQ-07).
-# `-P` IS LOAD-BEARING, NOT TIDINESS (#556). Python puts the invoking directory at
-# sys.path[0] AHEAD of PYTHONPATH, so the harness_boundary import below took a
-# harness_boundary.py sitting in the GOVERNED AGENT's cwd in preference to ours. Measured
-# 2026-08-27 at sha 7179095: a stub returning a bogus root turned this hook from exit 2
-# (refused) into exit 0 ("enforcement OFF"). -P removes the cwd at the interpreter, so no
-# later line can put it back. Needs python 3.11+; an older one rejects the flag loudly,
-# which is the safe direction here. test-no-distribution.py case 7 is the invariant.
+# `-I` IS LOAD-BEARING, NOT TIDINESS (#556). Python otherwise puts the invoking directory
+# at sys.path[0] AHEAD of PYTHONPATH, so a harness_boundary.py in the GOVERNED AGENT cwd
+# can replace the policy module. Measured 2026-08-27 at sha 7179095: a stub returning a
+# bogus root turned this hook from exit 2 (refused) into exit 0 ("enforcement OFF").
+# The bootstrap removes only sys.path[0] before the heredoc imports anything, preserving
+# site-packages on Python 3.9. test-no-distribution.py case 7 is the invariant.
 HOOK_PAYLOAD="$payload" PYTHONPATH="$_selfdir${PYTHONPATH:+:$PYTHONPATH}" \
-  python3 -P - "$_derived" "${1:-}" "$_selfdir" <<'PY'
+  python3 -c 'import sys; sys.path.pop(0); exec(compile(sys.stdin.read(), "<stdin>", "exec"))' "$_derived" "${1:-}" "$_selfdir" <<'PY'
 import sys, os, re, json, fnmatch
 
 # THE BOUNDARY RULE LIVES IN harness_boundary.py (FEAT-17 T-01), NOT HERE.
@@ -123,6 +122,7 @@ import sys, os, re, json, fnmatch
 # Importing at the top made a hook whose module is missing crash with exit 1 before
 # it could print that message. Caught by test-check-domain.py's isolated-copy case.
 _derived, argv_agent, _bin_dir = sys.argv[1:4]
+sys.path.insert(0, _bin_dir)
 
 
 def _root():

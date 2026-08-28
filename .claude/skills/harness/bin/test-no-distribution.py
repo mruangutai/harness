@@ -435,26 +435,19 @@ def case6():
 # THE INVOKING DIRECTORY IS NOT ON THE IMPORT PATH.
 
 def case7():
-    """Every gate that launches python must pass -P (#556).
+    """Every gate that launches Python excludes the governed cwd (#556).
 
-    Python puts the invoking directory at sys.path[0] AHEAD of PYTHONPATH. The gate scripts
-    set PYTHONPATH to their own bin/ and then `import harness_boundary`, so a
-    harness_boundary.py sitting in the governed agent's cwd was imported INSTEAD. Measured
-    2026-08-27 at sha 7179095: a stub returning a bogus root turned check-domain.sh from
-    exit 2 (refused) into exit 0 ("enforcement OFF") — the domain gate switched off by a
-    file the agent it governs can write. The same shadowing reaches stdlib: a json.py in
-    the cwd is imported by every `python3 -c 'import json'` line here.
-
-    -P is the fix at the interpreter, so nothing later in a script can put the cwd back.
-    It needs python 3.11+; CI runs whatever ubuntu-latest ships (3.12+) BY OWNER DECISION,
-    and an older interpreter rejects the flag loudly rather than silently ignoring it,
-    which is the safe direction for an enforcement gate.
+    Python puts the invoking directory at sys.path[0] AHEAD of PYTHONPATH. A policy module
+    in the governed agent cwd could therefore replace the real module. Interpreter `-I`
+    is used where only stdlib/project modules are needed. Heredocs that need normal
+    site-packages start with a bootstrap that removes only sys.path[0], then executes stdin.
+    Both forms exclude the cwd and work on the macOS system Python 3.9 used by OMP.
 
     This case is the invariant, not the two pairs in test-check-domain.py and
-    test-bash-write-guard.py: those prove the two hooks are shut, this one catches the
-    NEXT gate script somebody adds without the flag.
+    test-bash-write-guard.py: those prove two hooks are shut; this catches the next
+    gate script added without either safe-path form.
     """
-    pat = re.compile(r"(?<!`)python3 (?!-P )(-c |- )(?=[\'\"$]|<<)")
+    pat = re.compile(r"(?<!`)python3 (?!-I )(-c |- )(?=[\'\"$]|<<)")
     scripts = [f for f in git_ls_files()
                if f.startswith(".claude/skills/harness/bin/") and f.endswith(".sh")]
     check("case7_scripts_found", len(scripts) >= 9,
@@ -462,18 +455,20 @@ def case7():
     naked = []
     for rel in scripts:
         for i, line in enumerate(read_text(rel).splitlines(), 1):
-            if pat.search(line):
+            if pat.search(line) and "sys.path.pop(0)" not in line:
                 naked.append(f"{rel}:{i}")
     check("case7_every_python_launch_isolates_the_cwd", not naked,
-          f"python3 launched without -P, so the cwd shadows imports: {naked}")
+          f"python3 launched without -I or safe-path bootstrap, so the cwd shadows imports: {naked}")
 
     # THE PAIRED HALF. Without it the case above is satisfied by a regex that matches
     # nothing at all — a typo in the pattern would read as a clean tree.
-    guarded = re.compile(r"python3 -P (-c |- )")
+    guarded = re.compile(r"python3 -I (-c |- )")
     hits = sum(1 for rel in scripts for line in read_text(rel).splitlines()
                if guarded.search(line))
-    check("case7_the_scan_can_see_the_invocations", hits >= 19,
-          f"only {hits} guarded python3 launches found — the pattern stopped matching")
+    safe_hits = sum(1 for rel in scripts for line in read_text(rel).splitlines()
+                    if "python3 -c" in line and "sys.path.pop(0)" in line)
+    check("case7_the_scan_can_see_the_invocations", hits >= 16 and safe_hits >= 3,
+          f"found {hits} isolated launches and {safe_hits} safe-python launches")
 
 
 def main():

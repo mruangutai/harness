@@ -45,13 +45,22 @@ phase it is itself running. Every other row, and every other case, is the **main
 | the pull request has merged | **main session** | `gh-sync.py record-pr <feature-dir> [--pr N]` — derives the number from the recorded branch when that branch carries **exactly one** merged pull request, leaves `pr` alone otherwise, and **never overwrites a number already recorded**. `ship` runs it too, so the ordinary flow needs no separate call |
 
 **Update `plan.yaml`, THEN run the subcommand.** The parent card's station is *derived* from task
-statuses, so the plan must already carry the new one. Set `building` after running `start-task` and
-the parent write is a silent no-op.
+statuses, so the plan must already carry the new one. Running `start-task` before recording
+`building` makes the parent write a silent no-op.
 
 **Recording `done` is the whole of the per-commit act** (D-23) — nothing derives a station from a
 task's completion. The parent leaves `Building` when the panel kickoff runs `gh-sync.py status
 <feature-dir> Review`, and reaches `Done` when `ship` writes its card there — GitHub closes the issue
 behind that write.
+
+## Wake and recovery are reads of durable receipts, not GitHub polls
+
+No child heartbeat, wait loop, or async-result delivery writes GitHub. While a task is live, its
+card stays at `Building`. On an OMP wake or `--resume`, re-read `plan.yaml`, `feature.json`, and the
+stored `github` receipts before deciding whether an owned transition is still due. A transition
+already represented by those files is an idempotent no-op; never call `open` again to discover or
+replace a receipt. This is what keeps one parent, one milestone, and one sub-issue per T-NN after
+duplicate delivery or process recovery.
 
 ## The build branch
 

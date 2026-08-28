@@ -98,14 +98,16 @@ a time**, even when the DAG would allow parallelism. This is the actual write-sa
 `check-domain.sh` cannot see writes made through `Bash`, and every doer holds it (DEC-85). Do not
 treat a passing domain hook as proof that parallel writes are safe.
 
-**d. Dispatch the rest of the ready set in one turn** — **all `Agent` calls in a single message,
-never with a `name:` parameter** (teammate→teammate named spawns are rejected, DEC-147). One ready
-set is one checkpoint write, so `state.yaml` never describes a half-dispatched wave (DEC-124,
-DEC-100). Parallelism is implicit in the DAG: any two `pending` steps with satisfied `depends_on`
-and no mutual dependency go together. Caps: 20 concurrent, 200 per session, nested counting to both.
+**d. Dispatch the rest of the ready set in one turn** — **all task calls in one message, never
+with a `name:` parameter** (teammate→teammate named spawns are rejected, DEC-147). One ready set is
+one checkpoint write, so `state.yaml` never describes a half-dispatched wave (DEC-124, DEC-100).
+Parallelism is implicit in the DAG: any two `pending` steps with satisfied `depends_on` and no
+mutual dependency go together. Caps: 20 concurrent, 200 per session, nested counting to both.
 
-Title each dispatch `<flow-id> · <step or task id> · <what, 3–6 words>` (DEC-142). Each prompt
-carries the goal, the resolved **input paths**, the **output paths**, and nothing else.
+The first line of every item prompt is exactly
+`HARNESS-FEATURE: <FEAT-NN-slug|BUG-NN-slug>`. Put the human-readable title
+`<flow-id> · <step or task id> · <what, 3–6 words>` on the next line (DEC-142), then the goal,
+resolved **input paths**, and **output paths**.
 
 **Never pass `model:`** — `dispatch-guard.sh` blocks the call (DEC-152/155). A task that needs a
 stronger model is an escalation via `open_questions`.
@@ -113,18 +115,22 @@ stronger model is an escalation via `open_questions`.
 **Do not serialize out of caution.** Serial dispatch returns the same verdicts at several times the
 wall-clock, and nothing surfaces it. Genuine conflicts belong in `depends_on`/`mutates_repo`.
 
-**Never wait for a member — end your turn.** Having dispatched, you end your turn; you do not
-poll, do not sleep, do not re-read files to look busy, and do not restate that you are waiting.
-Stopping is safe, because the platform wakes you when the member completes — ending your turn is HOW
-you wait, not a way of giving up. The dispatch tool will tell you to continue other work in the
-meantime, and that is not licence to manufacture activity: this rule overrides it. Your first
-turn-end after a dispatch meets a live child, and that refusal is expected — stderr reads BLOCKED,
-returned with children in flight. Answer it the same way: end your turn again, and expect it to
-recur on each wake while a child is still live. It is never a bar on returning; it is a prompt to
-correct any claim you made about a child you cannot see. (DEC-201)
+**Under OMP, never supervise a member — the task tool does it.** Every member is declared
+`blocking: true`, so the ready-wave `task` call remains inside OMP until those members are terminal
+while your model is inactive. Do not call `hub wait`, poll `hub jobs`, sleep, emit heartbeats, or
+manufacture work. This blocking tool boundary is deliberate: a nested async parent is otherwise
+forced to submit `yield` while its child is still live, and OMP stops it after repeated refusals.
 
-**e. Collect returns.** You collect on waking, after the turn ended — never by staying alive to
-receive. Read `VERDICT` and the `DIGEST` fields and record both in `state.yaml`.
+**Under the Claude Code compatibility host, never wait for a member — end your turn.** That host
+returns launch metadata instead. End the turn immediately; its completion wakes you. The tool may
+tell you to continue other work in the meantime; this rule overrides that suggestion. A turn-end refusal naming
+children in flight is expected: end the turn again without making a claim about them, and expect
+the refusal to recur on each later wake while a child remains live (DEC-201).
+
+**e. Collect returns after the blocking task result or on waking under the compatibility host.** Re-read
+`state.yaml` first, verify the cited artifact, then record `VERDICT`, DIGEST fields, and
+`completed_at`. A repeated delivery after resume is an idempotent no-op, never a second dispatch or
+GitHub transition (DEC-204).
 
 **The digest contract is enforced for you**, mechanically — `validate-digest.py --hook` on
 `SubagentStop` (DEC-122). Route *on* the fields; do not re-adjudicate them. You would normalize

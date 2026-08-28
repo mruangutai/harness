@@ -587,7 +587,7 @@ def run_worktree():
 
     # --- #556: THE CWD MUST NOT SUPPLY THE BOUNDARY RULE. Same defect and same proof as
     # test-check-domain.py's pair — python puts the invoking directory at sys.path[0]
-    # ahead of PYTHONPATH, so before `python3 -P` a harness_boundary.py in the agent's cwd
+    # ahead of PYTHONPATH, so before the safe-path bootstrap a harness_boundary.py in the agent cwd
     # was the resolver this guard consulted. Both halves: clean cwd refuses, hostile cwd
     # returns the SAME verdict.
     _hostile = tempfile.mkdtemp()

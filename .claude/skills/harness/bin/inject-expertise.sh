@@ -10,7 +10,7 @@
 set -uo pipefail
 
 payload=$(cat)
-agent=$(printf '%s' "$payload" | python3 -P -c '
+agent=$(printf '%s' "$payload" | python3 -I -c '
 import sys, json
 try:
     print(json.load(sys.stdin).get("agent_type", ""))
@@ -43,7 +43,7 @@ fi
 # reach it is one with no .harness/team-config.yaml anywhere above this script, which has no
 # Expertise to inject either. Do not name the retired variables here even in prose.
 _selfbin="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
-root="$(python3 -P -c 'import sys; sys.path.insert(0, sys.argv[1]); import harness_boundary; print(harness_boundary.resolve_root(sys.argv[1]))' "$_selfbin" 2>/dev/null)"
+root="$(python3 -I -c 'import sys; sys.path.insert(0, sys.argv[1]); import harness_boundary; print(harness_boundary.resolve_root(sys.argv[1]))' "$_selfbin" 2>/dev/null)"
 if [ -z "$root" ] || [ ! -d "$root" ]; then
   echo "inject-expertise.sh: no harness root resolved from $_selfbin — no Expertise injected." >&2
   exit 0
@@ -52,7 +52,7 @@ proj="$root/.harness/expertise/$agent.md"
 glob="$HOME/.harness/expertise/$agent.md"
 
 emit() {
-  python3 -P -c '
+  python3 -I -c '
 import sys, json
 body = sys.stdin.read()
 if body.strip():

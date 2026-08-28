@@ -148,6 +148,14 @@ def _read_registry(root, reg):
     with open(p) as fh:
         return json.load(fh)
 
+def _claims_for(data, agent=None, feature=None):
+    claims = data.get("claims", [])
+    return [
+        claim for claim in claims
+        if (agent is None or claim.get("agent") == agent)
+        and (feature is None or claim.get("feature") == feature)
+    ]
+
 
 def _task(dispatched, dispatcher="harness-orchestrator", cwd=None):
     """The payload shape MEASURED off a live governed dispatch, not invented:
@@ -174,7 +182,10 @@ def case_6_single_flight_refusal():
         # the guard expires it and ALLOWS the dispatch — which is correct behaviour and
         # would make this case test the expiry path while claiming to test the refusal.
         started = time.time() - 60
-        reg.claim(root, "harness-pm", "harness-product-lead", root, now=started)
+        reg.claim(
+            root, "harness-pm", "harness-product-lead", root, now=started,
+            feature="FEAT-42-one-root-resolver",
+        )
         r = fire(_task("harness-pm", "harness-product-lead", root),
                  env={"CLAUDE_PROJECT_DIR": root, "HARNESS_PROJECT_DIR": root})
         check("case 6: a second single-flight dispatch exits 2", r.returncode == 2,
@@ -192,7 +203,9 @@ def case_6_single_flight_refusal():
         # a live claim. The property is unchanged — a refusal names a runnable cure — and the
         # second half is what keeps the old command from creeping back.
         check("case 6: stderr carries the SINGLE-AGENT release command, never release-all",
-              reg.release_cmd(root, "harness-pm") in r.stderr
+              reg.release_cmd(
+                  root, "harness-pm", feature="FEAT-42-one-root-resolver"
+              ) in r.stderr
               and "release-all" not in r.stderr, r.stderr.strip()[:400])
         check("case 6: it cites the issue so the reader can find out why",
               "#551" in r.stderr, r.stderr.strip()[:200])
@@ -211,7 +224,7 @@ def case_7_allow_and_record():
         check("case 7: the FIRST single-flight dispatch is allowed", r.returncode == 0,
               f"exit {r.returncode}, stderr={r.stderr.strip()[:200]!r}")
         data = _read_registry(root, reg)
-        claims = data.get("harness-pm") or []
+        claims = _claims_for(data, "harness-pm", "FEAT-42-one-root-resolver")
         check("case 7: exactly one harness-pm claim was recorded", len(claims) == 1,
               f"registry={data!r}")
         check("case 7: the claim names the DISPATCHER from agent_type",
@@ -238,7 +251,7 @@ def case_8_parallel_squad_stays_legal():
         check("case 8: two parallel non-single-flight dispatches BOTH exit 0",
               codes == [0, 0], f"exits {codes}")
         data = _read_registry(root, reg)
-        claims = data.get("harness-backend-dev") or []
+        claims = _claims_for(data, "harness-backend-dev", "FEAT-42-one-root-resolver")
         check("case 8: BOTH claims are on disk", len(claims) == 2, f"registry={data!r}")
         check("case 8: each claim names the dispatcher from agent_type",
               all(c.get("dispatcher") == "harness-eng-lead" for c in claims),
@@ -257,7 +270,10 @@ def case_9_stale_claim():
     root = _checkout()
     try:
         stale = time.time() - (reg.CLAIM_TTL_SECONDS + 60)
-        reg.claim(root, "harness-pm", "harness-product-lead", root, now=stale)
+        reg.claim(
+            root, "harness-pm", "harness-product-lead", root, now=stale,
+            feature="FEAT-42-one-root-resolver",
+        )
         r = fire(_task("harness-pm", "harness-product-lead", root),
                  env={"CLAUDE_PROJECT_DIR": root, "HARNESS_PROJECT_DIR": root})
         check("case 9: a claim past its TTL does NOT refuse the dispatch", r.returncode == 0,
@@ -276,7 +292,10 @@ def case_10_library_missing():
     root = _checkout()
     tmp = tempfile.mkdtemp()
     try:
-        reg.claim(root, "harness-pm", "harness-product-lead", root)
+        reg.claim(
+            root, "harness-pm", "harness-product-lead", root,
+            feature="FEAT-42-one-root-resolver",
+        )
         mbin = os.path.join(tmp, "bin")
         shutil.copytree(BIN_DIR, mbin)
         os.remove(os.path.join(mbin, "inflight_registry.py"))
@@ -350,9 +369,81 @@ def case_12_claim_lands_in_declared_worktree():
     check("case 12 claim_lands_in_declared_worktree: the dispatch is allowed", r.returncode == 0,
           f"exit {r.returncode}, stderr={r.stderr.strip()[:200]!r}")
     check("case 12 claim_lands_in_declared_worktree: the claim lands in the DECLARED worktree",
-          "harness-pm" in in_wt, f"worktree registry={in_wt!r}")
+          len(_claims_for(in_wt, "harness-pm", flow)) == 1, f"worktree registry={in_wt!r}")
     check("case 12 claim_lands_in_declared_worktree: and the main checkout registry is untouched",
-          "harness-pm" not in in_main, f"main registry={in_main!r}")
+          not _claims_for(in_main, "harness-pm", flow), f"main registry={in_main!r}")
+
+
+def case_13_feature_line_must_be_first_and_valid():
+    root = _checkout()
+    misplaced = _task("harness-backend-dev", "harness-eng-lead", root)
+    misplaced["tool_input"]["prompt"] = "Do the work\\n" + FEATURE_LINE
+    bad_id = _task("harness-backend-dev", "harness-eng-lead", root)
+    bad_id["tool_input"]["prompt"] = "HARNESS-FEATURE: TASK-42-wrong-kind\\nDo the work"
+    r1 = fire(misplaced, env={"HARNESS_PROJECT_DIR": root})
+    r2 = fire(bad_id, env={"HARNESS_PROJECT_DIR": root})
+    check("case 13: a later HARNESS-FEATURE line is refused", r1.returncode == 2, r1.stderr)
+    check("case 13: a malformed flow id is refused", r2.returncode == 2, r2.stderr)
+
+
+def case_14_single_flight_is_per_feature():
+    root = _checkout()
+    a1 = _task("harness-pm", "harness-product-lead", root)
+    a1["tool_input"]["prompt"] = "HARNESS-FEATURE: FEAT-43-alpha\nplan"
+    b = _task("harness-pm", "harness-product-lead", root)
+    b["tool_input"]["prompt"] = "HARNESS-FEATURE: FEAT-44-beta\nplan"
+    a2 = _task("harness-pm", "harness-product-lead", root)
+    a2["tool_input"]["prompt"] = "HARNESS-FEATURE: FEAT-43-alpha\nplan"
+    results = [
+        fire(payload, env={"HARNESS_PROJECT_DIR": root})
+        for payload in (a1, b, a2)
+    ]
+    check(
+        "case 14: different features may each hold a pm claim",
+        [result.returncode for result in results[:2]] == [0, 0],
+        [result.stderr for result in results[:2]],
+    )
+    check("case 14: a duplicate pm for one feature is refused", results[2].returncode == 2, results[2].stderr)
+
+
+def case_15_omp_dispatch_records_supervisor_and_receipt():
+    root = _checkout()
+    payload = _task("harness-backend-dev", "harness-eng-lead", root)
+    payload["tool_input"]["prompt"] = "HARNESS-FEATURE: FEAT-43-alpha\nbuild"
+    payload["harness_runtime"] = "omp"
+    payload["supervisor_pid"] = os.getpid()
+    result = fire(payload, env={"HARNESS_PROJECT_DIR": root})
+    claims = _claims_for(_read_registry(root, _load_registry_module()), "harness-backend-dev", "FEAT-43-alpha")
+    check("case 15: OMP governed dispatch is allowed", result.returncode == 0, result.stderr)
+    check(
+        "case 15: claim records OMP runtime and supervising pid",
+        len(claims) == 1
+        and claims[0].get("runtime") == "omp"
+        and claims[0].get("supervisor_pid") == os.getpid(),
+        claims,
+    )
+    check("case 15: stdout returns a machine-readable claim receipt", "harness_claim" in result.stdout, result.stdout)
+
+
+def case_16_system_python_compatibility():
+    root = _checkout()
+    result = fire(
+        _task("harness-backend-dev", "harness-eng-lead", root),
+        env={
+            "HARNESS_PROJECT_DIR": root,
+            "PATH": "/usr/bin:/bin",
+        },
+    )
+    check(
+        "case 16: macOS system Python can run the dispatch guard",
+        result.returncode == 0,
+        result.stderr,
+    )
+    check(
+        "case 16: system-Python path still returns a claim receipt",
+        "harness_claim" in result.stdout,
+        result.stdout + result.stderr,
+    )
 
 
 def main():
@@ -395,6 +486,10 @@ def main():
     case_10_library_missing()
     case_11_missing_feature_line_refused()
     case_12_claim_lands_in_declared_worktree()
+    case_13_feature_line_must_be_first_and_valid()
+    case_14_single_flight_is_per_feature()
+    case_15_omp_dispatch_records_supervisor_and_receipt()
+    case_16_system_python_compatibility()
 
     failed = 0
     for name, ok, detail in RESULTS:

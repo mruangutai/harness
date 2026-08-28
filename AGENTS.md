@@ -46,3 +46,5 @@ A decision the tree flatly contradicts is **STRUCK, never marked stale** (DEC-18
 - Check every command-verifiable prose claim before writing it.
 - Run the canonical Harness state checker before committing, never after.
 - Never write a shell wait loop. Use the host's supervised background-job mechanism; a foreground shell timeout can detach rather than terminate descendants.
+- The host supervises child execution. Agents never supervise children with shell commands, sleeps,
+  or repeated status calls; OMP keeps nested Harness edges inside blocking task-tool execution.

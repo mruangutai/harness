@@ -27,30 +27,33 @@ is namespaced under `.harness/harness/features/<FEAT>/` (DEC-120).
    unapproved artifact stops you at step 0, `BLOCKED`. On **plan**, producing them IS the mission:
    return them `pending` and never mark them approved, because only the main session signs.
 2. **Decide next** — next task/team in PLAN order, plus any pending adjustment from the last cycle.
-3. **Delegate to a lead, never a member.** Every dispatch is a plain subagent — **never pass a
-   `name:` parameter** (teammate→teammate named spawns are rejected; the roster is flat, DEC-147).
-   Title every dispatch `FEAT-NN · <step or task id> · <what, 3–6 words>` — `BUG-NN` for a bug
-   flow — so the user reads the spawn tree as one chain (DEC-142). A whole team goes to its named
-   lead (the lead hosts the DAG via `harness-team`); a single task goes to the lead that owns the
-   relevant persona, which routes it by `consult-when`. Cross-squad work is **one run per squad,
-   sequenced by you** — a lead cannot dispatch another squad (DEC-118). Pass paths, never content;
-   pin `review_sha` before any validator run (INV-6). In the build phase, sequence the segments
-   below rather than composing a step list at dispatch.
-4. **On waking, assess what came back.** **Re-read `STATE.md` and `feature.json` from disk before
-   acting** — your context may have reset. The `SubagentStop` hook checked the digest's shape, but
-   shape is not truth:
-   spot-check `files_touched` against the artifacts when a claim matters. **A completion you were
-   told about is a CLAIM until an artifact on disk confirms it**, and never act on a digest you
-   cannot open — a parent has been measured inventing one (DEC-199).
+3. **Delegate to a lead, never a member.** Every governed prompt starts with the literal line
+   `HARNESS-FEATURE: <FEAT-NN-slug|BUG-NN-slug>`; it is first, not merely present, because the
+   dispatch gate uses it to resolve this flow and key its claim. Put the human-readable title
+   `FEAT-NN · <step or task id> · <what, 3–6 words>` on the next line — `BUG-NN` for a bug flow —
+   so the user reads the spawn tree as one chain (DEC-142). Every dispatch is a plain subagent:
+   **never pass a `name:` parameter** (teammate→teammate named spawns are rejected; the roster is
+   flat, DEC-147). A whole team goes to its named lead (the lead hosts the DAG via `harness-team`);
+   a single task goes to the lead that owns the relevant persona, which routes it by
+   `consult-when`. Cross-squad work is **one run per squad, sequenced by you** — a lead cannot
+   dispatch another squad (DEC-118). Pass paths, never content; pin `review_sha` before any
+   validator run (INV-6). In the build phase, sequence the segments below rather than composing a
+   step list at dispatch.
+4. **Let OMP supervise the nested dispatch at the tool boundary.** Every lead and member is
+   declared `blocking: true` under OMP. Your `task` call therefore stays in the host while the lead
+   runs; your model is inactive and cannot poll, sleep, emit a heartbeat, or invent work. Do not
+   convert that edge to an async wait: a nested async Harness parent is forced toward `yield`
+   before its child finishes. When the task result returns, the lead is terminal. **Re-read
+   `STATE.md` and `feature.json` from disk before acting**, verify its cited artifact, and treat the
+   digest as a claim until disk confirms it. The main session's outer orchestrator dispatch remains
+   async, so the only user-channel parent receives OMP's automatic terminal delivery (DEC-204).
 5. **Weigh your own context before you continue.** Over
    `budgets.orchestrator_context_warn_tokens` in `.harness/harness.json` (200000 today), decide
    whether to finish this phase or hand it over. **The threshold ADVISES and the decision is yours**
-   (DEC-198); crossing it is normal, so hand off at a seam, weighting by how far past you are —
-   just over, carry on; far past, an unfinished phase costs more than the handoff (DEC-201).
-   Measuring it needs your own agent id from a two-call nonce probe that is easy to get wrong:
-   **read `.agents/skills/harness/references/context-check.md` first**, and run `context-watch.py`
-   only with an id that probe returned. A check you cannot complete is SKIPPED in one line, never
-   guessed and never reported as a headroom figure.
+   (DEC-198); crossing it is normal, so hand off at a seam. Use the host's current-session context
+   signal when it exposes one. OMP-hosted sessions use OMP's own context signal; a host with no
+   trustworthy signal skips this advisory check in one line. Never identify yourself by scanning
+   Claude sidecars, guess a figure, or turn the advisory threshold into a gate.
 6. **Adjust and record** — REPLACE `STATE.md`'s `## Current` with the new now, and update
    `feature.json`'s DATA: the runs list, and `cycles_used` from the lead's reported SEND-BACKS,
    since a clean first-pass run adds ZERO cycles and only rework counts (DEC-157). Values, never

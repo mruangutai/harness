@@ -44,6 +44,9 @@ def _read_raw(root):
     with open(path, "r", encoding="utf-8") as fh:
         return json.load(fh)
 
+def _claims_for(data, agent):
+    return [claim for claim in data.get("claims", []) if claim.get("agent") == agent]
+
 
 def _write_raw(root, obj):
     path = os.path.join(root, inflight_registry.REGISTRY_REL)
@@ -102,7 +105,7 @@ def case_2_single_flight_and_parallel_asymmetry():
     )
 
     data = _read_raw(root)
-    backend_claims = data.get("harness-backend-dev", [])
+    backend_claims = _claims_for(data, "harness-backend-dev")
     check("case2: registry holds two claims for backend-dev", len(backend_claims) == 2, backend_claims)
     started_values = {c["started_at"] for c in backend_claims}
     check("case2: both started_at values are present", len(started_values) == 2, backend_claims)
@@ -302,7 +305,7 @@ def case_7_concurrency(trials=20):
                 f"err_y={err_y!r} (expected exactly one True)"
             )
         data = _read_raw(root) if os.path.exists(os.path.join(root, inflight_registry.REGISTRY_REL)) else {}
-        n = len(data.get("harness-pm", []))
+        n = len(_claims_for(data, "harness-pm"))
         if n != 1:
             bad_trials.append(f"trial {i}: registry holds {n} claims for harness-pm (expected 1)")
 
@@ -355,7 +358,11 @@ def case_9_release_all():
     n = inflight_registry.release_all(root)
     check("case9: release_all returns 3", n == 3, n)
     data = _read_raw(root)
-    check("case9: the registry is empty afterwards", data == {}, data)
+    check(
+        "case9: the registry is empty afterwards",
+        data == {"schema_version": 2, "claims": []},
+        data,
+    )
 
     r = subprocess.run(
         [sys.executable, CLI, "list", "--root", root],
@@ -393,7 +400,7 @@ def case_12_foreign_session_expired():
         own_claim, _own_expired = inflight_registry.live_claim(
             root, "harness-eng-lead", now=now, session="session-A"
         )
-        on_disk = _read_raw(root).get("harness-eng-lead", [])
+        on_disk = _claims_for(_read_raw(root), "harness-eng-lead")
         raised = None
     except TypeError as exc:
         ok = None
@@ -446,7 +453,7 @@ def case_13_release_refuses_ambiguous():
     data = _read_raw(root)
     check(
         "case13: release_refuses_ambiguous - both claims remain on disk untouched",
-        len(data.get("harness-backend-dev", [])) == 2,
+        len(_claims_for(data, "harness-backend-dev")) == 2,
         data,
     )
     check(
@@ -485,6 +492,173 @@ def case_14_remedy_is_absolute():
     )
 
 
+def case_15_feature_scoped_single_flight():
+    root = tempfile.mkdtemp()
+    first = inflight_registry.claim(
+        root, "harness-pm", "harness-orchestrator", root, feature="FEAT-43-alpha"
+    )
+    other = inflight_registry.claim(
+        root, "harness-pm", "harness-orchestrator", root, feature="FEAT-44-beta"
+    )
+    duplicate = inflight_registry.claim(
+        root, "harness-pm", "harness-orchestrator", root, feature="FEAT-43-alpha"
+    )
+    check("case15: pm claims for different features run together", first is True and other is True)
+    check("case15: a second pm for the same feature is refused", duplicate is False, duplicate)
+
+
+def case_16_omp_claim_lives_with_supervisor():
+    root = tempfile.mkdtemp()
+    now = time.time()
+    old = now - 7200
+    inflight_registry.claim(
+        root,
+        "harness-backend-dev",
+        "harness-eng-lead",
+        root,
+        now=old,
+        feature="FEAT-43-alpha",
+        runtime="omp",
+        supervisor_pid=os.getpid(),
+    )
+    claim, expired = inflight_registry.live_claim(
+        root, "harness-backend-dev", now=now, feature="FEAT-43-alpha"
+    )
+    check("case16: an old OMP claim stays live while its supervisor lives", claim is not None, claim)
+    check("case16: the live OMP claim is not counted expired", expired == 0, expired)
+
+    proc = subprocess.Popen([sys.executable, "-c", "pass"])
+    dead_pid = proc.pid
+    proc.wait()
+    inflight_registry.claim(
+        root,
+        "harness-frontend-dev",
+        "harness-eng-lead",
+        root,
+        now=old,
+        feature="FEAT-43-alpha",
+        runtime="omp",
+        supervisor_pid=dead_pid,
+    )
+    dead, dead_expired = inflight_registry.live_claim(
+        root, "harness-frontend-dev", now=now, feature="FEAT-43-alpha"
+    )
+    check("case16: an OMP claim is stale immediately when its supervisor dies", dead is None, dead)
+    check("case16: the dead-supervisor claim is counted expired", dead_expired == 1, dead_expired)
+
+
+def case_17_targeted_release_keeps_other_feature():
+    root = tempfile.mkdtemp()
+    inflight_registry.claim(
+        root, "harness-backend-dev", "harness-eng-lead", root, feature="FEAT-43-alpha"
+    )
+    inflight_registry.claim(
+        root, "harness-backend-dev", "harness-eng-lead", root, feature="FEAT-44-beta"
+    )
+    removed = inflight_registry.release(
+        root, "harness-backend-dev", feature="FEAT-43-alpha"
+    )
+    other, _ = inflight_registry.live_claim(
+        root, "harness-backend-dev", feature="FEAT-44-beta"
+    )
+    check("case17: targeted feature release removes one claim", removed is True, removed)
+    check("case17: targeted feature release leaves the other feature live", other is not None, other)
+
+
+def case_18_legacy_registry_migrates_on_write():
+    root = tempfile.mkdtemp()
+    now = time.time()
+    _write_raw(
+        root,
+        {
+            "harness-backend-dev": [
+                {"started_at": now, "dispatcher": "harness-eng-lead", "cwd": root}
+            ]
+        },
+    )
+    claim, _ = inflight_registry.live_claim(root, "harness-backend-dev", now=now)
+    data = _read_raw(root)
+    check("case18: legacy claim remains readable during cutover", claim is not None, claim)
+    check("case18: every subsequent write uses schema version 2", data.get("schema_version") == 2, data)
+    check("case18: schema version 2 stores one claims list", isinstance(data.get("claims"), list), data)
+    check("case18: legacy persona keys are not written back", "harness-backend-dev" not in data, data)
+
+
+def case_19_attach_and_release_by_runtime_identity():
+    root = tempfile.mkdtemp()
+    inflight_registry.claim(
+        root,
+        "harness-backend-dev",
+        "harness-eng-lead",
+        root,
+        feature="FEAT-43-alpha",
+        runtime="omp",
+        supervisor_pid=os.getpid(),
+    )
+    attached = inflight_registry.attach_runtime_identity(
+        root,
+        "harness-backend-dev",
+        "FEAT-43-alpha",
+        agent_id="agent-17",
+        job_id="job-17",
+    )
+    removed = inflight_registry.release(root, agent_id="agent-17", job_id="job-17")
+    remaining, _ = inflight_registry.live_claim(
+        root, "harness-backend-dev", feature="FEAT-43-alpha"
+    )
+    check("case19: OMP identity attaches to the pending claim", attached is True, attached)
+    check("case19: terminal OMP identity releases only its claim", removed is True, removed)
+    check("case19: released OMP claim is gone", remaining is None, remaining)
+
+
+def case_20_reconcile_only_target_feature():
+    root = tempfile.mkdtemp()
+    proc = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"])
+    dead_pid = proc.pid
+    for feature in ("FEAT-43-alpha", "FEAT-44-beta"):
+        inflight_registry.claim(
+            root,
+            "harness-backend-dev",
+            "harness-eng-lead",
+            root,
+            feature=feature,
+            runtime="omp",
+            supervisor_pid=dead_pid,
+        )
+    proc.terminate()
+    proc.wait()
+    removed = inflight_registry.reconcile(root, feature="FEAT-43-alpha")
+    data = _read_raw(root)
+    features = [claim.get("feature") for claim in data.get("claims", [])]
+    check("case20: targeted recovery removes one dead-supervisor claim", removed == 1, removed)
+    check("case20: targeted recovery leaves another feature untouched", features == ["FEAT-44-beta"], data)
+
+
+def case_21_live_query_does_not_expire_another_feature():
+    root = tempfile.mkdtemp()
+    proc = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"])
+    supervisor_pid = proc.pid
+    for feature in ("FEAT-43-alpha", "FEAT-44-beta"):
+        inflight_registry.claim(
+            root,
+            "harness-backend-dev",
+            "harness-eng-lead",
+            root,
+            feature=feature,
+            runtime="omp",
+            supervisor_pid=supervisor_pid,
+        )
+    proc.terminate()
+    proc.wait()
+    claim, expired = inflight_registry.live_claim(
+        root, "harness-backend-dev", feature="FEAT-43-alpha"
+    )
+    data = _read_raw(root)
+    features = [entry.get("feature") for entry in data.get("claims", [])]
+    check("case21: queried dead claim expires", claim is None and expired == 1, (claim, expired))
+    check("case21: unrelated dead feature is left for targeted reconciliation", features == ["FEAT-44-beta"], data)
+
+
 def case_10_no_own_primitive():
     path = os.path.join(MODULE_DIR, "inflight_registry.py")
     src = open(path, encoding="utf-8").read()
@@ -516,6 +690,13 @@ def main():
     case_12_foreign_session_expired()
     case_13_release_refuses_ambiguous()
     case_14_remedy_is_absolute()
+    case_15_feature_scoped_single_flight()
+    case_16_omp_claim_lives_with_supervisor()
+    case_17_targeted_release_keeps_other_feature()
+    case_18_legacy_registry_migrates_on_write()
+    case_19_attach_and_release_by_runtime_identity()
+    case_20_reconcile_only_target_feature()
+    case_21_live_query_does_not_expire_another_feature()
 
     failed = [r for r in RESULTS if not r[1]]
     if failed:

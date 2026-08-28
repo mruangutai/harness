@@ -1006,7 +1006,8 @@ def run_t09():
         if not os.path.exists(p):
             return []
         with open(p) as fh:
-            return (json.load(fh) or {}).get(agent) or []
+            data = json.load(fh) or {}
+        return [claim for claim in data.get("claims", []) if claim.get("agent") == agent]
 
     # 1. a valid pm return RELEASES its claim
     root = _t09_root()
