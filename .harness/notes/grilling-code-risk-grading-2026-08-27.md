@@ -124,3 +124,35 @@ a failing grade routes back to the engineering lead through the fix loop that al
   turns its output into a `high` finding is main-session-direct, and the script joins the enumerated
   list on that day. **This is not a question for the operator.**
 - The codebase is 1420 markdown, 94 Python, 45 JSON, 36 YAML, 36 HTML, 11 shell, 2 TypeScript files.
+
+## ADDED AFTER THE ROUND, 2026-08-27 — the BRIEF owes a Definition of Done
+
+**The operator asked for this explicitly, and it is a BRIEF requirement, not a nice-to-have.**
+
+`BRIEF.md` must carry a section headed **Definition of Done**, written in plain English, that says
+how a reader can tell **the grading itself is working correctly** — not that the code passed.
+
+The distinction is the whole point, and this feature has already seen the failure mode it guards
+against. FEAT-37 drafted an eval that graded a labelled dataset in which one agent wrote both the
+grader and the labels; a failure would have meant only that those two disagreed with each other. The
+operator struck it as code that does nothing. **A checker that only agrees with itself is the same
+shape.** Do not build one here.
+
+Write it for someone who has not read the plan. No metric names in the first sentence, no grade
+numbers as the explanation, no jargon. Each line should be something a person could actually go and
+observe. The substance to cover, at minimum:
+
+- Given a function anyone would call simple, the tool says it is simple. Given one anyone would call
+  tangled, it says so. **Both directions, because a tool that only ever agrees is not measuring.**
+- Make a function worse on purpose and the grade drops. Make it better and the grade rises. The
+  direction of change is the evidence, not the absolute number.
+- The same code graded twice gives the same answer, on any machine, in any directory.
+- When a change fails, the reviewer's finding names the function, the file, the line, the three
+  numbers, and **which metric failed** — enough that the author knows what to change without
+  guessing.
+- A developer who has read the skill and not run the tool can predict roughly what a function will
+  grade. **If they cannot, the teaching failed, whatever the tool reports.**
+- The tool is never the only thing that can fail the change. A human reviewer can still say a split
+  made the code worse even though every number improved.
+
+pm owns the wording and the SC that grades it. Do not restate this list verbatim as the section.
