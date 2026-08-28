@@ -35,7 +35,7 @@ set -uo pipefail
 # REFUSING IS THE POINT — exit 2, never a fallback. Do not name the retired variables here
 # even in prose: the invariant that keeps them gone counts the name in every tracked file.
 _selfbin="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
-root="$(python3 -P -c 'import sys; sys.path.insert(0, sys.argv[1]); import harness_boundary; print(harness_boundary.resolve_root(sys.argv[1]))' "$_selfbin" 2>/dev/null)"
+root="$(python3 -I -c 'import sys; sys.path.insert(0, sys.argv[1]); import harness_boundary; print(harness_boundary.resolve_root(sys.argv[1]))' "$_selfbin" 2>/dev/null)"
 if [ -z "$root" ] || [ ! -d "$root" ]; then
   echo "branch-create-gate.sh: no harness root could be resolved from $_selfbin — refusing to run" >&2
   exit 2
@@ -45,7 +45,7 @@ GH="${GH_BIN:-gh}"
 input=$(cat)
 
 # ---- config gate: github.sync on, repo pinned — else pass through instantly
-read -r SYNC REPO <<<"$(python3 -P - "$root" <<'PY'
+read -r SYNC REPO <<<"$(python3 -I - "$root" <<'PY'
 import json, os, sys
 try:
     g = json.load(open(os.path.join(sys.argv[1], ".harness", "harness.json"))).get("github") or {}
@@ -58,10 +58,10 @@ PY
 [ "$SYNC" = "true" ] || exit 0
 [ "$REPO" != "-" ] || exit 0   # sync-without-repo is INV-13's problem, not this gate's
 
-cmd=$(printf '%s' "$input" | python3 -P -c 'import sys,json; print((json.load(sys.stdin).get("tool_input") or {}).get("command") or "")')
+cmd=$(printf '%s' "$input" | python3 -I -c 'import sys,json; print((json.load(sys.stdin).get("tool_input") or {}).get("command") or "")')
 
 deny() {
-  python3 -P -c 'import sys,json; print(json.dumps({"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":sys.argv[1]}}))' "$1"
+  python3 -I -c 'import sys,json; print(json.dumps({"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":sys.argv[1]}}))' "$1"
   exit 0
 }
 
@@ -88,7 +88,7 @@ flow=$(printf '%s' "$leaf" | sed -nE 's/^((FEAT|BUG)-[0-9]+[a-z0-9-]*).*/\1/p')
 if [ -n "$flow" ]; then
   match=$(ls -d "$root/.harness/harness/features/${flow}"* 2>/dev/null | head -1)
   [ -n "$match" ] || deny "Branch \"${name}\" names flow ${flow}, but no .harness/harness/features/${flow}* exists. Flows are created by /harness-plan — plan first, then branch."
-  python3 -P -c 'import sys,json; print(json.dumps({"systemMessage":"[work-tracking] Branch maps to flow "+sys.argv[1]+"."}))' "$flow"
+  python3 -I -c 'import sys,json; print(json.dumps({"systemMessage":"[work-tracking] Branch maps to flow "+sys.argv[1]+"."}))' "$flow"
   exit 0
 fi
 
@@ -104,5 +104,5 @@ if [ -z "$state" ]; then
 fi
 [ "$state" = "OPEN" ] || deny "Issue #${num} is ${state}, not OPEN. Branch off an open issue."
 
-python3 -P -c 'import sys,json; print(json.dumps({"systemMessage":"[work-tracking] Branch maps to OPEN issue #"+sys.argv[1]+" in "+sys.argv[2]+"."}))' "$num" "$REPO"
+python3 -I -c 'import sys,json; print(json.dumps({"systemMessage":"[work-tracking] Branch maps to OPEN issue #"+sys.argv[1]+" in "+sys.argv[2]+"."}))' "$num" "$REPO"
 exit 0

@@ -6,6 +6,8 @@ import {
   gatePath,
   extractEditPaths,
   normalizeYieldInput,
+  normalizeTaskDispatches,
+  registerHarnessHooks,
   yieldContractText,
 } from "../../../../.omp/extensions/harness-hooks.ts";
 
@@ -116,5 +118,279 @@ describe("gatePath", () => {
   test("the script name still selects the file", () => {
     expect(gatePath("bash-write-guard.sh")).not.toBe(gatePath("check-domain.sh"));
     expect(gatePath("bash-write-guard.sh").endsWith("bash-write-guard.sh")).toBe(true);
+  });
+});
+
+describe("OMP task lifecycle adapter", () => {
+  function fixture() {
+    const handlers = new Map<string, Function>();
+    const calls: Array<{ script: string; args: string[]; payload: Record<string, unknown> }> = [];
+    const active = new Set(["agent-a", "agent-b"]);
+    let claim = 0;
+    const pi = {
+      on(name: string, handler: Function) {
+        handlers.set(name, handler);
+      },
+    };
+    const runner = (
+      _cwd: string,
+      script: string,
+      args: string[],
+      payload: Record<string, unknown>,
+    ) => {
+      calls.push({ script, args, payload });
+      if (script === "inject-expertise.sh") return { blocked: false, stdout: "" };
+      if (script === "dispatch-guard.sh") {
+        const task = (payload.tool_input as Record<string, unknown>).task;
+        if (task === "deny") return { blocked: true, reason: "denied", stdout: "" };
+        // The guard's FAIL-OPEN shape: exit 0, nothing on stdout. Seven branches of
+        // dispatch-guard.sh return exactly this (:34, :38, :72, :112, :138, :145, :187).
+        // Absent from this fixture, no test could execute the pass-through path and F1
+        // was invisible to a green suite.
+        if (task === "passthrough") return { blocked: false, stdout: "" };
+        claim += 1;
+        return {
+          blocked: false,
+          stdout: JSON.stringify({
+            harness_claim: {
+              root: "/repo",
+              feature: "FEAT-43-long-run",
+              agent: (payload.tool_input as Record<string, unknown>).agent,
+              claim_id: `claim-${claim}`,
+            },
+          }),
+        };
+      }
+      if (script === "inflight_registry.py" && args[0] === "release") {
+        const agentIndex = args.indexOf("--agent-id");
+        if (agentIndex >= 0) active.delete(args[agentIndex + 1]);
+        const claimIndex = args.indexOf("--claim-id");
+        if (claimIndex >= 0 && args[claimIndex + 1] === "claim-1") active.delete("agent-a");
+        if (claimIndex >= 0 && args[claimIndex + 1] === "claim-2") active.delete("agent-b");
+        return { blocked: false, stdout: "" };
+      }
+      if (script === "validate-digest.py") {
+        return active.size
+          ? { blocked: true, reason: "children live", stdout: "" }
+          : { blocked: false, stdout: "" };
+      }
+      return { blocked: false, stdout: "" };
+    };
+    registerHarnessHooks(pi, runner);
+    return { handlers, calls };
+  }
+
+  async function start(handlers: Map<string, Function>) {
+    const ctx = {
+      cwd: "/repo",
+      sessionManager: { getSessionId: () => "parent-session" },
+    };
+    await handlers.get("before_agent_start")?.({
+      systemPrompt: ["HARNESS_AGENT_ID: harness-eng-lead"],
+    }, ctx);
+    await handlers.get("message_end")?.({
+      message: {
+        role: "user",
+        content: [{ type: "text", text: "HARNESS-FEATURE: FEAT-43-long-run\nassignment" }],
+      },
+    }, ctx);
+  }
+
+  test("normalizes batch and flat task calls", () => {
+    expect(normalizeTaskDispatches({
+      context: "shared",
+      tasks: [{ agent: "harness-backend-dev", task: "a" }, { agent: "harness-dev-ops", task: "b" }],
+    })).toEqual([
+      { agent: "harness-backend-dev", task: "a" },
+      { agent: "harness-dev-ops", task: "b" },
+    ]);
+    expect(normalizeTaskDispatches({ agent: "harness-pm", task: "plan" }))
+      .toEqual([{ agent: "harness-pm", task: "plan" }]);
+  });
+
+  test("blocks a whole batch and rolls back earlier claims", async () => {
+    const { handlers, calls } = fixture();
+    await start(handlers);
+    expect(calls.some((call) =>
+      call.script === "inflight_registry.py"
+      && call.args[0] === "reconcile"
+      && call.args.includes("FEAT-43-long-run")
+    )).toBe(true);
+
+    const result = await handlers.get("tool_call")?.({
+      toolName: "task",
+      toolCallId: "call-refused",
+      input: {
+        context: "shared",
+        tasks: [
+          { agent: "harness-backend-dev", task: "HARNESS-FEATURE: FEAT-43-long-run\nallow" },
+          { agent: "harness-dev-ops", task: "deny" },
+        ],
+      },
+    }, { cwd: "/repo", sessionManager: { getSessionId: () => "parent-session" } });
+    expect(result).toEqual({ block: true, reason: "denied" });
+    expect(calls.some((call) =>
+      call.script === "inflight_registry.py"
+      && call.args.includes("--claim-id")
+      && call.args.includes("claim-1")
+    )).toBe(true);
+  });
+  test("runs the GitHub close gate before other Bash guards", async () => {
+    const { handlers, calls } = fixture();
+    await start(handlers);
+    await handlers.get("tool_call")?.({
+      toolName: "bash",
+      input: { command: "gh issue close 12" },
+    }, { cwd: "/repo", sessionManager: { getSessionId: () => "parent-session" } });
+    const scripts = calls.map((call) => call.script);
+    expect(scripts.indexOf("gh-close-gate.sh")).toBeGreaterThan(-1);
+    expect(scripts.indexOf("gh-close-gate.sh")).toBeLessThan(scripts.indexOf("branch-create-gate.sh"));
+    expect(scripts.indexOf("branch-create-gate.sh")).toBeLessThan(scripts.indexOf("bash-write-guard.sh"));
+  });
+
+  test("releases settled blocking results before the parent resumes", async () => {
+    const { handlers, calls } = fixture();
+    await start(handlers);
+    const ctx = { cwd: "/repo", sessionManager: { getSessionId: () => "parent-session" } };
+    const input = {
+      context: "shared",
+      tasks: [
+        { agent: "harness-backend-dev", task: "HARNESS-FEATURE: FEAT-43-long-run\none" },
+        { agent: "harness-dev-ops", task: "HARNESS-FEATURE: FEAT-43-long-run\ntwo" },
+      ],
+    };
+    await handlers.get("tool_call")?.({
+      toolName: "task", toolCallId: "call-blocking", input,
+    }, ctx);
+    await handlers.get("tool_result")?.({
+      toolName: "task",
+      toolCallId: "call-blocking",
+      input,
+      details: {
+        results: [
+          { index: 0, id: "agent-a", exitCode: 0 },
+          { index: 1, id: "agent-b", exitCode: 0 },
+        ],
+      },
+      content: [],
+    }, ctx);
+    expect(calls.filter((call) =>
+      call.script === "inflight_registry.py" && call.args[0] === "attach"
+    )).toHaveLength(0);
+    expect(await handlers.get("tool_call")?.({
+      toolName: "yield", input: { result: { data: { content: "VERDICT: PASS" } } },
+    }, ctx)).toBeUndefined();
+  });
+
+  test("attaches task identities and releases each terminal child", async () => {
+    const { handlers, calls } = fixture();
+    await start(handlers);
+    const ctx = { cwd: "/repo", sessionManager: { getSessionId: () => "parent-session" } };
+    const input = {
+      context: "shared",
+      tasks: [
+        { agent: "harness-backend-dev", task: "HARNESS-FEATURE: FEAT-43-long-run\none" },
+        { agent: "harness-dev-ops", task: "HARNESS-FEATURE: FEAT-43-long-run\ntwo" },
+      ],
+    };
+    expect(await handlers.get("tool_call")?.({
+      toolName: "task", toolCallId: "call-ok", input,
+    }, ctx)).toBeUndefined();
+    await handlers.get("tool_result")?.({
+      toolName: "task",
+      toolCallId: "call-ok",
+      input,
+      details: {
+        progress: [
+          { index: 0, id: "agent-a", jobId: "job-a" },
+          { index: 1, id: "agent-b", jobId: "job-b" },
+        ],
+      },
+      content: [],
+    }, ctx);
+    expect(calls.filter((call) =>
+      call.script === "inflight_registry.py" && call.args[0] === "attach"
+    )).toHaveLength(2);
+
+    await handlers.get("task:subagent:lifecycle")?.({
+      status: "idle", agentId: "agent-a", jobId: "job-a",
+    }, ctx);
+    expect(await handlers.get("tool_call")?.({
+      toolName: "yield", input: { result: { data: { content: "VERDICT: PASS" } } },
+    }, ctx)).toEqual({ block: true, reason: "children live" });
+
+    await handlers.get("task:subagent:lifecycle")?.({
+      status: "idle", agentId: "agent-b", jobId: "job-b",
+    }, ctx);
+    expect(await handlers.get("tool_call")?.({
+      toolName: "yield", input: { result: { data: { content: "VERDICT: PASS" } } },
+    }, ctx)).toBeUndefined();
+  });
+
+  // --- F1. DEC-100: only exit 2 blocks. Fails on the pre-fix adapter, which read an
+  // absent receipt as a refusal and inverted every fail-open branch into a hard block.
+  test("a guard pass-through with no claim receipt allows the dispatch", async () => {
+    const { handlers } = fixture();
+    await start(handlers);
+    const ctx = { cwd: "/repo", sessionManager: { getSessionId: () => "parent-session" } };
+    expect(await handlers.get("tool_call")?.({
+      toolName: "task",
+      toolCallId: "call-passthrough",
+      input: { agent: "scout", task: "passthrough" },
+    }, ctx)).toBeUndefined();
+  });
+
+  test("a claimless dispatch in a batch does not roll back its siblings' claims", async () => {
+    const { handlers, calls } = fixture();
+    await start(handlers);
+    const ctx = { cwd: "/repo", sessionManager: { getSessionId: () => "parent-session" } };
+    expect(await handlers.get("tool_call")?.({
+      toolName: "task",
+      toolCallId: "call-mixed",
+      input: {
+        context: "shared",
+        tasks: [
+          { agent: "harness-backend-dev", task: "HARNESS-FEATURE: FEAT-43-long-run\nallow" },
+          { agent: "scout", task: "passthrough" },
+        ],
+      },
+    }, ctx)).toBeUndefined();
+    expect(calls.filter((call) =>
+      call.script === "inflight_registry.py" && call.args[0] === "release"
+    )).toHaveLength(0);
+  });
+
+  // --- F2. DEC-204 captures the assignment message, once, as `user`. Both cases below
+  // THROW on the pre-fix adapter, from inside an async pi.on handler.
+  test("a tool result echoing another feature's marker cannot re-key the session", async () => {
+    const { handlers, calls } = fixture();
+    await start(handlers);
+    const ctx = { cwd: "/repo", sessionManager: { getSessionId: () => "parent-session" } };
+    const reconciled = (call: { script: string; args: string[] }) =>
+      call.script === "inflight_registry.py" && call.args[0] === "reconcile";
+    const before = calls.filter(reconciled).length;
+    await handlers.get("message_end")?.({
+      message: {
+        role: "toolResult",
+        content: [{ type: "text", text: "HARNESS-FEATURE: FEAT-99-other-feature\nnotes" }],
+      },
+    }, ctx);
+    expect(calls.filter(reconciled).length).toBe(before);
+  });
+
+  test("a later user message cannot re-key the captured feature", async () => {
+    const { handlers, calls } = fixture();
+    await start(handlers);
+    const ctx = { cwd: "/repo", sessionManager: { getSessionId: () => "parent-session" } };
+    const reconciled = (call: { script: string; args: string[] }) =>
+      call.script === "inflight_registry.py" && call.args[0] === "reconcile";
+    const before = calls.filter(reconciled).length;
+    await handlers.get("message_update")?.({
+      message: {
+        role: "user",
+        content: [{ type: "text", text: "HARNESS-FEATURE: FEAT-99-other-feature\nlater" }],
+      },
+    }, ctx);
+    expect(calls.filter(reconciled).length).toBe(before);
   });
 });

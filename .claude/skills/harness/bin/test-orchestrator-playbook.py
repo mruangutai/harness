@@ -59,10 +59,12 @@ def case2_absence_loop_until_done(text):
           f"found the retired literal {literal!r}")
 
 
-def case4_presence_context_watch(text):
-    literal = "context-watch.py"
-    check("case4_presence_context_watch_py", literal in text,
-          f"literal {literal!r} not found")
+def case4_host_neutral_context_signal(text):
+    pattern = re.compile(r"host's current-session context\s+signal")
+    check("case4_presence_host_context_signal", bool(pattern.search(text)),
+          "host-neutral current-session context signal wording not found")
+    check("case4_absence_claude_sidecar_probe", "context-watch.py" not in text,
+          "Claude-only context-watch.py still appears in the canonical OMP playbook")
 
 
 def case5_presence_context_warn_tokens(text):
@@ -106,7 +108,7 @@ def main():
 
     case1_absence_receive_team_digest(text)
     case2_absence_loop_until_done(text)
-    case4_presence_context_watch(text)
+    case4_host_neutral_context_signal(text)
     case5_presence_context_warn_tokens(text)
     case6_context_warn_tokens_never_paired_with_refusal(text)
     case7_absence_record_your_phase_in(text)

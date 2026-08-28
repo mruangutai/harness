@@ -7314,3 +7314,101 @@ entry rewrites; DEC-168 for the cascade measurement; DEC-174, because the Bash g
 invariants are the enforcement layer, so this feature's code lands as direct main-session work;
 DEC-188 for the striking of the three entries replaced here; DEC-191 for the closed key set `status`
 lives in; DEC-200, which cites DEC-186 for its own read and is repointed separately under issue #844.
+
+## DEC-204 — OMP supervises long-running Harness dispatches; claims are feature-scoped and process-owned
+
+**Chose:** OMP is the supported host for multi-hour Harness work, with two different edges because
+the runtime gives them different jobs. The main session dispatches the orchestrator asynchronously:
+it receives agent/job identity, ends its turn, and OMP injects the terminal result. Every lead and
+member is declared `blocking: true`: orchestrator-to-lead and lead-to-member task calls stay inside
+OMP while the parent model is inactive, then return the terminal child result directly. No agent
+calls `hub wait`, polls `hub jobs`, sleeps, emits a heartbeat, or invents work. Model family remains
+provider configuration; process supervision is OMP.
+
+**The safety bound is not the liveness bound.** `task.maxRuntimeMs: 0` removes elapsed wall time as
+a reason to kill useful work. OMP's 200-request soft budget remains active and still forces a yield
+at its hard multiple. Hours of legitimate tool execution and hundreds of model turns are different
+failure modes; changing one does not disable the other.
+
+**Every governed edge carries flow identity.** The first prompt line is exactly
+`HARNESS-FEATURE: FEAT-NN-slug` or `HARNESS-FEATURE: BUG-NN-slug`. A later line, a missing line, or a
+different id form is refused. The OMP adapter normalizes both batch and flat task input, runs the
+existing dispatch guard for every item, and refuses the whole batch when one item fails. A batch
+cannot start with only part of its checkpoint represented by claims.
+The role marker comes from the system prompt, but the feature marker does not: OMP places the task
+assignment in the first user message. The extension captures that message before the first tool
+call and carries the feature into yield validation and startup reconciliation. Reading only
+`before_agent_start.systemPrompt` was measured losing the feature and falsely treating concurrent
+features as one parent-child tree.
+
+
+**Claims use schema version 2.** The registry is one explicit `claims` list. Every entry names
+`claim_id`, `feature`, `agent`, `dispatcher`, `cwd`, `started_at`, and `runtime`; an OMP entry also
+names its supervising PID and, after spawn, its agent/job identity. Single-flight is keyed by
+`(feature, persona)`, so two PMs for one feature are refused while PMs for different features are
+legal. The version-1 persona-keyed object is read once for migration and every following write is
+version 2. There is one locked registry implementation, still `inflight_registry.py`.
+
+**OMP liveness follows the supervisor, not elapsed time or child session id.** An OMP claim remains
+live for any age while its recorded supervisor PID exists and becomes stale immediately when that
+PID is gone. Parent and child sessions differ, so the Claude session filter does not hide a live OMP
+child. Claude Code remains a compatibility host and keeps FEAT-37's measured 1200-second TTL; this
+decision does not restore DEC-199's historical one-hour value. The difference is forced by host
+capability: Claude Code exposes no equivalent process-owned async job identity.
+Expiry is query-scoped. Looking up or dispatching one feature never sweeps a dead claim owned by
+another feature; only that feature's query or an explicit targeted reconcile removes it. This keeps
+crash recovery from changing an unrelated flow merely because both claims share one registry.
+
+
+**Release is targeted and idempotent.** A settled blocking task result releases its claim directly.
+For a background task, OMP attaches agent/job identity from task result details and releases the
+matching claim on `task:subagent:lifecycle`; `yield` validation remains an idempotent second path.
+A failed preflight or spawn releases claims for items that did not start. Recovery instructions and
+refusals print only feature/agent/claim-targeted commands, never `release-all`. The older command
+remains an operator escape hatch but is not an automated remedy. A lead or orchestrator `yield` is
+refused while any matching child claim remains live; `agent_end` is notification-only.
+
+**A process exit does not pretend detached work survived.** OMP sessions and transcripts persist,
+but running jobs belong to the process. On `--resume`, a dead-PID claim is reconciled before a new
+dispatch. The recovery order is checkpoint on disk, persisted `agent://`/`history://` result, then
+landed commits. A transcript or claim never proves PASS. A valid terminal artifact is collected; a
+recoverable regular agent with no terminal artifact may be revived; otherwise only the unfinished
+checkpointed step is re-dispatched.
+
+**GitHub mirrors durable transitions only.** The existing command ownership and write-first order
+stand. Child runtime, wakes, and recovery generate no heartbeat traffic. On wake, the owner re-reads
+`plan.yaml`, `feature.json`, and stored GitHub receipts before deciding whether a transition is due;
+duplicate delivery is an idempotent no-op. OMP's Bash preflight now invokes `gh-close-gate.sh`
+before branch and write guards, so the direct-close rule in DEC-203 applies under the canonical host.
+
+**Measured enforcement overturned the first design rather than being fitted to it.** With nested
+agents left asynchronous, OMP forced the orchestrator toward `yield` while its lead remained live;
+the digest hook refused it six times and OMP stopped the parent to avoid an infinite submit loop.
+After marking the lead and member blocking, the same OpenAI hierarchy completed in 51.8 seconds:
+the leaf held one five-second Bash call, wrote an unguessable token, the lead and orchestrator each
+read that exact artifact, and the outer async result reached main. Their transcripts contain no
+poll, sleep, wait, heartbeat, or keepalive call. The probe also found macOS OMP launching
+`/usr/bin/python3` 3.9, where `-P` is invalid; gates now use portable `-I` where possible and a
+`sys.path[0]` bootstrap where normal site-packages are required.
+The provider control used the same three probe agents, prompts, tools, claims, and artifact shape
+under the Anthropic overlay. Its Sonnet leaf held one Bash call for 900.06 seconds, its Opus lead
+and orchestrator verified the exact token, and main received the terminal async result after 16m39s.
+An OpenAI feature claim remained live concurrently; feature capture from the assignment kept it out
+of every Anthropic parent-yield check.
+The long control then held the OpenAI Terra leaf's single Bash call for 7200.07 seconds. The Sol
+lead and orchestrator each resumed only when their blocking task result arrived, read the exact
+token, and returned PASS; main received the outer result after 2h1m. Between task start and result,
+each parent transcript contains no intervening model message or tool call.
+
+
+
+The deterministic suites separately exercise per-feature PM isolation, live/dead OMP supervisors,
+targeted release, schema migration, runtime identity, atomic batch refusal, blocking-result release,
+flat/batch normalization, lifecycle release, and parent-yield refusal. The port checker rejects
+drift in async enablement, wall-clock configuration, nested blocking declarations, task preflight,
+lifecycle wiring, or the GitHub close gate.
+
+This decision supersedes DEC-199 only for claim schema, key, liveness, and automated recovery. It
+supersedes DEC-201's host-specific mechanics for OMP while preserving its no-wait conduct and
+evidence standard. DEC-202 still owns canonical paths, provider overlays, and compatibility
+adapters. DEC-203 still owns issue/card lifecycle and command ownership.

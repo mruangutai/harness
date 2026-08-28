@@ -35,7 +35,7 @@ _selfdir="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
 # either to /dev/null turns a refusal into "no harness root could be resolved", which names
 # the symptom and not the cause.
 _rooterr="$(mktemp)"
-root="$(python3 -P -c 'import sys; sys.path.insert(0, sys.argv[1]); import harness_boundary; print(harness_boundary.resolve_root(sys.argv[1]))' "$_selfdir" 2>"$_rooterr")"
+root="$(python3 -I -c 'import sys; sys.path.insert(0, sys.argv[1]); import harness_boundary; print(harness_boundary.resolve_root(sys.argv[1]))' "$_selfdir" 2>"$_rooterr")"
 if [ -z "$root" ] || [ ! -d "$root" ]; then
   echo "check-state.sh: no harness root could be resolved from $_selfdir — refusing to run." >&2
   cat "$_rooterr" >&2
@@ -45,9 +45,10 @@ fi
 cat "$_rooterr" >&2
 rm -f "$_rooterr"
 cd "$root" || exit 2
-PYTHONPATH="$_selfdir${PYTHONPATH:+:$PYTHONPATH}" python3 -P - "$root" <<'PY'
+PYTHONPATH="$_selfdir${PYTHONPATH:+:$PYTHONPATH}" python3 -c 'import sys; sys.path.pop(0); exec(compile(sys.stdin.read(), "<stdin>", "exec"))' "$root" "$_selfdir" <<'PY'
 import sys, os, re, glob, json, subprocess
 
+sys.path.insert(0, sys.argv[2])
 import harness_yaml
 
 # Review finding 1: `require_or_die` is the module's documented gate for exactly

@@ -15,6 +15,7 @@ spawns:
 - harness-dev-ops
 model: '@strong'
 thinking-level: medium
+blocking: true
 autoloadSkills:
 - harness-handoff
 - harness-expertise

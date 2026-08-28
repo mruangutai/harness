@@ -1,336 +1,532 @@
 #!/usr/bin/env python3
-"""inflight_registry.py — the single-flight claim store (FEAT-32 T-06, D-06, D-09).
+"""Feature-scoped in-flight claim store for Harness dispatch supervision.
 
-A small interface (seven public functions plus a three-verb CLI) over a locked JSON store. The
-ONE seam is harness_merge.locked_update — every read-modify-write of the registry file crosses
-it, and this module never opens its own locking or atomic-rename primitive (case 10 of
-test-inflight-registry.py asserts both halves of that).
-
-The registry is a JSON object mapping a persona name to a LIST of claim objects, each holding
-started_at (unix float), dispatcher (the dispatching persona name, or None) and cwd (the
-checkout it was claimed in). A list, not one object per persona, because two harness-backend-dev
-members in flight at once is legal and one object could not hold both (D-06).
-
-Root resolution: every public function takes an explicit `root` — the checkout root. The CLI
-resolves that root through harness_boundary.resolve_root (the one project-dir override, the
-derived-from-script-location fallback), overridable by an explicit --root argument — the
-operator's manual escape hatch — so two worktrees never contend over the same file.
-
-A missing, empty or unparseable registry file is treated as an EMPTY registry and reported on
-stderr — never an exception out of a hook. Failing OPEN on a leaked claim, not closed, is the
-house precedent for a guard's own bug (see validate-digest.py's hook_mode pass-through, whose
-stderr line ends "this is our bug, not theirs").
+Every mutation crosses harness_merge.locked_update. Version 2 stores one claims list so identity
+is explicit rather than encoded in object keys. Version 1 persona-keyed files are accepted on read
+and rewritten as version 2 by the next mutation; version 1 is never written.
 """
 import datetime
 import json
+import math
 import os
+import shlex
+import subprocess
 import sys
 import time
+import uuid
 
 import harness_boundary
 import harness_merge
 
-# Module-level literals. Each is mutated BY NAME in a copy of the tree by the test's red proof.
 SINGLE_FLIGHT_AGENTS = ("harness-pm",)
-
-# 1200s = one pm cycle (10-20 minutes), not the four cycles 3600 used to allow. The cost is
-# real, not hidden: a legitimate run longer than 20 minutes loses its single-flight protection.
-# That is preferred to the alternative measured on 2026-08-26 — a strand that locks a tier
-# chain out of reporting until an hour-long timer expires.
+# Claude Code exposes no durable child-process owner. FEAT-37 deliberately shortened this to one
+# normal PM cycle so an interrupted compatibility-host run does not strand a tier for an hour.
 CLAIM_TTL_SECONDS = 1200
-
-# The registry is written by HOOKS, on every spawn. harness_merge's 10s default is right for a
-# file merge and wrong here: a registry read-modify-write is milliseconds, so a lock still held
-# after a second means the holder is STUCK, not busy, and hanging the dispatch to discover that
-# buys nothing. Giving up fast and failing OPEN loudly is D-07's posture. Named so a measurement
-# can move it; the four file-merge callers keep the 10s default untouched.
+# An OMP claim is owned by a supervisor process, not by a clock — a verified one is live at
+# ANY age, which is what lets a leaf run for hours. This backstop applies ONLY to a claim
+# whose supervisor identity cannot be PROVEN (no recorded start time, or the OS would not
+# report one). Without it such a claim can never age out, and a stranded one refuses its
+# parent's yield through validate-digest.py's held-child gate forever. Well above the
+# 7,200s longest measured leaf run, so it can never cut short a real agent.
+OMP_UNVERIFIED_TTL_SECONDS = 86400
 LOCK_TIMEOUT_SECONDS = 1.0
 REGISTRY_REL = ".harness/.inflight-claims.json"
-
-# RETIRED as a printed remedy at T-06 (FEAT-42): release_cmd(root, agent) below is what a
-# refusal prints now — absolute and single-agent, where this was relative and release-all.
-# Kept as a plain literal, not built from a deleted constant, ONLY because dispatch-guard.sh:115
-# still reads this name inside its refusal branch; an AttributeError there is swallowed by that
-# script's broad except and turns into a fail-open dispatch (measured, not assumed — see T-06's
-# receipt). T-18 removes this constant together with the dispatch-guard.sh callsite that reads it.
+SCHEMA_VERSION = 2
+LEGACY_FEATURE = "legacy"
 RELEASE_ALL_CMD = "python3 .agents/skills/harness/bin/inflight_registry.py release-all"
-
-
-# ---------------------------------------------------------------------------
-# Internal helpers
-# ---------------------------------------------------------------------------
 
 
 def _registry_path(root):
     return os.path.join(root, REGISTRY_REL)
 
 
+def _empty():
+    return {"schema_version": SCHEMA_VERSION, "claims": []}
+
+
 def _parse(base, path):
-    """base is the raw bytes read by locked_update, or None if the file did not exist. Any
-    failure to produce a JSON object is reported on stderr and treated as an empty registry —
-    never raised out of this module."""
     if base is None:
-        return {}
+        return _empty()
     text = base.decode("utf-8", errors="replace") if isinstance(base, bytes) else base
     if not text.strip():
-        return {}
+        return _empty()
     try:
-        data = json.loads(text)
+        raw = json.loads(text)
     except (json.JSONDecodeError, ValueError):
         print(f"inflight_registry: {path} is corrupt or unparseable, treating as empty", file=sys.stderr)
-        return {}
-    if not isinstance(data, dict):
+        return _empty()
+    if not isinstance(raw, dict):
         print(f"inflight_registry: {path} is not a JSON object, treating as empty", file=sys.stderr)
-        return {}
-    return data
+        return _empty()
+    if raw.get("schema_version") == SCHEMA_VERSION and isinstance(raw.get("claims"), list):
+        return {"schema_version": SCHEMA_VERSION, "claims": list(raw["claims"])}
 
-
-def _set_or_pop(data, agent, live):
-    if live:
-        data[agent] = live
-    else:
-        data.pop(agent, None)
-
-
-def _expire(claims, now):
-    """Split claims into (live, expired_count). A claim older than CLAIM_TTL_SECONDS is treated
-    as ABSENT."""
-    live = []
-    expired = 0
-    for c in claims:
-        # PER-CLAIM TOLERANCE, and it is not defensive padding. This runs UPSTREAM of the
-        # single-flight test in dispatch-guard.sh, so a single malformed entry raising here
-        # took the whole #628 refusal down SILENTLY -- the guard caught the exception and
-        # failed open, which is right for the dispatch and wrong as a way to lose the check.
-        # A claim we cannot read is treated as expired: it cannot be released by name either,
-        # so keeping it would refuse a legitimate dispatch until its TTL, and the TTL cannot
-        # be computed for an entry whose started_at is unreadable.
-        if not isinstance(c, dict):
-            expired += 1
+    # Clean cutover reader. The next locked operation writes only version 2.
+    claims = []
+    for agent, entries in raw.items():
+        if not isinstance(agent, str) or not isinstance(entries, list):
             continue
-        started = c.get("started_at")
-        if not isinstance(started, (int, float)):
-            expired += 1
-            continue
-        if now - started > CLAIM_TTL_SECONDS:
-            expired += 1
-        else:
-            live.append(c)
-    return live, expired
+        for entry in entries:
+            if not isinstance(entry, dict):
+                claims.append(entry)
+                continue
+            migrated = dict(entry)
+            migrated.setdefault("claim_id", uuid.uuid4().hex)
+            migrated.setdefault("agent", agent)
+            migrated.setdefault("feature", LEGACY_FEATURE)
+            migrated.setdefault("runtime", "claude")
+            claims.append(migrated)
+    return {"schema_version": SCHEMA_VERSION, "claims": claims}
 
 
 def _update_registry(root, mutator):
-    """mutator(data: dict) -> (new_data, result). Runs entirely inside a single
-    harness_merge.locked_update transform, so the read, the mutation and the write are one
-    atomic step under the shared lock. Returns the mutator's result to the caller — locked_update
-    itself returns nothing, so the result travels out via a closure cell."""
     path = _registry_path(root)
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    result_holder = {}
+    holder = {}
 
     def transform(base):
         data = _parse(base, path)
         new_data, result = mutator(data)
-        result_holder["result"] = result
-        return (json.dumps(new_data, indent=2, sort_keys=True) + "\n").encode("utf-8")
+        holder["result"] = result
+        canonical = {
+            "schema_version": SCHEMA_VERSION,
+            "claims": list(new_data.get("claims", [])),
+        }
+        return (json.dumps(canonical, indent=2, sort_keys=True) + "\n").encode("utf-8")
 
     harness_merge.locked_update(path, transform, timeout=LOCK_TIMEOUT_SECONDS)
-    return result_holder["result"]
+    return holder["result"]
 
 
 def _iso(ts):
     return datetime.datetime.fromtimestamp(ts, tz=datetime.timezone.utc).isoformat()
 
 
-# ---------------------------------------------------------------------------
-# Public API
-# ---------------------------------------------------------------------------
+def _pid_alive(pid):
+    if not isinstance(pid, int) or isinstance(pid, bool) or pid <= 0:
+        return False
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    except OSError:
+        return False
+    return True
+
+
+# Cached for this process only. `_expire` runs per claim on every registry read, and the
+# macOS branch forks `ps`; without this a single dispatch would fork once per claim. A
+# process start time never changes, so a cache that dies with the CLI invocation is safe.
+_START_TIME_CACHE = {}
+
+
+def _process_start_time(pid):
+    """Epoch seconds at which `pid` started, or None when the OS will not say.
+
+    Both branches return ABSOLUTE seconds so the value survives a reboot comparison:
+    ticks-since-boot alone would let a post-reboot pid collide with its pre-reboot self.
+    """
+    if not isinstance(pid, int) or isinstance(pid, bool) or pid <= 0:
+        return None
+    if pid not in _START_TIME_CACHE:
+        _START_TIME_CACHE[pid] = _read_process_start_time(pid)
+    return _START_TIME_CACHE[pid]
+
+
+def _read_process_start_time(pid):
+    try:
+        # Linux. Field 22 of /proc/<pid>/stat is start time in clock ticks since boot.
+        # The comm field is parenthesised and may itself contain spaces, so split after
+        # the LAST ')' rather than on the whole line.
+        with open(f"/proc/{pid}/stat", "rb") as handle:
+            tail = handle.read().rpartition(b")")[2].split()
+        with open("/proc/stat", "rb") as handle:
+            boot = next(l for l in handle if l.startswith(b"btime "))
+        return int(float(boot.split()[1]) + float(tail[19]) / os.sysconf("SC_CLK_TCK"))
+    except Exception:
+        pass
+    try:
+        # macOS and anything else without /proc. One fork per distinct pid per run.
+        #
+        # LC_ALL=C IS LOAD-BEARING, not tidiness. `ps` renders lstart in the inherited
+        # LC_TIME while Python's strptime stays in the C locale unless setlocale was
+        # called, so on a non-English host the parse raises, every claim records no
+        # start time, and each one silently falls to the unverified backstop — F3's fix
+        # inert and DEC-204's "live for any age" quietly reduced to 24 hours. Pinning
+        # the child's locale makes the two ends agree on every host.
+        out = subprocess.run(["ps", "-o", "lstart=", "-p", str(pid)],
+                             capture_output=True, text=True, timeout=5,
+                             env={**os.environ, "LC_ALL": "C", "LC_TIME": "C"})
+        line = out.stdout.strip()
+        return int(time.mktime(time.strptime(line, "%a %b %d %H:%M:%S %Y"))) if line else None
+    except Exception:
+        return None
+
+
+def _omp_claim_live(claim, now):
+    """Is this OMP claim still owned by the supervisor that made it?
+
+    IDENTITY IS (pid, start time), NEVER THE PID ALONE. The OS recycles pids, and because
+    this branch has no TTL a recycled one made a dead claim look live FOREVER — not merely
+    stalling single-flight for `harness-pm`, but refusing its parent's yield through
+    validate-digest.py's held-child gate, which locks a lead and then the orchestrator out
+    of reporting exactly as that file's own comment describes. `reconcile` could not clear
+    it either, because it asks this same question and is told the claim is live.
+    """
+    pid = claim.get("supervisor_pid")
+    if not _pid_alive(pid):
+        return False
+    recorded = claim.get("supervisor_started_at")
+    current = _process_start_time(pid)
+    if _is_number(recorded) and _is_number(current):
+        return int(recorded) == int(current)
+    # Identity unproven: fall back to the backstop rather than trusting the pid forever.
+    started = claim.get("started_at")
+    return _is_number(started) and now - started <= OMP_UNVERIFIED_TTL_SECONDS
+
+
+def _is_number(value):
+    # isfinite, not merely numeric: `json.loads` accepts bare NaN and Infinity, and every
+    # caller here feeds this predicate straight into an `int()` that would raise on one.
+    # That raise escapes into the broad `except Exception` around each registry read and
+    # fails OPEN — durably, because reconcile asks the same question and its pruning write
+    # never lands, so the bad entry can never clear itself.
+    return isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
+
+
+def _expire(claims, now):
+    live = []
+    expired = 0
+    for claim in claims:
+        if not isinstance(claim, dict):
+            expired += 1
+            continue
+        started = claim.get("started_at")
+        if not isinstance(started, (int, float)) or isinstance(started, bool):
+            expired += 1
+            continue
+        if claim.get("runtime") == "omp":
+            if _omp_claim_live(claim, now):
+                live.append(claim)
+            else:
+                expired += 1
+            continue
+        if now - started > CLAIM_TTL_SECONDS:
+            expired += 1
+        else:
+            live.append(claim)
+    return live, expired
+
+def _expire_where(claims, now, predicate):
+    kept = []
+    expired = 0
+    for claim in claims:
+        if not predicate(claim):
+            kept.append(claim)
+            continue
+        live, count = _expire([claim], now)
+        kept.extend(live)
+        expired += count
+    return kept, expired
+
+
+def _matches(claim, agent=None, feature=None, claim_id=None, agent_id=None, job_id=None):
+    if not isinstance(claim, dict):
+        return False
+    return (
+        (agent is None or claim.get("agent") == agent)
+        and (feature is None or claim.get("feature", LEGACY_FEATURE) == feature)
+        and (claim_id is None or claim.get("claim_id") == claim_id)
+        and (agent_id is None or claim.get("agent_id") == agent_id)
+        and (job_id is None or claim.get("job_id") == job_id)
+    )
+
+
+def _visible(claim, feature=None, session=None):
+    if feature is not None and claim.get("feature", LEGACY_FEATURE) != feature:
+        return False
+    # OMP child and parent sessions differ. Process ownership + feature identity is its liveness
+    # boundary; the compatibility host retains FEAT-42's session filter.
+    if session is not None and claim.get("runtime") != "omp":
+        return claim.get("session") in (None, session)
+    return True
 
 
 def is_single_flight(agent):
     return agent in SINGLE_FLIGHT_AGENTS
 
-
-def _filter_session(claims, session):
-    """The SESSION filter (T-06 item 3), applied ON TOP OF _expire's TTL filter, never in place
-    of it. When the caller supplies a session and an entry carries a DIFFERENT one, that entry
-    is not live for this query, whatever its age — this is what kills a cross-session strand
-    outright instead of waiting out CLAIM_TTL_SECONDS. It is NOT removed from disk: it is not
-    actually expired, only foreign to this caller, and its own session must still find it.
-    An entry with no recorded session always matches, so nothing already on disk changes
-    meaning. session=None (the default) disables the filter entirely — today's behaviour."""
-    if session is None:
-        return list(claims)
-    return [c for c in claims if c.get("session") in (None, session)]
+def feature_root(owner_root, feature):
+    """Resolve the checkout assigned to `feature`, falling back to the supplied owner root."""
+    try:
+        for worktree in harness_boundary.linked_worktrees(owner_root):
+            if os.path.basename(worktree) == feature:
+                return worktree
+    except Exception:
+        pass
+    return owner_root
 
 
-def live_claim(root, agent, now=None, session=None):
-    """Returns (oldest_live_claim_or_None, expired_count) for agent. Any claim older than
-    CLAIM_TTL_SECONDS is deleted as a side effect. `expired_count` counts only TTL expiry —
-    a claim filtered out by `session` is neither expired nor deleted, see _filter_session."""
+def live_claim(root, agent, now=None, session=None, feature=None):
     now = now if now is not None else time.time()
     path = _registry_path(root)
     if not os.path.exists(path):
         return None, 0
 
     def mutator(data):
-        claims = data.get(agent, [])
-        live, expired = _expire(claims, now)
-        _set_or_pop(data, agent, live)
-        visible = _filter_session(live, session)
+        live, expired = _expire_where(
+            data.get("claims", []),
+            now,
+            lambda claim: _matches(claim, agent=agent, feature=feature),
+        )
+        data["claims"] = live
+        visible = [c for c in live if _matches(c, agent=agent) and _visible(c, feature, session)]
         oldest = min(visible, key=lambda c: c["started_at"]) if visible else None
         return data, (oldest, expired)
 
     return _update_registry(root, mutator)
 
 
-def live_children(root, dispatcher, now=None, session=None):
-    """Returns the list of (persona, claim) pairs whose claim's dispatcher equals `dispatcher`,
-    expiring stale claims across the WHOLE registry as it scans. `session`, when supplied,
-    filters out entries carrying a different session — see _filter_session."""
+def live_children(root, dispatcher, now=None, session=None, feature=None):
     now = now if now is not None else time.time()
     path = _registry_path(root)
     if not os.path.exists(path):
         return []
 
     def mutator(data):
-        result = []
-        for persona in list(data.keys()):
-            claims = data.get(persona, [])
-            live, _expired = _expire(claims, now)
-            _set_or_pop(data, persona, live)
-            for c in _filter_session(live, session):
-                if c.get("dispatcher") == dispatcher:
-                    result.append((persona, c))
-        return data, result
+        live, _expired = _expire_where(
+            data.get("claims", []),
+            now,
+            lambda claim: _matches(claim, feature=feature)
+            and isinstance(claim, dict)
+            and claim.get("dispatcher") == dispatcher,
+        )
+        data["claims"] = live
+        children = [
+            (c.get("agent"), c)
+            for c in live
+            if c.get("dispatcher") == dispatcher and _visible(c, feature, session)
+        ]
+        return data, children
 
     return _update_registry(root, mutator)
 
 
-def claim(root, agent, dispatcher, cwd, now=None, session=None):
-    """Appends a claim and returns True, unless is_single_flight(agent) and a live claim for
-    agent already exists — in which case nothing is recorded and this returns False.
-
-    `session`, when supplied, is recorded in the entry alongside started_at, dispatcher and
-    cwd — it is what live_claim/live_children later use to tell a foreign session's stale-
-    looking claim from this session's live one (T-06 item 3). The single-flight check above
-    is unaffected: it stays TTL-only, matching today's behaviour for every existing caller
-    that never passes a session.
-
-    IT DOES RAISE. The single-flight refusal returns False rather than raising, and an earlier
-    version of this docstring generalised that into "never raises for contention", which is
-    false: LOCK contention raises harness_merge.MergeRefusal once the deadline passes.
-    Measured, not reasoned — with the lock held it raised after exactly the deadline.
-    EVERY HOOK CALLER MUST WRAP THIS. An uncaught exception in a PreToolUse hook exits
-    non-zero and the dispatch is affected, which inverts D-07's fail-open posture — the exact
-    outcome the refusal path was written to avoid.
-    """
+def claim_with_receipt(
+    root,
+    agent,
+    dispatcher,
+    cwd,
+    now=None,
+    session=None,
+    feature=LEGACY_FEATURE,
+    runtime="claude",
+    supervisor_pid=None,
+):
     now = now if now is not None else time.time()
 
     def mutator(data):
-        claims_list = data.get(agent, [])
-        live, _expired = _expire(claims_list, now)
-        if is_single_flight(agent) and live:
-            _set_or_pop(data, agent, live)
-            return data, False
-        entry = {"started_at": now, "dispatcher": dispatcher, "cwd": cwd}
+        live, _expired = _expire_where(
+            data.get("claims", []),
+            now,
+            lambda claim: _matches(claim, agent=agent, feature=feature),
+        )
+        if is_single_flight(agent) and any(
+            _matches(c, agent=agent, feature=feature) for c in live
+        ):
+            data["claims"] = live
+            return data, None
+        entry = {
+            "claim_id": uuid.uuid4().hex,
+            "started_at": now,
+            "feature": feature,
+            "agent": agent,
+            "dispatcher": dispatcher,
+            "cwd": cwd,
+            "runtime": runtime,
+        }
         if session is not None:
             entry["session"] = session
+        if runtime == "omp":
+            entry["supervisor_pid"] = supervisor_pid
+            # Pinned at claim time so a later recycled pid can be told apart from this one.
+            # Absent when the OS declines to report it; `_omp_claim_live` then falls back
+            # to OMP_UNVERIFIED_TTL_SECONDS rather than trusting the bare pid.
+            started_at = _process_start_time(supervisor_pid)
+            if started_at is not None:
+                entry["supervisor_started_at"] = started_at
         live.append(entry)
-        data[agent] = live
-        return data, True
+        data["claims"] = live
+        return data, dict(entry)
 
     return _update_registry(root, mutator)
 
 
-def release(root, agent):
-    """Removes agent's SOLE live claim. Returns True if one was removed, False if none existed,
-    or the int 0 if MORE THAN ONE live claim exists and nothing was removed. Expired entries
-    are swept from the registry in every case. Never creates the registry file when there is
-    nothing to release.
+def claim(root, agent, dispatcher, cwd, now=None, session=None, feature=LEGACY_FEATURE,
+          runtime="claude", supervisor_pid=None):
+    return claim_with_receipt(
+        root,
+        agent,
+        dispatcher,
+        cwd,
+        now=now,
+        session=session,
+        feature=feature,
+        runtime=runtime,
+        supervisor_pid=supervisor_pid,
+    ) is not None
 
-    THIS USED TO POP OLDEST(started_at) UNCONDITIONALLY — the defect measured live on
-    2026-08-26 (issue #628): the stop hook released an abandoned run's claim and left the
-    returning lead's own claim stranded. There is no identity on either payload — the dispatch
-    payload has tool_use_id, the stop payload has agent_id, and the sidecar join between them is
-    unbuilt and rests on an undocumented format — so with two or more live claims for the same
-    agent, NOTHING here can tell which one belongs to the caller. Guessing (oldest, newest, or
-    otherwise) is a silent chance of releasing the wrong holder's claim; refusing is the only
-    answer without a name."""
+
+def attach_runtime_identity(root, agent, feature, agent_id=None, job_id=None, claim_id=None):
     path = _registry_path(root)
     if not os.path.exists(path):
         return False
 
     def mutator(data):
-        claims_list = data.get(agent, [])
-        live, _expired = _expire(claims_list, time.time())
-        _set_or_pop(data, agent, live)
-        if not live:
+        live, _expired = _expire_where(
+            data.get("claims", []),
+            time.time(),
+            lambda claim: _matches(
+                claim, agent=agent, feature=feature, claim_id=claim_id
+            ),
+        )
+        matches = [
+            c for c in live
+            if _matches(c, agent=agent, feature=feature, claim_id=claim_id)
+            and not c.get("agent_id")
+            and not c.get("job_id")
+        ]
+        if len(matches) != 1:
+            data["claims"] = live
             return data, False
-        if len(live) > 1:
+        if agent_id:
+            matches[0]["agent_id"] = agent_id
+        if job_id:
+            matches[0]["job_id"] = job_id
+        data["claims"] = live
+        return data, True
+
+    return _update_registry(root, mutator)
+
+
+def release(root, agent=None, feature=None, claim_id=None, agent_id=None, job_id=None):
+    path = _registry_path(root)
+    if not os.path.exists(path):
+        return False
+
+    def mutator(data):
+        selector_matches = lambda claim: _matches(
+            claim,
+            agent=agent,
+            feature=feature,
+            claim_id=claim_id,
+            agent_id=agent_id,
+            job_id=job_id,
+        )
+        live, _expired = _expire_where(
+            data.get("claims", []), time.time(), selector_matches
+        )
+        matches = [claim for claim in live if selector_matches(claim)]
+        if not matches:
+            data["claims"] = live
+            return data, False
+        if len(matches) != 1:
+            selector = claim_id or agent_id or job_id or f"{feature or '*'}:{agent or '*'}"
             print(
-                f"inflight_registry: release({agent!r}) is refusing — {len(live)} live claims "
-                "exist and nothing on either payload can match one to its holder (issue #628). "
-                "Removing none rather than guessing which one to release.",
+                f"inflight_registry: release({selector!r}) is refusing — {len(matches)} live "
+                "claims match; removing none rather than guessing.",
                 file=sys.stderr,
             )
+            data["claims"] = live
             return data, 0
-        _set_or_pop(data, agent, [])
+        target_id = matches[0].get("claim_id")
+        data["claims"] = [c for c in live if c.get("claim_id") != target_id]
         return data, True
 
     return _update_registry(root, mutator)
 
 
 def release_all(root):
-    """Removes every claim. Returns how many were removed."""
     path = _registry_path(root)
     if not os.path.exists(path):
         return 0
 
     def mutator(data):
-        count = sum(len(v) for v in data.values())
-        return {}, count
+        count = len(data.get("claims", []))
+        data["claims"] = []
+        return data, count
 
     return _update_registry(root, mutator)
 
 
-def release_cmd(root, agent):
-    """The absolute, single-agent remedy a refusal prints (T-06 item 5, issue #628). Never
-    release_all: that command wipes every claim of every agent, and the relative path the old
-    remedy was built from only resolved when cwd happened to be `root`, which a refused caller
-    cannot be relied on to be standing in."""
-    return (
-        f"python3 {root}/.agents/skills/harness/bin/inflight_registry.py "
-        f"release --agent {agent} --root {root}"
-    )
+def reconcile(root, feature=None, now=None):
+    now = now if now is not None else time.time()
+    path = _registry_path(root)
+    if not os.path.exists(path):
+        return 0
+
+    def mutator(data):
+        claims = data.get("claims", [])
+        kept = []
+        removed = 0
+        for claim_entry in claims:
+            live, expired = _expire([claim_entry], now)
+            claim_feature = (
+                claim_entry.get("feature", LEGACY_FEATURE)
+                if isinstance(claim_entry, dict)
+                else None
+            )
+            if expired and (feature is None or claim_feature == feature):
+                removed += expired
+            else:
+                kept.extend(live or [claim_entry])
+        data["claims"] = kept
+        return data, removed
+
+    return _update_registry(root, mutator)
 
 
-def refusal_lines(agent, existing, release_cmd):
-    """The exact stderr block a single-flight caller prints (issue #628).
+def release_cmd(root, agent, feature):
+    # A featureless claim is real — LEGACY_FEATURE exists for exactly those, and `_matches`
+    # reads them as `claim.get("feature", LEGACY_FEATURE)`.
+    #
+    # Passing that `None` through did NOT raise, which is what makes it worth guarding:
+    # `shlex.quote` starts `if not s: return "''"`, so `None` rendered as an empty argument
+    # and the printed remedy was `--feature ''`. That selector matches no claim at all, so
+    # an operator was handed a well-formed command that ran clean and removed nothing.
+    # Silent non-remedy, not a crash.
+    feature = feature or LEGACY_FEATURE
+    parts = [
+        "python3",
+        os.path.join(root, ".agents/skills/harness/bin/inflight_registry.py"),
+        "release",
+        "--agent",
+        agent,
+    ]
+    parts.extend(["--feature", feature])
+    parts.extend(["--root", root])
+    return " ".join(shlex.quote(part) for part in parts)
 
-    `release_cmd` is a parameter, not the module-level function of the same name above — the
-    CALLER chooses the command to print (today, dispatch-guard.sh still passes the retired
-    RELEASE_ALL_CMD; see T-06's receipt for why deleting that constant was refused). The
-    module-level `release_cmd` is shadowed inside this function's body and unused by it; that is
-    legal and deliberate — minimal diff until T-18 rewires the caller.
-    """
-    started_iso = _iso(existing.get("started_at"))
-    dispatcher = existing.get("dispatcher")
+
+def refusal_lines(agent, existing, release_command):
     return [
         f"dispatch-guard: BLOCKED - single-flight ({agent})",
-        f"  existing claim started {started_iso}, dispatched by {dispatcher}",
-        "  this is issue #628: the second writer would otherwise overwrite the first's plan.yaml.",
+        f"  existing claim for {existing.get('feature', LEGACY_FEATURE)} started "
+        f"{_iso(existing.get('started_at'))}, dispatched by {existing.get('dispatcher')}",
+        "  this is issue #628: a second writer for the same feature could overwrite plan.yaml.",
         "  (the original single-flight report is #551.)",
-        f"  {release_cmd}",
+        f"  {release_command}",
     ]
 
 
 def children_refusal_lines(agent, children):
-    """The exact stderr block validate-digest.py prints under D-09, for `agent` returning while
-    `children` (a list of (persona, claim) pairs) are still in flight."""
     lines = [f"check-digest: BLOCKED - returned with children in flight ({agent})"]
-    for persona, c in children:
-        lines.append(f"  - {persona} started {_iso(c.get('started_at'))}")
+    for persona, claim_entry in children:
+        lines.append(
+            f"  - {persona} [{claim_entry.get('feature', LEGACY_FEATURE)}] "
+            f"started {_iso(claim_entry.get('started_at'))}"
+        )
     lines.append(
         "  this is issue #551: a verdict about a member still running is a verdict about "
         "something the reporter cannot see."
@@ -343,11 +539,6 @@ def children_refusal_lines(agent, children):
     return lines
 
 
-# ---------------------------------------------------------------------------
-# CLI — the operator's escape hatch
-# ---------------------------------------------------------------------------
-
-
 def _all_live(root, now=None):
     now = now if now is not None else time.time()
     path = _registry_path(root)
@@ -355,86 +546,109 @@ def _all_live(root, now=None):
         return []
 
     def mutator(data):
-        result = []
-        for persona in list(data.keys()):
-            claims_list = data.get(persona, [])
-            live, _expired = _expire(claims_list, now)
-            _set_or_pop(data, persona, live)
-            for c in live:
-                result.append((persona, c))
-        return data, result
+        live, _expired = _expire(data.get("claims", []), now)
+        data["claims"] = live
+        return data, live
 
     return _update_registry(root, mutator)
 
 
 def _cli_list(root):
-    claims_list = _all_live(root)
-    if not claims_list:
+    claims = _all_live(root)
+    if not claims:
         print("NO CLAIMS")
         return
-    for persona, c in claims_list:
+    for claim_entry in claims:
         print(
-            f"{persona} started={_iso(c.get('started_at'))} "
-            f"dispatcher={c.get('dispatcher')} cwd={c.get('cwd')}"
+            f"{claim_entry.get('feature')}:{claim_entry.get('agent')} "
+            f"started={_iso(claim_entry.get('started_at'))} "
+            f"dispatcher={claim_entry.get('dispatcher')} runtime={claim_entry.get('runtime')} "
+            f"agent_id={claim_entry.get('agent_id')} job_id={claim_entry.get('job_id')}"
         )
 
 
 def _resolve_root(rest):
-    """The ONE root implementation (T-06 item 1): harness_boundary.resolve_root, never a
-    second, locally-invented environment chain. --root stays ahead of it — the operator's
-    manual escape hatch — because a chain neither of us derives is the one an operator must be
-    able to override outright."""
     root = None
     if "--root" in rest:
-        i = rest.index("--root")
-        root = rest[i + 1]
-        rest = rest[:i] + rest[i + 2 :]
+        index = rest.index("--root")
+        root = rest[index + 1]
+        rest = rest[:index] + rest[index + 2 :]
     if not root:
-        bin_dir = os.path.dirname(os.path.abspath(__file__))
         try:
-            root = harness_boundary.resolve_root(bin_dir)
+            root = harness_boundary.resolve_root(os.path.dirname(os.path.abspath(__file__)))
         except ValueError:
             root = None
     return root, rest
 
 
+def _option(rest, name):
+    if name not in rest:
+        return None
+    index = rest.index(name)
+    return rest[index + 1]
+
+
 def main(argv=None):
     argv = list(argv) if argv is not None else sys.argv[1:]
     if not argv:
-        print("usage: inflight_registry.py {list|release|release-all} [--root PATH]", file=sys.stderr)
-        return 1
-
-    cmd = argv[0]
-    rest = argv[1:]
-    root, rest = _resolve_root(rest)
-    if not root:
         print(
-            "inflight_registry: no checkout root — neither the project-dir override nor this "
-            "script's own location carries a checkout marker, and no --root was given",
+            "usage: inflight_registry.py {list|attach|release|release-all|reconcile} [options]",
             file=sys.stderr,
         )
         return 1
+    command = argv[0]
+    root, rest = _resolve_root(argv[1:])
+    if not root:
+        print("inflight_registry: no checkout root and no --root was given", file=sys.stderr)
+        return 1
 
-    if cmd == "list":
+    if command == "list":
         _cli_list(root)
         return 0
-    if cmd == "release":
-        agent = None
-        if "--agent" in rest:
-            i = rest.index("--agent")
-            agent = rest[i + 1]
-        if not agent:
-            print("inflight_registry: release requires --agent NAME", file=sys.stderr)
+    if command == "attach":
+        agent = _option(rest, "--agent")
+        feature = _option(rest, "--feature")
+        if not agent or not feature:
+            print("inflight_registry: attach requires --agent and --feature", file=sys.stderr)
             return 1
-        release(root, agent)
-        return 0
-    if cmd == "release-all":
+        ok = attach_runtime_identity(
+            root,
+            agent,
+            feature,
+            agent_id=_option(rest, "--agent-id"),
+            job_id=_option(rest, "--job-id"),
+            claim_id=_option(rest, "--claim-id"),
+        )
+        return 0 if ok else 1
+    if command == "release":
+        selector = any(
+            _option(rest, name)
+            for name in ("--agent", "--claim-id", "--agent-id", "--job-id")
+        )
+        if not selector:
+            print("inflight_registry: release requires a claim selector", file=sys.stderr)
+            return 1
+        removed = release(
+            root,
+            agent=_option(rest, "--agent"),
+            feature=_option(rest, "--feature"),
+            claim_id=_option(rest, "--claim-id"),
+            agent_id=_option(rest, "--agent-id"),
+            job_id=_option(rest, "--job-id"),
+        )
+        return 0 if removed is not False else 1
+    if command == "release-all":
         release_all(root)
         return 0
-
-    print(f"inflight_registry: unknown command {cmd!r}", file=sys.stderr)
+    if command == "reconcile":
+        feature = _option(rest, "--feature")
+        target_root = feature_root(root, feature) if feature else root
+        removed = reconcile(target_root, feature=feature)
+        print(f"RECONCILED {removed}")
+        return 0
+    print(f"inflight_registry: unknown command {command!r}", file=sys.stderr)
     return 1
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    raise SystemExit(main())

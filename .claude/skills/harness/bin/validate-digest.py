@@ -938,17 +938,27 @@ def hook_mode():
             print("check-digest: no checkout root from this vantage — the #551 claim was "
                   "neither released nor checked.", file=sys.stderr)
         else:
-            # STEP ONE — THE RELEASE. For every harness-* persona, not only the
-            # single-flight ones: dispatch-guard.sh records a claim for every dispatched
-            # persona, so anything unreleased is a leak until CLAIM_TTL_SECONDS.
+            # STEP ONE — THE RELEASE. OMP supplies feature and runtime identity, so its
+            # idempotent yield path can release exactly one claim even when the same persona
+            # is active in another feature. Claude Code retains the compatibility fallback.
+            _feature = d.get("harness_feature")
+            _agent_id = d.get("harness_agent_id")
+            _job_id = d.get("harness_job_id")
             try:
-                _released = _reg.release(_root, agent)
+                _released = _reg.release(
+                    _root,
+                    agent=agent,
+                    feature=_feature,
+                    agent_id=_agent_id,
+                    job_id=_job_id,
+                )
                 if _released:
                     print(f"check-digest: released the #551 claim for {agent}.",
                           file=sys.stderr)
             except Exception as _e:
                 print(f"check-digest: could not release {agent}'s claim ({_e!r}) — it will "
-                      f"expire on its TTL. Not blocking on our own errand.", file=sys.stderr)
+                      f"expire or reconcile on supervisor loss. Not blocking on our own errand.",
+                      file=sys.stderr)
 
             # STEP TWO — THE D-09 RETURN CONTRACT. Fires AT MOST ONCE per return, which is
             # not a wait: a lead cannot be made to wait for its children, and D-09 records
@@ -964,7 +974,12 @@ def hook_mode():
                     # dispatch-guard, then refused the LEAD's return here, then refused the
                     # ORCHESTRATOR's return here again — three tiers locked out of reporting
                     # by one strand, each stranding creating the next.
-                    _kids = _reg.live_children(_root, agent, session=d.get("session_id"))
+                    _kids = _reg.live_children(
+                        _root,
+                        agent,
+                        session=d.get("session_id"),
+                        feature=_feature,
+                    )
                 except Exception as _e:
                     _kids = []
                     print(f"check-digest: could not read children of {agent} ({_e!r}) — the "
@@ -981,7 +996,12 @@ def hook_mode():
                         print("  if one of these is stranded rather than running, release "
                               "exactly it:", file=sys.stderr)
                         for _persona, _c in _kids:
-                            print("  %s" % _reg.release_cmd(_root, _persona), file=sys.stderr)
+                            print(
+                                "  %s" % _reg.release_cmd(
+                                    _root, _persona, feature=_c.get("feature")
+                                ),
+                                file=sys.stderr,
+                            )
                     except Exception as _e:
                         print(f"check-digest: could not compose the release command "
                               f"({_e!r}).", file=sys.stderr)

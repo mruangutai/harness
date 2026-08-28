@@ -14,6 +14,7 @@ spawns:
 - harness-ui-reviewer
 model: '@strong'
 thinking-level: medium
+blocking: true
 autoloadSkills:
 - harness-handoff
 - harness-expertise

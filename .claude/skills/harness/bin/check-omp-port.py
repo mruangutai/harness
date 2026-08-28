@@ -62,6 +62,10 @@ def check(root: Path) -> list[str]:
             errors.append(".omp/config.yml does not disable Claude discovery")
         if ((config.get("task") or {}).get("maxRecursionDepth")) != 3:
             errors.append(".omp/config.yml task.maxRecursionDepth must be 3")
+        if ((config.get("async") or {}).get("enabled")) is not True:
+            errors.append(".omp/config.yml async.enabled must be true")
+        if ((config.get("task") or {}).get("maxRuntimeMs")) != 0:
+            errors.append(".omp/config.yml task.maxRuntimeMs must be 0")
         if config.get("modelRoles"):
             errors.append("concrete modelRoles belong in .omp/providers overlays, not .omp/config.yml")
     except Exception as exc:
@@ -79,6 +83,13 @@ def check(root: Path) -> list[str]:
         actual_names.add(name)
         if meta.get("model") not in CAPABILITIES:
             errors.append(f"{path.relative_to(root)} must use a provider-neutral model alias")
+        if name == "harness-orchestrator":
+            if meta.get("blocking"):
+                errors.append(f"{path.relative_to(root)} must remain background-dispatched from main")
+        elif meta.get("blocking") is not True:
+            errors.append(
+                f"{path.relative_to(root)} must set blocking: true for nested OMP supervision"
+            )
         if not isinstance(meta.get("tools"), list):
             errors.append(f"{path.relative_to(root)} tools must be a list")
         if not isinstance(meta.get("spawns"), list):
@@ -124,6 +135,17 @@ def check(root: Path) -> list[str]:
     extension = root / ".omp" / "extensions" / "harness-hooks.ts"
     if not extension.is_file():
         errors.append(".omp/extensions/harness-hooks.ts is missing")
+    else:
+        source = extension.read_text(encoding="utf-8")
+        required_wiring = {
+            "dispatch-guard.sh": "OMP task preflight",
+            "task:subagent:lifecycle": "OMP task terminal lifecycle",
+            "gh-close-gate.sh": "GitHub close preflight",
+            "inflight_registry.py": "OMP claim attachment and release",
+        }
+        for marker, purpose in required_wiring.items():
+            if marker not in source:
+                errors.append(f".omp/extensions/harness-hooks.ts lacks {purpose} ({marker})")
 
     sync = root / ".agents" / "skills" / "harness" / "bin" / "sync-agent-adapters.py"
     if sync.is_file():

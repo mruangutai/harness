@@ -33,7 +33,7 @@ for arg in "$@"; do
 done
 [ ${#files[@]} -ge 1 ] || { echo "check-expertise: nothing to check" >&2; exit 2; }
 
-python3 -P - "${files[@]}" <<'PY'
+python3 -I - "${files[@]}" <<'PY'
 import re, sys, os
 
 CAPS = {"Patterns": 15, "Gotchas": 15, "Outcomes": 10, "Open": 5}

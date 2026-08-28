@@ -81,8 +81,50 @@ def main() -> int:
         check("adapter drift is named", "adapters are stale" in result.stderr)
     finally:
         td.cleanup()
+    td, root = fixture()
+    try:
+        config = root / ".omp" / "config.yml"
+        config.write_text(config.read_text().replace("async:\n  enabled: true\n", ""))
+        result = run(root)
+        check("missing explicit async enablement fails", result.returncode == 1)
+        check("async liveness contract is named", "async.enabled" in result.stderr)
+    finally:
+        td.cleanup()
 
-    print(f"\n{9 - failures}/9 cases passed")
+    td, root = fixture()
+    try:
+        config = root / ".omp" / "config.yml"
+        config.write_text(config.read_text().replace("maxRuntimeMs: 0", "maxRuntimeMs: 60000"))
+        result = run(root)
+        check("task wall clock limit fails", result.returncode == 1)
+        check("wall-clock contract is named", "task.maxRuntimeMs" in result.stderr)
+    finally:
+        td.cleanup()
+
+    td, root = fixture()
+    try:
+        extension = root / ".omp" / "extensions" / "harness-hooks.ts"
+        extension.write_text(extension.read_text().replace("task:subagent:lifecycle", "task:lifecycle"))
+        result = run(root)
+        check("missing OMP child lifecycle wiring fails", result.returncode == 1)
+        check("lifecycle wiring gap is named", "task:subagent:lifecycle" in result.stderr)
+    finally:
+        td.cleanup()
+
+
+    td, root = fixture()
+    try:
+        agent = root / ".omp" / "agents" / "harness-backend-dev.md"
+        agent.write_text(agent.read_text().replace("blocking: true\n", ""))
+        result = run(root)
+        check("nonblocking nested Harness agent fails", result.returncode == 1)
+        check("nested supervision contract is named", "blocking: true" in result.stderr)
+    finally:
+        td.cleanup()
+
+
+
+    print(f"\n{17 - failures}/17 cases passed")
     return 1 if failures else 0
 
 

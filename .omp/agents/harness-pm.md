@@ -13,6 +13,7 @@ tools:
 spawns: []
 model: '@strong'
 thinking-level: medium
+blocking: true
 autoloadSkills:
 - harness-handoff
 - harness-expertise
