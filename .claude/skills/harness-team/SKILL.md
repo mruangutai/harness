@@ -80,6 +80,10 @@ name — record the *verdicts* they justify in the step entry, and the justifica
 
 Until every step is terminal, or you halt:
 
+This loop runs across turns, not inside one. Each wake re-enters it at the step `state.yaml`
+records, because your context may not survive the gap — `state.yaml` carries the loop's
+position, you do not.
+
 **a. Compute the ready set** — every `pending` step whose `depends_on` are all `complete`.
 
 **b. Checkpoint BEFORE dispatching.** Write `dispatched_at` into `state.yaml` *before* the spawn,
@@ -109,7 +113,18 @@ stronger model is an escalation via `open_questions`.
 **Do not serialize out of caution.** Serial dispatch returns the same verdicts at several times the
 wall-clock, and nothing surfaces it. Genuine conflicts belong in `depends_on`/`mutates_repo`.
 
-**e. Collect returns.** Read `VERDICT` and the `DIGEST` fields and record both in `state.yaml`.
+**Never wait for a member — end your turn.** Having dispatched, you end your turn; you do not
+poll, do not sleep, do not re-read files to look busy, and do not restate that you are waiting.
+Stopping is safe, because the platform wakes you when the member completes — ending your turn is HOW
+you wait, not a way of giving up. The dispatch tool will tell you to continue other work in the
+meantime, and that is not licence to manufacture activity: this rule overrides it. Your first
+turn-end after a dispatch meets a live child, and that refusal is expected — stderr reads BLOCKED,
+returned with children in flight. Answer it the same way: end your turn again, and expect it to
+recur on each wake while a child is still live. It is never a bar on returning; it is a prompt to
+correct any claim you made about a child you cannot see. (DEC-201)
+
+**e. Collect returns.** You collect on waking, after the turn ended — never by staying alive to
+receive. Read `VERDICT` and the `DIGEST` fields and record both in `state.yaml`.
 
 **The digest contract is enforced for you**, mechanically — `validate-digest.py --hook` on
 `SubagentStop` (DEC-122). Route *on* the fields; do not re-adjudicate them. You would normalize

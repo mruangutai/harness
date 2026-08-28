@@ -1,0 +1,821 @@
+# plan.yaml — the approval-gated plan. REAL YAML, loaded with safe_load (DEC-182).
+# Nothing here is prose for a human; BRIEF.md is what the operator reads.
+#
+# TASKS = T-01, T-02, T-04, T-05, T-06 (issue 831 plus the record corrections PRINCIPLES
+# rule 15 forces). T-03 was STRUCK AT SIGNATURE by the operator on 2026-08-27; D-12 is the
+# strike record. The numbering is NOT compacted, so every citation to T-04 and later still
+# resolves against this file.
+# An issue-811 block was planned alongside these and then STRUCK WHOLE by operator ruling on
+# 2026-08-24, before approval. The strike record is D-07. Issue 811 stays OPEN and returns to
+# the backlog; no task in this plan touches it.
+#
+# RE-ANCHORED 2026-08-27 at 8fc87f8. Every sha reference, line anchor and quoted string in this
+# file was re-measured at that sha. The old pin 9165162 survives only where a sentence contrasts
+# what was true then with what is measured now; no anchor, path or quoted string resolves against
+# it any more, and nothing here is to be read at that sha. The event that
+# forced the re-plan is c5e59aa (issue 815), which trimmed .claude/skills/harness/SKILL.md from
+# 527 lines to 288 and deleted the orchestrator's never-wait rule and its inoculation whole.
+# T-03 was rewritten at re-plan to carry REQ-08 and SC-09 - restoring the orchestrator's own
+# never-wait rule, one tier up. THE OPERATOR STRUCK REQ-08, T-03 AND SC-09 AT SIGNATURE on
+# 2026-08-27, on the ground that the lead-tier rule ships sooner without them. Issue 831 is
+# complete without T-03 and the orchestrator regression returns to the backlog as its own
+# ticket. D-12 is the strike record.
+
+schema: plan/1
+feature: FEAT-37-lead-stop-and-wake
+
+approval:
+  # Written by the MAIN SESSION only — the only tier with a user channel (DEC-120).
+  # HISTORY. Signed once at 81be55a, then WITHDRAWN 2026-08-27 when an eight-reader panel
+  # found three blockers: T-03's target paragraph was deleted by c5e59aa (#815) nine hours
+  # after the 9165162 pin; T-01 sliced DECISIONS.md entries at level-3 headings when all 201
+  # are level-2; and SC-04 had no delivering instruction. All three were closed at re-plan,
+  # re-anchored at 8fc87f8, and re-verified at this signature after origin/main was merged in.
+  # AT THIS SIGNATURE the operator STRUCK REQ-08, T-03 and SC-09 — the orchestrator-tier
+  # restore — so the lead-tier rule ships without waiting on it. Five tasks remain.
+  # RE-SIGNED TWICE on 2026-08-27. The first signature covered FIVE tasks. The second added T-07 and
+  # T-08 for the eval DEC-70 requires. THIS THIRD SIGNATURE STRIKES BOTH and replaces them with T-09.
+  # The operator judged the eval to be code that does nothing for the harness - it graded a labelled
+  # dataset in which one agent wrote both the grader and the labels, so a failure said nothing about
+  # the playbook under test. DEC-70 is NARROWED in its own body instead (D-17); the eval kind is NOT
+  # excluded and real prompt and model work still owes one. D-14 and D-16 are struck records.
+  # SIX tasks: T-01, T-02, T-04, T-05, T-06 done, T-09 pending. Numbering is not compacted.
+  status: approved
+  approved_by: operator
+  date: 2026-08-27
+
+source_issues: [831]
+
+lanes:
+  resolved_at: 8fc87f8
+  rows:
+    - surface: .claude/skills/harness-team/SKILL.md
+      lane: main-session-direct
+      reason: check-domain.sh --resolve returns NOBODY at 8fc87f8, so DEC-179 forces a declared main-session step
+    - surface: .claude/skills/harness/SKILL.md
+      lane: main-session-direct
+      reason: check-domain.sh --resolve returns NOBODY at 8fc87f8, so DEC-179 forces a declared main-session step
+    - surface: .claude/skills/harness/bin/inflight_registry.py
+      lane: team
+      agent: harness-backend-dev
+    - surface: .claude/skills/harness/bin/test-lead-stop-and-wake.py
+      lane: team
+      agent: harness-backend-dev
+    - surface: .claude/skills/harness/bin/test-inflight-registry.py
+      lane: team
+      agent: harness-backend-dev
+    - surface: .claude/skills/harness/bin/run-unit-tests.sh
+      lane: team
+      agent: harness-backend-dev
+    - surface: .harness/harness/docs/DECISIONS.md
+      lane: team
+      agent: harness-documentor
+    - surface: .harness/harness/docs/DECISIONS-INDEX.md
+      lane: team
+      agent: harness-documentor
+
+decisions:
+  - id: D-01
+    choice: The rule is written once into the harness-team skill and no lead agent file is edited
+    because: all three lead agents preload harness-team, so one file reaches the whole tier and three copies cannot drift apart
+    dec: none
+  - id: D-02
+    choice: DEC-201 is corrected IN PLACE (D-09) to cover the lead tier rather than by a new entry, and its body widens the scope its title narrows to the orchestrator
+    because: one rule keeps one home under DEC-158, and a second entry would leave two statements of the never-wait rule free to drift
+    dec: DEC-201
+  - id: D-03
+    choice: No lead is granted SendMessage or any message-sending tool as part of this fix, in any form
+    because: a lead that has ended its turn cannot send anything, and a message tool gives it a fresh reason to stay awake and watch, which is the loop being removed; issues 610 and 552 are closed on that ruling
+    dec: none
+  - id: D-04
+    choice: The shipped rule carries an INOCULATION clause — the refusal is expected, the response is to end the turn again, and it can recur on a later wake — and not merely an end-your-turn sentence
+    because: after this fix every dispatch's first turn-end meets a live child and IS refused (measured), so a lead told only to stop reads the refusal as an instruction to stay and rebuilds the loop; the clause states the expected response, which is rule text under DEC-158 and not narrative
+    dec: DEC-158
+  - id: D-05
+    choice: The guard test uses region-scoped synonym alternations plus a five-fixture self-check, and deliberately does not copy the exact-literal shape of test-orchestrator-playbook.py
+    because: issue 804 measured that four of that file's eight assertions are defeated by a reword while the file stays green, so a copy would grade nothing
+    dec: none
+  - id: D-06
+    choice: Each of the three inoculation clauses gets its own assertion rather than one region-wide search
+    because: a whole-region search is satisfied by the two easy clauses and is blind to the missing third, which is the failure shape a criterion quantifying over N items always has
+    dec: none
+  - id: D-07
+    choice: The issue-811 hook work was ISOLATED DELIBERATELY as a contiguous block of three tasks, T-07 to T-09, strikable whole with no other task depending on it, and that block was then STRUCK from this plan on an operator ruling of 2026-08-24; issue 811 stays OPEN and returns to the backlog, and no task in this plan spends effort on it
+    because: the isolation was a chosen shape and not an accident - an unruled scope question must not be able to block a fix whose evidence is already settled - and the strike then rested on measurement rather than on preference; specimen a8f1c68d9a0d69f25 carries the loop signature with ZERO occurrences of the phrase returned with children in flight, so that lead never attempted to stop and the issue 551 refusal was never in that loop, which leaves issue 831 complete and independently verifiable once the inoculation ships; issue 811 argues from the once-only bound this feature falsifies, so its own premise needs rewriting by the operator before anyone works it
+    dec: none
+  - id: D-08
+    choice: inflight_registry.py and its test are routed to the eng squad, not treated as enforcement layer
+    because: DEC-174 amendment 4 at DECISIONS.md line 5011 reads - a module a gate imports is not itself a gate, a squad may write the library, and THE CUTOVER THAT MAKES A GATE USE IT is main-session-direct, proven by showing the gate's violation set is identical before and after. Read at the sentence rather than paraphrased, the squad grant on the library is UNCONDITIONAL and the proof burden attaches to the cutover. T-04 is not a cutover - validate-digest.py already imports inflight_registry.py at 8fc87f8 - so no clause of amendment 4 narrows this lane. The before-and-after run of test-validate-digest.py stays in T-04's verify as this plan's own evidence discipline, not as a condition amendment 4 imposes
+    dec: DEC-174
+  - id: D-11
+    choice: The falsified once-only bound is fixed unconditionally at every site that still carries it, and DEC-199 is corrected IN PLACE, not STRUCK. At 8fc87f8 that is TWO sites, not three - DECISIONS.md lines 6869, 6870 and 6872, and inflight_registry.py line 274. The third site, .claude/skills/harness/SKILL.md, carried it at 9165162 and no longer carries anything - c5e59aa deleted the whole paragraph, so grep -nEi for single-flight refusal or fires at most once or fires ONCE over that file EXITS 1 at 8fc87f8. Nothing there is left to correct, so REQ-06 and SC-07 name two sites and T-03 stops being a bound-correction task
+    because: PRINCIPLES rule 15 forbids leaving a falsified statement standing and this repository has no propagation checker, so nothing detects it if the correction does not actually happen; DEC-188 governs a decision the tree FLATLY CONTRADICTS, and DEC-199's ruling - that a verdict about a member still running is a verdict about something the reporter cannot see - still holds, so only the subordinate clause about how often the refusal fires is false and only that clause changes
+    dec: DEC-199
+
+  - id: D-09
+    choice: DECISIONS.md is no longer append-only and the amendment sub-section is removed as a form; a decision SUBSUMES its correction IN PLACE so the entry reads as current knowledge in one voice, and git holds the history. T-05 and T-06 edit DEC-201 and DEC-199 in their own bodies and add no amendment heading, bold amendment marker, dated note or changelog sentence, even though many amendment sub-sections already sit around those entries.
+    because: an entry that grows a correction beside the falsehood makes the reader reconstruct the current rule from a stack of dated layers, which is the failure PRINCIPLES rule 15 guards against in reverse - the record stays honest only if the honest statement is the one the reader finds first; DEC-158 already limits an entry to the rule and one clause of why, so an append-only form was accumulating exactly the biography that limit forbids, and the version control system already holds what changed and when. The cost is that a citation to a specific amendment number no longer resolves in the file and the diff is the only place the superseded wording survives; the operator accepted that cost on 2026-08-24.
+    dec: DEC-158
+  - id: D-12
+    choice: STRUCK AT SIGNATURE, 2026-08-27, by the operator. REQ-08, T-03 and SC-09 - which would have restored the orchestrator tier's own never-wait rule and inoculation inside this feature - are removed whole. The regression is real and returns to the backlog as its own ticket. Nothing else in the feature moves - T-03 was the only carrier of REQ-08 and SC-09, nothing depended on it, and issue 831 is complete without it. The knock-on, already applied - T-01 drops its orchestrator group and that group's line from its verify block
+    because: the operator ruled at signature that the lead-tier rule ships sooner without waiting on the orchestrator-tier restore. THE PRIOR DRAFT OF THIS ENTRY CLAIMED THE RESTORE WAS THE OPERATOR'S OWN SCOPE CALL. That attribution was FALSE - the operator delegated the call to the harness at re-plan and the orchestrator took it, then the operator ruled the other way at signature. The cost of the strike is named and accepted - the tier directly above the one this feature fixes keeps a bare no-waiting instruction with no clause telling it the refusal for obeying is expected, and c5e59aa introduced that unnoticed
+    dec: DEC-201
+  - id: D-13
+    choice: SC-08 is DEFERRED to a post-merge run by the operator and is not graded from this feature's own build phase, even though this build is a real lead dispatching real members
+    because: the option was tested first because it costs no extra run and it fails on a measured fact already in the record - DEC-201 states that a spawned agent loads its skills from the MAIN CHECKOUT while the rewritten playbook is committed in a worktree, so no lead spawned during this build reads the edited .claude/skills/harness-team/SKILL.md and any sidecar produced here grades the OLD text. Grading SC-08 from this build would therefore be evidence for the wrong file, which is worse than no evidence; issue 866's registry keying is a second, weaker reason and not the deciding one
+    dec: DEC-201
+  - id: D-14
+    choice: STRUCK AT BUILD TIME, 2026-08-27, by the operator. This entry ruled that the eval is AUTHORED rather than excluded, and named harness-ai-dev as its author under D-16's control-plane move. THE EVAL IS UNWOUND WHOLE - T-07 and T-08 are gone. What survives from it, and is NOT struck - unresolved is NOT excluded, the excluded shape carries excluded_because and signed which only functional has under DEC-187, and a null cmd BLOCKS at the qa gate under DEC-36 rather than resolving to a skip. That reasoning is why the requirement could not simply be waved through, and it is why D-17 SCOPES DEC-70 in its own body instead of excluding the eval kind
+    because: the operator judged the eval to be code that does nothing for the harness. It graded a labelled dataset in which one agent wrote both the grader and the labels, so a failure meant only that those two disagreed and said nothing about the playbook. The check that puts the playbook under test is SC-08, which reads a real dispatch
+    dec: DEC-70
+  - id: D-16
+    choice: STRUCK AT BUILD TIME, 2026-08-27, by the operator, together with T-07 and T-08. D-16 moved the harness's own evals into the control plane so DEC-70's named author could write one. THE EVAL ITSELF IS UNWOUND, so the grant has no consumer and the team-config.yaml line is reverted. The MEASUREMENT that produced it survives in notes and is worth keeping - in the harness base check-domain filters no globs and rejects on the TARGET side through is_control_plane_target, so a repository-root path is unreachable however it is granted, and a nonexistent path under a control-plane glob resolves cleanly
+    because: the operator judged the eval to be code that does nothing for the harness. It graded a labelled dataset in which ai-dev wrote BOTH the grader and the labels, so a failure meant those two disagreed with each other and said nothing about the playbook under test. T-07's own intent conceded the closure. The check that would put the playbook under test is SC-08, which measures conduct
+    dec: DEC-70
+  - id: D-17
+    choice: DEC-70 is SCOPED IN PLACE to prompt, model and tool-integration changes - the work its own reasoning is written about. A change to a markdown playbook an agent preloads is graded by CONDUCT, through the UAT criterion, and not by a dataset eval. T-09 carries the edit. test_kinds.eval is NOT excluded and stays available for real AI work
+    because: DEC-70's stated ground is that only the agent that wrote the PROMPT knows what wrong looks like for it, and it names its own reflexive weakness - the harness gated by evals its own ai-dev writes. For a playbook, that weakness is total rather than partial - the dataset and the grader come from one hand and no live behaviour is read. A blanket exclusion of the eval kind was considered and REFUSED - it would turn evals off for every future prompt and model change to buy one feature's passage. Reclassifying the playbook edit as change_type docs was also refused as false - T-02 changes what an agent DOES
+    dec: DEC-70
+  - id: D-15
+    choice: T-07 carries change_type scaffolding, not ai_behavior, even though its subject is the ai_behavior change T-02 made
+    because: the test matrix maps ai_behavior to always eval, so a task whose DELIVERABLE is the eval would be gated by the artifact it is producing and could never pass its own gate; scaffolding maps to always empty, which is the honest classification for building test apparatus. The discrimination that would otherwise be lost is not dropped - it moves into T-07's own verify block, which must prove the eval flags every labelled violating case and none of the compliant ones before the task is done
+    dec: DEC-70
+tasks:
+  - id: T-01
+    title: Add test-lead-stop-and-wake.py guarding the lead rule, the corrected bound and DEC-201's lead-tier coverage
+    traces: [REQ-07]
+    change_type: logic
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: []
+    status: done
+    files:
+      - .claude/skills/harness/bin/test-lead-stop-and-wake.py
+      - .claude/skills/harness/bin/run-unit-tests.sh
+    verify: |
+      cd "$(git rev-parse --show-toplevel)"
+      python3 .claude/skills/harness/bin/test-lead-stop-and-wake.py --self-check; sc=$?
+      python3 .claude/skills/harness/bin/test-lead-stop-and-wake.py --group playbook; pb=$?
+      python3 .claude/skills/harness/bin/test-lead-stop-and-wake.py --group coverage; cv=$?
+      .claude/skills/harness/bin/run-unit-tests.sh --check-kinds; ck=$?
+      echo "selfcheck=$sc playbook=$pb coverage=$cv checkkinds=$ck"
+      test "$sc" -eq 0 -a "$pb" -eq 1 -a "$cv" -eq 1 -a "$ck" -eq 0 && echo T01_PASS || echo T01_FAIL
+    intent: |
+      Create .claude/skills/harness/bin/test-lead-stop-and-wake.py, a stdlib-only Python 3 test, and
+      register it in run-unit-tests.sh. It guards three invariants of FEAT-37. It must FAIL today —
+      nothing it guards has shipped yet — and that failing state is the proof it discriminates.
+
+      Repo root. Derive it from os.path.abspath(__file__) with four os.path.join ".." hops up from
+      the bin dir, exactly as test-orchestrator-playbook.py does. NEVER from the current working
+      directory.
+
+      CLI. Accept these arguments and nothing else.
+        --self-check          run the fixture self-check only, reading no live file
+        --group NAME          run one group only; NAME is one of playbook, bound, coverage
+        --only PATH           valid with --group bound only; restrict the bound group to that one
+                              site path
+      With no arguments, run all three groups. Print the path each group read at the top of its run.
+      Use the PASS/FAIL print shape, failures list and exit codes of test-orchestrator-playbook.py -
+      exit 0 when every selected case passes, exit 1 with a trailing "N FAILURE(S)" line otherwise.
+      A missing marker or an unreadable file is a named FAIL, never an exception traceback.
+
+      GROUP "playbook". Subject is .claude/skills/harness-team/SKILL.md, read from
+      os.environ.get("TEAM_PLAYBOOK_PATH") falling back to the repo-root path.
+      All line anchors below were re-derived at 8fc87f8, where this file is 240 lines. RE-DERIVE THEM
+      AGAIN before you write a regex: they are given so you can find the shape, never so you can hard
+      code a number. Every marker is matched by its text, never by its line number.
+      Region extraction. The loop steps are bold-lettered paragraphs starting at column 0 in the form
+      that begins with two asterisks then the letter then a period then a space. Find the first line
+      matching the regex for the letter d (line 97 at 8fc87f8, "d. Dispatch the rest of the ready set
+      in one turn") and the first line AFTER it matching the regex for the letter e (line 112 at
+      8fc87f8, "e. Collect returns."). The REGION is the text from the start of the d line up to but
+      excluding the e line. If either marker is absent, that is a FAIL named
+      case0_region_markers_present.
+      THE REGION STAYS THIS NARROW ON PURPOSE. SC-01 rests on a sentence moved outside d-to-e being
+      caught, so widening the region to cover T-02's other two edits would destroy the property the
+      criterion buys. Those two edits get their OWN regions, in cases 8 and 9 below, rather than a
+      widened one. That is the deliberate answer to T-02 having edits outside this region.
+      Detectors, applied to the REGION only, all case-insensitive.
+        STOP_RE  matches an end-your-turn directive - the alternation must cover end your turn, ends
+                 its turn, end the turn, ending your turn, stop your turn.
+        WAKE_RE  matches the wake half - the alternation must cover wakes, waking, woken, wake you,
+                 resumes you, resumed you.
+        EXPECT_RE  matches the refusal being expected - the alternation must cover is EXPECTED, to be
+                 expected, will be refused, expect the refusal, expect to be refused.
+        AGAIN_RE  matches the prescribed response - the alternation must cover end your turn again,
+                 stop again, return again, end the turn again, do it again.
+        RECUR_RE  matches recurrence - the alternation must cover recur, recurs, re-fires, refires,
+                 again on a later wake, on each wake, every wake, per stop sequence, each stop
+                 sequence, consecutive stop sequence.
+        NUDGE_RE matches the dispatch tool's own text being NAMED - the alternation must cover
+                 continue other work, other work in the meantime, respond to the user in the
+                 meantime, in the meantime.
+        DENY_RE  matches that text being CONTRADICTED - the alternation must cover is not licence,
+                 is not a licence, not licence to, does not apply, does not mean, is not permission,
+                 not an invitation, overrides, override that, ignore that, does not license.
+      Cases, each its own assertion, each reported separately.
+        case1_stop_half        STOP_RE searches the region successfully
+        case2_wake_half        WAKE_RE searches the region successfully
+        case3_halves_adjacent  the case1 and case2 match offsets lie within 600 characters of one
+                               another inside the region
+        case4_refusal_expected AGAIN and EXPECT - EXPECT_RE searches the region successfully
+        case5_stop_again       AGAIN_RE searches the region successfully
+        case6_refusal_recurs   RECUR_RE searches the region successfully
+        case7_overrides_tool_text  SOME SINGLE SENTENCE of the region matches BOTH NUDGE_RE and
+                               DENY_RE. Sentence means the text between the previous and the next
+                               sentence-terminating period-space or newline-newline boundary. The
+                               two must co-occur in ONE sentence: a region that quotes the tool's
+                               nudge in one place and denies something unrelated in another is
+                               exactly the silent-beside-it state SC-04 exists to fail. This case is
+                               what makes SC-04 gradable by a command instead of only by a reader.
+        case8_loop_spans_turns THIS CASE HAS ITS OWN REGION, not the d-to-e one. Take the line
+                               matching "Until every step is terminal" (line 81 at 8fc87f8) and the
+                               400 characters following it. That text must match an across-turns
+                               alternation covering - across turns, each wake, on waking, every
+                               wake, re-entering, re-enter - AND a state alternation covering
+                               state.yaml. Both, in that window.
+        case9_collect_on_waking  THIS CASE HAS ITS OWN REGION too. Take the line matching
+                               "e. Collect returns" (line 112 at 8fc87f8) and the 400 characters
+                               following it. That text must match an on-waking alternation covering
+                               - on waking, when you wake, after the turn ended, after your turn
+                               ended, on being woken, on resuming.
+      Cases 4, 5 and 6 are three separate assertions on purpose - one region-wide search would be
+      satisfied by the two easy clauses and blind to the missing third.
+      Cases 8 and 9 exist because T-02 edits two lines OUTSIDE the d-to-e region. Without them
+      T02_PASS could print with those two edits unwritten, and REQ-04 would be traced by a task
+      whose verify cannot see it.
+
+      GROUP "bound". TWO site paths, each a separate case, each skippable by --only.
+        .harness/harness/docs/DECISIONS.md
+        .claude/skills/harness/bin/inflight_registry.py
+      There were three at 9165162. .claude/skills/harness/SKILL.md is NOT a site here at 8fc87f8:
+      c5e59aa deleted the paragraph that carried the claim and grep -nEi for single-flight refusal
+      or fires at most once or fires ONCE over that file exits 1. A third case would grade the empty
+      set and exit 0 having proven nothing, which is the issue-804 shape D-05 exists to refuse. That
+      file is NOT graded by this test at all: the "orchestrator" group that would have graded it
+      on presence was STRUCK with T-03 at signature. Do not add a case for it.
+      EACH SITE CASE HAS A FLOOR, AND THIS IS NOT OPTIONAL. Before grading occurrences, assert that
+      the site yields AT LEAST ONE occurrence of the once-only alternation. Zero occurrences is a
+      NAMED FAIL - case_floor_<site> - never a pass. An occurrence-grading loop over an empty list
+      reports success without having looked at anything, so a later deletion or path typo would turn
+      this whole group green while grading nothing. The floor is what makes the group falsifiable.
+      For each site, find every occurrence of the once-only phrasing with an alternation covering -
+      fires at most once, fires ONCE, refusal fires once, a second identical return will ship,
+      A SECOND IDENTICAL RETURN SHIPS, one-correction-round.
+      THE PRESENT-TENSE MEMBER WAS ADDED AT BUILD TIME, 2026-08-27, AND THIS LINE IS THE
+      RECONCILIATION. The signed list spelled only the future-tense variant, which is the wording at
+      inflight_registry.py. DECISIONS.md:6872 carries the PRESENT tense - "a second identical return
+      ships" - and T-06's own intent mandates correcting exactly that sentence. So the signed
+      alternation could not see the one occurrence T-06 is told to fix, and T-06's verify would have
+      exited 0 whether the correction was made or not: the issue-804 shape D-05 exists to refuse,
+      reached through a self-contradiction inside this plan rather than through drift. The shipped
+      detector at test-lead-stop-and-wake.py ONCE_RE holds both members and the guard now names
+      three occurrences on DECISIONS.md where it named two. Do not narrow it back. For EACH occurrence, take the SENTENCE containing it, defined as the text
+      between the previous and the next sentence-terminating period-space or newline-newline
+      boundary. The occurrence is ACCEPTABLE when either
+        (a) that sentence also matches a qualifier alternation covering - per consecutive stop
+            sequence, per stop sequence, each stop sequence, consecutive stop sequence, re-fires,
+            refires, on each wake, every wake; or
+        (b) the site is DECISIONS.md AND the nearest preceding line matching the regex for a
+            LEVEL-TWO heading beginning with DEC- - two hash characters, a space, then DEC- -
+            introduces an entry whose body, up to the next LEVEL-TWO DEC- heading, contains the
+            word STRUCK.
+      THE HEADING LEVEL IS TWO AND THIS WAS WRONG IN THE PREVIOUS DRAFT AT EVERY SHA, NOT DRIFT.
+      Measured at 8fc87f8 in .harness/harness/docs/DECISIONS.md - 201 lines match the level-two
+      pattern and 28 match the level-three one. Entries are level two; the level-three DEC- lines
+      are amendment sub-sections, so slicing at level three both misses entries that have no
+      amendment at all and cuts the ones that do into fragments. Any other regex you write against
+      this file that assumes a heading level assumes TWO.
+      Any occurrence that is neither is a FAIL naming the site, the line number and the sentence.
+      Exemption (b) is a general rule and not a branch on this feature - DEC-188 keeps a struck
+      entry's body in place so that citations still land, so a falsified sentence inside a STRUCK
+      entry must not fail this guard. At 8fc87f8 no struck entry carries the once-only phrasing, so
+      (b) exempts nothing today; it exists so the guard stays correct when one does.
+      This group must not read any other file, and must not treat a file it cannot open as a pass.
+
+      GROUP "coverage". Three cases against the decision record. LEAD_RE is a lead-tier alternation
+      covering - lead, leads, domain lead, lead tier - case-insensitively. ENDTURN_RE is a
+      turn-ending alternation covering - ends its turn, end its turn, ends the turn, end the turn,
+      ends their turn, end your turn - and it deliberately does NOT include wait or waiting.
+        case_index_row - in .harness/harness/docs/DECISIONS-INDEX.md, find the DEC-201 row, split it
+        on the double-colon separator, and match LEAD_RE against the text to the RIGHT of that
+        separator only. The left half is generated from the entry's heading, so matching the whole
+        row would be satisfied automatically the moment T-05 renames the heading and would never
+        grade the hand-written summary T-05 is actually told to edit. At 8fc87f8 the row is line 219
+        and its right half reads that an orchestrator never waits, with no lead in it, so this case
+        FAILS today. Re-derive the row by its DEC-201 marker, never by line 219.
+        case_entry_heading - in .harness/harness/docs/DECISIONS.md, the LEVEL-TWO heading line
+        beginning with the DEC-201 marker matches LEAD_RE. At 8fc87f8 that heading is line 6968 and
+        reads "An orchestrator never waits: every dispatch ends its turn, and the platform's wake is
+        measured, not documented" - no lead, so this FAILS today.
+        case_entry_scope - in .harness/harness/docs/DECISIONS.md, slice the DEC-201 entry from its
+        LEVEL-TWO heading to the next LEVEL-TWO heading beginning with DEC-, then require that SOME
+        SINGLE SENTENCE of that body matches BOTH LEAD_RE and ENDTURN_RE. Sentence has the same
+        definition the bound group uses.
+      WHY CO-OCCURRENCE IN ONE SENTENCE AND NOT THE BARE WORD. Measured at 8fc87f8: DEC-201's body
+      already contains lead three times incidentally - taking its lead and its member down with it,
+      several single-squad lead round-trips, and the branch name chore/744-never-wait-for-a-lead. A
+      bare LEAD_RE over the body is therefore ALREADY GREEN before T-05 runs, so it would grade
+      nothing and T-05's actual widening would be unguarded. None of those three sentences contains
+      any ENDTURN_RE member, so the co-occurrence assertion FAILS at 8fc87f8 and can only be turned
+      green by writing the widened scope sentence. Confirm that for yourself before you ship the
+      regex: if your ENDTURN_RE matches one of those three sentences, it is too wide.
+      All three cases fail at 8fc87f8, where the row, the heading and every lead-bearing sentence
+      name only the orchestrator.
+
+      SELF-CHECK. With --self-check, read NO live file. Build an embedded synthetic skeleton that
+      mimics the playbook's shape - a level-3 "3. Loop" heading, a line reading "Until every step is
+      terminal, or you halt:", then bold-lettered c, d, e and f paragraphs, with the d paragraph
+      titled Dispatch the rest of the ready set in one turn and the e paragraph titled Collect
+      returns. In every variant the loop line is followed by "The loop iterates across turns; each
+      wake re-enters it, and state.yaml carries its position." and the e paragraph continues "on
+      waking, after the turn ended", so cases 8 and 9 pass throughout and the variants isolate the
+      d-to-e region. Run the playbook detectors against SIX variants and assert the verdict on each.
+        A  skeleton with NOTHING between d and e                                    must FAIL
+        B  skeleton with this exact text inserted between d and e                    must PASS
+           You never wait for a member. Having dispatched, end your turn - the platform wakes you
+           when the member completes. The dispatch tool will tell you to continue other work in the
+           meantime; that is not licence to manufacture activity, and this rule overrides it. The
+           stop refusal on that return is EXPECTED, not a bar - end your turn again, and expect it
+           to recur on each later wake while a child is still live.
+        C  variant B with that text removed from the region and appended at the end of the file
+                                                                                     must FAIL
+        D  skeleton carrying only the first two sentences of B between d and e - the stop and wake
+           halves, no inoculation                                                    must FAIL
+        E  skeleton carrying B with the words "end your turn again" and every AGAIN_RE synonym
+           removed, so only two of the three inoculation clauses remain              must FAIL
+        F  skeleton carrying B with the whole continue-other-work sentence removed, so the region
+           holds both halves and all three inoculation clauses and says nothing about the tool's
+           own text                                                                  must FAIL
+      Variants D and E are what prove case4, case5 and case6 are not vacuous. Variant F is what
+      proves case7 is not vacuous, and case7 is the only command-checkable thing standing behind
+      SC-04 - without F, a green case7 would be indistinguishable from a detector that matches
+      anything. All six variants are
+      worded by this test and never copied from the shipped playbook, so a later reword of the
+      shipped sentence cannot make the self-check vacuous. Print SELFCHECK PASS or SELFCHECK FAIL per
+      variant and exit 0 only when all six verdicts are as stated, 1 otherwise. Structure the case
+      functions so they run against a passed-in text and return a boolean verdict without touching
+      module-level state, resetting the failures list between variants.
+
+      T-03 WAS STRUCK AT SIGNATURE, so the "orchestrator" group and its verify line are ALREADY
+      removed above. Do not add them back. No group in this file reads
+      .claude/skills/harness/SKILL.md.
+
+      REGISTRATION. Append the string test-lead-stop-and-wake.py to the UNIT_SCRIPTS array, which is
+      line 17 of .claude/skills/harness/bin/run-unit-tests.sh at 8fc87f8 - find it by the array name,
+      not the number - after test-orchestrator-playbook.py. Change
+      nothing else in that file. The runner's drift detector fails the suite on any test-*.py in
+      neither array, so this registration is mandatory. harness.json test_kinds.unit already detects
+      .claude/skills/harness/bin/test-*.py.
+
+      DO NOT edit .claude/skills/harness-team/SKILL.md, .claude/skills/harness/SKILL.md,
+      inflight_registry.py or any file under .harness/harness/docs/ - each belongs to another task.
+      Cite the exit code of a COMPLETED run for every command you report; a partial read of a
+      still-running background job is not evidence.
+
+  - id: T-02
+    title: Write the never-wait rule and its inoculation into the lead playbook between the dispatch and collect steps
+    traces: [REQ-01, REQ-02, REQ-03, REQ-04]
+    change_type: ai_behavior
+    execution_mode: main-session-direct
+    execution_reason: check-domain.sh --resolve on .claude/skills/harness-team/SKILL.md returns NOBODY at 8fc87f8, so DEC-179 makes this a declared main-session step and no squad may write it
+    depends_on: [T-01]
+    status: done
+    files:
+      - .claude/skills/harness-team/SKILL.md
+    verify: |
+      cd "$(git rev-parse --show-toplevel)"
+      python3 .claude/skills/harness/bin/test-lead-stop-and-wake.py --group playbook && echo T02_PASS
+    intent: |
+      Edit .claude/skills/harness-team/SKILL.md, which is 240 lines at 8fc87f8. Insert ONE short
+      bold-led instruction into the section 3 loop, between the dispatch paragraph beginning
+      "d. Dispatch the rest of the ready set in one turn" (line 97 at 8fc87f8) and the "e. Collect
+      returns." line (line 112 at 8fc87f8). RE-DERIVE BOTH ANCHORS BY THEIR TEXT before you edit -
+      the line numbers are orientation, and this feature is being re-planned precisely because a
+      trim moved anchors under a signed plan. Six to ten lines of prose is the ceiling.
+
+      THE SHAPE, SPECIFIED HERE IN FULL. The previous draft pointed at
+      .claude/skills/harness/SKILL.md lines 45 to 56 as the model to copy. THAT TEXT NO LONGER
+      EXISTS - c5e59aa deleted it, and at 8fc87f8 those lines hold unrelated context-budget prose.
+      Do not open them looking for a model. The shape is: one bold lead-in sentence naming the rule
+      in the imperative, then plain sentences, present tense, second person, addressing the lead
+      directly, no bullet list, no heading, no incident narrative, no identifiers, ending with a
+      bare DEC-201 pointer in parentheses. That is the whole of the form; the four things below are
+      the content.
+
+      ONE - the lead never waits for a member. Having dispatched, it ends its turn. It does not poll,
+      does not sleep, does not re-read files to look busy and does not restate that it is waiting.
+
+      TWO - stopping is safe. The platform wakes the lead when the member completes, so ending the
+      turn is HOW a lead waits, not a way of giving up.
+
+      THREE - THE OVERRIDE OF THE DISPATCH TOOL'S OWN TEXT, and it is the clause SC-04 grades. The
+      Agent tool's dispatch result tells the caller to continue other work or respond to the user in
+      the meantime. It is platform-supplied, it appears nowhere under .claude/, .harness/ or docs/,
+      and the harness cannot edit it - so silence is not enough. IN ONE SENTENCE, name that
+      instruction and deny it: say that the tool will tell the lead to continue other work in the
+      meantime, and that this is NOT licence to manufacture activity, and that this rule overrides
+      it. THE NAMING AND THE DENIAL MUST BE IN THE SAME SENTENCE. A paragraph that forbids fake
+      activity somewhere and quotes the nudge somewhere else leaves "continue other REAL work"
+      standing as permission to stay alive, which is exactly the state SC-04 declares not_met even
+      when SC-01 passes. Do not write this sentence anywhere but inside the d-to-e region; case7
+      grades the region only.
+
+      FOUR - THE INOCULATION, and it is not optional. Every first turn-end after this change meets a
+      live child and IS refused - stderr reads BLOCKED, returned with children in flight. Say that
+      the refusal is EXPECTED, that the correct response is to END THE TURN AGAIN, and that it can
+      RECUR on a later wake while a child is still live. Say plainly that it is never a bar on
+      returning - it is a prompt to correct any claim made about a child the lead cannot see. Without
+      this clause the rule installs the very loop it removes, because a lead told only to stop reads
+      the refusal as an instruction to stay.
+
+      Use the plain words - end your turn, wake, expected, again, recur, overrides, in the meantime.
+      The test's detectors are synonym alternations, but these are the plainest members of them.
+
+      DO NOT write that the refusal fires at most once, or that a second identical return will ship
+      unconditionally. That bound is FALSE as stated and is being corrected elsewhere in this
+      feature. The measured bound is at most once per CONSECUTIVE STOP SEQUENCE, re-firing on each
+      wake while a child is still live.
+
+      Bound the whole insertion by DEC-158 - the rule, ONE clause of why, and a DEC-201 pointer. No
+      incident narrative, no probe identifiers, no transcript quotes; those are T-05's and live in
+      DECISIONS.md.
+
+      Then make the surrounding loop read as one document, changing as little as possible. Both
+      anchors below were re-verified at 8fc87f8; find them by text.
+        Line 81, "Until every step is terminal, or you halt:", must not read as one continuous turn.
+        State that the loop iterates ACROSS turns, each wake re-entering it, and that state.yaml
+        carries the loop's position because the lead's context may not survive.
+        Line 112, "e. Collect returns.", must not read as receive-in-place. Make explicit that
+        collecting happens ON WAKING, after the turn ended, and never by staying alive to receive.
+      THESE TWO EDITS SIT OUTSIDE THE d-to-e REGION AND ARE GRADED ANYWAY. The region is deliberately
+      not widened to reach them - SC-01 needs a sentence moved out of d-to-e to fail. Instead T-01
+      gives each of them its own window and its own case, case8_loop_spans_turns on the line-81
+      window and case9_collect_on_waking on the line-112 window, so this task's verify cannot print
+      T02_PASS with either edit unwritten. Use the words across turns, each wake and state.yaml in
+      the first, and on waking, after the turn ended in the second.
+      Do not touch line 181's DEC-124 sentence about turn-boundary visibility, do not touch sections
+      4 and 5, and do not grant or mention any message-sending tool anywhere - a lead holding one
+      gains a reason to stay awake and watch, which is the behaviour being removed (D-03).
+
+      Verify with a COMPLETED run of
+      python3 .claude/skills/harness/bin/test-lead-stop-and-wake.py --group playbook
+      expecting exit 0.
+
+  - id: T-04
+    title: Correct the once-only sentence in the refusal message an agent reads, and its assertion
+    traces: [REQ-06]
+    change_type: logic
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-01]
+    status: done
+    files:
+      - .claude/skills/harness/bin/inflight_registry.py
+      - .claude/skills/harness/bin/test-inflight-registry.py
+    verify: |
+      cd "$(git rev-parse --show-toplevel)"
+      python3 .claude/skills/harness/bin/test-lead-stop-and-wake.py --group bound --only .claude/skills/harness/bin/inflight_registry.py; b=$?
+      python3 .claude/skills/harness/bin/test-inflight-registry.py; r=$?
+      python3 .claude/skills/harness/bin/test-validate-digest.py; v=$?
+      echo "bound=$b registry=$r validatedigest=$v"
+      test "$b" -eq 0 -a "$r" -eq 0 -a "$v" -eq 0 && echo T04_PASS || echo T04_FAIL
+    intent: |
+      RE-DERIVE EVERY ANCHOR IN THIS TASK BEFORE YOU EDIT. Every line number below was measured at
+      8fc87f8 and is orientation only; find each site by its text. This feature is being re-planned
+      because a signed plan trusted line numbers that a trim had moved.
+
+      In .claude/skills/harness/bin/inflight_registry.py, function children_refusal_lines (def at
+      line 263 at 8fc87f8), the final appended line (line 274 at 8fc87f8) currently reads that "this
+      refusal fires ONCE; a second identical return will ship, so the correction has "/"to be made
+      now" - one sentence split across two adjacent string literals. That is the text an agent reads
+      at the exact moment it is refused, and as an unqualified claim it is FALSE.
+
+      Replace that one appended line with a statement of the MEASURED bound and the prescribed
+      response, at similar length - the refusal fires at most once per CONSECUTIVE STOP SEQUENCE, so
+      an immediate second identical return ships, and it RE-FIRES on a later wake while a child is
+      still live; the correct response is to correct any claim made about a child that cannot be seen
+      and then END THE TURN AGAIN; it is never a bar on returning. Keep the preceding lines unchanged
+      - the BLOCKED marker line, the per-child lines, and the issue 551 sentence at line 270. Change
+      no other function and no other file except the test named below.
+
+      DO NOT TOUCH refusal_lines, the OTHER function in this module. THIS PARAGRAPH WAS REWRITTEN
+      AT SIGNATURE, 2026-08-27, because FEAT-42 landed on main and made its previous claim FALSE.
+      What it used to say: refusal_lines cites issue 551 for the two-writers bug where issue 866
+      measures issue 628, a real defect held deliberately out of scope. THAT DEFECT IS ALREADY
+      FIXED. At origin/main refusal_lines cites issue 628 and adds a parenthetical naming 551 as the
+      original single-flight report, and RELEASE_ALL_CMD is retired as a printed remedy in favour of
+      release_cmd, which is absolute and single-agent. Nothing is left for this task to do there.
+      The instruction is unchanged and still binding: change no line of refusal_lines. Re-derive
+      children_refusal_lines by its text before you edit - the merge moved every line number in this
+      module.
+
+      Then update .claude/skills/harness/bin/test-inflight-registry.py case_6b_children_refusal_lines
+      (def at line 226 at 8fc87f8; the stale assertion is at line 246). Its current assertion
+      "case6b: the fires-once sentence is present" checks only that some line contains the substring
+      "once" - which the new text still satisfies, so it would pass without grading anything.
+      Replace it with EXACTLY ONE assertion.
+        the message prescribes ending the turn again - some line matches, case-insensitively, an
+        alternation covering end your turn again, end the turn again, stop again, return again.
+      ONE, NOT TWO, AND THE MISSING ONE IS DELIBERATE. Do NOT also assert the per-consecutive-stop-
+      sequence bound here. That property already has an owner: test-lead-stop-and-wake.py's bound
+      group grades this same sentence in this same file, and this task's own verify runs it. Two
+      hand-written patterns grading one sentence drift apart the moment somebody rewords it, and then
+      one of them is silently wrong. One sentence, one owner: the BOUND belongs to the bound group,
+      the PRESCRIBED RESPONSE belongs here, and nothing is graded twice.
+      Keep every other assertion in that case unchanged. Add no new case.
+
+      LANE NOTE, so you do not stop on it - inflight_registry.py IS writable by you. It is a library
+      that a gate imports, not a gate. DEC-174 amendment 4, at DECISIONS.md line 5011 at 8fc87f8,
+      reads in full - a module a gate imports is not itself a gate; a squad may write the library;
+      and the CUTOVER that makes a gate use it is main-session-direct, proven by showing the gate's
+      violation set is identical before and after. The carve-out itself binds validate-digest.py,
+      check-domain.sh, bash-write-guard.sh, check-state.sh, check-plan-routes.py, dispatch-guard.sh
+      and the test file of each.
+
+      READ AT THE SENTENCE, THAT GRANT IS UNCONDITIONAL AND THE PREVIOUS DRAFT OF THIS TASK WAS
+      WRONG ABOUT IT. The proof burden - identical violation set before and after - attaches
+      grammatically to the CUTOVER clause, not to the squad's write of the library. There is no
+      cutover here: validate-digest.py already imports inflight_registry.py at 8fc87f8, and this
+      change alters the refusal's stderr TEXT only. So no clause of amendment 4 narrows this lane,
+      and nothing in this task is conditional on a gate check passing. The earlier framing, that the
+      lane was granted on a condition T-04 must discharge, was a paraphrase stronger than the text.
+
+      WHY test-validate-digest.py IS STILL IN THIS TASK'S VERIFY, AND WHY IT MUST NOT BE TRIMMED OUT.
+      Not because amendment 4 demands it - it does not. Because validate-digest.py imports the module
+      you are editing, so a gate's behaviour is downstream of your diff, and this plan's own evidence
+      discipline says a claim that a gate is unaffected is worth exactly the run that shows it.
+      check-plan-routes.py prints OK T-04 either way; it reads domain grants and nothing else and
+      cannot see this at all. So run test-validate-digest.py BEFORE your edit as well as after, and
+      record BOTH completed exit codes in your receipt: the identical result on the two sides is the
+      evidence, not the after-run alone. It exits 0 at 8fc87f8. Do not edit validate-digest.py or
+      test-validate-digest.py - you run them, you never write them.
+
+      Verify with COMPLETED runs of all three commands in this task's verify block, expecting exit 0
+      from each. Cite the exit code of a completed run, never a partial read of a background job.
+
+  - id: T-05
+    title: Extend DEC-201's scope to the lead tier in its own body and regenerate the decisions index
+    traces: [REQ-05]
+    change_type: docs
+    execution_mode: team
+    execution_agent: harness-documentor
+    depends_on: [T-02]
+    status: done
+    files:
+      - .harness/harness/docs/DECISIONS.md
+      - .harness/harness/docs/DECISIONS-INDEX.md
+    verify: |
+      cd "$(git rev-parse --show-toplevel)"
+      python3 .claude/skills/harness/bin/gen-decisions-index.py --stdout | diff - .harness/harness/docs/DECISIONS-INDEX.md; d=$?
+      python3 .claude/skills/harness/bin/test-lead-stop-and-wake.py --group coverage; c=$?
+      echo "indexdiff=$d coverage=$c"
+      test "$d" -eq 0 -a "$c" -eq 0 && echo T05_PASS || echo T05_FAIL
+    intent: |
+      Widen DEC-201 in .harness/harness/docs/DECISIONS.md so that its own body covers the lead tier.
+      The entry today names only the orchestrator; when you are done it must read, in ONE VOICE and
+      in the present tense, as though it always covered both tiers.
+
+      THE SUBJECT AND ITS BOUNDS. At 8fc87f8 the entry runs from its LEVEL-TWO heading at line 6968 -
+      two hash characters, "DEC-201 - An orchestrator never waits: every dispatch ends its turn, and
+      the platform's wake is measured, not documented" - to the next level-two DEC- heading, DEC-202
+      at line 7063. Entry headings in this file are level TWO; the level-three DEC- lines are
+      amendment sub-sections and are not entry boundaries. RE-DERIVE both bounds by their text before
+      you edit - T-06 writes the same file and the numbers move.
+
+      DO NOT ADD AN AMENDMENT. No level-3 "DEC-201 amendment N" heading, no bold "Amendment N (date)"
+      marker, no dated note, no "this was corrected", no "previously said", no reference to who wrote
+      a sentence or when. Edit the entry's existing sentences and add sentences to the existing body.
+
+      WHY THIS TASK'S FORM DIFFERS FROM ITS NEIGHBOURS, AND WHY YOU MUST NOT MATCH THEM.
+      DECISIONS.md carries amendment sub-sections - level-THREE headings beginning with DEC-, 28 of
+      them at 8fc87f8 against 201 level-two entry headings. NO LINE NUMBERS ARE GIVEN AND YOU DO NOT
+      NEED ANY: no task in this plan acts on one, and a previous draft's enumeration of thirteen
+      supposed amendment lines was checked line by line and was wrong at twelve of the thirteen. They
+      are the OLD form. The operator has ruled that DECISIONS.md is no longer append-only: a decision
+      subsumes its correction in place so the entry reads as current knowledge, and git holds the
+      history (D-09 in this plan). Those neighbours are precedent you must not follow. Do not
+      "helpfully" match them, and do not convert them - they are not yours.
+
+      WHAT THE WIDENED ENTRY SAYS. Bounded by DEC-158 - the rule, the consequence, and one clause of
+      why per point. Everything below is an explicit survives-or-cut call already made for you; do
+      not re-litigate any of it.
+        SCOPE - SURVIVES, and it is the point of the change. The never-wait rule binds the
+        orchestrator AND THE THREE DOMAIN LEADS. A lead that has dispatched a member ends its turn,
+        and the member's completion wakes it. Rewrite the entry's title and any scope sentence that
+        says orchestrator alone so both tiers are named.
+        WRITE THE SCOPE SENTENCE SO IT NAMES THE TIER AND THE ACT TOGETHER. One sentence must
+        contain both a lead word - lead, leads, domain lead, lead tier - and a turn-ending phrase -
+        ends its turn, end its turn, ends the turn. This is not a stylistic ask. Measured at 8fc87f8,
+        DEC-201's body ALREADY contains the word lead three times by accident: taking its lead and
+        its member down with it, several single-squad lead round-trips, and the branch name
+        chore/744-never-wait-for-a-lead. A guard looking for the bare word is therefore already green
+        and would grade nothing you write. The guard looks for the two together in one sentence, and
+        none of those three incidental sentences has a turn-ending phrase in it. Also put a lead word
+        in the entry's HEADING, which today says orchestrator alone.
+        WHY A WAITING LEAD LOOPS - SURVIVES, compressed to the mechanism clause and nothing else. An
+        agent has exactly two moves, end its turn or call a tool, and a tool call keeps the turn
+        alive, so a lead that believes it must wait has no mechanism for waiting and burns turns
+        alternating filler tool calls with restatements that it is waiting. Issue 831 may be cited as
+        a bare pointer.
+        SPECIMEN NARRATIVE - CUT. The transcript id agent-a8f1c68d9a0d69f25, the roughly 40 cycles,
+        the roughly 3.5 minutes, the sidecar line range 35 to 186 and the observation date are
+        biography. The mechanism clause above is what does the work; the incident is in git and in
+        issue 831. Write none of it.
+        THAT THE STOP HOOK WAS RULED OUT AS THE CAUSE - CUT. It is narration of how the
+        investigation went, not a rule, and it changes no agent's behaviour. This plan's D-07 holds
+        the finding and issue 831 holds the argument.
+        THE PLATFORM TEXT THE RULE MUST OVERRIDE - SURVIVES as one clause, because it constrains how
+        the rule has to be written. The Agent tool's own dispatch result text tells the caller to
+        continue other work or respond to the user in the meantime. It is platform-supplied and
+        appears nowhere under .claude/, .harness/ or docs/, so the harness cannot edit it and the
+        rule must EXPLICITLY OVERRIDE it rather than merely fill a silence.
+        WHY THE RULE CARRIES AN INOCULATION - SURVIVES. Every dispatch's first turn-end meets a live
+        child and is refused, so the rule states that the refusal is expected, that the response is
+        to end the turn again, and that it can recur on a later wake. Without that clause the rule
+        installs the loop it removes.
+        WHERE THE LEAD-TIER RULE LIVES - SURVIVES as a present-tense pointer, one clause. The rule is
+        written once into .claude/skills/harness-team/SKILL.md, which all three lead agents preload,
+        so one file reaches the whole tier. CUT the grep result that measured the gap at 8fc87f8 -
+        the gap is closed by this feature, so a record of its former absence is biography.
+        WHY NO LEAD IS GRANTED A MESSAGE-SENDING TOOL - SURVIVES in full. A lead that has ended its
+        turn cannot send anything, and a lead holding a message tool gains a fresh reason to stay
+        awake and watch, which is the loop this rule removes. Issues 610 and 552 are closed on that
+        ruling. This is recorded precisely so a future scan does not re-suggest it.
+        THAT THE PLATFORM'S WAKE IS NOT RE-MEASURED BY THIS CHANGE - CUT. The entry already carries
+        DEC-201's original wake probes; in one voice there is nothing to disclaim, and a sentence
+        about what this change did not measure is changelog voice.
+      Do not restate DEC-201's existing orchestrator evidence, and do not touch any other decision
+      entry - DEC-199 is T-06's and DEC-198 belongs to another task.
+
+      Then regenerate the index by running python3 .claude/skills/harness/bin/gen-decisions-index.py
+      from the repo root. Everything left of the double-colon separator on a row is generated and
+      everything right of it is hand-written and preserved verbatim, so edit DEC-201's summary text
+      by hand in .harness/harness/docs/DECISIONS-INDEX.md so that it names the LEAD TIER alongside
+      the orchestrator, keeping the row inside the index's 30-word cap. THE LEAD WORD MUST GO IN THE
+      HAND-WRITTEN HALF, right of the double-colon separator. The guard matches that half only,
+      deliberately: the generated left half is derived from the entry heading, so once you rename the
+      heading it would carry the word by itself and the assertion would stop grading your edit. At
+      8fc87f8 the row is line 219 and its hand-written half reads that an orchestrator never waits,
+      with no lead in it. Confirm with a COMPLETED run
+      that gen-decisions-index.py --stdout piped into diff against the committed index is clean.
+
+  - id: T-06
+    title: Correct DEC-199's falsified once-only clauses to the measured bound in its own body
+    traces: [REQ-06]
+    change_type: docs
+    execution_mode: team
+    execution_agent: harness-documentor
+    depends_on: [T-05]
+    status: done
+    files:
+      - .harness/harness/docs/DECISIONS.md
+      - .harness/harness/docs/DECISIONS-INDEX.md
+    verify: |
+      cd "$(git rev-parse --show-toplevel)"
+      python3 .claude/skills/harness/bin/gen-decisions-index.py --stdout | diff - .harness/harness/docs/DECISIONS-INDEX.md; d=$?
+      python3 .claude/skills/harness/bin/test-lead-stop-and-wake.py --group bound --only .harness/harness/docs/DECISIONS.md; b=$?
+      echo "indexdiff=$d bound=$b"
+      test "$d" -eq 0 -a "$b" -eq 0 && echo T06_PASS || echo T06_FAIL
+    intent: |
+      THE RULING IS CORRECT IN PLACE. It is already made and it is not yours to re-open: DEC-199
+      keeps its entry and keeps its ruling, and only the subordinate clause about how often the
+      refusal fires is false. Do NOT apply DEC-188's strike form. DEC-188 governs a decision the tree
+      FLATLY CONTRADICTS, and DEC-199's actual ruling - that a verdict about a member still running
+      is a verdict about something the reporter cannot see - is still correct and still in force. Do
+      not return BLOCKED asking who decides; this paragraph is the decision.
+
+      DO NOT ADD AN AMENDMENT. No level-3 "DEC-199 amendment N" heading, no bold "Amendment N (date)"
+      marker, no numbering after whatever DEC-199 already carries, no dated note, no "this was
+      corrected", no "previously said", no reference to who wrote a sentence or when. The entry
+      SUBSUMES the correction: when you are done a reader must find one entry, in ONE VOICE and in
+      the present tense, that reads as though it always stated the measured bound.
+
+      WHY THIS TASK'S FORM DIFFERS FROM ITS NEIGHBOURS, AND WHY YOU MUST NOT MATCH THEM.
+      DECISIONS.md carries amendment sub-sections - level-THREE headings beginning with DEC-, 28 of
+      them at 8fc87f8 against 201 level-two entry headings. NO LINE NUMBERS ARE GIVEN AND YOU DO NOT
+      NEED ANY: no task in this plan acts on one, and a previous draft's enumeration of thirteen
+      supposed amendment lines was checked line by line and was wrong at twelve of the thirteen. They
+      are the OLD form. The operator has ruled that DECISIONS.md is no longer append-only: a decision
+      subsumes its correction in place so the entry reads as current knowledge, and git holds the
+      history (D-09 in this plan). Those neighbours are precedent you must not follow. Do not convert
+      them either - they are not yours.
+
+      THE SUBJECT. DEC-199 in .harness/harness/docs/DECISIONS.md. Its LEVEL-TWO heading is line 6836
+      at 8fc87f8 and the entry runs to the next level-two DEC- heading, DEC-200 at line 6897. The
+      paragraph to correct is lines 6866 to 6873 at 8fc87f8, opening "Only the dispatch cause of
+      issue #551 is closed." ALL OF THESE ANCHORS ARE ~170 LINES FROM WHERE THE PREVIOUS DRAFT PUT
+      THEM, because it pinned them at 9165162 and the file has moved since. RE-DERIVE EVERY ONE BY
+      ITS TEXT before you edit, and re-derive again after T-05 runs - T-05 writes this same file and
+      DEC-201 sits below DEC-199, so T-05's edit does not move these lines, but nothing entitles you
+      to assume that. Two sentences in that paragraph state the falsified bound and BOTH must be
+      corrected IN PLACE, not merely annotated below:
+        the sentence ending "so a stop refusal fires at most once" (ends at line 6869 at 8fc87f8);
+        the sentence stating the return "is REFUSED once on that hook, the same one-correction-round
+        strength every other digest contract in that file has" (lines 6869 to 6871 at 8fc87f8).
+      Also make the residual sentence honest - "The residual, plainly: a second identical return
+      ships..." at lines 6872 to 6873 at 8fc87f8: an immediate second identical return does still
+      ship, and the refusal RE-FIRES on a later wake while a child is still live.
+
+      WHAT THE CORRECTED BOUND IS. The refusal fires at most once per CONSECUTIVE STOP SEQUENCE, and
+      it re-fires on each later wake while a child is still live. Correct the sentences at their
+      existing length and in the document's own voice.
+
+      THE VERIFY GRADES EVERY OCCURRENCE, INCLUDING ANY YOU INTRODUCE. The bound group scans the
+      WHOLE file for the once-only phrasing and grades each occurrence by the SENTENCE containing it.
+      An occurrence passes only when a per-consecutive-stop-sequence qualifier appears in that SAME
+      sentence. Leave no unqualified occurrence anywhere in the file and introduce none. If a
+      sentence must name the old claim at all, the qualifier has to sit inside that same sentence -
+      never a sentence stating the old bound followed by a separate corrective one.
+
+      THEN SUBSUME THE SUPPORTING RECORD INTO THE ENTRY'S OWN BODY, as ordinary sentences in the
+      entry's voice. Bounded by DEC-158 - the rule, the consequence, and one clause of why.
+      Everything below is an explicit survives-or-cut call already made for you; do not re-litigate
+      any of it.
+        THAT THE ENTRY WAS CORRECTED, AND THAT DEC-188 DOES NOT APPLY - CUT from the entry. It is a
+        statement about the editing, not about the system. This plan's D-09 and D-11 hold it, and git
+        holds the change. The corrected sentences are the record.
+        THE DISCRIMINATING EVIDENCE - SURVIVES, compressed to the clause that does the work. In one
+        observed orchestrator run on the same code path the lead tier uses, two stop refusals named
+        DIFFERENT CHILD SETS, which proves a distinct refusal event rather than replayed context.
+        That is the whole force of the evidence, so state it as the reason and not as a detail. The
+        transcript id agent-a89be3fd837d1b779 may survive as a BARE POINTER, nothing more.
+        THE FORENSIC DETAIL - CUT. The sidecar line numbers 178 and 392, the per-child started_at
+        timestamps to the microsecond, and the individual agent names are biography. Write none of
+        them.
+        THE MECHANISM - SURVIVES as one clause. The hook holds NO internal state marking a return
+        already refused: validate-digest.py returns early on stop_hook_active and reads live children
+        fresh, and live_children is a pure read that only expires stale entries. That absence of
+        state is what makes the bound per consecutive stop sequence rather than per run.
+        THE PLATFORM'S CONSECUTIVE-BLOCK CAP OF EIGHT - CUT. It bounds how many consecutive blocks
+        the platform tolerates, which is a different question from how often this refusal fires; it
+        does not do the work of the corrected bound.
+        THE CONSEQUENCE - SURVIVES in full. Ending a lead's turn after every dispatch raises the rate
+        of stop attempts made with children live, so each attempt risks its own refusal rather than
+        there being one per return.
+        WHERE THE SAME BOUND IS STATED ELSEWHERE - SURVIVES as a present-tense pointer, one clause:
+        inflight_registry.py's refusal message and .claude/skills/harness/SKILL.md state the same
+        bound. Name them; do not restate their text and do not write that this feature changed them.
+      Everything else in DEC-199 - the merge core, the single-flight registry, the issue 551 false
+      reporting analysis, occurrences 5 through 8 - is UNAFFECTED and must not be rewritten.
+
+      Do not touch DEC-201, which is T-05's, and do not touch any other entry.
+
+      Then regenerate the index with python3 .claude/skills/harness/bin/gen-decisions-index.py from
+      the repo root, and confirm with a COMPLETED run that gen-decisions-index.py --stdout piped into
+      diff against the committed index is clean.
+
+      DO NOT HAND-EDIT DEC-199'S INDEX ROW. The previous draft told you to rewrite its summary so it
+      no longer asserts the falsified bound. CHECKED AT 8fc87f8: the committed row, line 217, reads
+      that one locked union-merging core carries every concurrent-write artifact, that a named
+      persona is single-flight per checkout, and that issue 551's dispatch cause closes while its
+      false-reporting consequences do not. IT ASSERTS NO BOUND AT ALL. There is nothing to correct
+      there, and editing a correct row to satisfy an instruction premised on a wrong reading is how a
+      good record gets worse. Read the row yourself first; if it genuinely asserts the once-only
+      bound when you get there, fix it and say so in your return.
+      The regeneration is still required and is not optional: your edit to DEC-199's body shifts
+      every line anchor below it, including DEC-200's, DEC-201's and DEC-202's, and those anchors are
+      the generated half of each row.
+
+  - id: T-09
+    title: Scope DEC-70 to prompt, model and tool-integration changes in its own body, and regenerate the index
+    traces: [REQ-01, REQ-02, REQ-03, REQ-04]
+    change_type: docs
+    execution_mode: team
+    execution_agent: harness-documentor
+    depends_on: [T-02]
+    status: done
+    files:
+      - .harness/harness/docs/DECISIONS.md
+      - .harness/harness/docs/DECISIONS-INDEX.md
+    verify: |
+      cd "$(git rev-parse --show-toplevel)"
+      python3 .claude/skills/harness/bin/gen-decisions-index.py --check; i=$?
+      grep -qiE "prompt|model|tool integration" <(sed -n '/^## DEC-70 /,/^## DEC-71 /p' .harness/harness/docs/DECISIONS.md); s=$?
+      echo "index=$i scope=$s"
+      test "$i" -eq 0 -a "$s" -eq 0 && echo T09_PASS || echo T09_FAIL
+    intent: |
+      RE-DERIVE THE ANCHOR BY ITS TEXT. DEC-70's heading begins "## DEC-70 - `ai_behavior` becomes a
+      real change type". Line numbers in this plan are orientation only.
+
+      SUBSUME THE CORRECTION IN PLACE. DO NOT ADD AN AMENDMENT - no level-3 heading, no bold
+      "Amendment N (date)". D-09 retired that form for this repository. Rewrite the entry's own body
+      so the reader finds the current rule first, and let the diff hold what changed.
+
+      THE CHANGE, and it is a NARROWING not a reversal. DEC-70's requirement - ai-dev authors the
+      eval, qa runs it, validator-lead assesses adequacy - stands unchanged for PROMPT, MODEL and
+      TOOL-INTEGRATION changes. State that a change to a markdown playbook an agent preloads is
+      graded by CONDUCT, through a UAT criterion reading a real dispatch, and not by a dataset eval.
+
+      STATE THE REASON, ONE CLAUSE, because DEC-158 bounds an entry to the rule and one clause of
+      why. The reason is measured, not preference - for a playbook the dataset and the grader come
+      from one hand and no live behaviour is read, so a passing eval reports only that those two
+      agree with each other. DEC-70 already names this weakness for prompts; for a playbook it is
+      total rather than partial.
+
+      DO NOT WRITE that evals are excluded, that test_kinds.eval is off, or that ai_behavior no
+      longer requires an eval. None of those is true and all three would be read as licence.
+
+      Then regenerate .harness/harness/docs/DECISIONS-INDEX.md with
+      python3 .claude/skills/harness/bin/gen-decisions-index.py so the row matches the edited body.
+      Change no other entry.

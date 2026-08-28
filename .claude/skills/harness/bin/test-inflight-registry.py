@@ -252,9 +252,12 @@ def case_6b_children_refusal_lines():
     ts_count = sum(len(re.findall(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}", l)) for l in lines)
     check("case6b: two ISO-8601 timestamps appear", ts_count >= 2, lines)
     check("case6b: #551 is referenced", any("#551" in l for l in lines), lines)
+    AGAIN_RE = re.compile(
+        r"end your turn again|end the turn again|stop again|return again", re.I
+    )
     check(
-        "case6b: the fires-once sentence is present",
-        any("once" in l.lower() for l in lines),
+        "case6b: the message prescribes ending the turn again",
+        any(AGAIN_RE.search(l) for l in lines),
         lines,
     )
 
