@@ -115,6 +115,12 @@
       "squad": "validation",
       "agent": "harness-validator-lead",
       "verdict": "PASS"
+    },
+    {
+      "id": "goalcheck-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS"
     }
   ],
   "github": {

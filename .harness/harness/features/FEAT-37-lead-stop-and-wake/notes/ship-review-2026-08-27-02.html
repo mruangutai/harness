@@ -1,0 +1,87 @@
+<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>FEAT-37 — lead stop-and-wake — ship review</title><style>
+:root{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:ui-sans-serif,-apple-system,"Segoe UI","Helvetica Neue",Arial,sans-serif;
+}
+/* Token-level theming: components style through the tokens and never inside the
+   media query, so the viewer's explicit toggle can override the OS in BOTH
+   directions. */
+@media (prefers-color-scheme:dark){
+  :root{ --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+         --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733; }
+}
+:root[data-theme="dark"]{
+  --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+  --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733;
+}
+:root[data-theme="light"]{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+}
+*{box-sizing:border-box}
+body{margin:0; background:var(--paper); color:var(--ink);
+  font:400 16px/1.65 var(--sans); padding:clamp(1.5rem,5vw,4rem) clamp(1rem,5vw,2rem) 6rem}
+.wrap{max-width:56rem; margin:0 auto}
+/* Layout owns the spacing: gap between siblings, not per-element margins that
+   collapse or double. */
+.wrap{display:flex; flex-direction:column; gap:1rem}
+.eyebrow{font:500 11px/1 var(--mono); letter-spacing:.14em; text-transform:uppercase;
+  color:var(--quiet); margin:0}
+h1{font:600 clamp(1.6rem,4vw,2.3rem)/1.15 var(--sans); letter-spacing:-.02em;
+  margin:.4rem 0 .2rem; text-wrap:balance}
+h2{font:600 1.15rem/1.3 var(--sans); letter-spacing:-.01em; margin:2rem 0 0;
+  padding-top:1.25rem; border-top:1px solid var(--line); text-wrap:balance}
+h3{font:600 .98rem/1.4 var(--sans); margin:1.1rem 0 0}
+h4,h5,h6{font:500 11px/1.4 var(--mono); letter-spacing:.1em; text-transform:uppercase;
+  color:var(--quiet); margin:1rem 0 0}
+p,li{max-width:65ch; margin:0}
+ul,ol{margin:0; padding-left:1.4rem; display:flex; flex-direction:column; gap:.4rem}
+li>ul,li>ol{margin-top:.4rem}
+strong{font-weight:600}
+code{font:400 .875em/1.5 var(--mono); background:var(--sunk); padding:.1em .35em; border-radius:3px}
+pre{background:var(--sunk); border:1px solid var(--line); border-radius:6px;
+  padding:.85rem 1rem; overflow-x:auto; margin:0}
+pre code{background:none; padding:0}
+blockquote{margin:0; padding:.75rem 1rem; border-left:3px solid var(--accent);
+  background:var(--accent-soft); border-radius:0 5px 5px 0}
+blockquote p{max-width:none}
+hr{border:0; border-top:1px solid var(--line); margin:.5rem 0}
+/* Wide content pans inside its OWN container; the page body never scrolls sideways. */
+.scroll{overflow-x:auto; border:1px solid var(--line); border-radius:6px}
+table{border-collapse:collapse; width:100%; font-size:.9rem}
+th,td{text-align:left; padding:.6rem .8rem; border-bottom:1px solid var(--line); vertical-align:top}
+thead th{font:500 10px/1.3 var(--mono); letter-spacing:.11em; text-transform:uppercase;
+  color:var(--quiet); background:var(--sunk); white-space:nowrap}
+tbody tr:last-child td{border-bottom:0}
+/* Figures in a column line up. */
+td,th{font-variant-numeric:tabular-nums}
+.derived{color:var(--slate); font-size:.85rem; margin-top:2.5rem;
+  padding-top:1rem; border-top:1px solid var(--line)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style></head><body><div class='wrap'><p class='eyebrow'>Ship review · reading view</p><h1 id="feat-37-lead-stop-and-wake-ship-review">FEAT-37 — lead stop-and-wake — ship review</h1>
+<h2 id="the-decision-in-front-of-you">The decision in front of you</h2>
+<p><strong>The feature is done and verified. Seven of its eight success criteria are met by their own declared methods; the eighth is the deferral you already signed, and it can only be run after merge.</strong> Nothing is blocking. What remains is your ship call, plus three decisions that are yours because they touch signed artifacts.</p>
+<p><strong>What it does.</strong> A domain lead now carries a never-wait rule and its inoculation in the playbook it preloads: end the turn on dispatch, the member&#x27;s completion wakes you, expect the refusal, end the turn again, and it can recur. It also contradicts the dispatch tool&#x27;s own &quot;continue other work in the meantime&quot; rather than sitting silently beside it.</p>
+<h2 id="how-this-briefing-was-assembled">How this briefing was assembled</h2>
+<p><strong>No report round was spawned.</strong> I read every run digest from disk, which is what <code>feature.json</code> <code>runs:</code> is for. The paths, all under <code>.harness/harness/features/FEAT-37-lead-stop-and-wake/</code>:</p>
+<ul><li><code>runs/2026-08-24-01-product/digest.md</code>, <code>runs/2026-08-24-02-product/digest.md</code>, <code>runs/2026-08-24-03-product/digest.md</code>, <code>runs/2026-08-26-01-product/digest.md</code>, <code>runs/2026-08-26-02-product/digest.md</code> — planning, re-planning, rulings</li><li><code>runs/2026-08-24-01-eng/digest.md</code>, <code>runs/2026-08-24-02-eng/digest.md</code> — cause confirmed, bound measured</li><li><code>runs/2026-08-27-01-t01-eng/digest.md</code>, <code>runs/2026-08-27-01-t04-eng/digest.md</code>, <code>runs/t06-product/digest.md</code> — the build</li><li><code>runs/2026-08-27-01-product/digest.md</code> — <strong>T-05&#x27;s digest is LOST</strong>; that file is a note saying so</li><li><code>runs/2026-08-27-01-validator/digest.md</code>, <code>runs/amend-eval-product/digest.md</code>, <code>runs/2026-08-27-02-t07-t08-eng/digest.md</code> — the eval attempt and its strike</li><li><code>runs/2026-08-27-01-t09-docs-product/digest.md</code> — T-09 plus the docs sweep</li><li><code>runs/qa-2026-08-27-03-validator/digest.md</code> — the qa gate</li><li><code>runs/panel-2026-08-27-validator/digest.md</code> — the review panel</li><li><code>runs/goalcheck-product/digest.md</code> — the goal-check</li></ul>
+<h2 id="where-each-squad-landed">Where each squad landed</h2>
+<p><strong>Product</strong> (<code>runs/goalcheck-product/digest.md</code>) — PASS. Seven SCs met by declared method, SC-08 left ungraded as the declared deferral. pm judged the DEC-70 preload gap a genuinely NEW criterion and recommended a backlog row rather than a retro-added SC, on the ground that adding a criterion to a signed BRIEF after the work is graded changes what was signed.</p>
+<p><strong>Engineering</strong> — the six tasks. T-01 shipped the guard test red-by-design; T-02 wrote the rule into the playbook; T-04 corrected the refusal an agent actually reads; T-05 and T-06 bound the rule to the lead tier in DEC-201 and corrected DEC-199; T-09 narrowed DEC-70.</p>
+<p><strong>Validation</strong> (<code>runs/qa-2026-08-27-03-validator/digest.md</code>, <code>runs/panel-2026-08-27-validator/digest.md</code>) — both PASS. Matrix green at <code>4e652f9</code>. The panel closed the only two criteria with no independent evidence, and reported honestly that three PASSes cannot distinguish a clean diff from a shallow panel, since only one member ran a falsification check.</p>
+<h2 id="success-criteria">Success criteria</h2>
+<div class="scroll"><table><thead><tr><th>SC</th><th>Verdict</th><th>How</th></tr></thead><tbody><tr><td>SC-01</td><td>met</td><td>automated — playbook group, exit 0</td></tr><tr><td>SC-02</td><td>met</td><td>automated — all three inoculation clauses separately asserted</td></tr><tr><td>SC-03</td><td>met</td><td>automated — self-check, six fixtures discriminating both directions</td></tr><tr><td>SC-04</td><td>met</td><td>inspection — <code>harness-team/SKILL.md:119-120</code>, one sentence names the tool&#x27;s nudge and denies it</td></tr><tr><td>SC-05</td><td>met</td><td>inspection — anchors graded at <code>:81</code>, <code>:126</code>, <code>:196</code>; sweep proven non-vacuous</td></tr><tr><td>SC-06</td><td>met</td><td>automated — coverage group plus index drift check, exit 0</td></tr><tr><td>SC-07</td><td>met</td><td>automated — 6 cases, <strong>both floor assertions firing</strong></td></tr><tr><td>SC-08</td><td><strong>not_met</strong></td><td>uat — the declared post-merge deferral. <strong>Yours to run, from the main checkout, after merge.</strong></td></tr></tbody></table></div>
+<p><strong>SC-08 is the only criterion that measures conduct, and I am not softening that.</strong> Everything else grades text on disk. This build produced first-hand proof of why it cannot be graded here: the stop guard refused me repeatedly saying <em>&quot;this refusal fires ONCE&quot;</em> — the <strong>main checkout&#x27;s</strong> <code>inflight_registry.py:274</code> — while the branch&#x27;s corrected text at <code>:339</code> reads <em>&quot;at most once per consecutive stop sequence&quot;</em>. Every agent in this build read the unedited playbook.</p>
+<h2 id="three-decisions-that-are-yours">Three decisions that are yours</h2>
+<ol><li><strong>The DEC-70 narrowing never reached the surfaces an agent preloads.</strong> It landed in <code>DECISIONS.md</code>, <code>DECISIONS-INDEX.md</code> and <code>SPEC.md</code>, but <code>.claude/skills/harness-qa-gate/SKILL.md:40</code> still reads <code>ai_behavior | prompts, model calls, agent definitions, tool definitions</code> with no playbook carve-out, and <code>.claude/agents/harness-ai-dev.md:38,41</code> and <code>harness.json test_matrix</code> are unqualified. I confirmed all three by grep. <strong>The next feature touching a playbook re-runs this entire blockage.</strong> pm and validator-lead reached the same recommendation independently: backlog row, not a retro-added SC.</li><li><strong>T-09&#x27;s signed <code>verify:</code> block can never grade green.</strong> It calls <code>gen-decisions-index.py --check</code>, a flag that has never existed — the docstring says so and it exits 2. The property it meant to gate is gated by SC-06, which names the correct form and exits 0. Recommend amending the clause.</li><li><strong>SC-05&#x27;s line citations in <code>BRIEF.md</code> are stale</strong> — <code>:112</code> is now <code>:126</code>, <code>:181</code> is now <code>:196</code>. Confirmed by three independent measurements. <code>BRIEF.md</code> is approval-gated and was not edited.</li></ol>
+<h2 id="proposed-backlog-anything-not-listed-dies-silently">Proposed backlog — anything not listed dies silently</h2>
+<div class="scroll"><table><thead><tr><th>ID</th><th>Nature</th><th>Finding</th></tr></thead><tbody><tr><td>B-1</td><td>bug</td><td>A run-dir slug collision overwrote <strong>T-05&#x27;s digest</strong>; the runs directory is gitignored so there is no copy. Nothing prevented it.</td></tr><tr><td>B-2</td><td>chore</td><td>SC-05&#x27;s line citations in the signed <code>BRIEF.md</code> are stale. Needs an operator-side correction.</td></tr><tr><td>B-3</td><td>bug</td><td>DEC-70&#x27;s narrowing did not reach the three surfaces an agent preloads at classification time. <strong>The highest-value row here.</strong></td></tr><tr><td>B-4</td><td>bug</td><td>T-09&#x27;s signed <code>verify:</code> calls a flag that never existed. <strong>Nothing validates that a <code>verify:</code> block is runnable before signature.</strong></td></tr><tr><td>B-5</td><td>bug</td><td>SC-07 enumerated two once-only sites; a third existed in <code>SPEC.md</code>. Caught by a sweep&#x27;s diligence, not by any gate.</td></tr><tr><td>B-6</td><td>chore</td><td>The panel&#x27;s reviewer-artifact naming convention is denied by the write guard, which permits only the agent-name form.</td></tr><tr><td>B-7</td><td>chore</td><td>The feature&#x27;s diff base is undocumented and was derived wrong once. <strong>I tested recording it in <code>feature.json</code>: the validator refuses an undeclared key</strong>, so this needs a schema change first.</td></tr><tr><td>B-8</td><td>chore</td><td>The integration suite takes ~7 minutes. <strong>qa attributed this to <code>test-gh-sync.py</code> making a live rate-limit API call; I checked and that file stubs the <code>gh</code> binary entirely.</strong> Real slowness, wrong cause, needs diagnosis.</td></tr><tr><td>B-9</td><td>bug</td><td>The in-flight registry is a single file at the <strong>outer</strong> checkout root, shared by every worktree and context, so a lead was refused naming a <code>harness-pm</code> it never spawned.</td></tr><tr><td>B-10</td><td>enhancement</td><td>A lead holds no <code>SendMessage</code>, so a finding made after dispatch cannot reach a member in flight. D-03&#x27;s deliberate consequence.</td></tr><tr><td>B-11</td><td>bug</td><td>Engineer DIGESTs carry no <code>files_touched</code>, so a member that wrote a receipt reported no files.</td></tr><tr><td>B-12</td><td>chore</td><td>The root-cause note path is in no member&#x27;s domain, so debug reports fall back to receipt paths.</td></tr><tr><td>B-13</td><td>chore</td><td>T-05 and T-06 have no dedicated test file; their assurance rests entirely on two groups of one script.</td></tr><tr><td>B-14</td><td>chore</td><td><code>bash-write-guard.sh</code> parses heredoc <strong>body text</strong> as shell tokens: writing this briefing was blocked because a filename pattern appeared inside a prose table cell.</td></tr></tbody></table></div>
+<p>Already filed, not new rows: <strong>#910</strong> (route checker validates against the wrong config; no script reads the <code>gates</code> block) and <strong>#903</strong> (the struck orchestrator-tier regression).</p>
+<h2 id="budget-and-one-thing-i-did-not-do">Budget, and one thing I did not do</h2>
+<p><strong>Runs 19/20. Cycles 1/10</strong> — and that single cycle predates this session; it came from the T-01 build run. Every segment this session returned <strong>zero send-backs</strong>. You budgeted five runs for five segments with zero spare; combining T-09 with the docs sweep into one documentor dispatch made it four segments in four runs, so <strong>run 20 is unspent</strong>.</p>
+<p><strong>SIMPLIFY was not run, and the reason is structural rather than a preference.</strong> It must run before <code>review_sha</code> is pinned, because an apply commit after the pin invalidates the panel&#x27;s verdict. The panel has graded at <code>4e652f9</code>, so running it now costs the panel run as well as its own — two runs against a budget holding one. Either accept the omission or re-open it as a follow-up with a fresh pin and a fresh panel. It is no longer a one-run decision.</p>
+<p><strong>No PR and no merge</strong> — both yours, as instructed. The branch is <code>feat/FEAT-37-lead-stop-and-wake</code>, the state gate is clean for this feature, and all seven INV-26 card violations cleared on the Review station write without a card being touched by hand.</p><p class='derived'>Derived from <code>ship-review-2026-08-27-02.md</code> — the markdown is the record; do not edit this file. Regenerate with <code>bin/render-brief.py</code>.</p></div></body></html>

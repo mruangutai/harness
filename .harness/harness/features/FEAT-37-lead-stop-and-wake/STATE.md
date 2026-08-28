@@ -3,50 +3,41 @@
 ## Current
 
 - feature: FEAT-37-lead-stop-and-wake
-- run: runs/qa-2026-08-27-03-validator/digest.md
-- squad: none — review panel next
+- run: runs/goalcheck-product/digest.md
+- squad: none — validate COMPLETE, awaiting the operator's ship decision
 - status: Review
 
-**ALL SIX TASKS DONE. QA GATE GREEN AT `4e652f9`.** Runs 17/20. Cycles 1/10 — three consecutive runs
-with ZERO send-backs, so nothing was added. `review_sha` is pinned at `4e652f9` and stays there; no
-source has changed since.
+**VALIDATE IS COMPLETE. SIX TASKS DONE, QA GREEN, PANEL PASS, GOAL-CHECK PASS.** Runs 19/20 with run
+20 unspent. Cycles 1/10, and that one cycle predates this session — every segment here returned ZERO
+send-backs. `review_sha` `4e652f9`. Briefing at `notes/ship-review-2026-08-27-02.md`.
 
-**THE EVAL QUESTION IS SETTLED, AND ON A RULING RATHER THAN ON THE CONFIG.** qa ruled
-`test_matrix.ai_behavior` does not block T-02. The config still literally reads `["eval"]` and
-`test_kinds.eval` is still `cmd: null`. What settles it is that NO SCRIPT READS THE MATRIX — qa reads
-it, so DEC-70 governs the reading, and DEC-70 is narrowed at `4e652f9` to prompt/model/tool-integration
-with markdown playbooks routed to conduct. T-02's file set is one markdown playbook.
+**SEVEN SCs MET BY THEIR OWN DECLARED METHODS. SC-08 IS not_met AND STAYS THAT WAY.** It is the
+declared post-merge deferral (D-13) and the ONLY criterion measuring conduct; everything else grades
+text on disk. This build proved the deferral first-hand: the stop guard refused me repeatedly reading
+"this refusal fires ONCE" — the MAIN checkout's `inflight_registry.py:274` — while the branch's
+corrected text at `:339` reads "at most once per consecutive stop sequence". Every agent here read the
+unedited playbook. The operator runs SC-08 from the main checkout after merge.
 
-**THE NARROWING DID NOT REACH THE SURFACES AN AGENT PRELOADS AT GATE TIME. I confirmed this myself
-by grep, not on report.** `.claude/skills/harness-qa-gate/SKILL.md:40` still classifies `ai_behavior`
-as "prompts, model calls, agent definitions, tool definitions" with no playbook carve-out;
-`.claude/agents/harness-ai-dev.md:38,41` and `.harness/harness.json:63` are unqualified too. The
-narrowing landed only in `DECISIONS.md`, `DECISIONS-INDEX.md` and `SPEC.md`. **The next qa spawn
-classifying a playbook edit reads the gate skill, not DEC-70, and reproduces this whole blockage.**
-Out of the documentor's domain by design, out of this feature's SCs, and pm's and the operator's to
-decide. Not fixed here.
+**THREE ITEMS NEED THE OPERATOR AND NONE BLOCK.** (1) DEC-70's narrowing reached DECISIONS.md,
+DECISIONS-INDEX.md and SPEC.md but NO surface an agent preloads when classifying —
+`harness-qa-gate/SKILL.md:40`, `harness-ai-dev.md:38,41`, `harness.json test_matrix` are all
+unqualified, confirmed by my own grep; pm and validator-lead independently recommend a backlog row
+rather than a retro-added SC. (2) T-09's signed `verify:` calls `gen-decisions-index.py --check`, a
+flag that never existed; the property is gated by SC-06 instead, which exits 0. (3) SC-05's BRIEF
+citations are stale (`:112`→`:126`, `:181`→`:196`), confirmed by three independent measurements;
+BRIEF is approval-gated and was NOT edited.
 
-**ALL SEVEN INV-26 VIOLATIONS ARE GONE, cleared the legitimate way.** They widened to zero the moment
-`gh-sync.py status <feature-dir> Review` ran, exactly as the build handoff predicted
-(`check-state.sh:1522` — INV-26 widens at feature.json status `Review`). No card was moved by hand and
-`check-state.sh` was not touched. The operator does not need to do anything about them.
+**THE MOST DURABLE FINDING IS THAT AN ENUMERATED GATE CANNOT SEE PAST ITS OWN LIST.** SC-07 named two
+once-only sites; a third lived in SPEC.md and would have shipped falsified with every criterion green.
+It was caught by the docs sweep's diligence, not by any gate.
 
-**SC-05 HAS NO EVIDENCE FROM ANY RUN and the panel is its only remaining source.** qa correctly
-declined it as not its artifact. SC-04's non-mechanical half currently rests on validator-lead's own
-reading, which is not independent. Both are the panel's to settle.
+**SIMPLIFY WAS NOT RUN, AND THE REASON IS STRUCTURAL rather than the cost argument I first gave.** It
+must precede the `review_sha` pin, because an apply commit after the pin invalidates the panel's
+verdict. The panel has graded at `4e652f9`, so running it now costs the panel run too — two runs
+against a budget holding one. Accept the omission, or re-open it with a fresh pin and a fresh panel.
 
-**SC-08 STAYS not_met AND THIS BUILD PRODUCED FIRST-HAND EVIDENCE FOR WHY.** The stop-guard refusal I
-received twice this run reads "this refusal fires ONCE" — the OUTER checkout's
-`inflight_registry.py:274`. The branch's corrected text at `4e652f9` reads "at most once per
-consecutive stop sequence" at `:339`. An agent inside this worktree was governed by the UNCORRECTED
-outer file, which is precisely D-13's mechanism. The operator runs SC-08 after merge.
-
-**THE 266-LINE INDEX DIFF IS THREE ROWS.** Normalising `@NNNN` anchors away leaves exactly DEC-70,
-DEC-199 and DEC-201 changed; ~130 other rows moved only by line-offset drift. "Change no other entry"
-was honoured. Told to the panel so no reviewer spends a cycle on it.
-
-**SIMPLIFY REMAINS DELIBERATELY OMITTED** — 661 insertions of non-doc surface, 641 of them the one
-test file whose shape is pinned by SC-03's six fixtures. The spare run is held for a FAIL.
+**ALL SEVEN INV-26 VIOLATIONS CLEARED** on the Review station write, no card touched by hand and
+`check-state.sh` untouched. No PR and no merge — both the operator's.
 
 ## Open Questions
 
