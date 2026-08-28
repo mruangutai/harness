@@ -32,16 +32,24 @@ FIXTURES = [
     ("grade1-cyclomatic", '''def twenty_conditions(a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u):\n    return a and b and c and d and e and f and g and h and i and j and k and l and m and n and o and p and q and r and s and t and u\n''', ("twenty_conditions", 1, 21, 1, 0, 0, 20, 20.0, 1, "cyclomatic")),
     # A=0 B=0 C=4 (if, Compare's two operators, unary Not); cyc=2; cog=1; abc=4.0.
     ("compare-and-not", '''def comparison(a, b, c):\n    if not a < b < c:\n        return 1\n''', ("comparison", 1, 2, 1, 0, 0, 4, 4.0, 5, "cyclomatic+cognitive+abc")),
-    # A=3 (tuple targets a,b and comprehension target x) B=0 C=1 (comprehension if); cyc=2 (comprehension for); cog=0; abc=sqrt(10)=3.2.
-    ("unpacking-comprehension", '''def unpack(xs):\n    a, b = 1, 2\n    return [x for x in xs if x]\n''', ("unpack", 1, 2, 0, 3, 0, 1, 3.2, 5, "cyclomatic+cognitive+abc")),
+    # A=3 (tuple targets a,b and comprehension target x) B=0 C=1 (comprehension if); cyc=3 (base, for, if); cog=0; abc=sqrt(10)=3.2.
+    ("unpacking-comprehension", '''def unpack(xs):
+    a, b = 1, 2
+    return [x for x in xs if x]
+''', ("unpack", 1, 3, 0, 3, 0, 1, 3.2, 5, "cyclomatic+cognitive+abc")),
     # A=0 B=1 (helper call) C=0; cyc=1; cog=0; abc=1.0.
     ("bare-call", '''def called():\n    helper()\n''', ("called", 1, 1, 0, 0, 1, 0, 1.0, 5, "cyclomatic+cognitive+abc")),
     # A=0 B=0 C=2 (both match cases); cyc=2 (non-wildcard case); cog=0; abc=2.0.
     ("match-case", '''def matched(x):\n    match x:\n        case 1:\n            return 1\n        case _:\n            return 0\n''', ("matched", 1, 2, 0, 0, 0, 2, 2.0, 5, "cyclomatic+cognitive+abc")),
+    # A=1 (comprehension target) B=1 (bool call) C=11 (eight if clauses and three comparisons); cyc=10; cog=0; abc=sqrt(123)=11.1.
+    ("comprehension-filters", '''def filtered(xs):
+    return [x for x in xs if x if x > 1 if x < 9 if x != 4 if x % 2 if x + 1 if x - 1 if bool(x)]
+''', ("filtered", 1, 10, 0, 1, 1, 11, 11.1, 3, "cyclomatic")),
 ]
 
 
-# Four worse direction pairs: each after source changes the named habit and crosses a band.
+
+# Direction pairs change exactly one named metric in the stated direction.
 DIRECTION_PAIRS = [
     ("nested-early-return", '''def f(a, b, c, d, e):
     if a and b and c:
@@ -52,8 +60,22 @@ DIRECTION_PAIRS = [
         if e:
             return 1
     return 0
-''', False),
-    ("nested-loops", '''def f(a, b, c, d, e, xs):\n    for x in xs:\n        if a and b and c:\n            pass\n    for y in xs:\n        if d and e:\n            pass\n''', '''def f(a, b, c, d, e, xs):\n    for x in xs:\n        for y in xs:\n            if a and b and c:\n                pass\n            if d and e:\n                pass\n''', False),
+''', "cognitive", "worse"),
+    ("nested-loops", '''def f(a, b, c, d, e, xs):
+    for x in xs:
+        if a and b and c:
+            pass
+    for y in xs:
+        if d and e:
+            pass
+''', '''def f(a, b, c, d, e, xs):
+    for x in xs:
+        for y in xs:
+            if a and b and c:
+                pass
+            if d and e:
+                pass
+''', "cognitive", "worse"),
     ("third-condition", '''def f(a, b, c):
     if a and b:
         pass
@@ -62,9 +84,12 @@ DIRECTION_PAIRS = [
     if a and b and c:
         pass
     assert a
-''', False),
-    ("inline-helper", '''def f(a, b, c, d, e):\n    return helper(a, b, c, d, e)\n''', '''def f(a, b, c, d, e):\n    return a and b and c and d and e\n''', False),
-    # Two better pairs reverse the same habits without changing any unrelated construct.
+''', "cyclomatic", "worse"),
+    ("inline-helper", '''def f(a, b, c, d, e):
+    return helper(a, b, c, d, e)
+''', '''def f(a, b, c, d, e):
+    return a and b and c and d and e
+''', "abc", "worse"),
     ("early-return-better", '''def f(a, b, c, d, e):
     if a and b and c:
         if e:
@@ -74,7 +99,7 @@ DIRECTION_PAIRS = [
     if a and b and c:
         return 1
     return 0
-''', True),
+''', "cognitive", "better"),
     ("condition-better", '''def f(a, b, c):
     if a and b and c:
         pass
@@ -83,7 +108,7 @@ DIRECTION_PAIRS = [
     if a and b:
         pass
     assert a
-''', True),
+''', "cyclomatic", "better"),
 ]
 
 
@@ -179,6 +204,32 @@ def newly_added():
         return failures
 
 
+def check_nul_safe_changed_files():
+    with tempfile.TemporaryDirectory() as directory:
+        repo_root = Path(directory)
+        _git(repo_root, "init")
+        _git(repo_root, "config", "user.email", "grader@example.test")
+        _git(repo_root, "config", "user.name", "Code Grader")
+        old_path = "odd\told\nname.py"
+        new_path = "odd\tnew\nname.py"
+        _write(repo_root, old_path, "def retained():\n    return 1\n")
+        base_ref = _commit(repo_root, "base")
+        _git(repo_root, "mv", old_path, new_path)
+        head_ref = _commit(repo_root, "rename")
+        failures = check(
+            code_grade._changed_python_files(repo_root, base_ref, head_ref),
+            [(new_path, old_path)],
+            "NUL-safe rename preserves tab and newline Python paths",
+        )
+        gated, informational = code_grade.gated_set(repo_root, base_ref, head_ref)
+        failures += check(
+            [(record.path, record.qualname) for record in gated + informational],
+            [(new_path, "retained")],
+            "NUL-safe rename reaches the grading record",
+        )
+        return failures
+
+
 def check_worked_examples():
     repo_root = Path(__file__).resolve().parents[4]
     skill_path = repo_root / ".claude/skills/harness-code-risk-grading/SKILL.md"
@@ -252,18 +303,21 @@ def main():
         actual = [(r.qualname, r.lineno, r.cyclomatic, r.cognitive, r.abc_a, r.abc_b, r.abc_c, r.abc, r.grade, r.driver) for r in records]
         failures += check(actual, [expected], name)
         grades.add(records[0].grade)
+    failures += check(len(FIXTURES) >= 12, True, "minimum hand-derived fixtures")
     failures += check(grades, {1, 2, 3, 4, 5}, "fixture bands")
     nested = code_grade.grade_source('''def outer():
     def helper():
         pass
     helper()
 ''', "fixture.py")
-    failures += check([r.qualname for r in nested], ["outer", "outer.helper"], "nested source order and qualname")
-    for name, before, after, better in DIRECTION_PAIRS:
-        before_grade = code_grade.grade_source(before, "fixture.py")[0].grade
-        after_grade = code_grade.grade_source(after, "fixture.py")[0].grade
-        expected = after_grade > before_grade if better else after_grade < before_grade
-        failures += check(expected, True, name)
+    failures += check([record.qualname for record in nested], ["outer", "outer.helper"],
+                      "nested source order and qualname")
+    failures += check_nul_safe_changed_files()
+    for name, before, after, metric, direction in DIRECTION_PAIRS:
+        before_value = getattr(code_grade.grade_source(before, "fixture.py")[0], metric)
+        after_value = getattr(code_grade.grade_source(after, "fixture.py")[0], metric)
+        moved_as_named = after_value < before_value if direction == "better" else after_value > before_value
+        failures += check(moved_as_named, True, f"{name}: {metric} moves {direction}")
     failures += check_changed_function_resolution()
     failures += check_worked_examples()
     failures += check_delivery()

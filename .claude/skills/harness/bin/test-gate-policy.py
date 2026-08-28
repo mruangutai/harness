@@ -52,7 +52,7 @@ def write_fixture(directory, name, payload):
     return path
 
 
-def main():
+def check_policy_loading():
     failures = 0
     with tempfile.TemporaryDirectory() as directory:
         fixture_path = write_fixture(directory, "harness.json", FIXTURE_POLICY)
@@ -61,98 +61,74 @@ def main():
         failures += check(policy["review"], "advisory_unless_high", "loader resolves review by name from fixture")
         failures += check(policy["uat"], "blocking_when_uat_criteria_exist", "loader resolves uat by name from fixture")
         failures += check(policy["merge"], "user_gated", "loader resolves merge by name from fixture")
-
         invalid = {"gates": dict(FIXTURE_POLICY["gates"], qa_gate="sometimes")}
         failures += expect_policy_error(
             lambda: gate_policy.load_policy(write_fixture(directory, "invalid.json", invalid)),
-            "qa_gate",
-            "sometimes",
-            "unrecognised qa_gate policy",
-        )
+            "qa_gate", "sometimes", "unrecognised qa_gate policy")
         invalid_shape = {"gates": dict(FIXTURE_POLICY["gates"], qa_gate=["blocking"])}
         failures += expect_policy_error(
             lambda: gate_policy.load_policy(write_fixture(directory, "invalid-shape.json", invalid_shape)),
-            "qa_gate",
-            ["blocking"],
-            "non-string qa_gate policy",
-        )
+            "qa_gate", ["blocking"], "non-string qa_gate policy")
         failures += expect_policy_error(
             lambda: gate_policy.load_policy(write_fixture(directory, "missing-gates.json", {})),
-            "gates",
-            None,
-            "absent gates block",
-        )
+            "gates", None, "absent gates block")
         missing_key = {"gates": dict(FIXTURE_POLICY["gates"])}
         del missing_key["gates"]["merge"]
         failures += expect_policy_error(
             lambda: gate_policy.load_policy(write_fixture(directory, "missing-key.json", missing_key)),
-            "merge",
-            None,
-            "absent named gate",
-        )
+            "merge", None, "absent named gate")
         malformed_path = os.path.join(directory, "malformed.json")
         with open(malformed_path, "w", encoding="utf-8") as fixture:
             fixture.write("{")
         failures += expect_policy_error(
             lambda: gate_policy.load_policy(malformed_path),
-            "config",
-            malformed_path,
-            "unparseable configuration",
-        )
+            "config", malformed_path, "unparseable configuration")
         unreadable_path = os.path.join(directory, "not-present.json")
         failures += expect_policy_error(
             lambda: gate_policy.load_policy(unreadable_path),
-            "config",
-            unreadable_path,
-            "unreadable configuration",
-        )
+            "config", unreadable_path, "unreadable configuration")
+    return failures
 
+
+def check_review_evaluation():
+    failures = 0
     failures += check(
         gate_policy.evaluate_review("advisory_unless_high", ["must fix"], "none"),
-        "FAIL",
-        "review blocks must_fix even without a severity escalation",
-    )
+        "FAIL", "review blocks must_fix even without a severity escalation")
     failures += check(
         gate_policy.evaluate_review("advisory_unless_high", [], "med"),
-        "PASS",
-        "review passes a clean medium-severity report",
-    )
+        "PASS", "review passes a clean medium-severity report")
     failures += check(
         gate_policy.evaluate_review("advisory_unless_high", [], "high"),
-        "FAIL",
-        "review blocks high severity",
-    )
+        "FAIL", "review blocks high severity")
     failures += check(
         gate_policy.evaluate_review("blocking", ["finding"], "none"),
-        "FAIL",
-        "blocking review blocks findings",
-    )
+        "FAIL", "blocking review blocks findings")
     failures += check(
         gate_policy.evaluate_review("advisory", ["must fix"], "critical"),
-        "PASS",
-        "advisory review always passes",
-    )
+        "PASS", "advisory review always passes")
     failures += expect_policy_error(
         lambda: gate_policy.evaluate_review("blocking", [], "unknown"),
-        "severity_max",
-        "unknown",
-        "unknown review severity raises loudly",
-    )
+        "severity_max", "unknown", "unknown review severity raises loudly")
+    return failures
 
+
+def check_qa_evaluation():
+    failures = 0
     qa_result = gate_policy.evaluate_qa("blocking", {"unit": "pass", "integration": "skipped"})
     failures += check(qa_result, "PASS", "blocking QA does not fail skipped suite")
     failures += check(qa_result.detail, "skipped: integration", "QA detail reports skipped suite")
     failures += check(
         gate_policy.evaluate_qa("blocking", {"unit": "fail", "integration": "skipped"}),
-        "FAIL",
-        "blocking QA blocks failed suite",
-    )
+        "FAIL", "blocking QA blocks failed suite")
     failures += check(
         gate_policy.evaluate_qa("advisory", {"unit": "fail"}),
-        "PASS",
-        "advisory QA always passes",
-    )
+        "PASS", "advisory QA always passes")
     return failures
+
+
+def main():
+    return sum((check_policy_loading(), check_review_evaluation(), check_qa_evaluation()))
 
 
 if __name__ == "__main__":

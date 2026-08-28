@@ -51,7 +51,8 @@ def _record(grade, root):
     bar = 3 if _is_test(root, grade.path) else 4
     severity = {1: "high", 2: "med"}.get(grade.grade)
     return {"path": grade.path, "line": grade.lineno, "qualname": grade.qualname,
-            "cyclomatic": grade.cyclomatic, "cognitive": grade.cognitive, "abc": grade.abc,
+            "cyclomatic": grade.cyclomatic, "cognitive": grade.cognitive,
+            "cognitive_method": "Sonar-style approximation", "abc": grade.abc,
             "grade": grade.grade, "driver": grade.driver, "bar": bar, "severity": severity}
 
 
@@ -70,8 +71,25 @@ def _paths_report(root, paths):
 
 
 def _diff_paths(root, base, head):
-    return [path for path in _git_text(root, "diff", "--name-only", base, head).splitlines()
-            if path.endswith(".py")]
+    result = subprocess.run(
+        ["git", "-C", str(root), "diff", "--find-renames", "--name-status", "-z", base, head],
+        capture_output=True,
+    )
+    if result.returncode:
+        raise ValueError(result.stderr.decode(errors="replace").strip())
+    fields = iter(result.stdout.split(b"\0"))
+    paths = []
+    for raw_status in fields:
+        if not raw_status:
+            continue
+        status = raw_status.decode()
+        if status.startswith(("R", "C")):
+            next(fields)
+        raw_path = next(fields)
+        path = raw_path.decode(errors="surrogateescape")
+        if not status.startswith("D") and path.endswith(".py"):
+            paths.append(path)
+    return sorted(paths)
 
 
 def _diff_report(root, base, head):
@@ -94,8 +112,10 @@ def _text(records, ungraded):
     for record in records:
         lines.extend(("FUNCTION", f"PATH: {record['path']}", f"LINE: {record['line']}",
                       f"QUALNAME: {record['qualname']}", f"CYCLOMATIC: {record['cyclomatic']}",
-                      f"COGNITIVE: {record['cognitive']}", f"ABC: {record['abc']:.1f}",
-                      f"GRADE: {record['grade']}", f"DRIVER: {record['driver']}"))
+                      f"COGNITIVE: {record['cognitive']} ({record['cognitive_method']})",
+                      f"ABC: {record['abc']:.1f}", f"GRADE: {record['grade']}",
+                      f"DRIVER: {record['driver']}", f"BAR: {record['bar']}",
+                      f"RESULT: {'PASS' if record['grade'] >= record['bar'] else 'FAIL'}"))
         if record["severity"]:
             lines.append(f"SEVERITY: {record['severity']}")
         if record["grade"] == 2:

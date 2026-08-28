@@ -204,6 +204,7 @@ class _Counter(ast.NodeVisitor):
             self.visit(generator.target)
             self.visit(generator.iter)
             for condition in generator.ifs:
+                self.cyclomatic += 1
                 self.c += 1
                 self.visit(condition)
         if isinstance(node, ast.DictComp):
@@ -300,14 +301,16 @@ def _git_show(repo_root, ref, path):
 
 def _changed_python_files(repo_root, base_ref, head_ref):
     changed = []
-    output = _git_output(repo_root, "diff", "--find-renames", "--name-status",
+    output = _git_output(repo_root, "diff", "--find-renames", "--name-status", "-z",
                          base_ref, head_ref)
-    for line in output.splitlines():
-        status, *paths = line.split("\t")
+    fields = iter(output.split("\0"))
+    for status in fields:
+        if not status:
+            continue
         if status.startswith("R"):
-            old_path, path = paths
+            old_path, path = next(fields), next(fields)
         else:
-            old_path, path = None, paths[0]
+            old_path, path = None, next(fields)
         if not status.startswith("D") and path.endswith(".py"):
             changed.append((path, old_path))
     return changed
