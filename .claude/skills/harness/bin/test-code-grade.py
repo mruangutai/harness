@@ -1,0 +1,278 @@
+#!/usr/bin/env python3
+"""Hand-derived contract tests for code_grade.py."""
+import importlib.util
+import os
+from pathlib import Path
+import re
+import subprocess
+import sys
+import tempfile
+HERE = os.path.dirname(os.path.abspath(__file__))
+spec = importlib.util.spec_from_file_location("code_grade", os.path.join(HERE, "code_grade.py"))
+code_grade = importlib.util.module_from_spec(spec)
+sys.modules[spec.name] = code_grade
+spec.loader.exec_module(code_grade)
+
+
+# Each source is adjacent to an independent hand derivation.  A/B/C are the
+# ABC components; cyc/cog are cyclomatic and Sonar-style cognitive counts.
+FIXTURES = [
+    # A=0 B=0 C=0; cyc=1 (base); cog=0; abc=sqrt(0)=0.0.
+    ("grade5-empty", '''def empty():\n    pass\n''', ("empty", 1, 1, 0, 0, 0, 0, 0.0, 5, "cyclomatic+cognitive+abc")),
+    ("bindings-and-calls", '''def bindings():\n    x = one()\n    y = two()\n''', ("bindings", 1, 1, 0, 2, 2, 0, 2.8, 5, "cyclomatic+cognitive+abc")),
+    # A=3 (for x, with y, except err) B=0 C=3 (for, except, assert); cyc=4; cog=2 (for, except); abc=sqrt(18)=4.2.
+    ("control-basics", '''def controls(xs, cm):\n    for x in xs:\n        pass\n    with cm as y:\n        pass\n    try:\n        pass\n    except ValueError as err:\n        assert err\n''', ("controls", 1, 4, 2, 3, 0, 3, 4.2, 5, "cyclomatic+cognitive+abc")),
+    # A=0 B=0 C=4 (four BoolOp operands beyond first); cyc=5; cog=1 (one BoolOp node); abc=4.0.
+    ("grade4-cyclomatic", '''def four_conditions(a, b, c, d, e):\n    return a and b and c and d and e\n''', ("four_conditions", 1, 5, 1, 0, 0, 4, 4.0, 4, "cyclomatic")),
+    # A=0 B=0 C=8 (eight BoolOp operands beyond first); cyc=9; cog=1; abc=8.0.
+    ("grade3-cyclomatic", '''def eight_conditions(a,b,c,d,e,f,g,h,i):\n    return a and b and c and d and e and f and g and h and i\n''', ("eight_conditions", 1, 9, 1, 0, 0, 8, 8.0, 3, "cyclomatic")),
+    # A=0 B=0 C=10 (ten BoolOp operands beyond first); cyc=11; cog=1; abc=10.0.
+    ("grade2-cyclomatic", '''def ten_conditions(a,b,c,d,e,f,g,h,i,j,k):\n    return a and b and c and d and e and f and g and h and i and j and k\n''', ("ten_conditions", 1, 11, 1, 0, 0, 10, 10.0, 2, "cyclomatic")),
+    # A=0 B=0 C=20 (twenty BoolOp operands beyond first); cyc=21; cog=1; abc=20.0.
+    ("grade1-cyclomatic", '''def twenty_conditions(a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u):\n    return a and b and c and d and e and f and g and h and i and j and k and l and m and n and o and p and q and r and s and t and u\n''', ("twenty_conditions", 1, 21, 1, 0, 0, 20, 20.0, 1, "cyclomatic")),
+    # A=0 B=0 C=4 (if, Compare's two operators, unary Not); cyc=2; cog=1; abc=4.0.
+    ("compare-and-not", '''def comparison(a, b, c):\n    if not a < b < c:\n        return 1\n''', ("comparison", 1, 2, 1, 0, 0, 4, 4.0, 5, "cyclomatic+cognitive+abc")),
+    # A=3 (tuple targets a,b and comprehension target x) B=0 C=1 (comprehension if); cyc=2 (comprehension for); cog=0; abc=sqrt(10)=3.2.
+    ("unpacking-comprehension", '''def unpack(xs):\n    a, b = 1, 2\n    return [x for x in xs if x]\n''', ("unpack", 1, 2, 0, 3, 0, 1, 3.2, 5, "cyclomatic+cognitive+abc")),
+    # A=0 B=1 (helper call) C=0; cyc=1; cog=0; abc=1.0.
+    ("bare-call", '''def called():\n    helper()\n''', ("called", 1, 1, 0, 0, 1, 0, 1.0, 5, "cyclomatic+cognitive+abc")),
+    # A=0 B=0 C=2 (both match cases); cyc=2 (non-wildcard case); cog=0; abc=2.0.
+    ("match-case", '''def matched(x):\n    match x:\n        case 1:\n            return 1\n        case _:\n            return 0\n''', ("matched", 1, 2, 0, 0, 0, 2, 2.0, 5, "cyclomatic+cognitive+abc")),
+]
+
+
+# Four worse direction pairs: each after source changes the named habit and crosses a band.
+DIRECTION_PAIRS = [
+    ("nested-early-return", '''def f(a, b, c, d, e):
+    if a and b and c:
+        return 1
+    return 0
+''', '''def f(a, b, c, d, e):
+    if a and b and c:
+        if e:
+            return 1
+    return 0
+''', False),
+    ("nested-loops", '''def f(a, b, c, d, e, xs):\n    for x in xs:\n        if a and b and c:\n            pass\n    for y in xs:\n        if d and e:\n            pass\n''', '''def f(a, b, c, d, e, xs):\n    for x in xs:\n        for y in xs:\n            if a and b and c:\n                pass\n            if d and e:\n                pass\n''', False),
+    ("third-condition", '''def f(a, b, c):
+    if a and b:
+        pass
+    assert a
+''', '''def f(a, b, c):
+    if a and b and c:
+        pass
+    assert a
+''', False),
+    ("inline-helper", '''def f(a, b, c, d, e):\n    return helper(a, b, c, d, e)\n''', '''def f(a, b, c, d, e):\n    return a and b and c and d and e\n''', False),
+    # Two better pairs reverse the same habits without changing any unrelated construct.
+    ("early-return-better", '''def f(a, b, c, d, e):
+    if a and b and c:
+        if e:
+            return 1
+    return 0
+''', '''def f(a, b, c, d, e):
+    if a and b and c:
+        return 1
+    return 0
+''', True),
+    ("condition-better", '''def f(a, b, c):
+    if a and b and c:
+        pass
+    assert a
+''', '''def f(a, b, c):
+    if a and b:
+        pass
+    assert a
+''', True),
+]
+
+
+def _git(repo_root, *args):
+    return subprocess.run(
+        ["git", "-C", str(repo_root), *args],
+        check=True,
+        text=True,
+        capture_output=True,
+    )
+
+
+def _write(repo_root, name, source):
+    path = repo_root / name
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(source)
+
+
+def _commit(repo_root, message):
+    _git(repo_root, "add", ".")
+    _git(repo_root, "commit", "-m", message)
+    return _git(repo_root, "rev-parse", "HEAD").stdout.strip()
+
+
+def check_changed_function_resolution():
+    with tempfile.TemporaryDirectory() as directory:
+        repo_root = Path(directory)
+        _git(repo_root, "init")
+        _git(repo_root, "config", "user.email", "grader@example.test")
+        _git(repo_root, "config", "user.name", "Code Grader")
+        _write(repo_root, "main.py", '''\
+def worsened():
+    pass
+
+def improved(a, b, c, d, e):
+    return a and b and c and d and e
+
+def renamed():
+    return 1
+
+def reformatted():
+    return 1
+
+def signature_changed(value):
+    return value
+
+def already_bad(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u):
+    return a and b and c and d and e and f and g and h and i and j and k and l and m and n and o and p and q and r and s and t and u
+''')
+        _write(repo_root, "moved.py", "def moved():\n    return 1\n")
+        base_ref = _commit(repo_root, "base")
+        _write(repo_root, "main.py", '''\
+def worsened(a, b, c, d, e):
+    return a and b and c and d and e
+
+def improved():
+    pass
+
+def renamed_new():
+    return 1
+
+def reformatted():
+
+    return 1
+
+def signature_changed(value, optional=None):
+    return value
+
+def already_bad(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u):
+    return a and b and c and d and e and f and g and h and i and j and k and l and m and n and o and p and q and r and s and t and u
+
+def newly_added():
+    return 2
+''')
+        _git(repo_root, "mv", "moved.py", "relocated.py")
+        head_ref = _commit(repo_root, "changes")
+        gated, informational = code_grade.gated_set(repo_root, base_ref, head_ref)
+        gated_names = {record.qualname for record in gated}
+        informational_names = {record.qualname for record in informational}
+        failures = check(gated_names, {"newly_added", "worsened"}, "gated set")
+        gated_paths = {record.path for record in gated}
+        informational_paths = {record.path for record in informational}
+        failures += check(gated_paths, {"main.py"}, "gated source paths")
+        failures += check(informational_paths, {"main.py", "relocated.py"},
+                          "informational source paths")
+        failures += check("improved" in gated_names, False, "improved absent from gated")
+        failures += check("renamed_new" in gated_names, False, "renamed absent from gated")
+        failures += check("reformatted" in gated_names, False, "reformatted absent from gated")
+        failures += check("signature_changed" in gated_names, False, "signature change absent from gated")
+        failures += check("moved" in gated_names, False, "moved file absent from gated")
+        failures += check("already_bad" in gated_names, False, "untouched grade one absent from gated")
+        failures += check("already_bad" in informational_names, True, "untouched grade one informational")
+        return failures
+
+
+def check_worked_examples():
+    repo_root = Path(__file__).resolve().parents[4]
+    skill_path = repo_root / ".claude/skills/harness-code-risk-grading/SKILL.md"
+    worked_examples = skill_path.read_text().split("## Worked examples\n", 1)[1]
+    examples = re.findall(
+        r"```python\n(.*?)```\nEXPECTED GRADE: ([1-5])",
+        worked_examples,
+        re.DOTALL,
+    )
+    failures = 0
+    grades = set()
+    for index, (source, expected_text) in enumerate(examples, start=1):
+        expected_grade = int(expected_text)
+        name = re.search(r"^def (\w+)", source, re.MULTILINE).group(1)
+        actual = [record.grade for record in code_grade.grade_source(source, f"{name}.py")]
+        failures += check(actual, [expected_grade], f"worked example {index}: {name}")
+        grades.add(expected_grade)
+    failures += check(len(examples) >= 5, True, "worked examples parsed")
+    failures += check({5, 4, 3, 1}.issubset(grades), True, "worked example grades")
+    return failures
+
+
+def check_delivery():
+    repo_root = Path(__file__).resolve().parents[4]
+    failures = 0
+    for tree in (".omp/agents", ".claude/agents"):
+        for agent in (
+            "harness-frontend-dev",
+            "harness-backend-dev",
+            "harness-ai-dev",
+            "harness-data-engineer",
+            "harness-dev-ops",
+        ):
+            frontmatter = re.match(
+                r"---\n(.*?)\n---\n",
+                (repo_root / tree / f"{agent}.md").read_text(),
+                re.DOTALL,
+            ).group(1).splitlines()
+            skills_start = next(
+                index
+                for index, line in enumerate(frontmatter)
+                if line in ("skills:", "autoloadSkills:")
+            )
+            skills = []
+            for line in frontmatter[skills_start + 1:]:
+                if not line.startswith("- "):
+                    break
+                skills.append(line[2:])
+            failures += check(
+                "harness-code-risk-grading" in skills,
+                True,
+                f"delivery {tree}: {agent}",
+            )
+    return failures
+
+
+def check(actual, expected, label):
+    if actual != expected:
+        print(f"FAIL {label}: expected {expected!r}, got {actual!r}")
+        return 1
+    return 0
+
+
+def main():
+    failures = 0
+    grades = set()
+    for name, source, expected in FIXTURES:
+        if name == "match-case" and sys.version_info < (3, 10):
+            continue
+        records = code_grade.grade_source(source, "fixture.py")
+        actual = [(r.qualname, r.lineno, r.cyclomatic, r.cognitive, r.abc_a, r.abc_b, r.abc_c, r.abc, r.grade, r.driver) for r in records]
+        failures += check(actual, [expected], name)
+        grades.add(records[0].grade)
+    failures += check(grades, {1, 2, 3, 4, 5}, "fixture bands")
+    nested = code_grade.grade_source('''def outer():
+    def helper():
+        pass
+    helper()
+''', "fixture.py")
+    failures += check([r.qualname for r in nested], ["outer", "outer.helper"], "nested source order and qualname")
+    for name, before, after, better in DIRECTION_PAIRS:
+        before_grade = code_grade.grade_source(before, "fixture.py")[0].grade
+        after_grade = code_grade.grade_source(after, "fixture.py")[0].grade
+        expected = after_grade > before_grade if better else after_grade < before_grade
+        failures += check(expected, True, name)
+    failures += check_changed_function_resolution()
+    failures += check_worked_examples()
+    failures += check_delivery()
+    if failures:
+        print(f"{failures} failures")
+    else:
+        print("PASS test-code-grade")
+    return failures
+
+
+if __name__ == "__main__":
+    sys.exit(1 if main() else 0)

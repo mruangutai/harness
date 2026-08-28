@@ -50,6 +50,24 @@ block or does it sail through?*
 
 Do **not** report what a linter catches, and do not restyle to personal preference.
 
+### Grade changed Python
+
+Run the grader against the pinned review, never `HEAD`:
+
+```sh
+python3 .claude/skills/harness/bin/code-grade.py \
+  --base "$(git merge-base origin/main "$review_sha")" \
+  --head "$review_sha"
+```
+
+For every gated grade-1 function, record a **high** finding naming its file, line, qualified name,
+the three reported numbers, and its driver metric. For every gated grade-2 function, record a **med**
+finding naming the function and a written answer to every `REASON REQUIRED` line the tool emits.
+
+The tool informs judgement; it is never the last word. Raise a `must_fix` when review judgement finds
+broken behaviour even if every grade improved, and never treat a clean grade report as a passing review
+by itself.
+
 ## Findings need failure scenarios
 
 Every finding states **specific inputs or state → specific wrong outcome.**

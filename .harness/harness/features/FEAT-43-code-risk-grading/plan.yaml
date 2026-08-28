@@ -117,7 +117,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: []
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/code_grade.py
       - .claude/skills/harness/bin/test-code-grade.py
@@ -193,7 +193,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: [T-01]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/code_grade.py
       - .claude/skills/harness/bin/test-code-grade.py
@@ -243,7 +243,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-dev-ops
     depends_on: [T-02]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/code-grade.py
       - .claude/skills/harness/bin/test-code-grade-cli.py
@@ -311,7 +311,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: check-domain.sh --resolve returns NOBODY for every .claude/skills/harness-*/ path, measured at 6e4a273
     depends_on: [T-01]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness-code-risk-grading/SKILL.md
     verify: |
@@ -357,7 +357,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: .omp/agents/** and .claude/agents/** are deliberately unowned by the team-config.yaml ruling and resolve to NOBODY
     depends_on: [T-04]
-    status: pending
+    status: done
     files:
       - .omp/agents/harness-frontend-dev.md
       - .omp/agents/harness-backend-dev.md
@@ -388,7 +388,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: [T-03, T-05]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/test-code-grade.py
     verify: |
@@ -421,7 +421,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: []
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/gate_policy.py
       - .claude/skills/harness/bin/test-gate-policy.py
@@ -473,7 +473,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 amendment 4 - the cutover that makes a gate use a library is main-session-direct, and validate-digest.py is named enforcement layer
     depends_on: [T-03, T-05, T-06, T-07]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness-code-review/SKILL.md
       - .claude/skills/harness/bin/validate-digest.py
@@ -544,7 +544,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 amendment 4 names check-plan-routes.py and its test file as enforcement layer
     depends_on: []
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/check-plan-routes.py
       - .claude/skills/harness/bin/test-check-plan-routes.py
@@ -562,10 +562,10 @@ tasks:
 
       The fix. Before resolving any route, determine the manifest the hook will consult: take the
       resolved root, ask harness_boundary.worktree_owner for its owner checkout, and use the owner's
-      .harness/team-config.yaml. Set HARNESS_PROJECT_DIR to that owner root in the environment passed
-      to the check-domain.sh subprocess, so the resolver and the live hook read the same file. Print
-      one line naming the absolute manifest path actually used, on every run, so the answer is never
-      silently about a different tree.
+      .harness/team-config.yaml. When that owner differs from the branch checkout, invoke the
+      check-domain.sh script in the owner checkout — the same resolver script the live hook invokes —
+      rather than setting the retired HARNESS_PROJECT_DIR override. Print one line naming the absolute
+      manifest path actually used, on every run, so the answer is never silently about a different tree.
 
       When the branch manifest and the owner manifest DIFFER in content, do not silently prefer one:
       print a DEVIATION line naming both paths and stating that the routes were resolved against the
@@ -593,7 +593,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-pm
     depends_on: [T-04]
-    status: pending
+    status: done
     files:
       - .harness/glossary.md
     verify: |

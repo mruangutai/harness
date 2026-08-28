@@ -27,7 +27,9 @@ import sys, re, os, json
 # Same directory as this script; sys.path[0] is that directory under `python3 <path>`.
 # The placeholder vocabulary lives there so INV-6 and this check cannot drift (issue #16).
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import harness_boundary
 import harness_yaml
+from gate_policy import GatePolicyError, evaluate_review, load_policy
 
 VERDICTS = {"PASS", "FAIL", "BLOCKED", "ESCALATE"}
 SEV      = ["info", "low", "med", "high", "critical"]
@@ -224,6 +226,14 @@ SCHEMAS = {
                       "runs": list, "cycles_used": int,
                       "briefing": str},
 }
+
+
+def review_config_path(config_path=None):
+    """Resolve the gate config once, with a fixture override for tests."""
+    if config_path is not None:
+        return config_path
+    root = harness_boundary.resolve_root(os.path.dirname(os.path.abspath(__file__)))
+    return os.path.join(root, ".harness", "harness.json")
 ALIAS = {
     "harness-pm": "pm", "harness-qa": "qa", "harness-documentor": "documentor",
     "harness-dev-ops": "dev-ops", "harness-visual-designer": "visual-designer",
@@ -527,12 +537,15 @@ def parse_digest(text):
     return out
 
 
-def validate(persona, text):
+def validate(persona, text, config_path=None):
     err = []
+    raw_persona = persona
     persona = norm(persona)
     schema = SCHEMAS.get(persona)
     if schema is None:
         return [f"unknown persona {persona!r} — cannot validate; refusing to pass it."]
+    if raw_persona == "harness-code-reviewer":
+        schema = {**schema, "code_grade": {"pass", "fail", "n_a"}}
 
     # Echo-shadowing fix (BUILD task 22 follow-up): agents sometimes echo the
     # harness-handoff template (a schema-valid VERDICT/DIGEST block) before their
@@ -557,6 +570,9 @@ def validate(persona, text):
         err.append("no artifact: path.")
 
     seen = parse_digest(text)
+    review_policy = None
+    if raw_persona == "harness-code-reviewer":
+        review_policy = load_policy(review_config_path(config_path))["review"]
 
     # F7: `headline` must be at the DIGEST block's OWN level, read from `seen` (which
     # only holds base-indent keys) rather than matched anywhere in the text at any
@@ -714,6 +730,23 @@ def validate(persona, text):
             err.append(f"{field}={val!r} must be a non-empty string"
                        + (" (write the literal `none` if genuinely inapplicable)."
                           if field in NULLABLE else "."))
+
+    if raw_persona == "harness-code-reviewer":
+        code_grade = seen.get("code_grade")
+        if code_grade == "n_a" and any(
+                isinstance(path, str) and path.endswith(".py")
+                for path in seen.get("files_touched", [])):
+            err.append("code_grade='n_a' is only valid when no Python file was touched.")
+        if code_grade == "fail" and m and m.group(1) == "PASS":
+            err.append("code_grade='fail' reports a gate as FAILED, but VERDICT is PASS — "
+                       "a gate that failed cannot have passed.")
+        must_fix = seen.get("must_fix")
+        severity_max = seen.get("severity_max")
+        if isinstance(must_fix, list) and severity_max in SEV \
+                and evaluate_review(review_policy, must_fix, severity_max) == "FAIL" \
+                and m and m.group(1) == "PASS":
+            err.append(f"review policy {review_policy!r} reports a gate as FAILED, but "
+                       "VERDICT is PASS — a gate that failed cannot have passed.")
 
     # --- LEAD ROLL-UP: the top verdict must be the WORST member verdict (SPEC 10.4).
     #
@@ -1006,6 +1039,9 @@ def hook_mode():
     # the "decline to govern" pass-throughs above, which at least say so.
     try:
         errs = validate(agent, text)
+    except GatePolicyError as error:
+        print(f"check-digest: {error}", file=sys.stderr)
+        return 2
     except Exception as e:
         print(f"check-digest: internal error validating {agent}'s return ({e!r}) — "
               f"passing through; this is our bug, not theirs.", file=sys.stderr)

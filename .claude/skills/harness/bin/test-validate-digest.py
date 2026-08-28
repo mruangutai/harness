@@ -10,7 +10,7 @@ noticed because each was only ever exercised by the example that happened to pas
 
     ./test-validate-digest.py     -> exit 0 all pass, 1 otherwise
 """
-import json, re, subprocess, sys, os, shutil, tempfile
+import importlib.util, json, re, subprocess, sys, os, shutil, tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 # Overridable so the pre-fix binary can be run through the SAME suite to prove
@@ -1167,6 +1167,9 @@ def _isolated_root():
         os.makedirs(os.path.join(_ISOLATED_ROOT, ".harness"), exist_ok=True)
         with open(os.path.join(_ISOLATED_ROOT, ".harness", "team-config.yaml"), "w") as f:
             f.write("agents: {}\n")
+        with open(os.path.join(_ISOLATED_ROOT, ".harness", "harness.json"), "w") as f:
+            json.dump({"gates": {"qa_gate": "blocking", "review": "advisory",
+                                 "uat": "advisory", "merge": "autonomous"}}, f)
     return _ISOLATED_ROOT
 
 
@@ -1630,7 +1633,7 @@ DIGEST:
   expertise_update: []
 artifact: a.md
 """, True)
-case("a reviewer digest carries neither new field and is still accepted",
+case("code reviewer omission of code_grade is rejected",
      "harness-code-reviewer", """
 VERDICT: PASS
 DIGEST:
@@ -1642,7 +1645,7 @@ DIGEST:
   files_touched: []
   expertise_update: []
 artifact: a.md
-""", True)
+""", False, "code_grade")
 # (11)(i2) — the hint CONTENT, both fields, both polarities. Exit code alone cannot
 # see these: before REQ-11, `task_verify`'s hint said "write `none`", which the gate
 # then rejects, and `task` would have inherited "write `[]`", which its regex rejects.
@@ -1702,9 +1705,87 @@ def run_joint_hint_case():
     return 0
 
 
+def reviewer_digest(code_grade="pass", files="[]", must_fix="[]"):
+    return f"""VERDICT: PASS
+DIGEST:
+  headline: reviewer result
+  severity_max: low
+  findings: 0
+  must_fix: {must_fix}
+  code_grade: {code_grade}
+  files_touched: {files}
+  open_questions: []
+  expertise_update: []
+artifact: a.md
+"""
+
+
+def run_code_grade_cases():
+    spec = importlib.util.spec_from_file_location("_validator_under_test", VALIDATE)
+    validator = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(validator)
+    failures = []
+    with tempfile.TemporaryDirectory() as td:
+        config = os.path.join(td, "harness.json")
+
+        def set_review(review):
+            with open(config, "w") as f:
+                json.dump({"gates": {"qa_gate": "blocking", "review": review,
+                                     "uat": "advisory", "merge": "autonomous"}}, f)
+
+        set_review("advisory_unless_high")
+        if not any("code_grade" in error for error in validator.validate(
+                "harness-code-reviewer", reviewer_digest("fail"), config)):
+            failures.append("fail-plus-PASS must reject")
+        if not any("only valid" in error for error in validator.validate(
+                "harness-code-reviewer", reviewer_digest("n_a", "[src/a.py]"), config)):
+            failures.append("n_a with Python touched must reject")
+        if validator.validate("harness-code-reviewer", reviewer_digest("n_a"), config):
+            failures.append("n_a with no Python touched must accept")
+        guarded = reviewer_digest("pass", must_fix="[needs repair]")
+        if not any("review policy" in error for error in validator.validate(
+                "harness-code-reviewer", guarded, config)):
+            failures.append("advisory_unless_high must reject must_fix with PASS")
+        set_review("advisory")
+        if validator.validate("harness-code-reviewer", guarded, config):
+            failures.append("advisory must accept the same digest")
+        with open(config, "w") as f:
+            json.dump({}, f)
+        try:
+            validator.validate("harness-code-reviewer", guarded, config)
+            failures.append("missing gates must raise")
+        except ValueError as error:
+            if "gates" not in str(error):
+                failures.append("missing gates error must name gates")
+
+        prior_dir = os.path.join(td, "prior")
+        os.makedirs(prior_dir)
+        rel = ".claude/skills/harness/bin"
+        for name in ("validate-digest.py", "harness_yaml.py"):
+            source = subprocess.run(
+                ["git", "-C", REPO_ROOT, "show", f"HEAD:{rel}/{name}"],
+                check=True, capture_output=True, text=True).stdout
+            with open(os.path.join(prior_dir, name), "w") as f:
+                f.write(source)
+        prior = subprocess.run(
+            [sys.executable, os.path.join(prior_dir, "validate-digest.py"),
+             "harness-code-reviewer"],
+            input=guarded, capture_output=True, text=True)
+        if prior.returncode != 0:
+            failures.append("previous validator must accept the gated digest")
+    if failures:
+        print("FAIL  code-grade and review-policy gates")
+        for failure in failures:
+            print(f"        {failure}")
+        return 1
+    print("ok    code-grade and review-policy gates")
+    return 0
+
+
 def main():
     fails = run_cli_cases()
     fails += run_joint_hint_case()
+    fails += run_code_grade_cases()
     fails += run_hook_cases()
     fails += run_t09()
     fails += run_template_cases()
