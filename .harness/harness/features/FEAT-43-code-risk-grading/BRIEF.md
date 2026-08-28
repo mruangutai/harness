@@ -258,4 +258,14 @@ answerable to from that point on.
 
 ## Approval
 
-status: pending
+status: approved
+approved_by: operator
+date: 2026-08-27
+
+Signed 2026-08-27. One signature covers this brief and `plan.yaml`.
+
+**The operator also ruled on the product lead's `high` finding: it is false and nothing fixes it.**
+`.agents/skills` is a symlink to `../.claude/skills`; the exact command from `harness.json` runs from
+the repository root with the unit suite passing 18 of 18, exit 0, verified independently by the main
+session. The underlying defect is that a symlink-blind search produced a `high` — **"a search tool
+found nothing" is not evidence of absence.**

@@ -4,7 +4,20 @@ feature: FEAT-43-code-risk-grading
 source_issues: [910]
 
 approval:
-  status: pending
+  # Written by the MAIN SESSION only — the only tier with a user channel (DEC-120).
+  # SIGNED 2026-08-27. One signature covers BRIEF.md and this file.
+  # The load-bearing structure the operator signed: T-08, the cutover that makes a grade gate
+  # anything, depends on T-05, which wires the skill into the five engineering specialists. The
+  # squad is TAUGHT the bar before a reviewer can fail it. That order is not a convenience — the
+  # five specialists load no skill mentioning complexity today, so a reviewer reporting a grade the
+  # author was never taught to hit would be a trap rather than a gate.
+  # NOT signed into this plan, and deliberately: the product lead's `high` finding that `.agents/**`
+  # does not exist and that both active test-kind commands are dead. It is FALSE. `.agents/skills`
+  # is a symlink to `../.claude/skills`, and the main session ran the exact command from
+  # harness.json verbatim — exit 0, 18/18 passing. No task absorbs a fix for it.
+  status: approved
+  approved_by: operator
+  date: 2026-08-27
 
 lanes:
   resolved_at: 6e4a273
