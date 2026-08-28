@@ -3,29 +3,152 @@
   "branch": "feat/FEAT-43-code-risk-grading",
   "pr": null,
   "status": "Review",
-  "review_sha": "45328d7a280d251a94b09672a7b6724d55a79f83",
-  "cycles_used": 10,
-  "max_total_cycles": 10,
+  "review_sha": "94383e671e51f95d142f3220f97c8e453721d516",
+  "cycles_used": 13,
+  "max_total_cycles": 13,
   "runs": [
-    {"id": "plan-product", "squad": "product", "agent": "harness-product-lead", "verdict": "PASS"},
-    {"id": "t01-t07-eng", "squad": "engineering", "agent": "harness-eng-lead", "verdict": "PASS"},
-    {"id": "t02-eng", "squad": "engineering", "agent": "harness-eng-lead", "verdict": "PASS"},
-    {"id": "t03-eng", "squad": "engineering", "agent": "harness-eng-lead", "verdict": "PASS"},
-    {"id": "t10-product", "squad": "product", "agent": "harness-product-lead", "verdict": "PASS"},
-    {"id": "t06-eng", "squad": "engineering", "agent": "harness-eng-lead", "verdict": "PASS"},
-    {"id": "build-qa-validator", "squad": "validator", "agent": "harness-validator-lead", "verdict": "BLOCKED"},
-    {"id": "build-qa-validator-rerun", "squad": "validator", "agent": "harness-validator-lead", "verdict": "PASS"},
-    {"id": "build-simplify-eng", "squad": "engineering", "agent": "harness-eng-lead", "verdict": "PASS"},
-    {"id": "validate-review-validator", "squad": "validator", "agent": "harness-validator-lead", "verdict": "FAIL"},
-    {"id": "validate-fix-eng", "squad": "engineering", "agent": "harness-eng-lead", "verdict": "PASS"},
-    {"id": "validate-fix-qa-validator", "squad": "validator", "agent": "harness-validator-lead", "verdict": "PASS"},
-    {"id": "validate-fix-simplify-eng", "squad": "engineering", "agent": "harness-eng-lead", "verdict": "PASS"},
-    {"id": "validate-review-final-validator", "squad": "validator", "agent": "harness-validator-lead", "verdict": "FAIL"}
+    {
+      "id": "plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "t01-t07-eng",
+      "squad": "engineering",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "t02-eng",
+      "squad": "engineering",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "t03-eng",
+      "squad": "engineering",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "t10-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "t06-eng",
+      "squad": "engineering",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "build-qa-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "BLOCKED"
+    },
+    {
+      "id": "build-qa-validator-rerun",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "build-simplify-eng",
+      "squad": "engineering",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "validate-review-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL"
+    },
+    {
+      "id": "validate-fix-eng",
+      "squad": "engineering",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "validate-fix-qa-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "validate-fix-simplify-eng",
+      "squad": "engineering",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "validate-review-final-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL"
+    },
+    {
+      "id": "validate-fix-c11-eng",
+      "squad": "engineering",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "validate-fix-c13-qa-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "validate-fix-c13-simplify-eng",
+      "squad": "engineering",
+      "agent": "harness-eng-lead",
+      "verdict": "BLOCKED"
+    },
+    {
+      "id": "validate-fix-c13-r01-eng",
+      "squad": "engineering",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "validate-regate-c13-r01-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "validate-final-simplify-eng",
+      "squad": "engineering",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "validate-final-panel-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL"
+    }
   ],
   "github": {
     "milestone": 30,
     "parent": 924,
-    "attached": ["T-01", "T-02", "T-03", "T-04", "T-05", "T-06", "T-07", "T-08", "T-09", "T-10"],
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03",
+      "T-04",
+      "T-05",
+      "T-06",
+      "T-07",
+      "T-08",
+      "T-09",
+      "T-10"
+    ],
     "issues": {
       "T-01": 925,
       "T-02": 926,
@@ -38,6 +161,8 @@
       "T-09": 933,
       "T-10": 934
     },
-    "source_issues": [910]
+    "source_issues": [
+      910
+    ]
   }
 }
