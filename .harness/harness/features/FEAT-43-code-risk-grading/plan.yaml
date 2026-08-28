@@ -1,0 +1,607 @@
+schema: plan/1
+feature: FEAT-43-code-risk-grading
+
+source_issues: [910]
+
+approval:
+  status: pending
+
+lanes:
+  resolved_at: 6e4a273
+  rows:
+    - surface: .claude/skills/harness/bin/code_grade.py
+      lane: team
+      agent: harness-backend-dev
+    - surface: .claude/skills/harness/bin/code-grade.py
+      lane: team
+      agent: harness-dev-ops
+    - surface: .claude/skills/harness/bin/gate_policy.py
+      lane: team
+      agent: harness-backend-dev
+    - surface: .claude/skills/harness/bin/run-unit-tests.sh
+      lane: team
+      agent: harness-backend-dev
+    - surface: .harness/harness.json
+      lane: team
+      agent: harness-dev-ops
+    - surface: .harness/glossary.md
+      lane: team
+      agent: harness-pm
+    - surface: .claude/skills/harness-code-risk-grading/SKILL.md
+      lane: main-session-direct
+      reason: check-domain.sh --resolve returns NOBODY for every .claude/skills/harness-*/ path, measured at 6e4a273
+    - surface: .claude/skills/harness-code-review/SKILL.md
+      lane: main-session-direct
+      reason: check-domain.sh --resolve returns NOBODY, measured at 6e4a273
+    - surface: .omp/agents/**
+      lane: main-session-direct
+      reason: deliberately unowned by team-config.yaml ruling; the org's constitution is not an agent's to change
+    - surface: .claude/agents/**
+      lane: main-session-direct
+      reason: generated compatibility adapters, equally unowned by the same ruling
+    - surface: .claude/skills/harness/bin/check-plan-routes.py
+      lane: main-session-direct
+      reason: DEC-174 amendment 4 names it and its test file as enforcement layer
+    - surface: .claude/skills/harness/bin/validate-digest.py
+      lane: main-session-direct
+      reason: DEC-174 carve-out, a validator the harness must not change through itself
+
+decisions:
+  - id: D-01
+    choice: A function is graded against the bar only when it is new in the change or when its grade at the head ref is strictly worse than the grade of its pre-image at the merge base; everything else is reported as informational and never as a finding.
+    because: the operator refused a touch-it-fix-it ratchet, and gating every function that appears in a diff hunk would make one file move inherit all 226 pre-existing failures
+    dec: none
+  - id: D-02
+    choice: The rule is stated over grades rather than over diff text, so a reformat, a comment change or a docstring edit cannot fire the gate at all, by construction rather than by an exclusion list.
+    because: an exclusion list of non-substantive edit kinds is unbounded and every omission is a false gate
+    dec: none
+  - id: D-03
+    choice: Pre-image identity is resolved by qualified name first, then by body hash within the same file, and file moves are resolved through git rename detection so the pre-image is looked up at its old path.
+    because: without the body-hash fallback a pure rename makes an old function look new and gates a pre-existing failure on an improvement, which is the opposite incentive
+    dec: none
+  - id: D-04
+    choice: The ABC, cyclomatic and cognitive counting rules are authoritative only as pinned by hand-derived fixtures, and the planning measurements are treated as directional evidence, not as expected values.
+    because: Fitzpatrick's ABC specification varies by language and the planning figures used one defensible reading, so calibrating the tool to reproduce them would make the tool agree with an unverified label
+    dec: none
+  - id: D-05
+    choice: The cognitive complexity implementation is named a Sonar-style approximation wherever it is reported, in the tool output and in the skill, and never as SonarSource's algorithm.
+    because: reporting an approximation under the name of a published algorithm invites an engineer to check it against a Sonar number and conclude the tool is broken
+    dec: none
+  - id: D-06
+    choice: The band thresholds and the two bars ship exactly as settled with the operator, and any divergence found between the re-measured repository failure rate and the recorded 27.1 percent production and 11.7 percent test rates is escalated rather than resolved by moving a band.
+    because: the bands were calibrated against a measurement, so silently re-banding to reproduce a rate is fitting the ruler to the thing being measured
+    dec: none
+  - id: D-07
+    choice: The two folded-in checker defects are two tasks, not one.
+    because: they resolve to different execution modes under DEC-174 amendment 4, and a task needing both routes must be split; they also share no file, no root cause and no test
+    dec: DEC-174
+  - id: D-08
+    choice: The grading library and its CLI are squad work; the step that makes a review verdict depend on their output is main-session-direct.
+    because: DEC-174 amendment 4 states that a module a gate imports is not itself a gate, and that the cutover which makes a gate use it is main-session-direct
+    dec: DEC-174
+  - id: D-09
+    choice: A file the tool cannot parse is reported by name and given its own process exit status, distinct from the all-clear status and from the bar-failed status.
+    because: folding unreadable into clean is the exact failure this feature was raised to remove, and a shared exit code makes the two indistinguishable to any caller
+    dec: none
+  - id: D-10
+    choice: The code reviewer's digest gains a required grading field, so a review cannot be returned without stating the grading outcome.
+    because: without it the reviewer running the tool is protocol rather than enforcement, which is the same shape as the two defects this feature fixes
+    dec: DEC-175
+  - id: D-11
+    choice: check-plan-routes.py resolves the manifest the write hook will consult by walking to the worktree owner, and refuses with a non-zero exit when it cannot establish which manifest that is.
+    because: the hook binary is invoked as CLAUDE_PROJECT_DIR joined to the bin path, so it reads the owner checkout's manifest while the checker run inside a worktree derived the branch's manifest, and the two disagree exactly when a plan adds a grant
+    dec: none
+  - id: D-12
+    choice: Production versus test classification comes from the existing test_kinds detect globs in harness.json, not from a new path list inside the grading tool.
+    because: a second list describing the same partition diverges silently, which is the measured cause of the eight-file kind drift the runner's cross-check now guards
+    dec: none
+
+tasks:
+  - id: T-01
+    title: Compute the three metrics and the grade, pinned by hand-derived fixtures
+    traces: [REQ-03]
+    change_type: logic
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: []
+    status: pending
+    files:
+      - .claude/skills/harness/bin/code_grade.py
+      - .claude/skills/harness/bin/test-code-grade.py
+      - .claude/skills/harness/bin/run-unit-tests.sh
+    verify: |
+      .claude/skills/harness/bin/run-unit-tests.sh --kind unit
+    intent: |
+      Write a new module code_grade.py exposing a pure, importable API, and a test file
+      test-code-grade.py that pins its counting rules. Test-first: write the fixture assertions and
+      watch them fail before the module exists, then make them pass.
+
+      API. grade_source(source_text, path) returns a list of FunctionGrade records, one per function
+      and per method, in source order. Each record carries: qualname (dotted, class-qualified, with
+      nested functions joined by a dot), lineno (the line of the def or async def statement),
+      cyclomatic (int), cognitive (int), abc_a (int), abc_b (int), abc_c (int), abc (float, one
+      decimal), grade (int 1 to 5), and driver (one of the strings cyclomatic, cognitive, abc), being
+      the metric that produced the grade. When two metrics tie for the worst band, driver names them
+      joined by a plus in the fixed order cyclomatic, cognitive, abc.
+
+      Bands, exactly as settled. Grade 5: cyclomatic <= 4 and cognitive <= 3 and abc <= 8. Grade 4:
+      cyclomatic <= 8 and cognitive <= 9 and abc <= 20. Grade 3: cyclomatic <= 10 and cognitive <= 15
+      and abc <= 26. Grade 2: cyclomatic <= 20 and cognitive <= 30 and abc <= 45. Grade 1 otherwise.
+      Each metric is banded independently and the WORST of the three band results is the grade. Never
+      average.
+
+      Cyclomatic: start at 1; add 1 for each if, each elif, each for, each async for, each while, each
+      except handler, each with item beyond the first, each assert, each comprehension for clause,
+      each comprehension if clause, each match case other than a bare wildcard, and each boolean
+      operator value beyond the first in a BoolOp. else and finally add nothing.
+
+      Cognitive, a Sonar-style approximation and named as such in the module docstring: increments for
+      if, elif, else, ternary IfExp, for, async for, while, except handler, finally, and each
+      BoolOp sequence (one increment per BoolOp node, not per operand); nesting penalty equal to the
+      current nesting depth added to every increment except elif and else, where nesting is increased
+      by if, for, while, except, with, and a nested function or class definition; a break or continue
+      carrying a label equivalent does not apply here, so ignore it; recursion adds 1 when the
+      function calls its own qualname.
+
+      ABC: A counts every binding occurrence of a name, meaning each target of an assignment including
+      every name in a tuple unpacking, each augmented assignment target, each walrus target, each for
+      target name, each with-as and except-as name, each import binding, and each nested def or class
+      name. B counts every Call node, plus 1 for each decorator that is a bare Name rather than a
+      call. C counts each if, elif, ternary, while, for, except handler, assert, comprehension if,
+      match case, each operator in a Compare node, each unary Not, and each operand beyond the first
+      in a BoolOp. The magnitude is the square root of A squared plus B squared plus C squared,
+      rounded to one decimal place with round-half-up.
+
+      Fixtures. Put every fixture in test-code-grade.py as a triple-quoted source string next to its
+      expectation, with a comment DERIVING each expected number by hand: list the constructs counted
+      for A, for B, for C, for cyclomatic and for cognitive, and show the arithmetic. A derivation
+      that says the number came from running the tool is not acceptable and will be rejected at
+      review. Ship at least twelve fixtures, and the set must include at least one landing on each of
+      grades 5, 4, 3, 2 and 1; add an assertion that the set of grades produced by the fixture table
+      equals the set 1,2,3,4,5, so a future edit cannot quietly drop a band.
+
+      Direction pairs. Add at least four before/after pairs where the after version changes exactly one
+      habit and is worse, asserting grade(after) < grade(before), and at least two where the after
+      version is better, asserting grade(after) > grade(before). The four habits to cover are: replace
+      an early return with a nested if; merge two sequential loops into one nested loop; add a third
+      condition to an if; inline a helper call back into the caller.
+
+      Register test-code-grade.py in the UNIT_SCRIPTS array of run-unit-tests.sh. Do not add it to
+      test_kinds.integration.detect in harness.json; the runner's kind cross-check rejects a
+      UNIT_SCRIPTS name that appears there, and unit.detect already globs bin/test-*.py.
+
+      Keep every function you write in code_grade.py at grade 4 or better under the bands you are
+      implementing. The tool must pass its own bar.
+
+  - id: T-02
+    title: Resolve the set of functions a change is responsible for
+    traces: [REQ-04]
+    change_type: logic
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-01]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/code_grade.py
+      - .claude/skills/harness/bin/test-code-grade.py
+    verify: |
+      .claude/skills/harness/bin/run-unit-tests.sh --kind unit
+    intent: |
+      Extend code_grade.py with gated_set(repo_root, base_ref, head_ref) returning two lists:
+      gated and informational. Add its tests to test-code-grade.py, test-first.
+
+      The rule, and it is stated over GRADES not over diff text. A function is gated when either it
+      has no pre-image at base_ref, or its grade at head_ref is strictly worse (numerically lower)
+      than its pre-image's grade at base_ref. Every other function that appears anywhere in the
+      changed files is informational: it is listed with its grade and never produces a finding, even
+      when its grade is 1. Because the rule reads grades and not text, a whitespace reformat, a
+      comment edit or a docstring edit cannot move anything into the gated set; do not write an
+      exclusion list for those cases.
+
+      Pre-image resolution, in this order. First, the same qualname in the pre-image of the same file.
+      Second, if that fails, a function in the pre-image of the same file whose body source hash
+      matches, where the body hash is computed over the ast.unparse output of the function body only,
+      excluding the def line and excluding the docstring; this makes a pure rename resolve to its
+      original and therefore never gated. Third, if the file itself has no pre-image at its current
+      path, use git diff with rename detection enabled between base_ref and head_ref to find the old
+      path and look the pre-image up there, so a whole-file move gates nothing.
+
+      Read both sides through git show ref colon path rather than the working tree, so the result is
+      the same whether or not the tree is dirty. A file that exists at head_ref and not at base_ref
+      after rename detection means every function in it is new.
+
+      Tests. Build a synthetic git repository in a temporary directory with two commits. The second
+      commit must contain, in one commit, all seven of: a newly added function; a body edit that
+      lowers an existing function's grade; a body edit that raises one; a rename with a byte-identical
+      body; a whitespace-only reformat; a signature change that adds no branching; and a whole-file
+      move with no body edits. Assert the gated set equals exactly the new function and the worsened
+      one by set equality of qualnames, and then assert each of the other five cases absent
+      individually, one assertion per case, so a single over-broad match cannot hide a miss. Include
+      one function that already grades 1 at base_ref and is untouched, and assert it is absent from
+      gated and present in informational.
+
+      Use the git binary through subprocess with an explicit -C repo_root; do not rely on the process
+      working directory.
+
+  - id: T-03
+    title: The command line surface, its exit statuses and its report fields
+    traces: [REQ-03, REQ-05, REQ-06, REQ-07]
+    change_type: logic
+    execution_mode: team
+    execution_agent: harness-dev-ops
+    depends_on: [T-02]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/code-grade.py
+      - .claude/skills/harness/bin/test-code-grade-cli.py
+      - .claude/skills/harness/bin/run-unit-tests.sh
+      - .harness/harness.json
+    verify: |
+      .claude/skills/harness/bin/run-unit-tests.sh --kind integration
+    intent: |
+      Write the executable code-grade.py that drives the code_grade module, and its forking test file
+      test-code-grade-cli.py. Test-first.
+
+      Invocation. code-grade.py --base REF --head REF reports over the gated set of that range.
+      code-grade.py PATH... reports over the named files with no diff resolution. A --json flag emits
+      one JSON object; the default is text. Both must be produced from the same in-memory records.
+
+      Report fields, per gated function, each on its own labelled field so a consumer can read them
+      individually: the repository-relative path, the line number of the def, the qualname, cyclomatic,
+      cognitive, abc, the grade, and the driver metric name. Text output puts one function per block
+      with one field per line. Never emit a single opaque summary string as the only carrier of these
+      values.
+
+      Bars. A production function must reach grade 4; a test function must reach grade 3. Decide which
+      a file is by evaluating the detect and exclude glob strings already in harness.json test_kinds,
+      splitting each on the pipe character - note that detect is a pipe-separated STRING, not a list,
+      so iterating it directly yields characters. A file matching any active kind's detect and not its
+      exclude is test code; everything else under .claude/skills/harness/bin is production. Do not
+      hardcode a second path list.
+
+      Findings and reasons. A gated function below its bar at grade 1 is emitted as a finding with
+      severity high. At grade 2 it is emitted with severity med and an additional explicit line of the
+      form REASON REQUIRED followed by the qualname; emit that line only for grade 2 functions, never
+      unconditionally. Grade 3 and above emit no finding, and for a test-code function grade 3 is a
+      pass.
+
+      Unparseable files. When ast.parse raises, print PARSE ERROR, the repository-relative path and the
+      exception message to stderr, exclude the file from every count of graded and passing functions,
+      and list it under an UNGRADED heading in the report. Never treat it as clean.
+
+      Exit statuses, all distinct: 0 when every file parsed and no gated function is below its bar; 1
+      when at least one gated function is below its bar; 3 when at least one file could not be parsed,
+      regardless of the grades of the rest; 2 for a usage error. A run over a corpus containing an
+      unparseable file must never exit 0.
+
+      Determinism. Sort output by repository-relative path then by line number, never by directory
+      iteration order. Emit only repository-relative paths, never absolute ones, and never the working
+      directory. Resolve the repository root from the --base/--head repo argument or from git
+      rev-parse --show-toplevel, and make every path relative to it.
+
+      Tests, driving the real script through subprocess. Assert each report field separately for a
+      known fixture, one assertion per field. Assert all four exit statuses. Assert the ungraded case
+      by name and assert the passing count excludes it. Assert byte-identical stdout when the same
+      fixture repository is copied to two different absolute paths and the script is invoked from two
+      different working directories. Assert REASON REQUIRED appears naming the grade-2 function, and
+      assert it is absent entirely from a run whose gated set has no grade-2 function.
+
+      Register test-code-grade-cli.py in the INTEGRATION_SCRIPTS array of run-unit-tests.sh AND add
+      the literal path .claude/skills/harness/bin/test-code-grade-cli.py to the pipe-separated
+      test_kinds.integration.detect string in harness.json. The runner's kind cross-check fails if you
+      do only one of the two.
+
+  - id: T-04
+    title: Write the skill that teaches the bar and the habits that keep code under it
+    traces: [REQ-01, REQ-08]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: check-domain.sh --resolve returns NOBODY for every .claude/skills/harness-*/ path, measured at 6e4a273
+    depends_on: [T-01]
+    status: pending
+    files:
+      - .claude/skills/harness-code-risk-grading/SKILL.md
+    verify: |
+      test -f .claude/skills/harness-code-risk-grading/SKILL.md
+    intent: |
+      Author the skill harness-code-risk-grading. It is the ONLY delivery of this knowledge to the
+      engineering squad, which has never been told any of it exists. If it is thin, the team writes
+      exactly as it writes today.
+
+      Lead with the habits, not the table. The habits that keep a function at grade 4: return early
+      instead of nesting; one loop per function, and extract the inner one; extract a compound
+      condition into a named predicate; handle the error case first and leave the happy path
+      unindented; give each function one reason to change. For each habit show a short before and
+      after with the grade of each, and say which metric moved and why.
+
+      Then the reference: the five bands with their three thresholds, the two bars (grade 4 for
+      production code, grade 3 for test code, because tests may repeat themselves but may not be
+      unreadable), and worst-metric-wins with one worked example of a function whose cyclomatic score
+      looks fine and whose cognitive score does not.
+
+      Say plainly, in the skill: the cognitive number is a Sonar-STYLE approximation, not
+      SonarSource's own algorithm, so do not expect it to match a Sonar report; shell scripts and
+      TypeScript files are not graded at all, so nothing here says anything about them; and this
+      grading does not fix the code already below the bar, which is a separate cleanup and is
+      deliberately not a touch-it-fix-it ratchet.
+
+      Say what happens when a function fails: grade 1 becomes a high finding, which fails the review
+      under the rule that already exists; grade 2 passes but the reviewer will demand a written reason
+      naming the function. Tell the reader how to check their own work before review, with the exact
+      command.
+
+      WORKED EXAMPLES BLOCK, and this part is machine-read. End the skill with a section headed
+      Worked examples containing at least five entries. Each entry is a fenced python code block
+      holding one complete function, immediately followed by a line of the exact form
+      EXPECTED GRADE: N. A test in T-06 parses this section, runs the grader over each block and
+      asserts the grade matches, so the skill and the tool can never drift apart. Pick examples that
+      span at least grades 5, 4, 3 and 1.
+
+  - id: T-05
+    title: Give the five engineering specialists the skill at spawn
+    traces: [REQ-02]
+    change_type: config
+    execution_mode: main-session-direct
+    execution_reason: .omp/agents/** and .claude/agents/** are deliberately unowned by the team-config.yaml ruling and resolve to NOBODY
+    depends_on: [T-04]
+    status: pending
+    files:
+      - .omp/agents/harness-frontend-dev.md
+      - .omp/agents/harness-backend-dev.md
+      - .omp/agents/harness-ai-dev.md
+      - .omp/agents/harness-data-engineer.md
+      - .omp/agents/harness-dev-ops.md
+    verify: |
+      python3 .claude/skills/harness/bin/sync-agent-adapters.py --check
+    intent: |
+      Add harness-code-risk-grading to the skills list in the frontmatter of each of the five
+      engineering specialists in .omp/agents: harness-frontend-dev, harness-backend-dev,
+      harness-ai-dev, harness-data-engineer and harness-dev-ops. The canonical policy lives in
+      .omp/agents; then run sync-agent-adapters.py --apply to regenerate the Claude adapters under
+      .claude/agents so both trees carry it.
+
+      Add it to those five only. Do not add it to the leads, to the reviewers, or to any product or
+      validation persona in this task; harness-code-reviewer receives it through T-08 together with
+      the reporting protocol it needs alongside it.
+
+      Order matters and is not decorative: this task and T-04 must both be complete before T-08 makes
+      any grade gate anything. A reviewer reporting a grade the author was never taught to hit is a
+      trap, not a gate.
+
+  - id: T-06
+    title: Prove the guidance and the tool cannot disagree, and that all five specialists load it
+    traces: [REQ-01, REQ-02]
+    change_type: logic
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-03, T-05]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/test-code-grade.py
+    verify: |
+      .claude/skills/harness/bin/run-unit-tests.sh --kind unit
+    intent: |
+      Add two groups of cases to test-code-grade.py.
+
+      Group one, skill conformance. Read .claude/skills/harness-code-risk-grading/SKILL.md, locate the
+      section headed Worked examples, and parse every fenced python block together with the
+      EXPECTED GRADE: N line that immediately follows it. For each example, run grade_source over the
+      block and assert the computed grade equals the stated one, with one assertion per example naming
+      that example in the failure message. Then assert the number of parsed examples is at least five,
+      so the check cannot pass by the section being empty or by the parser silently matching nothing.
+      Also assert the parser found at least one example at each of grades 5, 4, 3 and 1. Resolve the
+      skill path relative to the repository root discovered from the test file's own location, not
+      from the working directory.
+
+      Group two, delivery. For each of the five agent names harness-frontend-dev, harness-backend-dev,
+      harness-ai-dev, harness-data-engineer and harness-dev-ops, and for each of the two trees
+      .omp/agents and .claude/agents, parse the file's YAML frontmatter and assert that the string
+      harness-code-risk-grading is an element of its skills list. That is ten separate assertions,
+      each naming its agent and its tree. Do not implement this as a repository-wide grep or as a
+      count of matches; a count is satisfied by the four that conform and blind to the fifth that does
+      not.
+
+  - id: T-07
+    title: Make the gates block of harness.json read by a program instead of by a reader
+    traces: [REQ-10]
+    change_type: logic
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: []
+    status: pending
+    files:
+      - .claude/skills/harness/bin/gate_policy.py
+      - .claude/skills/harness/bin/test-gate-policy.py
+      - .claude/skills/harness/bin/run-unit-tests.sh
+    verify: |
+      .claude/skills/harness/bin/run-unit-tests.sh --kind unit
+    intent: |
+      No script in this repository reads the gates block of .harness/harness.json at all. Its four
+      keys - qa_gate, review, uat and merge - are honoured only by agents reading configuration as
+      prose, which is a policy that reports without enforcing. Write gate_policy.py to close that.
+      Test-first, in test-gate-policy.py.
+
+      API. load_policy(harness_json_path) returns a mapping of the four gate names to their declared
+      policy values, reading each key BY NAME. A missing key, an unreadable file, a file that does not
+      parse, or a value not in that gate's known vocabulary each raise a GatePolicyError carrying the
+      gate name and the offending value. There is no default and no fallback: a silent default is how
+      the block came to have no consumer in the first place, and DEC-190's precedent is that a missing
+      dependency is a loud error and never a quieter mode.
+
+      Known vocabularies, taken from the live config: qa_gate accepts blocking and advisory; review
+      accepts blocking, advisory and advisory_unless_high; uat accepts blocking,
+      blocking_when_uat_criteria_exist and advisory; merge accepts user_gated and autonomous.
+
+      evaluate_review(policy, must_fix, severity_max) returns the string PASS or FAIL, implementing
+      DEC-31 under the declared policy: with advisory_unless_high, a non-empty must_fix list or a
+      severity_max of high or critical returns FAIL and anything else returns PASS; with blocking, any
+      non-empty findings list returns FAIL; with advisory, always PASS. severity_max is one of none,
+      low, med, high, critical and an unknown value raises rather than comparing false.
+
+      evaluate_qa(policy, suites) returns PASS or FAIL from a mapping of suite name to pass, fail or
+      skipped: under blocking any fail is FAIL and a skipped suite is reported in the returned detail
+      but does not fail; under advisory always PASS.
+
+      Tests. Assert each of the four keys is resolved individually from a fixture config, one
+      assertion per key, passing the fixture path explicitly so the loader cannot fall back to live
+      state. Assert a fixture whose qa_gate value is the unrecognised string sometimes raises
+      GatePolicyError naming qa_gate and sometimes. Assert an absent gates block raises. Assert
+      evaluate_review returns FAIL for empty findings but non-empty must_fix, and PASS for empty
+      must_fix with severity_max med - this is the pair that proves a clean report cannot pass a
+      review on its own.
+
+      Register test-gate-policy.py in the UNIT_SCRIPTS array of run-unit-tests.sh and do not add it to
+      test_kinds.integration.detect.
+
+  - id: T-08
+    title: Cutover - make a grade an actual finding the reviewer cannot omit
+    traces: [REQ-05, REQ-06, REQ-10]
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 amendment 4 - the cutover that makes a gate use a library is main-session-direct, and validate-digest.py is named enforcement layer
+    depends_on: [T-03, T-05, T-06, T-07]
+    status: pending
+    files:
+      - .claude/skills/harness-code-review/SKILL.md
+      - .claude/skills/harness/bin/validate-digest.py
+      - .claude/skills/harness/bin/test-validate-digest.py
+      - .omp/agents/harness-code-reviewer.md
+    verify: |
+      .claude/skills/harness/bin/run-unit-tests.sh --kind integration
+    intent: |
+      This is the step that turns a computed grade into a gating finding. It runs last, after the
+      skill exists and after all five specialists load it, because a gate on a bar nobody was taught
+      is a trap.
+
+      Skill side. In harness-code-review/SKILL.md, add a step to the code-quality stage instructing
+      the reviewer to run code-grade.py with --base set to the merge base and --head set to the pinned
+      review sha, and to record: every grade-1 gated function as a finding at severity high, naming
+      file, line, qualname, the three numbers and the driver metric; every grade-2 gated function at
+      severity med with a written reason answering each REASON REQUIRED line the tool emitted, naming
+      that function. State explicitly that the tool is never the last word: the reviewer may still
+      raise a must_fix on judgement when every number improved, and a clean grade report is not by
+      itself a passing review. Add harness-code-risk-grading to the skills list of
+      .omp/agents/harness-code-reviewer.md and regenerate the Claude adapter with
+      sync-agent-adapters.py --apply.
+
+      Validator side. Add a required field code_grade to the harness-code-reviewer digest schema in
+      validate-digest.py, with the enum pass, fail, n_a. A return omitting it is rejected with a
+      message naming the missing field. n_a is legal only when the change touched no Python file;
+      code_grade: fail with VERDICT: PASS is rejected, in the same structure DEC-175 already uses for
+      a self-reported gate failure. Add cases to test-validate-digest.py asserting the omission is
+      rejected and that the rejection message names code_grade, and asserting the fail-plus-PASS
+      combination is rejected.
+
+      Policy side - this is what gives the gates block of .harness/harness.json a consumer. Import
+      load_policy and evaluate_review from gate_policy (T-07); validate-digest.py already inserts its
+      own directory on sys.path at line 29, so a plain import gate_policy resolves. Resolve the
+      configuration path once, at the top of the reviewer branch: HARNESS_PROJECT_DIR when set,
+      otherwise the root derived from os.path.abspath of this file walked up four segments, joined to
+      .harness/harness.json. Take the path as an optional parameter so a test can point it at a
+      fixture without touching live state.
+
+      For a harness-code-reviewer return, read the review key through load_policy and call
+      evaluate_review with the digest's must_fix list and its severity_max. When that returns FAIL and
+      the VERDICT is PASS, reject with the same message shape GATE_FAIL_VALUES already uses, naming
+      the review policy value that produced the verdict. Do NOT hardcode advisory_unless_high into
+      validate-digest.py and do not add a reviewer row to GATE_FAIL_VALUES: the whole point is that
+      the outcome comes from the configuration file, so the same digest must be ACCEPTED when the
+      review key reads advisory. A GatePolicyError - missing gates block, unreadable or unparseable
+      configuration, unrecognised policy value - propagates as a non-zero exit naming the gate. Never
+      catch it and accept the digest; a fall-through here recreates the exact defect REQ-10 names.
+
+      Tests for the policy side, in test-validate-digest.py. One case asserts a reviewer digest with
+      must_fix holding one entry and VERDICT PASS is REJECTED against a fixture configuration whose
+      review key is advisory_unless_high. A second asserts the SAME digest bytes are ACCEPTED against
+      a fixture whose review key is advisory - the pair is what proves the key changes an outcome
+      rather than the validator having a new hardcoded rule. A third asserts a fixture configuration
+      with no gates block makes the validator exit non-zero with a message naming the gate, never
+      accept. A fourth proves the first assertion can fail: run the same reviewer digest through the
+      previous revision of validate-digest.py, extracted with git show HEAD colon path into a temp
+      file, and assert THAT run accepts it.
+
+      Prove the cutover changed only what it was meant to: run check-plan-routes.py and
+      run-unit-tests.sh --kind all before and after the validate-digest.py edit and show the violation
+      set is identical apart from the new cases.
+
+  - id: T-09
+    title: Make the route check answer about the manifest the write hook consults
+    traces: [REQ-09]
+    change_type: bugfix
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 amendment 4 names check-plan-routes.py and its test file as enforcement layer
+    depends_on: []
+    status: pending
+    files:
+      - .claude/skills/harness/bin/check-plan-routes.py
+      - .claude/skills/harness/bin/test-check-plan-routes.py
+    verify: |
+      .claude/skills/harness/bin/run-unit-tests.sh --kind integration
+    intent: |
+      The defect, measured 2026-08-27. check-plan-routes.py printed OK for a task route minutes before
+      every write on that route was denied. The mechanism: the write hook is registered in
+      settings.json as CLAUDE_PROJECT_DIR joined to .claude/skills/harness/bin/check-domain.sh, so at
+      hook time it resolves the OWNER checkout's .harness/team-config.yaml. check-plan-routes.py run
+      from inside a feature worktree with CLAUDE_PROJECT_DIR unset falls back to the root derived from
+      its own file location, which is the WORKTREE, and reads the BRANCH's team-config.yaml. The two
+      disagree exactly when a plan adds or moves a domain grant, which is exactly when the check
+      matters.
+
+      The fix. Before resolving any route, determine the manifest the hook will consult: take the
+      resolved root, ask harness_boundary.worktree_owner for its owner checkout, and use the owner's
+      .harness/team-config.yaml. Set HARNESS_PROJECT_DIR to that owner root in the environment passed
+      to the check-domain.sh subprocess, so the resolver and the live hook read the same file. Print
+      one line naming the absolute manifest path actually used, on every run, so the answer is never
+      silently about a different tree.
+
+      When the branch manifest and the owner manifest DIFFER in content, do not silently prefer one:
+      print a DEVIATION line naming both paths and stating that the routes were resolved against the
+      owner manifest because that is what the hook will consult, and count it toward the violation
+      total so the exit status is non-zero. A plan whose routes depend on an unmerged manifest change
+      is exactly the case that produced the false OK.
+
+      When the owner checkout cannot be established, or its manifest is not readable, exit 2 with a
+      message saying so. Do not fall back to the branch manifest - a fallback here reproduces the
+      defect under a different name.
+
+      Tests, in test-check-plan-routes.py. Build a fixture with an owner checkout whose manifest
+      grants nothing and a linked worktree under the worktrees segment whose branch manifest grants
+      everything, holding a plan that routes a task to an agent only the branch manifest grants.
+      Assert the checker reports a violation and exits non-zero. Then prove the assertion can fail:
+      extract the previous revision of check-plan-routes.py with git show HEAD colon path into a temp
+      file, run the same fixture through it, and assert THAT run reports OK - so the new case is shown
+      to discriminate rather than being green for an unrelated reason. Add a case asserting exit 2
+      with the stated message when the owner manifest is unreadable.
+
+  - id: T-10
+    title: Pin one canonical spelling for the vocabulary this feature introduces
+    traces: [REQ-11]
+    change_type: docs
+    execution_mode: team
+    execution_agent: harness-pm
+    depends_on: [T-04]
+    status: pending
+    files:
+      - .harness/glossary.md
+    verify: |
+      test -f .harness/glossary.md \
+        && grep -qi 'risk grade' .harness/glossary.md \
+        && grep -qi 'gated set' .harness/glossary.md \
+        && grep -qi 'driver metric' .harness/glossary.md \
+        && grep -qi 'ABC magnitude' .harness/glossary.md \
+        && grep -qi 'cognitive complexity' .harness/glossary.md
+    intent: |
+      Create .harness/glossary.md, which does not exist yet, and give it exactly the terms this
+      feature settles. It is a glossary, not a spec: one canonical term per concept, one or two
+      sentences each, no thresholds, no implementation detail, no duplication of the skill.
+
+      The terms: risk grade (the integer 1 to 5 a function carries, worst metric wins); gated set (the
+      functions a change is responsible for, being those that are new or whose grade got worse);
+      driver metric (the one of the three metrics that produced the grade); ABC magnitude (the
+      combined assignment, branch and condition size of a function); cognitive complexity (a
+      Sonar-style approximation of how hard a function is to follow, not SonarSource's algorithm);
+      cyclomatic complexity (the number of independent paths through a function).
+
+      Say once, under risk grade, how it meets the vocabulary that already exists: grade 1 is reported
+      as a high severity finding and grade 2 as med, on the existing severity ladder. Do not introduce
+      a second word for severity, for finding or for gate.
