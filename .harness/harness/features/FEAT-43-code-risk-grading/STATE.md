@@ -3,22 +3,19 @@
 ## Current
 
 - feature: FEAT-43-code-risk-grading
-- run: .harness/harness/features/FEAT-43-code-risk-grading/runs/plan-product/digest.md
-- squad: product
-- status: awaiting-user
+- run: none
+- squad: orchestrator
+- status: blocked
 
-BRIEF.md and plan.yaml are written and both read `pending`. The plan phase ends here, at the
-signature gate. 10 tasks (T-01..T-10), 20 success criteria, 1 rework cycle spent. Four tasks are
-main-session-direct (T-04, T-05, T-08, T-09) because their paths resolve to NOBODY or sit in the
-DEC-174 enforcement layer. Nothing is built.
+The phase-scoped ship mission stopped before ship entry. Both approval gates pass, but the feature is
+still `Ready`: `feature.json` records only the planning run, `review_sha` is `none`, and the branch
+contains no T-01..T-10 implementation. Build, QA, SIMPLIFY, validation, goal-check, and SC-11 UAT
+have not run. No PR, merge, deployment, HEAD movement, or worktree removal was attempted.
+
+The next route is build, starting at T-01 and honoring `notes/handoff-plan.md`. No new operator
+decision is required because the brief and plan are already approved. The human assessment is
+`notes/ship-review-ship-gate.md`; working memory for the next phase is `notes/handoff-ship.md`.
 
 ## Open Questions
 
-- Q1 (blocking): the operator must approve BRIEF.md and plan.yaml. One signature, both artifacts.
-- Q2 (non-blocking): the product-lead's digest reports a `high` finding that `.agents/**` does not
-  exist and both active test-kind `cmd` paths in harness.json are dead. I measured the opposite and
-  the finding is FALSE — `.agents/skills` is a symlink to `../.claude/skills`, and the exact cmd
-  string runs from the repo root with the unit suite passing 18/18, exit 0. No fix is needed and
-  T-03 must NOT absorb one. Root cause is a symlink-blind search tool, which is a harness defect.
-- Q3 (non-blocking): the SubagentStop hook named `harness-validator-lead` as my child in flight. I
-  never dispatched one. Cause unknown; two candidates, evidence for neither.
+None.
