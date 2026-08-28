@@ -1,0 +1,4 @@
+# Observations - harness-backend-dev
+
+- 2026-08-24: a plain `grep "returned with children in flight"` over subagent transcripts is a false-positive magnet — `inflight_registry.py`'s `children_refusal_lines()` contains that exact f-string literal in its own source, so any transcript where an agent read/wrote that file matches too (drove the 68-hit false count down to real hits once anchored on the actual hook-output prefix `"Stop hook feedback:"`, which only appears in genuine SubagentStop-hook stderr, never in source).
+- 2026-08-24: the installed Claude Code CLI binary (`~/.local/share/claude/versions/<ver>`) is a compiled Mach-O, not JS-on-disk, but `strings -a <binary> | grep <token>` still surfaces the bundled JS source verbatim including inline string literals and default values (found `CLAUDE_CODE_STOP_HOOK_BLOCK_CAP??8` and its exact log message this way) — cheap and fast (~1s) even on a 361MB binary.

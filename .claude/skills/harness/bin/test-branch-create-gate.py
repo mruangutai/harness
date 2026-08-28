@@ -22,7 +22,8 @@ import sys
 import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-GATE = os.path.join(HERE, "branch-create-gate.sh")
+GATE = os.environ.get("BRANCH_CREATE_GATE_BIN") or os.path.join(
+    HERE, "branch-create-gate.sh")
 # HERE = <repo>/.agents/skills/harness/bin — four levels up is the repo root.
 REPO_ROOT = os.path.abspath(os.path.join(HERE, "..", "..", "..", ".."))
 
@@ -35,7 +36,12 @@ def check(name, ok, detail=""):
 
 def fire(cmd, root=REPO_ROOT, gh_bin=None):
     payload = json.dumps({"tool_input": {"command": cmd}})
-    env = dict(os.environ, CLAUDE_PROJECT_DIR=root)
+    # BOTH NAMES, ONE VALUE (FEAT-42 T-14). branch-create-gate.sh resolves through
+    # harness_boundary.resolve_root, which reads HARNESS_PROJECT_DIR and no other name; the
+    # reverted sha-3952814 copy the parity proof diffs against reads HARNESS first and the
+    # host-owned name second. Setting only the host-owned name points the new copy at the
+    # live checkout, and three self-gate cases read the real github block that way.
+    env = dict(os.environ, CLAUDE_PROJECT_DIR=root, HARNESS_PROJECT_DIR=root)
     if gh_bin is not None:
         env["GH_BIN"] = gh_bin
     else:
@@ -110,6 +116,13 @@ def _fixture(github_block):
     doc = {} if github_block is None else {"github": github_block}
     with open(os.path.join(d, ".harness", "harness.json"), "w") as f:
         json.dump(doc, f)
+    # THE MARKER MAKES IT A ROOT (FEAT-42 T-14). branch-create-gate.sh resolves through
+    # harness_boundary.resolve_root, which honours the override only when
+    # .harness/team-config.yaml is readable underneath it. A fixture holding only
+    # harness.json is discarded and the gate falls back to the LIVE checkout, reading the
+    # real github block instead of the one this fixture exists to set.
+    with open(os.path.join(d, ".harness", "team-config.yaml"), "w") as f:
+        f.write("agents: {}\n")
     return d
 
 

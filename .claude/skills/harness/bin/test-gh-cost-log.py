@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Tests for gh_cost_log.py (FEAT-29 T-03) — in-process, no subprocess, no real gh, no writes to
-the real .harness/logs (every case redirects factory_config.harness_root() to a tmp root and
+the real .harness/logs (every case redirects harness_boundary.resolve_root() to a tmp root and
 asserts the redirect took effect BEFORE asserting anything about file contents — a test that
 skipped that check could silently pollute the real checkout's log directory instead of failing).
 
@@ -21,7 +21,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 
 import gh_cost_log  # noqa: E402
-import factory_config  # noqa: E402
+import harness_boundary  # noqa: E402
 
 FAILURES = []
 RAN = 0
@@ -37,19 +37,19 @@ def check(name, cond, detail=""):
         FAILURES.append(name)
 
 
-_real_harness_root = factory_config.harness_root
+_real_resolve_root = harness_boundary.resolve_root
 _real_subprocess_run = gh_cost_log.subprocess.run
 
 
 def restore():
-    factory_config.harness_root = _real_harness_root
+    harness_boundary.resolve_root = _real_resolve_root
     gh_cost_log.subprocess.run = _real_subprocess_run
 
 
 def redirect(tmp):
     """Point gh_cost_log's log resolution at tmp. Returns the expected log path for TODAY, and
     asserts the redirect actually took effect before the caller trusts it — the log-path trap."""
-    factory_config.harness_root = lambda: tmp
+    harness_boundary.resolve_root = lambda *a, **k: tmp
     resolved = gh_cost_log._log_path()
     assert resolved.startswith(tmp + os.sep), (
         f"redirect did not take effect: resolved {resolved!r} is not under tmp root {tmp!r}"
@@ -278,7 +278,7 @@ import factory_gh as _fgh  # noqa: E402
 def _load_gh_sync():
     """gh-sync.py's hyphen blocks a plain import; loaded the same way test-gh-sync.py:890-891
     already does for load_recorded. A fresh module each call, but `subprocess`, `gh_cost_log`
-    and `factory_config` are all resolved through sys.modules's cache, so patches on those
+    and `harness_boundary` are all resolved through sys.modules's cache, so patches on those
     module objects apply here too without re-patching per module instance."""
     spec = _ilu.spec_from_file_location("_ghs_t03_wrap_site", os.path.join(HERE, "gh-sync.py"))
     mod = _ilu.module_from_spec(spec)

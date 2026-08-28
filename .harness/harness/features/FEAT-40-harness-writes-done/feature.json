@@ -1,8 +1,8 @@
 {
   "feature_id": "FEAT-40-harness-writes-done",
   "branch": "feat/FEAT-40-harness-writes-done",
-  "pr": null,
-  "status": "Review",
+  "pr": 862,
+  "status": "Done",
   "review_sha": "3a548fe8c3eb1905d5b1cb9936266a30bc9b7489",
   "cycles_used": 6,
   "max_total_cycles": 10,

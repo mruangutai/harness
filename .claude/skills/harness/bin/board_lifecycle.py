@@ -155,10 +155,10 @@ never be mistaken for an audit that found nothing.
 
 BOARD RESOLUTION, one code path for both repositories (T-04 intent):
   - no --repo, or --repo naming THIS checkout's own harness.json `github.repo`: the board comes
-    from `gh_board.load_board(factory_config.harness_root())`. `factory_config.harness_root()`
-    is the established root helper (factory_config.py:44, already reused by factory_claim.py,
-    feature-worktree.py and gh_cost_log.py) — never a hand-rolled walk-up. board-station.py made
-    a THIRD walk-up for a different purpose already; this is not a fourth.
+    from `gh_board.load_board(harness_boundary.resolve_root(_BIN_DIR))`. `resolve_root` is the
+    one shared root resolver (harness_boundary.py, already reused by factory_config.py,
+    factory_claim.py, feature-worktree.py and gh_cost_log.py) — never a hand-rolled walk-up.
+    board-station.py made a THIRD walk-up for a different purpose already; this is not a fourth.
   - --repo naming a fleet member: `factory_config.board_for(fleet, repo)`, which reads that
     repository's own `.harness/harness.json` REMOTELY at its default_branch — this tool never
     checks out a served repository to provision its board.
@@ -258,6 +258,9 @@ import factory_cli
 import factory_config
 import factory_gh
 import gh_board
+import harness_boundary
+
+_BIN_DIR = os.path.dirname(os.path.abspath(__file__))
 
 _TOOL = "board_lifecycle"
 _SINGLE_SELECT = "ProjectV2SingleSelectField"
@@ -668,7 +671,7 @@ def cmd_provision(repo_arg):
     land; stderr names the created number). See the module docstring's PROVISION'S EXIT CODES
     and A FRESH BOARD IS NOT EMPTY paragraphs for the full contract.
     """
-    root = factory_config.harness_root()
+    root = harness_boundary.resolve_root(_BIN_DIR)
     repo_name, board = _resolve_board(root, repo_arg)
     if board is None:
         # D-07: an explicit `github.board: null` is a declaration, not a misconfiguration.
@@ -919,7 +922,7 @@ def audit_findings(repo_arg=None):
     instead, and that refusal stays inside the subcommand -- a library call that exits is the
     thing this function exists not to be.
     """
-    root = factory_config.harness_root()
+    root = harness_boundary.resolve_root(_BIN_DIR)
     repo_name, board = _resolve_board(root, repo_arg)
     if board is None:
         return []
@@ -931,7 +934,7 @@ def audit_findings(repo_arg=None):
 
 
 def cmd_audit(repo_arg):
-    root = factory_config.harness_root()
+    root = harness_boundary.resolve_root(_BIN_DIR)
     repo_name, board = _resolve_board(root, repo_arg)
     if board is None:
         # D-07: an explicit `github.board: null` is a declaration, not a misconfiguration.
@@ -1031,7 +1034,7 @@ def _apply_fix(finding, board, repo_name):
 
 
 def cmd_reconcile(repo_arg, apply):
-    root = factory_config.harness_root()
+    root = harness_boundary.resolve_root(_BIN_DIR)
     repo_name, board = _resolve_board(root, repo_arg)
     if board is None:
         # D-07: an explicit `github.board: null` is a declaration, not a misconfiguration.
@@ -1118,7 +1121,7 @@ def _retitled_title(feat, tid, rest):
 
 
 def cmd_retitle(repo_arg, apply):
-    root = factory_config.harness_root()
+    root = harness_boundary.resolve_root(_BIN_DIR)
     # retitle has no use for a board -- it renames issue titles, never a card -- so only the
     # repo-name half of `_resolve_board` is reused; the board it returns is discarded. An
     # unrecognised --repo still refuses (exit 2) through that same call.

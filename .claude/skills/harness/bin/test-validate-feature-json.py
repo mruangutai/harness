@@ -314,14 +314,52 @@ def case_migrated_depth_discovery_scans_the_segment_layout():
         os.makedirs(fd)
         with open(os.path.join(fd, "feature.json"), "w", encoding="utf-8") as f:
             json.dump(full_doc(), f)
+        os.makedirs(os.path.join(tmp, ".harness"), exist_ok=True)
+        open(os.path.join(tmp, ".harness", "team-config.yaml"), "w",
+             encoding="utf-8").write("")
         env = dict(os.environ)
-        env["CLAUDE_PROJECT_DIR"] = tmp
+        env.pop("CLAUDE_PROJECT_DIR", None)
+        env["HARNESS_PROJECT_DIR"] = tmp
         r = subprocess.run([VALIDATE_CLI], capture_output=True, text=True,
                            timeout=30, env=env)
         check("case_migrated_depth: the sweep reports ONE file, not zero",
               "1 file(s)" in r.stderr, r.stderr)
         check("case_migrated_depth: the scanning line names the migrated glob",
               ".harness/*/features/" in r.stderr, r.stderr)
+
+
+def case_root_resolves_through_harness_boundary_not_the_retired_variable():
+    """FEAT-42 T-05: discover_paths() resolves its root via
+    harness_boundary.resolve_root, never the retired CLAUDE_PROJECT_DIR chain.
+
+    CLAUDE_PROJECT_DIR alone must NOT redirect the sweep — this file's own docstring
+    promises nothing here depends on any real file under .harness/*/features/*/, and
+    the retired chain would have silently broken that promise by sweeping the real
+    checkout instead of the tmp fixture whenever HARNESS_PROJECT_DIR was unset."""
+    with tempfile.TemporaryDirectory() as tmp:
+        fd = os.path.join(tmp, ".harness", "repoA", "features", "FEAT-77-x")
+        os.makedirs(fd)
+        with open(os.path.join(fd, "feature.json"), "w", encoding="utf-8") as f:
+            json.dump(full_doc(), f)
+        env = dict(os.environ)
+        env.pop("HARNESS_PROJECT_DIR", None)
+        env["CLAUDE_PROJECT_DIR"] = tmp
+        r = subprocess.run([VALIDATE_CLI], capture_output=True, text=True,
+                            timeout=30, env=env)
+        check("case_root_resolves: CLAUDE_PROJECT_DIR alone does not redirect the sweep "
+              "(scans the real repo root, not the tmp fixture with its single file)",
+              "1 file(s)" not in r.stderr, r.stderr)
+
+        env2 = dict(os.environ)
+        env2.pop("CLAUDE_PROJECT_DIR", None)
+        env2["HARNESS_PROJECT_DIR"] = tmp
+        os.makedirs(os.path.join(tmp, ".harness"), exist_ok=True)
+        open(os.path.join(tmp, ".harness", "team-config.yaml"), "w",
+             encoding="utf-8").write("")
+        r2 = subprocess.run([VALIDATE_CLI], capture_output=True, text=True,
+                             timeout=30, env=env2)
+        check("case_root_resolves: HARNESS_PROJECT_DIR + team-config.yaml IS honoured",
+              "1 file(s)" in r2.stderr, r2.stderr)
 
 
 # ---------------------------------------------------------------------------
@@ -599,6 +637,7 @@ def main():
     case_problems_for_text_names_real_display_path_in_every_line()
     case_problems_for_text_jsonschema_forced_unavailable()
     case_migrated_depth_discovery_scans_the_segment_layout()
+    case_root_resolves_through_harness_boundary_not_the_retired_variable()
 
     # FEAT-26 T-01 — github.source_issues
     case_accepted_source_issues_list_of_integers()

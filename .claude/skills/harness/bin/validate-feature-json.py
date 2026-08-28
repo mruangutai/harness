@@ -32,12 +32,13 @@ if BIN_DIR not in sys.path:
     sys.path.insert(0, BIN_DIR)
 
 import feature_schema
+import harness_boundary
 
 KEEP_SUFFIXES = ("json", "yaml", "yml")
 
 
 def discover_paths():
-    root = (os.environ.get("HARNESS_PROJECT_DIR") or os.environ.get("CLAUDE_PROJECT_DIR")) or os.getcwd()
+    root = harness_boundary.resolve_root(BIN_DIR)
     pattern = os.path.join(root, ".harness", "*", "features", "*", "feature.*")
     paths = sorted(
         p for p in glob.glob(pattern)

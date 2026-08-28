@@ -29,6 +29,7 @@ import tempfile
 import yaml
 
 import factory_config as fc
+import harness_boundary as hb
 
 FAILS = 0
 RAN = 0
@@ -770,25 +771,30 @@ with tempfile.TemporaryDirectory() as td:
 # --- FLEET_PATH is absolute -------------------------------------------------------------
 check("(20) FLEET_PATH is an absolute path", os.path.isabs(fc.FLEET_PATH), fc.FLEET_PATH)
 
-# --- CLAUDE_PROJECT_DIR pointed at a dir with no probe file: discarded, announced, still works
-_saved_env = (os.environ.get("HARNESS_PROJECT_DIR") or os.environ.get("CLAUDE_PROJECT_DIR"))
+# --- HARNESS_PROJECT_DIR pointed at a dir with no MARKER: discarded, announced, and FLEET_PATH
+# (bound at import from the SAME harness_boundary.resolve_root(fc._BIN_DIR) call) still sits
+# under the root a fresh call falls back to — proving FLEET_PATH is wired through the shared
+# resolver's discard-and-fallback behaviour, not merely coincidentally correct.
+_saved_env = os.environ.get("HARNESS_PROJECT_DIR")
 try:
     with tempfile.TemporaryDirectory() as td:
-        os.environ["CLAUDE_PROJECT_DIR"] = td
+        os.environ["HARNESS_PROJECT_DIR"] = td
         err = io.StringIO()
         with contextlib.redirect_stderr(err):
-            root = fc.harness_root()
-        check("(21) a CLAUDE_PROJECT_DIR with no probe file is discarded",
+            root = hb.resolve_root(fc._BIN_DIR)
+        check("(21) a HARNESS_PROJECT_DIR with no MARKER is discarded",
               root != td, root)
         check("(21) discarding it is announced on stderr", err.getvalue().strip() != "",
               "stderr was empty")
-        check("(21) the returned root still has a readable probe file",
-              os.access(os.path.join(root, fc._PROBE), os.R_OK), root)
+        check("(21) the returned root still carries harness_boundary.MARKER",
+              os.path.isfile(os.path.join(root, hb.MARKER)), root)
+        check("(21) it is the same root factory_config.FLEET_PATH was built from",
+              fc.FLEET_PATH.startswith(root + os.sep), (fc.FLEET_PATH, root))
 finally:
     if _saved_env is None:
-        os.environ.pop("CLAUDE_PROJECT_DIR", None)
+        os.environ.pop("HARNESS_PROJECT_DIR", None)
     else:
-        os.environ["CLAUDE_PROJECT_DIR"] = _saved_env
+        os.environ["HARNESS_PROJECT_DIR"] = _saved_env
 
 # --- workspace_path -----------------------------------------------------------------------
 with tempfile.TemporaryDirectory() as td:

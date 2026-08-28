@@ -116,6 +116,46 @@ GATE_FAIL_VALUES = {"dev": {"suite": "fail", "task_verify": "fail"},
 # dispatch-carries-the-T-NN-id rule (T-05) gives a cross-reference to.
 CONDITIONAL = {"task_verify": "task"}
 
+# A field whose obligation is lifted by what the return BOTH DECLARED and DID.
+# An ANALYSIS dispatch -- read this, report that -- writes no production code, so the
+# Iron Law binds on nothing: there is no code owed a passing test, and `suite` has no
+# gate to decline. Before this, such a return had NO truthful digest. MEASURED
+# 2026-08-26: three of four member runs lost their report body to the re-prompt, and
+# TWO agents reasoned themselves into a fabricated `suite: pass` to satisfy the schema.
+# A schema that teaches agents to misreport the record is worse than no schema.
+#
+# BOTH CONDITIONS, NEVER ONE. Each closes the other's hole, and both holes were real:
+#
+#   `task: none` alone       a CLAIM about the dispatch. A return can write it and
+#                            still edit ten files, and the Iron Law would be bypassed
+#                            on code that exists.
+#   `files_touched: []` alone a dev handed a REAL task that REFUSED it also touches
+#                            nothing, and its PASS is unearned. The case
+#                            "suite: n/a with VERDICT PASS is a fail-open" pins that
+#                            exact return -- `task: T-01`, `files_touched: []` -- and
+#                            it MUST stay rejected.
+#
+# Only the pair separates "had nothing to test" from "declined to test".
+NOTHING_TO_GATE = {"dev": {"suite"}}
+
+
+def _nothing_to_gate(field, persona, seen):
+    """True when this return declared no task AND changed no file, so `field` would
+    gate work that does not exist.
+
+    FAILS CLOSED on anything unexpected -- a missing, unparsed or non-list
+    `files_touched`, or any `task` value other than the literal `none`, leaves the
+    gate BINDING. The default in the `task` read is load-bearing for the same reason
+    `_unbound`'s is: `str(None).lower()` is `"none"` in Python, so a MISSING `task`
+    written without it would switch the requirement off.
+    """
+    if field not in NOTHING_TO_GATE.get(persona, ()):
+        return False
+    if str(seen.get("task", "")).strip().lower() != "none":
+        return False
+    touched = seen.get("files_touched")
+    return isinstance(touched, list) and not touched
+
 def _unbound(field, seen):
     """True when `field`'s governor declares this dispatch carries no PLAN task.
 
@@ -609,7 +649,8 @@ def validate(persona, text):
             # DEC-173: declining a GATE while claiming PASS is the fail-open the
             # widened NULLABLE would otherwise have created. Reported here rather
             # than as a separate pass so the message lands next to the field.
-            if field in GATE_FIELDS.get(persona, ()) and m and m.group(1) == "PASS":
+            if field in GATE_FIELDS.get(persona, ()) and m and m.group(1) == "PASS" \
+                    and not _nothing_to_gate(field, persona, seen):
                 err.append(f"{field}={val!r} declines to report a gate, but VERDICT is "
                            f"PASS — a gate that did not run cannot have passed. Return "
                            f"BLOCKED or FAIL, or report the real result.")
@@ -742,6 +783,24 @@ def validate(persona, text):
                    "it is an active routing signal, not a tally.")
     return err
 
+
+def _root_or_none():
+    """This checkout's root, from harness_boundary — or None if there is not one (FEAT-42
+    T-17).
+
+    NONE RATHER THAN A RAISE. Every caller here treats an unresolvable root as "the errand
+    could not be run", never as a verdict: this hook validates digests, and the registry and
+    the artifact-shape check are side errands that may not change what it returns.
+    """
+    try:
+        sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
+        import harness_boundary
+        return harness_boundary.resolve_root(
+            os.path.dirname(os.path.realpath(__file__)), strict=False)
+    except Exception:
+        return None
+
+
 def check_artifact_file(agent, text, payload):
     """DEC-156: a lead's WRITTEN digest.md must carry the same §10.4 block.
 
@@ -775,9 +834,13 @@ def check_artifact_file(agent, text, payload):
         # artifact is INV-15's finding (it can see the run dir), not this hook's.
         return 0
 
-    cands = ([path] if os.path.isabs(path) else
-             [os.path.join(b, path) for b in
-              (payload.get("cwd"), (os.environ.get("HARNESS_PROJECT_DIR") or os.environ.get("CLAUDE_PROJECT_DIR")), os.getcwd()) if b])
+    # ONE ROOT, NOT A CANDIDATE WALK (FEAT-42 T-17). What stood here tried the payload cwd,
+    # then the two-name environment chain, then os.getcwd(). Payload cwd is DELETED as a root
+    # input and that is a ruling, not a preference: NOTHING sets where an agent stands — the
+    # Agent tool has no cwd parameter, `cd` does not persist between Bash calls, and
+    # bash-write-guard refuses it — so cwd stays inherited from the spawning session and
+    # varies by accident.
+    cands = ([path] if os.path.isabs(path) else [os.path.join(_root_or_none() or "", path)])
     found = next((p for p in cands if os.path.isfile(p)), None)
     if not found:
         print(f"check-digest: {agent}'s artifact {path} not found from the hook's vantage — "
@@ -863,26 +926,13 @@ def hook_mode():
               f"neither released nor checked. This is our gap, not theirs.", file=sys.stderr)
 
     if _reg is not None:
-        # THE ROOT: payload cwd first, exactly the precedence check_artifact_file already
-        # uses, and it MUST match what dispatch-guard.sh wrote. The guard takes the root
-        # from the payload cwd (the FEATURE worktree) while CLAUDE_PROJECT_DIR resolves to
-        # the MAIN checkout — so preferring the env var here would release from a registry
-        # the claim was never written to, and every claim would leak silently.
-        _root = None
-        for _b in (d.get("cwd"), (os.environ.get("HARNESS_PROJECT_DIR") or os.environ.get("CLAUDE_PROJECT_DIR")), os.getcwd()):
-            if not _b:
-                continue
-            _cur = os.path.abspath(_b)
-            while _cur and _cur != os.path.dirname(_cur):
-                # THE MANIFEST FILE, not the .harness DIRECTORY: probing the directory
-                # resolves $HOME as a root in the global install (B-7), and case_20 of the
-                # invariant suite refuses it by name.
-                if os.path.isfile(os.path.join(_cur, ".harness", "team-config.yaml")):
-                    _root = _cur
-                    break
-                _cur = os.path.dirname(_cur)
-            if _root:
-                break
+        # THE ROOT COMES FROM THE ONE RESOLVER (FEAT-42 T-17), not from a walk starting at
+        # the payload cwd. The old note here said cwd had to come first so this released from
+        # the same registry dispatch-guard.sh wrote to — but that guard now takes its root
+        # from the DECLARED feature (T-18), not from where the dispatcher happened to stand,
+        # so the two agree without either of them reading a cwd. Nothing sets an agent's cwd,
+        # which is why it was never a root.
+        _root = _root_or_none()
 
         if _root is None:
             print("check-digest: no checkout root from this vantage — the #551 claim was "
@@ -908,7 +958,13 @@ def hook_mode():
             # returned PASS.
             if norm(agent) in ("lead", "orchestrator"):
                 try:
-                    _kids = _reg.live_children(_root, agent)
+                    # THE SESSION FILTER IS THE FIX FOR THE CASCADE (FEAT-42 T-17, #742/#866).
+                    # A claim stranded by ANOTHER session is not a live child of THIS return.
+                    # Measured 2026-08-26: one stranded pm claim refused the pm spawn at
+                    # dispatch-guard, then refused the LEAD's return here, then refused the
+                    # ORCHESTRATOR's return here again — three tiers locked out of reporting
+                    # by one strand, each stranding creating the next.
+                    _kids = _reg.live_children(_root, agent, session=d.get("session_id"))
                 except Exception as _e:
                     _kids = []
                     print(f"check-digest: could not read children of {agent} ({_e!r}) — the "
@@ -917,6 +973,18 @@ def hook_mode():
                 if _kids:
                     for _line in _reg.children_refusal_lines(agent, _kids):
                         print(_line, file=sys.stderr)
+                    # AND THE PRECISE REMEDY, ONE COMMAND PER STRANDED CHILD. The refusal
+                    # named the problem and no cure, so a reader reached for release-all —
+                    # which sets the registry to {} and wipes every claim of every agent.
+                    # On 2026-08-26 following that advice would have destroyed a live claim.
+                    try:
+                        print("  if one of these is stranded rather than running, release "
+                              "exactly it:", file=sys.stderr)
+                        for _persona, _c in _kids:
+                            print("  %s" % _reg.release_cmd(_root, _persona), file=sys.stderr)
+                    except Exception as _e:
+                        print(f"check-digest: could not compose the release command "
+                              f"({_e!r}).", file=sys.stderr)
                     return 2
 
     text = d.get("last_assistant_message") or ""

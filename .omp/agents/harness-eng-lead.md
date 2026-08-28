@@ -74,6 +74,18 @@ and judge the architecture:
 **You are reviewing your own squad's future work** — one of two acknowledged self-review points in the
 design. The compensating control is the user's PLAN approval. Be harder on yourself accordingly.
 
+**Every dispatch you make opens with the feature it belongs to**, on its own first line, spelled
+exactly:
+
+```
+HARNESS-FEATURE: FEAT-42-one-root-resolver
+```
+
+with the id of the feature you are working. `dispatch-guard.sh` refuses a governed dispatch
+without it at exit 2. It is the only signal that tells the guard which checkout you were
+assigned to: your process working directory does not follow your assignment, and a claim
+recorded in the wrong checkout is why the previous planning run could not spawn at all.
+
 ## Conducting build and debug teams
 
 - **build:** match tasks to specialists, spawn, assess. `qa` gates downstream; on `FAIL` the fix loops

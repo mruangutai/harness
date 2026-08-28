@@ -352,8 +352,19 @@ def _parity(label, build_kwargs, extra=None):
             f.write('{"github": {"sync": false, "repo": null}}')
         if extra:
             extra(tmp)
+        # BOTH NAMES, AND THE MARKER (FEAT-42 T-12). check-state.sh resolves its root through
+        # harness_boundary.resolve_root, which reads HARNESS_PROJECT_DIR and no other name and
+        # honours it only when .harness/team-config.yaml is readable underneath. With only the
+        # host-owned name set, the gate resolved to the LIVE checkout, reported nothing about
+        # this fixture, and every parity comparison here saw an EMPTY gate side.
         env = dict(os.environ)
         env["CLAUDE_PROJECT_DIR"] = tmp
+        env["HARNESS_PROJECT_DIR"] = tmp
+        _m = os.path.join(tmp, ".harness", "team-config.yaml")
+        if not os.path.exists(_m):
+            os.makedirs(os.path.dirname(_m), exist_ok=True)
+            with open(_m, "w") as f:
+                f.write("agents: {}\n")
         r = subprocess.run([_CHECK_STATE], cwd=tmp, capture_output=True, text=True,
                            env=env)
         gate = "\n".join(l for l in r.stdout.splitlines() if "INV-27" in l)

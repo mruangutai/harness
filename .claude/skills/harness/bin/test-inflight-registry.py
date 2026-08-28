@@ -175,7 +175,7 @@ def case_4_release():
     root = tempfile.mkdtemp()
     inflight_registry.claim(root, "harness-backend-dev", "harness-eng-lead", "/a")
     removed = inflight_registry.release(root, "harness-backend-dev")
-    check("case4: release removes the claim and returns True", removed is True, removed)
+    check("case4: release removes the SOLE claim and returns True", removed is True, removed)
     claim, _ = inflight_registry.live_claim(root, "harness-backend-dev")
     check("case4: no live claim remains", claim is None, claim)
 
@@ -215,7 +215,17 @@ def case_6_refusal_lines():
         any(re.search(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}", l) for l in lines),
         lines,
     )
-    check("case6: #551 is referenced", any("#551" in l for l in lines), lines)
+    check("case6: #628 is referenced (issue #551 moved here, item 6)", any("#628" in l for l in lines), lines)
+    check(
+        "case6: the original #551 single-flight report is still noted",
+        any("#551" in l for l in lines),
+        lines,
+    )
+    check(
+        "case6: the plan.yaml-overwrite sentence is NOT tagged #551 (it is #628's issue now)",
+        not any("#551" in l and "plan.yaml" in l for l in lines),
+        lines,
+    )
     check(
         "case6: the release command appears byte-for-byte",
         any(inflight_registry.RELEASE_ALL_CMD in l for l in lines),
@@ -242,9 +252,12 @@ def case_6b_children_refusal_lines():
     ts_count = sum(len(re.findall(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}", l)) for l in lines)
     check("case6b: two ISO-8601 timestamps appear", ts_count >= 2, lines)
     check("case6b: #551 is referenced", any("#551" in l for l in lines), lines)
+    AGAIN_RE = re.compile(
+        r"end your turn again|end the turn again|stop again|return again", re.I
+    )
     check(
-        "case6b: the fires-once sentence is present",
-        any("once" in l.lower() for l in lines),
+        "case6b: the message prescribes ending the turn again",
+        any(AGAIN_RE.search(l) for l in lines),
         lines,
     )
 
@@ -353,6 +366,125 @@ def case_9_release_all():
     check("case9: CLI list prints NO CLAIMS", "NO CLAIMS" in r.stdout, r.stdout)
 
 
+def case_11_ttl_shorter_than_cycle():
+    """T-06 item 2: CLAIM_TTL_SECONDS drops from 3600 to 1200 -- a pm cycle is 10-20 minutes,
+    so an hour of TTL was four cycles of a claim outliving the run it guards."""
+    check(
+        "case11: ttl_shorter_than_cycle - CLAIM_TTL_SECONDS is one cycle (1200s), not the old 3600s",
+        inflight_registry.CLAIM_TTL_SECONDS == 1200,
+        inflight_registry.CLAIM_TTL_SECONDS,
+    )
+
+
+def case_12_foreign_session_expired():
+    """T-06 item 3: a claim carrying a DIFFERENT session than the caller's reads as absent to
+    live_claim/live_children, whatever its age -- this is what kills a cross-session strand
+    outright instead of waiting out CLAIM_TTL_SECONDS. The entry stays ON DISK: it is not
+    actually TTL-expired, only invisible to a foreign session's query."""
+    root = tempfile.mkdtemp()
+    now = time.time()
+    try:
+        ok = inflight_registry.claim(
+            root, "harness-eng-lead", "harness-orchestrator", "/x", now=now, session="session-A"
+        )
+        foreign_claim, foreign_expired = inflight_registry.live_claim(
+            root, "harness-eng-lead", now=now, session="session-B"
+        )
+        own_claim, _own_expired = inflight_registry.live_claim(
+            root, "harness-eng-lead", now=now, session="session-A"
+        )
+        on_disk = _read_raw(root).get("harness-eng-lead", [])
+        raised = None
+    except TypeError as exc:
+        ok = None
+        foreign_claim, foreign_expired = "raised", "raised"
+        own_claim = "raised"
+        on_disk = []
+        raised = repr(exc)
+
+    check("case12: claim() accepts a session= keyword", ok is True, raised)
+    check(
+        "case12: foreign_session_expired - a claim from a DIFFERENT session reads as absent though fresh",
+        foreign_claim is None,
+        (foreign_claim, raised),
+    )
+    check(
+        "case12: foreign_session_expired - a session mismatch is not counted as TTL expiry",
+        foreign_expired == 0,
+        (foreign_expired, raised),
+    )
+    check(
+        "case12: foreign_session_expired - the entry remains on disk for its OWN session to find",
+        len(on_disk) == 1,
+        on_disk,
+    )
+    check(
+        "case12: the SAME session still finds its own live claim",
+        own_claim is not None,
+        (own_claim, raised),
+    )
+
+
+def case_13_release_refuses_ambiguous():
+    """T-06 item 4: release(root, agent) must never guess. With two live claims and nothing on
+    either payload to match one to its holder, it removes NONE, reports the count on stderr,
+    and returns 0 -- oldest-pop was the measured 2026-08-26 defect where the stop hook released
+    the abandoned run's claim and stranded the returning lead's."""
+    root = tempfile.mkdtemp()
+    inflight_registry.claim(root, "harness-backend-dev", "harness-eng-lead", "/a")
+    inflight_registry.claim(root, "harness-backend-dev", "harness-eng-lead", "/b")
+
+    buf = io.StringIO()
+    with contextlib.redirect_stderr(buf):
+        removed = inflight_registry.release(root, "harness-backend-dev")
+
+    check(
+        "case13: release_refuses_ambiguous - two live claims are refused, not oldest-popped, and 0 is returned",
+        removed == 0 and removed is not True,
+        removed,
+    )
+    data = _read_raw(root)
+    check(
+        "case13: release_refuses_ambiguous - both claims remain on disk untouched",
+        len(data.get("harness-backend-dev", [])) == 2,
+        data,
+    )
+    check(
+        "case13: release_refuses_ambiguous - stderr says how many were left",
+        "2" in buf.getvalue(),
+        buf.getvalue(),
+    )
+
+
+def case_14_remedy_is_absolute():
+    """T-06 item 5: release_cmd(root, agent) is the printed remedy -- absolute, single-agent,
+    never release-all (which wipes every claim of every agent). CLI_REL_PATH was relative, so
+    the remedy it built only resolved when cwd happened to be the checkout root."""
+    has_release_cmd = hasattr(inflight_registry, "release_cmd")
+    check(
+        "case14: remedy_is_absolute - release_cmd(root, agent) exists",
+        has_release_cmd,
+        None,
+    )
+    if not has_release_cmd:
+        check("case14: remedy_is_absolute - shape check skipped, release_cmd is absent", False, None)
+        return
+    cmd = inflight_registry.release_cmd("/some/abs/root", "harness-pm")
+    check(
+        "case14: remedy_is_absolute - the remedy is rooted at the checkout, not a relative CLI path",
+        cmd == (
+            "python3 /some/abs/root/.agents/skills/harness/bin/inflight_registry.py "
+            "release --agent harness-pm --root /some/abs/root"
+        ),
+        cmd,
+    )
+    check(
+        "case14: remedy_is_absolute - the remedy names ONE agent, never release-all",
+        "--agent harness-pm" in cmd and "release-all" not in cmd,
+        cmd,
+    )
+
+
 def case_10_no_own_primitive():
     path = os.path.join(MODULE_DIR, "inflight_registry.py")
     src = open(path, encoding="utf-8").read()
@@ -380,6 +512,10 @@ def main():
     case_8_corrupt_registry()
     case_9_release_all()
     case_10_no_own_primitive()
+    case_11_ttl_shorter_than_cycle()
+    case_12_foreign_session_expired()
+    case_13_release_refuses_ambiguous()
+    case_14_remedy_is_absolute()
 
     failed = [r for r in RESULTS if not r[1]]
     if failed:

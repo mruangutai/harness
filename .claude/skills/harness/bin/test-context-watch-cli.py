@@ -19,7 +19,7 @@ that set, current is the last member of that set, entries is its cardinality).
 
 CASE 2: the worktree-slug pure string transform via --resolve-dir, plus a red
 proof against a mutant copy of context-watch.py whose slug function ignores
-its argument and always returns the harness_root slug.
+its argument and always returns the harness root's own slug.
 """
 import os
 import re
@@ -223,9 +223,9 @@ RESOLVE_DIR_ARG = (
     "/Users/molchairuangutai/GitHub/harness/.claude/worktrees/"
     "fix-harness-tooling-backlog"
 )
-# The pure-string transform of the harness_root path itself (no worktree
+# The pure-string transform of the harness root's own path (no worktree
 # suffix), used by the mutant below to simulate "always returns the
-# harness_root slug regardless of argument".
+# harness root's own slug regardless of argument".
 HARNESS_ROOT_SLUG = "-Users-molchairuangutai-GitHub-harness"
 
 
@@ -252,7 +252,7 @@ def case_2():
     mutant_body = (
         'def slug_of_path(path):\n'
         '    """MUTANT (T-07 red proof): ignores its argument and always returns\n'
-        '    the harness_root slug."""\n'
+        '    the harness root\'s own slug."""\n'
         '    return %r\n' % (HARNESS_ROOT_SLUG,)
     )
     mutant_text = original_text.replace(target, mutant_body)

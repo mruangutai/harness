@@ -93,8 +93,15 @@ _derived="$(cd "$_selfdir/../../../.." && pwd)"
 # full governed path, of which the interpreter is most. Behaviour is unchanged:
 # every early exit, every exit code and every stderr message is identical, and the
 # unchanged test suite is the equivalence proof (D-10, REQ-07).
+# `-P` IS LOAD-BEARING, NOT TIDINESS (#556). Python puts the invoking directory at
+# sys.path[0] AHEAD of PYTHONPATH, so the harness_boundary import below took a
+# harness_boundary.py sitting in the GOVERNED AGENT's cwd in preference to ours. Measured
+# 2026-08-27 at sha 7179095: a stub returning a bogus root turned this hook from exit 2
+# (refused) into exit 0 ("enforcement OFF"). -P removes the cwd at the interpreter, so no
+# later line can put it back. Needs python 3.11+; an older one rejects the flag loudly,
+# which is the safe direction here. test-no-distribution.py case 7 is the invariant.
 HOOK_PAYLOAD="$payload" PYTHONPATH="$_selfdir${PYTHONPATH:+:$PYTHONPATH}" \
-  python3 - "$_derived" "${1:-}" <<'PY'
+  python3 -P - "$_derived" "${1:-}" "$_selfdir" <<'PY'
 import sys, os, re, json, fnmatch
 
 # THE BOUNDARY RULE LIVES IN harness_boundary.py (FEAT-17 T-01), NOT HERE.
@@ -115,7 +122,36 @@ import sys, os, re, json, fnmatch
 # enforcement OFF" fail-open in BASH, before any interpreter that needed the module.
 # Importing at the top made a hook whose module is missing crash with exit 1 before
 # it could print that message. Caught by test-check-domain.py's isolated-copy case.
-_derived, argv_agent = sys.argv[1:3]
+_derived, argv_agent, _bin_dir = sys.argv[1:4]
+
+
+def _root():
+    """WHERE THIS HARNESS IS ROOTED — asked of harness_boundary, the one resolver (FEAT-42
+    T-10). What stood at the two call sites was the two-name environment chain, a manifest
+    probe written twice, and a fall-through to `""` or to `os.getcwd()`. The `""` is why an
+    unset environment left every subsequent join relative to whatever directory the hook
+    inherited.
+
+    strict=False, DELIBERATELY, and not because strictness is inconvenient. A strict raise
+    here would fire on exactly the tree DEC-101 carves out — one with no manifest — and the
+    carve-out's whole point is that such a tree fails OPEN, loudly, at exit 0. strict=False
+    returns the derived root instead, which is what the deleted code returned for that tree
+    too, and the DEC-101 check downstream then prints "enforcement OFF" for it. What is gone
+    is only the `""` and the cwd fall-through.
+
+    THE except CLAUSE IS THE BOOTSTRAP, not a second resolver. `_derived` is the bash
+    wrapper's own BASH_SOURCE walk, computed before any interpreter starts, and it is the
+    only root computable when harness_boundary.py is not on the path at all. That happens in
+    exactly one place: the isolated-copy fixture, which copies this script alone into a bare
+    tree to prove DEC-101's fail-open still fires. Absorbing the ImportError here does not
+    weaken the fail-closed import under `_run_domain` below — inside a real checkout the
+    manifest IS readable, so that branch is reached and still refuses at exit 2.
+    """
+    try:
+        import harness_boundary as _hb_root
+    except Exception:
+        return _derived
+    return _hb_root.resolve_root(_bin_dir, strict=False)
 
 # One parse of the payload, reused by every check below. A failure here is OUR
 # problem, not the agent's: fall back to the same empty-payload behaviour the four
@@ -149,9 +185,7 @@ if _resolve_target is not None:
     # sits AFTER the agent-identity early exits and this path has no agent identity
     # to satisfy — reaching it would mean exiting 0 in silence, which is the exact
     # fail-open this mode exists to remove. Same derivation, same precedence.
-    root = (os.environ.get("HARNESS_PROJECT_DIR") or os.environ.get("CLAUDE_PROJECT_DIR")) or ""
-    if not root or not os.access(os.path.join(root, ".harness", "team-config.yaml"), os.R_OK):
-        root = _derived if os.access(os.path.join(_derived, ".harness", "team-config.yaml"), os.R_OK) else (root or os.getcwd())
+    root = _root()
     manifest = os.path.join(root, ".harness", "team-config.yaml")
     if not os.access(manifest, os.R_OK):
         print(f"check-domain: no {manifest} — cannot resolve routes.", file=sys.stderr)
@@ -293,12 +327,7 @@ _tool = d.get("tool_name") or ""
 # with the domain message, after the file was already written.
 _domain_phase = _governed and not _post
 
-root = (os.environ.get("HARNESS_PROJECT_DIR") or os.environ.get("CLAUDE_PROJECT_DIR")) or ""
-if not root or not os.access(os.path.join(root, ".harness", "team-config.yaml"), os.R_OK):
-    if os.access(os.path.join(_derived, ".harness", "team-config.yaml"), os.R_OK):
-        root = _derived
-    else:
-        root = root or os.getcwd()
+root = _root()
 manifest = os.path.join(root, ".harness", "team-config.yaml")
 
 

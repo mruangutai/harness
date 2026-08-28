@@ -289,6 +289,7 @@ leads:
       - { path: .harness/expertise/harness-product-lead.md, upsert: true }
       - { path: .harness/*/expertise/harness-product-lead.md, upsert: true }  # repository tier, 40-line budget
       - { path: .harness/*/features/*/observations/harness-product-lead.md, upsert: true }   # hot layer (DEC-145)
+      - { path: .harness/notes/analysis-*.md, upsert: true }   # standalone team analysis, no feature run dir (2026-08-26)
       - { path: ".", read: true }
   - name: harness-eng-lead
     squad: eng
@@ -297,6 +298,7 @@ leads:
       - { path: .harness/expertise/harness-eng-lead.md, upsert: true }
       - { path: .harness/*/expertise/harness-eng-lead.md, upsert: true }  # repository tier, 40-line budget
       - { path: .harness/*/features/*/observations/harness-eng-lead.md, upsert: true }   # hot layer (DEC-145)
+      - { path: .harness/notes/analysis-*.md, upsert: true }   # standalone team analysis, no feature run dir (2026-08-26)
       - { path: ".", read: true }
   - name: harness-validator-lead
     squad: validator
@@ -305,4 +307,5 @@ leads:
       - { path: .harness/expertise/harness-validator-lead.md, upsert: true }
       - { path: .harness/*/expertise/harness-validator-lead.md, upsert: true }  # repository tier, 40-line budget
       - { path: .harness/*/features/*/observations/harness-validator-lead.md, upsert: true }   # hot layer (DEC-145)
+      - { path: .harness/notes/analysis-*.md, upsert: true }   # standalone team analysis, no feature run dir (2026-08-26)
       - { path: ".", read: true }

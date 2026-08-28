@@ -26,6 +26,12 @@ import subprocess
 import sys
 
 BIN_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# THE ONE RESOLVER (FEAT-42 T-13). Imported at module scope beside BIN_DIR because the root
+# is needed before anything else this script does, and because a tree without it is a tree
+# this script cannot answer about at all.
+sys.path.insert(0, BIN_DIR)
+import harness_boundary  # noqa: E402  (the path insert above has to come first)
 CHECK_DOMAIN = os.path.join(BIN_DIR, "check-domain.sh")
 
 # Copied from check-state.sh:93-94 (D-08) — a duplicated task-BLOCK parser,
@@ -492,29 +498,24 @@ def discover_plans():
     #
     # `test-check-plan-routes.py` case (20) pins every copy of this probe to the same
     # filename for that reason. Do not "simplify" it to a directory check.
-    derived = os.path.abspath(os.path.join(BIN_DIR, "..", "..", "..", ".."))
-    asked = (os.environ.get("HARNESS_PROJECT_DIR") or os.environ.get("CLAUDE_PROJECT_DIR")) or ""
-    root = asked
-    if not root or not os.access(os.path.join(root, ".harness", "team-config.yaml"), os.R_OK):
-        # SAY SO WHEN THE CALLER'S ROOT IS DISCARDED. The fallback itself is right — it is
-        # check-domain.sh's precedence — but doing it in silence is the same family as the
-        # defect this function exists to remove: the caller asked about tree A, the checker
-        # answered about tree B, and exit 1 with real-looking violations is what came back.
-        # Measured before this line: CLAUDE_PROJECT_DIR pointing at a nonexistent path
-        # produced 36 violations from a completely different checkout, and the only clue
-        # was the `scanning` line, which reads as confirmation rather than as a correction.
-        if asked:
-            print(f"check-plan-routes: CLAUDE_PROJECT_DIR={asked!r} has no readable "
-                  f".harness/team-config.yaml — IGNORING it and using {derived}.",
-                  file=sys.stderr)
-        root = derived if os.access(
-            os.path.join(derived, ".harness", "team-config.yaml"), os.R_OK) else ""
-    if not root:
+    # THE RULE ITSELF NOW LIVES IN harness_boundary (FEAT-42 T-13). What stood here was the
+    # model implementation the rest of that feature was copied from: the two-name chain, the
+    # manifest probe, the announced discard and the refusal. All four are resolve_root's, so
+    # the local copy goes and the shared one answers. The reasoning above about WHICH probe
+    # is correct stays here because it is the reason MARKER is a file and not a directory.
+    #
+    # strict=True, and the raise is CAUGHT so the refusal keeps this script's own voice. The
+    # discard announcement is resolve_root's and already reaches stderr, so it is not
+    # restated here — two lines saying the same thing is how one of them goes stale.
+    derived = harness_boundary.root_from_script(BIN_DIR)
+    try:
+        root = harness_boundary.resolve_root(BIN_DIR)
+    except ValueError:
         print(
-            "check-plan-routes: no readable .harness/team-config.yaml under "
-            f"CLAUDE_PROJECT_DIR ({os.environ.get('CLAUDE_PROJECT_DIR') or 'unset'}) "
+            "check-plan-routes: no readable .harness/team-config.yaml under the override "
             f"or {derived} — I do not know where to look, so 'no plans' would be a "
-            "lie. Set CLAUDE_PROJECT_DIR, or pass PLAN.md paths explicitly.",
+            "lie. Point the override at a harness checkout, or pass PLAN.md paths "
+            "explicitly.",
             file=sys.stderr,
         )
         sys.exit(2)

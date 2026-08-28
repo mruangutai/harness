@@ -3,15 +3,17 @@
 (FEAT-30 T-01/T-02).
 
 Every case here goes through the CLI as a SUBPROCESS, never in-process: factory_config's
-FLEET_PATH is computed from harness_root() at import time, so setting CLAUDE_PROJECT_DIR after
-an in-process import has no effect, and an in-process call would read this repository's own
-fleet declaration instead of the fixture's. factory_config is never edited to make this easier.
+FLEET_PATH is computed from harness_boundary.resolve_root() at import time, so setting
+HARNESS_PROJECT_DIR after an in-process import has no effect, and an in-process call would read
+this repository's own fleet declaration instead of the fixture's. factory_config is never
+edited to make this easier.
 
 THE FIXTURE (built fresh per run, in a tempfile.mkdtemp(), torn down at the end):
   - repoA: stands in for the harness case. HEAD points at refs/heads/main before the first
-    commit; the commit carries .harness/harness/docs/SPEC.md (the load-bearing probe path
-    factory_config.harness_root() honours CLAUDE_PROJECT_DIR against) and
-    .harness/team-config.yaml, plus a fleet declaration at .harness/factory/fleet.yaml.
+    commit; the commit carries .harness/harness/docs/SPEC.md and
+    .harness/team-config.yaml (the load-bearing MARKER path harness_boundary.resolve_root()
+    honours HARNESS_PROJECT_DIR against), plus a fleet declaration at
+    .harness/factory/fleet.yaml.
   - workspace_root/repoB: stands in for a served repository. Default branch is master, not
     main, on purpose — SC-02's cut-point case fails if default_branch is ever assumed to be
     main.
@@ -46,7 +48,7 @@ def check(name, ok, detail=""):
 
 def run_cli(args, fx):
     env = dict(os.environ)
-    env["CLAUDE_PROJECT_DIR"] = fx["repoA"]
+    env["HARNESS_PROJECT_DIR"] = fx["repoA"]
     return subprocess.run(
         [sys.executable, CLI] + args, capture_output=True, text=True, env=env
     )
@@ -584,7 +586,7 @@ def case_behind_default_branch(fx):
 
     # Put the worktree back to two-behind so the mutant faces the same input as CASE B.
     _git(dest, ["reset", "-q", "--hard", "HEAD~1"])
-    env = dict(os.environ, CLAUDE_PROJECT_DIR=fx["repoA"], FEATURE_WORKTREE_BIN=mutant)
+    env = dict(os.environ, HARNESS_PROJECT_DIR=fx["repoA"], FEATURE_WORKTREE_BIN=mutant)
     rm = subprocess.run(
         [sys.executable, mutant, "behind", "--repo", "harness", "--id", "FEAT-81"],
         capture_output=True, text=True, env=env,

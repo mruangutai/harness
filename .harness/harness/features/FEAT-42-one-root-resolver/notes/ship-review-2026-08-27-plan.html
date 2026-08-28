@@ -1,0 +1,87 @@
+<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>CEO briefing — FEAT-42 One root resolver — plan phase, one ruling from signature</title><style>
+:root{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:ui-sans-serif,-apple-system,"Segoe UI","Helvetica Neue",Arial,sans-serif;
+}
+/* Token-level theming: components style through the tokens and never inside the
+   media query, so the viewer's explicit toggle can override the OS in BOTH
+   directions. */
+@media (prefers-color-scheme:dark){
+  :root{ --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+         --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733; }
+}
+:root[data-theme="dark"]{
+  --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+  --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733;
+}
+:root[data-theme="light"]{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+}
+*{box-sizing:border-box}
+body{margin:0; background:var(--paper); color:var(--ink);
+  font:400 16px/1.65 var(--sans); padding:clamp(1.5rem,5vw,4rem) clamp(1rem,5vw,2rem) 6rem}
+.wrap{max-width:56rem; margin:0 auto}
+/* Layout owns the spacing: gap between siblings, not per-element margins that
+   collapse or double. */
+.wrap{display:flex; flex-direction:column; gap:1rem}
+.eyebrow{font:500 11px/1 var(--mono); letter-spacing:.14em; text-transform:uppercase;
+  color:var(--quiet); margin:0}
+h1{font:600 clamp(1.6rem,4vw,2.3rem)/1.15 var(--sans); letter-spacing:-.02em;
+  margin:.4rem 0 .2rem; text-wrap:balance}
+h2{font:600 1.15rem/1.3 var(--sans); letter-spacing:-.01em; margin:2rem 0 0;
+  padding-top:1.25rem; border-top:1px solid var(--line); text-wrap:balance}
+h3{font:600 .98rem/1.4 var(--sans); margin:1.1rem 0 0}
+h4,h5,h6{font:500 11px/1.4 var(--mono); letter-spacing:.1em; text-transform:uppercase;
+  color:var(--quiet); margin:1rem 0 0}
+p,li{max-width:65ch; margin:0}
+ul,ol{margin:0; padding-left:1.4rem; display:flex; flex-direction:column; gap:.4rem}
+li>ul,li>ol{margin-top:.4rem}
+strong{font-weight:600}
+code{font:400 .875em/1.5 var(--mono); background:var(--sunk); padding:.1em .35em; border-radius:3px}
+pre{background:var(--sunk); border:1px solid var(--line); border-radius:6px;
+  padding:.85rem 1rem; overflow-x:auto; margin:0}
+pre code{background:none; padding:0}
+blockquote{margin:0; padding:.75rem 1rem; border-left:3px solid var(--accent);
+  background:var(--accent-soft); border-radius:0 5px 5px 0}
+blockquote p{max-width:none}
+hr{border:0; border-top:1px solid var(--line); margin:.5rem 0}
+/* Wide content pans inside its OWN container; the page body never scrolls sideways. */
+.scroll{overflow-x:auto; border:1px solid var(--line); border-radius:6px}
+table{border-collapse:collapse; width:100%; font-size:.9rem}
+th,td{text-align:left; padding:.6rem .8rem; border-bottom:1px solid var(--line); vertical-align:top}
+thead th{font:500 10px/1.3 var(--mono); letter-spacing:.11em; text-transform:uppercase;
+  color:var(--quiet); background:var(--sunk); white-space:nowrap}
+tbody tr:last-child td{border-bottom:0}
+/* Figures in a column line up. */
+td,th{font-variant-numeric:tabular-nums}
+.derived{color:var(--slate); font-size:.85rem; margin-top:2.5rem;
+  padding-top:1rem; border-top:1px solid var(--line)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style></head><body><div class='wrap'><p class='eyebrow'>Ship review · reading view</p><h1 id="ceo-briefing-feat-42-one-root-resolver-plan-phase-one-ruling-from-signature">CEO briefing — FEAT-42 One root resolver — plan phase, one ruling from signature</h1>
+<h2 id="the-one-liner">The one-liner</h2>
+<p><strong>The plan is finished and verified — 20 tasks, 15 main-session-direct / 5 squad — and one approval-gated edit stands between it and your signature.</strong> SC-01 works today and breaks the moment the plan is committed, because the plan quotes the variable 49 times precisely in order to remove it.</p>
+<h2 id="how-this-briefing-was-assembled">How this briefing was assembled</h2>
+<p>No report round was spawned. I read the run digests from disk under <code>.harness/harness/features/FEAT-42-one-root-resolver/runs/</code> — <code>2026-08-26-2-plan-product</code> (BLOCKED) through <code>2026-08-26-6-plan-product</code> (ESCALATE). Every number below I re-derived myself.</p>
+<h2 id="the-one-thing-you-must-rule-on">The one thing you must rule on</h2>
+<p>The lead reported SC-01 already broken at <strong>72 occurrences across 19 files</strong>. <strong>That number is wrong, and I checked rather than relaying it.</strong> Measured over SC-01&#x27;s actual scan set — <code>git ls-files</code> minus basename <code>test-*</code>, minus <code>harness_boundary.py</code>, minus <code>*.md</code> — the count is <strong>21 across 17, exactly the recorded baseline.</strong> The lead grepped the worktree, which includes untracked files.</p>
+<p><strong>But its conclusion is right, one step later, and that is the part that matters.</strong> The entire feature directory is untracked today (<code>git status</code> shows <code>??</code>), which is the only reason <code>plan.yaml</code>&#x27;s 49 occurrences are invisible. I hold the commit pen and the plan artifacts must be committed. <strong>The moment <code>git add</code> runs, <code>plan.yaml</code> becomes tracked, the count passes 70, and SC-01 can never reach zero.</strong> The act of recording the work breaks the gate that grades it.</p>
+<p>This is why I have committed nothing.</p>
+<p><strong>The remedy, which the lead recommended and I endorse:</strong> SC-01 gains a <strong>fourth exclusion</strong> for the harness&#x27;s own record tree — <code>.harness/harness/features/**</code>, <code>.harness/notes/**</code>, <code>.harness/logs/**</code> — on exactly the rationale the <code>*.md</code> exclusion already carries: these are records that discuss the variable by name and always will, not code. The existing <code>*.md</code> rule encoded that reasoning correctly and was simply too narrow, missing <code>.yaml</code> and <code>.html</code> records. Crucially this <strong>keeps <code>.omp/extensions/harness-hooks.ts</code> in scope</strong>, which is the entire reason you widened the scan.</p>
+<p><strong>It needs you because it edits an approved success criterion.</strong> That is not mine and not pm&#x27;s. Riding with it: the 21/17 baseline was itself derived by grepping <code>bin/</code> plus <code>.omp/</code> — a directory-scoped measurement standing in for a repo-wide criterion, which is the very scoping defect SC-01 exists to kill. It happens to be correct, which I confirmed independently, but it should be re-pinned over the real scan set once the exclusions change.</p>
+<h2 id="what-is-finished-and-verified">What is finished and verified</h2>
+<div class="scroll"><table><thead><tr><th>Claim</th><th>How I checked it</th></tr></thead><tbody><tr><td>20 tasks, 15 main-session-direct / 5 team</td><td>parsed the YAML</td></tr><tr><td>Every task has <code>id</code>, <code>files</code>, <code>execution_mode</code>, <code>verify</code></td><td>parsed — zero omissions</td></tr><tr><td>SC-01 widened repo-wide, baseline 21/17</td><td>re-derived over <code>git ls-files</code></td></tr><tr><td>T-07 re-laned, <code>depends_on</code> carries T-20, mutant outside the old scan root</td><td>read the task</td></tr><tr><td><code>approval: pending</code> in both artifacts</td><td>read both</td></tr><tr><td><code>harness-hooks.ts:144</code> is the only chain site outside <code>bin/</code></td><td>repo-wide grep</td></tr></tbody></table></div>
+<h2 id="three-findings-that-outlive-this-feature">Three findings that outlive this feature</h2>
+<p><strong>1. DEC-179&#x27;s route check is blind to <code>verify:</code> blocks.</strong> It resolves routing from each task&#x27;s literal <code>files:</code> paths. T-07&#x27;s <code>files:</code> sat in a granted domain while its ungranted write lived in the <code>verify:</code> command — so a task assigned to an agent that provably could not execute it passed pm, the lead, and my own review, and was caught only by a lead reading the shell by eye. The mechanism meant to make &quot;an ungranted surface becomes a declared main-session-direct step&quot; automatic never fired, because it was looking at the wrong field.</p>
+<p><strong>2. A stranded claim cascades upward through three tiers.</strong> Reported earlier and now tasked. Worth restating because it recurred: the same guard also blocks a parent that correctly declines to report, so a parent whose dispatch went async has no legal way to yield while a child runs.</p>
+<p><strong>3. The feature&#x27;s own defect kept demonstrating itself.</strong> <code>validate-feature-json.py</code> scanned the wrong tree from my cwd and reported <strong>&quot;0 file(s)&quot;</strong> — confident, clean, wrong, and reading as a pass. Pointed at the right root it found 38.</p>
+<h2 id="what-it-cost">What it cost</h2>
+<p>Cycles <strong>3 of 10</strong>, runs <strong>5 of 20</strong> — both comfortably inside budget. Three of the five runs returned ESCALATE, and I want to be plain that this is the process working rather than thrashing: each one found a real defect the previous review missed, and each was caught before build rather than after. Two I resolved myself without spending your time — the T-07 lane (DEC-179 already prescribed it) and a constraint I had wrongly imposed and then relaxed.</p>
+<p>My context is ~25% over its advisory threshold, so I wrote the phase handoff at <code>notes/handoff-plan.md</code>. A successor can take the SC-01 edit cold from it.</p>
+<h2 id="proposed-backlog">Proposed backlog</h2>
+<div class="scroll"><table><thead><tr><th>ID</th><th>Finding</th><th>Nature</th></tr></thead><tbody><tr><td>B-1</td><td>DEC-179&#x27;s route check ignores <code>verify:</code> blocks, so an ungranted write in a verify passes plan-time routing</td><td>bug</td></tr><tr><td>B-2</td><td><code>validate-digest.py</code>&#x27;s children-in-flight check blocks a parent that emits no verdict at all, leaving an async-dispatching parent no legal way to yield</td><td>bug</td></tr><tr><td>B-3</td><td>DEC-174 am.4 needs amending to record the six scripts pm&#x27;s category reading adds — issue #869, UNVERIFIED by me</td><td>chore</td></tr><tr><td>B-4</td><td><code>bash-write-guard.sh</code> may false-positive on an ASCII arrow inside a heredoc body, parsing prose as a redirect</td><td>bug</td></tr><tr><td>B-5</td><td>The analysis note&#x27;s Section 5 item 2 (&quot;wayfind has ZERO test coverage&quot;) is false at HEAD</td><td>chore</td></tr><tr><td>B-6</td><td><code>gh_cost_log.py:111</code> derives root from its own file location — a caller cluster D-5&#x27;s map omitted</td><td>bug</td></tr><tr><td>B-7</td><td>An orchestrator cannot clear a stranded claim; no tier below the main session has both the need and the permission</td><td>enhancement</td></tr><tr><td>B-8</td><td>D-05 records 20/16 while D-12 supersedes with 21/17, because <code>plan-merge.py</code> is add-only</td><td>chore</td></tr></tbody></table></div>
+<p>Anything you do not strike becomes a backlog issue on acceptance. Anything not listed dies silently.</p><p class='derived'>Derived from <code>ship-review-2026-08-27-plan.md</code> — the markdown is the record; do not edit this file. Regenerate with <code>bin/render-brief.py</code>.</p></div></body></html>

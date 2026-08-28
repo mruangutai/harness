@@ -109,11 +109,11 @@ def _repo_arg_for_segment(repo_segment, factory_config):
     segment — "harness" (the literal segment feature-worktree.py itself uses), or the
     owner/repo fleet.yaml name whose trailing segment matches. None if no repo matches.
 
-    Matched by SEGMENT NAME, never by comparing owner_root against factory_config.harness_root().
-    That comparison is the CWD trap: harness_root() derives from the calling script's own file
-    location (factory_config.py:46), so when this module is imported from a worktree's own copy
-    it resolves to that worktree, not the main checkout, and would never match a real worktree's
-    true owner_root. Segment matching sidesteps it — and resolve_repo's own default_branch
+    Matched by SEGMENT NAME, never by comparing owner_root against the resolved harness root.
+    That comparison is the CWD trap: the root resolver derives from the calling script's own
+    file location, so when this module is imported from a worktree's own copy it resolves to
+    that worktree, not the main checkout, and would never match a real worktree's true
+    owner_root. Segment matching sidesteps it — and resolve_repo's own default_branch
     never depends on owner_root being correct: "harness" hardcodes "main", and the fleet case
     reads default_branch straight from the fleet entry."""
     if repo_segment == "harness":
@@ -298,7 +298,7 @@ def classify_all(root):
     repository-level "unresolved" record.
 
     `root` is the checkout actually being graded, which may itself be a worktree. Never
-    substitute factory_config.harness_root() for it — the CWD trap this module already
+    substitute the resolved harness root for it — the CWD trap this module already
     documents at _repo_arg_for_segment applies here too.
     """
     factory_config = _import_factory_config()

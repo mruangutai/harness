@@ -24,7 +24,7 @@ payload=$(cat)
 # copied tree and the guard imports THAT copy of inflight_registry.py.
 GUARD_BIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-printf '%s' "$payload" | HARNESS_GUARD_BIN_DIR="$GUARD_BIN_DIR" python3 -c '
+printf '%s' "$payload" | HARNESS_GUARD_BIN_DIR="$GUARD_BIN_DIR" python3 -P -c '
 import sys, json, os
 
 try:
@@ -72,53 +72,114 @@ if not dispatched.startswith("harness-"):
     sys.exit(0)
 
 
-def _root_from(payload):
-    """THE ROOT COMES FROM THE PAYLOAD, not from where this script lives.
+# ---------------------------------------------------------------------------
+# THE DISPATCH DECLARES ITS FEATURE (FEAT-42 T-18, issue #742). This is the ONE site in the
+# whole system that can see a dispatch prompt: measured in
+# FEAT-31/notes/probe-hook-payload-identity.md, a PreToolUse payload carries eleven keys and
+# tool_input.prompt exists only on the DISPATCH payload. So this field fixes this gate and
+# reaches no other hook.
+#
+# THIS IS THE ONE BRANCH HERE THAT FAILS CLOSED. Everything below passes through on its own
+# failure, because a guard that blocks every spawn the moment a payload shape changes is
+# worse than no guard. This one cannot: the declared feature is the only signal that says
+# which checkout an agent was ASSIGNED to, and the agent process working directory does not
+# follow its assignment. That is the defect, and a missing declaration is not a degraded
+# answer -- it is no answer.
+# ---------------------------------------------------------------------------
+import re
 
-    Measured: the hook resolves through CLAUDE_PROJECT_DIR to the MAIN checkout while the
-    payload cwd is the FEATURE worktree. One shared registry would refuse the FEAT-33 pm
-    because the FEAT-32 pm is live — breaking parallel features to fix a within-feature
-    defect. Operator ruling, recorded in D-06 terms as per-checkout.
+FEATURE_RE = re.compile(r"HARNESS-FEATURE:[ \t]*(\S+)[ \t]*")
+
+prompt = ti.get("prompt") or ""
+declared = None
+for line in prompt.splitlines():
+    m = FEATURE_RE.fullmatch(line.strip())
+    if m:
+        declared = m.group(1)
+        break
+
+if not declared:
+    print("dispatch-guard: BLOCKED — this governed dispatch declares no feature.",
+          file=sys.stderr)
+    print("  The FIRST line of the prompt must be, spelled exactly:", file=sys.stderr)
+    print("    HARNESS-FEATURE: FEAT-42-one-root-resolver", file=sys.stderr)
+    print("  with the id of the feature this dispatch belongs to. It is the only signal that",
+          file=sys.stderr)
+    print("  tells this gate which checkout you were assigned to; your working directory does",
+          file=sys.stderr)
+    print("  not follow your assignment. Re-dispatch with the line.", file=sys.stderr)
+    sys.exit(2)
+
+try:
+    sys.path.insert(0, os.environ.get("HARNESS_GUARD_BIN_DIR") or ".")
+    import harness_boundary as hb
+    import inflight_registry as reg
+except Exception as exc:
+    print("dispatch-guard: registry libraries unavailable (%s) — passing through." % (exc,),
+          file=sys.stderr)
+    sys.exit(0)
+
+
+def _root_for(flow):
+    """The checkout the DECLARED feature is worked in.
+
+    NO GIT SUBPROCESS: this runs ahead of every governed dispatch, and DEC-193 forbids one on
+    the governed-write path anyway. owner_root comes from resolve_root, the one resolver, given
+    HARNESS_GUARD_BIN_DIR -- the bash wrapper set that from BASH_SOURCE, because this program is
+    fed to python3 -c and has no __file__ of its own. strict=False so an unrooted tree yields
+    the derived answer rather than raising: every branch in this gate but the declaration check
+    fails open. The worktree list comes from reading the pointer files under .git/worktrees; the
+    worktrees come from reading the pointer files under .git/worktrees. A worktree whose
+    directory segment equals the declared id IS the root; if no worktree carries that id the
+    feature is being worked in the main checkout and owner_root is the root.
+
+    THE REGISTRY STAYS PER-CHECKOUT. One shared file would refuse a second feature pm while
+    the first feature pm is live, breaking parallel features to fix a within-feature defect.
+    What changed is the INPUT, not the shape: the claim now lands where the ASSIGNMENT says
+    rather than where the dispatcher happened to be standing.
     """
-    start = payload.get("cwd") or (os.environ.get("HARNESS_PROJECT_DIR") or os.environ.get("CLAUDE_PROJECT_DIR")) or ""
-    cur = os.path.abspath(start) if start else ""
-    while cur and cur != os.path.dirname(cur):
-        # THE MANIFEST FILE, not the .harness DIRECTORY. Probing the directory resolves
-        # $HOME as a root in the global install -- B-7 verbatim, and case_20 of the
-        # invariant suite catches it by name.
-        if os.path.isfile(os.path.join(cur, ".harness", "team-config.yaml")):
-            return cur
-        cur = os.path.dirname(cur)
-    return (os.environ.get("HARNESS_PROJECT_DIR") or os.environ.get("CLAUDE_PROJECT_DIR")) or None
+    owner_root = hb.resolve_root(os.environ.get("HARNESS_GUARD_BIN_DIR") or os.getcwd(),
+                                 strict=False)
+    if not owner_root:
+        return None
+    try:
+        for wt in hb.linked_worktrees(owner_root):
+            if os.path.basename(wt) == flow:
+                return wt
+    except Exception:
+        pass
+    return owner_root
 
 
-root = _root_from(d)
+try:
+    root = _root_for(declared)
+except Exception as exc:
+    root = None
+    print("dispatch-guard: could not resolve the checkout for %s (%s) — no claim recorded."
+          % (declared, exc), file=sys.stderr)
 if not root:
     print("dispatch-guard: no checkout root for this dispatch — no claim recorded.",
           file=sys.stderr)
     sys.exit(0)
 
 try:
-    sys.path.insert(0, os.environ.get("HARNESS_GUARD_BIN_DIR") or ".")
-    import inflight_registry as reg
-except Exception as exc:
-    print("dispatch-guard: inflight_registry unavailable (%s) — passing through." % (exc,),
-          file=sys.stderr)
-    sys.exit(0)
-
-try:
-    existing, expired = reg.live_claim(root, dispatched)
+    # THE SESSION IS PASSED SO A FOREIGN SESSION STALE CLAIM IS NOT COUNTED LIVE (T-06/T-17).
+    session = d.get("session_id")
+    existing, expired = reg.live_claim(root, dispatched, session=session)
     if expired:
         print("dispatch-guard: expired %d stale claim(s) for %s." % (expired, dispatched),
               file=sys.stderr)
     if reg.is_single_flight(dispatched) and existing:
-        for line in reg.refusal_lines(dispatched, existing, reg.RELEASE_ALL_CMD):
+        # THE REMEDY IS ABSOLUTE AND NAMES ONE AGENT, never release-all: that command sets the
+        # registry to an empty object and wipes every claim of every agent, and on 2026-08-26
+        # following the old printed advice would have destroyed a live claim.
+        for line in reg.refusal_lines(dispatched, existing, reg.release_cmd(root, dispatched)):
             print(line, file=sys.stderr)
         sys.exit(2)
     # A claim for EVERY harness-* persona, not only the single-flight ones. D-06 and D-09 both
     # stand on the dispatcher edge existing on disk, and this is the ONE moment both identities
     # — dispatcher and dispatched — are in a single payload.
-    reg.claim(root, dispatched, agent, d.get("cwd") or "")
+    reg.claim(root, dispatched, agent, d.get("cwd") or "", session=session)
 except SystemExit:
     raise
 except Exception as exc:

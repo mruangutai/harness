@@ -29,6 +29,9 @@ GUARD = os.environ.get("DISPATCH_GUARD_BIN") or os.path.join(BIN_DIR, "dispatch-
 
 RESULTS = []
 
+# FEAT-42 T-18: every governed dispatch declares the feature it belongs to.
+FEATURE_LINE = "HARNESS-FEATURE: FEAT-42-one-root-resolver"
+
 
 def check(name, ok, detail=""):
     RESULTS.append((name, ok, detail))
@@ -50,7 +53,8 @@ def case_1_governed_agent_passing_a_model():
     name BOTH the marker and the model value — the value proves the guard read the payload
     rather than printing a fixed string."""
     r = fire({"agent_type": "harness-eng-lead",
-              "tool_input": {"model": "opus", "subagent_type": "harness-backend-dev"}})
+              "tool_input": {"model": "opus", "subagent_type": "harness-backend-dev",
+                             "prompt": FEATURE_LINE}})
     check("case 1: a governed agent passing a model exits 2", r.returncode == 2,
           f"exit {r.returncode}, stderr={r.stderr.strip()[:160]!r}")
     check("case 1: stderr carries the BLOCKED marker",
@@ -64,8 +68,15 @@ def case_1_governed_agent_passing_a_model():
 def case_2_governed_agent_no_model():
     """The SAME governed agent with no model key. Exit 0, stderr empty. Without this case an
     always-block guard passes case 1."""
+    # ITS OWN THROWAWAY ROOT (FEAT-42 T-18). This is the one ALLOW case that reaches the
+    # claim step, so with no root of its own it records a claim in the LIVE registry and
+    # leaves it there. It also asserts stderr is EMPTY, which anything already in that
+    # registry — a real dispatch, or another case's leftovers — can break from outside.
+    root = _checkout()
     r = fire({"agent_type": "harness-eng-lead",
-              "tool_input": {"subagent_type": "harness-backend-dev"}})
+              "tool_input": {"subagent_type": "harness-backend-dev",
+                             "prompt": FEATURE_LINE}},
+             env={"CLAUDE_PROJECT_DIR": root, "HARNESS_PROJECT_DIR": root})
     check("case 2: a governed agent with no model exits 0", r.returncode == 0,
           f"exit {r.returncode}")
     check("case 2: and says nothing", r.stderr == "", repr(r.stderr[:160]))
@@ -118,9 +129,15 @@ def _load_registry_module():
 
 
 def _checkout():
-    """A throwaway tree that _root_from will accept: it walks up looking for .harness/."""
+    """A throwaway tree the resolver will accept as a root.
+
+    THE MARKER FILE, not a bare .harness DIRECTORY (FEAT-42 T-18). A directory merely NAMED
+    .harness is the $HOME fail-open this whole feature exists to close, so it no longer makes
+    anything a root and every case built on one would silently stop exercising the gate."""
     tmp = tempfile.mkdtemp()
     os.makedirs(os.path.join(tmp, ".harness"))
+    with open(os.path.join(tmp, ".harness", "team-config.yaml"), "w") as fh:
+        fh.write("agents: {}\n")
     return tmp
 
 
@@ -137,7 +154,12 @@ def _task(dispatched, dispatcher="harness-orchestrator", cwd=None):
     agent_type is the dispatcher, tool_input.subagent_type is the dispatched persona.
     See notes/research-FEAT-32-hook-payloads.md."""
     return {"agent_type": dispatcher, "tool_name": "Agent", "hook_event_name": "PreToolUse",
-            "cwd": cwd, "tool_input": {"subagent_type": dispatched, "prompt": "x"}}
+            "cwd": cwd,
+            # THE DECLARATION IS PART OF A GOVERNED DISPATCH NOW (FEAT-42 T-18). Every case
+            # built by this helper is a legitimate dispatch and must carry it; case 11 strips
+            # it deliberately to prove the refusal.
+            "tool_input": {"subagent_type": dispatched,
+                           "prompt": FEATURE_LINE + "\nx"}}
 
 
 def case_6_single_flight_refusal():
@@ -154,7 +176,7 @@ def case_6_single_flight_refusal():
         started = time.time() - 60
         reg.claim(root, "harness-pm", "harness-product-lead", root, now=started)
         r = fire(_task("harness-pm", "harness-product-lead", root),
-                 env={"CLAUDE_PROJECT_DIR": root})
+                 env={"CLAUDE_PROJECT_DIR": root, "HARNESS_PROJECT_DIR": root})
         check("case 6: a second single-flight dispatch exits 2", r.returncode == 2,
               f"exit {r.returncode}, stderr={r.stderr.strip()[:200]!r}")
         check("case 6: stderr names the single-flight refusal",
@@ -164,8 +186,14 @@ def case_6_single_flight_refusal():
               iso in r.stderr, f"expected {iso!r} in {r.stderr.strip()[:200]!r}")
         check("case 6: stderr names the RECORDED dispatcher",
               "harness-product-lead" in r.stderr, r.stderr.strip()[:200])
-        check("case 6: stderr carries the release-all escape hatch",
-              reg.RELEASE_ALL_CMD in r.stderr, r.stderr.strip()[:200])
+        # THE REMEDY IS SINGLE-AGENT AND ABSOLUTE (FEAT-42 T-18). This asserted release-all
+        # until T-18: that command sets the registry to an empty object and wipes every claim
+        # of every agent, and on 2026-08-26 following the printed advice would have destroyed
+        # a live claim. The property is unchanged — a refusal names a runnable cure — and the
+        # second half is what keeps the old command from creeping back.
+        check("case 6: stderr carries the SINGLE-AGENT release command, never release-all",
+              reg.release_cmd(root, "harness-pm") in r.stderr
+              and "release-all" not in r.stderr, r.stderr.strip()[:400])
         check("case 6: it cites the issue so the reader can find out why",
               "#551" in r.stderr, r.stderr.strip()[:200])
     finally:
@@ -179,7 +207,7 @@ def case_7_allow_and_record():
     root = _checkout()
     try:
         r = fire(_task("harness-pm", "harness-product-lead", root),
-                 env={"CLAUDE_PROJECT_DIR": root})
+                 env={"CLAUDE_PROJECT_DIR": root, "HARNESS_PROJECT_DIR": root})
         check("case 7: the FIRST single-flight dispatch is allowed", r.returncode == 0,
               f"exit {r.returncode}, stderr={r.stderr.strip()[:200]!r}")
         data = _read_registry(root, reg)
@@ -205,7 +233,7 @@ def case_8_parallel_squad_stays_legal():
         codes = []
         for _ in range(2):
             r = fire(_task("harness-backend-dev", "harness-eng-lead", root),
-                     env={"CLAUDE_PROJECT_DIR": root})
+                     env={"CLAUDE_PROJECT_DIR": root, "HARNESS_PROJECT_DIR": root})
             codes.append(r.returncode)
         check("case 8: two parallel non-single-flight dispatches BOTH exit 0",
               codes == [0, 0], f"exits {codes}")
@@ -231,7 +259,7 @@ def case_9_stale_claim():
         stale = time.time() - (reg.CLAIM_TTL_SECONDS + 60)
         reg.claim(root, "harness-pm", "harness-product-lead", root, now=stale)
         r = fire(_task("harness-pm", "harness-product-lead", root),
-                 env={"CLAUDE_PROJECT_DIR": root})
+                 env={"CLAUDE_PROJECT_DIR": root, "HARNESS_PROJECT_DIR": root})
         check("case 9: a claim past its TTL does NOT refuse the dispatch", r.returncode == 0,
               f"exit {r.returncode}, stderr={r.stderr.strip()[:200]!r}")
         check("case 9: and stderr SAYS it expired, so the leak is visible",
@@ -263,6 +291,69 @@ def case_10_library_missing():
     finally:
         shutil.rmtree(root, ignore_errors=True)
         shutil.rmtree(tmp, ignore_errors=True)
+
+# ---------------------------------------------------------------------------
+# FEAT-42 T-18 — the DECLARED feature, issue #742.
+# ---------------------------------------------------------------------------
+
+
+def case_11_missing_feature_line_refused():
+    """REFUSED. A governed dispatch whose prompt carries no HARNESS-FEATURE line.
+
+    This is the one branch in this gate that fails CLOSED. Everything else here passes
+    through on its own failure, because a guard that blocks every spawn the moment a payload
+    shape changes is worse than no guard. This one cannot: the declared feature is the only
+    signal that says which checkout an agent was assigned to, and without it the claim lands
+    wherever the dispatcher happened to be standing — which is the defect (#742)."""
+    root = _checkout()
+    p = _task("harness-pm", dispatcher="harness-orchestrator", cwd=root)
+    p["tool_input"]["prompt"] = "plan the thing"          # no declaration
+    r = fire(p, env={"HARNESS_PROJECT_DIR": root})
+    check("case 11 missing_feature_line_refused: a governed dispatch with no HARNESS-FEATURE line exits 2",
+          r.returncode == 2, f"exit {r.returncode}, stderr={r.stderr.strip()[:200]!r}")
+    check("case 11 missing_feature_line_refused: stderr NAMES the missing field",
+          "HARNESS-FEATURE" in r.stderr, r.stderr.strip()[:200])
+
+
+def case_12_claim_lands_in_declared_worktree():
+    """The claim is recorded in the checkout the DISPATCH DECLARES, not the one the
+    dispatcher was standing in.
+
+    MEASURED 2026-08-26: the same mechanism put one claim in the main checkout and another in
+    a worktree, and the guard then saw six collisions and refused none of them. The payload
+    below carries the MAIN checkout as cwd and declares a feature whose worktree exists — the
+    claim must land under the worktree, and the main checkout registry must stay untouched."""
+    reg = _load_registry_module()
+    main = _checkout()
+    subprocess.run(["git", "init", "-q", "-b", "main", main], capture_output=True)
+    for cmd in (["git", "config", "user.email", "t@example.com"],
+                ["git", "config", "user.name", "t"]):
+        subprocess.run(cmd, cwd=main, capture_output=True)
+    with open(os.path.join(main, "f.txt"), "w") as fh:
+        fh.write("x\n")
+    subprocess.run(["git", "add", "f.txt"], cwd=main, capture_output=True)
+    subprocess.run(["git", "commit", "-qm", "init"], cwd=main, capture_output=True)
+
+    flow = "FEAT-99-declared"
+    wt = os.path.join(main, ".claude", "worktrees", "harness", flow)
+    subprocess.run(["git", "worktree", "add", "-q", "-b", "wt-" + flow, wt, "HEAD"],
+                   cwd=main, capture_output=True)
+    os.makedirs(os.path.join(wt, ".harness"), exist_ok=True)
+    with open(os.path.join(wt, ".harness", "team-config.yaml"), "w") as fh:
+        fh.write("agents: {}\n")
+
+    p = _task("harness-pm", dispatcher="harness-orchestrator", cwd=main)
+    p["tool_input"]["prompt"] = "HARNESS-FEATURE: %s\nplan the thing" % flow
+    r = fire(p, env={"HARNESS_PROJECT_DIR": main})
+    in_wt = _read_registry(wt, reg)
+    in_main = _read_registry(main, reg)
+    check("case 12 claim_lands_in_declared_worktree: the dispatch is allowed", r.returncode == 0,
+          f"exit {r.returncode}, stderr={r.stderr.strip()[:200]!r}")
+    check("case 12 claim_lands_in_declared_worktree: the claim lands in the DECLARED worktree",
+          "harness-pm" in in_wt, f"worktree registry={in_wt!r}")
+    check("case 12 claim_lands_in_declared_worktree: and the main checkout registry is untouched",
+          "harness-pm" not in in_main, f"main registry={in_main!r}")
+
 
 def main():
     # ISOLATE THE WHOLE RUN, and do it HERE rather than in any case.
@@ -302,6 +393,8 @@ def main():
     case_8_parallel_squad_stays_legal()
     case_9_stale_claim()
     case_10_library_missing()
+    case_11_missing_feature_line_refused()
+    case_12_claim_lands_in_declared_worktree()
 
     failed = 0
     for name, ok, detail in RESULTS:

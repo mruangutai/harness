@@ -849,11 +849,18 @@ digests do not answer needs one, and then only that lead.
 
 
 
-## DEC-70 — `ai_behavior` becomes a real change type: ai-dev authors the eval, qa owns the gate — SUPERSEDES DEC-37
+## DEC-70 — `ai_behavior` becomes a real change type for prompt, model and tool-integration changes: ai-dev authors the eval, qa owns the gate — SUPERSEDES DEC-37
 
-**Chose:** add `change_type: ai_behavior` with `eval` as a required test kind. `ai-dev` **authors** the
-eval (failure modes, rubric, reference dataset, threshold); `qa` **runs it and owns the gate**;
-`validator-lead` assesses eval *adequacy* in its panel synthesis.
+**Chose:** add `change_type: ai_behavior` with `eval` as a required test kind, **scoped to changes to
+what a model is given or wired to — prompts, model selection and version, and tool integration.**
+`ai-dev` **authors** the eval (failure modes, rubric, reference dataset, threshold); `qa` **runs it and
+owns the gate**; `validator-lead` assesses eval *adequacy* in its panel synthesis.
+**Outside that scope, a change to a markdown playbook an agent preloads is graded by CONDUCT** — a UAT
+criterion reading a real dispatch — rather than by a dataset eval, because for a playbook the dataset
+and the grader come from one hand and no live behaviour is read, so a passing eval reports only that
+those two agree with each other; the reflexive weakness named below is total there, not partial. This
+narrows what `ai_behavior` covers and nothing else — the `eval` kind stays required wherever the scope
+above holds.
 **Over:** DEC-37's declared v1 gap (ai-dev work passing on human judgment alone), and over
 validator-lead auditing evals qualitatively outside the matrix.
 **Because:** it mirrors every other change type — the specialist authors, the validator gates — so an
@@ -6866,11 +6873,21 @@ live.
 **Only the dispatch cause of issue #551 is closed.** Its two reporting consequences — a lead emitting a terminal verdict
 about members it cannot see, an orchestrator inferring run verdicts from disk — are NOT closed, and no wait can close
 them: the `SubagentStop` hook passes through on `stop_hook_active` to avoid an infinite stop loop, so a stop refusal
-fires at most once. What ships is aimed at the false REPORT — a lead or orchestrator returning while a child it
-dispatched is still claimed is REFUSED once on that hook, the same one-correction-round strength every other digest
-contract in that file has; the loss itself is prevented at the `PreToolUse` hook, whose refusals have no once-only
-bound. The residual, plainly: a second identical return ships, and an orphaned child of an interrupted parent has no
-parent left to refuse it.
+fires at most once per consecutive stop sequence and re-fires on each later wake while a child is still live. What ships
+is aimed at the false REPORT — a lead or orchestrator returning while a child it dispatched is still claimed is REFUSED
+on that hook once per consecutive stop sequence, the one-correction-round strength every other digest contract in that
+file has, and again on each later wake; the loss itself is prevented at the `PreToolUse` hook, whose refusals have no
+once-only bound. The residual, plainly: a second identical return ships when it is immediate, the refusal re-fires only
+on a later wake while a child is still live, and an orphaned child of an interrupted parent has no parent left to refuse
+it.
+
+**The bound is per consecutive stop sequence, not per run.** The hook keeps no state marking a return already refused —
+`validate-digest.py` returns early on `stop_hook_active` and reads live children fresh, and `live_children` is a read
+that only expires stale claims — so a wake that finds a child still live is refused again. One observed orchestrator run
+on the code path the lead tier uses carries two stop refusals naming DIFFERENT child sets, which is a distinct refusal
+event and not replayed context (`agent-a89be3fd837d1b779`). Ending a lead's turn after every dispatch raises the rate of
+stop attempts made with children live, so each attempt risks its own refusal rather than there being one per return.
+`inflight_registry.py`'s refusal message states the same bound.
 
 **#551's count is a FLOOR, never a total.** At least eight are measured as of this commit, and the mechanism fired again
 during the build of its own fix: 5 through 8 came from this feature's own runs. The count has already moved four → seven
@@ -6965,14 +6982,37 @@ the operator confirmed from the pull request titles, their branch being shared o
 gated on `github.sync` like INV-21. It follows INV-21's recorded reason rather than a fresh judgement:
 the mirror never gates a flow, so a missing mirror value must not fail the state check.
 
-## DEC-201 — An orchestrator never waits: every dispatch ends its turn, and the platform's wake is measured, not documented
+## DEC-201 — Neither an orchestrator nor a lead ever waits: every dispatch ends its turn, and the platform's wake is measured, not documented
 
-**Chose:** an orchestrator ends its turn at every dispatch. It does not poll, does not sleep, and
-does not invent activity to stay alive. The platform resumes it when the child completes, and on
-waking it (a) re-reads `STATE.md` and `feature.json` from disk, because its context may have reset,
+**Chose:** the never-wait rule binds the orchestrator AND THE THREE DOMAIN LEADS. A lead that has
+dispatched a member ends its turn, and the member's completion is what wakes it; an orchestrator
+ends its turn at every dispatch on the same terms. Neither tier polls, sleeps, or invents activity
+to stay alive. The platform resumes the caller when the child completes, and on waking an
+orchestrator (a) re-reads `STATE.md` and `feature.json` from disk, because its context may have reset,
 (b) treats a reported completion as a CLAIM until an artifact on disk confirms it, and (c) weighs its
 own context against `budgets.orchestrator_context_warn_tokens` to decide whether to finish this phase
 or hand it to a fresh orchestrator. That threshold ADVISES and never refuses (DEC-198).
+
+**A waiting agent has no mechanism for waiting.** An agent has exactly two moves — end its turn or
+call a tool — and a tool call keeps the turn alive, so an agent that believes it must wait burns
+turns alternating filler tool calls with restatements that it is waiting (issue 831).
+
+**The rule EXPLICITLY OVERRIDES the platform's own text.** The `Agent` tool's dispatch result tells
+the caller to continue other work or respond to the user in the meantime; that text is
+platform-supplied, with no file the harness can edit to change it, so the rule has to override it
+rather than merely fill a silence.
+
+**The rule carries an INOCULATION, and would install the loop it removes without one.** Every
+dispatch's first turn-end meets a live child and is refused, so the rule states that the refusal is
+expected, that the response is to end the turn again, and that it can recur on a later wake.
+
+**One file reaches the whole lead tier.** The lead-tier rule is written once into
+`.claude/skills/harness-team/SKILL.md`, which all three lead agents preload.
+
+**No lead is granted `SendMessage` or any message-sending tool.** A lead that has ended its turn
+cannot send anything, and a lead holding a message tool gains a fresh reason to stay awake and
+watch, which is the loop this rule removes. Issues 610 and 552 are closed on that ruling, recorded
+here precisely so a future scan does not re-suggest it.
 
 **Over keeping the orchestrator alive across the wait**, which is what it was doing. One orchestrator
 spent 354 of its 450 Bash calls on `echo hold` and `sleep` — 341 of them `echo hold` — went quiet,

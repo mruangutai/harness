@@ -12,8 +12,9 @@ checkout it was claimed in). A list, not one object per persona, because two har
 members in flight at once is legal and one object could not hold both (D-06).
 
 Root resolution: every public function takes an explicit `root` — the checkout root. The CLI
-resolves that root from CLAUDE_PROJECT_DIR when set, otherwise from an explicit --root argument,
-so two worktrees never contend over the same file.
+resolves that root through harness_boundary.resolve_root (the one project-dir override, the
+derived-from-script-location fallback), overridable by an explicit --root argument — the
+operator's manual escape hatch — so two worktrees never contend over the same file.
 
 A missing, empty or unparseable registry file is treated as an EMPTY registry and reported on
 stderr — never an exception out of a hook. Failing OPEN on a leaked claim, not closed, is the
@@ -26,11 +27,17 @@ import os
 import sys
 import time
 
+import harness_boundary
 import harness_merge
 
 # Module-level literals. Each is mutated BY NAME in a copy of the tree by the test's red proof.
 SINGLE_FLIGHT_AGENTS = ("harness-pm",)
-CLAIM_TTL_SECONDS = 3600
+
+# 1200s = one pm cycle (10-20 minutes), not the four cycles 3600 used to allow. The cost is
+# real, not hidden: a legitimate run longer than 20 minutes loses its single-flight protection.
+# That is preferred to the alternative measured on 2026-08-26 — a strand that locks a tier
+# chain out of reporting until an hour-long timer expires.
+CLAIM_TTL_SECONDS = 1200
 
 # The registry is written by HOOKS, on every spawn. harness_merge's 10s default is right for a
 # file merge and wrong here: a registry read-modify-write is milliseconds, so a lock still held
@@ -40,8 +47,13 @@ CLAIM_TTL_SECONDS = 3600
 LOCK_TIMEOUT_SECONDS = 1.0
 REGISTRY_REL = ".harness/.inflight-claims.json"
 
-CLI_REL_PATH = ".agents/skills/harness/bin/inflight_registry.py"
-RELEASE_ALL_CMD = f"python3 {CLI_REL_PATH} release-all"
+# RETIRED as a printed remedy at T-06 (FEAT-42): release_cmd(root, agent) below is what a
+# refusal prints now — absolute and single-agent, where this was relative and release-all.
+# Kept as a plain literal, not built from a deleted constant, ONLY because dispatch-guard.sh:115
+# still reads this name inside its refusal branch; an AttributeError there is swallowed by that
+# script's broad except and turns into a fail-open dispatch (measured, not assumed — see T-06's
+# receipt). T-18 removes this constant together with the dispatch-guard.sh callsite that reads it.
+RELEASE_ALL_CMD = "python3 .agents/skills/harness/bin/inflight_registry.py release-all"
 
 
 # ---------------------------------------------------------------------------
@@ -88,7 +100,7 @@ def _expire(claims, now):
     for c in claims:
         # PER-CLAIM TOLERANCE, and it is not defensive padding. This runs UPSTREAM of the
         # single-flight test in dispatch-guard.sh, so a single malformed entry raising here
-        # took the whole #551 refusal down SILENTLY -- the guard caught the exception and
+        # took the whole #628 refusal down SILENTLY -- the guard caught the exception and
         # failed open, which is right for the dispatch and wrong as a way to lose the check.
         # A claim we cannot read is treated as expired: it cannot be released by name either,
         # so keeping it would refuse a legitimate dispatch until its TTL, and the TTL cannot
@@ -139,9 +151,23 @@ def is_single_flight(agent):
     return agent in SINGLE_FLIGHT_AGENTS
 
 
-def live_claim(root, agent, now=None):
+def _filter_session(claims, session):
+    """The SESSION filter (T-06 item 3), applied ON TOP OF _expire's TTL filter, never in place
+    of it. When the caller supplies a session and an entry carries a DIFFERENT one, that entry
+    is not live for this query, whatever its age — this is what kills a cross-session strand
+    outright instead of waiting out CLAIM_TTL_SECONDS. It is NOT removed from disk: it is not
+    actually expired, only foreign to this caller, and its own session must still find it.
+    An entry with no recorded session always matches, so nothing already on disk changes
+    meaning. session=None (the default) disables the filter entirely — today's behaviour."""
+    if session is None:
+        return list(claims)
+    return [c for c in claims if c.get("session") in (None, session)]
+
+
+def live_claim(root, agent, now=None, session=None):
     """Returns (oldest_live_claim_or_None, expired_count) for agent. Any claim older than
-    CLAIM_TTL_SECONDS is deleted as a side effect."""
+    CLAIM_TTL_SECONDS is deleted as a side effect. `expired_count` counts only TTL expiry —
+    a claim filtered out by `session` is neither expired nor deleted, see _filter_session."""
     now = now if now is not None else time.time()
     path = _registry_path(root)
     if not os.path.exists(path):
@@ -151,15 +177,17 @@ def live_claim(root, agent, now=None):
         claims = data.get(agent, [])
         live, expired = _expire(claims, now)
         _set_or_pop(data, agent, live)
-        oldest = min(live, key=lambda c: c["started_at"]) if live else None
+        visible = _filter_session(live, session)
+        oldest = min(visible, key=lambda c: c["started_at"]) if visible else None
         return data, (oldest, expired)
 
     return _update_registry(root, mutator)
 
 
-def live_children(root, dispatcher, now=None):
+def live_children(root, dispatcher, now=None, session=None):
     """Returns the list of (persona, claim) pairs whose claim's dispatcher equals `dispatcher`,
-    expiring stale claims across the WHOLE registry as it scans."""
+    expiring stale claims across the WHOLE registry as it scans. `session`, when supplied,
+    filters out entries carrying a different session — see _filter_session."""
     now = now if now is not None else time.time()
     path = _registry_path(root)
     if not os.path.exists(path):
@@ -171,7 +199,7 @@ def live_children(root, dispatcher, now=None):
             claims = data.get(persona, [])
             live, _expired = _expire(claims, now)
             _set_or_pop(data, persona, live)
-            for c in live:
+            for c in _filter_session(live, session):
                 if c.get("dispatcher") == dispatcher:
                     result.append((persona, c))
         return data, result
@@ -179,9 +207,15 @@ def live_children(root, dispatcher, now=None):
     return _update_registry(root, mutator)
 
 
-def claim(root, agent, dispatcher, cwd, now=None):
+def claim(root, agent, dispatcher, cwd, now=None, session=None):
     """Appends a claim and returns True, unless is_single_flight(agent) and a live claim for
     agent already exists — in which case nothing is recorded and this returns False.
+
+    `session`, when supplied, is recorded in the entry alongside started_at, dispatcher and
+    cwd — it is what live_claim/live_children later use to tell a foreign session's stale-
+    looking claim from this session's live one (T-06 item 3). The single-flight check above
+    is unaffected: it stays TTL-only, matching today's behaviour for every existing caller
+    that never passes a session.
 
     IT DOES RAISE. The single-flight refusal returns False rather than raising, and an earlier
     version of this docstring generalised that into "never raises for contention", which is
@@ -199,7 +233,10 @@ def claim(root, agent, dispatcher, cwd, now=None):
         if is_single_flight(agent) and live:
             _set_or_pop(data, agent, live)
             return data, False
-        live.append({"started_at": now, "dispatcher": dispatcher, "cwd": cwd})
+        entry = {"started_at": now, "dispatcher": dispatcher, "cwd": cwd}
+        if session is not None:
+            entry["session"] = session
+        live.append(entry)
         data[agent] = live
         return data, True
 
@@ -207,29 +244,38 @@ def claim(root, agent, dispatcher, cwd, now=None):
 
 
 def release(root, agent):
-    """Removes the OLDEST live claim for agent if present. Returns whether it removed one. Never
-    creates the registry file when there is nothing to release."""
+    """Removes agent's SOLE live claim. Returns True if one was removed, False if none existed,
+    or the int 0 if MORE THAN ONE live claim exists and nothing was removed. Expired entries
+    are swept from the registry in every case. Never creates the registry file when there is
+    nothing to release.
+
+    THIS USED TO POP OLDEST(started_at) UNCONDITIONALLY — the defect measured live on
+    2026-08-26 (issue #628): the stop hook released an abandoned run's claim and left the
+    returning lead's own claim stranded. There is no identity on either payload — the dispatch
+    payload has tool_use_id, the stop payload has agent_id, and the sidecar join between them is
+    unbuilt and rests on an undocumented format — so with two or more live claims for the same
+    agent, NOTHING here can tell which one belongs to the caller. Guessing (oldest, newest, or
+    otherwise) is a silent chance of releasing the wrong holder's claim; refusing is the only
+    answer without a name."""
     path = _registry_path(root)
     if not os.path.exists(path):
         return False
 
     def mutator(data):
         claims_list = data.get(agent, [])
-        if not claims_list:
+        live, _expired = _expire(claims_list, time.time())
+        _set_or_pop(data, agent, live)
+        if not live:
             return data, False
-        # .get, NOT bracket indexing. With [] a single entry missing started_at raised and
-        # NOTHING for this agent could be released -- so a lead was falsely refused for up to
-        # CLAIM_TTL_SECONDS by an entry that was not even its own. An unreadable started_at
-        # sorts as 0, i.e. oldest, so the malformed entry is the FIRST thing removed.
-        def _started(i):
-            c = claims_list[i]
-            v = c.get("started_at") if isinstance(c, dict) else None
-            return v if isinstance(v, (int, float)) else 0
-
-        oldest_idx = min(range(len(claims_list)), key=_started)
-        claims_list = list(claims_list)
-        claims_list.pop(oldest_idx)
-        _set_or_pop(data, agent, claims_list)
+        if len(live) > 1:
+            print(
+                f"inflight_registry: release({agent!r}) is refusing — {len(live)} live claims "
+                "exist and nothing on either payload can match one to its holder (issue #628). "
+                "Removing none rather than guessing which one to release.",
+                file=sys.stderr,
+            )
+            return data, 0
+        _set_or_pop(data, agent, [])
         return data, True
 
     return _update_registry(root, mutator)
@@ -248,14 +294,33 @@ def release_all(root):
     return _update_registry(root, mutator)
 
 
+def release_cmd(root, agent):
+    """The absolute, single-agent remedy a refusal prints (T-06 item 5, issue #628). Never
+    release_all: that command wipes every claim of every agent, and the relative path the old
+    remedy was built from only resolved when cwd happened to be `root`, which a refused caller
+    cannot be relied on to be standing in."""
+    return (
+        f"python3 {root}/.agents/skills/harness/bin/inflight_registry.py "
+        f"release --agent {agent} --root {root}"
+    )
+
+
 def refusal_lines(agent, existing, release_cmd):
-    """The exact stderr block a single-flight caller prints (issue #551)."""
+    """The exact stderr block a single-flight caller prints (issue #628).
+
+    `release_cmd` is a parameter, not the module-level function of the same name above — the
+    CALLER chooses the command to print (today, dispatch-guard.sh still passes the retired
+    RELEASE_ALL_CMD; see T-06's receipt for why deleting that constant was refused). The
+    module-level `release_cmd` is shadowed inside this function's body and unused by it; that is
+    legal and deliberate — minimal diff until T-18 rewires the caller.
+    """
     started_iso = _iso(existing.get("started_at"))
     dispatcher = existing.get("dispatcher")
     return [
         f"dispatch-guard: BLOCKED - single-flight ({agent})",
         f"  existing claim started {started_iso}, dispatched by {dispatcher}",
-        "  this is issue #551: the second writer would otherwise overwrite the first's plan.yaml.",
+        "  this is issue #628: the second writer would otherwise overwrite the first's plan.yaml.",
+        "  (the original single-flight report is #551.)",
         f"  {release_cmd}",
     ]
 
@@ -271,8 +336,9 @@ def children_refusal_lines(agent, children):
         "something the reporter cannot see."
     )
     lines.append(
-        "  this refusal fires ONCE; a second identical return will ship, so the correction has "
-        "to be made now."
+        "  this refusal fires at most once per consecutive stop sequence; an immediate second "
+        "identical return ships, and it re-fires on a later wake while a child is still live — "
+        "correct any claim about a child you cannot see and end the turn again."
     )
     return lines
 
@@ -314,11 +380,21 @@ def _cli_list(root):
 
 
 def _resolve_root(rest):
-    root = (os.environ.get("HARNESS_PROJECT_DIR") or os.environ.get("CLAUDE_PROJECT_DIR"))
+    """The ONE root implementation (T-06 item 1): harness_boundary.resolve_root, never a
+    second, locally-invented environment chain. --root stays ahead of it — the operator's
+    manual escape hatch — because a chain neither of us derives is the one an operator must be
+    able to override outright."""
+    root = None
     if "--root" in rest:
         i = rest.index("--root")
         root = rest[i + 1]
         rest = rest[:i] + rest[i + 2 :]
+    if not root:
+        bin_dir = os.path.dirname(os.path.abspath(__file__))
+        try:
+            root = harness_boundary.resolve_root(bin_dir)
+        except ValueError:
+            root = None
     return root, rest
 
 
@@ -332,7 +408,11 @@ def main(argv=None):
     rest = argv[1:]
     root, rest = _resolve_root(rest)
     if not root:
-        print("inflight_registry: no root - set CLAUDE_PROJECT_DIR or pass --root", file=sys.stderr)
+        print(
+            "inflight_registry: no checkout root — neither the project-dir override nor this "
+            "script's own location carries a checkout marker, and no --root was given",
+            file=sys.stderr,
+        )
         return 1
 
     if cmd == "list":

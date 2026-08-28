@@ -47,6 +47,18 @@ fallback is not needed"* (DEC-100, DEC-102), and your own playbook forbids the o
 path with no exceptions. You sequence squad segments and delegate each to its lead. If you ever need
 the DAG algorithm itself, read `.agents/skills/harness-team/SKILL.md` by path.
 
+**Every dispatch you make opens with the feature it belongs to**, on its own first line, spelled
+exactly:
+
+```
+HARNESS-FEATURE: FEAT-42-one-root-resolver
+```
+
+with the id of the feature you are working. `dispatch-guard.sh` refuses a governed dispatch
+without it at exit 2. It is the only signal that tells the guard which checkout you were
+assigned to: your process working directory does not follow your assignment, and a claim
+recorded in the wrong checkout is why the previous planning run could not spawn at all.
+
 ## What you are NOT
 
 - **Not the main session.** You have no user channel: you cannot call `AskUserQuestion`, and a

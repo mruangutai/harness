@@ -1,6 +1,9 @@
 import { describe, expect, test } from "bun:test";
+import { existsSync } from "node:fs";
+import { tmpdir } from "node:os";
 import {
   detectHarnessAgent,
+  gatePath,
   extractEditPaths,
   normalizeYieldInput,
   yieldContractText,
@@ -83,5 +86,35 @@ describe("yieldContractText", () => {
   test("keeps explicit yield data unchanged", () => {
     const input = { result: { data: { VERDICT: "PASS" } } };
     expect(normalizeYieldInput(input, "ignored")).toEqual(input);
+  });
+});
+
+// B-1 (FEAT-42 review panel). runPolicy chose the gate executable with `join(cwd, BIN,
+// script)` against a caller-supplied ctx.cwd, so the binary enforcing a policy was selected
+// by the party the policy governs — six gates, eleven call sites, no coverage at all. These
+// cases assert the path is a function of THIS MODULE's location and of nothing else.
+describe("gatePath", () => {
+  test("resolves under the repository that ships this extension", () => {
+    const p = gatePath("check-domain.sh");
+    expect(p.endsWith("/.agents/skills/harness/bin/check-domain.sh")).toBe(true);
+    expect(existsSync(p)).toBe(true);
+  });
+
+  test("is byte-identical whatever the process working directory is", () => {
+    const before = process.cwd();
+    const first = gatePath("check-domain.sh");
+    try {
+      process.chdir(tmpdir());
+      expect(gatePath("check-domain.sh")).toBe(first);
+    } finally {
+      process.chdir(before);
+    }
+  });
+
+  // THE PAIRED HALF. Without it the two cases above are satisfied by a gatePath that
+  // returns a constant: this one proves the script name still reaches the result.
+  test("the script name still selects the file", () => {
+    expect(gatePath("bash-write-guard.sh")).not.toBe(gatePath("check-domain.sh"));
+    expect(gatePath("bash-write-guard.sh").endsWith("bash-write-guard.sh")).toBe(true);
   });
 });
