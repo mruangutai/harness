@@ -3,56 +3,50 @@
 ## Current
 
 - feature: FEAT-37-lead-stop-and-wake
-- run: runs/2026-08-27-01-t09-docs-product/digest.md
-- squad: none — qa segment next
-- status: building
+- run: runs/qa-2026-08-27-03-validator/digest.md
+- squad: none — review panel next
+- status: Review
 
-**ALL SIX TASKS ARE DONE. T-09 LANDED.** Runs 16/20, four remain. Cycles 1/10 — the T-09 run had
-ZERO send-backs, so nothing was added. Numbering is NOT compacted; the gaps are deliberate.
+**ALL SIX TASKS DONE. QA GATE GREEN AT `4e652f9`.** Runs 17/20. Cycles 1/10 — three consecutive runs
+with ZERO send-backs, so nothing was added. `review_sha` is pinned at `4e652f9` and stays there; no
+source has changed since.
 
-**T-09'S DELIVERABLE IS GOOD AND ITS SIGNED GATE IS BROKEN. Both halves are true and the record says
-so rather than choosing one.** The task's `verify:` calls `gen-decisions-index.py --check`. That flag
-has never existed — the script's own docstring says "There is no --check" and it exits 2 on any
-argument but `--stdout`. So `index=2` is an unrecognized-argument refusal, NOT index drift, and
-`T09_FAIL` grades the flag rather than the work. I re-ran both halves myself instead of taking the
-lead's report: the drift check the docstring AND SC-06 both prescribe,
-`gen-decisions-index.py --stdout | diff - DECISIONS-INDEX.md`, exits **0**, and the scope grep
-already exited 0.
+**THE EVAL QUESTION IS SETTLED, AND ON A RULING RATHER THAN ON THE CONFIG.** qa ruled
+`test_matrix.ai_behavior` does not block T-02. The config still literally reads `["eval"]` and
+`test_kinds.eval` is still `cmd: null`. What settles it is that NO SCRIPT READS THE MATRIX — qa reads
+it, so DEC-70 governs the reading, and DEC-70 is narrowed at `4e652f9` to prompt/model/tool-integration
+with markdown playbooks routed to conduct. T-02's file set is one markdown playbook.
 
-**Why T-09 is recorded done and not held.** The property the broken clause meant to gate is gated
-anyway, by SC-06, which names the `--stdout | diff -` form in its own text and is graded at the
-goal-check by its declared method. Nothing is waived: a defective clause is recorded as defective,
-and the criterion that actually governs still runs. Amending the clause is pm's and the operator's,
-and it is carried up rather than done here.
+**THE NARROWING DID NOT REACH THE SURFACES AN AGENT PRELOADS AT GATE TIME. I confirmed this myself
+by grep, not on report.** `.claude/skills/harness-qa-gate/SKILL.md:40` still classifies `ai_behavior`
+as "prompts, model calls, agent definitions, tool definitions" with no playbook carve-out;
+`.claude/agents/harness-ai-dev.md:38,41` and `.harness/harness.json:63` are unqualified too. The
+narrowing landed only in `DECISIONS.md`, `DECISIONS-INDEX.md` and `SPEC.md`. **The next qa spawn
+classifying a playbook edit reads the gate skill, not DEC-70, and reproduces this whole blockage.**
+Out of the documentor's domain by design, out of this feature's SCs, and pm's and the operator's to
+decide. Not fixed here.
 
-**I VERIFIED THE EDIT MYSELF against all four rejection conditions** — zero exclusion language (the
-body states the eval kind "stays required wherever the scope above holds"), no level-3 heading and no
-Amendment form, all three scope terms present, index row regenerated not hand-edited. The documentor
-also widened DEC-70's HEADING, not only its body; accepted at this tier as serving D-09's
-subsume-in-place intent, and citations resolve by number so nothing breaks.
+**ALL SEVEN INV-26 VIOLATIONS ARE GONE, cleared the legitimate way.** They widened to zero the moment
+`gh-sync.py status <feature-dir> Review` ran, exactly as the build handoff predicted
+(`check-state.sh:1522` — INV-26 widens at feature.json status `Review`). No card was moved by hand and
+`check-state.sh` was not touched. The operator does not need to do anything about them.
 
-**THE DOCS SWEEP FOUND A THIRD ONCE-ONLY SITE THAT SC-07 DOES NOT GRADE.** `SPEC.md` carried
-"Enforcement is exactly one rejection deep", corrected in place to the measured
-per-consecutive-stop-sequence bound. SC-07 covers only `DECISIONS.md` and `inflight_registry.py`, so
-this site would have shipped falsified with every criterion green. The sweep's second fix narrowed
-SPEC's `ai_behavior` matrix row to match DEC-70.
+**SC-05 HAS NO EVIDENCE FROM ANY RUN and the panel is its only remaining source.** qa correctly
+declined it as not its artifact. SC-04's non-mechanical half currently rests on validator-lead's own
+reading, which is not independent. Both are the panel's to settle.
 
-**Q5 IS AN INSTANCE OF Q7, MEASURED, NOT A NEW DEFECT.** The lead's stop was refused naming a
-`harness-pm` it never spawned. The in-flight registry is a SINGLE file at the OUTER checkout root,
-`/Users/molchairuangutai/GitHub/harness/.harness/.inflight-claims.json`, shared by every worktree and
-every concurrent context — so an unrelated actor's live child is attributed to whoever tries to stop.
-The lead holds no Bash and could not see this; I read the path and the file.
+**SC-08 STAYS not_met AND THIS BUILD PRODUCED FIRST-HAND EVIDENCE FOR WHY.** The stop-guard refusal I
+received twice this run reads "this refusal fires ONCE" — the OUTER checkout's
+`inflight_registry.py:274`. The branch's corrected text at `4e652f9` reads "at most once per
+consecutive stop sequence" at `:339`. An agent inside this worktree was governed by the UNCORRECTED
+outer file, which is precisely D-13's mechanism. The operator runs SC-08 after merge.
 
-**STILL AHEAD, AND THE QA SEGMENT MUST ANSWER ONE THING EXPLICITLY.** `harness.json`
-`test_matrix.ai_behavior.always` is `["eval"]` and T-02 is `change_type: ai_behavior`;
-`test_kinds.eval` is `cmd: null` / `status: unresolved`. T-09 changed NO config — it rewrote DEC-70,
-the decision that CREATED that row, and SPEC's copy of it. The row is applied by qa READING it, not
-by any script, so the narrowing reaches the enforcement point. qa must say plainly whether the row
-still blocks rather than inventing a pass.
+**THE 266-LINE INDEX DIFF IS THREE ROWS.** Normalising `@NNNN` anchors away leaves exactly DEC-70,
+DEC-199 and DEC-201 changed; ~130 other rows moved only by line-offset drift. "Change no other entry"
+was honoured. Told to the panel so no reviewer spends a cycle on it.
 
-**SIMPLIFY IS OMITTED DELIBERATELY.** The feature's whole non-documentation surface is 661
-insertions, 641 of them the one new test file, whose structure is pinned by SC-03's six-fixture
-discrimination requirement. The spare run is held for a FAIL. Disclosed to the operator, not dropped.
+**SIMPLIFY REMAINS DELIBERATELY OMITTED** — 661 insertions of non-doc surface, 641 of them the one
+test file whose shape is pinned by SC-03's six fixtures. The spare run is held for a FAIL.
 
 ## Open Questions
 

@@ -2,8 +2,8 @@
   "feature_id": "FEAT-37-lead-stop-and-wake",
   "branch": "feat/FEAT-37-lead-stop-and-wake",
   "pr": null,
-  "status": "Building",
-  "review_sha": "none",
+  "status": "Review",
+  "review_sha": "4e652f9",
   "cycles_used": 1,
   "max_total_cycles": 10,
   "max_total_runs": 20,
@@ -103,6 +103,12 @@
       "squad": "product",
       "agent": "harness-product-lead",
       "verdict": "BLOCKED"
+    },
+    {
+      "id": "qa-2026-08-27-03-validator",
+      "squad": "validation",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS"
     }
   ],
   "github": {
