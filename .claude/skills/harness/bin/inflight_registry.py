@@ -7,6 +7,7 @@ and rewritten as version 2 by the next mutation; version 1 is never written.
 """
 import datetime
 import json
+import math
 import os
 import shlex
 import subprocess
@@ -148,8 +149,16 @@ def _read_process_start_time(pid):
         pass
     try:
         # macOS and anything else without /proc. One fork per distinct pid per run.
+        #
+        # LC_ALL=C IS LOAD-BEARING, not tidiness. `ps` renders lstart in the inherited
+        # LC_TIME while Python's strptime stays in the C locale unless setlocale was
+        # called, so on a non-English host the parse raises, every claim records no
+        # start time, and each one silently falls to the unverified backstop — F3's fix
+        # inert and DEC-204's "live for any age" quietly reduced to 24 hours. Pinning
+        # the child's locale makes the two ends agree on every host.
         out = subprocess.run(["ps", "-o", "lstart=", "-p", str(pid)],
-                             capture_output=True, text=True, timeout=5)
+                             capture_output=True, text=True, timeout=5,
+                             env={**os.environ, "LC_ALL": "C", "LC_TIME": "C"})
         line = out.stdout.strip()
         return int(time.mktime(time.strptime(line, "%a %b %d %H:%M:%S %Y"))) if line else None
     except Exception:
@@ -179,7 +188,12 @@ def _omp_claim_live(claim, now):
 
 
 def _is_number(value):
-    return isinstance(value, (int, float)) and not isinstance(value, bool)
+    # isfinite, not merely numeric: `json.loads` accepts bare NaN and Infinity, and every
+    # caller here feeds this predicate straight into an `int()` that would raise on one.
+    # That raise escapes into the broad `except Exception` around each registry read and
+    # fails OPEN — durably, because reconcile asks the same question and its pruning write
+    # never lands, so the bad entry can never clear itself.
+    return isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
 
 
 def _expire(claims, now):
@@ -474,6 +488,15 @@ def reconcile(root, feature=None, now=None):
 
 
 def release_cmd(root, agent, feature):
+    # A featureless claim is real — LEGACY_FEATURE exists for exactly those, and `_matches`
+    # reads them as `claim.get("feature", LEGACY_FEATURE)`.
+    #
+    # Passing that `None` through did NOT raise, which is what makes it worth guarding:
+    # `shlex.quote` starts `if not s: return "''"`, so `None` rendered as an empty argument
+    # and the printed remedy was `--feature ''`. That selector matches no claim at all, so
+    # an operator was handed a well-formed command that ran clean and removed nothing.
+    # Silent non-remedy, not a crash.
+    feature = feature or LEGACY_FEATURE
     parts = [
         "python3",
         os.path.join(root, ".agents/skills/harness/bin/inflight_registry.py"),

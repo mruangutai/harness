@@ -14,6 +14,7 @@ diverge from a CLAIM_TTL_SECONDS mutant (P-05). It must match the module's shipp
 import contextlib
 import io
 import json
+import math
 import os
 import re
 import subprocess
@@ -797,6 +798,126 @@ def case_25_stranded_child_does_not_hold_its_parent():
         proc.wait()
 
 
+def case_26_start_time_read_pins_the_c_locale():
+    """N1 (cycle 1): `ps` renders lstart in LC_TIME, strptime parses in C.
+
+    Left to the inherited locale, a non-English host fails every parse, records no
+    supervisor_started_at, and drops EVERY claim to the unverified backstop — F3's fix
+    silently inert and DEC-204's "live for any age" quietly reduced to 24 hours. Asserted
+    two ways because neither alone is enough: the environment the child is actually given
+    (deterministic on any host), and a real read under a hostile LC_TIME (only meaningful
+    where that locale exists, vacuous elsewhere).
+    """
+    captured = {}
+    real_run = subprocess.run
+
+    def spy(*args, **kwargs):
+        captured.update(kwargs.get("env") or {})
+        return real_run(*args, **kwargs)
+
+    src = open(os.path.join(MODULE_DIR, "inflight_registry.py"), encoding="utf-8").read()
+    check("case26: the ps read is the only subprocess in the module",
+          src.count("subprocess.run(") == 1, src.count("subprocess.run("))
+    inflight_registry.subprocess.run = spy
+    try:
+        inflight_registry._START_TIME_CACHE.clear()
+        inflight_registry._read_process_start_time(os.getpid())
+    finally:
+        inflight_registry.subprocess.run = real_run
+    if captured:  # /proc hosts never reach the ps branch; skip rather than fail there
+        check("case26: the ps child is pinned to the C locale",
+              captured.get("LC_ALL") == "C" and captured.get("LC_TIME") == "C", captured)
+
+    previous = os.environ.get("LC_TIME")
+    os.environ["LC_TIME"] = "fr_FR.UTF-8"
+    try:
+        inflight_registry._START_TIME_CACHE.clear()
+        under_hostile_locale = inflight_registry._process_start_time(os.getpid())
+    finally:
+        os.environ.pop("LC_TIME", None)
+        if previous is not None:
+            os.environ["LC_TIME"] = previous
+        inflight_registry._START_TIME_CACHE.clear()
+    check("case26: our own start time still reads under a non-English LC_TIME",
+          isinstance(under_hostile_locale, int), under_hostile_locale)
+
+
+def case_27_non_finite_start_time_cannot_strand_the_registry():
+    """N2 (cycle 1): json.loads accepts bare NaN/Infinity, and int(NaN) raises.
+
+    That raise escaped into each caller's broad `except Exception` and failed OPEN, durably
+    — reconcile asks the same question, so its pruning write never landed and the entry
+    could never clear itself. The corruption guard does not cover it: NaN is VALID json to
+    Python, so no JSONDecodeError is raised.
+    """
+    for literal in ("NaN", "Infinity", "-Infinity"):
+        root = tempfile.mkdtemp()
+        proc = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"])
+        try:
+            inflight_registry.claim(
+                root, "harness-backend-dev", "harness-eng-lead", root,
+                feature="FEAT-43-alpha", runtime="omp", supervisor_pid=proc.pid,
+            )
+            path = os.path.join(root, inflight_registry.REGISTRY_REL)
+            raw = open(path, encoding="utf-8").read()
+            payload = json.loads(raw)
+            payload["claims"][0]["supervisor_started_at"] = 0
+            open(path, "w", encoding="utf-8").write(
+                json.dumps(payload).replace('"supervisor_started_at": 0',
+                                            f'"supervisor_started_at": {literal}')
+            )
+            check(f"case27: {literal} survives json.loads, so the corruption guard misses it",
+                  not math.isfinite(
+                      json.load(open(path, encoding="utf-8"))["claims"][0]["supervisor_started_at"]
+                  ), literal)
+            # The contract is NOT "expire on sight". A non-finite value means identity is
+            # UNPROVABLE, which is the backstop's job — same as a missing key. What must
+            # never happen again is the raise, whose escape into each caller's broad
+            # `except` failed open DURABLY: reconcile asked the same question, so its
+            # pruning write never landed and the entry could not clear itself.
+            claim, _expired = inflight_registry.live_claim(
+                root, "harness-backend-dev", feature="FEAT-43-alpha"
+            )
+            check(f"case27: a {literal} start time is read without raising",
+                  claim is not None, (literal, claim))
+            _rewrite_claims(root, lambda c: c.__setitem__(
+                "started_at",
+                time.time() - inflight_registry.OMP_UNVERIFIED_TTL_SECONDS - 60))
+            stale, expired = inflight_registry.live_claim(
+                root, "harness-backend-dev", feature="FEAT-43-alpha"
+            )
+            check(f"case27: and past the backstop it clears, so {literal} cannot strand",
+                  stale is None and expired == 1, (literal, stale, expired))
+        finally:
+            proc.terminate()
+            proc.wait()
+
+
+def case_28_featureless_claim_still_gets_a_remedy():
+    """N3 (cycle 1): LEGACY_FEATURE exists, so a claim without `feature` is real.
+
+    Measured, and NOT what the panel described. `shlex.quote` opens `if not s: return "''"`,
+    so `None` did not raise — it rendered `--feature ''`, a well-formed command matching no
+    claim, which an operator could run clean and have nothing removed. A silent non-remedy
+    is worse than the raise the panel expected, because nothing surfaces it. `_matches`
+    reads a featureless claim as LEGACY_FEATURE, so that is the selector to print.
+    """
+    cmd = inflight_registry.release_cmd("/some/abs/root", "harness-pm", None)
+    check("case28: a featureless claim still composes a remedy",
+          f"--feature {inflight_registry.LEGACY_FEATURE}" in cmd, cmd)
+    root = tempfile.mkdtemp()
+    inflight_registry.claim(root, "harness-pm", "harness-orchestrator", root)
+    data = _read_raw(root)
+    del data["claims"][0]["feature"]
+    with open(os.path.join(root, inflight_registry.REGISTRY_REL), "w", encoding="utf-8") as handle:
+        json.dump(data, handle)
+    check("case28: and the selector it prints actually matches that claim",
+          inflight_registry.release(
+              root, agent="harness-pm", feature=inflight_registry.LEGACY_FEATURE
+          ) is True, _read_raw(root))
+
+
+
 def case_10_no_own_primitive():
     path = os.path.join(MODULE_DIR, "inflight_registry.py")
     src = open(path, encoding="utf-8").read()
@@ -839,6 +960,9 @@ def main():
     case_23_verified_claim_never_ages_out()
     case_24_unverifiable_claim_cannot_strand_forever()
     case_25_stranded_child_does_not_hold_its_parent()
+    case_26_start_time_read_pins_the_c_locale()
+    case_27_non_finite_start_time_cannot_strand_the_registry()
+    case_28_featureless_claim_still_gets_a_remedy()
 
     failed = [r for r in RESULTS if not r[1]]
     if failed:
