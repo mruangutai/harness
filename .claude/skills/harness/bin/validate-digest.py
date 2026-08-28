@@ -22,7 +22,7 @@ Exit 0 = valid.  Exit 1 = contract violation (reasons on stdout).
 A violation routes into the BLOCKED (contract violation) path SPEC 8.3 already
 defines. Never guess a verdict — silent misrouting is worse than a halt.
 """
-import sys, re, os, json
+import sys, re, os, json, subprocess
 
 # Same directory as this script; sys.path[0] is that directory under `python3 <path>`.
 # The placeholder vocabulary lives there so INV-6 and this check cannot drift (issue #16).
@@ -32,7 +32,7 @@ import harness_yaml
 from gate_policy import GatePolicyError, evaluate_review, load_policy
 
 VERDICTS = {"PASS", "FAIL", "BLOCKED", "ESCALATE"}
-SEV      = ["info", "low", "med", "high", "critical"]
+SEV      = ["none", "low", "med", "high", "critical"]
 
 # Required of EVERY persona — the universal return contract (harness-handoff).
 UNIVERSAL = {"open_questions": list, "files_touched": list, "expertise_update": list}
@@ -537,6 +537,22 @@ def parse_digest(text):
     return out
 
 
+def reviewed_python_change(reviewed):
+    """Return whether the review range changes Python, or a blocking range error."""
+    if not isinstance(reviewed, str) or reviewed.count("..") != 1:
+        return None, "reviewed must name exactly one base..head range."
+    base, head = (part.strip() for part in reviewed.split(".."))
+    if not base or not head:
+        return None, "reviewed must name non-empty base and head revisions."
+    result = subprocess.run(
+        ["git", "diff", "--name-only", "-z", base, head],
+        capture_output=True,
+    )
+    if result.returncode:
+        return None, "reviewed range could not be resolved for code-grade enforcement."
+    return any(path.endswith(b".py") for path in result.stdout.split(b"\0") if path), None
+
+
 def validate(persona, text, config_path=None):
     err = []
     raw_persona = persona
@@ -545,7 +561,7 @@ def validate(persona, text, config_path=None):
     if schema is None:
         return [f"unknown persona {persona!r} — cannot validate; refusing to pass it."]
     if raw_persona == "harness-code-reviewer":
-        schema = {**schema, "code_grade": {"pass", "fail", "n_a"}}
+        schema = {**schema, "code_grade": {"pass", "fail", "n_a"}, "reviewed": str}
 
     # Echo-shadowing fix (BUILD task 22 follow-up): agents sometimes echo the
     # harness-handoff template (a schema-valid VERDICT/DIGEST block) before their
@@ -733,10 +749,12 @@ def validate(persona, text, config_path=None):
 
     if raw_persona == "harness-code-reviewer":
         code_grade = seen.get("code_grade")
-        if code_grade == "n_a" and any(
-                isinstance(path, str) and path.endswith(".py")
-                for path in seen.get("files_touched", [])):
-            err.append("code_grade='n_a' is only valid when no Python file was touched.")
+        if code_grade == "n_a":
+            python_changed, range_error = reviewed_python_change(seen.get("reviewed"))
+            if range_error:
+                err.append(range_error)
+            elif python_changed:
+                err.append("code_grade='n_a' is only valid when the reviewed diff has no Python file.")
         if code_grade == "fail" and m and m.group(1) == "PASS":
             err.append("code_grade='fail' reports a gate as FAILED, but VERDICT is PASS — "
                        "a gate that failed cannot have passed.")

@@ -1376,6 +1376,26 @@ def case_26():
               ok, f"exit {r.returncode}: {out[:400]!r}")
 
 
+PRE_FEATURE_REVISION = "df63193f7ec9798d9660904e0e4e7c78d52358f5"
+
+def write_prior_route_validator(directory):
+    rel = ".claude/skills/harness/bin"
+    for name in ("check-plan-routes.py", "harness_boundary.py", "harness_yaml.py"):
+        source = subprocess.run(
+            ["git", "-C", REPO_ROOT, "show", f"{PRE_FEATURE_REVISION}:{rel}/{name}"],
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout
+        if name == "check-plan-routes.py":
+            source = source.replace(
+                'CHECK_DOMAIN = os.path.join(BIN_DIR, "check-domain.sh")',
+                f"CHECK_DOMAIN = {os.path.join(BIN_DIR, 'check-domain.sh')!r}",
+            )
+        with open(os.path.join(directory, name), "w") as f:
+            f.write(source)
+
+
 def case_27():
     """(27) Routes use the owner manifest that the write hook will consult."""
     with tempfile.TemporaryDirectory() as td:
@@ -1412,21 +1432,7 @@ def case_27():
 
         prior_bin = os.path.join(td, "prior-bin")
         os.makedirs(prior_bin)
-        rel = ".claude/skills/harness/bin"
-        for name in ("check-plan-routes.py", "harness_boundary.py", "harness_yaml.py"):
-            source = subprocess.run(
-                ["git", "-C", REPO_ROOT, "show", f"HEAD:{rel}/{name}"],
-                capture_output=True,
-                text=True,
-                check=True,
-            ).stdout
-            if name == "check-plan-routes.py":
-                source = source.replace(
-                    'CHECK_DOMAIN = os.path.join(BIN_DIR, "check-domain.sh")',
-                    f"CHECK_DOMAIN = {os.path.join(BIN_DIR, 'check-domain.sh')!r}",
-                )
-            with open(os.path.join(prior_bin, name), "w") as f:
-                f.write(source)
+        write_prior_route_validator(prior_bin)
         prior = run(project_dir=branch,
                     script=os.path.join(prior_bin, "check-plan-routes.py"))
         check(

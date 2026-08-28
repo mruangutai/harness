@@ -17,6 +17,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 # each new regression case actually fails against the old code (task 22).
 VALIDATE = os.environ.get("VALIDATE_DIGEST_BIN") or os.path.join(HERE, "validate-digest.py")
 REPO_ROOT = os.path.abspath(os.path.join(HERE, "..", "..", "..", ".."))
+PRE_FEATURE_REVISION = "df63193f7ec9798d9660904e0e4e7c78d52358f5"
 
 # The two normative templates (DEC-123) must validate — extracted from their
 # SOURCE FILES and run through the validator, not eyeballed. (name, file, heading)
@@ -1705,19 +1706,55 @@ def run_joint_hint_case():
     return 0
 
 
-def reviewer_digest(code_grade="pass", files="[]", must_fix="[]"):
+def reviewer_digest(code_grade="pass", files="[]", must_fix="[]", severity_max="low",
+                    reviewed=None):
+    reviewed = reviewed or f"{PRE_FEATURE_REVISION}..{PRE_FEATURE_REVISION}"
     return f"""VERDICT: PASS
 DIGEST:
   headline: reviewer result
-  severity_max: low
+  severity_max: {severity_max}
   findings: 0
   must_fix: {must_fix}
   code_grade: {code_grade}
+  reviewed: "{reviewed}"
   files_touched: {files}
   open_questions: []
   expertise_update: []
 artifact: a.md
 """
+
+
+def check_review_policy(validator, config, failures):
+    guarded = reviewer_digest("pass", must_fix="[needs repair]")
+    if not any("review policy" in error for error in validator.validate(
+            "harness-code-reviewer", guarded, config)):
+        failures.append("advisory_unless_high must reject must_fix with PASS")
+    if validator.validate("harness-code-reviewer",
+                          reviewer_digest(severity_max="none"), config):
+        failures.append("none severity must be accepted by review policy")
+    if not any("severity_max" in error for error in validator.validate(
+            "harness-code-reviewer", reviewer_digest(severity_max="info"), config)):
+        failures.append("info severity must be rejected by the policy vocabulary")
+    return guarded
+
+
+def check_prior_validator(td, guarded, failures):
+    prior_dir = os.path.join(td, "prior")
+    os.makedirs(prior_dir)
+    rel = ".claude/skills/harness/bin"
+    for name in ("validate-digest.py", "harness_yaml.py"):
+        source = subprocess.run(
+            ["git", "-C", REPO_ROOT, "show",
+             f"{PRE_FEATURE_REVISION}:{rel}/{name}"],
+            check=True, capture_output=True, text=True).stdout
+        with open(os.path.join(prior_dir, name), "w") as f:
+            f.write(source)
+    prior = subprocess.run(
+        [sys.executable, os.path.join(prior_dir, "validate-digest.py"),
+         "harness-code-reviewer"],
+        input=guarded, capture_output=True, text=True)
+    if prior.returncode != 0:
+        failures.append("previous validator must accept the gated digest")
 
 
 def run_code_grade_cases():
@@ -1727,26 +1764,24 @@ def run_code_grade_cases():
     failures = []
     with tempfile.TemporaryDirectory() as td:
         config = os.path.join(td, "harness.json")
-
-        def set_review(review):
-            with open(config, "w") as f:
-                json.dump({"gates": {"qa_gate": "blocking", "review": review,
-                                     "uat": "advisory", "merge": "autonomous"}}, f)
-
-        set_review("advisory_unless_high")
+        with open(config, "w") as f:
+            json.dump({"gates": {"qa_gate": "blocking",
+                                 "review": "advisory_unless_high",
+                                 "uat": "advisory", "merge": "autonomous"}}, f)
         if not any("code_grade" in error for error in validator.validate(
                 "harness-code-reviewer", reviewer_digest("fail"), config)):
             failures.append("fail-plus-PASS must reject")
+        python_diff = f"{PRE_FEATURE_REVISION}..HEAD"
         if not any("only valid" in error for error in validator.validate(
-                "harness-code-reviewer", reviewer_digest("n_a", "[src/a.py]"), config)):
-            failures.append("n_a with Python touched must reject")
+                "harness-code-reviewer",
+                reviewer_digest("n_a", reviewed=python_diff), config)):
+            failures.append("n_a with a reviewed Python diff must reject")
         if validator.validate("harness-code-reviewer", reviewer_digest("n_a"), config):
-            failures.append("n_a with no Python touched must accept")
-        guarded = reviewer_digest("pass", must_fix="[needs repair]")
-        if not any("review policy" in error for error in validator.validate(
-                "harness-code-reviewer", guarded, config)):
-            failures.append("advisory_unless_high must reject must_fix with PASS")
-        set_review("advisory")
+            failures.append("n_a with no reviewed Python diff must accept")
+        guarded = check_review_policy(validator, config, failures)
+        with open(config, "w") as f:
+            json.dump({"gates": {"qa_gate": "blocking", "review": "advisory",
+                                 "uat": "advisory", "merge": "autonomous"}}, f)
         if validator.validate("harness-code-reviewer", guarded, config):
             failures.append("advisory must accept the same digest")
         with open(config, "w") as f:
@@ -1757,22 +1792,7 @@ def run_code_grade_cases():
         except ValueError as error:
             if "gates" not in str(error):
                 failures.append("missing gates error must name gates")
-
-        prior_dir = os.path.join(td, "prior")
-        os.makedirs(prior_dir)
-        rel = ".claude/skills/harness/bin"
-        for name in ("validate-digest.py", "harness_yaml.py"):
-            source = subprocess.run(
-                ["git", "-C", REPO_ROOT, "show", f"HEAD:{rel}/{name}"],
-                check=True, capture_output=True, text=True).stdout
-            with open(os.path.join(prior_dir, name), "w") as f:
-                f.write(source)
-        prior = subprocess.run(
-            [sys.executable, os.path.join(prior_dir, "validate-digest.py"),
-             "harness-code-reviewer"],
-            input=guarded, capture_output=True, text=True)
-        if prior.returncode != 0:
-            failures.append("previous validator must accept the gated digest")
+        check_prior_validator(td, guarded, failures)
     if failures:
         print("FAIL  code-grade and review-policy gates")
         for failure in failures:
