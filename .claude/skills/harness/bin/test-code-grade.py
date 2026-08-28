@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Hand-derived contract tests for code_grade.py."""
+import ast
 import importlib.util
 import os
 from pathlib import Path
@@ -12,6 +13,10 @@ spec = importlib.util.spec_from_file_location("code_grade", os.path.join(HERE, "
 code_grade = importlib.util.module_from_spec(spec)
 sys.modules[spec.name] = code_grade
 spec.loader.exec_module(code_grade)
+CLI_SPEC = importlib.util.spec_from_file_location("code_grade_cli", os.path.join(HERE, "code-grade.py"))
+code_grade_cli = importlib.util.module_from_spec(CLI_SPEC)
+CLI_SPEC.loader.exec_module(code_grade_cli)
+
 
 
 # Each source is adjacent to an independent hand derivation.  A/B/C are the
@@ -19,6 +24,7 @@ spec.loader.exec_module(code_grade)
 FIXTURES = [
     # A=0 B=0 C=0; cyc=1 (base); cog=0; abc=sqrt(0)=0.0.
     ("grade5-empty", '''def empty():\n    pass\n''', ("empty", 1, 1, 0, 0, 0, 0, 0.0, 5, "cyclomatic+cognitive+abc")),
+    # A=2 (x, y assignments) B=2 (one, two calls) C=0; cyc=1 (base); cog=0; abc=sqrt(8)=2.8.
     ("bindings-and-calls", '''def bindings():\n    x = one()\n    y = two()\n''', ("bindings", 1, 1, 0, 2, 2, 0, 2.8, 5, "cyclomatic+cognitive+abc")),
     # A=3 (for x, with y, except err) B=0 C=3 (for, except, assert); cyc=4; cog=2 (for, except); abc=sqrt(18)=4.2.
     ("control-basics", '''def controls(xs, cm):\n    for x in xs:\n        pass\n    with cm as y:\n        pass\n    try:\n        pass\n    except ValueError as err:\n        assert err\n''', ("controls", 1, 4, 2, 3, 0, 3, 4.2, 5, "cyclomatic+cognitive+abc")),
@@ -110,6 +116,78 @@ DIRECTION_PAIRS = [
     assert a
 ''', "cyclomatic", "better"),
 ]
+
+
+def check_commit_resolution():
+    with tempfile.TemporaryDirectory() as directory:
+        repo_root = Path(directory)
+        _git(repo_root, "init")
+        _git(repo_root, "config", "user.email", "grader@example.test")
+        _git(repo_root, "config", "user.name", "Code Grader")
+        _write(repo_root, "sample.py", "def sample():\n    pass\n")
+        head_ref = _commit(repo_root, "base")
+        blob = subprocess.run(["git", "-C", str(repo_root), "hash-object", "-w", "--stdin"],
+                              input="not a commit", text=True, capture_output=True,
+                              check=True).stdout.strip()
+        failures = 0
+        for position in ("base", "head"):
+            for existing in (True, False):
+                selected = repo_root / f"selected-output-{position}-{existing}"
+                if existing:
+                    selected.write_text("unchanged")
+                option = f"--output={selected}"
+                base, head = (option, head_ref) if position == "base" else (head_ref, option)
+                failures += _check_rejected_revision(repo_root, base, head, option, position,
+                                                     f"option-like {position}")
+                failures += check(selected.read_text() if existing else selected.exists(),
+                                  "unchanged" if existing else False,
+                                  f"library leaves option-selected {position} output untouched")
+            base, head = (blob, head_ref) if position == "base" else (head_ref, blob)
+            failures += _check_rejected_revision(repo_root, base, head, blob, position,
+                                                 f"blob {position}")
+        return failures
+
+
+def _check_rejected_revision(repo_root, base, head, revision, position, label):
+    original_run = code_grade.subprocess.run
+    calls = []
+
+    def traced_run(args, *args_tail, **kwargs):
+        calls.append(args)
+        return original_run(args, *args_tail, **kwargs)
+
+    code_grade.subprocess.run = traced_run
+    try:
+        try:
+            code_grade.gated_set(repo_root, base, head)
+        except ValueError as error:
+            failures = check(str(error), f"invalid Git commit revision: {revision}",
+                             f"library names invalid {label} revision")
+        else:
+            failures = check("accepted", "rejected", f"library rejects {label} revision")
+    finally:
+        code_grade.subprocess.run = original_run
+    arguments = [argument for call in calls for argument in call]
+    if label.startswith("option-like"):
+        failures += check(any(argument.startswith(revision) for argument in arguments), False,
+                          f"library never sends option-like {position} revision to Git")
+    else:
+        failures += check(f"{revision}^{{commit}}" in arguments, True,
+                          f"library resolves blob {position} as commit only")
+        failures += check("--end-of-options" in arguments, True,
+                          f"library resolves blob {position} after end-of-options")
+    failures += check(any(argument in {"diff", "show"} for argument in arguments), False,
+                      f"library never diffs or shows after invalid {label} revision")
+    return failures
+
+
+def check_case_27_grade():
+    source = (Path(HERE) / "test-check-plan-routes.py").read_text()
+    node = next(item for item in ast.parse(source).body if isinstance(item, ast.FunctionDef)
+                and item.name == "case_27")
+    case_source = ast.get_source_segment(source, node)
+    record = code_grade.grade_source(case_source, "test-check-plan-routes.py")[0]
+    return check(record.grade >= 2, True, "case_27 is not grade one")
 
 
 def _git(repo_root, *args):
@@ -318,7 +396,13 @@ def main():
         after_value = getattr(code_grade.grade_source(after, "fixture.py")[0], metric)
         moved_as_named = after_value < before_value if direction == "better" else after_value > before_value
         failures += check(moved_as_named, True, f"{name}: {metric} moves {direction}")
+        before_grade = code_grade.grade_source(before, "fixture.py")[0].grade
+        after_grade = code_grade.grade_source(after, "fixture.py")[0].grade
+        moved_grade = after_grade > before_grade if direction == "better" else after_grade < before_grade
+        failures += check(moved_grade, True, f"{name}: grade moves {direction}")
     failures += check_changed_function_resolution()
+    failures += check_commit_resolution()
+    failures += check_case_27_grade()
     failures += check_worked_examples()
     failures += check_delivery()
     if failures:

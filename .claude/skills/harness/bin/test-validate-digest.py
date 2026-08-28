@@ -1707,7 +1707,7 @@ def run_joint_hint_case():
 
 
 def reviewer_digest(code_grade="pass", files="[]", must_fix="[]", severity_max="low",
-                    reviewed=None):
+                    reviewed=None, grade_2_reasons="[]"):
     reviewed = reviewed or f"{PRE_FEATURE_REVISION}..{PRE_FEATURE_REVISION}"
     return f"""VERDICT: PASS
 DIGEST:
@@ -1717,6 +1717,7 @@ DIGEST:
   must_fix: {must_fix}
   code_grade: {code_grade}
   reviewed: "{reviewed}"
+  grade_2_reasons: {grade_2_reasons}
   files_touched: {files}
   open_questions: []
   expertise_update: []
@@ -1757,6 +1758,82 @@ def check_prior_validator(td, guarded, failures):
         failures.append("previous validator must accept the gated digest")
 
 
+def write_review_config(config, review):
+    with open(config, "w") as f:
+        json.dump({"gates": {"qa_gate": "blocking", "review": review,
+                             "uat": "advisory", "merge": "autonomous"}}, f)
+
+
+def check_code_grade_state(validator, config, failures):
+    if not any("code_grade" in error for error in validator.validate(
+            "harness-code-reviewer", reviewer_digest("fail"), config)):
+        failures.append("fail-plus-PASS must reject")
+    reasoned_grade_2 = reviewer_digest(
+        "grade_2", grade_2_reasons="[one auditable reason]")
+    if validator.validate("harness-code-reviewer", reasoned_grade_2, config):
+        failures.append("grade_2 with a written reason must permit PASS")
+    if not any("grade_2_reasons" in error for error in validator.validate(
+            "harness-code-reviewer", reviewer_digest("grade_2"), config)):
+        failures.append("grade_2 without written reasons must reject")
+
+
+def check_reviewed_range(validator, config, td, failures):
+    python_diff = f"{PRE_FEATURE_REVISION}..HEAD"
+    if not any("only valid" in error for error in validator.validate(
+            "harness-code-reviewer",
+            reviewer_digest("n_a", reviewed=python_diff), config)):
+        failures.append("n_a with a reviewed Python diff must reject")
+    if validator.validate("harness-code-reviewer", reviewer_digest("n_a"), config):
+        failures.append("n_a with no reviewed Python diff must accept")
+    output_path = os.path.join(td, "must-not-exist")
+    for revision in ("--no-patch..HEAD", f"--output={output_path}..HEAD"):
+        errors = validator.validate(
+            "harness-code-reviewer", reviewer_digest("n_a", reviewed=revision), config)
+        if not any("reviewed range" in error for error in errors):
+            failures.append(f"option-like revision {revision!r} must reject")
+    if os.path.exists(output_path):
+        failures.append("option-like review revision must not write an output file")
+
+
+def check_resolve_reviewed_commit_guard(validator, failures):
+    """An option-like revision must be rejected before Git is ever invoked.
+
+    The existing `--end-of-options`-based rejection above proves the RESULT
+    (None); it does not prove Git was never run. This pins the stronger claim
+    the code_grade.commit_oid seam adds: the leading-`-` check runs first.
+    """
+    original_run = validator.subprocess.run
+    calls = []
+
+    def traced_run(args, *args_tail, **kwargs):
+        calls.append(args)
+        return original_run(args, *args_tail, **kwargs)
+
+    validator.subprocess.run = traced_run
+    try:
+        result = validator.resolve_reviewed_commit("--upload-pack=touch /tmp/pwned")
+    finally:
+        validator.subprocess.run = original_run
+    if result is not None:
+        failures.append("option-like revision must resolve to None")
+    if calls:
+        failures.append("option-like revision must not invoke Git at all")
+
+
+def check_config_errors(validator, config, guarded, failures):
+    write_review_config(config, "advisory")
+    if validator.validate("harness-code-reviewer", guarded, config):
+        failures.append("advisory must accept the same digest")
+    with open(config, "w") as f:
+        json.dump({}, f)
+    try:
+        validator.validate("harness-code-reviewer", guarded, config)
+        failures.append("missing gates must raise")
+    except ValueError as error:
+        if "gates" not in str(error):
+            failures.append("missing gates error must name gates")
+
+
 def run_code_grade_cases():
     spec = importlib.util.spec_from_file_location("_validator_under_test", VALIDATE)
     validator = importlib.util.module_from_spec(spec)
@@ -1764,34 +1841,12 @@ def run_code_grade_cases():
     failures = []
     with tempfile.TemporaryDirectory() as td:
         config = os.path.join(td, "harness.json")
-        with open(config, "w") as f:
-            json.dump({"gates": {"qa_gate": "blocking",
-                                 "review": "advisory_unless_high",
-                                 "uat": "advisory", "merge": "autonomous"}}, f)
-        if not any("code_grade" in error for error in validator.validate(
-                "harness-code-reviewer", reviewer_digest("fail"), config)):
-            failures.append("fail-plus-PASS must reject")
-        python_diff = f"{PRE_FEATURE_REVISION}..HEAD"
-        if not any("only valid" in error for error in validator.validate(
-                "harness-code-reviewer",
-                reviewer_digest("n_a", reviewed=python_diff), config)):
-            failures.append("n_a with a reviewed Python diff must reject")
-        if validator.validate("harness-code-reviewer", reviewer_digest("n_a"), config):
-            failures.append("n_a with no reviewed Python diff must accept")
+        write_review_config(config, "advisory_unless_high")
+        check_code_grade_state(validator, config, failures)
+        check_reviewed_range(validator, config, td, failures)
+        check_resolve_reviewed_commit_guard(validator, failures)
         guarded = check_review_policy(validator, config, failures)
-        with open(config, "w") as f:
-            json.dump({"gates": {"qa_gate": "blocking", "review": "advisory",
-                                 "uat": "advisory", "merge": "autonomous"}}, f)
-        if validator.validate("harness-code-reviewer", guarded, config):
-            failures.append("advisory must accept the same digest")
-        with open(config, "w") as f:
-            json.dump({}, f)
-        try:
-            validator.validate("harness-code-reviewer", guarded, config)
-            failures.append("missing gates must raise")
-        except ValueError as error:
-            if "gates" not in str(error):
-                failures.append("missing gates error must name gates")
+        check_config_errors(validator, config, guarded, failures)
         check_prior_validator(td, guarded, failures)
     if failures:
         print("FAIL  code-grade and review-policy gates")

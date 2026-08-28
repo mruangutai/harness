@@ -29,6 +29,7 @@ import sys, re, os, json, subprocess
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import harness_boundary
 import harness_yaml
+from code_grade import commit_oid
 from gate_policy import GatePolicyError, evaluate_review, load_policy
 
 VERDICTS = {"PASS", "FAIL", "BLOCKED", "ESCALATE"}
@@ -537,19 +538,31 @@ def parse_digest(text):
     return out
 
 
+def resolve_reviewed_commit(revision):
+    """Resolve an untrusted review revision to a commit OID before using Git."""
+    try:
+        return commit_oid(".", revision).encode()
+    except ValueError:
+        return None
+
+
 def reviewed_python_change(reviewed):
     """Return whether the review range changes Python, or a blocking range error."""
     if not isinstance(reviewed, str) or reviewed.count("..") != 1:
-        return None, "reviewed must name exactly one base..head range."
+        return None, "reviewed range must name exactly one base..head range."
     base, head = (part.strip() for part in reviewed.split(".."))
     if not base or not head:
-        return None, "reviewed must name non-empty base and head revisions."
+        return None, "reviewed range must name non-empty base and head revisions."
+    base_oid = resolve_reviewed_commit(base)
+    head_oid = resolve_reviewed_commit(head)
+    if base_oid is None or head_oid is None:
+        return None, "reviewed range could not be resolved to commit revisions."
     result = subprocess.run(
-        ["git", "diff", "--name-only", "-z", base, head],
+        ["git", "diff", "--name-only", "-z", base_oid, head_oid, "--"],
         capture_output=True,
     )
     if result.returncode:
-        return None, "reviewed range could not be resolved for code-grade enforcement."
+        return None, "reviewed range could not be diffed for code-grade enforcement."
     return any(path.endswith(b".py") for path in result.stdout.split(b"\0") if path), None
 
 
@@ -561,7 +574,8 @@ def validate(persona, text, config_path=None):
     if schema is None:
         return [f"unknown persona {persona!r} — cannot validate; refusing to pass it."]
     if raw_persona == "harness-code-reviewer":
-        schema = {**schema, "code_grade": {"pass", "fail", "n_a"}, "reviewed": str}
+        schema = {**schema, "code_grade": {"pass", "fail", "grade_2", "n_a"},
+                  "reviewed": str}
 
     # Echo-shadowing fix (BUILD task 22 follow-up): agents sometimes echo the
     # harness-handoff template (a schema-valid VERDICT/DIGEST block) before their
@@ -755,6 +769,12 @@ def validate(persona, text, config_path=None):
                 err.append(range_error)
             elif python_changed:
                 err.append("code_grade='n_a' is only valid when the reviewed diff has no Python file.")
+        if code_grade == "grade_2":
+            reasons = seen.get("grade_2_reasons")
+            if not isinstance(reasons, list) or not reasons \
+                    or not all(isinstance(reason, str) and reason.strip()
+                               for reason in reasons):
+                err.append("code_grade='grade_2' requires non-empty grade_2_reasons.")
         if code_grade == "fail" and m and m.group(1) == "PASS":
             err.append("code_grade='fail' reports a gate as FAILED, but VERDICT is PASS — "
                        "a gate that failed cannot have passed.")

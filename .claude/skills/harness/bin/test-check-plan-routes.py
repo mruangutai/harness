@@ -1396,67 +1396,68 @@ def write_prior_route_validator(directory):
             f.write(source)
 
 
+def _owner_branch(directory):
+    owner = os.path.join(directory, "owner")
+    branch = os.path.join(owner, ".claude", "worktrees", "feature")
+    gitdir = os.path.join(owner, ".git", "worktrees", "feature")
+    os.makedirs(gitdir, exist_ok=True)
+    os.makedirs(branch, exist_ok=True)
+    with open(os.path.join(branch, ".git"), "w") as stream:
+        stream.write(f"gitdir: {gitdir}\n")
+    _yaml_project(branch, files=GRANTED_PATH)
+    return owner, branch
+
+
+def _case_27_owner_manifest(directory):
+    owner, branch = _owner_branch(directory)
+    os.makedirs(os.path.join(owner, ".harness"), exist_ok=True)
+    owner_manifest = os.path.join(owner, ".harness", "team-config.yaml")
+    with open(owner_manifest, "w") as stream:
+        stream.write("agents: {}\n")
+    owner_bin = os.path.join(owner, ".claude", "skills", "harness", "bin")
+    os.makedirs(owner_bin)
+    owner_resolver = os.path.join(owner_bin, "check-domain.sh")
+    with open(owner_resolver, "w") as stream:
+        stream.write("#!/bin/sh\nprintf '%s\\n' harness-frontend-dev\n")
+    os.chmod(owner_resolver, 0o755)
+    result = run(project_dir=branch)
+    branch_manifest = os.path.join(branch, ".harness", "team-config.yaml")
+    output = result.stdout + result.stderr
+    check(
+        "case_27a_owner_manifest_controls_routes",
+        result.returncode != 0 and f"MANIFEST {os.path.realpath(owner_manifest)}" in output
+        and f"DEVIATION {branch_manifest}" in output
+        and "OK T-01 granted to harness-frontend-dev" in output,
+        f"exit {result.returncode}: {output[:500]!r}",
+    )
+    prior_bin = os.path.join(directory, "prior-bin")
+    os.makedirs(prior_bin)
+    write_prior_route_validator(prior_bin)
+    prior = run(project_dir=branch, script=os.path.join(prior_bin, "check-plan-routes.py"))
+    check(
+        "case_27b_prior_revision_false_ok",
+        prior.returncode == 0 and "OK T-01" in prior.stdout,
+        f"exit {prior.returncode}: {(prior.stdout + prior.stderr)[:500]!r}",
+    )
+
+
+def _case_27_unreadable(directory):
+    owner, branch = _owner_branch(directory)
+    result = run(project_dir=branch)
+    output = result.stdout + result.stderr
+    check(
+        "case_27c_unreadable_owner_manifest_refuses",
+        result.returncode == 2 and "owner manifest" in output,
+        f"exit {result.returncode}: {output[:500]!r}",
+    )
+
+
 def case_27():
     """(27) Routes use the owner manifest that the write hook will consult."""
-    with tempfile.TemporaryDirectory() as td:
-        owner = os.path.join(td, "owner")
-        branch = os.path.join(owner, ".claude", "worktrees", "feature")
-        gitdir = os.path.join(owner, ".git", "worktrees", "feature")
-        os.makedirs(gitdir, exist_ok=True)
-        os.makedirs(branch, exist_ok=True)
-        with open(os.path.join(branch, ".git"), "w") as f:
-            f.write(f"gitdir: {gitdir}\n")
-        _yaml_project(branch, files=GRANTED_PATH)
-        os.makedirs(os.path.join(owner, ".harness"), exist_ok=True)
-        owner_manifest = os.path.join(owner, ".harness", "team-config.yaml")
-        with open(owner_manifest, "w") as f:
-            f.write("agents: {}\n")
-        owner_bin = os.path.join(owner, ".claude", "skills", "harness", "bin")
-        os.makedirs(owner_bin)
-        owner_resolver = os.path.join(owner_bin, "check-domain.sh")
-        with open(owner_resolver, "w") as f:
-            f.write("#!/bin/sh\nprintf '%s\\n' harness-frontend-dev\n")
-        os.chmod(owner_resolver, 0o755)
-
-        result = run(project_dir=branch)
-        branch_manifest = os.path.join(branch, ".harness", "team-config.yaml")
-        output = result.stdout + result.stderr
-        check(
-            "case_27a_owner_manifest_controls_routes",
-            result.returncode != 0
-            and f"MANIFEST {os.path.realpath(owner_manifest)}" in output
-            and f"DEVIATION {branch_manifest}" in output
-            and "OK T-01 granted to harness-frontend-dev" in output,
-            f"exit {result.returncode}: {output[:500]!r}",
-        )
-
-        prior_bin = os.path.join(td, "prior-bin")
-        os.makedirs(prior_bin)
-        write_prior_route_validator(prior_bin)
-        prior = run(project_dir=branch,
-                    script=os.path.join(prior_bin, "check-plan-routes.py"))
-        check(
-            "case_27b_prior_revision_false_ok",
-            prior.returncode == 0 and "OK T-01" in prior.stdout,
-            f"exit {prior.returncode}: {(prior.stdout + prior.stderr)[:500]!r}",
-        )
-
-    with tempfile.TemporaryDirectory() as td:
-        owner = os.path.join(td, "owner")
-        branch = os.path.join(owner, ".claude", "worktrees", "feature")
-        gitdir = os.path.join(owner, ".git", "worktrees", "feature")
-        os.makedirs(gitdir, exist_ok=True)
-        os.makedirs(branch, exist_ok=True)
-        with open(os.path.join(branch, ".git"), "w") as f:
-            f.write(f"gitdir: {gitdir}\n")
-        _yaml_project(branch, files=GRANTED_PATH)
-        result = run(project_dir=branch)
-        output = result.stdout + result.stderr
-        check(
-            "case_27c_unreadable_owner_manifest_refuses",
-            result.returncode == 2 and "owner manifest" in output,
-            f"exit {result.returncode}: {output[:500]!r}",
-        )
+    with tempfile.TemporaryDirectory() as directory:
+        _case_27_owner_manifest(directory)
+    with tempfile.TemporaryDirectory() as directory:
+        _case_27_unreadable(directory)
 
 
 def main():

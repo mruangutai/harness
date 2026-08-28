@@ -21,6 +21,11 @@ def _git_root(directory):
     return Path(result.stdout.strip()).resolve()
 
 
+
+def _display_path(path):
+    return json.dumps(path, ensure_ascii=True)
+
+
 def _git_text(root, *args):
     result = subprocess.run(["git", "-C", str(root), *args], text=True, capture_output=True)
     if result.returncode:
@@ -50,10 +55,12 @@ def _is_test(root, relative):
 def _record(grade, root):
     bar = 3 if _is_test(root, grade.path) else 4
     severity = {1: "high", 2: "med"}.get(grade.grade)
-    return {"path": grade.path, "line": grade.lineno, "qualname": grade.qualname,
-            "cyclomatic": grade.cyclomatic, "cognitive": grade.cognitive,
-            "cognitive_method": "Sonar-style approximation", "abc": grade.abc,
-            "grade": grade.grade, "driver": grade.driver, "bar": bar, "severity": severity}
+    record = {"path": grade.path, "line": grade.lineno, "qualname": grade.qualname,
+              "cyclomatic": grade.cyclomatic, "cognitive": grade.cognitive,
+              "cognitive_method": "Sonar-style approximation", "abc": grade.abc,
+              "grade": grade.grade, "driver": grade.driver, "bar": bar, "severity": severity}
+    record["result"] = _result(record)
+    return record
 
 
 def _paths_report(root, paths):
@@ -63,7 +70,7 @@ def _paths_report(root, paths):
         try:
             grades = code_grade.grade_source((root / path).read_text(), path)
         except (OSError, SyntaxError) as error:
-            print(f"PARSE ERROR: {path}: {error}", file=sys.stderr)
+            print(f"PARSE ERROR: {_display_path(path)}: {error}", file=sys.stderr)
             ungraded.append(path)
             continue
         records.extend(_record(grade, root) for grade in grades)
@@ -99,7 +106,7 @@ def _diff_report(root, base, head):
         try:
             ast.parse(_git_text(root, "show", f"{head}:{path}"))
         except (SyntaxError, ValueError) as error:
-            print(f"PARSE ERROR: {path}: {error}", file=sys.stderr)
+            print(f"PARSE ERROR: {_display_path(path)}: {error}", file=sys.stderr)
             ungraded.append(path)
     if ungraded:
         return [], ungraded
@@ -107,15 +114,21 @@ def _diff_report(root, base, head):
     return [_record(grade, root) for grade in gated], []
 
 
+
+
+def _result(record):
+    return "PASS" if record["grade"] >= record["bar"] else "FAIL"
+
+
 def _text(records, ungraded):
     lines = []
     for record in records:
-        lines.extend(("FUNCTION", f"PATH: {record['path']}", f"LINE: {record['line']}",
+        lines.extend(("FUNCTION", f"PATH: {_display_path(record['path'])}", f"LINE: {record['line']}",
                       f"QUALNAME: {record['qualname']}", f"CYCLOMATIC: {record['cyclomatic']}",
                       f"COGNITIVE: {record['cognitive']} ({record['cognitive_method']})",
                       f"ABC: {record['abc']:.1f}", f"GRADE: {record['grade']}",
                       f"DRIVER: {record['driver']}", f"BAR: {record['bar']}",
-                      f"RESULT: {'PASS' if record['grade'] >= record['bar'] else 'FAIL'}"))
+                      f"RESULT: {_result(record)}"))
         if record["severity"]:
             lines.append(f"SEVERITY: {record['severity']}")
         if record["grade"] == 2:
@@ -124,14 +137,15 @@ def _text(records, ungraded):
     lines.append(f"PASSING: {sum(record['grade'] >= record['bar'] for record in records)}")
     if ungraded:
         lines.append("UNGRADED:")
-        lines.extend(f"  {path}" for path in ungraded)
+        lines.extend(f"  {_display_path(path)}" for path in ungraded)
     return "\n".join(lines) + "\n"
 
 
 def _status(records, ungraded):
     if ungraded:
         return 3
-    return 1 if any(record["grade"] < record["bar"] for record in records) else 0
+    return 1 if any(record["grade"] < record["bar"] and record["grade"] != 2
+                    for record in records) else 0
 
 
 def main(argv=None):
@@ -145,7 +159,9 @@ def main(argv=None):
         parser.error("provide PATH... or both --base REF and --head REF")
     try:
         root = _git_root(Path.cwd())
-        records, ungraded = (_diff_report(root, args.base, args.head) if args.base else
+        base = code_grade.commit_oid(root, args.base) if args.base else None
+        head = code_grade.commit_oid(root, args.head) if args.head else None
+        records, ungraded = (_diff_report(root, base, head) if base else
                              _paths_report(root, args.paths))
     except ValueError as error:
         parser.error(str(error))

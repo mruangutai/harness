@@ -276,6 +276,22 @@ def grade_source(source_text, path):
     return _records(tree, path)
 
 
+
+
+def commit_oid(repo_root, revision):
+    if not isinstance(revision, str) or revision.startswith("-"):
+        raise ValueError(f"invalid Git commit revision: {revision}")
+    result = subprocess.run(
+        ["git", "-C", str(repo_root), "rev-parse", "--verify", "--end-of-options",
+         f"{revision}^{{commit}}"],
+        text=True,
+        capture_output=True,
+    )
+    if result.returncode:
+        raise ValueError(f"invalid Git commit revision: {revision}")
+    return result.stdout.strip()
+
+
 def _git_output(repo_root, *args):
     result = subprocess.run(
         ["git", "-C", str(repo_root), *args],
@@ -350,12 +366,14 @@ def _pre_images(source_text):
 def gated_set(repo_root, base_ref, head_ref):
     """Return changed functions requiring a gate and changed informational functions."""
     gated = []
+    base_oid = commit_oid(repo_root, base_ref)
+    head_oid = commit_oid(repo_root, head_ref)
     informational = []
-    for path, old_path in _changed_python_files(repo_root, base_ref, head_ref):
-        head_source = _git_show(repo_root, head_ref, path)
-        base_source = _git_show(repo_root, base_ref, path)
+    for path, old_path in _changed_python_files(repo_root, base_oid, head_oid):
+        head_source = _git_show(repo_root, head_oid, path)
+        base_source = _git_show(repo_root, base_oid, path)
         if base_source is None and old_path is not None:
-            base_source = _git_show(repo_root, base_ref, old_path)
+            base_source = _git_show(repo_root, base_oid, old_path)
         before_names, before_hashes = _pre_images(base_source) if base_source else ({}, {})
         head_hashes = _body_hashes(head_source)
         for record in grade_source(head_source, path):
