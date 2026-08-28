@@ -143,6 +143,11 @@ describe("OMP task lifecycle adapter", () => {
       if (script === "dispatch-guard.sh") {
         const task = (payload.tool_input as Record<string, unknown>).task;
         if (task === "deny") return { blocked: true, reason: "denied", stdout: "" };
+        // The guard's FAIL-OPEN shape: exit 0, nothing on stdout. Seven branches of
+        // dispatch-guard.sh return exactly this (:34, :38, :72, :112, :138, :145, :187).
+        // Absent from this fixture, no test could execute the pass-through path and F1
+        // was invisible to a green suite.
+        if (task === "passthrough") return { blocked: false, stdout: "" };
         claim += 1;
         return {
           blocked: false,
@@ -320,5 +325,72 @@ describe("OMP task lifecycle adapter", () => {
     expect(await handlers.get("tool_call")?.({
       toolName: "yield", input: { result: { data: { content: "VERDICT: PASS" } } },
     }, ctx)).toBeUndefined();
+  });
+
+  // --- F1. DEC-100: only exit 2 blocks. Fails on the pre-fix adapter, which read an
+  // absent receipt as a refusal and inverted every fail-open branch into a hard block.
+  test("a guard pass-through with no claim receipt allows the dispatch", async () => {
+    const { handlers } = fixture();
+    await start(handlers);
+    const ctx = { cwd: "/repo", sessionManager: { getSessionId: () => "parent-session" } };
+    expect(await handlers.get("tool_call")?.({
+      toolName: "task",
+      toolCallId: "call-passthrough",
+      input: { agent: "scout", task: "passthrough" },
+    }, ctx)).toBeUndefined();
+  });
+
+  test("a claimless dispatch in a batch does not roll back its siblings' claims", async () => {
+    const { handlers, calls } = fixture();
+    await start(handlers);
+    const ctx = { cwd: "/repo", sessionManager: { getSessionId: () => "parent-session" } };
+    expect(await handlers.get("tool_call")?.({
+      toolName: "task",
+      toolCallId: "call-mixed",
+      input: {
+        context: "shared",
+        tasks: [
+          { agent: "harness-backend-dev", task: "HARNESS-FEATURE: FEAT-43-long-run\nallow" },
+          { agent: "scout", task: "passthrough" },
+        ],
+      },
+    }, ctx)).toBeUndefined();
+    expect(calls.filter((call) =>
+      call.script === "inflight_registry.py" && call.args[0] === "release"
+    )).toHaveLength(0);
+  });
+
+  // --- F2. DEC-204 captures the assignment message, once, as `user`. Both cases below
+  // THROW on the pre-fix adapter, from inside an async pi.on handler.
+  test("a tool result echoing another feature's marker cannot re-key the session", async () => {
+    const { handlers, calls } = fixture();
+    await start(handlers);
+    const ctx = { cwd: "/repo", sessionManager: { getSessionId: () => "parent-session" } };
+    const reconciled = (call: { script: string; args: string[] }) =>
+      call.script === "inflight_registry.py" && call.args[0] === "reconcile";
+    const before = calls.filter(reconciled).length;
+    await handlers.get("message_end")?.({
+      message: {
+        role: "toolResult",
+        content: [{ type: "text", text: "HARNESS-FEATURE: FEAT-99-other-feature\nnotes" }],
+      },
+    }, ctx);
+    expect(calls.filter(reconciled).length).toBe(before);
+  });
+
+  test("a later user message cannot re-key the captured feature", async () => {
+    const { handlers, calls } = fixture();
+    await start(handlers);
+    const ctx = { cwd: "/repo", sessionManager: { getSessionId: () => "parent-session" } };
+    const reconciled = (call: { script: string; args: string[] }) =>
+      call.script === "inflight_registry.py" && call.args[0] === "reconcile";
+    const before = calls.filter(reconciled).length;
+    await handlers.get("message_update")?.({
+      message: {
+        role: "user",
+        content: [{ type: "text", text: "HARNESS-FEATURE: FEAT-99-other-feature\nlater" }],
+      },
+    }, ctx);
+    expect(calls.filter(reconciled).length).toBe(before);
   });
 });

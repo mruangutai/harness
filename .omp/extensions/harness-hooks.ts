@@ -410,6 +410,7 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
   let currentAgent: string | undefined;
   let currentFeature: string | undefined;
   let expertiseInjected = false;
+  let featureCaptured = false;
   let claimsReconciled = false;
   let lastAssistantMessage = "";
   const pendingTaskCalls = new Map<string, ClaimReceipt[]>();
@@ -420,6 +421,7 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
       throw new Error(`conflicting Harness feature markers: ${currentFeature}, ${feature}`);
     }
     currentFeature = feature;
+    featureCaptured = true;
     if (currentAgent && !claimsReconciled) {
       policyRunner(ctx.cwd, "inflight_registry.py", [
         "reconcile",
@@ -428,6 +430,20 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
       ], {});
       claimsReconciled = true;
     }
+  };
+
+  // DEC-204 captures the ASSIGNMENT message — it arrives ONCE, as `user`, before the
+  // first tool call. Nothing after it is an identity source: not this agent's own
+  // output, and above all not a tool result echoing another feature's stored dispatch
+  // or notes, which is routine harness work rather than an attack. Unfiltered and
+  // unbounded, both failure paths are live — an agent on feature A that reads feature
+  // B's notes throws from inside an async pi.on handler, or, if the foreign marker
+  // lands first, reconciles against the WRONG feature's claims.
+  const captureFeatureFromMessage = (candidate: unknown, ctx: { cwd: string }): void => {
+    if (featureCaptured) return;
+    if (!candidate || typeof candidate !== "object") return;
+    if ((candidate as Dict).role !== "user") return;
+    setFeature(detectHarnessFeature([messageText(candidate)]), ctx);
   };
 
   pi.on("before_agent_start", async (event: Dict, ctx: any) => {
@@ -465,7 +481,7 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
     const candidate = event.message && typeof event.message === "object"
       ? event.message
       : event;
-    setFeature(detectHarnessFeature([messageText(candidate)]), ctx);
+    captureFeatureFromMessage(candidate, ctx);
     const found = lastAssistantText([candidate]);
     if (found.trim()) lastAssistantMessage = found;
   });
@@ -474,7 +490,7 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
     const candidate = event.message && typeof event.message === "object"
       ? event.message
       : event;
-    setFeature(detectHarnessFeature([messageText(candidate)]), ctx);
+    captureFeatureFromMessage(candidate, ctx);
     const found = lastAssistantText([candidate]);
     if (found.trim()) lastAssistantMessage = found;
   });
@@ -516,13 +532,20 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
             reason = result.reason || "Harness dispatch policy denied the task.";
             break;
           }
+          // DEC-100: ONLY exit 2 BLOCKS. dispatch-guard.sh exits 0 WITHOUT printing a
+          // receipt on every pass-through branch it has — unreadable payload (:34), a
+          // non-harness dispatcher (:38) or dispatched persona (:72), no checkout root
+          // (:112), inflight_registry unavailable (:138), OMP runtime with no supervisor
+          // pid (:145), and its own internal exception (:187, "passing through, the
+          // dispatch is NOT blocked"). Reading an ABSENT receipt as a refusal inverted
+          // all seven into a hard block: a transient guard fault would halt the very
+          // multi-hour unattended run this feature exists to enable, and dispatching any
+          // non-harness subagent (scout, sonic) was refused outright because the guard
+          // deliberately records no claim for one. Whether a dispatch gets a claim is the
+          // guard's decision; this caller only enforces the refusals the guard declares.
           const receipt = parseClaimReceipt(result.stdout);
-          if (!receipt) {
-            receipts.forEach((created) => releaseClaim(policyRunner, ctx.cwd, created));
-            reason = "Harness dispatch policy returned no claim receipt; the task was not started.";
-            break;
-          }
-          receipts.push(receipt);
+          if (receipt) receipts.push(receipt);
+          else debug(`dispatch-guard allowed ${dispatch.agent} with no claim recorded`);
         }
       }
       if (!reason && receipts.length) {
