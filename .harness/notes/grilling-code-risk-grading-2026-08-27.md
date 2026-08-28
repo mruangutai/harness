@@ -39,8 +39,25 @@ a failing grade routes back to the engineering lead through the fix loop that al
   needs a written reason. Grade 3 and above → no finding.
 - **A failing grade routes back to the engineering lead, and the machinery already exists.** No new
   loop is to be designed.
+- **THE KNOWLEDGE GAP IS TOTAL, AND CLOSING IT IS THE POINT OF THE FEATURE.** The engineering team
+  does not know these patterns today — not one of them. The five dev specialists load exactly five
+  skills: `harness-handoff`, `harness-expertise`, `harness-principles`, `harness-tdd-enforcement`
+  and `harness-digest-dev` (dev-ops has no digest-dev). **None mentions complexity.** Only two
+  skills in the whole repository mention it at all — `harness-codebase-design` and
+  `harness-simplify` — and both use it informally, about module shape rather than per-function
+  metrics. **Neither is loaded by any of the five specialists**; both go to `harness-eng-lead` and
+  `harness-code-reviewer` only. Verified in every agent's frontmatter at `origin/main`.
+
+  **The consequence pm must build to:** the squad is not writing to a standard it half-knows and
+  occasionally forgets. It has never been told the standard exists. So the skill is not a reminder
+  or a reinforcement — it is the ONLY delivery, and if it is thin the team writes exactly as it
+  writes today. **A reviewer reporting a grade the author was never taught to hit is a trap, not a
+  gate.** The skill must land BEFORE the checker gates anything, and it must carry the habits that
+  keep a function at grade 4 — early return over nesting, one loop per function, extract the
+  condition — not just the band numbers.
 - **Delivery is a SKILL, not Expertise.** Expertise is distilled cold after a run; doctrine that
-  applies from day one must arrive at spawn.
+  applies from day one must arrive at spawn. A skill also reaches an agent that has never worked
+  here, which Expertise does not.
 - **Two defects found during FEAT-37 are IN SCOPE here, by operator ruling** — both are checkers
   that report something they do not enforce:
   1. `check-plan-routes.py` validates task routes against the branch's `team-config.yaml`, not the
