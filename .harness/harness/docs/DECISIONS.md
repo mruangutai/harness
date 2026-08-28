@@ -849,11 +849,18 @@ digests do not answer needs one, and then only that lead.
 
 
 
-## DEC-70 — `ai_behavior` becomes a real change type: ai-dev authors the eval, qa owns the gate — SUPERSEDES DEC-37
+## DEC-70 — `ai_behavior` becomes a real change type for prompt, model and tool-integration changes: ai-dev authors the eval, qa owns the gate — SUPERSEDES DEC-37
 
-**Chose:** add `change_type: ai_behavior` with `eval` as a required test kind. `ai-dev` **authors** the
-eval (failure modes, rubric, reference dataset, threshold); `qa` **runs it and owns the gate**;
-`validator-lead` assesses eval *adequacy* in its panel synthesis.
+**Chose:** add `change_type: ai_behavior` with `eval` as a required test kind, **scoped to changes to
+what a model is given or wired to — prompts, model selection and version, and tool integration.**
+`ai-dev` **authors** the eval (failure modes, rubric, reference dataset, threshold); `qa` **runs it and
+owns the gate**; `validator-lead` assesses eval *adequacy* in its panel synthesis.
+**Outside that scope, a change to a markdown playbook an agent preloads is graded by CONDUCT** — a UAT
+criterion reading a real dispatch — rather than by a dataset eval, because for a playbook the dataset
+and the grader come from one hand and no live behaviour is read, so a passing eval reports only that
+those two agree with each other; the reflexive weakness named below is total there, not partial. This
+narrows what `ai_behavior` covers and nothing else — the `eval` kind stays required wherever the scope
+above holds.
 **Over:** DEC-37's declared v1 gap (ai-dev work passing on human judgment alone), and over
 validator-lead auditing evals qualitatively outside the matrix.
 **Because:** it mirrors every other change type — the specialist authors, the validator gates — so an

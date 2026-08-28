@@ -97,6 +97,12 @@
       "squad": "eng",
       "agent": "harness-eng-lead",
       "verdict": "BLOCKED"
+    },
+    {
+      "id": "2026-08-27-01-t09-docs-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "BLOCKED"
     }
   ],
   "github": {
@@ -107,14 +113,16 @@
       "T-02",
       "T-04",
       "T-05",
-      "T-06"
+      "T-06",
+      "T-09"
     ],
     "issues": {
       "T-01": 905,
       "T-02": 906,
       "T-04": 907,
       "T-05": 908,
-      "T-06": 909
+      "T-06": 909,
+      "T-09": 911
     },
     "source_issues": [
       831

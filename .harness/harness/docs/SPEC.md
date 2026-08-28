@@ -1173,11 +1173,14 @@ rejected at source. This covers all 16 agents including the leads, which runner 
 leads have no `Bash` to run a validator with. Advisory-first was considered and rejected: an advisory
 validator is exactly the "looks enforced, isn't" state that produced DEC-110 and DEC-119.
 
-**Enforcement is exactly one rejection deep, not a guarantee of eventual correctness (BUILD task
-22).** `stop_hook_active` is a deliberate pass-through (below), so an agent that ignores the stderr
-feedback and re-emits the identical malformed digest on its second stop is accepted — the platform
-caps this at one wasted turn, not an infinite loop, but "the agent must fix it before it can finish"
-overstated what the mechanism actually does. What it guarantees is narrower and still real: no
+**Enforcement is one rejection per consecutive stop sequence, not a guarantee of eventual
+correctness (BUILD task 22).** `stop_hook_active` is a deliberate pass-through (below), so an agent
+that ignores the stderr feedback and re-emits the identical malformed digest **immediately, in the
+same stop sequence,** is accepted — the platform caps this at one wasted turn, not an infinite loop,
+but "the agent must fix it before it can finish" overstated what the mechanism actually does.
+**The bound is per stop sequence, never once per run (DEC-199).** The hook keeps no state marking a
+return already refused and reads live children fresh, so an agent woken later — by a child's
+completion — is validated again and can be refused again on that wake. What it guarantees is narrower and still real: no
 malformed digest reaches its lead *silently*, and every rejection is visible in the agent's own
 transcript as actionable feedback.
 
@@ -1311,7 +1314,11 @@ with no eval fails the qa gate exactly as a missing unit test does:
 
 | Change type | Required | Notes |
 |---|:---:|---|
-| `ai_behavior` (prompt / model / agent / tool-definition change) | `eval` | plus `unit` for any deterministic scaffolding around it |
+| `ai_behavior` (prompt / model / tool-integration change) | `eval` | plus `unit` for any deterministic scaffolding around it |
+
+**The scope is those three, and no wider (DEC-70).** A change to a markdown playbook an agent
+preloads is graded by **conduct** — a UAT criterion reading a real dispatch — not by a dataset eval,
+because for a playbook the dataset and the grader come from one hand and no live behaviour is read.
 
 ```json
 "ai_behavior": { "always": ["eval"],
