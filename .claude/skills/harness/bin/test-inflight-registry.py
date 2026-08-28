@@ -476,14 +476,28 @@ def case_14_remedy_is_absolute():
     if not has_release_cmd:
         check("case14: remedy_is_absolute - shape check skipped, release_cmd is absent", False, None)
         return
-    cmd = inflight_registry.release_cmd("/some/abs/root", "harness-pm")
+    cmd = inflight_registry.release_cmd("/some/abs/root", "harness-pm", "FEAT-43-alpha")
     check(
         "case14: remedy_is_absolute - the remedy is rooted at the checkout, not a relative CLI path",
         cmd == (
             "python3 /some/abs/root/.agents/skills/harness/bin/inflight_registry.py "
-            "release --agent harness-pm --root /some/abs/root"
+            "release --agent harness-pm --feature FEAT-43-alpha --root /some/abs/root"
         ),
         cmd,
+    )
+    # F5: `feature` is REQUIRED, not defaulted. Both production callers already passed one
+    # (dispatch-guard.sh, validate-digest.py), so the optional default only ever made the
+    # dangerous form — an agent-only release that can take a SIBLING feature's claim — the
+    # easy one for the next caller to reach for.
+    try:
+        inflight_registry.release_cmd("/some/abs/root", "harness-pm")
+        featureless = True
+    except TypeError:
+        featureless = False
+    check(
+        "case14: remedy_is_absolute - a featureless remedy cannot be composed at all",
+        featureless is False,
+        None,
     )
     check(
         "case14: remedy_is_absolute - the remedy names ONE agent, never release-all",
@@ -659,6 +673,130 @@ def case_21_live_query_does_not_expire_another_feature():
     check("case21: unrelated dead feature is left for targeted reconciliation", features == ["FEAT-44-beta"], data)
 
 
+def _rewrite_claims(root, mutate):
+    path = os.path.join(root, inflight_registry.REGISTRY_REL)
+    with open(path, encoding="utf-8") as handle:
+        data = json.load(handle)
+    for claim in data["claims"]:
+        mutate(claim)
+    with open(path, "w", encoding="utf-8") as handle:
+        json.dump(data, handle)
+
+
+def case_22_recycled_supervisor_pid_is_not_alive():
+    """A pid the OS handed to somebody else must not keep a dead claim alive.
+
+    Simulated the only way it can be, by pinning a start time that does not match the
+    live pid — which is exactly what a recycled pid looks like from the registry's side.
+    Before (pid, start time) identity this claim read as live FOREVER: OMP claims have no
+    TTL, so nothing aged it out and `reconcile` kept it too.
+    """
+    root = tempfile.mkdtemp()
+    proc = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"])
+    try:
+        inflight_registry.claim(
+            root, "harness-backend-dev", "harness-eng-lead", root,
+            feature="FEAT-43-alpha", runtime="omp", supervisor_pid=proc.pid,
+        )
+        recorded = _read_raw(root)["claims"][0].get("supervisor_started_at")
+        check("case22: the claim pins the supervisor start time",
+              isinstance(recorded, int), recorded)
+        _rewrite_claims(root, lambda c: c.__setitem__("supervisor_started_at", 1))
+        claim, expired = inflight_registry.live_claim(
+            root, "harness-backend-dev", feature="FEAT-43-alpha"
+        )
+        check("case22: a live pid with a foreign start time is expired, not trusted",
+              claim is None and expired == 1, (claim, expired))
+        check("case22: reconcile also clears it, so recovery does not need the operator",
+              inflight_registry.reconcile(root, feature="FEAT-43-alpha") == 0
+              and _read_raw(root)["claims"] == [], _read_raw(root))
+    finally:
+        proc.terminate()
+        proc.wait()
+
+
+def case_23_verified_claim_never_ages_out():
+    """The point of the pid-owned model: a PROVEN supervisor keeps its claim at any age.
+
+    Guards the backstop against becoming a TTL by the back door — a 7,200s leaf run must
+    not be expired at OMP_UNVERIFIED_TTL_SECONDS when identity is verifiable.
+    """
+    root = tempfile.mkdtemp()
+    proc = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"])
+    try:
+        inflight_registry.claim(
+            root, "harness-backend-dev", "harness-eng-lead", root,
+            feature="FEAT-43-alpha", runtime="omp", supervisor_pid=proc.pid,
+        )
+        ancient = time.time() - (inflight_registry.OMP_UNVERIFIED_TTL_SECONDS * 10)
+        _rewrite_claims(root, lambda c: c.__setitem__("started_at", ancient))
+        claim, expired = inflight_registry.live_claim(
+            root, "harness-backend-dev", feature="FEAT-43-alpha"
+        )
+        check("case23: a verified supervisor keeps its claim at any age",
+              claim is not None and expired == 0, (claim, expired))
+    finally:
+        proc.terminate()
+        proc.wait()
+
+
+def case_24_unverifiable_claim_cannot_strand_forever():
+    """No recorded start time — a pre-fix claim, or an OS that would not report one.
+
+    Identity cannot be proven, so the backstop applies. Without it such a claim outlives
+    every recovery path and refuses its parent's yield through the held-child gate.
+    """
+    root = tempfile.mkdtemp()
+    proc = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"])
+    try:
+        inflight_registry.claim(
+            root, "harness-backend-dev", "harness-eng-lead", root,
+            feature="FEAT-43-alpha", runtime="omp", supervisor_pid=proc.pid,
+        )
+        _rewrite_claims(root, lambda c: c.pop("supervisor_started_at", None))
+        fresh, _ = inflight_registry.live_claim(
+            root, "harness-backend-dev", feature="FEAT-43-alpha"
+        )
+        check("case24: an unverifiable claim is still live inside the backstop",
+              fresh is not None, fresh)
+        _rewrite_claims(root, lambda c: c.__setitem__(
+            "started_at", time.time() - inflight_registry.OMP_UNVERIFIED_TTL_SECONDS - 60))
+        stale, expired = inflight_registry.live_claim(
+            root, "harness-backend-dev", feature="FEAT-43-alpha"
+        )
+        check("case24: past the backstop it expires even though the pid is alive",
+              stale is None and expired == 1, (stale, expired))
+    finally:
+        proc.terminate()
+        proc.wait()
+
+
+def case_25_stranded_child_does_not_hold_its_parent():
+    """The consumer the review panel missed.
+
+    Impact was assessed only against single-flight, which covers ONE persona
+    (SINGLE_FLIGHT_AGENTS == ("harness-pm",)). But validate-digest.py refuses a lead's or
+    orchestrator's yield whenever live_children is non-empty, for EVERY persona — so one
+    stranded claim locked a lead, and then the orchestrator, out of reporting with no way
+    to age out. That is the cascade validate-digest.py:974-976 already describes.
+    """
+    root = tempfile.mkdtemp()
+    proc = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"])
+    try:
+        inflight_registry.claim(
+            root, "harness-backend-dev", "harness-eng-lead", root,
+            feature="FEAT-43-alpha", runtime="omp", supervisor_pid=proc.pid,
+        )
+        held = inflight_registry.live_children(root, "harness-eng-lead", feature="FEAT-43-alpha")
+        check("case25: a genuinely live child DOES hold its parent", len(held) == 1, held)
+        _rewrite_claims(root, lambda c: c.__setitem__("supervisor_started_at", 1))
+        released = inflight_registry.live_children(root, "harness-eng-lead", feature="FEAT-43-alpha")
+        check("case25: a stranded child no longer holds its parent", released == [], released)
+    finally:
+        proc.terminate()
+        proc.wait()
+
+
 def case_10_no_own_primitive():
     path = os.path.join(MODULE_DIR, "inflight_registry.py")
     src = open(path, encoding="utf-8").read()
@@ -697,6 +835,10 @@ def main():
     case_19_attach_and_release_by_runtime_identity()
     case_20_reconcile_only_target_feature()
     case_21_live_query_does_not_expire_another_feature()
+    case_22_recycled_supervisor_pid_is_not_alive()
+    case_23_verified_claim_never_ages_out()
+    case_24_unverifiable_claim_cannot_strand_forever()
+    case_25_stranded_child_does_not_hold_its_parent()
 
     failed = [r for r in RESULTS if not r[1]]
     if failed:

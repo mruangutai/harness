@@ -9,6 +9,7 @@ import datetime
 import json
 import os
 import shlex
+import subprocess
 import sys
 import time
 import uuid
@@ -20,6 +21,13 @@ SINGLE_FLIGHT_AGENTS = ("harness-pm",)
 # Claude Code exposes no durable child-process owner. FEAT-37 deliberately shortened this to one
 # normal PM cycle so an interrupted compatibility-host run does not strand a tier for an hour.
 CLAIM_TTL_SECONDS = 1200
+# An OMP claim is owned by a supervisor process, not by a clock — a verified one is live at
+# ANY age, which is what lets a leaf run for hours. This backstop applies ONLY to a claim
+# whose supervisor identity cannot be PROVEN (no recorded start time, or the OS would not
+# report one). Without it such a claim can never age out, and a stranded one refuses its
+# parent's yield through validate-digest.py's held-child gate forever. Well above the
+# 7,200s longest measured leaf run, so it can never cut short a real agent.
+OMP_UNVERIFIED_TTL_SECONDS = 86400
 LOCK_TIMEOUT_SECONDS = 1.0
 REGISTRY_REL = ".harness/.inflight-claims.json"
 SCHEMA_VERSION = 2
@@ -107,6 +115,73 @@ def _pid_alive(pid):
     return True
 
 
+# Cached for this process only. `_expire` runs per claim on every registry read, and the
+# macOS branch forks `ps`; without this a single dispatch would fork once per claim. A
+# process start time never changes, so a cache that dies with the CLI invocation is safe.
+_START_TIME_CACHE = {}
+
+
+def _process_start_time(pid):
+    """Epoch seconds at which `pid` started, or None when the OS will not say.
+
+    Both branches return ABSOLUTE seconds so the value survives a reboot comparison:
+    ticks-since-boot alone would let a post-reboot pid collide with its pre-reboot self.
+    """
+    if not isinstance(pid, int) or isinstance(pid, bool) or pid <= 0:
+        return None
+    if pid not in _START_TIME_CACHE:
+        _START_TIME_CACHE[pid] = _read_process_start_time(pid)
+    return _START_TIME_CACHE[pid]
+
+
+def _read_process_start_time(pid):
+    try:
+        # Linux. Field 22 of /proc/<pid>/stat is start time in clock ticks since boot.
+        # The comm field is parenthesised and may itself contain spaces, so split after
+        # the LAST ')' rather than on the whole line.
+        with open(f"/proc/{pid}/stat", "rb") as handle:
+            tail = handle.read().rpartition(b")")[2].split()
+        with open("/proc/stat", "rb") as handle:
+            boot = next(l for l in handle if l.startswith(b"btime "))
+        return int(float(boot.split()[1]) + float(tail[19]) / os.sysconf("SC_CLK_TCK"))
+    except Exception:
+        pass
+    try:
+        # macOS and anything else without /proc. One fork per distinct pid per run.
+        out = subprocess.run(["ps", "-o", "lstart=", "-p", str(pid)],
+                             capture_output=True, text=True, timeout=5)
+        line = out.stdout.strip()
+        return int(time.mktime(time.strptime(line, "%a %b %d %H:%M:%S %Y"))) if line else None
+    except Exception:
+        return None
+
+
+def _omp_claim_live(claim, now):
+    """Is this OMP claim still owned by the supervisor that made it?
+
+    IDENTITY IS (pid, start time), NEVER THE PID ALONE. The OS recycles pids, and because
+    this branch has no TTL a recycled one made a dead claim look live FOREVER — not merely
+    stalling single-flight for `harness-pm`, but refusing its parent's yield through
+    validate-digest.py's held-child gate, which locks a lead and then the orchestrator out
+    of reporting exactly as that file's own comment describes. `reconcile` could not clear
+    it either, because it asks this same question and is told the claim is live.
+    """
+    pid = claim.get("supervisor_pid")
+    if not _pid_alive(pid):
+        return False
+    recorded = claim.get("supervisor_started_at")
+    current = _process_start_time(pid)
+    if _is_number(recorded) and _is_number(current):
+        return int(recorded) == int(current)
+    # Identity unproven: fall back to the backstop rather than trusting the pid forever.
+    started = claim.get("started_at")
+    return _is_number(started) and now - started <= OMP_UNVERIFIED_TTL_SECONDS
+
+
+def _is_number(value):
+    return isinstance(value, (int, float)) and not isinstance(value, bool)
+
+
 def _expire(claims, now):
     live = []
     expired = 0
@@ -119,7 +194,7 @@ def _expire(claims, now):
             expired += 1
             continue
         if claim.get("runtime") == "omp":
-            if _pid_alive(claim.get("supervisor_pid")):
+            if _omp_claim_live(claim, now):
                 live.append(claim)
             else:
                 expired += 1
@@ -261,6 +336,12 @@ def claim_with_receipt(
             entry["session"] = session
         if runtime == "omp":
             entry["supervisor_pid"] = supervisor_pid
+            # Pinned at claim time so a later recycled pid can be told apart from this one.
+            # Absent when the OS declines to report it; `_omp_claim_live` then falls back
+            # to OMP_UNVERIFIED_TTL_SECONDS rather than trusting the bare pid.
+            started_at = _process_start_time(supervisor_pid)
+            if started_at is not None:
+                entry["supervisor_started_at"] = started_at
         live.append(entry)
         data["claims"] = live
         return data, dict(entry)
@@ -392,7 +473,7 @@ def reconcile(root, feature=None, now=None):
     return _update_registry(root, mutator)
 
 
-def release_cmd(root, agent, feature=None):
+def release_cmd(root, agent, feature):
     parts = [
         "python3",
         os.path.join(root, ".agents/skills/harness/bin/inflight_registry.py"),
@@ -400,8 +481,7 @@ def release_cmd(root, agent, feature=None):
         "--agent",
         agent,
     ]
-    if feature is not None:
-        parts.extend(["--feature", feature])
+    parts.extend(["--feature", feature])
     parts.extend(["--root", root])
     return " ".join(shlex.quote(part) for part in parts)
 
