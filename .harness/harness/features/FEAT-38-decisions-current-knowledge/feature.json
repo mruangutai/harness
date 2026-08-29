@@ -1,0 +1,14 @@
+{
+  "feature_id": "FEAT-38-decisions-current-knowledge",
+  "branch": "feat/FEAT-38-decisions-current-knowledge",
+  "pr": null,
+  "status": "Plan",
+  "review_sha": "none",
+  "cycles_used": 1,
+  "max_total_cycles": 10,
+  "max_total_runs": 20,
+  "runs": [
+    { "id": "2026-08-24-01-product", "squad": "product", "verdict": "BLOCKED", "agent": "harness-product-lead" },
+    { "id": "2026-08-29-02-product", "squad": "product", "verdict": "PASS", "agent": "harness-product-lead" }
+  ]
+}

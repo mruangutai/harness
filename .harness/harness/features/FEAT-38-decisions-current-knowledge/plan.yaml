@@ -1,0 +1,1574 @@
+schema: plan/1
+feature: FEAT-38-decisions-current-knowledge
+
+source_issues: [615, 78, 686]
+
+approval:
+  status: pending
+  approved_by:
+  date:
+
+lanes:
+  resolved_at: 7ebfc9e
+  rows:
+    - surface: .harness/harness/docs/**
+      lane: team
+      agent: harness-documentor
+    - surface: .harness/harness/expertise/harness-documentor.md
+      lane: team
+      agent: harness-documentor
+    - surface: .claude/skills/harness/bin/**
+      lane: team
+      agent: harness-backend-dev
+    - surface: .harness/harness.json
+      lane: team
+      agent: harness-dev-ops
+    - surface: .github/workflows/tests.yml
+      lane: team
+      agent: harness-dev-ops
+    - surface: .claude/skills/harness/SKILL.md
+      lane: main-session-direct
+      reason: check-domain.sh --resolve returns NOBODY at 7ebfc9e, so no squad may write it
+    - surface: .claude/skills/harness-team/SKILL.md
+      lane: main-session-direct
+      reason: resolves NOBODY
+    - surface: .claude/skills/harness-brief/SKILL.md
+      lane: main-session-direct
+      reason: resolves NOBODY
+    - surface: .claude/skills/harness-init/SKILL.md
+      lane: main-session-direct
+      reason: resolves NOBODY
+    - surface: .claude/skills/harness-wayfinding/SKILL.md
+      lane: main-session-direct
+      reason: resolves NOBODY
+    - surface: .claude/skills/harness/references/**
+      lane: main-session-direct
+      reason: resolves NOBODY
+    - surface: .claude/skills/harness/templates/gitignore.snippet
+      lane: main-session-direct
+      reason: resolves NOBODY
+    - surface: .claude/commands/harness.md
+      lane: main-session-direct
+      reason: resolves NOBODY
+    - surface: .claude/agents/harness-orchestrator.md
+      lane: main-session-direct
+      reason: resolves NOBODY
+    - surface: .omp/agents/harness-orchestrator.md
+      lane: main-session-direct
+      reason: resolves NOBODY
+    - surface: .harness/factory/fleet.yaml
+      lane: main-session-direct
+      reason: resolves NOBODY
+    - surface: CLAUDE.md
+      lane: main-session-direct
+      reason: resolves NOBODY
+    - surface: .gitignore
+      lane: main-session-direct
+      reason: resolves NOBODY
+
+decisions:
+  - id: D-01
+    choice: >-
+      The governing scope is the operator ruling of 2026-08-26, recorded in
+      .harness/notes/triage-decisions-authority-2026-08-26.md section 9: the seven struck entries
+      DEC-103, DEC-104, DEC-137, DEC-140, DEC-186, DEC-192 and DEC-196 are deleted, and DEC-90 alone
+      stays with its strike record.
+    because: >-
+      It answers the same question the 2026-08-24 grilling answered and it answers it later, so it
+      reverses that ruling; DEC-90 is exempted because its successor is a SPEC section rather than a
+      decision and its 18 historical citations sit in signed artifacts.
+    dec: none
+  - id: D-02
+    choice: >-
+      DEC-188's retention clause, the sentence beginning "Struck decisions keep their heading and a
+      strike record.", is struck by DEC-188's own strike procedure and replaced with a narrower rule:
+      a struck decision is deleted only when a named successor exists to repoint its citations to.
+    because: >-
+      The clause forbids D-01 outright, so any agent following decision discipline opens DEC-188 and
+      correctly refuses the deletion; the replacement permits the seven, forbids DEC-90, and is
+      derived from the successor measurement rather than asserted beside it.
+    dec: DEC-188
+  - id: D-03
+    choice: >-
+      DEC-181 is a LIVE decision, not a deletion candidate. Its STRUCK IN PART paragraph is folded as
+      an amendment like any other, and the entry is rewritten to state the live 80-line CLAUDE.md
+      budget as current truth plus one clause that the propagation-checker half no longer exists.
+    because: >-
+      The budget half is enforced in code at check-domain.sh line 1335, so the entry is live; the
+      strike paragraph narrates a different half's history, which is exactly what an amendment is.
+      Without this ruling instruction 4 of issue 78 has no defined behaviour and the sweep stalls.
+    dec: none
+  - id: D-04
+    choice: >-
+      One clause of issue 686 is in scope: the index generator must not emit a refs graph id that has
+      no live DEC heading. The rest of issue 686, the full generation contract, stays out.
+    because: >-
+      DECISIONS-INDEX.md line 206 is DEC-188's row and reads refs DEC-103 DEC-104 DEC-161 DEC-165
+      DEC-181. DEC-188 survives this feature and DEC-103 and DEC-104 are deleted by it, so the
+      feature manufactures two phantom refs in a generated file that cannot be hand-edited. DEC-161
+      is the standing proof: zero headings exist, two rows cite it. Orphan detection sees rows, never
+      refs graphs.
+    dec: none
+  - id: D-05
+    choice: >-
+      .harness/logs/** and .harness/harness/features/** are dated records and are never rewritten,
+      even where they cite a deleted id.
+    because: >-
+      They record what was true on a day; editing them falsifies the record. This is what keeps the
+      citation sweep at 54 sites rather than several hundred.
+    dec: none
+  - id: D-06
+    choice: A deleted decision number is never reused.
+    because: >-
+      Reuse makes every historical citation actively wrong rather than merely dangling, which is
+      strictly worse than the problem deletion solves.
+    dec: none
+  - id: D-07
+    choice: >-
+      Deletion runs BEFORE folding, so amendments owned by deleted entries are never folded. That
+      leaves 29 live amendments, of which the MOOTED DEC-145 am.3 is deleted rather than folded, so
+      28 folds across 14 owner decisions plus DEC-181 equals 15 entries rewritten.
+    because: >-
+      Nine of the 38 amendments belong to DEC-137, DEC-186 and DEC-196. Folding first would spend
+      judgement on text that is about to be deleted, and every intake figure for this work is wrong
+      because it counted before the deletion was in scope.
+    dec: none
+  - id: D-08
+    choice: >-
+      An amendment is attributed to the decision id its own heading DECLARES, never to the span it
+      physically sits in.
+    because: >-
+      DEC-137 amendment 2 sits inside DEC-138's span, DEC-138 amendment 5 through 8 sit inside
+      DEC-168's span, and one DEC-189 amendment 1 sits inside DEC-194's span. A folder walking the
+      file top to bottom would fold four DEC-138 amendments into DEC-168.
+    dec: none
+  - id: D-09
+    choice: >-
+      The anchor check M1 asserts only that the cited file exists and the cited line is within its
+      length. No stored snippets.
+    because: >-
+      Existence plus range already reddens on exactly three sites today with zero authoring cost,
+      and a snippet still cannot see a line that exists and now says something unrelated, which is
+      M2's job. Snippets for 29 anchors buy nothing M2 does not already give.
+    dec: none
+  - id: D-10
+    choice: >-
+      M2's marker is an HTML comment inside a decision body of the form
+      claim, then the command, then a double-colon separator, then the expected stdout substring. The
+      checker refuses any command whose first word is not git or grep, and never uses a shell.
+    because: >-
+      No reusable convention exists: check-docs.sh is absent from the tree and DECISIONS.md carries
+      zero stale markers. An allowlist with no shell keeps a documentation file from becoming an
+      arbitrary code execution surface inside the test suite.
+    dec: none
+  - id: D-11
+    choice: >-
+      The read-back that proves the fold preserved meaning confirms two things per entry, the prior
+      belief and what falsified it. The DATE is deliberately dropped from the prose.
+    because: >-
+      Issue 615 asks for three including the date, and the 2026-08-24 destination forbids dates and
+      attribution in an entry. The date stays recoverable by git log --follow, which is the required
+      form because the file was renamed in FEAT-22 and a plain git log reaches only 8 amendments.
+    dec: none
+  - id: D-12
+    choice: >-
+      Every citation site on a path that check-domain.sh --resolve reports as NOBODY is carved into a
+      single main-session-direct task, declared once in the lanes block above.
+    because: >-
+      A NOBODY path is a violation in check-plan-routes.py under execution_mode team, so routing
+      these to a squad fails the plan gate and the failure would surface mid-build. The
+      2026-08-24 grilling's claim that this feature is entirely squad work is false.
+    dec: DEC-174
+
+tasks:
+  - id: T-01
+    title: Strike DEC-188's retention clause and replace it with the successor-exists rule
+    traces: [REQ-03, REQ-05]
+    change_type: docs
+    execution_mode: team
+    execution_agent: harness-documentor
+    depends_on: []
+    status: pending
+    files:
+      - .harness/harness/docs/DECISIONS.md
+    verify: |
+      cd "$(git rev-parse --show-toplevel)"
+      D=.harness/harness/docs/DECISIONS.md
+      grep -q 'Struck decisions keep their heading and a strike record.' "$D" && exit 1
+      grep -q 'a named successor exists to repoint its citations to' "$D" || exit 1
+      grep -q 'They are not deleted from the file' "$D" && exit 1
+      exit 0
+    intent: |
+      In .harness/harness/docs/DECISIONS.md, inside the entry whose heading begins
+      "## DEC-188 — A contradicted decision is struck, not marked", locate the paragraph that begins
+      with the exact sentence:
+
+        **Struck decisions keep their heading and a strike record.** They are not deleted from the
+        file. A reader who finds `DEC-103` cited in a shipped digest must land somewhere that
+        explains what happened, and an absent entry reads as a broken reference rather than a
+        decision.
+
+      Do NOT search by line number: the paragraph has already drifted from 5942 to 5949 once.
+
+      Strike that paragraph using DEC-188's OWN strike procedure as DEC-188 defines it, and replace it
+      with the narrower rule, written as current truth in the document's own voice, no dates and no
+      attribution:
+
+        A struck decision is DELETED only when a named successor exists for a reader to land on. A
+        successor need not carry the rule forward; it need only explain what happened, which is all
+        the citation ever asked for. Where no successor exists the entry keeps its heading and its
+        strike record, because an absent entry with nowhere to point reads as a broken reference
+        rather than as a decision.
+
+      Then add one clause of current truth recording the boundary the measurement produced, so nobody
+      re-proposes a uniform rule: DEC-90 is the one entry this rule keeps, because its successor is a
+      SPEC section rather than a decision and its historical citations cannot be edited.
+
+      Change nothing else in DEC-188. Its strike procedure, its statement that enforcement is a human
+      reading a diff, and its record that the propagation checker was deleted all stand unmodified.
+
+      This task must land before any entry is deleted. Until it does, an agent following decision
+      discipline will open DEC-188 and correctly refuse every deletion task in this plan.
+
+  - id: T-02
+    title: Rewrite the APPEND-ONLY front-matter mandate, which the fold makes false
+    traces: [REQ-01, REQ-05]
+    change_type: docs
+    execution_mode: team
+    execution_agent: harness-documentor
+    depends_on: []
+    status: pending
+    files:
+      - .harness/harness/docs/DECISIONS.md
+    verify: |
+      cd "$(git rev-parse --show-toplevel)"
+      D=.harness/harness/docs/DECISIONS.md
+      head -12 "$D" | grep -q 'APPEND-ONLY' && exit 1
+      head -12 "$D" | grep -q 'add a new' && exit 1
+      head -20 "$D" | grep -qi 'current' || exit 1
+      exit 0
+    intent: |
+      In .harness/harness/docs/DECISIONS.md, the file's opening blockquote begins:
+
+        > **APPEND-ONLY. Never rewrite or renumber an existing entry.** If a decision changes, add a
+        > new entry that references and supersedes the old one. This is the whole point of the file:
+        > a settled question stays settled, and reversals are visible as reversals rather than as
+        > edits.
+
+      That mandate is the thing this feature ends, so it is rewritten rather than struck. It is NOT a
+      decision entry, so DEC-188's strike procedure does not apply to it and there is no DEC-NN to
+      strike.
+
+      Replace it with a mandate stating the new convention as current truth. It must say all four of:
+
+        1. Every entry states CURRENT truth in its own voice. There are no amendment sub-sections and
+           no dated corrections; a correction rewrites the entry it corrects.
+        2. A claim the tree has since falsified survives as one clause of current truth inside the
+           entry that replaced it, with no date and no attribution, so nobody re-proposes something
+           already measured false.
+        3. The author of a superseding decision DELETES the decision it replaces, in the SAME edit.
+           Writing the replacement and deleting the replaced is one act, so there is never a moment
+           where both exist.
+        4. Numbers are never renumbered and a deleted number is never reused.
+
+      Leave the "Numbering:" paragraph that follows, which distinguishes DEC-NN from D-NN, unchanged
+      except to add that a deleted number is retired rather than reused if that is not already stated
+      by point 4 above.
+
+      History is not lost and the mandate should say where it went: git holds it, and because the
+      file was renamed in FEAT-22 the command is git log --follow on the path, not a plain git log,
+      which reaches only 8 of the amendments this feature folds.
+
+  - id: T-03
+    title: Author the new decision entry that homes every convention this feature establishes
+    traces: [REQ-05, REQ-06, REQ-07, REQ-08]
+    change_type: docs
+    execution_mode: team
+    execution_agent: harness-documentor
+    depends_on: [T-01]
+    status: pending
+    files:
+      - .harness/harness/docs/DECISIONS.md
+    verify: |
+      cd "$(git rev-parse --show-toplevel)"
+      D=.harness/harness/docs/DECISIONS.md
+      N=$(grep -oE '^## DEC-[0-9]+' "$D" | grep -oE '[0-9]+' | sort -n | tail -1)
+      grep -q "^## DEC-$N " "$D" || exit 1
+      B=$(sed -n "/^## DEC-$N /,/^## DEC-$((N+1)) /p" "$D")
+      for s in 'current truth' 'refs' 'anchor' 'claim' 'never reused'; do
+        printf '%s' "$B" | grep -qi "$s" || { echo "missing: $s"; exit 1; }
+      done
+      python3 .claude/skills/harness/bin/gen-decisions-index.py --stdout >/dev/null || exit 1
+      exit 0
+    intent: |
+      Author ONE new entry at the end of .harness/harness/docs/DECISIONS.md, taking the next unused
+      number after the highest ## DEC-NNN heading present when you run. At 7ebfc9e the highest is
+      DEC-204, so the new entry is DEC-205; re-derive it rather than trusting that, because another
+      feature may have landed an entry first.
+
+      This entry is the ONLY home these conventions have. Verified at 7ebfc9e: the amendment
+      convention is written down nowhere in the tree - not in SPEC.md, not in the documentor's agent
+      file, not in any skill. It exists only in the generator's regexes, which this feature deletes.
+      Written as current truth, no dates, no attribution, it must state all six rules:
+
+        1. THE AMENDMENT CONVENTION IS ENDED. An entry states current truth directly. A correction
+           rewrites the entry it corrects. A falsified claim survives as one clause of current truth
+           so it cannot be re-proposed as new. The cost is recorded honestly: dated reasoning about
+           how a decision CHANGED is recoverable only from git log --follow on the path, and for one
+           block, the former DEC-145 am.3, the reasoning existed only in the file because its
+           authoring commit message is an unrelated write-up. That was accepted on 2026-08-20 as a
+           fair price.
+
+        2. SUPERSESSION IS DELETION. The author of a superseding decision deletes the decision it
+           replaces in the same edit. There is no SUPERSEDED BY marker and no code that can emit one.
+           Nine superseded entries had accumulated precisely because the deletion was somebody
+           else's later problem.
+
+        3. A STRUCK DECISION IS DELETED only when a named successor exists to repoint its citations
+           to. State that this is DEC-188's rule as amended by this feature and do not restate its
+           reasoning here - one statement, one home.
+
+        4. A DELETED NUMBER IS NEVER REUSED. Reuse makes every historical citation actively wrong
+           rather than merely dangling.
+
+        5. THE INDEX GENERATION CONTRACT, one clause only: a refs graph entry naming a DEC with no
+           live heading is never emitted. State the evidence, because it is the whole reason the
+           clause exists: DEC-161 was deleted outright, zero ## DEC-161 headings exist, and
+           DECISIONS-INDEX.md still carried DEC-161 in the refs graph of two rows, regenerated on
+           every run, because the generator scraped the id from the sentences describing the
+           deletion. Orphan detection guards a ROW whose entry is gone; it never looked at a refs
+           graph. Note that this is one clause of issue 686 and that the rest of that ticket, the
+           full generation contract, is deliberately not settled here.
+
+        6. TWO MECHANICAL CHECKS GUARD THE FILE.
+           a. ANCHOR ROT: every file-and-line anchor cited in DECISIONS.md must name a file that
+              exists and a line within its length. Record that this is deliberately existence plus
+              range and NOT a stored snippet: at 7ebfc9e it already catches three anchors naming
+              feature.yaml, a file DEC-191 renamed to feature.json, at zero authoring cost, and a
+              snippet cannot see a line that still exists and now says something unrelated.
+           b. EXECUTABLE CLAIMS: where an entry states something a command can check, it records the
+              command and the expected result in an HTML comment marker of the form
+              claim, command, a double-colon separator, then the expected stdout substring, and a
+              checker re-runs every marker in the suite. Record the safety boundary as part of the
+              rule: the checker refuses any command whose first word is not git or grep and never
+              invokes a shell, because a documentation file must not become an arbitrary code
+              execution surface inside the test suite.
+
+      Also record what was considered and REFUSED, so a future scan does not re-suggest it: a
+      referenced-file watch (M3) hands over a review list without proving anything, and a periodic
+      LLM audit of design claims (M4) decays the moment code moves, so it is a one-time sweep rather
+      than a gate. Neither becomes cheap merely because the entries are open, which is the whole
+      reason the two above are in.
+
+      Do not delete or edit any other entry in this task.
+
+  - id: T-04
+    title: Delete DEC-140, the free deletion, as the first test of T-01 and T-03 together
+    traces: [REQ-03]
+    change_type: docs
+    execution_mode: team
+    execution_agent: harness-documentor
+    depends_on: [T-01, T-03]
+    status: pending
+    files:
+      - .harness/harness/docs/DECISIONS.md
+    verify: |
+      cd "$(git rev-parse --show-toplevel)"
+      D=.harness/harness/docs/DECISIONS.md
+      grep -qE '^## DEC-140 ' "$D" && exit 1
+      grep -qE 'DEC-140([^0-9]|$)' "$D" && exit 1
+      grep -qE '^## DEC-90 — STRUCK' "$D" || exit 1
+      G="$(python3 .claude/skills/harness/bin/gen-decisions-index.py --stdout 2>&1 >/dev/null)"
+      printf '%s\n' "$G" | grep -q '^ORPHAN: DEC-140 ' || { echo 'no ORPHAN for DEC-140'; exit 1; }
+      printf '%s\n' "$G" | grep -vE '^ORPHAN: DEC-[0-9]+ ' | grep -q . && { echo 'non-orphan generator failure'; exit 1; }
+      exit 0
+    intent: |
+      Delete the entire entry beginning "## DEC-140 — STRUCK 2026-08-24" from
+      .harness/harness/docs/DECISIONS.md, from its heading through to the horizontal rule preceding
+      the next ## DEC- heading.
+
+      DEC-140 is the cheapest possible deletion and it is deliberately first. Measured at 7ebfc9e:
+      it has SEVEN citations in total, of which four are inside DECISIONS.md itself and three are in
+      the generated index. ZERO are external. Deleting it exercises T-01's new rule and T-03's new
+      entry end to end while risking nothing.
+
+      Also remove the four in-file citations of DEC-140 that this deletion would orphan: grep the
+      file for DEC-140 with a numeric boundary, and in each surviving entry that mentions it, rewrite
+      the sentence to state the current rule directly rather than by reference. Do not leave a
+      tombstone line and do not leave a strike record: DEC-140 needs no successor because nothing
+      cites it, which is exactly the case T-01's rule is written to permit.
+
+      Do NOT touch DEC-90. It stays with its heading and its strike record, and it is the one
+      recorded exception in this feature.
+
+      Do not regenerate the index in this task - T-11 owns that, after the generator changes land.
+
+      THE GENERATOR EXITS 1 HERE AND THAT IS CORRECT. DECISIONS-INDEX.md is not regenerated in this
+      task, so once DEC-140's heading is gone its index row is an orphan and orphan detection is a
+      hard error. This task's verify therefore asserts the SHAPE of that failure: an ORPHAN line
+      naming DEC-140 must be present - it is the positive control proving the heading really went -
+      and no stderr line that is not an ORPHAN line may appear. Do not hand-edit DECISIONS-INDEX.md
+      to silence it; the file is generated and T-11 owns the regeneration.
+
+  - id: T-05
+    title: Delete the six remaining struck entries with successors and repoint their in-docs citations
+    traces: [REQ-03, REQ-04]
+    change_type: docs
+    execution_mode: team
+    execution_agent: harness-documentor
+    depends_on: [T-04, T-06]
+    status: pending
+    files:
+      - .harness/harness/docs/DECISIONS.md
+      - .harness/harness/docs/SPEC.md
+      - .harness/harness/docs/BUILD.md
+    verify: |
+      cd "$(git rev-parse --show-toplevel)"
+      for n in 103 104 137 186 192 196; do
+        grep -qE "^## DEC-$n " .harness/harness/docs/DECISIONS.md && { echo "kept DEC-$n"; exit 1; }
+        for f in .harness/harness/docs/DECISIONS.md .harness/harness/docs/SPEC.md \
+                 .harness/harness/docs/BUILD.md; do
+          grep -qE "DEC-$n([^0-9]|$)" "$f" && { echo "cites DEC-$n in $f"; exit 1; }
+        done
+      done
+      grep -qE '^## DEC-90 — STRUCK' .harness/harness/docs/DECISIONS.md || exit 1
+      G="$(python3 .claude/skills/harness/bin/gen-decisions-index.py --stdout 2>&1 >/dev/null)"
+      for n in 103 104 137 186 192 196; do
+        printf '%s\n' "$G" | grep -q "^ORPHAN: DEC-$n " || { echo "no ORPHAN for DEC-$n"; exit 1; }
+      done
+      printf '%s\n' "$G" | grep -vE '^ORPHAN: DEC-[0-9]+ ' | grep -q . && { echo 'non-orphan generator failure'; exit 1; }
+      exit 0
+    intent: |
+      Delete these six entries in full from .harness/harness/docs/DECISIONS.md, each from its
+      "## DEC-NNN — STRUCK" heading through the horizontal rule before the next ## DEC- heading:
+      DEC-103, DEC-104, DEC-137, DEC-186, DEC-192, DEC-196.
+
+      Each is deleted because a named successor exists for a reader to land on, per the rule T-01
+      installed. The successor for each, verified at 7ebfc9e, is:
+
+        DEC-103 -> DEC-188, whose own body says "DEC-103 and DEC-104 are struck"
+        DEC-104 -> DEC-188, same sentence
+        DEC-137 -> DEC-162, whose glossary half carries it: "DEC-162 and its INV-19 hold"
+        DEC-186 -> DEC-203
+        DEC-192 -> DEC-203
+        DEC-196 -> DEC-203
+
+      DEC-90 is NOT deleted. Do not touch it.
+
+      Deleting DEC-137, DEC-186 and DEC-196 also deletes NINE amendments with them: DEC-137's own
+      amendment, the block titled "### DEC-137 amendment 2" which physically sits inside DEC-138's
+      span, DEC-186's three sub-sections, and DEC-196's four bold-inline amendments. Delete all nine.
+      Do not fold them - they belong to entries that are going. Deleting before folding is why T-08
+      folds 28 amendments and not 38.
+
+      Then repoint every citation of the six across the three files in this task's file list. Grep
+      each id with a numeric boundary so DEC-19 does not match DEC-193. Repointing means rewriting
+      the sentence to state the current rule and cite the successor, NEVER a mechanical id swap: the
+      measured sites include DEC-192's "there is no phase key" at SPEC.md line 1875, DEC-137's two
+      codebase-map rows in BUILD.md around lines 204 and 208, and DEC-104 at SPEC.md line 45. Read
+      each one and write what is true now.
+
+      Do NOT edit anything under .harness/harness/features/ or .harness/logs/. Those are dated
+      records; a citation inside one is correct for the day it records.
+
+      Script-side citations are T-12's, T-13's and T-14's. Do not reach into them.
+
+      THE GENERATOR EXITS 1 HERE AND THAT IS CORRECT. DECISIONS-INDEX.md is not regenerated until
+      T-11, so each entry you delete leaves an orphan index row and orphan detection is a hard error.
+      The verify asserts the shape of that failure instead of exit 0: an ORPHAN line for each of your
+      six ids must be present, and no non-ORPHAN stderr line may appear. Lines for the ids T-04 and
+      T-07 delete may also appear and are permitted. Never hand-edit the generated index to silence
+      it.
+
+  - id: T-06
+    title: Remove the supersession machinery from the generator and stop emitting phantom refs
+    traces: [REQ-01, REQ-04, REQ-06]
+    change_type: logic
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: []
+    status: pending
+    files:
+      - .claude/skills/harness/bin/gen-decisions-index.py
+      - .claude/skills/harness/bin/test-gen-decisions-index.py
+    verify: |
+      cd "$(git rev-parse --show-toplevel)"
+      G=.claude/skills/harness/bin/gen-decisions-index.py
+      for s in SUPERSESSION_VERB_RE BODY_SUPERSESSION_RE compute_supersession_target \
+               superseded_by 'SUPERSEDED BY'; do
+        grep -q "$s" "$G" && { echo "still present: $s"; exit 1; }
+      done
+      grep -q 'def compute_amendments' "$G" || exit 1
+      python3 .claude/skills/harness/bin/test-gen-decisions-index.py > /tmp/t06.out 2>&1
+      grep -q '^ok - test_orphaned_ruling_is_reported_not_silently_dropped$' /tmp/t06.out || exit 1
+      grep -q '^FAIL - test_committed_index_matches_a_fresh_regeneration' /tmp/t06.out || exit 1
+      grep '^FAIL' /tmp/t06.out \
+        | grep -vE 'test_committed_index_(matches_a_fresh_regeneration|is_complete_and_within_budget)' \
+        && exit 1
+      exit 0
+    intent: |
+      Two changes to .claude/skills/harness/bin/gen-decisions-index.py, plus their tests.
+
+      CHANGE 1 - delete the supersession machinery entirely. Locate each construct BY NAME, not by
+      line number:
+
+        SUPERSESSION_VERB_RE          - the module-level regex on SUPERSEDES, CORRECTS, INVERTS
+        BODY_SUPERSESSION_RE          - the module-level body-prose regex
+        compute_supersession_target   - the whole function
+        the superseded_by dict, its construction loop, and the call to compute_supersession_target
+        the clause that appends an em-dash SUPERSEDED BY DEC-N suffix to the TARGET's row
+        the strip-before-cap step that removes a trailing SUPERSEDED BY clause before the 30-word
+        ruling cap is measured
+        the line in HEADER that reads "A row ending `— SUPERSEDED BY DEC-NN` is one you must not act
+        on."
+
+      KEEP orphan detection - an index row whose DEC has no live heading remains a HARD ERROR. It is
+      the guard that makes a partial deletion impossible to ship silently, and this feature deletes
+      15 entries. Do not weaken it.
+
+      KEEP the ok-stale handling and compute_amendments untouched. The amendment machinery is T-10's,
+      and removing it here would break the index regeneration that T-05 and T-07 depend on.
+
+      Delete from .claude/skills/harness/bin/test-gen-decisions-index.py: the whole case
+      test_supersession_declared_in_body_prose_is_harvested and its entry in the runner list at the
+      bottom of the file, the strip_ruling_prose helper whose docstring begins "Drop all trailing",
+      and the strip step inside the word-cap and char-floor case
+      test_committed_index_is_complete_and_within_budget so that it measures the raw ruling. Remove
+      every remaining mention of SUPERSEDED from that file, including in comments and failure
+      messages. Do NOT delete test_orphaned_ruling_is_reported_not_silently_dropped.
+
+      CHANGE 2 - the refs graph must never name a DEC with no live heading. Today it does, and this
+      feature makes it worse in a way that cannot be hand-corrected because the index is generated:
+
+        Standing defect at 7ebfc9e: zero ## DEC-161 headings exist, yet DECISIONS-INDEX.md lines 123
+        and 206 both carry DEC-161 in refs, because the generator scrapes the id out of the sentences
+        that DESCRIBE its deletion.
+
+        Manufactured by this feature: line 206 is DEC-188's row and reads
+        refs: DEC-103 DEC-104 DEC-161 DEC-165 DEC-181. DEC-188 SURVIVES and DEC-103 and DEC-104 are
+        deleted by T-05, so after T-05 that row cites two entries that do not exist.
+
+      Filter the refs graph against the set of live ## DEC-NNN headings the generator already
+      harvests, dropping any id not in it. Orphan detection covers ROWS; it has never looked at a
+      refs graph, which is why this is unguarded rather than merely unfixed.
+
+      Add one test case to test-gen-decisions-index.py that proves it, against a SYNTHETIC fixture
+      built in the test, never against the live document: a fixture whose entry body cites a DEC id
+      with no heading in that fixture must produce a row whose refs graph omits that id, and the same
+      fixture with the heading present must include it. Both directions, so the filter cannot pass by
+      dropping everything. Register the new case in the runner list at the bottom of the file.
+
+      Baseline to beat, measured at 7ebfc9e: 10 ok, 0 FAIL, and
+      gen-decisions-index.py --stdout diffed clean against the committed index.
+
+      TWO CASES GO RED HERE BY CONSTRUCTION AND YOU DO NOT FIX THEM.
+      test_committed_index_matches_a_fresh_regeneration diffs the committed DECISIONS-INDEX.md
+      against a fresh generation; you remove both the SUPERSEDED BY row suffix and the HEADER line
+      describing it, so the committed file can no longer be reproduced. That case going red is this
+      task's positive control, and the verify asserts it.
+      test_committed_index_is_complete_and_within_budget loses the strip-before-cap helper you are
+      told to delete, and three committed rulings then exceed the 30-word cap: DEC-37 at 33 words,
+      DEC-102 at 34 and DEC-92 at 36, measured at 7ebfc9e. T-11 owns regenerating the index and
+      rewriting those rulings, and T-11's verify is where both cases must be green. The verify here
+      excludes exactly those two case names and asserts no other FAIL line. Do not regenerate the
+      index, do not relax the cap, and do not exit on the suite's own status.
+
+  - id: T-07
+    title: Delete the eight superseded entries
+    traces: [REQ-01, REQ-04]
+    change_type: docs
+    execution_mode: team
+    execution_agent: harness-documentor
+    depends_on: [T-06]
+    status: pending
+    files:
+      - .harness/harness/docs/DECISIONS.md
+      - .harness/harness/docs/SPEC.md
+      - .harness/harness/docs/BUILD.md
+    verify: |
+      cd "$(git rev-parse --show-toplevel)"
+      for n in 19 20 37 67 82 88 92 102; do
+        grep -qE "^## DEC-$n " .harness/harness/docs/DECISIONS.md && { echo "kept $n"; exit 1; }
+        for f in .harness/harness/docs/DECISIONS.md .harness/harness/docs/SPEC.md \
+                 .harness/harness/docs/BUILD.md; do
+          grep -qE "DEC-$n([^0-9]|$)" "$f" && { echo "cites DEC-$n in $f"; exit 1; }
+        done
+      done
+      G="$(python3 .claude/skills/harness/bin/gen-decisions-index.py --stdout 2>&1 >/dev/null)"
+      for n in 19 20 37 67 82 88 92 102; do
+        printf '%s\n' "$G" | grep -q "^ORPHAN: DEC-$n " || { echo "no ORPHAN for DEC-$n"; exit 1; }
+      done
+      printf '%s\n' "$G" | grep -vE '^ORPHAN: DEC-[0-9]+ ' | grep -q . && { echo 'non-orphan generator failure'; exit 1; }
+      exit 0
+    intent: |
+      Delete these eight entries in full from .harness/harness/docs/DECISIONS.md, each from its
+      ## DEC-NN heading through the horizontal rule before the next ## DEC- heading, and repoint
+      every citation of them inside the three files listed:
+
+        DEC-19  -> DEC-85     DEC-20  -> DEC-63
+        DEC-37  -> DEC-70     DEC-67  -> DEC-86
+        DEC-82  -> DEC-83     DEC-88  -> DEC-95
+        DEC-92  -> DEC-99     DEC-102 -> DEC-120
+
+      DEC-19's target is DEC-85, NOT DEC-84. The 2026-08-24 grilling note says DEC-84 and is wrong:
+      DECISIONS-INDEX.md line 38 reads "— SUPERSEDED BY DEC-85", and DEC-84 appears in the same row's
+      refs graph, which is what was mistaken for the target. Do not propagate DEC-84.
+
+      Note before you start: DECISIONS.md contains ZERO literal "SUPERSEDED" text. Every marker you
+      have seen is DERIVED by the generator from entry titles and body prose. So there is no marker to
+      delete inside these entries - you are deleting whole entries, and the markers vanish when T-11
+      regenerates the index against a generator that no longer computes them.
+
+      Repointing is a REWRITE, never an id swap. Two of these ids are cited for a PATTERN rather than
+      for their holding - DEC-19 is cited across the tree as the name for "an unenforced write path
+      around a guarded surface", not for its literal check-domain.sh path globs. Where a sentence uses
+      the id that way, state the pattern in words and cite the successor only if the successor
+      actually carries it. If neither works, state the rule directly with no citation at all; a
+      sentence that stands on its own is better than a pointer to a decision that never held the
+      claim.
+
+      Do NOT edit anything under .harness/harness/features/ or .harness/logs/ (D-05). Script-side
+      citations belong to T-12, T-13 and T-14.
+
+      THE GENERATOR EXITS 1 HERE AND THAT IS CORRECT. DECISIONS-INDEX.md is not regenerated until
+      T-11, so each of your eight deletions leaves an orphan index row and orphan detection is a hard
+      error. The verify asserts the shape of that failure rather than exit 0: an ORPHAN line for each
+      of your eight ids, and no non-ORPHAN stderr line. Lines for the ids T-04 and T-05 delete may
+      also appear and are permitted. Never hand-edit the generated index to silence it.
+
+  - id: T-08
+    title: Fold the 28 live amendments into their 14 owner decisions
+    traces: [REQ-01, REQ-02]
+    change_type: docs
+    execution_mode: team
+    execution_agent: harness-documentor
+    depends_on: [T-02, T-05, T-07]
+    status: pending
+    files:
+      - .harness/harness/docs/DECISIONS.md
+    verify: |
+      cd "$(git rev-parse --show-toplevel)"
+      D=.harness/harness/docs/DECISIONS.md
+      grep -qE '^###[[:space:]]+DEC-[0-9]+[[:space:]]+amendment' "$D" && exit 1
+      grep -qE '^\*\*Amendment' "$D" && exit 1
+      grep -qE 'am\.[0-9]' "$D" && exit 1
+      grep -qi 'MOOTED' "$D" && exit 1
+      for n in 11 138 142 145 149 152 157 158 171 174 183 189 193 194; do
+        grep -qE "^## DEC-$n " "$D" || { echo "lost DEC-$n"; exit 1; }
+      done
+      G="$(python3 .claude/skills/harness/bin/gen-decisions-index.py --stdout 2>&1 >/dev/null)"
+      for n in 19 20 37 67 82 88 92 102 103 104 137 140 186 192 196; do
+        printf '%s\n' "$G" | grep -q "^ORPHAN: DEC-$n " || { echo "no ORPHAN for DEC-$n"; exit 1; }
+      done
+      printf '%s\n' "$G" | grep -vE '^ORPHAN: DEC-[0-9]+ ' | grep -q . && { echo 'non-orphan generator failure'; exit 1; }
+      exit 0
+    intent: |
+      Fold every remaining amendment in .harness/harness/docs/DECISIONS.md into the body of the
+      decision it belongs to, so that each entry states current truth in its own voice with no
+      amendment block, no am.N token, and no dates or attribution in the folded prose.
+
+      THE EXACT UNIT OF WORK, re-derived at 7ebfc9e - every intake figure for this is wrong.
+      38 amendments exist: 25 lines matching ^###\s+DEC-[0-9]+\s+amendment plus 13 matching
+      ^\*\*Amendment. The bold-inline format is INVISIBLE to the sub-section grep, which is why issue
+      615's own "30 blocks across 14 decisions" is short. T-05 has already deleted NINE of the 38 with
+      their entries. That leaves 29. One of those, the block noted MOOTED at DEC-145 whose note begins
+      "Note (2026-08-24): am.3 below is MOOTED", is DEAD: DELETE it, do not fold it. So you fold 28.
+
+      ATTRIBUTE EACH AMENDMENT TO THE ID ITS OWN HEADING DECLARES, NEVER TO THE SPAN IT SITS IN.
+      Three blocks are physically misfiled and a top-to-bottom walk gets them wrong:
+        four blocks titled "### DEC-138 amendment 5" through "amendment 8" sit inside DEC-168's span
+        one block titled "### DEC-189 amendment 1 (2026-08-16)" sits inside DEC-194's span
+      Fold each into DEC-138 and DEC-189 respectively.
+
+      The 14 owners and their live amendment counts: DEC-11 one, DEC-138 eight, DEC-142 one,
+      DEC-145 two after the dead one goes, DEC-149 one, DEC-152 one, DEC-157 one, DEC-158 one,
+      DEC-171 one, DEC-174 four, DEC-183 one, DEC-189 two, DEC-193 two, DEC-194 two.
+
+      HOW TO FOLD. This is a REWRITE, not a verbatim merge. The entry says what is true and why;
+      reasoning about how it CHANGED goes. Two rules govern what survives:
+
+        1. A claim the amendment FALSIFIED survives as ONE CLAUSE OF CURRENT TRUTH - the entry states
+           what is true and that the opposite was measured and failed, in the document's own voice,
+           with no date and no attribution. Without that clause a reader can re-propose something
+           already measured false and nothing in this repo would stop them. Deleting such a sentence
+           instead of restating it leaves every automated assertion in this plan GREEN, which is the
+           single most likely way this task fails.
+        2. Where an amendment merely EXTENDS a body nothing in which is false, merge it in place with
+           no trace that it arrived later.
+
+      Two cases need a hand-written body rather than a merge:
+        DEC-174's amendment 2 and amendment 3 are a REVERSAL where the superseded text was kept on
+        purpose. State the final ruling AND, as current truth, that the intermediate position was
+        tried and reversed - dropping the intermediate state loses the content.
+        DEC-194's amendment 2 asserts that an in-place body rewrite was reverted. The fold makes that
+        assertion untrue. Rewrite it to state what is true after the fold.
+
+      Two blocks are both titled "DEC-189 amendment 1", with different dates. They are different
+      amendments. Fold both; do not collapse them into one.
+
+      DEC-138's eight are the hardest: they are split across roughly 1,300 lines and 29 intervening
+      decisions, one was renumbered after a collision, and two are themselves partly struck. Do them
+      last, after the other 13 owners, and read all eight together before writing a word of the
+      folded body.
+
+      Also delete every remaining am.N token in this file, including any inside prose.
+
+      Do NOT touch DEC-181 - T-09 owns it. Do NOT rewrite the index rulings or regenerate the index -
+      T-11 owns both, and doing it here would be undone.
+
+      THE GENERATOR EXITS 1 HERE AND THAT IS CORRECT. T-04, T-05 and T-07 have deleted fifteen
+      entries by the time you run and DECISIONS-INDEX.md is not regenerated until T-11, so all
+      fifteen rows are orphans and orphan detection is a hard error. The verify asserts exactly that:
+      an ORPHAN line for each of the fifteen ids, and no stderr line that is not an ORPHAN line. That
+      is a stronger check than exit 0 - it proves the deletions upstream of you actually landed, and
+      that your fold broke nothing the generator parses.
+
+  - id: T-09
+    title: Fold DEC-181's partial strike and correct the two false claims in its body
+    traces: [REQ-01, REQ-02]
+    change_type: docs
+    execution_mode: team
+    execution_agent: harness-documentor
+    depends_on: [T-08]
+    status: pending
+    files:
+      - .harness/harness/docs/DECISIONS.md
+    verify: |
+      cd "$(git rev-parse --show-toplevel)"
+      D=.harness/harness/docs/DECISIONS.md
+      grep -qE '^\*\*STRUCK' "$D" && exit 1
+      grep -qE '^## DEC-181 ' "$D" || exit 1
+      B=$(sed -n '/^## DEC-181 /,/^## DEC-182 /p' "$D")
+      printf '%s' "$B" | grep -q 'check-domain.sh:779' && exit 1
+      printf '%s' "$B" | grep -q 'feature.yaml 200/20' && exit 1
+      printf '%s' "$B" | grep -qE 'feature\.json` 300|feature\.json 300' || exit 1
+      exit 0
+    intent: |
+      DEC-181 is a LIVE decision, not a struck one, and it is not deleted. Its heading reads
+      "## DEC-181 — CLAUDE.md gets a line budget of 80" and its body opens with a paragraph beginning
+      "**STRUCK IN PART, 2026-08-10.**". Do not anchor on a line number: that paragraph has already
+      moved from 5409 to 5416.
+
+      Instruction 4 of issue 78 has no defined behaviour for a half-struck entry, which is why this
+      task exists as a separate ruling. The ruling: the budget half is LIVE and enforced in code at
+      check-domain.sh line 1335, which prints "CLAUDE.md is N lines — budget is 80 (DEC-181)". The
+      STRUCK IN PART paragraph narrates what a DIFFERENT half used to say, which is exactly what an
+      amendment is, so it is FOLDED like any other amendment rather than treated as a strike.
+
+      Rewrite DEC-181 to state, as current truth with no dates and no attribution:
+        the 80-line CLAUDE.md budget, and that it is enforced on all four write routes;
+        one clause of current truth that CLAUDE.md is NOT in any propagation checker's scan roots
+        because no propagation checker exists - it was deleted under DEC-188. That clause is what
+        stops a reader re-proposing the half that went away, and it must not read as history.
+
+      Then correct the two claims in the body that are FALSE at 7ebfc9e. Both were verified against
+      the code, not inferred:
+        the body cites `check-domain.sh:779-780` as the enforcement site. At 7ebfc9e those lines are
+        a comment block about a manifest that will not parse, referencing DEC-171, with nothing to do
+        with any budget. The real site is check-domain.sh line 1335. Re-derive it before writing it;
+        the file is being edited by other tasks in this feature.
+        the body lists peer budgets as "expertise 150, `feature.yaml` 200/20, handoff notes 60,
+        STATE.md 120". `feature.yaml` does not exist - DEC-191 renamed it to feature.json - and the
+        code's budget is 300, not 200/20 (check-domain.sh lines 1103 and 1303). Write
+        "feature.json 300".
+
+      Keep the derivation of 80 from the file's own history, including that the history starts at a
+      cleanup and that the evidence constrains the number to roughly 75-83 rather than fixing it at
+      one. That is reasoning about why the rule is what it is, which stays; it is not reasoning about
+      how the decision changed, which goes.
+
+  - id: T-10
+    title: Remove the amendment machinery from the generator and add the mutation-proved guard test
+    traces: [REQ-06]
+    change_type: logic
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-06, T-08]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/gen-decisions-index.py
+      - .claude/skills/harness/bin/test-gen-decisions-index.py
+    verify: |
+      cd "$(git rev-parse --show-toplevel)"
+      G=.claude/skills/harness/bin/gen-decisions-index.py
+      for s in AMEND_HEADING_RE AMEND_BOLD_RE compute_amendments format_amendment_span \
+               amend_span am-span; do
+        grep -q "$s" "$G" && { echo "still present: $s"; exit 1; }
+      done
+      grep -q 'orphan' "$G" || exit 1
+      python3 .claude/skills/harness/bin/test-gen-decisions-index.py > /tmp/t10.out 2>&1
+      grep -q '^ok - test_no_amendment_construct_survives_in_the_authority$' /tmp/t10.out || exit 1
+      grep -q '^FAIL - test_committed_index_matches_a_fresh_regeneration' /tmp/t10.out || exit 1
+      grep '^FAIL' /tmp/t10.out \
+        | grep -vE 'test_committed_index_(matches_a_fresh_regeneration|is_complete_and_within_budget)' \
+        && exit 1
+      exit 0
+    intent: |
+      Two changes, in .claude/skills/harness/bin/gen-decisions-index.py and its test.
+
+      CHANGE 1 - delete the amendment machinery entirely. Locate each construct BY NAME:
+
+        AMEND_HEADING_RE       - the module-level regex on ###\s+DEC-(\d+)\s+amendment
+        AMEND_BOLD_RE          - the module-level regex on ^\*\*Amendment
+        compute_amendments     - the whole function, including its heading_amend_nums and
+                                 bold_amend_entries bookkeeping and the positional defaulting
+                                 fallback for a bold amendment with no explicit number
+        format_amendment_span  - the whole function
+        the call to compute_amendments, the amend_nums and amend_span locals, and the clause that
+        appends the span to the left-hand side of a row
+        the am-span paragraph in HEADER, which begins "The `am-span` token appears only on a decision
+        carrying amendments"
+        the am-span token in the row-shape string printed by the usage or error path near the bottom
+        of the file
+
+      This removal is NOT optional. Left in, the code is unreachable and untested, and the next
+      author who writes a line beginning **Amendment silently revives a live am.1 token in the index.
+
+      KEEP orphan detection and KEEP the refs-graph filter T-06 added.
+
+      CHANGE 2 - add ONE test case to .claude/skills/harness/bin/test-gen-decisions-index.py named
+      exactly:
+
+        test_no_amendment_construct_survives_in_the_authority
+
+      It reads the LIVE .harness/harness/docs/DECISIONS.md through the module's existing path
+      resolution and FAILS if any line matches ^###\s+DEC-[0-9]+\s+amendment, or ^\*\*Amendment, or
+      contains am. followed by a digit. Assert each of the three patterns SEPARATELY and name which
+      one matched in the failure message, so a partial regression is legible. Register the case in the
+      runner list at the bottom of the file.
+
+      The test suite is the home rather than the generator or check-state.sh, for three reasons: it
+      runs by default because test-gen-decisions-index.py is in run-unit-tests.sh's
+      INTEGRATION_SCRIPTS, it can be shown to redden, and it lets the generator drop its amendment
+      code entirely instead of keeping the regexes alive purely to police them. A check-state.sh
+      refusal was considered and refused: it would put a documentation convention on the enforcement
+      layer, a far heavier surface.
+
+      MUTATION-PROVE IT, and record the transcript in
+      .harness/harness/features/FEAT-38-decisions-current-knowledge/notes/receipt-harness-backend-dev-<runid>.md:
+      append one line reading exactly "### DEC-999 amendment 1 — planted" to DECISIONS.md, run the
+      suite, show the new case FAILING and no other case failing; remove the line, run again, show it
+      passing. A test whose red state was never observed is not evidence. Restore the file exactly -
+      confirm with git diff on that path being empty afterwards.
+
+      THE SAME TWO CASES GO RED HERE AS IN T-06, AND FOR MORE REASONS: the fifteen deletions of T-04,
+      T-05 and T-07 have landed and DECISIONS-INDEX.md is not regenerated until T-11, so the
+      generator itself exits 1 on orphan rows and the committed-index case cannot pass. T-11 owns
+      turning both green. This verify excludes exactly
+      test_committed_index_matches_a_fresh_regeneration and
+      test_committed_index_is_complete_and_within_budget, asserts the first of them IS red, requires
+      your new case to be ok, and asserts no other FAIL line. Do not exit on the suite's own status,
+      and do not regenerate the index to make the suite quiet.
+
+  - id: T-11
+    title: Rewrite the index rulings freed by am-span removal and regenerate the index
+    traces: [REQ-01, REQ-04]
+    change_type: docs
+    execution_mode: team
+    execution_agent: harness-documentor
+    depends_on: [T-09, T-10, T-16, T-21]
+    status: pending
+    files:
+      - .harness/harness/docs/DECISIONS-INDEX.md
+    verify: |
+      cd "$(git rev-parse --show-toplevel)"
+      I=.harness/harness/docs/DECISIONS-INDEX.md
+      grep -q 'SUPERSEDED BY' "$I" && exit 1
+      grep -qE 'am\.[0-9]|am-span' "$I" && exit 1
+      for n in 19 20 37 67 82 88 92 102 103 104 137 140 161 186 192 196; do
+        grep -qE "DEC-$n([^0-9]|$)" "$I" && { echo "index still names DEC-$n"; exit 1; }
+      done
+      python3 .claude/skills/harness/bin/gen-decisions-index.py --stdout | diff - "$I" || exit 1
+      python3 .claude/skills/harness/bin/test-gen-decisions-index.py 2>&1 | grep '^FAIL' && exit 1
+      exit 0
+    intent: |
+      Regenerate .harness/harness/docs/DECISIONS-INDEX.md against the generator as it stands after
+      T-06 and T-10, and hand-rewrite the rulings that need it.
+
+      Fifteen rows carried an am-span token at 7ebfc9e (DEC-11, 137, 138, 142, 145, 149, 152, 157,
+      158, 171, 174, 183, 186, 189, 193, 194, 196 - minus the three whose entries T-05 deleted). The
+      generator no longer emits the token, and the generator no longer strips a SUPERSEDED BY clause
+      before measuring the 30-word ruling cap, so some rulings that fitted before will now fail the
+      cap or the character floor. Rewrite each failing ruling by hand to state the decision's current
+      holding within the cap. DEC-11's ruling had ONE word of headroom at 7ebfc9e; expect to rewrite
+      it.
+
+      Also delete the two convention lines in the header that describe constructs that no longer
+      exist: the paragraph beginning "The `am-span` token appears only on a decision carrying
+      amendments" and the line "A row ending `— SUPERSEDED BY DEC-NN` is one you must not act on." If
+      T-06 and T-10 already removed them from the generator's HEADER, regeneration removes them here
+      and there is nothing to hand-edit - confirm rather than assume.
+
+      Then check the sixteen ids in this task's verify. Twelve are deleted by this feature, DEC-161
+      was deleted before it, and DEC-140 by T-04. None may appear anywhere in the file, in a row id or
+      in a refs graph. If any survives, the refs-graph filter from T-06 is not doing its job and that
+      is a defect to report, not to hand-edit around: the file is generated and a hand edit will be
+      overwritten on the next run.
+
+      Finish by confirming gen-decisions-index.py --stdout diffs clean against the committed file,
+      which was the state at 7ebfc9e and must be the state again.
+
+      YOU ARE THE LAST WRITER OF DECISIONS.md's LINE COUNT, WHICH IS WHY T-16 AND T-21 ARE
+      DEPENDENCIES. Every index row carries an @<line> anchor and every row's tag set is scored from
+      the entry body, so any later insertion into DECISIONS.md re-drifts this file. Measured: adding
+      two claim markers to DEC-181's body changes 24 rows - DEC-181's own tags go from
+      budget,state,domain,expertise to budget,domain,state,skills, and every following row's @<line>
+      shifts. T-16's anchor repair and T-21's claim markers therefore land BEFORE you, and after this
+      task nothing may add or remove a line in DECISIONS.md. Your diff-clean assertion is the single
+      authoritative index-freshness gate in this feature.
+
+  - id: T-12
+    title: Sweep every deleted-id and am.N citation out of the harness bin scripts
+    traces: [REQ-04, REQ-05]
+    change_type: docs
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-05, T-07, T-08, T-10]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/board_lifecycle.py
+      - .claude/skills/harness/bin/check-domain.sh
+      - .claude/skills/harness/bin/check-plan-routes.py
+      - .claude/skills/harness/bin/check-state.sh
+      - .claude/skills/harness/bin/factory_decompose.py
+      - .claude/skills/harness/bin/gh-sync.py
+      - .claude/skills/harness/bin/harness_yaml.py
+      - .claude/skills/harness/bin/plan-merge.py
+      - .claude/skills/harness/bin/test-board-lifecycle.py
+      - .claude/skills/harness/bin/test-check-plan-routes.py
+      - .claude/skills/harness/bin/test-check-state.py
+      - .claude/skills/harness/bin/test-dispatch-guard.py
+      - .claude/skills/harness/bin/test-gen-decisions-index.py
+      - .claude/skills/harness/bin/test-gh-board.py
+      - .claude/skills/harness/bin/test-harness-yaml-corpus.py
+      - .claude/skills/harness/bin/test-no-distribution.py
+      - .claude/skills/harness/bin/test-team-catalog.py
+      - .claude/skills/harness/bin/test-validate-digest.py
+      - .claude/skills/harness/bin/upgrade-config.py
+      - .claude/skills/harness/bin/validate-digest.py
+    verify: |
+      cd "$(git rev-parse --show-toplevel)"
+      B=.claude/skills/harness/bin
+      X='--exclude-dir=__pycache__'
+      grep -rnE $X 'am\.[0-9]|DEC-[0-9]+ amendment' "$B" && exit 1
+      for n in 19 20 37 67 82 88 92 102 103 104 137 140 186 192 196; do
+        grep -rnE $X "DEC-$n([^0-9]|$)" "$B" && { echo "cites DEC-$n"; exit 1; }
+      done
+      grep -rq $X 'DEC-' "$B" || { echo "sweep deleted all DEC citations - too broad"; exit 1; }
+      exit 0
+    intent: |
+      Remove every citation of a deleted decision id, and every am.N or "DEC-N amendment" reference,
+      from the scripts under .claude/skills/harness/bin/. These are comments, docstrings and failure
+      messages; no behaviour changes.
+
+      MEASURED at 7ebfc9e, so you know what you are looking for and can tell a miss from a clean
+      sweep. Excluding .harness/logs and anything under features or notes:
+
+        am.N and "DEC-N amendment" - 22 occurrences under bin/ across 14 files. Every one inspected
+        in context; all are genuine citations, no false positives. Commonest are DEC-171 am.1 (the
+        PyYAML requirement, no line-scan fallback) and DEC-138 am.3 through am.7.
+        deleted struck ids - DEC-192 sixteen, DEC-186 seven, DEC-137 four, DEC-104 three. DEC-103,
+        DEC-140 and DEC-196 have zero.
+        deleted superseded ids - DEC-102 fourteen, DEC-19 eight, DEC-82 one, DEC-92 one.
+        DEC-20, DEC-37, DEC-67 and DEC-88 have zero.
+
+      HOW TO REWRITE, three cases:
+
+        1. am.N citation - drop the am.N suffix and cite the bare DEC-N. After the fold the amendment
+           is part of the decision's body, so DEC-171 am.1 becomes DEC-171. Check that the sentence
+           still says something true about what DEC-171 now holds.
+        2. deleted id with a successor - cite the successor. DEC-186, DEC-192 and DEC-196 become
+           DEC-203; DEC-103 and DEC-104 become DEC-188; DEC-137 becomes DEC-162; DEC-19 becomes
+           DEC-85 (NOT DEC-84 - the grilling note is wrong and DECISIONS-INDEX line 38 is right);
+           DEC-102 becomes DEC-120; DEC-82 becomes DEC-83; DEC-92 becomes DEC-99.
+        3. the id is used as a PATTERN NAME, not for its holding - DEC-19 is cited across the tree as
+           the name for "an unenforced write path around a guarded surface", which is not its literal
+           holding. Where that is what the comment means, state the pattern in words and drop the
+           citation. A comment that stands on its own beats a pointer to a decision that never held
+           the claim.
+
+      Two sites need a decision rather than a swap, and neither is a find-and-replace:
+
+        check-state.sh carries a live invariant literally NAMED "INV-24 (DEC-186)" near line 943, and
+        test-check-state.py asserts on that name near line 995. Renaming the invariant changes an
+        identifier the test matches. Rename BOTH together, to INV-24 (DEC-203), and run
+        test-check-state.py to confirm. Do not rename the invariant NUMBER.
+        test-gen-decisions-index.py's comment about DEC-104's body being a former fixture is
+        historical narrative about the test itself. Rewrite it to state the current arrangement - the
+        fence guard is proven against a synthetic fixture planted in-test - and drop the DEC-104
+        reference. Verified: the live assertion is a relationship, not a frozen total, so deleting
+        DEC-104 does not break this test. The intake claim that it would is wrong.
+
+      Do not edit any file outside this task's file list. Do not touch .harness/logs or anything
+      under .harness/harness/features.
+
+      TWO THINGS ABOUT THE VERIFY'S SEARCH ROOT, both measured at 7ebfc9e. First, the recursive grep
+      covers all of bin/, and gen-decisions-index.py carries am.1 at lines 89, 90 and 217 - inside
+      the am-span HEADER paragraph and inside format_amendment_span. That file is NOT in your list;
+      T-10 removes those, which is why this task depends on T-10. If the string is still there when
+      you run, T-10 has not landed, and that is a sequencing report rather than a file for you to
+      edit. Second, the grep excludes __pycache__: compiled bytecode embeds the same docstrings, and
+      a stale .pyc matches am.N, which would red this task over work already done correctly.
+
+  - id: T-13
+    title: Sweep deleted-id and am.N citations out of the CI workflow
+    traces: [REQ-04]
+    change_type: config
+    execution_mode: team
+    execution_agent: harness-dev-ops
+    depends_on: [T-05, T-07, T-08]
+    status: pending
+    files:
+      - .github/workflows/tests.yml
+    verify: |
+      cd "$(git rev-parse --show-toplevel)"
+      W=.github/workflows/tests.yml
+      grep -nE 'am\.[0-9]|DEC-[0-9]+ amendment' "$W" && exit 1
+      for n in 19 20 37 67 82 88 92 102 103 104 137 140 186 192 196; do
+        grep -nE "DEC-$n([^0-9]|$)" "$W" && { echo "cites DEC-$n"; exit 1; }
+      done
+      python3 -c "import yaml,sys; yaml.safe_load(open('$W')); print('yaml ok')"
+      exit 0
+    intent: |
+      Two comment citations in .github/workflows/tests.yml become stale when this feature lands.
+      Measured at 7ebfc9e:
+
+        line 62 - "PyYAML is REQUIRED, not optional (DEC-171 am.1). There is no line-scan fallback".
+        After the fold there is no am.1: cite DEC-171 plainly. The sentence stays true.
+        line 124 - a comment about the plan.yaml status enum "under DEC-192". DEC-192 is deleted by
+        T-05; its successor is DEC-203. Cite DEC-203, and confirm DEC-203 actually carries the status
+        enum before you write it - if it does not, state the enum in the comment and cite nothing.
+
+      Re-derive both by grepping rather than trusting the line numbers: this file is edited by T-18's
+      neighbour tasks in the same feature.
+
+      Comments only. Change no job, no step, no condition, and no command. Confirm the file still
+      parses as YAML afterwards.
+
+  - id: T-14
+    title: Sweep deleted-id and am.N citations out of the thirteen ungranted surfaces
+    traces: [REQ-04, REQ-05]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: >-
+      Every path in this task resolves to NOBODY under check-domain.sh --resolve at 7ebfc9e, so a
+      squad write is a violation in check-plan-routes.py and the task cannot be dispatched.
+    depends_on: [T-05, T-07, T-08]
+    status: pending
+    files:
+      - .claude/skills/harness/SKILL.md
+      - .claude/skills/harness-team/SKILL.md
+      - .claude/skills/harness-brief/SKILL.md
+      - .claude/skills/harness-init/SKILL.md
+      - .claude/skills/harness-wayfinding/SKILL.md
+      - .claude/skills/harness/references/github-mirror.md
+      - .claude/skills/harness/references/debug-mission.md
+      - .claude/skills/harness/templates/gitignore.snippet
+      - .claude/commands/harness.md
+      - .claude/agents/harness-orchestrator.md
+      - .omp/agents/harness-orchestrator.md
+      - .harness/factory/fleet.yaml
+      - .gitignore
+    verify: |
+      cd "$(git rev-parse --show-toplevel)"
+      P=".claude/skills .claude/commands .claude/agents .omp/agents .harness/factory CLAUDE.md .gitignore"
+      grep -rnE 'am\.[0-9]|DEC-[0-9]+ amendment' $P | grep -v '/bin/' && exit 1
+      for n in 19 20 37 67 82 88 92 102 103 104 137 140 186 192 196; do
+        grep -rnE "DEC-$n([^0-9]|$)" $P | grep -v '/bin/' && { echo "cites DEC-$n"; exit 1; }
+      done
+      exit 0
+    intent: |
+      The same sweep as T-12, on the thirteen files listed. It is a separate task for one reason and
+      not for convenience: check-domain.sh --resolve returns NOBODY for every one of these paths at
+      7ebfc9e, so there is no agent with a granted domain and dispatching them to a squad fails
+      check-plan-routes.py.
+
+      MEASURED at 7ebfc9e, so a miss is distinguishable from a clean sweep:
+
+        am.N citations - .claude/skills/harness/SKILL.md three (DEC-157 am.1 near line 132, a bare
+        "(am.2)" near line 203 which means DEC-145 am.2, and DEC-138 am.4 near line 284);
+        references/github-mirror.md three (DEC-138 am.6, am.7, am.4);
+        harness-brief/SKILL.md one (DEC-138 am.7); harness-init/SKILL.md one (DEC-171 am.1);
+        harness-wayfinding/SKILL.md one (DEC-138 am.6); commands/harness.md one (DEC-138 am.4);
+        templates/gitignore.snippet one and .gitignore one (both DEC-171 am.1);
+        .harness/factory/fleet.yaml one (DEC-174 am.1).
+        deleted ids - .claude/agents/harness-orchestrator.md near line 46 and
+        .omp/agents/harness-orchestrator.md near line 49 both cite DEC-102; harness-team/SKILL.md
+        near line 15 cites DEC-102; references/debug-mission.md near line 21 cites DEC-19.
+
+      Re-derive every one by grep before editing. .omp/agents/harness-orchestrator.md is a citation
+      surface no intake artifact saw, and it is a near-duplicate of the .claude one - fix both, and do
+      not assume their line numbers match.
+
+      Rewrite by the same three cases as T-12: drop an am.N suffix to the bare DEC-N; cite the
+      successor for a deleted id (DEC-102 to DEC-120, DEC-19 to DEC-85 - not DEC-84); and where the
+      id names a PATTERN rather than a holding, state the pattern in words and drop the citation.
+      debug-mission.md's "approval bypasses grow (DEC-19)" is the pattern case.
+
+      CLAUDE.md is deliberately NOT in this task's file list: grepped at 7ebfc9e it carries no
+      citation of a deleted id, no am.N, and no prose about the index format. It stays in this
+      verify's search roots as a regression guard only. If a citation has appeared there by the time
+      you run, stop and report it rather than editing a file the plan does not grant you - it is an
+      80-line-budgeted surface (DEC-181, enforced at check-domain.sh line 1335) and a sibling task
+      may own the change.
+
+      Do not touch anything under .claude/skills/harness/bin - that is T-12's, in a different lane.
+
+  - id: T-15
+    title: Rewrite the documentor expertise entry that teaches amendment placement
+    traces: [REQ-05, REQ-06]
+    change_type: docs
+    execution_mode: team
+    execution_agent: harness-documentor
+    depends_on: [T-03]
+    status: pending
+    files:
+      - .harness/harness/expertise/harness-documentor.md
+    verify: |
+      cd "$(git rev-parse --show-toplevel)"
+      E=.harness/harness/expertise/harness-documentor.md
+      grep -qi 'amendment' "$E" && exit 1
+      grep -qE '^- P-01: WHEN ' "$E" || exit 1
+      grep -qE '^- P-02: ' "$E" || exit 1
+      bash .claude/skills/harness/bin/check-expertise.sh || exit 1
+      exit 0
+    intent: |
+      In .harness/harness/expertise/harness-documentor.md, entry P-01 currently begins:
+
+        - P-01: WHEN appending an amendment to `.harness/harness/docs/DECISIONS.md` DO place it
+          INSIDE the ...
+
+      It tells the documentor where to put an amendment. Without rewriting it, the next documentor
+      recreates the structure this whole feature removes.
+
+      Note the file: it is the REPOSITORY-tier expertise at .harness/harness/expertise/, NOT
+      .harness/expertise/harness-documentor.md. Both files exist and both have a P-01; only this
+      one is about amendment placement. The reconciliation note names the wrong path.
+
+      Replace P-01 with a rule in the same WHEN/DO form that carries the new convention. It must say
+      that a correction REWRITES the entry it corrects in place, and that a claim the correction
+      falsifies survives as one clause of current truth in that entry with no date and no
+      attribution - because without that clause a reader re-proposes something already measured
+      false. Keep it to the file's entry format and length discipline; check-expertise.sh enforces
+      both.
+
+      Leave P-02 and every other entry alone. P-02 governs new entries and is unaffected.
+
+      Do not add an entry citing this feature or issue 615. An expertise entry is a durable rule, not
+      an incident record.
+
+  - id: T-16
+    title: Repair the three unresolvable file anchors in the authority
+    traces: [REQ-07]
+    change_type: docs
+    execution_mode: team
+    execution_agent: harness-documentor
+    depends_on: [T-08, T-17]
+    status: pending
+    files:
+      - .harness/harness/docs/DECISIONS.md
+    verify: |
+      cd "$(git rev-parse --show-toplevel)"
+      grep -qE 'feature\.yaml:[0-9]' .harness/harness/docs/DECISIONS.md && exit 1
+      python3 .claude/skills/harness/bin/check-decision-anchors.py || exit 1
+      exit 0
+    intent: |
+      Three file-and-line anchors in .harness/harness/docs/DECISIONS.md name a file that exists
+      nowhere in the tree. Measured at 7ebfc9e by resolving all 32 backticked anchors: exactly these
+      three fail, and zero anchors are out of range.
+
+        `feature.yaml:63-64`
+        `FEAT-03-subissue-mirror/feature.yaml:73`
+        `FEAT-03-subissue-mirror/feature.yaml:97`
+
+      DEC-191 renamed feature.yaml to feature.json, so the file the anchors name is gone. Grep for
+      each anchor rather than using a line number.
+
+      For each, decide between two repairs and pick per site:
+        if the fact the sentence rests on still exists in feature.json, re-derive the anchor against
+        the current file and rewrite it. Do NOT translate the line number - open feature.json and
+        find the field.
+        if the fact was about a file that no longer exists, state the fact without an anchor. An
+        anchor is not required; a false one is worse than none.
+
+      Prefer citing the FIELD rather than the line wherever the file is one the harness rewrites -
+      "feature.json github.parent" survives a regeneration and "feature.json:41" does not. Two of
+      these three anchors rotted for exactly that reason.
+
+      Finish by running check-decision-anchors.py and getting exit 0. This task depends on T-17, so
+      the checker exists before you start: the invocation is unconditional, and a missing or failing
+      checker is a real failure rather than a reason to fall back on the grep.
+
+  - id: T-17
+    title: Build the anchor-rot checker and its test
+    traces: [REQ-07]
+    change_type: logic
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: []
+    status: pending
+    files:
+      - .claude/skills/harness/bin/check-decision-anchors.py
+      - .claude/skills/harness/bin/test-check-decision-anchors.py
+    verify: |
+      cd "$(git rev-parse --show-toplevel)"
+      python3 .claude/skills/harness/bin/test-check-decision-anchors.py > /tmp/t17.out 2>&1
+      rc=$?
+      grep '^FAIL' /tmp/t17.out && exit 1
+      test "$(grep -c '^ok - ' /tmp/t17.out)" -ge 4 || exit 1
+      python3 .claude/skills/harness/bin/check-decision-anchors.py --file /dev/null || exit 1
+      exit $rc
+    intent: |
+      Write .claude/skills/harness/bin/check-decision-anchors.py, a checker with no model in it, and
+      its test test-check-decision-anchors.py.
+
+      WHAT IT DOES. It takes an optional --file argument defaulting to
+      .harness/harness/docs/DECISIONS.md resolved the same way gen-decisions-index.py resolves it -
+      reuse that resolution, do not hand-roll a second one. It extracts every backticked
+      file-and-line anchor: a backtick, then a path of word characters, dots, slashes and hyphens
+      ending in a known source extension (py, sh, md, json, yaml, yml, ts, toml), then a colon, then
+      a line number, optionally a hyphen and a second number. For each anchor it asserts two things
+      and two things only:
+
+        the named file exists in the tree, resolved by basename against git ls-files so an anchor
+        written relative to a subdirectory still resolves;
+        the first line number is within that file's line count.
+
+      It prints one line per failing anchor naming the anchor and which of the two checks failed, and
+      exits 1 if any failed, 0 otherwise. Exit 2 for a usage error or an unreadable target - never
+      exit 0 on a target it could not read, because an empty result and a successful result must not
+      look the same.
+
+      WHAT IT DELIBERATELY DOES NOT DO: store or compare snippets. Existence plus range already finds
+      three real rot sites today at zero authoring cost, and a snippet still cannot see a line that
+      exists and now says something unrelated - which is the executable-claims checker's job, not
+      this one's. Do not add a snippet mechanism.
+
+      THE TEST. At least four cases, each against a SYNTHETIC fixture written into the test's own
+      temp directory, never against the live document - a test that reads live state passes or fails
+      for reasons that have nothing to do with the code:
+        an anchor naming a file that exists at a line in range - reports nothing, exit 0;
+        an anchor naming a file that does not exist - reported, exit 1;
+        an anchor naming a real file at a line past its end - reported, exit 1;
+        a file with no anchors at all - exit 0, and assert the checker SAID it examined zero anchors,
+        so a silent zero-anchor pass is distinguishable from a working one.
+      Pass the fixture path explicitly on every call. If the module resolves its default path at
+      import time, a test that omits the argument reads live state and passes for the wrong reason.
+
+      Then record the existence proof, in
+      .harness/harness/features/FEAT-38-decisions-current-knowledge/notes/receipt-harness-backend-dev-<runid>.md:
+      run the checker against the PRE-FEATURE authority via
+      git show <base_sha>:.harness/harness/docs/DECISIONS.md written to a temp file, and show it
+      reporting exactly the three feature.yaml anchors and exiting 1. That transcript is what proves
+      the checker catches real rot rather than passing over an empty extraction.
+
+      Registration is T-18's and T-19's. Do not edit run-unit-tests.sh or harness.json here.
+
+  - id: T-18
+    title: Register the two new checkers in the harness test-kind config
+    traces: [REQ-07, REQ-08]
+    change_type: config
+    execution_mode: team
+    execution_agent: harness-dev-ops
+    depends_on: [T-17, T-20]
+    status: pending
+    files:
+      - .harness/harness.json
+    verify: |
+      cd "$(git rev-parse --show-toplevel)"
+      python3 - <<'PY'
+      import json, sys
+      d = json.load(open('.harness/harness.json'))
+      det = d['test_kinds']['integration']['detect'].split('|')
+      need = ['.claude/skills/harness/bin/test-check-decision-anchors.py',
+              '.claude/skills/harness/bin/test-check-decision-claims.py']
+      missing = [n for n in need if n not in det]
+      if missing:
+          print('MISSING:', missing); sys.exit(1)
+      print('registered:', len(det), 'integration paths')
+      PY
+    intent: |
+      Add these two explicit literal paths to the integration test kind's detect list in
+      .harness/harness.json:
+
+        .claude/skills/harness/bin/test-check-decision-anchors.py
+        .claude/skills/harness/bin/test-check-decision-claims.py
+
+      The detect value is a single PIPE-SEPARATED STRING, not a list. Append to the string; do not
+      convert the field to a list and do not reorder what is there.
+
+      Why this task exists separately and why it must land BEFORE T-19: run-unit-tests.sh runs a
+      KIND-DRIFT check that fails with exit 2 if any name in its INTEGRATION_SCRIPTS array is absent
+      from this file's integration detect. .harness/harness.json is harness-dev-ops's and
+      run-unit-tests.sh is harness-backend-dev's, so the two halves are in different lanes and cannot
+      be one task. Registering the runner side first makes the whole suite exit 2.
+
+      This task's verify deliberately does NOT invoke run-unit-tests.sh, for that same reason: at the
+      moment this task completes, the runner side has not landed yet. It asserts the config directly.
+
+      Change nothing else in the file. In particular do not add a cmd to any kind whose cmd is null -
+      functional, component, ui, eval and typecheck all have null runners at 7ebfc9e and that is out
+      of scope here.
+
+  - id: T-19
+    title: Register the two new checkers in the test runner
+    traces: [REQ-07, REQ-08]
+    change_type: config
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-18]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/run-unit-tests.sh
+    verify: |
+      cd "$(git rev-parse --show-toplevel)"
+      R=.claude/skills/harness/bin/run-unit-tests.sh
+      grep -q 'test-check-decision-anchors.py' "$R" || exit 1
+      grep -q 'test-check-decision-claims.py' "$R" || exit 1
+      OUT="$(bash "$R" --kind integration 2>&1)"
+      printf '%s\n' "$OUT" | grep -q 'KIND-DRIFT' && { echo 'KIND-DRIFT fired'; exit 1; }
+      printf '%s\n' "$OUT" | grep -qx 'PASS test-check-decision-anchors.py' || exit 1
+      printf '%s\n' "$OUT" | grep -qx 'PASS test-check-decision-claims.py' || exit 1
+      exit 0
+    intent: |
+      Add test-check-decision-anchors.py and test-check-decision-claims.py to the
+      INTEGRATION_SCRIPTS array in .claude/skills/harness/bin/run-unit-tests.sh. Bare script names,
+      matching the style of the existing entries in that array - it is not a list of paths.
+
+      They belong in INTEGRATION_SCRIPTS rather than UNIT_SCRIPTS because they exercise a real file
+      on disk through a resolved path, which is what puts test-gen-decisions-index.py in the same
+      array.
+
+      T-18 must have landed first. The runner cross-checks that every INTEGRATION_SCRIPTS name
+      appears as an explicit literal path in .harness/harness.json's integration detect, and prints
+      KIND-DRIFT and exits 2 if not. This task's verify asserts the absence of that string
+      explicitly, because a KIND-DRIFT exit 2 is not the same failure as a test failing and must not
+      be read as one.
+
+      Capture the runner's output into a variable and search the variable. Do not pipe it to tail or
+      head: a pipe reports the pipe's exit status rather than the runner's, and truncation hides
+      earlier FAIL lines.
+
+      THE GATE IS THE TWO PASS LINES, NOT A SUITE-WIDE FAIL SWEEP. The runner prints "PASS <script>"
+      per script, and those two lines plus the absence of KIND-DRIFT are the whole claim this task
+      can own: both names registered, no drift, both checkers actually ran and passed. The rest of
+      the integration suite includes test-gen-decisions-index.py, whose green state belongs to T-11
+      and cannot hold while the documentation lane is mid-flight. This task has no ordering relation
+      to that lane, so a suite-wide FAIL sweep would go red or green on interleaving rather than on
+      your work. A FAIL line naming anything other than these two scripts is a finding to report
+      upward - not yours to fix, and not your failure.
+
+      Change nothing else in the runner. Do not touch UNIT_SCRIPTS, the kind dispatch, or the
+      KIND-DRIFT check itself.
+
+  - id: T-20
+    title: Build the executable-claims checker and its test
+    traces: [REQ-08]
+    change_type: logic
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-03]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/check-decision-claims.py
+      - .claude/skills/harness/bin/test-check-decision-claims.py
+    verify: |
+      cd "$(git rev-parse --show-toplevel)"
+      python3 .claude/skills/harness/bin/test-check-decision-claims.py > /tmp/t20.out 2>&1
+      rc=$?
+      grep '^FAIL' /tmp/t20.out && exit 1
+      test "$(grep -c '^ok - ' /tmp/t20.out)" -ge 5 || exit 1
+      exit $rc
+    intent: |
+      Write .claude/skills/harness/bin/check-decision-claims.py and its test.
+
+      THE MARKER FORMAT, which the new decision entry from T-03 also states. An HTML comment on its
+      own line inside a decision body:
+
+        <!-- claim: git grep -c "budget is 80" .claude/skills/harness/bin/check-domain.sh :: 1 -->
+
+      Everything between "claim:" and the " :: " separator is the COMMAND. Everything after it is the
+      expected stdout SUBSTRING, stripped of surrounding whitespace.
+
+      WHAT THE CHECKER DOES. Takes an optional --file defaulting to
+      .harness/harness/docs/DECISIONS.md, resolved the way gen-decisions-index.py resolves it. For
+      each marker it runs the command and asserts the expected substring appears in stdout. It prints
+      one line per failing claim naming the DEC heading the marker sits under, the command, the
+      expected substring and the actual stdout, and exits 1 if any failed.
+
+      THE SAFETY BOUNDARY, which is not optional. Split the command with shlex.split and run it with
+      subprocess.run WITHOUT shell=True. REFUSE - report and exit 1, never skip - any command whose
+      first token is not exactly git or grep. A documentation file must not become an arbitrary code
+      execution surface inside the test suite, and a refusal that skips is a hole that looks like a
+      pass. Impose a per-command timeout of 10 seconds and treat a timeout as a failure.
+
+      EXIT CODES. 0 only when every marker ran and passed. 1 when any failed or was refused. 2 for a
+      usage error or an unreadable target. And print the number of markers examined on success, so a
+      zero-marker run is visibly different from a working one - a checker that passes over zero
+      markers is indistinguishable from one that works, and that is the specific way this mechanism
+      dies quietly.
+
+      THE TEST. At least five cases, each against a synthetic fixture in the test's own temp
+      directory with the fixture path passed explicitly:
+        a marker whose command output contains the expected substring - exit 0;
+        a marker whose command output does not - reported by DEC heading, exit 1;
+        a marker whose command's first token is python3 - REFUSED and reported, exit 1, and assert
+        the refusal message says so rather than merely exiting non-zero;
+        a fixture with no markers - exit 0, and assert the reported marker count is zero;
+        a marker whose command names a path that does not exist - a failure, not a crash and not a
+        skip.
+      Do not use shell=True anywhere in the test either.
+
+      Registration is T-18's and T-19's. Do not edit run-unit-tests.sh or harness.json here.
+
+  - id: T-21
+    title: Add claim markers to the folded entries whose facts a command can check
+    traces: [REQ-08]
+    change_type: docs
+    execution_mode: team
+    execution_agent: harness-documentor
+    depends_on: [T-09, T-20]
+    status: pending
+    files:
+      - .harness/harness/docs/DECISIONS.md
+    verify: |
+      cd "$(git rev-parse --show-toplevel)"
+      D=.harness/harness/docs/DECISIONS.md
+      test "$(grep -c '<!-- claim:' "$D")" -ge 3 || exit 1
+      sed -n '/^## DEC-181 /,/^## DEC-182 /p' "$D" | grep -q '<!-- claim:' || exit 1
+      python3 .claude/skills/harness/bin/check-decision-claims.py || exit 1
+      G="$(python3 .claude/skills/harness/bin/gen-decisions-index.py --stdout 2>&1 >/dev/null)"
+      printf '%s\n' "$G" | grep -q '^ORPHAN: DEC-140 ' || { echo 'no ORPHAN for DEC-140'; exit 1; }
+      printf '%s\n' "$G" | grep -vE '^ORPHAN: DEC-[0-9]+ ' | grep -q . && { echo 'non-orphan generator failure'; exit 1; }
+      exit 0
+    intent: |
+      Add executable claim markers to the entries this feature rewrote, in the format T-20's checker
+      consumes and T-03's decision entry defines:
+
+        <!-- claim: <command> :: <expected stdout substring> -->
+
+      The command's first token must be git or grep - the checker refuses anything else.
+
+      This is deliberately NOT a sweep of all 200-odd entries. It rides on the entries already open,
+      which is the only reason it is cheap; retrofitting later means touching every entry. Add a
+      marker where, and only where, a rewritten entry states a fact a git or grep invocation settles.
+
+      THREE ARE MANDATORY, all in DEC-181, because they are the facts T-09 had to correct and they
+      are exactly the class that rots silently:
+        the 80-line CLAUDE.md budget is enforced in check-domain.sh - claim it by grepping the
+        enforcement message rather than a line number, so the marker survives the file moving;
+        CLAUDE.md is actually within that budget;
+        the feature.json budget is 300 - claim it against check-domain.sh, not against a decision.
+
+      Beyond those, add a marker to any other rewritten entry that names a numeric budget, a file
+      that must exist, or a string that must appear in a script. Do NOT invent a claim for an entry
+      whose content is a design judgement: a claim no command can settle is worse than none, because
+      it will be written as something adjacent that a command CAN settle, and then the marker greens
+      while the real claim rots.
+
+      Anchor every command on CONTENT, never on a line number. An anchor on a line number in a file
+      another task in this feature is editing is stale before the feature ships - that is the failure
+      this whole mechanism exists to catch, and reproducing it inside the mechanism would be
+      embarrassing.
+
+      Run check-decision-claims.py and get exit 0 with a non-zero marker count printed before you
+      finish. An exit 0 over zero markers is the failure mode; read the count.
+
+      YOU RUN BEFORE T-11, WHICH IS WHY THE GENERATOR IS EXPECTED TO EXIT 1. Your markers change
+      DECISIONS.md's line count and DEC-181's tag scoring, so the index must be regenerated AFTER
+      you; T-11 depends on this task and owns that. DECISIONS-INDEX.md is therefore still stale when
+      you run, the fifteen deleted entries are orphan rows, and the verify asserts the shape of that
+      failure - an ORPHAN line for DEC-140 as the positive control, and no non-ORPHAN stderr line.
+      Do not regenerate or hand-edit the index.
+
+  - id: T-22
+    title: Read every folded entry against its pre-fold form and record the finding per entry
+    traces: [REQ-02, REQ-09]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: >-
+      DEC-188 states that with the propagation checker deleted the enforcement is a human reading a
+      diff. No gate can settle this, and the agent that performed the fold cannot review its own
+      fold, so it belongs to the tier with a user channel. check-plan-routes.py reports this as a
+      DEVIATION rather than a violation because the notes path IS granted to harness-orchestrator;
+      the deviation is deliberate and the reason is the judgement required, not the write permission.
+    depends_on: [T-11, T-21]
+    status: pending
+    files:
+      - .harness/harness/features/FEAT-38-decisions-current-knowledge/notes/readback-fold.md
+    verify: |
+      cd "$(git rev-parse --show-toplevel)"
+      N=.harness/harness/features/FEAT-38-decisions-current-knowledge/notes/readback-fold.md
+      test -f "$N" || exit 1
+      for n in 11 138 142 145 149 152 157 158 171 174 183 189 193 194 181; do
+        grep -qE "^## DEC-$n\b" "$N" || { echo "no read-back section for DEC-$n"; exit 1; }
+      done
+      grep -q 'git show' "$N" || exit 1
+      exit 0
+    intent: |
+      This task is the only thing that verifies the half of this feature no test can reach. Issue 615
+      states the trap and it is worth restating: a green suite proves the index regenerated and proves
+      NOTHING about whether the fold preserved meaning. Deleting a struck census sentence instead of
+      restating it, folding a reversal to state only its final ruling and dropping the intermediate
+      state, or missing a citation site - every one of those leaves all assertions green. There is no
+      propagation checker; DEC-188 deleted it and says the enforcement is a human reading a diff.
+
+      Write .harness/harness/features/FEAT-38-decisions-current-knowledge/notes/readback-fold.md with
+      one section per entry, headed exactly "## DEC-NN", for all fifteen rewritten entries: DEC-11,
+      138, 142, 145, 149, 152, 157, 158, 171, 174, 183, 189, 193, 194 and DEC-181.
+
+      For each, read the pre-fold text with
+      git show <base_sha>:.harness/harness/docs/DECISIONS.md
+      beside the folded form at the current sha, and record TWO findings, each in one line:
+
+        BELIEF - what the entry's readers believed before the amendment, and where that survives in
+        the folded body. Quote the surviving clause.
+        FALSIFICATION - what measurement or event falsified it, and where THAT survives. Quote it.
+
+      The DATE is deliberately NOT checked. Issue 615's read-back asks for three things including the
+      date; the 2026-08-24 destination forbids dates and attribution inside an entry, and the later
+      ruling governs. The date stays recoverable by
+      git log --follow -- .harness/harness/docs/DECISIONS.md
+      and the follow flag is required because the file was renamed in FEAT-22: a plain git log reaches
+      only 8 of the amendments.
+
+      Where a clause did NOT survive, write NOT PRESERVED and say what was lost. Do not soften it and
+      do not fix it yourself in this task - a missing clause is a defect in T-08 or T-09 and goes back
+      to that lane. This note is the record; falsifying it defeats its only purpose.
+
+      Give DEC-138 and DEC-174 the most attention. DEC-138 folded eight amendments split across
+      roughly 1,300 lines, two of them partly struck. DEC-174's amendments 2 and 3 are a reversal
+      where the superseded text was kept deliberately, so the intermediate state is content and its
+      loss is the specific defect to look for.
+
+  - id: T-23
+    title: Close issue 448 as superseded and mirror the source issues at the merge
+    traces: [REQ-01]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: >-
+      Posting to GitHub is the main session's, per the github-mirror reference: anything posted is the
+      user's own words or text the user signed, and no member has a write path to the backlog.
+    depends_on: [T-22]
+    status: pending
+    files:
+      - .harness/harness/features/FEAT-38-decisions-current-knowledge/notes/readback-fold.md
+    verify: |
+      cd "$(git rev-parse --show-toplevel)"
+      gh issue view 448 --json state,stateReason -q '.state + " " + (.stateReason // "none")'
+      gh issue view 448 --json state -q .state | grep -q CLOSED || exit 1
+      exit 0
+    intent: |
+      Close GitHub issue 448 as superseded by this feature, with a comment stating the reason in one
+      or two sentences: 448 proposes a checker for amendment SPANS, and this feature deletes the
+      amendment span as a construct, so the two are mutually exclusive on the same surface and only
+      one ordering is cheap. Nothing in 448 survives to be re-filed.
+
+      Do not close issues 615, 78 or 686 by hand. They are this feature's source_issues and
+      gh-sync.py ship lands their cards at the board's done station at the merge. Issue 686 is closed
+      only in PART by this feature - one clause of the index generation contract, the refs graph rule.
+      Post a comment on 686 saying which clause landed and that the remainder of the generation
+      contract is still open, and leave it OPEN.
+
+      Run this after T-22, not before. If the read-back found a NOT PRESERVED clause, the feature is
+      not landing yet and neither is this.
