@@ -10,7 +10,7 @@ Write functions that remain easy to read, change, and review. Aim for **grade 4 
 production code** and **grade 3 or better in test code**. These are design bars, not an invitation
 to make unrelated cleanup changes or to split coherent logic into meaningless helpers.
 
-## Habits that keep a function under the bar
+## Habits that keep a function at or above the bar
 
 ### Return early instead of nesting
 
@@ -166,7 +166,7 @@ ratchet.
 
 ## Review semantics and self-check
 
-A grade-1 gated function is a **high** finding and fails review under the existing review rule. A
+A gated function below its bar and not grade 2 — grade 1 anywhere, or grade 3 in production — is a **high** finding and fails review under the existing review rule. A
 grade-2 function passes only with a written reason naming the function. Before review, inspect your
 changed Python functions with:
 

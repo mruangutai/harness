@@ -2,7 +2,7 @@
 
 ## Risk grade
 
-The integer from 1 to 5 that a function carries, determined by whichever metric produces the worst grade. Grade 1 is reported as a high-severity finding and grade 2 as med on the existing severity ladder.
+The integer from 1 to 5 that a function carries, determined by whichever metric produces the worst grade. On the existing severity ladder, severity follows blocking-ness rather than the grade literal: a record below its bar and not grade 2 is reported high, a grade 2 record med, and a record at or above its bar carries no severity.
 
 ## Gated set
 
@@ -10,7 +10,7 @@ The functions a change is responsible for: functions that are new or whose risk 
 
 ## Driver metric
 
-The one of the three metrics that produced a function's risk grade.
+The metric, or metrics, that produced a function's risk grade; ties are reported joined by `+`, as in `cyclomatic+cognitive+abc`.
 
 ## ABC magnitude
 
