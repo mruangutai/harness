@@ -181,50 +181,122 @@ def _check_rejected_revision(repo_root, base, head, revision, position, label):
     return failures
 
 
-# CR-01 exemptions: pre-existing records in the enumerated files that legitimately sit below the
-# production bar (4). Keyed by (filename, qualname); value is the grade the record must still
-# carry. An entry whose qualname no longer exists, or whose grade has moved, is itself a failure
-# below (`self-grading allowlist has no stale entries`) — an exemption must not outlive the record
-# it excused.
+# CR-01: the full set of .py files this feature changed under bin/ (production and test alike —
+# `git diff --name-only <base>..<head> -- '*.py'` restricted to this directory), so a below-bar
+# function in a test file cannot hide the way test-code-grade.py:main itself once did. Every
+# changed file must appear here or be excluded in a one-line comment beside it; none are excluded.
+SELF_GRADED_FILES = (
+    "check-plan-routes.py",
+    "code-grade.py",
+    "code_grade.py",
+    "gate_policy.py",
+    "test-check-plan-routes.py",
+    "test-code-grade-cli.py",
+    "test-code-grade.py",
+    "test-gate-policy.py",
+    "test-validate-digest.py",
+    "validate-digest.py",
+)
+
+
+# CR-01 exemptions: records in SELF_GRADED_FILES that legitimately sit below their derived bar
+# (3 for test files, 4 for production — see check_self_grading). Keyed by (filename, qualname);
+# value is the grade the record must still carry. An entry whose qualname no longer exists, or
+# whose grade has moved, is itself a failure below (`self-grading allowlist has no stale entries`)
+# — an exemption must not outlive the record it excused.
 SELF_GRADING_ALLOWLIST = {
-    # Grade 2, REASON REQUIRED and recorded at review time — cite the notes file:
-    # notes/review-harness-code-reviewer-validate-final-panel.md, "SC-15" section.
-    ("code_grade.py", "_body_hashes.collect"): 2,          # SC-15 item 3
-    ("code_grade.py", "gated_set"): 2,                     # SC-15 item 4
-    ("check-plan-routes.py", "main"): 2,                   # SC-15 item 1
-    # Pre-existing legacy debt, never gated by the FEAT-43 diff (7ccfae8..94383e6): grade is
-    # unchanged from before the feature, confirmed by reading `git diff` for each — where the
-    # function's signature was touched at all (process_task, process_plan_yaml) the change added
-    # a parameter with no new branching (D-02), so the grade could not have moved. No REASON
-    # REQUIRED line exists for these because code-grade.py only demands a reason for a record it
-    # gates, and D-01/D-02 never gate an unchanged grade.
+    # Grade 2, REASON REQUIRED and recorded at review time (commit 94383e6, before cycle-14
+    # renumbered these files) — cite the notes file:
+    # notes/review-harness-code-reviewer-validate-final-panel.md, "SC-15" section, items 1-12,14,15.
+    # Item 13 (test-code-grade.py:main) is deliberately NOT re-cited here: it was grade 2 at review
+    # time and has since regressed to grade 1 (ABC 45.7) — the exact silent regression CR-01 named.
+    # It is fixed in code, not exempted.
+    ("check-plan-routes.py", "main"): 2,                              # SC-15 item 1
+    ("code-grade.py", "main"): 2,                                     # SC-15 item 2
+    ("code_grade.py", "_body_hashes.collect"): 2,                     # SC-15 item 3
+    ("code_grade.py", "gated_set"): 2,                                # SC-15 item 4
+    ("test-check-plan-routes.py", "_case_27_owner_manifest"): 2,      # SC-15 item 5
+    ("test-code-grade-cli.py", "test_paths"): 2,                      # SC-15 item 6
+    ("test-code-grade-cli.py", "test_rejected_revisions"): 2,         # SC-15 item 7
+    ("test-code-grade-cli.py", "test_control_paths"): 2,              # SC-15 item 8
+    ("test-code-grade-cli.py", "test_bars_follow_test_kinds"): 2,     # SC-15 item 9
+    ("test-code-grade-cli.py", "test_diff_and_determinism"): 2,       # SC-15 item 10
+    ("test-code-grade.py", "check_commit_resolution"): 2,             # SC-15 item 11
+    ("test-code-grade.py", "check_changed_function_resolution"): 2,   # SC-15 item 12
+    ("test-gate-policy.py", "check_policy_loading"): 2,               # SC-15 item 14
+    ("validate-digest.py", "reviewed_python_change"): 2,              # SC-15 item 15
+    # Pre-existing legacy debt, never gated by the FEAT-43 diff (7ccfae8..a643e44): confirmed by
+    # running `code-grade.py --base 7ccfae8..a643e44` and checking each qualname is absent from
+    # the gated (diff) output below — the function's body is unchanged from before the feature, so
+    # the grade could not have moved and no REASON REQUIRED line was ever demanded for it.
     ("check-plan-routes.py", "parse_files"): 2,
     ("check-plan-routes.py", "process_task"): 2,
     ("check-plan-routes.py", "process_plan_yaml"): 1,
     ("check-plan-routes.py", "discover_plans"): 1,
     ("check-plan-routes.py", "check_invariant_number_collisions"): 2,
+    ("test-check-plan-routes.py", "case_18"): 2,
+    ("test-check-plan-routes.py", "case_19"): 1,
+    ("test-check-plan-routes.py", "case_22"): 2,
+    ("test-check-plan-routes.py", "case_23"): 1,
+    ("test-check-plan-routes.py", "case_24"): 1,
+    ("test-check-plan-routes.py", "case_25"): 2,
+    ("test-check-plan-routes.py", "case_26"): 1,
+    ("test-validate-digest.py", "run_cli_cases"): 1,
+    ("test-validate-digest.py", "run_t09"): 1,
+    ("test-validate-digest.py", "run_hook_cases"): 2,
+    ("validate-digest.py", "strip_comment"): 2,
+    ("validate-digest.py", "split_items"): 2,
+    ("validate-digest.py", "top_level_colon"): 3,
+    ("validate-digest.py", "bracket_depth"): 3,
+    ("validate-digest.py", "parse_digest"): 1,
+    ("validate-digest.py", "validate"): 1,
+    ("validate-digest.py", "check_artifact_file"): 2,
+    ("validate-digest.py", "hook_mode"): 1,
 }
 
 
+def _check_self_graded_file(filename, repo_root):
+    failures = 0
+    path = Path(HERE) / filename
+    failures += check(path.is_file(), True, f"{filename} exists")
+    source = path.read_text()
+    try:
+        ast.parse(source)
+        parses = True
+    except SyntaxError:
+        parses = False
+    failures += check(parses, True, f"{filename} parses")
+    relative = str(path.resolve().relative_to(repo_root))
+    bar = 3 if code_grade_cli._is_test(repo_root, relative) else 4
+    matched = set()
+    for record in code_grade.grade_source(source, filename):
+        key = (filename, record.qualname)
+        if key in SELF_GRADING_ALLOWLIST:
+            matched.add(key)
+            failures += check(record.grade, SELF_GRADING_ALLOWLIST[key],
+                              f"{filename}:{record.qualname} allowlisted grade is stale")
+            continue
+        failures += check(record.grade >= bar, True,
+                          f"{filename}:{record.qualname} grade >= {bar}")
+    return failures, matched
+
+
 def check_self_grading():
-    """CR-01: every function `code_grade.grade_source` reports in code_grade.py, gate_policy.py,
-    and check-plan-routes.py must grade 4+, except the qualnames named in
-    SELF_GRADING_ALLOWLIST — each justified there — and each allowlist entry must still match a
-    real below-bar record, so a fix or a rename cannot let an exemption silently outlive it.
+    """CR-01: every function `code_grade.grade_source` reports across SELF_GRADED_FILES — the full
+    set of .py files this feature changed under bin/, production and test alike — must grade at or
+    above its derived bar (3 for test files per `code_grade_cli._is_test`, 4 for production),
+    except the qualnames named in SELF_GRADING_ALLOWLIST — each justified there — and each
+    allowlist entry must still match a real below-bar record at the recorded grade, so a fix or a
+    rename cannot let an exemption silently outlive it. Each named file is also asserted to exist
+    and parse, so a rename or removal fails loudly instead of silently shrinking coverage.
     """
+    repo_root = Path(HERE).resolve().parents[3]
     failures = 0
     matched_allowlist = set()
-    for filename in ("code_grade.py", "gate_policy.py", "check-plan-routes.py"):
-        source = (Path(HERE) / filename).read_text()
-        for record in code_grade.grade_source(source, filename):
-            key = (filename, record.qualname)
-            if key in SELF_GRADING_ALLOWLIST:
-                matched_allowlist.add(key)
-                failures += check(record.grade, SELF_GRADING_ALLOWLIST[key],
-                                  f"{filename}:{record.qualname} allowlisted grade is stale")
-                continue
-            failures += check(record.grade >= 4, True,
-                              f"{filename}:{record.qualname} grade >= 4")
+    for filename in SELF_GRADED_FILES:
+        file_failures, matched = _check_self_graded_file(filename, repo_root)
+        failures += file_failures
+        matched_allowlist |= matched
     failures += check(matched_allowlist, set(SELF_GRADING_ALLOWLIST),
                       "self-grading allowlist has no stale (renamed/removed) entries")
     return failures
@@ -420,7 +492,7 @@ def check(actual, expected, label):
     return 0
 
 
-def main():
+def check_fixtures():
     failures = 0
     grades = set()
     for name, source, expected in FIXTURES:
@@ -432,14 +504,21 @@ def main():
         grades.add(records[0].grade)
     failures += check(len(FIXTURES) >= 12, True, "minimum hand-derived fixtures")
     failures += check(grades, {1, 2, 3, 4, 5}, "fixture bands")
+    return failures
+
+
+def check_nested_qualnames():
     nested = code_grade.grade_source('''def outer():
     def helper():
         pass
     helper()
 ''', "fixture.py")
-    failures += check([record.qualname for record in nested], ["outer", "outer.helper"],
-                      "nested source order and qualname")
-    failures += check_nul_safe_changed_files()
+    return check([record.qualname for record in nested], ["outer", "outer.helper"],
+                 "nested source order and qualname")
+
+
+def check_direction_pairs():
+    failures = 0
     for name, before, after, metric, direction in DIRECTION_PAIRS:
         before_value = getattr(code_grade.grade_source(before, "fixture.py")[0], metric)
         after_value = getattr(code_grade.grade_source(after, "fixture.py")[0], metric)
@@ -449,12 +528,23 @@ def main():
         after_grade = code_grade.grade_source(after, "fixture.py")[0].grade
         moved_grade = after_grade > before_grade if direction == "better" else after_grade < before_grade
         failures += check(moved_grade, True, f"{name}: grade moves {direction}")
-    failures += check_changed_function_resolution()
-    failures += check_commit_resolution()
-    failures += check_case_27_grade()
-    failures += check_worked_examples()
-    failures += check_delivery()
-    failures += check_self_grading()
+    return failures
+
+
+def main():
+    checks = (
+        check_fixtures,
+        check_nested_qualnames,
+        check_nul_safe_changed_files,
+        check_direction_pairs,
+        check_changed_function_resolution,
+        check_commit_resolution,
+        check_case_27_grade,
+        check_worked_examples,
+        check_delivery,
+        check_self_grading,
+    )
+    failures = sum(fn() for fn in checks)
     if failures:
         print(f"{failures} failures")
     else:
