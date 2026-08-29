@@ -18,6 +18,6 @@ investigate — that is a plan mission with a `BUG-NN` id (the FEAT-02 pattern).
    diagnosis; SC-01 is always "the repro fails pre-fix and passes post", verify: automated;
    tasks are `change_type: bugfix`). Same signature, same gates, same mirror (`bug` label derives).
 3. **Ship as normal.** Nothing about being a bug relaxes a gate — a second, lighter lane is how
-   approval bypasses grow (DEC-19).
+   approval bypasses grow.
 
 Ids: **`BUG-NN-<kebab-slug>`**, independent sequence from FEAT, same folder root and machinery.

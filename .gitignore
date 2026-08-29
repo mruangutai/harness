@@ -6,7 +6,7 @@
 # (SPEC 8.6) deadlocks the next crew on the harness's own artifacts.
 .harness/*/features/*/runs/**
 
-# The one-session PyYAML bootstrap marker (DEC-171 am.1). The write hooks fail CLOSED
+# The one-session PyYAML bootstrap marker (DEC-171). The write hooks fail CLOSED
 # when PyYAML is absent, so the first session gets one escape and drops this marker to
 # record that it was used. Untracked it dirties the tree, and a dirty tree halts the
 # next team run on the rule directly above — the deadlock this rule prevents.

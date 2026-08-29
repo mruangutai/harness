@@ -12,7 +12,7 @@ the algorithm; the teams are data at `.agents/skills/harness/teams/*.yaml`.
 
 **The orchestrator does not host teams and no longer preloads this skill** (issue #83). It was
 carried for flat mode — the orchestrator hosting a DAG itself — and flat mode is dead: `SPEC.md`
-records *"hierarchical works, the flat fallback is not needed"* (DEC-100, DEC-102), and
+records *"hierarchical works, the flat fallback is not needed"* (DEC-100, DEC-120), and
 `harness/SKILL.md` forbids the orchestrator→member path with no exceptions. The orchestrator
 sequences squad segments and delegates each to its lead; it reads this file by path only if it
 needs the algorithm. **The main session never hosts a team either** — since DEC-120 it is the user

@@ -1054,7 +1054,7 @@ tasks:
       Every path in this task resolves to NOBODY under check-domain.sh --resolve at 7ebfc9e, so a
       squad write is a violation in check-plan-routes.py and the task cannot be dispatched.
     depends_on: [T-05, T-07, T-08]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/SKILL.md
       - .claude/skills/harness-team/SKILL.md
