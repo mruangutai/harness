@@ -149,6 +149,38 @@ def test_out_of_range_line_is_reported_and_exits_one():
         return False
 
 
+def test_malformed_anchor_extension_reports_line_and_exits_one():
+    """FEAT-38 F-4: a citation shaped like `<file>:<line>` whose extension
+    falls outside ANCHOR_RE's strict allowlist must not silently vanish — it
+    must be reported by line number and counted as a failure, mirroring
+    gen-decisions-index.py's ROW_LOOKALIKE_RE / MalformedRow treatment."""
+    name = "test_malformed_anchor_extension_reports_line_and_exits_one"
+    try:
+        with tempfile.TemporaryDirectory() as tmp:
+            fixture = write_fixture(
+                tmp, "decisions.md",
+                "See `some_script.rb:12` for the rule.\n",
+            )
+            r = run_checker(fixture)
+            if r.returncode != 1:
+                print(f"FAIL - {name}: expected exit 1, got {r.returncode}: "
+                      f"{r.stdout!r} {r.stderr!r}")
+                return False
+            if "decisions.md:1" not in r.stdout:
+                print(f"FAIL - {name}: did not report the malformed line's "
+                      f"number: {r.stdout!r}")
+                return False
+            if "malformed" not in r.stdout:
+                print(f"FAIL - {name}: did not name the failure as malformed: "
+                      f"{r.stdout!r}")
+                return False
+        print(f"ok - {name}")
+        return True
+    except Exception as e:
+        print(f"FAIL - {name}: {type(e).__name__}: {e}")
+        return False
+
+
 def test_zero_anchors_exits_zero_and_says_so():
     """A silent zero-anchor pass must be distinguishable from a working one: the
     checker must SAY it examined zero anchors, not just exit 0 with no output."""
@@ -252,6 +284,7 @@ TESTS = [
     test_in_range_anchor_reports_nothing_and_exits_zero,
     test_missing_file_is_reported_and_exits_one,
     test_out_of_range_line_is_reported_and_exits_one,
+    test_malformed_anchor_extension_reports_line_and_exits_one,
     test_zero_anchors_exits_zero_and_says_so,
     test_unreadable_target_exits_two_not_zero,
     test_default_file_is_dev_null_readable_zero_anchors,

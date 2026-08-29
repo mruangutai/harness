@@ -46,6 +46,25 @@ ANCHOR_RE = re.compile(
     r"`([\w./-]+\.(?:py|sh|md|json|yaml|yml|ts|toml)):(\d+)(?:-\d+)?`"
 )
 
+# Deliberately looser than ANCHOR_RE only on the extension: any citation shaped
+# `<file>.<ext>:<line>` regardless of extension, so a citation to a real file
+# whose extension falls outside the allowlist above is still caught rather than
+# silently never extracted — the same fail-open shape ROW_LOOKALIKE_RE guards
+# against in gen-decisions-index.py. Not currently manifesting live: every anchor
+# extension in the document today is inside the strict allowlist.
+ANCHOR_LOOKALIKE_RE = re.compile(
+    r"`([\w./-]+\.\w+):(\d+)(?:-\d+)?`"
+)
+
+
+class MalformedAnchor(Exception):
+    """A citation in the document means to be an anchor but does not parse as
+    one — e.g. an extension outside ANCHOR_RE's allowlist."""
+
+    def __init__(self, lines):
+        self.lines = lines
+        super().__init__(f"{len(lines)} malformed anchor(s)")
+
 
 def default_target():
     """The default --file value, resolved at CALL time (never at import time) so
@@ -59,11 +78,26 @@ def default_target():
 
 
 def extract_anchors(text):
-    """[(raw_anchor_text, cited_path, first_line_number), ...] in document order."""
-    return [
-        (m.group(0), m.group(1), int(m.group(2)))
-        for m in ANCHOR_RE.finditer(text)
-    ]
+    """[(raw_anchor_text, cited_path, first_line_number), ...] in document order.
+
+    Raises MalformedAnchor rather than silently skipping a backtick citation
+    shaped like `<file>:<line>` whose extension falls outside ANCHOR_RE's strict
+    allowlist — a citation that means to be an anchor but silently never gets
+    extracted is the same fail-open shape ROW_LOOKALIKE_RE guards against in
+    gen-decisions-index.py: never a skip, a reported failure.
+    """
+    anchors = []
+    malformed = []
+    for lineno, line in enumerate(text.splitlines(), 1):
+        for m in ANCHOR_LOOKALIKE_RE.finditer(line):
+            strict = ANCHOR_RE.fullmatch(m.group(0))
+            if strict:
+                anchors.append((strict.group(0), strict.group(1), int(strict.group(2))))
+            else:
+                malformed.append((lineno, line))
+    if malformed:
+        raise MalformedAnchor(malformed)
+    return anchors
 
 
 def git_tracked_basenames():
@@ -141,7 +175,17 @@ def main(argv=None):
         print(f"check-decision-anchors: cannot read {target!r}: {exc}", file=sys.stderr)
         sys.exit(2)
 
-    anchors = extract_anchors(text)
+    try:
+        anchors = extract_anchors(text)
+    except MalformedAnchor as exc:
+        for lineno, line in exc.lines:
+            print(
+                f"{target}:{lineno}: malformed anchor citation (does not match "
+                f"'`<file>:<line>` with a supported extension): {line}"
+            )
+        print(f"examined 0 anchor(s), {len(exc.lines)} failed")
+        sys.exit(1)
+
     basenames = git_tracked_basenames()
 
     failed = 0
