@@ -417,7 +417,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-documentor
     depends_on: [T-04, T-06]
-    status: pending
+    status: done
     files:
       - .harness/harness/docs/DECISIONS.md
       - .harness/harness/docs/SPEC.md
@@ -580,7 +580,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-documentor
     depends_on: [T-06]
-    status: pending
+    status: done
     files:
       - .harness/harness/docs/DECISIONS.md
       - .harness/harness/docs/SPEC.md

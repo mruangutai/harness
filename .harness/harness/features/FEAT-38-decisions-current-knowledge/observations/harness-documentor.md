@@ -10,3 +10,23 @@
 - 2026-08-29 (T-04): deleting a struck entry whose citation is an EXEMPLAR ("same failure shape as DEC-140") needs the cited lesson inlined, not the reference dropped — dropping it leaves the surviving entry asserting a comparison to nothing. Deleting one whose citation is a CITER-LIST entry ("DEC-140 and DEC-149 cite it") needs only removal plus verb agreement, and re-checking the remaining citer is real. Two different repointing shapes behind one grep pattern.
 - 2026-08-29: a task verify block whose last gate was `bash check-expertise.sh` with no argument exited 1 forever (the script's usage error is exit 2); every content clause passed. Baselining the block before editing is what separated "my edit failed" from "the gate is malformed".
 - 2026-08-29: check-domain.sh denies the documentor any scratch path, so a hand-built broken-copy negative control is impossible; the checker's own unit test (test-check-expertise.py, with explicit reject cases) is the substitute.
+- 2026-08-29 (T-05): the plan named DEC-162 as DEC-137's successor, but DEC-162 does not carry the map-tier removal at all — it still describes the map as live (`.harness/codebase/glossary.md`, "a mapped codebase", INV-19/INV-20 over map surfaces). Citing it would have repointed three sentences at an entry contradicting them. Stated the rule directly with no citation instead. Lesson: a plan's successor mapping is a hypothesis about what the successor SAYS; open the successor and read it before repointing to it.
+- 2026-08-29 (T-05): more than half the citations of the six ids sat INSIDE another of the six spans (DEC-196's span alone held six citations of DEC-186 and DEC-192). Computing all spans FIRST, then classifying each grep hit as in-span or out-of-span, cut the repointing work from 60 sites to 20 and prevented rewriting sentences that were about to be deleted.
+- 2026-08-29 (T-05): repointing surfaced a FALSIFIED claim, not just a dangling id — DEC-200's "no source ticket is ever closed by the harness" is reversed by its own successor DEC-203, which moves every recorded card including `source_issues` to Done at ship. A citation sweep is also a staleness sweep; the id going away is what forces someone to read the sentence.
+- 2026-08-29 (T-05): the deleted entries left non-id dangling references in prose that no verify grep could see — "Every other row of amendment 4's table" in DEC-138 amendment 8 pointed at a table deleted with DEC-196. Repointed it to the live recorded copy in `.claude/skills/harness/references/github-mirror.md`. After deleting an entry, sweep the survivors for "amendment N" and similar wordless pointers, not just for the id.
+- 2026-08-29 (T-05): DECISIONS.md seams are not uniform — only ~50 of ~200 inter-entry boundaries carry a `---`. Cutting exactly heading-through-(next-heading minus 1) reproduces whichever local shape existed, because the trailing rule and blank belong to the deleted span. Checking the seam shape per boundary beat assuming the plan's "horizontal rule before the next heading" was universal (DEC-103/104 had none).
+- 2026-08-29 (T-07): the dispatch's own verify block is the only complete citation inventory. I built my
+  edit list from a per-id grep and still missed one site (`DEC-67` in DEC-110's narrative, "though DEC-67
+  gives doers that authority") because I read that context via `bash sed` output and never folded it into
+  the edit plan. The verify caught it on the first run. Lesson: derive the edit list FROM the grep output
+  mechanically, not from a hand-transcribed reading of it.
+- 2026-08-29 (T-07): a plan-supplied successor can carry the *title relationship* and not the *claim*.
+  DEC-86 is titled "CORRECTS DEC-67" but only corrects the roster count; DEC-67's applier split is not in
+  it. DEC-120 "supersedes DEC-102's conclusion" but does not carry DEC-102's tool-withholding finding.
+  Both had to be repointed elsewhere or stated bare. Check the successor's BODY, never its title suffix.
+- 2026-08-29 (T-07): `edit` line numbers from a `write` response do not exist — `write` returns no
+  numbering. I followed a fresh `write` with an `edit` using line numbers I had counted by eye and
+  corrupted four lines of my own receipt. Always `read` a file I just wrote before hunking it.
+- 2026-08-29 (T-07): all 8 cut seams in DECISIONS.md's 19-102 range are single-blank-line; the `---`
+  seam shape T-05 measured at ~50/200 boundaries appears near DEC-120 and DEC-122 but nowhere in this
+  range. Heading-through-(next-heading − 1) reproduced the local shape with no special case, as predicted.

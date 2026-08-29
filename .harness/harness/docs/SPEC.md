@@ -42,8 +42,8 @@ Line numbers drift; section numbers do not. Grep for `## <n>.` to jump.
 
 **Schemas are inline, deliberately.** Extracting them to a separate file was measured and rejected:
 it saves 378 lines but creates a second file for a decision to fail to land in, which is the defect
-this project has already hit once. (The ruling came from DEC-104, since struck on other grounds under
-DEC-188; this half of it was never what was contradicted.)
+this project has already hit once. (That ruling came from an entry since struck under DEC-188 on
+unrelated grounds; this half of it was never what was contradicted.)
 
 **Runtime agents never load this file.** Rule skills, injected Expertise, and `BRIEF`/`PLAN`/`STATE` are
 what the 16 agents read at spawn. SPEC is a build-time artifact, so its size costs harness *development*,
@@ -1394,7 +1394,7 @@ review, reorder, escalate); *plan-level* changes (new tasks, changed decisions) 
 
 ### 10.2 Org shape — hierarchical, three layers below the main session
 
-> **Verified (DEC-100, DEC-102): hierarchical works. The flat fallback is not needed.** A subagent
+> **Verified (DEC-100): hierarchical works. The flat fallback is not needed.** A subagent
 > spawned three subagents in one turn and all three returned.
 >
 > **`CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH: "3"` encodes this org exactly** (DEC-120) — depth counts
@@ -1471,7 +1471,7 @@ risks and proposed next steps. That reporting feeds the CEO briefing.
   explicit for the panel: *"THE FAN-IN IS NOT A STEP. `validator-lead` hosts this DAG and does the
   assessment itself in its consolidated DIGEST"* (`teams/review.yaml:3-6`) — a synthesis step would
   be the lead paying a spawn to do its own job. `eng-lead`'s architecture review works the same way.
-  The flat variant — the orchestrator hosting a DAG itself — is dead (DEC-100, DEC-102), and since
+  The flat variant — the orchestrator hosting a DAG itself — is dead (DEC-100), and since
   issue #83 the orchestrator does not even preload `harness-team`.
 - **Keep user-approval steps at team boundaries, not mid-DAG inside a lead.** A subagent cannot call
   `AskUserQuestion`, so a lead can never pause to ask you. Questions ride up via `open_questions`
@@ -1484,7 +1484,7 @@ risks and proposed next steps. That reporting feeds the CEO briefing.
 
 **Where the team-runner logic lives.** The algorithm is single-sourced in the `harness-team` skill
 (`.claude/skills/harness-team/SKILL.md`) and hosted by **the team's named lead**. The flat variant —
-the orchestrator hosting a DAG itself — is dead (§below, DEC-100/DEC-102), and since issue #83 the
+the orchestrator hosting a DAG itself — is dead (§below, DEC-100), and since issue #83 the
 orchestrator **no longer preloads this skill**; it reads it by path in the rare case it needs the
 algorithm.
 In hierarchical mode the orchestrator's context stays
@@ -1872,8 +1872,8 @@ INFORMATIONAL (issue #79).
 | `Review` | validating **or** waiting on the operator |
 | `Done` | merged and closed, **or** abandoned |
 
-**There is NO `phase` field, and no lifecycle vocabulary other than these six** (DEC-192). If you
-remember a separate phase field alongside a four-value status, both are gone: they collapsed into
+**There is NO `phase` field, and no lifecycle vocabulary other than these six** (DEC-203 item 6). If
+you remember a separate phase field alongside a four-value status, both are gone: they collapsed into
 this one field, and nothing translates between the old values and these.
 
 **The values are case sensitive, and no lowercase alias is accepted.** They are the board's own
@@ -2034,8 +2034,8 @@ LLM-parsed at runtime with no build step.
 
 **A team is SINGLE-SQUAD by construction.** `lead:` is singular and required, a lead may only
 dispatch its own squad's members, and a lead cannot spawn another lead to
-reach across (that second lead would land at layer 2 with `Agent` withheld, and its members at an
-unreachable layer 3, DEC-102). Multi-squad lifecycles are therefore **orchestrator playbooks that
+reach across (that second lead would land one layer too deep with `Agent` withheld, and its members
+at an unreachable layer below that). Multi-squad lifecycles are therefore **orchestrator playbooks that
 sequence one team run per squad**, each with its own lead and its own run dir, not single teams
 (DEC-118). §13 says this in `ship-feature`'s row; it holds for every team.
 
@@ -2084,7 +2084,7 @@ The runner is a **skill** at `.claude/skills/harness-team/SKILL.md` with the alg
 project skill is exactly one level under `.claude/skills/` and a nested dir is undiscoverable
 (DEC-100). Team *data* still lives under `.claude/skills/harness/teams/*.yaml` — that is a data
 directory, not a skill, and is found by path rather than by discovery. Its host is the team's named `lead:`
-subagent — the flat variant (the orchestrator hosting) is dead, DEC-100/DEC-102.
+subagent — the flat variant (the orchestrator hosting) is dead, DEC-100.
 
 1. Resolve team YAML.
 2. Create the run workspace `.harness/features/<feat>/runs/<date>-<seq>-<squad>/` + `state.yaml`
