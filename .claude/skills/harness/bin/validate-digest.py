@@ -575,6 +575,113 @@ def reviewed_python_change(reviewed):
 # empty diff, `code_grade: n_a` sailed through, and the gate this feature exists
 # to add was skipped by any reviewer who picked a convenient range. Reproduced
 # live by the security reviewer at this feature's own pin.
+#
+# SEC-01 wave 4 (Q8-sec01-remedy-ruling.md): waves 2/3 above bind `reviewed`'s
+# HEAD to `review_sha` — correct, and unchanged here — but `code_grade: n_a`'s
+# DECISION still read `reviewed_python_change` over WHATEVER range the digest
+# itself named. `review_sha` is public (`feature.json`, not secret), so a
+# self-consistent no-op range AT review_sha (`review_sha..review_sha`, or
+# `review_sha~1..review_sha`, or any other ancestor pair ending there that
+# happens to touch no `.py` file) bought `n_a` for free: an honest HEAD paired
+# with a convenient BASE. Rejecting only `base == head` was considered and
+# refused (Q8) — it blacklists one shape out of an unbounded family; the digest
+# would still be the one choosing the base. The fix below never lets the
+# digest's `reviewed` field decide `n_a` AT ALL: the decision comes from
+# `merge-base(<default branch>, review_sha)..review_sha`, a range the
+# REPOSITORY derives with no digest input and no new `feature.json` field.
+# `reviewed_python_change` above keeps validating the digest's OWN `reviewed`
+# field's shape and resolvability (same wording, still catches a malformed or
+# option-like/injection revision) — Q8's "the digest's base becomes a reported
+# value that is cross-checked, never an input that decides": its RESULT is
+# discarded below, never its safety check.
+def _default_branch_or_none():
+    """This checkout's default branch — `origin/HEAD`'s target (e.g.
+    `refs/remotes/origin/main`) — or `None` when it cannot be resolved: no
+    such remote-tracking ref, a checkout that never set one, or `git`
+    unavailable. Bare `git symbolic-ref`, no `-C`: the SAME cwd basis
+    `resolve_reviewed_commit` already uses for every commit this file
+    resolves, so the branch found here and the commits bound elsewhere in
+    this module agree on one repository, not two independently-derived
+    roots. `origin/HEAD` is set once, at clone time, by whoever created this
+    checkout — never a value a digest or a review can name.
+    """
+    try:
+        result = subprocess.run(
+            ["git", "symbolic-ref", "-q", "refs/remotes/origin/HEAD"],
+            text=True, capture_output=True, timeout=5,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if result.returncode:
+        return None
+    ref = result.stdout.strip()
+    return ref or None
+
+
+def _merge_base_or_none(ref_a, ref_b):
+    """`git merge-base ref_a ref_b`, or `None` on any failure — no common
+    ancestor, an unresolvable ref, or `git` unavailable. Same bare-`git`,
+    no-`-C` basis as `_default_branch_or_none`."""
+    try:
+        result = subprocess.run(
+            ["git", "merge-base", ref_a, ref_b],
+            text=True, capture_output=True, timeout=5,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if result.returncode:
+        return None
+    return result.stdout.strip()
+
+
+def _derived_reviewed_python_change(review_sha):
+    """SEC-01 wave 4: whether Python changed over the range the REPOSITORY
+    derives for this review — `merge-base(default branch, review_sha)..
+    review_sha` — never the range a digest names. Called ONLY for
+    `code_grade == 'n_a'`; `pass`/`fail`/`grade_2` never reach this and are
+    never gated on base derivation, so an unresolvable default branch cannot
+    brick reviewer validation generally.
+
+    Returns `(python_changed, error)`, FAILING CLOSED on three distinct,
+    narrow conditions, each its own named error:
+      - the default branch cannot be resolved;
+      - `review_sha` does not resolve to a commit, or no merge base with the
+        default branch can be computed;
+      - the derived range is DEGENERATE — `review_sha` is already an
+        ancestor of the default branch, so the range is empty BY
+        CONSTRUCTION and is zero evidence that nothing changed, not proof
+        that it didn't (the same accept-by-default shape SEC-01 removes,
+        one level up).
+    None of the three ever returns `python_changed=False`; each REFUSES the
+    claim rather than granting it.
+    """
+    default_ref = _default_branch_or_none()
+    if default_ref is None:
+        return None, ("code_grade='n_a' cannot be confirmed: this checkout's "
+                       "default branch (origin/HEAD) could not be resolved, "
+                       "so the range the repository would review cannot be "
+                       "derived — this refuses the claim, it does not grant it.")
+    review_oid = resolve_reviewed_commit(review_sha)
+    if review_oid is None:
+        return None, (f"code_grade='n_a' cannot be confirmed: this feature's "
+                       f"recorded review_sha ({review_sha!r}) does not "
+                       f"resolve to a commit.")
+    review_oid = review_oid.decode()
+    base_oid = _merge_base_or_none(default_ref, review_oid)
+    if base_oid is None:
+        return None, ("code_grade='n_a' cannot be confirmed: no merge base "
+                       "between the default branch and review_sha could be "
+                       "computed, so the range the repository would review "
+                       "cannot be derived.")
+    if base_oid == review_oid:
+        return None, (f"code_grade='n_a' cannot be confirmed: review_sha "
+                       f"({review_sha}) is already an ancestor of the "
+                       f"default branch, so the derived review range is "
+                       f"empty BY CONSTRUCTION — that is zero evidence "
+                       f"nothing changed, not proof that it didn't.")
+    return reviewed_python_change(f"{base_oid}..{review_oid}")
+
+
 FEATURE_DIR_IN_ARTIFACT_RE = re.compile(r"(\.harness/[^/\s]+/features/[^/\s]+)(?:/|$)")
 
 
@@ -1028,11 +1135,23 @@ def validate(persona, text, config_path=None, feature_dir=None, branch_override=
             err.append(binding_error)
         code_grade = seen.get("code_grade")
         if code_grade == "n_a":
-            python_changed, range_error = reviewed_python_change(seen.get("reviewed"))
-            if range_error:
-                err.append(range_error)
-            elif python_changed:
-                err.append("code_grade='n_a' is only valid when the reviewed diff has no Python file.")
+            # SEC-01 wave 4: validate the digest's OWN `reviewed` field's shape and
+            # resolvability (unchanged wording, still catches a malformed or
+            # option-like/injection revision) — but its "did Python change" answer
+            # is DISCARDED, never the decision (Q8: cross-checked, not decisive).
+            _discarded, shape_error = reviewed_python_change(seen.get("reviewed"))
+            if shape_error:
+                err.append(shape_error)
+            else:
+                review_sha, sha_error = resolve_review_sha(text, feature_dir)
+                if sha_error:
+                    err.append(sha_error)
+                else:
+                    python_changed, range_error = _derived_reviewed_python_change(review_sha)
+                    if range_error:
+                        err.append(range_error)
+                    elif python_changed:
+                        err.append("code_grade='n_a' is only valid when the reviewed diff has no Python file.")
         if code_grade == "grade_2":
             reasons = seen.get("grade_2_reasons")
             if not isinstance(reasons, list) or not reasons \
