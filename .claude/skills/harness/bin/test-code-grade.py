@@ -213,8 +213,6 @@ SELF_GRADING_ALLOWLIST = {
     # It is fixed in code, not exempted.
     ("check-plan-routes.py", "main"): 2,                              # SC-15 item 1
     ("code-grade.py", "main"): 2,                                     # SC-15 item 2
-    ("code_grade.py", "_body_hashes.collect"): 2,                     # SC-15 item 3
-    ("code_grade.py", "gated_set"): 2,                                # SC-15 item 4
     ("test-check-plan-routes.py", "_case_27_owner_manifest"): 2,      # SC-15 item 5
     ("test-code-grade-cli.py", "test_paths"): 2,                      # SC-15 item 6
     ("test-code-grade-cli.py", "test_rejected_revisions"): 2,         # SC-15 item 7
@@ -403,6 +401,56 @@ def newly_added():
         return failures
 
 
+def _grade_stub(qualname, grade):
+    return code_grade.FunctionGrade(
+        qualname=qualname, lineno=1, cyclomatic=1, cognitive=1,
+        abc_a=0, abc_b=0, abc_c=0, abc=0.0, grade=grade, driver="cyclomatic",
+        path="main.py",
+    )
+
+
+def check_pre_image_resolution_priority():
+    """Characterizes the priority _resolve_pre_image enforces: a qualname match wins
+    over a body-hash match, a body-hash match wins when no name matches, and a missing
+    pre-image resolves to None. Swapping the lookup order breaks one of these by name."""
+    by_name_match = _grade_stub("foo", 5)
+    by_hash_match = _grade_stub("foo", 1)
+    head = _grade_stub("foo", 3)
+    before_hashes = {"headhash": [by_hash_match]}
+    head_hashes = {"foo": "headhash"}
+
+    resolved = code_grade._resolve_pre_image(head, {"foo": by_name_match}, before_hashes, head_hashes)
+    failures = check(resolved is by_name_match, True, "qualname match wins over hash match")
+
+    resolved = code_grade._resolve_pre_image(head, {}, before_hashes, head_hashes)
+    failures += check(resolved is by_hash_match, True, "hash match wins when name absent")
+
+    resolved = code_grade._resolve_pre_image(head, {}, {}, head_hashes)
+    failures += check(resolved, None, "missing pre-image resolves to None")
+    return failures
+
+
+def check_base_source_rename_fallback():
+    """A rename-only file resolves its pre-image through old_path, and a file with no
+    old_path never falls back to one."""
+    with tempfile.TemporaryDirectory() as directory:
+        repo_root = Path(directory)
+        _git(repo_root, "init")
+        _git(repo_root, "config", "user.email", "grader@example.test")
+        _git(repo_root, "config", "user.name", "Code Grader")
+        _write(repo_root, "old.py", "def kept():\n    return 1\n")
+        base_ref = _commit(repo_root, "base")
+        _git(repo_root, "mv", "old.py", "new.py")
+        _commit(repo_root, "rename")
+        base_oid = code_grade.commit_oid(repo_root, base_ref)
+        resolved = code_grade._resolve_base_source(repo_root, base_oid, "new.py", "old.py")
+        failures = check(resolved, "def kept():\n    return 1\n",
+                         "rename resolves pre-image via old_path")
+        resolved = code_grade._resolve_base_source(repo_root, base_oid, "new.py", None)
+        failures += check(resolved, None, "no old_path fallback without a rename")
+        return failures
+
+
 def check_nul_safe_changed_files():
     with tempfile.TemporaryDirectory() as directory:
         repo_root = Path(directory)
@@ -538,6 +586,8 @@ def main():
         check_nul_safe_changed_files,
         check_direction_pairs,
         check_changed_function_resolution,
+        check_pre_image_resolution_priority,
+        check_base_source_rename_fallback,
         check_commit_resolution,
         check_case_27_grade,
         check_worked_examples,

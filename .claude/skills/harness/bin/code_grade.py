@@ -340,23 +340,33 @@ def _changed_python_files(repo_root, base_ref, head_ref):
     return changed
 
 
+def _qualname(prefix, name):
+    return f"{prefix}.{name}" if prefix else name
+
+
+def _strip_docstring(body):
+    if body and isinstance(body[0], ast.Expr) and isinstance(
+            body[0].value, ast.Constant) and isinstance(body[0].value.value, str):
+        return body[1:]
+    return body
+
+
+def _hash_body(node):
+    source = "\n".join(ast.unparse(statement) for statement in _strip_docstring(node.body))
+    return hashlib.sha256(source.encode()).hexdigest()
+
+
 def _body_hashes(source_text):
     hashes = {}
 
     def collect(node, prefix=""):
         for child in ast.iter_child_nodes(node):
             if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                qualname = f"{prefix}.{child.name}" if prefix else child.name
-                body = child.body
-                if body and isinstance(body[0], ast.Expr) and isinstance(
-                        body[0].value, ast.Constant) and isinstance(body[0].value.value, str):
-                    body = body[1:]
-                source = "\n".join(ast.unparse(statement) for statement in body)
-                hashes[qualname] = hashlib.sha256(source.encode()).hexdigest()
+                qualname = _qualname(prefix, child.name)
+                hashes[qualname] = _hash_body(child)
                 collect(child, qualname)
             elif isinstance(child, ast.ClassDef):
-                qualname = f"{prefix}.{child.name}" if prefix else child.name
-                collect(child, qualname)
+                collect(child, _qualname(prefix, child.name))
 
     collect(ast.parse(source_text))
     return hashes
@@ -371,26 +381,46 @@ def _pre_images(source_text):
     return by_name, by_hash
 
 
+def _resolve_base_source(repo_root, base_oid, path, old_path):
+    base_source = _git_show(repo_root, base_oid, path)
+    if base_source is None and old_path is not None:
+        base_source = _git_show(repo_root, base_oid, old_path)
+    return base_source
+
+
+def _resolve_pre_image(record, before_names, before_hashes, head_hashes):
+    before = before_names.get(record.qualname)
+    if before is not None:
+        return before
+    matches = before_hashes.get(head_hashes[record.qualname], [])
+    return matches[0] if matches else None
+
+
+def _gate_file_records(repo_root, base_oid, head_oid, path, old_path):
+    head_source = _git_show(repo_root, head_oid, path)
+    base_source = _resolve_base_source(repo_root, base_oid, path, old_path)
+    before_names, before_hashes = _pre_images(base_source) if base_source else ({}, {})
+    head_hashes = _body_hashes(head_source)
+    gated = []
+    informational = []
+    for record in grade_source(head_source, path):
+        before = _resolve_pre_image(record, before_names, before_hashes, head_hashes)
+        if before is None or record.grade < before.grade:
+            gated.append(record)
+        else:
+            informational.append(record)
+    return gated, informational
+
+
 def gated_set(repo_root, base_ref, head_ref):
     """Return changed functions requiring a gate and changed informational functions."""
     gated = []
+    informational = []
     base_oid = commit_oid(repo_root, base_ref)
     head_oid = commit_oid(repo_root, head_ref)
-    informational = []
     for path, old_path in _changed_python_files(repo_root, base_oid, head_oid):
-        head_source = _git_show(repo_root, head_oid, path)
-        base_source = _git_show(repo_root, base_oid, path)
-        if base_source is None and old_path is not None:
-            base_source = _git_show(repo_root, base_oid, old_path)
-        before_names, before_hashes = _pre_images(base_source) if base_source else ({}, {})
-        head_hashes = _body_hashes(head_source)
-        for record in grade_source(head_source, path):
-            before = before_names.get(record.qualname)
-            if before is None:
-                matches = before_hashes.get(head_hashes[record.qualname], [])
-                before = matches[0] if matches else None
-            if before is None or record.grade < before.grade:
-                gated.append(record)
-            else:
-                informational.append(record)
+        file_gated, file_informational = _gate_file_records(
+            repo_root, base_oid, head_oid, path, old_path)
+        gated.extend(file_gated)
+        informational.extend(file_informational)
     return gated, informational
