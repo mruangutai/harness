@@ -411,8 +411,7 @@ missing browser would be a bug. A broken test command is a different thing entir
 
 ## DEC-38 — One orchestrator, not a separate coordinator and runner
 
-**Correction to an earlier design.** The earlier "coordinator" and "runner" were the same actor at
-two delegation granularities. The orchestrator is the main session running the `/harness` playbook;
+**Chose:** the orchestrator is the main session running the `/harness` playbook;
 "the runner" is its delegate-to-a-team subroutine (`crew/SKILL.md`). Delegating to one persona =
 spawn directly; delegating to a team = run that crew's DAG.
 **Because:** two names for one actor produced contradictory statements about who owns the run dir and
@@ -450,8 +449,7 @@ the proven serial path.
 
 ## DEC-41 — `validator-lead` assessment replaces a generic `synthesize` step
 
-**Correction to an earlier design.** Panels needed a `harness-synthesizer` or a generic lead to
-consolidate findings; they no longer do.
+**Chose:** no `harness-synthesizer` and no generic consolidation step — panels do not need one.
 **Because:** running the panel and assessing its feedback is the validator lead's *defining job*.
 This also resolves the earlier gap where flat mode left synthesis ownerless — synthesis now has a
 named owner by construction, in both hosting modes.
@@ -877,11 +875,11 @@ approval.
 that vary by team and project, so the manifest is the right home — it lets a project override one
 without forking the constitution. Putting them in data also stops the choice being re-litigated per
 feature or re-derived from prose.
-**Correction to a stated assumption:** **Astryx is not globally available as a Claude Code
-capability.** It is an npm package (`@astryxdesign/core`, React ≥19 peer, StyleX internal, runtime
-`defineTheme` with `[light, dark]` tuples) plus a reference clone — so "ensure it's available" is a real
-provisioning step, delegated to `dev-ops` at `/harness-init`, and a missing dependency is reported
-rather than worked around. Supabase *is* available as a plugin.
+**Astryx is not globally available as a Claude Code capability.** It is an npm package
+(`@astryxdesign/core`, React ≥19 peer, StyleX internal, runtime `defineTheme` with `[light, dark]`
+tuples) plus a reference clone — so "ensure it's available" is a real provisioning step, delegated to
+`dev-ops` at `/harness-init`, and a missing dependency is reported rather than worked around.
+Supabase *is* available as a plugin.
 **Tradeoff accepted:** version pinning is the default, so upgrades are deliberate decisions rather than
 silent drift.
 
@@ -1402,8 +1400,6 @@ just written.
   applies only to `PreToolUse` hooks.
 - **`validate-digest.py` refuses to pass an unknown persona.** Silently accepting an unrecognized agent's
   return would defeat the point.
-- **Zero dependencies.** No YAML library — the manifest reader is a narrow line scanner, because these must
-  run on any machine without an install step.
 
 ### Two bugs found by testing, not by writing
 
@@ -2849,12 +2845,10 @@ The legitimate form of the same impulse: the CEO may mandate outcomes. Those ent
 **goal constraints** pm must honor while authoring SC-NN; wording, numbering and verify methods stay
 pm's. Recorded at the door (`/harness` step 3), which is where the defect occurred. That pm added
 SC-3 unprompted on the first run shows the authorship instinct survives even a bad prompt — the fix
-is to stop suppressing it.
-
-**Amended same day, per the user:** adding criteria beyond the user's is not merely permitted — it
-is **expected**. The user states what done must include; pm's job includes what done also requires
-that nobody said. SCs that merely restate the user's list are under-delivery, and the signature is
-where the user prunes over-reach — the gate working, not a reason to hold back.
+is to stop suppressing it. Adding criteria beyond the user's is **expected**, not merely permitted:
+the user states what done must include, and pm's job includes what done also requires that nobody
+said. SCs that merely restate the user's list are under-delivery, and the signature is where the
+user prunes over-reach — the gate working, not a reason to hold back.
 
 ---
 
@@ -3232,6 +3226,8 @@ words, no FEAT/T/issue tokens, no nested bullets or instance lists; four canonic
 file can never again silently tax every spawn. `merge` is redefined: the result may be no longer
 than the longer input — appending an instance is `add` wearing a costume.
 
+<!-- claim: grep -F "CRAFT_LINE_BUDGET = 150" .claude/skills/harness/bin/check-expertise.sh :: CRAFT_LINE_BUDGET = 150 -->
+
 **A third boundary joins decision-versus-observation: a harness defect is a bug report, not a
 learning.** It routes to `open_questions`, never to Expertise, because a recorded workaround
 outlives the fix. "Injection failed to fire once; cat the file manually" and "member caps silently
@@ -3582,6 +3578,8 @@ Two clarifications, no new machinery:
   true rework cycles clear it, and ten consecutive fix loops on one feature IS the runaway the
   bound exists to kill. Raising it per-feature remains a user decision recorded in feature.yaml,
   as both kaya features already practiced.
+
+<!-- claim: grep -F "\"max_total_cycles\": 10" .harness/harness.json :: "max_total_cycles": 10 -->
 
 Not mechanized: nothing distinguishes a first-pass run from a rework run in state files, so a
 checker cannot recount cycles independently; INV-7 (cycles_used ≥ recorded FAIL runs) remains
@@ -4102,10 +4100,11 @@ provably worked.
 
 ## DEC-171 — The no-dependency clause is reversed: PyYAML is permitted, and hand-rolled YAML regex goes
 
-**Supersedes the "Zero dependencies" bullet of DEC-101.** That bullet ruled: *"No YAML library — the
-manifest reader is a narrow line scanner, because these must run on any machine without an install
-step."* Everything else in DEC-101 stands; only the dependency clause is reversed. The wider
-files-only constraint in CLAUDE.md also stands — no CLI, no build step, no template generator.
+**PyYAML is permitted.** The earlier zero-dependency ruling — no YAML library, the manifest reader a
+narrow line scanner so these could run on any machine without an install step — was measured false:
+the scanner dropped an entire run from `runs` on a legal trailing `# comment`. Everything else in
+DEC-101 stands; only the dependency clause is reversed. The wider files-only constraint in CLAUDE.md
+also stands — no CLI, no build step, no template generator.
 
 **What forced it.** Issue #11: `check-state.sh`'s run parser is a three-line regex,
 `id:\s*(\S+)\s*\n\s*squad:\s*(\S+)\s*\n\s*verdict:\s*(\S+)`. Because `\s*\n` admits only whitespace
@@ -4114,8 +4113,8 @@ after the `id:` and `squad:` captures, a trailing `# comment` — legal YAML, an
 run** from `runs`. That silently fails open on three invariants at once: INV-6 (`review_sha` pinned
 when a validator run exists), INV-7 (`cycles_used` >= FAIL count), INV-8 (run dir exists). Exit 0,
 no message. It has not fired only because the two vulnerable lines happen to carry no comments, and
-one author who hit it wrote a warning into the data file (`feature.yaml:63-64`) instead of fixing
-the parser.
+one author who hit it wrote the warning into the data file instead of fixing the parser — a comment
+beside FEAT-03's `squad:` line, which went away with the YAML file itself under DEC-191.
 
 **Why the line scanner was always going to lose.** This defect shape is documented repeatedly in-tree,
 and #11 is not its first appearance. `check-state.sh:105-107` names two priors in its own comment —
@@ -4192,21 +4191,18 @@ removing regex, and available later at no extra cost if it is ever wanted.
 above, and safe here because `validate-digest.py` already returns 0 when `stop_hook_active` is set,
 so a blocked agent retries once and cannot loop.
 
-**Correction to this entry as first written.** It claimed "the 16 agent templates and the parser must
-land in the same ship, or every agent breaks at `SubagentStop`." Both halves were wrong, and the
-error mattered because it made the template work look blocked when it is not.
+**13 files carry a return template** — nine `.claude/agents/harness-*.md` plus four skills
+(`harness-handoff`, `harness-digest-dev`, `harness-team`, `harness-tdd-enforcement`), counted with
+`grep -rln '^DIGEST:'`. It is not 16: seven of the sixteen agents carry no template of their own and
+inherit `harness-handoff`'s.
 
-- **The count is 13 files, not 16** — nine `.claude/agents/harness-*.md` plus four skills
-  (`harness-handoff`, `harness-digest-dev`, `harness-team`, `harness-tdd-enforcement`). Counted with
-  `grep -rln '^DIGEST:'`. Seven of the sixteen agents carry no return template of their own; they
-  inherit `harness-handoff`'s.
-- **The ordering constraint only binds in one direction.** The CURRENT parser already accepts a
-  fenced return — verified directly against `validate-digest.py` at this SHA with a fenced digest,
-  and with a fenced digest surrounded by prose: both `digest ok`, exit 0. The `artifact:` key at
-  column 0 already ends the block, so a closing ``` fence at column 0 is an ordinary dedent it
-  handles. **Templates may therefore ship FIRST, independently and safely.** What must not ship first
-  is the parser's *rejection* of unfenced returns — that is the half that breaks every
-  not-yet-updated agent.
+**The ordering constraint binds in one direction only.** The templates and the parser do not have to
+land in the same ship. The current parser already accepts a fenced return — verified against
+`validate-digest.py` with a fenced digest, and with a fenced digest surrounded by prose: both
+`digest ok`, exit 0, because the `artifact:` key at column 0 already ends the block and a
+closing ``` fence at column 0 is an ordinary dedent it handles. **Templates may therefore ship
+FIRST, independently and safely.** What must not ship first is the parser's *rejection* of
+unfenced returns — that is the half that breaks every not-yet-updated agent.
 
 The practical sequencing: fence the 13 templates whenever convenient, then make rejection the
 parser's behavior once no unfenced returns remain. Agent files are read at spawn, so the
@@ -4259,8 +4255,9 @@ It now reads `suite: n/a` and validates in both CLI and hook mode.
 
 **NOT fixed here, and both need a decision rather than a patch:**
 
-1. **B-13, the `lead` row** (`FEAT-03-subissue-mirror/feature.yaml:97`, raised independently by
-   product-lead and validator-lead). `members: []` with `steps_run > 0` is rejected as "never
+1. **B-13, the `lead` row** (recorded under Open Questions in
+   `FEAT-03-subissue-mirror/STATE.md`, raised independently by product-lead and validator-lead).
+   `members: []` with `steps_run > 0` is rejected as "never
    legitimate", but a lead applying its own Expertise ops genuinely self-executes a step. This is
    doctrinal — *may a lead execute work at all?* `harness-zero-micro-management` says route, never do;
    the distillation dispatch says otherwise in practice. Resolve the doctrine, then the encoding.
@@ -4705,11 +4702,12 @@ copy: measured, three entries became four and every `Write` fired the hook twice
 failed a gate `harness-init` calls HARD. `test-merge-settings.py` now asserts both directions in one
 table, because a fix for either alone is what produced the other.
 
-**Findings name their file, ON EVERY ROUTE — and the first fix for that covered only one.** The sweep
-walks up to 234 candidates across the main checkout and every worktree and named none of them: one
-logical file present in five checkouts produced five byte-identical findings, and a reviewer received
-another agent's transient fixture, unattributable, in their own session. Threading a display path
-through the SWEEP alone left the named-target routes printing a bare `CLAUDE.md` — measured, an agent
+**Findings name their file, ON EVERY ROUTE — and the first fix for that covered only one.** Before
+this change the sweep walked up to 234 candidates across the main checkout and every worktree and
+named none of them: one logical file present in five checkouts produced five byte-identical
+findings, and a reviewer received another agent's transient fixture, unattributable, in their own
+session. Threading a display path through the SWEEP alone left the named-target routes printing a
+bare `CLAUDE.md` — measured, an agent
 told its file was 81 lines opened the 74-line root copy and concluded the gate was stale. All three
 mutations of that threading survived every gate, because nothing bound it.
 
@@ -4723,11 +4721,6 @@ tell two checkouts apart". A reviewer falsified that against this repo the same 
 emitted findings naming the identical strings `FEAT-02/STATE.md` and
 `FEAT-05-pyyaml-file-parsers/STATE.md`. Stripping collapses every checkout onto one name for state
 files as much as for `CLAUDE.md`; the latter is only where it is most obvious.
-
-**Superseded:** The sweep walks up to 234 candidates across the main checkout and every
-worktree and named none of them: one logical file present in five checkouts produced five
-byte-identical findings, and a reviewer received another agent's transient fixture, unattributable, in
-their own session.
 
 **PyYAML's C loader, folded in on measurement.** `harness_yaml.py` subclassed the pure-Python
 `SafeLoader` while `yaml.__with_libyaml__` was True — a default, not a decision. Re-measured here:
@@ -4779,9 +4772,14 @@ defensive rather than load-bearing instead of being papered over with a test tha
 `check-domain.sh:1335`, which reports `CLAUDE.md is N lines — budget is 80 (DEC-181)`. `CLAUDE.md`
 is in no propagation checker's scan roots: no propagation checker exists (DEC-188).
 
+<!-- claim: grep -F "budget is 80 (DEC-181)" .claude/skills/harness/bin/check-domain.sh :: budget is 80 (DEC-181) -->
+<!-- claim: grep -c -m 81 -e "" CLAUDE.md :: 12 -->
+
 `CLAUDE.md` is read at **every session start** — the widest blast radius of any file in this repo,
 wider than SPEC.md or any agent file. It was the only file of its class with no mechanical budget.
 Its peers all have one: expertise 150, `feature.json` 300, handoff notes 60, STATE.md 120.
+
+<!-- claim: grep -F "budget is 300" .claude/skills/harness/bin/check-domain.sh :: budget is 300 -->
 
 **80 was re-derived at `a5edb13`, not inherited from issue #139, and it comes from the file's own history, and that history STARTS AT A CLEANUP.** The file was
 208-214 lines from April through 2026-07-27; DEC-135 then cut it to 50. That blow-out is why issue #139
@@ -4911,6 +4909,8 @@ Existing issues are not rewritten, so the corpus is mixed.
 `check-plan-routes.py` shipped working and nothing mechanical ran it (issue #133). DEC-179's clause
 "nothing executes it automatically" is now false.
 
+<!-- claim: grep -F "name: Plan-route gate" .github/workflows/tests.yml :: name: Plan-route gate -->
+
 **The venue is CI, and the step goes INSIDE the `integration` job.** Branch protection requires
 exactly that one context, and it is the job's ID — the job carries no `name:` key. A job of its own
 would emit a context nobody requires, which is the defect being closed rather than a fix for it, and
@@ -4929,6 +4929,8 @@ from a gate that examined nothing. Three outcomes get three messages: no summary
 not run), a summary with M=0 (it ran and looked at nothing), and a real verdict. `|| true` on the
 summary grep is load-bearing, not defensive: under `bash -e {0}` an unmatched grep inside a command
 substitution kills the step before either diagnostic prints.
+
+<!-- claim: grep -F "violation(s) across" .claude/skills/harness/bin/check-plan-routes.py :: violation(s) across {processed} plan(s) -->
 
 **THE STEP IS UNGUARDED, BY DECISION, AND THAT REOPENS ISSUE #133.** An earlier version of this
 entry described a suite of assertions defending the step — that the workflow defines the required
@@ -4971,6 +4973,8 @@ The repo's own history shows the policy already in effect — **52 reviews, ever
 none `APPROVED`.** #175 is closed as not achievable; it becomes possible only with a second
 collaborator. So the honest statement is that this gate protects the plans and **nothing protects
 the gate** — not pending, settled.
+
+<!-- claim: grep -F "run-unit-tests.sh" .github/CODEOWNERS :: run-unit-tests.sh  @mruangutai -->
 
 **Also removed by owner decision: `actions/setup-python@v5` and the root-assert step.** The job is
 four steps — checkout, Install PyYAML, Integration suite, Plan-route gate. The Python version is no
@@ -5108,8 +5112,9 @@ kind a violation rather than a warning, because a warning is what already failed
 against, with zero room for interpretation, it is **struck from the record and removed from every
 gate**. Not marked stale. Not amended. Not left standing with a marker beside it.
 
-The propagation checker and the invariant that enforced it are struck, and DEC-181 is struck in
-part. `bin/check-docs.sh` is deleted, the INV-10 block is out of `check-state.sh`, and the 66
+The propagation checker and the invariant that enforced it are struck, and DEC-181 keeps only its
+budget rule: the half that put `CLAUDE.md` into the checker's scan roots went with the checker.
+`bin/check-docs.sh` is deleted, the INV-10 block is out of `check-state.sh`, and the 66
 stale-wording markers and 14 escape comments are gone from the live docs.
 
 **What forced it was the mechanism's own failure mode.** A change contradicted a passage in DEC-165.
@@ -5301,6 +5306,8 @@ checkout's contents are a product is a fact about the work, not about the path.
 Both keep exactly their prior behaviour. **Any other checkout of this repository — a linked worktree
 living outside `.claude/worktrees/`, however complete its manifest and its agents look — is a
 mistake, not a supported shape.**
+
+<!-- claim: grep -F "WORKTREES_SEGMENT = " .claude/skills/harness/bin/harness_boundary.py :: WORKTREES_SEGMENT = ".claude/worktrees" -->
 
 **Three refusals, and all three refuse rather than resolve.** Such a checkout **cannot be created**
 through the Bash route: `git worktree add` and `git worktree move` are refused broadly, a destination
@@ -5972,12 +5979,10 @@ directory for Claude Code discovery, while `.agents/skills` symlinks to it for O
 discovery. `CLAUDE.md` imports `AGENTS.md` and states only Claude-specific delivery.
 `check-omp-port.py` rejects adapter drift, a reversed or broken skills link, concrete provider IDs
 in canonical agents, missing provider overlays, missing OMP hooks, or re-enabled Claude discovery.
-
-**Amended by #836 after local compatibility testing.** The first cut reversed this link: it moved
-the authored tree to `.agents/skills` and made `.claude/skills` the symlink. Local filesystem reads
-worked, but Claude Code's discovery contract requires the real directory at its native path.
-Reversing the link preserves one copy and OMP discovery—measured with Claude-provider discovery
-disabled—without making Claude Code consume a compatibility link.
+The reverse — the authored tree at `.agents/skills` with `.claude/skills` a symlink — was tried and
+measured to fail: local filesystem reads succeeded, but that is not Claude Code's discovery
+contract, which requires the real directory at its native path. OMP discovery of the shipped
+direction was measured with Claude-provider discovery disabled.
 
 **Cost accepted:** OMP runs require an explicit provider overlay, the OMP extension is a maintained
 host adapter, and Claude Code compatibility adds generated files. The alternative is cheaper only by
@@ -6268,10 +6273,11 @@ generation contract, is deliberately not settled here.
 
 1. **Anchor rot.** Every file-and-line anchor cited in this file must name a file that exists and a
    line within that file's length. This is deliberately existence plus range and **not** a stored
-   snippet. Existence-plus-range already earns its keep at zero authoring cost: three anchors here
-   name `feature.yaml` — `FEAT-03-subissue-mirror/feature.yaml:73`, the same file at `:97`, and a
-   bare `feature.yaml:63-64` — a path the tree no longer has, its execution state now living in
-   `feature.json`. A stored snippet costs an author something on every anchor and still cannot see
+   snippet. Existence-plus-range earned its keep at zero authoring cost the first time it ran: at
+   `7ebfc9e` three anchors in this file still named FEAT-03's execution-state file by its
+   pre-DEC-191 YAML name, a path the tree no longer has — that state now lives in `feature.json`.
+   All three were repaired by the feature that added this check.
+   A stored snippet costs an author something on every anchor and still cannot see
    the failure that matters most: a line that still exists and now says something unrelated.
 2. **Executable claims.** Where an entry states something a command can check, it records the command
    and the expected result in an HTML comment marker whose body opens with `claim:`, then the command,
@@ -6280,6 +6286,9 @@ generation contract, is deliberately not settled here.
    safety boundary is part of the rule, not an implementation detail: the checker refuses any command
    whose first word is not `git` or `grep`, and never invokes a shell. A documentation file must not
    become an arbitrary code execution surface inside the test suite.
+
+<!-- claim: grep -F "ALLOWED_FIRST_TOKENS = " .claude/skills/harness/bin/check-decision-claims.py :: ALLOWED_FIRST_TOKENS = {"git", "grep"} -->
+<!-- claim: grep -F "test-check-decision-claims.py" .claude/skills/harness/bin/run-unit-tests.sh :: test-check-decision-claims.py -->
 
 **What was considered and refused, recorded so a future scan does not re-suggest it.** A
 **referenced-file watch** (M3) — flagging every entry whose cited files changed — was declined: it

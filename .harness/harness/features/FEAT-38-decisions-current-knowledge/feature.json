@@ -4,7 +4,7 @@
   "pr": null,
   "status": "Building",
   "review_sha": "none",
-  "cycles_used": 2,
+  "cycles_used": 5,
   "max_total_cycles": 10,
   "max_total_runs": 20,
   "runs": [
@@ -49,6 +49,12 @@
       "squad": "eng",
       "verdict": "ESCALATE",
       "agent": "harness-eng-lead"
+    },
+    {
+      "id": "2026-08-29-08-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead"
     }
   ],
   "github": {
