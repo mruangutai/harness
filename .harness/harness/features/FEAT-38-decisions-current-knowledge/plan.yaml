@@ -1550,7 +1550,7 @@ tasks:
       Posting to GitHub is the main session's, per the github-mirror reference: anything posted is the
       user's own words or text the user signed, and no member has a write path to the backlog.
     depends_on: [T-22]
-    status: pending
+    status: done
     files:
       - .harness/harness/features/FEAT-38-decisions-current-knowledge/notes/readback-fold.md
     verify: |
