@@ -221,6 +221,6 @@ criterion above is evidenced. No criterion rests on a null-runner kind.
 
 ## Approval
 
-status: pending
-approved-by:
-date:
+status: approved
+approved-by: operator
+date: 2026-08-29

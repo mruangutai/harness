@@ -4,9 +4,9 @@ feature: FEAT-38-decisions-current-knowledge
 source_issues: [615, 78, 686]
 
 approval:
-  status: pending
-  approved_by:
-  date:
+  status: approved
+  approved_by: operator
+  date: 2026-08-29
 
 lanes:
   resolved_at: 7ebfc9e
