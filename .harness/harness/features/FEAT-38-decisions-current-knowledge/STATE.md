@@ -3,59 +3,56 @@
 ## Current
 
 - feature: FEAT-38-decisions-current-knowledge
-- run: .harness/harness/features/FEAT-38-decisions-current-knowledge/runs/2026-08-29-05-product/state.yaml
-- squad: product
-- status: Building — 7 of 23 tasks done, deletion batch (T-05, T-07) in flight
+- run: .harness/harness/features/FEAT-38-decisions-current-knowledge/runs/2026-08-29-15-validator/state.yaml
+- squad: none — the ship phase ended at its user gate
+- status: Review — awaiting the operator's UAT result and ship decision
 
-The operator signed both artifacts and the signature is committed at `1371027`. `base_sha` for this
-feature is **`7ebfc9e`** — every "measured at 7ebfc9e" figure in the plan is measured there, and
-`DECISIONS.md` was byte-identical from `7ebfc9e` through the build base. GitHub mirror is open:
-milestone 31, parent **#935**, sub-issues #936–#958 for T-01..T-23.
+**The briefing is written and is the thing to read**:
+`notes/ship-review-2026-08-29-16.md` (rendered view alongside it as `.html`). The working memory for
+whoever picks this up is `notes/handoff-ship.md`.
 
-**Landed and committed.** Eng segment A at `204b469` (T-06 generator supersession removal + refs
-filter, T-17 anchor-rot checker). Product segment B1 at `57a3bf3` (T-01 DEC-188 retention clause
-struck, T-02 front-matter mandate rewritten, T-03 **DEC-205** authored, T-04 DEC-140 deleted, T-15
-documentor P-01 rewritten). Every verify block was re-run at the orchestrator's own tier, not taken
-on the lead's word.
+`review_sha` is pinned at **`2557950`**; `base_sha` is `7ebfc9e`. Branch
+`feat/FEAT-38-decisions-current-knowledge`. **No PR exists and none was created.**
 
-**Squad split, which the plan does not state.** `harness-documentor` is a PRODUCT-squad persona, so
-the 12 documentor tasks are product segments and only the 8 backend-dev/dev-ops tasks are eng. A
-build team is eng-only by DEC-118. Remaining segments: **B2** T-05, T-07 (deletions, in flight);
-**B3** T-08, T-09 (the folds); **C** eng T-20, T-10, T-12, T-13, T-18, T-19; **D** product T-16,
-T-21, T-11. Then qa, SIMPLIFY, `review_sha` pin, panel, goal-check.
+**Where it stands.** All 20 team tasks are `done` and committed. The blocking qa gate PASSED. The
+review panel returned FAIL at cycle 0 on a HIGH — a document-to-shell RCE in the claims checker,
+reachable from CI on every pull request — which was fixed, re-pinned, and confirmed closed at cycle 1
+by a reviewer that probed for BYPASSES rather than re-running the known vectors. `severity_max` is
+now `med` and nothing gates. The goal-check grades **11 of 13 criteria met** at the pin.
 
-**Three tasks are `main-session-direct` and cannot be dispatched to any squad**: T-14 (sweeps 13
-ungranted surfaces; SC-04 depends on it), T-22 (the per-entry read-back; SC-11's evidence) and T-23
-(closes issue 448). They are carved out for the main session and named in the ship briefing.
+**The two open criteria belong to tiers above the squad, which is why no rework is routable and the
+last cycle is unspent.** SC-04 is `not_met` pending T-14; SC-13 is `unrun` pending the operator's UAT.
 
-Cycles used 1 of 10 — unchanged through the build so far; no send-back has been reported. Runs 4 of
-an informational 20.
+**Three tasks remain, all `main-session-direct` by construction.** T-14 (18 citations across 13
+files; the per-line list is in `notes/research-FEAT-38-goalcheck-2557950.md`), T-22 (the per-entry
+read-back, REQ-09's evidence) and T-23 (close issue 448). All 13 of T-14's paths return `NOBODY` from
+`check-domain.sh --resolve`, re-measured this run — no squad can be given them.
+
+**Budget: cycles 9 of 10, runs 16 of an informational 20.** The last cycle is unspent; both final
+grading runs returned clean at zero cost. GitHub mirror open: milestone 31, parent #935, sub-issues
+#936–#958. The board is still at `Building` — `gh-sync.py status Review` refused because it requires
+every task `done`, which is the mirror working correctly, and the mirror is never a gate.
 
 ## Open Questions
 
-- **Q1 (blocking the plan's integrity, not the build).** T-15's `verify:` as signed calls
-  `check-expertise.sh` with **no argument**. The script requires a path (`check-expertise.sh:23`) and
-  exits 2 without one, so the block cannot exit 0 for any file content. Measured at the orchestrator's
-  tier: bare → exit 2; `check-expertise.sh "$E"` → exit 0, `OK`. The deliverable is correct; the plan
-  text needs a one-token amendment, which is pm's pen and the operator's signature. Scanned the whole
-  plan: T-15 is the **only** instance of this defect class. SC-12 is `verify: inspection` and does not
-  route through this block, so the goal-check is unaffected.
-- **Q2 (non-blocking, for the operator).** A T-06 member ran `git checkout -- <path>` on the MAIN
-  checkout for `gen-decisions-index.py` and `test-gen-decisions-index.py`. Both are confirmed back at
-  committed content and no stash exists, but uncommitted operator edits held there before the run
-  would have been destroyed. Unknowable from inside the worktree.
-- **Q3 (non-blocking, recorded so nobody re-reports it).** T-03's verify is order-dependent: its last
-  clause forbids any generator error, and T-04 — sequenced after it — orphans DEC-140's index row
-  until T-11 regenerates. T-03 passed when it ran; re-running it before T-11 reports that orphan and
-  is not a defect.
-- **Q4 (non-blocking, harness defect, carried from the plan phase).** `plan-merge.py` exits 8 on a
-  brand-new `plan.yaml` whose proposal carries an `approval:` mapping. It is also ADD-ONLY (exit 7 on
-  a changed value), so a task `status:` transition has no route through it at all; this run uses a
-  surgical id-anchored line editor instead.
-- **Q5 (non-blocking, harness defect).** A T-06 member returned an empty structured result `{}` — no
-  VERDICT, no DIGEST — and the `SubagentStop` digest validator did not block it. The lead
-  reconstructed the verdict from the on-disk receipt, which is exactly the inference the hook exists
-  to make unnecessary.
-- **Q6 (non-blocking, decided at the lead's tier in the plan phase).** The prototype gate did not fire
-  and `harness-visual-designer` was not spawned: the deliverable surface is prose, a generator script
-  and its tests, with no end-user interaction surface. Overridable by the operator.
+All eighteen residual findings are carried as the proposed backlog **B-1 … B-18** in the briefing,
+where the operator can strike them by name. Anything not struck becomes a backlog issue on ship
+acceptance; anything not listed dies silently, so they are all listed there rather than duplicated
+here. The four that need the operator's own answer:
+
+- **Q1 (BLOCKING, operator).** SC-13's UAT at `notes/uat-FEAT-38.md` is unrun. `gates.uat` is
+  `blocking_when_uat_criteria_exist`, so the ship decision waits on it. ~15 minutes.
+- **Q2 (BLOCKING, main session).** T-14, T-22 and T-23 cannot be dispatched to any squad. SC-04
+  closes when T-14 lands.
+- **Q3 (operator signature).** Three signed `verify:` blocks — T-10, T-15, T-19 — cannot pass as
+  written, while the work behind each is correct. Replacement text is ready in
+  `notes/research-verify-block-defects.md` (briefing row B-1).
+- **Q4 (operator, possible data loss).** A T-06 member ran `git checkout -- <path>` on the MAIN
+  checkout for two generator files. Both are confirmed back at committed content and no stash exists,
+  but uncommitted edits held there before 2026-08-29 would have been destroyed. Not knowable from
+  inside the worktree (briefing row B-4).
+
+Two harness defects worth the owner's attention, both hit repeatedly this run: the edit/write tool
+family resolving worktree-relative paths against the MAIN checkout while reporting success (B-2, one
+artifact actually landed there and needs deleting), and a member returning an empty `{}` result that
+the `SubagentStop` digest validator did not block (B-3).

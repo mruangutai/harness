@@ -1,7 +1,7 @@
 # UAT — FEAT-38 decisions as current knowledge
 status: ready              # draft | ready | passed | failed — only you set passed/failed
 criterion: SC-13 (the only `verify: uat` criterion in BRIEF.md)
-tree: build complete at `b32013c`; pre-fold baseline is `7ebfc9e`. `review_sha` not yet pinned.
+tree: graded at `review_sha` **2557950**; pre-fold baseline is `7ebfc9e`. `DECISIONS.md` is byte-identical between the build tip `b32013c` and the pin (`git diff b32013c 2557950 -- .harness/harness/docs/DECISIONS.md` is empty), so every command below reads the reviewed tree.
 
 **SC-13, verbatim:** *"Reading the folded DEC-138, DEC-174 and DEC-181 entries, the operator judges
 that each reads as a decision stating current truth rather than as merged history — and that no claim
