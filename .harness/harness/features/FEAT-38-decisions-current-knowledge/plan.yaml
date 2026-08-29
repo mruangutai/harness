@@ -188,7 +188,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-documentor
     depends_on: []
-    status: pending
+    status: done
     files:
       - .harness/harness/docs/DECISIONS.md
     verify: |
@@ -237,7 +237,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-documentor
     depends_on: []
-    status: pending
+    status: done
     files:
       - .harness/harness/docs/DECISIONS.md
     verify: |
@@ -286,7 +286,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-documentor
     depends_on: [T-01]
-    status: pending
+    status: done
     files:
       - .harness/harness/docs/DECISIONS.md
     verify: |
@@ -369,7 +369,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-documentor
     depends_on: [T-01, T-03]
-    status: pending
+    status: done
     files:
       - .harness/harness/docs/DECISIONS.md
     verify: |
@@ -1121,7 +1121,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-documentor
     depends_on: [T-03]
-    status: pending
+    status: done
     files:
       - .harness/harness/expertise/harness-documentor.md
     verify: |

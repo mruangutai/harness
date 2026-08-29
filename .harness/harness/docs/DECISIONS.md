@@ -1,8 +1,21 @@
 # Harness — Decision Log
 
-> **APPEND-ONLY. Never rewrite or renumber an existing entry.** If a decision changes, add a new
-> entry that references and supersedes the old one. This is the whole point of the file: a settled
-> question stays settled, and reversals are visible as reversals rather than as edits.
+> **Every entry states current truth, in its own voice.** There are no amendment sub-sections and no
+> dated corrections: a correction rewrites the entry it corrects. A claim the tree has since
+> falsified survives as one clause of that current truth, inside the entry which replaced it — with
+> no date and no attribution — so that nobody re-proposes something already measured false.
+>
+> **Superseding is a single act.** The author of a superseding decision DELETES the decision it
+> replaces in the SAME edit. Writing the replacement and removing the replaced are one act, so there
+> is never a moment where both exist.
+>
+> **Numbers are never renumbered, and a deleted number is never reused** — it is retired with the
+> entry.
+>
+> **History is not lost; git holds it.** This file was renamed in FEAT-22 (`8ad7d52`), so a plain
+> `git log` on the path stops at that rename and misses everything before it. Use
+> `git log --follow -- .harness/harness/docs/DECISIONS.md` to read the superseded entries and the
+> folded amendments as they stood.
 >
 > **Numbering:** entries are `DEC-NN`. Note that `D-NN` means something different and is **not** used
 > here — it is the ID for `PLAN.md ## Decisions` entries, a runtime artifact of the harness itself
@@ -3136,7 +3149,7 @@ ubiquitous language, used by `harness-spec-driven`, `harness-grilling` and `harn
 them the map. It moved to `.harness/glossary.md`; DEC-162 and its INV-19 hold, with the map
 precondition dropped.
 
-**DEC-137's number is retired, not reused.** DEC-140 and DEC-149 cite it.
+**DEC-137's number is retired, not reused.** DEC-149 cites it.
 
 **The original entry follows, left standing unedited (DEC-188: appended to, never rewritten).**
 
@@ -3316,38 +3329,6 @@ a parallel `bugs/` root would re-carve everything for nothing). A lightweight un
 rejected: "small" is a judgment that drifts, and a second path around the signature is the DEC-19
 bypass shape. The standalone all-in-one debug team was rejected with it — a fix that ships without
 qa, review, or a signature between diagnosis and change.
-
----
-
-## DEC-140 — STRUCK 2026-08-24
-
-Recorded that the map is built AT INIT rather than as a remembered follow-up, and that `INV-14`
-warns whenever real source exists with no `.harness/codebase/INDEX.md`.
-
-Struck under DEC-188 with DEC-137, whose tier it scheduled. `INV-14` is deleted from
-`check-state.sh` and the map spawn is deleted from `harness-init`. Nothing survives that could nag
-for a file the harness no longer produces.
-
-**DEC-140's number is retired, not reused.**
-
-**The original entry follows, left standing unedited (DEC-188: appended to, never rewritten).**
-
-Field report from kaya-ai's first onboarding: a feature build ran **before** the map, because
-"mission map is the first flow" lived only in prose — the forgettable class, same as the GitHub
-consent (DEC-138) and every delivery gap before it (DEC-125). Two layers close it:
-
-- **Init runs the map.** If dev-ops detection found existing source, the last act of `/harness-init`
-  is spawning the orchestrator with mission map, in the background. Greenfield skips with a note —
-  the map builds naturally as ships refresh it.
-- **INV-14** warns whenever real source (>5 files by extension, dot-dirs and vendor trees pruned)
-  exists with no `.harness/codebase/INDEX.md` — catching projects onboarded before this rule,
-  kaya-ai included, at their next gate. A warn, not a violation: flows still run unmapped, they
-  just pay the re-derivation cost the warning names. Proven on three fixture shapes (code-no-map
-  warns; mapped silent; greenfield silent).
-
-Known edge, accepted: this repo itself never warns — its "source" lives under `.claude/`, which the
-heuristic prunes. The harness mapping itself is a curiosity, not a need. The door's map route
-remains for re-maps and pre-rule projects.
 
 ---
 
@@ -4149,8 +4130,9 @@ structure fails the deletion test.
 
 What WAS missing is enforcement: `.harness/codebase/glossary.md` was "create lazily when the
 first term is resolved," and across three shipped kaya features that fired zero times — while a
-four-status enum and a review-loop vocabulary were being pinned. Same failure shape as DEC-140
-("run the map first" as prose): a duty attached to no checkable moment does not happen. pm's
+four-status enum and a review-loop vocabulary were being pinned. The same failure shape as any
+obligation recorded only in prose — "run the map first" lived that way, and a feature build ran
+before the map: a duty attached to no checkable moment does not happen. pm's
 domain has granted the path since DEC-149; nothing assigned the work.
 
 Two changes: mission map now assigns pm `glossary.md` alongside `product-surface.md` — the map
@@ -5946,9 +5928,12 @@ and nothing mechanical now checks that it did.** The enforcement is a human read
 interpretation. Anything softer than that — a decision that is merely dated, narrowed, or partly
 overtaken — is amended, and striking it needs the operator's word first.
 
-**Struck decisions keep their heading and a strike record.** They are not deleted from the file. A
-reader who finds `DEC-103` cited in a shipped digest must land somewhere that explains what happened,
-and an absent entry reads as a broken reference rather than a decision.
+**A struck decision is DELETED only when a named successor exists to repoint its citations to.** A
+successor need not carry the rule forward; it need only explain what happened, which is all the
+citation ever asked for. Where no successor exists the entry keeps its heading and its strike record,
+because an absent entry with nowhere to point reads as a broken reference rather than as a decision.
+DEC-90 is the one entry this rule keeps, because its successor is a SPEC section rather than a
+decision and its historical citations cannot be edited.
 
 ## DEC-189 — The write guard resolves against two bases, and which one applies is decided from the target
 
@@ -7412,3 +7397,60 @@ This decision supersedes DEC-199 only for claim schema, key, liveness, and autom
 supersedes DEC-201's host-specific mechanics for OMP while preserving its no-wait conduct and
 evidence standard. DEC-202 still owns canonical paths, provider overlays, and compatibility
 adapters. DEC-203 still owns issue/card lifecycle and command ownership.
+
+## DEC-205 — This file states current truth: no amendments, supersession is deletion, and two mechanical checks guard it
+
+**The amendment convention is ended.** An entry states current truth directly. A correction rewrites
+the entry it corrects; it does not append a dated sub-section beside it. A claim the tree has
+falsified survives as one clause of that current truth, so it cannot be re-proposed as new. The cost
+is recorded honestly rather than waved away: dated reasoning about how a decision *changed* is
+recoverable only from `git log --follow` on this path, and for one block — the former DEC-145
+amendment 3 — the reasoning existed only in the file, because its authoring commit message is an
+unrelated write-up. That block's reasoning is therefore gone. It was accepted on 2026-08-20 as a fair
+price for a file whose every sentence can be trusted as present-tense.
+
+**Supersession is deletion.** The author of a superseding decision deletes the decision it replaces,
+in the same edit. There is no `SUPERSEDED BY` marker and no code that can emit one. Nine superseded
+entries had accumulated precisely because the deletion was somebody else's later problem: a marker is
+cheap to write and nobody is ever dispatched to collect it.
+
+**A struck decision is deleted only once a named successor exists that its citations can be
+repointed to.** That is DEC-188's rule, as amended by this feature; its reasoning lives there and is
+not restated here. One statement, one home.
+
+**A deleted number is never reused.** Numbers are not renumbered either. Reuse would make every
+historical citation actively wrong — pointing at a real entry about something else — rather than
+merely dangling, and a dangling citation is the failure a reader can detect.
+
+**The index generation contract, one clause only: a refs graph entry naming a `DEC-NN` with no live
+heading is never emitted.** The evidence is the whole reason the clause exists. DEC-161 was deleted
+outright; zero `## DEC-161` headings remain; and `DECISIONS-INDEX.md` still carried `DEC-161` in the
+refs graph of two rows, regenerated on every run, because the generator scraped the id out of the
+sentences that describe the deletion. Orphan detection guards a *row* whose entry is gone; it never
+looked at a refs graph at all. This is one clause of issue 686 — the rest of that ticket, the full
+generation contract, is deliberately not settled here.
+
+**Two mechanical checks guard this file, and only two.**
+
+1. **Anchor rot.** Every file-and-line anchor cited in this file must name a file that exists and a
+   line within that file's length. This is deliberately existence plus range and **not** a stored
+   snippet. Existence-plus-range already earns its keep at zero authoring cost: three anchors here
+   name `feature.yaml` — `FEAT-03-subissue-mirror/feature.yaml:73`, the same file at `:97`, and a
+   bare `feature.yaml:63-64` — a path the tree no longer has, its execution state now living in
+   `feature.json`. A stored snippet costs an author something on every anchor and still cannot see
+   the failure that matters most: a line that still exists and now says something unrelated.
+2. **Executable claims.** Where an entry states something a command can check, it records the command
+   and the expected result in an HTML comment marker whose body opens with `claim:`, then the command,
+   then a double-colon separator surrounded by single spaces, then the expected stdout substring. A
+   checker re-runs every marker in the suite, so the claim fails when the tree moves under it. The
+   safety boundary is part of the rule, not an implementation detail: the checker refuses any command
+   whose first word is not `git` or `grep`, and never invokes a shell. A documentation file must not
+   become an arbitrary code execution surface inside the test suite.
+
+**What was considered and refused, recorded so a future scan does not re-suggest it.** A
+**referenced-file watch** (M3) — flagging every entry whose cited files changed — was declined: it
+hands over a review list and proves nothing, so its output is work, not verification. A **periodic
+LLM audit of design claims** (M4) was declined as a gate: its judgement decays the moment code moves,
+so it is worth running once as a sweep and worthless standing as a check. Neither becomes cheap
+merely because the two checks above are open rather than closed — that openness is exactly why the
+two that are in are the mechanical ones.
