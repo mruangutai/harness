@@ -137,7 +137,7 @@
       "id": "validate-remediate-c14-eng",
       "squad": "engineering",
       "agent": "harness-eng-lead",
-      "verdict": "PASS"
+      "verdict": "FAIL"
     },
     {
       "id": "validate-remediate-c18-eng",
