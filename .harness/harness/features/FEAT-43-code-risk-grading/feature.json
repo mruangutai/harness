@@ -168,6 +168,12 @@
       "squad": "validator",
       "agent": "harness-validator-lead",
       "verdict": "PASS"
+    },
+    {
+      "id": "validate-final-panel-c21-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS"
     }
   ],
   "github": {
