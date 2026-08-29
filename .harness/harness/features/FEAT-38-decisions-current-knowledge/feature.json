@@ -2,13 +2,82 @@
   "feature_id": "FEAT-38-decisions-current-knowledge",
   "branch": "feat/FEAT-38-decisions-current-knowledge",
   "pr": null,
-  "status": "Plan",
+  "status": "Building",
   "review_sha": "none",
   "cycles_used": 1,
   "max_total_cycles": 10,
   "max_total_runs": 20,
   "runs": [
-    { "id": "2026-08-24-01-product", "squad": "product", "verdict": "BLOCKED", "agent": "harness-product-lead" },
-    { "id": "2026-08-29-02-product", "squad": "product", "verdict": "PASS", "agent": "harness-product-lead" }
-  ]
+    {
+      "id": "2026-08-24-01-product",
+      "squad": "product",
+      "verdict": "BLOCKED",
+      "agent": "harness-product-lead"
+    },
+    {
+      "id": "2026-08-29-02-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead"
+    }
+  ],
+  "github": {
+    "milestone": 31,
+    "parent": 935,
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03",
+      "T-04",
+      "T-05",
+      "T-06",
+      "T-07",
+      "T-08",
+      "T-09",
+      "T-10",
+      "T-11",
+      "T-12",
+      "T-13",
+      "T-14",
+      "T-15",
+      "T-16",
+      "T-17",
+      "T-18",
+      "T-19",
+      "T-20",
+      "T-21",
+      "T-22",
+      "T-23"
+    ],
+    "issues": {
+      "T-01": 936,
+      "T-02": 937,
+      "T-03": 938,
+      "T-04": 939,
+      "T-05": 940,
+      "T-06": 941,
+      "T-07": 942,
+      "T-08": 943,
+      "T-09": 944,
+      "T-10": 945,
+      "T-11": 946,
+      "T-12": 947,
+      "T-13": 948,
+      "T-14": 949,
+      "T-15": 950,
+      "T-16": 951,
+      "T-17": 952,
+      "T-18": 953,
+      "T-19": 954,
+      "T-20": 955,
+      "T-21": 956,
+      "T-22": 957,
+      "T-23": 958
+    },
+    "source_issues": [
+      615,
+      78,
+      686
+    ]
+  }
 }

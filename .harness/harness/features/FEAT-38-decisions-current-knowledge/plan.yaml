@@ -487,7 +487,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: []
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/gen-decisions-index.py
       - .claude/skills/harness/bin/test-gen-decisions-index.py
@@ -1206,7 +1206,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: []
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/check-decision-anchors.py
       - .claude/skills/harness/bin/test-check-decision-anchors.py

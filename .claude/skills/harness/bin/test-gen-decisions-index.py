@@ -61,19 +61,6 @@ def fence_guarded_dec_headings(text):
     return owners
 
 
-def strip_ruling_prose(s):
-    """Drop all trailing '— SUPERSEDED BY DEC-N' clauses (repeatable — DEC-19
-    carries two) and any trailing <!-- ok-stale --> marker, then return what's
-    left. Used to measure hand-written prose, not generator-written clauses."""
-    cur = s.strip()
-    prev = None
-    while prev != cur:
-        prev = cur
-        cur = re.sub(r"—\s*SUPERSEDED BY DEC-\d+\s*$", "", cur).strip()
-        cur = re.sub(r"<!--\s*ok-stale\s*-->\s*$", "", cur).strip()
-    return cur
-
-
 def run_gen(tree, extra_env=None, args=None):
     # The generator resolves its root via harness_boundary.resolve_root, which reads
     # HARNESS_PROJECT_DIR only and requires the override to carry team-config.yaml
@@ -439,26 +426,24 @@ def test_committed_index_is_complete_and_within_budget():
             if not m:
                 continue
             dec_id, ruling = m.groups()
-            stripped = strip_ruling_prose(ruling)
-            non_ws = re.sub(r"\s+", "", stripped)
+            non_ws = re.sub(r"\s+", "", ruling)
             if len(non_ws) < 20:
                 thin.append(dec_id)
-            word_count = len(stripped.split())
+            word_count = len(ruling.split())
             if word_count > 30:
                 over_cap.append((dec_id, word_count))
         if thin or over_cap:
             if thin:
                 print(
                     f"FAIL - {name}: {len(thin)} row(s) below the 20-non-whitespace-character prose "
-                    f"floor after stripping SUPERSEDED/ok-stale clauses: {', '.join(thin)}"
+                    f"floor: {', '.join(thin)}"
                 )
             if over_cap:
                 over_cap.sort(key=lambda pair: pair[1], reverse=True)
                 offenders = ", ".join(f"{dec_id} ({wc})" for dec_id, wc in over_cap)
                 print(
                     f"FAIL - {name}: {len(over_cap)} row(s) in {REAL_INDEX} exceed the 30-word "
-                    f"ruling cap after stripping SUPERSEDED/ok-stale clauses — shorten the ruling "
-                    f"after ' :: ' on each listed row: {offenders}"
+                    f"ruling cap — shorten the ruling after ' :: ' on each listed row: {offenders}"
                 )
             return False
 
@@ -565,22 +550,22 @@ def test_malformed_row_is_reported_not_silently_dropped():
         return False
 
 
-def test_supersession_declared_in_body_prose_is_harvested():
-    """B-3: DEC-120 supersedes DEC-102 in BODY prose, not in its title, so DEC-102's row
-    carried no marker and a reader could act on a dead ruling.
+def test_refs_graph_omits_ids_with_no_live_heading():
+    """CHANGE 2 (FEAT-38 T-06): the refs graph must never name a DEC with no live
+    heading. Standing defect at 7ebfc9e: the generator scraped DEC ids out of
+    prose that merely DESCRIBES a deletion, so a row could cite a DEC with no
+    '## DEC-NNN' heading anywhere in DECISIONS.md.
 
-    The negative half matters as much: a false marker tells a reader to ignore a LIVE
-    decision, so a mid-sentence mention must not mark anything.
+    Both directions are asserted against a SYNTHETIC fixture built here, never
+    the live document: a cited-but-headingless id must be OMITTED from refs,
+    and the same fixture with the heading present must INCLUDE it — a filter
+    that drops everything would pass the first half alone.
     """
-    name = "test_supersession_declared_in_body_prose_is_harvested"
+    name = "test_refs_graph_omits_ids_with_no_live_heading"
     try:
         with tempfile.TemporaryDirectory() as tmp:
-            decisions = [(1, "First"), (2, "Second"), (3, "Third")]
-            bodies = {
-                2: "**Supersedes DEC-1's conclusion** that the old shape was right.",
-                # Narrative, not a declaration: must NOT mark DEC-2.
-                3: "This one supersedes DEC-2 in spirit only, and refines DEC-1.",
-            }
+            decisions = [(1, "First")]
+            bodies = {1: "**Chose:** cites DEC-99, which has no live heading in this fixture."}
             docs_dir = make_authority(tmp, decisions, bodies)
             r = run_gen(tmp)
             if r.returncode != 0:
@@ -588,14 +573,29 @@ def test_supersession_declared_in_body_prose_is_harvested():
                 return False
             rows = {ROW_RE.match(l).group(1): l
                     for l in read_index_rows(docs_dir) if ROW_RE.match(l)}
-            if "SUPERSEDED BY DEC-2" not in rows.get("DEC-1", ""):
-                print(f"FAIL - {name}: DEC-1 lacks its body-declared marker: "
-                      f"{rows.get('DEC-1')}")
+            dec1_left = rows.get("DEC-1", "").split(" :: ", 1)[0]
+            if "DEC-99" in dec1_left:
+                print(f"FAIL - {name}: refs graph names DEC-99 though it has no live "
+                      f"heading: {rows.get('DEC-1')!r}")
                 return False
-            if "SUPERSEDED BY" in rows.get("DEC-2", ""):
-                print(f"FAIL - {name}: DEC-2 was marked from a mid-sentence mention — "
-                      f"a false marker hides a LIVE decision: {rows.get('DEC-2')}")
+
+        with tempfile.TemporaryDirectory() as tmp:
+            decisions = [(1, "First"), (99, "Ninety-nine")]
+            bodies = {1: "**Chose:** cites DEC-99, which HAS a live heading in this fixture."}
+            docs_dir = make_authority(tmp, decisions, bodies)
+            r = run_gen(tmp)
+            if r.returncode != 0:
+                print(f"FAIL - {name}: generator exited {r.returncode}: {r.stderr[:200]}")
                 return False
+            rows = {ROW_RE.match(l).group(1): l
+                    for l in read_index_rows(docs_dir) if ROW_RE.match(l)}
+            dec1_left = rows.get("DEC-1", "").split(" :: ", 1)[0]
+            if "DEC-99" not in dec1_left:
+                print(f"FAIL - {name}: refs graph drops DEC-99 though it has a live "
+                      f"heading — a filter that drops everything would also pass the "
+                      f"first half of this test: {rows.get('DEC-1')!r}")
+                return False
+
         print(f"ok - {name}")
         return True
     except Exception as e:
@@ -832,7 +832,7 @@ TESTS = [
     test_row_per_distinct_dec_matches_authority,
     test_argv_is_validated_and_only_the_write_path_writes,
     test_malformed_row_is_reported_not_silently_dropped,
-    test_supersession_declared_in_body_prose_is_harvested,
+    test_refs_graph_omits_ids_with_no_live_heading,
     test_preserves_hand_written_rulings_by_dec_number,
     test_strips_inline_ok_stale_marker_on_a_row,
     test_committed_index_matches_a_fresh_regeneration,

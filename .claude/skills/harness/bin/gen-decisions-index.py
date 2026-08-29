@@ -29,19 +29,6 @@ HEADING_RE = re.compile(r"^##\s+(DEC-(\d+))\b")
 AMEND_HEADING_RE = re.compile(r"^###\s+DEC-(\d+)\s+amendment(?:\s+(\d+))?\b")
 AMEND_BOLD_RE = re.compile(r"^\*\*Amendment(?:\s+(\d+))?\b")
 DEC_REF_RE = re.compile(r"DEC-(\d+)")
-SUPERSESSION_VERB_RE = re.compile(r"^(SUPERSEDES|CORRECTS|INVERTS)\s+(DEC-\d+)")
-# A supersession declared in BODY PROSE rather than in the title (B-3). DEC-120 supersedes
-# DEC-102 this way, and DEC-102's row carried no marker — so a reader could act on a dead
-# ruling, which is the one failure the marker exists to prevent.
-#
-# Anchored deliberately hard: line-start, inside the bold run that opens the paragraph, and
-# the verb must govern the DEC directly. Narrative mentions ("this supersedes nothing",
-# "DEC-99 supersedes an earlier draft" mid-sentence) must NOT mark a row, because a false
-# marker tells a reader to ignore a LIVE decision — worse than the missing marker it fixes.
-BODY_SUPERSESSION_RE = re.compile(
-    r"^\*\*(Supersedes|Corrects|Inverts|SUPERSEDES|CORRECTS|INVERTS)\s+(DEC-\d+)",
-    re.M,
-)
 
 TOPIC_VOCAB = {
     "org": ("org",),
@@ -88,7 +75,6 @@ bear on your task. Decisions cited in a dispatch are a floor, not a ceiling.
 Row: `- DEC-NN @<line> [am-span] [tags] refs: <graph> :: <ruling>`.
 The `am-span` token appears only on a decision carrying amendments — `am.1`, a contiguous
 `am.1-am.N`, or an enumerated `am.1,am.3` that never hides a gap.
-A row ending `— SUPERSEDED BY DEC-NN` is one you must not act on.
 """
 
                                        # THE row grammar, single-sourced. The unit test
@@ -222,27 +208,15 @@ def format_amendment_span(nums):
     return "am." + ",am.".join(str(n) for n in nums)
 
 
-def compute_refs(body, own_num):
+def compute_refs(body, own_num, live_nums):
     seen = {}
     for m in DEC_REF_RE.finditer(body):
         n = int(m.group(1))
-        if n == own_num:
+        if n == own_num or n not in live_nums:
             continue
         if n not in seen:
             seen[n] = m.group(0)
     return [seen[n] for n in sorted(seen)]
-
-
-def compute_supersession_target(title):
-    segments = title.split("—")
-    if len(segments) < 2:
-        return None
-    last = segments[-1].strip()
-    first_clause = last.split(",", 1)[0].strip()
-    m = SUPERSESSION_VERB_RE.match(first_clause)
-    if not m:
-        return None
-    return m.group(2)
 
 
 def compute_tags(body):
@@ -257,17 +231,13 @@ def compute_tags(body):
 
 
 def strip_trailing_clauses(ruling):
-    """Repeatedly strip trailing SUPERSEDED BY / ok-stale clauses. Returns
+    """Repeatedly strip a trailing ok-stale marker. Returns
     (stripped_prose, had_ok_stale: bool)."""
     cur = ruling.strip()
     had_ok_stale = False
     prev = None
     while prev != cur:
         prev = cur
-        new = re.sub(r"—\s*SUPERSEDED BY DEC-\d+\s*$", "", cur).strip()
-        if new != cur:
-            cur = new
-            continue
         m = re.search(r"<!--\s*ok-stale\s*-->\s*$", cur)
         if m:
             had_ok_stale = True
@@ -278,24 +248,7 @@ def strip_trailing_clauses(ruling):
 def build_index(text, existing_rows):
     decisions, lines, headings = parse_decisions(text)
     amendments = compute_amendments(lines, headings)
-
-    # Supersession: for each decision whose title names a target, that
-    # target's row gains a trailing '-- SUPERSEDED BY DEC-<owner>'.
-    superseded_by = {}  # target_num (int) -> list of owner keys, ascending by owner num
-    for key, dec in sorted(decisions.items(), key=lambda kv: kv[1]["num"]):
-        # Title first, then body prose (B-3). A decision may declare both; dedupe, and
-        # never let a decision supersede itself (a body line quoting its own number).
-        targets = []
-        t = compute_supersession_target(dec["title"])
-        if t:
-            targets.append(t)
-        targets += [m.group(2) for m in BODY_SUPERSESSION_RE.finditer(dec["body"])]
-        for target in dict.fromkeys(targets):
-            target_num = int(DEC_REF_RE.search(target).group(1))
-            if target_num == dec["num"]:
-                continue
-            if key not in superseded_by.setdefault(target_num, []):
-                superseded_by[target_num].append(key)
+    live_nums = {num for (_, _, num, _) in headings}
 
     # Orphan detection: existing rows with non-sentinel ruling text whose DEC
     # number has no live heading. Hard error, never a silent drop.
@@ -319,7 +272,7 @@ def build_index(text, existing_rows):
     for key, dec in sorted(decisions.items(), key=lambda kv: kv[1]["num"]):
         num = dec["num"]
         tags = compute_tags(dec["body"])
-        refs = compute_refs(dec["body"], num)
+        refs = compute_refs(dec["body"], num, live_nums)
         amend_nums = amendments.get(key, [])
         amend_span = format_amendment_span(amend_nums)
 
@@ -328,25 +281,13 @@ def build_index(text, existing_rows):
         else:
             prose, had_ok_stale = "\N{WARNING SIGN} RULING PENDING", False
 
-        clauses = [prose]
-        for owner_key in superseded_by.get(num, []):
-            owner_num = decisions[owner_key]["num"]
-            clauses.append(f"— SUPERSEDED BY DEC-{owner_num}")
-        # Re-sort supersession clauses ascending by owner DEC number.
-        if len(clauses) > 1:
-            body_prose = clauses[0]
-            supersede_clauses = sorted(
-                clauses[1:],
-                key=lambda c: int(DEC_REF_RE.search(c).group(1)),
-            )
-            clauses = [body_prose] + supersede_clauses
         # had_ok_stale IS DELIBERATELY NOT RE-EMITTED. The marker belonged to the
         # propagation checker, struck whole under DEC-188 — it now means nothing, and
         # a generator that faithfully preserved one would let a future author revive
         # dead syntax no gate can object to. Measured before this changed: a planted
         # marker propagated through regeneration while check-state.sh and the whole
         # unit suite stayed green. Stripping on read and never writing closes that.
-        ruling = " ".join(clauses)
+        ruling = prose
 
         left = f"- {key} @{dec['line']}"
         if amend_span:
