@@ -16,7 +16,7 @@ lanes:
       reason: team-config.yaml grants no lane over it and DEC-174 makes enforcement-layer edits direct
     - surface: .claude/skills/harness/bin/**
       lane: main-session-direct
-      reason: DEC-174 carve-out, these are the gate scripts and test registries being changed
+      reason: DEC-174 policy carve-out, NOT absence of a grant. This glob IS granted, to harness-backend-dev at team-config.yaml:170 and to harness-dev-ops at team-config.yaml:211, both with the comment naming it this repo's authored harness source, so T-01 is domain-legal for a squad. It stays main-session-direct by deliberate ruling, settled and not to be re-asked, because T-01 performs the fixture scrub, the plan's one irreversible step since a committed secret cannot be retracted from history, and that belongs under direct human diff review regardless of the domain grant
     - surface: .claude/settings.json
       lane: main-session-direct
       reason: hook registration, ungranted in team-config.yaml
@@ -46,7 +46,7 @@ decisions:
     dec: none
   - id: D-05
     choice: DEC-198 is amended to source its 200000 default to DEFAULT_CONTEXT_WARN_TOKENS exported from .omp/extensions/harness-hooks.ts, keeping the name the retired script used
-    because: the stated source is being deleted while budgets.orchestrator_context_warn_tokens is absent from .harness/harness.json, so the default path is the live path
+    because: the stated source is being deleted, so the citation must be re-homed. Measured in this worktree at b0ea27d, budgets.orchestrator_context_warn_tokens IS present at .harness/harness.json:169 with the value 200000 and a rationale sibling at :170, so the constant is the default for a config that genuinely lacks the key, not the live value here
     dec: DEC-198
   - id: D-06
     choice: DEC-201's amendment names the concrete replacement for mechanics DEC-204 already retired for OMP at DECISIONS.md:7411-7412 and adds no new supersession language, and neither DEC-198 nor DEC-201 is struck
@@ -56,6 +56,10 @@ decisions:
     choice: Every build task is execution_mode main-session-direct
     because: the whole implementation lives in an enforcement-layer hook file, so there is no library for a squad to build
     dec: DEC-174
+  - id: D-08
+    choice: A capability is implemented in-process in the OMP extension only where it needs a host handle the gate scripts cannot receive; everything else stays in the gate scripts
+    because: readContextAnchor is the extension's first crossing from adapter to implementation, since all 658 lines of .omp/extensions/harness-hooks.ts today are translation, OMP event in, runPolicy spawn out, result shape back, with no in-process reader of any repository or host data file. Without the criterion D-01 reads as we put it here rather than here is when it goes here, and it sets no boundary for the next addition
+    dec: none
 
 tasks:
   - id: T-01
@@ -63,41 +67,98 @@ tasks:
     traces: [REQ-01, REQ-02, REQ-03, REQ-04, REQ-05]
     change_type: bugfix
     execution_mode: main-session-direct
-    execution_reason: DEC-174 carve-out, the tests drive an enforcement-layer hook module and its registries
+    execution_reason: DEC-174 policy carve-out over .claude/skills/harness/bin/**, which IS granted to harness-backend-dev at team-config.yaml:170 and harness-dev-ops at team-config.yaml:211, so this is a deliberate choice and not an ungranted surface. Taken direct because T-01 performs the fixture scrub, the plan's one irreversible step, which belongs under direct human diff review
     depends_on: []
     status: pending
     files:
       - .claude/skills/harness/bin/omp-session-anchored.fixture.jsonl
       - .claude/skills/harness/bin/omp-session-anchorless.fixture.jsonl
       - .claude/skills/harness/bin/omp-hooks.test.ts
+      - .harness/harness/features/FEAT-44-omp-context-advisory/notes/fixture-provenance.md
     verify: |
-      out=$(bun test ./.claude/skills/harness/bin/omp-hooks.test.ts 2>&1)
-      printf '%s' "$out" | grep -q readContextAnchor; named=$?
-      printf '%s' "$out" | grep -qE "[1-9][0-9]* fail"; failed=$?
-      test "$named" = 0 && test "$failed" = 0
+      # The host-surface case FAILS, never skips, if getSessionFile leaves the installed OMP:
+      # this block then exits nonzero even with production code correctly absent, which is the
+      # only signal that the feature's premise died rather than its implementation being unwritten.
+      A=./.claude/skills/harness/bin/omp-session-anchored.fixture.jsonl
+      B=./.claude/skills/harness/bin/omp-session-anchorless.fixture.jsonl
+      T=./.claude/skills/harness/bin/omp-hooks.test.ts
+      test -s "$A" && test -s "$B" || exit 1
+      grep -q '{' "$A" && grep -q '{' "$B" || exit 1
+      grep -qE 'credential_pin|-----BEGIN|AKIA[0-9A-Z]{16}|(sk|ghp|gho|github_pat|xox[abp])[-_][A-Za-z0-9]{8}' "$A" "$B" && exit 1
+      grep -qF "$(whoami)" "$A" "$B" && exit 1
+      declared=$(grep -cE '^[[:space:]]*test\(' "$T")
+      test "$declared" -ge 41 || exit 1
+      out=$(bun test "$T" 2>&1)
+      printf '%s' "$out" | grep -q readContextAnchor || exit 1
+      printf '%s' "$out" | grep -qE "[1-9][0-9]* fail" || exit 1
+      exit 0
     intent: |
       Write the failing tests FIRST, before any production code. Nothing in this task may
       touch .omp/extensions/harness-hooks.ts. When you are done the bun suite MUST be RED,
       and the verify above asserts exactly that: the new case names are present and at
       least one test fails. A green suite here means you wrote production code out of order.
 
+      One enumerated case is deliberately GREEN at this task's completion, and that does not
+      contradict the RED requirement: the installed-OMP host-surface case below asserts a
+      property of the HOST, not of anything this feature builds, so it has nothing to be red
+      about. The RED requirement binds the behavioural cases, which import exports that do
+      not exist yet; the verify demands at least one failure, never that every case fails.
+      The two absence checks in the verify are each preceded by a positive control on the
+      same file, so a grep that errors cannot read as a clean sweep.
+
       Commit two fixture files beside the existing bun suite, flat in
       .claude/skills/harness/bin/ (the directory has no subdirectories today and
       layout_fixtures.py already establishes that fixture material lives flat there).
 
       omp-session-anchored.fixture.jsonl: a REAL captured excerpt from an OMP session
-      transcript under ~/.omp/agent/sessions/, truncated to a handful of records and with
-      message text content scrubbed to short placeholders. Do not hand-author the record
-      shape: capture it, so the fixture does not share an author with the reader. At least
-      two records must carry message.contextSnapshot.promptTokens with DIFFERENT values,
-      and the newest such record's value must not be 200000 and must not equal any other
-      number the tests assert, so a hardcoded return cannot pass. Record the source session
-      path and the capture date in a leading comment-free sidecar note under the feature's
-      notes/ if you want provenance recorded; the JSONL itself stays pure JSONL.
+      transcript under ~/.omp/agent/sessions/, truncated to a handful of records. Do not
+      hand-author the record shape: capture it, so the fixture does not share an author with
+      the reader. At least two records must carry message.contextSnapshot.promptTokens with
+      DIFFERENT values, and the newest such record's value must not be 200000 and must not
+      equal any other number the tests assert, so a hardcoded return cannot pass.
 
-      omp-session-anchorless.fixture.jsonl: a captured excerpt from the same source with
-      every contextSnapshot-bearing record removed, so it is well-formed JSONL with no
-      anchor anywhere.
+      The capture MUST come from a NESTED SUBAGENT transcript, that is a file of the form
+      <ts>_<parent-id>/<DispatchLabel>.jsonl, never a main-session <ts>_<session-id>.jsonl.
+      The committed table at
+      .harness/harness/features/FEAT-44-omp-context-advisory/evidence/README.md:26-27
+      distinguishes the two path shapes: main resolves to <dir>/<ts>_<session-id>.jsonl, and a
+      subagent at depth 1 to <dir>/<ts>_<parent-id>/<DispatchLabel>.jsonl. The orchestrator
+      this feature advises runs as a dispatched subagent session, never as the main session, so
+      a main-session capture would leave the suite green while never exercising the nested case
+      the feature exists for, which is issue 923's own failure shape one layer out, and the same
+      trap the do-not-stub-the-accessor clause below guards. Depth 1 is what the committed
+      evidence covers; a deeper capture is equally acceptable, and the depth is recorded either
+      way.
+
+      SCRUB BEFORE git add, and treat this as the one irreversible step in the feature: a
+      pushed blob cannot be un-shipped by a later commit. A faithful contiguous capture of a
+      coding session carries real material in field classes that "message text" does not
+      name. Scrub or drop ALL of the following, then read every line of both fixtures by eye
+      before staging:
+      - content[].text and content[].thinking on message records: replace with short
+        placeholders.
+      - toolCall.arguments on assistant records: real Bash command strings, real file paths
+        and real file contents. Replace the whole arguments object with a synthetic one.
+      - content[] on toolResult records: real tool output, meaning stdout, stderr, file
+        reads, gh and git output. Replace with a short placeholder.
+      - session.cwd and every other cwd-bearing or absolute-path field: replace with a
+        synthetic path such as /tmp/fixture. These leak the local username and home
+        directory.
+      - credential_pin records, shaped { type, id, parentId, timestamp, provider, hash }:
+        DROP the whole record. readContextAnchor reads no field on it, so it is pure risk
+        with zero test value.
+      Keep message.contextSnapshot intact: it is the only structure under test. The verify
+      block runs a secret-pattern sweep and a local-username sweep over both fixtures, each
+      behind a positive control, and it is a floor rather than a substitute for the manual
+      read. Record the source session path, the NESTING DEPTH of the capture together with the
+      <parent-id>/<DispatchLabel> path shape that establishes it, the capture date and the
+      scrub actions taken in
+      .harness/harness/features/FEAT-44-omp-context-advisory/notes/fixture-provenance.md.
+      The JSONL files themselves stay pure JSONL with no comment line.
+
+      omp-session-anchorless.fixture.jsonl: a captured excerpt from the same nested subagent
+      source, scrubbed identically, with every contextSnapshot-bearing record removed, so it is
+      well-formed JSONL with no anchor anywhere.
 
       Then add tests to .claude/skills/harness/bin/omp-hooks.test.ts, which already imports
       from ../../../../.omp/extensions/harness-hooks.ts at line 12. Extend that import list
@@ -114,8 +175,34 @@ tasks:
          64 KiB window. Assert the SAME number comes back. This is the case that reddens if
          the window is pinned to a fixed size.
       3. Against omp-session-anchorless.fixture.jsonl, returns kind "inert" with
-         scannedBytes equal to the file size.
+         scannedBytes equal to the file size AND field equal to the string
+         message.contextSnapshot.promptTokens. Spell that string as a literal in the test on
+         purpose: a test that reads CONTEXT_TOKENS_FIELD back from the module cannot detect the
+         constant itself being wrong. This is the same case with one more assertion, not a new
+         case, so the test-count arithmetic below is unchanged.
       4. Given undefined, and given a path that does not exist, returns kind "none" for both.
+
+      describe("installed OMP session accessor") — one test, and the only case in this suite
+      that reaches the REAL accessor rather than a stub. Every other case stubs
+      getSessionFile, so a green suite would prove only that the stub works, which is issue
+      923's own failure shape one layer out; the committed probe evidence says so itself, in
+      the "What this does NOT establish" section of
+      .harness/harness/features/FEAT-44-omp-context-advisory/evidence/README.md.
+      Measured feasible in this worktree on 2026-08-29:
+      Bun.resolveSync("@oh-my-pi/pi-coding-agent/package.json", import.meta.dir) resolves the
+      installed OMP package (18.0.10 here), and its shipped declaration
+      dist/types/session/session-manager.d.ts declares getSessionFile(): string | undefined
+      and lists "getSessionFile" in the ReadonlySessionManager Pick. The test resolves that
+      package.json, reads the sibling declaration file, and asserts BOTH facts: the method
+      declaration, and the ReadonlySessionManager membership, since the hook receives the
+      readonly view rather than the class. Anchor on those two content strings, never on a
+      line number in an installed package.
+      Do NOT import the module: importing @oh-my-pi/pi-coding-agent/session/session-manager
+      loads the pi_natives addon and throws outside the omp binary, measured in this
+      worktree. The test must FAIL, never skip and never pass vacuously, if the package
+      cannot be resolved, the declaration file is missing, or either assertion does not
+      match. That failure is the whole point: it converts the version-floor risk recorded in
+      evidence/README.md from an unwatched assumption into something the suite reports.
 
       describe("resolveContextWarnTokens") — two tests: a temp root whose
       .harness/harness.json sets budgets.orchestrator_context_warn_tokens to 150000 returns
@@ -130,7 +217,11 @@ tasks:
       describe("context advisory injection") — five tests, driving the real
       registerHarnessHooks with a fake pi that captures the tool_result handler, a ctx whose
       sessionManager.getSessionFile() returns the anchored fixture path, and a
-      before_agent_start event carrying HARNESS_AGENT_ID for the persona under test:
+      before_agent_start event carrying HARNESS_AGENT_ID for the persona under test. The
+      shape of that fake ctx is not assumed: getSessionFile exists on the installed OMP and
+      returns the calling session's own transcript path even in a subagent session, measured
+      twice and committed at
+      .harness/harness/features/FEAT-44-omp-context-advisory/evidence/README.md.
       1. harness-orchestrator, toolName task, tokens over threshold, no block reason: the
          returned content's last entry contains the advisory text, and the returned object
          has NO isError key at all (assert with the "isError" in result form, not truthiness).
@@ -144,8 +235,34 @@ tasks:
       folded into one case, so a scope gate that only half works cannot pass.
 
       Also add one test that harness-orchestrator with the ANCHORLESS fixture receives the
-      inert notice text once, and that a second tool_result on the same registration does not
-      repeat it.
+      inert notice text once, that the notice text CONTAINS the literal
+      message.contextSnapshot.promptTokens, again spelled literally here rather than read back
+      from the module, and that a second tool_result on the same registration does not repeat
+      it, and that the second call performs no further read (assert the notice is absent from
+      the second result, which is what the T-03 cap makes observable). Still ONE test: the
+      field assertion is an extra expect inside it, not a new case.
+
+      Add one test for the accessor-failure branch: a fake ctx whose
+      sessionManager.getSessionFile throws. Assert harness-orchestrator on a task result
+      receives contextAccessorFailureText once, that the text names the accessor
+      sessionManager.getSessionFile, and that a second tool_result does not repeat it. This
+      is the branch that would otherwise collapse into the silent no-figure path, which is
+      the failure shape issue 923 exists to fix. It needs only a fake ctx, no live data and
+      no CI environment, so DEC-163's soft-skip prohibition does not reach it.
+
+      Add one test for the default runtime state: harness-orchestrator, toolName task, an
+      anchor AT OR UNDER the resolved threshold. Assert the handler returns undefined and
+      that the content array it was handed is unchanged, entry for entry. This is REQ-01's
+      no-extra-token promise, and without it a >= written where > was specified ships green.
+
+      Test count, and the arithmetic the verify's static floor of 41 rests on: 24 test(
+      declarations exist at base 7ebfc9e, re-counted as 24 in this worktree at b0ea27d with
+      grep -cE '^[[:space:]]*test\(' on .claude/skills/harness/bin/omp-hooks.test.ts. New
+      here: 4 readContextAnchor + 1 installed-OMP host surface + 2 resolveContextWarnTokens
+      + 2 contextAdvisoryText + 5 injection + 1 inert notice + 1 accessor failure + 1
+      under-threshold = 17. 24 + 17 = 41. The floor is >= rather than =, so a doer who splits
+      a case is not blocked, while a shortfall is. T-03's verify greps "[3-9][0-9] pass",
+      which matches 41 pass.
 
   - id: T-02
     title: Add the transcript reader and the threshold resolver to the OMP extension
@@ -170,12 +287,18 @@ tasks:
 
       export type ContextAnchor =
         | { kind: "tokens"; tokens: number }
-        | { kind: "inert"; scannedBytes: number }
+        | { kind: "inert"; scannedBytes: number; field: string }
         | { kind: "none" };
 
       export const DEFAULT_CONTEXT_WARN_TOKENS = 200000;
       Keep that exact name: it is the name the retired context-watch.py resolver used, and
       DEC-198's amendment in T-06 re-homes its citation to this constant.
+
+      export const CONTEXT_TOKENS_FIELD = "message.contextSnapshot.promptTokens";
+      This is the ONE home for the parsed path. readContextAnchor walks it to read the value
+      and puts it on the inert arm's field; contextInertText prints only what it is handed. So
+      the notice can never name a field the parse did not look for, which is REQ-04's whole
+      point. Nothing else in this file writes that path as a literal.
 
       export function readContextAnchor(sessionFile: string | undefined): ContextAnchor
       Behaviour, and every branch below must yield NO figure rather than a wrong figure:
@@ -186,15 +309,19 @@ tasks:
       - iterate the fragments from the END. Skip any fragment that does not contain the
         substring "contextSnapshot" (a keyed prefilter, and the key implies the substring so
         it cannot produce a false negative). For a surviving fragment, JSON.parse inside
-        try/catch and continue on throw. Read obj.message.contextSnapshot.promptTokens with
-        defensive object checks, accept it only when typeof is number and Number.isFinite,
-        and return { kind: "tokens", tokens } on the first acceptance. No regex is applied to
-        the value anywhere.
+        try/catch and continue on throw. Resolve the value by walking CONTEXT_TOKENS_FIELD's
+        dot-separated segments over the parsed object, with a defensive object check at every
+        step, rather than writing the property path a second time. Accept it only when typeof
+        is number and Number.isFinite, and return { kind: "tokens", tokens } on the first
+        acceptance. No regex is applied to the value anywhere.
       - on a miss with WINDOW smaller than the file size, multiply WINDOW by 4 and retry.
         When WINDOW reaches or exceeds the file size, perform exactly one whole-file pass.
-      - after the whole-file pass finds nothing, return { kind: "inert", scannedBytes: size }.
-      There is no persisted state, no byte offset, no accumulated delta and no dedupe: the
-      newest anchor is read fresh each time.
+      - after the whole-file pass finds nothing, return
+        { kind: "inert", scannedBytes: size, field: CONTEXT_TOKENS_FIELD }.
+      There is no persisted state, no byte offset, no accumulated delta and no dedupe in this
+      function: the newest anchor is read fresh on every call. The once-per-session cap that
+      T-03 applies lives in the handler's closure flag, not here, so this function stays pure
+      and directly testable.
 
       export function resolveContextWarnTokens(root: string): number
       Reads root/.harness/harness.json, returns budgets.orchestrator_context_warn_tokens
@@ -209,10 +336,30 @@ tasks:
       that the threshold advises and that the handoff belongs at a seam, and cites DEC-198
       and DEC-201. It must never read as a refusal or a gate.
 
-      export function contextInertText(scannedBytes: number): string
-      One line naming message.contextSnapshot.promptTokens as the field that was not found,
-      the number of bytes scanned, and that the host record shape may have changed, citing
-      issue 923.
+      export function contextInertText(scannedBytes: number, field: string): string
+      One line naming the field that was not found, the number of bytes scanned, and that the
+      host record shape may have changed, citing issue 923. The field name arrives as the
+      parameter, carried out of the inert result, and is NEVER restated inside the function
+      body: that restatement is exactly what would let the notice disagree with the parse.
+
+      export type SessionFileResolution =
+        | { kind: "path"; path: string }
+        | { kind: "absent" }
+        | { kind: "failed"; accessor: string };
+
+      export function resolveSessionFile(ctx: unknown): SessionFileResolution
+      This exists as its own export rather than an inline try/catch because the two failure
+      classes must be told apart, and the distinction has to be unit-testable with a fake ctx:
+      - ctx.sessionManager missing, getSessionFile not a function, or the call throws:
+        return { kind: "failed", accessor: "sessionManager.getSessionFile" }.
+      - the call returns cleanly with no usable string: return { kind: "absent" }.
+      - a non-empty string: return { kind: "path", path }.
+      No path string is ever parsed, canonicalised or interpolated into a message.
+
+      export function contextAccessorFailureText(accessor: string): string
+      One line naming the accessor that failed, stating that the context advisory cannot be
+      measured this session because the host's session-resolution API moved, and citing issue
+      923. Same shape and same tone as contextInertText: it announces, it never refuses.
 
       Do not wire anything into a handler in this task. T-03 does the wiring.
 
@@ -239,7 +386,7 @@ tasks:
       { content: [...content, checkLine], isError: true } at 615 to 618.
 
       Add a closure flag beside the existing ones declared at lines 410 to 417, named
-      inertNoticeEmitted and initialised false.
+      contextNoticeEmitted and initialised false.
 
       Compute the advisory BEFORE the existing early return, so the advisory does not depend
       on a block reason and the block does not pre-empt the advisory:
@@ -247,14 +394,27 @@ tasks:
         toolName is exactly task. Both conditions are equality tests, not prefix or substring
         tests: the three domain leads carry different HARNESS_AGENT_ID values and the main
         session carries none, which line 576 already excludes.
-      - resolve the session file as ctx.sessionManager?.getSessionFile?.() inside try/catch
-        returning undefined on throw, mirroring the getSessionId helper at lines 324 to 328.
-      - call readContextAnchor on it. On kind none, no advisory. On kind inert, the advisory
-        line is contextInertText, emitted only when inertNoticeEmitted is false, and the flag
-        is then set, so the notice costs one line per session and not one per wake. On kind
-        tokens, resolve the threshold with resolveContextWarnTokens(gateRoot()) and produce
-        contextAdvisoryText only when tokens are strictly greater than the threshold;
-        at or under the threshold there is no advisory and nothing is returned.
+      - resolve the session file with resolveSessionFile(ctx) from T-02, not with an inline
+        try/catch. The sessionId helper at lines 323 to 330 is the shape being deliberately
+        NOT copied here: it folds "API absent", "API threw" and "nothing to report" into one
+        undefined, and inside this gate a throw can only mean the accessor moved, because
+        currentAgent is harness-orchestrator and toolName is task, so a session file exists.
+      - on kind failed: the advisory line is contextAccessorFailureText(accessor), emitted
+        only when contextNoticeEmitted is false, and no read is attempted.
+      - on kind absent: no advisory and no notice. That is the legitimate no-session-yet case.
+      - on kind path: call readContextAnchor on the path. On kind none, no advisory. On kind
+        inert, the advisory line is contextInertText(scannedBytes, field) with both arguments
+        taken from the inert result and no field name written at the call site, emitted only
+        when contextNoticeEmitted is false. On kind tokens, resolve the threshold with
+        resolveContextWarnTokens(gateRoot()) and produce contextAdvisoryText only when tokens
+        are strictly greater than the threshold; at or under the threshold there is no
+        advisory and nothing is returned.
+      - the flag is named contextNoticeEmitted, not inertNoticeEmitted, because it now covers
+        both notice classes. Setting it SKIPS THE WHOLE ADVISORY PATH on every later wake in
+        that session, the read included, so the full scan the ladder degrades to is paid once
+        per session rather than once per wake. Disclosed cost, accepted: if the host recovers
+        mid-session the advisory does not come back until the next session. The reader from
+        T-02 stays stateless; this cap is entirely the handler's.
 
       Then compose, replacing the early return at line 613:
       - no block reason and no advisory: return nothing, exactly as today.
@@ -369,8 +529,13 @@ tasks:
 
       The rewritten step 5 must:
       - keep the surviving substance: the threshold is budgets.orchestrator_context_warn_tokens
-        in .harness/harness.json, 200000 today, it ADVISES and the decision is the
-        orchestrator's, crossing it is normal, and the handoff happens at a seam (DEC-198).
+        in .harness/harness.json, it ADVISES and the decision is the orchestrator's, crossing
+        it is normal, and the handoff happens at a seam (DEC-198). Name the KEY and NEVER the
+        numeral. The figure is deliberately absent here: the runtime advisory already carries
+        the resolved threshold and the computed ratio in the line it appends, so the
+        orchestrator never needed the literal. The retargeted case 4 asserts mechanism WORDING
+        rather than the number, so a numeral copied into this prose would go stale on the next
+        budget change with every gate still green.
       - restore the DEC-201 weighting clause that PR 922 deleted, in substance: just over,
         carry on; far past, an unfinished phase costs more than the handoff. Cite DEC-201.
       - restore the DEC-199 citation on the clause it governs: a reported completion is a
@@ -423,10 +588,15 @@ tasks:
       T-04 deletes. Re-home it: the amendment states that the 200000 default is now
       DEFAULT_CONTEXT_WARN_TOKENS exported from .omp/extensions/harness-hooks.ts, returned by
       resolveContextWarnTokens on every miss path, and that the miss-path set is unchanged.
-      Record that this is load-bearing rather than cosmetic: budgets in .harness/harness.json
-      holds max_total_cycles and max_total_runs only, so the key is absent today and the
-      default IS the live value. The threshold figure and its advisory-not-gate character are
-      untouched, and its calibration across differing context windows stays out of scope.
+      Record what is and is not load-bearing, and state it as measured rather than as a
+      timeless property: budgets in .harness/harness.json DOES carry
+      orchestrator_context_warn_tokens, at :169 with the value 200000 and a rationale sibling
+      at :170, so in THIS repository the config governs and the constant is what a config
+      lacking the key falls back to. The two figures are equal by coincidence, not by
+      derivation. Do not write that the default is the live value: it is not, and the
+      amendment must not contradict DEC-198's own un-amended paragraph. The threshold figure
+      and its advisory-not-gate character are untouched, and its calibration across differing
+      context windows stays out of scope.
 
       DEC-201, entry heading at line 6985. The ruling at lines 6992 to 6994 survives verbatim.
       The superseded text is the self-identification paragraph at lines 7041 to 7048, which
@@ -437,9 +607,16 @@ tasks:
       evidence standard. This amendment therefore does NOT supersede DEC-201 any further and
       adds NO new supersession language. It supplies the concrete replacement inside DEC-204's
       existing frame: the orchestrator no longer identifies itself at all, because
-      ctx.sessionManager.getSessionFile() returns its own transcript path inside its own
-      session, so the two-call probe and its collapse warning are moot rather than wrong. Say
-      that the two-call constraint was correct for the sidecar mechanism and died with it.
+      ctx.sessionManager.getSessionFile() returns the calling session's own transcript path
+      from inside that session, so the two-call probe and its collapse warning are moot
+      rather than wrong. Say that the two-call constraint was correct for the sidecar
+      mechanism and died with it. State the evidence and its limits in the amendment itself,
+      because rule 15 binds what goes into the permanent record: this was measured on ONE OMP
+      build, twice, on one machine, and the capture is committed at
+      .harness/harness/features/FEAT-44-omp-context-advisory/evidence/README.md. Name the
+      version-floor risk explicitly, that a later OMP may rename or drop the accessor, and
+      point at the installed-OMP host-surface test from T-01 as the thing that reports it.
+      Do not phrase any of this as a timeless property of the OMP API.
 
       DEC-159, at lines 4091 to 4102. Its in-flight warning paragraph asserts in the present
       tense that .claude/skills/harness/bin/context-watch-hook.py IS a PostToolUse hook
