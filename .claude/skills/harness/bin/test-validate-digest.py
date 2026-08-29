@@ -83,6 +83,148 @@ def run_template_cases():
     print(f"\n{len(TEMPLATES) - fails}/{len(TEMPLATES)} template cases passed.")
     return fails
 
+
+# Matches only the template's `severity_max: a|b|c` instruction line, never
+# prose like "severity_max >= high" (no `|`-joined alternatives after the
+# colon) — confirmed against all six reviewer files before this landed.
+_SEVERITY_LINE_RE = re.compile(r"^\s*severity_max:\s*([A-Za-z0-9_/]+(?:\|[A-Za-z0-9_/]+)+)\s*$")
+
+
+def _reviewer_severity_expected(validator):
+    """Expected `severity_max` vocabulary, derived from the validator's own
+    `SEV`/`NULLABLE` — never a retyped literal, which is exactly how this
+    drifted one narrowing ago."""
+    expected = set(validator.SEV)
+    if "severity_max" in validator.NULLABLE:
+        expected.add("n/a")
+    return expected
+
+
+def _reviewer_template_paths(validator):
+    """(path, persona) for every reviewer-schema agent template in BOTH
+    trees, discovered MECHANICALLY via the validator's own `norm()`/`ALIAS`
+    so a fourth reviewer persona cannot silently escape this check.
+
+    A missing `agents_dir` yields zero paths from that tree rather than
+    raising — `_report_missing_templates` is what turns that into a loud,
+    named failure instead of a silent empty discovery (c22 send-back).
+    """
+    paths = []
+    for agents_dir in (os.path.join(REPO_ROOT, ".claude", "agents"),
+                        os.path.join(REPO_ROOT, ".omp", "agents")):
+        try:
+            fnames = sorted(os.listdir(agents_dir))
+        except FileNotFoundError:
+            continue
+        for fname in fnames:
+            if fname.endswith(".md") and validator.norm(fname[:-3]) == "reviewer":
+                paths.append((os.path.join(agents_dir, fname), fname[:-3]))
+    return paths
+
+
+# The reviewer personas already shipped in BOTH trees — the floor
+# `_reviewer_template_paths`'s discovery must clear. Not an equality: a
+# legitimately-added fourth persona is still picked up by that mechanical
+# discovery and never fails this check; it only catches discovery finding
+# FEWER than these.
+_EXPECTED_REVIEWER_PERSONAS = ("code", "security", "ui")
+
+
+def _expected_reviewer_template_paths():
+    """Every (tree, persona) path discovery must find at minimum."""
+    return [
+        os.path.join(REPO_ROOT, tree, "agents", f"harness-{persona}-reviewer.md")
+        for tree in (".claude", ".omp")
+        for persona in _EXPECTED_REVIEWER_PERSONAS
+    ]
+
+
+def _report_missing_templates(discovered_paths):
+    """FAIL, naming it, for every expected reviewer template discovery did
+    not find. Discovery breaking (renamed persona, missing agents_dir) must
+    read as a named failure, never as a smaller-but-still-passing count."""
+    fails = 0
+    for expected_path in _expected_reviewer_template_paths():
+        if expected_path not in discovered_paths:
+            fails += 1
+            print(f"FAIL  [severity_max enum] expected reviewer template missing: {expected_path}")
+    return fails
+
+
+def _severity_line_values(path):
+    """Every `severity_max: a|b|c` alternative-set instructed by `path`."""
+    with open(path) as f:
+        lines = f.read().split("\n")
+    return [set(m.group(1).split("|"))
+            for m in map(_SEVERITY_LINE_RE.match, lines) if m]
+
+
+def _report_template_has_lines(path, count):
+    """FAIL, naming it, if a discovered reviewer template yielded zero
+    `severity_max` lines — a regex/format failure on that file, never a
+    silent zero that drops out of the checked total."""
+    if count:
+        return 0
+    print(f"FAIL  [severity_max enum] {path} — no severity_max line found")
+    return 1
+
+
+def _report_severity_drift(path, instructed, expected):
+    """Print and count the drift (if any) between one instructed set and the
+    validator's expected vocabulary. Both directions count as drift: a value
+    the template offers that the validator rejects, and a value the
+    validator accepts that the template never offers."""
+    only_template = instructed - expected
+    only_validator = expected - instructed
+    if not (only_template or only_validator):
+        print(f"ok    [severity_max enum] {path}")
+        return 0
+    print(f"FAIL  [severity_max enum] {path}")
+    if only_template:
+        print(f"      | instructs {sorted(only_template)} — validator REJECTS these")
+    if only_validator:
+        print(f"      | validator accepts {sorted(only_validator)} — template never offers these")
+    return 1
+
+
+def run_reviewer_severity_enum_cases():
+    """Guard against `severity_max` enum drift between the validator's own
+    vocabulary and the reviewer agent templates that instruct agents what to
+    write (BUILD task 22 / c22).
+
+    FEAT-43 narrowed `SEV` (dropped `info`) inside its own reviewed range and
+    only harness-code-reviewer.md followed; harness-security-reviewer.md and
+    harness-ui-reviewer.md (both `.claude/agents` and `.omp/agents`) kept
+    instructing the old vocabulary, which the validator then rejects as a
+    contract violation the moment a reviewer's worst finding is `info`.
+
+    Zero discovered templates used to read as zero checks and zero
+    failures — a pass, indistinguishable from health, the moment either
+    discovery seam (the regex, `_reviewer_template_paths`) broke silently
+    (c22 send-back). `checked` now starts at the floor's size, so it can
+    never reach zero, and both seams are asserted explicitly below.
+    """
+    spec = importlib.util.spec_from_file_location("_validator_severity_guard", VALIDATE)
+    validator = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(validator)
+    expected = _reviewer_severity_expected(validator)
+
+    discovered = _reviewer_template_paths(validator)
+    discovered_paths = {path for path, _ in discovered}
+    fails = _report_missing_templates(discovered_paths)
+    checked = len(_expected_reviewer_template_paths())
+
+    for path, _persona in discovered:
+        values = _severity_line_values(path)
+        checked += 1
+        fails += _report_template_has_lines(path, len(values))
+        for instructed in values:
+            checked += 1
+            fails += _report_severity_drift(path, instructed, expected)
+
+    print(f"\n{checked - fails}/{checked} reviewer severity_max enum checks passed.")
+    return fails
+
 # (name, persona, digest text, expect_ok, must_mention)
 CASES = []
 # (name, agent_type, last_assistant_message text or None, payload_overrides dict,
@@ -2426,6 +2568,7 @@ def main():
     fails += run_hook_cases()
     fails += run_t09()
     fails += run_template_cases()
+    fails += run_reviewer_severity_enum_cases()
     print(f"\n{'ALL PASSED' if not fails else f'{fails} FAILING'}.")
     return 1 if fails else 0
 

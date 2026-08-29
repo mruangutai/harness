@@ -90,7 +90,7 @@ DIGEST:
   headline: <one line>
   in_scope: <bool>
   scope_reason: "<why this diff has or lacks a surface>"
-  severity_max: info|low|med|high|critical|n/a
+  severity_max: none|low|med|high|critical|n/a
                               # n/a = scoped OUT; nothing in this diff for this
                               # role to judge. PASS with n/a is legitimate (DEC-173)
   findings: <n>

@@ -1139,7 +1139,7 @@ and enums may not drift per persona.
   so "not applicable" is never the honest answer. The one exception is `task: none`, a dispatch
   carrying no PLAN task, which may omit `task_verify` or report it `n/a` and still return PASS)
 - **qa:** `suite: pass|fail`, `failures: <n>`, `coverage_gaps: [<area>]`, `matrix_ok: bool`
-- **reviewers** (code / security / ui): `severity_max: info|low|med|high|critical`, `findings: <n>`,
+- **reviewers** (code / security / ui): `severity_max: none|low|med|high|critical`, `findings: <n>`,
   `must_fix: [<item>]`
 - **visual-designer:** `contract: written|updated`, `mockups: [<paths>]`,
   `direction_choices: [<…>]`
