@@ -3,8 +3,8 @@
   "branch": "feat/FEAT-38-decisions-current-knowledge",
   "pr": null,
   "status": "Review",
-  "review_sha": "3928c7048aafffbf7131a1b7130e4a4230fc76b5",
-  "cycles_used": 7,
+  "review_sha": "25579506e0d347bb11973fbaddd0501b4f4e57e7",
+  "cycles_used": 9,
   "max_total_cycles": 10,
   "max_total_runs": 20,
   "runs": [
@@ -76,6 +76,18 @@
     },
     {
       "id": "2026-08-29-12-eng",
+      "squad": "eng",
+      "verdict": "PASS",
+      "agent": "harness-eng-lead"
+    },
+    {
+      "id": "2026-08-29-13-validator",
+      "squad": "validator",
+      "verdict": "FAIL",
+      "agent": "harness-validator-lead"
+    },
+    {
+      "id": "2026-08-29-14-eng",
       "squad": "eng",
       "verdict": "PASS",
       "agent": "harness-eng-lead"
