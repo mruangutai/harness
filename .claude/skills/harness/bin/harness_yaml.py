@@ -60,7 +60,7 @@ class MissingDependency(YamlParseError):
         Exception.__init__(
             self,
             "PyYAML is not importable by this python3 interpreter, so no YAML can "
-            "be read. It is REQUIRED, not optional (DEC-171 am.1):\n" + INSTALL_COMMAND)
+            "be read. It is REQUIRED, not optional (DEC-171):\n" + INSTALL_COMMAND)
 
 
 class DuplicateKeyError(YamlParseError):

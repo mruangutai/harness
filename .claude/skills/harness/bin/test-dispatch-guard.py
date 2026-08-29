@@ -3,7 +3,7 @@
 
 WHY THIS EXISTS. T-08 cuts this gate over to also refuse a second concurrent single-flight
 dispatch, and will claim the existing refusal set is unchanged. Without this file that claim
-is an assertion; with it, it is falsifiable. DEC-174 amendment 4 names a gate's test as the
+is an assertion; with it, it is falsifiable. DEC-174 names a gate's test as the
 only thing proving the gate discriminates, which is why this file is main-session-direct.
 
 FIVE CASES, one per branch the script already has. Every case asserts the exit code AND a

@@ -26,8 +26,6 @@ DECISIONS_PATH = os.path.join(DOCS_DIR, "DECISIONS.md")
 INDEX_PATH = os.path.join(DOCS_DIR, "DECISIONS-INDEX.md")
 
 HEADING_RE = re.compile(r"^##\s+(DEC-(\d+))\b")
-AMEND_HEADING_RE = re.compile(r"^###\s+DEC-(\d+)\s+amendment(?:\s+(\d+))?\b")
-AMEND_BOLD_RE = re.compile(r"^\*\*Amendment(?:\s+(\d+))?\b")
 DEC_REF_RE = re.compile(r"DEC-(\d+)")
 
 TOPIC_VOCAB = {
@@ -72,9 +70,7 @@ bear on your task. Decisions cited in a dispatch are a floor, not a ceiling.
 
 **Adding a decision:** its author writes its ruling here, in the same commit that appends the entry.
 
-Row: `- DEC-NN @<line> [am-span] [tags] refs: <graph> :: <ruling>`.
-The `am-span` token appears only on a decision carrying amendments — `am.1`, a contiguous
-`am.1-am.N`, or an enumerated `am.1,am.3` that never hides a gap.
+Row: `- DEC-NN @<line> [tags] refs: <graph> :: <ruling>`.
 """
 
                                        # THE row grammar, single-sourced. The unit test
@@ -135,79 +131,6 @@ def parse_decisions(text):
     return decisions, lines, headings
 
 
-def compute_amendments(lines, headings):
-    """Return dict: key -> sorted list[int] of amendment numbers."""
-    # Map int(DEC number) -> key, for owner lookups.
-    num_to_key = {num: key for (_, key, num, _) in headings}
-    heading_positions = sorted(h[0] for h in headings)
-
-    def owner_key_for(idx):
-        owner_num = None
-        for (h_idx, key, num, _) in headings:
-            if h_idx <= idx:
-                owner_num = num
-            else:
-                break
-        return num_to_key.get(owner_num)
-
-    heading_amend_nums = {}   # key -> set(int)
-    bold_amend_entries = {}   # key -> list of (idx, explicit_num_or_None)
-
-    for idx, (lineno, line) in enumerate(lines):
-        m = AMEND_HEADING_RE.match(line)
-        if m:
-            target_num = int(m.group(1))
-            target_key = num_to_key.get(target_num)
-            if target_key is None:
-                continue
-            n = int(m.group(2)) if m.group(2) else 1
-            heading_amend_nums.setdefault(target_key, set()).add(n)
-            continue
-        m = AMEND_BOLD_RE.match(line)
-        if m:
-            owner_key = owner_key_for(idx)
-            if owner_key is None:
-                continue
-            explicit = int(m.group(1)) if m.group(1) else None
-            bold_amend_entries.setdefault(owner_key, []).append(explicit)
-
-    result = {}
-    keys = set(heading_amend_nums) | set(bold_amend_entries)
-    for key in keys:
-        heading_nums = heading_amend_nums.get(key, set())
-        bold_list = bold_amend_entries.get(key, [])
-        nums = set(heading_nums)
-        if heading_nums and bold_list:
-            # Heading form's numbers win; inline (bold) ones continue past the
-            # highest heading number, in order of appearance.
-            next_n = max(heading_nums) + 1
-            for _ in bold_list:
-                nums.add(next_n)
-                next_n += 1
-        elif bold_list:
-            # No heading form for this owner: use each bold entry's own
-            # number, defaulting missing ones positionally starting at 1.
-            next_default = 1
-            for explicit in bold_list:
-                n = explicit if explicit is not None else next_default
-                nums.add(n)
-                next_default = n + 1
-        if nums:
-            result[key] = sorted(nums)
-    return result
-
-
-def format_amendment_span(nums):
-    if not nums:
-        return ""
-    # contiguous run -> am.1-am.N ; single -> am.1 ; else enumerated, no gaps hidden
-    if nums == list(range(nums[0], nums[-1] + 1)):
-        if len(nums) == 1:
-            return f"am.{nums[0]}"
-        return f"am.{nums[0]}-am.{nums[-1]}"
-    return "am." + ",am.".join(str(n) for n in nums)
-
-
 def compute_refs(body, own_num, live_nums):
     seen = {}
     for m in DEC_REF_RE.finditer(body):
@@ -247,7 +170,6 @@ def strip_trailing_clauses(ruling):
 
 def build_index(text, existing_rows):
     decisions, lines, headings = parse_decisions(text)
-    amendments = compute_amendments(lines, headings)
     live_nums = {num for (_, _, num, _) in headings}
 
     # Orphan detection: existing rows with non-sentinel ruling text whose DEC
@@ -273,8 +195,6 @@ def build_index(text, existing_rows):
         num = dec["num"]
         tags = compute_tags(dec["body"])
         refs = compute_refs(dec["body"], num, live_nums)
-        amend_nums = amendments.get(key, [])
-        amend_span = format_amendment_span(amend_nums)
 
         if key in existing_rows:
             prose, had_ok_stale = strip_trailing_clauses(existing_rows[key])
@@ -290,8 +210,6 @@ def build_index(text, existing_rows):
         ruling = prose
 
         left = f"- {key} @{dec['line']}"
-        if amend_span:
-            left += f" {amend_span}"
         left += f" [{','.join(tags)}] refs: {' '.join(refs)}"
         rows.append(f"{left} :: {ruling}")
 
@@ -368,7 +286,7 @@ def main():
             for n, line in e.rows:
                 print(f"  {INDEX_PATH}:{n}: {line}", file=sys.stderr)
             print("\nEach line above is meant to be a row but does not match the grammar:\n"
-                  "  - DEC-NN @<line> [am-span] [tags] refs: <graph> :: <ruling>\n"
+                  "  - DEC-NN @<line> [tags] refs: <graph> :: <ruling>\n"
                   "Repair those lines in place — the ' :: ' separator, with a single space on "
                   "each side, is what carries the hand-written ruling. Do NOT regenerate to "
                   "fix this; regenerating cannot recover a ruling it could not read.",

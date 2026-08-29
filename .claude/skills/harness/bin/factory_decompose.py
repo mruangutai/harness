@@ -33,7 +33,7 @@ import factory_config
 import factory_gh
 import harness_yaml
 
-# DEC-138 amendment 3, applied mechanically per task.
+# DEC-138, applied mechanically per task.
 CHORE_TYPES = {"config", "scaffolding", "infra", "ci"}
 BUG_TYPES = {"bugfix"}
 

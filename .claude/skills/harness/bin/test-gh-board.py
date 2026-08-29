@@ -170,7 +170,7 @@ def plan(*statuses):
     return {"tasks": [{"id": f"T-{i:02d}", "status": s} for i, s in enumerate(statuses, 1)]}
 
 
-# Cases 1 and 2 assert the literal DEC-192 names in both label and assertion, so they use a
+# Cases 1 and 2 assert the literal DEC-203 names in both label and assertion, so they use a
 # board declaring those exact names — label and assertion stay true.
 DEC192_BOARD = full_board()
 
@@ -186,7 +186,7 @@ check("derive_station: task with NO status key counts as pending -> None",
       gh_board.derive_station(
           {"tasks": [{"id": "T-01"}, {"id": "T-02", "status": "done"}]}, DEC192_BOARD) is None)
 
-# The two new lookup cases use a board whose station names are DELIBERATELY not the DEC-192
+# The two new lookup cases use a board whose station names are DELIBERATELY not the DEC-203
 # names, so a case can only pass by actually reading board["stations"], not by a reintroduced
 # literal in gh_board.py.
 LOOKUP_BOARD = full_board(stations={**FULL_STATIONS, "building": "Col-B", "review": "Col-R"})

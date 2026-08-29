@@ -312,7 +312,7 @@ artifact: x.md
 
 
 # The roll-up is the only part of collation that is arithmetic. It was prose with a
-# validator next to it that could check it and didn't — the shape of DEC-19/110/119.
+# validator next to it that could check it and didn't — the shape of DEC-110/119.
 case("PASS over a failing member is rejected", "harness-eng-lead", """
 VERDICT: PASS
 DIGEST:

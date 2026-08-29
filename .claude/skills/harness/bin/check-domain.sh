@@ -772,7 +772,7 @@ def domain_check():
               file=sys.stderr)
         sys.exit(2)
     except harness_yaml.YamlParseError as e:
-        # FAIL CLOSED, by the user's ruling and DEC-171 am.1's logic. This is NOT the
+        # FAIL CLOSED, by the user's ruling and DEC-171's logic. This is NOT the
         # absent-manifest case below, which fails open because an unconfigured project
         # has nothing to enforce: here the project IS configured, the file exists, the
         # hook has no bug, and exactly one action fixes it. No deadlock — the manifest

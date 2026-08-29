@@ -719,7 +719,7 @@ def validate(persona, text):
     #
     # This is the only part of collation that is arithmetic rather than judgement, and
     # it was the one thing stated in prose with a validator sitting next to it that
-    # could check it and didn't — the DEC-19 / DEC-110 / DEC-119 shape exactly. A lead
+    # could check it and didn't — the DEC-110 / DEC-119 shape exactly. A lead
     # reporting PASS over a failing member is the single most consequential digest
     # error possible: the orchestrator routes on VERDICT and never opens member
     # entries (SPEC 8), so a masked FAIL ships.
@@ -869,7 +869,7 @@ def hook_mode():
 
     Exit 2 "prevents the subagent from stopping", so the agent must fix its return
     before it can finish — enforcement rather than a request. This is the same
-    answer DEC-19 reached for domain enforcement: prose guarding a contract is
+    answer reached elsewhere for domain enforcement: prose guarding a contract is
     unenforceable, so a script guards it instead.
 
     THREE PASS-THROUGHS, each deliberate:

@@ -69,7 +69,7 @@ def case1():
     cmd_dir = os.path.join(ROOT, ".claude", "commands")
     other_cmds = [f for f in os.listdir(cmd_dir) if f.startswith("harness") and f.endswith(".md")]
     # Four doors, not six: /harness-map and /harness-deepen were deleted when the
-    # codebase map tier was retired (DEC-137, struck 2026-08-24). The guard is that a
+    # codebase map tier was retired (DEC-162, struck 2026-08-24). The guard is that a
     # distribution sweep does not take the REMAINING doors with it.
     check("case1_presence_four_other_command_doors_survive", len(other_cmds) >= 4,
           f"only {len(other_cmds)} harness*.md commands remain: {other_cmds}")
@@ -161,7 +161,7 @@ def case3():
     #
     # `harness-factory-smoke` earns its place as a KEPT FIXTURE (FEAT-33 SC-01, 2026-08-23), not
     # as a served product. `provision --repo` resolves a declaration through this file, and
-    # `mruangutai/harness` is deliberately absent from it (DEC-174 am.1), so a live run of the
+    # `mruangutai/harness` is deliberately absent from it (DEC-174), so a live run of the
     # board-create path had nowhere else to point. That path cannot be reached by any runner —
     # its create branch fires only when the declared project number does not exist, and no fake
     # can prove GitHub accepts the mutation. The live run immediately found a defect eleven fakes

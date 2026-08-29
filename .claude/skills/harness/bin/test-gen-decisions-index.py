@@ -123,12 +123,10 @@ def test_row_per_distinct_dec_matches_authority():
         fenced = fence_guarded_dec_headings(text)
         distinct = sorted(set(fenced))
 
-        # ASSERT THE RELATIONSHIP, NEVER A FROZEN TOTAL (issue #5). This used to
-        # require exactly ONE fenced duplicate, because a fenced `## DEC-83` sat
-        # inside DEC-104's body illustrating the fence-toggle rule. DEC-104 was
-        # struck under DEC-188 and that example went with it, so the count fell to
-        # zero and a green test went red for a reason that was not a parser defect.
-        # Zero fenced duplicates is a legitimate state of the live document.
+        # ASSERT THE RELATIONSHIP, NEVER A FROZEN TOTAL (issue #5). Zero fenced
+        # duplicates is a legitimate state of the live document, so this checks a
+        # relationship (harvested ids never exceed the raw count, and never repeat)
+        # rather than pinning the duplicate count to any one figure.
         #
         # So the live file now carries only the invariants that must always hold,
         # and the fence guard is proven against a SYNTHETIC fixture below — which is
@@ -828,6 +826,49 @@ def test_root_resolves_through_harness_boundary_not_the_retired_variable():
         return False
 
 
+def test_no_amendment_construct_survives_in_the_authority():
+    """FEAT-38 T-10: the generator's amendment machinery was deleted entirely, so a
+    line in the LIVE authority that starts a new amendment construct would be revived
+    as a live am.N token by nobody — it just gets silently ignored. Guard the authority
+    itself, not the generator, since the generator no longer has any code to police.
+    """
+    name = "test_no_amendment_construct_survives_in_the_authority"
+    try:
+        path = os.path.join(REPO_ROOT, gdi.DECISIONS_PATH)
+        lines = open(path, encoding="utf-8").read().splitlines()
+
+        heading_hits = [
+            n for n, line in enumerate(lines, 1)
+            if re.match(r"^###\s+DEC-[0-9]+\s+amendment", line)
+        ]
+        if heading_hits:
+            print(f"FAIL - {name}: '### DEC-N amendment' heading found at "
+                  f"{path}:{heading_hits}")
+            return False
+
+        bold_hits = [
+            n for n, line in enumerate(lines, 1)
+            if re.match(r"^\*\*Amendment", line)
+        ]
+        if bold_hits:
+            print(f"FAIL - {name}: '**Amendment' line found at {path}:{bold_hits}")
+            return False
+
+        am_dot_hits = [
+            n for n, line in enumerate(lines, 1)
+            if re.search(r"am\.\d", line)
+        ]
+        if am_dot_hits:
+            print(f"FAIL - {name}: 'am.<digit>' token found at {path}:{am_dot_hits}")
+            return False
+
+        print(f"ok - {name}")
+        return True
+    except Exception as e:
+        print(f"FAIL - {name}: {type(e).__name__}: {e}")
+        return False
+
+
 TESTS = [
     test_row_per_distinct_dec_matches_authority,
     test_argv_is_validated_and_only_the_write_path_writes,
@@ -839,6 +880,7 @@ TESTS = [
     test_committed_index_is_complete_and_within_budget,
     test_orphaned_ruling_is_reported_not_silently_dropped,
     test_root_resolves_through_harness_boundary_not_the_retired_variable,
+    test_no_amendment_construct_survives_in_the_authority,
 ]
 
 
