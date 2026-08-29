@@ -3,9 +3,9 @@
   "branch": "feat/FEAT-43-code-risk-grading",
   "pr": null,
   "status": "Review",
-  "review_sha": "94383e671e51f95d142f3220f97c8e453721d516",
-  "cycles_used": 13,
-  "max_total_cycles": 13,
+  "review_sha": "17106762c588b3d1c0df45efbcb6128604efb185",
+  "cycles_used": 21,
+  "max_total_cycles": 25,
   "runs": [
     {
       "id": "plan-product",
@@ -132,6 +132,42 @@
       "squad": "validator",
       "agent": "harness-validator-lead",
       "verdict": "FAIL"
+    },
+    {
+      "id": "validate-remediate-c14-eng",
+      "squad": "engineering",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "validate-remediate-c18-eng",
+      "squad": "engineering",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "validate-regate-c18-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL"
+    },
+    {
+      "id": "validate-sec01-c19-eng",
+      "squad": "engineering",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "validate-final-simplify-c21-eng",
+      "squad": "engineering",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "validate-regate-c21-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS"
     }
   ],
   "github": {
