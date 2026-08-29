@@ -1493,7 +1493,7 @@ tasks:
       DEVIATION rather than a violation because the notes path IS granted to harness-orchestrator;
       the deviation is deliberate and the reason is the judgement required, not the write permission.
     depends_on: [T-11, T-21]
-    status: pending
+    status: done
     files:
       - .harness/harness/features/FEAT-38-decisions-current-knowledge/notes/readback-fold.md
     verify: |
