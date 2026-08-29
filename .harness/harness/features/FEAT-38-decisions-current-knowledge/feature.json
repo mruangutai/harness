@@ -4,7 +4,7 @@
   "pr": null,
   "status": "Building",
   "review_sha": "none",
-  "cycles_used": 5,
+  "cycles_used": 7,
   "max_total_cycles": 10,
   "max_total_runs": 20,
   "runs": [
@@ -61,6 +61,24 @@
       "squad": "product",
       "verdict": "PASS",
       "agent": "harness-product-lead"
+    },
+    {
+      "id": "2026-08-29-10-validator",
+      "squad": "validator",
+      "verdict": "PASS",
+      "agent": "harness-validator-lead"
+    },
+    {
+      "id": "2026-08-29-11-eng",
+      "squad": "eng",
+      "verdict": "PASS",
+      "agent": "harness-eng-lead"
+    },
+    {
+      "id": "2026-08-29-12-eng",
+      "squad": "eng",
+      "verdict": "PASS",
+      "agent": "harness-eng-lead"
     }
   ],
   "github": {

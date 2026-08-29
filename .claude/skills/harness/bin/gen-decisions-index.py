@@ -91,7 +91,7 @@ def defenced_lines(text):
 
     A '## DEC-N' heading (or anything else) shown inside a fence is
     documentation of the format, not a live declaration, and must not be
-    harvested. This must run BEFORE all extraction: headings, amendments,
+    harvested. This must run BEFORE all extraction: headings,
     the reference graph, and tag scoring all see the de-fenced body.
     """
     out = []
@@ -169,7 +169,7 @@ def strip_trailing_clauses(ruling):
 
 
 def build_index(text, existing_rows):
-    decisions, lines, headings = parse_decisions(text)
+    decisions, _, headings = parse_decisions(text)
     live_nums = {num for (_, _, num, _) in headings}
 
     # Orphan detection: existing rows with non-sentinel ruling text whose DEC

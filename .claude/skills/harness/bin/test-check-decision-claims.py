@@ -1,17 +1,27 @@
 #!/usr/bin/env python3
 """Tests for check-decision-claims.py, the executable-claims checker.
 
-Every case runs against a SYNTHETIC fixture written into this test's own temp
+Most cases run against a SYNTHETIC fixture written into this test's own temp
 directory, never against the live document — a test that reads live state passes
-or fails for reasons that have nothing to do with the code. The fixture path is
-passed explicitly (`--file`) on every invocation, so a checker that resolved its
-default at import time rather than call time would still be caught reading the
-wrong thing.
+or fails for reasons that have nothing to do with the code under test. The
+fixture path is passed explicitly (`--file`) on every invocation, so a checker
+that resolved its default at import time rather than call time would still be
+caught reading the wrong thing. Those cases test the checker's LOGIC and stay
+hermetic.
+
+One case, `test_live_authority_claims_all_hold`, is different by design: it runs
+the checker against the LIVE `.harness/harness/docs/DECISIONS.md` and guards the
+AUTHORITY itself, not the checker's logic. It is expected to move with the tree
+— a claim marker whose command's output no longer matches its expected
+substring must redden it — and it resolves the live path through the checker's
+own `DECISIONS_REL_PATH` constant rather than a second, hand-rolled resolution.
 
 Commands under `git`/`grep` are used exclusively for the passing/failing cases so
 the fixtures exercise the real allow-listed path, not a stand-in for it.
 """
+import importlib.util
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -21,6 +31,11 @@ REPO_ROOT = os.path.abspath(os.path.join(BIN_DIR, "..", "..", "..", ".."))
 CHECKER = os.environ.get("CHECK_DECISION_CLAIMS_BIN") or os.path.join(
     BIN_DIR, "check-decision-claims.py"
 )
+
+_spec = importlib.util.spec_from_file_location("check_decision_claims", CHECKER)
+_mod = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(_mod)
+LIVE_DECISIONS = os.path.join(REPO_ROOT, _mod.DECISIONS_REL_PATH)
 
 
 def run_checker(fixture_path):
@@ -216,6 +231,44 @@ def test_checker_source_never_uses_shell_true():
         return False
 
 
+def test_live_authority_claims_all_hold():
+    """FEAT-38 T-1x: guards the AUTHORITY itself, not the checker's logic — a
+    claim marker whose command's stdout no longer contains its expected
+    substring anywhere in the live DECISIONS.md must redden this case. The live
+    path is resolved through the checker's own DECISIONS_REL_PATH constant
+    (never a second, hand-rolled join), so this traverses the identical code
+    path a mutation-copy run traverses, differing only in the path string."""
+    name = "test_live_authority_claims_all_hold"
+    try:
+        r = run_checker(LIVE_DECISIONS)
+        if r.returncode != 0:
+            print(f"FAIL - {name}: expected exit 0 against the live authority, "
+                  f"got {r.returncode}: stdout={r.stdout!r} stderr={r.stderr!r}")
+            return False
+        if "REFUSED" in r.stdout:
+            print(f"FAIL - {name}: a claim marker was REFUSED (disallowed first "
+                  f"token) in the live authority: {r.stdout!r}")
+            return False
+        m = re.search(r"examined (\d+) claim\(s\), (\d+) failed", r.stdout)
+        if m is None:
+            print(f"FAIL - {name}: no summary line found in stdout: {r.stdout!r}")
+            return False
+        examined, failed = int(m.group(1)), int(m.group(2))
+        if examined == 0:
+            print(f"FAIL - {name}: examined 0 claims — the checker or its path "
+                  f"resolution is broken, not proven clean: {r.stdout!r}")
+            return False
+        if failed != 0:
+            print(f"FAIL - {name}: {failed} claim(s) failed in the live "
+                  f"authority: {r.stdout!r}")
+            return False
+        print(f"ok - {name}")
+        return True
+    except Exception as e:
+        print(f"FAIL - {name}: {type(e).__name__}: {e}")
+        return False
+
+
 TESTS = [
     test_matching_claim_exits_zero,
     test_mismatching_claim_reports_heading_and_exits_one,
@@ -224,6 +277,7 @@ TESTS = [
     test_nonexistent_path_in_command_is_a_failure_not_a_crash,
     test_unreadable_target_exits_two_not_zero,
     test_checker_source_never_uses_shell_true,
+    test_live_authority_claims_all_hold,
 ]
 
 

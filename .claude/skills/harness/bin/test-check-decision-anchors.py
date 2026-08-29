@@ -1,19 +1,30 @@
 #!/usr/bin/env python3
 """Tests for check-decision-anchors.py, the anchor-rot checker.
 
-Every case runs against a SYNTHETIC fixture written into this test's own temp
+Most cases run against a SYNTHETIC fixture written into this test's own temp
 directory, never against the live document — a test that reads live state passes
-or fails for reasons that have nothing to do with the code. The fixture path is
-passed explicitly (`--file`) on every invocation, so a checker that resolved its
-default at import time rather than call time would still be caught reading the
-wrong thing.
+or fails for reasons that have nothing to do with the code under test. The
+fixture path is passed explicitly (`--file`) on every invocation, so a checker
+that resolved its default at import time rather than call time would still be
+caught reading the wrong thing. Those cases test the checker's LOGIC and stay
+hermetic.
 
-The cited FILE inside each fixture anchor is a real path tracked in this repo
-(picked for stability — CLAUDE.md at the repo root), because the check under test
-is "does this basename resolve in `git ls-files`", which is inherently a question
-about the real tree the checker is invoked from, not about the fixture.
+One case, `test_live_authority_anchors_all_resolve`, is different by design: it
+runs the checker against the LIVE `.harness/harness/docs/DECISIONS.md` and guards
+the AUTHORITY itself, not the checker's logic. It is expected to move with the
+tree — a rotted anchor added anywhere in the real document must redden it — and
+it resolves the live path through the checker's own `DECISIONS_REL_PATH`
+constant rather than a second, hand-rolled resolution.
+
+The cited FILE inside each synthetic fixture anchor is a real path tracked in
+this repo (picked for stability — CLAUDE.md at the repo root), because the check
+under test is "does this basename resolve in `git ls-files`", which is
+inherently a question about the real tree the checker is invoked from, not
+about the fixture.
 """
+import importlib.util
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -23,6 +34,11 @@ REPO_ROOT = os.path.abspath(os.path.join(BIN_DIR, "..", "..", "..", ".."))
 CHECKER = os.environ.get("CHECK_DECISION_ANCHORS_BIN") or os.path.join(
     BIN_DIR, "check-decision-anchors.py"
 )
+
+_spec = importlib.util.spec_from_file_location("check_decision_anchors", CHECKER)
+_mod = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(_mod)
+LIVE_DECISIONS = os.path.join(REPO_ROOT, _mod.DECISIONS_REL_PATH)
 
 # A file guaranteed tracked at REPO_ROOT and stable across runs. Line 1 of a
 # non-empty tracked file is always in range regardless of later edits to the file.
@@ -199,6 +215,39 @@ def test_default_file_is_dev_null_readable_zero_anchors():
         return False
 
 
+def test_live_authority_anchors_all_resolve():
+    """FEAT-38 T-1x: guards the AUTHORITY itself, not the checker's logic — a
+    rotted anchor anywhere in the live DECISIONS.md must redden this case. The
+    live path is resolved through the checker's own DECISIONS_REL_PATH constant
+    (never a second, hand-rolled join), so this traverses the identical code
+    path a mutation-copy run traverses, differing only in the path string."""
+    name = "test_live_authority_anchors_all_resolve"
+    try:
+        r = run_checker(LIVE_DECISIONS)
+        if r.returncode != 0:
+            print(f"FAIL - {name}: expected exit 0 against the live authority, "
+                  f"got {r.returncode}: stdout={r.stdout!r} stderr={r.stderr!r}")
+            return False
+        m = re.search(r"examined (\d+) anchor\(s\), (\d+) failed", r.stdout)
+        if m is None:
+            print(f"FAIL - {name}: no summary line found in stdout: {r.stdout!r}")
+            return False
+        examined, failed = int(m.group(1)), int(m.group(2))
+        if examined == 0:
+            print(f"FAIL - {name}: examined 0 anchors — the checker or its path "
+                  f"resolution is broken, not proven clean: {r.stdout!r}")
+            return False
+        if failed != 0:
+            print(f"FAIL - {name}: {failed} anchor(s) failed in the live "
+                  f"authority: {r.stdout!r}")
+            return False
+        print(f"ok - {name}")
+        return True
+    except Exception as e:
+        print(f"FAIL - {name}: {type(e).__name__}: {e}")
+        return False
+
+
 TESTS = [
     test_in_range_anchor_reports_nothing_and_exits_zero,
     test_missing_file_is_reported_and_exits_one,
@@ -206,6 +255,7 @@ TESTS = [
     test_zero_anchors_exits_zero_and_says_so,
     test_unreadable_target_exits_two_not_zero,
     test_default_file_is_dev_null_readable_zero_anchors,
+    test_live_authority_anchors_all_resolve,
 ]
 
 
