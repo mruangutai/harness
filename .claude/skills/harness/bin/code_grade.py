@@ -226,18 +226,23 @@ def _attach_parents(tree):
             child.parent = parent
 
 
+def _child_qualname(child, prefix):
+    if not isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+        return None
+    return f"{prefix}.{child.name}" if prefix else child.name
+
+
 def _records(tree, path):
     records = []
 
     def collect(node, prefix=""):
         for child in ast.iter_child_nodes(node):
+            qualname = _child_qualname(child, prefix)
+            if qualname is None:
+                continue
             if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                qualname = f"{prefix}.{child.name}" if prefix else child.name
                 records.append(_record(child, qualname, path))
-                collect(child, qualname)
-            elif isinstance(child, ast.ClassDef):
-                qualname = f"{prefix}.{child.name}" if prefix else child.name
-                collect(child, qualname)
+            collect(child, qualname)
 
     collect(tree)
     return records
@@ -315,6 +320,12 @@ def _git_show(repo_root, ref, path):
     raise RuntimeError(result.stderr.strip())
 
 
+def _next_paths(status, fields):
+    if status.startswith("R"):
+        return next(fields), next(fields)
+    return None, next(fields)
+
+
 def _changed_python_files(repo_root, base_ref, head_ref):
     changed = []
     output = _git_output(repo_root, "diff", "--find-renames", "--name-status", "-z",
@@ -323,10 +334,7 @@ def _changed_python_files(repo_root, base_ref, head_ref):
     for status in fields:
         if not status:
             continue
-        if status.startswith("R"):
-            old_path, path = next(fields), next(fields)
-        else:
-            old_path, path = None, next(fields)
+        old_path, path = _next_paths(status, fields)
         if not status.startswith("D") and path.endswith(".py"):
             changed.append((path, old_path))
     return changed

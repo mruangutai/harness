@@ -181,6 +181,55 @@ def _check_rejected_revision(repo_root, base, head, revision, position, label):
     return failures
 
 
+# CR-01 exemptions: pre-existing records in the enumerated files that legitimately sit below the
+# production bar (4). Keyed by (filename, qualname); value is the grade the record must still
+# carry. An entry whose qualname no longer exists, or whose grade has moved, is itself a failure
+# below (`self-grading allowlist has no stale entries`) — an exemption must not outlive the record
+# it excused.
+SELF_GRADING_ALLOWLIST = {
+    # Grade 2, REASON REQUIRED and recorded at review time — cite the notes file:
+    # notes/review-harness-code-reviewer-validate-final-panel.md, "SC-15" section.
+    ("code_grade.py", "_body_hashes.collect"): 2,          # SC-15 item 3
+    ("code_grade.py", "gated_set"): 2,                     # SC-15 item 4
+    ("check-plan-routes.py", "main"): 2,                   # SC-15 item 1
+    # Pre-existing legacy debt, never gated by the FEAT-43 diff (7ccfae8..94383e6): grade is
+    # unchanged from before the feature, confirmed by reading `git diff` for each — where the
+    # function's signature was touched at all (process_task, process_plan_yaml) the change added
+    # a parameter with no new branching (D-02), so the grade could not have moved. No REASON
+    # REQUIRED line exists for these because code-grade.py only demands a reason for a record it
+    # gates, and D-01/D-02 never gate an unchanged grade.
+    ("check-plan-routes.py", "parse_files"): 2,
+    ("check-plan-routes.py", "process_task"): 2,
+    ("check-plan-routes.py", "process_plan_yaml"): 1,
+    ("check-plan-routes.py", "discover_plans"): 1,
+    ("check-plan-routes.py", "check_invariant_number_collisions"): 2,
+}
+
+
+def check_self_grading():
+    """CR-01: every function `code_grade.grade_source` reports in code_grade.py, gate_policy.py,
+    and check-plan-routes.py must grade 4+, except the qualnames named in
+    SELF_GRADING_ALLOWLIST — each justified there — and each allowlist entry must still match a
+    real below-bar record, so a fix or a rename cannot let an exemption silently outlive it.
+    """
+    failures = 0
+    matched_allowlist = set()
+    for filename in ("code_grade.py", "gate_policy.py", "check-plan-routes.py"):
+        source = (Path(HERE) / filename).read_text()
+        for record in code_grade.grade_source(source, filename):
+            key = (filename, record.qualname)
+            if key in SELF_GRADING_ALLOWLIST:
+                matched_allowlist.add(key)
+                failures += check(record.grade, SELF_GRADING_ALLOWLIST[key],
+                                  f"{filename}:{record.qualname} allowlisted grade is stale")
+                continue
+            failures += check(record.grade >= 4, True,
+                              f"{filename}:{record.qualname} grade >= 4")
+    failures += check(matched_allowlist, set(SELF_GRADING_ALLOWLIST),
+                      "self-grading allowlist has no stale (renamed/removed) entries")
+    return failures
+
+
 def check_case_27_grade():
     source = (Path(HERE) / "test-check-plan-routes.py").read_text()
     node = next(item for item in ast.parse(source).body if isinstance(item, ast.FunctionDef)
@@ -405,6 +454,7 @@ def main():
     failures += check_case_27_grade()
     failures += check_worked_examples()
     failures += check_delivery()
+    failures += check_self_grading()
     if failures:
         print(f"{failures} failures")
     else:

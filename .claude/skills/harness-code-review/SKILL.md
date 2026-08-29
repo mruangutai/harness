@@ -60,9 +60,15 @@ python3 .claude/skills/harness/bin/code-grade.py \
   --head "$review_sha"
 ```
 
-For every gated grade-1 function, record a **high** finding naming its file, line, qualified name,
-the three reported numbers, and its driver metric. For every gated grade-2 function, record a **med**
-finding naming the function and a written answer to every `REASON REQUIRED` line the tool emits.
+For every gated record that blocks the build — below its bar and not grade 2 — record a **high**
+finding naming its file, line, qualified name, the three reported numbers, and its driver metric;
+report `code_grade: fail` for it. This is not only grade 1: a grade-3 production function below the
+grade-4 production bar blocks identically, and the tool marks it the same way — `SEVERITY: high` in
+its report (JSON: `"severity": "high"`) and `RESULT: FAIL`. A record that passes its bar carries no
+`SEVERITY:` line at all; do not report a finding for it. For every gated grade-2 function, record a
+**med** finding naming the function and a written answer to every `REASON REQUIRED` line the tool
+emits; grade 2 never blocks the build (`RESULT: FAIL` still prints, but the run exits clean once
+reasoned) and is reported as `code_grade: grade_2`, never `fail`.
 
 The tool informs judgement; it is never the last word. Raise a `must_fix` when review judgement finds
 broken behaviour even if every grade improved, and never treat a clean grade report as a passing review

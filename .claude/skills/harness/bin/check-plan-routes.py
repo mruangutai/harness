@@ -88,27 +88,38 @@ def resolve_agents(path, root, manifest_root):
     return sorted(set(agents))
 
 
-def resolution_manifest(root):
-    """Return the owner manifest the hook uses and any branch/owner deviation."""
+def _owner_root(root):
+    """Return the owner checkout root, raising if a worktree cannot establish one."""
     worktree = harness_boundary.worktree_owner(root)
     if worktree is None:
-        owner_root = root
-    else:
-        _, owner_root, legitimate = worktree
-        if owner_root is None or not legitimate:
-            raise ValueError(f"cannot establish the owner checkout for {root}")
+        return root
+    _, owner_root, legitimate = worktree
+    if owner_root is None or not legitimate:
+        raise ValueError(f"cannot establish the owner checkout for {root}")
+    return owner_root
+
+
+def _manifest_deviation(root, owner_root):
+    """Return the DEVIATION message when root's manifest differs from the owner's, else None."""
     manifest = os.path.join(owner_root, harness_boundary.MARKER)
     if not os.path.isfile(manifest) or not os.access(manifest, os.R_OK):
         raise ValueError(f"owner manifest is not readable: {manifest}")
     branch_manifest = os.path.join(root, harness_boundary.MARKER)
-    deviation = None
-    if os.path.realpath(branch_manifest) != os.path.realpath(manifest):
-        with open(branch_manifest, "rb") as branch, open(manifest, "rb") as owner:
-            if branch.read() != owner.read():
-                deviation = (
-                    f"DEVIATION {branch_manifest} differs from {manifest}; routes were "
-                    "resolved against the owner manifest because that is what the hook consults"
-                )
+    if os.path.realpath(branch_manifest) == os.path.realpath(manifest):
+        return None
+    with open(branch_manifest, "rb") as branch, open(manifest, "rb") as owner:
+        if branch.read() == owner.read():
+            return None
+    return (
+        f"DEVIATION {branch_manifest} differs from {manifest}; routes were "
+        "resolved against the owner manifest because that is what the hook consults"
+    )
+
+
+def resolution_manifest(root):
+    """Return the owner manifest the hook uses and any branch/owner deviation."""
+    owner_root = _owner_root(root)
+    deviation = _manifest_deviation(root, owner_root)
     return owner_root, deviation
 
 

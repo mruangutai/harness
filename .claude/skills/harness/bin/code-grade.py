@@ -52,9 +52,19 @@ def _is_test(root, relative):
                for kind in kinds.values() if kind.get("status") == "active")
 
 
+def _blocks(grade, bar):
+    return grade < bar and grade != 2
+
+
+def _severity(grade, bar):
+    if _blocks(grade, bar):
+        return "high"
+    return "med" if grade == 2 else None
+
+
 def _record(grade, root):
     bar = 3 if _is_test(root, grade.path) else 4
-    severity = {1: "high", 2: "med"}.get(grade.grade)
+    severity = _severity(grade.grade, bar)
     record = {"path": grade.path, "line": grade.lineno, "qualname": grade.qualname,
               "cyclomatic": grade.cyclomatic, "cognitive": grade.cognitive,
               "cognitive_method": "Sonar-style approximation", "abc": grade.abc,
@@ -77,26 +87,35 @@ def _paths_report(root, paths):
     return records, ungraded
 
 
-def _diff_paths(root, base, head):
+def _run_name_status_diff(root, base, head):
     result = subprocess.run(
         ["git", "-C", str(root), "diff", "--find-renames", "--name-status", "-z", base, head],
         capture_output=True,
     )
     if result.returncode:
         raise ValueError(result.stderr.decode(errors="replace").strip())
-    fields = iter(result.stdout.split(b"\0"))
-    paths = []
+    return result.stdout
+
+
+def _name_status_entries(raw):
+    fields = iter(raw.split(b"\0"))
     for raw_status in fields:
         if not raw_status:
             continue
         status = raw_status.decode()
         if status.startswith(("R", "C")):
             next(fields)
-        raw_path = next(fields)
-        path = raw_path.decode(errors="surrogateescape")
-        if not status.startswith("D") and path.endswith(".py"):
-            paths.append(path)
-    return sorted(paths)
+        yield status, next(fields).decode(errors="surrogateescape")
+
+
+def _is_changed_python(status, path):
+    return not status.startswith("D") and path.endswith(".py")
+
+
+def _diff_paths(root, base, head):
+    raw = _run_name_status_diff(root, base, head)
+    entries = _name_status_entries(raw)
+    return sorted(path for status, path in entries if _is_changed_python(status, path))
 
 
 def _diff_report(root, base, head):
@@ -144,8 +163,7 @@ def _text(records, ungraded):
 def _status(records, ungraded):
     if ungraded:
         return 3
-    return 1 if any(record["grade"] < record["bar"] and record["grade"] != 2
-                    for record in records) else 0
+    return 1 if any(_blocks(record["grade"], record["bar"]) for record in records) else 0
 
 
 def main(argv=None):

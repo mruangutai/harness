@@ -204,11 +204,11 @@ def test_bars_follow_test_kinds(repo):
     for path, source in sources.items():
         write(repo, path, source)
     failures = 0
-    for path, exit_code, result, grade, bar, below_bar in (
-        ("src/grade-four.py", 0, "PASS", 4, 4, False),
-        ("src/grade-three.py", 1, "FAIL", 3, 4, True),
-        ("checks/grade-three.py", 0, "PASS", 3, 3, False),
-        ("checks/grade-two.py", 0, "FAIL", 2, 3, True),
+    for path, exit_code, result, grade, bar, below_bar, severity in (
+        ("src/grade-four.py", 0, "PASS", 4, 4, False, None),
+        ("src/grade-three.py", 1, "FAIL", 3, 4, True, "high"),
+        ("checks/grade-three.py", 0, "PASS", 3, 3, False, None),
+        ("checks/grade-two.py", 0, "FAIL", 2, 3, True, "med"),
     ):
         outcome = run(repo, path)
         failures += expect(outcome.returncode, exit_code, f"{path} boundary exit")
@@ -216,9 +216,13 @@ def test_bars_follow_test_kinds(repo):
         failures += expect((f"GRADE: {grade}" in outcome.stdout and f"BAR: {bar}" in outcome.stdout),
                            True, f"{path} exact grade and configured bar")
         failures += expect(grade < bar, below_bar, f"{path} surface-bar boundary")
+        if severity is None:
+            failures += expect("SEVERITY:" in outcome.stdout, False,
+                               f"{path} bar-relative severity omitted")
+        else:
+            failures += expect(f"SEVERITY: {severity}" in outcome.stdout, True,
+                               f"{path} bar-relative severity present")
         if grade == 2:
-            failures += expect("SEVERITY: med" in outcome.stdout, True,
-                               f"{path} grade two med severity")
             failures += expect("REASON REQUIRED: boundary" in outcome.stdout, True,
                                f"{path} grade two reason requirement")
         data = run(repo, "--json", path)
@@ -227,6 +231,7 @@ def test_bars_follow_test_kinds(repo):
         failures += expect(data.returncode, exit_code, f"{path} JSON boundary exit")
         failures += expect((record["grade"], record["bar"], record["result"]),
                            (grade, bar, result), f"{path} JSON grade-bar-result")
+        failures += expect(record["severity"], severity, f"{path} JSON bar-relative severity")
     return failures
 
 
@@ -282,6 +287,34 @@ def test_diff_and_determinism(repo):
     return failures
 
 
+def test_review_skill_states_severity_vocabulary():
+    repo_root = Path(__file__).resolve().parents[4]
+    skill_path = repo_root / ".claude/skills/harness-code-review/SKILL.md"
+    text = skill_path.read_text()
+    failures = expect("SEVERITY: high" in text, True,
+                      "review skill names the tool's SEVERITY: high surface word")
+    failures += expect("code_grade: fail" in text, True,
+                       "review skill names code_grade: fail for a blocking record")
+    failures += expect("not grade 2" in text, True,
+                       "review skill states the high finding covers every blocking grade, "
+                       "not only grade one")
+    failures += expect("code_grade: grade_2" in text, True,
+                       "review skill names code_grade: grade_2 for the grade-two record")
+    return failures
+
+
+def test_diff_paths_complexity():
+    source = SCRIPT.read_text()
+    records = {record.qualname: record.grade
+              for record in code_grade_cli.code_grade.grade_source(source, "code-grade.py")}
+    failures = 0
+    for qualname in ("_diff_paths", "_run_name_status_diff", "_name_status_entries",
+                     "_is_changed_python", "_record", "_status", "_severity", "_blocks"):
+        failures += expect(qualname in records, True, f"{qualname} present in code-grade.py")
+        failures += expect(records.get(qualname, 0) >= 4, True, f"{qualname} grades 4 or better")
+    return failures
+
+
 def main():
     with tempfile.TemporaryDirectory() as directory:
         repo = Path(directory) / "fixture"
@@ -293,6 +326,8 @@ def main():
         failures += test_control_paths(repo)
         failures += test_rejected_revisions(repo)
         failures += test_bars_follow_test_kinds(repo)
+    failures += test_review_skill_states_severity_vocabulary()
+    failures += test_diff_paths_complexity()
     if not failures:
         print("PASS test-code-grade-cli")
     return failures

@@ -566,7 +566,250 @@ def reviewed_python_change(reviewed):
     return any(path.endswith(b".py") for path in result.stdout.split(b"\0") if path), None
 
 
-def validate(persona, text, config_path=None):
+# SEC-01 (FEAT-43 wave 2): a `code_grade` claim is trustworthy only if the range it
+# was computed over is the range the SYSTEM OF RECORD says was reviewed — never
+# whatever the digest itself names. Before this, `reviewed_python_change` above
+# diffed WHATEVER range a `harness-code-reviewer` digest claimed, and nothing
+# anywhere compared that range to `feature.json`'s `review_sha` — so a digest
+# naming a resolvable no-op range (base == head, touching nothing) produced an
+# empty diff, `code_grade: n_a` sailed through, and the gate this feature exists
+# to add was skipped by any reviewer who picked a convenient range. Reproduced
+# live by the security reviewer at this feature's own pin.
+FEATURE_DIR_IN_ARTIFACT_RE = re.compile(r"(\.harness/[^/\s]+/features/[^/\s]+)(?:/|$)")
+
+
+def _feature_dir_from_artifact(text, root):
+    """The `.harness/<repo>/features/<FEAT>` directory named by this RETURN'S OWN
+    `artifact:` line — the only field SEC-01 trusts to say which feature a
+    reviewer belongs to, since every `harness-code-reviewer` writes its artifact
+    under that path (SPEC 8) and it is never a persona-chosen field an attacker
+    could point elsewhere. Split out of `resolve_review_sha` so the "WHICH
+    feature" half of the lookup grades independently of the "WHAT it pins" half.
+
+    Returns `(dir, error)`.
+    """
+    m = None
+    for mm in re.finditer(r"^\s*artifact:\s*(\S+)", text, re.M):
+        m = mm
+    if not m:
+        return None, ("code_grade cannot be bound to review_sha: no artifact: "
+                       "line to resolve this feature from.")
+    path = strip_comment(m.group(1)).strip("\"'").replace(os.sep, "/")
+    fm = FEATURE_DIR_IN_ARTIFACT_RE.search(path)
+    if not fm:
+        return None, (f"code_grade cannot be bound to review_sha: artifact "
+                       f"{path!r} does not name a "
+                       f".harness/<repo>/features/<FEAT>/ location — write your "
+                       f"review under that feature's notes/.")
+    return os.path.join(root, fm.group(1)), None
+
+
+def _resolve_feature_dir(text, feature_dir=None):
+    """The `.harness/<repo>/features/<FEAT>` directory this review is bound to:
+    `feature_dir` when given (fixture-override seam, mirrors
+    `review_config_path`'s `config_path`), otherwise derived from the digest's
+    own `artifact:` line via `_feature_dir_from_artifact`. Factored out so both
+    `resolve_review_sha` (the SHA half) and the branch corroboration below (the
+    checkout half) resolve the SAME feature, never two independent guesses.
+
+    Returns `(dir, error)`.
+    """
+    if feature_dir is not None:
+        return feature_dir, None
+    root = _root_or_none()
+    if root is None:
+        return None, ("code_grade cannot be bound to review_sha: no checkout "
+                       "root resolves from this vantage, so the claim is not "
+                       "trusted.")
+    return _feature_dir_from_artifact(text, root)
+
+
+def _read_review_sha(feature_dir):
+    """feature.json's `review_sha`, or `(None, error)` when it is unreadable or
+    unpinned (DEC-121/INV-6 placeholder vocabulary)."""
+    fj_path = os.path.join(feature_dir, "feature.json")
+    try:
+        with open(fj_path, encoding="utf-8") as f:
+            doc = json.load(f)
+    except (OSError, ValueError) as e:
+        return None, (f"code_grade cannot be bound to review_sha: {fj_path} "
+                       f"could not be read ({e}), so the claim is not trusted.")
+    sha = doc.get("review_sha") if isinstance(doc, dict) else None
+    if not isinstance(sha, str) or sha.strip().lower() in harness_yaml.PLACEHOLDER_UNSET:
+        return None, (f"code_grade cannot be bound to review_sha: {fj_path} has "
+                       f"no pinned review_sha — an unpinned feature (INV-6) "
+                       f"cannot anchor a code_grade claim.")
+    return sha.strip(), None
+
+
+_BRANCH_UNSET = object()  # sentinel: no branch_override given -> derive from git
+
+
+def _read_feature_branch(feature_dir):
+    """feature.json's `branch` field, or None when absent, `none`, or the file
+    is unreadable. Unlike `_read_review_sha`, this is NOT a fail-closed read:
+    SEC-01's SHA binding already rejects an unreadable/unpinned feature.json
+    elsewhere, and a legitimate feature.json may genuinely carry no branch
+    (`branch: none` — e.g. FEAT-01, FEAT-15, FEAT-19 in this repo). "Cannot
+    tell" here must mean "nothing to corroborate", never "reject".
+    """
+    fj_path = os.path.join(feature_dir, "feature.json")
+    try:
+        with open(fj_path, encoding="utf-8") as f:
+            doc = json.load(f)
+    except (OSError, ValueError):
+        return None
+    branch = doc.get("branch") if isinstance(doc, dict) else None
+    if not isinstance(branch, str) or branch.strip().lower() in harness_yaml.PLACEHOLDER_UNSET:
+        return None
+    return branch.strip()
+
+
+def _current_branch_or_none(branch_override=_BRANCH_UNSET):
+    """This checkout's current branch (`git rev-parse --abbrev-ref HEAD`), or
+    None when it cannot be determined — detached HEAD (reported as the literal
+    `HEAD`), `git` unavailable, or a non-zero exit. `branch_override` is the
+    fixture-override seam for tests: pass a branch name, or `None` to simulate
+    an undeterminable checkout, and the `git` call below is skipped entirely.
+    """
+    if branch_override is not _BRANCH_UNSET:
+        return branch_override
+    root = _root_or_none()
+    if root is None:
+        return None
+    try:
+        result = subprocess.run(
+            ["git", "-C", root, "rev-parse", "--abbrev-ref", "HEAD"],
+            text=True, capture_output=True, timeout=5,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if result.returncode:
+        return None
+    branch = result.stdout.strip()
+    return branch if branch and branch != "HEAD" else None
+
+
+def _branch_corroboration_error(feature_dir, current_branch):
+    """SEC-01 hardening (wave 3): the digest's own `artifact:` line still picks
+    WHICH feature.json's review_sha a claim is bound to (SEC-01's residual
+    hole) — a reviewer can point `artifact:` at a different shipped feature
+    and reuse ITS pin. This corroborates against the one thing no digest
+    controls: the checkout the validator is actually running in. ADDITIVE
+    ONLY — it may turn an accept into a reject, never the reverse — so either
+    side being unknown means "nothing to corroborate", not "reject":
+      - `current_branch` is None (undeterminable checkout): behave as today.
+      - the feature's `branch` is None (absent or `none`, a real recorded
+        state — FEAT-01/15/19): behave as today.
+    Only a REAL, DIFFERENT branch name on both sides rejects.
+    """
+    if current_branch is None:
+        return None
+    feature_branch = _read_feature_branch(feature_dir)
+    if feature_branch is None:
+        return None
+    if feature_branch == current_branch:
+        return None
+    return (f"code_grade cannot be bound to review_sha: this feature's "
+            f"recorded branch ({feature_branch!r}) does not match the current "
+            f"checkout's branch ({current_branch!r}) — the digest's artifact: "
+            f"line must name the feature actually under review in this "
+            f"checkout, not another shipped feature's notes/ path.")
+
+
+def resolve_review_sha(text, feature_dir=None):
+    """The system-of-record commit this review is bound to: `feature.json`'s
+    `review_sha`, NEVER a value read from the digest under validation.
+
+    `feature_dir` is the fixture-override seam for tests — mirrors
+    `review_config_path`'s `config_path` parameter. Give it a directory and the
+    derivation below is skipped entirely; leave it `None` and production derives
+    it from the return's own `artifact:` line (`_feature_dir_from_artifact`).
+    Binding a review to a feature it never claims to belong to would be a new
+    hole, not a fix — this is why the derivation reads the digest's OWN artifact
+    line rather than accepting one as a parameter.
+
+    Returns `(sha, error)`. A `None` sha ALWAYS carries a non-`None` error, so
+    every caller fails CLOSED — an unresolvable binding is never "nothing to
+    check", it is "this claim is not trusted".
+    """
+    feature_dir, dir_error = _resolve_feature_dir(text, feature_dir)
+    if dir_error:
+        return None, dir_error
+    return _read_review_sha(feature_dir)
+
+
+def _parse_reviewed_range(reviewed):
+    """Split `reviewed` into `(base, head, None)`, or `(None, None, error)` on a
+    malformed range — the same shape rules `reviewed_python_change` enforces,
+    factored out so `code_grade_bound_to_review` stays a flat sequence of checks."""
+    if not isinstance(reviewed, str) or reviewed.count("..") != 1:
+        return None, None, "reviewed range must name exactly one base..head range."
+    base, head = (part.strip() for part in reviewed.split(".."))
+    if not base or not head:
+        return None, None, "reviewed range must name non-empty base and head revisions."
+    return base, head, None
+
+
+def code_grade_bound_to_review(text, reviewed, feature_dir=None, branch_override=_BRANCH_UNSET):
+    """SEC-01: reject a `code_grade` claim — pass, fail, grade_2 OR n_a, every
+    one of them, not only n_a — whose `reviewed:` HEAD does not resolve to the
+    same commit as this feature's own `review_sha`. Call this UNCONDITIONALLY,
+    before branching on `code_grade`'s value at all: a forged range lets any
+    value describe a diff nobody reviewed, and binding only one branch leaves
+    the rest of the enum open.
+
+    Only `head` is bound — `base` has no independent system-of-record value
+    today (batch contract). `head` is what varies between an honest review (it
+    equals `review_sha`) and a forged one (a convenient, resolvable stand-in
+    that is not).
+
+    Wave 3 hardening: even an honest head==review_sha binding still trusts the
+    digest's OWN `artifact:` line to pick WHICH feature.json supplied that
+    review_sha — a reviewer can point `artifact:` at a different shipped
+    feature and reuse ITS pin. `_branch_corroboration_error` closes that with
+    the one thing no digest controls: the checkout's actual current branch.
+
+    Returns an error string, or `None` when the binding holds.
+    """
+    feature_dir, dir_error = _resolve_feature_dir(text, feature_dir)
+    if dir_error:
+        return dir_error
+    review_sha, sha_error = _read_review_sha(feature_dir)
+    if sha_error:
+        return sha_error
+    _base, head, range_error = _parse_reviewed_range(reviewed)
+    if range_error:
+        return range_error
+    head_oid = resolve_reviewed_commit(head)
+    if head_oid is None:
+        return "reviewed range could not be resolved to commit revisions."
+    pin_oid = resolve_reviewed_commit(review_sha)
+    if pin_oid is None:
+        return (f"code_grade cannot be bound to review_sha: this feature's "
+                f"recorded review_sha ({review_sha!r}) does not resolve to a "
+                f"commit.")
+    if head_oid != pin_oid:
+        return (f"reviewed head {head!r} does not resolve to this feature's "
+                f"pinned review_sha ({review_sha}) — write the range that ends "
+                f"at review_sha (feature.json), not a convenient no-op.")
+    return _branch_corroboration_error(feature_dir, _current_branch_or_none(branch_override))
+
+
+def _missing_field_default_hint(field, allowed):
+    """The hint for a missing field that has no other tailored branch in
+    `validate`'s field loop — `[]` unless the field is a single-value ENUM
+    SCALAR (currently only `code_grade`), which needs its legal values named
+    instead. Isolated here, not as a new elif in `validate`, so this fix does
+    not grow a function already far past the grade bar (pre-existing).
+    """
+    if field == "code_grade":
+        vals = sorted(a for a in allowed if isinstance(a, str))
+        return f"one of {vals} — a single enum value, never a list"
+    return "`[]` if there are none"
+
+
+def validate(persona, text, config_path=None, feature_dir=None, branch_override=_BRANCH_UNSET):
     err = []
     raw_persona = persona
     persona = norm(persona)
@@ -574,6 +817,11 @@ def validate(persona, text, config_path=None):
     if schema is None:
         return [f"unknown persona {persona!r} — cannot validate; refusing to pass it."]
     if raw_persona == "harness-code-reviewer":
+        # CANONICAL SPELLING (batch contract, wave 2): a gated record that is below
+        # bar and NOT grade 2 — one that blocks the build exactly as grade 1 does —
+        # is reported by code_grade.py at severity `high` and is spelled here
+        # `code_grade: fail`. There is no fifth enum value; `fail` already carries
+        # that meaning and is reused rather than added to.
         schema = {**schema, "code_grade": {"pass", "fail", "grade_2", "n_a"},
                   "reviewed": str}
 
@@ -661,7 +909,15 @@ def validate(persona, text, config_path=None):
             elif field in NULLABLE:
                 hint = "`none` if genuinely not applicable"
             else:
-                hint = "`[]` if there are none"
+                # `code_grade` is handled inside this helper rather than as its
+                # own elif here: `validate` is already far past the grade bar
+                # (pre-existing), and a single-value ENUM SCALAR like
+                # `code_grade` needs a hint naming its legal values, not the
+                # generic "`[]` if there are none" — which sent a reviewer who
+                # omitted it straight into a second, guaranteed rejection
+                # (REQ-11's own defect class). SC-19 stays intact: the field is
+                # still named literally in the outer message below.
+                hint = _missing_field_default_hint(field, allowed)
             # HONEST LIMIT: a re-prompted return is not re-validated —
             # `:845` is `if d.get("stop_hook_active"): return 0` — so a hint naming a rejectable
             # value ships the second attempt unvalidated. That passthrough is
@@ -762,6 +1018,14 @@ def validate(persona, text, config_path=None):
                           if field in NULLABLE else "."))
 
     if raw_persona == "harness-code-reviewer":
+        # SEC-01, RUNS FIRST, UNCONDITIONALLY — before code_grade's value is
+        # examined at all. A forged range lets ANY code_grade value (pass, fail,
+        # grade_2, n_a alike) describe a diff nobody reviewed; binding only the
+        # n_a branch would leave the other three open.
+        binding_error = code_grade_bound_to_review(text, seen.get("reviewed"), feature_dir,
+                                                    branch_override)
+        if binding_error:
+            err.append(binding_error)
         code_grade = seen.get("code_grade")
         if code_grade == "n_a":
             python_changed, range_error = reviewed_python_change(seen.get("reviewed"))
