@@ -9,7 +9,7 @@ approval:
   date: none
 
 lanes:
-  resolved_at: ee66ae2
+  resolved_at: 0d4845b
   rows:
     - surface: .claude/skills/harness/bin/**
       lane: main-session-direct
@@ -37,7 +37,7 @@ lanes:
       reason: granted to harness-dev-ops, taken directly because DEC-160 makes a harness.json key change part of the enforcement surface changed here
     - surface: .harness/harness/features/*/plan.yaml
       lane: main-session-direct
-      reason: the migration rewrites task station values through the tool being built. Measured at 8f8a6a3, not inherited - 29 plan.yaml files exist under .harness/harness/features/, of which 7 carry at least one task status the migration rewrites, 55 task lines in all. The earlier figure 28 was a plan-file count and was wrong on both readings
+      reason: the migration rewrites task station values through the tool being built. RE-MEASURED at 0d4845b after the rebase onto the OMP main, not inherited - 31 plan.yaml files exist under .harness/harness/features/, of which 7 carry at least one task status the migration rewrites, 56 task lines in all. The reading before the rebase was 29 files and 55 lines at 8f8a6a3; the two plan files added since are FEAT-37-lead-stop-and-wake and FEAT-42-one-root-resolver, verified by git diff --diff-filter=A, and NEITHER carries a task status the migration rewrites, so the feature count stays 7 while this feature's own T-14 added the 56th task line. The earlier figure 28 was a plan-file count and was wrong on both readings
     - surface: .harness/harness/features/*/feature.json
       lane: main-session-direct
       reason: the schema key being deleted is enforced on check-domain.sh's own write path
@@ -80,7 +80,7 @@ decisions:
     dec: none
   - id: D-09
     choice: in DEC-203 section 6, in DEC-191 and in DEC-182 the ONE contradicted clause is recorded as no longer holding, inside an entry that survives. WHICH clause, and what holds instead of it, is fixed here. The RECORDING FORM is deliberately left OPEN as a named dependency - either (a) an in-place clause strike under DEC-188 or (b) subsuming the correction into the entry in one voice - and T-12 executes whichever form the decisions-authority triage lands, read at execution time rather than chosen here
-    because: the entries survive, so the rules this feature depends on are not removed - only the contradicted clauses stop holding, and a citation to the clause still RESOLVES while announcing that it no longer holds. THE FORM IS PENDING, and both candidates are recorded here so a later reader can see what was weighed rather than find one choice silently swapped for the other. FORM (a), the in-place strike - the clause text stays on the page, marked, and is never rewritten - the argument for it is that an amendment which rewrote the clause would leave a later reader unable to tell it ever said otherwise, which is the falsified-record failure; and the form is already live twice in DECISIONS.md, at line 3228 and at line 4436, both measured at 8f8a6a3, reading in the record's own voice that the citation which recorded a thing is STRUCK on a date under DEC-188, see amendment N. FORM (b), subsuming the correction - the operator's reading is that a struck decision should be REMOVED from DECISIONS.md and the correction absorbed into the entry, because STRUCK does not today mean deleted - eight entries currently sit in DECISIONS.md marked STRUCK - so the annotation layer accumulates rules that no longer hold while still reading as though they might. THE FALSIFIED-RECORD ARGUMENT SURVIVES AS AN ARGUMENT, NOT AS A VERDICT - if form (b) wins, how the earlier reading stays recoverable is that triage's question, not this feature's. WHY IT IS PENDING RATHER THAN DECIDED HERE - which form the tree uses is a decisions-authority question being settled as separate work, and this feature has no standing to settle it - so this decision names the dependency instead of choosing under it. Nothing about which clauses are contradicted, or what holds instead, depends on the answer
+    because: the entries survive, so the rules this feature depends on are not removed - only the contradicted clauses stop holding, and a citation to the clause still RESOLVES while announcing that it no longer holds. THE FORM IS PENDING, and both candidates are recorded here so a later reader can see what was weighed rather than find one choice silently swapped for the other. FORM (a), the in-place strike - the clause text stays on the page, marked, and is never rewritten - the argument for it is that an amendment which rewrote the clause would leave a later reader unable to tell it ever said otherwise, which is the falsified-record failure; and the form is already live twice in DECISIONS.md, at line 3235 and at line 4443, both RE-MEASURED at 0d4845b after the rebase - they stood at 3228 and 4436 at 8f8a6a3 - reading in the record's own voice that the citation which recorded a thing is STRUCK on a date under DEC-188, see amendment N. FORM (b), subsuming the correction - the operator's reading is that a struck decision should be REMOVED from DECISIONS.md and the correction absorbed into the entry, because STRUCK does not today mean deleted - eight entries currently sit in DECISIONS.md marked STRUCK, re-counted at 0d4845b and unchanged by the rebase - so the annotation layer accumulates rules that no longer hold while still reading as though they might. THE FALSIFIED-RECORD ARGUMENT SURVIVES AS AN ARGUMENT, NOT AS A VERDICT - if form (b) wins, how the earlier reading stays recoverable is that triage's question, not this feature's. WHY IT IS PENDING RATHER THAN DECIDED HERE - which form the tree uses is a decisions-authority question being settled as separate work, and this feature has no standing to settle it - so this decision names the dependency instead of choosing under it. Nothing about which clauses are contradicted, or what holds instead, depends on the answer
     dec: DEC-188
   - id: D-10
     choice: ship commits the terminal station write in the main checkout and does not push it
@@ -88,7 +88,7 @@ decisions:
     dec: none
   - id: D-11
     choice: INV-26's compare side is routed through gh_board.project and T-06 is widened to cover check-state.sh, rather than patching check-state.sh's pending literals in place. The lookup miss stops being silent - an unmappable station becomes a loud failure naming the feature, the task and the value. AND project carries NO exception - a task at the ready station projects to the READY column, so plan.yaml and the board agree exactly, with nothing derived, mapped or translated between them.
-    because: a task reading ready in plan.yaml while its card sits at Backlog is the two-words-two-meanings defect this feature exists to delete, so the exception is removed and the one-time board pass is accepted as work rather than avoided. THE COST WAS MEASURED, NOT INHERITED, at 8f8a6a3 against live board 3 on 2026-08-25 - the command is recorded in notes/research-FEAT-41-rulings-cycle5.md and reproduced by T-10's verify. 656 cards sit on board 3 for this repository, 211 of them the task sub-issues that plan.yaml places. ZERO of those 211 sit at Backlog today, so the exception protects nothing that exists. Comparing every recorded task card's projected station against its live column three ways - with the exception, 16 cards mismatch; without the exception, the SAME 16 mismatch, only their destination changes from Backlog to Ready; without the exception AND with the record repair T-04 now carries, ZERO mismatch. So removing the exception moves no card. All 16 belong to FEAT-12 and FEAT-13, two shipped features whose closed cards sit at Done while their plan.yaml still reads pending, and that stale record - not this ruling - is what would otherwise drag 16 closed cards backwards. T-04 repairs it and T-10 proves the board clean. The second half of this decision, unchanged - check-state.sh circa 1475-1477 reads _want = _EXPECT.get(...) then if _want is None; continue, so a lookup MISS and nothing-to-check-here are the same code path. While the compare side keeps its own copy of the station vocabulary, any future divergence from the write side is invisible by construction rather than by oversight. The rejected option - patching the six pending literals - is genuinely cheaper - about six edits, no new import surface inside the embedded python, zero risk to INV-26's runtime - and it fixes today's divergence while preserving the mechanism that hides tomorrow's. The cost bought instead is one more file on T-06 and a gh_board import that could fail at gate time; that import already exists and already fails LOUDLY at check-state.sh circa 1337-1349, so the new failure mode is already paid for. Loud beats silent, and converting exactly this class of silence into noise is why the feature exists. T-04 still repoints the literals it renames out from under, so no build ordering leaves INV-26 blind between T-04 and T-06; that is T-04 not breaking a gate, not a substitute for this decision.
+    because: a task reading ready in plan.yaml while its card sits at Backlog is the two-words-two-meanings defect this feature exists to delete, so the exception is removed and the one-time board pass is accepted as work rather than avoided. THE COST WAS MEASURED, NOT INHERITED, at 8f8a6a3 against live board 3 on 2026-08-25 - the command is recorded in notes/research-FEAT-41-rulings-cycle5.md and reproduced by T-10's verify. The board figures below are a dated reading of an EXTERNAL system that the rebase onto the OMP main cannot have changed, and they were NOT re-measured at 0d4845b because reaching board 3 needs an authenticated run; T-10's verify is what re-measures them at build time. 656 cards sit on board 3 for this repository, 211 of them the task sub-issues that plan.yaml places. ZERO of those 211 sit at Backlog today, so the exception protects nothing that exists. Comparing every recorded task card's projected station against its live column three ways - with the exception, 16 cards mismatch; without the exception, the SAME 16 mismatch, only their destination changes from Backlog to Ready; without the exception AND with the record repair T-04 now carries, ZERO mismatch. So removing the exception moves no card. All 16 belong to FEAT-12 and FEAT-13, two shipped features whose closed cards sit at Done while their plan.yaml still reads pending, and that stale record - not this ruling - is what would otherwise drag 16 closed cards backwards. T-04 repairs it and T-10 proves the board clean. The second half of this decision, unchanged - check-state.sh circa 1500-1502 at 0d4845b, which was 1475-1477 at ee66ae2, reads _want = _EXPECT.get(...) then if _want is None; continue, so a lookup MISS and nothing-to-check-here are the same code path. While the compare side keeps its own copy of the station vocabulary, any future divergence from the write side is invisible by construction rather than by oversight. The rejected option - patching the six pending literals - is genuinely cheaper - about six edits, no new import surface inside the embedded python, zero risk to INV-26's runtime - and it fixes today's divergence while preserving the mechanism that hides tomorrow's. The cost bought instead is one more file on T-06 and a gh_board import that could fail at gate time; that import already exists and already fails LOUDLY at check-state.sh circa 1362-1369 at 0d4845b, which was 1337-1349 at ee66ae2, so the new failure mode is already paid for. Loud beats silent, and converting exactly this class of silence into noise is why the feature exists. T-04 still repoints the literals it renames out from under, so no build ordering leaves INV-26 blind between T-04 and T-06; that is T-04 not breaking a gate, not a substitute for this decision
     dec: none
   - id: D-12
     choice: the design-contract gate RE-FIRES at build if implementation introduces a user-facing surface. The plan-phase scope-out holds only for the plan as approved; any task that lands a UI-shaped file, a rendered surface or operator-facing output stops and routes that surface through the design contract before it merges
@@ -111,7 +111,7 @@ tasks:
       - .claude/skills/harness/bin/test-factory-config.py
     verify: |
       python3 .claude/skills/harness/bin/test-factory-config.py
-      grep -rn "_STATION_KEYS" .claude/skills/harness/bin/ ; test $? -eq 1
+      grep -rn --exclude-dir=__pycache__ "_STATION_KEYS" .claude/skills/harness/bin/ ; test $? -eq 1
     intent: |
       Make harness.json the one place the station vocabulary is declared, and mandate its content.
 
@@ -126,7 +126,11 @@ tasks:
       files spell this key differently today; do not assume either spelling, open both.
 
       In factory_config.py:
-      - Delete _STATION_KEYS (line 41).
+      - Delete _STATION_KEYS (line 39, re-derived at 0d4845b; it was line 41 at ee66ae2, and its
+        two uses inside validate_board are at :122 and :123). THE EXCLUDE IN THIS TASK'S SECOND
+        VERIFY IS LOAD-BEARING: __pycache__/factory_config.cpython-*.pyc carries the name
+        _STATION_KEYS as a code-object name, measured at 0d4845b, so an unexcluded grep over the
+        bin directory reports the deleted identifier out of a stale build artifact.
       - Add MANDATED_STATIONS = ("backlog", "plan", "ready", "building", "review", "done") as the
         single literal, with a comment saying it is the mandate the declaration is checked
         against, not a second vocabulary.
@@ -212,19 +216,19 @@ tasks:
 
       Everywhere else, replace board["stations"][k] with the lowercase literal k, EXCEPT where the
       value is sent to GitHub or compared against a value GitHub returned outside board_stations:
-      - factory_claim.py:302 builds a search query containing the column name - use
+      - factory_claim.py:307 builds a search query containing the column name - use
         factory_config.station_column("ready") there.
-      - factory_claim.py:419 and factory_land.py:95 pass a station to a factory_gh field write -
+      - factory_claim.py:424 and factory_land.py:95 pass a station to a factory_gh field write -
         use station_column at that call.
       - factory_decompose.py:328 validates the board's declared options against the config - use
         station_column for each name it compares.
-      - board_lifecycle.py:438 _declared_stations returns the names it audits the board's columns
+      - board_lifecycle.py:440 _declared_stations returns the names it audits the board's columns
         against - it must return the column names, so map station_column over the six.
-      - board_lifecycle.py:522 and :809-843 compare against values that now come from
+      - board_lifecycle.py:525 and :812-846 compare against values that now come from
         board_stations, which are lowercase - compare lowercase, delete the value_to_key
-        inversion at :820 (a lowercase station IS its own key).
+        inversion at :823 (a lowercase station IS its own key).
       - gh-sync.py:844, 850, 941, 949, 998, 1231 become the lowercase literals.
-      - check-state.sh circa 1403 _st26 becomes the six lowercase names, and every INV-26
+      - check-state.sh circa 1428 _st26 becomes the six lowercase names, and every INV-26
         comparison is then lowercase on both sides because board_stations lowercased the board's
         answer. T-06 later DELETES _st26 and _EXPECT outright under D-11; this task only
         lowercases them, so the tree is green at each step. Do not anticipate T-06 here.
@@ -312,24 +316,25 @@ tasks:
       python3 .claude/skills/harness/bin/test-check-plan-routes.py
       python3 .claude/skills/harness/bin/test-check-state.py
       python3 .claude/skills/harness/bin/check-plan-routes.py
-      grep -rn "^    status: pending" .harness/harness/features/*/plan.yaml ; test $? -eq 1
+      python3 -c "import glob,re;bad=[(p,i+1) for p in sorted(glob.glob('.harness/harness/features/*/plan.yaml')) for i,l in enumerate(open(p)) if re.match(r'^    status: pending\s*$',l)];assert not bad,bad"
       python3 -c "import glob,json,os,yaml;f=lambda p:(json.load(open(p)).get('status') or '').lower() if os.path.exists(p) else '';bad=[(p,t.get('id')) for p in glob.glob('.harness/harness/features/*/plan.yaml') for t in (yaml.safe_load(open(p)).get('tasks') or []) if t.get('status')=='ready' and f(os.path.join(os.path.dirname(p),'feature.json')) in ('done','abandoned')];assert not bad,bad"
     intent: |
       Replace plan.yaml's private three-value vocabulary with the mandated station vocabulary, and
       migrate every live plan onto it.
 
       In check-plan-routes.py:
-      - Delete LEGAL_TASK_STATUSES (line 415) and its paragraph of comment. Read the legal set
+      - Delete LEGAL_TASK_STATUSES (line 421, re-derived at 0d4845b; it was 415 at ee66ae2, and
+        its one use is at :338) and its paragraph of comment. Read the legal set
         from factory_config.station_names plus factory_config.TERMINAL_MARKER, exactly as the
         writer does; import the marker, never respell it. Keep the comparison case sensitive and
         keep the existing violation message shape, which already names the offending value.
       - Add the same check for the TOP-LEVEL status key when present: a feature station outside
         the vocabulary is a violation naming the value.
-      - FINISHED_STATUSES (line 408) currently holds the capitalised feature.json values. It now
+      - FINISHED_STATUSES (line 414 at 0d4845b, 408 at ee66ae2) currently holds the capitalised feature.json values. It now
         holds the lowercase ("done", factory_config.TERMINAL_MARKER). Leave _is_shipped reading
         feature.json in this task - T-07 repoints it.
       - Two COMMENTS in this file still spell the old capitalised vocabulary and go stale with
-        this change: :336, which uses "Building" as the example of the capital-B typo, and :455,
+        this change: :342, which uses "Building" as the example of the capital-B typo, and :461,
         which says done is not "Done" and stays checked. Rewrite both against the one vocabulary
         rather than leaving prose that teaches the reader a distinction the code no longer makes.
         SC-02 grades quoted capitalised literals without excusing comments, so these two count.
@@ -343,14 +348,22 @@ tasks:
       replace the paragraph telling an author to edit the file with one naming the verbs.
 
       ALSO IN THIS TASK, because this task is what makes the word dead: check-state.sh's INV-26
-      compare side still keys on pending. Circa 1403-1405 _EXPECT maps building, done and pending;
+      compare side still keys on pending. EVERY LINE NUMBER IN THIS PARAGRAPH IS RE-DERIVED AT
+      0d4845b AND IS ORIENTATION ONLY - the identifier or the literal is the address, and T-02
+      lands in this same file before this task. Circa 1428-1430 _EXPECT maps building, done and pending;
       rename the pending key to ready AND MAP IT TO THE READY STATION, not to backlog. D-11 removes
       the ready-to-backlog exception outright: plan.yaml and the board carry the same word with the
       same meaning, and nothing is derived between them. DELETE the comment above the definitions
-      that justified the old mapping rather than rewriting it - the rule it explained no longer
-      exists, and T-06 deletes the definitions themselves a step later. Then fix the four remaining
-      pending literals circa 1437, 1438, 1471 and 1475, where an absent task status defaults to
-      pending: the default becomes ready. The guard circa 1440, not any(_s != "pending"), INVERTS
+      that justified the old mapping rather than rewriting it - it occupies circa 1424-1427 and the
+      rule it explained no longer
+      exists, and T-06 deletes the definitions themselves a step later. Then fix the THREE remaining
+      pending literals, circa 1462, 1496 and 1500, where an absent task status defaults to
+      pending: the default becomes ready. THREE, NOT FOUR - the earlier reading of four counted
+      1438 at ee66ae2, and that line carries no pending literal; re-counted at 0d4845b,
+      grep -n '"pending"' check-state.sh returns FIVE lines, of which one is the _EXPECT definition
+      itself and one is the guard below, leaving three defaults. If your own grep returns a
+      different number, dispose of every line it reports rather than the three named here.
+      The guard circa 1465, not any(_s != "pending"), INVERTS
       under the rename - every migrated task would read ready, so the not-any test that means
       nothing has started would become false for every feature and the skip would stop firing.
       Rewrite it against the not-started station. Add one test-check-state.py case per _EXPECT key
@@ -378,9 +391,10 @@ tasks:
       task receipt. DO NOT TOUCH THE
       APPROVAL BLOCKS: three plan.yaml files carry status: pending inside approval: at two-space
       indent - FEAT-19 line 5, FEAT-28 line 5, and THIS FEATURE'S OWN plan.yaml line 7 - and the
-      set-task-station verb cannot reach them. Measured at ee66ae2: the unanchored grep returns 72
-      hits, the four-space-anchored grep in verify returns 55, and the 17-hit difference is those
-      approval blocks and prose. The verify uses the four-space anchor for exactly that reason; an
+      set-task-station verb cannot reach them - all three anchors re-confirmed at 0d4845b.
+      RE-MEASURED at 0d4845b: the unanchored grep returns 74
+      hits, the four-space-anchored assertion in verify finds 56, and the 18-hit difference is those
+      approval blocks and prose. At ee66ae2 the same two readings were 72 and 55. The verify asserts the four-space anchor for exactly that reason; an
       unanchored grep can never reach zero and so can never pass.
 
   - id: T-05
@@ -407,14 +421,23 @@ tasks:
       THIS TASK IS HALF OF WHAT CLOSES THE WRITE WINDOW. It must land before T-09 denies the Edit
       route, because an agent denied a route it was never told to replace has no legal way to
       record a task status - which is the failure the orchestrator playbook itself records at
-      line 78, five statuses lost.
+      line 96, re-derived at 0d4845b (it was line 78 at ee66ae2), five statuses lost.
 
       Edit .omp/agents/harness-orchestrator.md, which DEC-202 makes canonical, then regenerate the
       Claude adapter with
       python3 .claude/skills/harness/bin/sync-agent-adapters.py --apply
       rather than editing .claude/agents/harness-orchestrator.md by hand.
 
-      Replace the "Writing plan.yaml (D-04)" section's three bullets with the single route:
+      Replace the "Writing plan.yaml (D-04)" section - re-derived at 0d4845b it occupies
+      .omp/agents/harness-orchestrator.md:86-103 and PR 922 rewrote it, so it now presents TWO
+      ROUTES rather than the three bullets an earlier reading of this task named. Route one is
+      plan-merge.py apply for adding; route two, at :92, is "a surgical Edit on that task's own
+      lines" for changing an existing value, and :103 records that check-domain.sh already denies
+      an Edit of the approval block. NOTHING THIS TASK WRITES IS ALREADY PRESENT: the section at
+      HEAD ACTIVELY INSTRUCTS the route this task closes, and neither file names set-task-station.
+      Both verify clauses were run against both files at 0d4845b and both are discriminating -
+      set-task-station is absent from each and the surgical-Edit text is present in each. Replace
+      the whole section with the single route:
       - adding tasks or decisions: plan-merge.py apply, unchanged;
       - changing a task's station: plan-merge.py set-task-station --file <plan.yaml> --task T-NN
         --station <one of backlog plan ready building review done>;
@@ -512,33 +535,33 @@ tasks:
         identifier _st26 nor the identifier _EXPECT may appear ANYWHERE in check-state.sh -
         definitions, uses AND COMMENTS alike. The last verify line asserts exactly that, so the
         verify IS the address; every line number in this task is non-binding orientation,
-        measured at ee66ae2, and must be re-derived when you execute because sibling tasks edit
+        RE-DERIVED at 0d4845b after the rebase onto the OMP main, and must be re-derived when you execute because sibling tasks edit
         this file too. A span-shaped instruction is what this plan has already got wrong three
         times: a live occurrence sits outside the span and the task reds while correctly done.
-        THE COUNT, so the address stays falsifiable: at ee66ae2,
+        THE COUNT, so the address stays falsifiable: RE-MEASURED at 0d4845b and UNCHANGED by the rebase,
         grep -n "_EXPECT\|_st26" .claude/skills/harness/bin/check-state.sh returns SIX lines -
         _st26 on four of them, _EXPECT on three, one line carrying both. If your own grep returns
         a different number, a site has been added or moved: dispose of every line it reports, not
         only the four dispositions below.
         The six lines fall into four dispositions:
-        circa 1403-1405, the _st26 and _EXPECT definitions - DELETED outright, because the rule
+        circa 1428-1430, the _st26 and _EXPECT definitions - DELETED outright, because the rule
         they encode now lives in project and nowhere else. The comment directly above them, which
         justified a ready-to-backlog mapping, is ALREADY GONE by the time this task runs: T-04
         deletes it when D-11 removes the exception. It was never one of the six lines below -
-        measured at 8f8a6a3 it occupies 1399-1402 and names neither identifier - so the count is
+        re-derived at 0d4845b it occupies 1424-1427 and names neither identifier - so the count is
         unaffected. If you still find it, delete it here;
-        circa 1432, a COMMENT naming _EXPECT, inside a different paragraph 27 lines below the
+        circa 1457, a COMMENT naming _EXPECT, inside a different paragraph 27 lines below the
         definitions - REWRITTEN, see the next bullet. It lies between the two spans this task
         names and inside neither, so a span-shaped deletion leaves the token in the file and reds
         the verify;
-        circa 1475, the per-task lookup - REPLACED, see the projected.get bullet below;
-        circa 1501, inside the Review widening, _accept |= {_st26["review"], _st26["building"]} -
+        circa 1500, the per-task lookup - REPLACED, see the projected.get bullet below;
+        circa 1526, inside the Review widening, _accept |= {_st26["review"], _st26["building"]} -
         REPLACED with lowercase literals, see the Review-widening bullet below. This is _st26's
         only use outside its own definition, so deleting the definitions alone leaves a NameError
         on every done-task-at-Review comparison and reds this task's own verify at
         test-check-state.py cases v.T22a-d. The verify greps for the absence of BOTH names for
-        this reason - an _EXPECT-only grep passes while 1501 still references a deleted _st26.
-      - REWRITE THE COMMENT AT circa 1432; DO NOT SILENTLY DROP IT. It is the third line of the
+        this reason - an _EXPECT-only grep passes while 1526 still references a deleted _st26.
+      - REWRITE THE COMMENT AT circa 1457; DO NOT SILENTLY DROP IT. It is the third line of the
         paragraph that opens "A None derivation silences the PARENT claim ONLY", directly above
         the _statuses list comprehension. That paragraph records a lesson that must survive the
         rename: the per-task comparison must NOT be skipped when the parent derivation is None,
@@ -558,12 +581,12 @@ tasks:
         (_fj.get("github") or {}).get("parent"), "source_issues": []} - and call
         _gb.project(_pdoc, rec) once per feature, inside the existing try that already treats a
         gh_board failure as a violation.
-      - Replace the per-task lookup circa 1471-1477. _want becomes projected.get(_num), and the
+      - Replace the per-task lookup circa 1496-1502. _want becomes projected.get(_num), and the
         line if _want is None; continue - the FAIL-OPEN - is DELETED. A task id with a recorded
         sub-issue that project did not place is now a violation line naming the feature, the task
         id and the station the plan carries. A FleetError out of project is likewise a violation
         line, not a skip.
-      - The Review widening circa 1495-1501 keeps its force and its bound exactly, and its two
+      - The Review widening circa 1520-1526 keeps its force and its bound exactly, and its two
         station names become the lowercase literals: _accept |= {"review", "building"}. Both
         sides of the comparison are then lowercase, because board_stations lowercased what the
         board returned. Leave the guard on the line above it alone - it reads feature.json's
@@ -587,7 +610,7 @@ tasks:
         returns the six as an ordered tuple, so selecting review and building out of it spells
         both words anyway, with an indirection added and nothing checked.
       - gh_board is ALREADY imported here and an import failure is ALREADY a loud violation
-        circa 1337-1349, so this adds no new import surface and no new silent failure mode. Do
+        circa 1362-1369, so this adds no new import surface and no new silent failure mode. Do
         not add a second import or a try/except around it.
       In test-check-state.py add cases, each shown failing first: a plan carrying a station outside
       the vocabulary produces a violation naming the task and the value rather than being skipped;
@@ -613,12 +636,13 @@ tasks:
 
       board_lifecycle.py is NOT touched here and its set_station calls are the DISCLOSED
       residual, not an oversight: reconcile audits the board against the record rather than
-      deciding a station, and _apply_fix at 1007 - whose two set_station calls are at 1013 and
-      1016 - applies a finding reconcile already made. board-station.py:153 is the second
+      deciding a station, and _apply_fix at 1010 - whose two set_station calls are at 1016 and
+      1019 - applies a finding reconcile already made. board-station.py:153 is the second
       disclosed residual: it is the operator's manual override, kept deliberately by T-02 and
       validated there against factory_config.station_names. Those three sites - board_lifecycle
-      1013 and 1016, board-station 153 - plus gh-sync's single remaining write call are the FOUR
-      the verify asserts. Measured at ee66ae2 the same grep returns TEN, so the assertion is
+      1016 and 1019, board-station 153 - plus gh-sync's single remaining write call are the FOUR
+      the verify asserts. RE-MEASURED at 0d4845b the same grep returns TEN, unchanged by the
+      rebase, so the assertion is
       discriminating today. More than four means a policy site survived; fewer means one of the
       disclosed residuals was removed without a decision. The verify asserts the COUNT rather than
       grepping and discarding the result, because a bare grep pipeline exits 0 at ten callers and
@@ -675,14 +699,14 @@ tasks:
       One file records a feature's station, and it is plan.yaml.
 
       Schema: remove status from feature-schema.json's properties and from its required list.
-      Measured at ee66ae2: properties holds eleven keys and required holds eight, so the result is
+      RE-CONFIRMED at 0d4845b, unchanged by the rebase: properties holds eleven keys and required holds eight, so the result is
       ten and seven. Do not retype those numbers from this sentence - the verify asserts them
       against the file, which is the check the prose in T-12 does not get.
       additionalProperties: false already makes a leftover status key an error, which is what the
       migration below relies on. Update the template
       .agents/skills/harness/templates/feature.json the same way.
 
-      A-03, and it is not optional: check-state.sh circa 507-512 carries a comment justifying its
+      A-03, and it is not optional: check-state.sh circa 532-535 carries a comment justifying its
       silent skip of a status outside STATUS_ORDER on the grounds that status is schema-required
       with a closed value set, already denied at write time. This task deletes that key from the
       schema and so removes the compensating control the comment cites. Rewrite the comment
@@ -698,7 +722,7 @@ tasks:
       nothing: delete the key and record the station nowhere, because those features are finished
       and no reader needs a station for them; state that in the task receipt.
 
-      RE-DERIVE EVERY LINE NUMBER BELOW BEFORE EDITING. Each was measured at ee66ae2 and is
+      RE-DERIVE EVERY LINE NUMBER BELOW BEFORE EDITING. Each was RE-DERIVED at 0d4845b and is
       navigation only - the identifier named beside it is the address. T-02, T-04 and T-06 all
       land before this task and all three edit check-state.sh, check-plan-routes.py,
       board_lifecycle.py and gh-sync.py ABOVE these anchors: T-04 deletes check-plan-routes.py's
@@ -710,28 +734,33 @@ tasks:
       Repoint each reader to the sibling plan.yaml's top-level status, reading it with
       harness_yaml.load_file and treating an absent or unparseable plan as an absent station,
       which is what each site already does for an absent feature.json:
-      - check-state.sh:113 (the abandoned skip); STATUS_ORDER, whose DEFINITION is at :513 and
-        whose use is at :604 - both change, and it becomes the six lowercase names read from
-        factory_config plus factory_config.TERMINAL_MARKER; :1048 (INV-28's Done gate); :1425
-        (INV-26's terminal exemption) and :1500 (its Review widening), both of which T-06 has
+      - check-state.sh:138 (the abandoned skip); STATUS_ORDER, whose DEFINITION is at :538 and
+        whose use is at :629 - both change, and it becomes the six lowercase names read from
+        factory_config plus factory_config.TERMINAL_MARKER; :1073 (INV-28's Done gate); :1450
+        (INV-26's terminal exemption) and :1525-1526 (its Review widening), both of which T-06 has
         already rewritten around, so read the file rather than this list for their line numbers;
-        :1577 (INV-30's Done gate). Every comparison becomes lowercase.
-      - check-plan-routes.py _is_shipped, defined at :418. It does NOT have the plan in hand: its
-        two callers pass a DIRECTORY, and at :609 the shipped skip runs before plan is resolved at
-        :611-618 - with the examined count pinned at :605-608 above the skip - while the caller at
-        :711 reads the files as raw text afterwards. So _is_shipped opens the sibling plan.yaml
+        :1602 (INV-30's Done gate). Every comparison becomes lowercase. TWO COMMENTS IN THIS FILE
+        CITE DEC-192 FOR THE CASE-SENSITIVITY THIS TASK ENDS, at :1061 above INV-28's gate and at
+        :1599 above INV-30's, and both go stale with the comparisons below them: rewrite each
+        against the lowercase station read from plan.yaml, for the same reason T-04 rewrites the
+        two stale comments in check-plan-routes.py. They spell Done in backticks rather than
+        quotes, so SC-02's quoted-literal grep does not reach them and only this instruction does.
+      - check-plan-routes.py _is_shipped, defined at :424. It does NOT have the plan in hand: its
+        two callers pass a DIRECTORY, and at :610 the shipped skip runs before plan is resolved at
+        :611-620 - with the examined count pinned at :606-609 above the skip - while the caller at
+        :712 reads the files as raw text afterwards. So _is_shipped opens the sibling plan.yaml
         itself, in the same shape and with the same error posture as its current feature.json
         open: unreadable or absent means NOT finished, and every exit is False or a membership
         test. Do not move the skip or the counter.
-      - board_lifecycle.py:504, and the _STATUS_TO_STATION_KEY table at :445-448 that feeds it.
+      - board_lifecycle.py:507, and the _STATUS_TO_STATION_KEY table at :448-451 that feeds it.
         Once the station is read lowercase from plan.yaml that table is an identity map and is
-        DELETED, not lowercased. Its guard at :505-508, station_key is None then continue, is the
+        DELETED, not lowercased. Its guard at :508-511, station_key is None then continue, is the
         same fail-open shape D-11 removes from INV-26: an unrecognised station and an exempt one
         share a code path. Keep the Abandoned exemption explicit and make an unrecognised value a
-        finding. Also board_lifecycle.py:988.
+        finding. Also board_lifecycle.py:991, the Done comparison inside the fixability predicate.
       - gh-sync.py:226 _feature_status, and its writer at :580 becomes a plan-merge.py
         set-feature-station subprocess call rather than a json.dumps of feature.json.
-      - worktree_terminal.py:271, which reads the LANDED file on the default branch through
+      - worktree_terminal.py:271, re-confirmed at 0d4845b despite the file having changed, which reads the LANDED file on the default branch through
         git show: it now reads plan.yaml at that same ref and compares against the lowercase done.
         This one is easy to get wrong - keep the existing err handling, and treat an unreadable
         plan.yaml at that ref exactly as an unreadable feature.json is treated today.
@@ -788,7 +817,7 @@ tasks:
       this shape and whose reasoning DEC-203 section 8 records. It reads the PreToolUse payload on
       stdin and:
       - exits 0 immediately when d.get("agent_type") is empty or absent - an absent agent_type IS
-        the main session, as check-domain.sh:512 records;
+        the main session, as check-domain.sh:541 records (re-derived at 0d4845b; it was :512 at ee66ae2);
       - otherwise tokenizes tool_input.command with shlex (posix=True, punctuation_chars=True),
         comparing os.path.basename of each command word so an absolute path, a leading backslash
         or a quoted form all read the same, and re-scanning the argument of eval and of bash -c
@@ -817,10 +846,12 @@ tasks:
       INTEGRATION_SCRIPTS array - integration, because SC-07 declares evidence: integration - AND
       add the explicit literal path .claude/skills/harness/bin/test-plan-sign-gate.py to
       test_kinds.integration.detect in .harness/harness.json. run-unit-tests.sh's KIND CROSS-CHECK
-      circa 62-117 requires every INTEGRATION_SCRIPTS name to appear as PREFIX + name among
+      circa 76-131 requires every INTEGRATION_SCRIPTS name to appear as PREFIX + name among
       detect's pipe-separated entries, where PREFIX is the literal .claude/skills/harness/bin/
-      (:101). It runs on EVERY invocation, for every kind, and exits 2. The prefix in that block's
-      own comment reads .agents/... and is stale - use the one the code holds, at :101.
+      (:115). It runs on EVERY invocation, for every kind, and exits 2. The prefix in that block's
+      own comment reads .agents/... and is stale - use the one the code holds, at :115. All three
+      anchors re-derived at 0d4845b; at ee66ae2 the block sat at 62-117 with PREFIX at :101, and
+      the stale .agents comment is still present, re-confirmed at :84.
 
       test-plan-sign-gate.py asserts, each shown failing first: a payload with no agent_type
       passes; a payload with agent_type harness-orchestrator invoking sign-approval exits 2 AND its
@@ -853,12 +884,17 @@ tasks:
       shape gate independent of domain and binding on every author.
 
       Concretely:
+      - EVERY SPAN IN THIS TASK WAS RE-DERIVED AT 0d4845b AFTER THE REBASE ONTO THE OMP MAIN, and
+        the whole block moved DOWN 29 LINES: the numbers this task carried before the rebase
+        (1004-1010, 1011-1017, 1018, 1063-1066, 879, 1161-1167) now address unrelated code, so a
+        span-shaped edit against them would delete the wrong lines. Re-confirm each span against
+        the file before you touch it, and treat the IDENTIFIER as the address in every case.
       - Add RE_PLAN_YAML = re.compile(r"^\.harness/[^/]+/features/[^/]+/plan\.yaml$") to the
-        pattern block, whose five existing RE_ definitions are at 1004-1010, and add the name to
-        the SHAPE_PATTERNS tuple, which is the SINGLE LINE 1018.
-      - REPLACE the comment at lines 1011-1017 - and only those lines - which argues plan.yaml is
-        deliberately absent under DEC-182. Line 1018 is the SHAPE_PATTERNS tuple itself: a replace
-        that runs to 1022 deletes it and the has_shape_rules def below it. Open the file and
+        pattern block, whose five existing RE_ definitions are at 1033-1039, and add the name to
+        the SHAPE_PATTERNS tuple, which is the SINGLE LINE 1047.
+      - REPLACE the comment at lines 1040-1046 - and only those lines - which argues plan.yaml is
+        deliberately absent under DEC-182. Line 1047 is the SHAPE_PATTERNS tuple itself and 1050
+        is the has_shape_rules def: a replace that runs to 1051 deletes both. Open the file and
         confirm the span before editing. The new comment states the reversal and why: plan.yaml
         now has exactly one writer, a command that validates a station before it opens the file,
         so an editor write is not a shape violation to be measured but a route that no longer
@@ -880,15 +916,16 @@ tasks:
         which is precisely the unusable refusal the reason clause above exists to prevent. It also
         keeps T-13 separately strikeable: nothing here depends on the rename happening. This is the
         same convention T-08 already uses for the same tool.
-      - DO NOT EMIT THIS REFUSAL THROUGH deny(). check-domain.sh defines deny() at 1063-1066 and
-        its last line appends the module-level ROUTING constant defined at 879, which speaks about
+      - DO NOT EMIT THIS REFUSAL THROUGH deny(). check-domain.sh defines deny() at 1092-1095 and
+        its last line appends the module-level ROUTING constant defined at 908, which speaks about
         STATE.md, digests and notes/ - a different file class entirely. Emitting ROUTING beside a
         plan.yaml refusal puts two routing sentences in one stderr stream contradicting each other
-        about the same file. The comment at 1161-1167 already records this exact trap, in these
+        about the same file. The comment at 1190-1196 already records this exact trap, in these
         words: ONE ROUTING SENTENCE PER FINDING, which is why this does not call deny(). Build the
         refusal through the same accumulator the rest of the shape region already uses -
         out.append(...) - and do not reach for deny() by reflex.
-      - Add the plan.yaml pattern to _SWEEP_PATTERNS so the PostToolUse Bash route reaches it,
+      - Add the plan.yaml pattern to _SWEEP_PATTERNS, whose definition is at 920 and whose
+        SWEEP_GLOBS derivation is at 933, so the PostToolUse Bash route reaches it,
         and give it a VOCABULARY shape rule in shape_problems: every task status, and the
         top-level status WHEN PRESENT, must be one of factory_config.station_names or
         factory_config.TERMINAL_MARKER - imported, never respelled - and anything else is
@@ -922,7 +959,7 @@ tasks:
       sweep meets while T-07 is still pending.
 
   - id: T-10
-    title: Fix both ship defects and close the live INV-26 violation
+    title: Fix both ship defects, then run the one-time board pass
     traces: [REQ-07]
     change_type: bugfix
     execution_mode: main-session-direct
@@ -933,28 +970,48 @@ tasks:
       - .claude/skills/harness/bin/gh-sync.py
       - .claude/skills/harness/bin/test-gh-sync.py
       - .claude/skills/harness/bin/test-post-merge-sweep.py
-      - .harness/harness/features/FEAT-40-harness-writes-done/plan.yaml
     verify: |
       python3 .claude/skills/harness/bin/test-gh-sync.py
       python3 .claude/skills/harness/bin/test-post-merge-sweep.py
-      git -C . diff --quiet -- .harness/harness/features/FEAT-40-harness-writes-done/plan.yaml
       python3 -c "import sys,glob,json,os,yaml;sys.path.insert(0,'.claude/skills/harness/bin');import gh_board as g,factory_config as fc;b=g.load_board('.');st=g.board_stations(b,json.load(open('.harness/harness.json'))['github']['repo']);rec=lambda d:(lambda j:{'issues':((j.get('github') or {}).get('issues') or {}),'parent':(j.get('github') or {}).get('parent'),'source_issues':[]})(json.load(open(os.path.join(d,'feature.json'))) if os.path.exists(os.path.join(d,'feature.json')) else {});placed=sorted(set((n,w) for p in glob.glob('.harness/harness/features/*/plan.yaml') for n,w in g.project(yaml.safe_load(open(p)),rec(os.path.dirname(p))).items()));skipped=sorted(n for n,w in placed if n not in st);compared=[(n,w) for n,w in placed if n in st];bad=sorted((n,w,st[n]) for n,w in compared if st[n]!=fc.station_column(w));assert placed,'nothing was projected';assert compared,'every projected card was skipped - nothing was compared';assert not bad,bad;print('board agrees with plan.yaml for',len(compared),'of',len(placed),'projected cards, against',len(st),'board items; SKIPPED as absent from board 3:',skipped)"
     intent: |
-      Two defects, both measured, plus the repair of the record they already damaged.
+      Two defects, both measured. THE THIRD PART OF THIS TASK IS GONE, and this is a
+      re-derivation against the rebased tree rather than a change of scope: the task used to
+      carry a record repair whose purpose was to close the live INV-26 violation naming FEAT-40
+      and issue 842. FEAT-40 HAS SINCE SHIPPED TO main, and the violation closed itself by
+      merging. Measured at 0d4845b in this worktree: FEAT-40's feature.json reads status Done, so
+      INV-26's terminal exemption skips it; check-plan-routes.py reports it among the 39 of 40
+      feature dirs skipped as shipped; and a full run of check-state.sh emits ZERO INV-26 lines,
+      its one and only violation being this feature's own unapproved BRIEF. The write itself is
+      not lost - T-07's migration, which this task already depends on, walks every feature.json
+      carrying a status and calls set-feature-station on the sibling plan.yaml, and FEAT-40's
+      plan.yaml carries no top-level status key at 0d4845b, so T-07 is what records done there.
+      This task therefore owns no repair, names FEAT-40's plan.yaml in no file list, and asserts
+      nothing about that file's commit state. SC-09 in BRIEF.md was re-based on the same reading.
+      WHAT SURVIVES AS AN OBLIGATION: still RUN
+      .claude/skills/harness/bin/check-state.sh
+      after T-07's migration and this task's changes, and paste the INV-26 result into the task
+      receipt. It reads zero INV-26 lines at 0d4845b, so this is a REGRESSION BOUND on the
+      migration and the board pass, not a defect to close - a new INV-26 line here means the
+      migration or the pass moved something wrong. A run that cannot reach the board reports
+      CANNOT VERIFY, which is NOT the assertion - re-run it authenticated.
 
       RUNTIME DISCLOSURE. test-gh-sync.py is measured at 149 s and is the slowest verify in this
       plan by an order of magnitude - test-plan-merge.py 2.8 s, test-post-merge-sweep.py 8.7 s,
-      test-check-domain.py 15.3 s, test-check-state.py 20.1 s - and both this task and T-06 run it
-      in full, about 298 s across the plan. That is over the 60 s a verify is meant to hold to.
+      test-check-domain.py 15.3 s, test-check-state.py 20.1 s - and THREE tasks run it in full,
+      T-06, T-07 and this one, about 447 s across the plan. RE-COUNTED at 0d4845b off the plan's
+      own verify blocks: the figure recorded before this audit was two tasks and 298 s, which
+      undercounted T-07, whose verify has always run the file. That is over the 60 s a verify is meant to hold to.
       It is accepted here rather than fixed: adding case selection to the test harness is a change
       to the harness itself, not to this feature. The deferral has an instrument rather than only
       prose - it is proposed backlog row PB-01 in BRIEF.md, which the main session opens as a
-      GitHub issue at ship acceptance. So the 298 s is accepted, not permanent. Do not narrow
-      either verify to buy the time back; the file is the only proof either task has.
+      GitHub issue at ship acceptance. So the 447 s is accepted, not permanent. Do not narrow
+      any of the three verifies to buy the time back; the file is the only proof each task has.
 
       Defect one - the terminal write is never committed. cmd_ship records the feature's terminal
       station as its last statement and leaves it uncommitted, so main reads Review while the
-      board reads Done, which is the INV-26 violation check-state.sh reports today. After the
+      board reads Done. That was the INV-26 violation check-state.sh reported before FEAT-40
+      merged; the violation is gone at 0d4845b but the defect that produced it is not. After the
       station write succeeds, stage that one file and commit it in the checkout the feature dir
       belongs to, with the message "FEAT-NN: station done at ship" and nothing else in the commit.
       DO NOT PUSH: a post-merge hook moving a remote branch is a second, larger surprise. Print
@@ -974,17 +1031,16 @@ tasks:
       somewhere else instead of moving the write. This is a refusal, not a skip: skip()
       exits 0 and post-merge-sweep.sh would then delete the worktree.
 
-      The repair: FEAT-40's plan.yaml must record the done station. Set it with plan-merge.py
-      set-feature-station --file .harness/harness/features/FEAT-40-harness-writes-done/plan.yaml
-      --station done, and commit it. Then RUN
-      .claude/skills/harness/bin/check-state.sh
-      and paste into the task receipt the before and after: the INV-26 line naming FEAT-40 and
-      issue 842 as it reads at ee66ae2, and its absence afterwards. A run that cannot reach the
-      board reports CANNOT VERIFY, which is NOT the assertion - re-run it authenticated.
+      Both defect fixes above act on gh-sync.py, which the rebase did NOT touch: re-confirmed at
+      0d4845b with git diff --stat e5afc19 HEAD that gh-sync.py is byte-identical to its state at
+      e5afc19, so every gh-sync line
+      number in this task and in T-06 still resolves. harness_boundary.py DID change, and the two
+      symbols defect two needs both survive - WORKTREES_SEGMENT at harness_boundary.py:33 and
+      worktree_owner at :515, both re-derived at 0d4845b.
 
       THE ONE-TIME BOARD PASS, and it is a step of this task rather than a footnote. D-11 removes
       the ready-to-backlog exception, so plan.yaml and board 3 must agree exactly with nothing
-      derived between them. Run the pass ONCE, after the FEAT-40 repair above and before this
+      derived between them. Run the pass ONCE, after T-07's migration and before this
       task's last verify line:
       - for every plan.yaml under .harness/harness/features/, build rec the way T-06 specifies and
         call gh_board.project once, exactly as check-state.sh's INV-26 now does. Use the shipped
@@ -1046,9 +1102,12 @@ tasks:
       LINE NUMBER. Four sibling tasks - T-02, T-04, T-06 and T-07 - edit this same file. This task
       runs after every one of them, so any absolute line number written here would be stale by the
       time it executes, and a line-addressed deletion would execute correctly against the wrong
-      lines. Re-derive the extent at execution time from the anchors below. Measured at ee66ae2
-      they are unique to this unit: _renamed occurs four times, _no_finding four times, and neither
-      name appears anywhere else in the file.
+      lines. Re-derive the extent at execution time from the anchors below. RE-MEASURED at 0d4845b
+      after the rebase, which added 158 lines to this file: the anchors are UNCHANGED and still
+      unique to this unit - _renamed occurs four times, _no_finding four times, neither
+      name appears anywhere else in the file, and FEAT-41 appears nowhere in it, so the fourth
+      verify line still discriminates. For orientation only, the unit's opening comment sits at
+      :1699 and the allok = True that bounds it at :1737.
 
       The unit runs from the comment line beginning
       # --- ONE CASE PER KEY, AND THAT IS THE POINT.
@@ -1109,8 +1168,8 @@ tasks:
       THE RECORDING FORM IS NOT DECIDED YET. YOU READ WHAT IT IS AT EXECUTION TIME RATHER THAN
       CHOOSING IT HERE. Two candidates are live, per D-09:
       FORM (a) - an IN-PLACE CLAUSE STRIKE under DEC-188. The clause text stays on the page,
-        marked. This form is already live twice in DECISIONS.md, at line 3228 and at line 4436,
-        both measured at 8f8a6a3.
+        marked. This form is already live twice in DECISIONS.md, at line 3235 and at line 4443,
+        both re-derived at 0d4845b; they stood at 3228 and 4436 at 8f8a6a3.
       FORM (b) - SUBSUMING THE CORRECTION INTO THE ENTRY in one voice, so the entry reads as a
         single current statement rather than an older statement with an annotation layer on it.
       A decisions-authority triage is settling which form the tree uses, as work separate from this
@@ -1124,23 +1183,28 @@ tasks:
       otherwise, which is the falsified record PRINCIPLES rule 15 forbids. The struck text stays on
       the page, marked.
       THE FORM IS ALREADY LIVE IN THIS FILE, TWICE, AND YOU REPRODUCE IT RATHER THAN INVENT IT.
-      Read DECISIONS.md at line 3228 and at line 4436 before writing a word - both measured at
-      8f8a6a3 - and read enough of the surrounding paragraphs to catch the voice. The shape is two
+      Read DECISIONS.md at line 3235 and at line 4443 before writing a word - both re-derived at
+      0d4845b, and 3228 and 4436 at 8f8a6a3 - and read enough of the surrounding paragraphs to
+      catch the voice. The shape is two
       parts per strike:
       (a1) AT THE CLAUSE ITSELF, one bold sentence in the record's own voice naming what is struck,
-          the date, DEC-188, and where the record is - the live example at 3228 reads that the
+          the date, DEC-188, and where the record is - the live example at 3235 reads that the
           citation that recorded a thing is STRUCK on a date under DEC-188, see amendment 7. Every
           other sentence around it is untouched.
       (a2) A NEW AMENDMENT SECTION on that entry, headed in the file's existing style, which states
           what the struck clause SAID, that it is struck under DEC-188 on that date, and what holds
-          instead. Measured at 8f8a6a3 none of these three entries carries an amendment today, so
+          instead. RE-CONFIRMED at 0d4845b: none of these three entries carries an amendment - the
+          index rows for DEC-182, DEC-191 and DEC-203 carry no am. marker - so
           each is amendment 1; re-derive that before you write it.
 
       IF THE FORM IS (b): the entry is rewritten so its surviving rules and the correction read as
       one current statement in the file's own voice, with no annotation layer - and the strike
       sentence, the amendment section and the amendment numbering above do not apply at all.
 
-      The new entry, taking the next free DEC number, states four things and no biography:
+      The new entry, taking the next free DEC number, states four things and no biography. The
+      next free number MOVED with the rebase: DEC-204 landed with PR 922, so the highest entry at
+      0d4845b is DEC-204 and the next free number is DEC-205. This task pins no literal - read the
+      file and take the next free number - and the figure here is orientation.
       1. The six station names - backlog, plan, ready, building, review, done - are MANDATED. An
          operator may not rename a column; extra columns an operator adds survive untouched.
       2. harness.json declares them once, as an ordered lowercase list. Everything the harness
@@ -1217,7 +1281,7 @@ tasks:
       - .harness/harness/docs/DECISIONS.md
       - .harness/harness.json
     verify: |
-      grep -rn --exclude-dir=worktrees "plan-merge" .claude .omp .agents .harness/harness.json .harness/harness/docs .harness/team-config.yaml ; test $? -eq 1
+      grep -rn --exclude-dir=worktrees --exclude-dir=__pycache__ "plan-merge" .claude .omp .agents .harness/harness.json .harness/harness/docs .harness/team-config.yaml ; test $? -eq 1
       python3 .claude/skills/harness/bin/test-plan-write.py
       python3 .claude/skills/harness/bin/test-check-domain.py
     intent: |
@@ -1234,9 +1298,11 @@ tasks:
       .harness/harness.json. Regenerate the Claude adapter with sync-agent-adapters.py --apply
       rather than editing .claude/agents/harness-orchestrator.md by hand.
 
-      Measured at ee66ae2: 13 live files and 35 lines reference the old name, and
-      .omp/agents/harness-orchestrator.md is one of them - it is the canonical agent source under
-      DEC-202, not a generated adapter.
+      RE-MEASURED at 0d4845b: 13 live TRACKED files and 35 lines reference the old name, unchanged
+      by the rebase, and .omp/agents/harness-orchestrator.md is one of them - it is the canonical
+      agent source under DEC-202, not a generated adapter. Note that the playbook spells the tool
+      as .agents/skills/harness/bin/plan-merge.py, through the symlink, so search for the BASENAME
+      and not for a .claude/ path.
 
       THE EXCLUDE IN THE VERIFY IS LOAD-BEARING, not tidiness. .claude/worktrees/ holds every
       in-flight checkout of this repository, each a full copy carrying the old name, and this task
@@ -1245,6 +1311,15 @@ tasks:
       .claude/worktrees/ of its own, both return 35. So without the exclude the verify reds on a
       correct execution, and WHICH checkout the main session runs it in decides whether it reds -
       a location-dependent silent break, which is the class of defect this feature exists to end.
+      THE SECOND EXCLUDE IS EQUALLY LOAD-BEARING AND IS NEW at this pin. Measured at 0d4845b in
+      this worktree, the grep returns 36 lines with only the worktrees exclude and 35 with both:
+      the 36th is .claude/skills/harness/bin/__pycache__/harness_yaml.cpython-314.pyc, which
+      carries the string plan-merge as a compiled constant. __pycache__/ is gitignored, so it is
+      invisible to every git-based check and present in any checkout where the modules have been
+      imported - and a .pyc built BEFORE the rename still carries the old name, because this
+      verify's grep runs before any test re-imports the module. Without this exclude the verify
+      CANNOT PASS on a correct execution. The same defect and the same fix apply to T-01's
+      _STATION_KEYS absence grep.
       Do not substitute a narrower path list that happens to work today.
 
       LEAVE THE RECORDS ALONE. Every reference under .harness/harness/features/ - the FEAT-32
@@ -1281,20 +1356,33 @@ tasks:
       git work tree and a plan file - and therefore different silences, so folding them into one
       number would put two fail-open surfaces behind one grep-able string. Six existing cases
       (e, h, i, j and their siblings) assert on INV-6's exact text; a distinct number leaves them
-      untouched and makes each invariant separately searchable. INV-32 is free: it is absent from
-      check-state.sh and claimed by no unbuilt feature, checked at ee66ae2.
+      untouched and makes each invariant separately searchable. INV-32 is free: RE-CHECKED at
+      0d4845b, the highest invariant in check-state.sh is INV-31, INV-32 appears nowhere in the
+      file, and no unbuilt feature claims it. Use grep -oE 'INV-[0-9]+' to re-check this - BSD
+      grep silently ignores the \+ form and returns an empty list that reads exactly like "no
+      invariants at all".
 
-      WHERE IT GOES. Inside the existing per-feature loop over
-      glob.glob(... "feature.json") in check-state.sh, in or immediately after the INV-6 block
-      (circa :221-229 at ee66ae2 - re-derive by content, since T-02, T-04, T-06 and T-07 all edit
-      this file first). runs, the (id, squad, verdict) tuples, and the val() helper are already in
-      scope, as is the validator-run predicate any(sq == "validator" for _, sq, _ in runs).
+      WHERE IT GOES, AND IT SURVIVED THE REBASE INTACT. Inside the existing per-feature loop over
+      glob.glob(... "feature.json") in check-state.sh, in or immediately after the INV-6 block.
+      RE-DERIVED at 0d4845b: the loop opens at :202 and its glob is now two levels deep,
+      os.path.join(H, "*", "features", "*", "feature.json"); val() is defined at :227; runs is
+      built at :237-244; and the INV-6 block occupies :246-253. It sat at circa :221-229 at
+      ee66ae2, so re-derive by content rather than by that span - and re-derive again when you
+      execute, since T-02, T-04, T-06 and T-07 all edit
+      this file first. runs, the (id, squad, verdict) tuples, and the val() helper are already in
+      scope at that point, as is the validator-run predicate any(sq == "validator" for _, sq, _ in
+      runs) at :250, and subprocess is already imported at :49 so the git calls need no new import.
 
       THE CHECK, STATED NARROWLY. For a feature whose feature.json records a validator run and
       whose review_sha is a real pin (not empty, not in harness_yaml.PLACEHOLDER_UNSET):
       resolve the feature's plan file - plan.yaml if present, else PLAN.md; compute its path
       RELATIVE TO THE GIT TOP LEVEL, from git -C root rev-parse --show-toplevel, never relative to
-      root, because root is CLAUDE_PROJECT_DIR and need not be the repository top; read
+      root. THE REASON FOR THAT CHANGED WITH THE REBASE AND THE INSTRUCTION DID NOT: root is no
+      longer CLAUDE_PROJECT_DIR. Since FEAT-42 T-12, check-state.sh:38 resolves root through
+      harness_boundary.resolve_root(_selfdir) and refuses with exit 2 rather than guessing. That
+      root is the HARNESS root, which still need not be the repository top level - a worktree
+      checkout is the everyday case - so the instruction stands and only its justification is
+      re-derived. Do not simplify it away on the grounds that the old reason is gone. Then read
       git show <review_sha>:<relative path> as BYTES; compare against the working copy's BYTES.
       Report only when both reads succeed and the bytes DIFFER.
 
