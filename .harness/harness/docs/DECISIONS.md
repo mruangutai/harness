@@ -151,49 +151,20 @@ canonical place to read `domain` from.
 ## DEC-11 — Manifest = policy, frontmatter = capability; nothing declared twice
 
 **Chose:** team membership, lead, `consult-when` and `domain` in the manifest; `name`, `description`,
-`tools`, `model`, `color`, `hooks` in agent frontmatter.
+`tools`, `model`, `color`, `skills` and `effort` in agent frontmatter.
 **Over:** putting `domain` in the agent body, or duplicating agent metadata into the manifest.
 **Because:** `domain` must be readable by `check-domain.sh` from one canonical place, so it cannot
 live in the agent body. Conversely, agent `description` and `tools` are frontmatter's job — copying
 them into the manifest would create text that drifts. No file `path` in the manifest either, since
-Claude Code resolves agents by name.
+Claude Code resolves agents by name. `skills` sits on the capability side because rule delivery is
+frontmatter's job (DEC-63); `effort` sits there because every agent carries it, with the per-tier
+value set by DEC-152.
 **Tradeoff accepted:** an agent's full picture requires reading two files.
 
-**Amendment 1 (2026-08-19) — the capability enumeration is corrected: `hooks` struck, `skills` and
-`effort` added**
-
-DEC-11 amendment 1. This entry's `Chose:` line enumerates the frontmatter half of the split as
-`name`, `description`, `tools`, `model`, `color`, `hooks`. One of those six names a field that does
-not work at all, and two fields every agent carries are missing from the list. **The `Chose:` line
-is left standing unedited**, struck token and all: the record is appended to, never rewritten.
-This amendment is what a citation to the old enumeration lands on.
-
-*How it was found.* An operator asked where else a frontmatter change would need to land, and the
-enumeration did not survive the question. No gate caught it, and none could — there is no
-propagation checker between a decision and the tree it governs (DEC-188).
-
-*`hooks` is STRUCK from the capability set.* It is not an unused capability, it is not a capability
-at all: agent-frontmatter `PreToolUse` hooks **do not fire** for spawned subagents in this
-environment, proven across three attempts (DEC-110). Domain enforcement is registered in
-`.claude/settings.json` instead. Measured in the working tree at `d1ffd7f` (three lead agent files
-modified and uncommitted, none of them for this): `grep -c '^hooks:' .claude/agents/*.md` returns 0
-for all 16 agent files.
-
-*`skills` is a capability field.* Rule delivery is frontmatter's job (DEC-63) — the native `skills:`
-field preloads full rule content at spawn. `grep -c '^skills:' .claude/agents/harness-*.md` returns
-1 for each of the 16 agent files.
-
-*`effort` is a capability field, and it was never enumerated here at all.* It is carried by all 16
-agent files (`grep -c '^effort:' .claude/agents/harness-*.md` returns 1 for each) and always has
-been since it was introduced. Which value each agent carries is per-tier policy, and that policy
-lives in DEC-152, not here.
-
-*What did NOT change.* The rule this entry decided — manifest holds policy, frontmatter holds
-capability, nothing is declared twice — is untouched, along with its `Because:` and
-`Tradeoff accepted:` reasoning. Only the enumeration of which fields sit on the frontmatter side was
-wrong. `SPEC.md` §4.0 restated the enumeration with its own divergence (`skills` swapped in for
-`hooks`, `effort` absent, "six of them"); it is corrected to follow this amendment in the same
-change. No DEC number is opened, superseded or retired here.
+`hooks` is NOT one of the frontmatter capabilities, and it is not merely an unused one: agent
+frontmatter `PreToolUse` hooks do not fire for spawned subagents in this environment, proven across
+three attempts (DEC-110), and no agent file carries the field. Domain enforcement is registered in
+`.claude/settings.json` instead. `SPEC.md` §4.0 states the same enumeration as this entry.
 
 ## DEC-13 — Template versioning; upgrades are user-triggered, not a deploy side effect
 
@@ -2970,10 +2941,10 @@ and `closes #` auto-closes · shipped → milestone closed. Issue numbers are re
 
 **Asymmetric truth.** Issues are pm's research INPUT at plan time — existing backlog can become
 tasks, through pm, under the user's signature. After approval, sync is strictly OUTBOUND. GitHub
-is never a write path into PLAN.md: a wiki-editable UI feeding an approval-gated artifact is an
+is never a write path into the plan: a wiki-editable UI feeding an approval-gated artifact is an
 unenforced write path around a guarded surface, and bidirectional conflict resolution has no
-machinery here. Inbound edits
-re-enter only through a new plan cycle.
+machinery here. Inbound edits re-enter only through a new plan cycle, and issue state is never read
+back into an approval-gated artifact.
 
 **Orchestrator-executed, at its existing checkpoints** — plan approved → create; task commit lands
 → close; shipped → close milestone. Gated per project by `github.sync: true` in `harness.json`
@@ -2981,73 +2952,107 @@ re-enter only through a new plan cycle.
 never a gate:** `gh` absent or unauthenticated → the flow succeeds and reports the sync skipped,
 per the SPEC §12 precedent for branch/PR operations.
 
-**V1 is the full loop** (intake + outbound + numbers + graceful skip), built before kaya-ai so the
-first real feature is mirrored from day one.
-
-### DEC-138 amendment — the structural spec, confirmed
-
 **One source document per GitHub construct.** Milestone ← BRIEF (title `FEAT-NN-<slug>`; description
-= Problem + Goal + the SC checklist, so the milestone page IS the definition of done). Issue ← PLAN
-`## Tasks`, one per T-NN (body: spec verbatim, `change_type`, `traces:`; labels `harness` + squad).
-Issue closes via `closes #<n>` on the `[harness:t-NN]` commit; milestone closes on the user's ship
-acceptance.
+= Problem + Goal + the SC checklist, so the milestone page IS the definition of done). Issue ← the
+plan's tasks, one per T-NN (body: spec verbatim, `change_type`, `traces:`; labels `harness` + squad).
 
-**Not mirrored, deliberately:** D-NN decisions (approval-gated in PLAN; issues reference them —
+**Not mirrored, deliberately:** D-NN decisions (approval-gated in the plan; issues reference them —
 a decision as an issue invites drive-by reopening of signed choices), approvals, run dirs/digests,
-Expertise, the codebase map. Mirror the work, not the machinery.
+Expertise. Mirror the work, not the machinery. **The harness's own design docs (SPEC/DECISIONS/BUILD)
+do not mirror.** If this repo ever wants Issues, it eats its own dog food — features through
+`/harness-plan`, same machinery — not a BUILD.md scraper.
 
 **Intake reshapes, never imports 1:1.** Backlog issues are symptoms written by whoever hit them; pm
-plans work by its real shape. One T-NN may cover several existing issues. **The `absorbs:` citation
-that recorded this is STRUCK 2026-08-25 under DEC-188 — see amendment 7.** An issue a feature
-actually does is a ticket in its own right and closes when its card reaches `Done`; an issue the
-feature does not do stays open, cited nowhere. Inbound the backlog gets a vote; outbound the plan
-gets the decision.
+plans work by its real shape, and one T-NN may cover several existing issues. **There is no third
+category between "this feature does the work" and "it does not":** an `absorbs:` citation naming
+issues a task subsumes but does not close was tried and struck, because a sub-issue is a ticket — it
+is planned, tasked and shipped like any other, by whoever picks it up. Nothing anywhere makes an
+issue close because another task mentioned it. An issue the feature does not do stays open, cited
+nowhere. Inbound the backlog gets a vote; outbound the plan gets the decision.
 
-**The harness's own design docs (SPEC/DECISIONS/BUILD) do not mirror.** If this repo ever wants
-Issues, it eats its own dog food — features through `/harness-plan`, same machinery — not a
-BUILD.md scraper.
+**A ticket is open while its card is not at the `Done` station, and a parent closes when it has no
+open children.** Station is the authority on open, never the issue's own state, and the harness is
+the one writer of `Done` — `gh-sync.py ship` writes that station on every recorded card, and
+GitHub's `Auto-close issue` workflow then closes the issue. Every other station's writer is recorded
+in `.claude/skills/harness/references/github-mirror.md` under *"Who writes each station — one writer
+per column"*; `Abandoned` is not a station and has no writer. Branching a parent's fate on how the
+parent was recorded — closing one the feature created, leaving an adopted one open, leaving an
+unrecorded one open — was tried and failed on the two newest cases it existed to protect:
+`parent_origin` read **null** on FEAT-34 and FEAT-35 because both parents were recorded by hand, and
+a null origin meant leave-open, so #728 sat open with all thirteen of its children finished. Origin
+no longer decides anything; an open child does. A closed issue's card does NOT move on its own,
+which is what makes station the authority: FEAT-34's thirteen sub-issues #818–#830 are all closed
+and all sit at `Review`.
 
-### DEC-138 amendment 2 — triage: "what should we do next?", and silence on Issues
+**`open` creates one sub-issue per `T-NN` under a single parent, adopted-or-created but never
+discovered.** Precedence, first match wins: (1) `feature.yaml github.parent` already holds a number →
+use it; (2) `--parent <n>` on the command line → adopt it; (3) otherwise `open` **creates** one, title
+`<FEAT-NN-slug> — <the BRIEF H1's human phrase>`, body = the BRIEF's Problem plus `**Goal:**`, label
+`harness`. The number is **recorded** at `feature.yaml github.parent`, and calling the parent endpoint
+to *find* it is rejected: that is a READ, and the mirror is write-only — idempotency comes from local
+receipts, so a discovery path would be a second, contradictory source of truth. Children attach by the
+child's internal **`id`**, never its `number`.
+
+**`ship` and `abandon` are mirror images.** Both close the milestone — milestones take no
+`state_reason`, close is close. `abandon` closes the feature's own sub-issues with
+`state_reason=not_planned`: GitHub accepts exactly `completed`, `not_planned` and `duplicate`, so
+"not doing" could only ever be a label (`not_doing` returns 422), and `not_planned` renders a
+visually distinct icon so an abandoned feature does not read as a shipped one at a glance.
+
+**Anything posted into the org's repo is either the user's own words, or text the user signed. Agents
+doing the work post nothing, ever.** A blanket ban on agent-authored comments was tried and is too
+wide: the line is PROVENANCE, not which skill is asking.
+
+| Post | Provenance | Verdict |
+|---|---|---|
+| a wayfinding ticket's resolution comment | the user's own answer, captured live | **allowed** — it IS the decision record (DEC-166/167) |
+| an abandonment reason on a closed issue | a line from the ship-review the user signed, posted **verbatim** | **allowed** |
+| a ship summary on the parent issue at acceptance | same — signed artifact, verbatim | **allowed** |
+| a dev / reviewer / qa / lead commenting mid-build | unreviewed agent prose | **forbidden** — they return digests; a second status channel competes with `STATE.md` and drifts from it |
+| the mirror composing its own text at post time | agent prose, however brief | **forbidden** — mirror what was signed, never author |
+
+The mechanism follows from the rule: any subcommand that posts takes its body from a **file path**,
+never from a string the mirror assembled — `--reason-file <path>` / `--body-file`, pointing at the
+approved artifact. The mirror *cannot* editorialize, because it has no text of its own to post. A
+closed ticket with a distinct icon and no explanation is opaque to the only audience the mirror
+exists for, which is why the abandonment reason is posted at all.
+
+**Shared code, and migration scope.** The three GitHub primitives — the internal-id attach, the
+parent read, the blocking-edge write — plus the internal-id lookup and `gh_bin()` live in exactly one
+place, `.claude/skills/harness/bin/gh_issues.py`, as **argv builders**; each caller keeps its own
+runner, because `gh-sync.py` skips-and-exits-0 on an environmental failure while `wayfind.py` dies
+exit 1. `gh-sync.py` imports only `internal_id_args` and `attach_sub_issue_args`, and its containing
+**no** call to `parent_args` or `blocked_by_args` is a standing regression guard for the write-only
+rule. **No `blocked_by` edge is emitted by the Issues sync at all**: the builder exists and its only
+caller is wayfinding. Migration was new-features-only — no backfill, no retrofit, no edit to any
+existing feature's recorded map.
+
+**Issue type labels derive from `change_type`,** so no agent judgment is involved:
+`config`/`scaffolding`/`infra`/`ci` → `chore` · `bugfix` → `bug` · everything else → unlabeled.
+`gh-sync.py` applies it at issue creation. The `harness` provenance label is orthogonal and stays —
+it marks agent-created issues, not their type.
 
 **The triage route.** "What should we do next?" belongs to no orchestrator — it exists before a
 feature does. It is pm's remit through product-lead, and it is **the one sanctioned direct
 main-session→lead dispatch**, justified narrowly: no feature exists for an orchestrator to own, and
-triage writes no state — it reads (Issues, the codebase map, shipped history) and recommends. pm
-returns ranked candidates with rationale; the user picks; the pick seeds `/harness-plan`. Any
-dispatch that would WRITE feature state still goes through an orchestrator, no exceptions.
+triage writes no state — it reads and recommends. pm returns ranked candidates with rationale; the
+user picks; the pick seeds `/harness-plan`. Any dispatch that would WRITE feature state still goes
+through an orchestrator, no exceptions. Division of labour: pm is the mind (reads and interprets the
+backlog at plan time), the orchestrator is the hand (mechanical mirror at its checkpoints); they
+never negotiate about Issues.
 
-**Silent on Issues in v1.** Agents create, close, and cite absorptions — no agent-authored comments
-in the org's repo until the mirror proves itself on a real feature. Division of labour restated:
-pm is the mind (reads and interprets the backlog at plan time), the orchestrator is the hand
-(mechanical mirror at its checkpoints); they never negotiate about Issues — pm's reading flows into
-PLAN, PLAN through the user's signature, the orchestrator mirrors what was signed.
-
-### DEC-138 amendment 3 — issue type labels derive from `change_type`
-
-Per the user: `chore` for scaffolding/infrastructure work, `bug` for bugfixes, and no type label
-for feature/enhancement work. Mechanical, because every T-NN already carries `change_type`:
-`config`/`scaffolding`/`infra`/`ci` → `chore` · `bugfix` → `bug` · everything else → unlabeled.
-`gh-sync.py` applies it at issue creation; no agent judgment involved. (The `harness` provenance
-label is orthogonal and stays — it marks agent-created issues, not their type.)
-
-### DEC-138 amendment 4 — leads' residual findings become issues through the briefing, never directly
-
-The user asked how findings raised by leads reach GitHub. The split: **blocking findings
-(`must_fix`) never become issues** — they route back into the current flow as fix cycles and die
-there. **Residuals** — findings that survive the lead's collation but do not gate (FEAT-02's F-1
-advisory, qa's coverage notes) — are future backlog, and today they die in the briefing notes.
-
-Route: **briefing-gated.** The briefing's residual-findings section is a *proposed backlog* list;
-on the user's ship acceptance, unstruck entries become plain backlog issues — labeled `harness`
-plus `bug`/`chore` by finding nature, unlabeled for enhancements, **no milestone** (they belong to
-no feature yet; a later plan cycle may absorb them). Rejected alternatives: digest→GitHub direct
-(publishes unapproved judgment — FEAT-02's panel raised 15, collation dismissed 10; noise is how
-backlogs die, and work items enter existence through a human signature, same as tasks); pm-first
-review (the lead's collation already is the quality filter, and pm sees the backlog at next triage
-anyway — a spawn for a third opinion on something the user is about to read).
-
-Mechanically: `gh-sync.py backlog <feature-dir>` reads the accepted residuals (the main session
-passes them after the briefing decision) — part of the door's shipped row alongside `ship`.
+**Leads' residual findings become issues through the briefing, never directly.** Blocking findings
+(`must_fix`) never become issues — they route back into the current flow as fix cycles and die there.
+**Residuals** — findings that survive the lead's collation but do not gate — are future backlog, and
+the briefing's residual-findings section is a *proposed backlog* list: on the user's ship acceptance,
+unstruck entries become plain backlog issues, labeled `harness` plus `bug`/`chore` by finding nature,
+unlabeled for enhancements, **no milestone** (they belong to no feature yet; a later plan cycle may
+take them up). Rejected alternatives: digest→GitHub direct (publishes unapproved judgment — one
+panel raised 15 findings and collation dismissed 10; noise is how backlogs die, and work items enter
+existence through a human signature, same as tasks); pm-first review (the lead's collation already is
+the quality filter, and pm sees the backlog at next triage anyway). Mechanically:
+`gh-sync.py backlog <feature-dir>` reads the accepted residuals, which the main session passes after
+the briefing decision — part of the door's shipped row alongside `ship`.
 
 ---
 
@@ -3118,33 +3123,20 @@ Field report from kaya-ai: the same piece of work read as three different things
 a stale orchestrator title, a generic lead title, a task-worded member title — and the user watching
 the spawn tree reasonably suspected duplicated work. Titles were free text at each dispatching tier.
 
-Convention, now stated at all three origins (door, playbook, team runner):
+Convention, stated at all three origins (door, playbook, team runner):
 **`<flow-id> · <step or task id> · <what, 3–6 words>`** — e.g. `FEAT-02 · T-01 · red repro cases`,
 `BUG-01 · investigate · reproduce and localize`. The flow id appears in every title all the way
 down; a spawn title that cannot be traced to its flow is a dispatch defect. Ergonomics, not
 mechanics — nothing routes on titles — but the spawn tree is the user's only live view of a running
 org, and it should read as one chain.
 
----
-
-### DEC-142 amendment — the agent NAME is the title the user actually sees, and it cannot hold `·`
-
-DEC-142 was written when a spawn had a free-text title and nothing else. Agents are now addressable
-by `name` for `SendMessage`, and that name is what surfaces in the spawn tree and on every relayed
-message. The name field is constrained to `^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$`, so **the convention's
-`·` separator and its spaces are illegal there** — DEC-142's literal format cannot be used as a name.
-
-Observed defect, main session, 2026-08-03: FEAT-05's ship orchestrator was named
-`yaml-sweep-f1-ship`. Its `description` did carry the flow id ("Ship FEAT-05 pyyaml file parsers"),
-but the NAME is what rendered, so the user watching the tree could not trace the running agent to its
-flow, saw `harness-eng-lead` conducting a run, and reasonably asked why a lead had been spawned
-directly instead of an orchestrator. Nothing was wrong with the org — main had spawned only the
-orchestrator, which had dispatched the lead correctly at layer 2 — but the tree could not show that.
-**That is exactly the kaya-ai failure DEC-142 was written to prevent, reproduced through the one field
-the decision did not know about.**
-
-The rule, unchanged in spirit: **a spawn the user cannot trace to its flow is a dispatch defect.**
-Mechanically, when a spawn carries a `name`:
+A spawn is also addressable by `name`, and the name — not the description — is what the spawn tree
+and every relayed message actually render. The name field is constrained to
+`^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$`, so **the `·` separator and the spaces of the title form are
+illegal in a name**: the literal convention above cannot be reused there. A name that omits the flow
+id while the description carries it has been tried and it fails — the tree then shows a lead
+apparently conducting a run with nothing to trace it to, which is precisely the confusion this entry
+exists to prevent. So, mechanically, when a spawn carries a `name`:
 
 - **The `name` is a flow-traceable slug** — `<flow-id>-<step>`, e.g. `FEAT-05-ship`, `FEAT-05-T01`.
   Hyphens for the separator, since `·` and spaces are rejected. The flow id comes first so the tree
@@ -3240,53 +3232,26 @@ words, no FEAT/T/issue tokens, no nested bullets or instance lists; four canonic
 file can never again silently tax every spawn. `merge` is redefined: the result may be no longer
 than the longer input — appending an instance is `add` wearing a costume.
 
+**A third boundary joins decision-versus-observation: a harness defect is a bug report, not a
+learning.** It routes to `open_questions`, never to Expertise, because a recorded workaround
+outlives the fix. "Injection failed to fire once; cat the file manually" and "member caps silently
+stop learning" are defects to be raised, not knowledge to be kept.
+
+**Distillation is a three-party pipeline, not diffusion.** A lead skims the run's digests and offers
+each member at most 3 sourced, observation-phrased candidates; the member accepts or REJECTS each
+with a reason, and a rejection is a first-class recorded outcome, not a rubber stamp. At a full
+section the rule is displacement, never merge, and the distillation digest carries per-source accept
+counts so a skim that stops yielding can be cut. The skim doubles as a staleness audit — it surfaces
+entries that code shipped later in the same feature has contradicted. Run directories are slugged
+`<task-or-purpose>-<squad>`, with no feature infix.
+
+**Deploying the checker is the control; authoring discipline is not.** Where the caps were authored
+but the checker was not yet deployed, 9 of 15 Expertise files failed it again within a day of being
+distilled. Displacement-at-cap is the one mechanism no run has yet exercised.
+
 Supersedes the mid-run write discipline of DEC-24/66/67 (the op format, IDs, and who-holds-the-pen
 all survive; only the *when* moved) and DEC-25/68's overflow flow becomes the escalation path when
-a distilling agent cannot condense under the caps. Live probe deferred to the next kaya-ai feature
-run: agents appending observations, feature-close distillation firing, injected context staying
-under budget.
-
-
-
-**Amendment (same day):** a third boundary joined decision-vs-observation: **a harness defect is a
-bug report, not a learning** — it routes to `open_questions`, never Expertise, because a recorded
-workaround outlives the fix. Found live in the kaya retrofit: the orchestrator had filed "injection
-failed to fire once; cat the file manually" and "member caps silently stop learning" as Outcomes —
-the first is now evidence on BUILD.md's task-10 preload probe, the second is this very decision.
-
-**Amendment 2 (2026-07-29) — the digest-skim, dry-run-proven before wiring.** Tested on FEAT-01's
-11 real eng digests with a sandboxed member before touching the playbook. The lead (recall) stayed
-bounded — 3 sourced, observation-phrased candidates per member — and its yield included a class we
-did not predict: two existing Expertise entries contradicted by code shipped later in the feature,
-so the skim doubles as a staleness audit. The member (precision) accepted 2, and REJECTED one with
-a reason — no rubber-stamping of its lead. Wired into the playbook with the guards that keep the
-three-party split a pipeline, not diffusion: ≤3 candidates, observation-phrasing, rejection as a
-first-class recorded outcome, displacement-never-merge at a full section, and per-source accept
-counts in the distillation digest so a skim that stops yielding gets cut. Also pinned the run-dir
-slug grammar (`<task-or-purpose>-<squad>`, no feature infix) — FEAT-02's dirs embedded the feature
-id redundantly. Displacement-at-cap remains untested (no section was full); first live distillation
-covers it. Same test measured re-bloat velocity: 9 of 15 kaya files failed the checker within a day
-of distillation because kaya still ran the old rules — deploy is the gating control, not authoring
-discipline.
-
-
-**Note (2026-08-24): am.3 below is MOOTED.** Ship-refresh existed only to keep the codebase map
-true, and it was removed when the codebase map tier itself was removed. Close-out is now one
-dispatch — distillation — so there is no second job to run concurrently with. The amendment is left
-standing below as the record of why the pairing existed; nothing acts on it.
-
-**Amendment am.3 (issue #80): ship-refresh and distillation dispatch concurrently, and the cold
-property survives it.** They were two sequential close-out rounds; they share no data and neither
-reads the other's output, so the round-trip bought nothing. They are now **two separate dispatches
-issued in one message**.
-
-The distinction is load-bearing and is why this amendment exists rather than a bare sequencing
-note. **Concurrency is free; combining the prompts is not.** Ship-refresh is hot, mechanical
-routing work. Distillation is the cold, stepping-back judgment this entry created — *"mid-run you
-only observe; distillation happens later, cold"*. A lead handed both jobs in ONE dispatch performs
-the second while still hot from the first, and its distillation degrades into summarising the run
-it just routed — invisible at ship time, surfacing as a worse next feature. Two dispatches in one
-message preserve the cold framing; one dispatch carrying both does not, and is forbidden.
+a distilling agent cannot condense under the caps.
 
 
 ---
@@ -3344,16 +3309,7 @@ and the path.
 
 ## DEC-149 — Design knowledge enters the org: vocabulary, glossary, and the deepen mission
 
-**Amendment 1 (2026-08-24) — mission `deepen` is retired; the two skills and the glossary stand.**
-`deepen` scanned the codebase map, and the map tier was removed after 35 features never
-built one. `/harness-deepen` is deleted and the mission is removed from `harness.md`'s resolution
-list. What this entry ALSO created is untouched and live: `harness-codebase-design`,
-`harness-spec-driven`, and the glossary — which moved with the tier's retirement to
-`.harness/glossary.md`. This entry is amended rather than struck because only its mission clause is
-contradicted.
-
-
-Three imports from Matt Pocock's MIT-licensed skills (mattpocock/skills), each re-homed onto
+Two imports from Matt Pocock's MIT-licensed skills (mattpocock/skills) stand, each re-homed onto
 existing harness machinery rather than bolted on:
 
 **`harness-codebase-design` — a new rule skill** (from `codebase-design`): the deep-module
@@ -3367,22 +3323,22 @@ architecture review, optional design-it-twice on interface-defining tasks) and *
 **The D-NN bar and the glossary — into `harness-spec-driven`** (from `domain-modeling`): a choice
 earns a D-NN only when hard-to-reverse ∧ surprising-without-context ∧ real-trade-off; otherwise it
 is a digest note. NO second decision store — the ADR practice's filter is imported, its `docs/adr/`
-is not (nothing is declared twice). The ubiquitous language lives at
-`.harness/codebase/glossary.md`, a pm-owned map lens (domain granted in team-config): challenge
-drift before it lands in a REQ, sharpen overloaded terms before SCs are written against them, code
-wins over stated meaning, update inline at ship-refresh. Field motivation: kaya's status-vocabulary
-question and the expense_credit badge-vs-blocker confusion both went up as open questions a
-glossary would have pre-answered.
+is not (nothing is declared twice). The ubiquitous language lives at `.harness/glossary.md`, a
+pm-owned lens (domain granted in team-config): challenge drift before it lands in a REQ, sharpen
+overloaded terms before SCs are written against them, code wins over stated meaning, update it
+inline as the language changes. Field motivation: kaya's status-vocabulary question and the
+expense_credit badge-vs-blocker confusion both went up as open questions a glossary would have
+pre-answered.
 
-**Mission `deepen` — in the playbook** (from `improve-codebase-architecture`): a between-features
-scan, never mid-build. Hot spots from the last ship's `files_touched` → eng squad scans in the
-design vocabulary → validator panel adversarially verifies each candidate → surviving candidates
-reported with recommendation strength → the user picks at a briefing, and the pick enters
-/harness-plan as a normal feature. Three adaptations from the original: the interactive grilling
-loop becomes the main-session approval conversation (agents have no user channel); the CDN-built
-HTML report becomes the render-map offline pattern; rejected-with-reason becomes a D-NN instead of
-an ADR. Cadence: the three imports fire at different times — the vocabulary is a lens on every
-step, glossary/D-NN-bar fire where language and decisions are born, deepen runs between features.
+**A third import, the `deepen` mission, was tried and retired.** It was a between-features
+architecture scan (from `improve-codebase-architecture`) that read the codebase map, and the map
+tier was removed after 35 features never built one — leaving the mission nothing to scan.
+`/harness-deepen` is deleted and `deepen` is not in `harness.md`'s mission resolution list. Three
+adaptations it carried survive as patterns rather than as a mission: an interactive grilling loop
+becomes the main-session approval conversation (agents have no user channel), a CDN-built HTML
+report becomes the render-map offline pattern, and rejected-with-reason becomes a D-NN instead of an
+ADR. Cadence for what stands: the vocabulary is a lens on every step, and the glossary and the D-NN
+bar fire where language and decisions are born.
 
 ---
 
@@ -3458,39 +3414,19 @@ inherited the spawning session's setting — and the user's saved default is LOW
 features ran their entire judging apparatus at low effort invisibly. Frontmatter `effort:`
 overrides the session (sub-agents docs).
 
-Pinned by tier: the seven **judging** agents — orchestrator, three leads, three reviewers — run
-`effort: high` (they are the error-catching tier and a small fraction of spawns); the nine
-**doers** run `effort: medium`. The user chose judgment quality now over baseline purity: the
-DEC-145..148 baseline was measured at inherited-low, so effort is a known confound in the FEAT-02
-comparison — noted here so the comparison reads it as two changes, not one.
+Pinned by tier: four **judging** agents run `effort: high` — `harness-orchestrator`,
+`harness-code-reviewer`, `harness-security-reviewer` and `harness-ui-reviewer` — and the other
+twelve run `effort: medium`. `dispatch-guard.sh` enforces the pinning and cites this entry by
+number.
 
-**Amendment 1 (2026-08-19) — the tier assignment is struck and restated: four judging agents at
-`high`, twelve at `medium`**
+The three domain leads are NOT in the `high` tier, and putting them there because they assess what
+their members return has been tried and reversed: a lead routes and consolidates, holds no shell and
+reads no diff itself, so the error-catching work `high` is bought for happens in the three reviewers
+and the orchestrator. The `high` tier is four agents, not seven.
 
-The rule this entry states is unchanged and is not in question: frontmatter `effort:` is pinned per
-tier and overrides the spawning session's setting. `dispatch-guard.sh` enforces it and cites this
-entry by number. What is false is the census in the paragraph above — **"the seven judging agents
-run `effort: high` and the nine doers run `effort: medium`."** That sentence is STRUCK. It is left
-standing unedited so a citation to it lands here.
-
-*The tree at `b4659cd`:* four agents run `high` — `harness-orchestrator`, `harness-code-reviewer`,
-`harness-security-reviewer`, `harness-ui-reviewer` — and twelve run `medium`. Measured with
-`grep -h '^effort:' .claude/agents/harness-*.md | sort | uniq -c`, not counted by hand.
-
-*What moved and why.* The three domain leads — eng, product, validator — dropped from `high` to
-`medium` on operator instruction. The original split put them in the judging tier because they
-assess what their members return. The operating reason for the change is that a lead routes and
-consolidates; it holds no shell and reads no diff itself, so the error-catching work the `high` tier
-was bought for happens in the three reviewers and the orchestrator. That is now the whole `high`
-tier, and it is four rather than seven.
-
-*How it was found.* Nothing detected it. A documentor flagged the arithmetic while amending DEC-11
-in the same session the leads were changed; there is no propagation checker between a decision and
-the tree it governs, and DEC-188 is the rule that there will not be one.
-
-*A strike was considered and refused.* DEC-188 strikes a decision the tree flatly contradicts, and a
-strike removes it from every gate. The tree does not contradict the pinning rule — `dispatch-guard.sh`
-runs on it. Only the enumeration was falsified, so only the enumeration is struck.
+The user chose judgment quality now over baseline purity: the DEC-145..148 baseline was measured at
+inherited-low, so effort is a known confound in the FEAT-02 comparison — noted here so the
+comparison reads it as two changes, not one.
 
 ---
 
@@ -3651,68 +3587,25 @@ Not mechanized: nothing distinguishes a first-pass run from a rework run in stat
 checker cannot recount cycles independently; INV-7 (cycles_used ≥ recorded FAIL runs) remains
 the floor. Revisit if run records gain a `rework_of:` marker.
 
-**Amendment am.1 (issue #79): runs are COUNTED too, informationally — INV-22.** This entry's own
-consequence is that a first-pass run contributes zero, so nothing counted total runs at all:
-FEAT-03 ran **19 times against a 6-cycle count** and tripped nothing. Cost was the other
-long-feature signal and DEC-178 deleted it, leaving no signal whatever.
+**Runs are counted too, informationally — INV-22.** Counting rework alone leaves a feature's length
+unmeasured, and that gap is not theoretical: with first-pass runs contributing zero, FEAT-03 ran
+**19 times against a 6-cycle count** and tripped nothing, and cost — the other long-feature signal —
+no longer exists (DEC-178). `check-state.sh` INV-22 notes `len(runs)` against
+`budgets.max_total_runs` (default 20, from a measured range of 1-19 across nine features).
+**Informational, never a gate** — the exit code is identical over and under, and a fixture asserts
+that. A high run count is not a defect: a long feature is fine when each run is efficient, resolves
+issues and advances the SCs, which is what the note asks rather than demanding justification for the
+number.
 
-`check-state.sh` INV-22 notes `len(runs)` against `budgets.max_total_runs` (default 20, from a
-measured range of 1-19 across nine features). **Informational, never a gate** — the exit code is
-identical over and under, and a fixture asserts that. A high run count is not a defect: a long
-feature is fine when each run is efficient, resolves issues and advances the SCs, which is what the
-note asks rather than demanding justification for the number.
-
-Two properties are load-bearing and each has a fixture, because the first cut had neither.
-**The count is a FLOOR** — a main-session-direct segment is not a run and never appears in `runs:`,
-which on FEAT-07 hid eight of ten tasks — so the message says so. **A budget it cannot resolve is
-REPORTED, not silently dropped**: a `harness.json` that parses but lacks the key used to disable
-the check with no diagnostic, and `templates/examples/harness.kaya-ai.json` ships in exactly that
-shape. DEC-160 records the identical config lag for `max_total_cycles`.
+Two properties of that note are load-bearing and each has a fixture. **The count is a FLOOR** — a
+main-session-direct segment is not a run and never appears in `runs:`, which on FEAT-07 hid eight of
+ten tasks — so the message says so. **A budget it cannot resolve is REPORTED, not silently dropped**:
+a `harness.json` that parses but lacks the key otherwise disables the check with no diagnostic, and
+`templates/examples/harness.kaya-ai.json` ships in exactly that shape. DEC-160 records the identical
+config lag for `max_total_cycles`.
 
 
 ## DEC-158 — Context-budget pass: skills carry the rule, DECISIONS carries the rule's history
-
-**Amendment 1 (2026-08-24) — move 3 is widened from rare missions to any bounded PROCEDURE, and
-three of this entry's statements are corrected.**
-
-*What went stale.* `references/missions.md` no longer exists: missions map and deepen were retired
-with the codebase map tier, itself removed after 35 features never built a map, and mission debug —
-the only survivor — moved to `references/debug-mission.md`. Ship-refresh, named above as staying
-inline because it "runs every ship", was removed with the same tier. Feature-close distillation does
-stay inline and still does,
-though it is now triggered at merge rather than at close-out (DEC-145).
-
-*What changed.* Move 3 as written keyed on FREQUENCY — rare missions move, every-ship work stays.
-That criterion does not survive contact: the `gh-sync.py` contract runs every ship and the
-context-probe runs every wake, yet both are step-by-step procedures an orchestrator consults once
-and does not need resident for the rest of its life. **The criterion is now SHAPE, not frequency: a
-bounded procedure with a named trigger moves to `references/` and leaves a pointer; a rule that must
-be resident to be obeyed stays inline.** A procedure is looked up when its trigger fires. A rule has
-to already be in context at the moment it would otherwise be broken.
-
-Applied: `references/github-mirror.md` (the nine subcommands, their owners, the station table and
-the failure shapes) and `references/context-check.md` (the two-call nonce probe). The playbook keeps
-the rule that governs each — you run three subcommands and no others; the threshold advises and a
-check you cannot complete is skipped, never guessed.
-
-*The cost, stated because it is real.* Every pointer can be skipped, and a skipped pointer is
-silent. The preload-versus-pointer measurement — every artifact delivered by preload worked on first
-contact, every artifact relying on being pointed at failed silently at least once (DEC-125 ×4) —
-still stands, and the playbook now carries five pointers where it carried one. That is the bound:
-**move 3 is not a licence to keep extracting.** Distillation, the CEO briefing and the build phase
-were each considered for extraction and each kept inline, because their triggers fire on the ship
-path where a silent skip costs the most.
-
-*Move 1's red-flag protection is NARROWED, not repealed.* The orchestrator playbook's `## Red
-flags` table is removed on the operator's word. The supporting observation: after this pass all six
-of its rows restated rules still present in the body — no user channel, lead-not-member, pm re-plans,
-the hard cycle bound, counters on disk, shape is not truth — so the table carried no rule of its own.
-The counter-argument this entry made still stands and is recorded here rather than lost: bare
-imperatives get rationalized around, and a rule stated once as prose and once as a
-named temptation is harder to talk past than a rule stated once. That trade was taken knowingly.
-**The other nineteen red-flag tables in the tree are untouched** — this narrows move 1 for one file,
-it does not withdraw the pattern.
-
 
 Measured per-spawn preload (agent file + `skills:` + injected Expertise): orchestrator ~12.3k
 tokens, leads ~8.4–9.2k, dev specialists ~4.8k — replayed across every spawn (kaya FEAT-02:
@@ -3727,15 +3620,35 @@ Four moves, in force for all rule skills:
 
 1. **Rule + one-clause why + DEC pointer.** History, incident detail, and superseded reasoning
    live in DECISIONS.md only. Red-flag tables and one-clause whys stay — bare imperatives get
-   rationalized around, and the tables are dense.
+   rationalized around, and a rule stated once as prose and once as a named temptation is harder to
+   talk past than a rule stated once. One table is the exception: the orchestrator playbook's
+   `## Red flags` is removed, because all six of its rows restated rules still present in the body
+   of that same file, so it carried no rule of its own. The other nineteen red-flag tables in the
+   tree are untouched — that is one file's narrowing, not a withdrawal of the pattern, and the cost
+   of losing the named-temptation restatement there was taken knowingly.
 2. **Conditionally-relevant skills load on demand.** `harness-systematic-debugging` leaves the
    five dev specialists' preload (its own description says "when working a bug"); a debug-mode
    dispatch prompt tells the specialist to Read the skill file first (devs hold Read, not Skill).
    ~800 tokens off every non-bug dev spawn.
-3. **Rare-mission playbook sections move to `references/`.** Missions map and deepen run between
-   features, not in the plan/ship loop every orchestrator spawn serves; they live in
-   `.claude/skills/harness/references/missions.md`, read by path when dispatched with that
-   mission. Ship-refresh and feature-close distillation stay inline — they run every ship.
+3. **A bounded PROCEDURE moves to `references/` and leaves a pointer; a rule that must be resident
+   to be obeyed stays inline.** The criterion is SHAPE, not frequency. Keying it on frequency —
+   rare work moves, every-ship work stays — does not survive contact: the `gh-sync.py` contract
+   runs every ship and the context probe runs every wake, yet both are step-by-step procedures an
+   orchestrator consults when their trigger fires and needs resident at no other moment. A rule, by
+   contrast, has to already be in context at the moment it would otherwise be broken. Applied to
+   `references/github-mirror.md` (the nine subcommands, their owners, the station table and the
+   failure shapes), `references/context-check.md` (the two-call nonce probe) and
+   `references/debug-mission.md` (mission debug, the only surviving mission). The playbook keeps
+   the rule that governs each — you run three subcommands and no others; the threshold advises and
+   a check you cannot complete is skipped, never guessed. Feature-close distillation stays inline,
+   triggered at merge (DEC-145).
+
+   The cost is real and bounds the move. Every pointer can be skipped, and a skipped pointer is
+   silent: every artifact delivered by preload worked on first contact, while every artifact relying
+   on being pointed at failed silently at least once (DEC-125 ×4). The playbook now carries five
+   pointers where it carried one. **Move 3 is not a licence to keep extracting** — distillation, the
+   CEO briefing and the build phase were each considered for extraction and each kept inline,
+   because their triggers fire on the ship path where a silent skip costs the most.
 4. **Single-source shared contracts.** One canonical copy, pointers elsewhere (the
    `harness-digest-dev` pattern). Applied here to the DEC-155 dispatch rule (now one line +
    pointer in harness-team, since dispatch-guard.sh enforces it mechanically) and the stale
@@ -3982,7 +3895,7 @@ resolution as a comment — because a map that spans days is a *shared* artifact
 a human can read it, add a ticket, or see the frontier render without opening a session. **Not
 built yet, deliberately, pending the user's go-ahead**; when it is, tracker-mode is preferred where
 `github.sync` is on with markdown as the fallback, and the "decision as an issue invites drive-by
-reopening" concern from DEC-138's amendment does not transfer — that guards *signed* D-NNs, while
+reopening" concern from DEC-138 does not transfer — that guards *signed* D-NNs, while
 wayfinding decisions are provisional by construction.
 
 **Charting and resolving are separate sessions** — a session that charts and then starts resolving
@@ -4103,176 +4016,6 @@ read `total: 1` immediately after the second attach and corrected to `total: 2` 
 assert on it right after a write — the same class of mistake as reading a cost meter before it
 settles.
 
-### DEC-138 amendment 5 — the silence rule is the MIRROR's, and abandonment closes `not_planned`
-
-Two clarifications the sub-issue exploration forced.
-
-**Scope of am.2's silence.** "No agent-authored comments in the org's repo" was written for the
-**mirror** — the orchestrator mechanically reflecting signed work — and as a v1 caution ("until the
-mirror proves itself on a real feature"; three features have now mirrored). It does **not** govern
-wayfinding, where the resolution comment on a decision ticket **is** the artifact, not commentary on
-someone else's work (DEC-166/167), and where the author is the main session rather than a mirroring
-agent. The mirror stays silent: it creates, closes, and cites absorptions, and never editorializes.
-
-**Abandonment closes `not_planned`** (user decision). Verified enum — GitHub's `state_reason` accepts
-exactly `completed`, `not_planned`, `duplicate`; `not_doing` returns 422, so "not doing" could only
-ever be a label, never a close reason. `not_planned` renders a visually distinct icon, which is the
-point: an abandoned feature must not read as a shipped one at a glance. The *reason* it was dropped
-**is posted as a comment, verbatim from the signed ship-review artifact** — see am.6; a closed issue
-with a distinct icon and no explanation is opaque to the only audience the mirror exists for.
-
-**Not implementable until the sub-issue migration, deliberately.** Today's recorded issues are
-adopted backlog items — all eleven of FEAT-03's tasks point at #48, which is still wanted — so the
-mirror has nothing that is unambiguously the feature's to close, and closing an adopted issue
-`not_planned` would assert something false about live work. Post-migration: close the feature's own
-**sub-issues** `not_planned`, leave the adopted parent open, close the milestone (milestones take no
-`state_reason` — close is close). That gives `cmd_ship` and a new `cmd_abandon` the same shape, one
-per terminal state. (Originally filed as am.4 — renumbered to am.5 on discovering a collision with the
-existing am.4 on briefing-gated residuals.)
-
-### DEC-138 amendment 6 — the comment rule is about PROVENANCE, not about which skill is asking
-
-am.2 banned agent-authored comments outright, as a v1 caution ("until the mirror proves itself on a
-real feature" — three have now mirrored). am.5 then carved out wayfinding, which was the right
-outcome reached by the wrong reasoning: the exemption is not "wayfinding is special." The user
-identified the actual line, and it is **provenance**:
-
-> **Anything posted into the org's repo is either the user's own words, or text the user signed.
-> Agents doing the work post nothing, ever.**
-
-What that permits and forbids, in every case the org has:
-
-| Post | Provenance | Verdict |
-|---|---|---|
-| a wayfinding ticket's resolution comment | the user's own answer, captured live | **allowed** — it IS the decision record (DEC-166/167) |
-| an abandonment reason on a closed issue | a line from the ship-review the user signed, posted **verbatim** | **allowed** (am.5) |
-| a ship summary on the parent issue at acceptance | same — signed artifact, verbatim | **allowed** |
-| a dev / reviewer / qa / lead commenting mid-build | unreviewed agent prose | **forbidden** — they return digests; a second status channel competes with `STATE.md` and drifts from it |
-| the mirror composing its own text at post time | agent prose, however brief | **forbidden** — mirror what was signed, never author |
-
-The mechanism follows from the rule: any subcommand that posts takes its body from a **file path**,
-never from a string the mirror assembled. `--reason-file <path>` / `--body-file`, pointing at the
-approved artifact. That makes the constraint mechanical rather than a matter of restraint — the mirror
-*cannot* editorialize because it has no text of its own to post.
-
-Unchanged: the mirror is still write-only, PLAN.md is still the truth, and issue state is still never
-read back into an approval-gated artifact (DEC-138 proper).
-
-### DEC-138 amendment 7 — the sub-issue mirror: one parent per feature, and `absorbs:` closes nothing
-
-The shipped shape of the GitHub Issues mirror after the sub-issue migration. Two things here reverse
-earlier text; the rest is the contract as the code now runs it (`.claude/skills/harness/bin/gh-sync.py`).
-
-**The `absorbs:` rule is STRUCK 2026-08-25 under DEC-188.** It said a task's issue body cites
-`absorbs: #12, #14, #31`, closes none of them, and leaves them for a human signature, because
-absorption is normally partial. The operator struck the concept whole: it named a third category
-between "this feature does the work" and "it does not", and no such category exists. A sub-issue is
-a ticket. It is planned, tasked and shipped like any other, by whoever picks it up.
-
-DEC-138's own body carried the text this clause superseded — absorbed issues "close with it". That
-text is struck in the same act and does NOT revive; nothing in the tree now says an issue closes
-because another task mentioned it.
-
-What replaces both: **a ticket is open while its card is not at the `Done` station, and a parent
-closes when it has no open children.** Station is the authority on open, not the issue's own state.
-
-**`open` creates one sub-issue per `T-NN` under a single parent, adopted-or-created but never
-discovered.** Precedence, first match wins: (1) `feature.yaml github.parent` already holds a number →
-use it; (2) `--parent <n>` on the command line → adopt it; (3) otherwise `open` **creates** one, title
-`<FEAT-NN-slug> — <the BRIEF H1's human phrase>`, body = the BRIEF's Problem plus `**Goal:**`, label
-`harness` (`gh-sync.py:255-271`). The number is **recorded** at `feature.yaml github.parent`, and calling the
-parent endpoint to *find* it is rejected: that is a READ, and DEC-138 makes the mirror write-only —
-idempotency comes from local receipts, so a discovery path would be a second, contradictory source of
-truth. Children attach by the child's internal **`id`**, never its `number` (the trap of DEC-138's
-live probe). The **origin** is recorded at the same moment as the number, at
-`feature.yaml github.parent_origin` — `created` or `adopted` — because re-deriving it later would mean
-reading GitHub.
-
-**Both terminal subcommands branch on the recorded origin.** `ship` and `abandon` are mirror images,
-and the parent's fate is conditional in both:
-
-| | created parent | adopted parent | no recorded origin | milestone |
-|---|---|---|---|---|
-| `ship` | closed — `issue close` with no `--reason`, i.e. GitHub's default `completed` | left **open** | left **open** | closed |
-| `abandon` | closed `state_reason=not_planned` | left **open** | left **open** | closed |
-
-`abandon` additionally closes the feature's **own** sub-issues `not_planned`, and posts the signed
-reason on any recorded parent whatever its origin; `ship` posts the signed `--body-file` the same way.
-Milestones take no `state_reason` — close is close — and the milestone's close **does not depend on the
-parent's origin: it closes in all three parent cases** (`gh-sync.py:379-410`, `:317-355`). Neither
-subcommand closes a parent it did not create.
-
-Why the branch, recorded because it cost this feature two of its three fix cycles:
-
-- a **created** parent is this feature's own container; left open with every child closed it is an
-  orphan nothing will ever close;
-- closing an **adopted** parent would assert something false about someone else's live backlog item —
-  `completed` and `not_planned` are *both* false claims about a thing this feature does not own;
-- **absent or unrecognised origin defaults to leave-open.** Stated explicitly because SC-10 forbids
-  editing the `github:` block of any existing `feature.yaml`, so no pre-existing feature carries the
-  marker — this feature included (`FEAT-03-subissue-mirror/feature.yaml:73` is `parent: none`).
-
-**Shared code, and migration scope.** REQ-06's three primitives — the internal-id attach, the parent
-read, the blocking-edge write — plus the internal-id lookup and `gh_bin()` now live in exactly one
-place, `.claude/skills/harness/bin/gh_issues.py`, as **argv builders**; each caller keeps its own
-runner, because `gh-sync.py` skips-and-exits-0 on an environmental failure while `wayfind.py` dies exit
-1. `gh-sync.py` imports only `internal_id_args` and `attach_sub_issue_args`; its containing **no** call
-to `parent_args` or `blocked_by_args` is a standing regression guard for the write-only rule.
-**Migration is new-features-only** — no backfill, no retrofit, no edit to any existing feature's
-recorded map.
-
-**Not here yet.** Feature B — `depends_on:` in PLAN becoming `blocked_by` edges — is sequenced
-separately, and **no `blocked_by` edge is emitted by the GitHub Issues sync**: the builder exists but
-its only caller is wayfinding (`wayfind.py:283`).
-
-**Two prose sites are a named main-session pre-ship step, not an agent's** (SC-13):
-`.claude/skills/harness/SKILL.md:137` still reads "closes its issue and everything it absorbs" — the
-superseded contract — and `:144`'s ship row names only the milestone, where it must name the parent as
-**conditional on its recorded origin**. No agent domain covers that file (`team-config.yaml` grants
-`.claude/skills/harness/bin/**` and nothing else under `.claude/skills/` — `:154`, `:193`), so it returns to the main session before ship. Deliberately, this
-amendment declares **no** staleness marker for either phrase: `check-docs.sh` scans
-`.claude/skills/**/*.md`, so a marker for wording that is still live would turn the checker red and gate
-every `/harness` entry on an edit no agent may make. The checker is silent about this gap **by design**;
-SC-13's own grep at the ship gate is what detects it. If the mechanical route is preferred, the ordering
-is: land the SKILL.md edit first, then a marker may be declared — never before.
-
-
-### DEC-138 amendment 8 (2026-08-25) — the parent origin table is struck, and the harness writes the `Done` station
-
-Amendment 7's **origin table is struck** under DEC-188, together with the origin prose around it.
-That table gave `ship` and `abandon` three columns — a `created` parent closed, an `adopted` parent
-left open, no recorded origin left open — and the surrounding paragraphs argued the case for each.
-DEC-203 replaces the whole shape: **origin stops mattering, and an open child is what holds a parent
-back.** Amendment 7's body stays standing so citations resolve; this record is what a citation to the
-table lands on.
-
-**What falsified it, measured.** `parent_origin` read **null** on FEAT-34 and FEAT-35, the two most
-recent features that recorded a parent, because both parents were recorded by hand. Under the struck
-table a null origin means leave-open, so #728 was left open with all thirteen of its children already
-finished. The field was meant to protect someone else's live epic and instead failed open on the two
-cases it was newest to.
-
-**A correction to the plan that instructed this amendment, recorded rather than quietly fixed.** That
-plan said amendment 7 also carries the D-23 reasoning that a closed sub-issue cannot sit at `Review`.
-It does not. That reasoning belonged to the superseded station-lifecycle amendment, struck whole on
-the same day, so it goes with that entry either way — but it is not struck from here, because it was
-never here.
-
-**The measurement that falsifies that reasoning, recorded so it is not re-derived.** It argued
-GitHub's native `Item closed` workflow moves a closed card to the done column, so a closed sub-issue
-*cannot* hold `Review`. At `cc84b29`, FEAT-34's thirteen sub-issues **#818 through #830 are all
-closed and all sit at `Review`**. A closed issue's card stays where it is; nothing drags it.
-
-**The replacement station-writer row for `Done`:**
-
-| Station | The one writer |
-|---|---|
-| `Done` | **the harness**, at `gh-sync.py ship`, which writes the done station on every recorded card. GitHub's `Auto-close issue` workflow then closes the issue |
-
-Every other row of the struck station-writer table is carried forward unchanged, as recorded in
-`.claude/skills/harness/references/github-mirror.md` under *"Who writes each station — one writer
-per column"*. `Abandoned` is still not a station and still has no writer.
-
 ## DEC-169 — An absence check is never a criterion on its own; pair it with a presence check
 
 Demonstrated, not argued. SC-13 required that `.claude/skills/harness/SKILL.md` stop stating the
@@ -4349,8 +4092,8 @@ where the org has no other mechanism at all. It is kept.
 by file path and records what changed a decision; advisor advice is neither recorded nor gated, so a
 load-bearing catch is indistinguishable from the agent having thought of it alone. **The rule: an
 agent whose decision or verdict changed because of advisor input says so in its DIGEST**, naming what
-changed. Same provenance discipline as DEC-138 am.6 — free to comply with, and it turns a fourth
-reviewer from invisible into auditable.
+changed. Same provenance discipline DEC-138 states for what the mirror may post — free to comply
+with, and it turns a fourth reviewer from invisible into auditable.
 
 **Not decided, deliberately: whether to keep it on.** No cost decision should be made while the meter
 is blind. Open questions for whoever picks this up: can `advisorModel` be scoped to the main session
@@ -4388,12 +4131,30 @@ fail-open bugs in the code whose entire job is to catch fail-open bugs.
 the dependency; it does not mandate the rewrite happen everywhere at once — but the direction is
 settled, and new code does not hand-roll a YAML parser.
 
-**Graceful degradation is mandatory, and it mirrors DEC-101's own rule** that `check-domain.sh` fails
-open loudly rather than blocking every write. A bare `import yaml` would convert a latent fail-open
-into a guaranteed fail-closed: no PyYAML, traceback, non-zero exit, every `/harness` entry gate
-reporting failure on a machine that merely lacks a package. So: guard the import, fall back to the
-comment-tolerant line scan, and print one loud line naming the install command. The parse gets
-better where PyYAML is present and gets no worse where it is not.
+**PyYAML is REQUIRED, and there is no fallback.** A loud fallback to the comment-tolerant line scan
+when the library is absent was tried and reversed: a fallback keeps a hand-rolled YAML parser at
+every call site, which is exactly what this reversal exists to delete, and of two code paths the
+fragile one is the one that never gets exercised, so its bugs are found in production or not at all.
+A missing PyYAML is an error, stated loudly, not a quieter mode of operation. It is enforced as a
+seventh entry in `harness-init`'s six-prerequisite HARD GATE — check the import, and if it fails STOP
+and print the install command, exactly as that gate already does for a script it cannot run. Not a
+`requirements.txt`: nothing in the harness would read it, and it would be the first dependency
+manifest in a repo that is still files-only.
+
+**`check-domain.sh` and `bash-write-guard.sh` fail CLOSED on a missing PyYAML.** This is a deliberate
+exception to DEC-101's fail-open rule, and the distinction is what the failure means. DEC-101 fails
+open on a *missing manifest* because an unconfigured project has nothing to enforce, and on an
+*unparseable payload* because that is the hook's own bug — blocking on either would wedge every write
+over a condition the hook cannot fix. A missing PyYAML is neither: the project IS configured, the
+hook has no bug, and there is exactly one action that resolves it. Failing open there means domain
+enforcement is silently off precisely when the environment is wrong.
+
+**The bootstrap escape, and why it is not a loophole.** Fail-closed plus an install-time prerequisite
+would brick any existing project that pulls the update without re-running init: every agent write
+blocked, including the writes that would fix it. So the first session that hits a missing PyYAML
+prints the install command and **permits writes for that session only**, blocking from the next
+session onward. The steady state is closed; the escape exists so the failure is recoverable from
+inside the tool, and it expires by construction rather than by anyone remembering to remove it.
 
 **Two hazards for the implementer, both real:**
 
@@ -4407,38 +4168,6 @@ better where PyYAML is present and gets no worse where it is not.
 **Do not pin `/usr/bin/python3`.** Apple's system Python ships PyYAML 6.0.1, which makes pinning it
 look free. It is macOS-only and deprecated for scripting; it would make the harness unrunnable on
 Linux, in CI, and in the distributable package this repo is aiming at.
-
-### DEC-171 amendment — the fallback is removed: PyYAML is REQUIRED, and the hooks fail CLOSED
-
-Two reversals of DEC-171 as first written, both the user's call at the `/harness-plan` grilling the
-same day.
-
-**1. No graceful degradation. PyYAML is required.** DEC-171 mandated a loud fallback to a
-comment-tolerant line scan when the library is absent. The user rejected it on the ground that
-settles it: a fallback keeps a hand-rolled YAML parser at every call site, and removing exactly that
-is the entire point of the effort. Two code paths also means the fragile one is the one that never
-gets exercised, so its bugs are found in production or not at all. **A missing PyYAML is an error,
-stated loudly, not a quieter mode of operation.**
-
-**Where the requirement is enforced:** a seventh entry in `harness-init`'s existing six-prerequisite
-HARD GATE — check the import, and if it fails STOP and print the install command, exactly as that
-gate already does for a script it cannot run. Not a `requirements.txt`: nothing in the harness would
-read it, and it would be the first dependency manifest in a repo that is still files-only.
-
-**2. `check-domain.sh` and `bash-write-guard.sh` fail CLOSED on a missing PyYAML.** This is a
-deliberate exception to DEC-101's fail-open rule, and the distinction is what the failure means.
-DEC-101 fails open on a *missing manifest* because an unconfigured project has nothing to enforce,
-and on an *unparseable payload* because that is the hook's own bug — blocking on either would wedge
-every write over a condition the hook cannot fix. A missing PyYAML is neither: the project IS
-configured, the hook has no bug, and there is exactly one action that resolves it. Failing open
-there means domain enforcement is silently off precisely when the environment is wrong.
-
-**The bootstrap escape, and why it is not a loophole.** Fail-closed plus an install-time prerequisite
-would brick any existing project that pulls the update without re-running init: every agent write
-blocked, including the writes that would fix it. So the first session that hits a missing PyYAML
-prints the install command and **permits writes for that session only**, blocking from the next
-session onward. The steady state is closed; the escape exists so the failure is recoverable from
-inside the tool, and it expires by construction rather than by anyone remembering to remove it.
 
 ## DEC-172 — the agent return gets a `yaml` fence, and unfenced returns are blocked
 
@@ -4597,161 +4326,69 @@ them with a test.**
 work. The user considered stopping self-hosting entirely and chose the carve-out; the stronger position
 stays available and is a stage question, not a correctness one.
 
-### DEC-174 amendment 1 (2026-08-11) — three checkout modes, and the factory workspace is not one of them
+**The enforcement layer, enumerated:** `check-domain.sh`, `bash-write-guard.sh`,
+`validate-digest.py`, `check-state.sh`, `check-plan-routes.py`, `dispatch-guard.sh`, **and the test
+file of each.** The category in the table above governs and the list only records it — a script joins
+on the day it becomes a gate, and this entry is updated when that happens.
+`check-plan-routes.py` is a gate because DEC-183 made it a step of the required `integration` CI job;
+`dispatch-guard.sh` is one because it refuses dispatches, having declined a `harness-orchestrator`
+dispatch over a `model` parameter.
 
-FEAT-15 gave `check-domain.sh` two bases, and that made a question visible that the original ruling
-never faced: harness code can be edited from three different checkout shapes, and they do not carry the
-same rights. Resolved with `--resolve` on the SAME file,
-`.claude/skills/harness/bin/check-domain.sh`, at this tree:
+***A gate's test is inside the line, and that is the part worth arguing.*** The narrower reading —
+that editing a gate's TEST leaves the gate itself checking, so the rationale does not bite — was put
+and rejected. **A gate's test is the only thing proving the gate discriminates.** Three separate
+assertions in this repository were found unable to fail: a verify slicing a marker that did not exist
+so every absence grep passed vacuously; a case searching stdout for a traceback that goes to stderr;
+and a citation resolver that truncated `case_25b9` to `case_25`, found `def case_25():`, and reported
+the exact phantom it was built to catch as resolved. Every one was invisible to green gates. A test
+edited under gates that cannot see it is the same circularity one level out.
 
-| mode | path | `--resolve` | ever used? |
-|---|---|---|---|
-| factory workspace clone | `harness-factories/harness/.claude/…` | **NOBODY** | **never** — `/Users/molchairuangutai/GitHub/harness-factories` does not exist |
+*Where the line falls for a library a gate calls.* A module a gate imports is not itself a gate. A
+squad may write the library, and **the cutover that makes a gate use it is main-session-direct**,
+proven by showing the gate's violation set is identical before and after. The gate's behaviour
+changes only by a hand the carve-out governs.
 
-Measured before the removal below. **The removal changed this verdict, and the change is recorded
-because the first draft of this amendment asserted the old one.** With `mruangutai/harness` gone from
-`repos:`, that path is no longer inside any `workspace_bases` entry, so it no longer reaches the
-product base at all — `--resolve` now exits **2**, "under the factory workspace but belongs to no
-repository declared in fleet.yaml". The enforcement got louder, not quieter, but the mechanism is the
-unlisted-repo branch and no longer glob filtering. A reader who cites "returns NOBODY" is citing the
-pre-removal tree.
-| worktree | `.claude/worktrees/FEAT-13-…/.claude/…` | `harness-backend-dev`, `harness-dev-ops` | yes — FEAT-13, merged as #260 |
-| live checkout | `.claude/…` | `harness-backend-dev`, `harness-dev-ops` | yes — the ordinary case |
+**Harness develops itself in the live checkout and in worktrees under it; the factory workspace is
+not a harness development mode.** Harness code can be edited from three checkout shapes and they do
+not carry the same rights. A worktree sits UNDER the repository root, so `_inside(target, root)` holds
+and it lands in the harness base with full rights, as does the live checkout. A factory-workspace
+clone lands under `workspace_root`, outside the root, where control-plane globs are filtered — and
+harness's own source lives almost entirely in `.claude/skills/harness/bin/**` and `.harness/**`, so a
+factory-dispatched agent would be refused writes to most of what it was sent to change.
+`mruangutai/harness` is therefore absent from `.harness/factory/fleet.yaml` `repos:`, which makes the
+rule mechanical rather than prose, and `test-no-distribution.py`
+`case3_absence_harness_is_not_a_fleet_member` fails if it is re-added. A harness path under the
+factory workspace now belongs to no declared repository at all, so `check-domain.sh --resolve` exits
+**2** — "under the factory workspace but belongs to no repository declared in fleet.yaml". A reader
+who has been told that route resolves to NOBODY, or that it is merely unsanctioned, is reading the
+tree as it stood before the removal.
 
-A worktree sits UNDER the repository root, so `_inside(target, root)` holds and it lands in the harness
-base with full rights. A factory clone lands under `workspace_root`, outside the root, so it resolves in
-the product base where control-plane globs are filtered — and harness's own source lives almost entirely
-in `.claude/skills/harness/bin/**` and `.harness/**`. A factory-dispatched agent would be refused writes
-to most of the thing it was sent to change.
+**Capability was never sanction.** The factory route was REACHABLE from the day FEAT-10 wrote it,
+nothing ever made it ALLOWED, and nobody ever took it; before FEAT-15 a write to a factory clone got
+no verdict at all and landed silently. Closing it costs nothing measurable today, because no factory
+workspace has ever existed. It costs later: if harness ever wants factory-style parallel dispatch
+across many issues, the fleet entry comes back and this ruling is revisited with it.
 
-**The ruling.** Harness develops itself in the live checkout and in worktrees under it. The factory
-workspace is not a harness development mode. `mruangutai/harness` is REMOVED from
-`.harness/factory/fleet.yaml` `repos:` so this is mechanical rather than prose, and
-`test-no-distribution.py` `case3_absence_harness_is_not_a_fleet_member` fails if it is re-added.
+**The station board is declared PER REPOSITORY, and it is declared in that repository — never in
+`fleet.yaml`.** Every repository's board lives in its own `.harness/harness.json` under
+`github.board`, read from that repository's **default branch** by `product_config`/`board_for` and
+validated by `validate_board`, the one board validator in the tree, which `gh_board.load_board` calls
+directly and which RAISES rather than returning a verdict. Declaring the board in `fleet.yaml` was
+tried in both available shapes and reversed — a fleet-level `board:` key, and then a `board:` mapping
+with `number`, `station_field` and `stations` inside each `repos[]` entry — and `load_fleet` in
+`.claude/skills/harness/bin/factory_config.py` now REJECTS both, naming the offending key and where
+the board moved to. Ignoring a stray key instead would let a fleet declare a board nobody reads and
+get silence back. `default_branch` did NOT move with the board, for a mechanical reason:
+`factory_workspace` reads it in order to CREATE the checkout, so it cannot live inside the checkout.
 
-**Capability was never sanction, and that is what looked like a contradiction.** The entry made the
-factory route REACHABLE from the day FEAT-10 wrote it. Nothing made it ALLOWED, and nobody ever took it.
-FEAT-15 did not open this door — before FEAT-15 a write to a factory clone got no verdict at all and
-landed silently; now it returns NOBODY. FEAT-15 made an existing hole visible and closed it.
-
-**The cost, stated rather than argued away.** Removing the entry costs nothing measurable today, because
-no factory workspace has ever existed. It costs later: if harness ever wants factory-style parallel
-dispatch across many issues, the entry comes back and this amendment is revisited with it.
-
-**A loose end this amendment does NOT close, and it is not deferrable.** `fleet.yaml` `board.number: 3`
-is the *Harness* board. Measured 2026-08-11: `gh project item-list 3 --owner mruangutai` returns **30
-items, all 30 `mruangutai/harness`, zero kaya-ai**; `gh project list --owner mruangutai` shows board 2
-is "kaya-ai".
-
-So the fleet now holds exactly one repository — kaya-ai — and points its station board at a board that
-contains no kaya-ai issue. The operator has stated that factory runs against kaya-ai are the primary use
-case for the factory. That run reads board 3 for an issue that is not there.
-
-This is left open because retargeting the board is a separate decision with its own consequences — the
-30 harness issues on board 3 are the live effort tracker, and `harness.json` `github.repo` still points
-at `mruangutai/harness` for the issue mirror, which is a different mechanism from the factory station
-board. It is recorded here as OWED, not as an accepted state.
-
-### DEC-174 amendment 2 (2026-08-12) — the station board is declared per repository, and am.1's board loose end is closed
-
-FEAT-16 closes the loose end the section above records as OWED. That section describes the
-pre-FEAT-16 tree — a fleet-level `board.number: 3` pointed at a board holding no kaya-ai issue — and
-it is superseded by this amendment. It is left standing unedited: the record is appended to, never
-rewritten.
-
-**The station board is declared PER REPOSITORY.** Each `repos:` entry in
-`.harness/factory/fleet.yaml` carries its own `board:` mapping, with `number`, `station_field` and
-`stations` together in that one block, so a repository's board and the field the factory moves cards
-in are read from the same place as the repository itself.
-
-**There is no fleet-level board, and a leftover top-level key is REJECTED, not ignored.**
-`load_fleet` in `.claude/skills/harness/bin/factory_config.py` raises on a top-level `board` key
-naming the offending key and telling the author to move it under the `repos[]` entry. Ignoring it
-would let a fleet declare a board nobody reads and get silence back.
-
-**`mruangutai/kaya-ai` is paired with board 2.** Its Status options were brought to the same
-six-value vocabulary board 3 carries — `Backlog, Plan, Ready, Building, Review, Done`, in that order
-— by RENAMING `Todo` to `Backlog` and `In Progress` to `Building`, retaining `Done`, and adding the
-three that were missing. That cost **zero item writes** against the 118 finished issues: renaming a
-Projects v2 option keeps its id, so no card moved. The verbatim capture the figures come from — 211
-items, 118 `Done`, 82 `Backlog`, 11 `Building`, zero in each of `Plan`, `Ready` and `Review` — is
-`.harness/features/FEAT-16-factory-per-repo-board/notes/board2-capture.md`, taken at T-07 before any
-factory run. `Ready` is deliberately empty: on this board `Backlog` means filed-and-untriaged and
-`Ready` means promoted for the factory, so a claim run that finds nothing has found the truth.
-
-### DEC-174 amendment 3 (2026-08-18) — the fleet declares no board at all, at any level
-
-FEAT-24 moved every fleet member's board out of `.harness/factory/fleet.yaml` entirely. That
-falsifies one paragraph of amendment 2 above, which is left standing unedited: the record is appended
-to, never rewritten.
-
-**What became false.** Amendment 2's paragraph headed *"The station board is declared PER
-REPOSITORY"* states that each `repos:` entry in `.harness/factory/fleet.yaml` carries its own
-`board:` mapping, with `number`, `station_field` and `stations` together in that one block. No
-`repos:` entry carries a board now, and one that does is refused.
-
-**What is true now.** A board declared anywhere in `fleet.yaml` is REJECTED by `load_fleet` in
-`.claude/skills/harness/bin/factory_config.py` — at the top level as before, and now inside a
-`repos[]` entry too, each raising a message that names where the board moved to. Every repository's
-board lives in that repository's own `.harness/harness.json` under `github.board`, read from that
-repository's **default branch** by `product_config`/`board_for` and validated by `validate_board` —
-the one board validator in the tree, which `gh_board.load_board` calls directly, and which RAISES
-rather than returning a verdict.
-
-**This is a change of FILE, not a return to a fleet-level board.** What amendment 2 ruled otherwise
-stands and is not swept away with the paragraph above: the board is still declared PER REPOSITORY;
-`mruangutai/kaya-ai` is still paired with **board 2** — read back live through `board_for` at this
-tree as `owner mruangutai, number 2, station_field Status`, now from kaya-ai's own
-`.harness/harness.json` on `master` rather than from `fleet.yaml`; and the six-value Status
-vocabulary and the zero-item-writes rename record stand exactly as amendment 2 recorded them.
-
-**`default_branch` did NOT move with the board,** and the reason is mechanical: `factory_workspace`
-reads it in order to CREATE the checkout, so it cannot live inside the checkout.
-
-**Not a strike:** DEC-188 strikes what the tree flatly contradicts in whole, and what this tree
-contradicts is one paragraph. DEC-174's carve-out ruling, amendment 1, and the rest of amendment 2
-are untouched.
-
-### DEC-174 amendment 4 (2026-08-19) — the enumeration is a list of examples, not a boundary; `check-plan-routes.py` and its test join it
-
-The carve-out's table names the category **"hooks, validators, gate scripts"** and then lists four
-files in parentheses: `check-domain.sh`, `bash-write-guard.sh`, `validate-digest.py`,
-`check-state.sh`. `DECISIONS-INDEX.md` carries the category and not the list. **The two readings
-disagree about `check-plan-routes.py`**, and FEAT-28 could not be laned until the disagreement was
-settled.
-
-**The category governs. The parenthetical is examples, and it is now stale.** DEC-183 made
-`check-plan-routes.py` a step of the required `integration` CI job — *after* DEC-174 was written, so
-the list could not have named it. Changing it through a run whose gates include it is exactly the
-circularity this entry exists to refuse.
-
-***Its test joins it too, and that is the part worth arguing.*** The narrower reading — FEAT-28
-edits `test-check-plan-routes.py`, the gate's TEST, so the gate itself keeps checking and the
-rationale does not bite — was put and rejected. **A gate's test is the only thing proving the gate
-discriminates.** On the day this amendment was written, three separate assertions in this repository
-were found unable to fail: a verify slicing a marker that did not exist so every absence grep passed
-vacuously; a case searching stdout for a traceback that goes to stderr; and a citation resolver that
-truncated `case_25b9` to `case_25`, found `def case_25():`, and reported the exact phantom it was
-built to catch as resolved. Every one was invisible to green gates. A test edited under gates that
-cannot see it is the same circularity one level out.
-
-**So the enforcement layer is: `check-domain.sh`, `bash-write-guard.sh`, `validate-digest.py`,
-`check-state.sh`, `check-plan-routes.py`, `dispatch-guard.sh`, and the test file of each.** A script that becomes a gate
-joins the list on the day it becomes one, and this entry is amended when that happens — the category
-decides, the list records.
-
-*Where the line falls for a library a gate calls.* A module a gate imports is not itself a gate. The
-working rule, applied to FEAT-29: a squad may write the library, and **the cutover that makes a gate
-use it is main-session-direct**, proven by showing the gate's violation set is identical before and
-after. The gate's behaviour changes only by a hand the carve-out governs.
-
-`dispatch-guard.sh` joins the enumeration on the evidence that it refuses dispatches — it
-declined a `harness-orchestrator` dispatch over a `model` parameter on 2026-08-21 — and it joins
-under the rule this amendment already states rather than as a new ruling, so no lane changes and
-amendment 4 remains an amendment about the list and not about the category.
-
-**Not a strike.** DEC-174's ruling, its rationale and amendments 1 through 3 are untouched. What
-changed is that the enumeration is now correct and is declared non-exhaustive.
+`mruangutai/kaya-ai` is paired with **board 2**, read back live through `board_for` as `owner
+mruangutai, number 2, station_field Status`. Its Status options carry the same six-value vocabulary
+board 3 carries — `Backlog, Plan, Ready, Building, Review, Done`, in that order — reached by RENAMING
+`Todo` to `Backlog` and `In Progress` to `Building`, retaining `Done`, and adding the three that were
+missing. That cost **zero item writes** against the 118 finished issues of the 211 then on the board:
+renaming a Projects v2 option keeps its id, so no card moved. `Ready` is deliberately empty — on that
+board `Backlog` means filed-and-untriaged and `Ready` means promoted for the factory, so a claim run
+that finds nothing has found the truth.
 
 ## DEC-175 — The engineering return declares which task it is answering: `task: T-NN|none` gates `task_verify`, and a self-reported gate FAILURE stops being a pass
 
@@ -5138,14 +4775,13 @@ defensive rather than load-bearing instead of being papered over with a test tha
 
 ## DEC-181 — CLAUDE.md gets a line budget of 80
 
-**STRUCK IN PART, 2026-08-10.** This decision had two halves. The budget stands and is enforced at
-`check-domain.sh:779-780`. The other half — putting `CLAUDE.md` into the propagation checker's scan
-roots — went with the checker itself under DEC-188, along with every paragraph here that argued for
-it. Nothing cites the struck half.
+`CLAUDE.md` has a line budget of **80**, enforced on all four write routes by
+`check-domain.sh:1335`, which reports `CLAUDE.md is N lines — budget is 80 (DEC-181)`. `CLAUDE.md`
+is in no propagation checker's scan roots: no propagation checker exists (DEC-188).
 
 `CLAUDE.md` is read at **every session start** — the widest blast radius of any file in this repo,
 wider than SPEC.md or any agent file. It was the only file of its class with no mechanical budget.
-Its peers all have one: expertise 150, `feature.yaml` 200/20, handoff notes 60, STATE.md 120.
+Its peers all have one: expertise 150, `feature.json` 300, handoff notes 60, STATE.md 120.
 
 **80 was re-derived at `a5edb13`, not inherited from issue #139, and it comes from the file's own history, and that history STARTS AT A CLEANUP.** The file was
 208-214 lines from April through 2026-07-27; DEC-135 then cut it to 50. That blow-out is why issue #139
@@ -5300,7 +4936,23 @@ job, that the step is present and unneutered, that the job header carries no `if
 `defaults:`, `env:` or `container:`, that the step list and `uses:` set are pinned, and that the
 bodies are executed rather than read. **All 39 of those assertions were deleted by owner decision**,
 along with the harness that executed workflow bodies against a cloned workspace. Nothing in this
-tree now asserts anything about `.github/workflows/tests.yml`.
+tree now asserts anything about `.github/workflows/tests.yml`. Two reasons, and the second is the
+load-bearing one:
+
+1. **The harness was too heavy.** It did not merely read the workflow — it cloned a workspace and
+   EXECUTED workflow bodies against it. That weight is what was rejected.
+2. **A check on this workflow does not belong in this workflow.** `pull_request` runs the definition
+   from the PR's own ref, so one PR edits a step and its guard together. A guard hosted here cannot
+   protect its own host step: delete the `Integration suite` step and every assertion inside it
+   simply never runs. Neutering is detectable; deleting the host is not.
+
+A LIGHTER guard is not the answer either, because reason 2 is structural rather than about cost. A
+pure predicate over `yaml.safe_load` of this workflow — no clone, no body execution — was worked up
+in full, planned, and then ABANDONED on that reasoning: it shrinks the hole (it catches a
+hollowed-out step and the deletion of the inner gate steps) and cannot close it (it cannot see the
+deletion of the step that runs it). What remains unmeasured is whether a GitHub ruleset, a required
+workflow, or a workflow pinned to a different ref can run a check the pull request cannot edit.
+Nobody has checked; if one can, reason 2 dissolves and this ruling is revisited.
 
 The consequence is specific and is not softened here: `pull_request` runs the workflow definition
 from the PR's own ref, so **a PR that deletes the `Plan-route gate` step still emits a green
@@ -5341,34 +4993,10 @@ thing it found would be enforcement theatre.
 the route step alone; #163's triggers and #161's reasons keep their justification in the file's own
 comments. **Not verified:** the real CI run.
 
-**Amendment 1 (2026-08-21) — the reason the 39 assertions were deleted, recorded at last.**
-
-The entry above says only "deleted by owner decision" and gives no reason, so the question was
-reopened once and cost a review round. The reason, stated by the operator on 2026-08-21, is two
-things and the second is the load-bearing one:
-
-1. **The harness was too heavy.** What was deleted did not merely read the workflow — it cloned a
-   workspace and EXECUTED workflow bodies against it. That weight is what was rejected.
-2. **A check on this workflow does not belong in this workflow.** `pull_request` runs the definition
-   from the PR's own ref, so one PR edits a step and its guard together. A guard hosted here cannot
-   protect its own host step: delete the `Integration suite` step and every assertion inside it
-   simply never runs. Neutering is detectable; deleting the host is not.
-
-**What this settles, and it is narrower than it sounds.** A LIGHTER guard is not the answer either,
-because reason 2 is structural rather than about cost. A proposal to add a pure predicate over
-`yaml.safe_load` of this workflow — no clone, no body execution — was worked up in full, planned, and
-then ABANDONED on this reasoning: it shrinks the hole (it catches a hollowed-out step and the deletion
-of the inner gate steps) and cannot close it (it cannot see the deletion of the step that runs it).
-
-**What remains unmeasured.** Whether a GitHub ruleset, a required workflow, or a workflow pinned to a
-different ref can run a check the pull request cannot edit. Nobody has checked. If one can, reason 2
-dissolves and this amendment should be revisited; until then the conclusion below stands.
-
-So the original conclusion holds for a better-stated reason: **nothing protects the gate — not
-pending, settled.** What DID change is the honesty of the file: four citations in
-`.github/workflows/tests.yml` claimed guards that do not exist, including one naming a real, green,
-passing test that asserts something unrelated. Those were repaired, so a reader who follows a
-citation now finds what it claims or finds it saying plainly that nothing is there.
+**The workflow's own citations were repaired.** Four citations in `.github/workflows/tests.yml`
+claimed guards that do not exist, including one naming a real, green, passing test that asserts
+something unrelated. A reader who follows a citation now finds what it claims, or finds it saying
+plainly that nothing is there.
 
 ## DEC-184 — Design 0001, reconstructed stub: the work-graph engine is a recorded future design, deferred until multiple seats need atomic claiming
 
@@ -5529,7 +5157,7 @@ The rule is two-sided, and stated mechanically because prose is what admits the 
 
 - **In the harness checkout** every entry is matched, product-shaped and control-plane alike, and a
   match is accepted only when the base-relative target is **control plane** — its first path segment
-  is `.harness` or `.claude`, or it is one of four named harness paths: `docs/harness/**`,
+  is `.harness` or `.claude`, or it is one of four named harness paths: `.harness/*/docs/**`,
   `docs/PRINCIPLES.md`, `README.md`, `.github/**`.
 - **In a product checkout** entries whose first segment is `.harness` or `.claude` are excluded and
   the rest apply normally. **The four named paths are not consulted there.** They are target-side
@@ -5546,8 +5174,18 @@ explicitly. DEC-151's sibling guard on the Bash route is **not** changed here, a
 leaves is filed rather than absorbed.
 
 **Target-keyed is not a preference, it is the only shape that expresses the rule.** `team-config.yaml`
-grants `docs/**` and contains no `docs/harness/**` entry anywhere. A glob-keyed classifier would have
-nothing to match two of the four named paths against.
+grants `docs/**` and contains no `docs/PRINCIPLES.md` entry, so a glob-keyed classifier would have
+nothing to match that path against. The argument carries exactly ONE of the four named paths, not
+two: `README.md` and `.github/**` are verbatim grant paths and never made it, and the docs entry —
+spelled `.harness/*/docs/**` since the harness design docs moved to `.harness/harness/docs/` — is
+matched by the documentor's grant of that same shape.
+
+That docs entry is now logically redundant for both of its consumers: `is_control_plane_target`
+short-circuits on `is_control_plane_glob` (any `.harness/` first segment answers True before the named
+list is read), and the deny-message advertise filter inside `classify` reaches the same result on the
+same line. It is kept anyway, because the layout detector's migrated pattern requires the string to be
+present, and because the list is advertised in deny messages as the closed statement of what harness
+owns — a list that silently under-states ownership teaches readers the wrong boundary.
 
 **Three boundary answers, so none is inferred.** A path under the workspace root belonging to no
 declared repository is **refused** — a checkout there for an unlisted repo is stale or a mistake. A
@@ -5568,8 +5206,8 @@ future entry must carry. **No detection machinery is added.** The omission is ac
 
 - **No live harness file loses one.** The four named paths carry harness's own docs, its
   constitution, its readme and its CI, which is why they were named. This rests on nothing in
-  `docs/` sitting outside `docs/harness/` except `docs/PRINCIPLES.md`, which was checked rather than
-  assumed.
+  `docs/` remaining outside the repository segment except `docs/PRINCIPLES.md`, which was checked
+  rather than assumed.
 - **The shared block loses its route in the harness checkout.** All eight entries are dependency
   manifests and lockfiles — `package.json`, `package-lock.json`, `pnpm-lock.yaml`, `yarn.lock`,
   `pyproject.toml`, `uv.lock`, `requirements.txt`, `tsconfig.json` — and none is control plane, so
@@ -5580,24 +5218,13 @@ future entry must carry. **No detection machinery is added.** The omission is ac
   the way the four are named.
 
 
-### DEC-189 amendment 1 (2026-08-20) — the illustrative paths are respelled `<repo>`, tracking DEC-193 am.2
-
-This entry's two examples read `<product>/src/main.py` and `<product>/docs/guide.md`. They now read
-`<repo>/...`. Nothing about the two-base resolution changes; only the name of the segment, so that
-this entry and DEC-193 do not spell one idea two ways — which is the drift DEC-193 am.2 closes.
-
-**Recorded here because the edit was made in place.** The reasoning lives in DEC-193 am.2, and a
-reader who opens THIS entry through the index would otherwise find altered text with no local note
-that it changed or why. An unrecorded edit to a decision is indistinguishable from a decision that
-always said that.
-
 ## DEC-190 — `jsonschema` is a required dependency, and a missing import is a loud error
 
 **A feature's execution state is validated against a real JSON Schema at write time**, and the
 library that does it — `jsonschema` — is **required**, not optional. This is the second dependency
-the harness takes, and it takes the shape DEC-171 am.1 established for the first.
+the harness takes, and it takes the shape DEC-171 established for the first.
 
-**The shape, borrowed whole from PyYAML's clause (DEC-171 am.1).** A missing import is a **loud
+**The shape, borrowed whole from PyYAML's clause (DEC-171).** A missing import is a **loud
 error that names the install command**. It is never a silent skip, never a warning that lets the
 flow continue, and never a quieter mode that validates less. The reason is the one DEC-171 already
 paid for: a degraded path that validates nothing is indistinguishable, from the outside, from a
@@ -5665,8 +5292,12 @@ never through a run whose gates are the thing changing), DEC-183, and DEC-190 fo
 ## DEC-193 — Code is written in exactly two locations; any other checkout of this repository is refused by one shared rule on both write routes
 
 **There are exactly two places code is written under harness's authority:** `.claude/worktrees/<id>/`,
-where harness develops itself, and `workspace_root/<repo>`, where the factory works on a product.
-(Spelled `<product>` as signed; respelled by amendment 2 — see below.)
+where harness develops itself, and `workspace_root/<repo>`, where the factory works on a repository
+it does not contain. That second segment is spelled `<repo>` here and wherever else it appears — the
+layout migration's `.harness/<repo>/…` paths, team-config's `.harness/*/features/**` grants, DEC-189's
+illustrative paths — because one segment under two names is resolved by a builder guessing which is
+which. `<product>` is also the narrower word: the factory serves repositories, and whether a
+checkout's contents are a product is a fact about the work, not about the path.
 Both keep exactly their prior behaviour. **Any other checkout of this repository — a linked worktree
 living outside `.claude/worktrees/`, however complete its manifest and its agents look — is a
 mistake, not a supported shape.**
@@ -5701,32 +5332,16 @@ three divergences between the two write routes survive deliberately:
   `.claude/worktrees/`, which the Write route does not have.
 - The Bash route still does not enforce product-base domains for paths outside the harness root: its
   outside-repo pass-through is preserved, narrowed to a filter on the verdict rather than removed,
-  because dropping it would begin enforcing those domains there for the first time. **"Preserved" is
-  true of two of the three fleet states and not the third** — see amendment 1.
-
-### DEC-193 amendment 1 (2026-08-12) — "preserved" was too wide by one column
-
-The review panel found that moving the outside-repo pass-through BELOW `classify` also moved it below
-`resolve_fleet`, whose own `sys.exit(2)` for an unloadable fleet declaration is now reached first. So
-on the Bash route a **malformed** `.harness/factory/fleet.yaml` refuses every write outside the
-harness root, where before it refused none. Measured on both branches, same fixture, same target:
-
-| `fleet.yaml` | `main`, before | FEAT-17, after |
-|---|---|---|
-| absent | 0 | 0 |
-| valid | 0 | 0 |
-| **malformed** | **0** | **2** |
-
-**The behaviour stands; the sentence above did not.** The direction is fail-closed, and it agrees with
-what `resolve_fleet` already did on the Write route and with its own stated reason — the value that
-identifies product paths is the one that failed, so enforcement is closed rather than partial. What
-was wrong was claiming preservation across all three states when it holds across two.
-
-Recorded as an amendment rather than a strike: DEC-188 strikes a decision the tree **flatly
-contradicts**, and this one is accurate except in a case it did not enumerate. It is written down
-because the alternative was leaving a falsified sentence standing in the entry the whole factory reads
-as ground truth — and because moving the filter back above `classify` to restore the old column would
-re-blind this route to sibling worktrees, which is the defect the entry exists to record closing.
+  because dropping it would begin enforcing those domains there for the first time. **Preservation
+  holds for two of the three fleet states, not all three.** The pass-through sits below `classify`,
+  which puts it below `resolve_fleet`, whose own `sys.exit(2)` for an unloadable fleet declaration is
+  reached first — so a **malformed** `.harness/factory/fleet.yaml` refuses every write outside the
+  harness root, where before it refused none. Measured on the same fixture and target: absent 0,
+  valid 0, malformed 0 before and **2** now. The behaviour stands and the direction is fail-closed;
+  it agrees with what `resolve_fleet` already did on the Write route and with its own stated reason,
+  that the value identifying product paths is the one that failed, so enforcement closes rather than
+  going partial. Moving the filter back above `classify` to restore the old column would re-blind
+  this route to sibling worktrees, which is the defect this entry exists to record closing.
 - In a PyYAML bootstrap-grant session the Write route does not apply the ROOT-SIDE check. That check
   sits inside `domain_check`, which is called under `if _run_domain and not _no_parser`, while the
   Bash route's root-side check sits ahead of that route's own `_no_parser` exit and still fires.
@@ -5768,31 +5383,6 @@ resolution this rule sits on top of, whose filed Bash-route asymmetry this close
 case alone. DEC-150 for the shape caps, and DEC-180 for why a rooted session is already governed.
 
 
-### DEC-193 amendment 2 (2026-08-20) — the second location's segment is spelled `<repo>`, not `<product>`
-
-This entry names the two write locations as `.claude/worktrees/<id>/` and
-`workspace_root/<product>`. The second spelling is struck: ~~`workspace_root/<product>`~~ is
-`workspace_root/<repo>`.
-
-**Operator ruling, 2026-08-20, and the reason is drift during build.** One thing had two names. The
-per-repository segment introduced by the layout migration is `<repo>` — `.harness/<repo>/features/`,
-`.harness/<repo>/expertise/`, team-config's `.harness/*/features/**` grants — while this entry called
-the same idea `<product>`. A builder reading both cannot tell whether they denote one segment or two,
-and resolves it by guessing. That is the failure this amendment prevents, not a wording preference.
-
-`<product>` was also the narrower word. The factory serves repositories, and the thing at that path
-is a repository checkout; whether its contents are a product is a fact about the work, not about the
-path.
-
-DEC-189's illustrative paths carried the same `<product>` spelling for the same idea and are
-restated with it, because two decisions using different words for one segment IS the drift this
-closes. Shipped feature artifacts keep `<product>` — they are frozen, dated records, and editing
-them would falsify what was written on their date (the same rule applied to FEAT-11's stale figures
-on 2026-08-20).
-
-**Nothing about the RULE changes.** Exactly two locations, all three refusals, one shared module on
-both write routes: unaltered. Only the name of a path segment.
-
 ## DEC-194 — A partial layout migration is judged per coupled surface, and a reader matching neither form is cannot-verify
 
 The layout migration moves `.harness/features/…` and `docs/harness/…` under a per-repository root, one
@@ -5812,8 +5402,21 @@ cannot-verify, never clean — the exit code is 2, and both call sites, session 
 CI job, treat it as a violation. Because those rows are data that later units edit, a surface is judged clean only over a
 non-empty reader set, and the surfaces are a fixed enum judged independently of the table: a surface
 whose rows are dropped is cannot-verify rather than vacuously clean, and can never be skipped ahead of
-its verdict. Every finding names the reader path with the form it matched, because finishing a reader
-and reverting one are opposite remedies and must not arrive as the same line.
+its verdict.
+
+**Which readers a finding names is decided in exactly one place: `layout_migration.blame()`.** It
+names a reader whose form-set is defective (both, neither, unreadable) or whose form disagrees with a
+single evidence shape, and every reader when a MIXED surface has no such individual; a named reader
+carries the form it matched, because finishing a reader and reverting one are opposite remedies and
+must not arrive as the same line. Both call sites — `render()` for CI and `check-state.sh`'s INV-27 at
+session entry — render that list WHOLE, on every verdict that is not clean, with no per-cause or
+per-form filtering at either site. Filtering is what produced two divergences in one day, so the rule
+is stated as an absence: there is no second place where naming is decided. Not every finding names a
+reader, and the sentence that said otherwise overclaimed: `blame()` may return an EMPTY list —
+structurally always for no-rows, and whenever no reader's form is defective or disagreeing for the
+other causes — and an empty list appends nothing. That, not a filtered sentence or a per-cause label,
+is how a finding with no responsible reader is rendered; only no-rows is reader-less by construction,
+and labelling causes reader-less is the thinking that invites per-cause filtering.
 
 **What the check proves, and what it does not.** It proves per-file
 form agreement, never per-site completeness: it answers whether a file speaks one layout language and
@@ -5852,82 +5455,31 @@ identically. That is accepted rather than worked around, because every one of th
 present-tense operational claim about paths the script reads and writes, and the unit that moves docs
 falsifies all of them at once. Detection was preferred to an unenforced obligation recorded in prose.
 
+**Applicability is declared by `.harness/factory/fleet.yaml`, never by the checker's own path.** The
+fleet declaration is the one file only the control plane carries — products are declared IN it, never
+holders OF it — so applicability and segment authority come from the same fact. Keying applicability
+to a marker at `check-state.sh`'s own path is wrong by construction, and was measured so:
+`harness-init` installs the whole `bin/` — marker included — into product repositories, so every
+onboarded product became "applicable", held layout evidence of neither shape, and reported CANNOT
+VERIFY at exit 1 forever, which onboarding's own exit-0 requirement cannot survive.
+
+**A migrated repo root must be a DECLARED repository's segment.** Only fleet-declared segments
+(name-after-owner, the `workspace_path` rule) plus the repository named in `harness.json`
+`github.repo` count as migrated evidence. An evidence glob that accepts ANY first-level `.harness/`
+subdirectory as a repo root does not hold: a non-repo sibling growing the wrong shape —
+`.harness/archive/features/…` was the probe — then forces a MIXED verdict no reader edit can clear.
+Evidence under any other segment is not silently ignored either; it is a fifth CANNOT_VERIFY cause,
+`undeclared-segment`, naming the offending paths, because a misfiled migration is exactly what this
+detector exists to catch.
+
+**The cause table at the session-entry call site is closed and fails loud.** It is a dict lookup whose
+miss appends an "unrecognised cause" violation. As four `if/elif` branches with no `else`, a fifth
+cause value appended nothing and the operator-facing gate passed clean while CI stayed red.
+
 Lineage: DEC-174, which is why the detector and its session-entry call site are built by hand rather
 than dispatched through the gates they change; and DEC-183, which is why the CI step carrying this
 check is a second signal and not its guarantee — nothing in this tree asserts that step is still
 wired.
-
-### DEC-194 amendment 1 (2026-08-14) — the applicability marker is the fleet declaration, and an undeclared segment is loud
-
-Two pre-merge review findings, both probe-verified, both fixed before PR #376 landed.
-
-**The marker moved from `check-state.sh`'s own path to `.harness/factory/fleet.yaml`.** The first
-marker was wrong by construction: `harness-init` installs the whole `bin/` — marker included — into
-product repositories, so every onboarded product became "applicable," held no layout evidence of
-either shape, and reported CANNOT VERIFY at exit 1 forever, which onboarding's own exit-0
-requirement cannot survive. The fleet declaration is the one file only the control plane carries:
-products are declared IN it, never holders OF it. Applicability and segment authority now come from
-the same fact.
-
-**A migrated repo root must be a DECLARED repository's segment.** The first evidence glob accepted
-ANY first-level `.harness/` subdirectory as a repo root, so a non-repo sibling growing the wrong
-shape — `.harness/archive/features/…` was the probe — forced a MIXED verdict no reader edit could
-clear. Now only fleet-declared segments (name-after-owner, the `workspace_path` rule) plus the
-repository named in `harness.json` `github.repo` count as migrated evidence. Evidence under any
-other segment is not silently ignored — it is a fifth CANNOT_VERIFY cause, `undeclared-segment`,
-naming the offending paths, because a misfiled migration is exactly what this detector exists to
-catch.
-
-**The cause table at the session-entry call site is closed and fails loud.** The wording dispatch
-was four `if/elif` branches with no `else`; a fifth cause value would have appended nothing and the
-operator-facing gate would have passed clean while CI stayed red. It is now a dict lookup whose
-miss appends an "unrecognised cause" violation.
-
-
-### DEC-194 amendment 2 (2026-08-14) — blame is one exported policy, rendered whole at both call sites
-
-Issue #366 found the body's sentence "every finding names the reader path" overclaiming: three
-cannot-verify causes — no-evidence, no-rows, undeclared-segment — have no responsible reader file to
-name. A first correction narrowed the sentence by rewriting the body in place; that edit violated
-this file's append-only rule and is reverted, with the ruling recorded here instead.
-
-**The settled behaviour, ruled by the operator after validator finding M-1 (2026-08-14):**
-`layout_migration.blame()` is the ONE policy for which readers a finding names — a reader whose
-form-set is defective (both, neither, unreadable) or disagrees with a single evidence shape, with
-every reader named when a MIXED surface has no such individual. Both call sites — `render()` for CI
-and `check-state.sh`'s INV-27 at session entry — render that list WHOLE, on every verdict that is
-not clean, with no per-cause or per-form filtering at either site. Filtering is what produced two
-divergences in one day; the rule is therefore stated as an absence: there is no second place where
-naming is decided. `blame()` may return an empty list — structurally always for no-rows, and
-whenever no reader's form is defective or disagreeing for the other causes — and an empty list
-appends nothing. That, not a filtered sentence or a per-cause label, is how "names no reader"
-happens; only no-rows is reader-less by construction, and labelling causes reader-less is the
-thinking that invites the per-cause filtering this amendment removes.
-
-Units 3–7 cite this entry as their maintenance contract; the body's sentence is read through this
-amendment.
-
-### DEC-189 amendment 1 (2026-08-16) — the docs entry moves into the repository segment
-
-The named entry `docs/harness/**` becomes `.harness/*/docs/**` — FEAT-22 moved the harness
-design docs to `.harness/harness/docs/`, and the entry follows the files. The two-sided rule
-this decision established is unchanged; only the spelling of one named path moved.
-
-The entry is now logically redundant in the file, for both of its consumers:
-`is_control_plane_target` short-circuits on `is_control_plane_glob` (any `.harness/` first
-segment answers True before this list is read), and the deny-message advertise filter inside
-`classify` reaches the same result on the same line. The entry is kept because the layout
-detector's migrated pattern requires the string to be present, and because the list is
-advertised in deny messages as the closed statement of what harness owns — a list that
-silently under-states ownership teaches readers the wrong boundary.
-
-One arithmetic in the original justification is corrected rather than left to mislead. The
-ruling said a glob-keyed classifier would have nothing to match "two of the four" named
-entries against. That overstates. `README.md` and `.github/**` are verbatim grant paths and
-never made the argument; `docs/harness/**` and `docs/PRINCIPLES.md` were the two with
-nothing to match — and the move supplies a match for the first alone, through the documentor's
-new `.harness/*/docs/**` grant. The correct figure is ONE of the four. Target-keying still
-holds on `docs/PRINCIPLES.md`, because team-config grants `docs/**`, a different string.
 
 ## DEC-195 — The four-angle simplify pass is the last build step and a plan-flow step, harness-native, never the validator lead
 
@@ -6203,14 +5755,13 @@ the mirror reading one fact back out of GitHub, and a reader will hit `gh-sync.p
 first, which says the script never reads GitHub state back into harness state. Both hold, because of
 **where the value lands**: `pr` lives in `feature.json`, which is execution state and carries no
 approval block, and nothing read back reaches `BRIEF.md`, `plan.yaml` or any approval block. DEC-138
-amendment 6 says it in exactly those terms — "issue state is still never read back into an
-approval-gated artifact (DEC-138 proper)".
+says it in exactly those terms — "issue state is never read back into an approval-gated artifact".
 
 **The destination test is not all of write-only, and DEC-138 itself supplies the case that does not
-fit.** Amendment 7 (`DECISIONS.md:4359-4362`) refuses a read whose destination is this very class —
-the parent issue number, landing at the feature's `github.parent`, execution state with no approval
-block — and refuses it invoking write-only. What separates the two is not the destination but whether
-GitHub is being asked for something the harness already holds. Amendment 7's refused read is a
+fit.** DEC-138 refuses a read whose destination is this very class — the parent issue number, landing
+at the feature's `github.parent`, execution state with no approval block — and refuses it invoking
+write-only. What separates the two is not the destination but whether
+GitHub is being asked for something the harness already holds. That refused read is a
 **discovery** path, and it names that as its own reason: "idempotency comes from local receipts, so a
 discovery path would be a second, contradictory source of truth" — the harness creates or adopts that
 parent and records the number at that moment, so re-deriving it from GitHub competes with a receipt
@@ -6235,7 +5786,7 @@ the destination argument above holds under either reading, and it is unchanged b
 **What else this pins, briefly.** The source tickets are the signed `plan.yaml`'s own `source_issues`;
 `feature.json`'s `github.source_issues` is only ever their mirror, refreshed by re-running `open`, so a
 re-plan is picked up by that re-run and never by editing the mirror. The closing keywords are RENDERED
-for the operator to paste and posted nowhere — DEC-138 amendment 6 forbids the mirror composing text
+for the operator to paste and posted nowhere — DEC-138 forbids the mirror composing text
 it posts. A source ticket is no longer left open, though: DEC-203 moves every card the feature
 records, each entry of `source_issues` included, to the done station at ship, and GitHub's own
 `Auto-close issue` workflow closes it from there.
@@ -6463,7 +6014,7 @@ on 2026-08-25: probe issue #847 was moved to `Done` at 19:06:14Z and read `CLOSE
 it and prints one line naming the child that held it open.
 
 **Origin stops mattering entirely.** Who created a ticket is no longer part of the decision. This
-replaces the superseded created-versus-adopted gate and DEC-138 amendment 7's `ship` and `abandon`
+replaces the superseded created-versus-adopted gate and the `ship` and `abandon`
 parent table, both of which asked where a ticket came from.
 
 The child check is the better guard because it is true of the ticket rather than true of its
@@ -6576,7 +6127,7 @@ it on, and nothing in a build reports it off. The one reader of that dependency 
 finding class in `board_lifecycle.py`'s audit. If the audit stops running, or its finding class is
 removed, the dependency goes unwatched and tickets stop closing with nothing saying so.
 
-Lineage: DEC-138 for the outbound mirror this sits inside and amendment 8 for the station row this
+Lineage: DEC-138 for the outbound mirror this sits inside and for the station row this
 entry rewrites; DEC-168 for the cascade measurement; DEC-174, because the Bash gate and the
 invariants are the enforcement layer, so this feature's code lands as direct main-session work;
 DEC-188 for the striking of the three entries replaced here; DEC-191 for the closed key set `status`
