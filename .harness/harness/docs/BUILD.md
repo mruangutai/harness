@@ -223,7 +223,7 @@ All numbers measured in the field (kaya-ai, FEAT-01 era, old rules), not estimat
 | Context per turn | map-orchestrator 310k cache-read/turn × 1,360 turns; cumulative main line 304k/turn × 11,449 turns | orchestrator lines under the 200k watchdog threshold; watchdog section empty for new runs | `bin/cost-report.py --since <feature start>` (cost-report.py removed — DEC-178) |
 | Cost per feature | cumulative $1,338 vs $50/feature budget (per-feature cut unavailable pre-DEC-148) | first clean per-feature number via `--since`; the $50 SC-1 budget is the stated bar | `bin/cost-report.py --yaml --since <date>` (cost-report.py removed — DEC-178) |
 | Mid-run Expertise writes | routine (the bloat vector) | zero — `expertise_update: []` on every non-distillation DIGEST | grep DIGESTs in run dirs |
-| Digest-skim yield | dry-run: 2 accepted + 1 reasoned rejection + 2 stale-entry catches from 11 digests | non-zero accepted count per feature, else sunset it (DEC-145 am.2) | per-source counts in distillation digests |
+| Digest-skim yield | dry-run: 2 accepted + 1 reasoned rejection + 2 stale-entry catches from 11 digests | non-zero accepted count per feature, else sunset it (DEC-145) | per-source counts in distillation digests |
 | Flat-roster spawn error | recurred ≥4 times across 3 agents' independent lessons | zero recurrences (now constitutional, DEC-147) | grep session logs for the rejection string |
 | Relay behavior | orchestrators lived 700–1,360 turns in one context | phase-boundary handoffs appear; longest orchestrator life shrinks | turns column in the watchdog output |
 
