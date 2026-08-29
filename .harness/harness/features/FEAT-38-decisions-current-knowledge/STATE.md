@@ -3,66 +3,67 @@
 ## Current
 
 - feature: FEAT-38-decisions-current-knowledge
-- run: .harness/harness/features/FEAT-38-decisions-current-knowledge/runs/2026-08-29-17-validator/state.yaml
-- squad: none — the resume segment is complete and stopped at two operator decisions
-- status: Review — awaiting the operator's UAT result and a ruling on the cycle budget
+- run: none — the resume segment closed at an operator ruling that reopens scope
+- squad: none
+- status: Review on the board, but **BLOCKED pending re-planning**. No PR, no merge, no ship.
 
-**The briefing is the thing to read**: `notes/ship-review-2026-08-29-18.md` (rendered view alongside
-it as `.html`). It SUPERSEDES `notes/ship-review-2026-08-29-16.md`. Working memory for whoever picks
-this up is `notes/handoff-ship.md`.
+**The thing to read is `notes/replan-remove-command-execution.md`.** The ship briefing
+`notes/ship-review-2026-08-29-18.md` is still accurate about what was BUILT and VERIFIED, but its
+recommendation to ship is **superseded** by the ruling below.
 
-`review_sha` is re-pinned at **`48bbe7e`** (was `2557950`); `base_sha` is `7ebfc9e`. Branch
-`feat/FEAT-38-decisions-current-knowledge`. **No PR exists and none was created.**
+`review_sha` is `48bbe7e`; `base_sha` is `7ebfc9e`. Branch `feat/FEAT-38-decisions-current-knowledge`.
 
-**Where it stands.** The operator resolved the three carved-out `main-session-direct` tasks and they
-landed: T-14 `e88182c`, T-22 `c1d657b`, T-23 `7cb69a9`. All 23 tasks now read `done` in `plan.yaml`,
-so `gh-sync.py status Review` ran and succeeded — parent #935 and sub-issues #936–#958 are all at the
-`Review` station.
+## The operator's rulings, 2026-08-29
 
-Because the tip moved, `review_sha` was re-pinned at `48bbe7e` and **every automated gate was
-re-established there**:
+**1. Cycle budget — crossing ACCEPTED, bound NOT raised.** `cycles_used` stays **11** and
+`max_total_cycles` stays **10** in `feature.json`; neither was altered to make the record look
+better. The crossing is accepted as recorded. Both over-budget cycles were lead-internal send-backs
+during re-verification of already-passing gates (qa's self-caught false 6-`FAIL` baseline reading;
+the ui-reviewer's self-corrected high→med rating); neither changed production code and no fix cycle
+was routed to a builder. `feature.json`'s key set is closed (DEC-191, `additionalProperties: false`),
+so this acceptance is recorded here rather than as a new key.
 
-- **qa PASS** — exit 0, 0 `FAIL`, 0 anchored `^KIND-DRIFT:`, index diff-clean, checkers discovering
-  20 anchors / 11 claims (`notes/qa-2026-08-29-11-validator.md`).
-- **Review panel PASS** — `severity_max: med`, `must_fix` empty; all three reviewers examined the
-  named file set rather than self-scoping out, and adjudicated the three citation questions
-  (`notes/review-harness-{code,security,ui}-reviewer-c2.md`).
-- **Goal-check PASS — 12 of 13 SCs met** (`notes/research-FEAT-38-goalcheck-48bbe7e.md`). **SC-04
-  flipped `not_met` → `met`**, its sweeps run per id for all fifteen ids and proved able to report
-  red by a positive control. SC-13 remains `unrun`, operator-owned.
+**2. The three signed `verify:` amendments — SIGNED, and deliberately NOT YET APPLIED.** The operator
+signed the exact T-10/T-15/T-19 replacement text preserved in
+`notes/research-verify-block-defects.md`. Application was dispatched and then **skipped before any
+edit**, so `plan.yaml` is untouched and there is no half-applied state. It was not re-dispatched
+because ruling 3 landed in between and entangles T-19's block with the redesign. **The signature is
+preserved, not withdrawn** — the reasoning and the reversal cost are in
+`notes/replan-remove-command-execution.md` under *What was NOT done, and why*. Note that
+`notes/research-verify-block-defects.md` itself still reads "blocking on signature"; it was not
+stamped, because it is pm's analysis and the status lives here.
 
-**Two things stop this, both the operator's.**
+**3. REMOVE COMMAND EXECUTION — new scope, supersedes the ship trajectory.** The operator does not
+accept any document-driven subprocess risk. `check-decision-claims.py` must stop executing commands
+taken from `DECISIONS.md` and be replaced with a non-executing verification design. **This is new
+scope against an approved plan and must NOT be implemented under it** — it requires `BRIEF.md` and
+`plan.yaml` updates, operator approval, and fresh security validation.
 
-1. **SC-13's UAT is unrun.** `gates.uat` is `blocking_when_uat_criteria_exist`, so the ship decision
-   waits on it. `notes/uat-FEAT-38.md` is `status: ready` and its stale `2557950` header was
-   repointed to `48bbe7e` this run.
-2. **The cycle budget is crossed: `cycles_used` 11 of `max_total_cycles` 10.** Both new cycles were
-   lead-internal send-backs during re-verification of already-passing gates — qa's self-caught false
-   6-`FAIL` baseline reading, and the ui-reviewer's self-corrected high→med rating. Neither changed a
-   line of production code and no fix cycle was routed to a builder. Raising the budget is a user
-   decision recorded in `feature.json`.
+The full replanning handoff is `notes/replan-remove-command-execution.md`. Its decisive measurement:
+**all eleven live claim markers are `grep` against one named file**, so a declarative
+`contains` / `max_lines` vocabulary covers 11 of 11 with zero execution surface. The redesign is a
+capability-preserving simplification, not a reduction.
 
-**Budget: cycles 11 of 10 (CROSSED), runs 19 of an informational 20.** GitHub mirror open:
-milestone 31, parent #935, sub-issues #936–#958 at `Review`.
+## Where the work actually stands
+
+All 23 tasks are `done` and committed; every automated gate is green at `48bbe7e` (qa PASS, review
+panel PASS with `severity_max: med` and empty `must_fix`, goal-check 12 of 13 SCs met). SC-13's UAT
+is `unrun` and stays unrun — **it must not be presented as a ship gate now**, because ruling 3 means
+part of what it would accept is being redesigned.
+
+**Budget: cycles 11 of 10 (crossed, accepted), runs 19 of an informational 20.** GitHub mirror:
+milestone 31, parent #935, sub-issues #936–#958, all at the `Review` station. The board was NOT moved
+to `Plan` — that station is written by `board-station.py` at the `/harness-plan` door, not by the
+orchestrator.
 
 ## Open Questions
 
-Twenty-three residual findings are carried as the proposed backlog **B-1 … B-23** in
-`notes/ship-review-2026-08-29-18.md`, where the operator can strike them by name. Anything not struck
-becomes a backlog issue on ship acceptance; anything not listed dies silently, so they are all listed
-there rather than duplicated here. B-5 is now marked RESOLVED. Five rows are new this run: B-19
-(the renderer blanking code blocks), B-20 (renderer contrast), B-21 (an imprecise joint citation,
-inherited not introduced), B-22 (no guard on `DEC-N` citations in `.claude/**`) and B-23 (a digest
-validator that accepted `not_met` on a `verify: uat` criterion).
+Three replanning questions for the operator are in `notes/replan-remove-command-execution.md`:
+whether the marker mechanism survives at all in non-executing form, whether `contains`/`max_lines`
+is the whole vocabulary, and whether the checker keeps its filename.
 
-The four needing the operator's own answer:
-
-- **Q1 (BLOCKING, operator).** SC-13's UAT at `notes/uat-FEAT-38.md` is unrun. ~15 minutes.
-- **Q2 (BLOCKING, operator).** The cycle budget is crossed at 11 of 10. Raise it, or accept the
-  crossing and ship on the UAT result.
-- **Q3 (operator signature).** Three signed `verify:` blocks — T-10, T-15, T-19 — cannot pass as
-  written, while the work behind each is correct. Replacement text is preserved verbatim in
-  `notes/research-verify-block-defects.md` (briefing row B-1).
-- **Q4 (operator, possible data loss).** A T-06 member ran `git checkout -- <path>` on the MAIN
-  checkout for two generator files. Ruled unknowable and not to be inferred; recorded so it is not
-  silently dropped (briefing row B-4).
+Backlog rows B-1…B-23 remain in `notes/ship-review-2026-08-29-18.md`. **Ruling 3 settles four of
+them without an issue being filed:** B-8 and B-11 become MOOT (they harden or annotate an execution
+path being deleted — do not implement then delete), B-10 is SUPERSEDED (that prose is rewritten
+wholesale), and **B-9 SURVIVES and is now more important** — nobody has swept the rest of `bin/` for
+the same shape, any script building an argv from document or config text.
