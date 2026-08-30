@@ -1,0 +1,96 @@
+<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>FEAT-43 code-risk grading — ship review</title><style>
+:root{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:ui-sans-serif,-apple-system,"Segoe UI","Helvetica Neue",Arial,sans-serif;
+}
+/* Token-level theming: components style through the tokens and never inside the
+   media query, so the viewer's explicit toggle can override the OS in BOTH
+   directions. */
+@media (prefers-color-scheme:dark){
+  :root{ --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+         --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733; }
+}
+:root[data-theme="dark"]{
+  --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+  --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733;
+}
+:root[data-theme="light"]{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+}
+*{box-sizing:border-box}
+body{margin:0; background:var(--paper); color:var(--ink);
+  font:400 16px/1.65 var(--sans); padding:clamp(1.5rem,5vw,4rem) clamp(1rem,5vw,2rem) 6rem}
+.wrap{max-width:56rem; margin:0 auto}
+/* Layout owns the spacing: gap between siblings, not per-element margins that
+   collapse or double. */
+.wrap{display:flex; flex-direction:column; gap:1rem}
+.eyebrow{font:500 11px/1 var(--mono); letter-spacing:.14em; text-transform:uppercase;
+  color:var(--quiet); margin:0}
+h1{font:600 clamp(1.6rem,4vw,2.3rem)/1.15 var(--sans); letter-spacing:-.02em;
+  margin:.4rem 0 .2rem; text-wrap:balance}
+h2{font:600 1.15rem/1.3 var(--sans); letter-spacing:-.01em; margin:2rem 0 0;
+  padding-top:1.25rem; border-top:1px solid var(--line); text-wrap:balance}
+h3{font:600 .98rem/1.4 var(--sans); margin:1.1rem 0 0}
+h4,h5,h6{font:500 11px/1.4 var(--mono); letter-spacing:.1em; text-transform:uppercase;
+  color:var(--quiet); margin:1rem 0 0}
+p,li{max-width:65ch; margin:0}
+ul,ol{margin:0; padding-left:1.4rem; display:flex; flex-direction:column; gap:.4rem}
+li>ul,li>ol{margin-top:.4rem}
+strong{font-weight:600}
+code{font:400 .875em/1.5 var(--mono); background:var(--sunk); padding:.1em .35em; border-radius:3px}
+pre{background:var(--sunk); border:1px solid var(--line); border-radius:6px;
+  padding:.85rem 1rem; overflow-x:auto; margin:0}
+pre code{background:none; padding:0}
+blockquote{margin:0; padding:.75rem 1rem; border-left:3px solid var(--accent);
+  background:var(--accent-soft); border-radius:0 5px 5px 0}
+blockquote p{max-width:none}
+hr{border:0; border-top:1px solid var(--line); margin:.5rem 0}
+/* Wide content pans inside its OWN container; the page body never scrolls sideways. */
+.scroll{overflow-x:auto; border:1px solid var(--line); border-radius:6px}
+table{border-collapse:collapse; width:100%; font-size:.9rem}
+th,td{text-align:left; padding:.6rem .8rem; border-bottom:1px solid var(--line); vertical-align:top}
+thead th{font:500 10px/1.3 var(--mono); letter-spacing:.11em; text-transform:uppercase;
+  color:var(--quiet); background:var(--sunk); white-space:nowrap}
+tbody tr:last-child td{border-bottom:0}
+/* Figures in a column line up. */
+td,th{font-variant-numeric:tabular-nums}
+.derived{color:var(--slate); font-size:.85rem; margin-top:2.5rem;
+  padding-top:1rem; border-top:1px solid var(--line)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style></head><body><div class='wrap'><p class='eyebrow'>Ship review · reading view</p><h1 id="feat-43-code-risk-grading-ship-review">FEAT-43 code-risk grading — ship review</h1>
+<p><strong>Recommendation: do not ship. The feature is blocked, and the decision it needs is yours.</strong></p>
+<p>The tool works. It grades Python functions, it is deterministic, it is well tested, and every gate this cycle asked it to pass, it passed. It fails on one thing, and the thing it fails on is itself: <strong>run the grading tool over this feature&#x27;s own code and the tool rejects it.</strong> Six production functions the feature ships are graded 3 against a bar of 4, and two of those six live inside <code>code_grade.py</code>, the grading engine itself.</p>
+<p>That is not a technicality. Task T-01 says, without qualification, &quot;Keep every function you write in <code>code_grade.py</code> at grade 4 or better… The tool must pass its own bar.&quot; The reviewer went looking for an exemption — the BRIEF&#x27;s out-of-scope section, all twelve decisions D-01 to D-12, the plan&#x27;s constraints — and found none.</p>
+<p>I verified this myself rather than take it on report. Running the tool over the pinned range exits 1, with <strong>21 of 119 graded functions below their bar</strong>.</p>
+<p>The cycle budget is exhausted at 13 of 13, and no source fix is authorized after this panel. So the work stops here until you decide.</p>
+<h2 id="how-this-briefing-was-assembled">How this briefing was assembled</h2>
+<p><strong>No report round was spawned.</strong> I read the run digests from disk, as the playbook requires. The paths I assembled from:</p>
+<ul><li><code>runs/plan-product/digest.md</code>, <code>runs/t01-t07-eng/digest.md</code>, <code>runs/t02-eng/digest.md</code>, <code>runs/t03-eng/digest.md</code>, <code>runs/t06-eng/digest.md</code>, <code>runs/t10-product/digest.md</code></li><li><code>runs/build-qa-validator/digest.md</code>, <code>runs/build-qa-validator-rerun/digest.md</code>, <code>runs/build-simplify-eng/digest.md</code></li><li><code>runs/validate-review-validator/digest.md</code>, <code>runs/validate-fix-eng/digest.md</code>, <code>runs/validate-fix-qa-validator/digest.md</code>, <code>runs/validate-fix-simplify-eng/digest.md</code>, <code>runs/validate-review-final-validator/digest.md</code>, <code>runs/validate-fix-c11-eng/digest.md</code>, <code>runs/validate-fix-c13-qa-validator/digest.md</code>, <code>runs/validate-fix-c13-simplify-eng/digest.md</code>, <code>runs/validate-fix-c13-r01-eng/digest.md</code>, <code>runs/validate-regate-c13-r01-validator/digest.md</code>, <code>runs/validate-final-simplify-eng/digest.md</code></li><li>The three panel reviewer notes: <code>notes/review-harness-code-reviewer-validate-final-panel.md</code>, <code>notes/review-harness-security-reviewer-validate-final-panel.md</code>, <code>notes/review-harness-ui-reviewer-validate-final-panel.md</code></li></ul>
+<p><strong>One gap, disclosed rather than papered over.</strong> The panel&#x27;s lead agent aborted before writing its digest, so <code>runs/validate-final-panel-validator/</code> holds only <code>state.yaml</code>. The three reviewer notes were written and are complete; I read them directly and independently re-ran the measurement their central finding rests on. The panel verdict below is therefore grounded in member evidence plus my own check, not in a lead&#x27;s summary that does not exist.</p>
+<h2 id="what-blocks-the-ship">What blocks the ship</h2>
+<p>Four findings, from three reviewers working independently. Three of them are one root cause.</p>
+<p><strong>1. The feature does not pass the gate it ships (high).</strong> Six grade-3 production functions sit below the bar of 4: <code>code_grade.py:232</code> and <code>code_grade.py:318</code> — the engine itself — <code>code-grade.py:80</code>, <code>check-plan-routes.py:91</code>, <code>gate_policy.py:33</code>, <code>gate_policy.py:75</code>. T-01&#x27;s acceptance line is unmet and nothing in the signed scope exempts it.</p>
+<p><strong>2. &quot;Gated grade-3, below bar&quot; has no name anywhere (med).</strong> The tool assigns it no severity: the map is <code>{1: &quot;high&quot;, 2: &quot;med&quot;}</code>, so a grade-3 record prints no <code>SEVERITY</code> line and reports <code>&quot;severity&quot;: null</code> in JSON — yet it causes exit 1 exactly as a grade-1 does. The shipped reviewer guidance names grade 1 and grade 2 and never mentions this case. The digest schema&#x27;s four values — <code>pass</code>, <code>fail</code>, <code>grade_2</code>, <code>n_a</code> — have no spelling for it. REQ-11 promised one canonical vocabulary; this diff instantiates the missing case six times.</p>
+<p><strong>3. A reviewer&#x27;s grade claim is self-attested and can bypass the gate (high).</strong> This one is independent of the others and, in my read, the most serious. <code>validate-digest.py</code> decides whether Python changed by diffing the range the reviewer <em>typed into its own digest</em>. It never checks that range against <code>feature.json</code>&#x27;s <code>review_sha</code>. A reviewer that names a no-op range gets <code>code_grade: n_a</code> accepted and the feature&#x27;s own gate is skipped. The security reviewer notes the shared test fixture defaults to exactly that shape, so the bypass is the suite&#x27;s passing case, not an edge case.</p>
+<p><strong>4. The report gives an author no way to act on a grade-3 failure (high).</strong> Their build fails with no severity and no named cause, and the guidance they are told to follow does not describe the state they are in.</p>
+<p>Findings 1, 2 and 4 close together: decide what a gated grade-3 means, then say it in the tool, the guidance and the schema. Finding 3 is a separate fix.</p>
+<h2 id="what-is-genuinely-done-and-verified">What is genuinely done and verified</h2>
+<p>Worth stating plainly, because the blockers above are about scope and self-consistency, not about a broken tool.</p>
+<ul><li><strong>Tests are green and non-vacuously bound.</strong> Unit 29/29, integration 28/28, with named coverage across all seven changed files (<code>runs/validate-regate-c13-r01-validator/digest.md</code>).</li><li><strong>The last change was verified by mutation, not by assertion.</strong> R-01 consolidated three separate commit resolvers into one (<code>code_grade.commit_oid</code>). QA independently re-ran a mutation that deleted the option-rejection guard, confirmed a targeted failure, and proved a byte-identical restore. Behaviour is unchanged: the <code>^{commit}</code> peel, <code>--end-of-options</code>, and rejection of option-like revisions before Git runs are all preserved.</li><li><strong>Simplification is closed.</strong> The four-angle pass returned no blocking findings and confirmed R-01 reduced duplication rather than relocating it (<code>runs/validate-final-simplify-eng/digest.md</code>).</li><li><strong>Every earlier review finding is closed.</strong> The code reviewer independently re-verified all six findings from the <code>45328d7</code> review as fixed at this pin.</li><li><strong>State is clean.</strong> <code>check-state.sh</code> exits 0. The work is committed at <code>94383e671e51f95d142f3220f97c8e453721d516</code>, <code>review_sha</code> is pinned to it, and GitHub parent #924 and all ten sub-issues are at Review.</li></ul>
+<p><strong>One repository-wide test failure, and it is not ours.</strong> The canonical suite records 955 passing suites and exits 1 on <code>test-hooks-install.py</code> case <code>(e-green) SC-14</code>. It reproduces identically on the main checkout at <code>3952814</code>, which does not contain <code>code_grade.py</code> at all. Its cause is test isolation: the fixture&#x27;s sweep calls <code>feature-worktree.py remove --repo harness</code>, which resolves to the real harness checkout instead of the temporary fixture clone. Carried as B8.</p>
+<h2 id="not-run">Not run</h2>
+<p>Goal-check, documentation, UAT and the ship decision did not run, because the panel is a gate and it failed. <strong>SC-11 is the feature&#x27;s only <code>verify: uat</code> criterion</strong> — it asks whether the guidance actually changes what an engineer writes, and it is the one claim no automated gate can settle. It remains unproven. Merge and deploy remain prohibited.</p>
+<h2 id="budget">Budget</h2>
+<p><code>cycles_used</code> is <strong>13 of 13</strong> — exhausted. <code>runs</code> is <strong>21 against an informational 20-run budget</strong>. Cycles count rework only, so the run count is not itself a defect, and my read is that these runs earned their place: each of the three fix cycles closed real findings that the following review independently confirmed closed. The feature ran long because the panel kept finding real problems, which is the gate working.</p>
+<h2 id="proposed-backlog">Proposed backlog</h2>
+<p>Unstruck rows become backlog issues on acceptance. <strong>Anything not listed here dies silently.</strong></p>
+<div class="scroll"><table><thead><tr><th>ID</th><th>Nature</th><th>What</th></tr></thead><tbody><tr><td>B1</td><td>chore</td><td><code>validate-digest.py:543</code> — <code>.encode()</code> preserves a <code>bytes</code> return that neither consumer requires. One-line drop, no caller or test change</td></tr><tr><td>B2</td><td>enhancement</td><td><code>validate-digest.py:32</code> — the eager <code>from code_grade import commit_oid</code> costs ~8.3ms on every hook invocation for a symbol reachable only under one branch; move it inside <code>resolve_reviewed_commit</code></td></tr><tr><td>B3</td><td>enhancement</td><td><code>code_grade.py:281-292</code> — two <code>git rev-parse</code> spawns per validation (~22ms). Collapsing to one changes the seam signature and per-revision error attribution, so it needs a decision, not a tidy-up</td></tr><tr><td>B4</td><td>chore</td><td><code>code_grade.py:277-280</code> and <code>code-grade.py:115-118</code> — three blank lines where both files use PEP8&#x27;s two everywhere else</td></tr><tr><td>B5</td><td>chore</td><td>Four spellings of &quot;init a scratch git repo&quot; across <code>test-code-grade.py</code> and <code>test-code-grade-cli.py</code>; a future fixture change must land in four places. Needs a shared test-support module, which does not exist yet</td></tr><tr><td>B6</td><td>chore</td><td><code>code-grade.py:29-33</code> and <code>code_grade.py:295-302</code> — two near-identical git wrappers with different error contracts. Merge only if a third caller appears</td></tr><tr><td>B7</td><td>bug</td><td>The digest schema gives a read-only engineering assessment no legal way to report its suite: <code>dev</code> + <code>suite: n/a</code> + PASS is rejected while <code>dev-ops</code> is allowed. This deadlocked a SIMPLIFY run for a full cycle</td></tr><tr><td>B8</td><td>bug</td><td><code>test-hooks-install.py</code> case <code>(e-green) SC-14</code> fails on any developer machine: its fixture&#x27;s sweep resolves <code>--repo harness</code> to the real checkout rather than the temp clone. Pre-existing; makes the canonical suite red on main</td></tr></tbody></table></div>
+<h2 id="the-decision">The decision</h2>
+<p>One of three, and only you can make it:</p>
+<ol><li><strong>Authorize a remediation cycle beyond the exhausted 13.</strong> Findings 1 and 4 are mechanical — split six functions and add a severity for grade 3. Finding 3 needs a real design call: bind the reviewed range to <code>review_sha</code>. Finding 2 needs you to name the grade-3 case.</li><li><strong>Record a decision accepting the six grade-3 functions</strong>, which amends T-01&#x27;s acceptance line. This is the cheapest path, and its cost is that the feature ships a bar it does not itself meet — the first exception to a rule the feature exists to enforce. Finding 3 would still need fixing.</li><li><strong>Stop and re-scope.</strong> The branch, the commit, the pin and every artifact are preserved.</li></ol>
+<p>I do not recommend option 2 on finding 3 under any circumstance: a gate that any reviewer can skip by naming a convenient range is worse than no gate, because it reports success.</p><p class='derived'>Derived from <code>ship-review-validate-final-panel-validator.md</code> — the markdown is the record; do not edit this file. Regenerate with <code>bin/render-brief.py</code>.</p></div></body></html>

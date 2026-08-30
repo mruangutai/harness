@@ -64,15 +64,14 @@ LEGAL_MAIN_SESSION_TOKEN = "main-session-direct"
 LEGAL_TOKENS = "team, main-session-direct"  # D-07
 
 
-def resolve_agents(path):
-    """Return the sorted list of agents granted to write `path`, or [] for NOBODY.
-
-    Exits this whole process with 2 if check-domain.sh itself exits 2 (an
-    unreadable, unparseable or duplicate-keyed manifest) — that failure is
-    not this script's to paper over.
-    """
+def resolve_agents(path, root, manifest_root):
+    """Return agents from the same resolver script the live hook invokes."""
+    check_domain = CHECK_DOMAIN
+    if os.path.realpath(root) != os.path.realpath(manifest_root):
+        check_domain = os.path.join(
+            manifest_root, ".claude", "skills", "harness", "bin", "check-domain.sh")
     proc = subprocess.run(
-        [CHECK_DOMAIN, "--resolve", path],
+        [check_domain, "--resolve", path],
         stdin=subprocess.DEVNULL,
         capture_output=True,
         text=True,
@@ -87,6 +86,41 @@ def resolve_agents(path):
             continue
         agents.append(line)
     return sorted(set(agents))
+
+
+def _owner_root(root):
+    """Return the owner checkout root, raising if a worktree cannot establish one."""
+    worktree = harness_boundary.worktree_owner(root)
+    if worktree is None:
+        return root
+    _, owner_root, legitimate = worktree
+    if owner_root is None or not legitimate:
+        raise ValueError(f"cannot establish the owner checkout for {root}")
+    return owner_root
+
+
+def _manifest_deviation(root, owner_root):
+    """Return the DEVIATION message when root's manifest differs from the owner's, else None."""
+    manifest = os.path.join(owner_root, harness_boundary.MARKER)
+    if not os.path.isfile(manifest) or not os.access(manifest, os.R_OK):
+        raise ValueError(f"owner manifest is not readable: {manifest}")
+    branch_manifest = os.path.join(root, harness_boundary.MARKER)
+    if os.path.realpath(branch_manifest) == os.path.realpath(manifest):
+        return None
+    with open(branch_manifest, "rb") as branch, open(manifest, "rb") as owner:
+        if branch.read() == owner.read():
+            return None
+    return (
+        f"DEVIATION {branch_manifest} differs from {manifest}; routes were "
+        "resolved against the owner manifest because that is what the hook consults"
+    )
+
+
+def resolution_manifest(root):
+    """Return the owner manifest the hook uses and any branch/owner deviation."""
+    owner_root = _owner_root(root)
+    deviation = _manifest_deviation(root, owner_root)
+    return owner_root, deviation
 
 
 def _clean(entry):
@@ -149,7 +183,7 @@ def parse_files(body, files_match):
     return entries
 
 
-def process_task(tid, body, findings):
+def process_task(tid, body, findings, root, manifest_root):
     """Append findings for one task block. Returns the number of VIOLATIONs added."""
     files_match = FILES_RE.search(body)
     if not files_match:
@@ -196,7 +230,7 @@ def process_task(tid, body, findings):
     nobody_paths = []
     granted_agents = set()
     for entry in literal_entries:
-        agents = resolve_agents(entry)
+        agents = resolve_agents(entry, root, manifest_root)
         if agents:
             granted_agents.update(agents)
         else:
@@ -294,7 +328,7 @@ BUDGETED_FIELDS = ("files", "verify", "traces", "depends_on", "change_type",
                    "title")
 
 
-def process_plan_yaml(path, findings):
+def process_plan_yaml(path, findings, root, manifest_root):
     """The plan.yaml path (DEC-182): a real loader, no regexes.
 
     Everything `_clean`, FILES_RE, LIST_ITEM_RE, KEY_LINE_RE, LEGACY_FILES_RE and MODE_RE
@@ -353,7 +387,7 @@ def process_plan_yaml(path, findings):
 
         nobody, granted = [], set()
         for entry in literals:
-            agents = resolve_agents(entry)
+            agents = resolve_agents(entry, root, manifest_root)
             if agents:
                 granted.update(agents)
             else:
@@ -379,7 +413,7 @@ def process_plan_yaml(path, findings):
     return violations
 
 
-def process_plan(path, findings):
+def process_plan(path, findings, root, manifest_root):
     """Returns the violation count for one plan, or None if the path exits 2.
 
     Routes on the FILENAME. plan.yaml gets the loader; PLAN.md keeps the regex reader for
@@ -392,14 +426,14 @@ def process_plan(path, findings):
         return None
 
     if os.path.basename(path) == "plan.yaml":
-        return process_plan_yaml(path, findings)
+        return process_plan_yaml(path, findings, root, manifest_root)
 
     with open(path) as f:
         text = f.read()
 
     violations = 0
     for tid, body in TASK_RE.findall(text):
-        violations += process_task(tid, body, findings)
+        violations += process_task(tid, body, findings, root, manifest_root)
     return violations
 
 
@@ -750,47 +784,44 @@ def check_invariant_number_collisions(root, findings):
 
 
 def main(argv):
-    # The root guard is ARGV-LESS ONLY. `check-plan-routes.py <path>` must keep working
-    # from a directory with no .harness/ anywhere — the caller named the file, so there
-    # is nothing to discover and nothing to be wrong about.
     examined = None
     if len(argv) > 1:
+        try:
+            root = harness_boundary.resolve_root(BIN_DIR)
+        except ValueError as error:
+            print(f"check-plan-routes: {error}", file=sys.stderr)
+            sys.exit(2)
         paths = argv[1:]
     else:
         root, paths, examined = discover_plans()
-        # Naming the root is the whole distinction. Without it a legitimate zero-feature
-        # project and the wrong-directory defect print the same line.
         print(f"scanning {root}/.harness/*/features/*/{{plan.yaml,PLAN.md}}")
+
+    try:
+        manifest_root, deviation = resolution_manifest(root)
+    except ValueError as error:
+        print(f"check-plan-routes: {error}", file=sys.stderr)
+        sys.exit(2)
+    print(f"MANIFEST {os.path.join(manifest_root, harness_boundary.MARKER)}")
 
     findings = []
     total_violations = 0
+    if deviation:
+        findings.append(deviation)
+        total_violations += 1
     processed = 0
     for path in paths:
-        count = process_plan(path, findings)
+        count = process_plan(path, findings, root, manifest_root)
         if count is None:
             sys.exit(2)
         total_violations += count
         processed += 1
 
-    # THE CROSS-FEATURE PASS, ARGV-LESS ONLY. It compares features against each other, so
-    # it needs the whole tree; with explicit paths the caller named the files and there is
-    # no tree to reason about. `examined is not None` is the same discovery marker the
-    # summary line below already keys on.
     if examined is not None:
         total_violations += check_invariant_number_collisions(root, findings)
 
     for line in findings:
         print(line)
-    # `processed`, NEVER `len(paths)`. The summary used the DISCOVERED count, so anything
-    # that dropped plans between discovery and the loop reported the full number while
-    # checking fewer: `for path in paths[:1]` printed `0 violation(s) across 8 plan(s)`,
-    # exit 0, both suites green — round 1's own `[:1]` defect relocated one line down.
-    # Counting what was actually checked makes the two numbers impossible to desynchronise.
     print(f"{total_violations} violation(s) across {processed} plan(s)")
-    # THE SECOND LINE IS ARGV-LESS ONLY. With explicit paths there was nothing to
-    # discover, so there is no discovery to vouch for and a count would be noise.
-    # It is printed AFTER the summary so every existing reader — the CI grep, case_19a,
-    # case_19a4 — still finds the line it matches on, unmoved.
     if examined is not None:
         print(f"examined {examined} feature dir(s); "
               f"{examined - processed} skipped as shipped")

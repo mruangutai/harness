@@ -1,0 +1,5 @@
+# Observations - harness-documentor
+
+- 2026-08-29: my process cwd was the MAIN checkout, not the dispatch's worktree. An `edit` whose section header used a relative path silently modified the main repo instead — and the snapshot tag matched, because tags are content-derived and both files were byte-identical. Caught it only by diffing both paths after the edit. Absolute paths in edit section headers whenever a worktree is in play; verify with `git status` on BOTH trees.
+- 2026-08-29: checking doc prose against a tool is far stronger by executing the tool than by reading it. Reading gave me the glossary's "the one driver metric" as suspect; running the documented command printed `DRIVER: cyclomatic+cognitive+abc` and settled it in one shot.
+- 2026-08-29: the highest-value find was not in the files I was pointed at. Grepping my own writable domain for the changed vocabulary surfaced a human commit that changed an enum and propagated it to one of four agent templates, leaving two reviewers instructed to emit a now-rejected value. Always grep the whole tree for a changed vocabulary token, not just the diff's files.
