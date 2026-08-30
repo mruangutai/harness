@@ -5,13 +5,13 @@
 - feature: FEAT-43-code-risk-grading
 - run: .harness/harness/features/FEAT-43-code-risk-grading/runs/2026-08-29-validate-delta-c26-validator/state.yaml
 - squad: validator
-- status: Review — COMPLETE. All 20 criteria met, every gate green, UAT passed. Stopped at the
-  pre-ship boundary for the operator's ship decision. Nothing shipped, merged, deployed or closed;
-  the worktree stands.
-- review_sha: `cd8dae476607704fd3d2b874150aae9f814292d2`
-- cycles: **26 of 26 — exhausted** (`answers/Q10-b21-hold-and-fix.md` authorized the last one, singly
+- status: Review — all 20 criteria met and every gate green, but the ship recommendation is
+  WITHDRAWN pending one decision: the feature's own engine crashes on ordinary Python. Nothing
+  shipped, merged, deployed or closed; the worktree stands and PR #978 is the operator's.
+- review_sha: `4adb2219954aa132b1e8450cdd9e571dbedba309`
+- cycles: **27 of 27 — exhausted** (`answers/Q10-b21-hold-and-fix.md` authorized the last one, singly
   and narrowly). No repair capacity remains.
-- briefing: `notes/ship-review-final.md` (supersedes every earlier ship review)
+- briefing: `notes/ship-review-c27.md` (supersedes `ship-review-final.md`)
 
 Seven defects closed across cycles 14–26, each verified by the orchestrator's own run rather than
 accepted on report.
@@ -61,6 +61,32 @@ surviving `/tmp` outputs are the neutral run's rather than the discarded one's, 
 testimonial. SC-11 is strongly evidenced, not end-to-end machine-verified.
 
 `runs` is 39 against an informational 20-run budget (INV-22) — surfaced in the briefing with the read.
+
+## Cycle 27 — the CI blocker, and what fixing it uncovered
+
+The PR #978 CI failure is CLOSED. `check_prior_validator` ran `git show df63193:<file>`, absent in a
+shallow checkout. The operator's own patch deleted the check; **I refused** — it is the sole
+implementation of SC-20's fourth clause (`BRIEF.md:210-218`, verbatim). The two files are now
+byte-identical `.fixture` data with a non-`.py` suffix, so they stay out of the graded set. Proven in
+a real `git clone --depth 1` where `df63193` is absent: suite exit 0. The delta review corrupted the
+fixture and confirmed the named failure still fires. Two further history dependencies in the same
+file were fixed with it; the scope call was reported and ratified. `answers/Q11-ci-hermeticity-cycle-27.md`.
+
+**BLOCKING, for the operator.** `code_grade._Counter` visits three ASDL-optional AST fields without a
+`None` guard — `visit_With`/`optional_vars`, `visit_Try`/`handler.type`, `visit_AnnAssign`/`node.value`.
+`with lock:`, `except:` and `x: int` each raise `AttributeError`. I reproduced all three.
+**16 of the harness's 99 `bin/*.py` crash**, including production `harness_merge.py` and
+`harness_boundary.py`; CLI-reachable; always a loud raise, never a silent mis-grade; zero
+intersection with the 200-record gated set; **introduced by `1ac1bd0`, this feature's first commit**.
+`visit_Assert` guards `node.msg` correctly in the same class, so the pattern was omitted three times.
+
+The verification apparatus was **structurally incapable** of finding it: self-grading measures
+complexity, not correctness, and the gated set has no overlap with the crash list. Third time in this
+feature that a green suite concealed a missing control.
+
+Recommendation: authorize cycle 28 — three one-line guards plus six assertions, spec at
+`notes/qa-delta-c27.md`. Note `with lock:` and `with lock as _discard:` are NOT metric-identical
+(`abc_a` differs by 1); an earlier draft spec would have written a failing test.
 
 ## Open Questions
 

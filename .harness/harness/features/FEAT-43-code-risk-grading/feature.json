@@ -3,9 +3,9 @@
   "branch": "feat/FEAT-43-code-risk-grading",
   "pr": null,
   "status": "Review",
-  "review_sha": "cd8dae476607704fd3d2b874150aae9f814292d2",
-  "cycles_used": 26,
-  "max_total_cycles": 26,
+  "review_sha": "4adb2219954aa132b1e8450cdd9e571dbedba309",
+  "cycles_used": 27,
+  "max_total_cycles": 27,
   "runs": [
     {
       "id": "plan-product",
@@ -246,6 +246,18 @@
       "squad": "product",
       "agent": "harness-product-lead",
       "verdict": "PASS"
+    },
+    {
+      "id": "validate-ci-hermetic-c27-eng",
+      "squad": "engineering",
+      "agent": "harness-eng-lead",
+      "verdict": "ESCALATE"
+    },
+    {
+      "id": "validate-delta-c27-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "ESCALATE"
     }
   ],
   "github": {
@@ -279,5 +291,5 @@
       910
     ]
   },
-  "briefing": ".harness/harness/features/FEAT-43-code-risk-grading/notes/ship-review-final.md"
+  "briefing": ".harness/harness/features/FEAT-43-code-risk-grading/notes/ship-review-c27.md"
 }
