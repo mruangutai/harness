@@ -8,10 +8,10 @@
 - status: Review — COMPLETE and RECOMMENDED FOR SHIP. 20 of 20 criteria met, every gate green, the
   engine crash class closed. Nothing shipped, merged, deployed or closed; the worktree stands and
   PR #978's lifecycle is the operator's.
-- review_sha: `baa96b7ee1cfbc7fcbea8873692cc91751a0c171`
-- cycles: **28 of 28 — exhausted** (`answers/Q10-b21-hold-and-fix.md` authorized the last one, singly
+- review_sha: `73c636dda65977faa9f9c171eedad35fed3213eb`
+- cycles: **29 of 29 — exhausted** (`answers/Q10-b21-hold-and-fix.md` authorized the last one, singly
   and narrowly). No repair capacity remains.
-- briefing: `notes/ship-review-c28.md` (supersedes `ship-review-c27.md`)
+- briefing: `notes/ship-review-c29.md` (supersedes every earlier ship review)
 
 Seven defects closed across cycles 14–26, each verified by the orchestrator's own run rather than
 accepted on report.
@@ -61,6 +61,30 @@ surviving `/tmp` outputs are the neutral run's rather than the discarded one's, 
 testimonial. SC-11 is strongly evidenced, not end-to-end machine-verified.
 
 `runs` is 39 against an informational 20-run budget (INV-22) — surfaced in the briefing with the read.
+
+## Cycle 29 — the origin/main reconciliation and the count-predicate defect
+
+`origin/main` advanced 24 commits; the operator merged it as `1d292c2`. The merge-delta review found
+**no FEAT-43 damage** — source byte-untouched, derived-range gate exit 0, SEC-01 still discriminating
+across four forged ranges, crash sweep clean, `validate-digest.py`'s automatic +34/-8 from main
+confined to `hook_mode()` with the SEC-01 region byte-identical.
+
+It detonated one latent defect: `"1 file(s)" in stderr`, a substring test on a rendered count. The
+merge unioned two features' directories 40 → 41, so `"1 file(s)" in "41 file(s)"` is `True`. **Three
+callsites carried it.** The negative one tripped and turned `--kind unit` red; the two POSITIVE ones
+were worse and SILENT, passing vacuously in exactly the redirected-root failure they exist to catch.
+The operator caught those two on a direct source read after my own dispatch's non-goals told the
+specialist to leave them — my scoping error.
+
+Repaired: one shared word-boundary predicate, all three callsites routing through it, two synthetic
+controls, and an **AST guard over the file's own source**. That guard is the point — a control over
+the helper stays green when a CALLSITE regresses, so for both positive sites the guard is the only
+detector. I mutated `:371` myself and watched the named case fire; the review mutated all three.
+`answers/Q13-cycle-29-substring-gate.md`.
+
+An earlier unauthorized attempt at this fix was **stopped and fully reverted by hand** — both hunks
+edited back, never `git checkout` — and the tree verified byte-identical to the merge before the
+authorized redo.
 
 ## Cycle 28 — the crash class, CLOSED
 
