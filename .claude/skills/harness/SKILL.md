@@ -47,13 +47,17 @@ is namespaced under `.harness/harness/features/<FEAT>/` (DEC-120).
    `STATE.md` and `feature.json` from disk before acting**, verify its cited artifact, and treat the
    digest as a claim until disk confirms it. The main session's outer orchestrator dispatch remains
    async, so the only user-channel parent receives OMP's automatic terminal delivery (DEC-204).
-5. **Weigh your own context before you continue.** Over
-   `budgets.orchestrator_context_warn_tokens` in `.harness/harness.json` (200000 today), decide
-   whether to finish this phase or hand it over. **The threshold ADVISES and the decision is yours**
-   (DEC-198); crossing it is normal, so hand off at a seam. Use the host's current-session context
-   signal when it exposes one. OMP-hosted sessions use OMP's own context signal; a host with no
-   trustworthy signal skips this advisory check in one line. Never identify yourself by scanning
-   Claude sidecars, guess a figure, or turn the advisory threshold into a gate.
+5. **Weigh your own context before you continue.** You do nothing to obtain the figure. On your
+   wake — the moment a `task` result returns — the harness hook reads your own OMP transcript off
+   disk and, only when you are over `budgets.orchestrator_context_warn_tokens` in
+   `.harness/harness.json`, appends one advisory line to the result you were already reading. That
+   line carries the measured tokens, the resolved threshold and the computed ratio, so the key is
+   named here and the numeral never is. **The threshold ADVISES and the decision is yours**
+   (DEC-198); crossing it is normal, so hand off at a seam rather than mid-phase. **Weight it by
+   how far past you are** (DEC-201): just over, carry on; far past, an unfinished phase costs more
+   than the handoff does. If no advisory line arrives there is nothing to weigh — skip the check in
+   one line. Never guess or invent a figure, and never turn the advisory into a gate: a reported
+   number is a claim until disk confirms it (DEC-199).
 6. **Adjust and record** — REPLACE `STATE.md`'s `## Current` with the new now, and update
    `feature.json`'s DATA: the runs list, and `cycles_used` from the lead's reported SEND-BACKS,
    since a clean first-pass run adds ZERO cycles and only rework counts (DEC-157). Values, never

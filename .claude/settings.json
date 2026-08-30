@@ -58,10 +58,6 @@
           {
             "type": "command",
             "command": "${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/check-domain.sh --post"
-          },
-          {
-            "type": "command",
-            "command": "${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/context-watch-hook.py"
           }
         ]
       }

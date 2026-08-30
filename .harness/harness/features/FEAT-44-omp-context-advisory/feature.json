@@ -1,0 +1,70 @@
+{
+  "feature_id": "FEAT-44-omp-context-advisory",
+  "branch": "feat/FEAT-44-omp-context-advisory",
+  "pr": 982,
+  "status": "Done",
+  "review_sha": "21e97ed",
+  "cycles_used": 1,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "2026-08-29-01-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-29-01-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL"
+    },
+    {
+      "id": "2026-08-29-02-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-29-02-eng",
+      "squad": "eng",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-29-03-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-29-1-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "ESCALATE"
+    }
+  ],
+  "github": {
+    "milestone": 32,
+    "parent": 966,
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03",
+      "T-04",
+      "T-05",
+      "T-06"
+    ],
+    "issues": {
+      "T-01": 967,
+      "T-02": 968,
+      "T-03": 969,
+      "T-04": 970,
+      "T-05": 971,
+      "T-06": 972
+    },
+    "source_issues": [
+      923
+    ]
+  }
+}
