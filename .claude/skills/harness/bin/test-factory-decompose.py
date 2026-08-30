@@ -893,8 +893,16 @@ with tempfile.TemporaryDirectory() as td:
     check("(22) os.replace was called at least once", len(replace_calls) >= 1, replace_calls)
     check("(22) feature.json WAS opened for reading at least once (anti-vacuum)",
           len(open_calls) >= 1, open_calls)
+    # NOT `all(m == "r")`. That conflated "not truncating" with "literally the
+    # string 'r'", so a plain BINARY READ failed it. Measured 2026-08-30: this
+    # passed on local python 3.14.5 and failed in CI, which recorded
+    # ['r','rb','rb','rb','rb','rb','rb','rb'] — every one of them a read, every
+    # one accepted by the per-open truncation check above, and the summary line
+    # reddening anyway. An assertion whose name says "never truncating" must test
+    # truncation; testing string equality instead makes it environment-dependent.
     check("(22) feature.json was opened only for reading, never in a truncating mode",
-          open_calls != [] and all(m == "r" for m in open_calls), open_calls)
+          open_calls != [] and not any(
+              any(t in m for t in ("w", "x", "a")) for m in open_calls), open_calls)
 
 
 # ============================================================================
