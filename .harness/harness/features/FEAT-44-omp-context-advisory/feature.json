@@ -1,8 +1,8 @@
 {
   "feature_id": "FEAT-44-omp-context-advisory",
   "branch": "feat/FEAT-44-omp-context-advisory",
-  "pr": null,
-  "status": "Review",
+  "pr": 982,
+  "status": "Done",
   "review_sha": "21e97ed",
   "cycles_used": 1,
   "max_total_cycles": 10,
