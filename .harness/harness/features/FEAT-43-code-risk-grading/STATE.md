@@ -5,13 +5,13 @@
 - feature: FEAT-43-code-risk-grading
 - run: .harness/harness/features/FEAT-43-code-risk-grading/runs/2026-08-29-validate-delta-c26-validator/state.yaml
 - squad: validator
-- status: Review — all 20 criteria met and every gate green, but the ship recommendation is
-  WITHDRAWN pending one decision: the feature's own engine crashes on ordinary Python. Nothing
-  shipped, merged, deployed or closed; the worktree stands and PR #978 is the operator's.
-- review_sha: `4adb2219954aa132b1e8450cdd9e571dbedba309`
-- cycles: **27 of 27 — exhausted** (`answers/Q10-b21-hold-and-fix.md` authorized the last one, singly
+- status: Review — COMPLETE and RECOMMENDED FOR SHIP. 20 of 20 criteria met, every gate green, the
+  engine crash class closed. Nothing shipped, merged, deployed or closed; the worktree stands and
+  PR #978's lifecycle is the operator's.
+- review_sha: `baa96b7ee1cfbc7fcbea8873692cc91751a0c171`
+- cycles: **28 of 28 — exhausted** (`answers/Q10-b21-hold-and-fix.md` authorized the last one, singly
   and narrowly). No repair capacity remains.
-- briefing: `notes/ship-review-c27.md` (supersedes `ship-review-final.md`)
+- briefing: `notes/ship-review-c28.md` (supersedes `ship-review-c27.md`)
 
 Seven defects closed across cycles 14–26, each verified by the orchestrator's own run rather than
 accepted on report.
@@ -61,6 +61,25 @@ surviving `/tmp` outputs are the neutral run's rather than the discarded one's, 
 testimonial. SC-11 is strongly evidenced, not end-to-end machine-verified.
 
 `runs` is 39 against an informational 20-run budget (INV-22) — surfaced in the briefing with the read.
+
+## Cycle 28 — the crash class, CLOSED
+
+Three `None` guards in `_Counter` — `visit_AnnAssign/node.value`, `visit_With/item.optional_vars`,
+`visit_Try/handler.type` — matching the pattern `visit_Assert` already used in the same class. My own
+sweep over `bin/*.py`: **99 graded, 0 crash**, up from 83/16; `harness_merge.py` and
+`harness_boundary.py` now grade. Range gate exit 0 at 201 records, engine 53 functions zero below
+grade 4, five suites exit 0, `check-state.sh` exit 0.
+
+**The class is closed structurally, not patched three times.** `ast.NodeVisitor.generic_visit` skips
+`None` behind an `isinstance(value, AST)` check, so only a custom `visit_*` override calling
+`self.visit()` directly can crash. The delta review enumerated all 18 optional fields `_Counter`
+reaches and ran 30 construct probes: 30/30 clean here, the same three raising at the prior pin. Each
+guard binds under isolated mutation to a NAMED test failure, and the tests assert literal metrics
+re-derived term by term — correctly NOT asserting bare-`with` and `with`-`as` identity (`abc_a`
+differs by 1). `answers/Q12-cycle-28-crash-class.md`.
+
+**SC-11 carries across the change without an argument:** pm re-graded the four surviving arm outputs
+at this pin and reproduced 6/5/16/14 exactly.
 
 ## Cycle 27 — the CI blocker, and what fixing it uncovered
 

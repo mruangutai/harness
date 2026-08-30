@@ -1,0 +1,92 @@
+<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>FEAT-43 code-risk grading — ship review (cycle 28, final)</title><style>
+:root{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:ui-sans-serif,-apple-system,"Segoe UI","Helvetica Neue",Arial,sans-serif;
+}
+/* Token-level theming: components style through the tokens and never inside the
+   media query, so the viewer's explicit toggle can override the OS in BOTH
+   directions. */
+@media (prefers-color-scheme:dark){
+  :root{ --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+         --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733; }
+}
+:root[data-theme="dark"]{
+  --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+  --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733;
+}
+:root[data-theme="light"]{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+}
+*{box-sizing:border-box}
+body{margin:0; background:var(--paper); color:var(--ink);
+  font:400 16px/1.65 var(--sans); padding:clamp(1.5rem,5vw,4rem) clamp(1rem,5vw,2rem) 6rem}
+.wrap{max-width:56rem; margin:0 auto}
+/* Layout owns the spacing: gap between siblings, not per-element margins that
+   collapse or double. */
+.wrap{display:flex; flex-direction:column; gap:1rem}
+.eyebrow{font:500 11px/1 var(--mono); letter-spacing:.14em; text-transform:uppercase;
+  color:var(--quiet); margin:0}
+h1{font:600 clamp(1.6rem,4vw,2.3rem)/1.15 var(--sans); letter-spacing:-.02em;
+  margin:.4rem 0 .2rem; text-wrap:balance}
+h2{font:600 1.15rem/1.3 var(--sans); letter-spacing:-.01em; margin:2rem 0 0;
+  padding-top:1.25rem; border-top:1px solid var(--line); text-wrap:balance}
+h3{font:600 .98rem/1.4 var(--sans); margin:1.1rem 0 0}
+h4,h5,h6{font:500 11px/1.4 var(--mono); letter-spacing:.1em; text-transform:uppercase;
+  color:var(--quiet); margin:1rem 0 0}
+p,li{max-width:65ch; margin:0}
+ul,ol{margin:0; padding-left:1.4rem; display:flex; flex-direction:column; gap:.4rem}
+li>ul,li>ol{margin-top:.4rem}
+strong{font-weight:600}
+code{font:400 .875em/1.5 var(--mono); background:var(--sunk); padding:.1em .35em; border-radius:3px}
+pre{background:var(--sunk); border:1px solid var(--line); border-radius:6px;
+  padding:.85rem 1rem; overflow-x:auto; margin:0}
+pre code{background:none; padding:0}
+blockquote{margin:0; padding:.75rem 1rem; border-left:3px solid var(--accent);
+  background:var(--accent-soft); border-radius:0 5px 5px 0}
+blockquote p{max-width:none}
+hr{border:0; border-top:1px solid var(--line); margin:.5rem 0}
+/* Wide content pans inside its OWN container; the page body never scrolls sideways. */
+.scroll{overflow-x:auto; border:1px solid var(--line); border-radius:6px}
+table{border-collapse:collapse; width:100%; font-size:.9rem}
+th,td{text-align:left; padding:.6rem .8rem; border-bottom:1px solid var(--line); vertical-align:top}
+thead th{font:500 10px/1.3 var(--mono); letter-spacing:.11em; text-transform:uppercase;
+  color:var(--quiet); background:var(--sunk); white-space:nowrap}
+tbody tr:last-child td{border-bottom:0}
+/* Figures in a column line up. */
+td,th{font-variant-numeric:tabular-nums}
+.derived{color:var(--slate); font-size:.85rem; margin-top:2.5rem;
+  padding-top:1rem; border-top:1px solid var(--line)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style></head><body><div class='wrap'><p class='eyebrow'>Ship review · reading view</p><h1 id="feat-43-code-risk-grading-ship-review-cycle-28-final">FEAT-43 code-risk grading — ship review (cycle 28, final)</h1>
+<p><strong>Supersedes <code>ship-review-c27.md</code>.</strong> That briefing withdrew the ship recommendation over a crash in the feature&#x27;s own engine. <strong>The crash class is closed, and I am reinstating the recommendation.</strong></p>
+<p><strong>Recommendation: SHIP.</strong> 20 of 20 criteria met, zero <code>not_met</code>, zero open, <code>must_fix</code> empty across every review. Push PR #978 and let CI confirm what the depth-1 clone already showed.</p>
+<h2 id="the-crash-class-is-closed-structurally-not-patched-three-times">The crash class is closed — structurally, not patched three times</h2>
+<p>Three <code>None</code> guards, matching the pattern <code>visit_Assert</code> already used in the same class:</p>
+<pre><code>visit_AnnAssign  node.value            →  x: int
+visit_With       item.optional_vars    →  with lock:
+visit_Try        handler.type          →  except:</code></pre>
+<p><strong>The measurement, run by me and reproduced independently:</strong> over the harness&#x27;s own <code>bin/*.py</code> the sweep goes from <strong>83 graded / 16 crash</strong> to <strong>99 graded / 0 crash</strong>. <code>harness_merge.py</code> and <code>harness_boundary.py</code> — production files that aborted the tool — now grade.</p>
+<p><strong>The part that matters more than the count.</strong> I asked the review to prove the <em>class</em> was closed rather than three instances of it, and it did, structurally rather than by enumeration: <code>ast.NodeVisitor.generic_visit</code> skips <code>None</code> behind an <code>isinstance(value, AST)</code> check, so <strong>only a custom <code>visit_*</code> override calling <code>self.visit()</code> directly can crash</strong>. The reviewer enumerated all 18 optional fields <code>_Counter</code> can reach and executed 30 construct probes: 30/30 clean at this pin, and the same three raise at the prior pin — so the fix is demonstrably what changed the outcome. <code>Return.value</code>, <code>Raise.exc</code>/<code>cause</code>, <code>Yield.value</code>, <code>Starred</code>, slice bounds, comprehension <code>ifs</code>, argument defaults, <code>alias.asname</code>, <code>keyword.arg</code>, <code>Global</code>/<code>Nonlocal</code> and <code>FunctionDef.returns</code> are all safe because <code>_Counter</code> never overrides them.</p>
+<p>Each guard binds: three isolated mutations, three <em>named</em> test failures, sha256-verified byte-identical restores — and the mutations were run inside a disposable clone, so the worktree file was never opened for write. The tests assert <strong>literal metric values</strong>, re-derived term by term by QA, not merely the absence of an exception. They correctly do <strong>not</strong> claim bare <code>with</code> and <code>with … as …</code> are metric-identical; <code>abc_a</code> differs by 1.</p>
+<h2 id="cycle-27-for-completeness">Cycle 27, for completeness</h2>
+<p>The PR #978 CI failure is closed. <code>check_prior_validator</code> ran <code>git show df63193:&lt;file&gt;</code>, absent in a shallow checkout. Your patch deleted the check; <strong>I refused</strong> — it is the sole implementation of SC-20&#x27;s fourth clause (<code>BRIEF.md:210-218</code>, verbatim). The files are now byte-identical <code>.fixture</code> data under a non-<code>.py</code> suffix, proven hermetic in a real <code>git clone --depth 1</code>. Two further history dependencies in the same file were fixed with it; the scope call was reported and you ratified it.</p>
+<h2 id="evidence-at-the-ship-pin-baa96b7e">Evidence at the ship pin <code>baa96b7e</code></h2>
+<div class="scroll"><table><thead><tr><th>Gate</th><th>Result</th></tr></thead><tbody><tr><td>Goal-check</td><td><strong>20 of 20 met, 0 <code>not_met</code>, 0 open</strong></td></tr><tr><td>Engine crash sweep</td><td><strong>99 graded, 0 crash</strong> (was 83/16)</td></tr><tr><td>The feature&#x27;s own grading gate</td><td><strong>exit 0</strong> — 201 graded, zero blocking, 12 grade-2</td></tr><tr><td>The engine against its own bar</td><td>53 functions, zero below grade 4</td></tr><tr><td>Delta review (this cycle)</td><td><strong>PASS</strong>, <code>must_fix: []</code>, <code>severity_max: low</code></td></tr><tr><td>Delta review (cycle 27)</td><td><strong>PASS</strong> — hermeticity, discrimination and fixture inertness each proven</td></tr><tr><td>Full independent panel (<code>17106762</code>)</td><td><strong>PASS</strong>, <code>must_fix: []</code></td></tr><tr><td>Focused suites</td><td>five, all exit 0</td></tr><tr><td><code>check-state.sh</code></td><td><strong>exit 0</strong></td></tr><tr><td>SC-11 UAT</td><td><strong>passed</strong>, and see below</td></tr></tbody></table></div>
+<p><strong>The nicest result in this cycle answers a question I expected to have to argue.</strong> Your SC-11 UAT ran at pin <code>cd8dae47</code>, and two source changes have landed since — including a production change to the grading engine. Does a UAT executed at an earlier pin still evidence the criterion here? pm did not argue it: it <strong>re-graded the four surviving arm outputs at this pin and reproduced 6, 5, 16, 14 exactly</strong>. The measurement is stable across the change, so the pass carries.</p>
+<h2 id="what-is-still-true-and-uncovered">What is still true and uncovered</h2>
+<ul><li><strong>The class-closure probe was throwaway.</strong> The 30-construct enumeration that proves the class is closed no longer exists; the committed suite defends the three fixed constructs, not the class. The reviewer ranks this the highest-value of the three new rows, and I agree — B30.</li><li><code>visit_Try</code> now grades <strong>exactly 4 with zero headroom</strong>. One added branch drops the crash class&#x27;s own repair site below the production bar. B28.</li><li><strong>The generic containment fix is deeper but not strictly better</strong>, and I am recording the refined judgement rather than my first one. A one-line <code>_Counter.visit()</code> override that no-ops on <code>None</code> would close the class permanently at one site. But it converts a <em>diagnosed, bounded</em> null into <em>unbounded</em> null tolerance across every present and future override — including required fields that are <code>None</code> because of a genuine bug, which it would then silently swallow. B29, with the trade-off recorded rather than a recommendation to just do it.</li><li>The last three reviews were <strong>two-member delta reviews</strong>, not full panels. The c21 panel&#x27;s security and UI verdicts stand and were not refreshed; no delta added an input, auth, secret, serialization or rendered surface.</li><li>No coverage instrumentation exists in this repository.</li></ul>
+<h2 id="backlog">Backlog</h2>
+<p>B1–B20 and B22–B24 carry forward from <code>ship-review-final.md</code>; B25 is <strong>closed</strong> by this cycle. B26 and B27 remain untouched, as you instructed — they were not bundled merely for sharing a file. Four rows are new, with the evidence you asked for.</p>
+<div class="scroll"><table><thead><tr><th>ID</th><th>Nature</th><th>What</th></tr></thead><tbody><tr><td><strong>B28</strong></td><td>chore</td><td><code>visit_Try</code> grades exactly 4 (cyc 4 / cog 4 / abc 8.7, driver <code>cognitive+abc</code>) — zero headroom at the crash class&#x27;s own repair site</td></tr><tr><td><strong>B29</strong></td><td>enhancement</td><td>the generic <code>_Counter.visit()</code> <code>None</code>-no-op override. Deeper — one site instead of three, and permanent for future overrides. <strong>Not strictly better:</strong> it trades a diagnosed bounded null for unbounded null tolerance and would silently swallow a required field that is <code>None</code> because of a real bug. Needs a decision, not a tidy-up</td></tr><tr><td><strong>B30</strong></td><td>bug</td><td>the 30-construct class-closure probe that proved the class closed was <strong>throwaway and no longer exists</strong>. The committed suite defends three constructs; nothing defends the class against a future <code>visit_*</code> override that dereferences a new optional field. Highest-value of these four</td></tr><tr><td><strong>B31</strong></td><td>bug</td><td><strong>harness, second occurrence with evidence.</strong> A specialist ran <code>git checkout -- code_grade.py</code> mid-run this cycle against an explicit written prohibition, self-reported it, and hand-reapplied its work; I verified the diff vs the prior pin was exactly the three guards, so nothing was lost. The first occurrence was in cycle 14 (<code>git checkout -- code-grade.py</code>, reverting a completed refactor). <strong>The rule is two-for-two on being ignored by different agents in different cycles</strong>, which is evidence it needs a mechanical guard rather than stronger prose. B17 is the rule; this is the recurrence and the case for the mechanism</td></tr></tbody></table></div>
+<h2 id="budget">Budget</h2>
+<p><code>cycles_used</code> is <strong>28 of 28</strong> — exhausted. <code>runs</code> is <strong>45</strong> against an informational 20-run budget (INV-22). <strong>B20 recurred again</strong>: three run <code>state.yaml</code> files arrived carrying non-checkpoint keys. Ten repairs by hand across this feature. It remains the harness&#x27;s most reliable defect.</p>
+<h2 id="what-is-left-for-you">What is left for you</h2>
+<p><strong>1. Ship.</strong> Push PR #978 and await CI — the depth-1 clone is a local proxy for it, and it is green. <strong>2. Strike any backlog rows you do not want.</strong> Unstruck rows become issues on acceptance; anything struck dies silently. B25 is closed and removed.</p>
+<p>Merge, <code>gh-sync.py ship</code>, backlog creation, feature-close distillation and worktree removal are all yours or the main session&#x27;s. None has been done.</p>
+<h2 id="state-of-the-branch">State of the branch</h2>
+<p>Nothing shipped. No PR merged, no deploy, no issue closed; the worktree stands. <code>review_sha</code> is <code>baa96b7ee1cfbc7fcbea8873692cc91751a0c171</code>, <code>check-state.sh</code> exits 0, the working tree is clean, and no source has moved past the pin.</p><p class='derived'>Derived from <code>ship-review-c28.md</code> — the markdown is the record; do not edit this file. Regenerate with <code>bin/render-brief.py</code>.</p></div></body></html>
