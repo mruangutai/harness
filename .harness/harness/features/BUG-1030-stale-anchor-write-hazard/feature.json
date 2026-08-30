@@ -1,0 +1,17 @@
+{
+  "feature_id": "BUG-1030-stale-anchor-write-hazard",
+  "branch": "fix/stale-anchor-write-hazard",
+  "pr": null,
+  "status": "Review",
+  "review_sha": "none",
+  "cycles_used": 0,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "2026-08-30-01-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "BLOCKED"
+    }
+  ]
+}

@@ -466,18 +466,32 @@ describe("OMP task lifecycle adapter", () => {
     expect(postPaths(calls)).toEqual(["src/old.ts", "src/new.ts"]);
   });
 
-  test("a non-string patch spawns no gate at all - the silent-zero shape", async () => {
+  test("a non-string patch spawns no gate, and SAYS SO (S2)", async () => {
     const { handlers, calls } = fixture();
     await start(handlers);
-    await handlers.get("tool_result")?.(editResult({ sections: ["a/one.json"] }), editCtx);
-    // CHARACTERIZATION, NOT ENDORSEMENT. extractEditPaths returns [] for any
-    // non-string input, so `.map()` spawns nothing: no error, no stderr, no exit
-    // code. If a host ever delivers a structured edit payload the shape gate goes
-    // quiet on every edit and no suite notices. Whether to convert this into the
-    // bash-style sweep instead of nothing is an enforcement-behaviour decision,
-    // recorded in .harness/notes/analysis-stale-anchor-write-hazard.md, not a
-    // silent default. This test exists so the zero is asserted rather than assumed.
+    const result = await handlers.get("tool_result")?.(
+      editResult({ sections: ["a/one.json"] }), editCtx);
+    // extractEditPaths returns [] for any non-string input, so `.map()` spawns
+    // nothing. The gate genuinely cannot run: no path was extracted, so there is
+    // no file to check. What S2 fixes is that the absence is now ANNOUNCED rather
+    // than being byte-identical to a gate that ran and passed.
     expect(postPaths(calls)).toEqual([]);
+    const texts = ((result as any).content as Array<{ text: string }>).map((part) => part.text);
+    expect(texts.some((t) => t.includes("ran on no file"))).toBe(true);
+    // AND IT MUST NOT COST A GATE. No isError key at all, not merely a falsy one:
+    // a notice that turned a normal result into an error would be worse than the
+    // silence it replaces.
+    expect("isError" in (result as any)).toBe(false);
+  });
+
+  test("a well-formed edit is gated and stays silent - no spurious S2 notice", async () => {
+    const { handlers } = fixture();
+    await start(handlers);
+    const result = await handlers.get("tool_result")?.(
+      editResult("[a/one.json#A1B2]\nPUT 1.=1:\n+x"), editCtx);
+    // The gate ran, so there is nothing to announce. If this reddens, every edit
+    // in every session just started carrying a notice.
+    expect(result).toBeUndefined();
   });
 });
 
