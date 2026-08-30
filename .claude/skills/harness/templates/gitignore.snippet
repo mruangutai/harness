@@ -5,7 +5,7 @@
 # notes, logs, expertise and features/*/feature.json are the record of what shipped,
 # and reviewers auditing the PR diff need to see plan and state changes.
 .harness/features/*/runs/**
-# The one-session PyYAML bootstrap marker (DEC-171 am.1). Written by the write hooks
+# The one-session PyYAML bootstrap marker (DEC-171). Written by the write hooks
 # when PyYAML is missing, so the FIRST session can still recover; untracked, it would
 # dirty the tree and deadlock the next run on the very rule above.
 .harness/.pyyaml-bootstrap

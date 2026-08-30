@@ -1,10 +1,10 @@
 # Expertise — harness-documentor
 
 ## Patterns (max 15)
-- P-01: WHEN appending an amendment to `.harness/harness/docs/DECISIONS.md` DO place it INSIDE the
-  amended decision's own section, before the next `## DEC-` heading, then regenerate the index —
-  the generator attributes an amendment to the heading above it, so one appended at end-of-file
-  becomes the last decision's.
+- P-01: WHEN a decision in `.harness/harness/docs/DECISIONS.md` proves wrong DO rewrite that entry
+  in place to state current truth, and keep the falsified claim inside it as one undated,
+  unattributed clause marked measured-false — without that clause the next reader re-proposes what
+  the tree already disproved.
 - P-02: WHEN adding an entry to `.harness/harness/docs/DECISIONS.md` DO append at end-of-file and regenerate
   the index rather than hand-writing the new row — appending keeps every existing `@line` anchor
   stable, and the generator emits a sentinel telling you the one place to write.

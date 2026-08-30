@@ -370,7 +370,7 @@ def process_plan_yaml(path, findings, root, manifest_root):
         status = t.get("status")
         if status is not None and (
                 not isinstance(status, str) or status not in LEGAL_TASK_STATUSES):
-            # Not str()-coerced first (DEC-192): a list stringifies to something that
+            # Not str()-coerced first (DEC-203): a list stringifies to something that
             # happens not to be in the tuple, which gives the right answer for the wrong
             # reason and stops giving it the moment the tuple grows. Case sensitive on
             # purpose — "Building" (the board's own spelling, capital B) is the typo a
@@ -449,7 +449,7 @@ FINISHED_STATUSES = ("Done", "Abandoned")
 
 # A DIFFERENT VOCABULARY FROM THE ONE ABOVE, deliberately placed beside it so a reader
 # sees both and does not conflate them. FINISHED_STATUSES is the board's feature.json
-# column set; LEGAL_TASK_STATUSES is plan.yaml's per-TASK status (DEC-192) — a task in
+# column set; LEGAL_TASK_STATUSES is plan.yaml's per-TASK status (DEC-203) — a task in
 # flight is today indistinguishable from one nobody picked up, because plan.yaml only had
 # pending and done. This is the third value, and the set that bounds it.
 LEGAL_TASK_STATUSES = ("pending", "building", "done")

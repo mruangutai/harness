@@ -1057,7 +1057,7 @@ def case_24():
 
 
 def case_25():
-    """(25) DEC-192 board truth: a task's status, when present, is one of exactly
+    """(25) DEC-203 board truth: a task's status, when present, is one of exactly
     pending / building / done — case sensitive on purpose. "Building" (capital B) is the
     board's own spelling of the same idea and is the typo a person will actually make;
     today it would read as not-done forever and the card would silently never move. An

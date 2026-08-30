@@ -26,7 +26,7 @@ Exit codes are the interface:
     8  the proposal's approval mapping parses differently from the base's
     9  --file does not resolve to a plan.yaml this tool owns
 
-python3 stdlib plus PyYAML (DEC-171 am.1 requires it here; imported plainly, never through
+python3 stdlib plus PyYAML (DEC-171 requires it here; imported plainly, never through
 harness_yaml.py — that divergence is raised upward as a decision question, not resolved here).
 """
 import argparse

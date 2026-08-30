@@ -7,7 +7,7 @@ schema: factory-fleet/1
 # `default_branch` stays because `factory_workspace` reads it in order to CREATE the checkout,
 # so it cannot live inside the checkout.
 #
-# mruangutai/harness is DELIBERATELY ABSENT (DEC-174 am.1). Harness develops itself in the
+# mruangutai/harness is DELIBERATELY ABSENT (DEC-174). Harness develops itself in the
 # live checkout and in worktrees under it — both sit INSIDE the repository root, resolve in
 # the harness base, and keep full write rights.
 #

@@ -246,7 +246,7 @@ def main():
         except harness_yaml.YamlParseError as e:
             print(f"team-config.yaml: DOES NOT PARSE — {e}")
             print("  The upgrade cannot compare a manifest it cannot read. Fix the file "
-                  "first; `check-domain.sh` is failing closed on it too (DEC-171 am.1).")
+                  "first; `check-domain.sh` is failing closed on it too (DEC-171).")
             gaps.append("team-config.yaml")
         try:
             tver, tnames = yaml_version(tt), yaml_names(tt)

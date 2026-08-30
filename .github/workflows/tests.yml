@@ -59,7 +59,7 @@ jobs:
       # is no longer pinned, so a runner-image bump changes the interpreter under the suite
       # without any diff here. Accepted as too little value for its weight.
       #
-      # PyYAML is REQUIRED, not optional (DEC-171 am.1). There is no line-scan fallback:
+      # PyYAML is REQUIRED, not optional (DEC-171). There is no line-scan fallback:
       # a missing parser is a loud failure by design, so install it rather than letting
       # the suite exercise a degraded path that does not exist. jsonschema is REQUIRED
       # too (DEC-189): FEAT-14's feature.json schema checker fails loudly, never silently,
@@ -121,7 +121,7 @@ jobs:
       # citation that used to sit here was the worse kind of wrong: it named
       # `test-check-plan-routes.py` case 25 as reading this file and asserting the step is present
       # and unneutered. Measured 2026-08-21 — case_25 exists at :1030 and PASSES, and it asserts a
-      # plan.yaml `status:` enum under DEC-192. It never opens this file. A reader following that
+      # plan.yaml `status:` enum under DEC-203. It never opens this file. A reader following that
       # citation found a green test and stopped looking, which is worse than finding nothing.
       # No test under bin/ asserts anything about this workflow's content.
       #

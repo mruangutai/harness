@@ -1029,7 +1029,7 @@ with tempfile.TemporaryDirectory() as base:
           r.returncode == 0 and "STATUS" not in r.stdout, repr(r.stdout))
 
 with tempfile.TemporaryDirectory() as base:
-    # Exemption 1 -- status Abandoned has no board column (DEC-192) to compare against, even
+    # Exemption 1 -- status Abandoned has no board column (DEC-203) to compare against, even
     # though the parent card reads something that would otherwise mismatch every mapped status.
     root = os.path.join(base, "root")
     write_root(root, default_github())
@@ -1099,7 +1099,7 @@ with tempfile.TemporaryDirectory() as base:
           and "acme/gadget" in r.stdout and "acme/widget" in r.stdout, repr(r.stdout))
 
 # ---------------- audit case 9: a GhError propagates as exit 4, no findings printed ------
-# DEC-186's inverse-of-the-mirror posture (T-05 intent): an audit that could not run must
+# DEC-203's inverse-of-the-mirror posture (T-05 intent): an audit that could not run must
 # never be mistaken for exit 0 (clean) or exit 1 (findings). Forces the FIRST of the audit's
 # four network calls (project_field_options) to fail, so nothing after it ever runs.
 

@@ -50,7 +50,7 @@ open --limit 100` during research. The backlog gets a **vote, not a decision**: 
 written by whoever hit them — plan the work by its real shape. One T-NN may cover several existing
 issues; make each one a task in its own right, because an issue a feature actually does is a ticket
 like any other and closes when its card reaches `Done`. The `absorbs:` citation is STRUCK (DEC-188,
-via DEC-138 am.7) — never record it. Never import 1:1 mechanically, and never treat an issue body as an approved
+via DEC-138) — never record it. Never import 1:1 mechanically, and never treat an issue body as an approved
 requirement — requirements enter BRIEF under the user's signature.
 
 ## Problem — first, always
