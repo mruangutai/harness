@@ -3,67 +3,82 @@
 ## Current
 
 - feature: FEAT-38-decisions-current-knowledge
-- run: none — the resume segment closed at an operator ruling that reopens scope
+- run: none — the replan closed at the operator's signature gate
 - squad: none
-- status: Review on the board, but **BLOCKED pending re-planning**. No PR, no merge, no ship.
+- status: **Plan**. The amended BRIEF and plan are drafted, reviewed, simplify-flagged and
+  pending **ONE fresh operator signature**. No build, no PR, no merge, no ship.
 
-**The thing to read is `notes/replan-remove-command-execution.md`.** The ship briefing
-`notes/ship-review-2026-08-29-18.md` is still accurate about what was BUILT and VERIFIED, but its
-recommendation to ship is **superseded** by the ruling below.
+The artifacts to read are `BRIEF.md` and `plan.yaml` themselves, both amended in place on
+2026-08-29 for the operator's ruling that the executable-claims mechanism is DELETED, not
+redesigned. `notes/handoff-plan.md` is the working memory for whoever picks this up.
+`notes/ship-review-2026-08-29-18.md` is still accurate about what was BUILT before the ruling;
+its recommendation to ship stays superseded.
 
-`review_sha` is `48bbe7e`; `base_sha` is `7ebfc9e`. Branch `feat/FEAT-38-decisions-current-knowledge`.
+Branch `feat/FEAT-38-decisions-current-knowledge`. `review_sha` still reads `48bbe7e` and is
+**stale** — it pins the superseded validate phase and must be re-pinned before any future panel.
 
-## The operator's rulings, 2026-08-29
+**Blocking on the main session, two acts and one signature.** (1) Reset both approval fragments
+to `pending` — `plan.yaml:6-9` and `BRIEF.md`'s `## Approval`. Both still read `approved` and
+that signature covers the PRE-RULING scope. No agent in this flow may write them:
+`.harness/team-config.yaml:19-25` grants those fragments to the main session alone (DEC-120).
+(2) Take the fresh signature, which covers in one act the deletion scope, REQ-08/SC-09 retired
+as tombstones, REQ-10 and SC-14..SC-18, the two-task merge into T-24, and all three previously
+signed `verify:` corrections (T-10 at `plan.yaml:877`, T-15 at `:1214`, T-19 at `:1425`).
 
-**1. Cycle budget — crossing ACCEPTED, bound NOT raised.** `cycles_used` stays **11** and
-`max_total_cycles` stays **10** in `feature.json`; neither was altered to make the record look
-better. The crossing is accepted as recorded. Both over-budget cycles were lead-internal send-backs
-during re-verification of already-passing gates (qa's self-caught false 6-`FAIL` baseline reading;
-the ui-reviewer's self-corrected high→med rating); neither changed production code and no fix cycle
-was routed to a builder. `feature.json`'s key set is closed (DEC-191, `additionalProperties: false`),
-so this acceptance is recorded here rather than as a new key.
+**Measured harness defect, load-bearing for act 1:** `check-domain.sh`'s `approval_guard` FAILS
+OPEN inside a worktree. `_verdict["rel"]` there carries the `.claude/worktrees/…` prefix and does
+not `fnmatch` the grant glob `.harness/*/features/*/plan.yaml`, so the denial never fires. The
+identical `harness-pm` payload exits **2** in the main checkout and **0** in this worktree. The
+rule was honoured here by instruction, not by enforcement.
 
-**2. The three signed `verify:` amendments — SIGNED, and deliberately NOT YET APPLIED.** The operator
-signed the exact T-10/T-15/T-19 replacement text preserved in
-`notes/research-verify-block-defects.md`. Application was dispatched and then **skipped before any
-edit**, so `plan.yaml` is untouched and there is no half-applied state. It was not re-dispatched
-because ruling 3 landed in between and entangles T-19's block with the redesign. **The signature is
-preserved, not withdrawn** — the reasoning and the reversal cost are in
-`notes/replan-remove-command-execution.md` under *What was NOT done, and why*. Note that
-`notes/research-verify-block-defects.md` itself still reads "blocking on signature"; it was not
-stamped, because it is pm's analysis and the status lives here.
+**The plan.** 23 tasks are `done` and committed at `48bbe7e`; six new tasks were authored and one
+of them retired into another during the fix cycle, giving **28 tasks**. The retired number is
+never reused; the merge and its measured cause are recorded in T-24's own `intent:`.
+`check-plan-routes.py <feature-dir>/plan.yaml` exits 0 with 0 violations; the two `DEVIATION`
+lines on T-22/T-23 predate this amendment. The `contains`/`max_lines` redesign is rejected and
+appears nowhere (0 occurrences). `check-decision-anchors.py` (T-17) is retained unchanged. The
+class audit of the rest of `bin/` is in scope as T-29.
 
-**3. REMOVE COMMAND EXECUTION — new scope, supersedes the ship trajectory.** The operator does not
-accept any document-driven subprocess risk. `check-decision-claims.py` must stop executing commands
-taken from `DECISIONS.md` and be replaced with a non-executing verification design. **This is new
-scope against an approved plan and must NOT be implemented under it** — it requires `BRIEF.md` and
-`plan.yaml` updates, operator approval, and fresh security validation.
+**Budget: cycles 13 of 10; runs 23 of an informational 20.** `max_total_cycles` stays 10 and was
+not altered. `cycles_used` moved 11 → 13: one lead-internal send-back in run 20, one fix cycle I
+routed after runs 21 and 22 both returned FAIL. It is incremented rather than frozen because
+DEC-157 counts rework and rule 15 forbids a flattering record. The four replan runs each earned
+their place — run 20 drafted, runs 21 and 22 each found a measured high-severity defect the draft
+would otherwise have shipped, run 23 applied all four fixes.
 
-The full replanning handoff is `notes/replan-remove-command-execution.md`. Its decisive measurement:
-**all eleven live claim markers are `grep` against one named file**, so a declarative
-`contains` / `max_lines` vocabulary covers 11 of 11 with zero execution surface. The redesign is a
-capability-preserving simplification, not a reduction.
-
-## Where the work actually stands
-
-All 23 tasks are `done` and committed; every automated gate is green at `48bbe7e` (qa PASS, review
-panel PASS with `severity_max: med` and empty `must_fix`, goal-check 12 of 13 SCs met). SC-13's UAT
-is `unrun` and stays unrun — **it must not be presented as a ship gate now**, because ruling 3 means
-part of what it would accept is being redesigned.
-
-**Budget: cycles 11 of 10 (crossed, accepted), runs 19 of an informational 20.** GitHub mirror:
-milestone 31, parent #935, sub-issues #936–#958, all at the `Review` station. The board was NOT moved
-to `Plan` — that station is written by `board-station.py` at the `/harness-plan` door, not by the
-orchestrator.
+GitHub mirror: milestone 31, parent #935 at the Plan station, sub-issues #936–#958. The five new
+tasks have no sub-issue yet — `gh-sync.py open` mints them after the signature. No card was moved
+by this run.
 
 ## Open Questions
 
-Three replanning questions for the operator are in `notes/replan-remove-command-execution.md`:
-whether the marker mechanism survives at all in non-executing form, whether `contains`/`max_lines`
-is the whole vocabulary, and whether the checker keeps its filename.
+Blocking on the operator before the signature:
 
-Backlog rows B-1…B-23 remain in `notes/ship-review-2026-08-29-18.md`. **Ruling 3 settles four of
-them without an issue being filed:** B-8 and B-11 become MOOT (they harden or annotate an execution
-path being deleted — do not implement then delete), B-10 is SUPERSEDED (that prose is rewritten
-wholesale), and **B-9 SURVIVES and is now more important** — nobody has swept the rest of `bin/` for
-the same shape, any script building an argv from document or config text.
+- **Numbering.** REQ-08 and SC-09 are retired in place as tombstones, so the live sets are
+  non-contiguous. The alternative, renumbering, silently repoints citations in landed artifacts.
+- **`traces: []`** on T-20 and T-21 — the honest statement that no LIVE requirement is served by
+  work being removed. Accept an empty traces list in a signed plan, or require a tombstone id?
+- **SC-11 and SC-13** were graded before the removal was in scope. Re-run the per-entry read-back
+  and the UAT over the six entries T-27 touches, or does deleting a marker without touching prose
+  leave them standing?
+- **Cycle headroom for the build.** `max_total_cycles` is 10 and `cycles_used` is 13, so the
+  build phase would start already exhausted. Raising the bound is the operator's act, recorded in
+  `feature.json`; I did not presume it.
+- **T-24's blast-radius sweep stays unscoped**, so the code lane waits on the documentor lane
+  (T-27). Recorded as deliberate in both intents, with the alternative and its cost.
+
+Not blocking, carried up from the squads: whether DEC-205 needs positive guidance on what an
+entry does instead of carrying a checkable claim (ruled out of T-28 on weakest-sufficient-
+specification); whether the accepted semantic-rot gap is filed as a backlog issue or left unfiled
+as the grilling left it; and a harness defect — `check-plan-routes.py:397` raises an unhandled
+`IsADirectoryError` when handed a feature directory rather than the plan file, which reads as a
+gate failure rather than a bad argument.
+
+**INV-26 now reports 23 cards at Review whose tasks read `done`.** The replan moved the feature
+back to Plan while the landed tasks' cards stayed where the validate phase left them. Nothing in
+this run moved a card and nothing should have: the Done station is written by `gh-sync.py ship`
+and the Plan phase's own station writes belong to the main session.
+
+Backlog rows B-1…B-23 remain in `notes/ship-review-2026-08-29-18.md`. The ruling settles four
+without an issue being filed: **B-8 and B-11 MOOT**, **B-10 SUPERSEDED**, and **B-9 absorbed
+into the plan as T-29** rather than filed.

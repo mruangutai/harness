@@ -1,37 +1,52 @@
-# Handoff — FEAT-38-decisions-current-knowledge, plan → build — written at 7ebfc9e, seq-1
+# Handoff — FEAT-38, plan → build — written at 99bb52c, seq-1
 
 ## Next
 
-**Do not dispatch anything.** The plan phase ends at a user gate and the gate is unsigned:
-`BRIEF.md:224` and `plan.yaml:7` both read `status: pending`. The main session presents `BRIEF.md`,
-takes the operator's answer on Q1 (the 2026-08-26 widening — 15 deletions and DEC-188's retention
-clause struck), writes `approval:` in both artifacts, and moves the board to `Ready`. Only then does
-the build phase open, at `plan.yaml` `T-01` — a `harness-documentor` task — dispatched to
-`harness-eng-lead` as the eng segment, with `notes/reconciliation-plan.md` passed as an input path.
+**Nothing dispatches until the operator signs.** The amended BRIEF and plan are drafted,
+reviewed and simplify-flagged; the phase exits at the user gate. The main session must first
+RESET both approval fragments to `pending` — `plan.yaml:6-9` and `BRIEF.md`'s `## Approval` —
+because no agent in this flow may write them (DEC-120), then take the one fresh signature.
+After the signature: `gh-sync.py status <feature-dir> Ready`, then `gh-sync.py open` to mint
+sub-issues for T-24, T-25, T-27, T-28, T-29 (none is attached yet), then the eng segment in
+plan order T-27 → T-24 → T-25 / T-28, with T-29 after T-24.
 
 ## Trust
 
-- BRIEF.md and plan.yaml exist and are approval-pending — `BRIEF.md:222-226`, `plan.yaml:6-9` — verified-at 7ebfc9e
-- plan.yaml parses; 23 tasks, 12 decisions, 20 `team` / 3 `main-session-direct` — `yaml.safe_load` over `plan.yaml` — verified-at 7ebfc9e
-- Plan-route gate is green: 0 violations, exit 0; two advisory DEVIATIONs on T-22/T-23, which declare `main-session-direct` for a path granted to `harness-orchestrator` — `check-plan-routes.py plan.yaml` — verified-at 7ebfc9e
-- The intake is stale and `notes/reconciliation-plan.md` governs: 7,414 lines / 202 entries, 38 amendments, DEC-19 repoints to DEC-85 (not DEC-84), 29 live citations (not 13) — `notes/reconciliation-plan.md` §1 — verified-at 7ebfc9e
-- `.agents/skills` is a tracked symlink (mode 120000 → `../.claude/skills`); canonical paths are `.claude/skills/…` — `git ls-files -s .agents/skills` — verified-at 7ebfc9e
-- Thirteen edit surfaces resolve to NOBODY and are carved into one `main-session-direct` task, T-14 — `check-domain.sh --resolve` per path; `check-plan-routes.py` T-14 line — verified-at 7ebfc9e
-- pm's claim that four DEC-138 amendments sit inside DEC-168's span is true, and understated: six sub-sections are misfiled (DEC-137 in DEC-138 at :3286; DEC-138 ×4 in DEC-168 at :4383/:4410/:4438/:4517; DEC-189 in DEC-194 at :6401) — re-derived by heading-span scan — verified-at 7ebfc9e
-- The run-1 blocker is cleared: `.harness/.inflight-claims.json` in the MAIN checkout holds zero claims — read at 1788013249 — verified-at 7ebfc9e
-- SC-04's "37, 30 and 24 occurrences" uses a narrower frozen-set predicate than the reconciliation's 29 (pm also excludes `.harness/logs/**`). Both are internally consistent; neither was reconciled against the other — UNVERIFIED
+- Amended plan passes the route gate: 28 tasks, 0 violations, exit 0 — `check-plan-routes.py
+  <feature-dir>/plan.yaml` — verified-at 99bb52c by me. The two `DEVIATION` lines on T-22/T-23
+  are pre-existing and predate this amendment.
+- Both approval fragments are byte-untouched — `git diff -U0` over both files shows no changed
+  line inside either block — verified-at 99bb52c by me.
+- The three held `verify:` corrections are in the plan: T-10 at `plan.yaml:877`, T-15 at
+  `:1214`, T-19 at `:1425` with the `^KIND-DRIFT:` anchor kept verbatim — verified-at 99bb52c
+  by me against `notes/research-verify-block-defects.md`.
+- The removal order is measured, not reasoned. The three-step order took the whole suite to
+  exit 2 across the interval via the MISCONFIGURED detector at `run-unit-tests.sh:60-74`;
+  T-24 now merges the array edit and both deletions into one step — probe receipt
+  `notes/receipt-harness-backend-dev-2026-08-29-21-eng-drift-probe.md` — verified-at 99bb52c
+  by harness-backend-dev in a disposable /tmp copy, NOT re-run by me.
+- T-24's `git grep -l check-decision-claims` sweep can be clean at its own completion: the only
+  two occurrences in `DECISIONS.md` are the markers at `:6290-6291`, and T-24 depends on T-27
+  which removes all eleven — verified-at 99bb52c by me.
+- `review_sha` still reads `48bbe7e`. It is STALE — it pins the superseded validate phase.
+  Re-pin before any validator run (INV-6). UNVERIFIED for any purpose beyond its own history.
 
 ## Dead ends
 
-- Do not re-read `STATE.md`'s old open questions — the orphaned `harness-pm` claim and the 2-commits-behind base are both resolved; superseded by this file — verified-at 7ebfc9e
-- Do not spawn `harness-visual-designer`: no end-user interaction surface, prototype gate not fired — product-lead digest Q4 — source: lead's tier decision, operator-overridable
-- Do not pull #686 in beyond its one clause, and do not pull in #844/#748/#678/#687/#438/#680/#803/#486 — `BRIEF.md` "Two backlog tickets, ruled on rather than left open" — verified-at 7ebfc9e
-- Do not anchor a build task on a line number from the grilling or the triage: DEC-188's clause moved :5942→:5949, DEC-181 :5409→:5416, DEC-186 :5673→:5678 — `notes/reconciliation-plan.md` §4 — verified-at 7ebfc9e
+- The declarative `contains`/`max_lines` redesign in `notes/replan-remove-command-execution.md`
+  is REJECTED by the operator — grilling artifact `.harness/notes/grilling-remove-executable-
+  claims-2026-08-29.md`, `## Out of scope`. Do not revive it.
+- `check-decision-anchors.py` / T-17 is RETAINED UNCHANGED. Its argv is a fixed
+  `["git","ls-files"]` literal at `check-decision-anchors.py:111`; not in the risk class —
+  grilling artifact, `## Facts I verified`.
+- Backlog rows B-8 and B-11 are MOOT and B-10 SUPERSEDED — `STATE.md`, ruling 3. Do not
+  implement then delete.
+- T-26 is RETIRED into T-24 and its number is never reused — `plan.yaml:1792-1794`.
 
 ## Working set
 
-- `.harness/harness/features/FEAT-38-decisions-current-knowledge/plan.yaml`
 - `.harness/harness/features/FEAT-38-decisions-current-knowledge/BRIEF.md`
-- `.harness/harness/features/FEAT-38-decisions-current-knowledge/notes/reconciliation-plan.md`
+- `.harness/harness/features/FEAT-38-decisions-current-knowledge/plan.yaml`
 - `.harness/harness/features/FEAT-38-decisions-current-knowledge/STATE.md`
-- `.harness/notes/triage-decisions-authority-2026-08-26.md` (main checkout only)
+- `.harness/notes/grilling-remove-executable-claims-2026-08-29.md`
+- `.harness/harness/features/FEAT-38-decisions-current-knowledge/runs/replan-simplify-eng/digest.md`

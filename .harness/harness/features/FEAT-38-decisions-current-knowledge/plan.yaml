@@ -65,6 +65,13 @@ lanes:
     - surface: .gitignore
       lane: main-session-direct
       reason: resolves NOBODY
+    - surface: .harness/harness/features/FEAT-38-decisions-current-knowledge/notes/**
+      lane: team
+      agent: harness-pm
+      reason: >-
+        check-domain.sh --resolve returns harness-orchestrator and harness-pm at 99bb52c. pm is the
+        one of the two that is a squad member, so a note written under this feature's notes/ is
+        squad work rather than a carve-out. Row resolved at 99bb52c, not at the block's 7ebfc9e.
 
 decisions:
   - id: D-01
@@ -153,13 +160,20 @@ decisions:
     dec: none
   - id: D-10
     choice: >-
-      M2's marker is an HTML comment inside a decision body of the form
-      claim, then the command, then a double-colon separator, then the expected stdout substring. The
-      checker refuses any command whose first word is not git or grep, and never uses a shell.
+      REVERSED 2026-08-29 by operator ruling, and the id is kept rather than deleted so the record
+      states what was decided and then undone. It specified M2, the executable claim marker: an
+      HTML comment inside a decision body carrying a command, a double-colon separator and the
+      expected stdout substring, re-run by a checker that refused any command whose first token was
+      not git or grep and never invoked a shell. That mechanism was built by T-20 and populated by
+      T-21, and it is now DELETED rather than redesigned. There is no marker, no checker and no
+      second mechanical check; D-09's anchor check is the only one that survives.
     because: >-
-      No reusable convention exists: check-docs.sh is absent from the tree and DECISIONS.md carries
-      zero stale markers. An allowlist with no shell keeps a documentation file from becoming an
-      arbitrary code execution surface inside the test suite.
+      The allowlist bounded the risk without removing it. Document text still reached a subprocess
+      argv, so DECISIONS.md stayed an execution surface whose safety depended on an allowlist
+      keeping pace with every future git and grep release, and the operator declines that class of
+      risk outright. A non-executing declarative replacement was put to them in full and rejected
+      as machinery layered above this feature's goal rather than the goal itself. What the reversal
+      costs is recorded in D-14, and the class the requirement now covers in D-13.
     dec: none
   - id: D-11
     choice: >-
@@ -179,6 +193,54 @@ decisions:
       these to a squad fails the plan gate and the failure would surface mid-build. The
       2026-08-24 grilling's claim that this feature is entirely squad work is false.
     dec: DEC-174
+
+  - id: D-13
+    choice: >-
+      REQ-10 is a requirement about a CLASS, not about one file, so the plan discharges it by
+      sweeping every script under .claude/skills/harness/bin/ for the same shape - any command line
+      built out of text read from a document or a configuration file - and recording a per-file
+      verdict in a note under this feature's notes/. The sweep is a task with a written filter and a
+      named enumeration command, not an open-ended audit.
+    because: >-
+      The operator's ruling is about a class of risk. Deleting the one known instance leaves the
+      requirement asserted and unproven, and an unproven absence claim is the failure mode this
+      feature exists to end. 72 files there mention subprocess, shlex, shell=, Popen, os.system or
+      eval, and most are tests invoking a fixed argv, so the answer is a filtering judgement over a
+      real surface rather than one grep. Without a written filter and a fixed enumeration command,
+      two readers reach two different verdicts and neither is falsifiable.
+    dec: none
+  - id: D-14
+    choice: >-
+      Removing the mechanism removes the only detector of semantic citation rot - a cited line that
+      still exists, still resolves, and no longer says what the entry claims about it - and nothing
+      replaces it. No gate, no suite, no reviewer prompt and no convention. The detector is a human
+      reading a diff.
+    because: >-
+      The operator accepted that cost with the alternative on the table, choosing it over a
+      non-executing declarative redesign that would have preserved a weaker form of the capability.
+      It is recorded as its own decision rather than as a footnote to D-10 because it is the thing a
+      signature is signing away, and because the retained anchor check sees existence and range only,
+      which reads as coverage to anyone who does not know this.
+    dec: none
+  - id: D-15
+    choice: >-
+      A task whose product this plan now deletes keeps status done and keeps its title and its
+      intent instruction unchanged. The reversal is carried in exactly two places: a preamble
+      paragraph at the head of intent, and a verify block rewritten into a two-sided reversal check
+      that asserts the product existed at 48bbe7e and does not exist at final state. A task that
+      traced only the retired REQ-08 and does not serve REQ-10 carries traces as an empty list. No
+      forward depends_on edge is added from a done task to the task that reverses it.
+    because: >-
+      plan.yaml's legal task statuses are exactly pending, building and done - there is no struck and
+      inventing one would fail the plan gate at check-plan-routes.py line 421. The work genuinely
+      landed and committed, so flipping a status or deleting a task would falsify the record. The
+      verify block is the only field a gate reads, so leaving it asserting a deleted surface is the
+      one part that cannot stay; inverting it into a reversal check makes landed-then-deleted
+      mechanically legible instead of a claim in prose. traces stays empty rather than borrowing a
+      plausible id because REQ-08's tombstone makes a surviving trace a plan defect and REQ-10 is
+      served by removing this work, not by having done it. A forward depends_on edge would encode a
+      build order that never happened, so the grading window is stated in intent instead.
+    dec: none
 
 tasks:
   - id: T-01
@@ -281,7 +343,7 @@ tasks:
 
   - id: T-03
     title: Author the new decision entry that homes every convention this feature establishes
-    traces: [REQ-05, REQ-06, REQ-07, REQ-08]
+    traces: [REQ-05, REQ-06, REQ-07]
     change_type: docs
     execution_mode: team
     execution_agent: harness-documentor
@@ -295,9 +357,12 @@ tasks:
       N=$(grep -oE '^## DEC-[0-9]+' "$D" | grep -oE '[0-9]+' | sort -n | tail -1)
       grep -q "^## DEC-$N " "$D" || exit 1
       B=$(sed -n "/^## DEC-$N /,/^## DEC-$((N+1)) /p" "$D")
-      for s in 'current truth' 'refs' 'anchor' 'claim' 'never reused'; do
+      for s in 'current truth' 'refs' 'anchor' 'never reused'; do
         printf '%s' "$B" | grep -qi "$s" || { echo "missing: $s"; exit 1; }
       done
+      printf '%s' "$B" | grep -q '<!-- claim:' && { echo 'claim marker survives'; exit 1; }
+      printf '%s' "$B" | grep -qi 'double-colon' && { echo 'command grammar survives'; exit 1; }
+      printf '%s' "$B" | grep -qi 'two mechanical checks' && { echo 'stale check count'; exit 1; }
       python3 .claude/skills/harness/bin/gen-decisions-index.py --stdout >/dev/null || exit 1
       exit 0
     intent: |
@@ -306,10 +371,28 @@ tasks:
       DEC-204, so the new entry is DEC-205; re-derive it rather than trusting that, because another
       feature may have landed an entry first.
 
+      CORRECTED 2026-08-29, and the correction is the reason to read this task rather than skip it.
+      As authored at 48bbe7e the entry carried a SIXTH rule mandating executable claim markers, and
+      its heading and enumeration sentence both said two mechanical checks guard the file. The
+      operator's removal ruling deletes that rule, so the instruction below no longer asks for it,
+      and the entry that already landed is repaired by T-28 - which owns DEC-205's heading, its
+      enumeration-introducing sentence, item 2 and the closing paragraph that counts the checks.
+      Nothing here re-authors the entry; this record is corrected so a reader of the plan is not
+      told to author a rule the plan elsewhere deletes.
+
+      THIS VERIFY BLOCK IS GRADED AT FINAL STATE, after T-27 and T-28 land. Its three negative
+      assertions are red in the window between T-21 and T-27, when DEC-205 still carries the two
+      markers T-21 added; that window is stated here rather than as a depends_on edge, because a
+      forward edge from a done task would falsify the order the work was actually built in. The
+      former grep for the bare substring claim was dropped as non-discriminating: the word appears
+      in ordinary prose in this entry - "a claim the tree has falsified" - so it matches whether or
+      not any marker survives, and an assertion that cannot fail is worse than none.
+
       This entry is the ONLY home these conventions have. Verified at 7ebfc9e: the amendment
       convention is written down nowhere in the tree - not in SPEC.md, not in the documentor's agent
       file, not in any skill. It exists only in the generator's regexes, which this feature deletes.
-      Written as current truth, no dates, no attribution, it must state all six rules:
+      Written as current truth, no dates, no attribution, it must state all six rules - the sixth
+      names one mechanical check where it once named two:
 
         1. THE AMENDMENT CONVENTION IS ENDED. An entry states current truth directly. A correction
            rewrites the entry it corrects. A falsified claim survives as one clause of current truth
@@ -340,25 +423,19 @@ tasks:
            graph. Note that this is one clause of issue 686 and that the rest of that ticket, the
            full generation contract, is deliberately not settled here.
 
-        6. TWO MECHANICAL CHECKS GUARD THE FILE.
-           a. ANCHOR ROT: every file-and-line anchor cited in DECISIONS.md must name a file that
-              exists and a line within its length. Record that this is deliberately existence plus
-              range and NOT a stored snippet: at 7ebfc9e it already catches three anchors naming
-              feature.yaml, a file DEC-191 renamed to feature.json, at zero authoring cost, and a
-              snippet cannot see a line that still exists and now says something unrelated.
-           b. EXECUTABLE CLAIMS: where an entry states something a command can check, it records the
-              command and the expected result in an HTML comment marker of the form
-              claim, command, a double-colon separator, then the expected stdout substring, and a
-              checker re-runs every marker in the suite. Record the safety boundary as part of the
-              rule: the checker refuses any command whose first word is not git or grep and never
-              invokes a shell, because a documentation file must not become an arbitrary code
-              execution surface inside the test suite.
+        6. ONE MECHANICAL CHECK GUARDS THE FILE, AND ONLY ONE - ANCHOR ROT. Every file-and-line
+           anchor cited in DECISIONS.md must name a file that exists and a line within its length.
+           Record that this is deliberately existence plus range and NOT a stored snippet: at
+           7ebfc9e it already catches three anchors naming feature.yaml, a file DEC-191 renamed to
+           feature.json, at zero authoring cost, and a snippet cannot see a line that still exists
+           and now says something unrelated. Record also that nothing detects that second failure
+           any more: a human reading a diff is the only detector left for it.
 
       Also record what was considered and REFUSED, so a future scan does not re-suggest it: a
       referenced-file watch (M3) hands over a review list without proving anything, and a periodic
       LLM audit of design claims (M4) decays the moment code moves, so it is a one-time sweep rather
       than a gate. Neither becomes cheap merely because the entries are open, which is the whole
-      reason the two above are in.
+      reason the one above is in.
 
       Do not delete or edit any other entry in this task.
 
@@ -798,9 +875,8 @@ tasks:
       grep -q 'orphan' "$G" || exit 1
       python3 .claude/skills/harness/bin/test-gen-decisions-index.py > /tmp/t10.out 2>&1
       grep -q '^ok - test_no_amendment_construct_survives_in_the_authority$' /tmp/t10.out || exit 1
-      grep -q '^FAIL - test_committed_index_matches_a_fresh_regeneration' /tmp/t10.out || exit 1
       grep '^FAIL' /tmp/t10.out \
-        | grep -vE 'test_committed_index_(matches_a_fresh_regeneration|is_complete_and_within_budget)' \
+        | grep -vE 'test_(committed_index_(matches_a_fresh_regeneration|is_complete_and_within_budget)|root_resolves_through_harness_boundary_not_the_retired_variable)' \
         && exit 1
       exit 0
     intent: |
@@ -851,14 +927,19 @@ tasks:
       passing. A test whose red state was never observed is not evidence. Restore the file exactly -
       confirm with git diff on that path being empty afterwards.
 
-      THE SAME TWO CASES GO RED HERE AS IN T-06, AND FOR MORE REASONS: the fifteen deletions of T-04,
-      T-05 and T-07 have landed and DECISIONS-INDEX.md is not regenerated until T-11, so the
-      generator itself exits 1 on orphan rows and the committed-index case cannot pass. T-11 owns
-      turning both green. This verify excludes exactly
-      test_committed_index_matches_a_fresh_regeneration and
-      test_committed_index_is_complete_and_within_budget, asserts the first of them IS red, requires
-      your new case to be ok, and asserts no other FAIL line. Do not exit on the suite's own status,
-      and do not regenerate the index to make the suite quiet.
+      THREE CASES GO RED HERE BY CONSTRUCTION, AND FOR MORE REASONS THAN IN T-06: the fifteen
+      deletions of T-04, T-05 and T-07 have landed and DECISIONS-INDEX.md is not regenerated until
+      T-11, so the generator itself exits 1 on orphan rows and the committed-index cases cannot
+      pass. T-11 owns turning them green. This verify excludes exactly
+      test_committed_index_matches_a_fresh_regeneration,
+      test_committed_index_is_complete_and_within_budget and
+      test_root_resolves_through_harness_boundary_not_the_retired_variable - the third has the same
+      by-construction cause, its case (a) pointing HARNESS_PROJECT_DIR at a temp directory carrying
+      no team-config.yaml so the generator falls back to the real root. It requires your new case to
+      be ok and asserts no other FAIL line. It does NOT require any of the three to BE red: index
+      freshness is T-11's claim, and a block demanding a red passes only in the pre-T-11 window and
+      fails forever after. Do not exit on the suite's own status, and do not regenerate the index to
+      make the suite quiet.
 
   - id: T-11
     title: Rewrite the index rulings freed by am-span removal and regenerate the index
@@ -916,6 +997,15 @@ tasks:
       shifts. T-16's anchor repair and T-21's claim markers therefore land BEFORE you, and after this
       task nothing may add or remove a line in DECISIONS.md. Your diff-clean assertion is the single
       authoritative index-freshness gate in this feature.
+
+      ANNOTATED 2026-08-29, AND THE ANNOTATION IS THE HONEST RECORD RATHER THAN A REWRITE. The
+      sentence above - after this task nothing may add or remove a line in DECISIONS.md - was true
+      of the plan as signed and is FALSIFIED by the removal amendment: T-27 deletes eleven marker
+      lines and T-28 deletes DEC-205's second numbered item, both shortening the file after this
+      task landed. No live defect follows, because T-28 owns the one compensating regeneration and
+      its own verify re-asserts the diff-clean state. What the amendment retires is this sentence's
+      further claim to be the SINGLE authoritative index-freshness gate: read the sentence as scoped
+      to the fold sequence T-01..T-23, with T-28 owning freshness after it.
 
   - id: T-12
     title: Sweep every deleted-id and am.N citation out of the harness bin scripts
@@ -1130,7 +1220,7 @@ tasks:
       grep -qi 'amendment' "$E" && exit 1
       grep -qE '^- P-01: WHEN ' "$E" || exit 1
       grep -qE '^- P-02: ' "$E" || exit 1
-      bash .claude/skills/harness/bin/check-expertise.sh || exit 1
+      bash .claude/skills/harness/bin/check-expertise.sh "$E" || exit 1
       exit 0
     intent: |
       In .harness/harness/expertise/harness-documentor.md, entry P-01 currently begins:
@@ -1266,7 +1356,7 @@ tasks:
 
   - id: T-18
     title: Register the two new checkers in the harness test-kind config
-    traces: [REQ-07, REQ-08]
+    traces: [REQ-07]
     change_type: config
     execution_mode: team
     execution_agent: harness-dev-ops
@@ -1280,14 +1370,30 @@ tasks:
       import json, sys
       d = json.load(open('.harness/harness.json'))
       det = d['test_kinds']['integration']['detect'].split('|')
-      need = ['.claude/skills/harness/bin/test-check-decision-anchors.py',
-              '.claude/skills/harness/bin/test-check-decision-claims.py']
-      missing = [n for n in need if n not in det]
-      if missing:
-          print('MISSING:', missing); sys.exit(1)
+      need = '.claude/skills/harness/bin/test-check-decision-anchors.py'
+      gone = '.claude/skills/harness/bin/test-check-decision-claims.py'
+      if need not in det:
+          print('MISSING:', need); sys.exit(1)
+      if gone in det:
+          print('STILL REGISTERED:', gone); sys.exit(1)
       print('registered:', len(det), 'integration paths')
       PY
     intent: |
+      CORRECTED 2026-08-29. This task registered TWO tests and that is what it did; the instruction
+      below is left standing as the record, because rewriting it would falsify the history. The
+      claims test is deregistered from this file by T-25 and deleted from the tree by T-24, so only
+      the anchor test stays registered. What changed is the verify block: it is now two-sided - the
+      anchor test IS named in the detect string, the claims test is NOT. The absence half is not
+      this task's work. It is here because the runner cross-checks the two registration sides and
+      exits 2 when
+      they disagree, so without it a one-sided deregistration leaves this block green while the
+      whole suite is broken. Graded at final state, after T-25 lands; stated here rather than as a
+      depends_on edge, which would falsify the order the work was built in.
+
+      REQ-08 was retired with the removal ruling, so this task no longer traces it. What it serves
+      is REQ-07: the anchor check is registered on the config side. REQ-10 is served by T-24 to
+      T-29, not here.
+
       Add these two explicit literal paths to the integration test kind's detect list in
       .harness/harness.json:
 
@@ -1312,7 +1418,7 @@ tasks:
 
   - id: T-19
     title: Register the two new checkers in the test runner
-    traces: [REQ-07, REQ-08]
+    traces: [REQ-07]
     change_type: config
     execution_mode: team
     execution_agent: harness-backend-dev
@@ -1323,14 +1429,49 @@ tasks:
     verify: |
       cd "$(git rev-parse --show-toplevel)"
       R=.claude/skills/harness/bin/run-unit-tests.sh
+      git show 48bbe7e:.claude/skills/harness/bin/run-unit-tests.sh \
+        | grep -q 'test-check-decision-claims.py' || exit 1
       grep -q 'test-check-decision-anchors.py' "$R" || exit 1
-      grep -q 'test-check-decision-claims.py' "$R" || exit 1
-      OUT="$(bash "$R" --kind integration 2>&1)"
-      printf '%s\n' "$OUT" | grep -q 'KIND-DRIFT' && { echo 'KIND-DRIFT fired'; exit 1; }
-      printf '%s\n' "$OUT" | grep -qx 'PASS test-check-decision-anchors.py' || exit 1
-      printf '%s\n' "$OUT" | grep -qx 'PASS test-check-decision-claims.py' || exit 1
+      grep -q 'test-check-decision-claims.py' "$R" && exit 1
+      OUT="$(bash "$R" --check-kinds 2>&1)" || { printf '%s\n' "$OUT"; exit 1; }
+      printf '%s\n' "$OUT" | grep -qE '^(KIND-DRIFT|MISCONFIGURED):' \
+        && { echo 'a detector fired'; exit 1; }
+      python3 .claude/skills/harness/bin/test-check-decision-anchors.py || exit 1
       exit 0
     intent: |
+      CORRECTED 2026-08-29, AND THE CORRECTION IS A RECONCILIATION OF A SIGNED CHANGE - read this
+      before signing, because one signature now covers both halves. The operator signed a repair to
+      this verify block on 2026-08-29, recorded verbatim in
+      notes/research-verify-block-defects.md. That signed block did two things, and the removal
+      ruling that landed after it invalidates exactly one of them.
+
+      KEPT VERBATIM, the whole point of the signed repair: the drift clause is anchored, reading
+      grep -q '^KIND-DRIFT:' rather than the bare grep -q 'KIND-DRIFT'. Measured: the bare pattern
+      matches 6 lines on a GREEN run, all of them indented "ok    case N:" labels from
+      test-run-unit-tests-kinds.py, the suite for the drift detector itself, while every real
+      emission is at column 0. The unanchored clause fired on success and the block could not pass.
+
+      RECONCILED, not dropped silently: the same signed block also required
+      grep -q 'test-check-decision-claims.py' present in the runner and a
+      PASS test-check-decision-claims.py line in its output. Both name a surface the removal ruling
+      deletes, so both had to go. They are not merely deleted - the presence requirement is INVERTED
+      into an absence requirement (grep ... && exit 1), so this block still asserts something about
+      that name rather than falling silent about it, and the PASS requirement is reduced to the one
+      script that survives. The signed intent was that this block gate the registration honestly;
+      inverting the clause preserves that intent under the new end state, where deleting the clause
+      would have weakened the gate the operator signed.
+
+      THE INVERSION NOW CARRIES A POSITIVE CONTROL, ADDED 2026-08-29, AND IT IS THE ONE T-20 AND
+      T-21 ALREADY CARRY. The block opens by reading this file at 48bbe7e and requiring
+      test-check-decision-claims.py to be present THERE, so it asserts that the registration this
+      task performed really landed before asserting that it is now gone. Without that clause the
+      inverted grep passes on a tree where the name was never registered at all - the record
+      rewritten into work that never happened. It can now fail both ways, like T-20's and T-21's
+      reversal checks.
+
+      Graded at final state, after T-24 lands. REQ-08 was retired with the ruling, so this task
+      traces REQ-07 only; the deregistration itself is T-24's and traces REQ-10.
+
       Add test-check-decision-anchors.py and test-check-decision-claims.py to the
       INTEGRATION_SCRIPTS array in .claude/skills/harness/bin/run-unit-tests.sh. Bare script names,
       matching the style of the existing entries in that array - it is not a list of paths.
@@ -1341,29 +1482,36 @@ tasks:
 
       T-18 must have landed first. The runner cross-checks that every INTEGRATION_SCRIPTS name
       appears as an explicit literal path in .harness/harness.json's integration detect, and prints
-      KIND-DRIFT and exits 2 if not. This task's verify asserts the absence of that string
+      KIND-DRIFT and exits 2 if not. This task's verify asserts the absence of that emission
       explicitly, because a KIND-DRIFT exit 2 is not the same failure as a test failing and must not
       be read as one.
 
+      THE VERIFY IS THE CHEAP PAIR RATHER THAN A SUITE RUN, AND THAT CHANGED 2026-08-29. It runs
+      run-unit-tests.sh --check-kinds, which exercises BOTH of the runner's detectors - the
+      MISCONFIGURED file-presence detector (run-unit-tests.sh:60-74) and the KIND-DRIFT cross-check
+      (:96-140) - and exits before running a single test, and then invokes
+      test-check-decision-anchors.py directly. That pair yields exactly the two facts this task can
+      own - the name registered with no drift, and the registered checker actually running and
+      passing - at a measured 0.57s against 157.7s for the --kind integration run the block used to
+      perform for the same two facts.
+
+      A SUITE-WIDE FAIL SWEEP IS STILL REFUSED, for the unchanged reason: the integration suite
+      includes test-gen-decisions-index.py, whose green state belongs to T-11 and T-28 and cannot
+      hold while the documentation lane is mid-flight, so a sweep would go red or green on
+      interleaving rather than on your work. A failure naming anything other than
+      test-check-decision-anchors.py is a finding to report upward - not yours to fix.
+
       Capture the runner's output into a variable and search the variable. Do not pipe it to tail or
       head: a pipe reports the pipe's exit status rather than the runner's, and truncation hides
-      earlier FAIL lines.
-
-      THE GATE IS THE TWO PASS LINES, NOT A SUITE-WIDE FAIL SWEEP. The runner prints "PASS <script>"
-      per script, and those two lines plus the absence of KIND-DRIFT are the whole claim this task
-      can own: both names registered, no drift, both checkers actually ran and passed. The rest of
-      the integration suite includes test-gen-decisions-index.py, whose green state belongs to T-11
-      and cannot hold while the documentation lane is mid-flight. This task has no ordering relation
-      to that lane, so a suite-wide FAIL sweep would go red or green on interleaving rather than on
-      your work. A FAIL line naming anything other than these two scripts is a finding to report
-      upward - not yours to fix, and not your failure.
+      earlier lines. Both detector prefixes are anchored at column 0: the bare tokens match six
+      indented "ok    case N:" labels from test-run-unit-tests-kinds.py on a green run.
 
       Change nothing else in the runner. Do not touch UNIT_SCRIPTS, the kind dispatch, or the
       KIND-DRIFT check itself.
 
   - id: T-20
     title: Build the executable-claims checker and its test
-    traces: [REQ-08]
+    traces: []
     change_type: logic
     execution_mode: team
     execution_agent: harness-backend-dev
@@ -1374,12 +1522,35 @@ tasks:
       - .claude/skills/harness/bin/test-check-decision-claims.py
     verify: |
       cd "$(git rev-parse --show-toplevel)"
-      python3 .claude/skills/harness/bin/test-check-decision-claims.py > /tmp/t20.out 2>&1
-      rc=$?
-      grep '^FAIL' /tmp/t20.out && exit 1
-      test "$(grep -c '^ok - ' /tmp/t20.out)" -ge 5 || exit 1
-      exit $rc
+      git cat-file -e 48bbe7e:.claude/skills/harness/bin/check-decision-claims.py || exit 1
+      git cat-file -e 48bbe7e:.claude/skills/harness/bin/test-check-decision-claims.py || exit 1
+      git ls-files --error-unmatch .claude/skills/harness/bin/check-decision-claims.py \
+        >/dev/null 2>&1 && { echo 'checker still tracked'; exit 1; }
+      git ls-files --error-unmatch .claude/skills/harness/bin/test-check-decision-claims.py \
+        >/dev/null 2>&1 && { echo 'test still tracked'; exit 1; }
+      exit 0
     intent: |
+      REVERSED 2026-08-29 - THIS TASK'S ENTIRE PRODUCT IS DELETED BY T-24, the merged
+      deregister-and-delete task that retired T-26. The status stays done because it genuinely
+      landed. plan.yaml's legal task statuses are exactly pending, building and done; there is no
+      struck and none is invented here. The reversal is carried in
+      two fields and nowhere else: this preamble, and a verify block rewritten into a two-sided
+      reversal check. The instruction below is untouched, because it is the record of what was
+      actually built and rewriting it would falsify that record. See D-10 for the reversed decision
+      and D-15 for how the plan represents landed-then-deleted work.
+
+      THE VERIFY IS NOW A REVERSAL CHECK AND IT CAN FAIL BOTH WAYS. It asserts that both files
+      really existed at 48bbe7e - so the record cannot be quietly rewritten into work that never
+      happened - and that neither is tracked at final state, so the deletion really occurred. The
+      old block ran the deleted test and is unsatisfiable after T-24 by construction.
+
+      TRACES IS DELIBERATELY EMPTY, and that is the honest answer rather than a gap. This task
+      traced REQ-08 and nothing else. REQ-08 is retired and the brief's tombstone states that a task
+      still tracing it is a plan defect. It does not serve REQ-10 either: REQ-10 requires that no
+      script build a command line from document text, and this task built the one script that did.
+      No live requirement is served by work that is being removed, so the list is empty rather than
+      carrying a plausible substitute id.
+
       Write .claude/skills/harness/bin/check-decision-claims.py and its test.
 
       THE MARKER FORMAT, which the new decision entry from T-03 also states. An HTML comment on its
@@ -1423,7 +1594,7 @@ tasks:
 
   - id: T-21
     title: Add claim markers to the folded entries whose facts a command can check
-    traces: [REQ-08]
+    traces: []
     change_type: docs
     execution_mode: team
     execution_agent: harness-documentor
@@ -1434,14 +1605,29 @@ tasks:
     verify: |
       cd "$(git rev-parse --show-toplevel)"
       D=.harness/harness/docs/DECISIONS.md
-      test "$(grep -c '<!-- claim:' "$D")" -ge 3 || exit 1
-      sed -n '/^## DEC-181 /,/^## DEC-182 /p' "$D" | grep -q '<!-- claim:' || exit 1
-      python3 .claude/skills/harness/bin/check-decision-claims.py || exit 1
-      G="$(python3 .claude/skills/harness/bin/gen-decisions-index.py --stdout 2>&1 >/dev/null)"
-      printf '%s\n' "$G" | grep -q '^ORPHAN: DEC-140 ' || { echo 'no ORPHAN for DEC-140'; exit 1; }
-      printf '%s\n' "$G" | grep -vE '^ORPHAN: DEC-[0-9]+ ' | grep -q . && { echo 'non-orphan generator failure'; exit 1; }
+      test "$(git show "48bbe7e:$D" | grep -c '<!-- claim:')" -eq 11 || exit 1
+      grep -q '<!-- claim:' "$D" && { echo 'markers survive'; exit 1; }
+      python3 .claude/skills/harness/bin/gen-decisions-index.py --stdout >/dev/null || exit 1
       exit 0
     intent: |
+      REVERSED 2026-08-29 - ALL ELEVEN MARKERS THIS TASK ADDED ARE DELETED BY T-27, and the status
+      stays done because they genuinely landed at 48bbe7e. The instruction below is untouched: it is
+      the record of what was written, and rewriting it would falsify that record. See D-10 for the
+      reversed decision, D-14 for what the removal costs, and D-15 for how the plan represents
+      landed-then-deleted work.
+
+      THE VERIFY IS NOW A REVERSAL CHECK AND IT CAN FAIL BOTH WAYS. It asserts that exactly 11
+      markers existed at 48bbe7e - the positive control, so the record cannot be rewritten into work
+      that never happened, and so a search that silently errors cannot read as an absence - and that
+      the working file now matches none, by the search's own exit status. It also asserts the
+      generator exits 0, which after T-28's regeneration it does. The old block invoked
+      check-decision-claims.py, a file T-24 deletes, so it is unsatisfiable by construction.
+
+      TRACES IS DELIBERATELY EMPTY. This task traced REQ-08 and nothing else; REQ-08 is retired and
+      the brief's tombstone makes a surviving trace to it a plan defect. It does not serve REQ-10
+      either - REQ-10 is satisfied by removing these markers, which is T-27's work, not this task's.
+      Empty is the honest record; a plausible substitute id would not be.
+
       Add executable claim markers to the entries this feature rewrote, in the format T-20's checker
       consumes and T-03's decision entry defines:
 
@@ -1572,3 +1758,447 @@ tasks:
 
       Run this after T-22, not before. If the read-back found a NOT PRESERVED clause, the feature is
       not landing yet and neither is this.
+  - id: T-24
+    title: Deregister the claims test from the runner and delete the checker and its test, in one step
+    traces: [REQ-10, SC-14]
+    change_type: logic
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-19, T-27]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/run-unit-tests.sh
+      - .claude/skills/harness/bin/check-decision-claims.py
+      - .claude/skills/harness/bin/test-check-decision-claims.py
+    verify: |
+      cd "$(git rev-parse --show-toplevel)"
+      R=.claude/skills/harness/bin/run-unit-tests.sh
+      grep -q 'test-check-decision-claims.py' "$R" && { echo 'still registered'; exit 1; }
+      grep -q 'test-check-decision-anchors.py' "$R" || exit 1
+      for f in check-decision-claims.py test-check-decision-claims.py; do
+        P=".claude/skills/harness/bin/$f"
+        git ls-files --error-unmatch "$P" >/dev/null 2>&1 && { echo "still tracked: $P"; exit 1; }
+        test -e "$P" && { echo "still on disk: $P"; exit 1; }
+      done
+      test -f .claude/skills/harness/bin/check-decision-anchors.py || exit 1
+      git grep -l check-decision-claims -- . ':!.harness/harness/features' ':!.harness/notes' \
+        ':!.harness/logs' && { echo 'references survive'; exit 1; }
+      OUT="$(bash "$R" --check-kinds 2>&1)" || { printf '%s\n' "$OUT"; exit 1; }
+      printf '%s\n' "$OUT" | grep -qE '^(KIND-DRIFT|MISCONFIGURED):' \
+        && { echo 'a detector fired'; exit 1; }
+      python3 .claude/skills/harness/bin/test-check-decision-anchors.py || exit 1
+      exit 0
+    intent: |
+      MERGED 2026-08-29 FROM T-24 AND T-26, AND THE MERGE IS THE FIX FOR A MEASURED DEFECT - read
+      this before signing. T-26 IS RETIRED: its number is not reused, nothing traces to it, and no
+      task depends on it.
+
+      The earlier three-step order - deregister the runner, deregister the config, then delete the
+      files - took the WHOLE test suite to exit 2 for the entire interval between the first step and
+      the last, and this plan's own ordering rationale analysed the wrong detector.
+
+      WHY, AND IT IS THE SECOND DETECTOR. run-unit-tests.sh has TWO independent detectors and both
+      run ahead of the --check-kinds early exit at run-unit-tests.sh:142. The one the earlier draft
+      reasoned about is the KIND-DRIFT cross-check (:96-140). The one it never named is the
+      MISCONFIGURED file-presence detector (:60-74), which loops over the test-*.py files in BIN_DIR
+      against the union of both script arrays and exits 2 on any file ON DISK that is in neither.
+      Removing the array entry while leaving the file on disk is exactly that state, so the runner
+      exits 2 for every --kind AND for --check-kinds, emitting a MISCONFIGURED line naming
+      test-check-decision-claims.py.
+
+      MEASURED, in a disposable /tmp copy with a real git index: the array edit alone gave exit 2 on
+      --check-kinds and on --kind integration; the array edit plus the config edit gave exit 2 again
+      on the same line. Reversing the order does not help - it trips KIND-DRIFT instead. The array
+      edit plus BOTH deletions landing together, with .harness/harness.json untouched, gave exit 0 on
+      --check-kinds and exit 0 on --kind integration with zero FAIL lines. That state is this task.
+
+      Both files are already harness-backend-dev's, so the merge crosses no lane boundary. The config
+      side stays a separate task because .harness/harness.json is harness-dev-ops's: T-25 owns it and
+      depends on this task.
+
+      DO THREE THINGS AND LAND THEM TOGETHER, IN ONE STEP.
+
+      1. Remove the single string "test-check-decision-claims.py" from the INTEGRATION_SCRIPTS array
+         in .claude/skills/harness/bin/run-unit-tests.sh. Leave "test-check-decision-anchors.py" in
+         place. Change nothing else: not UNIT_SCRIPTS, not the kind dispatch, not either detector.
+      2. git rm .claude/skills/harness/bin/check-decision-claims.py
+      3. git rm .claude/skills/harness/bin/test-check-decision-claims.py
+
+      Use git rm, not a plain rm. A plain rm leaves the index still naming the files, which is a
+      deletion that does not enter the reviewed tree, and SC-14 grades git ls-tree at review_sha
+      rather than a working-tree read. The verify asserts absence from the index and absence from the
+      working tree separately for that reason.
+
+      DO NOT TOUCH check-decision-anchors.py OR test-check-decision-anchors.py. They sit in the same
+      directory and share a filename prefix with what you are deleting, which makes over-deletion the
+      likely error rather than an unlikely one. The anchor checker is RETAINED unchanged: its argv is
+      the fixed literal ["git", "ls-files"] at check-decision-anchors.py line 111, no document text
+      reaches a subprocess anywhere in it, and it is not in the risk class this ruling is about. The
+      verify asserts that the retained checker is still present and still passes, for exactly that
+      reason.
+
+      THE BLAST-RADIUS SWEEP STAYS UNSCOPED, WHICH IS WHY THIS TASK DEPENDS ON T-27. Measured at
+      48bbe7e and byte-identical at 99bb52c, exactly five tracked files outside this feature's folder
+      mention check-decision-claims: the two deleted here, run-unit-tests.sh (this task),
+      .harness/harness.json (T-25) and DECISIONS.md (T-27, two claim markers). .harness/harness/docs
+      is not one of the three excluded pathspecs, so with T-27 unrun that clause exits 1 naming a
+      file this task must not touch. Scoping the clause to the two deleted files was rejected: the
+      unscoped sweep is the only thing in the plan that proves no sixth reference site exists, and
+      scoping it would leave that proof owned by nobody. The three excluded pathspecs are dated
+      records that are never rewritten (D-05). T-28's edits are not in the sweep's path, which is why
+      the dependency is on T-27 and not on T-28. If the sweep returns anything else, a sixth site
+      exists that no task owns - report it upward, do not patch it quietly.
+
+      THE VERIFY IS DELIBERATELY CHEAP, AND IT IS NOT A SUITE-WIDE FAIL SWEEP. --check-kinds runs
+      both detectors and the cross-check and exits before running a single test, and invoking
+      test-check-decision-anchors.py directly runs the one checker whose green state this task owns.
+      Measured: that pair costs 0.57s against 157.7s for --kind integration, for the same two facts.
+      The rest of the integration suite includes test-gen-decisions-index.py, whose green state
+      belongs to T-11 and T-28, so a suite-wide sweep here would go red or green on interleaving
+      rather than on your work. Capture output into a variable and search the variable: a pipe
+      reports the pipe's exit status, not the runner's, and truncation hides earlier lines. Both
+      detector prefixes are anchored at column 0 because the bare tokens match six indented "ok
+      case" labels from test-run-unit-tests-kinds.py on a green run.
+
+      traces carries SC-14 as well as REQ-10: this task's two deletions and its unscoped sweep ARE
+      that criterion's evidence, and the grader looks for the id here.
+
+  - id: T-25
+    title: Deregister the claims test from the harness test-kind config, the second side
+    traces: [REQ-10]
+    change_type: config
+    execution_mode: team
+    execution_agent: harness-dev-ops
+    depends_on: [T-24]
+    status: pending
+    files:
+      - .harness/harness.json
+    verify: |
+      cd "$(git rev-parse --show-toplevel)"
+      python3 - <<'PY'
+      import json, sys
+      d = json.load(open('.harness/harness.json'))
+      det = [p for p in d['test_kinds']['integration']['detect'].split('|') if p.strip()]
+      gone = '.claude/skills/harness/bin/test-check-decision-claims.py'
+      need = '.claude/skills/harness/bin/test-check-decision-anchors.py'
+      if gone in det:
+          print('STILL REGISTERED:', gone); sys.exit(1)
+      if need not in det:
+          print('MISSING:', need); sys.exit(1)
+      print('detect entries:', len(det))
+      PY
+      bash .claude/skills/harness/bin/run-unit-tests.sh --check-kinds || exit 1
+    intent: |
+      Remove the explicit literal path .claude/skills/harness/bin/test-check-decision-claims.py from
+      the integration test kind's detect value in .harness/harness.json. KEEP
+      .claude/skills/harness/bin/test-check-decision-anchors.py - that checker is retained.
+
+      The detect value is a single PIPE-SEPARATED STRING, not a list. Remove the one path and its
+      adjacent separator so no empty segment is left; do not convert the field to a list and do not
+      reorder what remains. Change nothing else in the file - in particular do not add a cmd to any
+      kind whose cmd is null.
+
+      T-24 MUST HAVE LANDED FIRST, AND THE ORDERING ARGUMENT IS DERIVED ONCE, IN T-24's INTENT. It is
+      deliberately NOT restated here: an earlier draft derived the same asymmetry independently in
+      both tasks and the two derivations already cited run-unit-tests.sh differently, which is the
+      drift this feature exists to remove. Read it there. The short form: with T-24 landed, the
+      runner's arrays and the files on disk are consistent, and this edit closes the last remaining
+      side so the two lists agree again. This side first would leave INTEGRATION_SCRIPTS naming a
+      test absent from detect, which the integration rule at run-unit-tests.sh:121-125 flags, and the
+      runner would exit 2 for every kind before running a single test.
+
+      The verify asserts both halves - the removed name absent, the retained name present - and then
+      runs run-unit-tests.sh --check-kinds, which runs the MISCONFIGURED file-presence detector
+      (run-unit-tests.sh:60-74) and the KIND-DRIFT cross-check (:96-140) and exits without running
+      any test. That is the cheap, direct gate for exactly the failure this ordering exists to avoid,
+      and it is not the same observation as an absence search over one file: an absence search sees
+      one side, --check-kinds sees both lists and the tree.
+
+  - id: T-27
+    title: Remove all eleven claim markers from the authority
+    traces: [REQ-10]
+    change_type: docs
+    execution_mode: team
+    execution_agent: harness-documentor
+    depends_on: [T-21]
+    status: pending
+    files:
+      - .harness/harness/docs/DECISIONS.md
+    verify: |
+      cd "$(git rev-parse --show-toplevel)"
+      D=.harness/harness/docs/DECISIONS.md
+      test "$(git show "48bbe7e:$D" | grep -c '<!-- claim:')" -eq 11 || exit 1
+      grep -q '<!-- claim:' "$D" && { echo 'markers survive'; exit 1; }
+      grep -q 'check-decision-claims' "$D" && { echo 'checker still named'; exit 1; }
+      for h in DEC-145 DEC-157 DEC-181 DEC-183 DEC-193 DEC-205; do
+        grep -qE "^## $h " "$D" || { echo "entry lost: $h"; exit 1; }
+      done
+      exit 0
+    intent: |
+      Delete every HTML comment line whose body opens with "claim:" from
+      .harness/harness/docs/DECISIONS.md, and delete the blank line each one leaves behind only where
+      that would otherwise produce two consecutive blank lines.
+
+      THERE ARE ELEVEN, IN SIX ENTRIES, and the count is the gate: DEC-145 one, DEC-157 one, DEC-181
+      three, DEC-183 three, DEC-193 one, DEC-205 two. Find them with
+      grep -n '<!-- claim:' on the file rather than by line number - other tasks in this feature move
+      this file. Measured at 48bbe7e and byte-identical at 99bb52c.
+
+      THEY ARE DELETED, NOT TRANSLATED INTO ANY OTHER FORM. A declarative replacement was put to the
+      operator in full and rejected; there is no successor vocabulary, and nothing about what a
+      command could check goes into the surrounding prose in its place. DEC-205's two are the clearest
+      case: one asserts a constant inside the checker being deleted and the other that checker's
+      registration in the runner, so once it is gone neither has anything left to say.
+
+      DO NOT delete or reword the sentences the markers sat beside. The claims those entries make are
+      current truth in the document's own voice and stay exactly as they read; only the machine-
+      readable comment goes. An entry that loses a stated fact along with its marker fails SC-11's
+      per-entry read-back, and every automated assertion here would still be green.
+
+      The verify's first clause is a positive control - exactly 11 markers must be visible at 48bbe7e
+      - so a search that errors and prints nothing cannot read as an absence, and the record cannot
+      be rewritten into work that never happened. The loop over the six headings is the over-deletion
+      guard: deleting a marker must not take its entry with it.
+
+      DEC-205's rule 6b, its heading and its enumeration sentence are NOT yours - T-28 owns them and
+      depends on this task. Do not regenerate DECISIONS-INDEX.md either; T-28 owns the single
+      regeneration, after both documentation edits have landed.
+
+      T-24 ALSO DEPENDS ON THIS TASK, AND THAT EDGE IS THE ONLY REASON THE CODE LANE WAITS ON THE
+      DOCUMENTATION LANE. T-24's blast-radius sweep is unscoped, and DECISIONS.md holds two of the
+      five reference sites - the two markers you delete here. Until they are gone, T-24's sweep exits
+      1 naming a file T-24 does not own. T-28's edits are not in that path, which is why T-24 depends
+      on this task specifically rather than on T-28 or on the documentation lane as a whole.
+
+  - id: T-28
+    title: Delete DEC-205 rule 6b, repair the three sentences that count the checks, regenerate the index
+    traces: [REQ-05, REQ-10, SC-16]
+    change_type: docs
+    execution_mode: team
+    execution_agent: harness-documentor
+    depends_on: [T-27]
+    status: pending
+    files:
+      - .harness/harness/docs/DECISIONS.md
+      - .harness/harness/docs/DECISIONS-INDEX.md
+    verify: |
+      cd "$(git rev-parse --show-toplevel)"
+      D=.harness/harness/docs/DECISIONS.md
+      I=.harness/harness/docs/DECISIONS-INDEX.md
+      B=$(sed -n '/^## DEC-205 /,/^## DEC-206 /p' "$D")
+      printf '%s' "$B" | grep -qiE 'two mechanical checks|two checks|the two that are in' \
+        && { echo 'stale check count survives'; exit 1; }
+      printf '%s' "$B" | grep -qiE 'double-colon|re-runs every marker|first word is not' \
+        && { echo 'claims rule survives'; exit 1; }
+      printf '%s' "$B" | grep -qE '^## DEC-205 .*one mechanical check' || exit 1
+      printf '%s' "$B" | grep -qF 'One mechanical check guards this file, and only one.' \
+        || { echo 'enumeration intro not restated'; exit 1; }
+      printf '%s' "$B" | grep -qF 'the one that is in is the mechanical one' \
+        || { echo 'closing paragraph not restated'; exit 1; }
+      printf '%s' "$B" | grep -qE '^1\. \*\*Anchor rot' || { echo 'rule 1 lost'; exit 1; }
+      printf '%s' "$B" | grep -qE '^2\. ' && { echo 'a second numbered item survives'; exit 1; }
+      ROW="$(grep -E '^- DEC-205 @' "$I")"
+      test -n "$ROW" || { echo 'DEC-205 index row missing'; exit 1; }
+      printf '%s\n' "$ROW" | grep -qE 'claim|two mechanical' \
+        && { echo 'stale index ruling'; exit 1; }
+      printf '%s\n' "$ROW" | grep -qF 'one mechanical check' \
+        || { echo 'index ruling not repaired'; exit 1; }
+      python3 .claude/skills/harness/bin/gen-decisions-index.py --stdout \
+        | diff -q - "$I" || exit 1
+      exit 0
+    intent: |
+      Four edits inside the DEC-205 entry of .harness/harness/docs/DECISIONS.md, one hand edit in
+      DECISIONS-INDEX.md, then one regeneration. Find each by its text, never by line number.
+
+      1. DELETE numbered item 2 in its entirety - the item beginning "2. **Executable claims.**" and
+         every continuation line of it, through the sentence ending "arbitrary code execution surface
+         inside the test suite." Item 1, anchor rot, stays byte-for-byte as it reads and keeps its
+         number 1. SC-16 grades rule 1 as unchanged.
+
+      2. REPAIR THE HEADING. It currently ends "and two mechanical checks guard it". With one item
+         left that sentence is false, and a heading is what a reader scanning the index sees. Rewrite
+         the heading to end "and one mechanical check guards it", leaving the rest of it as it is.
+
+      3. REPAIR THE ENUMERATION-INTRODUCING SENTENCE. It reads "**Two mechanical checks guard this
+         file, and only two.**" Rewrite it to exactly "**One mechanical check guards this file, and
+         only one.**" The "and only one" clause is deliberate and stays: it is what tells a later
+         author that the absence of a second check is a decision rather than an omission. The verify
+         asserts that sentence POSITIVELY, so deleting it does not satisfy this item.
+
+      4. REPAIR THE CLOSING PARAGRAPH, the one recording what was considered and refused. Its last
+         sentence reads "Neither becomes cheap merely because the two checks above are open rather
+         than closed - that openness is exactly why the two that are in are the mechanical ones."
+         Both counts are wrong once item 2 is gone. Rewrite it to say "Neither becomes cheap merely
+         because the one check above is open rather than closed" and to end with the exact clause
+         "that openness is exactly why the one that is in is the mechanical one", keeping the entry's
+         own dash style. The verify asserts that clause POSITIVELY, because a negative-only check is
+         satisfied by DELETING the count language rather than restating it, and the count is content.
+         Leave the M3 and M4 refusals themselves untouched - they are still refused, and for the
+         reasons stated.
+
+      5. HAND-REWRITE DEC-205's RULING IN DECISIONS-INDEX.md, AND IT IS NOT OPTIONAL. That row ends
+         "...and two mechanical checks - anchor rot and executable claim markers - guard it."
+         Rewrite everything right of the " :: " separator so it names ONE check, anchor rot, and no
+         marker mechanism. Without this edit the index keeps asserting the deleted mechanism while
+         every other assertion in this task passes clean - the exact stale-truth defect this feature
+         exists to remove, reintroduced by the amendment that removes it.
+
+      THE INDEX IS ONLY HALF GENERATED, AND AN EARLIER DRAFT OF THIS TASK GOT THAT WRONG. It said
+      "do not hand-edit the index: it is generated". That is true ONLY of the generated left-hand
+      side of a row - the id, the @<line> anchor, the tag set and the refs graph. Everything right of
+      the " :: " separator is HAND-WRITTEN and preserved verbatim across every regeneration:
+      gen-decisions-index.py states the contract in its module docstring (:12-14) and implements it
+      in build_index, where the ruling is assigned from prose read out of the existing rows
+      (:203-213). A ruling is never re-derived from the entry body. T-11 in this same plan
+      hand-rewrites rulings for that reason. So: never hand-edit the left-hand side, and always
+      hand-edit a ruling that has gone false.
+
+      THE ORDER MATTERS AND IT IS THIS. Make edits 1-4. Then run
+      python3 .claude/skills/harness/bin/gen-decisions-index.py to write DECISIONS-INDEX.md. Then
+      make edit 5 by hand. Then run the generator with --stdout again and diff it against the
+      committed file. That second run is what proves the hand-written ruling is idempotent under the
+      generator; if it is not, the contract above is wrong and that is a finding to report, not
+      something to work around.
+
+      THIS TASK OWNS THE ONLY REGENERATION IN THE REMOVAL SEQUENCE. T-27 and this task both shorten
+      DECISIONS.md, and the index stores a per-row source line, so every later row's anchor shifts
+      and test-gen-decisions-index.py's freshness case reddens until it is regenerated. Regenerating
+      once, after both documentation edits, is why T-27 was told not to.
+
+      The closing diff clause duplicates test_committed_index_matches_a_fresh_regeneration
+      (test-gen-decisions-index.py:359-368), and the duplication is DELIBERATE: here the diff is not
+      a freshness check but the proof that edit 5's hand-written ruling survives regeneration, which
+      no test in the suite asserts.
+
+      ADD NO POSITIVE GUIDANCE. Do not write a replacement rule about what an entry does instead of
+      carrying a checkable claim, and do not describe the deleted mechanism as superseded by
+      anything. The operator's ruling is a deletion; guidance nobody asked for is a commitment this
+      entry can later be wrong about. Whether such guidance is wanted is an open question the
+      operator answers at signature, and its answer can only widen this edit.
+
+      traces carries SC-16 as well as REQ-05 and REQ-10: this task's edits and its verify ARE that
+      criterion's evidence, and the grader looks for the id here.
+
+  - id: T-29
+    title: Audit the rest of bin/ for any other command line built from document or config text
+    traces: [REQ-10, SC-17]
+    change_type: docs
+    execution_mode: team
+    execution_agent: harness-pm
+    depends_on: [T-24]
+    status: pending
+    files:
+      - .harness/harness/features/FEAT-38-decisions-current-knowledge/notes/research-FEAT-38-bin-argv-class-audit.md
+    verify: |
+      cd "$(git rev-parse --show-toplevel)"
+      N=.harness/harness/features/FEAT-38-decisions-current-knowledge/notes/research-FEAT-38-bin-argv-class-audit.md
+      test -f "$N" || exit 1
+      P='subprocess|shlex|shell=|Popen|os\.system|eval\('
+      CAND="$(git grep -lE "$P" -- .claude/skills/harness/bin)"
+      C="$(printf '%s\n' "$CAND" | grep -c .)"
+      test "$C" -ge 60 || { echo "enumeration returned $C, expected 60 or more"; exit 1; }
+      MISS=0
+      for f in $CAND; do
+        B="$(basename "$f")"
+        grep -qE "^\| $B \| (FIXED-LITERAL-ARGV|TEXT-DERIVED-ARGV|NO-EXECUTION) \| *[^| ][^|]*\|" \
+          "$N" || { echo "unjudged or rationale empty: $B"; MISS=1; }
+      done
+      test "$MISS" -eq 0 || exit 1
+      grep -qF 'git grep -lE' "$N" || { echo 'enumeration command not recorded'; exit 1; }
+      grep -qE '^## TEXT-DERIVED-ARGV' "$N" || { echo 'no TEXT-DERIVED-ARGV section'; exit 1; }
+      sed -n '/^## TEXT-DERIVED-ARGV/,$p' "$N" | grep -qE 'EMPTY|remaining work' \
+        || { echo 'TEXT-DERIVED-ARGV section states no disposition'; exit 1; }
+      grep -qF 'test_kinds' "$N" \
+        || { echo 'the config-stored command case is not addressed'; exit 1; }
+      exit 0
+    intent: |
+      Write .harness/harness/features/FEAT-38-decisions-current-knowledge/notes/research-FEAT-38-bin-argv-class-audit.md,
+      recording a per-file verdict for every candidate script under .claude/skills/harness/bin/.
+      REQ-10 is a claim about a class, and until this note exists the class half of it is asserted
+      and unproven.
+
+      ENUMERATE THE CANDIDATES WITH EXACTLY THIS COMMAND, and quote it in the note so a later reader
+      re-runs it and lands on the same set:
+
+        git grep -lE 'subprocess|shlex|shell=|Popen|os\.system|eval\(' -- .claude/skills/harness/bin
+
+      At 99bb52c it returns 72 files. Most are tests invoking a fixed argv, so this is a filtering
+      judgement, not a one-command answer.
+
+      THE FILTER, WHICH IS TWO QUESTIONS PER CALL SITE. Answer both for every subprocess, os.system,
+      eval or shell= call site in the file. The filter is written this way so two readers reach the
+      same verdict on the same file:
+
+        Q1. Is the EXECUTABLE a literal in this file's own source? For shell=True, os.system or
+            eval, the executable is the whole command string. If the answer is no - the program name
+            or the command string comes from somewhere else - the verdict is TEXT-DERIVED-ARGV.
+        Q2. A QUESTION ABOUT PROVENANCE, NOT ABOUT GRAMMATICAL ROLE. Does the VALUE of any argv
+            element come from an input this script does not control - anything it reads and parses,
+            whether a .md document, a .json, .yaml, .yml or .toml configuration, or stdin - rather
+            than from this file's own source, sys.argv, the environment, a harness_boundary
+            resolution, or git output? If yes, the verdict is TEXT-DERIVED-ARGV; name the element,
+            the input it came from, and the parse step. A value is text-derived whether it lands as
+            the program name or as a later argument.
+
+      STDIN IS NAMED IN Q2 DELIBERATELY: the hook scripts under bin/ parse agent-controlled JSON on
+      stdin, which is the same risk class as a document and had no verdict in an earlier draft.
+
+      What does NOT make a site text-derived, stated explicitly because these are the cases that
+      generate disagreement: a literal in the script's own source; a path resolved by
+      harness_boundary; a value taken from sys.argv or from an environment variable set by a caller;
+      a filename produced by git ls-files.
+
+      THE PATH-ARGUMENT EXCLUSION IS NARROW, AND AN EARLIER DRAFT'S WORDING CONTRADICTED Q2 ON THE
+      CASE THAT MATTERS MOST. A path THIS SCRIPT ITSELF CONSTRUCTS - a literal in its own source, a
+      harness_boundary resolution, or a join of those - passed as an argument to a fixed executable,
+      is not a command and does not make the site text-derived. A path that ARRIVED FROM A PARSED
+      INPUT is text-derived even when it is passed as a plain argument. Provenance decides, never
+      position.
+
+      THE DECISIVE CASE, AND THE NOTE MUST SHOW IT WAS CAUGHT RATHER THAN CONCLUDE THE CLASS IS
+      EMPTY: a whole command string stored in configuration. .harness/harness.json's test_kinds
+      entries hold a cmd value such as
+      .agents/skills/harness/bin/run-unit-tests.sh --kind integration
+      and Q1 already catches any script that reads that field and executes it, because the
+      executable is then not a literal in the reading script's own source. Find the readers of a
+      test_kinds cmd, judge each one, and name the field and the reading site in the note. The verify
+      requires the string test_kinds to appear in the note for exactly this reason.
+
+      Both answers no, in a file that does contain an executing call site, is FIXED-LITERAL-ARGV.
+
+      A THIRD VERDICT EXISTS BECAUSE THE CANDIDATE SET IS WIDER THAN THE ENUMERATION PATTERN.
+      NO-EXECUTION is the verdict for a candidate file that executes nothing at all: the eval pattern
+      matches literal_eval, and the subprocess pattern matches a docstring or a comment, so a file
+      can be in the enumerated set with no call site to judge. Recording such a file as
+      FIXED-LITERAL-ARGV would be a false statement, so the rubric and the verify both accept
+      NO-EXECUTION. A file with several call sites gets the STRICTEST verdict its sites earn:
+      TEXT-DERIVED-ARGV over FIXED-LITERAL-ARGV over NO-EXECUTION.
+
+      THE DELIVERABLE. The note carries, in this order: the enumeration command verbatim, the count
+      it returned, and a table with one row per candidate in exactly this shape, no backticks, so the
+      verify can match it:
+
+        | <basename> | <VERDICT> | <the call site, file:line, and why> |
+
+      Every candidate the command returns gets a row, and THE THIRD COLUMN MUST BE NON-EMPTY - the
+      verify requires it, because seventy-odd rows with an empty rationale is a table that records
+      nothing and passes anyway. Each site of a multi-site file is cited.
+
+      Then a closing section headed exactly
+
+        ## TEXT-DERIVED-ARGV
+
+      listing that set: either stated EMPTY in those letters, or listed as remaining work with a
+      recommendation. The verify asserts that the section exists and states one of those two
+      dispositions, because the section is SC-17's whole substance and nothing asserted it in an
+      earlier draft. A bare "swept, found nothing" does not meet SC-17.
+
+      THE VERIFY RE-DERIVES THE CANDIDATE SET AND ASSERTS EVERY MEMBER HAS A ROW, so a note covering
+      40 of 72 goes red and names the files it missed. "A note exists" is not a gate. The count
+      floor of 60 is the positive control: a git grep that errors prints nothing, the loop then runs
+      zero times, and without the floor an empty enumeration would pass.
+
+      RUN AFTER T-24, which is the merged deregister-and-delete task. The deleted checker is the one
+      known instance of argv-from-document today, and enumerating before its deletion puts a file in
+      the candidate set that no longer exists at review_sha. traces carries SC-17 as well as REQ-10
+      because this note IS that criterion's entire evidence, and the grader looks for the id here.

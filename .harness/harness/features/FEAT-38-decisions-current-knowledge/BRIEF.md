@@ -1,5 +1,19 @@
 # BRIEF — FEAT-38 DECISIONS.md states current knowledge
 
+> **AMENDMENT — 2026-08-29 — NOT YET SIGNED.**
+>
+> **This is an amendment to an already-approved brief.** The operator has ruled that the
+> executable-claims mechanism is **DELETED, not redesigned**: a non-executing declarative
+> replacement was put to them in full and **rejected**. Every requirement and criterion that
+> asserted that mechanism is retired below and replaced.
+>
+> **The signature in `## Approval` at the foot of this file is STALE.** It was given before the
+> ruling and covers the pre-ruling scope only — it does not cover one word of this amendment. Only
+> the main session may reset it, and only the operator may sign it again.
+>
+> Read **"The executable-claims mechanism is DELETED, not redesigned — read this before signing"**
+> below before you sign. It states what is removed and, in its own subsection, what removal costs.
+
 ## Problem
 
 `.harness/harness/docs/DECISIONS.md` no longer says what is true; it says what was true, in layers.
@@ -20,10 +34,13 @@ entry* — so every reader's cost compounds, and the one prior attempt to simply
 sub-sections, no `am.N`, no superseded entries, no `SUPERSEDED BY` markers, no struck entries that
 have somewhere else to point, and no code left in the tree that can produce any of them. A claim that
 was measured false does not vanish — it survives as one clause of current truth, in the document's
-own voice, so nobody re-proposes something already disproved. Git holds the history. Two mechanical
-checks are installed while the entries are open, because they will never again be this cheap: one
-that catches a `file:line` anchor which no longer resolves, and one that re-runs the claims an entry
-states as commands.
+own voice, so nobody re-proposes something already disproved. Git holds the history. **One**
+mechanical check is installed while the entries are open, because it will never again be this cheap:
+it catches a `file:line` anchor that no longer resolves. There is deliberately no second check. The
+mechanism that re-ran an entry's claims as commands is deleted, and with it goes the only thing that
+could ever have caught a cited line which still exists and no longer says what the entry claims
+about it. That rot is now caught by a human reading a diff, or not at all — the operator chose that
+price over letting document text reach a subprocess argv, and the trade is stated in full below.
 
 **Size is not a goal.** The file getting shorter is a consequence of stating current truth. Nothing
 is cut to hit a number.
@@ -64,6 +81,62 @@ Nothing else was widened. `.harness/logs/**` and `.harness/harness/features/**` 
 what was true on a day and are **not rewritten** — that is what keeps the sweep at 54 sites rather
 than several hundred.
 
+## The executable-claims mechanism is DELETED, not redesigned — read this before signing
+
+**A third operator ruling, dated 2026-08-29** — recorded in this feature's `STATE.md` as ruling 3 and
+settled in `.harness/notes/grilling-remove-executable-claims-2026-08-29.md`. The operator accepts no
+document-driven subprocess risk, and **chose removal over a non-executing redesign** after the
+redesign was explained in full. Claim-checking was machinery layered above this feature's goal —
+removing redundant, self-reversing decisions — rather than the goal itself.
+
+In plain words, this is what you are signing that you were not signing when you signed below:
+
+- **The mechanism goes entirely, not into a safer form.** `check-decision-claims.py`, its test file,
+  its registration in `run-unit-tests.sh` and in `.harness/harness.json`, all 11 live claim markers in
+  `DECISIONS.md`, and DEC-205's rule mandating them. Blast radius outside this feature's folder is
+  exactly those five tracked files, measured at `48bbe7e`; `DECISIONS.md`, `.harness/harness.json` and
+  `.claude/skills/harness/bin/**` are byte-identical at `99bb52c`, so that measurement still holds.
+- **The 11 markers are deleted, not translated.** They sit in 6 entries — DEC-145, DEC-157, DEC-181
+  (3), DEC-183 (3), DEC-193, DEC-205 (2). DEC-205's own two are **self-referential**: one asserts the
+  allowlist constant inside the checker being deleted, the other that checker's registration in the
+  runner. Once it is gone there is nothing for either to say.
+- **DEC-205 becomes a lying document the moment that rule is removed, and repairing it is part of the
+  edit, not a follow-up.** Its heading ends *"and two mechanical checks guard it"*, and its
+  enumeration is introduced by *"Two mechanical checks guard this file, and only two."* Both are false
+  with one check left. Rule 1, anchor rot, stays exactly as written.
+- **`check-decision-anchors.py` is RETAINED, unchanged, and is not in the risk class.** Its argv is
+  the fixed literal `["git", "ls-files"]` (`check-decision-anchors.py:111`); no document text reaches
+  a subprocess anywhere in it. Nothing in this amendment touches it or its test, and over-deletion of
+  it must be visible — it is adjacent to everything being removed and shares a filename prefix with
+  it, which is why SC-18 exists.
+- **The audit of the whole class comes IN scope.** Every other script under
+  `.claude/skills/harness/bin/` is swept for the same shape — any argv built from document or
+  configuration text. The ruling is about a class of risk, not about one file. 72 files there mention
+  `subprocess`, `shlex`, `shell=`, `Popen`, `os.system` or `eval(`; most are tests invoking a fixed
+  argv, so this is a filtering job over a real surface rather than a one-command answer.
+  `check-decision-claims.py` is the only instance known today.
+- **Nothing is implemented and then deleted.** Three ship-review backlog rows die here rather than
+  being worked: B-8 (harden the executing checker) and B-11 (annotate `ALLOWED_GIT_SUBCOMMANDS`) are
+  MOOT, both describing a path being removed, and B-10 is SUPERSEDED because that prose is deleted
+  rather than patched.
+
+### What removal costs, and the operator accepted it with the cost named
+
+Removal is a **two-sided trade, and the second side is real.** What it buys: no document text ever
+reaches a subprocess argv, so there is no allowlist that must stay ahead of every future `git`
+release, and a documentation file cannot become an execution surface inside the test suite. That is a
+different *kind* of assurance, not a stronger version of the same one.
+
+What it sells: **after this lands, nothing detects semantic citation rot** — a line an entry cites
+that still exists, still resolves, and no longer says what the entry claims about it. The retained
+anchor check sees existence and range only, and DEC-205 rule 1 already admits exactly this in its own
+words. No gate, no suite, no reviewer prompt and no convention replaces it; the detector for it is a
+human reading a diff.
+
+**The operator accepted that cost by choosing removal, with the alternative on the table.** It is
+recorded here rather than in a footnote because a reader who signs this brief is signing the absence.
+Whether anything should replace it later is deliberately left unsharp and is not in scope here.
+
 ## Two backlog tickets, ruled on rather than left open
 
 **#686 — the DECISIONS-INDEX generation contract — comes IN, scoped to one clause.** Not on anybody's
@@ -95,10 +168,28 @@ It is closed as superseded once this lands.
 - REQ-06: The tree cannot silently regain an amendment block or a supersession marker — neither by a
   hand-written one nor by code that could emit one.
 - REQ-07: A `file:line` anchor in `DECISIONS.md` that no longer resolves is caught mechanically.
-- REQ-08: An entry that states something a command can check records that command and its expected
-  result, and the claim is re-run mechanically.
+- REQ-08: **RETIRED 2026-08-29 — the id is kept, not renumbered and not reused.** It required that an
+  entry recording something a command can check carry that command and its expected result, re-run
+  mechanically. The removal ruling withdraws it and nothing replaces it. The tombstone stands so that
+  the artifacts citing REQ-08 — `plan.yaml` task `traces:` lists, `notes/ship-review-2026-08-29-18.md`
+  and the run digests — land on the withdrawal instead of on text that reads as live. Nothing traces
+  to it any more; a task still tracing to it is a plan defect.
 - REQ-09: Before the change is accepted, a human has read each folded entry against its pre-fold form
   and confirmed the prior belief and its falsification survive.
+- REQ-10: `check-decision-claims.py` — the one script known today to build a command line from
+  document text — is gone with both its registrations, `DECISIONS.md` neither carries such a claim
+  nor instructs an author to write one, and **the same question is answered on the record for every
+  other script under `.claude/skills/harness/bin/`**: the sweep's command, the set it returned, a
+  per-file verdict, and the disposition of anything it finds.
+  **CONDITIONED DELIBERATELY, AND THIS CONDITIONING IS PART OF WHAT IS BEING SIGNED.** An earlier
+  draft read as an unconditional claim about the whole class — *no script builds a command line from
+  document or configuration text*. The audit this feature itself commissions can falsify that, and
+  one candidate is already named: a whole command string stored in configuration, such as
+  `.harness/harness.json`'s `test_kinds.<kind>.cmd`, executed by whatever reads it. So the
+  requirement is met by the class being **swept and its members named with a recommendation**, not
+  by the text-derived set being empty. **Remediating any site beyond `check-decision-claims.py` is
+  explicitly OUT of scope here** and becomes a backlog row filed at ship, citing the audit note. A
+  non-empty result is a finding this feature delivers, not a failure of it.
 
 ## Constraints
 
@@ -130,8 +221,9 @@ It is closed as superseded once this lands.
   `execution_mode: team` — so they are one `main-session-direct` task, with the carve-out declared
   once in the plan's `lanes:` block rather than re-argued per task.
 - **`run-unit-tests.sh` and `.harness/harness.json` are in different lanes** and must agree: the
-  runner rejects any `INTEGRATION_SCRIPTS` name absent from the config's `integration` detect. New
-  checkers register on both sides or the runner exits 2.
+  runner rejects any `INTEGRATION_SCRIPTS` name absent from the config's `integration` detect. A
+  checker registers on both sides or the runner exits 2 — **and deregisters from both sides, for the
+  same reason.** A removal that clears one side only is a live defect, not a cosmetic leftover.
 
 ## Success Criteria
 
@@ -172,11 +264,12 @@ rather than a working-tree read, so a deliverable that never entered the reviewe
   `review_sha`, and reddens when one fabricated anchor is planted. Three separate observations, because
   an exit-0 alone is what an empty or errored search also produces.
   verify: automated        evidence: integration
-- SC-09: The claim checker runs every claim marker in `DECISIONS.md` at `review_sha` and exits 0; and
-  when the expected result of DEC-181's `CLAUDE.md` 80-line budget marker is changed to 81, it exits
-  non-zero naming that marker. A checker that passes over zero markers is indistinguishable from one
-  that works, so the mutation is the criterion, not the exit code.
-  verify: automated        evidence: integration
+- SC-09: **RETIRED 2026-08-29 — the id is kept, not renumbered and not reused.** It graded the claim
+  checker's run and its 80→81 mutation. The mechanism it graded is deleted, so the criterion is now
+  unmeetable by construction rather than unmet; SC-14 through SC-17 grade the removal in its place.
+  The tombstone stands because `notes/review-harness-qa-c0.md`,
+  `notes/review-harness-code-reviewer-c0.md` and both ship reviews cite SC-09, and those records are
+  frozen and correct for the day they were written. **Not graded, by anybody.**
 - SC-10: `run-unit-tests.sh` exits 0 and prints zero lines beginning `FAIL`, with the output captured
   and searched rather than piped to `tail`. Both are asserted: the runner has a path where a detail
   string is empty, and a truncating pipe reports the pipe's status.
@@ -196,6 +289,55 @@ rather than a working-tree read, so a deliverable that never entered the reviewe
   as a decision stating current truth rather than as merged history — and that no claim they now
   consider settled has silently disappeared.
   verify: uat
+- SC-14: At `review_sha`, `.claude/skills/harness/bin/check-decision-claims.py` and
+  `.claude/skills/harness/bin/test-check-decision-claims.py` are absent from `git ls-tree -r`,
+  `DECISIONS.md` matches zero lines containing `<!-- claim:`, and no tracked file outside
+  `.harness/harness/features/`, `.harness/notes/` and `.harness/logs/` matches
+  `check-decision-claims`. Three separate assertions, each by the search's exit status rather than by
+  a count compared to zero. It rejects the tree at `99bb52c`, where the marker search matches 11 lines
+  across 6 entries and the reference search matches 5 tracked files.
+  verify: automated        evidence: integration
+- SC-15: At `review_sha`, neither `run-unit-tests.sh`'s `INTEGRATION_SCRIPTS` nor
+  `.harness/harness.json`'s `integration` detect names the removed checker or its test, and
+  `run-unit-tests.sh` at `review_sha` exits 0 while printing zero lines beginning `FAIL`, with its
+  output captured and searched rather than piped. Both halves are asserted: the runner exits 2 when
+  the two registration sides disagree, so a one-sided deregistration is invisible to an absence
+  search that only looks at one file.
+  verify: automated        evidence: integration
+- SC-16: At `review_sha`, **each of the three sentences in DEC-205 that counts the mechanical checks
+  positively states the number that actually exists** — its heading, the sentence introducing its
+  enumeration, and the closing sentence of the considered-and-refused paragraph (*"...that openness
+  is exactly why the two that are in are the mechanical ones"*) — no numbered item in that entry
+  describes a claim that is re-run or a command grammar, and rule 1 (anchor rot) reads unchanged.
+  **`DECISIONS-INDEX.md`'s DEC-205 row states the same corrected count**: its ruling — the
+  hand-written half, right of ` :: `, which regeneration preserves verbatim — names one check and no
+  marker mechanism. Graded by citing each of the four by `file:line` from
+  `git show <review_sha>:` of each path beside its pre-change form from `git show 99bb52c:` of the
+  same path. Two specific failures this catches, both of which leave every automated criterion above
+  green: removing the item while a sentence still says *"two mechanical checks guard it"*, and
+  **DELETING a count sentence instead of restating it** — a negative-only check is satisfied by
+  deletion, and the count is content.
+  verify: inspection
+- SC-17: A note under this feature's `notes/` records the sweep of `.claude/skills/harness/bin/` for
+  any script that builds a command line from an input it does not control — a document, a
+  configuration file, or stdin: the command used, the set of files it returned, and a per-file
+  verdict of `FIXED-LITERAL-ARGV`, `TEXT-DERIVED-ARGV` or `NO-EXECUTION`, each with a non-empty
+  rationale citing the call site, and the text-derived set either stated empty or listed as
+  remaining work with a recommendation. **The three verdicts are deliberate**: the enumeration
+  pattern matches `literal_eval(` and matches `subprocess` in a docstring, so a candidate file that
+  executes nothing must have a verdict that is true of it. The note must also show the sweep reached
+  the case most likely to produce a text-derived site — a whole command string stored in
+  configuration, `.harness/harness.json`'s `test_kinds.<kind>.cmd`. A bare "swept, found nothing"
+  does not meet this — the filter is a judgement over 72 candidate files, and a later reader must be
+  able to re-run the command and land on the same set.
+  verify: inspection
+- SC-18: `.claude/skills/harness/bin/check-decision-anchors.py` and its test
+  `test-check-decision-anchors.py` at `review_sha` are byte-identical to `git show 99bb52c:` of the
+  same paths, and the test is still named by both `run-unit-tests.sh`'s `INTEGRATION_SCRIPTS` and
+  `.harness/harness.json`'s `integration` detect. The retained check sits beside everything being
+  removed and shares a filename prefix with it, so over-deletion is the likely error and must be
+  visible rather than inferred from a green suite.
+  verify: automated        evidence: integration
 
 ## Verification gaps
 
@@ -218,6 +360,18 @@ criterion above is evidenced. No criterion rests on a null-runner kind.
   authoring commit message is an unrelated write-up. The operator was shown this on 2026-08-20 and
   accepted it as a fair price for one block in thirty; it is restated here because the block count
   has since grown to 38.
+- **Semantic citation rot has no detector at all after this lands, by decision.** A cited line that
+  still exists and no longer says what the entry claims about it passes the anchor check, passes the
+  suite, and passes review unless a human happens to open it. The mechanism that could have caught it
+  is deleted; the operator accepted that cost with the alternative on the table, and the trade is
+  stated under *What removal costs* above. **What therefore is NOT proven by any gate here: that the
+  claims `DECISIONS.md` makes about the code are still true on any day after `review_sha`.** What
+  carries it instead is SC-11 and SC-13, both human, and neither is a standing check — they cover this
+  change only.
+- **The `bin/` class audit (SC-17) rests on inspection because no runner can decide it.** Whether a
+  given `subprocess` call site builds its argv from document text is a reading of the code, over 72
+  candidate files. A grep for `subprocess` proves presence, never class membership, so a green suite
+  says nothing about REQ-10.
 
 ## Approval
 
