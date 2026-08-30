@@ -88,7 +88,8 @@ class _Counter(ast.NodeVisitor):
 
     def visit_AnnAssign(self, node):
         self.visit(node.target)
-        self.visit(node.value)
+        if node.value is not None:
+            self.visit(node.value)
 
     def visit_AugAssign(self, node):
         self.visit(node.target)
@@ -150,7 +151,8 @@ class _Counter(ast.NodeVisitor):
     def visit_With(self, node):
         for item in node.items:
             self.visit(item.context_expr)
-            self.visit(item.optional_vars)
+            if item.optional_vars is not None:
+                self.visit(item.optional_vars)
         self.depth += 1
         self._visit_block(node.body)
         self.depth -= 1
@@ -162,7 +164,8 @@ class _Counter(ast.NodeVisitor):
         for handler in node.handlers:
             self._decision()
             self.a += int(handler.name is not None)
-            self.visit(handler.type)
+            if handler.type is not None:
+                self.visit(handler.type)
             self._visit_block(handler.body)
             self.depth -= 1
         if node.finalbody:

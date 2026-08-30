@@ -645,6 +645,46 @@ def check_direction_pairs():
     return failures
 
 
+def check_optional_field_guards():
+    """C28: _Counter.visit_With/visit_Try/visit_AnnAssign each visit an ASDL-optional AST
+    field (withitem.optional_vars, ExceptHandler.type, AnnAssign.value) without a None guard,
+    raising AttributeError instead of grading. Asserts literal metrics, not just absence of a
+    crash, and asserts the two genuine identities QA's corrected spec names — bare except: vs
+    except Exception:, and bare `x: int` vs `x: int = None` — while explicitly NOT asserting
+    bare `with lock:` identical to `with lock as x:` (abc_a differs by 1: the `as` target is a
+    Store-context Name, which visit_Name counts and the bare form has none)."""
+    failures = 0
+    with_record = code_grade.grade_source("def f():\n    with lock:\n        pass\n", "fixture.py")[0]
+    failures += check((with_record.cyclomatic, with_record.cognitive, with_record.abc_a,
+                        with_record.abc_b, with_record.abc_c), (1, 0, 0, 0, 0),
+                       "bare with: literal metrics")
+
+    try_record = code_grade.grade_source(
+        "def f():\n    try:\n        pass\n    except:\n        pass\n", "fixture.py")[0]
+    try_exc_record = code_grade.grade_source(
+        "def f():\n    try:\n        pass\n    except Exception:\n        pass\n", "fixture.py")[0]
+    failures += check((try_record.cyclomatic, try_record.cognitive, try_record.abc_a,
+                        try_record.abc_b, try_record.abc_c), (2, 1, 0, 0, 1),
+                       "bare except: literal metrics")
+    failures += check((try_record.cyclomatic, try_record.cognitive, try_record.abc_a,
+                        try_record.abc_b, try_record.abc_c),
+                       (try_exc_record.cyclomatic, try_exc_record.cognitive, try_exc_record.abc_a,
+                        try_exc_record.abc_b, try_exc_record.abc_c),
+                       "bare except: metric-identical to except Exception:")
+
+    ann_record = code_grade.grade_source("def f():\n    x: int\n", "fixture.py")[0]
+    ann_none_record = code_grade.grade_source("def f():\n    x: int = None\n", "fixture.py")[0]
+    failures += check((ann_record.cyclomatic, ann_record.cognitive, ann_record.abc_a,
+                        ann_record.abc_b, ann_record.abc_c), (1, 0, 1, 0, 0),
+                       "bare annotation: literal metrics")
+    failures += check((ann_record.cyclomatic, ann_record.cognitive, ann_record.abc_a,
+                        ann_record.abc_b, ann_record.abc_c),
+                       (ann_none_record.cyclomatic, ann_none_record.cognitive, ann_none_record.abc_a,
+                        ann_none_record.abc_b, ann_none_record.abc_c),
+                       "bare annotation: metric-identical to explicit = None")
+    return failures
+
+
 def main():
     checks = (
         check_fixtures,
@@ -661,6 +701,7 @@ def main():
         check_worked_examples,
         check_delivery,
         check_self_grading,
+        check_optional_field_guards,
     )
     failures = sum(fn() for fn in checks)
     if failures:
