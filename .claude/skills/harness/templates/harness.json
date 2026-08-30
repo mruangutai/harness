@@ -155,7 +155,7 @@
     "_note": "GitHub Issues mirror (DEC-138). sync is asked ONCE at /harness-init; repo is pinned there from `gh repo view` under the user's eyes and NEVER re-inferred per call. One-way outbound after plan approval; gh absent = skip-and-report, never a gate.",
     "sync": false,
     "repo": null,
-    "_board_note": "Project board for the station mirror (FEAT-18): owner, number, station_field, and stations \u2014 an ORDERED LIST of exactly the six fixed names backlog, plan, ready, building, review, done (FEAT-41 T-01). THE SIX NAMES ARE FIXED AND YOU MAY NOT RENAME THEM: a declaration that renames, reorders or extends them is refused, naming github.board.stations, and the six-key mapping shape is retired. Your board's column names are DERIVED from these six by factory_config.station_column(), the one place in the tree a capitalised station name is produced, so store no capital here. Extra columns you add to the board yourself are untouched by the harness. Columns are resolved by name at runtime, never by a pinned id. null = this project has no board and no station is ever written. A board that is present but incomplete is a loud error naming the offending key, never a silently disabled feature.",
+    "_board_note": "Project board for the station mirror (FEAT-18): owner, number, station_field, and a stations mapping with exactly the six keys backlog, plan, ready, building, review and done, each naming an option that exists on that board \u2014 every value resolved by name at runtime, never by a pinned id. null = this project has no board and no station is ever written. A board that is present but incomplete is a loud error naming the offending key, never a silently disabled feature.",
     "board": null
   }
 }
