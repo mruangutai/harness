@@ -9,10 +9,10 @@
 - status: Plan. Moved back from Ready, because the plan is under revision and its approval is
   withdrawn — a signed, buildable plan is what Ready asserts and there is not one right now.
 - THE REVISION IS APPLIED AND BOTH GATES ARE GREEN. plan.yaml carries 13 tasks — T-01..T-11,
-  T-14, T-15 — with T-12 and T-13 gap-noted and nothing renumbered. `check-plan-routes.py` exits
+  T-14, T-15 — with the two struck ids gap-noted and nothing renumbered. `check-plan-routes.py` exits
   0, "0 violation(s) across 1 plan(s)", and prints exactly one ordinary team line for the whole
   plan: `OK T-15 granted to harness-documentor`. `check-state.sh` exits 0 with zero violations.
-- WHAT LANDED, all at 15394e5: T-13 struck with SC-05 and SC-12, and the post-rename basename is
+- WHAT LANDED, all at 15394e5: the rename task struck with SC-05 and SC-12, its basename
   absent from both artifacts (D-01 records the reversal). T-07 names and rekeys SEAM_NOTES in the
   same edit as STATUS_ORDER and runs SC-02's own measurement. T-15 added on the documentor lane
   to AMEND — never strike — the contradicted clause in DEC-203 s6, DEC-191 and DEC-182, graded by
@@ -57,7 +57,7 @@
   fast path stays forbidden. After signature the build resumes in the signed order, and T-01 and
   T-02 land in ONE commit because T-01's consumer smoke cannot pass without T-02's repoint.
 - briefing: none this run. The dispatch asked for a short delta, not a CEO briefing; the standing
-  one is notes/ship-review-2026-08-30-01.md and its task dispositions are now stale for T-13.
+  one is notes/ship-review-2026-08-30-01.md and its dispositions are stale for the strike.
 
 ## Open Questions
 
@@ -83,7 +83,7 @@
   BRIEF.md's lane paragraph is corrected: twelve tasks main-session-direct, one on the team lane.
 - Q13: RESOLVED 2026-08-30. SC-02's own measurement is in T-07's `verify:` — the last task that
   removes a capitalised literal, so it can go green there. It was briefly on T-01, where it could
-  never pass, and briefly on T-13, where striking the task would have deleted it silently.
+  never pass, and briefly on the struck rename task, which would have deleted it silently.
 - Q14: NEW, and it outranks the vocabulary work it was serving. A task whose `verify:` exercises
   its own module in isolation can be green while the project's state gate is face-down (#1033).
   Five tasks here are hardened, but nothing MECHANICAL requires a shape-changing task to carry a
@@ -93,3 +93,9 @@
   requirement now rests on T-09's verify and its intent prose, neither of which is a criterion.
 - Q16: NEW, for the operator to file — I cannot reach `xd://report_issue`. My dispatch named
   HEAD as `92d279c` when it was `63b2382`, three commits later. Second occurrence of the pattern.
+- Q17: NEW, non-blocking HARNESS DEFECT, hit live by this revision. INV-3's STATE.md check greps
+  a bare task-id pattern over the whole file and flags any id the plan does not carry, so it cannot tell
+  STATE.md POINTING AT a missing task — the defect — from STATE.md RECORDING one as struck.
+  Two violations were raised for an honest strike record and the record was moved out to clear
+  them. plan.yaml's own approval block names the same id and is not checked, so the rule is
+  also asymmetric between the two files.
