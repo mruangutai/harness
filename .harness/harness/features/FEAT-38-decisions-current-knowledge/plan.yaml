@@ -1820,7 +1820,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: [T-19, T-27]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/run-unit-tests.sh
       - .claude/skills/harness/bin/check-decision-claims.py
@@ -1991,7 +1991,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-documentor
     depends_on: [T-21]
-    status: pending
+    status: done
     files:
       - .harness/harness/docs/DECISIONS.md
     verify: |
