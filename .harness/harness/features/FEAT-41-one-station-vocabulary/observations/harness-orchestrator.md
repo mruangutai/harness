@@ -49,3 +49,41 @@
 - 2026-08-30: STATE.md's Q12 records a FALSE premise and I caught it only by measuring. It says the `.harness/harness/docs/**` lanes row is vestigial because "no surviving task touches that surface". T-13 lists `.harness/harness/docs/DECISIONS.md` at plan.yaml:1177. The row is LIVE. It stayed invisible because `check-plan-routes.py` short-circuits on `nobody_paths` before it reaches the DEVIATION branch, so T-13 reports as OK on its three ungranted paths and the granted DECISIONS.md surface is never printed. WHEN a gate reports OK on a multi-surface task DO check which branch produced the OK — a short-circuit on one surface hides the lane of every other.
 - 2026-08-30: Q13 CONFIRMED by measurement, still open at signature. SC-02's own quoted-literal grep appears at BRIEF.md:110 and :113 and in NO task's `verify:` block. The criterion is graded against a command nothing in the plan runs. Baselines measured at 855a356 for the successor: SC-02 grep returns 27, SC-01 `_STATION_KEYS` returns 7, SC-12 `plan-merge` returns 35 (matching the BRIEF's own reading at 0d4845b, so unchanged by the rebase).
 - 2026-08-30: the gate baseline at 855a356 is clean and that is worth recording because it makes the phase boundary unambiguous — `check-state.sh` exit 0 with 13 NOTEs and zero hard failures and zero concerning FEAT-41; `check-plan-routes.py` exit 0, "0 violation(s) across 1 plan(s)". The plan-phase BRIEF-unapproved violation closed at the signature exactly as predicted. Nothing was left red for the successor to disentangle from its own work.
+- 2026-08-30: A task's `verify:` that exercises its own module in isolation can be green while the
+  project's state gate is face-down. FEAT-41 T-01 passed 112/112 and the `_STATION_KEYS` absence
+  grep, and turning `github.board.stations` from a mapping into a list raised `TypeError: list
+  indices must be integers` in `board_lifecycle._declared_stations` and tracebacked check-state.sh.
+  The tell was structural and visible in the plan: T-01's `files:` named zero of the eight modules
+  that read the value it reshapes. Filed as #1033.
+- 2026-08-30: Before writing a probe into a plan as a verify, run it BOTH ways. I ran the
+  `_declared_stations` smoke against today's mapping (exit 0) and against a simulated list (exit 1,
+  the exact TypeError) before committing it. A probe only asserted in its passing direction is
+  indistinguishable from one that cannot fail.
+- 2026-08-30: My dispatch named HEAD as `92d279c`; it was `63b2382`, three commits later, one of
+  which had modified the very file I was told had just been re-pinned. Measuring `git log` and
+  `git status` before the first edit cost one call and changed what I wrote. Second occurrence of
+  this pattern in this repository.
+- 2026-08-30: A dispatch's own measured claims are claims. Mine said 17 feature dirs sit in the
+  pin-resolves-but-path-absent state and that the state is silenced only by the both-reads clause.
+  Re-walked at HEAD: it is 19, and all 19 are at a terminal station, so the Q6 scope silences them
+  first and live exposure is zero. Both corrections changed what the plan says.
+- 2026-08-30: YAML plain scalars cannot contain colon-space. Three decision `choice:`/`because:`
+  values I appended broke the plan loader with "mapping values are not allowed in this context",
+  and check-plan-routes exits 2 rather than 1 on that, so it reads as the checker failing rather
+  than the plan being wrong. The file's existing convention is " - " where prose wants a colon.
+- 2026-08-30: check-state.sh INV-3 greps a bare task-id pattern over STATE.md and flags any id the
+  plan does not carry, so it cannot distinguish pointing at a missing task from recording one as
+  struck. It also matched my own prose description of the rule, `T-NN`, in the open question I
+  wrote about it. plan.yaml names the same struck id and is not checked, so the rule is asymmetric.
+- 2026-08-30: This machine's grep ignores `--exclude` and `--include`. SC-02's grep form returned
+  427 lines where the python form returned 27 and reproduced the brief's per-file split exactly.
+  Any absence check written as a grep with an exclude is suspect here before it is trusted (#959).
+- 2026-08-30: When an operator ruling strikes a criterion, check what ELSE that criterion was the
+  only cover for. Striking SC-05 was correct and removed the only criterion-level assertion that
+  the write denial states its REASON; naming that loss as PB-07 took one paragraph and would have
+  been invisible in a diff otherwise.
+- 2026-08-30: Anchored replacement with an exactly-once assertion per anchor, run through
+  `harness_merge.locked_update`, is the safe way to make ~20 surgical edits to a 100 KB approved
+  plan with a concurrent writer live in the same worktree. Three anchors failed on first run - a
+  paragraph that ran on past my chosen end, and two of my own additions tripping the file's own
+  acceptance rules - and each aborted the transform before anything was written.
