@@ -6,6 +6,7 @@ Each case invokes the real script as a subprocess against a fixture PLAN.md,
 and against the repo's own templates/PLAN.md, run-unit-tests.sh and source
 for the static/textual checks (cases 8-13, 16).
 """
+import base64
 import io
 import json
 import os
@@ -1519,12 +1520,14 @@ def write_prior_route_validator(directory):
     """Write the prior validator from committed data, without requiring Git history."""
     fixtures = (
         ("check-plan-routes.py", "prior-check-plan-routes.py.fixture"),
-        ("harness_boundary.py", "prior-harness_boundary.py.fixture"),
+        ("harness_boundary.py", "prior-harness_boundary.py.fixture.b64"),
         ("harness_yaml.py", "prior-harness_yaml.py.fixture"),
     )
     for name, fixture in fixtures:
         with open(os.path.join(FIXTURE_DIR, fixture), encoding="utf-8") as stream:
-            source = stream.read()
+            stored = stream.read()
+        source = (base64.b64decode(stored).decode("utf-8")
+                  if fixture.endswith(".b64") else stored)
         if name == "check-plan-routes.py":
             source = source.replace(
                 'CHECK_DOMAIN = os.path.join(BIN_DIR, "check-domain.sh")',
