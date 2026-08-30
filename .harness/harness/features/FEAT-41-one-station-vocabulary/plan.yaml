@@ -135,7 +135,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: factory_config.py is the board validator every factory and mirror tool loads through
     depends_on: []
-    status: pending
+    status: done
     files:
       - .harness/harness.json
       - .agents/skills/harness/templates/harness.json
@@ -226,7 +226,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: gh_board.py is imported by check-state.sh's INV-26, the validator that gates this run
     depends_on: [T-01]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/gh_board.py
       - .claude/skills/harness/bin/gh-sync.py
