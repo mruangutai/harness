@@ -477,6 +477,72 @@ def check_nul_safe_changed_files():
         return failures
 
 
+def check_docstring_only_rename_not_gated():
+    """_strip_docstring must be reached for this fixture: the qualname lookup misses
+    (the function is renamed), so resolution falls through to the body hash. A
+    docstring-only edit under a rename must still resolve by body hash and land
+    informational, never gated."""
+    with tempfile.TemporaryDirectory() as directory:
+        repo_root = Path(directory)
+        _git(repo_root, "init")
+        _git(repo_root, "config", "user.email", "grader@example.test")
+        _git(repo_root, "config", "user.name", "Code Grader")
+        _write(repo_root, "main.py", '''\
+def documented():
+    """Original text."""
+    return 1
+''')
+        base_ref = _commit(repo_root, "base")
+        _write(repo_root, "main.py", '''\
+def renamed():
+    """Rewritten text."""
+    return 1
+''')
+        head_ref = _commit(repo_root, "changes")
+        gated, informational = code_grade.gated_set(repo_root, base_ref, head_ref)
+        gated_names = {record.qualname for record in gated}
+        informational_names = {record.qualname for record in informational}
+        failures = check(gated_names, set(), "docstring-only rename gated set")
+        failures += check(informational_names, {"renamed"},
+                          "docstring-only rename informational set")
+        return failures
+
+
+def check_method_qualname_collision_pre_images():
+    """_qualname must join the class prefix: without it, two same-named methods on
+    different classes collide in the body-hash map and a same-named top-level
+    function that only changed which name it holds must still resolve by hash."""
+    def source(top_name):
+        return f'''\
+def {top_name}():
+    return "top"
+
+class Alpha:
+    def run(self):
+        return "alpha"
+
+class Beta:
+    def run(self):
+        return "beta"
+'''
+    with tempfile.TemporaryDirectory() as directory:
+        repo_root = Path(directory)
+        _git(repo_root, "init")
+        _git(repo_root, "config", "user.email", "grader@example.test")
+        _git(repo_root, "config", "user.name", "Code Grader")
+        _write(repo_root, "main.py", source("run"))
+        base_ref = _commit(repo_root, "base")
+        _write(repo_root, "main.py", source("dispatch"))
+        head_ref = _commit(repo_root, "changes")
+        gated, informational = code_grade.gated_set(repo_root, base_ref, head_ref)
+        gated_names = {record.qualname for record in gated}
+        informational_names = {record.qualname for record in informational}
+        failures = check(gated_names, set(), "qualname collision gated set")
+        failures += check(informational_names, {"Alpha.run", "Beta.run", "dispatch"},
+                          "qualname collision informational set")
+        return failures
+
+
 def check_worked_examples():
     repo_root = Path(__file__).resolve().parents[4]
     skill_path = repo_root / ".claude/skills/harness-code-risk-grading/SKILL.md"
@@ -584,6 +650,8 @@ def main():
         check_fixtures,
         check_nested_qualnames,
         check_nul_safe_changed_files,
+        check_docstring_only_rename_not_gated,
+        check_method_qualname_collision_pre_images,
         check_direction_pairs,
         check_changed_function_resolution,
         check_pre_image_resolution_priority,
