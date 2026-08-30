@@ -2,8 +2,8 @@
   "feature_id": "FEAT-38-decisions-current-knowledge",
   "branch": "feat/FEAT-38-decisions-current-knowledge",
   "pr": null,
-  "status": "Ready",
-  "review_sha": "48bbe7e4ae56c1e6142515bce0f52f8055707b76",
+  "status": "Review",
+  "review_sha": "635cd3baa950e7a48eaad9c3a1990560b61bf7c0",
   "cycles_used": 14,
   "max_total_cycles": 30,
   "max_total_runs": 20,
@@ -157,6 +157,42 @@
       "squad": "product",
       "verdict": "PASS",
       "agent": "harness-product-lead"
+    },
+    {
+      "id": "t27-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead"
+    },
+    {
+      "id": "2026-08-29-01-eng",
+      "squad": "eng",
+      "verdict": "PASS",
+      "agent": "harness-eng-lead"
+    },
+    {
+      "id": "t28-t29-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead"
+    },
+    {
+      "id": "2026-08-29-t25-eng",
+      "squad": "eng",
+      "verdict": "PASS",
+      "agent": "harness-eng-lead"
+    },
+    {
+      "id": "2026-08-29-qa-ship-validator",
+      "squad": "validator",
+      "verdict": "PASS",
+      "agent": "harness-validator-lead"
+    },
+    {
+      "id": "2026-08-29-simplify-ship-eng",
+      "squad": "eng",
+      "verdict": "PASS",
+      "agent": "harness-eng-lead"
     }
   ],
   "github": {

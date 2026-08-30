@@ -3,101 +3,78 @@
 ## Current
 
 - feature: FEAT-38-decisions-current-knowledge
-- run: `2026-08-29-01-product` — PASS, the adversarial panel's revision applied
-- squad: product (`harness-pm`, via `harness-product-lead`)
-- status: **Plan**. The panel revision has LANDED. The plan and brief are again
-  pending **ONE fresh operator signature**. No build, no PR, no merge, no ship.
+- run: `2026-08-29-simplify-ship-eng` — PASS, the four-angle pass applied one dead-code fix
+- squad: eng (`harness-backend-dev`, via `harness-eng-lead`)
+- status: **Review**. The BUILD IS COMPLETE and `review_sha` is pinned. No PR, no merge, no ship.
 
-**The revision is applied and verified.** An adversarial three-reader panel graded the signed
-plan at `73898a3`; the main session withdrew the signature at `753f4cd` and recorded five rulings
-in `notes/answers-2026-08-29-panel.md`. All five landed in one product run:
+**All 28 planned tasks read `done`.** The five that remained at the third signature landed in
+`depends_on` order across four commits, each verified by the orchestrator running the task's own
+`verify:` extracted from the signed `plan.yaml` with `harness_yaml.load_plan` rather than retyped:
 
-- **F1** — T-24's blast-radius sweep was UNSATISFIABLE at its own completion. `':!.harness/harness.json'`
-  added to the pathspec (`plan.yaml:1826`), and T-24's intent corrected: the sweep is no longer
-  described as unscoped, and the false claim that it is the only proof no sixth reference site
-  exists is replaced by the true owner, **SC-14's third assertion** graded at `review_sha`.
-- **F2** — SC-11 now states its re-grade set as the **five** entries it actually reaches
-  (DEC-145, 157, 181, 183, 193); SC-16 extended to cover DEC-205's considered-and-refused
-  paragraph, content-anchored on `What was considered and refused` rather than on a line number.
-- **F3** — REQ-10 reconciled with the grilling note's Destination in one sentence, scope unwidened.
-- **F4** — SC-17's inspection routed to a code-reading persona, not the author of the audit table.
-- **F5** — `SC-15` added to T-25's `traces`. T-27's `traces` deliberately untouched.
+- **T-27** (`0a94d91`) — all eleven claim markers deleted from `DECISIONS.md`, in six entries.
+- **T-24** (`8c879f5`) — the claims test deregistered from `INTEGRATION_SCRIPTS` and both claims
+  files `git rm`'d, landed together as one atomic step.
+- **T-28, T-29** (`70690ea`) — DEC-205's item 2 deleted and its three check-counting sentences
+  repaired, index ruling hand-rewritten and proven idempotent; the `bin/` argv-class audit written.
+- **T-25** (`8a7c75c`) — the claims test deregistered from `harness.json`'s integration `detect`.
+- **qa + SIMPLIFY** (`635cd3b`) — the blocking gate's evidence, and one dead-code apply.
 
-**F1 was verified by MEASUREMENT, not by argument** — the panel's own predecessor accepted a
-reasoned argument here and was wrong. In a disposable clone with a real git index, at the exact
-mid-state T-24 faces (T-27 landed, T-24 landed, **T-25 still pending**): the signed clause exits
-**1** printing `.harness/harness.json` then `references survive`; the landed clause, extracted
-from the amended `plan.yaml` via `harness_yaml.load_plan` rather than retyped, exits **0**.
-Applying T-25 on top, SC-14's unscoped sweep exits **1** with no matches — the proof F1 moved to
-SC-14 genuinely lands there, and `run-unit-tests.sh --check-kinds` exits 0 with both registration
-sides agreeing.
+**SC-13 STANDS and does not return to the operator.** Ruling 6 voids the standing UAT only if T-27
+touched prose in any of the six marker-carrying entries. It did not, and this was re-derived rather
+than accepted on report: at `0a94d91` the prose line sequences before and after are IDENTICAL
+(5067 lines each; 20 lines removed = 11 markers + 9 blanks; zero insertions). The check was run
+grep-free because this environment's `/usr/bin/grep` is `pi-uu-grep 0.2.0`, in which `^+` matches
+EVERY line — it reported 83 insertions against a true `--numstat` of zero.
 
-**The plan is structurally unchanged.** 28 tasks; ids `T-01…T-25, T-27, T-28, T-29`; no id
-renumbered, reused or added; there is still no T-26. T-01…T-23 all `status: done`, the five
-remaining `pending`. `harness_yaml.load_plan` parses it. `check-plan-routes.py` exits **0** with
-**0 violations** and the same two informational `DEVIATION` lines on the done tasks T-22/T-23 that
-predate this amendment — identical to the pre-revision baseline. Remaining build is
-T-27 → {T-24, T-28} → {T-25, T-29}: no cycle, longest chain 3.
+**Ruling 2 asserted directly, not inferred from a green suite.** `check-decision-anchors.py` and
+`test-check-decision-anchors.py` are byte-identical to `git show 99bb52c:` (sha256 `adb9a648…`,
+`7a4e0ba1…`) and are named by BOTH registration sides. Re-asserted after the SIMPLIFY apply.
 
-**NEITHER APPROVAL FRAGMENT WAS WRITTEN**, and both are byte-identical to `753f4cd` — verified by
-diff, not asserted. `plan.yaml`'s `approval:` reads `pending`; **`BRIEF.md`'s `## Approval` still
-reads `approved`**, because the `753f4cd` withdrawal touched only `plan.yaml`. The two artifacts
-therefore disagree, and only the main session may reconcile them (DEC-120). Both fragments also
-still say SC-11 re-grades over the **six** entries T-27 touches, which F2a corrects to five.
+**The blocking qa gate PASSES** — `matrix_ok: true`, `must_fix: []`. Suite at the pinned tip: exit
+0, ZERO lines beginning `FAIL `, and all **55** registered scripts actually ran, so the green is not
+a gate that discovers nothing. qa recorded its own limits rather than smoothing them: the matrix
+owes `[]` over the prose bulk of the diff, and the test-first audit is vacuously clean.
 
-`review_sha` still reads `48bbe7e` and is **stale** — it pins the superseded validate phase and
-must be re-pinned before any future panel. Nothing in this run re-pinned it; no validator ran.
+**The retained checker CAN still report red**, which qa honestly flagged it had not established.
+Orchestrator probe on a `/tmp` copy, so the tree was never perturbed: unmodified copy exits 0 over
+20 anchors; with one fabricated anchor planted it exits 1 naming the line.
 
-**Budget: cycles 14 of 30; runs 25 of an informational 20.** `cycles_used` is unchanged: the
-product run returned PASS on its first pass with zero send-backs, and DEC-157 counts rework only.
-`max_total_cycles` reads 30 in `feature.json`, so the earlier "14 of 10" exhaustion is resolved
-and the build has headroom. **`len(runs)` has passed `max_total_runs`** and INV-22 will say so:
-the count is informational and stops nothing. The runs still earn their place — this one closed a
-high-severity defect that would have failed the build at T-24 and a blocking coverage gap at
-DEC-205, for one spawn and no cycles. The run's `run_id` slug reads `2026-08-29-01-product` as
-`harness-pm` wrote it; it is the 25th run of the feature, and the slug is recorded as-is rather
-than rewritten.
+**SIMPLIFY ran BEFORE the pin**, so no apply commit can move the tip under the panel. All four
+angles reported and three declined on the merits. One apply: `gen-decisions-index.py`'s
+`parse_decisions` returned a 3-tuple and an unread `title` key, both orphaned by T-10's deletion of
+their only consumers — dead code left by a deletion, and none of SC-06's seven named symbols reach
+it. Post-apply the suite is green and the generator's output diffs clean against the committed index.
 
-GitHub mirror: milestone 31, parent #935 at the Plan station, sub-issues #936–#958. The five new
-tasks have no sub-issue yet — `gh-sync.py open` mints them after the signature. **No card was
-moved by this run and no GitHub write was made.** `feature.json`'s local `status:` moved
-`Ready` → `Plan`, which is the honest local record of a withdrawn signature, not a board write.
+`review_sha` is **`635cd3ba…`**, pinned at the tip that CONTAINS the build. The stale `48bbe7e`
+pin, which named the superseded validate phase, is gone. `gh-sync.py status … Review` moved the
+parent #935 and all 29 sub-issues to Review, exit 0.
+
+**Budget: cycles 14 of 30; runs 31 of an informational 20.** `cycles_used` is UNCHANGED: every one
+of this phase's six runs returned PASS on its first pass with zero send-backs, and DEC-157 counts
+rework only. `len(runs)` has passed `max_total_runs` and INV-22 will say so; the count is
+informational and stops nothing. The runs still earn their place — six runs closed the entire
+remaining build plus both gates, with no rework.
 
 ## Open Questions
 
-Blocking on the operator before the fresh signature:
+None blocking the panel. Carried to the operator in the ship briefing:
 
-- **Reconcile the two approval fragments.** `BRIEF.md`'s `## Approval` reads `approved` while
-  `plan.yaml`'s reads `pending`. Both are the main session's alone; no agent in this flow may
-  write them, and `check-domain.sh`'s `approval_guard` FAILS OPEN in a worktree, so the rule was
-  honoured here by instruction rather than by enforcement.
-- **Both approval fragments carry a stale "six entries" claim** that F2a corrects to five. It sits
-  inside the fragments, so it survives this revision untouched and must be fixed at re-signature.
-- **Numbering.** REQ-08 and SC-09 are retired in place as tombstones, so the live sets are
-  non-contiguous. The alternative, renumbering, silently repoints citations in landed artifacts.
-- **`traces: []`** on T-20 and T-21 — the honest statement that no LIVE requirement is served by
-  work being removed. Accept an empty traces list in a signed plan, or require a tombstone id?
-
-Settled by the panel answers, recorded so they are not reopened: SC-11's re-grade scope (five
-entries, F2a); T-24's sweep scoping (F1, and the code lane still waits on T-27 for the DECISIONS.md
-markers, which was never the defect); cycle headroom (`max_total_cycles` now 30); T-29 and SC-17
-stay in FEAT-38 over pm's droppable call, the disagreement recorded rather than resolved by
-silence; build-then-delete accepted with the plan honest about it; the lost semantic-rot detector
-accepted as a named cost.
-
-Not blocking, carried up from the squads: whether DEC-205 needs positive guidance on what an
-entry does instead of carrying a checkable claim (ruled out of T-28 on weakest-sufficient-
-specification); whether the accepted semantic-rot gap is filed as a backlog issue or left unfiled
-as the grilling left it; whether T-03's intent should say plainly that its sixth rule survives
-naming one check rather than two, which reads correctly but densely; and a harness defect —
-`check-plan-routes.py:397` raises an unhandled `IsADirectoryError` when handed a feature directory
-rather than the plan file, which reads as a gate failure rather than a bad argument.
-
-**INV-26 now reports 23 cards at Review whose tasks read `done`.** The replan moved the feature
-back to Plan while the landed tasks' cards stayed where the validate phase left them. Nothing in
-this run moved a card and nothing should have: the Done station is written by `gh-sync.py ship`
-and the Plan phase's own station writes belong to the main session.
-
-Backlog rows B-1…B-23 remain in `notes/ship-review-2026-08-29-18.md`. The ruling settles four
-without an issue being filed: **B-8 and B-11 MOOT**, **B-10 SUPERSEDED**, and **B-9 absorbed
-into the plan as T-29** rather than filed.
+- **A run-directory collision destroyed a record.** The T-27 lead wrote its run into
+  `runs/2026-08-29-01-product`, already the panel-revision run's directory, overwriting that run's
+  `digest.md` and `state.yaml`. `runs/` is gitignored, so it was never in git and is unrecoverable.
+  The T-27 artifacts were relocated to `runs/t27-product/` and a tombstone left behind. Nothing in
+  the run-directory contract prevents a lead from choosing a slug that already exists.
+- **`bash-write-guard.sh` cannot expand shell variables and does not track `cd`** — it resolves a
+  write target against the session root, so `cd <dir> && sed -i '' … plan.yaml` and `sed -i '' … "$P"`
+  were both denied as "outside your domain" while the identical command with a literal absolute path
+  was allowed. `check-domain.sh --resolve` grants `plan.yaml` to `harness-orchestrator`, so the two
+  surfaces disagree. A second agent hit the same shape in the edit tool's `[path#TAG]` hashline.
+- **A stale prose reference SC-18 forbids fixing.** `check-decision-anchors.py`'s docstring still
+  says the snippet problem "is the executable-claims checker's job (a different tool)" — false now
+  that the tool is deleted. SC-18 pins that file byte-identical to `99bb52c`, so this feature
+  structurally cannot fix it. Pre-existing, not introduced. Backlog.
+- **DEC-205 names two refused rot detectors but not what compensates today.** The real answer lives
+  only in `BRIEF.md`, a per-feature artifact. The remedy would add positive content to DEC-205,
+  which the operator's ruling forbids. Operator's call.
+- Non-blocking Q6..Q10 from the plan phase remain open and gate nothing. REQ-08 and SC-09 are
+  retired tombstones and are graded by nobody.
