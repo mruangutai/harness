@@ -10,13 +10,18 @@ noticed because each was only ever exercised by the example that happened to pas
 
     ./test-validate-digest.py     -> exit 0 all pass, 1 otherwise
 """
-import json, re, subprocess, sys, os, shutil, tempfile
+import contextlib, importlib.util, json, re, subprocess, sys, os, shutil, tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 # Overridable so the pre-fix binary can be run through the SAME suite to prove
 # each new regression case actually fails against the old code (task 22).
 VALIDATE = os.environ.get("VALIDATE_DIGEST_BIN") or os.path.join(HERE, "validate-digest.py")
 REPO_ROOT = os.path.abspath(os.path.join(HERE, "..", "..", "..", ".."))
+# Vendored fixture data for check_prior_validator (Q11 cycle-27): the pre-FEAT-43 revision
+# of validate-digest.py/harness_yaml.py, committed inert so the control needs no `git show`
+# and no repository history to be hermetic in a shallow CI checkout.
+FIXTURE_DIR = os.path.join(HERE, "fixtures")
+PRE_FEATURE_REVISION = "df63193f7ec9798d9660904e0e4e7c78d52358f5"
 
 # The two normative templates (DEC-123) must validate — extracted from their
 # SOURCE FILES and run through the validator, not eyeballed. (name, file, heading)
@@ -80,6 +85,148 @@ def run_template_cases():
             for l in r.stdout.strip().splitlines():
                 print(f"      | {l}")
     print(f"\n{len(TEMPLATES) - fails}/{len(TEMPLATES)} template cases passed.")
+    return fails
+
+
+# Matches only the template's `severity_max: a|b|c` instruction line, never
+# prose like "severity_max >= high" (no `|`-joined alternatives after the
+# colon) — confirmed against all six reviewer files before this landed.
+_SEVERITY_LINE_RE = re.compile(r"^\s*severity_max:\s*([A-Za-z0-9_/]+(?:\|[A-Za-z0-9_/]+)+)\s*$")
+
+
+def _reviewer_severity_expected(validator):
+    """Expected `severity_max` vocabulary, derived from the validator's own
+    `SEV`/`NULLABLE` — never a retyped literal, which is exactly how this
+    drifted one narrowing ago."""
+    expected = set(validator.SEV)
+    if "severity_max" in validator.NULLABLE:
+        expected.add("n/a")
+    return expected
+
+
+def _reviewer_template_paths(validator):
+    """(path, persona) for every reviewer-schema agent template in BOTH
+    trees, discovered MECHANICALLY via the validator's own `norm()`/`ALIAS`
+    so a fourth reviewer persona cannot silently escape this check.
+
+    A missing `agents_dir` yields zero paths from that tree rather than
+    raising — `_report_missing_templates` is what turns that into a loud,
+    named failure instead of a silent empty discovery (c22 send-back).
+    """
+    paths = []
+    for agents_dir in (os.path.join(REPO_ROOT, ".claude", "agents"),
+                        os.path.join(REPO_ROOT, ".omp", "agents")):
+        try:
+            fnames = sorted(os.listdir(agents_dir))
+        except FileNotFoundError:
+            continue
+        for fname in fnames:
+            if fname.endswith(".md") and validator.norm(fname[:-3]) == "reviewer":
+                paths.append((os.path.join(agents_dir, fname), fname[:-3]))
+    return paths
+
+
+# The reviewer personas already shipped in BOTH trees — the floor
+# `_reviewer_template_paths`'s discovery must clear. Not an equality: a
+# legitimately-added fourth persona is still picked up by that mechanical
+# discovery and never fails this check; it only catches discovery finding
+# FEWER than these.
+_EXPECTED_REVIEWER_PERSONAS = ("code", "security", "ui")
+
+
+def _expected_reviewer_template_paths():
+    """Every (tree, persona) path discovery must find at minimum."""
+    return [
+        os.path.join(REPO_ROOT, tree, "agents", f"harness-{persona}-reviewer.md")
+        for tree in (".claude", ".omp")
+        for persona in _EXPECTED_REVIEWER_PERSONAS
+    ]
+
+
+def _report_missing_templates(discovered_paths):
+    """FAIL, naming it, for every expected reviewer template discovery did
+    not find. Discovery breaking (renamed persona, missing agents_dir) must
+    read as a named failure, never as a smaller-but-still-passing count."""
+    fails = 0
+    for expected_path in _expected_reviewer_template_paths():
+        if expected_path not in discovered_paths:
+            fails += 1
+            print(f"FAIL  [severity_max enum] expected reviewer template missing: {expected_path}")
+    return fails
+
+
+def _severity_line_values(path):
+    """Every `severity_max: a|b|c` alternative-set instructed by `path`."""
+    with open(path) as f:
+        lines = f.read().split("\n")
+    return [set(m.group(1).split("|"))
+            for m in map(_SEVERITY_LINE_RE.match, lines) if m]
+
+
+def _report_template_has_lines(path, count):
+    """FAIL, naming it, if a discovered reviewer template yielded zero
+    `severity_max` lines — a regex/format failure on that file, never a
+    silent zero that drops out of the checked total."""
+    if count:
+        return 0
+    print(f"FAIL  [severity_max enum] {path} — no severity_max line found")
+    return 1
+
+
+def _report_severity_drift(path, instructed, expected):
+    """Print and count the drift (if any) between one instructed set and the
+    validator's expected vocabulary. Both directions count as drift: a value
+    the template offers that the validator rejects, and a value the
+    validator accepts that the template never offers."""
+    only_template = instructed - expected
+    only_validator = expected - instructed
+    if not (only_template or only_validator):
+        print(f"ok    [severity_max enum] {path}")
+        return 0
+    print(f"FAIL  [severity_max enum] {path}")
+    if only_template:
+        print(f"      | instructs {sorted(only_template)} — validator REJECTS these")
+    if only_validator:
+        print(f"      | validator accepts {sorted(only_validator)} — template never offers these")
+    return 1
+
+
+def run_reviewer_severity_enum_cases():
+    """Guard against `severity_max` enum drift between the validator's own
+    vocabulary and the reviewer agent templates that instruct agents what to
+    write (BUILD task 22 / c22).
+
+    FEAT-43 narrowed `SEV` (dropped `info`) inside its own reviewed range and
+    only harness-code-reviewer.md followed; harness-security-reviewer.md and
+    harness-ui-reviewer.md (both `.claude/agents` and `.omp/agents`) kept
+    instructing the old vocabulary, which the validator then rejects as a
+    contract violation the moment a reviewer's worst finding is `info`.
+
+    Zero discovered templates used to read as zero checks and zero
+    failures — a pass, indistinguishable from health, the moment either
+    discovery seam (the regex, `_reviewer_template_paths`) broke silently
+    (c22 send-back). `checked` now starts at the floor's size, so it can
+    never reach zero, and both seams are asserted explicitly below.
+    """
+    spec = importlib.util.spec_from_file_location("_validator_severity_guard", VALIDATE)
+    validator = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(validator)
+    expected = _reviewer_severity_expected(validator)
+
+    discovered = _reviewer_template_paths(validator)
+    discovered_paths = {path for path, _ in discovered}
+    fails = _report_missing_templates(discovered_paths)
+    checked = len(_expected_reviewer_template_paths())
+
+    for path, _persona in discovered:
+        values = _severity_line_values(path)
+        checked += 1
+        fails += _report_template_has_lines(path, len(values))
+        for instructed in values:
+            checked += 1
+            fails += _report_severity_drift(path, instructed, expected)
+
+    print(f"\n{checked - fails}/{checked} reviewer severity_max enum checks passed.")
     return fails
 
 # (name, persona, digest text, expect_ok, must_mention)
@@ -1168,6 +1315,9 @@ def _isolated_root():
         os.makedirs(os.path.join(_ISOLATED_ROOT, ".harness"), exist_ok=True)
         with open(os.path.join(_ISOLATED_ROOT, ".harness", "team-config.yaml"), "w") as f:
             f.write("agents: {}\n")
+        with open(os.path.join(_ISOLATED_ROOT, ".harness", "harness.json"), "w") as f:
+            json.dump({"gates": {"qa_gate": "blocking", "review": "advisory",
+                                 "uat": "advisory", "merge": "autonomous"}}, f)
     return _ISOLATED_ROOT
 
 
@@ -1631,7 +1781,7 @@ DIGEST:
   expertise_update: []
 artifact: a.md
 """, True)
-case("a reviewer digest carries neither new field and is still accepted",
+case("code reviewer omission of code_grade is rejected",
      "harness-code-reviewer", """
 VERDICT: PASS
 DIGEST:
@@ -1643,7 +1793,25 @@ DIGEST:
   files_touched: []
   expertise_update: []
 artifact: a.md
-""", True)
+""", False, "code_grade")
+# SEC-01/SC-19 follow-on: the missing-`code_grade` hint must name the four legal
+# enum values, not the generic "`[]` if there are none" — `code_grade` is a
+# single-value scalar, and that hint sent a reviewer straight into a second,
+# guaranteed rejection (REQ-11's own defect class, `_missing_field_default_hint`).
+case("code_grade's missing-field hint names the four legal values, not the list wording",
+     "harness-code-reviewer", """
+VERDICT: PASS
+DIGEST:
+  headline: x
+  severity_max: low
+  findings: 0
+  must_fix: []
+  reviewed: "HEAD..HEAD"
+  open_questions: []
+  files_touched: []
+  expertise_update: []
+artifact: a.md
+""", False, ["code_grade", "grade_2", "n_a", "!if there are none"])
 # (11)(i2) — the hint CONTENT, both fields, both polarities. Exit code alone cannot
 # see these: before REQ-11, `task_verify`'s hint said "write `none`", which the gate
 # then rejects, and `task` would have inherited "write `[]`", which its regex rejects.
@@ -1703,12 +1871,768 @@ def run_joint_hint_case():
     return 0
 
 
+# SEC-01: `REVIEW_SHA` stands in for a feature's `feature.json` `review_sha` — a
+# real, resolvable commit, deliberately NOT `HEAD` (which moves as this repo
+# gains commits) so an honest range stays honest across test runs.
+#
+# SEC-01 wave 4 (Q8): this is now FEAT-43's own real `review_sha`
+# (`.harness/harness/features/FEAT-43-code-risk-grading/feature.json`), not
+# `PRE_FEATURE_REVISION` — deliberately, because `check_reviewed_range` below
+# needs a review_sha whose TRUE, repository-derived range (`merge-base(main,
+# REVIEW_SHA)..REVIEW_SHA`) genuinely changes Python TODAY, so a forged
+# self-consistent no-op AT this pin has something real to be caught hiding.
+# Send-back 1: `check_reviewed_range`'s ambient-repo assertions no longer pin
+# WHICH wave-4 reason the claim is refused for (see N_A_REFUSAL_SUBSTRINGS) —
+# only that it IS refused — because this constant's own derived range stops
+# meaning "genuinely changes Python" the moment FEAT-43 lands on main
+# (REVIEW_SHA becomes an ancestor of origin/main: the range goes degenerate)
+# or the checkout has no `origin/HEAD` at all; the reason-level pin for each
+# of those shapes lives hermetically in `check_derived_base_range` and
+# `check_unresolvable_default_branch` instead, against purpose-built /tmp
+# repos where the environment is controlled, not ambient.
+# `PRE_FEATURE_REVISION` stays available on its own name below for the cases
+# that want an honest, resolvable ancestor with no such requirement.
+REVIEW_SHA = "94383e671e51f95d142f3220f97c8e453721d516"
+
+
+def make_feature_dir(root, review_sha=None, feat="FEAT-TEST", branch=None):
+    """A minimal on-disk feature.json fixture at
+    `<root>/.harness/harness/features/<feat>/feature.json`, carrying just the
+    fields SEC-01's binding reads. Returns the feature directory, which
+    `validate()`'s `feature_dir` override seam (mirrors `config_path`) accepts
+    directly — no environment variable, no subprocess mocking.
+
+    `branch` mirrors feature.json's own field, omitted by default (the shape
+    the many existing fixtures need — no branch recorded at all): pass a
+    string, including the literal `"none"` (a real recorded state — FEAT-01,
+    FEAT-15, FEAT-19), to exercise the wave 3 branch corroboration.
+    """
+    feature_dir = os.path.join(root, ".harness", "harness", "features", feat)
+    os.makedirs(feature_dir, exist_ok=True)
+    doc = {"feature_id": feat,
+           "review_sha": REVIEW_SHA if review_sha is None else review_sha}
+    if branch is not None:
+        doc["branch"] = branch
+    with open(os.path.join(feature_dir, "feature.json"), "w") as f:
+        json.dump(doc, f)
+    return feature_dir
+
+
+def reviewer_digest(code_grade="pass", files="[]", must_fix="[]", severity_max="low",
+                    reviewed=None, grade_2_reasons="[]", artifact="a.md"):
+    # SEC-01: NOT a self-consistent no-op pair (base == head) — that shape is
+    # the exact bypass this feature closes, and reviewer_digest()'s own default
+    # used to BE it (base == head == PRE_FEATURE_REVISION), so every case that
+    # relied on the default was only ever "accepted" because base and head
+    # happened to be equal, never because head was checked against anything.
+    # `HEAD` and `REVIEW_SHA` differ by construction (see above); head alone is
+    # what SEC-01 binds, so an honest default needs no particular base.
+    reviewed = reviewed or f"HEAD..{REVIEW_SHA}"
+    return f"""VERDICT: PASS
+DIGEST:
+  headline: reviewer result
+  severity_max: {severity_max}
+  findings: 0
+  must_fix: {must_fix}
+  code_grade: {code_grade}
+  reviewed: "{reviewed}"
+  grade_2_reasons: {grade_2_reasons}
+  files_touched: {files}
+  open_questions: []
+  expertise_update: []
+artifact: {artifact}
+"""
+
+
+def check_review_policy(validator, config, feature_dir, failures):
+    guarded = reviewer_digest("pass", must_fix="[needs repair]")
+    if not any("review policy" in error for error in validator.validate(
+            "harness-code-reviewer", guarded, config, feature_dir)):
+        failures.append("advisory_unless_high must reject must_fix with PASS")
+    if validator.validate("harness-code-reviewer",
+                          reviewer_digest(severity_max="none"), config, feature_dir):
+        failures.append("none severity must be accepted by review policy")
+    if not any("severity_max" in error for error in validator.validate(
+            "harness-code-reviewer", reviewer_digest(severity_max="info"),
+            config, feature_dir)):
+        failures.append("info severity must be rejected by the policy vocabulary")
+    return guarded
+
+
+def check_prior_validator(td, guarded, failures):
+    """SC-20 clause 4: the PRIOR revision of the validator must accept the guarded digest too,
+    proving the rejection this suite exercises is NEW rather than a hardcoded always-reject.
+
+    Hermetic per the Q11 cycle-27 ruling: no `git show`, no repository history. The prior
+    revision's bytes are committed as inert fixture data (non-`.py` suffix, so
+    `code_grade._changed_python_files` never selects them) and written into a temp dir under
+    their real module filenames, exactly as the git-backed version did.
+    """
+    prior_dir = os.path.join(td, "prior")
+    os.makedirs(prior_dir)
+    for name, fixture in (("validate-digest.py", "prior-validate-digest.py.fixture"),
+                          ("harness_yaml.py", "prior-harness_yaml.py.fixture")):
+        with open(os.path.join(FIXTURE_DIR, fixture), encoding="utf-8") as f:
+            source = f.read()
+        with open(os.path.join(prior_dir, name), "w") as f:
+            f.write(source)
+    prior = subprocess.run(
+        [sys.executable, os.path.join(prior_dir, "validate-digest.py"),
+         "harness-code-reviewer"],
+        input=guarded, capture_output=True, text=True)
+    if prior.returncode != 0:
+        failures.append("previous validator must accept the gated digest")
+
+
+def write_review_config(config, review):
+    with open(config, "w") as f:
+        json.dump({"gates": {"qa_gate": "blocking", "review": review,
+                             "uat": "advisory", "merge": "autonomous"}}, f)
+
+
+def check_code_grade_state(validator, config, feature_dir, failures):
+    if not any("code_grade" in error for error in validator.validate(
+            "harness-code-reviewer", reviewer_digest("fail"), config, feature_dir)):
+        failures.append("fail-plus-PASS must reject")
+    reasoned_grade_2 = reviewer_digest(
+        "grade_2", grade_2_reasons="[one auditable reason]")
+    if validator.validate("harness-code-reviewer", reasoned_grade_2, config, feature_dir):
+        failures.append("grade_2 with a written reason must permit PASS")
+    if not any("grade_2_reasons" in error for error in validator.validate(
+            "harness-code-reviewer", reviewer_digest("grade_2"), config, feature_dir)):
+        failures.append("grade_2 without written reasons must reject")
+
+
+# Send-back 1 (sec01-derived-base-sendback): the three ambient-repo n_a cases
+# in `check_reviewed_range` run against THIS repository's real, live state —
+# exogenous to the defect they guard. Pinning a single wave-4 refusal reason
+# (e.g. "only valid") there is a false failure waiting to happen: the moment
+# FEAT-43 lands on main by a non-squash merge, REVIEW_SHA becomes an ancestor
+# of origin/main and the SAME correct fix refuses with "already an ancestor"
+# instead; a checkout with no `origin/HEAD` at all (a fresh `git init`, some
+# CI checkouts) refuses with "default branch ... could not be resolved"
+# instead. Neither is a regression. So here we assert only what the ambient
+# cases CAN prove without depending on ambient repo state: `code_grade: n_a`
+# is refused for one of wave-4's own named reasons — never that some
+# unrelated schema error tripped instead (a bare `if errors:` would pass
+# vacuously on that). The exact-reason discrimination is not lost: each
+# reason is pinned precisely, hermetically, in `check_derived_base_range`
+# ("only valid", "already an ancestor of the default branch") and
+# `check_unresolvable_default_branch` ("default branch"), against
+# purpose-built /tmp repos where the environment is controlled.
+N_A_REFUSAL_SUBSTRINGS = (
+    "only valid",                           # reviewed diff genuinely has Python
+    "already an ancestor of the default",   # degenerate: review_sha merged in
+    "default branch",                       # origin/HEAD unresolvable
+    "no merge base",                        # merge-base could not be computed
+)
+
+
+def _assert_n_a_rejects(validator, config, feature_dir, reviewed, message, failures):
+    errors = validator.validate(
+            "harness-code-reviewer", reviewer_digest("n_a", reviewed=reviewed),
+            config, feature_dir)
+    if not any(substring in error for error in errors
+               for substring in N_A_REFUSAL_SUBSTRINGS):
+        failures.append(f"{message}: {errors}")
+
+
+def _check_option_like_revisions(validator, config, feature_dir, td, failures):
+    output_path = os.path.join(td, "must-not-exist")
+    for revision in ("--no-patch..HEAD", f"--output={output_path}..HEAD"):
+        errors = validator.validate(
+            "harness-code-reviewer", reviewer_digest("n_a", reviewed=revision),
+            config, feature_dir)
+        if not any("reviewed range" in error for error in errors):
+            failures.append(f"option-like revision {revision!r} must reject")
+    if os.path.exists(output_path):
+        failures.append("option-like review revision must not write an output file")
+
+
+def check_reviewed_range(validator, config, feature_dir, td, failures):
+    _assert_n_a_rejects(validator, config, feature_dir, f"{PRE_FEATURE_REVISION}..HEAD",
+                        "n_a with a reviewed Python diff must reject", failures)
+    # SEC-01 wave 4 (Q8): a self-consistent no-op AT the pin (base == head ==
+    # review_sha) used to be the exact bypass this feature closes — a digest
+    # that is BOTH an honest binding (head matches review_sha) and trivially
+    # empty for the OLD digest-named diff check bought `code_grade: n_a` for
+    # free. The n_a decision no longer reads `reviewed:` at all: it is
+    # `merge-base(main, review_sha)..review_sha`, and REVIEW_SHA's true
+    # derived range genuinely changes Python (chosen for exactly that reason
+    # — see the constant's own comment), so this forged shape must now
+    # REJECT, not accept — this is the case that never existed before this
+    # fix, reproducing the live security-reviewer bypass at this feature's
+    # own pin.
+    _assert_n_a_rejects(validator, config, feature_dir, f"{REVIEW_SHA}..{REVIEW_SHA}",
+                        "a forged no-op AT review_sha itself must reject — the "
+                        "n_a decision must never read the digest's own reviewed:",
+                        failures)
+    # Q8 closes the whole class, not this one shape: an ancestor pair ending
+    # at review_sha is exactly as forgeable as base == head and must reject
+    # the same way (Q2, closed — not a backlog row).
+    _assert_n_a_rejects(validator, config, feature_dir, f"{REVIEW_SHA}~1..{REVIEW_SHA}",
+                        "<review_sha>~1..<review_sha> is inside the class Q8 "
+                        "closes and must also reject", failures)
+    _check_option_like_revisions(validator, config, feature_dir, td, failures)
+
+
+def _git_quiet(repo, *args):
+    return subprocess.run(["git", "-C", repo, *args], check=True,
+                          capture_output=True, text=True).stdout
+
+
+def _init_test_repo(repo):
+    os.makedirs(repo)
+    _git_quiet(repo, "init", "-q", "-b", "main")
+    _git_quiet(repo, "config", "user.email", "test@example.com")
+    _git_quiet(repo, "config", "user.name", "test")
+
+
+def _commit_file(repo, name, content, message):
+    with open(os.path.join(repo, name), "w") as f:
+        f.write(content)
+    _git_quiet(repo, "add", ".")
+    _git_quiet(repo, "commit", "-q", "-m", message)
+    return _git_quiet(repo, "rev-parse", "HEAD").strip()
+
+
+def make_derived_base_repo(td):
+    """A purpose-built git repo under `/tmp` proving SEC-01 wave 4's derived
+    range against REAL git plumbing — never a stub of the derivation
+    function under test. `main` (mirrored as `origin/main`, this checkout's
+    default branch) sits at commit A; `oid_no_py` is a sibling child of A
+    touching only a non-`.py` file (the HONEST case: a real, non-degenerate
+    range that genuinely changes no Python); `oid_with_py` is a sibling
+    child of A touching a `.py` file (the ATTACK case: a self-consistent
+    no-op AT this pin must still be caught, because the TRUE derived range
+    changed Python); A itself is the DEGENERATE case (review_sha already an
+    ancestor of the default branch). Returns `(repo, oid_a, oid_no_py,
+    oid_with_py)`.
+    """
+    repo = os.path.join(td, "derived-base-repo")
+    _init_test_repo(repo)
+    oid_a = _commit_file(repo, "readme.txt", "a\n", "A")
+    _git_quiet(repo, "update-ref", "refs/remotes/origin/main", oid_a)
+    _git_quiet(repo, "symbolic-ref", "refs/remotes/origin/HEAD",
+               "refs/remotes/origin/main")
+    oid_no_py = _commit_file(repo, "feature.txt", "b\n", "no-py-change")
+    _git_quiet(repo, "checkout", "-q", oid_a)
+    oid_with_py = _commit_file(repo, "feature.py", "x = 1\n", "with-py-change")
+    return repo, oid_a, oid_no_py, oid_with_py
+
+
+def make_review_sha_repo(td):
+    """A purpose-built git repo under `/tmp` — hermetic stand-in for the
+    ambient checkout `check_reviewed_range` and `check_review_sha_binding`
+    used to run against (send-back 2, cycle 27: neither `PRE_FEATURE_REVISION`
+    nor `REVIEW_SHA` resolves in a real shallow CI checkout — proven by a
+    genuine `--depth 1` clone, which lacks both). `origin/main` (this
+    checkout's default branch) sits at commit A; `review_sha` is a REAL
+    child of A that touches a `.py` file, so its TRUE derived range
+    (`merge-base(main, review_sha)..review_sha`) genuinely changes Python —
+    the same property the module-level `REVIEW_SHA` docstring documents,
+    now produced by real git plumbing instead of a hardcoded ambient commit.
+    The repo's checked-out HEAD is a further, unrelated child of
+    `review_sha`, so `HEAD` and `review_sha` differ by construction (SEC-01
+    binds `head`, not `base` — a forged `HEAD..HEAD` range must still
+    reject). Returns `(repo, oid_a, oid_review_sha, oid_head)`.
+    """
+    repo = os.path.join(td, "review-sha-repo")
+    _init_test_repo(repo)
+    oid_a = _commit_file(repo, "readme.txt", "a\n", "A")
+    _git_quiet(repo, "update-ref", "refs/remotes/origin/main", oid_a)
+    _git_quiet(repo, "symbolic-ref", "refs/remotes/origin/HEAD",
+               "refs/remotes/origin/main")
+    oid_review_sha = _commit_file(repo, "feature.py", "x = 1\n",
+                                  "review_sha: touches Python")
+    oid_head = _commit_file(repo, "extra.txt", "b\n",
+                            "HEAD: a further, unrelated commit")
+    return repo, oid_a, oid_review_sha, oid_head
+
+
+def _assert_derived_accepts(validator, config, feature_dir, reviewed, message, failures):
+    errors = validator.validate(
+        "harness-code-reviewer",
+        reviewer_digest("n_a", reviewed=reviewed, artifact="a.md"), config, feature_dir)
+    if errors:
+        failures.append(f"{message}: {errors}")
+
+
+def _assert_derived_rejects(validator, config, feature_dir, reviewed, substring, message, failures):
+    errors = validator.validate(
+        "harness-code-reviewer",
+        reviewer_digest("n_a", reviewed=reviewed, artifact="a.md"), config, feature_dir)
+    if not any(substring in error for error in errors):
+        failures.append(f"{message}: {errors}")
+
+
+def check_derived_base_range(td, failures):
+    """SEC-01 wave 4 (Q8-sec01-remedy-ruling.md): the `code_grade: n_a`
+    decision comes from `merge-base(default branch, review_sha)..
+    review_sha`, a range the REPOSITORY derives — never from the digest's
+    own `reviewed:` field. Proven against a real, purpose-built repo (not a
+    stubbed derivation): an honest accept when the true range has no Python
+    change, a rejection of the forged self-consistent no-op (and its `~1`
+    ancestor variant) when the true range DOES, and a refusal, distinctly
+    worded, when the range is degenerate.
+
+    Uses its OWN freshly-imported validator module + `os.chdir` into the
+    fixture repo (restored in `finally`): `resolve_reviewed_commit` and the
+    new derived-base helpers are bare `git` (no `-C`), so they resolve
+    against the process cwd — the same basis this file already uses
+    throughout (`resolve_reviewed_commit`'s `commit_oid(".", ...)`).
+    """
+    spec = importlib.util.spec_from_file_location("_derived_base_validator", VALIDATE)
+    validator = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(validator)
+    repo, oid_a, oid_no_py, oid_with_py = make_derived_base_repo(td)
+    config = os.path.join(td, "derived-base-config.json")
+    write_review_config(config, "advisory_unless_high")
+    original_cwd = os.getcwd()
+    os.chdir(repo)
+    try:
+        feature_dir_ok = make_feature_dir(repo, review_sha=oid_no_py, feat="FEAT-DERIVED-OK")
+        _assert_derived_accepts(
+            validator, config, feature_dir_ok, f"{oid_no_py}..{oid_no_py}",
+            "a review_sha whose TRUE derived range has no Python change must accept",
+            failures)
+
+        feature_dir_bad = make_feature_dir(repo, review_sha=oid_with_py, feat="FEAT-DERIVED-BAD")
+        _assert_derived_rejects(
+            validator, config, feature_dir_bad, f"{oid_with_py}..{oid_with_py}", "only valid",
+            "a forged no-op AT review_sha whose TRUE derived range changed Python "
+            "must still reject", failures)
+        _assert_derived_rejects(
+            validator, config, feature_dir_bad, f"{oid_with_py}~1..{oid_with_py}", "only valid",
+            "<review_sha>~1..<review_sha> against a real repo must also reject", failures)
+
+        feature_dir_degenerate = make_feature_dir(repo, review_sha=oid_a,
+                                                   feat="FEAT-DERIVED-DEGENERATE")
+        _assert_derived_rejects(
+            validator, config, feature_dir_degenerate, f"{oid_a}..{oid_a}",
+            "already an ancestor of the default branch",
+            "a review_sha already merged into the default branch must refuse "
+            "with its own named error", failures)
+    finally:
+        os.chdir(original_cwd)
+
+
+def _assert_ungated_grade(validator, config, feature_dir, oid, grade, extra, failures):
+    digest = reviewer_digest(grade, reviewed=f"{oid}..{oid}", artifact="a.md", **extra)
+    errors = validator.validate("harness-code-reviewer", digest, config, feature_dir)
+    if errors:
+        failures.append(f"code_grade={grade!r} must not be gated on an "
+                        f"unresolvable default branch: {errors}")
+
+
+def _assert_fail_ungated(validator, config, feature_dir, oid, failures):
+    fail_digest = reviewer_digest("fail", reviewed=f"{oid}..{oid}", artifact="a.md").replace(
+        "VERDICT: PASS", "VERDICT: FAIL", 1)
+    errors = validator.validate("harness-code-reviewer", fail_digest, config, feature_dir)
+    if errors:
+        failures.append("code_grade='fail' must not be gated on an unresolvable "
+                        f"default branch: {errors}")
+
+
+def check_unresolvable_default_branch(td, failures):
+    """SEC-01 wave 4: `pass`/`fail`/`grade_2` must never be gated on base
+    derivation — an unresolvable default branch must not brick reviewer
+    validation generally. Proven with a REAL checkout that genuinely carries
+    no `origin/HEAD` symbolic ref at all, not a stubbed argument; `n_a`, in
+    contrast, MUST refuse in the very same checkout, since the derivation it
+    alone depends on genuinely cannot run there.
+    """
+    spec = importlib.util.spec_from_file_location("_no_origin_validator", VALIDATE)
+    validator = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(validator)
+    repo = os.path.join(td, "no-default-branch-repo")
+    _init_test_repo(repo)
+    oid = _commit_file(repo, "readme.txt", "a\n", "A")
+    # Deliberately NO origin remote and no refs/remotes/origin/HEAD.
+    config = os.path.join(td, "no-origin-config.json")
+    write_review_config(config, "advisory_unless_high")
+    original_cwd = os.getcwd()
+    os.chdir(repo)
+    try:
+        feature_dir = make_feature_dir(repo, review_sha=oid, feat="FEAT-NO-ORIGIN")
+        _assert_ungated_grade(validator, config, feature_dir, oid, "pass", {}, failures)
+        _assert_ungated_grade(validator, config, feature_dir, oid, "grade_2",
+                              {"grade_2_reasons": "[one reason]"}, failures)
+        _assert_fail_ungated(validator, config, feature_dir, oid, failures)
+
+        digest_na = reviewer_digest("n_a", reviewed=f"{oid}..{oid}", artifact="a.md")
+        errors = validator.validate("harness-code-reviewer", digest_na, config, feature_dir)
+        if not any("default branch" in error for error in errors):
+            failures.append(f"n_a with an unresolvable default branch must refuse: {errors}")
+    finally:
+        os.chdir(original_cwd)
+
+
+def make_orphan_review_repo(td):
+    """A purpose-built git repo under `/tmp` for SEC-01 wave 4's FOURTH
+    fail-closed condition — distinct from `check_unresolvable_default_branch`
+    (no `origin/HEAD` at all): here `origin/HEAD` resolves fine and `main`
+    exists, but `review_sha` sits on a `git checkout --orphan` branch that
+    shares NO commit history with it — `git merge-base` genuinely has
+    nothing to return, against real plumbing, never a stub of
+    `_merge_base_or_none`. Returns `(repo, oid_orphan)`.
+    """
+    repo = os.path.join(td, "orphan-review-repo")
+    _init_test_repo(repo)
+    oid_main = _commit_file(repo, "readme.txt", "a\n", "A")
+    _git_quiet(repo, "update-ref", "refs/remotes/origin/main", oid_main)
+    _git_quiet(repo, "symbolic-ref", "refs/remotes/origin/HEAD",
+               "refs/remotes/origin/main")
+    _git_quiet(repo, "checkout", "-q", "--orphan", "no-shared-history")
+    _git_quiet(repo, "rm", "-rf", "-q", ".")
+    oid_orphan = _commit_file(repo, "orphan.py", "y = 2\n",
+                              "orphan root, shares no history with main")
+    return repo, oid_orphan
+
+
+def check_no_merge_base(td, failures):
+    """SEC-01 wave 4's fourth and last `n_a` refusal reason, pinned
+    hermetically: an unresolvable MERGE BASE. Distinct from
+    `check_unresolvable_default_branch` (no `origin/HEAD` at all) — here the
+    default branch resolves fine, but `review_sha` is on a real orphan
+    branch sharing no common ancestor with it, so `git merge-base` itself
+    fails. `code_grade: n_a` for that pin must REFUSE, named distinctly
+    ("no merge base"); `code_grade: pass` for the SAME pin in the SAME repo
+    must still be ACCEPTED — proving the refusal is narrow to `n_a`'s own
+    derivation and does not brick reviewer validation generally, the same
+    ungated property `check_unresolvable_default_branch` already proves for
+    the sibling branch.
+    """
+    spec = importlib.util.spec_from_file_location("_no_merge_base_validator", VALIDATE)
+    validator = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(validator)
+    repo, oid_orphan = make_orphan_review_repo(td)
+    config = os.path.join(td, "no-merge-base-config.json")
+    write_review_config(config, "advisory_unless_high")
+    original_cwd = os.getcwd()
+    os.chdir(repo)
+    try:
+        feature_dir = make_feature_dir(repo, review_sha=oid_orphan, feat="FEAT-NO-MERGE-BASE")
+        _assert_derived_rejects(
+            validator, config, feature_dir, f"{oid_orphan}..{oid_orphan}", "no merge base",
+            "n_a on an orphan review_sha with no merge base to the default "
+            "branch must refuse", failures)
+
+        pass_digest = reviewer_digest("pass", reviewed=f"{oid_orphan}..{oid_orphan}",
+                                      artifact="a.md")
+        errors = validator.validate("harness-code-reviewer", pass_digest, config, feature_dir)
+        if errors:
+            failures.append("code_grade='pass' for the same orphan pin must not be "
+                            f"gated on an unresolvable merge base: {errors}")
+    finally:
+        os.chdir(original_cwd)
+
+
+def check_resolve_reviewed_commit_guard(validator, failures):
+    """An option-like revision must be rejected before Git is ever invoked.
+
+    The existing `--end-of-options`-based rejection above proves the RESULT
+    (None); it does not prove Git was never run. This pins the stronger claim
+    the code_grade.commit_oid seam adds: the leading-`-` check runs first.
+    """
+    original_run = validator.subprocess.run
+    calls = []
+
+    def traced_run(args, *args_tail, **kwargs):
+        calls.append(args)
+        return original_run(args, *args_tail, **kwargs)
+
+    validator.subprocess.run = traced_run
+    try:
+        result = validator.resolve_reviewed_commit("--upload-pack=touch /tmp/pwned")
+    finally:
+        validator.subprocess.run = original_run
+    if result is not None:
+        failures.append("option-like revision must resolve to None")
+    if calls:
+        failures.append("option-like revision must not invoke Git at all")
+
+
+def check_review_sha_binding(validator, config, feature_dir, td, failures):
+    """SEC-01: `code_grade`'s claim is bound to feature.json's `review_sha`,
+    read from the system of record — never to whatever range the digest itself
+    names. Proves the discrimination BOTH ways: a validator wired to reject
+    everything would still pass a rejection-only test.
+    """
+    honest = reviewer_digest("pass", reviewed=f"{PRE_FEATURE_REVISION}..{REVIEW_SHA}")
+    if validator.validate("harness-code-reviewer", honest, config, feature_dir):
+        failures.append("an honest range whose head matches review_sha must accept")
+
+    # The reproduction of the live bypass: a resolvable, self-consistent no-op
+    # range whose head is simply not review_sha. Before SEC-01 this validated
+    # for ANY resolvable commit; now only a head equal to review_sha does.
+    forged = reviewer_digest("n_a", reviewed="HEAD..HEAD")
+    errors = validator.validate("harness-code-reviewer", forged, config, feature_dir)
+    if not any("review_sha" in error for error in errors):
+        failures.append("a resolvable no-op range whose head != review_sha must "
+                        "reject, naming review_sha (the SEC-01 bypass)")
+
+    check_review_sha_binding_unconditional(validator, config, feature_dir, failures)
+
+    missing_feature_dir = os.path.join(td, "no-such-feature-anywhere")
+    errors = validator.validate("harness-code-reviewer", honest, config,
+                                missing_feature_dir)
+    if not errors:
+        failures.append("an unresolvable feature.json must fail closed, not "
+                        "silently accept the code_grade claim")
+
+    check_review_sha_binding_other_personas(validator, config, feature_dir, failures)
+
+
+def check_review_sha_binding_unconditional(validator, config, feature_dir, failures):
+    """The forged no-op range must reject regardless of `code_grade`'s own
+    value — UNCONDITIONAL, not only for `n_a` (the branch the live bypass
+    happened to use)."""
+    for grade, extra in (("pass", {}), ("fail", {}),
+                         ("grade_2", {"grade_2_reasons": "[one reason]"})):
+        forged_other = reviewer_digest(grade, reviewed="HEAD..HEAD", **extra)
+        errors = validator.validate("harness-code-reviewer", forged_other,
+                                    config, feature_dir)
+        if not any("review_sha" in error for error in errors):
+            failures.append(f"code_grade={grade!r} with a forged no-op range "
+                            f"must still reject — the binding runs before the "
+                            f"code_grade branch, not only inside it")
+
+
+def check_review_sha_binding_other_personas(validator, config, feature_dir, failures):
+    """`harness-security-reviewer` and `harness-ui-reviewer` normalise to the
+    same `reviewer` schema but must NOT acquire the `code_grade`/`reviewed`
+    requirement — SEC-01 binds `harness-code-reviewer` only."""
+    other_reviewer_digest = """VERDICT: PASS
+DIGEST:
+  headline: ui pass
+  severity_max: low
+  findings: 0
+  must_fix: []
+  files_touched: []
+  open_questions: []
+  expertise_update: []
+artifact: a.md
+"""
+    for persona in ("harness-ui-reviewer", "harness-security-reviewer"):
+        if validator.validate(persona, other_reviewer_digest, config, feature_dir):
+            failures.append(f"{persona} must not require code_grade/reviewed — "
+                            f"SEC-01 binds harness-code-reviewer only")
+
+
+def check_resolve_review_sha_artifact_path(validator, td, failures):
+    """White-box coverage of `resolve_review_sha`'s OWN artifact-path +
+    checkout-root derivation — the path `validate()` takes in production, when
+    no `feature_dir` override is supplied. `_root_or_none` is monkeypatched on
+    OUR OWN loaded module (not subprocess, not the environment) purely to
+    stand in for a real checkout root without writing into one.
+    """
+    root = os.path.join(td, "prod-root")
+    make_feature_dir(root, feat="FEAT-PROD")
+    original_root_fn = validator._root_or_none
+    validator._root_or_none = lambda: root
+    try:
+        text_ok = ("VERDICT: PASS\nDIGEST:\n  headline: x\nartifact: "
+                   ".harness/harness/features/FEAT-PROD/notes/review.md\n")
+        sha, err = validator.resolve_review_sha(text_ok)
+        if err or sha != REVIEW_SHA:
+            failures.append("resolve_review_sha must derive the feature from "
+                            f"the artifact: path and read its review_sha "
+                            f"(got sha={sha!r} err={err!r})")
+
+        _, err2 = validator.resolve_review_sha("VERDICT: PASS\nDIGEST:\n  headline: x\n")
+        if not err2:
+            failures.append("resolve_review_sha with no artifact: line must fail closed")
+
+        _, err3 = validator.resolve_review_sha(
+            "VERDICT: PASS\nDIGEST:\n  headline: x\nartifact: a.md\n")
+        if not err3:
+            failures.append("resolve_review_sha with a non-feature artifact "
+                            "path must fail closed")
+
+        validator._root_or_none = lambda: None
+        _, err4 = validator.resolve_review_sha(text_ok)
+        if not err4:
+            failures.append("resolve_review_sha with no checkout root must fail closed")
+    finally:
+        validator._root_or_none = original_root_fn
+
+
+def check_resolve_review_sha_feature_json(validator, td, failures):
+    """White-box coverage of `resolve_review_sha`'s READ half — an unpinned or
+    absent feature.json, given directly via the `feature_dir` override so no
+    artifact-path derivation is exercised here (that half is
+    `check_resolve_review_sha_artifact_path`)."""
+    unpinned_dir = make_feature_dir(td, review_sha="none", feat="FEAT-UNPINNED")
+    _, err5 = validator.resolve_review_sha("irrelevant", feature_dir=unpinned_dir)
+    if not err5:
+        failures.append("resolve_review_sha with an unpinned (placeholder) "
+                        "review_sha must fail closed")
+
+    no_feature_json_dir = os.path.join(td, "empty-feature-dir")
+    os.makedirs(no_feature_json_dir, exist_ok=True)
+    _, err6 = validator.resolve_review_sha("irrelevant", feature_dir=no_feature_json_dir)
+    if not err6:
+        failures.append("resolve_review_sha with no feature.json at all must fail closed")
+
+
+# Wave 3 hardening fixtures. The current checkout's branch is a value
+# `branch_override` sets DIRECTLY — never through `subprocess` mocking (that
+# seam is what makes the undeterminable-branch case testable at all).
+CURRENT_CHECKOUT_BRANCH = "feat/checkout-under-test"
+OTHER_FEATURE_BRANCH = "feat/other-shipped-feature"
+
+
+def check_branch_corroboration(validator, config, td, failures):
+    """Wave 3 hardening: even an HONEST head==review_sha binding still trusts
+    the digest's OWN `artifact:` line to pick WHICH feature.json supplied
+    that review_sha (SEC-01's residual hole) — a reviewer can point
+    `artifact:` at a DIFFERENT shipped feature and reuse ITS OWN, perfectly
+    honest review_sha. Proven as the CROSS-FEATURE case, not a shape case:
+    two real `feature.json` fixtures, one genuinely under review on this
+    checkout's branch, one not.
+    """
+    root = os.path.join(td, "branch-corrob-root")
+    make_feature_dir(root, review_sha=REVIEW_SHA, feat="FEAT-UNDER-REVIEW",
+                     branch=CURRENT_CHECKOUT_BRANCH)
+    make_feature_dir(root, review_sha="HEAD", feat="FEAT-OTHER-SHIPPED",
+                     branch=OTHER_FEATURE_BRANCH)
+    make_feature_dir(root, review_sha="HEAD", feat="FEAT-NO-BRANCH", branch="none")
+    original_root_fn = validator._root_or_none
+    validator._root_or_none = lambda: root
+    try:
+        # THE FINDING: artifact: names the OTHER feature; reviewed: names
+        # THAT feature's own review_sha ("HEAD") twice — self-consistent,
+        # honestly bound to FEAT-OTHER-SHIPPED. Accepted before this
+        # hardening; must reject now. `code_grade="pass"`, deliberately not
+        # `n_a`: this fixture's `review_sha` is the real worktree HEAD, whose
+        # TRUE derived range (SEC-01 wave 4) genuinely changes Python, and
+        # this test is about branch corroboration, not that decision.
+        forged = reviewer_digest(
+            "pass", reviewed="HEAD..HEAD",
+            artifact=".harness/harness/features/FEAT-OTHER-SHIPPED/notes/review.md")
+        errors = validator.validate("harness-code-reviewer", forged, config,
+                                    feature_dir=None,
+                                    branch_override=CURRENT_CHECKOUT_BRANCH)
+        if not any("does not match the current checkout" in error for error in errors):
+            failures.append("cross-feature forgery (artifact: names a different "
+                            "feature and reuses ITS OWN honest review_sha) must "
+                            "reject, naming both branches (the SEC-01 residual hole)")
+
+        # The honest counterpart: artifact: names the feature ACTUALLY under
+        # review, whose recorded branch matches this checkout's.
+        honest = reviewer_digest(
+            "pass", reviewed=f"HEAD..{REVIEW_SHA}",
+            artifact=".harness/harness/features/FEAT-UNDER-REVIEW/notes/review.md")
+        errors = validator.validate("harness-code-reviewer", honest, config,
+                                    feature_dir=None,
+                                    branch_override=CURRENT_CHECKOUT_BRANCH)
+        if errors:
+            failures.append("the honest digest (artifact: names the feature "
+                            f"actually under review) must accept: {errors}")
+
+        # ADDITIVE GUARANTEE 1: current branch undeterminable -> behave
+        # exactly as before (accept), never a NEW rejection.
+        errors = validator.validate("harness-code-reviewer", forged, config,
+                                    feature_dir=None, branch_override=None)
+        if errors:
+            failures.append("an undeterminable current checkout branch must not "
+                            f"introduce a new rejection: {errors}")
+
+        # ADDITIVE GUARANTEE 2: the resolved feature's branch is the literal
+        # `none` (a real recorded state — FEAT-01/15/19) -> behave exactly as
+        # before (accept), never a NEW rejection. `code_grade="pass"` for the
+        # same reason as `forged` above.
+        no_branch = reviewer_digest(
+            "pass", reviewed="HEAD..HEAD",
+            artifact=".harness/harness/features/FEAT-NO-BRANCH/notes/review.md")
+        errors = validator.validate("harness-code-reviewer", no_branch, config,
+                                    feature_dir=None,
+                                    branch_override=CURRENT_CHECKOUT_BRANCH)
+        if errors:
+            failures.append("a feature.json with branch: none must not introduce "
+                            f"a new rejection: {errors}")
+    finally:
+        validator._root_or_none = original_root_fn
+
+
+def check_config_errors(validator, config, feature_dir, guarded, failures):
+    write_review_config(config, "advisory")
+    if validator.validate("harness-code-reviewer", guarded, config, feature_dir):
+        failures.append("advisory must accept the same digest")
+    with open(config, "w") as f:
+        json.dump({}, f)
+    try:
+        validator.validate("harness-code-reviewer", guarded, config, feature_dir)
+        failures.append("missing gates must raise")
+    except ValueError as error:
+        if "gates" not in str(error):
+            failures.append("missing gates error must name gates")
+
+
+@contextlib.contextmanager
+def _hermetic_review_sha_cwd(td):
+    """Send-back 2 (cycle 27): `PRE_FEATURE_REVISION`/`REVIEW_SHA` used to be
+    fixed ambient commit hashes a real shallow CI checkout does not carry
+    (proven: a genuine `--depth 1` clone lacks both). Builds
+    `make_review_sha_repo`'s purpose-built repo, re-points both module-level
+    names at it, and `chdir`s into it for the `with` block's duration —
+    restoring both on exit. Isolated here, not inlined into
+    `run_code_grade_cases`, so that function keeps its own flat shape: the
+    ambient-repo swap is orthogonal to what each `check_*` call asserts.
+    """
+    global PRE_FEATURE_REVISION, REVIEW_SHA
+    repo, oid_a, oid_review_sha, _oid_head = make_review_sha_repo(td)
+    saved = (PRE_FEATURE_REVISION, REVIEW_SHA)
+    PRE_FEATURE_REVISION, REVIEW_SHA = oid_a, oid_review_sha
+    original_cwd = os.getcwd()
+    os.chdir(repo)
+    try:
+        yield
+    finally:
+        os.chdir(original_cwd)
+        PRE_FEATURE_REVISION, REVIEW_SHA = saved
+
+
+def run_code_grade_cases():
+    spec = importlib.util.spec_from_file_location("_validator_under_test", VALIDATE)
+    validator = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(validator)
+    failures = []
+    with tempfile.TemporaryDirectory() as td, _hermetic_review_sha_cwd(td) as _cwd_marker:
+        config = os.path.join(td, "harness.json")
+        write_review_config(config, "advisory_unless_high")
+        feature_dir = make_feature_dir(td)
+        check_code_grade_state(validator, config, feature_dir, failures)
+        check_reviewed_range(validator, config, feature_dir, td, failures)
+        check_resolve_reviewed_commit_guard(validator, failures)
+        check_review_sha_binding(validator, config, feature_dir, td, failures)
+        check_resolve_review_sha_artifact_path(validator, td, failures)
+        check_resolve_review_sha_feature_json(validator, td, failures)
+        check_branch_corroboration(validator, config, td, failures)
+        check_derived_base_range(td, failures)
+        check_unresolvable_default_branch(td, failures)
+        check_no_merge_base(td, failures)
+        guarded = check_review_policy(validator, config, feature_dir, failures)
+        check_config_errors(validator, config, feature_dir, guarded, failures)
+        check_prior_validator(td, guarded, failures)
+    if failures:
+        print("FAIL  code-grade and review-policy gates")
+        for failure in failures:
+            print(f"        {failure}")
+        return 1
+    print("ok    code-grade and review-policy gates")
+    return 0
+
+
 def main():
     fails = run_cli_cases()
     fails += run_joint_hint_case()
+    fails += run_code_grade_cases()
     fails += run_hook_cases()
     fails += run_t09()
     fails += run_template_cases()
+    fails += run_reviewer_severity_enum_cases()
     print(f"\n{'ALL PASSED' if not fails else f'{fails} FAILING'}.")
     return 1 if fails else 0
 

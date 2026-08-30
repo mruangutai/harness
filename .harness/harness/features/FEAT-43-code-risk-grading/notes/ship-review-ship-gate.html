@@ -1,0 +1,84 @@
+<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>FEAT-43 ship review — blocked before ship</title><style>
+:root{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:ui-sans-serif,-apple-system,"Segoe UI","Helvetica Neue",Arial,sans-serif;
+}
+/* Token-level theming: components style through the tokens and never inside the
+   media query, so the viewer's explicit toggle can override the OS in BOTH
+   directions. */
+@media (prefers-color-scheme:dark){
+  :root{ --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+         --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733; }
+}
+:root[data-theme="dark"]{
+  --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+  --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733;
+}
+:root[data-theme="light"]{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+}
+*{box-sizing:border-box}
+body{margin:0; background:var(--paper); color:var(--ink);
+  font:400 16px/1.65 var(--sans); padding:clamp(1.5rem,5vw,4rem) clamp(1rem,5vw,2rem) 6rem}
+.wrap{max-width:56rem; margin:0 auto}
+/* Layout owns the spacing: gap between siblings, not per-element margins that
+   collapse or double. */
+.wrap{display:flex; flex-direction:column; gap:1rem}
+.eyebrow{font:500 11px/1 var(--mono); letter-spacing:.14em; text-transform:uppercase;
+  color:var(--quiet); margin:0}
+h1{font:600 clamp(1.6rem,4vw,2.3rem)/1.15 var(--sans); letter-spacing:-.02em;
+  margin:.4rem 0 .2rem; text-wrap:balance}
+h2{font:600 1.15rem/1.3 var(--sans); letter-spacing:-.01em; margin:2rem 0 0;
+  padding-top:1.25rem; border-top:1px solid var(--line); text-wrap:balance}
+h3{font:600 .98rem/1.4 var(--sans); margin:1.1rem 0 0}
+h4,h5,h6{font:500 11px/1.4 var(--mono); letter-spacing:.1em; text-transform:uppercase;
+  color:var(--quiet); margin:1rem 0 0}
+p,li{max-width:65ch; margin:0}
+ul,ol{margin:0; padding-left:1.4rem; display:flex; flex-direction:column; gap:.4rem}
+li>ul,li>ol{margin-top:.4rem}
+strong{font-weight:600}
+code{font:400 .875em/1.5 var(--mono); background:var(--sunk); padding:.1em .35em; border-radius:3px}
+pre{background:var(--sunk); border:1px solid var(--line); border-radius:6px;
+  padding:.85rem 1rem; overflow-x:auto; margin:0}
+pre code{background:none; padding:0}
+blockquote{margin:0; padding:.75rem 1rem; border-left:3px solid var(--accent);
+  background:var(--accent-soft); border-radius:0 5px 5px 0}
+blockquote p{max-width:none}
+hr{border:0; border-top:1px solid var(--line); margin:.5rem 0}
+/* Wide content pans inside its OWN container; the page body never scrolls sideways. */
+.scroll{overflow-x:auto; border:1px solid var(--line); border-radius:6px}
+table{border-collapse:collapse; width:100%; font-size:.9rem}
+th,td{text-align:left; padding:.6rem .8rem; border-bottom:1px solid var(--line); vertical-align:top}
+thead th{font:500 10px/1.3 var(--mono); letter-spacing:.11em; text-transform:uppercase;
+  color:var(--quiet); background:var(--sunk); white-space:nowrap}
+tbody tr:last-child td{border-bottom:0}
+/* Figures in a column line up. */
+td,th{font-variant-numeric:tabular-nums}
+.derived{color:var(--slate); font-size:.85rem; margin-top:2.5rem;
+  padding-top:1rem; border-top:1px solid var(--line)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style></head><body><div class='wrap'><p class='eyebrow'>Ship review · reading view</p><h1 id="feat-43-ship-review-blocked-before-ship">FEAT-43 ship review — blocked before ship</h1>
+<h2 id="conclusion">Conclusion</h2>
+<p><strong>FEAT-43 is not ready for a ship decision.</strong> The approved plan has not entered build: the feature record is still <code>Ready</code>, its only recorded run is planning, and <code>review_sha</code> is <code>none</code>. The branch delta contains the approved feature artifacts and research, but none of T-01 through T-10&#x27;s implementation files. No PR, merge, deployment, or worktree removal was attempted.</p>
+<p><strong>Decision requested from the operator: none.</strong> Approval to build is already recorded in both <code>BRIEF.md</code> and <code>plan.yaml</code>. The next action is operational: run the build phase from T-01, then the validate phase. A ship authorization would be premature until those phases, the goal-check, and the required UAT have passed.</p>
+<h2 id="gate-evidence">Gate evidence</h2>
+<div class="scroll"><table><thead><tr><th>Gate</th><th>Result</th><th>Evidence</th></tr></thead><tbody><tr><td>Approved brief</td><td>PASS</td><td><code>BRIEF.md</code> approval is <code>approved</code></td></tr><tr><td>Approved plan</td><td>PASS</td><td><code>plan.yaml</code> approval is <code>approved</code></td></tr><tr><td>Build complete</td><td>NOT RUN</td><td><code>feature.json</code> is <code>Ready</code>; it records only <code>plan-product</code>; the branch delta has no implementation deliverables</td></tr><tr><td>QA matrix</td><td>NOT RUN</td><td>No QA run exists in <code>feature.json</code></td></tr><tr><td>Simplify</td><td>NOT RUN</td><td>No simplify run exists in <code>feature.json</code></td></tr><tr><td>Review pin and panel</td><td>NOT RUN</td><td><code>feature.json</code> has <code>review_sha: none</code></td></tr><tr><td>Goal-check</td><td>NOT RUN</td><td>No product goal-check run exists</td></tr><tr><td>UAT</td><td>NOT RUN</td><td>SC-11 is <code>verify: uat</code>; no UAT artifact or result exists</td></tr><tr><td>Ship authorization</td><td>NOT REACHED</td><td>Build and validation prerequisites are absent</td></tr></tbody></table></div>
+<p>The clean working tree at <code>d169ad4</code> confirms this is not an unrecorded in-progress implementation. Comparing the feature branch with <code>origin/main</code> lists only feature planning/state, research, observations, and logs.</p>
+<h2 id="what-exists">What exists</h2>
+<p>Product planning passed after one rework cycle. The approved scope contains 10 tasks and 20 success criteria. The plan explicitly orders teaching and specialist wiring before the grading cutover, with T-08 depending on T-05 through its prerequisite chain.</p>
+<p>No report round was spawned. This briefing was assembled from:</p>
+<ul><li><code>.harness/harness/features/FEAT-43-code-risk-grading/runs/plan-product/digest.md</code></li></ul>
+<p>The later, operator-authored plan handoff was used to resolve the planning digest&#x27;s stale <code>.agents/**</code> finding: <code>.agents/skills</code> is a symlink, and the configured active test commands were measured passing. That false finding is not carried as backlog.</p>
+<h2 id="open-questions-and-escalations">Open questions and escalations</h2>
+<p>There is no blocking product question. Both artifacts are signed, so build can proceed without another operator decision.</p>
+<p>The planning digest&#x27;s remaining non-blocking repository observations were not validated during this phase-scoped ship check and are not ship findings for FEAT-43. They must not be allowed to substitute for completing the approved feature.</p>
+<h2 id="proposed-backlog">Proposed backlog</h2>
+<p>No residual finding survived ship collation. The feature has not reached review, so there is no validator residual to convert into backlog.</p>
+<div class="scroll"><table><thead><tr><th>ID</th><th>Nature</th><th>Finding</th><th>Disposition</th></tr></thead><tbody><tr><td>—</td><td>—</td><td>None</td><td>—</td></tr></tbody></table></div>
+<h2 id="required-next-route">Required next route</h2>
+<ol><li>Dispatch FEAT-43&#x27;s <strong>build</strong> phase at T-01, honoring the dependency ordering and the main-session-direct tasks named in <code>notes/handoff-plan.md</code>.</li><li>Complete the QA matrix and SIMPLIFY before pinning <code>review_sha</code>.</li><li>Run the validate panel, product goal-check, and SC-11 UAT.</li><li>Return to ship only after those gates pass; then present the actual ship decision to the operator.</li></ol><p class='derived'>Derived from <code>ship-review-ship-gate.md</code> — the markdown is the record; do not edit this file. Regenerate with <code>bin/render-brief.py</code>.</p></div></body></html>

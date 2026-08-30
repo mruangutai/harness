@@ -1,0 +1,93 @@
+<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>FEAT-43 code-risk grading — ship review (cycle 29, final)</title><style>
+:root{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:ui-sans-serif,-apple-system,"Segoe UI","Helvetica Neue",Arial,sans-serif;
+}
+/* Token-level theming: components style through the tokens and never inside the
+   media query, so the viewer's explicit toggle can override the OS in BOTH
+   directions. */
+@media (prefers-color-scheme:dark){
+  :root{ --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+         --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733; }
+}
+:root[data-theme="dark"]{
+  --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+  --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733;
+}
+:root[data-theme="light"]{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+}
+*{box-sizing:border-box}
+body{margin:0; background:var(--paper); color:var(--ink);
+  font:400 16px/1.65 var(--sans); padding:clamp(1.5rem,5vw,4rem) clamp(1rem,5vw,2rem) 6rem}
+.wrap{max-width:56rem; margin:0 auto}
+/* Layout owns the spacing: gap between siblings, not per-element margins that
+   collapse or double. */
+.wrap{display:flex; flex-direction:column; gap:1rem}
+.eyebrow{font:500 11px/1 var(--mono); letter-spacing:.14em; text-transform:uppercase;
+  color:var(--quiet); margin:0}
+h1{font:600 clamp(1.6rem,4vw,2.3rem)/1.15 var(--sans); letter-spacing:-.02em;
+  margin:.4rem 0 .2rem; text-wrap:balance}
+h2{font:600 1.15rem/1.3 var(--sans); letter-spacing:-.01em; margin:2rem 0 0;
+  padding-top:1.25rem; border-top:1px solid var(--line); text-wrap:balance}
+h3{font:600 .98rem/1.4 var(--sans); margin:1.1rem 0 0}
+h4,h5,h6{font:500 11px/1.4 var(--mono); letter-spacing:.1em; text-transform:uppercase;
+  color:var(--quiet); margin:1rem 0 0}
+p,li{max-width:65ch; margin:0}
+ul,ol{margin:0; padding-left:1.4rem; display:flex; flex-direction:column; gap:.4rem}
+li>ul,li>ol{margin-top:.4rem}
+strong{font-weight:600}
+code{font:400 .875em/1.5 var(--mono); background:var(--sunk); padding:.1em .35em; border-radius:3px}
+pre{background:var(--sunk); border:1px solid var(--line); border-radius:6px;
+  padding:.85rem 1rem; overflow-x:auto; margin:0}
+pre code{background:none; padding:0}
+blockquote{margin:0; padding:.75rem 1rem; border-left:3px solid var(--accent);
+  background:var(--accent-soft); border-radius:0 5px 5px 0}
+blockquote p{max-width:none}
+hr{border:0; border-top:1px solid var(--line); margin:.5rem 0}
+/* Wide content pans inside its OWN container; the page body never scrolls sideways. */
+.scroll{overflow-x:auto; border:1px solid var(--line); border-radius:6px}
+table{border-collapse:collapse; width:100%; font-size:.9rem}
+th,td{text-align:left; padding:.6rem .8rem; border-bottom:1px solid var(--line); vertical-align:top}
+thead th{font:500 10px/1.3 var(--mono); letter-spacing:.11em; text-transform:uppercase;
+  color:var(--quiet); background:var(--sunk); white-space:nowrap}
+tbody tr:last-child td{border-bottom:0}
+/* Figures in a column line up. */
+td,th{font-variant-numeric:tabular-nums}
+.derived{color:var(--slate); font-size:.85rem; margin-top:2.5rem;
+  padding-top:1rem; border-top:1px solid var(--line)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style></head><body><div class='wrap'><p class='eyebrow'>Ship review · reading view</p><h1 id="feat-43-code-risk-grading-ship-review-cycle-29-final">FEAT-43 code-risk grading — ship review (cycle 29, final)</h1>
+<p><strong>Supersedes <code>ship-review-c28.md</code>.</strong> <strong>Recommendation: SHIP.</strong> Push PR #978; the gate the merge turned red is green again, and the defect that turned it red is now repaired at all three of its callsites rather than the one that happened to fail loudly.</p>
+<h2 id="what-cycle-29-actually-found">What cycle 29 actually found</h2>
+<p>You authorized one assertion. The scope you then widened, on a direct source read, is what makes this cycle worth its budget — and finding it was yours, not mine. My dispatch&#x27;s non-goals explicitly told the specialist to leave the other assertions alone. That was my scoping error.</p>
+<p><strong>Three callsites carried the same defect, <code>&quot;1 file(s)&quot; in stderr</code> — a substring test on a rendered count.</strong> The merge unioned two features&#x27; directories 40 → 41, so stderr renders <code>41 file(s)</code> and <code>&quot;1 file(s)&quot; in &quot;41 file(s)&quot;</code> is <code>True</code>.</p>
+<ul><li>The <strong>negative</strong> callsite tripped and turned <code>--kind unit</code> red. That is how the defect surfaced.</li><li>The two <strong>positive</strong> callsites were <strong>worse, and silent.</strong> Each asserts the sweep reported exactly one file — that it scanned the temporary fixture, not the real repository root. Under a wrongly redirected sweep they pass <strong>vacuously, in precisely the failure they exist to catch.</strong> The review reproduced that against real sweep stderr, not a synthetic string.</li></ul>
+<p>A loud failure gets fixed. A silent pass is a test that has quietly stopped being a test, and two of the three were in that state.</p>
+<h2 id="what-landed-and-the-one-design-point-that-matters">What landed, and the one design point that matters</h2>
+<p>One shared word-boundary predicate, all three callsites routing through it, two synthetic controls — and an <strong>AST guard over the file&#x27;s own source</strong>.</p>
+<p>That last piece is the whole value, and the reasoning is worth stating because it is easy to get wrong: a control that exercises the <em>helper</em> stays green when a <em>callsite</em> regresses, because the helper is still correct — it is simply no longer called. So for both positive callsites <strong>the AST guard is the only thing that catches a reversion.</strong> I proved it before believing it: I mutated positive callsite <code>:371</code> back to substring form and the named case <code>no bare rendered-count substring compare outside reports_exactly_one_file</code> fired at exit 1. The review then mutated all three, individually.</p>
+<h2 id="evidence-at-the-ship-pin-73c636dd">Evidence at the ship pin <code>73c636dd</code></h2>
+<div class="scroll"><table><thead><tr><th>Gate</th><th>Result</th></tr></thead><tbody><tr><td><code>--kind unit</code> — the gate the merge turned red</td><td><strong>exit 0</strong>, zero failures</td></tr><tr><td>Delta review</td><td><strong>PASS</strong>, <code>must_fix: []</code>, <code>severity_max: med</code></td></tr><tr><td>Range gate over the <code>origin/main</code>-derived base</td><td><strong>exit 0</strong>, 206 gated, zero blocking</td></tr><tr><td>Engine against its own bar</td><td>53 functions, zero below grade 4</td></tr><tr><td>Five focused FEAT-43 suites</td><td>all exit 0</td></tr><tr><td><code>check-state.sh</code></td><td><strong>exit 0</strong>, zero violations</td></tr><tr><td>Goal-check</td><td><strong>20 of 20</strong> — see the note below</td></tr></tbody></table></div>
+<p><strong>A methodological correction the review made against me, and it is right.</strong> My earlier <code>check-state.sh</code> exit-0 reading was taken <em>before</em> the review&#x27;s own run directory existed. A gate reading taken before the run that perturbs it is not evidence about that run. The exit 0 above was taken after, and it is the one that counts.</p>
+<p><strong>The goal-check was not re-derived, deliberately.</strong> The delta touches one main-owned test file that carries no success criterion&#x27;s evidence; every criterion&#x27;s evidence lives in the FEAT-43 suites, and those are green with the engine unchanged at 53/0. Recording 20 of 20 as carried forward rather than spawning a run for a file no criterion cites.</p>
+<h2 id="two-rulings-the-validator-lead-made-and-the-reasoning-i-endorse">Two rulings the validator lead made, and the reasoning I endorse</h2>
+<p>Both were raised as improvements and both were <strong>declined for this cycle</strong> — on grounds worth more than the improvements themselves.</p>
+<ul><li><strong><code>re.fullmatch</code> → <code>re.search</code> in the guard.</strong> Measured strictly stronger at zero false-fire cost, verified twice including a full-suite run against a patched copy. Declined because applying it is a source change and there is <strong>no cycle 30 in which to re-verify the changed artifact</strong>. <em>A measured green artifact beats an unverified better one.</em> Backlog.</li><li><strong>The AST walker sits at grade 3 against a bar of 3</strong>, one edit from red, with no automated tracking — and it is now the last line of defense for a defect class that has cost this feature three cycles. Passing at its own bar violates no written rule and the function is demonstrably correct today. Backlog.</li></ul>
+<h2 id="what-is-still-true-and-uncovered">What is still true and uncovered</h2>
+<ul><li><strong>The guard detects reversion to the exact prior syntactic shape only.</strong> A callsite broken some other way — an unconditional <code>True</code>, a differently-wrong predicate — is caught by nothing. That is acceptable for a regression guard, but it is not callsite correctness, and it should not be read as such.</li><li><strong>The defect class remains armed in <code>main</code>.</strong> One mutation confirmed the live tree still renders a count ending in <code>1</code>. This panel verified the fix; it did not verify the absence of the class.</li><li>No security or UI reviewer ran on this delta — a test-only change with no production code and no new input surface. The c21 panel&#x27;s verdicts stand and were not refreshed.</li><li>Main&#x27;s own content was never re-reviewed on its merits at any point in the reconciliation.</li></ul>
+<h2 id="backlog">Backlog</h2>
+<p>Your disposition is recorded: <strong>B28, B30, B31 kept; B29 struck.</strong> B1–B24 kept, B21 and B25 closed and removed. Five rows are new.</p>
+<div class="scroll"><table><thead><tr><th>ID</th><th>Nature</th><th>What</th></tr></thead><tbody><tr><td>B32</td><td>chore</td><td><code>_rendered_count_substring_compares</code> uses <code>re.fullmatch</code>; <code>re.search</code> is measured strictly stronger at zero false-fire cost. Deliberately not applied with no cycle left to re-verify</td></tr><tr><td>B33</td><td>chore</td><td>the AST walker sits at grade 3 against bar 3 with no automated tracking, and is the last line of defense for a class that cost three cycles. Consider adding the file to <code>SELF_GRADED_FILES</code></td></tr><tr><td>B34</td><td>bug</td><td><strong>against main&#x27;s owner:</strong> the same substring-on-a-count defect class is live in <code>main</code> independently of FEAT-43 — it fires whenever main&#x27;s own feature count ends in <code>1</code>, and a mutation this cycle confirmed the count still does</td></tr><tr><td>B35</td><td>chore</td><td>a stale local <code>main</code> ref widens the validator&#x27;s derived range and produces spurious findings attributed to main&#x27;s own files. Ruled fail-closed across all five ref states — it can widen, never narrow</td></tr><tr><td>B36</td><td>bug</td><td><strong>harness:</strong> no mechanism surfaces a duplicate dispatch. Main and I both widened cycle 29 into the same file, unaware of each other; two leads held identical scope and a collision was avoided only because one lead&#x27;s pre-dispatch check happened to straddle a live edit. The durable finding is the absence of detection, not the attribution</td></tr></tbody></table></div>
+<h2 id="budget-and-one-credit">Budget and one credit</h2>
+<p><code>cycles_used</code> is <strong>29 of 29</strong>. <code>runs</code> is <strong>49</strong> against an informational 20-run budget.</p>
+<p><strong>B20 finally did not recur.</strong> The cycle-29 validator lead found its own <code>state.yaml</code> in violation of DEC-154 and <strong>repaired it itself</strong> — the first lead in this feature to do so rather than leave it for me. Ten previous digests I fixed by hand. Worth recording as evidence the contract can be met.</p>
+<h2 id="what-is-left-for-you">What is left for you</h2>
+<p><strong>Ship.</strong> Push PR #978 and await CI. Then strike any backlog rows you do not want; unstruck rows become issues on acceptance.</p>
+<h2 id="state-of-the-branch">State of the branch</h2>
+<p>Nothing shipped. No PR merged, no deploy, no issue closed, nothing distilled; the worktree stands. <code>review_sha</code> is <code>73c636dda65977faa9f9c171eedad35fed3213eb</code>, <code>check-state.sh</code> exits 0, the working tree is clean, and no source has moved past the pin.</p><p class='derived'>Derived from <code>ship-review-c29.md</code> — the markdown is the record; do not edit this file. Regenerate with <code>bin/render-brief.py</code>.</p></div></body></html>

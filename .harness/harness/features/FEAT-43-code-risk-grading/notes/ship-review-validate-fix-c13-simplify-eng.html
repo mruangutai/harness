@@ -1,0 +1,80 @@
+<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>FEAT-43 validation is blocked before commit and panel</title><style>
+:root{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:ui-sans-serif,-apple-system,"Segoe UI","Helvetica Neue",Arial,sans-serif;
+}
+/* Token-level theming: components style through the tokens and never inside the
+   media query, so the viewer's explicit toggle can override the OS in BOTH
+   directions. */
+@media (prefers-color-scheme:dark){
+  :root{ --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+         --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733; }
+}
+:root[data-theme="dark"]{
+  --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+  --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733;
+}
+:root[data-theme="light"]{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+}
+*{box-sizing:border-box}
+body{margin:0; background:var(--paper); color:var(--ink);
+  font:400 16px/1.65 var(--sans); padding:clamp(1.5rem,5vw,4rem) clamp(1rem,5vw,2rem) 6rem}
+.wrap{max-width:56rem; margin:0 auto}
+/* Layout owns the spacing: gap between siblings, not per-element margins that
+   collapse or double. */
+.wrap{display:flex; flex-direction:column; gap:1rem}
+.eyebrow{font:500 11px/1 var(--mono); letter-spacing:.14em; text-transform:uppercase;
+  color:var(--quiet); margin:0}
+h1{font:600 clamp(1.6rem,4vw,2.3rem)/1.15 var(--sans); letter-spacing:-.02em;
+  margin:.4rem 0 .2rem; text-wrap:balance}
+h2{font:600 1.15rem/1.3 var(--sans); letter-spacing:-.01em; margin:2rem 0 0;
+  padding-top:1.25rem; border-top:1px solid var(--line); text-wrap:balance}
+h3{font:600 .98rem/1.4 var(--sans); margin:1.1rem 0 0}
+h4,h5,h6{font:500 11px/1.4 var(--mono); letter-spacing:.1em; text-transform:uppercase;
+  color:var(--quiet); margin:1rem 0 0}
+p,li{max-width:65ch; margin:0}
+ul,ol{margin:0; padding-left:1.4rem; display:flex; flex-direction:column; gap:.4rem}
+li>ul,li>ol{margin-top:.4rem}
+strong{font-weight:600}
+code{font:400 .875em/1.5 var(--mono); background:var(--sunk); padding:.1em .35em; border-radius:3px}
+pre{background:var(--sunk); border:1px solid var(--line); border-radius:6px;
+  padding:.85rem 1rem; overflow-x:auto; margin:0}
+pre code{background:none; padding:0}
+blockquote{margin:0; padding:.75rem 1rem; border-left:3px solid var(--accent);
+  background:var(--accent-soft); border-radius:0 5px 5px 0}
+blockquote p{max-width:none}
+hr{border:0; border-top:1px solid var(--line); margin:.5rem 0}
+/* Wide content pans inside its OWN container; the page body never scrolls sideways. */
+.scroll{overflow-x:auto; border:1px solid var(--line); border-radius:6px}
+table{border-collapse:collapse; width:100%; font-size:.9rem}
+th,td{text-align:left; padding:.6rem .8rem; border-bottom:1px solid var(--line); vertical-align:top}
+thead th{font:500 10px/1.3 var(--mono); letter-spacing:.11em; text-transform:uppercase;
+  color:var(--quiet); background:var(--sunk); white-space:nowrap}
+tbody tr:last-child td{border-bottom:0}
+/* Figures in a column line up. */
+td,th{font-variant-numeric:tabular-nums}
+.derived{color:var(--slate); font-size:.85rem; margin-top:2.5rem;
+  padding-top:1rem; border-top:1px solid var(--line)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style></head><body><div class='wrap'><p class='eyebrow'>Ship review · reading view</p><h1 id="feat-43-validation-is-blocked-before-commit-and-panel">FEAT-43 validation is blocked before commit and panel</h1>
+<h2 id="decision">Decision</h2>
+<p>Stop under the current authorization. Configured Homebrew-Python QA passed, but mandatory four-angle SIMPLIFY found a warranted source consolidation across three security-sensitive commit resolvers. The operator authorized no additional source-fix cycle, so the change was not applied. The canonical state gate, source/test commit, immutable re-pin, Review sync, and validator panel did not run. The preserved source/test working tree remains uncommitted.</p>
+<p>A future continuation requires explicit authorization for another source-fix cycle. Its bounded change is R-01: make <code>code_grade.py:_commit_oid</code> authoritative, reuse it from <code>code-grade.py</code>, and adapt its <code>ValueError</code> to <code>validate-digest.py</code>&#x27;s existing <code>None</code>/reporting contract without changing commit-only resolution, option-like revision rejection, or caller-visible error behavior. That continuation must repeat configured QA and SIMPLIFY before any commit or review pin.</p>
+<h2 id="gate-evidence">Gate evidence</h2>
+<ul><li>QA PASS: unit 29/29 and integration 28/28 under Homebrew Python, with named non-vacuous coverage across all seven changed source/test files. The digest-grade contract explicitly covers PASS-compatible <code>code_grade: grade_2</code> with non-empty <code>grade_2_reasons</code> and blocking <code>code_grade: fail</code> (<code>runs/validate-fix-c13-qa-validator/digest.md</code>).</li><li>SIMPLIFY BLOCKED: reuse and simplification independently found the resolver duplication; efficiency found no runtime waste and altitude recommended the existing responsibility seams otherwise remain (<code>runs/validate-fix-c13-simplify-eng/digest.md</code>).</li><li>Source premise checked: resolver implementations are present at <code>.claude/skills/harness/bin/code_grade.py:_commit_oid</code>, <code>.claude/skills/harness/bin/code-grade.py:_commit_oid</code>, and <code>.claude/skills/harness/bin/validate-digest.py:resolve_reviewed_commit</code>.</li><li>No SIMPLIFY source/test edit was applied. The inherited <code>review_sha</code> <code>45328d7a280d251a94b09672a7b6724d55a79f83</code> predates the preserved remediation and must not be reviewed.</li></ul>
+<h2 id="feature-record">Feature record</h2>
+<p>Planning and the original build passed. Earlier configured QA initially blocked before discovery, then passed after Homebrew-Python selection. The first full panel found twelve defects; the first remediation and its QA/SIMPLIFY passed. The second panel found B-01 through B-08. Engineering preserved the authorized remediation, and the current integrated QA passed. The current SIMPLIFY blocker is new validation evidence and cannot be fixed within <code>cycles_used: 13</code> / <code>max_total_cycles: 13</code>.</p>
+<p>The T-06/T-09 owner-resolution escalation was resolved by the operator and recorded at <code>answers/Q1-t09-owner-resolver.md</code>. Product goal-check, documentation, UAT, ship, merge, and deploy were intentionally not run in this mission.</p>
+<h2 id="open-question">Open question</h2>
+<p>A nonblocking harness-contract question remains from the efficiency reader: what canonical suite value should a read-only engineering assessment report when a receipt is required but validation is expressly prohibited? This did not cause R-01 and does not change the terminal feature blocker.</p>
+<h2 id="proposed-backlog">Proposed backlog</h2>
+<div class="scroll"><table><thead><tr><th>ID</th><th>Nature</th><th>Residual finding</th></tr></thead><tbody><tr><td>B-1</td><td>chore</td><td>Define the canonical engineering digest suite value for assessment-only runs where validation is prohibited.</td></tr><tr><td>B-2</td><td>chore</td><td>Audit stale <code>.agents/</code> guidance paths identified during planning; keep only paths that intentionally resolve through the compatibility seam.</td></tr><tr><td>B-3</td><td>bug</td><td>Reconcile the domain-manifest grant for <code>.harness/harness.json</code> with the signed route record that classified it as main-session-direct.</td></tr><tr><td>B-4</td><td>bug</td><td>Decide and test whether <code>check-plan-routes.py</code> must reject tasks whose files are writable only by the union of disjoint agents.</td></tr><tr><td>B-5</td><td>chore</td><td>Resolve or signed-exclude the <code>component</code>, <code>ui</code>, <code>eval</code>, and <code>typecheck</code> test-kind statuses noted during planning.</td></tr></tbody></table></div>
+<h2 id="sources">Sources</h2>
+<p>No report round was spawned. This briefing was assembled from every run digest recorded in <code>feature.json</code>:</p>
+<ul><li><code>runs/plan-product/digest.md</code></li><li><code>runs/t01-t07-eng/digest.md</code></li><li><code>runs/t02-eng/digest.md</code></li><li><code>runs/t03-eng/digest.md</code></li><li><code>runs/t10-product/digest.md</code></li><li><code>runs/t06-eng/digest.md</code></li><li><code>runs/build-qa-validator/digest.md</code></li><li><code>runs/build-qa-validator-rerun/digest.md</code></li><li><code>runs/build-simplify-eng/digest.md</code></li><li><code>runs/validate-review-validator/digest.md</code></li><li><code>runs/validate-fix-eng/digest.md</code></li><li><code>runs/validate-fix-qa-validator/digest.md</code></li><li><code>runs/validate-fix-simplify-eng/digest.md</code></li><li><code>runs/validate-review-final-validator/digest.md</code></li><li><code>runs/validate-fix-c11-eng/digest.md</code></li><li><code>runs/validate-fix-c13-qa-validator/digest.md</code></li><li><code>runs/validate-fix-c13-simplify-eng/digest.md</code></li></ul><p class='derived'>Derived from <code>ship-review-validate-fix-c13-simplify-eng.md</code> — the markdown is the record; do not edit this file. Regenerate with <code>bin/render-brief.py</code>.</p></div></body></html>
