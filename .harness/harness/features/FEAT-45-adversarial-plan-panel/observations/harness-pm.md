@@ -33,3 +33,5 @@
   reader: a script whose argparse group is required=True invoked with no argument (exit 2), and
   `git diff --quiet` over a file the task itself edits (uncommitted at verify time). Running each
   verify's exact command against the current tree caught both in under a minute.
+- 2026-08-30 (FEAT-45 c2): the dispatch listed seven propagation sites for the reader persona; a grep sweep found an eighth (T-03's intent, which asserted the struck 'independent OF THE DISPATCH CHAIN and not of the model' claim in the orchestrator playbook text). A dispatch's site list is a hypothesis; grep the struck CLAIM as well as the struck NAME.
+- 2026-08-30 (FEAT-45 c2): T-10's verify token list demanded the literal persona name while T-10's own case 8 instructed the doer to read the persona from the team file rather than hardcode it. Dropping the name from the token list, and greping the two allowlist identifiers instead, resolved the contradiction; a verify that pins data the intent says not to pin is a self-blocking task.

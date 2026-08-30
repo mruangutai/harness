@@ -27,25 +27,29 @@ overrule is a recorded act rather than a conversation nobody can find afterwards
   operator's signature — every plan, with no size threshold and no opt-in. A re-plan that changes the
   task set resets `approval.status` to `pending` and is therefore presented again, so it is read
   again, scoped to the tasks that are not `done`.
-- REQ-02: An **independent-context** reader — spawned OUTSIDE the dispatch chain that authored the
-  plan, and therefore holding none of its reasoning — answers, of the drafted plan: **what here should
-  not be built at all?** The lead that hosts it must be *permitted* to spawn it: measured 2026-08-29,
-  the host enforces an agent's `spawns:` list as a hard allowlist at preflight and refused a
-  `general-purpose` dispatch with `Cannot spawn 'general-purpose'. Allowed:
-  harness-product-lead,harness-eng-lead,harness-validator-lead`, so a reader absent from
-  `harness-validator-lead`'s list cannot answer anything. Model independence is **not** claimed:
-  measured 2026-08-29, no governed spawn
-  in this repository can select a model (`dispatch-guard.sh:36-53` exits 2 on any `harness-`-prefixed
-  caller passing `model:`, whatever the target), and the turn-level `advisor` channel is unattached on
+- REQ-02: An **independent-model** reader — spawned OUTSIDE the dispatch chain that authored the
+  plan, and therefore holding none of its reasoning, **and running on a different model** — answers,
+  of the drafted plan: **what here should not be built at all?** The lead that hosts it must be
+  *permitted* to spawn it: measured 2026-08-29, the host enforces an agent's `spawns:` list as a hard
+  allowlist at preflight and refused a `general-purpose` dispatch with `Cannot spawn
+  'general-purpose'. Allowed: harness-product-lead,harness-eng-lead,harness-validator-lead`, so a
+  reader absent from `harness-validator-lead`'s list cannot answer anything. The MODEL half survives
+  lead dispatch, measured 2026-08-30: `dispatch-guard.sh:41-51` blocks a lead from **passing**
+  `model:` in a dispatch — its own comment states the rule it enforces, that a member runs on the
+  model pinned in its agent frontmatter and that pin is org design — and it does not strip the
+  target's own pin; it exits 0, recording no claim, for any persona not prefixed `harness-`. So a
+  reader persona carrying its own `model:` pin runs on that model when a lead spawns it without
+  passing one. The reader is therefore independent of the authoring chain AND of the authoring model.
+  This is more than DEC-170's turn-level `advisor` channel can supply here, which is unattached on
   this workstation (`advisorModel` absent from `~/.claude/settings.json`, contradicting DEC-170's
-  recorded `:112`). Independence here is independence **from the dispatch chain**, which is the
-  property DEC-170 actually credits.
+  recorded `:112`) — that measurement bounds the CHANNEL, not the frontmatter pin, and the earlier
+  inference from it that model independence was unavailable was FALSE.
 - REQ-03: The drafted plan is goal-checked against the operator's **stated intent**, not against the
   brief the plan was written from.
 - REQ-04: The plan is read for scope: **which tasks serve no live requirement, and what does the
   feature actually need to ship?** — covering orphan traces in both directions, dependency shape, and
   `verify:` blocks asserting something a predecessor deletes.
-- REQ-05: The independent-context reader's return is normalized into a contract-compliant digest before
+- REQ-05: The independent-model reader's return is normalized into a contract-compliant digest before
   anything routes on it, and the agent roster does not grow to accommodate it. The reader's own return
   is validated by **nothing** — `validate-digest.py:900-907` returns 0 for any non-`harness-`
   `agent_type` — so the normalization is the only place the contract is enforced, and the only stop
@@ -66,6 +70,14 @@ overrule is a recorded act rather than a conversation nobody can find afterwards
 - REQ-12: Panel findings enter the operator's single batched review pass at the signature gate and do
   not open a separate pre-signature fix ping-pong.
 - REQ-13: A re-run of the panel does not overwrite the record of the run whose findings caused it.
+- REQ-14: Where the panel's independent-model reader cannot be resolved on the workstation the panel
+  runs on, the panel **skips that reader and records the skip durably** in the panel result, naming
+  the persona and stating the reason. This is not hypothetical: the reader's persona definition lives
+  outside this repository (D-14) while the team file ships as standing doctrine (D-09) to every
+  project the factory is pointed at, so a project where the persona simply does not exist is the
+  normal case rather than the edge one. A skipped reader is never recorded as, or reported as, a
+  reader that ran and returned no findings; and a reader missing from the record with no skip entry
+  is refused rather than passed, so the panel can never report clean because a reader never ran.
 
 ## Success Criteria
 
@@ -149,7 +161,10 @@ overrule is a recorded act rather than a conversation nobody can find afterwards
   harness-product-lead,harness-eng-lead,harness-validator-lead`), so an omission there makes the
   panel unrunnable while every other criterion here still passes. Asserting only one of the two
   passes while the other drifts, and no assertion is made about `.claude/agents/**`, whose generated
-  frontmatter carries no `spawns:` key at all.
+  frontmatter carries no `spawns:` key at all. The persona graded is `fable-advisor` (D-14) — not one
+  of the 16 harness agents, and carrying its own `model:` pin, which is what makes REQ-02's model
+  half true rather than aspirational. Nothing here asserts that persona's own definition file exists
+  in this repository, because it does not and must not: REQ-14 covers its absence.
   verify: automated      evidence: unit
 - SC-16: On the first live `/harness-plan` after this ships, `harness-validator-lead`'s dispatch of
   the adversarial reader is not refused at preflight and the reader returns. Falsified by a
@@ -160,6 +175,14 @@ overrule is a recorded act rather than a conversation nobody can find afterwards
   resolution. This is the one criterion that closes the gap the c1 fix cycle found, where all ten
   drafted tasks graded text on disk and none performed a spawn.
   verify: uat
+- SC-17: Against a fixture whose panel result records the adversarial reader as `skipped` with a
+  named persona and a stated reason, the machine check reports the skip and does NOT report the plan
+  as having no panel result; against the same fixture with that reader absent from the record
+  altogether and no skip entry, the check refuses the signed state. Falsified if a skipped reader is
+  indistinguishable in the record from a reader that ran and returned an empty `findings` list, or if
+  a reader's unrecorded absence passes. The refusing direction must be demonstrated failing on the
+  pre-change tree before the change is accepted, by the same marker-anchored mutant D-13 mandates.
+  verify: automated      evidence: unit
 
 ## Verification gaps
 
@@ -171,11 +194,16 @@ overrule is a recorded act rather than a conversation nobody can find afterwards
   standing `eval` runner is a dev-ops backlog row, not this feature's work.
 - `component`, `ui` and `typecheck` are also null; this feature touches none of their surfaces, so
   they are not gaps here.
-- **Model independence is unprovable here and is therefore not claimed.** No test can assert a
-  property no repo mechanism can select or detect (see REQ-02's measurement). What carries the
-  reader's differentiation instead: SC-14, which grades the one thing that IS on disk — that the
-  reader is spawned outside the authoring chain as a non-harness type. Whether an independent MODEL
-  would find more is unmeasured, n = 0, and is a platform question rather than this feature's.
+- **Model independence IS claimed, and what carries it is on disk rather than in a test.** The
+  persona the team file names carries its own `model:` pin in its own frontmatter — greppable, not
+  inferred — and measured 2026-08-30 the dispatch guard does not strip it: it blocks a lead from
+  *passing* `model:` and exits 0 for any non-`harness-` target (see REQ-02's measurement). The
+  earlier claim in this section, that model independence was unprovable and therefore not claimed,
+  rested on a false inference from that guard and is struck. What remains ungraded is a different
+  question: whether an independent MODEL finds MORE than a same-model reader would. That is
+  unmeasured, n = 0, and is a platform question rather than this feature's. SC-15 grades the
+  mechanical half — that the named persona is admitted by the allowlist — and SC-17 grades the case
+  this repository cannot supply the definition for at all.
 - **No runner here performs a live spawn**, so the preflight decision itself is unautomatable in this
   repository: SC-15 grades the allowlist's *content* and nothing more. What carries the live half:
   SC-16, the operator's own observation on the first `/harness-plan` after this ships. This gap is
@@ -229,6 +257,13 @@ overrule is a recorded act rather than a conversation nobody can find afterwards
   enforces the caller's own `spawns:` frontmatter as a hard allowlist at preflight, so the reader's
   persona must be added to `harness-validator-lead`'s list (`.omp/agents/harness-validator-lead.md`)
   or the dispatch is refused before the guard is ever consulted.
+  **Extended 2026-08-30 (c2):** the persona this feature ships, `fable-advisor` (D-14), is likewise
+  not a seventeenth agent — measured, its definition lives at `~/.omp/agent/agents/fable-advisor.md`,
+  in the operator's HOME and outside this repository, and `.omp/agents/` still holds exactly 16
+  `harness-*.md` files. Bringing that definition into the repository is agent distribution and is
+  explicitly out of scope. That location is also precisely why REQ-14's absent-persona behaviour is
+  mandatory rather than optional: the team file ships as doctrine (D-09) to projects where that HOME
+  definition does not exist.
 - DEC-106 and DEC-151 — a reviewer's `Write` reaches exactly its namespaced report and its own
   Expertise; it holds no `Edit`. `harness-validator-lead`'s only per-feature grant is
   `runs/*-validator/**`. A panel step's `outputs:` must land inside those, or the grant is widened

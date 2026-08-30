@@ -112,12 +112,21 @@ decisions:
     dec: DEC-116
   - id: D-04
     choice: >-
-      Independence is independence FROM THE DISPATCH CHAIN, not model independence. No
-      governed spawn in this repository can select a model and the turn-level advisor channel
-      is unattached on this workstation.
+      The reader is independent of the authoring MODEL as well as of the authoring dispatch
+      chain. Model independence is CLAIMED, and it is delivered by the reader persona's own
+      model pin in its own frontmatter, never by anything a lead passes.
     because: >-
-      dispatch-guard.sh exits 2 on any harness-prefixed caller passing a model, whatever the
-      target, and advisorModel is absent from the user settings file.
+      MEASURED 2026-08-30. dispatch-guard.sh:41-51 blocks a lead from PASSING a model in a
+      dispatch, and states the rule it is enforcing in its own comment: a member runs on the
+      model pinned in its agent frontmatter, and that pin is org design. The guard does not
+      strip the target's own pin, and it exits 0 recording no claim for any persona whose name
+      does not start with harness-. So a lead that spawns a self-pinning persona without
+      passing a model gets that persona's pinned model, and model independence survives lead
+      dispatch. The c1 draft inferred the opposite from this same guard and that inference was
+      FALSE. DEC-170's turn-level advisor channel is separately unattached on this workstation,
+      advisorModel being absent from the user settings file, which bounds the CHANNEL and says
+      nothing about a frontmatter pin. Independence from the dispatch chain remains true and is
+      ADDITIONAL to model independence, not a replacement for it.
     dec: DEC-170
   - id: D-05
     choice: >-
@@ -210,29 +219,45 @@ decisions:
     dec: none
   - id: D-14
     choice: >-
-      The adversarial reader's persona is pinned as general-purpose, and the allowlist that
+      The adversarial reader's persona is pinned as fable-advisor, and the allowlist that
       admits it is the spawns: frontmatter of .omp/agents/harness-validator-lead.md (T-06).
       The SPAWNS map in sync-agent-adapters.py is kept in step (T-11) but is NOT the shipped
-      allowlist, and no assertion is made about spawns in .claude/agents/**.
+      allowlist, and no assertion is made about spawns in .claude/agents/**. Because that
+      persona's definition lives OUTSIDE this repository, REQ-14's absent-persona behaviour
+      ships with the pin and is not optional.
     because: >-
-      MEASURED in the c1 fix cycle, four facts. One, the host enforces spawns: as a hard
-      allowlist at preflight: a general-purpose dispatch was refused with "Cannot spawn
-      'general-purpose'. Allowed: harness-product-lead,harness-eng-lead,harness-validator-lead",
-      a list byte-identical to .omp/agents/harness-orchestrator.md's own spawns:, so the
-      canonical frontmatter is the enforced source. Two, SPAWNS cannot ship it: it is read only
-      by bootstrap_one() via --bootstrap-from-claude, and bootstrap() refuses to run while
+      The persona has to deliver REQ-02's MODEL half, and general-purpose -- the c1 pin --
+      cannot. It is a platform built-in with no agent-definition file anywhere, so it carries
+      no model pin at all, so a lead spawning it gets the lead's own model and the model claim
+      would be false. A model claim the pinned persona cannot keep is worse than no claim.
+      MEASURED 2026-08-30: fable-advisor's frontmatter at ~/.omp/agent/agents/fable-advisor.md
+      carries model anthropic/claude-fable-5 with tools read, glob, grep, bash, and its own
+      description makes it a read-only second-opinion critic whose stated job is hunting work
+      that should not be done at all. It is the one persona measured on this workstation that
+      self-pins. It does not grow the roster: .omp/agents/ holds exactly 16 harness-*.md files
+      and fable-advisor is not among them, so SC-06's census and SC-14's non-harness
+      requirement both still hold, and no task in this plan adds its definition to this
+      repository -- agent distribution is explicitly out of scope.
+      MEASURED in the c1 fix cycle and STILL TRUE, four facts about the ALLOWLIST MECHANISM,
+      whose only change here is the NAME. One, the host enforces spawns: as a hard allowlist at
+      preflight: a general-purpose dispatch was refused with "Cannot spawn 'general-purpose'.
+      Allowed: harness-product-lead,harness-eng-lead,harness-validator-lead", a list
+      byte-identical to .omp/agents/harness-orchestrator.md's own spawns:, so the canonical
+      frontmatter is the enforced source. Two, SPAWNS cannot ship it: it is read only by
+      bootstrap_one() via --bootstrap-from-claude, and bootstrap() refuses to run while
       .omp/agents/harness-*.md exist. Three, claude_adapter() emits name, description, tools,
       color, model, effort and skills, so .claude/agents/** carries no spawns key and a check
       there could never pass. Four, nothing on disk validates a spawns ENTRY: check-omp-port.py
       only requires a list, and bootstrap_one() only requires that a non-empty list comes with
-      the task tool, so a non-harness name is structurally accepted. general-purpose is the name
-      this repository already observes as a real platform subagent type (test-dispatch-guard.py
-      passes subagent_type general-purpose, test-context-watch.py records it as an observed
-      agent_type, and validate-digest.py names it as a platform agent sharing the hook).
-      NOT determinable from disk, and therefore an open question rather than a claim: whether
-      the host RESOLVES general-purpose to a runnable agent once the allowlist admits it. The
-      refusal fired at the allowlist, before resolution, so only SC-16's live observation can
-      settle it.
+      the task tool, so a non-harness name is structurally accepted. Also measured, and the
+      reason the dispatch guard does not obstruct this: it exits 0, recording no claim, when the
+      dispatched persona does not start with harness-, so a lead MAY dispatch a non-harness
+      reader and that reader keeps its own model pin.
+      NOT determinable from disk, and therefore SC-16's live observation rather than a claim:
+      whether the host RESOLVES fable-advisor to a runnable agent once the allowlist admits it.
+      The c1 refusal fired at the allowlist, before resolution. Where it resolves to nothing --
+      which is every project that lacks the operator's HOME definition -- REQ-14's recorded skip
+      is the defined behaviour, not an error.
     dec: none
 
 tasks:
@@ -307,7 +332,7 @@ tasks:
 
   - id: T-02
     title: Author the plan-panel validator-squad team file
-    traces: [REQ-01, REQ-02, REQ-04, REQ-05, REQ-09]
+    traces: [REQ-01, REQ-02, REQ-04, REQ-05, REQ-09, REQ-14]
     change_type: config
     execution_mode: main-session-direct
     execution_reason: >-
@@ -322,7 +347,10 @@ tasks:
         && test 0 -eq "$(grep -c 'then: halt' .claude/skills/harness/teams/plan-panel.yaml)" \
         && bash .claude/skills/harness/bin/check-domain.sh --resolve \
              .harness/harness/features/FEAT-45-adversarial-plan-panel/notes/review-harness-code-reviewer-planpanel-c0.md \
-           | grep -q harness-code-reviewer
+           | grep -q harness-code-reviewer \
+        && grep -q 'fable-advisor' .claude/skills/harness/teams/plan-panel.yaml \
+        && grep -q 'status skipped' .claude/skills/harness/teams/plan-panel.yaml \
+        && grep -q 'empty findings list' .claude/skills/harness/teams/plan-panel.yaml
     intent: |
       Create .claude/skills/harness/teams/plan-panel.yaml, the VALIDATOR segment of the
       adversarial plan panel. Read .claude/skills/harness/teams/review.yaml first and match
@@ -337,21 +365,31 @@ tasks:
       TWO steps, both depends_on [], both mutates_repo false, so the runner dispatches them
       in one turn.
 
-      Step one, id should-not-exist. persona general-purpose, which is a Claude Code platform
-      built-in and has no agent-definition file in .omp/agents, so the roster does not grow.
-      The lead may only spawn it because T-06 adds general-purpose to harness-validator-lead's
+      Step one, id should-not-exist. persona fable-advisor (D-14). It is NOT one of the 16
+      harness agents -- MEASURED 2026-08-30, .omp/agents/ holds exactly 16 harness-*.md files
+      and fable-advisor is not among them -- so the roster does not grow. Its definition lives
+      at ~/.omp/agent/agents/fable-advisor.md, in the operator's HOME and deliberately NOT in
+      this repository; do NOT add that file here, agent distribution is out of scope.
+      It is pinned rather than general-purpose because it carries its own frontmatter pin,
+      model anthropic/claude-fable-5, which is what makes REQ-02's MODEL half true.
+      general-purpose is a platform built-in with no definition file and therefore no pin at
+      all, so a lead spawning it would get the lead's own model and the model claim would be
+      false.
+      The lead may only spawn it because T-06 adds fable-advisor to harness-validator-lead's
       spawns: frontmatter and T-11 keeps the SPAWNS map in sync-agent-adapters.py consistent
       with it; MEASURED in the c1 fix cycle, the host enforces that list as a hard allowlist at
       preflight and refused a general-purpose dispatch with "Cannot spawn 'general-purpose'.
-      Allowed: harness-product-lead,harness-eng-lead,harness-validator-lead". Do not change the
-      persona here without changing both of those.
+      Allowed: harness-product-lead,harness-eng-lead,harness-validator-lead" -- that refusal is
+      evidence about the HOST's allowlist behaviour, not about which persona we ship. Do not
+      change the persona here without changing both of those.
       inputs [plan_path, intent_path, goalcheck_path]. outputs [] -- an empty list, because a
       non-harness persona holds no write grant and a step told to write anywhere would be
       denied by check-domain.sh. Its findings reach disk only through the lead's transcription
-      into the lead's own run digest. Carry a comment saying exactly that, and saying that
-      independence here is independence from the dispatch chain and NOT model independence,
-      because dispatch-guard.sh:36-53 exits 2 on any harness-prefixed caller passing a model
-      whatever the target.
+      into the lead's own run digest. Carry a comment saying exactly that, and saying that this
+      reader is independent BOTH of the dispatch chain AND of the authoring model: MEASURED
+      2026-08-30, dispatch-guard.sh:41-51 blocks a lead from PASSING a model but does not strip
+      the target's own frontmatter pin, and it exits 0 recording no claim for any persona whose
+      name does not start with harness-, so the persona's pin survives a lead dispatch.
 
       Its prompt must contain, verbatim, the question: what here should not be built at all?
       The prompt must also state the return contract, because nothing validates this reader:
@@ -394,9 +432,24 @@ tasks:
       once by pm at transcription (T-05.B). A lead that invents an 8-hex string makes pm's
       correctly computed id look like a stale override to INV-32 check 4.
 
+      The closing comment block must ALSO carry the absent-persona rule of REQ-14, because this
+      file SHIPS as doctrine (D-09) to every project the factory is pointed at while
+      fable-advisor is defined in the operator's HOME rather than here, so a project where the
+      persona does not resolve is the normal case and not the edge one. State it as the lead's
+      obligation. If the should-not-exist dispatch cannot be made -- a preflight refusal naming
+      the persona, or the persona resolving to no runnable agent -- the lead SKIPS that step and
+      RECORDS the skip in its consolidated digest as a reader entry carrying the literal words
+      "status skipped", the persona name, and the reason quoted from the host where it gave one.
+      It NEVER reports that reader as having run and returned an empty findings list, and it
+      NEVER omits the reader from its digest: an unrunnable reader and an empty findings list are
+      OPPOSITE facts, and a record that cannot tell them apart lets the panel report clean
+      because a reader never ran. State that a skip is not a failure of this step and must not
+      trip its on_fail loop_back, which exists for a reader whose RETURN violated the contract,
+      never for a reader that never started.
+
   - id: T-03
     title: Add the plan phase section to the orchestrator playbook
-    traces: [REQ-01, REQ-03, REQ-12, REQ-13]
+    traces: [REQ-01, REQ-02, REQ-03, REQ-12, REQ-13, REQ-14]
     change_type: docs
     execution_mode: main-session-direct
     execution_reason: .claude/skills/harness/SKILL.md resolves NOBODY at 7ebfc9e
@@ -412,7 +465,8 @@ tasks:
         && bash .claude/skills/harness/bin/check-domain.sh --resolve \
              .harness/harness/features/FEAT-45-adversarial-plan-panel/notes/research-FEAT-45-goalcheck-plan-c0.md \
            | grep -q harness-pm \
-        && python3 .claude/skills/harness/bin/test-orchestrator-playbook.py
+        && python3 .claude/skills/harness/bin/test-orchestrator-playbook.py \
+        && grep -q 'records the skip' .claude/skills/harness/SKILL.md
     intent: |
       Add a new section to .claude/skills/harness/SKILL.md titled exactly
       "## The plan phase — the panel you sequence yourself", placed immediately BEFORE the
@@ -435,15 +489,23 @@ tasks:
       plan-panel team -- resolve it .harness/teams/plan-panel.yaml first, then
       .claude/skills/harness/teams/plan-panel.yaml, per harness-team/SKILL.md step 1. State
       that the second reader is a spawned non-harness subagent the lead wraps, that this makes
-      it independent OF THE DISPATCH CHAIN and not of the model, and that the roster stays at
-      sixteen agents.
+      it independent BOTH of the dispatch chain AND of the authoring model -- the persona
+      carries its own model pin in its own frontmatter and dispatch-guard.sh does not strip it,
+      it only blocks a LEAD from PASSING one -- and that the roster stays at sixteen agents
+      because that persona's definition lives outside this repository. Then state the
+      absent-persona rule, and the playbook text must carry the literal phrase "records the
+      skip", because that is the string this task's verify greps for: where the persona does not
+      resolve on the workstation the panel is running on, the lead skips that reader and records
+      the skip in its digest, and a skipped reader is NEVER presented as a reader that ran and
+      found nothing.
 
       3. The record, THIRD. The validator lead returns its consolidated digest. Delegate pm
       to transcribe the panel result into plan.yaml's top-level panel key -- last_run, cycle,
-      and one findings entry per surviving finding with id, severity, reader, summary and
-      disposition. The panel key is OUTSIDE approval, because check-domain.sh's approval_guard
-      spans the whole approval mapping and pm is locked out of every sub-key of it. You never
-      write either key yourself.
+      one readers entry per panel reader carrying its status (ran, or skipped with the persona
+      named and the reason stated), and one findings entry per surviving finding with id,
+      severity, reader, summary and disposition. The panel key is OUTSIDE approval, because
+      check-domain.sh's approval_guard spans the whole approval mapping and pm is locked out of
+      every sub-key of it. You never write either key yourself.
 
       State the bounds, each in one sentence. Every plan is read by the panel, with no size
       threshold and no opt-in, and a re-plan that resets approval.status to pending is
@@ -503,7 +565,7 @@ tasks:
 
   - id: T-05
     title: Specify the panel and rulings blocks in the plan template and pm's planning skill
-    traces: [REQ-07, REQ-08, REQ-13]
+    traces: [REQ-07, REQ-08, REQ-13, REQ-14]
     change_type: config
     execution_mode: main-session-direct
     execution_reason: both files resolve NOBODY at 7ebfc9e
@@ -513,8 +575,10 @@ tasks:
       - .claude/skills/harness/templates/plan.yaml
       - .claude/skills/harness-spec-driven/SKILL.md
     verify: |
-      python3 -c "import sys;sys.path.insert(0,'.claude/skills/harness/bin');import harness_yaml as y;d=y.load_file('.claude/skills/harness/templates/plan.yaml');assert 'panel' in d, sorted(d);p=d['panel'];assert 'last_run' in p and 'findings' in p, sorted(p);f=p['findings'][0];assert set(f) >= {'id','severity','reader','summary','disposition'}, sorted(f);print('OK')" \
+      python3 -c "import sys;sys.path.insert(0,'.claude/skills/harness/bin');import harness_yaml as y;d=y.load_file('.claude/skills/harness/templates/plan.yaml');assert 'panel' in d, sorted(d);p=d['panel'];assert {'last_run','findings','readers'} <= set(p), sorted(p);f=p['findings'][0];assert set(f) >= {'id','severity','reader','summary','disposition'}, sorted(f);r=p['readers'][0];assert set(r) >= {'reader','status'}, sorted(r);print('OK')" \
         && grep -q 'rulings' .claude/skills/harness/templates/plan.yaml \
+        && grep -q 'skipped' .claude/skills/harness/templates/plan.yaml \
+        && grep -q 'skipped' .claude/skills/harness-spec-driven/SKILL.md \
         && grep -q 'panel_findings.py' .claude/skills/harness-spec-driven/SKILL.md \
         && grep -q 'approval.rulings' .claude/skills/harness-spec-driven/SKILL.md
     intent: |
@@ -527,6 +591,11 @@ tasks:
       The panel key, written by harness-pm and NOBODY else:
         last_run   the run dir name under runs/ holding the raw record for the newest run
         cycle      integer, the panel cycle this result came from
+        readers    a list, one entry per panel reader, EVERY reader, each with
+                     reader   should-not-exist | scope | goalcheck
+                     status   ran | skipped
+                     persona  the persona dispatched, REQUIRED when status is skipped
+                     reason   why it could not run, REQUIRED when status is skipped
         findings   a list, one entry per surviving finding, each with
                      id           PF- plus 8 hex, produced by panel_findings.py, never typed
                      severity     info | low | med | high | critical | unrated
@@ -534,6 +603,15 @@ tasks:
                      summary      one line, the finding as the reader stated it
                      disposition  open | resolved | overruled
                      resolved_by  T-NN, present only when disposition is resolved
+      Carry ONE example entry under readers, as the template already does under findings: the
+      shape is what a template teaches and an empty list teaches nothing.
+      Comment WHY readers exists and why it is NOT derivable from findings: a reader that RAN
+      and found nothing, and a reader that never ran at all, both contribute zero findings
+      entries, so findings alone cannot tell them apart -- and a panel that cannot tell them
+      apart reports clean because a reader never ran, which is exactly what REQ-14 forbids. The
+      adversarial reader's persona is defined OUTSIDE this repository (D-14) while the team file
+      ships as doctrine to every project (D-09), so an unresolvable persona is the normal case
+      elsewhere and status skipped is its defined, RECORDED outcome, never a silent omission.
       Comment WHY panel sits outside approval: check-domain.sh's approval_guard resolves
       approval as a whole YAML key range, so pm is denied every sub-key of it while
       main_session.writes already spans an approval sibling. Comment that unrated is treated
@@ -548,18 +626,22 @@ tasks:
       Do NOT add a rulings entry with content to the template -- name the shape, leave the
       value absent.
 
-      B. .claude/skills/harness-spec-driven/SKILL.md. Add a short subsection, at most twelve
+      B. .claude/skills/harness-spec-driven/SKILL.md. Add a short subsection, at most sixteen
       lines, under a heading naming the panel result. It must say: pm transcribes the
       validator lead's digest into plan.yaml's panel key and never edits a finding's severity;
       each finding's id comes from
       `python3 .claude/skills/harness/bin/panel_findings.py id --reader <r> --summary <s>`
       and is never typed by hand; the operator's overrule lives in approval.rulings and is the
       main session's write, never pm's; and a finding pm believes it has fixed is set to
-      disposition resolved with resolved_by naming the T-NN that fixed it, never deleted.
+      disposition resolved with resolved_by naming the T-NN that fixed it, never deleted. It
+      must also say that pm transcribes one panel.readers entry for EVERY reader the panel
+      names, including one the lead reported as skipped -- carrying that reader's persona and
+      the lead's stated reason -- and that pm never converts a skipped reader into a reader that
+      ran and returned no findings, nor omits it because it produced no findings.
 
   - id: T-06
     title: Give the validator lead the wrapped-reader transcription contract
-    traces: [REQ-02, REQ-05, REQ-08]
+    traces: [REQ-02, REQ-05, REQ-08, REQ-14]
     change_type: config
     execution_mode: main-session-direct
     execution_reason: >-
@@ -578,12 +660,13 @@ tasks:
              grep -q 'plan-panel' "$f" || exit 1;
              grep -q 'never CONTENT' "$f" || exit 1;
              grep -q 'findings' "$f" || exit 1;
+             grep -q 'status skipped' "$f" || exit 1;
            done \
         && python3 - <<'EOF'
       import yaml
       t = open('.omp/agents/harness-validator-lead.md', encoding='utf-8').read()
       meta = yaml.safe_load(t.split('---', 2)[1])
-      assert 'general-purpose' in meta['spawns'], meta['spawns']
+      assert 'fable-advisor' in meta['spawns'], meta['spawns']
       assert 'bash' not in meta['tools'] and 'task' in meta['tools'], meta['tools']
       print('OK')
       EOF
@@ -591,21 +674,33 @@ tasks:
       TWO edits to .omp/agents/harness-validator-lead.md, then a regeneration.
 
       EDIT 1, the frontmatter, and this one is the reason the panel can run at all. Add the
-      single entry general-purpose to the spawns: list, keeping the four harness entries. Do
+      single entry fable-advisor to the spawns: list, keeping the four harness entries. Do
       NOT touch tools: -- they stay [read, glob, grep, task, write] and the lead deliberately
-      holds no bash. MEASURED in the c1 fix cycle: the host enforces spawns: as a hard
-      allowlist at preflight and refused a general-purpose dispatch with "Cannot spawn
-      'general-purpose'. Allowed: harness-product-lead,harness-eng-lead,harness-validator-lead"
-      -- a list identical to .omp/agents/harness-orchestrator.md's own spawns:. Without this
-      edit the should-not-exist step is refused at the first live /harness-plan and every task
-      in this plan still passes, because they all grade text on disk. Also measured, and the
-      reason this edit is here rather than in T-11: the SPAWNS map in sync-agent-adapters.py
-      cannot produce it -- SPAWNS is read only by bootstrap_one(), reachable only through
-      --bootstrap-from-claude, and bootstrap() raises "canonical agents already exist; refusing
-      to overwrite" whenever .omp/agents/harness-*.md are present. The generated Claude adapter
-      carries no spawns key at all (claude_adapter() emits name, description, tools, color,
-      model, effort, skills), so no grep for spawns in .claude/agents/ can ever pass. This
-      canonical file IS the shipped allowlist.
+      holds no bash. The persona is fable-advisor and NOT general-purpose for the reason D-14
+      records: it carries its own frontmatter pin, model anthropic/claude-fable-5, so a lead
+      that spawns it WITHOUT passing a model gets that model, which is what makes REQ-02's
+      model claim true. general-purpose has no definition file anywhere and therefore no pin,
+      so it could never deliver that claim. MEASURED 2026-08-30: dispatch-guard.sh:41-51 blocks
+      a lead from PASSING a model and does NOT strip the target's own pin, and it exits 0
+      recording no claim for any persona whose name does not start with harness-, so this
+      dispatch is permitted and the pin survives it.
+      MEASURED in the c1 fix cycle, and this part is about the ALLOWLIST rather than the name:
+      the host enforces spawns: as a hard allowlist at preflight and refused a general-purpose
+      dispatch with "Cannot spawn 'general-purpose'. Allowed:
+      harness-product-lead,harness-eng-lead,harness-validator-lead" -- a list identical to
+      .omp/agents/harness-orchestrator.md's own spawns:. Without this edit the should-not-exist
+      step is refused at the first live /harness-plan and every task in this plan still passes,
+      because they all grade text on disk. Also measured, and the reason this edit is here
+      rather than in T-11: the SPAWNS map in sync-agent-adapters.py cannot produce it -- SPAWNS
+      is read only by bootstrap_one(), reachable only through --bootstrap-from-claude, and
+      bootstrap() raises "canonical agents already exist; refusing to overwrite" whenever
+      .omp/agents/harness-*.md are present. The generated Claude adapter carries no spawns key
+      at all (claude_adapter() emits name, description, tools, color, model, effort, skills),
+      so no grep for spawns in .claude/agents/ can ever pass. This canonical file IS the
+      shipped allowlist.
+      Do NOT add fable-advisor's own definition file to this repository. It lives at
+      ~/.omp/agent/agents/fable-advisor.md, in the operator's HOME; agent distribution is out
+      of scope, and that absence is exactly why EDIT 2 must carry the absent-persona rule.
 
       EDIT 2, the body: add ONE section, after the existing "## The gate" section and before
       "## Advisory only".
@@ -648,13 +743,30 @@ tasks:
       on, record it as assessed-and-dismissed with your reason -- you never drop one silently,
       and you never invent one the reader did not send.
 
+      State the THIRD refusal, and it is the one that is not about a bad return: the reader may
+      not be there at all. fable-advisor's definition lives at ~/.omp/agent/agents/, in the
+      operator's HOME and NOT in this repository, while the plan-panel team file ships as
+      doctrine to every project the factory is pointed at, so a workstation or project where
+      that persona does not resolve is a normal state rather than an error. When the
+      should-not-exist dispatch cannot be made -- a preflight refusal naming the persona, or the
+      persona resolving to no runnable agent -- you SKIP that reader and RECORD the skip in your
+      digest, as a readers entry carrying the literal words "status skipped", the persona name,
+      and the host's own reason where it gave one. You NEVER report it as a reader that ran and
+      returned an empty findings list, and you NEVER leave it out of your digest because it
+      produced no findings: those are OPPOSITE facts, and a record that conflates them lets the
+      panel report clean because a reader never ran (REQ-14). A skip is not a contract
+      violation, so it does not trip the step's on_fail loop_back -- that loop is for a reader
+      whose RETURN was bad, never for one that never started -- and it does not by itself raise
+      severity_max. It reaches the operator as a recorded fact at the signature: pm transcribes
+      it into panel.readers and check-state.sh INV-32 reports on it.
+
       State what you do NOT do here: you do not write plan.yaml. Your digest is the record;
       pm transcribes it into plan.yaml's panel key, and the operator's ruling is the main
       session's write to approval.rulings.
 
   - id: T-07
     title: Add INV-32, the plan-panel signature gate, to check-state.sh
-    traces: [REQ-06, REQ-08, REQ-10, REQ-13]
+    traces: [REQ-06, REQ-08, REQ-10, REQ-13, REQ-14]
     change_type: logic
     execution_mode: main-session-direct
     execution_reason: >-
@@ -668,6 +780,7 @@ tasks:
         && grep -q 'INV-32' .claude/skills/harness/bin/check-state.sh \
         && grep -q 'INV-32 BEGIN (FEAT-45 T-07)' .claude/skills/harness/bin/check-state.sh \
         && grep -q 'INV-32 END (FEAT-45 T-07)' .claude/skills/harness/bin/check-state.sh \
+        && grep -q 'never ran' .claude/skills/harness/bin/check-state.sh \
         && python3 -c "import sys,importlib.util;s=importlib.util.spec_from_file_location('m','.claude/skills/harness/bin/check-plan-routes.py');m=importlib.util.module_from_spec(s);s.loader.exec_module(m);n=m.live_invariant_numbers('.');assert n is not None and 32 in n, sorted(n or []);print('OK')"
     intent: |
       Add ONE invariant, numbered INV-32, to .claude/skills/harness/bin/check-state.sh. Place
@@ -690,7 +803,7 @@ tasks:
       presented, so a missing panel result there is a normal intermediate state and must not
       be reported at all -- reporting it would train the operator to ignore the gate.
 
-      For each approved plan.yaml, four checks, each producing its own message naming the
+      For each approved plan.yaml, FIVE checks, each producing its own message naming the
       feature and the offending id.
 
       1. panel must be a mapping carrying a non-empty last_run and a findings list. Absent or
@@ -717,13 +830,31 @@ tasks:
       the operator sees an unfamiliar PF- id and cannot tell a new objection from the one they
       settled last cycle; the explanation exists nowhere else they read.
 
+      5. panel.readers must be a list naming EVERY reader the panel defines -- should-not-exist,
+      scope and goalcheck -- each entry carrying a reader and a status of exactly ran or
+      skipped, and, when status is skipped, a non-empty persona and a non-empty reason.
+      A reader MISSING from panel.readers, or one carrying a status that is neither ran nor
+      skipped, or one skipped with no persona or no reason, appends to bad naming that reader.
+      This is the REQ-14 hole and it fails closed: a reader that never ran contributes zero
+      findings entries and is therefore indistinguishable, from findings alone, from a reader
+      that ran and found nothing. The message must contain the literal words "never ran", in a
+      sentence saying that an unrecorded reader is not a clean reader -- that is the string this
+      task's verify greps for, and the distinction exists nowhere else the operator reads.
+      A reader recorded as skipped WITH its persona and reason present is NOT a bad entry.
+      Append it to warn instead, naming the reader and the persona, so the skip is visible at
+      the signature and can never be a silent pass. Do NOT gate on a skip: the adversarial
+      reader's persona is defined outside this repository (D-14) while the team file ships as
+      doctrine to every project (D-09), so hard-failing an absent persona would break this gate
+      in every project that lacks it -- the opposite of what REQ-14 asks, which is that the skip
+      be RECORDED and SEEN, not that it be impossible.
+
       Read every value defensively with .get and isinstance -- a hand-edited plan.yaml may
       carry a string where a list belongs, and an exception here takes the whole gate down.
       A malformed panel or rulings value is itself a bad entry, never a silent skip.
 
   - id: T-08
     title: Test INV-32 against fixture plans, both directions
-    traces: [REQ-06, REQ-08, REQ-10, REQ-13]
+    traces: [REQ-06, REQ-08, REQ-10, REQ-13, REQ-14]
     change_type: logic
     execution_mode: main-session-direct
     execution_reason: >-
@@ -738,12 +869,13 @@ tasks:
       t = open('.claude/skills/harness/bin/test-check-state.py', encoding='utf-8').read()
       for tok in ('no-panel', 'high-open', 'high-overruled', 'high-resolved',
                   'ruling-unattributed', 'stale-ruling', 'inv32-red',
+                  'reader-missing', 'reader-skipped', 'fable-advisor', 'never ran',
                   'INV-32 BEGIN (FEAT-45 T-07)', 'reworded', 'asked again'):
           assert tok in t, tok
       print('OK')
       EOF
     intent: |
-      Add SEVEN cases to .claude/skills/harness/bin/test-check-state.py, using the fixture
+      Add NINE cases to .claude/skills/harness/bin/test-check-state.py, using the fixture
       helpers that file already has -- read them first and reuse them; do not build a second
       fixture mechanism. Each case builds a temp .harness tree carrying one approved
       plan.yaml, runs check-state.sh against it, and asserts on the OUTPUT TEXT, not only the
@@ -764,14 +896,17 @@ tasks:
       tmpdir, because the script imports harness_yaml and harness_boundary from its own
       directory, so a copy elsewhere exits non-zero on import and the case would pass while
       measuring nothing -- copymode it from the original, run BOTH the real script and the
-      mutant over the SAME no-panel fixture, and remove the mutant in a finally block.
-      Assert all four: the mutant text differs from the source; the mutant did not crash, by
-      requiring its exit code to be 0 or 1 AND its stderr to carry no python traceback, so a
-      syntax error or a NameError cannot masquerade as a missing finding; the real run reports
-      at least one INV-32 line naming the fixture feature; and the mutant reports ZERO such
-      lines. Fail loudly as INCONCLUSIVE if either marker line is absent or the slice did not
-      change the source. No commit ref, relative or pinned, appears anywhere in this case --
-      that shape is rejected by D-13.
+      mutant over the SAME fixtures, and remove the mutant in a finally block. Run BOTH scripts
+      over TWO fixtures: the no-panel fixture, and the reader-missing fixture of case 7. The
+      second one is SC-17's failing-first obligation and this same mutant discharges it, because
+      check 5 lives inside the bracketed region.
+      Assert all four, PER FIXTURE: the mutant text differs from the source; the mutant did not
+      crash, by requiring its exit code to be 0 or 1 AND its stderr to carry no python
+      traceback, so a syntax error or a NameError cannot masquerade as a missing finding; the
+      real run reports at least one INV-32 line naming the fixture feature; and the mutant
+      reports ZERO such lines. Fail loudly as INCONCLUSIVE if either marker line is absent or
+      the slice did not change the source. No commit ref, relative or pinned, appears anywhere
+      in this case -- that shape is rejected by D-13.
 
       2. high-open -- panel.findings carries one entry, severity high, disposition open, and
       no approval.rulings. Assert INV-32 reports it and names the PF- id.
@@ -794,6 +929,23 @@ tasks:
       output carries the literal words "reworded" and "asked again". Asserting the id alone
       passes on a message that leaves the operator unable to tell a new objection from the one
       they already ruled on, which is the whole point of the check.
+
+      7. reader-missing -- an approved plan.yaml carrying a well-formed panel with a non-empty
+      last_run and an EMPTY findings list, so checks 1 through 4 all pass, and a panel.readers
+      list that OMITS the should-not-exist reader entirely. Assert INV-32 reports it, names that
+      reader, and that the same output carries the literal words "never ran". Assert it is a
+      HARD failure and not a warning, by whatever means this file's other bad-versus-warn cases
+      already use. This is the fixture whose green would otherwise be indistinguishable from a
+      clean panel -- findings is empty either way -- which is exactly why check 5 exists.
+
+      8. reader-skipped -- the SAME fixture as case 7 except that panel.readers carries the
+      should-not-exist reader with status skipped, persona fable-advisor, and a non-empty
+      reason. Assert three things SEPARATELY. One, the run REPORTS the skip and names both the
+      reader and the persona, because a recorded skip must never be silent. Two, the run does
+      NOT report this plan as having no panel result, so a skip is distinguishable from check
+      1's failure. Three, the skip is a WARNING and not a hard failure, so the gate stays usable
+      in a project that lacks the persona (T-07 check 5). With case 7 this is the pair SC-17
+      grades: a recorded skip and an unrecorded absence must land on OPPOSITE sides of the gate.
 
       Add ONE more assertion inside the high-open case: a finding with severity unrated and
       disposition open is reported exactly as a high one is. Do not add a separate case for
@@ -896,17 +1048,22 @@ tasks:
       m = importlib.util.module_from_spec(s)
       s.loader.exec_module(m)
       mapped = m.SPAWNS['harness-validator-lead']
-      assert 'general-purpose' in mapped, mapped
+      assert 'fable-advisor' in mapped, mapped
       t = open('.omp/agents/harness-validator-lead.md', encoding='utf-8').read()
       shipped = yaml.safe_load(t.split('---', 2)[1])['spawns']
-      assert 'general-purpose' in shipped, shipped
+      assert 'fable-advisor' in shipped, shipped
       assert sorted(shipped) == sorted(mapped), (shipped, mapped)
       print('OK')
       EOF
     intent: |
-      Add the single entry "general-purpose" to SPAWNS["harness-validator-lead"] in
+      Add the single entry "fable-advisor" to SPAWNS["harness-validator-lead"] in
       .claude/skills/harness/bin/sync-agent-adapters.py, keeping the four harness entries and
       their order, and carry a short comment saying why it is there and what it does NOT do.
+      The persona is fable-advisor, not general-purpose, for the reason D-14 records: only a
+      persona carrying its own frontmatter model pin can deliver REQ-02's model half, and
+      general-purpose has no definition file and therefore no pin. Do NOT add that persona's
+      definition file to this repository -- it lives in the operator's HOME and agent
+      distribution is out of scope.
 
       Be exact about what this map is, because the obvious reading is wrong and was MEASURED
       false in the c1 fix cycle. SPAWNS is read only by bootstrap_one(), which is reachable
@@ -947,7 +1104,7 @@ tasks:
       t = open('.claude/skills/harness/bin/test-plan-panel.py', encoding='utf-8').read()
       for tok in ('should-not-exist', 'scope', 'goalcheck', 'sixteen',
                   'check-domain.sh', 'then: halt', 'plan-panel', 'spawns',
-                  'general-purpose'):
+                  'SPAWNS'):
           assert tok in t, tok
       print('OK')
       EOF
@@ -1016,6 +1173,11 @@ tasks:
       Do NOT assert a spawns key in .claude/agents/harness-validator-lead.md -- MEASURED:
       claude_adapter() emits name, description, tools, color, model, effort and skills only, so
       that key does not exist there and the assertion could never pass.
+      Do NOT hardcode the persona name anywhere in this file. Reading it from the team file is
+      the whole point: D-14 changed that name once already, from general-purpose to
+      fable-advisor, and a hardcoded copy here would have had to change with it. This task's
+      verify therefore greps for no persona name at all -- it greps for spawns and SPAWNS, the
+      two allowlists, because the MECHANISM is what this case grades and the name is data.
 
       Then register it in run-unit-tests.sh by appending the literal string
       test-plan-panel.py to the UNIT_SCRIPTS array. Do not touch INTEGRATION_SCRIPTS or

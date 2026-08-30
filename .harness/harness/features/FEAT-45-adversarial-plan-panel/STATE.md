@@ -3,21 +3,27 @@
 ## Current
 
 - feature: FEAT-45-adversarial-plan-panel
-- run: .harness/harness/features/FEAT-45-adversarial-plan-panel/runs/2026-08-29-1-planfix-product/state.yaml
+- run: .harness/harness/features/FEAT-45-adversarial-plan-panel/runs/2026-08-30-1-product/state.yaml
 - squad: none
 - status: awaiting-user
 
+The operator's rulings in notes/answers-2026-08-30-plan.md are applied in one product run.
+REQ-02 and REQ-05 are restored to the independent-MODEL claim; REQ-14 and SC-17 define and grade
+absent-persona behaviour; the reader persona is repinned general-purpose -> fable-advisor, which is
+what makes the model claim deliverable. Plan parses, 11 tasks, ids unchanged, check-plan-routes.py
+exit 0 with 0 violations and the two expected DEC-174 deviations (T-07, T-08).
+
+Both approval fragments remain `pending`. The plan is ready to be presented for signature; only the
+main session signs. review_sha stays 1d3e5db. The five questions that previously blocked the
+signature are closed by the rulings.
+
 ## Open Questions
 
-- Ratify the reduced claim: REQ-02/REQ-05 promise an independent CONTEXT, not an independent
-  MODEL. No governed spawn can select a model (dispatch-guard keys `model:` on the caller) and
-  `advisorModel` is absent from this workstation. Blocks the signature. — harness-pm
-- Ratify or replace pm's derived ruling on the resume-phase re-plan: a task-set change resets
-  approval, so the plan is presented and read again, scoped to not-done tasks. The grilling left
-  this in `## Not yet specified`. Blocks the signature. — harness-pm
-- Confirm the team file ships at `.claude/skills/harness/teams/plan-panel.yaml` rather than the
-  `.harness/teams/` project-override lane (D-09). — harness-pm
-- Confirm the DEC-174 carve-out reading for T-07/T-08, which stay main-session-direct on paths
-  that resolve to harness-backend-dev / harness-dev-ops. — harness-pm
-- DEC-170's `advisorModel` citation at `~/.claude/settings.json:112` is wrong today. Stale record
-  or removed setting? The record needs correcting either way. — harness-eng-lead
+- Accept the absent-persona trade as REQ-14 and SC-17 define it: where fable-advisor does not
+  resolve, the panel records a skip that WARNS rather than fails, so the gate stays usable in a
+  project lacking the operator's HOME definition. The alternative is a hard failure there. Not
+  blocking the signature; the operator should confirm the trade. — harness-pm
+- SC-16 remains the only thing that can settle whether the host RESOLVES fable-advisor to a runnable
+  agent once the allowlist admits it. The stakes moved: the persona now carries REQ-02's model
+  claim, not merely the spawn. Not blocking; confirm the signature is acceptable with that
+  live-observation gap outstanding. — harness-pm
