@@ -375,6 +375,12 @@ criterion above is evidenced. No criterion rests on a null-runner kind.
 
 ## Approval
 
-status: approved
-approved-by: operator
-date: 2026-08-29
+status: pending
+approved-by: none
+date: none
+
+WITHDRAWN 2026-08-29 by the main session. The 2026-08-29 signature covered the pre-ruling scope, in
+which the executable-claims mechanism was built. The operator has since ruled that no
+document-driven command execution is acceptable and chosen to DELETE the mechanism rather than
+redesign it, which retires REQ-08 and SC-09 as tombstones and adds REQ-10 and SC-14..SC-18. The
+signature was reset rather than left reading `approved` over content it never covered.

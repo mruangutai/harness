@@ -4,9 +4,18 @@ feature: FEAT-38-decisions-current-knowledge
 source_issues: [615, 78, 686]
 
 approval:
-  status: approved
-  approved_by: operator
-  date: 2026-08-29
+  # Written by the MAIN SESSION only, because it is the only tier with a user channel
+  # (DEC-120). Neither pm nor the orchestrator writes it.
+  # WITHDRAWN 2026-08-29 by the main session. The 2026-08-29 signature covered the
+  # PRE-RULING scope, in which the executable-claims mechanism was BUILT. The operator
+  # then ruled that no document-driven command execution is acceptable and chose to
+  # DELETE the mechanism outright rather than redesign it declaratively, which retires
+  # REQ-08 and SC-09, adds REQ-10 and SC-14..SC-18, and takes the plan from 23 tasks to
+  # 28. A signature cannot stand over changed content, so it was reset rather than left
+  # reading `approved` over a scope the operator never signed.
+  status: pending                # pending | approved
+  approved_by: none
+  date: none
 
 lanes:
   resolved_at: 7ebfc9e
