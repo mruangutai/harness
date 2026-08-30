@@ -3,7 +3,7 @@
   "branch": "feat/FEAT-38-decisions-current-knowledge",
   "pr": 996,
   "status": "Done",
-  "review_sha": "37676244c5707a496f12801e2fc536785166de40",
+  "review_sha": "eb7e751355541ed601a400d5fd17391a55511552",
   "cycles_used": 16,
   "max_total_cycles": 30,
   "max_total_runs": 20,
@@ -44,7 +44,8 @@
     {"id": "2026-08-30-uat-repoint-product", "squad": "product", "verdict": "PASS", "agent": "harness-product-lead"},
     {"id": "fold-merge-product", "squad": "product", "verdict": "PASS", "agent": "harness-product-lead"},
     {"id": "readback-fold-validator", "squad": "validator", "verdict": "PASS", "agent": "harness-validator-lead"},
-    {"id": "regate-pin-validator", "squad": "validator", "verdict": "PASS", "agent": "harness-validator-lead"}
+    {"id": "regate-pin-validator", "squad": "validator", "verdict": "PASS", "agent": "harness-validator-lead"},
+    {"id": "gate-merge-pin-validator", "squad": "validator", "verdict": "PASS", "agent": "harness-validator-lead"}
   ],
   "github": {
     "milestone": 31,

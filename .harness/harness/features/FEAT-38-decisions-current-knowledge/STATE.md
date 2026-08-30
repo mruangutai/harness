@@ -5,66 +5,67 @@
 - feature: FEAT-38-decisions-current-knowledge
 - run: `2026-08-30-fold-ship-orchestrator` — fold the merged amendments, re-pin, re-gate, ship
 - status: **Done**, PR **#996**, branch **0 behind `origin/main`**
-- review_sha: **`37676244`** — re-pinned this run
+- review_sha: **`eb7e7513`** — re-pinned twice this run
 
-**THE MERGE BLOCKER IS GONE, THE FOLD IS DONE, AND EVERY GATE IS GREEN AT THE NEW PIN.**
-`origin/main` is merged (`a382827`, re-merged at `141eca6`), the three conflicts are resolved, and
-the three amendments FEAT-44 brought in are folded at `3767624`. Full unit suite **exit 0**, zero
-`FAIL` lines. Blocking qa gate **PASS** (`matrix_ok: true`, `must_fix: []`). Targeted delta panel
-**PASS** (`severity_max: med`, `must_fix: []`). SC-11 read-back **3 of 3 PASS**.
+**EVERY GATE IS GREEN AT THE PIN THAT SHIPS.** Full unit suite **exit 0**, zero `FAIL` lines, **55**
+scripts executed (28 unit + 27 integration, a non-vacuous discovery set). Blocking qa gate **PASS**,
+`matrix_ok: true`, `must_fix: []`. Targeted delta panel **PASS**, `severity_max: med`, `must_fix: []`.
+SC-11 read-back **3 of 3 PASS**. 17 of 17 live success criteria met.
 
-**The fold, per DEC-205.** DEC-159 (the in-flight warning moved off the Claude hook onto the OMP
-`tool_result` injection), DEC-198 (the 200000 default re-homed to `.omp/extensions/harness-hooks.ts`)
-and DEC-201 (self-identification replaced by `ctx.sessionManager.getSessionFile()`). Each entry
-states current truth in the present tense; each falsified claim survives as one clause so it cannot
-be re-proposed as new; each amendment block is deleted, with the stray `---` that closed DEC-201's.
-DEC-201's six evidence bounds survive item for item — one OMP build measured twice on one machine,
-the committed probe path, the version-floor risk, that `probe-omp-session-accessor.py` fails rather
-than skips, that the check is MANUAL and not a CI gate, and that this is one build's observed
-behaviour rather than a property of the OMP API — and its retired nonce scheme is recorded as
-correct-but-inapplicable rather than wrong.
+**The fold, per DEC-205, at `3767624`.** DEC-159 (the in-flight warning moved off the Claude hook onto
+the OMP `tool_result` injection), DEC-198 (the 200000 default re-homed to
+`.omp/extensions/harness-hooks.ts`) and DEC-201 (self-identification replaced by
+`ctx.sessionManager.getSessionFile()`). Each states current truth in the present tense; each falsified
+claim survives as one clause so it cannot be re-proposed as new; each amendment block is deleted with
+the stray `---` that closed DEC-201's. DEC-201's six evidence bounds survive item for item, and its
+retired nonce scheme is recorded as correct-but-inapplicable rather than wrong. Zero `**Amendment`
+constructs remain; `DECISIONS.md` is 6305 lines with 188 entries, down from 7414 at base `7ebfc9e`.
 
 **The read-back was run by a reader who did not write the fold**, per SC-11's own method, with the
-governing belief and its falsifier pointed to by line for each entry. `notes/readback-fold-merge.md`;
-the reviewer's own note is `notes/review-harness-code-reviewer-readback-fold.md`. Three corroborating
-details of retired mechanisms were dropped and each was judged defensible on the record.
+governing belief and its falsifier pointed to by line. `notes/readback-fold-merge.md`.
 
-**The conflict resolutions were GRADED, not assumed** — no reviewer had seen them before this run.
-`harness.json` is not a union: branch 29, main 26, union would have been 29, the pin is 27, and the
-two dropped are exactly the files FEAT-44 deleted. All 26 concrete registrations name a file that
-exists. `DECISIONS-INDEX.md` is byte-identical to a fresh regeneration, proving it was regenerated
-and not hand-merged; 188 rows, 188 live headings, zero orphans.
+**TWO MERGES, TWO RE-PINS, AND THE SECOND WAS NOT FORESEEABLE.** `635cd3ba` → `37676244` → `eb7e7513`.
+FEAT-44 shipped under this feature and was merged at `a382827`/`141eca6`; the fold and the first
+re-gate followed. Then **FEAT-43 shipped as PR #978 between the push and the merge**, moving
+`origin/main` to `24af8d4` and re-conflicting the same two files. The main session merged it at
+`eb7e751` — a HEAD move no governed agent may make, correctly refused.
 
-**WHY `review_sha` MOVED, and it had to.** The prior pin was **`635cd3ba`**. It described a tree in
-which `origin/main` had never been merged. The merge changed source under it — `harness.json`,
-`run-unit-tests.sh` and the generated index — and the fold then changed the authority itself. A pin
-that no longer contains the work under review returns PASS on nothing. `37676244` is the fold commit
-and contains every source change this feature ships.
+**The second resolution is a PURE UNION, unlike the first.** Measured independently twice:
+`harness.json` `test_kinds.integration.detect` base 26 / ours 27 / theirs 27 / **union 28**;
+`UNIT_SCRIPTS` 26 / 26 / 28 / **28**; `INTEGRATION_SCRIPTS` 25 / 26 / 26 / **27**. **Zero removals on
+either side**, so the union is correct here — where in the FIRST merge it would have been wrong,
+because FEAT-44 had deleted two registered files. 27 scripts plus the inert `tests/integration/**`
+glob is the 28 in `harness.json`; the glob matches nothing because the directory is absent. Every
+entry of all three arrays names a file that exists. The fold survived untouched:
+`37676244..eb7e751` is empty for both `DECISIONS.md` and `DECISIONS-INDEX.md`.
 
 **PR #996 deliberately carries two FEAT-46 commits**, `16f86e3` (grilling note) and `7a23d74` (the
 operator's hold entry). They touch only `.harness/logs/2026-08-30.md` and a note under FEAT-46 — no
-source — and splitting them out would need a history rewrite that moves HEAD and voids the pin.
-Recorded so it is not silent. The `test-validate-feature-json.py` substring fix (`79e2639`, PR #997)
-is `main`'s work, here by merge, and is not FEAT-38's.
+source — and splitting them out needs a history rewrite that moves HEAD and voids the pin. Recorded
+so it is not silent. The `test-validate-feature-json.py` substring fix (`79e2639`, PR #997) is
+`main`'s work, here by merge, not FEAT-38's.
 
-**Three handed-down premises proved FALSE this run, all caught by re-measurement.** (1) "`test_kinds`
-28 → 27" — no counting method yields that pair; the truth is 29 → 27, and the numeral reached no
-durable record. (2) "`.claude/settings.json` is absent" — it is present and still registers a
-PostToolUse hook on `Write|Edit|Bash`, `check-domain.sh --post`, not the retired watchdog; DEC-159's
-clause is scoped "for this" and is true as written. (3) "DEC-159's amendment ends with a stray `---`"
-— it was DEC-201's. A fourth, smaller: the goal-check digest's headline says "sixteen live criteria"
-while its own table carries 17 rows; the table is right, and with SC-13 answered it is **17 of 17**.
+**FIVE handed-down premises proved FALSE this run, every one caught by a receiver re-measuring.**
+(1) "`test_kinds` 28 → 27" — the truth was 29 → 27; the numeral reached no durable record.
+(2) "`.claude/settings.json` is absent" — it is present and still registers a PostToolUse hook on
+`Write|Edit|Bash`, `check-domain.sh --post`, not the retired watchdog; DEC-159's clause is scoped
+"for this" and is true as written. (3) "DEC-159's amendment ends with a stray `---`" — it was
+DEC-201's. (4) The goal-check digest's headline says "sixteen live criteria" while its own table
+carries 17 rows; the table is right. (5) **This orchestrator's own "61 scripts reporting PASS" was
+wrong — the true figure is 55.** Four scripts print their own `PASS <script>` line in a format
+byte-identical to the runner's, so a log tally over-counts. Recorded as an error of this run's,
+not smoothed.
 
-**Budget: cycles 16 of 30; runs 37 of an informational 20.** No rework this run — all three squad runs
-returned PASS first pass with zero send-backs, so `cycles_used` did not move. The run count is
-informational (DEC-157) and stops nothing; each run here closed a named gate.
+**Budget: cycles 16 of 30; runs 38 of an informational 20.** No rework — all four squad runs this
+phase returned PASS first pass with zero send-backs, so `cycles_used` did not move. The run count is
+informational (DEC-157) and stops nothing.
 
 **Feature-close distillation has NOT run.** It runs at merge on a distill mission the main session
 dispatches, and is not a ship step.
 
 ## Open Questions
 
-None blocking. Six residual findings are carried to the operator as proposed backlog in
+None blocking. Seven residual findings are carried to the operator as proposed backlog in
 `notes/ship-review-2026-08-30-fold-ship.md`; anything not accepted there dies silently.
 
 - **B-25** — `bash-write-guard.sh` cannot expand shell variables and does not track `cd`; it resolves
@@ -77,8 +78,9 @@ None blocking. Six residual findings are carried to the operator as proposed bac
 - **B-40** — `DEC-159` still says the handoff shape gate denies at >40 lines while the same entry
   records the cap raised to ~60 at DEC-160. Un-amended remainder; reported, not edited.
 - **B-41** — three `### DEC-NNN addendum` sub-headings survive in `DECISIONS.md` (DEC-124, DEC-125,
-  DEC-141). A sibling construct to the abolished amendment, present at the feature's original base
-  `7ebfc9e` and outside its approved scope. FEAT-46's triage is the natural home.
+  DEC-141). A sibling construct to the abolished amendment, present at the original base `7ebfc9e`
+  and outside this feature's approved scope. FEAT-46's triage is the natural home.
 - **B-42** — `run-unit-tests.sh --check-kinds` asserts only one direction and would NOT have caught
-  the naive-union defect it was cited as guarding. Correct today only because qa measured file
-  existence directly. Pre-existing; the panel ranked it first on irreversibility.
+  the naive-union defect it was cited as guarding. Pre-existing; ranked first on irreversibility.
+- **B-43** — four test scripts print their own `PASS <script>` line byte-identically to the runner's
+  own marker, so any log-based tally over-counts. It produced a false "61" in this run's reporting.

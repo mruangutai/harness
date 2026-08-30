@@ -4,7 +4,7 @@
 conflicts are resolved, and the three amendments FEAT-44 added while this feature was abolishing the
 amendment convention are folded into their entries' current truth. The full unit suite exits **0**
 with zero `FAIL` lines. The blocking qa gate passes at the new pin. A targeted panel re-review of
-the delta passes with **no `must_fix`**. `review_sha` is re-pinned to **`37676244`**.
+the delta passes with **no `must_fix`**. `review_sha` is re-pinned to **`eb7e7513`**.
 
 **One decision is yours: which of six residual findings become backlog issues.** Nothing else is
 outstanding.
@@ -20,7 +20,7 @@ resolved.
 | the three conflicts | resolved and independently verified — see the table below |
 | the three new amendments | **folded**, `3767624`, per DEC-205 |
 | SC-11 read-back on the fold | **3 of 3 PASS**, by a reader who did not write it |
-| full unit suite | **exit 0**, zero `FAIL` lines, 26 scripts discovered and executed |
+| full unit suite | **exit 0**, zero `FAIL` lines, **55** scripts discovered and executed |
 | blocking qa gate at the new pin | **PASS**, `matrix_ok: true`, `must_fix: []` |
 | targeted panel on the delta | **PASS**, `severity_max: med`, `must_fix: []` |
 
@@ -39,6 +39,33 @@ chose the right entries.
 - `DECISIONS-INDEX.md` — **regenerated, never hand-merged**, proved by the committed file being
   byte-identical to a fresh generation. Confirmed twice independently. 188 rows against 188 live
   `## DEC-` headings, zero orphans. FEAT-44 changed zero index rulings, verified.
+
+## A second merge landed mid-ship, and it was not foreseeable
+
+Between the push and the merge, **FEAT-43 shipped as PR #978**, moving `origin/main` from `79e2639`
+to `24af8d4` and re-conflicting the same two files. The main session merged it at **`eb7e751`** — a
+HEAD move no governed agent may make, and the guard refusing it is the guard working.
+
+**This resolution is a pure union, where the first one would have been wrong as a union.** Measured
+independently twice, at the orchestrator tier and by the main session:
+
+| array | base `79e2639` | ours | theirs | union at the pin |
+|---|---|---|---|---|
+| `harness.json` `test_kinds.integration.detect` | 26 | 27 | 27 | **28** |
+| `run-unit-tests.sh:30` `UNIT_SCRIPTS` | 26 | 26 | 28 | **28** |
+| `run-unit-tests.sh:31` `INTEGRATION_SCRIPTS` | 25 | 26 | 26 | **27** |
+
+**Zero removals on either side** — which is exactly why a union is right here and was wrong for
+FEAT-44, whose side had deleted two registered files. 27 scripts plus the inert `tests/integration/**`
+glob is the 28 in `harness.json`. Every entry of all three arrays names a file that exists. The fold
+survived untouched: `git diff 37676244..eb7e751` is empty for both `DECISIONS.md` and
+`DECISIONS-INDEX.md`.
+
+The blocking qa gate was re-run at `eb7e751` and passes with `must_fix: []` on a **non-vacuous**
+discovery set: 55 scripts actually executed, matching 28 + 27 exactly. The reviewer panel was not
+re-run, and the validation lead concurred on the member's own evidence rather than merely complying:
+what that leaves unexamined is FEAT-43's shipped code, gated under its own feature, plus a union that
+provably removes nothing.
 
 ## The fold, and what it was protecting
 
@@ -95,7 +122,7 @@ which themselves name the plan, build, simplify and panel digests they assembled
 
 ## Proposed backlog — strike any row you do not want filed
 
-**Anything you strike dies silently, so all six are listed.** None gates anything. B-25, B-26 and
+**Anything you strike dies silently, so all seven are listed.** None gates anything. B-25, B-26 and
 B-39 are carried unchanged from the last briefing.
 
 | ID | Nature | Finding |
@@ -106,6 +133,7 @@ B-39 are carried unchanged from the last briefing.
 | B-40 | chore | `DEC-159` still says the handoff shape gate denies a note at >40 lines, while the same entry records the cap raised to ~60 at DEC-160. In the un-amended remainder; found during the fold and reported rather than edited, because re-auditing the remainder was an explicit non-goal |
 | B-41 | chore | Three `### DEC-NNN addendum` level-3 sub-headings survive in `DECISIONS.md` (under DEC-124, DEC-125, DEC-141). They are a sibling construct to the amendment this feature abolished, nothing mechanical bans them, and they predate the feature — present at its original base `7ebfc9e`. Outside its approved scope. **FEAT-46's triage is the natural home** |
 | B-42 | bug | `run-unit-tests.sh --check-kinds` asserts only one direction. It does **not** assert that every declared `test_kinds.integration` entry appears in the script arrays, so it would not have caught the naive-union defect it was cited as guarding. Correct today only because qa measured file existence directly; nothing automated holds it. Pre-existing, ranked first by the panel on irreversibility — the failure mode is silent |
+| B-43 | chore | Four test scripts (`test-feature-worktree.py`, `test-expertise-merge.py`, `test-plan-merge.py`, `test-observations-merge.py`) print their own `PASS <script>` line in a format byte-identical to the runner's own marker, so any log-based tally over-counts. It produced a false "61 scripts" in this run's own reporting before qa re-measured it at 55 |
 
 ## Open, recorded, not proposed as backlog
 
@@ -126,9 +154,9 @@ B-39 are carried unchanged from the last briefing.
 **Cycles 16 of 30** — a hard bound, not crossed, and it did not move this run. All three squad runs
 returned PASS on the first pass and reported zero send-backs, so there was no rework to count.
 
-**Runs 37 of an informational 20.** That budget notices a long feature; it never stops one, and this
-is not an apology. The three runs added here each closed a named gate — the fold, its independent
-read-back, and the re-gate at the new pin — and none was rework. Asked the three questions INV-22
+**Runs 38 of an informational 20.** That budget notices a long feature; it never stops one, and this
+is not an apology. The four runs added here each closed a named gate — the fold, its independent
+read-back, the re-gate at the fold pin, and the re-gate at the merge pin — and none was rework. Asked the three questions INV-22
 exists to ask: each run was efficient, each resolved its issue, and each advanced a success criterion.
 The count is a floor anyway; orchestrator-held segments are not runs and never appear in it.
 
