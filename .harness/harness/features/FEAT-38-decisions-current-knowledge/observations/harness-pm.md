@@ -47,3 +47,4 @@
   task that says "do not hand-edit, it is generated" therefore forbids the only repair that works,
   and a diff-clean regeneration check passes over a false ruling. Ask which half of a generated
   artifact is derived before writing either the instruction or the gate.
+- 2026-08-29: T-19's intent quoted its own verify block ('^KIND-DRIFT:') from a signed earlier draft; two later edits of mine (--check-kinds swap, MISCONFIGURED alternation) made the quotation false while the claim it supported stayed true. Lesson: when an intent quotes its own verify, re-grep the quotation against the block after every verify edit — the claim survives while the pointer dies. Swept T-03/18/19/20/21/24/25/27/28/29 for the class; only T-21 also carried it (a preserved instruction record asserting the generator exits 1 where the block now requires 0).

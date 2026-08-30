@@ -1445,11 +1445,19 @@ tasks:
       notes/research-verify-block-defects.md. That signed block did two things, and the removal
       ruling that landed after it invalidates exactly one of them.
 
-      KEPT VERBATIM, the whole point of the signed repair: the drift clause is anchored, reading
-      grep -q '^KIND-DRIFT:' rather than the bare grep -q 'KIND-DRIFT'. Measured: the bare pattern
-      matches 6 lines on a GREEN run, all of them indented "ok    case N:" labels from
-      test-run-unit-tests-kinds.py, the suite for the drift detector itself, while every real
-      emission is at column 0. The unanchored clause fired on success and the block could not pass.
+      KEPT IN SUBSTANCE AND EXTENDED, NOT KEPT IN THE SIGNED SPELLING - and the substance was the
+      whole point of the signed repair: the drift clause is anchored at column 0, matching ^...:
+      rather than the bare token. It now reads grep -qE '^(KIND-DRIFT|MISCONFIGURED):', which
+      applies that same anchoring to the second detector as well, so the gate is stronger than the
+      one signed rather than weaker. The signed literal itself is gone for two reasons already
+      given below, not restated here: the --check-kinds substitution for the --kind integration run
+      (see THE VERIFY IS THE CHEAP PAIR) brings the MISCONFIGURED file-presence detector into the
+      same output, and one alternation now covers both prefixes. What the operator signed was the
+      anchoring; what changed is which prefixes it covers. The measured justification is unchanged
+      and still holds: the bare pattern matches 6 lines on a GREEN run, all of them indented
+      "ok    case N:" labels from test-run-unit-tests-kinds.py, the suite for the drift detector
+      itself, while every real emission is at column 0. The unanchored clause fired on success and
+      the block could not pass.
 
       RECONCILED, not dropped silently: the same signed block also required
       grep -q 'test-check-decision-claims.py' present in the runner and a
@@ -1621,7 +1629,12 @@ tasks:
       that never happened, and so a search that silently errors cannot read as an absence - and that
       the working file now matches none, by the search's own exit status. It also asserts the
       generator exits 0, which after T-28's regeneration it does. The old block invoked
-      check-decision-claims.py, a file T-24 deletes, so it is unsatisfiable by construction.
+      check-decision-claims.py, a file T-24 deletes, so it is unsatisfiable by construction. ONE
+      READING NOTE, so nothing below misreads as current: the preserved instruction record ends with
+      a paragraph saying the generator is EXPECTED TO EXIT 1 and that the verify asserts an ORPHAN
+      line for DEC-140. That described the OLD block, at the time this task ran and before T-11 and
+      T-28 regenerated the index. It is left untouched because it is the record of what was
+      instructed; it is not a description of the block above, which requires the generator to exit 0.
 
       TRACES IS DELIBERATELY EMPTY. This task traced REQ-08 and nothing else; REQ-08 is retired and
       the brief's tombstone makes a surviving trace to it a plan defect. It does not serve REQ-10
