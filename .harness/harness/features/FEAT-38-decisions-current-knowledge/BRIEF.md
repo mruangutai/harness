@@ -190,6 +190,12 @@ It is closed as superseded once this lands.
   by the text-derived set being empty. **Remediating any site beyond `check-decision-claims.py` is
   explicitly OUT of scope here** and becomes a backlog row filed at ship, citing the audit note. A
   non-empty result is a finding this feature delivers, not a failure of it.
+  **Reconciled with the recorded Destination** in
+  `.harness/notes/grilling-remove-executable-claims-2026-08-29.md` — *"no remaining script that
+  builds a command line from document or config text"*: that Destination is the END STATE, and
+  REQ-10 is the step this feature takes toward it. This feature closes the one known instance and
+  NAMES the rest, and any further site the audit finds is carried to the backlog rather than
+  silently accepted as the destination having been reached.
 
 ## Constraints
 
@@ -280,6 +286,11 @@ rather than a working-tree read, so a deliverable that never entered the reviewe
   survive: what was believed before, and what falsified it. Per entry, with a file pointer each. An
   entry whose falsified claim was deleted rather than restated fails this and leaves every automated
   assertion green.
+  **The re-grade at validate reaches FIVE entries where a claim marker was also deleted, not six.**
+  T-27 strips markers from six entries — DEC-145, DEC-157, DEC-181, DEC-183, DEC-193 and DEC-205 —
+  and only the first five are among the 15 named above and therefore have a pre-fold form to cite.
+  **DEC-205 is excluded from this criterion because it has no pre-fold form**: it is not one of the
+  15 rewritten entries. DEC-205's coverage is SC-16's, so nothing goes ungraded.
   verify: inspection
 - SC-12: The front-matter APPEND-ONLY mandate and the documentor's repository-tier expertise entry
   P-01 no longer instruct a reader or an agent to add an amendment, and the new decision entry states
@@ -317,6 +328,17 @@ rather than a working-tree read, so a deliverable that never entered the reviewe
   green: removing the item while a sentence still says *"two mechanical checks guard it"*, and
   **DELETING a count sentence instead of restating it** — a negative-only check is satisfied by
   deletion, and the count is content.
+  **DEC-205's considered-and-refused paragraph is covered here in full, not only by its closing
+  count sentence.** The paragraph opening `What was considered and refused` — sitting immediately
+  below the two `<!-- claim:` markers T-27 deletes, at `DECISIONS.md:6293-6299` as measured at
+  `99bb52c`, an as-measured aside and not the locator, because T-27 and T-28 both SHORTEN
+  `DECISIONS.md` before `review_sha` is pinned and a bare line anchor is therefore guaranteed to
+  have moved by grading time — survives at `review_sha` with both of its refusals and their stated
+  reasons intact: the M3 referenced-file-watch refusal and the M4 LLM-audit refusal. Nothing in it
+  still asserts the deleted marker mechanism. Graded by citing it by `file:line` from
+  `git show <review_sha>:` beside its pre-change form from `git show 99bb52c:`. This clause exists
+  because SC-11's re-grade cannot reach DEC-205 — it has no pre-fold form — so without it the
+  paragraph's two refusals and their reasons are graded by nobody.
   verify: inspection
 - SC-17: A note under this feature's `notes/` records the sweep of `.claude/skills/harness/bin/` for
   any script that builds a command line from an input it does not control — a document, a
@@ -330,6 +352,14 @@ rather than a working-tree read, so a deliverable that never entered the reviewe
   configuration, `.harness/harness.json`'s `test_kinds.<kind>.cmd`. A bare "swept, found nothing"
   does not meet this — the filter is a judgement over 72 candidate files, and a later reader must be
   able to re-run the command and land on the same set.
+  **The inspection is performed by a code-reading persona — `harness-code-reviewer` or
+  `harness-backend-dev` — and NOT by the author of the audit table** (T-29's `execution_agent` is
+  `harness-pm`). The mechanical checks grade the table's FORMAT — that a row exists per file with a
+  non-empty rationale — while the per-file verdicts are a subprocess-provenance judgement over ~72
+  files, so a mislabelled `FIXED-LITERAL-ARGV` passes every gate and signs a false clean bill. The
+  inspector re-reads the call sites behind a sample of the verdicts rather than confirming the
+  table's shape, and specifically re-derives the verdict for any file whose rationale cites a
+  `test_kinds` cmd reader.
   verify: inspection
 - SC-18: `.claude/skills/harness/bin/check-decision-anchors.py` and its test
   `test-check-decision-anchors.py` at `review_sha` are byte-identical to `git show 99bb52c:` of the

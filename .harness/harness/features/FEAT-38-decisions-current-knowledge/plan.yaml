@@ -1825,7 +1825,7 @@ tasks:
       done
       test -f .claude/skills/harness/bin/check-decision-anchors.py || exit 1
       git grep -l check-decision-claims -- . ':!.harness/harness/features' ':!.harness/notes' \
-        ':!.harness/logs' && { echo 'references survive'; exit 1; }
+        ':!.harness/logs' ':!.harness/harness.json' && { echo 'references survive'; exit 1; }
       OUT="$(bash "$R" --check-kinds 2>&1)" || { printf '%s\n' "$OUT"; exit 1; }
       printf '%s\n' "$OUT" | grep -qE '^(KIND-DRIFT|MISCONFIGURED):' \
         && { echo 'a detector fired'; exit 1; }
@@ -1880,17 +1880,32 @@ tasks:
       verify asserts that the retained checker is still present and still passes, for exactly that
       reason.
 
-      THE BLAST-RADIUS SWEEP STAYS UNSCOPED, WHICH IS WHY THIS TASK DEPENDS ON T-27. Measured at
+      THE BLAST-RADIUS SWEEP EXCLUDES .harness/harness.json, AND THAT EXCLUSION IS STRUCTURAL RATHER
+      THAN CONVENIENT. .harness/harness.json is cleaned by T-25, and T-25 depends_on T-24, so at this
+      task's own completion - the only moment this verify is ever evaluated - that reference is
+      necessarily still live. Without the exclusion the clause is unsatisfiable at that moment, which
+      is a cycle under the plan's completion-time evaluation model. MEASURED at the exact mid-state
+      this task faces (T-27 landed, this task landed, T-25 still pending): the unexcluded clause
+      exits 1 printing .harness/harness.json and then "references survive"; with
+      ':!.harness/harness.json' appended to the pathspec it exits 0. The other three excluded
+      pathspecs are dated records that are never rewritten (D-05); this fourth exclusion is a
+      dependency-order artifact, narrower in kind than those three, and it is discharged elsewhere
+      rather than forgiven.
+
+      THIS TASK DEPENDS ON T-27 FOR A DIFFERENT REASON, AND THAT REASON STILL STANDS. Measured at
       48bbe7e and byte-identical at 99bb52c, exactly five tracked files outside this feature's folder
       mention check-decision-claims: the two deleted here, run-unit-tests.sh (this task),
-      .harness/harness.json (T-25) and DECISIONS.md (T-27, two claim markers). .harness/harness/docs
-      is not one of the three excluded pathspecs, so with T-27 unrun that clause exits 1 naming a
-      file this task must not touch. Scoping the clause to the two deleted files was rejected: the
-      unscoped sweep is the only thing in the plan that proves no sixth reference site exists, and
-      scoping it would leave that proof owned by nobody. The three excluded pathspecs are dated
-      records that are never rewritten (D-05). T-28's edits are not in the sweep's path, which is why
-      the dependency is on T-27 and not on T-28. If the sweep returns anything else, a sixth site
-      exists that no task owns - report it upward, do not patch it quietly.
+      .harness/harness.json (T-25, excluded above) and DECISIONS.md (T-27, two claim markers).
+      .harness/harness/docs is not one of the excluded pathspecs, so with T-27 unrun that clause
+      exits 1 naming a file this task must not touch. T-28's edits are not in the sweep's path, which
+      is why the dependency is on T-27 and not on T-28.
+
+      THE PROOF THAT NO SIXTH REFERENCE SITE EXISTS IS SC-14's THIRD ASSERTION, NOT THIS CLAUSE. That
+      criterion runs the identical sweep graded at review_sha, after every task including T-25 has
+      landed, where .harness/harness.json needs no exclusion because it is clean by then. The proof
+      is therefore not lost by scoping this clause - it MOVES to SC-14, which owns it. If the sweep
+      here returns anything else, a sixth site exists that no task owns - report it upward, do not
+      patch it quietly.
 
       THE VERIFY IS DELIBERATELY CHEAP, AND IT IS NOT A SUITE-WIDE FAIL SWEEP. --check-kinds runs
       both detectors and the cross-check and exits before running a single test, and invoking
@@ -1903,12 +1918,12 @@ tasks:
       detector prefixes are anchored at column 0 because the bare tokens match six indented "ok
       case" labels from test-run-unit-tests-kinds.py on a green run.
 
-      traces carries SC-14 as well as REQ-10: this task's two deletions and its unscoped sweep ARE
-      that criterion's evidence, and the grader looks for the id here.
+      traces carries SC-14 as well as REQ-10: this task's two deletions and its blast-radius sweep
+      ARE that criterion's evidence, and the grader looks for the id here.
 
   - id: T-25
     title: Deregister the claims test from the harness test-kind config, the second side
-    traces: [REQ-10]
+    traces: [REQ-10, SC-15]
     change_type: config
     execution_mode: team
     execution_agent: harness-dev-ops

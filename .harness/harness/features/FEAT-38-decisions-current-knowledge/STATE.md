@@ -3,70 +3,87 @@
 ## Current
 
 - feature: FEAT-38-decisions-current-knowledge
-- run: none — the replan closed at the operator's signature gate
-- squad: none
-- status: **Plan**. The amended BRIEF and plan are drafted, reviewed, simplify-flagged and
+- run: `2026-08-29-01-product` — PASS, the adversarial panel's revision applied
+- squad: product (`harness-pm`, via `harness-product-lead`)
+- status: **Plan**. The panel revision has LANDED. The plan and brief are again
   pending **ONE fresh operator signature**. No build, no PR, no merge, no ship.
 
-The artifacts to read are `BRIEF.md` and `plan.yaml` themselves, both amended in place on
-2026-08-29 for the operator's ruling that the executable-claims mechanism is DELETED, not
-redesigned. `notes/handoff-plan.md` is the working memory for whoever picks this up.
-`notes/ship-review-2026-08-29-18.md` is still accurate about what was BUILT before the ruling;
-its recommendation to ship stays superseded.
+**The revision is applied and verified.** An adversarial three-reader panel graded the signed
+plan at `73898a3`; the main session withdrew the signature at `753f4cd` and recorded five rulings
+in `notes/answers-2026-08-29-panel.md`. All five landed in one product run:
 
-Branch `feat/FEAT-38-decisions-current-knowledge`. `review_sha` still reads `48bbe7e` and is
-**stale** — it pins the superseded validate phase and must be re-pinned before any future panel.
+- **F1** — T-24's blast-radius sweep was UNSATISFIABLE at its own completion. `':!.harness/harness.json'`
+  added to the pathspec (`plan.yaml:1826`), and T-24's intent corrected: the sweep is no longer
+  described as unscoped, and the false claim that it is the only proof no sixth reference site
+  exists is replaced by the true owner, **SC-14's third assertion** graded at `review_sha`.
+- **F2** — SC-11 now states its re-grade set as the **five** entries it actually reaches
+  (DEC-145, 157, 181, 183, 193); SC-16 extended to cover DEC-205's considered-and-refused
+  paragraph, content-anchored on `What was considered and refused` rather than on a line number.
+- **F3** — REQ-10 reconciled with the grilling note's Destination in one sentence, scope unwidened.
+- **F4** — SC-17's inspection routed to a code-reading persona, not the author of the audit table.
+- **F5** — `SC-15` added to T-25's `traces`. T-27's `traces` deliberately untouched.
 
-**Blocking on the main session, two acts and one signature.** (1) Reset both approval fragments
-to `pending` — `plan.yaml:6-9` and `BRIEF.md`'s `## Approval`. Both still read `approved` and
-that signature covers the PRE-RULING scope. No agent in this flow may write them:
-`.harness/team-config.yaml:19-25` grants those fragments to the main session alone (DEC-120).
-(2) Take the fresh signature, which covers in one act the deletion scope, REQ-08/SC-09 retired
-as tombstones, REQ-10 and SC-14..SC-18, the two-task merge into T-24, and all three previously
-signed `verify:` corrections (T-10 at `plan.yaml:877`, T-15 at `:1223`, T-19 at `:1437`).
+**F1 was verified by MEASUREMENT, not by argument** — the panel's own predecessor accepted a
+reasoned argument here and was wrong. In a disposable clone with a real git index, at the exact
+mid-state T-24 faces (T-27 landed, T-24 landed, **T-25 still pending**): the signed clause exits
+**1** printing `.harness/harness.json` then `references survive`; the landed clause, extracted
+from the amended `plan.yaml` via `harness_yaml.load_plan` rather than retyped, exits **0**.
+Applying T-25 on top, SC-14's unscoped sweep exits **1** with no matches — the proof F1 moved to
+SC-14 genuinely lands there, and `run-unit-tests.sh --check-kinds` exits 0 with both registration
+sides agreeing.
 
-**Measured harness defect, load-bearing for act 1:** `check-domain.sh`'s `approval_guard` FAILS
-OPEN inside a worktree. `_verdict["rel"]` there carries the `.claude/worktrees/…` prefix and does
-not `fnmatch` the grant glob `.harness/*/features/*/plan.yaml`, so the denial never fires. The
-identical `harness-pm` payload exits **2** in the main checkout and **0** in this worktree. The
-rule was honoured here by instruction, not by enforcement.
+**The plan is structurally unchanged.** 28 tasks; ids `T-01…T-25, T-27, T-28, T-29`; no id
+renumbered, reused or added; there is still no T-26. T-01…T-23 all `status: done`, the five
+remaining `pending`. `harness_yaml.load_plan` parses it. `check-plan-routes.py` exits **0** with
+**0 violations** and the same two informational `DEVIATION` lines on the done tasks T-22/T-23 that
+predate this amendment — identical to the pre-revision baseline. Remaining build is
+T-27 → {T-24, T-28} → {T-25, T-29}: no cycle, longest chain 3.
 
-**The plan.** 23 tasks are `done` and committed at `48bbe7e`; six new tasks were authored and one
-of them retired into another during the fix cycle, giving **28 tasks**. The retired number is
-never reused; the merge and its measured cause are recorded in T-24's own `intent:`.
-`check-plan-routes.py <feature-dir>/plan.yaml` exits 0 with 0 violations; the two `DEVIATION`
-lines on T-22/T-23 predate this amendment. The `contains`/`max_lines` redesign is rejected and
-appears nowhere (0 occurrences). `check-decision-anchors.py` (T-17) is retained unchanged. The
-class audit of the rest of `bin/` is in scope as T-29.
+**NEITHER APPROVAL FRAGMENT WAS WRITTEN**, and both are byte-identical to `753f4cd` — verified by
+diff, not asserted. `plan.yaml`'s `approval:` reads `pending`; **`BRIEF.md`'s `## Approval` still
+reads `approved`**, because the `753f4cd` withdrawal touched only `plan.yaml`. The two artifacts
+therefore disagree, and only the main session may reconcile them (DEC-120). Both fragments also
+still say SC-11 re-grades over the **six** entries T-27 touches, which F2a corrects to five.
 
-**Budget: cycles 14 of 10; runs 24 of an informational 20.** `max_total_cycles` stays 10 and was
-not altered. `cycles_used` moved 11 → 14: one lead-internal send-back in run 20, one fix cycle
-routed after runs 21 and 22 both returned FAIL, and one bounded correction cycle in run 24. It is
-incremented rather than frozen because DEC-157 counts rework and rule 15 forbids a flattering
-record. Each replan run earned its place — run 20 drafted, runs 21 and 22 each found a measured
-high-severity defect the draft would otherwise have shipped, run 23 applied all four fixes, and
-run 24 removed a stale self-quotation from a task intent the operator reads at signature.
+`review_sha` still reads `48bbe7e` and is **stale** — it pins the superseded validate phase and
+must be re-pinned before any future panel. Nothing in this run re-pinned it; no validator ran.
+
+**Budget: cycles 14 of 30; runs 25 of an informational 20.** `cycles_used` is unchanged: the
+product run returned PASS on its first pass with zero send-backs, and DEC-157 counts rework only.
+`max_total_cycles` reads 30 in `feature.json`, so the earlier "14 of 10" exhaustion is resolved
+and the build has headroom. **`len(runs)` has passed `max_total_runs`** and INV-22 will say so:
+the count is informational and stops nothing. The runs still earn their place — this one closed a
+high-severity defect that would have failed the build at T-24 and a blocking coverage gap at
+DEC-205, for one spawn and no cycles. The run's `run_id` slug reads `2026-08-29-01-product` as
+`harness-pm` wrote it; it is the 25th run of the feature, and the slug is recorded as-is rather
+than rewritten.
 
 GitHub mirror: milestone 31, parent #935 at the Plan station, sub-issues #936–#958. The five new
-tasks have no sub-issue yet — `gh-sync.py open` mints them after the signature. No card was moved
-by this run.
+tasks have no sub-issue yet — `gh-sync.py open` mints them after the signature. **No card was
+moved by this run and no GitHub write was made.** `feature.json`'s local `status:` moved
+`Ready` → `Plan`, which is the honest local record of a withdrawn signature, not a board write.
 
 ## Open Questions
 
-Blocking on the operator before the signature:
+Blocking on the operator before the fresh signature:
 
+- **Reconcile the two approval fragments.** `BRIEF.md`'s `## Approval` reads `approved` while
+  `plan.yaml`'s reads `pending`. Both are the main session's alone; no agent in this flow may
+  write them, and `check-domain.sh`'s `approval_guard` FAILS OPEN in a worktree, so the rule was
+  honoured here by instruction rather than by enforcement.
+- **Both approval fragments carry a stale "six entries" claim** that F2a corrects to five. It sits
+  inside the fragments, so it survives this revision untouched and must be fixed at re-signature.
 - **Numbering.** REQ-08 and SC-09 are retired in place as tombstones, so the live sets are
   non-contiguous. The alternative, renumbering, silently repoints citations in landed artifacts.
 - **`traces: []`** on T-20 and T-21 — the honest statement that no LIVE requirement is served by
   work being removed. Accept an empty traces list in a signed plan, or require a tombstone id?
-- **SC-11 and SC-13** were graded before the removal was in scope. Re-run the per-entry read-back
-  and the UAT over the six entries T-27 touches, or does deleting a marker without touching prose
-  leave them standing?
-- **Cycle headroom for the build.** `max_total_cycles` is 10 and `cycles_used` is 14, so the
-  build phase would start already exhausted. Raising the bound is the operator's act, recorded in
-  `feature.json`; I did not presume it.
-- **T-24's blast-radius sweep stays unscoped**, so the code lane waits on the documentor lane
-  (T-27). Recorded as deliberate in both intents, with the alternative and its cost.
+
+Settled by the panel answers, recorded so they are not reopened: SC-11's re-grade scope (five
+entries, F2a); T-24's sweep scoping (F1, and the code lane still waits on T-27 for the DECISIONS.md
+markers, which was never the defect); cycle headroom (`max_total_cycles` now 30); T-29 and SC-17
+stay in FEAT-38 over pm's droppable call, the disagreement recorded rather than resolved by
+silence; build-then-delete accepted with the plan honest about it; the lost semantic-rot detector
+accepted as a named cost.
 
 Not blocking, carried up from the squads: whether DEC-205 needs positive guidance on what an
 entry does instead of carrying a checkable claim (ruled out of T-28 on weakest-sufficient-
