@@ -118,6 +118,7 @@ tasks:
     verify: |
       python3 .claude/skills/harness/bin/test-factory-config.py
       grep -rn --exclude-dir=__pycache__ "_STATION_KEYS" .claude/skills/harness/bin/ ; test $? -eq 1
+      python3 -c 'import pathlib,re,sys; pat=re.compile("[\x22\x27](Backlog|Plan|Ready|Building|Review|Done)[\x22\x27]"); h=[(p,i) for p in sorted(pathlib.Path(".claude/skills/harness/bin").iterdir()) if p.suffix in (".py",".sh") and not p.name.startswith("test-") for i,l in enumerate(p.read_text(errors="ignore").splitlines(),1) if pat.search(l)]; print("SC-02: %d quoted station literal(s) in non-test source" % len(h)); [print("  %s:%d" % (p,i)) for p,i in h]; sys.exit(1 if h else 0)'
     intent: |
       Make harness.json the one place the station vocabulary is declared, and mandate its content.
 
