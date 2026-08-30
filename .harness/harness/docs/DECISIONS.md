@@ -3226,8 +3226,6 @@ words, no FEAT/T/issue tokens, no nested bullets or instance lists; four canonic
 file can never again silently tax every spawn. `merge` is redefined: the result may be no longer
 than the longer input — appending an instance is `add` wearing a costume.
 
-<!-- claim: grep -F "CRAFT_LINE_BUDGET = 150" .claude/skills/harness/bin/check-expertise.sh :: CRAFT_LINE_BUDGET = 150 -->
-
 **A third boundary joins decision-versus-observation: a harness defect is a bug report, not a
 learning.** It routes to `open_questions`, never to Expertise, because a recorded workaround
 outlives the fix. "Injection failed to fire once; cat the file manually" and "member caps silently
@@ -3578,8 +3576,6 @@ Two clarifications, no new machinery:
   true rework cycles clear it, and ten consecutive fix loops on one feature IS the runaway the
   bound exists to kill. Raising it per-feature remains a user decision recorded in feature.yaml,
   as both kaya features already practiced.
-
-<!-- claim: grep -F "\"max_total_cycles\": 10" .harness/harness.json :: "max_total_cycles": 10 -->
 
 Not mechanized: nothing distinguishes a first-pass run from a rework run in state files, so a
 checker cannot recount cycles independently; INV-7 (cycles_used ≥ recorded FAIL runs) remains
@@ -4772,14 +4768,9 @@ defensive rather than load-bearing instead of being papered over with a test tha
 `check-domain.sh:1335`, which reports `CLAUDE.md is N lines — budget is 80 (DEC-181)`. `CLAUDE.md`
 is in no propagation checker's scan roots: no propagation checker exists (DEC-188).
 
-<!-- claim: grep -F "budget is 80 (DEC-181)" .claude/skills/harness/bin/check-domain.sh :: budget is 80 (DEC-181) -->
-<!-- claim: grep -c -m 81 -e "" CLAUDE.md :: 12 -->
-
 `CLAUDE.md` is read at **every session start** — the widest blast radius of any file in this repo,
 wider than SPEC.md or any agent file. It was the only file of its class with no mechanical budget.
 Its peers all have one: expertise 150, `feature.json` 300, handoff notes 60, STATE.md 120.
-
-<!-- claim: grep -F "budget is 300" .claude/skills/harness/bin/check-domain.sh :: budget is 300 -->
 
 **80 was re-derived at `a5edb13`, not inherited from issue #139, and it comes from the file's own history, and that history STARTS AT A CLEANUP.** The file was
 208-214 lines from April through 2026-07-27; DEC-135 then cut it to 50. That blow-out is why issue #139
@@ -4909,8 +4900,6 @@ Existing issues are not rewritten, so the corpus is mixed.
 `check-plan-routes.py` shipped working and nothing mechanical ran it (issue #133). DEC-179's clause
 "nothing executes it automatically" is now false.
 
-<!-- claim: grep -F "name: Plan-route gate" .github/workflows/tests.yml :: name: Plan-route gate -->
-
 **The venue is CI, and the step goes INSIDE the `integration` job.** Branch protection requires
 exactly that one context, and it is the job's ID — the job carries no `name:` key. A job of its own
 would emit a context nobody requires, which is the defect being closed rather than a fix for it, and
@@ -4929,8 +4918,6 @@ from a gate that examined nothing. Three outcomes get three messages: no summary
 not run), a summary with M=0 (it ran and looked at nothing), and a real verdict. `|| true` on the
 summary grep is load-bearing, not defensive: under `bash -e {0}` an unmatched grep inside a command
 substitution kills the step before either diagnostic prints.
-
-<!-- claim: grep -F "violation(s) across" .claude/skills/harness/bin/check-plan-routes.py :: violation(s) across {processed} plan(s) -->
 
 **THE STEP IS UNGUARDED, BY DECISION, AND THAT REOPENS ISSUE #133.** An earlier version of this
 entry described a suite of assertions defending the step — that the workflow defines the required
@@ -4973,8 +4960,6 @@ The repo's own history shows the policy already in effect — **52 reviews, ever
 none `APPROVED`.** #175 is closed as not achievable; it becomes possible only with a second
 collaborator. So the honest statement is that this gate protects the plans and **nothing protects
 the gate** — not pending, settled.
-
-<!-- claim: grep -F "run-unit-tests.sh" .github/CODEOWNERS :: run-unit-tests.sh  @mruangutai -->
 
 **Also removed by owner decision: `actions/setup-python@v5` and the root-assert step.** The job is
 four steps — checkout, Install PyYAML, Integration suite, Plan-route gate. The Python version is no
@@ -5306,8 +5291,6 @@ checkout's contents are a product is a fact about the work, not about the path.
 Both keep exactly their prior behaviour. **Any other checkout of this repository — a linked worktree
 living outside `.claude/worktrees/`, however complete its manifest and its agents look — is a
 mistake, not a supported shape.**
-
-<!-- claim: grep -F "WORKTREES_SEGMENT = " .claude/skills/harness/bin/harness_boundary.py :: WORKTREES_SEGMENT = ".claude/worktrees" -->
 
 **Three refusals, and all three refuse rather than resolve.** Such a checkout **cannot be created**
 through the Bash route: `git worktree add` and `git worktree move` are refused broadly, a destination
@@ -6286,9 +6269,6 @@ generation contract, is deliberately not settled here.
    safety boundary is part of the rule, not an implementation detail: the checker refuses any command
    whose first word is not `git` or `grep`, and never invokes a shell. A documentation file must not
    become an arbitrary code execution surface inside the test suite.
-
-<!-- claim: grep -F "ALLOWED_FIRST_TOKENS = " .claude/skills/harness/bin/check-decision-claims.py :: ALLOWED_FIRST_TOKENS = {"git", "grep"} -->
-<!-- claim: grep -F "test-check-decision-claims.py" .claude/skills/harness/bin/run-unit-tests.sh :: test-check-decision-claims.py -->
 
 **What was considered and refused, recorded so a future scan does not re-suggest it.** A
 **referenced-file watch** (M3) — flagging every entry whose cited files changed — was declined: it
