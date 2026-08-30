@@ -8,3 +8,4 @@
 - 2026-08-27: an SC asserting a library reads config keys cannot fail when nothing calls the
   library. The discriminating pair is same-input-different-config: rejected under one policy value,
   accepted under another. A single rejection is satisfiable by a hardcoded rule.
+- 2026-08-29: FEAT-43 c26 goal-check — verified both B21 mutations without touching the tracked tree by copying code_grade.py/code-grade.py/test-code-grade.py into a /tmp dir and importing the test module there; the two new cases build their own temp git repos and call gated_set() directly, so they need no repo layout. Read-only dispatches can still do mutation testing this way.

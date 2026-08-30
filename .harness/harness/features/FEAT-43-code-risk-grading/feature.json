@@ -3,9 +3,9 @@
   "branch": "feat/FEAT-43-code-risk-grading",
   "pr": null,
   "status": "Review",
-  "review_sha": "e12d53b16e49e7c4d9332c5e290e6bdbc806251f",
-  "cycles_used": 25,
-  "max_total_cycles": 25,
+  "review_sha": "cd8dae476607704fd3d2b874150aae9f814292d2",
+  "cycles_used": 26,
+  "max_total_cycles": 26,
   "runs": [
     {
       "id": "plan-product",
@@ -219,6 +219,24 @@
     },
     {
       "id": "validate-goalcheck-c25-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "validate-b21-c26-eng",
+      "squad": "engineering",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "validate-delta-c26-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "validate-goalcheck-c26-product",
       "squad": "product",
       "agent": "harness-product-lead",
       "verdict": "PASS"

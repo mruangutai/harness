@@ -1,6 +1,6 @@
 # UAT — FEAT-43 SC-11 (the skill changes what gets written)
 status: ready              # draft | ready | passed | failed — ONLY the operator changes this
-review_sha: 17106762c588b3d1c0df45efbcb6128604efb185
+review_sha: cd8dae476607704fd3d2b874150aae9f814292d2
 base_sha: 7ccfae8dd7644bc3aaea612dabf4317c0d804f99
 prerequisites: green — cycle-21 panel PASS, must_fix [], severity_max med
 
