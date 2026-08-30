@@ -210,6 +210,18 @@
       "squad": "engineering",
       "agent": "harness-eng-lead",
       "verdict": "PASS"
+    },
+    {
+      "id": "validate-delta-c25-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "validate-goalcheck-c25-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS"
     }
   ],
   "github": {
@@ -243,5 +255,5 @@
       910
     ]
   },
-  "briefing": ".harness/harness/features/FEAT-43-code-risk-grading/notes/ship-review-validate-final-c24.md"
+  "briefing": ".harness/harness/features/FEAT-43-code-risk-grading/notes/ship-review-validate-final-c25.md"
 }
