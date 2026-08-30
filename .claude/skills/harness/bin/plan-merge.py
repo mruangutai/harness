@@ -8,18 +8,42 @@ existing plan.yaml. It SPLICES TEXT — never re-renders through a YAML dumper (
 each task/decision's `id`, under harness_merge.locked_update so the replace stays atomic and the
 lock stays the one shared with every other write route in this feature.
 
-    plan-merge.py apply --file <path to a plan.yaml> --proposal <path or - for stdin>
+    plan-merge.py apply             --file <plan.yaml> --proposal <path or - for stdin>
+    plan-merge.py add-tasks         --file <plan.yaml> --proposal <path or - for stdin>
+    plan-merge.py set-task-station  --file <plan.yaml> --task T-NN --station <name>
+    plan-merge.py set-feature-station --file <plan.yaml> --station <name>
+    plan-merge.py sign-approval     --file <plan.yaml> --by <name> --date <YYYY-MM-DD>
 
-`approval:` is never written by this tool (D-04): it is always the BASE file's bytes, byte for
-byte. The main session — nobody else — signs approval, with the Edit tool, directly. A proposal
+FIVE VERBS, ONE WRITE ROUTE (FEAT-41 T-03). Every verb goes through
+harness_merge.locked_update and the text splice, and require_destination (exit 9) guards every
+path. ADD-ONLY IS A PROPERTY OF `apply` AND ITS ALIAS, NOT OF THE TOOL: the lock and the splice
+are what fix #628 and they hold for all five, while never deleting a task is a promise those two
+verbs alone make.
+
+`set-task-station` and `set-feature-station` validate the station against the vocabulary
+factory_config declares — MANDATED_STATIONS plus TERMINAL_MARKER, imported, never respelled —
+resolved through the harness.json of the checkout the target plan.yaml belongs to. The check runs
+BEFORE the lock is taken, so a refused value never opens the file.
+
+`approval:` is written by EXACTLY ONE VERB, `sign-approval` (D-04, amended by FEAT-41 T-03).
+Every other verb leaves the base file's approval bytes byte for byte. The main session — nobody
+else — signs approval, and now does so through this tool rather than by hand. A proposal
 that carries an approval mapping which PARSES differently from the base's is a REFUSAL (exit 8),
-not a silent drop: this tool must be INCAPABLE of writing a signature (step 7) and must also
-NOTICE a caller that tried to sneak one past it (step 7b) — two different jobs, so two different
-guards.
+not a silent drop: `apply` must be INCAPABLE of writing a signature (step 7) and must also NOTICE
+a caller that tried to sneak one past it (step 7b) — two different jobs, so two different guards.
+
+THAT PROHIBITION IS UNCHANGED IN FORCE AND NARROWER IN SCOPE. Before FEAT-41 T-03 the tool had
+one verb, so "apply cannot sign" and "this tool cannot sign" were the same sentence; they are not
+any more. Signing moved from a hand edit into `sign-approval` so that it happens under the same
+lock as every other plan write — a signature spliced by hand while another writer held the file
+was the remaining unguarded route into plan.yaml. `apply` still cannot sign, and still refuses a
+proposal that tries.
 
 Exit codes are the interface:
     0  applied — stdout lists ADDED/PRESERVED ids, an IGNORED-APPROVAL line if the proposal
        carried an approval block, and a final APPLIED line
+    3  the task id named by --task is absent from the plan (the message names the ids present)
+    4  the value given to --station is not a legal station (the message lists the legal ones)
     5  a side (base or proposal) failed to parse as YAML
     6  the lock could not be acquired within the retry budget (harness_merge)
     7  the same id, or the same top-level key, carries two different loaded values
@@ -37,7 +61,9 @@ import sys
 import yaml
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import harness_merge  # noqa: E402  (local import, after sys.path fix-up)
+import factory_config  # noqa: E402  (local import, after sys.path fix-up)
+import gh_board  # noqa: E402
+import harness_merge  # noqa: E402
 
 # Module-level literals. Each is mutated BY NAME in a copy of the tree by the test's red proofs.
 # Nothing outside this file's source text ever flips one — no environment variable, no flag.
@@ -68,6 +94,82 @@ TOP_KEY_RE = re.compile(r"^([A-Za-z_][\w-]*):")
 DASH_RE = re.compile(r"^(\s*)-\s")
 
 UNION_KEYS = ("tasks", "decisions")
+
+
+def _resolve_plan(file_path):
+    """require_destination on the RESOLVED path, or print the refusal and exit its code.
+
+    Extracted so all five verbs share ONE destination guard. A second copy would be a second
+    place for exit 9 to stop being true."""
+    try:
+        return harness_merge.require_destination(
+            file_path,
+            PLAN_TAIL,
+            "a plan.yaml under a features directory",
+            [
+                "  a legal path looks like .harness/features/FEAT-NN-slug/plan.yaml or",
+                "  .harness/<repo>/features/FEAT-NN-slug/plan.yaml.",
+                "  This tool merges plan.yaml only.",
+            ],
+        )
+    except harness_merge.MergeRefusal as refusal:
+        for line in refusal.lines:
+            print(line, file=sys.stderr)
+        sys.exit(refusal.code)
+
+
+def _legal_stations(resolved):
+    """The station vocabulary the target plan.yaml's own checkout declares, plus the terminal
+    marker, as an ordered tuple.
+
+    IMPORTED, NEVER RESPELLED (FEAT-41 T-03). factory_config owns MANDATED_STATIONS and
+    TERMINAL_MARKER; declaring either here would be a second vocabulary, and since this module
+    is imported by nothing, check-plan-routes.py and check-domain.sh would each respell it as a
+    bare literal and D-05's claim that the marker is declared once in code would be false the
+    day it landed.
+
+    The board is read from the harness.json of the checkout the plan belongs to. A checkout with
+    no board declared — every test fixture, and any project that has not onboarded a board — is
+    NOT a licence to accept anything: the mandate still applies, because MANDATED_STATIONS is
+    what a declaration is checked against in the first place.
+    """
+    root = resolved
+    while True:
+        parent = os.path.dirname(root)
+        if os.path.isdir(os.path.join(root, ".harness")):
+            break
+        if parent == root:
+            root = None
+            break
+        root = parent
+    stations = None
+    if root is not None:
+        try:
+            board = gh_board.load_board(root)
+            if board is not None:
+                stations = factory_config.station_names(board)
+        except factory_config.FleetError:
+            # An unusable board declaration is not this tool's error to report — the state gate
+            # and every board writer already name it loudly. Fall back to the mandate so a
+            # station write is still validated rather than waved through.
+            stations = None
+    if stations is None:
+        stations = factory_config.MANDATED_STATIONS
+    return tuple(stations) + (factory_config.TERMINAL_MARKER,)
+
+
+def _refuse_illegal_station(station, legal):
+    """Exit 4, naming the offending value and every legal one.
+
+    CALLED BEFORE THE LOCK IS TAKEN, deliberately: a refused value must never open the file, so
+    a typo cannot contend for the lock or leave a partial write behind."""
+    print(
+        f"plan-merge: {station!r} is not a legal station — expected one of: "
+        + ", ".join(legal),
+        file=sys.stderr,
+    )
+    sys.exit(4)
+
 
 
 def _index_top_keys(text):
@@ -338,22 +440,7 @@ def apply_merge(base_bytes, proposal_text):
 
 
 def cmd_apply(args):
-    file_path = args.file
-    try:
-        resolved = harness_merge.require_destination(
-            file_path,
-            PLAN_TAIL,
-            "a plan.yaml under a features directory",
-            [
-                "  a legal path looks like .harness/features/FEAT-NN-slug/plan.yaml or",
-                "  .harness/<repo>/features/FEAT-NN-slug/plan.yaml.",
-                "  This tool merges plan.yaml only.",
-            ],
-        )
-    except harness_merge.MergeRefusal as refusal:
-        for line in refusal.lines:
-            print(line, file=sys.stderr)
-        sys.exit(refusal.code)
+    resolved = _resolve_plan(args.file)
 
     if args.proposal == "-":
         proposal_text = sys.stdin.read()
@@ -387,16 +474,217 @@ def cmd_apply(args):
     sys.exit(0)
 
 
+TASK_ID_RE = re.compile(r"^(\s*)-\s+id:\s*(\S+)\s*$")
+STATUS_LINE_RE = re.compile(r"^(\s*)status:\s*(.*)$")
+FEATURE_LINE_RE = re.compile(r"^feature:\s*\S")
+
+
+def _task_status_line(lines, task_id):
+    """(index, indent) of `task_id`'s own status line, or (None, task_ids_present).
+
+    Scans from the task's `- id:` line to the next item at the same indent, so a `status:` key
+    nested deeper inside that task — a verify block's own prose, say — cannot be mistaken for
+    the task's status. Returns the ids actually present when the id is absent, because a caller
+    who mistyped one needs to see the real list, not just a refusal.
+
+    SCOPED TO THE `tasks:` KEY. `- id:` also matches every entry under `decisions:`, and listing
+    D-01..D-12 in the exit-3 message for a `--task` mistake invites the operator to retry with a
+    decision id — which would then fail for the unrelated reason that decisions carry no status.
+    A refusal that suggests a wrong next step is worse than a terse one.
+    """
+    _lines, _order, ranges, _pre = _index_top_keys("".join(lines))
+    if "tasks" not in ranges:
+        return None, []
+    lo, hi = ranges["tasks"]
+    ids_present = []
+    start = None
+    indent = ""
+    for i in range(lo, hi):
+        line = lines[i]
+        m = TASK_ID_RE.match(line)
+        if m:
+            ids_present.append(m.group(2))
+            if m.group(2) == task_id and start is None:
+                start, indent = i, m.group(1)
+            elif start is not None and m.group(1) == indent:
+                break
+    if start is None:
+        return None, ids_present
+    for j in range(start, len(lines)):
+        m2 = TASK_ID_RE.match(lines[j])
+        if m2 and j != start and m2.group(1) == indent:
+            break
+        ms = STATUS_LINE_RE.match(lines[j])
+        if ms and len(ms.group(1)) > len(indent):
+            return j, ms.group(1)
+    return None, ids_present
+
+
+def cmd_set_task_station(args):
+    resolved = _resolve_plan(args.file)
+    legal = _legal_stations(resolved)
+    if args.station not in legal:
+        _refuse_illegal_station(args.station, legal)
+
+    missing = {}
+
+    def transform(base_bytes):
+        text = base_bytes.decode("utf-8")
+        lines = text.splitlines(keepends=True)
+        idx, info = _task_status_line(lines, args.task)
+        if idx is None:
+            missing["ids"] = info
+            return base_bytes
+        newline = "\n" if lines[idx].endswith("\n") else ""
+        lines[idx] = f"{info}status: {args.station}{newline}"
+        return "".join(lines).encode("utf-8")
+
+    try:
+        harness_merge.locked_update(resolved, transform)
+    except harness_merge.MergeRefusal as refusal:
+        for line in refusal.lines:
+            print(line, file=sys.stderr)
+        sys.exit(refusal.code)
+
+    if "ids" in missing:
+        present = ", ".join(missing["ids"]) or "(none)"
+        print(f"plan-merge: {args.task} is not in {resolved} — it carries: {present}",
+              file=sys.stderr)
+        sys.exit(3)
+    print(f"STATION {args.task} -> {args.station}")
+    print(f"APPLIED {resolved}")
+    sys.exit(0)
+
+
+def cmd_set_feature_station(args):
+    resolved = _resolve_plan(args.file)
+    legal = _legal_stations(resolved)
+    if args.station not in legal:
+        _refuse_illegal_station(args.station, legal)
+
+    def transform(base_bytes):
+        text = base_bytes.decode("utf-8")
+        lines = text.splitlines(keepends=True)
+        # REPLACE the existing top-level status, or INSERT immediately after `feature:` so the
+        # file keeps a stable key order. Appending at the end would work and would also make
+        # every plan.yaml's key order depend on the order the verbs happened to run in.
+        for i, line in enumerate(lines):
+            m = STATUS_LINE_RE.match(line)
+            if m and m.group(1) == "":
+                newline = "\n" if line.endswith("\n") else ""
+                lines[i] = f"status: {args.station}{newline}"
+                return "".join(lines).encode("utf-8")
+        for i, line in enumerate(lines):
+            if FEATURE_LINE_RE.match(line):
+                lines.insert(i + 1, f"status: {args.station}\n")
+                return "".join(lines).encode("utf-8")
+        raise harness_merge.MergeRefusal(
+            5, [f"plan-merge: {resolved} carries no top-level feature: key to anchor status to"]
+        )
+
+    try:
+        harness_merge.locked_update(resolved, transform)
+    except harness_merge.MergeRefusal as refusal:
+        for line in refusal.lines:
+            print(line, file=sys.stderr)
+        sys.exit(refusal.code)
+    print(f"STATION {resolved} -> {args.station}")
+    print(f"APPLIED {resolved}")
+    sys.exit(0)
+
+
+def cmd_sign_approval(args):
+    """THE ONLY WAY THE APPROVAL MAPPING IS EVER WRITTEN (D-04, FEAT-41 T-03).
+
+    Every other verb leaves the base's approval bytes byte-identical and `apply` still exits 8
+    on a proposal carrying a different one. That prohibition and this verb are the same rule seen
+    from two sides: approval is written HERE, deliberately, by the main session, and nowhere
+    else by accident."""
+    resolved = _resolve_plan(args.file)
+
+    def transform(base_bytes):
+        text = base_bytes.decode("utf-8")
+        lines = text.splitlines(keepends=True)
+        start = None
+        for i, line in enumerate(lines):
+            if re.match(r"^approval:\s*$", line):
+                start = i
+                break
+        if start is None:
+            raise harness_merge.MergeRefusal(
+                5, [f"plan-merge: {resolved} carries no approval: mapping to sign"]
+            )
+        end = len(lines)
+        for j in range(start + 1, len(lines)):
+            if lines[j].strip() and not lines[j].startswith((" ", "\t")):
+                end = j
+                break
+        fields = {"status": "approved", "approved_by": args.by, "date": args.date}
+        written = set()
+        out = []
+        for line in lines[start + 1:end]:
+            m = re.match(r"^(\s+)(status|approved_by|date):\s*(.*)$", line)
+            if m and m.group(2) not in written:
+                out.append(f"{m.group(1)}{m.group(2)}: {fields[m.group(2)]}\n")
+                written.add(m.group(2))
+            else:
+                out.append(line)
+        for key in ("status", "approved_by", "date"):
+            if key not in written:
+                out.insert(0, f"  {key}: {fields[key]}\n")
+        return "".join(lines[:start + 1] + out + lines[end:]).encode("utf-8")
+
+    try:
+        harness_merge.locked_update(resolved, transform)
+    except harness_merge.MergeRefusal as refusal:
+        for line in refusal.lines:
+            print(line, file=sys.stderr)
+        sys.exit(refusal.code)
+    print(f"SIGNED {resolved} by {args.by} on {args.date}")
+    print(f"APPLIED {resolved}")
+    sys.exit(0)
+
+
 def main():
     parser = argparse.ArgumentParser(prog="plan-merge.py")
     sub = parser.add_subparsers(dest="cmd", required=True)
 
-    p_apply = sub.add_parser("apply", help="merge a proposal into a plan.yaml")
-    p_apply.add_argument("--file", required=True, help="path to the plan.yaml")
-    p_apply.add_argument(
-        "--proposal", required=True, help="path to the proposed plan.yaml, or - for stdin"
+    # ADD-ONLY IS A PROPERTY OF THESE TWO VERBS, NOT OF THE TOOL (FEAT-41 T-03). The lock and
+    # the splice are what fix #628 and they apply to every verb; never deleting a task is a
+    # separate promise that `apply` and its alias alone make.
+    for name, helptext in (
+        ("apply", "merge a proposal into a plan.yaml — adds, never deletes"),
+        ("add-tasks", "alias of apply, for callers that only add tasks — identical code path"),
+    ):
+        p = sub.add_parser(name, help=helptext)
+        p.add_argument("--file", required=True, help="path to the plan.yaml")
+        p.add_argument(
+            "--proposal", required=True, help="path to the proposed plan.yaml, or - for stdin"
+        )
+        p.set_defaults(func=cmd_apply)
+
+    p_task = sub.add_parser(
+        "set-task-station", help="set ONE task's status, by splicing its one line"
     )
-    p_apply.set_defaults(func=cmd_apply)
+    p_task.add_argument("--file", required=True, help="path to the plan.yaml")
+    p_task.add_argument("--task", required=True, help="the task id, T-NN")
+    p_task.add_argument("--station", required=True, help="one of the six stations, or abandoned")
+    p_task.set_defaults(func=cmd_set_task_station)
+
+    p_feat = sub.add_parser(
+        "set-feature-station", help="set or insert the top-level status key"
+    )
+    p_feat.add_argument("--file", required=True, help="path to the plan.yaml")
+    p_feat.add_argument("--station", required=True, help="one of the six stations, or abandoned")
+    p_feat.set_defaults(func=cmd_set_feature_station)
+
+    p_sign = sub.add_parser(
+        "sign-approval", help="the ONLY route that writes the approval mapping"
+    )
+    p_sign.add_argument("--file", required=True, help="path to the plan.yaml")
+    p_sign.add_argument("--by", required=True, help="the signer's name")
+    p_sign.add_argument("--date", required=True, help="YYYY-MM-DD")
+    p_sign.set_defaults(func=cmd_sign_approval)
 
     args = parser.parse_args()
     args.func(args)
