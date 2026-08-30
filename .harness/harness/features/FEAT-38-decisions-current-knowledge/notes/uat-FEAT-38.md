@@ -11,6 +11,14 @@ date: 2026-08-30
 # and the cross-cutting U-04 question was answered pass -- nothing considered
 # settled had disappeared. The reversal is the operator's own, on their own reading;
 # it is kept here because a verdict that changed is a fact about this review.
+#
+# SCOPE OF THIS PASS, set by the operator 2026-08-30: FEAT-46 SUPERSEDES IT.
+# This review asked one question -- does each entry read as current truth. It did
+# NOT ask whether the entry is a decision at all, whether it is in clause form, or
+# whether it carries one ruling or nine. FEAT-46 sets that standard, and all three
+# entries here are IN SCOPE for its triage: DEC-181 is 100% prose, DEC-138 carries
+# 11 independent rulings and DEC-174 carries 7. This pass must never be cited to
+# exempt them.
 graded at: 635cd3ba
 
 ---
