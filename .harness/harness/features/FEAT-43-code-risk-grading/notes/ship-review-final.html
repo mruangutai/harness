@@ -1,0 +1,98 @@
+<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>FEAT-43 code-risk grading — ship review (final)</title><style>
+:root{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:ui-sans-serif,-apple-system,"Segoe UI","Helvetica Neue",Arial,sans-serif;
+}
+/* Token-level theming: components style through the tokens and never inside the
+   media query, so the viewer's explicit toggle can override the OS in BOTH
+   directions. */
+@media (prefers-color-scheme:dark){
+  :root{ --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+         --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733; }
+}
+:root[data-theme="dark"]{
+  --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+  --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733;
+}
+:root[data-theme="light"]{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+}
+*{box-sizing:border-box}
+body{margin:0; background:var(--paper); color:var(--ink);
+  font:400 16px/1.65 var(--sans); padding:clamp(1.5rem,5vw,4rem) clamp(1rem,5vw,2rem) 6rem}
+.wrap{max-width:56rem; margin:0 auto}
+/* Layout owns the spacing: gap between siblings, not per-element margins that
+   collapse or double. */
+.wrap{display:flex; flex-direction:column; gap:1rem}
+.eyebrow{font:500 11px/1 var(--mono); letter-spacing:.14em; text-transform:uppercase;
+  color:var(--quiet); margin:0}
+h1{font:600 clamp(1.6rem,4vw,2.3rem)/1.15 var(--sans); letter-spacing:-.02em;
+  margin:.4rem 0 .2rem; text-wrap:balance}
+h2{font:600 1.15rem/1.3 var(--sans); letter-spacing:-.01em; margin:2rem 0 0;
+  padding-top:1.25rem; border-top:1px solid var(--line); text-wrap:balance}
+h3{font:600 .98rem/1.4 var(--sans); margin:1.1rem 0 0}
+h4,h5,h6{font:500 11px/1.4 var(--mono); letter-spacing:.1em; text-transform:uppercase;
+  color:var(--quiet); margin:1rem 0 0}
+p,li{max-width:65ch; margin:0}
+ul,ol{margin:0; padding-left:1.4rem; display:flex; flex-direction:column; gap:.4rem}
+li>ul,li>ol{margin-top:.4rem}
+strong{font-weight:600}
+code{font:400 .875em/1.5 var(--mono); background:var(--sunk); padding:.1em .35em; border-radius:3px}
+pre{background:var(--sunk); border:1px solid var(--line); border-radius:6px;
+  padding:.85rem 1rem; overflow-x:auto; margin:0}
+pre code{background:none; padding:0}
+blockquote{margin:0; padding:.75rem 1rem; border-left:3px solid var(--accent);
+  background:var(--accent-soft); border-radius:0 5px 5px 0}
+blockquote p{max-width:none}
+hr{border:0; border-top:1px solid var(--line); margin:.5rem 0}
+/* Wide content pans inside its OWN container; the page body never scrolls sideways. */
+.scroll{overflow-x:auto; border:1px solid var(--line); border-radius:6px}
+table{border-collapse:collapse; width:100%; font-size:.9rem}
+th,td{text-align:left; padding:.6rem .8rem; border-bottom:1px solid var(--line); vertical-align:top}
+thead th{font:500 10px/1.3 var(--mono); letter-spacing:.11em; text-transform:uppercase;
+  color:var(--quiet); background:var(--sunk); white-space:nowrap}
+tbody tr:last-child td{border-bottom:0}
+/* Figures in a column line up. */
+td,th{font-variant-numeric:tabular-nums}
+.derived{color:var(--slate); font-size:.85rem; margin-top:2.5rem;
+  padding-top:1rem; border-top:1px solid var(--line)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style></head><body><div class='wrap'><p class='eyebrow'>Ship review · reading view</p><h1 id="feat-43-code-risk-grading-ship-review-final">FEAT-43 code-risk grading — ship review (final)</h1>
+<p><strong>Supersedes every earlier ship review.</strong> Every question these briefings have put to you is now answered, and every answer has been executed.</p>
+<p><strong>Recommendation: SHIP.</strong></p>
+<p>Twenty of twenty success criteria are met. Zero <code>not_met</code>. Zero open. <code>must_fix</code> is empty across the full panel and all three delta reviews. Nothing is waiting on anyone but you.</p>
+<h2 id="the-claim-the-feature-exists-to-make-is-now-measured-not-argued">The claim the feature exists to make is now measured, not argued</h2>
+<p>SC-11 was the one thing no gate could settle: does the shipped guidance actually change what an engineer writes? You ran it, blinded, and it <strong>passed</strong> — decisively, not marginally.</p>
+<div class="scroll"><table><thead><tr><th></th><th>skill arm</th><th>control arm</th></tr></thead><tbody><tr><td>worst cognitive complexity</td><td><strong>6</strong>, <strong>5</strong></td><td><strong>16</strong>, <strong>14</strong></td></tr><tr><td>arm worst</td><td><strong>6</strong></td><td><strong>16</strong></td></tr><tr><td>within-arm spread</td><td>1</td><td>2</td></tr></tbody></table></div>
+<p><code>worst_A &lt; worst_B</code> — 6 &lt; 16. <code>gap &gt; max(spread)</code> — 10 &gt; 2. Both conditions of the frozen MAXIMA rule hold, and <strong>the gap is five times the larger within-arm spread</strong>, so this is not a noise result dressed as a signal. All four variants parsed; no ungraded output, so nothing is inconclusive.</p>
+<p>The rule was fixed <em>before</em> any number was drawn (<code>answers/Q9-…</code> §1), which is what makes the result worth anything. pm did not adopt the arithmetic: it re-derived it, then re-ran the grader over the four surviving arm outputs and <strong>reproduced all four values exactly</strong>.</p>
+<p><strong>Two things about this result you should hold onto.</strong></p>
+<p><strong>Your discarded first run is why the second one counts.</strong> The initial dispatch was voided before any number was recorded, because shared context revealed the experimental arms to the control agents — precisely the contamination the script&#x27;s control-arm rules exist to prevent. Its outputs were deleted. That was a void on <em>procedure</em>, not on numbers, so this is a disclosed discard rather than a selection between two draws. Recording it is what makes the surviving result credible.</p>
+<p><strong>And one link in the chain is testimonial, not measured.</strong> The four outputs survive in <code>/tmp</code> and regrade exactly — but nothing in the artifacts can prove <em>by inspection</em> that they are the neutral-context run&#x27;s rather than the discarded one&#x27;s. That rests on your disclosure. SC-11 is strongly evidenced; it is not end-to-end machine-verified, and this briefing will not pretend otherwise.</p>
+<p><strong>What the pass licenses, and what it does not.</strong> It supports the feature&#x27;s central claim: the skill measurably lowers the worst complexity an engineer writes on a non-trivial task. It is one A/B with two variants per arm — enough to justify shipping the guidance, not enough to quantify the effect size or to claim it generalises to every task shape.</p>
+<h2 id="seven-defects-all-closed">Seven defects, all closed</h2>
+<div class="scroll"><table><thead><tr><th></th><th>Was</th><th>Now</th></tr></thead><tbody><tr><td><strong>CR-01</strong></td><td>the tool rejected its own change — exit 1, six grade-3 production functions</td><td><strong>exit 0</strong>: 198 graded, zero blocking</td></tr><tr><td><strong>CR-02 + UI-01</strong></td><td>a grade-3 record failed the build while printing no severity at all</td><td>severity derived from blocking-ness, in text and JSON; the guidance names the case</td></tr><tr><td><strong>SEC-01</strong></td><td>a reviewer naming a no-op range bought &quot;not applicable&quot; and skipped the gate</td><td>the decision diffs a repository-derived range; <strong>the range a digest names no longer changes the answer</strong></td></tr><tr><td><strong>ENUM-01</strong></td><td>the severity ladder was narrowed and only 1 of 4 consuming templates followed</td><td>fixed in both trees and mechanically guarded</td></tr><tr><td><strong>REQ-11 prose</strong></td><td>glossary and skill still taught the old vocabulary; one heading named the failing side of the bar as the target</td><td>four sentences corrected against the tool</td></tr><tr><td><strong>T-01</strong></td><td>two engine functions grade 2, excused by allowlist</td><td>grade 4, allowlist entries <strong>deleted</strong> rather than re-pointed</td></tr><tr><td><strong>B21</strong></td><td>two spec-traced branches held by nothing</td><td>bound by named tests that fail under the exact mutations that used to pass</td></tr></tbody></table></div>
+<p>Three of those seven were found <em>after</em> a gate had already gone green — ENUM-01 by the goal-check after the panel passed, the REQ-11 prose drift by the documentor, B21 by a delta review. That is the argument for running the later stages even when the earlier ones are clean.</p>
+<h2 id="evidence-at-the-ship-pin-cd8dae47">Evidence at the ship pin <code>cd8dae47</code></h2>
+<div class="scroll"><table><thead><tr><th>Gate</th><th>Result</th></tr></thead><tbody><tr><td>Goal-check</td><td><strong>20 of 20 met, 0 <code>not_met</code>, 0 open</strong></td></tr><tr><td>The feature&#x27;s own grading gate</td><td><strong>exit 0</strong> — 198 graded, zero blocking, 12 grade-2 all reasoned and answered at this pin</td></tr><tr><td>The engine against its own bar</td><td><strong>53 functions, zero below grade 4</strong>, no carve-out</td></tr><tr><td>Full independent panel (<code>17106762</code>)</td><td><strong>PASS</strong>, <code>must_fix: []</code></td></tr><tr><td>Three delta reviews (<code>6752597</code>, <code>e12d53b1</code>, <code>cd8dae47</code>)</td><td><strong>PASS</strong>, <code>must_fix: []</code>, severity ending at <strong>low</strong></td></tr><tr><td>Test matrix — the project&#x27;s only blocking gate</td><td><strong>PASS</strong></td></tr><tr><td><code>check-state.sh</code></td><td><strong>exit 0</strong></td></tr><tr><td>Canonical repository suite</td><td>957 results, <strong>one</strong> failing suite — not ours</td></tr><tr><td>SC-11 UAT</td><td><strong>passed</strong>, operator-executed, recorded at this pin</td></tr></tbody></table></div>
+<p>The single red suite is <code>test-hooks-install.py (e-green) SC-14</code>: its fixture resolves <code>--repo harness</code> to the real checkout instead of its temporary clone, this feature&#x27;s diff touches none of the files involved, and it reproduces on main. Backlog B8.</p>
+<h2 id="what-is-still-true-and-uncovered">What is still true and uncovered</h2>
+<ul><li>The SC-11 provenance link described above.</li><li><strong>Three branches neighbouring the ones B21 closed remain unbound</strong> — <code>AsyncFunctionDef</code> through both helpers, <code>_qualname</code>&#x27;s class branch with a non-empty incoming prefix, and <code>_resolve_pre_image</code>&#x27;s multi-candidate tie-break. Pre-existing, outside the scope you authorized. B23.</li><li>The collision test binds a <em>derived symptom</em>, not a direct cross-attachment — <code>grade_source</code> keys its name map with <code>_child_qualname</code>, never <code>_qualname</code>, so direct discrimination is impossible given the engine&#x27;s shape.</li><li>The last three reviews were <strong>two-member delta reviews</strong>, not full panels. The c21 panel&#x27;s security and UI verdicts stand and were not refreshed; no delta touched auth, secrets, untrusted input, network, deserialization or a rendered surface.</li><li>No coverage instrumentation exists in this repository. Suite counts count scripts, not behaviour.</li></ul>
+<h2 id="how-this-briefing-was-assembled">How this briefing was assembled</h2>
+<p><strong>No report round was spawned.</strong> I read the digests from disk; paths are enumerated in the c24, c25 and c26 briefings, plus this cycle&#x27;s <code>runs/…-sc11-record…/digest.md</code> and <code>notes/research-goalcheck-final.md</code>.</p>
+<p><strong>One correction to a subordinate&#x27;s finding, disclosed.</strong> pm reported backlog row B22 as stale, having checked by glob and found nothing. I checked with <code>git status</code> and <code>find</code>: the stray <code>.harness/harness/features/FEAT-43-code-risk-grading/</code> directory <strong>does</strong> exist in the main checkout, untracked, two files. <strong>B22 stays.</strong> A row struck on a bad check is a row that dies silently, which is exactly what this table exists to prevent.</p>
+<h2 id="budget">Budget</h2>
+<p><code>cycles_used</code> is <strong>26 of 26</strong> — exhausted, under the ceiling you set. <code>runs</code> is <strong>40 against an informational 20-run budget</strong> (INV-22), surfaced rather than buried. My read, unchanged: the runs that closed defects earned their place and were each independently confirmed; the five bookkeeping corrections I performed by hand were overhead created by leads not meeting their own digest contract, which is B20 and which recurred in every single cycle of this feature.</p>
+<h2 id="backlog-disposition">Backlog disposition</h2>
+<p>Unstruck rows become backlog issues on acceptance. <strong>Anything not listed here dies silently.</strong> B21 is closed and removed.</p>
+<div class="scroll"><table><thead><tr><th>ID</th><th>Nature</th><th>What</th></tr></thead><tbody><tr><td>B1</td><td>chore</td><td><code>validate-digest.py</code> — <code>.encode()</code> preserves a <code>bytes</code> return neither consumer requires</td></tr><tr><td>B2</td><td>enhancement</td><td>eager <code>from code_grade import commit_oid</code> costs ~8ms per hook for a one-branch symbol</td></tr><tr><td>B3</td><td>enhancement</td><td>two <code>git rev-parse</code> spawns per validation (~22ms); collapsing changes the seam signature</td></tr><tr><td>B4</td><td>chore</td><td>three blank lines where both files use PEP8&#x27;s two everywhere else</td></tr><tr><td>B5</td><td>chore</td><td>five spellings of &quot;init a scratch git repo&quot; across three test files; wants a shared test-support module</td></tr><tr><td>B6</td><td>chore</td><td>two near-identical git wrappers with different error contracts</td></tr><tr><td>B7</td><td>bug</td><td>the digest schema gives a read-only engineering assessment no legal way to report its suite</td></tr><tr><td>B8</td><td>bug</td><td><code>test-hooks-install.py (e-green) SC-14</code> fails on any developer machine — fixture resolves <code>--repo harness</code> to the real checkout. Makes the canonical suite red on main</td></tr><tr><td>B9</td><td>bug</td><td>the review-binding error prints twice — one site, two call paths, no de-duplication</td></tr><tr><td>B10</td><td>bug</td><td>branch corroboration silently no-ops when either branch is unknown — a fail-open inside a control added to close a fail-open</td></tr><tr><td>B11</td><td>chore</td><td><code>SELF_GRADING_ALLOWLIST</code> entries are hand-maintained with no staleness check beyond the in-suite guard</td></tr><tr><td>B12</td><td>enhancement</td><td><code>validate-digest.py</code> grew 707 → ~1505 lines; the review-binding subsystem wants its own module</td></tr><tr><td>B13</td><td>enhancement</td><td>the same <code>review_sha</code> is <code>git rev-parse</code>d five times in one validation</td></tr><tr><td>B14</td><td>chore</td><td>the enum guard&#x27;s discovery is bounded by <code>ALIAS</code>, not the filesystem</td></tr><tr><td>B15</td><td>chore</td><td><code>harness-validator-lead.md</code> in both trees still instructs <code>severity_max: info</code> — ungated, the last <code>info</code> in the repo</td></tr><tr><td>B16</td><td>bug</td><td><strong>harness</strong>: a documentor write with a relative path modified the MAIN checkout</td></tr><tr><td>B17</td><td>bug</td><td><strong>harness</strong>: a member ran <code>git checkout -- &lt;file&gt;</code> despite an explicit prohibition. No mechanical guard behind the rule</td></tr><tr><td>B18</td><td>bug</td><td><strong>harness</strong>: the file-reading tool served stale cached contents to two reviewers</td></tr><tr><td>B19</td><td>chore</td><td>vocabulary ruling: <code>none</code> means &quot;nothing found&quot; and is not a drop-in for <code>info</code> as a <em>finding</em> label</td></tr><tr><td>B20</td><td>bug</td><td><strong>harness</strong>: lead digests written without the required contract block, one outside the feature directory, one declaring PASS over its own member&#x27;s FAIL. Recurred every cycle; I fixed five by hand</td></tr><tr><td>B22</td><td>chore</td><td>a stray untracked <code>.harness/harness/features/FEAT-43-code-risk-grading/</code> directory in the main checkout, two files, from an earlier relative-path write. <strong>Verified present</strong></td></tr><tr><td>B23</td><td>chore</td><td>three branches neighbouring the ones B21 closed remain unbound; pre-existing, outside the authorized scope</td></tr><tr><td>B24</td><td>chore</td><td>the collision fixture&#x27;s third top-level <code>run</code> function looks redundant but is load-bearing — deleting it reintroduces a crash and silently loses the binding. Wants a comment saying so</td></tr></tbody></table></div>
+<h2 id="the-decision">The decision</h2>
+<p><strong>Ship.</strong> Say the word and the main session takes it from here: merge, <code>gh-sync.py ship</code>, the backlog rows you leave unstruck, feature-close distillation, and worktree removal — none of which is mine to do, and none of which has been done.</p>
+<p>If you would rather strike rows first, strike them by ID and the rest become issues on acceptance.</p>
+<h2 id="state-of-the-branch">State of the branch</h2>
+<p>Nothing shipped. No PR, no merge, no deploy, no issue closed; the worktree stands. <code>review_sha</code> is <code>cd8dae476607704fd3d2b874150aae9f814292d2</code>, parent issue #924 and all ten sub-issues are at Review, the working tree is clean, <code>check-state.sh</code> exits 0, and no source has moved past the pin.</p><p class='derived'>Derived from <code>ship-review-final.md</code> — the markdown is the record; do not edit this file. Regenerate with <code>bin/render-brief.py</code>.</p></div></body></html>

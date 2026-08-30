@@ -5,12 +5,13 @@
 - feature: FEAT-43-code-risk-grading
 - run: .harness/harness/features/FEAT-43-code-risk-grading/runs/2026-08-29-validate-delta-c26-validator/state.yaml
 - squad: validator
-- status: Review — validation COMPLETE and green. Stopped at the pre-ship boundary for the
-  operator's ship decision. Nothing shipped, merged, deployed or closed; the worktree stands.
+- status: Review — COMPLETE. All 20 criteria met, every gate green, UAT passed. Stopped at the
+  pre-ship boundary for the operator's ship decision. Nothing shipped, merged, deployed or closed;
+  the worktree stands.
 - review_sha: `cd8dae476607704fd3d2b874150aae9f814292d2`
 - cycles: **26 of 26 — exhausted** (`answers/Q10-b21-hold-and-fix.md` authorized the last one, singly
   and narrowly). No repair capacity remains.
-- briefing: `notes/ship-review-validate-final-c26.md` (supersedes c25, which superseded c24)
+- briefing: `notes/ship-review-final.md` (supersedes every earlier ship review)
 
 Seven defects closed across cycles 14–26, each verified by the orchestrator's own run rather than
 accepted on report.
@@ -46,9 +47,18 @@ accepted on report.
 canonical suite 957 results with one failing suite (`test-hooks-install.py (e-green) SC-14`,
 untouched by this diff, reproduces on main, B8); SIMPLIFY an empty pass.
 
-**Goal-check: 19 of 20 met, none `not_met`.** SC-11 is `unproven` and is the operator's UAT.
-`notes/uat-sc11-c21.md` is ready, unexecuted, carries the current pin (committed), and its arithmetic
-is the operator's MAXIMA ruling, stamped SETTLED before any number was drawn.
+**Goal-check: 20 of 20 met, 0 `not_met`, 0 open.** SC-11 — the feature's central claim — was
+executed by the operator at this pin and **PASSED**: a1=6, a2=5, b1=16, b2=14, so worst_A 6 <
+worst_B 16 and gap 10 > max spread 2, both conditions of the frozen MAXIMA rule, with the gap five
+times the larger within-arm spread. `notes/uat-sc11-c21.md` is `status: passed` and committed; pm
+re-derived the arithmetic and reproduced all four values by regrading the surviving outputs
+(`notes/research-goalcheck-final.md`).
+
+Two caveats carried into the briefing rather than dropped: an initial dispatch was **discarded before
+any number was recorded** because shared context revealed the arms to the controls — a void on
+procedure, disclosed, not a selection between draws; and it cannot be verified by inspection that the
+surviving `/tmp` outputs are the neutral run's rather than the discarded one's, so that one link is
+testimonial. SC-11 is strongly evidenced, not end-to-end machine-verified.
 
 `runs` is 39 against an informational 20-run budget (INV-22) — surfaced in the briefing with the read.
 
@@ -61,9 +71,13 @@ is the operator's MAXIMA ruling, stamped SETTLED before any number was drawn.
 - Q4 (ANSWERED, `answers/Q9` §1): SC-11 is decided on arm **MAXIMA**, recorded before the run.
 - Q5 (ANSWERED, `answers/Q9` §2): T-01's deviation refused and fixed at the root.
 - Q6 (ANSWERED, `answers/Q10`): B21 held and fixed in one narrowly scoped cycle.
-- Q7 (FOR THE OPERATOR): run the SC-11 UAT — the feature's central claim and the only thing that can
-  still move a criterion.
-- Q8 (FOR THE OPERATOR): the ship decision, and which of backlog B1–B20, B22, B23, B24 survive.
+- Q7 (ANSWERED, operator-executed 2026-08-29): the SC-11 UAT **passed**; recorded in
+  `notes/uat-sc11-c21.md` and closed in the goal-check at 20 of 20.
+- Q8 (FOR THE OPERATOR, the only thing left): the ship decision, and which of backlog B1–B20, B22,
+  B23, B24 survive. Recommendation: **ship**.
+- Q10 (correction on the record): pm reported B22 stale after a glob check. I verified with
+  `git status` and `find` — the stray untracked directory DOES exist in the main checkout, two
+  files. **B22 stays.**
 - Q9 (disclosed, non-blocking): the collision test binds a *derived symptom*, not a direct
   cross-attachment, because `grade_source` keys its name map with `_child_qualname` and never
   `_qualname` — direct discrimination is impossible given the engine's shape. The validator lead
