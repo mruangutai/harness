@@ -126,5 +126,8 @@
 - O-09: WHEN a criterion needs an unreadable path DO create a dangling symlink inside the test's
   own temp directory. It fails a readability test for every uid and is never checked in, whereas a
   zeroed file mode is a no-op as root and is not preserved by version control.
+- O-10: WHEN a read-only dispatch needs mutation evidence DO copy the tool and its test module
+  into a temp directory outside the tracked tree and import it there — a test building its own
+  fixtures needs no repo layout, so mutation proof survives a no-write grant.
 
 ## Open (max 5)

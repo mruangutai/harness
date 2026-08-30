@@ -8,6 +8,9 @@
 - P-02: WHEN adding an entry to `.harness/harness/docs/DECISIONS.md` DO append at end-of-file and regenerate
   the index rather than hand-writing the new row — appending keeps every existing `@line` anchor
   stable, and the generator emits a sentinel telling you the one place to write.
+- P-03: WHEN an edit changes a decision's body in `.harness/harness/docs/DECISIONS.md` DO expect
+  the regenerated index row's tags, refs and `@line` anchor to recompute, and report that as your
+  edit's effect; a wrong generated row is fixed at `gen-decisions-index.py`, never by hand.
 
 ## Gotchas (max 15)
 - G-01: WHEN a decision the tree flatly contradicts turns up DO strike it, never mark it — DEC-188
@@ -23,6 +26,9 @@
 - G-04: WHEN `.harness/harness/docs/SPEC.md` and a script under `.claude/skills/harness/bin/`
   disagree DO treat the script as authority and fix SPEC — SPEC states intent and drifts; several
   of its Expertise budget and precedence claims were falsified by the shipped scripts.
+- G-05: WHEN wording a decision's title or the bold run opening its body DO check the verbs
+  `gen-decisions-index.py` scans — a line-initial SUPERSEDES, CORRECTS or INVERTS governing a
+  decision number stamps that row SUPERSEDED BY, so narrative phrasing can mark a live ruling dead.
 
 ## Outcomes (max 10)
 
