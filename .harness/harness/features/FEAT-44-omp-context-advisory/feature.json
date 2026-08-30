@@ -2,7 +2,7 @@
   "feature_id": "FEAT-44-omp-context-advisory",
   "branch": "feat/FEAT-44-omp-context-advisory",
   "pr": null,
-  "status": "Plan",
+  "status": "Ready",
   "review_sha": "b0ea27d8eb9740f2d8e6f2fceeb82fa16bdead56",
   "cycles_used": 1,
   "max_total_cycles": 10,
@@ -37,5 +37,28 @@
       "agent": "harness-product-lead",
       "verdict": "PASS"
     }
-  ]
+  ],
+  "github": {
+    "milestone": 32,
+    "parent": 966,
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03",
+      "T-04",
+      "T-05",
+      "T-06"
+    ],
+    "issues": {
+      "T-01": 967,
+      "T-02": 968,
+      "T-03": 969,
+      "T-04": 970,
+      "T-05": 971,
+      "T-06": 972
+    },
+    "source_issues": [
+      923
+    ]
+  }
 }
