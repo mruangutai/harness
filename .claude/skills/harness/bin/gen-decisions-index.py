@@ -125,10 +125,9 @@ def parse_decisions(text):
         decisions[key] = {
             "num": num,
             "line": lineno,
-            "title": lines[idx][1],
             "body": "\n".join(body_lines),
         }
-    return decisions, lines, headings
+    return decisions, headings
 
 
 def compute_refs(body, own_num, live_nums):
@@ -169,7 +168,7 @@ def strip_trailing_clauses(ruling):
 
 
 def build_index(text, existing_rows):
-    decisions, _, headings = parse_decisions(text)
+    decisions, headings = parse_decisions(text)
     live_nums = {num for (_, _, num, _) in headings}
 
     # Orphan detection: existing rows with non-sentinel ruling text whose DEC
