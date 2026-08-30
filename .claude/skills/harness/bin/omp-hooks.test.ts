@@ -399,6 +399,86 @@ describe("OMP task lifecycle adapter", () => {
     }, ctx);
     expect(calls.filter(reconciled).length).toBe(before);
   });
+
+  // -------------------------------------------------------------------------
+  // THE EDIT ROUTE. Added 2026-08-30, after a line-anchored edit corrupted a
+  // feature.json that gh-sync.py had rewritten between the read and the write,
+  // and nothing refused it.
+  //
+  // postDomain hands an `edit` result to check-domain.sh --post via
+  // extractEditPaths(...).map(...). An empty array yields ZERO runner calls and
+  // no diagnostic of any kind, because no process is ever spawned. Until these
+  // cases the suite drove `task` eight times and `edit` NOT ONCE: a regression
+  // that emptied that array would have kept the suite green while silently
+  // disabling the shape gate on every file an agent edits.
+  // -------------------------------------------------------------------------
+  const editCtx = {
+    cwd: "/repo",
+    sessionManager: { getSessionId: () => "parent-session" },
+  };
+
+  const editResult = (patch: unknown) => ({
+    toolName: "edit",
+    toolCallId: "call-edit",
+    input: { input: patch },
+    content: [{ type: "text", text: "ok" }],
+  });
+
+  const postPaths = (calls: Array<{ script: string; args: string[]; payload: Record<string, unknown> }>) =>
+    calls
+      .filter((call) => call.script === "check-domain.sh" && call.args.includes("--post"))
+      .map((call) => (call.payload as any).tool_input.file_path);
+
+  test("a hashline edit reaches check-domain.sh --post carrying the edited path", async () => {
+    const { handlers, calls } = fixture();
+    await start(handlers);
+    // The exact file and tag shape of the 2026-08-30 corruption.
+    const path = ".harness/harness/features/FEAT-44-omp-context-advisory/feature.json";
+    await handlers.get("tool_result")?.(
+      editResult(`[${path}#5314]\nPUT 11.=11:\n+  "id": "2026-08-29-01-product",`),
+      editCtx,
+    );
+    const post = calls.filter((call) =>
+      call.script === "check-domain.sh" && call.args.includes("--post"));
+    expect(post.length).toBe(1);
+    expect((post[0].payload as any).tool_input).toEqual({ file_path: path });
+    // Named `Edit`, not `edit`: check-domain.sh matches the Claude-shaped name.
+    expect((post[0].payload as any).tool_name).toBe("Edit");
+  });
+
+  test("every file of a multi-section edit is gated, not just the first", async () => {
+    const { handlers, calls } = fixture();
+    await start(handlers);
+    await handlers.get("tool_result")?.(
+      editResult("[a/one.json#A1B2]\nPUT 1.=1:\n+x\n[b/two.yaml#00FF]\nPUT 2.=2:\n+y"),
+      editCtx,
+    );
+    expect(postPaths(calls)).toEqual(["a/one.json", "b/two.yaml"]);
+  });
+
+  test("an MV destination is gated - a rename lands bytes at a new path", async () => {
+    const { handlers, calls } = fixture();
+    await start(handlers);
+    await handlers.get("tool_result")?.(
+      editResult("[src/old.ts#BEEF]\nMV src/new.ts"),
+      editCtx,
+    );
+    expect(postPaths(calls)).toEqual(["src/old.ts", "src/new.ts"]);
+  });
+
+  test("a non-string patch spawns no gate at all - the silent-zero shape", async () => {
+    const { handlers, calls } = fixture();
+    await start(handlers);
+    await handlers.get("tool_result")?.(editResult({ sections: ["a/one.json"] }), editCtx);
+    // CHARACTERIZATION, NOT ENDORSEMENT. extractEditPaths returns [] for any
+    // non-string input, so `.map()` spawns nothing: no error, no stderr, no exit
+    // code. If a host ever delivers a structured edit payload the shape gate goes
+    // quiet on every edit and no suite notices. Whether to convert this into the
+    // bash-style sweep instead of nothing is an enforcement-behaviour decision,
+    // recorded in .harness/notes/analysis-stale-anchor-write-hazard.md, not a
+    // silent default. This test exists so the zero is asserted rather than assumed.
+    expect(postPaths(calls)).toEqual([]);
+  });
 });
 
 // ---------------------------------------------------------------------------

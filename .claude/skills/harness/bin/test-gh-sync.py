@@ -108,6 +108,20 @@ def write_feature_json(path, **fields):
         json.dump(doc, f, indent=2)
 
 
+def nested_feature_dir(feat_name="FEAT-77-test"):
+    """A fresh tempdir's feature directory nested under a realistic
+    .harness/features/<feat_name>/ shape (matching `stage()`'s own convention and
+    feature_json_write.FEATURE_JSON_TAIL) — required for any fixture that reaches
+    save_recorded/_record_status/_record_pr now that they route through the locked,
+    destination-checked feature_json_write.write_feature_json (stale-anchor-write-hazard
+    cycle 2). A bare tempdir passed a feature.json worked only because those write sites
+    carried no destination check at all before this feature."""
+    base = tempfile.mkdtemp()
+    d = os.path.join(base, ".harness", "features", feat_name)
+    os.makedirs(d)
+    return d
+
+
 def read_feature_json(path):
     with open(path, encoding="utf-8") as f:
         return json.load(f)
@@ -1227,7 +1241,7 @@ _spec.loader.exec_module(_ghs)
 # 1. A populated github: block, including a QUOTED milestone number — _opt_int must still
 #    coerce it. This is row 3 of the fix1 spec's table: "file present with a github
 #    mapping -> load it, as today".
-_d1 = tempfile.mkdtemp()
+_d1 = nested_feature_dir("FEAT-t06c-1")
 json.dump({
     "feature_id": "F1",
     "github": {
@@ -1248,7 +1262,7 @@ check("T-06C: a populated github: block loads, quoted milestone coerced by _opt_
 #    otherwise crash on any feature that has not been mirrored yet, which is most of
 #    them. This is row 1 of the fix1 spec's table: file present, no github key -> a
 #    legitimate first sync.
-_d2 = tempfile.mkdtemp()
+_d2 = nested_feature_dir("FEAT-t06c-2")
 json.dump({"feature_id": "F2"}, open(os.path.join(_d2, "feature.json"), "w"))
 _rec2 = _ghs.load_recorded(_d2)
 check("T-06C: a feature.json with no github: block returns the default, does not raise",
@@ -1265,7 +1279,7 @@ check("T-06C: a feature.json with no github: block returns the default, does not
 
 # Row 1a: file ABSENT entirely -> default rec, never a raise (already covered by cmd_open's
 # happy path via stage(), asserted again here directly against load_recorded).
-_dabsent = tempfile.mkdtemp()
+_dabsent = nested_feature_dir("FEAT-fix1b-absent")
 _recAbsent = _ghs.load_recorded(_dabsent)
 check("fix1 B row1a: absent feature.json returns the default rec, does not raise",
       _recAbsent == {"milestone": None, "parent": None,
@@ -1282,7 +1296,7 @@ check("fix1 B row1b: dict present with no github key returns the default rec",
 # Row 2: file present but a genuine ZERO-BYTE truncation -- the exact artifact
 # save_recorded's pre-fix `open(p, "w")` guaranteed at open. THIS is the live truncation
 # fixture the dispatch requires: a 0-byte record file must ERROR, not load as empty.
-_dzero = tempfile.mkdtemp()
+_dzero = nested_feature_dir("FEAT-fix1b-zero")
 open(os.path.join(_dzero, "feature.json"), "w").close()
 check("fix1 B row2: 0 bytes on disk",
       os.path.getsize(os.path.join(_dzero, "feature.json")) == 0, "fixture setup")
@@ -1298,7 +1312,7 @@ except SystemExit as e:
 # a bare list or a bare scalar. Same bug shape as the zero-byte case: `.get` would not
 # exist on either, so a naive fix could still fail OPEN by returning the default rec.
 for _label, _body in (("a_list", "[1, 2]\n"), ("a_scalar", '"just a string"\n')):
-    _dnm = tempfile.mkdtemp()
+    _dnm = nested_feature_dir(f"FEAT-fix1b-nonmap-{_label}")
     open(os.path.join(_dnm, "feature.json"), "w").write(_body)
     try:
         _ghs.load_recorded(_dnm)
@@ -1315,7 +1329,7 @@ for _label, _body in (("a_list", "[1, 2]\n"), ("a_scalar", '"just a string"\n'))
 # error — because the whole point is refusing to sync when what is mirrored cannot be
 # known. Pre-fix this silently returned the default rec at gh-sync.py:274-276.
 for _label, _github_val in (("a_string", "not-a-mapping"), ("a_list", ["T-01", 41])):
-    _dgh = tempfile.mkdtemp()
+    _dgh = nested_feature_dir(f"FEAT-fix1b-row4-{_label}")
     json.dump({"feature_id": "F-row4", "github": _github_val},
               open(os.path.join(_dgh, "feature.json"), "w"))
     try:
@@ -1330,7 +1344,7 @@ for _label, _github_val in (("a_string", "not-a-mapping"), ("a_list", ["T-01", 4
 # in a partial or empty state. Proven by forcing json.dump to fail PARTWAY through the
 # write, with a real pre-existing file on disk: a truncating `open(p, "w")` has already
 # destroyed the original bytes by the time json.dump raises; os.replace has not.
-_datomic = tempfile.mkdtemp()
+_datomic = nested_feature_dir("FEAT-fix1a-atomic")
 _atomic_path = os.path.join(_datomic, "feature.json")
 _original_doc = {"feature_id": "F-atomic", "status": "Building"}
 json.dump(_original_doc, open(_atomic_path, "w"))
@@ -1351,7 +1365,12 @@ check("fix1 A: a failed save_recorded leaves feature.json byte-identical, never 
       _after_bytes == _original_bytes,
       f"before={_original_bytes!r} after={_after_bytes!r}")
 # No temp file left behind either — the except BaseException cleanup path.
-_leftover = [f for f in os.listdir(_datomic) if f != "feature.json"]
+# feature.json.lock is harness_merge's own sibling lock file (DEC-199/D-02): deliberately
+# never removed once created -- flock has no stale state, so it costs nothing left behind
+# (see harness_merge.py's module docstring). It is not the artifact this check protects
+# against; a REAL leak here would be a stray json.dump/mkstemp tempfile from a write that
+# crashed partway, which is what "no leftover temp file" actually means.
+_leftover = [f for f in os.listdir(_datomic) if f not in ("feature.json", "feature.json.lock")]
 check("fix1 A: no leftover temp file after a failed save_recorded", _leftover == [],
       str(_leftover))
 
@@ -1369,7 +1388,7 @@ for _label, _doc in (
         ("other keys present",
          {"feature_id": "F1", "status": "Building", "review_sha": "abc1234",
           "cycles_used": 3})):
-    _d = tempfile.mkdtemp()
+    _d = nested_feature_dir(f"FEAT-finding2-{_label.replace(' ', '-')}")
     with open(os.path.join(_d, "feature.json"), "w", encoding="utf-8") as f:
         json.dump(_doc, f)
     _ghs.save_recorded(_d, _REC)
@@ -2061,7 +2080,7 @@ with tempfile.TemporaryDirectory() as tmpX3:
 # --- save_recorded refuses, loudly, when feature.json is absent — the orchestrator
 #     instantiates it from templates/feature.json on the first cycle; a fresh document
 #     written here would be missing feature-schema.json's eight required keys
-_dabsentT02 = tempfile.mkdtemp()
+_dabsentT02 = nested_feature_dir("FEAT-t02-absent")
 _recAbsentT02 = {"milestone": None, "parent": None, "attached": [],
                  "issues": {}, "source_issues": []}
 try:
