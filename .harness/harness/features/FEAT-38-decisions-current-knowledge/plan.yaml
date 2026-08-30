@@ -25,9 +25,15 @@ approval:
   # Re-grading at validate: SC-11 re-runs over the six entries T-27 touches; SC-13's UAT
   # judgement STANDS unless T-27 turns out to touch prose, in which case it returns to the
   # operator. Q6..Q10 from run 24 remain OPEN and non-blocking; none gates the build.
-  status: approved               # pending | approved
-  approved_by: operator
-  date: 2026-08-29
+  # WITHDRAWN AGAIN 2026-08-29 by the main session, for the adversarial panel's revision.
+  # An independent three-reader panel graded this SIGNED plan and found T-24's verify
+  # UNSATISFIABLE at its own completion (reproduced by the main session: the sweep matches
+  # .harness/harness.json, whose cleanup is T-25, which depends_on T-24). SC-11's re-grade
+  # also reaches five entries, not the six this block claimed. Rulings are in
+  # notes/answers-2026-08-29-panel.md. A signature cannot stand over a gate that cannot pass.
+  status: pending                # pending | approved
+  approved_by: none
+  date: none
   signatures:
     - { date: 2026-08-29, covers: '23 tasks, executable claims BUILT — WITHDRAWN' }
     - { date: 2026-08-29, covers: '28 tasks, executable claims DELETED, REQ-10, SC-14..SC-18' }
