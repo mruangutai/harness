@@ -843,8 +843,15 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
     // gate. Safe to share the variable because the context advisory above is
     // task-only and this is edit-only, so the two are mutually exclusive.
     if (toolName === "edit" && extractEditPaths(input.input).length === 0) {
-      advisory = "Harness: no target path could be extracted from this edit, so the "
-        + "post-write shape check ran on no file. This is a notice, not a refusal.";
+      // NAMES BOTH GATES. preDomain's edit branch has the identical `.map()`, so a
+      // zero extraction skips the PRE (blocking) check too — and that one is worse,
+      // because it is preventive: the edit lands unchecked rather than merely
+      // unreported. Measured 2026-08-30: preDomain returns no block and spawns no
+      // check-domain.sh at all. An earlier wording said only "post-write", which
+      // understated the skip by exactly the gate that matters more.
+      advisory = "Harness: no target path could be extracted from this edit, so "
+        + "neither the pre-write nor the post-write shape check ran on any file. "
+        + "This is a notice, not a refusal.";
     }
     const reason = firstBlock(postDomain(ctx.cwd, currentAgent, toolName, input, policyRunner));
     const content = Array.isArray(event.content) ? event.content : [];

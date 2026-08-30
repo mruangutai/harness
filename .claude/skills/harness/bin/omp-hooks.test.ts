@@ -477,7 +477,7 @@ describe("OMP task lifecycle adapter", () => {
     // than being byte-identical to a gate that ran and passed.
     expect(postPaths(calls)).toEqual([]);
     const texts = ((result as any).content as Array<{ text: string }>).map((part) => part.text);
-    expect(texts.some((t) => t.includes("ran on no file"))).toBe(true);
+    expect(texts.some((t) => t.includes("neither the pre-write nor the post-write"))).toBe(true);
     // AND IT MUST NOT COST A GATE. No isError key at all, not merely a falsy one:
     // a notice that turned a normal result into an error would be worse than the
     // silence it replaces.
@@ -492,6 +492,56 @@ describe("OMP task lifecycle adapter", () => {
     // The gate ran, so there is nothing to announce. If this reddens, every edit
     // in every session just started carrying a notice.
     expect(result).toBeUndefined();
+  });
+
+  // -------------------------------------------------------------------------
+  // THE PRE-DOMAIN EDIT ROUTE (M1, raised by the cycle-0 panel).
+  //
+  // preDomain carries the IDENTICAL silent-zero `.map()`, and it is the BLOCKING
+  // gate: `reason = firstBlock(preDomain(...))` at :684. A zero extraction there
+  // is strictly worse than on postDomain — the edit LANDS unchecked rather than
+  // merely going unreported. Every case above filters on `--post`, so by
+  // construction none of them touched this route: neutering it changed nothing.
+  // -------------------------------------------------------------------------
+  test("a hashline edit is gated BEFORE it lands - check-domain.sh with no --post", async () => {
+    const { handlers, calls } = fixture();
+    await start(handlers);
+    const path = ".harness/harness/features/FEAT-44-omp-context-advisory/feature.json";
+    const blocked = await handlers.get("tool_call")?.(
+      editResult(`[${path}#5314]\nPUT 11.=11:\n+  "id": "x",`), editCtx);
+    const pre = calls.filter((call) =>
+      call.script === "check-domain.sh" && !call.args.includes("--post"));
+    expect(pre.length).toBe(1);
+    expect((pre[0].payload as any).tool_input).toEqual({ file_path: path });
+    expect((pre[0].payload as any).tool_name).toBe("Edit");
+    // The fixture's runner does not block, so a clean edit proceeds.
+    expect(blocked).toBeUndefined();
+  });
+
+  test("every file of a multi-section edit is gated before it lands", async () => {
+    const { handlers, calls } = fixture();
+    await start(handlers);
+    await handlers.get("tool_call")?.(
+      editResult("[a/one.json#A1B2]\nPUT 1.=1:\n+x\n[b/two.yaml#00FF]\nPUT 2.=2:\n+y"),
+      editCtx);
+    expect(calls
+      .filter((call) => call.script === "check-domain.sh" && !call.args.includes("--post"))
+      .map((call) => (call.payload as any).tool_input.file_path))
+      .toEqual(["a/one.json", "b/two.yaml"]);
+  });
+
+  test("a non-string patch reaches no pre-write gate and does not block the edit", async () => {
+    const { handlers, calls } = fixture();
+    await start(handlers);
+    const blocked = await handlers.get("tool_call")?.(
+      editResult({ sections: ["a/one.json"] }), editCtx);
+    // MEASURED, not assumed: the preventive gate spawns nothing and the edit is
+    // allowed through. Blocking instead would be a fail-closed enforcement change
+    // -- it would refuse every edit whose payload shape the extractor cannot read
+    // -- so it is recorded as an open decision, not taken silently here. The S2
+    // notice on the RESULT is what tells the operator both checks were skipped.
+    expect(calls.filter((call) => call.script === "check-domain.sh")).toEqual([]);
+    expect(blocked).toBeUndefined();
   });
 });
 
