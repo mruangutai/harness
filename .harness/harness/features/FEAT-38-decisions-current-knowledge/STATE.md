@@ -3,101 +3,82 @@
 ## Current
 
 - feature: FEAT-38-decisions-current-knowledge
-- run: `2026-08-30-ship-close-orchestrator` — the ship closing sequence
-- squad: none. Orchestrator-held; no lead was dispatched in this run
-- status: **Review**, PR **#996** OPEN and **CONFLICTING**. **NOT merged. NOT shipped.**
+- run: `2026-08-30-fold-ship-orchestrator` — fold the merged amendments, re-pin, re-gate, ship
+- status: **Done**, PR **#996**, branch **0 behind `origin/main`**
+- review_sha: **`37676244`** — re-pinned this run
 
-**THE CLOSING SEQUENCE STOPPED AT THE MERGE, AND THE REASON IS INTEGRATION, NOT QUALITY.** Every
-gate this feature owns is green and SC-13 is answered. PR #996 cannot merge because the branch
-conflicts with `origin/main` in three files. No board card was moved, the milestone was NOT closed,
-and `gh-sync.py ship` was deliberately NOT run — writing `Done` for work that did not merge would
-falsify the record.
+**THE MERGE BLOCKER IS GONE, THE FOLD IS DONE, AND EVERY GATE IS GREEN AT THE NEW PIN.**
+`origin/main` is merged (`a382827`, re-merged at `141eca6`), the three conflicts are resolved, and
+the three amendments FEAT-44 brought in are folded at `3767624`. Full unit suite **exit 0**, zero
+`FAIL` lines. Blocking qa gate **PASS** (`matrix_ok: true`, `must_fix: []`). Targeted delta panel
+**PASS** (`severity_max: med`, `must_fix: []`). SC-11 read-back **3 of 3 PASS**.
 
-**THE PREMISE "0 COMMITS BEHIND MAIN" WAS MEASURED AGAINST A STALE, DIVERGENT LOCAL `main`.** That
-is the single fact that inverted this run's outcome:
+**The fold, per DEC-205.** DEC-159 (the in-flight warning moved off the Claude hook onto the OMP
+`tool_result` injection), DEC-198 (the 200000 default re-homed to `.omp/extensions/harness-hooks.ts`)
+and DEC-201 (self-identification replaced by `ctx.sessionManager.getSessionFile()`). Each entry
+states current truth in the present tense; each falsified claim survives as one clause so it cannot
+be re-proposed as new; each amendment block is deleted, with the stray `---` that closed DEC-201's.
+DEC-201's six evidence bounds survive item for item — one OMP build measured twice on one machine,
+the committed probe path, the version-floor risk, that `probe-omp-session-accessor.py` fails rather
+than skips, that the check is MANUAL and not a CI gate, and that this is one build's observed
+behaviour rather than a property of the OMP API — and its retired nonce scheme is recorded as
+correct-but-inapplicable rather than wrong.
 
-- `main...HEAD` → `0 52`. True, and misleading: the branch merged LOCAL `main` at `d04be92`.
-- `main...origin/main` → **`2 19`**. Local `main` is 2 ahead and **19 behind** the remote.
-- `origin/main...HEAD` → **`19 55`**. The real merge-base is `7ebfc9e`, the feature's ORIGINAL base,
-  not `7a23d74`.
+**The read-back was run by a reader who did not write the fold**, per SC-11's own method, with the
+governing belief and its falsifier pointed to by line for each entry. `notes/readback-fold-merge.md`;
+the reviewer's own note is `notes/review-harness-code-reviewer-readback-fold.md`. Three corroborating
+details of retired mechanisms were dropped and each was judged defensible on the record.
 
-**The 19 upstream commits are FEAT-44** (OMP-native context advisory, PRs #982 and #995), which
-shipped while FEAT-38 was in flight and touched three of the same files.
+**The conflict resolutions were GRADED, not assumed** — no reviewer had seen them before this run.
+`harness.json` is not a union: branch 29, main 26, union would have been 29, the pin is 27, and the
+two dropped are exactly the files FEAT-44 deleted. All 26 concrete registrations name a file that
+exists. `DECISIONS-INDEX.md` is byte-identical to a fresh regeneration, proving it was regenerated
+and not hand-merged; 188 rows, 188 live headings, zero orphans.
 
-**The three conflicts, measured with `git merge-tree --write-tree origin/main HEAD`:**
+**WHY `review_sha` MOVED, and it had to.** The prior pin was **`635cd3ba`**. It described a tree in
+which `origin/main` had never been merged. The merge changed source under it — `harness.json`,
+`run-unit-tests.sh` and the generated index — and the fold then changed the authority itself. A pin
+that no longer contains the work under review returns PASS on nothing. `37676244` is the fold commit
+and contains every source change this feature ships.
 
-- `.claude/skills/harness/bin/run-unit-tests.sh` — both features registered new test scripts
-- `.harness/harness.json` — both edited `test_kinds`
-- `.harness/harness/docs/DECISIONS-INDEX.md` — a GENERATED file; FEAT-44's `57333d0` regenerated it
-  after amending DEC-198, DEC-201 and DEC-159
+**PR #996 deliberately carries two FEAT-46 commits**, `16f86e3` (grilling note) and `7a23d74` (the
+operator's hold entry). They touch only `.harness/logs/2026-08-30.md` and a note under FEAT-46 — no
+source — and splitting them out would need a history rewrite that moves HEAD and voids the pin.
+Recorded so it is not silent. The `test-validate-feature-json.py` substring fix (`79e2639`, PR #997)
+is `main`'s work, here by merge, and is not FEAT-38's.
 
-`.harness/harness/docs/DECISIONS.md` itself **auto-merges cleanly**. The feature's own subject
-matter is not in conflict.
+**Three handed-down premises proved FALSE this run, all caught by re-measurement.** (1) "`test_kinds`
+28 → 27" — no counting method yields that pair; the truth is 29 → 27, and the numeral reached no
+durable record. (2) "`.claude/settings.json` is absent" — it is present and still registers a
+PostToolUse hook on `Write|Edit|Bash`, `check-domain.sh --post`, not the retired watchdog; DEC-159's
+clause is scoped "for this" and is true as written. (3) "DEC-159's amendment ends with a stray `---`"
+— it was DEC-201's. A fourth, smaller: the goal-check digest's headline says "sixteen live criteria"
+while its own table carries 17 rows; the table is right, and with SC-13 answered it is **17 of 17**.
 
-**The two local-only `main` commits are `16f86e3` (grill FEAT-46) and `7a23d74` (hold FEAT-46 until
-FEAT-38 ships).** They are unpushed, and because the branch merged local `main`, **PR #996 carries
-them**. Nobody intended FEAT-46 material to ride this PR; it is stated so the resolution decides it
-deliberately.
+**Budget: cycles 16 of 30; runs 37 of an informational 20.** No rework this run — all three squad runs
+returned PASS first pass with zero send-backs, so `cycles_used` did not move. The run count is
+informational (DEC-157) and stops nothing; each run here closed a named gate.
 
-**Resolution is NOT this orchestrator's to perform.** It needs `origin/main` merged into the branch
-— a HEAD move that `bash-write-guard.sh` refuses for every governed agent, correctly. It also
-changes source files under the pin, so `review_sha` `635cd3ba` would no longer describe the merged
-tree and the qa gate would need re-running against the resolved tree. That is a validate cycle, not
-a closing step.
-
-**SC-13 IS ANSWERED — that blocker is genuinely gone.** `notes/uat-FEAT-38.md` reads
-`status: passed`, answered by the operator on 2026-08-30 on their own reading of DEC-138, DEC-174
-and DEC-181, each marked `pass. true today`, with the cross-cutting question answered `pass —
-nothing considered settled has disappeared`. The file keeps the verdict history rather than
-overwriting it: an initial `failed` instruction was reversed by the operator after reading the
-entries. **The pass is scoped** — it asked only whether each entry reads as current truth, never
-whether an entry is a decision at all or is in clause form. FEAT-46 sets that standard and all three
-entries are in scope for its triage; this pass must never be cited to exempt them.
-
-**Everything else was already closed and none of it was re-run here.** Goal-check 17 of 17 live
-criteria met. The blocking qa gate PASSES (`matrix_ok: true`, `must_fix: []`, suite exit 0, all 55
-registered scripts run). The four-reviewer panel PASSES at the pin, `severity_max: low`, no
-`must_fix`.
-
-**`review_sha` `635cd3ba` was still valid against the branch tip and was NOT re-pinned.** Of the 16
-files changed between the pin and `d04be92`, 13 are under this feature's own directory and the other
-three are two `.harness/logs/` entries and a grilling note. Zero source files. **This validity
-statement is about the branch as it stands; a conflict resolution against `origin/main` voids it.**
-
-**What this run did do.** Pushed the branch (it had never been pushed — `d04be92..6be4e0b` now on
-the remote). Opened PR #996. Recorded `pr: 996` through `gh-sync.py record-pr` rather than by hand.
-Wrote the handoff and the ship review. Set `status: Done` in anticipation of the merge and
-**reverted it to `Review` when the merge proved impossible.**
-
-**Budget: cycles 16 of 30; runs 34 of an informational 20.** Neither moved in this run — no rework,
-and an orchestrator-held segment is not a squad run. The count is informational and stops nothing.
+**Feature-close distillation has NOT run.** It runs at merge on a distill mission the main session
+dispatches, and is not a ship step.
 
 ## Open Questions
 
-**BLOCKING — the main session's or the operator's, not any squad's:**
+None blocking. Six residual findings are carried to the operator as proposed backlog in
+`notes/ship-review-2026-08-30-fold-ship.md`; anything not accepted there dies silently.
 
-- **PR #996 conflicts with `origin/main` in three files and cannot merge.** Someone with the
-  authority to move HEAD must merge `origin/main` into the branch and resolve
-  `run-unit-tests.sh`, `harness.json` and the generated `DECISIONS-INDEX.md` — the last is
-  regenerated, not hand-merged. Then re-run the blocking qa gate and re-pin `review_sha`, because
-  the resolution changes source files the panel graded.
-- **Decide whether PR #996 should carry the two FEAT-46 commits** it inherited from the local
-  `main` merge, or whether they are split out first.
-- **Local `main` is 2 ahead / 19 behind `origin/main`.** Independent of this feature, and it is what
-  made a stale measurement look authoritative.
-
-**Carried to the operator as proposed backlog** in `notes/ship-review-2026-08-30-ship-close.md`,
-which also carries the non-backlog residuals. Anything not accepted there dies silently:
-
-- **B-25 — `bash-write-guard.sh` cannot expand shell variables and does not track `cd`.** It
-  resolves targets against the session root, so `cd <dir> && sed -i '' … plan.yaml` and
-  `sed -i '' … "$P"` were denied "outside your domain" while the identical command with a literal
-  absolute path was allowed — and `check-domain.sh --resolve` grants that path. Two surfaces
-  disagree.
-- **B-26 — `/usr/bin/grep` is `pi-uu-grep 0.2.0`, in which `^+` matches EVERY line.** Four false
-  readings across this feature, including an apparent 83 insertions against a true `--numstat` of
-  zero. Every affected measurement was redone in Python.
-- **B-39 — a run-directory slug collision destroyed a record.** The T-27 lead wrote into
-  `runs/2026-08-29-01-product`, already the panel-revision run's directory, overwriting its
-  `digest.md` and `state.yaml`. `runs/` is gitignored, so it was unrecoverable. Nothing in the
-  run-directory contract stops a lead choosing a slug that already exists.
+- **B-25** — `bash-write-guard.sh` cannot expand shell variables and does not track `cd`; it resolves
+  targets against the session root, so `cd <dir> && sed -i '' … plan.yaml` was denied while the same
+  command with a literal absolute path was allowed, and `check-domain.sh --resolve` grants that path.
+- **B-26** — `/usr/bin/grep` is `pi-uu-grep 0.2.0`, in which `^+` matches EVERY line. Four false
+  readings across this feature; every affected measurement was redone in Python.
+- **B-39** — a run-directory slug collision destroyed a record. `runs/` is gitignored, so it was
+  unrecoverable, and nothing in the contract stops a lead reusing a slug.
+- **B-40** — `DEC-159` still says the handoff shape gate denies at >40 lines while the same entry
+  records the cap raised to ~60 at DEC-160. Un-amended remainder; reported, not edited.
+- **B-41** — three `### DEC-NNN addendum` sub-headings survive in `DECISIONS.md` (DEC-124, DEC-125,
+  DEC-141). A sibling construct to the abolished amendment, present at the feature's original base
+  `7ebfc9e` and outside its approved scope. FEAT-46's triage is the natural home.
+- **B-42** — `run-unit-tests.sh --check-kinds` asserts only one direction and would NOT have caught
+  the naive-union defect it was cited as guarding. Correct today only because qa measured file
+  existence directly. Pre-existing; the panel ranked it first on irreversibility.
