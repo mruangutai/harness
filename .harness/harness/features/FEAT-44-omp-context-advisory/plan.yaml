@@ -45,7 +45,16 @@ decisions:
     dec: none
   - id: D-04
     choice: The advisory is gated on currentAgent equal to harness-orchestrator AND toolName equal to task AND over threshold, computed before the handler's existing early return and appended to the same content array without touching isError
-    because: the persona is already in the closure at the injection point, and dropping the advisory when a post-write check blocks would lose exactly the wake it was addressed to
+    because: >
+      the persona is already in the closure at the injection point, so the gate needs no new
+      mechanism. CORRECTED 2026-08-29 - the original rationale claimed that dropping the advisory
+      when a post-write check blocks would lose exactly the wake it was addressed to. That
+      justifies the design with a state the code cannot reach, because postDomain returns an empty
+      list for every toolName outside write, edit and bash, at .omp/extensions/harness-hooks.ts
+      line 272, so a block reason and the task wake are mutually exclusive. The real reason to
+      compute before the early return is that the early return fires whenever there is no block
+      reason, which is the common case for a task result, so an advisory computed after it would
+      never be emitted at all
     dec: none
   - id: D-05
     choice: DEC-198 is amended to source its 200000 default to DEFAULT_CONTEXT_WARN_TOKENS exported from .omp/extensions/harness-hooks.ts, keeping the name the retired script used

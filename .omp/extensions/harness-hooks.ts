@@ -582,6 +582,13 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
   let featureCaptured = false;
   let claimsReconciled = false;
   let lastAssistantMessage = "";
+  // FEAT-44: once-per-session cap for BOTH notice classes (inert and accessor
+  // failure). Setting it skips the whole advisory path on every later wake in
+  // this session, the read included, so the full scan the widening ladder
+  // degrades to is paid once per session rather than once per wake. Accepted
+  // cost, disclosed in BRIEF.md: if the host recovers mid-session the advisory
+  // does not return until the next session.
+  let contextNoticeEmitted = false;
   const pendingTaskCalls = new Map<string, ClaimReceipt[]>();
   const runtimeClaims = new Map<string, ClaimReceipt>();
   const setFeature = (feature: string | undefined, ctx: any): void => {
@@ -778,13 +785,47 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
         });
       }
     }
+    // FEAT-44: computed BEFORE the early return below. That return fires whenever
+    // there is no block reason, which is the common case for a task result, so an
+    // advisory computed after it would never be emitted at all.
+    let advisory: string | undefined;
+    if (currentAgent === "harness-orchestrator" && toolName === "task" && !contextNoticeEmitted) {
+      // resolveSessionFile, not an inline try/catch: inside this gate a throw can
+      // only mean the accessor moved, and collapsing that into "nothing to report"
+      // is the silent-undefined shape issue #923 exists to fix. The sessionId
+      // helper above is deliberately NOT the model here.
+      const resolved = resolveSessionFile(ctx);
+      if (resolved.kind === "failed") {
+        advisory = contextAccessorFailureText(resolved.accessor);
+        contextNoticeEmitted = true;
+      } else if (resolved.kind === "path") {
+        const anchor = readContextAnchor(resolved.path);
+        if (anchor.kind === "inert") {
+          // Both arguments come out of the result; no field name is written here,
+          // so the notice can never name a field the parse did not look for.
+          advisory = contextInertText(anchor.scannedBytes, anchor.field);
+          contextNoticeEmitted = true;
+        } else if (anchor.kind === "tokens") {
+          const threshold = resolveContextWarnTokens(gateRoot());
+          // Strictly greater: at or under the threshold nothing is added, which is
+          // REQ-01's zero-extra-token promise on the healthy path.
+          if (anchor.tokens > threshold) {
+            advisory = contextAdvisoryText(anchor.tokens, threshold);
+          }
+        }
+      }
+      // kind "absent" is the legitimate no-session-yet case: no advisory, no notice.
+    }
     const reason = firstBlock(postDomain(ctx.cwd, currentAgent, toolName, input, policyRunner));
-    if (!reason) return;
     const content = Array.isArray(event.content) ? event.content : [];
-    return {
-      content: [...content, { type: "text", text: `Harness post-write check: ${reason}` }],
-      isError: true,
-    };
+    if (!reason) {
+      if (!advisory) return;
+      // No isError key AT ALL: a normal tool result must not become an error.
+      return { content: [...content, { type: "text", text: advisory }] };
+    }
+    const appended = [...content, { type: "text", text: `Harness post-write check: ${reason}` }];
+    if (advisory) appended.push({ type: "text", text: advisory });
+    return { content: appended, isError: true };
   });
 
   pi.on("task:subagent:lifecycle", async (event: Dict, ctx: any) => {

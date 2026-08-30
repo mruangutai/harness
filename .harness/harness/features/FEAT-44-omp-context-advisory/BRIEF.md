@@ -137,9 +137,15 @@ keeps the wake it was addressed to from being dropped.
   result, and injects nothing for `harness-product-lead`, for an absent persona, or for a non-`task`
   tool name. Each of the four asserted on its own.
   verify: automated      evidence: unit
-- SC-05: With a block reason present the returned result keeps `isError: true` and carries both the
-  post-write check line and the advisory line; with no block reason it carries the advisory line and
-  no `isError` key.
+- SC-05: With no block reason the returned result carries the advisory line and no `isError` key.
+  With a block reason present — reachable only on `write`/`edit`/`bash`, never on the `task` wake,
+  because `postDomain` returns `[]` for every other tool name (`harness-hooks.ts:272`) — the result
+  keeps `isError: true`, carries the post-write check line, and carries **no** advisory line.
+  AMENDED 2026-08-29, signed by the user. As first written this criterion required a result carrying
+  both a block reason and the advisory line, which the code cannot produce: the advisory fires only
+  on the `task` wake and a `task` result never reaches `check-domain.sh`. A correct T-03 would have
+  failed its own goal-check. The invariant the criterion protects is unchanged — the advisory must
+  neither clobber nor invent `isError` — and is now stated over states that exist.
   verify: automated      evidence: unit
 - SC-06: The injected line states the ratio of measured tokens to the resolved threshold, asserted
   numerically for two different thresholds so a hardcoded string cannot pass; and the threshold is

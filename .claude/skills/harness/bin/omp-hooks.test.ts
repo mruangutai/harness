@@ -13,6 +13,7 @@ import {
   readContextAnchor,
   registerHarnessHooks,
   resolveContextWarnTokens,
+  resolveSessionFile,
   yieldContractText,
 } from "../../../../.omp/extensions/harness-hooks.ts";
 
@@ -453,23 +454,35 @@ describe("readContextAnchor", () => {
   });
 });
 
-describe("installed OMP session accessor", () => {
-  // The ONLY case in this suite that reaches the real host surface. Every other
-  // case stubs getSessionFile, so a green suite would prove only that the stub
-  // works — issue #923's own failure shape one layer out. This converts the
-  // version-floor risk recorded in evidence/README.md into something CI reports.
+describe("resolveSessionFile", () => {
+  // Telling "the accessor moved" apart from "no session yet" is the whole point:
+  // folding them together is the silent-undefined shape issue #923 exists to fix.
   //
-  // Asserts the shipped .d.ts rather than calling the method: importing
-  // @oh-my-pi/pi-coding-agent/session/session-manager loads the pi_natives addon
-  // and throws outside the omp binary. Must FAIL, never skip.
-  test("declares getSessionFile on the readonly session manager", () => {
-    const pkg = Bun.resolveSync("@oh-my-pi/pi-coding-agent/package.json", import.meta.dir);
-    const decl = join(pkg, "..", "dist", "types", "session", "session-manager.d.ts");
-    expect(existsSync(decl)).toBe(true);
-    const src = readFileSync(decl, "utf8");
-    expect(src).toContain("getSessionFile(): string | undefined");
-    // The hook receives the readonly view, not the class, so membership matters.
-    expect(src).toContain('"getSessionFile"');
+  // NOTE: the real host surface is NOT asserted here. It cannot be, from a unit
+  // test — see test-omp-session-accessor.py, which drives the actual omp binary.
+  // The .d.ts assertion this describe block replaced could not work: Bun.resolveSync
+  // succeeds under `bun run` but not under `bun test`, and the three copies on a
+  // developer machine disagree anyway (running binary 18.0.5, bun cache 18.0.10,
+  // global node_modules 17.3.8), so it would have asserted a package that is not
+  // the one executing these hooks.
+  test("returns the path when the accessor yields one", () => {
+    const ctx = { sessionManager: { getSessionFile: () => "/tmp/fixture/own.jsonl" } };
+    expect(resolveSessionFile(ctx)).toEqual({ kind: "path", path: "/tmp/fixture/own.jsonl" });
+  });
+
+  test("distinguishes a moved accessor from a session that has none yet", () => {
+    const failed = { kind: "failed", accessor: "sessionManager.getSessionFile" };
+    // Threw, absent, and not-a-function are all "the API moved".
+    expect(resolveSessionFile({
+      sessionManager: { getSessionFile: () => { throw new Error("gone"); } },
+    })).toEqual(failed);
+    expect(resolveSessionFile({ sessionManager: {} })).toEqual(failed);
+    expect(resolveSessionFile({})).toEqual(failed);
+    // A clean call returning nothing usable is NOT a failure — it is no session yet.
+    expect(resolveSessionFile({ sessionManager: { getSessionFile: () => "" } }))
+      .toEqual({ kind: "absent" });
+    expect(resolveSessionFile({ sessionManager: { getSessionFile: () => undefined } }))
+      .toEqual({ kind: "absent" });
   });
 });
 
@@ -537,8 +550,30 @@ describe("context advisory injection", () => {
   const taskResult = (content: unknown[] = [{ type: "text", text: "lead digest" }]) =>
     ({ toolName: "task", toolCallId: "call-1", input: {}, content });
 
+  // The committed fixture's newest anchor (28614) is far UNDER the repo's
+  // configured 200000, which is what makes the under-threshold case real. The
+  // handler resolves its threshold from gateRoot(), not from anything a test can
+  // inject, so an over-threshold wake needs a transcript carrying a bigger
+  // number. Built from the real captured records, with only the newest anchor's
+  // value replaced — 223029 is the code-reviewer figure measured on PR #922 that
+  // crossed the line with nothing surfacing it, and it yields the 1.12x asserted
+  // in contextAdvisoryText.
+  function overThresholdTranscript(): string {
+    const records = readFileSync(ANCHORED_FIXTURE, "utf8").trimEnd().split("\n");
+    for (let i = records.length - 1; i >= 0; i -= 1) {
+      const record = JSON.parse(records[i]);
+      if (record?.message?.contextSnapshot?.promptTokens === undefined) continue;
+      record.message.contextSnapshot.promptTokens = 223029;
+      records[i] = JSON.stringify(record);
+      break;
+    }
+    const path = join(mkdtempSync(join(tmpdir(), "feat44-over-")), "over.jsonl");
+    writeFileSync(path, records.join("\n") + "\n");
+    return path;
+  }
+
   test("appends the advisory to the orchestrator's wake and leaves isError absent", async () => {
-    const { handlers, ctx } = advisoryFixture();
+    const { handlers, ctx } = advisoryFixture({ sessionFile: overThresholdTranscript() });
     await asAgent(handlers, ctx, "harness-orchestrator");
     const result = await handlers.get("tool_result")?.(taskResult(), ctx);
     const content = (result as { content: Array<{ text: string }> }).content;
