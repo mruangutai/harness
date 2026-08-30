@@ -22,3 +22,23 @@
 - 2026-08-29: pm reported non-POSIX glob expansion; its lead reserved, and I agreed with the lead on the mundane reading (unmatched glob stays literal). Both of us were wrong, and a 6-line mktemp probe settled it: with only `a/f.txt` present, `echo */f.txt` yields `a/f.txt b/f.txt` — a phantom member that does not exist. Consequence is harness-wide: `grep -rn PAT dir/*/f.yaml ; test $? -eq 1` exits 2 even when matches are found. Two tiers of reservation agreeing is not a measurement, and the cheap probe outranked both of us.
 - 2026-08-29: bash-write-guard blocked a scratch probe twice — once for a `>` redirect into mktemp, once for `rm -rf "$d"` — both outside my domain and both incidental to the measurement. Dropping the redirect (touch instead) and dropping the cleanup got the probe through unchanged. Also: xd://report_issue is outside the orchestrator's domain, so a measured harness defect can only travel up as prose in the return.
 - 2026-08-29: a task's premise can die by an unrelated feature MERGING. T-10 existed partly to close a live INV-26 violation on FEAT-40; FEAT-40 shipped, and the violation closed itself. Running the gate at HEAD (zero INV-26 lines) is what proved it — the plan's own text still described the violation as live and was internally consistent.
+- 2026-08-29: two operator answers that each looked like a one-line edit interacted. Q7 dropped
+  INV-32's validator-run precondition; Q6 scoped it to non-terminal stations. Measured before
+  dispatching: under the OLD precondition one shipped feature had a stale pin (FEAT-27), under the
+  NEW one four did (FEAT-26, 27, 32, 33). Q6's own measurement was taken under the precondition Q7
+  removes, so applying them in either order separately would have reddened three shipped features
+  nobody had measured. The probe was ~60 lines of python and 0.4 s.
+- 2026-08-29: FEAT-41 run-dir slug collision, second occurrence in four days. I dispatched
+  product-lead without naming a run-dir slug; its run wrote into runs/2026-08-29-01-product, which
+  the same day's replan run already held, and overwrote that digest. runs/ is gitignored so it is
+  unrecoverable. Q8 in STATE.md had recorded the identical failure on 2026-08-26 and I still did
+  not name a slug in the dispatch.
+- 2026-08-29: check-state.sh INV-5 (plan.yaml form, :167-172) matches `\bT-[0-9A-Za-z]+\b` over the
+  WHOLE of STATE.md, so after removing a task from plan.yaml the state file cannot narrate the
+  removal by id in any voice — including in a resolved open question. Caught it by running the gate
+  after writing STATE.md, not before. The id belongs in the commit message, the plan's decisions
+  block and the BRIEF's backlog row, all tracked; the state file describes the task instead.
+- 2026-08-29: plan-level revisions route to pm even when the edit is two sites and fully specified.
+  A dispatch carrying the discriminating rule, an explicit LEAVE list (FEAT-42 T-12 and five
+  FEAT-12 near-misses that grep for the same token) and my own pre-measurement returned PASS with
+  zero send-backs in one pass.
