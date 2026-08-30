@@ -44,7 +44,7 @@ import feature_json_write
 import harness_merge
 import harness_yaml
 
-# DEC-138 amendment 3, applied mechanically per task.
+# DEC-138, applied mechanically per task.
 CHORE_TYPES = {"config", "scaffolding", "infra", "ci"}
 BUG_TYPES = {"bugfix"}
 

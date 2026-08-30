@@ -35,7 +35,7 @@ except ModuleNotFoundError:
         print("test-team-catalog: PyYAML is not importable from this interpreter "
               f"({sys.executable}).\n"
               "  install:  python3 -m pip install --user --break-system-packages pyyaml\n"
-              "  This is REQUIRED, not optional (DEC-171 am.1).", file=sys.stderr)
+              "  This is REQUIRED, not optional (DEC-171).", file=sys.stderr)
         sys.exit(1)
 
 REPO = (os.environ.get("HARNESS_PROJECT_DIR") or os.environ.get("CLAUDE_PROJECT_DIR")) or os.getcwd()

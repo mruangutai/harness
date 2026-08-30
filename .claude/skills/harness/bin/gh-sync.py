@@ -31,8 +31,8 @@ TRUTH DIRECTION IS THE POINT. PLAN.md is approval-gated and is the only source; 
 script projects it outward. It reads GitHub state back exactly ONCE — `record-pr` asks
 for the merged pull request on a recorded branch and writes the number into
 feature.json's `pr` (FEAT-26, DEC-200). No read-back ever reaches an approval-gated
-artifact: a wiki-editable UI feeding one is the DEC-19 bypass shape, and that stays
-refused. DEC-138 am.7 refuses a discovery read for the PARENT number because the parent
+artifact: a wiki-editable UI feeding one is an unenforced write path around a guarded
+surface, and that stays refused. DEC-138 refuses a discovery read for the PARENT number because the parent
 has a local receipt and a second source would contradict it; the pull request number has
 no local receipt, because the harness never opens the pull request.
 
@@ -64,7 +64,7 @@ REPO IS PINNED, NEVER INFERRED. Every gh call passes --repo/-R from harness.json
 origin remote works right up until a fork or renamed remote publishes issues to the
 wrong org silently — the one failure here that is both outward-facing and quiet.
 
-LABELS DERIVE, MECHANICALLY (DEC-138 am.3): change_type config/scaffolding/infra/ci
+LABELS DERIVE, MECHANICALLY (DEC-138): change_type config/scaffolding/infra/ci
 -> `chore`; bugfix -> `bug`; anything else unlabeled. `harness` marks provenance on
 every issue. No agent judgment at sync time.
 
@@ -126,7 +126,7 @@ def refuse(msg):
 
 
 def post_body_path(path, flag):
-    """Validate a --body-file-style path argument (DEC-138 am.6: the mirror never composes
+    """Validate a --body-file-style path argument (DEC-138: the mirror never composes
     text — the path itself is passed to gh, never its contents). Every failure here is a
     caller error, never environmental: an empty or unreadable file would otherwise reach
     gh(), get rejected, and be reported as a SKIP that silently posts no reason at all."""
@@ -859,7 +859,7 @@ def cmd_start_task(feat_dir, tid, repo, board):
 
     ADDED COST: start-task now performs ONE board read (`gh_board.board_stations`, reused for
     both halves of the guard — no second board read) and ONE issue read (`factory_gh.issue_view`
-    for `state`) before its writes, where before it performed none. Squarely inside DEC-186's
+    for `state`) before its writes, where before it performed none. Squarely inside DEC-203's
     second sanctioned purpose — learning which station an item is at.
 
     A gh or network failure during EITHER read must not gate either: caught, printed as one
@@ -1194,7 +1194,7 @@ def cmd_abandon(feat_dir, repo, board, reason_file, yes=False):
 
 
 def cmd_backlog(feat_dir, repo, items):
-    """User-accepted residual findings -> plain backlog issues (DEC-138 am.4).
+    """User-accepted residual findings -> plain backlog issues (DEC-138).
 
     Called by the MAIN SESSION after the briefing decision, with one arg per accepted
     residual as `nature:title` (nature: bug|chore|enhancement). No milestone — these

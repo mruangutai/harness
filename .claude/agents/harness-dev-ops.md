@@ -16,6 +16,7 @@ skills:
 - harness-expertise
 - harness-principles
 - harness-tdd-enforcement
+- harness-code-risk-grading
 ---
 
 HARNESS_AGENT_ID: harness-dev-ops

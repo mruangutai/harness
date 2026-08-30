@@ -24,36 +24,6 @@ REPO_ROOT = (os.environ.get("HARNESS_PROJECT_DIR") or os.environ.get("CLAUDE_PRO
 )
 
 
-SCAN_COUNT_RE = re.compile(r"—\s*(\d+)\s*file\(s\)")
-
-
-def scanned_count(stderr):
-    """The number the sweep reported, as an int. RAISES if it reported none.
-
-    WHY THIS EXISTS. Three checks here used `"1 file(s)" in stderr` as a stand-in
-    for "the sweep found exactly one file". That is a substring test, and
-    "41 file(s)" contains "1 file(s)". Two of the three were assertions that a
-    BROKEN sweep would satisfy; the third inverted the same bug and false-FAILED
-    the moment this repository's feature count reached 41.
-
-    WHY IT RAISES rather than returning None. Returning None made the `!= 1` site
-    vacuous: unmatched output is not evidence that the count differs from one, but
-    `None != 1` is true, so a garbled or absent scanning line PASSED. Raising turns
-    "I could not measure" into a loud failure instead of a silent success.
-
-    NOTE THE REMAINING LIMIT, measured by the cycle-1 panel: parsing the integer
-    does not by itself make a call site bind. A site asserting `== 1` against a
-    fixture whose real count is 1 still passes under a parser that only ever
-    returns the last digit. That is why `case_migrated_depth` below also asserts a
-    MULTI-DIGIT count, which no last-digit or substring break survives.
-    """
-    match = SCAN_COUNT_RE.search(stderr or "")
-    if match is None:
-        raise AssertionError(
-            "no 'N file(s)' scanning line in stderr — the sweep reported nothing to "
-            "measure, which is a failure to observe, not a measurement: %r" % (stderr,))
-    return int(match.group(1))
-
 VALIDATE_CLI = os.path.join(BIN_DIR, "validate-feature-json.py")
 
 import feature_schema  # noqa: E402  (after sys.path fixup, house convention)
@@ -67,6 +37,42 @@ def check(name, cond, detail=""):
     else:
         print(f"FAIL {name} {detail}")
         failures.append(name)
+
+
+def swept(stderr):
+    """The file COUNT from the sweep's scanning line, as an int, or None.
+
+    Exists because `"1 file(s)" in stderr` is not a count test, it is a substring
+    test, and `"41 file(s)"` contains `"1 file(s)"`. That broke in BOTH directions,
+    and the silent direction is the dangerous one:
+
+    - the two POSITIVE checks -- "the sweep reports ONE file" -- passed whenever the
+      sweep wrongly scanned the real checkout, because any count ending in 1
+      satisfied the substring. They could not detect the redirect they exist to
+      catch.
+    - the NEGATIVE check fired falsely for the same reason, with nothing wrong.
+
+    MEASURED 2026-08-30: the first worktree to hold 41 features turned the whole
+    unit suite red while the behaviour under test was correct, and the two
+    fail-open positives had been passing for the wrong reason since FEAT-42.
+    Any count ending in 1 -- 1, 11, 21, 31, 41 -- reproduces it.
+
+    RAISES rather than returning None (cycle-1 panel, M2). Unmatched output is not
+    evidence that the count differs from one, but `None != 1` is true, so garbled or
+    absent output PASSED the negative check. "I could not measure" must be a loud
+    failure, not a silent success.
+
+    NOTE THE REMAINING LIMIT, measured: parsing the integer does not by itself make
+    a call site bind. A site asserting `== 1` against a fixture whose real count is
+    1 still passes under a parser that only ever yields the last digit. That is why
+    case_migrated_depth also asserts a MULTI-DIGIT count below.
+    """
+    m = re.search(r"(\d+) file\(s\)", stderr or "")
+    if m is None:
+        raise AssertionError(
+            "no 'N file(s)' scanning line in stderr — nothing to measure, which is a "
+            "failure to observe rather than a measurement: %r" % (stderr,))
+    return int(m.group(1))
 
 
 def full_doc(status="Building"):
@@ -355,7 +361,7 @@ def case_migrated_depth_discovery_scans_the_segment_layout():
         r = subprocess.run([VALIDATE_CLI], capture_output=True, text=True,
                            timeout=30, env=env)
         check("case_migrated_depth: the sweep reports ONE file, not zero",
-              scanned_count(r.stderr) == 1, r.stderr)
+              swept(r.stderr) == 1, r.stderr)
         check("case_migrated_depth: the scanning line names the migrated glob",
               ".harness/*/features/" in r.stderr, r.stderr)
 
@@ -371,7 +377,7 @@ def case_migrated_depth_discovery_scans_the_segment_layout():
         r12 = subprocess.run([VALIDATE_CLI], capture_output=True, text=True,
                              timeout=30, env=env)
         check("case_migrated_depth: a TWELVE-file sweep is counted as twelve, not two",
-              scanned_count(r12.stderr) == 12, r12.stderr)
+              swept(r12.stderr) == 12, r12.stderr)
 
 
 def case_root_resolves_through_harness_boundary_not_the_retired_variable():
@@ -400,10 +406,8 @@ def case_root_resolves_through_harness_boundary_not_the_retired_variable():
         # scanning line names its root, so test that directly: it is exact, and it
         # does not decay as the repository grows.
         check("case_root_resolves: CLAUDE_PROJECT_DIR alone does not redirect the sweep "
-              "(the scanning line names the real repo root, never the tmp fixture)",
-              tmp not in r.stderr, r.stderr)
-        check("case_root_resolves: and the sweep it did run reported a count",
-              scanned_count(r.stderr) >= 1, r.stderr)
+              "(scans the real repo root, not the tmp fixture with its single file)",
+              swept(r.stderr) != 1 and tmp not in r.stderr, r.stderr)
 
         env2 = dict(os.environ)
         env2.pop("CLAUDE_PROJECT_DIR", None)
@@ -414,7 +418,7 @@ def case_root_resolves_through_harness_boundary_not_the_retired_variable():
         r2 = subprocess.run([VALIDATE_CLI], capture_output=True, text=True,
                              timeout=30, env=env2)
         check("case_root_resolves: HARNESS_PROJECT_DIR + team-config.yaml IS honoured",
-              scanned_count(r2.stderr) == 1, r2.stderr)
+              swept(r2.stderr) == 1 and tmp in r2.stderr, r2.stderr)
 
 
 # ---------------------------------------------------------------------------

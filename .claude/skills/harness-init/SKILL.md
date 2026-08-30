@@ -100,7 +100,7 @@ silently stops closing tickets.
 
 **If either line prints `MISSING`, STOP.** Both packages are REQUIRED, not optional.
 
-**PyYAML** (DEC-171 am.1): there is no line-scan fallback anywhere in `bin/`, deliberately, because
+**PyYAML** (DEC-171): there is no line-scan fallback anywhere in `bin/`, deliberately, because
 a fallback leaves the hand-rolled parser it exists to remove.
 
 **jsonschema**: a feature's execution state is schema-checked at write time, and **a validator that

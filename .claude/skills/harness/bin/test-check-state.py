@@ -218,7 +218,7 @@ def case_e():
 def case_f():
     """A feature.json that does not parse is a VIOLATION, never a silent skip.
 
-    DEC-171 am.1 removed the fallback deliberately: there is no quieter mode. Before
+    DEC-171 removed the fallback deliberately: there is no quieter mode. Before
     T-07 an unparseable file was indistinguishable from one with no runs, which is the
     same fail-open with a different cause.
     """
@@ -992,7 +992,7 @@ def _factory_tree(tmp, features, fleet=FLEET_YAML):
 
 
 def case_s():
-    """INV-24 (DEC-186): factory claims must resolve against the fleet, and no two
+    """INV-24 (DEC-203): factory claims must resolve against the fleet, and no two
     features may claim one issue.
 
     The parent is folded into the SAME comparison list as the task issues rather than
@@ -1701,7 +1701,7 @@ def case_v():
     # `backlog` literal left behind. This feature's own recurring defect is a clause over N
     # keys with fewer than N fixtures, and the verify demands one each because of it.
     #
-    # Every column is RENAMED away from the DEC-192 spellings. A build that still spells
+    # Every column is RENAMED away from the DEC-203 spellings. A build that still spells
     # "Building"/"Done"/"Backlog" itself reports a violation against a correctly placed card.
     _renamed = {"owner": "org", "number": 3, "station_field": "status",
                 "stations": {"backlog": "Icebox", "plan": "Drafted", "ready": "Primed",
@@ -2800,7 +2800,7 @@ def case_inv30_silent_on_null_milestone():
 
 
 def case_inv30_silent_on_nonterminal():
-    """DEC-192's six status values are case sensitive and only the exact string `Done` is
+    """DEC-203's six status values are case sensitive and only the exact string `Done` is
     checked. A feature still in Review has not claimed that ship ran, so an open milestone is
     the CORRECT state for it and reporting it would be noise."""
     with tempfile.TemporaryDirectory() as tmp:
