@@ -375,12 +375,17 @@ criterion above is evidenced. No criterion rests on a null-runner kind.
 
 ## Approval
 
-status: pending
-approved-by: none
-date: none
+status: approved
+approved-by: operator
+date: 2026-08-29
 
-WITHDRAWN 2026-08-29 by the main session. The 2026-08-29 signature covered the pre-ruling scope, in
-which the executable-claims mechanism was built. The operator has since ruled that no
-document-driven command execution is acceptable and chosen to DELETE the mechanism rather than
-redesign it, which retires REQ-08 and SC-09 as tombstones and adds REQ-10 and SC-14..SC-18. The
-signature was reset rather than left reading `approved` over content it never covered.
+SIGNATURE HISTORY. The first signature of 2026-08-29 covered the pre-ruling scope, in which the
+executable-claims mechanism was built. It was WITHDRAWN by the main session when the operator ruled
+that no document-driven command execution is acceptable and chose to DELETE the mechanism rather
+than redesign it. **This second signature of 2026-08-29 covers the amended brief**: REQ-08 and SC-09
+retired in place as tombstones with the live sets left non-contiguous, REQ-10 added with its
+deliberate conditioning intact — it does not claim the whole `bin/` class is clean, and names
+`harness.json`'s `test_kinds.<kind>.cmd` as a live candidate — and SC-14 through SC-18 added.
+SC-11 re-runs at validate over the six entries T-27 touches; SC-13's UAT judgement stands unless
+T-27 touches prose, in which case it returns to the operator. The loss of any detector for semantic
+citation rot is an accepted cost of removal, recorded rather than hidden.

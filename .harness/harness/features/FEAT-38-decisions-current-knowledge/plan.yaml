@@ -13,9 +13,24 @@ approval:
   # REQ-08 and SC-09, adds REQ-10 and SC-14..SC-18, and takes the plan from 23 tasks to
   # 28. A signature cannot stand over changed content, so it was reset rather than left
   # reading `approved` over a scope the operator never signed.
-  status: pending                # pending | approved
-  approved_by: none
-  date: none
+  # RE-SIGNED 2026-08-29, second signature on this plan. The first covered 23 tasks and
+  # BUILT the executable-claims mechanism; it was withdrawn above. THIS SIGNATURE covers
+  # the 28-task set that DELETES it, and specifically endorses: REQ-08 and SC-09 retired
+  # in place as tombstones with the live sets left non-contiguous; `traces: []` on T-20
+  # and T-21; REQ-10's deliberate CONDITIONING, which does not claim the whole bin/ class
+  # is clean and names harness.json's test_kinds.<kind>.cmd as a live candidate; T-19's
+  # verify carrying the signed column-0 anchoring in SUBSTANCE but not in its signed
+  # spelling, now `^(KIND-DRIFT|MISCONFIGURED):`; T-10's and T-15's corrections verbatim;
+  # and T-24 waiting on T-27 so the code lane trails the documentor lane.
+  # Re-grading at validate: SC-11 re-runs over the six entries T-27 touches; SC-13's UAT
+  # judgement STANDS unless T-27 turns out to touch prose, in which case it returns to the
+  # operator. Q6..Q10 from run 24 remain OPEN and non-blocking; none gates the build.
+  status: approved               # pending | approved
+  approved_by: operator
+  date: 2026-08-29
+  signatures:
+    - { date: 2026-08-29, covers: '23 tasks, executable claims BUILT — WITHDRAWN' }
+    - { date: 2026-08-29, covers: '28 tasks, executable claims DELETED, REQ-10, SC-14..SC-18' }
 
 lanes:
   resolved_at: 7ebfc9e
