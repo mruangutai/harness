@@ -22,21 +22,33 @@ approval:
   # verify carrying the signed column-0 anchoring in SUBSTANCE but not in its signed
   # spelling, now `^(KIND-DRIFT|MISCONFIGURED):`; T-10's and T-15's corrections verbatim;
   # and T-24 waiting on T-27 so the code lane trails the documentor lane.
-  # Re-grading at validate: SC-11 re-runs over the six entries T-27 touches; SC-13's UAT
-  # judgement STANDS unless T-27 turns out to touch prose, in which case it returns to the
-  # operator. Q6..Q10 from run 24 remain OPEN and non-blocking; none gates the build.
+  # SC-13's UAT judgement STANDS unless T-27 turns out to touch prose, in which case it
+  # returns to the operator. Q6..Q10 from run 24 remain OPEN and non-blocking.
   # WITHDRAWN AGAIN 2026-08-29 by the main session, for the adversarial panel's revision.
   # An independent three-reader panel graded this SIGNED plan and found T-24's verify
   # UNSATISFIABLE at its own completion (reproduced by the main session: the sweep matches
   # .harness/harness.json, whose cleanup is T-25, which depends_on T-24). SC-11's re-grade
   # also reaches five entries, not the six this block claimed. Rulings are in
   # notes/answers-2026-08-29-panel.md. A signature cannot stand over a gate that cannot pass.
-  status: pending                # pending | approved
-  approved_by: none
-  date: none
+  # RE-SIGNED 2026-08-29, THIRD signature. Covers the panel's revision: T-24's sweep now
+  # excludes .harness/harness.json (the exclusion is STRUCTURAL — that file is cleaned by
+  # T-25, which depends_on T-24, so the reference is necessarily live at T-24's own
+  # completion, the only moment its verify is evaluated); the displaced "no sixth reference
+  # site" proof re-homed on SC-14's third assertion, measured to land there; SC-11's
+  # re-grade set stated as the FIVE entries with a pre-fold form (DEC-145, 157, 181, 183,
+  # 193), DEC-205 excluded for having none; SC-16 extended to cover DEC-205's
+  # considered-and-refused paragraph in full so nothing goes ungraded; REQ-10 reconciled
+  # with the grilling Destination WITHOUT widening scope; SC-17's inspection assigned to a
+  # code-reading persona rather than the author of its own audit table; SC-15 traced to
+  # T-25. F1's fix was measured at the exact T-24-complete/T-25-pending mid-state in a real
+  # git clone: signed clause exit 1, amended clause exit 0.
+  status: approved               # pending | approved
+  approved_by: operator
+  date: 2026-08-29
   signatures:
     - { date: 2026-08-29, covers: '23 tasks, executable claims BUILT — WITHDRAWN' }
     - { date: 2026-08-29, covers: '28 tasks, executable claims DELETED, REQ-10, SC-14..SC-18' }
+    - { date: 2026-08-29, covers: 'panel revision F1..F5 — T-24 sweep, SC-11 five entries, SC-16 extension, REQ-10 reconciliation, SC-17 inspector, SC-15 trace' }
 
 lanes:
   resolved_at: 7ebfc9e

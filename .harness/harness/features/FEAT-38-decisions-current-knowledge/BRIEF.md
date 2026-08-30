@@ -416,6 +416,25 @@ than redesign it. **This second signature of 2026-08-29 covers the amended brief
 retired in place as tombstones with the live sets left non-contiguous, REQ-10 added with its
 deliberate conditioning intact — it does not claim the whole `bin/` class is clean, and names
 `harness.json`'s `test_kinds.<kind>.cmd` as a live candidate — and SC-14 through SC-18 added.
-SC-11 re-runs at validate over the six entries T-27 touches; SC-13's UAT judgement stands unless
-T-27 touches prose, in which case it returns to the operator. The loss of any detector for semantic
-citation rot is an accepted cost of removal, recorded rather than hidden.
+SC-13's UAT judgement stands unless T-27 touches prose, in which case it returns to the operator. The
+loss of any detector for semantic citation rot is an accepted cost of removal, recorded rather than
+hidden.
+
+**THIRD SIGNATURE, 2026-08-29 — the adversarial panel's revision.** An independent three-reader panel
+graded the signed plan and found a high-severity defect the two prior review rounds missed: T-24's
+verify could never pass at its own completion. This signature covers the corrections: **SC-11's
+re-grade set is FIVE entries** — DEC-145, DEC-157, DEC-181, DEC-183, DEC-193, the five of T-27's six
+marker-carrying entries that have a pre-fold form to cite — with **DEC-205 excluded for having none
+and its coverage moved to SC-16**, which is extended to cover that entry's considered-and-refused
+paragraph in full. REQ-10 is reconciled with the grilling note's Destination **without widening
+scope**: the Destination is the end state, REQ-10 is this feature's step toward it, and any further
+text-derived call site the audit finds is carried to the backlog rather than treated as the
+destination reached. SC-17's inspection is assigned to a code-reading persona, explicitly not the
+author of the audit table it grades.
+
+**RECORD CORRECTION, and it was the main session's error.** This block read `status: approved` for
+the whole of the panel revision. The withdrawal commit `753f4cd` touched `plan.yaml` only, so the two
+artifacts disagreed — the plan said `pending` while this brief still said `approved`. The
+orchestrator caught it and refused to write either fragment, correctly, since both are the main
+session's alone (DEC-120). Nothing mechanical would have caught it: `check-domain.sh`'s
+`approval_guard` is measured fail-open inside every worktree.
