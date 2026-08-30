@@ -558,19 +558,20 @@ describe("context advisory injection", () => {
   // value replaced — 223029 is the code-reviewer figure measured on PR #922 that
   // crossed the line with nothing surfacing it, and it yields the 1.12x asserted
   // in contextAdvisoryText.
-  function overThresholdTranscript(): string {
+  function transcriptWithAnchor(tokens: number): string {
     const records = readFileSync(ANCHORED_FIXTURE, "utf8").trimEnd().split("\n");
     for (let i = records.length - 1; i >= 0; i -= 1) {
       const record = JSON.parse(records[i]);
       if (record?.message?.contextSnapshot?.promptTokens === undefined) continue;
-      record.message.contextSnapshot.promptTokens = 223029;
+      record.message.contextSnapshot.promptTokens = tokens;
       records[i] = JSON.stringify(record);
       break;
     }
-    const path = join(mkdtempSync(join(tmpdir(), "feat44-over-")), "over.jsonl");
+    const path = join(mkdtempSync(join(tmpdir(), "feat44-anchor-")), "anchor.jsonl");
     writeFileSync(path, records.join("\n") + "\n");
     return path;
   }
+  const overThresholdTranscript = () => transcriptWithAnchor(223029);
 
   test("appends the advisory to the orchestrator's wake and leaves isError absent", async () => {
     const { handlers, ctx } = advisoryFixture({ sessionFile: overThresholdTranscript() });
@@ -580,6 +581,20 @@ describe("context advisory injection", () => {
     expect(content[content.length - 1].text).toContain("CONTEXT");
     // Asserted as key ABSENCE, not falsiness: an unblocked wake must not invent isError.
     expect("isError" in (result as object)).toBe(false);
+  });
+
+  test("stays silent when tokens EQUAL the threshold, killing the >= mutant", async () => {
+    // Added on the cycle-1 panel's F-2. The under-threshold case below uses the
+    // committed fixture's 28614, and BOTH `28614 > 200000` and `28614 >= 200000`
+    // are false — so it cannot distinguish `>` from `>=`, and SC-10's claim to
+    // kill that mutant was untrue as tested. Only the exact boundary separates
+    // them. 200000 is DEFAULT_CONTEXT_WARN_TOKENS and the value this repo's
+    // harness.json carries, which is what gateRoot() resolves to here.
+    const { handlers, ctx } = advisoryFixture({
+      sessionFile: transcriptWithAnchor(DEFAULT_CONTEXT_WARN_TOKENS),
+    });
+    await asAgent(handlers, ctx, "harness-orchestrator");
+    expect(await handlers.get("tool_result")?.(taskResult(), ctx)).toBeUndefined();
   });
 
   test("does not advise a lead", async () => {
