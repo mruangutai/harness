@@ -399,6 +399,150 @@ describe("OMP task lifecycle adapter", () => {
     }, ctx);
     expect(calls.filter(reconciled).length).toBe(before);
   });
+
+  // -------------------------------------------------------------------------
+  // THE EDIT ROUTE. Added 2026-08-30, after a line-anchored edit corrupted a
+  // feature.json that gh-sync.py had rewritten between the read and the write,
+  // and nothing refused it.
+  //
+  // postDomain hands an `edit` result to check-domain.sh --post via
+  // extractEditPaths(...).map(...). An empty array yields ZERO runner calls and
+  // no diagnostic of any kind, because no process is ever spawned. Until these
+  // cases the suite drove `task` eight times and `edit` NOT ONCE: a regression
+  // that emptied that array would have kept the suite green while silently
+  // disabling the shape gate on every file an agent edits.
+  // -------------------------------------------------------------------------
+  const editCtx = {
+    cwd: "/repo",
+    sessionManager: { getSessionId: () => "parent-session" },
+  };
+
+  const editResult = (patch: unknown) => ({
+    toolName: "edit",
+    toolCallId: "call-edit",
+    input: { input: patch },
+    content: [{ type: "text", text: "ok" }],
+  });
+
+  const postPaths = (calls: Array<{ script: string; args: string[]; payload: Record<string, unknown> }>) =>
+    calls
+      .filter((call) => call.script === "check-domain.sh" && call.args.includes("--post"))
+      .map((call) => (call.payload as any).tool_input.file_path);
+
+  test("a hashline edit reaches check-domain.sh --post carrying the edited path", async () => {
+    const { handlers, calls } = fixture();
+    await start(handlers);
+    // The exact file and tag shape of the 2026-08-30 corruption.
+    const path = ".harness/harness/features/FEAT-44-omp-context-advisory/feature.json";
+    await handlers.get("tool_result")?.(
+      editResult(`[${path}#5314]\nPUT 11.=11:\n+  "id": "2026-08-29-01-product",`),
+      editCtx,
+    );
+    const post = calls.filter((call) =>
+      call.script === "check-domain.sh" && call.args.includes("--post"));
+    expect(post.length).toBe(1);
+    expect((post[0].payload as any).tool_input).toEqual({ file_path: path });
+    // Named `Edit`, not `edit`: check-domain.sh matches the Claude-shaped name.
+    expect((post[0].payload as any).tool_name).toBe("Edit");
+  });
+
+  test("every file of a multi-section edit is gated, not just the first", async () => {
+    const { handlers, calls } = fixture();
+    await start(handlers);
+    await handlers.get("tool_result")?.(
+      editResult("[a/one.json#A1B2]\nPUT 1.=1:\n+x\n[b/two.yaml#00FF]\nPUT 2.=2:\n+y"),
+      editCtx,
+    );
+    expect(postPaths(calls)).toEqual(["a/one.json", "b/two.yaml"]);
+  });
+
+  test("an MV destination is gated - a rename lands bytes at a new path", async () => {
+    const { handlers, calls } = fixture();
+    await start(handlers);
+    await handlers.get("tool_result")?.(
+      editResult("[src/old.ts#BEEF]\nMV src/new.ts"),
+      editCtx,
+    );
+    expect(postPaths(calls)).toEqual(["src/old.ts", "src/new.ts"]);
+  });
+
+  test("a non-string patch spawns no gate, and SAYS SO (S2)", async () => {
+    const { handlers, calls } = fixture();
+    await start(handlers);
+    const result = await handlers.get("tool_result")?.(
+      editResult({ sections: ["a/one.json"] }), editCtx);
+    // extractEditPaths returns [] for any non-string input, so `.map()` spawns
+    // nothing. The gate genuinely cannot run: no path was extracted, so there is
+    // no file to check. What S2 fixes is that the absence is now ANNOUNCED rather
+    // than being byte-identical to a gate that ran and passed.
+    expect(postPaths(calls)).toEqual([]);
+    const texts = ((result as any).content as Array<{ text: string }>).map((part) => part.text);
+    expect(texts.some((t) => t.includes("neither the pre-write nor the post-write"))).toBe(true);
+    // AND IT MUST NOT COST A GATE. No isError key at all, not merely a falsy one:
+    // a notice that turned a normal result into an error would be worse than the
+    // silence it replaces.
+    expect("isError" in (result as any)).toBe(false);
+  });
+
+  test("a well-formed edit is gated and stays silent - no spurious S2 notice", async () => {
+    const { handlers } = fixture();
+    await start(handlers);
+    const result = await handlers.get("tool_result")?.(
+      editResult("[a/one.json#A1B2]\nPUT 1.=1:\n+x"), editCtx);
+    // The gate ran, so there is nothing to announce. If this reddens, every edit
+    // in every session just started carrying a notice.
+    expect(result).toBeUndefined();
+  });
+
+  // -------------------------------------------------------------------------
+  // THE PRE-DOMAIN EDIT ROUTE (M1, raised by the cycle-0 panel).
+  //
+  // preDomain carries the IDENTICAL silent-zero `.map()`, and it is the BLOCKING
+  // gate: `reason = firstBlock(preDomain(...))` at :684. A zero extraction there
+  // is strictly worse than on postDomain — the edit LANDS unchecked rather than
+  // merely going unreported. Every case above filters on `--post`, so by
+  // construction none of them touched this route: neutering it changed nothing.
+  // -------------------------------------------------------------------------
+  test("a hashline edit is gated BEFORE it lands - check-domain.sh with no --post", async () => {
+    const { handlers, calls } = fixture();
+    await start(handlers);
+    const path = ".harness/harness/features/FEAT-44-omp-context-advisory/feature.json";
+    const blocked = await handlers.get("tool_call")?.(
+      editResult(`[${path}#5314]\nPUT 11.=11:\n+  "id": "x",`), editCtx);
+    const pre = calls.filter((call) =>
+      call.script === "check-domain.sh" && !call.args.includes("--post"));
+    expect(pre.length).toBe(1);
+    expect((pre[0].payload as any).tool_input).toEqual({ file_path: path });
+    expect((pre[0].payload as any).tool_name).toBe("Edit");
+    // The fixture's runner does not block, so a clean edit proceeds.
+    expect(blocked).toBeUndefined();
+  });
+
+  test("every file of a multi-section edit is gated before it lands", async () => {
+    const { handlers, calls } = fixture();
+    await start(handlers);
+    await handlers.get("tool_call")?.(
+      editResult("[a/one.json#A1B2]\nPUT 1.=1:\n+x\n[b/two.yaml#00FF]\nPUT 2.=2:\n+y"),
+      editCtx);
+    expect(calls
+      .filter((call) => call.script === "check-domain.sh" && !call.args.includes("--post"))
+      .map((call) => (call.payload as any).tool_input.file_path))
+      .toEqual(["a/one.json", "b/two.yaml"]);
+  });
+
+  test("a non-string patch reaches no pre-write gate and does not block the edit", async () => {
+    const { handlers, calls } = fixture();
+    await start(handlers);
+    const blocked = await handlers.get("tool_call")?.(
+      editResult({ sections: ["a/one.json"] }), editCtx);
+    // MEASURED, not assumed: the preventive gate spawns nothing and the edit is
+    // allowed through. Blocking instead would be a fail-closed enforcement change
+    // -- it would refuse every edit whose payload shape the extractor cannot read
+    // -- so it is recorded as an open decision, not taken silently here. The S2
+    // notice on the RESULT is what tells the operator both checks were skipped.
+    expect(calls.filter((call) => call.script === "check-domain.sh")).toEqual([]);
+    expect(blocked).toBeUndefined();
+  });
 });
 
 // ---------------------------------------------------------------------------

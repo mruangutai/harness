@@ -81,12 +81,13 @@ import re
 import shutil
 import subprocess
 import sys
-import tempfile
 
 sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
 from gh_issues import (internal_id_args, attach_sub_issue_args, sub_issues_args,
                        detach_sub_issue_args)
 
+import feature_json_write
+import harness_merge
 import factory_config
 import factory_gh
 import board_lifecycle
@@ -530,43 +531,24 @@ def load_recorded(feat_dir):
     return rec
 
 
-def _atomic_write(path, text):
-    """ATOMIC WRITE ONLY (T-01/FEAT-23): serialise text into a tempfile created in the SAME
-    DIRECTORY as `path`, fsync it, then os.replace it onto `path`. No observer ever sees a
-    partial or zero-byte file. This is the write shape `save_recorded` already used below —
-    factored out so it has exactly one implementation instead of a second (or third) copy.
-
-    Deliberately NOT the read-and-decide policy: callers still load-modify-dump the document
-    themselves. `save_recorded`'s "start from an empty document when feature.json is absent"
-    behaviour stays in `save_recorded`, because the status write below must never create a
-    document that way — a fresh single-key document fails feature-schema.json's
-    additionalProperties: false (DEC-191)."""
-    dirpath = os.path.dirname(path) or "."
-    fd, tmp = tempfile.mkstemp(prefix=".feature.json.", suffix=".tmp", dir=dirpath)
-    try:
-        with os.fdopen(fd, "w", encoding="utf-8") as f:
-            f.write(text)
-            f.flush()
-            os.fsync(f.fileno())
-        os.replace(tmp, path)
-    except BaseException:
-        try:
-            os.unlink(tmp)
-        except OSError:
-            pass
-        raise
-
-
 def _record_status(feat_dir, status):
     """Set feature.json's top-level `status` to the exact string `status` (Done or Abandoned,
-    T-01/FEAT-23) — the STATUS WRITE ONLY, via `_atomic_write`. A feature.json that is absent
-    or unreadable is not an error here (mirrors `_feature_status`'s own tolerance): both
-    `cmd_ship` and `cmd_abandon` are idempotent and the mirror never gates, so this prints one
-    plain line and returns rather than raising. This does NOT create a document when one is
-    absent — the schema's eight required keys (DEC-191) make a fresh single-key document
-    invalid. `save_recorded` (T-02, FEAT-26) now refuses the absent-file case too rather
-    than creating one, so this is no longer a second, incompatible first-sync path
-    alongside it — the two are aligned on the same refusal."""
+    T-01/FEAT-23), through feature_json_write.write_feature_json (stale-anchor-write-hazard
+    T-c2): the same lock, same-directory tempfile, fsync and os.replace `_atomic_write` gave
+    it, now shared with every other Python writer of feature.json (DEC-199) instead of a
+    second copy of the primitive. A feature.json that is absent or unreadable is not an
+    error here (mirrors `_feature_status`'s own tolerance): both `cmd_ship` and `cmd_abandon`
+    are idempotent and the mirror never gates, so this prints one plain line and returns
+    rather than raising. This does NOT create a document when one is absent — the schema's
+    eight required keys (DEC-191) make a fresh single-key document invalid. `save_recorded`
+    (T-02, FEAT-26) refuses the absent-file case too rather than creating one, so this is not
+    a second, incompatible first-sync path alongside it — the two are aligned on the same
+    refusal.
+
+    The absent/unreadable/non-mapping decision is made HERE, on a plain read, before
+    write_feature_json (and its require_destination check) is ever called — so a bad path
+    shape never masquerades as this function's own tolerant "not recorded" message, and a
+    genuinely absent file never reaches require_destination's differently-worded refusal."""
     path = os.path.join(feat_dir, "feature.json")
     try:
         with open(path, encoding="utf-8") as f:
@@ -577,19 +559,38 @@ def _record_status(feat_dir, status):
     if not isinstance(doc, dict):
         print(f"gh-sync: {path} is not a JSON mapping — status not recorded")
         return
-    doc["status"] = status
-    _atomic_write(path, json.dumps(doc, indent=2) + "\n")
+
+    def transform(base):
+        # Re-read under the lock rather than reusing `doc`: another writer may have
+        # landed a change between the plain read above and the lock acquire, and the
+        # whole point of routing through the locked core is to never clobber it.
+        if base is None:
+            raise harness_merge.MergeRefusal(9, [f"{path}: vanished before the write landed"])
+        current = json.loads(base.decode("utf-8"))
+        current["status"] = status
+        return json.dumps(current, indent=2) + "\n"
+
+    try:
+        feature_json_write.write_feature_json(path, transform)
+    except harness_merge.MergeRefusal:
+        print(f"gh-sync: {path} could not be read — status not recorded")
+        return
     print(f"gh-sync: feature.json status -> {status}")
 
 
 def _record_pr(feat_dir, repo, pr_arg=None):
     """Set feature.json's top-level `pr` to the number of the branch's exactly-one merged
-    pull request (T-03, FEAT-26) — the mirror image of `_record_status`: same read
-    pattern, same `_atomic_write` on the whole document, same one-line-and-return on
-    every failure path, and it NEVER creates a document either.
+    pull request (T-03, FEAT-26) — the mirror image of `_record_status`: same read pattern,
+    same locked write through feature_json_write.write_feature_json, same one-line-and-return
+    on every failure path, and it NEVER creates a document either.
 
     IDEMPOTENT: an already-recorded int `pr` is never overwritten, on any path — not even
-    when `pr_arg` disagrees with it — which is what makes a backfill re-run safe.
+    when `pr_arg` disagrees with it — which is what makes a backfill re-run safe. The
+    idempotency check runs TWICE: once here (before the `gh pr list` network call, so an
+    already-recorded pr costs no API call) and again inside the locked transform against a
+    FRESH read (so a second writer that landed a `pr` between this function's read and its
+    lock acquire is still respected, closing the exact race the earlier single-read
+    `_atomic_write` version could not).
 
     EXACTLY ONE is the rule, not first-match: the branch feat/harness-native-foundation
     carries two merged pull requests, 15 and 4, so a first-match rule would record the
@@ -645,64 +646,93 @@ def _record_pr(feat_dir, repo, pr_arg=None):
         if not isinstance(number, int) or isinstance(number, bool):
             print(f"gh-sync: no merged pull request found on branch {branch}")
             return
-    doc["pr"] = number
-    _atomic_write(path, json.dumps(doc, indent=2) + "\n")
-    print(f"gh-sync: {os.path.basename(os.path.abspath(feat_dir))} pr -> #{number}")
+
+    outcome = {}
+
+    def transform(base):
+        if base is None:
+            raise harness_merge.MergeRefusal(9, [f"{path}: vanished before the write landed"])
+        current = json.loads(base.decode("utf-8"))
+        current_existing = current.get("pr")
+        if isinstance(current_existing, int) and not isinstance(current_existing, bool):
+            outcome["skipped"] = current_existing
+            return base  # no-op replace: another writer already recorded it first
+        current["pr"] = number
+        return json.dumps(current, indent=2) + "\n"
+
+    try:
+        feature_json_write.write_feature_json(path, transform)
+    except harness_merge.MergeRefusal:
+        print(f"gh-sync: {path} could not be read — pr not recorded")
+        return
+
+    if "skipped" in outcome:
+        print(f"gh-sync: pr already recorded as #{outcome['skipped']} — not overwritten")
+    else:
+        print(f"gh-sync: {os.path.basename(os.path.abspath(feat_dir))} pr -> #{number}")
 
 
 def save_recorded(feat_dir, rec):
-    """Read-modify-write the `github:` key into feature.json, ATOMICALLY (fix1 Part A).
+    """Read-modify-write the `github:` key into feature.json through
+    feature_json_write.write_feature_json (DEC-199): the same lock, same-directory
+    tempfile, fsync and os.replace `_atomic_write` gave it, matching factory_decompose.py's
+    write_factory (`:142-186`) in shape for the file that exists — load the document,
+    tolerating a not-a-JSON-mapping document by starting from `{}` (B-5's
+    exists->load-else-{} form) -> set `github` -> replace the WHOLE document atomically.
+    A genuinely ABSENT feature.json is REFUSED (T-02, FEAT-26), not started from `{}` — see
+    the inline comment below for why. feature.json itself is opened only for reading, never
+    in a truncating mode: every observer sees either the previous complete file or the next
+    one, never a partial or zero-byte one — the truncating `open(p, "w")` fix1 replaced made
+    a zero-byte window OBSERVABLE on every call, which `load_recorded` then read as "nothing
+    recorded", re-creating issues that already exist.
 
-    Matches factory_decompose.py's write_factory (`:142-186`) in shape for the file that
-    exists: load the document with json.load, tolerating a not-a-JSON-mapping document
-    by starting from `{}` (B-5's exists->load-else-{} form) -> set `github` -> json.dumps
-    the WHOLE document to a temp file created in the SAME DIRECTORY -> fsync ->
-    os.replace onto feature.json. A genuinely ABSENT feature.json is REFUSED (T-02,
-    FEAT-26), not started from `{}` — see the inline comment below for why. feature.json
-    itself is opened only for reading, never in a truncating mode: every observer sees
-    either the previous complete file or the next one, never a partial or zero-byte one —
-    the truncating `open(p, "w")` this replaces made a zero-byte window OBSERVABLE on
-    every call, which `load_recorded` then read as "nothing recorded", re-creating issues
-    that already exist.
+    The absent-file refusal is raised TWICE, verbatim: once here on a plain existence check
+    (before write_feature_json's require_destination can fire and substitute its own,
+    differently-worded destination refusal for this one), and again inside the locked
+    transform if the file vanishes between that check and the lock acquire — the same
+    narrow race `_record_status`/`_record_pr` close the same way.
     """
     p = os.path.join(feat_dir, "feature.json")
-    if os.path.exists(p):
-        with open(p, encoding="utf-8") as f:
-            doc = json.load(f)
+    absent_message = (
+        f"gh-sync: {p} is absent. The orchestrator instantiates feature.json from "
+        f".agents/skills/harness/templates/feature.json on its first cycle; writing "
+        f"one here would produce a document missing the schema's eight required "
+        f"keys. Run this feature through the orchestrator's normal cycle first."
+    )
+    # T-02 (FEAT-26), absorbs #289: an absent feature.json is REFUSED, not silently
+    # started from `{}`. A document started here from `{}` would carry only the
+    # `github` key this function sets, missing every one of feature-schema.json's eight
+    # required keys.
+    #
+    # Accepted ordering gap: on a hand-run of `open` against a directory with no
+    # feature.json, this refusal fires AFTER the milestone create (cmd_open calls
+    # save_recorded immediately after creating the milestone), so the milestone is
+    # orphaned by this exit. The existing 422 title-lookup recovery in cmd_open
+    # resolves it on the next run once the file exists — accepted rather than moved
+    # earlier, because checking for feature.json before the milestone create would be
+    # a SECOND first-sync policy in a file that has already been bitten by having two.
+    if not os.path.exists(p):
+        raise SystemExit(absent_message)
+
+    def transform(base):
+        if base is None:
+            raise SystemExit(absent_message)
+        doc = json.loads(base.decode("utf-8"))
         if not isinstance(doc, dict):
             # A file that exists and is already being replaced wholesale — same
             # tolerance load_recorded applies to a non-mapping document, kept here
-            # because this branch is a real file, not the absent-file path below.
+            # because this branch is a real file, not the absent-file path above.
             doc = {}
-    else:
-        # T-02 (FEAT-26), absorbs #289: an absent feature.json is REFUSED, not silently
-        # started from `{}`. The orchestrator instantiates feature.json from
-        # .agents/skills/harness/templates/feature.json on its first cycle; a document
-        # started here from `{}` would carry only the `github` key this function sets,
-        # missing every one of feature-schema.json's eight required keys.
-        #
-        # Accepted ordering gap: on a hand-run of `open` against a directory with no
-        # feature.json, this refusal fires AFTER the milestone create (cmd_open calls
-        # save_recorded immediately after creating the milestone), so the milestone is
-        # orphaned by this exit. The existing 422 title-lookup recovery in cmd_open
-        # resolves it on the next run once the file exists — accepted rather than moved
-        # earlier, because checking for feature.json before the milestone create would be
-        # a SECOND first-sync policy in a file that has already been bitten by having two.
-        raise SystemExit(
-            f"gh-sync: {p} is absent. The orchestrator instantiates feature.json from "
-            f".agents/skills/harness/templates/feature.json on its first cycle; writing "
-            f"one here would produce a document missing the schema's eight required "
-            f"keys. Run this feature through the orchestrator's normal cycle first."
-        )
-    doc["github"] = {
-        "milestone": rec["milestone"],
-        "parent": rec["parent"],
-        "attached": rec["attached"],
-        "issues": dict(sorted(rec["issues"].items())),
-        "source_issues": list(rec["source_issues"]),
-    }
-    text = json.dumps(doc, indent=2) + "\n"
-    _atomic_write(p, text)
+        doc["github"] = {
+            "milestone": rec["milestone"],
+            "parent": rec["parent"],
+            "attached": rec["attached"],
+            "issues": dict(sorted(rec["issues"].items())),
+            "source_issues": list(rec["source_issues"]),
+        }
+        return json.dumps(doc, indent=2) + "\n"
+
+    feature_json_write.write_feature_json(p, transform)
 
 
 # ---------- commands ----------
