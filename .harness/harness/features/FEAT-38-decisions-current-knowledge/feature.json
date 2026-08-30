@@ -2,7 +2,7 @@
   "feature_id": "FEAT-38-decisions-current-knowledge",
   "branch": "feat/FEAT-38-decisions-current-knowledge",
   "pr": null,
-  "status": "Plan",
+  "status": "Ready",
   "review_sha": "48bbe7e4ae56c1e6142515bce0f52f8055707b76",
   "cycles_used": 14,
   "max_total_cycles": 30,
