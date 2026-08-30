@@ -294,7 +294,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174, the whole implementation is in an enforcement-layer hook file
     depends_on: [T-01]
-    status: pending
+    status: done
     files:
       - .omp/extensions/harness-hooks.ts
     verify: |
@@ -393,7 +393,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174, this edits a registered OMP hook handler
     depends_on: [T-02]
-    status: pending
+    status: done
     files:
       - .omp/extensions/harness-hooks.ts
     verify: |
@@ -458,7 +458,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174, the deletion removes gate scripts and edits the hook registration and the test registries the qa gate reads
     depends_on: [T-03]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/context-watch.py
       - .claude/skills/harness/bin/context-watch-hook.py
@@ -534,7 +534,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174, the file is the orchestrator playbook and its guard is a registered unit test
     depends_on: [T-03]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/SKILL.md
       - .claude/skills/harness/bin/test-orchestrator-playbook.py
@@ -590,7 +590,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174, the amendments record a change to the enforcement layer and the record is the main session's to sign
     depends_on: [T-04]
-    status: pending
+    status: done
     files:
       - .harness/harness/docs/DECISIONS.md
       - .harness/harness/docs/DECISIONS-INDEX.md
