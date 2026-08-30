@@ -4111,6 +4111,26 @@ applies, and the note is what bounds it.
 Relay economics, stated once: a succession costs a fresh ~10k preload plus the working set
 (~30–50k total) and is won back the moment it prevents a handful of 300k-cache-read turns.
 
+**Amendment 1 (2026-08-29) — the in-flight warning survives as a capability, but its delivery
+moved off the Claude hook and onto the OMP tool_result injection.**
+
+*What went false.* The paragraph above asserts in the present tense that
+`.claude/skills/harness/bin/context-watch-hook.py` **is** a PostToolUse hook registered in
+`.claude/settings.json` on the `Write|Edit|Bash` matcher. After FEAT-44 (issue #923) that file is
+deleted and the registration removed, so the sentence is flatly false as written.
+
+*What replaced it.* The capability is unchanged in substance — a running `harness-orchestrator` is
+told, in its own context while it runs, that its measured context has crossed
+`budgets.orchestrator_context_warn_tokens` (DEC-198). Delivery is now the `tool_result` injection in
+`.omp/extensions/harness-hooks.ts`: on the orchestrator's wake the hook reads its own OMP transcript
+off disk and appends one advisory line to the `task` result it was already reading. **No Claude hook
+is registered for this any more.** It still advises and never refuses, and it now carries a computed
+ratio rather than prose the orchestrator applies by eye.
+
+*Still deferred.* The turn-count nudge this entry originally deferred remains deferred. Nothing
+counts an orchestrator's turns, and the distinction drawn above — a turn-count metric versus a
+context-size metric, same function — is unaffected by the change of host.
+
 ## DEC-160 — First live handoff: the cap was tight, the sweep does not deter, and deploy cannot ship config
 
 FEAT-03 (kaya-ai) crossed the plan seam within a day of DEC-159 landing, and the first live
@@ -6840,6 +6860,31 @@ contract — project values win, scalars the project already set are left alone 
 that way, but no assertion holds it. A future change to the merge could overwrite an operator's tuned
 threshold and the suite would stay green.
 
+**Amendment 1 (2026-08-29) — the default's source is re-homed to the OMP extension; the figure,
+its miss-path set and its advisory-not-gate character are unchanged.**
+
+*What went stale.* This entry sourced the 200000 default to
+`.claude/skills/harness/bin/context-watch.py`, where `DEFAULT_CONTEXT_WARN_TOKENS` was returned by
+the resolver on every miss path. That file is retired (FEAT-44, issue #923): it read Claude Code
+sidecars, and `.omp/config.yml` disables Claude discovery, so the mechanism could not fire on the
+canonical runtime at all.
+
+*The replacement.* The default is now `DEFAULT_CONTEXT_WARN_TOKENS` exported from
+`.omp/extensions/harness-hooks.ts`, returned by `resolveContextWarnTokens` on the same miss-path
+set, unchanged: file missing, unreadable, not JSON, no `budgets` dict, key absent, or value not a
+number with booleans excluded. The name is deliberately identical to the retired one, so this is a
+re-homing and not a redefinition.
+
+*What is and is not load-bearing, measured rather than assumed.* In THIS repository the config
+governs: `.harness/harness.json` DOES carry `budgets.orchestrator_context_warn_tokens`, at `:169`
+with the value `200000` and a rationale sibling at `:170`. The constant is therefore what a config
+genuinely lacking the key falls back to, **not** the live value here. The two figures being equal is
+coincidence, not derivation — a point worth stating because an earlier draft of this amendment
+asserted the key was absent, which would have contradicted this entry's own un-amended paragraph.
+
+The threshold figure and its advisory-never-refuses character are untouched, and its calibration
+across models with very different context windows remains out of scope (raised, not settled).
+
 ## DEC-199 — Every shared artifact two contexts can write at once goes through one locked, union-merging core, `harness_merge`, and a named persona is dispatched once per checkout
 
 **Chose:** one core, `.claude/skills/harness/bin/harness_merge.py`, holding the lock, the union-merge scaffolding and
@@ -7098,6 +7143,37 @@ is repeated there.
 
 **Branch `chore/744-never-wait-for-a-lead` is absorbed and abandoned.** Its work lands through this
 feature; the branch is not to be merged or revived.
+
+**Amendment 1 (2026-08-29) — self-identification is supplied concretely inside DEC-204's existing
+frame; this adds NO new supersession, and the ruling stands verbatim.**
+
+*Scope, stated first because it bounds the edit.* DEC-204 already supersedes this entry's
+host-specific mechanics for OMP while preserving its no-wait conduct and its evidence standard. This
+amendment does not supersede DEC-201 any further. It only fills in what replaced the retired
+mechanism.
+
+*What went stale.* The self-identification paragraph describes the orchestrator emitting a nonce,
+grepping the Claude orchestrator sidecars for it in a SECOND Bash call, and then running
+`context-watch.py`. All three are retired with the sidecar mechanism (FEAT-44, issue #923). The
+two-call constraint was correct — a single call grepping for a nonce it emitted in the same command
+finds nothing, because the message has not reached the sidecar yet — and it **died with the
+mechanism rather than being found wrong.**
+
+*The replacement.* The orchestrator no longer identifies itself at all. Measured:
+`ctx.sessionManager.getSessionFile()` returns the calling session's own transcript path from inside
+that session, including a subagent session, which is exactly where `ctx.getContextUsage()` returns
+`undefined` (upstream can1357/oh-my-pi#10097). The harness hook reads that transcript on the
+orchestrator's wake and appends one advisory line to the `task` result. No nonce, no probe, no
+second call, and nothing for the orchestrator to do.
+
+*The evidence and its limits, recorded because the permanent record must not overstate.* This was
+measured on ONE OMP build, twice, on one machine (2026-08-28 and 2026-08-29). The probe and its raw
+output are committed at
+`.harness/harness/features/FEAT-44-omp-context-advisory/evidence/README.md`. **Version-floor risk:**
+a later OMP may rename or drop the accessor. That is not an unwatched assumption —
+`.claude/skills/harness/bin/test-omp-session-accessor.py` dispatches a real subagent under the
+committed probe and fails, never skips, if the accessor stops resolving. This is one build's
+observed behaviour, not a timeless property of the OMP API.
 ---
 
 ## DEC-202 — OMP is the canonical Harness runtime; providers and host adapters are replaceable configuration
