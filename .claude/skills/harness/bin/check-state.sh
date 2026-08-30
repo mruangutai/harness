@@ -1636,9 +1636,15 @@ if _inv26_board:
         # than by a literal spelled here (FEAT-24 T-05). `pending` maps to the declared
         # `backlog` station because that station is where gh-sync's `open` lands every issue
         # and nothing moves it until start-task.
-        _st26 = _inv26_board["stations"]
-        _EXPECT = {"building": _st26["building"], "done": _st26["done"],
-                   "pending": _st26["backlog"]}
+        # LOWERCASE ON BOTH SIDES (FEAT-41 T-02). The board's answer arrives lowercased from
+        # gh_board.board_stations, and the declaration no longer carries column names, so the
+        # six stations ARE the expected values and no lookup stands between them.
+        #
+        # `_st26` IS GONE rather than lowercased: once the values are the station names, every
+        # one of its three reads became the literal it was looking up, leaving an assignment
+        # nothing read. That is dead code, not a step toward T-06 — T-06 deletes `_EXPECT` too,
+        # under D-11, and `_EXPECT` is still live below at the per-task comparison.
+        _EXPECT = {"building": "building", "done": "done", "pending": "backlog"}
 
         for _fp in sorted(glob.glob(os.path.join(H, "*", "features", "*"))):
             _feat = os.path.basename(_fp)
@@ -1661,7 +1667,7 @@ if _inv26_board:
             if str(_fj.get("status") or "").split()[:1] in (["Done"], ["Abandoned"]):
                 continue
 
-            _derived = _gb.derive_station(_pdoc, _inv26_board)
+            _derived = _gb.derive_station(_pdoc)
 
             # A None derivation silences the PARENT claim ONLY. It used to `continue` here
             # and skip the whole feature, which took the per-task comparison with it — and
@@ -1734,7 +1740,7 @@ if _inv26_board:
                 _accept = {_want}
                 if (_tstat.get(_tid) == "done"
                         and str(_fj.get("status") or "").split()[:1] == ["Review"]):
-                    _accept |= {_st26["review"], _st26["building"]}
+                    _accept |= {"review", "building"}
                 _wanttxt = (_want if len(_accept) == 1
                             else ", ".join(sorted(_accept)[:-1]) + " or " + sorted(_accept)[-1])
                 _found, _reason = _gb.read_station(_stations, _num)

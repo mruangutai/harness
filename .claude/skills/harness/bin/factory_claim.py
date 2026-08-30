@@ -269,8 +269,10 @@ def _main():
         options = factory_gh.project_field_options(
             board["owner"], board["number"], board["station_field"],
         )
+        # These three are COMPARED AGAINST THE BOARD'S REAL OPTIONS, so they must be column
+        # names, not station names (FEAT-41 T-02).
         for key in ("ready", "building", "review"):
-            opt = board["stations"][key]
+            opt = factory_config.station_column(key)
             if opt not in options:
                 factory_cli.refuse(
                     TOOL, "station option not offered by the board", opt,
@@ -304,7 +306,9 @@ def _main():
         raw_items = []
         for repo_name in repos_to_serve:
             board = boards[repo_name]
-            query = f'{board["station_field"]}:"{board["stations"]["ready"]}" is:open'
+            # The query string is sent to GitHub and must carry the COLUMN name.
+            query = (f'{board["station_field"]}:"'
+                     f'{factory_config.station_column("ready")}" is:open')
             raw_items.extend(
                 factory_gh.project_items(board["owner"], board["number"], query=query)
             )
@@ -421,7 +425,7 @@ def _main():
     factory_gh.assign(repo_name, num, args.as_login)
     factory_gh.project_field_set(
         winner_board["owner"], winner_board["number"], item_id,
-        winner_board["station_field"], winner_board["stations"]["building"],
+        winner_board["station_field"], factory_config.station_column("building"),
     )
 
     # 7. the single stdout payload.

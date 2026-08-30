@@ -63,15 +63,14 @@ def fake_gh_failing(tmp):
 
 # ---------------- load_board ----------------
 
-FULL_STATIONS = {
-    "backlog": "Backlog", "plan": "Plan", "ready": "Ready", "building": "Building",
-    "review": "Review", "done": "Done",
-}
+# The station DECLARATION is an ordered lowercase LIST under FEAT-41 T-01, and carries no column
+# names at all — factory_config.station_column derives those.
+FULL_STATIONS = ("backlog", "plan", "ready", "building", "review", "done")
 
 
 def full_board(**overrides):
     board = {"owner": "mruangutai", "number": 3, "station_field": "Status",
-              "stations": dict(FULL_STATIONS)}
+              "stations": list(FULL_STATIONS)}
     board.update(overrides)
     return board
 
@@ -143,15 +142,15 @@ with tempfile.TemporaryDirectory() as tmp:
 
 with tempfile.TemporaryDirectory() as tmp:
     path = os.path.join(tmp, ".harness", "harness.json")
-    board = full_board(stations={"backlog": "Backlog", "ready": "Ready", "building": "Building"})
+    board = full_board(stations=["backlog", "ready", "building"])
     write_harness_json(tmp, {"board": board})
     exc = raised_exc(tmp)
-    check("load_board raises naming the file and the key: stations key set wrong",
+    check("load_board raises naming the file and the key: station list incomplete",
           exc is not None and "github.board.stations" in str(exc) and path in str(exc), str(exc))
 
 with tempfile.TemporaryDirectory() as tmp:
     path = os.path.join(tmp, ".harness", "harness.json")
-    board = full_board(stations={**FULL_STATIONS, "review": ""})
+    board = full_board(stations=list(FULL_STATIONS[:-1]) + [""])
     write_harness_json(tmp, {"board": board})
     exc = raised_exc(tmp)
     check("load_board raises naming the file and the key: a station value is empty",
@@ -170,31 +169,40 @@ def plan(*statuses):
     return {"tasks": [{"id": f"T-{i:02d}", "status": s} for i, s in enumerate(statuses, 1)]}
 
 
-# Cases 1 and 2 assert the literal DEC-203 names in both label and assertion, so they use a
-# board declaring those exact names — label and assertion stay true.
-DEC192_BOARD = full_board()
-
-check("derive_station: one building among three -> Building",
-      gh_board.derive_station(plan("done", "building", "done"), DEC192_BOARD) == "Building")
-check("derive_station: three of three done -> Review",
-      gh_board.derive_station(plan("done", "done", "done"), DEC192_BOARD) == "Review")
-check("derive_station: two done one pending -> None",
-      gh_board.derive_station(plan("done", "done", "pending"), DEC192_BOARD) is None)
+# derive_station TAKES plan.yaml ALONE and returns a LOWERCASE station name (FEAT-41 T-02). The
+# board argument is gone, so these calls pass one argument — and the arity itself is asserted
+# below, because a stray second argument would otherwise be silently accepted by a **kwargs-ish
+# signature and the "plan.yaml is the sole input" claim would rot unnoticed.
+check("derive_station: one building among three -> building",
+      gh_board.derive_station(plan("done", "building", "done")) == "building")
+check("derive_station: three of three done -> review",
+      gh_board.derive_station(plan("done", "done", "done")) == "review")
+check("derive_station: two done one not-started -> None",
+      gh_board.derive_station(plan("done", "done", "ready")) is None)
 check("derive_station: empty task list -> None",
-      gh_board.derive_station({"tasks": []}, DEC192_BOARD) is None)
-check("derive_station: task with NO status key counts as pending -> None",
+      gh_board.derive_station({"tasks": []}) is None)
+check("derive_station: task with NO status key counts as not-started -> None",
       gh_board.derive_station(
-          {"tasks": [{"id": "T-01"}, {"id": "T-02", "status": "done"}]}, DEC192_BOARD) is None)
+          {"tasks": [{"id": "T-01"}, {"id": "T-02", "status": "done"}]}) is None)
 
-# The two new lookup cases use a board whose station names are DELIBERATELY not the DEC-203
-# names, so a case can only pass by actually reading board["stations"], not by a reintroduced
-# literal in gh_board.py.
-LOOKUP_BOARD = full_board(stations={**FULL_STATIONS, "building": "Col-B", "review": "Col-R"})
+# THE RETURN IS A STATION, NEVER A COLUMN. This is what the two deleted LOOKUP_BOARD cases
+# become: they existed to prove derive_station read the declaration rather than spelling a
+# literal, and now the opposite is required — it must return the lowercase station and leave
+# every capitalisation to station_column. Asserting "not the column" is what would catch a
+# well-meaning re-introduction of .capitalize() here.
+for _statuses, _want in ((("done", "building", "done"), "building"),
+                         (("done", "done", "done"), "review")):
+    _got = gh_board.derive_station(plan(*_statuses))
+    check(f"derive_station returns the lowercase station {_want!r}, not its board column",
+          _got == _want and _got != factory_config.station_column(_want), _got)
 
-check("derive_station returns the declared building station",
-      gh_board.derive_station(plan("done", "building", "done"), LOOKUP_BOARD) == "Col-B")
-check("derive_station returns the declared review station",
-      gh_board.derive_station(plan("done", "done", "done"), LOOKUP_BOARD) == "Col-R")
+# The board parameter is GONE, not merely unused: a two-argument call must fail loudly rather
+# than be tolerated, or check-state.sh and board_lifecycle could keep passing a board forever.
+try:
+    gh_board.derive_station(plan("done"), full_board())
+    check("derive_station rejects a second board argument", False, "accepted two arguments")
+except TypeError:
+    check("derive_station rejects a second board argument", True)
 
 # ---------------- board_stations ----------------
 # `board_stations` now calls `factory_gh.project_item_stations`, a GraphQL call whose fake
@@ -211,7 +219,7 @@ check("derive_station returns the declared review station",
 with tempfile.TemporaryDirectory() as tmp:
     fake_gh(tmp, json.dumps({
         "data": {"user": {"projectV2": {"items": {
-            "totalCount": 3,
+            "totalCount": 4,
             "pageInfo": {"hasNextPage": False, "endCursor": None},
             "nodes": [
                 {"content": {"number": 326, "repository": {"nameWithOwner": "mruangutai/harness"}},
@@ -220,6 +228,8 @@ with tempfile.TemporaryDirectory() as tmp:
                  "fieldValueByName": {"name": "Done"}},
                 {"content": {"number": 327, "repository": {"nameWithOwner": "mruangutai/harness"}},
                  "fieldValueByName": None},
+                {"content": {"number": 328, "repository": {"nameWithOwner": "mruangutai/harness"}},
+                 "fieldValueByName": {"name": "Review"}},
             ],
         }}}}
     }))
@@ -230,8 +240,17 @@ with tempfile.TemporaryDirectory() as tmp:
         st = f"<raised {exc!r}>"
     check("board_stations: item from another repository is EXCLUDED",
           isinstance(st, dict) and 99 not in st, repr(st))
-    check("board_stations: item with a station is present with its value",
-          isinstance(st, dict) and st.get(326) == "Building", repr(st))
+    # THE READ HALF OF THE CASE BOUNDARY (FEAT-41 T-02): the board answered "Building", and what
+    # comes back is lowercase. Asserting the capitalised form is ABSENT is the half that catches
+    # a pass-through implementation, since "Building" == "Building" would satisfy a value check.
+    check("board_stations: a board value is lowercased on read",
+          isinstance(st, dict) and st.get(326) == "building", repr(st))
+    # T-02's REQUIRED CASE, named explicitly: a board value of "Review" reads back as "review".
+    check('board_stations lowercases a board value of "Review" to "review"',
+          isinstance(st, dict) and st.get(328) == "review", repr(st))
+    check("board_stations: no capitalised station survives the read",
+          isinstance(st, dict)
+          and not any(isinstance(v, str) and v != v.lower() for v in st.values()), repr(st))
     check("board_stations: item with NO status key is present with value None, not dropped",
           isinstance(st, dict) and 327 in st and st[327] is None, repr(st))
 
@@ -257,9 +276,11 @@ with tempfile.TemporaryDirectory() as tmp:
 
 # ---------------- read_station ----------------
 
-stations = {326: "Building", 327: None}
+# read_station is a pure lookup and never converts case; its inputs come from board_stations,
+# which has already lowercased them.
+stations = {326: "building", 327: None}
 check("read_station: on the board with a station -> (station, None)",
-      gh_board.read_station(stations, 326) == ("Building", None))
+      gh_board.read_station(stations, 326) == ("building", None))
 check("read_station: absent from the mapping -> (None, 'not on the board')",
       gh_board.read_station(stations, 999) == (None, "not on the board"))
 check("read_station: present with a None value -> (None, 'no station set')",
@@ -272,7 +293,7 @@ with tempfile.TemporaryDirectory() as tmp:
     board = {"owner": "mruangutai", "number": 3, "station_field": "Status"}
     raised = None
     try:
-        gh_board.set_station(board, "mruangutai/harness", 326, "Building")
+        gh_board.set_station(board, "mruangutai/harness", 326, "building")
     except gh_board.BoardError as exc:
         raised = exc
     except Exception as exc:  # noqa: BLE001 — any other type is itself the failure
@@ -280,8 +301,51 @@ with tempfile.TemporaryDirectory() as tmp:
     check("set_station: a failing gh raises BoardError",
           isinstance(raised, gh_board.BoardError), type(raised).__name__)
     text = str(raised) if raised else ""
-    check("set_station: the raised error NAMES the issue number and the station attempted",
-          "326" in text and "Building" in text, text)
+    # THE MESSAGE NAMES THE STATION THE CALLER ASKED FOR, LOWERCASE — not the derived column.
+    # The caller can grep its own source for "building"; "Building" appears nowhere it wrote.
+    check("set_station: the error NAMES the issue number and the lowercase station attempted",
+          "326" in text and "building" in text and "Building" not in text, text)
+
+# T-02's REQUIRED CASE: set_station is the write half of the case boundary, so what reaches
+# factory_gh.project_field_set must be the COLUMN, from a lowercase station in. This is asserted
+# by capturing the argument rather than by reading the board back, because the conversion is the
+# whole behaviour under test and a round-trip through a fake would hide a missing derivation.
+_captured = {}
+
+
+def _capture_field_set(owner, number, item_id, field, value, _c=_captured):
+    _c["value"] = value
+
+
+_orig_field_set = gh_board.factory_gh.project_field_set
+_orig_item_id = gh_board.factory_gh.issue_board_item_id
+try:
+    gh_board.factory_gh.project_field_set = _capture_field_set
+    gh_board.factory_gh.issue_board_item_id = lambda repo, num, board_number: "ITEM-1"
+    gh_board.set_station(
+        {"owner": "mruangutai", "number": 3, "station_field": "Status"},
+        "mruangutai/harness", 326, "done",
+    )
+    check('set_station passes "Done" to project_field_set when given "done"',
+          _captured.get("value") == "Done", _captured)
+
+    # A station outside the six must raise FleetError and write NOTHING. It is LET PROPAGATE
+    # rather than wrapped in BoardError: the fault is in the caller's vocabulary, not on the
+    # board, and nothing should reach GitHub.
+    _captured.clear()
+    try:
+        gh_board.set_station(
+            {"owner": "mruangutai", "number": 3, "station_field": "Status"},
+            "mruangutai/harness", 326, "Done",
+        )
+        check("set_station raises FleetError on a capitalised station and writes nothing",
+              False, "did not raise")
+    except factory_config.FleetError:
+        check("set_station raises FleetError on a capitalised station and writes nothing",
+              "value" not in _captured, _captured)
+finally:
+    gh_board.factory_gh.project_field_set = _orig_field_set
+    gh_board.factory_gh.issue_board_item_id = _orig_item_id
 
 print()
 if FAILURES:

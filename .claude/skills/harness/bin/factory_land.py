@@ -86,13 +86,13 @@ def _main():
     owner = board["owner"]
     board_number = board["number"]
     station_field = board["station_field"]
-    # Idiom split, deliberate (T-04): this file indexes board["stations"]["review"] directly,
-    # one lookup deep, rather than going through factory_config.board_station as
-    # factory_decompose does. Both are safe for one reason and only one: load_fleet validates
-    # every board's stations mapping to a key set of exactly ready, building and review, so the
-    # direct index cannot miss. If that validation is ever relaxed, this direct index is the
-    # call site that breaks first.
-    review_option = board["stations"]["review"]
+    # THE IDIOM SPLIT IS GONE (FEAT-41 T-02). This file used to index
+    # board["stations"]["review"] directly while factory_decompose went through
+    # factory_config.board_station, and both were safe only because validate_board pinned the
+    # declaration's key set. The declaration no longer carries column names at all, so the value
+    # written to the board is DERIVED, here and everywhere else, by the one function that
+    # produces a capitalised station name.
+    review_option = factory_config.station_column("review")
 
     # The explicit open-check (D-04): today's is:open board filter is gone, so the same refusal
     # land has always issued for a closed issue is now a deliberate check, at the SAME point in

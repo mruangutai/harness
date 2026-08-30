@@ -92,19 +92,37 @@ def deep_copy(d):
 SIX_STATIONS = ("backlog", "plan", "ready", "building", "review", "done")
 
 
-def full_stations(**overrides):
-    st = {k: k.capitalize() for k in SIX_STATIONS}
-    st.update(overrides)
+def full_stations(*, drop=None, extra=None, replace=None):
+    """The station DECLARATION, which FEAT-41 T-01 makes an ordered LOWERCASE LIST rather than a
+    mapping of six keys to six operator-chosen column names. There are no per-station overrides
+    any more, and that absence is the point: the column name is DERIVED by
+    factory_config.station_column, so a fixture cannot express a renamed column because the
+    declaration cannot either.
+
+    drop removes one station, extra appends one, replace substitutes the whole list — the three
+    shapes the rejection cases need.
+    """
+    if replace is not None:
+        # NOT list(replace) — that would turn a MAPPING into its list of keys, i.e. into the
+        # valid declaration, and the pre-FEAT-41-mapping rejection case would pass while
+        # asserting nothing. replace is substituted verbatim, whatever its container.
+        return replace
+    st = list(SIX_STATIONS)
+    if drop is not None:
+        st.remove(drop)
+    if extra is not None:
+        st.append(extra)
     return st
 
 
-def board_dict(number, **station_overrides):
-    """A valid six-key board mapping (FEAT-24 T-02 / D-06, widened to six by FEAT-33 T-02)."""
+def board_dict(number, **station_kwargs):
+    """A valid board mapping. stations is the ordered lowercase list mandated by FEAT-41 T-01
+    (was a six-key mapping under FEAT-24 T-02 / D-06, widened to six by FEAT-33 T-02)."""
     return {
         "owner": "mruangutai",
         "number": number,
         "station_field": "Status",
-        "stations": full_stations(**station_overrides),
+        "stations": full_stations(**station_kwargs),
     }
 
 
@@ -155,7 +173,7 @@ def mut_top_level_board_present(d):
         "owner": "mruangutai",
         "number": 9,
         "station_field": "Status",
-        "stations": {"ready": "Ready", "building": "Building", "review": "Review"},
+        "stations": ["ready", "building", "review"],
     }
 
 
@@ -363,81 +381,124 @@ check("load_fleet still requires repos[].name, repos[].default_branch and worksp
       _name_bad and _default_branch_missing and _workspace_root_missing,
       (_name_bad, _default_branch_missing, _workspace_root_missing))
 
-# --- validate_board: the six-key stations map, accept/reject per key -----------------------
-# Independent oracle, per-key distinctive values (the same shape T-04 uses for derive_station's
-# Col-B/Col-R) — comparing the RETURNED mapping to the INPUT mapping is x == x, since item 2c
-# mutates the board in place and returns it, and cannot redden for any implementation that fails
-# to preserve a key. _EXPECTED_STATIONS is the oracle instead.
-_EXPECTED_STATIONS = {
-    "backlog": "Col-BK", "plan": "Col-PL", "ready": "Col-RD", "building": "Col-BL",
-    "review": "Col-RV", "done": "Col-DN",
-}
-for _key in SIX_STATIONS:
-    _board = board_dict(3, **_EXPECTED_STATIONS)
-    try:
-        _result = fc.validate_board(_board, "github.board", "test-path")
-        _ok = _result["stations"][_key] == _EXPECTED_STATIONS[_key]
-    except Exception as e:
-        _ok, _result = False, f"{type(e).__name__}: {e}"
-    check(f"validate_board accepts the six-key stations map: {_key}", _ok, _result)
-
-for _key in SIX_STATIONS:
-    _board = board_dict(3)
-    del _board["stations"][_key]
-    try:
-        fc.validate_board(_board, "github.board", "test-path")
-        check(f"validate_board rejects a stations map missing {_key}", False, "did not raise")
-    except fc.FleetError:
-        check(f"validate_board rejects a stations map missing {_key}", True)
-    except Exception as e:
-        check(f"validate_board rejects a stations map missing {_key}", False,
-              f"{type(e).__name__}: {e}")
-
-# --- validate_board: three edge cases on the exact-set-equality boundary (FEAT-33 T-02) -------
-_six_key_board = board_dict(3)
+# --- validate_board: the ordered lowercase station LIST, accept/reject (FEAT-41 T-01) --------
+# The pre-FEAT-41 form of this block used an independent per-key oracle (Col-BK/Col-PL/...)
+# because the declaration carried six operator-chosen column names and comparing the returned
+# mapping to the input mapping would have been x == x. THE ORACLE IS GONE BECAUSE THE FREEDOM IS
+# GONE: the declaration is now exactly one list, the column names are derived by station_column,
+# and the only accepting shape is list(MANDATED_STATIONS) in order. What replaces the oracle is
+# station_column's own per-station assertions further down — one case per station, never a set
+# comparison — which is where a wrong capitalisation can still be caught.
+_list_board = board_dict(3)
 try:
-    _six_result = fc.validate_board(_six_key_board, "github.board", "test-path")
-    _six_ok = (
-        _six_result is _six_key_board
-        and set(_six_result["stations"].keys()) == set(SIX_STATIONS)
+    _result = fc.validate_board(_list_board, "github.board", "test-path")
+    _stations = _result["stations"]
+    _ok = (
+        _result is _list_board
+        and tuple(_stations) == fc.MANDATED_STATIONS
+        and isinstance(_stations, tuple)
     )
 except Exception as e:
-    _six_ok, _six_result = False, f"{type(e).__name__}: {e}"
-check("(X) validate_board accepts a six-key map with all six non-empty values, and returns it",
-      _six_ok, _six_result)
+    _ok, _stations = False, f"{type(e).__name__}: {e}"
+check("validate_board accepts the ordered lowercase station list, returns the board, and "
+      "carries stations as a tuple of the six", _ok, _stations)
 
-_five_key_board_pre_widening = {
-    "owner": "mruangutai",
-    "number": 3,
-    "station_field": "Status",
-    "stations": {
-        "backlog": "Backlog", "ready": "Ready", "building": "Building",
-        "review": "Review", "done": "Done",
-    },
-}
+for _key in SIX_STATIONS:
+    _board = board_dict(3, drop=_key)
+    try:
+        fc.validate_board(_board, "github.board", "test-path")
+        check(f"validate_board rejects a station list missing {_key}", False, "did not raise")
+    except fc.FleetError as e:
+        check(f"validate_board rejects a station list missing {_key}",
+              "github.board.stations" in str(e), str(e))
+    except Exception as e:
+        check(f"validate_board rejects a station list missing {_key}", False,
+              f"{type(e).__name__}: {e}")
+
+# (a) T-01's own case: a declaration that RENAMES one station is refused, and the message names
+# the offending key. This is the shape an operator reaches for first — the board column is called
+# "Icebox", so they rename the station to match — and it is exactly what FEAT-41 forbids: the six
+# names are fixed and the COLUMN is derived from them, never the other way round.
+for _key in SIX_STATIONS:
+    _renamed = [("icebox" if s == _key else s) for s in SIX_STATIONS]
+    _board = board_dict(3, replace=_renamed)
+    try:
+        fc.validate_board(_board, "github.board", "test-path")
+        check(f"validate_board refuses a declaration that renames {_key}", False, "did not raise")
+    except fc.FleetError as e:
+        check(f"validate_board refuses a declaration that renames {_key}",
+              "github.board.stations" in str(e), str(e))
+    except Exception as e:
+        check(f"validate_board refuses a declaration that renames {_key}", False,
+              f"{type(e).__name__}: {e}")
+
+# (b) the six names in a different ORDER is refused. The list is ordered because the order IS the
+# workflow; a set comparison here would pass and is the reason this case is written per-rotation
+# rather than once.
+for _shift in range(1, 6):
+    _rotated = list(SIX_STATIONS[_shift:]) + list(SIX_STATIONS[:_shift])
+    _board = board_dict(3, replace=_rotated)
+    try:
+        fc.validate_board(_board, "github.board", "test-path")
+        check(f"validate_board refuses the six names rotated by {_shift}", False, "did not raise")
+    except fc.FleetError as e:
+        check(f"validate_board refuses the six names rotated by {_shift}",
+              "github.board.stations" in str(e), str(e))
+    except Exception as e:
+        check(f"validate_board refuses the six names rotated by {_shift}", False,
+              f"{type(e).__name__}: {e}")
+
+# A MAPPING is now the wrong shape outright — this is the pre-FEAT-41 declaration, and it must be
+# refused rather than silently accepted by an implementation that only checks membership.
+_mapping_board = board_dict(3, replace={k: k.capitalize() for k in SIX_STATIONS})
 try:
-    fc.validate_board(_five_key_board_pre_widening, "github.board", "test-path")
-    check("(X) validate_board rejects the five-key map .harness/harness.json carried before "
-          "this change", False, "did not raise")
+    fc.validate_board(_mapping_board, "github.board", "test-path")
+    check("validate_board refuses the pre-FEAT-41 six-key MAPPING", False, "did not raise")
 except fc.FleetError as e:
-    check("(X) validate_board rejects the five-key map .harness/harness.json carried before "
-          "this change", "github.board.stations" in str(e), str(e))
+    check("validate_board refuses the pre-FEAT-41 six-key MAPPING",
+          "github.board.stations" in str(e), str(e))
 except Exception as e:
-    check("(X) validate_board rejects the five-key map .harness/harness.json carried before "
-          "this change", False, f"{type(e).__name__}: {e}")
-
-_seven_key_board = board_dict(3, abandoned="Abandoned")
-try:
-    fc.validate_board(_seven_key_board, "github.board", "test-path")
-    check("(X) validate_board rejects a seven-key map that adds abandoned", False,
-          "did not raise")
-except fc.FleetError:
-    check("(X) validate_board rejects a seven-key map that adds abandoned", True)
-except Exception as e:
-    check("(X) validate_board rejects a seven-key map that adds abandoned", False,
+    check("validate_board refuses the pre-FEAT-41 six-key MAPPING", False,
           f"{type(e).__name__}: {e}")
 
-# _STATION_KEYS must be exactly the six lowercase forms of feature-schema.json's status enum
+# The remedy line must name the exact list to write, or the operator cannot act on the refusal.
+try:
+    fc.validate_board(board_dict(3, drop="done"), "github.board", "test-path")
+    _remedy_ok, _remedy = False, "did not raise"
+except fc.FleetError as e:
+    _remedy = str(e)
+    _remedy_ok = all(s in _remedy for s in SIX_STATIONS)
+check("validate_board's stations remedy names all six station names to write",
+      _remedy_ok, _remedy)
+
+# The five-station declaration .harness/harness.json carried before FEAT-33 widened it, now in
+# list form. Kept because the file really held this shape once and a reader may still have it.
+_five_pre_widening = board_dict(3, replace=["backlog", "ready", "building", "review", "done"])
+try:
+    fc.validate_board(_five_pre_widening, "github.board", "test-path")
+    check("(X) validate_board rejects the five-station declaration carried before FEAT-33",
+          False, "did not raise")
+except fc.FleetError as e:
+    check("(X) validate_board rejects the five-station declaration carried before FEAT-33",
+          "github.board.stations" in str(e), str(e))
+except Exception as e:
+    check("(X) validate_board rejects the five-station declaration carried before FEAT-33",
+          False, f"{type(e).__name__}: {e}")
+
+# abandoned is NOT a seventh station. It names no board column and never reaches the board, so a
+# declaration that adds it is refused exactly like any other extension.
+_seven_board = board_dict(3, extra="abandoned")
+try:
+    fc.validate_board(_seven_board, "github.board", "test-path")
+    check("(X) validate_board rejects a seventh station that adds abandoned", False,
+          "did not raise")
+except fc.FleetError:
+    check("(X) validate_board rejects a seventh station that adds abandoned", True)
+except Exception as e:
+    check("(X) validate_board rejects a seventh station that adds abandoned", False,
+          f"{type(e).__name__}: {e}")
+
+# MANDATED_STATIONS must be exactly the six lowercase forms of feature-schema.json's status enum
 # minus "Abandoned", read at runtime, so the two declarations cannot drift apart silently.
 _schema_path = os.path.join(os.path.dirname(os.path.abspath(fc.__file__)), "feature-schema.json")
 with open(_schema_path, encoding="utf-8") as f:
@@ -445,10 +506,66 @@ with open(_schema_path, encoding="utf-8") as f:
 _schema_stations = {
     s.lower() for s in _schema["properties"]["status"]["enum"] if s != "Abandoned"
 }
-check("(X) _STATION_KEYS is exactly the six lowercase forms of feature-schema.json's status "
+check("(X) MANDATED_STATIONS is exactly the six lowercase forms of feature-schema.json's status "
       "enum minus Abandoned",
-      set(fc._STATION_KEYS) == _schema_stations,
-      (set(fc._STATION_KEYS), _schema_stations))
+      set(fc.MANDATED_STATIONS) == _schema_stations,
+      (set(fc.MANDATED_STATIONS), _schema_stations))
+
+# TERMINAL_MARKER is the schema's remaining status, lowercased — the one the six exclude. Pinning
+# it against the schema is what stops it from silently becoming a seventh station later.
+check("(X) TERMINAL_MARKER is the schema status the six stations exclude, lowercased",
+      fc.TERMINAL_MARKER == "abandoned"
+      and "Abandoned" in _schema["properties"]["status"]["enum"]
+      and fc.TERMINAL_MARKER not in fc.MANDATED_STATIONS,
+      (fc.TERMINAL_MARKER, _schema["properties"]["status"]["enum"]))
+
+# --- station_column: the ONE place a capitalised station name is produced (FEAT-41 T-01) ------
+# (c) ONE CASE PER STATION, never a set comparison. A set comparison passes when two stations
+# swap their column names, and the whole purpose of this function is that the board column an
+# agent writes is the one the board actually has.
+_EXPECTED_COLUMNS = {
+    "backlog": "Backlog", "plan": "Plan", "ready": "Ready",
+    "building": "Building", "review": "Review", "done": "Done",
+}
+for _st, _col in _EXPECTED_COLUMNS.items():
+    try:
+        _got = fc.station_column(_st)
+        _ok = _got == _col
+    except Exception as e:
+        _ok, _got = False, f"{type(e).__name__}: {e}"
+    check(f"station_column({_st!r}) is exactly {_col!r}", _ok, _got)
+
+# The six declared names must survive .capitalize() intact — the docstring's own claim. If a
+# station were ever declared with an internal capital or a hyphen this would redden rather than
+# silently producing a column the board does not have.
+check("(X) every mandated station round-trips through station_column to a column that "
+      "lowercases back to it",
+      all(fc.station_column(s).lower() == s for s in fc.MANDATED_STATIONS),
+      [(s, fc.station_column(s)) for s in fc.MANDATED_STATIONS])
+
+# (d) station_column raises on TERMINAL_MARKER and on an already-capitalised name. The second is
+# the likelier live mistake: a caller that has a column name and passes it back in would
+# otherwise get "Done".capitalize() == "Done" and silently work, which is how a case boundary
+# stops being a boundary.
+for _bad in (fc.TERMINAL_MARKER, "Done", "Icebox", "", "DONE"):
+    try:
+        _got = fc.station_column(_bad)
+        check(f"station_column({_bad!r}) raises FleetError", False, f"returned {_got!r}")
+    except fc.FleetError as e:
+        check(f"station_column({_bad!r}) raises FleetError",
+              all(s in str(e) for s in SIX_STATIONS), str(e))
+    except Exception as e:
+        check(f"station_column({_bad!r}) raises FleetError", False,
+              f"{type(e).__name__}: {e}")
+
+# station_names returns the validated tuple, and is the accessor every other module uses instead
+# of reaching into board["stations"] itself.
+try:
+    _names = fc.station_names(fc.validate_board(board_dict(3), "github.board", "test-path"))
+    _names_ok = _names == fc.MANDATED_STATIONS and isinstance(_names, tuple)
+except Exception as e:
+    _names_ok, _names = False, f"{type(e).__name__}: {e}"
+check("station_names returns the six mandated stations as a tuple", _names_ok, _names)
 
 # --- board_for: the eight malformed shapes, driven through product_config + board_for ---------
 # The SAME eight shapes T-04 drives through gh_board.load_board, driven here through the OTHER
@@ -481,10 +598,8 @@ _b_station_field_missing = board_dict(3)
 _b_station_field_missing["station_field"] = ""
 _b_stations_missing = board_dict(3)
 del _b_stations_missing["stations"]
-_b_stations_key_set_wrong = board_dict(3)
-del _b_stations_key_set_wrong["stations"]["done"]
-_b_station_value_empty = board_dict(3)
-_b_station_value_empty["stations"]["done"] = ""
+_b_stations_key_set_wrong = board_dict(3, drop="done")
+_b_station_value_empty = board_dict(3, replace=list(SIX_STATIONS[:-1]) + [""])
 
 board_for_raise_case("no board key", {"github": {}}, present="github.board")
 board_for_raise_case("board is not a mapping", {"github": {"board": "not-a-mapping"}},
@@ -528,9 +643,12 @@ with tempfile.TemporaryDirectory() as td:
         "workspace_root": "/tmp/does-not-need-to-exist/factories",
     }
     fleet = fc.load_fleet(write_fleet(td, _two_repo_fleet))
+    # BOTH repos now declare the SAME six stations, because FEAT-41 T-01 removed the freedom to
+    # name a column per repo. What still varies per repo — and is what this case actually proves
+    # board_for resolves — is the board NUMBER and the owner.
     _boards_by_repo = {
         "mruangutai/harness": board_dict(3),
-        "mruangutai/kaya-ai": board_dict(2, ready="Todo"),
+        "mruangutai/kaya-ai": board_dict(2),
     }
 
     def _stub(repo, path, ref, _boards=_boards_by_repo):
@@ -540,7 +658,8 @@ with tempfile.TemporaryDirectory() as td:
         _b1 = fc.board_for(fleet, "mruangutai/harness")
         _b2 = fc.board_for(fleet, "mruangutai/kaya-ai")
         _ok = (_b1["number"] == 3 and _b1["owner"] == "mruangutai"
-               and _b2["number"] == 2 and _b2["stations"]["ready"] == "Todo")
+               and _b2["number"] == 2
+               and tuple(_b2["stations"]) == fc.MANDATED_STATIONS)
     check("board_for resolves through product_config", _ok, (_b1, _b2))
 
 # --- product_config: no-checkout, remote-failure, no-fallback, memoisation (THE FIXTURE TRAP
@@ -741,13 +860,18 @@ with tempfile.TemporaryDirectory() as td:
     }))
     _boards_by_repo = {
         "mruangutai/harness": board_dict(3),
-        "mruangutai/kaya-ai": board_dict(2, ready="Todo"),
+        "mruangutai/kaya-ai": board_dict(2),
     }
     with patched_file_at_ref(
             lambda repo, path, ref, _boards=_boards_by_repo: json.dumps(config_doc(_boards[repo]))):
         _val = fc.board_station(fleet, "mruangutai/kaya-ai", "ready")
-    check("(29) board_station returns the per-repo ready option when the entry has its own board",
-          _val == "Todo", _val)
+    # (29) NO LONGER "the per-repo ready OPTION": under FEAT-41 T-01 a repo cannot name its own
+    # column, so what board_station returns is the DERIVED column for a station it has verified
+    # the repo declares. The assertion is therefore station_column's output, not a fixture value —
+    # and it must not be spelled "Ready" by hand here, or this case would pass against a
+    # board_station that skipped the derivation and capitalised the key itself.
+    check("(29) board_station returns the derived column for a station the repo's board declares",
+          _val == fc.station_column("ready"), _val)
 
 with tempfile.TemporaryDirectory() as td:
     fleet = fc.load_fleet(write_fleet(td, good_fleet_dict()))

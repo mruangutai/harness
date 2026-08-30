@@ -87,8 +87,9 @@ def write_feature(root, repo_slug, feat, status, parent=None, github_issues=None
 
 _BOARD = {
     "owner": "acme", "number": 9, "station_field": "Status",
-    "stations": {"backlog": "Backlog", "plan": "Plan", "ready": "Ready",
-                 "building": "Building", "review": "Review", "done": "Done"},
+    # The ordered lowercase declaration (FEAT-41 T-01). Column names are derived by
+    # factory_config.station_column, so none are stored here.
+    "stations": ["backlog", "plan", "ready", "building", "review", "done"],
 }
 
 
@@ -909,9 +910,13 @@ with tempfile.TemporaryDirectory() as base:
     issues = json.dumps([{"number": 10, "stateReason": "COMPLETED", "labels": []}])
     r, log = run(root, ["audit"], issues=issues, stations=_stations_json({10: "Building"}))
     check("audit STATION: exits 1", r.returncode == 1, f"rc={r.returncode}")
+    # LOWERCASE on both sides (FEAT-41 T-02): the fake board answers "Building", board_stations
+    # lowercases it on read, and the audit compares stations rather than columns. Asserting the
+    # capitalised forms are ABSENT is what catches a comparison that skipped the boundary.
     check("audit STATION: names the issue, its actual and expected station",
           "STATION" in r.stdout and "#10" in r.stdout
-          and "'Building'" in r.stdout and "'Done'" in r.stdout,
+          and "'building'" in r.stdout and "'done'" in r.stdout
+          and "'Building'" not in r.stdout,
           repr(r.stdout))
 
 # ---------------- audit case 4: REASON -- a closed issue with a null close reason --------
@@ -987,10 +992,13 @@ with tempfile.TemporaryDirectory() as base:
                   github_issues={"T-01": 701})
     r, log = run(root, ["audit"], stations=_stations_json({700: "Building"}))
     check("audit STATUS (FEAT-32 shape): exits 1", r.returncode == 1, f"rc={r.returncode}")
+    # The recorded feature.json STATUS stays capitalised ('Review') and the message also names
+    # the derived column, but the ACTUAL value read off the board is lowercase (FEAT-41 T-02).
     check("audit STATUS (FEAT-32 shape): names the feature dir, recorded status, expected "
-          "column and actual column",
+          "station and column, and the actual lowercase station",
           "STATUS" in r.stdout and "FEAT-32-fixture" in r.stdout
-          and "'Review'" in r.stdout and "'Building'" in r.stdout, repr(r.stdout))
+          and "'Review'" in r.stdout and "'review'" in r.stdout
+          and "'building'" in r.stdout and "'Building'" not in r.stdout, repr(r.stdout))
 
 with tempfile.TemporaryDirectory() as base:
     # FEAT-08 shape, re-derived at 46ee87c: status Done, parent #85 still OPEN, board reads
@@ -1001,10 +1009,11 @@ with tempfile.TemporaryDirectory() as base:
     write_feature(root, "widget", "FEAT-08", "Done", parent=85, github_issues={"T-01": 86})
     r, log = run(root, ["audit"], stations=_stations_json({85: "Backlog"}))
     check("audit STATUS (FEAT-08 shape): exits 1", r.returncode == 1, f"rc={r.returncode}")
-    check("audit STATUS (FEAT-08 shape): names the feature dir, status Done, expected Done, "
-          "actual Backlog -- no Done exemption",
+    check("audit STATUS (FEAT-08 shape): names the feature dir, status Done, expected done, "
+          "actual backlog -- no Done exemption",
           "STATUS" in r.stdout and "FEAT-08" in r.stdout
-          and "'Done'" in r.stdout and "'Backlog'" in r.stdout, repr(r.stdout))
+          and "'Done'" in r.stdout and "'done'" in r.stdout
+          and "'backlog'" in r.stdout and "'Backlog'" not in r.stdout, repr(r.stdout))
 
 with tempfile.TemporaryDirectory() as base:
     # FEAT-09 shape, its own assertion (T-15 intent: "each its own assertion").
@@ -1013,10 +1022,11 @@ with tempfile.TemporaryDirectory() as base:
     write_feature(root, "widget", "FEAT-09", "Done", parent=98, github_issues={"T-01": 99})
     r, log = run(root, ["audit"], stations=_stations_json({98: "Backlog"}))
     check("audit STATUS (FEAT-09 shape): exits 1", r.returncode == 1, f"rc={r.returncode}")
-    check("audit STATUS (FEAT-09 shape): names the feature dir, status Done, expected Done, "
-          "actual Backlog",
+    check("audit STATUS (FEAT-09 shape): names the feature dir, status Done, expected done, "
+          "actual backlog",
           "STATUS" in r.stdout and "FEAT-09" in r.stdout
-          and "'Done'" in r.stdout and "'Backlog'" in r.stdout, repr(r.stdout))
+          and "'Done'" in r.stdout and "'done'" in r.stdout
+          and "'backlog'" in r.stdout and "'Backlog'" not in r.stdout, repr(r.stdout))
 
 with tempfile.TemporaryDirectory() as base:
     # A matching status and card -- no finding.

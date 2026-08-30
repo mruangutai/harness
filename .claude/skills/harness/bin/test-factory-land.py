@@ -53,10 +53,8 @@ def good_fleet_dict(workspace_root, default_branch=DEFAULT_BRANCH, repos=None):
         "owner": OWNER,
         "number": BOARD,
         "station_field": STATION_FIELD,
-        "stations": {
-            "backlog": "Backlog", "plan": "Plan", "ready": "Ready", "building": "Building",
-            "review": "Review", "done": "Done",
-        },
+        # Ordered lowercase declaration (FEAT-41 T-01); columns are derived, never stored.
+        "stations": ["backlog", "plan", "ready", "building", "review", "done"],
     }
     return {
         "schema": "factory-fleet/1",
@@ -90,11 +88,7 @@ def two_repo_fleet_dict(workspace_root, repo_a=REPO, repo_b=REPO_B,
                     "owner": OWNER,
                     "number": BOARD,
                     "station_field": STATION_FIELD,
-                    "stations": {
-                        "backlog": "Backlog", "plan": "Plan", "ready": "Ready",
-                        "building": "Building",
-                        "review": "Review", "done": "Done",
-                    },
+                    "stations": ["backlog", "plan", "ready", "building", "review", "done"],
                 },
             },
             {
@@ -104,11 +98,7 @@ def two_repo_fleet_dict(workspace_root, repo_a=REPO, repo_b=REPO_B,
                     "owner": OWNER_B,
                     "number": BOARD_B,
                     "station_field": STATION_FIELD_B,
-                    "stations": {
-                        "backlog": "Other-Backlog", "plan": "Other-Plan", "ready": "Other-Ready",
-                        "building": "Other-Building", "review": "Other-Review",
-                        "done": "Other-Done",
-                    },
+                    "stations": ["backlog", "plan", "ready", "building", "review", "done"],
                 },
             },
         ],
@@ -492,7 +482,11 @@ check("(T04-1) project_field_set carries A's owner, board number, station_field 
       field_set_calls
       and field_set_calls[0][1] == (OWNER, BOARD, ITEM_ID, STATION_FIELD, "Review"),
       field_set_calls)
-b_markers = (BOARD_B, OWNER_B, STATION_FIELD_B, "Other-Review")
+# "Other-Review" IS GONE from the markers: FEAT-41 T-01 removed per-repo column names, so
+# both boards now declare the same six stations and a column name can no longer distinguish
+# them. The three that remain — board number, owner, station_field — still differ per repo,
+# which is what keeps this pair of checks discriminating.
+b_markers = (BOARD_B, OWNER_B, STATION_FIELD_B)
 check("(T04-1) issue_board_item_id's call carries none of B's board markers",
       lookup_calls and not any(m in lookup_calls[0][1] for m in b_markers), lookup_calls)
 check("(T04-1) project_field_set's call carries none of B's board markers",

@@ -264,16 +264,21 @@ def sort_dispositions(tasks, factory):
 # --------------------------------------------------------------------------
 
 def _validate_stations(owner, board_number, station_field, stations):
-    """Validate every fleet station name against the board's real field options before anything
-    is created. Two failure modes of factory_gh.project_field_options: the FIELD itself missing
-    (it raises GhError naming the field, propagated unchanged) and an OPTION missing (it returns
-    a list and this function produces the message, naming the offending station key, its
-    configured value, and the board's real options)."""
+    """Validate every declared station against the board's real field options before anything is
+    created. Two failure modes of factory_gh.project_field_options: the FIELD itself missing (it
+    raises GhError naming the field, propagated unchanged) and an OPTION missing (it returns a
+    list and this function produces the message, naming the offending station, the COLUMN it
+    requires, and the board's real options).
+
+    `stations` is now a SEQUENCE of lowercase station names, not a mapping of names to
+    operator-chosen columns (FEAT-41 T-02), so the column each one requires is derived here by
+    factory_config.station_column rather than read out of the declaration."""
     options = factory_gh.project_field_options(owner, board_number, station_field)
-    for key, value in stations.items():
-        if value not in options:
+    for name in stations:
+        column = factory_config.station_column(name)
+        if column not in options:
             factory_cli.refuse(
-                TOOL, "station option not offered by the board", f"{key}={value!r}",
+                TOOL, "station option not offered by the board", f"{name}={column!r}",
                 f"field {station_field!r} on {owner} project {board_number} offers: "
                 + ", ".join(options),
             )

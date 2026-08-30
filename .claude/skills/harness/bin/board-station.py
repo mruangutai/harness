@@ -15,9 +15,13 @@ Usage: board-station.py <issue-number> <station>
 IMPLICITLY from that field, never taken as a parameter here, so a source ticket living in a
 different repository would silently move THIS repository's issue of the same number.
 
-`<station>` is a plain string, never validated against a list (D-05): `gh_board.set_station`
-passes it to `factory_gh.project_field_set`, which resolves the option BY NAME at runtime, so a
-wrong value fails loudly at the board instead of silently against a stale local copy.
+`<station>` is one of the six MANDATED station names, lowercase, and is validated against
+`factory_config.MANDATED_STATIONS` before any board call (FEAT-41 T-02, reversing D-05). The
+board's COLUMN is then derived from it by `factory_config.station_column` inside
+`gh_board.set_station` — the one place a capitalised station name is produced — and the option is
+still resolved BY NAME at the board, so a board missing that column still fails loudly there.
+What changed is that a station outside the six is now this tool's own refusal, naming the six,
+rather than a value passed through to GitHub.
 
 EVERY line this tool prints, on stdout or stderr, carries the "board-station: " prefix — the
 environmental lines below included, matching `gh-sync.py`'s own universal prefix discipline.
@@ -148,6 +152,24 @@ def main(argv):
     if board is None:
         out("no github.board configured — nothing written")
         return 0
+
+    # VALIDATED AGAINST THE BOARD'S OWN DECLARATION, IMMEDIATELY BEFORE THE WRITE (FEAT-41 T-02,
+    # reversing D-05). D-05's reasoning was that resolving the option BY NAME at the board makes
+    # a wrong value fail loudly there rather than silently against a stale local copy. That still
+    # holds for the board's COLUMNS, but the station vocabulary is no longer a local copy of
+    # anything — it is mandated in one place — and set_station now derives the column through
+    # factory_config.station_column, which raises FleetError on an unknown station. Refusing here
+    # turns that into this tool's own exit-2 refusal, naming the six.
+    #
+    # PLACED HERE, NOT AT ARGUMENT-PARSE TIME, AND THE POSITION IS LOAD-BEARING: every
+    # environmental no-op above — no harness root, no harness.json, sync off, no repo, no board —
+    # exits 0 having written nothing, and that contract must not become an exit 2 just because
+    # the station argument was also wrong. A refusal is only owed when a write was actually about
+    # to happen.
+    if station not in factory_config.station_names(board):
+        err(f"{station!r} is not a station — expected one of: "
+            + ", ".join(factory_config.station_names(board)))
+        return 2
 
     try:
         gh_board.set_station(board, repo, issue_number, station)

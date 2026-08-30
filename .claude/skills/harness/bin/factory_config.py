@@ -36,7 +36,18 @@ import harness_yaml
 
 _BIN_DIR = os.path.dirname(os.path.abspath(__file__))
 
-_STATION_KEYS = ("backlog", "plan", "ready", "building", "review", "done")
+# THE MANDATE the declaration is checked against, not a second vocabulary. harness.json's
+# github.board.stations must equal list(MANDATED_STATIONS) exactly, in this order, so this tuple
+# is the only place the six names are spelled and the declaration is a checksum against it rather
+# than a source of new names (FEAT-41 T-01).
+MANDATED_STATIONS = ("backlog", "plan", "ready", "building", "review", "done")
+
+# NOT A SEVENTH STATION. `abandoned` names no board column, never reaches the board, and is
+# absent from MANDATED_STATIONS for that reason — station_column raises on it. It lives in this
+# module because plan-merge.py, check-plan-routes.py and check-domain.sh each need the terminal
+# marker and each already imports factory_config; every one of those sites imports THIS NAME
+# rather than respelling the literal.
+TERMINAL_MARKER = "abandoned"
 
 # FLEET_PATH's root always resolves inside the LIVE checkout under any test fixture root,
 # because _BIN_DIR is this module's own on-disk location, and the live checkout always carries
@@ -116,17 +127,32 @@ def validate_board(board, where, path):
             "fleet key invalid", f"{key_base}.station_field",
             f"set it to the Projects v2 field name that carries the station in {path}",
         )
+    # THE DECLARATION IS AN ORDERED LOWERCASE SEQUENCE, CHECKED FOR EQUALITY, NOT MEMBERSHIP
+    # (FEAT-41 T-01). A mapping is the pre-FEAT-41 shape and is refused here rather than
+    # tolerated, because a tolerated mapping is how two vocabularies survived in one tree. The
+    # comparison is on the ORDER too: the order is the workflow, so a rotation is refused.
+    #
+    # A TUPLE IS ACCEPTED ALONGSIDE A LIST BECAUSE THIS FUNCTION MUST BE IDEMPOTENT. It mutates
+    # board["stations"] to a tuple below, product_config MEMOISES the document it returns, and
+    # board_for re-validates that same memoised mapping on every call — so a second board_for
+    # revalidates a board this function already normalised. Accepting only `list` made the SECOND
+    # call raise on a board the FIRST call had just approved. No parsed JSON or YAML file can
+    # produce a tuple, so this widens nothing an operator can write.
     stations = board.get("stations")
     if (
-        not isinstance(stations, dict)
-        or set(stations.keys()) != set(_STATION_KEYS)
-        or not all(stations.get(k) for k in _STATION_KEYS)
+        not isinstance(stations, (list, tuple))
+        or list(stations) != list(MANDATED_STATIONS)
     ):
         raise FleetError(
             "fleet key invalid", f"{key_base}.stations",
-            "set exactly backlog, plan, ready, building, review and done, each a non-empty "
-            f"option name, in {path}",
+            "set it to the ordered list "
+            f"{list(MANDATED_STATIONS)} in {path} — these six names are FIXED and may not be "
+            "renamed, reordered or extended; the board's column names are derived from them, so "
+            "extra columns you add to the board are untouched by the harness",
         )
+    # The returned board carries stations as a TUPLE, so no caller can append to the validated
+    # declaration and every consumer reads the same immutable six.
+    board["stations"] = tuple(stations)
     return board
 
 
@@ -309,14 +335,44 @@ def board_for(fleet, repo_name):
     return validate_board(board, where, path)
 
 
+def station_names(board):
+    """Return the validated declaration's six station names, as a tuple of lowercase names.
+
+    The accessor every other module uses instead of reaching into board["stations"] itself, so a
+    later change to the declaration's container shape lands here and nowhere else. Before FEAT-41
+    T-01 eight non-test modules subscripted board["stations"] directly, and turning that mapping
+    into a list took check-state.sh down (issue #1033)."""
+    return tuple(board["stations"])
+
+
+def station_column(name):
+    """Return the board's exact column name for one lowercase station.
+
+    THE ONLY PLACE IN THE TREE A CAPITALISED STATION NAME IS PRODUCED. Every value written to the
+    board's station field comes through here, and .capitalize() reproduces all six declared names
+    exactly — Backlog, Plan, Ready, Building, Review, Done — which is why the declaration may not
+    rename them.
+
+    Raises FleetError on anything outside the six, and that INCLUDES an already-capitalised name
+    and TERMINAL_MARKER. Refusing "Done" is deliberate: a caller holding a column name and
+    passing it back in would otherwise get "Done".capitalize() == "Done" and silently work, and a
+    case boundary that accepts its own output is not a boundary."""
+    if name not in MANDATED_STATIONS:
+        known = ", ".join(MANDATED_STATIONS)
+        raise FleetError("unknown station", name, f"known stations: {known}")
+    return name.capitalize()
+
+
 def board_station(fleet, repo_name, key):
-    """Return board_for(fleet, repo_name)["stations"][key]; raises FleetError on an unknown
-    key, listing the known station keys."""
-    stations = board_for(fleet, repo_name)["stations"]
-    if key not in stations:
-        known = ", ".join(stations.keys())
+    """Return the board column name for `key` on repo_name's board; raises FleetError on a key
+    the repo's declaration does not carry, listing the known station names.
+
+    Name and signature are unchanged, but the RETURN is now derived rather than looked up: the
+    declaration no longer carries column names for it to read (FEAT-41 T-01)."""
+    if key not in station_names(board_for(fleet, repo_name)):
+        known = ", ".join(MANDATED_STATIONS)
         raise FleetError("unknown station", key, f"known stations: {known}")
-    return stations[key]
+    return station_column(key)
 
 
 def workspace_path(fleet, repo_name):

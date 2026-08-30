@@ -98,7 +98,9 @@ class Recorder:
         # by FEAT-33 T-02), and _validate_stations (factory_decompose.py:228-241) refuses any
         # declared station whose value the live board does not offer, backlog, plan and done
         # included.
-        self.field_options = ["Promoted", "Building", "Review", "Backlog", "Done", "Plan"]
+        # The six DERIVED columns (FEAT-41 T-01): station_column capitalises each mandated
+        # station, so a fake board must offer exactly these to be valid.
+        self.field_options = ["Ready", "Building", "Review", "Backlog", "Done", "Plan"]
         self.board_items = []   # project_items() return value, set per-test
         # issue_board_item_id() return value: number -> item id, set per-test. Consulted only
         # for the issue number asked; anything not in this map means "no item" (returns None).
@@ -196,11 +198,7 @@ def good_fleet_dict(workspace_root):
                 "owner": "acme",
                 "number": 3,
                 "station_field": "Status",
-                "stations": {
-                    "backlog": "Backlog", "plan": "Plan", "ready": "Promoted",
-                    "building": "Building",
-                    "review": "Review", "done": "Done",
-                },
+                "stations": ["backlog", "plan", "ready", "building", "review", "done"],
             },
         }],
         "workspace_root": workspace_root,
@@ -225,11 +223,7 @@ def two_repo_fleet_dict(workspace_root, repo_a=REPO, repo_b="acme/other"):
                     "owner": "acme",
                     "number": 3,
                     "station_field": "Status",
-                    "stations": {
-                        "backlog": "Backlog", "plan": "Plan", "ready": "Promoted",
-                        "building": "Building",
-                        "review": "Review", "done": "Done",
-                    },
+                    "stations": ["backlog", "plan", "ready", "building", "review", "done"],
                 },
             },
             {
@@ -239,11 +233,7 @@ def two_repo_fleet_dict(workspace_root, repo_a=REPO, repo_b="acme/other"):
                     "owner": "other-org",
                     "number": 7,
                     "station_field": "Stage",
-                    "stations": {
-                        "backlog": "Other-Backlog", "plan": "Other-Plan", "ready": "Other-Ready",
-                        "building": "Other-Building", "review": "Other-Review",
-                        "done": "Other-Done",
-                    },
+                    "stations": ["backlog", "plan", "ready", "building", "review", "done"],
                 },
             },
         ],
@@ -421,7 +411,7 @@ with tempfile.TemporaryDirectory() as td:
     field_calls = [c for c in rec.calls if c[0] == "project_field_set"]
     check("(2) two stations set", len(field_calls) == 2, field_calls)
     check("(2) both stations set to the fleet's ready option",
-          all(c[1][4] == "Promoted" for c in field_calls), field_calls)
+          all(c[1][4] == "Ready" for c in field_calls), field_calls)
     fblock = read_factory_block(feat_dir)
     check("(2) feature.json records two issue numbers", len(fblock.get("issues") or {}) == 2,
           fblock)
@@ -527,7 +517,7 @@ with tempfile.TemporaryDirectory() as td:
     check("(7) resume: project_item_add IS called", len(item_calls) >= 1, rec2.calls)
     field_calls = [c for c in rec2.calls if c[0] == "project_field_set"]
     check("(7) resume: the item's station is set to the ready option",
-          any(c[1][4] == "Promoted" for c in field_calls), field_calls)
+          any(c[1][4] == "Ready" for c in field_calls), field_calls)
     fblock_after = read_factory_block(feat_dir)
     check("(7) resume: feature.json now carries an item id",
           len(fblock_after.get("items") or {}) >= 1, fblock_after)
@@ -1169,21 +1159,33 @@ with tempfile.TemporaryDirectory() as td:
     fleet_dir = os.path.join(td, "fleet")
     os.makedirs(fleet_dir, exist_ok=True)
     fleet_path = os.path.join(fleet_dir, "fleet.yaml")
-    bad_fleet = good_fleet_dict(os.path.join(td, "workspaces"))
-    bad_fleet["repos"][0]["board"]["stations"]["ready"] = "Redy"
-    write_fleet(fleet_path, bad_fleet)
+    # RE-AIMED BY FEAT-41 T-02. This case used to rename the DECLARATION's ready station to
+    # "Redy" and assert decompose refused because the board offered no such option. A renamed
+    # declaration is now impossible — validate_board refuses it outright, before any board read,
+    # and that refusal is covered by test-factory-config's rename cases. So the case now provokes
+    # the defect it actually exists to catch, which is _validate_stations' own job: THE BOARD does
+    # not offer a column the mandated six require. Everything the original asserted still holds —
+    # exit 2, zero mutating calls, the validation read happened, stderr names the station, the
+    # required column and the board's real options — which is why this is a re-aim and not a
+    # deletion.
+    fleet_ok = good_fleet_dict(os.path.join(td, "workspaces"))
+    write_fleet(fleet_path, fleet_ok)
 
     rec = Recorder()
+    rec.field_options = ["Backlog", "Plan", "Building", "Review", "Done"]  # no Ready column
     code, out, err = run_publish(feat_dir, fleet_path, rec, extra_args=["--parent", "1"])
-    check("(D4-4) typo fleet: exits 2", code == 2, f"code={code!r}")
-    check("(D4-4) typo fleet: zero mutating calls", rec.mutating_calls() == [], rec.calls)
-    check("(D4-4) typo fleet: the validation read itself happened",
+    check("(D4-4) board missing a required column: exits 2", code == 2, f"code={code!r}")
+    check("(D4-4) board missing a required column: zero mutating calls",
+          rec.mutating_calls() == [], rec.calls)
+    check("(D4-4) board missing a required column: the validation read itself happened",
           any(c[0] == "project_field_options" for c in rec.calls), rec.calls)
-    check("(D4-4) typo fleet: stderr names the offending station key", "ready" in err, err)
-    check("(D4-4) typo fleet: stderr names the configured (wrong) value", "Redy" in err, err)
-    check("(D4-4) typo fleet: stderr names the board's real options",
-          "Promoted" in err and "Building" in err and "Review" in err, err)
-    check("(D4-4) typo fleet: nothing on stdout", out == "", repr(out))
+    check("(D4-4) board missing a required column: stderr names the offending station",
+          "ready" in err, err)
+    check("(D4-4) board missing a required column: stderr names the required column",
+          "Ready" in err, err)
+    check("(D4-4) board missing a required column: stderr names the board's real options",
+          "Building" in err and "Review" in err, err)
+    check("(D4-4) board missing a required column: nothing on stdout", out == "", repr(out))
 
 
 # ============================================================================
@@ -1219,9 +1221,11 @@ with tempfile.TemporaryDirectory() as td:
           field_calls)
     check("(T-03) project_field_set issues no call against B's board (other-org, 7)",
           all(c[1][0] != "other-org" and c[1][1] != 7 for c in field_calls), field_calls)
-    check("(T-03) the station set to A's own ready option (Promoted), never B's (Other-Ready)",
-          all(c[1][4] == "Promoted" for c in field_calls)
-          and not any(c[1][4] == "Other-Ready" for c in field_calls), field_calls)
+    # The COLUMN no longer distinguishes the two boards — FEAT-41 T-01 mandates the six names, so
+    # both derive "Ready". What still proves A's board was the one written is the owner/number
+    # pair asserted in the two checks above, and the field-options read asserted below.
+    check("(T-03) the station set to the derived ready column on A's board",
+          field_calls != [] and all(c[1][4] == "Ready" for c in field_calls), field_calls)
 
     options_calls = [c for c in rec.calls if c[0] == "project_field_options"]
     check("(T-03) the station-validation read is against A's board and field, never B's",

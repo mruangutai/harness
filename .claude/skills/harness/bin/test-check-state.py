@@ -1372,10 +1372,10 @@ def _inv26_fixture(root, feat, task_status, card_status, parent_status,
         # the names now come from the declaration, so a fixture without `stations` is not a
         # weaker fixture — it is an UNUSABLE board, and case v.13 asserts that it is
         # reported as one. `board_override` lets a case ship a deliberately broken board.
+        # The ordered lowercase declaration (FEAT-41 T-01); INV-26 compares stations, not
+        # columns, because gh_board.board_stations lowercases the board's answer on read.
         _board = {"owner": "org", "number": 3, "station_field": "status",
-                  "stations": {"backlog": "Backlog", "plan": "Plan", "ready": "Ready",
-                               "building": "Building", "review": "Review",
-                               "done": "Done"}}
+                  "stations": ["backlog", "plan", "ready", "building", "review", "done"]}
         if board_override is not _SENTINEL:
             _board = board_override
         json.dump({"github": {"sync": True, "repo": "org/repo",
@@ -1486,7 +1486,9 @@ def case_v():
         fake = _inv26_fixture(tmp, "FEAT-X", "done", "Backlog", "Review")
         _c, out = _run_with_gh(tmp, fake)
         ls = _lines(out)
-        ok = (any("FEAT-X" in l and "T-01" in l and "done" in l and "Backlog" in l
+        # The fixture feeds the BOARD's capitalised "Backlog"; board_stations lowercases it on
+        # read, so the reported value is lowercase (FEAT-41 T-02).
+        ok = (any("FEAT-X" in l and "T-01" in l and "done" in l and "backlog" in l
                   for l in ls))
         results.append(("(v.1) a mis-columned card is a VIOLATION naming feature, task, "
                         "plan status and column found", ok, "\n".join(ls) or "(no INV-26 line)"))
@@ -1533,7 +1535,7 @@ def case_v():
         fake = _inv26_fixture(tmp, "FEAT-X", "done", "Done", "Backlog")
         _c, out = _run_with_gh(tmp, fake)
         ls = _lines(out)
-        ok = any("parent" in l and "#40" in l and "Review" in l and "Backlog" in l
+        ok = any("parent" in l and "#40" in l and "review" in l and "backlog" in l
                  for l in ls)
         results.append(("(v.6) the parent card disagreeing with the derivation is a "
                         "violation", ok, "\n".join(ls) or "(no INV-26 line)"))
@@ -1556,7 +1558,7 @@ def case_v():
                               second_status="pending", second_card="Backlog")
         _c, out = _run_with_gh(tmp, fake)
         ls = _lines(out)
-        ok = any("T-01" in l and "done" in l and "Backlog" in l for l in ls)
+        ok = any("T-01" in l and "done" in l and "backlog" in l for l in ls)
         results.append(("(v.8) a mis-columned done card is reported even when the plan "
                         "derives NO parent station", ok,
                         "\n".join(ls) or "(no INV-26 line)"))
@@ -1681,7 +1683,7 @@ def case_v():
                               feature_status="Building")
         _c, out = _run_with_gh(tmp, fake)
         ls = _lines(out)
-        ok = any("FEAT-X" in l and "T-01" in l and "Review" in l for l in ls)
+        ok = any("FEAT-X" in l and "T-01" in l and "review" in l for l in ls)
         results.append(("(v.T22c) THE BOUND: at status Building, a done task's card reading "
                         "Review is still a VIOLATION", ok,
                         "\n".join(ls) or "(no INV-26 line)"))
@@ -1691,7 +1693,7 @@ def case_v():
                               feature_status="Review")
         _c, out = _run_with_gh(tmp, fake)
         ls = _lines(out)
-        ok = any("FEAT-X" in l and "T-01" in l and "Backlog" in l for l in ls)
+        ok = any("FEAT-X" in l and "T-01" in l and "backlog" in l for l in ls)
         results.append(("(v.T22d) the widening does NOT reach Backlog: a done task's card "
                         "there is a VIOLATION even at status Review", ok,
                         "\n".join(ls) or "(no INV-26 line)"))

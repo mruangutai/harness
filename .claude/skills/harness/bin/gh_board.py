@@ -85,18 +85,23 @@ def load_board(root):
     return factory_config.validate_board(board, "github.board", path)
 
 
-def derive_station(plan_doc, board):
-    """The parent's station, from `plan.yaml` task statuses ALONE (D-03), named through the
-    board's OWN declared station options rather than a hardcoded literal (FEAT-24 T-04).
+def derive_station(plan_doc):
+    """The parent's station, from `plan.yaml` task statuses ALONE (D-03), as a LOWERCASE station
+    name (FEAT-41 T-02).
 
-    Returns `board["stations"]["building"]` if any task is building; otherwise
-    `board["stations"]["review"]` if there is at least one task and every task is done;
-    otherwise **None**, meaning no verdict and no write. The derivation rule itself is
-    unchanged; only the station NAMES now come from the board rather than being spelled here.
+    Returns `"building"` if any task is building; otherwise `"review"` if there is at least one
+    task and every task is done; otherwise **None**, meaning no verdict and no write.
 
-    An absent `status` counts as `pending` — the PLAN.md corpus predates the field.
+    THE `board` PARAMETER IS GONE. Its only two uses were the two `board["stations"][...]`
+    indexings this function no longer performs, and a parameter the body never reads would
+    contradict this docstring's own claim that `plan.yaml` is the sole input. Both call sites —
+    check-state.sh's INV-26 and board_lifecycle — drop the argument. The station names are
+    spelled here as the lowercase literals they now are; the board's COLUMN name is derived
+    later, once, by factory_config.station_column, and only when a value is actually written.
 
-    It reads NOTHING from `feature.json`. **The `Done` terminal exemption is the CALLER's**,
+    An absent `status` counts as the not-started station — the PLAN.md corpus predates the field.
+
+    It reads NOTHING from `feature.json`. **The terminal exemption is the CALLER's**,
     deliberately, so that both callers apply it somewhere a reader can see rather than
     inheriting it invisibly from here.
     """
@@ -110,12 +115,12 @@ def derive_station(plan_doc, board):
     for t in tasks:
         if not isinstance(t, dict):
             return None
-        statuses.append(t.get("status") or "pending")
+        statuses.append(t.get("status") or "ready")
 
     if any(s == "building" for s in statuses):
-        return board["stations"]["building"]
+        return "building"
     if all(s == "done" for s in statuses):
-        return board["stations"]["review"]
+        return "review"
     return None
 
 
@@ -131,6 +136,12 @@ def board_stations(board, repo):
     Dropping it would make an unstationed card indistinguishable from a card that is not on the
     board, and those are two different findings. `project_item_stations` already returns the
     station directly (no raw item dict, no field-name lookup needed here).
+
+    **A value read back from the board is LOWERCASED HERE (FEAT-41 T-02), so no comparison
+    anywhere else has to know the board's casing.** This is the read half of the case boundary
+    whose write half is `set_station`; between them, every station value inside the harness is
+    lowercase and the only capitals live on GitHub. None stays None — an absent station is not
+    the string "none".
     """
     items = factory_gh.project_item_stations(
         board["owner"], board["number"], board["station_field"],
@@ -147,7 +158,8 @@ def board_stations(board, repo):
         num = content.get("number")
         if num is None:
             continue
-        out[int(num)] = item.get("station")
+        station = item.get("station")
+        out[int(num)] = station.lower() if isinstance(station, str) else station
     return out
 
 
@@ -174,9 +186,21 @@ def read_station(stations, issue_number):
 def set_station(board, repo, issue_number, station):
     """Move one card. Raises `BoardError`; never prints, never exits.
 
+    `station` ARRIVES LOWERCASE (FEAT-41 T-02) and is converted to the board's exact column name
+    by `factory_config.station_column` — the write half of the case boundary whose read half is
+    `board_stations`. A station outside the mandated six raises `FleetError` from
+    `station_column` and that is LET PROPAGATE, not wrapped: a caller naming a station that does
+    not exist is a programming error in the caller, not a board failure to report against an
+    issue, and BoardError's message would frame it as the latter.
+
+    The `BoardError` message keeps naming the station the caller ASKED FOR, lowercase, because
+    that is the value the caller can find in its own source; the capitalised column name appears
+    nowhere the caller would recognise.
+
     `factory_gh.preflight()` is deliberately NOT called — its callers exit non-zero and this
     module's callers must not.
     """
+    column = factory_config.station_column(station)
     try:
         item_id = factory_gh.issue_board_item_id(repo, issue_number, board["number"])
         if item_id is None:
@@ -185,7 +209,7 @@ def set_station(board, repo, issue_number, station):
                 f"issue carries no item on {board['owner']} project {board['number']}",
             )
         factory_gh.project_field_set(
-            board["owner"], board["number"], item_id, board["station_field"], station,
+            board["owner"], board["number"], item_id, board["station_field"], column,
         )
     except factory_gh.GhError as exc:
         raise BoardError(repo, issue_number, station, str(exc)) from exc

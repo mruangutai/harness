@@ -256,7 +256,8 @@ def _apply_parent_rule(feat_dir, repo, board):
     except harness_yaml.YamlParseError:
         # An unparseable plan carries no derivable verdict either — same as no verdict.
         return
-    station = gh_board.derive_station(plan_doc, board)
+    # derive_station takes plan.yaml alone now (FEAT-41 T-02) and returns a LOWERCASE station.
+    station = gh_board.derive_station(plan_doc)
     if station is None:
         return
     rec = load_recorded(feat_dir)
@@ -843,7 +844,7 @@ def cmd_open(feat_dir, repo, parent_arg=None):
 def cmd_start_task(feat_dir, tid, repo, board):
     """`start-task <feature-dir> T-NN` — the orchestrator fires this in the same act it
     records the task's status as `building` in plan.yaml (D-04). Sets T-NN's OWN sub-issue
-    station to `board["stations"]["building"]`, then applies the parent rule (step 3) — never
+    station to the lowercase `"building"`, then applies the parent rule (step 3) — never
     routed through gh(), since a failed station write must not terminate the process (D-02).
 
     GUARDS AGAINST DRIVING A CLOSED CARD BACKWARDS (T-07). Measured on #642 and #643: the
@@ -851,7 +852,7 @@ def cmd_start_task(feat_dir, tid, repo, board):
     command — invoked afterward on a stale "was it open when the run started" assumption —
     set it back to Building. The guard reads the issue's CURRENT state, not what it was when
     the run started: refuse the station write when EITHER `gh issue view` reports the issue
-    CLOSED, or the card's CURRENT station already equals `board["stations"]["done"]`. On
+    CLOSED, or the card's CURRENT station already reads the lowercase `"done"`. On
     refusal, print one line and return without calling `set_station` or `_apply_parent_rule`
     — the parent rule would otherwise write a Building parent for a task this guard just
     refused. A refusal is NOT a failure: exit code and control flow are unchanged (DEC-146
@@ -871,13 +872,14 @@ def cmd_start_task(feat_dir, tid, repo, board):
         skip(f"{tid} has no recorded issue — nothing to start (was `open` run?)")
     if board is not None:
         issue_num = rec["issues"][tid]
-        building = board["stations"]["building"]
+        building = "building"
         refused = False
         try:
             stations = gh_board.board_stations(board, repo)
             current_station, _ = gh_board.read_station(stations, issue_num)
             state = (factory_gh.issue_view(repo, issue_num, ["state"]) or {}).get("state")
-            if state == "CLOSED" or current_station == board["stations"]["done"]:
+            # current_station is lowercase: gh_board.board_stations lowercases the board read.
+            if state == "CLOSED" or current_station == "done":
                 reason = "issue is CLOSED" if state == "CLOSED" else "card is already Done"
                 print(f"gh-sync: refusing #{issue_num} ({tid}) -> {building}: "
                       f"current station is {current_station!r}, {reason}")
@@ -922,10 +924,10 @@ def cmd_status(feat_dir, status, repo, board):
 
     STATION WRITES, exactly what step 2 specifies and nothing else:
     - Ready: every recorded T-NN sub-issue (never the parent — D-18, THE PARENT MUST NEVER
-      REACH THE READY COLUMN) moves to `board["stations"]["ready"]`. Zero recorded sub-issues
+      REACH THE READY COLUMN) moves to the lowercase `"ready"`. Zero recorded sub-issues
       prints one line and writes nothing — no fallback to the parent.
     - Review: the PARENT and every recorded T-NN sub-issue move to
-      `board["stations"]["review"]` (operator ruling, D-23) — one `gh_board.set_station` call
+      the lowercase `"review"` (operator ruling, D-23) — one `gh_board.set_station` call
       each. A parent that is not recorded prints one stderr line and the sub-issue writes
       still proceed; this does not raise and does not restate INV-21's finding.
     - Plan, Done, Abandoned: no station write at all (Plan is board-station.py's own write;
@@ -968,7 +970,7 @@ def cmd_status(feat_dir, status, repo, board):
         if not numbers:
             print("gh-sync: status Ready — no sub-issues recorded, nothing to move")
             return
-        ready = board["stations"]["ready"]
+        ready = "ready"
         for num in numbers:
             try:
                 gh_board.set_station(board, repo, num, ready)
@@ -976,7 +978,7 @@ def cmd_status(feat_dir, status, repo, board):
             except gh_board.BoardError as e:
                 print(f"gh-sync: ERROR - {e}", file=sys.stderr)
     elif status == "Review":
-        review = board["stations"]["review"]
+        review = "review"
         if rec["parent"] is None:
             print(f"gh-sync: no parent recorded for "
                   f"{os.path.basename(os.path.abspath(feat_dir))} — parent station not "
@@ -1025,7 +1027,7 @@ def _to_backlog(board, repo, num):
     Abandoned work is not done work, and the board is the surface the operator reads."""
     if board is None:
         return
-    backlog = board["stations"]["backlog"]
+    backlog = "backlog"
     try:
         gh_board.set_station(board, repo, num, backlog)
         print(f"gh-sync: issue #{num} -> {backlog} (abandoned, not done)")
@@ -1258,7 +1260,7 @@ def cmd_ship(feat_dir, repo, board, body_file=None, pr_arg=None):
         _ship_close_milestone(feat_dir, repo, rec, pr_arg)
         return
 
-    done = board["stations"]["done"]
+    done = "done"
 
     # Step 2 — the three groups, in the order they are written.
     children = sorted(rec["issues"].values())

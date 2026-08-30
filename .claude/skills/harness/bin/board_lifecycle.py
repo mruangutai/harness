@@ -438,13 +438,21 @@ def _missing_options(declared_stations, board_option_names):
 
 
 def _declared_stations(board):
-    return [board["stations"][k] for k in
-            ("backlog", "plan", "ready", "building", "review", "done")]
+    """The board COLUMN names the six declared stations require, in declared order.
+
+    This audits the board's real columns, so it must return COLUMN names, not station names —
+    hence station_column over the six rather than the lowercase names themselves (FEAT-41 T-02).
+    It reads the declaration through factory_config.station_names rather than subscripting
+    board["stations"], which is what made this function the first casualty when the declaration's
+    container changed (issue #1033)."""
+    return [factory_config.station_column(s)
+            for s in factory_config.station_names(board)]
 
 
 # feature.json's top-level `status` values that map onto a board station, keyed to the SAME
-# `board["stations"]` keys `_declared_stations` reads (T-15). `Abandoned` is deliberately absent:
-# DEC-203 gives it no board column at all, so there is no key for it to map to.
+# lowercase station names `_declared_stations` derives its columns from (T-15). `Abandoned` is
+# deliberately absent: DEC-203 gives it no board column at all, so there is no key for it to map
+# to — factory_config.TERMINAL_MARKER names it without making it a seventh station.
 _STATUS_TO_STATION_KEY = {
     "Backlog": "backlog", "Plan": "plan", "Ready": "ready",
     "Building": "building", "Review": "review", "Done": "done",
@@ -522,13 +530,18 @@ def _status_findings(root, board, stations):
             if factory_block.get("issues"):
                 continue  # exemption 3 -- this feature's cards live on the PRODUCT's board.
 
-        expected = board["stations"][station_key]
+        # BOTH SIDES LOWERCASE (FEAT-41 T-02). `stations` came from gh_board.board_stations,
+        # which lowercases what the board returned, so the expectation is the lowercase station
+        # name itself and no lookup is needed. The message still names the COLUMN, derived here,
+        # because that is what the operator sees on the board when they go to look.
+        expected = station_key
         actual = stations.get(parent)
         if actual != expected:
             findings.append(_finding(
                 "STATUS",
-                f"STATUS: {feat_dir} records status {status!r} (column {expected!r}) but its "
-                f"parent #{parent} reads {actual!r}",
+                f"STATUS: {feat_dir} records status {status!r} (station {expected!r}, column "
+                f"{factory_config.station_column(expected)!r}) but its parent #{parent} reads "
+                f"{actual!r}",
                 parent=parent, expected=expected, status=status,
             ))
     return findings
@@ -809,7 +822,8 @@ def _audit_findings(root, board, repo_name):
     `_status_findings`'s docstring for the ruling).
     """
     owner, number, field = board["owner"], board["number"], board["station_field"]
-    done_station = board["stations"]["done"]
+    # LOWERCASE, because class 2 compares against gh_board.board_stations' lowercased values.
+    done_station = "done"
     findings = []
     # T-04: this function PRINTS NOTHING. Lines it used to emit are collected here and printed
     # by `cmd_audit`, in the same order, so `audit_findings` can be called from `gh-sync.py
@@ -820,9 +834,15 @@ def _audit_findings(root, board, repo_name):
     # Class 1 -- DECLARATION. Call 1/4.
     declared = _declared_stations(board)
     options = factory_gh.project_field_options(owner, number, field)
-    value_to_key = {v: k for k, v in board["stations"].items()}
+    # NO value_to_key INVERSION (FEAT-41 T-02): a lowercase station IS its own key, so the
+    # station name is recovered from the column by asking the declaration in the same order
+    # rather than by inverting a mapping that no longer exists.
+    column_to_station = {
+        factory_config.station_column(s): s
+        for s in factory_config.station_names(board)
+    }
     for value in _missing_options(declared, options):
-        key = value_to_key.get(value, "?")
+        key = column_to_station.get(value, "?")
         findings.append(_finding(
             "DECLARATION",
             f"DECLARATION: station {key!r} (declared value {value!r}) is not among project "
