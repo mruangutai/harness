@@ -8,7 +8,7 @@ set -uo pipefail
 # in prose: the invariant that keeps them gone counts the name in every tracked source file.
 # REFUSING IS THE POINT — there is deliberately no fallback.
 _SELF_BIN="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-_ROOT="$(python3 -P -c 'import sys; sys.path.insert(0, sys.argv[1]); import harness_boundary; print(harness_boundary.resolve_root(sys.argv[1]))' "$_SELF_BIN" 2>/dev/null)"
+_ROOT="$(python3 -I -c 'import sys; sys.path.insert(0, sys.argv[1]); import harness_boundary; print(harness_boundary.resolve_root(sys.argv[1]))' "$_SELF_BIN" 2>/dev/null)"
 if [ -z "$_ROOT" ] || [ ! -d "$_ROOT" ]; then
   echo "run-unit-tests.sh: no harness root could be resolved from $_SELF_BIN — refusing to run" >&2
   exit 2
@@ -27,9 +27,8 @@ BIN_DIR=".claude/skills/harness/bin"
 # check-domain.sh would prove nothing. Nothing here is being called a bad test. The problem
 # #160 records is one populated kind doing two jobs while test_kinds.integration sat null,
 # so INV-20 could never see the hole and the qa matrix could not tell the two apart.
-UNIT_SCRIPTS=("test-harness-yaml-corpus.py" "test-render-brief.py" "test-team-catalog.py" "test-factory-cli.py" "test-factory-gh.py" "test-factory-config.py" "test-factory-workspace.py" "test-factory-decompose.py" "test-factory-claim.py" "test-factory-land.py" "test-no-distribution.py" "test-validate-feature-json.py" "test-gh-board.py" "test-branch-create-gate.py" "test-layout-migration.py" "test-board-station.py" "test-inject-expertise.py" "test-gh-cost-log.py" "test-context-watch.py" "test-board-lifecycle.py" "test-orchestrator-playbook.py" "test-lead-stop-and-wake.py" "test-omp-hooks.py" "test-check-omp-port.py" "test-sync-agent-adapters.py" "test-harness-boundary.py" "test-wayfind.py" "test-code-grade.py" "test-gate-policy.py")
-INTEGRATION_SCRIPTS=("test-validate-digest.py" "test-gh-sync.py" "test-check-state.py" "test-check-expertise.py" "test-gen-decisions-index.py" "test-bash-write-guard.py" "test-check-domain.py" "test-harness-yaml.py" "test-upgrade-config.py" "test-check-plan-routes.py" "test-merge-settings.py" "test-factory-integration.py" "test-feature-worktree.py" "test-expertise-merge.py" "test-context-watch-cli.py" "test-context-watch-hook.py" "test-run-unit-tests-kinds.py" "test-harness-merge.py" "test-plan-merge.py" "test-observations-merge.py" "test-inflight-registry.py" "test-dispatch-guard.py" "test-merge-gitignore.py" "test-worktree-terminal.py" "test-post-merge-sweep.py" "test-hooks-install.py" "test-gh-close-gate.py")
-INTEGRATION_SCRIPTS+=("test-code-grade-cli.py")
+UNIT_SCRIPTS=("test-harness-yaml-corpus.py" "test-render-brief.py" "test-team-catalog.py" "test-factory-cli.py" "test-factory-gh.py" "test-factory-config.py" "test-factory-workspace.py" "test-factory-decompose.py" "test-factory-claim.py" "test-factory-land.py" "test-no-distribution.py" "test-validate-feature-json.py" "test-gh-board.py" "test-branch-create-gate.py" "test-layout-migration.py" "test-board-station.py" "test-inject-expertise.py" "test-gh-cost-log.py" "test-board-lifecycle.py" "test-orchestrator-playbook.py" "test-lead-stop-and-wake.py" "test-omp-hooks.py" "test-check-omp-port.py" "test-sync-agent-adapters.py" "test-harness-boundary.py" "test-wayfind.py" "test-code-grade.py" "test-gate-policy.py")
+INTEGRATION_SCRIPTS=("test-validate-digest.py" "test-gh-sync.py" "test-check-state.py" "test-check-expertise.py" "test-gen-decisions-index.py" "test-bash-write-guard.py" "test-check-domain.py" "test-harness-yaml.py" "test-upgrade-config.py" "test-check-plan-routes.py" "test-merge-settings.py" "test-factory-integration.py" "test-feature-worktree.py" "test-expertise-merge.py" "test-run-unit-tests-kinds.py" "test-harness-merge.py" "test-plan-merge.py" "test-observations-merge.py" "test-inflight-registry.py" "test-dispatch-guard.py" "test-merge-gitignore.py" "test-worktree-terminal.py" "test-post-merge-sweep.py" "test-hooks-install.py" "test-gh-close-gate.py" "test-code-grade-cli.py")
 
 # --kind DEFAULTS TO all, so every existing caller — harness.json, a human, a QA agent —
 # keeps the behaviour it had before this split.
@@ -99,7 +98,7 @@ kind_drift_out="$(
   HARNESS_JSON="$HARNESS_JSON" \
   UNIT_LIST="$(printf '%s\n' "${UNIT_SCRIPTS[@]}")" \
   INTEGRATION_LIST="$(printf '%s\n' "${INTEGRATION_SCRIPTS[@]}")" \
-  python3 -P - <<'KINDCHECK'
+  python3 -I - <<'KINDCHECK'
 import json, os, sys
 
 path = os.environ["HARNESS_JSON"]

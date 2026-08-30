@@ -24,7 +24,7 @@ payload=$(cat)
 # copied tree and the guard imports THAT copy of inflight_registry.py.
 GUARD_BIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-printf '%s' "$payload" | HARNESS_GUARD_BIN_DIR="$GUARD_BIN_DIR" python3 -P -c '
+printf '%s' "$payload" | HARNESS_GUARD_BIN_DIR="$GUARD_BIN_DIR" python3 -I -c '
 import sys, json, os
 
 try:
@@ -59,7 +59,7 @@ if model:
 # single-quoted shell argument, so a lone apostrophe closes it and bash then
 # parses python as shell. That is why no comment here uses a possessive.
 # ---------------------------------------------------------------------------
-dispatched = ti.get("subagent_type") or ""   # the measured key path, see notes/research-FEAT-32-hook-payloads.md
+dispatched = ti.get("subagent_type") or ti.get("agent") or ""
 if not dispatched.startswith("harness-"):
     # A gap of OURS, said out loud rather than swallowed — the precedent this file already
     # sets above, and that validate-digest.py sets again in its own pass-through line.
@@ -88,26 +88,18 @@ if not dispatched.startswith("harness-"):
 # ---------------------------------------------------------------------------
 import re
 
-FEATURE_RE = re.compile(r"HARNESS-FEATURE:[ \t]*(\S+)[ \t]*")
-
-prompt = ti.get("prompt") or ""
-declared = None
-for line in prompt.splitlines():
-    m = FEATURE_RE.fullmatch(line.strip())
-    if m:
-        declared = m.group(1)
-        break
-
-if not declared:
-    print("dispatch-guard: BLOCKED — this governed dispatch declares no feature.",
+FEATURE_RE = re.compile(r"(?:FEAT|BUG)-[0-9]+(?:-[a-z0-9]+)+")
+prompt = ti.get("prompt") or ti.get("task") or ""
+first_line = prompt.splitlines()[0] if prompt.splitlines() else ""
+prefix = "HARNESS-FEATURE: "
+declared = first_line[len(prefix):] if first_line.startswith(prefix) else ""
+if not declared or not FEATURE_RE.fullmatch(declared):
+    print("dispatch-guard: BLOCKED — this governed dispatch has no valid first-line feature.",
           file=sys.stderr)
     print("  The FIRST line of the prompt must be, spelled exactly:", file=sys.stderr)
     print("    HARNESS-FEATURE: FEAT-42-one-root-resolver", file=sys.stderr)
-    print("  with the id of the feature this dispatch belongs to. It is the only signal that",
+    print("  BUG-NN-slug is also valid. A later line or another id form is refused.",
           file=sys.stderr)
-    print("  tells this gate which checkout you were assigned to; your working directory does",
-          file=sys.stderr)
-    print("  not follow your assignment. Re-dispatch with the line.", file=sys.stderr)
     sys.exit(2)
 
 try:
@@ -121,23 +113,6 @@ except Exception as exc:
 
 
 def _root_for(flow):
-    """The checkout the DECLARED feature is worked in.
-
-    NO GIT SUBPROCESS: this runs ahead of every governed dispatch, and DEC-193 forbids one on
-    the governed-write path anyway. owner_root comes from resolve_root, the one resolver, given
-    HARNESS_GUARD_BIN_DIR -- the bash wrapper set that from BASH_SOURCE, because this program is
-    fed to python3 -c and has no __file__ of its own. strict=False so an unrooted tree yields
-    the derived answer rather than raising: every branch in this gate but the declaration check
-    fails open. The worktree list comes from reading the pointer files under .git/worktrees; the
-    worktrees come from reading the pointer files under .git/worktrees. A worktree whose
-    directory segment equals the declared id IS the root; if no worktree carries that id the
-    feature is being worked in the main checkout and owner_root is the root.
-
-    THE REGISTRY STAYS PER-CHECKOUT. One shared file would refuse a second feature pm while
-    the first feature pm is live, breaking parallel features to fix a within-feature defect.
-    What changed is the INPUT, not the shape: the claim now lands where the ASSIGNMENT says
-    rather than where the dispatcher happened to be standing.
-    """
     owner_root = hb.resolve_root(os.environ.get("HARNESS_GUARD_BIN_DIR") or os.getcwd(),
                                  strict=False)
     if not owner_root:
@@ -162,30 +137,51 @@ if not root:
           file=sys.stderr)
     sys.exit(0)
 
+runtime = d.get("harness_runtime") or "claude"
+supervisor_pid = d.get("supervisor_pid") if runtime == "omp" else None
+if runtime == "omp" and (not isinstance(supervisor_pid, int) or supervisor_pid <= 0):
+    print("dispatch-guard: OMP dispatch has no valid supervisor pid — passing through "
+          "without a claim.", file=sys.stderr)
+    sys.exit(0)
+
 try:
-    # THE SESSION IS PASSED SO A FOREIGN SESSION STALE CLAIM IS NOT COUNTED LIVE (T-06/T-17).
     session = d.get("session_id")
-    existing, expired = reg.live_claim(root, dispatched, session=session)
+    existing, expired = reg.live_claim(
+        root, dispatched, session=session, feature=declared
+    )
     if expired:
-        print("dispatch-guard: expired %d stale claim(s) for %s." % (expired, dispatched),
-              file=sys.stderr)
+        print("dispatch-guard: expired %d stale claim(s) for %s."
+              % (expired, dispatched), file=sys.stderr)
     if reg.is_single_flight(dispatched) and existing:
-        # THE REMEDY IS ABSOLUTE AND NAMES ONE AGENT, never release-all: that command sets the
-        # registry to an empty object and wipes every claim of every agent, and on 2026-08-26
-        # following the old printed advice would have destroyed a live claim.
-        for line in reg.refusal_lines(dispatched, existing, reg.release_cmd(root, dispatched)):
+        command = reg.release_cmd(root, dispatched, feature=declared)
+        for line in reg.refusal_lines(dispatched, existing, command):
             print(line, file=sys.stderr)
         sys.exit(2)
-    # A claim for EVERY harness-* persona, not only the single-flight ones. D-06 and D-09 both
-    # stand on the dispatcher edge existing on disk, and this is the ONE moment both identities
-    # — dispatcher and dispatched — are in a single payload.
-    reg.claim(root, dispatched, agent, d.get("cwd") or "", session=session)
+    receipt = reg.claim_with_receipt(
+        root,
+        dispatched,
+        agent,
+        d.get("cwd") or "",
+        session=session,
+        feature=declared,
+        runtime=runtime,
+        supervisor_pid=supervisor_pid,
+    )
+    if receipt is None:
+        print("dispatch-guard: BLOCKED — single-flight claim raced for %s in %s."
+              % (dispatched, declared), file=sys.stderr)
+        sys.exit(2)
+    print(json.dumps({
+        "harness_claim": {
+            "root": root,
+            "feature": declared,
+            "agent": dispatched,
+            "claim_id": receipt.get("claim_id"),
+        }
+    }, sort_keys=True))
 except SystemExit:
     raise
 except Exception as exc:
-    # claim() DOES raise. Lock contention raises MergeRefusal at the deadline; the docstring
-    # claimed otherwise and has been corrected. Catching it is what makes the D-07 fail-open
-    # posture true rather than aspirational — an uncaught exception here exits non-zero.
     print("dispatch-guard: claim step failed (%s: %s) — passing through, the dispatch is NOT "
           "blocked." % (type(exc).__name__, exc), file=sys.stderr)
     sys.exit(0)

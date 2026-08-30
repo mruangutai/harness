@@ -35,11 +35,11 @@ _derived="$(cd "$_selfdir/../../../.." && pwd)"
 # sys.path[0] AHEAD of PYTHONPATH, so the harness_boundary import below took a
 # harness_boundary.py sitting in the GOVERNED AGENT's cwd in preference to ours. Measured
 # 2026-08-27 at sha 7179095: a stub returning a bogus root turned this hook from exit 2
-# (refused) into exit 0 ("enforcement OFF"). -P removes the cwd at the interpreter, so no
-# later line can put it back. Needs python 3.11+; an older one rejects the flag loudly,
-# which is the safe direction here. test-no-distribution.py case 7 is the invariant.
+# (refused) into exit 0 ("enforcement OFF"). The bootstrap removes only sys.path[0]
+# before the heredoc imports anything, preserving site-packages on Python 3.9.
+# test-no-distribution.py case 7 is the invariant.
 HOOK_PAYLOAD="$payload" PYTHONPATH="$_selfdir${PYTHONPATH:+:$PYTHONPATH}" \
-  python3 -P - "$_derived" "$_selfdir" <<'PY'
+  python3 -c 'import sys; sys.path.pop(0); exec(compile(sys.stdin.read(), "<stdin>", "exec"))' "$_derived" "$_selfdir" <<'PY'
 import sys, os, re, json, shlex
 
 # harness_yaml is imported LAZILY, after the manifest check — NOT here. Ordering is
@@ -48,6 +48,7 @@ import sys, os, re, json, shlex
 # still exit 0 there rather than crash. (T-13 shipped this bug on the sibling hook and
 # a test caught it.)
 _derived, _bin_dir = sys.argv[1:3]
+sys.path.insert(0, _bin_dir)
 
 
 def _root():

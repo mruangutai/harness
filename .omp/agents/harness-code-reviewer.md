@@ -10,6 +10,7 @@ tools:
 spawns: []
 model: '@review'
 thinking-level: high
+blocking: true
 autoloadSkills:
 - harness-handoff
 - harness-expertise

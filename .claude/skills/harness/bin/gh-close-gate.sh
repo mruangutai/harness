@@ -70,7 +70,7 @@ set -uo pipefail
 # REFUSING IS THE POINT — exit 2, never a fallback. Do not name the retired variables here
 # even in prose: the invariant that keeps them gone counts the name in every tracked file.
 _selfbin="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
-root="$(python3 -P -c 'import sys; sys.path.insert(0, sys.argv[1]); import harness_boundary; print(harness_boundary.resolve_root(sys.argv[1]))' "$_selfbin" 2>/dev/null)"
+root="$(python3 -I -c 'import sys; sys.path.insert(0, sys.argv[1]); import harness_boundary; print(harness_boundary.resolve_root(sys.argv[1]))' "$_selfbin" 2>/dev/null)"
 if [ -z "$root" ] || [ ! -d "$root" ]; then
   echo "gh-close-gate.sh: no harness root could be resolved from $_selfbin — refusing to run" >&2
   exit 2

@@ -59,10 +59,36 @@ def case2_absence_loop_until_done(text):
           f"found the retired literal {literal!r}")
 
 
-def case4_presence_context_watch(text):
-    literal = "context-watch.py"
-    check("case4_presence_context_watch_py", literal in text,
-          f"literal {literal!r} not found")
+def case4_host_neutral_context_signal(text):
+    """FEAT-44: the playbook must describe the mechanism that EXISTS.
+
+    Retargeted. The old presence half asserted the wording "host's current-session context
+    signal", which PR #922 introduced and issue #923 then measured as naming nothing: the
+    signal it pointed at returns `undefined` in exactly the session type an orchestrator runs
+    in. A test that asserts a sentence passes because the sentence was written, which is how
+    a green suite coexisted with a capability that had gone inert.
+
+    These assert the shape of the mechanism now in place: the figure ARRIVES, unrequested, on
+    the wake; the orchestrator never goes looking for it.
+    """
+    # Whitespace-tolerant: SKILL.md hard-wraps, so any of these phrases can straddle a line
+    # break. A plain substring test would fail on reflow rather than on substance.
+    for phrase, why in (
+        ("reads your own OMP transcript off disk",
+         "step 5 no longer describes the hook reading the transcript"),
+        ("appends one advisory line",
+         "step 5 no longer says the advisory arrives unrequested on the wake"),
+    ):
+        pattern = re.compile(r"\s+".join(re.escape(word) for word in phrase.split()))
+        check(f"case4_presence_{phrase.split()[0]}_{phrase.split()[1]}",
+              bool(pattern.search(text)), f"{why} (looked for {phrase!r})")
+    check("case4_absence_claude_sidecar_probe", "context-watch.py" not in text,
+          "Claude-only context-watch.py still appears in the canonical OMP playbook")
+    # The numeral must live in harness.json alone. Prose carrying it goes stale on the next
+    # budget change with every gate still green, which is the DEC-198 half of the same defect.
+    check("case4_absence_hardcoded_threshold_numeral", "200000" not in text,
+          "step 5 restates the threshold numeral; it must name the key and let the runtime "
+          "advisory carry the resolved value")
 
 
 def case5_presence_context_warn_tokens(text):
@@ -106,7 +132,7 @@ def main():
 
     case1_absence_receive_team_digest(text)
     case2_absence_loop_until_done(text)
-    case4_presence_context_watch(text)
+    case4_host_neutral_context_signal(text)
     case5_presence_context_warn_tokens(text)
     case6_context_warn_tokens_never_paired_with_refusal(text)
     case7_absence_record_your_phase_in(text)

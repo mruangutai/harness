@@ -26,7 +26,7 @@ done
 
 BIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-POST_MERGE_SWEEP_BIN_DIR="$BIN_DIR" POST_MERGE_SWEEP_DRY_RUN="$DRY_RUN" python3 -P - <<'PYEOF'
+POST_MERGE_SWEEP_BIN_DIR="$BIN_DIR" POST_MERGE_SWEEP_DRY_RUN="$DRY_RUN" python3 -I - <<'PYEOF'
 import os
 import subprocess
 import sys

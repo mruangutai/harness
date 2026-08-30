@@ -1676,7 +1676,7 @@ def run_worktree():
        f"exit {r.returncode}: {r.stderr.strip()[:200]}")
 
     # --- #556: THE CWD MUST NOT SUPPLY THE BOUNDARY RULE. Python puts the invoking
-    # directory at sys.path[0] AHEAD of PYTHONPATH, so before `python3 -P` a
+    # directory at sys.path[0] AHEAD of PYTHONPATH, so before the safe-path bootstrap a
     # harness_boundary.py sitting in the agent's cwd WAS the resolver this gate consulted.
     # Measured on 2026-08-27 at sha 7179095: a module returning a bogus root turned a
     # refusal (exit 2) into "enforcement OFF" (exit 0) — the domain gate switched off

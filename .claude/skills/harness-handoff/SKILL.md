@@ -47,6 +47,16 @@ violation becomes `BLOCKED (contract violation)`.
 
 **Never invent a verdict.** If you cannot determine one, return `BLOCKED` and say why.
 
+## Runtime handoff
+
+The host supervises every dispatch. Under OMP, the outer orchestrator is background-dispatched and
+wakes the main session through a terminal async result; nested leads and members are
+`blocking: true`, so their parent model is inactive inside the task tool until the child is
+terminal. Neither route permits shell supervision, sleeps, `hub wait`, or repeated status calls.
+After the tool result or wake, re-read the durable checkpoint and verify the cited artifact before
+accepting a verdict. `yield` is the terminal Harness handoff; `agent_end` is notification-only.
+Claude Code keeps its measured end-turn/wake compatibility rule (DEC-201/204).
+
 ## Writing the artifact
 
 - **BLUF.** Lead with the conclusion or recommendation. Not "I explored X, then Y."

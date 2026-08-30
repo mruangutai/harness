@@ -4111,6 +4111,26 @@ applies, and the note is what bounds it.
 Relay economics, stated once: a succession costs a fresh ~10k preload plus the working set
 (~30–50k total) and is won back the moment it prevents a handful of 300k-cache-read turns.
 
+**Amendment 1 (2026-08-29) — the in-flight warning survives as a capability, but its delivery
+moved off the Claude hook and onto the OMP tool_result injection.**
+
+*What went false.* The paragraph above asserts in the present tense that
+`.claude/skills/harness/bin/context-watch-hook.py` **is** a PostToolUse hook registered in
+`.claude/settings.json` on the `Write|Edit|Bash` matcher. After FEAT-44 (issue #923) that file is
+deleted and the registration removed, so the sentence is flatly false as written.
+
+*What replaced it.* The capability is unchanged in substance — a running `harness-orchestrator` is
+told, in its own context while it runs, that its measured context has crossed
+`budgets.orchestrator_context_warn_tokens` (DEC-198). Delivery is now the `tool_result` injection in
+`.omp/extensions/harness-hooks.ts`: on the orchestrator's wake the hook reads its own OMP transcript
+off disk and appends one advisory line to the `task` result it was already reading. **No Claude hook
+is registered for this any more.** It still advises and never refuses, and it now carries a computed
+ratio rather than prose the orchestrator applies by eye.
+
+*Still deferred.* The turn-count nudge this entry originally deferred remains deferred. Nothing
+counts an orchestrator's turns, and the distinction drawn above — a turn-count metric versus a
+context-size metric, same function — is unaffected by the change of host.
+
 ## DEC-160 — First live handoff: the cap was tight, the sweep does not deter, and deploy cannot ship config
 
 FEAT-03 (kaya-ai) crossed the plan seam within a day of DEC-159 landing, and the first live
@@ -6840,6 +6860,31 @@ contract — project values win, scalars the project already set are left alone 
 that way, but no assertion holds it. A future change to the merge could overwrite an operator's tuned
 threshold and the suite would stay green.
 
+**Amendment 1 (2026-08-29) — the default's source is re-homed to the OMP extension; the figure,
+its miss-path set and its advisory-not-gate character are unchanged.**
+
+*What went stale.* This entry sourced the 200000 default to
+`.claude/skills/harness/bin/context-watch.py`, where `DEFAULT_CONTEXT_WARN_TOKENS` was returned by
+the resolver on every miss path. That file is retired (FEAT-44, issue #923): it read Claude Code
+sidecars, and `.omp/config.yml` disables Claude discovery, so the mechanism could not fire on the
+canonical runtime at all.
+
+*The replacement.* The default is now `DEFAULT_CONTEXT_WARN_TOKENS` exported from
+`.omp/extensions/harness-hooks.ts`, returned by `resolveContextWarnTokens` on the same miss-path
+set, unchanged: file missing, unreadable, not JSON, no `budgets` dict, key absent, or value not a
+number with booleans excluded. The name is deliberately identical to the retired one, so this is a
+re-homing and not a redefinition.
+
+*What is and is not load-bearing, measured rather than assumed.* In THIS repository the config
+governs: `.harness/harness.json` DOES carry `budgets.orchestrator_context_warn_tokens`, at `:169`
+with the value `200000` and a rationale sibling at `:170`. The constant is therefore what a config
+genuinely lacking the key falls back to, **not** the live value here. The two figures being equal is
+coincidence, not derivation — a point worth stating because an earlier draft of this amendment
+asserted the key was absent, which would have contradicted this entry's own un-amended paragraph.
+
+The threshold figure and its advisory-never-refuses character are untouched, and its calibration
+across models with very different context windows remains out of scope (raised, not settled).
+
 ## DEC-199 — Every shared artifact two contexts can write at once goes through one locked, union-merging core, `harness_merge`, and a named persona is dispatched once per checkout
 
 **Chose:** one core, `.claude/skills/harness/bin/harness_merge.py`, holding the lock, the union-merge scaffolding and
@@ -7098,6 +7143,39 @@ is repeated there.
 
 **Branch `chore/744-never-wait-for-a-lead` is absorbed and abandoned.** Its work lands through this
 feature; the branch is not to be merged or revived.
+
+**Amendment 1 (2026-08-29) — self-identification is supplied concretely inside DEC-204's existing
+frame; this adds NO new supersession, and the ruling stands verbatim.**
+
+*Scope, stated first because it bounds the edit.* DEC-204 already supersedes this entry's
+host-specific mechanics for OMP while preserving its no-wait conduct and its evidence standard. This
+amendment does not supersede DEC-201 any further. It only fills in what replaced the retired
+mechanism.
+
+*What went stale.* The self-identification paragraph describes the orchestrator emitting a nonce,
+grepping the Claude orchestrator sidecars for it in a SECOND Bash call, and then running
+`context-watch.py`. All three are retired with the sidecar mechanism (FEAT-44, issue #923). The
+two-call constraint was correct — a single call grepping for a nonce it emitted in the same command
+finds nothing, because the message has not reached the sidecar yet — and it **died with the
+mechanism rather than being found wrong.**
+
+*The replacement.* The orchestrator no longer identifies itself at all. Measured:
+`ctx.sessionManager.getSessionFile()` returns the calling session's own transcript path from inside
+that session, including a subagent session, which is exactly where `ctx.getContextUsage()` returns
+`undefined` (upstream can1357/oh-my-pi#10097). The harness hook reads that transcript on the
+orchestrator's wake and appends one advisory line to the `task` result. No nonce, no probe, no
+second call, and nothing for the orchestrator to do.
+
+*The evidence and its limits, recorded because the permanent record must not overstate.* This was
+measured on ONE OMP build, twice, on one machine (2026-08-28 and 2026-08-29). The probe and its raw
+output are committed at
+`.harness/harness/features/FEAT-44-omp-context-advisory/evidence/README.md`. **Version-floor risk:**
+a later OMP may rename or drop the accessor. That is not an unwatched assumption —
+`.claude/skills/harness/bin/probe-omp-session-accessor.py` dispatches a real subagent under the
+committed probe and fails, never skips, if the accessor stops resolving. **It is a MANUAL check,
+not a CI gate** — it needs the omp binary and live model credentials, and CI has neither — so the
+risk is watched by something a human must run. This is one build's
+observed behaviour, not a timeless property of the OMP API.
 ---
 
 ## DEC-202 — OMP is the canonical Harness runtime; providers and host adapters are replaceable configuration
@@ -7314,3 +7392,101 @@ entry rewrites; DEC-168 for the cascade measurement; DEC-174, because the Bash g
 invariants are the enforcement layer, so this feature's code lands as direct main-session work;
 DEC-188 for the striking of the three entries replaced here; DEC-191 for the closed key set `status`
 lives in; DEC-200, which cites DEC-186 for its own read and is repointed separately under issue #844.
+
+## DEC-204 — OMP supervises long-running Harness dispatches; claims are feature-scoped and process-owned
+
+**Chose:** OMP is the supported host for multi-hour Harness work, with two different edges because
+the runtime gives them different jobs. The main session dispatches the orchestrator asynchronously:
+it receives agent/job identity, ends its turn, and OMP injects the terminal result. Every lead and
+member is declared `blocking: true`: orchestrator-to-lead and lead-to-member task calls stay inside
+OMP while the parent model is inactive, then return the terminal child result directly. No agent
+calls `hub wait`, polls `hub jobs`, sleeps, emits a heartbeat, or invents work. Model family remains
+provider configuration; process supervision is OMP.
+
+**The safety bound is not the liveness bound.** `task.maxRuntimeMs: 0` removes elapsed wall time as
+a reason to kill useful work. OMP's 200-request soft budget remains active and still forces a yield
+at its hard multiple. Hours of legitimate tool execution and hundreds of model turns are different
+failure modes; changing one does not disable the other.
+
+**Every governed edge carries flow identity.** The first prompt line is exactly
+`HARNESS-FEATURE: FEAT-NN-slug` or `HARNESS-FEATURE: BUG-NN-slug`. A later line, a missing line, or a
+different id form is refused. The OMP adapter normalizes both batch and flat task input, runs the
+existing dispatch guard for every item, and refuses the whole batch when one item fails. A batch
+cannot start with only part of its checkpoint represented by claims.
+The role marker comes from the system prompt, but the feature marker does not: OMP places the task
+assignment in the first user message. The extension captures that message before the first tool
+call and carries the feature into yield validation and startup reconciliation. Reading only
+`before_agent_start.systemPrompt` was measured losing the feature and falsely treating concurrent
+features as one parent-child tree.
+
+
+**Claims use schema version 2.** The registry is one explicit `claims` list. Every entry names
+`claim_id`, `feature`, `agent`, `dispatcher`, `cwd`, `started_at`, and `runtime`; an OMP entry also
+names its supervising PID and, after spawn, its agent/job identity. Single-flight is keyed by
+`(feature, persona)`, so two PMs for one feature are refused while PMs for different features are
+legal. The version-1 persona-keyed object is read once for migration and every following write is
+version 2. There is one locked registry implementation, still `inflight_registry.py`.
+
+**OMP liveness follows the supervisor, not elapsed time or child session id.** An OMP claim remains
+live for any age while its recorded supervisor PID exists and becomes stale immediately when that
+PID is gone. Parent and child sessions differ, so the Claude session filter does not hide a live OMP
+child. Claude Code remains a compatibility host and keeps FEAT-37's measured 1200-second TTL; this
+decision does not restore DEC-199's historical one-hour value. The difference is forced by host
+capability: Claude Code exposes no equivalent process-owned async job identity.
+Expiry is query-scoped. Looking up or dispatching one feature never sweeps a dead claim owned by
+another feature; only that feature's query or an explicit targeted reconcile removes it. This keeps
+crash recovery from changing an unrelated flow merely because both claims share one registry.
+
+
+**Release is targeted and idempotent.** A settled blocking task result releases its claim directly.
+For a background task, OMP attaches agent/job identity from task result details and releases the
+matching claim on `task:subagent:lifecycle`; `yield` validation remains an idempotent second path.
+A failed preflight or spawn releases claims for items that did not start. Recovery instructions and
+refusals print only feature/agent/claim-targeted commands, never `release-all`. The older command
+remains an operator escape hatch but is not an automated remedy. A lead or orchestrator `yield` is
+refused while any matching child claim remains live; `agent_end` is notification-only.
+
+**A process exit does not pretend detached work survived.** OMP sessions and transcripts persist,
+but running jobs belong to the process. On `--resume`, a dead-PID claim is reconciled before a new
+dispatch. The recovery order is checkpoint on disk, persisted `agent://`/`history://` result, then
+landed commits. A transcript or claim never proves PASS. A valid terminal artifact is collected; a
+recoverable regular agent with no terminal artifact may be revived; otherwise only the unfinished
+checkpointed step is re-dispatched.
+
+**GitHub mirrors durable transitions only.** The existing command ownership and write-first order
+stand. Child runtime, wakes, and recovery generate no heartbeat traffic. On wake, the owner re-reads
+`plan.yaml`, `feature.json`, and stored GitHub receipts before deciding whether a transition is due;
+duplicate delivery is an idempotent no-op. OMP's Bash preflight now invokes `gh-close-gate.sh`
+before branch and write guards, so the direct-close rule in DEC-203 applies under the canonical host.
+
+**Measured enforcement overturned the first design rather than being fitted to it.** With nested
+agents left asynchronous, OMP forced the orchestrator toward `yield` while its lead remained live;
+the digest hook refused it six times and OMP stopped the parent to avoid an infinite submit loop.
+After marking the lead and member blocking, the same OpenAI hierarchy completed in 51.8 seconds:
+the leaf held one five-second Bash call, wrote an unguessable token, the lead and orchestrator each
+read that exact artifact, and the outer async result reached main. Their transcripts contain no
+poll, sleep, wait, heartbeat, or keepalive call. The probe also found macOS OMP launching
+`/usr/bin/python3` 3.9, where `-P` is invalid; gates now use portable `-I` where possible and a
+`sys.path[0]` bootstrap where normal site-packages are required.
+The provider control used the same three probe agents, prompts, tools, claims, and artifact shape
+under the Anthropic overlay. Its Sonnet leaf held one Bash call for 900.06 seconds, its Opus lead
+and orchestrator verified the exact token, and main received the terminal async result after 16m39s.
+An OpenAI feature claim remained live concurrently; feature capture from the assignment kept it out
+of every Anthropic parent-yield check.
+The long control then held the OpenAI Terra leaf's single Bash call for 7200.07 seconds. The Sol
+lead and orchestrator each resumed only when their blocking task result arrived, read the exact
+token, and returned PASS; main received the outer result after 2h1m. Between task start and result,
+each parent transcript contains no intervening model message or tool call.
+
+
+
+The deterministic suites separately exercise per-feature PM isolation, live/dead OMP supervisors,
+targeted release, schema migration, runtime identity, atomic batch refusal, blocking-result release,
+flat/batch normalization, lifecycle release, and parent-yield refusal. The port checker rejects
+drift in async enablement, wall-clock configuration, nested blocking declarations, task preflight,
+lifecycle wiring, or the GitHub close gate.
+
+This decision supersedes DEC-199 only for claim schema, key, liveness, and automated recovery. It
+supersedes DEC-201's host-specific mechanics for OMP while preserving its no-wait conduct and
+evidence standard. DEC-202 still owns canonical paths, provider overlays, and compatibility
+adapters. DEC-203 still owns issue/card lifecycle and command ownership.
