@@ -240,6 +240,12 @@
       "squad": "product",
       "agent": "harness-product-lead",
       "verdict": "PASS"
+    },
+    {
+      "id": "validate-sc11-record-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS"
     }
   ],
   "github": {

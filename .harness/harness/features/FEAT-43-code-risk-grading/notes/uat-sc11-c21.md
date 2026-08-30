@@ -1,5 +1,5 @@
 # UAT — FEAT-43 SC-11 (the skill changes what gets written)
-status: ready              # draft | ready | passed | failed — ONLY the operator changes this
+status: passed             # draft | ready | passed | failed — ONLY the operator changes this
 review_sha: cd8dae476607704fd3d2b874150aae9f814292d2
 base_sha: 7ccfae8dd7644bc3aaea612dabf4317c0d804f99
 prerequisites: green — cycle-21 panel PASS, must_fix [], severity_max med
@@ -139,14 +139,26 @@ Nothing here is a reason to change the tool, and no result changes any other SC.
 Fill these in and set `status:` at the top of this file. That is the whole record; do not edit
 `BRIEF.md`.
 
-- U-01 (SC-11): a1 = ____  a2 = ____  b1 = ____  b2 = ____
-  worst_A = ____  worst_B = ____  spread_A = ____  spread_B = ____  gap = ____
-  both conditions hold? ____
-  result:
+**EXECUTED AND RECORDED. Verdict issued by the operator on 2026-08-29 at pin
+`cd8dae476607704fd3d2b874150aae9f814292d2`. Transcribed by the orchestrator on the operator's
+instruction; the numbers and the verdict are the operator's, not an agent's.**
 
-Then tell the main session the verdict; `harness-pm` records SC-11 `met`/`not_met` in the goal-check
-with this file as the evidence pointer. The UAT was **not** executed here and SC-11 is **not**
-judged.
+- U-01 (SC-11): a1 = **6**  a2 = **5**  b1 = **16**  b2 = **14**
+  worst_A = **6**  worst_B = **16**  spread_A = **1**  spread_B = **2**  gap = **10**
+  both conditions hold? **YES** — `worst_A < worst_B` (6 < 16) and `gap > max(spread_A, spread_B)`
+  (10 > 2). Neither condition is marginal: the gap is five times the larger spread.
+  ungraded counts: **all zero** — every variant parsed, so no variant is inconclusive.
+  result: **PASSED.** The skill-loading arm's worst cognitive complexity is lower than the control
+  arm's, by a margin well outside the noise. SC-11 is met.
+
+**Integrity note, recorded because the record is worth more than the result.** An initial dispatch
+was **discarded before any number was recorded**: shared context revealed the experimental arms to
+the control agents, which is precisely the contamination this script's control-arm rules exist to
+prevent. Its scratch outputs were deleted. **Every value above comes only from the subsequent
+neutral-context run.** The discarded run is disclosed rather than omitted, and the reported numbers
+are not a selection from two draws — the first was void on procedure, not on its numbers.
+
+`harness-pm` records SC-11 `met` in the goal-check with this file as the evidence pointer.
 
 ## Open question — SETTLED before the run
 
