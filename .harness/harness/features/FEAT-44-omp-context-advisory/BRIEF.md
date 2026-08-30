@@ -113,9 +113,10 @@ a version-floor risk recorded rather than resolved, and SC-11 is what watches it
 Composition matters more than the gate. The handler today computes `postDomain` and returns early at
 `:613` when there is no block reason; when it does return content it sets `isError: true` (`:617`).
 The advisory must therefore be computed **before** that early return, appended to the same `content`
-array, and must not touch `isError`: a blocked post-write check keeps `isError: true` and gains the
-advisory line, an unblocked wake returns content with no `isError` at all. Dropping the advisory when
-a write is blocked would lose exactly the wake it was addressed to.
+array, and must not touch `isError`: an unblocked wake returns content with no `isError` at all, and
+a blocked post-write check — never a `task` result, so never an advisory carrier — keeps
+`isError: true` and gains no advisory line. Computing the advisory before the early return is what
+keeps the wake it was addressed to from being dropped.
 
 ## Success Criteria
 

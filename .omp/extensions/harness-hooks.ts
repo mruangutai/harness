@@ -1,4 +1,5 @@
 import { spawnSync } from "node:child_process";
+import { closeSync, openSync, readFileSync, readSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -404,6 +405,174 @@ function lastAssistantText(messages: unknown): string {
     }
   }
   return "";
+}
+
+// --- FEAT-44 (issue #923): the OMP-native orchestrator context advisory ------
+//
+// The orchestrator is a subagent, and `ctx.getContextUsage()` returns `undefined`
+// in subagent sessions (upstream can1357/oh-my-pi#10097). So the figure is read
+// off disk instead: omp persists every session, including subagents, as
+// append-only JSONL, and each assistant record carries the number omp itself
+// computed. That is the host's own value by the host's own definition, not an
+// estimate.
+//
+// EVERY failure branch below yields NO figure rather than a wrong one.
+
+export type ContextAnchor =
+  | { kind: "tokens"; tokens: number }
+  | { kind: "inert"; scannedBytes: number; field: string }
+  | { kind: "none" };
+
+// Named to match the resolver in the retired context-watch.py: DEC-198's
+// amendment re-homes its citation to this constant.
+export const DEFAULT_CONTEXT_WARN_TOKENS = 200000;
+
+// The ONE home for this path. `readContextAnchor` walks it to read the value and
+// hands it out on the inert arm; `contextInertText` prints only what it is given.
+// So the notice can never name a field the parse did not look for.
+export const CONTEXT_TOKENS_FIELD = "message.contextSnapshot.promptTokens";
+
+const CONTEXT_TOKENS_SEGMENTS = CONTEXT_TOKENS_FIELD.split(".");
+// Keyed prefilter. The key implies the substring, so a false negative is
+// impossible; a false positive is caught by the parse and the type check below.
+const CONTEXT_PREFILTER = "contextSnapshot";
+const CONTEXT_INITIAL_WINDOW = 65536;
+const SESSION_FILE_ACCESSOR = "sessionManager.getSessionFile";
+
+function readTailBytes(path: string, size: number, length: number): string | undefined {
+  const start = Math.max(0, size - length);
+  const span = size - start;
+  if (span <= 0) return "";
+  const buffer = Buffer.allocUnsafe(span);
+  let fd: number | undefined;
+  try {
+    fd = openSync(path, "r");
+    readSync(fd, buffer, 0, span, start);
+  } catch {
+    return undefined;
+  } finally {
+    if (fd !== undefined) {
+      try { closeSync(fd); } catch { /* nothing actionable */ }
+    }
+  }
+  return buffer.toString("utf8");
+}
+
+function anchorFromFragment(fragment: string): number | undefined {
+  if (!fragment.includes(CONTEXT_PREFILTER)) return undefined;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(fragment);
+  } catch {
+    return undefined;   // a torn or truncated line is skipped, never guessed at
+  }
+  let cursor: unknown = parsed;
+  for (const segment of CONTEXT_TOKENS_SEGMENTS) {
+    if (!cursor || typeof cursor !== "object") return undefined;
+    cursor = (cursor as Record<string, unknown>)[segment];
+  }
+  return typeof cursor === "number" && Number.isFinite(cursor) ? cursor : undefined;
+}
+
+// Stateless by construction: the newest anchor is read fresh on every call. No
+// byte offset, no accumulated delta, no dedupe — so truncation and rotation are
+// non-issues. The once-per-session cap lives in the handler's closure, not here,
+// which keeps this function pure and directly testable.
+export function readContextAnchor(sessionFile: string | undefined): ContextAnchor {
+  if (!sessionFile) return { kind: "none" };
+  let size: number;
+  try {
+    size = statSync(sessionFile).size;
+  } catch {
+    return { kind: "none" };
+  }
+  // The window MUST adapt: measured anchor gaps run to 95 KiB on real
+  // transcripts, driven by large tool-result lines, so a fixed 64 KiB read is a
+  // latent miss rather than an optimisation.
+  let window = CONTEXT_INITIAL_WINDOW;
+  for (;;) {
+    const whole = window >= size;
+    const text = readTailBytes(sessionFile, size, whole ? size : window);
+    if (text === undefined) return { kind: "none" };
+    const fragments = text.split("\n");
+    // A partial window's first fragment may be a torn line; the whole-file pass
+    // has no such fragment.
+    if (!whole) fragments.shift();
+    for (let i = fragments.length - 1; i >= 0; i -= 1) {
+      const tokens = anchorFromFragment(fragments[i]);
+      if (tokens !== undefined) return { kind: "tokens", tokens };
+    }
+    if (whole) {
+      return { kind: "inert", scannedBytes: size, field: CONTEXT_TOKENS_FIELD };
+    }
+    window *= 4;
+  }
+}
+
+// Mirrors the miss-path set DEC-198 records: file missing, unreadable, not JSON,
+// no budgets object, key absent, or value not a number (bools excluded, since
+// typeof true is "boolean").
+export function resolveContextWarnTokens(root: string): number {
+  try {
+    const raw = readFileSync(join(root, ".harness", "harness.json"), "utf8");
+    const budgets = (JSON.parse(raw) as Record<string, unknown>).budgets;
+    if (budgets && typeof budgets === "object") {
+      const value = (budgets as Record<string, unknown>).orchestrator_context_warn_tokens;
+      if (typeof value === "number" && Number.isFinite(value)) return value;
+    }
+  } catch { /* every miss path falls through to the declared default */ }
+  return DEFAULT_CONTEXT_WARN_TOKENS;
+}
+
+export function contextAdvisoryText(tokens: number, threshold: number): string {
+  const ratio = (tokens / threshold).toFixed(2);
+  return `CONTEXT: this orchestrator session measures ${tokens} tokens against `
+    + `budgets.orchestrator_context_warn_tokens = ${threshold} (${ratio}x). This ADVISES and `
+    + `never refuses (DEC-198). Weigh it yourself, and if you hand off, hand off at a seam `
+    + `rather than mid-phase (DEC-201).`;
+}
+
+export function contextInertText(scannedBytes: number, field: string): string {
+  return `CONTEXT: no ${field} value was found in the ${scannedBytes} bytes scanned of this `
+    + `session's transcript, so the context advisory is inert for this session. The host's `
+    + `record shape may have changed (issue #923). This ADVISES and never refuses.`;
+}
+
+export type SessionFileResolution =
+  | { kind: "path"; path: string }
+  | { kind: "absent" }
+  | { kind: "failed"; accessor: string };
+
+// Its own export, not an inline try/catch, because the two failure classes must
+// be told apart and the distinction must be unit-testable with a fake ctx.
+// Folding "the accessor moved" into "no session yet" is exactly the silent-
+// undefined shape issue #923 exists to fix, so it must not be rebuilt here.
+export function resolveSessionFile(ctx: unknown): SessionFileResolution {
+  const manager = ctx && typeof ctx === "object"
+    ? (ctx as Record<string, unknown>).sessionManager
+    : undefined;
+  if (!manager || typeof manager !== "object") {
+    return { kind: "failed", accessor: SESSION_FILE_ACCESSOR };
+  }
+  const accessor = (manager as Record<string, unknown>).getSessionFile;
+  if (typeof accessor !== "function") {
+    return { kind: "failed", accessor: SESSION_FILE_ACCESSOR };
+  }
+  let value: unknown;
+  try {
+    value = (accessor as () => unknown).call(manager);
+  } catch {
+    return { kind: "failed", accessor: SESSION_FILE_ACCESSOR };
+  }
+  return typeof value === "string" && value.length > 0
+    ? { kind: "path", path: value }
+    : { kind: "absent" };
+}
+
+export function contextAccessorFailureText(accessor: string): string {
+  return `CONTEXT: ${accessor} did not resolve this session's transcript, so context cannot be `
+    + `measured this session — the host's session-resolution API has moved (issue #923). This `
+    + `ADVISES and never refuses.`;
 }
 
 export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPolicy): void {

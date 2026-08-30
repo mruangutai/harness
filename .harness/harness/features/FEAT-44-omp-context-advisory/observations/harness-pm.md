@@ -19,3 +19,4 @@
   the base plan does not exist, so a first-spawn proposal must omit the block entirely — while
   `check-state.sh:159-161` flags a `plan.yaml` with no `approval:` block as bad. Every brand-new
   plan.yaml is therefore BAD until the main session inserts the pending block.
+- 2026-08-29: FEAT-44 T-01 item 5 specified a state the code cannot reach — a post-domain block reason composed with the task-gated advisory. postDomain returns [] for any toolName that is not write/edit/bash (harness-hooks.ts:272), so a task result never carries a block reason. The BRIEF's own composition paragraph asserted the same impossible state and had been through a validator panel and an eng-lead architecture review without either catching it: a composition claim about two gates is only checkable by intersecting their predicates, which prose review does not do. Worth doing at plan time whenever a task asserts "X and Y co-occur" across two independently gated paths.

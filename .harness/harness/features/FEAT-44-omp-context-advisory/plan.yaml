@@ -72,7 +72,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 policy carve-out over .claude/skills/harness/bin/**, which IS granted to harness-backend-dev at team-config.yaml:170 and harness-dev-ops at team-config.yaml:211, so this is a deliberate choice and not an ungranted surface. Taken direct because T-01 performs the fixture scrub, the plan's one irreversible step, which belongs under direct human diff review
     depends_on: []
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/omp-session-anchored.fixture.jsonl
       - .claude/skills/harness/bin/omp-session-anchorless.fixture.jsonl
@@ -231,11 +231,22 @@ tasks:
       2. harness-product-lead, same conditions: the handler returns undefined.
       3. no HARNESS_AGENT_ID at all (the main session): returns undefined.
       4. harness-orchestrator, toolName read rather than task: returns undefined.
-      5. harness-orchestrator over threshold WITH a block reason from the post-domain runner
-         (inject a policyRunner stub that blocks): the result keeps isError true AND its
-         content carries both the post-write check line and the advisory line.
-      Each of the four negative conditions in tests 2 to 4 is asserted on its own rather than
-      folded into one case, so a scope gate that only half works cannot pass.
+      5. harness-orchestrator over threshold on a BLOCKED NON-WAKE result, named "a blocked
+         non-wake result keeps isError and gains no advisory": drive a write from
+         harness-orchestrator with a policyRunner stub that blocks, and assert the result keeps
+         isError true, that its content carries the post-write check line, and that its content
+         carries NO advisory line. The case originally specified here — a post-domain block
+         reason composed WITH the advisory on one result — is UNREACHABLE, which is why it was
+         replaced rather than fixed: postDomain returns an empty result set for every toolName
+         that is not write, edit or bash (the tail return [] at
+         .omp/extensions/harness-hooks.ts:272), so a task result never reaches check-domain.sh
+         and can carry no block reason, while the advisory's own gate fires only on toolName
+         task. The two states are mutually exclusive, so the composition analysis in BRIEF.md's
+         "Injection scoping" section described a state the code cannot produce. This substitute
+         guards the same seam from the reachable side: the advisory must never clobber or invent
+         isError.
+      Each of the four negative advisory conditions in tests 2 to 5 is asserted on its own
+      rather than folded into one case, so a scope gate that only half works cannot pass.
 
       Also add one test that harness-orchestrator with the ANCHORLESS fixture receives the
       inert notice text once, that the notice text CONTAINS the literal
