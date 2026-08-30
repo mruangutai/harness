@@ -1,13 +1,18 @@
 import { describe, expect, test } from "bun:test";
-import { existsSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
+import { join } from "node:path";
 import {
+  DEFAULT_CONTEXT_WARN_TOKENS,
+  contextAdvisoryText,
   detectHarnessAgent,
   gatePath,
   extractEditPaths,
   normalizeYieldInput,
   normalizeTaskDispatches,
+  readContextAnchor,
   registerHarnessHooks,
+  resolveContextWarnTokens,
   yieldContractText,
 } from "../../../../.omp/extensions/harness-hooks.ts";
 
@@ -392,5 +397,230 @@ describe("OMP task lifecycle adapter", () => {
       },
     }, ctx);
     expect(calls.filter(reconciled).length).toBe(before);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// FEAT-44 (issue #923) — the OMP-native orchestrator context advisory.
+//
+// Written BEFORE the implementation, per T-01. Every case below except the
+// installed-OMP host-surface one imports exports that do not exist yet, so this
+// suite MUST be red until T-02 and T-03 land. A green suite here means
+// production code was written out of order.
+// ---------------------------------------------------------------------------
+
+const ANCHORED_FIXTURE = join(import.meta.dir, "omp-session-anchored.fixture.jsonl");
+const ANCHORLESS_FIXTURE = join(import.meta.dir, "omp-session-anchorless.fixture.jsonl");
+
+// The newest anchor in the anchored fixture. Deliberately distinct from 200000
+// (the default), 150000 (the resolver test) and 223029 (the ratio test), so a
+// hardcoded return cannot satisfy any of them. Provenance: notes/fixture-provenance.md.
+const NEWEST_ANCHOR_TOKENS = 28614;
+
+// Spelled literally on purpose. A test that reads CONTEXT_TOKENS_FIELD back from
+// the module cannot detect the constant itself being wrong.
+const TOKENS_FIELD = "message.contextSnapshot.promptTokens";
+
+describe("readContextAnchor", () => {
+  test("returns the newest anchor's promptTokens from a captured nested transcript", () => {
+    expect(readContextAnchor(ANCHORED_FIXTURE)).toEqual({
+      kind: "tokens",
+      tokens: NEWEST_ANCHOR_TOKENS,
+    });
+  });
+
+  test("widens past the initial window when the anchor sits far beyond it", () => {
+    const dir = mkdtempSync(join(tmpdir(), "feat44-widen-"));
+    const padded = join(dir, "padded.jsonl");
+    const pad = JSON.stringify({ type: "custom", customType: "pad", pad: "x".repeat(200 * 1024) });
+    writeFileSync(padded, readFileSync(ANCHORED_FIXTURE, "utf8") + pad + "\n");
+    // Reddens if the scan window is pinned to a fixed 64 KiB instead of widening.
+    expect(readContextAnchor(padded)).toEqual({ kind: "tokens", tokens: NEWEST_ANCHOR_TOKENS });
+  });
+
+  test("reports inert with the scanned size and the field it looked for", () => {
+    const result = readContextAnchor(ANCHORLESS_FIXTURE) as {
+      kind: string; scannedBytes: number; field: string;
+    };
+    expect(result.kind).toBe("inert");
+    expect(result.scannedBytes).toBe(statSync(ANCHORLESS_FIXTURE).size);
+    expect(result.field).toBe(TOKENS_FIELD);
+  });
+
+  test("returns none for an absent path and for no path at all", () => {
+    expect(readContextAnchor(undefined)).toEqual({ kind: "none" });
+    expect(readContextAnchor(join(tmpdir(), "feat44-does-not-exist.jsonl"))).toEqual({ kind: "none" });
+  });
+});
+
+describe("installed OMP session accessor", () => {
+  // The ONLY case in this suite that reaches the real host surface. Every other
+  // case stubs getSessionFile, so a green suite would prove only that the stub
+  // works — issue #923's own failure shape one layer out. This converts the
+  // version-floor risk recorded in evidence/README.md into something CI reports.
+  //
+  // Asserts the shipped .d.ts rather than calling the method: importing
+  // @oh-my-pi/pi-coding-agent/session/session-manager loads the pi_natives addon
+  // and throws outside the omp binary. Must FAIL, never skip.
+  test("declares getSessionFile on the readonly session manager", () => {
+    const pkg = Bun.resolveSync("@oh-my-pi/pi-coding-agent/package.json", import.meta.dir);
+    const decl = join(pkg, "..", "dist", "types", "session", "session-manager.d.ts");
+    expect(existsSync(decl)).toBe(true);
+    const src = readFileSync(decl, "utf8");
+    expect(src).toContain("getSessionFile(): string | undefined");
+    // The hook receives the readonly view, not the class, so membership matters.
+    expect(src).toContain('"getSessionFile"');
+  });
+});
+
+describe("resolveContextWarnTokens", () => {
+  function rootWith(budgets: Record<string, unknown> | undefined) {
+    const root = mkdtempSync(join(tmpdir(), "feat44-cfg-"));
+    const dir = join(root, ".harness");
+    require("node:fs").mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, "harness.json"), JSON.stringify(budgets ? { budgets } : {}));
+    return root;
+  }
+
+  test("reads the configured budget", () => {
+    // 150000 differs from the default, so a mutation back to a hardcoded 200000 reddens.
+    expect(resolveContextWarnTokens(rootWith({ orchestrator_context_warn_tokens: 150000 }))).toBe(150000);
+  });
+
+  test("falls back to the declared default when the key is absent", () => {
+    expect(resolveContextWarnTokens(rootWith(undefined))).toBe(DEFAULT_CONTEXT_WARN_TOKENS);
+    expect(DEFAULT_CONTEXT_WARN_TOKENS).toBe(200000);
+  });
+});
+
+describe("contextAdvisoryText", () => {
+  // Two thresholds, so a hardcoded ratio string cannot pass both.
+  test("computes the DEC-201 ratio against the default threshold", () => {
+    expect(contextAdvisoryText(223029, 200000)).toContain("1.12x");
+  });
+
+  test("computes the DEC-201 ratio against a configured threshold", () => {
+    expect(contextAdvisoryText(223029, 150000)).toContain("1.49x");
+  });
+});
+
+describe("context advisory injection", () => {
+  function advisoryFixture(opts: {
+    sessionFile?: string | (() => string);
+    blockReason?: string;
+  } = {}) {
+    const handlers = new Map<string, Function>();
+    const pi = { on(name: string, handler: Function) { handlers.set(name, handler); } };
+    const runner = (_cwd: string, script: string) => {
+      if (script === "check-domain.sh" && opts.blockReason) {
+        return { blocked: true, reason: opts.blockReason, stdout: "" };
+      }
+      return { blocked: false, stdout: "" };
+    };
+    registerHarnessHooks(pi, runner);
+    const getSessionFile = typeof opts.sessionFile === "function"
+      ? opts.sessionFile
+      : () => opts.sessionFile ?? ANCHORED_FIXTURE;
+    const ctx = {
+      cwd: "/repo",
+      sessionManager: { getSessionId: () => "own-session", getSessionFile },
+    };
+    return { handlers, ctx };
+  }
+
+  async function asAgent(handlers: Map<string, Function>, ctx: unknown, agentId?: string) {
+    await handlers.get("before_agent_start")?.({
+      systemPrompt: agentId ? [`HARNESS_AGENT_ID: ${agentId}`] : ["plain system prompt"],
+    }, ctx);
+  }
+
+  const taskResult = (content: unknown[] = [{ type: "text", text: "lead digest" }]) =>
+    ({ toolName: "task", toolCallId: "call-1", input: {}, content });
+
+  test("appends the advisory to the orchestrator's wake and leaves isError absent", async () => {
+    const { handlers, ctx } = advisoryFixture();
+    await asAgent(handlers, ctx, "harness-orchestrator");
+    const result = await handlers.get("tool_result")?.(taskResult(), ctx);
+    const content = (result as { content: Array<{ text: string }> }).content;
+    expect(content[content.length - 1].text).toContain("CONTEXT");
+    // Asserted as key ABSENCE, not falsiness: an unblocked wake must not invent isError.
+    expect("isError" in (result as object)).toBe(false);
+  });
+
+  test("does not advise a lead", async () => {
+    const { handlers, ctx } = advisoryFixture();
+    await asAgent(handlers, ctx, "harness-product-lead");
+    expect(await handlers.get("tool_result")?.(taskResult(), ctx)).toBeUndefined();
+  });
+
+  test("does not advise the main session", async () => {
+    const { handlers, ctx } = advisoryFixture();
+    await asAgent(handlers, ctx, undefined);
+    expect(await handlers.get("tool_result")?.(taskResult(), ctx)).toBeUndefined();
+  });
+
+  test("does not advise on a tool result that is not the orchestrator's wake", async () => {
+    const { handlers, ctx } = advisoryFixture();
+    await asAgent(handlers, ctx, "harness-orchestrator");
+    const notAWake = { toolName: "read", toolCallId: "call-2", input: {}, content: [] };
+    expect(await handlers.get("tool_result")?.(notAWake, ctx)).toBeUndefined();
+  });
+
+  // SUBSTITUTED, and the deviation is deliberate — see the T-01 completion note.
+  // The plan specified: orchestrator, over threshold, WITH a post-domain block
+  // reason, asserting the result keeps isError:true and carries BOTH lines.
+  // That state is unreachable: postDomain returns [] for every toolName that is
+  // not write/edit/bash (harness-hooks.ts:272), while the advisory fires only on
+  // toolName "task". A block reason and the advisory cannot co-occur.
+  // This guards the same seam from the reachable side: a blocked bash result
+  // from the orchestrator keeps isError true and must NOT gain an advisory line.
+  test("a blocked non-wake result keeps isError and gains no advisory", async () => {
+    const { handlers, ctx } = advisoryFixture({ blockReason: "outside your domain" });
+    await asAgent(handlers, ctx, "harness-orchestrator");
+    const write = {
+      toolName: "write", toolCallId: "call-3",
+      input: { path: "/repo/x.ts", content: "x" },
+      content: [{ type: "text", text: "wrote" }],
+    };
+    const result = await handlers.get("tool_result")?.(write, ctx) as
+      { content: Array<{ text: string }>; isError: boolean };
+    expect(result.isError).toBe(true);
+    expect(result.content.some((part) => part.text.includes("post-write check"))).toBe(true);
+    expect(result.content.some((part) => part.text.includes("CONTEXT"))).toBe(false);
+  });
+
+  test("emits the inert notice once, naming the field, and does not repeat or re-read", async () => {
+    const { handlers, ctx } = advisoryFixture({ sessionFile: ANCHORLESS_FIXTURE });
+    await asAgent(handlers, ctx, "harness-orchestrator");
+    const first = await handlers.get("tool_result")?.(taskResult(), ctx) as
+      { content: Array<{ text: string }> };
+    const notice = first.content[first.content.length - 1].text;
+    expect(notice).toContain(TOKENS_FIELD);
+    // The once-per-session cap makes the absence of a second notice observable.
+    expect(await handlers.get("tool_result")?.(taskResult(), ctx)).toBeUndefined();
+  });
+
+  test("reports an accessor failure once, naming the accessor", async () => {
+    // The branch that would otherwise collapse into the silent no-figure path —
+    // which is precisely the failure shape issue #923 exists to fix.
+    const { handlers, ctx } = advisoryFixture({
+      sessionFile: () => { throw new Error("getSessionFile is not a function"); },
+    });
+    await asAgent(handlers, ctx, "harness-orchestrator");
+    const first = await handlers.get("tool_result")?.(taskResult(), ctx) as
+      { content: Array<{ text: string }> };
+    expect(first.content[first.content.length - 1].text).toContain("sessionManager.getSessionFile");
+    expect(await handlers.get("tool_result")?.(taskResult(), ctx)).toBeUndefined();
+  });
+
+  test("stays silent at or under the threshold and returns the content untouched", async () => {
+    // REQ-01's no-extra-token promise. Without this, a >= written where > was
+    // specified ships green. The fixture anchor (28614) is far under 200000.
+    const { handlers, ctx } = advisoryFixture();
+    await asAgent(handlers, ctx, "harness-orchestrator");
+    const content = [{ type: "text", text: "lead digest" }];
+    const result = await handlers.get("tool_result")?.(taskResult(content), ctx);
+    expect(result).toBeUndefined();
+    expect(content).toEqual([{ type: "text", text: "lead digest" }]);
   });
 });
