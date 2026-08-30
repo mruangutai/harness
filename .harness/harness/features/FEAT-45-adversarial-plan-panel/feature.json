@@ -3,11 +3,15 @@
   "branch": "feat/FEAT-45-adversarial-plan-panel",
   "pr": null,
   "status": "Plan",
-  "review_sha": "none",
-  "cycles_used": 0,
+  "review_sha": "1d3e5db5d17d9e7cf484b38e3796cf8ed5468bb1",
+  "cycles_used": 2,
   "max_total_cycles": 10,
   "runs": [
     { "id": "2026-08-29-01-brief-product", "squad": "product", "agent": "harness-product-lead", "verdict": "PASS" },
-    { "id": "2026-08-29-1-arch-eng", "squad": "eng", "agent": "harness-eng-lead", "verdict": "PASS" }
+    { "id": "2026-08-29-1-arch-eng", "squad": "eng", "agent": "harness-eng-lead", "verdict": "PASS" },
+    { "id": "2026-08-29-2-plan-product", "squad": "product", "agent": "harness-product-lead", "verdict": "PASS" },
+    { "id": "2026-08-29-1-simplify-eng", "squad": "eng", "agent": "harness-eng-lead", "verdict": "FAIL" },
+    { "id": "2026-08-29-1-uiscope-validator", "squad": "validator", "agent": "harness-validator-lead", "verdict": "PASS" },
+    { "id": "2026-08-29-1-planfix-product", "squad": "product", "agent": "harness-product-lead", "verdict": "PASS" }
   ]
 }

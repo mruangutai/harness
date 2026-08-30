@@ -29,7 +29,12 @@ overrule is a recorded act rather than a conversation nobody can find afterwards
   again, scoped to the tasks that are not `done`.
 - REQ-02: An **independent-context** reader — spawned OUTSIDE the dispatch chain that authored the
   plan, and therefore holding none of its reasoning — answers, of the drafted plan: **what here should
-  not be built at all?** Model independence is **not** claimed: measured 2026-08-29, no governed spawn
+  not be built at all?** The lead that hosts it must be *permitted* to spawn it: measured 2026-08-29,
+  the host enforces an agent's `spawns:` list as a hard allowlist at preflight and refused a
+  `general-purpose` dispatch with `Cannot spawn 'general-purpose'. Allowed:
+  harness-product-lead,harness-eng-lead,harness-validator-lead`, so a reader absent from
+  `harness-validator-lead`'s list cannot answer anything. Model independence is **not** claimed:
+  measured 2026-08-29, no governed spawn
   in this repository can select a model (`dispatch-guard.sh:36-53` exits 2 on any `harness-`-prefixed
   caller passing `model:`, whatever the target), and the turn-level `advisor` channel is unattached on
   this workstation (`advisorModel` absent from `~/.claude/settings.json`, contradicting DEC-170's
@@ -113,7 +118,13 @@ overrule is a recorded act rather than a conversation nobody can find afterwards
   revision of DEC-176 and introduces no separate pre-signature fix dispatch.
   verify: inspection
 - SC-11: On a live plan, the operator judges each of the three readers to have earned its spawn —
-  findings of substance, not padding to justify the run.
+  findings of substance, not padding to justify the run. **The zero-findings case is graded, not
+  skipped:** where a reader returns an empty `findings` list, what the operator grades is the
+  *transcript of that reader's return in the lead's digest* — an empty list, explicitly reported as
+  empty with the reader named, IS "earned its spawn" and passes, because T-02's own prompt makes an
+  empty list the correct and preferred result on a clean plan. It fails only if the reader's return
+  is missing from the digest altogether, or the reader returned findings the operator judges to be
+  padding. A reader that found nothing on a plan the operator believes is clean has done its job.
   verify: uat
 - SC-12: On a live plan whose panel raises nothing at `high`, the operator reaches the signature with
   no extra step beyond reading the panel's result.
@@ -128,6 +139,27 @@ overrule is a recorded act rather than a conversation nobody can find afterwards
   with nothing of its own to write. Falsified by a reader step naming a harness persona, or one
   declaring an output path no persona is granted.
   verify: automated      evidence: unit
+- SC-15: The adversarial reader's persona, read from the team file rather than hardcoded, is a member
+  of `harness-validator-lead`'s `spawns:` list in `.omp/agents/harness-validator-lead.md` **and** of
+  `SPAWNS["harness-validator-lead"]` in `sync-agent-adapters.py`, asserted as two separate checks.
+  This criterion grades the allowlist's CONTENT, which is all a runner in this repository can reach:
+  no runner here performs a live spawn, so nothing automated can observe the preflight decision
+  itself. Falsified by either place omitting the persona — measured 2026-08-29, the host enforces
+  that list as a hard allowlist at preflight (`Cannot spawn 'general-purpose'. Allowed:
+  harness-product-lead,harness-eng-lead,harness-validator-lead`), so an omission there makes the
+  panel unrunnable while every other criterion here still passes. Asserting only one of the two
+  passes while the other drifts, and no assertion is made about `.claude/agents/**`, whose generated
+  frontmatter carries no `spawns:` key at all.
+  verify: automated      evidence: unit
+- SC-16: On the first live `/harness-plan` after this ships, `harness-validator-lead`'s dispatch of
+  the adversarial reader is not refused at preflight and the reader returns. Falsified by a
+  `Cannot spawn ...` preflight refusal naming the reader, or by the persona resolving to no runnable
+  agent. This is `uat` and not `automated` for a measured reason: SC-15 can only grade the list's
+  content, and whether the host RESOLVES the pinned persona to a real agent once the allowlist admits
+  it is not determinable from anything on disk — the observed refusal fired at the allowlist, before
+  resolution. This is the one criterion that closes the gap the c1 fix cycle found, where all ten
+  drafted tasks graded text on disk and none performed a spawn.
+  verify: uat
 
 ## Verification gaps
 
@@ -144,6 +176,10 @@ overrule is a recorded act rather than a conversation nobody can find afterwards
   reader's differentiation instead: SC-14, which grades the one thing that IS on disk — that the
   reader is spawned outside the authoring chain as a non-harness type. Whether an independent MODEL
   would find more is unmeasured, n = 0, and is a platform question rather than this feature's.
+- **No runner here performs a live spawn**, so the preflight decision itself is unautomatable in this
+  repository: SC-15 grades the allowlist's *content* and nothing more. What carries the live half:
+  SC-16, the operator's own observation on the first `/harness-plan` after this ships. This gap is
+  exactly how the c0 draft shipped an unrunnable panel past ten green tasks.
 
 ## Constraints
 
@@ -187,7 +223,12 @@ overrule is a recorded act rather than a conversation nobody can find afterwards
   that mechanically exists is a **spawned non-harness subagent**; `Explore`, `fork`, `general-purpose`
   and `Plan` are platform built-ins with no agent-definition file in this repo, so none of them is a
   seventeenth agent. `harness-validator-lead` holds `Agent` but not `Bash`, so it can dispatch the
-  reader and can never validate its return by running anything.
+  reader and can never validate its return by running anything — and it can never compute a finding's
+  `PF-` id either, which is why identity is `harness-pm`'s single write at transcription.
+  **Corrected 2026-08-29 (c1):** holding `Agent` is necessary and *not sufficient*. The host also
+  enforces the caller's own `spawns:` frontmatter as a hard allowlist at preflight, so the reader's
+  persona must be added to `harness-validator-lead`'s list (`.omp/agents/harness-validator-lead.md`)
+  or the dispatch is refused before the guard is ever consulted.
 - DEC-106 and DEC-151 — a reviewer's `Write` reaches exactly its namespaced report and its own
   Expertise; it holds no `Edit`. `harness-validator-lead`'s only per-feature grant is
   `runs/*-validator/**`. A panel step's `outputs:` must land inside those, or the grant is widened

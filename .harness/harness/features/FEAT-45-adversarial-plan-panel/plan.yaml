@@ -10,9 +10,21 @@ approval:
   status: pending
 
 lanes:
-  # Every row below was produced by `check-domain.sh --resolve <path>` at this sha, not
-  # read off team-config.yaml. NOBODY means no persona is granted, which is a
-  # main-session-direct lane by check-plan-routes.py's own rule, not a carve-out.
+  # Every row below was produced by `check-domain.sh --resolve <path>`, not read off
+  # team-config.yaml. NOBODY means no persona is granted, which is a main-session-direct
+  # lane by check-plan-routes.py's own rule, not a carve-out. A main-session-direct lane on
+  # a GRANTED path is a DEC-174 carve-out and says so in its reason; check-plan-routes.py
+  # reports that as a DEVIATION, not a violation.
+  #
+  # SAME METHOD, SAME QUESTION -- what needs NO change, folded here from the former D-10,
+  # which recorded a measurement rather than a choice. The decision ids are deliberately NOT
+  # renumbered, so D-10 is a gap: renumbering would invalidate every reference to a
+  # surviving id. NO change to .harness/team-config.yaml is needed, neither a grant nor a
+  # consult-when row. The scope hunt's note resolves to harness-code-reviewer, the goal-check
+  # note research-FEAT-45-goalcheck-plan-c0.md resolves to harness-pm, the lead digest under
+  # runs/2026-08-30-1-validator/ resolves to harness-validator-lead, and the adversarial
+  # reader writes nothing at all. pm's consult-when already names goal verification and
+  # code-reviewer's already names scope creep and omissions.
   resolved_at: 7ebfc9e
   rows:
     - surface: .claude/skills/harness/teams/plan-panel.yaml
@@ -54,6 +66,15 @@ lanes:
     - surface: .claude/skills/harness/bin/run-unit-tests.sh
       lane: team
       agent: harness-dev-ops
+    - surface: .claude/skills/harness/bin/sync-agent-adapters.py
+      lane: team
+      agent: harness-dev-ops
+      reason: >-
+        resolves "harness-backend-dev, harness-dev-ops", measured in the c1 fix cycle at HEAD
+        1d3e5db and not at resolved_at above; it is a generator, not a hook, validator or gate
+        script, so DEC-174 does not reach it and a main-session-direct declaration would be an
+        unjustified deviation. harness-dev-ops over harness-backend-dev because it already
+        owns this plan's other bin/ tasks.
     - surface: .harness/harness/docs/DECISIONS.md
       lane: team
       agent: harness-documentor
@@ -102,7 +123,10 @@ decisions:
     choice: >-
       A panel finding's identity is a CONTENT HASH, spelled PF- followed by the first 8 hex
       characters of sha256 over the reader id, a newline, and the finding summary lowercased
-      with whitespace collapsed. Computed by one helper so two writers cannot disagree.
+      with whitespace collapsed. It is computed ONCE, by harness-pm at transcription, through
+      panel_findings.py. The validator lead never computes it: its tools are read, glob, grep,
+      task, write, so it cannot run the helper, and it de-duplicates on the normalized summary
+      plus the reader id instead.
     because: >-
       A sequential id is assigned per run, so a re-run renumbers and an overrule silently
       starts covering a different finding. A content hash keeps an unchanged finding's id
@@ -143,18 +167,6 @@ decisions:
       The override lane exists for project-specific teams, and shipping doctrine there would
       make it invisible to every other repository.
     dec: DEC-113
-  - id: D-10
-    choice: >-
-      NO change to .harness/team-config.yaml is needed, neither a grant nor a consult-when
-      row.
-    because: >-
-      Measured with check-domain.sh --resolve at 7ebfc9e. The scope hunt's note resolves to
-      harness-code-reviewer, the goal-check note research-FEAT-45-goalcheck-plan-c0.md
-      resolves to harness-pm, the lead digest under runs/2026-08-30-1-validator/ resolves to
-      harness-validator-lead, and the adversarial reader writes nothing at all. pm's
-      consult-when already names goal verification and code-reviewer's already names scope
-      creep and omissions.
-    dec: none
   - id: D-11
     choice: >-
       Every panel reader step carries on_fail loop_back with max_cycles 1, feed self, and
@@ -196,8 +208,44 @@ decisions:
       the fixture tmpdir dies on import and exits non-zero, a green-looking proof that
       measured nothing.
     dec: none
+  - id: D-14
+    choice: >-
+      The adversarial reader's persona is pinned as general-purpose, and the allowlist that
+      admits it is the spawns: frontmatter of .omp/agents/harness-validator-lead.md (T-06).
+      The SPAWNS map in sync-agent-adapters.py is kept in step (T-11) but is NOT the shipped
+      allowlist, and no assertion is made about spawns in .claude/agents/**.
+    because: >-
+      MEASURED in the c1 fix cycle, four facts. One, the host enforces spawns: as a hard
+      allowlist at preflight: a general-purpose dispatch was refused with "Cannot spawn
+      'general-purpose'. Allowed: harness-product-lead,harness-eng-lead,harness-validator-lead",
+      a list byte-identical to .omp/agents/harness-orchestrator.md's own spawns:, so the
+      canonical frontmatter is the enforced source. Two, SPAWNS cannot ship it: it is read only
+      by bootstrap_one() via --bootstrap-from-claude, and bootstrap() refuses to run while
+      .omp/agents/harness-*.md exist. Three, claude_adapter() emits name, description, tools,
+      color, model, effort and skills, so .claude/agents/** carries no spawns key and a check
+      there could never pass. Four, nothing on disk validates a spawns ENTRY: check-omp-port.py
+      only requires a list, and bootstrap_one() only requires that a non-empty list comes with
+      the task tool, so a non-harness name is structurally accepted. general-purpose is the name
+      this repository already observes as a real platform subagent type (test-dispatch-guard.py
+      passes subagent_type general-purpose, test-context-watch.py records it as an observed
+      agent_type, and validate-digest.py names it as a platform agent sharing the hook).
+      NOT determinable from disk, and therefore an open question rather than a claim: whether
+      the host RESOLVES general-purpose to a runnable agent once the allowlist admits it. The
+      refusal fired at the allowlist, before resolution, so only SC-16's live observation can
+      settle it.
+    dec: none
 
 tasks:
+  # DEPENDENCY POLICY, after the c1 efficiency pass. Eight edges in the c0 draft were measured
+  # false -- the dependent never read the predecessor's output -- and are dropped: T-02<-T-01,
+  # T-03<-T-02, T-04<-T-03, T-05<-T-02, T-06<-T-02, T-07<-T-05, T-09<-T-05, T-10<-T-06. A false
+  # prerequisite is a claim about the code that is simply untrue, so they go for honesty, not
+  # for speed: T-02 through T-08 are all main-session-direct and one agent runs them serially
+  # whatever the DAG permits. Only two of the eight buy throughput, because each frees a
+  # DIFFERENT lane: T-02<-T-01 frees harness-documentor to run concurrently with main-session
+  # work (the largest saving), and T-09<-T-05 frees harness-dev-ops to start the helper
+  # immediately. Every surviving edge carries its reason where it is declared. Tasks appear in
+  # a topological order; T-11 sits before T-10 because T-10's case 8 grades T-11's output.
   - id: T-01
     title: Record the two structural carve-outs as signed decisions and regenerate the index
     traces: [REQ-11]
@@ -264,7 +312,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: >-
       .claude/skills/harness/teams/ resolves NOBODY at 7ebfc9e, no persona is granted it
-    depends_on: [T-01]
+    depends_on: []
     status: pending
     files:
       - .claude/skills/harness/teams/plan-panel.yaml
@@ -291,6 +339,12 @@ tasks:
 
       Step one, id should-not-exist. persona general-purpose, which is a Claude Code platform
       built-in and has no agent-definition file in .omp/agents, so the roster does not grow.
+      The lead may only spawn it because T-06 adds general-purpose to harness-validator-lead's
+      spawns: frontmatter and T-11 keeps the SPAWNS map in sync-agent-adapters.py consistent
+      with it; MEASURED in the c1 fix cycle, the host enforces that list as a hard allowlist at
+      preflight and refused a general-purpose dispatch with "Cannot spawn 'general-purpose'.
+      Allowed: harness-product-lead,harness-eng-lead,harness-validator-lead". Do not change the
+      persona here without changing both of those.
       inputs [plan_path, intent_path, goalcheck_path]. outputs [] -- an empty list, because a
       non-harness persona holds no write grant and a step told to write anywhere would be
       denied by check-domain.sh. Its findings reach disk only through the lead's transcription
@@ -301,7 +355,10 @@ tasks:
 
       Its prompt must contain, verbatim, the question: what here should not be built at all?
       The prompt must also state the return contract, because nothing validates this reader:
-      return ONE fenced yaml block carrying a findings list, each entry with reader
+      return ONE fenced yaml block whose top-level mapping has EXACTLY ONE key, findings,
+      whose value is the list. Say that literally, because a non-harness persona carries no
+      harness return convention, so a bare list and a results key are otherwise equally legal
+      readings and the lead has no fixed parse target. Each entry carries reader
       (should-not-exist), summary (one line), severity (one of info, low, med, high,
       critical, unrated), and why (a concrete consequence of building the thing). It must say
       that severity is the READER'S to state, that unrated is the correct value when the
@@ -329,10 +386,13 @@ tasks:
 
       Close the file with a comment block, in review.yaml's style, stating what the lead's
       consolidated digest must do: transcribe every finding with the reader's own severity,
-      never assign one to a finding that arrived unrated, assign each finding its PF- content
-      hash identity via panel_findings.py, de-duplicate across the two readers plus the
-      product segment's goal-check note, carry severity_max across the whole panel, and record
-      an assessed-and-dismissed finding with its reason rather than dropping it.
+      never assign one to a finding that arrived unrated, de-duplicate across the two readers
+      plus the product segment's goal-check note ON THE NORMALIZED SUMMARY PLUS THE READER ID,
+      carry severity_max across the whole panel, and record an assessed-and-dismissed finding
+      with its reason rather than dropping it. State that the lead does NOT assign a finding's
+      PF- id: it holds no Bash, so it cannot run panel_findings.py, and identity is assigned
+      once by pm at transcription (T-05.B). A lead that invents an 8-hex string makes pm's
+      correctly computed id look like a stale override to INV-32 check 4.
 
   - id: T-03
     title: Add the plan phase section to the orchestrator playbook
@@ -340,7 +400,7 @@ tasks:
     change_type: docs
     execution_mode: main-session-direct
     execution_reason: .claude/skills/harness/SKILL.md resolves NOBODY at 7ebfc9e
-    depends_on: [T-02]
+    depends_on: []
     status: pending
     files:
       - .claude/skills/harness/SKILL.md
@@ -400,7 +460,7 @@ tasks:
     change_type: docs
     execution_mode: main-session-direct
     execution_reason: .claude/commands/harness-plan.md resolves NOBODY at 7ebfc9e
-    depends_on: [T-03]
+    depends_on: []
     status: pending
     files:
       - .claude/commands/harness-plan.md
@@ -447,7 +507,7 @@ tasks:
     change_type: config
     execution_mode: main-session-direct
     execution_reason: both files resolve NOBODY at 7ebfc9e
-    depends_on: [T-02]
+    depends_on: []
     status: pending
     files:
       - .claude/skills/harness/templates/plan.yaml
@@ -499,31 +559,62 @@ tasks:
 
   - id: T-06
     title: Give the validator lead the wrapped-reader transcription contract
-    traces: [REQ-05, REQ-08]
+    traces: [REQ-02, REQ-05, REQ-08]
     change_type: config
     execution_mode: main-session-direct
     execution_reason: >-
       .omp/agents/** and .claude/agents/** are deliberately unowned by team-config.yaml
-    depends_on: [T-02]
+    depends_on: []
     status: pending
     files:
       - .omp/agents/harness-validator-lead.md
       - .claude/agents/harness-validator-lead.md
     verify: |
-      python3 .claude/skills/harness/bin/sync-agent-adapters.py \
-        && git -C . diff --quiet -- .claude/agents/harness-validator-lead.md \
+      python3 .claude/skills/harness/bin/sync-agent-adapters.py --apply \
+        && python3 .claude/skills/harness/bin/sync-agent-adapters.py --check \
         && python3 .claude/skills/harness/bin/test-sync-agent-adapters.py \
         && for f in .omp/agents/harness-validator-lead.md .claude/agents/harness-validator-lead.md; do
              grep -q 'unrated' "$f" || exit 1;
              grep -q 'plan-panel' "$f" || exit 1;
              grep -q 'never CONTENT' "$f" || exit 1;
-           done
+             grep -q 'findings' "$f" || exit 1;
+           done \
+        && python3 - <<'EOF'
+      import yaml
+      t = open('.omp/agents/harness-validator-lead.md', encoding='utf-8').read()
+      meta = yaml.safe_load(t.split('---', 2)[1])
+      assert 'general-purpose' in meta['spawns'], meta['spawns']
+      assert 'bash' not in meta['tools'] and 'task' in meta['tools'], meta['tools']
+      print('OK')
+      EOF
     intent: |
-      Add ONE section to .omp/agents/harness-validator-lead.md, after the existing
-      "## The gate" section and before "## Advisory only". Do not change the frontmatter --
-      the lead's tools stay [Read, Glob, Grep, Agent, Write] and it deliberately holds no
-      Bash. Then regenerate .claude/agents/harness-validator-lead.md with the sync script in
-      verify; that file is generated output and is never hand-edited.
+      TWO edits to .omp/agents/harness-validator-lead.md, then a regeneration.
+
+      EDIT 1, the frontmatter, and this one is the reason the panel can run at all. Add the
+      single entry general-purpose to the spawns: list, keeping the four harness entries. Do
+      NOT touch tools: -- they stay [read, glob, grep, task, write] and the lead deliberately
+      holds no bash. MEASURED in the c1 fix cycle: the host enforces spawns: as a hard
+      allowlist at preflight and refused a general-purpose dispatch with "Cannot spawn
+      'general-purpose'. Allowed: harness-product-lead,harness-eng-lead,harness-validator-lead"
+      -- a list identical to .omp/agents/harness-orchestrator.md's own spawns:. Without this
+      edit the should-not-exist step is refused at the first live /harness-plan and every task
+      in this plan still passes, because they all grade text on disk. Also measured, and the
+      reason this edit is here rather than in T-11: the SPAWNS map in sync-agent-adapters.py
+      cannot produce it -- SPAWNS is read only by bootstrap_one(), reachable only through
+      --bootstrap-from-claude, and bootstrap() raises "canonical agents already exist; refusing
+      to overwrite" whenever .omp/agents/harness-*.md are present. The generated Claude adapter
+      carries no spawns key at all (claude_adapter() emits name, description, tools, color,
+      model, effort, skills), so no grep for spawns in .claude/agents/ can ever pass. This
+      canonical file IS the shipped allowlist.
+
+      EDIT 2, the body: add ONE section, after the existing "## The gate" section and before
+      "## Advisory only".
+
+      Then regenerate .claude/agents/harness-validator-lead.md with the sync script in verify;
+      that file is generated output and is never hand-edited. The idempotence proof is --apply
+      followed by --check, never a git diff: the task's own edits are uncommitted when verify
+      runs, so a git diff --quiet on a file this task just changed reports the change and fails
+      a correct build.
 
       Heading: "## Hosting plan-panel — you wrap a reader nothing validates".
 
@@ -536,10 +627,16 @@ tasks:
       validator over its return either. You are the whole contract.
 
       Then the line that keeps this honest -- SHAPE is yours, CONTENT is never yours:
-        yours: parsing the reader's fenced yaml block, assigning each finding its PF- content
-               hash identity, de-duplicating across the two readers and the goal-check note,
-               ranking against what the project does next, and rolling up severity_max
+        yours: parsing the reader's fenced yaml block, whose top-level mapping has exactly one
+               key, findings, whose value is the list; de-duplicating across the two readers
+               and the goal-check note ON THE NORMALIZED SUMMARY PLUS THE READER ID; ranking
+               against what the project does next; and rolling up severity_max
         never CONTENT: whether a defect exists, and how severe the reader judged it
+        never IDENTITY: you do NOT assign a finding's PF- id. It is a sha256 over the reader
+               and the normalized summary, computed by panel_findings.py, and you hold no Bash
+               to run it with. pm assigns it ONCE at transcription (D-05). An 8-hex string you
+               invent makes pm's correctly computed id look like a stale override to INV-32
+               check 4 -- the exact failure D-05 exists to prevent.
       State the consequence: a finding that arrives with severity unrated is TRANSCRIBED as
       unrated. You never assign it a number. You treat unrated as gating-equivalent to high
       when you compute severity_max, so an omitted severity fails closed rather than
@@ -562,7 +659,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: >-
       DEC-174 carve-out, check-state.sh is the registered state gate this change extends
-    depends_on: [T-05]
+    depends_on: []
     status: pending
     files:
       - .claude/skills/harness/bin/check-state.sh
@@ -611,9 +708,14 @@ tasks:
       exactly what REQ-08 forbids.
 
       4. Every approval.rulings entry's finding id must be present in panel.findings. Absent,
-      append to bad as a STALE OVERRIDE naming the id: a re-run gives a reworded finding a new
-      content-hash id, so a ruling left pointing at the old one has stopped applying and the
-      operator must be asked again.
+      append to bad as a STALE OVERRIDE naming the id. This message is the ONE place the
+      operator learns why a concern they already ruled on is blocking again, so it must EXPLAIN
+      itself and not only name the id: it must contain the literal words "reworded" and
+      "asked again", in a sentence saying that a reworded finding gets a NEW content-hash id,
+      that the ruling recorded against the old id therefore stopped applying, and that the
+      operator is being asked again about what may be the same concern. Without that sentence
+      the operator sees an unfamiliar PF- id and cannot tell a new objection from the one they
+      settled last cycle; the explanation exists nowhere else they read.
 
       Read every value defensively with .get and isinstance -- a hand-edited plan.yaml may
       carry a string where a list belongs, and an exception here takes the whole gate down.
@@ -636,7 +738,7 @@ tasks:
       t = open('.claude/skills/harness/bin/test-check-state.py', encoding='utf-8').read()
       for tok in ('no-panel', 'high-open', 'high-overruled', 'high-resolved',
                   'ruling-unattributed', 'stale-ruling', 'inv32-red',
-                  'INV-32 BEGIN (FEAT-45 T-07)'):
+                  'INV-32 BEGIN (FEAT-45 T-07)', 'reworded', 'asked again'):
           assert tok in t, tok
       print('OK')
       EOF
@@ -688,7 +790,10 @@ tasks:
       file-global match would be satisfied by the conforming finding alone.
 
       6. stale-ruling -- a rulings entry whose finding id is absent from panel.findings.
-      Assert INV-32 reports it as a stale override and names the absent id.
+      Assert INV-32 reports it as a stale override AND names the absent id AND that the same
+      output carries the literal words "reworded" and "asked again". Asserting the id alone
+      passes on a message that leaves the operator unable to tell a new objection from the one
+      they already ruled on, which is the whole point of the check.
 
       Add ONE more assertion inside the high-open case: a finding with severity unrated and
       disposition open is reported exactly as a high one is. Do not add a separate case for
@@ -705,7 +810,7 @@ tasks:
     change_type: logic
     execution_mode: team
     execution_agent: harness-dev-ops
-    depends_on: [T-05]
+    depends_on: []
     status: pending
     files:
       - .claude/skills/harness/bin/panel_findings.py
@@ -766,13 +871,70 @@ tasks:
       test-*.py in the directory that is in neither array, so the registration is not
       optional.
 
+  - id: T-11
+    title: Keep the SPAWNS bootstrap map consistent with the lead's shipped allowlist
+    traces: [REQ-02, REQ-05]
+    change_type: config
+    execution_mode: team
+    execution_agent: harness-dev-ops
+    # Lane measured by check-domain.sh --resolve in the c1 fix cycle: "harness-backend-dev,
+    # harness-dev-ops". NOT a DEC-174 surface -- sync-agent-adapters.py is a generator, it
+    # gates no write and adjudicates nothing, so a main-session-direct declaration here would
+    # be an unjustified deviation. Depends on T-06 because its verify asserts that the
+    # canonical frontmatter and this map AGREE, which needs T-06's edit on disk.
+    depends_on: [T-06]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/sync-agent-adapters.py
+    verify: |
+      python3 .claude/skills/harness/bin/sync-agent-adapters.py --check \
+        && python3 .claude/skills/harness/bin/test-sync-agent-adapters.py \
+        && python3 - <<'EOF'
+      import importlib.util, yaml
+      p = '.claude/skills/harness/bin/sync-agent-adapters.py'
+      s = importlib.util.spec_from_file_location('sync_probe', p)
+      m = importlib.util.module_from_spec(s)
+      s.loader.exec_module(m)
+      mapped = m.SPAWNS['harness-validator-lead']
+      assert 'general-purpose' in mapped, mapped
+      t = open('.omp/agents/harness-validator-lead.md', encoding='utf-8').read()
+      shipped = yaml.safe_load(t.split('---', 2)[1])['spawns']
+      assert 'general-purpose' in shipped, shipped
+      assert sorted(shipped) == sorted(mapped), (shipped, mapped)
+      print('OK')
+      EOF
+    intent: |
+      Add the single entry "general-purpose" to SPAWNS["harness-validator-lead"] in
+      .claude/skills/harness/bin/sync-agent-adapters.py, keeping the four harness entries and
+      their order, and carry a short comment saying why it is there and what it does NOT do.
+
+      Be exact about what this map is, because the obvious reading is wrong and was MEASURED
+      false in the c1 fix cycle. SPAWNS is read only by bootstrap_one(), which is reachable
+      only through --bootstrap-from-claude, and bootstrap() raises "canonical agents already
+      exist; refusing to overwrite" whenever .omp/agents/harness-*.md are present. So editing
+      this map regenerates NOTHING and changes what no agent may spawn today. The allowlist the
+      host actually enforces is the spawns: frontmatter of
+      .omp/agents/harness-validator-lead.md, which T-06 edits. This task exists so the two
+      cannot disagree: left stale, the constant that would rebuild the roster omits the reader,
+      and a future bootstrap silently un-ships the panel.
+
+      Do not touch tools handling, the COLORS map, or any other agent's entry. The
+      bootstrap_one() invariant that a non-empty spawns list requires the task tool already
+      holds for this lead.
+
   - id: T-10
     title: Assert the panel's wiring and its presence in the plan sequence
     traces: [REQ-01, REQ-02, REQ-04, REQ-05, REQ-09, REQ-10]
     change_type: logic
     execution_mode: team
     execution_agent: harness-dev-ops
-    depends_on: [T-02, T-03, T-04, T-06, T-09]
+    # Edge reasons, so the next reader does not delete one as false. T-02/T-03/T-04 are
+    # CONTENT edges: the test opens all three files. T-11 is a CONTENT edge: case 8 asserts
+    # the canonical spawns: list and the SPAWNS map agree, both of which T-06 and T-11 write.
+    # T-09 is FALSE FOR CONTENT and kept as a WRITE-LOCK: both tasks append to
+    # run-unit-tests.sh's UNIT_SCRIPTS array, plan tasks have no mutates_repo primitive, and
+    # depends_on is the only serializer available. Delete it and two tasks race on one file.
+    depends_on: [T-02, T-03, T-04, T-09, T-11]
     status: pending
     files:
       - .claude/skills/harness/bin/test-plan-panel.py
@@ -784,7 +946,8 @@ tasks:
         && python3 - <<'EOF'
       t = open('.claude/skills/harness/bin/test-plan-panel.py', encoding='utf-8').read()
       for tok in ('should-not-exist', 'scope', 'goalcheck', 'sixteen',
-                  'check-domain.sh', 'then: halt', 'plan-panel'):
+                  'check-domain.sh', 'then: halt', 'plan-panel', 'spawns',
+                  'general-purpose'):
           assert tok in t, tok
       print('OK')
       EOF
@@ -839,6 +1002,22 @@ tasks:
       bullet still names the simplify pass, so the panel was added to the sequence rather than
       replacing a step.
 
+      8. Assert the panel is SPAWNABLE. This is the one thing no other case here can catch,
+      and without it the panel's first failure arrives at the first live /harness-plan with
+      every task in this plan green. Parse the frontmatter of
+      .omp/agents/harness-validator-lead.md -- yaml.safe_load over the block between the first
+      two --- lines -- and assert the should-not-exist step's persona, READ FROM THE TEAM FILE
+      rather than hardcoded, is a member of its spawns: list; the host enforces that list as a
+      hard allowlist at preflight and refuses a dispatch of anything absent from it. Then
+      assert the same persona is a member of SPAWNS["harness-validator-lead"] in
+      .claude/skills/harness/bin/sync-agent-adapters.py, read by importing that module by path
+      so a comment or a docstring cannot satisfy it. TWO separate checks: either place omitting
+      the persona is its own defect, and an assertion on one passes while the other drifts.
+      Do NOT assert a spawns key in .claude/agents/harness-validator-lead.md -- MEASURED:
+      claude_adapter() emits name, description, tools, color, model, effort and skills only, so
+      that key does not exist there and the assertion could never pass.
+
       Then register it in run-unit-tests.sh by appending the literal string
       test-plan-panel.py to the UNIT_SCRIPTS array. Do not touch INTEGRATION_SCRIPTS or
       harness.json, for the same KIND-DRIFT reason as T-09.
+
