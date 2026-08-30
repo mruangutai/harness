@@ -298,4 +298,27 @@ against the plan door's feature enumeration. Named here so it is not lost, not s
 
 ## Approval
 
-status: pending
+status: approved
+approved-by: operator
+date: 2026-08-30
+
+**SIGNED 2026-08-30, first signature.** Covers REQ-01..REQ-14 and SC-01..SC-17.
+
+The independent-**model** claim in REQ-02 and REQ-05 is signed as restored. An earlier draft weakened
+it to independent-*context* on the finding that no `harness-` lead may select a model for what it
+spawns. That finding is true and the inference from it was false: `dispatch-guard.sh:41-51` blocks a
+caller from **passing** `model:`, and never touches a dispatched agent's own frontmatter pin — the
+guard's own comment states that rule. The reader is therefore repinned from `general-purpose`, a
+platform built-in with no definition file and so no pin, to `fable-advisor`, whose definition carries
+`model: anthropic/claude-fable-5`.
+
+**REQ-14 is the price of that pin and ships with it.** The advisor's definition lives in the
+operator's HOME, not in this repository, while the team file ships as doctrine to every project the
+factory is pointed at. Where the reader cannot be resolved the panel skips it and records the skip
+durably; SC-17 grades that a recorded skip is distinguishable from a reader that never ran. The skip
+WARNS rather than fails, deliberately: a hard failure would break the panel everywhere the definition
+is absent, and bringing the advisor into the repository is agent distribution, which is out of scope.
+
+**The honest limit is unchanged and signed as-is:** whether an independent model finds *more* than a
+same-model reader with a clean context is unmeasured, n = 0. Finding quality stays ungraded; SC-11 is
+an operator eyeball. That is a known gap, not an oversight.

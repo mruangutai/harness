@@ -7,7 +7,31 @@ feature: FEAT-45-adversarial-plan-panel
 source_issues: []
 
 approval:
-  status: pending
+  # Written by the MAIN SESSION only, because it is the only tier with a user channel
+  # (DEC-120). Neither pm nor the orchestrator writes it. Note that check-domain.sh's
+  # approval_guard is MEASURED FAIL-OPEN inside a worktree, so this rule held here by
+  # instruction rather than by enforcement.
+  # SIGNED 2026-08-30, first signature. Covers 11 tasks, REQ-01..REQ-14, SC-01..SC-17.
+  # The operator confirmed three consequences of the independent-model ruling at signature:
+  # (1) THE READER PERSONA IS REPINNED general-purpose -> fable-advisor. This is what makes
+  #     REQ-02's model half deliverable at all: general-purpose is a platform built-in with
+  #     no definition file and therefore no model pin, while ~/.omp/agent/agents/fable-advisor.md
+  #     carries `model: anthropic/claude-fable-5` in its own frontmatter, and
+  #     dispatch-guard.sh:41-51 blocks only a caller PASSING model:, never a dispatched
+  #     agent's own pin. The repin carries D-04, D-14, T-02, T-06, T-08, T-10, T-11, SC-15.
+  # (2) ABSENT PERSONA WARNS, IT DOES NOT FAIL. REQ-14 and SC-17 require the skip to be
+  #     recorded durably and to be distinguishable from a reader that never ran. A hard
+  #     failure was considered and rejected: it would break the panel in every project
+  #     lacking the operator's HOME definition, and agent distribution is out of scope.
+  # (3) SIGNED WITH SC-16's LIVE-OBSERVATION GAP OPEN. Nothing yet proves the host RESOLVES
+  #     fable-advisor once the allowlist admits it; SC-16 is a uat criterion that settles it
+  #     at ship. The stakes moved with the repin — the persona now carries the model claim,
+  #     not merely the spawn — and the operator accepted signing with that outstanding.
+  status: approved               # pending | approved
+  approved_by: operator
+  date: 2026-08-30
+  signatures:
+    - { date: 2026-08-30, covers: '11 tasks, REQ-01..REQ-14, SC-01..SC-17, reader pinned fable-advisor' }
 
 lanes:
   # Every row below was produced by `check-domain.sh --resolve <path>`, not read off
