@@ -1,9 +1,9 @@
 # Expertise — harness-eng-lead
 
 ## Patterns (max 15)
-- P-01: WHEN a member reports a receipt in prose instead of the observed value DO send it back
-  for the verbatim output and the invocation form — a lead-tier send-back costs one member
-  spawn; the same gap found later by the review panel costs a feature cycle.
+- P-01: WHEN a fix routes several call sites through one shared helper DO require a per-call-site
+  mutation matrix, each reverted in turn and each producing a named failure — a control that
+  exercises only the helper stays green while a reverted call site leaves the regression invisible.
 - P-02: WHEN dispatching a task that inverts or retires an existing assertion DO put the
   adjacent labels, docstrings and usage strings explicitly in scope — prose asserting the
   superseded contract is the same defect class, and a stale test label propagates upward as
@@ -26,9 +26,9 @@
 - P-08: WHEN a clause count is offered as evidence a design rule is guarded DO count only the
   behavioural clauses — grep clauses die to a rename, and an assertion coarser than the property
   it names is green under the bug.
-- P-09: WHEN a dispatch or resume brief asserts what a file contains OR asserts one is absent DO
-  open the path before acting — absence is a claim about a file like any other, and an artifact
-  that looks missing is evidence about your read, not about the work.
+- P-09: WHEN several members' changes to one shared file or suite each pass in isolation DO run
+  the shared gates once on the combined tree before reporting PASS — jointly the diffs can cross
+  a threshold no isolated run reaches, and only the combined run can see it.
 - P-10: WHEN a gap's remedy is an obligation recorded in prose DO propose the instrument that
   reddens instead — and where none can exist, say at review that no code gate verifies it:
   inspecting a rule proves it exists, never that it fires.
@@ -94,9 +94,9 @@
 - G-15: WHEN dispatching against a suite with known failures DO decide the expected FAIL set and
   its evidence before the member reports — deciding after is how a new defect gets filed under
   "expected", and a known FINDING is not a known FAILURE.
-- G-16: WHEN sending a fan-out wave of dispatches in one message DO audit every call's
-  parameters before sending — a habit error there is multiplied by N rather than made once, and
-  a lesson recorded only in a log you never re-read mid-run will not prevent it.
+- G-16: WHEN a dispatch pins a commit and HEAD no longer equals it DO test ancestry and diff the
+  source paths before treating work as stale — concurrent bookkeeping commits legitimately
+  advance HEAD, and the real invariant is that the pin is an ancestor with no source change.
 
 ## Outcomes (max 10)
 

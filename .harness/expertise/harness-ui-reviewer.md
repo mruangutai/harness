@@ -1,5 +1,4 @@
 # Expertise — harness-ui-reviewer
-
 ## Patterns (max 15)
 - P-01: WHEN scoping a diff for a Mode B UI review DO run a file-extension census (html/css/scss/tsx/jsx/vue/svelte/less) across the full diff before concluding no UI surface exists — a census makes "no UI" a measured finding, not an inferred guess.
 - P-02: WHEN a dispatch or ambient context claims a design contract's presence, absence, or content DO confirm it with a direct object check (`git cat-file -e`, `git diff`) at the pinned commit — a dispatch's description of a file is a hypothesis, not evidence.
@@ -9,14 +8,13 @@
 - P-06: WHEN dispatch explicitly names an adjacent non-rendered surface (e.g. CLI/error-message output) alongside a no-UI diff DO treat it as in-remit and audit it against the stated requirement — a handed-down surface turns a decline into a reviewed finding, not an optional extra you may skip.
 - P-07: WHEN a Mode A contract pins concrete values (wording, query shape, format) DO diff them byte-for-byte across every document that claims to implement it (design doc, plan, code) — narrative agreement is not literal agreement, and a criterion that checks only one slot can miss full-text drift.
 - P-08: WHEN auditing a Mode A state/message contract table DO cross-check every row against the full success-criteria list for a covering, checkable assertion — a row with correct prose but no enforcing criterion is invisible to gates and is the highest-value Mode A finding.
-- P-09: WHEN a rewritten message diagnoses one specific system/repo state as an error DO trace which real invocations reach that branch and confirm the post-feature normal state is not among them — a message can be textually accurate yet fire on the case the feature just made normal.
+- P-09: WHEN auditing a status/severity output DO enumerate every distinct outcome bucket the underlying blocking logic can produce, not just the labeled ones in the docs — an unlabeled bucket sharing blocking behaviour with a labeled one, with no visible marker, is a silent regression surface.
 - P-10: WHEN sibling CLI commands enforce the same refusal condition through different code paths (an explicit refuse call vs. a raised-and-caught exception) DO verify both resolve to the same exit code and message grammar — this cross-tool consistency check is invisible to a per-call-site code-review lens.
 - P-11: WHEN a message-wording defect already exists unchanged in a pre-existing sibling message DO record the new instance as a non-gating note rather than filing a fix against the untouched sibling — extending remedy scope into code the diff never touched is not this role's call.
 - P-12: WHEN a contract clause requires a property for 'every' item in a collection DO check the zero-cardinality case — vacuous truth over an empty set can make a broken/empty collection compute a clean verdict, silently reintroducing the exact defect class the contract exists to prevent.
 - P-13: WHEN you find a contract gap in one task or document's wording DO sweep sibling tasks/documents that independently restate the same intent for the identical gap before scoping a fix — a fix landing in only one instance leaves the other reading the same ambiguity.
 - P-14: WHEN filing a completeness/consistency finding that cites an unstated house convention DO grep multiple live examples of that convention in the codebase and quote them before filing — a consistency finding needs the convention confirmed to exist, not assumed from general style expectations.
 - P-15: WHEN a verify discriminates old versus new literal via two substring checks DO confirm the new literal does not itself contain the old literal as a substring — otherwise a correctly migrated line can satisfy the stale check too, silently defeating the discrimination the verify exists to make.
-
 ## Gotchas (max 15)
 - G-01: WHEN closing a prior FAIL's must_fix in a Mode A recheck DO verify the fix's literal text in the document itself (grep the actual wording/query/value) before marking closed — a closing review's own narration, or the plan's stated intent, is not evidence until the artifact is read directly.
 - G-02: WHEN a surface under review is batch/CLI text with no colour-only state encoding DO state the accessibility and theme-parity sections as explicitly not-applicable with the reasoning, rather than omitting them — an omitted section reads as unchecked, not confirmed inapplicable.
@@ -25,16 +23,15 @@
 - G-05: WHEN a file-extension census returns matches you plan to scope in DO confirm each is not a 100% rename with zero content delta (`git diff --summary -M`) before treating it as touched content — an extension match on a pure directory move carries no design contract to audit.
 - G-06: WHEN probing whether a verify closes a stated coverage gap DO cover all three probe polarities — total-silence, false-FAIL, false-PASS — before ruling coverage closed; varying only wording within one polarity can return a clean verdict while the false-PASS shape stays open.
 - G-07: WHEN a remedy is written to close a prior finding DO confirm it discharges the exact shape the finding was ranked on — closing a related-but-different shape (e.g. total-silence when the gating shape was false-PASS) is not closure.
-- G-08: WHEN a wording finding exactly matches text an approved plan's intent block mandates DO
-  treat it as a plan-change question, not a defect remedy — this holds even for newly introduced
-  text, not only an untouched pre-existing sibling.
+- G-08: WHEN a wording finding exactly matches text an approved plan's intent block mandates DO treat it as a plan-change question, not a defect remedy — this holds even for newly introduced text, not only an untouched pre-existing sibling.
 - G-09: WHEN rating severity of an emitted-contract or precedence gap DO check whether a design/architecture review document settled that exact case before finalizing severity — a gap that reintroduces a case a review's own rationale rejected is a deviation from a reviewed resolution, heavier than a plain coverage gap.
 - G-10: WHEN a criterion asserts a property for one representative case (e.g. 'states X once') without naming the input combination DO grep the test suite for which fixture variables are populated across cases — an unpopulated one names the untested combination; flag as open, don't assume covered.
-
+- G-11: WHEN a file-extension census surfaces HTML matches DO check each for a regeneration/do-not-edit footer before counting it in-scope — a generated ship-review or report view is not product UI, and a census alone would falsely score it in-scope.
+- G-12: WHEN auditing a colour token's accessibility claim DO compute the actual contrast ratio against its background for every stated size/theme combination with a checker, not by eyeballing hex proximity — 'quiet'-labelled small text is exactly where near-miss hex values fail WCAG AA.
 ## Outcomes (max 10)
 - O-01: WHEN a scoped-out verdict rests on a measured check (extension census, direct object check) rather than a prediction DO record it as such — a scoped-out review that looked holds up under cross-review scrutiny; one that merely predicted absence does not.
 - O-02: WHEN declining a sub-question because it sits outside your lens (e.g. path arithmetic, message semantics, test-mutation correctness) DO name the peer lens that should cover it in your return — a decline that names the receiving lens produced real coverage under panel review; a silent decline would not.
 - O-03: WHEN citing a peer artifact as covering ground your own remit scoped out DO check whether that artifact predates the change it is cited for, and raise it as an open question rather than assume — provenance is checkable from any lens, and panel review confirmed this call correct.
 - O-04: WHEN a Mode A census measured no UI surface but your Mode A note left opens unresolved DO treat the opens as in-remit Mode B work, not grounds to decline — lead review confirmed: a census answers whether a surface exists, not whether prior opens are discharged.
-
+- O-05: WHEN a Mode B review finds no in-scope UI surface DO publish the census and provenance evidence (counts, footer checks) explicitly in the artifact — a lead cited exactly this evidence to scope out a later spawn, making the decline cheap without weakening the discriminator.
 ## Open (max 5)
