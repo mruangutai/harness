@@ -4,9 +4,15 @@ feature: FEAT-41-one-station-vocabulary
 source_issues: [845, 867]
 
 approval:
-  status: pending
-  approved_by: none
-  date: none
+  status: approved
+  approved_by: Mike Ruangutai
+  date: 2026-08-29
+  scope_at_signature: 13 tasks (T-12 removed on the operator's Q1 ruling; ids gap-noted, not renumbered)
+  rulings: >-
+    Q6 INV-32 is scoped to non-terminal stations; Q7 folded into the same edit, the precondition
+    is "a real pin exists AND the station is non-terminal". Q1 T-12 removed entirely; its subject
+    re-files with the decisions-authority triage, D-09 kept so the triage inherits the content.
+    Signed at review_sha 0dbd284 after reading the delta, not the working copy.
 
 lanes:
   resolved_at: 0d4845b
