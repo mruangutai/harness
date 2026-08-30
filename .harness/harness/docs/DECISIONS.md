@@ -6220,7 +6220,7 @@ supersedes DEC-201's host-specific mechanics for OMP while preserving its no-wai
 evidence standard. DEC-202 still owns canonical paths, provider overlays, and compatibility
 adapters. DEC-203 still owns issue/card lifecycle and command ownership.
 
-## DEC-205 — This file states current truth: no amendments, supersession is deletion, and two mechanical checks guard it
+## DEC-205 — This file states current truth: no amendments, supersession is deletion, and one mechanical check guards it
 
 **The amendment convention is ended.** An entry states current truth directly. A correction rewrites
 the entry it corrects; it does not append a dated sub-section beside it. A claim the tree has
@@ -6252,7 +6252,7 @@ sentences that describe the deletion. Orphan detection guards a *row* whose entr
 looked at a refs graph at all. This is one clause of issue 686 — the rest of that ticket, the full
 generation contract, is deliberately not settled here.
 
-**Two mechanical checks guard this file, and only two.**
+**One mechanical check guards this file, and only one.**
 
 1. **Anchor rot.** Every file-and-line anchor cited in this file must name a file that exists and a
    line within that file's length. This is deliberately existence plus range and **not** a stored
@@ -6262,18 +6262,11 @@ generation contract, is deliberately not settled here.
    All three were repaired by the feature that added this check.
    A stored snippet costs an author something on every anchor and still cannot see
    the failure that matters most: a line that still exists and now says something unrelated.
-2. **Executable claims.** Where an entry states something a command can check, it records the command
-   and the expected result in an HTML comment marker whose body opens with `claim:`, then the command,
-   then a double-colon separator surrounded by single spaces, then the expected stdout substring. A
-   checker re-runs every marker in the suite, so the claim fails when the tree moves under it. The
-   safety boundary is part of the rule, not an implementation detail: the checker refuses any command
-   whose first word is not `git` or `grep`, and never invokes a shell. A documentation file must not
-   become an arbitrary code execution surface inside the test suite.
 
 **What was considered and refused, recorded so a future scan does not re-suggest it.** A
 **referenced-file watch** (M3) — flagging every entry whose cited files changed — was declined: it
 hands over a review list and proves nothing, so its output is work, not verification. A **periodic
 LLM audit of design claims** (M4) was declined as a gate: its judgement decays the moment code moves,
 so it is worth running once as a sweep and worthless standing as a check. Neither becomes cheap
-merely because the two checks above are open rather than closed — that openness is exactly why the
-two that are in are the mechanical ones.
+merely because the one check above is open rather than closed — that openness is exactly why
+the one that is in is the mechanical one.
