@@ -8,8 +8,10 @@ here reads, writes or depends on any real file under .harness/*/features/*/.
 jsonschema must be importable for these tests to mean anything: they prove
 the schema's SHAPE, not merely that the module imports.
 """
+import ast
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -35,6 +37,13 @@ def check(name, cond, detail=""):
     else:
         print(f"FAIL {name} {detail}")
         failures.append(name)
+
+
+def reports_exactly_one_file(stderr_text):
+    """True iff stderr reports EXACTLY one file swept via a word-boundary match,
+    never a substring match against a larger rendered count (a plain `in` test
+    would wrongly accept "41 file(s)" because it contains "1 file(s)")."""
+    return re.search(r"\b1 file\(s\)", stderr_text) is not None
 
 
 def full_doc(status="Building"):
@@ -323,7 +332,7 @@ def case_migrated_depth_discovery_scans_the_segment_layout():
         r = subprocess.run([VALIDATE_CLI], capture_output=True, text=True,
                            timeout=30, env=env)
         check("case_migrated_depth: the sweep reports ONE file, not zero",
-              "1 file(s)" in r.stderr, r.stderr)
+              reports_exactly_one_file(r.stderr), r.stderr)
         check("case_migrated_depth: the scanning line names the migrated glob",
               ".harness/*/features/" in r.stderr, r.stderr)
 
@@ -348,7 +357,7 @@ def case_root_resolves_through_harness_boundary_not_the_retired_variable():
                             timeout=30, env=env)
         check("case_root_resolves: CLAUDE_PROJECT_DIR alone does not redirect the sweep "
               "(scans the real repo root, not the tmp fixture with its single file)",
-              "1 file(s)" not in r.stderr, r.stderr)
+              not reports_exactly_one_file(r.stderr), r.stderr)
 
         env2 = dict(os.environ)
         env2.pop("CLAUDE_PROJECT_DIR", None)
@@ -359,7 +368,81 @@ def case_root_resolves_through_harness_boundary_not_the_retired_variable():
         r2 = subprocess.run([VALIDATE_CLI], capture_output=True, text=True,
                              timeout=30, env=env2)
         check("case_root_resolves: HARNESS_PROJECT_DIR + team-config.yaml IS honoured",
-              "1 file(s)" in r2.stderr, r2.stderr)
+              reports_exactly_one_file(r2.stderr), r2.stderr)
+
+
+def case_reports_exactly_one_file_rejects_substring_match():
+    """Control for reports_exactly_one_file, independent of the live tree's feature-
+    directory count. A plain substring test would wrongly accept "41 file(s)" since
+    it contains "1 file(s)"; this proves the shared predicate does not."""
+    check("control: rejects 41 file(s)",
+          reports_exactly_one_file("41 file(s) swept") is False, "")
+    check("control: rejects 21 file(s)",
+          reports_exactly_one_file("21 file(s) swept") is False, "")
+    check("control: rejects 11 file(s)",
+          reports_exactly_one_file("11 file(s) swept") is False, "")
+    check("control: rejects 0 file(s)",
+          reports_exactly_one_file("0 file(s) swept") is False, "")
+    check("control: accepts 1 file(s)",
+          reports_exactly_one_file("1 file(s) swept") is True, "")
+
+
+def case_reports_exactly_one_file_models_the_real_cli_line():
+    """The toy strings above prove the regex; this proves it against the ACTUAL
+    shape validate-feature-json.py emits (see its `scanning ... — N file(s)` print),
+    so the control models the real call sites (case_migrated_depth_discovery_...
+    and case_root_resolves_...), not just an abstract substring. Synthetic strings
+    only — no sweep, no disk read, no live feature-directory count."""
+    real_root = "/Users/x/GitHub/harness"
+    scanning_line = (f"scanning {real_root}/.harness/*/features/*/"
+                      "feature.{json,yaml,yml} — 41 file(s)")
+    check("control: rejects the real 41 file(s) scanning line "
+          "(this is the exact fail-open shape the redirected-root bug renders)",
+          reports_exactly_one_file(scanning_line) is False, scanning_line)
+    one_line = scanning_line.replace("41 file(s)", "1 file(s)")
+    check("control: accepts the real 1 file(s) scanning line",
+          reports_exactly_one_file(one_line) is True, one_line)
+    hundred_one_line = scanning_line.replace("41 file(s)", "101 file(s)")
+    check("control: rejects the real 101 file(s) scanning line",
+          reports_exactly_one_file(hundred_one_line) is False, hundred_one_line)
+    multiline = f"some warning on stderr\n{one_line}\ntrailing noise"
+    check("control: accepts 1 file(s) embedded in a multi-line stderr blob",
+          reports_exactly_one_file(multiline) is True, multiline)
+
+
+def _rendered_count_substring_compares(source):
+    """Line numbers of `in`/`not in` comparisons whose LEFT operand is a string
+    literal shaped like a rendered count ("N file(s)") — the exact bare-substring
+    predicate reports_exactly_one_file exists to replace. Walks the parsed AST,
+    never raw text, so docstrings and check() detail strings (not Compare nodes)
+    cannot trigger it, and the three legitimate `in r.stderr` predicates elsewhere
+    in this file (testing "'branch'", "REQUIRED", ".harness/*/features/") cannot
+    either, since none of those left operands match the rendered-count shape."""
+    hits = []
+    for node in ast.walk(ast.parse(source)):
+        if not isinstance(node, ast.Compare):
+            continue
+        if not any(isinstance(op, (ast.In, ast.NotIn)) for op in node.ops):
+            continue
+        left = node.left
+        if (isinstance(left, ast.Constant) and isinstance(left.value, str)
+                and re.fullmatch(r"\d+ file\(s\)", left.value)):
+            hits.append(node.lineno)
+    return hits
+
+
+def case_no_bare_rendered_count_substring_outside_the_helper():
+    """Guard for reports_exactly_one_file's own call sites (FEAT-43): reverting any
+    of them back to `"1 file(s)" in r.stderr` leaves the helper itself correct and
+    both controls above still green, since neither exercises a call site — every
+    control passes and the regression is invisible. This asserts the property on
+    THIS FILE'S OWN SOURCE instead: no bare rendered-count substring comparison may
+    survive anywhere outside reports_exactly_one_file's own regex-based body."""
+    with open(__file__, "r", encoding="utf-8") as f:
+        source = f.read()
+    hits = _rendered_count_substring_compares(source)
+    check("no bare rendered-count substring compare outside reports_exactly_one_file",
+          hits == [], f"offending line(s): {hits}")
 
 
 # ---------------------------------------------------------------------------
@@ -638,6 +721,9 @@ def main():
     case_problems_for_text_jsonschema_forced_unavailable()
     case_migrated_depth_discovery_scans_the_segment_layout()
     case_root_resolves_through_harness_boundary_not_the_retired_variable()
+    case_reports_exactly_one_file_rejects_substring_match()
+    case_reports_exactly_one_file_models_the_real_cli_line()
+    case_no_bare_rendered_count_substring_outside_the_helper()
 
     # FEAT-26 T-01 — github.source_issues
     case_accepted_source_issues_list_of_integers()
