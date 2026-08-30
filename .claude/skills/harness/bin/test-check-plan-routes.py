@@ -20,6 +20,7 @@ BIN_DIR = os.path.dirname(os.path.abspath(__file__))
 SCRIPT = os.environ.get("CHECK_PLAN_ROUTES_BIN") or os.path.join(
     BIN_DIR, "check-plan-routes.py")
 REPO_ROOT = os.path.abspath(os.path.join(BIN_DIR, "..", "..", "..", ".."))
+FIXTURE_DIR = os.path.join(BIN_DIR, "fixtures")
 
 GRANTED_PATH = ".claude/skills/harness/bin/check-domain.sh"  # granted to two agents
 
@@ -1514,24 +1515,23 @@ def case_26():
               ok, f"exit {r.returncode}: {out[:400]!r}")
 
 
-PRE_FEATURE_REVISION = "df63193f7ec9798d9660904e0e4e7c78d52358f5"
-
 def write_prior_route_validator(directory):
-    rel = ".claude/skills/harness/bin"
-    for name in ("check-plan-routes.py", "harness_boundary.py", "harness_yaml.py"):
-        source = subprocess.run(
-            ["git", "-C", REPO_ROOT, "show", f"{PRE_FEATURE_REVISION}:{rel}/{name}"],
-            capture_output=True,
-            text=True,
-            check=True,
-        ).stdout
+    """Write the prior validator from committed data, without requiring Git history."""
+    fixtures = (
+        ("check-plan-routes.py", "prior-check-plan-routes.py.fixture"),
+        ("harness_boundary.py", "prior-harness_boundary.py.fixture"),
+        ("harness_yaml.py", "prior-harness_yaml.py.fixture"),
+    )
+    for name, fixture in fixtures:
+        with open(os.path.join(FIXTURE_DIR, fixture), encoding="utf-8") as stream:
+            source = stream.read()
         if name == "check-plan-routes.py":
             source = source.replace(
                 'CHECK_DOMAIN = os.path.join(BIN_DIR, "check-domain.sh")',
                 f"CHECK_DOMAIN = {os.path.join(BIN_DIR, 'check-domain.sh')!r}",
             )
-        with open(os.path.join(directory, name), "w") as f:
-            f.write(source)
+        with open(os.path.join(directory, name), "w") as stream:
+            stream.write(source)
 
 
 def _owner_branch(directory):
