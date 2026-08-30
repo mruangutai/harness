@@ -1,30 +1,41 @@
 #!/usr/bin/env python3
-"""FEAT-44 / issue #923 — the ONE check that reaches the real OMP binary.
+"""FEAT-44 / issue #923 — a MANUAL host check. Not a CI gate, and it must not be registered as
+one.
 
 Every case in omp-hooks.test.ts stubs `getSessionFile`, so a green unit suite proves only that
-the stub works. That is issue #923's own failure shape one layer out: the feature exists because
-an assumed host API silently returned nothing, and a suite of stubs would never notice it
-happening again.
+the stub works. That is issue #923's own failure shape one layer out. This is the one check that
+reaches the real binary: it dispatches a real subagent under the committed probe extension and
+asserts that, in that subagent session, `ctx.sessionManager.getSessionFile()` returns the
+subagent's OWN nested transcript path.
 
-WHY THIS IS NOT A UNIT TEST, measured 2026-08-29. The plan first specified asserting the shipped
-`session-manager.d.ts` from inside `bun test`. That cannot work, for two independent reasons:
+WHY IT IS MANUAL AND NOT A GATE — corrected after it reddened CI, and stated plainly because an
+earlier version of this docstring claimed the opposite.
 
-  1. `Bun.resolveSync("@oh-my-pi/pi-coding-agent/package.json", ...)` succeeds under `bun run`
-     and FAILS under `bun test` — different resolution modes. The plan's feasibility measurement
-     was taken in the wrong one.
-  2. Three copies disagree on this machine: the RUNNING binary reports 18.0.5, the bun install
-     cache holds 18.0.10, and the only stably resolvable copy — global node_modules — is 17.3.8.
-     Asserting any of their type declarations says nothing about the binary executing the hooks.
+It was first registered in INTEGRATION_SCRIPTS with the reasoning that a soft skip would be the
+gate-that-looks-real-and-does-nothing shape DEC-163 forbids. That reasoning collapsed two
+different absences:
 
-So this drives the binary itself: it dispatches a real subagent under the committed probe
-extension and asserts that, in the subagent session, `ctx.sessionManager.getSessionFile()`
-returns that subagent's OWN nested transcript path.
+  - "the accessor moved"      -> real evidence, and this check must fail loudly on it;
+  - "the host is not installed here" -> no evidence about the accessor at all.
 
-FAILS, NEVER SKIPS. If omp is absent, if the probe produces nothing, or if the accessor stops
-resolving, this exits non-zero. That is the whole point: it converts the version-floor risk
-recorded in the feature's evidence/README.md from an unwatched assumption into something CI
-reports. A soft skip here would be the gate-that-looks-real-and-does-nothing shape DEC-163
-forbids, and would recreate exactly the defect this feature was written to remove.
+Measured on the CI run for PR #982: `FAIL - case1: the omp binary is on PATH (None)`. And the
+deeper reason it can never be a gate is that this check makes a LIVE MODEL CALL — it dispatches a
+real subagent with `--model anthropic/claude-sonnet-5`. The tests workflow installs bun and
+python and references no `secrets.*` at all, so it holds no model credentials. Installing omp in
+CI would not fix this; the check would still have nothing to authenticate with.
+
+So the honest arrangement is: unregistered from every test-kind list, run by a human (or a
+release step) on a machine that has omp and credentials, and named `probe-` rather than `test-`
+so the unit glob does not sweep it back into the suite.
+
+WHAT THIS COSTS, RECORDED RATHER THAN GLOSSED. The version-floor risk in
+`.harness/harness/features/FEAT-44-omp-context-advisory/evidence/README.md` — that a later OMP
+renames or drops the accessor — is therefore watched by a check someone must REMEMBER TO RUN, not
+by CI. That is weaker than an automated gate and is not dressed up as one. Nothing available in
+this repository's CI can verify a property of a binary that CI does not have.
+
+WHERE IT DOES RUN, IT FAILS RATHER THAN SKIPS: if omp is present and the accessor has moved, or
+the probe yields nothing, this exits non-zero.
 """
 
 from __future__ import annotations

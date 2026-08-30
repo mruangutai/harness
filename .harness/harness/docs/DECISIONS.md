@@ -7171,8 +7171,10 @@ measured on ONE OMP build, twice, on one machine (2026-08-28 and 2026-08-29). Th
 output are committed at
 `.harness/harness/features/FEAT-44-omp-context-advisory/evidence/README.md`. **Version-floor risk:**
 a later OMP may rename or drop the accessor. That is not an unwatched assumption —
-`.claude/skills/harness/bin/test-omp-session-accessor.py` dispatches a real subagent under the
-committed probe and fails, never skips, if the accessor stops resolving. This is one build's
+`.claude/skills/harness/bin/probe-omp-session-accessor.py` dispatches a real subagent under the
+committed probe and fails, never skips, if the accessor stops resolving. **It is a MANUAL check,
+not a CI gate** — it needs the omp binary and live model credentials, and CI has neither — so the
+risk is watched by something a human must run. This is one build's
 observed behaviour, not a timeless property of the OMP API.
 ---
 

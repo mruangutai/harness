@@ -39,7 +39,13 @@ locating its file.
 ## What this does NOT establish
 
 - That every OMP version behaves this way. This is one build, measured twice on the same machine.
-  It is a version-floor risk, recorded rather than resolved.
+  It is a version-floor risk, recorded rather than resolved. **It is watched by
+  `.claude/skills/harness/bin/probe-omp-session-accessor.py`, which is a MANUAL check, not a CI
+  gate.** That script dispatches a real subagent and so needs both the omp binary and live model
+  credentials; this repository's CI has neither, and referencing no `secrets.*` it never will as
+  configured. Nothing in CI can verify a property of a binary CI does not have, so this risk is
+  watched by a check someone must remember to run. Stated plainly rather than dressed up as
+  automation.
 - That a **stubbed** test proves anything about the live accessor. The panel's sharper half of F1
   stands regardless of this measurement: if all tests stub `getSessionFile`, a green suite proves
   only the stub works, which is issue #923's own failure shape one layer out. At least one test must
