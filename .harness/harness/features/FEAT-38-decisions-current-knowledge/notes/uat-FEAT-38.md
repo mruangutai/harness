@@ -1,7 +1,7 @@
 # UAT — FEAT-38 decisions as current knowledge
 status: ready              # draft | ready | passed | failed — only you set passed/failed
 criterion: SC-13 (the only `verify: uat` criterion in BRIEF.md)
-tree: graded at `review_sha` **48bbe7e**; pre-fold baseline is `7ebfc9e`. `DECISIONS.md` is byte-identical between the build tip `b32013c` and the pin (`git diff b32013c 48bbe7e -- .harness/harness/docs/DECISIONS.md` is empty), so every command below reads the reviewed tree.
+tree: graded at `review_sha` **635cd3ba**; pre-fold baseline is `7ebfc9e`. `DECISIONS.md` is byte-identical between `635cd3ba` and this worktree (`git diff 635cd3ba -- .harness/harness/docs/DECISIONS.md` is empty), so every command below reads the reviewed tree. Against the earlier pin `48bbe7e`, the measured delta in this criterion's three entries is: DEC-138 and DEC-174 byte-identical; DEC-181 lost exactly 3 `<!-- claim: -->` markers and 2 blank lines, with zero prose lines changed or removed and zero lines added.
 
 **SC-13, verbatim:** *"Reading the folded DEC-138, DEC-174 and DEC-181 entries, the operator judges
 that each reads as a decision stating current truth rather than as merged history — and that no claim
@@ -78,7 +78,7 @@ gives the two forms against each other.
 
 - **U-03 (SC-13) — DEC-181, a partial strike folded, two false code citations corrected.**
   ```bash
-  span 181 < "$D"                        # folded, now  (51 lines)
+  span 181 < "$D"                        # folded, now  (46 lines)
   git show 7ebfc9e:"$D" | span 181       # pre-fold     (47 lines)
   ```
   Landed (`notes/receipt-harness-documentor-2026-08-29-06-product-T-09.md`): the
@@ -86,6 +86,9 @@ gives the two forms against each other.
   `check-domain.sh:779-780` to the message at `:1335`; peer budget `feature.yaml` 200/20 corrected to
   `feature.json` 300. Consequentially, DEC-188's body no longer asserts DEC-181 is struck in part
   (`notes/receipt-harness-documentor-2026-08-29-08-product-S2.md`) — check `span 188 < "$D"` too.
+  - Since the previously graded revision this entry lost three `<!-- claim: -->` HTML-comment markers
+    and nothing else: no prose line was changed, removed or added. Any earlier reading of DEC-181
+    therefore still holds.
   **Two items you are being pointed at deliberately, because they are the likeliest FAIL:**
   - **(a) Three sentences of drafting history remain** in the folded entry: "80 was re-derived at
     `a5edb13`, not inherited from issue #139"; "an earlier draft of this entry began the table after

@@ -4,7 +4,7 @@
   "pr": null,
   "status": "Review",
   "review_sha": "635cd3baa950e7a48eaad9c3a1990560b61bf7c0",
-  "cycles_used": 15,
+  "cycles_used": 16,
   "max_total_cycles": 30,
   "max_total_runs": 20,
   "runs": [
@@ -199,6 +199,18 @@
       "squad": "validator",
       "verdict": "PASS",
       "agent": "harness-validator-lead"
+    },
+    {
+      "id": "goalcheck-ship-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead"
+    },
+    {
+      "id": "2026-08-30-uat-repoint-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead"
     }
   ],
   "github": {
