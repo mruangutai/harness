@@ -1,8 +1,8 @@
 {
   "feature_id": "FEAT-38-decisions-current-knowledge",
   "branch": "feat/FEAT-38-decisions-current-knowledge",
-  "pr": null,
-  "status": "Review",
+  "pr": 996,
+  "status": "Done",
   "review_sha": "635cd3baa950e7a48eaad9c3a1990560b61bf7c0",
   "cycles_used": 16,
   "max_total_cycles": 30,
