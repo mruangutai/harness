@@ -148,12 +148,14 @@ Then tell the main session the verdict; `harness-pm` records SC-11 `met`/`not_me
 with this file as the evidence pointer. The UAT was **not** executed here and SC-11 is **not**
 judged.
 
-## Open question
+## Open question — SETTLED before the run
 
 The BRIEF's own probe citation reports arm means (8.5 / 38.0). This script pins arm **maxima**,
-because SC-11's first half says "the worst cognitive complexity in the arm" and the mean reading
-makes the probe's own numbers fail the second half. If the operator intended means, the rule above
-must change before the run, not after the numbers land.
+because SC-11's first half says "the worst cognitive complexity in the arm".
+
+**Ruled by the operator on 2026-08-29, before any number was drawn:
+`answers/Q9-sc11-maxima-and-t01-no-exemption.md` — MAXIMA. The arithmetic above is the ruled method,
+not a proposal. Nothing here changes after the run.**
 
 ## Tree state
 
