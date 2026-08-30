@@ -34,6 +34,15 @@ Three conflicts, resolved and independently graded:
   committed file being byte-identical to a fresh generation. 188 rows, 188 live headings, zero
   orphans. FEAT-44 changed zero index rulings.
 
+## And then FEAT-43 landed too
+
+FEAT-43 shipped as PR #978 while this one was at its ship door, moving `origin/main` to `24af8d4`
+and re-conflicting the same two files. Merged at `eb7e751`. **That resolution is a pure union** —
+base 26 / 27 / 27 → **28** for `harness.json`, 26 / 26 / 28 → **28** for `UNIT_SCRIPTS`, and
+25 / 26 / 26 → **27** for `INTEGRATION_SCRIPTS`, with **zero removals on either side**. A union is
+correct here precisely because it would have been wrong for FEAT-44, whose side had deleted two
+registered files. 27 scripts plus the inert `tests/integration/**` glob is the 28 in `harness.json`.
+
 ## The three amendments the merge brought in
 
 FEAT-44 appended three new amendment sub-sections on 2026-08-29 — to `DEC-159`, `DEC-198` and
@@ -51,14 +60,14 @@ correct-but-inapplicable rather than wrong.
 | Gate | Result |
 |---|---|
 | full unit suite | **exit 0**, zero `FAIL` lines |
-| blocking qa gate at `review_sha` `37676244` | **PASS** — `matrix_ok: true`, `must_fix: []` |
+| blocking qa gate at `review_sha` `eb7e751` | **PASS** — `matrix_ok: true`, `must_fix: []`, 55 scripts executed |
 | targeted panel on the merge + fold delta | **PASS** — `severity_max: med`, `must_fix: []` |
 | SC-11 read-back of the three folds | **3 of 3 PASS**, by a reader who did not write them |
 | goal-check | 17 of 17 live success criteria met |
 | SC-13 (operator UAT) | `passed`, 2026-08-30 |
 
-`review_sha` moved from `635cd3ba` to **`37676244`**: the merge changed source under the old pin and
-the fold then changed the authority itself, so the old pin no longer described what ships.
+`review_sha` moved twice, `635cd3ba` → `37676244` → **`eb7e751`**, once per merge: each changed
+source under the previous pin, and a pin that no longer contains the tree under review grades nothing.
 
 ## Notes
 
