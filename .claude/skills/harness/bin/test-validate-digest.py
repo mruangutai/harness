@@ -10,13 +10,17 @@ noticed because each was only ever exercised by the example that happened to pas
 
     ./test-validate-digest.py     -> exit 0 all pass, 1 otherwise
 """
-import importlib.util, json, re, subprocess, sys, os, shutil, tempfile
+import contextlib, importlib.util, json, re, subprocess, sys, os, shutil, tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 # Overridable so the pre-fix binary can be run through the SAME suite to prove
 # each new regression case actually fails against the old code (task 22).
 VALIDATE = os.environ.get("VALIDATE_DIGEST_BIN") or os.path.join(HERE, "validate-digest.py")
 REPO_ROOT = os.path.abspath(os.path.join(HERE, "..", "..", "..", ".."))
+# Vendored fixture data for check_prior_validator (Q11 cycle-27): the pre-FEAT-43 revision
+# of validate-digest.py/harness_yaml.py, committed inert so the control needs no `git show`
+# and no repository history to be hermetic in a shallow CI checkout.
+FIXTURE_DIR = os.path.join(HERE, "fixtures")
 PRE_FEATURE_REVISION = "df63193f7ec9798d9660904e0e4e7c78d52358f5"
 
 # The two normative templates (DEC-123) must validate — extracted from their
@@ -1955,14 +1959,20 @@ def check_review_policy(validator, config, feature_dir, failures):
 
 
 def check_prior_validator(td, guarded, failures):
+    """SC-20 clause 4: the PRIOR revision of the validator must accept the guarded digest too,
+    proving the rejection this suite exercises is NEW rather than a hardcoded always-reject.
+
+    Hermetic per the Q11 cycle-27 ruling: no `git show`, no repository history. The prior
+    revision's bytes are committed as inert fixture data (non-`.py` suffix, so
+    `code_grade._changed_python_files` never selects them) and written into a temp dir under
+    their real module filenames, exactly as the git-backed version did.
+    """
     prior_dir = os.path.join(td, "prior")
     os.makedirs(prior_dir)
-    rel = ".claude/skills/harness/bin"
-    for name in ("validate-digest.py", "harness_yaml.py"):
-        source = subprocess.run(
-            ["git", "-C", REPO_ROOT, "show",
-             f"{PRE_FEATURE_REVISION}:{rel}/{name}"],
-            check=True, capture_output=True, text=True).stdout
+    for name, fixture in (("validate-digest.py", "prior-validate-digest.py.fixture"),
+                          ("harness_yaml.py", "prior-harness_yaml.py.fixture")):
+        with open(os.path.join(FIXTURE_DIR, fixture), encoding="utf-8") as f:
+            source = f.read()
         with open(os.path.join(prior_dir, name), "w") as f:
             f.write(source)
     prior = subprocess.run(
@@ -2108,6 +2118,35 @@ def make_derived_base_repo(td):
     _git_quiet(repo, "checkout", "-q", oid_a)
     oid_with_py = _commit_file(repo, "feature.py", "x = 1\n", "with-py-change")
     return repo, oid_a, oid_no_py, oid_with_py
+
+
+def make_review_sha_repo(td):
+    """A purpose-built git repo under `/tmp` — hermetic stand-in for the
+    ambient checkout `check_reviewed_range` and `check_review_sha_binding`
+    used to run against (send-back 2, cycle 27: neither `PRE_FEATURE_REVISION`
+    nor `REVIEW_SHA` resolves in a real shallow CI checkout — proven by a
+    genuine `--depth 1` clone, which lacks both). `origin/main` (this
+    checkout's default branch) sits at commit A; `review_sha` is a REAL
+    child of A that touches a `.py` file, so its TRUE derived range
+    (`merge-base(main, review_sha)..review_sha`) genuinely changes Python —
+    the same property the module-level `REVIEW_SHA` docstring documents,
+    now produced by real git plumbing instead of a hardcoded ambient commit.
+    The repo's checked-out HEAD is a further, unrelated child of
+    `review_sha`, so `HEAD` and `review_sha` differ by construction (SEC-01
+    binds `head`, not `base` — a forged `HEAD..HEAD` range must still
+    reject). Returns `(repo, oid_a, oid_review_sha, oid_head)`.
+    """
+    repo = os.path.join(td, "review-sha-repo")
+    _init_test_repo(repo)
+    oid_a = _commit_file(repo, "readme.txt", "a\n", "A")
+    _git_quiet(repo, "update-ref", "refs/remotes/origin/main", oid_a)
+    _git_quiet(repo, "symbolic-ref", "refs/remotes/origin/HEAD",
+               "refs/remotes/origin/main")
+    oid_review_sha = _commit_file(repo, "feature.py", "x = 1\n",
+                                  "review_sha: touches Python")
+    oid_head = _commit_file(repo, "extra.txt", "b\n",
+                            "HEAD: a further, unrelated commit")
+    return repo, oid_a, oid_review_sha, oid_head
 
 
 def _assert_derived_accepts(validator, config, feature_dir, reviewed, message, failures):
@@ -2530,12 +2569,36 @@ def check_config_errors(validator, config, feature_dir, guarded, failures):
             failures.append("missing gates error must name gates")
 
 
+@contextlib.contextmanager
+def _hermetic_review_sha_cwd(td):
+    """Send-back 2 (cycle 27): `PRE_FEATURE_REVISION`/`REVIEW_SHA` used to be
+    fixed ambient commit hashes a real shallow CI checkout does not carry
+    (proven: a genuine `--depth 1` clone lacks both). Builds
+    `make_review_sha_repo`'s purpose-built repo, re-points both module-level
+    names at it, and `chdir`s into it for the `with` block's duration —
+    restoring both on exit. Isolated here, not inlined into
+    `run_code_grade_cases`, so that function keeps its own flat shape: the
+    ambient-repo swap is orthogonal to what each `check_*` call asserts.
+    """
+    global PRE_FEATURE_REVISION, REVIEW_SHA
+    repo, oid_a, oid_review_sha, _oid_head = make_review_sha_repo(td)
+    saved = (PRE_FEATURE_REVISION, REVIEW_SHA)
+    PRE_FEATURE_REVISION, REVIEW_SHA = oid_a, oid_review_sha
+    original_cwd = os.getcwd()
+    os.chdir(repo)
+    try:
+        yield
+    finally:
+        os.chdir(original_cwd)
+        PRE_FEATURE_REVISION, REVIEW_SHA = saved
+
+
 def run_code_grade_cases():
     spec = importlib.util.spec_from_file_location("_validator_under_test", VALIDATE)
     validator = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(validator)
     failures = []
-    with tempfile.TemporaryDirectory() as td:
+    with tempfile.TemporaryDirectory() as td, _hermetic_review_sha_cwd(td) as _cwd_marker:
         config = os.path.join(td, "harness.json")
         write_review_config(config, "advisory_unless_high")
         feature_dir = make_feature_dir(td)
