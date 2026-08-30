@@ -4,9 +4,12 @@ feature: FEAT-44-omp-context-advisory
 source_issues: [923]
 
 # Written by the main session alone (team-config.yaml grants `approval:` to main_session only,
-# DEC-120). `pending` is the honest pre-signature state; the user flips it to `approved`.
+# DEC-120). Signed by the user 2026-08-29, after a validator panel (FAIL, remediated) and the
+# eng-lead architecture review that filled escalation E1 (PASS, one-file design upheld).
 approval:
-  status: pending
+  status: approved
+  approved_by: mruangutai
+  date: 2026-08-29
 
 lanes:
   resolved_at: 7ebfc9eb9cb77939b325f559d64e6b0cbb22d907

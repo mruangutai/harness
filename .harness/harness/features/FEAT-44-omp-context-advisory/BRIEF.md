@@ -222,6 +222,6 @@ a write is blocked would lose exactly the wake it was addressed to.
 
 ## Approval
 
-status: pending
-approved_by: <name>
-date: <YYYY-MM-DD>
+status: approved
+approved_by: mruangutai
+date: 2026-08-29
