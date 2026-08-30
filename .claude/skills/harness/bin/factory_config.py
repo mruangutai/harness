@@ -36,7 +36,15 @@ import harness_yaml
 
 _BIN_DIR = os.path.dirname(os.path.abspath(__file__))
 
-_STATION_KEYS = ("backlog", "plan", "ready", "building", "review", "done")
+# The mandate a board declaration is CHECKED AGAINST — not a second vocabulary. harness.json
+# declares the six names; this tuple is what that declaration must equal, in this order.
+MANDATED_STATIONS = ("backlog", "plan", "ready", "building", "review", "done")
+
+# Names no board column, never reaches the board, and is therefore NOT a seventh station.
+# It lives in this module because plan-merge.py, check-plan-routes.py and check-domain.sh each
+# need it and each already imports factory_config; every one of those sites imports this name
+# rather than respelling the literal.
+TERMINAL_MARKER = "abandoned"
 
 # FLEET_PATH's root always resolves inside the LIVE checkout under any test fixture root,
 # because _BIN_DIR is this module's own on-disk location, and the live checkout always carries
@@ -117,17 +125,46 @@ def validate_board(board, where, path):
             f"set it to the Projects v2 field name that carries the station in {path}",
         )
     stations = board.get("stations")
-    if (
-        not isinstance(stations, dict)
-        or set(stations.keys()) != set(_STATION_KEYS)
-        or not all(stations.get(k) for k in _STATION_KEYS)
-    ):
+    # A TUPLE is accepted alongside a list purely so this validator is IDEMPOTENT: the last line
+    # below normalises stations to a tuple, product_config memoises the board it mutated, and a
+    # second board_for on the same repo re-validates that same object. JSON never yields a tuple,
+    # so a declaration on disk can only ever arrive here as a list. A dict is still refused,
+    # which is what retires the six-key mapping shape.
+    if not isinstance(stations, (list, tuple)) or list(stations) != list(MANDATED_STATIONS):
         raise FleetError(
             "fleet key invalid", f"{key_base}.stations",
-            "set exactly backlog, plan, ready, building, review and done, each a non-empty "
-            f"option name, in {path}",
+            f"set it to exactly this ordered list in {path}: {list(MANDATED_STATIONS)}. The six "
+            "names are fixed — they may not be renamed, reordered or extended, and the six-key "
+            "mapping shape is retired. Extra columns you add to the board are untouched by the "
+            "harness.",
         )
+    board["stations"] = tuple(MANDATED_STATIONS)
     return board
+
+
+def station_names(board):
+    """Return the board's station names as a tuple, in declared order. Callers use this rather
+    than indexing board["stations"] themselves."""
+    return tuple(board["stations"])
+
+
+def station_column(name):
+    """Return the board's exact column name for a station.
+
+    THIS IS THE ONLY PLACE IN THE TREE A CAPITALISED STATION NAME IS PRODUCED. Every other site
+    passes a lowercase name through here rather than spelling a capital of its own, which is what
+    makes the capitalised forms un-driftable.
+
+    `.capitalize()` reproduces all six declared names exactly: backlog -> Backlog, plan -> Plan,
+    ready -> Ready, building -> Building, review -> Review, done -> Done.
+
+    Raises FleetError on anything that is not one of the six — including TERMINAL_MARKER, which
+    names no board column at all, and an already-capitalised name, which is an OUTPUT of this
+    function and never an input to it."""
+    if name not in MANDATED_STATIONS:
+        known = ", ".join(MANDATED_STATIONS)
+        raise FleetError("unknown station", name, f"known stations: {known}")
+    return name.capitalize()
 
 
 def load_fleet(path=FLEET_PATH):
@@ -310,13 +347,13 @@ def board_for(fleet, repo_name):
 
 
 def board_station(fleet, repo_name, key):
-    """Return board_for(fleet, repo_name)["stations"][key]; raises FleetError on an unknown
-    key, listing the known station keys."""
-    stations = board_for(fleet, repo_name)["stations"]
-    if key not in stations:
-        known = ", ".join(stations.keys())
+    """Return the board column name for `key`, after checking `key` against the repo's own
+    declared stations. Name and signature unchanged; the derivation now goes through
+    station_column, so this function spells no capital of its own."""
+    if key not in station_names(board_for(fleet, repo_name)):
+        known = ", ".join(MANDATED_STATIONS)
         raise FleetError("unknown station", key, f"known stations: {known}")
-    return stations[key]
+    return station_column(key)
 
 
 def workspace_path(fleet, repo_name):
