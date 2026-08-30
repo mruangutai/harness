@@ -2,36 +2,156 @@
   "feature_id": "FEAT-38-decisions-current-knowledge",
   "branch": "feat/FEAT-38-decisions-current-knowledge",
   "pr": null,
-  "status": "Plan",
+  "status": "Ready",
   "review_sha": "48bbe7e4ae56c1e6142515bce0f52f8055707b76",
   "cycles_used": 14,
   "max_total_cycles": 20,
   "max_total_runs": 20,
   "runs": [
-    { "id": "2026-08-24-01-product", "squad": "product", "verdict": "BLOCKED", "agent": "harness-product-lead" },
-    { "id": "2026-08-29-02-product", "squad": "product", "verdict": "PASS", "agent": "harness-product-lead" },
-    { "id": "2026-08-29-03-eng", "squad": "eng", "verdict": "PASS", "agent": "harness-eng-lead" },
-    { "id": "2026-08-29-04-product", "squad": "product", "verdict": "ESCALATE", "agent": "harness-product-lead" },
-    { "id": "2026-08-29-05-product", "squad": "product", "verdict": "PASS", "agent": "harness-product-lead" },
-    { "id": "2026-08-29-06-product", "squad": "product", "verdict": "PASS", "agent": "harness-product-lead" },
-    { "id": "2026-08-29-07-eng", "squad": "eng", "verdict": "ESCALATE", "agent": "harness-eng-lead" },
-    { "id": "2026-08-29-08-product", "squad": "product", "verdict": "PASS", "agent": "harness-product-lead" },
-    { "id": "2026-08-29-09-product", "squad": "product", "verdict": "PASS", "agent": "harness-product-lead" },
-    { "id": "2026-08-29-10-validator", "squad": "validator", "verdict": "PASS", "agent": "harness-validator-lead" },
-    { "id": "2026-08-29-11-eng", "squad": "eng", "verdict": "PASS", "agent": "harness-eng-lead" },
-    { "id": "2026-08-29-12-eng", "squad": "eng", "verdict": "PASS", "agent": "harness-eng-lead" },
-    { "id": "2026-08-29-13-validator", "squad": "validator", "verdict": "FAIL", "agent": "harness-validator-lead" },
-    { "id": "2026-08-29-14-eng", "squad": "eng", "verdict": "PASS", "agent": "harness-eng-lead" },
-    { "id": "2026-08-29-15-validator", "squad": "validator", "verdict": "PASS", "agent": "harness-validator-lead" },
-    { "id": "2026-08-29-15-product", "squad": "product", "verdict": "ESCALATE", "agent": "harness-product-lead" },
-    { "id": "2026-08-29-11-validator", "squad": "validator", "verdict": "PASS", "agent": "harness-validator-lead" },
-    { "id": "2026-08-29-17-validator", "squad": "validator", "verdict": "PASS", "agent": "harness-validator-lead" },
-    { "id": "2026-08-29-17-product", "squad": "product", "verdict": "PASS", "agent": "harness-product-lead" },
-    { "id": "2026-08-29-20-product", "squad": "product", "verdict": "PASS", "agent": "harness-product-lead" },
-    { "id": "2026-08-29-21-eng", "squad": "eng", "verdict": "FAIL", "agent": "harness-eng-lead" },
-    { "id": "2026-08-29-22-validator", "squad": "validator", "verdict": "FAIL", "agent": "harness-validator-lead" },
-    { "id": "2026-08-29-23-product", "squad": "product", "verdict": "PASS", "agent": "harness-product-lead" },
-    { "id": "2026-08-29-24-product", "squad": "product", "verdict": "PASS", "agent": "harness-product-lead" }
+    {
+      "id": "2026-08-24-01-product",
+      "squad": "product",
+      "verdict": "BLOCKED",
+      "agent": "harness-product-lead"
+    },
+    {
+      "id": "2026-08-29-02-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead"
+    },
+    {
+      "id": "2026-08-29-03-eng",
+      "squad": "eng",
+      "verdict": "PASS",
+      "agent": "harness-eng-lead"
+    },
+    {
+      "id": "2026-08-29-04-product",
+      "squad": "product",
+      "verdict": "ESCALATE",
+      "agent": "harness-product-lead"
+    },
+    {
+      "id": "2026-08-29-05-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead"
+    },
+    {
+      "id": "2026-08-29-06-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead"
+    },
+    {
+      "id": "2026-08-29-07-eng",
+      "squad": "eng",
+      "verdict": "ESCALATE",
+      "agent": "harness-eng-lead"
+    },
+    {
+      "id": "2026-08-29-08-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead"
+    },
+    {
+      "id": "2026-08-29-09-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead"
+    },
+    {
+      "id": "2026-08-29-10-validator",
+      "squad": "validator",
+      "verdict": "PASS",
+      "agent": "harness-validator-lead"
+    },
+    {
+      "id": "2026-08-29-11-eng",
+      "squad": "eng",
+      "verdict": "PASS",
+      "agent": "harness-eng-lead"
+    },
+    {
+      "id": "2026-08-29-12-eng",
+      "squad": "eng",
+      "verdict": "PASS",
+      "agent": "harness-eng-lead"
+    },
+    {
+      "id": "2026-08-29-13-validator",
+      "squad": "validator",
+      "verdict": "FAIL",
+      "agent": "harness-validator-lead"
+    },
+    {
+      "id": "2026-08-29-14-eng",
+      "squad": "eng",
+      "verdict": "PASS",
+      "agent": "harness-eng-lead"
+    },
+    {
+      "id": "2026-08-29-15-validator",
+      "squad": "validator",
+      "verdict": "PASS",
+      "agent": "harness-validator-lead"
+    },
+    {
+      "id": "2026-08-29-15-product",
+      "squad": "product",
+      "verdict": "ESCALATE",
+      "agent": "harness-product-lead"
+    },
+    {
+      "id": "2026-08-29-11-validator",
+      "squad": "validator",
+      "verdict": "PASS",
+      "agent": "harness-validator-lead"
+    },
+    {
+      "id": "2026-08-29-17-validator",
+      "squad": "validator",
+      "verdict": "PASS",
+      "agent": "harness-validator-lead"
+    },
+    {
+      "id": "2026-08-29-17-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead"
+    },
+    {
+      "id": "2026-08-29-20-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead"
+    },
+    {
+      "id": "2026-08-29-21-eng",
+      "squad": "eng",
+      "verdict": "FAIL",
+      "agent": "harness-eng-lead"
+    },
+    {
+      "id": "2026-08-29-22-validator",
+      "squad": "validator",
+      "verdict": "FAIL",
+      "agent": "harness-validator-lead"
+    },
+    {
+      "id": "2026-08-29-23-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead"
+    },
+    {
+      "id": "2026-08-29-24-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead"
+    }
   ],
   "github": {
     "milestone": 31,
@@ -59,7 +179,12 @@
       "T-20",
       "T-21",
       "T-22",
-      "T-23"
+      "T-23",
+      "T-24",
+      "T-25",
+      "T-27",
+      "T-28",
+      "T-29"
     ],
     "issues": {
       "T-01": 936,
@@ -84,7 +209,12 @@
       "T-20": 955,
       "T-21": 956,
       "T-22": 957,
-      "T-23": 958
+      "T-23": 958,
+      "T-24": 973,
+      "T-25": 974,
+      "T-27": 975,
+      "T-28": 976,
+      "T-29": 977
     },
     "source_issues": [
       615,
