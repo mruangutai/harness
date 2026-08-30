@@ -305,9 +305,9 @@ living in prose that nothing ever reads again.
 
 ## Approval
 
-status: pending
-approved-by: none
-date: none
+status: approved
+approved-by: Mike Ruangutai
+date: 2026-08-30
 
 Returned to pending on 2026-08-30. Striking T-13 is a scope change to a signed brief, so the
 2026-08-29 signature does not survive it; it stands in the record and is not rewritten. What

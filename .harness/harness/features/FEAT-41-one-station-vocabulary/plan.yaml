@@ -4,11 +4,25 @@ feature: FEAT-41-one-station-vocabulary
 source_issues: [845, 867]
 
 approval:
-  status: pending
-  approved_by: none
-  date: none
-  scope_at_signature: none - the 2026-08-29 signature is WITHDRAWN by this revision, not carried forward
+  status: approved
+  approved_by: Mike Ruangutai
+  date: 2026-08-30
+  scope_at_signature: >-
+    13 tasks - T-01..T-11, T-14, T-15. T-12 and T-13 struck, ids gap-noted and never renumbered.
+    Full scope retained (operator's Option A): both #845 and #867 close in this feature.
+  pre_approved: >-
+    The operator pre-approved this signature before the revision returned, on condition that it
+    matched the ruling set with gates green. The main session verified 8 conditions at the pin
+    before signing: plan.yaml byte-identical to 15394e5, 13 tasks with T-13 absent, zero
+    plan-write references, SEAM_NOTES present in T-07, T-15 on the documentor lane, budget
+    9/24 and 45, check-plan-routes.py 0 violations, check-state.sh traceback-free with only
+    the unapproved-BRIEF violation outstanding.
   rulings: >-
+    Panel rulings A1-A5 applied. Budget raised 10 -> 24 cycles and 20 -> 45 runs under DEC-157.
+    T-01 reverted after it took check-state.sh down; five shape-changing tasks (T-01, T-02, T-04,
+    T-06, T-07) now carry consumer-exercising verifies per #1033, and T-01+T-02 are enforced as
+    one atomic shape change.
+  revision_record: >-
     RETURNED TO PENDING on 2026-08-30. Striking T-13 is a scope change to a signed plan, so the
     signature does not survive it and nobody below the main session re-signs (DEC-120). The prior
     signature - Mike Ruangutai, 2026-08-29, at review_sha 0dbd284, over 13 tasks with T-12 already
