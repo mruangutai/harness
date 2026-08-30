@@ -1,0 +1,96 @@
+<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>FEAT-41 — one station vocabulary: the build cannot be dispatched, and that is the plan working as signed</title><style>
+:root{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:ui-sans-serif,-apple-system,"Segoe UI","Helvetica Neue",Arial,sans-serif;
+}
+/* Token-level theming: components style through the tokens and never inside the
+   media query, so the viewer's explicit toggle can override the OS in BOTH
+   directions. */
+@media (prefers-color-scheme:dark){
+  :root{ --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+         --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733; }
+}
+:root[data-theme="dark"]{
+  --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+  --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733;
+}
+:root[data-theme="light"]{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+}
+*{box-sizing:border-box}
+body{margin:0; background:var(--paper); color:var(--ink);
+  font:400 16px/1.65 var(--sans); padding:clamp(1.5rem,5vw,4rem) clamp(1rem,5vw,2rem) 6rem}
+.wrap{max-width:56rem; margin:0 auto}
+/* Layout owns the spacing: gap between siblings, not per-element margins that
+   collapse or double. */
+.wrap{display:flex; flex-direction:column; gap:1rem}
+.eyebrow{font:500 11px/1 var(--mono); letter-spacing:.14em; text-transform:uppercase;
+  color:var(--quiet); margin:0}
+h1{font:600 clamp(1.6rem,4vw,2.3rem)/1.15 var(--sans); letter-spacing:-.02em;
+  margin:.4rem 0 .2rem; text-wrap:balance}
+h2{font:600 1.15rem/1.3 var(--sans); letter-spacing:-.01em; margin:2rem 0 0;
+  padding-top:1.25rem; border-top:1px solid var(--line); text-wrap:balance}
+h3{font:600 .98rem/1.4 var(--sans); margin:1.1rem 0 0}
+h4,h5,h6{font:500 11px/1.4 var(--mono); letter-spacing:.1em; text-transform:uppercase;
+  color:var(--quiet); margin:1rem 0 0}
+p,li{max-width:65ch; margin:0}
+ul,ol{margin:0; padding-left:1.4rem; display:flex; flex-direction:column; gap:.4rem}
+li>ul,li>ol{margin-top:.4rem}
+strong{font-weight:600}
+code{font:400 .875em/1.5 var(--mono); background:var(--sunk); padding:.1em .35em; border-radius:3px}
+pre{background:var(--sunk); border:1px solid var(--line); border-radius:6px;
+  padding:.85rem 1rem; overflow-x:auto; margin:0}
+pre code{background:none; padding:0}
+blockquote{margin:0; padding:.75rem 1rem; border-left:3px solid var(--accent);
+  background:var(--accent-soft); border-radius:0 5px 5px 0}
+blockquote p{max-width:none}
+hr{border:0; border-top:1px solid var(--line); margin:.5rem 0}
+/* Wide content pans inside its OWN container; the page body never scrolls sideways. */
+.scroll{overflow-x:auto; border:1px solid var(--line); border-radius:6px}
+table{border-collapse:collapse; width:100%; font-size:.9rem}
+th,td{text-align:left; padding:.6rem .8rem; border-bottom:1px solid var(--line); vertical-align:top}
+thead th{font:500 10px/1.3 var(--mono); letter-spacing:.11em; text-transform:uppercase;
+  color:var(--quiet); background:var(--sunk); white-space:nowrap}
+tbody tr:last-child td{border-bottom:0}
+/* Figures in a column line up. */
+td,th{font-variant-numeric:tabular-nums}
+.derived{color:var(--slate); font-size:.85rem; margin-top:2.5rem;
+  padding-top:1rem; border-top:1px solid var(--line)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style></head><body><div class='wrap'><p class='eyebrow'>Ship review · reading view</p><h1 id="feat-41-one-station-vocabulary-the-build-cannot-be-dispatched-and-that-is-the-plan-working-as-signed">FEAT-41 — one station vocabulary: the build cannot be dispatched, and that is the plan working as signed</h1>
+<p><strong>2026-08-30 · orchestrator run 2026-08-30-01 · worktree <code>.claude/worktrees/harness/FEAT-41-one-station-vocabulary</code> · tip <code>855a356</code></strong></p>
+<h2 id="the-conclusion-first">The conclusion first</h2>
+<p><strong>FEAT-41 is signed, green and ready to build — and not one of its 13 tasks can be executed by me or by any squad member.</strong> Every task carries <code>execution_mode: main-session-direct</code> in the plan you signed. That is not a defect in the plan; it is the plan being correct about its own subject. This feature changes the harness&#x27;s own hooks, validators and gate scripts, and DEC-174 reserves exactly that work to your hand.</p>
+<p><strong>What I am returning to you is the build itself</strong>, as eight dependency-ordered segments below, with each task&#x27;s <code>verify:</code> so nothing needs re-derivation.</p>
+<p><strong>Nothing was silently dropped, narrowed, or marked done.</strong> All 13 tasks remain <code>status: pending</code>. The station remains <code>Ready</code>. <code>cycles_used</code> remains 8 of 10 — I consumed none of your two remaining cycles, because no rework happened and no squad ran.</p>
+<h2 id="why-no-squad-could-take-this-measured-not-argued">Why no squad could take this — measured, not argued</h2>
+<p>I probed both directions with the real gate rather than reasoning from the lane table.</p>
+<p><strong>1. I am denied every surface.</strong> A genuine <code>PreToolUse</code> payload carrying <code>agent_type: harness-orchestrator</code> is refused at <strong>exit 2</strong> on every surface class this plan touches — <code>.claude/skills/harness/bin/**</code>, <code>.harness/harness.json</code>, <code>.agents/skills/harness/templates/**</code>, <code>.claude/settings.json</code>, <code>.omp/agents/**</code>, both <code>SKILL.md</code> paths, <code>.harness/team-config.yaml</code>, <code>.harness/harness/docs/DECISIONS.md</code>. The hook names my permitted set back to me: the feature directory, my answers and ship-review notes, my Expertise, my observations log. Nothing in this plan is inside it.</p>
+<p><strong>2. No member is granted them either.</strong> <code>check-domain.sh --resolve</code> returns <strong>NOBODY</strong> for the templates, <code>.claude/settings.json</code>, both agent trees, both <code>SKILL.md</code> paths and <code>team-config.yaml</code>. I probed the best-granted candidate directly: <code>harness-backend-dev</code> is refused <code>.claude/settings.json</code> at exit 2. T-08 registers a hook there, so T-08 has no member route at all.</p>
+<p><strong>3. DEC-174 bars the remainder.</strong> Amendment 4 enumerates <code>check-domain.sh</code>, <code>bash-write-guard.sh</code>, <code>validate-digest.py</code>, <code>check-state.sh</code>, <code>check-plan-routes.py</code>, <code>dispatch-guard.sh</code> <strong>and the test file of each</strong>, and declares the category — hooks, validators, gate scripts — governing with the list non-exhaustive. T-02, T-04, T-06, T-07, T-09, T-11 and T-14 all land in it. <code>DECISIONS.md:6733</code> says it outright: <em>&quot;DEC-174 forbids the orchestrator <code>main-session-direct</code> tasks.&quot;</em> That sentence sits in DEC-200&#x27;s lineage prose rather than in DEC-174&#x27;s own section, which is why grepping the id found it and reading the entry would not have.</p>
+<p><strong>4. The gate says the same thing in one run.</strong> <code>check-plan-routes.py</code> exits 0 and prints, for all 13 tasks, either <code>OK &lt;task&gt;: declared main-session-direct (... ungranted)</code> or <code>DEVIATION &lt;task&gt; ... granted to harness-backend-dev, harness-dev-ops but declared main-session-direct</code>. <strong>Not one task prints the ordinary team-lane shape.</strong></p>
+<p><strong>This shape is precedented — FEAT-41 is the fifth, not an anomaly.</strong> <code>check-state.sh</code>&#x27;s INV-17 already emits, for FEAT-21, FEAT-40, FEAT-22 and FEAT-15: <em>&quot;exempt from handoff notes — every task in its plan.yaml is execution_mode main-session-direct (DEC-174), so no squad ran and no seam was crossed.&quot;</em></p>
+<h2 id="gate-verdicts-run-by-me-at-855a356-in-the-worktree">Gate verdicts — run by me at <code>855a356</code>, in the worktree</h2>
+<div class="scroll"><table><thead><tr><th>Gate</th><th>Verdict</th><th>Evidence</th></tr></thead><tbody><tr><td><code>check-state.sh</code></td><td><strong>PASS, exit 0</strong></td><td>Zero hard failures. 13 NOTE lines, <strong>none concerning FEAT-41</strong>. The plan-phase violation — this feature&#x27;s unapproved BRIEF — closed at your signature exactly as predicted.</td></tr><tr><td><code>check-plan-routes.py</code></td><td><strong>PASS, exit 0</strong></td><td><code>0 violation(s) across 1 plan(s)</code>; 40 dirs examined, 39 skipped as shipped. Known-good shape, unchanged.</td></tr><tr><td><code>run-unit-tests.sh</code></td><td><strong>PASS, exit 0</strong></td><td>Full suite, 3374 lines, <strong>0 <code>FAIL</code> lines</strong>, ~248 s. This is the clean pre-build baseline: any red the build produces is the build&#x27;s.</td></tr><tr><td><strong>qa gate</strong></td><td><strong>NOT RUN — correctly</strong></td><td>The matrix is enforced against a diff. There is no diff: no build work landed. Running it would grade an empty change.</td></tr><tr><td><strong>reviewer panel</strong></td><td><strong>NOT RUN — correctly</strong></td><td><code>review_sha</code> is <code>49638bf</code>, which contains no build work. A panel dispatched now reviews a tree the work is absent from and returns PASS on nothing (my own P-02).</td></tr><tr><td><strong>goal-check</strong></td><td><strong>NOT RUN — 0 of 13 SCs met</strong></td><td>No task executed, so no criterion can be met. Not a failure; an unstarted build.</td></tr></tbody></table></div>
+<p>I did <strong>not</strong> re-pin <code>review_sha</code>. DEC-89 re-pins when the build&#x27;s own commits land; none did.</p>
+<p><strong>SC baselines measured at <code>855a356</code></strong>, so you inherit numbers instead of re-deriving them — SC-02&#x27;s quoted-literal grep returns <strong>27</strong> (target 0), SC-01&#x27;s <code>_STATION_KEYS</code> returns <strong>7</strong> (target 0), SC-12&#x27;s <code>plan-merge</code> grep returns <strong>35</strong> (target 0). The last matches the BRIEF&#x27;s own reading at <code>0d4845b</code>, so the rebase moved none of them.</p>
+<h2 id="the-build-as-eight-segments">The build, as eight segments</h2>
+<p>Dependency-ordered from <code>depends_on</code>. <strong>Segment 3 groups T-04 with the two tasks independent of it</strong> — a T-04 failure then wastes neither. T-04 is the riskiest task in the feature: it migrates every live <code>plan.yaml</code> and rewrites INV-26&#x27;s compare side.</p>
+<div class="scroll"><table><thead><tr><th>#</th><th>Tasks</th><th><code>verify:</code></th></tr></thead><tbody><tr><td>1</td><td><strong>T-01</strong> stations declared once in <code>harness.json</code></td><td><code>test-factory-config.py</code>; then <code>grep -rn --exclude-dir=__pycache__ &quot;_STATION_KEYS&quot; .claude/skills/harness/bin/ ; test $? -eq 1</code></td></tr><tr><td>2</td><td><strong>T-02</strong> lowercase everything · <strong>T-03</strong> the writer&#x27;s station verbs</td><td>T-02: <code>test-gh-board.py</code>, <code>test-board-lifecycle.py</code>, <code>test-factory-claim.py</code>, <code>test-factory-land.py</code>, <code>test-check-state.py</code> · T-03: <code>test-plan-merge.py</code></td></tr><tr><td>3</td><td><strong>T-04</strong> retire pending/building/done · <strong>T-05</strong> document the one route · <strong>T-08</strong> gate <code>sign-approval</code></td><td>T-04: <code>test-check-plan-routes.py</code>, <code>test-check-state.py</code>, <code>check-plan-routes.py</code>, plus its two inline <code>python3 -c</code> assertions · T-05: the per-file loop over both orchestrator files, then <code>test-orchestrator-playbook.py</code> · T-08: <code>test-plan-sign-gate.py</code> + the three <code>harness.json</code>/<code>run-unit-tests.sh</code>/<code>settings.json</code> assertions</td></tr><tr><td>4</td><td><strong>T-06</strong> one projection function · <strong>T-09</strong> deny every editor and shell write</td><td>T-06: <code>test-gh-board.py</code>, <code>test-check-state.py</code>, <code>test-gh-sync.py</code>, the <code>set_station(</code> count = 4, and `grep -n &quot;_EXPECT\</td></tr><tr><td>5</td><td><strong>T-07</strong> delete <code>feature.json.status</code>, repoint eleven readers</td><td><code>test-validate-feature-json.py</code>, <code>test-check-state.py</code>, <code>test-worktree-terminal.py</code>, <code>test-check-plan-routes.py</code>, <code>test-board-lifecycle.py</code>, <code>test-gh-sync.py</code>, the <code>&quot;status&quot;</code> absence grep, and the 10-properties/7-required schema assertion</td></tr><tr><td>6</td><td><strong>T-10</strong> both ship defects + the one-time board pass · <strong>T-11</strong> delete the unreachable test</td><td>T-10: <code>test-gh-sync.py</code>, <code>test-post-merge-sweep.py</code> · T-11: <code>test-check-state.py</code> + `grep -n &quot;Icebox\</td></tr><tr><td>7</td><td><strong>T-14</strong> stale <code>review_sha</code> as INV-32</td><td><code>test-check-state.py</code> captured to a file, then <code>grep -q &quot;ok - case (inv32.a) a stale review_sha is reported&quot;</code></td></tr><tr><td>8</td><td><strong>T-13</strong> rename <code>plan-merge.py</code> → <code>plan-write.py</code></td><td>the tree-wide <code>plan-merge</code> absence grep, then <code>test-plan-write.py</code></td></tr></tbody></table></div>
+<p><strong>T-03 before T-09, always.</strong> D-03 is load-bearing: T-09 closes the <code>Edit</code> route to <code>plan.yaml</code>, and T-03/T-05 open the replacement. Reversing them leaves no legal way to record a task status — the failure that already cost five unrecorded statuses.</p>
+<h2 id="two-things-i-recommend-you-settle-before-segment-1">Two things I recommend you settle before segment 1</h2>
+<p><strong>Q13 — a success criterion nothing grades.</strong> SC-02&#x27;s own quoted-literal grep appears at <code>BRIEF.md:110</code> and <code>:113</code> and in <strong>no task&#x27;s <code>verify:</code> block</strong>. As written, SC-02 is graded against a command the plan never runs. One line appended to T-01&#x27;s or T-04&#x27;s verify closes it. I did not add it: the plan is signed and its tasks are not mine to edit.</p>
+<p><strong>Q12 — my predecessor&#x27;s note recorded a false premise, and I am correcting the record rather than the plan.</strong> The previous STATE.md called the <code>.harness/harness/docs/**</code> lanes row vestigial because &quot;no surviving task touches that surface&quot;. <strong>A surviving task does:</strong> T-13 lists <code>.harness/harness/docs/DECISIONS.md</code> at <code>plan.yaml:1177</code>, and that path resolves to <code>harness-documentor</code>. The row is live. It stayed invisible because <code>check-plan-routes.py</code> short-circuits on <code>nobody_paths</code> before reaching the DEVIATION branch, so T-13 reports OK on its three ungranted paths and its one granted surface is never printed. This changes nothing about executability — T-13 is main-session-direct and carries NOBODY paths regardless — but BRIEF.md&#x27;s claim that the plan has no team-lane task is now the thing a reader could misread.</p>
+<h2 id="scope-boundary-untouched-as-ruled">Scope boundary — untouched, as ruled</h2>
+<p>I recorded <strong>none</strong> of the three deferred clause corrections (<code>DEC-203</code> §6, <code>DEC-191</code>, <code>DEC-182</code>) and <strong>no</strong> new station-vocabulary decision entry. They belong to FEAT-46 by your Q1 ruling; D-09 is intact so FEAT-46 inherits the content. T-13 touches <code>DECISIONS.md</code> only to rename <code>plan-merge</code> references, which is a different act and stays in scope.</p>
+<h2 id="proposed-backlog">Proposed backlog</h2>
+<p>Strike any row you do not want; <strong>unstruck rows become backlog issues, and anything not listed here dies silently.</strong></p>
+<div class="scroll"><table><thead><tr><th>ID</th><th>Nature</th><th>Item</th></tr></thead><tbody><tr><td>B-2</td><td>bug</td><td>Q11: the shell substitutes phantom pathnames for an unmatched glob member, so <code>grep -rn PAT dir/*/f.yaml ; test $? -eq 1</code> exits 2 on ENOENT even when it matches. This idiom is used harness-wide in <code>verify:</code> blocks and is unsound.</td></tr><tr><td>B-3</td><td>chore</td><td>Q10: gitignored <code>__pycache__/*.pyc</code> defeat every absence-grep over <code>bin/</code>. Make <code>--exclude-dir=__pycache__</code> a standing convention, or have <code>run-unit-tests.sh</code> clear the cache.</td></tr><tr><td>B-4</td><td>bug</td><td>Q8: nothing allocates run-dir slugs; a same-day collision destroyed a run digest on 2026-08-29. Not re-triggered this run only because no squad ran.</td></tr><tr><td>B-5</td><td>chore</td><td><code>check-plan-routes.py</code> short-circuits on <code>nobody_paths</code>, hiding the lane of every other surface on the same task (the Q12 mechanism above). A task&#x27;s granted surfaces should still be reported.</td></tr><tr><td>B-6</td><td>chore</td><td>I cannot file a harness defect via <code>xd://report_issue</code> — <code>check-domain</code> denies the orchestrator that path — so B-2 and B-3 reach you only through this table.</td></tr></tbody></table></div>
+<h2 id="provenance-read-this-before-trusting-the-completeness-above">Provenance — read this before trusting the completeness above</h2>
+<p><strong>I spawned no report round.</strong> Per the playbook I read from disk instead. Assembled from: <code>STATE.md</code>, <code>feature.json</code>, <code>plan.yaml</code>, <code>BRIEF.md</code>, <code>notes/answers-2026-08-29-01.md</code>, <code>notes/ship-review-2026-08-29-01.md</code>, <code>notes/handoff-plan.md</code>, and the <code>runs/</code> tree (14 dirs; <code>2026-08-29-02-product</code> is referenced by <code>feature.json</code> but its dir is absent — the Q8 collision casualty, recorded rather than reconstructed).</p>
+<p><strong>Its own gate verdicts are mine, run at <code>855a356</code>, not inherited.</strong> The qa gate, the reviewer panel and the goal-check are reported as NOT RUN with the reason each — none is reported as passing.</p><p class='derived'>Derived from <code>ship-review-2026-08-30-01.md</code> — the markdown is the record; do not edit this file. Regenerate with <code>bin/render-brief.py</code>.</p></div></body></html>

@@ -3,73 +3,63 @@
 ## Current
 
 - feature: FEAT-41-one-station-vocabulary
-- run: 2026-08-29-02-product. The operator's answers applied as ONE consolidated revision.
-  product-lead PASS, ZERO send-backs.
+- run: 2026-08-30-01-orchestrator. Build phase attempted; NO squad was dispatched and no run row
+  was added, because there is nothing in this plan a squad may lawfully execute.
 - squad: none
-- status: Ready. SIGNED — `plan.yaml` `approval.status: approved` and `BRIEF.md:255`, both
-  Mike Ruangutai, 2026-08-29, re-confirmed by the operator on 2026-08-30. The earlier
-  "NOTHING IS SIGNED" reading was written before the signature landed and is corrected here.
-  `review_sha` is pinned past the signature commit at `49638bf` (DEC-89; #965).
-- WHY THIS RUN EXISTED: the operator read notes/ship-review-2026-08-29-01.md and returned a
-  complete, decided answer set in notes/answers-2026-08-29-01.md. This run executed those
-  decisions; it did not re-open them and did not re-audit the 13 tasks the replan re-derived.
-- Q1 APPLIED — THE DECISION-RECORD TASK IS REMOVED, not deferred in place. The operator declined
-  its external dependency on the decisions-authority triage. The plan is now THIRTEEN tasks and
-  carries NO team-lane task at all: every surviving task is main-session-direct. Its dependency
-  edge is dropped from the rename task, the one prose reference in the schema-migration task is
-  re-worded, and D-09 is KEPT to preserve what the deferred recording must say, so the triage
-  inherits the content rather than re-deriving it.
-- IDS ARE GAP-NOTED, NOT RENUMBERED: the two ids after the gap are cited in this file, in the run
-  digests, in the ship-review briefing the operator has read, and in the answers file itself.
-  Renumbering would falsify every one of those references (PRINCIPLES rule 15).
-- Q6+Q7 APPLIED, folded into one edit site as instructed. INV-32 is scoped to NON-TERMINAL
-  stations, reusing check-plan-routes.py's own `_is_shipped`/`FINISHED_STATUSES` idiom rather than
-  a second one, and its precondition is now "a real pin exists AND the station is non-terminal" —
-  the lagging validator-run condition is dropped, so the guard can fire BEFORE a panel reads the
-  wrong text instead of only after. The task now carries the execution-order fact that makes it
-  implementable: the terminal read is plan.yaml's top-level station against the LOWERCASE terminal
-  set, never feature.json, because the schema-migration task it depends on deletes that key first.
-- THE SCOPE IS LOAD-BEARING FOR FOUR SHIPPED FEATURES, NOT ONE — measured BY ME at the cc00983
-  tree, walking all 40 feature dirs and comparing `git show <review_sha>:<plan path relative to the
-  git top level>` against the working copy byte for byte, which is the comparison the check itself
-  makes. Under the REVISED precondition the reported set is EMPTY: no live feature goes red when
-  INV-32 lands. FOUR carry a real pin whose plan bytes have moved and are silenced ONLY by the
-  terminal scope — FEAT-26 (bad32441), FEAT-27 (9b929de), FEAT-32 (5107efb9), FEAT-33 (337bbc21),
-  all at station done. Q6 named only FEAT-27; the other three were HIDDEN by the very validator-run
-  precondition Q7 removes. Had the two answers been applied separately, the second would have
-  reddened three shipped features the first never measured.
-- A THIRD FIXTURE, case (inv32.c), proves the terminal silence on the FEAT-27 shape — stale pin,
-  moved post-pin bytes, terminal station — alongside the existing red/silent pair, and the verify
-  asserts its label. The task also states what that case CANNOT prove: against an unmodified
-  check-state.sh it passes vacuously, so its discriminating run is against an implementation that
-  already reports (inv32.a) but carries no terminal scope, and that red is what the receipt records.
-- THE SCOPE LOSS IS DISCLOSED WHERE THE OPERATOR SIGNS. BRIEF.md's Constraints now state plainly
-  that this feature lands changes contradicting one clause each of DEC-203 section 6, DEC-191 and
-  DEC-182 WITHOUT recording the contradiction in DECISIONS.md, that all three entries read as
-  though the contradicted clause still holds until the triage lands, and that no success criterion
-  rests on it — which is exactly why it needed saying. Carried as PB-04.
-- EVERY REQ AND SC STILL HAS A TASK BEHIND IT. pm re-checked all thirteen criteria one at a time
-  rather than by a file-global grep; the four requirements the removed task traced are all
-  discharged elsewhere. Nothing was orphaned and nothing was quietly dropped.
-- commit: 0dbd284, "Apply the operator's answers". Tree clean.
-- PIN RE-PINNED to 0dbd2845074c97401e38dbf50e2d19e5587258b2, the commit carrying the revised
-  plan.yaml and BRIEF.md. Without this the feature would have become the ONE feature INV-32
-  reports — pin and plan bytes diverge at every plan commit, which is the invariant's own subject.
-  `lanes.resolved_at: 0d4845b` is deliberately left: the revision changed no source file.
-- gates, both run BY ME at this commit. check-plan-routes.py: exit 0, "0 violation(s) across 1
-  plan(s)", 40 dirs examined and 39 skipped as shipped — the known-good shape, unchanged.
-  check-state.sh: exit 1 with exactly ONE violation, this feature's unapproved BRIEF, correct
-  during a plan phase and closing at signature. The pre-revision baseline shape.
-- A SECOND VIOLATION APPEARED AND WAS CLOSED, recorded because it is the gate working: INV-5
-  forbids this file from naming a task its plan.yaml does not contain, so the first draft of this
-  entry — which narrated the removal by id — turned check-state.sh red. The id is carried by the
-  artifacts built to hold it (the commit message, D-09, PB-04, the answers file, all tracked) and
-  this file describes the task rather than naming it. Nothing is lost and nothing is softened.
-- next: the operator's signature. Every condition the answers file set for it has landed.
-- cycles: 8 of 10 — ZERO send-backs this run, so the count does not move (DEC-157: only rework
-  counts). runs: 15 of 20.
-- briefing: none written. The operator has read notes/ship-review-2026-08-29-01.md and decided;
-  this run returns a delta, not a second briefing.
+- status: Ready. UNCHANGED, and deliberately so. Not one line of build work landed, so advancing
+  the station to Building would assert something the tree does not support (PRINCIPLES rule 15).
+- THE BUILD PHASE CANNOT OPEN FROM THIS TIER, AND THE FINDING IS MEASURED, NOT INFERRED. All 13
+  tasks carry `execution_mode: main-session-direct` in the signed plan, and neither I nor any
+  squad member may execute a single one:
+  - `check-domain.sh` DENIES `harness-orchestrator` at exit 2 on every surface class this plan
+    touches — `.claude/skills/harness/bin/**`, `.harness/harness.json`,
+    `.agents/skills/harness/templates/**`, `.claude/settings.json`, `.omp/agents/**`, both
+    `SKILL.md` paths, `.harness/team-config.yaml`, `.harness/harness/docs/DECISIONS.md`. Probed
+    once per class with a real PreToolUse payload; the hook names my permitted set, which is the
+    feature dir, my answers/ship-review notes, my Expertise and my observations log. Nothing else.
+  - `check-domain.sh --resolve` returns NOBODY for the templates, `.claude/settings.json`, both
+    agent trees, both `SKILL.md` paths and `team-config.yaml`, so no member is granted them
+    either. Probed directly: `harness-backend-dev` is DENIED `.claude/settings.json` at exit 2.
+  - DEC-174 bars the rest. Its amendment 4 enumerates `check-domain.sh`, `bash-write-guard.sh`,
+    `validate-digest.py`, `check-state.sh`, `check-plan-routes.py`, `dispatch-guard.sh` AND the
+    test file of each, and declares the category — hooks, validators, gate scripts — governing
+    and the list non-exhaustive. Every task touches at least one of those or a NOBODY path.
+  - DECISIONS.md:6733 states it outright: "DEC-174 forbids the orchestrator
+    `main-session-direct` tasks". The sentence sits in DEC-200's lineage prose, not in DEC-174's
+    own section, which is why grepping the id found it and reading the entry would not have.
+- THE GATE ITSELF CORROBORATES, in one run at exit 0. `check-plan-routes.py` prints, for all 13
+  tasks, either `OK <task>: declared main-session-direct (... ungranted)` or
+  `DEVIATION <task> ... granted to harness-backend-dev, harness-dev-ops but declared
+  main-session-direct`. Not one task prints the ordinary team-lane shape `OK <task> granted to ...`.
+  A plan carrying no dispatchable task is legible in the gate's own output.
+- THIS SHAPE IS PRECEDENTED AND THE HARNESS ALREADY NAMES IT — FEAT-41 is the fifth instance, not
+  an anomaly. `check-state.sh` INV-17 emits for FEAT-21, FEAT-40, FEAT-22 and FEAT-15: "exempt
+  from handoff notes — every task in its plan.yaml is execution_mode main-session-direct
+  (DEC-174), so no squad ran and no seam was crossed." The absence of run rows and handoff notes
+  on this feature is that same exemption, not work quietly skipped.
+- gates, all three run BY ME at 855a356, in this worktree. check-state.sh: EXIT 0 — zero hard
+  failures, 13 NOTE lines, and NOT ONE of them concerns FEAT-41. The plan-phase violation (this
+  feature's unapproved BRIEF) closed at the signature exactly as the previous entry predicted.
+  check-plan-routes.py: exit 0, "0 violation(s) across 1 plan(s)", 40 dirs examined, 39 skipped
+  as shipped — the known-good shape, unchanged. run-unit-tests.sh: EXIT 0, full suite, 3374
+  lines, ZERO `FAIL` lines, ~248s. Counted by `grep -c '^FAIL '` with the exit status captured
+  in a variable, never by a tail read — the runner's last line is the last script's own tally.
+  This is the clean pre-build baseline: any red the build produces belongs to the build.
+- SIGNATURE VERIFIED ON BOTH FRAGMENTS, because an approval usually touches one and leaves the
+  other stale: plan.yaml `approval.status: approved` and BRIEF.md:255 `status: approved`, both
+  Mike Ruangutai, 2026-08-29. They agree.
+- SC BASELINES MEASURED AT 855a356 so the successor inherits numbers rather than re-deriving
+  them: SC-02's quoted-literal grep returns 27, SC-01's `_STATION_KEYS` returns 7, SC-12's
+  `plan-merge` grep returns 35. The last matches the BRIEF's own reading at 0d4845b, so the
+  rebase moved none of them.
+- cycles: 8 of 10 — UNCHANGED. Zero rework, zero send-backs, zero dispatches (DEC-157: only
+  rework counts). runs: 15 of 20, unchanged; no run row is added because no lead ran.
+- review_sha: 49638bf, UNCHANGED. DEC-89 re-pins when the build's own commits land. None did.
+- next: THE MAIN SESSION EXECUTES THE 13 TASKS DIRECTLY, in the dependency order recorded in the
+  ship-review note below. This is the sanctioned DEC-174 route — ordinary edits, each task's
+  `verify:` run explicitly, a human reading the diff — and it is the ONLY route this plan has.
+- briefing: notes/ship-review-2026-08-30-01.md — the task-by-task disposition, the dependency
+  segments, the measured lane evidence and the backlog table.
 
 ## Open Questions
 
@@ -82,14 +72,9 @@
 - Q6: RESOLVED and APPLIED. INV-32 is scoped to non-terminal stations. FEAT-27's pin is NOT
   repaired: shipped history stays untouched, per the operator.
 - Q7: RESOLVED and APPLIED, folded into the same edit site as Q6.
-- Q8: HARNESS DEFECT, AND IT FIRED AGAIN THIS RUN. Nothing allocates run-dir slugs. This run's
-  product squad wrote into runs/2026-08-29-01-product — the slug the SAME DAY's replan run already
-  held — and overwrote its digest.md and state.yaml. runs/ is gitignored, so the replan digest is
-  unrecoverable; what survives of it is this file, feature.json and the tracked ship-review
-  briefing assembled from it. Recorded in runs/2026-08-29-01-product/OVERWRITTEN.md rather than
-  reconstructed (rule 15). The two runs are registered in feature.json under distinct ids; the
-  digest physically at the -01 path is the -02 run's. THE CAUSE IS MINE AS MUCH AS THE HARNESS'S:
-  I dispatched without naming a slug, having seen this exact failure recorded three days earlier.
+- Q8: HARNESS DEFECT, unchanged and not re-triggered this run — nothing allocates run-dir slugs.
+  The 2026-08-29 collision stands recorded in runs/2026-08-29-01-product/OVERWRITTEN.md rather
+  than reconstructed (rule 15). No squad ran this time, so no slug was allocated.
 - Q9: unchanged. The stale-pin task traces REQ-07 and pm calls the stretch knowingly. DEC-89
   already decides its invariant and says the state check re-pins review_sha; nothing implements
   that re-pin, so #867 is the unbuilt detection half of an already-decided invariant.
@@ -98,17 +83,18 @@
   `--exclude-dir=__pycache__` be a standing convention, or should run-unit-tests.sh clear it?
 - Q11: non-blocking HARNESS DEFECT, confirmed by measurement. The shell substitutes PHANTOM
   pathnames for an unmatched glob member, so `grep -rn PAT dir/*/f.yaml` exits 2 on ENOENT even
-  when it matches, making `grep ... ; test $? -eq 1` unusable harness-wide. Measured: 31 of 40
-  dirs hold plan.yaml, grep found 56 matches and still exited 2 with 9 ENOENT lines. I could not
-  file it via xd://report_issue — check-domain denies the orchestrator that path.
-- Q12: NEW, non-blocking, and the operator may want it settled before signing. plan.yaml's lanes
-  block keeps a row resolving `.harness/harness/docs/**` to the team lane with harness-documentor,
-  and no surviving task touches that surface. check-plan-routes.py does not object — it resolves
-  per task, not per lanes row — so the row is vestigial rather than false. Left standing because
-  the rows are a dated resolution record (DEC-179) and I told pm to leave the DEC-174 rows alone;
-  flagged because BRIEF.md now says the plan has no team-lane task and a reader could take the row
-  for one.
-- Q13: NEW, non-blocking, pre-existing and untouched by this revision. SC-02's own quoted-literal
-  grep — the one the criterion writes out in full — appears in no task's `verify:` block, so the
-  criterion is graded against a command nothing runs. Worth one line in a task's verify before the
-  build starts; recorded rather than absorbed.
+  when it matches, making `grep ... ; test $? -eq 1` unusable harness-wide. I could not file it
+  via xd://report_issue — check-domain denies the orchestrator that path.
+- Q12: REOPENED, AND ITS EARLIER PREMISE WAS FALSE. The previous entry called the
+  `.harness/harness/docs/**` lanes row vestigial because "no surviving task touches that
+  surface". A surviving task DOES: the rename task lists `.harness/harness/docs/DECISIONS.md`
+  among its files at plan.yaml:1177, and that path resolves to harness-documentor. The row is
+  LIVE, not vestigial. It stayed invisible because check-plan-routes.py short-circuits on
+  `nobody_paths` before reaching the DEVIATION branch, so that task reports OK on its three
+  ungranted paths and its one granted surface is never printed. Changes nothing about
+  executability — the task is main-session-direct and carries NOBODY paths regardless — but
+  BRIEF.md's claim that the plan has no team-lane task is now the thing a reader could misread.
+- Q13: CONFIRMED BY MEASUREMENT, still open, and it should be closed before the build starts.
+  SC-02's own quoted-literal grep appears at BRIEF.md:110 and :113 and in NO task's `verify:`
+  block. The criterion is graded against a command nothing in the plan runs. One line added to
+  the vocabulary task's verify closes it. Baseline today: the grep returns 27.
