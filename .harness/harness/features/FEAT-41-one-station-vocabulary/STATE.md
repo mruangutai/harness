@@ -6,8 +6,10 @@
 - run: 2026-08-29-02-product. The operator's answers applied as ONE consolidated revision.
   product-lead PASS, ZERO send-backs.
 - squad: none
-- status: Plan. NOTHING IS SIGNED. approval is pending in both plan.yaml:7 and BRIEF.md, and
-  neither was touched (DEC-120 — the signature is the main session's alone).
+- status: Ready. SIGNED — `plan.yaml` `approval.status: approved` and `BRIEF.md:255`, both
+  Mike Ruangutai, 2026-08-29, re-confirmed by the operator on 2026-08-30. The earlier
+  "NOTHING IS SIGNED" reading was written before the signature landed and is corrected here.
+  `review_sha` is pinned past the signature commit at `49638bf` (DEC-89; #965).
 - WHY THIS RUN EXISTED: the operator read notes/ship-review-2026-08-29-01.md and returned a
   complete, decided answer set in notes/answers-2026-08-29-01.md. This run executed those
   decisions; it did not re-open them and did not re-audit the 13 tasks the replan re-derived.
