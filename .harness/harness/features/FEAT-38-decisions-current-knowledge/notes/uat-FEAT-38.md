@@ -1,7 +1,16 @@
 # Your review — FEAT-38
 
-status: ready              # ready | passed | failed — only you set passed or failed
+status: passed
 criterion: SC-13
+answered-by: operator
+date: 2026-08-30
+
+# VERDICT HISTORY, recorded rather than overwritten.
+# The operator first instructed `failed` before the entries had been read through.
+# On reading them, all three were marked `pass. true today` in the sections below,
+# and the cross-cutting U-04 question was answered pass -- nothing considered
+# settled had disappeared. The reversal is the operator's own, on their own reading;
+# it is kept here because a verdict that changed is a fact about this review.
 graded at: 635cd3ba
 
 ---
@@ -72,7 +81,7 @@ about a process that no longer exists:
 **Your question:** does DEC-138 read as one live set of rules — and are those two deletions genuinely
 dead, or was either of them something you still consider settled and expect to find?
 
-result:
+result: pass. true today
 
 ---
 
@@ -102,7 +111,7 @@ And on a route that used to be reachable:
 **Your question:** can someone reading this still tell that the other approach was tried and why it
 failed — or does it now read as though the current answer was the only one ever considered?
 
-result:
+result: pass. true today.
 
 ---
 
@@ -139,7 +148,7 @@ pointer to another file. This was spotted and deliberately left alone rather tha
 **Your question:** does DEC-181 read as one live rule about a size limit — or does it read as the
 story of how somebody arrived at the number?
 
-result:
+result: pass. true today.
 
 ---
 
@@ -151,7 +160,7 @@ and has nothing you consider settled quietly disappeared?
 If you fail this, name the entry (138, 174 or 181) and the specific sentence or missing claim. That
 is what gets fixed.
 
-result:
+result: pass -- nothing considered settled has disappeared (operator, 2026-08-30)
 
 ---
 
