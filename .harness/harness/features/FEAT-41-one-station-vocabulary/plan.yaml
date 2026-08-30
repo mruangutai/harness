@@ -79,9 +79,9 @@ decisions:
     because: everything stored or compared stays lowercase while the board still receives the exact option name its API matches on
     dec: none
   - id: D-09
-    choice: in DEC-203 section 6, in DEC-191 and in DEC-182 the ONE contradicted clause is recorded as no longer holding, inside an entry that survives. WHICH clause, and what holds instead of it, is fixed here. The RECORDING FORM is deliberately left OPEN as a named dependency - either (a) an in-place clause strike under DEC-188 or (b) subsuming the correction into the entry in one voice - and T-12 executes whichever form the decisions-authority triage lands, read at execution time rather than chosen here
-    because: the entries survive, so the rules this feature depends on are not removed - only the contradicted clauses stop holding, and a citation to the clause still RESOLVES while announcing that it no longer holds. THE FORM IS PENDING, and both candidates are recorded here so a later reader can see what was weighed rather than find one choice silently swapped for the other. FORM (a), the in-place strike - the clause text stays on the page, marked, and is never rewritten - the argument for it is that an amendment which rewrote the clause would leave a later reader unable to tell it ever said otherwise, which is the falsified-record failure; and the form is already live twice in DECISIONS.md, at line 3235 and at line 4443, both RE-MEASURED at 0d4845b after the rebase - they stood at 3228 and 4436 at 8f8a6a3 - reading in the record's own voice that the citation which recorded a thing is STRUCK on a date under DEC-188, see amendment N. FORM (b), subsuming the correction - the operator's reading is that a struck decision should be REMOVED from DECISIONS.md and the correction absorbed into the entry, because STRUCK does not today mean deleted - eight entries currently sit in DECISIONS.md marked STRUCK, re-counted at 0d4845b and unchanged by the rebase - so the annotation layer accumulates rules that no longer hold while still reading as though they might. THE FALSIFIED-RECORD ARGUMENT SURVIVES AS AN ARGUMENT, NOT AS A VERDICT - if form (b) wins, how the earlier reading stays recoverable is that triage's question, not this feature's. WHY IT IS PENDING RATHER THAN DECIDED HERE - which form the tree uses is a decisions-authority question being settled as separate work, and this feature has no standing to settle it - so this decision names the dependency instead of choosing under it. Nothing about which clauses are contradicted, or what holds instead, depends on the answer
-    dec: DEC-188
+    choice: WHICH clause of DEC-203 section 6, of DEC-191 and of DEC-182 this feature contradicts, and what holds instead of each, is fixed here - but the RECORDING of it is NOT done by this feature. The decision-record task that would have written it, this plan's former fourteenth task on the documentor lane, is REMOVED per the operator's answer Q1 on 2026-08-29, and the recording re-files with the decisions-authority triage effort, outside this feature, carrying with it the still-open question of the form it takes - either an in-place clause strike under DEC-188 or the correction subsumed into the entry in one voice
+    because: the operator declined the external dependency rather than carry it through the signature, so this decision now records the SUBJECT and its destination instead of instructing a task. What travels is the new station-vocabulary decision entry plus the three clause corrections, each fixed here and unchanged by the move - in DEC-203 section 6, the clause placing the lifecycle field in feature.json and asserting that its stored values are case sensitive byte for byte, against which what holds instead is plan.yaml's top-level station carrying the mandated lowercase names, case sensitivity surviving only at the board write through factory_config.station_column; in DEC-191, the clause making status a member of feature.json's closed key set, against which what holds instead is the key set closed without it and the station read from plan.yaml; in DEC-182, the clause excluding plan.yaml from the shape gate on the grounds that it carries neither a budget nor a vocabulary rule, against which what holds instead is that plan.yaml carries a vocabulary rule and joins the gate. THE CONSEQUENCE IS DISCLOSED AND NOT SOFTENED - this feature lands changes that contradict a clause of three signed decisions WITHOUT recording the contradiction inside the feature, so from the moment it merges until the triage lands, all three entries read as though their contradicted clause still holds. The entries survive either way, so nothing this feature depends on is removed. BRIEF.md carries the same disclosure where the operator signs, and a residual row carries it as work
+    dec: none
   - id: D-10
     choice: ship commits the terminal station write in the main checkout and does not push it
     because: the uncommitted write is the live INV-26 violation, and pushing from a post-merge hook would move a remote branch nobody asked it to move
@@ -701,7 +701,8 @@ tasks:
       Schema: remove status from feature-schema.json's properties and from its required list.
       RE-CONFIRMED at 0d4845b, unchanged by the rebase: properties holds eleven keys and required holds eight, so the result is
       ten and seven. Do not retype those numbers from this sentence - the verify asserts them
-      against the file, which is the check the prose in T-12 does not get.
+      against the file rather than against prose, so a hand-typed count cannot drift out of sync
+      with the schema.
       additionalProperties: false already makes a leftover status key an error, which is what the
       migration below relies on. Update the template
       .agents/skills/harness/templates/feature.json the same way.
@@ -1143,124 +1144,13 @@ tasks:
       untouched. Its Icebox literal lives in a different file, and this task's grep names
       test-check-state.py only, so the two do not interact.
 
-  - id: T-12
-    title: Record the vocabulary decision, and record that the three clauses it contradicts no longer hold
-    traces: [REQ-01, REQ-02, REQ-05, REQ-06]
-    change_type: docs
-    execution_mode: team
-    execution_agent: harness-documentor
-    depends_on: [T-01, T-02, T-03, T-04, T-05, T-06, T-07, T-08, T-09]
-    status: pending
-    files:
-      - .harness/harness/docs/DECISIONS.md
-      - .harness/harness/docs/DECISIONS-INDEX.md
-      - .harness/harness/docs/SPEC.md
-    verify: |
-      python3 .claude/skills/harness/bin/gen-decisions-index.py --check
-    intent: |
-      Write ONE new decision entry, and record on THREE existing entries that one clause of each no
-      longer holds.
-
-      THE ENTRIES SURVIVE. Each contradiction is one clause of an entry whose remainder still
-      binds, so nothing this feature depends on is removed - only the contradicted clause stops
-      holding, and a citation to it still RESOLVES while announcing that it no longer holds.
-
-      THE RECORDING FORM IS NOT DECIDED YET. YOU READ WHAT IT IS AT EXECUTION TIME RATHER THAN
-      CHOOSING IT HERE. Two candidates are live, per D-09:
-      FORM (a) - an IN-PLACE CLAUSE STRIKE under DEC-188. The clause text stays on the page,
-        marked. This form is already live twice in DECISIONS.md, at line 3235 and at line 4443,
-        both re-derived at 0d4845b; they stood at 3228 and 4436 at 8f8a6a3.
-      FORM (b) - SUBSUMING THE CORRECTION INTO THE ENTRY in one voice, so the entry reads as a
-        single current statement rather than an older statement with an annotation layer on it.
-      A decisions-authority triage is settling which form the tree uses, as work separate from this
-      feature. BEFORE YOU WRITE A WORD, find what that triage landed and execute THAT form; if it
-      has not landed when this task runs, STOP and return the question rather than picking one.
-      WHAT is recorded does not depend on the form: the three clauses named below, and what holds
-      instead of each, are fixed by this plan and are identical either way.
-
-      IF THE FORM IS (a), AND ONLY THEN, the following mechanics apply.
-      DO NOT REWRITE A STRUCK CLAUSE. A rewrite leaves a later reader unable to tell it ever said
-      otherwise, which is the falsified record PRINCIPLES rule 15 forbids. The struck text stays on
-      the page, marked.
-      THE FORM IS ALREADY LIVE IN THIS FILE, TWICE, AND YOU REPRODUCE IT RATHER THAN INVENT IT.
-      Read DECISIONS.md at line 3235 and at line 4443 before writing a word - both re-derived at
-      0d4845b, and 3228 and 4436 at 8f8a6a3 - and read enough of the surrounding paragraphs to
-      catch the voice. The shape is two
-      parts per strike:
-      (a1) AT THE CLAUSE ITSELF, one bold sentence in the record's own voice naming what is struck,
-          the date, DEC-188, and where the record is - the live example at 3235 reads that the
-          citation that recorded a thing is STRUCK on a date under DEC-188, see amendment 7. Every
-          other sentence around it is untouched.
-      (a2) A NEW AMENDMENT SECTION on that entry, headed in the file's existing style, which states
-          what the struck clause SAID, that it is struck under DEC-188 on that date, and what holds
-          instead. RE-CONFIRMED at 0d4845b: none of these three entries carries an amendment - the
-          index rows for DEC-182, DEC-191 and DEC-203 carry no am. marker - so
-          each is amendment 1; re-derive that before you write it.
-
-      IF THE FORM IS (b): the entry is rewritten so its surviving rules and the correction read as
-      one current statement in the file's own voice, with no annotation layer - and the strike
-      sentence, the amendment section and the amendment numbering above do not apply at all.
-
-      The new entry, taking the next free DEC number, states four things and no biography. The
-      next free number MOVED with the rebase: DEC-204 landed with PR 922, so the highest entry at
-      0d4845b is DEC-204 and the next free number is DEC-205. This task pins no literal - read the
-      file and take the next free number - and the figure here is orientation.
-      1. The six station names - backlog, plan, ready, building, review, done - are MANDATED. An
-         operator may not rename a column; extra columns an operator adds survive untouched.
-      2. harness.json declares them once, as an ordered lowercase list. Everything the harness
-         stores or compares is lowercase; factory_config.station_column is the ONE place a
-         capitalised name is produced, and it is used only where the harness talks to GitHub.
-      3. plan.yaml carries a station per task and a top-level station for the feature, from that
-         same vocabulary, plus one terminal marker, abandoned, which names no column. NOTHING IS
-         DERIVED BETWEEN plan.yaml AND THE BOARD: a card sits in the column its station names,
-         with no mapping, exception or translation. The one ordering rule worth recording is that
-         a recorded terminal station outranks the in-flight review derivation.
-      4. plan.yaml has exactly one writer and it is code. Every editor and shell write is denied
-         by the shape gate, which binds every author including the main session, and the approval
-         signature goes through a verb an identity-gated Bash hook refuses to any agent.
-      Record the one thing this does not achieve: a shell write of a LEGAL station value is not
-      attributable, and the post-Bash sweep reads disk rather than authors.
-
-      DEC-203, section 6. STRUCK: the clause placing the field in feature.json and asserting that
-      its values are case sensitive byte for byte AS A PROPERTY OF THE STORED VALUE. What holds
-      instead: the field is plan.yaml's top-level station and its values are the mandated lowercase
-      names. The board's own column names are still case sensitive at the write, which is exactly
-      why factory_config.station_column exists - so say that in whatever you write, or the record
-      reads wider than it is. Everything else in DEC-203 stands and is NOT struck: a ticket is open until
-      its card reaches Done, the harness writes Done at ship, the parent rule, and the
-      seven-purpose read-back bound.
-
-      DEC-191. STRUCK: the clause that makes status a member of the closed key set. What holds
-      instead: the key set is closed without it, and a feature's station is read from plan.yaml.
-      Read the two counts OUT OF
-      .claude/skills/harness/bin/feature-schema.json as it stands after T-07 rather than copying
-      them from this sentence or from T-07's - gen-decisions-index.py --check gates word count,
-      not numeric accuracy, so a hand-typed number here is unverified by any gate. At ee66ae2 the
-      file held eleven properties and eight required, so the expected result is ten and seven.
-      State the reader test DEC-191 itself sets - a key survives because code reads it - and that
-      status now has zero readers in that file.
-
-      DEC-182. STRUCK: the clause excluding plan.yaml from the shape gate on the grounds that it
-      carries neither a budget nor a vocabulary rule. What holds instead: plan.yaml carries a
-      vocabulary rule and joins the shape gate. Note in what you write that the entry's own
-      criterion is what turned - the rule did not change, the file did - so the correction is the
-      entry applying itself, not being overruled.
-
-      Then regenerate the index with
-      python3 .claude/skills/harness/bin/gen-decisions-index.py
-      Every index row is capped at 30 words - a row over the cap is what turned CI red on 2026-08-23.
-
-      In SPEC.md, update the section describing feature state and the plan format so it names
-      plan.yaml as the station record and the tool as its only writer. Do not restate the decision
-      text; cite the number.
-
   - id: T-13
     title: Rename plan-merge.py to plan-write.py across every live caller
     traces: [REQ-05]
     change_type: config
     execution_mode: main-session-direct
     execution_reason: check-domain.sh and run-unit-tests.sh name the script path
-    depends_on: [T-03, T-04, T-05, T-06, T-07, T-08, T-09, T-10, T-11, T-12]
+    depends_on: [T-03, T-04, T-05, T-06, T-07, T-08, T-09, T-10, T-11]
     status: pending
     files:
       - .claude/skills/harness/bin/plan-merge.py
@@ -1340,9 +1230,11 @@ tasks:
       python3 .claude/skills/harness/bin/test-check-state.py > /tmp/feat41-t14.out 2>&1 ; rc=$? ; cat /tmp/feat41-t14.out ; test $rc -eq 0
       grep -q "ok - case (inv32.a) a stale review_sha is reported" /tmp/feat41-t14.out
       grep -q "ok - case (inv32.b) a current review_sha is silent" /tmp/feat41-t14.out
+      grep -q "ok - case (inv32.c) a terminal station is silent" /tmp/feat41-t14.out
     intent: |
       Closes issue #867. INV-6 detects an ABSENT or placeholder review_sha; nothing detects a STALE
-      one. Add that detection as INV-32 in check-state.sh, and two fixtures in test-check-state.py.
+      one. Add that detection as INV-32 in check-state.sh, and three fixtures in
+      test-check-state.py.
 
       WHY IT MATTERS. An absent pin is honest: it says nobody reviewed this. A stale pin makes a
       claim - this text was reviewed at this commit - and once the text has moved that claim is
@@ -1350,6 +1242,21 @@ tasks:
       feature.json read review_sha e5afc19 while plan.yaml had been committed at c056f49, 54
       insertions and 9 deletions later, and a run of check-state.sh reported no GAP-7 and no INV-6
       line for FEAT-41.
+
+      MEASURED ACROSS THE WHOLE TREE BEFORE THIS LANDS, BY THE ORCHESTRATOR AND NOT BY pm. On
+      2026-08-29, at the cc00983 tree, the orchestrator walked every feature directory and compared
+      git show <review_sha>:<plan path relative to the git top level> against the working copy byte
+      for byte - the same comparison this check makes. 40 feature directories examined. Under the
+      REVISED precondition stated below - a real pin AND a non-terminal station - the reported set
+      is EMPTY, so no live feature goes red when INV-32 lands. FOUR features carry a real pin whose
+      plan bytes have moved and are silenced ONLY by the non-terminal scope:
+      FEAT-26-pr-linkage-recorded (bad32441), FEAT-27-expertise-repository-tier (9b929de),
+      FEAT-32-concurrent-write-merge (5107efb9) and FEAT-33-board-lifecycle-native (337bbc21), all
+      at station done. Q6 named only FEAT-27; the other three were hidden by the very validator-run
+      precondition dropped below, so dropping it widens the stale-pin set from one shipped feature
+      to four. THE TERMINAL SCOPE IS THEREFORE LOAD-BEARING FOR FOUR SHIPPED FEATURES: without it
+      check-state.sh goes red on four of them the moment this task lands. FEAT-41's own pin is
+      silent because the orchestrator re-pins it at each plan commit.
 
       WHY INV-32 AND NOT A SECOND INV-6 FINDING. INV-6 asserts a pin EXISTS; INV-32 asserts the pin
       is CURRENT. They have different preconditions - INV-6 needs only feature.json, INV-32 needs a
@@ -1370,11 +1277,14 @@ tasks:
       ee66ae2, so re-derive by content rather than by that span - and re-derive again when you
       execute, since T-02, T-04, T-06 and T-07 all edit
       this file first. runs, the (id, squad, verdict) tuples, and the val() helper are already in
-      scope at that point, as is the validator-run predicate any(sq == "validator" for _, sq, _ in
-      runs) at :250, and subprocess is already imported at :49 so the git calls need no new import.
+      scope at that point, and subprocess is already imported at :49 so the git calls need no new
+      import.
 
-      THE CHECK, STATED NARROWLY. For a feature whose feature.json records a validator run and
-      whose review_sha is a real pin (not empty, not in harness_yaml.PLACEHOLDER_UNSET):
+      THE CHECK, STATED NARROWLY. For a feature whose review_sha is a real pin (not empty, not in
+      harness_yaml.PLACEHOLDER_UNSET) AND whose station is NON-TERMINAL - both conditions, and the
+      validator-run condition that stood here before is DROPPED, because a recorded run is a
+      lagging indicator that can only fire after a panel has already read the wrong text, which is
+      how this feature's own divergence survived:
       resolve the feature's plan file - plan.yaml if present, else PLAN.md; compute its path
       RELATIVE TO THE GIT TOP LEVEL, from git -C root rev-parse --show-toplevel, never relative to
       root. THE REASON FOR THAT CHANGED WITH THE REBASE AND THE INSTRUCTION DID NOT: root is no
@@ -1386,32 +1296,59 @@ tasks:
       git show <review_sha>:<relative path> as BYTES; compare against the working copy's BYTES.
       Report only when both reads succeed and the bytes DIFFER.
 
+      THE NON-TERMINAL SCOPE, AND THE IDIOM IT REUSES. A feature at a terminal station is out of
+      scope: its plan is a record rather than a contract, and shipped history stays unrepaired, per
+      the operator's answer Q6 on 2026-08-29. Reuse the idiom check-plan-routes.py already carries
+      rather than inventing a second one - at HEAD that is the _is_shipped(feature_dir) helper,
+      which compares the feature's recorded station against the module-level FINISHED_STATUSES
+      tuple. Find both BY CONTENT and never by line number: T-04 edits that file before this task
+      runs.
+
+      AN EXECUTION-ORDER FACT YOU MUST HONOUR, or you will read a key that no longer exists. T-07,
+      which this task depends on, DELETES feature.json.status and moves the feature's station to
+      plan.yaml's top-level station; T-02 and T-04 lowercase the vocabulary, and this task is last
+      in the plan so all three have landed. So at execution time the terminal read is plan.yaml's
+      top-level station compared against the LOWERCASE terminal set - done and abandoned - and
+      NEVER feature.json. _is_shipped is one of the eleven readers T-07 repoints, so if
+      check-plan-routes.py exposes an importable helper after T-04 and T-07, import and reuse it
+      rather than re-implementing the predicate. One vocabulary is what this feature is for.
+
       A BYTE COMPARISON, NEVER A COMMIT COMPARISON. Comparing review_sha to the last commit that
       touched the plan file reports a feature whose plan was changed and changed back, and reports
       any feature reviewed before an unrelated commit landed on that path. The bytes are what the
       pin actually claims. Case (inv32.b) below exists to kill the commit-equality implementation.
 
       SILENT, DELIBERATELY, ON FOUR STATES: no git work tree; review_sha does not resolve to an
-      object; no plan.yaml and no PLAN.md in the feature directory; no validator run. Each is a
-      state this invariant cannot speak to, and firing on any of them would light up every
-      non-git fixture in test-check-state.py. That the rest of the file stays green is the
-      regression net for over-firing; treat any newly red existing case as this task's defect.
+      object; no plan.yaml and no PLAN.md in the feature directory; a TERMINAL station. The first
+      three are states this invariant cannot speak to, and firing on any of them would light up
+      every non-git fixture in test-check-state.py. The fourth is a state it deliberately does not
+      police - see THE NON-TERMINAL SCOPE above, and the four shipped features it silences. A
+      validator run is NO LONGER one of the silences: that precondition is dropped, so a feature
+      with a stale pin and no recorded validator run is now REPORTED. That the rest of the file
+      stays green is the regression net for over-firing; treat any newly red existing case as this
+      task's defect.
 
       THE FINDING NAMES THREE THINGS - the feature, the pinned sha, and the short sha of the last
       commit that touched that plan file, from git log -1 --format=%h -- <path>. A finding that
       says only stale makes the reader redo the measurement. Shape it like the INV-6 line beside
       it, ending with the INV-32 token so it is grep-able.
 
-      THE TESTS, AND THE FAILING STATE FIRST. Before writing the check, add both cases and run
-      them against the unmodified check-state.sh: case (inv32.a) MUST fail and case (inv32.b) MUST
-      pass. Record that RED result in the receipt. A case (inv32.a) that is green before the
-      change is measuring nothing, and this feature has already spent two cycles on verifies that
-      could not fail. The overridable CHECK_STATE_BIN env var at the top of test-check-state.py is
-      how to point the suite at a reverted copy.
+      THE TESTS, AND THE FAILING STATE FIRST. Before writing the check, add all three cases and run
+      them against the unmodified check-state.sh: case (inv32.a) MUST fail and cases (inv32.b) and
+      (inv32.c) MUST pass. Record that RED result in the receipt. A case (inv32.a) that is green
+      before the change is measuring nothing, and this feature has already spent two cycles on
+      verifies that could not fail. The overridable CHECK_STATE_BIN env var at the top of
+      test-check-state.py is how to point the suite at a reverted copy.
+      SAY WHAT (inv32.c) DOES AND DOES NOT PROVE, in the receipt, in the same voice: against the
+      unmodified check-state.sh it passes VACUOUSLY, because nothing emits INV-32 yet, so its green
+      on that run is worth nothing. Its DISCRIMINATING run is against an implementation that
+      already reports (inv32.a) but carries no terminal scope, where it must be RED - build that
+      intermediate state deliberately and record that red, or the receipt records a meaningless
+      green and the terminal scope goes into the tree unproven.
 
-      Build both fixtures with REAL git, the way case_u already does - git init -q, then
+      Build all three fixtures with REAL git, the way case_u already does - git init -q, then
       user.email and user.name config - because a hand-built .git pointer produces no rev-parse
-      top level and both cases would pass vacuously. Every run root also gets the standard
+      top level and all three cases would pass vacuously. Every run root also gets the standard
       .harness/harness.json plus .harness/harness/features/FEAT-TEST/feature.json carrying a
       validator run, or check-state.sh exits early with project not onboarded and prints no
       invariant lines at all. Run each through the existing run(tmp) helper.
@@ -1426,9 +1363,16 @@ tasks:
       commit's short sha. The pinned bytes equal the working copy's, so INV-32 must be SILENT even
       though a LATER commit touched the file. Assert no line of the output contains INV-32.
       Print exactly: ok - case (inv32.b) a current review_sha is silent
-      Those two label strings are asserted by this task's verify, so they must match character for
-      character. Wire both into main()'s aggregate the way the sibling groups are wired, so a
-      failure changes the process exit code.
+
+      case (inv32.c) - THE TERMINAL SILENCE, and the guard on four shipped features. Same
+      construction as (inv32.a): commit plan.yaml with content X; commit content Y; leave Y in the
+      working copy; set review_sha to the FIRST commit's short sha, so the pinned bytes genuinely
+      DIFFER. Then give the feature a TERMINAL station in the place T-07 leaves it - plan.yaml's
+      top-level station, value done. Assert no line of the output contains INV-32.
+      Print exactly: ok - case (inv32.c) a terminal station is silent
+      Those three label strings are asserted by this task's verify, so they must match character
+      for character. Wire all three into main()'s aggregate the way the sibling groups are wired,
+      so a failure changes the process exit code.
 
       WHY THIS TASK IS LAST, AND WHY IT DEPENDS ON T-07 AND T-11. check-state.sh is opened by
       T-02, T-04, T-06 and T-07; test-check-state.py by T-02, T-04, T-06, T-07 and T-11, which

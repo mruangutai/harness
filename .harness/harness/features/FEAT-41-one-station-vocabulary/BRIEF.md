@@ -52,20 +52,37 @@ Which of these BLOCK and which SUPPLY is stated for each, because most of them s
 
 - **DEC-174 BLOCKS execution.** This work changes hooks, validators and gate scripts, so the
   harness may plan it but must not execute those changes through the enforcement path being
-  changed. Thirteen of the plan's fourteen tasks are therefore executed by the main session
-  directly; only T-12, the decision-record task, runs on the team lane, with `harness-documentor`.
+  changed. All thirteen of the plan's tasks are therefore executed by the main session directly,
+  and the plan now carries **no team-lane task at all** — the one that did, the decision-record
+  task on `harness-documentor`, was removed on 2026-08-29 (see the disclosure below). DEC-174's
+  lane assignments are unchanged by that removal; this is a corrected count, not a re-resolution.
   This is the largest cost of the feature and it is accepted, not worked around.
 - **DEC-203 section 6 SUPPLIES the six values and BLOCKS their casing.** It states one lifecycle
   field whose values are case sensitive byte for byte, in `feature.json`. REQ-02 and REQ-06
-  contradict that clause, so the entry takes an amendment. Everything else in DEC-203 — a ticket
+  contradict that clause. **The contradiction is not recorded by this feature** — see the
+  disclosure below. Everything else in DEC-203 — a ticket
   is open until its card reaches `Done`, the harness writes `Done` at ship, the parent rule, the
   seven-purpose read-back bound — is untouched and still binds.
 - **DEC-191 BLOCKS deleting a key silently.** `feature.json`'s key set is closed with
   `additionalProperties: false` and `status` is one of its eight required keys, so REQ-06 moves
-  the schema and the decision together.
+  the schema; the decision entry is **not** corrected alongside it — see the disclosure below.
 - **DEC-182 SUPPLIES `plan.yaml`** and currently states that `plan.yaml` is deliberately excluded
   from the shape gate (`check-domain.sh:1040-1046`, re-derived at `0d4845b`; the comment sat at
-  `:1011-1017` before the rebase). REQ-05 reverses that clause; it takes an amendment.
+  `:1011-1017` before the rebase). REQ-05 reverses that clause, and the reversal is **not**
+  recorded in the entry — see the disclosure below.
+- **A DISCLOSURE, and the largest one in this document.** The three clause corrections above were
+  to be recorded inside this feature, by its decision-record task. The operator declined that
+  task's external dependency on 2026-08-29 and removed the task, re-filing the recording with the
+  decisions-authority triage effort, outside this feature. Stated plainly, because you sign
+  against this document: **this feature lands changes that contradict one clause each of DEC-203
+  section 6, DEC-191 and DEC-182 without recording the contradiction anywhere in `DECISIONS.md`.**
+  From the moment it merges until that triage lands, all three entries read as though their
+  contradicted clause still holds, and a reader who cites one gets an answer this feature has
+  already falsified. Nothing this feature depends on is removed and no entry is struck — the
+  recording is deferred, not cancelled — and no success criterion in this brief rests on it, which
+  is precisely why it needs saying here. What each correction says is fixed and preserved in
+  `plan.yaml`'s D-09, so the triage inherits it rather than re-deriving it. This is **not
+  resolved** and is carried as **PB-04**.
 - **DEC-180 SUPPLIES the mechanism for REQ-05**: the shape gate is independent of domain and binds
   every author including the main session. The domain region cannot be used, because
   `check-domain.sh` exits 0 for a payload with no `agent_type`.
@@ -222,6 +239,16 @@ living in prose that nothing ever reads again.
   pass is a migration — it moves cards and adds none — so the gap is printed as a skip and left
   visible rather than closed by a side effect nobody asked for. Recovers full board coverage for
   shipped features, and closing it is one deliberate add rather than a rule inside a migration.
+- **PB-04 — record the station-vocabulary decision, and that one clause each of DEC-203 section 6,
+  DEC-191 and DEC-182 no longer holds.** This was a task in this plan and is not one any more.
+  Deferred out of FEAT-41 on 2026-08-29 by the operator, who declined its external dependency: the
+  recording FORM — an in-place clause strike under DEC-188, or the correction subsumed into the
+  entry in one voice — is a decisions-authority question being settled as separate work, and this
+  feature has no standing to settle it. What is to be recorded is fixed and preserved in
+  `plan.yaml`'s D-09 — the new entry's four content points and, for each of the three, the struck
+  clause and what holds instead — so this row is a recording job, not a fresh derivation. Recovers
+  a `DECISIONS.md` that does not assert three clauses this feature has already contradicted, and
+  it is the instrument for the disclosure in `## Constraints`.
 
 ## Approval
 
