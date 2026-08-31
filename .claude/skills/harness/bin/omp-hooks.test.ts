@@ -214,6 +214,25 @@ describe("OMP task lifecycle adapter", () => {
       .toEqual([{ agent: "harness-pm", task: "plan" }]);
   });
 
+  test("blocks an empty structured yield instead of taking the hook's empty-message pass-through", async () => {
+    const { handlers, calls } = fixture();
+    await start(handlers);
+    const ctx = { cwd: "/repo", sessionManager: { getSessionId: () => "parent-session" } };
+    await handlers.get("task:subagent:lifecycle")?.({
+      status: "idle", agentId: "agent-a", jobId: "job-a",
+    }, ctx);
+    await handlers.get("task:subagent:lifecycle")?.({
+      status: "idle", agentId: "agent-b", jobId: "job-b",
+    }, ctx);
+
+    const result = await handlers.get("tool_call")?.({
+      toolName: "yield", input: { result: {} },
+    }, ctx);
+    expect(result?.block).toBe(true);
+    expect(result?.reason).toContain("VERDICT");
+    expect(calls.filter((call) => call.script === "validate-digest.py")).toHaveLength(0);
+  });
+
   test("blocks a whole batch and rolls back earlier claims", async () => {
     const { handlers, calls } = fixture();
     await start(handlers);

@@ -1581,6 +1581,7 @@ DIGEST:
   members:                            # per-member roll-up → orchestrator appends these to STATE.md
     - { step: build, persona: backend-dev, verdict: PASS, headline: "...", files_touched: [...] }
     - { step: qa,    persona: qa,          verdict: FAIL, severity_max: high, must_fix: [...] }
+    - { step: advisor, persona: fable-advisor, status: skipped, reason: "persona unavailable" }
   must_fix: [<union of blocking findings>]
   files_touched: [<union across members>]
                                       # universal (§8) — required of leads too, `[]` if none
@@ -1610,11 +1611,13 @@ checking the copy. Observed live (DEC-124): a lead returned a valid block and wr
 prose report, and the earlier wording made that look like a
 deviation when it was the better outcome.
 
-The per-member block is what preserves `STATE.md` granularity under hierarchy. **Each entry carries
-its own `verdict:`** — the team verdict is computed from them, and `validate-digest.py` rejects a
-roll-up that reports better than its worst member (reporting *worse* is allowed; a lead may have a
-reason its members could not see). Bare-string entries like `[qa PASS]` are not a substitute: they
-drop `step` and `files_touched`, which is the granularity the field exists to carry.
+The per-member block is what preserves `STATE.md` granularity under hierarchy. **Each member that
+ran carries its own `verdict:`**; a member that did not run instead carries `status: skipped`, its
+persona, and the host reason. Skips are explicit records and do not enter worst-wins. The team
+verdict is computed from the members that ran, and `validate-digest.py` rejects a roll-up that
+reports better than its worst member (reporting *worse* is allowed; a lead may have a reason its
+members could not see). Bare-string entries like `[qa PASS]` are not a substitute: they drop
+`step` and `files_touched`, which is the granularity the field exists to carry.
 
 **One key per line.** An earlier version of this template packed `team`, `steps_run` and
 `cycles_used` onto a single source line to save space. That is not YAML: a lead copying it verbatim

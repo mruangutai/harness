@@ -541,6 +541,29 @@ DIGEST:
 artifact: r/digest.md
 """, False, "no verdict")
 
+# A team step that never ran has no verdict to roll up. The plan-panel contract
+# records the absence explicitly instead of manufacturing ESCALATE (which would
+# contaminate worst-wins) or PASS (which would claim work happened).
+case("a skipped member is explicit and excluded from worst-wins", "harness-validator-lead", """
+VERDICT: PASS
+DIGEST:
+  headline: scope review passed; optional advisor was unavailable
+  team: plan-panel
+  steps_run: 1
+  cycles_used: 0
+  members:
+    - { step: scope, persona: code-reviewer, verdict: PASS }
+    - { step: should-not-exist, persona: fable-advisor, status: skipped, reason: persona unavailable }
+  must_fix: []
+  branch: none
+  files_touched: []
+  open_questions: []
+  escalations: []
+  expertise_update: []
+  sc_status: []
+artifact: r/digest.md
+""", True)
+
 
 # =====================================================================
 # --hook mode (BUILD task 22 / F8): the ONLY mode DEC-122 makes mandatory had
@@ -1944,6 +1967,48 @@ artifact: {artifact}
 """
 
 
+def _write_plan_approval(plan_path, status):
+    with open(plan_path, "w") as handle:
+        handle.write(
+            f"schema: plan/1\nfeature: FEAT-PLAN\napproval:\n  status: {status}\n"
+        )
+
+
+def _plan_review_fixture(root):
+    feature_dir = os.path.join(root, ".harness", "harness", "features", "FEAT-PLAN")
+    os.makedirs(os.path.join(feature_dir, "notes"), exist_ok=True)
+    plan_path = os.path.join(feature_dir, "plan.yaml")
+    _write_plan_approval(plan_path, "pending")
+    artifact = os.path.join(feature_dir, "notes", "review-plan.md")
+    digest = reviewer_digest("n_a", reviewed=f"plan:{plan_path}", artifact=artifact)
+    return feature_dir, plan_path, artifact, digest
+
+
+def _plan_review_errors(validator, config, feature_dir, digest):
+    return validator.validate("harness-code-reviewer", digest, config, feature_dir)
+
+
+def check_pending_plan_review(validator, config, root, failures):
+    """DEC-207: a pre-signature plan review has no review_sha or code diff."""
+    feature_dir, plan_path, artifact, digest = _plan_review_fixture(root)
+    errors = _plan_review_errors(validator, config, feature_dir, digest)
+    if errors:
+        failures.append(f"a pending plan review with no feature.json/review_sha must accept: {errors}")
+
+    _write_plan_approval(plan_path, "approved")
+    errors = _plan_review_errors(validator, config, feature_dir, digest)
+    if not any("pending" in error.lower() for error in errors):
+        failures.append("plan review mode must reject an already-approved plan")
+
+    _write_plan_approval(plan_path, "pending")
+    wrong_grade = reviewer_digest(
+        "pass", reviewed=f"plan:{plan_path}", artifact=artifact
+    )
+    errors = _plan_review_errors(validator, config, feature_dir, wrong_grade)
+    if not any("n_a" in error for error in errors):
+        failures.append("plan review mode must reject a code_grade other than n_a")
+
+
 def check_review_policy(validator, config, feature_dir, failures):
     guarded = reviewer_digest("pass", must_fix="[needs repair]")
     if not any("review policy" in error for error in validator.validate(
@@ -2594,6 +2659,29 @@ def _hermetic_review_sha_cwd(td):
         PRE_FEATURE_REVISION, REVIEW_SHA = saved
 
 
+def _check_review_bindings(validator, config, feature_dir, td, failures):
+    check_code_grade_state(validator, config, feature_dir, failures)
+    check_reviewed_range(validator, config, feature_dir, td, failures)
+    check_resolve_reviewed_commit_guard(validator, failures)
+    check_review_sha_binding(validator, config, feature_dir, td, failures)
+    check_resolve_review_sha_artifact_path(validator, td, failures)
+    check_resolve_review_sha_feature_json(validator, td, failures)
+    check_pending_plan_review(validator, config, td, failures)
+    check_branch_corroboration(validator, config, td, failures)
+
+
+def _check_review_repository(td, failures):
+    check_derived_base_range(td, failures)
+    check_unresolvable_default_branch(td, failures)
+    check_no_merge_base(td, failures)
+
+
+def _check_review_policy_cases(validator, config, feature_dir, td, failures):
+    guarded = check_review_policy(validator, config, feature_dir, failures)
+    check_config_errors(validator, config, feature_dir, guarded, failures)
+    check_prior_validator(td, guarded, failures)
+
+
 def run_code_grade_cases():
     spec = importlib.util.spec_from_file_location("_validator_under_test", VALIDATE)
     validator = importlib.util.module_from_spec(spec)
@@ -2603,19 +2691,9 @@ def run_code_grade_cases():
         config = os.path.join(td, "harness.json")
         write_review_config(config, "advisory_unless_high")
         feature_dir = make_feature_dir(td)
-        check_code_grade_state(validator, config, feature_dir, failures)
-        check_reviewed_range(validator, config, feature_dir, td, failures)
-        check_resolve_reviewed_commit_guard(validator, failures)
-        check_review_sha_binding(validator, config, feature_dir, td, failures)
-        check_resolve_review_sha_artifact_path(validator, td, failures)
-        check_resolve_review_sha_feature_json(validator, td, failures)
-        check_branch_corroboration(validator, config, td, failures)
-        check_derived_base_range(td, failures)
-        check_unresolvable_default_branch(td, failures)
-        check_no_merge_base(td, failures)
-        guarded = check_review_policy(validator, config, feature_dir, failures)
-        check_config_errors(validator, config, feature_dir, guarded, failures)
-        check_prior_validator(td, guarded, failures)
+        _check_review_bindings(validator, config, feature_dir, td, failures)
+        _check_review_repository(td, failures)
+        _check_review_policy_cases(validator, config, feature_dir, td, failures)
     if failures:
         print("FAIL  code-grade and review-policy gates")
         for failure in failures:

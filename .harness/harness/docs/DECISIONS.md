@@ -2418,7 +2418,9 @@ masked `FAIL` ships.
 
 `validate-digest.py` now computes the roll-up and rejects a return that reports better than its
 worst member. Reporting **worse** stays legal: a lead may know something its members could not see.
-Every member entry therefore needs its own `verdict:`; without one the roll-up is undecidable.
+Every member that ran therefore needs its own `verdict:`. A member that did not run instead records
+`status: skipped`, its persona, and the host reason; a skip makes no claim about unperformed work
+and is excluded from worst-wins.
 
 **This is the only part of collation that is arithmetic.** Dedupe across overlapping reviewers,
 resolving contradictions, deciding what is blocking, and sending weak work back are judgement, stay
@@ -6341,8 +6343,11 @@ signs it.
 
 **What is different about a plan-phase gate.** It grades a specification rather than a diff. It has
 no `review_sha` to pin, because there is no commit its findings are about, and no test suite to run,
-because nothing has been built to run one against. Its evidence is a reader's judgement recorded in a
-lead digest — which is why the digest, not a green suite, is the artifact the ship decision reads.
+because nothing has been built to run one against. A code-reviewer digest binds this case as
+`reviewed: plan:<path-to-plan.yaml>` with `code_grade: n_a`; the validator accepts that form only
+while the named feature's plan is pending and has no pinned `review_sha`. This is a distinct target,
+not a missing-SHA fallback. Its evidence is a reader's judgement recorded in a lead digest — which
+is why the digest, not a green suite, is the artifact the ship decision reads.
 
 **The bound that keeps it from becoming a second approval loop.** Findings enter the ONE batched
 review pass at the signature gate per DEC-176 and never open a separate pre-signature fix dispatch.

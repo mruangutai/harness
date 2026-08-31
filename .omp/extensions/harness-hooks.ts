@@ -735,18 +735,22 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
     if (!reason && toolName === "yield") {
       const normalized = normalizeYieldInput(input, lastAssistantMessage);
       const contract = yieldContractText(normalized.result, lastAssistantMessage);
-      const result = policyRunner(ctx.cwd, "validate-digest.py", ["--hook"], {
-        ...basePayload(currentAgent, "SubagentStop", ctx.cwd),
-        stop_hook_active: false,
-        last_assistant_message: contract,
-        harness_runtime: "omp",
-        harness_feature: currentFeature,
-        harness_agent_id: text(ctx.agentId) || undefined,
-      });
-      debug(`yield agent=${currentAgent} value=${contract.slice(0, 500)}`);
-      debug(`yield verdict blocked=${result.blocked} reason=${result.reason || "none"}`);
-      reason = result.blocked ? result.reason : undefined;
-      if (!reason && normalized !== input) revisedInput = normalized;
+      if (!contract.trim()) {
+        reason = "Harness agents must yield a VERDICT, DIGEST, and artifact; an empty structured result is not a return.";
+      } else {
+        const result = policyRunner(ctx.cwd, "validate-digest.py", ["--hook"], {
+          ...basePayload(currentAgent, "SubagentStop", ctx.cwd),
+          stop_hook_active: false,
+          last_assistant_message: contract,
+          harness_runtime: "omp",
+          harness_feature: currentFeature,
+          harness_agent_id: text(ctx.agentId) || undefined,
+        });
+        debug(`yield agent=${currentAgent} value=${contract.slice(0, 500)}`);
+        debug(`yield verdict blocked=${result.blocked} reason=${result.reason || "none"}`);
+        reason = result.blocked ? result.reason : undefined;
+        if (!reason && normalized !== input) revisedInput = normalized;
+      }
     }
     if (reason) return { block: true, reason };
     if (revisedInput) return { input: revisedInput };

@@ -2997,13 +2997,14 @@ def _inv32_basic_checks(open_finding, resolved, fid):
     code, no_panel, _ = _inv32_run(_inv32_plan(panel_marker=False))
     _, high_open, _ = _inv32_run(_inv32_plan(finding=open_finding))
     _, high_resolved, _ = _inv32_run(_inv32_plan(finding=resolved))
-    feature_lines = "\n".join(
+    resolved_lines = [
         line for line in high_resolved.splitlines() if "FEAT-INV32" in line
-    )
+    ]
     return [
         code == 1 and "INV-32" in no_panel and "FEAT-INV32" in no_panel,
         "INV-32" in high_open and fid in high_open,
-        "INV-32" not in feature_lines,
+        any(fid in line and "resolved" in line.lower() for line in resolved_lines)
+        and not any("VIOLATION" in line for line in resolved_lines),
     ]
 
 
@@ -3011,9 +3012,9 @@ def _inv32_ruling_checks(open_finding, resolved, fid):
     ruling = [{"finding": fid, "ruling": "overrule", "who": "operator",
                "date": "2026-08-31", "reason": "accepted"}]
     _, overruled, _ = _inv32_run(_inv32_plan(finding=open_finding, rulings=ruling))
-    feature_lines = "\n".join(
+    overruled_lines = [
         line for line in overruled.splitlines() if "FEAT-INV32" in line
-    )
+    ]
     bad_ruling = [{**ruling[0], "who": ""}]
     _, unattributed, _ = _inv32_run(
         _inv32_plan(finding=open_finding, rulings=bad_ruling)
@@ -3021,7 +3022,8 @@ def _inv32_ruling_checks(open_finding, resolved, fid):
     stale = [{**ruling[0], "finding": "PF-cafebabe"}]
     _, stale_out, _ = _inv32_run(_inv32_plan(finding=resolved, rulings=stale))
     return [
-        "INV-32" not in feature_lines,
+        any(fid in line and "overruled" in line.lower() for line in overruled_lines)
+        and not any("VIOLATION" in line for line in overruled_lines),
         "unattributed" in unattributed and fid in unattributed,
         all(text in stale_out for text in ("PF-cafebabe", "reworded", "asked again")),
     ]
@@ -3075,7 +3077,11 @@ def _inv32_mutant_is_discriminating(missing):
         with open(mutant, "w") as file:
             file.write(changed)
         shutil.copymode(SCRIPT, mutant)
-        docs = (_inv32_plan(panel_marker=False), _inv32_plan(readers=missing))
+        sc04_refusal = _inv32_plan(
+            finding=[{"id": "PF-sc04", "severity": "high", "disposition": "open"}]
+        )
+        docs = (_inv32_plan(panel_marker=False), _inv32_plan(readers=missing),
+                sc04_refusal)
         return all(_inv32_mutant_fixture_passes(doc, mutant) for doc in docs)
     finally:
         if os.path.exists(mutant):
