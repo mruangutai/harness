@@ -13,21 +13,8 @@ without being able to weaken the gate — cannot be built on that layout. Two fu
 already visible: which kind a test belongs to is bookkeeping in two hand-maintained bash arrays
 plus a literal file list in `harness.json`, and eight files once drifted between them silently
 (DEC-197); and `bin/` cannot be described as production code, because 57 of the 118 files tracked
-under it are test-named.
-
-A third cost, measured 2026-08-31 at `ea6f51f` on a 12-core M3 Pro with each test invoked as its own
-`python3` subprocess: the suite is **strictly serial** — `run-unit-tests.sh` has no worker pool — and
-takes **247s** over 56 files, all `rc=0`. Five files carry 57% of it (`test-check-plan-routes.py`
-36.7s, `test-gh-sync.py` 32.9s, `test-check-state.py` 30.1s, `test-check-domain.py` 26.8s,
-`test-board-lifecycle.py` 15.1s = 142s), while 28 of the 56 finish in under a second: 8 files exceed
-10s, 20 sit between 1s and 10s. Eight workers measured ~47s (5.3x) and four — CI-realistic — 68.7s,
-against a hard floor of ~37s that no worker count can beat, because that floor is the single slowest
-test. **And the suite is not safe to run that way today:** `test-gh-sync.py` fails about one run in
-three at 8 workers and is green every time serially, while six concurrent copies of itself all pass —
-so a *sibling* mutates state it reads. Filed as issue #1053 with the three failing assertion names and
-a reproduction; the partner is not identified. Runs a and b at 8 workers were green and run c failed,
-so a single green parallel run is evidence of nothing — the qa half of #979 stated again in a
-different place.
+under it are test-named — measured at `ea6f51f`, and a baseline rather than an invariant, since
+FEAT-48 lands two more test files there before this feature runs.
 
 ## Goal
 
@@ -38,10 +25,6 @@ kind bookkeeping is deleted rather than maintained. This is a deliberate archite
 a drift repair: the two-base boundary model correctly accepts `bin/` today, and it is being widened
 on purpose. Nothing changes for onboarded projects, whose `tests/**` already resolves in their own
 product base.
-
-And the suite that lands is one that can be run concurrently and trusted: tests that do not depend on
-each other, a worker pool in the same runner rewrite rather than a later bolt-on, and a wall time
-that was measured rather than assumed.
 
 ## Requirements
 
@@ -64,14 +47,6 @@ that was measured rather than assumed.
   arrays or their cross-check as current.
 - REQ-08: The probe that makes a live model call is under `tests/` and is reachable by no runner and
   no active test kind, so `bin/` being test-free costs nothing in CI and gains nothing false.
-- REQ-09: No test's result depends on whether another test ran, or on the order it ran in, and a
-  test that reacquires such a dependency is caught by a check that fails loudly rather than by an
-  intermittent red.
-- REQ-10: The suite runs concurrently, and running it concurrently does not change what it reports:
-  every line of output is attributable to the file that produced it, any failing file fails the run,
-  and every existing invocation keeps its behaviour.
-- REQ-11: Running the whole suite costs materially less wall time than it does today, by a margin
-  that is measured on the host that runs it rather than asserted.
 
 ## Constraints
 
@@ -99,13 +74,31 @@ Cited by number, each labelled by what it does to this feature.
   fixture provenance and the measurement mode. This feature is the migration that unblocks it and
   #979 is re-planned afterwards. Also out: renaming `is_control_plane_target`, and a third
   "own-product" base for Harness. Both considered and declined.
-- **Out of scope, decided by the operator on the measurements:** change-based test selection is
-  **rejected as the primary speed lever** and is not planned here. Half the suite is already
-  sub-second, so the only meaningful saving selection could buy is skipping the five slow gate tests
-  — which is precisely where a mis-mapped selector produces a green run that proved nothing (#979).
-- **Issue #1053 folds into this feature** rather than becoming its own: the runner it would have to
-  change is being rewritten here, and switching a pool on over a suite with a known cross-test
-  collision makes the gate flaky by construction.
+- **Ordered against FEAT-48, which lands FIRST.** Parallel safety, the worker pool and suite wall
+  time are FEAT-48, and it merges whole before this feature starts. The order is forced, not
+  preferred: the cross-test injection hazard is live today and corrupts every parallel measurement
+  including this feature's own, and the pool does not depend on this layout — FEAT-48's D-05 puts
+  scheduling in `run_pool.py`, invoked once by bash which keeps kind selection, so the pool
+  receives a script list and never sees how that list was discovered. Issue #1053 and the
+  rejection of change-based test selection as a speed lever travel with FEAT-48. Nothing is
+  written twice and no work interleaves across the two merges.
+- **The census FEAT-48 hands this feature, confirmed against its plan's D-09.** FEAT-48 adds
+  exactly two test files to `.claude/skills/harness/bin/` — `test-suite-independence.py`, a static
+  `ast` scan with no subprocess, therefore unit; and `test-run-pool.py`, whose every case forks the
+  pool, therefore integration — plus **two** non-test helpers that stay in `bin/` beside the
+  runner, `isolated_bin.py` and `run_pool.py`. This feature migrates both test files with
+  everything else and declares each one's kind. Nothing here names a count FEAT-48 could
+  invalidate: every census is derived from the tree this feature merges into, carries a floor, and
+  is bound by a conservation law rather than by an expected number (D-14).
+- **Two inherited guards bind every test file this feature moves or writes, and neither is this
+  feature's to weaken.** `test-suite-independence.py` statically forbids a test mutating any path
+  derived from the live checkout, has no escape hatch, and discovers its scan set by walking the
+  tree, so the move does not blind it — but its own root derivation is the one anchor in the
+  migrated set that is not a `sys.path` insert, and T-03 repairs it by name. `run_pool.py
+  --mutation-check` enforces the same property at runtime on every run, and the flag sits on the
+  single invocation line in `run-unit-tests.sh` that this feature rewrites. Carrying it forward is
+  a requirement of the rewrite, asserted in T-05's verify: dropping it leaves a green suite that
+  has stopped checking.
 
 ## Success Criteria
 
@@ -113,12 +106,14 @@ Every criterion is graded at the pinned `review_sha` (`git show <review_sha>:<pa
 the working tree. The per-file baselines the first two criteria compare against were measured at
 `ea6f51f` and are recorded in `notes/research-tests-layout.md`.
 
-- SC-01: From the new layout, `run-unit-tests.sh --kind unit` exits 0, its tally lines name exactly
-  the files present in `tests/unit/`, and each of the 19 migrated unit files emits exactly the
-  verdict-line count recorded for it in the baseline census.
+- SC-01: From the new layout, `run-unit-tests.sh --kind unit` exits 0, and the set of basenames in
+  its tally lines equals exactly the set of `test-*.py` files present in `tests/unit/` — set
+  equality against the directory, never a count, so a file the runner silently skips and a name it
+  reports without a file both go red. Each migrated unit file emits exactly the verdict-line count
+  recorded for it in the baseline census; a file with no baseline row is reported as new and named
+  in the goal-check rather than failed.
   verify: automated        evidence: unit
-- SC-02: The same three clauses hold for `--kind integration` over `tests/integration/`, for each of
-  the 36 migrated integration files.
+- SC-02: The same two clauses hold for `--kind integration` over `tests/integration/`.
   verify: automated        evidence: integration
 - SC-03: On the live PreToolUse route, `harness-qa`, `harness-backend-dev` and `harness-dev-ops` are
   each ALLOWED to write a new file under both `tests/unit/` and `tests/integration/`; `harness-qa`
@@ -145,8 +140,10 @@ the working tree. The per-file baselines the first two criteria compare against 
 - SC-07: At the review sha, no file outside `.harness/notes/`, `.harness/harness/features/` and
   `.harness/logs/` mentions `UNIT_SCRIPTS`, `INTEGRATION_SCRIPTS` or `--check-kinds`; the search's
   exit status is asserted, never a count of zero lines. `DECISIONS.md` carries the new entry,
-  DEC-187 and DEC-197 no longer describe the arrays as live, and
-  `gen-decisions-index.py --check` exits 0.
+  DEC-187 and DEC-197 no longer describe the arrays as live, and the committed
+  `DECISIONS-INDEX.md` is byte-identical to `gen-decisions-index.py --stdout`. There is no
+  `--check` flag: the tool refuses any argv token but `--stdout` and exits 2, so a criterion
+  resting on one would fail for the wrong reason.
   verify: inspection
 - SC-08: `tests/manual/` is matched by no `detect` glob of any kind whose `status` is `active`, and
   by neither directory the runner walks — asserted in a test, so a later `detect` edit that captures
@@ -157,69 +154,39 @@ the working tree. The per-file baselines the first two criteria compare against 
   either none or only children in the declared fixture set (`git`, `ps`, `fake-gh`, `fake-gh-fail`,
   `bun`, `python3 -c`). The probe output, not the plan's own table, is the grading set.
   verify: inspection
-- SC-10: The sibling that mutates `test-gh-sync.py`'s state is identified by name, together with the
-  shared surface and the write that collides, in `notes/research-parallel-safety.md` at the review
-  sha; and the instrument that identified it re-runs from the repository root and reproduces that
-  identification. "The flake no longer reproduces" is not this criterion: the deliverable is the
-  named partner and the named mechanism, because a flake that stops reproducing is
-  indistinguishable from one that got luckier.
+- SC-10: The migration is complete against the tree it merges into.
+  `tests/manual/suite-census.py migration` derives the set of `test-*.py` basenames tracked under
+  `.claude/skills/harness/bin/` at that ref — which by then contains FEAT-48's two — prints the
+  size of that set, refuses a set smaller than 56 so a truncated or empty discovery cannot read as
+  a clean sweep, and exits non-zero unless every name is present at the review sha under exactly
+  one of `tests/unit/` or `tests/integration/`. One deletion is declared on the command line
+  (`test-run-unit-tests-kinds.py`) and is the only permitted absence; a file present with no
+  baseline name is printed as new, not failed. What makes it red: dropping a file, copying where a
+  move was intended, or FEAT-48 adding a test this feature does not migrate. The one number in it
+  is a floor measured at `ba338d8`, whose staleness can only make it weaker and never falsely
+  green.
   verify: inspection
-- SC-11: The shared surface #1053 turns on cannot silently return: a test under `tests/unit/` asserts
-  the invariant that forbids it, over every file under `tests/`, and the assertion is proven able to
-  fail by being pointed at a synthetic tree holding one violating file, which it must report by path.
-  The evidence for independence is this assertion, never a suite that passed once under load.
-  verify: automated        evidence: unit
-- SC-12: Ten consecutive `run-unit-tests.sh --kind all` runs at the default worker count each exit 0
-  and print zero `FAIL` lines, and one further `--kind all --jobs 1 --reverse` run also exits 0 with
-  zero `FAIL` lines and produces verdict lines byte-identical to the forward serial run's — so
-  execution order is shown not to be load-bearing rather than asserted to be. A pass is 11 of 11;
-  10 of 11 is `not_met`. The repetition count is chosen against the measured failure rate: at ~1 run
-  in 3, one green run misses the defect 67% of the time and ten miss it 1.7% — runs a and b at 8
-  workers were green and run c failed. The instrument's recorded per-run output over all eleven runs
-  is the grading set, not a summary of it.
-  verify: inspection
-- SC-13: On a host with at least 8 usable cores, `--kind all` at the default worker count completes in
-  at most 40% of the wall time of `--jobs 1` measured on the same host in the same session, both
-  numbers recorded with that host's core count, and both runs exit 0. The comparison is relative on
-  purpose: the 247s serial figure was measured at `ea6f51f` on a 12-core M3 Pro and does not transfer.
-  No criterion here asks for less than 37s — the slowest single file measures 36.7s, so no worker
-  count can beat that floor; 4 workers measured 68.7s, which is 28% of serial and still passes this.
-  verify: inspection
-- SC-14: Driven against a fixture root, the parallel runner is verdict-identical to the serial one and
-  its output stays attributable: `--jobs 1`, `--jobs 4` and the default each produce the same set of
-  `PASS`/`FAIL` lines, as does `--jobs 1 --reverse`; each file's own output appears as one contiguous
-  block bounded by that file's header and its own verdict line, with no line of one file's output
-  falling between two lines of another's; one deliberately failing file yields exit 1 and its own
-  `FAIL` line while every other file still reports `PASS`; a file whose interpreter cannot be spawned
-  is a `FAIL` line and exit 1, never a silently skipped file; `--kind unit`, `--kind integration` and
-  `--check-layout` behave as they did before the pool; and `--jobs 0`, `--jobs -1`, `--jobs abc` and
-  `--jobs` with no value each exit 2 with the usage line. Each clause is its own case with its own
-  assertion — one "it works in parallel" case is satisfied by the conformers alone.
-  verify: automated        evidence: integration
 
 ## Verification gaps
 
 Read against `test_kinds` in `.harness/harness.json` at `ea6f51f`.
 
-- Every criterion above rests on `unit` or `integration`. Both have a live runner
-  (`run-unit-tests.sh --kind <kind>`), so no criterion here is carried by a soft skip.
+- Every `verify: automated` criterion above rests on `unit` or `integration`. Both have a live
+  runner (`run-unit-tests.sh --kind <kind>`), so no criterion here is carried by a soft skip.
+  SC-07, SC-09 and SC-10 are `inspection` and rest on named instruments — `git grep` with its exit
+  status asserted, and the two `tests/manual/suite-census.py` modes — not on any test kind.
 - `component`, `ui`, `eval` and `typecheck` have `cmd: null`, and `functional` is excluded by
   DEC-187. None of them covers a surface this feature touches: there is no UI, no model behaviour
   and no database path in it.
 - **The one gap this feature does not close, stated at the signature:** the guard makes `bin/` free
   of test-**named** files, not of test **support**. `layout_fixtures.py` is imported only by two
-  tests and stays in `bin/` under the settled scope, so nothing mechanical distinguishes a fixture
-  module from production code. Purpose-level classification is left to #979.
-- Runtime, measured at `ea6f51f`: `--kind unit` 20s, `--kind integration` 152s. SC-02's evidence
-  therefore takes ~2.5 minutes to produce; that is a stated cost, not a reason to weaken it.
-- **SC-12 and SC-13 are graded on instruments under `tests/manual/`, which no runner runs.** So the
-  stability and the speedup are established once, at review, by a human re-running a recorded
-  command — not by the tests workflow. CI keeps only the single `--kind unit` and `--kind integration`
-  runs, and a later regression in stability would surface there as an intermittent red rather than as
-  a named failure. Putting eleven whole-suite runs (~10 minutes at 8 workers) into a required step
-  was the alternative, and it is not taken. That is a stated gap, not an oversight.
-- SC-14 covers the concurrency semantics that CI *can* afford: it runs against a fixture root of
-  trivial tests, so it costs seconds and is a required step.
+  tests and stays in `bin/` under the settled scope, and FEAT-48's `isolated_bin.py` is a second
+  module of exactly that shape. Nothing mechanical distinguishes a fixture module from production
+  code. Purpose-level classification is left to #979.
+- Runtime: `--kind unit` 20s and `--kind integration` 152s were measured at `ea6f51f`, serially.
+  FEAT-48's pool lands first and changes both, and this feature does not re-measure them — it
+  changes which files each kind discovers, not how they are scheduled. SC-02's evidence therefore
+  costs whatever the pool costs, which is a stated unknown rather than a stated cost.
 
 ## Approval
 
