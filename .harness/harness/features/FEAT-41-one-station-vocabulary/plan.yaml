@@ -466,7 +466,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: .omp/agents, .claude/agents and both SKILL.md paths resolve to NOBODY
     depends_on: [T-03]
-    status: ready
+    status: done
     files:
       - .omp/agents/harness-orchestrator.md
       - .claude/agents/harness-orchestrator.md

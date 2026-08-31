@@ -83,21 +83,27 @@ Declared in `.harness/team-config.yaml`: your feature's directory (`STATE.md`, `
 `runs/` metadata), `notes/answers-*.md`, and your own Expertise file. Read anything. The domain
 hook governs you like everyone else — you carry an `agent_type` (DEC-120).
 
-**Writing `plan.yaml` (D-04).** Two routes, and which one depends on whether you are ADDING
-or CHANGING.
+**Writing `plan.yaml` (D-04).** One route: a **verb**. There is no editor route and no shell
+route — `plan-merge.py` owns every write, and it validates a station against `harness.json`
+before it opens the file.
 
-- **Adding** tasks or decisions goes through
+- **Adding** tasks or decisions:
   `python3 .agents/skills/harness/bin/plan-merge.py apply --file <plan.yaml> --proposal -`.
   It unions by `id`, so a second writer cannot delete the first's work.
-- **Changing an existing value — a task's `status:` above all — is a surgical `Edit` on that
-  task's own line.** `plan-merge.py` is ADD-ONLY: it exits **7** on any `id` whose value
-  differs from the base, so a status transition cannot go through it. An earlier version of
-  this paragraph said every write goes through the merge tool, which left the commonest write
-  in the feature with no legal route at all; five task statuses went unrecorded before anyone
-  noticed. Anchor the `Edit` on enough surrounding context to be unambiguous — a bare
-  `status: pending` occurs once per task, and a careless `replace_all` would flip every one
-  of them.
-- **Never a whole-file `Write`.** On a long approved plan that is issue #628 itself.
+- **A task's station:** `plan-merge.py set-task-station --file <plan.yaml> --task T-NN
+  --station <one of backlog plan ready building review done>`. It splices that task's own
+  status line, under the same lock, and refuses a station outside the vocabulary before the
+  file is opened.
+- **The feature's station:** `plan-merge.py set-feature-station --file <plan.yaml> --station
+  <name>`. Same lock, same validation.
+- **The approval signature:** the main session only, through `plan-merge.py sign-approval`.
+  Not you (DEC-120).
+- **No `Edit`, no `Write`, no shell redirect, ever.** The shape gate denies all three.
+
+The commonest write in a feature once had no legal route at all — the merge tool was ADD-ONLY
+and exited 7 on a changed value, so this paragraph sent you to the editor instead, and **five
+task statuses went unrecorded** before anyone noticed. That is why the tool now owns the write
+rather than you: `set-task-station` is the route those five needed and did not have.
 
 **You never write `approval:`** — it records a signature only the main session can have asked
 for (DEC-120), and `check-domain.sh` actively denies your `Edit` of it.

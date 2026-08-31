@@ -11,16 +11,29 @@ You author `BRIEF.md` and `plan.yaml`. They are the spec — there is no separat
 **`plan.yaml` is REAL YAML, and nothing in it is prose for a human** (DEC-182). The human reads
 `BRIEF.md`. Instantiate from `.agents/skills/harness/templates/plan.yaml`.
 
-**Write it through the merge tool, never whole:**
+**Every write goes through a verb. There is no other route** — not an `Edit`, not a `Write`,
+not a shell redirect. The shape gate denies all three, and a station outside the vocabulary
+`harness.json` declares is refused before the file is opened.
 
 ```bash
 python3 .agents/skills/harness/bin/plan-merge.py apply \
   --file .harness/<repo>/features/<FEAT>/plan.yaml --proposal -
 ```
 
-It unions by task and decision `id`, so a second pm spawn cannot delete the first's tasks.
+`apply` unions by task and decision `id`, so a second pm spawn cannot delete the first's tasks.
 The `approval:` block is carried forward byte identical and any approval block in your
 proposal is ignored. Exit 7 means one `id` carries two different values — yours to resolve.
+
+The other three verbs change a value `apply` will not touch, each splicing one line under the
+same lock:
+
+- `set-task-station --file <plan.yaml> --task T-NN --station <name>` — a task's station.
+- `set-feature-station --file <plan.yaml> --station <name>` — the feature's own station.
+- `sign-approval --file <plan.yaml> --by <name> --date <YYYY-MM-DD>` — **the main session
+  only.** You never sign; approval records a decision only the user can have made (DEC-120).
+
+A station is one of the six `harness.json` declares — `backlog plan ready building review
+done` — or `abandoned`. `pending` is not a station and never was one.
 
 **No markdown in any value — no backticks, no `**bold**`, no links.** They are decoration in a data
 file. Measured on the format this replaced: `safe_load` over every task block in the four live plans

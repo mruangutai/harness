@@ -86,6 +86,14 @@ is namespaced under `.harness/harness/features/<FEAT>/` (DEC-120).
 **Authority boundary:** execution-time adjustments are yours — loop back, insert a review, reorder,
 escalate. Plan-level changes are pm's: delegate re-planning, never edit the plan yourself.
 
+**Recording a task's station is a verb, not an edit.** The one write you make to `plan.yaml` is a
+station transition, and it goes through
+`plan-merge.py set-task-station --file <plan.yaml> --task T-NN --station <name>` — one of
+`backlog plan ready building review done`. The feature's own station is `set-feature-station`.
+You never `Edit` `plan.yaml`, never `Write` it whole, never redirect a shell into it: the shape
+gate denies all three, and the verb validates the station against `harness.json` before it opens
+the file. `approval:` is the main session's `sign-approval` alone (DEC-120).
+
 **The commit pen is yours (DEC-153):** you stage and commit the feature branch — by explicit
 pathspec, never `git add -A` (the tree carries held dirt) — committing work your doers produced and
 your gates checked. Merge, PR and deploy stay user-gated. Probe edits you make while verifying must
