@@ -70,7 +70,6 @@ structured return. That single run also settles SC-11, SC-12 and SC-16.
 
 | ID | Nature | Item |
 |---|---|---|
-| B-1 | enhancement | **Recommend doing before the first signature.** `panel_findings.py`'s 32-bit id is a ratchet: widening it later changes every finding id and staleness-breaks every recorded overrule. Free now, permanently more expensive after the first signed plan carries a ruling |
 | B-2 | bug | `_hook_feature_dir` falls back silently to `owner_root` on any registry miss with no existence check. Not the cause of the observed failure, but a real hole |
 | B-3 | bug | `code-grade.py` raises an unhandled `RuntimeError` on any path new in the graded diff — exits 1 with zero `RESULT: FAIL` lines, reddening a clean range and able to mask a real failure behind a crash |
 | B-4 | bug | Five structured returns came back empty or null across this feature and were only recovered because leads re-measured. `validate-digest.py`'s stop hook did not stop them |

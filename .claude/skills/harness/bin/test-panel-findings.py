@@ -40,15 +40,15 @@ def run_cli(reader, summary):
 
 
 def case_id_shape():
-    """Case 1 -- the id is PF- plus 8 lowercase hex characters, total length 11."""
+    """Case 1 -- the id is PF- plus 32 lowercase hex characters, total length 35."""
     mod = pf()
     fid = mod.finding_id("scope", "some summary")
     check("case1: id starts with PF-", fid.startswith("PF-"), fid)
-    check("case1: id total length is 11", len(fid) == 11, fid)
+    check("case1: id total length is 35", len(fid) == 35, fid)
     hexpart = fid[3:]
     check(
-        "case1: suffix is 8 lowercase hex characters",
-        len(hexpart) == 8 and hexpart == hexpart.lower() and all(c in "0123456789abcdef" for c in hexpart),
+        "case1: suffix is 32 lowercase hex characters",
+        len(hexpart) == 32 and hexpart == hexpart.lower() and all(c in "0123456789abcdef" for c in hexpart),
         fid,
     )
 
@@ -102,7 +102,7 @@ def case_unicode_round_trips():
     mod = pf()
     try:
         fid = mod.finding_id("scope", "\u00fcnicode summary with \u2014 an em dash \u2603")
-        ok = isinstance(fid, str) and len(fid) == 11
+        ok = isinstance(fid, str) and len(fid) == 35
         detail = fid
     except Exception as exc:  # noqa: BLE001 -- the assertion IS that nothing raises
         ok = False

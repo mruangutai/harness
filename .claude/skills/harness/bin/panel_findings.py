@@ -26,11 +26,11 @@ def normalize_summary(summary):
 
 
 def finding_id(reader, summary):
-    """PF- followed by the first 8 characters of sha256(reader + '\\n' + normalized). Length 11."""
+    """PF- followed by the first 32 characters of sha256(reader + '\\n' + normalized). Length 35."""
     normalized = normalize_summary(summary)
     digest_input = f"{reader}\n{normalized}".encode("utf-8")
     digest = hashlib.sha256(digest_input).hexdigest()
-    return f"PF-{digest[:8]}"
+    return f"PF-{digest[:32]}"
 
 
 def _cli_id(reader, summary):

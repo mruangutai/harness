@@ -154,7 +154,7 @@ decisions:
     dec: DEC-170
   - id: D-05
     choice: >-
-      A panel finding's identity is a CONTENT HASH, spelled PF- followed by the first 8 hex
+      A panel finding's identity is a CONTENT HASH, spelled PF- followed by the first 32 hex
       characters of sha256 over the reader id, a newline, and the finding summary lowercased
       with whitespace collapsed. It is computed ONCE, by harness-pm at transcription, through
       panel_findings.py. The validator lead never computes it: its tools are read, glob, grep,
@@ -770,7 +770,7 @@ tasks:
         never CONTENT: whether a defect exists, and how severe the reader judged it
         never IDENTITY: you do NOT assign a finding's PF- id. It is a sha256 over the reader
                and the normalized summary, computed by panel_findings.py, and you hold no Bash
-               to run it with. pm assigns it ONCE at transcription (D-05). An 8-hex string you
+               to run it with. pm assigns it ONCE at transcription (D-05). A 32-hex string you
                invent makes pm's correctly computed id look like a stale override to INV-32
                check 4 -- the exact failure D-05 exists to prevent.
       State the consequence: a finding that arrives with severity unrated is TRANSCRIBED as
