@@ -71,7 +71,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: carve-out (check-domain.sh is named in CLAUDE.md's DEC-174 list)
     depends_on: []
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/check-domain.sh
       - .claude/skills/harness/bin/test-check-domain.py
@@ -153,7 +153,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: carve-out (check-domain.sh is named in CLAUDE.md's DEC-174 list)
     depends_on: [T-01]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/check-domain.sh
       - .claude/skills/harness/bin/test-check-domain.py
@@ -256,7 +256,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: rides with the carve-out file it tests (DEC-174)
     depends_on: [T-02]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/test-check-domain.py
     verify: |
@@ -311,7 +311,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: carve-out (check-domain.sh is named in CLAUDE.md's DEC-174 list)
     depends_on: [T-02]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/check-domain.sh
       - .claude/skills/harness/bin/test-check-domain.py
@@ -367,7 +367,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: no build squad is spawned on this feature; the record of a ruling is the operator's own
     depends_on: [T-04]
-    status: pending
+    status: done
     files:
       - docs/harness/DECISIONS.md
       - docs/harness/DECISIONS-INDEX.md

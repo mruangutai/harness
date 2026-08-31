@@ -1632,19 +1632,22 @@ if _inv26_board:
             _stations = None
 
     if _stations is not None:
-        # plan status -> the column that status means, NAMED BY THE BOARD ITSELF rather
-        # than by a literal spelled here (FEAT-24 T-05). `pending` maps to the declared
-        # `backlog` station because that station is where gh-sync's `open` lands every issue
-        # and nothing moves it until start-task.
         # LOWERCASE ON BOTH SIDES (FEAT-41 T-02). The board's answer arrives lowercased from
         # gh_board.board_stations, and the declaration no longer carries column names, so the
         # six stations ARE the expected values and no lookup stands between them.
+        #
+        # `ready` MAPS TO `ready`, AND THE OLD JUSTIFICATION IS DELETED RATHER THAN REWRITTEN
+        # (FEAT-41 T-04, D-11). The comment that stood here explained why `pending` mapped to
+        # the `backlog` station — that is where `gh-sync open` lands every issue and nothing
+        # moved it until start-task. That rule no longer exists: plan.yaml and the board carry
+        # the same word with the same meaning, and nothing is derived between them. `pending`
+        # itself is not a value in any file any more.
         #
         # `_st26` IS GONE rather than lowercased: once the values are the station names, every
         # one of its three reads became the literal it was looking up, leaving an assignment
         # nothing read. That is dead code, not a step toward T-06 — T-06 deletes `_EXPECT` too,
         # under D-11, and `_EXPECT` is still live below at the per-task comparison.
-        _EXPECT = {"building": "building", "done": "done", "pending": "backlog"}
+        _EXPECT = {"ready": "ready", "building": "building", "done": "done"}
 
         for _fp in sorted(glob.glob(os.path.join(H, "*", "features", "*"))):
             _feat = os.path.basename(_fp)
@@ -1676,10 +1679,19 @@ if _inv26_board:
             # the rest `pending` derives None, so the mis-columned `done` card SC-05 names
             # went unreported. That is the ordinary window between two tasks, not a corner,
             # and every INV-26 fixture was single-task so the suite could not see it.
-            _statuses = [(_t.get("status") or "pending")
+            # An absent status reads as the NOT-STARTED STATION (FEAT-41 T-04). The PLAN.md
+            # corpus predates the field, so absence still has to mean something, and what it
+            # means is `ready`.
+            _statuses = [(_t.get("status") or "ready")
                          for _t in (_pdoc.get("tasks") or [])
                          if isinstance(_t, dict) and _t.get("id")]
-            if _derived is None and not any(_s != "pending" for _s in _statuses):
+            # THIS GUARD INVERTS UNDER THE RENAME IF IT IS COPIED LITERALLY (FEAT-41 T-04).
+            # It read `not any(_s != "pending")` — true only when every task is unstarted. The
+            # migration rewrote every such task to `ready`, so a literal rename would leave the
+            # test comparing against a word no file carries: `_s != "pending"` is true for
+            # EVERY task, `not any(...)` is false for every feature, and the skip would stop
+            # firing everywhere at once. Written against the not-started station instead.
+            if _derived is None and all(_s == "ready" for _s in _statuses):
                 # Nothing has started. No card can be wrong yet, so no claim is right.
                 continue
 
@@ -1710,11 +1722,11 @@ if _inv26_board:
             _tstat = {}
             for _t in (_pdoc.get("tasks") or []):
                 if isinstance(_t, dict) and _t.get("id"):
-                    _tstat[_t["id"]] = _t.get("status") or "pending"
+                    _tstat[_t["id"]] = _t.get("status") or "ready"
 
             for _tid in sorted(_issues):
                 _num = _issues[_tid]
-                _want = _EXPECT.get(_tstat.get(_tid, "pending"))
+                _want = _EXPECT.get(_tstat.get(_tid, "ready"))
                 if _want is None:
                     continue
                 # D-24, on the operator's ruling 4 of 2026-08-23 (FEAT-33 T-22). Under

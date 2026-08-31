@@ -98,7 +98,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: [T-02]
-    status: pending
+    status: abandoned
     files:
       - .claude/skills/harness/bin/factory_product_config.py
       - .claude/skills/harness/bin/test-factory-product-config.py
@@ -353,7 +353,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: check-domain.sh --resolve returns NOBODY for .harness/products/** at 63b83c7 (DEC-179)
     depends_on: []
-    status: pending
+    status: abandoned
     files:
       - .harness/products/kaya-ai/harness.json
     verify: |
@@ -439,7 +439,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: check-domain.sh --resolve returns NOBODY for .claude/skills/harness-init/SKILL.md at 63b83c7 (DEC-179)
     depends_on: []
-    status: pending
+    status: abandoned
     files:
       - .claude/skills/harness-init/SKILL.md
     verify: |
@@ -537,7 +537,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-documentor
     depends_on: [T-02]
-    status: pending
+    status: abandoned
     files:
       - .harness/README.md
     verify: |
@@ -571,7 +571,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-documentor
     depends_on: [T-01, T-02, T-03]
-    status: pending
+    status: abandoned
     files:
       - docs/harness/DECISIONS.md
       - docs/harness/DECISIONS-INDEX.md
@@ -688,7 +688,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-dev-ops
     depends_on: [T-05]
-    status: pending
+    status: abandoned
     files:
       - .harness/harness.json
     verify: |
@@ -738,7 +738,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: check-domain.sh --resolve returns NOBODY for .claude/skills/harness-qa-gate/SKILL.md at 63b83c7 (DEC-179)
     depends_on: [T-01]
-    status: pending
+    status: abandoned
     files:
       - .claude/skills/harness-qa-gate/SKILL.md
     verify: |

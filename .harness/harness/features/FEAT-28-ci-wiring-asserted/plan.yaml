@@ -66,7 +66,7 @@ tasks:
     execution_mode: main-session-direct
     execution_agent: harness-dev-ops
     depends_on: []
-    status: pending
+    status: abandoned
     files:
       - .claude/skills/harness/bin/test-check-plan-routes.py
     verify: |
@@ -283,7 +283,7 @@ tasks:
     execution_mode: main-session-direct
     execution_agent: harness-dev-ops
     depends_on: [T-01]
-    status: pending
+    status: abandoned
     files:
       - .github/workflows/tests.yml
       - .claude/skills/harness/bin/test-check-plan-routes.py
@@ -394,7 +394,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-documentor
     depends_on: [T-02]
-    status: pending
+    status: abandoned
     files:
       - .harness/harness/docs/DECISIONS.md
       - .harness/harness/docs/DECISIONS-INDEX.md

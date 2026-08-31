@@ -17,9 +17,28 @@
 #
 # NO BACKTICKS, NO **BOLD**, NO MARKDOWN ANYWHERE IN A VALUE. They are decoration in a
 # data file; the loader will either reject them or hand a resolver a path nobody wrote.
+#
+# ONE WRITER, AND IT IS CODE (FEAT-41). Nobody opens this file to change a status or a
+# signature — not pm, not the orchestrator, not the main session. Every write goes through a
+# VERB, so it happens under the shared lock and is validated before it lands:
+#
+#   plan-merge.py add-tasks           --file <plan.yaml> --proposal <path or ->
+#   plan-merge.py set-task-station    --file <plan.yaml> --task T-NN --station <name>
+#   plan-merge.py set-feature-station --file <plan.yaml> --station <name>
+#   plan-merge.py sign-approval       --file <plan.yaml> --by <name> --date <YYYY-MM-DD>
+#
+# A hand edit is what #628 was: two whole-file writes, the second silently losing what the
+# first added. The verbs splice text under a lock instead, and a station outside the declared
+# vocabulary is refused before the file is opened at all.
 
 schema: plan/1
 feature: FEAT-NN-<slug>          # must match the directory name
+
+# THE FEATURE'S STATION, and the only record of it (FEAT-41). One of the six names
+# harness.json declares — backlog, plan, ready, building, review, done — or `abandoned`, which
+# names no board column. WRITTEN ONLY BY `plan-merge.py set-feature-station`; no agent and no
+# human edits this line, and check-domain.sh denies the write.
+status: <station>
 
 # The GitHub issue numbers this feature was PLANNED FROM — bare integers, written by pm at
 # plan time and signed with the plan. `gh-sync.py open` mirrors them into feature.json's
@@ -103,7 +122,11 @@ tasks:
     depends_on: []               # [T-NN, ...] — the build runner orders on this.
                                  # File order is NOT a topological order.
 
-    status: pending              # pending | done
+    # backlog | plan | ready | building | review | done | abandoned
+    # The SAME six names harness.json declares, plus the terminal marker. `pending` is not one
+    # of them and is not a value anywhere any more (FEAT-41 T-04). An absent status reads as
+    # `ready`, the not-started station.
+    status: ready
 
     # A LIST OF PLAIN STRINGS. Not a comma string, not backticked, no trailing
     # annotations like "(delete)" — the resolver takes the value verbatim, so an

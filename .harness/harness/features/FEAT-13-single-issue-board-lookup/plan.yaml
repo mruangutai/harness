@@ -105,7 +105,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: []
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/factory_gh.py
       - .claude/skills/harness/bin/factory_decompose.py
@@ -451,7 +451,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: [T-01]
-    status: pending
+    status: done
     files:
       - .harness/features/FEAT-13-single-issue-board-lookup/notes/receipt-harness-backend-dev-live-spot-check.md
     verify: |

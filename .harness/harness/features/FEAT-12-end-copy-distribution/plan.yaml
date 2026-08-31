@@ -164,7 +164,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: the WORK is a read of /Users/molchairuangutai/GitHub/kaya-ai, outside CLAUDE_PROJECT_DIR and granted to no lane; only the receipt lands in-repo, so check-plan-routes reports an advisory deviation on the artifact path granted to harness-orchestrator. It stays with the seat that runs T-02 to T-05, because a manifest captured by a different seat than the one that deletes is not evidence about the same moment.
     depends_on: []
-    status: pending
+    status: done
     files:
       - .harness/features/FEAT-12-end-copy-distribution/notes/kaya-harness-manifest-before.txt
     verify: |
@@ -197,7 +197,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: the path is outside CLAUDE_PROJECT_DIR and no team-config lane grants it
     depends_on: [T-01]
-    status: pending
+    status: done
     files:
       - /Users/molchairuangutai/GitHub/kaya-ai/.claude/skills
       - /Users/molchairuangutai/GitHub/kaya-ai/.claude/commands
@@ -314,7 +314,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: the path is outside CLAUDE_PROJECT_DIR and no team-config lane grants it
     depends_on: [T-01]
-    status: pending
+    status: done
     files:
       - /Users/molchairuangutai/GitHub/kaya-ai/.claude/settings.json
     verify: |
@@ -386,7 +386,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: same as T-01 - the work reads /Users/molchairuangutai/GitHub/kaya-ai, which no lane grants, and only the receipt lands in-repo, so check-plan-routes reports an advisory deviation on the artifact path
     depends_on: [T-02, T-03]
-    status: pending
+    status: done
     files:
       - .harness/features/FEAT-12-end-copy-distribution/notes/kaya-harness-manifest-after.txt
     verify: |
@@ -410,7 +410,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: the path is outside CLAUDE_PROJECT_DIR, no team-config lane grants it, and the step pushes to another product repository
     depends_on: [T-04]
-    status: pending
+    status: done
     files:
       - /Users/molchairuangutai/GitHub/kaya-ai/.claude/skills
       - /Users/molchairuangutai/GitHub/kaya-ai/.claude/commands
@@ -478,7 +478,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: check-domain.sh --resolve returns NOBODY for .harness/factory/fleet.yaml; precedent is FEAT-10 T-01
     depends_on: []
-    status: pending
+    status: done
     files:
       - .harness/factory/fleet.yaml
     verify: |
@@ -509,7 +509,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: []
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/deploy.sh
     verify: |
@@ -539,7 +539,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: check-domain.sh --resolve returns NOBODY for .claude/commands/harness-deploy.md
     depends_on: []
-    status: pending
+    status: done
     files:
       - .claude/commands/harness-deploy.md
     verify: |
@@ -558,7 +558,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: ~/.harness/registry.json is outside CLAUDE_PROJECT_DIR and no team-config lane names a path under the home directory
     depends_on: [T-07]
-    status: pending
+    status: done
     files:
       - /Users/molchairuangutai/.harness/registry.json
     verify: |
@@ -588,7 +588,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: [T-07]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/upgrade-config.py
       - .claude/skills/harness/bin/test-upgrade-config.py
@@ -650,7 +650,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: check-domain.sh --resolve returns NOBODY at 835b297 for all five files - .claude/skills/harness-team/SKILL.md, .claude/skills/harness-init/SKILL.md, .claude/skills/harness/templates/README.md, .claude/skills/harness/templates/team-config.yaml and .harness/team-config.yaml, each measured individually
     depends_on: []
-    status: pending
+    status: done
     files:
       - .claude/skills/harness-team/SKILL.md
       - .claude/skills/harness-init/SKILL.md
@@ -749,7 +749,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-documentor
     depends_on: []
-    status: pending
+    status: done
     files:
       - README.md
       - docs/harness/SPEC.md
@@ -817,7 +817,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: [T-06, T-07, T-08, T-09, T-10, T-11, T-12, T-14]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/test-no-distribution.py
       - .claude/skills/harness/bin/run-unit-tests.sh
@@ -907,7 +907,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-documentor
     depends_on: [T-10, T-11, T-12]
-    status: pending
+    status: done
     files:
       - docs/harness/DECISIONS.md
       - docs/harness/DECISIONS-INDEX.md

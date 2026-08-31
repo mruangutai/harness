@@ -63,6 +63,7 @@ import yaml
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import factory_config  # noqa: E402  (local import, after sys.path fix-up)
 import gh_board  # noqa: E402
+import harness_boundary  # noqa: E402
 import harness_merge  # noqa: E402
 
 # Module-level literals. Each is mutated BY NAME in a copy of the tree by the test's red proofs.
@@ -132,12 +133,19 @@ def _legal_stations(resolved):
     no board declared — every test fixture, and any project that has not onboarded a board — is
     NOT a licence to accept anything: the mandate still applies, because MANDATED_STATIONS is
     what a declaration is checked against in the first place.
+
+    THE ROOT PROBE NAMES THE MANIFEST, NEVER THE `.harness` DIRECTORY. A probe for the directory
+    resolves $HOME as a root in the global install — B-7 verbatim — and
+    test-check-plan-routes.py's case_20 asserts that no copy of this idiom regresses. The walk
+    starts from the plan.yaml's own directory rather than from this script's location, because
+    the vocabulary that governs a write belongs to the checkout being written to, not to
+    whichever checkout happens to be running the tool.
     """
-    root = resolved
+    root = os.path.dirname(os.path.abspath(resolved))
     while True:
-        parent = os.path.dirname(root)
-        if os.path.isdir(os.path.join(root, ".harness")):
+        if os.path.isfile(os.path.join(root, harness_boundary.MARKER)):
             break
+        parent = os.path.dirname(root)
         if parent == root:
             root = None
             break

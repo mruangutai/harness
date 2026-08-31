@@ -365,7 +365,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: check-plan-routes.py is named in DEC-174 amendment 4 as a carve-out surface
     depends_on: [T-03]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/check-plan-routes.py
       - .claude/skills/harness/bin/test-check-plan-routes.py
@@ -466,7 +466,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: .omp/agents, .claude/agents and both SKILL.md paths resolve to NOBODY
     depends_on: [T-03]
-    status: pending
+    status: ready
     files:
       - .omp/agents/harness-orchestrator.md
       - .claude/agents/harness-orchestrator.md
@@ -532,7 +532,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 carve-out - check-state.sh is a gate script and gh_board.py is the module its INV-26 imports; widened to check-state.sh under D-11, and the lane is unchanged because both files already sit under the .claude/skills/harness/bin surface the lanes block resolves to main-session-direct
     depends_on: [T-02, T-04]
-    status: pending
+    status: ready
     files:
       - .claude/skills/harness/bin/gh_board.py
       - .claude/skills/harness/bin/gh-sync.py
@@ -728,7 +728,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: feature-schema.json is enforced on check-domain.sh's write path and read by check-state.sh
     depends_on: [T-04, T-06]
-    status: pending
+    status: ready
     files:
       - .claude/skills/harness/bin/feature-schema.json
       - .claude/skills/harness/bin/feature_schema.py
@@ -894,7 +894,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: registers a new PreToolUse Bash hook in settings.json
     depends_on: [T-03]
-    status: pending
+    status: ready
     files:
       - .claude/skills/harness/bin/plan-sign-gate.py
       - .claude/skills/harness/bin/plan-sign-gate.sh
@@ -966,7 +966,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: check-domain.sh is the registered PreToolUse and PostToolUse gate script
     depends_on: [T-03, T-04, T-05, T-08]
-    status: pending
+    status: ready
     files:
       - .claude/skills/harness/bin/check-domain.sh
       - .claude/skills/harness/bin/test-check-domain.py
@@ -1064,7 +1064,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: the assertion is a run of check-state.sh, the validator that gates this run
     depends_on: [T-06, T-07]
-    status: pending
+    status: ready
     files:
       - .claude/skills/harness/bin/gh-sync.py
       - .claude/skills/harness/bin/test-gh-sync.py
@@ -1188,7 +1188,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: test-check-state.py is a validator test named in the DEC-174 carve-out
     depends_on: [T-01, T-02, T-04, T-06, T-07]
-    status: pending
+    status: ready
     files:
       - .claude/skills/harness/bin/test-check-state.py
     verify: |
@@ -1249,7 +1249,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: check-state.sh and test-check-state.py are gate scripts under the DEC-174 carve-out
     depends_on: [T-07, T-11]
-    status: pending
+    status: ready
     files:
       - .claude/skills/harness/bin/check-state.sh
       - .claude/skills/harness/bin/test-check-state.py
@@ -1458,7 +1458,7 @@ tasks:
     execution_agent: harness-documentor
     execution_reason: .harness/harness/docs/** is the one team lane this plan's lanes block resolves, and check-domain.sh --resolve grants DECISIONS.md to harness-documentor
     depends_on: [T-02, T-07, T-09]
-    status: pending
+    status: ready
     files:
       - .harness/harness/docs/DECISIONS.md
     verify: |

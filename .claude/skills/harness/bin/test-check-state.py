@@ -1736,6 +1736,83 @@ def case_v():
         results.append(("INV-26 expects the declared station for status: done",
                         _no_finding(out), "\n".join(_lines(out)) or "(unexpected line)"))
 
+    # --- FEAT-41 T-04: ONE CASE PER _EXPECT KEY, against the REAL declaration ------------
+    # _EXPECT quantifies over three statuses, so a single fixture cannot see a key that was
+    # never migrated — a `done` case is blind to a `pending` literal left behind in the `ready`
+    # slot. Each key therefore gets a POSITIVE case (correctly placed card, no finding) AND a
+    # NEGATIVE control (misplaced card, a finding naming the value), because a positive case
+    # alone passes on a build where INV-26 reports nothing at all.
+    #
+    # These are separate from the renamed-board cases above, which pass VACUOUSLY now: a renamed
+    # declaration is a mapping, validate_board refuses it, INV-26 emits CANNOT RUN, and
+    # `_no_finding` filters exactly that line out. T-11 owns deleting them.
+    _t04 = []
+
+    # ready: a MIXED plan. An all-ready plan is skipped outright by the nothing-has-started
+    # guard, so the ready card can only be judged beside a started one — which is also the
+    # regression the guard rewrite in this task protects: were it still spelled against
+    # `pending`, this fixture would stop being skipped and every all-ready feature with it.
+    with tempfile.TemporaryDirectory() as tmp:
+        fake = _inv26_fixture(tmp, "FEAT-X", "done", "Done", "Review",
+                              second_status="ready", second_card="Ready")
+        c, out = _run_with_gh(tmp, fake)
+        _t04.append(("(v.T04-ready) a ready task whose card reads Ready is CLEAN",
+                     _no_finding(out), "\n".join(_lines(out)) or "(unexpected line)"))
+
+    with tempfile.TemporaryDirectory() as tmp:
+        fake = _inv26_fixture(tmp, "FEAT-X", "done", "Done", "Review",
+                              second_status="ready", second_card="Building")
+        c, out = _run_with_gh(tmp, fake)
+        ls = _lines(out)
+        _t04.append(("(v.T04-ready-neg) a ready task whose card reads Building is a VIOLATION "
+                     "naming ready",
+                     any("T-02" in l and "ready" in l for l in ls),
+                     "\n".join(ls) or "(no INV-26 line)"))
+
+    with tempfile.TemporaryDirectory() as tmp:
+        fake = _inv26_fixture(tmp, "FEAT-X", "building", "Building", "Building")
+        c, out = _run_with_gh(tmp, fake)
+        _t04.append(("(v.T04-building) a building task whose card reads Building is CLEAN",
+                     _no_finding(out), "\n".join(_lines(out)) or "(unexpected line)"))
+
+    with tempfile.TemporaryDirectory() as tmp:
+        fake = _inv26_fixture(tmp, "FEAT-X", "building", "Ready", "Building")
+        c, out = _run_with_gh(tmp, fake)
+        ls = _lines(out)
+        _t04.append(("(v.T04-building-neg) a building task whose card reads Ready is a "
+                     "VIOLATION naming building",
+                     any("T-01" in l and "building" in l for l in ls),
+                     "\n".join(ls) or "(no INV-26 line)"))
+
+    with tempfile.TemporaryDirectory() as tmp:
+        fake = _inv26_fixture(tmp, "FEAT-X", "done", "Done", "Review")
+        c, out = _run_with_gh(tmp, fake)
+        _t04.append(("(v.T04-done) a done task whose card reads Done is CLEAN",
+                     _no_finding(out), "\n".join(_lines(out)) or "(unexpected line)"))
+
+    with tempfile.TemporaryDirectory() as tmp:
+        fake = _inv26_fixture(tmp, "FEAT-X", "done", "Backlog", "Review")
+        c, out = _run_with_gh(tmp, fake)
+        ls = _lines(out)
+        _t04.append(("(v.T04-done-neg) a done task whose card reads Backlog is a VIOLATION "
+                     "naming done",
+                     any("T-01" in l and "done" in l for l in ls),
+                     "\n".join(ls) or "(no INV-26 line)"))
+
+    # `pending` IS NOT A VALUE ANY MORE. A plan still carrying it must not be silently treated
+    # as the not-started station: _EXPECT has no such key, so _want is None and the per-task
+    # compare skips — which is the fail-open direction, and is why check-plan-routes.py refuses
+    # the value outright at plan time. Asserted here so the two halves stay a pair.
+    with tempfile.TemporaryDirectory() as tmp:
+        fake = _inv26_fixture(tmp, "FEAT-X", "pending", "Backlog", "Review")
+        c, out = _run_with_gh(tmp, fake)
+        ls = [l for l in _lines(out) if "T-01" in l]
+        _t04.append(("(v.T04-pending) a leftover pending task is NOT judged by INV-26 — "
+                     "check-plan-routes refuses it at plan time instead",
+                     not ls, "\n".join(ls) or "(no line, as expected)"))
+
+    results.extend(_t04)
+
     allok = True
     for name, ok, detail in results:
         print(f"{'ok' if ok else 'FAIL'} - {name}")

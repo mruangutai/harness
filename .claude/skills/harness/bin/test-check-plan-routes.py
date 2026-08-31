@@ -679,7 +679,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-dev-ops
     depends_on: []
-    status: pending
+    status: ready
     files: [%s]
     verify: |
       true
@@ -688,13 +688,15 @@ tasks:
 """
 
 
-def _yaml_project(td, files=".harness/harness.json", extra="", status="pending"):
+def _yaml_project(td, files=".harness/harness.json", extra="", status="ready"):
     """A fixture project whose feature carries a plan.yaml, with the REAL manifest so
     resolution is against the same globs production uses.
 
-    `status` overrides the template's fixed `status: pending`; `status=None` omits the
-    field entirely (the absent-status shape). Default is the original template value, so
-    every existing caller is unaffected.
+    `status` overrides the template's fixed `status: ready`; `status=None` omits the
+    field entirely (the absent-status shape). THE DEFAULT IS `ready`, NOT `pending`
+    (FEAT-41 T-04): `pending` was plan.yaml's private third value and is no longer in the
+    vocabulary at all, so a fixture still carrying it would make every case in this file
+    fail on the status check rather than on what it means to test.
     """
     fd = os.path.join(td, ".harness", "harness", "features", "FEAT-A")
     os.makedirs(fd, exist_ok=True)
@@ -703,12 +705,81 @@ def _yaml_project(td, files=".harness/harness.json", extra="", status="pending")
               os.path.join(td, ".harness", "team-config.yaml"))
     text = PLAN_YAML % files
     if status is None:
-        text = text.replace("    status: pending\n", "", 1)
-    elif status != "pending":
-        text = text.replace("status: pending", f"status: {status}", 1)
+        text = text.replace("    status: ready\n", "", 1)
+    elif status != "ready":
+        text = text.replace("status: ready", f"status: {status}", 1)
     with open(os.path.join(fd, "plan.yaml"), "w") as f:
         f.write(text + extra)
     return fd
+
+
+def case_41_t04_station_vocabulary():
+    """FEAT-41 T-04: plan.yaml's per-task status is the MANDATED station vocabulary, and the
+    top-level feature station is checked the same way.
+
+    The point of the change is that one word now means one thing everywhere, so the cases that
+    matter most are the NEGATIVE ones: `pending`, which was plan.yaml's own third value and is
+    now nothing at all, and `Building`, the capitalised board spelling a person actually types.
+    """
+    legal = tuple(cpr().legal_task_statuses())
+
+    # The vocabulary is READ, not respelled — six stations plus the terminal marker.
+    # A FUNCTION, not a module constant: the import it needs is lazy so cases 19b/19b2/21 can
+    # still run this file as a lone copy in a temp dir. See its docstring.
+    check("case_41a_legal_task_statuses_is_the_mandate_plus_the_terminal_marker",
+          legal == ("backlog", "plan", "ready", "building", "review", "done", "abandoned"),
+          f"got {legal!r}")
+
+    for st in legal:
+        with tempfile.TemporaryDirectory() as td:
+            _yaml_project(td, status=st)
+            r = run(project_dir=td)
+            check(f"case_41b_task_status_{st}_is_accepted",
+                  r.returncode == 0 and "0 violation(s)" in r.stdout,
+                  f"exit {r.returncode}: {r.stdout[:200]!r}")
+
+    # `pending` is THE regression this task exists to prevent: it was legal yesterday.
+    for bad in ("pending", "Building", "Done", "shipped", "in-progress"):
+        with tempfile.TemporaryDirectory() as td:
+            _yaml_project(td, status=bad)
+            r = run(project_dir=td)
+            check(f"case_41c_task_status_{bad}_is_a_VIOLATION_naming_the_value",
+                  r.returncode == 1 and repr(bad) in r.stdout,
+                  f"exit {r.returncode}: {r.stdout[:300]!r}")
+
+    # THE TOP-LEVEL feature station, checked the same way. Absent stays legal — a plan that
+    # has not been given a station is not a plan that is wrong about one.
+    with tempfile.TemporaryDirectory() as td:
+        _yaml_project(td)
+        r = run(project_dir=td)
+        check("case_41d_an_absent_top_level_status_is_not_a_violation",
+              r.returncode == 0, f"exit {r.returncode}: {r.stdout[:200]!r}")
+
+    for st in ("ready", "building", "done", "abandoned"):
+        with tempfile.TemporaryDirectory() as td:
+            fd = _yaml_project(td)
+            pth = os.path.join(fd, "plan.yaml")
+            body = open(pth).read().replace("feature: FEAT-A\n",
+                                            f"feature: FEAT-A\nstatus: {st}\n", 1)
+            with open(pth, "w") as f:
+                f.write(body)
+            r = run(project_dir=td)
+            check(f"case_41e_top_level_status_{st}_is_accepted",
+                  r.returncode == 0 and "0 violation(s)" in r.stdout,
+                  f"exit {r.returncode}: {r.stdout[:200]!r}")
+
+    for bad in ("pending", "Done", "nonsense"):
+        with tempfile.TemporaryDirectory() as td:
+            fd = _yaml_project(td)
+            pth = os.path.join(fd, "plan.yaml")
+            body = open(pth).read().replace("feature: FEAT-A\n",
+                                            f"feature: FEAT-A\nstatus: {bad}\n", 1)
+            with open(pth, "w") as f:
+                f.write(body)
+            r = run(project_dir=td)
+            check(f"case_41f_top_level_status_{bad}_is_a_VIOLATION_naming_the_value",
+                  r.returncode == 1 and repr(bad) in r.stdout,
+                  f"exit {r.returncode}: {r.stdout[:300]!r}")
 
 
 def case_23():
@@ -1075,12 +1146,12 @@ def case_25():
     with tempfile.TemporaryDirectory() as td:
         _yaml_project(td, status="Building")
         r = run(project_dir=td)
-        legal = cpr().LEGAL_TASK_STATUSES
+        legal = cpr().legal_task_statuses()
         ok = (r.returncode != 0
               and "VIOLATION T-01" in r.stdout
               and "Building" in r.stdout
               and all(v in r.stdout for v in legal))
-        check("case_25b_status_Building_capital_B_is_a_VIOLATION_naming_the_three_legal_values",
+        check("case_25b_status_Building_capital_B_is_a_VIOLATION_naming_the_legal_values",
               ok, f"exit {r.returncode}: {r.stdout[:300]!r}, legal={legal}")
 
     with tempfile.TemporaryDirectory() as td:
@@ -1393,7 +1464,7 @@ def _inv_project(td, features):
 _INV_PLAN = ("approval:\n  status: approved\n\ntasks:\n"
              "  - id: T-01\n    title: t\n    traces: [REQ-01]\n"
              "    change_type: logic\n    execution_mode: main-session-direct\n"
-             "    execution_reason: none\n    status: pending\n"
+             "    execution_reason: none\n    status: ready\n"
              "    files:\n      - .harness/harness.json\n"
              "    verify: |\n      true\n    intent: |\n      x\n")
 
@@ -1622,6 +1693,7 @@ def main():
     case_25()
     case_26()
     case_27()
+    case_41_t04_station_vocabulary()
 
     if failures:
         print(f"\n{len(failures)} FAILURE(S): {failures}")

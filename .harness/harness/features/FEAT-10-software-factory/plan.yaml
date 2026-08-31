@@ -184,7 +184,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: []
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/factory_cli.py
       - .claude/skills/harness/bin/test-factory-cli.py
@@ -285,7 +285,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: [T-01, T-11]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/factory_config.py
       - .claude/skills/harness/bin/test-factory-config.py
@@ -379,7 +379,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: []
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/factory_gh.py
       - .claude/skills/harness/bin/test-factory-gh.py
@@ -548,7 +548,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: [T-02, T-03, T-11]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/factory_decompose.py
       - .claude/skills/harness/bin/test-factory-decompose.py
@@ -952,7 +952,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: [T-02, T-03, T-11]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/factory_claim.py
       - .claude/skills/harness/bin/test-factory-claim.py
@@ -1279,7 +1279,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: [T-02, T-11]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/factory_workspace.py
       - .claude/skills/harness/bin/test-factory-workspace.py
@@ -1360,7 +1360,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: [T-02, T-03, T-06, T-11]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/factory_land.py
       - .claude/skills/harness/bin/test-factory-land.py
@@ -1432,7 +1432,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 carve-out — check-state.sh is a gate script, and green gates cannot vouch for the code that produces them; its own test file is edited in the same direct step
     depends_on: [T-01]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/check-state.sh
       - .claude/skills/harness/bin/test-check-state.py
@@ -1487,7 +1487,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-documentor
     depends_on: []
-    status: pending
+    status: done
     files:
       - docs/harness/DECISIONS.md
       - docs/harness/DECISIONS-INDEX.md
@@ -1581,7 +1581,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-dev-ops
     depends_on: []
-    status: pending
+    status: done
     files:
       - .harness/harness.json
     verify: |
@@ -1629,7 +1629,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: [T-02, T-04, T-05, T-06, T-07, T-11]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/test-factory-integration.py
       - .claude/skills/harness/bin/run-unit-tests.sh
