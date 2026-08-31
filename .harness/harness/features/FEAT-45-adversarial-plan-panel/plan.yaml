@@ -284,6 +284,23 @@ decisions:
       is the defined behaviour, not an error.
     dec: none
 
+  - id: D-15
+    choice: >-
+      TEAMS_EXPECTED in test-harness-yaml-corpus.py is raised from 2 to 3 under FEAT-45's
+      existing signature, as a new task rather than a re-signature. FEAT-06's SC-05 is NOT
+      revisited: it reads "the directory's contents at completion are exactly two files", a
+      point-in-time completion snapshot that was met at FEAT-06's completion and stays met.
+      What is corrected is the CONSTANT, which generalised that snapshot into a standing
+      invariant it never was.
+    because: >-
+      The third team definition is the signed product of T-02, whose only file is
+      .claude/skills/harness/teams/plan-panel.yaml, whose status is done, and which traces
+      REQ-01, REQ-02, REQ-04, REQ-05, REQ-09 and REQ-14 under the operator's signature of
+      2026-08-30 covering REQ-01..REQ-14. A criterion that cannot be met as written needs the
+      operator; an approved consequence that no task owns needs a task. This is the second.
+      The comment's own prohibition is against widening the number SILENTLY, and a recorded
+      ruling citing the requirement that forces the new file is the opposite of silent.
+    dec: none
 tasks:
   # DEPENDENCY POLICY, after the c1 efficiency pass. Eight edges in the c0 draft were measured
   # false -- the dependent never read the predecessor's output -- and are dropped: T-02<-T-01,
@@ -1059,7 +1076,7 @@ tasks:
     # be an unjustified deviation. Depends on T-06 because its verify asserts that the
     # canonical frontmatter and this map AGREE, which needs T-06's edit on disk.
     depends_on: [T-06]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/sync-agent-adapters.py
     verify: |
@@ -1116,7 +1133,7 @@ tasks:
     # run-unit-tests.sh's UNIT_SCRIPTS array, plan tasks have no mutates_repo primitive, and
     # depends_on is the only serializer available. Delete it and two tasks race on one file.
     depends_on: [T-02, T-03, T-04, T-09, T-11]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/test-plan-panel.py
       - .claude/skills/harness/bin/run-unit-tests.sh
@@ -1207,3 +1224,60 @@ tasks:
       test-plan-panel.py to the UNIT_SCRIPTS array. Do not touch INTEGRATION_SCRIPTS or
       harness.json, for the same KIND-DRIFT reason as T-09.
 
+  - id: T-12
+    title: Raise TEAMS_EXPECTED to 3 and rewrite its stale comment in test-harness-yaml-corpus.py
+    traces: [REQ-02]
+    change_type: logic
+    execution_mode: team
+    execution_agent: harness-dev-ops
+    depends_on: []
+    status: done
+    files:
+      - .claude/skills/harness/bin/test-harness-yaml-corpus.py
+    verify: |
+      # Expected: the corpus test prints "16/16 checks passed." and exits 0, then the
+      # inspection prints OK. Proven 2026-08-31 against three temp copies of this file: the
+      # intended fix passes both conjuncts; replacing the condition with a bare literal 3
+      # fails "no longer asserted against the constant"; raising the constant with the comment
+      # left stale fails naming plan-panel.yaml and D-15. On the unchanged file the first
+      # assert fails, so this block cannot green before the work is done.
+      python3 .claude/skills/harness/bin/test-harness-yaml-corpus.py \
+        && python3 -c "import re;P='.claude/skills/harness/bin/test-harness-yaml-corpus.py';s=open(P,encoding='utf-8').read();q=chr(34);assert re.search(r'(?m)^TEAMS_EXPECTED = 3\$',s),'TEAMS_EXPECTED is not 3';C='counts.get(TEAMS_ROOT) == TEAMS_EXPECTED';j=s.find(C);assert j>0,'the team count is no longer asserted against the constant';k=s.rfind('check(',0,j);assert k>=0,'the comparison is not inside a check() call';lab=s[k+6:j];assert lab.rstrip().endswith(q+','),'the comparison is not the condition argument of check()';assert '{TEAMS_EXPECTED}' in lab,'the label does not interpolate TEAMS_EXPECTED';assert not re.search(r'exactly\s+\d',lab),'a bare literal count is back in the label';m=re.search(r'((?:^#.*\n)+)\Z',s[:s.index('TEAMS_EXPECTED = 3')],re.M);assert m,'the constant carries no explanatory comment';cm=m.group(1);miss=[w for w in ('build.yaml','plan-panel.yaml','review.yaml','silently','D-15') if w not in cm];assert not miss,miss;print('OK')"
+    intent: |
+      Two edits to .claude/skills/harness/bin/test-harness-yaml-corpus.py, nothing else in the
+      file and no other file.
+
+      (i) Raise the constant to TEAMS_EXPECTED = 3. Leave the assertion at the check() call
+      exactly as it is: its condition argument must stay the literal expression
+      counts.get(TEAMS_ROOT) == TEAMS_EXPECTED and its label must keep interpolating
+      {TEAMS_EXPECTED} rather than spelling a number. The ORIGINAL defect this site records is
+      a count that lived in an f-string LABEL and was therefore reported without being
+      asserted; do not reintroduce it in either direction. You may disambiguate the label's
+      trailing "(SC-05)" to "(FEAT-06 SC-05)" -- that reference is FEAT-06's team-directory
+      criterion, not FEAT-45's, and the two are routinely confused -- but nothing else in the
+      check() call changes.
+
+      (ii) Replace the comment block above the constant, currently the nine "#" lines starting
+      "# SC-05's second conjunct.", with a fresh one. It must be contiguous "#" lines ending on
+      the line immediately above TEAMS_EXPECTED, with no blank line between: the verify anchors
+      the trailing comment block on the constant, so a blank line separates them and fails it.
+
+      The new comment must record all of:
+      - The expected contents are now THREE files, named: build.yaml, plan-panel.yaml,
+        review.yaml.
+      - plan-panel.yaml was legitimately added by FEAT-45's T-02 under the operator's signature
+        of 2026-08-30, which covers REQ-01..REQ-14; it is not drift.
+      - The ruling is D-15 in
+        .harness/harness/features/FEAT-45-adversarial-plan-panel/plan.yaml. Name it as D-15,
+        literally, so the next reader can find the reasoning rather than re-deriving it.
+      - FEAT-06's SC-05 is a COMPLETION SNAPSHOT ("the directory's contents at completion are
+        exactly two files"), already met and permanently met; what was corrected is this
+        constant, which had generalised that snapshot into a standing invariant. Do not write
+        that FEAT-06's SC-05 was changed, weakened or revisited, because it was not.
+      - The live half of the original warning survives, in these terms: the count is ASSERTED
+        rather than displayed, and widening this number SILENTLY -- without a recorded ruling
+        naming the requirement that forces the new file -- is still forbidden. The word
+        "silently" must appear.
+
+      Do NOT delete anything else in the file, do not touch any other check, and do not add a
+      new check. Nothing about the directory's contents is asserted anywhere else in the file.

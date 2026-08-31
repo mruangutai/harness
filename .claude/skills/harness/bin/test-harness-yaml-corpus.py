@@ -157,16 +157,21 @@ def scan(root):
 TEAMS_ROOT = os.path.join(".claude", "skills", "harness", "teams")
 ROOTS = [".harness", TEAMS_ROOT]
 
-# SC-05's second conjunct. The criterion reads "the directory's contents at completion
-# are exactly TWO files — review.yaml (receiving the quoting fix) and build.yaml (born
-# valid); gate-probe.yaml is deleted, so the count is two, not three" — and declares
-# `verify: automated  evidence: unit`. Without this line only the PARSE half had an
-# assertion: the `2` appeared in an f-string LABEL, which reports a number without
-# asserting it. A criterion whose cited test does not cover what it claims is this
-# repo's own charter defect, so the count is asserted rather than displayed.
-# If a third team is legitimately added, this failing is the intended prompt to revisit
-# SC-05 rather than to silently widen the number.
-TEAMS_EXPECTED = 2
+# The team-definitions tree is expected to hold exactly three files: build.yaml,
+# plan-panel.yaml, review.yaml. plan-panel.yaml was legitimately added by FEAT-45's
+# T-02 under the operator's signature of 2026-08-30 (covering REQ-01..REQ-14); it is
+# not drift. The ruling that a third team belongs here is D-15 in
+# .harness/harness/features/FEAT-45-adversarial-plan-panel/plan.yaml — read it before
+# touching this number.
+#
+# FEAT-06's SC-05 ("the directory's contents at completion are exactly two files") is
+# a completion snapshot, already met and permanently met; it was never changed or
+# revisited. What was corrected is THIS constant, which had generalised that snapshot
+# into a standing invariant it was never meant to be. The count stays ASSERTED, not
+# merely reported in a label: widening this number SILENTLY, without a recorded ruling
+# naming the requirement that forces the new file, is still forbidden. A further team
+# is again a prompt to think, not to silently widen.
+TEAMS_EXPECTED = 3
 
 
 def scan_roots(roots):
@@ -238,7 +243,7 @@ for r, n in counts.items():
     check(f"the corpus under {r} is not empty (a scan that matches nothing passes vacuously)",
           n > 0, f"scanned {n} files under {os.path.join(REPO, r)}")
 # SC-05's count conjunct — ASSERTED, not merely reported in a label above.
-check(f"{TEAMS_ROOT} holds exactly {TEAMS_EXPECTED} team definitions (SC-05)",
+check(f"{TEAMS_ROOT} holds exactly {TEAMS_EXPECTED} team definitions (FEAT-06 SC-05)",
       counts.get(TEAMS_ROOT) == TEAMS_EXPECTED,
       f"found {counts.get(TEAMS_ROOT)}: "
       f"{sorted(os.listdir(os.path.join(REPO, TEAMS_ROOT))) if os.path.isdir(os.path.join(REPO, TEAMS_ROOT)) else 'directory missing'}")
