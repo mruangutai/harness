@@ -18,15 +18,16 @@ absent. A reverted-width probe reddens three independent assertions, so the fix 
 regressing silently, and a sweep of 78 files found no code still bound to the old width. I confirmed
 independently that no non-test source slices an id or matches an 8-hex pattern.
 
-One record inconsistency survives as backlog B-17: T-09 is marked `done` but its own `verify:` no
-longer passes, still asserting `test 11 -eq` while the shipped id is 35 characters. D-05 moved with
-the code and the task text did not. Graded backlog rather than gating because no gate replays a done
-task's verify clause -- I verified that against check-state.sh and check-plan-routes.py myself. That
-grading flips the day any gate does.
+The last record inconsistency is CLOSED, not carried. T-09 was marked `done` while its own `verify:`
+still asserted `test 11 -eq` against a 35-character id -- D-05 had moved with the code and the task
+text had not. The main session corrected it directly at f89c90b: the verify now asserts 35 and the
+intent says 32 hex / length 35. I re-ran T-09's `verify:` block verbatim from plan.yaml and it exits
+0. That commit is record-only -- I diffed the pin against HEAD and every changed path is inside the
+feature directory, so no source moved and the cycle-4 PASS at bdd5666 remains valid.
 
 Cycles 10 of 10 -- fully spent, and the last one bought a real defect fix rather than a re-observation.
 Runs 17 of 20. The CEO briefing is `notes/ship-review-2026-08-31.md`, rendered alongside as `.html`,
-carrying 16 backlog rows B-2..B-17; anything the operator does not strike becomes an issue on ship
+carrying 15 backlog rows B-2..B-16; anything the operator does not strike becomes an issue on ship
 acceptance, and anything not listed dies silently.
 
 ## Open Questions
