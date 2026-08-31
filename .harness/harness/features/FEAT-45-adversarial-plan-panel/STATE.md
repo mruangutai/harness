@@ -3,34 +3,37 @@
 ## Current
 
 - feature: FEAT-45-adversarial-plan-panel
-- run: .harness/harness/features/FEAT-45-adversarial-plan-panel/runs/2026-08-31-02-validator/state.yaml
+- run: .harness/harness/features/FEAT-45-adversarial-plan-panel/runs/2026-08-31-1-product/state.yaml
 - squad: none
 - status: Review
 
-VALIDATE COMPLETE. Panel cycle 1 returns PASS at `severity_max: med`, which under
-`gates.review: advisory_unless_high` does not gate. All four reviewers PASS and all four LOOKED
-before reporting. No `must_fix` outstanding.
+VALIDATE CLOSED, awaiting the operator's ship decision. Final goal-check at d78f393: **14 met, 0
+unmet, 3 deferred-to-live-run**. Both criteria open at the first goal-check are closed — SC-05, which
+was unmet-behaviour, and SC-03, which was unmet-unproven.
 
-All three cycle-0 findings are CLOSED, each corroborated by the panel at source and independently
-verified by me rather than accepted on report. M1: `check-state.sh:213` now gates on an allow-list,
-so an absent key and a YAML null both fail closed; I proved the new fixture RED-capable by reverting
-that one line and watching it fail, then restored the file byte-identical to the pin. M3: one fixture
-covers `unrated`, absent and null. M2: `case_inv32` moved from grade 1 to grade 4 (cyclomatic 28->2,
-ABC 95.1->11.0), with all eleven inv32 helpers at grade 3 or better.
+Four panel cycles and three main-session fix rounds. The panel earned its keep: at cycle 0 it caught
+that the gate this feature SHIPS failed open on exactly the input DEC-206 names as the risk, so a
+finding whose severity was lost would have reached signature un-vetted while the decision written in
+the same change promised the opposite. Cycle 2 caught two bypasses and a deadlock in the fix code
+itself. Separately, the F4 fix revealed the test gate had been collecting ZERO tests at one pin, which
+retroactively invalidated every green number claimed there.
 
-The fix inverted a deny-list into an allow-list, which is a semantic widening, so the panel hunted
-what the FIX introduced rather than only confirming what it closed. It gates nothing spuriously: the
-ui census over 10 sources found the allow-list's complement is exactly the old deny-list
-`{high, critical, unrated}`, and security fired 17 hostile severity values, all of which gated.
+The one open finding, V1, is CONDITIONALLY CLOSED on the operator's ruling, and the diagnosis was
+measured rather than inferred. `gateRoot()` derives from the extension file's own location, so the
+executing validator is always `<main checkout>/.agents/skills/harness/bin/validate-digest.py` — 1525
+lines, with zero occurrences of `_hook_feature_dir` or `inflight_registry.feature_root`. The branch's
+fixed copy is 1643 lines and never runs for a subagent. The fix is therefore correct-by-inspection but
+UNVERIFIABLE PRE-MERGE by construction, and the first post-merge reviewer dispatch is a named required
+verification step. I also proved `inflight_registry.feature_root` resolves this feature correctly,
+eliminating the competing hypothesis, so no fix round was spent guessing.
 
-ONE RECORD DEFECT FOUND AND FIXED. `feature.json` recorded `review_sha`
-`c745d3a61f1049e5325854618511544b10f68753`, which resolves to NO object — a real 7-char prefix with
-a fabricated tail. Three reviewers hit it independently. The true commit is
-`c745d3a07c2accd8395c9df7a25d911d40dc2c09` and feature.json now carries it. My own verification had
-used the prefix, so it read the correct tree throughout and its conclusions are unaffected. The
-cycle-0 pin was genuine, so this was a one-off transcription rather than a pattern.
+The CEO briefing is `notes/ship-review-2026-08-31.md`, rendered alongside as `.html`, assembled from
+the run digests on disk with no report round spawned. It carries 16 proposed backlog rows; B-1, the
+32-bit finding-id ratchet, is the only one worth deciding before signature rather than after.
 
-Cycles 6 of 10, unchanged this cycle — the panel passed with no rework owed. Runs 12 of 20.
+Cycles 9 of 10 — cycle 10 preserved on the operator's instruction rather than spent re-observing code
+that cannot execute. Runs 16 of 20, informational; three of them found defects that would otherwise
+have shipped.
 
 ## Open Questions
 
