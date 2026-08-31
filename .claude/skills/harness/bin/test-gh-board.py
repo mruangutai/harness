@@ -352,3 +352,90 @@ if FAILURES:
     print(f"{len(FAILURES)} FAIL")
     sys.exit(1)
 print("all pass")
+
+
+# --------------------------------------------------------------- project (FEAT-41 T-06) ------
+# ONE function answers "which card goes where", so plan.yaml is the only input to the answer.
+# Every value it returns is a LOWERCASE station; station_column is the one place a column name
+# is produced, and project never calls it.
+def _rec(issues=None, parent=None, source_issues=None):
+    return {"issues": issues or {}, "parent": parent, "source_issues": source_issues or []}
+
+
+def _plan(*statuses, top=None):
+    doc = {"tasks": [{"id": f"T-{i:02d}", "status": s} for i, s in enumerate(statuses, 1)]}
+    if top is not None:
+        doc["status"] = top
+    return doc
+
+
+# --- each task sub-issue gets ITS OWN task's station, verbatim ---
+_p = gh_board.project(_plan("building", "ready", "done"),
+                      _rec(issues={"T-01": 11, "T-02": 12, "T-03": 13}))
+check("project: each task card gets its own task's station",
+      _p[11] == "building" and _p[12] == "ready" and _p[13] == "done", repr(_p))
+
+# --- THE DELETED EXCEPTION (D-11). A task at ready projects to READY, never to backlog. This
+# --- is the rule the old check-state.sh _EXPECT comment carried on the grounds that gh-sync
+# --- open lands every sub-issue in backlog. It is gone, and T-10 settles the consequence.
+_p = gh_board.project(_plan("ready", "ready"), _rec(issues={"T-01": 21, "T-02": 22}))
+check("project: a ready task projects to ready, NOT to backlog",
+      _p[21] == "ready" and _p[22] == "ready" and "backlog" not in _p.values(), repr(_p))
+
+# --- TERMINAL FIRST, and the ordering is load-bearing. Every shipped feature has all tasks
+# --- done, so derive_station returns review for all of them; derive-first would drag 22
+# --- shipped parents backwards off Done. Measured at 8f8a6a3 against live board 3.
+_p = gh_board.project(_plan("done", "done", top="done"), _rec(issues={}, parent=99))
+check("project: a done top-level station beats derive_station's review (terminal first)",
+      _p.get(99) == "done", repr(_p))
+
+# --- A TERMINAL_MARKER card is ABSENT, never placed. D-05 says the marker names no column;
+# --- this is where that becomes true. Without it FEAT-28 — abandoned, card at Done — becomes
+# --- a write of a column that does not exist.
+_p = gh_board.project(_plan("done", "done", top=factory_config.TERMINAL_MARKER),
+                      _rec(issues={}, parent=98))
+check("project: a TERMINAL_MARKER feature places NO parent card",
+      98 not in _p, repr(_p))
+
+# --- the parent, when not terminal, takes derive_station ---
+_p = gh_board.project(_plan("done", "building"), _rec(issues={}, parent=97))
+check("project: a non-terminal parent takes derive_station",
+      _p.get(97) == "building", repr(_p))
+
+# --- top-level station when there is no derivation ---
+_p = gh_board.project(_plan("done", "ready", top="plan"), _rec(issues={}, parent=96))
+check("project: with no derivation the parent takes the top-level station",
+      _p.get(96) == "plan", repr(_p))
+
+# --- ABSENT and ILLEGAL are DIFFERENT outcomes and must not share a code path. No derivation
+# --- and no top-level station means the parent is absent — the same silence derive_station
+# --- already returns — never a guess.
+_p = gh_board.project(_plan("done", "ready"), _rec(issues={}, parent=95))
+check("project: no derivation and no top-level station leaves the parent ABSENT",
+      95 not in _p, repr(_p))
+
+# --- source issues take the parent's station ---
+_p = gh_board.project(_plan("building"), _rec(issues={}, parent=94, source_issues=[901, 902]))
+check("project: each source issue takes the parent's station",
+      _p.get(901) == "building" and _p.get(902) == "building", repr(_p))
+
+_p = gh_board.project(_plan("done", "ready"), _rec(issues={}, source_issues=[903]))
+check("project: with no parent station the source issues are absent too",
+      903 not in _p, repr(_p))
+
+# --- A VOCABULARY MISS IS THE ONE CASE THAT MUST NOT BE SILENT: it is the defect this feature
+# --- exists to end. It names the task id AND the value.
+for _bad in ("pending", "Building", "shipped"):
+    _raised = None
+    try:
+        gh_board.project(_plan(_bad), _rec(issues={"T-01": 31}))
+    except factory_config.FleetError as exc:
+        _raised = str(exc)
+    check(f"project: task station {_bad!r} raises FleetError naming the task and the value",
+          _raised is not None and "T-01" in _raised and _bad in _raised, repr(_raised))
+
+# --- it performs no I/O and produces no column: the returned values are stations, and a
+# --- station's column differs from its name for every one of the six.
+_p = gh_board.project(_plan("review"), _rec(issues={"T-01": 41}))
+check("project: the value is a station, never a column",
+      _p[41] == "review" and _p[41] != factory_config.station_column("review"), repr(_p))

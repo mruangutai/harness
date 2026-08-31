@@ -1549,13 +1549,19 @@ def case_v():
                         not ls, "\n".join(ls)))
 
     # --- v.8 THE CASE THE INVARIANT WAS BUILT FOR AND COULD NOT SEE.
-    # T-01 done with its card still in Backlog, T-02 pending and correctly in Backlog.
-    # derive_station returns None for {done, pending}, and the old code skipped the whole
+    # T-01 done with its card still in Backlog, T-02 not started and correctly placed.
+    # derive_station returns None for {done, ready}, and the old code skipped the whole
     # feature on None — so SC-05's own scenario went unreported in the ordinary window
     # between two tasks. The per-task comparison never needed the parent derivation.
+    #
+    # THE SECOND TASK'S CARD MOVED WITH ITS WORD (FEAT-41 T-06, D-11). It was `pending` with a
+    # card at Backlog, which was CORRECT under the old exception; the not-started station is
+    # `ready` now and its card belongs at Ready, so the fixture says Ready. Leaving it at
+    # Backlog would have made this case pass for the wrong reason — on a second, unintended
+    # violation rather than on T-01's.
     with tempfile.TemporaryDirectory() as tmp:
         fake = _inv26_fixture(tmp, "FEAT-X", "done", "Backlog", "Backlog",
-                              second_status="pending", second_card="Backlog")
+                              second_status="ready", second_card="Ready")
         _c, out = _run_with_gh(tmp, fake)
         ls = _lines(out)
         ok = any("T-01" in l and "done" in l and "backlog" in l for l in ls)
@@ -1569,21 +1575,22 @@ def case_v():
     # expect and the parent card sits in Backlog here.
     with tempfile.TemporaryDirectory() as tmp:
         fake = _inv26_fixture(tmp, "FEAT-X", "done", "Done", "Backlog",
-                              second_status="pending", second_card="Backlog")
+                              second_status="ready", second_card="Ready")
         _c, out = _run_with_gh(tmp, fake)
         ls = _lines(out)
         results.append(("(v.9) the corrected twin of v.8 reports NOTHING, and a None "
                         "derivation raises no parent finding", not ls, "\n".join(ls)))
 
-    # --- v.10 an all-pending plan still claims nothing. The silence that was correct
-    # must survive the fix: no task has started, so no card can be wrong yet.
+    # --- v.10 a plan where NOTHING HAS STARTED still claims nothing. The silence that was
+    # correct must survive the fix: no task has started, so no card can be wrong yet.
+    # The word is `ready` rather than `pending` (FEAT-41 T-04) — the not-started station.
     with tempfile.TemporaryDirectory() as tmp:
-        fake = _inv26_fixture(tmp, "FEAT-X", "pending", "Building", "Review",
-                              second_status="pending", second_card="Done")
+        fake = _inv26_fixture(tmp, "FEAT-X", "ready", "Building", "Review",
+                              second_status="ready", second_card="Done")
         _c, out = _run_with_gh(tmp, fake)
         ls = _lines(out)
-        results.append(("(v.10) an all-pending plan reports NOTHING even with every card "
-                        "wrong", not ls, "\n".join(ls)))
+        results.append(("(v.10) a plan where nothing has started reports NOTHING even with "
+                        "every card wrong", not ls, "\n".join(ls)))
 
     # --- v.11/v.12 THE LANE PAIR (issue #349's caveat). The mirror-never-ran clause read
     # only `github.issues`, so a feature published by factory_decompose — issues recorded
@@ -1799,17 +1806,50 @@ def case_v():
                      any("T-01" in l and "done" in l for l in ls),
                      "\n".join(ls) or "(no INV-26 line)"))
 
-    # `pending` IS NOT A VALUE ANY MORE. A plan still carrying it must not be silently treated
-    # as the not-started station: _EXPECT has no such key, so _want is None and the per-task
-    # compare skips — which is the fail-open direction, and is why check-plan-routes.py refuses
-    # the value outright at plan time. Asserted here so the two halves stay a pair.
+    # `pending` IS NOT A VALUE ANY MORE, AND A PLAN STILL CARRYING ONE IS NOW REPORTED.
+    #
+    # THIS CASE ASSERTED THE OPPOSITE AT T-04 AND WAS RIGHT TO, WHICH IS WHY IT IS REWRITTEN
+    # RATHER THAN DELETED. At T-04 the per-task lookup had no key for `pending`, so the compare
+    # SKIPPED it, and this case pinned that skip while pointing at check-plan-routes.py as the
+    # thing that refuses the value at plan time. T-06 deletes that skip under D-11: it was the
+    # fail-open direction, where an unrecognised station and an exempt one shared a code path.
+    #
+    # A vocabulary miss is the defect this whole feature exists to end, so it is the ONE case
+    # that must not be silent. gh_board.project raises, and INV-26 reports it naming the value.
+    # The plan-time refusal still exists and still runs first; this is the second half of the
+    # pair, not a replacement for it.
     with tempfile.TemporaryDirectory() as tmp:
         fake = _inv26_fixture(tmp, "FEAT-X", "pending", "Backlog", "Review")
         c, out = _run_with_gh(tmp, fake)
-        ls = [l for l in _lines(out) if "T-01" in l]
-        _t04.append(("(v.T04-pending) a leftover pending task is NOT judged by INV-26 — "
-                     "check-plan-routes refuses it at plan time instead",
-                     not ls, "\n".join(ls) or "(no line, as expected)"))
+        ls = [l for l in _lines(out) if "pending" in l]
+        _t04.append(("(v.T06-pending) a leftover pending task IS reported by INV-26, naming the "
+                     "value — the fail-open skip is gone (D-11)",
+                     bool(ls), "\n".join(_lines(out)) or "(no INV-26 line at all)"))
+
+    # THE NEGATIVE CONTROL FOR THE CASE ABOVE. Without it, "a line mentioning pending appears"
+    # could be satisfied by any unrelated chatter; this proves the legal twin is silent.
+    with tempfile.TemporaryDirectory() as tmp:
+        fake = _inv26_fixture(tmp, "FEAT-X", "ready", "Ready", "Review")
+        c, out = _run_with_gh(tmp, fake)
+        _t04.append(("(v.T06-pending-neg) the same fixture at a LEGAL station reports nothing",
+                     _no_finding(out), "\n".join(_lines(out)) or "(unexpected line)"))
+
+    # A RECORDED SUB-ISSUE THAT project DECLINES TO PLACE IS A VIOLATION, NOT A SKIP.
+    # The terminal marker names no board column (D-05), so a task carrying it is absent from
+    # project's mapping — and absence used to mean "no card to check", which is precisely the
+    # fail-open D-11 removes. The line names the station the plan carries so the reader can see
+    # WHY nothing could be placed.
+    #
+    # No live feature hits this today: FEAT-19 and FEAT-28 are the only ones with tasks at the
+    # terminal marker and both record zero mirrored sub-issues (measured at T-04). The case is
+    # here for the one that eventually does.
+    with tempfile.TemporaryDirectory() as tmp:
+        fake = _inv26_fixture(tmp, "FEAT-X", "abandoned", "Backlog", "Review")
+        c, out = _run_with_gh(tmp, fake)
+        ls = [l for l in _lines(out) if "T-01" in l and "abandoned" in l]
+        _t04.append(("(v.T06-unplaced) a recorded sub-issue project declines to place is a "
+                     "VIOLATION naming the station, not a silent skip",
+                     bool(ls), "\n".join(_lines(out)) or "(no INV-26 line at all)"))
 
     results.extend(_t04)
 

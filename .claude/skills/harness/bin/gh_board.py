@@ -124,6 +124,136 @@ def derive_station(plan_doc):
     return None
 
 
+def project(plan_doc, rec):
+    """Return {issue number: lowercase station} for every card this feature records.
+
+    THE STATION POLICY LIVES HERE AND NOWHERE ELSE — which card goes where, and when. plan.yaml
+    is the only input to the answer. It DERIVES NOTHING for a task: it SELECTS. The word in
+    plan.yaml and the column on the board are the same word with the same meaning, which is the
+    whole point of FEAT-41.
+
+    NO `board` PARAMETER, deliberately: every value returned is a lowercase station, and
+    factory_config.station_column is the one place a column name is produced — once, at the
+    moment a value is actually written.
+
+    `rec` is what gh-sync.load_recorded returns: `rec["issues"]` maps task id to sub-issue
+    number, `rec["source_issues"]` is a list, `rec["parent"]` is a number or None.
+
+    THE RULES:
+
+    - Each task sub-issue gets its own task's station, VERBATIM AND WITH NO EXCEPTION. A task at
+      the ready station projects to the ready station. The old ready-to-backlog exception —
+      carried from check-state.sh's `_EXPECT` comment on the grounds that `gh-sync open` lands
+      every sub-issue in backlog — is DELETED by D-11. T-10's one-time board pass settles the
+      consequence.
+
+    - THE PARENT'S RULE IS TERMINAL FIRST, and this ordering is load-bearing. When the feature's
+      top-level station is `done` or the TERMINAL_MARKER, that wins outright and derive_station
+      is NOT consulted. MEASURED at 8f8a6a3 against live board 3 on 2026-08-25: every shipped
+      feature has all tasks done, so derive_station returns `review` for all of them, and
+      derive-first would project 22 of the 23 parent cards to Review while they sit correctly at
+      Done — T-10's pass would then drag 22 shipped parents backwards. Terminal first makes that
+      count zero. DEC-203 says the harness writes Done at ship; derive_station is an in-flight
+      review detector and was never meant to outrank a recorded terminal station.
+
+    - A CARD WHOSE STATION IS THE TERMINAL_MARKER IS ABSENT FROM THE MAPPING, never placed. D-05
+      says the marker names no column and never reaches the board; this is where that becomes
+      true rather than merely stated. Without this clause FEAT-28 — abandoned, with its card at
+      Done — becomes a write of a column that does not exist.
+
+    - Each source issue gets the parent's station.
+
+    - ABSENT AND ILLEGAL ARE DIFFERENT OUTCOMES AND DO NOT SHARE A CODE PATH. A station that is
+      legal but not derivable — the parent with no derivation and no top-level station — is
+      ABSENT, never guessed; an absent key means no write, the same silence derive_station
+      already returns. A station OUTSIDE the vocabulary raises FleetError naming the task id and
+      the value, because a vocabulary miss is the defect this feature exists to end and is the
+      one case that must not be silent.
+
+    Pure: no I/O, no gh binary, unit-testable.
+    """
+    legal = frozenset(factory_config.MANDATED_STATIONS) | {factory_config.TERMINAL_MARKER}
+    placed = _task_cards(plan_doc, rec, legal)
+
+    parent_station = _parent_station(plan_doc, legal)
+    if parent_station is None:
+        # No verdict and no write — for the parent AND for its source issues, which take the
+        # parent's station or nothing. Absent, never guessed.
+        return placed
+
+    parent = (rec or {}).get("parent")
+    if parent is not None:
+        placed[parent] = parent_station
+    for number in (rec or {}).get("source_issues") or []:
+        placed[number] = parent_station
+    return placed
+
+
+def _task_statuses(plan_doc):
+    """{task id: station} off the plan, with an absent status read as the not-started station.
+
+    Absent reads as `ready` for the same reason derive_station does it: the PLAN.md corpus
+    predates the field, and a task nobody has touched has not started.
+    """
+    tasks = plan_doc.get("tasks") if isinstance(plan_doc, dict) else None
+    if not isinstance(tasks, list):
+        return {}
+    return {str(t.get("id")): (t.get("status") or "ready")
+            for t in tasks if isinstance(t, dict)}
+
+
+def _task_cards(plan_doc, rec, legal):
+    """Each recorded task sub-issue, at ITS OWN task's station, verbatim.
+
+    A recorded id with no task in the plan is skipped rather than raised on: the plan is the
+    truth and a stale record is gh-sync's business, not a vocabulary miss.
+    """
+    by_id = _task_statuses(plan_doc)
+    placed = {}
+    for task_id, number in ((rec or {}).get("issues") or {}).items():
+        station = by_id.get(str(task_id))
+        if station is None:
+            continue
+        if station not in legal:
+            # NAMES THE TASK ID AND THE VALUE. `value` is what the operator can act on, so it
+            # carries both — a station alone would not say which task to go fix.
+            raise factory_config.FleetError(
+                f"task {task_id} station not in the vocabulary",
+                f"{task_id}={station}",
+                "set it with plan-merge.py set-task-station --task "
+                f"{task_id} --station <one of "
+                f"{' '.join(factory_config.MANDATED_STATIONS)}>",
+            )
+        if station != factory_config.TERMINAL_MARKER:
+            placed[number] = station
+    return placed
+
+
+def _parent_station(plan_doc, legal):
+    """The parent's station, TERMINAL FIRST — or None, meaning no write.
+
+    Returns None for the TERMINAL_MARKER as well as for no-verdict, because both mean the same
+    thing to the caller: place no card. They reach it by different routes and that is why the
+    marker is tested BEFORE derive_station rather than filtered out afterwards.
+    """
+    top = plan_doc.get("status") if isinstance(plan_doc, dict) else None
+    if top is not None and top not in legal:
+        raise factory_config.FleetError(
+            "the feature's top-level station is not in the vocabulary",
+            str(top),
+            "set it with plan-merge.py set-feature-station --station <one of "
+            f"{' '.join(factory_config.MANDATED_STATIONS)}>",
+        )
+    if top == factory_config.TERMINAL_MARKER:
+        return None
+    if top == "done":
+        return "done"
+    derived = derive_station(plan_doc)
+    if derived is not None:
+        return derived
+    return top
+
+
 def board_stations(board, repo):
     """Every `repo` issue on the board, as {int issue number: station or None}.
 

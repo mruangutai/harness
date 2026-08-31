@@ -82,7 +82,8 @@ import shutil
 import subprocess
 import sys
 
-sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
+_BIN_DIR = os.path.dirname(os.path.realpath(__file__))
+sys.path.insert(0, _BIN_DIR)
 from gh_issues import (internal_id_args, attach_sub_issue_args, sub_issues_args,
                        detach_sub_issue_args)
 
@@ -99,10 +100,49 @@ GH = os.environ.get("GH_SYNC_GH", "gh")
 
 CHORE_TYPES = {"config", "scaffolding", "infra", "ci"}
 
-# T-13: the closed set `status` accepts, matching check-state.sh:494's STATUS_ORDER and
+# T-13: the closed set `status` accepts, matching check-state.sh's STATUS_ORDER and
 # feature-schema.json's own status enum. A value outside this set is a caller error (exit 2),
 # not silently accepted with a lower-case spelling.
-STATUS_VALUES = ("Backlog", "Plan", "Ready", "Building", "Review", "Done", "Abandoned")
+#
+# DERIVED FROM factory_config, NEVER SPELLED (FEAT-41 T-06). The literal tuple that stood here
+# was the last capitalised station list in this file. These are feature.json's values, so they
+# stay CAPITALISED — this subcommand's CLI contract is feature.json's vocabulary until T-07
+# migrates that file, and lowercasing it here would break the documented
+# `gh-sync.py status <feature-dir> Review` call while feature.json still holds capitals.
+#
+# The marker is capitalised DIRECTLY rather than through station_column, which refuses it on
+# purpose: the terminal marker names no board column (D-05), so there is no column name to ask
+# for. feature.json nonetheless records `Abandoned` as a status, and that is what this set is.
+STATUS_VALUES = tuple(
+    factory_config.station_column(_s) for _s in factory_config.MANDATED_STATIONS
+) + (factory_config.TERMINAL_MARKER.capitalize(),)
+
+
+def _place(board, repo, num, station, note="", failed=None, stations=None):
+    """Write ONE card to ONE station — the single `gh_board.set_station` call in this file.
+
+    THE FAILURE POSTURE IS UNCHANGED AND IS THE REASON THIS EXISTS: a `BoardError` from one card
+    prints exactly one stderr line and returns False, so a bulk write never stops at the first
+    failure and the exit status is untouched. Seven sites each carried their own copy of that
+    try/except; one copy cannot drift from another.
+
+    `failed` collects the numbers that did not land, for the one caller that summarises them.
+    `stations`, when given, is REFRESHED IN PLACE on success — ship's held-parent rule reads it,
+    and a `source_issues` entry can itself be a child of a parent evaluated later in the same
+    pass, so a map refreshed only at the loop would read such a card as open and skip a parent
+    that should have landed.
+    """
+    try:
+        gh_board.set_station(board, repo, num, station)
+    except gh_board.BoardError as exc:
+        print(f"gh-sync: ERROR - {exc}", file=sys.stderr)
+        if failed is not None:
+            failed.append(num)
+        return False
+    if stations is not None:
+        stations[int(num)] = station
+    print(f"gh-sync: issue #{num} -> {station}{note}")
+    return True
 
 
 def skip(msg):
@@ -247,31 +287,20 @@ def _apply_parent_rule(feat_dir, repo, board):
         # Review. Without this exemption every shipped feature is a permanent false
         # violation. The CONDITION is unchanged -- it still keys on feature.json's status.
         return
-    plan_path = os.path.join(feat_dir, "plan.yaml")
-    if not os.path.isfile(plan_path):
-        # No plan.yaml (a PLAN.md-only feature) carries no task-derived verdict at all.
-        return
-    try:
-        plan_doc = harness_yaml.load_plan(plan_path)
-    except harness_yaml.YamlParseError:
-        # An unparseable plan carries no derivable verdict either — same as no verdict.
-        return
-    # derive_station takes plan.yaml alone now (FEAT-41 T-02) and returns a LOWERCASE station.
-    station = gh_board.derive_station(plan_doc)
+    rec = load_recorded(feat_dir)
+    # THE PLACEMENT COMES FROM project (FEAT-41 T-06), which carries the derivation AND the
+    # terminal-first rule in one place. An absent or unparseable plan yields an empty mapping,
+    # which is the same silence the two early returns here produced.
+    station = _projected_for(feat_dir, rec).get(rec["parent"])
     if station is None:
         return
-    rec = load_recorded(feat_dir)
     if rec["parent"] is None:
         # INV-21 already warns on this shape (a recorded task issue with no parent) —
         # this must not become a second report of it.
         print(f"gh-sync: no parent recorded for {os.path.basename(os.path.abspath(feat_dir))} "
               f"— parent station not written", file=sys.stderr)
         return
-    try:
-        gh_board.set_station(board, repo, rec["parent"], station)
-        print(f"gh-sync: parent #{rec['parent']} -> {station}")
-    except gh_board.BoardError as e:
-        print(f"gh-sync: ERROR - {e}", file=sys.stderr)
+    _place(board, repo, rec["parent"], station, note=" (parent)")
 
 
 # ---------- parsing (same hand-rolled discipline as the rest of bin/ — stdlib only) ----------
@@ -841,6 +870,26 @@ def cmd_open(feat_dir, repo, parent_arg=None):
     save_recorded(feat_dir, rec)
 
 
+def _projected_for(feat_dir, rec):
+    """{issue number: station} for this feature, from gh_board.project — or {} when the plan
+    cannot be read.
+
+    ONE PLACE ASKS THE QUESTION, so no caller re-derives a station. An unreadable or absent
+    plan yields an EMPTY mapping rather than raising: every caller already treats "no station
+    follows from the plan" as one printed line and no write, and the mirror never gates
+    (DEC-138). A plan carrying a station outside the vocabulary is the exception — project
+    raises, and that reaches the caller, because a vocabulary miss must not be silent.
+    """
+    plan_path = os.path.join(feat_dir, "plan.yaml")
+    if not os.path.isfile(plan_path):
+        return {}
+    try:
+        plan_doc = harness_yaml.load_plan(plan_path)
+    except harness_yaml.YamlParseError:
+        return {}
+    return gh_board.project(plan_doc, rec)
+
+
 def cmd_start_task(feat_dir, tid, repo, board):
     """`start-task <feature-dir> T-NN` — the orchestrator fires this in the same act it
     records the task's status as `building` in plan.yaml (D-04). Sets T-NN's OWN sub-issue
@@ -870,9 +919,31 @@ def cmd_start_task(feat_dir, tid, repo, board):
     rec = load_recorded(feat_dir)
     if tid not in rec["issues"]:
         skip(f"{tid} has no recorded issue — nothing to start (was `open` run?)")
+
+    # THE PLAN WRITE, AND IT HAPPENS FIRST (FEAT-41 T-06). Until now this docstring claimed the
+    # orchestrator fires this "in the same act it records the task's status in plan.yaml", and
+    # the 54-line body contained no such write — the record depended entirely on a human or an
+    # agent remembering a second command. It is a subprocess call to plan-merge.py's
+    # set-task-station verb, because that tool owns every write to plan.yaml: it takes the shared
+    # lock and validates the station against harness.json before the file is opened.
+    #
+    # BEFORE THE BOARD, NOT AFTER: the plan is the truth and the board is the mirror, so a failed
+    # board write must never leave the plan unrecorded. A failed PLAN write, by contrast, must
+    # stop the whole command — writing a Building card for a task the plan does not call building
+    # is precisely the two-words-two-meanings drift this feature exists to end.
+    _plan_path = os.path.join(feat_dir, "plan.yaml")
+    if os.path.isfile(_plan_path):
+        _written = subprocess.run(
+            [sys.executable, os.path.join(_BIN_DIR, "plan-merge.py"), "set-task-station",
+             "--file", _plan_path, "--task", tid, "--station", "building"],
+            capture_output=True, text=True)
+        if _written.returncode != 0:
+            refuse(f"could not record {tid} as building in {_plan_path} — "
+                   f"plan-merge.py set-task-station exited {_written.returncode}: "
+                   f"{(_written.stderr or _written.stdout).strip()}")
+
     if board is not None:
         issue_num = rec["issues"][tid]
-        building = "building"
         refused = False
         try:
             stations = gh_board.board_stations(board, repo)
@@ -881,7 +952,7 @@ def cmd_start_task(feat_dir, tid, repo, board):
             # current_station is lowercase: gh_board.board_stations lowercases the board read.
             if state == "CLOSED" or current_station == "done":
                 reason = "issue is CLOSED" if state == "CLOSED" else "card is already Done"
-                print(f"gh-sync: refusing #{issue_num} ({tid}) -> {building}: "
+                print(f"gh-sync: refusing #{issue_num} ({tid}) -> building: "
                       f"current station is {current_station!r}, {reason}")
                 refused = True
         except factory_gh.GhError as e:
@@ -889,11 +960,17 @@ def cmd_start_task(feat_dir, tid, repo, board):
                   f"— proceeding without the guard", file=sys.stderr)
         if refused:
             return
-        try:
-            gh_board.set_station(board, repo, issue_num, building)
-            print(f"gh-sync: issue #{issue_num} ({tid}) -> {building}")
-        except gh_board.BoardError as e:
-            print(f"gh-sync: ERROR - {e}", file=sys.stderr)
+
+        # THE STATION COMES FROM project, NEVER FROM THIS FUNCTION (FEAT-41 T-06). The plan write
+        # above is what makes the answer `building`; asking project rather than re-spelling it is
+        # what keeps one word meaning one thing. A task project declines to place gets no write
+        # and one line — the same silence every other placement miss gets.
+        _station = _projected_for(feat_dir, rec).get(issue_num)
+        if _station is None:
+            print(f"gh-sync: no station follows from the plan for #{issue_num} ({tid}) "
+                  f"— card not moved", file=sys.stderr)
+        else:
+            _place(board, repo, issue_num, _station, note=f" ({tid})")
         _apply_parent_rule(feat_dir, repo, board)
 
 
@@ -970,31 +1047,38 @@ def cmd_status(feat_dir, status, repo, board):
         if not numbers:
             print("gh-sync: status Ready — no sub-issues recorded, nothing to move")
             return
-        ready = "ready"
+        # PLACEMENT FROM project, SCOPE FROM THIS TRANSITION (FEAT-41 T-06). project says where
+        # each card belongs; `numbers` says which cards this transition touches — D-18 keeps the
+        # parent out of the ready column, and that scoping is the caller's, not project's.
+        _projected = _projected_for(feat_dir, rec)
         for num in numbers:
-            try:
-                gh_board.set_station(board, repo, num, ready)
-                print(f"gh-sync: issue #{num} -> {ready}")
-            except gh_board.BoardError as e:
-                print(f"gh-sync: ERROR - {e}", file=sys.stderr)
+            _station = _projected.get(num)
+            if _station is None:
+                print(f"gh-sync: no station follows from the plan for #{num} — card not moved",
+                      file=sys.stderr)
+                continue
+            _place(board, repo, num, _station)
     elif status == "Review":
+        # A PHASE WRITE, NOT A project CONSULT (FEAT-41 T-06), and T-06's own text is what
+        # settles it. Under D-23 the parent AND every recorded sub-issue move to `review` when
+        # the feature enters its review phase — regardless of each task's own status. project
+        # answers a different question, "where does THIS task's status put its card", and at
+        # Review time every task is done, so a consult here would write `done` to each card and
+        # the review phase would stop being visible on the board at all.
+        #
+        # This is exactly the disagreement INV-26's Review widening exists to tolerate, and T-06
+        # KEEPS that widening, calling it "a PHASE-SCOPED TOLERANCE ... not a placement rule" and
+        # "the one piece of station policy left outside project". A tolerance for a state nothing
+        # can produce any more would be dead code; keeping this write is what keeps it honest.
         review = "review"
         if rec["parent"] is None:
             print(f"gh-sync: no parent recorded for "
                   f"{os.path.basename(os.path.abspath(feat_dir))} — parent station not "
                   f"written", file=sys.stderr)
         else:
-            try:
-                gh_board.set_station(board, repo, rec["parent"], review)
-                print(f"gh-sync: parent #{rec['parent']} -> {review}")
-            except gh_board.BoardError as e:
-                print(f"gh-sync: ERROR - {e}", file=sys.stderr)
+            _place(board, repo, rec["parent"], review, note=" (parent)")
         for num in sorted(rec["issues"].values()):
-            try:
-                gh_board.set_station(board, repo, num, review)
-                print(f"gh-sync: issue #{num} -> {review}")
-            except gh_board.BoardError as e:
-                print(f"gh-sync: ERROR - {e}", file=sys.stderr)
+            _place(board, repo, num, review)
 
 
 def _detach_from_parent(repo, parent, num):
@@ -1024,15 +1108,18 @@ def _to_backlog(board, repo, num):
     station at t+0s, and a `Backlog` write made after that stuck. A write made BEFORE the
     close would be overwritten by GitHub's own workflow, silently.
 
-    Abandoned work is not done work, and the board is the surface the operator reads."""
+    Abandoned work is not done work, and the board is the surface the operator reads.
+
+    THIS IS NOT A project CONSULT, AND THAT IS DELIBERATE (FEAT-41 T-06). project answers
+    "where does the plan say this card belongs", and for a terminal feature the answer is
+    NOWHERE: D-05 gives the marker no board column, so project places no card at all. Routing
+    this through it would therefore write nothing and leave the card where GitHub's own close
+    workflow put it — the DONE column — which is the exact misrepresentation probe #860 was run
+    to prevent. Parking a closed card is a different question from placing a planned one.
+    """
     if board is None:
         return
-    backlog = "backlog"
-    try:
-        gh_board.set_station(board, repo, num, backlog)
-        print(f"gh-sync: issue #{num} -> {backlog} (abandoned, not done)")
-    except gh_board.BoardError as e:
-        print(f"gh-sync: ERROR - {e}", file=sys.stderr)
+    _place(board, repo, num, "backlog", note=" (abandoned, not done)")
 
 
 def _abandon_plan(rec):
@@ -1284,17 +1371,19 @@ def cmd_ship(feat_dir, repo, board, body_file=None, pr_arg=None):
         after step 4's loop, so no future write site can forget it. It is not a tidiness
         point: a `source_issues` entry can itself be a child of the parent, or of a source
         evaluated later in the same pass. A map refreshed only for step 4's writes would still
-        read such a card as open and skip a parent that should have landed."""
-        try:
-            gh_board.set_station(board, repo, num, done)
-        except gh_board.BoardError as e:
-            print(f"gh-sync: ERROR - {e}", file=sys.stderr)
-            failed.append(num)
-            return False
-        if stations is not None:
-            stations[int(num)] = done
-        print(f"gh-sync: issue #{num} -> {done}")
-        return True
+        read such a card as open and skip a parent that should have landed.
+
+        AN EXPLICIT STATION, NOT A project CONSULT (FEAT-41 T-06). DEC-203 makes `ship` the
+        SOLE writer of the done station — project reports where a plan says a card belongs, and
+        it is this pass that establishes the fact project will later report. Measured at this
+        pin, routing it through project would also be wrong on its own terms: all 31 shipped
+        features carry NO top-level station in plan.yaml, so project derives `review` for every
+        one of them and this pass would write review where done belongs, 31 times over. T-07 is
+        what populates that key; the consult belongs after it, not here.
+
+        The map refresh and the failure list live in `_place`, which every write site in this
+        file now shares."""
+        return _place(board, repo, num, done, failed=failed, stations=stations)
 
     # Step 4 — the task sub-issues. No child check: see the docstring's D-10 paragraph.
     for num in children:

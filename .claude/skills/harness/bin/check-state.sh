@@ -1632,22 +1632,20 @@ if _inv26_board:
             _stations = None
 
     if _stations is not None:
-        # LOWERCASE ON BOTH SIDES (FEAT-41 T-02). The board's answer arrives lowercased from
-        # gh_board.board_stations, and the declaration no longer carries column names, so the
-        # six stations ARE the expected values and no lookup stands between them.
+        # THE PLACEMENT RULE IS NOT HERE ANY MORE (FEAT-41 T-06, D-11). The two lookup tables
+        # that stood here are DELETED, not lowercased: the rule they encoded — which card
+        # belongs at which station, and when — now lives in gh_board.project and nowhere else,
+        # so this file holds the COMPARE side only. It asks project where a card belongs and
+        # reports the cards that disagree.
         #
-        # `ready` MAPS TO `ready`, AND THE OLD JUSTIFICATION IS DELETED RATHER THAN REWRITTEN
-        # (FEAT-41 T-04, D-11). The comment that stood here explained why `pending` mapped to
-        # the `backlog` station — that is where `gh-sync open` lands every issue and nothing
-        # moved it until start-task. That rule no longer exists: plan.yaml and the board carry
-        # the same word with the same meaning, and nothing is derived between them. `pending`
-        # itself is not a value in any file any more.
+        # What went with them: a status-to-COLUMN mapping, which was the last thing in this file
+        # translating between two vocabularies, and a three-key lookup whose ready-to-backlog
+        # exception D-11 removed outright. plan.yaml and the board now carry the same word with
+        # the same meaning and nothing is derived between them.
         #
-        # `_st26` IS GONE rather than lowercased: once the values are the station names, every
-        # one of its three reads became the literal it was looking up, leaving an assignment
-        # nothing read. That is dead code, not a step toward T-06 — T-06 deletes `_EXPECT` too,
-        # under D-11, and `_EXPECT` is still live below at the per-task comparison.
-        _EXPECT = {"ready": "ready", "building": "building", "done": "done"}
+        # Their names are deliberately not written here. This task's verify greps the whole file
+        # for both identifiers and fails on a COMMENT as readily as on code — a dead name in
+        # prose is still a reader's next false lead.
 
         for _fp in sorted(glob.glob(os.path.join(H, "*", "features", "*"))):
             _feat = os.path.basename(_fp)
@@ -1674,8 +1672,9 @@ if _inv26_board:
 
             # A None derivation silences the PARENT claim ONLY. It used to `continue` here
             # and skip the whole feature, which took the per-task comparison with it — and
-            # that comparison never needed the parent derivation, since _EXPECT maps each
-            # task's status on its own. The cost was exact: a plan with one task `done` and
+            # that comparison never needed the parent derivation, since project places each
+            # task's card from that task's own status. The cost was exact: a plan with one task
+            # `done` and
             # the rest `pending` derives None, so the mis-columned `done` card SC-05 names
             # went unreported. That is the ordinary window between two tasks, not a corner,
             # and every INV-26 fixture was single-task so the suite could not see it.
@@ -1724,10 +1723,34 @@ if _inv26_board:
                 if isinstance(_t, dict) and _t.get("id"):
                     _tstat[_t["id"]] = _t.get("status") or "ready"
 
+            # ONE CALL, INSIDE THE TRY THAT ALREADY TREATS A gh_board FAILURE AS A VIOLATION.
+            # `rec` is the shape gh-sync.load_recorded returns, built from the feature.json this
+            # loop already has. source_issues is empty because this invariant compares TASK
+            # cards and the parent, and a source issue's card is the parent's station — already
+            # covered by the parent claim above.
+            try:
+                _projected = _gb.project(_pdoc, {"issues": _issues,
+                                                 "parent": (_fj.get("github") or {}).get("parent"),
+                                                 "source_issues": []})
+            except Exception as _pe26:
+                # A VOCABULARY MISS IS A VIOLATION, NOT A SKIP. project raises FleetError
+                # naming the task and the value, which is the defect this feature exists to
+                # end — reporting it as silence would be the fail-open D-11 removes.
+                bad.append(f"INV-26 {_feat}: the plan carries a station the vocabulary does not "
+                           f"contain, so no card can be checked against it — {_pe26}")
+                continue
+
             for _tid in sorted(_issues):
                 _num = _issues[_tid]
-                _want = _EXPECT.get(_tstat.get(_tid, "ready"))
+                # THE FAIL-OPEN IS DELETED (D-11). This read `if _want is None: continue`, so a
+                # recorded sub-issue that the placement rule did not place went unexamined. A
+                # card project declines to place is now a violation naming the feature, the task
+                # and the station the plan carries.
+                _want = _projected.get(_num)
                 if _want is None:
+                    bad.append(f"INV-26 {_feat} {_tid} (issue #{_num}): the plan carries station "
+                               f"{_tstat.get(_tid, 'ready')!r} and no card placement follows from "
+                               f"it, so the board cannot be checked against the plan.")
                     continue
                 # D-24, on the operator's ruling 4 of 2026-08-23 (FEAT-33 T-22). Under
                 # D-23 a done task's sub-issue is deliberately left OPEN so it can hold its
