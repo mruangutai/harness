@@ -1539,3 +1539,85 @@ tasks:
       AND RAISE IT rather than amending a clause that moved underneath you - the verify asserts
       all three original clauses are still standing, so a silent rewrite reds it and a strike reds
       it too.
+  - id: T-16
+    title: Pay the fixture debt T-01/T-02 left in test-gh-sync.py
+    traces: [REQ-01]
+    change_type: logic
+    execution_mode: main-session-direct
+    execution_reason: repairs fixtures for check-state.sh and gh-sync.py, both enforcement-path
+      files under DEC-174
+    depends_on: [T-06]
+    status: ready
+    files:
+      - .claude/skills/harness/bin/test-gh-sync.py
+    verify: |
+      python3 .claude/skills/harness/bin/test-gh-sync.py
+    intent: |
+      THIS TASK EXISTS BECAUSE T-01/T-02 SHIPPED A RED SUITE AND FOUR TASKS RAN BEFORE ANYONE
+      LOOKED. Measured at f1020e8, the commit before this feature's first build task:
+      test-gh-sync.py exited 0 with ZERO failures. Measured at a8d0693: 83 failures, and 84 with
+      T-06's gh-sync edit applied - proved by stashing that one file and re-running, so the split
+      between inherited and new is not an estimate.
+
+      The cause is fixture debt, not a defect in shipped behaviour. Two shapes, both made illegal
+      by tasks that are already done:
+      - write_harness_json_board builds github.board.stations as a MAPPING
+        (dict(stations or FULL_STATIONS)). T-01 made the declaration an ordered LIST and made a
+        mapping a loud FleetError, so every fixture built through this helper now fails board
+        validation. FULL_STATIONS itself is still the old mapping.
+      - fixtures pass CAPITALISED station values as CLI arguments and assert capitalised values
+        in output. T-02 moved the case boundary so that a station arrives lowercase and only
+        factory_config.station_column produces a capital.
+
+      FIX THE HELPERS, NOT THE CALL SITES. Both shapes are produced by a small number of shared
+      builders - write_harness_json_board, FULL_STATIONS, stage_station, write_plan_yaml - and
+      every failing case inherits from one of them. Migrating the builders is what makes the
+      fixtures faithful to production; migrating 83 assertions one at a time would leave the
+      builders still wrong and the next fixture still born broken.
+
+      DO NOT WEAKEN AN ASSERTION TO MAKE IT PASS. Where a case asserts a capitalised value, the
+      question is which side of the boundary it sits on: a value going to or coming from GitHub is
+      capitalised and stays so (D-08), and a value inside the harness is lowercase. Decide per
+      case and record the ones that were genuinely about the boundary.
+
+      TWO START-TASK FIXTURES NEED A REAL PLAN, and this is a consequence of T-06 rather than of
+      T-01: start-task now records the task's station through plan-merge.py set-task-station before
+      it touches the board, and refuses when that write fails. FEAT-09-no-board's plan.yaml carries
+      no tasks at all, so the verb exits 3 (T-02 is not in the plan) and the command refuses. A
+      start-task fixture whose plan does not contain the task being started is not a realistic
+      plan; give it one rather than relaxing the refusal, which is load-bearing - moving a card for
+      a task the plan does not call building is the drift this feature exists to delete.
+
+      ADD THE CASE T-06 OWES AND COULD NOT LAND: start-task fails loudly when the plan write
+      fails, and writes NO card in that case. Show it failing first.
+
+  - id: T-17
+    title: Pay the fixture debt in test-factory-integration.py, which no task names
+    traces: [REQ-01]
+    change_type: logic
+    execution_mode: main-session-direct
+    execution_reason: repairs fixtures for the factory CLI surface changed by T-01/T-02 under
+      DEC-174
+    depends_on: [T-06]
+    status: ready
+    files:
+      - .claude/skills/harness/bin/test-factory-integration.py
+    verify: |
+      python3 .claude/skills/harness/bin/test-factory-integration.py
+    intent: |
+      THE FILE NO VERIFY BLOCK IN THIS PLAN NAMES. test-gh-sync.py is named by T-06, T-07 and
+      T-10, so its breakage was caught - late, at T-06, four tasks after the cause, but caught.
+      test-factory-integration.py is named by NO task in this plan and is INTEGRATION kind, so
+      nothing a per-task verify runs would ever have executed it. Measured at f1020e8: exit 0,
+      zero failures. At a8d0693: red, with the D-claim, D-decompose and D-land end-to-end cases
+      failing.
+
+      Same debt as T-16 and the same rule: fix the shared builders, and do not weaken an
+      assertion to make it pass. The failures are concentrated in the three end-to-end cases,
+      each of which drives a real subcommand and asserts a board item actually moved, so they are
+      the cases most likely to be asserting a capitalised value that is now correctly lowercase
+      on the harness side of the boundary.
+
+      STATE IN THE RECEIPT which assertions changed because a value crossed the GitHub boundary
+      and which changed because the harness side lowercased. Those are different findings and a
+      reader cannot tell them apart from a diff.
