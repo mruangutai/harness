@@ -7412,3 +7412,52 @@ This decision supersedes DEC-199 only for claim schema, key, liveness, and autom
 supersedes DEC-201's host-specific mechanics for OMP while preserving its no-wait conduct and
 evidence standard. DEC-202 still owns canonical paths, provider overlays, and compatibility
 adapters. DEC-203 still owns issue/card lifecycle and command ownership.
+
+## DEC-206 — A harness lead may wrap a non-harness panel reader, and owns its shape but never its content
+
+**Chose:** A harness lead MAY dispatch a non-harness subagent as a panel reader and normalize that
+reader's return into the lead's own digest. A wrapped non-harness reader is a legal dispatch target
+under lead authority, not an exception granted case by case. Origin:
+`FEAT-45-adversarial-plan-panel`, whose plan-panel squad has the validator lead spawn a pinned agent
+that is not one of the sixteen harness personas.
+
+**It is a precedent needing a signature because the reader's return is structurally unvalidated.**
+Three facts, in this order. One, `SubagentStop` fires for that reader, but `validate-digest.py`
+returns 0 immediately for a non-harness `agent_type`
+(`.claude/skills/harness/bin/validate-digest.py:906`) — a deliberate decline to govern an agent that
+carries no digest contract — so no schema ever grades what the reader returned. Two, digest coverage
+therefore comes only from the wrapping lead's own stop event, graded against the lead schema: the
+reader's findings are validated as a part of the lead's digest, or not at all. Three, the
+compensating control is contractual rather than mechanical. The reader's prompt requires a
+self-emitted severity on every finding, with the sentinel value `unrated` for a finding the reader
+will not rate, and the lead TRANSCRIBES an absence rather than inventing a value.
+
+**Shape versus content is the line the lead may not cross.** The lead owns SHAPE — schema
+conformance, finding identity, de-duplication, ranking, and roll-up. The lead never owns CONTENT —
+whether a defect exists at all, and how severe the reader judged it. A lead that supplies a severity
+the reader did not emit has manufactured evidence and put its own judgement behind the reader's name,
+which is the one failure an unvalidated return makes easy and invisible.
+
+**An omitted severity fails closed.** `unrated` is treated as gating-equivalent to `high`. A reader
+that declines to rate, or a normalization that loses a rating, therefore withholds rather than
+passes, and the cheapest way out of a withhold is to rate the finding honestly.
+
+## DEC-207 — A gate may grade a specification before any code exists, and its findings enter the one batched review pass
+
+**Chose:** A gate MAY fire in the plan phase, before any code exists. Origin:
+`FEAT-45-adversarial-plan-panel`, whose adversarial panel reads a DRAFTED plan before the operator
+signs it.
+
+**What is different about a plan-phase gate.** It grades a specification rather than a diff. It has
+no `review_sha` to pin, because there is no commit its findings are about, and no test suite to run,
+because nothing has been built to run one against. Its evidence is a reader's judgement recorded in a
+lead digest — which is why the digest, not a green suite, is the artifact the ship decision reads.
+
+**The bound that keeps it from becoming a second approval loop.** Findings enter the ONE batched
+review pass at the signature gate per DEC-176 and never open a separate pre-signature fix dispatch.
+A panel that could open its own fix cycle would be a second approval loop wearing a gate's name, and
+DEC-176's single consolidated pass exists precisely to deny that.
+
+**Withholding, and who ends it.** A finding at high or worse withholds the presentation until it is
+resolved or the operator records an overrule. The operator, not the panel, is the terminus: the panel
+can delay a signature and can never refuse one.
