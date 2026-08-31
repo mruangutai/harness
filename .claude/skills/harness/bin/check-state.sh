@@ -413,6 +413,24 @@ for feat, plan in plans.items():
             if tid not in plan_ids:
                 bad.append(f"{fpath(feat, 'STATE.md')} references {tid}, which is absent from its PLAN.md.")
 
+# THE GIT TOP LEVEL, resolved ONCE for INV-33 below (FEAT-41 T-14 / issue #867).
+#
+# RELATIVE TO THE GIT TOP LEVEL, NEVER TO `root`, and the reason CHANGED with the rebase while
+# the requirement did not. `root` is no longer CLAUDE_PROJECT_DIR: since FEAT-42 T-12 this script
+# resolves it through harness_boundary.resolve_root(_selfdir). That is the HARNESS root, which
+# still need not be the repository top level — a worktree checkout is the everyday case, and this
+# very file is being edited in one. `git show <sha>:<path>` takes a path relative to the
+# repository, so using `root` would silently miss every plan in a worktree.
+#
+# ONE subprocess for the whole run, not one per feature. None on failure, which is one of
+# INV-33's five deliberate silences: no git work tree is a state it cannot speak to.
+try:
+    _tl = subprocess.run(["git", "-C", root, "rev-parse", "--show-toplevel"],
+                         capture_output=True, text=True)
+    _git_top = _tl.stdout.strip() if _tl.returncode == 0 else None
+except Exception:
+    _git_top = None
+
 # --- INV-6..8: per-feature execution facts.
 for fy in glob.glob(os.path.join(H, "*", "features", "*", "feature.json")):
     feat = os.path.basename(os.path.dirname(fy))
@@ -492,6 +510,78 @@ for fy in glob.glob(os.path.join(H, "*", "features", "*", "feature.json")):
         bad.append(f"{feat}: a validator run reviewed code but review_sha is not pinned "
                    f"— reviewers would diff HEAD (the GAP-7 failure). A run that graded a "
                    f"plan and no code carries `code_grade: n_a` and needs no pin (DEC-207).")
+
+    # INV-33: a pin that is STALE, not merely absent (FEAT-41 T-14, closing issue #867).
+    #
+    # INV-6 above asserts a pin EXISTS. This asserts the pin is CURRENT. An absent pin is
+    # honest — it says nobody reviewed this. A stale pin makes a CLAIM, that this text was
+    # reviewed at this commit, and once the text has moved that claim is false while looking
+    # byte-identical to a true one. Measured live on FEAT-41 itself: feature.json read one sha
+    # while plan.yaml had been committed later, and a full run reported no INV-6 line for it.
+    #
+    # WHY A SEPARATE NUMBER, not a second INV-6 finding. The two have different PRECONDITIONS —
+    # INV-6 needs only feature.json, this needs a git work tree and a plan file — and therefore
+    # different silences, so folding them together would put two fail-open surfaces behind one
+    # grep-able string. Six existing cases assert INV-6's exact text; a distinct number leaves
+    # them untouched and makes each invariant separately searchable.
+    #
+    # A BYTE COMPARISON, NEVER A COMMIT COMPARISON. Comparing the pin to the last commit that
+    # touched the plan reports a plan changed and changed back, and reports any feature reviewed
+    # before an unrelated commit landed on that path. The bytes are what the pin actually
+    # claims. Case (inv32.b) exists to kill the commit-equality implementation.
+    #
+    # SILENT, DELIBERATELY, ON FIVE STATES, four of which this invariant simply cannot speak to:
+    # no git work tree; a pin that does not resolve; no plan file on disk; THE PLAN FILE EXISTS
+    # BUT NOT AT THAT PATH IN THE PINNED COMMIT; and a TERMINAL station.
+    #
+    #   THE PATH-ABSENT SILENCE IS THE LARGEST IN THE TREE. Re-measured at execution time: 19 of
+    #   44 feature directories sit in it, from layout history — the docs-layout migration and the
+    #   PLAN.md-to-plan.yaml move each changed where a plan lives, and every one of those pins
+    #   was honest about the path that existed when it was taken. The ONLY thing silencing it is
+    #   the both-reads-succeed clause below, so an implementation that reads an absent object at
+    #   the pin as evidence of staleness reds all nineteen at once. All nineteen are also
+    #   terminal today, so live exposure is ZERO — which is exactly why case (inv32.d) pins the
+    #   clause with a NON-TERMINAL fixture. Nothing in the tree can currently make it fail.
+    #
+    #   THE TERMINAL SCOPE IS LOAD-BEARING FOR FOUR SHIPPED FEATURES (operator answer Q6): a
+    #   shipped plan is a record rather than a contract, and shipped history stays unrepaired.
+    #   Without it this goes red on four of them the moment it lands.
+    #
+    # A VALIDATOR RUN IS NOT ONE OF THE SILENCES. That precondition was dropped deliberately: a
+    # recorded run is a LAGGING indicator that can only fire after a panel has already read the
+    # wrong text, which is how this feature's own divergence survived.
+    if _git_top and _sha and _sha not in harness_yaml.PLACEHOLDER_UNSET \
+            and station_of(os.path.dirname(fy)) not in ("done", TERMINAL_MARKER):
+        _pf = os.path.join(os.path.dirname(fy), "plan.yaml")
+        if not os.path.isfile(_pf):
+            _pf = os.path.join(os.path.dirname(fy), "PLAN.md")
+        if os.path.isfile(_pf):
+            # REALPATH BOTH SIDES. `git rev-parse --show-toplevel` returns the resolved
+            # path, and on macOS the temp dir every fixture uses is a symlink
+            # (/var -> /private/var). Mixing the two makes relpath emit a
+            # `../../..`-prefixed path, `git show` fail, and this invariant go SILENT —
+            # measured, and the same mismatch T-07 hit in worktree_terminal.
+            _prel = os.path.relpath(os.path.realpath(_pf), os.path.realpath(_git_top))
+            _shown = subprocess.run(["git", "-C", root, "show", f"{_sha}:{_prel}"],
+                                    capture_output=True)
+            try:
+                with open(_pf, "rb") as _pfh:
+                    _disk = _pfh.read()
+            except OSError:
+                _disk = None
+            # BOTH reads must succeed. See the path-absent paragraph above — this one clause is
+            # what keeps 19 honest pins quiet.
+            if _shown.returncode == 0 and _disk is not None and _shown.stdout != _disk:
+                # THE FINDING NAMES THREE THINGS: the feature, the pinned sha, and the last
+                # commit to touch that plan. A finding that says only "stale" makes the reader
+                # redo the measurement.
+                _last = subprocess.run(
+                    ["git", "-C", root, "log", "-1", "--format=%h", "--", _prel],
+                    capture_output=True, text=True)
+                _lastsha = _last.stdout.strip() or "(unknown)"
+                bad.append(f"{feat}: review_sha {_sha} is STALE — {os.path.basename(_pf)} has "
+                           f"changed since it was pinned, last at {_lastsha}, so the review "
+                           f"claim covers text that is no longer there (INV-33).")
 
     # INV-7: the fix-loop bound must actually count the failures it bounds.
     fails = sum(1 for _, _, v in runs if v.upper() == "FAIL")

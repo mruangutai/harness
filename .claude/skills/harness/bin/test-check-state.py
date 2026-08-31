@@ -3324,6 +3324,202 @@ def case_inv32():
           + ("" if ok else f" {checks}"))
     return ok
 
+# ==========================================================================================
+# FEAT-41 T-14 / issue #867: INV-33 — a STALE review_sha, not merely an absent one.
+#
+# INV-6 asserts a pin EXISTS. INV-33 asserts the pin is CURRENT. An absent pin is honest — it
+# says nobody reviewed this. A stale pin makes a CLAIM (this text was reviewed at this commit)
+# and once the text has moved that claim is false while looking byte-identical to a true one.
+#
+# A BYTE COMPARISON, NEVER A COMMIT COMPARISON. Comparing review_sha to the last commit that
+# touched the plan reports a plan changed and changed back, and reports any feature reviewed
+# before an unrelated commit landed on that path. Case (inv33.b) exists to kill that
+# implementation.
+#
+# BUILT WITH REAL GIT, deliberately: INV-33 runs `git rev-parse --show-toplevel` and `git show`,
+# so a hand-built .git pointer yields no top level and all four cases would pass vacuously.
+# ==========================================================================================
+
+_INV32_HJ = '{"schema_version": 1, "github": {"sync": false}}\n'
+
+
+def _inv33_repo(tmp):
+    """A real git repository at `tmp`, onboarded, with a validator run recorded.
+
+    THE VALIDATOR RUN AND THE harness.json ARE BOTH REQUIRED, and neither is decoration:
+    check-state.sh exits 1 with "project not onboarded" before ANY invariant runs, so a bare
+    directory would exit non-zero while printing no invariant line at all — and these cases
+    would then be unfalsifiable.
+    """
+    for cmd in (["git", "init", "-q"],
+                ["git", "config", "user.email", "t@example.com"],
+                ["git", "config", "user.name", "t"]):
+        subprocess.run(cmd, cwd=tmp, capture_output=True)
+    make_fixture(tmp, _INV32_HJ, "  parent: 1\n")
+    return os.path.join(tmp, ".harness", "harness", "features", "FEAT-TEST")
+
+
+def _inv33_commit(tmp, message="c"):
+    subprocess.run(["git", "add", "-A"], cwd=tmp, capture_output=True)
+    subprocess.run(["git", "commit", "-qm", message], cwd=tmp, capture_output=True)
+    return subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=tmp,
+                          capture_output=True, text=True).stdout.strip()
+
+
+def _inv33_set_sha(feat_dir, sha, validator_run=True):
+    """Append the pin to the fixture's feature.json as TEXT.
+
+    make_fixture writes that file in YAML (harness_yaml is what check-state.sh reads it with),
+    so a json.load round-trip raises — measured, not guessed. Appending keys is also the only
+    edit that leaves the builder's own shape untouched.
+
+    THE VALIDATOR RUN IS WHAT MAKES INV-6 SILENT HERE. INV-6 fires when a validator run exists
+    and the pin is missing; these cases carry a real pin, so INV-6 stays quiet either way — but
+    including the run keeps the fixture a realistic document rather than one that avoids INV-6
+    by having no runs at all.
+    """
+    fj = os.path.join(feat_dir, "feature.json")
+    extra = f"review_sha: {sha}\n"
+    if validator_run:
+        extra += "runs:\n  - id: r1\n    squad: validator\n    verdict: PASS\n"
+    with open(fj, "a") as f:
+        f.write(extra)
+
+
+def _inv33_plan(feat_dir, body, station=None):
+    lines = ["schema: plan/1", "feature: FEAT-TEST"]
+    if station is not None:
+        lines.append(f"status: {station}")
+    lines += ["tasks:", "  - id: T-01", f"    change_type: {body}"]
+    with open(os.path.join(feat_dir, "plan.yaml"), "w") as f:
+        f.write("\n".join(lines) + "\n")
+
+
+def _inv33_lines(out):
+    return [l for l in out.splitlines() if "INV-33" in l]
+
+
+def case_inv33a_stale_is_reported():
+    """(inv33.a) THE REPORT. Commit X, commit Y, leave Y on disk, pin the FIRST commit."""
+    results = []
+    with tempfile.TemporaryDirectory() as tmp:
+        feat = _inv33_repo(tmp)
+        _inv33_plan(feat, "logic")                 # content X
+        first = _inv33_commit(tmp, "plan X")
+        _inv33_plan(feat, "docs")                  # content Y
+        second = _inv33_commit(tmp, "plan Y")
+        _inv33_set_sha(feat, first)
+        _inv33_commit(tmp, "pin")
+        code, out = run(tmp)
+        ls = _inv33_lines(out)
+        ok = bool(ls) and any("FEAT-TEST" in l for l in ls) \
+            and any(first in l for l in ls) and any(second in l for l in ls)
+        if ok:
+            print("ok - case (inv33.a) a stale review_sha is reported")
+        results.append(("(inv33.a) a stale review_sha is reported, naming the feature, the "
+                        "pinned sha and the last sha to touch the plan", ok,
+                        "\n".join(ls) or f"(no INV-33 line) code={code}"))
+    return results
+
+
+def case_inv33b_current_is_silent():
+    """(inv33.b) THE SILENCE, AND THE DISCRIMINATOR that kills a commit-equality check.
+
+    Commit X, commit Y, commit X AGAIN, leave X on disk, pin the FIRST commit. The pinned BYTES
+    equal the working copy's, so INV-33 must be silent even though a LATER commit touched the
+    file — which is exactly what a `git log -1` implementation would report.
+    """
+    results = []
+    with tempfile.TemporaryDirectory() as tmp:
+        feat = _inv33_repo(tmp)
+        _inv33_plan(feat, "logic")                 # X
+        first = _inv33_commit(tmp, "plan X")
+        _inv33_plan(feat, "docs")                  # Y
+        _inv33_commit(tmp, "plan Y")
+        _inv33_plan(feat, "logic")                 # X again
+        _inv33_commit(tmp, "plan X again")
+        _inv33_set_sha(feat, first)
+        _inv33_commit(tmp, "pin")
+        code, out = run(tmp)
+        ls = _inv33_lines(out)
+        ok = not ls
+        if ok:
+            print("ok - case (inv33.b) a current review_sha is silent")
+        results.append(("(inv33.b) a current review_sha is silent even though a later commit "
+                        "touched the plan — a BYTE comparison, not a commit comparison", ok,
+                        "\n".join(ls) or "(unexpected line)"))
+    return results
+
+
+def case_inv33c_terminal_is_silent():
+    """(inv33.c) THE TERMINAL SILENCE, and the guard on four shipped features.
+
+    Same construction as (inv33.a) — the pinned bytes genuinely DIFFER — but the feature sits at
+    a terminal station, in the place T-07 leaves it: plan.yaml's own top-level status.
+
+    WHAT THIS CASE DOES AND DOES NOT PROVE. Against an unmodified check-state.sh it passes
+    VACUOUSLY, because nothing emits INV-33 at all, so its green there is worth nothing. Its
+    DISCRIMINATING run is against an implementation that already reports (inv33.a) but carries no
+    terminal scope, where it must be RED. That run belongs in the receipt.
+    """
+    results = []
+    with tempfile.TemporaryDirectory() as tmp:
+        feat = _inv33_repo(tmp)
+        _inv33_plan(feat, "logic", station="done")
+        first = _inv33_commit(tmp, "plan X")
+        _inv33_plan(feat, "docs", station="done")
+        _inv33_commit(tmp, "plan Y")
+        _inv33_set_sha(feat, first)
+        _inv33_commit(tmp, "pin")
+        code, out = run(tmp)
+        ls = _inv33_lines(out)
+        ok = not ls
+        if ok:
+            print("ok - case (inv33.c) a terminal station is silent")
+        results.append(("(inv33.c) a terminal station is silent — a shipped plan is a record, "
+                        "not a contract (operator Q6)", ok,
+                        "\n".join(ls) or "(unexpected line)"))
+    return results
+
+
+def case_inv33d_absent_path_is_silent():
+    """(inv33.d) THE LARGEST SILENCE IN THE TREE, AND NOTHING PINNED IT BEFORE THIS CASE.
+
+    The pin resolves to a real commit but the plan file DOES NOT EXIST at that path in it. Re-run
+    at execution time: 19 of 44 feature directories sit in this state, from layout history — the
+    docs-layout migration and the PLAN.md-to-plan.yaml move each changed where a plan lives, and
+    every one of those pins was honest about the path that existed when it was taken.
+
+    THE ONLY CLAUSE THAT SILENCES IT is "report only when BOTH reads succeed", so an
+    implementation reading an absent object at the pin as evidence of staleness reds all nineteen
+    at once.
+
+    THE STATION IS NON-TERMINAL ON PURPOSE. All nineteen live directories are terminal, so the
+    Q6 scope silences every one of them BEFORE this clause is consulted — live exposure is ZERO,
+    which is precisely why the clause needs a fixture of its own. A case built with a terminal
+    station would be measuring the wrong clause and would pass whatever this one does.
+    """
+    results = []
+    with tempfile.TemporaryDirectory() as tmp:
+        feat = _inv33_repo(tmp)
+        # A commit made BEFORE the plan file existed at that path.
+        before = _inv33_commit(tmp, "no plan yet")
+        _inv33_plan(feat, "logic", station="building")
+        _inv33_commit(tmp, "plan X")
+        _inv33_plan(feat, "docs", station="building")
+        _inv33_commit(tmp, "plan Y")
+        _inv33_set_sha(feat, before)
+        _inv33_commit(tmp, "pin")
+        code, out = run(tmp)
+        ls = _inv33_lines(out)
+        ok = not ls
+        if ok:
+            print("ok - case (inv33.d) a pin with no plan file at that path is silent")
+        results.append(("(inv33.d) a pin that resolves but holds no plan at that path is "
+                        "silent, at a NON-TERMINAL station", ok,
+                        "\n".join(ls) or "(unexpected line)"))
+    return results
+
 
 # BUG-1071 — INV-32's era guard. FEAT-45 T-07 shipped INV-32 with no era boundary, so it
 # fired on all 32 approved plans in the tree and NONE could satisfy it: a plan signed
@@ -3685,6 +3881,21 @@ def main():
     ok_i28f = case_inv28_silent_sync_off()
     ok_i28g = case_41_t07_inv28_station_from_plan()
     ok_i28h = case_41_t07_inv28_negative_control_live_station()
+    # FEAT-41 T-14 / issue #867 — INV-33: the report, the byte-comparison discriminator, and
+    # the two silences. Each returns a results LIST, so they join the aggregate below.
+    #
+    # RENUMBERED FROM 32 ON THE REBASE ONTO origin/main. FEAT-45 T-07 shipped its OWN INV-32 (a
+    # plan approved with no complete panel result) while this was in flight, and it landed first,
+    # so it owns the number. Two invariants sharing one id would make every message ambiguous
+    # and would have made this feature's own verify greps match the other one's output.
+    _i33 = (case_inv33a_stale_is_reported() + case_inv33b_current_is_silent()
+            + case_inv33c_terminal_is_silent() + case_inv33d_absent_path_is_silent())
+    ok_i33 = True
+    for _name, _ok, _detail in _i33:
+        print(f"{'ok' if _ok else 'FAIL'} - case {_name}")
+        if not _ok:
+            ok_i33 = False
+            print(f"        {str(_detail).strip()[:300]}")
     ok_p = case_p()
     ok_q = case_q()
     ok_r = case_r()
@@ -3778,6 +3989,7 @@ def main():
             and ok_i28g and ok_i28h
             and ok_i29 and ok_i30 and ok_i31 and ok_i32 and ok_i32_severity
             and ok_i32_era and ok_i6_plan
+            and ok_i33
             and ok_exit_unchanged):
         sys.exit(0)
     sys.exit(1)
