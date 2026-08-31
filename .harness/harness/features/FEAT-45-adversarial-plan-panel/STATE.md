@@ -5,66 +5,55 @@
 - feature: FEAT-45-adversarial-plan-panel
 - run: .harness/harness/features/FEAT-45-adversarial-plan-panel/runs/c4-validator/state.yaml
 - squad: none
-- status: Review
+- status: Done
 
-READY TO SHIP, awaiting the operator's decision. Validate is closed after FOUR panel cycles, four
-main-session fix rounds and two goal-checks. Final goal-check: 14 met, 0 unmet, 3 deferred-to-live-run.
-Final panel (cycle 4): PASS at `severity_max: low`, no `must_fix`.
+SHIPPED on the operator's explicit acceptance of `notes/ship-review-2026-08-31.md`, with no
+backlog row struck. The ship phase is closed; one external gate remains and it is the operator's:
+**the PR and the merge**. Nothing is pushed and `pr` is still `null` — `gh-sync.py record-pr`
+found no merged pull request on `feat/FEAT-45-adversarial-plan-panel`.
 
-B-1 was fixed before shipping on the operator's instruction: panel finding identities widened from a
-32-bit to a 128-bit hash, `PF-` plus 32 hex, 35 characters. The security reviewer that raised it
-confirms it CLOSED and that an adversarial-collision test is now unnecessary rather than merely
-absent. A reverted-width probe reddens three independent assertions, so the fix is pinned against
-regressing silently, and a sweep of 78 files found no code still bound to the old width. I confirmed
-independently that no non-test source slices an id or matches an 8-hex pattern.
+The mirror is fully landed. `gh-sync.py open` was a clean no-op — milestone #33, parent #983 and
+all twelve task sub-issues were already recorded. `gh-sync.py ship --body-file` posted the briefing
+verbatim on #983, moved every recorded card to Done (#984..#994, #1051, then parent #983), closed
+milestone #33, and wrote `feature.json` `status: Done`. It reported **no HELD and no FAILED line**:
+every recorded card reached the done station. Its board audit returned 14 pre-existing findings,
+all about OTHER features' parents and four unlabelled `not_planned` closes; ship never gates on
+the audit, and the one FEAT-45 line it printed was read before this run's own status write.
 
-The last record inconsistency is CLOSED, not carried. T-09 was marked `done` while its own `verify:`
-still asserted `test 11 -eq` against a 35-character id -- D-05 had moved with the code and the task
-text had not. The main session corrected it directly at f89c90b: the verify now asserts 35 and the
-intent says 32 hex / length 35. I re-ran T-09's `verify:` block verbatim from plan.yaml and it exits
-0. That commit is record-only -- I diffed the pin against HEAD and every changed path is inside the
-feature directory, so no source moved and the cycle-4 PASS at bdd5666 remains valid.
+All fifteen accepted backlog rows are durable issues, in row order:
+B-2 #1054, B-3 #1055, B-4 #1056, B-5 #1057, B-6 #1058, B-7 #1059, B-8 #1060, B-9 #1061,
+B-10 #1062, B-11 #1063, B-12 #1064, B-13 #1065, B-14 #1066, B-15 #1067, B-16 #1068 —
+each labelled `harness` plus its nature, no milestone, per DEC-138.
 
-Cycles 10 of 10 -- fully spent, and the last one bought a real defect fix rather than a re-observation.
-Runs 17 of 20. The CEO briefing is `notes/ship-review-2026-08-31.md`, rendered alongside as `.html`,
-carrying 15 backlog rows B-2..B-16; anything the operator does not strike becomes an issue on ship
-acceptance, and anything not listed dies silently.
+`review_sha` bdd5666 still governs the shipped work. HEAD is 4624d1e; f89c90b and 4624d1e are
+record-only and every path they touch is inside the feature directory, so the cycle-4 panel PASS
+at `severity_max: low` with no `must_fix` is unmoved. Cycles 10 of 10, runs 17 of 20 — the
+briefing's "9 of 10 / 16 of 20" predates the B-1 fix cycle and was accepted as read; `feature.json`
+is the authority.
+
+Three success criteria stay deferred by their own text — SC-11, SC-12, SC-16 — plus the F5/V1
+confirmation that a code reviewer can land a structured return from a worktree, which cannot run
+until the hook resolves `main`'s installed validator. The first live `/harness-plan` after merge
+settles all four. Feature-close distillation runs at MERGE, not here (DEC-145).
 
 ## Open Questions
 
-- SHIP-DECISION MATERIAL, and M4 is a RATCHET: widening `panel_findings.py`'s 32-bit id
-  (`digest[:8]`) changes every finding id, retroactively staleness-breaking every overrule recorded
-  in a signed plan.yaml. Free today because no live plan carries a PF- ruling, and monotonically more
-  expensive from the first signature onward. Recommend fixing before ship. — harness-security-reviewer
-- Advisory, non-gating, all assessed by the cycle-1 panel: M5 (SC-03's second falsification direction
-  unbound at `test-plan-panel.py:161-181`), M6 (`goalcheck` transcription ambiguity — fails closed and
-  loudly on SC-16's first live `/harness-plan`), M7 (the withhold message states the fact but not the
-  remedy). Each needs a keep-or-strike ruling at the ship gate; anything not listed there dies silently.
-- Only 3 of `test-plan-panel.py`'s 24 checks bind executable behaviour, so "24/24 green" is assurance
-  about doctrine WORDING. The INV-32 cases in `test-check-state.py` are materially stronger — real
-  subprocesses asserting on stdout — so the part just fixed IS the genuinely runtime-tested part.
-  No reviewer could exercise the panel end to end; SC-16's first live `/harness-plan` remains the only
-  thing that tests the assembled feature. — harness-validator-lead
-- HARNESS DEFECT, recurring and now twice in two cycles against the same persona:
-  `harness-code-reviewer` could not land a structured yield, because `validate-digest.py`'s
-  code_grade<->review_sha binding check unconditionally resolves `feature.json` at the MAIN checkout
-  path, which does not exist for a worktree-only feature. Both verdicts were recovered from the
-  artifacts. A reviewer whose return is structurally unlandable is one careless lead away from being
-  recorded as BLOCKED. — harness-validator-lead
-- HARNESS DEFECT: `code-grade.py` raises an unhandled RuntimeError on any path NEW in the graded diff,
-  exiting 1 with zero `RESULT: FAIL` lines. It reddens a clean range and would mask a real grade
-  failure behind a crash. This produced cycle-0's M2 evidence. — harness-orchestrator
-- HARNESS DEFECT: agents repeatedly write feature artifacts into the MAIN checkout rather than their
-  worktree — six occurrences across build and validate, three of which existed nowhere else. All were
-  moved, never deleted, and the main checkout is clean. The root cause, agents resolving the project
-  root to the main checkout, is not fixed. — harness-orchestrator
-- HARNESS DEFECT: `harness-ui-reviewer` returned a null structured yield in cycle 0 despite a complete
-  artifact carrying `VERDICT: PASS`. Same empty-return shape seen twice in the build phase.
-  — harness-validator-lead
-- INV-26 remains structurally red for this feature; both shapes are produced by the mirror's own
-  writers rather than by the plan. Unchanged since build. — harness-orchestrator
-- `plan-panel.yaml:54-62` restates the validator lead's transcription contract with no drift detector.
-  Flagged by two simplify passes, unappliable by any squad because both files resolve to NOBODY.
-  — harness-eng-lead
-- Five pre-existing plan-phase artifacts fail DEC-154/DEC-156 contracts and predate this build. Not
-  corrected — rewriting another run's record would falsify it. — harness-orchestrator
+- OPERATOR GATE, the only one left: open the PR for `feat/FEAT-45-adversarial-plan-panel` and merge
+  it. The `post-merge` hook removes this worktree; INV-29 keys on `status: Done` reaching the
+  default branch, so it stays quiet until then and REFUSES afterwards if the checkout survives.
+- POST-MERGE CHECK, required and recorded in the briefing so it cannot lapse: the first reviewer
+  dispatch after merge must be confirmed to land a structured return. That one run also settles
+  SC-11, SC-12 and SC-16. — harness-orchestrator
+- INV-32 is red for THIRTY-TWO approved plans, FEAT-45's own included, because none carries a
+  `panel:` block and none can — every one was signed before the panel existed. This is the gate
+  behaving as T-07's approved intent specifies ("fires ONLY on a plan whose approval.status is
+  approved", no grandfather clause), and T-07's own `verify:` asserts `$? -ne 2` precisely because
+  a non-zero exit was expected. Not a defect and not a ship blocker; raised because 32 permanent
+  VIOLATION lines at every session entry is signal dilution the briefing never quantified for the
+  operator, and it was not among the rows offered to strike. — harness-orchestrator
+- Every other residual from this feature is now a GitHub issue and is tracked there, not here:
+  the five harness defects raised during build and validate are B-2/B-3/B-4/B-5/B-6 (#1054..#1058),
+  INV-26's structural redness is B-7 (#1059), the `plan-panel.yaml` drift restatement is B-11
+  (#1063), and the five pre-existing DEC-154/DEC-156 plan-phase artifacts are B-13 (#1065).
+  M4 is CLOSED — finding ids were widened to 128-bit before ship. M5 is unfiled by the operator's
+  own reading of the briefing; M6 and M7 are B-15 (#1067). — harness-orchestrator
