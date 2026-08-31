@@ -1,0 +1,62 @@
+# plan-panel — adversarial readers of a drafted plan before operator signature.
+#
+# Both readers are independent and dispatch in one turn. The lead hosts fan-in.
+name: plan-panel
+purpose: Read a DRAFTED plan adversarially before the operator signs it.
+lead: validator-lead
+inputs: [feat, plan_path, intent_path, goalcheck_path]
+
+steps:
+  # This non-harness reader has no write grant, so findings reach disk only through
+  # the lead's transcription. It is independent of both the dispatch chain and the
+  # authoring model: its external definition carries its own model pin, which the
+  # dispatch guard does not strip.
+  - id: should-not-exist
+    persona: fable-advisor
+    depends_on: []
+    inputs: [plan_path, intent_path, goalcheck_path]
+    outputs: []
+    mutates_repo: false
+    prompt: >
+      Ask: what here should not be built at all? Return ONE fenced yaml block whose
+      top-level mapping has EXACTLY ONE key, findings, whose value is the list. Each
+      finding carries reader (should-not-exist), summary (one line), severity (one of
+      info, low, med, high, critical, unrated), and why (a concrete consequence of
+      building the thing). Severity is the READER'S to state; unrated is correct when
+      the reader will not commit to one and is gating-equivalent to high. A claim with
+      no concrete consequence is not a finding. Padding to justify the spawn is worse
+      than returning an empty findings list; an empty findings list is valid.
+    on_fail:
+      loop_back:
+        max_cycles: 1
+        feed: [self]
+        then: escalate
+
+  - id: scope
+    persona: code-reviewer
+    depends_on: []
+    inputs: [plan_path, goalcheck_path]
+    outputs: [".harness/harness/features/{{feat}}/notes/review-harness-code-reviewer-planpanel-c{{cycle}}.md"]
+    mutates_repo: false
+    prompt: >
+      Ask: which tasks serve no live requirement, and what does the feature actually
+      need to ship? Hunt orphan REQ ids with no task tracing to them, tasks whose traces
+      cite a REQ that does not exist, a dependency shape that is not a topological order,
+      and a verify block asserting something a predecessor task deletes. For each finding
+      preserve the reader's severity (info, low, med, high, critical, or unrated); unrated
+      is gating-equivalent to high and must not be reassigned.
+    on_fail:
+      loop_back:
+        max_cycles: 1
+        feed: [self]
+        then: escalate
+
+# Halting at the cap is forbidden: the loop repairs an invalid return, and escalation preserves a route up.
+# The lead's consolidated digest transcribes every finding at the reader's own severity,
+# never assigns severity to unrated, de-duplicates on normalized summary plus reader id,
+# carries severity_max, and records assessed-and-dismissed findings with reasons. The lead
+# does not assign PF- ids: it holds no Bash; pm computes identity once at transcription.
+# If fable-advisor cannot resolve or preflight refuses it, the lead skips the step and
+# records a reader entry containing "status skipped", the persona, and the host reason.
+# It never reports that reader as having run and returned an empty findings list, and never
+# omits it. A skip is not on_fail; that loop applies only to an invalid reader return.

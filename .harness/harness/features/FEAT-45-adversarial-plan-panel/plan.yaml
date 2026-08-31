@@ -362,7 +362,7 @@ tasks:
     execution_reason: >-
       .claude/skills/harness/teams/ resolves NOBODY at 7ebfc9e, no persona is granted it
     depends_on: []
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/teams/plan-panel.yaml
     verify: |
@@ -478,7 +478,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: .claude/skills/harness/SKILL.md resolves NOBODY at 7ebfc9e
     depends_on: []
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/SKILL.md
     verify: |
@@ -547,7 +547,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: .claude/commands/harness-plan.md resolves NOBODY at 7ebfc9e
     depends_on: []
-    status: pending
+    status: done
     files:
       - .claude/commands/harness-plan.md
     verify: |
@@ -594,7 +594,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: both files resolve NOBODY at 7ebfc9e
     depends_on: []
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/templates/plan.yaml
       - .claude/skills/harness-spec-driven/SKILL.md
@@ -671,7 +671,7 @@ tasks:
     execution_reason: >-
       .omp/agents/** and .claude/agents/** are deliberately unowned by team-config.yaml
     depends_on: []
-    status: pending
+    status: done
     files:
       - .omp/agents/harness-validator-lead.md
       - .claude/agents/harness-validator-lead.md
@@ -796,7 +796,7 @@ tasks:
     execution_reason: >-
       DEC-174 carve-out, check-state.sh is the registered state gate this change extends
     depends_on: []
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/check-state.sh
     verify: |
@@ -884,7 +884,7 @@ tasks:
     execution_reason: >-
       DEC-174 carve-out, test-check-state.py is the gate script's own test
     depends_on: [T-07]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/test-check-state.py
     verify: |

@@ -103,6 +103,17 @@ discovered mid-build with the build spine already open — three features runnin
 its ordering constraint written down — not a task that silently fails when someone
 tries to dispatch it.
 
+## The panel result
+
+pm transcribes the validator lead's digest into plan.yaml's top-level `panel` key and never edits
+a finding's severity. Compute every id with
+`python3 .claude/skills/harness/bin/panel_findings.py id --reader <r> --summary <s>`; never type it.
+Transcribe one `panel.readers` entry for EVERY named reader, including `skipped` with the persona
+and the lead's reason. Never convert a skipped reader into one that ran cleanly or omit it because
+it produced no findings. A finding pm believes fixed remains present with disposition `resolved`
+and `resolved_by: T-NN`. The operator's overrule belongs in `approval.rulings`; that is the main
+session's write, never pm's.
+
 ## Reject placeholders
 
 `TBD`, `TODO`, vague verbs without targets, "similar to above", "follow the existing pattern",

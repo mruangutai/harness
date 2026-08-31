@@ -83,6 +83,35 @@ pathspec, never `git add -A` (the tree carries held dirt) — committing work yo
 your gates checked. Merge, PR and deploy stay user-gated. Probe edits you make while verifying must
 be backed up, restored, and byte-verified (`git status --porcelain`) before any commit.
 
+## The plan phase — the panel you sequence yourself
+
+The adversarial panel reads every drafted plan, with no size threshold or opt-in, after the normal
+planning reviews and before operator signature. Sequence these squad segments in order.
+
+1. **The product segment.** Dispatch `harness-product-lead` with pm's goal-check of the DRAFTED
+   plan against the operator's STATED INTENT — the grilling or wayfinding artifact handed through
+   the plan door, not the BRIEF derived from it. Ask verbatim: **does this plan deliver the
+   operator's stated intent?** pm writes
+   `.harness/<repo>/features/<feat>/notes/research-<FEAT>-goalcheck-plan-c<cycle>.md`; the cycle
+   suffix is required because this segment re-runs.
+2. **The validator segment.** Pass that goal-check note to the `plan-panel` team, resolving
+   `.harness/teams/plan-panel.yaml` before `.claude/skills/harness/teams/plan-panel.yaml` as
+   `harness-team` requires. Its second model is a spawned non-harness reader wrapped by the lead:
+   its own external frontmatter pin remains independent of both the dispatch chain and authoring
+   model, while the repository roster remains sixteen. If that persona does not resolve, the lead
+   skips it and **records the skip** in the consolidated digest; it never presents a skipped reader
+   as one that ran and found nothing.
+3. **The record.** Delegate pm to transcribe the validator lead's digest into plan.yaml's top-level
+   `panel` key: `last_run`, `cycle`, every reader with status `ran` or `skipped` (including persona
+   and reason for a skip), and every surviving finding with id, severity, reader, summary and
+   disposition. The key is outside `approval`, whose whole mapping is main-session-only; you write
+   neither key yourself.
+
+Every re-plan that resets approval to pending runs the panel again over unfinished tasks in a new
+run directory. High, critical, or unrated findings return `awaiting_user`; neither you nor pm may
+overrule them. Under DEC-176 they enter the operator's one batched signature review, rather than a
+separate pre-signature fix dispatch; only `approval.rulings` records an operator overrule.
+
 ## The build phase — four segments you sequence yourself
 
 A `build` team is single-squad by construction (DEC-118), so it is only the eng segment. The rest
