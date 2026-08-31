@@ -1,0 +1,101 @@
+<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>FEAT-43 code-risk grading — ship review (cycle 27)</title><style>
+:root{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:ui-sans-serif,-apple-system,"Segoe UI","Helvetica Neue",Arial,sans-serif;
+}
+/* Token-level theming: components style through the tokens and never inside the
+   media query, so the viewer's explicit toggle can override the OS in BOTH
+   directions. */
+@media (prefers-color-scheme:dark){
+  :root{ --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+         --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733; }
+}
+:root[data-theme="dark"]{
+  --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+  --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733;
+}
+:root[data-theme="light"]{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+}
+*{box-sizing:border-box}
+body{margin:0; background:var(--paper); color:var(--ink);
+  font:400 16px/1.65 var(--sans); padding:clamp(1.5rem,5vw,4rem) clamp(1rem,5vw,2rem) 6rem}
+.wrap{max-width:56rem; margin:0 auto}
+/* Layout owns the spacing: gap between siblings, not per-element margins that
+   collapse or double. */
+.wrap{display:flex; flex-direction:column; gap:1rem}
+.eyebrow{font:500 11px/1 var(--mono); letter-spacing:.14em; text-transform:uppercase;
+  color:var(--quiet); margin:0}
+h1{font:600 clamp(1.6rem,4vw,2.3rem)/1.15 var(--sans); letter-spacing:-.02em;
+  margin:.4rem 0 .2rem; text-wrap:balance}
+h2{font:600 1.15rem/1.3 var(--sans); letter-spacing:-.01em; margin:2rem 0 0;
+  padding-top:1.25rem; border-top:1px solid var(--line); text-wrap:balance}
+h3{font:600 .98rem/1.4 var(--sans); margin:1.1rem 0 0}
+h4,h5,h6{font:500 11px/1.4 var(--mono); letter-spacing:.1em; text-transform:uppercase;
+  color:var(--quiet); margin:1rem 0 0}
+p,li{max-width:65ch; margin:0}
+ul,ol{margin:0; padding-left:1.4rem; display:flex; flex-direction:column; gap:.4rem}
+li>ul,li>ol{margin-top:.4rem}
+strong{font-weight:600}
+code{font:400 .875em/1.5 var(--mono); background:var(--sunk); padding:.1em .35em; border-radius:3px}
+pre{background:var(--sunk); border:1px solid var(--line); border-radius:6px;
+  padding:.85rem 1rem; overflow-x:auto; margin:0}
+pre code{background:none; padding:0}
+blockquote{margin:0; padding:.75rem 1rem; border-left:3px solid var(--accent);
+  background:var(--accent-soft); border-radius:0 5px 5px 0}
+blockquote p{max-width:none}
+hr{border:0; border-top:1px solid var(--line); margin:.5rem 0}
+/* Wide content pans inside its OWN container; the page body never scrolls sideways. */
+.scroll{overflow-x:auto; border:1px solid var(--line); border-radius:6px}
+table{border-collapse:collapse; width:100%; font-size:.9rem}
+th,td{text-align:left; padding:.6rem .8rem; border-bottom:1px solid var(--line); vertical-align:top}
+thead th{font:500 10px/1.3 var(--mono); letter-spacing:.11em; text-transform:uppercase;
+  color:var(--quiet); background:var(--sunk); white-space:nowrap}
+tbody tr:last-child td{border-bottom:0}
+/* Figures in a column line up. */
+td,th{font-variant-numeric:tabular-nums}
+.derived{color:var(--slate); font-size:.85rem; margin-top:2.5rem;
+  padding-top:1rem; border-top:1px solid var(--line)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style></head><body><div class='wrap'><p class='eyebrow'>Ship review · reading view</p><h1 id="feat-43-code-risk-grading-ship-review-cycle-27">FEAT-43 code-risk grading — ship review (cycle 27)</h1>
+<p><strong>Supersedes <code>ship-review-final.md</code>.</strong> That briefing recommended shipping. <strong>I am withdrawing that recommendation</strong>, and the reason is not the CI blocker you sent me to fix — that is fixed and proven. It is what fixing it uncovered.</p>
+<p><strong>Recommendation: authorize one more narrow cycle, then ship.</strong></p>
+<h2 id="the-ci-blocker-is-closed-and-your-patch-was-revised-rather-than-applied">The CI blocker is closed, and your patch was revised rather than applied</h2>
+<p>CI run <code>33294260861</code> failed because <code>check_prior_validator</code> ran <code>git show df63193:&lt;file&gt;</code> and that object does not exist in GitHub&#x27;s shallow checkout. Your suggested patch deleted the check.</p>
+<p><strong>I refused the deletion.</strong> <code>check_prior_validator</code> is the only implementation of SC-20&#x27;s fourth clause, which <code>BRIEF.md:210-218</code> states verbatim: <em>&quot;The previous revision of the validator is run against the first return and shown to accept it, so the assertion is proven able to fail.&quot;</em> <code>check_review_policy</code> proves the rejection <em>happens</em>; the prior-revision run proves it is <em>new</em>, which is what stops a hardcoded always-reject from passing as enforcement. Deleting a test named in a signed criterion to turn CI green is the failure mode this whole feature exists to prevent.</p>
+<p>Instead the two files are committed as byte-identical <code>.fixture</code> data — a non-<code>.py</code> suffix, so they stay out of the graded set and cannot drag a pre-feature file&#x27;s old grades into this feature&#x27;s own gate. <strong>Proven, not asserted:</strong> the suite exits 0 inside a real <code>git clone --depth 1</code> where <code>git cat-file -e df63193…</code> fails. I ran that myself; so did QA. The delta review corrupted the fixture and confirmed the named failure still fires, so the control still discriminates.</p>
+<p>The shallow clone also exposed two further history dependencies in the same file, reddening the same CI run. The engineering lead fixed all three and <strong>reported the scope call rather than hiding it</strong>; the delta review ratified it, and so do I — same file, same red run, no production or workflow change.</p>
+<h2 id="what-that-work-uncovered-and-why-i-am-withdrawing-the-ship-recommendation">What that work uncovered — and why I am withdrawing the ship recommendation</h2>
+<p><strong>FEAT-43&#x27;s own engine crashes on ordinary Python.</strong></p>
+<p><code>code_grade._Counter</code> visits three ASDL-optional AST fields without a <code>None</code> guard — <code>visit_With</code>/<code>optional_vars</code>, <code>visit_Try</code>/<code>handler.type</code>, <code>visit_AnnAssign</code>/<code>node.value</code>. So:</p>
+<pre><code>with lock:          →  AttributeError: &#x27;NoneType&#x27; object has no attribute &#x27;_fields&#x27;
+except:             →  same
+x: int              →  same</code></pre>
+<p>I reproduced all three. <code>visit_Assert</code> in the same class guards <code>node.msg is not None</code> correctly, so the pattern was present and omitted three times.</p>
+<p><strong>Scale, measured twice independently:</strong> of the harness&#x27;s own 99 <code>bin/*.py</code> files, <strong>83 grade and 16 crash</strong> — all sixteen from bare <code>with</code> alone — including production <code>harness_merge.py</code> and <code>harness_boundary.py</code>. It is reachable through the shipped CLI, demonstrated rather than argued.</p>
+<p><strong>Provenance:</strong> introduced by commit <code>1ac1bd0</code>, <strong>this feature&#x27;s first commit</strong>, the 367-line addition of <code>code_grade.py</code>. I checked. So accepting it is not shipping around inherited debt; it is shipping a feature that introduced a crash into its own product.</p>
+<p>Two things that bound how bad it is, and I want them stated as plainly as the defect: it is <strong>always a loud raise, never a silent mis-grade</strong> — the gate aborts rather than reporting a wrong answer — and it has <strong>zero intersection with this feature&#x27;s own 200-record gated set</strong>, which is exactly why 27 cycles of green gates never touched it.</p>
+<p><strong>The validator lead&#x27;s finding on that last point is the most important sentence written in this feature, and it is not about this bug:</strong></p>
+<blockquote><p>The feature&#x27;s verification apparatus was <strong>structurally incapable</strong> of finding this defect. The self-grading gate reports <code>code_grade.py</code> clean because grading measures complexity, not correctness, and the engine&#x27;s own source happens to contain no bare <code>with</code>; and the gated set has zero overlap with the crash list.</p></blockquote>
+<p>That is the <strong>third</strong> time in this feature a green suite concealed a missing control — B21 was the first, the severity-enum drift the second. Each was found by a <em>different</em> kind of scrutiny than the one before, and none by the gates.</p>
+<h2 id="evidence-at-pin-4adb2219">Evidence at pin <code>4adb2219</code></h2>
+<div class="scroll"><table><thead><tr><th>Gate</th><th>Result</th></tr></thead><tbody><tr><td>Delta review of the CI fix</td><td><strong>PASS</strong> — hermeticity, control discrimination and fixture inertness each proven by the reviewers&#x27; own runs</td></tr><tr><td>SC-20</td><td><strong>met</strong> — all four clauses live at this pin, clause 4 verified as a genuine prior-revision subprocess</td></tr><tr><td>The feature&#x27;s own grading gate</td><td><strong>exit 0</strong> — 200 graded, zero blocking, 12 grade-2, no <code>.fixture</code> in the gated set</td></tr><tr><td>The engine against its own bar</td><td>53 functions, zero below grade 4</td></tr><tr><td>Focused suites</td><td>five, all exit 0; <code>test-validate-digest.py</code> also exit 0 in a depth-1 clone</td></tr><tr><td><code>check-state.sh</code></td><td><strong>exit 0</strong></td></tr><tr><td>Goal-check</td><td><strong>20 of 20</strong> stands; SC-20 re-verified at this pin, the rest carried forward — the only source change is one test file and its suites are green</td></tr><tr><td>SC-11 UAT</td><td>passed, operator-executed, unchanged</td></tr></tbody></table></div>
+<p>All five of my measurements were independently reproduced by the delta review and none contradicted.</p>
+<h2 id="the-decision">The decision</h2>
+<p><strong>Authorize cycle 28.</strong> Three one-line <code>None</code> guards plus six literal-value assertions, already specified to one-pass precision by QA, bundling naturally with a med fail-open and a low containment item because they touch the same two files.</p>
+<p><strong>One caution the review earned the hard way:</strong> a send-back discovered that <code>with lock:</code> and <code>with lock as _discard:</code> are <strong>not</strong> metric-identical — <code>abc_a</code> differs by 1 — so a cycle 28 executing the earlier draft spec verbatim would have written a failing test and burned its single pass. Use QA&#x27;s corrected spec in <code>notes/qa-delta-c27.md</code>.</p>
+<p><strong>The alternative is to ship with it recorded as a backlog row.</strong> I do not recommend it. The gate is the product; a Python risk-grading tool that aborts on <code>with lock:</code> fails on one file in six of the repository it ships into, and it would undercut the claim your SC-11 test just measured. The cost of fixing it is three lines and one cycle. The cost of shipping it is that the first person to run the gate over a diff touching <code>harness_merge.py</code> gets a traceback instead of a grade.</p>
+<p>If you disagree and want to ship now, the row is written and I will hand it over — but the recommendation on the record is fix.</p>
+<h2 id="backlog">Backlog</h2>
+<p>B1–B20 and B22–B24 carry forward from <code>ship-review-final.md</code> unchanged. Three rows are new, all from this cycle, and <strong>all three are proposed for cycle 28 rather than the backlog</strong> if you authorize it:</p>
+<div class="scroll"><table><thead><tr><th>ID</th><th>Nature</th><th>What</th></tr></thead><tbody><tr><td><strong>B25</strong></td><td><strong>bug</strong></td><td><code>code_grade._Counter</code> crashes on three unguarded ASDL-optional visits — bare <code>with</code>, bare <code>except:</code>, bare annotation. 16 of 99 <code>bin/*.py</code>, CLI-reachable, introduced by this feature&#x27;s first commit. <strong>High</strong></td></tr><tr><td><strong>B26</strong></td><td><strong>bug</strong></td><td>a med fail-open advisory the code reviewer raised in the same two files</td></tr><tr><td><strong>B27</strong></td><td><strong>chore</strong></td><td>a low containment item in the same two files</td></tr></tbody></table></div>
+<h2 id="budget">Budget</h2>
+<p><code>cycles_used</code> is <strong>27 of 27</strong>. Cycle 28 requires your authorization; I will not take it otherwise. <code>runs</code> is <strong>42</strong> against an informational 20-run budget (INV-22).</p>
+<p><strong>B20 recurred again this cycle</strong> — both lead digests arrived not meeting the digest contract, one with no contract block at all. That is seven I have repaired by hand across this feature. It is the single most reliable defect the harness has.</p>
+<h2 id="state-of-the-branch">State of the branch</h2>
+<p>Nothing shipped. No PR merged, no deploy, no issue closed; the worktree stands. PR #978&#x27;s lifecycle is yours. <code>review_sha</code> is <code>4adb2219954aa132b1e8450cdd9e571dbedba309</code>, <code>check-state.sh</code> exits 0, the working tree is clean, and no source has moved past the pin.</p><p class='derived'>Derived from <code>ship-review-c27.md</code> — the markdown is the record; do not edit this file. Regenerate with <code>bin/render-brief.py</code>.</p></div></body></html>

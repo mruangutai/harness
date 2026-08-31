@@ -47,13 +47,17 @@ is namespaced under `.harness/harness/features/<FEAT>/` (DEC-120).
    `STATE.md` and `feature.json` from disk before acting**, verify its cited artifact, and treat the
    digest as a claim until disk confirms it. The main session's outer orchestrator dispatch remains
    async, so the only user-channel parent receives OMP's automatic terminal delivery (DEC-204).
-5. **Weigh your own context before you continue.** Over
-   `budgets.orchestrator_context_warn_tokens` in `.harness/harness.json` (200000 today), decide
-   whether to finish this phase or hand it over. **The threshold ADVISES and the decision is yours**
-   (DEC-198); crossing it is normal, so hand off at a seam. Use the host's current-session context
-   signal when it exposes one. OMP-hosted sessions use OMP's own context signal; a host with no
-   trustworthy signal skips this advisory check in one line. Never identify yourself by scanning
-   Claude sidecars, guess a figure, or turn the advisory threshold into a gate.
+5. **Weigh your own context before you continue.** You do nothing to obtain the figure. On your
+   wake — the moment a `task` result returns — the harness hook reads your own OMP transcript off
+   disk and, only when you are over `budgets.orchestrator_context_warn_tokens` in
+   `.harness/harness.json`, appends one advisory line to the result you were already reading. That
+   line carries the measured tokens, the resolved threshold and the computed ratio, so the key is
+   named here and the numeral never is. **The threshold ADVISES and the decision is yours**
+   (DEC-198); crossing it is normal, so hand off at a seam rather than mid-phase. **Weight it by
+   how far past you are** (DEC-201): just over, carry on; far past, an unfinished phase costs more
+   than the handoff does. If no advisory line arrives there is nothing to weigh — skip the check in
+   one line. Never guess or invent a figure, and never turn the advisory into a gate: a reported
+   number is a claim until disk confirms it (DEC-199).
 6. **Adjust and record** — REPLACE `STATE.md`'s `## Current` with the new now, and update
    `feature.json`'s DATA: the runs list, and `cycles_used` from the lead's reported SEND-BACKS,
    since a clean first-pass run adds ZERO cycles and only rework counts (DEC-157). Values, never
@@ -158,7 +162,7 @@ It lives in `feature.json`, maintained only by you, from the lead's report.
 | `cycles_used` / `max_total_cycles` | **HARD** — it kills runaway fix loops | stop the branch, preserve everything, `status: blocked`, return `BLOCKED`. Never silently continue |
 | `len(runs)` / `max_total_runs` | **INFORMATIONAL** — it notices a long feature, it never stops one | `check-state.sh` INV-22 emits a NOTE. Keep going; a high count is not a defect |
 
-**Why a second counter (DEC-157 am.1).** Cycles count rework only, so nothing noticed a feature that
+**Why a second counter (DEC-157).** Cycles count rework only, so nothing noticed a feature that
 ran long without reworking. **A long feature is fine when each run is efficient, resolves issues and
 advances the SCs** — the three questions the note asks. The count is a **floor**: a
 main-session-direct segment is not a run and never appears in `runs:`.
@@ -229,7 +233,7 @@ place project Expertise changes.
    `bin/check-expertise.sh .harness/expertise/`, report per-section counts before and after."
    **The read is mandatory:** writing from new entries alone wipes every earlier one (DEC-125), and
    `check-expertise.sh` catches format violations but never a wipe.
-2. **The skim is recall, not judgment** (am.2). The lead relays **at most 3 candidates per member**
+2. **The skim is recall, not judgment** (DEC-145). The lead relays **at most 3 candidates per member**
    as sourced observations ("your t04 digest noted X"), never pre-written entries, and flags stale
    ones. **The member is the sole judge** — it accepts, or **rejects with a reason** in its digest;
    rejection is first-class and never re-litigated. A full section takes a candidate only by
@@ -272,7 +276,7 @@ session, never relayed per cycle.
 
 Record your status in `feature.json` `status:` using the board's own spelling — `Backlog`, `Plan`,
 `Ready`, `Building`, `Review`, `Done`, byte for byte and case sensitive — and each transition as a
-STATE.md log entry. There is no `phase:` key (DEC-192), and the schema declares
+STATE.md log entry. There is no `phase:` key (DEC-191), and the schema declares
 `additionalProperties: false`, so writing one is REFUSED.
 
 **At the seam, write the handoff** — `notes/handoff-<phase>.md` from `templates/HANDOFF.md`: your
@@ -310,7 +314,7 @@ anywhere spawn-read.
    resolved escalations, the goal-check result, the UAT if required, and a **proposed backlog**
    table with an `ID` column (`B-1`, `B-2`, …) — one row per residual finding that survived
    collation but does not gate, each with its nature (`bug`/`chore`/enhancement). The IDs let the
-   user strike rows by name. Unstruck rows become backlog issues on ship acceptance (DEC-138 am.4),
+   user strike rows by name. Unstruck rows become backlog issues on ship acceptance (DEC-138),
    and **anything not listed dies silently — list them all.**
 4. **Write it** to `.harness/harness/features/<FEAT>/notes/ship-review-<runid>.md` — plain English,
    conclusions first, the one artifact addressed to a human. Then `bin/render-brief.py <that path>`

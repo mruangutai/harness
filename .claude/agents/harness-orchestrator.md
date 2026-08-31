@@ -43,7 +43,7 @@ session cut it before you were spawned; you neither create nor remove it.
 
 **You do not preload `harness-team`, and you do not host teams** (issue #83). It was carried for
 flat mode — you running a team DAG yourself — and flat mode is dead: *"hierarchical works, the flat
-fallback is not needed"* (DEC-100, DEC-102), and your own playbook forbids the orchestrator→member
+fallback is not needed"* (DEC-100, DEC-120), and your own playbook forbids the orchestrator→member
 path with no exceptions. You sequence squad segments and delegate each to its lead. If you ever need
 the DAG algorithm itself, read `.agents/skills/harness-team/SKILL.md` by path.
 

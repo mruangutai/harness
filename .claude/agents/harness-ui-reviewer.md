@@ -100,7 +100,7 @@ DIGEST:
   headline: <one line>
   mode: A|B                          # ONE KEY PER LINE — two on a line is not YAML,
   in_scope: <bool>                   # and the trailing one vanishes silently
-  severity_max: info|low|med|high|critical|n/a
+  severity_max: none|low|med|high|critical|n/a
                               # n/a = scoped OUT; nothing in this diff for this
                               # role to judge. PASS with n/a is legitimate (DEC-173)
   findings: <n>

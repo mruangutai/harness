@@ -21,9 +21,9 @@
 - P-06: WHEN a criterion cannot be met DO decide whether the defect is in the code or in the
   sentence. If a retry could make it true, route a fix cycle. Otherwise escalate — never adopt a
   narrower reading yourself, even one a downstream gate upheld.
-- P-07: WHEN a task or criterion sanctions alternative implementations DO read it as committing
-  only to the weakest one: a fully conforming build may pick the alternative that delivers none of
-  the property. Name the property in the instruction, or drop the alternative that cannot deliver it.
+- P-07: WHEN you write an ordering argument for a removal or migration sequence DO enumerate every
+  gate that reads the changed surfaces and say what each does in each intermediate state. A
+  one-gate argument reads as rigorous and is not; a missed second gate reddens the whole suite.
 - P-08: WHEN a task's verify counts a token, or its intent directs the doer to write a factual
   claim, DO run the verify's exact command against the intent prose and verify the claim at source.
   You author both halves; no sweep catches a correctly-spelled false claim.
@@ -43,20 +43,20 @@
 - P-13: WHEN judging whether a criterion is covered DO count independent methods, not clauses or
   concurring readers. Checks sharing one method share one blind spot, and a second reader who
   repeats that method is one measurement counted twice. Give at least one clause a behavioural check.
-- P-14: WHEN a dispatch hands you a figure or a premise that sizes the work DO re-derive it against
-  the tree the work will run in, and read the ticket's own later comments. A wrong premise changes
-  the unit of work, not just a number, and re-deriving costs minutes.
-- P-15: WHEN citing a named test case as an automated criterion's evidence DO grep the plan for
-  that case's own passing line. An assertion no verify block pins is deletable with the whole
-  suite green, and evidence that can vanish silently does not meet an automated bar.
+- P-14: WHEN a dispatch tells you to re-derive one part of a claim DO also test the existence claim
+  it presupposes, against the tree and the ticket's own later comments. The arithmetic is often
+  right while the premise that anything was ever done is false, and live artifacts inherit it.
+- P-15: WHEN a task touches a generated artifact DO establish which fields the generator derives
+  and which it copies from the existing file. Forbidding hand-edits then forbids the only repair
+  that works, and a diff-clean regeneration check passes over a copied value that is false.
 
 ## Gotchas (max 15)
 - G-01: WHEN citing or counting anything in a file another agent may be editing DO pin the figure
   with `git grep <SHA>` and re-read the anchor at final state. Working-tree numbers mix pre- and
   post-edit positions, and equal counts across a concurrent edit are not confirmation.
-- G-02: WHEN resolving which lane may write a path DO run the domain guard on the path and read its
-  exit code. Reading the team config gave the wrong lane where the live hook gave the right one,
-  and a dispatch naming a path is not evidence the path is granted.
+- G-02: WHEN resolving which lane may write a path DO run the domain guard on EVERY path the plan
+  names, never a sample, and read its exit code. The team config gave the wrong lane where the
+  live hook gave the right one, and a sample says nothing about the rest.
 - G-03: WHEN collecting command evidence for an automated criterion DO capture output by command
   substitution and grep the variable. Piping to `tail`/`head` truncates earlier output and reports
   the pipe's exit status, not the runner's; a redirect captures whole but is a write, refusable
@@ -64,9 +64,9 @@
 - G-04: WHEN a verify slices a region anchored on a label's FIRST occurrence DO bound the region
   on both sides, or assert the label occurs once. A stray earlier mention relocates the region onto
   unrelated code that already satisfies the count, and the clause greens on work never done.
-- G-05: WHEN a fixture test calls a loader whose default path binds at import DO require the task's
-  intent to pass the fixture path explicitly. Omitted, the loader reads live state, the test passes
-  for the wrong reason, and it proves nothing about the fixture it appears to exercise.
+- G-05: WHEN an artifact a human executes pins a commit or a line count DO re-derive both whenever
+  the pin moves. Every sentence stays true-looking while exactly the numbers the operator uses to
+  confirm they are reading the right text rot, and the check then grades the wrong text.
 - G-06: WHEN your count contradicts a recorded one DO reproduce the recorded invocation before
   calling it drift. Two totals under one label are often two different measurements, and the
   invocation the plan or criterion mandates is the one that defines the quantity being graded.
@@ -82,9 +82,9 @@
 - G-10: WHEN a check compares a field looked up by a name discovered at runtime DO add an explicit
   key-absent branch reporting CANNOT VERIFY. A wrong key makes both sides None, the comparison
   reports clean for every record, and its silence reads as proof.
-- G-11: WHEN checking that a move preserved content verbatim DO build the anchors from the move
-  commit's own removed lines, never from the baseline the brief quotes. The source drifts between
-  that baseline and the move, and the mismatch then reads as content rewritten by the move.
+- G-11: WHEN a verify asserts that a case must currently FAIL DO rewrite it to exclude the case
+  instead. A by-construction red is turned green by any later task in the sequence, so the block
+  is unsatisfiable in one window while the work it grades is correct.
 - G-12: A plain YAML scalar containing a space then a hash starts a comment: `safe_load` truncates
   the value there, so an inline issue reference silently deletes the rest of the sentence. Write
   prose scalars folded or quoted, then reload the file and confirm each value's tail survives.
@@ -126,5 +126,8 @@
 - O-09: WHEN a criterion needs an unreadable path DO create a dangling symlink inside the test's
   own temp directory. It fails a readability test for every uid and is never checked in, whereas a
   zeroed file mode is a no-op as root and is not preserved by version control.
+- O-10: WHEN a read-only dispatch needs mutation evidence DO copy the tool and its test module
+  into a temp directory outside the tracked tree and import it there — a test building its own
+  fixtures needs no repo layout, so mutation proof survives a no-write grant.
 
 ## Open (max 5)

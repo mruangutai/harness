@@ -10,6 +10,7 @@ the schema's SHAPE, not merely that the module imports.
 """
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -35,6 +36,28 @@ def check(name, cond, detail=""):
     else:
         print(f"FAIL {name} {detail}")
         failures.append(name)
+
+
+def swept(stderr):
+    """The file COUNT from the sweep's scanning line, as an int, or None.
+
+    Exists because `"1 file(s)" in stderr` is not a count test, it is a substring
+    test, and `"41 file(s)"` contains `"1 file(s)"`. That broke in BOTH directions,
+    and the silent direction is the dangerous one:
+
+    - the two POSITIVE checks -- "the sweep reports ONE file" -- passed whenever the
+      sweep wrongly scanned the real checkout, because any count ending in 1
+      satisfied the substring. They could not detect the redirect they exist to
+      catch.
+    - the NEGATIVE check fired falsely for the same reason, with nothing wrong.
+
+    MEASURED 2026-08-30: the first worktree to hold 41 features turned the whole
+    unit suite red while the behaviour under test was correct, and the two
+    fail-open positives had been passing for the wrong reason since FEAT-42.
+    Any count ending in 1 -- 1, 11, 21, 31, 41 -- reproduces it.
+    """
+    m = re.search(r"(\d+) file\(s\)", stderr)
+    return int(m.group(1)) if m else None
 
 
 def full_doc(status="Building"):
@@ -323,7 +346,7 @@ def case_migrated_depth_discovery_scans_the_segment_layout():
         r = subprocess.run([VALIDATE_CLI], capture_output=True, text=True,
                            timeout=30, env=env)
         check("case_migrated_depth: the sweep reports ONE file, not zero",
-              "1 file(s)" in r.stderr, r.stderr)
+              swept(r.stderr) == 1, r.stderr)
         check("case_migrated_depth: the scanning line names the migrated glob",
               ".harness/*/features/" in r.stderr, r.stderr)
 
@@ -348,7 +371,7 @@ def case_root_resolves_through_harness_boundary_not_the_retired_variable():
                             timeout=30, env=env)
         check("case_root_resolves: CLAUDE_PROJECT_DIR alone does not redirect the sweep "
               "(scans the real repo root, not the tmp fixture with its single file)",
-              "1 file(s)" not in r.stderr, r.stderr)
+              swept(r.stderr) != 1 and tmp not in r.stderr, r.stderr)
 
         env2 = dict(os.environ)
         env2.pop("CLAUDE_PROJECT_DIR", None)
@@ -359,7 +382,7 @@ def case_root_resolves_through_harness_boundary_not_the_retired_variable():
         r2 = subprocess.run([VALIDATE_CLI], capture_output=True, text=True,
                              timeout=30, env=env2)
         check("case_root_resolves: HARNESS_PROJECT_DIR + team-config.yaml IS honoured",
-              "1 file(s)" in r2.stderr, r2.stderr)
+              swept(r2.stderr) == 1 and tmp in r2.stderr, r2.stderr)
 
 
 # ---------------------------------------------------------------------------

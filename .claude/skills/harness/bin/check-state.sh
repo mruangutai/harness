@@ -3,7 +3,7 @@
 #
 # WHY THIS EXISTS: the orchestrator is an LLM performing ~15 bookkeeping duties
 # per cycle with nothing validating any of them. A skipped duty is silent, and a
-# bad STATE.md write poisons every subsequent spawn. The precedent is DEC-19 —
+# bad STATE.md write poisons every subsequent spawn. The precedent:
 # prose guarding a safety claim is unenforceable — so the same answer applies:
 # judgment routes, a script audits the bookkeeping.
 #
@@ -281,7 +281,7 @@ for fy in glob.glob(os.path.join(H, "*", "features", "*", "feature.json")):
         doc = harness_yaml.load_file(fy) or {}
     except Exception as e:
         # A file that does not parse is a VIOLATION, never a silent skip — the whole
-        # point of DEC-171 am.1 is that there is no quieter mode. Report and move on
+        # point of DEC-171 is that there is no quieter mode. Report and move on
         # so one broken feature cannot hide every other feature's invariants.
         bad.append(f"{fpath(feat, 'feature.json')} does not parse, so INV-6..8 and INV-12 "
                    f"cannot be checked for it: {e}")
@@ -1006,7 +1006,7 @@ if cj and (cj.get("github") or {}).get("sync"):
                         f"parent — ship/abandon cannot close the container and open "
                         f"will not re-derive it (D-05). Re-run `open` to record it.")
 
-# --- INV-24 (DEC-186): a feature that records factory state must name a repository the
+# --- INV-24 (DEC-203): a feature that records factory state must name a repository the
 # fleet declares, and no two features may claim one issue. The factory writes exactly one
 # harness file — a feature's own `factory` block — so that block is the only place the
 # harness can disagree with the board about what is in flight.
@@ -1124,7 +1124,7 @@ for fy in glob.glob(os.path.join(H, "*", "features", "*", "feature.json")):
 #
 # `Abandoned` IS TERMINAL AND IS SILENT HERE, deliberately. It asserts that no seam was
 # crossed and nothing shipped, so there is no pull request to have missed. Only the exact
-# string `Done` is checked — DEC-192's six status values are case sensitive.
+# string `Done` is checked — DEC-203's six status values are case sensitive.
 if cj and (cj.get("github") or {}).get("sync"):
     for fy in glob.glob(os.path.join(H, "*", "features", "*", "feature.json")):
         feat = os.path.basename(os.path.dirname(fy))
@@ -1662,7 +1662,7 @@ if _inv30_import_ok and (_g30 or {}).get("sync") and _repo30:
             continue
         if not isinstance(_doc30, dict):
             continue
-        # DEC-192's six status values are case sensitive — the exact string `Done` and nothing
+        # DEC-203's six status values are case sensitive — the exact string `Done` and nothing
         # else. `Abandoned` is terminal and silent here for INV-28's reason: nothing shipped, so
         # there is no milestone that ship should have closed.
         if str(_doc30.get("status", "")).split()[:1] != ["Done"]:

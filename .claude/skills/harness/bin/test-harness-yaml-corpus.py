@@ -52,7 +52,7 @@ except ModuleNotFoundError:
     print("test-harness-yaml-corpus: PyYAML is not importable from this interpreter "
           f"({sys.executable}).\n"
           "  install:  python3 -m pip install --user --break-system-packages pyyaml\n"
-          "  This is REQUIRED, not optional (DEC-171 am.1) — there is no line-scan "
+          "  This is REQUIRED, not optional (DEC-171) — there is no line-scan "
           "fallback by design.", file=sys.stderr)
     sys.exit(1)
 

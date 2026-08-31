@@ -16,6 +16,7 @@ autoloadSkills:
 - harness-expertise
 - harness-principles
 - harness-code-review
+- harness-code-risk-grading
 - harness-codebase-design
 ---
 
@@ -81,7 +82,7 @@ inherit **no** earlier review and their paths are in scope for you now.
 VERDICT: PASS | FAIL
 DIGEST:
   headline: <one line>
-  severity_max: info|low|med|high|critical|n/a
+  severity_max: none|low|med|high|critical|n/a
                               # n/a = scoped OUT; nothing in this diff for this
                               # role to judge. PASS with n/a is legitimate (DEC-173)
   findings: <n>

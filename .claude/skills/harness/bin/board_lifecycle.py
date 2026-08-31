@@ -101,7 +101,7 @@ four-call detection pass afterward to compute the residual truthfully rather tha
 writes landed.
 
 RECONCILE'S EXIT CODES: 4 on a `GhError` from EITHER detection pass (the run could not
-complete — never conflated with 0 or 1, DEC-186's inverse-of-the-mirror posture, same as
+complete — never conflated with 0 or 1, DEC-203's inverse-of-the-mirror posture, same as
 audit). Under `--dry-run`, always 0 once detection succeeds — a preview attempts nothing, so
 nothing can be reported as "surviving" a fix it never tried. Under `--apply`: 0 when no
 STATION, REASON, LABEL or STATUS(non-Done) finding survives the post-fix re-detection; 1 with
@@ -148,7 +148,7 @@ Workflow detection is by NAME only — `ProjectV2Workflow` exposes neither `trig
 report says this once, in its own header line (SC-09), and every WORKFLOW finding line also says
 no API can enable it and only a click in the project's web UI can.
 
-Failure posture is the INVERSE of gh-sync.py's mirror posture (DEC-186): this is a control-plane
+Failure posture is the INVERSE of gh-sync.py's mirror posture (DEC-203): this is a control-plane
 tool, so a `GhError` propagates as one line on stderr and exit 4 — never exit 1, which means
 "findings were found", and never a silent zero-finding report. An audit that could not run must
 never be mistaken for an audit that found nothing.
@@ -430,7 +430,7 @@ def _project_linked_repos(owner, number):
 
 
 def _missing_options(declared_stations, board_option_names):
-    """The declared values absent from the board, byte-for-byte and case-sensitive (DEC-192),
+    """The declared values absent from the board, byte-for-byte and case-sensitive (DEC-203),
     preserving declared key order. T-05's DECLARATION finding class calls this SAME helper —
     do not re-author the comparison there; D-05 makes the exactness load-bearing and two
     implementations means a later loosening has two sites and no invariant tying them together."""
@@ -444,7 +444,7 @@ def _declared_stations(board):
 
 # feature.json's top-level `status` values that map onto a board station, keyed to the SAME
 # `board["stations"]` keys `_declared_stations` reads (T-15). `Abandoned` is deliberately absent:
-# DEC-192 gives it no board column at all, so there is no key for it to map to.
+# DEC-203 gives it no board column at all, so there is no key for it to map to.
 _STATUS_TO_STATION_KEY = {
     "Backlog": "backlog", "Plan": "plan", "Ready": "ready",
     "Building": "building", "Review": "review", "Done": "done",
@@ -485,7 +485,7 @@ def _status_findings(root, board, stations):
     DEC-138) -- a disagreement means the card drifted, not that the recorded status is wrong.
 
     THREE exemptions, and only three (T-15 intent):
-    - status `Abandoned` -- DEC-192 gives it no board column to compare against.
+    - status `Abandoned` -- DEC-203 gives it no board column to compare against.
     - no recorded `github.parent` -- INV-21 already reports that shape.
     - issues recorded under `factory.issues` rather than `github.issues` -- that feature's cards
       live on the PRODUCT's board, not this one (the same carve-out check-state.sh's INV-26
@@ -946,7 +946,7 @@ def cmd_audit(repo_arg):
             "pin github.repo in harness.json before auditing",
         )
 
-    # DEC-186's inverse-of-the-mirror posture: a GhError here means the audit COULD NOT RUN, and
+    # DEC-203's inverse-of-the-mirror posture: a GhError here means the audit COULD NOT RUN, and
     # must never read like "ran and found nothing" (exit 0) or "ran and found something" (exit
     # 1) -- it gets its own exit code, 4, caught here rather than left to factory_cli.run's
     # generic expected-exception trap (which would exit 2, provision's own caller-error code).

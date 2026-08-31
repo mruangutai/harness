@@ -6,6 +6,8 @@ Each case invokes the real script as a subprocess against a fixture PLAN.md,
 and against the repo's own templates/PLAN.md, run-unit-tests.sh and source
 for the static/textual checks (cases 8-13, 16).
 """
+import base64
+import io
 import json
 import os
 import re
@@ -13,11 +15,13 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import tokenize
 
 BIN_DIR = os.path.dirname(os.path.abspath(__file__))
 SCRIPT = os.environ.get("CHECK_PLAN_ROUTES_BIN") or os.path.join(
     BIN_DIR, "check-plan-routes.py")
 REPO_ROOT = os.path.abspath(os.path.join(BIN_DIR, "..", "..", "..", ".."))
+FIXTURE_DIR = os.path.join(BIN_DIR, "fixtures")
 
 GRANTED_PATH = ".claude/skills/harness/bin/check-domain.sh"  # granted to two agents
 
@@ -1053,7 +1057,7 @@ def case_24():
 
 
 def case_25():
-    """(25) DEC-192 board truth: a task's status, when present, is one of exactly
+    """(25) DEC-203 board truth: a task's status, when present, is one of exactly
     pending / building / done — case sensitive on purpose. "Building" (capital B) is the
     board's own spelling of the same idea and is the typo a person will actually make;
     today it would read as not-done forever and the card would silently never move. An
@@ -1141,24 +1145,46 @@ def case_20():
     silently reports on the cwd. That is a real defect, it is a DEC-174 carve-out file, and
     it is unrelated to #133, so it is filed separately rather than fixed here. Encoding it
     as an exception keeps this assertion honest instead of quietly passing.
+
+    SIXTH DRAFT (FEAT-43 C14 S5): the FIFTH draft's `logical_lines` joined physical lines
+    with a NAIVE TEXT COUNT of bracket characters -- `raw.count("(") ... - raw.count("]")`
+    -- with no idea a string literal or a comment exists. validate-digest.py:283 has
+    `_QUOTE_STARTS_AFTER = set(",:[{ \t")`: one bare `[` living inside a string, no closing
+    `]` anywhere near it. Depth went permanently positive at that line and never recovered;
+    the naive joiner merged line 283 through EOF into one 48,393-character "logical line"
+    that happened to contain a LATER `.harness` mention with no `team-config.yaml` beside
+    it, and case_20 reported a violation in a file that has ZERO real root probes (verified:
+    none of the six PREDICATES occurs in validate-digest.py at all). Measured directly:
+    running the fifth draft's joiner over that file in isolation reproduces the exact
+    48,393-character merge starting at physical line 283.
+
+    The fix replaces the naive counter with `tokenize.generate_tokens` for `.py` sources --
+    Python's OWN lexer, so brackets inside strings and comments are structurally invisible
+    rather than filtered by a hand-written quote scanner (the same class of bug this file
+    itself was just found holding). `.sh` sources keep the fifth draft's bracket counter
+    UNCHANGED: bin/ holds real POSIX shell alongside files that are bash-shebanged but
+    entirely Python inside a heredoc (check-domain.sh), and Python's tokenizer raises on
+    ordinary, correct bash it was never built to read (measured: 5 of 11 *.sh files in this
+    directory raise `tokenize.TokenError` on legitimate syntax -- heredocs and ANSI-C
+    quoting, not defects). Running Python's grammar over shell is a wrong-tool mismatch, not
+    the narrow blindness this draft exists to fix, and forcing it would turn five clean
+    files red for a reason that has nothing to do with a root probe.
+
+    A file's tokenizer failure is reported, never swallowed: a `.py` source that cannot be
+    tokenized is exactly the source a probe violation could hide inside, so the case marks
+    it FAILED rather than silently treating it as probe-free.
     """
     here = os.path.dirname(os.path.abspath(__file__))
     MANIFEST = "team-config.yaml"
     PREDICATES = ("os.access(", "os.path.isdir(", "os.path.isfile(", "os.path.exists(",
                   "os.stat(", "Path(")
 
-    def logical_lines(text):
-        """Physical lines joined until brackets balance.
+    def _logical_lines_shell(text):
+        """The fifth draft's bracket-COUNT joiner, kept verbatim for `.sh` sources.
 
-        THE THIRD DRAFT OF THIS CASE WAS BLIND BECAUSE IT SKIPPED THIS. It filtered
-        PHYSICAL lines containing both `os.access(` and `.harness`, and this PR's own
-        derived-root probe is wrapped across two lines — so the detector saw one of the two
-        probes, and the invisible one was the one it was written for. Measured: replacing
-        that probe with `os.path.isdir(os.path.join(derived, ".harness"))` — the exact
-        simplification the implementation comment forbids AND cites this case as
-        preventing — passed the entire suite, and reproduced the global-install fail-open.
-        A detector that cannot see its own target is worse than none, because the comment
-        next to it tells the next reader they are covered.
+        Python's tokenizer cannot read ordinary shell (see case_20's docstring), so shell
+        keeps this narrower, unfixed joiner. It is still blind to a bracket inside a shell
+        string or comment; that is documented debt, not a claim of correctness.
         """
         out, buf, depth = [], "", 0
         for raw in text.splitlines():
@@ -1171,53 +1197,167 @@ def case_20():
             out.append(buf)
         return out
 
-    # EVERY bin/ SCRIPT THAT PROBES IN PYTHON, which is narrower than it sounds and is
-    # stated rather than implied: a pure-shell probe (`[ -d "$root/.harness" ]`) matches
-    # none of these predicates and is invisible here. THIS CASE IS A CHEAP SMOKE CHECK, NOT
-    # THE GUARANTEE — case (21) is, because it tests the behaviour and cannot be walked
-    # around by spelling the probe differently. Four drafts of this case were each defeated
-    # by a rewrite; that is the ceiling of source-text scanning, not a bug in draft five. The previous draft listed two files, so a
-    # fifth copy of root resolution was undetectable by construction. check-state.sh is a
-    # CODED exception, not prose: it genuinely has no root probe (verified — 0 matches),
-    # which is issue #156, and encoding it here keeps this assertion honest rather than
-    # quietly passing on a file that has the very defect the case is about.
-    # NO CODED EXCEPTIONS. There was one — wayfind.py, which probed the `.harness` DIRECTORY
-    # while walking up from the cwd, so from anywhere under a $HOME holding its own `.harness`
-    # it resolved $HOME as the project root. FEAT-42 T-02 moved wayfind onto the MARKER file,
-    # which is what this case demands of every other reader, so the exemption became stale the
-    # moment that landed. A stale allowlist is worse than no coverage: it reports green while
-    # hiding exactly the regression it was written to tolerate.
-    ok, seen_any = True, 0
-    for fname in sorted(os.listdir(here)):
-        if not (fname.endswith(".py") or fname.endswith(".sh")) or fname.startswith("test-"):
-            continue
+    def _logical_lines_python(text):
+        """Physical lines joined into Python's OWN logical lines via `tokenize`.
+
+        `NEWLINE` closes a real statement; `NL` is a continuation. Bracket depth is
+        therefore the grammar's, not a guess — a bracket inside a STRING or COMMENT token
+        never reaches here. May raise `tokenize.TokenError` / `SyntaxError`; the caller
+        reports that loudly rather than treating the file as probe-free (see below).
+
+        FLAT, not nested: each token is one early-continue check, never an if inside an
+        if. A chunk starts at the first non-structural, non-blank token and ends at the
+        `NEWLINE` that closes it.
+        """
+        raw_lines = text.splitlines()
+        skip = (tokenize.ENCODING, tokenize.ENDMARKER, tokenize.INDENT, tokenize.DEDENT)
+        quiet = (tokenize.NL, tokenize.COMMENT)
+        out, chunk_start = [], None
+        for tok_type, _tok_str, tok_start, tok_end, _line in tokenize.generate_tokens(
+                io.StringIO(text).readline):
+            if tok_type in skip:
+                continue
+            if chunk_start is None and tok_type not in quiet:
+                chunk_start = tok_start[0]
+            if tok_type != tokenize.NEWLINE:
+                continue
+            if chunk_start is None:
+                continue
+            piece = " ".join(l.strip() for l in raw_lines[chunk_start - 1:tok_end[0]]
+                              if l.strip())
+            if piece:
+                out.append(piece)
+            chunk_start = None
+        return out
+
+    def logical_lines(text, is_python):
+        """Dispatch to the tokenize-aware joiner for `.py`, the legacy one for `.sh`.
+
+        THE THIRD DRAFT OF THIS CASE WAS BLIND BECAUSE IT SKIPPED THIS ENTIRELY. It
+        filtered PHYSICAL lines containing both `os.access(` and `.harness`, and this PR's
+        own derived-root probe is wrapped across two lines — so the detector saw one of the
+        two probes, and the invisible one was the one it was written for.
+
+        THE FIFTH DRAFT joined on a raw bracket-character COUNT with no notion of a string
+        or a comment, so a `[` living inside a string literal (validate-digest.py:283)
+        pinned depth positive forever and merged the rest of that file into one 48,393-char
+        "line". `is_python=True` now routes through `_logical_lines_python`; `is_python`
+        must be `fname.endswith(".py")`, never inferred from content, because Python's
+        tokenizer raises on ordinary, correct bash it was never built to read.
+        """
+        return _logical_lines_python(text) if is_python else _logical_lines_shell(text)
+
+    def _assert_logical_lines_fixture():
+        """Binds the fix: without this, nothing stops a seventh draft regressing.
+
+        Three cases in one fixture: (a) a bracket inside a string literal, (b) a bracket
+        inside a comment, (c) a genuine multi-line bracketed call that must still come back
+        as ONE line. Run against the FIFTH DRAFT's naive counter, (a) and (b) both fail:
+        the string's stray `[` and the comment's stray `(` each pin depth positive and
+        swallow every line after them into one merged blob, so `B = 1` and `C = 2` never
+        surface as their own lines (measured).
+        """
+        fixture = (
+            'A = set(",:[{ \\t")\n'
+            'B = 1\n'
+            '# a stray unmatched bracket in a comment (\n'
+            'C = 2\n'
+            'result = os.path.isdir(\n'
+            '    os.path.join(derived, ".harness")\n'
+            ')\n'
+        )
+        expected = [
+            'A = set(",:[{ \\t")',
+            'B = 1',
+            'C = 2',
+            'result = os.path.isdir( os.path.join(derived, ".harness") )',
+        ]
+        got = logical_lines(fixture, is_python=True)
+        check("case_20_logical_lines_is_string_and_comment_aware",
+              got == expected,
+              f"expected {expected!r}, got {got!r}")
+
+    def _scan_file(fname):
+        """One bin/ file's verdict: None (nothing to see), or ("error", detail), or
+        ("probes", probes, disagree)."""
         path = SCRIPT if fname == "check-plan-routes.py" else os.path.join(here, fname)
         try:
             body = open(path, encoding="utf-8").read()
         except OSError:
-            continue
+            return None
+        # A .py SOURCE THAT CANNOT BE TOKENIZED IS REPORTED, NEVER SWALLOWED. A file the
+        # scanner cannot read is exactly the file a violation could hide in; treating it as
+        # probe-free would be the same fail-open shape this case exists to catch.
+        try:
+            lines = logical_lines(body, is_python=fname.endswith(".py"))
+        except (tokenize.TokenError, SyntaxError) as exc:
+            return ("error", str(exc))
         # A ROOT PROBE is a filesystem test naming `.harness` inline. The limit is stated
         # rather than hidden: a probe whose path was assembled into a variable on an
         # earlier line is invisible to any source-text check, this one included.
-        probes = [l for l in logical_lines(body)
+        probes = [l for l in lines
                   if ".harness" in l and any(pr in l for pr in PREDICATES)]
         if not probes:
-            continue
-        seen_any += 1
+            return None
         disagree = [l.strip()[:90] for l in probes if MANIFEST not in l]
+        return ("probes", probes, disagree)
+
+    def _report_scan_result(key, fname, result):
+        """Report one file's `_scan_file` verdict via `check`. Returns whether it was OK."""
+        if result[0] == "error":
+            check(f"case_20_{key}_tokenizes", False,
+                  f"{fname}: logical_lines could not tokenize this file ({result[1]})")
+            return False
+        _, probes, disagree = result
         good = not disagree
-        ok &= good
-        check(f"case_20_{fname.replace('.', '_').replace('-', '_')}_probes_the_manifest",
+        check(f"case_20_{key}_probes_the_manifest",
               good,
               f"{fname}: {len(disagree)} of {len(probes)} root probe(s) do not name "
               f"{MANIFEST} -> {disagree[:2]}. A copy probing the .harness DIRECTORY "
               f"resolves $HOME as a root in the global install, which is B-7 verbatim.")
+        return good
+
+    def _scan_all_files():
+        """EVERY bin/ SCRIPT THAT PROBES IN PYTHON, which is narrower than it sounds and is
+        stated rather than implied: a pure-shell probe (`[ -d "$root/.harness" ]`) matches
+        none of these predicates and is invisible here. THIS CASE IS A CHEAP SMOKE CHECK,
+        NOT THE GUARANTEE — case (21) is, because it tests the behaviour and cannot be
+        walked around by spelling the probe differently. Four drafts of this case were each
+        defeated by a rewrite; that is the ceiling of source-text scanning, not a bug in
+        draft five. check-state.sh is a CODED exception, not prose: it genuinely has no root
+        probe (verified — 0 matches), which is issue #156, and encoding it here keeps this
+        assertion honest rather than quietly passing on a file that has the very defect the
+        case is about.
+
+        NO CODED EXCEPTIONS beyond that one. There was one other — wayfind.py, which probed
+        the `.harness` DIRECTORY while walking up from the cwd, so from anywhere under a
+        $HOME holding its own `.harness` it resolved $HOME as the project root. FEAT-42 T-02
+        moved wayfind onto the MARKER file, which is what this case demands of every other
+        reader, so the exemption became stale the moment that landed. A stale allowlist is
+        worse than no coverage: it reports green while hiding exactly the regression it was
+        written to tolerate.
+
+        Returns (ok, seen_any).
+        """
+        ok, seen_any = True, 0
+        for fname in sorted(os.listdir(here)):
+            if not (fname.endswith(".py") or fname.endswith(".sh")) or fname.startswith("test-"):
+                continue
+            result = _scan_file(fname)
+            if result is None:
+                continue
+            seen_any += result[0] == "probes"
+            key = fname.replace(".", "_").replace("-", "_")
+            ok = _report_scan_result(key, fname, result) and ok
+        return ok, seen_any
+
+    _assert_logical_lines_fixture()
+    ok, seen_any = _scan_all_files()
     check("case_20_the_detector_is_not_blind",
           seen_any >= 2,
           f"only {seen_any} file(s) matched any root probe — the pattern went blind, which "
           f"is how the previous draft passed while missing its own target")
-    ok &= seen_any >= 2
-    return ok
+    return ok and seen_any >= 2
 
 
 def _inv_project(td, features):
@@ -1376,6 +1516,91 @@ def case_26():
               ok, f"exit {r.returncode}: {out[:400]!r}")
 
 
+def write_prior_route_validator(directory):
+    """Write the prior validator from committed data, without requiring Git history."""
+    fixtures = (
+        ("check-plan-routes.py", "prior-check-plan-routes.py.fixture"),
+        ("harness_boundary.py", "prior-harness_boundary.py.fixture.b64"),
+        ("harness_yaml.py", "prior-harness_yaml.py.fixture"),
+    )
+    for name, fixture in fixtures:
+        with open(os.path.join(FIXTURE_DIR, fixture), encoding="utf-8") as stream:
+            stored = stream.read()
+        source = (base64.b64decode(stored).decode("utf-8")
+                  if fixture.endswith(".b64") else stored)
+        if name == "check-plan-routes.py":
+            source = source.replace(
+                'CHECK_DOMAIN = os.path.join(BIN_DIR, "check-domain.sh")',
+                f"CHECK_DOMAIN = {os.path.join(BIN_DIR, 'check-domain.sh')!r}",
+            )
+        with open(os.path.join(directory, name), "w") as stream:
+            stream.write(source)
+
+
+def _owner_branch(directory):
+    owner = os.path.join(directory, "owner")
+    branch = os.path.join(owner, ".claude", "worktrees", "feature")
+    gitdir = os.path.join(owner, ".git", "worktrees", "feature")
+    os.makedirs(gitdir, exist_ok=True)
+    os.makedirs(branch, exist_ok=True)
+    with open(os.path.join(branch, ".git"), "w") as stream:
+        stream.write(f"gitdir: {gitdir}\n")
+    _yaml_project(branch, files=GRANTED_PATH)
+    return owner, branch
+
+
+def _case_27_owner_manifest(directory):
+    owner, branch = _owner_branch(directory)
+    os.makedirs(os.path.join(owner, ".harness"), exist_ok=True)
+    owner_manifest = os.path.join(owner, ".harness", "team-config.yaml")
+    with open(owner_manifest, "w") as stream:
+        stream.write("agents: {}\n")
+    owner_bin = os.path.join(owner, ".claude", "skills", "harness", "bin")
+    os.makedirs(owner_bin)
+    owner_resolver = os.path.join(owner_bin, "check-domain.sh")
+    with open(owner_resolver, "w") as stream:
+        stream.write("#!/bin/sh\nprintf '%s\\n' harness-frontend-dev\n")
+    os.chmod(owner_resolver, 0o755)
+    result = run(project_dir=branch)
+    branch_manifest = os.path.join(branch, ".harness", "team-config.yaml")
+    output = result.stdout + result.stderr
+    check(
+        "case_27a_owner_manifest_controls_routes",
+        result.returncode != 0 and f"MANIFEST {os.path.realpath(owner_manifest)}" in output
+        and f"DEVIATION {branch_manifest}" in output
+        and "OK T-01 granted to harness-frontend-dev" in output,
+        f"exit {result.returncode}: {output[:500]!r}",
+    )
+    prior_bin = os.path.join(directory, "prior-bin")
+    os.makedirs(prior_bin)
+    write_prior_route_validator(prior_bin)
+    prior = run(project_dir=branch, script=os.path.join(prior_bin, "check-plan-routes.py"))
+    check(
+        "case_27b_prior_revision_false_ok",
+        prior.returncode == 0 and "OK T-01" in prior.stdout,
+        f"exit {prior.returncode}: {(prior.stdout + prior.stderr)[:500]!r}",
+    )
+
+
+def _case_27_unreadable(directory):
+    owner, branch = _owner_branch(directory)
+    result = run(project_dir=branch)
+    output = result.stdout + result.stderr
+    check(
+        "case_27c_unreadable_owner_manifest_refuses",
+        result.returncode == 2 and "owner manifest" in output,
+        f"exit {result.returncode}: {output[:500]!r}",
+    )
+
+
+def case_27():
+    """(27) Routes use the owner manifest that the write hook will consult."""
+    with tempfile.TemporaryDirectory() as directory:
+        _case_27_owner_manifest(directory)
+    with tempfile.TemporaryDirectory() as directory:
+        _case_27_unreadable(directory)
+
+
 def main():
     case_01_02_03()
     case_04()
@@ -1396,6 +1621,7 @@ def main():
     case_24()
     case_25()
     case_26()
+    case_27()
 
     if failures:
         print(f"\n{len(failures)} FAILURE(S): {failures}")
