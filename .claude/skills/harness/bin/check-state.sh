@@ -211,8 +211,8 @@ for feat, doc in plan_docs.items():
         fid = str(item.get("id", "")).strip() or "<missing>"
         severity = str(item.get("severity", "")).strip().lower()
         disposition = str(item.get("disposition", "")).strip().lower()
-        if severity in {"high", "critical", "unrated"} and disposition != "resolved" and fid not in overruled:
-            bad.append(f"INV-32: {feat} finding {fid} is {severity} and remains open without an operator overrule.")
+        if severity not in {"info", "low", "med"} and disposition != "resolved" and fid not in overruled:
+            bad.append(f"INV-32: {feat} finding {fid} is {severity or 'unrated'} and remains open without an operator overrule.")
     expected_readers = {"should-not-exist", "scope", "goalcheck"}
     readers = panel.get("readers")
     if not isinstance(readers, list):
