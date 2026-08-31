@@ -961,6 +961,10 @@ _SWEEP_PATTERNS = (
     ".harness/*/features/*/runs/*/state.yaml",
     ".harness/*/features/*/notes/handoff-*.md",
     ".harness/*/features/*/STATE.md",
+    # plan.yaml (FEAT-41 T-09). The PostToolUse Bash route is the ONE route this rule cannot
+    # deny before the fact — a shell write carries a command, not a path — so the sweep is
+    # where a dead station word gets caught after it lands.
+    ".harness/*/features/*/plan.yaml",
 )
 # ROOT-LEVEL ONLY. The worktree half used to be spelled here as the segment joined to ONE
 # star, which assumed exactly one directory after it: under a `<segment>/<repo>/<id>/`
@@ -1076,17 +1080,33 @@ RE_STATE_MD     = re.compile(r"^\.harness/[^/]+/features/[^/]+/STATE\.md$")
 # where the four-route machinery already lives — the alternative was a fifth gate.
 RE_CLAUDE_MD    = re.compile(r"^CLAUDE\.md$")
 RE_RUN_DIGEST    = re.compile(r"^\.harness/[^/]+/features/[^/]+/runs/[^/]+/digest\.md$")
-# Deliberately absent from SHAPE_PATTERNS and the post-hoc sweep globs. This rule needs
-# the content that existed BEFORE a whole-file Write. After the write, comparing the
-# file with itself cannot fire and would advertise enforcement that does not exist.
-# plan.yaml is DELIBERATELY ABSENT (DEC-182). It carries neither a budget nor a vocabulary
-# rule, which is what this gate is for: `feature.json` 300 and `CLAUDE.md` 80 are
-# budgets, `state.yaml`'s 23-key whitelist is a vocabulary, and STATE.md and the handoff
-# note are both. A plan.yaml check here would be a PARSE check — a third thing — and
-# check-plan-routes.py already refuses a malformed plan BEFORE signature, which is when it
-# matters, with check-state.sh refusing it again at entry. A third enforcement point buys
-# nothing and costs two entries in two pattern lists that have already drifted once.
-SHAPE_PATTERNS = (RE_FEATURE_JSON, RE_STATE_YAML, RE_HANDOFF, RE_STATE_MD, RE_CLAUDE_MD)
+RE_PLAN_YAML    = re.compile(r"^\.harness/[^/]+/features/[^/]+/plan\.yaml$")
+# RE_RUN_DIGEST is deliberately absent from SHAPE_PATTERNS and the post-hoc sweep globs (FEAT-50).
+# That rule needs the content that existed BEFORE a whole-file Write. After the write, comparing
+# the file with itself cannot fire and would advertise enforcement that does not exist.
+#
+# plan.yaml IS PRESENT, AND THAT REVERSES DEC-182 (FEAT-41 T-09, REQ-05). What stood here argued
+# the file was deliberately absent because it carries neither a budget nor a vocabulary rule, and
+# because a plan.yaml check would be a PARSE check that check-plan-routes.py already performs
+# before signature. That reasoning is not wrong so much as silent on a third thing it never
+# considered: a WRITE DENIAL.
+#
+# plan.yaml now has exactly ONE writer — plan-merge.py, whose verbs take the merge lock, validate
+# the station against the vocabulary BEFORE opening the file, and parse the spliced result before
+# replacing it. So an editor write is not a shape violation to be MEASURED; it is a route that no
+# longer exists. Nothing here duplicates check-plan-routes.py: that tool judges a document, this
+# one refuses an author.
+#
+# IN THE SHAPE REGION, NEVER THE DOMAIN REGION. check-domain exits 0 for a payload with no
+# agent_type, so a denial in the domain region would exempt the main session — the one author most
+# likely to hand-edit a plan. DEC-180 makes the shape gate independent of domain and binding on
+# every author, which is the property this rule needs.
+#
+# THE TWO RULES ABOVE POINT OPPOSITE WAYS ON PURPOSE: RE_RUN_DIGEST stays OUT of SHAPE_PATTERNS
+# because its check cannot fire after the fact, while RE_PLAN_YAML goes IN because its check is a
+# route denial that must fire before it.
+SHAPE_PATTERNS = (RE_FEATURE_JSON, RE_STATE_YAML, RE_HANDOFF, RE_STATE_MD, RE_CLAUDE_MD,
+                  RE_PLAN_YAML)
 
 
 def has_shape_rules(rel):
@@ -1156,6 +1176,62 @@ def shape_problems(rel, content, display=None, absolute_path=None):
             out.append(_head("run digest already holds a recorded digest; this Write "
                              "would replace rather than extend it. Write this cycle's "
                              "digest into a run directory of its own."))
+    if RE_PLAN_YAML.match(rel):
+        # THE VOCABULARY RULE, AND IT IS THE ONLY THING THE SWEEP CAN JUDGE (FEAT-41 T-09).
+        # Every task status, and the top-level status WHEN PRESENT, must be a mandated station
+        # or the terminal marker — IMPORTED from factory_config, never respelled here, because a
+        # second copy of the vocabulary is exactly the drift FEAT-41 exists to remove.
+        #
+        # WHAT THIS CATCHES AND WHAT IT DOES NOT, stated rather than left to be discovered: a
+        # dead word or a broken file, yes. A shell write of a LEGAL value, NO — this reads disk
+        # and cannot attribute an author, so a `sed` that lands a legal station is
+        # indistinguishable from the tool doing its job. The Write and Edit denial below is what
+        # closes the editor routes; this is the net under the one route that cannot be denied
+        # before the fact.
+        #
+        # A MISSING TOP-LEVEL status IS LEGAL, and that is a contract rather than an oversight.
+        # T-07 is what adds the key to most plans and is NOT a dependency of this task, so the
+        # two are unordered: a rule that REQUIRED the key would report a violation on every
+        # un-migrated plan this sweep touches. An absent TASK status is legal for the same
+        # reason — T-04 leaves it out of harness_yaml's REQUIRED_TASK_FIELDS, and an absent one
+        # reads as the not-started station. Only a value OUTSIDE the vocabulary is reported.
+        #
+        # NOT deny(). Its last line appends the module-level ROUTING constant, which speaks
+        # about STATE.md, digests and notes/ — a different file class entirely. See the comment
+        # further down that already records this trap in its own words: ONE ROUTING SENTENCE PER
+        # FINDING.
+        import factory_config as _fc
+        # MANDATED_STATIONS, not station_names(board): the declaration itself, with no
+        # board to consult. This gate has no board and needs none — the vocabulary is
+        # fixed (T-01), and station_names() exists for the COLUMN derivation.
+        _legal = set(_fc.MANDATED_STATIONS) | {_fc.TERMINAL_MARKER}
+        _bad = []
+        try:
+            import harness_yaml as _hy
+            _doc = _hy.load_str(content, display or rel)
+        except Exception:
+            # UNPARSEABLE IS NOT THIS RULE'S FINDING. check-plan-routes.py refuses a malformed
+            # plan before signature and check-state.sh refuses it again at entry; reporting it
+            # a third time here would put one defect in three voices.
+            _doc = None
+        if isinstance(_doc, dict):
+            _top = _doc.get("status")
+            if _top is not None and str(_top) not in _legal:
+                _bad.append(f"top-level status {str(_top)!r}")
+            _tasks = _doc.get("tasks")
+            if isinstance(_tasks, list):
+                for _t in _tasks:
+                    if not isinstance(_t, dict):
+                        continue
+                    _s = _t.get("status")
+                    if _s is not None and str(_s) not in _legal:
+                        _bad.append(f"task {_t.get('id', '(no id)')} status {str(_s)!r}")
+        if _bad:
+            out.append(_head("plan.yaml station vocabulary (FEAT-41 REQ-01)."))
+            out.extend(f"  {b} is not a station" for b in _bad)
+            out.append(f"  The stations are {', '.join(sorted(_legal))}. "
+                       f"Set one with plan-merge.py set-task-station or set-feature-station, "
+                       f"which validate the value before it lands.")
 
     if RE_FEATURE_JSON.match(rel):
         # 300, not 200: FEAT-10 measures 173 lines with 32 runs, roughly 5 lines per run.
@@ -1420,6 +1496,45 @@ def shape_problems(rel, content, display=None, absolute_path=None):
 # `targets` is [(repo-relative path, file text, display path, absolute path)]. Building it
 # is the ONLY thing the two modes disagree about; the gate itself consumes one uniform tuple.
 targets = []
+
+# THE plan.yaml ROUTE DENIAL, AND IT SITS AHEAD OF EVERY MODE SPLIT BELOW (FEAT-41 T-09).
+#
+# WHY HERE AND NOT IN shape_problems' OWN BRANCH. Everything below this point is built around
+# MEASURING TEXT: the PRE route exits 0 for any tool but `Write` because only `Write` carries a
+# whole-file `content`, which is exactly right for a budget or a key whitelist. This rule is not
+# a measurement. It refuses a ROUTE, and a route is fully known from the path and the tool name
+# alone — so an `Edit`, which never carries content and would therefore exit 0 four lines below,
+# has to be refused before that gate rather than inside it.
+#
+# BOTH ROUTES, EVERY AUTHOR, AND ONLY BEFORE THE FACT. In POST the write has already landed and
+# exit 2 merely carries stderr back; the vocabulary net in shape_problems is what speaks there.
+if not _post and _tool in ("Write", "Edit", "NotebookEdit") and target \
+        and RE_PLAN_YAML.match(_norm(target)):
+    # THE REASON COMES FIRST, THEN THE ROUTE. A denial that says only what to use instead is
+    # indistinguishable from a stuck or over-broad gate, and a reader who takes it for a harness
+    # malfunction routes around it through a shell write of a legal station value — the one
+    # channel the sweep above admits it cannot attribute to an author. So the refusal has to
+    # earn its own credibility in its first sentence.
+    # THE BASENAME IS THE ONE THAT EXISTS BESIDE THIS SCRIPT. A refusal naming a file that is
+    # not there is unusable — the very failure the reason clause exists to prevent. This script
+    # and the writer live in the same bin directory, and the invariant that keeps them together
+    # is that both are named in run-unit-tests.sh's own script list.
+    _writer = "plan-merge.py"
+    sys.stderr.write(
+        f"check-domain: DENIED — {_show(target)}: plan.yaml has exactly ONE writer, "
+        f"{_writer}, because every station value must be validated against the vocabulary "
+        f"before it lands on disk. An editor write cannot do that, so this is not a shape "
+        f"violation to be measured — it is a route that no longer exists (FEAT-41 REQ-05, "
+        f"reversing DEC-182).\n"
+        f"  Record a task's station:      python3 .claude/skills/harness/bin/{_writer} "
+        f"set-task-station --file <plan.yaml> --task T-NN --station <station>\n"
+        f"  Record the feature's station: python3 .claude/skills/harness/bin/{_writer} "
+        f"set-feature-station --file <plan.yaml> --station <station>\n"
+        f"  Add tasks:                    python3 .claude/skills/harness/bin/{_writer} "
+        f"add-tasks --file <plan.yaml> --proposal <path>\n"
+        f"  Apply a proposal:             python3 .claude/skills/harness/bin/{_writer} "
+        f"apply --file <plan.yaml> --proposal <path>\n")
+    sys.exit(2)
 
 if not _post:
     # PRE. Only `Write` carries a whole-file `content` to measure, so only `Write` can be

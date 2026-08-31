@@ -2492,6 +2492,137 @@ def _fire_edit(root, full, old_s, new_s, agent="harness-pm", replace_all=False):
                           text=True, env=_env(root))
 
 
+def t09(name, ok, detail=""):
+    global _T09_FAILS
+    if ok:
+        print(f"ok    {name}")
+    else:
+        _T09_FAILS += 1
+        print(f"FAIL  {name}\n      {detail}")
+    return ok
+
+
+_T09_FAILS = 0
+
+# The station value a legal plan carries, and one that is not in the vocabulary at all. The
+# LEGAL word is read from factory_config rather than typed, so this fixture cannot drift from
+# the declaration the way a six-key mapping once did (FEAT-41 T-01).
+import factory_config as _fc09
+
+_PLAN_LEGAL = (
+    "schema: plan/1\n"
+    "feature: FEAT-99-fixture\n"
+    f"status: {_fc09.MANDATED_STATIONS[3]}\n"
+    "tasks:\n"
+    "  - id: T-01\n"
+    f"    status: {_fc09.MANDATED_STATIONS[5]}\n"
+)
+_PLAN_ILLEGAL = _PLAN_LEGAL.replace(
+    f"    status: {_fc09.MANDATED_STATIONS[5]}", "    status: Sideways")
+# A plan with NO top-level status at all — the UN-MIGRATED shape the sweep meets while T-07 is
+# pending. T-09 and T-07 are unordered, so this must be LEGAL or the sweep reports every plan
+# that has not been migrated yet.
+_PLAN_NO_TOP = "\n".join(l for l in _PLAN_LEGAL.splitlines()
+                          if not l.startswith("status:")) + "\n"
+
+
+def run_t09():
+    """FEAT-41 T-09: plan.yaml has exactly ONE writer, and the editor routes are refused."""
+    global _T09_FAILS
+    _T09_FAILS = 0
+
+    # ---- 1. THE EDIT ROUTE IS DENIED, and the message routes the reader to the verb -------
+    root, full = _approval_root(rel=REL_PLAN, body=_PLAN_LEGAL)
+    r = _fire_edit(root, full, "T-01", "T-02", agent="harness-orchestrator")
+    t09("T-09 1: an AGENT's Edit of plan.yaml is DENIED", r.returncode == 2,
+        f"exit {r.returncode}, stderr={r.stderr.strip()[:300]!r}")
+    err = r.stderr
+    t09("T-09 1: the denial names set-task-station — the write an agent will actually attempt",
+        "set-task-station" in err, f"stderr={err[:400]!r}")
+
+    # THE REASON CLAUSE IS LOAD-BEARING, NOT DECORATION. A denial that says only what to use
+    # instead is indistinguishable from a stuck or over-broad gate, and a reader who takes it
+    # for a harness malfunction routes around it through a shell write of a legal value — the
+    # one channel the sweep admits it cannot attribute to an author.
+    t09("T-09 1: the denial STATES THE REASON — one writer, because stations are validated "
+        "before they land",
+        "one writer" in err.lower() and "validate" in err.lower(),
+        f"stderr={err[:400]!r}")
+
+    # THE BASENAME IS THE ONE ON DISK, read from the bin directory rather than retyped.
+    t09("T-09 1: the denial names the writer script by the basename that EXISTS on disk",
+        "plan-merge.py" in err and os.path.isfile(os.path.join(HERE, "plan-merge.py")),
+        f"stderr={err[:400]!r}")
+
+    # ONE ROUTING SENTENCE PER FINDING. deny() appends the module-level ROUTING constant,
+    # which speaks about STATE.md, digests and notes/ — a different file class entirely.
+    # Emitting it beside a plan.yaml refusal puts two contradictory routing sentences in one
+    # stderr stream. Asserted by a distinctive substring of that constant.
+    t09("T-09 1: the denial does NOT carry the STATE.md ROUTING sentence",
+        "STATE.md" not in err, f"stderr={err[:400]!r}")
+
+    # ---- 2. THE MAIN SESSION IS DENIED TOO ------------------------------------------------
+    # DEC-180 makes the shape gate independent of domain and binding on EVERY author. The
+    # domain region would have been the wrong home precisely because check-domain exits 0 for
+    # a payload with no agent_type, which would exempt the one author most likely to hand-edit.
+    root2, full2 = _approval_root(rel=REL_PLAN, body=_PLAN_LEGAL)
+    r2 = _fire_edit(root2, full2, "T-01", "T-02", agent=None)
+    t09("T-09 2: an Edit with NO agent_type is denied too — the shape gate binds every author",
+        r2.returncode == 2, f"exit {r2.returncode}, stderr={r2.stderr.strip()[:300]!r}")
+
+    # ---- 3. THE WRITE ROUTE IS DENIED -----------------------------------------------------
+    root3, full3 = _approval_root(rel=REL_PLAN, body=_PLAN_LEGAL)
+    r3 = _fire_write(root3, full3, _PLAN_LEGAL, agent="harness-orchestrator")
+    t09("T-09 3: a Write of plan.yaml is DENIED", r3.returncode == 2,
+        f"exit {r3.returncode}, stderr={r3.stderr.strip()[:300]!r}")
+
+    # ---- 4. NEGATIVE CONTROL: a SIBLING file in the same directory is untouched -----------
+    # Without this the whole group passes against a gate that denies the feature directory.
+    root4, _ = _approval_root(rel=REL_PLAN, body=_PLAN_LEGAL)
+    brief = os.path.join(root4, REL_BRIEF)
+    os.makedirs(os.path.dirname(brief), exist_ok=True)
+    with open(brief, "w") as f:
+        f.write(BRIEF_ON_DISK)
+    r4 = _fire_edit(root4, brief, "Goal", "Goal", agent="harness-orchestrator")
+    t09("T-09 4: NEGATIVE CONTROL — BRIEF.md beside it is NOT denied by this rule",
+        r4.returncode != 2 or "set-task-station" not in r4.stderr,
+        f"exit {r4.returncode}, stderr={r4.stderr.strip()[:300]!r}")
+
+    # ---- 5. THE POST SWEEP'S VOCABULARY RULE ----------------------------------------------
+    # A shell write cannot be denied before the fact, so the sweep reads what LANDED. It
+    # catches a dead word or a broken file; it CANNOT catch a shell write of a legal value,
+    # because it reads disk and cannot attribute an author.
+    def _bash_sweep(body):
+        root_s, full_s = _approval_root(rel=REL_PLAN, body=body)
+        payload = {"agent_type": "harness-orchestrator", "tool_name": "Bash",
+                   "hook_event_name": "PostToolUse",
+                   "tool_input": {"command": "sed -i '' s/a/b/ " + full_s}}
+        return fire_post(root_s, payload)
+
+    r5 = _bash_sweep(_PLAN_ILLEGAL)
+    t09("T-09 5: a Bash write landing an ILLEGAL station value is REPORTED by the post sweep",
+        r5.returncode == 2 and "Sideways" in r5.stderr,
+        f"exit {r5.returncode}, stderr={r5.stderr.strip()[:400]!r}")
+    t09("T-09 5: and the report names the FILE as well as the offending value",
+        "plan.yaml" in r5.stderr, f"stderr={r5.stderr.strip()[:400]!r}")
+
+    r6 = _bash_sweep(_PLAN_LEGAL)
+    t09("T-09 6: NEGATIVE CONTROL — a Bash write landing a LEGAL station value is NOT reported",
+        r6.returncode == 0, f"exit {r6.returncode}, stderr={r6.stderr.strip()[:400]!r}")
+
+    # ---- 7. AN UN-MIGRATED PLAN IS LEGAL --------------------------------------------------
+    # T-07 adds the top-level key and is NOT a dependency of T-09, so the two are unordered.
+    # A rule that REQUIRED the key would report a violation on every plan the sweep meets
+    # before T-07 lands. An absent TASK status is legal for the same reason: T-04 leaves it
+    # out of REQUIRED_TASK_FIELDS and an absent one reads as the not-started station.
+    r7 = _bash_sweep(_PLAN_NO_TOP)
+    t09("T-09 7: a plan.yaml carrying NO top-level status is NOT reported — the un-migrated "
+        "shape is legal",
+        r7.returncode == 0, f"exit {r7.returncode}, stderr={r7.stderr.strip()[:400]!r}")
+
+    return _T09_FAILS
+
+
 def run_t14():
     APPROVED = PLAN_ON_DISK.replace("status: pending\n  approved_by",
                                     "status: approved\n  approved_by")
@@ -2506,12 +2637,38 @@ def run_t14():
     t14("1: the denial names the plan-merge route", "plan-merge.py" in r.stderr,
         r.stderr.strip()[:200])
 
-    # 2. THE ALLOW DIRECTION. A deny-everything implementation fails here.
+    # FEAT-41 T-09 CLOSED THE EDITOR ROUTE, so every ALLOW below is INVERTED rather than
+    # deleted, and this paragraph is why. This group was written when plan.yaml had no shape
+    # rule (DEC-182) and the approval_guard was the only thing standing between an agent and
+    # the approval mapping — so the guard's ALLOW direction was observable through Write and
+    # Edit, and cases 2, 4, 5e, 6, 7, 8, 9, 10a and 10b measured exactly that.
+    #
+    # T-09 gives plan.yaml exactly ONE writer. The shape gate now refuses Write, Edit and
+    # NotebookEdit on that path for EVERY author, including the main session (DEC-180), so no
+    # editor write of a plan can be allowed by anything downstream of it. The approval_guard
+    # itself is UNCHANGED and still first in line — cases 1, 3 and 5a-5d still see its own
+    # message, which is why they still assert MARK.
+    #
+    # NOTHING LEGITIMATE LOST, and this was verified rather than assumed: `plan-merge.py apply`
+    # CREATES a plan.yaml whole when the base does not exist (its step 3), so case 6's route was
+    # redundant, not load-bearing. Run at execution time against a fresh legal path: APPLIED,
+    # file created.
+    #
+    # THEY ARE KEPT BECAUSE THE ALLOW DIRECTION STILL MATTERS, just at a different gate: each
+    # one now proves the shape denial reaches a case the approval_guard would have permitted,
+    # which is the only remaining way to tell "denied by the route rule" from "denied by the
+    # approval rule". A deleted case proves neither.
+
+    # 2. INVERTED (T-09). The approval mapping is byte-identical, so the approval_guard has
+    # nothing to say — and the ROUTE rule denies it anyway. The assertion that it is NOT the
+    # approval message is what distinguishes the two gates.
     root, full = _approval_root()
     added = PLAN_ON_DISK + "  - id: T-03\n    change_type: logic\n    status: pending\n"
     r = _fire_write(root, full, added)
-    t14("2: adding a task with approval byte-identical is ALLOWED", r.returncode == 0,
-        f"exit {r.returncode}, stderr={r.stderr.strip()[:200]!r}")
+    t14("2 (T-09): adding a task through Write is DENIED BY THE ROUTE RULE, not the approval "
+        "guard — plan.yaml has one writer",
+        r.returncode == 2 and MARK not in r.stderr and "set-task-station" in r.stderr,
+        f"exit {r.returncode}, stderr={r.stderr.strip()[:300]!r}")
 
     # 3. the ORCHESTRATOR is governed too, and is not the signer (D-10)
     root, full = _approval_root()
@@ -2525,8 +2682,14 @@ def run_t14():
     payload = {"tool_name": "Write", "tool_input": {"file_path": full, "content": APPROVED}}
     r = subprocess.run([HOOK], input=json.dumps(payload), capture_output=True, text=True,
                        env=_env(root))
-    t14("4: the MAIN SESSION signing is ALLOWED, by the mechanism not a special case",
-        r.returncode == 0, f"exit {r.returncode}, stderr={r.stderr.strip()[:200]!r}")
+    # INVERTED (T-09), AND THIS IS THE CASE THE DESIGN NOW TURNS ON THE OTHER WAY. The main
+    # session is still ungoverned by the DOMAIN region — that mechanism is untouched — but the
+    # SHAPE gate binds every author by design (DEC-180), because exempting the one author most
+    # likely to hand-edit a plan is exactly what T-09 exists to prevent. The main session signs
+    # through `plan-merge.py sign-approval`, which T-08 gates on identity so that only it can.
+    t14("4 (T-09): the MAIN SESSION's editor write is DENIED TOO — the shape gate binds every "
+        "author, and signing is a verb now",
+        r.returncode == 2, f"exit {r.returncode}, stderr={r.stderr.strip()[:300]!r}")
 
     # 5a. TARGETED
     root, full = _approval_root()
@@ -2563,7 +2726,8 @@ def run_t14():
     root, full = _approval_root()
     r = _fire_edit(root, full, "    change_type: logic\n    status: pending",
                    "    change_type: docs\n    status: done")
-    t14("5e: an Edit touching only a task body is ALLOWED", r.returncode == 0,
+    t14("5e (T-09): an Edit touching only a task body is DENIED by the route rule",
+        r.returncode == 2 and "set-task-station" in r.stderr,
         f"exit {r.returncode}, stderr={r.stderr.strip()[:200]!r}")
 
     # 6. no file on disk -> no signature to destroy
@@ -2571,14 +2735,20 @@ def run_t14():
     full = os.path.join(root, REL_PLAN)
     os.makedirs(os.path.dirname(full), exist_ok=True)
     r = _fire_write(root, full, APPROVED)
-    t14("6: a plan.yaml that does not exist yet is ALLOWED", r.returncode == 0,
+    # INVERTED (T-09). Creation does not go through an editor: `plan-merge.py apply` writes a
+    # plan whole when the base does not exist, which was measured at execution time.
+    t14("6 (T-09): a plan.yaml that does not exist yet is DENIED too — creation goes through "
+        "apply, not Write",
+        r.returncode == 2,
         f"exit {r.returncode}, stderr={r.stderr.strip()[:200]!r}")
 
     # 7. an unparseable proposal is ALLOWED and SAYS SO. A silent allow and a reported
     # allow are different gates.
     root, full = _approval_root()
     r = _fire_write(root, full, "approval:\n  status: [unclosed\n")
-    t14("7: an unparseable proposal is ALLOWED", r.returncode == 0, f"exit {r.returncode}")
+    t14("7 (T-09): an unparseable proposal is DENIED by the route rule — the shape gate never "
+        "parses, so unparseable and legal are refused alike",
+        r.returncode == 2, f"exit {r.returncode}")
     t14("7: and stderr SAYS the parse failed",
         "could not parse" in r.stderr, r.stderr.strip()[:200])
 
@@ -2586,7 +2756,9 @@ def run_t14():
     root, full = _approval_root()
     reflowed = PLAN_ON_DISK.replace("  status: pending\n", "  status:   pending\n")
     r = _fire_write(root, full, reflowed)
-    t14("8: a whitespace-only reflow of the approval block is ALLOWED", r.returncode == 0,
+    t14("8 (T-09): a whitespace-only reflow is DENIED by the route rule, though still NOT by "
+        "the approval guard",
+        r.returncode == 2 and MARK not in r.stderr,
         f"exit {r.returncode}, stderr={r.stderr.strip()[:200]!r}")
 
     # 9. THE ONLY CASE THAT DISCRIMINATES READING THE RECORD FROM REIMPLEMENTING IT.
@@ -2596,8 +2768,12 @@ def run_t14():
     assert dropped != APPROVAL_MANIFEST
     root, full = _approval_root(manifest_text=dropped)
     r = _fire_write(root, full, APPROVED)
-    t14("9: dropping the entry from main_session.writes STOPS the denial",
-        r.returncode == 0 and MARK not in r.stderr,
+    # INVERTED (T-09). Dropping the list entry still disarms the APPROVAL guard — that is the
+    # property the intent protects by leaving the entry in place — but the ROUTE rule does not
+    # read that list, so the write is refused regardless. Asserted by the message, not the code.
+    t14("9 (T-09): dropping the entry from main_session.writes stops the APPROVAL denial but "
+        "not the ROUTE denial",
+        r.returncode == 2 and MARK not in r.stderr and "one writer" in r.stderr.lower(),
         f"exit {r.returncode}, stderr={r.stderr.strip()[:200]!r}")
 
     # 10. THE LOUD FAIL-OPEN, both shapes.
@@ -2609,13 +2785,15 @@ def run_t14():
     assert "main_session" not in no_ms, "the main_session stanza was not removed"
     root, full = _approval_root(manifest_text=no_ms)
     r = _fire_write(root, full, APPROVED)
-    t14("10a: no main_session key at all -> ALLOWED", r.returncode == 0, f"exit {r.returncode}")
+    t14("10a (T-09): no main_session key at all -> still DENIED by the route rule",
+        r.returncode == 2 and MARK not in r.stderr, f"exit {r.returncode}")
     t14("10a: and stderr says the exclusion list was unreadable",
         "exclusion list was unreadable" in r.stderr, r.stderr.strip()[:200])
     empty = no_ms.replace("shared:\n", "main_session:\n  writes: []\nshared:\n")
     root, full = _approval_root(manifest_text=empty)
     r = _fire_write(root, full, APPROVED)
-    t14("10b: an empty writes list -> ALLOWED", r.returncode == 0, f"exit {r.returncode}")
+    t14("10b (T-09): an empty writes list -> still DENIED by the route rule",
+        r.returncode == 2 and MARK not in r.stderr, f"exit {r.returncode}")
     t14("10b: and stderr says the exclusion list was unreadable",
         "exclusion list was unreadable" in r.stderr, r.stderr.strip()[:200])
 
@@ -2907,6 +3085,7 @@ def main():
     fails += run_runs_agent_write_path()
     fails += run_t14()
     fails += run_feat50_artifact_integrity()
+    fails += run_t09()
     return fails
 
 
