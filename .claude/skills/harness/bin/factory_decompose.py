@@ -17,20 +17,31 @@ ledger never claims a task is ready to claim when the station-set that makes it 
 in fact failed.
 
 The only harness file this tool writes is feature.json, and the write is a read-modify-write
-over the whole document: load it, set the `factory` key, json.dump the whole thing back —
+over the whole document -- load it, set the `factory` key, json.dump the whole thing back --
 preserving every other top-level key (a `github:` block from gh-sync.py included) unchanged.
 plan.yaml and BRIEF.md are read-only inputs and are never written (D-01, SC-03, SC-20).
+
+That read-modify-write goes through feature_json_write.write_feature_json (DEC-199,
+stale-anchor-write-hazard), the same locked, schema-ratcheted entry point gh-sync.py's three
+call sites already share: the fcntl lock on feature.json's sibling `.lock` file, the
+same-directory tempfile, fsync and atomic rename this module's own `write_factory` used to
+carry as a private, unlocked, unvalidated copy. `write_factory` may legitimately be the
+FIRST writer of a feature's feature.json (T-c4) -- this tool is a standalone CLI entry point,
+never guaranteed the orchestrator has instantiated one first -- so every internal call below
+passes the plan's own `feature:` id, and an absent file is created fresh rather than refused.
+See the feature's receipt for the fuller argument.
 """
 import argparse
 import json
 import os
 import re
 import sys
-import tempfile
 
 import factory_cli
 import factory_config
 import factory_gh
+import feature_json_write
+import harness_merge
 import harness_yaml
 
 # DEC-138, applied mechanically per task.
@@ -135,50 +146,82 @@ def load_factory(feat_dir):
     return factory
 
 
-def write_factory(feat_dir, factory):
-    """Write the `factory:` key into feature.json by read-modify-write, ATOMICALLY.
+# feat_dir is a plain CLI positional argument (factory_decompose is a general-purpose tool
+# pointed at ANY feature directory, not just one nested under .harness/*/features/*/ -- see
+# test-factory-integration.py's own decompose fixtures at :635-636 and :708-709, which run
+# the standalone CLI against a bare tmp dir). write_factory therefore enforces only that the
+# resolved path is named feature.json, never the canonical harness layout gh-sync.py's own
+# callers stay constrained to (feature_json_write.FEATURE_JSON_TAIL, unchanged by this).
+FEATURE_JSON_BASENAME_TAIL = re.compile(r"(?:^|/)feature\.json$")
 
-    Load the document (or start from an empty one when the file does not exist yet) -> set
-    its `factory` key to the mapping below -> json.dump the whole document back to a temp
-    file created in the SAME DIRECTORY -> fsync -> os.replace onto feature.json. Every other
-    top-level key (a `github:` block from gh-sync.py included) round-trips unchanged.
-    feature.json itself is opened only for reading, never in a truncating mode: every
-    observer sees either the previous complete file or the next one, never a partial one
-    (T-04 step 8, carried forward by FEAT-14 T-05)."""
+
+def write_factory(feat_dir, factory, feat_id=None):
+    """Write the `factory:` key into feature.json through
+    feature_json_write.write_feature_json (DEC-199, stale-anchor-write-hazard cycle 3): the
+    same fcntl lock on feature.json's sibling `.lock` file, same-directory tempfile, fsync
+    and atomic rename this function's own private `_atomic_write`-shaped primitive gave it,
+    now shared with gh-sync.py's three call sites instead of duplicated a third time. Every
+    other top-level key (a `github:` block from gh-sync.py included) round-trips unchanged.
+    A candidate that would introduce a schema problem the base did not already carry is
+    refused by write_feature_json itself (feature_schema.py, monotonic non-regression) and
+    leaves feature.json byte-for-byte unchanged.
+
+    CREATION IS AN EXPLICIT OPT-IN (stale-anchor-write-hazard T-c4, replacing cycle 3's
+    hand-copied never-create refusal). Cycle 3's docstring argued "no caller of write_factory
+    ... is ever legitimately the FIRST writer" because "the orchestrator instantiates it ...
+    well before decompose ever runs" -- FALSE, and test-factory-integration.py is the counter-
+    evidence: factory_decompose is a standalone CLI entry point, and its own fixtures run
+    `decompose` against a feature dir holding only plan.yaml, with no feature.json ever
+    created first (see the module docstring above and this feature's receipt).
+
+    `feat_id` is that opt-in: `_main` always has one by this point (step 2b validates
+    `plan.yaml`'s top-level `feature:` key before any write_factory call), so every one of
+    this module's five internal call sites passes it, and creation succeeds. A caller that
+    omits it -- the shape every gh-sync.py call site uses for the SAME absent-file decision
+    (save_recorded, _record_status, _record_pr all refuse before ever calling
+    write_feature_json) -- still gets the old refusal: nothing here can accidentally mint a
+    document with only a `factory` key and none of feature-schema.json's other seven required
+    keys, because without a feature_id there is no way to build a schema-clean one.
+    """
     path = os.path.join(feat_dir, "feature.json")
-    if os.path.exists(path):
-        with open(path, encoding="utf-8") as f:
-            doc = json.load(f)
-        if not isinstance(doc, dict):
-            doc = {}
-    else:
-        doc = {}
-    doc["factory"] = {
-        "repo": factory["repo"],
-        "parent": factory["parent"],
-        "issues": dict(sorted(factory["issues"].items())),
-        "items": dict(sorted(factory["items"].items())),
-        "edges": {
-            "parent": list(factory["edges"]["parent"]),
-            "blocked_by": {k: list(v) for k, v in sorted(factory["edges"]["blocked_by"].items())},
-        },
-    }
-    text = json.dumps(doc, indent=2) + "\n"
+    absent_message = (
+        f"{path}: feature.json is absent and no feature id was given to create one. "
+        f"Pass feat_id (this module's own `_main` derives it from plan.yaml's `feature:` "
+        f"key) or run this feature through the orchestrator's normal cycle first."
+    )
 
-    dirpath = os.path.dirname(path) or "."
-    fd, tmp = tempfile.mkstemp(prefix=".feature.json.", suffix=".tmp", dir=dirpath)
-    try:
-        with os.fdopen(fd, "w", encoding="utf-8") as f:
-            f.write(text)
-            f.flush()
-            os.fsync(f.fileno())
-        os.replace(tmp, path)
-    except BaseException:
-        try:
-            os.unlink(tmp)
-        except OSError:
-            pass
-        raise
+    def transform(base):
+        if base is None:
+            if feat_id is None:
+                raise harness_merge.MergeRefusal(9, [absent_message])
+            doc = {
+                "feature_id": feat_id,
+                "branch": "none",
+                "pr": None,
+                "status": "Plan",
+                "review_sha": "none",
+                "cycles_used": 0,
+                "max_total_cycles": 10,
+                "runs": [],
+            }
+        else:
+            doc = json.loads(base.decode("utf-8"))
+            if not isinstance(doc, dict):
+                doc = {}
+        doc["factory"] = {
+            "repo": factory["repo"],
+            "parent": factory["parent"],
+            "issues": dict(sorted(factory["issues"].items())),
+            "items": dict(sorted(factory["items"].items())),
+            "edges": {
+                "parent": list(factory["edges"]["parent"]),
+                "blocked_by": {k: list(v)
+                               for k, v in sorted(factory["edges"]["blocked_by"].items())},
+            },
+        }
+        return json.dumps(doc, indent=2) + "\n"
+
+    feature_json_write.write_feature_json(path, transform, tail_regex=FEATURE_JSON_BASENAME_TAIL)
 
 
 # --------------------------------------------------------------------------
@@ -350,7 +393,7 @@ def _main():
             )
         elif args.parent is not None:
             factory["parent"] = args.parent
-            write_factory(feat_dir, factory)
+            write_factory(feat_dir, factory, feat_id=feat_id)
             factory_gh.add_label(args.repo, args.parent, f"feature:{feat_id}")
         else:
             problem, goal = extract_brief(feat_dir)
@@ -369,7 +412,7 @@ def _main():
                 args.repo, title, body, ["harness", f"feature:{feat_id}"],
             )
             factory["parent"] = num
-            write_factory(feat_dir, factory)
+            write_factory(feat_dir, factory, feat_id=feat_id)
 
     # 6. create an issue for every task in the third disposition (new).
     for t in tasks:
@@ -381,7 +424,7 @@ def _main():
             args.repo, title, _issue_body(t), _task_labels(t, feat_id),
         )
         factory["issues"][tid] = num
-        write_factory(feat_dir, factory)
+        write_factory(feat_dir, factory, feat_id=feat_id)
 
     # 7. add every task issue with no recorded item id to the board. The parent is NEVER added.
     # The item id is recorded ONLY after project_field_set returns (T-04 defect fix): recording
@@ -406,7 +449,7 @@ def _main():
             item_id = factory_gh.project_item_add(owner, board_number, url)
         factory_gh.project_field_set(owner, board_number, item_id, station_field, ready_option)
         factory["items"][tid] = item_id
-        write_factory(feat_dir, factory)
+        write_factory(feat_dir, factory, feat_id=feat_id)
 
     # 7b. the edge pass — a second pass, run after every issue in this publish exists.
     id_cache = {}
@@ -428,7 +471,7 @@ def _main():
             child_id = internal_id(num)
             factory_gh.attach_sub_issue(args.repo, factory["parent"], child_id)
             factory["edges"]["parent"].append(tid)
-            write_factory(feat_dir, factory)
+            write_factory(feat_dir, factory, feat_id=feat_id)
             edges_drawn += 1
 
         recorded = factory["edges"]["blocked_by"].setdefault(tid, [])
@@ -460,7 +503,7 @@ def _main():
                     raise
             recorded.append(dep)
             factory["edges"]["blocked_by"][tid] = recorded
-            write_factory(feat_dir, factory)
+            write_factory(feat_dir, factory, feat_id=feat_id)
             edges_drawn += 1
 
     # 8. the single stdout payload.

@@ -18,12 +18,15 @@ import os
 import re
 import sys
 import tempfile
+import time
 
 import yaml
 
 import factory_decompose as fd
 import factory_gh
 import factory_config as fc
+import feature_json_write
+import harness_merge
 
 FAILS = 0
 RAN = 0
@@ -305,8 +308,13 @@ def write_text(path, text):
 def make_feature(td, tasks=None, approved=True, feature_json_extra="{}", brief=GOOD_BRIEF,
                   feat=FEAT):
     """Build a temporary feature directory: plan.yaml, BRIEF.md, feature.json, fleet.yaml.
-    Returns (feat_dir, fleet_path)."""
-    feat_dir = os.path.join(td, "feature")
+    Returns (feat_dir, fleet_path). Nested under .harness/features/<feat>/ (matching
+    test-gh-sync.py's nested_feature_dir and feature_json_write.FEATURE_JSON_TAIL) —
+    required now that write_factory routes through the destination-checked
+    feature_json_write.write_feature_json (stale-anchor-write-hazard cycle 3): a bare
+    tempdir passed a feature.json worked only because write_factory carried no
+    destination check at all before this feature."""
+    feat_dir = os.path.join(td, ".harness", "features", feat)
     os.makedirs(feat_dir, exist_ok=True)
     write_yaml(os.path.join(feat_dir, "plan.yaml"), plan_dict(tasks=tasks, approved=approved,
                                                                feat=feat))
@@ -326,7 +334,7 @@ def make_feature_bad_feature_key(td, mode, tasks=None):
     plan, tasks, BRIEF, fleet) matches the happy-path fixture exactly, so the ONLY
     thing wrong with this fixture is the `feature` key itself.
     Returns (feat_dir, fleet_path)."""
-    feat_dir = os.path.join(td, "feature")
+    feat_dir = os.path.join(td, ".harness", "features", FEAT)
     os.makedirs(feat_dir, exist_ok=True)
     plan = plan_dict(tasks=tasks, approved=True, feat=FEAT)
     if mode == "missing":
@@ -885,8 +893,16 @@ with tempfile.TemporaryDirectory() as td:
     check("(22) os.replace was called at least once", len(replace_calls) >= 1, replace_calls)
     check("(22) feature.json WAS opened for reading at least once (anti-vacuum)",
           len(open_calls) >= 1, open_calls)
+    # NOT `all(m == "r")`. That conflated "not truncating" with "literally the
+    # string 'r'", so a plain BINARY READ failed it. Measured 2026-08-30: this
+    # passed on local python 3.14.5 and failed in CI, which recorded
+    # ['r','rb','rb','rb','rb','rb','rb','rb'] — every one of them a read, every
+    # one accepted by the per-open truncation check above, and the summary line
+    # reddening anyway. An assertion whose name says "never truncating" must test
+    # truncation; testing string equality instead makes it environment-dependent.
     check("(22) feature.json was opened only for reading, never in a truncating mode",
-          open_calls != [] and all(m == "r" for m in open_calls), open_calls)
+          open_calls != [] and not any(
+              any(t in m for t in ("w", "x", "a")) for m in open_calls), open_calls)
 
 
 # ============================================================================
@@ -1145,7 +1161,7 @@ with tempfile.TemporaryDirectory() as td:
 # the mutating surface — the validation itself makes a project_field_options READ.
 # ============================================================================
 with tempfile.TemporaryDirectory() as td:
-    feat_dir = os.path.join(td, "feature")
+    feat_dir = os.path.join(td, ".harness", "features", FEAT)
     os.makedirs(feat_dir, exist_ok=True)
     write_yaml(os.path.join(feat_dir, "plan.yaml"), plan_dict())
     write_text(os.path.join(feat_dir, "BRIEF.md"), GOOD_BRIEF)
@@ -1176,7 +1192,7 @@ with tempfile.TemporaryDirectory() as td:
 # using A's own ready option name, never B's.
 # ============================================================================
 with tempfile.TemporaryDirectory() as td:
-    feat_dir = os.path.join(td, "feature")
+    feat_dir = os.path.join(td, ".harness", "features", FEAT)
     os.makedirs(feat_dir, exist_ok=True)
     write_yaml(os.path.join(feat_dir, "plan.yaml"), plan_dict(tasks=[task("T-01")]))
     write_text(os.path.join(feat_dir, "BRIEF.md"), GOOD_BRIEF)
@@ -1211,6 +1227,146 @@ with tempfile.TemporaryDirectory() as td:
     check("(T-03) the station-validation read is against A's board and field, never B's",
           options_calls != []
           and all(c[1] == ("acme", 3, "Status") for c in options_calls), options_calls)
+
+
+# ============================================================================
+# C3 REGRESSION GUARDS (stale-anchor-write-hazard cycle 3). write_factory used to carry
+# its own private tempfile.mkstemp/fsync/os.replace primitive, unlocked and unvalidated —
+# these three pin the properties gained by routing it through
+# feature_json_write.write_feature_json instead (DEC-199).
+# ============================================================================
+
+# --- C3-1: write_factory and an independent whole-document writer over the SAME
+#     feature.json, interleaved so each reads the base before either writes, must not let
+#     one clobber the other's key — the lost-update shape DEC-199 rules out. Modeled on
+#     test-feature-json-merge.py's case_2_concurrent_writer_blocks_not_clobbers (same
+#     os.fork technique): one side (the "other" writer) sleeps mid-transform, WHILE
+#     HOLDING THE LOCK, to widen the overlap window against write_factory's own
+#     read-modify-write.
+with tempfile.TemporaryDirectory() as td:
+    probe_feat = "FEAT-99-probe"
+    feat_dir = os.path.join(td, ".harness", "harness", "features", probe_feat)
+    os.makedirs(feat_dir)
+    fj_path = os.path.join(feat_dir, "feature.json")
+    clean_doc = {
+        "feature_id": probe_feat, "branch": "none", "pr": None, "status": "Backlog",
+        "review_sha": "none", "cycles_used": 0, "max_total_cycles": 5, "runs": [],
+    }
+    write_text(fj_path, json.dumps(clean_doc, indent=2) + "\n")
+
+    def _write_factory_side():
+        factory = fd._empty_factory()
+        factory["repo"] = REPO
+        fd.write_factory(feat_dir, factory)
+
+    def _write_other_side():
+        def transform(base):
+            doc = json.loads(base.decode("utf-8"))
+            time.sleep(0.05)  # widen the overlap window, matching case_2's technique
+            doc["max_total_runs"] = 20
+            return json.dumps(doc, indent=2) + "\n"
+        feature_json_write.write_feature_json(fj_path, transform)
+
+    _pid1 = os.fork()
+    if _pid1 == 0:
+        try:
+            _write_other_side()
+        finally:
+            os._exit(0)
+    _pid2 = os.fork()
+    if _pid2 == 0:
+        try:
+            _write_factory_side()
+        finally:
+            os._exit(0)
+    os.waitpid(_pid1, 0)
+    os.waitpid(_pid2, 0)
+
+    with open(fj_path, encoding="utf-8") as f:
+        _final = json.load(f)
+    check("(C3-1) write_factory's key survives the interleave",
+          "factory" in _final and _final["factory"].get("repo") == REPO, _final)
+    check("(C3-1) the unrelated concurrent writer's key survives the interleave",
+          _final.get("max_total_runs") == 20, _final)
+
+# --- C3-2: write_factory REFUSES a candidate that would introduce a NEW schema problem
+#     (a `factory.repo` of the wrong type onto an otherwise schema-clean base), and leaves
+#     feature.json byte-identical.
+with tempfile.TemporaryDirectory() as td:
+    probe_feat = "FEAT-99-schema-guard"
+    feat_dir = os.path.join(td, ".harness", "harness", "features", probe_feat)
+    os.makedirs(feat_dir)
+    fj_path = os.path.join(feat_dir, "feature.json")
+    clean_doc = {
+        "feature_id": probe_feat, "branch": "none", "pr": None, "status": "Backlog",
+        "review_sha": "none", "cycles_used": 0, "max_total_cycles": 5, "runs": [],
+    }
+    _original = json.dumps(clean_doc, indent=2) + "\n"
+    write_text(fj_path, _original)
+
+    _bad_factory = fd._empty_factory()
+    _bad_factory["repo"] = 12345  # schema: factory.repo is ["string", "null"] -- a NEW
+                                  # problem, absent from this clean base's baseline.
+
+    _raised = False
+    try:
+        fd.write_factory(feat_dir, _bad_factory)
+    except harness_merge.MergeRefusal:
+        _raised = True
+    check("(C3-2) write_factory refuses a candidate introducing a new schema problem",
+          _raised)
+    with open(fj_path, encoding="utf-8") as f:
+        _after = f.read()
+    check("(C3-2) feature.json left byte-identical after the refusal",
+          _after == _original, _after)
+
+# --- C4-1: write_factory, GIVEN feat_id, creates a fresh schema-clean feature.json at a
+#     feat_dir NOT nested under .harness/*/features/*/ -- the false premise c3's docstring
+#     argued ("no caller of write_factory is ever legitimately the FIRST writer") is disproven
+#     by test-factory-integration.py's own decompose fixtures, which point the standalone CLI
+#     at a bare tmp dir (:635-636, :708-709). Path shape is caller policy (stale-anchor-write-
+#     hazard T-c4): factory_decompose is a general CLI tool pointed at an arbitrary directory,
+#     never constrained to the canonical harness features tree the way gh-sync.py's callers
+#     are, so write_factory passes feature_json_write.write_feature_json a laxer tail_regex.
+with tempfile.TemporaryDirectory() as td:
+    _bare_feat_dir = os.path.join(td, "not-nested-under-harness")
+    os.makedirs(_bare_feat_dir)
+    _factory = fd._empty_factory()
+    _factory["repo"] = REPO
+
+    fd.write_factory(_bare_feat_dir, _factory, feat_id="FEAT-99-created")
+    _fj_path = os.path.join(_bare_feat_dir, "feature.json")
+    with open(_fj_path, encoding="utf-8") as f:
+        _created = json.load(f)
+    check("(C4-1) created document carries the given feature_id",
+          _created.get("feature_id") == "FEAT-99-created", _created)
+    check("(C4-1) created document carries every schema-required key",
+          set(feature_json_write.feature_schema.load_schema()["required"]) <= set(_created),
+          _created)
+    check("(C4-1) created document's factory.repo carries the given repo",
+          (_created.get("factory") or {}).get("repo") == REPO, _created)
+
+# --- C4-2: write_factory called WITHOUT feat_id -- the shape every one of this module's own
+#     five internal call sites now avoids, but a shape a direct API caller could still use --
+#     still REFUSES to create at the same absent, non-canonical path, code 9, nothing written.
+#     This is the never-create guarantee gh-sync.py's save_recorded also carries (T-02/FEAT-26,
+#     test-gh-sync.py's own `_dabsentT02` case): defaulting the creation opt-in OFF means a
+#     caller that does not know a feature id cannot accidentally mint a bare document.
+with tempfile.TemporaryDirectory() as td:
+    _bad_feat_dir = os.path.join(td, "not-nested-under-harness")
+    os.makedirs(_bad_feat_dir)
+    _factory2 = fd._empty_factory()
+    _factory2["repo"] = REPO
+
+    _code = None
+    try:
+        fd.write_factory(_bad_feat_dir, _factory2)
+    except harness_merge.MergeRefusal as e:
+        _code = e.code
+    check("(C4-2) write_factory without feat_id refuses to create, code 9",
+          _code == 9, f"code={_code}")
+    check("(C4-2) no file created at the refused path",
+          not os.path.exists(os.path.join(_bad_feat_dir, "feature.json")))
 
 
 print(f"\n{RAN - FAILS}/{RAN} checks passed." if FAILS == 0 else f"\n{FAILS} of {RAN} FAILING.")

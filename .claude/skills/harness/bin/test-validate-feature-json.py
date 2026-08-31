@@ -23,6 +23,7 @@ REPO_ROOT = (os.environ.get("HARNESS_PROJECT_DIR") or os.environ.get("CLAUDE_PRO
     os.path.join(BIN_DIR, "..", "..", "..", "..")
 )
 
+
 VALIDATE_CLI = os.path.join(BIN_DIR, "validate-feature-json.py")
 
 import feature_schema  # noqa: E402  (after sys.path fixup, house convention)
@@ -55,9 +56,23 @@ def swept(stderr):
     unit suite red while the behaviour under test was correct, and the two
     fail-open positives had been passing for the wrong reason since FEAT-42.
     Any count ending in 1 -- 1, 11, 21, 31, 41 -- reproduces it.
+
+    RAISES rather than returning None (cycle-1 panel, M2). Unmatched output is not
+    evidence that the count differs from one, but `None != 1` is true, so garbled or
+    absent output PASSED the negative check. "I could not measure" must be a loud
+    failure, not a silent success.
+
+    NOTE THE REMAINING LIMIT, measured: parsing the integer does not by itself make
+    a call site bind. A site asserting `== 1` against a fixture whose real count is
+    1 still passes under a parser that only ever yields the last digit. That is why
+    case_migrated_depth also asserts a MULTI-DIGIT count below.
     """
-    m = re.search(r"(\d+) file\(s\)", stderr)
-    return int(m.group(1)) if m else None
+    m = re.search(r"(\d+) file\(s\)", stderr or "")
+    if m is None:
+        raise AssertionError(
+            "no 'N file(s)' scanning line in stderr — nothing to measure, which is a "
+            "failure to observe rather than a measurement: %r" % (stderr,))
+    return int(m.group(1))
 
 
 def full_doc(status="Building"):
@@ -350,6 +365,20 @@ def case_migrated_depth_discovery_scans_the_segment_layout():
         check("case_migrated_depth: the scanning line names the migrated glob",
               ".harness/*/features/" in r.stderr, r.stderr)
 
+        # MULTI-DIGIT ON PURPOSE (cycle-1 M2). The `== 1` assertion above passes
+        # under a parser that only ever yields the last digit, because the fixture's
+        # real count IS 1. Twelve cannot be reached by a last-digit or substring
+        # break: "12 file(s)" yields 2 under such a mutant, and 2 != 12 reddens.
+        for n in range(11):
+            extra = os.path.join(tmp, ".harness", "repoA", "features", "FEAT-8%d-y" % n)
+            os.makedirs(extra)
+            with open(os.path.join(extra, "feature.json"), "w", encoding="utf-8") as f:
+                json.dump(full_doc(), f)
+        r12 = subprocess.run([VALIDATE_CLI], capture_output=True, text=True,
+                             timeout=30, env=env)
+        check("case_migrated_depth: a TWELVE-file sweep is counted as twelve, not two",
+              swept(r12.stderr) == 12, r12.stderr)
+
 
 def case_root_resolves_through_harness_boundary_not_the_retired_variable():
     """FEAT-42 T-05: discover_paths() resolves its root via
@@ -369,6 +398,13 @@ def case_root_resolves_through_harness_boundary_not_the_retired_variable():
         env["CLAUDE_PROJECT_DIR"] = tmp
         r = subprocess.run([VALIDATE_CLI], capture_output=True, text=True,
                             timeout=30, env=env)
+        # BIND THE PROPERTY, NOT A COUNT COINCIDENCE (cycle-1 M2). The property is
+        # "the sweep did not take tmp as its root". Asserting `count != 1` inferred
+        # that from a number, and was sensitive only because this repo happened to
+        # hold 41 feature.json files — at 42, a last-digit mutant yields 2, `2 != 1`
+        # holds, and the assertion goes vacuous with nothing announcing it. The
+        # scanning line names its root, so test that directly: it is exact, and it
+        # does not decay as the repository grows.
         check("case_root_resolves: CLAUDE_PROJECT_DIR alone does not redirect the sweep "
               "(scans the real repo root, not the tmp fixture with its single file)",
               swept(r.stderr) != 1 and tmp not in r.stderr, r.stderr)

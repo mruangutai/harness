@@ -834,6 +834,29 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
         advisory = undefined;   // no figure, and the gate below still runs
       }
     }
+    // S2 (stale-anchor hazard, 2026-08-30) — MAKE THE ZERO-PATH CASE OBSERVABLE.
+    // postDomain's edit branch maps over extractEditPaths, so an empty extraction
+    // spawns no runner at all: no error, no stderr, no exit code. That is
+    // byte-for-byte indistinguishable from a gate that ran and passed, and the
+    // indistinguishability is the mechanism that made the feature.json corruption
+    // silent. This does not restore the check — the path is unknown, so there is
+    // nothing to check — it states the absence instead of hiding it.
+    //
+    // NON-BLOCKING BY CONSTRUCTION, not by care: it only ever assigns `advisory`,
+    // and the composition below appends that with NO isError key. It cannot cost a
+    // gate. Safe to share the variable because the context advisory above is
+    // task-only and this is edit-only, so the two are mutually exclusive.
+    if (toolName === "edit" && extractEditPaths(input.input).length === 0) {
+      // NAMES BOTH GATES. preDomain's edit branch has the identical `.map()`, so a
+      // zero extraction skips the PRE (blocking) check too — and that one is worse,
+      // because it is preventive: the edit lands unchecked rather than merely
+      // unreported. Measured 2026-08-30: preDomain returns no block and spawns no
+      // check-domain.sh at all. An earlier wording said only "post-write", which
+      // understated the skip by exactly the gate that matters more.
+      advisory = "Harness: no target path could be extracted from this edit, so "
+        + "neither the pre-write nor the post-write shape check ran on any file. "
+        + "This is a notice, not a refusal.";
+    }
     const reason = firstBlock(postDomain(ctx.cwd, currentAgent, toolName, input, policyRunner));
     const content = Array.isArray(event.content) ? event.content : [];
     if (!reason) {

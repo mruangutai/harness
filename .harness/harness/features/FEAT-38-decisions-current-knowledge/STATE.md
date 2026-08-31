@@ -63,6 +63,11 @@ informational (DEC-157) and stops nothing.
 **Feature-close distillation has NOT run.** It runs at merge on a distill mission the main session
 dispatches, and is not a ship step.
 
+**2026-08-31 record repair.** The validate → ship seam was crossed without
+`notes/handoff-validate.md`; the omission survived the original ship close. The
+note now present is an explicitly labelled reconstruction from existing disk
+records, not a claim that a timely relay occurred.
+
 ## Open Questions
 
 None blocking. Seven residual findings are carried to the operator as proposed backlog in
