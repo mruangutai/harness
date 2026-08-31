@@ -15,6 +15,20 @@ plus a literal file list in `harness.json`, and eight files once drifted between
 (DEC-197); and `bin/` cannot be described as production code, because 57 of the 118 files tracked
 under it are test-named.
 
+A third cost, measured 2026-08-31 at `ea6f51f` on a 12-core M3 Pro with each test invoked as its own
+`python3` subprocess: the suite is **strictly serial** — `run-unit-tests.sh` has no worker pool — and
+takes **247s** over 56 files, all `rc=0`. Five files carry 57% of it (`test-check-plan-routes.py`
+36.7s, `test-gh-sync.py` 32.9s, `test-check-state.py` 30.1s, `test-check-domain.py` 26.8s,
+`test-board-lifecycle.py` 15.1s = 142s), while 28 of the 56 finish in under a second: 8 files exceed
+10s, 20 sit between 1s and 10s. Eight workers measured ~47s (5.3x) and four — CI-realistic — 68.7s,
+against a hard floor of ~37s that no worker count can beat, because that floor is the single slowest
+test. **And the suite is not safe to run that way today:** `test-gh-sync.py` fails about one run in
+three at 8 workers and is green every time serially, while six concurrent copies of itself all pass —
+so a *sibling* mutates state it reads. Filed as issue #1053 with the three failing assertion names and
+a reproduction; the partner is not identified. Runs a and b at 8 workers were green and run c failed,
+so a single green parallel run is evidence of nothing — the qa half of #979 stated again in a
+different place.
+
 ## Goal
 
 Harness's own tests live where any other project's do — `tests/unit/**` and `tests/integration/**`
@@ -24,6 +38,10 @@ kind bookkeeping is deleted rather than maintained. This is a deliberate archite
 a drift repair: the two-base boundary model correctly accepts `bin/` today, and it is being widened
 on purpose. Nothing changes for onboarded projects, whose `tests/**` already resolves in their own
 product base.
+
+And the suite that lands is one that can be run concurrently and trusted: tests that do not depend on
+each other, a worker pool in the same runner rewrite rather than a later bolt-on, and a wall time
+that was measured rather than assumed.
 
 ## Requirements
 
@@ -46,6 +64,14 @@ product base.
   arrays or their cross-check as current.
 - REQ-08: The probe that makes a live model call is under `tests/` and is reachable by no runner and
   no active test kind, so `bin/` being test-free costs nothing in CI and gains nothing false.
+- REQ-09: No test's result depends on whether another test ran, or on the order it ran in, and a
+  test that reacquires such a dependency is caught by a check that fails loudly rather than by an
+  intermittent red.
+- REQ-10: The suite runs concurrently, and running it concurrently does not change what it reports:
+  every line of output is attributable to the file that produced it, any failing file fails the run,
+  and every existing invocation keeps its behaviour.
+- REQ-11: Running the whole suite costs materially less wall time than it does today, by a margin
+  that is measured on the host that runs it rather than asserted.
 
 ## Constraints
 
@@ -73,6 +99,13 @@ Cited by number, each labelled by what it does to this feature.
   fixture provenance and the measurement mode. This feature is the migration that unblocks it and
   #979 is re-planned afterwards. Also out: renaming `is_control_plane_target`, and a third
   "own-product" base for Harness. Both considered and declined.
+- **Out of scope, decided by the operator on the measurements:** change-based test selection is
+  **rejected as the primary speed lever** and is not planned here. Half the suite is already
+  sub-second, so the only meaningful saving selection could buy is skipping the five slow gate tests
+  — which is precisely where a mis-mapped selector produces a green run that proved nothing (#979).
+- **Issue #1053 folds into this feature** rather than becoming its own: the runner it would have to
+  change is being rewritten here, and switching a pool on over a suite with a known cross-test
+  collision makes the gate flaky by construction.
 
 ## Success Criteria
 
@@ -124,6 +157,45 @@ the working tree. The per-file baselines the first two criteria compare against 
   either none or only children in the declared fixture set (`git`, `ps`, `fake-gh`, `fake-gh-fail`,
   `bun`, `python3 -c`). The probe output, not the plan's own table, is the grading set.
   verify: inspection
+- SC-10: The sibling that mutates `test-gh-sync.py`'s state is identified by name, together with the
+  shared surface and the write that collides, in `notes/research-parallel-safety.md` at the review
+  sha; and the instrument that identified it re-runs from the repository root and reproduces that
+  identification. "The flake no longer reproduces" is not this criterion: the deliverable is the
+  named partner and the named mechanism, because a flake that stops reproducing is
+  indistinguishable from one that got luckier.
+  verify: inspection
+- SC-11: The shared surface #1053 turns on cannot silently return: a test under `tests/unit/` asserts
+  the invariant that forbids it, over every file under `tests/`, and the assertion is proven able to
+  fail by being pointed at a synthetic tree holding one violating file, which it must report by path.
+  The evidence for independence is this assertion, never a suite that passed once under load.
+  verify: automated        evidence: unit
+- SC-12: Ten consecutive `run-unit-tests.sh --kind all` runs at the default worker count each exit 0
+  and print zero `FAIL` lines, and one further `--kind all --jobs 1 --reverse` run also exits 0 with
+  zero `FAIL` lines and produces verdict lines byte-identical to the forward serial run's — so
+  execution order is shown not to be load-bearing rather than asserted to be. A pass is 11 of 11;
+  10 of 11 is `not_met`. The repetition count is chosen against the measured failure rate: at ~1 run
+  in 3, one green run misses the defect 67% of the time and ten miss it 1.7% — runs a and b at 8
+  workers were green and run c failed. The instrument's recorded per-run output over all eleven runs
+  is the grading set, not a summary of it.
+  verify: inspection
+- SC-13: On a host with at least 8 usable cores, `--kind all` at the default worker count completes in
+  at most 40% of the wall time of `--jobs 1` measured on the same host in the same session, both
+  numbers recorded with that host's core count, and both runs exit 0. The comparison is relative on
+  purpose: the 247s serial figure was measured at `ea6f51f` on a 12-core M3 Pro and does not transfer.
+  No criterion here asks for less than 37s — the slowest single file measures 36.7s, so no worker
+  count can beat that floor; 4 workers measured 68.7s, which is 28% of serial and still passes this.
+  verify: inspection
+- SC-14: Driven against a fixture root, the parallel runner is verdict-identical to the serial one and
+  its output stays attributable: `--jobs 1`, `--jobs 4` and the default each produce the same set of
+  `PASS`/`FAIL` lines, as does `--jobs 1 --reverse`; each file's own output appears as one contiguous
+  block bounded by that file's header and its own verdict line, with no line of one file's output
+  falling between two lines of another's; one deliberately failing file yields exit 1 and its own
+  `FAIL` line while every other file still reports `PASS`; a file whose interpreter cannot be spawned
+  is a `FAIL` line and exit 1, never a silently skipped file; `--kind unit`, `--kind integration` and
+  `--check-layout` behave as they did before the pool; and `--jobs 0`, `--jobs -1`, `--jobs abc` and
+  `--jobs` with no value each exit 2 with the usage line. Each clause is its own case with its own
+  assertion — one "it works in parallel" case is satisfied by the conformers alone.
+  verify: automated        evidence: integration
 
 ## Verification gaps
 
@@ -140,6 +212,14 @@ Read against `test_kinds` in `.harness/harness.json` at `ea6f51f`.
   module from production code. Purpose-level classification is left to #979.
 - Runtime, measured at `ea6f51f`: `--kind unit` 20s, `--kind integration` 152s. SC-02's evidence
   therefore takes ~2.5 minutes to produce; that is a stated cost, not a reason to weaken it.
+- **SC-12 and SC-13 are graded on instruments under `tests/manual/`, which no runner runs.** So the
+  stability and the speedup are established once, at review, by a human re-running a recorded
+  command — not by the tests workflow. CI keeps only the single `--kind unit` and `--kind integration`
+  runs, and a later regression in stability would surface there as an intermittent red rather than as
+  a named failure. Putting eleven whole-suite runs (~10 minutes at 8 workers) into a required step
+  was the alternative, and it is not taken. That is a stated gap, not an oversight.
+- SC-14 covers the concurrency semantics that CI *can* afford: it runs against a fixture root of
+  trivial tests, so it costs seconds and is a required step.
 
 ## Approval
 

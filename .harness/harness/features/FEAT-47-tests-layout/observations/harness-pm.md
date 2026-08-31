@@ -1,0 +1,4 @@
+# Observations - harness-pm
+
+- 2026-08-31: FEAT-47 amendment. A verify that asserts an EXACT file count is fragile against any sibling task that adds a file to the same directory, and depends_on being a DAG makes 'legal order' insufficient — two tasks ready at once can land either side of the count. Fixed by adding the ordering edge (T-05 depends_on T-07) and stating the arithmetic in the intent, not by loosening the count to >=.
+- 2026-08-31: planning an investigation whose fix-site is unknown at plan time: keep the file list glob-shaped over surfaces already in lanes:, make the IDENTIFICATION the first deliverable with two machine-readable lines the verify greps, and write an explicit BLOCKED branch for 'the defect went quiet' so a downstream task cannot be unblocked by a flake that stopped reproducing.

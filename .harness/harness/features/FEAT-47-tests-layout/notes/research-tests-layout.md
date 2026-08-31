@@ -179,8 +179,13 @@ claiming "12 scripts, ~15s" for integration is stale by 15 scripts; out of scope
 
 ## Open
 
-- The census tool is `tests/manual/census-verdict-lines.py`, created by T-05. Without it the
-  per-file proof is a 25-line inline script pasted into two verifies.
+- The census tool is `tests/manual/suite-census.py`, created by T-05 (this line named a different
+  filename before the plan settled on that one). Without it the per-file proof is a 25-line inline
+  script pasted into two verifies.
 - `run-unit-tests.sh --check-kinds` becomes `--check-layout`, keeping the millisecond mode that
   makes the guard's own cases cheap. The argument-parser regression cases in the deleted
   `test-run-unit-tests-kinds.py` (case 5) are absorbed by the new integration test, not dropped.
+- **Parallel safety is a separate note.** The 247s serial baseline, the per-worker measurements and
+  issue #1053 are in the BRIEF's Problem section and in D-09 to D-12; the identification of the
+  colliding sibling is T-07's deliverable and lands in `notes/research-parallel-safety.md`, which
+  does not exist yet.

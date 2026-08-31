@@ -113,6 +113,54 @@ decisions:
       hidden
     dec: DEC-206
 
+  - id: D-09
+    choice: >
+      Parallelism is switched on only after the cross-test collision is fixed and independence is
+      asserted, encoded as T-08 depends_on T-07 rather than as advice. T-05 also gains T-07 as a
+      dependency, so the order is total rather than merely legal
+    because: >
+      a pool over a suite with a known sibling collision is a gate that is flaky by construction:
+      test-gh-sync.py fails about one run in three at 8 workers today. The T-05 edge is not a
+      functional need but a determinism one — T-05's verify asserts an exact unit-file count, and
+      two tasks that both become ready at once can add a file either side of that assertion
+    dec: DEC-207
+  - id: D-10
+    choice: >
+      The default worker count is the smaller of the host's online processor count and 8, overridable
+      with --jobs N, and --jobs 1 is a supported serial escape hatch. The existing per-kind
+      invocations are unchanged, so CI picks the pool up without a workflow edit
+    because: >
+      measured 2026-08-31 at ea6f51f on a 12-core M3 Pro: serial 247s, 8 workers 47s, 4 workers
+      68.7s. The cap is 8 because the floor is ~37s — the slowest single file measures 36.7s, so no
+      worker count beats it — and past 8 the extra workers buy at most ten seconds while adding
+      contention to a suite that forks git and python constantly. ubuntu-latest reports far fewer
+      than 12 processors, which is why the default is derived from the host and not written as 8
+    dec: DEC-207
+  - id: D-11
+    choice: >
+      Change-based test selection is rejected as the speed lever and is not planned, now or as a
+      follow-up. The lever is the worker pool
+    because: >
+      28 of the 56 files already run in under a second, so selection can only save time by skipping
+      the five slow gate tests that carry 57 percent of the wall clock — check-plan-routes,
+      gh-sync, check-state, check-domain, board-lifecycle. Those five are exactly where a mis-mapped
+      selector yields a green run that proved nothing, which is issue 979. Recorded so a future scan
+      does not re-suggest it
+    dec: DEC-207
+  - id: D-12
+    choice: >
+      Independence is enforced by a static invariant over the tests directory plus a repeated-run
+      instrument under tests/manual, and never by a green parallel run. The pool's own semantics
+      cases extend tests/integration/test-run-unit-tests-layout.py rather than adding a second
+      integration file
+    because: >
+      runs a and b at 8 workers were green and run c failed, so one green run carries a 67 percent
+      chance of missing the defect it is offered as evidence against. A static invariant fails
+      loudly and deterministically; the repeated run establishes stability and is priced out of CI
+      at eleven whole-suite runs. The layout test already builds the fixture root the pool cases
+      need, and a second file would build it twice
+    dec: DEC-207
+
 tasks:
   - id: T-01
     title: Classify tests as control-plane and grant the directory to the two seats that lack it
@@ -389,7 +437,7 @@ tasks:
     execution_reason: >
       DEC-174 carve-out. run-unit-tests.sh is the gate the tests workflow runs and CODEOWNERS pins,
       and this task also writes harness.json, which no squad may take under DEC-174
-    depends_on: [T-03, T-04]
+    depends_on: [T-03, T-04, T-07]
     status: pending
     files:
       - .claude/skills/harness/bin/run-unit-tests.sh
@@ -408,7 +456,7 @@ tasks:
       u=$(.agents/skills/harness/bin/run-unit-tests.sh --kind unit)
       echo "$u" | grep -q "^PASS test-suite-layout.py$"
       if echo "$u" | grep "^FAIL "; then exit 1; fi
-      [ "$(echo "$u" | grep -E "^(PASS|FAIL) test-[a-z0-9-]+\.py$" | sort -u | wc -l | tr -d " ")" = 20 ]
+      [ "$(echo "$u" | grep -E "^(PASS|FAIL) test-[a-z0-9-]+\.py$" | sort -u | wc -l | tr -d " ")" = 21 ]
       i=$(.agents/skills/harness/bin/run-unit-tests.sh --kind integration)
       echo "$i" | grep -q "^PASS test-run-unit-tests-layout.py$"
       if echo "$i" | grep "^FAIL "; then exit 1; fi
@@ -543,6 +591,12 @@ tasks:
       step 1 and run once against the absent module, so the Iron Law's failing state is observed
       rather than assumed.
 
+      THE UNIT COUNT THIS TASK'S VERIFY ASSERTS IS 21, not 20, and that is not a miscount: 19
+      migrated unit files, plus tests/unit/test-suite-layout.py from step 2, plus
+      tests/unit/test-suite-independence.py, which T-07 adds before this task. That file is the
+      only reason this task depends on T-07 — it needs nothing else from it, and without the edge
+      the two tasks could land either side of this count (D-09). Integration stays 37.
+
   - id: T-06
     title: Record the mechanism that exists and repair the two entries that describe the old one
     traces: [REQ-07]
@@ -641,3 +695,269 @@ tasks:
          .harness/harness/docs/DECISIONS-INDEX.md in the same edit. The index stores a per-row
          source line, so lengthening any entry shifts every later anchor and the regeneration test
          reddens even when no row's text changed.
+  - id: T-07
+    title: Identify the sibling that collides with test-gh-sync.py, delete the shared state, and assert independence
+    traces: [REQ-09]
+    change_type: logic
+    execution_mode: main-session-direct
+    execution_reason: >
+      DEC-174 carve-out. The reader and its partner are tests of hooks, validators and gate
+      scripts, which AGENTS.md:8 names verbatim, and the fix may land in a bin module those gates
+      import
+    depends_on: [T-03, T-04]
+    status: pending
+    files:
+      - tests/manual/suite-bisect.py
+      - tests/unit/test-suite-independence.py
+      - tests/integration/test-*.py
+      - tests/unit/test-*.py
+      - .claude/skills/harness/bin/*.py
+      - .harness/harness/features/FEAT-47-tests-layout/notes/research-parallel-safety.md
+    verify: |
+      set -e
+      NOTE=.harness/harness/features/FEAT-47-tests-layout/notes/research-parallel-safety.md
+      grep -q "^partner: tests/" "$NOTE"
+      grep -q "^mechanism: " "$NOTE"
+      python3 tests/unit/test-suite-independence.py
+      python3 tests/integration/test-gh-sync.py
+      python3 tests/manual/suite-bisect.py confirm --note "$NOTE" --repeat 20
+    intent: |
+      Issue 1053: test-gh-sync.py fails about one run in three when the suite is run 8-way
+      parallel, is green every time serially, and does NOT collide with itself — six concurrent
+      copies all pass. So a sibling mutates state it reads. The three failing checks are the same
+      every time and all sit in one region of the file: "recorded-not-attached task is attached on
+      re-run", "pre-existing parent survives per-task saves", and "a github block written with the
+      old origin key is read without crashing, and the key is not written back". THE PARTNER IS NOT
+      IDENTIFIED. Identifying it is the first deliverable of this task and it is real
+      investigation, not a flake to paper over.
+
+      DO NOT, under any circumstances, discharge this task by any of these: adding a retry to the
+      failing checks, serialising the two files against each other, marking the test as
+      order-dependent, widening a tolerance, or reducing the worker count. Each of those leaves the
+      shared state in place, and the shared state is the defect.
+
+      1. NEW FILE tests/manual/suite-bisect.py — the instrument, under tests/manual because no
+         runner may run it and because it exists to be re-run by a reviewer. Two subcommands:
+           - bisect: takes --reader (default tests/integration/test-gh-sync.py) and --repeat
+             (default 12). It runs the reader concurrently with a candidate set drawn from
+             tests/unit/test-*.py plus tests/integration/test-*.py minus the reader, each file its
+             own python3 subprocess through a thread pool at 8 workers, exactly as the reproduction
+             in issue 1053 does. A trial FAILS when the reader exits non-zero or prints any line
+             beginning FAIL. It halves the candidate set against repeated trials until it reports a
+             minimal set, and prints every trial: the candidate count, the trial index, and the
+             reader's failing check names. Because a trial is probabilistic, a half is only
+             declared clean after --repeat consecutive passing trials, and the print must show
+             that count, so a reader of the log can see the confidence rather than assume it
+           - confirm: takes --note and --repeat. It reads the partner path from the note's
+             "partner:" line, runs the reader and that partner concurrently --repeat times, and
+             exits 0 only when every run is clean. Exit 1 names the runs that failed. It takes the
+             partner from the note and not from an argument, so the note IS the record and cannot
+             drift from what was confirmed
+      2. RUN bisect FIRST, BEFORE ANY FIX, and keep its output. A bisection whose starting point is
+         already green proves nothing, so the first thing recorded is a reproduction: the trial log
+         must contain at least one failing trial over the full candidate set. If twenty trials over
+         the full set produce no failure at all, STOP and return BLOCKED with the log attached —
+         do not proceed to the fix, and do not let T-08 be unblocked by a defect that went quiet.
+         Candidate classes worth trying first, measured at ea6f51f, because a shared surface must
+         be reachable from another PROCESS: four files call os.chdir
+         (test-gen-decisions-index.py, test-harness-boundary.py, test-validate-digest.py,
+         test-wayfind.py); two run a subprocess with cwd set to the system temp directory
+         (test-check-domain.py:1696, test-bash-write-guard.py:606); four carry a literal /tmp path
+         (test-check-domain.py, test-check-plan-routes.py, test-factory-config.py,
+         test-validate-feature-json.py); and any test that writes inside the real checkout rather
+         than a temporary directory. These are leads, not an answer — the bisection decides.
+      3. WRITE THE NOTE at
+         .harness/harness/features/FEAT-47-tests-layout/notes/research-parallel-safety.md, BLUF
+         first, and it must carry two machine-readable lines at column zero, because SC-10 and the
+         confirm subcommand both read them:
+             partner: tests/<kind>/<file>.py
+             mechanism: <one line naming the shared surface and the write that collides>
+         Then, in prose: the reproduction (the failing trial, verbatim), how the bisection narrowed
+         it, the surface both processes touch, which side is at fault and why, and what was
+         changed. If more than one partner is found, write one partner: line per partner and say so
+         in the BLUF. State the sha every measurement was taken at.
+      4. FIX IT AT THE SOURCE. Whichever side owns the shared surface is the side that changes: if
+         a test writes a fixed path, it gets a per-process unique temporary path; if a bin module
+         writes one on this code path, the module takes the path from its caller and the test
+         supplies a temporary one. The fix is minimal and the note names every file it touched.
+      5. NEW FILE tests/unit/test-suite-independence.py — in-process, no subprocess, therefore
+         unit. It asserts the invariant that forbids the mechanism found in step 3, over EVERY file
+         under tests/unit, tests/integration and tests/manual, one assertion per file rather than a
+         file-global count: a count is satisfied by the conformers alone. Derive the pattern from
+         the weakest fragment every violating site must contain, greped against the real tree, not
+         from the shape of the one site you just fixed — an optional trailing fragment makes
+         variant sites invisible and the sweep then reports clean over them. It must NOT be a
+         whitelist of filenames: a list of files that are allowed to violate the invariant is the
+         two-readers failure D-02 deletes one level down. Then prove it can fail: build a synthetic
+         tests tree in a tempdir holding one violating file, drive the same function over that
+         root, and assert it returns exactly one violation naming that file by path. Point the
+         checker at a root passed as an argument, defaulting to the repository root, so the
+         synthetic case drives the real code and not a copy of it.
+      6. RUN confirm LAST, with --repeat 20. At a one-in-three failure rate, twenty clean runs put
+         the chance of a surviving collision going unseen under 0.1 percent.
+
+      run-unit-tests.sh is unusable between T-02 and T-05 — its drift detector sees the unexpanded
+      glob and exits 2 — so every verify here invokes files directly with python3. That is
+      expected, not a workaround.
+
+  - id: T-08
+    title: Add the worker pool to the directory-driven runner, attributable and with no load-bearing order
+    traces: [REQ-10, REQ-11]
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_reason: >
+      DEC-174 carve-out. run-unit-tests.sh is the gate the tests workflow runs as a required step
+      and CODEOWNERS pins
+    depends_on: [T-05, T-07]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/run-unit-tests.sh
+      - tests/integration/test-run-unit-tests-layout.py
+      - tests/manual/suite-stability.py
+    verify: |
+      set -e
+      R=.agents/skills/harness/bin/run-unit-tests.sh
+      python3 tests/integration/test-run-unit-tests-layout.py
+      $R --check-layout
+      for bad in "--jobs 0" "--jobs -1" "--jobs abc" "--bogus"; do
+        if $R $bad; then echo "accepted $bad"; exit 1; fi
+      done
+      p=$($R --kind unit); s=$($R --kind unit --jobs 1); r=$($R --kind unit --jobs 1 --reverse)
+      for o in "$p" "$s" "$r"; do
+        if echo "$o" | grep "^FAIL "; then exit 1; fi
+        [ "$(echo "$o" | grep -cE '^PASS test-[a-z0-9-]+\.py$')" = 21 ]
+      done
+      [ "$(echo "$p" | grep -E '^PASS ')" = "$(echo "$s" | grep -E '^PASS ')" ]
+      [ "$(echo "$s" | grep -E '^PASS ')" = "$(echo "$r" | grep -E '^PASS ')" ]
+    intent: |
+      Put a worker pool in the runner T-05 has just made directory-driven. This is the same rewrite
+      finished, not a bolt-on: no serial directory-driven runner is ever shipped, because T-05 and
+      this task land on the same branch before the feature merges. Keep lines 1-17 of the script,
+      the root resolution and its refusal, exactly as they are, and keep the layout guard running
+      on every invocation before any test runs.
+
+      WRITE THE NEW CASES IN tests/integration/test-run-unit-tests-layout.py FIRST, run them
+      against the pre-pool script, and watch each fail for its own stated reason.
+
+      1. THE ARGUMENT PARSER becomes a loop over the whole argument list, because --kind and --jobs
+         must combine and today only position 1 is read. Accept, in any order: --kind
+         unit|integration|all (default all), --jobs N, --reverse, --check-layout. Anything else
+         exits 2 with the usage line, which becomes
+         "usage: run-unit-tests.sh [--kind unit|integration|all] [--jobs N] [--reverse]
+         [--check-layout]". --jobs takes a positive decimal integer only: 0, a negative, an empty
+         value, a non-numeric and a missing value each exit 2 with a message naming the value. A
+         pool size of zero silently running nothing and exiting 0 is the failure this guards.
+      2. THE DEFAULT WORKER COUNT is min(processors, 8), per D-10. Read the processor count with
+         getconf _NPROCESSORS_ONLN, which answers on both macOS and Linux; if it returns empty or
+         non-numeric, fall back to 4 and say so on stderr. Never fall back silently: a pool that
+         quietly became one worker turns a 47-second gate into a 247-second one and nothing reports
+         why. The cap is 8 and the reason belongs in the comment: the floor is the slowest single
+         file, measured 36.7s, so past 8 workers there is at most ten seconds left to win.
+      3. EXECUTION. One python3 child per test file, at most JOBS running at once. Each child's
+         stdout and stderr are captured to its own file in one mktemp -d directory, removed by a
+         trap on EXIT. Nothing is written to the terminal while children run: progress interleaved
+         from eight workers is not attributable, and the run is now short enough that a progress
+         stream is not worth the ambiguity. That is a deliberate loss of live output, stated here so
+         nobody restores it by accident.
+      4. REPORTING IS IN SORTED FILE ORDER, NEVER COMPLETION ORDER, and this is the load-bearing
+         part. For each file, in sorted order, print a header line "== <basename>", then that
+         file's captured output verbatim, then "PASS <basename>" or "FAIL <basename>". So the block
+         belonging to one file is contiguous, no line of one file's output can fall between two
+         lines of another's, and the PASS/FAIL lines are byte-identical between --jobs 1 and
+         --jobs 8. Every verify surface in this feature greps ^PASS <name>$ or ^FAIL ; all of them
+         keep working unchanged, which is the point of choosing report order over stream order.
+      5. FAILURE ACCOUNTING. Keep a failure counter over every file, not per worker: any non-zero
+         child exit is a FAIL line and increments it, and the run exits 1 if it is greater than
+         zero. A child that could not be spawned at all is also a FAIL line, never a skipped file —
+         a file that vanishes from the report is a green suite that ran less than it claimed. If
+         the temp directory cannot be created, exit 2 with a message; do not degrade to serial.
+      6. --reverse REVERSES EXECUTION ORDER ONLY; reporting stays sorted. It exists so that order
+         dependence is testable by anyone in one command, and so SC-12's reversed run can assert
+         that the verdict lines are byte-identical to the forward run's. Ordering must never become
+         load-bearing: a test that passes only because another ran first is the issue-1053 defect
+         again, and T-07's invariant is what catches its mechanism.
+      7. NEW CASES in tests/integration/test-run-unit-tests-layout.py, against the fixture root it
+         already builds — extend that root to hold several trivial tests per kind, each printing a
+         marker line unique to itself. One case per clause, each with its own assertion, because a
+         single "it works in parallel" case is satisfied by the conformers alone:
+           - --jobs 1, --jobs 4 and the default produce the identical set of PASS/FAIL lines
+           - each file's marker lines all fall between that file's own header line and its own
+             verdict line: assert positionally, not by presence. Presence is satisfied by
+             interleaved output
+           - one fixture file that exits 1: the run exits 1, that file gets a FAIL line, and every
+             other file still gets its PASS line. A failing file must not lose its siblings
+           - a fixture file that cannot be executed by python3 at all: FAIL line, exit 1, and the
+             file still appears in the report
+           - --jobs 0, --jobs -1, --jobs abc, --jobs with no value, and --bogus each exit 2 and
+             print the usage line
+           - --kind unit, --kind integration and --check-layout are unchanged: same exits, and
+             --check-layout still runs no test
+           - --reverse with --jobs 1: same PASS/FAIL lines as the forward run, byte for byte
+      8. NEW FILE tests/manual/suite-stability.py — the instrument SC-12 and SC-13 are graded on,
+         under tests/manual because eleven whole-suite runs is about ten minutes and is priced out
+         of a required CI step. Runnable with no argument from the repository root. It runs
+         --kind all at the default worker count --repeat times (default 10), then one
+         --kind all --jobs 1 run, then one --kind all --jobs 1 --reverse run. It prints, per run:
+         the wall time, the exit status, and every FAIL line. Then it prints the summary SC-12 and
+         SC-13 read: how many of the parallel runs were clean out of how many, whether the reversed
+         run's PASS/FAIL lines are byte-identical to the forward serial run's, the two wall times,
+         the parallel time as a percentage of the serial time, and the host's processor count. It
+         exits 0 only when every run exited 0 with no FAIL line AND the reversed run matched. Print
+         the per-run detail always, not only on failure: the recorded per-run output is the grading
+         set for SC-12, and a summary alone cannot be audited.
+
+  - id: T-09
+    title: Record the parallel suite and the independence invariant as DEC-207
+    traces: [REQ-09, REQ-10, REQ-11]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: >
+      granted to harness-documentor, taken direct under DEC-174 because the entry records the
+      behaviour of the gate script the tests workflow runs
+    depends_on: [T-06, T-08]
+    status: pending
+    files:
+      - .harness/harness/docs/DECISIONS.md
+      - .harness/harness/docs/DECISIONS-INDEX.md
+    verify: |
+      set -e
+      python3 .claude/skills/harness/bin/gen-decisions-index.py --check
+      python3 tests/integration/test-gen-decisions-index.py
+      python3 tests/integration/test-check-decision-anchors.py
+      grep -q "^## DEC-207 " .harness/harness/docs/DECISIONS.md
+    intent: |
+      APPEND one entry, after DEC-206 which T-06 wrote, so the number is DEC-207. Heading exactly:
+      "## DEC-207 — The suite runs in parallel, and every test is independent of every other".
+      DEC-205 governs the shape: it states current truth, there are no dated amendment
+      sub-sections, and nothing here restates DEC-206's layout ruling. State:
+        - run-unit-tests.sh runs one python3 child per test file, at most min(processors, 8) at
+          once, overridable with --jobs N. --jobs 1 is the supported serial escape hatch and
+          --reverse reverses execution order for order-dependence testing. Measured at ea6f51f:
+          247s serial, 47s at 8 workers, 68.7s at 4. The cap is 8 because the floor is the slowest
+          single file at 36.7s, so no worker count beats ~37s
+        - output is reported in sorted file order and never completion order: one contiguous block
+          per file between its own header and its own verdict line. So the PASS and FAIL lines are
+          identical whatever --jobs is, which is what let every existing gate keep its assertions
+        - any non-zero child exit fails the run, and a child that cannot be spawned is a FAIL line
+          rather than a missing one
+        - TESTS MUST BE INDEPENDENT. No test's result may depend on whether another ran or on the
+          order. What forced it: issue 1053, where test-gh-sync.py failed about one run in three at
+          8 workers, passed every time serially, and did not collide with itself — six concurrent
+          copies passed. Name the partner and the shared surface T-07 identified, from
+          notes/research-parallel-safety.md at this feature's review sha, and cite the invariant
+          test tests/unit/test-suite-independence.py by path, not by line
+        - the evidence rule, which is the durable part: a green parallel run is not evidence of
+          independence. Runs a and b at 8 workers were green and run c failed, so one run misses a
+          one-in-three defect 67 percent of the time. Independence is held by a static invariant
+          that fails loudly, and stability is established by repetition — eleven whole-suite runs
+          through tests/manual/suite-stability.py, priced out of CI on purpose and recorded at
+          review instead
+      Then, considered and refused, so a future scan does not re-suggest it: change-based test
+      selection as the speed lever (28 of 56 files are already sub-second, so the only saving is
+      skipping the five slow gate tests, which is issue 979 exactly); raising the worker cap above
+      8 (the floor is 37s); and paying for stability in CI at eleven whole-suite runs.
+      Cite no file-and-line anchor into any file this feature moves or rewrites: anchors are
+      existence-plus-range checked, and a rotted pointer inside a correct sentence is the failure
+      mode. Regenerate .harness/harness/docs/DECISIONS-INDEX.md with gen-decisions-index.py in the
+      same edit — the index stores a per-row source line, so appending an entry shifts nothing
+      before it but the regeneration test reddens if the index is not rewritten.
