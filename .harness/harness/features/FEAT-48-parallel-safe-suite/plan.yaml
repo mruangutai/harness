@@ -1,0 +1,628 @@
+schema: plan/1
+feature: FEAT-48-parallel-safe-suite
+
+source_issues: [1053]
+
+approval:
+  status: pending
+  approved_by:
+  date:
+
+lanes:
+  resolved_at: ea6f51f6a06a9247b069339d794247a977f67887
+  rows:
+    - surface: .claude/skills/harness/bin/**
+      lane: main-session-direct
+      reason: >
+        DEC-174 policy carve-out, NOT absence of a grant. The glob IS granted, to
+        harness-backend-dev and harness-dev-ops, and check-domain.sh --resolve returns both
+        seats for every path this plan names. AGENTS.md:8 names hooks, validators, gate
+        scripts or their tests; every file here is one of those, and the invariant T-03 adds
+        becomes a gate that run-unit-tests.sh enforces. check-plan-routes.py therefore
+        reports DEVIATION by design on these tasks, at zero violations.
+    - surface: .harness/harness.json
+      lane: main-session-direct
+      reason: >
+        granted to harness-dev-ops, taken direct under DEC-174 because the value being
+        changed is the test_kinds registration the CI gate and the qa matrix both read.
+    - surface: .harness/harness/docs/DECISIONS.md
+      lane: main-session-direct
+      reason: >
+        granted to harness-documentor, taken direct under DEC-174 because the entry records
+        a change to the enforcement layer itself.
+
+decisions:
+  - id: D-01
+    choice: >
+      The crashing-checker probe gets its broken feature_schema.py from a private COPY of the
+      bin directory in a tempdir, not from a tempdir placed first on the child PYTHONPATH.
+    because: >
+      check-domain.sh:125 does sys.path.insert(0, _bin_dir) inside its heredoc, so the real
+      bin directory wins over PYTHONPATH and the note's PYTHONPATH direction cannot reach
+      this consumer. Measured cost of the copy: 48ms for 111 files.
+    dec: none
+  - id: D-02
+    choice: >
+      The independence invariant is a test file that performs the scan itself, not a new gate
+      script with a CLI plus a separate test.
+    because: >
+      one file and one registration instead of two, it runs in CI as part of the unit kind,
+      and it needs no subprocess so it stays in the fast kind.
+    dec: none
+  - id: D-03
+    choice: >
+      The invariant discovers its own scan set by walking the repository for test-*.py and
+      test_*.py, excluding .git, .claude/worktrees, node_modules and .venv, rather than
+      reading a directory list or the runner's arrays.
+    because: >
+      FEAT-47 moves every test file to tests/unit, tests/integration and tests/manual; a
+      layout-independent walk survives that move, and it also sees an uncommitted test file
+      that a git ls-files scan would miss.
+    dec: none
+  - id: D-04
+    choice: The invariant has no per-line escape-hatch comment.
+    because: >
+      an escape hatch is how an invariant dies quietly; a genuinely legitimate live-tree
+      write is grounds to amend the rule deliberately, in a diff a human reads.
+    dec: none
+  - id: D-05
+    choice: >
+      Scheduling lives in a Python module, run_pool.py, invoked once by run-unit-tests.sh;
+      bash keeps kind selection, the drift detector and the kind cross-check.
+    because: >
+      worker pools, per-file output capture and exit aggregation are not testable in bash at
+      the granularity SC-04, SC-07 and SC-08 require. Cost: one extra interpreter launch per
+      suite run, against a 247s baseline.
+    dec: none
+  - id: D-06
+    choice: >
+      Worker count is HARNESS_TEST_WORKERS when set to a positive integer, else
+      min(8, max(2, os.cpu_count() or 2)).
+    because: >
+      the floor is 36.7s, set by the slowest single file, so gains above 8 workers are bounded
+      while fork and memory pressure is not; CI runners are about 4 vCPU, where the same rule
+      yields 4 and measured 68.7s.
+    dec: none
+  - id: D-07
+    choice: >
+      Each test file's stdout and stderr are captured and printed as one contiguous block when
+      that file finishes, keeping the existing PASS name and FAIL name lines verbatim.
+    because: >
+      interleaved live output is unattributable, which REQ-04 forbids; the trade is that a
+      long file prints nothing until it completes.
+    dec: none
+  - id: D-08
+    choice: Change-based test selection is REJECTED as the speed lever.
+    because: >
+      it makes coverage a function of the diff, so a gate can pass by selecting nothing; the
+      37s floor is set by one file most changes reach indirectly; and the dependency edge from
+      a bash gate script to the test that forks it is not statically knowable. Recorded so a
+      later scan does not re-suggest it.
+    dec: none
+  - id: D-09
+    choice: >
+      T-01 through T-03 ship AHEAD of FEAT-47. T-04 lands only after FEAT-47 has merged to
+      main and this branch has been rebased onto it.
+    because: >
+      the injection hazard is live today and corrupts every parallel measurement including
+      FEAT-47's own, and it is layout-independent: an edit before a git mv is carried forward
+      by the move, while the reverse order plans against paths that do not exist yet. The
+      worker pool is the one piece that genuinely builds on FEAT-47's directory-driven
+      discovery, so writing it twice is the only alternative.
+    dec: none
+  - id: D-10
+    choice: >
+      The three other live-tree mutation sites found by the same scan — two in
+      test-check-state.py, one in test-feature-worktree.py — are fixed here rather than
+      allowlisted.
+    because: >
+      they are the same hazard class as the injection site and the invariant cannot ship green
+      beside them; an allowlist entry for the first three violations is an invariant that
+      never bound anything.
+    dec: none
+
+tasks:
+  - id: T-01
+    title: Give the crashing-checker probe a private bin copy instead of overwriting the live module
+    traces: [REQ-01]
+    change_type: bugfix
+    execution_mode: main-session-direct
+    execution_reason: >
+      DEC-174 carve-out. test-check-domain.py is the test of check-domain.sh, the PreToolUse
+      hook that decides every agent write, and AGENTS.md:8 names a gate's test verbatim.
+    depends_on: []
+    status: pending
+    files:
+      - .claude/skills/harness/bin/isolated_bin.py
+      - .claude/skills/harness/bin/test-check-domain.py
+    verify: |
+      python3 - <<'PY'
+      import os, subprocess, sys
+      fs = ".claude/skills/harness/bin/feature_schema.py"
+      b, m = open(fs, "rb").read(), os.stat(fs).st_mtime_ns
+      r = subprocess.run([sys.executable, ".claude/skills/harness/bin/test-check-domain.py"],
+                         capture_output=True, text=True)
+      a, m2 = open(fs, "rb").read(), os.stat(fs).st_mtime_ns
+      out = r.stdout + r.stderr
+      crash = [l for l in out.splitlines()
+               if l.startswith("ok") and "CRASHING schema module DENIES" in l]
+      untouched = [l for l in out.splitlines()
+                   if l.startswith("ok") and "never written" in l]
+      print("exit", r.returncode, "bytes_equal", a == b, "mtime_equal", m == m2,
+            "crash_case", len(crash), "untouched_case", len(untouched))
+      sys.exit(0 if (r.returncode == 0 and a == b and m == m2
+                     and len(crash) == 1 and len(untouched) == 1) else 1)
+      PY
+    intent: |
+      Remove the shared-file mutation at test-check-domain.py:1475-1490 and keep the case it
+      proves. Do not narrow the window, do not retry, do not reorder: the hazard is removed,
+      not made less likely.
+
+      WHAT IS WRONG TODAY. run_schema case 3 proves that a crashing schema checker DENIES a
+      write rather than failing open. It does so by rewriting the LIVE
+      .claude/skills/harness/bin/feature_schema.py, firing the hook, and restoring the bytes
+      in a finally. The restore is correct and asserted. The invariant it protects is "the
+      file is intact afterwards"; the invariant concurrency needs is "no other process reads
+      this file while it is broken", and no care inside one process can supply that. Measured
+      2026-08-31: 5,105 of 1,032,849 polls saw a broken module, first at 8.68s into one run.
+      notes/research-parallel-safety.md holds the evidence.
+
+      WHY PYTHONPATH IS NOT THE ANSWER, despite what that note proposes. check-domain.sh
+      exports PYTHONPATH with its own directory first (line 102) and then its heredoc runs
+      sys.path.insert(0, _bin_dir) with _bin_dir taken from argv (line 125). Both entries are
+      the real bin directory, so a tempdir on PYTHONPATH loses. The child must therefore run a
+      hook whose OWN directory is private.
+
+      WHAT TO BUILD.
+
+      1. A new module .claude/skills/harness/bin/isolated_bin.py exposing one function:
+
+           def isolated_bin(dest_root):
+               """Copy the live bin directory to <dest_root>/.claude/skills/harness/bin and
+               return that path. The copy is a real copy, never symlinks: check-domain.sh
+               derives its root with cd/pwd on dirname(BASH_SOURCE), so a symlinked script
+               would resolve back into the live tree and defeat the isolation."""
+
+         Implement with shutil.copytree from os.path.dirname(os.path.realpath(__file__)),
+         creating parents. Measured cost: 48ms for 111 files. Name the four-levels-up shape in
+         a comment: the destination path is what makes the copied hook derive dest_root as its
+         project root, which is why the segment .claude/skills/harness/bin is not cosmetic.
+         Do not add a mode, a filter or a cache argument; one caller shape, one function.
+
+      2. In test-check-domain.py run_schema, replace case 3 with four steps. Import the helper
+         with sys.path.insert(0, HERE) beside the existing HERE constant.
+
+         a. iso = isolated_bin(root), where root is the SCHEMA_MANIFEST fixture the function
+            already builds. Reusing the fixture root keeps one root: the copied hook derives
+            it from its own location and _env already points HARNESS_PROJECT_DIR at it.
+         b. A CONTROL, and it is load-bearing: fire the COPIED, UNBROKEN hook at the illegal
+            document and assert exit 2 with invented_key in stderr. Without it, case 3's exit
+            2 could come from any difference between the copy and the original rather than
+            from the injection, and the case would be green for the wrong reason. Assert it
+            with the existing case() helper, named so it reads as a control.
+         c. Break the copy in place: same marker search on
+            os.path.join(iso, "feature_schema.py"), same injected raise. No before-bytes, no
+            try, no finally, no restore — nothing shared is being mutated, and a restore here
+            would only re-teach the pattern.
+         d. Fire the copied hook again at the illegal document and keep the existing assertion
+            verbatim: exit 2 and CRASHED in stderr, with the same detail string.
+
+         Then replace the old restoration assertion with the property that actually matters,
+         phrased so the verify block above can find it — the case name must contain the words
+         "never written":
+
+           the live feature_schema.py was never written (bytes and mtime unchanged)
+
+         Capture bytes and st_mtime_ns of the LIVE module at the top of run_schema and compare
+         at the end. Assert both. mtime as well as bytes: a byte-identical rewrite is still a
+         write, and mtime is what a concurrent reader's cache sees.
+
+      Keep shutil.rmtree(root, ignore_errors=True) at the end; the iso copy lives under it and
+      goes with it.
+
+      Test-first is satisfied by ordering: add the new never-written assertion BEFORE changing
+      case 3 and run the file — it must FAIL, because today the probe writes the live module.
+      Record that failure in the receipt. Then make the change and see all cases pass.
+
+  - id: T-02
+    title: Route the three mutant-file probes through a private bin copy
+    traces: [REQ-01]
+    change_type: bugfix
+    execution_mode: main-session-direct
+    execution_reason: >
+      DEC-174 carve-out. test-check-state.py is the test of check-state.sh, a gate script CI
+      runs as a required step; test-feature-worktree.py is edited in the same change because
+      the invariant T-03 adds cannot land green while either site remains.
+    depends_on: [T-01]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/test-check-state.py
+      - .claude/skills/harness/bin/test-feature-worktree.py
+    verify: |
+      python3 - <<'PY'
+      import os, subprocess, sys, threading
+      bin_dir = ".claude/skills/harness/bin"
+      base = set(os.listdir(bin_dir))
+      mtimes = {n: os.stat(os.path.join(bin_dir, n)).st_mtime_ns
+                for n in base if os.path.isfile(os.path.join(bin_dir, n))}
+      appeared, stop = set(), threading.Event()
+      def poll():
+          while not stop.is_set():
+              try:
+                  appeared.update(set(os.listdir(bin_dir)) - base)
+              except OSError:
+                  pass
+      t = threading.Thread(target=poll, daemon=True)
+      t.start()
+      fails = []
+      for name in ("test-check-state.py", "test-feature-worktree.py"):
+          r = subprocess.run([sys.executable, os.path.join(bin_dir, name)],
+                             capture_output=True, text=True)
+          if r.returncode != 0:
+              fails.append((name, r.returncode, r.stdout[-400:]))
+      stop.set(); t.join(timeout=5)
+      moved = sorted(n for n, v in mtimes.items()
+                     if os.path.exists(os.path.join(bin_dir, n))
+                     and os.stat(os.path.join(bin_dir, n)).st_mtime_ns != v)
+      print("fails", [f[:2] for f in fails], "appeared", sorted(appeared), "moved", moved)
+      sys.exit(0 if not fails and not appeared and not moved else 1)
+      PY
+    intent: |
+      Three probes write a mutant script INTO the live bin directory, run it, and delete it in
+      a finally. Same hazard class as T-01: for the duration of the run, the shared tree has a
+      file in it that nothing else expects, and a tracked-file mtime is one editing mistake
+      away.
+
+      THE THREE SITES, at ea6f51f:
+        test-check-state.py:2109-2133      .mutant-check-state-t14.sh
+        test-check-state.py:2245-2269      .mutant-check-state-t10.sh
+        test-feature-worktree.py:583-607   .mutant-feature-worktree-behind.py
+
+      Each carries a comment explaining why the mutant must live beside the original: the
+      script under test imports harness_yaml, factory_config or harness_boundary from its OWN
+      directory, so a copy written into a bare tmpdir dies on import and returns a non-zero
+      code indistinguishable from the refusal the proof is trying to see. That reasoning is
+      correct, and isolated_bin from T-01 satisfies it: the mutant lands in a COMPLETE copy of
+      the bin directory, so every sibling import resolves.
+
+      FOR EACH SITE:
+        1. iso = isolated_bin(tempfile.mkdtemp()) — or the fixture root the case already
+           builds, when there is one.
+        2. Write the mutant text to os.path.join(iso, <same basename as today>), keeping the
+           existing shutil.copymode(SCRIPT, mpath) so the executable bit is right.
+        3. Run the mutant from that path. Keep every existing assertion, message and
+           INCONCLUSIVE branch byte-for-byte: this task changes WHERE the mutant lives and
+           nothing about what is proved. In particular keep the pre-flight assertion that the
+           mutation changed the source, and keep comparing mutant against original on the same
+           fixture input.
+        4. Delete the finally that removes the mutant from the live tree, and the os.remove /
+           os.path.exists dance with it. Remove the tempdir instead, with
+           shutil.rmtree(..., ignore_errors=True).
+        5. Rewrite the beside-the-original comment to state the new mechanism, so the next
+           reader does not restore the old one for the reason it gives.
+
+      In test-feature-worktree.py the mutant path is also passed to the child through
+      FEATURE_WORKTREE_BIN; that env value must be the new iso path.
+
+      Test-first is satisfied by the verify block above, which polls the bin directory while
+      both files run: run it BEFORE the change and it must fail, naming the three mutant
+      basenames under "appeared". Record that output in the receipt — it is the pre-fix
+      positive control that makes the post-fix empty set mean something.
+
+  - id: T-03
+    title: Add the suite-independence invariant and register it in the unit kind
+    traces: [REQ-02, REQ-07]
+    change_type: logic
+    execution_mode: main-session-direct
+    execution_reason: >
+      DEC-174 carve-out. This file becomes a gate: run-unit-tests.sh, which the tests workflow
+      runs as a required step, is what enforces it, and the same task edits that runner's
+      script list.
+    depends_on: [T-01, T-02]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/test-suite-independence.py
+      - .claude/skills/harness/bin/run-unit-tests.sh
+    verify: |
+      python3 - <<'PY'
+      import os, subprocess, sys, tempfile
+      guard = ".claude/skills/harness/bin/test-suite-independence.py"
+      live = subprocess.run([sys.executable, guard], capture_output=True, text=True)
+      print((live.stdout + live.stderr)[-800:])
+      d = tempfile.mkdtemp()
+      names = ["test-check-domain.py", "test-check-state.py", "test-feature-worktree.py"]
+      for n in names:
+          blob = subprocess.run(["git", "show", "ea6f51f:.claude/skills/harness/bin/" + n],
+                                capture_output=True, check=True).stdout
+          open(os.path.join(d, n), "wb").write(blob)
+      old = subprocess.run([sys.executable, guard, "--scan-dir", d],
+                           capture_output=True, text=True)
+      lines = [l for l in (old.stdout + old.stderr).splitlines() if "VIOLATION" in l]
+      named = {n for n in names if any(n in l for l in lines)}
+      inject = [l for l in lines if "test-check-domain.py" in l and ":1482" in l]
+      print("historical", len(lines), "named", sorted(named), "injection", inject[:1])
+      sys.exit(0 if (live.returncode == 0 and old.returncode != 0 and len(lines) >= 8
+                     and named == set(names) and len(inject) == 1) else 1)
+      PY
+    intent: |
+      Add ONE new test file that is also the invariant: a static scan asserting no test in this
+      repository mutates a path inside the live checkout. It reports zero over the live tree
+      and reddens on a violating one, and both directions are asserted in the same run.
+
+      FILE: .claude/skills/harness/bin/test-suite-independence.py, executable, no third-party
+      import, no subprocess — it belongs to the unit kind and must stay there.
+
+      DISCOVERY. os.walk from the repository root, which is four levels up from the file's own
+      directory at the time of writing; skip .git, .claude/worktrees, node_modules, .venv and
+      any directory beginning with a dot other than the root itself. Collect every file
+      matching test-*.py or test_*.py. Discovery is a walk, not a directory list and not the
+      runner's arrays, because FEAT-47 moves every one of these files to tests/unit,
+      tests/integration and tests/manual and the invariant must survive that move untouched.
+      Accept an optional --scan-dir DIR argument that scans exactly that directory instead;
+      the verify block and the historical red proof both use it.
+
+      THE RULE, stated as the weakest thing that catches the real defect. Per file, parse with
+      ast and compute a TAINT set of names that hold a path inside the live tree:
+        - the literal __file__ is always tainted;
+        - a name bound by an assignment whose value expression mentions a tainted name becomes
+          tainted, evaluated in source order;
+        - a with-item target becomes tainted when its context expression mentions one;
+        - taint is per scope: the module scope seeds every function scope, and a function's
+          local bindings do not leak to other functions. This is not a refinement, it is what
+          makes the check usable — a whole-file name model measured 47 findings on the tree at
+          ea6f51f, of which 37 were function-local names in unrelated functions.
+      Then report a VIOLATION for a call that mutates a tainted path:
+        - open(p, mode) where mode contains w, a, x or + and p mentions a tainted name;
+        - os.remove, unlink, rmdir, truncate, utime, chmod, makedirs, mkdir on args[0];
+        - os.rename and os.replace on args[0] or args[1] — the source is destroyed too;
+        - os.symlink and os.link on args[1] only, the destination;
+        - shutil.copy, copy2, copyfile, copytree, move, copymode, copystat on args[1], the
+          destination; shutil.rmtree on args[0];
+        - a method call write_text, write_bytes, touch, unlink, rename, replace, mkdir, rmdir,
+          chmod, symlink_to or hardlink_to whose receiver both mentions a tainted name AND is
+          syntactically a Path(...) or pathlib.Path(...) call, or a Path built with the /
+          operator. The Path-typed requirement is not tidiness: str.replace on source text read
+          from __file__ is extremely common in this suite and produced 4 of the 47 findings.
+      A finding prints exactly one line:
+        VIOLATION <path>:<lineno> <sink> mutates a path derived from the live checkout
+      and the run exits 1 with a count. Zero findings prints a one-line ok and exits 0.
+
+      NO ESCAPE HATCH. No allowlist file, no per-line pragma comment (D-04). A legitimate
+      live-tree write is grounds to amend this rule in a diff a human reads.
+
+      ITS OWN RED PROOF, in the file, so CI keeps proving the guard can fail. Build fixture
+      SOURCES as string literals in a tempdir and scan them with the same function:
+        - the pre-fix injection idiom verbatim from notes/research-parallel-safety.md — fs
+          assigned from os.path.dirname(os.path.realpath(__file__)) then open(fs, "w") — must
+          be flagged, and the reported line number must be the line of the open call;
+        - a mutant-beside-the-original site: mpath assigned from
+          os.path.dirname(os.path.realpath(SCRIPT)) where SCRIPT came from __file__, then
+          open(mpath, "w") and shutil.copymode(SCRIPT, mpath) — both must be flagged;
+        - a CLEAN control that must NOT be flagged: the same writes against
+          tempfile.mkdtemp(), plus src.replace(...) on text read from __file__, plus
+          shutil.copytree(BIN_DIR, dest) where dest is a tempdir — a false positive on any of
+          these makes the invariant unlivable and someone will delete it;
+        - the live tree itself: zero findings, asserted as a case rather than only as the exit
+          code, so a scan that discovered no files at all cannot pass. Assert the discovered
+          file count is at least 50 in the same case.
+
+      REGISTRATION. Add "test-suite-independence.py" to UNIT_SCRIPTS in run-unit-tests.sh.
+      Do NOT add it to INTEGRATION_SCRIPTS and do NOT add it to
+      test_kinds.integration.detect in .harness/harness.json: the KIND CROSS-CHECK fails if a
+      UNIT_SCRIPTS name appears in that detect string, and the unit detect glob already matches
+      .claude/skills/harness/bin/test-*.py. Leaving it out of both arrays fails the drift
+      detector with MISCONFIGURED, at exit 2.
+
+      Write the file and run it BEFORE T-01 and T-02 are on this branch if you can — against
+      ea6f51f it must report 10 findings across 3 files. If T-01 and T-02 are already landed,
+      the verify block's git show path is the same proof and is the one that ships.
+
+  - id: T-04
+    title: Put a worker pool behind run-unit-tests.sh with per-file attributable output
+    traces: [REQ-03, REQ-04, REQ-05, REQ-06, REQ-07]
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_reason: >
+      DEC-174 carve-out. run-unit-tests.sh is the gate script the tests workflow runs as a
+      required step and CODEOWNERS pins, and this task also writes .harness/harness.json,
+      which no squad may take.
+    depends_on: [T-03]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/run_pool.py
+      - .claude/skills/harness/bin/run-unit-tests.sh
+      - .claude/skills/harness/bin/test-run-pool.py
+      - .harness/harness.json
+    verify: |
+      python3 - <<'PY'
+      import subprocess, sys
+      b = ".claude/skills/harness/bin/"
+      pool = subprocess.run([sys.executable, b + "test-run-pool.py"],
+                            capture_output=True, text=True)
+      print((pool.stdout + pool.stderr)[-1200:])
+      ck = subprocess.run(["bash", b + "run-unit-tests.sh", "--check-kinds"],
+                          capture_output=True, text=True)
+      ran = [l for l in ck.stdout.splitlines() if l.startswith(("PASS", "FAIL"))]
+      bad = subprocess.run(["bash", b + "run-unit-tests.sh", "--kind", "nope"],
+                           capture_output=True, text=True)
+      print("pool", pool.returncode, "check_kinds", ck.returncode, "ran_any", ran,
+            "unknown_kind", bad.returncode)
+      sys.exit(0 if (pool.returncode == 0 and ck.returncode == 0 and not ran
+                     and bad.returncode == 2) else 1)
+      PY
+    intent: |
+      SEQUENCING, READ FIRST (D-09). This task lands only after FEAT-47 has merged to main and
+      this branch has been rebased onto it, because it builds on that feature's
+      directory-driven discovery. Resolve the actual paths with git ls-files before editing:
+      if FEAT-47 has landed, the test files live under tests/ and discovery is directory-driven,
+      so registration means placing test-run-pool.py in the integration directory and the
+      harness.json edit may be unnecessary. If run-unit-tests.sh still carries UNIT_SCRIPTS and
+      INTEGRATION_SCRIPTS, add "test-run-pool.py" to INTEGRATION_SCRIPTS AND add the explicit
+      path .claude/skills/harness/bin/test-run-pool.py to test_kinds.integration.detect in
+      .harness/harness.json — the KIND CROSS-CHECK exits 2 if an INTEGRATION_SCRIPTS name is
+      absent from that string, and the drift detector exits 2 if the file is in neither array.
+      If the runner's shape has changed in a way neither branch describes, return BLOCKED for
+      re-planning rather than guessing.
+
+      WHAT TO BUILD.
+
+      1. .claude/skills/harness/bin/run_pool.py — the scheduler, and the only new logic.
+
+         CLI: run_pool.py [--workers N] -- <script path> [<script path> ...]
+         Every path is run as [sys.executable, path] from the repository root, in its own
+         subprocess, exactly as the serial loop does today.
+
+         WORKER COUNT (D-06): --workers when given; else HARNESS_TEST_WORKERS when it parses as
+         a positive integer; else min(8, max(2, os.cpu_count() or 2)). A non-integer or
+         non-positive HARNESS_TEST_WORKERS is a loud error, exit 2, never a silent fallback:
+         a typo that halves the suite's speed must not be invisible. The cap is 8 because the
+         floor is 36.7s, set by the slowest single file, so more workers buy bounded time at
+         unbounded fork pressure; CI runners are about 4 vCPU and the same rule gives them 4.
+
+         EXECUTION: a fixed pool of that many workers draws from one shared queue in list
+         order. Use concurrent.futures.ThreadPoolExecutor with subprocess.run — the work is
+         entirely in child processes, so threads are the right primitive and the GIL is not in
+         the path. No file may be started twice, and none may be skipped.
+
+         OUTPUT (D-07, REQ-04): capture each child's stdout and stderr combined, and print
+         nothing until that file finishes. On completion print, as one contiguous block:
+           ----- <basename> (exit <rc>, <secs>s) -----
+           <the captured output>
+           PASS <basename>        or        FAIL <basename>
+         The PASS and FAIL lines keep today's exact spelling, on stdout, one per file.
+         test-run-unit-tests-kinds.py case 1 greps lines starting with PASS or FAIL, and
+         harness-qa reads them; a changed prefix breaks both silently.
+
+         SUMMARY, last two lines on stdout, and REQ-05 rests on them:
+           pool: <n> workers, <k> files, <total>s wall
+           slowest: <basename> <secs>s, <basename> <secs>s, <basename> <secs>s
+         The three slowest, so the floor stays visible to whoever next wonders why more workers
+         did not help.
+
+         EXIT: 1 if any file exited non-zero, 0 otherwise, 2 for a usage or configuration
+         error. Never let one child's crash abandon the pool: every queued file runs, and the
+         verdict is the aggregate.
+
+      2. run-unit-tests.sh — replace the serial for loop, and NOTHING else. The root
+         resolution, BIN_DIR, both script arrays, the --kind parsing, the --check-kinds mode,
+         the drift detector and the KIND CROSS-CHECK all stay exactly as they are, including
+         their exit-2 paths, because REQ-06 is a contract three callers depend on. The loop
+         becomes one call:
+           python3 "$BIN_DIR/run_pool.py" -- "${SCRIPTS[@]/#/$BIN_DIR/}"
+         and the script exits with the pool's status. Keep the comment block explaining the
+         unit/integration split; add one short one saying the pool owns scheduling and bash
+         owns selection, and why (D-05).
+
+      3. .claude/skills/harness/bin/test-run-pool.py — INTEGRATION, because every case forks
+         the pool. Fixtures are shell or python scripts written under tempfile.mkdtemp() and
+         removed in a finally; nothing is written into the live tree, and the invariant from
+         T-03 will hold you to that. Cases, each asserting on OUTPUT and not merely on an exit
+         code:
+           a. attribution: three fixture scripts each printing a distinct token to stdout and
+              another to stderr; assert each token appears between that file's block header and
+              its PASS line, and that no two blocks interleave. This is the case that fails if
+              output is streamed rather than buffered.
+           b. failure propagation: one fixture exiting 3 among four passing; assert overall
+              exit 1, exactly one FAIL line, that it names the failing basename, and that the
+              failing child's own output still appears.
+           c. every file runs exactly once: eight fixtures, each appending its name to a file
+              in the tempdir; assert the file has eight distinct lines.
+           d. worker count: HARNESS_TEST_WORKERS=1 and =3 each reported verbatim in the
+              pool: line; HARNESS_TEST_WORKERS=0 and =many exit 2 and name the variable.
+           e. order is not load-bearing (SC-08): a set built so completion order cannot match
+              input order — the first fixture sleeps 0.4s, the rest are instant — run with 4
+              workers; assert the sequence of PASS lines differs from the input order while the
+              set of verdicts is identical to the same set run with --workers 1.
+           f. the cap: with HARNESS_TEST_WORKERS unset, assert the reported count is at least 2
+              and at most 8. Do not assert an exact number — it is machine-dependent by design.
+
+      Test-first: write test-run-pool.py before run_pool.py, run it, and record the import or
+      usage failure in the receipt.
+
+      ONE NOTE ON THE VERIFY BLOCK. Its --check-kinds and unknown-kind clauses are REGRESSION
+      clauses: measured 2026-08-31 at ea6f51f they already pass, exit 0 with no PASS or FAIL
+      line and exit 2 respectively, so they prove nothing about the pool and everything about
+      REQ-06. The discriminating half is test-run-pool.py, which does not exist until you write
+      it.
+
+      FINALLY, THE THREE MEASUREMENTS NO RUNNER CAN TAKE. SC-02, SC-05 and SC-06 have no gate
+      behind them, so they are discharged here or by nobody. Record all three, verbatim output
+      and commands, in
+      .harness/harness/features/FEAT-48-parallel-safe-suite/notes/measurements-parallel-suite.md:
+        - SC-02: the poll from notes/research-parallel-safety.md re-run over a full --kind all
+          run, expecting zero broken reads of the live feature_schema.py; AND the same poll run
+          against git show ea6f51f of test-check-domain.py, which MUST see more than zero. A
+          control that sees nothing makes the zero inconclusive, not passing — say so in the
+          note if that is what happens.
+        - SC-05: ten consecutive --kind all runs at the runner's own worker count, each exit
+          code and wall time listed. State plainly that ten clean runs do not prove the hazard
+          is gone (this flake produced 6 consecutive clean 8-worker runs while present) and
+          that SC-01 and SC-03 carry that claim.
+        - SC-06: the runner's own pool: and slowest: lines from one --kind all run on the
+          12-core machine, and the serial 247s baseline it is being compared against.
+
+  - id: T-05
+    title: Record the decisions, including change-based selection as rejected
+    traces: [REQ-08]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: >
+      granted to harness-documentor, taken direct under DEC-174 because the entry records the
+      behaviour of the gate script the tests workflow runs.
+    depends_on: [T-04]
+    status: pending
+    files:
+      - .harness/harness/docs/DECISIONS.md
+      - .harness/harness/docs/DECISIONS-INDEX.md
+    verify: |
+      python3 - <<'PY'
+      import subprocess, sys
+      dec = ".harness/harness/docs/DECISIONS.md"
+      idx = ".harness/harness/docs/DECISIONS-INDEX.md"
+      txt = open(dec, encoding="utf-8").read()
+      need = ["private copy", "change-based test selection", "HARNESS_TEST_WORKERS",
+              "test-suite-independence.py"]
+      missing = [n for n in need if n not in txt]
+      gen = subprocess.run([sys.executable,
+                            ".claude/skills/harness/bin/gen-decisions-index.py", "--stdout"],
+                           capture_output=True, text=True)
+      drift = gen.returncode != 0 or gen.stdout != open(idx, encoding="utf-8").read()
+      print("missing", missing, "gen_exit", gen.returncode, "index_drift", drift)
+      sys.exit(0 if not missing and not drift else 1)
+      PY
+    intent: |
+      APPEND one entry to .harness/harness/docs/DECISIONS.md, then regenerate the index and
+      commit both together. DEC-205 governs the shape: an entry states current truth, a
+      correction rewrites the entry it corrects, and there are no dated amendment logs.
+
+      TAKE THE NEXT FREE NUMBER AT AUTHORING TIME by reading the last heading in the file. Do
+      not pin one here: FEAT-47 also appends entries and a pinned number collides with it. The
+      heading is: The suite runs in parallel, and no test mutates state another test can see.
+
+      The entry must state, each in one or two sentences with its reason:
+        - the hazard, concretely: test-check-domain.py overwrote the live feature_schema.py for
+          a ~90ms window per run, and 5,105 of 1,032,849 polls observed a broken module. A
+          crashing-checker probe now gets a private copy of the bin directory instead
+          (isolated_bin.py); the words "private copy" must appear, since narrowing the window
+          is what a later reader will propose;
+        - that this was proven by the hazard being absent, never by the flake ceasing to
+          reproduce: it went quiet for 6 consecutive 8-worker runs while fully present;
+        - test-suite-independence.py, what it forbids, that it has no escape hatch, and that it
+          discovers its scan set by walking the tree so a layout change cannot blind it;
+        - the pool: scheduling in run_pool.py, selection in bash, output buffered per file so
+          it is attributable, and the worker count rule HARNESS_TEST_WORKERS else
+          min(8, max(2, cpu_count)) with the 36.7s floor as the reason for the cap;
+        - change-based test selection REJECTED, in those words, with all three reasons:
+          coverage becomes a function of the diff so a gate can pass by selecting nothing; the
+          floor is set by one file most changes reach indirectly; and the edge from a bash gate
+          script to the test that forks it is not statically knowable. This is the clause a
+          future scan will re-suggest, so it carries the reason, not just the verdict;
+        - the measurements, with their date, sha and machine: 247s serial across 56 files, ~47s
+          at 8 workers, 68.7s at 4, floor ~36.7s, observed 2026-08-31 at ea6f51f on a 12-core
+          M3 Pro.
+
+      Then write the index row yourself, in the same commit, right of the :: separator, and
+      regenerate with gen-decisions-index.py so the generated left-hand side is correct. There
+      is no --check flag; the verify block compares --stdout against the file. Adding an entry
+      lengthens the file and shifts every later @line anchor, so the regeneration is mandatory
+      rather than tidy.

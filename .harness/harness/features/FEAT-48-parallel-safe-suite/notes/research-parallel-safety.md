@@ -90,9 +90,16 @@ resolving `SYNC` relative to `/tmp`. Recorded so they are not re-walked.
 ## Fix direction (not yet implemented)
 
 Do not mutate a shared source file. The child process is the only one that needs to see a
-broken checker, so give it a broken one privately: write the faulty `feature_schema.py` into a
-temporary directory and place that directory first on the child's `PYTHONPATH` for the single
-`fire()` call. Nothing outside that child observes anything.
+broken checker, so give it a broken one privately.
+
+**CORRECTED 2026-08-31, after pm checked it.** This note first proposed a tempdir placed first
+on the child's `PYTHONPATH`. That cannot work: `check-domain.sh:125` runs
+`sys.path.insert(0, _bin_dir)` inside its heredoc, and the comment at `:97` states outright that
+this puts the real bin directory *ahead of* `PYTHONPATH`. A shim behind `sys.path[0]` is never
+reached. The working substitute is a **private copy of the bin directory** with the faulty module
+in it, pointed at for that one call — measured at 48ms for 111 files, so the cost is not a
+reason to prefer the broken idea. Recorded rather than silently replaced, because the wrong
+direction is the kind of thing a later reader would otherwise re-propose.
 
 This removes the hazard rather than narrowing it. Narrowing — shrinking the window, retrying
 the victim, ordering the tests — leaves a race that reappears under a different scheduler.
