@@ -291,5 +291,36 @@ except Exception as e:
     check("(8b) the panel persona is in SPAWNS[\"harness-validator-lead\"] in "
           "sync-agent-adapters.py", False, e)
 
+# --- 9. a superseded run's record survives the re-run (SC-03 direction 2): rendering
+#        the same outputs entry at cycle 0 and cycle 1 must not collapse onto one path,
+#        and both cycles' rendered paths must still resolve to the step's own persona --
+for step in steps:
+    sid = step["id"]
+    outputs = step.get("outputs") or []
+    persona = step["persona"]
+    if not outputs:
+        check(f"(9) {sid} outputs list is empty (its correct state — skipped, not counted)",
+              True)
+        continue
+    for out in outputs:
+        rendered_c0 = out.replace("{{feat}}", FEAT).replace("{{cycle}}", "0")
+        rendered_c1 = out.replace("{{feat}}", FEAT).replace("{{cycle}}", "1")
+        check(f"(9) {sid} output does not overwrite/supersede a prior cycle's record: "
+              f"c0 path differs from c1 path",
+              rendered_c0 != rendered_c1,
+              f"c0={rendered_c0!r} c1={rendered_c1!r}")
+        for cycle_label, rendered in (("c0", rendered_c0), ("c1", rendered_c1)):
+            try:
+                r = _resolve(rendered)
+            except Exception as e:
+                check(f"(9) {sid} {cycle_label} output {rendered} resolves to persona "
+                      f"{persona} (superseded-run record survives)", False, e)
+                continue
+            names = r.stdout.split()
+            ok = r.returncode == 0 and any(_agrees(persona, n) for n in names)
+            check(f"(9) {sid} {cycle_label} output {rendered} resolves to persona "
+                  f"{persona} (superseded-run record survives)", ok,
+                  f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
+
 print(f"\n{ran - fails}/{ran} checks passed." if fails == 0 else f"\n{fails} of {ran} FAILING.")
 sys.exit(1 if fails else 0)
