@@ -3197,5 +3197,53 @@ with tempfile.TemporaryDirectory() as tmpN:
           f"out={bothN[-600:]!r}")
 
 
+# ---------------------------------------------------------------------------------------------
+# FEAT-41 F-01: A STATION WRITE THAT NEVER REACHED DISK MUST BE VISIBLE TO THE SWEEP.
+#
+# Found by the validation panel, not by this suite, and the gap IS the finding: no case here
+# drove either failure branch of `_record_station`, so nothing measured what post-merge-sweep.sh
+# would then do. The sweep gates worktree REMOVAL on the ABSENCE of two literals from ship's
+# combined output. A station that was never recorded anywhere is exactly the case where the
+# standing worktree is the only surviving evidence -- so that failure line must carry one of
+# those literals, or the sweep deletes the tree and takes the only record with it. Irreversible.
+#
+# THE LITERALS ARE READ OUT OF THE SWEEP, NEVER RETYPED. This is a contract between two files,
+# and a test holding its own copy of the string keeps passing while the real gate drifts away.
+#
+# THE ASYMMETRY WITH `_commit_terminal_station` IS DELIBERATE, and it is asserted immediately
+# above (T-10): an UNCOMMITTED station is a recoverable bookkeeping miss and must NOT cancel a
+# removal. Written-nowhere and written-but-uncommitted are different failures whose correct
+# answers are opposite. Do not "fix" the two into agreement.
+# ---------------------------------------------------------------------------------------------
+_GATE_LITERALS = re.findall(r'if "([^"]+)" in combined:',
+                            open(os.path.join(HERE, "post-merge-sweep.sh")).read())
+
+check("F-01 fixture: the sweep's gate literals are discoverable in post-merge-sweep.sh, so this "
+      "case cannot pass by asserting against a string nothing actually reads",
+      len(_GATE_LITERALS) >= 2, repr(_GATE_LITERALS))
+
+for _labelF, _breakF in (("absent plan.yaml", "unlink"),
+                         ("set-feature-station exits non-zero", "garble")):
+    with tempfile.TemporaryDirectory() as tmpF:
+        install_gh(tmpF, FAKE_GH_STATIONS)
+        featF = stage_ship(tmpF, "FEAT-98-station-write-fails", {"T-01": 41}, parent=40)
+        planF = os.path.join(featF, "plan.yaml")
+        if _breakF == "unlink":
+            os.remove(planF)
+        else:
+            # A LIST WHERE A MAPPING BELONGS. plan-merge.py validates the parsed result before
+            # replacing the file, so this drives the non-zero-exit branch rather than the
+            # absent-file one -- two different prints, both of which the sweep must see.
+            open(planF, "w").write("- not a mapping\n")
+        rF = run(["ship", featF], tmpF, ship_env(tmpF, "40=Review 41=Review"))
+        bothF = rF.stdout + rF.stderr
+        check(f"F-01 ({_labelF}): ship says the station was not recorded",
+              "not recorded" in bothF, f"exit {rF.returncode}; out={bothF[-700:]!r}")
+        check(f"F-01 ({_labelF}): and that line carries a literal post-merge-sweep.sh gates on, "
+              f"so the sweep keeps the worktree holding the only record of the station",
+              any(lit in bothF for lit in _GATE_LITERALS),
+              f"gates={_GATE_LITERALS} out={bothF[-700:]!r}")
+
+
 
 sys.exit(1 if fails else 0)

@@ -595,10 +595,27 @@ def _record_station(feat_dir, station):
     behave exactly as before. `cmd_ship` needs it: it commits the file this wrote, and a commit
     attempted after an absent-plan or non-zero-exit path would either find nothing staged or
     commit somebody else's edit under this function's message.
+
+    AND BOTH FAILURE LINES SAY `gh-sync: FAILED` (FEAT-41 F-01, found by the validation panel).
+    post-merge-sweep.sh gates worktree REMOVAL on the ABSENCE of `gh-sync: SKIP` and
+    `gh-sync: FAILED` from ship's combined output, treating absence-plus-exit-0 as positive
+    evidence the write ran. Without the word, a station that reached disk NOWHERE read to the
+    sweep as a clean ship: it deleted the worktree, which was the only surviving evidence the
+    station was never recorded. That is the INV-26 class T-10 exists to close, arriving through
+    the one path T-10 did not cover.
+
+    THIS DOES NOT WEAKEN THE TOLERANCE TWO PARAGRAPHS UP, and the distinction is the whole point:
+    the exit status is still untouched, nothing raises, and the mirror still cannot block a ship
+    (D-03). What changes is a different subsystem's decision to DELETE A DIRECTORY.
+
+    IT IS ALSO THE OPPOSITE OF WHAT `_commit_terminal_station` BELOW MUST DO, deliberately. A
+    station written but not COMMITTED is a recoverable bookkeeping miss, so cancelling a removal
+    for it would be wrong; a station written NOWHERE is unrecoverable. Same two words, opposite
+    correct answers, and both are asserted in test-gh-sync.py. Do not reconcile them.
     """
     plan_path = os.path.join(feat_dir, "plan.yaml")
     if not os.path.isfile(plan_path):
-        print(f"gh-sync: {plan_path} is absent — station not recorded")
+        print(f"gh-sync: FAILED — station not recorded, {plan_path} is absent")
         return False
     r = subprocess.run(
         [sys.executable, os.path.join(_BIN_DIR, "plan-merge.py"), "set-feature-station",
@@ -607,8 +624,8 @@ def _record_station(feat_dir, station):
     )
     if r.returncode != 0:
         detail = (r.stderr or r.stdout).strip().splitlines()
-        print(f"gh-sync: {plan_path} station not recorded — plan-merge.py set-feature-station "
-              f"exited {r.returncode}: {detail[-1] if detail else '(no output)'}")
+        print(f"gh-sync: FAILED — station not recorded, plan-merge.py set-feature-station "
+              f"exited {r.returncode}: {detail[-1] if detail else '(no output)'} ({plan_path})")
         return False
     print(f"gh-sync: plan.yaml station -> {station}")
     return True
