@@ -5,6 +5,14 @@ unmet. The remaining three cannot be settled by any agent: they need one live `/
 your own judgement, and the criteria say so in their own words. Shipping is what makes that run
 possible.
 
+**B-1 was fixed before shipping, on your instruction.** Panel finding identities are now a
+128-bit hash (`PF-` plus 32 hex, 35 characters) instead of 32-bit. A final review cycle graded
+that change and returned **PASS at severity `low`, with no `must_fix`** — the security reviewer
+confirms its own finding is closed and that an adversarial-collision test is now unnecessary
+rather than merely absent, and a reverted-width probe reddens three independent assertions, so
+the fix is pinned against silently regressing. A sweep of 78 files found no code anywhere still
+depending on the old width.
+
 **One thing to accept knowingly.** The fix that lets a code reviewer return from a worktree is
 present and correct by inspection, but it **cannot be proven until the branch merges**, because the
 hook executes `main`'s installed copy of the validator, not the branch's. That is a property of how
@@ -85,6 +93,7 @@ structured return. That single run also settles SC-11, SC-12 and SC-16.
 | B-14 | bug | `check-state.sh`'s overrule attribution check has no `continue`, so a rejected unattributed overrule still emits a `disposition overruled.` line. The VIOLATION still fires |
 | B-15 | chore | `M6` — `goalcheck` transcription ambiguity; fails closed and loudly on the first live run. `M7` — the withhold message states the fact but not the remedy |
 | B-16 | chore | `V2` — branch-less corroboration is a documented deliberate no-op; closing it needs a non-branch identity input |
+| B-17 | chore | `plan.yaml`'s T-09 is marked `done` but its own `verify:` no longer passes — it still asserts `test 11 -eq` and its `intent:` still says "8 lowercase hex, length 11", while the shipped id is 35 characters. `D-05` was updated with the code and the task text was not. Graded backlog, not gating, because no gate replays a done task's verify clause — that grading flips the day one does |
 
 ## Budget
 

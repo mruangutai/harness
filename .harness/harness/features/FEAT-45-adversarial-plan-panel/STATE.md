@@ -3,37 +3,31 @@
 ## Current
 
 - feature: FEAT-45-adversarial-plan-panel
-- run: .harness/harness/features/FEAT-45-adversarial-plan-panel/runs/2026-08-31-1-product/state.yaml
+- run: .harness/harness/features/FEAT-45-adversarial-plan-panel/runs/c4-validator/state.yaml
 - squad: none
 - status: Review
 
-VALIDATE CLOSED, awaiting the operator's ship decision. Final goal-check at d78f393: **14 met, 0
-unmet, 3 deferred-to-live-run**. Both criteria open at the first goal-check are closed — SC-05, which
-was unmet-behaviour, and SC-03, which was unmet-unproven.
+READY TO SHIP, awaiting the operator's decision. Validate is closed after FOUR panel cycles, four
+main-session fix rounds and two goal-checks. Final goal-check: 14 met, 0 unmet, 3 deferred-to-live-run.
+Final panel (cycle 4): PASS at `severity_max: low`, no `must_fix`.
 
-Four panel cycles and three main-session fix rounds. The panel earned its keep: at cycle 0 it caught
-that the gate this feature SHIPS failed open on exactly the input DEC-206 names as the risk, so a
-finding whose severity was lost would have reached signature un-vetted while the decision written in
-the same change promised the opposite. Cycle 2 caught two bypasses and a deadlock in the fix code
-itself. Separately, the F4 fix revealed the test gate had been collecting ZERO tests at one pin, which
-retroactively invalidated every green number claimed there.
+B-1 was fixed before shipping on the operator's instruction: panel finding identities widened from a
+32-bit to a 128-bit hash, `PF-` plus 32 hex, 35 characters. The security reviewer that raised it
+confirms it CLOSED and that an adversarial-collision test is now unnecessary rather than merely
+absent. A reverted-width probe reddens three independent assertions, so the fix is pinned against
+regressing silently, and a sweep of 78 files found no code still bound to the old width. I confirmed
+independently that no non-test source slices an id or matches an 8-hex pattern.
 
-The one open finding, V1, is CONDITIONALLY CLOSED on the operator's ruling, and the diagnosis was
-measured rather than inferred. `gateRoot()` derives from the extension file's own location, so the
-executing validator is always `<main checkout>/.agents/skills/harness/bin/validate-digest.py` — 1525
-lines, with zero occurrences of `_hook_feature_dir` or `inflight_registry.feature_root`. The branch's
-fixed copy is 1643 lines and never runs for a subagent. The fix is therefore correct-by-inspection but
-UNVERIFIABLE PRE-MERGE by construction, and the first post-merge reviewer dispatch is a named required
-verification step. I also proved `inflight_registry.feature_root` resolves this feature correctly,
-eliminating the competing hypothesis, so no fix round was spent guessing.
+One record inconsistency survives as backlog B-17: T-09 is marked `done` but its own `verify:` no
+longer passes, still asserting `test 11 -eq` while the shipped id is 35 characters. D-05 moved with
+the code and the task text did not. Graded backlog rather than gating because no gate replays a done
+task's verify clause -- I verified that against check-state.sh and check-plan-routes.py myself. That
+grading flips the day any gate does.
 
-The CEO briefing is `notes/ship-review-2026-08-31.md`, rendered alongside as `.html`, assembled from
-the run digests on disk with no report round spawned. It carries 16 proposed backlog rows; B-1, the
-32-bit finding-id ratchet, is the only one worth deciding before signature rather than after.
-
-Cycles 9 of 10 — cycle 10 preserved on the operator's instruction rather than spent re-observing code
-that cannot execute. Runs 16 of 20, informational; three of them found defects that would otherwise
-have shipped.
+Cycles 10 of 10 -- fully spent, and the last one bought a real defect fix rather than a re-observation.
+Runs 17 of 20. The CEO briefing is `notes/ship-review-2026-08-31.md`, rendered alongside as `.html`,
+carrying 16 backlog rows B-2..B-17; anything the operator does not strike becomes an issue on ship
+acceptance, and anything not listed dies silently.
 
 ## Open Questions
 
