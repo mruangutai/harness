@@ -772,16 +772,14 @@ def _read_feature_branch(feature_dir):
     return branch.strip()
 
 
-def _current_branch_or_none(branch_override=_BRANCH_UNSET):
-    """This checkout's current branch (`git rev-parse --abbrev-ref HEAD`), or
-    None when it cannot be determined — detached HEAD (reported as the literal
-    `HEAD`), `git` unavailable, or a non-zero exit. `branch_override` is the
-    fixture-override seam for tests: pass a branch name, or `None` to simulate
-    an undeterminable checkout, and the `git` call below is skipped entirely.
-    """
+def _current_branch_or_none(branch_override=_BRANCH_UNSET, feature_dir=None):
+    """The branch of the checkout that owns `feature_dir`, or None when unknown."""
     if branch_override is not _BRANCH_UNSET:
         return branch_override
-    root = _root_or_none()
+    if feature_dir is None:
+        root = _root_or_none()
+    else:
+        root = os.path.realpath(os.path.join(feature_dir, "..", "..", "..", ".."))
     if root is None:
         return None
     try:
@@ -858,13 +856,104 @@ def _parse_reviewed_range(reviewed):
     return base, head, None
 
 
-def code_grade_bound_to_review(text, reviewed, feature_dir=None, branch_override=_BRANCH_UNSET):
-    """SEC-01: reject a `code_grade` claim — pass, fail, grade_2 OR n_a, every
-    one of them, not only n_a — whose `reviewed:` HEAD does not resolve to the
-    same commit as this feature's own `review_sha`. Call this UNCONDITIONALLY,
-    before branching on `code_grade`'s value at all: a forged range lets any
-    value describe a diff nobody reviewed, and binding only one branch leaves
-    the rest of the enum open.
+_PLAN_REVIEW_PREFIX = "plan:"
+
+
+def _is_plan_review(reviewed):
+    return isinstance(reviewed, str) and reviewed.startswith(_PLAN_REVIEW_PREFIX)
+
+
+def _resolve_plan_review_path(reviewed):
+    named_path = reviewed[len(_PLAN_REVIEW_PREFIX):].strip()
+    if not named_path:
+        return None, "reviewed plan target is empty — write plan:<path-to-plan.yaml>."
+    if os.path.isabs(named_path):
+        return os.path.realpath(named_path), None
+    root = _root_or_none()
+    if root is None:
+        return None, "reviewed plan target cannot be resolved from this checkout."
+    return os.path.realpath(os.path.join(root, named_path)), None
+
+
+def _pending_plan_status_error(plan_path):
+    try:
+        plan = harness_yaml.load_file(plan_path)
+    except Exception as exc:
+        return f"reviewed plan target {plan_path!r} could not be read ({exc})."
+    approval = plan.get("approval") if isinstance(plan, dict) else None
+    status = approval.get("status") if isinstance(approval, dict) else None
+    if status == "pending":
+        return None
+    return (f"plan review mode is only valid while approval.status is pending; "
+            f"{plan_path!r} records {status!r}.")
+
+
+def _pinned_feature_review_error(feature_dir):
+    feature_json = os.path.join(feature_dir, "feature.json")
+    if not os.path.exists(feature_json):
+        return None
+    try:
+        with open(feature_json, encoding="utf-8") as handle:
+            feature = json.load(handle)
+    except (OSError, ValueError) as exc:
+        return f"pre-signature feature record {feature_json!r} is unreadable ({exc})."
+    review_sha = feature.get("review_sha") if isinstance(feature, dict) else None
+    if not isinstance(review_sha, str) \
+            or review_sha.strip().lower() in harness_yaml.PLACEHOLDER_UNSET:
+        return None
+    return ("plan review mode is pre-signature only, but feature.json already "
+            "has a pinned review_sha.")
+
+
+def _pending_plan_review_error(text, reviewed, code_grade, feature_dir, branch_override):
+    """Bind DEC-207's pre-signature review to its pending plan and checkout."""
+    feature_dir, dir_error = _resolve_feature_dir(text, feature_dir)
+    if dir_error:
+        return dir_error
+    if code_grade != "n_a":
+        return "a plan review has no code diff; code_grade must be 'n_a'."
+    plan_path, path_error = _resolve_plan_review_path(reviewed)
+    if path_error:
+        return path_error
+    expected_path = os.path.realpath(os.path.join(feature_dir, "plan.yaml"))
+    if plan_path != expected_path:
+        return (f"reviewed plan target {plan_path!r} is not this feature's "
+                f"plan.yaml ({expected_path}).")
+    return (
+        _pending_plan_status_error(plan_path)
+        or _pinned_feature_review_error(feature_dir)
+        or _branch_corroboration_error(
+            feature_dir, _current_branch_or_none(branch_override, feature_dir)
+        )
+    )
+
+
+def _skipped_member_error(fields):
+    """Validate the one optional external member that may legitimately not run."""
+    status = fields.get("status")
+    if status is None:
+        return False, None
+    if str(status).lower() != "skipped":
+        return False, f"member status {status!r} must be exactly 'skipped' when present."
+    if fields.get("verdict"):
+        return True, "a skipped member did not run and must not also claim a verdict."
+    if not str(fields.get("persona", "")).strip():
+        return True, "a skipped member must name its persona."
+    if not str(fields.get("reason", "")).strip():
+        return True, "a skipped member must name the host reason it did not run."
+    if fields.get("persona") != "fable-advisor":
+        return True, ("only the optional fable-advisor may be recorded as skipped; "
+                      "mandatory members must carry their verdict.")
+    return True, None
+
+
+def code_grade_bound_to_review(text, reviewed, code_grade, feature_dir=None,
+                               branch_override=_BRANCH_UNSET):
+    """Bind a code review to review_sha, or a DEC-207 plan review to its pending plan.
+
+    The code path runs unconditionally for pass, fail, grade_2, and n_a: a forged
+    range must not describe a diff nobody reviewed. Plan mode is a distinct target,
+    not a missing SHA fallback, and accepts only code_grade n_a.
 
     Only `head` is bound — `base` has no independent system-of-record value
     today (batch contract). `head` is what varies between an honest review (it
@@ -879,6 +968,10 @@ def code_grade_bound_to_review(text, reviewed, feature_dir=None, branch_override
 
     Returns an error string, or `None` when the binding holds.
     """
+    if _is_plan_review(reviewed):
+        return _pending_plan_review_error(
+            text, reviewed, code_grade, feature_dir, branch_override
+        )
     feature_dir, dir_error = _resolve_feature_dir(text, feature_dir)
     if dir_error:
         return dir_error
@@ -900,7 +993,9 @@ def code_grade_bound_to_review(text, reviewed, feature_dir=None, branch_override
         return (f"reviewed head {head!r} does not resolve to this feature's "
                 f"pinned review_sha ({review_sha}) — write the range that ends "
                 f"at review_sha (feature.json), not a convenient no-op.")
-    return _branch_corroboration_error(feature_dir, _current_branch_or_none(branch_override))
+    return _branch_corroboration_error(
+        feature_dir, _current_branch_or_none(branch_override, feature_dir)
+    )
 
 
 def _missing_field_default_hint(field, allowed):
@@ -1125,21 +1220,19 @@ def validate(persona, text, config_path=None, feature_dir=None, branch_override=
                           if field in NULLABLE else "."))
 
     if raw_persona == "harness-code-reviewer":
-        # SEC-01, RUNS FIRST, UNCONDITIONALLY — before code_grade's value is
-        # examined at all. A forged range lets ANY code_grade value (pass, fail,
-        # grade_2, n_a alike) describe a diff nobody reviewed; binding only the
-        # n_a branch would leave the other three open.
-        binding_error = code_grade_bound_to_review(text, seen.get("reviewed"), feature_dir,
-                                                    branch_override)
+        code_grade = seen.get("code_grade")
+        reviewed = seen.get("reviewed")
+        # SEC-01 still runs before branching on the grade. DEC-207 adds one
+        # separately-bound target: plan:<path> for a pending pre-signature plan.
+        binding_error = code_grade_bound_to_review(
+            text, reviewed, code_grade, feature_dir, branch_override
+        )
         if binding_error:
             err.append(binding_error)
-        code_grade = seen.get("code_grade")
-        if code_grade == "n_a":
-            # SEC-01 wave 4: validate the digest's OWN `reviewed` field's shape and
-            # resolvability (unchanged wording, still catches a malformed or
-            # option-like/injection revision) — but its "did Python change" answer
-            # is DISCARDED, never the decision (Q8: cross-checked, not decisive).
-            _discarded, shape_error = reviewed_python_change(seen.get("reviewed"))
+        if code_grade == "n_a" and not _is_plan_review(reviewed):
+            # SEC-01 wave 4: validate the digest's OWN reviewed range, but derive
+            # the Python-change answer from the repository-owned review range.
+            _discarded, shape_error = reviewed_python_change(reviewed)
             if shape_error:
                 err.append(shape_error)
             else:
@@ -1200,6 +1293,12 @@ def validate(persona, text, config_path=None, feature_dir=None, branch_override=
             worst, worst_src = None, None
             for item in members:
                 fields = parse_member_entry(str(item))
+                skipped, skip_error = _skipped_member_error(fields)
+                if skip_error:
+                    err.append(skip_error)
+                    continue
+                if skipped:
+                    continue
                 mv = fields.get("verdict")
                 if not mv:
                     # Their data, not our bug — the normative template carries a
@@ -1218,6 +1317,9 @@ def validate(persona, text, config_path=None, feature_dir=None, branch_override=
                     continue
                 if worst is None or RANK[v] > RANK[worst]:
                     worst, worst_src = v, str(item)[:60]
+            if worst is None:
+                err.append("members records no member actually ran — a lead verdict cannot "
+                           "claim an outcome for an entirely skipped team.")
             if worst and top in RANK and RANK[top] < RANK[worst]:
                 err.append(f"VERDICT is {top} but a member returned {worst} "
                            f"({worst_src!r}). The team verdict is the WORST member verdict "
@@ -1251,6 +1353,20 @@ def _root_or_none():
         import harness_boundary
         return harness_boundary.resolve_root(
             os.path.dirname(os.path.realpath(__file__)), strict=False)
+    except Exception:
+        return None
+
+def _hook_feature_dir(text, feature):
+    """Resolve an unmerged feature from an installed validator's owner checkout."""
+    owner_root = _root_or_none()
+    if owner_root is None or not feature:
+        return None
+    try:
+        sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
+        import inflight_registry
+        checkout_root = inflight_registry.feature_root(owner_root, feature)
+        feature_dir, error = _feature_dir_from_artifact(text, checkout_root)
+        return None if error else feature_dir
     except Exception:
         return None
 
@@ -1479,7 +1595,9 @@ def hook_mode():
     # completely unvalidated with no signal at all. That is a worse outcome than
     # the "decline to govern" pass-throughs above, which at least say so.
     try:
-        errs = validate(agent, text)
+        errs = validate(agent, text, feature_dir=_hook_feature_dir(
+            text, d.get("harness_feature")
+        ))
     except GatePolicyError as error:
         print(f"check-digest: {error}", file=sys.stderr)
         return 2

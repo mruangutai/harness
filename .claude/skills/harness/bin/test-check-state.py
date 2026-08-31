@@ -2947,6 +2947,168 @@ def case_inv31_silent_when_installed():
         return ok
 
 
+def _inv32_plan(panel_marker=True, finding=None, rulings=None, readers=None):
+    doc = {
+        "schema": "plan/1", "feature": "FEAT-INV32",
+        "approval": {"status": "approved", "approved_by": "operator", "date": "2026-08-31"},
+        "lanes": {"resolved_at": "abc123", "rows": []}, "decisions": [],
+        "tasks": [{"id": "T-01", "title": "fixture", "traces": ["REQ-01"],
+                   "change_type": "logic", "execution_mode": "main-session-direct",
+                   "execution_reason": "fixture", "depends_on": [], "status": "pending",
+                   "files": ["fixture"], "verify": "true", "intent": "fixture"}],
+    }
+    if panel_marker:
+        doc["panel"] = {"last_run": "panel-validator", "cycle": 0,
+                        "findings": finding or [], "readers": readers if readers is not None else [
+                            {"reader": "should-not-exist", "status": "ran"},
+                            {"reader": "scope", "status": "ran"},
+                            {"reader": "goalcheck", "status": "ran"}]}
+    if rulings is not None:
+        doc["approval"]["rulings"] = rulings
+    return doc
+
+
+def _inv32_run(doc, script=SCRIPT):
+    with tempfile.TemporaryDirectory() as tmp:
+        root = os.path.join(tmp, ".harness", "harness", "features", "FEAT-INV32")
+        os.makedirs(root, exist_ok=True)
+        with open(os.path.join(root, "plan.yaml"), "w") as f:
+            json.dump(doc, f)
+        env = _root_env(tmp)
+        proc = subprocess.run([script], cwd=tmp, capture_output=True, text=True, env=env)
+        return proc.returncode, proc.stdout, proc.stderr
+
+
+def case_inv32_unrated_severity_fails_closed():
+    """Unrated, absent, and null severities all withhold approval."""
+    findings = [
+        {"id": "PF-unrated", "severity": "unrated", "disposition": "open"},
+        {"id": "PF-absent", "disposition": "open"},
+        {"id": "PF-null", "severity": None, "disposition": "open"},
+    ]
+    code, out, _ = _inv32_run(_inv32_plan(finding=findings))
+    ok = code == 1 and all(finding["id"] in out for finding in findings)
+    print(f"{'ok' if ok else 'FAIL'} - INV-32 unrated severities fail closed"
+          + ("" if ok else f"\n      {out}"))
+    return ok
+
+
+def _inv32_basic_checks(open_finding, resolved, fid):
+    code, no_panel, _ = _inv32_run(_inv32_plan(panel_marker=False))
+    _, high_open, _ = _inv32_run(_inv32_plan(finding=open_finding))
+    _, high_resolved, _ = _inv32_run(_inv32_plan(finding=resolved))
+    resolved_lines = [
+        line for line in high_resolved.splitlines() if "FEAT-INV32" in line
+    ]
+    return [
+        code == 1 and "INV-32" in no_panel and "FEAT-INV32" in no_panel,
+        "INV-32" in high_open and fid in high_open,
+        any(fid in line and "resolved" in line.lower() for line in resolved_lines)
+        and not any("VIOLATION" in line for line in resolved_lines),
+    ]
+
+
+def _inv32_ruling_checks(open_finding, resolved, fid):
+    ruling = [{"finding": fid, "ruling": "overrule", "who": "operator",
+               "date": "2026-08-31", "reason": "accepted"}]
+    _, overruled, _ = _inv32_run(_inv32_plan(finding=open_finding, rulings=ruling))
+    overruled_lines = [
+        line for line in overruled.splitlines() if "FEAT-INV32" in line
+    ]
+    bad_ruling = [{**ruling[0], "who": ""}]
+    _, unattributed, _ = _inv32_run(
+        _inv32_plan(finding=open_finding, rulings=bad_ruling)
+    )
+    stale = [{**ruling[0], "finding": "PF-cafebabe"}]
+    _, stale_out, _ = _inv32_run(_inv32_plan(finding=resolved, rulings=stale))
+    return [
+        any(fid in line and "overruled" in line.lower() for line in overruled_lines)
+        and not any("VIOLATION" in line for line in overruled_lines),
+        "unattributed" in unattributed and fid in unattributed,
+        all(text in stale_out for text in ("PF-cafebabe", "reworded", "asked again")),
+    ]
+
+
+def _inv32_missing_reader_check(missing):
+    code, out, _ = _inv32_run(_inv32_plan(readers=missing))
+    return code == 1 and "should-not-exist" in out and "never ran" in out
+
+
+def _inv32_skipped_reader_check(missing):
+    skipped = missing + [{"reader": "should-not-exist", "status": "skipped",
+                          "persona": "fable-advisor", "reason": "not installed"}]
+    _, out, _ = _inv32_run(_inv32_plan(readers=skipped))
+    violations = [
+        line for line in out.splitlines()
+        if "INV-32" in line and "FEAT-INV32" in line and "VIOLATION" in line
+    ]
+    return (all(text in out for text in ("should-not-exist", "fable-advisor"))
+            and not violations)
+
+
+def _inv32_reader_checks(valid_readers):
+    missing = [reader for reader in valid_readers
+               if reader["reader"] != "should-not-exist"]
+    return missing, [
+        _inv32_missing_reader_check(missing),
+        _inv32_skipped_reader_check(missing),
+    ]
+
+
+def _inv32_mutant_fixture_passes(doc, mutant):
+    rc_real, text_real, _ = _inv32_run(doc)
+    rc_mut, text_mut, err_mut = _inv32_run(doc, mutant)
+    return (rc_real == 1 and "INV-32" in text_real
+            and rc_mut in (0, 1) and "Traceback" not in err_mut
+            and "INV-32" not in text_mut)
+
+
+def _inv32_mutant_is_discriminating(missing):
+    source = open(SCRIPT, encoding="utf-8").read()
+    begin = "# INV-32 BEGIN (FEAT-45 T-07)"
+    end = "# INV-32 END (FEAT-45 T-07)"
+    mutant = os.path.join(os.path.dirname(SCRIPT), ".check-state-inv32-mutant.sh")
+    try:
+        assert begin in source and end in source
+        left, rest = source.split(begin, 1)
+        _region, right = rest.split(end, 1)
+        changed = left + right
+        assert changed != source
+        with open(mutant, "w") as file:
+            file.write(changed)
+        shutil.copymode(SCRIPT, mutant)
+        sc04_refusal = _inv32_plan(
+            finding=[{"id": "PF-sc04", "severity": "high", "disposition": "open"}]
+        )
+        docs = (_inv32_plan(panel_marker=False), _inv32_plan(readers=missing),
+                sc04_refusal)
+        return all(_inv32_mutant_fixture_passes(doc, mutant) for doc in docs)
+    finally:
+        if os.path.exists(mutant):
+            os.unlink(mutant)
+
+
+def case_inv32():
+    """Panel, ruling, reader, and mutation directions for INV-32."""
+    fid = "PF-deadbeef"
+    open_finding = [{"id": fid, "severity": "high", "reader": "scope",
+                     "summary": "x", "disposition": "open"}]
+    resolved = [{**open_finding[0], "disposition": "resolved", "resolved_by": "T-01"}]
+    valid_readers = [{"reader": reader, "status": "ran"}
+                     for reader in ("should-not-exist", "scope", "goalcheck")]
+    missing, reader_checks = _inv32_reader_checks(valid_readers)
+    checks = (
+        _inv32_basic_checks(open_finding, resolved, fid)
+        + _inv32_ruling_checks(open_finding, resolved, fid)
+        + reader_checks
+        + [_inv32_mutant_is_discriminating(missing)]
+    )
+    ok = all(checks)
+    print(f"{'ok' if ok else 'FAIL'} - INV-32 plan panel fixtures, including inv32-red"
+          + ("" if ok else f" {checks}"))
+    return ok
+
+
 def main():
     ok_a, code_a = case_a()
     ok_b, code_b = case_b()
@@ -3023,6 +3185,8 @@ def main():
         case_inv31_post_merge_not_executable(),
         case_inv31_silent_when_installed(),
     ])
+    ok_i32 = case_inv32()
+    ok_i32_severity = case_inv32_unrated_severity_fails_closed()
 
     ok_exit_unchanged = code_a == code_b
     print(
@@ -3033,7 +3197,7 @@ def main():
     if (ok_a and ok_b and ok_c and ok_d and ok_e and ok_f and ok_g
             and ok_h and ok_i and ok_j and ok_k and ok_l and ok_m and ok_m2 and ok_m3 and ok_n and ok_o and ok_p and ok_q and ok_r and ok_s and ok_t and ok_u and ok_v and ok_w and ok_x and ok_t14 and ok_t10
             and ok_i28a and ok_i28b and ok_i28c and ok_i28d and ok_i28e and ok_i28f
-            and ok_i29 and ok_i30 and ok_i31
+            and ok_i29 and ok_i30 and ok_i31 and ok_i32 and ok_i32_severity
             and ok_exit_unchanged):
         sys.exit(0)
     sys.exit(1)

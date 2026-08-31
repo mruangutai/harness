@@ -171,6 +171,76 @@ for feat, doc in plan_docs.items():
                 bad.append(f"{fpath(feat, 'STATE.md')} references {_tid}, which is absent from its "
                            f"plan.yaml.")
 
+# INV-32 BEGIN (FEAT-45 T-07)
+# A signed plan must carry the adversarial panel record the operator reviewed.
+for feat, doc in plan_docs.items():
+    approval = doc.get("approval")
+    if not isinstance(approval, dict) or str(approval.get("status", "")).strip().lower() != "approved":
+        continue
+    panel = doc.get("panel")
+    if not isinstance(panel, dict) or not str(panel.get("last_run", "")).strip() or not isinstance(panel.get("findings"), list):
+        bad.append(f"INV-32: {feat} plan is approved with no complete panel result recorded.")
+        continue
+    findings = panel.get("findings", [])
+    finding_ids = {
+        str(item.get("id", "")).strip()
+        for item in findings if isinstance(item, dict) and str(item.get("id", "")).strip()
+    }
+    rulings = approval.get("rulings", [])
+    if not isinstance(rulings, list):
+        bad.append(f"INV-32: {feat} approval.rulings is malformed; expected a list.")
+        rulings = []
+    overruled = set()
+    for ruling in rulings:
+        if not isinstance(ruling, dict):
+            bad.append(f"INV-32: {feat} has a malformed approval ruling.")
+            continue
+        fid = str(ruling.get("finding", "")).strip()
+        if not str(ruling.get("who", "")).strip() or not re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}", str(ruling.get("date", "")).strip()):
+            bad.append(f"INV-32: {feat} ruling for {fid or '<missing>'} is unattributed or has an invalid date.")
+        if fid not in finding_ids:
+            bad.append(f"INV-32: {feat} STALE OVERRIDE {fid or '<missing>'}: a reworded finding gets "
+                       f"a NEW content-hash id, so the old ruling stopped applying and the operator "
+                       f"is asked again.")
+        elif str(ruling.get("ruling", "")).strip().lower() == "overrule":
+            overruled.add(fid)
+    for item in findings:
+        if not isinstance(item, dict):
+            bad.append(f"INV-32: {feat} has a malformed panel finding.")
+            continue
+        fid = str(item.get("id", "")).strip() or "<missing>"
+        severity = str(item.get("severity", "")).strip().lower()
+        disposition = str(item.get("disposition", "")).strip().lower()
+        if disposition == "resolved":
+            warn.append(f"INV-32: {feat} finding {fid} disposition resolved.")
+        elif fid in overruled:
+            warn.append(f"INV-32: {feat} finding {fid} disposition overruled.")
+        elif severity not in {"info", "low", "med"}:
+            bad.append(f"INV-32: {feat} finding {fid} is {severity or 'unrated'} and remains open without an operator overrule.")
+    expected_readers = {"should-not-exist", "scope", "goalcheck"}
+    readers = panel.get("readers")
+    if not isinstance(readers, list):
+        readers = []
+    by_reader = {
+        str(item.get("reader", "")).strip(): item
+        for item in readers if isinstance(item, dict) and str(item.get("reader", "")).strip()
+    }
+    for reader in sorted(expected_readers):
+        item = by_reader.get(reader)
+        status = str(item.get("status", "")).strip().lower() if isinstance(item, dict) else ""
+        if status not in {"ran", "skipped"}:
+            bad.append(f"INV-32: {feat} reader {reader} never ran or was not recorded; an unrecorded "
+                       f"reader is not a clean reader.")
+        elif status == "skipped":
+            persona = str(item.get("persona", "")).strip()
+            reason = str(item.get("reason", "")).strip()
+            if not persona or not reason:
+                bad.append(f"INV-32: {feat} reader {reader} was skipped without persona and reason; "
+                           f"the record cannot show why it never ran.")
+            else:
+                warn.append(f"INV-32: {feat} reader {reader} skipped persona {persona}: {reason}")
+# INV-32 END (FEAT-45 T-07)
+
 # --- INV-3: a plan must be signed too, and re-planning must reset that signature.
 for feat, plan in plans.items():
     if not has_approval_block(plan):

@@ -31,9 +31,35 @@ approval:
   # Written by the MAIN SESSION only, because it is the only tier with a user channel
   # (DEC-120). Neither pm nor the orchestrator writes it, and check-domain.sh denies an
   # agent's write of this mapping. Any change to the task set resets this to pending.
+  # Only the main session may add approval.rulings. Each ruling names a PF- id present in
+  # panel.findings and carries ruling: overrule, who: <operator>, date: YYYY-MM-DD, and a
+  # one-clause reason. check-state.sh REFUSES an absent id as a stale override: rewording
+  # creates a new content-hash id, so an old ruling stops applying and the operator is asked again.
   status: pending                # pending | approved
   approved_by: <name>
   date: <YYYY-MM-DD>
+
+# Written by harness-pm and nobody else. It is outside approval because approval_guard owns
+# that entire mapping, while pm may update this sibling after the validator lead returns.
+panel:
+  last_run: <run-dir>
+  cycle: 0
+  # Every reader appears here. Findings alone cannot distinguish a reader that ran cleanly
+  # from one that never ran. The external adversarial persona may normally be absent in a
+  # project receiving this doctrine; status skipped records that outcome instead of hiding it.
+  readers:
+    - reader: should-not-exist       # should-not-exist | scope | goalcheck
+      status: skipped                # ran | skipped
+      persona: fable-advisor         # required when skipped
+      reason: <host refusal>         # required when skipped
+  findings:
+    - id: PF-0123abcd
+      severity: unrated              # info | low | med | high | critical | unrated
+      reader: should-not-exist        # should-not-exist | scope | goalcheck
+      summary: <one line>
+      disposition: open              # open | resolved | overruled
+      # resolved_by: T-NN            # present only when resolved
+  # unrated is gating-equivalent to high, so omitted judgment fails closed.
 
 lanes:
   # Resolved HERE against .harness/team-config.yaml at a named SHA — never at build time.

@@ -65,6 +65,13 @@ SPAWNS = {
         "harness-code-reviewer",
         "harness-security-reviewer",
         "harness-ui-reviewer",
+        # fable-advisor: kept in sync with the shipped `spawns:` frontmatter on
+        # .omp/agents/harness-validator-lead.md. SPAWNS is read only by
+        # bootstrap_one(), reachable only via --bootstrap-from-claude, and
+        # bootstrap() refuses to run whenever .omp/agents/harness-*.md already
+        # exist -- so this entry regenerates nothing today. It exists so the
+        # constant and the enforced allowlist cannot silently disagree.
+        "fable-advisor",
     ],
 }
 

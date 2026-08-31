@@ -2418,7 +2418,10 @@ masked `FAIL` ships.
 
 `validate-digest.py` now computes the roll-up and rejects a return that reports better than its
 worst member. Reporting **worse** stays legal: a lead may know something its members could not see.
-Every member entry therefore needs its own `verdict:`; without one the roll-up is undecidable.
+Every member that ran therefore needs its own `verdict:`. Only the optional external
+`fable-advisor` may instead record `status: skipped`, its persona, and the host reason; a skip
+makes no claim about unperformed work and is excluded from worst-wins. At least one member must
+have run before a lead verdict can be trusted.
 
 **This is the only part of collation that is arithmetic.** Dedupe across overlapping reviewers,
 resolving contradictions, deciding what is blocking, and sending weak work back are judgement, stay
@@ -6303,3 +6306,56 @@ LLM audit of design claims** (M4) was declined as a gate: its judgement decays t
 so it is worth running once as a sweep and worthless standing as a check. Neither becomes cheap
 merely because the one check above is open rather than closed — that openness is exactly why
 the one that is in is the mechanical one.
+
+## DEC-206 — A harness lead may wrap a non-harness panel reader, and owns its shape but never its content
+
+**Chose:** A harness lead MAY dispatch a non-harness subagent as a panel reader and normalize that
+reader's return into the lead's own digest. A wrapped non-harness reader is a legal dispatch target
+under lead authority, not an exception granted case by case. Origin:
+`FEAT-45-adversarial-plan-panel`, whose plan-panel squad has the validator lead spawn a pinned agent
+that is not one of the sixteen harness personas.
+
+**It is a precedent needing a signature because the reader's return is structurally unvalidated.**
+Three facts, in this order. One, `SubagentStop` fires for that reader, but `validate-digest.py`
+returns 0 immediately for a non-harness `agent_type`
+(`.claude/skills/harness/bin/validate-digest.py:906`) — a deliberate decline to govern an agent that
+carries no digest contract — so no schema ever grades what the reader returned. Two, digest coverage
+therefore comes only from the wrapping lead's own stop event, graded against the lead schema: the
+reader's findings are validated as a part of the lead's digest, or not at all. Three, the
+compensating control is contractual rather than mechanical. The reader's prompt requires a
+self-emitted severity on every finding, with the sentinel value `unrated` for a finding the reader
+will not rate, and the lead TRANSCRIBES an absence rather than inventing a value.
+
+**Shape versus content is the line the lead may not cross.** The lead owns SHAPE — schema
+conformance, finding identity, de-duplication, ranking, and roll-up. The lead never owns CONTENT —
+whether a defect exists at all, and how severe the reader judged it. A lead that supplies a severity
+the reader did not emit has manufactured evidence and put its own judgement behind the reader's name,
+which is the one failure an unvalidated return makes easy and invisible.
+
+**An omitted severity fails closed.** `unrated` is treated as gating-equivalent to `high`. A reader
+that declines to rate, or a normalization that loses a rating, therefore withholds rather than
+passes, and the cheapest way out of a withhold is to rate the finding honestly.
+
+## DEC-207 — A gate may grade a specification before any code exists, and its findings enter the one batched review pass
+
+**Chose:** A gate MAY fire in the plan phase, before any code exists. Origin:
+`FEAT-45-adversarial-plan-panel`, whose adversarial panel reads a DRAFTED plan before the operator
+signs it.
+
+**What is different about a plan-phase gate.** It grades a specification rather than a diff. It has
+no `review_sha` to pin, because there is no commit its findings are about, and no test suite to run,
+because nothing has been built to run one against. A code-reviewer digest binds this case as
+`reviewed: plan:<path-to-plan.yaml>` with `code_grade: n_a`; the validator accepts that form only
+while the named feature's plan is pending, has no pinned `review_sha`, and belongs to the checkout
+branch actually under review. This is a distinct target, not a missing-SHA fallback. Its evidence
+is a reader's judgement recorded in a lead digest — which
+is why the digest, not a green suite, is the artifact the ship decision reads.
+
+**The bound that keeps it from becoming a second approval loop.** Findings enter the ONE batched
+review pass at the signature gate per DEC-176 and never open a separate pre-signature fix dispatch.
+A panel that could open its own fix cycle would be a second approval loop wearing a gate's name, and
+DEC-176's single consolidated pass exists precisely to deny that.
+
+**Withholding, and who ends it.** A finding at high or worse withholds the presentation until it is
+resolved or the operator records an overrule. The operator, not the panel, is the terminus: the panel
+can delay a signature and can never refuse one.

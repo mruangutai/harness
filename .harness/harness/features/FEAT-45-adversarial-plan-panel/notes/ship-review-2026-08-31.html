@@ -1,0 +1,83 @@
+<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>FEAT-45 — adversarial plan panel: ship review</title><style>
+:root{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:ui-sans-serif,-apple-system,"Segoe UI","Helvetica Neue",Arial,sans-serif;
+}
+/* Token-level theming: components style through the tokens and never inside the
+   media query, so the viewer's explicit toggle can override the OS in BOTH
+   directions. */
+@media (prefers-color-scheme:dark){
+  :root{ --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+         --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733; }
+}
+:root[data-theme="dark"]{
+  --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+  --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733;
+}
+:root[data-theme="light"]{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+}
+*{box-sizing:border-box}
+body{margin:0; background:var(--paper); color:var(--ink);
+  font:400 16px/1.65 var(--sans); padding:clamp(1.5rem,5vw,4rem) clamp(1rem,5vw,2rem) 6rem}
+.wrap{max-width:56rem; margin:0 auto}
+/* Layout owns the spacing: gap between siblings, not per-element margins that
+   collapse or double. */
+.wrap{display:flex; flex-direction:column; gap:1rem}
+.eyebrow{font:500 11px/1 var(--mono); letter-spacing:.14em; text-transform:uppercase;
+  color:var(--quiet); margin:0}
+h1{font:600 clamp(1.6rem,4vw,2.3rem)/1.15 var(--sans); letter-spacing:-.02em;
+  margin:.4rem 0 .2rem; text-wrap:balance}
+h2{font:600 1.15rem/1.3 var(--sans); letter-spacing:-.01em; margin:2rem 0 0;
+  padding-top:1.25rem; border-top:1px solid var(--line); text-wrap:balance}
+h3{font:600 .98rem/1.4 var(--sans); margin:1.1rem 0 0}
+h4,h5,h6{font:500 11px/1.4 var(--mono); letter-spacing:.1em; text-transform:uppercase;
+  color:var(--quiet); margin:1rem 0 0}
+p,li{max-width:65ch; margin:0}
+ul,ol{margin:0; padding-left:1.4rem; display:flex; flex-direction:column; gap:.4rem}
+li>ul,li>ol{margin-top:.4rem}
+strong{font-weight:600}
+code{font:400 .875em/1.5 var(--mono); background:var(--sunk); padding:.1em .35em; border-radius:3px}
+pre{background:var(--sunk); border:1px solid var(--line); border-radius:6px;
+  padding:.85rem 1rem; overflow-x:auto; margin:0}
+pre code{background:none; padding:0}
+blockquote{margin:0; padding:.75rem 1rem; border-left:3px solid var(--accent);
+  background:var(--accent-soft); border-radius:0 5px 5px 0}
+blockquote p{max-width:none}
+hr{border:0; border-top:1px solid var(--line); margin:.5rem 0}
+/* Wide content pans inside its OWN container; the page body never scrolls sideways. */
+.scroll{overflow-x:auto; border:1px solid var(--line); border-radius:6px}
+table{border-collapse:collapse; width:100%; font-size:.9rem}
+th,td{text-align:left; padding:.6rem .8rem; border-bottom:1px solid var(--line); vertical-align:top}
+thead th{font:500 10px/1.3 var(--mono); letter-spacing:.11em; text-transform:uppercase;
+  color:var(--quiet); background:var(--sunk); white-space:nowrap}
+tbody tr:last-child td{border-bottom:0}
+/* Figures in a column line up. */
+td,th{font-variant-numeric:tabular-nums}
+.derived{color:var(--slate); font-size:.85rem; margin-top:2.5rem;
+  padding-top:1rem; border-top:1px solid var(--line)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style></head><body><div class='wrap'><p class='eyebrow'>Ship review · reading view</p><h1 id="feat-45-adversarial-plan-panel-ship-review">FEAT-45 — adversarial plan panel: ship review</h1>
+<p><strong>Recommendation: ship it.</strong> Every criterion that disk can settle is met — 14 of 17. Nothing is unmet. The remaining three cannot be settled by any agent: they need one live <code>/harness-plan</code> and your own judgement, and the criteria say so in their own words. Shipping is what makes that run possible.</p>
+<p><strong>B-1 was fixed before shipping, on your instruction.</strong> Panel finding identities are now a 128-bit hash (<code>PF-</code> plus 32 hex, 35 characters) instead of 32-bit. A final review cycle graded that change and returned <strong>PASS at severity <code>low</code>, with no <code>must_fix</code></strong> — the security reviewer confirms its own finding is closed and that an adversarial-collision test is now unnecessary rather than merely absent, and a reverted-width probe reddens three independent assertions, so the fix is pinned against silently regressing. A sweep of 78 files found no code anywhere still depending on the old width.</p>
+<p><strong>One thing to accept knowingly.</strong> The fix that lets a code reviewer return from a worktree is present and correct by inspection, but it <strong>cannot be proven until the branch merges</strong>, because the hook executes <code>main</code>&#x27;s installed copy of the validator, not the branch&#x27;s. That is a property of how hooks resolve, not a defect in the work. You have already ruled this a conditional close; it is recorded below as a required post-merge check so it cannot quietly lapse.</p>
+<p><strong>How this briefing was assembled.</strong> No report round was spawned — the leads&#x27; digests were read from disk, per DEC-69. Sources: <code>runs/2026-08-29-01-brief-product/</code>, <code>2026-08-29-1-arch-eng/</code>, <code>2026-08-29-2-plan-product/</code>, <code>2026-08-29-1-simplify-eng/</code>, <code>2026-08-29-1-uiscope-validator/</code>, <code>2026-08-29-1-planfix-product/</code>, <code>2026-08-30-1-product/</code>, <code>2026-08-31-01-product/</code>, <code>2026-08-31-01-eng/</code>, <code>2026-08-31-1-eng/</code>, <code>2026-08-31-1-validator/</code>, <code>2026-08-31-01-validator/</code>, <code>2026-08-31-02-validator/</code>, <code>c3-validator/</code>, <code>simplify-eng/</code>, plus <code>notes/qa-feat45-c0.md</code>, <code>notes/research-FEAT-45-goalcheck-final.md</code> and the twelve <code>notes/review-harness-*-c{0,1,2,3}.md</code>. <strong>One source is missing and it matters:</strong> the cycle-0 lead digest was destroyed when the cycle-2 panel reused its run directory. Its findings survive in STATE.md and the commit record; the digest itself does not.</p>
+<h2 id="what-was-built">What was built</h2>
+<p>An adversarial reader panel that runs in the plan phase, before any code exists. Twelve tasks: a new team definition, three reader prompts wired into the plan door and the orchestrator playbook, a content-hash identity for panel findings (<code>panel_findings.py</code>), a new signature gate (INV-32 in <code>check-state.sh</code>), and two signed decisions — DEC-206 (a lead may wrap a non-harness reader and owns its shape but never its content) and DEC-207 (a gate may grade a specification, not a diff).</p>
+<h2 id="where-each-squad-landed">Where each squad landed</h2>
+<ul><li><strong>Product</strong> — wrote the BRIEF and plan, adjudicated a mid-build plan gap, and ran both goal-checks. The final grade is 14 met / 0 unmet / 3 deferred (<code>notes/research-FEAT-45-goalcheck-final.md</code>).</li><li><strong>Engineering</strong> — delivered five build tasks and three fix cycles. Its own SIMPLIFY pass ran all four angles and applied nothing, which is a real outcome and was recorded as one (<code>runs/simplify-eng/digest.md</code>).</li><li><strong>Validation</strong> — the QA gate passed the test matrix (<code>notes/qa-feat45-c0.md</code>), and the reviewer panel ran four times. It earned its keep: it found the gating defect described next.</li></ul>
+<h2 id="the-finding-that-justified-the-whole-exercise">The finding that justified the whole exercise</h2>
+<p>The gate this feature ships <strong>failed open on exactly the input its own signed decision names as the risk</strong>. <code>check-state.sh</code> defaulted a missing panel-finding severity to the empty string, which was in no gating set — so a finding whose rating was lost would have reached your signature un-vetted, while DEC-206, written in the same change, promised verbatim that a lost rating withholds. Caught at cycle 0, fixed, and the fix was proven able to fail by reverting it and watching the test go red.</p>
+<p>A second one is worth your attention because it was invisible: for one pinned commit the <strong>test gate was collecting zero tests</strong>. Three registrations named files <code>main</code> had retired; the runner exited before collecting anything. Every &quot;suite is green&quot; claim at that pin — mine included — was a standalone script run, not a gate run. Fixed; discovery is now 57 registered scripts and 433 result lines against 2 lines while dead.</p>
+<h2 id="deferred-and-why-these-are-not-failures">Deferred, and why — these are not failures</h2>
+<div class="scroll"><table><thead><tr><th>Criterion</th><th>Why no agent can settle it</th></tr></thead><tbody><tr><td>SC-11</td><td>&quot;On a live plan, the operator judges each of the three readers to have earned its spawn&quot;</td></tr><tr><td>SC-12</td><td>&quot;On a live plan whose panel raises nothing at <code>high</code>, the operator reaches the signature&quot;</td></tr><tr><td>SC-16</td><td>&quot;On the first live <code>/harness-plan</code> after this ships&quot; — its own text defers it</td></tr><tr><td>F5/V1</td><td>The executing hook resolves <code>main</code>&#x27;s validator, so the fix cannot run pre-merge</td></tr></tbody></table></div>
+<p><strong>Required post-merge check:</strong> the first reviewer dispatch after merge must be confirmed to land a structured return. That single run also settles SC-11, SC-12 and SC-16.</p>
+<h2 id="proposed-backlog-strike-any-row-by-id-anything-not-listed-dies-silently">Proposed backlog — strike any row by ID; anything not listed dies silently</h2>
+<div class="scroll"><table><thead><tr><th>ID</th><th>Nature</th><th>Item</th></tr></thead><tbody><tr><td>B-2</td><td>bug</td><td><code>_hook_feature_dir</code> falls back silently to <code>owner_root</code> on any registry miss with no existence check. Not the cause of the observed failure, but a real hole</td></tr><tr><td>B-3</td><td>bug</td><td><code>code-grade.py</code> raises an unhandled <code>RuntimeError</code> on any path new in the graded diff — exits 1 with zero <code>RESULT: FAIL</code> lines, reddening a clean range and able to mask a real failure behind a crash</td></tr><tr><td>B-4</td><td>bug</td><td>Five structured returns came back empty or null across this feature and were only recovered because leads re-measured. <code>validate-digest.py</code>&#x27;s stop hook did not stop them</td></tr><tr><td>B-5</td><td>bug</td><td>Agents wrote feature artifacts into the <strong>main checkout</strong> rather than their worktree six times; three existed nowhere else. All recovered by hand</td></tr><tr><td>B-6</td><td>bug</td><td>A lead reusing a run directory across cycles overwrote an earlier lead digest, destroying the cycle-0 record</td></tr><tr><td>B-7</td><td>bug</td><td>INV-26 is structurally red for the whole Building phase, and both shapes are produced by the mirror&#x27;s own writers</td></tr><tr><td>B-8</td><td>chore</td><td>SC-04/05/07/13/17 declare <code>evidence: unit</code>, but their proofs live in <code>test-check-state.py</code>, which is in <code>INTEGRATION_SCRIPTS</code> — so the invocation SC-08 names never runs them. The proofs exist; the label is wrong</td></tr><tr><td>B-9</td><td>bug</td><td><code>test-validate-digest.py</code> passes an explicit <code>feature_dir</code> — the very parameter the F1 forgery manipulated — so the test could not fail on the defect it appeared to cover. <code>check_hook_feature_dir</code> similarly monkeypatches the lookup</td></tr><tr><td>B-10</td><td>chore</td><td>DEC number allocation has no cross-branch check; <code>main</code> landed a DEC-205 after this branch was cut and the collision was caught by hand</td></tr><tr><td>B-11</td><td>chore</td><td><code>plan-panel.yaml</code> restates the validator lead&#x27;s transcription contract with no drift detector. Flagged by two SIMPLIFY passes and appliable by no squad — both files resolve to NOBODY</td></tr><tr><td>B-12</td><td>chore</td><td>40+ of 43 <code>bin/test-*.py</code> files define their own <code>check()</code> in five incompatible shapes</td></tr><tr><td>B-13</td><td>chore</td><td>Five pre-existing plan-phase artifacts fail the DEC-154/DEC-156 contracts. Not corrected — rewriting another run&#x27;s record would falsify it</td></tr><tr><td>B-14</td><td>bug</td><td><code>check-state.sh</code>&#x27;s overrule attribution check has no <code>continue</code>, so a rejected unattributed overrule still emits a <code>disposition overruled.</code> line. The VIOLATION still fires</td></tr><tr><td>B-15</td><td>chore</td><td><code>M6</code> — <code>goalcheck</code> transcription ambiguity; fails closed and loudly on the first live run. <code>M7</code> — the withhold message states the fact but not the remedy</td></tr><tr><td>B-16</td><td>chore</td><td><code>V2</code> — branch-less corroboration is a documented deliberate no-op; closing it needs a non-branch identity input</td></tr></tbody></table></div>
+<h2 id="budget">Budget</h2>
+<p>Cycles <strong>9 of 10</strong> — the bound nearly bit. Four rework loops went to reviewer findings, and on your ruling cycle 10 is preserved rather than spent re-observing code that cannot execute. Runs <strong>16 of 20</strong>, informational. The runs earned their place: three of them found defects that would otherwise have shipped, and one of those was in the feature&#x27;s own gate.</p><p class='derived'>Derived from <code>ship-review-2026-08-31.md</code> — the markdown is the record; do not edit this file. Regenerate with <code>bin/render-brief.py</code>.</p></div></body></html>

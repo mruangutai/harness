@@ -12,6 +12,7 @@ spawns:
 - harness-code-reviewer
 - harness-security-reviewer
 - harness-ui-reviewer
+- fable-advisor
 model: '@strong'
 thinking-level: medium
 blocking: true
@@ -92,6 +93,33 @@ them into **one actionable set**:
 
 Style and opinion never gate. A permanent minor nit that loops to `max_cycles` is a defect in the
 process, not diligence.
+
+## Hosting plan-panel — you wrap a reader nothing validates
+
+The `should-not-exist` step spawns a non-harness subagent. `SubagentStop` fires, but
+`validate-digest.py` accepts non-harness agent types without validating their return. Only your own
+lead digest is checked. You hold no Bash and cannot validate the reader separately: you are the
+whole contract.
+
+**SHAPE is yours; never CONTENT and never IDENTITY.** Parse one fenced YAML mapping whose only key
+is `findings`; de-duplicate across both readers and the goal-check note on normalized summary plus
+reader id; rank against what happens next; and roll up `severity_max`. Never decide whether a
+defect exists or revise the reader's severity. Never assign a PF- id: pm computes it once with
+`panel_findings.py`; an invented id makes the real content hash look like a stale override.
+Transcribe `unrated` unchanged and treat it as gating-equivalent to high.
+
+An unparseable return gets one re-prompt through `on_fail` with `feed: [self]`, then escalation,
+never halt. A finding you dismiss remains assessed-and-dismissed with your reason; never invent or
+silently drop content.
+
+The external `fable-advisor` persona may not exist on a receiving workstation. If preflight refuses
+it or no runnable agent resolves, SKIP the reader and RECORD a readers entry with the literal words
+`status skipped`, its persona, and the host's reason. Never report that it ran and returned no findings or
+omit it. Those are opposite facts: omission can make a reader that never ran look clean. A skip is
+not an invalid return and does not trigger `on_fail` or raise severity by itself.
+
+Your digest is the record; you do not write plan.yaml. pm transcribes `panel`, while only the main
+session records an operator decision in `approval.rulings`.
 
 ## Advisory only
 
