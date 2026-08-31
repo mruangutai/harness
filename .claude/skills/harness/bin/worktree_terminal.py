@@ -185,6 +185,21 @@ def _read_landed_plan_yaml(owner_root, default_branch, plan_rel):
     folding them into one with a `parse=` argument was considered and rejected: the shared part
     is four lines of git plumbing, while the DIFFERENCE — json.loads versus a YAML loader that
     can raise its own exception type — is the part a reader needs to see at the call site.
+
+    THE PyYAML-ABSENT FALLBACK IS NOT DEFENSIVE PADDING; IT IS A MEASURED REGRESSION FIX.
+    post-merge-sweep.sh runs `python3 -I`, and isolated mode deliberately ignores user
+    site-packages — where PyYAML is installed on a stock macOS setup. This module read only JSON
+    until T-07 and so had NO third-party dependency; moving the station into plan.yaml gave the
+    sweep one it cannot satisfy. Measured: every worktree classified "unresolved: landed plan.yaml
+    is unparseable", so NO terminal worktree was ever reclaimed — silently, because "unresolved"
+    is a SKIP. test-post-merge-sweep.py caught it; nothing else would have.
+
+    THE SCAN IS SOUND HERE FOR A REASON THAT DOES NOT GENERALISE, and the reason is the whole
+    justification: plan.yaml's top-level `status` has exactly ONE writer — `plan-merge.py
+    set-feature-station` — which emits a bare lowercase scalar on its own line. This is not
+    "regex-parsing YAML" in general (F-02's rule, which stands); it is reading one key whose
+    on-disk form is produced by one validated tool. The parsed path stays PRIMARY, so any legal
+    YAML a human hand-edited is still read correctly wherever PyYAML exists.
     """
     r = _run_git(["rev-parse", f"{default_branch}:{plan_rel}"], owner_root)
     if r is None or r.returncode != 0:
@@ -198,11 +213,34 @@ def _read_landed_plan_yaml(owner_root, default_branch, plan_rel):
     try:
         import harness_yaml
         doc = harness_yaml.load_str(c.stdout, f"{default_branch}:{plan_rel}")
-    except Exception:
-        return None, "unparseable"
+    except Exception as exc:
+        if type(exc).__name__ != "MissingDependency":
+            # A genuinely malformed plan. Unchanged posture: never folded into "not terminal".
+            return None, "unparseable"
+        doc = _scan_top_level_status(c.stdout)
+        if doc is None:
+            return None, "unparseable"
     if not isinstance(doc, dict):
         return None, "unparseable"
     return doc, None
+
+
+def _scan_top_level_status(text):
+    """`{"status": <value>}` from plan.yaml TEXT, without a YAML parser, or None.
+
+    Only reached when PyYAML is unimportable (see `_read_landed_plan_yaml`). Deliberately STRICT
+    rather than forgiving: a top-level key is column-0, so any indented `status:` — every task's
+    own status, which is what a loose scan would wrongly match FIRST — is skipped. Quotes are
+    stripped because a hand-edited plan may carry them; anything else that is not a bare scalar
+    returns None, which the caller reports as unparseable rather than guessing.
+    """
+    for line in text.splitlines():
+        if not line.startswith("status:"):
+            continue
+        value = line[len("status:"):].strip()
+        value = value.split("#", 1)[0].strip().strip("'\"")
+        return {"status": value} if value else None
+    return {}
 
 
 def _is_dirty(worktree_path):

@@ -866,6 +866,58 @@ def case_plan_station_is_the_landed_authority():
     return results
 
 
+def case_plan_station_scan_without_pyyaml():
+    """FEAT-41 T-07: the station is still readable when PyYAML is NOT importable.
+
+    THIS PINS A MEASURED PRODUCTION REGRESSION. post-merge-sweep.sh runs `python3 -I`, and
+    isolated mode ignores user site-packages — where PyYAML lives on a stock macOS install. This
+    module read only JSON until T-07, so it had no third-party dependency; moving the station
+    into plan.yaml gave the sweep one it could not satisfy, and EVERY worktree came back
+    "unresolved: landed plan.yaml is unparseable". No terminal worktree was reclaimed, silently,
+    because unresolved is a SKIP. test-post-merge-sweep.py went red on 16 cases; this case is
+    the unit-level pin so the next reader sees the requirement here, at the function.
+    """
+    import worktree_terminal as w
+
+    results = []
+    plan = ("schema: plan/1\nfeature: FEAT-X\nstatus: done\n"
+            "tasks:\n  - id: T-01\n    status: building\n")
+
+    results.append((
+        "T-07 scan: the TOP-LEVEL station is returned",
+        w._scan_top_level_status(plan) == {"status": "done"},
+        repr(w._scan_top_level_status(plan))))
+
+    # THE DISCRIMINATOR, and the reason the scan is column-0 anchored: a task's own `status:` is
+    # indented and appears later. A loose scan would match a task's value on some other plan
+    # shape and classify a live feature as terminal — a WRITE, since the sweep then removes it.
+    indented_first = ("tasks:\n  - id: T-01\n    status: done\n"
+                      "status: building\n")
+    results.append((
+        "T-07 scan: an INDENTED task status is never mistaken for the feature's station",
+        w._scan_top_level_status(indented_first) == {"status": "building"},
+        repr(w._scan_top_level_status(indented_first))))
+
+    results.append((
+        "T-07 scan: a trailing comment is stripped",
+        w._scan_top_level_status("status: done  # shipped\n") == {"status": "done"},
+        repr(w._scan_top_level_status("status: done  # shipped\n"))))
+
+    results.append((
+        "T-07 scan: quotes are stripped",
+        w._scan_top_level_status("status: 'done'\n") == {"status": "done"},
+        repr(w._scan_top_level_status("status: 'done'\n"))))
+
+    # NO top-level status at all is an EMPTY mapping, not None: the plan parsed, it simply
+    # records no station, which the caller treats as "not terminal" rather than unparseable.
+    results.append((
+        "T-07 scan: a plan with no top-level status yields an empty mapping, not a failure",
+        w._scan_top_level_status("feature: FEAT-X\ntasks: []\n") == {},
+        repr(w._scan_top_level_status("feature: FEAT-X\ntasks: []\n"))))
+
+    return results
+
+
 def main():
     results = (
         case_classify()
@@ -879,6 +931,7 @@ def main():
         + case_classify_from_linked_worktree()
         + case_classify_empty_repo_no_linked_worktrees()
         + case_plan_station_is_the_landed_authority()
+        + case_plan_station_scan_without_pyyaml()
     )
     all_ok = True
     for name, ok, detail in results:
