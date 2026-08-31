@@ -4,7 +4,7 @@
   "pr": null,
   "status": "Review",
   "review_sha": "d0ebbe6f361d8084176bee27202b1a3b9e005947",
-  "cycles_used": 5,
+  "cycles_used": 6,
   "max_total_cycles": 10,
   "runs": [
     {
@@ -66,6 +66,12 @@
       "squad": "validator",
       "agent": "harness-validator-lead",
       "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-31-01-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL"
     }
   ],
   "github": {
