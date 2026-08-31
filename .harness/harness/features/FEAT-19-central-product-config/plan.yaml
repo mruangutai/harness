@@ -1,5 +1,6 @@
 schema: plan/1
 feature: FEAT-19-central-product-config
+status: abandoned
 
 approval:
   status: pending

@@ -1,5 +1,6 @@
 schema: plan/1
 feature: FEAT-40-harness-writes-done
+status: done
 
 source_issues: [842]
 

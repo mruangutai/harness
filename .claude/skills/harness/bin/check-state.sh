@@ -69,6 +69,39 @@ def read(p):
     except Exception:
         return None
 
+# THE STATION VOCABULARY IS DERIVED, NEVER SPELLED (FEAT-41 T-01/T-07). Both names below come
+# from factory_config so this script cannot drift from harness.json's declaration — the drift
+# that made a six-key mapping and a validator disagree, which is why FEAT-41 exists.
+import factory_config
+
+TERMINAL_MARKER = factory_config.TERMINAL_MARKER
+
+# THE FEATURE'S STATION, READ FROM THE ONE FILE THAT RECORDS IT (FEAT-41 T-07). Every site
+# below that used to read feature.json's `status` now calls this, so the vocabulary and the
+# file live in exactly one place in this script instead of six.
+#
+# `station_of` takes the feature DIRECTORY, not a file, because every caller already holds one
+# and the two callers that iterate feature.json globs still need that document for its OTHER
+# keys (INV-28's `pr`, INV-6's shape). Splitting the station read from the document read is
+# what lets those sites keep one open() each rather than gaining a second.
+#
+# RETURNS "" FOR EVERY UNKNOWABLE CASE — no plan, unparseable plan, no station, a station that
+# is not a string. "" is the same value the old code produced from an absent feature.json
+# status, so each caller's existing posture carries over unchanged rather than being redesigned
+# alongside the migration.
+def station_of(feat_dir):
+    try:
+        doc = harness_yaml.load_file(os.path.join(feat_dir, "plan.yaml")) or {}
+    except Exception:
+        return ""
+    if not isinstance(doc, dict):
+        return ""
+    # `status: done  # with a trailing comment` is a shape the live corpus carries, so take the
+    # first whitespace-delimited token — the same normalisation the feature.json reads used.
+    token = str(doc.get("status", "")).split()
+    return token[0] if token else ""
+
+
 if not os.path.isdir(H):
     print("harness: no .harness/ — project not onboarded. Run /harness-init.")
     sys.exit(1)
@@ -127,18 +160,15 @@ if not os.path.isfile(os.path.join(H, "harness.json")):
 # AN ABANDONED FEATURE'S BRIEF IS NEVER APPROVED, and that is the point rather than a
 # defect: it was planned and retired without being signed. Halting /harness entry over an
 # unapproved brief on a feature nobody will build trains the operator to ignore the gate,
-# which is the failure a gate exists to prevent. Read from feature.json, not inferred.
+# which is the failure a gate exists to prevent. Read from plan.yaml's station (FEAT-41 T-07),
+# never inferred — and the try/except that guarded the old json.load is gone with it, because
+# `station_of` already returns "" for every unreadable and unparseable shape.
 _abandoned = set()
 for _fd in sorted(glob.glob(os.path.join(H, "*", "features", "*"))):
     if not os.path.isdir(_fd):
         continue
-    _f = os.path.basename(_fd)
-    try:
-        _fj_p = os.path.join(_fd, "feature.json")
-        if os.path.isfile(_fj_p) and json.load(open(_fj_p, encoding="utf-8")).get("status") == "Abandoned":
-            _abandoned.add(_f)
-    except Exception:
-        pass   # unreadable feature.json is INV-6's finding, not this loop's
+    if station_of(_fd) == TERMINAL_MARKER:
+        _abandoned.add(os.path.basename(_fd))
 for feat, brief in briefs.items():
     if feat in _abandoned:
         continue
@@ -727,40 +757,61 @@ import subprocess
 # feature. INV-17 would stop examining anything at all while check-state.sh went on exiting
 # exactly as it does today. A gate that examines nothing reports nothing wrong.
 #
-# THE STEMS ARE LOWERCASE LITERALS AND ARE DELIBERATELY NOT DERIVED FROM THE STATUS VALUES.
-# The next editor's first instinct is to build the filename from the status; do not. The
-# board's values are capitalized, so deriving would look for notes/handoff-Plan.md and
-# notes/handoff-Building.md while all 34 notes on disk are lowercase. That MATCHES on this
-# machine's case-insensitive filesystem and MISSES on Linux CI — the invariant would look
-# healthy locally and go dark on the only machine that gates the merge. Keeping the stems
-# as their own literals also renames no file on disk.
+# THE STEMS ARE LOWERCASE LITERALS AND ARE DELIBERATELY NOT DERIVED FROM THE STATION NAMES.
+# The next editor's first instinct is to build the filename from the station; do not. The stems
+# are seam names — plan, build, validate — and the stations are positions. They now happen to
+# share a case, which is exactly what makes deriving look safe and still be wrong: `ready` and
+# `building` both require notes/handoff-plan.md, and no station is named `validate` at all.
+# Keeping the stems as their own literals also renames no file on disk.
 #
 # THE RESIDUAL LOSS, RECORDED RATHER THAN HIDDEN: validate and ship both folded into
-# Review, so the validate-to-ship crossing is no longer separately observable and
-# handoff-validate.md cannot be demanded at Review. It is demanded at Done instead — the
-# next boundary that proves Review completed. One seam moves later; none is dropped.
+# review, so the validate-to-ship crossing is no longer separately observable and
+# handoff-validate.md cannot be demanded at review. It is demanded at done instead — the
+# next boundary that proves review completed. One seam moves later; none is dropped.
 #
-# A status outside STATUS_ORDER skips this feature, which is the same silent shape as
-# above. It is left that way deliberately: status is schema-required with a closed value
-# set, so an unknown value is already denied at write time, and adding a branch here would
-# be a second enforcement point for a rule the schema owns.
-# Despite the name, STATUS_ORDER is used as a SET — `:548` tests membership and nothing
-# indexes it. So `Abandoned` sitting at the end implies no progression past `Done`.
-STATUS_ORDER = ["Backlog", "Plan", "Ready", "Building", "Review", "Done", "Abandoned"]
+# A STATION OUTSIDE STATUS_ORDER IS NOW A VIOLATION, NOT A SILENT SKIP (FEAT-41 T-07, A-03).
+# It was a deliberate silent skip on the grounds that status was schema-required with a closed
+# enum, so an unknown value was already denied at write time and a branch here would have been
+# a second enforcement point for a rule the schema owned. THAT COMPENSATING CONTROL IS GONE:
+# T-07 deleted the key from feature-schema.json, and the station now lives in plan.yaml, whose
+# schema does not constrain the top-level `status` value at all. What denies an illegal station
+# today is plan-merge.py's set-feature-station, which validates before it opens the file — an
+# enforcement point on the WRITE ROUTE, not on the document. A hand-edited plan therefore
+# reaches this loop with a station nothing has checked, and the old skip would have taken every
+# such feature out of INV-17 without a word. It is reported instead.
+#
+# Despite the name, STATUS_ORDER is used as a SET — the membership test below is its only
+# reader and nothing indexes it. So the marker sitting at the end implies no progression.
+#
+# STATUS_ORDER AND SEAM_NOTES ARE ONE VOCABULARY AND MOVE TOGETHER. SEAM_NOTES is indexed by a
+# BARE SUBSCRIPT below, guarded only by that membership test, so rekeying one without the other
+# does not degrade to a skip — it is a KeyError in the project's own state gate, for every
+# well-formed feature on disk. Derived from factory_config rather than spelled, which makes the
+# pairing structural: both are built from MANDATED_STATIONS, so neither can be rekeyed alone.
+STATUS_ORDER = list(factory_config.MANDATED_STATIONS) + [TERMINAL_MARKER]
 SEAM_NOTES = {
-    "Backlog":  [],
-    "Plan":     [],
-    "Ready":    ["plan"],
-    "Building": ["plan"],
-    "Review":   ["plan", "build"],
-    "Done":     ["plan", "build", "validate"],
-    # ABANDONED REQUIRES NO HANDOFF, and that is the whole difference from Done. A feature
-    # planned and never built crossed no seam, so there is no honest handoff note to write
-    # and none will be fabricated. Listed EXPLICITLY rather than omitted: an omitted status
-    # falls through `:548`'s membership test and skips the feature silently, which is the
-    # shape the comment above that line already flags.
-    "Abandoned": [],
+    "backlog":  [],
+    "plan":     [],
+    "ready":    ["plan"],
+    "building": ["plan"],
+    "review":   ["plan", "build"],
+    "done":     ["plan", "build", "validate"],
+    # THE TERMINAL MARKER REQUIRES NO HANDOFF, and that is the whole difference from done. A
+    # feature planned and never built crossed no seam, so there is no honest handoff note to
+    # write and none will be fabricated. Keyed EXPLICITLY rather than omitted: an omitted key is
+    # now a KeyError rather than a silent skip, since the station passes the membership test
+    # above by construction.
+    TERMINAL_MARKER: [],
 }
+# EVERY STATION IN THE VOCABULARY HAS A SEAM ROW, asserted here rather than trusted. The two
+# structures are derived from the same source, so the only way they can disagree is a hand-typed
+# SEAM_NOTES key — and this is the check that catches it at startup instead of at the subscript,
+# on whichever feature happens to sit at that station.
+_missing_seam_rows = [_s for _s in STATUS_ORDER if _s not in SEAM_NOTES]
+if _missing_seam_rows:
+    bad.append("check-state.sh: SEAM_NOTES has no row for station(s) %s — the seam table and "
+               "the station vocabulary have drifted, and INV-17 would raise KeyError on the "
+               "first feature at one of them." % ", ".join(_missing_seam_rows))
 HANDOFF_HEADINGS = ["## next", "## trust", "## dead ends", "## working set"]
 
 # The literal exemption set. FEAT-01 and FEAT-02 are Done, carry zero handoff notes, and
@@ -830,14 +881,28 @@ for fy in glob.glob(os.path.join(H, "*", "features", "*", "feature.json")):
     # F-02: parsed, not regex-scanned. `^status:\s*(\S+)` misses a quoted value and a
     # block scalar, both legal YAML — and a miss here is silent: the feature is skipped
     # entirely by `continue`, so the invariant never runs and never says why.
+    #
+    # The feature.json read STAYS, because this loop still needs the document to report an
+    # unparseable one; only the STATION now comes from plan.yaml (FEAT-41 T-07).
     try:
         _doc = harness_yaml.load_file(fy) or {}
     except Exception as e:
         bad.append(f"{fpath(feat, 'feature.json')} does not parse, so its seam invariants "
                    f"cannot be checked: {e}")
         continue
-    _status = str(_doc.get("status", "")).strip() if isinstance(_doc, dict) else ""
+    _status = station_of(os.path.dirname(fy))
+    if not _status:
+        # NO STATION AT ALL is still a skip, and deliberately so: a feature directory with no
+        # plan.yaml is a PLAN.md-era record, and INV-3 already reports a plan that should exist
+        # and does not. Reporting it here too would double every such line.
+        continue
     if _status not in STATUS_ORDER:
+        # LOUD, per A-03: nothing denies this value at write time any more. See the comment
+        # above STATUS_ORDER for why the old silent skip's justification no longer holds.
+        bad.append(f"{fpath(feat, 'plan.yaml')} records station '{_status}', which is not in "
+                   f"the station vocabulary ({', '.join(STATUS_ORDER)}), so its seam "
+                   f"invariants cannot be checked. Set it with `plan-merge.py "
+                   f"set-feature-station`, which validates the station before it writes.")
         continue
     _lit = feat.startswith(HANDOFF_EXEMPT_LITERAL)
     # Evaluated LAZILY — only when a required note is actually found missing, never for
@@ -1267,9 +1332,10 @@ for fy in glob.glob(os.path.join(H, "*", "features", "*", "feature.json")):
 # GATED ON github.sync, like INV-21 above: a repository with no mirror has no pull
 # requests to record, and the remedy needs a working `gh`.
 #
-# `Abandoned` IS TERMINAL AND IS SILENT HERE, deliberately. It asserts that no seam was
-# crossed and nothing shipped, so there is no pull request to have missed. Only the exact
-# string `Done` is checked — DEC-203's six status values are case sensitive.
+# THE TERMINAL MARKER IS TERMINAL AND IS SILENT HERE, deliberately. It asserts that no seam was
+# crossed and nothing shipped, so there is no pull request to have missed. Only the `done`
+# station is checked, read from plan.yaml (FEAT-41 T-07) — the feature.json read below stays,
+# because this invariant is ABOUT that document's `pr` key.
 if cj and (cj.get("github") or {}).get("sync"):
     for fy in glob.glob(os.path.join(H, "*", "features", "*", "feature.json")):
         feat = os.path.basename(os.path.dirname(fy))
@@ -1281,7 +1347,7 @@ if cj and (cj.get("github") or {}).get("sync"):
             continue
         if not isinstance(pdoc, dict):
             continue
-        if str(pdoc.get("status", "")).split()[:1] != ["Done"]:
+        if station_of(os.path.dirname(fy)) != "done":
             continue
         _pr = pdoc.get("pr")
         # `isinstance(True, int)` is True in Python, so the bool exclusion is load-bearing:
@@ -1656,16 +1722,20 @@ if _inv26_board:
                 # report one defect twice.
                 continue
 
-            # THE TERMINAL EXEMPTION. `ship` writes the parent's card to the done
-            # station and records the terminal status, while the plan-derived station
-            # would still say Review — so without this every shipped feature is a
-            # permanent false violation. Case sensitive on purpose: `done` is not `Done`
-            # (DEC-203). THE CONDITION IS UNCHANGED: it keys on feature.json's status.
+            # THE FEATURE.JSON READ STAYS — this block reads `github.issues`, `github.parent`
+            # and `factory.issues` off `_fj` further down. Only the STATION moved to plan.yaml.
             try:
                 _fj = json.load(open(os.path.join(_fp, "feature.json"), encoding="utf-8"))
             except Exception:
                 _fj = {}
-            if str(_fj.get("status") or "").split()[:1] in (["Done"], ["Abandoned"]):
+
+            # THE TERMINAL EXEMPTION. `ship` writes the parent's card to the done station and
+            # records the terminal station, while the plan-derived station would still say
+            # review — so without this every shipped feature is a permanent false violation.
+            #
+            # THE CONDITION NOW KEYS ON plan.yaml's STATION (FEAT-41 T-07) rather than
+            # feature.json's status, which is the only change here: one file records the station.
+            if station_of(_fp) in ("done", TERMINAL_MARKER):
                 continue
 
             _derived = _gb.derive_station(_pdoc)
@@ -1765,16 +1835,16 @@ if _inv26_board:
                 #
                 # What is actually true, and what this widening rests on now: `ship` — not a
                 # close — is what writes the done station (DEC-203). So while a feature's own
-                # status is Review, a done task's card may legitimately read the done, review
+                # station is review, a done task's card may legitimately read the done, review
                 # OR building station: done if ship has already run, and review or building
-                # because those are what the Review phase itself leaves behind.
+                # because those are what the review phase itself leaves behind.
                 #
-                # BOUNDED ON THAT STATUS ON PURPOSE, unchanged in force: an unconditional
+                # BOUNDED ON THAT STATION ON PURPOSE, unchanged in force: an unconditional
                 # widening would silence the mis-columned done card the invariant was
-                # extended to catch.
+                # extended to catch. The station is read from plan.yaml now (FEAT-41 T-07),
+                # the same file `_pdoc` came from.
                 _accept = {_want}
-                if (_tstat.get(_tid) == "done"
-                        and str(_fj.get("status") or "").split()[:1] == ["Review"]):
+                if _tstat.get(_tid) == "done" and station_of(_fp) == "review":
                     _accept |= {"review", "building"}
                 _wanttxt = (_want if len(_accept) == 1
                             else ", ".join(sorted(_accept)[:-1]) + " or " + sorted(_accept)[-1])
@@ -1848,10 +1918,11 @@ if _inv30_import_ok and (_g30 or {}).get("sync") and _repo30:
             continue
         if not isinstance(_doc30, dict):
             continue
-        # DEC-203's six status values are case sensitive — the exact string `Done` and nothing
-        # else. `Abandoned` is terminal and silent here for INV-28's reason: nothing shipped, so
-        # there is no milestone that ship should have closed.
-        if str(_doc30.get("status", "")).split()[:1] != ["Done"]:
+        # The `done` station and nothing else, read from plan.yaml (FEAT-41 T-07). The terminal
+        # marker is terminal and silent here for INV-28's reason: nothing shipped, so there is
+        # no milestone that ship should have closed. The feature.json read above stays — this
+        # invariant needs `github.milestone` off that document.
+        if station_of(os.path.dirname(_fy30)) != "done":
             continue
         _ms30 = (_doc30.get("github") or {}).get("milestone")
         if _ms30 is None:

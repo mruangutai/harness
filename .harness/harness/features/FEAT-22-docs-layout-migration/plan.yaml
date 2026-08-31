@@ -1,5 +1,6 @@
 schema: plan/1
 feature: FEAT-22-docs-layout-migration
+status: done
 
 approval:
   status: approved

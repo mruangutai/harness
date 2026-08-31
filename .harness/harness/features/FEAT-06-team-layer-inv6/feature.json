@@ -2,7 +2,6 @@
   "feature_id": "FEAT-06-team-layer-inv6",
   "branch": "main",
   "pr": 45,
-  "status": "Done",
   "review_sha": "9f87c48",
   "cycles_used": 5,
   "max_total_cycles": 10,

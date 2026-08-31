@@ -2,7 +2,6 @@
   "feature_id": "FEAT-41-one-station-vocabulary",
   "branch": "feat/FEAT-41-one-station-vocabulary",
   "pr": null,
-  "status": "Building",
   "review_sha": "15394e5f6311e4ef1f2c33528c723e54e66b3507",
   "cycles_used": 9,
   "max_total_cycles": 24,

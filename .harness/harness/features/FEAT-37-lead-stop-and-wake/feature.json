@@ -2,7 +2,6 @@
   "feature_id": "FEAT-37-lead-stop-and-wake",
   "branch": "feat/FEAT-37-lead-stop-and-wake",
   "pr": 912,
-  "status": "Done",
   "review_sha": "4e652f9",
   "cycles_used": 1,
   "max_total_cycles": 10,

@@ -1,5 +1,6 @@
 schema: plan/1
 feature: FEAT-28-ci-wiring-asserted
+status: abandoned
 
 approval:
   status: pending

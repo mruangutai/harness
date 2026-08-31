@@ -1,5 +1,6 @@
 schema: plan/1
 feature: FEAT-44-omp-context-advisory
+status: done
 
 source_issues: [923]
 

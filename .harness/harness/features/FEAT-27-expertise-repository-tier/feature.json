@@ -2,7 +2,6 @@
   "feature_id": "FEAT-27-expertise-repository-tier",
   "branch": "feat/FEAT-27-expertise-repository-tier",
   "pr": 574,
-  "status": "Done",
   "review_sha": "9b929de",
   "cycles_used": 3,
   "max_total_cycles": 10,

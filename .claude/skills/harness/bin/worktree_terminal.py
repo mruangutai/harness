@@ -175,6 +175,36 @@ def _read_landed_feature_json(owner_root, default_branch, feature_json_rel):
     return data, None
 
 
+def _read_landed_plan_yaml(owner_root, default_branch, plan_rel):
+    """The LANDED copy of plan.yaml, read at the same ref and through the same two git calls as
+    `_read_landed_feature_json` (FEAT-41 T-07). Returns (doc, error) with the SAME three error
+    words, so `classify` treats an unreadable plan exactly as it treats an unreadable
+    feature.json rather than inventing a fourth classification.
+
+    A SEPARATE FUNCTION RATHER THAN A PARAMETERISED ONE. The two differ only in the parser, and
+    folding them into one with a `parse=` argument was considered and rejected: the shared part
+    is four lines of git plumbing, while the DIFFERENCE — json.loads versus a YAML loader that
+    can raise its own exception type — is the part a reader needs to see at the call site.
+    """
+    r = _run_git(["rev-parse", f"{default_branch}:{plan_rel}"], owner_root)
+    if r is None or r.returncode != 0:
+        return None, "missing"
+    blob = r.stdout.strip()
+    if not blob:
+        return None, "missing"
+    c = _run_git(["cat-file", "blob", blob], owner_root)
+    if c is None or c.returncode != 0:
+        return None, "unreadable"
+    try:
+        import harness_yaml
+        doc = harness_yaml.load_str(c.stdout, f"{default_branch}:{plan_rel}")
+    except Exception:
+        return None, "unparseable"
+    if not isinstance(doc, dict):
+        return None, "unparseable"
+    return doc, None
+
+
 def _is_dirty(worktree_path):
     r = _run_git(["status", "--porcelain"], worktree_path)
     if r is None or r.returncode != 0:
@@ -268,14 +298,34 @@ def classify(root):
             })
             continue
 
-        status = data.get("status")
-        if status == "Done":
+        # THE STATION COMES FROM THE LANDED plan.yaml (FEAT-41 T-07), read at the SAME ref by
+        # the same blob helper. The feature.json read above stays: it is what decides
+        # "unresolved" for a missing or unparseable landed record, and that classification is
+        # about the feature directory existing on the default branch at all.
+        #
+        # AN UNREADABLE LANDED plan.yaml IS TREATED EXACTLY AS AN UNREADABLE feature.json WAS —
+        # "unresolved", never folded into "not terminal". Getting this wrong is the easy mistake
+        # here: a plan that fails to load would silently mean "not done", and a terminal
+        # worktree that never gets reclaimed is the failure this module exists to prevent.
+        plan_rel = os.path.join(features_rel, resolved_id, "plan.yaml")
+        plan_doc, plan_err = _read_landed_plan_yaml(owner_root, default_branch, plan_rel)
+        if plan_err is not None:
             records.append({
-                "path": path, "feature_id": resolved_id, "klass": "terminal", "dirty": dirty,
-                "reason": f"landed status is Done on {default_branch}",
+                "path": path, "feature_id": resolved_id, "klass": "unresolved", "dirty": dirty,
+                "reason": f"landed plan.yaml for {resolved_id} is {plan_err}",
                 "repo": repo_segment,
             })
-        # else: the lookup resolved and the landed status is anything else -> omitted entirely.
+            continue
+
+        _station = str((plan_doc or {}).get("status", "")).split()
+        _station = _station[0] if _station else ""
+        if _station == "done":
+            records.append({
+                "path": path, "feature_id": resolved_id, "klass": "terminal", "dirty": dirty,
+                "reason": f"landed station is done on {default_branch}",
+                "repo": repo_segment,
+            })
+        # else: the lookup resolved and the landed station is anything else -> omitted entirely.
 
     records.sort(key=lambda r: r["path"])
     return records

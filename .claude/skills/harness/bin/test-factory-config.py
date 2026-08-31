@@ -498,26 +498,33 @@ except Exception as e:
     check("(X) validate_board rejects a seventh station that adds abandoned", False,
           f"{type(e).__name__}: {e}")
 
-# MANDATED_STATIONS must be exactly the six lowercase forms of feature-schema.json's status enum
-# minus "Abandoned", read at runtime, so the two declarations cannot drift apart silently.
+# THE TIE TO feature-schema.json IS GONE BECAUSE THE KEY IS (FEAT-41 T-07), and what replaces it
+# is an assertion about that absence.
+#
+# This pinned MANDATED_STATIONS against the schema's `status` enum so the two declarations could
+# not drift. T-07 deleted `status` from the schema — a feature's station lives in plan.yaml now —
+# so there is no second declaration left to pin against. That is the FEATURE, not a gap: one
+# vocabulary, declared once in factory_config, and plan-merge.py validates every write against
+# it. The check that matters is therefore the deletion itself, because a schema that quietly
+# regained a status enum would recreate exactly the two-vocabulary drift FEAT-41 removed.
 _schema_path = os.path.join(os.path.dirname(os.path.abspath(fc.__file__)), "feature-schema.json")
 with open(_schema_path, encoding="utf-8") as f:
     _schema = json.load(f)
-_schema_stations = {
-    s.lower() for s in _schema["properties"]["status"]["enum"] if s != "Abandoned"
-}
-check("(X) MANDATED_STATIONS is exactly the six lowercase forms of feature-schema.json's status "
-      "enum minus Abandoned",
-      set(fc.MANDATED_STATIONS) == _schema_stations,
-      (set(fc.MANDATED_STATIONS), _schema_stations))
+check("(X) feature-schema.json declares NO status key — the second vocabulary is gone",
+      "status" not in _schema["properties"] and "status" not in _schema["required"],
+      sorted(_schema["properties"]))
 
-# TERMINAL_MARKER is the schema's remaining status, lowercased — the one the six exclude. Pinning
-# it against the schema is what stops it from silently becoming a seventh station later.
-check("(X) TERMINAL_MARKER is the schema status the six stations exclude, lowercased",
+# The six names, spelled out ONE PER ENTRY rather than compared as a set against another source.
+# A literal here is legal and deliberate: SC-02 forbids quoted station literals in non-test
+# source precisely so that the ONE place they are written down is a test that pins them.
+check("(X) MANDATED_STATIONS is exactly the six lowercase stations, in board order",
+      list(fc.MANDATED_STATIONS) == ["backlog", "plan", "ready", "building", "review", "done"],
+      list(fc.MANDATED_STATIONS))
+
+check("(X) TERMINAL_MARKER is the lowercase terminal name and is NOT a seventh station",
       fc.TERMINAL_MARKER == "abandoned"
-      and "Abandoned" in _schema["properties"]["status"]["enum"]
       and fc.TERMINAL_MARKER not in fc.MANDATED_STATIONS,
-      (fc.TERMINAL_MARKER, _schema["properties"]["status"]["enum"]))
+      (fc.TERMINAL_MARKER, list(fc.MANDATED_STATIONS)))
 
 # --- station_column: the ONE place a capitalised station name is produced (FEAT-41 T-01) ------
 # (c) ONE CASE PER STATION, never a set comparison. A set comparison passes when two stations

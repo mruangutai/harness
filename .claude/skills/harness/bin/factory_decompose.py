@@ -194,11 +194,16 @@ def write_factory(feat_dir, factory, feat_id=None):
         if base is None:
             if feat_id is None:
                 raise harness_merge.MergeRefusal(9, [absent_message])
+            # NO `status` KEY (FEAT-41 T-07). This wrote the plan station into feature.json,
+            # which the schema's additionalProperties now REFUSES — so the seven keys below are
+            # the whole required set. The new feature's station is recorded in plan.yaml, by
+            # `plan-merge.py set-feature-station`, and this function never writes it: it is
+            # reached from the factory lane with a plan already on disk, and inventing a station
+            # here would be a second writer of the one field that must have exactly one.
             doc = {
                 "feature_id": feat_id,
                 "branch": "none",
                 "pr": None,
-                "status": "Plan",
                 "review_sha": "none",
                 "cycles_used": 0,
                 "max_total_cycles": 10,

@@ -1,5 +1,6 @@
 schema: plan/1
 feature: FEAT-15-domain-product-base
+status: done
 
 approval:
   status: approved

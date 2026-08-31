@@ -1,6 +1,7 @@
 # Approval remains pending; only the main session may add or change the approval mapping.
 schema: plan/1
 feature: FEAT-36-merge-gitignore-coverage
+status: done
 source_issues: [814]
 approval:
   status: approved

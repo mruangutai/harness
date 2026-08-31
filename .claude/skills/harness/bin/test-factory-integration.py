@@ -1500,7 +1500,7 @@ with tempfile.TemporaryDirectory() as td:
     feat_dir = os.path.join(root, ".harness", "widget", "features", "FEAT-STATUS")
     os.makedirs(feat_dir, exist_ok=True)
     with open(os.path.join(feat_dir, "feature.json"), "w", encoding="utf-8") as f:
-        json.dump({"status": "Done", "github": {"parent": 950, "issues": {"T-01": 951}}}, f)
+        json.dump({ "github": {"parent": 950, "issues": {"T-01": 951}}}, f)
     state_path = write_state(os.path.join(td, "gh_state.json"), issues={}, items={
         "ITEM1": {"number": 950, "repo": "acme/widget", "station": "Backlog"},
     })

@@ -269,13 +269,16 @@ def case_g():
         with open(os.path.join(h, "harness.json"), "w") as f:
             f.write(HARNESS_JSON_SYNC_OFF)
         with open(os.path.join(fd, "feature.json"), "w") as f:
-            f.write(f"feature_id: {feat}\nstatus: {status}\n")
+            f.write(f"feature_id: {feat}\n")
         for n in notes:
             with open(os.path.join(fd, "notes", f"handoff-{n}.md"), "w") as f:
                 f.write(NOTE)
-        if tasks != "omit":
-            with open(os.path.join(fd, "plan.yaml"), "w") as f:
-                f.write(f"feature_id: {feat}\n{tasks}")
+        # THE STATION GOES IN plan.yaml, LOWERCASE (FEAT-41 T-07) — and it is written even when
+        # `tasks == "omit"`, because INV-17 reads the station from this file now. A fixture with
+        # no plan.yaml at all has no station and is skipped, which is a different case.
+        with open(os.path.join(fd, "plan.yaml"), "w") as f:
+            f.write(f"feature_id: {feat}\nstatus: {str(status).lower()}\n"
+                    + ("" if tasks == "omit" else tasks))
         try:
             return run(tmp)[1]
         finally:
@@ -1381,12 +1384,15 @@ def _inv26_fixture(root, feat, task_status, card_status, parent_status,
         json.dump({"github": {"sync": True, "repo": "org/repo",
                               "board": _board}}, f)
     with open(os.path.join(fd, "plan.yaml"), "w") as f:
-        f.write("schema: plan/1\nfeature: %s\napproval:\n  status: approved\n"
+        # THE FEATURE'S STATION IS A TOP-LEVEL KEY HERE NOW (FEAT-41 T-07), lowercased from the
+        # `feature_status` argument every caller already passes. The argument keeps its name so
+        # no call site changes; only the file it lands in moved.
+        f.write("schema: plan/1\nfeature: %s\nstatus: %s\napproval:\n  status: approved\n"
                 "tasks:\n  - id: T-01\n    title: t\n    change_type: logic\n"
                 "    execution_mode: team\n    execution_agent: harness-backend-dev\n"
                 "    depends_on: []\n"
                 "    status: %s\n    files:\n      - a.py\n    verify: |\n      true\n"
-                "    intent: |\n      x\n" % (feat, task_status))
+                "    intent: |\n      x\n" % (feat, str(feature_status).lower(), task_status))
         # A SECOND TASK, so a fixture can sit BETWEEN two statuses. Every case before
         # this parameter was single-task, which is exactly why the suite stayed green
         # while a mixed plan silenced the whole invariant.
@@ -1399,7 +1405,7 @@ def _inv26_fixture(root, feat, task_status, card_status, parent_status,
     if issues is None:
         issues = {"T-01": 41} if second_status is None else {"T-01": 41, "T-02": 42}
     _doc = {"feature_id": feat, "branch": "b", "pr": None,
-            "status": feature_status, "review_sha": "abc1234",
+            "review_sha": "abc1234",
             "cycles_used": 0, "max_total_cycles": 10, "runs": [],
             "github": {"milestone": 1, "parent": 40, "issues": issues}}
     if factory is not None:
@@ -1886,9 +1892,13 @@ def case_w():
         with open(os.path.join(h, "team-config.yaml"), "w") as f:
             f.write("agents: {}\n")
         json.dump({"feature_id": "FEAT-Z", "branch": "b", "pr": None,
-                   "status": status, "review_sha": "abc1234",
+                   "review_sha": "abc1234",
                    "cycles_used": 0, "max_total_cycles": 10, "runs": []},
                   open(os.path.join(fd, "feature.json"), "w"))
+        # The abandoned skip reads plan.yaml's station now (FEAT-41 T-07), so the fixture must
+        # carry one — a feature.json status is no longer read by anything.
+        with open(os.path.join(fd, "plan.yaml"), "w") as f:
+            f.write(f"feature: FEAT-Z\nstatus: {str(status).lower()}\ntasks: []\n")
         with open(os.path.join(fd, "BRIEF.md"), "w") as f:
             f.write("# BRIEF\n\n## Approval\n\nstatus: pending\n")
         return tmp
@@ -2029,14 +2039,24 @@ def case_x():
         bindir = os.path.join(tmp, "binx")
         os.makedirs(bindir)
         shutil.copy(SCRIPT, os.path.join(bindir, "check-state.sh"))
-        # harness_yaml is the script's one hard import; harness_boundary joined it in
-        # FEAT-42 T-12, when check-state.sh started resolving its own root through it. Both
-        # are copied so the ONLY thing missing from this bin is layout_migration.py, which
-        # is what the case is about. Without the resolver the script refuses at exit 2
-        # before any invariant runs, and the case would be red for the wrong module.
-        for _mod in ("harness_yaml.py", "harness_boundary.py"):
-            shutil.copy(os.path.join(os.path.dirname(SCRIPT), _mod),
-                        os.path.join(bindir, _mod))
+        # EVERY MODULE EXCEPT layout_migration.py, STATED AS THAT RATHER THAN AS A LIST.
+        #
+        # This was an explicit list of the script's imports, and the list was the defect. It
+        # named harness_yaml, then harness_boundary when FEAT-42 T-12 added it, and each time
+        # the script gained an import this case went red for the WRONG module — the script
+        # refusing on a missing dependency before any invariant ran, reported as "INV-27 did
+        # not say CANNOT RUN". FEAT-41 T-07 hit it again with factory_config, whose own
+        # transitive closure is seven modules (factory_cli, factory_gh, gh_cost_log,
+        # gh_issues ...), none of which this case has anything to say about.
+        #
+        # The case's actual premise is "a bin directory complete but for layout_migration.py",
+        # so that is what is built. Self-maintaining: a new import needs no edit here, and the
+        # one absence under test cannot be diluted by an unrelated one.
+        for _f in sorted(os.listdir(os.path.dirname(SCRIPT))):
+            if not _f.endswith(".py") or _f == "layout_migration.py":
+                continue
+            shutil.copy(os.path.join(os.path.dirname(SCRIPT), _f),
+                        os.path.join(bindir, _f))
         env = dict(os.environ)
         env = _root_env(tmp, env)
         r = subprocess.run([os.path.join(bindir, "check-state.sh")],
@@ -2098,7 +2118,9 @@ def _handoff_fixture(tmp, status, notes, feat="FEAT-TEST"):
     with open(os.path.join(h, "harness.json"), "w") as f:
         f.write(HARNESS_JSON_SYNC_OFF)
     with open(os.path.join(fdir, "feature.json"), "w") as f:
-        f.write(json.dumps({"status": status}))
+        f.write(json.dumps({"feature_id": feat}))
+    with open(os.path.join(fdir, "plan.yaml"), "w") as f:
+        f.write(f"feature_id: {feat}\nstatus: {str(status).lower()}\n")
     for name, text in notes.items():
         with open(os.path.join(fdir, "notes", name), "w") as f:
             f.write(text)
@@ -2397,26 +2419,38 @@ def case_t10_red():
 # cannot tell the operator WHICH feature to run the remedy on.
 
 def _inv28_fixture(tmp, sync_on, features):
-    """features: list of (feat_id, status, pr_literal_or_None). pr None omits the key."""
+    """features: list of (feat_id, status, pr_literal_or_None[, plan_station]).
+
+    `pr` None omits the key. `status` None omits the status key entirely — the shape FEAT-41
+    T-07's migration leaves on disk — and a fourth element writes a sibling plan.yaml carrying
+    that lowercase top-level station, which is where the station is read from afterwards.
+    """
     h = os.path.join(tmp, ".harness")
     os.makedirs(h, exist_ok=True)
     with open(os.path.join(h, "harness.json"), "w") as f:
         f.write(HARNESS_JSON_SYNC_ON if sync_on else HARNESS_JSON_SYNC_OFF)
-    for feat, status, pr in features:
+    for entry in features:
+        feat, status, pr = entry[:3]
+        plan_station = entry[3] if len(entry) > 3 else None
         d = os.path.join(h, "harness", "features", feat)
         os.makedirs(d, exist_ok=True)
-        body = '{\n  "feature_id": "%s",\n  "status": "%s"' % (feat, status)
+        body = '{\n  "feature_id": "%s"' % feat
+        if status is not None:
+            body += ',\n  "status": "%s"' % status
         if pr is not None:
             body += ',\n  "pr": %s' % pr
         body += "\n}\n"
         with open(os.path.join(d, "feature.json"), "w") as f:
             f.write(body)
+        if plan_station is not None:
+            with open(os.path.join(d, "plan.yaml"), "w") as f:
+                f.write(f"schema: plan/1\nfeature: {feat}\nstatus: {plan_station}\ntasks: []\n")
     return h
 
 
 def case_inv28_warns():
     with tempfile.TemporaryDirectory() as tmp:
-        _inv28_fixture(tmp, True, [("FEAT-T28", "Done", None)])
+        _inv28_fixture(tmp, True, [("FEAT-T28", None, None, "done")])
         _code, out = run(tmp)
         ok = "INV-28" in out and "FEAT-T28" in out and "record-pr" in out
         print(f"{'ok' if ok else 'FAIL'} - INV-28 warns on a Done feature whose pr is null")
@@ -2425,7 +2459,7 @@ def case_inv28_warns():
 
 def case_inv28_silent_on_integer():
     with tempfile.TemporaryDirectory() as tmp:
-        _inv28_fixture(tmp, True, [("FEAT-T28", "Done", "543")])
+        _inv28_fixture(tmp, True, [("FEAT-T28", None, "543", "done")])
         _code, out = run(tmp)
         ok = "INV-28" not in out
         print(f"{'ok' if ok else 'FAIL'} - INV-28 is silent on a Done feature whose pr is an integer")
@@ -2434,7 +2468,7 @@ def case_inv28_silent_on_integer():
 
 def case_inv28_silent_on_abandoned():
     with tempfile.TemporaryDirectory() as tmp:
-        _inv28_fixture(tmp, True, [("FEAT-T28", "Abandoned", None)])
+        _inv28_fixture(tmp, True, [("FEAT-T28", None, None, "abandoned")])
         _code, out = run(tmp)
         ok = "INV-28" not in out
         print(f"{'ok' if ok else 'FAIL'} - INV-28 is silent on an Abandoned feature whose pr is null")
@@ -2443,7 +2477,7 @@ def case_inv28_silent_on_abandoned():
 
 def case_inv28_silent_on_nonterminal():
     with tempfile.TemporaryDirectory() as tmp:
-        _inv28_fixture(tmp, True, [("FEAT-T28", "Building", None)])
+        _inv28_fixture(tmp, True, [("FEAT-T28", None, None, "building")])
         _code, out = run(tmp)
         ok = "INV-28" not in out
         print(f"{'ok' if ok else 'FAIL'} - INV-28 is silent on a feature that is not terminal")
@@ -2452,7 +2486,7 @@ def case_inv28_silent_on_nonterminal():
 
 def case_inv28_names_each():
     with tempfile.TemporaryDirectory() as tmp:
-        _inv28_fixture(tmp, True, [("FEAT-T28A", "Done", None), ("FEAT-T28B", "Done", None)])
+        _inv28_fixture(tmp, True, [("FEAT-T28A", None, None, "done"), ("FEAT-T28B", None, None, "done")])
         _code, out = run(tmp)
         lines = [l for l in out.splitlines() if "INV-28" in l]
         ok = (len(lines) == 2
@@ -2462,9 +2496,40 @@ def case_inv28_names_each():
         return ok
 
 
+def case_41_t07_inv28_station_from_plan():
+    """FEAT-41 T-07: INV-28's terminal gate reads the station from plan.yaml.
+
+    THE POSITIVE SIDE OF THE MIGRATION, and INV-28 is the sharpest place to prove it because
+    its half-applied direction is SILENT AND GREEN: with the status key gone and the gate
+    un-repointed, `pdoc.get("status")` is empty, every feature fails the `!= ["Done"]` test,
+    the loop `continue`s, and the invariant warns about nothing at all. The gate keeps exiting
+    0 while checking zero features — the same vacuous-pass shape as board_lifecycle's STATUS
+    class, in the project's own state gate.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        _inv28_fixture(tmp, True, [("FEAT-T07", None, None, "done")])
+        _code, out = run(tmp)
+        ok = "INV-28" in out and "FEAT-T07" in out
+        print(f"{'ok' if ok else 'FAIL'} - INV-28 warns from plan.yaml's `done` station with "
+              f"NO feature.json status present")
+        return ok
+
+
+def case_41_t07_inv28_negative_control_live_station():
+    """NEGATIVE CONTROL for the case above, and it is load-bearing: without it an always-warn
+    repointing passes, and INV-28 would name every feature in the tree."""
+    with tempfile.TemporaryDirectory() as tmp:
+        _inv28_fixture(tmp, True, [("FEAT-T07", None, None, "building")])
+        _code, out = run(tmp)
+        ok = "INV-28" not in out
+        print(f"{'ok' if ok else 'FAIL'} - INV-28 is silent on a plan.yaml station of "
+              f"`building` — the terminal gate still discriminates")
+        return ok
+
+
 def case_inv28_silent_sync_off():
     with tempfile.TemporaryDirectory() as tmp:
-        _inv28_fixture(tmp, False, [("FEAT-T28", "Done", None)])
+        _inv28_fixture(tmp, False, [("FEAT-T28", None, None, "done")])
         _code, out = run(tmp)
         ok = "INV-28" not in out
         print(f"{'ok' if ok else 'FAIL'} - INV-28 is silent when github.sync is off")
@@ -2492,9 +2557,17 @@ def _i29_repo(path, branch="main"):
     return path
 
 
-def _i29_land(repo, feature_id, status_or_raw, repo_segment="harness"):
+def _i29_land(repo, feature_id, status_or_raw, repo_segment="harness", plan_station=None):
     """Commit the feature's `feature.json` ON THE CURRENT BRANCH. `status_or_raw` is a dict
-    written as JSON, or a raw string written verbatim for the unparseable case."""
+    written as JSON, or a raw string written verbatim for the unparseable case.
+
+    `plan_station` commits a sibling plan.yaml carrying that station in the SAME commit
+    (FEAT-41 T-07) — INV-29 reads the landed station from there now. A dict carrying a
+    `status` key has it LIFTED into that plan rather than left in feature.json, so the
+    existing call sites keep their shape."""
+    if isinstance(status_or_raw, dict) and "status" in status_or_raw:
+        status_or_raw = dict(status_or_raw)
+        plan_station = str(status_or_raw.pop("status")).lower()
     rel = os.path.join(".harness", repo_segment, "features", feature_id, "feature.json")
     ab = os.path.join(repo, rel)
     os.makedirs(os.path.dirname(ab), exist_ok=True)
@@ -2503,7 +2576,13 @@ def _i29_land(repo, feature_id, status_or_raw, repo_segment="harness"):
             f.write(status_or_raw)
         else:
             json.dump(status_or_raw, f)
-    subprocess.run(["git", "add", rel], cwd=repo, capture_output=True)
+    paths = [rel]
+    if plan_station is not None:
+        prel = os.path.join(".harness", repo_segment, "features", feature_id, "plan.yaml")
+        with open(os.path.join(repo, prel), "w") as f:
+            f.write(f"feature: {feature_id}\nstatus: {plan_station}\ntasks: []\n")
+        paths.append(prel)
+    subprocess.run(["git", "add"] + paths, cwd=repo, capture_output=True)
     subprocess.run(["git", "commit", "-qm", "land " + feature_id], cwd=repo, capture_output=True)
 
 
@@ -2812,14 +2891,18 @@ def _inv30_fixture(tmp, features):
     os.makedirs(h, exist_ok=True)
     with open(os.path.join(h, "harness.json"), "w") as f:
         f.write(HARNESS_JSON_SYNC_ON)
-    for feat, status, ms in features:
+    for feat, station, ms in features:
         d = os.path.join(h, "harness", "features", feat)
         os.makedirs(d, exist_ok=True)
-        body = ('{\n  "feature_id": "%s",\n  "status": "%s",\n'
+        body = ('{\n  "feature_id": "%s",\n'
                 '  "github": {"milestone": %s}\n}\n'
-                % (feat, status, "null" if ms is None else int(ms)))
+                % (feat, "null" if ms is None else int(ms)))
         with open(os.path.join(d, "feature.json"), "w") as f:
             f.write(body)
+        # The station lands in plan.yaml, lowercase (FEAT-41 T-07). feature.json keeps the
+        # milestone, which is what this invariant is actually about.
+        with open(os.path.join(d, "plan.yaml"), "w") as f:
+            f.write(f"feature: {feat}\nstatus: {str(station).lower()}\ntasks: []\n")
     return h
 
 
@@ -2855,7 +2938,7 @@ def case_inv30_fires_on_open_milestone():
     exit code — `test-check-state.py:1214` already records that these fixtures are red for
     other reasons, so `code != 0` would pass whether or not the invariant fired."""
     with tempfile.TemporaryDirectory() as tmp:
-        _inv30_fixture(tmp, [("FEAT-T30", "Done", 77)])
+        _inv30_fixture(tmp, [("FEAT-T30", "done", 77)])
         gh = _inv30_gh_stub(tmp, [77])
         _code, out = _run_with_gh(tmp, gh)
         lines = _inv30_lines(out)
@@ -2874,7 +2957,7 @@ def case_inv30_silent_on_closed_milestone():
     stub's answer changes. An implementation keying on status alone passes the case above and
     fails this one, which is exactly the red proof the criterion names."""
     with tempfile.TemporaryDirectory() as tmp:
-        _inv30_fixture(tmp, [("FEAT-T30", "Done", 77)])
+        _inv30_fixture(tmp, [("FEAT-T30", "done", 77)])
         gh = _inv30_gh_stub(tmp, [])          # 77 is not in the open list
         _code, out = _run_with_gh(tmp, gh)
         lines = _inv30_lines(out)
@@ -2889,7 +2972,7 @@ def case_inv30_silent_offline():
     grades the INV-26 offline posture the design copies deliberately — `check-state.sh` runs
     before every commit, so an unreachable network must never become a red gate."""
     with tempfile.TemporaryDirectory() as tmp:
-        _inv30_fixture(tmp, [("FEAT-T30", "Done", 77)])
+        _inv30_fixture(tmp, [("FEAT-T30", "done", 77)])
         gh = _inv30_gh_stub(tmp, [77], auth_ok=False)
         _code, out, err = _run_with_gh_streams(tmp, gh)
         lines = _inv30_lines(out)
@@ -2909,7 +2992,7 @@ def case_inv30_silent_on_null_milestone():
     finding. Eight real features are in that state at `9165162`; firing on them would make the
     gate permanently red for a condition INV-30 cannot speak to."""
     with tempfile.TemporaryDirectory() as tmp:
-        _inv30_fixture(tmp, [("FEAT-T30", "Done", None)])
+        _inv30_fixture(tmp, [("FEAT-T30", "done", None)])
         gh = _inv30_gh_stub(tmp, [77])
         _code, out = _run_with_gh(tmp, gh)
         ok = not _inv30_lines(out)
@@ -2923,7 +3006,7 @@ def case_inv30_silent_on_nonterminal():
     checked. A feature still in Review has not claimed that ship ran, so an open milestone is
     the CORRECT state for it and reporting it would be noise."""
     with tempfile.TemporaryDirectory() as tmp:
-        _inv30_fixture(tmp, [("FEAT-T30", "Review", 77)])
+        _inv30_fixture(tmp, [("FEAT-T30", "review", 77)])
         gh = _inv30_gh_stub(tmp, [77])
         _code, out = _run_with_gh(tmp, gh)
         ok = not _inv30_lines(out)
@@ -3610,6 +3693,8 @@ def main():
     ok_i28d = case_inv28_silent_on_nonterminal()
     ok_i28e = case_inv28_names_each()
     ok_i28f = case_inv28_silent_sync_off()
+    ok_i28g = case_41_t07_inv28_station_from_plan()
+    ok_i28h = case_41_t07_inv28_negative_control_live_station()
     ok_p = case_p()
     ok_q = case_q()
     ok_r = case_r()
@@ -3700,6 +3785,7 @@ def main():
     if (ok_a and ok_b and ok_c and ok_d and ok_e and ok_f and ok_g
             and ok_h and ok_i and ok_j and ok_k and ok_l and ok_m and ok_m2 and ok_m3 and ok_n and ok_o and ok_p and ok_q and ok_r and ok_s and ok_t and ok_u and ok_v and ok_w and ok_x and ok_t14 and ok_t10
             and ok_i28a and ok_i28b and ok_i28c and ok_i28d and ok_i28e and ok_i28f
+            and ok_i28g and ok_i28h
             and ok_i29 and ok_i30 and ok_i31 and ok_i32 and ok_i32_severity
             and ok_i32_era and ok_i6_plan
             and ok_exit_unchanged):

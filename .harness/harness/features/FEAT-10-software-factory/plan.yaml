@@ -1,5 +1,6 @@
 schema: plan/1
 feature: FEAT-10-software-factory
+status: done
 
 approval:
   status: approved

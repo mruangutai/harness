@@ -1,5 +1,6 @@
 schema: plan/1
 feature: FEAT-32-concurrent-write-merge
+status: done
 
 approval:
   status: approved

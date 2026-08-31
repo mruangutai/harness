@@ -259,6 +259,7 @@ import factory_config
 import factory_gh
 import gh_board
 import harness_boundary
+import harness_yaml
 
 _BIN_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -449,14 +450,23 @@ def _declared_stations(board):
             for s in factory_config.station_names(board)]
 
 
-# feature.json's top-level `status` values that map onto a board station, keyed to the SAME
-# lowercase station names `_declared_stations` derives its columns from (T-15). `Abandoned` is
-# deliberately absent: DEC-203 gives it no board column at all, so there is no key for it to map
-# to — factory_config.TERMINAL_MARKER names it without making it a seventh station.
-_STATUS_TO_STATION_KEY = {
-    "Backlog": "backlog", "Plan": "plan", "Ready": "ready",
-    "Building": "building", "Review": "review", "Done": "done",
-}
+# THE FEATURE'S STATION, READ FROM plan.yaml (FEAT-41 T-07). This replaces the
+# `_STATUS_TO_STATION_KEY` table that mapped feature.json's capitalised status values onto
+# lowercase station names. Once the recorded value IS a station, that table was an identity map
+# — six keys whose only remaining purpose was to be a place the two vocabularies could drift.
+#
+# Returns "" for no plan, an unparseable plan, a non-mapping document, or a plan carrying no
+# station. The CALLER distinguishes those from an unrecognised station, which is a finding: the
+# old table folded both into a single `None` and so exempted a typo from the audit.
+def _plan_station(feat_dir):
+    try:
+        doc = harness_yaml.load_file(os.path.join(feat_dir, "plan.yaml")) or {}
+    except Exception:
+        return ""
+    if not isinstance(doc, dict):
+        return ""
+    token = str(doc.get("status", "")).split()
+    return token[0] if token else ""
 
 
 def _feature_dirs(root):
@@ -511,11 +521,32 @@ def _status_findings(root, board, stations):
         if not isinstance(fj, dict):
             continue
 
-        status = fj.get("status")
-        station_key = _STATUS_TO_STATION_KEY.get(status)
-        if station_key is None:
-            # Either `Abandoned` (exemption 1) or an unrecognised/absent status -- nothing to
-            # compare against either way.
+        # THE STATION COMES FROM plan.yaml (FEAT-41 T-07), and `_STATUS_TO_STATION_KEY` is gone
+        # with the read: once the recorded value IS a lowercase station, that table was an
+        # identity map, and an identity map is a place for the two vocabularies to disagree.
+        station_key = _plan_station(feat_dir)
+
+        # THE EXEMPTION AND THE UNRECOGNISED VALUE NO LONGER SHARE A CODE PATH (D-11's shape,
+        # applied here). They did: `station_key is None` covered the terminal marker, an absent
+        # status AND a value nobody recognised, so a typo was silently exempt from the only
+        # class that compares a feature against its parent card. Each is now its own branch.
+        if station_key == factory_config.TERMINAL_MARKER:
+            continue  # exemption 1 -- the marker names no board column to compare against.
+        if not station_key:
+            # No plan, or a plan carrying no station: nothing to compare, and INV-3 already
+            # reports a plan that should exist and does not.
+            continue
+        if station_key not in factory_config.MANDATED_STATIONS:
+            findings.append(Finding(
+                kind="STATUS",
+                message=(f"STATUS: {os.path.basename(feat_dir)} records station "
+                         f"'{station_key}' in plan.yaml, which is not in the station "
+                         f"vocabulary ({', '.join(factory_config.MANDATED_STATIONS)}) — so it "
+                         f"cannot be compared against its parent card. Set it with "
+                         f"`plan-merge.py set-feature-station`, which validates before it "
+                         f"writes."),
+                data={"feature": os.path.basename(feat_dir), "station": station_key},
+            ))
             continue
 
         github = fj.get("github")
@@ -530,19 +561,26 @@ def _status_findings(root, board, stations):
             if factory_block.get("issues"):
                 continue  # exemption 3 -- this feature's cards live on the PRODUCT's board.
 
-        # BOTH SIDES LOWERCASE (FEAT-41 T-02). `stations` came from gh_board.board_stations,
-        # which lowercases what the board returned, so the expectation is the lowercase station
-        # name itself and no lookup is needed. The message still names the COLUMN, derived here,
-        # because that is what the operator sees on the board when they go to look.
+        # BOTH SIDES LOWERCASE (FEAT-41 T-02/T-07). `stations` came from gh_board.board_stations,
+        # which lowercases what the board returned, and the recorded side is now plan.yaml's own
+        # lowercase station — so the two are directly comparable and no lookup is needed. The
+        # message still names the COLUMN, derived here, because that is what the operator sees on
+        # the board when they go to look.
+        #
+        # THE RECORDED VALUE AND THE STATION ARE ONE THING NOW, so the message no longer prints
+        # both. It used to print the recorded status AND the station it mapped to — two
+        # spellings of one fact, which is exactly the duplication this feature removes. The old
+        # text is described rather than quoted: SC-02 greps for quoted station literals and
+        # cannot tell a historical note from live code.
         expected = station_key
         actual = stations.get(parent)
         if actual != expected:
             findings.append(_finding(
                 "STATUS",
-                f"STATUS: {feat_dir} records status {status!r} (station {expected!r}, column "
+                f"STATUS: {feat_dir} records station {expected!r} (column "
                 f"{factory_config.station_column(expected)!r}) but its parent #{parent} reads "
                 f"{actual!r}",
-                parent=parent, expected=expected, status=status,
+                parent=parent, expected=expected, status=station_key,
             ))
     return findings
 
@@ -1002,13 +1040,19 @@ _ABANDONED_LABEL_COLOR = "b60205"  # MUST match gh-sync.py's own colour for this
 
 def _fixable(finding):
     """Whether `reconcile` attempts this finding's fix, and whether it counts toward the exit
-    code. STATUS is fixable for every recorded status except Done -- Done and Abandoned are
-    T-15's own exemptions; Abandoned never reaches here at all (`_status_findings` never
-    emits it), so only Done needs an explicit check here."""
+    code. STATUS is fixable for every recorded station except `done` -- done and the terminal
+    marker are T-15's own exemptions; the marker never reaches here at all
+    (`_status_findings` skips it), so only `done` needs an explicit check.
+
+    LOWERCASE AS OF FEAT-41 T-07, and this line is why the station read and the vocabulary had
+    to move together: comparing against the old capitalised spelling would be TRUE for every
+    finding once the station is lowercase, which would have made every shipped feature's STATUS
+    finding fixable and had reconcile write a done parent's card backwards. That spelling is
+    described, not quoted, so SC-02's grep does not read this note as a dependency on it."""
     if finding.kind in _ALWAYS_FIXABLE_KINDS:
         return True
     if finding.kind == "STATUS":
-        return finding.data.get("status") != "Done"
+        return finding.data.get("status") != "done"
     return False
 
 

@@ -1,5 +1,6 @@
 schema: plan/1
 feature: FEAT-21-features-layout-migration
+status: done
 
 approval:
   status: approved

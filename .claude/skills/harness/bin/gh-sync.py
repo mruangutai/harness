@@ -20,11 +20,11 @@
                                            recorded branch's exactly-one merged PR and
                                            record it, or record --pr directly (T-03,
                                            FEAT-26) — idempotent, never overwrites
-  gh-sync.py status <feature-dir> <Status>  phase transition -> records feature.json's
-                                         `status` FIRST, then performs exactly the
-                                         station writes THAT event implies (Ready moves
-                                         every recorded sub-issue; Review moves the
-                                         parent AND every sub-issue; Plan/Done/Abandoned
+  gh-sync.py status <feature-dir> <station>  phase transition -> records plan.yaml's
+                                         station FIRST, then performs exactly the
+                                         station writes THAT event implies (ready moves
+                                         every recorded sub-issue; review moves the
+                                         parent AND every sub-issue; plan/done/abandoned
                                          write no station) (T-13, D-16)
 
 TRUTH DIRECTION IS THE POINT. PLAN.md is approval-gated and is the only source; this
@@ -100,22 +100,21 @@ GH = os.environ.get("GH_SYNC_GH", "gh")
 
 CHORE_TYPES = {"config", "scaffolding", "infra", "ci"}
 
-# T-13: the closed set `status` accepts, matching check-state.sh's STATUS_ORDER and
-# feature-schema.json's own status enum. A value outside this set is a caller error (exit 2),
-# not silently accepted with a lower-case spelling.
+# T-13: the closed set the `status` subcommand accepts. A value outside this set is a caller
+# error (exit 2), never silently accepted under another spelling.
 #
-# DERIVED FROM factory_config, NEVER SPELLED (FEAT-41 T-06). The literal tuple that stood here
-# was the last capitalised station list in this file. These are feature.json's values, so they
-# stay CAPITALISED — this subcommand's CLI contract is feature.json's vocabulary until T-07
-# migrates that file, and lowercasing it here would break the documented
-# `gh-sync.py status <feature-dir> Review` call while feature.json still holds capitals.
+# LOWERCASE AS OF FEAT-41 T-07, AND THAT IS A CLI CONTRACT CHANGE, recorded here because it is
+# the only user-visible one in this task. The set was derived through `station_column` and the
+# marker was `.capitalize()`d, because this subcommand's argument was feature.json's vocabulary
+# and that file held capitals. It no longer holds anything: the station lives in plan.yaml,
+# lowercase, and `set-feature-station` validates against exactly this vocabulary. So
+# `gh-sync.py status <dir> Review` is now `... review`, and the two documentation sites that
+# taught the old spelling move with it (D-14).
 #
-# The marker is capitalised DIRECTLY rather than through station_column, which refuses it on
-# purpose: the terminal marker names no board column (D-05), so there is no column name to ask
-# for. feature.json nonetheless records `Abandoned` as a status, and that is what this set is.
-STATUS_VALUES = tuple(
-    factory_config.station_column(_s) for _s in factory_config.MANDATED_STATIONS
-) + (factory_config.TERMINAL_MARKER.capitalize(),)
+# DERIVED, NEVER SPELLED. The marker is included directly rather than through station_column,
+# which refuses it on purpose: the terminal marker names no board column (D-05), so there is no
+# column name to ask for.
+STATION_VALUES = tuple(factory_config.MANDATED_STATIONS) + (factory_config.TERMINAL_MARKER,)
 
 
 def _place(board, repo, num, station, note="", failed=None, stations=None):
@@ -251,21 +250,23 @@ def load_config(root):
     return repo, board
 
 
-def _feature_status(feat_dir):
-    """feature.json's top-level `status`, or None if absent/unreadable/not a string.
+def _feature_station(feat_dir):
+    """plan.yaml's top-level station, or None if absent/unreadable/not a string.
 
-    The ONLY read of feature.json's status outside the `github:` block, and it feeds
-    EXACTLY one comparison (the Done terminal exemption, D-03/D-04) — nothing else."""
-    path = os.path.join(feat_dir, "feature.json")
+    RENAMED FROM `_feature_status` WITH THE FILE IT READS (FEAT-41 T-07). It fed exactly one
+    comparison then and does now — the terminal exemption in `_apply_parent_rule`. The name
+    moved because the old one described feature.json's key, and keeping it would have left the
+    only remaining reader of that key named after a field that no longer exists.
+    """
+    path = os.path.join(feat_dir, "plan.yaml")
     try:
-        with open(path, encoding="utf-8") as f:
-            doc = json.load(f)
-    except (OSError, ValueError):
+        doc = harness_yaml.load_file(path)
+    except Exception:
         return None
     if not isinstance(doc, dict):
         return None
-    status = doc.get("status")
-    return status if isinstance(status, str) else None
+    station = doc.get("status")
+    return station if isinstance(station, str) else None
 
 
 def _apply_parent_rule(feat_dir, repo, board):
@@ -281,11 +282,12 @@ def _apply_parent_rule(feat_dir, repo, board):
     from which subcommand called it, because that would make the subcommand a second status
     record, which is exactly the drift D-03 removes.
     """
-    if _feature_status(feat_dir) in ("Done", "Abandoned"):
+    if _feature_station(feat_dir) in ("done", factory_config.TERMINAL_MARKER):
         # Terminal exemption: `ship` wrote the parent's card to the done station and
-        # recorded the terminal status, while the plan-derived station would still say
-        # Review. Without this exemption every shipped feature is a permanent false
-        # violation. The CONDITION is unchanged -- it still keys on feature.json's status.
+        # recorded the terminal station, while the plan-derived station would still say
+        # review. Without this exemption every shipped feature is a permanent false
+        # violation. THE CONDITION NOW KEYS ON plan.yaml's STATION (FEAT-41 T-07) — the same
+        # file the derivation below reads, so this function consults one file, not two.
         return
     rec = load_recorded(feat_dir)
     # THE PLACEMENT COMES FROM project (FEAT-41 T-06), which carries the derivation AND the
@@ -362,9 +364,12 @@ def parse_tasks(feat_dir):
                 "traces": ", ".join(str(x) for x in traces) if isinstance(traces, list)
                           else str(traces),
                 "absorbs": [str(a).lstrip("#") for a in (t_.get("absorbs") or [])],
-                # T-03 (FEAT-18): an absent status is legal in plan.yaml and reads as pending
-                # (harness-backend-dev, D-03's precedent in gh_board.derive_station).
-                "status": t_.get("status") or "pending",
+                # THE NOT-STARTED STATION, NOT THE DEAD WORD (FEAT-41 T-07). This read
+                # `or "pending"` — the third live default of that kind in this file, after the
+                # one T-16 fixed in cmd_status. `pending` left the vocabulary in T-04 and is
+                # not a value in any file. An absent status reads as `ready`, exactly as
+                # gh_board.derive_station and project treat it.
+                "status": t_.get("status") or "ready",
             })
         return out
 
@@ -377,11 +382,12 @@ def parse_tasks(feat_dir):
             f = re.search(rf"^\s*-?\s*{name}:\s*(.+)$", body, re.M)
             return f.group(1).strip() if f else ""
         absorbs = re.findall(r"#(\d+)", field("absorbs"))
-        # This corpus predates the status field entirely — there is no third value to
-        # read here, so every PLAN.md task is unconditionally pending (T-03, FEAT-18).
+        # This corpus predates the status field entirely — there is nothing to read here, so
+        # every PLAN.md task is unconditionally at the not-started station. `ready`, not the
+        # dead `pending` this carried until FEAT-41 T-07.
         tasks.append({"id": tid, "title": title or tid, "body": body.strip(),
                       "change_type": field("change_type"), "traces": field("traces"),
-                      "absorbs": absorbs, "status": "pending"})
+                      "absorbs": absorbs, "status": "ready"})
     if not tasks:
         die(f"no T-NN tasks parse from {feat_dir}/PLAN.md")
     return tasks
@@ -561,56 +567,48 @@ def load_recorded(feat_dir):
     return rec
 
 
-def _record_status(feat_dir, status):
-    """Set feature.json's top-level `status` to the exact string `status` (Done or Abandoned,
-    T-01/FEAT-23), through feature_json_write.write_feature_json (stale-anchor-write-hazard
-    T-c2): the same lock, same-directory tempfile, fsync and os.replace `_atomic_write` gave
-    it, now shared with every other Python writer of feature.json (DEC-199) instead of a
-    second copy of the primitive. A feature.json that is absent or unreadable is not an
-    error here (mirrors `_feature_status`'s own tolerance): both `cmd_ship` and `cmd_abandon`
-    are idempotent and the mirror never gates, so this prints one plain line and returns
-    rather than raising. This does NOT create a document when one is absent — the schema's
-    eight required keys (DEC-191) make a fresh single-key document invalid. `save_recorded`
-    (T-02, FEAT-26) refuses the absent-file case too rather than creating one, so this is not
-    a second, incompatible first-sync path alongside it — the two are aligned on the same
-    refusal.
+def _record_station(feat_dir, station):
+    """Record the feature's station in plan.yaml, through `plan-merge.py set-feature-station`.
 
-    The absent/unreadable/non-mapping decision is made HERE, on a plain read, before
-    write_feature_json (and its require_destination check) is ever called — so a bad path
-    shape never masquerades as this function's own tolerant "not recorded" message, and a
-    genuinely absent file never reaches require_destination's differently-worded refusal."""
-    path = os.path.join(feat_dir, "feature.json")
-    try:
-        with open(path, encoding="utf-8") as f:
-            doc = json.load(f)
-    except (OSError, ValueError):
-        print(f"gh-sync: {path} could not be read — status not recorded")
-        return
-    if not isinstance(doc, dict):
-        print(f"gh-sync: {path} is not a JSON mapping — status not recorded")
-        return
+    A SUBPROCESS CALL TO THE VERB, NOT A WRITE (FEAT-41 T-07, D-13). This function used to set
+    feature.json's `status` through feature_json_write.write_feature_json. The field is gone, and
+    the file that replaced it has exactly one legal write route: plan.yaml is only ever written
+    by plan-merge.py's verbs, which take the merge lock, validate the station against the
+    vocabulary BEFORE opening the file, and parse the spliced result before replacing it. Doing
+    the write here — even correctly, even under the same lock — would be a second writer of a
+    file whose whole invariant is that it has one.
 
-    def transform(base):
-        # Re-read under the lock rather than reusing `doc`: another writer may have
-        # landed a change between the plain read above and the lock acquire, and the
-        # whole point of routing through the locked core is to never clobber it.
-        if base is None:
-            raise harness_merge.MergeRefusal(9, [f"{path}: vanished before the write landed"])
-        current = json.loads(base.decode("utf-8"))
-        current["status"] = status
-        return json.dumps(current, indent=2) + "\n"
+    THE TOLERANCE IS PRESERVED EXACTLY, and it is deliberate rather than inherited: a plan that
+    is absent or unwritable is not an error here. `cmd_ship` and `cmd_abandon` are idempotent
+    and the mirror never gates, so this prints one plain line and returns rather than raising.
+    That is the same posture the feature.json writer had for an absent document, and changing
+    it would make the MIRROR able to block a ship — which is precisely the coupling D-03 removes.
 
-    try:
-        feature_json_write.write_feature_json(path, transform)
-    except harness_merge.MergeRefusal:
-        print(f"gh-sync: {path} could not be read — status not recorded")
+    THE EXIT CODE IS NOT INTERPRETED BEYOND ZERO/NON-ZERO. plan-merge.py's codes (3 unknown
+    task, 4 illegal station, 5 unparseable result) are its contract with its own callers; this
+    one reports the tool's own message rather than re-deriving a reason from the number, so a
+    new code cannot silently become "recorded".
+    """
+    plan_path = os.path.join(feat_dir, "plan.yaml")
+    if not os.path.isfile(plan_path):
+        print(f"gh-sync: {plan_path} is absent — station not recorded")
         return
-    print(f"gh-sync: feature.json status -> {status}")
+    r = subprocess.run(
+        [sys.executable, os.path.join(_BIN_DIR, "plan-merge.py"), "set-feature-station",
+         "--file", plan_path, "--station", station],
+        capture_output=True, text=True,
+    )
+    if r.returncode != 0:
+        detail = (r.stderr or r.stdout).strip().splitlines()
+        print(f"gh-sync: {plan_path} station not recorded — plan-merge.py set-feature-station "
+              f"exited {r.returncode}: {detail[-1] if detail else '(no output)'}")
+        return
+    print(f"gh-sync: plan.yaml station -> {station}")
 
 
 def _record_pr(feat_dir, repo, pr_arg=None):
     """Set feature.json's top-level `pr` to the number of the branch's exactly-one merged
-    pull request (T-03, FEAT-26) — the mirror image of `_record_status`: same read pattern,
+    pull request (T-03, FEAT-26) — the mirror image of `_record_station`: same read pattern,
     same locked write through feature_json_write.write_feature_json, same one-line-and-return
     on every failure path, and it NEVER creates a document either.
 
@@ -720,7 +718,7 @@ def save_recorded(feat_dir, rec):
     (before write_feature_json's require_destination can fire and substitute its own,
     differently-worded destination refusal for this one), and again inside the locked
     transform if the file vanishes between that check and the lock acquire — the same
-    narrow race `_record_status`/`_record_pr` close the same way.
+    narrow race `_record_station`/`_record_pr` close the same way.
     """
     p = os.path.join(feat_dir, "feature.json")
     absent_message = (
@@ -999,7 +997,7 @@ def _status_plan_doc(feat_dir):
         return None
 
 
-def cmd_status(feat_dir, status, repo, board):
+def cmd_status(feat_dir, station, repo, board):
     """`status <feature-dir> <Status>` (T-13, D-16) — couples recording a feature's phase
     status to the station writes THAT EVENT implies, so a station write cannot be forgotten
     separately from the phase record.
@@ -1007,7 +1005,7 @@ def cmd_status(feat_dir, status, repo, board):
     ORDER IS FIXED: the status write to feature.json happens FIRST and is never conditional
     on any board write (step 4) — a failed board write must never leave the recorded status
     behind, because the recorded status is what the audit grades the card against. Every
-    refusal below (step 5) therefore runs BEFORE `_record_status`, since a refusal must leave
+    refusal below (step 5) therefore runs BEFORE `_record_station`, since a refusal must leave
     NOTHING recorded.
 
     STATION WRITES, exactly what step 2 specifies and nothing else:
@@ -1030,16 +1028,16 @@ def cmd_status(feat_dir, status, repo, board):
     `board is None` (no github.board configured) skips every station write below — the
     status is still recorded.
     """
-    if status not in STATUS_VALUES:
-        refuse(f"unknown status {status!r} — must be one of {', '.join(STATUS_VALUES)}")
+    if station not in STATION_VALUES:
+        refuse(f"unknown station {station!r} — must be one of {', '.join(STATION_VALUES)}")
 
-    if status == "Ready":
+    if station == "ready":
         plan_doc = _status_plan_doc(feat_dir)
         approval = (plan_doc or {}).get("approval") or {}
         if approval.get("status") != "approved":
-            refuse("status Ready refused — plan.yaml's approval.status is not 'approved'")
+            refuse("station ready refused — plan.yaml's approval.status is not 'approved'")
 
-    if status == "Review":
+    if station == "review":
         plan_doc = _status_plan_doc(feat_dir)
         tasks = (plan_doc or {}).get("tasks") or []
         # THE NOT-STARTED STATION, NOT THE DEAD WORD (FEAT-41 T-16). This read `or "pending"`,
@@ -1048,19 +1046,19 @@ def cmd_status(feat_dir, status, repo, board):
         # gh_board.derive_station and project treat it.
         all_done = bool(tasks) and all((t.get("status") or "ready") == "done" for t in tasks)
         if not all_done:
-            refuse("status Review refused — not every task in plan.yaml carries status done")
+            refuse("station review refused — not every task in plan.yaml carries status done")
 
-    _record_status(feat_dir, status)
+    _record_station(feat_dir, station)
 
-    if board is None or status in ("Plan", "Done", "Abandoned"):
+    if board is None or station in ("plan", "done", factory_config.TERMINAL_MARKER):
         return
 
     rec = load_recorded(feat_dir)
 
-    if status == "Ready":
+    if station == "ready":
         numbers = sorted(rec["issues"].values())
         if not numbers:
-            print("gh-sync: status Ready — no sub-issues recorded, nothing to move")
+            print("gh-sync: station ready — no sub-issues recorded, nothing to move")
             return
         # PLACEMENT FROM project, SCOPE FROM THIS TRANSITION (FEAT-41 T-06). project says where
         # each card belongs; `numbers` says which cards this transition touches — D-18 keeps the
@@ -1073,7 +1071,7 @@ def cmd_status(feat_dir, status, repo, board):
                       file=sys.stderr)
                 continue
             _place(board, repo, num, _station)
-    elif status == "Review":
+    elif station == "review":
         # A PHASE WRITE, NOT A project CONSULT (FEAT-41 T-06), and T-06's own text is what
         # settles it. Under D-23 the parent AND every recorded sub-issue move to `review` when
         # the feature enters its review phase — regardless of each task's own status. project
@@ -1208,7 +1206,7 @@ def cmd_abandon(feat_dir, repo, board, reason_file, yes=False):
     refuses a hand close. Detaching is what makes the backlog station safe rather than a trap.
     The ticket survives, labelled and closed, for the operator to clean up later.
 
-    `_record_status(feat_dir, "Abandoned")` stays the LAST STATEMENT of the successful path
+    `_record_station(feat_dir, factory_config.TERMINAL_MARKER)` stays the LAST STATEMENT of the successful path
     and runs only under `--yes`."""
     reason_file = post_body_path(reason_file, "--reason-file")
     rec = load_recorded(feat_dir)
@@ -1232,7 +1230,7 @@ def cmd_abandon(feat_dir, repo, board, reason_file, yes=False):
     # abandoned the run mid-batch: the backlog write never ran, and probe #860 measured that
     # a close moves the card to the DONE station at t+0s, so the dropped ticket came to rest
     # at Done. That is exactly the state DEC-203's backlog rule exists to prevent, reached by
-    # the command that implements the rule. `_record_status` never ran either, and every
+    # the command that implements the rule. `_record_station` never ran either, and every
     # later issue in the batch was left untouched with no report. `gh_try` returns instead.
     failed = []
 
@@ -1294,7 +1292,7 @@ def cmd_abandon(feat_dir, repo, board, reason_file, yes=False):
     # LAST STATEMENT of the successful path (T-01/FEAT-23) — structural, not re-gated on
     # the milestone check above (that guard is a conjunction with the issues check, not
     # this write's business). Reaching here already proves `skip()` did not fire.
-    _record_status(feat_dir, "Abandoned")
+    _record_station(feat_dir, factory_config.TERMINAL_MARKER)
 
 
 def cmd_backlog(feat_dir, repo, items):
@@ -1342,7 +1340,7 @@ def cmd_ship(feat_dir, repo, board, body_file=None, pr_arg=None):
     anyway, which is why `post-merge-sweep.sh` greps this function's OUTPUT rather than its exit
     code.
 
-    ORDER: `_record_pr` runs before `_record_status(feat_dir, "Done")`, and that status write
+    ORDER: `_record_pr` runs before `_record_station(feat_dir, "done")`, and that status write
     stays the LAST STATEMENT of the successful path (T-01/FEAT-23) -- `skip()` calls
     `sys.exit(0)`, so reaching it is itself the proof no early-exit branch fired."""
     if body_file is not None:
@@ -1515,7 +1513,7 @@ def _ship_close_milestone(feat_dir, repo, rec, pr_arg):
 
     # LAST STATEMENT of the successful path (T-01/FEAT-23) — structural, not re-gated on
     # the milestone check above. Reaching here already proves `skip()` did not fire.
-    _record_status(feat_dir, "Done")
+    _record_station(feat_dir, "done")
 
 
 def main():

@@ -169,7 +169,7 @@ def _commit_feature(repo, feature_id, status, milestone=None, repo_segment="harn
     rel = os.path.join(".harness", repo_segment, "features", feature_id, "feature.json")
     abs_path = os.path.join(repo, rel)
     os.makedirs(os.path.dirname(abs_path), exist_ok=True)
-    doc = {"status": status}
+    doc = {"feature_id": feature_id}
     if milestone is not None:
         doc["github"] = {"milestone": milestone}
     with open(abs_path, "w") as f:

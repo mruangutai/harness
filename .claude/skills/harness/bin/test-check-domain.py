@@ -1017,7 +1017,7 @@ def fire_post(root, payload, flag="--post"):
 
 
 def _legal_feature_json(nlines):
-    """A schema-clean eleven-key feature.json padded to exactly `nlines` lines.
+    """A schema-clean ten-key feature.json padded to exactly `nlines` lines.
 
     T-06 put the schema on this path, so any fixture judged on its LINE COUNT must be
     schema-clean or it is denied for a reason its case never named — a green-looking test
@@ -1025,8 +1025,7 @@ def _legal_feature_json(nlines):
     padding this way changes the line count and nothing else.
     """
     import json as _json
-    body = _json.dumps({"feature_id": "FEAT-X", "branch": "none", "pr": None,
-                        "status": "Building", "review_sha": "none", "cycles_used": 0,
+    body = _json.dumps({"feature_id": "FEAT-X", "branch": "none", "pr": None, "review_sha": "none", "cycles_used": 0,
                         "max_total_cycles": 10, "runs": []}, indent=2).splitlines()
     return "\n".join(body + [""] * max(0, nlines - len(body))) + "\n"
 
@@ -1039,15 +1038,14 @@ def run_post():
     rel_fy = ".harness/harness/features/FEAT-X/feature.json"
 
     def write(nlines):
-        # A LEGAL eleven-key document, padded with blank lines to an exact length.
+        # A LEGAL ten-key document, padded with blank lines to an exact length.
         # T-06 put the schema on this path, so a fixture meant to be judged on its LINE
         # COUNT must be schema-clean or it is denied for a reason its case never intended
         # — a green-looking test asserting the wrong cause. Trailing whitespace is
         # insignificant to a JSON parser, so padding this way changes the line count and
         # nothing else.
         import json as _json
-        doc = _json.dumps({"feature_id": "FEAT-X", "branch": "none", "pr": None,
-                           "status": "Building", "review_sha": "none", "cycles_used": 0,
+        doc = _json.dumps({"feature_id": "FEAT-X", "branch": "none", "pr": None, "review_sha": "none", "cycles_used": 0,
                            "max_total_cycles": 10, "runs": []}, indent=2)
         body = doc.splitlines()
         with open(fy, "w") as f:
@@ -1461,7 +1459,7 @@ def run_schema():
             print(f"ok    schema/{name}")
 
     r = fire(root, rel, content=legal)
-    case("a legal eleven-key document is ALLOWED", r.returncode, 0,
+    case("a legal ten-key document is ALLOWED", r.returncode, 0,
          detail=" ".join((r.stderr or "").split())[:160])
 
     r = fire(root, rel, content=illegal)
@@ -2306,13 +2304,11 @@ def run_runs_agent_write_path():
       feat not in _fs.RUNS_AGENT_EXEMPT,
       "the fixture name is in the map, so this block would prove nothing")
 
-    doc_bad = json.dumps({"feature_id": feat, "branch": "none", "pr": None,
-                          "status": "Building", "review_sha": "none", "cycles_used": 0,
+    doc_bad = json.dumps({"feature_id": feat, "branch": "none", "pr": None, "review_sha": "none", "cycles_used": 0,
                           "max_total_cycles": 10,
                           "runs": [{"id": "r1", "squad": "eng", "verdict": "PASS"}]},
                          indent=2)
-    doc_ok = json.dumps({"feature_id": feat, "branch": "none", "pr": None,
-                         "status": "Building", "review_sha": "none", "cycles_used": 0,
+    doc_ok = json.dumps({"feature_id": feat, "branch": "none", "pr": None, "review_sha": "none", "cycles_used": 0,
                          "max_total_cycles": 10,
                          "runs": [{"id": "r1", "squad": "eng", "verdict": "PASS",
                                    "agent": "harness-backend-dev"}]},

@@ -2,7 +2,6 @@
   "feature_id": "FEAT-30-worktree-per-feature",
   "branch": "feat/FEAT-30-worktree-per-feature",
   "pr": 629,
-  "status": "Done",
   "review_sha": "a76d69afa3be35ac3a822405217a9c2641b8fbdc",
   "cycles_used": 7,
   "max_total_cycles": 13,

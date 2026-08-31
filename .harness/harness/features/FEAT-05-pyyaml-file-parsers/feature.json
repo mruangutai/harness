@@ -2,7 +2,6 @@
   "feature_id": "FEAT-05-pyyaml-file-parsers",
   "branch": "worktree-fix-harness-tooling-backlog",
   "pr": 17,
-  "status": "Done",
   "review_sha": "f0a3831",
   "cycles_used": 3,
   "max_total_cycles": 10,

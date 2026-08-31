@@ -1,5 +1,6 @@
 schema: plan/1
 feature: FEAT-16-factory-per-repo-board
+status: done
 
 approval:
   status: approved

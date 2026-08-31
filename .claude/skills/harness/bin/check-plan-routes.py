@@ -455,30 +455,33 @@ def process_plan(path, findings, root, manifest_root):
     return violations
 
 
-# THIS SET DESCRIBES feature.json's OWN VOCABULARY AND STAYS CAPITALISED UNTIL T-07.
+# THIS SET DESCRIBES plan.yaml's STATION VOCABULARY AS OF T-07, AND IS LOWERCASE.
 #
-# T-04's intent said to lowercase it here. That is premature and two signed invariants prove it:
-# test-check-plan-routes.py's case_24 asserts a lowercase `done` in feature.json is CHECKED, not
-# skipped — the case exists precisely to prove D-11's case sensitivity is load-bearing — and the
-# same case asserts FINISHED_STATUSES is a SUBSET of feature-schema.json's status enum, which is
-# capitalised. Both hold only while this set matches the file it reads. Lowercasing it while
-# `_is_shipped` still reads feature.json made NOTHING match: measured, `1 skipped as shipped`
-# where it had been 39, and 67 violations across 39 shipped plans, every one a legacy-shape
-# complaint about a plan that is a record rather than a contract.
+# THE LOWERCASING WAITED FOR THIS TASK, DELIBERATELY. T-04's intent said to do it there, and
+# that was premature in a way worth recording: while `_is_shipped` still read feature.json,
+# whose vocabulary was capitalised, a lowercase set matched NOTHING — measured, `1 skipped as
+# shipped` where it had been 39, and 67 violations across 39 shipped plans, every one a
+# legacy-shape complaint about a plan that is a record rather than a contract. A lowercase word
+# pointed at a still-capitalised file is the defect, not the fix. T-07 moves the read and the
+# vocabulary in the same edit, which is the only order in which either is correct.
 #
-# T-07 deletes feature.json's status key and repoints `_is_shipped` at plan.yaml's station. The
-# lowercasing belongs in that task, in the same edit as the read it describes — not one task
-# earlier, where it can only be wrong about the file it is still pointed at.
+# The terminal marker joined `done` on 2026-08-14: a plan that will never be executed is not
+# actionable, which is the same reason shipped plans are skipped. THE TUPLE SHAPE IS CORRECT AND
+# IS NOT A CODE SMELL — kept so a value could join without changing the comparison. Do NOT add
+# "shipped" back as an alias: that would be the old-to-new mapping layer D-09 forbids.
 #
-# `Abandoned` joined `Done` on 2026-08-14: a plan that will never be executed is not actionable,
-# which is the same reason shipped plans are skipped. THE TUPLE SHAPE IS CORRECT AND IS NOT A
-# CODE SMELL — kept so a value could join without changing the comparison. Do NOT add "shipped"
-# back as an alias: that would be the old-to-new mapping layer D-09 forbids.
-FINISHED_STATUSES = ("Done", "Abandoned")
+# DERIVED, NEVER SPELLED, for the reason `legal_task_statuses` below is: a literal here is a
+# second vocabulary. The import is lazy for that function's exact reason — cases 19b, 19b2 and
+# 21 copy this file alone into a temp directory, where a module-scope import is a traceback.
+def finished_stations():
+    import factory_config
+    return ("done", factory_config.TERMINAL_MARKER)
+
 
 # ONE VOCABULARY NOW, WHICH IS THE WHOLE POINT OF FEAT-41. Until T-04 this file carried a
-# private three-value set — pending, building, done — sitting beside FINISHED_STATUSES under a
-# comment warning the reader not to conflate the two. There is nothing left to conflate: a task's
+# private three-value set — pending, building, done — sitting beside the finished-station set
+# under a comment warning the reader not to conflate the two. There is nothing left to
+# conflate: a task's
 # status is one of the six stations harness.json declares, or the terminal marker. `pending` is
 # not a value any more, in any file.
 #
@@ -498,8 +501,9 @@ def legal_task_statuses():
 def _is_shipped(feature_dir):
     """True when this feature's work is delivered and its plan is a record, not a contract.
 
-    Reads `feature.json`'s `status:` with the real loader. An unreadable or absent
-    feature.json means NOT finished — a feature we cannot classify is checked rather than
+    Reads the sibling `plan.yaml`'s top-level station with the real loader — the ONE file that
+    records it (T-07). An unreadable or absent plan means NOT finished — a feature we cannot
+    classify is checked rather than
     skipped, because the failure that matters is a live plan going unexamined, not an old
     one being examined twice.
 
@@ -516,9 +520,26 @@ def _is_shipped(feature_dir):
     one shape: a crash exits 1, and 1 is already spoken for. check-state.sh:160-168 is the
     model — `isinstance(doc, dict)` is checked before anything reads a key off it.
     """
-    fy = os.path.join(feature_dir, "feature.json")
+    fy = os.path.join(feature_dir, "plan.yaml")
     if not os.path.isfile(fy):
-        return False
+        # THE PLAN.md-ERA RECORD IS FINISHED BY CONSTRUCTION, and this branch is a CORRECTION to
+        # T-07's intent rather than a case it specified. The intent said a feature directory with
+        # no plan.yaml "keeps nothing ... because those features are finished and no reader needs
+        # a station for them". This reader needs one: with the station read from plan.yaml and no
+        # plan.yaml present, all ten such features stopped being skipped, and the tree went from
+        # 0 violations across 1 plan to 44 across 9 — every one of them legacy-shape noise in a
+        # plan that shipped years of cycles ago. That noise is precisely why issue #133's gate
+        # could not be switched on, and case_24's own docstring records the original measurement.
+        #
+        # WHY A PLAN.md IS SUFFICIENT EVIDENCE, measured rather than assumed: NO production code
+        # in this tree writes a PLAN.md. Every reference to it across bin/ is a read
+        # (check-state.sh, gh-sync.py, this file); the only writers are test fixtures. A
+        # directory carrying one therefore predates plan.yaml, and its plan is a record.
+        #
+        # FAIL-CHECKED IN THE OTHER DIRECTION: a directory with NEITHER file is still False, so
+        # nothing is skipped on the strength of an absence alone — and discovery finds no plan to
+        # check there anyway, so the branch below is about PLAN.md and only PLAN.md.
+        return os.path.isfile(os.path.join(feature_dir, "PLAN.md"))
     try:
         import harness_yaml
         doc = harness_yaml.load_file(fy)
@@ -528,18 +549,18 @@ def _is_shipped(feature_dir):
     # non-empty list is truthy — it would survive `or {}` and then fail on `.get`.
     if not isinstance(doc, dict):
         return False
-    # `status: Done  # with a trailing comment` is the live corpus's shape (FEAT-02, FEAT-03,
-    # FEAT-04, FEAT-05 all carry one), so take the first whitespace-delimited token. A status
-    # that is a list or a mapping stringifies to something that is not in FINISHED_STATUSES,
-    # which is the fail-CHECKED direction.
+    # `status: done  # with a trailing comment` is a shape the live corpus carries, so take the
+    # first whitespace-delimited token. A status that is a list or a mapping stringifies to
+    # something that is not a finished station, which is the fail-CHECKED direction.
     #
-    # THE COMPARISON STAYS CASE SENSITIVE (D-11). A lowercase `done` in feature.json is CHECKED,
-    # not skipped, and case_24 asserts exactly that — it is the case that proves the sensitivity
-    # is load-bearing rather than merely documented. A case fold here was tried and reverted: it
-    # made a lowercase `done` skip, which is the fail-OPEN direction on the one file this
-    # function is allowed to trust.
+    # THE COMPARISON STAYS CASE SENSITIVE, and that survives the migration intact: the station
+    # vocabulary is lowercase now, so a capitalised `Done` in plan.yaml is CHECKED rather than
+    # skipped. case_24 asserts exactly that, with the case it names inverted by this task — it
+    # is still the case that proves the sensitivity is load-bearing rather than documented. A
+    # case fold here was tried and reverted under the old vocabulary and stays rejected: it is
+    # the fail-OPEN direction on the one file this function is allowed to trust.
     token = str(doc.get("status", "")).split()
-    return bool(token) and token[0] in FINISHED_STATUSES
+    return bool(token) and token[0] in finished_stations()
 
 
 def discover_plans():

@@ -75,13 +75,13 @@ def swept(stderr):
     return int(m.group(1))
 
 
-def full_doc(status="Building"):
-    """All eleven keys, a realistic value for each."""
+def full_doc():
+    """All TEN keys, a realistic value for each — `status` left with the file it was
+    deleted from (FEAT-41 T-07)."""
     return {
         "feature_id": "FEAT-99-x",
         "branch": "feat/99",
         "pr": 42,
-        "status": status,
         "review_sha": "deadbeef",
         "cycles_used": 1,
         "max_total_cycles": 8,
@@ -101,13 +101,12 @@ def full_doc(status="Building"):
     }
 
 
-def required_doc(status="Building"):
-    """Only the eight required keys."""
+def required_doc():
+    """Only the SEVEN required keys (FEAT-41 T-07 removed `status` from the required list)."""
     return {
         "feature_id": "FEAT-99-x",
         "branch": "feat/99",
         "pr": None,
-        "status": status,
         "review_sha": "none",
         "cycles_used": 0,
         "max_total_cycles": 8,
@@ -131,12 +130,10 @@ def write_json(tmpdir, name, doc):
 
 
 REQUIRED_KEYS = (
-    "feature_id", "branch", "pr", "status", "review_sha",
+    "feature_id", "branch", "pr", "review_sha",
     "cycles_used", "max_total_cycles", "runs",
 )
 OPTIONAL_KEYS = ("max_total_runs", "github", "factory")
-STATUS_VALUES = ("Backlog", "Plan", "Ready", "Building", "Review", "Done")
-
 # Spelled out independently rather than imported from feature_schema — importing
 # feature_schema._REDIRECT and asserting it appears in feature_schema's own output
 # would be tautological. This is the literal sentence T-01's intent gives, verbatim.
@@ -148,14 +145,14 @@ REDIRECT_SENTENCE = (
 )
 
 
-def case_accepted_all_eleven_keys():
+def case_accepted_all_ten_keys():
     problems = clean(full_doc())
-    check("accepted_all_eleven_keys", problems == [], problems)
+    check("accepted_all_ten_keys", problems == [], problems)
 
 
-def case_accepted_only_eight_required_keys():
+def case_accepted_only_seven_required_keys():
     problems = clean(required_doc())
-    check("accepted_only_eight_required_keys", problems == [], problems)
+    check("accepted_only_seven_required_keys", problems == [], problems)
 
 
 def case_accepted_omitting_one_optional_key():
@@ -178,10 +175,20 @@ def case_rejected_omitting_one_required_key():
         check(f"rejected_omitting_required_{key}", problems != [] and named, problems)
 
 
-def case_accepted_each_status_value():
-    for status in STATUS_VALUES:
-        problems = clean(required_doc(status=status))
-        check(f"accepted_status_{status}", problems == [], problems)
+def case_rejected_every_station_spelling_as_status():
+    """FEAT-41 T-07 INVERTS THIS CASE. It asserted that each of the six board columns was an
+    ACCEPTED `status` value. The key is gone from the schema and additionalProperties is false,
+    so every one of those spellings — and the lowercase stations that replaced them — is now an
+    UNDECLARED KEY. Kept as a loop over the same vocabulary rather than collapsed to one value:
+    the point is that NO spelling is legal, which one value cannot demonstrate.
+    """
+    for value in ("Backlog", "Plan", "Ready", "Building", "Review", "Done",
+                  "backlog", "plan", "ready", "building", "review", "done", "abandoned"):
+        doc = required_doc()
+        doc["status"] = value
+        problems = clean(doc)
+        named = any("'status'" in p for p in problems)
+        check(f"rejected_status_{value}_as_undeclared", problems != [] and named, problems)
 
 
 def case_rejected_phase_is_gone():
@@ -269,17 +276,13 @@ def case_rejected_prose_key_reproducing_real_rot():
 
 
 def case_rejected_status_shipped():
+    """`shipped` was rejected for being outside the enum; it is now rejected for being a
+    `status` key at all. The case survives the migration because its ASSERTION is unchanged —
+    only the reason the document is refused moved."""
     doc = required_doc()
     doc["status"] = "shipped"
     problems = clean(doc)
     check("rejected_status_shipped", problems != [], problems)
-
-
-def case_rejected_status_lowercase_done():
-    doc = required_doc()
-    doc["status"] = "done"
-    problems = clean(doc)
-    check("rejected_status_lowercase_done", problems != [], problems)
 
 
 def case_rejected_pr_string_none():
@@ -340,7 +343,6 @@ def case_json_extension_rejects_yaml_content_yaml_extension_accepts_it():
         "feature_id: FEAT-99-x\n"
         "branch: feat/99\n"
         "pr: null\n"
-        "status: Building\n"
         "review_sha: none\n"
         "cycles_used: 0\n"
         "max_total_cycles: 8\n"
@@ -363,7 +365,7 @@ def case_problems_for_text_names_real_display_path_in_every_line():
     display = ".harness/features/FEAT-99-x/feature.json"
     doc = required_doc()
     del doc["branch"]
-    del doc["status"]
+    del doc["pr"]
     problems = feature_schema.problems_for_text(json.dumps(doc), display)
     check("problems_for_text_at_least_two_problems", len(problems) >= 2, problems)
     check("problems_for_text_display_path_in_every_line",
@@ -714,11 +716,11 @@ def case_749_falls_back_when_no_tree_schema_exists():
 
 
 def main():
-    case_accepted_all_eleven_keys()
-    case_accepted_only_eight_required_keys()
+    case_accepted_all_ten_keys()
+    case_accepted_only_seven_required_keys()
     case_accepted_omitting_one_optional_key()
     case_rejected_omitting_one_required_key()
-    case_accepted_each_status_value()
+    case_rejected_every_station_spelling_as_status()
     case_rejected_phase_is_gone()
     case_rejected_undeclared_top_level_key()
     case_rejected_undeclared_runs_item_key()
@@ -728,7 +730,6 @@ def main():
     case_rejected_undeclared_github_sub_key()
     case_rejected_prose_key_reproducing_real_rot()
     case_rejected_status_shipped()
-    case_rejected_status_lowercase_done()
     case_rejected_pr_string_none()
     case_cli_clean_file_exit_0()
     case_749_schema_comes_from_the_written_tree()

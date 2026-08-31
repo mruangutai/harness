@@ -354,9 +354,13 @@ def station_column(name):
     rename them.
 
     Raises FleetError on anything outside the six, and that INCLUDES an already-capitalised name
-    and TERMINAL_MARKER. Refusing "Done" is deliberate: a caller holding a column name and
-    passing it back in would otherwise get "Done".capitalize() == "Done" and silently work, and a
-    case boundary that accepts its own output is not a boundary."""
+    and TERMINAL_MARKER. Refusing a capitalised column name is deliberate: a caller holding one
+    and passing it back in would otherwise have `.capitalize()` return it unchanged and silently
+    work, and a case boundary that accepts its own output is not a boundary.
+
+    The refused spellings are deliberately NOT quoted in this docstring: SC-02 greps non-test
+    source for quoted station literals, and prose naming a rejected value is indistinguishable
+    to that grep from code depending on it."""
     if name not in MANDATED_STATIONS:
         known = ", ".join(MANDATED_STATIONS)
         raise FleetError("unknown station", name, f"known stations: {known}")

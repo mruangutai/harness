@@ -1,5 +1,6 @@
 schema: plan/1
 feature: FEAT-13-single-issue-board-lookup
+status: done
 
 approval:
   status: approved

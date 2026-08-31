@@ -1,5 +1,6 @@
 schema: plan/1
 feature: FEAT-27-expertise-repository-tier
+status: done
 
 approval:
   status: approved

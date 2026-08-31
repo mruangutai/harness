@@ -23,6 +23,7 @@
 
 schema: plan/1
 feature: FEAT-37-lead-stop-and-wake
+status: done
 
 approval:
   # Written by the MAIN SESSION only — the only tier with a user channel (DEC-120).

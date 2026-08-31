@@ -2,7 +2,6 @@
   "feature_id": "FEAT-03-subissue-mirror",
   "branch": "feat/harness-native-foundation",
   "pr": 15,
-  "status": "Done",
   "review_sha": "e68ba00",
   "cycles_used": 6,
   "max_total_cycles": 10,

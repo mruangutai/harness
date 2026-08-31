@@ -1,5 +1,6 @@
 schema: plan/1
 feature: FEAT-43-code-risk-grading
+status: done
 
 source_issues: [910]
 

@@ -1,5 +1,6 @@
 schema: plan/1
 feature: FEAT-35-orchestrator-stop-and-wake
+status: done
 
 approval:
   status: approved

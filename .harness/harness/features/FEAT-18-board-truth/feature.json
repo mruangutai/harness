@@ -2,7 +2,6 @@
   "feature_id": "FEAT-18-board-truth",
   "branch": "feat/FEAT-18-board-truth",
   "pr": 334,
-  "status": "Done",
   "review_sha": "af204ed",
   "cycles_used": 2,
   "max_total_cycles": 10,

@@ -65,13 +65,18 @@ def write_root(root, github, fleet=None):
 
 
 def write_feature(root, repo_slug, feat, status, parent=None, github_issues=None,
-                   factory_issues=None):
+                   factory_issues=None, plan_station=None):
     """A `feature.json` fixture at `<root>/.harness/<repo_slug>/features/<feat>/feature.json` —
     the SAME `.harness/*/features/*/feature.json` glob shape `board_lifecycle.py`'s own
-    `_feature_dirs` reads, and check-state.sh's INV-24/INV-26 already read (T-15)."""
+    `_feature_dirs` reads, and check-state.sh's INV-24/INV-26 already read (T-15).
+
+    `status=None` OMITS the key rather than writing a null — the post-migration shape (FEAT-41
+    T-07), not a malformed document. `plan_station` writes the sibling plan.yaml carrying that
+    lowercase top-level station, which is where the station is read from once T-07 lands.
+    """
     fdir = os.path.join(root, ".harness", repo_slug, "features", feat)
     os.makedirs(fdir, exist_ok=True)
-    doc = {"status": status}
+    doc = {} if status is None else {"status": status}
     github = {}
     if parent is not None:
         github["parent"] = parent
@@ -83,6 +88,9 @@ def write_feature(root, repo_slug, feat, status, parent=None, github_issues=None
         doc["factory"] = {"issues": factory_issues}
     with open(os.path.join(fdir, "feature.json"), "w", encoding="utf-8") as f:
         json.dump(doc, f)
+    if plan_station is not None:
+        with open(os.path.join(fdir, "plan.yaml"), "w", encoding="utf-8") as f:
+            f.write(f"feature: {feat}\nstatus: {plan_station}\ntasks: []\n")
 
 
 _BOARD = {
@@ -988,7 +996,7 @@ with tempfile.TemporaryDirectory() as base:
     # state; FEAT-32 has since shipped and this shape is no longer on the real board.
     root = os.path.join(base, "root")
     write_root(root, default_github())
-    write_feature(root, "widget", "FEAT-32-fixture", "Review", parent=700,
+    write_feature(root, "widget", "FEAT-32-fixture", None, plan_station="review", parent=700,
                   github_issues={"T-01": 701})
     r, log = run(root, ["audit"], stations=_stations_json({700: "Building"}))
     check("audit STATUS (FEAT-32 shape): exits 1", r.returncode == 1, f"rc={r.returncode}")
@@ -1006,7 +1014,7 @@ with tempfile.TemporaryDirectory() as base:
     # issue's open/closed state.
     root = os.path.join(base, "root")
     write_root(root, default_github())
-    write_feature(root, "widget", "FEAT-08", "Done", parent=85, github_issues={"T-01": 86})
+    write_feature(root, "widget", "FEAT-08", None, plan_station="done", parent=85, github_issues={"T-01": 86})
     r, log = run(root, ["audit"], stations=_stations_json({85: "Backlog"}))
     check("audit STATUS (FEAT-08 shape): exits 1", r.returncode == 1, f"rc={r.returncode}")
     check("audit STATUS (FEAT-08 shape): names the feature dir, status Done, expected done, "
@@ -1019,7 +1027,7 @@ with tempfile.TemporaryDirectory() as base:
     # FEAT-09 shape, its own assertion (T-15 intent: "each its own assertion").
     root = os.path.join(base, "root")
     write_root(root, default_github())
-    write_feature(root, "widget", "FEAT-09", "Done", parent=98, github_issues={"T-01": 99})
+    write_feature(root, "widget", "FEAT-09", None, plan_station="done", parent=98, github_issues={"T-01": 99})
     r, log = run(root, ["audit"], stations=_stations_json({98: "Backlog"}))
     check("audit STATUS (FEAT-09 shape): exits 1", r.returncode == 1, f"rc={r.returncode}")
     check("audit STATUS (FEAT-09 shape): names the feature dir, status Done, expected done, "
@@ -1032,7 +1040,7 @@ with tempfile.TemporaryDirectory() as base:
     # A matching status and card -- no finding.
     root = os.path.join(base, "root")
     write_root(root, default_github())
-    write_feature(root, "widget", "FEAT-CLEAN", "Building", parent=500,
+    write_feature(root, "widget", "FEAT-CLEAN", None, plan_station="building", parent=500,
                   github_issues={"T-01": 501})
     r, log = run(root, ["audit"], stations=_stations_json({500: "Building"}))
     check("audit STATUS: a matching status and card is NOT a finding",
@@ -1043,7 +1051,7 @@ with tempfile.TemporaryDirectory() as base:
     # though the parent card reads something that would otherwise mismatch every mapped status.
     root = os.path.join(base, "root")
     write_root(root, default_github())
-    write_feature(root, "widget", "FEAT-ABANDONED", "Abandoned", parent=600,
+    write_feature(root, "widget", "FEAT-ABANDONED", None, plan_station="abandoned", parent=600,
                   github_issues={"T-01": 601})
     r, log = run(root, ["audit"], stations=_stations_json({600: "Backlog"}))
     check("audit STATUS: exemption 1 -- Abandoned is exempt, no STATUS finding",
@@ -1053,7 +1061,7 @@ with tempfile.TemporaryDirectory() as base:
     # Exemption 2 -- no recorded parent (INV-21's finding, not this one).
     root = os.path.join(base, "root")
     write_root(root, default_github())
-    write_feature(root, "widget", "FEAT-NO-PARENT", "Building", parent=None)
+    write_feature(root, "widget", "FEAT-NO-PARENT", None, plan_station="building", parent=None)
     r, log = run(root, ["audit"])
     check("audit STATUS: exemption 2 -- no recorded parent is exempt, no STATUS finding",
           r.returncode == 0 and "STATUS" not in r.stdout, repr(r.stdout))
@@ -1064,7 +1072,7 @@ with tempfile.TemporaryDirectory() as base:
     # mismatches what a non-exempt comparison would expect, so a leaky exemption would redden.
     root = os.path.join(base, "root")
     write_root(root, default_github())
-    write_feature(root, "widget", "FEAT-PRODUCT", "Building", parent=400,
+    write_feature(root, "widget", "FEAT-PRODUCT", None, plan_station="building", parent=400,
                   factory_issues={"T-01": 401})
     r, log = run(root, ["audit"], stations=_stations_json({400: "Backlog"}))
     check("audit STATUS: exemption 3 -- factory.issues (product board) is exempt, no STATUS "
@@ -1091,7 +1099,7 @@ with tempfile.TemporaryDirectory() as base:
                       "repos": [{"name": "acme/gadget", "default_branch": "main"}]})
     # This checkout's OWN feature, on disk, status Done -- would mismatch the served repo's
     # #950 reading Backlog if STATUS wrongly compared across repos.
-    write_feature(root, "widget", "FEAT-CROSSREPO-783", "Done", parent=950,
+    write_feature(root, "widget", "FEAT-CROSSREPO-783", None, plan_station="done", parent=950,
                   github_issues={"T-01": 951})
     r, log = run(
         root, ["audit", "--repo", "acme/gadget"],
@@ -1162,7 +1170,7 @@ _RECON_ISSUES_AFTER = json.dumps([
 def _write_recon_fixture(base):
     root = os.path.join(base, "root")
     write_root(root, default_github())
-    write_feature(root, "widget", "FEAT-RECON", "Building", parent=40,
+    write_feature(root, "widget", "FEAT-RECON", None, plan_station="building", parent=40,
                   github_issues={"T-01": 41})
     return root
 
@@ -1284,7 +1292,7 @@ with tempfile.TemporaryDirectory() as base:
 with tempfile.TemporaryDirectory() as base:
     root = os.path.join(base, "root")
     write_root(root, default_github())
-    write_feature(root, "widget", "FEAT-DONE-MISMATCH", "Done", parent=85,
+    write_feature(root, "widget", "FEAT-DONE-MISMATCH", None, plan_station="done", parent=85,
                   github_issues={"T-01": 86})
     r, log = run(root, ["reconcile", "--apply"], stations=_stations_json({85: "Backlog"}))
     check("reconcile (Done exemption): the STATUS finding survives --apply untouched",
@@ -1309,7 +1317,7 @@ with tempfile.TemporaryDirectory() as base:
     write_root(root, default_github(),
                fleet={"workspace_root": os.path.join(base, "ws"),
                       "repos": [{"name": "acme/gadget", "default_branch": "main"}]})
-    write_feature(root, "widget", "FEAT-CROSSREPO-RECON-783", "Building", parent=960,
+    write_feature(root, "widget", "FEAT-CROSSREPO-RECON-783", None, plan_station="building", parent=960,
                   github_issues={"T-01": 961})
     r, log = run(
         root, ["reconcile", "--repo", "acme/gadget"],
@@ -1584,6 +1592,48 @@ with tempfile.TemporaryDirectory() as base:
           "exit stays inside the subcommand",
           r_cmd.returncode != 0 and "github.repo" in (r_cmd.stderr + r_cmd.stdout),
           f"rc={r_cmd.returncode} stderr={r_cmd.stderr!r} stdout={r_cmd.stdout!r}")
+
+# ---------------- T-07: the STATUS class reads the station from plan.yaml ------------------
+#
+# THE POSITIVE SIDE OF THE MIGRATION, and the only assertion here that a half-applied one
+# fails. T-07's schema and absence checks all go green when the status key is deleted and this
+# reader still expects it — at which point `_STATUS_TO_STATION_KEY.get(None)` is None, the loop
+# `continue`s, and the STATUS class silently stops finding ANYTHING. That is the dangerous
+# direction: not a crash, a gate that passes because it compares nothing.
+
+with tempfile.TemporaryDirectory() as base:
+    root = os.path.join(base, "root")
+    write_root(root, default_github())
+    # NO feature.json status — the post-migration shape. The station lives in plan.yaml.
+    write_feature(root, "widget", "FEAT-72-plan-station", None, parent=720,
+                  github_issues={"T-01": 721}, plan_station="review")
+    r, log = run(root, ["audit"], stations=_stations_json({720: "Building"}))
+    check("T-07 audit STATUS: a feature with NO feature.json status still yields a finding "
+          "from its plan.yaml station -- the class does not go vacuous",
+          r.returncode == 1 and "STATUS" in r.stdout and "FEAT-72-plan-station" in r.stdout,
+          f"rc={r.returncode} stdout={r.stdout!r}")
+    # BOTH HARNESS-SIDE VALUES ARE LOWERCASE; THE COLUMN IS NOT, AND THAT IS CORRECT. The
+    # message reads `records station 'review' (column 'Review') ... reads 'building'`. The first
+    # and last are harness-side facts and are lowercase. `'Review'` is the GitHub COLUMN name,
+    # derived by station_column, and D-08 puts the capitalised spelling exactly there — at the
+    # boundary. An assertion that no capitalised spelling survives anywhere in this line was
+    # written first and was WRONG: it would have forced the column name out of the operator-
+    # facing message, which is the one thing in it they can actually go and look at.
+    check("T-07 audit STATUS: both harness-side values are lowercase, and the GitHub column "
+          "name is not -- the boundary is where the capitals belong (D-08)",
+          "station 'review'" in r.stdout and "reads 'building'" in r.stdout
+          and "column 'Review'" in r.stdout, repr(r.stdout))
+
+with tempfile.TemporaryDirectory() as base:
+    # NEGATIVE CONTROL: same shape, plan station AGREEING with the board. Without it the case
+    # above passes on a repointing that reports a finding for every feature it reads.
+    root = os.path.join(base, "root")
+    write_root(root, default_github())
+    write_feature(root, "widget", "FEAT-73-agrees", None, parent=730,
+                  github_issues={"T-01": 731}, plan_station="building")
+    r, log = run(root, ["audit"], stations=_stations_json({730: "Building"}))
+    check("T-07 NEGATIVE CONTROL: plan station agreeing with the board is NOT a STATUS finding",
+          "STATUS" not in r.stdout, f"rc={r.returncode} stdout={r.stdout!r}")
 
 print(f"\n{len(FAILURES)} failing." if FAILURES else "\nall checks passed.")
 sys.exit(1 if FAILURES else 0)

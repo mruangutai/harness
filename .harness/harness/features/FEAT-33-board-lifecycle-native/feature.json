@@ -2,7 +2,6 @@
   "feature_id": "FEAT-33-board-lifecycle-native",
   "branch": "feat/FEAT-33-board-lifecycle-native",
   "pr": 785,
-  "status": "Done",
   "review_sha": "337bbc218b1d3a8af122e4fefe32d824257a1241",
   "cycles_used": 1,
   "max_total_cycles": 10,

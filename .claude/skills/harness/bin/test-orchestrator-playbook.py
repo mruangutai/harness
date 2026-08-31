@@ -121,7 +121,7 @@ def case7_absence_record_your_phase_in(text):
 
 
 def case8_presence_record_your_status_in(text):
-    literal = "Record your status in"
+    literal = "Record your station in"
     check("case8_presence_record_your_status_in", literal in text,
           f"literal {literal!r} not found")
 
