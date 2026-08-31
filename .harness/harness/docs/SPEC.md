@@ -1612,8 +1612,9 @@ prose report, and the earlier wording made that look like a
 deviation when it was the better outcome.
 
 The per-member block is what preserves `STATE.md` granularity under hierarchy. **Each member that
-ran carries its own `verdict:`**; a member that did not run instead carries `status: skipped`, its
-persona, and the host reason. Skips are explicit records and do not enter worst-wins. The team
+ran carries its own `verdict:`**. Only the optional external `fable-advisor` may instead carry
+`status: skipped`, its persona, and the host reason when it did not run. Skips do not enter
+worst-wins, but at least one member must have run before the lead may claim a verdict. The team
 verdict is computed from the members that ran, and `validate-digest.py` rejects a roll-up that
 reports better than its worst member (reporting *worse* is allowed; a lead may have a reason its
 members could not see). Bare-string entries like `[qa PASS]` are not a substitute: they drop

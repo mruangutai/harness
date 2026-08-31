@@ -175,7 +175,7 @@ digest means the orchestrator paid your spawn for nothing. Four things, in order
 | | Do |
 |---|---|
 | **a. roll up** | `BLOCKED > ESCALATE > FAIL > PASS`, worst wins. One `FAIL` makes the team `FAIL`. `ESCALATE` outranks `FAIL` deliberately: a decision only the user can make must not hide behind a failure you could fix |
-| | every member that ran carries `verdict:`; a member that did not run carries `status: skipped`, its persona, and the host reason instead. Skips are explicit records, never verdicts, and do not enter worst-wins |
+| | every member that ran carries `verdict:`. Only the optional external `fable-advisor` may carry `status: skipped`, plus the host reason, when it did not run. Skips do not enter worst-wins, but at least one member must have run |
 | | reporting **worse** than your members is allowed — you may see what they could not |
 | **b. merge** | union `must_fix`, `files_touched`, `open_questions`; merge one defect reported three ways into one entry naming all three reporters, else three copies spend three fix cycles on one problem |
 | | re-rank `low`/`info` against **what the project does next** — you are the only tier that sees priority, so an inert `info` intersecting the next task outranks a `med` that does not (DEC-124) |
@@ -235,7 +235,7 @@ DIGEST:
   cycles_used: <n>
   members:                                   # per-member roll-up — NOT optional
     - { step: <id>, persona: <p>, verdict: <v>, headline: "...", files_touched: [...] }
-    - { step: <id>, persona: <p>, status: skipped, reason: "<host reason>" } # only when it did not run
+    - { step: should-not-exist, persona: fable-advisor, status: skipped, reason: "<host reason>" } # only optional external member
   must_fix: [<union of blocking findings>]
   files_touched: [<union across members>]    # universal — required of you too; [] if none
   branch: <branch | none>                    # `none` if the team mutated no repo

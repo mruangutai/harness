@@ -564,6 +564,45 @@ DIGEST:
 artifact: r/digest.md
 """, True)
 
+case("all skipped members cannot support a lead verdict", "harness-validator-lead", """
+VERDICT: PASS
+DIGEST:
+  headline: nobody ran
+  team: plan-panel
+  steps_run: 2
+  cycles_used: 0
+  members:
+    - { step: should-not-exist, persona: fable-advisor, status: skipped, reason: persona unavailable }
+  must_fix: []
+  branch: none
+  files_touched: []
+  open_questions: []
+  escalations: []
+  expertise_update: []
+  sc_status: []
+artifact: r/digest.md
+""", False, "no member actually ran")
+
+case("mandatory member cannot be laundered as skipped", "harness-validator-lead", """
+VERDICT: PASS
+DIGEST:
+  headline: qa was omitted
+  team: review
+  steps_run: 2
+  cycles_used: 0
+  members:
+    - { step: code, persona: code-reviewer, verdict: PASS }
+    - { step: qa, persona: qa, status: skipped, reason: environment unavailable }
+  must_fix: []
+  branch: none
+  files_touched: []
+  open_questions: []
+  escalations: []
+  expertise_update: []
+  sc_status: []
+artifact: r/digest.md
+""", False, "only the optional fable-advisor")
+
 
 # =====================================================================
 # --hook mode (BUILD task 22 / F8): the ONLY mode DEC-122 makes mandatory had
@@ -1984,16 +2023,19 @@ def _plan_review_fixture(root):
     return feature_dir, plan_path, artifact, digest
 
 
-def _plan_review_errors(validator, config, feature_dir, digest):
-    return validator.validate("harness-code-reviewer", digest, config, feature_dir)
+def _plan_review_errors(validator, config, feature_dir, digest, branch_override=None):
+    return validator.validate(
+        "harness-code-reviewer", digest, config, feature_dir, branch_override
+    )
 
 
-def check_pending_plan_review(validator, config, root, failures):
-    """DEC-207: a pre-signature plan review has no review_sha or code diff."""
-    feature_dir, plan_path, artifact, digest = _plan_review_fixture(root)
+def _check_plan_approval_states(
+        validator, config, feature_dir, plan_path, artifact, digest, failures):
     errors = _plan_review_errors(validator, config, feature_dir, digest)
     if errors:
-        failures.append(f"a pending plan review with no feature.json/review_sha must accept: {errors}")
+        failures.append(
+            f"a pending plan review with no feature.json/review_sha must accept: {errors}"
+        )
 
     _write_plan_approval(plan_path, "approved")
     errors = _plan_review_errors(validator, config, feature_dir, digest)
@@ -2007,6 +2049,32 @@ def check_pending_plan_review(validator, config, root, failures):
     errors = _plan_review_errors(validator, config, feature_dir, wrong_grade)
     if not any("n_a" in error for error in errors):
         failures.append("plan review mode must reject a code_grade other than n_a")
+
+
+def _check_plan_feature_binding(validator, config, feature_dir, digest, failures):
+    feature_json = os.path.join(feature_dir, "feature.json")
+    with open(feature_json, "w") as handle:
+        json.dump({"review_sha": REVIEW_SHA, "branch": "feat/FEAT-PLAN"}, handle)
+    errors = _plan_review_errors(validator, config, feature_dir, digest)
+    if not any("pre-signature" in error for error in errors):
+        failures.append("plan review mode must reject a feature with a pinned review_sha")
+
+    with open(feature_json, "w") as handle:
+        json.dump({"review_sha": "none", "branch": "feat/FEAT-PLAN"}, handle)
+    errors = _plan_review_errors(
+        validator, config, feature_dir, digest, branch_override="feat/OTHER"
+    )
+    if not any("does not match" in error for error in errors):
+        failures.append("plan review mode must reject a different current branch")
+
+
+def check_pending_plan_review(validator, config, root, failures):
+    """DEC-207: a pre-signature plan review has no review_sha or code diff."""
+    feature_dir, plan_path, artifact, digest = _plan_review_fixture(root)
+    _check_plan_approval_states(
+        validator, config, feature_dir, plan_path, artifact, digest, failures
+    )
+    _check_plan_feature_binding(validator, config, feature_dir, digest, failures)
 
 
 def check_review_policy(validator, config, feature_dir, failures):
@@ -2659,6 +2727,51 @@ def _hermetic_review_sha_cwd(td):
         PRE_FEATURE_REVISION, REVIEW_SHA = saved
 
 
+def check_hook_feature_dir(validator, td, failures):
+    """An installed validator resolves an unmerged feature in its linked worktree."""
+    if HERE not in sys.path:
+        sys.path.insert(0, HERE)
+    import inflight_registry
+    owner_root = os.path.join(td, "owner")
+    feature_root = os.path.join(td, "worktrees", "FEAT-INSTALLED")
+    expected = os.path.join(
+        feature_root, ".harness", "harness", "features", "FEAT-INSTALLED"
+    )
+    artifact = ".harness/harness/features/FEAT-INSTALLED/notes/review.md"
+    os.makedirs(expected, exist_ok=True)
+
+    original_root = validator._root_or_none
+    original_feature_root = inflight_registry.feature_root
+    validator._root_or_none = lambda: owner_root
+    inflight_registry.feature_root = lambda root, feature: feature_root
+    try:
+        actual = validator._hook_feature_dir(f"artifact: {artifact}", "FEAT-INSTALLED")
+        if actual != expected:
+            failures.append(
+                f"installed validator must bind to linked feature worktree: {actual!r}"
+            )
+    finally:
+        validator._root_or_none = original_root
+        inflight_registry.feature_root = original_feature_root
+
+
+def check_skipped_member_errors(validator, failures):
+    cases = (
+        ({"status": "skipped", "persona": "fable-advisor", "reason": "host refusal",
+          "verdict": "PASS"}, "verdict"),
+        ({"status": "skipped", "reason": "host refusal"}, "persona"),
+        ({"status": "skipped", "persona": "fable-advisor"}, "reason"),
+        ({"status": "skipped", "persona": "qa", "reason": "host refusal"},
+         "optional fable-advisor"),
+    )
+    for fields, expected in cases:
+        skipped, error = validator._skipped_member_error(fields)
+        if not skipped or not error or expected not in error:
+            failures.append(
+                f"skipped member {fields!r} must reject with {expected!r}: {error!r}"
+            )
+
+
 def _check_review_bindings(validator, config, feature_dir, td, failures):
     check_code_grade_state(validator, config, feature_dir, failures)
     check_reviewed_range(validator, config, feature_dir, td, failures)
@@ -2667,6 +2780,8 @@ def _check_review_bindings(validator, config, feature_dir, td, failures):
     check_resolve_review_sha_artifact_path(validator, td, failures)
     check_resolve_review_sha_feature_json(validator, td, failures)
     check_pending_plan_review(validator, config, td, failures)
+    check_hook_feature_dir(validator, td, failures)
+    check_skipped_member_errors(validator, failures)
     check_branch_corroboration(validator, config, td, failures)
 
 

@@ -772,16 +772,14 @@ def _read_feature_branch(feature_dir):
     return branch.strip()
 
 
-def _current_branch_or_none(branch_override=_BRANCH_UNSET):
-    """This checkout's current branch (`git rev-parse --abbrev-ref HEAD`), or
-    None when it cannot be determined — detached HEAD (reported as the literal
-    `HEAD`), `git` unavailable, or a non-zero exit. `branch_override` is the
-    fixture-override seam for tests: pass a branch name, or `None` to simulate
-    an undeterminable checkout, and the `git` call below is skipped entirely.
-    """
+def _current_branch_or_none(branch_override=_BRANCH_UNSET, feature_dir=None):
+    """The branch of the checkout that owns `feature_dir`, or None when unknown."""
     if branch_override is not _BRANCH_UNSET:
         return branch_override
-    root = _root_or_none()
+    if feature_dir is None:
+        root = _root_or_none()
+    else:
+        root = os.path.realpath(os.path.join(feature_dir, "..", "..", "..", ".."))
     if root is None:
         return None
     try:
@@ -907,8 +905,8 @@ def _pinned_feature_review_error(feature_dir):
             "has a pinned review_sha.")
 
 
-def _pending_plan_review_error(text, reviewed, code_grade, feature_dir):
-    """Bind DEC-207's pre-signature review to its pending plan, not a code SHA."""
+def _pending_plan_review_error(text, reviewed, code_grade, feature_dir, branch_override):
+    """Bind DEC-207's pre-signature review to its pending plan and checkout."""
     feature_dir, dir_error = _resolve_feature_dir(text, feature_dir)
     if dir_error:
         return dir_error
@@ -921,11 +919,17 @@ def _pending_plan_review_error(text, reviewed, code_grade, feature_dir):
     if plan_path != expected_path:
         return (f"reviewed plan target {plan_path!r} is not this feature's "
                 f"plan.yaml ({expected_path}).")
-    return _pending_plan_status_error(plan_path) or _pinned_feature_review_error(feature_dir)
+    return (
+        _pending_plan_status_error(plan_path)
+        or _pinned_feature_review_error(feature_dir)
+        or _branch_corroboration_error(
+            feature_dir, _current_branch_or_none(branch_override, feature_dir)
+        )
+    )
 
 
 def _skipped_member_error(fields):
-    """Validate an explicit not-run member record; None means it is a normal member."""
+    """Validate the one optional external member that may legitimately not run."""
     status = fields.get("status")
     if status is None:
         return False, None
@@ -937,6 +941,9 @@ def _skipped_member_error(fields):
         return True, "a skipped member must name its persona."
     if not str(fields.get("reason", "")).strip():
         return True, "a skipped member must name the host reason it did not run."
+    if fields.get("persona") != "fable-advisor":
+        return True, ("only the optional fable-advisor may be recorded as skipped; "
+                      "mandatory members must carry their verdict.")
     return True, None
 
 
@@ -962,7 +969,9 @@ def code_grade_bound_to_review(text, reviewed, code_grade, feature_dir=None,
     Returns an error string, or `None` when the binding holds.
     """
     if _is_plan_review(reviewed):
-        return _pending_plan_review_error(text, reviewed, code_grade, feature_dir)
+        return _pending_plan_review_error(
+            text, reviewed, code_grade, feature_dir, branch_override
+        )
     feature_dir, dir_error = _resolve_feature_dir(text, feature_dir)
     if dir_error:
         return dir_error
@@ -984,7 +993,9 @@ def code_grade_bound_to_review(text, reviewed, code_grade, feature_dir=None,
         return (f"reviewed head {head!r} does not resolve to this feature's "
                 f"pinned review_sha ({review_sha}) — write the range that ends "
                 f"at review_sha (feature.json), not a convenient no-op.")
-    return _branch_corroboration_error(feature_dir, _current_branch_or_none(branch_override))
+    return _branch_corroboration_error(
+        feature_dir, _current_branch_or_none(branch_override, feature_dir)
+    )
 
 
 def _missing_field_default_hint(field, allowed):
@@ -1306,6 +1317,9 @@ def validate(persona, text, config_path=None, feature_dir=None, branch_override=
                     continue
                 if worst is None or RANK[v] > RANK[worst]:
                     worst, worst_src = v, str(item)[:60]
+            if worst is None:
+                err.append("members records no member actually ran — a lead verdict cannot "
+                           "claim an outcome for an entirely skipped team.")
             if worst and top in RANK and RANK[top] < RANK[worst]:
                 err.append(f"VERDICT is {top} but a member returned {worst} "
                            f"({worst_src!r}). The team verdict is the WORST member verdict "
@@ -1339,6 +1353,20 @@ def _root_or_none():
         import harness_boundary
         return harness_boundary.resolve_root(
             os.path.dirname(os.path.realpath(__file__)), strict=False)
+    except Exception:
+        return None
+
+def _hook_feature_dir(text, feature):
+    """Resolve an unmerged feature from an installed validator's owner checkout."""
+    owner_root = _root_or_none()
+    if owner_root is None or not feature:
+        return None
+    try:
+        sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
+        import inflight_registry
+        checkout_root = inflight_registry.feature_root(owner_root, feature)
+        feature_dir, error = _feature_dir_from_artifact(text, checkout_root)
+        return None if error else feature_dir
     except Exception:
         return None
 
@@ -1567,7 +1595,9 @@ def hook_mode():
     # completely unvalidated with no signal at all. That is a worse outcome than
     # the "decline to govern" pass-throughs above, which at least say so.
     try:
-        errs = validate(agent, text)
+        errs = validate(agent, text, feature_dir=_hook_feature_dir(
+            text, d.get("harness_feature")
+        ))
     except GatePolicyError as error:
         print(f"check-digest: {error}", file=sys.stderr)
         return 2
