@@ -759,7 +759,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: feature-schema.json is enforced on check-domain.sh's write path and read by check-state.sh
     depends_on: [T-04, T-06]
-    status: ready
+    status: done
     files:
       - .claude/skills/harness/bin/feature-schema.json
       - .claude/skills/harness/bin/feature_schema.py
