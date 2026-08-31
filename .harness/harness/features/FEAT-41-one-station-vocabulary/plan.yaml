@@ -1599,7 +1599,7 @@ tasks:
     execution_reason: repairs fixtures for the factory CLI surface changed by T-01/T-02 under
       DEC-174
     depends_on: [T-06]
-    status: ready
+    status: done
     files:
       - .claude/skills/harness/bin/test-factory-integration.py
     verify: |

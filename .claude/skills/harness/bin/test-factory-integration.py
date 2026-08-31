@@ -481,16 +481,20 @@ REPO = "acme/widget"
 DEFAULT_BRANCH = "main"
 
 
-def default_board(owner="acme", number=9, station_field="Status", **stations_kw):
-    """The six-key stations map (D-06, widened by FEAT-33 T-02), returned by every fixture as a
-    fleet member's own `github.board` — T-02/T-03 moved the board out of fleet.yaml, so this is
-    what `factory_config.product_config` resolves to, never a `repos[].board` key."""
-    stations = {
-        "backlog": "Backlog", "plan": "Plan", "ready": "Ready", "building": "Building",
-        "review": "Review", "done": "Done",
-    }
-    stations.update(stations_kw)
-    return {"owner": owner, "number": number, "station_field": station_field, "stations": stations}
+def default_board(owner="acme", number=9, station_field="Status", stations=None):
+    """A fleet member's own `github.board`, returned by every fixture — T-02/T-03 moved the board
+    out of fleet.yaml, so this is what `factory_config.product_config` resolves to, never a
+    `repos[].board` key.
+
+    THE ORDERED LOWERCASE DECLARATION (FEAT-41 T-01). This built the six-key MAPPING of station
+    to column name and took `**stations_kw` so a caller could rename one column. T-01 deleted
+    both: the six names are FIXED and every column name is DERIVED by
+    factory_config.station_column, so there is nothing here to choose. `stations` survives as an
+    explicit parameter for the cases that prove a MALFORMED declaration is refused; no caller
+    overrides a column name any more, because no declaration can.
+    """
+    return {"owner": owner, "number": number, "station_field": station_field,
+            "stations": list(stations if stations is not None else factory_config.MANDATED_STATIONS)}
 
 
 def default_product_configs(repo=REPO, board=None):
@@ -852,7 +856,10 @@ with tempfile.TemporaryDirectory() as td:
     fleet_path = os.path.join(td, "fleet", "fleet.yaml")
     fleet_data = fleet_dict(workspace_root)
     write_yaml(fleet_path, fleet_data)
-    ready_option = default_board()["stations"]["ready"]
+    # THE COLUMN IS DERIVED, NEVER LOOKED UP (FEAT-41 T-01/T-02). This indexed the declaration
+    # for a column name back when the declaration carried them; station_column is the one place
+    # a capitalised station name is produced now.
+    ready_option = factory_config.station_column("ready")
     cwd = os.path.join(td, "cwd")
     os.makedirs(cwd, exist_ok=True)
     gh_state = write_state(os.path.join(td, "gh_state.json"), next_issue=500)
@@ -1514,9 +1521,15 @@ with tempfile.TemporaryDirectory() as td:
           "SystemExit catch)",
           r.returncode == 1, f"code={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
     check("(L) board_lifecycle.py audit STATUS: the finding names the feature dir, recorded "
-          "status Done, and the actual column Backlog",
+          "status Done, and the actual station backlog",
+          # THE RECORDED STATUS AND THE ACTUAL STATION SIT ON OPPOSITE SIDES OF THE CASE
+          # BOUNDARY, and that is why one is capitalised and the other is not (FEAT-41 T-02).
+          # `'Done'` is feature.json's own recorded value, read off disk and quoted verbatim —
+          # T-07 is what lowercases that file. `'backlog'` is what the BOARD answered, and
+          # gh_board.board_stations lowercases every board read at the boundary. A capitalised
+          # actual value here would mean that boundary had leaked.
           "STATUS" in r.stdout and "FEAT-STATUS" in r.stdout and "#950" in r.stdout
-          and "'Done'" in r.stdout and "'Backlog'" in r.stdout, f"stdout={r.stdout!r}")
+          and "'Done'" in r.stdout and "'backlog'" in r.stdout, f"stdout={r.stdout!r}")
 
 
 # ============================================================================
