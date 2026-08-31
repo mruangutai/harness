@@ -887,7 +887,18 @@ def _projected_for(feat_dir, rec):
         plan_doc = harness_yaml.load_plan(plan_path)
     except harness_yaml.YamlParseError:
         return {}
-    return gh_board.project(plan_doc, rec)
+    try:
+        return gh_board.project(plan_doc, rec)
+    except factory_config.FleetError as exc:
+        # A VOCABULARY MISS REFUSES LOUDLY; IT NEVER TRACEBACKS (FEAT-41 T-16). project raises
+        # FleetError naming the task and the value, and T-06 left that exception to escape —
+        # measured, it crashed `status Ready` with a stack trace through main(). A stack trace is
+        # the one posture this tool must never take: it tells the operator nothing actionable and
+        # DEC-138's "the mirror never gates" is about not blocking a flow, not about dying in it.
+        # exit 2, one line, naming the offending value — the same shape `status` already uses for
+        # a bad status argument.
+        refuse(f"the plan carries a station outside the vocabulary, so no card can be "
+               f"placed from it — {exc}")
 
 
 def cmd_start_task(feat_dir, tid, repo, board):
@@ -1031,7 +1042,11 @@ def cmd_status(feat_dir, status, repo, board):
     if status == "Review":
         plan_doc = _status_plan_doc(feat_dir)
         tasks = (plan_doc or {}).get("tasks") or []
-        all_done = bool(tasks) and all((t.get("status") or "pending") == "done" for t in tasks)
+        # THE NOT-STARTED STATION, NOT THE DEAD WORD (FEAT-41 T-16). This read `or "pending"`,
+        # a live default T-04's migration missed because T-04 grepped check-state.sh and the
+        # plan corpus, never this file. An absent status reads as `ready`, exactly as
+        # gh_board.derive_station and project treat it.
+        all_done = bool(tasks) and all((t.get("status") or "ready") == "done" for t in tasks)
         if not all_done:
             refuse("status Review refused — not every task in plan.yaml carries status done")
 

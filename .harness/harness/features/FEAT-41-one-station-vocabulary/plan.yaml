@@ -1547,7 +1547,7 @@ tasks:
     execution_reason: repairs fixtures for check-state.sh and gh-sync.py, both enforcement-path
       files under DEC-174
     depends_on: [T-06]
-    status: ready
+    status: done
     files:
       - .claude/skills/harness/bin/test-gh-sync.py
     verify: |
