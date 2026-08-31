@@ -4,7 +4,7 @@
   "pr": null,
   "status": "Building",
   "review_sha": "1d3e5db5d17d9e7cf484b38e3796cf8ed5468bb1",
-  "cycles_used": 4,
+  "cycles_used": 5,
   "max_total_cycles": 10,
   "runs": [
     {
@@ -59,6 +59,12 @@
       "id": "2026-08-31-01-eng",
       "squad": "eng",
       "agent": "harness-eng-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-31-1-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
       "verdict": "PASS"
     }
   ],
