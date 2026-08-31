@@ -1711,43 +1711,27 @@ def case_v():
                         "there is a VIOLATION even at status Review", ok,
                         "\n".join(ls) or "(no INV-26 line)"))
 
-    # --- ONE CASE PER KEY, AND THAT IS THE POINT. _EXPECT quantifies over three statuses, so
-    # a single fixture cannot see a lookup that was never migrated: a `done` case is blind to a
-    # `backlog` literal left behind. This feature's own recurring defect is a clause over N
-    # keys with fewer than N fixtures, and the verify demands one each because of it.
+    # --- THE RENAMED-BOARD UNIT WAS DELETED HERE BY FEAT-41 T-11 ---------------------------
+    # It declared the six columns under six DIFFERENT names and asserted INV-26 read those
+    # names out of harness.json. The MANDATE removed the variability it exercised: the six
+    # station names are fixed and every read lowercases them, so harness.json can only ever
+    # hold those six strings and there is no rename left for a test to cover. Do not restore
+    # it.
     #
-    # Every column is RENAMED away from the DEC-203 spellings. A build that still spells
-    # "Building"/"Done"/"Backlog" itself reports a violation against a correctly placed card.
-    _renamed = {"owner": "org", "number": 3, "station_field": "status",
-                "stations": {"backlog": "Icebox", "plan": "Drafted", "ready": "Primed",
-                             "building": "WIP", "review": "Review", "done": "Shipped"}}
-
-    def _no_finding(out):
-        return not [l for l in _lines(out) if "CANNOT RUN" not in l]
-
-    # backlog: a MIXED plan — an all-pending plan reports nothing whatever _EXPECT says, so
-    # the pending card can only be judged beside a started one.
-    with tempfile.TemporaryDirectory() as tmp:
-        fake = _inv26_fixture(tmp, "FEAT-X", "done", "Shipped", "Review",
-                              second_status="pending", second_card="Icebox",
-                              board_override=_renamed)
-        c, out = _run_with_gh(tmp, fake)
-        results.append(("INV-26 expects the declared station for status: backlog",
-                        _no_finding(out), "\n".join(_lines(out)) or "(unexpected line)"))
-
-    with tempfile.TemporaryDirectory() as tmp:
-        fake = _inv26_fixture(tmp, "FEAT-X", "building", "WIP", "WIP",
-                              board_override=_renamed)
-        c, out = _run_with_gh(tmp, fake)
-        results.append(("INV-26 expects the declared station for status: building",
-                        _no_finding(out), "\n".join(_lines(out)) or "(unexpected line)"))
-
-    with tempfile.TemporaryDirectory() as tmp:
-        fake = _inv26_fixture(tmp, "FEAT-X", "done", "Shipped", "Review",
-                              board_override=_renamed)
-        c, out = _run_with_gh(tmp, fake)
-        results.append(("INV-26 expects the declared station for status: done",
-                        _no_finding(out), "\n".join(_lines(out)) or "(unexpected line)"))
+    # THE RETIRED SPELLINGS ARE DESCRIBED HERE, NEVER QUOTED, and that is a rule this feature
+    # learned the hard way — four times, including in the first draft of this very comment.
+    # T-11's own verify greps this file for those six words and for the deleted helper's name,
+    # so a comment that QUOTES what it retired is indistinguishable from the code that used
+    # it, and reds the gate it was written to explain.
+    #
+    # IT WAS ALSO PASSING VACUOUSLY BY THE TIME IT DIED, measured rather than asserted: a
+    # renamed declaration is a MAPPING, the loader refuses one, INV-26 emits CANNOT RUN, and
+    # the unit's local helper filtered exactly that line out. Stop filtering CANNOT RUN and
+    # all three cases go red while every case below stays green — that run is in T-11's
+    # receipt. They tested the filter, not the lookup.
+    #
+    # The cases that DO cover the mandated vocabulary are T-04's, immediately below, and they
+    # carry their own helper for the reason its comment gives.
 
     # --- FEAT-41 T-04: ONE CASE PER _EXPECT KEY, against the REAL declaration ------------
     # _EXPECT quantifies over three statuses, so a single fixture cannot see a key that was
@@ -1756,9 +1740,15 @@ def case_v():
     # NEGATIVE control (misplaced card, a finding naming the value), because a positive case
     # alone passes on a build where INV-26 reports nothing at all.
     #
-    # These are separate from the renamed-board cases above, which pass VACUOUSLY now: a renamed
-    # declaration is a mapping, validate_board refuses it, INV-26 emits CANNOT RUN, and
-    # `_no_finding` filters exactly that line out. T-11 owns deleting them.
+    # ITS OWN HELPER, AND IT IS STRICTER THAN THE ONE IT REPLACES (FEAT-41 T-11). These cases
+    # used to borrow a helper from the renamed-board unit deleted above, which filtered
+    # CANNOT RUN out of the output — a filter these cases must NOT inherit. They run against
+    # the REAL declaration, so CANNOT RUN here would mean the loader had rejected a legal
+    # board, and filtering it would turn that into a silent pass. Measured when the unit was
+    # deleted: the three renamed cases needed that filter and not one of these does.
+    def _clean(out):
+        return not _lines(out)
+
     _t04 = []
 
     # ready: a MIXED plan. An all-ready plan is skipped outright by the nothing-has-started
@@ -1770,7 +1760,7 @@ def case_v():
                               second_status="ready", second_card="Ready")
         c, out = _run_with_gh(tmp, fake)
         _t04.append(("(v.T04-ready) a ready task whose card reads Ready is CLEAN",
-                     _no_finding(out), "\n".join(_lines(out)) or "(unexpected line)"))
+                     _clean(out), "\n".join(_lines(out)) or "(unexpected line)"))
 
     with tempfile.TemporaryDirectory() as tmp:
         fake = _inv26_fixture(tmp, "FEAT-X", "done", "Done", "Review",
@@ -1786,7 +1776,7 @@ def case_v():
         fake = _inv26_fixture(tmp, "FEAT-X", "building", "Building", "Building")
         c, out = _run_with_gh(tmp, fake)
         _t04.append(("(v.T04-building) a building task whose card reads Building is CLEAN",
-                     _no_finding(out), "\n".join(_lines(out)) or "(unexpected line)"))
+                     _clean(out), "\n".join(_lines(out)) or "(unexpected line)"))
 
     with tempfile.TemporaryDirectory() as tmp:
         fake = _inv26_fixture(tmp, "FEAT-X", "building", "Ready", "Building")
@@ -1801,7 +1791,7 @@ def case_v():
         fake = _inv26_fixture(tmp, "FEAT-X", "done", "Done", "Review")
         c, out = _run_with_gh(tmp, fake)
         _t04.append(("(v.T04-done) a done task whose card reads Done is CLEAN",
-                     _no_finding(out), "\n".join(_lines(out)) or "(unexpected line)"))
+                     _clean(out), "\n".join(_lines(out)) or "(unexpected line)"))
 
     with tempfile.TemporaryDirectory() as tmp:
         fake = _inv26_fixture(tmp, "FEAT-X", "done", "Backlog", "Review")
@@ -1838,7 +1828,7 @@ def case_v():
         fake = _inv26_fixture(tmp, "FEAT-X", "ready", "Ready", "Review")
         c, out = _run_with_gh(tmp, fake)
         _t04.append(("(v.T06-pending-neg) the same fixture at a LEGAL station reports nothing",
-                     _no_finding(out), "\n".join(_lines(out)) or "(unexpected line)"))
+                     _clean(out), "\n".join(_lines(out)) or "(unexpected line)"))
 
     # A RECORDED SUB-ISSUE THAT project DECLINES TO PLACE IS A VIOLATION, NOT A SKIP.
     # The terminal marker names no board column (D-05), so a task carrying it is absent from
