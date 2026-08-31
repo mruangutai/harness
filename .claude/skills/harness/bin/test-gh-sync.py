@@ -3061,4 +3061,141 @@ with tempfile.TemporaryDirectory() as tmpT7b:
           f"exit {r.returncode}; edits={parent_editsT7b}")
 
 
+# ==========================================================================================
+# FEAT-41 T-10: the two ship defects.
+# ==========================================================================================
+
+# ---- DEFECT ONE: the terminal station write is COMMITTED ---------------------------------
+# It used to be left in the working tree, so the default branch read a non-terminal station
+# while the board read the done column — the INV-26 violation check-state.sh reported against
+# FEAT-40 and issue 842. This asserts the file is CLEAN AGAINST HEAD after a successful ship,
+# which is the property the violation's absence actually depends on.
+with tempfile.TemporaryDirectory() as tmpC:
+    install_gh(tmpC, FAKE_GH_STATIONS)
+    featC = stage_ship(tmpC, "FEAT-50-commit-station", {"T-01": 41}, parent=40, milestone=7)
+    subprocess.run(["git", "init", "-q", "-b", "main"], cwd=tmpC, capture_output=True)
+    subprocess.run(["git", "config", "user.email", "t@example.com"], cwd=tmpC,
+                   capture_output=True)
+    subprocess.run(["git", "config", "user.name", "t"], cwd=tmpC, capture_output=True)
+    subprocess.run(["git", "add", "-A"], cwd=tmpC, capture_output=True)
+    subprocess.run(["git", "commit", "-qm", "fixture"], cwd=tmpC, capture_output=True)
+    rC = run(["ship", featC], tmpC, ship_env(tmpC, "40=Review 41=Review"))
+    planC = os.path.join(featC, "plan.yaml")
+    dirtyC = subprocess.run(["git", "status", "--porcelain", "--", planC], cwd=tmpC,
+                            capture_output=True, text=True).stdout.strip()
+    check("T-10 defect one: after a successful ship the station file is CLEAN against HEAD",
+          rC.returncode == 0 and dirtyC == "",
+          f"exit {rC.returncode}; dirty={dirtyC!r}; out={rC.stdout[-500:]!r}")
+    check("T-10 defect one: ship names the commit it made",
+          "station done committed as" in rC.stdout, f"out={rC.stdout[-500:]!r}")
+    logC = subprocess.run(["git", "log", "-1", "--format=%s"], cwd=tmpC,
+                          capture_output=True, text=True).stdout.strip()
+    check("T-10 defect one: the commit subject names the feature and the station",
+          logC == "FEAT-50-commit-station: station done at ship", f"subject={logC!r}")
+    # ONLY THAT ONE FILE. A ship that swept in whatever the operator had staged would be a
+    # worse surprise than the uncommitted station this fixes.
+    filesC = subprocess.run(["git", "show", "--name-only", "--format=", "HEAD"], cwd=tmpC,
+                            capture_output=True, text=True).stdout.split()
+    check("T-10 defect one: the commit carries EXACTLY ONE file, the plan",
+          len(filesC) == 1 and filesC[0].endswith("plan.yaml"), f"files={filesC}")
+
+# THE DISCRIMINATOR FOR "ONLY ONE FILE": an unrelated dirty file must survive the ship
+# uncommitted. Without this the case above passes against a `git commit -a`.
+with tempfile.TemporaryDirectory() as tmpD:
+    install_gh(tmpD, FAKE_GH_STATIONS)
+    featD = stage_ship(tmpD, "FEAT-51-only-one", {"T-01": 41}, parent=40, milestone=7)
+    subprocess.run(["git", "init", "-q", "-b", "main"], cwd=tmpD, capture_output=True)
+    subprocess.run(["git", "config", "user.email", "t@example.com"], cwd=tmpD,
+                   capture_output=True)
+    subprocess.run(["git", "config", "user.name", "t"], cwd=tmpD, capture_output=True)
+    subprocess.run(["git", "add", "-A"], cwd=tmpD, capture_output=True)
+    subprocess.run(["git", "commit", "-qm", "fixture"], cwd=tmpD, capture_output=True)
+    bystander = os.path.join(tmpD, "BYSTANDER.md")
+    open(bystander, "w").write("edited by the operator, never staged by ship\n")
+    subprocess.run(["git", "add", bystander], cwd=tmpD, capture_output=True)
+    rD = run(["ship", featD], tmpD, ship_env(tmpD, "40=Review 41=Review"))
+    stillD = subprocess.run(["git", "status", "--porcelain", "--", bystander], cwd=tmpD,
+                            capture_output=True, text=True).stdout.strip()
+    check("T-10 defect one DISCRIMINATOR: an unrelated STAGED file is NOT swept into the "
+          "station commit — it is still uncommitted afterwards",
+          rD.returncode == 0 and stillD != "",
+          f"exit {rD.returncode}; bystander status={stillD!r}")
+
+# IDEMPOTENT. ship runs again and finds nothing to commit; that is not a failure and it says so.
+with tempfile.TemporaryDirectory() as tmpE:
+    install_gh(tmpE, FAKE_GH_STATIONS)
+    featE = stage_ship(tmpE, "FEAT-52-twice", {"T-01": 41}, parent=40, milestone=7)
+    subprocess.run(["git", "init", "-q", "-b", "main"], cwd=tmpE, capture_output=True)
+    subprocess.run(["git", "config", "user.email", "t@example.com"], cwd=tmpE,
+                   capture_output=True)
+    subprocess.run(["git", "config", "user.name", "t"], cwd=tmpE, capture_output=True)
+    subprocess.run(["git", "add", "-A"], cwd=tmpE, capture_output=True)
+    subprocess.run(["git", "commit", "-qm", "fixture"], cwd=tmpE, capture_output=True)
+    run(["ship", featE], tmpE, ship_env(tmpE, "40=Review 41=Review"))
+    rE2 = run(["ship", featE], tmpE, ship_env(tmpE, "40=Review 41=Review"))
+    check("T-10 defect one: a SECOND ship commits nothing and says the file is already clean",
+          rE2.returncode == 0 and "already committed" in rE2.stdout,
+          f"exit {rE2.returncode}; out={rE2.stdout[-400:]!r}")
+
+# ---- DEFECT TWO: ship REFUSES a feature dir inside a worktree ----------------------------
+with tempfile.TemporaryDirectory() as tmpW:
+    install_gh(tmpW, FAKE_GH_STATIONS)
+    # The owner checkout, with the worktrees segment underneath it, is what makes
+    # harness_boundary.worktree_owner able to name the main-checkout path.
+    owner = os.path.join(tmpW, "owner")
+    os.makedirs(owner)
+    subprocess.run(["git", "init", "-q", "-b", "main"], cwd=owner, capture_output=True)
+    wt_root = os.path.join(owner, ".claude", "worktrees", "harness", "FEAT-53-in-a-worktree")
+    os.makedirs(wt_root)
+    featW = stage_ship(wt_root, "FEAT-53-in-a-worktree", {"T-01": 41}, parent=40, milestone=7)
+    rW = run(["ship", featW], tmpW, ship_env(wt_root, "40=Review 41=Review",
+                                              FACTORY_GH=os.path.join(tmpW, "gh")))
+    check("T-10 defect two: ship REFUSES a feature dir inside a worktree, exit 1",
+          rW.returncode == 1, f"exit {rW.returncode}; out={(rW.stdout + rW.stderr)[-500:]!r}")
+    outW = rW.stdout + rW.stderr
+    # THE REASON COMES FIRST. A refusal that says only what to use instead is
+    # indistinguishable from a stuck gate, and an agent reading it as one retries elsewhere.
+    check("T-10 defect two: the refusal STATES THE REASON — the worktree is about to be "
+          "deleted, so the station would not survive",
+          "about to be deleted" in outW and "would not survive" in outW,
+          f"out={outW[-500:]!r}")
+    check("T-10 defect two: the refusal names the equivalent path in the MAIN CHECKOUT",
+          "main checkout" in outW, f"out={outW[-500:]!r}")
+    # A REFUSAL, NOT A SKIP. skip() exits 0 and post-merge-sweep.sh reads a SKIP as
+    # "nothing went wrong" — it would delete the worktree, taking the station with it.
+    check("T-10 defect two: it is a REFUSAL and not a SKIP — the sweep must not read this as "
+          "permission to delete",
+          "gh-sync: SKIP" not in outW, f"out={outW[-500:]!r}")
+
+# ---- THE SWEEP'S POSITIVE-SIGNAL GATE IS UNCHANGED --------------------------------------
+# post-merge-sweep.sh gates worktree removal on the ABSENCE of `gh-sync: SKIP` and
+# `gh-sync: FAILED` from ship's combined output. The commit added by defect one must never
+# emit either word on a failure path, or a trivial bookkeeping miss would silently cancel a
+# worktree removal — a different subsystem entirely.
+with tempfile.TemporaryDirectory() as tmpS:
+    install_gh(tmpS, FAKE_GH_STATIONS)
+    featS = stage_ship(tmpS, "FEAT-54-no-milestone", {"T-01": 41}, parent=40, milestone=None)
+    rS = run(["ship", featS], tmpS, ship_env(tmpS, "40=Review 41=Review"))
+    check("T-10: ship still reports SKIP with its exact positive-signal wording when there is "
+          "no recorded milestone",
+          rS.returncode == 0 and "gh-sync: SKIP" in (rS.stdout + rS.stderr),
+          f"exit {rS.returncode}; out={(rS.stdout + rS.stderr)[-400:]!r}")
+
+# NO GIT REPOSITORY AT ALL: the commit cannot succeed, and the sweep's two signal words must
+# still be absent from the output so the failure stays confined to this one line.
+with tempfile.TemporaryDirectory() as tmpN:
+    install_gh(tmpN, FAKE_GH_STATIONS)
+    featN = stage_ship(tmpN, "FEAT-55-no-git", {"T-01": 41}, parent=40, milestone=7)
+    rN = run(["ship", featN], tmpN, ship_env(tmpN, "40=Review 41=Review"))
+    bothN = rN.stdout + rN.stderr
+    check("T-10: with NO git repository the station commit fails LOUDLY but does not change "
+          "the exit status",
+          rN.returncode == 0 and "WARNING" in bothN, f"exit {rN.returncode}; out={bothN[-600:]!r}")
+    check("T-10: and that failure line contains NEITHER sweep signal word, so an uncommitted "
+          "station cannot cancel a worktree removal",
+          "gh-sync: SKIP" not in bothN and "gh-sync: FAILED" not in bothN,
+          f"out={bothN[-600:]!r}")
+
+
+
 sys.exit(1 if fails else 0)

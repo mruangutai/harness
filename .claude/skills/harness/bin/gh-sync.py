@@ -95,6 +95,7 @@ import board_lifecycle
 import gh_board
 import gh_cost_log
 import harness_yaml
+import harness_boundary
 
 GH = os.environ.get("GH_SYNC_GH", "gh")
 
@@ -588,11 +589,17 @@ def _record_station(feat_dir, station):
     task, 4 illegal station, 5 unparseable result) are its contract with its own callers; this
     one reports the tool's own message rather than re-deriving a reason from the number, so a
     new code cannot silently become "recorded".
+
+    RETURNS True ONLY WHEN THE STATION REACHED DISK (FEAT-41 T-10). Every path still prints and
+    none raises, so the tolerance above is unchanged and the two callers that ignore the value
+    behave exactly as before. `cmd_ship` needs it: it commits the file this wrote, and a commit
+    attempted after an absent-plan or non-zero-exit path would either find nothing staged or
+    commit somebody else's edit under this function's message.
     """
     plan_path = os.path.join(feat_dir, "plan.yaml")
     if not os.path.isfile(plan_path):
         print(f"gh-sync: {plan_path} is absent — station not recorded")
-        return
+        return False
     r = subprocess.run(
         [sys.executable, os.path.join(_BIN_DIR, "plan-merge.py"), "set-feature-station",
          "--file", plan_path, "--station", station],
@@ -602,8 +609,64 @@ def _record_station(feat_dir, station):
         detail = (r.stderr or r.stdout).strip().splitlines()
         print(f"gh-sync: {plan_path} station not recorded — plan-merge.py set-feature-station "
               f"exited {r.returncode}: {detail[-1] if detail else '(no output)'}")
-        return
+        return False
     print(f"gh-sync: plan.yaml station -> {station}")
+    return True
+
+
+def _commit_terminal_station(feat_dir):
+    """Commit the plan.yaml `_record_station` just wrote, in the checkout it belongs to.
+
+    DEFECT ONE OF FEAT-41 T-10, AND IT WAS MEASURED IN THE FIELD RATHER THAN REASONED ABOUT.
+    `cmd_ship` recorded the terminal station as its last statement and left it UNCOMMITTED, so
+    the default branch read a non-terminal station while the board read the done column. That
+    is precisely the INV-26 violation check-state.sh reported against FEAT-40 and issue 842.
+    FEAT-40 has since merged and the violation closed itself, so the finding is gone — but the
+    defect that produced it was still here, and would produce the next one.
+
+    ONLY THIS ONE FILE. `git commit <path>` implies --only, so a dirty index elsewhere in the
+    checkout is neither staged nor swept in. A ship that quietly committed whatever the operator
+    happened to have staged would be a far worse surprise than the one this fixes.
+
+    IT DOES NOT PUSH. This runs from a post-merge hook; moving a remote branch from a git hook
+    is a second, larger surprise, and nothing downstream needs the commit to be remote.
+
+    FAILURE IS LOUD BUT NEVER FATAL, matching the best-effort posture the rest of ship already
+    has (DEC-146). It prints to stderr and returns; the exit status is untouched.
+
+    AND THE FAILURE LINE MUST NOT SAY EITHER OF TWO WORDS. post-merge-sweep.sh gates worktree
+    removal on the ABSENCE of `gh-sync: SKIP` and `gh-sync: FAILED` from this command's combined
+    output. Emitting either here would make an uncommitted station — a trivial, recoverable
+    bookkeeping miss — silently cancel the worktree removal, which is a different subsystem
+    entirely. The prefix used below is deliberately neither.
+    """
+    plan_path = os.path.join(feat_dir, "plan.yaml")
+    feat_id = os.path.basename(os.path.abspath(feat_dir))
+
+    def _git(args):
+        return subprocess.run(["git", "-C", os.path.dirname(os.path.abspath(plan_path))] + args,
+                              capture_output=True, text=True)
+
+    r = _git(["status", "--porcelain", "--", plan_path])
+    if r.returncode != 0:
+        print(f"gh-sync: WARNING - station committed nowhere, git status failed in "
+              f"{feat_dir}: {(r.stderr or '').strip()}", file=sys.stderr)
+        return
+    if not r.stdout.strip():
+        # ALREADY COMMITTED IS NOT A FAILURE. ship is idempotent, so a re-run finds the station
+        # already recorded and already landed. Saying nothing here would be worse than a line:
+        # the reader is looking for the commit this function promises to print.
+        print(f"gh-sync: station already committed — {plan_path} is clean against HEAD")
+        return
+
+    r = _git(["commit", "-q", "-m", f"{feat_id}: station done at ship", "--", plan_path])
+    if r.returncode != 0:
+        print(f"gh-sync: WARNING - station recorded but NOT committed in {feat_dir}: "
+              f"{((r.stderr or '') + (r.stdout or '')).strip().splitlines()[-1:] or ['(no output)']}",
+              file=sys.stderr)
+        return
+    h = _git(["rev-parse", "--short", "HEAD"])
+    print(f"gh-sync: station done committed as {h.stdout.strip() or '(unknown)'}")
 
 
 def _record_pr(feat_dir, repo, pr_arg=None):
@@ -1343,6 +1406,31 @@ def cmd_ship(feat_dir, repo, board, body_file=None, pr_arg=None):
     ORDER: `_record_pr` runs before `_record_station(feat_dir, "done")`, and that status write
     stays the LAST STATEMENT of the successful path (T-01/FEAT-23) -- `skip()` calls
     `sys.exit(0)`, so reaching it is itself the proof no early-exit branch fired."""
+    # DEFECT TWO OF FEAT-41 T-10: A FEATURE DIR INSIDE A WORKTREE THAT IS ABOUT TO BE DELETED.
+    # post-merge-sweep.sh runs ship and then REMOVES the worktree, so a terminal station written
+    # to a feature dir under .claude/worktrees/ is written to a directory with minutes to live.
+    #
+    # A REFUSAL, NOT A SKIP, and that is the whole point of putting it here. `skip()` exits 0,
+    # and the sweep's positive-signal gate reads a SKIP as "nothing went wrong" — it would then
+    # delete the worktree, taking the station with it. Exit 1 is what stops that.
+    #
+    # THE REASON COMES FIRST, THEN THE PATH. A refusal that says only what to use instead is
+    # indistinguishable from a stuck gate, and an agent that reads it as one retries ship from
+    # somewhere else rather than moving the write. Same convention as T-09's denial.
+    _resolved = os.path.realpath(os.path.abspath(feat_dir))
+    if harness_boundary.WORKTREES_SEGMENT in _resolved.replace(os.sep, "/"):
+        _owner = harness_boundary.worktree_owner(_resolved)
+        _hint = ""
+        if _owner and _owner[1]:
+            # The same path under the OWNER root: everything up to the worktree root is
+            # replaced, so the tail below WORKTREES_SEGMENT is dropped rather than reused.
+            _tail = _resolved.replace(os.sep, "/").split(harness_boundary.WORKTREES_SEGMENT, 1)[1]
+            _tail = "/".join(_tail.strip("/").split("/")[2:])
+            _hint = f" The same feature directory in the main checkout is {os.path.join(_owner[1], _tail)}."
+        die(f"this feature directory resolves inside a worktree which is about to be deleted, "
+            f"so a terminal station written here would not survive: {_resolved}.{_hint} "
+            f"Run ship against the main checkout's copy.")
+
     if body_file is not None:
         body_file = post_body_path(body_file, "--body-file")
     rec = load_recorded(feat_dir)
@@ -1513,7 +1601,17 @@ def _ship_close_milestone(feat_dir, repo, rec, pr_arg):
 
     # LAST STATEMENT of the successful path (T-01/FEAT-23) — structural, not re-gated on
     # the milestone check above. Reaching here already proves `skip()` did not fire.
-    _record_station(feat_dir, "done")
+    #
+    # THE COMMIT BELOW DOES NOT BREAK THAT INVARIANT, and the distinction is worth stating
+    # because the next reader will check (FEAT-41 T-10). The rule exists so that reaching the
+    # STATION WRITE is itself proof no early-exit branch fired; `_record_station` is still the
+    # last thing that DECIDES anything, and it is still the last write of a station. What
+    # follows is strictly downstream persistence of the write just made: it cannot change the
+    # station, cannot skip, cannot raise, and cannot alter the exit status. Gating it on the
+    # return value is what keeps the two honest — a commit is only ever attempted for a station
+    # this function actually landed on disk.
+    if _record_station(feat_dir, "done"):
+        _commit_terminal_station(feat_dir)
 
 
 def main():
