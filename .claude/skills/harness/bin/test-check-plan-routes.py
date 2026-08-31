@@ -1831,7 +1831,69 @@ def case_41_t07_is_shipped_reads_the_plan():
 # ORDER IS PRESERVED EXACTLY, because these are not independent: case_20 and case_21 probe
 # root resolution with cwd-sensitive fixtures, and reordering them has broken this file before.
 # The tuple is read top to bottom, in the order the flat list ran.
+_T09_BASE_MANIFEST = ("agents:\n"
+                      "  harness-pm:\n"
+                      "    domain:\n"
+                      "      - { path: .harness/x.md, upsert: true }\n")
+
+
+def _t09_devpair(td, branch_text):
+    """(_manifest_deviation(branch, owner)) for an owner carrying _T09_BASE_MANIFEST.
+
+    A BUILDER RATHER THAN THREE INLINE FIXTURES, because the same two directories and the same
+    owner manifest are what all three sub-cases need — and because the code-grade gate rejected
+    the inline version, which is the same complexity finding T-07 hit in this file.
+    """
+    import importlib.util
+    import harness_boundary
+    owner = os.path.join(td, "owner")
+    branch = os.path.join(td, "branch")
+    for d in (owner, branch):
+        os.makedirs(os.path.join(d, ".harness"), exist_ok=True)
+    with open(os.path.join(owner, harness_boundary.MARKER), "w") as f:
+        f.write(_T09_BASE_MANIFEST)
+    with open(os.path.join(branch, harness_boundary.MARKER), "w") as f:
+        f.write(branch_text)
+    spec = importlib.util.spec_from_file_location("_cpr_dev", SCRIPT)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod._manifest_deviation(branch, owner)
+
+
+def case_41_t09_manifest_deviation_is_parsed_not_byte():
+    """FEAT-41 T-09/T-15: a COMMENT-only manifest difference is not a route deviation.
+
+    THE PAIR IS THE POINT. A comment-only difference must be SILENT and a route difference must
+    still DEVIATE; either assertion alone passes against a broken implementation — the first
+    against a function that never deviates, the second against the byte compare this replaces.
+
+    WHY IT EXISTS. T-09 was required to re-word two trailing comments in the live manifest,
+    changing no grant and no domain. The byte compare read that as a deviation, counted it as a
+    violation, and reddened six cases in this very file — each of which runs a fixture plan
+    against the live checkout. Any feature re-wording a comment here inherited that.
+    """
+    with tempfile.TemporaryDirectory() as td:
+        dev = _t09_devpair(td, "# a comment the owner copy does not carry\n"
+                               + _T09_BASE_MANIFEST + "# and a trailing one\n")
+        check("case_41_t09_comment_only_manifest_difference_is_NOT_a_deviation",
+              dev is None, f"got {dev!r}")
+
+    # THE DISCRIMINATOR: a real ROUTE difference still deviates.
+    with tempfile.TemporaryDirectory() as td:
+        dev = _t09_devpair(td, _T09_BASE_MANIFEST.replace(".harness/x.md", ".harness/y.md"))
+        check("case_41_t09_a_ROUTE_difference_still_deviates",
+              dev is not None and "DEVIATION" in dev, f"got {dev!r}")
+
+    # AN UNPARSEABLE BRANCH MANIFEST DEVIATES — it cannot be shown to agree, and this function's
+    # job is to say when agreement is not established.
+    with tempfile.TemporaryDirectory() as td:
+        dev = _t09_devpair(td, "agents: [unclosed\n")
+        check("case_41_t09_an_unparseable_branch_manifest_still_deviates",
+              dev is not None, f"got {dev!r}")
+
+
 CASES = (
+    case_41_t09_manifest_deviation_is_parsed_not_byte,
     case_01_02_03,
     case_04,
     case_05,

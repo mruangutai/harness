@@ -100,7 +100,25 @@ def _owner_root(root):
 
 
 def _manifest_deviation(root, owner_root):
-    """Return the DEVIATION message when root's manifest differs from the owner's, else None."""
+    """Return the DEVIATION message when root's manifest ROUTES differ from the owner's.
+
+    THE COMPARISON IS PARSED, NOT BYTE-FOR-BYTE (FEAT-41 T-09/T-15). It was a byte compare, and
+    a byte compare cannot tell a COMMENT from a ROUTE. Measured: T-09 was required to rewrite two
+    trailing comments in this manifest, changing no grant and no domain — `yaml.safe_load` of the
+    two files returns EQUAL objects — and six cases in this file's own suite went red, because
+    each runs a fixture plan against the live checkout and the deviation is counted as a
+    violation. Any feature that so much as re-words a comment here inherited that.
+
+    WHAT THE MESSAGE CLAIMS IS WHAT IS NOW CHECKED. It says "routes were resolved against the
+    owner manifest", so the question is whether the ROUTES differ. They are the parsed content;
+    comments are not routes. A route change still deviates, which the paired cases below pin.
+
+    THE BYTE COMPARE SURVIVES AS A FAST PATH, because identical bytes cannot hold differing
+    routes and the parse costs a file read plus a YAML load on every invocation otherwise.
+
+    AN UNPARSEABLE BRANCH MANIFEST IS A DEVIATION, never a silent pass. It cannot be shown to
+    agree, and this function's whole job is to say when agreement is not established.
+    """
     manifest = os.path.join(owner_root, harness_boundary.MARKER)
     if not os.path.isfile(manifest) or not os.access(manifest, os.R_OK):
         raise ValueError(f"owner manifest is not readable: {manifest}")
@@ -110,6 +128,12 @@ def _manifest_deviation(root, owner_root):
     with open(branch_manifest, "rb") as branch, open(manifest, "rb") as owner:
         if branch.read() == owner.read():
             return None
+    try:
+        import harness_yaml as _hy
+        if _hy.load_file(branch_manifest) == _hy.load_file(manifest):
+            return None
+    except Exception:
+        pass
     return (
         f"DEVIATION {branch_manifest} differs from {manifest}; routes were "
         "resolved against the owner manifest because that is what the hook consults"
