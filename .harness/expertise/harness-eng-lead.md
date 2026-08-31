@@ -8,9 +8,9 @@
   adjacent labels, docstrings and usage strings explicitly in scope — prose asserting the
   superseded contract is the same defect class, and a stale test label propagates upward as
   though it were a measurement.
-- P-03: WHEN a task's verify list is greps plus a test suite DO ask which changed module the
-  suite actually executes — a module the runner never imports is left unproven by a green gate,
-  not proven by it.
+- P-03: WHEN a task's verify runs a test suite DO require the runner's own discovery count and
+  the executed script name, never exit code plus zero failures — a dangling registration makes
+  a runner collect nothing and still exit 0, leaving an unimported module unproven by the green.
 - P-04: WHEN a member kept no observations log DO hand it the paths to its own prior artifacts
   and say self-derived candidates count as its own material — otherwise every entry in its file
   traces to your relay, and the acceptance rate grades your dispatch, not its judgement.
@@ -85,9 +85,9 @@
   runtime assertion — trigger both, assert the substring present in one and absent from the
   other. `grep -c` counts source LINES, so a phrase straddling an f-string's line break returns
   zero, which reads as unique.
-- G-13: WHEN members are in flight DO spend the wait deriving the answer yourself and reading
-  the shared surface with no angle assigned to anyone, never polling the filesystem — the
-  cross-angle defect is nobody's question, and a receipt already on disk may be mid-revision.
+- G-13: WHEN dispatching a member that works inside a worktree DO give every output path as an
+  absolute path — a relative path resolves against the session's own cwd, not the assignment,
+  so the artifact lands in the main checkout instead of the worktree.
 - G-14: WHEN rating a finding that a function fails silently DO enumerate its call sites first —
   if every caller pre-filters the case, it is a falsified docstring, not a live hole, and
   severity decided by who calls it is the difference between a fix cycle and a routed question.

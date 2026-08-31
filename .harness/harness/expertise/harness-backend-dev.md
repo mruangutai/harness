@@ -8,4 +8,5 @@
 - G-04: WHEN a function under `code_grade.py`'s own gate fails its complexity bar DO refactor it, never add it to an allowlist or exemption list — the gate enforces no exemption escape hatch, including for functions inside its own codebase.
 - G-05: WHEN writing a sibling checker that needs `gen-decisions-index.py`'s default DECISIONS.md path DO call `harness_boundary.resolve_root(_BIN_DIR)` directly instead of importing its `DECISIONS_PATH` constant — that constant is relative and assumes the generator's own `os.chdir` already ran.
 ## Outcomes (max 10)
+- O-01: WHEN reviewing this repo's plan decisions list for simplification DO flag an entry marked dec: none whose body only restates an adjacent block's already-stated methodology — it inflates the decision count with an audit record nobody chose, not a real decision.
 ## Open (max 5)
