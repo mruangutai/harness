@@ -93,7 +93,6 @@ structured return. That single run also settles SC-11, SC-12 and SC-16.
 | B-14 | bug | `check-state.sh`'s overrule attribution check has no `continue`, so a rejected unattributed overrule still emits a `disposition overruled.` line. The VIOLATION still fires |
 | B-15 | chore | `M6` — `goalcheck` transcription ambiguity; fails closed and loudly on the first live run. `M7` — the withhold message states the fact but not the remedy |
 | B-16 | chore | `V2` — branch-less corroboration is a documented deliberate no-op; closing it needs a non-branch identity input |
-| B-17 | chore | `plan.yaml`'s T-09 is marked `done` but its own `verify:` no longer passes — it still asserts `test 11 -eq` and its `intent:` still says "8 lowercase hex, length 11", while the shipped id is 35 characters. `D-05` was updated with the code and the task text was not. Graded backlog, not gating, because no gate replays a done task's verify clause — that grading flips the day one does |
 
 ## Budget
 

@@ -1016,7 +1016,7 @@ tasks:
         && A="$(python3 .claude/skills/harness/bin/panel_findings.py id --reader scope --summary 'T-04 traces REQ-99, which does not exist')" \
         && B="$(python3 .claude/skills/harness/bin/panel_findings.py id --reader scope --summary '  t-04   TRACES   req-99, which does not exist  ')" \
         && test "$A" = "$B" \
-        && test 11 -eq "${#A}" \
+        && test 35 -eq "${#A}" \
         && C="$(python3 .claude/skills/harness/bin/panel_findings.py id --reader scope --summary 'T-04 traces REQ-98, which does not exist')" \
         && test "$A" != "$C"
     intent: |
@@ -1027,8 +1027,8 @@ tasks:
       The identity, exactly. Normalize the summary by lowercasing it, replacing every run of
       whitespace with a single space, and stripping leading and trailing whitespace. Build the
       digest input as the reader id, a single newline, then the normalized summary, encoded
-      utf-8. Take sha256 of that and return the literal prefix PF- followed by the first 8
-      characters of the lowercase hex digest. Total length 11.
+      utf-8. Take sha256 of that and return the literal prefix PF- followed by the first 32
+      characters of the lowercase hex digest. Total length 35.
 
       WHY a content hash and not a sequential id, as a module docstring: a sequential id is
       assigned per run, so a re-run renumbers and an overrule recorded against finding 2
@@ -1049,7 +1049,7 @@ tasks:
       counting shape, and count cases rather than asserting a frozen total.
 
       Cases, each an independent assertion:
-        the id is PF- plus 8 lowercase hex, length 11
+        the id is PF- plus 32 lowercase hex, length 35
         whitespace, case and surrounding padding do not change the id
         a one-character change to the summary DOES change the id
         the same summary under two different readers gives two different ids
