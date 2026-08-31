@@ -139,6 +139,24 @@ decisions:
       shape gate does not deny raw feature.json writes, so an unrouted migration would not be
       refused - it would simply be that bug again, committed by the task that deletes the field.
     dec: DEC-199
+  - id: D-14
+    choice: T-07 must also repoint the two documentation sites that teach feature.json's
+      capitalised status vocabulary, neither of which T-07 names in its files or its intent.
+      Both are in .claude/skills/harness/SKILL.md - around line 256, the sentence ordering the
+      orchestrator to record its status in feature.json using the board's own spelling (Backlog,
+      Plan, Ready, Building, Review, Done, byte for byte and case sensitive), and around line 118,
+      whose gh-sync.py status subcommand argument is feature.json's STATUS_VALUES. The .omp/agents
+      canonical copy is regenerated with sync-agent-adapters.py --apply, never hand-edited.
+      gh-sync.py's STATUS_VALUES and check-plan-routes.py's FINISHED_STATUSES already carry
+      deferral comments at the constant naming T-07, so those need no separate record. These two
+      had none.
+    because: T-07 removes status from feature-schema.json, whose additionalProperties is false, so
+      a surviving instruction tells the orchestrator to write a key the schema refuses -
+      documentation contradicting the tree, in the one file every orchestrator preloads. The
+      deferral itself was correct, for the reason T-04 proved - a lowercase word pointed at a
+      still-capitalised file is the FINISHED_STATUSES defect. What was wrong is where it was
+      recorded, which was a commit message a T-07 executor will not read.
+    dec: none
 tasks:
   - id: T-01
     title: Declare the six stations once, as an ordered lowercase list in harness.json
