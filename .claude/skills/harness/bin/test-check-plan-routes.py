@@ -304,6 +304,11 @@ def case_18():
         if not passed:
             print(f"        {detail.strip()[:220]}")
             ok = False
+    # RECORDS ITS OWN VERDICT, like every other case in this file. It used to RETURN one for
+    # main to interpret, which made main's loop carry a conditional for a single exception —
+    # the cost landed on the registry rather than on the case that was different.
+    if not ok:
+        failures.append("case_18")
     return ok
 
 
@@ -713,73 +718,89 @@ def _yaml_project(td, files=".harness/harness.json", extra="", status="ready"):
     return fd
 
 
-def case_41_t04_station_vocabulary():
-    """FEAT-41 T-04: plan.yaml's per-task status is the MANDATED station vocabulary, and the
-    top-level feature station is checked the same way.
+# TWO FIXTURE SHAPES, EACH WRITTEN ONCE. The task-status cases and the top-level-station cases
+# each ran the same four lines per value — build a project, run, assert — six times over, which
+# is what put this case at cognitive 16 and ABC 47.9 while the code did one simple thing twice.
+def _run_with_task_status(status):
+    """Run the checker against a project whose single task carries `status`."""
+    with tempfile.TemporaryDirectory() as td:
+        _yaml_project(td, status=status)
+        return run(project_dir=td)
+
+
+def _run_with_top_level_status(status):
+    """Run the checker against a project whose plan carries a TOP-LEVEL `status`.
+
+    `status=None` writes no key at all — the absent-station shape, which is legal: a plan that
+    has not been given a station is not a plan that is wrong about one. The template has no
+    top-level status, so the absent case is the untouched file rather than a deletion.
+    """
+    with tempfile.TemporaryDirectory() as td:
+        feature_dir = _yaml_project(td)
+        path = os.path.join(feature_dir, "plan.yaml")
+        with open(path, encoding="utf-8") as stream:
+            body = stream.read()
+        if status is not None:
+            body = body.replace("feature: FEAT-A\n",
+                                f"feature: FEAT-A\nstatus: {status}\n", 1)
+        with open(path, "w", encoding="utf-8") as stream:
+            stream.write(body)
+        return run(project_dir=td)
+
+
+def _check_station_accepted(name, result):
+    check(name, result.returncode == 0 and "0 violation(s)" in result.stdout,
+          f"exit {result.returncode}: {result.stdout[:200]!r}")
+
+
+def _check_station_violation(name, value, result):
+    """A rejection must NAME THE VALUE. An exit code alone would pass on any violation at
+    all, including one about a path — so the offending word is asserted in the output."""
+    check(name, result.returncode == 1 and repr(value) in result.stdout,
+          f"exit {result.returncode}: {result.stdout[:300]!r}")
+
+
+def case_41_t04_task_station_vocabulary():
+    """FEAT-41 T-04: plan.yaml's per-task status is the MANDATED station vocabulary.
 
     The point of the change is that one word now means one thing everywhere, so the cases that
     matter most are the NEGATIVE ones: `pending`, which was plan.yaml's own third value and is
     now nothing at all, and `Building`, the capitalised board spelling a person actually types.
     """
-    legal = tuple(cpr().legal_task_statuses())
-
     # The vocabulary is READ, not respelled — six stations plus the terminal marker.
     # A FUNCTION, not a module constant: the import it needs is lazy so cases 19b/19b2/21 can
     # still run this file as a lone copy in a temp dir. See its docstring.
+    legal = tuple(cpr().legal_task_statuses())
     check("case_41a_legal_task_statuses_is_the_mandate_plus_the_terminal_marker",
           legal == ("backlog", "plan", "ready", "building", "review", "done", "abandoned"),
           f"got {legal!r}")
 
-    for st in legal:
-        with tempfile.TemporaryDirectory() as td:
-            _yaml_project(td, status=st)
-            r = run(project_dir=td)
-            check(f"case_41b_task_status_{st}_is_accepted",
-                  r.returncode == 0 and "0 violation(s)" in r.stdout,
-                  f"exit {r.returncode}: {r.stdout[:200]!r}")
+    for station in legal:
+        _check_station_accepted(f"case_41b_task_status_{station}_is_accepted",
+                                _run_with_task_status(station))
 
     # `pending` is THE regression this task exists to prevent: it was legal yesterday.
     for bad in ("pending", "Building", "Done", "shipped", "in-progress"):
-        with tempfile.TemporaryDirectory() as td:
-            _yaml_project(td, status=bad)
-            r = run(project_dir=td)
-            check(f"case_41c_task_status_{bad}_is_a_VIOLATION_naming_the_value",
-                  r.returncode == 1 and repr(bad) in r.stdout,
-                  f"exit {r.returncode}: {r.stdout[:300]!r}")
+        _check_station_violation(f"case_41c_task_status_{bad}_is_a_VIOLATION_naming_the_value",
+                                 bad, _run_with_task_status(bad))
 
-    # THE TOP-LEVEL feature station, checked the same way. Absent stays legal — a plan that
-    # has not been given a station is not a plan that is wrong about one.
-    with tempfile.TemporaryDirectory() as td:
-        _yaml_project(td)
-        r = run(project_dir=td)
-        check("case_41d_an_absent_top_level_status_is_not_a_violation",
-              r.returncode == 0, f"exit {r.returncode}: {r.stdout[:200]!r}")
 
-    for st in ("ready", "building", "done", "abandoned"):
-        with tempfile.TemporaryDirectory() as td:
-            fd = _yaml_project(td)
-            pth = os.path.join(fd, "plan.yaml")
-            body = open(pth).read().replace("feature: FEAT-A\n",
-                                            f"feature: FEAT-A\nstatus: {st}\n", 1)
-            with open(pth, "w") as f:
-                f.write(body)
-            r = run(project_dir=td)
-            check(f"case_41e_top_level_status_{st}_is_accepted",
-                  r.returncode == 0 and "0 violation(s)" in r.stdout,
-                  f"exit {r.returncode}: {r.stdout[:200]!r}")
+def case_41_t04_top_level_station_vocabulary():
+    """FEAT-41 T-04: the feature's own top-level station is checked exactly like a task's,
+    except that its ABSENCE is legal — T-07 is what adds the key to most plans, and until then
+    a plan without one is un-migrated rather than wrong."""
+    absent = _run_with_top_level_status(None)
+    check("case_41d_an_absent_top_level_status_is_not_a_violation",
+          absent.returncode == 0, f"exit {absent.returncode}: {absent.stdout[:200]!r}")
+
+    for station in ("ready", "building", "done", "abandoned"):
+        _check_station_accepted(f"case_41e_top_level_status_{station}_is_accepted",
+                                _run_with_top_level_status(station))
 
     for bad in ("pending", "Done", "nonsense"):
-        with tempfile.TemporaryDirectory() as td:
-            fd = _yaml_project(td)
-            pth = os.path.join(fd, "plan.yaml")
-            body = open(pth).read().replace("feature: FEAT-A\n",
-                                            f"feature: FEAT-A\nstatus: {bad}\n", 1)
-            with open(pth, "w") as f:
-                f.write(body)
-            r = run(project_dir=td)
-            check(f"case_41f_top_level_status_{bad}_is_a_VIOLATION_naming_the_value",
-                  r.returncode == 1 and repr(bad) in r.stdout,
-                  f"exit {r.returncode}: {r.stdout[:300]!r}")
+        _check_station_violation(
+            f"case_41f_top_level_status_{bad}_is_a_VIOLATION_naming_the_value",
+            bad, _run_with_top_level_status(bad))
 
 
 def case_23():
@@ -1609,6 +1630,25 @@ def write_prior_route_validator(directory):
 
 
 def _owner_branch(directory):
+    """The case_27 fixture, whose task status must be legal in TWO vocabularies at once.
+
+    case_27b runs a PINNED HISTORICAL copy of check-plan-routes.py (the base64 fixture
+    write_prior_route_validator restores) to prove the prior revision reported a false OK.
+    That binary is frozen, so it still bounds a task status by plan.yaml's old private set
+    ("pending", "building", "done") — while the CURRENT validator bounds it by the six
+    stations plus the terminal marker (FEAT-41 T-04). The fixture is shared by both runs,
+    so its status has to sit in the INTERSECTION of the two sets, which is exactly
+    {"building", "done"}.
+
+    `building` is the choice: `done` would describe a shipped feature, and a fixture that
+    claims to be finished invites a future shipped-skip to make both cases vacuous.
+
+    Do NOT let this default follow _yaml_project's. That default is `ready`, correctly — it
+    is the not-started station for every OTHER case in this file, all of which run the
+    current validator. Pointing the historical binary at `ready` makes it report a real
+    violation, exit 1, and red case_27b for a reason that has nothing to do with what
+    case_27 tests. Measured when T-04 landed: exactly that.
+    """
     owner = os.path.join(directory, "owner")
     branch = os.path.join(owner, ".claude", "worktrees", "feature")
     gitdir = os.path.join(owner, ".git", "worktrees", "feature")
@@ -1616,7 +1656,7 @@ def _owner_branch(directory):
     os.makedirs(branch, exist_ok=True)
     with open(os.path.join(branch, ".git"), "w") as stream:
         stream.write(f"gitdir: {gitdir}\n")
-    _yaml_project(branch, files=GRANTED_PATH)
+    _yaml_project(branch, files=GRANTED_PATH, status="building")
     return owner, branch
 
 
@@ -1672,28 +1712,42 @@ def case_27():
         _case_27_unreadable(directory)
 
 
+# THE REGISTRATION IS DATA, NOT CONTROL FLOW. It was a flat list of calls, and every case
+# added one more statement to one function: at 18 entries it graded 3, at 19 it graded below
+# the floor, and the 19th was a one-line addition that had nothing to do with main's own
+# complexity. A list that costs a grade point per element is the wrong shape for a registry —
+# iterating it costs one, whatever the length, so the 40th case is as free as the 2nd.
+#
+# ORDER IS PRESERVED EXACTLY, because these are not independent: case_20 and case_21 probe
+# root resolution with cwd-sensitive fixtures, and reordering them has broken this file before.
+# The tuple is read top to bottom, in the order the flat list ran.
+CASES = (
+    case_01_02_03,
+    case_04,
+    case_05,
+    case_06_07,
+    case_08_09_16,
+    case_10_11_12,
+    case_13,
+    case_14_15,
+    case_17,
+    case_18,
+    case_19,
+    case_20,
+    case_21,
+    case_22,
+    case_23,
+    case_24,
+    case_25,
+    case_26,
+    case_27,
+    case_41_t04_task_station_vocabulary,
+    case_41_t04_top_level_station_vocabulary,
+)
+
 def main():
-    case_01_02_03()
-    case_04()
-    case_05()
-    case_06_07()
-    case_08_09_16()
-    case_10_11_12()
-    case_13()
-    case_14_15()
-    case_17()
-    if not case_18():
-        failures.append('case_18')
-    case_19()
-    case_20()
-    case_21()
-    case_22()
-    case_23()
-    case_24()
-    case_25()
-    case_26()
-    case_27()
-    case_41_t04_station_vocabulary()
+    for case in CASES:
+        case()
 
     if failures:
         print(f"\n{len(failures)} FAILURE(S): {failures}")
