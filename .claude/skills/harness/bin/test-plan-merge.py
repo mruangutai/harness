@@ -18,6 +18,8 @@ import subprocess
 import sys
 import tempfile
 
+import yaml
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 CLI = os.environ.get("PLAN_MERGE_BIN") or os.path.join(HERE, "plan-merge.py")
 TEMPLATE_PLAN = os.path.join(HERE, "..", "templates", "plan.yaml")
@@ -138,6 +140,70 @@ def read(path):
 # ---------------------------------------------------------------------------
 # Cases
 # ---------------------------------------------------------------------------
+
+
+def case_proposal_indent_differs_from_base():
+    """A proposal whose list items are indented differently from the base's still produces a
+    PARSEABLE plan, and the splice is checked before it is written.
+
+    THE LIVE FAILURE THIS PINS, on 2026-08-31: FEAT-41's own plan indents `decisions:` items
+    two spaces (`  - id: D-11`). An operator-approved amendment was proposed as a standalone
+    document with items at column 0 — valid YAML on its own, and the shape every example in
+    this repository's prose uses. `apply` spliced that text VERBATIM, printed ADDED D-13 and
+    APPLIED, exited 0, and left a signed 1541-line plan that PyYAML could not load. Nothing
+    refused it, because the merge parsed the base and the proposal and never the RESULT.
+
+    Two independent defects, and the test asserts both, because either alone leaves a hole:
+      (a) the spliced item is re-indented to the base list's own indent;
+      (b) the merged text is parsed before it is written, so ANY future splice bug is a
+          refusal rather than a corrupted plan.
+    """
+    root, plan_path = fixture_root()
+
+    # The base indents its decision items TWO SPACES, which is what the live corpus does.
+    base = ("schema: plan/1\n"
+            "feature: FEAT-99-fixture\n"
+            "decisions:\n"
+            "  - id: D-01\n"
+            "    choice: the base decision\n"
+            "    because: it was here first\n"
+            "    dec: none\n"
+            "tasks:\n" + task_block("T-01") +
+            DEFAULT_APPROVAL)
+    with open(plan_path, "w", encoding="utf-8") as stream:
+        stream.write(base)
+
+    # The proposal puts its item at COLUMN ZERO — the indentation a human writes by hand.
+    proposal = os.path.join(root, "proposal.yaml")
+    with open(proposal, "w", encoding="utf-8") as stream:
+        stream.write("decisions:\n"
+                     "- id: D-02\n"
+                     "  choice: the amendment\n"
+                     "  because: an operator approved it\n"
+                     "  dec: DEC-199\n")
+
+    result = run_apply(plan_path, proposal)
+    merged = open(plan_path, encoding="utf-8").read()
+
+    check("apply_indent_mismatch_exits_0", result.returncode == 0,
+          f"exit {result.returncode}: {(result.stdout + result.stderr)[:300]!r}")
+
+    parsed, error = None, None
+    try:
+        parsed = yaml.safe_load(merged)
+    except yaml.YAMLError as exc:
+        error = exc
+    check("apply_indent_mismatch_leaves_a_PARSEABLE_plan", error is None,
+          f"merged plan does not load: {error}")
+
+    ids = [d.get("id") for d in (parsed or {}).get("decisions") or []]
+    check("apply_indent_mismatch_added_the_decision", ids == ["D-01", "D-02"], f"ids={ids}")
+
+    # The base's own item is untouched, byte for byte — re-indenting the ADDITION must never
+    # reformat what was already signed.
+    check("apply_indent_mismatch_preserves_the_base_item",
+          "  - id: D-01\n    choice: the base decision\n" in merged,
+          "the base's decision item was reformatted")
 
 
 def case_naive_last_writer_wins():
@@ -720,6 +786,7 @@ def case_apply_still_refuses_a_changed_value():
 
 
 def main():
+    case_proposal_indent_differs_from_base()
     case_naive_last_writer_wins()
     case_green_union()
     case_approval_byte_identity()

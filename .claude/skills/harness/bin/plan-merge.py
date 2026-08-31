@@ -229,6 +229,93 @@ def _index_list_items(lines, key_range):
     return ranges
 
 
+def _verify_spliced(spliced_bytes, base_doc, prop_doc, out_order, added_ids):
+    """Refuse rather than return a splice that does not reload as the merge it reported."""
+    try:
+        reloaded = yaml.safe_load(spliced_bytes.decode("utf-8"))
+    except yaml.YAMLError as exc:
+        raise harness_merge.MergeRefusal(
+            5,
+            [
+                "UNPARSEABLE: the merged plan does not load — REFUSING to write it.",
+                f"  {exc}",
+                "  this is a splice defect, not a bad proposal: both inputs parsed.",
+            ],
+        )
+    if not isinstance(reloaded, dict):
+        raise harness_merge.MergeRefusal(
+            5, ["UNPARSEABLE: the merged plan is not a mapping — REFUSING to write it."]
+        )
+    for key in UNION_KEYS:
+        if key not in out_order:
+            continue
+        want = [_item_id(i) for i in (base_doc.get(key) or [])]
+        for item in prop_doc.get(key) or []:
+            iid = _item_id(item)
+            if iid not in want:
+                want.append(iid)
+        got = [_item_id(i) for i in (reloaded.get(key) or [])]
+        if got != want:
+            raise harness_merge.MergeRefusal(
+                5,
+                [
+                    f"UNPARSEABLE: '{key}' does not reload as the merge that was computed — "
+                    "REFUSING to write it.",
+                    f"  expected ids: {want!r}",
+                    f"  reloaded ids: {got!r}",
+                ],
+            )
+
+
+def _item_indent(lines, item_ranges):
+    """The leading-space width of a list item's own dash line, or None when there are none."""
+    if not item_ranges:
+        return None
+    start, _end = item_ranges[0]
+    line = lines[start]
+    return len(line) - len(line.lstrip(" "))
+
+
+def _reindent(item_lines, delta, iid, key):
+    """Shift a whole item uniformly, so a proposal's indentation cannot corrupt the base.
+
+    WHY THIS EXISTS, measured on 2026-08-31: FEAT-41's plan indents `decisions:` items two
+    spaces. An operator-approved amendment was proposed as a standalone document with items at
+    column 0 — valid YAML on its own, and the shape a human writes by hand. The splice appended
+    that text verbatim, so a `- id:` landed at column 0 inside a two-space list, and a signed
+    1541-line plan stopped loading. `apply` printed ADDED and exited 0.
+
+    UNIFORM is the whole point: every line of the item moves by the same delta, so relative
+    structure — nested mappings, block scalars, the `intent: |` body — is preserved exactly.
+    Re-indenting per-line by any cleverer rule would rewrite the very text this tool exists to
+    splice byte for byte.
+
+    A dedent that would eat non-whitespace is a REFUSAL, never a silent truncation.
+    """
+    if delta == 0:
+        return list(item_lines)
+    out = []
+    for line in item_lines:
+        if not line.strip():
+            out.append(line)
+            continue
+        if delta > 0:
+            out.append(" " * delta + line)
+            continue
+        room = len(line) - len(line.lstrip(" "))
+        if room < -delta:
+            raise harness_merge.MergeRefusal(
+                5,
+                [
+                    f"UNPARSEABLE: cannot re-indent id={iid!r} in '{key}' to the base's "
+                    f"indentation — a line carries only {room} leading space(s) and the "
+                    f"proposal is {-delta} deeper than the base.",
+                ],
+            )
+        out.append(line[-delta:])
+    return out
+
+
 def _item_id(item):
     return item.get("id") if isinstance(item, dict) else None
 
@@ -384,10 +471,20 @@ def apply_merge(base_bytes, proposal_text):
                                 f"  proposal: {pitem!r}",
                             ],
                         )
+            # THE ADDITION IS RE-INDENTED TO THE BASE'S LIST, never appended verbatim. When
+            # the base has no items of its own there is nothing to match, and the key head came
+            # from the proposal too, so its own indentation is already consistent.
+            base_indent = _item_indent(base_lines, base_item_ranges)
+            prop_indent = _item_indent(prop_lines, prop_item_ranges)
             for iid in prop_id_order:
                 if iid not in base_by_id:
                     s, e, _item = prop_by_id[iid]
-                    out_chunks.append("".join(prop_lines[s:e]))
+                    item_lines = prop_lines[s:e]
+                    if base_indent is not None and prop_indent is not None:
+                        item_lines = _reindent(
+                            item_lines, base_indent - prop_indent, iid, key
+                        )
+                    out_chunks.append("".join(item_lines))
                     added_ids.append(iid)
             continue
 
@@ -417,6 +514,16 @@ def apply_merge(base_bytes, proposal_text):
     spliced_bytes = "".join(out_chunks).encode("utf-8")
 
     if PRESERVE_BASE_BYTES:
+        # STEP 9: THE RESULT IS PARSED BEFORE IT IS WRITTEN, and this guard is general.
+        # Steps 5-8 parse the BASE and the PROPOSAL; nothing parsed the OUTPUT, so a splice
+        # defect could — and on 2026-08-31 did — write a signed plan that PyYAML cannot load
+        # while printing ADDED and exiting 0. A tool whose whole promise is "the base's bytes
+        # survive" must not be able to hand back bytes that are not a plan.
+        #
+        # It also checks the MERGE, not merely the syntax: every id the caller is about to be
+        # told was added or preserved must actually be present in the reloaded document. A
+        # splice that lands text in the wrong block can still parse.
+        _verify_spliced(spliced_bytes, base_doc, prop_doc, out_order, added_ids)
         return spliced_bytes, added_ids, preserved_ids, ignored_approval
 
     # PRESERVE_BASE_BYTES off: what a naive implementation does — render the whole merged

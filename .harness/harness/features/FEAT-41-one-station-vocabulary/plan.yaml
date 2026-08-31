@@ -127,6 +127,18 @@ decisions:
     because: the scope-out was correct against a plan whose every file is a validator, a hook, a config or a decision record, but a scope-out has no shelf life past the plan. Accepting it with no re-trigger is exactly how a UI-shaped file arrives unreviewed. This is a condition on the build, not a task - there is no work to do unless the condition fires, and manufacturing a task for it would put a permanently-green step in the plan
     dec: none
 
+  - id: D-13
+    choice: T-07's two writes of feature.json - the status-key deletion in its data migration, and
+      gh-sync.py's writer - go through feature_json_write.write_feature_json, never a raw
+      read-modify-write. T-07's clause "rather than a json.dumps of feature.json" is STRUCK as a
+      description of code that no longer exists; the replacement instruction, a set-feature-station
+      subprocess call, is unchanged. T-07's eleven-reader set is NOT amended - re-measured against
+      origin/main after the rebase, there are zero new readers of feature.json's status.
+    because: PR 1035 exists because a line-anchored edit hit a feature.json that gh-sync had
+      rewritten between the read and the write, produced invalid JSON, and nothing refused it; the
+      shape gate does not deny raw feature.json writes, so an unrouted migration would not be
+      refused - it would simply be that bug again, committed by the task that deletes the field.
+    dec: DEC-199
 tasks:
   - id: T-01
     title: Declare the six stations once, as an ordered lowercase list in harness.json
