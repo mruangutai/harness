@@ -544,7 +544,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 carve-out - check-state.sh is a gate script and gh_board.py is the module its INV-26 imports; widened to check-state.sh under D-11, and the lane is unchanged because both files already sit under the .claude/skills/harness/bin surface the lanes block resolves to main-session-direct
     depends_on: [T-02, T-04]
-    status: ready
+    status: done
     files:
       - .claude/skills/harness/bin/gh_board.py
       - .claude/skills/harness/bin/gh-sync.py
