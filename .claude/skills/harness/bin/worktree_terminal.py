@@ -153,11 +153,22 @@ def _landed_dir_names(owner_root, default_branch, features_rel):
     return [line for line in r.stdout.splitlines() if line]
 
 
-def _read_landed_feature_json(owner_root, default_branch, feature_json_rel):
-    """The LANDED copy of feature.json: git rev-parse <default_branch>:<rel> then git cat-file,
-    exactly as feature-worktree.py:287 reads a landed blob. Never the working tree's copy.
-    Returns (data, error) — error is None only on a successfully parsed dict."""
-    r = _run_git(["rev-parse", f"{default_branch}:{feature_json_rel}"], owner_root)
+def _landed_blob_text(owner_root, default_branch, rel):
+    """The TEXT of a blob on the default branch: `git rev-parse <branch>:<rel>` then
+    `git cat-file`, exactly as feature-worktree.py:287 reads a landed blob. Never the working
+    tree's copy.
+
+    Returns `(text, error)` where error is "missing" or "unreadable" — the same words both
+    callers already reported, so their contracts are unchanged.
+
+    THIS IS NOT THE `parse=` PARAMETER THAT WAS ALREADY CONSIDERED AND REJECTED (FEAT-41 F-05).
+    `_read_landed_plan_yaml`'s docstring records that folding the two landed readers into one
+    parameterised function was refused, because the DIFFERENCE — json.loads versus a YAML loader
+    that raises its own exception type — is the part a reader needs to see at the call site.
+    That reasoning still stands and is not reversed here: the two readers stay separate and both
+    parsers stay visible. Only the four lines of identical git plumbing move.
+    """
+    r = _run_git(["rev-parse", f"{default_branch}:{rel}"], owner_root)
     if r is None or r.returncode != 0:
         return None, "missing"
     blob = r.stdout.strip()
@@ -166,8 +177,18 @@ def _read_landed_feature_json(owner_root, default_branch, feature_json_rel):
     c = _run_git(["cat-file", "blob", blob], owner_root)
     if c is None or c.returncode != 0:
         return None, "unreadable"
+    return c.stdout, None
+
+
+def _read_landed_feature_json(owner_root, default_branch, feature_json_rel):
+    """The LANDED copy of feature.json: git rev-parse <default_branch>:<rel> then git cat-file,
+    exactly as feature-worktree.py:287 reads a landed blob. Never the working tree's copy.
+    Returns (data, error) — error is None only on a successfully parsed dict."""
+    text, err = _landed_blob_text(owner_root, default_branch, feature_json_rel)
+    if err is not None:
+        return None, err
     try:
-        data = json.loads(c.stdout)
+        data = json.loads(text)
     except Exception:
         return None, "unparseable"
     if not isinstance(data, dict):
@@ -201,23 +222,17 @@ def _read_landed_plan_yaml(owner_root, default_branch, plan_rel):
     on-disk form is produced by one validated tool. The parsed path stays PRIMARY, so any legal
     YAML a human hand-edited is still read correctly wherever PyYAML exists.
     """
-    r = _run_git(["rev-parse", f"{default_branch}:{plan_rel}"], owner_root)
-    if r is None or r.returncode != 0:
-        return None, "missing"
-    blob = r.stdout.strip()
-    if not blob:
-        return None, "missing"
-    c = _run_git(["cat-file", "blob", blob], owner_root)
-    if c is None or c.returncode != 0:
-        return None, "unreadable"
+    text, err = _landed_blob_text(owner_root, default_branch, plan_rel)
+    if err is not None:
+        return None, err
     try:
         import harness_yaml
-        doc = harness_yaml.load_str(c.stdout, f"{default_branch}:{plan_rel}")
+        doc = harness_yaml.load_str(text, f"{default_branch}:{plan_rel}")
     except Exception as exc:
         if type(exc).__name__ != "MissingDependency":
             # A genuinely malformed plan. Unchanged posture: never folded into "not terminal".
             return None, "unparseable"
-        doc = _scan_top_level_status(c.stdout)
+        doc = _scan_top_level_status(text)
         if doc is None:
             return None, "unparseable"
     if not isinstance(doc, dict):

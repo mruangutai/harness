@@ -202,6 +202,47 @@ def _task_statuses(plan_doc):
             for t in tasks if isinstance(t, dict)}
 
 
+def _station_remedy(verb_prefix=""):
+    """The remedy line every illegal-station error shares: the verb, then every legal value.
+
+    Extracted because `_task_cards` and `_parent_station` each hand-built it (FEAT-41 F-05), and
+    the duplicated half was the part that must not drift — the vocabulary list. A reader who is
+    told a value is illegal and NOT told the legal set has to go find factory_config themselves.
+
+    `verb_prefix` carries whatever the caller's verb needs before `--station`, which is a task id
+    for one caller and nothing for the other.
+    """
+    return ("set it with plan-merge.py " + (verb_prefix or "set-feature-station ")
+            + "--station <one of "
+            + f"{' '.join(factory_config.MANDATED_STATIONS)}>")
+
+
+def _task_card(task_id, number, by_id, legal):
+    """`(number, station)` for one recorded task, or None when it places no card.
+
+    None covers two different routes to the same outcome, deliberately: the plan has no such
+    task (a stale record, which is gh-sync's business rather than a vocabulary miss), or the
+    task is at the TERMINAL_MARKER, which DEC-203 gives no board column at all.
+
+    An illegal station RAISES rather than returning None, because that is the one case the
+    operator has to act on. Extracted from `_task_cards` (FEAT-41 F-05).
+    """
+    station = by_id.get(str(task_id))
+    if station is None:
+        return None
+    if station not in legal:
+        # NAMES THE TASK ID AND THE VALUE. `value` is what the operator can act on, so it
+        # carries both — a station alone would not say which task to go fix.
+        raise factory_config.FleetError(
+            f"task {task_id} station not in the vocabulary",
+            f"{task_id}={station}",
+            _station_remedy(f"set-task-station --task {task_id} "),
+        )
+    if station == factory_config.TERMINAL_MARKER:
+        return None
+    return number, station
+
+
 def _task_cards(plan_doc, rec, legal):
     """Each recorded task sub-issue, at ITS OWN task's station, verbatim.
 
@@ -211,21 +252,9 @@ def _task_cards(plan_doc, rec, legal):
     by_id = _task_statuses(plan_doc)
     placed = {}
     for task_id, number in ((rec or {}).get("issues") or {}).items():
-        station = by_id.get(str(task_id))
-        if station is None:
-            continue
-        if station not in legal:
-            # NAMES THE TASK ID AND THE VALUE. `value` is what the operator can act on, so it
-            # carries both — a station alone would not say which task to go fix.
-            raise factory_config.FleetError(
-                f"task {task_id} station not in the vocabulary",
-                f"{task_id}={station}",
-                "set it with plan-merge.py set-task-station --task "
-                f"{task_id} --station <one of "
-                f"{' '.join(factory_config.MANDATED_STATIONS)}>",
-            )
-        if station != factory_config.TERMINAL_MARKER:
-            placed[number] = station
+        pair = _task_card(task_id, number, by_id, legal)
+        if pair is not None:
+            placed[pair[0]] = pair[1]
     return placed
 
 
@@ -241,8 +270,7 @@ def _parent_station(plan_doc, legal):
         raise factory_config.FleetError(
             "the feature's top-level station is not in the vocabulary",
             str(top),
-            "set it with plan-merge.py set-feature-station --station <one of "
-            f"{' '.join(factory_config.MANDATED_STATIONS)}>",
+            _station_remedy(),
         )
     if top == factory_config.TERMINAL_MARKER:
         return None

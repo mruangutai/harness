@@ -119,6 +119,27 @@ def _resolve_plan(file_path):
         sys.exit(refusal.code)
 
 
+def _harness_root(start):
+    """Walk up from `start` to the checkout whose manifest declares a harness, or None.
+
+    THE PROBE NAMES THE MANIFEST, NEVER THE `.harness` DIRECTORY. A probe for the directory
+    resolves $HOME as a root in the global install — B-7 verbatim — and
+    test-check-plan-routes.py's case_20 asserts that no copy of this idiom regresses.
+
+    Extracted from `_legal_stations` (FEAT-41 F-05), whose docstring already described this as
+    its own named step. It is a walk with a termination condition, which is a different kind of
+    thing from choosing a vocabulary, and the two were interleaved in one body at grade 3.
+    """
+    root = start
+    while True:
+        if os.path.isfile(os.path.join(root, harness_boundary.MARKER)):
+            return root
+        parent = os.path.dirname(root)
+        if parent == root:
+            return None
+        root = parent
+
+
 def _legal_stations(resolved):
     """The station vocabulary the target plan.yaml's own checkout declares, plus the terminal
     marker, as an ordered tuple.
@@ -141,15 +162,7 @@ def _legal_stations(resolved):
     the vocabulary that governs a write belongs to the checkout being written to, not to
     whichever checkout happens to be running the tool.
     """
-    root = os.path.dirname(os.path.abspath(resolved))
-    while True:
-        if os.path.isfile(os.path.join(root, harness_boundary.MARKER)):
-            break
-        parent = os.path.dirname(root)
-        if parent == root:
-            root = None
-            break
-        root = parent
+    root = _harness_root(os.path.dirname(os.path.abspath(resolved)))
     stations = None
     if root is not None:
         try:
@@ -739,6 +752,48 @@ def cmd_set_task_station(args):
     sys.exit(0)
 
 
+def _replace_top_level_status(lines, station):
+    """Rewrite an existing column-0 `status:` line in place. True when one was found.
+
+    The indent group must be EMPTY: every task carries its own `status:` and an indented match
+    would rewrite the first task's station instead of the feature's.
+    """
+    for i, line in enumerate(lines):
+        m = STATUS_LINE_RE.match(line)
+        if m and m.group(1) == "":
+            newline = "\n" if line.endswith("\n") else ""
+            lines[i] = f"status: {station}{newline}"
+            return True
+    return False
+
+
+def _insert_status_after_feature(lines, station):
+    """Insert a `status:` line immediately after the top-level `feature:` key. True when done."""
+    for i, line in enumerate(lines):
+        if FEATURE_LINE_RE.match(line):
+            lines.insert(i + 1, f"status: {station}\n")
+            return True
+    return False
+
+
+def _splice_top_level_status(lines, station):
+    """Set plan.yaml's top-level `status`, returning the new bytes, or None if there is nowhere.
+
+    None means the document carries no top-level `feature:` key to anchor to, which the caller
+    turns into a refusal — this function never raises, so the lock plumbing and the text edit
+    stay separable. Extracted from `cmd_set_feature_station.transform` (FEAT-41 F-05), which
+    interleaved two splice strategies with the refusal at grade 3.
+
+    REPLACE the existing top-level status, or INSERT immediately after `feature:` so the file
+    keeps a stable key order. Appending at the end would work and would also make every
+    plan.yaml's key order depend on the order the verbs happened to run in.
+    """
+    if (_replace_top_level_status(lines, station)
+            or _insert_status_after_feature(lines, station)):
+        return "".join(lines).encode("utf-8")
+    return None
+
+
 def cmd_set_feature_station(args):
     resolved = _resolve_plan(args.file)
     legal = _legal_stations(resolved)
@@ -746,24 +801,14 @@ def cmd_set_feature_station(args):
         _refuse_illegal_station(args.station, legal)
 
     def transform(base_bytes):
-        text = base_bytes.decode("utf-8")
-        lines = text.splitlines(keepends=True)
-        # REPLACE the existing top-level status, or INSERT immediately after `feature:` so the
-        # file keeps a stable key order. Appending at the end would work and would also make
-        # every plan.yaml's key order depend on the order the verbs happened to run in.
-        for i, line in enumerate(lines):
-            m = STATUS_LINE_RE.match(line)
-            if m and m.group(1) == "":
-                newline = "\n" if line.endswith("\n") else ""
-                lines[i] = f"status: {args.station}{newline}"
-                return "".join(lines).encode("utf-8")
-        for i, line in enumerate(lines):
-            if FEATURE_LINE_RE.match(line):
-                lines.insert(i + 1, f"status: {args.station}\n")
-                return "".join(lines).encode("utf-8")
-        raise harness_merge.MergeRefusal(
-            5, [f"plan-merge: {resolved} carries no top-level feature: key to anchor status to"]
-        )
+        lines = base_bytes.decode("utf-8").splitlines(keepends=True)
+        spliced = _splice_top_level_status(lines, args.station)
+        if spliced is None:
+            raise harness_merge.MergeRefusal(
+                5,
+                [f"plan-merge: {resolved} carries no top-level feature: key to anchor status to"],
+            )
+        return spliced
 
     try:
         harness_merge.locked_update(resolved, transform)

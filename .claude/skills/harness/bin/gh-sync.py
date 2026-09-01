@@ -631,6 +631,21 @@ def _record_station(feat_dir, station):
     return True
 
 
+def _git_detail(r):
+    """The last line of a git result's output, for a one-line failure report.
+
+    FIXED A RENDERING DEFECT WHILE EXTRACTING THIS (FEAT-41 F-05). The commit-failure branch
+    interpolated `...splitlines()[-1:] or ['(no output)']` — a LIST SLICE — directly into an
+    f-string, so the operator saw `['fatal: cannot commit']`, brackets and quotes included.
+    Verified by rendering it before changing it. This returns the string.
+
+    stderr and stdout are concatenated because git splits its diagnostics across both and a
+    reader does not care which one carried the line.
+    """
+    lines = ((r.stderr or "") + (r.stdout or "")).strip().splitlines()
+    return lines[-1] if lines else "(no output)"
+
+
 def _commit_terminal_station(feat_dir):
     """Commit the plan.yaml `_record_station` just wrote, in the checkout it belongs to.
 
@@ -667,7 +682,7 @@ def _commit_terminal_station(feat_dir):
     r = _git(["status", "--porcelain", "--", plan_path])
     if r.returncode != 0:
         print(f"gh-sync: WARNING - station committed nowhere, git status failed in "
-              f"{feat_dir}: {(r.stderr or '').strip()}", file=sys.stderr)
+              f"{feat_dir}: {_git_detail(r)}", file=sys.stderr)
         return
     if not r.stdout.strip():
         # ALREADY COMMITTED IS NOT A FAILURE. ship is idempotent, so a re-run finds the station
@@ -679,8 +694,7 @@ def _commit_terminal_station(feat_dir):
     r = _git(["commit", "-q", "-m", f"{feat_id}: station done at ship", "--", plan_path])
     if r.returncode != 0:
         print(f"gh-sync: WARNING - station recorded but NOT committed in {feat_dir}: "
-              f"{((r.stderr or '') + (r.stdout or '')).strip().splitlines()[-1:] or ['(no output)']}",
-              file=sys.stderr)
+              f"{_git_detail(r)}", file=sys.stderr)
         return
     h = _git(["rev-parse", "--short", "HEAD"])
     print(f"gh-sync: station done committed as {h.stdout.strip() or '(unknown)'}")
