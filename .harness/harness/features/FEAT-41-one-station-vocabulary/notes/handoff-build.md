@@ -2,39 +2,46 @@
 
 ## Next
 
-Re-review cycle 1 against the NEW `review_sha`, on a branch REBASED onto 9f2a070 (0 behind).
-All five of cycle 0's must-fix findings are fixed, each with its own commit and receipt in
-`787c7fa..8fa2d04`. Zero gated HIGH code-grade records; six grade-2 records need written reasons,
-not refactors. Inputs: `plan.yaml` (16 tasks, D-01..D-16), `BRIEF.md`, and the fix commits.
+Re-review cycle 2 against the NEW `review_sha`. Cycle 1 returned FAIL with two high must-fix
+(H-01, H-02) and two mutation-proven med; all four are fixed with their own commits and receipts
+in `42bc5fe..c4da870`. Inputs: `plan.yaml` (16 tasks, D-01..D-16), `BRIEF.md`, and those commits.
 
-THE REBASE CHANGED THE ANSWER TO Q2 AND TO T-18 — read D-16 before reviewing either. FEAT-45 had
-already fixed Q2 upstream, better, so T-18 is STRUCK and its station is `abandoned`. My duplicate
-mechanism is deleted; validate-digest.py is byte-identical to origin/main.
+CYCLE 1'S OWN BLOCKING QUESTION IS ANSWERED BY MEASUREMENT, not opinion: the production Write
+tool DOES follow symlinks — link stayed a link, target's bytes changed — so H-01 was high, not
+informational, and it is fixed at both checkpoints.
 
-Cycle 0's two verdict items are CLOSED by the operator: T-15's lane deviation is ratified in D-15,
-and T-10's verify-line defect is recorded rather than rewritten because the plan format is
-add-only. Do not re-open either; check that the records say what happened.
+SC-08 IS LITERALLY FALSE BY EXACTLY ONE FILE and that is deliberate — issue #1079. BUG-1071 has
+no `plan.yaml`, so its `feature.json.status` is the only record that it is in review: deleting it
+destroys a fact, and creating a plan to hold it fabricates a document for a feature FEAT-41 does
+not own. Amending the signed criterion to make it pass is not a build decision. The gate agrees
+it is not blocking — `note` level, exit 0. Do NOT close this by editing SC-08.
+
+Cycle 0's two verdict items stay CLOSED by the operator: T-15's lane deviation is ratified in
+D-15, T-10's verify-line defect is recorded rather than rewritten because the plan format is
+add-only. T-18 is STRUCK in D-16, not implemented — FEAT-45 fixed that upstream, better.
 
 ## Trust
 
-- unit exit 0, 505 PASS; integration exit 0, 816 PASS — verified-at 8fa2d04, both kinds run SERIALLY at the new base
+- unit exit 0, 505 PASS; integration exit 0, 819 PASS — verified-at c4da870, both kinds run SERIALLY after every fix
 - Gated HIGH code-grade records: 0, against merge-base 9f2a070, the same the reviewer will use — verified-at 8fa2d04
+- H-01's fix uses readlink, NOT realpath (realpath leaves the path's spelling namespace, `/var` -> `/private/var`, and the case stays RED with the fix in); its POST case was written after the fix so the fix was MUTATED away to prove it discriminates — verified-at 42bc5fe
+- H-02 is fixed ONCE, before either scanner: teaching two scanners about backslashes separately leaves F-03's asymmetry one escape away — verified-at 42bc5fe
+- Both QA mutations were RE-RUN against the fixes: `_I` removal now reds exactly one row, `_verify_signature` disabled goes from 0 failures to 3 — verified-at c4da870
+- F-02's layer two was UNREACHABLE until c4da870; QA proved it, and the forcing case uses a duplicate `approved_by` (YAML last-wins) rather than a monkeypatch — verified-at c4da870
 - T-14's invariant is INV-33 now, not 32: FEAT-45 shipped its own INV-32 first, so it owns the number; both suites' cases pass side by side — verified-at 8fa2d04
 - FEAT-45's records were migrated by THIS feature, not by FEAT-45: it shipped after T-04/T-07 ran, so its plan carried no station and its feature.json still carried `status` — verified-at 8fa2d04
 - The 33 INV-32 lines seen mid-rebase were a STALE BASE, not a defect here; BUG-1071's era guard resolves them — verified-at 8fa2d04
 - Q2 is fixed UPSTREAM: origin/main's `_hook_feature_dir` resolves the worktree via inflight_registry and SEC-01 bound to fb07ed6 when driven against the real layout — verified-at 8fa2d04
-- F-01's fix is cross-file: the test reads the sweep's gate literals OUT of post-merge-sweep.sh rather than retyping them — verified-at 787c7fa
-- F-02 had FIVE failures in three classes, not the one reported; `#845 owner` and `yes` PARSE FINE and still corrupt the value, so the check compares values — verified-at 8c2972e
-- F-02's two layers are independent: mutating the escaping away leaves the round-trip check refusing with the plan byte-identical — verified-at 8c2972e
-- F-03's fix covers the TEXT fallback too; fixing only the token scan moved the evasion one unbalanced quote away — verified-at dee7225
-- F-04's realpath half does NOT reproduce: `./`, `..`, doubled slash, absolute and a SYMLINKED feature dir are all already denied — verified-at 6eda94d
+- Cycle 0's F-01..F-05 are all closed and cycle 1's panel re-verified each at source; detail is in `787c7fa..9bdbe91` — verified-at c4da870
+- F-04's realpath half does NOT reproduce as a PATH SHAPE: `./`, `..`, doubled slash and absolute are denied; the SYMLINKED-FILE case was the real hole and is H-01 — verified-at 42bc5fe
 - `_commit_terminal_station` was printing a Python LIST at the operator (`['fatal: ...']`); rendered to confirm before fixing — verified-at 9bdbe91
 - INV-32 reports THIS feature's own review_sha until the pin moves; that is the invariant working, not a defect — verified-at a1dc932
 - T-14's four verify greps need `-F` or escaped parens under `pi-uu-grep 0.2.0`, which reads the pattern as ERE — verified-at a1dc932
 
 ## Dead Ends
 
-- Do NOT replace shape-matching WITH realpath in check-domain.sh; shape is stronger for `./`, `..`, doubled slashes, absolute paths and a symlinked feature DIRECTORY. This entry USED to say "do not re-fix F-04's realpath half" full stop, and cycle 1's panel found the hole that wording talked past: a symlinked FILE with an innocent name matched no pattern at all. Closed by ADDING resolved candidates (H-01), not by substituting resolution
+- Do NOT replace shape-matching WITH realpath in check-domain.sh, and do NOT rewrite H-01's readlink walk as realpath: shape is stronger for `./`, `..`, doubled slashes, absolute paths and a symlinked feature DIRECTORY, and realpath leaves the written path's spelling namespace so the gate looks green while denying nothing. This entry USED to stop at "do not re-fix F-04's realpath half", and cycle 1's panel found the hole that wording talked past — a symlinked FILE with an innocent name matched no pattern at all. Closed by ADDING resolved candidates (H-01), never by substituting resolution
+- Do NOT close SC-08 by editing SC-08, and do NOT delete BUG-1071's `feature.json.status` — it has no plan.yaml, so that key is the only record it is in review. Issue #1079
 - Do NOT reconcile `_record_station` and `_commit_terminal_station` to use the same words: written-nowhere and written-but-uncommitted have OPPOSITE correct answers, both asserted
 - Do NOT exempt `--date` from sign-approval's escaping; a type-aware exemption is a hole in the check that closes F-02
 - Do NOT add a `required` column to plan-merge.py's VERBS table; if a verb needs an optional argument it gets its own registration
