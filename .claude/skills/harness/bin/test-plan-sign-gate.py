@@ -16,6 +16,7 @@ say which verb was refused.
 import json
 import os
 import subprocess
+import sys
 import tempfile
 
 BIN = os.path.dirname(os.path.abspath(__file__))
@@ -442,6 +443,79 @@ rc, err = gate(f"bash -c '{_TOOLPATH} sign-approval --file p.yaml --by A --date 
 check("HIGH-2: `bash -c` carrying a real signing call is still DENIED, via recursion",
       rc == 2, f"rc={rc} stderr={err[:300]!r}")
 
+
+sys.path.insert(0, BIN)
+import inflight_registry as _reg
+
+
+def _qroot(claims):
+    root = _root()
+    for agent, session, runtime in claims:
+        _reg.claim_with_receipt(
+            root, agent, "harness-product-lead", root,
+            feature="FEAT-99-fixture", session=session, runtime=runtime,
+        )
+    return root
+
+
+def qgate(command, agent_type, session_id, root):
+    payload = {
+        "agent_type": agent_type,
+        "session_id": session_id,
+        "tool_input": {"command": command},
+    }
+    env = dict(os.environ, HARNESS_PROJECT_DIR=root)
+    result = subprocess.run(
+        ["bash", GATE], input=json.dumps(payload), capture_output=True,
+        text=True, env=env,
+    )
+    return result.returncode, result.stderr
+
+
+_session = "feat51-writer"
+_other = [("harness-qa", "other-session", "claude")]
+_own = [("harness-orchestrator", _session, "claude")]
+_omp = [("harness-qa", "other-session", "omp")]
+_rel_plan = ".harness/harness/features/FEAT-99-fixture/plan.yaml"
+
+
+def _qcheck(label, command, want, claims, agent="harness-orchestrator",
+            mention=None):
+    root = _qroot(claims)
+    rc, err = qgate(command.format(root=root), agent, _session, root)
+    check(label, rc == want and (mention is None or mention in err),
+          f"rc={rc} stderr={err[:500]!r}")
+
+
+_apply = (
+    "python3 plan-merge.py apply --file {root}/" + _rel_plan
+    + " --proposal proposal.yaml"
+)
+_qcheck("an orphan agent plan-merge apply on plan.yaml is quarantined",
+        _apply, 2, _other, mention="quarantine")
+_qcheck("an orphan set-task-station on plan.yaml is quarantined",
+        "python3 plan-merge.py set-task-station --file {root}/" + _rel_plan
+        + " --task T-01 --station done",
+        2, _other, mention="quarantine")
+_qcheck("the writer own live claim allows the plan-merge apply",
+        _apply, 0, _own)
+_qcheck("a feature with no live claim allows the plan-merge apply",
+        _apply, 0, [])
+_qcheck("an omp-runtime writer is never quarantined on the Bash route",
+        _apply, 0, _omp)
+_qcheck("an orphan quarantine.py adopt onto a canonical plan.yaml is quarantined",
+        "python3 quarantine.py adopt --file {root}/.harness/harness/features/"
+        "FEAT-99-fixture/quarantine/harness-pm-session/plan.yaml",
+        2, _other, mention="quarantine")
+_qcheck("NEGATIVE CONTROL: an orphan apply on a non-canonical file path is allowed",
+        "python3 plan-merge.py apply --file {root}/notes/plan.yaml "
+        "--proposal proposal.yaml",
+        0, _other)
+_qcheck("NEGATIVE CONTROL: a non-harness agent_type is not governed by the quarantine rule",
+        _apply, 0, _other, agent="general-purpose")
+_qcheck("NEGATIVE CONTROL: an orphan apply whose --file value is a shell variable is allowed",
+        "python3 plan-merge.py apply --file \"$PLAN\" --proposal proposal.yaml",
+        0, _other)
 
 print(f"\n{fails} failing." if fails else "\nall checks passed.")
 raise SystemExit(1 if fails else 0)

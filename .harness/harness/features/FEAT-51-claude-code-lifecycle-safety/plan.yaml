@@ -442,7 +442,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 names check-domain.sh and its test file as enforcement layer, and team-config.yaml resolves to NOBODY
     depends_on: [T-02]
-    status: building
+    status: done
     files:
       - .claude/skills/harness/bin/check-domain.sh
       - .claude/skills/harness/bin/test-check-domain.py
@@ -745,7 +745,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: plan-sign-gate.sh is a registered PreToolUse Bash gate script, held back with the other gates by DEC-174 even though resolve answers harness-backend-dev
     depends_on: [T-02]
-    status: ready
+    status: building
     files:
       - .claude/skills/harness/bin/plan-sign-gate.py
       - .claude/skills/harness/bin/plan-sign-gate.sh

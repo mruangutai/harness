@@ -1,15 +1,17 @@
 #!/usr/bin/env bash
-# PreToolUse Bash: refuse an AGENT's `plan-merge.py sign-approval` (FEAT-41 T-08, REQ-05).
+# PreToolUse Bash gate for plan-merge.py and quarantine.py.
+#
+# It carries two rules: DEC-120 unconditionally refuses an agent's `sign-approval`,
+# while FEAT-51 quarantines a governed orphan writer's canonical plan mutations and
+# adoption attempts.
 #
 # DEC-120: the approval signature is the USER'S, and it is relayed by the main session alone.
 # An agent may ask for a signature and be refused; it cannot write one. Until this gate that
 # rule was prose — `sign-approval` takes the lock and writes the block for whoever calls it,
 # so an agent that judged the plan finished could sign it and nothing in the tree would notice.
 #
-# IT REFUSES ONE VERB, NOT THE TOOL, and that boundary is load-bearing rather than tidy.
-# T-03 split plan-merge.py into five verbs and T-09 makes it plan.yaml's ONLY writer, so a
-# gate that refused the whole tool would take the orchestrator's ability to record a task
-# status with it. `apply`, `add-tasks`, `set-task-station` and `set-feature-station` stay open.
+# The signature rule refuses one verb, not the tool. The FEAT-51 rule covers the other
+# mutating plan verbs only when the governed writer has become an orphan.
 #
 # NOT SELF-GATING, unlike gh-close-gate.sh and branch-create-gate.sh, and the difference is
 # not an oversight. Those two gate on `github.sync` because the behaviour they protect only
