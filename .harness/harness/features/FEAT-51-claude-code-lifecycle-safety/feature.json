@@ -116,6 +116,24 @@
       "squad": "validator",
       "agent": "harness-validator-lead",
       "verdict": "ESCALATE"
+    },
+    {
+      "id": "2026-09-01-05-eng",
+      "squad": "eng",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-09-01-04-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-09-01-2-simplify-eng",
+      "squad": "eng",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS"
     }
   ],
   "github": {
