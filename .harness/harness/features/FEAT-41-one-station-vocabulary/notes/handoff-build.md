@@ -3,9 +3,12 @@
 ## Next
 
 Re-review cycle 1 against the NEW `review_sha`. All five of cycle 0's must-fix findings are
-fixed, each with its own commit and receipt in `787c7fa..9bdbe91`. Zero gated HIGH code-grade
+fixed, each with its own commit and receipt in `787c7fa..add6993`. Zero gated HIGH code-grade
 records remain; six grade-2 records stand and need written reasons, not refactors. Inputs:
-`plan.yaml` (15 tasks, D-01..D-15), `BRIEF.md`, and the fix commits.
+`plan.yaml` (16 tasks, D-01..D-15), `BRIEF.md`, and the fix commits.
+
+Q2 IS FIXED, so the code reviewer can yield this time — T-18, operator-directed into this cycle.
+If it still cannot, that is a NEW defect, not the one it hit before.
 
 Cycle 0's two verdict items are CLOSED, both by the operator: T-15's lane deviation is ratified
 in D-15, and T-10's verify-line defect is recorded rather than rewritten because the plan format
@@ -15,6 +18,8 @@ is add-only. Do not re-open either; check that the records say what happened.
 
 - unit exit 0, 493 PASS; integration exit 0, 816 PASS — verified-at 9bdbe91, both kinds run SERIALLY after every fix
 - Gated HIGH code-grade records: 0, measured against the same merge-base the reviewer uses — verified-at 9bdbe91
+- Q2's fix is proved in PRODUCTION SHAPE, not only in a unit test: a second checkout without FEAT-41 holding a copy of the script, cwd in the worktree — pre-fix BLOCKED, post-fix BOUND — verified-at add6993
+- Q2's fix is a STRENGTHENING: the single-root version returned a path it never looked at; feature.json must now exist, and no candidate is invented — verified-at add6993
 - F-01's fix is cross-file: the test reads the sweep's gate literals OUT of post-merge-sweep.sh rather than retyping them — verified-at 787c7fa
 - F-02 had FIVE failures in three classes, not the one reported; `#845 owner` and `yes` PARSE FINE and still corrupt the value, so the check compares values — verified-at 8c2972e
 - F-02's two layers are independent: mutating the escaping away leaves the round-trip check refusing with the plan byte-identical — verified-at 8c2972e
