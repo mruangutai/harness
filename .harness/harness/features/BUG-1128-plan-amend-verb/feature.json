@@ -1,0 +1,10 @@
+{
+  "feature_id": "BUG-1128-plan-amend-verb",
+  "branch": "feat/BUG-1128-plan-amend-verb",
+  "pr": null,
+  "review_sha": "fe5c5b5796121d7f44251b52bb35728cb224e206",
+  "cycles_used": 0,
+  "max_total_cycles": 10,
+  "max_total_runs": 20,
+  "runs": []
+}
