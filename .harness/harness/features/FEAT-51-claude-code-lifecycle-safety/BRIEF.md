@@ -245,6 +245,6 @@ that route; a resumed parent explicitly adopts or discards the result. OMP behav
 
 ## Approval
 
-status: pending
-approved-by:
-date:
+status: approved
+approved-by: Mike Ruangutai
+date: 2026-09-01

@@ -4,7 +4,7 @@
   "pr": null,
   "review_sha": "none",
   "cycles_used": 9,
-  "max_total_cycles": 10,
+  "max_total_cycles": 20,
   "runs": [
     {
       "id": "plan-product",

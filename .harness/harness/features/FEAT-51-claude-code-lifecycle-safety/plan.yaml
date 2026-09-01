@@ -1,5 +1,9 @@
 schema: plan/1
 feature: FEAT-51-claude-code-lifecycle-safety
+approval:
+  status: approved
+  approved_by: Mike Ruangutai
+  date: '2026-09-01'
 status: plan
 
 source_issues: [280, 551]
@@ -735,7 +739,7 @@ tasks:
       boundary and the OMP-unchanged claim. Every later row anchor shifts when this entry
       lands, which is why the regeneration is part of this task and not a follow-up.
   - id: T-07
-    title: Close the Bash route by adding the quarantine rule to plan-sign-gate.sh and plan-sign-gate.py
+    title: Guard plan-merge mutations and quarantine adoption on the Bash route
     traces: [REQ-04, REQ-05]
     change_type: cross_module
     execution_mode: main-session-direct
