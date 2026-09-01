@@ -1,0 +1,127 @@
+<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>FEAT-51 Claude Code lifecycle safety — signature review</title><style>
+:root{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:ui-sans-serif,-apple-system,"Segoe UI","Helvetica Neue",Arial,sans-serif;
+}
+/* Token-level theming: components style through the tokens and never inside the
+   media query, so the viewer's explicit toggle can override the OS in BOTH
+   directions. */
+@media (prefers-color-scheme:dark){
+  :root{ --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+         --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733; }
+}
+:root[data-theme="dark"]{
+  --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+  --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733;
+}
+:root[data-theme="light"]{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+}
+*{box-sizing:border-box}
+body{margin:0; background:var(--paper); color:var(--ink);
+  font:400 16px/1.65 var(--sans); padding:clamp(1.5rem,5vw,4rem) clamp(1rem,5vw,2rem) 6rem}
+.wrap{max-width:56rem; margin:0 auto}
+/* Layout owns the spacing: gap between siblings, not per-element margins that
+   collapse or double. */
+.wrap{display:flex; flex-direction:column; gap:1rem}
+.eyebrow{font:500 11px/1 var(--mono); letter-spacing:.14em; text-transform:uppercase;
+  color:var(--quiet); margin:0}
+h1{font:600 clamp(1.6rem,4vw,2.3rem)/1.15 var(--sans); letter-spacing:-.02em;
+  margin:.4rem 0 .2rem; text-wrap:balance}
+h2{font:600 1.15rem/1.3 var(--sans); letter-spacing:-.01em; margin:2rem 0 0;
+  padding-top:1.25rem; border-top:1px solid var(--line); text-wrap:balance}
+h3{font:600 .98rem/1.4 var(--sans); margin:1.1rem 0 0}
+h4,h5,h6{font:500 11px/1.4 var(--mono); letter-spacing:.1em; text-transform:uppercase;
+  color:var(--quiet); margin:1rem 0 0}
+p,li{max-width:65ch; margin:0}
+ul,ol{margin:0; padding-left:1.4rem; display:flex; flex-direction:column; gap:.4rem}
+li>ul,li>ol{margin-top:.4rem}
+strong{font-weight:600}
+code{font:400 .875em/1.5 var(--mono); background:var(--sunk); padding:.1em .35em; border-radius:3px}
+pre{background:var(--sunk); border:1px solid var(--line); border-radius:6px;
+  padding:.85rem 1rem; overflow-x:auto; margin:0}
+pre code{background:none; padding:0}
+blockquote{margin:0; padding:.75rem 1rem; border-left:3px solid var(--accent);
+  background:var(--accent-soft); border-radius:0 5px 5px 0}
+blockquote p{max-width:none}
+hr{border:0; border-top:1px solid var(--line); margin:.5rem 0}
+/* Wide content pans inside its OWN container; the page body never scrolls sideways. */
+.scroll{overflow-x:auto; border:1px solid var(--line); border-radius:6px}
+table{border-collapse:collapse; width:100%; font-size:.9rem}
+th,td{text-align:left; padding:.6rem .8rem; border-bottom:1px solid var(--line); vertical-align:top}
+thead th{font:500 10px/1.3 var(--mono); letter-spacing:.11em; text-transform:uppercase;
+  color:var(--quiet); background:var(--sunk); white-space:nowrap}
+tbody tr:last-child td{border-bottom:0}
+/* Figures in a column line up. */
+td,th{font-variant-numeric:tabular-nums}
+.derived{color:var(--slate); font-size:.85rem; margin-top:2.5rem;
+  padding-top:1rem; border-top:1px solid var(--line)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style></head><body><div class='wrap'><p class='eyebrow'>Ship review · reading view</p><h1 id="feat-51-claude-code-lifecycle-safety-signature-review">FEAT-51 Claude Code lifecycle safety — signature review</h1>
+<p><strong>The plan is ready to sign, and one thing has to be fixed before you can physically sign it.</strong> Every gating panel finding is closed at source and independently verified. But <code>plan.yaml</code> cannot acquire an <code>approval:</code> mapping by any route that exists today, so the signature has nowhere to land and <code>check-state.sh</code> reports it as a VIOLATION. That repair is yours — it is main-session-direct under DEC-174 — and it is about fifteen lines.</p>
+<p>Three things need your decision. They are §1, §2 and §3. Everything else in this document is the record behind them.</p>
+<hr>
+<h2 id="how-this-briefing-was-assembled">How this briefing was assembled</h2>
+<p><strong>No report round was spawned.</strong> I read all thirteen run digests off disk rather than paying a squad to re-narrate files that already exist (DEC-69). They are:</p>
+<pre><code>runs/plan-product/digest.md              runs/plan-fix-c1-product/digest.md
+runs/plan-fix-c2-product/digest.md       runs/plan-fix-c3-product/digest.md
+runs/plan-fix-c4-product/digest.md       runs/plan-goalcheck-product/digest.md
+runs/plan-panel-validator/digest.md      runs/plan-transcribe-product/digest.md
+runs/plan-ruling-c6-product/digest.md    runs/plan-ruling-c7-product/digest.md
+runs/plan-decnum-c8-product/digest.md    runs/plan-panel-c9-validator/digest.md
+runs/plan-panelfix-c9-product/digest.md  runs/plan-panelverify-c9-validator/digest.md</code></pre>
+<p>All fourteen are plan-phase runs. There is no build phase to omit — nothing has been built.</p>
+<hr>
+<h2 id="1-the-decision-you-are-actually-making-sign-and-accept-one-scope-reduction">§1 — The decision you are actually making: SIGN, and accept one scope reduction</h2>
+<p>The plan is <strong>7 requirements, 12 success criteria, 9 tasks, 17 decisions</strong>. It gives the Claude Code compatibility host a third answer for a parent with live children (<code>VERDICT: SUSPENDED</code>), quarantines an orphan&#x27;s writes to canonical artifacts instead of letting them land, and makes adoption an explicit CLI act. OMP behaviour is untouched.</p>
+<p><strong>REQ-04 was NARROWED, and you must accept that or refuse it.</strong> It used to read, without qualification, that an orphan&#x27;s writes to canonical feature artifacts are quarantined instead of landing. It now reads that they are quarantined <strong>on the two governed write routes the harness gates</strong> — the <code>Write</code>/<code>Edit</code> editor route through <code>check-domain.sh</code>, and the <code>plan-merge.py</code> mutating verbs plus <code>quarantine.py adopt</code> through <code>plan-sign-gate.sh</code> — and that a generic <code>Bash</code> write to a canonical artifact inside the writer&#x27;s own domain is <strong>not</strong> covered.</p>
+<p>That is not housekeeping. It is a smaller promise than the one you were going to sign, and the reason is §4.</p>
+<h2 id="2-the-prerequisite-only-you-can-do-plan-yaml-cannot-be-signed-at-all">§2 — The prerequisite only you can do: <code>plan.yaml</code> cannot be signed at all</h2>
+<p><code>plan.yaml</code> carries no <code>approval:</code> mapping and structurally cannot acquire one. Four probes, all re-run against main&#x27;s tip <code>0bc57c88</code>:</p>
+<div class="scroll"><table><thead><tr><th>probe</th><th>result</th></tr></thead><tbody><tr><td><code>apply</code> with a proposal carrying <code>approval:</code> onto an absent base</td><td>exit 8, refused (<code>plan-merge.py:468</code>)</td></tr><tr><td><code>apply</code> with a proposal carrying <code>approval:</code> onto an approval-less base</td><td>exit 0, <code>APPLIED</code>, block <strong>silently dropped</strong> (<code>:536</code>)</td></tr><tr><td><code>sign-approval</code> on a plan carrying no <code>approval:</code></td><td>exit 5 (<code>:903</code>)</td></tr><tr><td><code>Write</code> of <code>plan.yaml</code>, main session, no <code>agent_type</code></td><td>exit 2 — <code>check-domain.sh</code> denies the editor route for <strong>every</strong> author</td></tr></tbody></table></div>
+<p>The route that was supposed to produce the block is the one the pm skill names — instantiate from <code>.agents/skills/harness/templates/plan.yaml</code>, which carries <code>approval: status: pending</code>. That is a filesystem copy, outside the tool, and this plan was created by <code>apply</code> instead. Every plan created that way since FEAT-41 has the same hole.</p>
+<p><strong>Recommended repair, and it adds no capability:</strong> make <code>cmd_sign_approval</code> INSERT the mapping when the file carries none, instead of exiting 5. That verb is already the only writer of <code>approval:</code>, and since #1103 it already reads its caller&#x27;s real <code>HARNESS_AGENT_TYPE</code> and exits 10 for every governed agent. Nothing that is refused today becomes allowed.</p>
+<p><strong>Why I did not do it.</strong> <code>plan-merge.py</code>&#x27;s <code>cmd_sign_approval</code> is an enforcement point by DEC-174&#x27;s category test — &quot;the category governs, not the enumeration&quot; — so it is executed directly by you, not dispatched through the harness whose gates are the thing being changed. It also cannot be a task in this plan: it must land <strong>before</strong> the signature, and a plan task can only run after one.</p>
+<h2 id="3-one-word-and-my-recommendation-is-to-leave-it">§3 — One word, and my recommendation is to leave it</h2>
+<p>The independent verification pass returned FAIL on a single residue: <code>T-07</code>&#x27;s <code>title:</code> at <code>plan.yaml:738</code> reads <em>&quot;Close the Bash route by adding the quarantine rule to plan-sign-gate.sh and plan-sign-gate.py&quot;</em>. After D-19, no artifact of this feature may assert the boundary unqualified, and &quot;close the Bash route&quot; does exactly that.</p>
+<p>It is rated <strong>med</strong>. No <code>verify:</code> greps the title. All five places that actually record coverage — D-19, REQ-04, the <code>## Goal</code>, the verification-gaps bullet and T-06&#x27;s mandated claim list — are correctly qualified, and this document names the overclaim so nobody signs unaware.</p>
+<p><strong>Recommendation: accept it.</strong> Cycles are at <strong>9 of 10</strong>, the budget is per-feature not per-phase, and spending the last one on a task title would leave the build with none. If you want it fixed, say so and raise <code>max_total_cycles</code> in the same breath.</p>
+<hr>
+<h2 id="4-what-the-panel-found-and-why-req-04-shrank">§4 — What the panel found, and why REQ-04 shrank</h2>
+<p>The adversarial panel ran twice, and both times it found the same class of defect: <strong>a protection the plan promised that the tree does not have.</strong></p>
+<p><strong>Cycle 5</strong> found the discard trio. <code>D-16</code>/<code>D-17</code>/<code>T-09</code> guarded <code>quarantine.py discard</code> while a plain <code>rm -rf</code> of the same directory stays permitted — <code>bash-write-guard.sh:259</code> exempts <code>harness-dev-ops</code> outright and <code>:784-790</code> notices-and-continues on the <code>shared</code> verdict D-06&#x27;s own <code>.harness/*/features/*/quarantine/**</code> glob produces. You ruled: take the conservative clean scope. D-16, D-17, T-09 and SC-12 are gone; <strong>D-18</strong> records the choice and the ground.</p>
+<p><strong>Cycle 9</strong> found the same shape one level up, and it is the one that shrank REQ-04. An orphaned <code>harness-pm</code> writing a canonical artifact with a generic shell command reaches no gate this feature builds. I measured it rather than taking it on report — <code>agent_type: harness-pm</code>, no live claim, <code>cp /tmp/evil.md &lt;feature&gt;/BRIEF.md</code>, fired at all three registered <code>PreToolUse</code> gates in the main checkout at <code>0bc57c88</code>:</p>
+<pre><code>bash-write-guard.sh   exit 0
+plan-sign-gate.sh     exit 0
+check-domain.sh       exit 0</code></pre>
+<p><code>bash-write-guard.sh</code> passes any in-domain write, and <code>harness-pm</code>&#x27;s own <code>team-config.yaml</code> domain grants both <code>BRIEF.md</code> and <code>plan.yaml</code>. <code>check-domain.sh</code> is registered for <code>Write|Edit</code> only. <code>plan-sign-gate.sh</code>&#x27;s new rule matches only <code>plan-merge.py</code> and <code>quarantine.py</code> basenames.</p>
+<p><strong>This is issue #551&#x27;s flagship occurrence.</strong> A fourteen-task <code>plan.yaml</code> replaced by a one-task file 63 seconds later. If the orphan used <code>plan-merge.py</code>, this feature stops it. If it used <code>cp</code>, this feature does not.</p>
+<p>I applied your own F-1 ruling to it rather than asking again, because it is the identical class and the ruling was explicit: admit the hole, do not broaden the feature. <strong>D-19</strong> records it, REQ-04 and the Goal are qualified, a verification-gaps bullet carries the measurement, and T-06&#x27;s mandated DEC-210 entry must state it. Closing the route needs a generic write-route gate, which is a different feature — it is <code>B-1</code> below.</p>
+<p><strong>One more gating defect, found by the cycle-7 goal-check and worth naming because it is the kind nothing else catches.</strong> The plan numbered its own decision entry <code>DEC-209</code>, which is already taken on main by BUG-1081. <code>T-06</code>&#x27;s <code>verify:</code> therefore ran <code>grep -q &#x27;DEC-209&#x27; DECISIONS-INDEX.md</code> and passed against BUG-1081&#x27;s shipped row — <strong>a gate that was green before its task ran and could never go red.</strong> Everything now reads <code>DEC-210</code>, and the amended verify exits 1 against the current tree.</p>
+<hr>
+<h2 id="5-the-panel-record-as-signed">§5 — The panel record, as signed</h2>
+<p><code>panel.cycle: 9</code>, <code>panel.last_run: plan-panel-c9-validator</code>, three readers all <code>ran</code> (<code>should-not-exist</code>/<code>fable-advisor</code>, <code>scope</code>/<code>harness-code-reviewer</code>, <code>goalcheck</code>/<code>harness-pm</code>), <strong>13 findings</strong>.</p>
+<div class="scroll"><table><thead><tr><th>severity</th><th>resolved</th><th>open</th></tr></thead><tbody><tr><td>high</td><td>4</td><td>0</td></tr><tr><td>med</td><td>4</td><td>1</td></tr><tr><td>low</td><td>2</td><td>2</td></tr></tbody></table></div>
+<p><strong>No high, critical or unrated finding is open.</strong> The three that remain open are deliberate:</p>
+<ul><li><code>PF-e380f685c0697fb709ff29f65af0cf24</code> (med) — asks for a one-run Claude Code spike before the build is paid for. Nine tasks rest on the assumption that the host re-enters a parent that returned exit 0 from its Stop hook with a live child claim, and <strong>SC-10 is the only instrument that tests it, running last.</strong> You instructed the feature to proceed; this stays open as the honest record of an unobserved assumption. It is <code>B-4</code> if you would rather buy the spike first.</li><li><code>PF-2545afb576b19ad86704f5bfcb556b9e</code> (low) — asks to narrow SC-02&#x27;s <code>awaiting</code> set-equality to a subset check. Narrowing a success criterion is yours, not the squad&#x27;s. Left as written.</li><li><code>PF-3b34920908a79dda63342a9eef302348</code> (low) — T-08 hard-couples three permanent suite tests to DEC-210&#x27;s prose, which taxes a future unrelated feature. <code>B-3</code>.</li></ul>
+<p><strong>What the panel could not tell you, in its own words:</strong> two readers is not a wide panel; no security or qa lens ran, and F-A is a bypass-class finding found by luck of one reader&#x27;s framing. Treat the absence of further bypass findings as unmeasured, not clean.</p>
+<p><strong>The strongest single result:</strong> the <code>scope</code> reader RAN all nine <code>verify:</code> blocks and recorded each one RED. No gate in this plan is pre-satisfied. That proves nothing about whether they can go green on correct work — nothing is built.</p>
+<hr>
+<h2 id="6-the-build-is-mostly-yours-to-execute-not-mine-to-dispatch">§6 — The build is mostly yours to execute, not mine to dispatch</h2>
+<p><strong>7 of 9 tasks are <code>main-session-direct</code> under DEC-174.</strong> They touch <code>validate-digest.py</code>, <code>inflight_registry.py</code>, <code>check-domain.sh</code>, <code>plan-sign-gate.py</code>/<code>.sh</code>, their test files, and the two playbooks — the enforcement layer, plus three surfaces <code>check-domain.sh --resolve</code> answers NOBODY for. I cannot execute those, and neither can any squad. <code>check-plan-routes.py</code> exits 0 with zero violations; its four <code>DEVIATION</code> lines on T-01, T-02, T-07 and T-10 are that carve-out, correctly declared.</p>
+<p>Dependency-ordered segments, each task carrying its own <code>verify:</code> in the plan:</p>
+<div class="scroll"><table><thead><tr><th>segment</th><th>tasks</th><th>lane</th><th>note</th></tr></thead><tbody><tr><td>1</td><td>T-01, T-02</td><td>main-session-direct</td><td>independent; both <code>depends_on: []</code></td></tr><tr><td>2</td><td>T-03, T-07</td><td>main-session-direct</td><td>both need T-02</td></tr><tr><td>3</td><td>T-04</td><td>team (<code>harness-dev-ops</code>)</td><td>needs T-02; the <code>quarantine.py</code> CLI</td></tr><tr><td>4</td><td>T-05</td><td>main-session-direct</td><td>needs T-01, T-04; both playbooks</td></tr><tr><td>5</td><td>T-10</td><td>main-session-direct</td><td>needs T-03, T-07; the fail-open coverage</td></tr><tr><td>6</td><td>T-06</td><td>team (<code>harness-documentor</code>)</td><td>needs T-01..T-05 and T-07</td></tr><tr><td>7</td><td>T-08</td><td>team (<code>harness-dev-ops</code>)</td><td>needs T-06; guards the entry</td></tr></tbody></table></div>
+<p>Put segment 1&#x27;s riskiest task and everything independent of it together: a failure in T-01 wastes none of T-02.</p>
+<p><strong>One anchor warning for whoever builds T-01.</strong> <code>validate-digest.py</code> (+270/-158) and <code>test-validate-digest.py</code> (+654/-119) moved between the plan&#x27;s original anchor sha <code>ad93d43e</code> and main&#x27;s tip. Every line number in T-01&#x27;s <code>intent:</code> has been re-measured at <code>0bc57c88</code> and the verification pass checked all 26. The other 19 target files are byte-identical between the two shas.</p>
+<hr>
+<h2 id="7-proposed-backlog">§7 — Proposed backlog</h2>
+<p><strong>Anything not listed here dies silently. Strike rows by ID.</strong></p>
+<div class="scroll"><table><thead><tr><th>ID</th><th>nature</th><th>item</th></tr></thead><tbody><tr><td>B-1</td><td>enhancement</td><td><strong>Gate the generic Bash write route to canonical feature artifacts.</strong> The hole D-19 admits: <code>cp</code>/<code>cat</code>/<code>tee</code>/<code>mv</code>/<code>sed -i</code>/<code>python3 -c</code> to <code>plan.yaml</code>, <code>BRIEF.md</code>, <code>feature.json</code> or <code>STATE.md</code> inside the writer&#x27;s own domain passes all three PreToolUse gates. Measured, exit 0 on all three.</td></tr><tr><td>B-2</td><td>bug</td><td><strong><code>plan-merge.py</code> cannot give a plan an <code>approval:</code> mapping.</strong> §2. Affects every plan created by <code>apply</code> since FEAT-41. If you fix it as this feature&#x27;s prerequisite, strike this row.</td></tr><tr><td>B-3</td><td>chore</td><td>T-08 couples three permanent suite tests to DEC-210&#x27;s prose, so rewriting that entry reds the enforcement-layer suite through a DEC-174 lane.</td></tr><tr><td>B-4</td><td>chore</td><td>The one-run Claude Code host spike <code>PF-e380f685c0697fb709ff29f65af0cf24</code> asks for: does the host re-enter a parent that returned exit 0 from its Stop hook with a live child claim?</td></tr><tr><td>B-5</td><td>bug</td><td><strong><code>harness-code-reviewer</code> cannot terminally yield on a plan-phase dispatch.</strong> <code>validate-digest.py</code> refuses <code>code_grade: n_a</code> (&quot;cannot be bound to <code>review_sha</code>… an unpinned feature (INV-6) cannot anchor a <code>code_grade</code> claim&quot;) AND refuses it omitted (&quot;missing <code>code_grade</code>&quot;). The two refusals are mutually exclusive, so no return satisfies the gate — while <code>feature.json</code> already records <code>code_grade: n_a</code> for that same unpinned feature. Raised three consecutive times; cost one reader ~32 minutes and four yield attempts.</td></tr><tr><td>B-6</td><td>bug</td><td><code>plan-merge.py</code>&#x27;s <code>UNION_KEYS</code> is <code>(&quot;tasks&quot;, &quot;decisions&quot;)</code> only, so <code>lanes</code> and <code>panel</code> cannot be amended incrementally — any difference is exit 7. Five full remove-then-recreate cycles were needed this phase. <strong>Probably already in flight:</strong> <code>BUG-1128-plan-amend-verb</code> sits at station <code>review</code> with an <code>amend</code> verb built (<code>plan-merge.py:916-1091</code>, ten <code>case_amend_*</code> tests, <code>review_sha 58742037</code>). Strike this row if that lands. It does NOT cover B-2.</td></tr><tr><td>B-7</td><td>bug</td><td><code>check-domain.sh</code> denies <code>harness-pm</code> a <code>Write</code> at <code>notes/plan-proposal-*.yaml</code> (its grant is <code>research-*.md</code> and <code>uat-*.md</code>), so the sanctioned tool is refused for the one write route <code>plan.yaml</code> has — and <code>python3</code> reaches it anyway, which the guard does not intercept.</td></tr><tr><td>B-8</td><td>bug</td><td><code>bash-write-guard.sh</code> reads a <code>&gt;=</code> inside Python source as a redirect and refuses the command, naming a target absent from it. Cost four retries in one run.</td></tr><tr><td>B-9</td><td>bug</td><td><code>check-plan-routes.py</code> never reads <code>lanes.rows</code>, so a surface missing from that block is ungated. Four missing rows survived two cycles until measured by hand.</td></tr><tr><td>B-10</td><td>chore</td><td>A lead digest missing <code>artifact:</code> is written and accepted by its own run, and only <code>check-state.sh</code> catches it later. <code>runs/plan-fix-c2-product/digest.md</code> had shipped without one; repaired.</td></tr><tr><td>B-11</td><td>chore</td><td><code>panel.findings</code>&#x27; <code>reader</code> enum has no word for a lead&#x27;s fan-in finding. Recorded as <code>validator-lead</code>, which is truthful; nothing breaks, but the template comment is out of step.</td></tr><tr><td>B-12</td><td>chore</td><td><code>check-state.sh</code> INV-29 is red on a standing worktree that is not FEAT-51&#x27;s: <code>.claude/worktrees/harness/BUG-1129-validate-handoff-sweep</code>, terminal on the default branch and dirty, so <code>remove</code> declines until its changes are committed or discarded. Pre-existing and unrelated; it is the only violation left that is not the two signature gates.</td></tr></tbody></table></div>
+<hr>
+<h2 id="8-budget-honestly">§8 — Budget, honestly</h2>
+<p><code>cycles_used: 9</code> of <code>max_total_cycles: 10</code>. <code>len(runs): 14</code> against <code>max_total_runs: 20</code> — informational, and the runs earn their place: each of the last five closed a named finding measured at source, and two of them found gates that could not go red. The one cycle left is not enough for a build phase. <strong>If you sign, raise <code>max_total_cycles</code> in the same act.</strong></p><p class='derived'>Derived from <code>ship-review-plan-signature-c9.md</code> — the markdown is the record; do not edit this file. Regenerate with <code>bin/render-brief.py</code>.</p></div></body></html>
