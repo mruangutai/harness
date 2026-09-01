@@ -994,6 +994,298 @@ def case_high1_apply_cannot_mint_the_station_only_marker():
         shutil.rmtree(root, ignore_errors=True)
 
 
+# ---------------------------------------------------------------------------
+# BUG-1128 — the `amend` verb. plan.yaml had NO amend route at all: FEAT-41 T-09
+# denies every Edit/Write to a plan.yaml for every author, and `apply` is ADD-ONLY
+# (exit 7 on any changed value). So a signed plan could not be corrected by anyone,
+# and FEAT-46 accumulated eight staged-but-unappliable amendment blocks.
+#
+# The verb is a COMPARE-AND-SWAP, not a write. `--show` prints the current field
+# block and its sha256; replacing requires `--expect-sha256`. That is what makes it
+# safe under the same concurrency `apply` already guards: a caller who read a stale
+# value cannot overwrite a newer one, because the hash it names no longer matches.
+#
+# It MUST reach `decisions:` as well as `tasks:`. FEAT-46's worst overclaims live in
+# D-05 and D-14, so a task-scoped verb would leave exactly the blocks that motivated
+# it unreachable.
+# ---------------------------------------------------------------------------
+
+
+def _amend_plan():
+    """A plan carrying a multi-line `because:` on a decision, which is the real shape:
+    FEAT-46's staged blocks rewrite prose, not one-word values."""
+    return (
+        "schema: plan/1\n"
+        "feature: FEAT-99-fixture\n"
+        "\n"
+        "tasks:\n"
+        "  - id: T-01\n"
+        "    title: first\n"
+        "    verify: run the thing\n"
+        "    status: ready\n"
+        "  - id: T-02\n"
+        "    title: second\n"
+        "    status: ready\n"
+        "\n"
+        "decisions:\n"
+        "  - id: D-05\n"
+        "    choice: two readers confirm a strike\n"
+        "    because: a wrong strike stays detectable afterwards\n"
+        "      as a dangling citation, so one reader suffices\n"
+        "      for the rest.\n"
+        "  - id: D-14\n"
+        "    choice: receipts keep the documentor prefix\n"
+    )
+
+
+def _sha_of(path, key, iid, field):
+    r = run_verb("amend", "--file", path, "--key", key, "--id", iid,
+                 "--field", field, "--show")
+    for line in (r.stdout or "").splitlines():
+        if line.startswith("sha256:"):
+            return line.split(":", 1)[1].strip(), r
+    return None, r
+
+
+def case_amend_show_reports_block_and_hash():
+    """`--show` is the only way a caller can learn the hash it must name, so it is a
+    precondition of every legal replace, not a convenience."""
+    root, plan = fixture_root()
+    try:
+        write(plan, _amend_plan())
+        sha, r = _sha_of(plan, "decisions", "D-05", "because")
+        ok = r.returncode == 0 and sha is not None and len(sha) == 64
+        check("amend --show prints a 64-char sha256 for the named field",
+              ok, f"rc={r.returncode} sha={sha!r} out={r.stdout[:200]!r}")
+        check("amend --show prints the field's MULTI-LINE body, not just its first line",
+              "for the rest." in (r.stdout or ""), f"out={r.stdout[:300]!r}")
+        check("amend --show does not modify the plan",
+              read(plan) == _amend_plan(), "the plan changed under a read-only verb")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_amend_replaces_a_multiline_decision_field():
+    """THE MOTIVATING CASE. D-05's `because:` is three lines and FEAT-46's staged block
+    rewrites it. A one-line splice cannot do this, which is why the verb replaces a field
+    BLOCK bounded by the next key at the same indent."""
+    root, plan = fixture_root()
+    try:
+        write(plan, _amend_plan())
+        sha, _ = _sha_of(plan, "decisions", "D-05", "because")
+        newval = os.path.join(root, "new.txt")
+        write(newval, "the detectability argument is VOID: this plan repoints every\n"
+                      "durable citation, so a wrongly struck entry dangles nowhere.\n")
+        r = run_verb("amend", "--file", plan, "--key", "decisions", "--id", "D-05",
+                     "--field", "because", "--expect-sha256", sha or "x",
+                     "--value-file", newval)
+        after = read(plan)
+        check("amend replaces a multi-line decision field", r.returncode == 0,
+              f"rc={r.returncode} {r.stderr[:300]!r}")
+        check("the new prose is present", "dangles nowhere" in after, after[-400:])
+        check("the OLD prose is gone — a replace that appends is not a replace",
+              "stays detectable afterwards" not in after, after[-400:])
+        check("the sibling decision D-14 survives untouched",
+              "receipts keep the documentor prefix" in after, after[-300:])
+        check("the tasks: key is untouched",
+              "verify: run the thing" in after, after[:400])
+        check("the result still parses as YAML",
+              yaml.safe_load(after) is not None, "unparseable after amend")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_amend_refuses_a_stale_hash():
+    """THE COMPARE-AND-SWAP. A caller holding a hash from before someone else's write must
+    be refused, and the plan left byte-identical. This is the whole reason the verb takes a
+    hash rather than trusting the caller to have read recently."""
+    root, plan = fixture_root()
+    try:
+        write(plan, _amend_plan())
+        newval = os.path.join(root, "new.txt")
+        write(newval, "whatever\n")
+        before = read(plan)
+        r = run_verb("amend", "--file", plan, "--key", "decisions", "--id", "D-05",
+                     "--field", "because",
+                     "--expect-sha256", "0" * 64, "--value-file", newval)
+        check("amend refuses a stale --expect-sha256", r.returncode != 0,
+              f"rc={r.returncode}")
+        check("and leaves the plan BYTE-IDENTICAL", read(plan) == before, "plan changed")
+        check("and the refusal reports the ACTUAL hash, so the caller can re-read",
+              "sha256" in (r.stderr + r.stdout).lower(),
+              f"stderr={r.stderr[:200]!r}")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_amend_requires_the_hash():
+    """Omitting the hash must not default to force. A verb that writes without a named
+    expectation is the hand-edit T-09 exists to deny, wearing a tool's name."""
+    root, plan = fixture_root()
+    try:
+        write(plan, _amend_plan())
+        newval = os.path.join(root, "new.txt")
+        write(newval, "whatever\n")
+        before = read(plan)
+        r = run_verb("amend", "--file", plan, "--key", "tasks", "--id", "T-01",
+                     "--field", "title", "--value-file", newval)
+        check("amend without --expect-sha256 is refused", r.returncode != 0,
+              f"rc={r.returncode}")
+        check("and nothing is written", read(plan) == before, "plan changed")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_amend_refuses_absent_id_and_lists_what_is_there():
+    """A refusal that does not say what IS present makes the caller guess. `set-task-station`
+    already sets this precedent and scopes its id list to the key it was asked about."""
+    root, plan = fixture_root()
+    try:
+        write(plan, _amend_plan())
+        newval = os.path.join(root, "new.txt")
+        write(newval, "x\n")
+        r = run_verb("amend", "--file", plan, "--key", "tasks", "--id", "T-99",
+                     "--field", "title", "--expect-sha256", "0" * 64,
+                     "--value-file", newval)
+        out = r.stderr + r.stdout
+        check("amend refuses an absent id", r.returncode != 0, f"rc={r.returncode}")
+        check("and names the ids that ARE present", "T-01" in out, f"out={out[:250]!r}")
+        check("and does NOT list decision ids for a --key tasks miss — a refusal that "
+              "suggests a wrong next step is worse than a terse one",
+              "D-05" not in out, f"out={out[:250]!r}")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_amend_refuses_absent_field():
+    """T-02 has no `verify:`. Amending it must refuse rather than INSERT one: adding a field
+    is `apply`'s job, and a verb that silently grows the document is how a plan acquires a
+    key nobody reviewed."""
+    root, plan = fixture_root()
+    try:
+        write(plan, _amend_plan())
+        newval = os.path.join(root, "new.txt")
+        write(newval, "x\n")
+        before = read(plan)
+        r = run_verb("amend", "--file", plan, "--key", "tasks", "--id", "T-02",
+                     "--field", "verify", "--expect-sha256", "0" * 64,
+                     "--value-file", newval)
+        check("amend refuses a field the item does not carry", r.returncode != 0,
+              f"rc={r.returncode}")
+        check("and does not insert it", read(plan) == before, "plan grew a new key")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_amend_refuses_an_unknown_key():
+    """`--key` is closed to tasks|decisions. An open key would let the verb rewrite
+    `approval:` — the one mapping the main session alone may write (DEC-120)."""
+    root, plan = fixture_root()
+    try:
+        write(plan, _amend_plan())
+        newval = os.path.join(root, "new.txt")
+        write(newval, "approved\n")
+        before = read(plan)
+        r = run_verb("amend", "--file", plan, "--key", "approval", "--id", "x",
+                     "--field", "status", "--expect-sha256", "0" * 64,
+                     "--value-file", newval)
+        check("amend refuses --key approval", r.returncode != 0, f"rc={r.returncode}")
+        check("and the plan is unchanged", read(plan) == before, "plan changed")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_amend_preserves_comments_elsewhere():
+    """The splice discipline the other verbs keep: a comment far from the amended field
+    must survive, because a whole-document rewrite would silently drop it."""
+    root, plan = fixture_root()
+    try:
+        write(plan, "# a load-bearing comment about this fixture\n" + _amend_plan())
+        sha, _ = _sha_of(plan, "tasks", "T-01", "title")
+        newval = os.path.join(root, "new.txt")
+        write(newval, "first, renamed\n")
+        r = run_verb("amend", "--file", plan, "--key", "tasks", "--id", "T-01",
+                     "--field", "title", "--expect-sha256", sha or "x",
+                     "--value-file", newval)
+        after = read(plan)
+        check("amend succeeds on a single-line task field", r.returncode == 0,
+              f"rc={r.returncode} {r.stderr[:200]!r}")
+        check("the leading comment survives the splice",
+              "load-bearing comment" in after, after[:200])
+        check("the new title is present", "first, renamed" in after, after[:400])
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_amend_value_round_trips_through_yaml():
+    """THE BUG THE SUITE FOUND, kept as its own guard.
+
+    The first cut rendered every value as a plain scalar, so a value containing `: ` —
+    `the argument is VOID: this plan ...` — reparsed as a nested mapping and killed the
+    document. `_render_field` now falls back to a literal block scalar.
+
+    Asserted as a ROUND TRIP rather than a substring: the value that comes back out of
+    `yaml.safe_load` must be exactly the value written. A substring check would pass on a
+    document that had silently restructured around the colon.
+    """
+    root, plan = fixture_root()
+    try:
+        write(plan, _amend_plan())
+        sha, _ = _sha_of(plan, "tasks", "T-01", "verify")
+        hostile = ("VOID: a colon mid-line breaks a plain scalar\n"
+                   "- and a leading dash starts a list\n"
+                   "# and a hash starts a comment")
+        newval = os.path.join(root, "hostile.txt")
+        write(newval, hostile + "\n")
+        r = run_verb("amend", "--file", plan, "--key", "tasks", "--id", "T-01",
+                     "--field", "verify", "--expect-sha256", sha or "x",
+                     "--value-file", newval)
+        check("amend accepts a value carrying a colon, a dash and a hash",
+              r.returncode == 0, f"rc={r.returncode} {r.stderr[:250]!r}")
+        doc = yaml.safe_load(read(plan))
+        got = None
+        for t in (doc or {}).get("tasks") or []:
+            if t.get("id") == "T-01":
+                got = t.get("verify")
+        check("the value ROUND-TRIPS byte-identical through yaml.safe_load",
+              got == hostile, f"got={got!r}")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_amend_value_yes_stays_a_string():
+    """THE BUG MY OWN QUOTING RULE WOULD HAVE SHIPPED.
+
+    The first cut of `_render_field` decided plain-vs-block by hand. It caught `: ` and
+    leading indicators and would still have written `verify: yes`, which `yaml.safe_load`
+    returns as the BOOLEAN True — not a syntax error, so nothing would have failed loudly.
+
+    `_field_lines` already existed and already routes through `yaml.safe_dump` for exactly
+    this reason, documented in its own docstring: a local rule re-derives only part of the
+    set PyYAML knows. This case exists so nobody re-introduces the second grammar.
+    """
+    root, plan = fixture_root()
+    try:
+        write(plan, _amend_plan())
+        sha, _ = _sha_of(plan, "tasks", "T-01", "title")
+        newval = os.path.join(root, "yes.txt")
+        write(newval, "yes\n")
+        r = run_verb("amend", "--file", plan, "--key", "tasks", "--id", "T-01",
+                     "--field", "title", "--expect-sha256", sha or "x",
+                     "--value-file", newval)
+        check("amend accepts a value that is a YAML boolean word",
+              r.returncode == 0, f"rc={r.returncode} {r.stderr[:200]!r}")
+        doc = yaml.safe_load(read(plan))
+        got = None
+        for t in (doc or {}).get("tasks") or []:
+            if t.get("id") == "T-01":
+                got = t.get("title")
+        check("`yes` reloads as the STRING 'yes', not the boolean True",
+              got == "yes" and isinstance(got, str), f"got={got!r} type={type(got).__name__}")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
 
 def main():
     case_proposal_indent_differs_from_base()
@@ -1017,6 +1309,18 @@ def main():
     case_f02_sign_approval_cannot_write_an_unparseable_signature()
     case_f02_verify_signature_is_not_dead_code()
     case_high1_apply_cannot_mint_the_station_only_marker()
+
+    # BUG-1128 — the amend verb, weighted toward the refusals.
+    case_amend_show_reports_block_and_hash()
+    case_amend_replaces_a_multiline_decision_field()
+    case_amend_refuses_a_stale_hash()
+    case_amend_requires_the_hash()
+    case_amend_refuses_absent_id_and_lists_what_is_there()
+    case_amend_refuses_absent_field()
+    case_amend_refuses_an_unknown_key()
+    case_amend_preserves_comments_elsewhere()
+    case_amend_value_round_trips_through_yaml()
+    case_amend_value_yes_stays_a_string()
     case_sign_approval_is_the_only_signer()
     case_1103_sign_approval_refuses_a_governed_agent()
     case_1103_sign_approval_negative_control_absent_is_main_session()

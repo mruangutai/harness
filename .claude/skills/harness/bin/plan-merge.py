@@ -945,6 +945,186 @@ def cmd_sign_approval(args):
     sys.exit(0)
 
 
+# ---------------------------------------------------------------------------
+# BUG-1128 — `amend`, the route that did not exist.
+#
+# FEAT-41 T-09 denies every Edit/Write to a plan.yaml for every author, and `apply`
+# is ADD-ONLY (exit 7 on a changed value). Correct separately; together they left a
+# signed plan uncorrectable by anyone, and FEAT-46 accumulated eight staged-but-
+# unappliable amendment blocks. This is the same shape BUG-1080 fixed one layer up:
+# a rule shipped without reconciling what it makes impossible.
+#
+# IT IS A COMPARE-AND-SWAP, NOT A WRITE. `--show` prints the field block and its
+# sha256; a replace must name that hash. The lock alone cannot help here: a caller
+# that read the field, thought, and then wrote would clobber a concurrent edit while
+# holding the lock perfectly. The hash is what makes the read part of the promise.
+#
+# IT REACHES `decisions:`. FEAT-46's worst overclaims are D-05 and D-14, so a
+# task-scoped verb would leave exactly the blocks that motivated it unreachable.
+# `approval:` is NOT reachable: it is the main session's alone (DEC-120) and
+# `sign-approval` is its only writer.
+AMENDABLE_KEYS = ("tasks", "decisions")
+ITEM_ID_RE = re.compile(r"^(\s*)-\s+id:\s*(\S+)\s*$")
+SIBLING_KEY_RE = re.compile(r"^(\s*)([A-Za-z_][\w-]*):")
+
+
+def _item_range(lines, key, iid):
+    """(start, end, indent) of the `- id: iid` item under top-level `key`.
+
+    Returns (None, None, ids_present) when absent, so the refusal can name what IS there.
+    The id list is SCOPED TO `key` — listing decision ids for a `--key tasks` miss would
+    invite a retry that fails for an unrelated reason, the precedent _task_status_line set.
+    """
+    _l, _order, ranges, _pre = _index_top_keys("".join(lines))
+    if key not in ranges:
+        return None, None, []
+    lo, hi = ranges[key]
+    ids_present, start, indent = [], None, ""
+    for i in range(lo, hi):
+        m = ITEM_ID_RE.match(lines[i])
+        if not m:
+            continue
+        ids_present.append(m.group(2))
+        if m.group(2) == iid and start is None:
+            start, indent = i, m.group(1)
+        elif start is not None and len(m.group(1)) <= len(indent):
+            return start, i, indent
+    if start is None:
+        return None, None, ids_present
+    return start, hi, indent
+
+
+def _field_block(lines, start, end, item_indent, field):
+    """(first, last_exclusive, indent) of `field:` inside one item, or None.
+
+    The block runs from the `field:` line THROUGH its continuation lines, so a plain
+    multi-line scalar is one unit. It ends at the next sibling key at the same indent or
+    shallower, or the next item, or the item's end. A one-line splice would corrupt every
+    multi-line field, which is most of what FEAT-46 needs to rewrite.
+    """
+    first = None
+    indent = ""
+    for i in range(start, end):
+        m = SIBLING_KEY_RE.match(lines[i])
+        if m and m.group(2) == field and len(m.group(1)) > len(item_indent):
+            first, indent = i, m.group(1)
+            break
+    if first is None:
+        return None
+    for j in range(first + 1, end):
+        if ITEM_ID_RE.match(lines[j]):
+            return first, j, indent
+        m2 = SIBLING_KEY_RE.match(lines[j])
+        if m2 and len(m2.group(1)) <= len(indent):
+            return first, j, indent
+    return first, end, indent
+
+def _render_field(indent, field, value_text):
+    """Emit the replacement through `_field_lines`, which is the ONE renderer.
+
+    The first cut of this verb hand-rolled a plain-vs-block decision and the suite caught it
+    on a colon. The real lesson was in `_field_lines`'s own docstring: a local quoting rule
+    re-derives only part of the set PyYAML already knows. Mine handled `: ` and leading
+    indicators and would still have shipped `verify: yes` reloading as the boolean True.
+
+    So there is no second grammar here. A trailing newline is stripped because the value is a
+    field body, not a document, and `_field_lines` renders exactly what it is given.
+    """
+    # `_field_lines` returns the lines already joined; the splice concatenates lists, so wrap
+    # it rather than re-splitting text that is about to be joined again.
+    return [_field_lines(indent, field, value_text.strip("\n"))]
+
+
+def cmd_amend(args):
+    import hashlib
+
+    if args.key not in AMENDABLE_KEYS:
+        print(f"plan-merge: --key {args.key} is not amendable — expected one of: "
+              f"{', '.join(AMENDABLE_KEYS)}. `approval:` is the main session's alone "
+              f"(DEC-120) and sign-approval is its only writer.", file=sys.stderr)
+        sys.exit(2)
+
+    resolved = _resolve_plan(args.file)
+
+    with open(resolved, "rb") as fh:
+        lines = fh.read().decode("utf-8").splitlines(keepends=True)
+    start, end, info = _item_range(lines, args.key, args.id)
+    if start is None:
+        present = ", ".join(info) or "(none)"
+        print(f"plan-merge: {args.id} is not under {args.key}: in {resolved} — it carries: "
+              f"{present}", file=sys.stderr)
+        sys.exit(3)
+    located = _field_block(lines, start, end, info, args.field)
+    if located is None:
+        print(f"plan-merge: {args.id} carries no {args.field}: field. amend REPLACES; adding a "
+              f"field is apply's job, and a verb that silently grows a plan is how it acquires "
+              f"a key nobody reviewed.", file=sys.stderr)
+        sys.exit(4)
+    first, last, indent = located
+    block = "".join(lines[first:last])
+    actual = hashlib.sha256(block.encode("utf-8")).hexdigest()
+
+    if args.show:
+        sys.stdout.write(block if block.endswith("\n") else block + "\n")
+        print(f"sha256: {actual}")
+        sys.exit(0)
+
+    if not args.expect_sha256 or not args.value_file:
+        print("plan-merge: a replace needs BOTH --expect-sha256 and --value-file. Omitting the "
+              "hash would make this a force-write, which is the hand-edit T-09 denies wearing a "
+              "tool's name. Run --show first.", file=sys.stderr)
+        sys.exit(2)
+    if args.expect_sha256 != actual:
+        print(f"plan-merge: --expect-sha256 does not match {args.id}.{args.field} — the field "
+              f"changed since you read it. expected {args.expect_sha256} actual sha256: "
+              f"{actual}. Re-run --show and re-derive your replacement.", file=sys.stderr)
+        sys.exit(6)
+    with open(args.value_file, encoding="utf-8") as fh:
+        value_text = fh.read()
+
+    def transform(base_bytes):
+        cur = base_bytes.decode("utf-8").splitlines(keepends=True)
+        s2, e2, i2 = _item_range(cur, args.key, args.id)
+        if s2 is None:
+            raise harness_merge.MergeRefusal(
+                3, [f"plan-merge: {args.id} vanished from {args.key}: under the lock."])
+        loc2 = _field_block(cur, s2, e2, i2, args.field)
+        if loc2 is None:
+            raise harness_merge.MergeRefusal(
+                4, [f"plan-merge: {args.id}.{args.field} vanished under the lock."])
+        f2, l2, ind2 = loc2
+        # RE-CHECKED UNDER THE LOCK. The hash was verified on an unlocked read above so the
+        # caller gets a fast, precise refusal; this is the check that is actually load-bearing.
+        if hashlib.sha256("".join(cur[f2:l2]).encode("utf-8")).hexdigest() != args.expect_sha256:
+            raise harness_merge.MergeRefusal(
+                6, [f"plan-merge: {args.id}.{args.field} changed between the read and the lock."])
+        spliced = "".join(cur[:f2] + _render_field(ind2, args.field, value_text) + cur[l2:])
+        try:
+            reloaded = yaml.safe_load(spliced)
+        except yaml.YAMLError as exc:
+            raise harness_merge.MergeRefusal(
+                8, [f"plan-merge: the amended plan would not parse — {exc}"])
+        # DO NO HARM, the rule line 358 already sets: only hold the splice to the plan schema
+        # when the BASE satisfied it. A plan mid-authoring legitimately does not yet, and
+        # refusing to amend it would make this verb useless exactly where it is needed most.
+        if _schema_error(yaml.safe_load(base_bytes.decode("utf-8"))) is None:
+            err = _schema_error(reloaded)
+            if err:
+                raise harness_merge.MergeRefusal(
+                    8, [f"plan-merge: the amended plan would not be legal — {err}"])
+        return spliced.encode("utf-8")
+
+    try:
+        harness_merge.locked_update(resolved, transform)
+    except harness_merge.MergeRefusal as refusal:
+        for line in refusal.lines:
+            print(line, file=sys.stderr)
+        sys.exit(refusal.code)
+    print(f"AMENDED {args.key}:{args.id}.{args.field}")
+    print(f"APPLIED {resolved}")
+    sys.exit(0)
+
+
 # EVERY VERB IS A ROW, NOT A PARAGRAPH (FEAT-41 F-05). `main` regressed from grade 4 to 3 on ABC
 # alone — cyclomatic 2, cognitive 1, ABC 23.8 — when T-03 turned one verb into five and each one
 # added four more registration calls to the same body. There was no logic to simplify: the verb
@@ -975,6 +1155,31 @@ VERBS = (
 )
 
 
+def _register_amend(sub):
+    """ITS OWN REGISTRATION, BY THE VERBS TABLE'S OWN INSTRUCTION (BUG-1128).
+
+    That table says: if a verb ever needs an optional argument, the table is the wrong
+    shape for it and it gets its own registration — do not add a `required` column and
+    keep pretending the rows are uniform. `amend` has three optional arguments, because
+    `--show` legitimately takes neither a hash nor a value. So it registers here rather
+    than corrupting the uniformity that makes that loop honest.
+    """
+    p = sub.add_parser("amend", help="replace ONE field of ONE named task or decision, "
+                                     "compare-and-swap on its sha256")
+    p.add_argument("--file", required=True, help="path to the plan.yaml")
+    p.add_argument("--key", required=True,
+                   help=f"which list the id lives in: {' | '.join(AMENDABLE_KEYS)}")
+    p.add_argument("--id", required=True, help="the item id, T-NN or D-NN")
+    p.add_argument("--field", required=True, help="the field to replace, e.g. verify, because")
+    p.add_argument("--show", action="store_true",
+                   help="print the current field block and its sha256, and write nothing")
+    p.add_argument("--expect-sha256", default=None,
+                   help="the sha256 --show reported; a replace is refused without it")
+    p.add_argument("--value-file", default=None,
+                   help="file holding the replacement value; may be multi-line")
+    p.set_defaults(func=cmd_amend)
+
+
 def main():
     parser = argparse.ArgumentParser(prog="plan-merge.py")
     sub = parser.add_subparsers(dest="cmd", required=True)
@@ -983,6 +1188,7 @@ def main():
         for flag, arghelp in arguments:
             p.add_argument(flag, required=True, help=arghelp)
         p.set_defaults(func=func)
+    _register_amend(sub)
     args = parser.parse_args()
     args.func(args)
 
