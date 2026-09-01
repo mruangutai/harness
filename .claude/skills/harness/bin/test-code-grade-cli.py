@@ -307,6 +307,9 @@ def test_absent_new_path_grades_the_range(repo):
                        "the masked finding is reported")
     failures += expect("RESULT: FAIL" in result.stdout, True, "the range reports its verdict")
     failures += expect(result.returncode, 1, "a blocking finding still blocks")
+    return failures
+
+
 def test_rename_diff_paths(repo):
     write(repo, "src/mover.py", "def mover():\n    pass\n")
     base = commit(repo, "rename base")

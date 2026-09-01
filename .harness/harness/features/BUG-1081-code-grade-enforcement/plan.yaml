@@ -1,5 +1,6 @@
 schema: plan/1
 feature: BUG-1081-code-grade-enforcement
+status: review
 source_issues: [1081]
 
 approval:
