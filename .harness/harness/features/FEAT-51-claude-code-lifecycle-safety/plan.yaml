@@ -261,7 +261,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 names validate-digest.py and its test file as enforcement layer
     depends_on: []
-    status: ready
+    status: building
     files:
       - .claude/skills/harness/bin/validate-digest.py
       - .claude/skills/harness/bin/test-validate-digest.py
@@ -353,7 +353,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: both write hooks import inflight_registry.py, so DEC-174 holds it back with the gates that read it
     depends_on: []
-    status: building
+    status: done
     files:
       - .claude/skills/harness/bin/inflight_registry.py
       - .claude/skills/harness/bin/test-inflight-registry.py
@@ -519,7 +519,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-dev-ops
     depends_on: [T-02]
-    status: ready
+    status: building
     files:
       - .claude/skills/harness/bin/quarantine.py
       - .claude/skills/harness/bin/test-quarantine.py

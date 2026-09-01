@@ -1430,6 +1430,81 @@ def run_t09():
     print("\n%d/%d T-09 cases passed." % (len(T09) - fails, len(T09)))
     return fails
 
+def run_t51_suspension_cases():
+    results = []
+    reg = _reg_module()
+
+    def record(name, ok, detail=""):
+        results.append((name, ok, detail))
+
+    def suspended(awaiting):
+        rows = "".join(f"    - {persona}\n" for persona in awaiting)
+        return f"VERDICT: SUSPENDED\nDIGEST:\n  awaiting:\n{rows}"
+
+    def fixture(parent="harness-product-lead", children=("harness-pm",)):
+        root = _t09_root()
+        session = "feat51-session"
+        reg.claim_with_receipt(
+            root, parent, "harness-orchestrator", root, session=session
+        )
+        for child in children:
+            reg.claim_with_receipt(root, child, parent, root, session=session)
+        return root, session
+
+    root, session = fixture()
+    r = _t09_fire(
+        root, "harness-product-lead", suspended(["harness-pm"]),
+        session_id=session,
+    )
+    record("a SUSPENDED return with a live child is accepted",
+           r.returncode == 0, f"exit {r.returncode}: {r.stderr}")
+    parent, _ = reg.live_claim(
+        root, "harness-product-lead", session=session
+    )
+    record("a SUSPENDED return leaves the parent claim live",
+           parent is not None, repr(parent))
+
+    root, session = fixture()
+    r = _t09_fire(
+        root, "harness-product-lead", "VERDICT: PASS\nDIGEST:\n  headline: done\n",
+        session_id=session,
+    )
+    record("a terminal PASS with a live child is refused",
+           r.returncode == 2, f"exit {r.returncode}: {r.stderr}")
+
+    root = _t09_root()
+    r = _t09_fire(
+        root, "harness-product-lead", suspended(["harness-pm"]),
+        session_id="empty-session",
+    )
+    record("a SUSPENDED return with no live child is refused",
+           r.returncode == 2, f"exit {r.returncode}: {r.stderr}")
+
+    root, session = fixture(children=("harness-pm", "harness-qa"))
+    r = _t09_fire(
+        root, "harness-product-lead", suspended(["harness-pm"]),
+        session_id=session,
+    )
+    record("a SUSPENDED return omitting a live child is refused",
+           r.returncode == 2, f"exit {r.returncode}: {r.stderr}")
+
+    root, session = fixture(parent="harness-pm", children=("harness-documentor",))
+    r = _t09_fire(
+        root, "harness-pm", suspended(["harness-documentor"]),
+        session_id=session,
+    )
+    record("a SUSPENDED return from a member persona is refused",
+           r.returncode == 2, f"exit {r.returncode}: {r.stderr}")
+
+    fails = 0
+    for name, ok, detail in results:
+        print(("PASS " if ok else "FAIL ") + name)
+        if not ok:
+            fails += 1
+            print("     ", detail[:500])
+    return fails
+
+
 
 _ISOLATED_ROOT = None
 
@@ -3576,6 +3651,7 @@ def main():
     fails += run_code_grade_cases()
     fails += run_hook_cases()
     fails += run_t09()
+    fails += run_t51_suspension_cases()
     fails += run_template_cases()
     fails += run_reviewer_severity_enum_cases()
     print(f"\n{'ALL PASSED' if not fails else f'{fails} FAILING'}.")

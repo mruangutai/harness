@@ -1636,10 +1636,51 @@ def hook_mode():
             print("check-digest: no checkout root from this vantage — the #551 claim was "
                   "neither released nor checked.", file=sys.stderr)
         else:
-            # STEP ONE — THE RELEASE. OMP supplies feature and runtime identity, so its
-            # idempotent yield path can release exactly one claim even when the same persona
-            # is active in another feature. Claude Code retains the compatibility fallback.
+            # Read the return contract before releasing the parent's claim: an accepted
+            # suspension is nonterminal and therefore still owns that claim.
             _feature = d.get("harness_feature")
+            _kids = []
+            if norm(agent) in ("lead", "orchestrator"):
+                try:
+                    _kids = _reg.live_children(
+                        _root,
+                        agent,
+                        session=d.get("session_id"),
+                        feature=_feature,
+                    )
+                except Exception as _e:
+                    print(f"check-digest: could not read children of {agent} ({_e!r}) — the "
+                          f"#551 return contract is not enforced for this return.",
+                          file=sys.stderr)
+
+            _raw_return = str(d.get("last_assistant_message") or "")
+            _anchors = list(re.finditer(r"^\s*VERDICT:", _raw_return, re.M))
+            _return_tail = _raw_return[_anchors[-1].start():] if _anchors else _raw_return
+            _verdict_match = re.search(r"^\s*VERDICT:\s*(\S+)", _return_tail, re.M)
+            _return_verdict = _verdict_match.group(1) if _verdict_match else None
+            _suspension_error = None
+            if _return_verdict == "SUSPENDED" and _kids:
+                _actual_children = {persona for persona, _claim in _kids}
+                _awaiting = parse_digest(_return_tail).get("awaiting")
+                if not isinstance(_awaiting, list):
+                    _suspension_error = "DIGEST.awaiting is not a YAML list"
+                elif not all(isinstance(persona, str) for persona in _awaiting):
+                    _suspension_error = "DIGEST.awaiting contains a non-string persona"
+                elif set(_awaiting) != _actual_children:
+                    _suspension_error = (
+                        f"DIGEST.awaiting names {sorted(set(_awaiting))}, expected "
+                        f"{sorted(_actual_children)}"
+                    )
+                else:
+                    print(
+                        f"check-digest: {agent} is suspended on "
+                        f"{', '.join(sorted(_actual_children))}.",
+                        file=sys.stderr,
+                    )
+                    return 0
+
+            # Every terminal or invalid return releases first. Only the accepted
+            # nonterminal suspension above keeps the parent claim live.
             _agent_id = d.get("harness_agent_id")
             _job_id = d.get("harness_job_id")
             try:
@@ -1658,52 +1699,32 @@ def hook_mode():
                       f"expire or reconcile on supervisor loss. Not blocking on our own errand.",
                       file=sys.stderr)
 
-            # STEP TWO — THE D-09 RETURN CONTRACT. Fires AT MOST ONCE per return, which is
-            # not a wait: a lead cannot be made to wait for its children, and D-09 records
-            # that as an impossibility rather than working around it. What this catches is
-            # FALSE REPORTING — occurrence 7 committed a verdict asserting a member's work
-            # was empty and unrecoverable while that member was still running and later
-            # returned PASS.
-            if norm(agent) in ("lead", "orchestrator"):
+            if _suspension_error is not None:
+                print(
+                    f"check-digest: REFUSED SUSPENDED return from {agent}: "
+                    f"{_suspension_error}; live children are "
+                    f"{sorted(persona for persona, _claim in _kids)}.",
+                    file=sys.stderr,
+                )
+                return 2
+
+            if _kids and _return_verdict in VERDICTS:
+                for _line in _reg.children_refusal_lines(agent, _kids):
+                    print(_line, file=sys.stderr)
                 try:
-                    # THE SESSION FILTER IS THE FIX FOR THE CASCADE (FEAT-42 T-17, #742/#866).
-                    # A claim stranded by ANOTHER session is not a live child of THIS return.
-                    # Measured 2026-08-26: one stranded pm claim refused the pm spawn at
-                    # dispatch-guard, then refused the LEAD's return here, then refused the
-                    # ORCHESTRATOR's return here again — three tiers locked out of reporting
-                    # by one strand, each stranding creating the next.
-                    _kids = _reg.live_children(
-                        _root,
-                        agent,
-                        session=d.get("session_id"),
-                        feature=_feature,
-                    )
+                    print("  if one of these is stranded rather than running, release "
+                          "exactly it:", file=sys.stderr)
+                    for _persona, _c in _kids:
+                        print(
+                            "  %s" % _reg.release_cmd(
+                                _root, _persona, feature=_c.get("feature")
+                            ),
+                            file=sys.stderr,
+                        )
                 except Exception as _e:
-                    _kids = []
-                    print(f"check-digest: could not read children of {agent} ({_e!r}) — the "
-                          f"#551 return contract is not enforced for this return.",
-                          file=sys.stderr)
-                if _kids:
-                    for _line in _reg.children_refusal_lines(agent, _kids):
-                        print(_line, file=sys.stderr)
-                    # AND THE PRECISE REMEDY, ONE COMMAND PER STRANDED CHILD. The refusal
-                    # named the problem and no cure, so a reader reached for release-all —
-                    # which sets the registry to {} and wipes every claim of every agent.
-                    # On 2026-08-26 following that advice would have destroyed a live claim.
-                    try:
-                        print("  if one of these is stranded rather than running, release "
-                              "exactly it:", file=sys.stderr)
-                        for _persona, _c in _kids:
-                            print(
-                                "  %s" % _reg.release_cmd(
-                                    _root, _persona, feature=_c.get("feature")
-                                ),
-                                file=sys.stderr,
-                            )
-                    except Exception as _e:
-                        print(f"check-digest: could not compose the release command "
-                              f"({_e!r}).", file=sys.stderr)
-                    return 2
+                    print(f"check-digest: could not compose the release command "
+                          f"({_e!r}).", file=sys.stderr)
+                return 2
 
     # PRESENCE, NOT TRUTHINESS. Absent, null and empty-string used to be ONE branch, so
     # the PLATFORM's gap — nothing supplied to validate — and the PERSONA's contract
