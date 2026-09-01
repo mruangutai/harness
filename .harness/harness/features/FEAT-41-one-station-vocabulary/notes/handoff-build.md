@@ -1,42 +1,42 @@
-# Handoff — build phase — FEAT-41-one-station-vocabulary
-
 ## Next
 
-C2-01 IS OPEN AND NEEDS THE OPERATOR, not another build pass — issue #1079. Cycle 2 found that
-this feature's own T-07 deleted `status: Review` from BUG-1030, a plan-less NON-terminal record,
-which is the exact shape #1079 exists to protect. Both repair paths are MECHANICALLY CLOSED and
-proven: `feature.json` refuses the key (MergeRefusal exit 11, undeclared key) and `plan.yaml`
-refuses to exist without tasks (PlanSchemaError). So a plan-less feature has NOWHERE to record a
-non-terminal station, and every fix contradicts SC-08's signed text. #1079 carries three options
-and a recommendation. Do NOT attempt this as a code fix.
+Re-review cycle 3. All THREE of cycle 2's highs are closed, each with its own commit:
 
-C2-02 and C2-03 ARE FIXED (`e071509`). Both cycle-1 HIGHs had been closed only for the instance
-shown: a hardlink, a linked parent DIRECTORY and an over-cap chain all still reached plan.yaml —
-the chain FAILING OPEN — and `${IFS}` still forged a signature end to end. Resolution now
-realpaths both sides, identity covers hardlinks, unresolvable links fail CLOSED, and
-`as_bash_reads_it` neutralises braced expansions.
+- C2-01 -> T-19 / D-17 (`80a919e`), the OPERATOR's ruling, not a build decision. Every feature now
+  carries a plan.yaml; a station-only record (`tasks: []` + top-level `status:`) is legal; twelve
+  directories backfilled with their ORIGINALLY RECORDED station; INV-34 enforces it. SC-08 is now
+  LITERALLY TRUE - zero feature.json carry a status key. Issue #1079 is CLOSED.
+- C2-02 (`e071509`) - hardlink, linked parent DIRECTORY and an over-cap chain all reached plan.yaml,
+  the chain FAILING OPEN. Resolution now realpaths BOTH sides, identity covers hardlinks,
+  unresolvable links fail CLOSED.
+- C2-03 (`e071509`) - `${IFS}` forged a signature end to end. Fixed in `as_bash_reads_it`, once,
+  before either scanner.
 
-Cycle 0/1 verdict items stay closed: T-15's lane ratified in D-15, T-10's verify-line recorded not
-rewritten, T-18 STRUCK in D-16 because FEAT-45 fixed Q2 upstream better.
+CHECK THE T-19 EXEMPTION HARDEST. Backfilling made two checks visible that had skipped those
+directories all along (31 lines, no real findings), so a station-only plan is now scoped out of the
+approval and STATE.md-task checks. Case (inv34.d) is the control and was green BEFORE the exemption
+landed. If that exemption can be widened to a plan with tasks, this feature has broken the approval
+check for the whole tree.
+
+Cycle 0/1 verdict items stay closed: T-15 ratified in D-15, T-10 recorded not rewritten, T-18
+STRUCK in D-16.
 
 ## Trust
 
-- unit exit 0, 505 PASS; integration exit 0, 819 PASS; check-state.sh exit 0 with ZERO violations — verified-at e071509
+- unit exit 0, 505 PASS; integration exit 0, 819 PASS; check-state.sh exit 0, ZERO violations, zero tracebacks — verified-at 80a919e
+- SC-08 measured VERBATIM against its own text: 0 feature.json carry `status`; schema 10 properties / 7 required / additionalProperties false — verified-at 80a919e
+- The T-19 hole was proven from BOTH sides before fixing: feature.json refuses the key (exit 11), plan.yaml refused to exist without tasks (PlanSchemaError) — verified-at 80a919e
+- BUG-1030 was backfilled `review`, the value it RECORDED — not `abandoned`, which is only my inference from the closed issue; a migration moves values, it does not re-adjudicate them — verified-at 80a919e
+- The station-only exemption is SCOPING: the only way to pass the approval check otherwise was to fabricate twelve signatures; control (inv34.d) was green before the exemption — verified-at 80a919e
 - The new assertions print `ok`, not `PASS`, so the suite COUNTS ARE FLAT by design; confirmed they RAN under the runner by grepping its own log (4 T-09 11, 6 C2-03, 9 T-09 10) — verified-at e071509
 - C2-02's chain case FAILED OPEN, not closed: over the hop cap the plan never entered the candidate list and the write was permitted — verified-at e071509
-- A hardlink is unanswerable by path resolution and trivial by inode identity; `st_nlink < 2` keeps the scan off the common path — verified-at e071509
 - All five signing-gate evasion forms exit 2 END TO END through the real gate script, and all three controls still exit 0 — verified-at e071509
 - Only `${IFS}` braced splits; bare `$IFSsign-approval` becomes `plan-merge.py-approval` and CANNOT sign, so denying it would be a guess — verified-at e071509
 - BUG-1030's audit: 45 statuses stripped, 44 terminal and correct, 1 non-terminal — measured against origin/main, not inferred — verified-at e071509
 - Gated HIGH code-grade records: 0, measured with the NEW code_grade.py (it moved upstream) against merge-base 7c4f0bd — verified-at 542e888
-- H-01's fix NO LONGER uses the readlink walk — C2-02 replaced it with realpath on BOTH sides, which is what the one-sided version should have been; its POST case was mutation-proved — verified-at e071509
-- H-02 is fixed ONCE, before either scanner: teaching two scanners about backslashes separately leaves F-03's asymmetry one escape away — verified-at 42bc5fe
-- Both QA mutations were RE-RUN against the fixes: `_I` removal now reds exactly one row, `_verify_signature` disabled goes from 0 failures to 3 — verified-at c4da870
-- F-02's layer two was UNREACHABLE until c4da870; QA proved it, and the forcing case uses a duplicate `approved_by` (YAML last-wins) rather than a monkeypatch — verified-at c4da870
+- Cycles 0 and 1 are fully closed and each finding was re-verified at source by a later independent panel; detail is in `787c7fa..c4da870` — verified-at e071509
 - T-14's invariant is INV-33 now, not 32: FEAT-45 shipped its own INV-32 first, so it owns the number; both suites' cases pass side by side — verified-at 8fa2d04
-- Cycle 0's F-01..F-05 are all closed and cycle 1's panel re-verified each at source; detail is in `787c7fa..9bdbe91` — verified-at c4da870
 - F-04's realpath half does NOT reproduce as a PATH SHAPE: `./`, `..`, doubled slash and absolute are denied; the SYMLINKED-FILE case was the real hole and is H-01 — verified-at 42bc5fe
-- Cycle 0's own findings (stale-base INV-32 lines, Q2 fixed upstream, the list-rendering print) are all closed; detail is in `787c7fa..9bdbe91` and D-16 — verified-at c4da870
 
 ## Dead Ends
 
