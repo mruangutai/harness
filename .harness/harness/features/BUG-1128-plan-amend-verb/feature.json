@@ -2,7 +2,7 @@
   "feature_id": "BUG-1128-plan-amend-verb",
   "branch": "feat/BUG-1128-plan-amend-verb",
   "pr": null,
-  "review_sha": "dfcd37003544a166e9d8ebb7b1c565fdfeb96b0d",
+  "review_sha": "207758664411958d0230150e129f833c933c9202",
   "cycles_used": 2,
   "max_total_cycles": 10,
   "max_total_runs": 20,
