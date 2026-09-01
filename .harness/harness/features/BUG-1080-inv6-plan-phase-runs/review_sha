@@ -1,3 +1,4 @@
-a2fb6c0b
+e9b11035
 base 9f2a0702
-pinned 2026-09-01 (cycle 0)
+pinned 2026-09-01 (cycle 1, producer + Q2/Q3 closed)
+superseded a2fb6c0b (cycle 0: FAIL, 1 high must_fix)

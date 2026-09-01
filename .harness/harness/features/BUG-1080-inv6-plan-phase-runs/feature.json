@@ -3,9 +3,16 @@
   "branch": "feat/BUG-1080-inv6-plan-phase-runs",
   "pr": null,
   "status": "Review",
-  "review_sha": "a2fb6c0b634da0ebd3acea8aa9976c60c5d30466",
-  "cycles_used": 0,
+  "review_sha": "e9b11035bdd72e9a0dc1c9392264ddde8ace0671",
+  "cycles_used": 1,
   "max_total_cycles": 10,
   "max_total_runs": 20,
-  "runs": []
+  "runs": [
+    {
+      "id": "2026-09-01-01-validator",
+      "squad": "validator",
+      "verdict": "FAIL",
+      "agent": "harness-validator-lead"
+    }
+  ]
 }
