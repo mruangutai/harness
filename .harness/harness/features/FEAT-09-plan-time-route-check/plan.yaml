@@ -1,0 +1,5 @@
+schema: plan/1
+feature: FEAT-09-plan-time-route-check
+status: done
+station_only: true
+tasks: []

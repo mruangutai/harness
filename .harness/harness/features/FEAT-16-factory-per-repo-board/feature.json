@@ -2,7 +2,6 @@
   "feature_id": "FEAT-16-factory-per-repo-board",
   "branch": "feat/FEAT-16-factory-per-repo-board",
   "pr": 311,
-  "status": "Done",
   "review_sha": "ec195ec06419eb7a2d47ed3eebab5145c346140c",
   "cycles_used": 4,
   "max_total_cycles": 10,

@@ -86,6 +86,14 @@ is namespaced under `.harness/harness/features/<FEAT>/` (DEC-120).
 **Authority boundary:** execution-time adjustments are yours — loop back, insert a review, reorder,
 escalate. Plan-level changes are pm's: delegate re-planning, never edit the plan yourself.
 
+**Recording a task's station is a verb, not an edit.** The one write you make to `plan.yaml` is a
+station transition, and it goes through
+`plan-merge.py set-task-station --file <plan.yaml> --task T-NN --station <name>` — one of
+`backlog plan ready building review done`. The feature's own station is `set-feature-station`.
+You never `Edit` `plan.yaml`, never `Write` it whole, never redirect a shell into it: the shape
+gate denies all three, and the verb validates the station against `harness.json` before it opens
+the file. `approval:` is the main session's `sign-approval` alone (DEC-120).
+
 **The commit pen is yours (DEC-153):** you stage and commit the feature branch — by explicit
 pathspec, never `git add -A` (the tree carries held dirt) — committing work your doers produced and
 your gates checked. Merge, PR and deploy stay user-gated. Probe edits you make while verifying must
@@ -140,9 +148,10 @@ are orchestrator-sequenced squad segments, in this order.
    the four angles, the apply rules and the one-fix ceiling all live there. Re-run the suites after
    the apply, before the pin. An empty pass is a real outcome; nothing is invented to justify the
    step.
-4. **Entering validate**, pin `review_sha` (INV-6) and run `gh-sync.py status <feature-dir> Review`
+4. **Entering validate**, pin `review_sha` (INV-6) and run `gh-sync.py status <feature-dir> review`
    BEFORE the panel is dispatched. Both preconditions sit together on purpose: the pin fixes what is
-   reviewed, the status write puts the parent and every sub-issue at Review.
+   reviewed, the station write puts the parent and every sub-issue at review. The station argument is
+   LOWERCASE — one vocabulary, and `gh-sync.py` refuses anything else (FEAT-41).
 
 Documentation and the goal-check are squad segments too, sequenced the same way.
 
@@ -278,10 +287,14 @@ planned T-NN has a PASS run in `feature.json`; **validate** exits at panel PASS 
 resolved. The **fix loop is the exception** — validator FAILs are worked inside your validate
 session, never relayed per cycle.
 
-Record your status in `feature.json` `status:` using the board's own spelling — `Backlog`, `Plan`,
-`Ready`, `Building`, `Review`, `Done`, byte for byte and case sensitive — and each transition as a
-STATE.md log entry. There is no `phase:` key (DEC-191), and the schema declares
-`additionalProperties: false`, so writing one is REFUSED.
+Record your station in `plan.yaml`'s top-level `status:` — `backlog`, `plan`, `ready`, `building`,
+`review`, `done`, or the terminal `abandoned`, lowercase — and each transition as a STATE.md log
+entry. **Write it with `plan-merge.py set-feature-station`, never by hand**: that verb validates the
+station before it opens the file, and plan.yaml has exactly one write route.
+
+`feature.json` holds NO `status:` key (FEAT-41) and no `phase:` key (DEC-191). The schema declares
+`additionalProperties: false`, so writing either is REFUSED. One file records the station, and it is
+the plan.
 
 **At the seam, write the handoff** — `notes/handoff-<phase>.md` from `templates/HANDOFF.md`: your
 working memory, not a summary. Four sections, ~60 lines, shape-gated at write: `## Next` (the decided

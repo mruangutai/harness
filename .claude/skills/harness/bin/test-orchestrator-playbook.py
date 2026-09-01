@@ -121,9 +121,38 @@ def case7_absence_record_your_phase_in(text):
 
 
 def case8_presence_record_your_status_in(text):
-    literal = "Record your status in"
+    literal = "Record your station in"
     check("case8_presence_record_your_status_in", literal in text,
           f"literal {literal!r} not found")
+
+
+def case9_plan_yaml_write_is_a_verb_not_an_edit(text):
+    """(9) The playbook names `set-task-station` and never sends the orchestrator to an editor.
+
+    PAIRED, for the reason case 6 records: a pure absence assertion goes vacuously true the
+    moment the subject leaves the file, so "does not say Edit plan.yaml" alone would pass a
+    playbook that says nothing about writing plan.yaml at all — which is exactly the state
+    this task found (measured: 0 occurrences of `set-task-station`, and the only `plan.yaml`
+    mention was a READ). The presence half is what makes the pair discriminate.
+
+    This is T-05's half of closing the write window. It must hold before T-09 denies the
+    editor route, because an agent denied a route it was never told to replace has no legal
+    way to record a task status — the failure this playbook's own history records, five task
+    statuses lost.
+    """
+    check("case9a_playbook_names_set_task_station",
+          "set-task-station" in text,
+          "the playbook does not name the verb that writes a task station")
+
+    # The absence half is a LINE-LEVEL scan, not a document-level one. "Edit" and "plan.yaml"
+    # both occur legitimately and far apart — the file forbids editing the plan at all, which
+    # is the same instruction stated as a prohibition. Only the two together on one line is
+    # the editor route being prescribed.
+    offenders = [l.strip() for l in text.splitlines()
+                 if "plan.yaml" in l and re.search(r"\bEdit\b", l)
+                 and not re.search(r"never|not|no\s+`?Edit|denies|refus", l, re.I)]
+    check("case9b_playbook_never_prescribes_an_Edit_of_plan_yaml",
+          not offenders, f"lines prescribing an Edit of plan.yaml: {offenders}")
 
 
 def main():
@@ -137,6 +166,7 @@ def main():
     case6_context_warn_tokens_never_paired_with_refusal(text)
     case7_absence_record_your_phase_in(text)
     case8_presence_record_your_status_in(text)
+    case9_plan_yaml_write_is_a_verb_not_an_edit(text)
 
     if failures:
         print(f"\n{len(failures)} FAILURE(S): {failures}")

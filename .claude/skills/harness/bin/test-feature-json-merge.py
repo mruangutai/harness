@@ -41,7 +41,6 @@ def valid_doc(feature_id="FEAT-77-test", **overrides):
         "feature_id": feature_id,
         "branch": "none",
         "pr": None,
-        "status": "Backlog",
         "review_sha": "none",
         "cycles_used": 0,
         "max_total_cycles": 5,
@@ -203,16 +202,19 @@ def case_6_cli_set_key_lands_and_rereads():
     d, path = fixture_path()
     write_bytes(path, valid_doc())
 
-    r = run_cli(["set-key", path, "status", '"Building"'])
+    # `branch`, NOT `status`: the station key is gone from the schema (FEAT-41 T-07) and
+    # additionalProperties would refuse it. `branch` is the same shape — a declared, required
+    # string — so what this case tests is unchanged.
+    r = run_cli(["set-key", path, "branch", '"feat/xyz"'])
     check("case6: CLI exits 0", r.returncode == 0, r.stdout + r.stderr)
 
     with open(path, encoding="utf-8") as f:
         after = json.load(f)
-    check("case6: status landed", after.get("status") == "Building", after)
+    check("case6: branch landed", after.get("branch") == "feat/xyz", after)
     check(
         "case6: every other key survived unchanged",
-        {k: v for k, v in after.items() if k != "status"}
-        == {k: v for k, v in valid_doc().items() if k != "status"},
+        {k: v for k, v in after.items() if k != "branch"}
+        == {k: v for k, v in valid_doc().items() if k != "branch"},
         after,
     )
 
@@ -279,7 +281,7 @@ def case_10_cli_refuses_missing_file():
     os.makedirs(feat_dir)
     path = os.path.join(feat_dir, "feature.json")
 
-    r = run_cli(["set-key", path, "status", '"Building"'])
+    r = run_cli(["set-key", path, "branch", '"feat/xyz"'])
     check("case10: CLI exits non-zero for a missing file", r.returncode != 0, f"rc={r.returncode}")
     check("case10: no file created", not os.path.exists(path))
 
@@ -292,7 +294,7 @@ def case_11_ratchet_holds_on_dirty_base():
     once a base is dirty at all (a hole big enough to launder any further corruption)."""
     d, path = fixture_path()
     dirty = valid_doc()
-    del dirty["status"]  # legacy-shaped: missing one required key already
+    del dirty["branch"]  # legacy-shaped: missing one required key already
     original = write_bytes(path, dirty)
 
     def transform(base):
@@ -322,13 +324,13 @@ def case_11_ratchet_holds_on_dirty_base():
 
 
 def case_12_ratchet_does_not_over_refuse():
-    """Same dirty base (missing `status`). The transform touches only an unrelated,
+    """Same dirty base (missing `branch`). The transform touches only an unrelated,
     already-legal top-level key. This must land -- refusing it would mean the policy is
     "any problem refuses" wearing a different name, exactly the regression the
     monotonic-non-regression policy was built to avoid."""
     d, path = fixture_path()
     dirty = valid_doc()
-    del dirty["status"]
+    del dirty["branch"]
     write_bytes(path, dirty)
 
     def transform(base):
@@ -349,8 +351,8 @@ def case_12_ratchet_does_not_over_refuse():
         after = json.load(f)
     check("case12: unrelated key landed", after.get("cycles_used") == 3, after)
     check(
-        "case12: pre-existing problem (missing status) still present, unreported as a refusal",
-        "status" not in after,
+        "case12: pre-existing problem (missing branch) still present, unreported as a refusal",
+        "branch" not in after,
         after,
     )
 
@@ -386,7 +388,7 @@ def case_13_unparseable_base_is_strict():
     original2 = write_bytes(path2, "{ not json at all, missing brace")
 
     def broken_transform(base):
-        return '{"feature_id": "x", "status": Building}'
+        return '{"feature_id": "x", "branch": Building}'
 
     raised_lines = []
     try:

@@ -153,11 +153,22 @@ def _landed_dir_names(owner_root, default_branch, features_rel):
     return [line for line in r.stdout.splitlines() if line]
 
 
-def _read_landed_feature_json(owner_root, default_branch, feature_json_rel):
-    """The LANDED copy of feature.json: git rev-parse <default_branch>:<rel> then git cat-file,
-    exactly as feature-worktree.py:287 reads a landed blob. Never the working tree's copy.
-    Returns (data, error) — error is None only on a successfully parsed dict."""
-    r = _run_git(["rev-parse", f"{default_branch}:{feature_json_rel}"], owner_root)
+def _landed_blob_text(owner_root, default_branch, rel):
+    """The TEXT of a blob on the default branch: `git rev-parse <branch>:<rel>` then
+    `git cat-file`, exactly as feature-worktree.py:287 reads a landed blob. Never the working
+    tree's copy.
+
+    Returns `(text, error)` where error is "missing" or "unreadable" — the same words both
+    callers already reported, so their contracts are unchanged.
+
+    THIS IS NOT THE `parse=` PARAMETER THAT WAS ALREADY CONSIDERED AND REJECTED (FEAT-41 F-05).
+    `_read_landed_plan_yaml`'s docstring records that folding the two landed readers into one
+    parameterised function was refused, because the DIFFERENCE — json.loads versus a YAML loader
+    that raises its own exception type — is the part a reader needs to see at the call site.
+    That reasoning still stands and is not reversed here: the two readers stay separate and both
+    parsers stay visible. Only the four lines of identical git plumbing move.
+    """
+    r = _run_git(["rev-parse", f"{default_branch}:{rel}"], owner_root)
     if r is None or r.returncode != 0:
         return None, "missing"
     blob = r.stdout.strip()
@@ -166,8 +177,18 @@ def _read_landed_feature_json(owner_root, default_branch, feature_json_rel):
     c = _run_git(["cat-file", "blob", blob], owner_root)
     if c is None or c.returncode != 0:
         return None, "unreadable"
+    return c.stdout, None
+
+
+def _read_landed_feature_json(owner_root, default_branch, feature_json_rel):
+    """The LANDED copy of feature.json: git rev-parse <default_branch>:<rel> then git cat-file,
+    exactly as feature-worktree.py:287 reads a landed blob. Never the working tree's copy.
+    Returns (data, error) — error is None only on a successfully parsed dict."""
+    text, err = _landed_blob_text(owner_root, default_branch, feature_json_rel)
+    if err is not None:
+        return None, err
     try:
-        data = json.loads(c.stdout)
+        data = json.loads(text)
     except Exception:
         return None, "unparseable"
     if not isinstance(data, dict):
@@ -175,11 +196,203 @@ def _read_landed_feature_json(owner_root, default_branch, feature_json_rel):
     return data, None
 
 
+def _read_landed_plan_yaml(owner_root, default_branch, plan_rel):
+    """The LANDED copy of plan.yaml, read at the same ref and through the same two git calls as
+    `_read_landed_feature_json` (FEAT-41 T-07). Returns (doc, error) with the SAME three error
+    words, so `classify` treats an unreadable plan exactly as it treats an unreadable
+    feature.json rather than inventing a fourth classification.
+
+    A SEPARATE FUNCTION RATHER THAN A PARAMETERISED ONE. The two differ only in the parser, and
+    folding them into one with a `parse=` argument was considered and rejected: the shared part
+    is four lines of git plumbing, while the DIFFERENCE — json.loads versus a YAML loader that
+    can raise its own exception type — is the part a reader needs to see at the call site.
+
+    THE PyYAML-ABSENT FALLBACK IS NOT DEFENSIVE PADDING; IT IS A MEASURED REGRESSION FIX.
+    post-merge-sweep.sh runs `python3 -I`, and isolated mode deliberately ignores user
+    site-packages — where PyYAML is installed on a stock macOS setup. This module read only JSON
+    until T-07 and so had NO third-party dependency; moving the station into plan.yaml gave the
+    sweep one it cannot satisfy. Measured: every worktree classified "unresolved: landed plan.yaml
+    is unparseable", so NO terminal worktree was ever reclaimed — silently, because "unresolved"
+    is a SKIP. test-post-merge-sweep.py caught it; nothing else would have.
+
+    THE SCAN IS SOUND HERE FOR A REASON THAT DOES NOT GENERALISE, and the reason is the whole
+    justification: plan.yaml's top-level `status` has exactly ONE writer — `plan-merge.py
+    set-feature-station` — which emits a bare lowercase scalar on its own line. This is not
+    "regex-parsing YAML" in general (F-02's rule, which stands); it is reading one key whose
+    on-disk form is produced by one validated tool. The parsed path stays PRIMARY, so any legal
+    YAML a human hand-edited is still read correctly wherever PyYAML exists.
+    """
+    text, err = _landed_blob_text(owner_root, default_branch, plan_rel)
+    if err is not None:
+        return None, err
+    try:
+        import harness_yaml
+        doc = harness_yaml.load_str(text, f"{default_branch}:{plan_rel}")
+    except Exception as exc:
+        if type(exc).__name__ != "MissingDependency":
+            # A genuinely malformed plan. Unchanged posture: never folded into "not terminal".
+            return None, "unparseable"
+        doc = _scan_top_level_status(text)
+        if doc is None:
+            return None, "unparseable"
+    if not isinstance(doc, dict):
+        return None, "unparseable"
+    return doc, None
+
+
+def _scan_top_level_status(text):
+    """`{"status": <value>}` from plan.yaml TEXT, without a YAML parser, or None.
+
+    Only reached when PyYAML is unimportable (see `_read_landed_plan_yaml`). Deliberately STRICT
+    rather than forgiving: a top-level key is column-0, so any indented `status:` — every task's
+    own status, which is what a loose scan would wrongly match FIRST — is skipped. Quotes are
+    stripped because a hand-edited plan may carry them; anything else that is not a bare scalar
+    returns None, which the caller reports as unparseable rather than guessing.
+    """
+    for line in text.splitlines():
+        if not line.startswith("status:"):
+            continue
+        value = line[len("status:"):].strip()
+        value = value.split("#", 1)[0].strip().strip("'\"")
+        return {"status": value} if value else None
+    return {}
+
+
 def _is_dirty(worktree_path):
     r = _run_git(["status", "--porcelain"], worktree_path)
     if r is None or r.returncode != 0:
         return False
     return bool(r.stdout.strip())
+
+
+def _match_landed_id(wt_id, names):
+    """Match a worktree id against the landed feature directory names.
+
+    Returns `(resolved_id, why)` with exactly one populated: an id when the match is unique,
+    otherwise the string `"absent"` or a written reason for an ambiguous prefix.
+
+    A PREFIX IS ACCEPTED ONLY WHEN IT IS UNIQUE, which is the whole point of the function: a
+    worktree named for a truncated feature id must resolve to one landed directory or to none,
+    never to the first of several. Extracted from `_resolve_landed` (FEAT-41 F-05).
+    """
+    if wt_id in names:
+        return wt_id, None
+    prefix_matches = [n for n in names if n.startswith(wt_id)]
+    if not prefix_matches:
+        return None, "absent"
+    if len(prefix_matches) == 1:
+        return prefix_matches[0], None
+    return None, (f"{wt_id} is an ambiguous prefix of {len(prefix_matches)} landed "
+                  f"feature directories")
+
+
+def _resolve_landed(path, dirty, hb, factory_config, feature_worktree_mod):
+    """Resolve one standing worktree to the landed feature directory it corresponds to.
+
+    Returns `(resolved, record)`, and EXACTLY ONE IS None. `resolved` is
+    `(owner_root, repo_segment, default_branch, features_rel, resolved_id)` when the lookup
+    succeeded; otherwise `record` is the classification to file and the caller files it.
+
+    SPLIT OUT OF `classify` (FEAT-41 F-05). That function graded 1 against a bar of 4 —
+    cyclomatic 16, cognitive 27, ABC 47.4 — because it answered two different questions in one
+    body with seven guard-and-continue blocks between them. This is the first question: WHICH
+    landed directory is this, if any. `_landed_station_record` below is the second: what station
+    did it land at. The split follows a seam the function already had rather than one invented
+    to move numbers.
+    """
+    split = _split_owner_segment_id(path, hb.WORKTREES_SEGMENT)
+    if split is None:
+        return None, {
+            "path": path, "feature_id": None, "klass": "unresolved", "dirty": dirty,
+            "reason": "worktree path is not under WORKTREES_SEGMENT", "repo": None,
+        }
+    owner_root, repo_segment, wt_id = split
+
+    default_branch = _resolve_default_branch(repo_segment, feature_worktree_mod, factory_config)
+    if default_branch is None:
+        return None, {
+            "path": path, "feature_id": wt_id, "klass": "unresolved", "dirty": dirty,
+            "reason": "could not resolve the repository's default_branch",
+            "repo": repo_segment,
+        }
+
+    features_rel = os.path.join(".harness", repo_segment, "features")
+    names = _landed_dir_names(owner_root, default_branch, features_rel)
+    if names is None:
+        return None, {
+            "path": path, "feature_id": wt_id, "klass": "unresolved", "dirty": dirty,
+            "reason": "git ls-tree of the landed features directory errored",
+            "repo": repo_segment,
+        }
+
+    resolved_id, why = _match_landed_id(wt_id, names)
+
+    # TWO FLAT GUARDS, NOT ONE WITH CONDITIONALS INSIDE IT. The first cut of this computed
+    # klass, reason and feature_id with three inline ternaries and read worse than the branches
+    # it replaced — cyclomatic fell and cognitive ROSE. They are two different outcomes and
+    # they are written as two.
+    #
+    # THE ABSENT CASE REPORTS NO feature_id, and the ambiguous one does. An absent directory
+    # means this worktree names no landed feature at all, so claiming one would be a fabricated
+    # identity; an ambiguous prefix DID name something, just not one thing.
+    if why == "absent":
+        return None, {
+            "path": path, "feature_id": None, "klass": "exempt_absent", "dirty": dirty,
+            "reason": f"{wt_id} is absent from {default_branch}'s features directory",
+            "repo": repo_segment,
+        }
+    if resolved_id is None:
+        return None, {
+            "path": path, "feature_id": wt_id, "klass": "unresolved", "dirty": dirty,
+            "reason": why, "repo": repo_segment,
+        }
+
+    return (owner_root, repo_segment, default_branch, features_rel, resolved_id), None
+
+
+def _landed_station_record(path, dirty, resolved):
+    """The record for a worktree whose landed directory resolved, or None when it is omitted.
+
+    None means the lookup succeeded and the landed station is simply not terminal — that
+    worktree is live work and belongs in nobody's report.
+    """
+    owner_root, repo_segment, default_branch, features_rel, resolved_id = resolved
+
+    feature_json_rel = os.path.join(features_rel, resolved_id, "feature.json")
+    _data, err = _read_landed_feature_json(owner_root, default_branch, feature_json_rel)
+    if err is not None:
+        return {
+            "path": path, "feature_id": resolved_id, "klass": "unresolved", "dirty": dirty,
+            "reason": f"landed feature.json for {resolved_id} is {err}",
+            "repo": repo_segment,
+        }
+
+    # THE STATION COMES FROM THE LANDED plan.yaml (FEAT-41 T-07), read at the SAME ref by
+    # the same blob helper. The feature.json read above stays: it is what decides
+    # "unresolved" for a missing or unparseable landed record, and that classification is
+    # about the feature directory existing on the default branch at all.
+    #
+    # AN UNREADABLE LANDED plan.yaml IS TREATED EXACTLY AS AN UNREADABLE feature.json WAS —
+    # "unresolved", never folded into "not terminal". Getting this wrong is the easy mistake
+    # here: a plan that fails to load would silently mean "not done", and a terminal
+    # worktree that never gets reclaimed is the failure this module exists to prevent.
+    plan_rel = os.path.join(features_rel, resolved_id, "plan.yaml")
+    plan_doc, plan_err = _read_landed_plan_yaml(owner_root, default_branch, plan_rel)
+    if plan_err is not None:
+        return {
+            "path": path, "feature_id": resolved_id, "klass": "unresolved", "dirty": dirty,
+            "reason": f"landed plan.yaml for {resolved_id} is {plan_err}",
+            "repo": repo_segment,
+        }
+
+    station = str((plan_doc or {}).get("status", "")).split()
+    if (station[0] if station else "") == "done":
+        return {
+            "path": path, "feature_id": resolved_id, "klass": "terminal", "dirty": dirty,
+            "reason": f"landed station is done on {default_branch}",
+            "repo": repo_segment,
+        }
+    return None
 
 
 def classify(root):
@@ -205,77 +418,12 @@ def classify(root):
             continue  # the main checkout, never a linked worktree
 
         dirty = _is_dirty(path)
-
-        split = _split_owner_segment_id(path, hb.WORKTREES_SEGMENT)
-        if split is None:
-            records.append({
-                "path": path, "feature_id": None, "klass": "unresolved", "dirty": dirty,
-                "reason": "worktree path is not under WORKTREES_SEGMENT", "repo": None,
-            })
-            continue
-        owner_root, repo_segment, wt_id = split
-
-        default_branch = _resolve_default_branch(repo_segment, feature_worktree_mod, factory_config)
-        if default_branch is None:
-            records.append({
-                "path": path, "feature_id": wt_id, "klass": "unresolved", "dirty": dirty,
-                "reason": "could not resolve the repository's default_branch",
-                "repo": repo_segment,
-            })
-            continue
-
-        features_rel = os.path.join(".harness", repo_segment, "features")
-        names = _landed_dir_names(owner_root, default_branch, features_rel)
-        if names is None:
-            records.append({
-                "path": path, "feature_id": wt_id, "klass": "unresolved", "dirty": dirty,
-                "reason": "git ls-tree of the landed features directory errored",
-                "repo": repo_segment,
-            })
-            continue
-
-        exact = wt_id in names
-        prefix_matches = [n for n in names if n.startswith(wt_id)]
-
-        if not exact and not prefix_matches:
-            records.append({
-                "path": path, "feature_id": None, "klass": "exempt_absent", "dirty": dirty,
-                "reason": f"{wt_id} is absent from {default_branch}'s features directory",
-                "repo": repo_segment,
-            })
-            continue
-
-        if exact:
-            resolved_id = wt_id
-        elif len(prefix_matches) == 1:
-            resolved_id = prefix_matches[0]
-        else:
-            records.append({
-                "path": path, "feature_id": wt_id, "klass": "unresolved", "dirty": dirty,
-                "reason": (f"{wt_id} is an ambiguous prefix of {len(prefix_matches)} landed "
-                           f"feature directories"),
-                "repo": repo_segment,
-            })
-            continue
-
-        feature_json_rel = os.path.join(features_rel, resolved_id, "feature.json")
-        data, err = _read_landed_feature_json(owner_root, default_branch, feature_json_rel)
-        if err is not None:
-            records.append({
-                "path": path, "feature_id": resolved_id, "klass": "unresolved", "dirty": dirty,
-                "reason": f"landed feature.json for {resolved_id} is {err}",
-                "repo": repo_segment,
-            })
-            continue
-
-        status = data.get("status")
-        if status == "Done":
-            records.append({
-                "path": path, "feature_id": resolved_id, "klass": "terminal", "dirty": dirty,
-                "reason": f"landed status is Done on {default_branch}",
-                "repo": repo_segment,
-            })
-        # else: the lookup resolved and the landed status is anything else -> omitted entirely.
+        resolved, record = _resolve_landed(path, dirty, hb, factory_config,
+                                           feature_worktree_mod)
+        if record is None:
+            record = _landed_station_record(path, dirty, resolved)
+        if record is not None:
+            records.append(record)
 
     records.sort(key=lambda r: r["path"])
     return records

@@ -2,7 +2,6 @@
   "feature_id": "FEAT-43-code-risk-grading",
   "branch": "feat/FEAT-43-code-risk-grading",
   "pr": 978,
-  "status": "Done",
   "review_sha": "41d9afec139cdb50eae490330620c590068b23ed",
   "cycles_used": 29,
   "max_total_cycles": 29,

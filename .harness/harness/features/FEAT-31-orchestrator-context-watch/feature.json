@@ -2,7 +2,6 @@
   "feature_id": "FEAT-31-orchestrator-context-watch",
   "branch": "feat/FEAT-31-orchestrator-context-watch",
   "pr": 698,
-  "status": "Done",
   "review_sha": "0fc10e5a9f48afae512baed6d9297aab88e7f181",
   "cycles_used": 6,
   "max_total_cycles": 10,

@@ -194,11 +194,16 @@ def write_factory(feat_dir, factory, feat_id=None):
         if base is None:
             if feat_id is None:
                 raise harness_merge.MergeRefusal(9, [absent_message])
+            # NO `status` KEY (FEAT-41 T-07). This wrote the plan station into feature.json,
+            # which the schema's additionalProperties now REFUSES — so the seven keys below are
+            # the whole required set. The new feature's station is recorded in plan.yaml, by
+            # `plan-merge.py set-feature-station`, and this function never writes it: it is
+            # reached from the factory lane with a plan already on disk, and inventing a station
+            # here would be a second writer of the one field that must have exactly one.
             doc = {
                 "feature_id": feat_id,
                 "branch": "none",
                 "pr": None,
-                "status": "Plan",
                 "review_sha": "none",
                 "cycles_used": 0,
                 "max_total_cycles": 10,
@@ -264,16 +269,21 @@ def sort_dispositions(tasks, factory):
 # --------------------------------------------------------------------------
 
 def _validate_stations(owner, board_number, station_field, stations):
-    """Validate every fleet station name against the board's real field options before anything
-    is created. Two failure modes of factory_gh.project_field_options: the FIELD itself missing
-    (it raises GhError naming the field, propagated unchanged) and an OPTION missing (it returns
-    a list and this function produces the message, naming the offending station key, its
-    configured value, and the board's real options)."""
+    """Validate every declared station against the board's real field options before anything is
+    created. Two failure modes of factory_gh.project_field_options: the FIELD itself missing (it
+    raises GhError naming the field, propagated unchanged) and an OPTION missing (it returns a
+    list and this function produces the message, naming the offending station, the COLUMN it
+    requires, and the board's real options).
+
+    `stations` is now a SEQUENCE of lowercase station names, not a mapping of names to
+    operator-chosen columns (FEAT-41 T-02), so the column each one requires is derived here by
+    factory_config.station_column rather than read out of the declaration."""
     options = factory_gh.project_field_options(owner, board_number, station_field)
-    for key, value in stations.items():
-        if value not in options:
+    for name in stations:
+        column = factory_config.station_column(name)
+        if column not in options:
             factory_cli.refuse(
-                TOOL, "station option not offered by the board", f"{key}={value!r}",
+                TOOL, "station option not offered by the board", f"{name}={column!r}",
                 f"field {station_field!r} on {owner} project {board_number} offers: "
                 + ", ".join(options),
             )

@@ -2,7 +2,6 @@
   "feature_id": "BUG-1030-stale-anchor-write-hazard",
   "branch": "fix/stale-anchor-write-hazard",
   "pr": null,
-  "status": "Review",
   "review_sha": "fbaa7fec",
   "cycles_used": 2,
   "max_total_cycles": 10,

@@ -1,5 +1,6 @@
 schema: plan/1
 feature: FEAT-26-pr-linkage-recorded
+status: done
 
 source_issues: [492]
 

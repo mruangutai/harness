@@ -314,16 +314,41 @@ def load_plan(path):
     consumer could not act on. Never returns a partially-valid plan: a caller that
     got a dict back can index every field named in REQUIRED_TASK_FIELDS.
     """
-    doc = load_file(path)
+    return validate_plan_doc(load_file(path), path)
+
+
+def validate_plan_doc(doc, path):
+    """Validate an ALREADY-PARSED plan document, returning it, or raise PlanSchemaError.
+
+    EXTRACTED SO THE READER AND THE WRITER CANNOT DISAGREE (FEAT-41 HIGH-1). `plan-merge.py`'s
+    pre-write check parsed the merged result with `yaml.safe_load`, which answers "is this YAML"
+    and not "is this a legal plan" -- so every rule below was invisible to the writer, and `apply`
+    persisted a document no reader could load while reporting APPLIED at exit 0.
+
+    A writer-side COPY of these rules would have been a second place for them to stop being true,
+    which is the defect this whole feature keeps finding. One home, two callers.
+    """
     if not isinstance(doc, dict):
         raise PlanSchemaError(path, "top level is not a mapping")
 
     tasks = doc.get("tasks")
-    if not isinstance(tasks, list) or not tasks:
+    if not isinstance(tasks, list):
         # A plan with no tasks is not a plan. Silence here would be the same
         # fail-open B-7 was: a checker reporting a clean tree it never looked at.
-        raise PlanSchemaError(path, "`tasks:` is missing, empty, or not a list")
+        raise PlanSchemaError(path, "`tasks:` is missing or not a list")
+    _validate_station_only(doc, tasks, path)
+    _validate_plan_tasks(tasks, path)
+    return doc
 
+
+def _validate_plan_tasks(tasks, path):
+    """Validate every task in a plan: shape, required fields, unique ids, legal modes.
+
+    SPLIT OUT OF `validate_plan_doc` BY CONCERN. That function answers two questions -- is the
+    DOCUMENT well formed, and is every TASK well formed -- and holding both put it at grade 1 on
+    control-flow volume alone. The split is along the seam the questions already had; nothing
+    here is shared with the document-level rules above.
+    """
     seen = set()
     for i, t in enumerate(tasks):
         where = f"tasks[{i}]"
@@ -358,7 +383,6 @@ def load_plan(path):
                 path,
                 f"{where} ({tid}) execution_mode {mode!r} — legal values are "
                 f"{', '.join(LEGAL_EXECUTION_MODES)}")
-    return doc
 
 
 # --- Manifest domain walk (D-03) --------------------------------------------
@@ -619,3 +643,66 @@ def require_or_bootstrap(root, payload=None):
         # Never let the courtesy channel break the grant it is announcing.
         pass
     return True
+
+
+def _validate_station_only(doc, tasks, path):
+    """The two `station_only` rules, a MATCHED PAIR: neither direction is safe without
+    the other, which is exactly what HIGH-1 proved. One function per direction, because
+    each carries a compound predicate and holding both kept this below the grade bar.
+    """
+    claimed = doc.get("station_only")
+    _refuse_an_empty_plan_that_claims_nothing(claimed, doc, tasks, path)
+    _refuse_a_minted_marker(claimed, tasks, path)
+
+
+def _refuse_an_empty_plan_that_claims_nothing(claimed, doc, tasks, path):
+    declares_station = bool(str(doc.get("status") or "").strip())
+    if not tasks and not (claimed is True and declares_station):
+        # A STATION-ONLY RECORD IS LEGAL; AN ACCIDENTALLY EMPTY PLAN IS NOT (FEAT-41 T-19).
+        #
+        # The rule above is narrowed, NOT relaxed, and the reason it was written for is the
+        # reason the narrowing is safe. Under the one-record rule every feature needs a plan.yaml
+        # to hold its station, and twelve directories had none -- they predate the format or were
+        # opened as bug fixes. For those the honest content is a station and no tasks; inventing
+        # tasks to satisfy a schema would be fabrication.
+        #
+        # THE MARKER IS REQUIRED, AND `tasks: []` PLUS `status:` IS NOT ENOUGH (FEAT-41 MF-3).
+        # The first version of this keyed on the ABSENCE of tasks, and cycle 3 proved end to end
+        # what that cost: a Bash write emptied a SIGNED plan's `tasks:` while keeping its
+        # `approval:` and `status:`, and the emptied document inherited the station-only
+        # exemption downstream -- a real dangling-task violation went SILENT. An emptied plan
+        # carries no `station_only:` marker, so it now fails to LOAD, and a plan that does not
+        # load is already a violation. The forged state became louder than the check it escaped.
+        #
+        # AN ABSENCE CANNOT BE A CREDENTIAL. That is the general form of the mistake, and it is
+        # the same shape as B-7's fail-open: a checker must be told a fact, never infer one from
+        # a missing field.
+        raise PlanSchemaError(
+            path,
+            "`tasks:` is empty, so this must be a station-only record and must SAY so: it "
+            "needs `station_only: true` and a top-level `status:`. An emptied plan is not a "
+            "station-only record.")
+
+
+def _refuse_a_minted_marker(claimed, tasks, path):
+    if claimed is not None and (claimed is not True or tasks):
+        # AND THE CONVERSE, WHICH MF-3 OMITTED (FEAT-41 HIGH-1, cycle 4, two reviewers
+        # independently). The marker was checked in ONE direction only -- empty tasks means the
+        # marker is required -- and never the other, so it could be MINTED onto a task-bearing
+        # signed plan through the ungated `apply` verb or a raw Bash write. It then silenced the
+        # approval and STATE.md-task checks for that feature, durably.
+        #
+        # MF-3 REPLACED AN ABSENCE-AS-CREDENTIAL WITH A FORGEABLE ONE, which is the same mistake
+        # wearing the opposite sign. A credential must be checked BOTH ways: present when claimed,
+        # and not claimable when false.
+        #
+        # THE LOADER IS THE RIGHT CHOKEPOINT, and a writer-side fix could not do this job: the
+        # BRIEF's own disclosure is that Bash writes are unmediated, so anything that only guards
+        # `plan-merge.py` leaves the shell route open. Everything that reads a plan comes through
+        # here.
+        raise PlanSchemaError(
+            path,
+            "`station_only:` may only be `true` on a record with an EMPTY `tasks:` list. A plan "
+            "that carries tasks is not a station-only record, and the marker cannot be used to "
+            "exempt one from the approval and STATE.md checks.")
+

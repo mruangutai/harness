@@ -2,7 +2,6 @@
   "feature_id": "FEAT-28-ci-wiring-asserted",
   "branch": "none",
   "pr": null,
-  "status": "Abandoned",
   "review_sha": "none",
   "cycles_used": 3,
   "max_total_cycles": 10,

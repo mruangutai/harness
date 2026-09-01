@@ -1,5 +1,6 @@
 schema: plan/1
 feature: FEAT-38-decisions-current-knowledge
+status: done
 
 source_issues: [615, 78, 686]
 

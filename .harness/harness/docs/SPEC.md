@@ -1745,12 +1745,22 @@ history of that feature, in order, with the squad visible in each name. This als
 | Nature | **declaration** (intent) | **live state** (reality) |
 | Owner | `pm` | **orchestrator** |
 | Approval-gated | yes — part of what you sign | no — it is tracking |
-| Holds | FEAT-01 is SSO, serves REQ-02, comprises T-04/T-05 | branch, PR, status, runs so far |
+| Holds | FEAT-01 is SSO, serves REQ-02, comprises T-04/T-05 | branch, PR, runs so far |
 
 `feature.json` never restates the declaration; it references `FEAT-01`.
 
-**Feature status lives ONLY in `feature.json`.** Tasks keep their own `status:` (they are part of the
-plan), but a *feature's* progress is execution reality, so the orchestrator owns it.
+**A feature's station lives ONLY in `plan.yaml`'s top-level `status:`** (FEAT-41). It is one
+lowercase vocabulary — `backlog`, `plan`, `ready`, `building`, `review`, `done`, plus the terminal
+`abandoned` — shared with each task's own `status:` and with the board's declared stations, whose
+column names are DERIVED from it rather than stored beside it. `feature.json` holds no `status` key
+at all, and the schema's `additionalProperties: false` refuses one.
+
+This inverts what this section said until FEAT-41: that feature status lived only in
+`feature.json`. The reasoning then was that a feature's progress is execution reality while a plan
+is a contract. What that produced was two files recording one fact in two vocabularies, and the
+drift was measurable — a board mapping, a validator and a plan disagreeing about the same feature.
+The orchestrator still owns the transition; it now writes it through `plan-merge.py
+set-feature-station`, the single validated write route to that file.
 
 ### 11.2 Four levels
 

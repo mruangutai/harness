@@ -169,12 +169,18 @@ def _commit_feature(repo, feature_id, status, milestone=None, repo_segment="harn
     rel = os.path.join(".harness", repo_segment, "features", feature_id, "feature.json")
     abs_path = os.path.join(repo, rel)
     os.makedirs(os.path.dirname(abs_path), exist_ok=True)
-    doc = {"status": status}
+    doc = {"feature_id": feature_id}
     if milestone is not None:
         doc["github"] = {"milestone": milestone}
     with open(abs_path, "w") as f:
         json.dump(doc, f)
-    _git(["add", rel], cwd=repo)
+    # THE STATION GOES IN A COMMITTED plan.yaml (FEAT-41 T-07). worktree_terminal reads the LANDED
+    # plan at the default branch's ref, so it must be in the SAME commit — the `status` argument
+    # keeps its name and every caller, and is lowercased into that file.
+    prel = os.path.join(".harness", repo_segment, "features", feature_id, "plan.yaml")
+    with open(os.path.join(repo, prel), "w") as f:
+        f.write(f"feature: {feature_id}\nstatus: {str(status).lower()}\ntasks: []\n")
+    _git(["add", rel, prel], cwd=repo)
     _git(["commit", "-qm", f"add {feature_id}"], cwd=repo)
     return abs_path
 

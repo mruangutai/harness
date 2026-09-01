@@ -481,16 +481,20 @@ REPO = "acme/widget"
 DEFAULT_BRANCH = "main"
 
 
-def default_board(owner="acme", number=9, station_field="Status", **stations_kw):
-    """The six-key stations map (D-06, widened by FEAT-33 T-02), returned by every fixture as a
-    fleet member's own `github.board` — T-02/T-03 moved the board out of fleet.yaml, so this is
-    what `factory_config.product_config` resolves to, never a `repos[].board` key."""
-    stations = {
-        "backlog": "Backlog", "plan": "Plan", "ready": "Ready", "building": "Building",
-        "review": "Review", "done": "Done",
-    }
-    stations.update(stations_kw)
-    return {"owner": owner, "number": number, "station_field": station_field, "stations": stations}
+def default_board(owner="acme", number=9, station_field="Status", stations=None):
+    """A fleet member's own `github.board`, returned by every fixture — T-02/T-03 moved the board
+    out of fleet.yaml, so this is what `factory_config.product_config` resolves to, never a
+    `repos[].board` key.
+
+    THE ORDERED LOWERCASE DECLARATION (FEAT-41 T-01). This built the six-key MAPPING of station
+    to column name and took `**stations_kw` so a caller could rename one column. T-01 deleted
+    both: the six names are FIXED and every column name is DERIVED by
+    factory_config.station_column, so there is nothing here to choose. `stations` survives as an
+    explicit parameter for the cases that prove a MALFORMED declaration is refused; no caller
+    overrides a column name any more, because no declaration can.
+    """
+    return {"owner": owner, "number": number, "station_field": station_field,
+            "stations": list(stations if stations is not None else factory_config.MANDATED_STATIONS)}
 
 
 def default_product_configs(repo=REPO, board=None):
@@ -852,7 +856,10 @@ with tempfile.TemporaryDirectory() as td:
     fleet_path = os.path.join(td, "fleet", "fleet.yaml")
     fleet_data = fleet_dict(workspace_root)
     write_yaml(fleet_path, fleet_data)
-    ready_option = default_board()["stations"]["ready"]
+    # THE COLUMN IS DERIVED, NEVER LOOKED UP (FEAT-41 T-01/T-02). This indexed the declaration
+    # for a column name back when the declaration carried them; station_column is the one place
+    # a capitalised station name is produced now.
+    ready_option = factory_config.station_column("ready")
     cwd = os.path.join(td, "cwd")
     os.makedirs(cwd, exist_ok=True)
     gh_state = write_state(os.path.join(td, "gh_state.json"), next_issue=500)
@@ -1488,12 +1495,16 @@ with tempfile.TemporaryDirectory() as td:
         }}, f)
     gh = os.path.join(td, "fake_gh.py")
     write_exec(gh, _FAKE_GH_SRC)
-    # feature.json: status Done, parent #950 recorded but the board reads Backlog -- there is
-    # no Done exemption (D-22), so this is a finding whether #950 is open or closed.
+    # plan.yaml: station `done`; feature.json records parent #950 but the board reads Backlog --
+    # there is no done exemption (D-22), so this is a finding whether #950 is open or closed.
+    # THE STATION IS IN plan.yaml AS OF FEAT-41 T-07; feature.json keeps the github block, which
+    # is what this class reads it for.
     feat_dir = os.path.join(root, ".harness", "widget", "features", "FEAT-STATUS")
     os.makedirs(feat_dir, exist_ok=True)
     with open(os.path.join(feat_dir, "feature.json"), "w", encoding="utf-8") as f:
-        json.dump({"status": "Done", "github": {"parent": 950, "issues": {"T-01": 951}}}, f)
+        json.dump({"github": {"parent": 950, "issues": {"T-01": 951}}}, f)
+    with open(os.path.join(feat_dir, "plan.yaml"), "w", encoding="utf-8") as f:
+        f.write("feature: FEAT-STATUS\nstatus: done\ntasks: []\n")
     state_path = write_state(os.path.join(td, "gh_state.json"), issues={}, items={
         "ITEM1": {"number": 950, "repo": "acme/widget", "station": "Backlog"},
     })
@@ -1509,14 +1520,23 @@ with tempfile.TemporaryDirectory() as td:
         [sys.executable, BOARD_LIFECYCLE, "audit"], cwd=BIN_DIR, env=env,
         capture_output=True, text=True, stdin=subprocess.DEVNULL, timeout=20,
     )
-    check("(L) board_lifecycle.py audit STATUS: forked process exits 1 against a feature.json "
-          "status disagreeing with its parent card (the EXIT STATUS, not an in-process "
+    check("(L) board_lifecycle.py audit STATUS: forked process exits 1 against a plan.yaml "
+          "station disagreeing with its parent card (the EXIT STATUS, not an in-process "
           "SystemExit catch)",
           r.returncode == 1, f"code={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
-    check("(L) board_lifecycle.py audit STATUS: the finding names the feature dir, recorded "
-          "status Done, and the actual column Backlog",
+    check("(L) board_lifecycle.py audit STATUS: the finding names the feature dir, the recorded "
+          "station done, its column, and the actual station backlog",
+          # BOTH RECORDED AND ACTUAL ARE LOWERCASE NOW, AND THE COLUMN IS NOT (FEAT-41 T-07).
+          # Until T-07 this assertion straddled the case boundary: `'Done'` was feature.json's
+          # own recorded value quoted verbatim, `'backlog'` was what the board answered after
+          # gh_board.board_stations lowercased it. The recorded side has moved to plan.yaml and
+          # is lowercase, so the two harness-side values now match. The one capitalised term left
+          # is `column 'Done'`, derived by station_column — and D-08 puts the capitals exactly
+          # there, at the GitHub boundary, because the column name is what the operator sees when
+          # they go and look at the board.
           "STATUS" in r.stdout and "FEAT-STATUS" in r.stdout and "#950" in r.stdout
-          and "'Done'" in r.stdout and "'Backlog'" in r.stdout, f"stdout={r.stdout!r}")
+          and "station 'done'" in r.stdout and "reads 'backlog'" in r.stdout
+          and "column 'Done'" in r.stdout, f"stdout={r.stdout!r}")
 
 
 # ============================================================================

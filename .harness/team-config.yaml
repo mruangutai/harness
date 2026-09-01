@@ -22,6 +22,15 @@ main_session:
     # this grammar. D-10 puts it here: DEC-120 gives the user channel to the main session
     # alone, so it is the only tier that can hold a signature the user actually gave.
     # check-domain.sh READS this list — delete the line and the denial stops existing.
+    #
+    # THE ONLY WRITE ROUTE TO plan.yaml IS plan-merge.py, AND THE SHAPE GATE ENFORCES THAT
+    # (FEAT-41 T-09, reversing DEC-182's absence). This grant is NOT that route and does not
+    # become one: check-domain's shape region refuses Write, Edit and NotebookEdit on this path
+    # for every author, main session included, so what survives here is the approval_guard's
+    # separate denial. The grant is kept because that guard reads this list — it is the reason
+    # a governed agent's approval change is refused BY NAME rather than merely by the route.
+    # Signing itself is a verb now: plan-merge.py sign-approval, which plan-sign-gate.sh (T-08)
+    # permits only when the payload carries no agent_type — the main session.
     - ".harness/*/features/*/plan.yaml approval:"
     - ".harness/logs/**"
 
@@ -96,6 +105,11 @@ teams:
         domain:
           - { path: .harness/*/features/*/BRIEF.md, upsert: true }   # except ## Approval (DEC-120)
           - { path: .harness/*/features/*/PLAN.md, upsert: true }    # except ## Approval (DEC-120)
+          # plan-merge.py is the ONLY write route; check-domain's shape gate refuses every
+          # editor write of this path, for every author (FEAT-41 T-09). The grant stays because
+          # the domain is what makes the pm the plan's OWNER — it is who may change the file,
+          # not how — and because deleting it would silently widen who the approval_guard and
+          # the digest routing treat as the author of a plan.
           - { path: .harness/*/features/*/plan.yaml, upsert: true }  # DEC-182; except approval: (DEC-120)
           - { path: .harness/*/features/*/notes/research-*.md, upsert: true }   # the PATH carries the FEAT id (DEC-130)
           - { path: .harness/notes/research-*.md, upsert: true }            # project-scoped research only

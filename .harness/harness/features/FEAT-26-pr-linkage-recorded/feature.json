@@ -2,7 +2,6 @@
   "feature_id": "FEAT-26-pr-linkage-recorded",
   "branch": "feat/FEAT-26",
   "pr": 752,
-  "status": "Done",
   "review_sha": "bad32441dfc06f9fa99ac55fc8dcbd4cf8c868d0",
   "cycles_used": 0,
   "max_total_cycles": 10,

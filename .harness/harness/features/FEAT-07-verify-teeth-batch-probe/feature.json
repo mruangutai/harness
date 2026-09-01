@@ -2,7 +2,6 @@
   "feature_id": "FEAT-07-verify-teeth-batch-probe",
   "branch": "feat/FEAT-07-verify-teeth-batch-probe",
   "pr": 77,
-  "status": "Done",
   "review_sha": "98ed3e7",
   "cycles_used": 8,
   "max_total_cycles": 10,

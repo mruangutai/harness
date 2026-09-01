@@ -2,7 +2,6 @@
   "feature_id": "FEAT-14-feature-json-schema",
   "branch": "feat/204-feature-json-schema",
   "pr": 293,
-  "status": "Done",
   "review_sha": "1c5fd67",
   "cycles_used": 6,
   "max_total_cycles": 10,

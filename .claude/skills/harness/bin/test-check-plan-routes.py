@@ -304,6 +304,11 @@ def case_18():
         if not passed:
             print(f"        {detail.strip()[:220]}")
             ok = False
+    # RECORDS ITS OWN VERDICT, like every other case in this file. It used to RETURN one for
+    # main to interpret, which made main's loop carry a conditional for a single exception —
+    # the cost landed on the registry rather than on the case that was different.
+    if not ok:
+        failures.append("case_18")
     return ok
 
 
@@ -363,17 +368,22 @@ def case_19():
     # both halves, because either alone is satisfiable by a broken discoverer. A
     # `return root, []` reports 0 where 1 is expected; a discoverer that ignored
     # `_is_shipped` reports 2. The count is exact for that reason, never `> 0`.
+    #
+    # THE FIXTURE IS plan.yaml-BACKED AS OF FEAT-41 T-07, and it had to become so rather than
+    # merely move its station: it was two PLAN.md features whose stations sat in feature.json,
+    # and `_is_shipped` now reads plan.yaml. A PLAN.md-era directory has no plan.yaml and so
+    # can never BE shipped — correct by the migration's own rule, and it left this case with
+    # nothing to skip. Both features carry a plan.yaml with a top-level station instead.
     with tempfile.TemporaryDirectory() as _td3:
         _f3 = os.path.join(_td3, ".harness", "harness", "features")
         os.makedirs(_f3)
-        with open(os.path.join(_td3, ".harness", "team-config.yaml"), "w") as f:
-            f.write("agents: {}\n")
-        for _n, _status in (("FEAT-LIVE", "Building"), ("FEAT-SHIPPED", "Done")):
+        shutil.copy2(os.path.join(REPO_ROOT, ".harness", "team-config.yaml"),
+                     os.path.join(_td3, ".harness", "team-config.yaml"))
+        for _n, _station in (("FEAT-LIVE", "building"), ("FEAT-SHIPPED", "done")):
             os.makedirs(os.path.join(_f3, _n))
-            with open(os.path.join(_f3, _n, "PLAN.md"), "w") as f:
-                f.write("# PLAN\n\n" + task_block("T-01", GRANTED_PATH, "team"))
-            with open(os.path.join(_f3, _n, "feature.json"), "w") as f:
-                json.dump({"feature_id": _n, "status": _status}, f)
+            with open(os.path.join(_f3, _n, "plan.yaml"), "w") as f:
+                f.write((PLAN_YAML % UNGRANTED_PATH).replace(
+                    "feature: FEAT-A", f"feature: {_n}\nstatus: {_station}", 1))
         _r3 = run(project_dir=_td3)
         check("case_19a3b_discovery_finds_the_live_plan_and_skips_the_shipped_one",
               "across 1 plan(s)" in _r3.stdout,
@@ -483,17 +493,28 @@ def case_19():
         os.makedirs(feats)
         with open(os.path.join(td, ".harness", "team-config.yaml"), "w") as f:
             f.write("agents: {}\n")
+        # THE FIXTURE IS plan.yaml-BACKED AS OF FEAT-41 T-07, and it could not stay PLAN.md.
+        # `_is_shipped` treats a PLAN.md-only directory as a pre-format record and skips it, so
+        # two PLAN.md features are discovered and then skipped and the count reads 0. Adding a
+        # plan.yaml BESIDE each PLAN.md was tried and is ILLEGAL: the checker refuses a feature
+        # holding both, by design — a feature has one plan. So the two live features carry
+        # plan.yaml, which is the only shape a live feature can have.
+        #
+        # WHAT THIS CASE TESTS IS UNCHANGED: the glob finds exactly the FEATURE-LEVEL plans and
+        # neither decoy. Both decoys are preserved, the nested one converted with the features.
         for name in ("FEAT-A", "FEAT-B"):
             os.makedirs(os.path.join(feats, name))
-            with open(os.path.join(feats, name, "PLAN.md"), "w") as f:
-                f.write("# PLAN\n\n" + task_block("T-01", GRANTED_PATH, "team"))
+            with open(os.path.join(feats, name, "plan.yaml"), "w") as f:
+                f.write(PLAN_YAML.replace("feature: FEAT-A",
+                                           f"feature: {name}\nstatus: building", 1)
+                        % GRANTED_PATH)
             # decoy 1: a sibling markdown file that is not a plan
             with open(os.path.join(feats, name, "BRIEF.md"), "w") as f:
                 f.write("# BRIEF\n\n" + task_block("T-99", GRANTED_PATH, "team"))
-        # decoy 2: a PLAN.md one level deeper, which `**` or `*/*.md` would swallow
+        # decoy 2: a plan one level deeper, which `**` or `*/*` would swallow
         os.makedirs(os.path.join(feats, "FEAT-A", "runs", "r1"))
-        with open(os.path.join(feats, "FEAT-A", "runs", "r1", "PLAN.md"), "w") as f:
-            f.write("# PLAN\n\n" + task_block("T-98", GRANTED_PATH, "team"))
+        with open(os.path.join(feats, "FEAT-A", "runs", "r1", "plan.yaml"), "w") as f:
+            f.write(PLAN_YAML % GRANTED_PATH)
 
         r = run(project_dir=td)
         check("case_19a4_discovery_finds_exactly_the_feature_plans",
@@ -564,9 +585,19 @@ def case_22():
         os.makedirs(feats)
         with open(os.path.join(td, ".harness", "team-config.yaml"), "w") as f:
             f.write("agents: {}\n")
-        plan = os.path.join(feats, "PLAN.md")
+        # A LIVE plan.yaml is what this case reads and chmods. It was a PLAN.md, and a
+        # PLAN.md-only directory is a shipped pre-format record as of FEAT-41 T-07 — skipped
+        # before it is ever opened, so an unreadable one produced exit 0 and the case went
+        # green-for-nothing. The file under test must be one the checker actually reads.
+        plan = os.path.join(feats, "plan.yaml")
         with open(plan, "w") as f:
-            f.write("# PLAN\n\n" + task_block("T-01", GRANTED_PATH, "team"))
+            f.write("schema: plan/1\nfeature: FEAT-A\nstatus: building\n"
+                    "approval: {status: approved}\n"
+                    "tasks:\n  - id: T-01\n    title: t\n    change_type: logic\n"
+                    "    execution_mode: team\n    execution_agent: harness-dev-ops\n"
+                    "    depends_on: []\n    status: ready\n"
+                    f"    files: [{GRANTED_PATH}]\n    verify: |\n      true\n"
+                    "    intent: |\n      x\n")
         return feats, plan
 
     # (a) a feature directory that cannot be entered
@@ -583,19 +614,19 @@ def case_22():
         finally:
             os.chmod(feats, 0o755)
 
-    # (b) a PLAN.md that exists and cannot be read
+    # (b) a plan file that exists and cannot be read
     with tempfile.TemporaryDirectory() as td:
         _, plan = build(td)
         try:
             os.chmod(plan, 0o000)
             r = run(project_dir=td)
             check("case_22b_unreadable_plan_file_exits_2",
-                  r.returncode == 2 and "PLAN.md" in r.stderr,
+                  r.returncode == 2 and "plan.yaml" in r.stderr,
                   f"exit {r.returncode} stderr={r.stderr[:200]!r}")
         finally:
             os.chmod(plan, 0o644)
 
-    # (c) a PLAN.md that is present but will not resolve. `glob` used lexists; the
+    # (c) a plan file present but which will not resolve. `glob` used lexists; the
     # single-walk rewrite used os.path.isfile, which SWALLOWS OSError — measured as a
     # regression against the previous commit, exit 2 became exit 0 and silent.
     with tempfile.TemporaryDirectory() as td:
@@ -604,7 +635,7 @@ def case_22():
         os.symlink(os.path.join(td, "nowhere-at-all"), plan)
         r = run(project_dir=td)
         check("case_22c_broken_symlink_plan_is_reported_not_skipped",
-              r.returncode == 2 and "PLAN.md" in r.stderr,
+              r.returncode == 2 and "plan.yaml" in r.stderr,
               f"exit {r.returncode} stdout={r.stdout[:150]!r} stderr={r.stderr[:200]!r}")
 
     # (d) THE DISCRIMINATOR. Every case above passes against a guard that exits 2 always.
@@ -679,7 +710,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-dev-ops
     depends_on: []
-    status: pending
+    status: ready
     files: [%s]
     verify: |
       true
@@ -688,13 +719,15 @@ tasks:
 """
 
 
-def _yaml_project(td, files=".harness/harness.json", extra="", status="pending"):
+def _yaml_project(td, files=".harness/harness.json", extra="", status="ready"):
     """A fixture project whose feature carries a plan.yaml, with the REAL manifest so
     resolution is against the same globs production uses.
 
-    `status` overrides the template's fixed `status: pending`; `status=None` omits the
-    field entirely (the absent-status shape). Default is the original template value, so
-    every existing caller is unaffected.
+    `status` overrides the template's fixed `status: ready`; `status=None` omits the
+    field entirely (the absent-status shape). THE DEFAULT IS `ready`, NOT `pending`
+    (FEAT-41 T-04): `pending` was plan.yaml's private third value and is no longer in the
+    vocabulary at all, so a fixture still carrying it would make every case in this file
+    fail on the status check rather than on what it means to test.
     """
     fd = os.path.join(td, ".harness", "harness", "features", "FEAT-A")
     os.makedirs(fd, exist_ok=True)
@@ -703,12 +736,97 @@ def _yaml_project(td, files=".harness/harness.json", extra="", status="pending")
               os.path.join(td, ".harness", "team-config.yaml"))
     text = PLAN_YAML % files
     if status is None:
-        text = text.replace("    status: pending\n", "", 1)
-    elif status != "pending":
-        text = text.replace("status: pending", f"status: {status}", 1)
+        text = text.replace("    status: ready\n", "", 1)
+    elif status != "ready":
+        text = text.replace("status: ready", f"status: {status}", 1)
     with open(os.path.join(fd, "plan.yaml"), "w") as f:
         f.write(text + extra)
     return fd
+
+
+# TWO FIXTURE SHAPES, EACH WRITTEN ONCE. The task-status cases and the top-level-station cases
+# each ran the same four lines per value — build a project, run, assert — six times over, which
+# is what put this case at cognitive 16 and ABC 47.9 while the code did one simple thing twice.
+def _run_with_task_status(status):
+    """Run the checker against a project whose single task carries `status`."""
+    with tempfile.TemporaryDirectory() as td:
+        _yaml_project(td, status=status)
+        return run(project_dir=td)
+
+
+def _run_with_top_level_status(status):
+    """Run the checker against a project whose plan carries a TOP-LEVEL `status`.
+
+    `status=None` writes no key at all — the absent-station shape, which is legal: a plan that
+    has not been given a station is not a plan that is wrong about one. The template has no
+    top-level status, so the absent case is the untouched file rather than a deletion.
+    """
+    with tempfile.TemporaryDirectory() as td:
+        feature_dir = _yaml_project(td)
+        path = os.path.join(feature_dir, "plan.yaml")
+        with open(path, encoding="utf-8") as stream:
+            body = stream.read()
+        if status is not None:
+            body = body.replace("feature: FEAT-A\n",
+                                f"feature: FEAT-A\nstatus: {status}\n", 1)
+        with open(path, "w", encoding="utf-8") as stream:
+            stream.write(body)
+        return run(project_dir=td)
+
+
+def _check_station_accepted(name, result):
+    check(name, result.returncode == 0 and "0 violation(s)" in result.stdout,
+          f"exit {result.returncode}: {result.stdout[:200]!r}")
+
+
+def _check_station_violation(name, value, result):
+    """A rejection must NAME THE VALUE. An exit code alone would pass on any violation at
+    all, including one about a path — so the offending word is asserted in the output."""
+    check(name, result.returncode == 1 and repr(value) in result.stdout,
+          f"exit {result.returncode}: {result.stdout[:300]!r}")
+
+
+def case_41_t04_task_station_vocabulary():
+    """FEAT-41 T-04: plan.yaml's per-task status is the MANDATED station vocabulary.
+
+    The point of the change is that one word now means one thing everywhere, so the cases that
+    matter most are the NEGATIVE ones: `pending`, which was plan.yaml's own third value and is
+    now nothing at all, and `Building`, the capitalised board spelling a person actually types.
+    """
+    # The vocabulary is READ, not respelled — six stations plus the terminal marker.
+    # A FUNCTION, not a module constant: the import it needs is lazy so cases 19b/19b2/21 can
+    # still run this file as a lone copy in a temp dir. See its docstring.
+    legal = tuple(cpr().legal_task_statuses())
+    check("case_41a_legal_task_statuses_is_the_mandate_plus_the_terminal_marker",
+          legal == ("backlog", "plan", "ready", "building", "review", "done", "abandoned"),
+          f"got {legal!r}")
+
+    for station in legal:
+        _check_station_accepted(f"case_41b_task_status_{station}_is_accepted",
+                                _run_with_task_status(station))
+
+    # `pending` is THE regression this task exists to prevent: it was legal yesterday.
+    for bad in ("pending", "Building", "Done", "shipped", "in-progress"):
+        _check_station_violation(f"case_41c_task_status_{bad}_is_a_VIOLATION_naming_the_value",
+                                 bad, _run_with_task_status(bad))
+
+
+def case_41_t04_top_level_station_vocabulary():
+    """FEAT-41 T-04: the feature's own top-level station is checked exactly like a task's,
+    except that its ABSENCE is legal — T-07 is what adds the key to most plans, and until then
+    a plan without one is un-migrated rather than wrong."""
+    absent = _run_with_top_level_status(None)
+    check("case_41d_an_absent_top_level_status_is_not_a_violation",
+          absent.returncode == 0, f"exit {absent.returncode}: {absent.stdout[:200]!r}")
+
+    for station in ("ready", "building", "done", "abandoned"):
+        _check_station_accepted(f"case_41e_top_level_status_{station}_is_accepted",
+                                _run_with_top_level_status(station))
+
+    for bad in ("pending", "Done", "nonsense"):
+        _check_station_violation(
+            f"case_41f_top_level_status_{bad}_is_a_VIOLATION_naming_the_value",
+            bad, _run_with_top_level_status(bad))
 
 
 def case_23():
@@ -912,43 +1030,50 @@ def case_24():
     and therefore still checked. That noise is why issue #133's gate could never be
     switched on.
 
-    FINISHED_STATUSES is now ("Done",) — every prior board column (D-09/D-10 collapsed
-    "shipped" and "abandoned" into Done) is checked, and only Done skips. All six board
-    columns are asserted by name below, so a value drops out only if this loop is edited to
-    drop it, never silently by a count changing. The lowercase "done" case is the one that
-    proves D-11's case sensitivity is actually load-bearing here, not just documented.
+    THE FINISHED SET IS ("done", TERMINAL_MARKER) AND IS READ FROM plan.yaml (FEAT-41 T-07).
+    Every other station is checked; only those two skip. All six stations are asserted by name
+    below, so a value drops out only if this loop is edited to drop it, never silently by a
+    count changing. The CAPITALISED "Done" case is now the one that proves the case sensitivity
+    is load-bearing — the polarity flipped with the vocabulary, and it is the same assertion:
+    the spelling that is not the vocabulary's is CHECKED, never skipped.
 
     Both directions, because a skip that skips everything would pass the first case alone.
     """
     results = []
-    for status, want_checked in (("Backlog", True), ("Plan", True), ("Ready", True),
-                                 ("Building", True), ("Review", True), ("Done", False),
-                                 ("done", True)):
+    for station, want_checked in (("backlog", True), ("plan", True), ("ready", True),
+                                  ("building", True), ("review", True), ("done", False),
+                                  ("abandoned", False), ("Done", True)):
         with tempfile.TemporaryDirectory() as td:
             fd = _yaml_project(td, files=".agents/skills/harness-spec-driven/SKILL.md")
-            with open(os.path.join(fd, "feature.json"), "w") as f:
-                f.write(f"feature_id: FEAT-A\nstatus: {status}\n")
+            # The station goes in plan.yaml's top-level `status`, which _yaml_project already
+            # wrote — replace it rather than appending a second key.
+            plan_path = os.path.join(fd, "plan.yaml")
+            text = open(plan_path).read()
+            if text.startswith("schema:"):
+                text = text.replace("\n", f"\nstatus: {station}\n", 1)
+            else:
+                text = f"status: {station}\n" + text
+            with open(plan_path, "w") as f:
+                f.write(text)
             r = run(project_dir=td)
             checked = "ungranted (NOBODY)" in r.stdout
             ok = checked == want_checked
             results.append(ok)
-            check(f"case_24_{status}_is_{'checked' if want_checked else 'skipped'}",
+            check(f"case_24_{station}_is_{'checked' if want_checked else 'skipped'}",
                   ok, f"exit {r.returncode}, checked={checked}: {r.stdout[:160]!r}")
 
-    # FINISHED_STATUSES is a SUBSET of the schema's status enum, never equality — a status
-    # can legitimately be in the enum without being finished. Without this, the constant and
-    # feature-schema.json are two copies of the same vocabulary with nothing tying them
-    # together (D-04).
-    import json
-    schema_path = os.path.join(REPO_ROOT, ".claude", "skills", "harness", "bin",
-                                "feature-schema.json")
-    with open(schema_path) as f:
-        schema_enum = set(json.load(f)["properties"]["status"]["enum"])
-    finished = set(cpr().FINISHED_STATUSES)
-    ok = finished.issubset(schema_enum)
+    # THE SUBSET TIE IS NOW TO THE STATION VOCABULARY, NOT THE SCHEMA ENUM. feature-schema.json
+    # no longer HAS a status enum — T-07 deleted the key — so the old assertion could only be
+    # rewritten or dropped, and dropping it would leave the finished set tied to nothing. It is
+    # tied to factory_config instead, which is the source plan-merge.py validates writes
+    # against: a station this checker calls finished is exactly a station that tool would write.
+    import factory_config
+    vocabulary = set(factory_config.MANDATED_STATIONS) | {factory_config.TERMINAL_MARKER}
+    finished = set(cpr().finished_stations())
+    ok = finished.issubset(vocabulary)
     results.append(ok)
-    check("case_24_FINISHED_STATUSES_is_a_subset_of_the_schema_status_enum",
-          ok, f"FINISHED_STATUSES={finished}, schema enum={schema_enum}")
+    check("case_24_finished_stations_is_a_subset_of_the_station_vocabulary",
+          ok, f"finished_stations={finished}, vocabulary={vocabulary}")
 
     # A feature we CANNOT classify is checked, never skipped. The failure that matters is a
     # live plan going unexamined; an old one examined twice costs nothing.
@@ -1019,12 +1144,16 @@ def case_24():
     # violation), Building -> reached and checked (1 plan, 1 violation on the
     # fixture's ungranted path). Only the status flips the outcome, proving
     # the document was actually parsed and _is_shipped actually consulted.
-    def _eleven_key_doc(status):
+    # THE FULL-SHAPE DOCUMENT IS NOW TEN KEYS AND CARRIES NO STATION (FEAT-41 T-07). The point
+    # of this sub-case is unchanged — a REALISTIC feature.json, not a two-key stub, so the skip
+    # is proven end to end against the document production actually writes — but the station it
+    # used to carry moved to plan.yaml, and `additionalProperties: false` now makes a `status`
+    # key here a schema error rather than the thing under test.
+    def _ten_key_doc():
         return {
             "feature_id": "FEAT-A",
             "branch": "none",
             "pr": None,
-            "status": status,
             "review_sha": "none",
             "cycles_used": 0,
             "max_total_cycles": 10,
@@ -1034,25 +1163,39 @@ def case_24():
             "factory": {},
         }
 
+    def _with_station(fd, station):
+        plan_path = os.path.join(fd, "plan.yaml")
+        text = open(plan_path).read()
+        with open(plan_path, "w") as f:
+            f.write(text.replace("\n", f"\nstatus: {station}\n", 1))
+
     with tempfile.TemporaryDirectory() as td:
         fd = _yaml_project(td, files=".agents/skills/harness-spec-driven/SKILL.md")
         with open(os.path.join(fd, "feature.json"), "w") as f:
-            f.write(json.dumps(_eleven_key_doc("Done")))
+            f.write(json.dumps(_ten_key_doc()))
+        _with_station(fd, "done")
         r_done = run(project_dir=td)
+
+    with tempfile.TemporaryDirectory() as td:
+        # A SECOND FIXTURE RATHER THAN A REWRITE OF THE FIRST: the station now lives in the
+        # plan, so flipping it in place would mean splicing the same file twice and asserting
+        # against whichever splice won. Two directories is cheaper than that ambiguity.
+        fd = _yaml_project(td, files=".agents/skills/harness-spec-driven/SKILL.md")
         with open(os.path.join(fd, "feature.json"), "w") as f:
-            f.write(json.dumps(_eleven_key_doc("Building")))
+            f.write(json.dumps(_ten_key_doc()))
+        _with_station(fd, "building")
         r_building = run(project_dir=td)
 
-        ok_done = ("ungranted (NOBODY)" not in r_done.stdout
-                   and "across 0 plan(s)" in r_done.stdout)
-        ok_building = ("ungranted (NOBODY)" in r_building.stdout
-                       and "across 1 plan(s)" in r_building.stdout)
-        ok = ok_done and ok_building
-        results.append(ok)
-        check("case_24_eleven_key_feature_json_Done_is_skipped_end_to_end",
-              ok,
-              f"Done: exit {r_done.returncode}, stdout={r_done.stdout[:200]!r} | "
-              f"Building: exit {r_building.returncode}, stdout={r_building.stdout[:200]!r}")
+    ok_done = ("ungranted (NOBODY)" not in r_done.stdout
+               and "across 0 plan(s)" in r_done.stdout)
+    ok_building = ("ungranted (NOBODY)" in r_building.stdout
+                   and "across 1 plan(s)" in r_building.stdout)
+    ok = ok_done and ok_building
+    results.append(ok)
+    check("case_24_ten_key_feature_json_with_a_done_plan_station_is_skipped_end_to_end",
+          ok,
+          f"done: exit {r_done.returncode}, stdout={r_done.stdout[:200]!r} | "
+          f"building: exit {r_building.returncode}, stdout={r_building.stdout[:200]!r}")
     return all(results)
 
 
@@ -1075,12 +1218,12 @@ def case_25():
     with tempfile.TemporaryDirectory() as td:
         _yaml_project(td, status="Building")
         r = run(project_dir=td)
-        legal = cpr().LEGAL_TASK_STATUSES
+        legal = cpr().legal_task_statuses()
         ok = (r.returncode != 0
               and "VIOLATION T-01" in r.stdout
               and "Building" in r.stdout
               and all(v in r.stdout for v in legal))
-        check("case_25b_status_Building_capital_B_is_a_VIOLATION_naming_the_three_legal_values",
+        check("case_25b_status_Building_capital_B_is_a_VIOLATION_naming_the_legal_values",
               ok, f"exit {r.returncode}: {r.stdout[:300]!r}, legal={legal}")
 
     with tempfile.TemporaryDirectory() as td:
@@ -1363,10 +1506,15 @@ def case_20():
 def _inv_project(td, features):
     """A fixture project with N feature dirs and a stub check-state.sh.
 
-    `features` is a list of (dir_name, status, brief_text, plan_text_or_None). A plan of
+    `features` is a list of (dir_name, station, brief_text, plan_text_or_None). A plan of
     None writes NO plan.yaml at all — that is the FEAT-34 shape, the one that actually got
     through: a signed BRIEF claiming an invariant number, with no plan yet in existence, so
-    a plan-only scan never sees it.
+    a plan-only scan never sees it. Such a feature has nowhere to record a station and is
+    therefore never shipped, which is the migration's own rule (FEAT-41 T-07) rather than a
+    fixture limitation.
+
+    THE STATION GOES IN plan.yaml, LOWERCASE, and feature.json carries none — `_is_shipped`
+    reads the plan now, and feature-schema.json's additionalProperties would reject the key.
     """
     import shutil as _sh
     os.makedirs(os.path.join(td, ".harness"), exist_ok=True)
@@ -1377,23 +1525,23 @@ def _inv_project(td, features):
     # The LIVE set. Only these three exist in this fixture's gate script.
     with open(os.path.join(binp, "check-state.sh"), "w") as f:
         f.write("#!/bin/bash\n# INV-1 something\n# INV-2 another\n# INV-3 a third\n")
-    for name, status, brief, plan in features:
+    for name, station, brief, plan in features:
         fd = os.path.join(td, ".harness", "harness", "features", name)
         os.makedirs(fd, exist_ok=True)
         with open(os.path.join(fd, "feature.json"), "w") as f:
-            json.dump({"feature_id": name, "status": status}, f)
+            json.dump({"feature_id": name}, f)
         with open(os.path.join(fd, "BRIEF.md"), "w") as f:
             f.write(brief)
         if plan is not None:
             with open(os.path.join(fd, "plan.yaml"), "w") as f:
-                f.write(plan)
+                f.write(f"status: {station}\n" + plan)
     return td
 
 
 _INV_PLAN = ("approval:\n  status: approved\n\ntasks:\n"
              "  - id: T-01\n    title: t\n    traces: [REQ-01]\n"
              "    change_type: logic\n    execution_mode: main-session-direct\n"
-             "    execution_reason: none\n    status: pending\n"
+             "    execution_reason: none\n    status: ready\n"
              "    files:\n      - .harness/harness.json\n"
              "    verify: |\n      true\n    intent: |\n      x\n")
 
@@ -1419,8 +1567,8 @@ def case_26():
     # (a) THE COLLISION. Two unshipped features, same unclaimed number, both named.
     with tempfile.TemporaryDirectory() as td:
         _inv_project(td, [
-            ("FEAT-A", "Ready", "The new invariant is INV-9.\n", _INV_PLAN),
-            ("FEAT-B", "Plan", "Add INV-9, which reports the thing.\n", _INV_PLAN),
+            ("FEAT-A", "ready", "The new invariant is INV-9.\n", _INV_PLAN),
+            ("FEAT-B", "plan", "Add INV-9, which reports the thing.\n", _INV_PLAN),
         ])
         r = run(project_dir=td)
         out = r.stdout + r.stderr
@@ -1432,8 +1580,8 @@ def case_26():
     # (b) DIFFERENT numbers are clean — without this, "always violate" passes (a).
     with tempfile.TemporaryDirectory() as td:
         _inv_project(td, [
-            ("FEAT-A", "Ready", "The new invariant is INV-9.\n", _INV_PLAN),
-            ("FEAT-B", "Plan", "Add INV-10, which reports the thing.\n", _INV_PLAN),
+            ("FEAT-A", "ready", "The new invariant is INV-9.\n", _INV_PLAN),
+            ("FEAT-B", "plan", "Add INV-10, which reports the thing.\n", _INV_PLAN),
         ])
         r = run(project_dir=td)
         out = r.stdout + r.stderr
@@ -1444,8 +1592,8 @@ def case_26():
     # (c) THE SHAPE THAT ACTUALLY GOT THROUGH: a feature with a BRIEF and NO plan.yaml.
     with tempfile.TemporaryDirectory() as td:
         _inv_project(td, [
-            ("FEAT-A", "Ready", "Add INV-9 to the gate.\n", _INV_PLAN),
-            ("FEAT-B", "Plan", "The new invariant is INV-9.\n", None),
+            ("FEAT-A", "ready", "Add INV-9 to the gate.\n", _INV_PLAN),
+            ("FEAT-B", "plan", "The new invariant is INV-9.\n", None),
         ])
         r = run(project_dir=td)
         out = r.stdout + r.stderr
@@ -1459,8 +1607,8 @@ def case_26():
     #     check fires on every plan that mentions an existing rule.
     with tempfile.TemporaryDirectory() as td:
         _inv_project(td, [
-            ("FEAT-A", "Ready", "This interacts with INV-2.\n", _INV_PLAN),
-            ("FEAT-B", "Plan", "INV-2 already grades that card.\n", _INV_PLAN),
+            ("FEAT-A", "ready", "This interacts with INV-2.\n", _INV_PLAN),
+            ("FEAT-B", "plan", "INV-2 already grades that card.\n", _INV_PLAN),
         ])
         r = run(project_dir=td)
         out = r.stdout + r.stderr
@@ -1472,8 +1620,8 @@ def case_26():
     #     live feature reusing it is a different problem from two live features colliding.
     with tempfile.TemporaryDirectory() as td:
         _inv_project(td, [
-            ("FEAT-A", "Done", "Added INV-9.\n", _INV_PLAN),
-            ("FEAT-B", "Plan", "The new invariant is INV-9.\n", _INV_PLAN),
+            ("FEAT-A", "done", "Added INV-9.\n", _INV_PLAN),
+            ("FEAT-B", "plan", "The new invariant is INV-9.\n", _INV_PLAN),
         ])
         r = run(project_dir=td)
         out = r.stdout + r.stderr
@@ -1486,8 +1634,8 @@ def case_26():
     #     fire on a feature for documenting the collision it already resolved.
     with tempfile.TemporaryDirectory() as td:
         _inv_project(td, [
-            ("FEAT-A", "Ready", "Add INV-9 to the gate.\n", _INV_PLAN),
-            ("FEAT-B", "Plan",
+            ("FEAT-A", "ready", "Add INV-9 to the gate.\n", _INV_PLAN),
+            ("FEAT-B", "plan",
              "<!-- invariants: 10 -->\nThe new invariant is INV-10, not INV-9, "
              "because FEAT-A holds INV-9 and builds first.\n", _INV_PLAN),
         ])
@@ -1505,8 +1653,8 @@ def case_26():
             # alone would catch the pair and this case would pass without the declaration
             # path existing at all — which is exactly how it passed before the feature
             # was implemented.
-            ("FEAT-A", "Ready", "<!-- invariants: 9 -->\nAdds one invariant.\n", _INV_PLAN),
-            ("FEAT-B", "Plan", "<!-- invariants: 9 -->\nAdds one invariant.\n", _INV_PLAN),
+            ("FEAT-A", "ready", "<!-- invariants: 9 -->\nAdds one invariant.\n", _INV_PLAN),
+            ("FEAT-B", "plan", "<!-- invariants: 9 -->\nAdds one invariant.\n", _INV_PLAN),
         ])
         r = run(project_dir=td)
         out = r.stdout + r.stderr
@@ -1538,6 +1686,25 @@ def write_prior_route_validator(directory):
 
 
 def _owner_branch(directory):
+    """The case_27 fixture, whose task status must be legal in TWO vocabularies at once.
+
+    case_27b runs a PINNED HISTORICAL copy of check-plan-routes.py (the base64 fixture
+    write_prior_route_validator restores) to prove the prior revision reported a false OK.
+    That binary is frozen, so it still bounds a task status by plan.yaml's old private set
+    ("pending", "building", "done") — while the CURRENT validator bounds it by the six
+    stations plus the terminal marker (FEAT-41 T-04). The fixture is shared by both runs,
+    so its status has to sit in the INTERSECTION of the two sets, which is exactly
+    {"building", "done"}.
+
+    `building` is the choice: `done` would describe a shipped feature, and a fixture that
+    claims to be finished invites a future shipped-skip to make both cases vacuous.
+
+    Do NOT let this default follow _yaml_project's. That default is `ready`, correctly — it
+    is the not-started station for every OTHER case in this file, all of which run the
+    current validator. Pointing the historical binary at `ready` makes it report a real
+    violation, exit 1, and red case_27b for a reason that has nothing to do with what
+    case_27 tests. Measured when T-04 landed: exactly that.
+    """
     owner = os.path.join(directory, "owner")
     branch = os.path.join(owner, ".claude", "worktrees", "feature")
     gitdir = os.path.join(owner, ".git", "worktrees", "feature")
@@ -1545,7 +1712,7 @@ def _owner_branch(directory):
     os.makedirs(branch, exist_ok=True)
     with open(os.path.join(branch, ".git"), "w") as stream:
         stream.write(f"gitdir: {gitdir}\n")
-    _yaml_project(branch, files=GRANTED_PATH)
+    _yaml_project(branch, files=GRANTED_PATH, status="building")
     return owner, branch
 
 
@@ -1601,27 +1768,159 @@ def case_27():
         _case_27_unreadable(directory)
 
 
+def _shipped_probe(td, name, plan_station=None, plan_md=False):
+    """A feature directory for `_is_shipped`, built one shape per call.
+
+    Extracted so the case below is a list of claims rather than four inline fixtures — which is
+    what put it under the grade floor. `plan_station=None` writes no plan.yaml; `plan_md=True`
+    adds the pre-format PLAN.md.
+    """
+    fd = os.path.join(td, name)
+    os.makedirs(fd, exist_ok=True)
+    with open(os.path.join(fd, "feature.json"), "w") as f:
+        json.dump({"feature_id": name}, f)
+    if plan_station is not None:
+        with open(os.path.join(fd, "plan.yaml"), "w") as f:
+            f.write(f"feature: {name}\nstatus: {plan_station}\ntasks: []\n")
+    if plan_md:
+        with open(os.path.join(fd, "PLAN.md"), "w") as f:
+            f.write("# PLAN\n\n### T-01 something\n")
+    return fd
+
+
+# Each row: directory shape -> what `_is_shipped` must answer, and why that direction is the safe
+# one. THE NEGATIVE ROWS ARE LOAD-BEARING: `done` alone passes against `return True`, which would
+# skip every plan in the tree — the fail-OPEN direction on the one file this function may trust.
+_T07_SHIPPED_ROWS = (
+    ("FEAT-A-shipped",     {"plan_station": "done"},                  True),
+    ("FEAT-B-building",    {"plan_station": "building"},              False),
+    ("FEAT-C-no-plan",     {},                                        False),
+    # A PLAN.md and no plan.yaml is the pre-format record: finished by construction, because no
+    # production code in this tree writes a PLAN.md. This row is the branch T-07's intent did not
+    # specify and the real tree forced — without it, ten legacy features stopped being skipped
+    # and the checker reported 44 violations across 9 long-shipped plans.
+    ("FEAT-D-plan-md-era", {"plan_md": True},                         True),
+    # And the pairing, so the row above cannot be read as "any legacy directory is skipped".
+    ("FEAT-E-both",        {"plan_station": "building", "plan_md": True}, False),
+)
+
+
+def case_41_t07_is_shipped_reads_the_plan():
+    """FEAT-41 T-07: `_is_shipped` reads the station from the sibling plan.yaml.
+
+    THE POSITIVE SIDE OF THE MIGRATION. The half-applied direction here is fail-CHECKED, not
+    fail-open — an un-repointed `_is_shipped` finds no feature.json status and returns False, so
+    every shipped feature gets examined again. That is the harmless direction and exactly why it
+    needs its own case: nothing else in this suite would go red for it, and the skip would simply
+    stop working while the checker still exited 0.
+    """
+    mod = cpr()
+    with tempfile.TemporaryDirectory() as td:
+        for name, shape, want in _T07_SHIPPED_ROWS:
+            got = mod._is_shipped(_shipped_probe(td, name, **shape))
+            check(f"case_41_t07_is_shipped_{name}_is_{'shipped' if want else 'checked'}",
+                  got is want, f"_is_shipped returned {got!r} for {name} built as {shape}")
+
+
+# THE REGISTRATION IS DATA, NOT CONTROL FLOW. It was a flat list of calls, and every case
+# added one more statement to one function: at 18 entries it graded 3, at 19 it graded below
+# the floor, and the 19th was a one-line addition that had nothing to do with main's own
+# complexity. A list that costs a grade point per element is the wrong shape for a registry —
+# iterating it costs one, whatever the length, so the 40th case is as free as the 2nd.
+#
+# ORDER IS PRESERVED EXACTLY, because these are not independent: case_20 and case_21 probe
+# root resolution with cwd-sensitive fixtures, and reordering them has broken this file before.
+# The tuple is read top to bottom, in the order the flat list ran.
+_T09_BASE_MANIFEST = ("agents:\n"
+                      "  harness-pm:\n"
+                      "    domain:\n"
+                      "      - { path: .harness/x.md, upsert: true }\n")
+
+
+def _t09_devpair(td, branch_text):
+    """(_manifest_deviation(branch, owner)) for an owner carrying _T09_BASE_MANIFEST.
+
+    A BUILDER RATHER THAN THREE INLINE FIXTURES, because the same two directories and the same
+    owner manifest are what all three sub-cases need — and because the code-grade gate rejected
+    the inline version, which is the same complexity finding T-07 hit in this file.
+    """
+    import importlib.util
+    import harness_boundary
+    owner = os.path.join(td, "owner")
+    branch = os.path.join(td, "branch")
+    for d in (owner, branch):
+        os.makedirs(os.path.join(d, ".harness"), exist_ok=True)
+    with open(os.path.join(owner, harness_boundary.MARKER), "w") as f:
+        f.write(_T09_BASE_MANIFEST)
+    with open(os.path.join(branch, harness_boundary.MARKER), "w") as f:
+        f.write(branch_text)
+    spec = importlib.util.spec_from_file_location("_cpr_dev", SCRIPT)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod._manifest_deviation(branch, owner)
+
+
+def case_41_t09_manifest_deviation_is_parsed_not_byte():
+    """FEAT-41 T-09/T-15: a COMMENT-only manifest difference is not a route deviation.
+
+    THE PAIR IS THE POINT. A comment-only difference must be SILENT and a route difference must
+    still DEVIATE; either assertion alone passes against a broken implementation — the first
+    against a function that never deviates, the second against the byte compare this replaces.
+
+    WHY IT EXISTS. T-09 was required to re-word two trailing comments in the live manifest,
+    changing no grant and no domain. The byte compare read that as a deviation, counted it as a
+    violation, and reddened six cases in this very file — each of which runs a fixture plan
+    against the live checkout. Any feature re-wording a comment here inherited that.
+    """
+    with tempfile.TemporaryDirectory() as td:
+        dev = _t09_devpair(td, "# a comment the owner copy does not carry\n"
+                               + _T09_BASE_MANIFEST + "# and a trailing one\n")
+        check("case_41_t09_comment_only_manifest_difference_is_NOT_a_deviation",
+              dev is None, f"got {dev!r}")
+
+    # THE DISCRIMINATOR: a real ROUTE difference still deviates.
+    with tempfile.TemporaryDirectory() as td:
+        dev = _t09_devpair(td, _T09_BASE_MANIFEST.replace(".harness/x.md", ".harness/y.md"))
+        check("case_41_t09_a_ROUTE_difference_still_deviates",
+              dev is not None and "DEVIATION" in dev, f"got {dev!r}")
+
+    # AN UNPARSEABLE BRANCH MANIFEST DEVIATES — it cannot be shown to agree, and this function's
+    # job is to say when agreement is not established.
+    with tempfile.TemporaryDirectory() as td:
+        dev = _t09_devpair(td, "agents: [unclosed\n")
+        check("case_41_t09_an_unparseable_branch_manifest_still_deviates",
+              dev is not None, f"got {dev!r}")
+
+
+CASES = (
+    case_41_t09_manifest_deviation_is_parsed_not_byte,
+    case_01_02_03,
+    case_04,
+    case_05,
+    case_06_07,
+    case_08_09_16,
+    case_10_11_12,
+    case_13,
+    case_14_15,
+    case_17,
+    case_18,
+    case_19,
+    case_20,
+    case_21,
+    case_22,
+    case_23,
+    case_24,
+    case_25,
+    case_26,
+    case_27,
+    case_41_t04_task_station_vocabulary,
+    case_41_t04_top_level_station_vocabulary,
+    case_41_t07_is_shipped_reads_the_plan,
+)
+
 def main():
-    case_01_02_03()
-    case_04()
-    case_05()
-    case_06_07()
-    case_08_09_16()
-    case_10_11_12()
-    case_13()
-    case_14_15()
-    case_17()
-    if not case_18():
-        failures.append('case_18')
-    case_19()
-    case_20()
-    case_21()
-    case_22()
-    case_23()
-    case_24()
-    case_25()
-    case_26()
-    case_27()
+    for case in CASES:
+        case()
 
     if failures:
         print(f"\n{len(failures)} FAILURE(S): {failures}")

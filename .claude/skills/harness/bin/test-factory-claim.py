@@ -196,21 +196,21 @@ def unpatch_gh(saved):
 # Fixture builders.
 # --------------------------------------------------------------------------
 
-def repo_board(owner=OWNER, number=BOARD, station_field=STATION_FIELD,
-               ready="Ready", building="Building", review="Review",
-               backlog="Backlog", plan="Plan", done="Done"):
+def repo_board(owner=OWNER, number=BOARD, station_field=STATION_FIELD):
     """A repository's own `github.board` block (FEAT-24 T-02/T-03) — read remotely through
-    `factory_config.product_config`, never nested under a `repos[]` fleet entry. The six-key
-    stations map is D-06's required set (widened by FEAT-33 T-02): backlog, plan and done are
-    read by no case in this file, but validate_board now requires all six to be present."""
+    `factory_config.product_config`, never nested under a `repos[]` fleet entry.
+
+    THE PER-STATION PARAMETERS ARE GONE (FEAT-41 T-01). They existed so a fixture could give a
+    repository its own column names; the declaration is now an ordered lowercase list checked
+    against factory_config.MANDATED_STATIONS, and the columns are derived by
+    factory_config.station_column. What still varies per repository — and is what every
+    per-repository-board case in this file actually turns on — is the owner, the board number and
+    the station field."""
     return {
         "owner": owner,
         "number": number,
         "station_field": station_field,
-        "stations": {
-            "backlog": backlog, "plan": plan, "ready": ready, "building": building,
-            "review": review, "done": done,
-        },
+        "stations": ["backlog", "plan", "ready", "building", "review", "done"],
     }
 
 
@@ -247,15 +247,13 @@ def good_fleet_dict(workspace_root, repos=None):
     }
 
 
-def two_repo_fleet(workspace_root, board_b_number=BOARD_B, station_field_b=STATION_FIELD_B,
-                    ready_b="ReadyB", building_b="BuildingB", review_b="ReviewB"):
+def two_repo_fleet(workspace_root, board_b_number=BOARD_B, station_field_b=STATION_FIELD_B):
     """REPO on board BOARD (owner OWNER), REPO_B on a DIFFERENT board — the per-repository-board
     cases (FEAT-16 T-02)."""
     return good_fleet_dict(workspace_root, repos=[
         repo_dict(REPO),
         repo_dict(REPO_B, board=repo_board(
             number=board_b_number, station_field=station_field_b,
-            ready=ready_b, building=building_b, review=review_b,
         )),
     ])
 
@@ -1031,7 +1029,7 @@ check(
 rec = Recorder()
 ws = tempfile.mkdtemp(prefix="claim-ws-p1-")
 fleet = two_repo_fleet(ws)
-rec.board_field_options[(OWNER, BOARD_B)] = {STATION_FIELD_B: ["ReadyB", "BuildingB", "ReviewB"]}
+rec.board_field_options[(OWNER, BOARD_B)] = {STATION_FIELD_B: ["Ready", "Building", "Review"]}
 rec.items_by_board[(OWNER, BOARD)] = []
 rec.items_by_board[(OWNER, BOARD_B)] = []
 code, out, err = run_main(rec, ["--as", AS_LOGIN], fleet_dict=fleet)
@@ -1041,8 +1039,8 @@ check("(P1) poll mode queries both boards, not just one",
 check("(P1) board A's query is built from board A's own field and ready option",
       any(c[1] == (OWNER, BOARD, f'{STATION_FIELD}:"Ready" is:open') for c in poll_calls),
       poll_calls)
-check("(P1) board B's query is built from board B's own field and ready option, not board A's",
-      any(c[1] == (OWNER, BOARD_B, f'{STATION_FIELD_B}:"ReadyB" is:open') for c in poll_calls),
+check("(P1) board B's query is built from board B's own FIELD, not board A's — the ready COLUMN is now the same on both, since FEAT-41 T-01 mandates the names",
+      any(c[1] == (OWNER, BOARD_B, f'{STATION_FIELD_B}:"Ready" is:open') for c in poll_calls),
       poll_calls)
 
 # P2. a candidate found on repository A is claimed using A's board number, and B's board is
@@ -1050,7 +1048,7 @@ check("(P1) board B's query is built from board B's own field and ready option, 
 rec = Recorder()
 ws = tempfile.mkdtemp(prefix="claim-ws-p2-")
 fleet = two_repo_fleet(ws)
-rec.board_field_options[(OWNER, BOARD_B)] = {STATION_FIELD_B: ["ReadyB", "BuildingB", "ReviewB"]}
+rec.board_field_options[(OWNER, BOARD_B)] = {STATION_FIELD_B: ["Ready", "Building", "Review"]}
 rec.items_by_board[(OWNER, BOARD)] = [board_item("iA", 200, REPO)]
 rec.items_by_board[(OWNER, BOARD_B)] = []
 rec.issue_data[200] = issue_data(200, "issue 200", labels=["harness"])
@@ -1068,7 +1066,7 @@ rec = Recorder()
 ws = tempfile.mkdtemp(prefix="claim-ws-p3-")
 fleet = two_repo_fleet(ws)
 rec.board_field_options[(OWNER, BOARD)] = {STATION_FIELD: ["Ready", "Building", "Review"]}
-rec.board_field_options[(OWNER, BOARD_B)] = {STATION_FIELD_B: ["ReadyB", "BuildingB"]}  # no ReviewB
+rec.board_field_options[(OWNER, BOARD_B)] = {STATION_FIELD_B: ["Ready", "Building"]}  # no Review column
 code, out, err = run_main(rec, ["--as", AS_LOGIN], fleet_dict=fleet)
 check("(P3) exits 2 (refused)", code == 2, code)
 check("(P3) refusal names board B's board number", f"{OWNER} project {BOARD_B}" in err, err)
@@ -1116,7 +1114,7 @@ check("(P5) exactly one project_field_set call despite the duplicate", len(p5_fi
 rec = Recorder()
 ws = tempfile.mkdtemp(prefix="claim-ws-p6-")
 fleet = two_repo_fleet(ws)
-rec.board_field_options[(OWNER, BOARD_B)] = {STATION_FIELD_B: ["ReadyB", "BuildingB", "ReviewB"]}
+rec.board_field_options[(OWNER, BOARD_B)] = {STATION_FIELD_B: ["Ready", "Building", "Review"]}
 rec.items_by_board[(OWNER, BOARD_B)] = []
 code, out, err = run_main(rec, ["--as", AS_LOGIN, "--repo", REPO_B], fleet_dict=fleet)
 check("(P6) SC-13: --repo on the sole served repository's empty ready station: stdout is empty",

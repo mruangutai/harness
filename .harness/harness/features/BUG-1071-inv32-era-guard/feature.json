@@ -2,7 +2,6 @@
   "feature_id": "BUG-1071-inv32-era-guard",
   "branch": "feat/BUG-1071-inv32-era-guard",
   "pr": null,
-  "status": "Review",
   "review_sha": "5e81c661",
   "cycles_used": 2,
   "max_total_cycles": 10,

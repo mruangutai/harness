@@ -2,7 +2,6 @@
   "feature_id": "FEAT-08-remove-cost-tracking",
   "branch": "feat/FEAT-08-remove-cost-tracking",
   "pr": 131,
-  "status": "Done",
   "review_sha": "942505e",
   "cycles_used": 5,
   "max_total_cycles": 10,

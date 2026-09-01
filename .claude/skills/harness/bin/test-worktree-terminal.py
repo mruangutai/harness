@@ -42,13 +42,20 @@ def _repo(path, branch="main"):
     return path
 
 
-def _commit_feature(repo, feature_id, status_or_raw, repo_segment="harness"):
+def _commit_feature(repo, feature_id, status_or_raw, repo_segment="harness",
+                    plan_station=None):
     """Commit `.harness/<repo_segment>/features/<feature_id>/feature.json` on the CURRENT
     branch of `repo` (main, for every case here) — classify() reads
     `.harness/<repo_segment>/features`, never a hard-coded `.harness/harness/features`, so a
     fixture for a non-"harness" repo_segment must land its feature.json under that same
     segment or `git ls-tree` legitimately finds nothing there. `status_or_raw` is a dict
-    written as JSON, or a raw string to write verbatim (for the unparseable case)."""
+    written as JSON, or a raw string to write verbatim (for the unparseable case).
+
+    `plan_station` commits a sibling `plan.yaml` carrying that top-level station in the SAME
+    commit (FEAT-41 T-07). Both files land together because the reader resolves one from the
+    other's directory: a plan.yaml committed separately would be absent at the ref the
+    landed-blob read uses, which is a different case from the one being built.
+    """
     rel = os.path.join(".harness", repo_segment, "features", feature_id, "feature.json")
     abs_path = os.path.join(repo, rel)
     os.makedirs(os.path.dirname(abs_path), exist_ok=True)
@@ -57,7 +64,13 @@ def _commit_feature(repo, feature_id, status_or_raw, repo_segment="harness"):
             f.write(status_or_raw)
         else:
             json.dump(status_or_raw, f)
-    subprocess.run(["git", "add", rel], cwd=repo, capture_output=True)
+    paths = [rel]
+    if plan_station is not None:
+        plan_rel = os.path.join(".harness", repo_segment, "features", feature_id, "plan.yaml")
+        with open(os.path.join(repo, plan_rel), "w") as f:
+            f.write(f"feature: {feature_id}\nstatus: {plan_station}\ntasks: []\n")
+        paths.append(plan_rel)
+    subprocess.run(["git", "add"] + paths, cwd=repo, capture_output=True)
     subprocess.run(["git", "commit", "-qm", f"add {feature_id}"], cwd=repo, capture_output=True)
 
 
@@ -80,11 +93,11 @@ def case_classify():
         repo = _repo(os.path.join(tmp, "R"))
 
         # (a) landed Done, exact-named worktree -> terminal.
-        _commit_feature(repo, "FEAT-01-done-thing", {"status": "Done"})
+        _commit_feature(repo, "FEAT-01-done-thing", {}, plan_station="done")
         done_dest = _add_wt(repo, "FEAT-01-done-thing")
 
         # (b) landed Review, exact-named worktree -> omitted from the returned list entirely.
-        _commit_feature(repo, "FEAT-02-review-thing", {"status": "Review"})
+        _commit_feature(repo, "FEAT-02-review-thing", {}, plan_station="review")
         review_dest = _add_wt(repo, "FEAT-02-review-thing")
 
         # (d) never landed at all -> exempt_absent.
@@ -92,7 +105,7 @@ def case_classify():
 
         # (e) short-named worktree whose id is a prefix of exactly one landed Done directory
         # -> terminal, not exempt_absent.
-        _commit_feature(repo, "FEAT-04-short-name-target", {"status": "Done"})
+        _commit_feature(repo, "FEAT-04-short-name-target", {}, plan_station="done")
         short_dest = _add_wt(repo, "FEAT-04")
 
         # (f) feature.json present on the default branch but unparseable -> unresolved.
@@ -100,8 +113,8 @@ def case_classify():
         bad_json_dest = _add_wt(repo, "FEAT-05-bad-json")
 
         # ambiguous prefix: two landed directories share the same short prefix -> unresolved.
-        _commit_feature(repo, "FEAT-06-amb-one", {"status": "Done"})
-        _commit_feature(repo, "FEAT-06-amb-two", {"status": "Done"})
+        _commit_feature(repo, "FEAT-06-amb-one", {}, plan_station="done")
+        _commit_feature(repo, "FEAT-06-amb-two", {}, plan_station="done")
         amb_dest = _add_wt(repo, "FEAT-06")
 
         recs = w.classify(repo)
@@ -186,20 +199,21 @@ def case_deadlock():
     with tempfile.TemporaryDirectory() as tmp:
         repo = _repo(os.path.join(tmp, "R"))
 
-        _commit_feature(repo, "FEAT-07-deadlock-a", {"status": "Review"})
+        _commit_feature(repo, "FEAT-07-deadlock-a", {}, plan_station="review")
         dest_a = _add_wt(repo, "FEAT-07-deadlock-a")
-        # overwrite the WORKING TREE copy to say Done, without committing.
+        # overwrite the WORKING TREE plan.yaml to say done, without committing (FEAT-41 T-07:
+        # the station moved, so the file this case must lie in moved with it).
         wt_feature = os.path.join(dest_a, ".harness", "harness", "features",
-                                   "FEAT-07-deadlock-a", "feature.json")
+                                   "FEAT-07-deadlock-a", "plan.yaml")
         with open(wt_feature, "w") as f:
-            json.dump({"status": "Done"}, f)
+            f.write("feature: FEAT-07-deadlock-a\nstatus: done\ntasks: []\n")
 
-        _commit_feature(repo, "FEAT-08-deadlock-b", {"status": "Done"})
+        _commit_feature(repo, "FEAT-08-deadlock-b", {}, plan_station="done")
         dest_b = _add_wt(repo, "FEAT-08-deadlock-b")
         wt_feature_b = os.path.join(dest_b, ".harness", "harness", "features",
-                                     "FEAT-08-deadlock-b", "feature.json")
+                                     "FEAT-08-deadlock-b", "plan.yaml")
         with open(wt_feature_b, "w") as f:
-            json.dump({"status": "Review"}, f)
+            f.write("feature: FEAT-08-deadlock-b\nstatus: review\ntasks: []\n")
 
         recs = w.classify(repo)
         by_path = {r["path"]: r for r in recs}
@@ -221,13 +235,16 @@ def _classify_stub_reads_working_tree(worktree_path, feature_id):
     only purpose is to demonstrate the RED state (c) guards against — 'an implementation
     reading the working tree fails both halves' (T-02's intent)."""
     fj = os.path.join(worktree_path, ".harness", "harness", "features", feature_id,
-                       "feature.json")
+                       "plan.yaml")
     try:
         with open(fj) as f:
-            data = json.load(f)
+            text = f.read()
     except Exception:
         return "omitted"
-    return "terminal" if data.get("status") == "Done" else "omitted"
+    # The DEFECTIVE read this stub exists to demonstrate: the working tree's plan, not the
+    # landed one. Parsed with a one-line scan rather than a YAML loader — the stub only needs
+    # to be wrong in the right way, and its wrongness is the FILE it reads, not the parser.
+    return "terminal" if "status: done" in text else "omitted"
 
 
 def case_deadlock_red_proof():
@@ -238,19 +255,19 @@ def case_deadlock_red_proof():
     with tempfile.TemporaryDirectory() as tmp:
         repo = _repo(os.path.join(tmp, "R"))
 
-        _commit_feature(repo, "FEAT-07-deadlock-a", {"status": "Review"})
+        _commit_feature(repo, "FEAT-07-deadlock-a", {}, plan_station="review")
         dest_a = _add_wt(repo, "FEAT-07-deadlock-a")
         wt_feature = os.path.join(dest_a, ".harness", "harness", "features",
-                                   "FEAT-07-deadlock-a", "feature.json")
+                                   "FEAT-07-deadlock-a", "plan.yaml")
         with open(wt_feature, "w") as f:
-            json.dump({"status": "Done"}, f)
+            f.write("feature: FEAT-07-deadlock-a\nstatus: done\ntasks: []\n")
 
-        _commit_feature(repo, "FEAT-08-deadlock-b", {"status": "Done"})
+        _commit_feature(repo, "FEAT-08-deadlock-b", {}, plan_station="done")
         dest_b = _add_wt(repo, "FEAT-08-deadlock-b")
         wt_feature_b = os.path.join(dest_b, ".harness", "harness", "features",
-                                     "FEAT-08-deadlock-b", "feature.json")
+                                     "FEAT-08-deadlock-b", "plan.yaml")
         with open(wt_feature_b, "w") as f:
-            json.dump({"status": "Review"}, f)
+            f.write("feature: FEAT-08-deadlock-b\nstatus: review\ntasks: []\n")
 
         stub_a = _classify_stub_reads_working_tree(dest_a, "FEAT-07-deadlock-a")
         stub_b = _classify_stub_reads_working_tree(dest_b, "FEAT-08-deadlock-b")
@@ -276,16 +293,19 @@ def _stub_landed_names(repo, default_branch="main"):
     return [line for line in r.stdout.splitlines() if line]
 
 
-def _stub_landed_feature_json(repo, feature_id, default_branch="main"):
-    rel = os.path.join(".harness", "harness", "features", feature_id, "feature.json")
+def _stub_landed_station(repo, feature_id, default_branch="main"):
+    """The landed station, for the deliberately-wrong stubs below. Reads plan.yaml as of
+    FEAT-41 T-07, and keeps returning None for every failure so the stubs can go on
+    conflating them — which is the defect they exist to demonstrate."""
+    rel = os.path.join(".harness", "harness", "features", feature_id, "plan.yaml")
     r = subprocess.run(["git", "show", f"{default_branch}:{rel}"], cwd=repo,
                         capture_output=True, text=True)
     if r.returncode != 0:
         return None
-    try:
-        return json.loads(r.stdout)
-    except Exception:
-        return None
+    for line in r.stdout.splitlines():
+        if line.startswith("status:"):
+            return line.split(":", 1)[1].strip()
+    return None
 
 
 def _classify_stub_absent_on_any_miss(repo, wt_id):
@@ -297,10 +317,10 @@ def _classify_stub_absent_on_any_miss(repo, wt_id):
     names = _stub_landed_names(repo)
     if wt_id not in names:
         return "exempt_absent"
-    data = _stub_landed_feature_json(repo, wt_id)
-    if data is None:
+    station = _stub_landed_station(repo, wt_id)
+    if station is None:
         return "exempt_absent"  # BUG: unparseable/unreadable folded into "absent"
-    if data.get("status") == "Done":
+    if station == "done":
         return "terminal"
     return "omitted"
 
@@ -314,10 +334,10 @@ def case_absent_red_proof():
         repo = _repo(os.path.join(tmp, "R"))
 
         # (a) exact match, Done -> correct answer terminal.
-        _commit_feature(repo, "FEAT-01-done-thing", {"status": "Done"})
+        _commit_feature(repo, "FEAT-01-done-thing", {}, plan_station="done")
         # (d) never landed -> correct answer exempt_absent.
         # (e) short name, prefix of a landed Done dir -> correct answer terminal.
-        _commit_feature(repo, "FEAT-04-short-name-target", {"status": "Done"})
+        _commit_feature(repo, "FEAT-04-short-name-target", {}, plan_station="done")
         # (f) landed but unparseable -> correct answer unresolved.
         _commit_feature(repo, "FEAT-05-bad-json", "{not json")
 
@@ -379,7 +399,7 @@ def case_second_repo():
         # second repository must actually live there for resolve_repo's fleet branch to line
         # its owner_root up with where classify() is told to look.
         repo2 = _repo(os.path.join(workspace_root, "second-repo"), branch="main")
-        _commit_feature(repo2, "FEAT-09-second-repo-done", {"status": "Done"},
+        _commit_feature(repo2, "FEAT-09-second-repo-done", {}, plan_station="done",
                          repo_segment="second-repo")
         dest2 = _add_wt(repo2, "FEAT-09-second-repo-done", repo_segment="second-repo")
 
@@ -441,7 +461,7 @@ def _build_probe_repo(tmp):
     subprocess.run(["git", "add", ".harness/harness/docs/SPEC.md", ".harness/team-config.yaml"],
                     cwd=probe_root, capture_output=True)
     subprocess.run(["git", "commit", "-qm", "spec"], cwd=probe_root, capture_output=True)
-    _commit_feature(repo, "FEAT-10-probe-done", {"status": "Done"}, repo_segment="harness")
+    _commit_feature(repo, "FEAT-10-probe-done", {}, plan_station="done", repo_segment="harness")
     dest_probe = _add_wt(repo, "FEAT-10-probe-done", repo_segment="harness")
     return probe_root, dest_probe
 
@@ -450,7 +470,7 @@ def _build_second_repo(workspace_root):
     """The real second repository, exactly as case_second_repo (g) builds it — reused, not
     rebuilt as a second shape."""
     repo2 = _repo(os.path.join(workspace_root, "second-repo"), branch="main")
-    _commit_feature(repo2, "FEAT-09-second-repo-done", {"status": "Done"},
+    _commit_feature(repo2, "FEAT-09-second-repo-done", {}, plan_station="done",
                      repo_segment="second-repo")
     dest2 = _add_wt(repo2, "FEAT-09-second-repo-done", repo_segment="second-repo")
     return repo2, dest2
@@ -744,7 +764,7 @@ def case_classify_from_linked_worktree():
     results = []
     with tempfile.TemporaryDirectory() as tmp:
         repo = _repo(os.path.join(tmp, "R"))
-        _commit_feature(repo, "FEAT-11-linked-root", {"status": "Done"})
+        _commit_feature(repo, "FEAT-11-linked-root", {}, plan_station="done")
         dest = _add_wt(repo, "FEAT-11-linked-root")
 
         import worktree_terminal as w
@@ -793,6 +813,111 @@ def case_classify_empty_repo_no_linked_worktrees():
     return results
 
 
+def case_plan_station_is_the_landed_authority():
+    """FEAT-41 T-07: the landed station is read from plan.yaml, not from feature.json.
+
+    THIS IS THE CASE THAT PROVES THE MIGRATION'S POSITIVE SIDE, and it is the reason T-07's
+    verify cannot rest on its schema and absence assertions alone: every one of those goes
+    GREEN on a HALF-APPLIED migration in which the status key is deleted and this reader still
+    expects it. Here the feature.json carries NO status at all — exactly what the migration
+    leaves behind — and the sibling plan.yaml records the lowercase station. An un-repointed
+    reader finds no status, matches nothing, and OMITS the worktree instead of calling it
+    terminal, which is the silent direction: a terminal worktree that never gets reclaimed.
+    """
+    import worktree_terminal as w
+
+    results = []
+
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = _repo(os.path.join(tmp, "R"))
+
+        _commit_feature(repo, "FEAT-70-plan-done", {"feature_id": "FEAT-70-plan-done"},
+                        plan_station="done")
+        done_dest = _add_wt(repo, "FEAT-70-plan-done")
+
+        # NEGATIVE CONTROL, and it is load-bearing: without it "terminal" could be what this
+        # reader returns for ANY feature carrying a plan.yaml, and the case above would pass
+        # on a repointing that read the plan but ignored the station in it.
+        _commit_feature(repo, "FEAT-71-plan-review", {"feature_id": "FEAT-71-plan-review"},
+                        plan_station="review")
+        review_dest = _add_wt(repo, "FEAT-71-plan-review")
+
+        recs = {r["path"]: r for r in w.classify(repo)}
+
+        # REALPATH FALLBACK, as every other case in this file does: on macOS the tempdir is
+        # /var/... while git reports /private/var/..., so a bare dict lookup misses and the
+        # case fails for a reason that has nothing to do with what it tests.
+        def get(dest):
+            return recs.get(os.path.realpath(dest)) or recs.get(dest)
+
+        results.append((
+            "T-07: plan.yaml station `done` -> terminal, with NO feature.json status present",
+            (get(done_dest) or {}).get("klass") == "terminal",
+            f"got {get(done_dest)!r}"))
+        results.append((
+            "T-07: the reason names the lowercase station read from plan.yaml",
+            "done" in (get(done_dest) or {}).get("reason", ""),
+            f"got {(get(done_dest) or {}).get('reason')!r}"))
+        results.append((
+            "T-07 NEGATIVE CONTROL: station `review` is NOT terminal -- omitted entirely",
+            get(review_dest) is None,
+            f"got {get(review_dest)!r}"))
+
+    return results
+
+
+def case_plan_station_scan_without_pyyaml():
+    """FEAT-41 T-07: the station is still readable when PyYAML is NOT importable.
+
+    THIS PINS A MEASURED PRODUCTION REGRESSION. post-merge-sweep.sh runs `python3 -I`, and
+    isolated mode ignores user site-packages — where PyYAML lives on a stock macOS install. This
+    module read only JSON until T-07, so it had no third-party dependency; moving the station
+    into plan.yaml gave the sweep one it could not satisfy, and EVERY worktree came back
+    "unresolved: landed plan.yaml is unparseable". No terminal worktree was reclaimed, silently,
+    because unresolved is a SKIP. test-post-merge-sweep.py went red on 16 cases; this case is
+    the unit-level pin so the next reader sees the requirement here, at the function.
+    """
+    import worktree_terminal as w
+
+    results = []
+    plan = ("schema: plan/1\nfeature: FEAT-X\nstatus: done\n"
+            "tasks:\n  - id: T-01\n    status: building\n")
+
+    results.append((
+        "T-07 scan: the TOP-LEVEL station is returned",
+        w._scan_top_level_status(plan) == {"status": "done"},
+        repr(w._scan_top_level_status(plan))))
+
+    # THE DISCRIMINATOR, and the reason the scan is column-0 anchored: a task's own `status:` is
+    # indented and appears later. A loose scan would match a task's value on some other plan
+    # shape and classify a live feature as terminal — a WRITE, since the sweep then removes it.
+    indented_first = ("tasks:\n  - id: T-01\n    status: done\n"
+                      "status: building\n")
+    results.append((
+        "T-07 scan: an INDENTED task status is never mistaken for the feature's station",
+        w._scan_top_level_status(indented_first) == {"status": "building"},
+        repr(w._scan_top_level_status(indented_first))))
+
+    results.append((
+        "T-07 scan: a trailing comment is stripped",
+        w._scan_top_level_status("status: done  # shipped\n") == {"status": "done"},
+        repr(w._scan_top_level_status("status: done  # shipped\n"))))
+
+    results.append((
+        "T-07 scan: quotes are stripped",
+        w._scan_top_level_status("status: 'done'\n") == {"status": "done"},
+        repr(w._scan_top_level_status("status: 'done'\n"))))
+
+    # NO top-level status at all is an EMPTY mapping, not None: the plan parsed, it simply
+    # records no station, which the caller treats as "not terminal" rather than unparseable.
+    results.append((
+        "T-07 scan: a plan with no top-level status yields an empty mapping, not a failure",
+        w._scan_top_level_status("feature: FEAT-X\ntasks: []\n") == {},
+        repr(w._scan_top_level_status("feature: FEAT-X\ntasks: []\n"))))
+
+    return results
+
+
 def main():
     results = (
         case_classify()
@@ -805,6 +930,8 @@ def main():
         + case_classify_all_fleet_unloadable()
         + case_classify_from_linked_worktree()
         + case_classify_empty_repo_no_linked_worktrees()
+        + case_plan_station_is_the_landed_authority()
+        + case_plan_station_scan_without_pyyaml()
     )
     all_ok = True
     for name, ok, detail in results:

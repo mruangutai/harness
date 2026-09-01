@@ -1,5 +1,6 @@
 schema: plan/1
 feature: FEAT-34-worktree-act3-enforced
+status: done
 
 approval:
   # Written by the MAIN SESSION only, because it is the only tier with a user channel

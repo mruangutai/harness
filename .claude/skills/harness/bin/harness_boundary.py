@@ -316,8 +316,58 @@ def real(path):
     the normal case for a Write. Applied to BOTH sides of every comparison: resolving
     only the target would break any checkout reached through a link (`/var` on macOS is
     itself a link to `/private/var`).
+
+    AN UNRESOLVABLE PATH RETURNS ITS ABSOLUTE FORM RATHER THAN RAISING (FEAT-41 MF-2). realpath
+    raises ValueError -- not OSError -- on an embedded NUL, and this function is called from
+    `classify`, which runs inside check-domain.sh's Python body. That ValueError propagated all
+    the way out, and by that hook's own header exit 1 is NON-BLOCKING, so a single NUL in
+    `tool_input.file_path` disabled EVERY domain grant, budget and route denial at once and the
+    write proceeded.
+
+    MEASURED, AND THE ATTRIBUTION CORRECTED: cycle 3's panel reported this as introduced by
+    FEAT-41's own `_resolved_rel`. Running the identical fixture against `origin/main` reproduces
+    it at exit 1, so it is PRE-EXISTING and lives here. The finding was right; its blame was not.
+
+    Returning the absolute form keeps this function total. Callers that need to REFUSE an
+    unresolvable path do so on their own terms -- check-domain.sh's route denial treats one as a
+    refusal -- rather than depending on an exception from a path-normalising helper.
+
+    AND THE FALLBACK RESOLVES AS FAR AS IT SAFELY CAN, rather than returning a bare `abspath`
+    (FEAT-41 HIGH-3). Every caller COMPARES two `real()` results, so both must be in the same
+    spelling namespace. A bare abspath is not: when the checkout root is reached through a symlink,
+    `real(root)` is fully resolved while an unresolvable target was not, the two shared no prefix,
+    and `select_base`/`inside` classified an IN-BASE target as `not_a_domain_question` --
+    bash-write-guard.sh then exited 0 with empty stderr.
+
+    MEASURED before the fix, on a symlinked root:
+        real('/tmp/h3/link')                   -> /private/tmp/h3/actual
+        real('/tmp/h3/link/sub/<unresolvable>') -> /tmp/h3/link/sub/<unresolvable>
+        target.startswith(root)                 -> False
+
+    THE PERMIT ITSELF IS PRE-EXISTING: origin/main crashes fail-open on the same input, so the
+    write proceeded there too. What the earlier fix changed is that it became SILENT rather than
+    loud, and for a guard that is worse. Resolving the longest resolvable ancestor and rejoining
+    the remainder keeps one namespace without reintroducing the raise.
     """
-    return os.path.realpath(os.path.abspath(path))
+    try:
+        return os.path.realpath(os.path.abspath(path))
+    except (OSError, ValueError):
+        pass
+    absolute = os.path.abspath(path)
+    head, tail = absolute, []
+    while True:
+        parent = os.path.dirname(head)
+        if parent == head:
+            # Reached the filesystem root without resolving anything. Nothing is left to
+            # normalise, so the absolute form IS the answer.
+            return absolute
+        tail.append(os.path.basename(head))
+        head = parent
+        try:
+            resolved_head = os.path.realpath(head)
+        except (OSError, ValueError):
+            continue
+        return os.path.join(resolved_head, *reversed(tail))
 
 
 def resolve_fleet(root, label):

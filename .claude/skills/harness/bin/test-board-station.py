@@ -135,13 +135,10 @@ with tempfile.TemporaryDirectory() as tmp:
     write_harness_json(tmp, {"sync": True, "repo": "mruangutai/harness",
                               "board": {"owner": "mruangutai", "number": 3,
                                         "station_field": "Status",
-                                        "stations": {"backlog": "Backlog", "plan": "Plan",
-                                                     "ready": "Ready",
-                                                     "building": "Building", "review": "Review",
-                                                     "done": "Done"}}})
-    r, log = run(tmp, ["326", "Plan"])
+                                        "stations": ["backlog", "plan", "ready", "building", "review", "done"]}})
+    r, log = run(tmp, ["326", "plan"])
     check("board-station moves the named issue to the named station",
-          r.returncode == 0 and "board-station: #326 -> Plan" in r.stdout,
+          r.returncode == 0 and "board-station: #326 -> plan" in r.stdout,
           f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
     # THE FAKE RECORDS THE INVOCATION IT RECEIVED — asserting only the exit code would pass
     # on a tool that writes nothing at all. argv[1:3] (P-14): argv[0] is always the `gh`
@@ -158,7 +155,7 @@ with tempfile.TemporaryDirectory() as tmp:
 with tempfile.TemporaryDirectory() as tmp:
     write_team_config(tmp)
     write_harness_json(tmp, {"sync": True, "repo": "mruangutai/harness", "board": None})
-    r, log = run(tmp, ["326", "Plan"])
+    r, log = run(tmp, ["326", "plan"])
     check("an explicitly null board still exits 0 having written nothing",
           r.returncode == 0 and not log and r.stdout.startswith("board-station: "),
           f"rc={r.returncode} stdout={r.stdout!r} log={log}")
@@ -168,7 +165,7 @@ with tempfile.TemporaryDirectory() as tmp:
 with tempfile.TemporaryDirectory() as tmp:
     write_team_config(tmp)
     write_harness_json(tmp, {"sync": True, "repo": "mruangutai/harness"})
-    r, log = run(tmp, ["326", "Plan"])
+    r, log = run(tmp, ["326", "plan"])
     check("an unusable board config exits 2 with one line naming the key",
           r.returncode == 2 and not log
           and r.stderr.startswith("board-station: ") and "github.board" in r.stderr,
@@ -181,15 +178,12 @@ with tempfile.TemporaryDirectory() as tmp:
     write_harness_json(tmp, {"sync": True, "repo": "mruangutai/harness",
                               "board": {"owner": "mruangutai", "number": 3,
                                         "station_field": "Status",
-                                        "stations": {"backlog": "Backlog", "plan": "Plan",
-                                                     "ready": "Ready",
-                                                     "building": "Building", "review": "Review",
-                                                     "done": "Done"}}})
-    r, log = run(tmp, ["327", "Ready"], gh_script=FAKE_GH_NOT_ON_BOARD)
+                                        "stations": ["backlog", "plan", "ready", "building", "review", "done"]}})
+    r, log = run(tmp, ["327", "ready"], gh_script=FAKE_GH_NOT_ON_BOARD)
     check("board-station reports a BoardError on stderr naming issue and station and exits 0",
           r.returncode == 0
           and r.stderr.startswith("board-station: ERROR - ")
-          and "327" in r.stderr and "Ready" in r.stderr,
+          and "327" in r.stderr and "ready" in r.stderr,
           f"rc={r.returncode} stderr={r.stderr!r}")
 
 # ---------------- case 4: usage ----------------
@@ -198,21 +192,21 @@ with tempfile.TemporaryDirectory() as tmp:
     write_team_config(tmp)
     write_harness_json(tmp, {"sync": True, "repo": "mruangutai/harness"})
     r, log = run(tmp, ["326"])
-    r2, _ = run(tmp, ["326", "Plan", "extra"])
-    r3, _ = run(tmp, ["not-a-number", "Plan"])
+    r2, _ = run(tmp, ["326", "plan", "extra"])
+    r3, _ = run(tmp, ["not-a-number", "plan"])
     # "not-a-number" cannot catch this class: it fails isdigit() first. Superscript
     # two passes isdigit() and int() refuses it.
-    r4, _ = run(tmp, ["\u00b2", "Plan"])
+    r4, _ = run(tmp, ["\u00b2", "plan"])
     # THE SECOND CLASS, and the worse one. int() RETURNS 2 for Arabic-Indic two, so the
     # pre-fix gate did not crash here — it moved issue 2's card. A silent write to the
     # wrong target. Drop isascii() and the traceback case above still passes; only this
     # one fails.
-    r5, _ = run(tmp, ["\u0662", "Plan"])
+    r5, _ = run(tmp, ["\u0662", "plan"])
     # THE CLASS PREDICATES CANNOT REACH. All ASCII digits, so both string tests pass;
     # int() then refuses it on CPython's 4300-digit conversion cap. This case exists to
     # pin the try/except, not the predicates — it is why the parse is caught rather
     # than enumerated.
-    r6, _ = run(tmp, ["9" * 4301, "Plan"])
+    r6, _ = run(tmp, ["9" * 4301, "plan"])
     check("board-station rejects a missing argument with exit 2",
           r.returncode == 2 and r2.returncode == 2 and r3.returncode == 2
           and r.stderr.startswith("board-station: "),
@@ -229,7 +223,7 @@ with tempfile.TemporaryDirectory() as tmp:
 with tempfile.TemporaryDirectory() as outer:
     no_root = os.path.join(outer, "not_a_project")
     os.makedirs(no_root)
-    r, log = run(outer, ["326", "Plan"], cwd=no_root)
+    r, log = run(outer, ["326", "plan"], cwd=no_root)
     check("board-station outside a harness root writes nothing and exits 0",
           r.returncode == 0 and not log and r.stdout.startswith("board-station: "),
           f"rc={r.returncode} stdout={r.stdout!r} log={log}")
@@ -241,11 +235,8 @@ with tempfile.TemporaryDirectory() as tmp:
     write_harness_json(tmp, {"sync": False, "repo": "mruangutai/harness",
                               "board": {"owner": "mruangutai", "number": 3,
                                         "station_field": "Status",
-                                        "stations": {"backlog": "Backlog", "plan": "Plan",
-                                                     "ready": "Ready",
-                                                     "building": "Building", "review": "Review",
-                                                     "done": "Done"}}})
-    r, log = run(tmp, ["326", "Plan"])
+                                        "stations": ["backlog", "plan", "ready", "building", "review", "done"]}})
+    r, log = run(tmp, ["326", "plan"])
     check("board-station with github.sync false writes nothing and exits 0",
           r.returncode == 0 and not log and r.stdout.startswith("board-station: "),
           f"rc={r.returncode} stdout={r.stdout!r} log={log}")
@@ -257,16 +248,57 @@ with tempfile.TemporaryDirectory() as tmp:
     write_harness_json(tmp, {"sync": True, "repo": "mruangutai/harness",
                               "board": {"owner": "mruangutai", "number": 3,
                                         "station_field": "Status",
-                                        "stations": {"backlog": "Backlog", "plan": "Plan",
-                                                     "ready": "Ready",
-                                                     "building": "Building", "review": "Review",
-                                                     "done": "Done"}}})
-    r, log = run(tmp, ["326", "Plan"], gh_script=FAKE_GH_NON_JSON)
+                                        "stations": ["backlog", "plan", "ready", "building", "review", "done"]}})
+    r, log = run(tmp, ["326", "plan"], gh_script=FAKE_GH_NON_JSON)
     check("board-station exits 0 when set_station raises a non-BoardError exception",
           r.returncode == 0
           and r.stderr.startswith("board-station: ERROR - ")
-          and "326" in r.stderr and "Plan" in r.stderr,
+          and "326" in r.stderr and "plan" in r.stderr,
           f"rc={r.returncode} stderr={r.stderr!r}")
+
+# ---------------- case 8: the station is validated against the six (FEAT-41 T-02) ----------
+# D-05 used to let ANY string through to the board. It is now refused here, and these cases pin
+# both halves of that: what is refused, and — critically — that the refusal does NOT displace the
+# environmental exit-0 no-ops that come before it.
+
+with tempfile.TemporaryDirectory() as tmp:
+    write_team_config(tmp)
+    write_harness_json(tmp, {"sync": True, "repo": "mruangutai/harness",
+                              "board": {"owner": "mruangutai", "number": 3,
+                                        "station_field": "Status",
+                                        "stations": ["backlog", "plan", "ready", "building", "review", "done"]}})
+    # A CAPITALISED STATION IS REFUSED. This is the likeliest live mistake — the operator reads
+    # "Plan" off the board and types it back — and before FEAT-41 T-02 it was passed through to
+    # GitHub, where it happened to work, which is exactly how a case boundary erodes.
+    r, log = run(tmp, ["326", "Plan"])
+    check("board-station refuses a CAPITALISED station, exit 2, nothing written",
+          r.returncode == 2 and not log and "is not a station" in r.stderr,
+          f"rc={r.returncode} stderr={r.stderr!r} log={log}")
+    check("board-station's refusal NAMES all six stations so the operator can act on it",
+          all(st in r.stderr
+              for st in ("backlog", "plan", "ready", "building", "review", "done")),
+          r.stderr)
+    # `abandoned` is the trap the mandate exists to close: it is a legal feature.json status but
+    # NOT a station, and it names no board column.
+    r, log = run(tmp, ["326", "abandoned"])
+    check("board-station refuses 'abandoned' — a real status, but not a station",
+          r.returncode == 2 and not log and "is not a station" in r.stderr,
+          f"rc={r.returncode} stderr={r.stderr!r} log={log}")
+
+with tempfile.TemporaryDirectory() as tmp:
+    # ORDERING, PINNED: sync is off, so this exits 0 having written nothing EVEN THOUGH the
+    # station is also invalid. A refusal is owed only when a write was about to happen; moving the
+    # validation up to argument-parse time breaks this and it is the reason the check sits after
+    # the board load.
+    write_team_config(tmp)
+    write_harness_json(tmp, {"sync": False, "repo": "mruangutai/harness",
+                              "board": {"owner": "mruangutai", "number": 3,
+                                        "station_field": "Status",
+                                        "stations": ["backlog", "plan", "ready", "building", "review", "done"]}})
+    r, log = run(tmp, ["326", "Plan"])
+    check("an invalid station does NOT override the sync-off exit-0 no-op",
+          r.returncode == 0 and not log and "nothing written" in r.stdout,
+          f"rc={r.returncode} stdout={r.stdout!r} log={log}")
 
 print()
 if FAILURES:

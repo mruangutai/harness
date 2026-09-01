@@ -2,7 +2,6 @@
   "feature_id": "FEAT-45-adversarial-plan-panel",
   "branch": "feat/FEAT-45-adversarial-plan-panel",
   "pr": 1069,
-  "status": "Done",
   "review_sha": "bdd566679377eb5a55d1092064fe444e86d2f49f",
   "cycles_used": 10,
   "max_total_cycles": 10,

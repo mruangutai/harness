@@ -4899,6 +4899,7 @@ pattern lists that had already drifted once during this very change.
 task carries the task's `intent:` as its body, where a `PLAN.md` task passed its whole raw block.
 Existing issues are not rewritten, so the corpus is mixed.
 
+**Amended by FEAT-41-one-station-vocabulary — the shape-gate clause, which was silent rather than wrong.** This entry says "`plan.yaml` is deliberately absent from `check-domain.sh`'s shape gate". It is present now, under REQ-05. The argument here is not reversed, because it never addressed this case: it weighed a BUDGET and a PARSE check, and ruled both out — correctly, and those rulings stand. A WRITE DENIAL is a third thing it did not consider. `plan.yaml` now has exactly one writer, `plan-merge.py`, whose verbs validate a station before opening the file, so an editor write is not a shape violation to be measured but a route that no longer exists. Nothing here duplicates `check-plan-routes.py`: that tool judges a document, the gate refuses an author.
 
 ---
 
@@ -5285,6 +5286,9 @@ the **redirection table**: each displaced item names the file that actually owns
 Lineage: DEC-150 (the authority is read by index, never whole — a file nobody reads whole must have
 a shape a machine can check), DEC-154, DEC-160, DEC-174 (the enforcement layer is changed directly,
 never through a run whose gates are the thing changing), DEC-183, and DEC-190 for the library.
+
+**Amended by FEAT-41-one-station-vocabulary — the count, not the principle.** This entry's "Eight required, three optional" listed `status` among `feature.json`'s required keys. It is now **seven required and three optional**: `status` has moved to `plan.yaml`, so one file records a feature's station. `additionalProperties: false` and the closed-key-set principle this entry exists for are UNCHANGED — which is exactly why this is an amendment and not a strike. The closed set is what makes the migration enforceable: a leftover `status` key is now a schema error rather than a tolerated duplicate.
+
 
 ## DEC-193 — Code is written in exactly two locations; any other checkout of this repository is refused by one shared rule on both write routes
 
@@ -6157,6 +6161,9 @@ invariants are the enforcement layer, so this feature's code lands as direct mai
 DEC-188 for the striking of the three entries replaced here; DEC-191 for the closed key set `status`
 lives in; DEC-200, which cites the superseded read-back bound for its own read and is repointed
 separately under issue #844.
+
+**Amended by FEAT-41-one-station-vocabulary — section 6's one clause, and only that clause.** Section 6 says "There is one lifecycle field, `status`", held in `feature.json`, whose six values are the board's own column names and are **case sensitive**, byte for byte. The FIELD MOVED and the CASING NARROWED. A feature's station is now `plan.yaml`'s top-level `status`, one of six MANDATED **lowercase** names, and `feature.json` no longer carries the key at all. Case sensitivity survives at exactly one place — the board write, through `factory_config.station_column`, which derives the capitalised column name. Everything else in section 6 is untouched and still binds: the two collapses, the deliberate absence of `blocked`, and the refusal of any alias or translation table. The reason section 6 gave for the capitals — that the board is the surface the operator actually reads — is why they still live at the write.
+
 
 ## DEC-204 — OMP supervises long-running Harness dispatches; claims are feature-scoped and process-owned
 

@@ -961,6 +961,10 @@ _SWEEP_PATTERNS = (
     ".harness/*/features/*/runs/*/state.yaml",
     ".harness/*/features/*/notes/handoff-*.md",
     ".harness/*/features/*/STATE.md",
+    # plan.yaml (FEAT-41 T-09). The PostToolUse Bash route is the ONE route this rule cannot
+    # deny before the fact — a shell write carries a command, not a path — so the sweep is
+    # where a dead station word gets caught after it lands.
+    ".harness/*/features/*/plan.yaml",
 )
 # ROOT-LEVEL ONLY. The worktree half used to be spelled here as the segment joined to ONE
 # star, which assumed exactly one directory after it: under a `<segment>/<repo>/<id>/`
@@ -1068,25 +1072,70 @@ VERB = "OVER BUDGET (already written)" if _post else "BLOCKED"
 # whole file. Measured by review on a 200 MB non-state path: 228 ms, against 37 ms once the
 # pattern is consulted first. Two uses, one definition — duplicating them as a fast-path
 # guard would create exactly the silent drift `test-check-state.py` case (o) exists to catch.
-RE_FEATURE_JSON = re.compile(r"^\.harness/[^/]+/features/[^/]+/feature\.json$")
-RE_STATE_YAML   = re.compile(r"^\.harness/[^/]+/features/[^/]+/runs/[^/]+/state\.yaml$")
-RE_HANDOFF      = re.compile(r"^\.harness/[^/]+/features/[^/]+/notes/handoff-[a-z0-9-]+\.md$")
-RE_STATE_MD     = re.compile(r"^\.harness/[^/]+/features/[^/]+/STATE\.md$")
+_I = re.IGNORECASE
+RE_FEATURE_JSON = re.compile(r"^\.harness/[^/]+/features/[^/]+/feature\.json$", _I)
+RE_STATE_YAML   = re.compile(r"^\.harness/[^/]+/features/[^/]+/runs/[^/]+/state\.yaml$", _I)
+RE_HANDOFF      = re.compile(r"^\.harness/[^/]+/features/[^/]+/notes/handoff-[a-z0-9-]+\.md$",
+                             _I)
+RE_STATE_MD     = re.compile(r"^\.harness/[^/]+/features/[^/]+/STATE\.md$", _I)
 # CLAUDE.md (issue #139). Not a state file, and included here anyway because this is
 # where the four-route machinery already lives — the alternative was a fifth gate.
-RE_CLAUDE_MD    = re.compile(r"^CLAUDE\.md$")
-RE_RUN_DIGEST    = re.compile(r"^\.harness/[^/]+/features/[^/]+/runs/[^/]+/digest\.md$")
-# Deliberately absent from SHAPE_PATTERNS and the post-hoc sweep globs. This rule needs
-# the content that existed BEFORE a whole-file Write. After the write, comparing the
-# file with itself cannot fire and would advertise enforcement that does not exist.
-# plan.yaml is DELIBERATELY ABSENT (DEC-182). It carries neither a budget nor a vocabulary
-# rule, which is what this gate is for: `feature.json` 300 and `CLAUDE.md` 80 are
-# budgets, `state.yaml`'s 23-key whitelist is a vocabulary, and STATE.md and the handoff
-# note are both. A plan.yaml check here would be a PARSE check — a third thing — and
-# check-plan-routes.py already refuses a malformed plan BEFORE signature, which is when it
-# matters, with check-state.sh refusing it again at entry. A third enforcement point buys
-# nothing and costs two entries in two pattern lists that have already drifted once.
-SHAPE_PATTERNS = (RE_FEATURE_JSON, RE_STATE_YAML, RE_HANDOFF, RE_STATE_MD, RE_CLAUDE_MD)
+RE_CLAUDE_MD    = re.compile(r"^CLAUDE\.md$", _I)
+RE_RUN_DIGEST   = re.compile(r"^\.harness/[^/]+/features/[^/]+/runs/[^/]+/digest\.md$", _I)
+RE_PLAN_YAML    = re.compile(r"^\.harness/[^/]+/features/[^/]+/plan\.yaml$", _I)
+# RE_RUN_DIGEST is deliberately absent from SHAPE_PATTERNS and the post-hoc sweep globs (FEAT-50).
+# That rule needs the content that existed BEFORE a whole-file Write. After the write, comparing
+# the file with itself cannot fire and would advertise enforcement that does not exist. It carries
+# `_I` anyway, for the same reason every pattern here does (F-04, below): a spelling is not a route.
+#
+# plan.yaml IS PRESENT NOW, AND THAT REVERSES DEC-182 (FEAT-41 T-09, REQ-05). What stood here
+# argued the file was deliberately absent because it carries neither a budget nor a vocabulary
+# rule, and because a plan.yaml check would be a PARSE check that check-plan-routes.py already
+# performs before signature. That reasoning is not wrong so much as silent on a third thing it
+# never considered: a WRITE DENIAL.
+#
+# plan.yaml IS PRESENT, AND THAT REVERSES DEC-182 (FEAT-41 T-09, REQ-05). What stood here argued
+# the file was deliberately absent because it carries neither a budget nor a vocabulary rule, and
+# because a plan.yaml check would be a PARSE check that check-plan-routes.py already performs
+# before signature. That reasoning is not wrong so much as silent on a third thing it never
+# considered: a WRITE DENIAL.
+#
+# plan.yaml now has exactly ONE writer — plan-merge.py, whose verbs take the merge lock, validate
+# the station against the vocabulary BEFORE opening the file, and parse the spliced result before
+# replacing it. So an editor write is not a shape violation to be MEASURED; it is a route that no
+# longer exists. Nothing here duplicates check-plan-routes.py: that tool judges a document, this
+# one refuses an author.
+#
+# IN THE SHAPE REGION, NEVER THE DOMAIN REGION. check-domain exits 0 for a payload with no
+# agent_type, so a denial in the domain region would exempt the main session — the one author
+# most likely to hand-edit a plan. DEC-180 makes the shape gate independent of domain and
+# binding on every author, which is the property this rule needs.
+#
+# EVERY PATTERN IS CASE-INSENSITIVE, AND THAT CLOSES F-04. The panel found `Plan.yaml` walking
+# straight past this denial. Measured on this workstation: `echo x > Plan.yaml` beside an
+# existing plan.yaml overwrites it and reports the SAME INODE, so the alternate spelling was a
+# write to the real plan that the gate exited 0 on with no stderr at all.
+#
+# THE WHOLE TUPLE, NOT JUST THE PLAN. The other five carry the same hole and it would be a
+# special case to leave them: a `Feature.json` evades the 300-line budget and a `Claude.md`
+# evades the 80-line one. The harms differ in KIND -- for plan.yaml a prohibition is bypassed,
+# for the rest a measurement is skipped -- but the cause is one, so the fix is one.
+#
+# IT DENIES ON A CASE-SENSITIVE FILESYSTEM TOO, where `Plan.yaml` is a genuinely different
+# file. Deliberate: every pattern here is ANCHORED, so nothing legitimate is swallowed
+# (`plan.yaml.bak` and `myplan.yaml` are asserted still allowed), and a loud refusal of a name
+# nobody legitimately writes is a far better error than a silent bypass of the only write
+# denial this gate has.
+#
+# THE ON-DISK NAME IS UNAFFECTED, which is why the Bash post-sweep's globs below need no
+# change: writing `Plan.yaml` over an existing plan.yaml keeps the original lowercase name, so
+# the sweep still finds the file. Only the pre-write route denial could be walked past.
+#
+# THE TWO PATTERN RULES POINT OPPOSITE WAYS ON PURPOSE: RE_RUN_DIGEST stays OUT of SHAPE_PATTERNS
+# because its check cannot fire after the fact (FEAT-50), while RE_PLAN_YAML goes IN because its
+# check is a route denial that must fire before it.
+SHAPE_PATTERNS = (RE_FEATURE_JSON, RE_STATE_YAML, RE_HANDOFF, RE_STATE_MD, RE_CLAUDE_MD,
+                  RE_PLAN_YAML)
 
 
 def has_shape_rules(rel):
@@ -1156,6 +1205,62 @@ def shape_problems(rel, content, display=None, absolute_path=None):
             out.append(_head("run digest already holds a recorded digest; this Write "
                              "would replace rather than extend it. Write this cycle's "
                              "digest into a run directory of its own."))
+    if RE_PLAN_YAML.match(rel):
+        # THE VOCABULARY RULE, AND IT IS THE ONLY THING THE SWEEP CAN JUDGE (FEAT-41 T-09).
+        # Every task status, and the top-level status WHEN PRESENT, must be a mandated station
+        # or the terminal marker — IMPORTED from factory_config, never respelled here, because a
+        # second copy of the vocabulary is exactly the drift FEAT-41 exists to remove.
+        #
+        # WHAT THIS CATCHES AND WHAT IT DOES NOT, stated rather than left to be discovered: a
+        # dead word or a broken file, yes. A shell write of a LEGAL value, NO — this reads disk
+        # and cannot attribute an author, so a `sed` that lands a legal station is
+        # indistinguishable from the tool doing its job. The Write and Edit denial below is what
+        # closes the editor routes; this is the net under the one route that cannot be denied
+        # before the fact.
+        #
+        # A MISSING TOP-LEVEL status IS LEGAL, and that is a contract rather than an oversight.
+        # T-07 is what adds the key to most plans and is NOT a dependency of this task, so the
+        # two are unordered: a rule that REQUIRED the key would report a violation on every
+        # un-migrated plan this sweep touches. An absent TASK status is legal for the same
+        # reason — T-04 leaves it out of harness_yaml's REQUIRED_TASK_FIELDS, and an absent one
+        # reads as the not-started station. Only a value OUTSIDE the vocabulary is reported.
+        #
+        # NOT deny(). Its last line appends the module-level ROUTING constant, which speaks
+        # about STATE.md, digests and notes/ — a different file class entirely. See the comment
+        # further down that already records this trap in its own words: ONE ROUTING SENTENCE PER
+        # FINDING.
+        import factory_config as _fc
+        # MANDATED_STATIONS, not station_names(board): the declaration itself, with no
+        # board to consult. This gate has no board and needs none — the vocabulary is
+        # fixed (T-01), and station_names() exists for the COLUMN derivation.
+        _legal = set(_fc.MANDATED_STATIONS) | {_fc.TERMINAL_MARKER}
+        _bad = []
+        try:
+            import harness_yaml as _hy
+            _doc = _hy.load_str(content, display or rel)
+        except Exception:
+            # UNPARSEABLE IS NOT THIS RULE'S FINDING. check-plan-routes.py refuses a malformed
+            # plan before signature and check-state.sh refuses it again at entry; reporting it
+            # a third time here would put one defect in three voices.
+            _doc = None
+        if isinstance(_doc, dict):
+            _top = _doc.get("status")
+            if _top is not None and str(_top) not in _legal:
+                _bad.append(f"top-level status {str(_top)!r}")
+            _tasks = _doc.get("tasks")
+            if isinstance(_tasks, list):
+                for _t in _tasks:
+                    if not isinstance(_t, dict):
+                        continue
+                    _s = _t.get("status")
+                    if _s is not None and str(_s) not in _legal:
+                        _bad.append(f"task {_t.get('id', '(no id)')} status {str(_s)!r}")
+        if _bad:
+            out.append(_head("plan.yaml station vocabulary (FEAT-41 REQ-01)."))
+            out.extend(f"  {b} is not a station" for b in _bad)
+            out.append(f"  The stations are {', '.join(sorted(_legal))}. "
+                       f"Set one with plan-merge.py set-task-station or set-feature-station, "
+                       f"which validate the value before it lands.")
 
     if RE_FEATURE_JSON.match(rel):
         # 300, not 200: FEAT-10 measures 173 lines with 32 runs, roughly 5 lines per run.
@@ -1421,6 +1526,157 @@ def shape_problems(rel, content, display=None, absolute_path=None):
 # is the ONLY thing the two modes disagree about; the gate itself consumes one uniform tuple.
 targets = []
 
+# THE plan.yaml ROUTE DENIAL, AND IT SITS AHEAD OF EVERY MODE SPLIT BELOW (FEAT-41 T-09).
+#
+# WHY HERE AND NOT IN shape_problems' OWN BRANCH. Everything below this point is built around
+# MEASURING TEXT: the PRE route exits 0 for any tool but `Write` because only `Write` carries a
+# whole-file `content`, which is exactly right for a budget or a key whitelist. This rule is not
+# a measurement. It refuses a ROUTE, and a route is fully known from the path and the tool name
+# alone — so an `Edit`, which never carries content and would therefore exit 0 four lines below,
+# has to be refused before that gate rather than inside it.
+#
+# BOTH ROUTES, EVERY AUTHOR, AND ONLY BEFORE THE FACT. In POST the write has already landed and
+# exit 2 merely carries stderr back; the vocabulary net in shape_problems is what speaks there.
+# A SYMLINK IS A ROUTE, AND ITS NAME IS NOT (FEAT-41 H-01).
+#
+# This is NOT the realpath fix case 8 of the T-09 suite refused, and the distinction is the
+# whole point. That one wanted to replace shape-matching WITH resolution, which would have
+# WEAKENED the gate: `./`, a `notes/..` traversal, a doubled slash, an absolute path and a
+# symlinked feature DIRECTORY are all denied today precisely because the shape of the path as
+# written still ends `<something>/plan.yaml`. This ADDS the resolved target as a second thing to
+# match, so nothing denied today becomes allowed.
+#
+# A SYMLINKED FILE IS THE OPPOSITE SHAPE FROM A SYMLINKED DIRECTORY. `notes/innocent.md ->
+# plan.yaml` is innocent at every component, so no pattern can match what the author typed,
+# while the write lands in the plan. Measured on this runtime: the Write tool FOLLOWS a symlink
+# — the link stayed a link and the target's bytes changed — so the route is real, and it runs
+# through a path every squad member is already granted.
+# WHY BOTH SIDES ARE RESOLVED, recorded because the wrong version shipped once. The first fix used
+# `realpath` on the path alone and left the case RED: `/var` is itself a link to `/private/var`
+# here, so resolving one side put the result in a different spelling namespace, `_norm` could not
+# strip the checkout prefix, and the shape match silently saw nothing. The reaction was to walk
+# `readlink` hops instead, which stayed in the right namespace but resolved only the FINAL
+# component and capped the walk -- leaving a linked parent directory invisible and a long chain
+# failing OPEN (FEAT-41 C2-02). Resolving the ROOT as well removes the original reason, and with
+# it the hop cap: realpath follows a chain of any length and raises on a loop.
+
+
+def _resolved_rel(path):
+    """Repo-relative form with EVERY component resolved, or None if it cannot be resolved.
+
+    BOTH SIDES ARE REALPATH'D, and that is the correction to H-01's first fix (FEAT-41 C2-02).
+    That version resolved only the final component, so a LINKED PARENT DIRECTORY was invisible:
+    `features/<F>/alias/plan.yaml` where `alias -> ../FEAT-OTHER` adds a segment, and
+    `RE_PLAN_YAML` anchors on `features/<one segment>/plan.yaml`, so it matched nothing while the
+    write landed in another feature's real plan.
+
+    It also replaces the hop walk, which existed only because realpath was used on ONE side:
+    `/var` is itself a link to `/private/var` here, so resolving the path but not the root left a
+    relpath full of `..` that matched no pattern. Resolving the root too removes that reason, and
+    with it the hop cap -- realpath follows a chain of ANY length.
+
+    IT DOES NOT RAISE ON A LOOP, and this docstring claimed it did (FEAT-41 MF-5). MEASURED:
+    `os.path.realpath` is non-strict by default and returns the path resolved as far as it can, so
+    a symlink loop RESOLVES. A case asserts a loop stays allowed, because a wrong claim here was
+    the justification for a fail-closed branch that could never fire.
+
+    ValueError IS CAUGHT, NOT ONLY OSError (FEAT-41 MF-2). realpath raises ValueError on an
+    embedded NUL, which used to propagate out of this whole Python body -- and by this file's own
+    header exit 1 is NON-BLOCKING, so the write proceeded. `_plan_route` runs unconditionally, so
+    one NUL took budgets, domain grants and the route denial down together.
+    """
+    try:
+        return os.path.relpath(os.path.realpath(path), os.path.realpath(root))
+    except (OSError, ValueError):
+        return None
+
+
+def _hardlink_plan(path):
+    """The plan.yaml this path IS under another name, or None.
+
+    A HARDLINK IS NOT A PATH QUESTION (FEAT-41 C2-02). It has no target to read -- it IS the
+    file, so `os.path.islink` is False and no amount of resolution can see it. Only identity can.
+
+    `st_nlink < 2` is the cheap gate and it keeps this off the common path: a file with one link
+    cannot be a hardlink to anything, which is every ordinary write. Only a genuinely multiply-
+    linked file reaches the scan.
+    """
+    try:
+        st = os.stat(path)
+    except (OSError, ValueError):
+        # ValueError for the same reason as `_resolved_rel` -- an embedded NUL (FEAT-41 MF-2).
+        return None
+    if st.st_nlink < 2:
+        return None
+    import glob as _glob
+    for cand in _glob.glob(os.path.join(root, ".harness", "*", "features", "*", "plan.yaml")):
+        try:
+            cs = os.stat(cand)
+        except OSError:
+            continue
+        if (cs.st_ino, cs.st_dev) == (st.st_ino, st.st_dev):
+            return _norm(cand)
+    return None
+
+
+def _plan_route(path):
+    """The plan this write would reach, or None. Names the TARGET, never only the link."""
+    as_typed = _norm(path)
+    if RE_PLAN_YAML.match(as_typed):
+        return as_typed
+    resolved = _resolved_rel(path)
+    if resolved is None:
+        # UNRESOLVABLE IS ITS OWN ANSWER, AND IT IS A REFUSAL (FEAT-41 MF-5, and MF-2's remedy
+        # lands here). This used to be conditional on `os.path.islink(path)`, which made it DEAD
+        # for the case it mattered for: measured, `os.path.islink` on a NUL-bearing path is
+        # False, so widening `_resolved_rel`'s except to return None would have reopened the hole
+        # two lines from its own fix. Cycle 3's panel saw that coupling; neither of its reviewers
+        # could, because one found the crash and the other found the dead branch.
+        #
+        # REFUSING IS SAFE BECAUSE NON-STRICT realpath ALREADY SUCCEEDS FOR ABSENT PATHS. The
+        # only ways left to be unresolvable are pathological -- a NUL, or an OS-level path error.
+        # Ordinary work never produces one, and a first write to a not-yet-existing note resolves
+        # fine, which its own negative control asserts.
+        return as_typed
+    if RE_PLAN_YAML.match(resolved):
+        return resolved
+    return _hardlink_plan(path)
+
+
+_reached_plan = _plan_route(target) if target else None
+if not _post and _tool in ("Write", "Edit", "NotebookEdit") and _reached_plan:
+    # THE REASON COMES FIRST, THEN THE ROUTE. A denial that says only what to use instead is
+    # indistinguishable from a stuck or over-broad gate, and a reader who takes it for a harness
+    # malfunction routes around it through a shell write of a legal station value — the one
+    # channel the sweep above admits it cannot attribute to an author. So the refusal has to
+    # earn its own credibility in its first sentence.
+    # THE BASENAME IS THE ONE THAT EXISTS BESIDE THIS SCRIPT. A refusal naming a file that is
+    # not there is unusable — the very failure the reason clause exists to prevent. This script
+    # and the writer live in the same bin directory, and the invariant that keeps them together
+    # is that both are named in run-unit-tests.sh's own script list.
+    _writer = "plan-merge.py"
+    # WHEN A LINK IS THE ROUTE, THE DENIAL NAMES WHERE THE WRITE LANDS (FEAT-41 H-01). Refusing
+    # `notes/innocent.md` with no further explanation reads as a malfunction, which is the one
+    # outcome the reason clause above exists to prevent — and the reader who believes it routes
+    # around the gate through a shell write.
+    _via = ("" if _reached_plan == _norm(target)
+            else f" — the write would land in {_reached_plan}, which it links to")
+    sys.stderr.write(
+        f"check-domain: DENIED — {_show(target)}{_via}: plan.yaml has exactly ONE writer, "
+        f"{_writer}, because every station value must be validated against the vocabulary "
+        f"before it lands on disk. An editor write cannot do that, so this is not a shape "
+        f"violation to be measured — it is a route that no longer exists (FEAT-41 REQ-05, "
+        f"reversing DEC-182).\n"
+        f"  Record a task's station:      python3 .claude/skills/harness/bin/{_writer} "
+        f"set-task-station --file <plan.yaml> --task T-NN --station <station>\n"
+        f"  Record the feature's station: python3 .claude/skills/harness/bin/{_writer} "
+        f"set-feature-station --file <plan.yaml> --station <station>\n"
+        f"  Add tasks:                    python3 .claude/skills/harness/bin/{_writer} "
+        f"add-tasks --file <plan.yaml> --proposal <path>\n"
+        f"  Apply a proposal:             python3 .claude/skills/harness/bin/{_writer} "
+        f"apply --file <plan.yaml> --proposal <path>\n")
+    sys.exit(2)
+
 if not _post:
     # PRE. Only `Write` carries a whole-file `content` to measure, so only `Write` can be
     # blocked before the fact. `d` was parsed once at the top of this process (T-13);
@@ -1436,7 +1692,13 @@ elif target:
     # POST, with a named file: Write, Edit, NotebookEdit. Read what LANDED — no
     # reconstruction of `old_string`/`new_string`, no `replace_all` semantics, no TOCTOU
     # window, because the filesystem already holds the answer those would approximate.
-    _rel = _norm(target)
+    # CLASSIFIED BY WHERE THE WRITE LANDED, NOT BY WHAT WAS TYPED (FEAT-41 H-01). POST opens
+    # `os.path.abspath(target)`, which FOLLOWS a link — so without this the reporter would read
+    # the plan's bytes and then look up shape rules under the link's innocent name, find none,
+    # and exit 0. The PRE denial above already refuses this route for every editor tool; this is
+    # the same mechanism on the reporting side, so the two cannot drift apart.
+    _rel = next((c for c in (_norm(target), _resolved_rel(target), _hardlink_plan(target))
+                 if c and has_shape_rules(c)), _norm(target))
     if not has_shape_rules(_rel):
         sys.exit(0)
     try:

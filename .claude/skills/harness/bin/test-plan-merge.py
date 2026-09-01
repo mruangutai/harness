@@ -18,6 +18,8 @@ import subprocess
 import sys
 import tempfile
 
+import yaml
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 CLI = os.environ.get("PLAN_MERGE_BIN") or os.path.join(HERE, "plan-merge.py")
 TEMPLATE_PLAN = os.path.join(HERE, "..", "templates", "plan.yaml")
@@ -124,9 +126,84 @@ def run_apply(file_path, proposal_path):
     )
 
 
+def run_verb(*argv):
+    """Any verb, argv passed through verbatim — so a case can assert on argument handling
+    itself rather than only on a well-formed invocation."""
+    return subprocess.run([sys.executable, CLI, *argv], capture_output=True, text=True)
+
+
+def read(path):
+    with open(path, encoding="utf-8") as f:
+        return f.read()
+
+
 # ---------------------------------------------------------------------------
 # Cases
 # ---------------------------------------------------------------------------
+
+
+def case_proposal_indent_differs_from_base():
+    """A proposal whose list items are indented differently from the base's still produces a
+    PARSEABLE plan, and the splice is checked before it is written.
+
+    THE LIVE FAILURE THIS PINS, on 2026-08-31: FEAT-41's own plan indents `decisions:` items
+    two spaces (`  - id: D-11`). An operator-approved amendment was proposed as a standalone
+    document with items at column 0 — valid YAML on its own, and the shape every example in
+    this repository's prose uses. `apply` spliced that text VERBATIM, printed ADDED D-13 and
+    APPLIED, exited 0, and left a signed 1541-line plan that PyYAML could not load. Nothing
+    refused it, because the merge parsed the base and the proposal and never the RESULT.
+
+    Two independent defects, and the test asserts both, because either alone leaves a hole:
+      (a) the spliced item is re-indented to the base list's own indent;
+      (b) the merged text is parsed before it is written, so ANY future splice bug is a
+          refusal rather than a corrupted plan.
+    """
+    root, plan_path = fixture_root()
+
+    # The base indents its decision items TWO SPACES, which is what the live corpus does.
+    base = ("schema: plan/1\n"
+            "feature: FEAT-99-fixture\n"
+            "decisions:\n"
+            "  - id: D-01\n"
+            "    choice: the base decision\n"
+            "    because: it was here first\n"
+            "    dec: none\n"
+            "tasks:\n" + task_block("T-01") +
+            DEFAULT_APPROVAL)
+    with open(plan_path, "w", encoding="utf-8") as stream:
+        stream.write(base)
+
+    # The proposal puts its item at COLUMN ZERO — the indentation a human writes by hand.
+    proposal = os.path.join(root, "proposal.yaml")
+    with open(proposal, "w", encoding="utf-8") as stream:
+        stream.write("decisions:\n"
+                     "- id: D-02\n"
+                     "  choice: the amendment\n"
+                     "  because: an operator approved it\n"
+                     "  dec: DEC-199\n")
+
+    result = run_apply(plan_path, proposal)
+    merged = open(plan_path, encoding="utf-8").read()
+
+    check("apply_indent_mismatch_exits_0", result.returncode == 0,
+          f"exit {result.returncode}: {(result.stdout + result.stderr)[:300]!r}")
+
+    parsed, error = None, None
+    try:
+        parsed = yaml.safe_load(merged)
+    except yaml.YAMLError as exc:
+        error = exc
+    check("apply_indent_mismatch_leaves_a_PARSEABLE_plan", error is None,
+          f"merged plan does not load: {error}")
+
+    ids = [d.get("id") for d in (parsed or {}).get("decisions") or []]
+    check("apply_indent_mismatch_added_the_decision", ids == ["D-01", "D-02"], f"ids={ids}")
+
+    # The base's own item is untouched, byte for byte — re-indenting the ADDITION must never
+    # reformat what was already signed.
+    check("apply_indent_mismatch_preserves_the_base_item",
+          "  - id: D-01\n    choice: the base decision\n" in merged,
+          "the base's decision item was reformatted")
 
 
 def case_naive_last_writer_wins():
@@ -540,7 +617,341 @@ def case_create_path_approval():
     check("case11b: no stray tempfile/plan.yaml left behind after the refusal", not stray, stray)
 
 
+# ---------------------------------------------------------------------------
+# FEAT-41 T-03: the four new verbs
+# ---------------------------------------------------------------------------
+
+
+def case_set_task_station_one_line():
+    """The whole promise of a splice: ONE line changes and every other byte is identical.
+    Asserting only that the task's status reads the new value would pass on a YAML round trip
+    that silently renormalised quoting and dropped every comment in the file."""
+    root, plan = fixture_root()
+    try:
+        before = write(plan, render_plan(ids(1, 3), preamble="# a leading comment\n"))
+        r = run_verb("set-task-station", "--file", plan, "--task", "T-02", "--station", "building")
+        after = read(plan)
+        check("set-task-station exits 0", r.returncode == 0, f"rc={r.returncode} {r.stderr!r}")
+        b_lines, a_lines = before.splitlines(True), after.splitlines(True)
+        differing = [i for i, (x, y) in enumerate(zip(b_lines, a_lines)) if x != y]
+        check("set-task-station changes EXACTLY one line",
+              len(b_lines) == len(a_lines) and len(differing) == 1,
+              f"differing={differing}")
+        check("set-task-station changes T-02's status line and nothing else",
+              differing and a_lines[differing[0]].strip() == "status: building"
+              and "T-02" in "".join(a_lines[max(0, differing[0] - 2):differing[0]]),
+              "".join(a_lines))
+        check("set-task-station leaves the leading comment intact",
+              after.startswith("# a leading comment\n"), after[:40])
+        # COUNTED IN THE TASKS SECTION ONLY — the approval mapping also carries a
+        # `status: pending`, so a whole-file count says 3 and proves nothing about the tasks.
+        check("set-task-station leaves T-01 and T-03 pending",
+              after.split("tasks:")[1].count("status: pending") == 2, after)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_set_task_station_unknown_id():
+    root, plan = fixture_root()
+    try:
+        before = write(plan, render_plan(ids(1, 2)))
+        r = run_verb("set-task-station", "--file", plan, "--task", "T-99", "--station", "done")
+        check("set-task-station exits 3 on an unknown task id", r.returncode == 3,
+              f"rc={r.returncode} {r.stderr!r}")
+        check("set-task-station's exit-3 message NAMES the ids the plan does carry",
+              "T-01" in r.stderr and "T-02" in r.stderr, r.stderr)
+        check("set-task-station writes nothing on an unknown task id", read(plan) == before)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_set_feature_station_insert_and_replace():
+    root, plan = fixture_root()
+    try:
+        write(plan, render_plan(ids(1, 2)))
+        r = run_verb("set-feature-station", "--file", plan, "--station", "review")
+        after = read(plan)
+        check("set-feature-station exits 0 when the key is absent", r.returncode == 0,
+              f"rc={r.returncode} {r.stderr!r}")
+        check("set-feature-station INSERTS status immediately after feature:",
+              "feature: FEAT-99-fixture\nstatus: review\n" in after, after[:200])
+        r2 = run_verb("set-feature-station", "--file", plan, "--station", "done")
+        after2 = read(plan)
+        check("set-feature-station exits 0 when the key is present", r2.returncode == 0,
+              f"rc={r2.returncode} {r2.stderr!r}")
+        check("set-feature-station REPLACES rather than appending a second key",
+              after2.count("status: done") == 1 and "status: review" not in after2
+              and len(after2.splitlines()) == len(after.splitlines()), after2[:200])
+        check("set-feature-station does not touch a task's status",
+              after2.split("tasks:")[1].count("status: pending") == 2, after2)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_illegal_station_exit_4():
+    """Exit 4 BEFORE the lock is taken, so a refused value never opens the file."""
+    root, plan = fixture_root()
+    try:
+        before = write(plan, render_plan(ids(1, 2)))
+        for verb, extra in (("set-task-station", ["--task", "T-01"]),
+                            ("set-feature-station", [])):
+            for bad in ("Done", "icebox", "", "abandonded"):
+                r = run_verb(verb, "--file", plan, *extra, "--station", bad)
+                check(f"{verb} exits 4 on the illegal station {bad!r}", r.returncode == 4,
+                      f"rc={r.returncode} {r.stderr!r}")
+                check(f"{verb}'s exit-4 line lists the legal stations for {bad!r}",
+                      all(st in r.stderr for st in
+                          ("backlog", "plan", "ready", "building", "review", "done")),
+                      r.stderr)
+                check(f"{verb} writes nothing when {bad!r} is refused", read(plan) == before)
+        # TERMINAL_MARKER is legal for both verbs even though it is NOT a board station.
+        r = run_verb("set-task-station", "--file", plan, "--task", "T-01",
+                     "--station", "abandoned")
+        check("set-task-station ACCEPTS abandoned, the terminal marker", r.returncode == 0,
+              f"rc={r.returncode} {r.stderr!r}")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_sign_approval():
+    root, plan = fixture_root()
+    try:
+        write(plan, render_plan(ids(1, 2)))
+        r = run_verb("sign-approval", "--file", plan, "--by", "Mike Ruangutai",
+                     "--date", "2026-08-30")
+        after = read(plan)
+        check("sign-approval exits 0", r.returncode == 0, f"rc={r.returncode} {r.stderr!r}")
+        check("sign-approval writes status: approved", "status: approved" in after, after[:400])
+        check("sign-approval writes approved_by", "approved_by: Mike Ruangutai" in after,
+              after[:400])
+        # THE DATE IS ASSERTED BY VALUE, NOT BY SUBSTRING (FEAT-41 F-02). It used to grep for
+        # the bare text `date: 2026-08-30`. Signing now emits every field through YAML, which
+        # quotes this one -- bare, `2026-08-30` reloads as a datetime.date rather than as the
+        # string the operator typed and the signature records. No consumer reads the field, so
+        # the quoting is free; what matters is the value, and asking for the value is a stronger
+        # question than asking for the spelling. `--date` is as free-form as `--by`, so it is
+        # escaped by the same uniform rule rather than exempted -- an exemption would be a hole
+        # in the check that closes F-02.
+        check("sign-approval writes date, and it reloads as the string that was passed",
+              (yaml.safe_load(after).get("approval") or {}).get("date") == "2026-08-30",
+              after[:400])
+        check("sign-approval leaves status: pending behind nowhere",
+              "status: pending" not in after.split("tasks:")[0], after[:400])
+        check("sign-approval does not disturb the tasks",
+              after.split("tasks:")[1].count("status: pending") == 2, after)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+def case_f02_sign_approval_cannot_write_an_unparseable_signature():
+    """FEAT-41 F-02, high, found by the validation panel.
+
+    `sign-approval` is the ONLY verb that writes a free-form operator string. The station verbs
+    validate their value against a closed vocabulary before the lock is taken (case
+    `illegal_station_exit_4`), so they cannot emit arbitrary text; `--by` and `--date` were
+    interpolated raw into `f"{indent}{key}: {value}"`. A signer name carrying a colon therefore
+    wrote an UNPARSEABLE signed plan.yaml and exited 0 -- and T-09 has just closed the editor
+    route that would have repaired it by hand, so the document was left unrecoverable through
+    any sanctioned path.
+
+    THE ASSERTION IS A ROUND TRIP, NOT A GREP. Checking for a quoted substring would bless one
+    particular escaping style and miss the two failures that are not syntax errors at all:
+    `#845 owner` is swallowed as a comment, and a bare `yes` reloads as the BOOLEAN True. What
+    matters is that the value read back equals the value passed, whatever quoting achieves it.
+
+    EITHER OUTCOME IS ACCEPTABLE, and the test says so deliberately: refuse and leave the file
+    untouched, or write it correctly. What is forbidden is the third thing it did -- report
+    success while leaving the document broken.
+    """
+    hostile = [
+        ("colon and space breaks the mapping", "Dr: Bob"),
+        ("a leading hash is swallowed as a comment", "#845 owner"),
+        ("a YAML boolean word must stay a STRING", "yes"),
+        ("a trailing colon", "Bob:"),
+        ("a quote of its own", "O'Brien \"Bob\""),
+        ("a bare newline", "Bob\nEvil: true"),
+    ]
+    for label, by in hostile:
+        root, plan = fixture_root()
+        try:
+            before = write(plan, render_plan(ids(1, 2)))
+            r = run_verb("sign-approval", "--file", plan, "--by", by, "--date", "2026-08-30")
+            after = read(plan)
+            if r.returncode != 0:
+                check(f"F-02 ({label}): refused, and the plan is byte-identical",
+                      after == before, f"rc={r.returncode} stderr={r.stderr[:200]!r}")
+                continue
+            try:
+                doc = yaml.safe_load(after)
+                loaded = True
+            except yaml.YAMLError as exc:
+                doc, loaded = None, False
+                detail = str(exc)[:200]
+            check(f"F-02 ({label}): it exited 0, so the plan it wrote MUST parse",
+                  loaded, detail if not loaded else "")
+            if not loaded:
+                continue
+            got = (doc.get("approval") or {}).get("approved_by")
+            check(f"F-02 ({label}): approved_by round-trips as the exact string passed",
+                  got == by, f"passed={by!r} reloaded={got!r}")
+            check(f"F-02 ({label}): the tasks are undisturbed",
+                  len(doc.get("tasks") or []) == 2, repr(doc.get("tasks")))
+        finally:
+            shutil.rmtree(root, ignore_errors=True)
+
+    # NEGATIVE CONTROL. An ordinary name must still land in the BARE form. Without this, quoting
+    # every value unconditionally would pass every case above while needlessly churning the
+    # appearance of a document a human signs and reads.
+    root, plan = fixture_root()
+    try:
+        write(plan, render_plan(ids(1, 2)))
+        run_verb("sign-approval", "--file", plan, "--by", "Mike Ruangutai",
+                 "--date", "2026-08-30")
+        after = read(plan)
+        check("F-02 NEGATIVE CONTROL: an ordinary signer name stays unquoted",
+              "approved_by: Mike Ruangutai" in after, after[:400])
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+
+def case_sign_approval_is_the_only_signer():
+    """Every other verb still leaves the approval bytes byte-identical — the D-04 promise, now
+    asserted against the THREE new writing verbs rather than only against apply."""
+    root, plan = fixture_root()
+    try:
+        write(plan, render_plan(ids(1, 2)))
+        head = read(plan).split("tasks:")[0]
+        run_verb("set-task-station", "--file", plan, "--task", "T-01", "--station", "building")
+        run_verb("set-feature-station", "--file", plan, "--station", "building")
+        after_head = read(plan).split("tasks:")[0]
+        check("neither station verb writes the approval mapping",
+              "status: pending" in after_head and "approved_by" not in after_head,
+              after_head)
+        check("the approval block's own bytes are untouched by the station verbs",
+              DEFAULT_APPROVAL in read(plan), after_head)
+        check("only the feature status key was added to the head",
+              after_head.count("status: building") == 1, after_head)
+        _ = head
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_f02_verify_signature_is_not_dead_code():
+    """FEAT-41, cycle 1 QA, med, and MUTATION-PROVEN by them: `_verify_signature`'s refusal was
+    UNREACHABLE in this suite. Disabling the whole function with an early `return` broke nothing
+    -- every F-02 hostile value is already stopped one layer earlier by `_field_lines`, so the
+    "second independent layer" the F-02 commit claimed was, from the suite's point of view,
+    indistinguishable from dead code. A later refactor could have reintroduced raw interpolation
+    for one value class and shipped green.
+
+    FORCED THROUGH THE FRONT DOOR, NOT BY PATCHING THE MODULE. This suite drives the real CLI in
+    a subprocess, and a monkeypatched stand-in would prove something about a stand-in. A base
+    plan carrying a DUPLICATE `approved_by` inside its approval block reaches the comparison with
+    the escaping fully intact: the signature is spliced in correctly, and then YAML's last-wins
+    duplicate resolution hands the LATER value back, so the reloaded name is not the one signed.
+    That is the exact condition the comparison loop exists for, and nothing else in this suite
+    reaches it.
+
+    IT IS ALSO A REAL DOCUMENT, not a contrivance: a plan that already carried a stale signer
+    line is how a duplicate key gets there.
+    """
+    root, plan = fixture_root()
+    try:
+        write(plan, "schema: plan/1\nfeature: FEAT-99-fixture\napproval:\n"
+                    "  status: pending\n  approved_by: null\n  approved_by: stale-signer\n"
+                    "tasks:\n  - id: T-01\n    title: t\n")
+        before = read(plan)
+        r = run_verb("sign-approval", "--file", plan, "--by", "Mike Ruangutai",
+                     "--date", "2026-08-30")
+        check("F-02 layer two: a signature that would reload as a DIFFERENT name is REFUSED at "
+              "exit 5 — the comparison loop, which `_field_lines` cannot cover",
+              r.returncode == 5, f"rc={r.returncode} stderr={r.stderr[:200]!r}")
+        # ASSERTED ON stderr, WHERE REFUSALS GO. The first cut read stdout, which is empty on a
+        # refusal, so it failed while the behaviour was correct.
+        check("F-02 layer two: the refusal names both the value asked for and the value it "
+              "would reload as — a reader cannot act on 'refused' alone",
+              "Mike Ruangutai" in r.stderr and "stale-signer" in r.stderr,
+              f"stderr={r.stderr[:300]!r}")
+        check("F-02 layer two: and the plan is left BYTE-IDENTICAL — a refusal that had already "
+              "written would be worse than the bug",
+              read(plan) == before, "plan changed")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_add_tasks_alias():
+    root, plan = fixture_root()
+    try:
+        write(plan, render_plan(ids(1, 2)))
+        prop = os.path.join(os.path.dirname(plan), "proposal.yaml")
+        write(prop, render_plan(ids(1, 3)))
+        r = run_verb("add-tasks", "--file", plan, "--proposal", prop)
+        check("add-tasks exits 0", r.returncode == 0, f"rc={r.returncode} {r.stderr!r}")
+        check("add-tasks adds the new task", "T-03" in read(plan), read(plan))
+        check("add-tasks reports through the same ADDED/APPLIED contract as apply",
+              "ADDED T-03" in r.stdout and "APPLIED" in r.stdout, r.stdout)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_apply_still_refuses_a_changed_value():
+    """apply's exit 7 must survive the arrival of four sibling verbs."""
+    root, plan = fixture_root()
+    try:
+        write(plan, render_plan(ids(1, 2)))
+        prop = os.path.join(os.path.dirname(plan), "proposal.yaml")
+        write(prop, render_plan(ids(1, 2), titles={"T-02": "a DIFFERENT title"}))
+        r = run_apply(plan, prop)
+        check("apply still exits 7 on a changed task value after the new verbs exist",
+              r.returncode == 7, f"rc={r.returncode} {r.stderr!r}")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+
+def case_high1_apply_cannot_mint_the_station_only_marker():
+    """FEAT-41 HIGH-1, cycle 4. `apply` wrote the `station_only: true` credential onto a
+    task-bearing SIGNED plan and exited 0, reporting APPLIED.
+
+    `_verify_spliced` parses the merged result with `yaml.safe_load`, which answers "is this
+    YAML" and not "is this a legal plan". So the schema rule the loader enforces was invisible to
+    the writer, and the tool cheerfully persisted a document that no reader can load -- the same
+    shape as the splice defect STEP 9 was added for.
+
+    THE FIX GIVES THE PLAN SCHEMA ONE HOME. `validate_plan_doc` is extracted from `load_plan` and
+    called by both, so the reader and the writer cannot disagree about what a legal plan is. A
+    writer-side copy of the rule would be a second place for it to stop being true.
+    """
+    root, plan = fixture_root()
+    try:
+        # A SCHEMA-VALID BASE, deliberately, and `render_plan` cannot supply one: its tasks omit
+        # REQUIRED_TASK_FIELDS, so the do-no-harm rule correctly SKIPS such a base and the case
+        # would pass for the wrong reason. The scenario that matters is minting the marker onto a
+        # LEGAL signed plan.
+        write(plan, "schema: plan/1\nfeature: FEAT-99-fixture\nstatus: building\n"
+                    "approval:\n  status: approved\n  approved_by: X\n  date: 2026-01-01\n"
+                    "tasks:\n  - id: T-01\n    title: t\n    change_type: logic\n"
+                    "    execution_mode: main-session-direct\n    status: done\n"
+                    "    files: [a.py]\n    verify: run it\n    intent: do it\n")
+        before = read(plan)
+        prop = os.path.join(root, "prop.yaml")
+        write(prop, "schema: plan/1\nfeature: FEAT-99-fixture\nstation_only: true\ntasks: []\n")
+        r = run_verb("apply", "--file", plan, "--proposal", prop)
+        check("HIGH-1: `apply` REFUSES to mint station_only onto a plan that has tasks",
+              r.returncode != 0, f"rc={r.returncode} stdout={r.stdout[:200]!r}")
+        check("HIGH-1: and the plan is left BYTE-IDENTICAL — a refusal that had already written "
+              "would be the defect it is meant to prevent",
+              read(plan) == before, "plan changed")
+        check("HIGH-1: the refusal names the marker, so the operator can act on it",
+              "station_only" in (r.stderr + r.stdout),
+              f"stderr={r.stderr[:200]!r} stdout={r.stdout[:200]!r}")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+
 def main():
+    case_proposal_indent_differs_from_base()
     case_naive_last_writer_wins()
     case_green_union()
     case_approval_byte_identity()
@@ -552,6 +963,18 @@ def main():
     case_comments_survive()
     case_structural_refusal()
     case_create_path_approval()
+
+    case_set_task_station_one_line()
+    case_set_task_station_unknown_id()
+    case_set_feature_station_insert_and_replace()
+    case_illegal_station_exit_4()
+    case_sign_approval()
+    case_f02_sign_approval_cannot_write_an_unparseable_signature()
+    case_f02_verify_signature_is_not_dead_code()
+    case_high1_apply_cannot_mint_the_station_only_marker()
+    case_sign_approval_is_the_only_signer()
+    case_add_tasks_alias()
+    case_apply_still_refuses_a_changed_value()
 
     fails = 0
     for name, ok, detail in RESULTS:

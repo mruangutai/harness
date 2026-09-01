@@ -2,7 +2,6 @@
   "feature_id": "FEAT-50-run-artifact-integrity",
   "branch": "feat/FEAT-50-run-artifact-integrity",
   "pr": null,
-  "status": "Review",
   "review_sha": "7505b8739fd19a68601a27898d880fc719962712",
   "cycles_used": 8,
   "max_total_cycles": 10,

@@ -8,18 +8,42 @@ existing plan.yaml. It SPLICES TEXT — never re-renders through a YAML dumper (
 each task/decision's `id`, under harness_merge.locked_update so the replace stays atomic and the
 lock stays the one shared with every other write route in this feature.
 
-    plan-merge.py apply --file <path to a plan.yaml> --proposal <path or - for stdin>
+    plan-merge.py apply             --file <plan.yaml> --proposal <path or - for stdin>
+    plan-merge.py add-tasks         --file <plan.yaml> --proposal <path or - for stdin>
+    plan-merge.py set-task-station  --file <plan.yaml> --task T-NN --station <name>
+    plan-merge.py set-feature-station --file <plan.yaml> --station <name>
+    plan-merge.py sign-approval     --file <plan.yaml> --by <name> --date <YYYY-MM-DD>
 
-`approval:` is never written by this tool (D-04): it is always the BASE file's bytes, byte for
-byte. The main session — nobody else — signs approval, with the Edit tool, directly. A proposal
+FIVE VERBS, ONE WRITE ROUTE (FEAT-41 T-03). Every verb goes through
+harness_merge.locked_update and the text splice, and require_destination (exit 9) guards every
+path. ADD-ONLY IS A PROPERTY OF `apply` AND ITS ALIAS, NOT OF THE TOOL: the lock and the splice
+are what fix #628 and they hold for all five, while never deleting a task is a promise those two
+verbs alone make.
+
+`set-task-station` and `set-feature-station` validate the station against the vocabulary
+factory_config declares — MANDATED_STATIONS plus TERMINAL_MARKER, imported, never respelled —
+resolved through the harness.json of the checkout the target plan.yaml belongs to. The check runs
+BEFORE the lock is taken, so a refused value never opens the file.
+
+`approval:` is written by EXACTLY ONE VERB, `sign-approval` (D-04, amended by FEAT-41 T-03).
+Every other verb leaves the base file's approval bytes byte for byte. The main session — nobody
+else — signs approval, and now does so through this tool rather than by hand. A proposal
 that carries an approval mapping which PARSES differently from the base's is a REFUSAL (exit 8),
-not a silent drop: this tool must be INCAPABLE of writing a signature (step 7) and must also
-NOTICE a caller that tried to sneak one past it (step 7b) — two different jobs, so two different
-guards.
+not a silent drop: `apply` must be INCAPABLE of writing a signature (step 7) and must also NOTICE
+a caller that tried to sneak one past it (step 7b) — two different jobs, so two different guards.
+
+THAT PROHIBITION IS UNCHANGED IN FORCE AND NARROWER IN SCOPE. Before FEAT-41 T-03 the tool had
+one verb, so "apply cannot sign" and "this tool cannot sign" were the same sentence; they are not
+any more. Signing moved from a hand edit into `sign-approval` so that it happens under the same
+lock as every other plan write — a signature spliced by hand while another writer held the file
+was the remaining unguarded route into plan.yaml. `apply` still cannot sign, and still refuses a
+proposal that tries.
 
 Exit codes are the interface:
     0  applied — stdout lists ADDED/PRESERVED ids, an IGNORED-APPROVAL line if the proposal
        carried an approval block, and a final APPLIED line
+    3  the task id named by --task is absent from the plan (the message names the ids present)
+    4  the value given to --station is not a legal station (the message lists the legal ones)
     5  a side (base or proposal) failed to parse as YAML
     6  the lock could not be acquired within the retry budget (harness_merge)
     7  the same id, or the same top-level key, carries two different loaded values
@@ -37,7 +61,11 @@ import sys
 import yaml
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import harness_merge  # noqa: E402  (local import, after sys.path fix-up)
+import factory_config  # noqa: E402  (local import, after sys.path fix-up)
+import gh_board  # noqa: E402
+import harness_boundary  # noqa: E402
+import harness_yaml  # noqa: E402
+import harness_merge  # noqa: E402
 
 # Module-level literals. Each is mutated BY NAME in a copy of the tree by the test's red proofs.
 # Nothing outside this file's source text ever flips one — no environment variable, no flag.
@@ -68,6 +96,102 @@ TOP_KEY_RE = re.compile(r"^([A-Za-z_][\w-]*):")
 DASH_RE = re.compile(r"^(\s*)-\s")
 
 UNION_KEYS = ("tasks", "decisions")
+
+
+def _resolve_plan(file_path):
+    """require_destination on the RESOLVED path, or print the refusal and exit its code.
+
+    Extracted so all five verbs share ONE destination guard. A second copy would be a second
+    place for exit 9 to stop being true."""
+    try:
+        return harness_merge.require_destination(
+            file_path,
+            PLAN_TAIL,
+            "a plan.yaml under a features directory",
+            [
+                "  a legal path looks like .harness/features/FEAT-NN-slug/plan.yaml or",
+                "  .harness/<repo>/features/FEAT-NN-slug/plan.yaml.",
+                "  This tool merges plan.yaml only.",
+            ],
+        )
+    except harness_merge.MergeRefusal as refusal:
+        for line in refusal.lines:
+            print(line, file=sys.stderr)
+        sys.exit(refusal.code)
+
+
+def _harness_root(start):
+    """Walk up from `start` to the checkout whose manifest declares a harness, or None.
+
+    THE PROBE NAMES THE MANIFEST, NEVER THE `.harness` DIRECTORY. A probe for the directory
+    resolves $HOME as a root in the global install — B-7 verbatim — and
+    test-check-plan-routes.py's case_20 asserts that no copy of this idiom regresses.
+
+    Extracted from `_legal_stations` (FEAT-41 F-05), whose docstring already described this as
+    its own named step. It is a walk with a termination condition, which is a different kind of
+    thing from choosing a vocabulary, and the two were interleaved in one body at grade 3.
+    """
+    root = start
+    while True:
+        if os.path.isfile(os.path.join(root, harness_boundary.MARKER)):
+            return root
+        parent = os.path.dirname(root)
+        if parent == root:
+            return None
+        root = parent
+
+
+def _legal_stations(resolved):
+    """The station vocabulary the target plan.yaml's own checkout declares, plus the terminal
+    marker, as an ordered tuple.
+
+    IMPORTED, NEVER RESPELLED (FEAT-41 T-03). factory_config owns MANDATED_STATIONS and
+    TERMINAL_MARKER; declaring either here would be a second vocabulary, and since this module
+    is imported by nothing, check-plan-routes.py and check-domain.sh would each respell it as a
+    bare literal and D-05's claim that the marker is declared once in code would be false the
+    day it landed.
+
+    The board is read from the harness.json of the checkout the plan belongs to. A checkout with
+    no board declared — every test fixture, and any project that has not onboarded a board — is
+    NOT a licence to accept anything: the mandate still applies, because MANDATED_STATIONS is
+    what a declaration is checked against in the first place.
+
+    THE ROOT PROBE NAMES THE MANIFEST, NEVER THE `.harness` DIRECTORY. A probe for the directory
+    resolves $HOME as a root in the global install — B-7 verbatim — and
+    test-check-plan-routes.py's case_20 asserts that no copy of this idiom regresses. The walk
+    starts from the plan.yaml's own directory rather than from this script's location, because
+    the vocabulary that governs a write belongs to the checkout being written to, not to
+    whichever checkout happens to be running the tool.
+    """
+    root = _harness_root(os.path.dirname(os.path.abspath(resolved)))
+    stations = None
+    if root is not None:
+        try:
+            board = gh_board.load_board(root)
+            if board is not None:
+                stations = factory_config.station_names(board)
+        except factory_config.FleetError:
+            # An unusable board declaration is not this tool's error to report — the state gate
+            # and every board writer already name it loudly. Fall back to the mandate so a
+            # station write is still validated rather than waved through.
+            stations = None
+    if stations is None:
+        stations = factory_config.MANDATED_STATIONS
+    return tuple(stations) + (factory_config.TERMINAL_MARKER,)
+
+
+def _refuse_illegal_station(station, legal):
+    """Exit 4, naming the offending value and every legal one.
+
+    CALLED BEFORE THE LOCK IS TAKEN, deliberately: a refused value must never open the file, so
+    a typo cannot contend for the lock or leave a partial write behind."""
+    print(
+        f"plan-merge: {station!r} is not a legal station — expected one of: "
+        + ", ".join(legal),
+        file=sys.stderr,
+    )
+    sys.exit(4)
+
 
 
 def _index_top_keys(text):
@@ -117,6 +241,198 @@ def _index_list_items(lines, key_range):
         e = dash_lines[idx + 1] if idx + 1 < len(dash_lines) else end
         ranges.append((s, e))
     return ranges
+
+
+def _field_lines(indent, key, value):
+    """Emit `<indent><key>: <value>` as YAML, quoting ONLY when the value needs it.
+
+    FEAT-41 F-02. `sign-approval` is the one verb that writes a free-form operator string:
+    every other verb's value is validated against a closed vocabulary before the lock is taken,
+    so it cannot carry syntax. `--by` used to be interpolated raw, and a signer name with a
+    colon wrote an unparseable SIGNED plan.yaml and exited 0.
+
+    WHY `safe_dump` AND NOT A QUOTING RULE OF OUR OWN. Three of the six failures are not syntax
+    errors and no hand-written escape would have caught them: `#845 owner` is swallowed as a
+    comment, a bare `yes` reloads as the boolean True, and an embedded newline can open a
+    sibling key. PyYAML already knows the whole set; a local rule would only re-derive part of
+    it, and would drift from the parser that actually reads the file back.
+
+    QUOTING ONLY WHEN NEEDED IS PART OF THE CONTRACT, not an aesthetic. This document is signed
+    and read by a human, and `approved_by: 'Mike Ruangutai'` on every plan would be a visible
+    change to every signature for no benefit. test-plan-merge.py asserts the bare form survives.
+
+    A multi-line emission is indented per line so a continuation cannot escape the mapping.
+    """
+    dumped = yaml.safe_dump({key: value}, default_flow_style=False,
+                            width=10 ** 9, allow_unicode=True)
+    return "".join(f"{indent}{line}\n" if line else "\n"
+                   for line in dumped.rstrip("\n").split("\n"))
+
+
+def _verify_signature(spliced_bytes, resolved, fields):
+    """Refuse rather than write a signature that does not reload as the one that was asked for.
+
+    FEAT-41 F-02, the second half. `_field_lines` above fixes the cause; this catches anything
+    it misses, and the two are NOT redundant: the failures where the value is silently coerced
+    rather than corrupted (`yes` -> True, `#845 owner` -> None) leave a document that parses
+    perfectly, so a check that only asked "does it load" would pass them all.
+
+    IT COMPARES VALUES, NOT SYNTAX. That is the only check that can tell the difference between
+    a signature and something that merely looks like one. Exit 5 is the same code the splice
+    defect this mirrors already uses -- an unwritable result, not a bad argument.
+    """
+    try:
+        reloaded = yaml.safe_load(spliced_bytes.decode("utf-8"))
+    except yaml.YAMLError as exc:
+        raise harness_merge.MergeRefusal(
+            5,
+            [
+                "UNPARSEABLE: the signed plan does not load — REFUSING to write it.",
+                f"  {exc}",
+                "  this is a splice defect, not a bad signature: the base parsed.",
+            ],
+        )
+    if not isinstance(reloaded, dict) or not isinstance(reloaded.get("approval"), dict):
+        raise harness_merge.MergeRefusal(
+            5, [f"UNPARSEABLE: {resolved} has no approval mapping after signing — "
+                "REFUSING to write it."]
+        )
+    got = reloaded["approval"]
+    for key, want in fields.items():
+        if got.get(key) != want:
+            raise harness_merge.MergeRefusal(
+                5,
+                [
+                    f"REFUSED: the signature does not reload as written — approval.{key} "
+                    "would not say what was signed.",
+                    f"  asked for: {want!r}",
+                    f"  reloads as: {got.get(key)!r}",
+                ],
+            )
+
+
+def _schema_error(doc):
+    """The plan-schema complaint about `doc`, or None when it satisfies the schema.
+
+    ONE HOME FOR THE SCHEMA, called through `harness_yaml.validate_plan_doc` -- the same function
+    `load_plan` uses (FEAT-41 HIGH-1). A copy of the rules here would be a second place for them
+    to stop being true, which is the defect this feature keeps finding in its own work.
+    """
+    try:
+        harness_yaml.validate_plan_doc(doc, "the merged plan")
+    except harness_yaml.PlanSchemaError as exc:
+        return exc
+    return None
+
+
+
+def _verify_spliced(spliced_bytes, base_doc, prop_doc, out_order, added_ids):
+    """Refuse rather than return a splice that does not reload as the merge it reported."""
+    try:
+        reloaded = yaml.safe_load(spliced_bytes.decode("utf-8"))
+    except yaml.YAMLError as exc:
+        raise harness_merge.MergeRefusal(
+            5,
+            [
+                "UNPARSEABLE: the merged plan does not load — REFUSING to write it.",
+                f"  {exc}",
+                "  this is a splice defect, not a bad proposal: both inputs parsed.",
+            ],
+        )
+    if not isinstance(reloaded, dict):
+        raise harness_merge.MergeRefusal(
+            5, ["UNPARSEABLE: the merged plan is not a mapping — REFUSING to write it."]
+        )
+    # AND IT MUST BE A LEGAL PLAN, NOT MERELY LEGAL YAML (FEAT-41 HIGH-1). `safe_load` above
+    # answers "is this YAML"; the schema answers "can a reader act on it". Without this, `apply`
+    # minted `station_only: true` onto a task-bearing signed plan, reported APPLIED, exited 0, and
+    # left a document no reader can load. Same shape as the splice defect STEP 9 exists for.
+    #
+    # THE SCHEMA HAS ONE HOME. `validate_plan_doc` is the function `load_plan` itself calls, so
+    # the writer cannot drift from the reader; a copy of the rules here would be a second place
+    # for them to stop being true.
+    # DO NO HARM, RATHER THAN DEMAND PERFECTION. Refusing every merge whose RESULT fails the
+    # schema would block legitimate repair of a plan that was already non-conforming -- measured:
+    # 21 existing cases went red that way, all with bases whose tasks predate REQUIRED_TASK_FIELDS.
+    # So the test is whether this MERGE introduces a violation: valid before, invalid after.
+    if _schema_error(base_doc) is None:
+        _err = _schema_error(reloaded)
+        if _err is not None:
+            raise harness_merge.MergeRefusal(
+                5,
+                ["ILLEGAL PLAN: this merge would make a legal plan illegal — REFUSING to write it.",
+                 f"  {_err}",
+                 "  the base satisfied the plan schema and the merged result does not, so the "
+                 "change itself is what the schema refuses."],
+            )
+    for key in UNION_KEYS:
+        if key not in out_order:
+            continue
+        want = [_item_id(i) for i in (base_doc.get(key) or [])]
+        for item in prop_doc.get(key) or []:
+            iid = _item_id(item)
+            if iid not in want:
+                want.append(iid)
+        got = [_item_id(i) for i in (reloaded.get(key) or [])]
+        if got != want:
+            raise harness_merge.MergeRefusal(
+                5,
+                [
+                    f"UNPARSEABLE: '{key}' does not reload as the merge that was computed — "
+                    "REFUSING to write it.",
+                    f"  expected ids: {want!r}",
+                    f"  reloaded ids: {got!r}",
+                ],
+            )
+
+
+def _item_indent(lines, item_ranges):
+    """The leading-space width of a list item's own dash line, or None when there are none."""
+    if not item_ranges:
+        return None
+    start, _end = item_ranges[0]
+    line = lines[start]
+    return len(line) - len(line.lstrip(" "))
+
+
+def _reindent(item_lines, delta, iid, key):
+    """Shift a whole item uniformly, so a proposal's indentation cannot corrupt the base.
+
+    WHY THIS EXISTS, measured on 2026-08-31: FEAT-41's plan indents `decisions:` items two
+    spaces. An operator-approved amendment was proposed as a standalone document with items at
+    column 0 — valid YAML on its own, and the shape a human writes by hand. The splice appended
+    that text verbatim, so a `- id:` landed at column 0 inside a two-space list, and a signed
+    1541-line plan stopped loading. `apply` printed ADDED and exited 0.
+
+    UNIFORM is the whole point: every line of the item moves by the same delta, so relative
+    structure — nested mappings, block scalars, the `intent: |` body — is preserved exactly.
+    Re-indenting per-line by any cleverer rule would rewrite the very text this tool exists to
+    splice byte for byte.
+
+    A dedent that would eat non-whitespace is a REFUSAL, never a silent truncation.
+    """
+    if delta == 0:
+        return list(item_lines)
+    out = []
+    for line in item_lines:
+        if not line.strip():
+            out.append(line)
+            continue
+        if delta > 0:
+            out.append(" " * delta + line)
+            continue
+        room = len(line) - len(line.lstrip(" "))
+        if room < -delta:
+            raise harness_merge.MergeRefusal(
+                5,
+                [
+                    f"UNPARSEABLE: cannot re-indent id={iid!r} in '{key}' to the base's "
+                    f"indentation — a line carries only {room} leading space(s) and the "
+                    f"proposal is {-delta} deeper than the base.",
+                ],
+            )
+        out.append(line[-delta:])
+    return out
 
 
 def _item_id(item):
@@ -274,10 +590,20 @@ def apply_merge(base_bytes, proposal_text):
                                 f"  proposal: {pitem!r}",
                             ],
                         )
+            # THE ADDITION IS RE-INDENTED TO THE BASE'S LIST, never appended verbatim. When
+            # the base has no items of its own there is nothing to match, and the key head came
+            # from the proposal too, so its own indentation is already consistent.
+            base_indent = _item_indent(base_lines, base_item_ranges)
+            prop_indent = _item_indent(prop_lines, prop_item_ranges)
             for iid in prop_id_order:
                 if iid not in base_by_id:
                     s, e, _item = prop_by_id[iid]
-                    out_chunks.append("".join(prop_lines[s:e]))
+                    item_lines = prop_lines[s:e]
+                    if base_indent is not None and prop_indent is not None:
+                        item_lines = _reindent(
+                            item_lines, base_indent - prop_indent, iid, key
+                        )
+                    out_chunks.append("".join(item_lines))
                     added_ids.append(iid)
             continue
 
@@ -307,6 +633,16 @@ def apply_merge(base_bytes, proposal_text):
     spliced_bytes = "".join(out_chunks).encode("utf-8")
 
     if PRESERVE_BASE_BYTES:
+        # STEP 9: THE RESULT IS PARSED BEFORE IT IS WRITTEN, and this guard is general.
+        # Steps 5-8 parse the BASE and the PROPOSAL; nothing parsed the OUTPUT, so a splice
+        # defect could — and on 2026-08-31 did — write a signed plan that PyYAML cannot load
+        # while printing ADDED and exiting 0. A tool whose whole promise is "the base's bytes
+        # survive" must not be able to hand back bytes that are not a plan.
+        #
+        # It also checks the MERGE, not merely the syntax: every id the caller is about to be
+        # told was added or preserved must actually be present in the reloaded document. A
+        # splice that lands text in the wrong block can still parse.
+        _verify_spliced(spliced_bytes, base_doc, prop_doc, out_order, added_ids)
         return spliced_bytes, added_ids, preserved_ids, ignored_approval
 
     # PRESERVE_BASE_BYTES off: what a naive implementation does — render the whole merged
@@ -338,22 +674,7 @@ def apply_merge(base_bytes, proposal_text):
 
 
 def cmd_apply(args):
-    file_path = args.file
-    try:
-        resolved = harness_merge.require_destination(
-            file_path,
-            PLAN_TAIL,
-            "a plan.yaml under a features directory",
-            [
-                "  a legal path looks like .harness/features/FEAT-NN-slug/plan.yaml or",
-                "  .harness/<repo>/features/FEAT-NN-slug/plan.yaml.",
-                "  This tool merges plan.yaml only.",
-            ],
-        )
-    except harness_merge.MergeRefusal as refusal:
-        for line in refusal.lines:
-            print(line, file=sys.stderr)
-        sys.exit(refusal.code)
+    resolved = _resolve_plan(args.file)
 
     if args.proposal == "-":
         proposal_text = sys.stdin.read()
@@ -387,17 +708,249 @@ def cmd_apply(args):
     sys.exit(0)
 
 
+TASK_ID_RE = re.compile(r"^(\s*)-\s+id:\s*(\S+)\s*$")
+STATUS_LINE_RE = re.compile(r"^(\s*)status:\s*(.*)$")
+FEATURE_LINE_RE = re.compile(r"^feature:\s*\S")
+
+
+def _task_status_line(lines, task_id):
+    """(index, indent) of `task_id`'s own status line, or (None, task_ids_present).
+
+    Scans from the task's `- id:` line to the next item at the same indent, so a `status:` key
+    nested deeper inside that task — a verify block's own prose, say — cannot be mistaken for
+    the task's status. Returns the ids actually present when the id is absent, because a caller
+    who mistyped one needs to see the real list, not just a refusal.
+
+    SCOPED TO THE `tasks:` KEY. `- id:` also matches every entry under `decisions:`, and listing
+    D-01..D-12 in the exit-3 message for a `--task` mistake invites the operator to retry with a
+    decision id — which would then fail for the unrelated reason that decisions carry no status.
+    A refusal that suggests a wrong next step is worse than a terse one.
+    """
+    _lines, _order, ranges, _pre = _index_top_keys("".join(lines))
+    if "tasks" not in ranges:
+        return None, []
+    lo, hi = ranges["tasks"]
+    ids_present = []
+    start = None
+    indent = ""
+    for i in range(lo, hi):
+        line = lines[i]
+        m = TASK_ID_RE.match(line)
+        if m:
+            ids_present.append(m.group(2))
+            if m.group(2) == task_id and start is None:
+                start, indent = i, m.group(1)
+            elif start is not None and m.group(1) == indent:
+                break
+    if start is None:
+        return None, ids_present
+    for j in range(start, len(lines)):
+        m2 = TASK_ID_RE.match(lines[j])
+        if m2 and j != start and m2.group(1) == indent:
+            break
+        ms = STATUS_LINE_RE.match(lines[j])
+        if ms and len(ms.group(1)) > len(indent):
+            return j, ms.group(1)
+    return None, ids_present
+
+
+def cmd_set_task_station(args):
+    resolved = _resolve_plan(args.file)
+    legal = _legal_stations(resolved)
+    if args.station not in legal:
+        _refuse_illegal_station(args.station, legal)
+
+    missing = {}
+
+    def transform(base_bytes):
+        text = base_bytes.decode("utf-8")
+        lines = text.splitlines(keepends=True)
+        idx, info = _task_status_line(lines, args.task)
+        if idx is None:
+            missing["ids"] = info
+            return base_bytes
+        newline = "\n" if lines[idx].endswith("\n") else ""
+        lines[idx] = f"{info}status: {args.station}{newline}"
+        return "".join(lines).encode("utf-8")
+
+    try:
+        harness_merge.locked_update(resolved, transform)
+    except harness_merge.MergeRefusal as refusal:
+        for line in refusal.lines:
+            print(line, file=sys.stderr)
+        sys.exit(refusal.code)
+
+    if "ids" in missing:
+        present = ", ".join(missing["ids"]) or "(none)"
+        print(f"plan-merge: {args.task} is not in {resolved} — it carries: {present}",
+              file=sys.stderr)
+        sys.exit(3)
+    print(f"STATION {args.task} -> {args.station}")
+    print(f"APPLIED {resolved}")
+    sys.exit(0)
+
+
+def _replace_top_level_status(lines, station):
+    """Rewrite an existing column-0 `status:` line in place. True when one was found.
+
+    The indent group must be EMPTY: every task carries its own `status:` and an indented match
+    would rewrite the first task's station instead of the feature's.
+    """
+    for i, line in enumerate(lines):
+        m = STATUS_LINE_RE.match(line)
+        if m and m.group(1) == "":
+            newline = "\n" if line.endswith("\n") else ""
+            lines[i] = f"status: {station}{newline}"
+            return True
+    return False
+
+
+def _insert_status_after_feature(lines, station):
+    """Insert a `status:` line immediately after the top-level `feature:` key. True when done."""
+    for i, line in enumerate(lines):
+        if FEATURE_LINE_RE.match(line):
+            lines.insert(i + 1, f"status: {station}\n")
+            return True
+    return False
+
+
+def _splice_top_level_status(lines, station):
+    """Set plan.yaml's top-level `status`, returning the new bytes, or None if there is nowhere.
+
+    None means the document carries no top-level `feature:` key to anchor to, which the caller
+    turns into a refusal — this function never raises, so the lock plumbing and the text edit
+    stay separable. Extracted from `cmd_set_feature_station.transform` (FEAT-41 F-05), which
+    interleaved two splice strategies with the refusal at grade 3.
+
+    REPLACE the existing top-level status, or INSERT immediately after `feature:` so the file
+    keeps a stable key order. Appending at the end would work and would also make every
+    plan.yaml's key order depend on the order the verbs happened to run in.
+    """
+    if (_replace_top_level_status(lines, station)
+            or _insert_status_after_feature(lines, station)):
+        return "".join(lines).encode("utf-8")
+    return None
+
+
+def cmd_set_feature_station(args):
+    resolved = _resolve_plan(args.file)
+    legal = _legal_stations(resolved)
+    if args.station not in legal:
+        _refuse_illegal_station(args.station, legal)
+
+    def transform(base_bytes):
+        lines = base_bytes.decode("utf-8").splitlines(keepends=True)
+        spliced = _splice_top_level_status(lines, args.station)
+        if spliced is None:
+            raise harness_merge.MergeRefusal(
+                5,
+                [f"plan-merge: {resolved} carries no top-level feature: key to anchor status to"],
+            )
+        return spliced
+
+    try:
+        harness_merge.locked_update(resolved, transform)
+    except harness_merge.MergeRefusal as refusal:
+        for line in refusal.lines:
+            print(line, file=sys.stderr)
+        sys.exit(refusal.code)
+    print(f"STATION {resolved} -> {args.station}")
+    print(f"APPLIED {resolved}")
+    sys.exit(0)
+
+
+def cmd_sign_approval(args):
+    """THE ONLY WAY THE APPROVAL MAPPING IS EVER WRITTEN (D-04, FEAT-41 T-03).
+
+    Every other verb leaves the base's approval bytes byte-identical and `apply` still exits 8
+    on a proposal carrying a different one. That prohibition and this verb are the same rule seen
+    from two sides: approval is written HERE, deliberately, by the main session, and nowhere
+    else by accident."""
+    resolved = _resolve_plan(args.file)
+
+    def transform(base_bytes):
+        text = base_bytes.decode("utf-8")
+        lines = text.splitlines(keepends=True)
+        start = None
+        for i, line in enumerate(lines):
+            if re.match(r"^approval:\s*$", line):
+                start = i
+                break
+        if start is None:
+            raise harness_merge.MergeRefusal(
+                5, [f"plan-merge: {resolved} carries no approval: mapping to sign"]
+            )
+        end = len(lines)
+        for j in range(start + 1, len(lines)):
+            if lines[j].strip() and not lines[j].startswith((" ", "\t")):
+                end = j
+                break
+        fields = {"status": "approved", "approved_by": args.by, "date": args.date}
+        written = set()
+        out = []
+        for line in lines[start + 1:end]:
+            m = re.match(r"^(\s+)(status|approved_by|date):\s*(.*)$", line)
+            if m and m.group(2) not in written:
+                out.append(_field_lines(m.group(1), m.group(2), fields[m.group(2)]))
+                written.add(m.group(2))
+            else:
+                out.append(line)
+        for key in ("status", "approved_by", "date"):
+            if key not in written:
+                out.insert(0, _field_lines("  ", key, fields[key]))
+        spliced = "".join(lines[:start + 1] + out + lines[end:]).encode("utf-8")
+        _verify_signature(spliced, resolved, fields)
+        return spliced
+
+    try:
+        harness_merge.locked_update(resolved, transform)
+    except harness_merge.MergeRefusal as refusal:
+        for line in refusal.lines:
+            print(line, file=sys.stderr)
+        sys.exit(refusal.code)
+    print(f"SIGNED {resolved} by {args.by} on {args.date}")
+    print(f"APPLIED {resolved}")
+    sys.exit(0)
+
+
+# EVERY VERB IS A ROW, NOT A PARAGRAPH (FEAT-41 F-05). `main` regressed from grade 4 to 3 on ABC
+# alone — cyclomatic 2, cognitive 1, ABC 23.8 — when T-03 turned one verb into five and each one
+# added four more registration calls to the same body. There was no logic to simplify: the verb
+# set is DATA, and it was written as control flow.
+#
+# EVERY ARGUMENT OF EVERY VERB IS `required=True`, which is what makes one loop honest rather
+# than a lossy compression of five paragraphs. If a verb ever needs an optional argument, this
+# table is the wrong shape for it and it gets its own registration — do not add a `required`
+# column and keep pretending the rows are uniform.
+_FILE = ("--file", "path to the plan.yaml")
+_STATION = ("--station", "one of the six stations, or abandoned")
+_PROPOSAL = ("--proposal", "path to the proposed plan.yaml, or - for stdin")
+
+# ADD-ONLY IS A PROPERTY OF THE FIRST TWO VERBS, NOT OF THE TOOL (FEAT-41 T-03). The lock and
+# the splice are what fix #628 and they apply to every verb; never deleting a task is a separate
+# promise that `apply` and its alias alone make, which is why they share `cmd_apply` verbatim.
+VERBS = (
+    ("apply", "merge a proposal into a plan.yaml — adds, never deletes",
+     (_FILE, _PROPOSAL), cmd_apply),
+    ("add-tasks", "alias of apply, for callers that only add tasks — identical code path",
+     (_FILE, _PROPOSAL), cmd_apply),
+    ("set-task-station", "set ONE task's status, by splicing its one line",
+     (_FILE, ("--task", "the task id, T-NN"), _STATION), cmd_set_task_station),
+    ("set-feature-station", "set or insert the top-level status key",
+     (_FILE, _STATION), cmd_set_feature_station),
+    ("sign-approval", "the ONLY route that writes the approval mapping",
+     (_FILE, ("--by", "the signer's name"), ("--date", "YYYY-MM-DD")), cmd_sign_approval),
+)
+
+
 def main():
     parser = argparse.ArgumentParser(prog="plan-merge.py")
     sub = parser.add_subparsers(dest="cmd", required=True)
-
-    p_apply = sub.add_parser("apply", help="merge a proposal into a plan.yaml")
-    p_apply.add_argument("--file", required=True, help="path to the plan.yaml")
-    p_apply.add_argument(
-        "--proposal", required=True, help="path to the proposed plan.yaml, or - for stdin"
-    )
-    p_apply.set_defaults(func=cmd_apply)
-
+    for name, helptext, arguments, func in VERBS:
+        p = sub.add_parser(name, help=helptext)
+        for flag, arghelp in arguments:
+            p.add_argument(flag, required=True, help=arghelp)
+        p.set_defaults(func=func)
     args = parser.parse_args()
     args.func(args)
 

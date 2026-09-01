@@ -1,5 +1,6 @@
 schema: plan/1
 feature: FEAT-25-claim-feature-root
+status: done
 
 approval:
   status: approved

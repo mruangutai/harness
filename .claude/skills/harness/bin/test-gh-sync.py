@@ -98,11 +98,34 @@ status: approved
     return feat
 
 
+def add_plan_station(feat_dir, feat_name, station="building"):
+    """Give an existing `stage()` fixture the plan.yaml the station now lives in (FEAT-41 T-07).
+
+    SEPARATE FROM `stage`, DELIBERATELY. Folding this into `stage` was tried and reverted: a
+    plan.yaml WINS over PLAN.md in cmd_open's discovery, so every open-lifecycle case silently
+    switched to a one-task plan and asserted against three issues that were never created.
+    Only the cases that exercise a STATION WRITE need a plan, and they ask for one."""
+    with open(os.path.join(feat_dir, "plan.yaml"), "w", encoding="utf-8") as f:
+        f.write(f"schema: plan/1\nfeature: {feat_name}\nstatus: {station}\n"
+                f"tasks:\n  - id: T-01\n    title: t\n    change_type: logic\n"
+                f"    execution_mode: team\n    files:\n      - a.py\n"
+                f"    verify: |\n      true\n    intent: |\n      x\n    status: done\n")
+    return feat_dir
+
+
 def write_feature_json(path, **fields):
     """Write a minimal feature.json fixture. `feature_id` and `status` default; any keyword
-    (including `github`) overrides or adds a top-level key."""
+    (including `github`) overrides or adds a top-level key.
+
+    `status=None` OMITS the key entirely rather than writing a JSON null (FEAT-41 T-07). The
+    distinction is the whole point of the post-migration shape: a null status is a malformed
+    document that a reader may legitimately reject, while an ABSENT status is what the
+    migration actually leaves on disk and what every repointed reader must handle.
+    """
     doc = {"feature_id": fields.pop("feature_id", "FEAT-05-export-fix"),
            "status": fields.pop("status", "Building")}
+    if doc["status"] is None:
+        del doc["status"]
     doc.update(fields)
     with open(path, "w", encoding="utf-8") as f:
         json.dump(doc, f, indent=2)
@@ -120,6 +143,20 @@ def nested_feature_dir(feat_name="FEAT-77-test"):
     d = os.path.join(base, ".harness", "features", feat_name)
     os.makedirs(d)
     return d
+
+
+def read_plan_station(feat_dir):
+    """plan.yaml's top-level station (FEAT-41 T-07) — what `read_feature_json(...)["status"]`
+    used to answer before the field moved. Returns None when the plan or the key is absent, so
+    a case can assert "no station recorded" as well as a value."""
+    try:
+        with open(os.path.join(feat_dir, "plan.yaml"), encoding="utf-8") as f:
+            for line in f:
+                if line.startswith("status:"):
+                    return line.split(":", 1)[1].strip()
+    except OSError:
+        return None
+    return None
 
 
 def read_feature_json(path):
@@ -371,8 +408,11 @@ exit 0
 """
 
 
-FULL_STATIONS = {"backlog": "Backlog", "plan": "Plan", "ready": "Ready", "building": "Building",
-                  "review": "Review", "done": "Done"}
+# THE ORDERED LOWERCASE DECLARATION (FEAT-41 T-01). This was a six-key MAPPING of station name
+# to column name, which T-01 made a loud FleetError: the six names are FIXED, and a board's
+# COLUMN names are DERIVED from them by factory_config.station_column. There is no column name to
+# store here any more, so the declaration is a checksum rather than a place to choose.
+FULL_STATIONS = ["backlog", "plan", "ready", "building", "review", "done"]
 
 
 # T-04: the ship fixture's gh. Everything FAKE_GH_STATIONS answers, plus the three reads the
@@ -481,11 +521,12 @@ def write_harness_json_board(tmp, sync=True, repo="implentio/fake", board=True, 
     if repo:
         g["repo"] = repo
     g["board"] = ({"owner": "mruangutai", "number": 3, "station_field": "Status",
-                    "stations": dict(stations or FULL_STATIONS)} if board else None)
+                    "stations": list(stations or FULL_STATIONS)} if board else None)
     json.dump({"github": g}, open(os.path.join(tmp, ".harness", "harness.json"), "w"))
 
 
-def write_plan_yaml(feat_dir, feat_name, task_statuses, source_issues=None, approval=None):
+def write_plan_yaml(feat_dir, feat_name, task_statuses, source_issues=None, approval=None,
+                     plan_station=None):
     """A minimal plan.yaml — every REQUIRED_TASK_FIELDS key present — carrying only the
     `status` values a test cares about. Written as JSON text: JSON is valid YAML and this
     avoids a second parser dependency in the test file itself.
@@ -496,33 +537,65 @@ def write_plan_yaml(feat_dir, feat_name, task_statuses, source_issues=None, appr
 
     `approval` is OPTIONAL (T-13): a dict written verbatim as plan.yaml's top-level
     `approval:` key when given, omitted otherwise — every existing caller (none of which
-    cares about approval) is unchanged."""
-    doc = {
-        "schema": "plan/1",
-        "feature": feat_name,
-        "tasks": [
-            {"id": tid, "title": tid, "change_type": "logic", "execution_mode": "team",
-             "files": ["dummy.py"], "verify": "true", "intent": "fixture", "status": status}
-            for tid, status in task_statuses
-        ],
-    }
+    cares about approval) is unchanged.
+
+    `plan_station` writes plan.yaml's own top-level `status:` — the feature's station, which
+    FEAT-41 T-07 makes the single record of it. Omitted by default so every existing caller is
+    unchanged.
+    """
+    # BLOCK YAML, NOT JSON (FEAT-41 T-16). This wrote `json.dump(doc, f)` on the reasoning that
+    # JSON is valid YAML and it avoided a second parser dependency in this file. Both halves were
+    # true and the fixture was still wrong, in a way nothing could see until a tool WROTE the
+    # file rather than only reading it: plan-merge.py's verbs SPLICE TEXT under a lock, so they
+    # address a task by its own `- id: T-NN` LINE. A single-line JSON document has no such line,
+    # so `set-task-station` could not find any task at all and start-task refused.
+    #
+    # Emitted as text rather than through a dumper for the original reason — no parser dependency
+    # — and it is now the same SHAPE the template produces, so a fixture exercises the write path
+    # production uses instead of merely one a reader accepts.
+    lines = ["schema: plan/1", f"feature: {feat_name}"]
+    if plan_station is not None:
+        lines.append(f"status: {plan_station}")
     if source_issues is not None:
-        doc["source_issues"] = source_issues
+        lines.append("source_issues: [" + ", ".join(str(n) for n in source_issues) + "]")
     if approval is not None:
-        doc["approval"] = approval
+        lines.append("approval:")
+        for key, value in approval.items():
+            lines.append(f"  {key}: {value}")
+    lines.append("tasks:")
+    for tid, status in task_statuses:
+        lines += [
+            f"  - id: {tid}",
+            f"    title: {tid}",
+            "    change_type: logic",
+            "    execution_mode: team",
+            "    files:",
+            "      - dummy.py",
+            "    verify: |",
+            "      true",
+            "    intent: |",
+            "      fixture",
+            f"    status: {status}",
+        ]
     with open(os.path.join(feat_dir, "plan.yaml"), "w", encoding="utf-8") as f:
-        json.dump(doc, f)
+        f.write("\n".join(lines) + "\n")
 
 
 def stage_station(tmp, feat_name, task_statuses, board=True, sync=True, repo="implentio/fake",
-                   feature_status="Building", issues=None, parent=40, milestone=7, stations=None,
-                   approval=None, source_issues=None):
+                   feature_status=None, plan_station="building", issues=None, parent=40,
+                   milestone=7, stations=None, approval=None, source_issues=None):
     """A plan.yaml-backed feature, wired for the T-03 station-write tests: harness.json's
     github.board (optionally), a plan.yaml carrying the given task statuses, and a
     feature.json recording the given issues/parent so `load_recorded` needs no live sync.
 
     `approval` and `source_issues` are OPTIONAL passthroughs to `write_plan_yaml` (T-13) —
-    every existing caller, which passes neither, is unchanged."""
+    every existing caller, which passes neither, is unchanged.
+
+    `feature_status=None` OMITS feature.json's status key — the post-migration shape (FEAT-41
+    T-07) — and `plan_station` records the station in plan.yaml instead, where T-07 makes it
+    the only record. Passing both is the pre-migration shape and is what every existing
+    caller still gets by default.
+    """
     feat = os.path.join(tmp, ".harness", "features", feat_name)
     os.makedirs(feat)
     write_harness_json_board(tmp, sync=sync, repo=repo, board=board, stations=stations)
@@ -545,7 +618,7 @@ Station fixture.
 status: approved
 """)
     write_plan_yaml(feat, feat_name, task_statuses, source_issues=source_issues,
-                     approval=approval)
+                     approval=approval, plan_station=plan_station)
     write_feature_json(
         os.path.join(feat, "feature.json"),
         feature_id=feat_name, status=feature_status,
@@ -1028,6 +1101,7 @@ with tempfile.TemporaryDirectory() as tmpD:
 with tempfile.TemporaryDirectory() as tmpE:
     install_gh(tmpE)
     featE = stage(tmpE, feat_name="FEAT-06-abandon-nomilestone")
+    add_plan_station(featE, "FEAT-06-abandon-nomilestone")
     write_feature_json(
         os.path.join(featE, "feature.json"),
         feature_id="FEAT-06-abandon-nomilestone",
@@ -1047,9 +1121,8 @@ with tempfile.TemporaryDirectory() as tmpE:
     # (which alone would `skip()` if abandon had no issues) but WITH issues recorded, so
     # cmd_abandon's real early exit (milestone is None AND no issues) does not fire, and a
     # milestone-only guard on the status write would wrongly skip it here.
-    docE = read_feature_json(os.path.join(featE, "feature.json"))
-    check("abandon with no milestone but WITH issues still records status Abandoned",
-          docE.get("status") == "Abandoned", docE)
+    check("abandon with no milestone but WITH issues still records the terminal station",
+          read_plan_station(featE) == "abandoned", read_plan_station(featE))
 
 # --- abandon: sync disabled is still a SKIP, exit 0 (SC-12)
 with tempfile.TemporaryDirectory() as tmpF:
@@ -1065,6 +1138,7 @@ with tempfile.TemporaryDirectory() as tmpF:
 with tempfile.TemporaryDirectory() as tmpG:
     install_gh(tmpG)
     featG = stage(tmpG, feat_name="FEAT-07-ship-created")
+    add_plan_station(featG, "FEAT-07-ship-created", "review")
     write_feature_json(
         os.path.join(featG, "feature.json"),
         feature_id="FEAT-07-ship-created",
@@ -1093,8 +1167,8 @@ with tempfile.TemporaryDirectory() as tmpG:
     check("ship with no board configured STILL closes the milestone -- the issue lifecycle "
           "runs to completion",
           bool(ms_idxG), str(logG))
-    check("ship with no board configured STILL records the terminal status",
-          docG.get("status") == "Done", docG)
+    check("ship with no board configured STILL records the terminal station",
+          read_plan_station(featG) == "done", read_plan_station(featG))
 
 # --- ship: an adopted parent is left open; the milestone still closes regardless (labelled here)
 with tempfile.TemporaryDirectory() as tmpH:
@@ -1411,7 +1485,7 @@ with tempfile.TemporaryDirectory() as tmpN:
     install_gh(tmpN, FAKE_GH_STATIONS)
     featN = stage_station(
         tmpN, "FEAT-09-start-task",
-        [("T-01", "done"), ("T-02", "building"), ("T-03", "pending")],
+        [("T-01", "done"), ("T-02", "building"), ("T-03", "ready")],
         issues={"T-01": 41, "T-02": 326},
         parent=40,
     )
@@ -1443,7 +1517,7 @@ with tempfile.TemporaryDirectory() as tmpN2:
     install_gh(tmpN2, FAKE_GH_STATIONS)
     featN2 = stage_station(
         tmpN2, "FEAT-09-start-task-closed-done",
-        [("T-01", "done"), ("T-02", "building"), ("T-03", "pending")],
+        [("T-01", "done"), ("T-02", "building"), ("T-03", "ready")],
         issues={"T-01": 41, "T-02": 326},
         parent=40,
     )
@@ -1456,7 +1530,10 @@ with tempfile.TemporaryDirectory() as tmpN2:
     check("#642 replay: no station write of any kind reaches the fake",
           not any("item-edit" in l for l in logN2), str(logN2))
     check("#642 replay: refuses, naming the issue, the task id, the current station and why",
-          "gh-sync: refusing #326" in r.stdout and "T-02" in r.stdout and "Done" in r.stdout,
+          # `done` LOWERCASE (FEAT-41 T-02): the refusal quotes the card's current station as
+          # gh_board.board_stations returned it, and that read is lowercased at the boundary.
+          # The capitalised form would mean the boundary had leaked.
+          "gh-sync: refusing #326" in r.stdout and "T-02" in r.stdout and "done" in r.stdout,
           r.stdout)
 
 # --- an open issue at Backlog is still moved to Building — the guard changes nothing for the
@@ -1465,7 +1542,7 @@ with tempfile.TemporaryDirectory() as tmpN3:
     install_gh(tmpN3, FAKE_GH_STATIONS)
     featN3 = stage_station(
         tmpN3, "FEAT-09-start-task-open-backlog",
-        [("T-01", "done"), ("T-02", "building"), ("T-03", "pending")],
+        [("T-01", "done"), ("T-02", "building"), ("T-03", "ready")],
         issues={"T-01": 41, "T-02": 326},
         parent=40,
     )
@@ -1490,7 +1567,7 @@ with tempfile.TemporaryDirectory() as tmpN4:
     install_gh(tmpN4, FAKE_GH_STATIONS)
     featN4 = stage_station(
         tmpN4, "FEAT-09-start-task-open-done",
-        [("T-01", "done"), ("T-02", "building"), ("T-03", "pending")],
+        [("T-01", "done"), ("T-02", "building"), ("T-03", "ready")],
         issues={"T-01": 41, "T-02": 326},
         parent=40,
     )
@@ -1510,7 +1587,7 @@ with tempfile.TemporaryDirectory() as tmpN5:
     install_gh(tmpN5, FAKE_GH_STATIONS)
     featN5 = stage_station(
         tmpN5, "FEAT-09-start-task-closed-building",
-        [("T-01", "done"), ("T-02", "building"), ("T-03", "pending")],
+        [("T-01", "done"), ("T-02", "building"), ("T-03", "ready")],
         issues={"T-01": 41, "T-02": 326},
         parent=40,
     )
@@ -1530,7 +1607,7 @@ with tempfile.TemporaryDirectory() as tmpN6:
     install_gh(tmpN6, FAKE_GH_STATIONS_GUARD_READ_FAILS)
     featN6 = stage_station(
         tmpN6, "FEAT-09-start-task-guard-read-fails",
-        [("T-01", "done"), ("T-02", "building"), ("T-03", "pending")],
+        [("T-01", "done"), ("T-02", "building"), ("T-03", "ready")],
         issues={"T-01": 41, "T-02": 326},
         parent=40,
     )
@@ -1559,7 +1636,7 @@ with tempfile.TemporaryDirectory() as tmpN7:
     install_gh(tmpN7, FAKE_GH_STATIONS_CUSTOM)
     featN7 = stage_station(
         tmpN7, "FEAT-09-start-task-custom-stations",
-        [("T-01", "done"), ("T-02", "building"), ("T-03", "pending")],
+        [("T-01", "done"), ("T-02", "building"), ("T-03", "ready")],
         issues={"T-01": 41, "T-02": 326},
         parent=40,
         stations=CUSTOM_STATIONS,
@@ -1569,16 +1646,33 @@ with tempfile.TemporaryDirectory() as tmpN7:
              "GUARD_ISSUE": "326", "GUARD_STATE": "OPEN", "GUARD_STATION_NAME": "Todo"})
     logN7 = calls(tmpN7)
     editsN7 = [l for l in logN7 if "project item-edit" in l]
-    check("custom stations: exits 0", r.returncode == 0, r.stdout + r.stderr)
-    check("custom stations: sets the sub-issue's station to the DECLARED building option "
-          "(OPT_DOING), not the hardcoded literal OPT_BUILDING",
-          any("--id ITEM_326" in l and "--single-select-option-id OPT_DOING" in l
-              for l in editsN7)
-          and not any("OPT_BUILDING" in l for l in editsN7),
-          str(editsN7))
-    check("custom stations: prints the declared name (\"Doing\"), never the literal \"Building\"",
-          "-> Doing" in r.stdout and "-> Building" not in r.stdout,
-          r.stdout)
+    # INVERTED, NOT PATCHED (FEAT-41 T-16). This case proved a board could RENAME its columns —
+    # declare `building: "Doing"` — and that the tool would select the declared option rather
+    # than a hardcoded OPT_BUILDING. That capability is GONE BY DESIGN: T-01 fixes the six names
+    # and DERIVES every column from them through factory_config.station_column, so a renamed
+    # declaration is no longer a supported configuration but a loud FleetError.
+    #
+    # The case is kept and turned around rather than deleted, because its SPIRIT is still the
+    # thing that matters: the tool must never silently write the wrong option. Before, that meant
+    # "read the declaration instead of a literal". Now it means "refuse a declaration that tries
+    # to choose". Deleting it would leave nothing asserting either.
+    # WHERE THE REFUSAL LANDS, MEASURED RATHER THAN ASSUMED. My first attempt at this inversion
+    # asserted a validation refusal with a non-zero exit. Wrong mechanism: the declaration is a
+    # LIST of the six fixed names now, so it is perfectly VALID — there is no longer anywhere in
+    # it to express a rename. The rename lives only on the BOARD, and the harness meets it at the
+    # write: station_column derives `Building`, GitHub offers only `Doing`, and the option lookup
+    # fails by name.
+    #
+    # Exit stays 0 and that is the point — a failed card write has never gated this tool
+    # (DEC-146, DEC-138). What must hold is that the harness does not CHASE the rename.
+    _outN7 = r.stdout + r.stderr
+    check("renamed board: exit 0 — a failed card write still never gates",
+          r.returncode == 0, f"exit {r.returncode}: {_outN7[:200]!r}")
+    check("renamed board: one loud ERROR naming the option the board does not offer",
+          "option not found" in _outN7 and "Building" in _outN7, _outN7[:300])
+    check("renamed board: the harness NEVER writes the renamed option — it derives the fixed "
+          "name and stops, rather than hunting for a column that fits",
+          not any("OPT_DOING" in l for l in editsN7), str(editsN7))
 
 # --- the parent reaches Review when every task is done. RETARGETED to start-task by T-11.
 #     The derivation is CALLER-INDEPENDENT BY CONSTRUCTION -- _apply_parent_rule's own
@@ -1598,9 +1692,20 @@ with tempfile.TemporaryDirectory() as tmpO:
     logO = calls(tmpO)
     editsO = [l for l in logO if "project item-edit" in l]
     check("every task done: exits 0", r.returncode == 0, r.stdout + r.stderr)
-    check("every task done: the parent card is set to Review",
-          any("--id ITEM_40" in l and "--single-select-option-id OPT_REVIEW" in l
-              for l in editsO),
+    # THE PREMISE NO LONGER SURVIVES THE COMMAND (FEAT-41 T-16, consequence of T-06).
+    # start-task now RECORDS the task's station in plan.yaml before it touches the board, so
+    # `start-task T-03` on an all-done plan makes T-03 `building` — and the parent therefore
+    # derives building, not review. "Every task done AND T-03 just started" is a contradiction.
+    #
+    # NOT WEAKENED: the all-done -> review rule is asserted directly, on project, in
+    # test-gh-board.py. What this case can uniquely still prove is stronger than what it proved
+    # before — that start-task's PLAN WRITE really happened and is the input the placement is
+    # computed from. A card at review here would mean the plan write silently did nothing.
+    check("every task done, then start-task: the parent follows the PLAN WRITE to building, "
+          "never the pre-command review",
+          any("--id ITEM_40" in l and "--single-select-option-id OPT_BUILDING" in l
+              for l in editsO)
+          and not any("--id ITEM_40" in l and "OPT_REVIEW" in l for l in editsO),
           str(editsO))
 
 # --- a feature whose feature.json status is Done writes NO station at all -- the terminal
@@ -1614,7 +1719,7 @@ with tempfile.TemporaryDirectory() as tmpP:
         [("T-01", "done")],
         issues={"T-01": 41},
         parent=40,
-        feature_status="Done",
+        feature_status=None, plan_station="done",
     )
     r = run(["start-task", featP, "T-01"], tmpP, {"FACTORY_GH": os.path.join(tmpP, "gh")})
     logP = calls(tmpP)
@@ -1739,7 +1844,7 @@ with tempfile.TemporaryDirectory() as tmpSt1:
         tmpSt1, "FEAT-33-status-unknown",
         [("T-01", "done")],
         issues={"T-01": 326},
-        feature_status="Building",
+        feature_status=None, plan_station="building",
     )
     r = run(["status", featSt1, "Banana"], tmpSt1, {"FACTORY_GH": os.path.join(tmpSt1, "gh")})
     check("status: an unknown value is refused with exit 2",
@@ -1748,8 +1853,8 @@ with tempfile.TemporaryDirectory() as tmpSt1:
           "Banana" in (r.stdout + r.stderr), r.stdout + r.stderr)
     check("status: an unknown value writes no station of any kind",
           not any("item-edit" in l for l in calls(tmpSt1)), str(calls(tmpSt1)))
-    check("status: an unknown value leaves feature.json's status unrecorded",
-          read_feature_json(os.path.join(featSt1, "feature.json"))["status"] == "Building",
+    check("status: an unknown value leaves plan.yaml's station unrecorded",
+          read_plan_station(featSt1) == "building",
           read_feature_json(os.path.join(featSt1, "feature.json")))
 
 # --- status Ready on a signed plan moves every recorded T-NN sub-issue to the declared
@@ -1759,22 +1864,36 @@ with tempfile.TemporaryDirectory() as tmpSt2:
     install_gh(tmpSt2, FAKE_GH_STATIONS)
     featSt2 = stage_station(
         tmpSt2, "FEAT-33-status-ready",
-        [("T-01", "done"), ("T-02", "building"), ("T-03", "pending")],
+        [("T-01", "done"), ("T-02", "building"), ("T-03", "ready")],
         issues={"T-01": 41, "T-02": 42, "T-03": 43},
         parent=40,
         approval={"status": "approved"},
     )
-    r = run(["status", featSt2, "Ready"], tmpSt2, {"FACTORY_GH": os.path.join(tmpSt2, "gh")})
+    r = run(["status", featSt2, "ready"], tmpSt2, {"FACTORY_GH": os.path.join(tmpSt2, "gh")})
     logSt2 = calls(tmpSt2)
     editsSt2 = [l for l in logSt2 if "project item-edit" in l]
     ids_written = {next(p for p in l.split() if p.startswith("ITEM_")) for l in editsSt2}
     check("status Ready: exits 0", r.returncode == 0, r.stdout + r.stderr)
     check("status Ready: writes exactly the three sub-issues, never the parent",
           ids_written == {"ITEM_41", "ITEM_42", "ITEM_43"}, str(editsSt2))
-    check("status Ready: every write selects the declared Ready option",
-          all("--single-select-option-id OPT_READY" in l for l in editsSt2), str(editsSt2))
+    # EACH CARD CARRIES ITS OWN TASK'S WORD (FEAT-41 T-06, D-11). This asserted that every write
+    # selected OPT_READY, because the transition used to write one station to every sub-issue.
+    # The plan here is deliberately MIXED — done, building, ready — and under D-11 a card whose
+    # task says building must READ building; writing `ready` over it is precisely the
+    # two-words-two-meanings disagreement this feature deletes.
+    #
+    # WHY THIS DIFFERS FROM THE Review TRANSITION, which DOES still write one station to every
+    # card: Review has an operator ruling behind it (D-23) and an INV-26 widening that exists to
+    # tolerate the resulting disagreement. Ready has neither, so there is nothing to justify
+    # overwriting a task's own word here.
+    _want_by_item = {"ITEM_41": "OPT_DONE", "ITEM_42": "OPT_BUILDING", "ITEM_43": "OPT_READY"}
+    _got_by_item = {next(p for p in l.split() if p.startswith("ITEM_")):
+                    l.split("--single-select-option-id ")[1].split()[0].strip("\x01")
+                    for l in editsSt2}
+    check("status Ready: each sub-issue card gets ITS OWN task's station, not one blanket value",
+          _got_by_item == _want_by_item, f"got {_got_by_item}, want {_want_by_item}")
     check("status Ready: feature.json status recorded as Ready",
-          read_feature_json(os.path.join(featSt2, "feature.json"))["status"] == "Ready",
+          read_plan_station(featSt2) == "ready",
           read_feature_json(os.path.join(featSt2, "feature.json")))
 
 # --- status Review moves the PARENT and every recorded T-NN sub-issue, and only those.
@@ -1786,7 +1905,7 @@ with tempfile.TemporaryDirectory() as tmpSt3:
         issues={"T-01": 41, "T-02": 42},
         parent=40,
     )
-    r = run(["status", featSt3, "Review"], tmpSt3, {"FACTORY_GH": os.path.join(tmpSt3, "gh")})
+    r = run(["status", featSt3, "review"], tmpSt3, {"FACTORY_GH": os.path.join(tmpSt3, "gh")})
     logSt3 = calls(tmpSt3)
     editsSt3 = [l for l in logSt3 if "project item-edit" in l]
     ids_written3 = {next(p for p in l.split() if p.startswith("ITEM_")) for l in editsSt3}
@@ -1800,11 +1919,11 @@ with tempfile.TemporaryDirectory() as tmpSt3:
 #     writes those three columns (Plan is board-station.py's, Done is `ship`'s alone -- ship
 #     is the only writer of the done station -- and Abandoned has no column at all,
 #     D-03/DEC-203).
-for _st3_status in ("Plan", "Done", "Abandoned"):
+for _st3_status in ("plan", "done", "abandoned"):
     with tempfile.TemporaryDirectory() as tmpSt4:
         install_gh(tmpSt4, FAKE_GH_STATIONS)
         featSt4 = stage_station(
-            tmpSt4, f"FEAT-33-status-{_st3_status.lower()}",
+            tmpSt4, f"FEAT-33-status-{_st3_status}",
             [("T-01", "done")],
             issues={"T-01": 41},
             parent=40,
@@ -1815,9 +1934,9 @@ for _st3_status in ("Plan", "Done", "Abandoned"):
         check(f"status {_st3_status}: exits 0", r.returncode == 0, r.stdout + r.stderr)
         check(f"status {_st3_status}: writes NO station at all",
               not any("item-edit" in l for l in logSt4), str(logSt4))
-        check(f"status {_st3_status}: feature.json status recorded",
-              read_feature_json(os.path.join(featSt4, "feature.json"))["status"] == _st3_status,
-              read_feature_json(os.path.join(featSt4, "feature.json")))
+        check(f"status {_st3_status}: plan.yaml station recorded",
+              read_plan_station(featSt4) == _st3_status,
+              read_plan_station(featSt4))
 
 # --- SC-14's fixture: status Ready on a feature with ZERO recorded sub-issues writes
 #     nothing and prints one line — proves there is no fallback to the parent.
@@ -1830,7 +1949,7 @@ with tempfile.TemporaryDirectory() as tmpSt5:
         parent=40,
         approval={"status": "approved"},
     )
-    r = run(["status", featSt5, "Ready"], tmpSt5, {"FACTORY_GH": os.path.join(tmpSt5, "gh")})
+    r = run(["status", featSt5, "ready"], tmpSt5, {"FACTORY_GH": os.path.join(tmpSt5, "gh")})
     logSt5 = calls(tmpSt5)
     check("status Ready, zero sub-issues: exits 0", r.returncode == 0, r.stdout + r.stderr)
     check("status Ready, zero sub-issues: no set_station call at all — no parent fallback",
@@ -1847,18 +1966,18 @@ with tempfile.TemporaryDirectory() as tmpSt6:
         [("T-01", "pending")],
         issues={"T-01": 41},
         parent=40,
-        feature_status="Plan",
+        feature_status=None, plan_station="plan",
         approval=None,
     )
-    r = run(["status", featSt6, "Ready"], tmpSt6, {"FACTORY_GH": os.path.join(tmpSt6, "gh")})
+    r = run(["status", featSt6, "ready"], tmpSt6, {"FACTORY_GH": os.path.join(tmpSt6, "gh")})
     check("status Ready, unsigned plan: refused with exit 2",
           r.returncode == 2, r.stdout + r.stderr)
-    check("status Ready, unsigned plan: names the value Ready in the refusal",
-          "Ready" in (r.stdout + r.stderr), r.stdout + r.stderr)
+    check("status Ready, unsigned plan: names the value ready in the refusal",
+          "ready" in (r.stdout + r.stderr), r.stdout + r.stderr)
     check("status Ready, unsigned plan: no station write reaches the fake",
           not any("item-edit" in l for l in calls(tmpSt6)), str(calls(tmpSt6)))
-    check("status Ready, unsigned plan: feature.json status is NOT recorded as Ready",
-          read_feature_json(os.path.join(featSt6, "feature.json"))["status"] == "Plan",
+    check("status ready, unsigned plan: plan.yaml station is NOT recorded as ready",
+          read_plan_station(featSt6) == "plan",
           read_feature_json(os.path.join(featSt6, "feature.json")))
 
 # --- refusal: status Review while a task is not yet done is refused, exit 2, and nothing
@@ -1870,17 +1989,17 @@ with tempfile.TemporaryDirectory() as tmpSt7:
         [("T-01", "done"), ("T-02", "building")],
         issues={"T-01": 41, "T-02": 42},
         parent=40,
-        feature_status="Building",
+        feature_status=None, plan_station="building",
     )
-    r = run(["status", featSt7, "Review"], tmpSt7, {"FACTORY_GH": os.path.join(tmpSt7, "gh")})
+    r = run(["status", featSt7, "review"], tmpSt7, {"FACTORY_GH": os.path.join(tmpSt7, "gh")})
     check("status Review, unfinished tasks: refused with exit 2",
           r.returncode == 2, r.stdout + r.stderr)
-    check("status Review, unfinished tasks: names the value Review in the refusal",
-          "Review" in (r.stdout + r.stderr), r.stdout + r.stderr)
+    check("status Review, unfinished tasks: names the value review in the refusal",
+          "review" in (r.stdout + r.stderr), r.stdout + r.stderr)
     check("status Review, unfinished tasks: no station write reaches the fake",
           not any("item-edit" in l for l in calls(tmpSt7)), str(calls(tmpSt7)))
     check("status Review, unfinished tasks: feature.json status is NOT recorded as Review",
-          read_feature_json(os.path.join(featSt7, "feature.json"))["status"] == "Building",
+          read_plan_station(featSt7) == "building",
           read_feature_json(os.path.join(featSt7, "feature.json")))
 
 # --- one sub-issue's set_station raising must not stop the remaining sub-issues from
@@ -1904,7 +2023,7 @@ with tempfile.TemporaryDirectory() as tmpSt8:
         parent=40,
         approval={"status": "approved"},
     )
-    r = run(["status", featSt8, "Ready"], tmpSt8, {"FACTORY_GH": os.path.join(tmpSt8, "gh")})
+    r = run(["status", featSt8, "ready"], tmpSt8, {"FACTORY_GH": os.path.join(tmpSt8, "gh")})
     logSt8 = calls(tmpSt8)
     editsSt8 = [l for l in logSt8 if "project item-edit" in l]
     ids8 = {next(p for p in l.split() if p.startswith("ITEM_")) for l in editsSt8}
@@ -1917,7 +2036,7 @@ with tempfile.TemporaryDirectory() as tmpSt8:
     check("status Ready, one write raises: one stderr ERROR line naming the issue",
           "gh-sync: ERROR" in r.stderr and "41" in r.stderr, r.stderr)
     check("status Ready, one write raises: feature.json status still recorded as Ready",
-          read_feature_json(os.path.join(featSt8, "feature.json"))["status"] == "Ready",
+          read_plan_station(featSt8) == "ready",
           read_feature_json(os.path.join(featSt8, "feature.json")))
 
 # ---- FEAT-21 T-10: the root walk-up is depth-agnostic ----------------------------
@@ -1951,12 +2070,21 @@ with tempfile.TemporaryDirectory() as tmpN:
 # keys plus a github block — so the key-survival case below quantifies over the real key
 # set instead of passing vacuously against a two-key fixture.
 def _full_fixture(path, feat_name, status, issue_num):
+    """A schema-complete feature.json PLUS the sibling plan.yaml that now records the station
+    (FEAT-41 T-07). Both, because ship and abandon WRITE the station through
+    `plan-merge.py set-feature-station`, which needs a plan on disk to write to — a fixture with
+    only a feature.json makes those paths print "absent" and record nothing, which is a
+    different case from the one every caller here means."""
+    with open(os.path.join(os.path.dirname(path), "plan.yaml"), "w", encoding="utf-8") as f:
+        f.write(f"schema: plan/1\nfeature: {feat_name}\nstatus: {str(status).lower()}\n"
+                f"tasks:\n  - id: T-01\n    title: t\n    change_type: logic\n"
+                f"    execution_mode: team\n    files:\n      - a.py\n"
+                f"    verify: |\n      true\n    intent: |\n      x\n    status: done\n")
     write_feature_json(
         path,
         feature_id=feat_name,
         branch=f"feat/{feat_name}",
         pr=None,
-        status=status,
         review_sha="none",
         cycles_used=1,
         max_total_cycles=10,
@@ -1972,10 +2100,9 @@ with tempfile.TemporaryDirectory() as tmpS:
     fjS = os.path.join(featS, "feature.json")
     _full_fixture(fjS, "FEAT-23-ship-status", "Review", 900141)
     r = run(["ship", featS], tmpS)
-    docS = read_feature_json(fjS)
-    check("ship records feature.json status Done",
-          r.returncode == 0 and docS.get("status") == "Done",
-          f"rc={r.returncode} status={docS.get('status')!r}")
+    check("ship records plan.yaml station done",
+          r.returncode == 0 and read_plan_station(featS) == "done",
+          f"rc={r.returncode} station={read_plan_station(featS)!r}")
 
 # --- abandon records feature.json status Abandoned
 with tempfile.TemporaryDirectory() as tmpT:
@@ -1986,10 +2113,9 @@ with tempfile.TemporaryDirectory() as tmpT:
     reasonT = os.path.join(tmpT, "reason.txt")
     open(reasonT, "w").write("cutting scope")
     r = run(["abandon", featT, "--reason-file", reasonT, "--yes"], tmpT)
-    docT = read_feature_json(fjT)
-    check("abandon records feature.json status Abandoned",
-          r.returncode == 0 and docT.get("status") == "Abandoned",
-          f"rc={r.returncode} status={docT.get('status')!r}")
+    check("abandon records plan.yaml station abandoned",
+          r.returncode == 0 and read_plan_station(featT) == "abandoned",
+          f"rc={r.returncode} station={read_plan_station(featT)!r}")
 
 # --- every other top-level key present before ship/abandon ran is unchanged afterward —
 #     over the FULLY POPULATED fixture, so the claim quantifies over the real key set
@@ -2033,7 +2159,7 @@ with tempfile.TemporaryDirectory() as tmpX1:
     install_gh(tmpX1)
     featX1 = stage(tmpX1, feat_name="FEAT-26-source-issues")
     write_plan_yaml(featX1, "FEAT-26-source-issues",
-                     [("T-01", "pending"), ("T-02", "pending"), ("T-03", "pending")],
+                     [("T-01", "pending"), ("T-02", "pending"), ("T-03", "ready")],
                      source_issues=[101, 102])
     r = run(["open", featX1], tmpX1)
     docX1 = read_feature_json(os.path.join(featX1, "feature.json"))
@@ -2052,7 +2178,7 @@ with tempfile.TemporaryDirectory() as tmpX2:
     install_gh(tmpX2)
     featX2 = stage(tmpX2, feat_name="FEAT-26-source-issues-survive")
     write_plan_yaml(featX2, "FEAT-26-source-issues-survive",
-                     [("T-01", "pending"), ("T-02", "pending"), ("T-03", "pending")],
+                     [("T-01", "pending"), ("T-02", "pending"), ("T-03", "ready")],
                      source_issues=[201, 202, 203])
     r = run(["open", featX2], tmpX2)
     logX2 = calls(tmpX2)
@@ -2125,9 +2251,13 @@ exit 0
 def _pr_fixture(path, feat_name, branch, pr, status="Review", github=None):
     """A minimal, schema-shaped feature.json carrying `branch` and `pr` (T-03, FEAT-26) —
     the two fields record-pr reads and writes. `github` is added only when a case needs
-    one (the ship case, so cmd_ship's milestone/parent close has something to act on)."""
+    one (the ship case, so cmd_ship's milestone/parent close has something to act on).
+
+    `status` is written to the sibling plan.yaml as the feature's station (FEAT-41 T-07), not
+    into feature.json — ship reads it from there and writes it back through the verb."""
+    add_plan_station(os.path.dirname(path), feat_name, str(status).lower())
     fields = dict(
-        feature_id=feat_name, branch=branch, pr=pr, status=status,
+        feature_id=feat_name, branch=branch, pr=pr,
         review_sha="none", cycles_used=1, max_total_cycles=10, runs=[],
     )
     if github is not None:
@@ -2217,9 +2347,11 @@ with tempfile.TemporaryDirectory() as tmpPR6:
                         "attached": ["T-01"], "issues": {"T-01": 41}})
     r = run(["ship", featPR6], tmpPR6, {"PR_LIST_JSON": '[{"number": 55}]'})
     docPR6 = read_feature_json(fjPR6)
-    check("ship records the pr and then the status",
-          r.returncode == 0 and docPR6.get("pr") == 55 and docPR6.get("status") == "Done",
-          f"rc={r.returncode} pr={docPR6.get('pr')} status={docPR6.get('status')!r}")
+    check("ship records the pr in feature.json and the station in plan.yaml",
+          r.returncode == 0 and docPR6.get("pr") == 55
+          and read_plan_station(featPR6) == "done",
+          f"rc={r.returncode} pr={docPR6.get('pr')} "
+          f"station={read_plan_station(featPR6)!r}")
 
 # --- record-pr exits 0 on every branch case (one, zero, and two merged PRs together)
 with tempfile.TemporaryDirectory() as tmpPR7:
@@ -2324,7 +2456,7 @@ with tempfile.TemporaryDirectory() as tmpS1:
     check("ship: the milestone is still PATCHed closed",
           any("milestones/7" in l and "state=closed" in l for l in logS1), str(logS1))
     check("ship: prints the all-clear line when nothing was held and nothing failed",
-          "gh-sync: every recorded card is at Done" in r.stdout, repr(r.stdout))
+          "gh-sync: every recorded card is at done" in r.stdout, repr(r.stdout))
     check("ship: prints NO HELD summary line when nothing was held",
           "gh-sync: HELD" not in r.stdout, repr(r.stdout))
     check("ship: prints NO FAILED line when nothing failed",
@@ -2333,7 +2465,7 @@ with tempfile.TemporaryDirectory() as tmpS1:
           "that literal and a healthy run must not trip it",
           "gh-sync: SKIP" not in (r.stdout + r.stderr), repr(r.stdout + r.stderr))
     check("ship: records the terminal status",
-          read_feature_json(os.path.join(featS1, "feature.json")).get("status") == "Done",
+          read_plan_station(featS1) == "done",
           read_feature_json(os.path.join(featS1, "feature.json")))
 
 # --- D-10: a task sub-issue is moved WITHOUT any child check --------------------------------
@@ -2368,7 +2500,7 @@ with tempfile.TemporaryDirectory() as tmpS3:
           len(heldS3) == 1 and "#40 waiting on open child #77" in heldS3[0],
           "%r stdout=%r" % (heldS3, r.stdout))
     check("ship HELD: the parenthetical distinguishes a stationed child from a missing one",
-          bool(heldS3) and "(not at Done)" in heldS3[0], repr(heldS3))
+          bool(heldS3) and "(not at done)" in heldS3[0], repr(heldS3))
     check("ship HELD: the summary line lists the held card and its child",
           "gh-sync: HELD 1 of 2 — #40 (child #77)" in r.stdout, repr(r.stdout))
     check("ship HELD: a run with holds and no failures prints NO FAILED line",
@@ -2394,7 +2526,7 @@ with tempfile.TemporaryDirectory() as tmpS5:
             ship_env(tmpS5, "40=Review 41=Review 89=", children={40: [41, 89]}))
     check("ship HELD: a child on the board with NO station set counts as OPEN, reported as "
           "not at Done rather than not on the board",
-          "#40 waiting on open child #89 (not at Done)" in r.stdout, repr(r.stdout))
+          "#40 waiting on open child #89 (not at done)" in r.stdout, repr(r.stdout))
 
 # --- THE ORDERING: children are written before the parent is evaluated -----------------------
 with tempfile.TemporaryDirectory() as tmpS6:
@@ -2510,14 +2642,14 @@ with tempfile.TemporaryDirectory() as tmpSB:
           "the board audit could not run" in r.stderr, repr(r.stderr))
     check("ship AUDIT: the cards were still written and the status still recorded",
           41 in moved_to_done(calls(tmpSB))
-          and read_feature_json(os.path.join(featSB, "feature.json")).get("status") == "Done",
+          and read_plan_station(featSB) == "done",
           r.stdout)
 
 # --- REGRESSION GUARD, REQ-10: status Review still moves the parent and every sub-issue -------
 with tempfile.TemporaryDirectory() as tmpSC:
     install_gh(tmpSC, FAKE_GH_SHIP)
     featSC = stage_ship(tmpSC, "FEAT-40-ship-review-guard", {"T-01": 41, "T-02": 42}, parent=40)
-    r = run(["status", featSC, "Review"], tmpSC,
+    r = run(["status", featSC, "review"], tmpSC,
             ship_env(tmpSC, "40=Backlog 41=Backlog 42=Backlog"))
     reviewSC = set()
     for l in edits_to(calls(tmpSC), "OPT_REVIEW"):
@@ -2529,7 +2661,7 @@ with tempfile.TemporaryDirectory() as tmpSC:
               numSC in reviewSC, "review=%s stdout=%r" % (sorted(reviewSC), r.stdout))
 
 # --- REGRESSION GUARD, SC-12 second clause: BEHAVIOURAL, then a secondary grep ------------------
-for subSD, argsSD in (("status Ready", ["status", "@", "Ready"]),
+for subSD, argsSD in (("status Ready", ["status", "@", "ready"]),
                        ("start-task", ["start-task", "@", "T-01"]),
                        ("abandon", ["abandon", "@", "--reason-file", "@REASON"])):
     with tempfile.TemporaryDirectory() as tmpSE:
@@ -2544,12 +2676,17 @@ for subSD, argsSD in (("status Ready", ["status", "@", "Ready"]),
 
 # SECONDARY ONLY. A grep dies to a rename and cannot see a value passed through a local, so it
 # must never be the only evidence - the behavioural cases above are the real assertion.
+#
+# THE PATTERN CHANGED SHAPE, NOT INTENT (FEAT-41 T-16). It matched `done = board["stations"]["done"]`
+# back when a station name was looked up in the board declaration. T-02 deleted that indexing —
+# the declaration carries no column names to look up — so the binding is now the lowercase station
+# itself. What must stay unique is unchanged: the one BINDING a station write is made from.
 _srcSD = open(SYNC).read()
 # The value is also READ in `cmd_start_task`'s guard, which compares a card's current station
 # against it and refuses -- a read, never a write. What must be unique is the BINDING that a
 # station write is made from.
 _doneRefsSD = [ln.strip() for ln in _srcSD.splitlines()
-               if ln.strip().startswith('done = board["stations"]["done"]')]
+               if ln.strip() == 'done = "done"']
 check("SC-12 (secondary): exactly one place BINDS the done station for writing, and it is "
       "cmd_ship's own local",
       len(_doneRefsSD) == 1, repr(_doneRefsSD))
@@ -2563,6 +2700,7 @@ check("SC-12 (secondary): exactly one place BINDS the done station for writing, 
 def _abandon_fixture(tmp, name="FEAT-40-abandon", parent=40, issues=None, milestone=7):
     install_gh(tmp, FAKE_GH)
     feat = stage(tmp, feat_name=name)
+    add_plan_station(feat, name, "review")
     write_feature_json(
         os.path.join(feat, "feature.json"), feature_id=name,
         github={"milestone": milestone, "parent": parent,
@@ -2610,7 +2748,7 @@ with tempfile.TemporaryDirectory() as tmpA1:
     check("abandon dry run: it says what the operator must do next",
           "re-run with --yes" in r.stdout, repr(r.stdout))
     check("abandon dry run: does NOT record the status",
-          read_feature_json(os.path.join(featA1, "feature.json")).get("status") != "Abandoned",
+          read_plan_station(featA1) != "abandoned",
           read_feature_json(os.path.join(featA1, "feature.json")))
 
 # --- with --yes: it closes exactly what the dry run listed, in that order ------------------------
@@ -2648,9 +2786,8 @@ with tempfile.TemporaryDirectory() as tmpA3:
               for n in (41, 42, 40)), str(logA3))
     check("abandon --yes: the milestone is closed",
           any("milestones/7" in l and "state=closed" in l for l in logA3), str(logA3))
-    check("abandon --yes: records status Abandoned",
-          read_feature_json(os.path.join(featA3, "feature.json")).get("status") == "Abandoned",
-          read_feature_json(os.path.join(featA3, "feature.json")))
+    check("abandon --yes: records the terminal station in plan.yaml",
+          read_plan_station(featA3) == "abandoned", read_plan_station(featA3))
 
 # --- --yes BEFORE the directory behaves identically to --yes after it ----------------------------
 # Without the name-search strip in main(), `abandon --yes <dir>` reads --yes as the feature
@@ -2660,13 +2797,14 @@ with tempfile.TemporaryDirectory() as tmpA4:
     featA4, reasonA4 = _abandon_fixture(tmpA4)
     r = run(["abandon", "--yes", featA4, "--reason-file", reasonA4], tmpA4)
     docA4 = read_feature_json(os.path.join(featA4, "feature.json"))
+    stationA4 = read_plan_station(featA4)
     check("abandon --yes BEFORE the directory: does not die with 'is not a directory'",
           "is not a directory" not in (r.stdout + r.stderr), r.stdout + r.stderr)
     check("abandon --yes BEFORE the directory: behaves identically - status recorded, parent "
           "closed",
-          r.returncode == 0 and docA4.get("status") == "Abandoned"
+          r.returncode == 0 and stationA4 == "abandoned"
           and any("issues/40" in l and "state_reason=not_planned" in l for l in calls(tmpA4)),
-          "rc=%s doc=%s" % (r.returncode, docA4))
+          "rc=%s station=%s" % (r.returncode, stationA4))
 
 # --- --yes on any other subcommand is a CALLER ERROR ----------------------------------------------
 with tempfile.TemporaryDirectory() as tmpA5:
@@ -2756,7 +2894,7 @@ with tempfile.TemporaryDirectory() as tmpAB:
           all(any(l.startswith("issue edit %d " % n) and "abandoned" in l for l in logAB)
               for n in (41, 42, 40)), str(logAB))
     check("abandon: still records status Abandoned",
-          read_feature_json(os.path.join(featAB, "feature.json")).get("status") == "Abandoned",
+          read_plan_station(featAB) == "abandoned",
           read_feature_json(os.path.join(featAB, "feature.json")))
 
 # --- a detach that FAILS does not stop the close ------------------------------------------------
@@ -2841,9 +2979,271 @@ with tempfile.TemporaryDirectory() as tmpAC:
     check("the label failure is REPORTED on stderr, naming the issue",
           "#41" in rAC.stderr and "not labelled" in rAC.stderr, repr(rAC.stderr))
     check("_record_status still runs — feature.json reaches Abandoned",
-          json.load(open(os.path.join(featAC, "feature.json")))["status"] == "Abandoned",
+          read_plan_station(featAC) == "abandoned",
           open(os.path.join(featAC, "feature.json")).read())
 
 
 print(f"\n{'ALL PASSED' if not fails else str(fails) + ' FAILED'}")
+# =============================================================================================
+# FEAT-41 T-16 — start-task's PLAN WRITE fails loudly, and writes no card when it does.
+# The case T-06 introduced the behaviour for and could not land, because this suite was red.
+# =============================================================================================
+# WHY LOUD RATHER THAN BEST-EFFORT. Every other failure in this file is best-effort: a card that
+# will not move prints one line and the command carries on, because the mirror never gates
+# (DEC-138). The PLAN write is the exception, and the asymmetry is the point — the plan is the
+# TRUTH and the board is the mirror. A board write that fails leaves the truth intact; a PLAN
+# write that fails and is then mirrored anyway puts a Building card against a task the plan does
+# not call building, which is the two-words-two-meanings drift this whole feature exists to end.
+with tempfile.TemporaryDirectory() as tmpPW:
+    install_gh(tmpPW, FAKE_GH_STATIONS)
+    featPW = stage_station(
+        tmpPW, "FEAT-09-plan-write-fails",
+        [("T-01", "done"), ("T-02", "building")],
+        issues={"T-01": 41, "T-99": 326},
+        parent=40,
+    )
+    # THE FAILURE IS PROVOKED AT THE VERB, not by mocking gh: T-99 IS recorded in feature.json —
+    # so the "no recorded issue" skip does not fire and control reaches the plan write — but it is
+    # ABSENT from plan.yaml, so plan-merge.py set-task-station exits non-zero. A real refusal from
+    # the real tool rather than a simulated one.
+    #
+    # That combination is also a realistic drift: the mirror's record carrying a task the plan
+    # does not. Before T-06 this command would happily have moved that card.
+    r = run(["start-task", featPW, "T-99"], tmpPW, {"FACTORY_GH": os.path.join(tmpPW, "gh")})
+    outPW = r.stdout + r.stderr
+    editsPW = [l for l in calls(tmpPW) if "project item-edit" in l]
+    check("plan write fails: start-task REFUSES, exit 2 — not a best-effort carry-on",
+          r.returncode == 2, f"exit {r.returncode}: {outPW[:300]!r}")
+    check("plan write fails: the refusal names the task, the plan path and the verb that failed",
+          "T-99" in outPW and "plan.yaml" in outPW and "set-task-station" in outPW, outPW[:400])
+    check("plan write fails: NO card is written — the mirror never runs ahead of the truth",
+          not editsPW, str(editsPW))
+
+# ---- T-07: the terminal exemption reads its station from plan.yaml -----------------------
+#
+# `_feature_status` feeds EXACTLY one comparison — the terminal exemption in
+# `_apply_parent_rule` — so this is the case that proves the repointing. With the status key
+# gone and the reader un-repointed, `_feature_status` returns None, the exemption never fires,
+# and start-task writes the parent's card to the plan-derived station on a SHIPPED feature.
+# That is the fail-open direction and it is a WRITE: the mirror moves a done parent back.
+
+with tempfile.TemporaryDirectory() as tmpT7:
+    install_gh(tmpT7, FAKE_GH_STATIONS)
+    # Post-migration shape: NO feature.json status, station `done` in plan.yaml.
+    featT7 = stage_station(
+        tmpT7, "FEAT-80-terminal-from-plan",
+        [("T-01", "done"), ("T-02", "building")],
+        issues={"T-01": 41, "T-02": 42}, parent=40,
+        feature_status=None, plan_station="done",
+    )
+    r = run(["start-task", featT7, "T-02"], tmpT7, {"FACTORY_GH": os.path.join(tmpT7, "gh")})
+    parent_editsT7 = [l for l in calls(tmpT7) if "project item-edit" in l and "40" in l]
+    check("T-07: the terminal exemption fires from plan.yaml's `done` — the parent's card is "
+          "NOT rewritten on a shipped feature",
+          r.returncode == 0 and not parent_editsT7,
+          f"exit {r.returncode}; parent edits={parent_editsT7}")
+
+with tempfile.TemporaryDirectory() as tmpT7b:
+    # NEGATIVE CONTROL: same shape, a LIVE station. The exemption must NOT fire, or the case
+    # above passes on a repointing that exempts every feature and stops writing parents at all.
+    install_gh(tmpT7b, FAKE_GH_STATIONS)
+    featT7b = stage_station(
+        tmpT7b, "FEAT-81-live-from-plan",
+        [("T-01", "done"), ("T-02", "building")],
+        issues={"T-01": 41, "T-02": 42}, parent=40,
+        feature_status=None, plan_station="building",
+    )
+    r = run(["start-task", featT7b, "T-02"], tmpT7b, {"FACTORY_GH": os.path.join(tmpT7b, "gh")})
+    parent_editsT7b = [l for l in calls(tmpT7b) if "project item-edit" in l]
+    check("T-07 NEGATIVE CONTROL: a live plan.yaml station does NOT exempt — the parent rule "
+          "still runs and writes",
+          r.returncode == 0 and parent_editsT7b,
+          f"exit {r.returncode}; edits={parent_editsT7b}")
+
+
+# ==========================================================================================
+# FEAT-41 T-10: the two ship defects.
+# ==========================================================================================
+
+# ---- DEFECT ONE: the terminal station write is COMMITTED ---------------------------------
+# It used to be left in the working tree, so the default branch read a non-terminal station
+# while the board read the done column — the INV-26 violation check-state.sh reported against
+# FEAT-40 and issue 842. This asserts the file is CLEAN AGAINST HEAD after a successful ship,
+# which is the property the violation's absence actually depends on.
+with tempfile.TemporaryDirectory() as tmpC:
+    install_gh(tmpC, FAKE_GH_STATIONS)
+    featC = stage_ship(tmpC, "FEAT-50-commit-station", {"T-01": 41}, parent=40, milestone=7)
+    subprocess.run(["git", "init", "-q", "-b", "main"], cwd=tmpC, capture_output=True)
+    subprocess.run(["git", "config", "user.email", "t@example.com"], cwd=tmpC,
+                   capture_output=True)
+    subprocess.run(["git", "config", "user.name", "t"], cwd=tmpC, capture_output=True)
+    subprocess.run(["git", "add", "-A"], cwd=tmpC, capture_output=True)
+    subprocess.run(["git", "commit", "-qm", "fixture"], cwd=tmpC, capture_output=True)
+    rC = run(["ship", featC], tmpC, ship_env(tmpC, "40=Review 41=Review"))
+    planC = os.path.join(featC, "plan.yaml")
+    dirtyC = subprocess.run(["git", "status", "--porcelain", "--", planC], cwd=tmpC,
+                            capture_output=True, text=True).stdout.strip()
+    check("T-10 defect one: after a successful ship the station file is CLEAN against HEAD",
+          rC.returncode == 0 and dirtyC == "",
+          f"exit {rC.returncode}; dirty={dirtyC!r}; out={rC.stdout[-500:]!r}")
+    check("T-10 defect one: ship names the commit it made",
+          "station done committed as" in rC.stdout, f"out={rC.stdout[-500:]!r}")
+    logC = subprocess.run(["git", "log", "-1", "--format=%s"], cwd=tmpC,
+                          capture_output=True, text=True).stdout.strip()
+    check("T-10 defect one: the commit subject names the feature and the station",
+          logC == "FEAT-50-commit-station: station done at ship", f"subject={logC!r}")
+    # ONLY THAT ONE FILE. A ship that swept in whatever the operator had staged would be a
+    # worse surprise than the uncommitted station this fixes.
+    filesC = subprocess.run(["git", "show", "--name-only", "--format=", "HEAD"], cwd=tmpC,
+                            capture_output=True, text=True).stdout.split()
+    check("T-10 defect one: the commit carries EXACTLY ONE file, the plan",
+          len(filesC) == 1 and filesC[0].endswith("plan.yaml"), f"files={filesC}")
+
+# THE DISCRIMINATOR FOR "ONLY ONE FILE": an unrelated dirty file must survive the ship
+# uncommitted. Without this the case above passes against a `git commit -a`.
+with tempfile.TemporaryDirectory() as tmpD:
+    install_gh(tmpD, FAKE_GH_STATIONS)
+    featD = stage_ship(tmpD, "FEAT-51-only-one", {"T-01": 41}, parent=40, milestone=7)
+    subprocess.run(["git", "init", "-q", "-b", "main"], cwd=tmpD, capture_output=True)
+    subprocess.run(["git", "config", "user.email", "t@example.com"], cwd=tmpD,
+                   capture_output=True)
+    subprocess.run(["git", "config", "user.name", "t"], cwd=tmpD, capture_output=True)
+    subprocess.run(["git", "add", "-A"], cwd=tmpD, capture_output=True)
+    subprocess.run(["git", "commit", "-qm", "fixture"], cwd=tmpD, capture_output=True)
+    bystander = os.path.join(tmpD, "BYSTANDER.md")
+    open(bystander, "w").write("edited by the operator, never staged by ship\n")
+    subprocess.run(["git", "add", bystander], cwd=tmpD, capture_output=True)
+    rD = run(["ship", featD], tmpD, ship_env(tmpD, "40=Review 41=Review"))
+    stillD = subprocess.run(["git", "status", "--porcelain", "--", bystander], cwd=tmpD,
+                            capture_output=True, text=True).stdout.strip()
+    check("T-10 defect one DISCRIMINATOR: an unrelated STAGED file is NOT swept into the "
+          "station commit — it is still uncommitted afterwards",
+          rD.returncode == 0 and stillD != "",
+          f"exit {rD.returncode}; bystander status={stillD!r}")
+
+# IDEMPOTENT. ship runs again and finds nothing to commit; that is not a failure and it says so.
+with tempfile.TemporaryDirectory() as tmpE:
+    install_gh(tmpE, FAKE_GH_STATIONS)
+    featE = stage_ship(tmpE, "FEAT-52-twice", {"T-01": 41}, parent=40, milestone=7)
+    subprocess.run(["git", "init", "-q", "-b", "main"], cwd=tmpE, capture_output=True)
+    subprocess.run(["git", "config", "user.email", "t@example.com"], cwd=tmpE,
+                   capture_output=True)
+    subprocess.run(["git", "config", "user.name", "t"], cwd=tmpE, capture_output=True)
+    subprocess.run(["git", "add", "-A"], cwd=tmpE, capture_output=True)
+    subprocess.run(["git", "commit", "-qm", "fixture"], cwd=tmpE, capture_output=True)
+    run(["ship", featE], tmpE, ship_env(tmpE, "40=Review 41=Review"))
+    rE2 = run(["ship", featE], tmpE, ship_env(tmpE, "40=Review 41=Review"))
+    check("T-10 defect one: a SECOND ship commits nothing and says the file is already clean",
+          rE2.returncode == 0 and "already committed" in rE2.stdout,
+          f"exit {rE2.returncode}; out={rE2.stdout[-400:]!r}")
+
+# ---- DEFECT TWO: ship REFUSES a feature dir inside a worktree ----------------------------
+with tempfile.TemporaryDirectory() as tmpW:
+    install_gh(tmpW, FAKE_GH_STATIONS)
+    # The owner checkout, with the worktrees segment underneath it, is what makes
+    # harness_boundary.worktree_owner able to name the main-checkout path.
+    owner = os.path.join(tmpW, "owner")
+    os.makedirs(owner)
+    subprocess.run(["git", "init", "-q", "-b", "main"], cwd=owner, capture_output=True)
+    wt_root = os.path.join(owner, ".claude", "worktrees", "harness", "FEAT-53-in-a-worktree")
+    os.makedirs(wt_root)
+    featW = stage_ship(wt_root, "FEAT-53-in-a-worktree", {"T-01": 41}, parent=40, milestone=7)
+    rW = run(["ship", featW], tmpW, ship_env(wt_root, "40=Review 41=Review",
+                                              FACTORY_GH=os.path.join(tmpW, "gh")))
+    check("T-10 defect two: ship REFUSES a feature dir inside a worktree, exit 1",
+          rW.returncode == 1, f"exit {rW.returncode}; out={(rW.stdout + rW.stderr)[-500:]!r}")
+    outW = rW.stdout + rW.stderr
+    # THE REASON COMES FIRST. A refusal that says only what to use instead is
+    # indistinguishable from a stuck gate, and an agent reading it as one retries elsewhere.
+    check("T-10 defect two: the refusal STATES THE REASON — the worktree is about to be "
+          "deleted, so the station would not survive",
+          "about to be deleted" in outW and "would not survive" in outW,
+          f"out={outW[-500:]!r}")
+    check("T-10 defect two: the refusal names the equivalent path in the MAIN CHECKOUT",
+          "main checkout" in outW, f"out={outW[-500:]!r}")
+    # A REFUSAL, NOT A SKIP. skip() exits 0 and post-merge-sweep.sh reads a SKIP as
+    # "nothing went wrong" — it would delete the worktree, taking the station with it.
+    check("T-10 defect two: it is a REFUSAL and not a SKIP — the sweep must not read this as "
+          "permission to delete",
+          "gh-sync: SKIP" not in outW, f"out={outW[-500:]!r}")
+
+# ---- THE SWEEP'S POSITIVE-SIGNAL GATE IS UNCHANGED --------------------------------------
+# post-merge-sweep.sh gates worktree removal on the ABSENCE of `gh-sync: SKIP` and
+# `gh-sync: FAILED` from ship's combined output. The commit added by defect one must never
+# emit either word on a failure path, or a trivial bookkeeping miss would silently cancel a
+# worktree removal — a different subsystem entirely.
+with tempfile.TemporaryDirectory() as tmpS:
+    install_gh(tmpS, FAKE_GH_STATIONS)
+    featS = stage_ship(tmpS, "FEAT-54-no-milestone", {"T-01": 41}, parent=40, milestone=None)
+    rS = run(["ship", featS], tmpS, ship_env(tmpS, "40=Review 41=Review"))
+    check("T-10: ship still reports SKIP with its exact positive-signal wording when there is "
+          "no recorded milestone",
+          rS.returncode == 0 and "gh-sync: SKIP" in (rS.stdout + rS.stderr),
+          f"exit {rS.returncode}; out={(rS.stdout + rS.stderr)[-400:]!r}")
+
+# NO GIT REPOSITORY AT ALL: the commit cannot succeed, and the sweep's two signal words must
+# still be absent from the output so the failure stays confined to this one line.
+with tempfile.TemporaryDirectory() as tmpN:
+    install_gh(tmpN, FAKE_GH_STATIONS)
+    featN = stage_ship(tmpN, "FEAT-55-no-git", {"T-01": 41}, parent=40, milestone=7)
+    rN = run(["ship", featN], tmpN, ship_env(tmpN, "40=Review 41=Review"))
+    bothN = rN.stdout + rN.stderr
+    check("T-10: with NO git repository the station commit fails LOUDLY but does not change "
+          "the exit status",
+          rN.returncode == 0 and "WARNING" in bothN, f"exit {rN.returncode}; out={bothN[-600:]!r}")
+    check("T-10: and that failure line contains NEITHER sweep signal word, so an uncommitted "
+          "station cannot cancel a worktree removal",
+          "gh-sync: SKIP" not in bothN and "gh-sync: FAILED" not in bothN,
+          f"out={bothN[-600:]!r}")
+
+
+# ---------------------------------------------------------------------------------------------
+# FEAT-41 F-01: A STATION WRITE THAT NEVER REACHED DISK MUST BE VISIBLE TO THE SWEEP.
+#
+# Found by the validation panel, not by this suite, and the gap IS the finding: no case here
+# drove either failure branch of `_record_station`, so nothing measured what post-merge-sweep.sh
+# would then do. The sweep gates worktree REMOVAL on the ABSENCE of two literals from ship's
+# combined output. A station that was never recorded anywhere is exactly the case where the
+# standing worktree is the only surviving evidence -- so that failure line must carry one of
+# those literals, or the sweep deletes the tree and takes the only record with it. Irreversible.
+#
+# THE LITERALS ARE READ OUT OF THE SWEEP, NEVER RETYPED. This is a contract between two files,
+# and a test holding its own copy of the string keeps passing while the real gate drifts away.
+#
+# THE ASYMMETRY WITH `_commit_terminal_station` IS DELIBERATE, and it is asserted immediately
+# above (T-10): an UNCOMMITTED station is a recoverable bookkeeping miss and must NOT cancel a
+# removal. Written-nowhere and written-but-uncommitted are different failures whose correct
+# answers are opposite. Do not "fix" the two into agreement.
+# ---------------------------------------------------------------------------------------------
+_GATE_LITERALS = re.findall(r'if "([^"]+)" in combined:',
+                            open(os.path.join(HERE, "post-merge-sweep.sh")).read())
+
+check("F-01 fixture: the sweep's gate literals are discoverable in post-merge-sweep.sh, so this "
+      "case cannot pass by asserting against a string nothing actually reads",
+      len(_GATE_LITERALS) >= 2, repr(_GATE_LITERALS))
+
+for _labelF, _breakF in (("absent plan.yaml", "unlink"),
+                         ("set-feature-station exits non-zero", "garble")):
+    with tempfile.TemporaryDirectory() as tmpF:
+        install_gh(tmpF, FAKE_GH_STATIONS)
+        featF = stage_ship(tmpF, "FEAT-98-station-write-fails", {"T-01": 41}, parent=40)
+        planF = os.path.join(featF, "plan.yaml")
+        if _breakF == "unlink":
+            os.remove(planF)
+        else:
+            # A LIST WHERE A MAPPING BELONGS. plan-merge.py validates the parsed result before
+            # replacing the file, so this drives the non-zero-exit branch rather than the
+            # absent-file one -- two different prints, both of which the sweep must see.
+            open(planF, "w").write("- not a mapping\n")
+        rF = run(["ship", featF], tmpF, ship_env(tmpF, "40=Review 41=Review"))
+        bothF = rF.stdout + rF.stderr
+        check(f"F-01 ({_labelF}): ship says the station was not recorded",
+              "not recorded" in bothF, f"exit {rF.returncode}; out={bothF[-700:]!r}")
+        check(f"F-01 ({_labelF}): and that line carries a literal post-merge-sweep.sh gates on, "
+              f"so the sweep keeps the worktree holding the only record of the station",
+              any(lit in bothF for lit in _GATE_LITERALS),
+              f"gates={_GATE_LITERALS} out={bothF[-700:]!r}")
+
+
+
 sys.exit(1 if fails else 0)

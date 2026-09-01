@@ -1,5 +1,6 @@
 schema: plan/1
 feature: FEAT-33-board-lifecycle-native
+status: done
 # Source tickets, transcribed verbatim from BRIEF.md's own first line: source ticket
 # #675, with sub-issues #673 and #674 absorbed here. Added after the signature because
 # FEAT-26 (merged 2026-08-23, after this plan was signed) made plan.yaml the authority

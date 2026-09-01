@@ -1,0 +1,93 @@
+<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>FEAT-41 · one station vocabulary — replan at a new pin, ready for your signature</title><style>
+:root{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:ui-sans-serif,-apple-system,"Segoe UI","Helvetica Neue",Arial,sans-serif;
+}
+/* Token-level theming: components style through the tokens and never inside the
+   media query, so the viewer's explicit toggle can override the OS in BOTH
+   directions. */
+@media (prefers-color-scheme:dark){
+  :root{ --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+         --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733; }
+}
+:root[data-theme="dark"]{
+  --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+  --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733;
+}
+:root[data-theme="light"]{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+}
+*{box-sizing:border-box}
+body{margin:0; background:var(--paper); color:var(--ink);
+  font:400 16px/1.65 var(--sans); padding:clamp(1.5rem,5vw,4rem) clamp(1rem,5vw,2rem) 6rem}
+.wrap{max-width:56rem; margin:0 auto}
+/* Layout owns the spacing: gap between siblings, not per-element margins that
+   collapse or double. */
+.wrap{display:flex; flex-direction:column; gap:1rem}
+.eyebrow{font:500 11px/1 var(--mono); letter-spacing:.14em; text-transform:uppercase;
+  color:var(--quiet); margin:0}
+h1{font:600 clamp(1.6rem,4vw,2.3rem)/1.15 var(--sans); letter-spacing:-.02em;
+  margin:.4rem 0 .2rem; text-wrap:balance}
+h2{font:600 1.15rem/1.3 var(--sans); letter-spacing:-.01em; margin:2rem 0 0;
+  padding-top:1.25rem; border-top:1px solid var(--line); text-wrap:balance}
+h3{font:600 .98rem/1.4 var(--sans); margin:1.1rem 0 0}
+h4,h5,h6{font:500 11px/1.4 var(--mono); letter-spacing:.1em; text-transform:uppercase;
+  color:var(--quiet); margin:1rem 0 0}
+p,li{max-width:65ch; margin:0}
+ul,ol{margin:0; padding-left:1.4rem; display:flex; flex-direction:column; gap:.4rem}
+li>ul,li>ol{margin-top:.4rem}
+strong{font-weight:600}
+code{font:400 .875em/1.5 var(--mono); background:var(--sunk); padding:.1em .35em; border-radius:3px}
+pre{background:var(--sunk); border:1px solid var(--line); border-radius:6px;
+  padding:.85rem 1rem; overflow-x:auto; margin:0}
+pre code{background:none; padding:0}
+blockquote{margin:0; padding:.75rem 1rem; border-left:3px solid var(--accent);
+  background:var(--accent-soft); border-radius:0 5px 5px 0}
+blockquote p{max-width:none}
+hr{border:0; border-top:1px solid var(--line); margin:.5rem 0}
+/* Wide content pans inside its OWN container; the page body never scrolls sideways. */
+.scroll{overflow-x:auto; border:1px solid var(--line); border-radius:6px}
+table{border-collapse:collapse; width:100%; font-size:.9rem}
+th,td{text-align:left; padding:.6rem .8rem; border-bottom:1px solid var(--line); vertical-align:top}
+thead th{font:500 10px/1.3 var(--mono); letter-spacing:.11em; text-transform:uppercase;
+  color:var(--quiet); background:var(--sunk); white-space:nowrap}
+tbody tr:last-child td{border-bottom:0}
+/* Figures in a column line up. */
+td,th{font-variant-numeric:tabular-nums}
+.derived{color:var(--slate); font-size:.85rem; margin-top:2.5rem;
+  padding-top:1rem; border-top:1px solid var(--line)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style></head><body><div class='wrap'><p class='eyebrow'>Ship review · reading view</p><h1 id="feat-41-one-station-vocabulary-replan-at-a-new-pin-ready-for-your-signature">FEAT-41 · one station vocabulary — replan at a new pin, ready for your signature</h1>
+<p><strong>The plan survived the migration and is now signature-ready. Nothing is signed; that decision is yours.</strong> The branch was rebased onto a main carrying FEAT-42-one-root-resolver, FEAT-40 and PR #922 (OMP supervision), which moved 187 files under a plan authored against the older tree. Every one of the plan&#x27;s line anchors, counts and quoted snippets had become a claim about a file that had shifted. Thirteen of fourteen tasks were re-derived against current source. One task lost a third of its scope. No task died.</p>
+<p><strong>Three blocking conditions stand between this plan and a signature — Q1, Q6 and the T-14 scoping decision. All three are decisions, not defects, and two of them are one line of work each.</strong></p>
+<h2 id="what-the-audit-changed-and-why">What the audit changed, and why</h2>
+<div class="scroll"><table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td>Collision surface</td><td>187 files changed between the old pin <code>e5afc19</code> and <code>0d4845b</code>. The plan names 57 distinct files; <strong>28 changed</strong>. 13 of 14 tasks touch at least one</td></tr><tr><td>Carried untouched</td><td><strong>T-03 only</strong> — its two files are byte-unchanged since the old pin</td></tr><tr><td>Re-derived</td><td>The other 13, each surviving anchor re-opened at HEAD and re-verified rather than trusted</td></tr><tr><td>Dead</td><td><strong>One clause</strong>, inside T-10</td></tr><tr><td>Signature state</td><td><code>pending</code> in both <code>plan.yaml</code> and <code>BRIEF.md</code>, unchanged</td></tr></tbody></table></div>
+<p><strong>There is no path rename, and that is the single largest false alarm this audit killed.</strong> <code>.agents/skills</code> is a tracked symlink (mode 120000) to <code>../.claude/skills</code>. Every <code>.claude/skills/harness/bin/...</code> path in the plan is still canonical. Had we &quot;migrated&quot; those paths we would have rewritten 50-odd correct lines into a second, diverging spelling.</p>
+<p><strong>T-10 lost its repair clause.</strong> Its &quot;close the live INV-26 violation&quot; had no subject left: FEAT-40 shipped, its <code>feature.json</code> reads <code>Done</code>, <code>check-plan-routes.py</code> now skips its plan as shipped, and a full <code>check-state.sh</code> run emits <strong>zero</strong> INV-26 lines. The violation closed itself by merging. It was also redundant a second way — T-07&#x27;s migration, already a dependency of T-10, is what writes that station. T-10&#x27;s two ship defects are real and are kept. SC-09 was re-based onto the clause that still fails today.</p>
+<p><strong>T-14 was NOT the casualty it was briefed as.</strong> I dispatched this audit expecting T-14 to be the certain loss, because <code>check-state.sh</code> now resolves its root through <code>harness_boundary.resolve_root</code> with refuse-don&#x27;t-guess semantics. That was wrong. Its insertion point is fully intact — the per-feature loop at <code>:202</code>, <code>val()</code> at <code>:227</code>, the INV-6 block at <code>:246-253</code> — and INV-32 is still a free number, INV-31 being the highest at both pins. I opened those lines myself rather than take them from the digest. What the migration falsified was T-14&#x27;s stated <em>reason</em>, not its instruction. The reason was corrected; the instruction stands.</p>
+<p><strong>Three verify blocks could never have passed, and were latent long before the rebase.</strong> Two absence-greps were quietly satisfied by gitignored <code>__pycache__/*.pyc</code> files carrying the searched-for string as a compiled constant. The third could never return the exit code it tested for. These are the kind of verify that reports green by never being able to report red.</p>
+<h2 id="the-pin">The pin</h2>
+<p><code>review_sha</code> was <code>e5afc19</code>, which the rebase turned into a dangling object — it still resolves in the object database but is no longer in branch history, so it silently claimed a review of text that no longer existed on the branch. It is now <strong><code>cc009835da1fd6f33a99127bc80d7a1a6075db3d</code></strong>, the commit carrying the replanned artifacts. <code>lanes.resolved_at: 0d4845b</code> was deliberately left alone: the lanes were resolved against that tree, the replan changed no source file, and it remains truthful.</p>
+<p>Commit ids quoted inside task prose as historical measurements were also left alone. They record what was true when written, and rewriting them would falsify the record.</p>
+<h2 id="gates">Gates</h2>
+<p>Both run by me, in the worktree, at the new pin.</p>
+<ul><li><code>check-plan-routes.py</code> — <strong>exit 0</strong>, &quot;0 violation(s) across 1 plan(s)&quot;, 40 dirs examined, 39 skipped as shipped.</li><li><code>check-state.sh</code> — exit 1 with <strong>exactly one</strong> violation: FEAT-41&#x27;s BRIEF is not approved. That is correct during a plan phase and closes the moment you sign. Its output is <strong>byte-identical to the pre-replan baseline</strong>, so the replan introduced nothing.</li><li><code>validate-feature-json.py</code> — exit 0. <code>plan.yaml</code> parses, 14 tasks, approval <code>pending</code>.</li></ul>
+<h2 id="what-you-must-decide">What you must decide</h2>
+<ol><li><strong>Q1 — T-12&#x27;s external dependency (blocking).</strong> T-12 cannot be fully executed until the decisions-authority triage lands a recording form: an in-place clause strike under DEC-188, or the correction subsumed into the entry in one voice. The task STOPs and asks rather than guessing. <strong>Signing accepts that dependency.</strong> Unchanged by this audit.</li><li><strong>Q6 — T-14 would turn a shipped feature red (blocking).</strong> I re-measured this at the new tree and it still holds. INV-32 as written fires on two features: FEAT-41, the intended catch, and FEAT-27-expertise-repository-tier, which is <code>Done</code> with PR 574 merged. FEAT-27&#x27;s pin resolves and its <code>plan.yaml</code> bytes have moved; its whole post-pin diff is an approval-amendment record plus one task flipping to done — legitimate record-keeping, not a false review claim. <strong>The moment T-14 executes, <code>check-state.sh</code> goes red on a shipped feature and stays red.</strong> Two one-line fixes: scope INV-32 to non-terminal stations, an idiom <code>check-plan-routes.py</code> already uses, or repair FEAT-27&#x27;s pin. I recommend scoping.</li><li><strong>Q7 — the guard is inverted (recommend folding into the Q6 fix).</strong> T-14&#x27;s precondition &quot;records a validator run&quot; is a lagging indicator: INV-32 can only fire <em>after</em> a panel has already read the wrong text, which is exactly how this feature&#x27;s own divergence survived. Recommend the precondition become &quot;a real pin exists AND the station is non-terminal&quot;.</li></ol>
+<h2 id="disclosure">Disclosure</h2>
+<p><strong>No report round was spawned.</strong> Per DEC-69 I assembled this from artifacts on disk, and I am naming them so you can tell a complete briefing from a partial one:</p>
+<ul><li><code>runs/2026-08-29-01-product/digest.md</code> — this run&#x27;s lead digest</li><li><code>notes/research-FEAT-41-replan-collision-audit.md</code> — pm&#x27;s audit, the substantive artifact</li><li><code>STATE.md</code>&#x27;s prior <code>## Current</code>, which carried the plan-phase record</li><li>my own measurements in the worktree, cited inline above</li></ul>
+<p><strong>I did not re-read the thirteen earlier run digests.</strong> This feature has never left the plan phase; those runs were plan-support reviews whose conclusions are already recorded in the plan and in STATE.md, and the subject of this briefing is the replan. They remain on disk under <code>runs/</code> if you want any of them. That is a deviation from the ship-briefing rule and I am flagging it rather than letting it pass silently.</p>
+<p><strong>One thing in this briefing corrects me, not the squad.</strong> pm reported the third broken verify as a non-POSIX glob defect. Its own lead reserved on that, and I agreed with the lead — the mundane reading seemed to cover it. I then measured it, and <strong>pm was right</strong>. See B-1.</p>
+<h2 id="budget">Budget</h2>
+<p><code>cycles_used</code> <strong>8 of 10</strong>, one send-back this run: product-lead returned a PASS whose <em>digest file</em> was missing six required contract fields, which <code>check-state.sh</code> caught and the lead then repaired. <code>runs</code> <strong>14 of 20</strong> — under budget, no INV-22 note for this feature. Two cycles of headroom remain, which is enough for the Q6 fix and a goal-check but not for an open-ended build. If the answers to Q1/Q6 expand scope, the ceiling should be raised deliberately rather than discovered mid-build.</p>
+<h2 id="proposed-backlog">Proposed backlog</h2>
+<p>Residual findings that do not gate this signature. <strong>Anything you do not strike becomes a backlog issue; anything not listed here dies silently, so this is the full set.</strong></p>
+<div class="scroll"><table><thead><tr><th>ID</th><th>Nature</th><th>Finding</th></tr></thead><tbody><tr><td>B-1</td><td>bug</td><td><strong>Shell pathname expansion is non-POSIX.</strong> In a clean dir holding only <code>a/f.txt</code>, <code>echo */f.txt</code> prints <code>a/f.txt b/f.txt</code>, and <code>echo */nomatch.txt</code> prints both members instead of the literal pattern — the shell substitutes phantom paths that do not exist. So <code>grep -rn PAT dir/*/f.yaml</code> errors ENOENT on each phantom and exits 2 even when it finds matches, making <code>grep … ; test $? -eq 1</code> unusable harness-wide. Measured twice: minimal probe, and the real tree (31 of 40 dirs held the file, 56 matches found, still exit 2). I could not file it via <code>xd://report_issue</code> — <code>check-domain</code> denies the orchestrator that path</td></tr><tr><td>B-2</td><td>chore</td><td>Gitignored <code>__pycache__/*.pyc</code> defeat every absence-grep over <code>bin/</code>, carrying the searched string as a compiled constant. Make <code>--exclude-dir=__pycache__</code> a standing convention, or have <code>run-unit-tests.sh</code> clear the cache</td></tr><tr><td>B-3</td><td>bug</td><td>Nothing allocates run-dir slugs. An earlier run was dispatched into a slug the same day&#x27;s earlier run already held and silently overwrote its <code>digest.md</code> and <code>state.yaml</code>. <code>runs/</code> is gitignored, so that loss is unrecoverable</td></tr><tr><td>B-4</td><td>bug</td><td>A lead&#x27;s structured return can satisfy the digest contract while the <code>digest.md</code> it writes does not. That happened this run and cost a cycle. Nothing validates the file at write time — only <code>check-state.sh</code> catches it, later</td></tr><tr><td>B-5</td><td>chore</td><td>The orchestrator has no route to file a harness defect: <code>xd://report_issue</code> is outside its domain, so defects can only travel up as prose in a return</td></tr><tr><td>B-6</td><td>enhancement</td><td>PB-03, carried: does <code>check-state.sh</code> INV-26 flag issue 223 once T-06 routes the compare through <code>project()</code>? 223 is a parent card, not a task sub-issue. T-10 STOPs and reports rather than adding the card, so it fails safe either way</td></tr><tr><td>B-7</td><td>chore</td><td>DEC-89 already decides T-14&#x27;s invariant — a hand edit never inherits a passing review — and says the state check re-pins <code>review_sha</code>. Nothing implements that re-pin; the clause lives only in agent prose. T-14 builds the detection half; the re-pin half stays unbuilt</td></tr></tbody></table></div>
+<h2 id="recommendation">Recommendation</h2>
+<p><strong>Sign, with the Q6 scoping fix folded into T-14 before build starts.</strong> The plan is in better shape than it was before the rebase: three verifies that could never have failed now can, one redundant task clause is gone, and every anchor a builder will follow has been opened at the commit they will build against. The two blocking questions are genuine decisions — one about how a decision record is amended, one about whether a new invariant may redden a shipped feature — and neither is discoverable by more analysis.</p><p class='derived'>Derived from <code>ship-review-2026-08-29-01.md</code> — the markdown is the record; do not edit this file. Regenerate with <code>bin/render-brief.py</code>.</p></div></body></html>

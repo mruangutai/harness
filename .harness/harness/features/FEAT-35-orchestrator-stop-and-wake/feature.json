@@ -2,7 +2,6 @@
   "feature_id": "FEAT-35-orchestrator-stop-and-wake",
   "branch": "feat/FEAT-35-orchestrator-stop-and-wake",
   "pr": 812,
-  "status": "Done",
   "review_sha": "a2a373b1ef351f94b0a4310bea928f1384727a08",
   "cycles_used": 6,
   "max_total_cycles": 10,

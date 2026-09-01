@@ -1,14 +1,13 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Feature execution state (feature.json)",
-  "description": "FEAT-14 D-01: eleven top-level keys, additionalProperties false at every closed level. There is no `phase` property — `phase` and `status` collapsed into `status` alone under D-09/D-10; a schema that still declared `phase` would re-legalise the field this feature exists to delete.",
+  "description": "FEAT-14 D-01: ten top-level keys, additionalProperties false at every closed level. There is no `phase` property — `phase` and `status` collapsed into `status` alone under D-09/D-10. There is no `status` property either, as of FEAT-41 T-07: the feature's station is recorded in plan.yaml's own top-level `status`, and ONE file records it. Because additionalProperties is false, a feature.json that still carries `status` is now a schema error rather than a tolerated duplicate — which is what makes the single record enforceable instead of merely documented.",
   "type": "object",
   "additionalProperties": false,
   "required": [
     "feature_id",
     "branch",
     "pr",
-    "status",
     "review_sha",
     "cycles_used",
     "max_total_cycles",
@@ -26,11 +25,6 @@
     "pr": {
       "type": ["integer", "null"],
       "description": "The feature's pull request number, or null before one exists. READ BY CODE as of FEAT-26: check-state.sh's INV-28 warns when a Done feature leaves it null, gh-sync.py's record-pr derives and writes it, and ship threads it before the terminal status write. JSON's native null replaces the YAML-era placeholder string 'none' (T-04 rewrites those to null)."
-    },
-    "status": {
-      "type": "string",
-      "enum": ["Backlog", "Plan", "Ready", "Building", "Review", "Done", "Abandoned"],
-      "description": "The feature's position on the GitHub board, spelled and CASED exactly like the board's own column names — D-11 makes the comparison case sensitive, so no lowercase alias is legal. Read by check-plan-routes.py's finished-feature skip and by check-state.sh INV-17's seam table. `Abandoned` is the one value with NO board column: it is the terminal state for a feature that was planned and never built, added 2026-08-14 when FEAT-19 became the first. It is terminal like `Done` everywhere terminality is tested, but unlike `Done` it asserts no seam was crossed, so it requires no handoff notes and its BRIEF need never be approved."
     },
     "review_sha": {
       "type": "string",

@@ -2,7 +2,6 @@
   "feature_id": "FEAT-09-plan-time-route-check",
   "branch": "feat/FEAT-09-plan-time-route-check",
   "pr": 136,
-  "status": "Done",
   "review_sha": "7354ad0",
   "cycles_used": 2,
   "max_total_cycles": 10,

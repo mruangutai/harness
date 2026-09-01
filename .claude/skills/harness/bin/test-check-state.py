@@ -269,13 +269,16 @@ def case_g():
         with open(os.path.join(h, "harness.json"), "w") as f:
             f.write(HARNESS_JSON_SYNC_OFF)
         with open(os.path.join(fd, "feature.json"), "w") as f:
-            f.write(f"feature_id: {feat}\nstatus: {status}\n")
+            f.write(f"feature_id: {feat}\n")
         for n in notes:
             with open(os.path.join(fd, "notes", f"handoff-{n}.md"), "w") as f:
                 f.write(NOTE)
-        if tasks != "omit":
-            with open(os.path.join(fd, "plan.yaml"), "w") as f:
-                f.write(f"feature_id: {feat}\n{tasks}")
+        # THE STATION GOES IN plan.yaml, LOWERCASE (FEAT-41 T-07) — and it is written even when
+        # `tasks == "omit"`, because INV-17 reads the station from this file now. A fixture with
+        # no plan.yaml at all has no station and is skipped, which is a different case.
+        with open(os.path.join(fd, "plan.yaml"), "w") as f:
+            f.write(f"feature_id: {feat}\nstatus: {str(status).lower()}\n"
+                    + ("" if tasks == "omit" else tasks))
         try:
             return run(tmp)[1]
         finally:
@@ -1372,21 +1375,24 @@ def _inv26_fixture(root, feat, task_status, card_status, parent_status,
         # the names now come from the declaration, so a fixture without `stations` is not a
         # weaker fixture — it is an UNUSABLE board, and case v.13 asserts that it is
         # reported as one. `board_override` lets a case ship a deliberately broken board.
+        # The ordered lowercase declaration (FEAT-41 T-01); INV-26 compares stations, not
+        # columns, because gh_board.board_stations lowercases the board's answer on read.
         _board = {"owner": "org", "number": 3, "station_field": "status",
-                  "stations": {"backlog": "Backlog", "plan": "Plan", "ready": "Ready",
-                               "building": "Building", "review": "Review",
-                               "done": "Done"}}
+                  "stations": ["backlog", "plan", "ready", "building", "review", "done"]}
         if board_override is not _SENTINEL:
             _board = board_override
         json.dump({"github": {"sync": True, "repo": "org/repo",
                               "board": _board}}, f)
     with open(os.path.join(fd, "plan.yaml"), "w") as f:
-        f.write("schema: plan/1\nfeature: %s\napproval:\n  status: approved\n"
+        # THE FEATURE'S STATION IS A TOP-LEVEL KEY HERE NOW (FEAT-41 T-07), lowercased from the
+        # `feature_status` argument every caller already passes. The argument keeps its name so
+        # no call site changes; only the file it lands in moved.
+        f.write("schema: plan/1\nfeature: %s\nstatus: %s\napproval:\n  status: approved\n"
                 "tasks:\n  - id: T-01\n    title: t\n    change_type: logic\n"
                 "    execution_mode: team\n    execution_agent: harness-backend-dev\n"
                 "    depends_on: []\n"
                 "    status: %s\n    files:\n      - a.py\n    verify: |\n      true\n"
-                "    intent: |\n      x\n" % (feat, task_status))
+                "    intent: |\n      x\n" % (feat, str(feature_status).lower(), task_status))
         # A SECOND TASK, so a fixture can sit BETWEEN two statuses. Every case before
         # this parameter was single-task, which is exactly why the suite stayed green
         # while a mixed plan silenced the whole invariant.
@@ -1399,7 +1405,7 @@ def _inv26_fixture(root, feat, task_status, card_status, parent_status,
     if issues is None:
         issues = {"T-01": 41} if second_status is None else {"T-01": 41, "T-02": 42}
     _doc = {"feature_id": feat, "branch": "b", "pr": None,
-            "status": feature_status, "review_sha": "abc1234",
+            "review_sha": "abc1234",
             "cycles_used": 0, "max_total_cycles": 10, "runs": [],
             "github": {"milestone": 1, "parent": 40, "issues": issues}}
     if factory is not None:
@@ -1486,7 +1492,9 @@ def case_v():
         fake = _inv26_fixture(tmp, "FEAT-X", "done", "Backlog", "Review")
         _c, out = _run_with_gh(tmp, fake)
         ls = _lines(out)
-        ok = (any("FEAT-X" in l and "T-01" in l and "done" in l and "Backlog" in l
+        # The fixture feeds the BOARD's capitalised "Backlog"; board_stations lowercases it on
+        # read, so the reported value is lowercase (FEAT-41 T-02).
+        ok = (any("FEAT-X" in l and "T-01" in l and "done" in l and "backlog" in l
                   for l in ls))
         results.append(("(v.1) a mis-columned card is a VIOLATION naming feature, task, "
                         "plan status and column found", ok, "\n".join(ls) or "(no INV-26 line)"))
@@ -1533,7 +1541,7 @@ def case_v():
         fake = _inv26_fixture(tmp, "FEAT-X", "done", "Done", "Backlog")
         _c, out = _run_with_gh(tmp, fake)
         ls = _lines(out)
-        ok = any("parent" in l and "#40" in l and "Review" in l and "Backlog" in l
+        ok = any("parent" in l and "#40" in l and "review" in l and "backlog" in l
                  for l in ls)
         results.append(("(v.6) the parent card disagreeing with the derivation is a "
                         "violation", ok, "\n".join(ls) or "(no INV-26 line)"))
@@ -1547,16 +1555,22 @@ def case_v():
                         not ls, "\n".join(ls)))
 
     # --- v.8 THE CASE THE INVARIANT WAS BUILT FOR AND COULD NOT SEE.
-    # T-01 done with its card still in Backlog, T-02 pending and correctly in Backlog.
-    # derive_station returns None for {done, pending}, and the old code skipped the whole
+    # T-01 done with its card still in Backlog, T-02 not started and correctly placed.
+    # derive_station returns None for {done, ready}, and the old code skipped the whole
     # feature on None — so SC-05's own scenario went unreported in the ordinary window
     # between two tasks. The per-task comparison never needed the parent derivation.
+    #
+    # THE SECOND TASK'S CARD MOVED WITH ITS WORD (FEAT-41 T-06, D-11). It was `pending` with a
+    # card at Backlog, which was CORRECT under the old exception; the not-started station is
+    # `ready` now and its card belongs at Ready, so the fixture says Ready. Leaving it at
+    # Backlog would have made this case pass for the wrong reason — on a second, unintended
+    # violation rather than on T-01's.
     with tempfile.TemporaryDirectory() as tmp:
         fake = _inv26_fixture(tmp, "FEAT-X", "done", "Backlog", "Backlog",
-                              second_status="pending", second_card="Backlog")
+                              second_status="ready", second_card="Ready")
         _c, out = _run_with_gh(tmp, fake)
         ls = _lines(out)
-        ok = any("T-01" in l and "done" in l and "Backlog" in l for l in ls)
+        ok = any("T-01" in l and "done" in l and "backlog" in l for l in ls)
         results.append(("(v.8) a mis-columned done card is reported even when the plan "
                         "derives NO parent station", ok,
                         "\n".join(ls) or "(no INV-26 line)"))
@@ -1567,21 +1581,22 @@ def case_v():
     # expect and the parent card sits in Backlog here.
     with tempfile.TemporaryDirectory() as tmp:
         fake = _inv26_fixture(tmp, "FEAT-X", "done", "Done", "Backlog",
-                              second_status="pending", second_card="Backlog")
+                              second_status="ready", second_card="Ready")
         _c, out = _run_with_gh(tmp, fake)
         ls = _lines(out)
         results.append(("(v.9) the corrected twin of v.8 reports NOTHING, and a None "
                         "derivation raises no parent finding", not ls, "\n".join(ls)))
 
-    # --- v.10 an all-pending plan still claims nothing. The silence that was correct
-    # must survive the fix: no task has started, so no card can be wrong yet.
+    # --- v.10 a plan where NOTHING HAS STARTED still claims nothing. The silence that was
+    # correct must survive the fix: no task has started, so no card can be wrong yet.
+    # The word is `ready` rather than `pending` (FEAT-41 T-04) — the not-started station.
     with tempfile.TemporaryDirectory() as tmp:
-        fake = _inv26_fixture(tmp, "FEAT-X", "pending", "Building", "Review",
-                              second_status="pending", second_card="Done")
+        fake = _inv26_fixture(tmp, "FEAT-X", "ready", "Building", "Review",
+                              second_status="ready", second_card="Done")
         _c, out = _run_with_gh(tmp, fake)
         ls = _lines(out)
-        results.append(("(v.10) an all-pending plan reports NOTHING even with every card "
-                        "wrong", not ls, "\n".join(ls)))
+        results.append(("(v.10) a plan where nothing has started reports NOTHING even with "
+                        "every card wrong", not ls, "\n".join(ls)))
 
     # --- v.11/v.12 THE LANE PAIR (issue #349's caveat). The mirror-never-ran clause read
     # only `github.issues`, so a feature published by factory_decompose — issues recorded
@@ -1681,7 +1696,7 @@ def case_v():
                               feature_status="Building")
         _c, out = _run_with_gh(tmp, fake)
         ls = _lines(out)
-        ok = any("FEAT-X" in l and "T-01" in l and "Review" in l for l in ls)
+        ok = any("FEAT-X" in l and "T-01" in l and "review" in l for l in ls)
         results.append(("(v.T22c) THE BOUND: at status Building, a done task's card reading "
                         "Review is still a VIOLATION", ok,
                         "\n".join(ls) or "(no INV-26 line)"))
@@ -1691,48 +1706,148 @@ def case_v():
                               feature_status="Review")
         _c, out = _run_with_gh(tmp, fake)
         ls = _lines(out)
-        ok = any("FEAT-X" in l and "T-01" in l and "Backlog" in l for l in ls)
+        ok = any("FEAT-X" in l and "T-01" in l and "backlog" in l for l in ls)
         results.append(("(v.T22d) the widening does NOT reach Backlog: a done task's card "
                         "there is a VIOLATION even at status Review", ok,
                         "\n".join(ls) or "(no INV-26 line)"))
 
-    # --- ONE CASE PER KEY, AND THAT IS THE POINT. _EXPECT quantifies over three statuses, so
-    # a single fixture cannot see a lookup that was never migrated: a `done` case is blind to a
-    # `backlog` literal left behind. This feature's own recurring defect is a clause over N
-    # keys with fewer than N fixtures, and the verify demands one each because of it.
+    # --- THE RENAMED-BOARD UNIT WAS DELETED HERE BY FEAT-41 T-11 ---------------------------
+    # It declared the six columns under six DIFFERENT names and asserted INV-26 read those
+    # names out of harness.json. The MANDATE removed the variability it exercised: the six
+    # station names are fixed and every read lowercases them, so harness.json can only ever
+    # hold those six strings and there is no rename left for a test to cover. Do not restore
+    # it.
     #
-    # Every column is RENAMED away from the DEC-203 spellings. A build that still spells
-    # "Building"/"Done"/"Backlog" itself reports a violation against a correctly placed card.
-    _renamed = {"owner": "org", "number": 3, "station_field": "status",
-                "stations": {"backlog": "Icebox", "plan": "Drafted", "ready": "Primed",
-                             "building": "WIP", "review": "Review", "done": "Shipped"}}
+    # THE RETIRED SPELLINGS ARE DESCRIBED HERE, NEVER QUOTED, and that is a rule this feature
+    # learned the hard way — four times, including in the first draft of this very comment.
+    # T-11's own verify greps this file for those six words and for the deleted helper's name,
+    # so a comment that QUOTES what it retired is indistinguishable from the code that used
+    # it, and reds the gate it was written to explain.
+    #
+    # IT WAS ALSO PASSING VACUOUSLY BY THE TIME IT DIED, measured rather than asserted: a
+    # renamed declaration is a MAPPING, the loader refuses one, INV-26 emits CANNOT RUN, and
+    # the unit's local helper filtered exactly that line out. Stop filtering CANNOT RUN and
+    # all three cases go red while every case below stays green — that run is in T-11's
+    # receipt. They tested the filter, not the lookup.
+    #
+    # The cases that DO cover the mandated vocabulary are T-04's, immediately below, and they
+    # carry their own helper for the reason its comment gives.
 
-    def _no_finding(out):
-        return not [l for l in _lines(out) if "CANNOT RUN" not in l]
+    # --- FEAT-41 T-04: ONE CASE PER _EXPECT KEY, against the REAL declaration ------------
+    # _EXPECT quantifies over three statuses, so a single fixture cannot see a key that was
+    # never migrated — a `done` case is blind to a `pending` literal left behind in the `ready`
+    # slot. Each key therefore gets a POSITIVE case (correctly placed card, no finding) AND a
+    # NEGATIVE control (misplaced card, a finding naming the value), because a positive case
+    # alone passes on a build where INV-26 reports nothing at all.
+    #
+    # ITS OWN HELPER, AND IT IS STRICTER THAN THE ONE IT REPLACES (FEAT-41 T-11). These cases
+    # used to borrow a helper from the renamed-board unit deleted above, which filtered
+    # CANNOT RUN out of the output — a filter these cases must NOT inherit. They run against
+    # the REAL declaration, so CANNOT RUN here would mean the loader had rejected a legal
+    # board, and filtering it would turn that into a silent pass. Measured when the unit was
+    # deleted: the three renamed cases needed that filter and not one of these does.
+    def _clean(out):
+        return not _lines(out)
 
-    # backlog: a MIXED plan — an all-pending plan reports nothing whatever _EXPECT says, so
-    # the pending card can only be judged beside a started one.
+    _t04 = []
+
+    # ready: a MIXED plan. An all-ready plan is skipped outright by the nothing-has-started
+    # guard, so the ready card can only be judged beside a started one — which is also the
+    # regression the guard rewrite in this task protects: were it still spelled against
+    # `pending`, this fixture would stop being skipped and every all-ready feature with it.
     with tempfile.TemporaryDirectory() as tmp:
-        fake = _inv26_fixture(tmp, "FEAT-X", "done", "Shipped", "Review",
-                              second_status="pending", second_card="Icebox",
-                              board_override=_renamed)
+        fake = _inv26_fixture(tmp, "FEAT-X", "done", "Done", "Review",
+                              second_status="ready", second_card="Ready")
         c, out = _run_with_gh(tmp, fake)
-        results.append(("INV-26 expects the declared station for status: backlog",
-                        _no_finding(out), "\n".join(_lines(out)) or "(unexpected line)"))
+        _t04.append(("(v.T04-ready) a ready task whose card reads Ready is CLEAN",
+                     _clean(out), "\n".join(_lines(out)) or "(unexpected line)"))
 
     with tempfile.TemporaryDirectory() as tmp:
-        fake = _inv26_fixture(tmp, "FEAT-X", "building", "WIP", "WIP",
-                              board_override=_renamed)
+        fake = _inv26_fixture(tmp, "FEAT-X", "done", "Done", "Review",
+                              second_status="ready", second_card="Building")
         c, out = _run_with_gh(tmp, fake)
-        results.append(("INV-26 expects the declared station for status: building",
-                        _no_finding(out), "\n".join(_lines(out)) or "(unexpected line)"))
+        ls = _lines(out)
+        _t04.append(("(v.T04-ready-neg) a ready task whose card reads Building is a VIOLATION "
+                     "naming ready",
+                     any("T-02" in l and "ready" in l for l in ls),
+                     "\n".join(ls) or "(no INV-26 line)"))
 
     with tempfile.TemporaryDirectory() as tmp:
-        fake = _inv26_fixture(tmp, "FEAT-X", "done", "Shipped", "Review",
-                              board_override=_renamed)
+        fake = _inv26_fixture(tmp, "FEAT-X", "building", "Building", "Building")
         c, out = _run_with_gh(tmp, fake)
-        results.append(("INV-26 expects the declared station for status: done",
-                        _no_finding(out), "\n".join(_lines(out)) or "(unexpected line)"))
+        _t04.append(("(v.T04-building) a building task whose card reads Building is CLEAN",
+                     _clean(out), "\n".join(_lines(out)) or "(unexpected line)"))
+
+    with tempfile.TemporaryDirectory() as tmp:
+        fake = _inv26_fixture(tmp, "FEAT-X", "building", "Ready", "Building")
+        c, out = _run_with_gh(tmp, fake)
+        ls = _lines(out)
+        _t04.append(("(v.T04-building-neg) a building task whose card reads Ready is a "
+                     "VIOLATION naming building",
+                     any("T-01" in l and "building" in l for l in ls),
+                     "\n".join(ls) or "(no INV-26 line)"))
+
+    with tempfile.TemporaryDirectory() as tmp:
+        fake = _inv26_fixture(tmp, "FEAT-X", "done", "Done", "Review")
+        c, out = _run_with_gh(tmp, fake)
+        _t04.append(("(v.T04-done) a done task whose card reads Done is CLEAN",
+                     _clean(out), "\n".join(_lines(out)) or "(unexpected line)"))
+
+    with tempfile.TemporaryDirectory() as tmp:
+        fake = _inv26_fixture(tmp, "FEAT-X", "done", "Backlog", "Review")
+        c, out = _run_with_gh(tmp, fake)
+        ls = _lines(out)
+        _t04.append(("(v.T04-done-neg) a done task whose card reads Backlog is a VIOLATION "
+                     "naming done",
+                     any("T-01" in l and "done" in l for l in ls),
+                     "\n".join(ls) or "(no INV-26 line)"))
+
+    # `pending` IS NOT A VALUE ANY MORE, AND A PLAN STILL CARRYING ONE IS NOW REPORTED.
+    #
+    # THIS CASE ASSERTED THE OPPOSITE AT T-04 AND WAS RIGHT TO, WHICH IS WHY IT IS REWRITTEN
+    # RATHER THAN DELETED. At T-04 the per-task lookup had no key for `pending`, so the compare
+    # SKIPPED it, and this case pinned that skip while pointing at check-plan-routes.py as the
+    # thing that refuses the value at plan time. T-06 deletes that skip under D-11: it was the
+    # fail-open direction, where an unrecognised station and an exempt one shared a code path.
+    #
+    # A vocabulary miss is the defect this whole feature exists to end, so it is the ONE case
+    # that must not be silent. gh_board.project raises, and INV-26 reports it naming the value.
+    # The plan-time refusal still exists and still runs first; this is the second half of the
+    # pair, not a replacement for it.
+    with tempfile.TemporaryDirectory() as tmp:
+        fake = _inv26_fixture(tmp, "FEAT-X", "pending", "Backlog", "Review")
+        c, out = _run_with_gh(tmp, fake)
+        ls = [l for l in _lines(out) if "pending" in l]
+        _t04.append(("(v.T06-pending) a leftover pending task IS reported by INV-26, naming the "
+                     "value — the fail-open skip is gone (D-11)",
+                     bool(ls), "\n".join(_lines(out)) or "(no INV-26 line at all)"))
+
+    # THE NEGATIVE CONTROL FOR THE CASE ABOVE. Without it, "a line mentioning pending appears"
+    # could be satisfied by any unrelated chatter; this proves the legal twin is silent.
+    with tempfile.TemporaryDirectory() as tmp:
+        fake = _inv26_fixture(tmp, "FEAT-X", "ready", "Ready", "Review")
+        c, out = _run_with_gh(tmp, fake)
+        _t04.append(("(v.T06-pending-neg) the same fixture at a LEGAL station reports nothing",
+                     _clean(out), "\n".join(_lines(out)) or "(unexpected line)"))
+
+    # A RECORDED SUB-ISSUE THAT project DECLINES TO PLACE IS A VIOLATION, NOT A SKIP.
+    # The terminal marker names no board column (D-05), so a task carrying it is absent from
+    # project's mapping — and absence used to mean "no card to check", which is precisely the
+    # fail-open D-11 removes. The line names the station the plan carries so the reader can see
+    # WHY nothing could be placed.
+    #
+    # No live feature hits this today: FEAT-19 and FEAT-28 are the only ones with tasks at the
+    # terminal marker and both record zero mirrored sub-issues (measured at T-04). The case is
+    # here for the one that eventually does.
+    with tempfile.TemporaryDirectory() as tmp:
+        fake = _inv26_fixture(tmp, "FEAT-X", "abandoned", "Backlog", "Review")
+        c, out = _run_with_gh(tmp, fake)
+        ls = [l for l in _lines(out) if "T-01" in l and "abandoned" in l]
+        _t04.append(("(v.T06-unplaced) a recorded sub-issue project declines to place is a "
+                     "VIOLATION naming the station, not a silent skip",
+                     bool(ls), "\n".join(_lines(out)) or "(no INV-26 line at all)"))
+
+    results.extend(_t04)
 
     allok = True
     for name, ok, detail in results:
@@ -1767,9 +1882,13 @@ def case_w():
         with open(os.path.join(h, "team-config.yaml"), "w") as f:
             f.write("agents: {}\n")
         json.dump({"feature_id": "FEAT-Z", "branch": "b", "pr": None,
-                   "status": status, "review_sha": "abc1234",
+                   "review_sha": "abc1234",
                    "cycles_used": 0, "max_total_cycles": 10, "runs": []},
                   open(os.path.join(fd, "feature.json"), "w"))
+        # The abandoned skip reads plan.yaml's station now (FEAT-41 T-07), so the fixture must
+        # carry one — a feature.json status is no longer read by anything.
+        with open(os.path.join(fd, "plan.yaml"), "w") as f:
+            f.write(f"feature: FEAT-Z\nstatus: {str(status).lower()}\ntasks: []\n")
         with open(os.path.join(fd, "BRIEF.md"), "w") as f:
             f.write("# BRIEF\n\n## Approval\n\nstatus: pending\n")
         return tmp
@@ -1910,14 +2029,24 @@ def case_x():
         bindir = os.path.join(tmp, "binx")
         os.makedirs(bindir)
         shutil.copy(SCRIPT, os.path.join(bindir, "check-state.sh"))
-        # harness_yaml is the script's one hard import; harness_boundary joined it in
-        # FEAT-42 T-12, when check-state.sh started resolving its own root through it. Both
-        # are copied so the ONLY thing missing from this bin is layout_migration.py, which
-        # is what the case is about. Without the resolver the script refuses at exit 2
-        # before any invariant runs, and the case would be red for the wrong module.
-        for _mod in ("harness_yaml.py", "harness_boundary.py"):
-            shutil.copy(os.path.join(os.path.dirname(SCRIPT), _mod),
-                        os.path.join(bindir, _mod))
+        # EVERY MODULE EXCEPT layout_migration.py, STATED AS THAT RATHER THAN AS A LIST.
+        #
+        # This was an explicit list of the script's imports, and the list was the defect. It
+        # named harness_yaml, then harness_boundary when FEAT-42 T-12 added it, and each time
+        # the script gained an import this case went red for the WRONG module — the script
+        # refusing on a missing dependency before any invariant ran, reported as "INV-27 did
+        # not say CANNOT RUN". FEAT-41 T-07 hit it again with factory_config, whose own
+        # transitive closure is seven modules (factory_cli, factory_gh, gh_cost_log,
+        # gh_issues ...), none of which this case has anything to say about.
+        #
+        # The case's actual premise is "a bin directory complete but for layout_migration.py",
+        # so that is what is built. Self-maintaining: a new import needs no edit here, and the
+        # one absence under test cannot be diluted by an unrelated one.
+        for _f in sorted(os.listdir(os.path.dirname(SCRIPT))):
+            if not _f.endswith(".py") or _f == "layout_migration.py":
+                continue
+            shutil.copy(os.path.join(os.path.dirname(SCRIPT), _f),
+                        os.path.join(bindir, _f))
         env = dict(os.environ)
         env = _root_env(tmp, env)
         r = subprocess.run([os.path.join(bindir, "check-state.sh")],
@@ -1979,7 +2108,9 @@ def _handoff_fixture(tmp, status, notes, feat="FEAT-TEST"):
     with open(os.path.join(h, "harness.json"), "w") as f:
         f.write(HARNESS_JSON_SYNC_OFF)
     with open(os.path.join(fdir, "feature.json"), "w") as f:
-        f.write(json.dumps({"status": status}))
+        f.write(json.dumps({"feature_id": feat}))
+    with open(os.path.join(fdir, "plan.yaml"), "w") as f:
+        f.write(f"feature_id: {feat}\nstatus: {str(status).lower()}\n")
     for name, text in notes.items():
         with open(os.path.join(fdir, "notes", name), "w") as f:
             f.write(text)
@@ -2278,26 +2409,38 @@ def case_t10_red():
 # cannot tell the operator WHICH feature to run the remedy on.
 
 def _inv28_fixture(tmp, sync_on, features):
-    """features: list of (feat_id, status, pr_literal_or_None). pr None omits the key."""
+    """features: list of (feat_id, status, pr_literal_or_None[, plan_station]).
+
+    `pr` None omits the key. `status` None omits the status key entirely — the shape FEAT-41
+    T-07's migration leaves on disk — and a fourth element writes a sibling plan.yaml carrying
+    that lowercase top-level station, which is where the station is read from afterwards.
+    """
     h = os.path.join(tmp, ".harness")
     os.makedirs(h, exist_ok=True)
     with open(os.path.join(h, "harness.json"), "w") as f:
         f.write(HARNESS_JSON_SYNC_ON if sync_on else HARNESS_JSON_SYNC_OFF)
-    for feat, status, pr in features:
+    for entry in features:
+        feat, status, pr = entry[:3]
+        plan_station = entry[3] if len(entry) > 3 else None
         d = os.path.join(h, "harness", "features", feat)
         os.makedirs(d, exist_ok=True)
-        body = '{\n  "feature_id": "%s",\n  "status": "%s"' % (feat, status)
+        body = '{\n  "feature_id": "%s"' % feat
+        if status is not None:
+            body += ',\n  "status": "%s"' % status
         if pr is not None:
             body += ',\n  "pr": %s' % pr
         body += "\n}\n"
         with open(os.path.join(d, "feature.json"), "w") as f:
             f.write(body)
+        if plan_station is not None:
+            with open(os.path.join(d, "plan.yaml"), "w") as f:
+                f.write(f"schema: plan/1\nfeature: {feat}\nstatus: {plan_station}\ntasks: []\n")
     return h
 
 
 def case_inv28_warns():
     with tempfile.TemporaryDirectory() as tmp:
-        _inv28_fixture(tmp, True, [("FEAT-T28", "Done", None)])
+        _inv28_fixture(tmp, True, [("FEAT-T28", None, None, "done")])
         _code, out = run(tmp)
         ok = "INV-28" in out and "FEAT-T28" in out and "record-pr" in out
         print(f"{'ok' if ok else 'FAIL'} - INV-28 warns on a Done feature whose pr is null")
@@ -2306,7 +2449,7 @@ def case_inv28_warns():
 
 def case_inv28_silent_on_integer():
     with tempfile.TemporaryDirectory() as tmp:
-        _inv28_fixture(tmp, True, [("FEAT-T28", "Done", "543")])
+        _inv28_fixture(tmp, True, [("FEAT-T28", None, "543", "done")])
         _code, out = run(tmp)
         ok = "INV-28" not in out
         print(f"{'ok' if ok else 'FAIL'} - INV-28 is silent on a Done feature whose pr is an integer")
@@ -2315,7 +2458,7 @@ def case_inv28_silent_on_integer():
 
 def case_inv28_silent_on_abandoned():
     with tempfile.TemporaryDirectory() as tmp:
-        _inv28_fixture(tmp, True, [("FEAT-T28", "Abandoned", None)])
+        _inv28_fixture(tmp, True, [("FEAT-T28", None, None, "abandoned")])
         _code, out = run(tmp)
         ok = "INV-28" not in out
         print(f"{'ok' if ok else 'FAIL'} - INV-28 is silent on an Abandoned feature whose pr is null")
@@ -2324,7 +2467,7 @@ def case_inv28_silent_on_abandoned():
 
 def case_inv28_silent_on_nonterminal():
     with tempfile.TemporaryDirectory() as tmp:
-        _inv28_fixture(tmp, True, [("FEAT-T28", "Building", None)])
+        _inv28_fixture(tmp, True, [("FEAT-T28", None, None, "building")])
         _code, out = run(tmp)
         ok = "INV-28" not in out
         print(f"{'ok' if ok else 'FAIL'} - INV-28 is silent on a feature that is not terminal")
@@ -2333,7 +2476,7 @@ def case_inv28_silent_on_nonterminal():
 
 def case_inv28_names_each():
     with tempfile.TemporaryDirectory() as tmp:
-        _inv28_fixture(tmp, True, [("FEAT-T28A", "Done", None), ("FEAT-T28B", "Done", None)])
+        _inv28_fixture(tmp, True, [("FEAT-T28A", None, None, "done"), ("FEAT-T28B", None, None, "done")])
         _code, out = run(tmp)
         lines = [l for l in out.splitlines() if "INV-28" in l]
         ok = (len(lines) == 2
@@ -2343,9 +2486,40 @@ def case_inv28_names_each():
         return ok
 
 
+def case_41_t07_inv28_station_from_plan():
+    """FEAT-41 T-07: INV-28's terminal gate reads the station from plan.yaml.
+
+    THE POSITIVE SIDE OF THE MIGRATION, and INV-28 is the sharpest place to prove it because
+    its half-applied direction is SILENT AND GREEN: with the status key gone and the gate
+    un-repointed, `pdoc.get("status")` is empty, every feature fails the `!= ["Done"]` test,
+    the loop `continue`s, and the invariant warns about nothing at all. The gate keeps exiting
+    0 while checking zero features — the same vacuous-pass shape as board_lifecycle's STATUS
+    class, in the project's own state gate.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        _inv28_fixture(tmp, True, [("FEAT-T07", None, None, "done")])
+        _code, out = run(tmp)
+        ok = "INV-28" in out and "FEAT-T07" in out
+        print(f"{'ok' if ok else 'FAIL'} - INV-28 warns from plan.yaml's `done` station with "
+              f"NO feature.json status present")
+        return ok
+
+
+def case_41_t07_inv28_negative_control_live_station():
+    """NEGATIVE CONTROL for the case above, and it is load-bearing: without it an always-warn
+    repointing passes, and INV-28 would name every feature in the tree."""
+    with tempfile.TemporaryDirectory() as tmp:
+        _inv28_fixture(tmp, True, [("FEAT-T07", None, None, "building")])
+        _code, out = run(tmp)
+        ok = "INV-28" not in out
+        print(f"{'ok' if ok else 'FAIL'} - INV-28 is silent on a plan.yaml station of "
+              f"`building` — the terminal gate still discriminates")
+        return ok
+
+
 def case_inv28_silent_sync_off():
     with tempfile.TemporaryDirectory() as tmp:
-        _inv28_fixture(tmp, False, [("FEAT-T28", "Done", None)])
+        _inv28_fixture(tmp, False, [("FEAT-T28", None, None, "done")])
         _code, out = run(tmp)
         ok = "INV-28" not in out
         print(f"{'ok' if ok else 'FAIL'} - INV-28 is silent when github.sync is off")
@@ -2373,9 +2547,17 @@ def _i29_repo(path, branch="main"):
     return path
 
 
-def _i29_land(repo, feature_id, status_or_raw, repo_segment="harness"):
+def _i29_land(repo, feature_id, status_or_raw, repo_segment="harness", plan_station=None):
     """Commit the feature's `feature.json` ON THE CURRENT BRANCH. `status_or_raw` is a dict
-    written as JSON, or a raw string written verbatim for the unparseable case."""
+    written as JSON, or a raw string written verbatim for the unparseable case.
+
+    `plan_station` commits a sibling plan.yaml carrying that station in the SAME commit
+    (FEAT-41 T-07) — INV-29 reads the landed station from there now. A dict carrying a
+    `status` key has it LIFTED into that plan rather than left in feature.json, so the
+    existing call sites keep their shape."""
+    if isinstance(status_or_raw, dict) and "status" in status_or_raw:
+        status_or_raw = dict(status_or_raw)
+        plan_station = str(status_or_raw.pop("status")).lower()
     rel = os.path.join(".harness", repo_segment, "features", feature_id, "feature.json")
     ab = os.path.join(repo, rel)
     os.makedirs(os.path.dirname(ab), exist_ok=True)
@@ -2384,7 +2566,13 @@ def _i29_land(repo, feature_id, status_or_raw, repo_segment="harness"):
             f.write(status_or_raw)
         else:
             json.dump(status_or_raw, f)
-    subprocess.run(["git", "add", rel], cwd=repo, capture_output=True)
+    paths = [rel]
+    if plan_station is not None:
+        prel = os.path.join(".harness", repo_segment, "features", feature_id, "plan.yaml")
+        with open(os.path.join(repo, prel), "w") as f:
+            f.write(f"feature: {feature_id}\nstatus: {plan_station}\ntasks: []\n")
+        paths.append(prel)
+    subprocess.run(["git", "add"] + paths, cwd=repo, capture_output=True)
     subprocess.run(["git", "commit", "-qm", "land " + feature_id], cwd=repo, capture_output=True)
 
 
@@ -2693,14 +2881,18 @@ def _inv30_fixture(tmp, features):
     os.makedirs(h, exist_ok=True)
     with open(os.path.join(h, "harness.json"), "w") as f:
         f.write(HARNESS_JSON_SYNC_ON)
-    for feat, status, ms in features:
+    for feat, station, ms in features:
         d = os.path.join(h, "harness", "features", feat)
         os.makedirs(d, exist_ok=True)
-        body = ('{\n  "feature_id": "%s",\n  "status": "%s",\n'
+        body = ('{\n  "feature_id": "%s",\n'
                 '  "github": {"milestone": %s}\n}\n'
-                % (feat, status, "null" if ms is None else int(ms)))
+                % (feat, "null" if ms is None else int(ms)))
         with open(os.path.join(d, "feature.json"), "w") as f:
             f.write(body)
+        # The station lands in plan.yaml, lowercase (FEAT-41 T-07). feature.json keeps the
+        # milestone, which is what this invariant is actually about.
+        with open(os.path.join(d, "plan.yaml"), "w") as f:
+            f.write(f"feature: {feat}\nstatus: {str(station).lower()}\ntasks: []\n")
     return h
 
 
@@ -2736,7 +2928,7 @@ def case_inv30_fires_on_open_milestone():
     exit code — `test-check-state.py:1214` already records that these fixtures are red for
     other reasons, so `code != 0` would pass whether or not the invariant fired."""
     with tempfile.TemporaryDirectory() as tmp:
-        _inv30_fixture(tmp, [("FEAT-T30", "Done", 77)])
+        _inv30_fixture(tmp, [("FEAT-T30", "done", 77)])
         gh = _inv30_gh_stub(tmp, [77])
         _code, out = _run_with_gh(tmp, gh)
         lines = _inv30_lines(out)
@@ -2755,7 +2947,7 @@ def case_inv30_silent_on_closed_milestone():
     stub's answer changes. An implementation keying on status alone passes the case above and
     fails this one, which is exactly the red proof the criterion names."""
     with tempfile.TemporaryDirectory() as tmp:
-        _inv30_fixture(tmp, [("FEAT-T30", "Done", 77)])
+        _inv30_fixture(tmp, [("FEAT-T30", "done", 77)])
         gh = _inv30_gh_stub(tmp, [])          # 77 is not in the open list
         _code, out = _run_with_gh(tmp, gh)
         lines = _inv30_lines(out)
@@ -2770,7 +2962,7 @@ def case_inv30_silent_offline():
     grades the INV-26 offline posture the design copies deliberately — `check-state.sh` runs
     before every commit, so an unreachable network must never become a red gate."""
     with tempfile.TemporaryDirectory() as tmp:
-        _inv30_fixture(tmp, [("FEAT-T30", "Done", 77)])
+        _inv30_fixture(tmp, [("FEAT-T30", "done", 77)])
         gh = _inv30_gh_stub(tmp, [77], auth_ok=False)
         _code, out, err = _run_with_gh_streams(tmp, gh)
         lines = _inv30_lines(out)
@@ -2790,7 +2982,7 @@ def case_inv30_silent_on_null_milestone():
     finding. Eight real features are in that state at `9165162`; firing on them would make the
     gate permanently red for a condition INV-30 cannot speak to."""
     with tempfile.TemporaryDirectory() as tmp:
-        _inv30_fixture(tmp, [("FEAT-T30", "Done", None)])
+        _inv30_fixture(tmp, [("FEAT-T30", "done", None)])
         gh = _inv30_gh_stub(tmp, [77])
         _code, out = _run_with_gh(tmp, gh)
         ok = not _inv30_lines(out)
@@ -2804,7 +2996,7 @@ def case_inv30_silent_on_nonterminal():
     checked. A feature still in Review has not claimed that ship ran, so an open milestone is
     the CORRECT state for it and reporting it would be noise."""
     with tempfile.TemporaryDirectory() as tmp:
-        _inv30_fixture(tmp, [("FEAT-T30", "Review", 77)])
+        _inv30_fixture(tmp, [("FEAT-T30", "review", 77)])
         gh = _inv30_gh_stub(tmp, [77])
         _code, out = _run_with_gh(tmp, gh)
         ok = not _inv30_lines(out)
@@ -3131,6 +3323,202 @@ def case_inv32():
     print(f"{'ok' if ok else 'FAIL'} - INV-32 plan panel fixtures, including inv32-red"
           + ("" if ok else f" {checks}"))
     return ok
+
+# ==========================================================================================
+# FEAT-41 T-14 / issue #867: INV-33 — a STALE review_sha, not merely an absent one.
+#
+# INV-6 asserts a pin EXISTS. INV-33 asserts the pin is CURRENT. An absent pin is honest — it
+# says nobody reviewed this. A stale pin makes a CLAIM (this text was reviewed at this commit)
+# and once the text has moved that claim is false while looking byte-identical to a true one.
+#
+# A BYTE COMPARISON, NEVER A COMMIT COMPARISON. Comparing review_sha to the last commit that
+# touched the plan reports a plan changed and changed back, and reports any feature reviewed
+# before an unrelated commit landed on that path. Case (inv33.b) exists to kill that
+# implementation.
+#
+# BUILT WITH REAL GIT, deliberately: INV-33 runs `git rev-parse --show-toplevel` and `git show`,
+# so a hand-built .git pointer yields no top level and all four cases would pass vacuously.
+# ==========================================================================================
+
+_INV32_HJ = '{"schema_version": 1, "github": {"sync": false}}\n'
+
+
+def _inv33_repo(tmp):
+    """A real git repository at `tmp`, onboarded, with a validator run recorded.
+
+    THE VALIDATOR RUN AND THE harness.json ARE BOTH REQUIRED, and neither is decoration:
+    check-state.sh exits 1 with "project not onboarded" before ANY invariant runs, so a bare
+    directory would exit non-zero while printing no invariant line at all — and these cases
+    would then be unfalsifiable.
+    """
+    for cmd in (["git", "init", "-q"],
+                ["git", "config", "user.email", "t@example.com"],
+                ["git", "config", "user.name", "t"]):
+        subprocess.run(cmd, cwd=tmp, capture_output=True)
+    make_fixture(tmp, _INV32_HJ, "  parent: 1\n")
+    return os.path.join(tmp, ".harness", "harness", "features", "FEAT-TEST")
+
+
+def _inv33_commit(tmp, message="c"):
+    subprocess.run(["git", "add", "-A"], cwd=tmp, capture_output=True)
+    subprocess.run(["git", "commit", "-qm", message], cwd=tmp, capture_output=True)
+    return subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=tmp,
+                          capture_output=True, text=True).stdout.strip()
+
+
+def _inv33_set_sha(feat_dir, sha, validator_run=True):
+    """Append the pin to the fixture's feature.json as TEXT.
+
+    make_fixture writes that file in YAML (harness_yaml is what check-state.sh reads it with),
+    so a json.load round-trip raises — measured, not guessed. Appending keys is also the only
+    edit that leaves the builder's own shape untouched.
+
+    THE VALIDATOR RUN IS WHAT MAKES INV-6 SILENT HERE. INV-6 fires when a validator run exists
+    and the pin is missing; these cases carry a real pin, so INV-6 stays quiet either way — but
+    including the run keeps the fixture a realistic document rather than one that avoids INV-6
+    by having no runs at all.
+    """
+    fj = os.path.join(feat_dir, "feature.json")
+    extra = f"review_sha: {sha}\n"
+    if validator_run:
+        extra += "runs:\n  - id: r1\n    squad: validator\n    verdict: PASS\n"
+    with open(fj, "a") as f:
+        f.write(extra)
+
+
+def _inv33_plan(feat_dir, body, station=None):
+    lines = ["schema: plan/1", "feature: FEAT-TEST"]
+    if station is not None:
+        lines.append(f"status: {station}")
+    lines += ["tasks:", "  - id: T-01", f"    change_type: {body}"]
+    with open(os.path.join(feat_dir, "plan.yaml"), "w") as f:
+        f.write("\n".join(lines) + "\n")
+
+
+def _inv33_lines(out):
+    return [l for l in out.splitlines() if "INV-33" in l]
+
+
+def case_inv33a_stale_is_reported():
+    """(inv33.a) THE REPORT. Commit X, commit Y, leave Y on disk, pin the FIRST commit."""
+    results = []
+    with tempfile.TemporaryDirectory() as tmp:
+        feat = _inv33_repo(tmp)
+        _inv33_plan(feat, "logic")                 # content X
+        first = _inv33_commit(tmp, "plan X")
+        _inv33_plan(feat, "docs")                  # content Y
+        second = _inv33_commit(tmp, "plan Y")
+        _inv33_set_sha(feat, first)
+        _inv33_commit(tmp, "pin")
+        code, out = run(tmp)
+        ls = _inv33_lines(out)
+        ok = bool(ls) and any("FEAT-TEST" in l for l in ls) \
+            and any(first in l for l in ls) and any(second in l for l in ls)
+        if ok:
+            print("ok - case (inv33.a) a stale review_sha is reported")
+        results.append(("(inv33.a) a stale review_sha is reported, naming the feature, the "
+                        "pinned sha and the last sha to touch the plan", ok,
+                        "\n".join(ls) or f"(no INV-33 line) code={code}"))
+    return results
+
+
+def case_inv33b_current_is_silent():
+    """(inv33.b) THE SILENCE, AND THE DISCRIMINATOR that kills a commit-equality check.
+
+    Commit X, commit Y, commit X AGAIN, leave X on disk, pin the FIRST commit. The pinned BYTES
+    equal the working copy's, so INV-33 must be silent even though a LATER commit touched the
+    file — which is exactly what a `git log -1` implementation would report.
+    """
+    results = []
+    with tempfile.TemporaryDirectory() as tmp:
+        feat = _inv33_repo(tmp)
+        _inv33_plan(feat, "logic")                 # X
+        first = _inv33_commit(tmp, "plan X")
+        _inv33_plan(feat, "docs")                  # Y
+        _inv33_commit(tmp, "plan Y")
+        _inv33_plan(feat, "logic")                 # X again
+        _inv33_commit(tmp, "plan X again")
+        _inv33_set_sha(feat, first)
+        _inv33_commit(tmp, "pin")
+        code, out = run(tmp)
+        ls = _inv33_lines(out)
+        ok = not ls
+        if ok:
+            print("ok - case (inv33.b) a current review_sha is silent")
+        results.append(("(inv33.b) a current review_sha is silent even though a later commit "
+                        "touched the plan — a BYTE comparison, not a commit comparison", ok,
+                        "\n".join(ls) or "(unexpected line)"))
+    return results
+
+
+def case_inv33c_terminal_is_silent():
+    """(inv33.c) THE TERMINAL SILENCE, and the guard on four shipped features.
+
+    Same construction as (inv33.a) — the pinned bytes genuinely DIFFER — but the feature sits at
+    a terminal station, in the place T-07 leaves it: plan.yaml's own top-level status.
+
+    WHAT THIS CASE DOES AND DOES NOT PROVE. Against an unmodified check-state.sh it passes
+    VACUOUSLY, because nothing emits INV-33 at all, so its green there is worth nothing. Its
+    DISCRIMINATING run is against an implementation that already reports (inv33.a) but carries no
+    terminal scope, where it must be RED. That run belongs in the receipt.
+    """
+    results = []
+    with tempfile.TemporaryDirectory() as tmp:
+        feat = _inv33_repo(tmp)
+        _inv33_plan(feat, "logic", station="done")
+        first = _inv33_commit(tmp, "plan X")
+        _inv33_plan(feat, "docs", station="done")
+        _inv33_commit(tmp, "plan Y")
+        _inv33_set_sha(feat, first)
+        _inv33_commit(tmp, "pin")
+        code, out = run(tmp)
+        ls = _inv33_lines(out)
+        ok = not ls
+        if ok:
+            print("ok - case (inv33.c) a terminal station is silent")
+        results.append(("(inv33.c) a terminal station is silent — a shipped plan is a record, "
+                        "not a contract (operator Q6)", ok,
+                        "\n".join(ls) or "(unexpected line)"))
+    return results
+
+
+def case_inv33d_absent_path_is_silent():
+    """(inv33.d) THE LARGEST SILENCE IN THE TREE, AND NOTHING PINNED IT BEFORE THIS CASE.
+
+    The pin resolves to a real commit but the plan file DOES NOT EXIST at that path in it. Re-run
+    at execution time: 19 of 44 feature directories sit in this state, from layout history — the
+    docs-layout migration and the PLAN.md-to-plan.yaml move each changed where a plan lives, and
+    every one of those pins was honest about the path that existed when it was taken.
+
+    THE ONLY CLAUSE THAT SILENCES IT is "report only when BOTH reads succeed", so an
+    implementation reading an absent object at the pin as evidence of staleness reds all nineteen
+    at once.
+
+    THE STATION IS NON-TERMINAL ON PURPOSE. All nineteen live directories are terminal, so the
+    Q6 scope silences every one of them BEFORE this clause is consulted — live exposure is ZERO,
+    which is precisely why the clause needs a fixture of its own. A case built with a terminal
+    station would be measuring the wrong clause and would pass whatever this one does.
+    """
+    results = []
+    with tempfile.TemporaryDirectory() as tmp:
+        feat = _inv33_repo(tmp)
+        # A commit made BEFORE the plan file existed at that path.
+        before = _inv33_commit(tmp, "no plan yet")
+        _inv33_plan(feat, "logic", station="building")
+        _inv33_commit(tmp, "plan X")
+        _inv33_plan(feat, "docs", station="building")
+        _inv33_commit(tmp, "plan Y")
+        _inv33_set_sha(feat, before)
+        _inv33_commit(tmp, "pin")
+        code, out = run(tmp)
+        ls = _inv33_lines(out)
+        ok = not ls
+        if ok:
+            print("ok - case (inv33.d) a pin with no plan file at that path is silent")
+        results.append(("(inv33.d) a pin that resolves but holds no plan at that path is "
+                        "silent, at a NON-TERMINAL station", ok,
+                        "\n".join(ls) or "(unexpected line)"))
+    return results
 
 
 # BUG-1071 — INV-32's era guard. FEAT-45 T-07 shipped INV-32 with no era boundary, so it
@@ -3464,6 +3852,177 @@ def case_inv6_producer_is_documented():
             print("        the runs-writing step does not name the key, so every recorded "
                   "plan panel omits it and INV-6 deadlocks again")
     return ok
+def _i34_fixture(tmp, with_plan):
+    """A feature directory with a feature.json, and a plan.yaml only when asked for."""
+    h = make_fixture(tmp, HARNESS_JSON_SYNC_OFF, "  parent: none")
+    feat = os.path.join(h, "harness", "features", "FEAT-TEST")
+    if with_plan:
+        with open(os.path.join(feat, "plan.yaml"), "w") as f:
+            f.write("schema: plan/1\nfeature: FEAT-TEST\nstatus: done\n"
+                    "station_only: true\ntasks: []\n")
+    return feat
+
+
+def _i34_lines(out):
+    return [l for l in out.splitlines() if "INV-34" in l]
+
+
+def case_inv34_plan_required():
+    """FEAT-41 T-19 — INV-34: a feature directory with NO plan.yaml is REPORTED.
+
+    Operator-directed after cycle 2's C2-01. The one-record rule puts a feature's station in
+    plan.yaml, so a feature WITHOUT one has nowhere to record it -- which is exactly how this
+    feature destroyed BUG-1030's `Review` and then could not put it back: feature.json refuses
+    the key (exit 11) and, before T-19, plan.yaml refused to exist without tasks.
+
+    The invariant is what stops that recurring: the migration is a one-time repair, and without
+    a check the next plan-less feature reintroduces the same hole silently.
+    """
+    results = []
+    with tempfile.TemporaryDirectory() as tmp:
+        _i34_fixture(tmp, with_plan=False)
+        code, out = run(tmp)
+        ls = _i34_lines(out)
+        ok = bool(ls) and any("FEAT-TEST" in l for l in ls) and any("plan.yaml" in l for l in ls)
+        results.append(("(inv34.a) a feature with no plan.yaml is reported, naming the file",
+                        ok, out[:400]))
+    return results
+
+
+def case_inv34_present_is_silent():
+    """NEGATIVE CONTROL. A station-only plan.yaml satisfies it, so the invariant is about the
+    RECORD existing and not about tasks -- the twelve directories this feature backfilled carry
+    exactly this shape, and if they tripped it the migration would be self-defeating."""
+    results = []
+    with tempfile.TemporaryDirectory() as tmp:
+        _i34_fixture(tmp, with_plan=True)
+        code, out = run(tmp)
+        ls = _i34_lines(out)
+        results.append(("(inv34.b) a station-only plan.yaml is enough — no INV-34 line",
+                        not ls, out[:400]))
+    return results
+
+
+
+def _i34_station_only(tmp, tasks_block, state_md=None):
+    """A feature whose plan is station-only, or carries tasks, plus an optional STATE.md."""
+    h = make_fixture(tmp, HARNESS_JSON_SYNC_OFF, "  parent: none")
+    feat = os.path.join(h, "harness", "features", "FEAT-TEST")
+    with open(os.path.join(feat, "plan.yaml"), "w") as f:
+        f.write("schema: plan/1\nfeature: FEAT-TEST\nstatus: done\n" + tasks_block)
+    if state_md is not None:
+        with open(os.path.join(feat, "STATE.md"), "w") as f:
+            f.write(state_md)
+    return feat
+
+
+_I34_TASK = (
+    "tasks:\n"
+    "  - id: T-01\n"
+    "    title: t\n"
+    "    change_type: logic\n"
+    "    execution_mode: main-session-direct\n"
+    "    status: done\n"
+    "    files: [a.py]\n"
+    "    verify: run it\n"
+    "    intent: do it\n"
+)
+
+
+def case_inv34_station_only_is_out_of_scope():
+    """FEAT-41 T-19. A station-only record answers neither `is the goal signed` nor `does
+    STATE.md name a real task`, because it HAS no goal and no tasks.
+
+    THIS IS SCOPING, NOT A FAIL-OPEN, and the backfill is what forced the distinction: creating
+    twelve station-only plans made two checks visible that had skipped those directories for as
+    long as they had no plan at all. The alternative was to give each one an `approval:` block,
+    which would have FABRICATED twelve signatures nobody gave.
+    """
+    results = []
+    with tempfile.TemporaryDirectory() as tmp:
+        _i34_station_only(tmp, "station_only: true\ntasks: []\n",
+                          state_md="## Current\nsee T-01 and T-99\n")
+        code, out = run(tmp)
+        quiet = ("no `approval:` block" not in out) and ("which is absent from its" not in out)
+        results.append(("(inv34.c) a station-only plan is exempt from the approval and "
+                        "STATE.md-task checks", quiet, out[:400]))
+    return results
+
+
+def case_inv34_a_real_plan_is_still_checked():
+    """NEGATIVE CONTROL, and the one that stops the exemption widening. A plan WITH tasks is
+    still held to both checks -- if this ever goes quiet, the exemption has swallowed the rule
+    for every plan in the tree, which is the failure mode this whole feature keeps finding."""
+    results = []
+    with tempfile.TemporaryDirectory() as tmp:
+        _i34_station_only(tmp, _I34_TASK, state_md="## Current\nsee T-99\n")
+        code, out = run(tmp)
+        loud = ("no `approval:` block" in out) and ("T-99" in out)
+        results.append(("(inv34.d) a plan WITH tasks is still checked for approval and for "
+                        "STATE.md task ids", loud, out[:400]))
+    return results
+
+
+
+def case_inv34_an_emptied_plan_is_not_station_only():
+    """FEAT-41 MF-3, high, proven END TO END by cycle 3's code reviewer.
+
+    A Bash write emptied a SIGNED plan's `tasks:` while keeping its `approval:` and `status:`.
+    The old exemption keyed on the ABSENCE of tasks, so the forged document inherited it and a
+    real dangling-STATE.md-task violation went SILENT. Cycle 3 also showed the existing control
+    was PARTLY VACUOUS -- deleting the exemption line left it green -- and that NO case covered
+    this state. This is that case.
+
+    THE FIX MAKES THE FORGED STATE LOUDER, not merely caught: an emptied plan carries no
+    `station_only:` marker, so `load_plan` refuses it, and a plan that does not load is already a
+    violation. The point is general -- AN ABSENCE CANNOT BE A CREDENTIAL. A checker must be told a
+    fact, never infer one from a missing field.
+    """
+    results = []
+    with tempfile.TemporaryDirectory() as tmp:
+        feat = _i34_station_only(tmp, _I34_TASK, state_md="## Current\nsee T-99\n")
+        plan = os.path.join(feat, "plan.yaml")
+        with open(plan, "w") as f:
+            f.write("schema: plan/1\nfeature: FEAT-TEST\nstatus: done\n"
+                    "approval:\n  status: approved\n  approved_by: X\n  date: 2026-01-01\n"
+                    "tasks: []\n")
+        code, out = run(tmp)
+        # It must NOT go quiet. Either the load refusal or the dangling-task line is acceptable
+        # evidence; what is unacceptable is silence, which is what the old keying produced.
+        loud = ("does not load" in out) or ("T-99" in out)
+        results.append(("(inv34.e) a SIGNED plan emptied to `tasks: []` does NOT inherit the "
+                        "station-only exemption", loud, out[:500]))
+    return results
+
+
+
+def case_inv34_marker_cannot_be_minted_onto_a_real_plan():
+    """FEAT-41 HIGH-1, cycle 4, found independently by two reviewers.
+
+    MF-3 made `station_only: true` a credential and validated it in ONE direction only, so the
+    marker could be MINTED onto a task-bearing SIGNED plan -- via the ungated `apply` verb or a
+    raw Bash write -- durably silencing the approval and STATE.md-task checks for that feature.
+
+    THIS CASE EXISTS BECAUSE A COMMENT CLAIMED IT ALREADY DID. `check-state.sh` cited case
+    (inv34.d) as asserting this guarantee; two reviewers checked at source and (inv34.d)'s fixture
+    carries NO marker, so the cited test never tested it. A false citation in a comment is worse
+    than a missing test, because it stops the next reader looking.
+    """
+    results = []
+    with tempfile.TemporaryDirectory() as tmp:
+        feat = _i34_station_only(tmp, _I34_TASK, state_md="## Current\nsee T-99\n")
+        plan = os.path.join(feat, "plan.yaml")
+        body = open(plan).read()
+        # Mint the credential onto the signed, task-bearing plan, exactly as a Bash write would.
+        with open(plan, "w") as f:
+            f.write("station_only: true\n" + body)
+        code, out = run(tmp)
+        # It must not go quiet. The load refusal is the expected outcome and is LOUDER than the
+        # checks the marker was being used to escape.
+        loud = ("does not load" in out) or ("T-99" in out) or ("station_only" in out)
+        results.append(("(inv34.f) the station_only marker CANNOT be minted onto a task-bearing "
+                        "plan to exempt it", loud, out[:500]))
+    return results
 
 
 
@@ -3491,6 +4050,35 @@ def main():
     ok_i28d = case_inv28_silent_on_nonterminal()
     ok_i28e = case_inv28_names_each()
     ok_i28f = case_inv28_silent_sync_off()
+    ok_i28g = case_41_t07_inv28_station_from_plan()
+    ok_i28h = case_41_t07_inv28_negative_control_live_station()
+    # FEAT-41 T-19 — INV-34: every feature directory carries a plan.yaml.
+    _i34 = (case_inv34_plan_required() + case_inv34_present_is_silent()
+            + case_inv34_station_only_is_out_of_scope()
+            + case_inv34_a_real_plan_is_still_checked()
+            + case_inv34_an_emptied_plan_is_not_station_only()
+            + case_inv34_marker_cannot_be_minted_onto_a_real_plan())
+    ok_i34 = True
+    for _name, _ok, _detail in _i34:
+        print(f"{'ok' if _ok else 'FAIL'} - case {_name}")
+        if not _ok:
+            ok_i34 = False
+            print(f"        {str(_detail).strip()[:300]}")
+    # FEAT-41 T-14 / issue #867 — INV-33: the report, the byte-comparison discriminator, and
+    # the two silences. Each returns a results LIST, so they join the aggregate below.
+    #
+    # RENUMBERED FROM 32 ON THE REBASE ONTO origin/main. FEAT-45 T-07 shipped its OWN INV-32 (a
+    # plan approved with no complete panel result) while this was in flight, and it landed first,
+    # so it owns the number. Two invariants sharing one id would make every message ambiguous
+    # and would have made this feature's own verify greps match the other one's output.
+    _i33 = (case_inv33a_stale_is_reported() + case_inv33b_current_is_silent()
+            + case_inv33c_terminal_is_silent() + case_inv33d_absent_path_is_silent())
+    ok_i33 = True
+    for _name, _ok, _detail in _i33:
+        print(f"{'ok' if _ok else 'FAIL'} - case {_name}")
+        if not _ok:
+            ok_i33 = False
+            print(f"        {str(_detail).strip()[:300]}")
     ok_p = case_p()
     ok_q = case_q()
     ok_r = case_r()
@@ -3581,8 +4169,11 @@ def main():
     if (ok_a and ok_b and ok_c and ok_d and ok_e and ok_f and ok_g
             and ok_h and ok_i and ok_j and ok_k and ok_l and ok_m and ok_m2 and ok_m3 and ok_n and ok_o and ok_p and ok_q and ok_r and ok_s and ok_t and ok_u and ok_v and ok_w and ok_x and ok_t14 and ok_t10
             and ok_i28a and ok_i28b and ok_i28c and ok_i28d and ok_i28e and ok_i28f
+            and ok_i28g and ok_i28h
             and ok_i29 and ok_i30 and ok_i31 and ok_i32 and ok_i32_severity
             and ok_i32_era and ok_i6_plan
+            and ok_i33
+            and ok_i34
             and ok_exit_unchanged):
         sys.exit(0)
     sys.exit(1)
