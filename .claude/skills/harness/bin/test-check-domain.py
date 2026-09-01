@@ -2526,10 +2526,16 @@ _PLAN_NO_TOP = "\n".join(l for l in _PLAN_LEGAL.splitlines()
                           if not l.startswith("status:")) + "\n"
 
 
-def run_t09():
-    """FEAT-41 T-09: plan.yaml has exactly ONE writer, and the editor routes are refused."""
-    global _T09_FAILS
-    _T09_FAILS = 0
+# FEAT-41 T-09's cases, SPLIT BY CASE GROUP (FEAT-41 F-05). This began as one `run_t09` and grew
+# a case group per finding until it graded 1 against a test bar of 3, driven by ABC alone — 61.1
+# worth of fixture calls in one body, with cyclomatic at 7 and cognitive at 6. Nothing here was
+# hard to read line by line; there was simply too much of it in one place. The groups are the
+# ones the numbered comments already named, so the split follows a boundary the file had.
+#
+# THEY SHARE `t09()`, which counts into the module-level tally, so each group asserts freely and
+# only the aggregator resets and reports.
+def _t09_edit_denial():
+    """1. THE EDIT ROUTE IS DENIED, and the message routes the reader to the verb."""
 
     # ---- 1. THE EDIT ROUTE IS DENIED, and the message routes the reader to the verb -------
     root, full = _approval_root(rel=REL_PLAN, body=_PLAN_LEGAL)
@@ -2561,6 +2567,10 @@ def run_t09():
     t09("T-09 1: the denial does NOT carry the STATE.md ROUTING sentence",
         "STATE.md" not in err, f"stderr={err[:400]!r}")
 
+
+def _t09_binds_every_author():
+    """2-4. Every author is bound, both write routes are denied, and a sibling is not."""
+
     # ---- 2. THE MAIN SESSION IS DENIED TOO ------------------------------------------------
     # DEC-180 makes the shape gate independent of domain and binding on EVERY author. The
     # domain region would have been the wrong home precisely because check-domain exits 0 for
@@ -2587,6 +2597,10 @@ def run_t09():
     t09("T-09 4: NEGATIVE CONTROL — BRIEF.md beside it is NOT denied by this rule",
         r4.returncode != 2 or "set-task-station" not in r4.stderr,
         f"exit {r4.returncode}, stderr={r4.stderr.strip()[:300]!r}")
+
+
+def _t09_post_sweep():
+    """5-7. What a shell write LANDS is read after the fact, and an un-migrated plan is legal."""
 
     # ---- 5. THE POST SWEEP'S VOCABULARY RULE ----------------------------------------------
     # A shell write cannot be denied before the fact, so the sweep reads what LANDED. It
@@ -2619,6 +2633,10 @@ def run_t09():
     t09("T-09 7: a plan.yaml carrying NO top-level status is NOT reported — the un-migrated "
         "shape is legal",
         r7.returncode == 0, f"exit {r7.returncode}, stderr={r7.stderr.strip()[:400]!r}")
+
+
+def _t09_spelling():
+    """8. The spelling of the filename is not a route (FEAT-41 F-04)."""
 
     # ---- 8. THE SPELLING OF THE FILENAME IS NOT A ROUTE (FEAT-41 F-04) --------------------
     # Panel finding F-04, high. RE_PLAN_YAML matched lowercase only, and this workstation's
@@ -2653,6 +2671,15 @@ def run_t09():
             f"a substring match",
             r8b.returncode == 0, f"exit {r8b.returncode}, stderr={r8b.stderr.strip()[:300]!r}")
 
+
+def run_t09():
+    """FEAT-41 T-09: plan.yaml has exactly ONE writer, and the editor routes are refused."""
+    global _T09_FAILS
+    _T09_FAILS = 0
+    _t09_edit_denial()
+    _t09_binds_every_author()
+    _t09_post_sweep()
+    _t09_spelling()
     return _T09_FAILS
 
 
