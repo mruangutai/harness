@@ -1682,31 +1682,34 @@ if not _post and _tool in ("Write", "Edit", "NotebookEdit") and _reached_plan:
 # quarantine path is inert until the resumed parent adopts it.
 if (_governed and not _post and _tool in ("Write", "Edit", "NotebookEdit")
         and target):
-    try:
-        import inflight_registry as _reg
-        _artifact = _reg.canonical_artifact(_norm(target))
-        if _artifact is not None:
-            _feature, _basename = _artifact
-            _session = d.get("session_id")
-            if _reg.orphan_write(root, agent, _feature, _session):
-                _quarantine = _reg.quarantine_rel(
-                    _norm(target), agent, _session
-                )
-                sys.stderr.write(
-                    f"check-domain: BLOCKED — {_show(target)} is canonical, but "
-                    f"{agent} holds no live claim for {_feature}. Its parent is gone "
-                    f"and a replacement may already be writing.\n"
-                    f"  Write the completed result to {_quarantine} instead.\n"
-                    f"  It becomes canonical only when the resumed parent runs "
-                    f"quarantine.py adopt on that file.\n"
-                )
-                sys.exit(2)
-    except Exception as _e:
-        print(
-            f"check-domain: quarantine boundary was not enforced ({_e!r}) — "
-            "passing through.",
-            file=sys.stderr,
-        )
+    _orphan_rel = _norm(target)
+    _orphan_basename = os.path.basename(_orphan_rel)
+    if _orphan_basename in ("plan.yaml", "BRIEF.md", "feature.json", "STATE.md"):
+        try:
+            import inflight_registry as _reg
+            _artifact = _reg.canonical_artifact(_orphan_rel)
+            if _artifact is not None:
+                _feature, _basename = _artifact
+                _session = d.get("session_id")
+                if _reg.orphan_write(root, agent, _feature, _session):
+                    _quarantine = _reg.quarantine_rel(
+                        _orphan_rel, agent, _session
+                    )
+                    sys.stderr.write(
+                        f"check-domain: BLOCKED — {_show(target)} is canonical, but "
+                        f"{agent} holds no live claim for {_feature}. Its parent is gone "
+                        f"and a replacement may already be writing.\n"
+                        f"  Write the completed result to {_quarantine} instead.\n"
+                        f"  It becomes canonical only when the resumed parent runs "
+                        f"quarantine.py adopt on that file.\n"
+                    )
+                    sys.exit(2)
+        except Exception as _e:
+            print(
+                f"check-domain: quarantine boundary was not enforced ({_e!r}) — "
+                "passing through.",
+                file=sys.stderr,
+            )
 
 if not _post:
     # PRE. Only `Write` carries a whole-file `content` to measure, so only `Write` can be
