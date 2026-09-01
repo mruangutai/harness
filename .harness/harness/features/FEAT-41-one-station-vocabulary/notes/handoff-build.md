@@ -1,37 +1,37 @@
 ## Next
 
-Re-review cycle 3. All THREE of cycle 2's highs are closed, each with its own commit:
+Cycle 3's three highs are closed (`5ae94e5`). TWO ITEMS ARE THE OPERATOR'S, NOT A BUILD PASS:
 
-- C2-01 -> T-19 / D-17 (`80a919e`), the OPERATOR's ruling, not a build decision. Every feature now
-  carries a plan.yaml; a station-only record (`tasks: []` + top-level `status:`) is legal; twelve
-  directories backfilled with their ORIGINALLY RECORDED station; INV-34 enforces it. SC-08 is now
-  LITERALLY TRUE - zero feature.json carry a status key. Issue #1079 is CLOSED.
-- C2-02 (`e071509`) - hardlink, linked parent DIRECTORY and an over-cap chain all reached plan.yaml,
-  the chain FAILING OPEN. Resolution now realpaths BOTH sides, identity covers hardlinks,
-  unresolvable links fail CLOSED.
-- C2-03 (`e071509`) - `${IFS}` forged a signature end to end. Fixed in `as_bash_reads_it`, once,
-  before either scanner.
+- **SC-01 is literally false** and the panel refused to narrow it: `_STATION_KEYS` has 54 tracked
+  hits, ALL narrative prose in `notes/` and `observations/`, ZERO in any `.py`/`.sh`/`.json`. Read
+  as "no source declares a second vocabulary" it is true and verified.
+- **MF-4 (med)**: `cmd_apply` creates a plan with no station validation, and a directory with no
+  `BRIEF.md` is never approval-checked. The gating half PREDATES `7c4f0bd`; what this feature adds
+  is that such a directory can now satisfy INV-34.
 
-CHECK THE T-19 EXEMPTION HARDEST. Backfilling made two checks visible that had skipped those
-directories all along (31 lines, no real findings), so a station-only plan is now scoped out of the
-approval and STATE.md-task checks. Case (inv34.d) is the control and was green BEFORE the exemption
-landed. If that exemption can be widened to a plan with tasks, this feature has broken the approval
-check for the whole tree.
+AND ONE DESIGN QUESTION ABOVE THE PANEL: `plan-sign-gate.py` is a DENYLIST of evasion forms. Three
+cycles, three members of one class (`--`, continuation, `${IFS}`, now `$(...)`). The structural
+answer is an identity check inside `cmd_sign_approval`, and it CANNOT be written today - no runtime
+identity signal reaches a subprocess (`HARNESS_AGENT_ID` is a marker inside agent definition files,
+not an env var). Verified, not assumed.
 
-Cycle 0/1 verdict items stay closed: T-15 ratified in D-15, T-10 recorded not rewritten, T-18
-STRUCK in D-16.
+WHAT TO CHECK HARDEST NEXT: the `station_only: true` marker. MF-3 replaced an
+absence-as-credential with a positive declaration, so anything that can FORGE the marker restores
+the hole; and INV-34's remediation text now instructs operators to write it.
+
+Cycle 0/1/2 verdict items stay closed: T-15 ratified in D-15, T-10 recorded not rewritten, T-18
+STRUCK in D-16, C2-01 answered by the operator in D-17.
 
 ## Trust
 
-- unit exit 0, 505 PASS; integration exit 0, 819 PASS; check-state.sh exit 0, ZERO violations, zero tracebacks — verified-at 80a919e
+- unit exit 0, 505 PASS; integration exit 0, 819 PASS; check-state.sh exit 0, ZERO violations, zero tracebacks — verified-at 5ae94e5
+- MF-2's NUL crash is PRE-EXISTING in `harness_boundary.real`, not introduced by C2-02: identical fixture on origin/main crashes the same way. My first probe was INVALID (no team-config.yaml, so the boundary never reached classify) — verified-at 5ae94e5
+- realpath does NOT raise on a symlink loop; it is non-strict and resolves as far as it can. My own docstring claimed otherwise and that claim justified a dead branch — verified-at 5ae94e5
+- (inv34.e) is NOT vacuous, mutated on BOTH layers: keying reverted -> ok, loader reverted -> ok, BOTH reverted -> FAIL. Two independent layers — verified-at 5ae94e5
+- MF-1's fix SCANS for balanced parens rather than regexing; `\$\([^)]*\)` stops at the first `)` and a nested substitution would have leaked through a fix that looked correct — verified-at 5ae94e5
 - SC-08 measured VERBATIM against its own text: 0 feature.json carry `status`; schema 10 properties / 7 required / additionalProperties false — verified-at 80a919e
-- The T-19 hole was proven from BOTH sides before fixing: feature.json refuses the key (exit 11), plan.yaml refused to exist without tasks (PlanSchemaError) — verified-at 80a919e
-- BUG-1030 was backfilled `review`, the value it RECORDED — not `abandoned`, which is only my inference from the closed issue; a migration moves values, it does not re-adjudicate them — verified-at 80a919e
+- Cycle 2's own findings and T-19's two proven walls are closed and re-verified by cycle 3's panel; detail is in `42bc5fe..80a919e` — verified-at 5ae94e5
 - The station-only exemption is SCOPING: the only way to pass the approval check otherwise was to fabricate twelve signatures; control (inv34.d) was green before the exemption — verified-at 80a919e
-- The new assertions print `ok`, not `PASS`, so the suite COUNTS ARE FLAT by design; confirmed they RAN under the runner by grepping its own log (4 T-09 11, 6 C2-03, 9 T-09 10) — verified-at e071509
-- C2-02's chain case FAILED OPEN, not closed: over the hop cap the plan never entered the candidate list and the write was permitted — verified-at e071509
-- All five signing-gate evasion forms exit 2 END TO END through the real gate script, and all three controls still exit 0 — verified-at e071509
-- Only `${IFS}` braced splits; bare `$IFSsign-approval` becomes `plan-merge.py-approval` and CANNOT sign, so denying it would be a guess — verified-at e071509
 - BUG-1030's audit: 45 statuses stripped, 44 terminal and correct, 1 non-terminal — measured against origin/main, not inferred — verified-at e071509
 - Gated HIGH code-grade records: 0, measured with the NEW code_grade.py (it moved upstream) against merge-base 7c4f0bd — verified-at 542e888
 - Cycles 0 and 1 are fully closed and each finding was re-verified at source by a later independent panel; detail is in `787c7fa..c4da870` — verified-at e071509
