@@ -23,3 +23,23 @@
   defect, re-running the failing assertion myself cost one probe and converted its claim into my
   own measurement. Both the failure AND the proposed replacement id were worth measuring — the
   second is what makes the amendment a one-token edit instead of a question.
+- 2026-09-01: a LATE closeout inherits a worktree that is schema-stale. FEAT-41 merged after
+  FEAT-50 and migrated the station out of feature.json into plan.yaml, so the current gh-sync.py
+  died at `github.board.stations` against this checkout's pre-migration harness.json (exit 2), and
+  `feature_json_write` refused dropping the now-undeclared `status` key because THIS checkout's
+  schema still requires it (MergeRefusal 11). The worktree's own gh-sync.py ran clean. Rule of
+  thumb: pick the tool copy whose checkout matches the target dir, not the newest one.
+- 2026-09-01: check-state.sh gave me rc=0 with no FEAT-50 row, then rc=1 with an INV-33 row minutes
+  later on an unmoved main. I acted on the first reading and put it in a briefing that was posted to
+  GitHub before I re-measured. A gate reading that CLEARS a criterion is the one to run twice.
+- 2026-09-01: INV-33 fires on an HONEST pin when a LATER feature's migration rewrites the plan the
+  pin covers. check-state.sh:588 makes it silent on a terminal station, so shipping closes it — but
+  a feature parked in `review` under a landing migration goes red for a reason nobody on it caused.
+- 2026-09-01: the two write routes disagreed on the identical target — check-domain.sh hook mode
+  refused a governed write to the main checkout's FEAT-50 record at exit 2, while
+  bash-write-guard.sh returned exit 0 for `python3 gh-sync.py ship <that same dir>`. A permissive
+  answer from the route with the known interpreter blind spot is not authorization; the refusing
+  route is the one that can see. I honoured the refusal and returned the finalization upward.
+- 2026-09-01: a merged feature branch cannot carry its own closeout. Everything committed in its
+  worktree needs a second merge to reach the default branch, so the ship record splits: GitHub
+  transitions are fully mine, the two record lines on main are not.
