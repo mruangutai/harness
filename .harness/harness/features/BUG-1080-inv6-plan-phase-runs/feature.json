@@ -1,0 +1,11 @@
+{
+  "feature_id": "BUG-1080-inv6-plan-phase-runs",
+  "branch": "feat/BUG-1080-inv6-plan-phase-runs",
+  "pr": null,
+  "status": "Review",
+  "review_sha": "a2fb6c0b634da0ebd3acea8aa9976c60c5d30466",
+  "cycles_used": 0,
+  "max_total_cycles": 10,
+  "max_total_runs": 20,
+  "runs": []
+}
