@@ -304,9 +304,13 @@ def _linked_worktree(path, owner_root, wt_id, manifest_text):
     falls to the DEC-151 fail-open — which exits 0 for a reason that has nothing to do
     with worktrees.
     """
+    entry = os.path.join(owner_root, ".git", "worktrees", wt_id)
+    os.makedirs(entry, exist_ok=True)
     os.makedirs(os.path.join(path, ".harness"), exist_ok=True)
     with open(os.path.join(path, ".git"), "w") as f:
-        f.write("gitdir: %s\n" % os.path.join(owner_root, ".git", "worktrees", wt_id))
+        f.write("gitdir: %s\n" % entry)
+    with open(os.path.join(entry, "gitdir"), "w") as f:
+        f.write("%s\n" % os.path.join(path, ".git"))
     with open(os.path.join(path, ".harness", "team-config.yaml"), "w") as f:
         f.write(manifest_text)
 
@@ -828,6 +832,123 @@ def run_head_move():
     shutil.rmtree(tmp, ignore_errors=True)
     return fails
 
+FEAT50_MANIFEST = """schema_version: 1
+teams:
+  - name: build
+    members:
+      - name: harness-documentor
+        domain:
+          - { path: .harness/*/features/*/BRIEF.md, upsert: true }
+"""
+FEAT50_SHARED_MANIFEST = """schema_version: 1
+teams:
+  - name: build
+    members:
+      - name: harness-documentor
+        domain: []
+shared:
+  - { path: .harness/*/features/*/BRIEF.md }
+"""
+FEAT50_FEATURE = "FEAT-X-thing"
+FEAT50_REL = f".harness/harness/features/{FEAT50_FEATURE}/BRIEF.md"
+
+
+def _feat50_root_with_worktree(manifest, wt_id=None):
+    root = fixture(manifest)
+    if wt_id is None:
+        return root, None
+    worktree = os.path.join(root, ".claude", "worktrees", wt_id)
+    _linked_worktree(worktree, root, wt_id, manifest)
+    return root, worktree
+
+
+def _feat50_bash_main_case(name, wt_id, manifest=FEAT50_MANIFEST):
+    root, worktree = _feat50_root_with_worktree(manifest, wt_id)
+    target = os.path.join(root, FEAT50_REL)
+    os.makedirs(os.path.dirname(target), exist_ok=True)
+    result = fire(root, f"echo hi > {target}", agent="harness-documentor")
+    ok = result.returncode == 2 and target in result.stderr and worktree in result.stderr
+    return (name, ok, f"{result.returncode}: {result.stderr}"), root, target, result
+
+
+def _feat50_bash_inside_case(root, worktree):
+    target = os.path.join(worktree, FEAT50_REL)
+    os.makedirs(os.path.dirname(target), exist_ok=True)
+    result = fire(root, f"echo hi > {target}", agent="harness-documentor")
+    return ("bash-feature-checkout-inside", result.returncode == 0,
+            f"{result.returncode}: {result.stderr}")
+
+
+def _feat50_bash_absent_case():
+    root, _worktree = _feat50_root_with_worktree(FEAT50_MANIFEST)
+    target = os.path.join(root, FEAT50_REL)
+    os.makedirs(os.path.dirname(target), exist_ok=True)
+    result = fire(root, f"echo hi > {target}", agent="harness-documentor")
+    return ("bash-feature-checkout-absent", result.returncode == 0,
+            f"{result.returncode}: {result.stderr}")
+
+
+def _feat50_bash_mutant():
+    with open(GUARD, encoding="utf-8") as source_file:
+        source = source_file.read()
+    call = "            feature_checkout_guard(rel, ap)\n"
+    if source.count(call) != 2:
+        raise AssertionError("INCONCLUSIVE: Bash binding call anchors absent or ambiguous")
+    changed = source.replace(call, "")
+    path = os.path.join(HERE, f".feat50-bash-write-guard-{os.getpid()}.sh")
+    with open(path, "w", encoding="utf-8") as mutant_file:
+        mutant_file.write(changed)
+    os.chmod(path, os.stat(GUARD).st_mode)
+    return source, changed, path
+
+
+def _feat50_bash_red_case(root, target, main):
+    source, changed, mutant = _feat50_bash_mutant()
+    payload = {"agent_type": "harness-documentor", "tool_name": "Bash",
+               "tool_input": {"command": f"echo hi > {target}"}}
+    try:
+        muted = subprocess.run([mutant], input=json.dumps(payload), capture_output=True,
+                               text=True, env=_env(root))
+    finally:
+        os.unlink(mutant)
+    ok = (changed != source and main.returncode == 2 and muted.returncode == 0
+          and "Traceback" not in muted.stderr)
+    return ("bash-feature-checkout-red", ok,
+            f"real={main.returncode}, mutant={muted.returncode}: {muted.stderr}")
+
+
+def _report_feat50_bash_results(results):
+    failures = 0
+    for name, ok, detail in results:
+        if ok:
+            print(f"ok    {name}")
+            continue
+        failures += 1
+        print(f"FAIL  {name}\n      | {detail}")
+    print(f"\n{len(results) - failures}/{len(results)} FEAT-50 Bash binding cases passed.")
+    return failures
+
+
+def run_feat50_checkout_binding():
+    """Issue #1057: every allowed/shared Bash route binds a feature write to its worktree."""
+    main_case, root, target, main = _feat50_bash_main_case(
+        "bash-feature-checkout-main", FEAT50_FEATURE)
+    _same, _short_root, _short_target, _short_result = _feat50_bash_main_case(
+        "bash-feature-checkout-short", "FEAT-X")
+    shared_case, _shared_root, _shared_target, _shared_result = _feat50_bash_main_case(
+        "bash-feature-checkout-shared", FEAT50_FEATURE, FEAT50_SHARED_MANIFEST)
+    worktree = os.path.join(root, ".claude", "worktrees", FEAT50_FEATURE)
+    results = [
+        main_case,
+        _feat50_bash_inside_case(root, worktree),
+        _feat50_bash_absent_case(),
+        _same,
+        shared_case,
+        _feat50_bash_red_case(root, target, main),
+    ]
+    return _report_feat50_bash_results(results)
+
+
 
 def main():
     fails = 0
@@ -848,6 +969,7 @@ def main():
     fails += run_worktree()
     fails += run_worktree_deep()
     fails += run_head_move()
+    fails += run_feat50_checkout_binding()
     return fails
 
 

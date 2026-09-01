@@ -2691,6 +2691,193 @@ def run_t14():
     return fails
 
 
+FEAT50_MANIFEST = """schema_version: 1
+teams:
+  - name: build
+    members:
+      - name: harness-documentor
+        domain:
+          - { path: .harness/*/features/*/BRIEF.md, upsert: true }
+"""
+FEAT50_FEATURE = "FEAT-X-thing"
+FEAT50_REL = f".harness/harness/features/{FEAT50_FEATURE}/BRIEF.md"
+
+
+def _feat50_feature_fixture(wt_id=None):
+    root = fixture(FEAT50_MANIFEST)
+    if wt_id is None:
+        return root, None
+    worktree = make_linked_worktree(
+        root, os.path.join(root, ".claude", "worktrees", wt_id), wt_id)
+    return root, worktree
+
+
+def _feat50_binding_case(name, wt_id):
+    root, worktree = _feat50_feature_fixture(wt_id)
+    target = os.path.join(root, FEAT50_REL)
+    os.makedirs(os.path.dirname(target), exist_ok=True)
+    result = fire(root, FEAT50_REL)
+    ok = result.returncode == 2 and target in result.stderr and worktree in result.stderr
+    return (name, ok, f"{result.returncode}: {result.stderr}"), root, worktree, target, result
+
+
+def _feat50_inside_case(root, worktree):
+    rel = os.path.join(os.path.relpath(worktree, root), FEAT50_REL)
+    os.makedirs(os.path.dirname(os.path.join(root, rel)), exist_ok=True)
+    result = fire(root, rel)
+    ok = result.returncode == 0 and "belongs in worktree" not in result.stderr
+    return ("feature-checkout-inside binding skipped after worktree strip", ok,
+            f"{result.returncode}: {result.stderr}")
+
+
+def _feat50_absent_case():
+    root, _worktree = _feat50_feature_fixture()
+    os.makedirs(os.path.dirname(os.path.join(root, FEAT50_REL)), exist_ok=True)
+    result = fire(root, FEAT50_REL)
+    return ("feature-checkout-absent", result.returncode == 0,
+            f"{result.returncode}: {result.stderr}")
+
+
+def _feat50_mutant_between(start, end):
+    with open(HOOK, encoding="utf-8") as source_file:
+        source = source_file.read()
+    begin = source.find(start)
+    finish = source.find(end, begin + len(start))
+    if begin < 0 or finish < 0:
+        raise AssertionError("INCONCLUSIVE: mutant anchors absent")
+    changed = source[:begin] + source[finish:]
+    if changed == source:
+        raise AssertionError("INCONCLUSIVE: mutant is byte-identical")
+    path = os.path.join(HERE, f".feat50-check-domain-{os.getpid()}.sh")
+    with open(path, "w", encoding="utf-8") as mutant_file:
+        mutant_file.write(changed)
+    os.chmod(path, os.stat(HOOK).st_mode)
+    return path
+
+
+def _feat50_binding_red_case(root, target, refused):
+    mutant = _feat50_mutant_between(
+        '        feature_checkout_guard(_verdict["rel"], target)\n',
+        '        approval_guard(rel, agent)\n')
+    payload = {"agent_type": "harness-documentor", "tool_name": "Write",
+               "tool_input": {"file_path": target, "content": "x"}}
+    try:
+        muted = subprocess.run([mutant], input=json.dumps(payload), capture_output=True,
+                               text=True, env=_env(root))
+    finally:
+        os.unlink(mutant)
+    ok = refused.returncode == 2 and muted.returncode == 0 and "Traceback" not in muted.stderr
+    return ("feature-checkout-red", ok,
+            f"real={refused.returncode}, mutant={muted.returncode}: {muted.stderr}")
+
+
+def _feat50_digest_fixture():
+    root = fixture("schema_version: 1\nteams: []\n")
+    worktree = make_linked_worktree(
+        root, os.path.join(root, ".claude", "worktrees", "FEAT-D"), "FEAT-D")
+    rel = ".harness/harness/features/FEAT-D-thing/runs/r1/digest.md"
+    path = os.path.join(worktree, rel)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    return root, path
+
+
+def _feat50_digest_fire(root, path, content, *flags, hook=HOOK):
+    payload = {"tool_name": "Write",
+               "tool_input": {"file_path": path, "content": content}}
+    return subprocess.run([hook, *flags], input=json.dumps(payload), capture_output=True,
+                          text=True, env=_env(root))
+
+
+def _feat50_write_text(path, content):
+    with open(path, "w", encoding="utf-8") as digest_file:
+        digest_file.write(content)
+
+
+def _feat50_digest_clobber_case(root, path, prior):
+    _feat50_write_text(path, prior)
+    result = _feat50_digest_fire(root, path, "wholly different digest\n")
+    ok = (result.returncode == 2
+          and "replace rather than extend" in result.stderr
+          and "run directory of its own" in result.stderr)
+    return ("digest-clobber", ok, f"{result.returncode}: {result.stderr}"), result
+
+
+def _feat50_digest_append_case(root, path, prior):
+    append = _feat50_digest_fire(root, path, prior + "and more\n")
+    _feat50_write_text(path, " \n")
+    whitespace = _feat50_digest_fire(root, path, "first digest\n")
+    os.unlink(path)
+    new_file = _feat50_digest_fire(root, path, "first digest\n")
+    ok = append.returncode == 0 and whitespace.returncode == 0 and new_file.returncode == 0
+    detail = (f"append={append.returncode}, whitespace={whitespace.returncode}, "
+              f"new={new_file.returncode}")
+    return "digest-append", ok, detail
+
+
+def _feat50_digest_unreadable_case(root, path):
+    os.makedirs(path)
+    result = _feat50_digest_fire(root, path, "replacement\n")
+    os.rmdir(path)
+    ok = result.returncode == 2 and "cannot be read safely" in result.stderr
+    return "digest-unreadable", ok, f"{result.returncode}: {result.stderr}"
+
+
+def _feat50_digest_post_case(root, path, prior):
+    _feat50_write_text(path, prior)
+    result = _feat50_digest_fire(root, path, "wholly different digest\n", "--post")
+    ok = result.returncode == 0 and "recorded digest" not in result.stderr
+    return "digest rule is PRE-Write-only", ok, f"{result.returncode}: {result.stderr}"
+
+
+def _feat50_digest_red_case(root, path, clobber):
+    mutant = _feat50_mutant_between(
+        "    # Issue #1058: a lead reused a cycle's run directory",
+        "    if RE_FEATURE_JSON.match(rel):")
+    try:
+        muted = _feat50_digest_fire(root, path, "wholly different digest\n", hook=mutant)
+    finally:
+        os.unlink(mutant)
+    ok = clobber.returncode == 2 and muted.returncode == 0 and "Traceback" not in muted.stderr
+    return ("digest-clobber-red", ok,
+            f"real={clobber.returncode}, mutant={muted.returncode}: {muted.stderr}")
+
+
+def _report_feat50_artifact_results(results):
+    failures = 0
+    for name, ok, detail in results:
+        if ok:
+            print(f"ok    {name}")
+            continue
+        failures += 1
+        print(f"FAIL  {name}\n      | {detail}")
+    print(f"\n{len(results) - failures}/{len(results)} FEAT-50 artifact-integrity cases passed.")
+    return failures
+
+
+def run_feat50_artifact_integrity():
+    """Issues #1057/#1058: bind feature writes and preserve recorded digests."""
+    main, root, worktree, target, refused = _feat50_binding_case(
+        "feature-checkout-main", FEAT50_FEATURE)
+    short, _short_root, _short_worktree, _short_target, _short_result = (
+        _feat50_binding_case("feature-checkout-main short prefix", "FEAT-X"))
+    digest_root, digest_path = _feat50_digest_fixture()
+    prior = "recorded cycle-0 text\n"
+    clobber_case, clobber = _feat50_digest_clobber_case(digest_root, digest_path, prior)
+    results = [
+        main,
+        short,
+        _feat50_inside_case(root, worktree),
+        _feat50_absent_case(),
+        _feat50_binding_red_case(root, target, refused),
+        clobber_case,
+        _feat50_digest_append_case(digest_root, digest_path, prior),
+        _feat50_digest_unreadable_case(digest_root, digest_path),
+        _feat50_digest_post_case(digest_root, digest_path, prior),
+        _feat50_digest_red_case(digest_root, digest_path, clobber),
+    ]
+    return _report_feat50_artifact_results(results)
+
+
 def main():
     fails = 0
     for name, path, want, agent, tool in CASES:
@@ -2723,6 +2910,7 @@ def main():
     fails += run_sweep_clean_tracked()
     fails += run_runs_agent_write_path()
     fails += run_t14()
+    fails += run_feat50_artifact_integrity()
     return fails
 
 

@@ -693,6 +693,39 @@ except harness_yaml.YamlParseError as e:
           "then retry.", file=sys.stderr)
     sys.exit(2)
 
+RE_FEATURE_ARTIFACT = re.compile(r"^\.harness/[^/]+/features/([^/]+)/")
+
+
+def feature_checkout_guard(rel, absolute_path):
+    """Refuse an allowed Bash write aimed at a feature's main-checkout artifact.
+
+    The tool route now binds this checkout question, but the Bash route previously
+    continued on the same allowed verdict and let the identical write land. This does
+    not extend run-digest content preservation to Bash: shell commands carry no complete
+    incoming file payload to compare with prior content.
+    """
+    match = RE_FEATURE_ARTIFACT.match(rel)
+    if match is None:
+        return
+    feature_id = match.group(1)
+    try:
+        expected = harness_boundary.worktree_for_feature(root, feature_id)
+        if expected is None:
+            return
+        checkout = harness_boundary.checkout_relative(absolute_path)
+        if checkout is not None and harness_boundary.real(checkout[0]) == harness_boundary.real(expected):
+            return
+        deny(f"{absolute_path} is a feature artifact whose write belongs in worktree "
+             f"{expected}. Write it there, not in the main checkout.")
+    except harness_boundary.AmbiguousWorktree as exc:
+        deny(f"{absolute_path} belongs to feature {feature_id}, but its worktree is "
+             f"ambiguous: {exc}")
+    except Exception:
+        # Absorbing: preserve the already-computed allowance rather than crashing to an
+        # exit code the host does not treat as a refusal.
+        return
+
+
 # THE DOMAIN DECISION IS harness_boundary.classify's, NOT THIS FILE'S (issue #261).
 # This guard used to carry its own glob_to_re/matches pair and match raw globs with no
 # notion of the two bases and no control-plane target-side test. Measured at a29ad06,
@@ -745,9 +778,11 @@ for name, paths in findings:
             continue
 
         if verdict["outcome"] in ("allow", "not_a_domain_question"):
+            feature_checkout_guard(rel, ap)
             continue
 
         if verdict["outcome"] == "shared":
+            feature_checkout_guard(rel, ap)
             # Shared paths are owned by nobody and always serialized (DEC-85). Same
             # notice check-domain.sh prints on its own route.
             print(f"bash-write-guard: {agent} is writing SHARED path "

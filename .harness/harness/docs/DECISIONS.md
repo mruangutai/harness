@@ -6359,3 +6359,73 @@ DEC-176's single consolidated pass exists precisely to deny that.
 **Withholding, and who ends it.** A finding at high or worse withholds the presentation until it is
 resolved or the operator records an overrule. The operator, not the panel, is the terminus: the panel
 can delay a signature and can never refuse one.
+
+## DEC-208 — A run's own record is enforced, not expected: an empty return is refused, a feature artifact is bound to its worktree on both governed write routes, a recorded digest cannot be replaced, and a lead's digest is resolved in the checkout the lead runs in
+
+**Chose:** Five rules in one entry, because they are one failure — the harness trusted a run's own
+record to arrive intact instead of enforcing that it did. Origin: `FEAT-50-run-artifact-integrity`.
+
+**1. Presence, not truthiness, in the digest hook.** `last_assistant_message` ABSENT or null is OUR
+gap: exit 0, with stderr stating the return was NOT VALIDATED. The key PRESENT and empty or
+whitespace-only is the persona's contract violation: exit 2
+(`.claude/skills/harness/bin/validate-digest.py:1602-1614`). Measurement: five structured returns came
+back empty or null in FEAT-45, recovered only because leads re-measured by hand, because `or ""`
+collapsed all three states into one branch. Failing closed on absence was rejected in one clause: it
+would wedge every subagent in the project. Refines DEC-127's fail-open-loudly inside the DEC-122 hook.
+
+**2. A governed agent's feature-artifact write is bound to that feature's worktree.** The feature id
+is derived from the TARGET PATH, and the target must sit in the checkout git has registered as that
+feature's worktree, when one is registered. Two alternatives were rejected, one clause each: a
+`worktree` key in `feature.json` is a schema change to the key set DEC-191 closed; a payload key is
+present only on the routes that happen to carry it, while git's registry cannot drift. This NARROWS a
+verdict already allowed and does not touch DEC-143's raw-then-stripped match — the consequence of that
+match is that the main checkout's copy of a feature path is equally domain-legal, which is the hole,
+not a defect in the match. It binds GOVERNED agents only, because the main session's post-merge write
+to the main checkout is legitimate (DEC-95, DEC-193). Measurement: six such writes during FEAT-45,
+three of the artifacts existing nowhere else, all recovered by hand.
+
+**The registered worktree is found by PREFIX, not basename equality, and two candidates is a refusal
+rather than a guess.** Measurement, from this repository's own source at
+`.claude/skills/harness/bin/feature-worktree.py:236-248`: all four live worktrees were `FEAT-32` while
+every feature directory was `FEAT-32-concurrent-write-merge`. Scope, stated honestly: the extraction
+reads the domain route's RAW relative path, so the rule reaches a write aimed at the MAIN checkout and
+does not reach one aimed at a sibling feature's worktree.
+
+**3. A recorded run digest cannot be replaced, only extended.** A write to an existing non-empty
+`runs/<runid>/digest.md` is refused unless the existing text is a verbatim PREFIX of the payload
+(`.claude/skills/harness/bin/check-domain.sh:1139-1151`). Content preservation rather than
+run-directory allocation, because preservation is decidable from the payload and the file alone, while
+directory uniqueness needs a notion of run identity no writer supplies and would refuse a lead
+revising its own digest inside one run. The shape route and not the sweep, because the sweep runs
+AFTER the write, where the prior text is gone, so a check there could only compare a file with itself
+(DEC-154, DEC-156, DEC-180). Measurement: a lead reusing a run directory across cycles overwrote an
+earlier lead digest and destroyed the cycle-0 record. Scope, stated honestly: enforcement sits on the
+PRE payload route, which is Write-only, so an Edit, a NotebookEdit or a shell redirect reaches no
+enforcement point. That is accepted residual risk with the team playbook as its compensating control,
+not an oversight.
+
+**4. The checkout binding is route-complete across both governed write surfaces.** Ruling 2's rule is
+enforced on the governed Bash write route too, through the same
+`harness_boundary.worktree_for_feature` seam that refuses an ambiguous match
+(`.claude/skills/harness/bin/bash-write-guard.sh:711-722`,
+`.claude/skills/harness/bin/check-domain.sh:727-741`). A refusal on the tool route alone is a signpost
+to the shell, and that guard exists precisely because an agent routed around the other one (DEC-151,
+DEC-174), so a divergence between the two surfaces is a bypass by construction. Scope: this closes the
+CHECKOUT question only. Ruling 3's digest-preservation rule is NOT extended to Bash and stays
+Write-only.
+
+**5. A lead's digest file is located in the checkout the lead is running in.** A relative `artifact:`
+path resolves against the FEATURE'S checkout via `inflight_registry.feature_root`, falling back to the
+installed script's own root when the payload names no feature
+(`.claude/skills/harness/bin/validate-digest.py:1413-1424`). Measurement: `_root_or_none()` resolves
+from the INSTALLED script's location, which is always the main checkout, so for every lead running in
+a worktree the digest file was not found, the DEC-156 file-shape check was SKIPPED, and the hook
+printed a pass-through line nobody reads as a failure — three lead `digest.md` files in FEAT-50 itself
+fail the DEC-156 contract and were passed for that reason. Fail-open-loudly is unchanged: a file still
+not found exits 0 and keeps the INV-15 pointer (DEC-127, DEC-95).
+
+**A clean break, and what this entry does NOT do.** No compatibility path is kept for the permissive
+behaviours these rules replace: each one's failure mode was passing silently, so a flag preserving it
+would preserve the defect under a name. It does not close the digest hook's `stop_hook_active`
+passthrough, which stays pre-existing and deliberate, and takes no position on INV-32's retroactive
+red across 32 approved plans, a separate operator ruling.

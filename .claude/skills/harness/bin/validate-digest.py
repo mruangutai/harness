@@ -1404,14 +1404,25 @@ def check_artifact_file(agent, text, payload):
         # artifact is INV-15's finding (it can see the run dir), not this hook's.
         return 0
 
-    # ONE ROOT, NOT A CANDIDATE WALK (FEAT-42 T-17). What stood here tried the payload cwd,
-    # then the two-name environment chain, then os.getcwd(). Payload cwd is DELETED as a root
-    # input and that is a ruling, not a preference: NOTHING sets where an agent stands — the
-    # Agent tool has no cwd parameter, `cd` does not persist between Bash calls, and
-    # bash-write-guard refuses it — so cwd stays inherited from the spawning session and
-    # varies by accident.
-    cands = ([path] if os.path.isabs(path) else [os.path.join(_root_or_none() or "", path)])
-    found = next((p for p in cands if os.path.isfile(p)), None)
+    # ONE ROOT, NOT A CANDIDATE WALK (FEAT-42 T-17). Relative lead artifacts belong
+    # to the feature checkout named by this SubagentStop payload. Unlike the PreToolUse
+    # domain route, this hook already consumes harness_feature to resolve feature state;
+    # using it here follows that established input rather than creating a route dependency.
+    if os.path.isabs(path):
+        cands = [path]
+    else:
+        owner_root = _root_or_none()
+        base = owner_root
+        feature = payload.get("harness_feature")
+        if owner_root and feature:
+            try:
+                sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
+                import inflight_registry
+                base = inflight_registry.feature_root(owner_root, feature)
+            except Exception:
+                base = owner_root
+        cands = [os.path.join(base or "", path)]
+    found = next((candidate for candidate in cands if os.path.isfile(candidate)), None)
     if not found:
         print(f"check-digest: {agent}'s artifact {path} not found from the hook's vantage — "
               f"file-shape check skipped; check-state.sh INV-15 will audit it from repo root.",
@@ -1432,6 +1443,11 @@ def check_artifact_file(agent, text, payload):
     for e in ferrs:
         print(f"  - {e}", file=sys.stderr)
     return 2
+
+
+# Distinguishes an ABSENT `last_assistant_message` from one that is present and null.
+# Module level so hook_mode() allocates nothing per invocation.
+_ABSENT = object()
 
 
 def hook_mode():
@@ -1577,11 +1593,25 @@ def hook_mode():
                               f"({_e!r}).", file=sys.stderr)
                     return 2
 
-    text = d.get("last_assistant_message") or ""
-    if not text.strip():
-        print(f"check-digest: {agent} returned no final message to validate — passing through.",
-              file=sys.stderr)
+    # PRESENCE, NOT TRUTHINESS. Absent, null and empty-string used to be ONE branch, so
+    # the PLATFORM's gap — nothing supplied to validate — and the PERSONA's contract
+    # violation — a final message that is blank — were indistinguishable, and both passed
+    # through at exit 0. Five empty returns in FEAT-45 were recovered only because leads
+    # re-measured by hand; nothing in the record said those returns had never been
+    # validated at all.
+    raw = d.get("last_assistant_message", _ABSENT)
+    if raw is _ABSENT or raw is None:
+        print(f"check-digest: {agent}'s return carries no last_assistant_message "
+              f"(absent or null) — this is our gap, not {agent}'s; the return was "
+              f"NOT VALIDATED.", file=sys.stderr)
         return 0
+    text = str(raw)
+    if not text.strip():
+        print(f"check-digest: {agent} returned an empty final message. A harness persona "
+              f"owes a structured return, and an empty one satisfies no field of the digest "
+              f"contract, so it cannot be accepted. Return again with the three-part "
+              f"VERDICT/DIGEST/artifact block.", file=sys.stderr)
+        return 2
 
     if norm(agent) not in SCHEMAS:
         print(f"check-digest: no schema for {agent} — passing through rather than "

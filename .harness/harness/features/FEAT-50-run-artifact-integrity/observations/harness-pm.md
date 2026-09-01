@@ -1,0 +1,35 @@
+# Observations - harness-pm
+
+- 2026-08-31: FEAT-50 cycle-1 send-back: I invoked gen-decisions-index.py --check in SC-14 and T-07 verify; parse_argv rejects every flag but --stdout/--help and exits 2, so both were unrunnable. The docstring itself prescribes --stdout piped into diff against the index (exit 0 clean / 1 drift). Lesson: read the target script argv parser before writing any flag into a verify.
+- 2026-08-31: FEAT-50 plan fix. A behavioural `verify:` fixture for check-domain.sh MUST write a
+  minimal `.harness/team-config.yaml` into the temp root: harness_boundary DISCARDS a
+  HARNESS_PROJECT_DIR carrying no manifest and falls back to the real repo root, so every probe
+  exits 0 for the wrong reason and the verify is broken rather than discriminating. Caught only by
+  running the block I had just authored against the pre-change tree.
+- 2026-08-31: EFF-02's "extra POST read" turned out to be avoidable entirely rather than
+  documentable: `has_shape_rules` gates ONLY the POST named-target route (check-domain.sh:1377)
+  while the PRE route builds its target unconditionally (:1367-1370), so NOT adding the pattern to
+  SHAPE_PATTERNS keeps the PRE rule working and closes the wasteful route. Read the gate's own
+  route construction before accepting a plan's claim about which routes a pattern list reaches.
+- 2026-08-31: an `edit` PUT anchored on line numbers read BEFORE two intervening edits silently
+  overwrote `status: pending` with a verify line. The tag was stale by two edits. Re-read the exact
+  region immediately before every single-line PUT, not just before multi-line ones.
+- 2026-08-31: FEAT-50 panel goal-check c0. Grading a plan against the INTAKE rather than the BRIEF found four things a BRIEF-relative read cannot: the intake's own routing table pre-authorised T-08's shape (so the scope-creep suspicion died on the operator's own words), and three T-03 placement defects. The highest-yield move was re-deriving every placement anchor in an intent block against the real gate source: 'inside if _run_domain:' named the import guard, not domain_check()'s allow branch, and 'the single call site' named two of three targets construction sites. Anchors written from memory of a file's shape are the dead-remedy generator.
+- 2026-08-31 (FEAT-50 plan fix c1): an absence-grep whose pattern carries parentheses is non-discriminating under this environment's grep — 'os.path.basename(worktree)' returned 0 against the file that contains it, '-cF' returned 1. Measured both directions before writing the criterion.
+- 2026-08-31 (FEAT-50): a ruling recorded in plan.yaml approval.rulings is validated against panel.findings (check-state.sh:189-204) and needs finding/who/date; an operator answer belongs in the DEC-44 answers file under notes/, where no gate reads it. An earlier dispatch instructed the opposite and it would have reddened the feature at signature.
+- 2026-08-31 (FEAT-50): never write a placeholder token (SRC_DEFS) into a verify: block for the doer to substitute — the lead carries verify verbatim, so the placeholder is a NameError at run time. Rewrote the bound as a runnable assertion.
+- 2026-08-31: panel digest for FEAT-50 cycle 0 disagreed with itself on count — BLUF prose says "Six findings survive assessment", the authoritative yaml block lists seven (2 high, 2 med, 3 low). Transcribed all seven per the yaml block; the prose undercount looks like the two corroborated reports being merged into one entry after the BLUF was written.
+- 2026-08-31: check-state.sh INV-32 expects three readers ({should-not-exist, scope, goalcheck}) but the plan-panel team only runs two — goalcheck runs in the earlier product segment and so is absent from the panel digest. pm must supply that third reader entry from outside the digest or INV-32 hard-fails on an unrecorded reader.
+- 2026-08-31: .harness/ is UNTRACKED in the FEAT-50 worktree, so "git diff shows only plan.yaml" is a vacuous verification — the whole feature dir shows as ?? and diff prints nothing. Verify scope with git status --porcelain plus mtimes instead.
+- 2026-08-31: a dispatch that states "HEAD <sha>, clean" can still hand you a dirty tree — the
+  orchestrator's own uncommitted write of the operator rulings was already in the working tree at
+  FEAT-50 plan-amend c1. Run `git status --porcelain` BEFORE the first edit, not only after, or
+  the pre-existing modification reads as one of yours in the acceptance check.
+- 2026-08-31: plan-merge.py's UNION_KEYS is ("tasks", "decisions") only. lanes.rows carries no
+  id, so new lane rows must go in by surgical Edit; reaching for the merge tool for them wastes a
+  round trip.
+- 2026-08-31: SC-11 send-back. A positive control keyed on a substring seen in today's output (`INV-`) is corpus-dependent, and it is weakest exactly when the criterion becomes gradeable — the external fix that unblocks the exit-0 clause is the same event that empties the corpus the control reads. The durable control is the one keyed on the reporter's UNCONDITIONAL output: `check-state.sh:1868-1871` always prints a VIOLATION row, a note row, or `all state invariants hold.`, so an alternation over those three is defeated only by an output that never reached the block — which is the case a positive control exists for. Derive a control from what the code always emits, never from what the current data happens to contain.
+- 2026-08-31: SC-11 send-back c1b. An absence-grep in a verify must be anchored on the reporter's row-kind prefix, not on the identifier it hunts for. `check-state.sh` prints `  VIOLATION  {m}` and `  note       {m}` from the same loop pair, and several invariants interpolate the feature id into the NOTE row on a healthy feature — so a bare `grep -q 'FEAT-50'` graded strictly more than the criterion's own prose claimed and would redden over a benign note. The tell that generalises: whenever a criterion's prose names a ROW KIND ("no violation row names X") and its command greps free text, the two have already diverged. Second tell: when the case that should now pass and the case that should still fail BOTH also fail an earlier conjunct, the full command line cannot show the delta — run the changed clause alone against both to prove the narrowing is not vacuous.
+- 2026-08-31: goal-check c1. A criterion can carry TWO clauses with different reachability — SC-11's exit-0 clause is externally blocked while its FEAT-50 clause is reachable by three named acts. Grading them as one verdict hid five red rows from the signer; the fix was disclosure inside the criterion, not a split.
+- 2026-08-31: three FEAT-50 INV-15/DEC-156 violation rows are gitignored (`.gitignore:7` excludes `.harness/*/features/*/runs/**`), so they exist only in the worktree and vanish at merge. Where a criterion is GRADED changes its verdict; SC-11 now names the checkout.
+- 2026-08-31: FEAT-50 panel cycle-1 transcription — re-hashing each transcribed summary with panel_findings.finding_id after yaml.safe_load is a free round-trip proof that the folded block scalar did not alter the hash input; all six matched.

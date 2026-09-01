@@ -46,8 +46,10 @@ registry — there is no catalog to keep in sync.
   state.yaml
 ```
 
-**The run dir is yours alone.** `state.yaml`, collected DIGESTs, nothing a member writes. Do not
-create per-step directories for members — they write into their own domains.
+**The run dir is yours alone.** `state.yaml`, collected DIGESTs, nothing a member writes. A Write
+to `<run_dir>/digest.md` is refused by `check-domain.sh` when it would discard existing content,
+so reusing another cycle's directory fails instead of destroying its record. Do not create
+per-step directories for members — they write into their own domains.
 
 Seed `state.yaml` with `schema_version`, `run_id`, `feature`, `squad`, `host`, `status: running`,
 and one `steps:` entry per team step with `status: pending`.
@@ -260,3 +262,4 @@ artifact: <run_dir>/digest.md                # your collated report — NOT stat
 | "I'll dispatch these one at a time to be safe" | Independent, non-mutating steps go in one turn. Serial dispatch wastes the fan-out |
 | "I'll write state.yaml at the end" | Checkpoint before dispatch, or a crash leaves an undecidable run |
 | "I'll record my assessment reasoning in state.yaml so it survives" | Prose survives in `digest.md`. state.yaml carries verdicts and markers a fresh context can match, not read (DEC-154) |
+| "I'll reuse last cycle's run dir" | The digest write is refused rather than overwritten; a new cycle takes a run directory of its own |

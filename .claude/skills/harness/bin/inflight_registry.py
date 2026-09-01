@@ -260,12 +260,10 @@ def is_single_flight(agent):
 def feature_root(owner_root, feature):
     """Resolve the checkout assigned to `feature`, falling back to the supplied owner root."""
     try:
-        for worktree in harness_boundary.linked_worktrees(owner_root):
-            if os.path.basename(worktree) == feature:
-                return worktree
+        resolved = harness_boundary.worktree_for_feature(owner_root, feature)
     except Exception:
-        pass
-    return owner_root
+        return owner_root
+    return resolved if resolved is not None else owner_root
 
 
 def live_claim(root, agent, now=None, session=None, feature=None):
