@@ -54,6 +54,7 @@ python3 stdlib plus PyYAML (DEC-171 requires it here; imported plainly, never th
 harness_yaml.py — that divergence is raised upward as a decision question, not resolved here).
 """
 import argparse
+import hashlib
 import os
 import re
 import sys
@@ -1233,21 +1234,105 @@ def _amend_locate(args, resolved, lines):
     return located
 
 
-def _amend_show(lines, located, field, actual):
+def _require_locked_hash(block_lines, expected, iid, field):
+    """Refuse unless the block under the lock still hashes to what the caller named.
+
+    THE CHECK THAT IS ACTUALLY LOAD-BEARING. The pre-lock check gives the caller a fast,
+    precise refusal; this one is the guarantee, because only here are the bytes known not to be
+    changing underneath. A caller that read a field, thought about it, and then wrote would
+    otherwise clobber a concurrent edit while holding the lock perfectly.
+
+    EXTRACTED SO IT CAN BE PINNED (panel F2). It survived being mutated out at 0 of 244 FAIL
+    for four consecutive cycles, because nothing could reach it: reproducing the race
+    end-to-end needs two processes interleaved inside one flock. As a named function it is
+    unit-testable, which is the same remedy `_verify_amend` got for the same reason.
+    """
+    if hashlib.sha256("".join(block_lines).encode("utf-8")).hexdigest() != expected:
+        raise harness_merge.MergeRefusal(
+            6, [f"plan-merge: {iid}.{field} changed between the read and the lock."])
+
+
+def _expected_value(rendered, indent, field):
+    """What YAML will load from the lines we are about to splice in.
+
+    ASK YAML, DO NOT REIMPLEMENT IT (panel F1), in this direction too. The previous `want` was
+    hand-derived — `value_text` for a block header and `value_text.strip()` otherwise — correct
+    for `|` and WRONG for `|-`, `|+` and `>`, which strip, keep and fold respectively.
+
+    THE PROBE KEEPS THE ORIGINAL INDENTATION, and that is the whole subtlety. The first cut
+    dedented the rendered field to column zero before parsing, which CHANGES THE ANSWER: a
+    quoted multi-line scalar folds its newline to a space at column zero and preserves it at
+    indent four. Measured, not reasoned about. So the field is parsed inside a synthetic item
+    at exactly the nesting it will occupy.
+
+    It is independent of the splice on purpose. Deriving `want` from the spliced document would
+    make `_verify_amend` compare that document against itself and pass unconditionally.
+    """
+    item_indent = indent[:-2] if len(indent) >= 2 else ""
+    probe = f"_p:\n{item_indent}- id: _x\n" + "".join(rendered)
+    try:
+        doc = yaml.safe_load(probe)
+    except yaml.YAMLError:
+        return None
+    items = (doc or {}).get("_p")
+    if not isinstance(items, list) or not items or not isinstance(items[0], dict):
+        return None
+    return items[0].get(field)
+
+
+# `None` cannot mean both "the document will not parse" and "the field is null" — conflating
+# them made a null field fall through to the line-based reader and print as an empty string
+# (panel F1, code-reviewer). A sentinel keeps the two answers separable.
+_UNPARSEABLE = object()
+
+
+def _parsed_value(raw, key, iid, field):
+    """The field's value as YAML loads it, or None when the document will not parse.
+
+    ASK YAML, DO NOT REIMPLEMENT IT (panel F1). The line-based reader diverged from the parser
+    on four legal shapes at once: `|` clips to one trailing newline, `|-` strips it, `|+` keeps
+    every one, and `>` FOLDS newlines into spaces. All four produced the same `--show` output
+    and four different real values, so feeding that output back through the tool's own
+    documented workflow silently rewrote the field.
+
+    This is the third time in this feature that hand-rolling what PyYAML already knows was the
+    defect: first a quoting rule, then form preservation, now value extraction.
+    """
+    try:
+        doc = yaml.safe_load(raw)
+    except yaml.YAMLError:
+        return _UNPARSEABLE
+    for item in (doc or {}).get(key) or []:
+        if isinstance(item, dict) and item.get("id") == iid:
+            return item.get(field)
+    return _UNPARSEABLE
+
+
+def _amend_show(lines, located, field, actual, raw, key, iid):
     """Print the field's VALUE and its hash, and exit.
 
-    THE VALUE, NOT THE BLOCK (panel N3). It used to print the raw block INCLUDING the `field:`
-    key line, while `--value-file` takes the bare value. An operator who stripped the obvious
-    sha256 line and fed the rest back wrote `verify: '    verify: run the thing'` at exit 0 —
-    and the identity check cannot catch that in principle, because the corrupted value is
-    byte-for-byte what was asked for. Emitting what `--value-file` expects makes
-    `--show` -> `--value-file` a true round trip.
+    THE VALUE, NOT THE BLOCK (panel N3): `--value-file` takes the bare value, and printing the
+    block with its `field:` key line meant feeding the output back wrote the key line INTO the
+    value at exit 0. The identity check cannot catch that, because the corrupted value is
+    byte-for-byte what the caller asked for.
 
-    Derived from the raw lines, never by parsing, so `--show` still works on a plan whose YAML
-    is broken — which is the case the verb exists to repair.
+    THE PARSER IS THE AUTHORITY (panel F1). The line-based path survives only as the fallback
+    for a document that will not parse — which is the case this verb exists to repair — and it
+    says so on stderr rather than pretending to be exact.
     """
     first, last, indent = located
-    sys.stdout.write(_dedent_value(lines[first:last], indent, field))
+    value = _parsed_value(raw, key, iid, field)
+    if value is _UNPARSEABLE:
+        sys.stderr.write("plan-merge: this plan does not parse, so the value below is derived "
+                         "from raw lines and may not match what YAML would load. It is shown to "
+                         "help you repair the document, not to be fed back verbatim.\n")
+        sys.stdout.write(_dedent_value(lines[first:last], indent, field))
+    elif not isinstance(value, str):
+        _die(4, f"plan-merge: {iid}.{field} is a {type(value).__name__}, not text. amend "
+                f"replaces TEXT scalars; a list or mapping field would need its structure "
+                f"rewritten, which is apply's job.")
+    else:
+        sys.stdout.write(value if value.endswith("\n") else value + "\n")
     print(f"sha256: {actual}")
     sys.exit(0)
 
@@ -1274,13 +1359,14 @@ def cmd_amend(args):
 
     resolved = _resolve_plan(args.file)
     with open(resolved, "rb") as fh:
-        lines = fh.read().decode("utf-8").splitlines(keepends=True)
+        raw = fh.read().decode("utf-8")
+    lines = raw.splitlines(keepends=True)
     located = _amend_locate(args, resolved, lines)
     first, last, indent = located
     actual = hashlib.sha256("".join(lines[first:last]).encode("utf-8")).hexdigest()
 
     if args.show:
-        _amend_show(lines, located, args.field, actual)
+        _amend_show(lines, located, args.field, actual, raw, args.key, args.id)
     _amend_preconditions(args, actual)
     with open(args.value_file, encoding="utf-8") as fh:
         value_text = fh.read()
@@ -1308,14 +1394,9 @@ def cmd_amend(args):
             raise harness_merge.MergeRefusal(
                 4, [f"plan-merge: {args.id}.{args.field} vanished under the lock."])
         f2, l2, ind2 = loc2
-        # RE-CHECKED UNDER THE LOCK. The hash was verified on an unlocked read above so the
-        # caller gets a fast, precise refusal; this is the check that is actually load-bearing.
-        if hashlib.sha256("".join(cur[f2:l2]).encode("utf-8")).hexdigest() != args.expect_sha256:
-            raise harness_merge.MergeRefusal(
-                6, [f"plan-merge: {args.id}.{args.field} changed between the read and the lock."])
-        spliced = "".join(cur[:f2]
-                         + _render_field(ind2, args.field, value_text, cur[f2:l2])
-                         + cur[l2:])
+        _require_locked_hash(cur[f2:l2], args.expect_sha256, args.id, args.field)
+        rendered = _render_field(ind2, args.field, value_text, cur[f2:l2])
+        spliced = "".join(cur[:f2] + rendered + cur[l2:])
         # THE CHECK THAT ACTUALLY BINDS (panel V3). The hash proves the block replaced is the
         # block that was read; it cannot see that the splice landed in the wrong FIELD, nor that
         # the value was re-formed on the way in, because both hashes are taken over whatever the
@@ -1325,7 +1406,7 @@ def cmd_amend(args):
         # A `|` body KEEPS its trailing newline on reload, so the expected value is the file's
         # bytes verbatim; a plain scalar carries none. Getting that backwards made the identity
         # check refuse a CORRECT write, found by replacing a real `verify: |` with itself.
-        want = (value_text if BLOCK_HEAD_RE.match(cur[f2]) else value_text.strip("\n"))
+        want = _expected_value(rendered, ind2, args.field)
         reloaded = _verify_amend(spliced.encode("utf-8"), args.key, args.id, args.field, want)
         # DO NO HARM: hold the splice to the plan schema only when the BASE satisfied it. A plan
         # mid-authoring legitimately does not, and refusing to amend it would make this verb

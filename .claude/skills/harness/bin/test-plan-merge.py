@@ -1557,6 +1557,127 @@ def case_amend_n1b_a_comment_inside_a_block_body_is_CONTENT():
         shutil.rmtree(root, ignore_errors=True)
 
 
+def case_amend_f1_all_four_block_forms_round_trip():
+    """PANEL F1 (high). The read path re-implemented YAML and diverged from it on FOUR legal
+    shapes at once: `|` clips to one trailing newline, `|-` strips it, `|+` keeps every one,
+    and `>` FOLDS newlines into spaces. All four produced identical `--show` output and four
+    different real values, so the tool's own documented `--show` -> `--value-file` workflow
+    silently rewrote the field at exit 0 — and `_verify_amend` could not see it, because the
+    operator asked for the value the tool itself computed wrong.
+
+    Both directions now ask the parser: `--show` reads the value via `yaml.safe_load`, and the
+    expected value is derived by parsing the rendered field rather than encoding four chomping
+    rules by hand. This was the THIRD hand-rolled-YAML defect in this feature, after a quoting
+    rule and form preservation.
+    """
+    for header in ("|", "|-", "|+", ">"):
+        root, plan = fixture_root()
+        try:
+            write(plan, "schema: plan/1\nfeature: FEAT-99-fixture\n\ntasks:\n"
+                        f"  - id: T-01\n    verify: {header}\n"
+                        "      line one\n      line two\n    status: ready\n")
+            before = [t for t in yaml.safe_load(read(plan))["tasks"]
+                      if t["id"] == "T-01"][0]["verify"]
+            r = run_verb("amend", "--file", plan, "--key", "tasks", "--id", "T-01",
+                         "--field", "verify", "--show")
+            shown = "".join(ln + "\n" for ln in r.stdout.splitlines()
+                            if not ln.startswith("sha256:"))
+            fed = os.path.join(root, "fed.txt")
+            write(fed, shown)
+            sha, _ = _sha_of(plan, "tasks", "T-01", "verify")
+            r2 = run_verb("amend", "--file", plan, "--key", "tasks", "--id", "T-01",
+                          "--field", "verify", "--expect-sha256", sha or "x",
+                          "--value-file", fed)
+            after = [t for t in yaml.safe_load(read(plan))["tasks"]
+                     if t["id"] == "T-01"][0]["verify"]
+            check(f"F1: `{header}` round-trips byte-identical through --show -> --value-file",
+                  r2.returncode == 0 and after == before,
+                  f"rc={r2.returncode} before={before!r} after={after!r}")
+            check(f"F1: `{header}` keeps its emitted form",
+                  f"verify: {header}" in read(plan), read(plan)[:200])
+        finally:
+            shutil.rmtree(root, ignore_errors=True)
+
+
+def case_amend_f1_non_text_field_is_refused():
+    """PANEL F1's sibling, from the code-reviewer: a null field became an empty string and a
+    list field would be flattened to text. amend replaces TEXT scalars; anything else needs its
+    structure rewritten, which is apply's job. Refuse rather than coerce."""
+    root, plan = fixture_root()
+    try:
+        write(plan, "schema: plan/1\nfeature: FEAT-99-fixture\n\ntasks:\n"
+                    "  - id: T-01\n    files: [a.py, b.py]\n    empty:\n    status: ready\n")
+        before = read(plan)
+        r = run_verb("amend", "--file", plan, "--key", "tasks", "--id", "T-01",
+                     "--field", "files", "--show")
+        check("F1: a list field is refused rather than flattened to text",
+              r.returncode != 0, f"rc={r.returncode} out={r.stdout[:150]!r}")
+        r2 = run_verb("amend", "--file", plan, "--key", "tasks", "--id", "T-01",
+                      "--field", "empty", "--show")
+        check("F1: a null field is refused rather than shown as an empty string",
+              r2.returncode != 0, f"rc={r2.returncode} out={r2.stdout[:150]!r}")
+        check("F1: and neither refusal wrote anything", read(plan) == before, "plan changed")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def _load_pm():
+    """The tool as a module, for unit-testing helpers no end-to-end path can reach."""
+    import importlib.util
+    sys.path.insert(0, HERE)
+    spec = importlib.util.spec_from_file_location("plan_merge_under_test", CLI)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def case_amend_f2_under_lock_hash_is_pinned():
+    """PANEL F2, OPEN SINCE CYCLE 0 AND UNPINNED FOR FOUR CYCLES.
+
+    The under-lock sha256 re-check — the one the code's own comment calls "the check that is
+    actually load-bearing" — survived being mutated out at 0 of 244 FAIL, three cycles running.
+    Nothing could reach it: reproducing the race end-to-end needs two processes interleaved
+    inside one flock, which a single-process suite cannot orchestrate.
+
+    So it was extracted and is tested directly, the same remedy `_verify_amend` got. A guarantee
+    that no test can reach is a guarantee nobody is keeping.
+    """
+    mod = _load_pm()
+    block = ["    title: actual\n"]
+    good = __import__("hashlib").sha256("".join(block).encode("utf-8")).hexdigest()
+
+    ok = True
+    try:
+        mod._require_locked_hash(block, good, "T-01", "title")
+    except Exception as exc:  # noqa: BLE001
+        ok = False
+        detail = repr(exc)
+    check("F2: the under-lock check ACCEPTS a block that still matches",
+          ok, detail if not ok else "")
+
+    raised = None
+    try:
+        mod._require_locked_hash(block, "0" * 64, "T-01", "title")
+    except mod.harness_merge.MergeRefusal as exc:
+        raised = exc
+    check("F2: and REFUSES a block that changed under the lock",
+          raised is not None and raised.code == 6, f"raised={raised!r}")
+    check("F2: naming the field, so the caller knows what to re-read",
+          raised is not None and any("T-01.title" in ln for ln in raised.lines),
+          f"lines={getattr(raised, 'lines', None)!r}")
+
+    # REACHABILITY, SEPARATELY AND HONESTLY LABELLED. The three checks above pin the function's
+    # BEHAVIOUR. They cannot pin its INVOCATION: deleting the call from `transform` leaves this
+    # suite green, measured, because reaching that line requires two processes interleaved
+    # inside one flock. So the wiring is asserted at the source level and named for what it is
+    # — a reachability check, not a behavioural one. Together they cover "it refuses correctly"
+    # and "it is actually wired in", which is the pair a behavioural test alone cannot give.
+    src = read(CLI)
+    check("F2: and the check is WIRED INTO the locked transform (reachability, not behaviour)",
+          "_require_locked_hash(cur[f2:l2]" in src,
+          "the under-lock call site is gone: the guarantee is unreachable")
+
+
 def case_amend_n3_show_round_trips_into_value_file():
     """PANEL N3. `--show` printed the field BLOCK including its `field:` key line while
     `--value-file` takes the bare VALUE, so feeding the output back wrote
@@ -1615,54 +1736,67 @@ def case_amend_duplicate_id_is_refused():
 
 
 
+# THE CASE LIST IS DATA, NOT CONTROL FLOW (BUG-1128 panel F3).
+#
+# `main` was a flat sequence of one call per line, and every case this feature added made
+# it worse: ABC reached 48.5, grade 1 — worse than any residue in plan-merge.py itself, and
+# a regression this feature caused. There was no logic to simplify, because there is no
+# logic: the case set is a list. Written as a list it grades 5 and adding a case costs one
+# row instead of one more branchless statement in a function nobody can read.
+CASES = (
+    case_proposal_indent_differs_from_base,
+    case_naive_last_writer_wins,
+    case_green_union,
+    case_approval_byte_identity,
+    case_concurrency_real,
+    case_conflict,
+    case_idempotence,
+    case_destination_refusal,
+    case_unparseable,
+    case_comments_survive,
+    case_structural_refusal,
+    case_create_path_approval,
+    case_set_task_station_one_line,
+    case_set_task_station_unknown_id,
+    case_set_feature_station_insert_and_replace,
+    case_illegal_station_exit_4,
+    case_sign_approval,
+    case_f02_sign_approval_cannot_write_an_unparseable_signature,
+    case_f02_verify_signature_is_not_dead_code,
+    case_high1_apply_cannot_mint_the_station_only_marker,
+    case_amend_show_reports_block_and_hash,
+    case_amend_replaces_a_multiline_decision_field,
+    case_amend_refuses_a_stale_hash,
+    case_amend_requires_the_hash,
+    case_amend_refuses_absent_id_and_lists_what_is_there,
+    case_amend_refuses_absent_field,
+    case_amend_refuses_an_unknown_key,
+    case_amend_preserves_comments_elsewhere,
+    case_amend_value_round_trips_through_yaml,
+    case_amend_value_yes_stays_a_string,
+    case_amend_v1_block_scalar_body_is_not_scanned_for_keys,
+    case_amend_v2_identity_replace_of_a_block_field_round_trips,
+    case_amend_v3_identity_check_is_live,
+    case_amend_v4_unparseable_base_refuses_cleanly,
+    case_amend_duplicate_id_is_refused,
+    case_amend_n1_adjacent_comment_and_blank_survive,
+    case_amend_n1b_a_comment_inside_a_block_body_is_CONTENT,
+    case_amend_n3_show_round_trips_into_value_file,
+    case_amend_n5_do_no_harm_branch_is_live,
+    case_sign_approval_is_the_only_signer,
+    case_1103_sign_approval_refuses_a_governed_agent,
+    case_1103_sign_approval_negative_control_absent_is_main_session,
+    case_add_tasks_alias,
+    case_apply_still_refuses_a_changed_value,
+    case_amend_f1_all_four_block_forms_round_trip,
+    case_amend_f1_non_text_field_is_refused,
+    case_amend_f2_under_lock_hash_is_pinned,
+)
+
+
 def main():
-    case_proposal_indent_differs_from_base()
-    case_naive_last_writer_wins()
-    case_green_union()
-    case_approval_byte_identity()
-    case_concurrency_real()
-    case_conflict()
-    case_idempotence()
-    case_destination_refusal()
-    case_unparseable()
-    case_comments_survive()
-    case_structural_refusal()
-    case_create_path_approval()
-
-    case_set_task_station_one_line()
-    case_set_task_station_unknown_id()
-    case_set_feature_station_insert_and_replace()
-    case_illegal_station_exit_4()
-    case_sign_approval()
-    case_f02_sign_approval_cannot_write_an_unparseable_signature()
-    case_f02_verify_signature_is_not_dead_code()
-    case_high1_apply_cannot_mint_the_station_only_marker()
-
-    # BUG-1128 — the amend verb, weighted toward the refusals.
-    case_amend_show_reports_block_and_hash()
-    case_amend_replaces_a_multiline_decision_field()
-    case_amend_refuses_a_stale_hash()
-    case_amend_requires_the_hash()
-    case_amend_refuses_absent_id_and_lists_what_is_there()
-    case_amend_refuses_absent_field()
-    case_amend_refuses_an_unknown_key()
-    case_amend_preserves_comments_elsewhere()
-    case_amend_value_round_trips_through_yaml()
-    case_amend_value_yes_stays_a_string()
-    case_amend_v1_block_scalar_body_is_not_scanned_for_keys()
-    case_amend_v2_identity_replace_of_a_block_field_round_trips()
-    case_amend_v3_identity_check_is_live()
-    case_amend_v4_unparseable_base_refuses_cleanly()
-    case_amend_duplicate_id_is_refused()
-    case_amend_n1_adjacent_comment_and_blank_survive()
-    case_amend_n1b_a_comment_inside_a_block_body_is_CONTENT()
-    case_amend_n3_show_round_trips_into_value_file()
-    case_amend_n5_do_no_harm_branch_is_live()
-    case_sign_approval_is_the_only_signer()
-    case_1103_sign_approval_refuses_a_governed_agent()
-    case_1103_sign_approval_negative_control_absent_is_main_session()
-    case_add_tasks_alias()
-    case_apply_still_refuses_a_changed_value()
+    for case in CASES:
+        case()
 
     fails = 0
     for name, ok, detail in RESULTS:
