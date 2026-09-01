@@ -104,7 +104,7 @@ decisions:
     dec: none
   - id: D-10
     choice: start-task refuses its station write when the issue is closed or its card already reads the done station, and prints one line.
-    because: the guard has to catch #642's shape, where the card was already at Done before the harness asked for Building.
+    because: "the guard has to catch #642's shape, where the card was already at Done before the harness asked for Building."
     dec: DEC-146
   - id: D-11
     choice: Every test that exercises a board path sets BOTH FACTORY_GH and GH_SYNC_GH to the same fake binary.

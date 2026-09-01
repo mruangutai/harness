@@ -4025,6 +4025,169 @@ def case_inv34_marker_cannot_be_minted_onto_a_real_plan():
     return results
 
 
+def _i35_fixture(tmp, notes_block):
+    """A station-only plan.yaml, valid enough that no OTHER invariant fires, carrying
+    `notes_block` verbatim as the tail of the file so INV-35's raw-source scan sees exactly
+    the line under test."""
+    h = make_fixture(tmp, HARNESS_JSON_SYNC_OFF, "  parent: none")
+    feat = os.path.join(h, "harness", "features", "FEAT-TEST")
+    with open(os.path.join(feat, "plan.yaml"), "w") as f:
+        f.write("schema: plan/1\nfeature: FEAT-TEST\nstatus: done\n"
+                 "station_only: true\ntasks: []\n" + notes_block)
+    return feat
+
+
+def _i35_lines(out):
+    return [l for l in out.splitlines() if "INV-35" in l]
+
+
+def case_inv35_unquoted_hash_digit_is_reported():
+    """issue #251 (inv35.a). THE REPORT. An unquoted scalar mentioning an issue number the
+    way a human writes one -- ` #217` -- is exactly the shape YAML's plain-scalar comment
+    rule truncates, and this is the case that must not go quiet."""
+    with tempfile.TemporaryDirectory() as tmp:
+        _i35_fixture(tmp, "notes: close out the fix for #217\n")
+        code, out = run(tmp)
+        ls = _i35_lines(out)
+        ok = bool(ls) and any("#217" in l for l in ls) and any(":6" in l for l in ls)
+        print(f"{'ok' if ok else 'FAIL'} - case (inv35.a) an unquoted ` #217` is reported, "
+              f"naming the line and the number")
+        if not ok:
+            print(f"        {out[:400]}")
+        return ok
+
+
+def case_inv35_matches_real_truncation():
+    """(inv35.b) THE PROOF THIS IS NOT HYPOTHETICAL. The exact fixture (inv35.a) flags,
+    loaded through the same harness_yaml module check-state.sh and every other reader use,
+    silently drops everything from the `#` onward. If this case ever goes green while
+    (inv35.a) still fires, the invariant has drifted from the defect it exists to catch."""
+    with tempfile.TemporaryDirectory() as tmp:
+        feat = _i35_fixture(tmp, "notes: close out the fix for #217\n")
+        sys.path.insert(0, os.path.dirname(SCRIPT))
+        import importlib
+        harness_yaml_mod = importlib.import_module("harness_yaml")
+        doc = harness_yaml_mod.load_file(os.path.join(feat, "plan.yaml"))
+        truncated = doc.get("notes") == "close out the fix for"
+        print(f"{'ok' if truncated else 'FAIL'} - case (inv35.b) the flagged fixture actually "
+              f"loses `#217` when parsed (real={doc.get('notes')!r})")
+        return truncated
+
+
+def case_inv35_quoted_is_silent():
+    """(inv35.c) NEGATIVE CONTROL. Quoting the value is the fix the finding tells the operator
+    to make, and it must actually satisfy the invariant."""
+    with tempfile.TemporaryDirectory() as tmp:
+        _i35_fixture(tmp, 'notes: "close out the fix for #217"\n')
+        code, out = run(tmp)
+        ls = _i35_lines(out)
+        ok = not ls
+        print(f"{'ok' if ok else 'FAIL'} - case (inv35.c) a quoted ` #217` is silent")
+        if not ok:
+            print(f"        {out[:400]}")
+        return ok
+
+
+def case_inv35_full_line_comment_is_silent():
+    """(inv35.d) A line that is ENTIRELY a comment carries no data to lose -- flagging it
+    would tell an operator to quote a comment, which YAML has no syntax for."""
+    with tempfile.TemporaryDirectory() as tmp:
+        _i35_fixture(tmp, "# tracked by #217\n")
+        code, out = run(tmp)
+        ls = _i35_lines(out)
+        ok = not ls
+        print(f"{'ok' if ok else 'FAIL'} - case (inv35.d) a whole-line comment is silent")
+        if not ok:
+            print(f"        {out[:400]}")
+        return ok
+
+
+def case_inv35_block_scalar_is_exempt():
+    """(inv35.e) A `|` block's content is literal by the YAML spec itself -- a `#` inside it
+    is data, never a comment start, so it cannot lose anything and must not be flagged."""
+    with tempfile.TemporaryDirectory() as tmp:
+        _i35_fixture(tmp, "notes: |\n  close out the fix for #217\n  and nothing else\n")
+        code, out = run(tmp)
+        ls = _i35_lines(out)
+        ok = not ls
+        print(f"{'ok' if ok else 'FAIL'} - case (inv35.e) a `#` inside a block scalar is silent")
+        if not ok:
+            print(f"        {out[:400]}")
+        return ok
+
+
+def case_inv35_hash_without_digit_is_silent():
+    """(inv35.f) NEGATIVE CONTROL on the narrow trigger. A real trailing comment with a space
+    after the `#` -- the ordinary human way to write one -- is not this defect's shape and
+    must not be flagged."""
+    with tempfile.TemporaryDirectory() as tmp:
+        _i35_fixture(tmp, "notes: close out the fix  # see the tracker\n")
+        code, out = run(tmp)
+        ls = _i35_lines(out)
+        ok = not ls
+        print(f"{'ok' if ok else 'FAIL'} - case (inv35.f) `# text` with no digit is silent")
+        if not ok:
+            print(f"        {out[:400]}")
+        return ok
+
+
+def case_inv35_digit_inside_an_already_started_comment_is_silent():
+    """(inv35.g) REGRESSION. The first unquoted `#` is where YAML's comment actually starts --
+    everything after it, including a coincidental `#217` deeper in ordinary commentary, is
+    already comment text and loses nothing. An earlier draft of the scanner kept looking past
+    the first hash and flagged the second one; this pins the fix."""
+    with tempfile.TemporaryDirectory() as tmp:
+        _i35_fixture(tmp, "notes: fix the thing # see issue #217 for details\n")
+        code, out = run(tmp)
+        ls = _i35_lines(out)
+        ok = not ls
+        print(f"{'ok' if ok else 'FAIL'} - case (inv35.g) a digit inside an already-started "
+              f"comment is silent")
+        if not ok:
+            print(f"        {out[:400]}")
+        return ok
+
+
+def case_inv35_apostrophe_before_truncation_still_fires():
+    """(inv35.h) REGRESSION -- validator panel finding (harness-code-reviewer, PR #1145).
+    A plain scalar's own apostrophes have NO YAML significance once the value has already
+    opened unquoted -- only the value's FIRST character can open a quoted scalar. An earlier
+    draft toggled `in_quote` on every `'`/`"` anywhere on the line, so an odd count of
+    apostrophes before the real truncation point flipped the scanner into treating the actual
+    ` #<digit>` as quoted and reporting nothing. Reproduced live against this repo's own
+    FEAT-34-worktree-act3-enforced/plan.yaml D-03 at review time -- this fixture is that
+    exact shape."""
+    with tempfile.TemporaryDirectory() as tmp:
+        _i35_fixture(tmp, "notes: the operator's design note for #806 - status Done\n")
+        code, out = run(tmp)
+        ls = _i35_lines(out)
+        ok = bool(ls) and any("#806" in l for l in ls)
+        print(f"{'ok' if ok else 'FAIL'} - case (inv35.h) an apostrophe before the "
+              f"truncation point does not suppress the report")
+        if not ok:
+            print(f"        {out[:400]}")
+        return ok
+
+
+def case_inv35_coincidental_block_indicator_substring_still_fires():
+    """(inv35.i) REGRESSION -- validator panel finding (harness-security-reviewer, PR #1145).
+    An earlier draft matched the block-scalar-open pattern with `.search()` over the RAW
+    LINE, so a coincidental `key:>value` substring anywhere in ordinary prose (unrelated to
+    the line's own `key:` position) was misread as opening a block scalar, and the real
+    unquoted truncation earlier on the same line was skipped entirely. The check must be
+    anchored to the isolated value, never a substring search over the whole line."""
+    with tempfile.TemporaryDirectory() as tmp:
+        _i35_fixture(tmp, "notes: fix #217 for the ratio:>5\n")
+        code, out = run(tmp)
+        ls = _i35_lines(out)
+        ok = bool(ls) and any("#217" in l for l in ls)
+        print(f"{'ok' if ok else 'FAIL'} - case (inv35.i) a coincidental block-indicator "
+              f"substring does not suppress a real truncation earlier on the line")
+        if not ok:
+            print(f"        {out[:400]}")
+        return ok
+
+
 
 def main():
     ok_a, code_a = case_a()
@@ -4064,6 +4227,19 @@ def main():
         if not _ok:
             ok_i34 = False
             print(f"        {str(_detail).strip()[:300]}")
+    # issue #251 — INV-35: a plan.yaml plain scalar carrying an unquoted ` #NN` truncates
+    # silently under YAML's plain-scalar comment rule.
+    ok_i35 = all([
+        case_inv35_unquoted_hash_digit_is_reported(),
+        case_inv35_matches_real_truncation(),
+        case_inv35_quoted_is_silent(),
+        case_inv35_full_line_comment_is_silent(),
+        case_inv35_block_scalar_is_exempt(),
+        case_inv35_hash_without_digit_is_silent(),
+        case_inv35_digit_inside_an_already_started_comment_is_silent(),
+        case_inv35_apostrophe_before_truncation_still_fires(),
+        case_inv35_coincidental_block_indicator_substring_still_fires(),
+    ])
     # FEAT-41 T-14 / issue #867 — INV-33: the report, the byte-comparison discriminator, and
     # the two silences. Each returns a results LIST, so they join the aggregate below.
     #
@@ -4174,6 +4350,7 @@ def main():
             and ok_i32_era and ok_i6_plan
             and ok_i33
             and ok_i34
+            and ok_i35
             and ok_exit_unchanged):
         sys.exit(0)
     sys.exit(1)

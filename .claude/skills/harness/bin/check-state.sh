@@ -139,6 +139,116 @@ for _p in glob.glob(os.path.join(H, "*", "features", "*", "plan.yaml")):
         # of DEC-182 is that a malformed plan stops being something a regex half-reads.
         bad.append(f"{fpath(_feat, 'plan.yaml')} does not load, so INV-3/4/5 cannot be checked "
                    f"for it: {_e}")
+
+# --- INV-35 (issue #251): a plan.yaml plain scalar carrying a space then a `#` immediately
+# followed by a digit truncates SILENTLY under YAML's plain-scalar comment rule -- `#217`
+# embedded in `title: close out the fix for #217` stops the scalar exactly at the `#` and the
+# loss is invisible: the file still parses, `harness_yaml.load_plan` returns cleanly, and
+# nothing downstream can tell a truncated value from one that never mentioned the number.
+#
+# THIS WALKS THE RAW SOURCE, NEVER THE PARSED DOC. The parsed doc is the wrong side of the
+# loss to look from -- by the time safe_load has run, the deleted text is already gone, so a
+# check keyed on plan_docs above cannot see what it exists to catch.
+#
+# EVERY CHECK IS ANCHORED TO THE VALUE, NEVER THE RAW LINE. `_line_value` strips the leading
+# indentation, an optional sequence dash and an optional `key: ` prefix, and every downstream
+# decision -- block-scalar-open, quoted-vs-plain -- is made against what remains. A validator
+# review of an earlier cut of this invariant found TWO live false negatives from skipping this
+# step and matching against the raw line instead, both reproduced against this repo's own
+# tree before the fix:
+#   (1) `_BLOCK_SCALAR_OPEN.search(line)` matched a coincidental `key:>value` substring
+#       anywhere in the line -- e.g. `title: fix #217 for the ratio:>5` -- misreading an
+#       ordinary line as a block-scalar opener and skipping the real truncation earlier on
+#       it. A `.fullmatch` against the isolated value cannot be fooled by a substring.
+#   (2) The prior quote tracker toggled `in_quote` on EVERY `'`/`"` character anywhere on the
+#       line, so a plain scalar with an odd count of apostrophes before the truncation point
+#       (`the operator's design note for #806`, live in
+#       FEAT-34-worktree-act3-enforced/plan.yaml D-03 at review time) flipped the scanner into
+#       treating the real ` #806` as quoted and reported nothing.
+#
+# THE FIX RESTS ON ONE YAML FACT: only the FIRST character of a value can open a quoted
+# scalar. If it is not `'`/`"`, the value is plain for its ENTIRE remaining length and no
+# quote character appearing later has any special meaning at all -- it is literal text, full
+# stop. So a plain value needs no quote-tracking whatsoever; it needs only the first
+# whitespace-preceded (or value-initial) `#`, which is where YAML's comment actually starts.
+# A quoted value tracks its own delimiter to the close (a doubled quote is YAML's escape for
+# a literal one), and nothing after that close can be lost data -- a proper quoted scalar's
+# close ends the value; what follows is comment or malformed, never truncated content.
+#
+# BLOCK SCALARS ARE EXEMPT BY THE YAML SPEC ITSELF: a `|`/`>` block's content is literal, and a
+# `#` inside it is data, never a comment. `_block_indent` tracks the opening key's indentation
+# and skips every more-indented (or blank) line that follows, so a `verify: |` body can freely
+# quote an issue number without tripping this.
+#
+# STOPS AT THE FIRST UNQUOTED `#` in a plain value, never scans past it. That hash is where
+# YAML's comment actually starts, whether or not a digit follows it -- everything after it is
+# already comment text, so a second `#<digit>` deeper in an ordinary trailing comment
+# (`# see issue #217`) must not be mistaken for a second truncation point.
+#
+# A MULTI-LINE QUOTED SCALAR IS THE ONE KNOWN GAP: this tracks a quote's close only within its
+# own physical line, so a `'`/`"` scalar that legitimately wraps onto a following line could
+# misread that continuation. Not a false negative -- an unterminated quote returns None, the
+# same silence as a closed one -- and this repo's own corpus uses block scalars exclusively
+# for multi-line prose, never a multi-line flow-quoted one, so it is unreached here. Documented
+# rather than chased, per this invariant's own asymmetric design (a false deny is recoverable,
+# a false allow is not, so what remains unchecked here is a false ALLOW risk and is named as
+# such rather than left implicit).
+_KEY_PREFIX = re.compile(r"^\s*(?:-\s+)?(?:[A-Za-z_][A-Za-z0-9_]*:\s+)?")
+_BLOCK_SCALAR_VALUE = re.compile(r"^[|>][+\-]?\d*\s*(#.*)?$")
+
+
+def _line_value(line):
+    return line[_KEY_PREFIX.match(line).end():]
+
+
+def _unquoted_hash_digit(value):
+    if value[:1] in ("'", '"'):
+        q = value[0]
+        i = 1
+        while i < len(value):
+            if value[i] == q:
+                if i + 1 < len(value) and value[i + 1] == q:
+                    i += 2
+                    continue
+                return None
+            i += 1
+        return None
+    for i, ch in enumerate(value):
+        if ch == "#" and (i == 0 or value[i - 1].isspace()):
+            if i + 1 < len(value) and value[i + 1].isdigit():
+                return i
+            return None
+    return None
+
+
+for _p in sorted(glob.glob(os.path.join(H, "*", "features", "*", "plan.yaml"))):
+    _feat = os.path.basename(os.path.dirname(_p))
+    _txt = read(_p)
+    if _txt is None:
+        continue
+    _block_indent = None
+    for _lineno, _line in enumerate(_txt.splitlines(), start=1):
+        _stripped = _line.strip()
+        _indent = len(_line) - len(_line.lstrip(" "))
+        if _block_indent is not None:
+            if _stripped == "" or _indent > _block_indent:
+                continue
+            _block_indent = None
+        if not _stripped or _stripped.startswith("#"):
+            continue
+        _value = _line_value(_line)
+        if _BLOCK_SCALAR_VALUE.fullmatch(_value.rstrip()):
+            _block_indent = _indent
+            continue
+        _hit = _unquoted_hash_digit(_value)
+        if _hit is not None:
+            _num = re.match(r"\d+", _value[_hit + 1:]).group(0)
+            bad.append(
+                f"INV-35: {fpath(_feat, 'plan.yaml')}:{_lineno} carries an unquoted scalar with "
+                f"` #{_num}` -- YAML's plain-scalar comment rule truncates everything from that "
+                f"`#` onward, silently, even though the file still parses. Quote the value so "
+                f"the issue number stays in the data: {_line.strip()!r}."
+            )
 # STATE.md is per-feature since DEC-120; read them all.
 states = {os.path.basename(os.path.dirname(p)): read(p)
           for p in glob.glob(os.path.join(H, "*", "features", "*", "STATE.md"))}
