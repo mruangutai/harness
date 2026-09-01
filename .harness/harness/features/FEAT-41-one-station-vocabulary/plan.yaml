@@ -158,6 +158,33 @@ decisions:
       still-capitalised file is the FINISHED_STATUSES defect. What was wrong is where it was
       recorded, which was a commit message a T-07 executor will not read.
     dec: none
+  - id: D-15
+    dec: DEC-174
+    choice: >-
+      The operator RATIFIES T-15 having been executed main-session-direct while plan.yaml declares
+      it execution_mode team on the harness-documentor lane, ruled 2026-08-31 in response to the
+      validation panel's Q1. T-15's declared mode is NOT rewritten and the signed approval block is
+      NOT re-signed: the plan format is add-only, the approval mapping has exactly one writer, and a
+      ruling recorded as a new decision id is the only route that does not forge or overwrite a
+      signature. The INV-17 consequence stands as it is - the blanket exemption requires all fifteen
+      tasks main-session-direct, fourteen are, so the exemption does NOT apply and the feature owes a
+      handoff note. That note exists at notes/handoff-build.md and check-state.sh exits 0 with zero
+      violations, so nothing is repaired by this record and nothing is hidden by it either.
+    because: >-
+      The signature's pre_approved clause names eight conditions the operator's pre-approval was
+      contingent on, and one is verbatim "T-15 on the documentor lane" - so the lane was a signed
+      condition rather than incidental context, and only the operator could discharge it. The main
+      session raised it rather than quietly re-labelling the task, and disclosed its own conflict of
+      interest: it was the party that deviated, so its own reading that the deviation was harmless
+      was not the reading to act on. What the ruling rests on is that T-15's CONTENT is mechanically
+      verified independently of who ran it - the DECISIONS.md diff is additive only at 7 insertions
+      and 0 deletions, three amendment markers are present, all three amended clauses still stand
+      byte for byte, and test-gen-decisions-index.py and test-check-decision-anchors.py both exit 0.
+      What the documentor lane would have added was independence on the file that governs every other
+      file, not correctness. DEC-174 also cuts the other way here: it forbids the harness executing
+      enforcement-layer changes through the enforcement path being changed, and DECISIONS.md
+      amendments about gate behaviour sit close enough to that line that the documentor lane was
+      arguably the wrong routing when the plan was written, before the tension was visible.
 tasks:
   - id: T-01
     title: Declare the six stations once, as an ordered lowercase list in harness.json

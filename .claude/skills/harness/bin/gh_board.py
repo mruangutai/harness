@@ -254,6 +254,38 @@ def _parent_station(plan_doc, legal):
     return top
 
 
+def _repo_item_station(item, repo):
+    """`(issue_number, station)` for a board item belonging to `repo`, or None to skip it.
+
+    Extracted from `board_stations` (FEAT-41 F-05), which regressed from grade 4 to 3 on
+    cognitive when T-02 added the lowercasing below to a loop that already carried three guards.
+    The seam is real: deciding WHICH items count and what they say is a different job from
+    assembling the mapping.
+
+    None means SKIP THIS ITEM ENTIRELY — it is not on the right repository, or it is not shaped
+    like an item at all. That is different from a `station` of None, which means the item IS on
+    the board and simply has no station set; `board_stations` records those rather than dropping
+    them, because an unstationed card and an absent card are two different findings.
+
+    THE STATION IS LOWERCASED HERE (FEAT-41 T-02) — the read half of the case boundary whose
+    write half is `set_station`. Between them, every station value inside the harness is
+    lowercase and the only capitals live on GitHub. None stays None: an absent station is not
+    the string "none".
+    """
+    if not isinstance(item, dict):
+        return None
+    content = item.get("content") or {}
+    # content.repository, never the item's own `repository` key — the URL form and the
+    # owner/name form name the same repository but only the latter compares equal.
+    if content.get("repository") != repo:
+        return None
+    num = content.get("number")
+    if num is None:
+        return None
+    station = item.get("station")
+    return int(num), (station.lower() if isinstance(station, str) else station)
+
+
 def board_stations(board, repo):
     """Every `repo` issue on the board, as {int issue number: station or None}.
 
@@ -278,18 +310,9 @@ def board_stations(board, repo):
     )
     out = {}
     for item in items:
-        if not isinstance(item, dict):
-            continue
-        content = item.get("content") or {}
-        # content.repository, never the item's own `repository` key — the URL form and the
-        # owner/name form name the same repository but only the latter compares equal.
-        if content.get("repository") != repo:
-            continue
-        num = content.get("number")
-        if num is None:
-            continue
-        station = item.get("station")
-        out[int(num)] = station.lower() if isinstance(station, str) else station
+        pair = _repo_item_station(item, repo)
+        if pair is not None:
+            out[pair[0]] = pair[1]
     return out
 
 

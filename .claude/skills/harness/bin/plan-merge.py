@@ -830,47 +830,44 @@ def cmd_sign_approval(args):
     sys.exit(0)
 
 
+# EVERY VERB IS A ROW, NOT A PARAGRAPH (FEAT-41 F-05). `main` regressed from grade 4 to 3 on ABC
+# alone — cyclomatic 2, cognitive 1, ABC 23.8 — when T-03 turned one verb into five and each one
+# added four more registration calls to the same body. There was no logic to simplify: the verb
+# set is DATA, and it was written as control flow.
+#
+# EVERY ARGUMENT OF EVERY VERB IS `required=True`, which is what makes one loop honest rather
+# than a lossy compression of five paragraphs. If a verb ever needs an optional argument, this
+# table is the wrong shape for it and it gets its own registration — do not add a `required`
+# column and keep pretending the rows are uniform.
+_FILE = ("--file", "path to the plan.yaml")
+_STATION = ("--station", "one of the six stations, or abandoned")
+_PROPOSAL = ("--proposal", "path to the proposed plan.yaml, or - for stdin")
+
+# ADD-ONLY IS A PROPERTY OF THE FIRST TWO VERBS, NOT OF THE TOOL (FEAT-41 T-03). The lock and
+# the splice are what fix #628 and they apply to every verb; never deleting a task is a separate
+# promise that `apply` and its alias alone make, which is why they share `cmd_apply` verbatim.
+VERBS = (
+    ("apply", "merge a proposal into a plan.yaml — adds, never deletes",
+     (_FILE, _PROPOSAL), cmd_apply),
+    ("add-tasks", "alias of apply, for callers that only add tasks — identical code path",
+     (_FILE, _PROPOSAL), cmd_apply),
+    ("set-task-station", "set ONE task's status, by splicing its one line",
+     (_FILE, ("--task", "the task id, T-NN"), _STATION), cmd_set_task_station),
+    ("set-feature-station", "set or insert the top-level status key",
+     (_FILE, _STATION), cmd_set_feature_station),
+    ("sign-approval", "the ONLY route that writes the approval mapping",
+     (_FILE, ("--by", "the signer's name"), ("--date", "YYYY-MM-DD")), cmd_sign_approval),
+)
+
+
 def main():
     parser = argparse.ArgumentParser(prog="plan-merge.py")
     sub = parser.add_subparsers(dest="cmd", required=True)
-
-    # ADD-ONLY IS A PROPERTY OF THESE TWO VERBS, NOT OF THE TOOL (FEAT-41 T-03). The lock and
-    # the splice are what fix #628 and they apply to every verb; never deleting a task is a
-    # separate promise that `apply` and its alias alone make.
-    for name, helptext in (
-        ("apply", "merge a proposal into a plan.yaml — adds, never deletes"),
-        ("add-tasks", "alias of apply, for callers that only add tasks — identical code path"),
-    ):
+    for name, helptext, arguments, func in VERBS:
         p = sub.add_parser(name, help=helptext)
-        p.add_argument("--file", required=True, help="path to the plan.yaml")
-        p.add_argument(
-            "--proposal", required=True, help="path to the proposed plan.yaml, or - for stdin"
-        )
-        p.set_defaults(func=cmd_apply)
-
-    p_task = sub.add_parser(
-        "set-task-station", help="set ONE task's status, by splicing its one line"
-    )
-    p_task.add_argument("--file", required=True, help="path to the plan.yaml")
-    p_task.add_argument("--task", required=True, help="the task id, T-NN")
-    p_task.add_argument("--station", required=True, help="one of the six stations, or abandoned")
-    p_task.set_defaults(func=cmd_set_task_station)
-
-    p_feat = sub.add_parser(
-        "set-feature-station", help="set or insert the top-level status key"
-    )
-    p_feat.add_argument("--file", required=True, help="path to the plan.yaml")
-    p_feat.add_argument("--station", required=True, help="one of the six stations, or abandoned")
-    p_feat.set_defaults(func=cmd_set_feature_station)
-
-    p_sign = sub.add_parser(
-        "sign-approval", help="the ONLY route that writes the approval mapping"
-    )
-    p_sign.add_argument("--file", required=True, help="path to the plan.yaml")
-    p_sign.add_argument("--by", required=True, help="the signer's name")
-    p_sign.add_argument("--date", required=True, help="YYYY-MM-DD")
-    p_sign.set_defaults(func=cmd_sign_approval)
-
+        for flag, arghelp in arguments:
+            p.add_argument(flag, required=True, help=arghelp)
+        p.set_defaults(func=func)
     args = parser.parse_args()
     args.func(args)
 
