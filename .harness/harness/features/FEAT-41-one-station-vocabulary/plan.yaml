@@ -1667,3 +1667,41 @@ tasks:
       STATE IN THE RECEIPT which assertions changed because a value crossed the GitHub boundary
       and which changed because the harness side lowercased. Those are different findings and a
       reader cannot tell them apart from a diff.
+  - id: T-18
+    title: Bind SEC-01's code_grade check in the checkout the review was written in
+    traces: ['REQ-01']
+    change_type: logic
+    execution_mode: main-session-direct
+    execution_reason: >-
+      validate-digest.py is a validator, and DEC-174 forbids executing a change to it through the
+      enforcement path being changed. That is why the panel's own harness-code-reviewer could not
+      fix it: its yield is judged by this file. The main session's yield is not, so this is the
+      one author for whom the carve-out does not bite. Operator-directed into review cycle 1
+      rather than deferred to its own brief, 2026-08-31.
+    depends_on: []
+    status: done
+    files: ['.claude/skills/harness/bin/validate-digest.py',
+            '.claude/skills/harness/bin/test-validate-digest.py']
+    verify: python3 .claude/skills/harness/bin/test-validate-digest.py
+    intent: >-
+      SEC-01 binds a harness-code-reviewer's code_grade claim to the feature's recorded
+      review_sha, and resolved the feature directory against ONE root derived from the running
+      script's own location. The hook runs ${CLAUDE_PROJECT_DIR}'s copy, which is the main
+      checkout, while the work under review lives in a worktree. A feature that has never merged
+      has no feature.json in the main checkout, so the binding failed CLOSED unconditionally for
+      every code reviewer dispatched into any worktree, whatever its digest said. Measured: it
+      cost the cycle-0 panel about 76 minutes and its reviewer could not yield at all. The
+      reviewer was right to refuse the available workaround - writing a feature.json into the
+      main checkout would have forged the very artifact the binding exists to bind (DEC-151).
+      Resolve against candidate roots instead, the process's own checkout first via
+      harness_boundary.root_above and the script's own as fallback, taking the one that actually
+      carries feature.json. This is a STRENGTHENING: the single-root version returned a path it
+      had never looked at, and when no candidate carries the feature the same fail-closed error
+      is reported as before. An author still controls only the FEAT name in its own artifact
+      line, never the candidate list, and every candidate must hold a real feature.json whose
+      review_sha it did not write. Use root_above and NOT resolve_root: the latter derives its
+      answer from root_from_script, pure path arithmetic that strips four components assuming a
+      bin directory, and handed a checkout root it returns a directory four levels above it.
+      Strengthen the existing no-checkout-root case in the same pass - with a second candidate
+      it passes while the candidate list is non-empty, which silently re-tests a condition
+      another case already covers.
