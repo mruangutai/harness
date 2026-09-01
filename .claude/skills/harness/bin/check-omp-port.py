@@ -142,6 +142,12 @@ def check(root: Path) -> list[str]:
             "task:subagent:lifecycle": "OMP task terminal lifecycle",
             "gh-close-gate.sh": "GitHub close preflight",
             "inflight_registry.py": "OMP claim attachment and release",
+            # BUG-1132: absent here until this fix, so plan-sign-gate.sh's own absence from
+            # harness-hooks.ts's bash gate list — REQ-05/DEC-120's only enforcement — went
+            # undetected. required_wiring is a spot-check, not an enumeration of every gate
+            # script; this entry closes the one instance that was actually missing, not the
+            # general class.
+            "plan-sign-gate.sh": "sign-approval identity preflight",
         }
         for marker, purpose in required_wiring.items():
             if marker not in source:
