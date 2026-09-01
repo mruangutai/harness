@@ -30,8 +30,11 @@ the tests passed rather than that the scheduler happened to be kind.
 
 - REQ-01: No test mutates state shared with any other process — no test writes, replaces or
   deletes a path inside the live checkout while it runs.
-- REQ-02: A violation of REQ-01 reintroduced anywhere in the test tree fails a gate CI already
-  runs, and the failure names the offending file and line.
+- REQ-02: A violation of REQ-01 reintroduced in any test file the tree holds fails a gate CI
+  already runs, and the failure names the offending file and line — for a write whose target is
+  derived from the test's own path, or whose target is inside the shared code directory the
+  runtime check watches. `plan.yaml` D-11 names the classes neither mechanism sees; this
+  requirement does not claim them.
 - REQ-03: `run-unit-tests.sh` runs its test files concurrently, and a non-zero exit from any file
   fails the run.
 - REQ-04: Output from a parallel run is attributable: every line can be traced to the test file

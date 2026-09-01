@@ -58,6 +58,15 @@ decisions:
       FEAT-47 moves every test file to tests/unit, tests/integration and tests/manual; a
       layout-independent walk survives that move, and it also sees an uncommitted test file
       that a git ls-files scan would miss.
+      ACCEPTED CONSEQUENCE, weighed and adopted here rather than overlooked: the walk prunes
+      exactly those four directories and does walk .harness/**, so together with D-04's refusal
+      of an escape hatch any file named test-*.py or test_*.py anywhere under the root becomes a
+      CI gate subject the moment it is written — a throwaway repro script saved beside the thing
+      it reproduces reddens the unit step of every open PR until it is renamed. Taken
+      deliberately, because the failure is loud, names the offending file and line, and is
+      recovered by a rename. The alternative is a curated list that stops seeing a test file the
+      moment someone moves it, which fails silently and is the failure this invariant exists to
+      prevent.
     dec: none
   - id: D-04
     choice: The invariant has no per-line escape-hatch comment.
@@ -172,7 +181,17 @@ decisions:
       T-03's taint model seeds only the literal __file__, so a write to a path built from a
       relative literal or joined onto os.getcwd() carries no tainted name and the static scan
       reports nothing, while a target outside DIR is invisible to this check too. Such a write
-      is caught by NEITHER half. The two checks together are not complete and no criterion
+      is caught by NEITHER half.
+      THERE IS A FOURTH UNCOVERED CLASS, opened by T-03's own content-read exclusion and named
+      here for the same reason: because a value read out of a file does not carry that file's
+      taint, a write to a target derived from the CONTENT of a tainted read — a path string
+      embedded in a manifest, config or fixture the test reads — is never tainted, so the static
+      scan misses it even where the target is inside the live checkout. Inside DIR the runtime
+      check still grades it, because that half grades the effect; outside DIR neither half sees
+      it. It is unexploited at d5c23a0 — the scan re-derived independently there finds exactly
+      the ten known sites and nothing else — and the exclusion stays, because without it SC-03's
+      live-tree zero is unreachable in any tree.
+      The two checks together are not complete and no criterion
       here claims they are.
       WHY DIR IS bin/ AND NOT THE ROOT. The root-wide set the first draft specified is
       unusable in this factory, and not marginally: agents write .harness/harness/features/**
@@ -984,7 +1003,14 @@ tasks:
           __file__, so a write to a path built from a relative literal or joined onto
           os.getcwd(), landing outside the watched directory, is seen by neither half. That is
           a third uncovered class and the entry must name it rather than leave a reader to
-          infer the two named blind spots are the whole gap. Name the trade: an edit to a
+          infer the two named blind spots are the whole gap. Name a fourth alongside it, for
+          the same reason: the scan does not propagate taint through a file's CONTENT, so a
+          write to a target read out of a manifest, config or fixture — rather than derived
+          from __file__ — is unflagged even inside the live checkout, and only the watched
+          directory's before/after snapshot catches it. The exclusion that opens it is
+          deliberate: without it the scan reports fifteen writes under a tempdir as live-tree
+          violations and can never read zero. Say the entry claims no more coverage than the
+          two mechanisms deliver. Name the trade: an edit to a
           file in that directory during a run trips it;
         - change-based test selection REJECTED, in those words, with all three reasons:
           coverage becomes a function of the diff so a gate can pass by selecting nothing; the
