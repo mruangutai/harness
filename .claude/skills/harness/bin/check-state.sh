@@ -171,15 +171,130 @@ for feat, doc in plan_docs.items():
                 bad.append(f"{fpath(feat, 'STATE.md')} references {_tid}, which is absent from its "
                            f"plan.yaml.")
 
+# INV-32 ERA RESOLUTION BEGIN (BUG-1071)
+# WHY AN ERA GUARD EXISTS AT ALL. FEAT-45 T-07 shipped INV-32 with no era boundary, so it
+# graded every plan ever signed: all 32 approved plans in this tree failed it, and NONE
+# could pass, because a plan signed before the adversarial panel existed cannot carry a
+# record of it. FEAT-45's own plan was among the 32. An invariant that fires on 100% of a
+# corpus and admits nothing does not enforce a rule -- it only trains its reader to ignore
+# the gate, which is the failure mode this file exists to prevent (see the INV-10 note at
+# the foot of this script on the cost of a dead invariant). The rule was right; its
+# retroactive reach was the defect.
+#
+# THE BOUNDARY IS PER-PROJECT CONFIG, NOT A LITERAL (panel finding F2). This file is
+# COPIED INTO EVERY ONBOARDED PROJECT by /harness-init, so a hardcoded date would export
+# one repository's history as another's gate: a project whose plans predate 2026-08-31
+# would have every one of them silently exempted, for a reason belonging to somebody
+# else's git log. `panel_era_start` is stamped per project and merged into an existing
+# config additively by upgrade-config.py, whose whole contract is "template fills gaps,
+# project values win".
+#
+# RESOLVED ONCE, ABOVE THE LOOP. The first cut assigned the boundary inside the per-plan
+# loop, which re-derived it 32 times and would have reported a single config defect once
+# per plan. A config defect is one finding.
+_era_cfg = read(os.path.join(H, "harness.json"))
+_MISSING = object()
+if not _era_cfg:
+    # NO CONFIG AT ALL IS NOT THIS CHECK'S FINDING. INV-1 above already reports "not
+    # onboarded" by name, and a second violation for the same cause is noise. With no
+    # project to speak for, there is no pre-panel era to honour: grade everything, which
+    # is the fail-CLOSED direction.
+    _era_start = None
+else:
+    try:
+        _era_raw = json.loads(_era_cfg).get("panel_era_start", _MISSING)
+    except Exception:
+        # The JSON-validity violation is raised on its own merit further down (`cj`), so
+        # this only decides what INV-32 does meanwhile. Unparseable config cannot exempt.
+        _era_raw = None
+    if _era_raw is _MISSING:
+        # A CONFIG THAT PREDATES THIS KEY IS A VIOLATION, NOT A SILENT DEFAULT. Either
+        # answer picked here would be wrong for somebody: defaulting to "grade
+        # everything" reddens every pre-panel plan in an un-upgraded project, and
+        # defaulting to "exempt everything" disables INV-32 there without saying so. So
+        # it says so, once, and names the command that fixes it.
+        bad.append("INV-32: .harness/harness.json has no `panel_era_start`, so no panel "
+                   "era can be resolved. Run /harness-init --upgrade (upgrade-config.py) "
+                   "to merge the key in, then set it to the date the adversarial panel "
+                   "became available here, or null if this project never predated it.")
+        _era_start = None
+    elif _era_raw is None:
+        # null means THIS PROJECT HAS NO PRE-PANEL ERA -- the template default, and the
+        # truth for a project onboarded after FEAT-45. Every approved plan is graded.
+        _era_start = None
+    elif isinstance(_era_raw, str) and re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}", _era_raw.strip()):
+        _era_start = _era_raw.strip()
+    else:
+        bad.append(f"INV-32: .harness/harness.json `panel_era_start` is {_era_raw!r}, "
+                   f"which is neither null nor a YYYY-MM-DD date. Nothing is exempted "
+                   f"while it is unreadable.")
+        _era_start = None
+# INV-32 ERA RESOLUTION END (BUG-1071)
+
 # INV-32 BEGIN (FEAT-45 T-07)
 # A signed plan must carry the adversarial panel record the operator reviewed.
 for feat, doc in plan_docs.items():
     approval = doc.get("approval")
     if not isinstance(approval, dict) or str(approval.get("status", "")).strip().lower() != "approved":
         continue
+# INV-32 ERA BEGIN (BUG-1071)
+    # The boundary itself is resolved ONCE from `panel_era_start`, above this loop; see
+    # the ERA RESOLUTION block for why it is config rather than a literal. `_era_start` is
+    # either a YYYY-MM-DD string or None, and None means THIS PROJECT HAS NO PRE-PANEL
+    # ERA, so nothing below exempts anything.
+    #
+    # THE PER-PLAN KEY IS approval.date -- the only durable signature timestamp in the
+    # document. Lexicographic comparison on YYYY-MM-DD is chronological, which is why the
+    # format is validated rather than parsed.
+    signed = str(approval.get("date", "")).strip()
+    if not re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}", signed):
+        # AN UNPLACEABLE ERA IS A VIOLATION (panel finding F1, closed at the operator's
+        # ruling). This branch WARNED in the first cut of this guard, and that was a
+        # fail-open on a fail-closed invariant: an approved plan with no `approval.date`
+        # was never graded, the exemption never expired, and nothing else in this file or
+        # in harness_yaml requires the key -- INV-3/4/5 check `approval.status` only. So
+        # omitting one line bought permanent silence from INV-32.
+        #
+        # It is safe to fail here because the tree has no undated approval left:
+        # FEAT-40-harness-writes-done was the only one, and BUG-1071 backfilled it from
+        # the commit that signed it (2938a5c, 2026-08-25) rather than from memory. Fixing
+        # the data BEFORE closing the hole is what keeps this from re-reddening the gate.
+        #
+        # IT FIRES EVEN WHEN _era_start IS None. An undated signature is a record defect
+        # in its own right, not merely an obstacle to placing an era, so a project with no
+        # pre-panel era still owes the date.
+        # The recovery command NAMES THE FILE (cycle-1 ui finding). It printed a literal
+        # `<this plan.yaml>` placeholder, which is the one thing an operator cannot paste:
+        # a diagnostic whose remedy has to be hand-edited before it runs is a diagnostic
+        # that will be retyped wrong. The glob matches the tree's real layout,
+        # `.harness/*/features/*/`, so it resolves in a served repository too.
+        bad.append(f"INV-32: {feat} is approved but approval.date is missing or "
+                   f"malformed ({signed!r}), so its panel era cannot be placed. "
+                   f"Add the signature date; recover it with "
+                   f"git log -S'status: approved' -- "
+                   f".harness/*/features/{feat}/plan.yaml")
+        continue
+    if _era_start is not None and signed < _era_start:
+        warn.append(f"INV-32: {feat} was signed {signed}, before the adversarial panel "
+                    f"became available here ({_era_start}, harness.json "
+                    f"panel_era_start); not graded. A plan signed before the panel "
+                    f"existed cannot carry a record of it.")
+        continue
+# INV-32 ERA END (BUG-1071)
     panel = doc.get("panel")
     if not isinstance(panel, dict) or not str(panel.get("last_run", "")).strip() or not isinstance(panel.get("findings"), list):
-        bad.append(f"INV-32: {feat} plan is approved with no complete panel result recorded.")
+        # THE MESSAGE NAMES THE ERA KEY (cycle-1 Q1/Q2). This is the line a migrating
+        # legacy project sees, once per historical plan, the first time it upgrades: the
+        # template merges `panel_era_start: null`, null means "no pre-panel era", and every
+        # plan signed before that project's panel arrived is suddenly graded. The finding
+        # is correct and fail-closed, but WITHOUT this sentence its cause is invisible --
+        # the operator reads "no panel result recorded" against a plan signed months before
+        # the panel existed and has no reason to look at config. Naming the key here is
+        # what makes the residual self-diagnosing rather than merely reversible.
+        bad.append(f"INV-32: {feat} plan is approved with no complete panel result "
+                   f"recorded. If this plan predates the adversarial panel in this "
+                   f"project, set harness.json `panel_era_start` to the date the panel "
+                   f"became available here instead of recording one.")
         continue
     findings = panel.get("findings", [])
     finding_ids = {

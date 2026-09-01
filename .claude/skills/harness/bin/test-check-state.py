@@ -2947,10 +2947,17 @@ def case_inv31_silent_when_installed():
         return ok
 
 
-def _inv32_plan(panel_marker=True, finding=None, rulings=None, readers=None):
+def _inv32_plan(panel_marker=True, finding=None, rulings=None, readers=None,
+                date="2026-08-31"):
+    # `date` is approval.date, the era key INV-32 grades on. It defaults to a POST-era
+    # date so every pre-existing case below is unchanged by the era guard. `date=None`
+    # omits the key entirely — an approved plan whose era cannot be placed at all.
+    approval = {"status": "approved", "approved_by": "operator"}
+    if date is not None:
+        approval["date"] = date
     doc = {
         "schema": "plan/1", "feature": "FEAT-INV32",
-        "approval": {"status": "approved", "approved_by": "operator", "date": "2026-08-31"},
+        "approval": approval,
         "lanes": {"resolved_at": "abc123", "rows": []}, "decisions": [],
         "tasks": [{"id": "T-01", "title": "fixture", "traces": ["REQ-01"],
                    "change_type": "logic", "execution_mode": "main-session-direct",
@@ -2968,12 +2975,29 @@ def _inv32_plan(panel_marker=True, finding=None, rulings=None, readers=None):
     return doc
 
 
-def _inv32_run(doc, script=SCRIPT):
+# BUG-1071 F2 — `era` plants `.harness/harness.json` so a case can exercise a PROJECT'S
+# OWN boundary. The default is `_NO_CONFIG`: no harness.json at all, which is what every
+# pre-existing INV-32 case above relies on. With no config there is no pre-panel era, so
+# every approved plan is graded and those cases keep asserting exactly what they always
+# asserted. `era=None` writes a config whose `panel_era_start` is null; `era="..."` writes
+# that date; `era=_NO_KEY` writes a config with the key absent entirely, which is the
+# un-upgraded project.
+_NO_CONFIG = object()
+_NO_KEY = object()
+
+
+def _inv32_run(doc, script=SCRIPT, era=_NO_CONFIG):
     with tempfile.TemporaryDirectory() as tmp:
         root = os.path.join(tmp, ".harness", "harness", "features", "FEAT-INV32")
         os.makedirs(root, exist_ok=True)
         with open(os.path.join(root, "plan.yaml"), "w") as f:
             json.dump(doc, f)
+        if era is not _NO_CONFIG:
+            cfg = {"schema_version": 2}
+            if era is not _NO_KEY:
+                cfg["panel_era_start"] = era
+            with open(os.path.join(tmp, ".harness", "harness.json"), "w") as f:
+                json.dump(cfg, f)
         env = _root_env(tmp)
         proc = subprocess.run([script], cwd=tmp, capture_output=True, text=True, env=env)
         return proc.returncode, proc.stdout, proc.stderr
@@ -3109,6 +3133,158 @@ def case_inv32():
     return ok
 
 
+# BUG-1071 — INV-32's era guard. FEAT-45 T-07 shipped INV-32 with no era boundary, so it
+# fired on all 32 approved plans in the tree and NONE could satisfy it: a plan signed
+# before the adversarial panel existed cannot carry a record of it. FEAT-45's own plan,
+# signed 2026-08-30, was among the 32. These cases pin the boundary in BOTH directions —
+# a guard that only exempts is as wrong as no guard at all.
+# THE ASSERTION IS THE VIOLATION LINE, NEVER THE EXIT CODE. A bare fixture holding only
+# plan.yaml is red for reasons that have nothing to do with INV-32 — no BRIEF.md, no
+# feature.json, no STATE.md — which is why every pre-existing INV-32 case above asserts
+# `code == 1` and reads the text. An exit-code assertion here would pass or fail on those
+# unrelated invariants instead of on the era guard, so it would not bind what it names.
+def _inv32_violations(out):
+    return [line for line in out.splitlines()
+            if "FEAT-INV32" in line and "INV-32" in line and "VIOLATION" in line]
+
+
+def _inv32_notes(out):
+    return [line for line in out.splitlines()
+            if "FEAT-INV32" in line and "INV-32" in line and "note" in line]
+
+
+def case_inv32_pre_era_is_exempt():
+    """A plan signed BEFORE the panel shipped is not graded, and says so out loud."""
+    _code, out, _ = _inv32_run(_inv32_plan(panel_marker=False, date="2026-08-30"),
+                               era="2026-08-31")
+    ok = not _inv32_violations(out) and bool(_inv32_notes(out))
+    print(f"{'ok' if ok else 'FAIL'} - INV-32 pre-era plan is exempt with a note"
+          + ("" if ok else f"\n      {out}"))
+    return ok
+
+
+def case_inv32_era_boundary_is_exact():
+    """2026-08-30 is exempt and 2026-08-31 is graded — the off-by-one that matters."""
+    _rc_b, before, _ = _inv32_run(_inv32_plan(panel_marker=False, date="2026-08-30"),
+                                  era="2026-08-31")
+    _rc_a, after, _ = _inv32_run(_inv32_plan(panel_marker=False, date="2026-08-31"),
+                                 era="2026-08-31")
+    ok = not _inv32_violations(before) and bool(_inv32_violations(after))
+    print(f"{'ok' if ok else 'FAIL'} - INV-32 era boundary is exact "
+          f"(08-30 exempt, 08-31 graded)"
+          + ("" if ok else f"\n      before: {_inv32_violations(before)}"
+                           f"\n      after:  {_inv32_violations(after)}"))
+    return ok
+
+
+def case_inv32_undated_approval_fails():
+    """An approved plan with NO approval.date cannot be placed in an era, and that is a
+    VIOLATION, not a note (panel finding F1). Warning here was a fail-open on a
+    fail-closed invariant: nothing else in check-state.sh or harness_yaml requires the
+    key, so omitting one line bought permanent silence from INV-32. The message must name
+    approval.date, not the panel, because that is the defect and the remedy."""
+    _code, out, _ = _inv32_run(_inv32_plan(panel_marker=False, date=None),
+                               era="2026-08-31")
+    violations = _inv32_violations(out)
+    ok = (bool(violations)
+          and any("approval.date" in line for line in violations))
+    print(f"{'ok' if ok else 'FAIL'} - INV-32 undated approval is a violation naming approval.date"
+          + ("" if ok else f"\n      {out}"))
+    return ok
+
+
+def case_inv32_era_guard_is_load_bearing():
+    """Excise ONLY the era guard and the pre-era case must go red. Without this, an era
+    guard that never runs is indistinguishable from one that does — the silent-zero shape
+    this repository keeps finding."""
+    source = open(SCRIPT, encoding="utf-8").read()
+    begin = "# INV-32 ERA BEGIN (BUG-1071)"
+    end = "# INV-32 ERA END (BUG-1071)"
+    mutant = os.path.join(os.path.dirname(SCRIPT), ".check-state-inv32-era-mutant.sh")
+    try:
+        if begin not in source or end not in source:
+            print("FAIL - INV-32 era guard markers absent; cannot mutate")
+            return False
+        left, rest = source.split(begin, 1)
+        _region, right = rest.split(end, 1)
+        with open(mutant, "w") as file:
+            file.write(left + right)
+        shutil.copymode(SCRIPT, mutant)
+        pre_era = _inv32_plan(panel_marker=False, date="2026-08-30")
+        _rc_real, real_out, _ = _inv32_run(pre_era, era="2026-08-31")
+        _rc_mut, mut_out, mut_err = _inv32_run(pre_era, mutant, era="2026-08-31")
+        ok = (not _inv32_violations(real_out)
+              and bool(_inv32_violations(mut_out))
+              and "Traceback" not in mut_err)
+        print(f"{'ok' if ok else 'FAIL'} - INV-32 era guard is load-bearing "
+              f"(real={len(_inv32_violations(real_out))} "
+              f"mutant={len(_inv32_violations(mut_out))} violations)")
+        return ok
+    finally:
+        if os.path.exists(mutant):
+            os.unlink(mutant)
+
+
+# BUG-1071 F2 — the boundary is the PROJECT'S, read from harness.json, not a literal
+# compiled into a file that /harness-init copies everywhere. These four pin that the value
+# actually comes from config and that every unreadable state fails closed.
+def case_inv32_era_comes_from_project_config():
+    """The SAME plan is exempt or graded depending only on the project's own
+    `panel_era_start`. This is the case a hardcoded literal cannot pass: a plan signed
+    2026-08-25 is pre-era for a project whose panel arrived 2026-08-31 and post-era for a
+    project whose panel arrived 2026-08-20."""
+    plan = _inv32_plan(panel_marker=False, date="2026-08-25")
+    _rc1, late, _ = _inv32_run(plan, era="2026-08-31")
+    _rc2, early, _ = _inv32_run(plan, era="2026-08-20")
+    ok = not _inv32_violations(late) and bool(_inv32_violations(early))
+    print(f"{'ok' if ok else 'FAIL'} - INV-32 era boundary comes from harness.json, "
+          f"not a literal"
+          + ("" if ok else f"\n      era=08-31: {_inv32_violations(late)}"
+                           f"\n      era=08-20: {_inv32_violations(early)}"))
+    return ok
+
+
+def case_inv32_null_era_grades_everything():
+    """`panel_era_start: null` is the template default and means THIS PROJECT HAS NO
+    PRE-PANEL ERA. A project onboarded after FEAT-45 never had plans the panel could not
+    have reviewed, so nothing is exempt however old the signature looks."""
+    _code, out, _ = _inv32_run(_inv32_plan(panel_marker=False, date="2020-01-01"),
+                               era=None)
+    ok = bool(_inv32_violations(out))
+    print(f"{'ok' if ok else 'FAIL'} - INV-32 null panel_era_start exempts nothing"
+          + ("" if ok else f"\n      {out}"))
+    return ok
+
+
+def case_inv32_missing_era_key_is_a_violation():
+    """A config that predates the key is a VIOLATION naming it and the upgrade command,
+    never a silent default. Defaulting either way is wrong for somebody: 'grade
+    everything' reddens every pre-panel plan in an un-upgraded project, and 'exempt
+    everything' disables INV-32 there without saying so."""
+    _code, out, _ = _inv32_run(_inv32_plan(panel_marker=False, date="2026-08-30"),
+                               era=_NO_KEY)
+    lines = [line for line in out.splitlines()
+             if "INV-32" in line and "VIOLATION" in line and "panel_era_start" in line]
+    ok = bool(lines) and any("--upgrade" in line for line in lines)
+    print(f"{'ok' if ok else 'FAIL'} - INV-32 missing panel_era_start violates, naming "
+          f"the upgrade command"
+          + ("" if ok else f"\n      {out}"))
+    return ok
+
+
+def case_inv32_malformed_era_exempts_nothing():
+    """An unreadable boundary exempts nothing and says why. The plan below would be exempt
+    under a valid 2026-08-31, so this fails closed rather than falling back to it."""
+    _code, out, _ = _inv32_run(_inv32_plan(panel_marker=False, date="2026-08-30"),
+                               era="last Tuesday")
+    cfg = [line for line in out.splitlines()
+           if "INV-32" in line and "VIOLATION" in line and "panel_era_start" in line]
+    ok = bool(cfg) and bool(_inv32_violations(out))
+    print(f"{'ok' if ok else 'FAIL'} - INV-32 malformed panel_era_start exempts nothing"
+          + ("" if ok else f"\n      {out}"))
+    return ok
+
+
 def main():
     ok_a, code_a = case_a()
     ok_b, code_b = case_b()
@@ -3187,6 +3363,18 @@ def main():
     ])
     ok_i32 = case_inv32()
     ok_i32_severity = case_inv32_unrated_severity_fails_closed()
+    # BUG-1071 — the era guard, pinned in both directions plus its own mutant.
+    ok_i32_era = all([
+        case_inv32_pre_era_is_exempt(),
+        case_inv32_era_boundary_is_exact(),
+        case_inv32_undated_approval_fails(),
+        case_inv32_era_guard_is_load_bearing(),
+        # F2 — the boundary is per-project config, and every unreadable state fails closed.
+        case_inv32_era_comes_from_project_config(),
+        case_inv32_null_era_grades_everything(),
+        case_inv32_missing_era_key_is_a_violation(),
+        case_inv32_malformed_era_exempts_nothing(),
+    ])
 
     ok_exit_unchanged = code_a == code_b
     print(
@@ -3198,6 +3386,7 @@ def main():
             and ok_h and ok_i and ok_j and ok_k and ok_l and ok_m and ok_m2 and ok_m3 and ok_n and ok_o and ok_p and ok_q and ok_r and ok_s and ok_t and ok_u and ok_v and ok_w and ok_x and ok_t14 and ok_t10
             and ok_i28a and ok_i28b and ok_i28c and ok_i28d and ok_i28e and ok_i28f
             and ok_i29 and ok_i30 and ok_i31 and ok_i32 and ok_i32_severity
+            and ok_i32_era
             and ok_exit_unchanged):
         sys.exit(0)
     sys.exit(1)

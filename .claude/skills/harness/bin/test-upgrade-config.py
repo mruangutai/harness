@@ -226,6 +226,40 @@ check("a new budgets key (orchestrator_context_warn_tokens) propagates from the 
       f"stderr={r.stderr.strip()[-300:]}")
 
 
+# --- 9. BUG-1071 F2: `panel_era_start` reaches an already-onboarded project THROUGH THIS
+# SCRIPT. The cycle-1 panel named this exact gap against itself — "no test drives
+# panel_era_start through upgrade-config.py's real merge; that gap is exactly what let the
+# C1-F1 migration defect ship" — because the claim that adding the template key IS the
+# migration was, until now, verified only by hand against a synthetic fixture.
+#
+# BOTH DIRECTIONS, because the whole contract is "template fills gaps, project values win"
+# and only one of those halves is about the key arriving. A project that has ALREADY set
+# its own boundary must not have it reset to the template's null on a later upgrade: that
+# would silently re-grade every pre-panel plan it had correctly exempted, which is the
+# migration failure this case exists to keep closed.
+era_gap = project(harness_json=json.dumps({"schema_version": 1}))
+with open(os.path.join(era_gap, "_templates", "harness.json"), "w") as f:
+    json.dump({"schema_version": 2, "panel_era_start": None}, f)
+r = run(era_gap)
+merged_era = json.load(open(os.path.join(era_gap, ".harness", "harness.json")))
+check("panel_era_start ARRIVES in a schema-1 project through the real merge, at the "
+      "template's null",
+      ran_clean(r)
+      and "panel_era_start" in merged_era
+      and merged_era["panel_era_start"] is None,
+      f"exit {r.returncode}; merged={merged_era}; stderr={r.stderr.strip()[-300:]}")
+
+era_set = project(harness_json=json.dumps({"schema_version": 1,
+                                           "panel_era_start": "2026-08-31"}))
+with open(os.path.join(era_set, "_templates", "harness.json"), "w") as f:
+    json.dump({"schema_version": 2, "panel_era_start": None}, f)
+r = run(era_set)
+kept_era = json.load(open(os.path.join(era_set, ".harness", "harness.json")))
+check("a project's OWN panel_era_start survives the upgrade and is not reset to the "
+      "template's null",
+      ran_clean(r) and kept_era.get("panel_era_start") == "2026-08-31",
+      f"exit {r.returncode}; merged={kept_era}; stderr={r.stderr.strip()[-300:]}")
+
 def main():
     fails = 0
     for name, ok, detail in CASES:

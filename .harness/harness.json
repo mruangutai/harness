@@ -1,6 +1,8 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "cli_min_version": "2.1.217",
+  "_panel_era_start_note": "The date the adversarial plan panel (FEAT-45) became available in THIS project. INV-32 does not grade a plan signed before it, because a plan signed before the panel existed cannot carry a record of one. null means this project has no pre-panel era, so every approved plan is graded \u2014 the right value for a project onboarded after FEAT-45. check-state.sh is copied into every onboarded project, so this MUST be per-project: a hardcoded date would export one repository's history as another's gate (BUG-1071 panel finding F2).",
+  "panel_era_start": "2026-08-31",
   "_test_matrix_note": "change_type -> required test kinds. A FLOOR, not a ceiling: qa may add kinds it infers from the diff, never drop below. Predicate names in `when` are FIXED DATA so the gate is auditable; qa evaluates them against the diff. This matrix is PER-PROJECT (DEC-187): every kind it names must exist in test_kinds and be active or excluded, and any change_type differing from the template needs a _matrix_provenance entry with a signed decision. DEC-35's 'fixed data' is the predicate names, not the table.",
   "test_matrix": {
     "logic": {
@@ -179,7 +181,7 @@
     "sync": true,
     "repo": "mruangutai/harness",
     "board": {
-      "_note": "The harness's own project board (FEAT-18). Six keys — backlog, plan, ready, building, review, done — resolved BY NAME at runtime so a wrong value fails loudly; no project_id, field_id or option id is pinned, because branch-create-gate.sh pinned exactly those and a wrong pinned id did nothing at all, silently. An absent or incomplete board declaration is now a loud error naming the offending key; only an explicitly null board means this project has no board. PLACEMENT IS TEMPORARY: #206 moves github, test_matrix and test_kinds to the product, since harness.json holds runtime metadata.",
+      "_note": "The harness's own project board (FEAT-18). Six keys \u2014 backlog, plan, ready, building, review, done \u2014 resolved BY NAME at runtime so a wrong value fails loudly; no project_id, field_id or option id is pinned, because branch-create-gate.sh pinned exactly those and a wrong pinned id did nothing at all, silently. An absent or incomplete board declaration is now a loud error naming the offending key; only an explicitly null board means this project has no board. PLACEMENT IS TEMPORARY: #206 moves github, test_matrix and test_kinds to the product, since harness.json holds runtime metadata.",
       "owner": "mruangutai",
       "number": 3,
       "station_field": "Status",
