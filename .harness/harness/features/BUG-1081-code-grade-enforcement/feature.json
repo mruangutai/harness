@@ -12,6 +12,18 @@
       "squad": "eng",
       "agent": "harness-eng-lead",
       "verdict": "PASS"
+    },
+    {
+      "id": "2026-09-01-1-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-09-01-01-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS"
     }
   ],
   "github": {
