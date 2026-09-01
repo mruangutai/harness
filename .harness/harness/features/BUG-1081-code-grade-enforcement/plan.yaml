@@ -262,7 +262,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: .claude/skills/harness-code-review/ resolves NOBODY
     depends_on: [T-02]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness-code-review/SKILL.md
     requirements: [REQ-01, REQ-05]
