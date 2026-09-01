@@ -5705,16 +5705,19 @@ exercised, not hypothetical — because a fix that can brick every later dispatc
 is what "on one checkout" means: a shared registry would refuse a second feature's product manager while the first's is
 live.
 
-**Only the dispatch cause of issue #551 is closed.** Its two reporting consequences — a lead emitting a terminal verdict
-about members it cannot see, an orchestrator inferring run verdicts from disk — are NOT closed, and no wait can close
-them: the `SubagentStop` hook passes through on `stop_hook_active` to avoid an infinite stop loop, so a stop refusal
-fires at most once per consecutive stop sequence and re-fires on each later wake while a child is still live. What ships
-is aimed at the false REPORT — a lead or orchestrator returning while a child it dispatched is still claimed is REFUSED
-on that hook once per consecutive stop sequence, the one-correction-round strength every other digest contract in that
-file has, and again on each later wake; the loss itself is prevented at the `PreToolUse` hook, whose refusals have no
-once-only bound. The residual, plainly: a second identical return ships when it is immediate, the refusal re-fires only
-on a later wake while a child is still live, and an orphaned child of an interrupted parent has no parent left to refuse
-it.
+**Issue #551's dispatch cause is closed, and so is the first of its two reporting consequences.** A lead emitting a
+terminal verdict about members it cannot see is closed by DEC-210: a lead or orchestrator whose children are live has a
+legal NONTERMINAL turn-end, `VERDICT: SUSPENDED` carrying an `awaiting` list naming every live child, accepted at exit 0
+inside `validate-digest.py`'s `hook_mode` (`.agents/skills/harness/bin/validate-digest.py:1662`), so no parent is forced
+to grade work it has not seen. The second consequence — an orchestrator inferring run verdicts from disk — is NOT
+closed, and nothing in this file closes it. No wait closes either: the `SubagentStop` hook passes through on
+`stop_hook_active` to avoid an infinite stop loop, so a stop refusal fires at most once per consecutive stop sequence and
+re-fires on each later wake while a child is still live. What ships is aimed at the false REPORT — a lead or
+orchestrator returning a TERMINAL verdict while a child it dispatched is still claimed is REFUSED on that hook once per
+consecutive stop sequence, the one-correction-round strength every other digest contract in that file has, and again on
+each later wake; the loss itself is prevented at the `PreToolUse` hook, whose refusals have no once-only bound. The
+residual, plainly: a second identical return ships when it is immediate, the refusal re-fires only on a later wake while
+a child is still live, and an orphaned child of an interrupted parent has no parent left to refuse it.
 
 **The bound is per consecutive stop sequence, not per run.** The hook keeps no state marking a return already refused —
 `validate-digest.py` returns early on `stop_hook_active` and reads live children fresh, and `live_children` is a read
@@ -5722,7 +5725,9 @@ that only expires stale claims — so a wake that finds a child still live is re
 on the code path the lead tier uses carries two stop refusals naming DIFFERENT child sets, which is a distinct refusal
 event and not replayed context (`agent-a89be3fd837d1b779`). Ending a lead's turn after every dispatch raises the rate of
 stop attempts made with children live, so each attempt risks its own refusal rather than there being one per return.
-`inflight_registry.py`'s refusal message states the same bound.
+`inflight_registry.py`'s refusal message carries no once-only bound; it ends by naming the legal turn-end for a lead or
+orchestrator whose child is live — `VERDICT: SUSPENDED` with an awaiting list naming every live child
+(`.agents/skills/harness/bin/inflight_registry.py:579-582`).
 
 **#551's count is a FLOOR, never a total.** At least eight are measured as of this commit, and the mechanism fired again
 during the build of its own fix: 5 through 8 came from this feature's own runs. The count has already moved four → seven

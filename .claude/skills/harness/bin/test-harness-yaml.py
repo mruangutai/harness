@@ -39,6 +39,7 @@ COLLECT_FIXTURE = {
             ".harness/*/features/*/observations/harness-backend-dev.md",
         ],
         [
+            ".harness/*/features/*/quarantine/**",
             "package.json", "package-lock.json", "pnpm-lock.yaml", "yarn.lock",
             "pyproject.toml", "uv.lock", "requirements.txt", "tsconfig.json",
         ],
@@ -55,6 +56,7 @@ COLLECT_FIXTURE = {
             ".harness/*/features/*/observations/harness-dev-ops.md",
         ],
         [
+            ".harness/*/features/*/quarantine/**",
             "package.json", "package-lock.json", "pnpm-lock.yaml", "yarn.lock",
             "pyproject.toml", "uv.lock", "requirements.txt", "tsconfig.json",
         ],
@@ -73,6 +75,7 @@ COLLECT_FIXTURE = {
             ".harness/*/features/*/observations/harness-pm.md",
         ],
         [
+            ".harness/*/features/*/quarantine/**",
             "package.json", "package-lock.json", "pnpm-lock.yaml", "yarn.lock",
             "pyproject.toml", "uv.lock", "requirements.txt", "tsconfig.json",
         ],
@@ -89,6 +92,7 @@ COLLECT_FIXTURE = {
             ".harness/*/features/*/observations/harness-documentor.md",
         ],
         [
+            ".harness/*/features/*/quarantine/**",
             "package.json", "package-lock.json", "pnpm-lock.yaml", "yarn.lock",
             "pyproject.toml", "uv.lock", "requirements.txt", "tsconfig.json",
         ],
@@ -111,6 +115,7 @@ COLLECT_FIXTURE = {
             ".harness/notes/analysis-*.md",
         ],
         [
+            ".harness/*/features/*/quarantine/**",
             "package.json", "package-lock.json", "pnpm-lock.yaml", "yarn.lock",
             "pyproject.toml", "uv.lock", "requirements.txt", "tsconfig.json",
         ],
@@ -125,6 +130,7 @@ COLLECT_FIXTURE = {
             ".harness/*/features/*/observations/harness-orchestrator.md",
         ],
         [
+            ".harness/*/features/*/quarantine/**",
             "package.json", "package-lock.json", "pnpm-lock.yaml", "yarn.lock",
             "pyproject.toml", "uv.lock", "requirements.txt", "tsconfig.json",
         ],
