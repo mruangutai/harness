@@ -2,7 +2,6 @@
   "feature_id": "BUG-1055-code-grade-absent-path",
   "branch": "feat/BUG-1055-code-grade-absent-path",
   "pr": 1077,
-  "status": "Done",
   "review_sha": "e353c7e",
   "cycles_used": 1,
   "max_total_cycles": 10,
