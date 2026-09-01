@@ -95,7 +95,7 @@ decisions:
     dec: DEC-174
   - id: D-03
     choice: The sweep does not re-implement the terminal write. For each terminal feature it invokes gh-sync.py ship on that feature directory.
-    because: the operator's design note for #806 - status Done has more than one path that can write it and the milestone has exactly one, cmd_ship. Reimplementing the close would create a second writer of the one fact INV-30 keys on, which would make the invariant unable to detect its own bypass.
+    because: "the operator's design note for #806 - status Done has more than one path that can write it and the milestone has exactly one, cmd_ship. Reimplementing the close would create a second writer of the one fact INV-30 keys on, which would make the invariant unable to detect its own bypass."
     dec: none
   - id: D-04
     choice: Within one worktree the sweep records the terminal status first and removes the checkout second, and it SKIPS the removal when the record step failed.

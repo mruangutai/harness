@@ -4148,6 +4148,46 @@ def case_inv35_digit_inside_an_already_started_comment_is_silent():
         return ok
 
 
+def case_inv35_apostrophe_before_truncation_still_fires():
+    """(inv35.h) REGRESSION -- validator panel finding (harness-code-reviewer, PR #1145).
+    A plain scalar's own apostrophes have NO YAML significance once the value has already
+    opened unquoted -- only the value's FIRST character can open a quoted scalar. An earlier
+    draft toggled `in_quote` on every `'`/`"` anywhere on the line, so an odd count of
+    apostrophes before the real truncation point flipped the scanner into treating the actual
+    ` #<digit>` as quoted and reporting nothing. Reproduced live against this repo's own
+    FEAT-34-worktree-act3-enforced/plan.yaml D-03 at review time -- this fixture is that
+    exact shape."""
+    with tempfile.TemporaryDirectory() as tmp:
+        _i35_fixture(tmp, "notes: the operator's design note for #806 - status Done\n")
+        code, out = run(tmp)
+        ls = _i35_lines(out)
+        ok = bool(ls) and any("#806" in l for l in ls)
+        print(f"{'ok' if ok else 'FAIL'} - case (inv35.h) an apostrophe before the "
+              f"truncation point does not suppress the report")
+        if not ok:
+            print(f"        {out[:400]}")
+        return ok
+
+
+def case_inv35_coincidental_block_indicator_substring_still_fires():
+    """(inv35.i) REGRESSION -- validator panel finding (harness-security-reviewer, PR #1145).
+    An earlier draft matched the block-scalar-open pattern with `.search()` over the RAW
+    LINE, so a coincidental `key:>value` substring anywhere in ordinary prose (unrelated to
+    the line's own `key:` position) was misread as opening a block scalar, and the real
+    unquoted truncation earlier on the same line was skipped entirely. The check must be
+    anchored to the isolated value, never a substring search over the whole line."""
+    with tempfile.TemporaryDirectory() as tmp:
+        _i35_fixture(tmp, "notes: fix #217 for the ratio:>5\n")
+        code, out = run(tmp)
+        ls = _i35_lines(out)
+        ok = bool(ls) and any("#217" in l for l in ls)
+        print(f"{'ok' if ok else 'FAIL'} - case (inv35.i) a coincidental block-indicator "
+              f"substring does not suppress a real truncation earlier on the line")
+        if not ok:
+            print(f"        {out[:400]}")
+        return ok
+
+
 
 def main():
     ok_a, code_a = case_a()
@@ -4197,6 +4237,8 @@ def main():
         case_inv35_block_scalar_is_exempt(),
         case_inv35_hash_without_digit_is_silent(),
         case_inv35_digit_inside_an_already_started_comment_is_silent(),
+        case_inv35_apostrophe_before_truncation_still_fires(),
+        case_inv35_coincidental_block_indicator_substring_still_fires(),
     ])
     # FEAT-41 T-14 / issue #867 — INV-33: the report, the byte-comparison discriminator, and
     # the two silences. Each returns a results LIST, so they join the aggregate below.
