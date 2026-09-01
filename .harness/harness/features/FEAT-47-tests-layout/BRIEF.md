@@ -186,8 +186,9 @@ score them 0 against non-zero rows and redden a correct tree.
   in the past tense because the token names the artifact that existed), the moved probe's "It was
   first registered in", and the instrument's own `RESIDUE_TOKENS` definition line. **No path under
   an expertise directory may be exempted, and the mode refuses its own list if one is** — Expertise
-  is injected current craft at every spawn, not a record, so the two falsified entries are repaired
-  by T-07 and stay inside the sweep. What makes it red: a fourth mention anywhere, including a new
+  is injected current craft at every spawn, not a record, so every falsified entry the sweep finds
+  is repaired by T-07 — a set T-07 derives at build time rather than a list written at plan time —
+  and they all stay inside the sweep. What makes it red: a fourth mention anywhere, including a new
   line in an exempted file; an exemption that no longer matches; or an empty positive control over
   the record prefixes. `DECISIONS.md` also carries the new entry, DEC-187 and DEC-197 no longer
   describe the arrays as live, and the committed `DECISIONS-INDEX.md` is byte-identical to

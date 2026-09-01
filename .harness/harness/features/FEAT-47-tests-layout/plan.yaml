@@ -11,6 +11,62 @@ approval:
   approved_by: <name>
   date: <YYYY-MM-DD>
 
+panel:
+  last_run: runs/2026-08-31-01-validator
+  cycle: 2
+  readers:
+    - reader: scope
+      status: ran
+      persona: harness-code-reviewer
+    - reader: should-not-exist
+      status: ran
+      persona: fable-advisor
+    - reader: goalcheck
+      status: skipped
+      persona: harness-pm
+      reason: >
+        no goalcheck_path exists pre-signature; the lead recorded it absent rather than satisfied
+  findings:
+    - id: PF-4f20fede91bacf9c4627fbd33e9f85e7
+      severity: critical
+      reader: scope
+      summary: >
+        T-07 repairs 2 of 5 live Expertise files asserting the deleted arrays as current craft
+        (derived independently by both readers)
+      disposition: resolved
+      resolved_by: T-07
+    - id: PF-2e709f2f2f53782dac8b008923e3f257
+      severity: high
+      reader: scope
+      summary: >
+        DEC-207 is already taken; T-06's presence grep is vacuously true today
+      disposition: resolved
+      resolved_by: T-06
+    - id: PF-264325dc9f79813daf80d9eecb567380
+      severity: med
+      reader: scope
+      summary: >
+        suite-census.py, sole instrument for five criteria, has no test of its own subcommands
+      disposition: open
+    - id: PF-0ee4b2ee83a7a0ddb1818deb201d6bcf
+      severity: med
+      reader: scope
+      summary: >
+        T-07's verify passes on a content-gutted stub entry
+      disposition: open
+    - id: PF-d9cfc106d7adaf9e9ad1824b39c39a1b
+      severity: low
+      reader: should-not-exist
+      summary: >
+        residue's claimed standing life has no standing invoker post-merge
+      disposition: open
+    - id: PF-4bf0c457ebe851eaabf2e50eab5ff90a
+      severity: info
+      reader: should-not-exist
+      summary: >
+        Both cycle-1 dismissals accepted; D-17's main-session-direct mechanism judged sound
+      disposition: open
+
 lanes:
   resolved_at: ea6f51f6a06a9247b069339d794247a977f67887
   rows:
@@ -45,6 +101,20 @@ lanes:
       reason: >
         granted to harness-documentor but taken direct under DEC-174, since the entries record a
         change to the enforcement layer itself
+    - surface: .harness/expertise/*.md and .harness/*/expertise/*.md
+      lane: main-session-direct
+      reason: >
+        every path under either glob resolves to its own persona and to no shared seat, so no
+        dispatchable agent can write two of them and each owner is barred by DEC-145 outside a
+        distillation dispatch (D-17, D-19). Re-resolved over all 28 files at 1c9c384, where
+        team-config.yaml is byte-identical to this block's resolved_at
+    - surface: .harness/harness/features/FEAT-47-tests-layout/plan.yaml
+      lane: main-session-direct
+      reason: >
+        granted to harness-pm and harness-orchestrator, taken direct for T-06's one bookkeeping
+        write — backfilling the derived DEC number into every dec: pending-T-06 field. The
+        approval: block
+        is nobody's but the main session's (DEC-120)
 
 decisions:
   - id: D-01
@@ -56,7 +126,7 @@ decisions:
       grant harness-qa already carries is inert until the target is classified. is_control_plane_glob
       stays False for it, which is what keeps a product checkout's own tests directory resolving in
       its product base. The other three Iron Law seats stay exactly as blocked as they are today
-    dec: DEC-207
+    dec: pending-T-06
   - id: D-02
     choice: >
       The directory a test sits in IS its kind. The two bash arrays, the drift detector and the
@@ -64,7 +134,7 @@ decisions:
     because: >
       two lists that describe the same thing and cannot see each other diverge silently, which is
       the failure DEC-197 was written to name. A directory cannot disagree with itself
-    dec: DEC-207
+    dec: pending-T-06
   - id: D-03
     choice: >
       The layout predicate is one function in one new module, bin/suite_layout.py, called by the
@@ -72,7 +142,7 @@ decisions:
     because: >
       the guard replaces bookkeeping, so it must itself be provably able to fail. A predicate
       duplicated in bash and in python would be the same two-readers failure one level down
-    dec: DEC-207
+    dec: pending-T-06
   - id: D-04
     choice: >
       Ten files move from unit to integration, decided by a runtime measurement of which child
@@ -81,7 +151,7 @@ decisions:
       issue 160 splits on whether an assertion depends on behaviour in another process, and a grep
       cannot see that. Measured, test-factory-gh.py mentions subprocess 93 times and spawns nothing,
       while test-harness-merge.py mentions it zero times and forks 43 times
-    dec: DEC-207
+    dec: pending-T-06
   - id: D-05
     choice: DEC-187 is rewritten, not struck
     because: >
@@ -111,7 +181,7 @@ decisions:
       write-denial text. layout_fixtures.py is test support that stays under the settled scope, so
       the guard is name-shaped and not purpose-shaped, which is recorded as a residue rather than
       hidden
-    dec: DEC-207
+    dec: pending-T-06
 
   - id: D-13
     choice: >
@@ -159,7 +229,7 @@ decisions:
       states the ref it was measured at so a later reader can tell staleness from error, and the
       conservation law declares its one permitted absence rather than tolerating absences in
       general.
-    dec: DEC-207
+    dec: pending-T-06
   - id: D-15
     choice: >
       The runtime mutation check keeps watching the bin directory alone after the migration, and
@@ -181,7 +251,7 @@ decisions:
       so a root-wide runtime set reddens a passing suite on a sibling's note. If the operator wants
       the tests/ trees watched, that is a multi-directory --mutation-check and a FEAT-47 code change
       to run_pool.py, which is scope this plan does not currently carry.
-    dec: DEC-207
+    dec: pending-T-06
   - id: D-16
     choice: >
       REQ-07 is enforced by a declared LINE-exemption census, tests/manual/suite-census.py
@@ -204,23 +274,26 @@ decisions:
       historical fact — "eight of twelve INTEGRATION_SCRIPTS entries" names the artifact that
       existed, and "the forking-side script array" cannot be checked against the commit the
       sentence describes.
-    dec: DEC-207
+    dec: pending-T-06
   - id: D-17
     choice: >
-      The two falsified Expertise entries are repaired inside this feature, by T-07, as
-      execution_mode main-session-direct — not by a distillation dispatch to harness-eng-lead and
-      harness-code-reviewer, and not deferred to a later curation pass.
+      Every falsified Expertise entry is repaired inside this feature, by T-07, as execution_mode
+      main-session-direct — not by a distillation dispatch to each owning persona, and not
+      deferred to a later curation pass. Which entries those are is T-07's derived sweep and is
+      not enumerated here (D-19).
     because: >
-      each file is granted to its own persona alone (check-domain.sh --resolve confirms
-      harness-eng-lead and harness-code-reviewer respectively), and DEC-145 confines an agent's
-      write to its own Expertise to a distillation dispatch. So the only routes are a lead
-      dispatched as an executor, which no plan in this repository has ever done and which invites
-      the whole-file rewrite DEC-125 describes for a two-line correction, or the main session —
-      the same argument this plan's lanes block already makes for team-config.yaml, where the
-      owner of the surface is exactly the party that must not perform the write. Deferring was
-      refused outright: the entries are injected at every spawn of those two personas in this
-      repository, so between this merge and some later curation both seats are instructed to read
-      arrays that do not exist, and REQ-07 is violated with or without the sweep.
+      every file under the two expertise globs is granted to its own persona alone and to no
+      shared seat — check-domain.sh --resolve over all 28 of them at 1c9c384, not a sample — and
+      DEC-145 confines an agent's write to its own Expertise to a distillation dispatch. So the
+      only routes are a persona dispatched as an executor, which no plan in this repository has
+      ever done and which invites the whole-file rewrite DEC-125 describes for a two-line
+      correction, or the main session — the same argument this plan's lanes block already makes
+      for team-config.yaml, where the owner of the surface is exactly the party that must not
+      perform the write. Resolving the whole class rather than the files named today is what makes
+      this argument hold for a file the sweep finds that nobody has written yet. Deferring was
+      refused outright: each entry is injected at every spawn of its persona in this repository,
+      so between this merge and some later curation those seats are instructed to read arrays that
+      do not exist, and REQ-07 is violated with or without the sweep.
     dec: DEC-145
   - id: D-18
     choice: >
@@ -240,7 +313,37 @@ decisions:
       meaningless failure. Deleting the two modes after the review was refused: nothing in the
       plan removes them, and a mode that names its own validity window is cheaper than a deletion
       task nobody will run.
-    dec: DEC-207
+    dec: pending-T-06
+  - id: D-19
+    choice: >
+      No literal this plan can be outlived by is load-bearing anywhere in it. Two censuses
+      besides D-14's are therefore DERIVED at build time instead of enumerated: the set of
+      Expertise files T-07 repairs, from a sweep of .harness/expertise/*.md and
+      .harness/*/expertise/*.md for the three tokens, with T-07 declaring those two globs as its
+      files rather than a path list; and the number of this feature's own decision entry, which
+      T-06 takes by reading the last heading and which T-06's verify then locates by title
+      fragment and required content, never by number. Every dec: field here reads pending-T-06
+      until T-06 backfills it, and no verify in this plan reads that field.
+    because: >
+      D-14 already stated this rule for the test census, with the measured argument that a
+      hardcoded census is silently invalidated by a sibling. It was never carried across to the
+      other two censuses in the same plan and both then failed for exactly that reason, which is
+      why this is stated as a rule and not as a repair. The Expertise enumeration was written as
+      two files and the panel found three more, all three carrying their token text from e798b08,
+      FEAT-45's own post-merge distillation on the ref this branch is rebased onto: the target
+      moved during the work, so widening the literal to five buys one review and produces the same
+      finding at the next distillation. DEC-207 was taken by FEAT-45 before this plan's dec: fields
+      could be signed, and FEAT-48 lands first and takes another number, so no number chosen now
+      is safe either. The derived sweeps carry D-14's guards, and a derive-from-the-tree without
+      them is the opposite failure: a floor over the files discovered, whose staleness can only
+      weaken it; D-16's positive control over the record prefixes, so a search that has stopped
+      working cannot report clean; and no exemption of any kind inside an expertise directory,
+      reusing D-16's own record-versus-live-craft distinction rather than inventing a second one,
+      because Expertise is injected as current craft at every spawn and is never a record. The
+      lane is derived with the scope: all 28 files under the two globs resolve to their own
+      persona alone and to no shared seat (check-domain.sh --resolve, every file, at 1c9c384), so
+      D-17's argument holds for a sixth file nobody has written yet.
+    dec: pending-T-06
 
 tasks:
   - id: T-01
@@ -298,7 +401,10 @@ tasks:
          immediately after the .claude/skills/harness/bin/** entry at line 170, and exactly one
          into harness-dev-ops, immediately after the identical entry at line 211. Both read:
              - { path: tests/**, upsert: true }
-         with a trailing comment naming DEC-207. Do NOT touch harness-qa: line 231 already carries
+         with a trailing comment reading tests/** — harness's own tests (FEAT-47). NAME THE
+         FEATURE, NEVER A DEC NUMBER: this task runs before T-06 takes one, and a number written
+         here is a guess a later reader cannot tell from a fact (D-19). Do NOT touch harness-qa:
+         line 231 already carries
          the grant, and it becomes effective through step 2 alone. Add it to NO other seat —
          harness-frontend-dev, harness-ai-dev and harness-data-engineer stay as blocked as they are
          today, and that is a requirement (REQ-01), not an omission.
@@ -571,7 +677,8 @@ tasks:
       dependency while the artifact under test runs in-process. test-omp-hooks.py stays unit
       because forking bun only re-enters a test suite in another interpreter, and that suite's own
       cases stub the host accessor. The three sub-rules and their exemplars are recorded in
-      notes/research-tests-layout.md and belong in DEC-207.
+      notes/research-tests-layout.md and belong in this feature's own decision entry, the one
+      T-06 writes.
 
   - id: T-04
     title: Move the live-model probe to tests/manual and state why no runner may reach it
@@ -675,8 +782,8 @@ tasks:
 
       2. NEW FILE tests/unit/test-suite-layout.py — the artifact under test runs in-process and
          the only child it spawns is git, enumerating tracked files for step 2b, which is a
-         dependency read and not behaviour under assertion, so it is unit under DEC-207's first
-         sub-rule and git is already in SC-09's declared fixture set. It
+         dependency read and not behaviour under assertion, so it is unit under the first
+         sub-rule of the entry T-06 writes, and git is already in SC-09's declared fixture set. It
          imports suite_layout from BIN_DIR by the T-02 anchor recipe and asserts:
            - violations() over this repository's real root returns exactly the empty list
            - for each of four synthetic trees built in a tempdir, it returns exactly the expected
@@ -1012,6 +1119,7 @@ tasks:
     files:
       - .harness/harness/docs/DECISIONS.md
       - .harness/harness/docs/DECISIONS-INDEX.md
+      - .harness/harness/features/FEAT-47-tests-layout/plan.yaml
     verify: |
       set -e
       python3 -c 'import subprocess, sys; \
@@ -1021,20 +1129,46 @@ tasks:
         print("index in sync" if g == f else "INDEX DRIFT"); sys.exit(0 if g == f else 1)'
       python3 tests/integration/test-gen-decisions-index.py
       python3 tests/integration/test-check-decision-anchors.py
-      grep -q "^## DEC-207 " .harness/harness/docs/DECISIONS.md
+      python3 - <<'PY'
+      import re, sys
+      txt = open(".harness/harness/docs/DECISIONS.md", encoding="utf-8").read()
+      heads = re.findall(r"^## DEC-(\d+)\b[^\n]*the directory is the kind[^\n]*$", txt, re.M)
+      sec = re.search(r"^## DEC-\d+\b[^\n]*the directory is the kind.*?(?=^## DEC-|\Z)",
+                      txt, re.M | re.S)
+      body = sec.group(0) if sec else ""
+      need = ["HARNESS_CONTROL_PLANE", "is_control_plane_glob", "suite_layout.violations",
+              "tests/manual", "tests/integration", "harness-qa", "layout_fixtures.py",
+              "issue 160", "test-omp-hooks.py", "refused"]
+      missing = [n for n in need if n not in body]
+      dupes = [n for n in heads if len(re.findall(r"^## DEC-%s\b" % n, txt, re.M)) != 1]
+      print("headings", heads, "missing", missing, "words", len(body.split()), "dupes", dupes)
+      sys.exit(0 if len(heads) == 1 and not missing and not dupes
+               and len(body.split()) >= 300 else 1)
+      PY
       python3 tests/manual/suite-census.py residue
     intent: |
       Write the new entry and rewrite the two that this feature falsified. DEC-205 governs the
       shape: an entry states current truth, a correction rewrites the entry it corrects, there are
-      no dated amendment sub-sections, and a deleted number is never reused. The last heading in
-      the file is DEC-206 once FEAT-48 has landed its own entry, so the new number is DEC-207.
-      RE-DERIVE IT: read the last heading rather than trusting this sentence. If it is not DEC-207,
-      take the next free number and update every dec: field in this plan, this task's verify and
-      the team-config comment T-01 writes, in the same commit.
+      no dated amendment sub-sections, and a deleted number is never reused.
 
-      1. APPEND DEC-207, heading exactly:
-         "## DEC-207 — Harness's own tests live under tests/**, the directory is the kind, and
-         tests/** is control-plane". State, as current truth:
+      TAKE THE NEXT FREE NUMBER AT AUTHORING TIME, AND NO NUMBER IS PINNED ANYWHERE IN THIS PLAN
+      (D-19). Read the last heading in DECISIONS.md and take the next one. Trust no number written
+      in this task: DEC-207 was taken by FEAT-45 while this plan was in review, and FEAT-48 appends
+      its own entry before this task runs. Nothing this task's verify asserts depends on the
+      number — it locates the entry by the title fragment "the directory is the kind" and by
+      required content — so no forgotten self-edit can leave a check passing on nothing, and
+      gen-decisions-index.py refuses a duplicate heading (COLLISION) through the index-sync line
+      above if you append a number that is taken. BOOKKEEPING, IN THE SAME COMMIT AND DELIBERATELY
+      NOT LOAD-BEARING: once the number exists, replace every dec: pending-T-06 field in this
+      plan's own decisions block with it. That is the only reason plan.yaml is in this task's
+      files, and the approval: block is not yours to touch.
+
+      1. APPEND the entry, heading exactly:
+         "## DEC-NN — Harness's own tests live under tests/**, the directory is the kind, and
+         tests/** is control-plane", with NN the number derived above and the file's house-style em
+         dash. The fragment "the directory is the kind" is what the verify locates this entry by
+         and must appear in the heading verbatim; the verify is separator-agnostic by construction,
+         so a later house-style pass cannot redden it. State, as current truth:
            - Harness's own tests live in tests/unit/** and tests/integration/** at the repository
              root, like any other project's. bin holds production source
            - tests/** is an entry in HARNESS_CONTROL_PLANE, which is TARGET-side only.
@@ -1095,7 +1229,8 @@ tasks:
              and the rule is the enforcement for any future overlap
            - "A cross-check is separate from this rule" (around 5592-5595), which describes the
              set comparison this feature deleted. Say that the cross-check existed to compare two
-             hand-maintained lists, that DEC-207 deleted both, and that the rule stands without it
+             hand-maintained lists, that this feature's own entry deleted both, and that the rule
+             stands without it
          "What forced it" (around 5585-5590) STAYS AS HISTORY AND KEEPS THE LITERAL TOKEN, and it
          is the one paragraph of this entry the residue sweep is told about: it is the first of
          suite-census.py residue's three declared (path, fragment) exemptions, keyed on the
@@ -1124,69 +1259,131 @@ tasks:
          reddens even when no row's text changed.
 
   - id: T-07
-    title: Repair the two Expertise entries this feature falsifies
+    title: Repair every Expertise entry this feature falsifies, the set derived not listed
     traces: [REQ-07]
     change_type: docs
     execution_mode: main-session-direct
     execution_reason: >
-      D-17. Each file is granted to its own persona alone and DEC-145 confines that write to a
-      distillation dispatch, so the owner of the surface is the one party that must not perform
-      this correction — the same argument the lanes block already makes for team-config.yaml
+      D-17 and D-19. Every path under the two expertise globs is granted to its own persona alone
+      and to no shared seat (check-domain.sh --resolve over all 28 at 1c9c384), and DEC-145
+      confines that write to a distillation dispatch, so the owner of each surface is the one
+      party that must not perform this correction — and that holds for a file nobody has written
+      yet, which is why this task declares globs rather than paths
     depends_on: [T-05]
     status: pending
     files:
-      - .harness/harness/expertise/harness-eng-lead.md
-      - .harness/harness/expertise/harness-code-reviewer.md
+      - .harness/expertise/*.md
+      - .harness/*/expertise/*.md
     verify: |
-      set -e
-      bash .claude/skills/harness/bin/check-expertise.sh \
-        .harness/harness/expertise/harness-eng-lead.md \
-        .harness/harness/expertise/harness-code-reviewer.md
-      python3 -c 'import sys; \
-        ps=[".harness/harness/expertise/harness-eng-lead.md", \
-            ".harness/harness/expertise/harness-code-reviewer.md"]; \
-        bad=[(p,n+1,l) for p in ps for n,l in enumerate(open(p)) \
-          if "UNIT_SCRIPTS" in l or "INTEGRATION_SCRIPTS" in l or "check-kinds" in l]; \
-        assert not bad, bad; \
-        t=[open(p).read() for p in ps]; \
-        assert "tests/integration" in t[0] and "tests/integration" in t[1], "entry not restated"; \
-        assert "- G-02:" in t[0] and "- G-04:" in t[1], "id renumbered or dropped"; \
-        print("both entries repaired, ids intact")'
+      python3 - <<'PY'
+      import re, subprocess, sys
+      from pathlib import PurePosixPath as P
+      TOK = ("UNIT_SCRIPTS", "INTEGRATION_SCRIPTS", "check-kinds")
+      G = (".harness/expertise/*.md", ".harness/*/expertise/*.md")
+      def git(*a, ck=True):
+          return subprocess.run(["git", *a], capture_output=True, text=True, check=ck).stdout
+      def sel(out):
+          return sorted(n for n in out.splitlines()
+                        if n.startswith(".harness/") and any(P(n).match(g) for g in G))
+      def txt(p):
+          return open(p, encoding="utf-8").read()
+      base = git("rev-parse", "origin/main").strip()
+      files = sel(git("ls-files"))
+      live = [(p, n) for p in files for n, l in enumerate(txt(p).splitlines(), 1)
+              if any(t in l for t in TOK)]
+      pre = {}
+      for p in sel(git("ls-tree", "-r", "--name-only", base)):
+          eid = None
+          for l in git("show", f"{base}:{p}").splitlines():
+              m = re.match(r"- ([A-Z]{1,3}-\d+):", l)
+              eid = m.group(1) if m else eid
+              if eid and any(t in l for t in TOK):
+                  pre.setdefault(p, set()).add(eid)
+      gone = [p for p in sorted(pre) if p not in files]
+      lost = [(p, i) for p, ids in sorted(pre.items()) for i in sorted(ids)
+              if p in files and f"- {i}:" not in txt(p)]
+      mute = [p for p in sorted(pre) if p in files and not re.search(r"tests/(unit|integration)", txt(p))]
+      ctl = git("grep", "-l", "-e", TOK[0], "-e", TOK[1], "-e", TOK[2], "--",
+                ".harness/harness/features/", ck=False).split()
+      fmt = (subprocess.run(["bash", ".claude/skills/harness/bin/check-expertise.sh",
+                             *sorted(pre)]).returncode if pre and not gone else 9)
+      print("base", base, "files", len(files), "repaired", sorted(pre), "live", live, "lost", lost,
+            "gone", gone, "not-restated", mute, "control", len(ctl), "fmt", fmt)
+      sys.exit(0 if not (live or lost or gone or mute) and len(files) >= 28 and len(pre) >= 5
+               and ctl and fmt == 0 else 1)
+      PY
     intent: |
-      Two injected Expertise entries state the mechanism T-05 deletes, as current craft rather
-      than as history. Repair both IN PLACE, keeping each entry's id and each file's section
+      Injected Expertise entries state the mechanism T-05 deletes as current craft rather than as
+      history. Repair EVERY ONE OF THEM in place, keeping each entry's id and each file's section
       structure, and add nothing. This is a correction, not a distillation: no new entry, no
-      reordering, no touching any other bullet in either file.
+      reordering, no touching any other bullet in any file.
 
-      1. .harness/harness/expertise/harness-eng-lead.md, the Gotchas entry G-02, whose text today
-         says to read run-unit-tests.sh's two arrays rather than harness.json's detect globs,
-         "because array membership decides which script actually executes". The INSIGHT survives
-         the change and is what makes this a rewrite rather than a drop: the thing that decides
-         which script executes is still not the detect globs. Restate it over the mechanism that
-         exists — the directory a test sits in, tests/unit or tests/integration, decides both
-         which script the runner discovers and which kind it runs as, while the detect globs
-         decide only which kind the qa matrix believes is required. Keep the id G-02, keep the
-         WHEN/DO shape, and keep it SHORT.
-      2. .harness/harness/expertise/harness-code-reviewer.md, the Gotchas entry G-04, whose text
-         today says to check both arrays by exact name because absence from both means a script
-         never executes. Same treatment, same surviving insight: what to check now is that the
-         file sits under tests/unit/ or tests/integration/, because a test-shaped file anywhere
-         else is discovered by no runner however green its own logic reads — and bin/ in
-         particular is now refused outright by the layout guard, so a script left there does not
-         merely go unrun, it reddens every invocation. Keep the id G-04.
+      THE SET IS DERIVED AT BUILD TIME, NOT LISTED HERE (D-19, applying D-14's rule to this
+      census). Your first act is to run the derivation and work from what it returns:
+        git grep -n -e UNIT_SCRIPTS -e INTEGRATION_SCRIPTS -e check-kinds -- \
+          '.harness/expertise/*.md' '.harness/*/expertise/*.md'
+      Whatever that prints is your scope, including a file this plan never anticipated. Do not
+      trust the orientation below as the scope: an earlier draft of this task named two files, a
+      sibling's own post-merge distillation (e798b08) had already taken the real number to five,
+      and enumerating five would fail the same way at the next distillation. NO EXEMPTION EXISTS
+      FOR ANY OF THEM, ever, and none may be added: D-16 makes the residue mode refuse its own
+      exemption list if any pair lies under an expertise directory, because Expertise is injected
+      as current craft at every spawn and is never a record. That is the same record-versus-live
+      distinction the census already draws; it is not a second rule.
+
+      ORIENTATION ONLY, measured at 1c9c384 — five files, five entries, each repaired by restating
+      the surviving insight over the mechanism that exists:
+        harness-eng-lead.md G-02 says to read the two arrays rather than harness.json's detect
+        globs, "because array membership decides which script actually executes". The insight
+        survives and is why this is a rewrite and not a drop: what decides is still not the detect
+        globs. Restate it over the directory a test sits in, tests/unit or tests/integration,
+        which decides both which script the runner discovers and which kind it runs as, while the
+        detect globs decide only which kind the qa matrix believes is required.
+        harness-code-reviewer.md G-04 says to check both arrays by exact name because absence from
+        both means a script never executes. Same surviving insight: what to check now is that the
+        file sits under tests/unit/ or tests/integration/, because a test-shaped file anywhere else
+        is discovered by no runner however green its own logic reads — and bin/ is refused outright
+        by the layout guard, so a script left there does not merely go unrun, it reddens every
+        invocation.
+        harness-dev-ops.md G-10 says to run --check-kinds straight after a merge from main touches
+        the two arrays, because a merge can resurrect a registration for a deleted file. The
+        surviving insight is the merge hazard, not the detector: after this feature a merge
+        resurrects a test FILE in the wrong directory, or in bin, and what rejects it before any
+        test collects is suite_layout.violations on every runner invocation.
+        harness-qa.md G-05 says the KIND-DRIFT union check exits 2 for every kind alike. The
+        surviving insight is that the layout objection precedes kind dispatch: the runner refuses
+        the whole invocation on a layout violation whatever --kind was asked for.
+        harness-pm.md P-01 says to confirm a criterion's evidence: unit names a file in
+        UNIT_SCRIPTS and not INTEGRATION_SCRIPTS, because the kind is a property of the array. The
+        surviving insight is that the kind is not the criterion's to declare: it is the directory
+        the test file sits in, so a criterion claiming unit evidence for a test under
+        tests/integration names a kind that never runs its own assertions.
+      Any file the derivation returns that is not among those five gets the same treatment: keep
+      its id, keep the WHEN/DO shape, restate the insight over the directory-is-the-kind mechanism.
 
       THE BINDING BUDGET IS PER ENTRY, NOT PER FILE, and it was measured while writing this task
       rather than assumed: check-expertise.sh caps a single entry at 50 WORDS and reports
       "G-04 is 51 words — cap is 50; a rule, not a story" at exit 1. A first draft of the G-04
       replacement, written to read naturally, came in at 51 and failed. Write each replacement,
-      then run check-expertise.sh on both files before anything else — the 40-line
+      then run check-expertise.sh on every file you touched before anything else — the 40-line
       repository-tier file budget is the cap that will NOT fire here and is not the one to aim at.
 
       Do NOT reach for expertise-merge.py here. It computes a UNION and reports the same id
       carrying two different texts as a conflict it refuses to apply, so it cannot express a
       replacement; this is a direct edit to each file.
 
-      Both entries name a token the residue sweep searches for, and NEITHER path may ever be
-      exempted from it — the mode refuses any exemption pair under an expertise directory (D-16).
-      So this task is what makes T-06's sweep pass, and nothing about the way that sweep was made
-      satisfiable can silence these two files.
+      WHAT THE VERIFY ASSERTS, so you can read it as instructions. It derives the same two globs
+      twice: the tracked expertise files now, and the files that carried a token at origin/main
+      together with the ENTRY ID each token sat under. It then requires zero token lines anywhere
+      under either glob; every pre-image id still present, so a repair cannot become a deletion or
+      a renumbering; each repaired file naming tests/unit or tests/integration, so it cannot become
+      a silent removal; check-expertise.sh clean over exactly the derived set; at least 28 files
+      discovered and at least 5 carrying a token at the base ref, so a broken glob cannot report a
+      clean sweep; and D-16's positive control over .harness/harness/features/ non-empty, so a
+      search that has stopped working cannot either. Both floors were measured at 1c9c384, where
+      origin/main is 75daa3b, and staleness in a sibling's favour only weakens them. If either
+      comes back BELOW its floor, that is exit 1 naming the shortfall and the census is to be
+      re-derived — never the floor lowered to fit.
+
+      This task is what makes T-06's sweep pass, and nothing about the way that sweep was made
+      satisfiable can silence a single one of these files.
