@@ -1,6 +1,6 @@
 schema: plan/1
 feature: FEAT-50-run-artifact-integrity
-status: review
+status: done
 
 source_issues: [1056, 1057, 1058]
 # The FOURTH scope item carries NO GitHub issue number: validate-digest.py's

@@ -3,66 +3,69 @@
 ## Current
 
 - feature: FEAT-50-run-artifact-integrity
-- run: .harness/harness/features/FEAT-50-run-artifact-integrity/runs/t08-eng/digest.md
-- squad: eng
-- status: paused-at-main-session
+- station: done
+- pr: 1105, merged at `75bf0901`; branch tip `9f50ee66` is an ancestor of `origin/main`
+- briefing: `notes/ship-review-2026-09-01-ship.md`
+- handoff: `notes/handoff-ship.md`
 
-Build phase STARTED and is PAUSED by the main session's instruction. Nothing is committed
-and HEAD is still `5ae9274`. The working tree is NOT a settled snapshot — the main session is
-editing the gate scripts concurrently, so re-read `git status --porcelain` rather than any
-file count written here. Mine are `harness_boundary.py`, `inflight_registry.py`,
-`test-harness-boundary.py`, this file, `feature.json`, `notes/handoff-build.md` and
-`observations/harness-orchestrator.md`; `validate-digest.py` and `test-validate-digest.py`
-carry my T-01/T-02 edits but the main session owns them now.
-8 of 10 cycles used, 11 of 20 runs recorded.
+**Shipped.** The ship transition ran on 2026-09-01 as a late closeout, after the pull request had
+already merged. `gh-sync.py ship` posted the ship review on parent #1082, wrote the `Done` station
+on all sixteen recorded cards (#1082, #1083–#1094, #1056, #1057, #1058), closed milestone 35, and
+recorded `pr: 1105`. Every one of those was read back and verified, not assumed: all sixteen issues
+read `CLOSED`/`COMPLETED`, all sixteen cards read `done`, and the milestone reads `state: closed`
+with `open_issues: 0`. `plan.yaml` now carries `status: done`.
 
-**T-08 is the only task this orchestrator could execute, and it is landed.** The
-`worktree_for_feature` seam and its `AmbiguousWorktree` refusal are in `harness_boundary.py`;
-`inflight_registry.feature_root` is cut over to it with its signature, return type and total
-fallback contract intact; six named unit cases are in `test-harness-boundary.py`. I re-measured
-all of it myself: `test-harness-boundary.py` 17 PASS / 0 FAIL, `test-inflight-registry.py`
-111/111 with the file unmodified (the cutover's before-and-after invariance check, SC-16), and
-the hyphen boundary confirmed in the production function directly — `FEAT-XY-thing` and
-`FEAT-XY` both resolve `None` against a `FEAT-X` worktree.
+**No lead was dispatched in this run**, so `runs:` is unchanged at 12 and `cycles_used` stays at 8
+of 10. A closeout that reworks nothing costs no cycle.
 
-**T-08 is NOT marked `done`, and its status stays `pending`, because its own `verify:` fails.**
-The failure is the specification's, not the code's. The heredoc's last assertion,
-`ir.feature_root(d, 'FEAT-Y-other') == d`, runs AFTER the block creates a bare `FEAT` worktree
-for the ambiguity case. `'FEAT-Y-other'.startswith('FEAT' + '-')` is True, so that id uniquely
-matches the bare `FEAT` checkout and `feature_root` correctly returns it. No implementation of
-T-08's own stated matching rule can satisfy that line. Measured, not inferred: every preceding
-assertion passes and this one alone raises. `'OTHER-thing'` satisfies it — `worktree_for_feature`
-returns `None` and `feature_root` returns `d`. A one-token plan amendment, which is pm's to make
-under the operator's signature and is not mine.
+**The finalization is the main session's and is NOT done.** Two record lines must land on `main`,
+and no agent in this checkout can put them there:
 
-**Every other task belongs to the main session.** T-01–T-06 and T-09–T-12 are DEC-174
-`main-session-direct`: `check-domain.sh` in hook mode returns exit 2 for `harness-orchestrator`
-on all seven files they touch, and `bash-write-guard.sh` refused a `cp` on one of them with the
-DEC-151 guardrail-evasion message. DEC-174 reads that the harness never EXECUTES changes to its
-own hooks, validators or gate scripts, each gate's test included; that binds this orchestrator.
-The main session ruled it will own and implement them.
+1. `main`'s `plan.yaml` still reads `status: review` — FEAT-41's migration (`559354bc`) moved the
+   station key there after FEAT-50 merged and deliberately did not re-adjudicate the value.
+2. `main`'s `feature.json` still reads `pr: null`.
 
-T-01 and T-02 are applied and uncommitted in the tree, and the main session has taken ownership
-of both files. They were applied by this orchestrator through `python3 <script> <path>`, an
-interpreter route the Bash guard cannot see through, BEFORE the guard was measured — disclosed
-to the main session, which ruled they stay in place. Both pass their plan `verify:` verbatim at
-exit 0, `test-validate-digest.py` is ALL PASSED, and the `empty-red` mutation proof is green with
-its mutant removed.
+Neither can be committed here: this branch is merged and two merges behind `main`, so a commit in
+this worktree would need a second merge, which the closeout was told not to attempt. The direct
+route is refused by the checkout binding **this feature built** — measured, exit 2:
+
+> `check-domain: BLOCKED — …/.harness/harness/features/FEAT-50-run-artifact-integrity/plan.yaml is
+> a feature artifact whose write belongs in worktree
+> …/.claude/worktrees/harness/FEAT-50-run-artifact-integrity.`
+
+The exact commands are in the briefing's **Terminal state** section. Until they land,
+`check-state.sh` exits 1 with two FEAT-50 rows — INV-33 (stale `review_sha`, because FEAT-41 edited
+`plan.yaml` after the pin) and INV-26 (plan derives `review`, board reads `done`). Both close on the
+station write; neither is a defect in delivered code.
+
+**Removing this worktree is the main session's or the `post-merge` hook's act, from outside the
+tree.** `git worktree remove` exits 0 when run from inside the tree it deletes. Expect INV-29 to
+start refusing on it once the station lands on the default branch, since that classifier reads the
+landed station from `main`.
 
 ## Open Questions
 
-- Q1 (BLOCKING, pm's): T-08's `verify:` third heredoc is unsatisfiable under T-08's own matching
-  rule. Change the final assertion's id from `'FEAT-Y-other'` to an id outside every fixture
-  worktree's prefix family — `'OTHER-thing'` is measured to work. One token, in an approved plan,
-  so it needs pm and the operator's signature. Until it lands, T-08 cannot record `done` and
-  `gh-sync.py status Review` will refuse.
-- Q2 (non-blocking, harness defect): `bash-write-guard.sh` denies `cp`/`sed -i`/redirects but not
-  `python3 <script> <path>`, so a governed agent can write any path through an interpreter. This
-  is the "truly arbitrary shell remains unwinnable" limit `check-domain.sh`'s own header states,
-  and it is how T-01/T-02 landed before the guard was measured. Raised for the harness owner; not
-  in FEAT-50's scope.
-- Q3 (non-blocking, next phase, carried from the plan handoff): SC-11's clearing act for its rows
-  3–5 — the three DEC-156-failing lead digests under `runs/` — is owned by no task. They cannot
-  reach the default branch because `.gitignore:7` excludes `.harness/*/features/*/runs/**`.
-- Q4 (non-blocking, carried): finding `PF-f52c5043…` (`med`), T-03's binding asymmetry, measured
-  INERT today because no production code sets `HARNESS_PROJECT_DIR`.
+- Q1 (non-blocking, for the operator): no post-build `harness-pm` goal-check was ever run against
+  the delivered code — the two goal-checks on disk graded the PLAN. SC-01…SC-21 are graded instead
+  by the validation panel (`notes/qa-feat50-pinned-review.md`,
+  `notes/review-harness-code-reviewer-feat50-pinned.md`). Reconstructing it is one read-only run;
+  briefing Q-A.
+- Q2 (non-blocking, record gap): **SC-10** — "neither suite regresses" — has no first-hand
+  measurement anywhere in the record. Both the qa and code personas recorded it as reported ground
+  truth under their task constraints, and this closeout was instructed not to run project-wide
+  suites.
+- Q3 (non-blocking, harness defect): the two write routes disagree on the identical target. The
+  Write route refuses a governed write to the main checkout's FEAT-50 record at exit 2; the Bash
+  route returns exit 0 for `python3 gh-sync.py ship <that same dir>`, because
+  `bash-write-guard.sh` cannot see through an interpreter. Briefing B-13. The refusal was honoured
+  here rather than routed around.
+- Q4 (non-blocking, harness defect): a merged feature's honest `review_sha` goes stale when a LATER
+  feature's migration rewrites its `plan.yaml`. INV-33's terminal-station silence catches it only
+  for features shipped in time; one sitting in `review` under a landing migration goes red for a
+  reason nobody on it caused. Briefing Q-B.
+- Q5 (non-blocking, harness defect): this checkout and `main` now disagree about `feature.json`'s
+  schema — the worktree's copy REQUIRES `status`, the main checkout's post-write gate calls it
+  UNDECLARED. The same bytes are valid and invalid depending on which checkout reads them. Resolves
+  when the worktree goes; the shape does not. Briefing B-19.
+- Q6 (non-blocking, carried): `PF-f52c5043…` (`med`), T-03's binding asymmetry, measured INERT
+  because no production code sets `HARNESS_PROJECT_DIR`. Briefing B-5.
