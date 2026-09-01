@@ -185,6 +185,29 @@ decisions:
       enforcement-layer changes through the enforcement path being changed, and DECISIONS.md
       amendments about gate behaviour sit close enough to that line that the documentor lane was
       arguably the wrong routing when the plan was written, before the tension was visible.
+  - id: D-16
+    dec: DEC-174
+    choice: >-
+      T-18 is STRUCK, not implemented: FEAT-45 T-07 shipped a fix for the same defect to
+      origin/main while this feature was in flight, and the rebase onto it made T-18's work
+      redundant. The mechanism KEPT is theirs, `_hook_feature_dir`, which resolves the feature's
+      checkout through `inflight_registry.feature_root` - an authoritative record of which
+      worktree a feature is in. T-18's own implementation inferred the checkout from the
+      process's cwd, which is a weaker answer to the same question, and both were briefly present
+      in the tree after the rebase applied mine on top of theirs. Mine is deleted: validate-digest.py
+      and test-validate-digest.py are reverted to origin/main byte-for-byte. T-18's station is
+      set to the terminal marker rather than done, because the plan format is add-only and
+      recording `done` for work this feature did not do would be a falsehood.
+    because: >-
+      Verified at source before deleting anything, because the alternative was two mechanisms for
+      one question - the "second convention beside an existing one" this codebase refuses. Loaded
+      origin/main's validate-digest.py against the real worktree layout with owner_root set to the
+      main checkout: `inflight_registry.feature_root` resolved FEAT-41's linked worktree,
+      `_hook_feature_dir` returned its feature directory, feature.json was present, and SEC-01
+      bound to fb07ed6. So the panel's Q2 is closed by upstream code, not by this feature. The
+      cost of finding out this late was mine: the worktree had gone 41 commits behind origin/main
+      and I dispatched-checked before rebasing, so a whole cycle-1 panel would have reviewed a
+      diff that no longer applied.
 tasks:
   - id: T-01
     title: Declare the six stations once, as an ordered lowercase list in harness.json
@@ -1679,7 +1702,7 @@ tasks:
       one author for whom the carve-out does not bite. Operator-directed into review cycle 1
       rather than deferred to its own brief, 2026-08-31.
     depends_on: []
-    status: done
+    status: abandoned
     files: ['.claude/skills/harness/bin/validate-digest.py',
             '.claude/skills/harness/bin/test-validate-digest.py']
     verify: python3 .claude/skills/harness/bin/test-validate-digest.py

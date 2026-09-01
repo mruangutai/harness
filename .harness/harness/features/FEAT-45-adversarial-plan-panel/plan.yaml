@@ -1,5 +1,6 @@
 schema: plan/1
 feature: FEAT-45-adversarial-plan-panel
+status: done
 
 # No source ticket. The grilling artifact
 # .harness/notes/grilling-adversarial-plan-panel-2026-08-29.md names none, and gh issue
