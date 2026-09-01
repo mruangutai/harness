@@ -139,6 +139,76 @@ for _p in glob.glob(os.path.join(H, "*", "features", "*", "plan.yaml")):
         # of DEC-182 is that a malformed plan stops being something a regex half-reads.
         bad.append(f"{fpath(_feat, 'plan.yaml')} does not load, so INV-3/4/5 cannot be checked "
                    f"for it: {_e}")
+
+# --- INV-35 (issue #251): a plan.yaml plain scalar carrying a space then a `#` immediately
+# followed by a digit truncates SILENTLY under YAML's plain-scalar comment rule -- `#217`
+# embedded in `title: close out the fix for #217` stops the scalar exactly at the `#` and the
+# loss is invisible: the file still parses, `harness_yaml.load_plan` returns cleanly, and
+# nothing downstream can tell a truncated value from one that never mentioned the number.
+#
+# THIS WALKS THE RAW SOURCE, NEVER THE PARSED DOC. The parsed doc is the wrong side of the
+# loss to look from -- by the time safe_load has run, the deleted text is already gone, so a
+# check keyed on plan_docs above cannot see what it exists to catch.
+#
+# BLOCK SCALARS ARE EXEMPT BY THE YAML SPEC ITSELF: a `|`/`>` block's content is literal, and a
+# `#` inside it is data, never a comment. `_block_indent` tracks the opening key's indentation
+# and skips every more-indented (or blank) line that follows, so a `verify: |` body can freely
+# quote an issue number without tripping this.
+#
+# QUOTING IS TRACKED PER LINE, NOT PARSED: a `#` is flagged only when it is reached with no
+# quoted run open on that line, i.e. an even number of `'`/`"` have opened and closed before
+# it. This is a heuristic, not a YAML tokenizer, and it is asymmetric on purpose (a false deny
+# is recoverable, a false allow is not) -- a real trailing comment that happens to read `#217`
+# gets flagged too, and the fix is to quote or reword it, not to teach the checker intent it
+# cannot have.
+# STOPS AT THE FIRST UNQUOTED `#`, never scans past it. That hash is where YAML's comment
+# actually starts, whether or not a digit follows it -- everything after it on the line is
+# already comment text, not scalar data, so a second `#<digit>` deeper in an ordinary trailing
+# comment (`# see issue #217`) must not be mistaken for a second truncation point.
+def _unquoted_hash_digit(line):
+    in_quote = None
+    for i, ch in enumerate(line):
+        if in_quote:
+            if ch == in_quote:
+                in_quote = None
+            continue
+        if ch in ("'", '"'):
+            in_quote = ch
+            continue
+        if ch == "#" and i > 0 and line[i - 1].isspace():
+            if i + 1 < len(line) and line[i + 1].isdigit():
+                return i
+            return None
+    return None
+
+_BLOCK_SCALAR_OPEN = re.compile(r":\s*[|>][+\-]?\d*\s*(#.*)?$")
+for _p in sorted(glob.glob(os.path.join(H, "*", "features", "*", "plan.yaml"))):
+    _feat = os.path.basename(os.path.dirname(_p))
+    _txt = read(_p)
+    if _txt is None:
+        continue
+    _block_indent = None
+    for _lineno, _line in enumerate(_txt.splitlines(), start=1):
+        _stripped = _line.strip()
+        _indent = len(_line) - len(_line.lstrip(" "))
+        if _block_indent is not None:
+            if _stripped == "" or _indent > _block_indent:
+                continue
+            _block_indent = None
+        if not _stripped or _stripped.startswith("#"):
+            continue
+        if _BLOCK_SCALAR_OPEN.search(_line):
+            _block_indent = _indent
+            continue
+        _hit = _unquoted_hash_digit(_line)
+        if _hit is not None:
+            _num = re.match(r"\d+", _line[_hit + 1:]).group(0)
+            bad.append(
+                f"INV-35: {fpath(_feat, 'plan.yaml')}:{_lineno} carries an unquoted scalar with "
+                f"` #{_num}` -- YAML's plain-scalar comment rule truncates everything from that "
+                f"`#` onward, silently, even though the file still parses. Quote the value so "
+                f"the issue number stays in the data: {_line.strip()!r}."
+            )
 # STATE.md is per-feature since DEC-120; read them all.
 states = {os.path.basename(os.path.dirname(p)): read(p)
           for p in glob.glob(os.path.join(H, "*", "features", "*", "STATE.md"))}
