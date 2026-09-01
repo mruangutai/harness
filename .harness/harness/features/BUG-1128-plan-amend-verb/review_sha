@@ -1,3 +1,4 @@
-fe5c5b57
-base 2e2e45d2
-pinned 2026-09-01 (cycle 0, rebased onto current main)
+08dd66bb
+base 0bc57c88
+pinned 2026-09-01 (cycle 1, all four panel findings closed)
+superseded fe5c5b57 (cycle 0: FAIL, severity_max high)
