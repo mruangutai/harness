@@ -3099,6 +3099,52 @@ with tempfile.TemporaryDirectory() as tmpC:
     check("T-10 defect one: the commit carries EXACTLY ONE file, the plan",
           len(filesC) == 1 and filesC[0].endswith("plan.yaml"), f"files={filesC}")
 
+# BUG-1114: THE SAME SHIP WITH A **RELATIVE** FEATURE DIR MUST ALSO COMMIT.
+#
+# The case above passes an ABSOLUTE feat_dir, because `stage_ship` builds one from a
+# TemporaryDirectory. That is why this bug shipped invisibly: `_commit_terminal_station` sets
+# `git -C <feature dir>` and then passes the pathspec AS GIVEN, so a RELATIVE dir makes git resolve
+# the pathspec against `-C` and produce a doubled path that does not exist. `git status` prints a
+# warning to stderr, stdout reads EMPTY, and the function concludes the file is clean:
+#
+#     gh-sync: station already committed — ... plan.yaml is clean against HEAD
+#
+# It then returns WITHOUT committing, at exit 0. Measured on FEAT-41's real ship: relative left
+# plan.yaml dirty and reported success; absolute committed as b3e943ca.
+#
+# `run()` sets no cwd, so this case drives the subprocess directly with cwd=tmp — that is the whole
+# point, since the defect only exists when the pathspec is resolved somewhere other than the repo
+# root. Same fixture, same assertions, one changed argument.
+with tempfile.TemporaryDirectory() as tmpR:
+    install_gh(tmpR, FAKE_GH_STATIONS)
+    featR = stage_ship(tmpR, "FEAT-52-relative-dir", {"T-01": 41}, parent=40, milestone=7)
+    for _cmd in (["git", "init", "-q", "-b", "main"],
+                 ["git", "config", "user.email", "t@example.com"],
+                 ["git", "config", "user.name", "t"],
+                 ["git", "add", "-A"], ["git", "commit", "-qm", "fixture"]):
+        subprocess.run(_cmd, cwd=tmpR, capture_output=True)
+    _envR = dict(os.environ)
+    _envR["FAKE_LOG"] = os.path.join(tmpR, "calls.log")
+    _envR["GH_SYNC_GH"] = os.path.join(tmpR, "gh")
+    _envR.update(ship_env(tmpR, "40=Review 41=Review"))
+    _relR = os.path.relpath(featR, tmpR)
+    rR = subprocess.run([SYNC, "ship", _relR], cwd=tmpR, capture_output=True, text=True,
+                        env=_envR)
+    planR = os.path.join(featR, "plan.yaml")
+    dirtyR = subprocess.run(["git", "status", "--porcelain", "--", planR], cwd=tmpR,
+                            capture_output=True, text=True).stdout.strip()
+    check("BUG-1114: a ship given a RELATIVE feature dir still COMMITS the station",
+          rR.returncode == 0 and dirtyR == "",
+          f"exit {rR.returncode}; dirty={dirtyR!r}; out={rR.stdout[-600:]!r}")
+    check("BUG-1114: and it does not claim the station was already committed when it was not",
+          "already committed" not in rR.stdout and "station done committed as" in rR.stdout,
+          f"out={rR.stdout[-600:]!r}")
+    logR = subprocess.run(["git", "log", "-1", "--format=%s"], cwd=tmpR,
+                          capture_output=True, text=True).stdout.strip()
+    check("BUG-1114: the commit subject is the same one the absolute path produces",
+          logR == "FEAT-52-relative-dir: station done at ship", f"subject={logR!r}")
+
+
 # THE DISCRIMINATOR FOR "ONLY ONE FILE": an unrelated dirty file must survive the ship
 # uncommitted. Without this the case above passes against a `git commit -a`.
 with tempfile.TemporaryDirectory() as tmpD:
