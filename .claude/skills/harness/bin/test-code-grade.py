@@ -453,7 +453,9 @@ def check_base_source_rename_fallback():
 
 def check_base_source_absent_from_worktree():
     """A path new in the graded range resolves to None even when it is absent from the
-    working tree, and a genuine git failure still raises rather than reading as absence."""
+    working tree; a path git would otherwise read as pathspec magic is still found, so
+    dropping `--literal-pathspecs` cannot make a present path read as absent; and a
+    genuine git failure still raises rather than reading as absence."""
     with tempfile.TemporaryDirectory() as directory:
         repo_root = Path(directory)
         _git(repo_root, "init")
@@ -471,6 +473,10 @@ def check_base_source_absent_from_worktree():
         failures += check(
             code_grade._resolve_base_source(repo_root, base_oid, "added.py", None), None,
             "base source of a path new in the range is None")
+        _write(repo_root, ":colon.py", "def colon():\n    return 3\n")
+        head_oid = code_grade.commit_oid(repo_root, _commit(repo_root, "pathspec-magic name"))
+        failures += check(code_grade._tree_has_path(repo_root, head_oid, ":colon.py"), True,
+                          "a present path git would read as pathspec magic is not absent")
         try:
             code_grade._git_show(repo_root, "not-a-real-ref", "old.py")
         except RuntimeError:
