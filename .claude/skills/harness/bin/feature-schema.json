@@ -57,7 +57,8 @@
           "id": { "type": "string", "description": "The run's identifier." },
           "squad": { "type": "string", "description": "The squad that executed the run." },
           "verdict": { "type": "string", "description": "The run's verdict." },
-          "agent": { "type": "string", "description": "Names the agent that executed the run. ABSENCE MEANS THE ENTRY PREDATES FEAT-31 and is not an error: this key is deliberately NOT in `required`, because a schema-level requirement would deny every entry already on disk, and check-domain.sh's post sweep reaches feature.json files a change never touched. The requirement is POSITIONAL instead and lives in feature_schema.py (D-23)." }
+          "agent": { "type": "string", "description": "Names the agent that executed the run. ABSENCE MEANS THE ENTRY PREDATES FEAT-31 and is not an error: this key is deliberately NOT in `required`, because a schema-level requirement would deny every entry already on disk, and check-domain.sh's post sweep reaches feature.json files a change never touched. The requirement is POSITIONAL instead and lives in feature_schema.py (D-23)." },
+          "code_grade": { "type": "string", "enum": ["n_a"], "description": "BUG-1080. Present ONLY as `n_a`, declaring that this validator run graded a specification and no code, which is the plan-phase panel DEC-207 legalises. INV-6 then requires no pinned review_sha for it, because there is no commit to pin. ABSENCE MEANS THE RUN REVIEWED CODE and a pin IS required — the opposite default from `agent` above, and deliberately so: every entry already on disk predates this key and did review code, so a benign absence would retire INV-6 across the whole corpus. The enum is closed for the same reason; an unrecognised value must fail rather than exempt." }
         }
       }
     },

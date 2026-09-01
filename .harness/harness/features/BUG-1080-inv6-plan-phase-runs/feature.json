@@ -1,0 +1,24 @@
+{
+  "feature_id": "BUG-1080-inv6-plan-phase-runs",
+  "branch": "feat/BUG-1080-inv6-plan-phase-runs",
+  "pr": null,
+  "status": "Review",
+  "review_sha": "4a647e25d10dd737837eb764b97c9cc299e8ac5d",
+  "cycles_used": 1,
+  "max_total_cycles": 10,
+  "max_total_runs": 20,
+  "runs": [
+    {
+      "id": "2026-09-01-01-validator",
+      "squad": "validator",
+      "verdict": "FAIL",
+      "agent": "harness-validator-lead"
+    },
+    {
+      "id": "2026-09-01-02-validator",
+      "squad": "validator",
+      "verdict": "PASS",
+      "agent": "harness-validator-lead"
+    }
+  ]
+}

@@ -419,23 +419,49 @@ for fy in glob.glob(os.path.join(H, "*", "features", "*", "feature.json")):
     # `runs:` entries, whatever YAML shape the author used — inline flow mapping,
     # block mapping, comments anywhere. The parser handles all of it; we only assert
     # the three fields the invariants need.
+    #
+    # `runs` stays a 3-tuple on purpose: INV-7 and the INV-22 loop below unpack it as
+    # exactly three, so widening it here would break two invariants to serve one.
+    # BUG-1080's exemption gets its own list instead.
     runs = []
+    code_reviewing_runs = []
     for entry in (doc.get("runs") or []):
         if not isinstance(entry, dict):
             bad.append(f"{feat}: a runs: entry is not a mapping ({entry!r}).")
             continue
+        _squad = str(entry.get("squad", "")).strip()
         runs.append((str(entry.get("id", "")).strip(),
-                     str(entry.get("squad", "")).strip(),
+                     _squad,
                      str(entry.get("verdict", "")).strip()))
+        # BUG-1080: a validator run that graded no CODE has no commit to pin. DEC-207
+        # legalises exactly that run and spells it `code_grade: n_a`, so the record
+        # states what was reviewed and INV-6 reads the claim rather than guessing.
+        #
+        # ABSENCE MEANS CODE REVIEW, so a pin is required. That is fail-CLOSED and it
+        # is the OPPOSITE default from the `agent` key, where FEAT-31 made absence
+        # deliberately benign — every run recorded before this key existed reviewed
+        # code, and a silent exemption would retire the invariant on the whole corpus.
+        # EXACT match, no strip and no case fold, so this test and
+        # feature-schema.json's `enum: ["n_a"]` cannot disagree (panel Q2). A document
+        # must never be schema-invalid and gate-exempt at the same time: any deviation
+        # fails BOTH, which is the fail-closed direction.
+        if _squad == "validator" and entry.get("code_grade") != "n_a":
+            code_reviewing_runs.append(entry)
 
     # INV-6: reviewers must diff a pinned SHA, never a moving HEAD (DEC-50).
     # A placeholder is not a pin: val() returns str(v), so `review_sha: none` is a
     # truthy string and only an ABSENT key used to trip this (issue #16).
+    #
+    # The exemption is keyed on the RUN, never on approval.status (BUG-1080). Keying it
+    # on a pending approval would turn green at signature and red again for the whole
+    # build: the plan-phase runs stay in runs: while review_sha is unpinned until the
+    # Building -> Review seam. One exempt run never silences a code-reviewing sibling.
     _sha = (val("review_sha") or "").strip().lower()
-    if any(sq == "validator" for _, sq, _ in runs) and (
+    if code_reviewing_runs and (
             _sha == "" or _sha in harness_yaml.PLACEHOLDER_UNSET):
-        bad.append(f"{feat}: a validator run exists but review_sha is not pinned "
-                   f"— reviewers would diff HEAD (the GAP-7 failure).")
+        bad.append(f"{feat}: a validator run reviewed code but review_sha is not pinned "
+                   f"— reviewers would diff HEAD (the GAP-7 failure). A run that graded a "
+                   f"plan and no code carries `code_grade: n_a` and needs no pin (DEC-207).")
 
     # INV-7: the fix-loop bound must actually count the failures it bounds.
     fails = sum(1 for _, _, v in runs if v.upper() == "FAIL")
