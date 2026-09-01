@@ -10,11 +10,11 @@ CYCLE 1'S OWN BLOCKING QUESTION IS ANSWERED BY MEASUREMENT, not opinion: the pro
 tool DOES follow symlinks — link stayed a link, target's bytes changed — so H-01 was high, not
 informational, and it is fixed at both checkpoints.
 
-SC-08 IS LITERALLY FALSE BY EXACTLY ONE FILE and that is deliberate — issue #1079. BUG-1071 has
-no `plan.yaml`, so its `feature.json.status` is the only record that it is in review: deleting it
-destroys a fact, and creating a plan to hold it fabricates a document for a feature FEAT-41 does
-not own. Amending the signed criterion to make it pass is not a build decision. The gate agrees
-it is not blocking — `note` level, exit 0. Do NOT close this by editing SC-08.
+SC-08 IS FALSE BY EXACTLY ONE FILE, deliberately — issue #1079, and MEASURED not assumed: 35
+planned dirs and 10 plan-less terminal ones all carry no `status`. BUG-1071 alone does, because it
+is `Review` and plan-less, so that key is the only copy of a NON-TERMINAL fact. BUG-1055 was the
+same shape but `Done`, which is the class T-07 already migrated (FEAT-01 and nine others), so it
+was migrated here rather than filed. Do NOT close #1079 by editing SC-08.
 
 Cycle 0's two verdict items stay CLOSED by the operator: T-15's lane deviation is ratified in
 D-15, T-10's verify-line defect is recorded rather than rewritten because the plan format is
@@ -22,8 +22,8 @@ add-only. T-18 is STRUCK in D-16, not implemented — FEAT-45 fixed that upstrea
 
 ## Trust
 
-- unit exit 0, 505 PASS; integration exit 0, 819 PASS — verified-at c4da870, both kinds run SERIALLY after every fix
-- Gated HIGH code-grade records: 0, against merge-base 9f2a070, the same the reviewer will use — verified-at 8fa2d04
+- unit exit 0, 505 PASS; integration exit 0, 819 PASS — verified-at 542e888, at the NEW base 7c4f0bd, both kinds run SERIALLY after every fix
+- Gated HIGH code-grade records: 0, measured with the NEW code_grade.py (it moved upstream) against merge-base 7c4f0bd — verified-at 542e888
 - H-01's fix uses readlink, NOT realpath (realpath leaves the path's spelling namespace, `/var` -> `/private/var`, and the case stays RED with the fix in); its POST case was written after the fix so the fix was MUTATED away to prove it discriminates — verified-at 42bc5fe
 - H-02 is fixed ONCE, before either scanner: teaching two scanners about backslashes separately leaves F-03's asymmetry one escape away — verified-at 42bc5fe
 - Both QA mutations were RE-RUN against the fixes: `_I` removal now reds exactly one row, `_verify_signature` disabled goes from 0 failures to 3 — verified-at c4da870
