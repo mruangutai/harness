@@ -113,6 +113,9 @@
 - O-5: WHEN you record a member as in-flight after a forced close DO state that re-dispatch is a
   full re-spend of that spawn — a member writes its artifact at the END of its run, so nothing
   partial survives and planning around a resumable partial wastes the next context.
+- O-06: WHEN you relay distillation candidates DO read that member's own Expertise first and state
+  which sections are at cap — at a full section every candidate must displace a named survivor, and
+  a member that meets the cap late spends its judgement on arithmetic instead of on the lesson.
 
 
 ## Open (max 5)

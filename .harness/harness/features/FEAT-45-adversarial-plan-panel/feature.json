@@ -1,7 +1,7 @@
 {
   "feature_id": "FEAT-45-adversarial-plan-panel",
   "branch": "feat/FEAT-45-adversarial-plan-panel",
-  "pr": null,
+  "pr": 1069,
   "status": "Done",
   "review_sha": "bdd566679377eb5a55d1092064fe444e86d2f49f",
   "cycles_used": 10,
@@ -105,6 +105,24 @@
     },
     {
       "id": "c4-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-31-distill-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "distill-eng",
+      "squad": "eng",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-31-1-validator",
       "squad": "validator",
       "agent": "harness-validator-lead",
       "verdict": "PASS"

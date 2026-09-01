@@ -30,5 +30,6 @@
 - G-14: WHEN benchmarking or writing scratch data under an env-var-redirected root (e.g. CLAUDE_PROJECT_DIR) DO assert the resolved root actually equals the intended temp path before the first write, then delete it and confirm removal — an unenforced redirect can silently fall back and write synthetic data into the real tree.
 - G-15: WHEN an artifact already exists at your own dispatched output path DO treat it as informative only, not authoritative — independently re-derive every figure rather than trust it, since a re-dispatch to the same path means the run is being redone, not resumed.
 - G-16: WHEN a source-text heuristic passes on every isolated member diff DO also run it over the fully combined tree before trusting green — it can be blind to string literals and only run away once combined edits push a file past a size threshold no single diff reached.
+- G-17: WHEN a gate normalizes an absent or null field before testing membership in a deny-list DO check where the normalized value lands — it typically falls outside the deny set, so missing data passes silently. Prefer an allow-list of the few known-safe values instead, so absence fails closed by construction.
 ## Outcomes (max 10)
 ## Open (max 5)
