@@ -3285,6 +3285,126 @@ def case_inv32_malformed_era_exempts_nothing():
     return ok
 
 
+# --- BUG-1080: INV-6 must not forbid the plan-phase run DEC-207 legalises ------------
+#
+# INV-6 exists to stop a REVIEWER diffing a moving HEAD (DEC-50). A plan-phase panel
+# grades a SPECIFICATION, so there is no commit to pin and the hazard cannot arise.
+# DEC-207 legalises that run with `code_grade: n_a`; INV-6 predates DEC-207 and fired
+# on it anyway, and validate-digest.py REFUSES a plan review when review_sha IS pinned.
+# No value satisfied both rules, which is the defect (#1080).
+#
+# The exemption is keyed on the RUN, never on approval.status. Keying it on a pending
+# approval would break the instant a plan is signed: the plan-phase runs stay in runs[]
+# while review_sha is unpinned until the Building -> Review seam, so the gate would red
+# through the whole build phase instead. case_inv6_exempt_survives_signature pins that.
+
+_PIN_MSG = "review_sha is not pinned"
+
+
+def _inv6_feature(runs_yaml, review_sha="none", approval=""):
+    """Build a one-feature tree and return check-state's output."""
+    tmp = tempfile.mkdtemp()
+    h = os.path.join(tmp, ".harness")
+    os.makedirs(os.path.join(h, "harness", "features", "FEAT-TEST"), exist_ok=True)
+    with open(os.path.join(h, "harness.json"), "w") as f:
+        f.write(HARNESS_JSON_SYNC_OFF)
+    with open(os.path.join(h, "harness", "features", "FEAT-TEST", "feature.json"), "w") as f:
+        f.write(f"feature_id: FEAT-TEST\nreview_sha: {review_sha}\n{approval}runs:\n{runs_yaml}")
+    _code, out = run(tmp)
+    return out
+
+
+_PLAN_RUN = ("  - id: 2026-08-31-01-validator\n"
+             "    squad: validator\n"
+             "    verdict: PASS\n"
+             "    code_grade: n_a\n")
+_CODE_RUN = ("  - id: 2026-08-31-02-validator\n"
+             "    squad: validator\n"
+             "    verdict: PASS\n")
+
+
+def case_inv6_plan_run_is_exempt():
+    """DEC-207's run: graded a plan, no code, so no SHA to pin. INV-6 must stay silent.
+
+    This is the case that reddened the gate on FEAT-46 and had no honest resolution.
+    """
+    out = _inv6_feature(_PLAN_RUN)
+    ok = _PIN_MSG not in out
+    print(f"{'ok' if ok else 'FAIL'} - INV-6 exempts a plan-phase run (code_grade: n_a)")
+    if not ok:
+        print("        INV-6 fired on a run that graded no code — #1080 is not fixed")
+    return ok
+
+
+def case_inv6_code_run_still_fires():
+    """The regression guard: a validator run that does NOT declare code_grade reviewed
+    CODE, so an unpinned review_sha is still the GAP-7 failure. Absence is fail-CLOSED,
+    the opposite default from the `agent` key, which FEAT-31 made deliberately benign."""
+    out = _inv6_feature(_CODE_RUN)
+    ok = _PIN_MSG in out
+    print(f"{'ok' if ok else 'FAIL'} - INV-6 still fires on a code run with no pin")
+    if not ok:
+        print("        the exemption is over-scoped: absence of code_grade now exempts, "
+              "so INV-6 no longer guards anything")
+    return ok
+
+
+def case_inv6_unknown_grade_fails_closed():
+    """A value other than n_a is not an exemption. Guards the substring-match shortcut
+    and any rewrite that treats the KEY's presence as the exemption."""
+    out = _inv6_feature(_PLAN_RUN.replace("code_grade: n_a", "code_grade: graded"))
+    ok = _PIN_MSG in out
+    print(f"{'ok' if ok else 'FAIL'} - INV-6 fails closed on an unknown code_grade")
+    if not ok:
+        print("        any code_grade value exempted the run — presence of the key was "
+              "read as the exemption instead of its value")
+    return ok
+
+
+def case_inv6_mixed_runs_still_fire():
+    """The `any` axis, and the sharpest one: one exempt run must not silence a
+    non-exempt sibling. A feature whose plan was panel-reviewed AND whose code was
+    reviewed still needs a pin for the second run."""
+    out = _inv6_feature(_PLAN_RUN + _CODE_RUN)
+    ok = _PIN_MSG in out
+    print(f"{'ok' if ok else 'FAIL'} - INV-6 fires when a code run sits beside an "
+          f"exempt plan run")
+    if not ok:
+        print("        `any(non-exempt)` collapsed into `all(exempt)` — one plan run "
+              "now silences every code run on the feature")
+    return ok
+
+
+def case_inv6_exempt_survives_signature():
+    """WHY THE EXEMPTION IS NOT KEYED ON approval.status.
+
+    An APPROVED plan whose only validator runs are plan-phase still has no pin until the
+    Building -> Review seam. The rejected fix (exempt while approval.status is pending)
+    turns green here the moment the operator signs and stays red for the whole build.
+    """
+    approval = "approval:\n  status: approved\n  date: 2026-08-31\n"
+    out = _inv6_feature(_PLAN_RUN, approval=approval)
+    ok = _PIN_MSG not in out
+    print(f"{'ok' if ok else 'FAIL'} - INV-6 exemption survives signature (not keyed "
+          f"on approval.status)")
+    if not ok:
+        print("        the exemption is keyed on a pending approval, so signing reds "
+              "the gate for the entire build phase")
+    return ok
+
+
+def case_inv6_pinned_plan_run_silent():
+    """A pinned feature carrying a plan-phase run must not newly fire. Guards against a
+    rewrite that inverts the value test while adding the run test."""
+    out = _inv6_feature(_PLAN_RUN + _CODE_RUN, review_sha="1ce886a")
+    ok = _PIN_MSG not in out
+    print(f"{'ok' if ok else 'FAIL'} - INV-6 silent on a pinned feature with both run "
+          f"kinds")
+    if not ok:
+        print("        INV-6 fired on a correctly pinned feature")
+    return ok
+
+
 def main():
     ok_a, code_a = case_a()
     ok_b, code_b = case_b()
@@ -3376,6 +3496,16 @@ def main():
         case_inv32_malformed_era_exempts_nothing(),
     ])
 
+    # BUG-1080 — INV-6's plan-phase exemption, pinned in both directions.
+    ok_i6_plan = all([
+        case_inv6_plan_run_is_exempt(),
+        case_inv6_code_run_still_fires(),
+        case_inv6_unknown_grade_fails_closed(),
+        case_inv6_mixed_runs_still_fire(),
+        case_inv6_exempt_survives_signature(),
+        case_inv6_pinned_plan_run_silent(),
+    ])
+
     ok_exit_unchanged = code_a == code_b
     print(
         f"{'ok' if ok_exit_unchanged else 'FAIL'} - exit code unchanged by INV-21 "
@@ -3386,7 +3516,7 @@ def main():
             and ok_h and ok_i and ok_j and ok_k and ok_l and ok_m and ok_m2 and ok_m3 and ok_n and ok_o and ok_p and ok_q and ok_r and ok_s and ok_t and ok_u and ok_v and ok_w and ok_x and ok_t14 and ok_t10
             and ok_i28a and ok_i28b and ok_i28c and ok_i28d and ok_i28e and ok_i28f
             and ok_i29 and ok_i30 and ok_i31 and ok_i32 and ok_i32_severity
-            and ok_i32_era
+            and ok_i32_era and ok_i6_plan
             and ok_exit_unchanged):
         sys.exit(0)
     sys.exit(1)
