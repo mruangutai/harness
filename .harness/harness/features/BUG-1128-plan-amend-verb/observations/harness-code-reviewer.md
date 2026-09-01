@@ -1,0 +1,3 @@
+# Observations - harness-code-reviewer
+
+- 2026-09-01: BUG-1128 c2 — to run a string-patched mutant of a script that does `sys.path.insert(0, dirname(__file__))` for sibling local imports (plan-merge.py's factory_config/gh_board/etc.), don't copy the whole bin/ dir — read the real source, str.replace() the needle, compile() it, and exec() with `g={'__name__':'__main__','__file__':REAL_PATH}` set to the ORIGINAL file's path. The sys.path insert then resolves siblings correctly with zero directory copying. Confirmed the intended PLAN_MERGE_BIN=<copy> route needs the whole dir; this wrapper route doesn't.
