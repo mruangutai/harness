@@ -261,7 +261,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 names validate-digest.py and its test file as enforcement layer
     depends_on: []
-    status: building
+    status: done
     files:
       - .claude/skills/harness/bin/validate-digest.py
       - .claude/skills/harness/bin/test-validate-digest.py
@@ -442,7 +442,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 names check-domain.sh and its test file as enforcement layer, and team-config.yaml resolves to NOBODY
     depends_on: [T-02]
-    status: ready
+    status: building
     files:
       - .claude/skills/harness/bin/check-domain.sh
       - .claude/skills/harness/bin/test-check-domain.py

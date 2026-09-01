@@ -2430,7 +2430,8 @@ APPROVAL_MANIFEST = FIXTURE_MANIFEST.replace(
     '    - ".harness/*/features/*/PLAN.md ## Approval"\n'
     '    - ".harness/*/features/*/plan.yaml approval:"\n'
     '    - ".harness/logs/**"\n'
-    "shared:\n")
+    "shared:\n"
+    "  - { path: .harness/*/features/*/quarantine/** }\n")
 
 PLAN_ON_DISK = (
     "schema: plan/1\n"
@@ -3412,6 +3413,85 @@ def run_feat50_artifact_integrity():
     return _report_feat50_artifact_results(results)
 
 
+def run_feat51_orphan_write():
+    sys.path.insert(0, HERE)
+    import inflight_registry as reg
+
+    results = []
+    feature = "FEAT-99-fixture"
+    session = "feat51-writer"
+
+    def root_with_claim(agent=None, runtime=None):
+        root, _ = _approval_root(rel=REL_BRIEF, body=BRIEF_ON_DISK)
+        if agent:
+            reg.claim_with_receipt(
+                root, agent, "harness-product-lead", root,
+                feature=feature,
+                session=("other-session"
+                         if agent != "harness-orchestrator" else session),
+                runtime=runtime,
+            )
+        return root
+
+    def fire(root, rel, agent="harness-orchestrator"):
+        content = BRIEF_ON_DISK if rel == REL_BRIEF else "replacement\n"
+        payload = {
+            "agent_type": agent,
+            "session_id": session,
+            "tool_name": "Write",
+            "tool_input": {
+                "file_path": os.path.join(root, rel),
+                "content": content,
+            },
+        }
+        return subprocess.run(
+            [HOOK], input=json.dumps(payload), capture_output=True, text=True,
+            env=_env(root),
+        )
+
+    def check(name, result, want, mention=None):
+        ok = result.returncode == want and (mention is None or mention in result.stderr)
+        results.append((name, ok, f"exit {result.returncode}: {result.stderr}"))
+
+    root = root_with_claim("harness-qa")
+    check("an orphan canonical write is quarantined", fire(root, REL_BRIEF), 2,
+          "quarantine")
+
+    root = root_with_claim("harness-orchestrator")
+    check("the writer own live claim allows the canonical write",
+          fire(root, REL_BRIEF), 0)
+
+    root = root_with_claim()
+    check("a feature with no live claim allows the canonical write",
+          fire(root, REL_BRIEF), 0)
+
+    root = root_with_claim("harness-qa", runtime="omp")
+    check("an omp-runtime writer is never quarantined",
+          fire(root, REL_BRIEF), 0)
+
+    root = root_with_claim("harness-qa")
+    notes = ".harness/harness/features/FEAT-99-fixture/notes/report.txt"
+    check("an orphan write to notes is allowed", fire(root, notes), 0)
+
+    quarantine = (
+        ".harness/harness/features/FEAT-99-fixture/quarantine/"
+        "harness-orchestrator--feat51-writer/BRIEF.md"
+    )
+    check("an orphan write to the quarantine path is allowed",
+          fire(root, quarantine), 0)
+
+    check("an orphan Write of plan.yaml keeps the FEAT-41 route denial",
+          fire(root, REL_PLAN), 2, "exactly ONE writer")
+
+    fails = 0
+    for name, ok, detail in results:
+        print(("ok    " if ok else "FAIL  ") + name)
+        if not ok:
+            fails += 1
+            print("      " + detail[:500])
+    return fails
+
+
 def main():
     fails = 0
     for name, path, want, agent, tool in CASES:
@@ -3446,6 +3526,7 @@ def main():
     fails += run_t14()
     fails += run_feat50_artifact_integrity()
     fails += run_t09()
+    fails += run_feat51_orphan_write()
     return fails
 
 

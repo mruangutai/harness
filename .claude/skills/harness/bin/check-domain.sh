@@ -1677,6 +1677,37 @@ if not _post and _tool in ("Write", "Edit", "NotebookEdit") and _reached_plan:
         f"apply --file <plan.yaml> --proposal <path>\n")
     sys.exit(2)
 
+# FEAT-51: a Claude Code child whose parent is gone may finish analysis, but it may
+# not race a replacement writer onto a canonical feature artifact. The explicit
+# quarantine path is inert until the resumed parent adopts it.
+if (_governed and not _post and _tool in ("Write", "Edit", "NotebookEdit")
+        and target):
+    try:
+        import inflight_registry as _reg
+        _artifact = _reg.canonical_artifact(_norm(target))
+        if _artifact is not None:
+            _feature, _basename = _artifact
+            _session = d.get("session_id")
+            if _reg.orphan_write(root, agent, _feature, _session):
+                _quarantine = _reg.quarantine_rel(
+                    _norm(target), agent, _session
+                )
+                sys.stderr.write(
+                    f"check-domain: BLOCKED — {_show(target)} is canonical, but "
+                    f"{agent} holds no live claim for {_feature}. Its parent is gone "
+                    f"and a replacement may already be writing.\n"
+                    f"  Write the completed result to {_quarantine} instead.\n"
+                    f"  It becomes canonical only when the resumed parent runs "
+                    f"quarantine.py adopt on that file.\n"
+                )
+                sys.exit(2)
+    except Exception as _e:
+        print(
+            f"check-domain: quarantine boundary was not enforced ({_e!r}) — "
+            "passing through.",
+            file=sys.stderr,
+        )
+
 if not _post:
     # PRE. Only `Write` carries a whole-file `content` to measure, so only `Write` can be
     # blocked before the fact. `d` was parsed once at the top of this process (T-13);
