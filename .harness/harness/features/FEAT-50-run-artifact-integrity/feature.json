@@ -3,7 +3,7 @@
   "branch": "feat/FEAT-50-run-artifact-integrity",
   "pr": null,
   "status": "Review",
-  "review_sha": "dca2d3dabc5c1a3c3d7dab19f6d674b5d94ede78",
+  "review_sha": "7505b8739fd19a68601a27898d880fc719962712",
   "cycles_used": 8,
   "max_total_cycles": 10,
   "max_total_runs": 20,
@@ -73,6 +73,12 @@
       "squad": "eng",
       "agent": "harness-eng-lead",
       "verdict": "ESCALATE"
+    },
+    {
+      "id": "2026-09-01-1-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS"
     }
   ],
   "github": {
