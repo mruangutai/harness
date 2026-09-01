@@ -223,21 +223,32 @@ def case_accepted_runs_item_code_grade_n_a():
 def case_rejected_runs_item_code_grade_other_value():
     """The enum is CLOSED, and it agrees with check-state.sh's exact-match test: a
     document must never be schema-invalid and gate-exempt at once, in either direction.
-    `graded` is rejected here and fires INV-6 there."""
+    `graded` is rejected here and fires INV-6 there.
+
+    The entry carries `agent` on purpose. Cycle 1's panel caught the first cut of this
+    case passing VACUOUSLY: with `agent` omitted, the FEAT-31 positional rule raised a
+    problem of its own, so the assertion stayed green with the enum deleted entirely.
+    The value must be the ONLY defect, and the problem must NAME the key.
+    """
     doc = full_doc()
     doc["runs"] = [{"id": "r1", "squad": "validator", "verdict": "PASS",
-                    "code_grade": "graded"}]
+                    "agent": "harness-validator-lead", "code_grade": "graded"}]
     problems = clean(doc)
-    check("rejected_runs_item_code_grade_other_value", problems != [], problems)
+    named = any("code_grade" in p for p in problems)
+    check("rejected_runs_item_code_grade_other_value",
+          problems != [] and named, problems)
 
 
 def case_rejected_runs_item_code_grade_case_variant():
-    """`N_A` is the exact divergence the panel asked about (Q2). It must fail BOTH layers."""
+    """`N_A` is the exact divergence the panel asked about (Q2): it must fail BOTH layers,
+    since check-state.sh no longer case-folds. Non-vacuous for the same reason as above."""
     doc = full_doc()
     doc["runs"] = [{"id": "r1", "squad": "validator", "verdict": "PASS",
-                    "code_grade": "N_A"}]
+                    "agent": "harness-validator-lead", "code_grade": "N_A"}]
     problems = clean(doc)
-    check("rejected_runs_item_code_grade_case_variant", problems != [], problems)
+    named = any("code_grade" in p for p in problems)
+    check("rejected_runs_item_code_grade_case_variant",
+          problems != [] and named, problems)
 
 
 def case_rejected_undeclared_github_sub_key():

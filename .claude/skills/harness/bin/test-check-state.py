@@ -3430,13 +3430,17 @@ def case_inv6_message_names_the_remedy():
 
 
 def case_inv6_producer_is_documented():
-    """THE BLOCKING PANEL FINDING. A legal exemption nothing writes is dead code, and the
-    next plan-phase panel reproduces #1080 verbatim. SKILL.md step 6 is the only
-    documented runs-writing instruction, so the key must be named there.
+    """THE CYCLE-0 BLOCKING FINDING. A legal exemption nothing writes is dead code, and the
+    next plan-phase panel reproduces #1080 verbatim. SKILL.md step 6 is the only documented
+    runs-writing instruction, so the key must be named THERE.
 
     This is the `check-decision-anchors.py` shape - a tool that ships and is invoked by
-    nothing - which has recurred repeatedly in this repository. The test is cheap and it
-    is the only thing standing between a working gate and an inert one.
+    nothing - which has recurred repeatedly in this repository.
+
+    Cycle 1's panel showed the first cut bound too loosely: it asserted the string appeared
+    ANYWHERE in the file, which three mutants evaded. It now binds the step-6 block, so
+    moving the key into unrelated prose - or into a note about the key rather than an
+    instruction to write it - turns this red.
     """
     # Anchored on __file__, never SCRIPT: CHECK_STATE_BIN may point SCRIPT at a mutant
     # copy in a temp dir, and this assertion is about the shipped skill, not the fixture.
@@ -3447,12 +3451,18 @@ def case_inv6_producer_is_documented():
     except OSError as exc:
         print(f"FAIL - INV-6's producer is documented: SKILL.md unreadable ({exc})")
         return False
-    ok = "code_grade: n_a" in text
+    # Step 6 runs from its own numbered heading to the next top-level numbered step.
+    step6 = re.search(r"^6\. \*\*Adjust and record\*\*(.*?)^7\. ", text, re.S | re.M)
+    ok = bool(step6) and "code_grade: n_a" in step6.group(1)
     print(f"{'ok' if ok else 'FAIL'} - INV-6's exemption has a documented producer "
-          f"(SKILL.md names code_grade: n_a)")
+          f"(SKILL.md step 6 names code_grade: n_a)")
     if not ok:
-        print("        nothing instructs any writer to stamp the key, so every recorded "
-              "plan panel omits it and INV-6 deadlocks again")
+        if not step6:
+            print("        step 6 'Adjust and record' was not found: the runs-writing "
+                  "instruction moved, so this test can no longer bind it")
+        else:
+            print("        the runs-writing step does not name the key, so every recorded "
+                  "plan panel omits it and INV-6 deadlocks again")
     return ok
 
 
