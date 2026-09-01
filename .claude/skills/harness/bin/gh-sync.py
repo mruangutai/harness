@@ -672,7 +672,16 @@ def _commit_terminal_station(feat_dir):
     bookkeeping miss — silently cancel the worktree removal, which is a different subsystem
     entirely. The prefix used below is deliberately neither.
     """
-    plan_path = os.path.join(feat_dir, "plan.yaml")
+    # ABSOLUTE, BECAUSE EVERY GIT CALL BELOW RUNS WITH `-C` SET TO THIS FILE'S OWN DIRECTORY
+    # (BUG-1114). A relative `plan_path` made git resolve the pathspec AGAINST `-C`, producing a
+    # doubled path that does not exist: `git status` warned on stderr, stdout read EMPTY, and this
+    # function concluded the file was clean and returned WITHOUT committing -- at exit 0, printing
+    # "station already committed". Measured on FEAT-41's real ship: a relative feature dir left
+    # plan.yaml dirty and reported success; an absolute one committed as b3e943ca.
+    #
+    # The `-C` argument was already absolute. Only the pathspec was not, so the two disagreed
+    # about which directory they were talking about.
+    plan_path = os.path.abspath(os.path.join(feat_dir, "plan.yaml"))
     feat_id = os.path.basename(os.path.abspath(feat_dir))
 
     def _git(args):
