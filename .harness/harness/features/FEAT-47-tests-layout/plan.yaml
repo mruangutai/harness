@@ -144,11 +144,21 @@ decisions:
     because: >
       a hardcoded census is invalidated silently by any other feature that adds a test, which is
       precisely what FEAT-48 did to the numbers 19, 20, 36 and 37 in an earlier draft of this
-      plan: two plans that were each internally consistent and mutually contradictory. A bare
+      plan: two plans that were each internally consistent and mutually contradictory. It then
+      happened a SECOND time, through a different sibling, which is why this decision is stated as
+      a rule rather than as a repair: FEAT-45 merged while this plan was being written and added
+      test-panel-findings.py and test-plan-panel.py, moving bin from 56 test files to 58 before
+      this feature touches anything, shifting the integration enumeration from 36 to 38 and
+      falsifying two rows of the verdict-line baseline. Nothing this decision put in place broke —
+      the floors only weakened, the per-file rename assertions and the exact-residue assertion in
+      T-03 are derived from git and were unaffected — and every number that DID have to be
+      rewritten was a literal in prose. That is the measured argument for the shape. A bare
       derive-from-the-tree is the opposite failure and the one issue 979 exists to kill, a check
       that passes because it found nothing. So every derived census carries a floor whose
-      staleness can only weaken it and never turn it falsely green, and the conservation law
-      declares its one permitted absence rather than tolerating absences in general.
+      staleness can only weaken it and never turn it falsely green, every literal that survives
+      states the ref it was measured at so a later reader can tell staleness from error, and the
+      conservation law declares its one permitted absence rather than tolerating absences in
+      general.
     dec: DEC-207
   - id: D-15
     choice: >
@@ -312,7 +322,7 @@ tasks:
       capability alone, and the suite must be green at the end of it.
 
   - id: T-02
-    title: Move the 36 integration tests and their fixtures to tests/integration and repair anchors
+    title: Move the 38 integration tests and their fixtures to tests/integration and repair anchors
     traces: [REQ-02, REQ-03, REQ-04]
     change_type: scaffolding
     execution_mode: main-session-direct
@@ -331,7 +341,7 @@ tasks:
       set -e
       BASE=$(git rev-parse --verify --quiet origin/main || git rev-parse --verify main)
       n=$(ls tests/integration/test-*.py | wc -l | tr -d " ")
-      [ "$n" -ge 37 ] || { echo "floor 37 (36 enumerated + test-run-pool.py); found $n"; exit 1; }
+      [ "$n" -ge 39 ] || { echo "floor 39 = 38 enumerated + FEAT-48 test-run-pool.py, the 38 measured at 56a30a0; found $n"; exit 1; }
       r=$(git diff -M --name-status "$BASE" -- \
         ".claude/skills/harness/bin/test-*.py" "tests/integration/test-*.py")
       for f in tests/integration/test-*.py; do
@@ -345,10 +355,20 @@ tasks:
       git mv the files named below from .claude/skills/harness/bin/ to tests/integration/, then
       repair every path anchor inside them. Use git mv, one file per invocation, so history follows.
 
-      THE SET is the 36 files enumerated below PLUS FEAT-48's test-run-pool.py, which lands in bin
+      THE SET is the 38 files enumerated below PLUS FEAT-48's test-run-pool.py, which lands in bin
       before this task runs. test-run-unit-tests-kinds.py is deliberately NOT here: T-05 deletes it
-      in place. If bin holds a test-*.py at this point that is in neither this set nor T-03's, STOP
-      and report it — another feature has landed one and the census is a cross-feature contract:
+      in place. The 38 were enumerated by measuring bin at 56a30a0, where 58 test-*.py are tracked
+      (git ls-tree -r --name-only origin/main .claude/skills/harness/bin/ | grep -c "/test-.*\.py$"
+      answers 58 at origin/main 75daa3b), and the enumeration is a CROSS-FEATURE CONTRACT rather
+      than a snapshot: before moving anything, run
+          comm -23 <(git ls-files -- ".claude/skills/harness/bin/test-*.py" | sed "s#.*/##" | sort)
+                   <(printf "%s\n" <this set> <T-03 set> test-run-unit-tests-kinds.py | sort)
+      and STOP if it prints a name. A non-empty result means another feature landed a test after
+      this plan was written, exactly as FEAT-45 did with test-panel-findings.py and
+      test-plan-panel.py and FEAT-48 does with its two, and the classification is a plan decision
+      no doer may improvise. Do not silently move an unlisted file, and do not silently leave it:
+      leaving it makes T-03's residue assertion red one task later, which is the intended
+      detection but a worse place to learn it:
       test-bash-write-guard.py test-board-lifecycle.py test-board-station.py
       test-branch-create-gate.py test-check-decision-anchors.py test-check-domain.py
       test-check-expertise.py test-check-omp-port.py test-check-plan-routes.py test-check-state.py
@@ -357,9 +377,10 @@ tasks:
       test-feature-worktree.py test-gen-decisions-index.py test-gh-close-gate.py test-gh-sync.py
       test-harness-merge.py test-harness-yaml.py test-hooks-install.py test-inflight-registry.py
       test-inject-expertise.py test-layout-migration.py test-merge-gitignore.py
-      test-merge-settings.py test-observations-merge.py test-plan-merge.py
-      test-post-merge-sweep.py test-sync-agent-adapters.py test-upgrade-config.py
-      test-validate-digest.py test-validate-feature-json.py test-worktree-terminal.py
+      test-merge-settings.py test-observations-merge.py test-panel-findings.py
+      test-plan-merge.py test-plan-panel.py test-post-merge-sweep.py test-sync-agent-adapters.py
+      test-upgrade-config.py test-validate-digest.py test-validate-feature-json.py
+      test-worktree-terminal.py
 
       test-run-pool.py comes from FEAT-48 and is integration because every one of its cases forks
       the pool. It gets exactly the same treatment as the rest: git mv it into tests/integration/
@@ -377,25 +398,36 @@ tasks:
       the forking form is the discriminating one, survives untouched. Locate each by the sentence
       itself, never by line number, because this task moves the file.
 
-      Ten of those come from UNIT_SCRIPTS, by the measurement recorded in
+      TWELVE of those come from UNIT_SCRIPTS, by the criterion recorded in
       notes/research-tests-layout.md: test-board-lifecycle, test-board-station,
       test-branch-create-gate, test-check-omp-port, test-factory-decompose,
       test-feature-json-merge, test-inject-expertise, test-layout-migration,
-      test-sync-agent-adapters, test-validate-feature-json. Each drives the artifact under test in
-      a child process, so the directory is the correction, not a reshuffle.
+      test-sync-agent-adapters, test-validate-feature-json, and FEAT-45's two —
+      test-panel-findings and test-plan-panel. Each drives the artifact under test in
+      a child process, so the directory is the correction, not a reshuffle. The last two were
+      classified here, at 56a30a0, and by the same criterion as the other ten, not by the array
+      FEAT-45 registered them in: test-panel-findings.py runs panel_findings.py as a real CLI
+      subprocess and asserts its exit-code contract (its own docstring says so), and
+      test-plan-panel.py drives check-domain.sh --resolve as a subprocess and asserts the
+      resolver's stdout. Neither child is a fixture builder and neither is a stub standing in for
+      a dependency, so neither exemption sub-rule applies. Counted at 56a30a0: the arrays hold 31
+      unit and 27 integration over 58 files, and after these twelve are reassigned the
+      classification is 19 unit and 39 integration. This task moves 38 of that 39 — the 39th is
+      test-run-unit-tests-kinds.py, which T-05 deletes in place.
 
       ALSO git mv the four fixture files .claude/skills/harness/bin/fixtures/* to
       tests/integration/fixtures/ — prior-check-plan-routes.py.fixture,
       prior-harness_boundary.py.fixture.b64, prior-harness_yaml.py.fixture and
       prior-validate-digest.py.fixture. Their only two consumers are in this set.
 
-      ANCHOR REPAIR, the actual work. Measured over all 57 candidate files, the 56 tests plus the
-      probe: every one is location-dependent —
-      25 import a bin module by bare name relying on the interpreter putting the script's own
-      directory on sys.path, 51 derive a path from __file__, 16 carry a literal four-level climb to
-      the repository root, and none is location-independent. So every file in this set needs
-      an anchor edit, and the failure is an ImportError at import time, which is why running each
-      file is a sufficient proof.
+      ANCHOR REPAIR, the actual work. Measured over all 59 candidate files at 56a30a0, the 58
+      tests plus the probe: every one is location-dependent —
+      27 import a bin module by bare name relying on the interpreter putting the script's own
+      directory on sys.path, 53 derive a path from __file__, 16 carry a literal four-level climb to
+      the repository root in the os.path.join("..", "..", "..", "..") form (the probe carries the
+      same climb as .parent four times), and none is location-independent. So every file in this
+      set needs an anchor edit, and the failure is an ImportError at import time, which is why
+      running each file is a sufficient proof.
 
       In each moved file, establish the anchors from the file's own location and nothing else — no
       environment variable and no cwd, matching the discipline run-unit-tests.sh already states at
@@ -412,7 +444,14 @@ tasks:
       FIXTURE_DIR = BIN_DIR/"fixtures" and test-validate-digest.py:23 has HERE/"fixtures": both
       become TESTS_DIR/"fixtures". Files carrying the four-level climb ("..", "..", "..", "..")
       become the two-level climb above. Files reading HARNESS_PROJECT_DIR or CLAUDE_PROJECT_DIR
-      first (test-harness-yaml.py:22 among them) keep that precedence unchanged.
+      first (test-harness-yaml.py:22 and test-plan-panel.py:38 among them) keep that precedence
+      unchanged — test-plan-panel.py needs the sys.path half of the recipe only, since its REPO,
+      BIN and TEAMS all derive from that env-first root and just its harness_yaml import breaks.
+      test-panel-findings.py is the plain ARTIFACT-directory case: its BIN_DIR at line 15 locates
+      panel_findings.py, so it becomes BIN_DIR by the recipe. Keep its PANEL_FINDINGS_BIN
+      environment override exactly as written — that seam is how FEAT-45 mutation-tested the
+      module without editing the tree, and repointing BIN_DIR must not become an excuse to inline
+      the default past it.
 
       ONE MORE EDIT IN THIS TASK: test-code-grade-cli.py builds a synthetic repository whose
       unit.detect is ".claude/skills/harness/bin/test-*.py" (line 46) and writes its fixture test
@@ -448,7 +487,7 @@ tasks:
       set -e
       BASE=$(git rev-parse --verify --quiet origin/main || git rev-parse --verify main)
       n=$(ls tests/unit/test-*.py | wc -l | tr -d " ")
-      [ "$n" -ge 20 ] || { echo "floor 20 (19 + test-suite-independence.py); found $n"; exit 1; }
+      [ "$n" -ge 20 ] || { echo "floor 20 = 19 enumerated + FEAT-48 test-suite-independence.py, the 19 measured at 56a30a0; found $n"; exit 1; }
       r=$(git diff -M --name-status "$BASE" -- \
         ".claude/skills/harness/bin/test-*.py" "tests/unit/test-*.py")
       for f in tests/unit/test-*.py; do
@@ -609,7 +648,7 @@ tasks:
         want=$(ls "tests/$k"/test-*.py | sed "s#.*/##" | sort)
         [ "$got" = "$want" ] || { echo "$k tally set != tests/$k contents"; exit 1; }
       done
-      python3 tests/manual/suite-census.py migration --floor 56 \
+      python3 tests/manual/suite-census.py migration --floor 58 \
         --base "$(git rev-parse --verify --quiet origin/main || git rev-parse --verify main)" \
         --deleted test-run-unit-tests-kinds.py
       python3 tests/manual/suite-census.py verdict-lines \
@@ -673,7 +712,8 @@ tasks:
          and the same with integration. Verified before this task was written: those two regexes
          plus the fragment list report a planted reimplementation in all three shapes — slash
          literal, os.path.join components, and Path(r, "tests", "unit").glob — and match zero of
-         the 101 tracked .py files at 50dafcf, so the sweep is neither red on arrival nor blind to
+         the 104 tracked .py files at 56a30a0, re-derived there after FEAT-45 added three .py
+         files under bin, so the sweep is neither red on arrival nor blind to
          the shapes it exists to catch. Four cases:
            - EXEMPTIONS ARE DECLARED, NOT DERIVED: a module-level list of exactly four relative
              paths, .claude/skills/harness/bin/suite_layout.py, tests/unit/test-suite-layout.py,
@@ -692,8 +732,11 @@ tasks:
            - DISCOVERY FLOOR, for the same reason the migration census carries one: the scanned
              path list has at least 90 entries. Build it from git ls-files -- "*.py" run at the
              root with check=True on the exit status, never from a pipeline whose emptiness is
-             indistinguishable from its failure. 101 tracked .py files were measured at 50dafcf
-             and the migration only moves them, so the floor's staleness can only weaken it
+             indistinguishable from its failure. 104 tracked .py files were measured at 56a30a0
+             and the migration only moves them, so the floor's staleness can only weaken it.
+             DO NOT RAISE THE FLOOR TO THE MEASURED COUNT: a floor equal to the number it guards
+             is satisfied only by the exact tree it was written against, which is the failure two
+             sibling merges have already caused in this plan
            - PROVEN ABLE TO FAIL, three shapes not one, because the shape a reimplementation is
              written in is exactly what a literal search gets wrong: for each of a slash literal
              ("tests/unit"), os.path.join components ("tests", "unit") and
@@ -817,8 +860,18 @@ tasks:
          SC-09 and SC-10, under tests/manual because no runner may run it. FOUR subcommands over
          a directory of test files, defaulting to tests/unit and tests/integration:
            - verdict-lines: run each file with the current interpreter from the repository root,
-             count output lines whose first token is ok, not ok, PASS or FAIL, and compare each
-             file's count against a baseline table. --baseline takes a text file and reads ONLY the
+             count output lines whose first whitespace-delimited token, WITH ANY TRAILING COLON
+             STRIPPED, is ok, PASS or FAIL, plus lines beginning "not ok", and compare each
+             file's count against a baseline table. THE TRAILING COLON IS NOT A DETAIL: three
+             suites print "PASS: (e) ..." rather than "PASS ...", and a literal first-token
+             reading scores test-hooks-install.py, test-post-merge-sweep.py and
+             test-worktree-terminal.py at 0 against baseline rows of 29, 52 and 34 — three rows
+             wrong by construction and a --strict run permanently red on correct work. Measured
+             both ways at 56a30a0 against the 56 rows measured at ea6f51f: the colon-stripping
+             rule reproduces 54 of them and the literal rule 51. The two the colon-stripping rule
+             does not reproduce are FEAT-45's own edits, test-check-state.py 145 to 147 and
+             test-validate-digest.py 114 to 117, and the re-derived table carries the new values.
+             --baseline takes a text file and reads ONLY the
              rows inside its fenced text block, each a test filename then whitespace then an
              integer and nothing else; the block in notes/research-tests-layout.md is the baseline.
              Reading the whole file instead would let a sentence of prose that happens to name a
@@ -828,12 +881,15 @@ tasks:
              baseline row with no file on disk, unless that name was passed to --deleted, which is
              repeatable and is how a deliberate deletion is declared out loud instead of silently
              tolerated. A file on disk with no baseline row is printed as new and does NOT fail —
-             the two test files this task adds and the two FEAT-48 adds all land in that bucket,
-             because the baseline was measured before either existed. The comparison is PER FILE,
+             the two test files this task adds and the two FEAT-48 adds land in that bucket,
+             because the baseline was measured before they existed. FEAT-45's two do NOT: they
+             were measured at 56a30a0 and carry rows, because a migrated file with no row is a
+             file whose anchor repair verdict-lines cannot see. The comparison is PER FILE,
              never a total: a total is satisfied by two files that moved in opposite directions
              ONE-REVIEW SHELF LIFE, DECLARED IN THE INTERFACE (D-18). The baseline is a snapshot
-             measured at ea6f51f, so the first legitimate later edit that adds an assertion to any
-             test falsifies it. Therefore: print the drift and EXIT 0 unless --strict is passed,
+             measured at 56a30a0 over 58 files, so the first legitimate later edit that adds an
+             assertion to any test falsifies it. Therefore: print the drift and EXIT 0 unless
+             --strict is passed,
              which is what turns the three failure conditions above into a non-zero exit. T-05's
              verify passes --strict, at the one moment the baseline is current, and the SC-01 and
              SC-02 goal-check passes it at the review sha. Without the flag the mode is a report.
@@ -913,11 +969,22 @@ tasks:
 
       THIS TASK'S VERIFY ASSERTS NO EXPECTED COUNT (D-14). It asserts set equality between each
       kind's tally lines and that kind's directory, and completeness of the whole migration
-      against the ref this feature merges into, with a floor of 56 measured at ba338d8 so a
-      truncated discovery cannot pass as a clean sweep. For orientation only, and NOT as an
+      against the ref this feature merges into, with a floor of 58 so a
+      truncated discovery cannot pass as a clean sweep. PROVENANCE OF THAT 58, because a floor
+      whose origin is unstated is the thing that has now rotted twice: 58 test-*.py are tracked
+      under bin at origin/main 75daa3b, the ref this branch is rebased onto, with FEAT-45 merged
+      and FEAT-48 not yet. FEAT-48 only ADDS, so the set at build time is 60 and the floor holds
+      with two to spare; that slack is deliberate and must not be closed. Re-derive it with
+      git ls-tree -r --name-only <base> .claude/skills/harness/bin/ counting /test-*.py, and
+      raise it only against a ref where a file was DELETED, never to match today's count.
+      For orientation only, and NOT as an
       assertion any verify makes: unit holds the 19 enumerated migrated files, FEAT-48's
-      test-suite-independence.py and step 2's test-suite-layout.py; integration holds the 36
-      enumerated, FEAT-48's test-run-pool.py and step 3's test-run-unit-tests-layout.py.
+      test-suite-independence.py and step 2's test-suite-layout.py; integration holds the 38
+      enumerated, FEAT-48's test-run-pool.py and step 3's test-run-unit-tests-layout.py — 21 and
+      40 files on disk. The conservation law grades only the migrated subset of those, and it
+      reconciles: 20 unit plus 39 integration plus the one declared deletion is the 60 tracked
+      under bin once FEAT-48 has landed, and 58 against 75daa3b before it does. This task's own
+      two files carry no derived name and are reported as new, which is why they are excluded.
 
       TWO INHERITED GUARDS BIND THE TWO NEW TEST FILES, and neither is this task's to weaken.
       FEAT-48's test-suite-independence.py statically forbids any test mutating a path derived from

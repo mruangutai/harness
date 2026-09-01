@@ -5,16 +5,21 @@
 In this repository every test lives in `.claude/skills/harness/bin/`, beside the hooks, validators
 and gate scripts it tests. The only way to grant a seat permission to write a test here is to grant
 it `.claude/skills/harness/bin/**` — the same grant that lets it rewrite `check-domain.sh`. Measured
-at `ea6f51f` on the live PreToolUse route: `harness-qa` carries `tests/**` and is BLOCKED writing
+at `56a30a0` on the live PreToolUse route (`check-domain.sh --resolve tests/unit/test-x.py` prints
+`NOBODY`, and `--resolve .claude/skills/harness/bin/zz.sh` prints `harness-backend-dev
+harness-dev-ops`): `harness-qa` carries `tests/**` and is BLOCKED writing
 anywhere it could put a test, while `harness-backend-dev` and `harness-dev-ops` write tests only
 through the enforcement-script grant. So "may write a test" and "may write an enforcement script"
 are one permission, and the qa half of issue #979 — a seat that can add the test a gate is missing
 without being able to weaken the gate — cannot be built on that layout. Two further costs are
 already visible: which kind a test belongs to is bookkeeping in two hand-maintained bash arrays
 plus a literal file list in `harness.json`, and eight files once drifted between them silently
-(DEC-197); and `bin/` cannot be described as production code, because 57 of the 118 files tracked
-under it are test-named — measured at `ea6f51f`, and a baseline rather than an invariant, since
-FEAT-48 lands two more test files there before this feature runs.
+(DEC-197); and `bin/` cannot be described as production code, because 59 of the 121 files tracked
+under it are test-named — measured at `56a30a0`, whose `bin/` is identical to `origin/main`
+`75daa3b`, and a baseline rather than an invariant. It was 57 of 118 at `ea6f51f`; FEAT-45 merged
+in between and added two test files plus `panel_findings.py`, and FEAT-48 lands two more test
+files there before this feature runs. That the figure moved twice while nothing in the plan broke
+is the argument for D-14's shape, not a footnote to it.
 
 ## Goal
 
@@ -68,8 +73,13 @@ Cited by number, each labelled by what it does to this feature.
   `.harness/harness/features/FEAT-47-tests-layout/`.
 - **The historical record is not rewritten.** Notes, receipts and logs under `.harness/notes/`,
   `.harness/harness/features/**` and `.harness/logs/` that name `bin/test-` paths are a record of
-  what was true when written. A raw grep reports 3219 such mentions; 6 of them are live references
-  and only those 6 change (enumerated in `notes/research-tests-layout.md`).
+  what was true when written. `git grep -c 'bin/test-' 56a30a0` totals **2239** matching lines
+  across the tracked tree, up from 2148 at `ea6f51f`; **6** of them are live references and only
+  those 6 change (enumerated in `notes/research-tests-layout.md`), and FEAT-45's three added files
+  name none of them. An earlier draft of this brief said 3219 with no invocation stated; that
+  figure could not be reproduced by any `git grep` form at either ref and is withdrawn rather
+  than carried forward, which is the reason every figure here now names the command that produced
+  it.
 - **Out of scope, settled at grilling:** issue #979 itself — the mutation gate, the host kind,
   fixture provenance and the measurement mode. This feature is the migration that unblocks it and
   #979 is re-planned afterwards. Also out: renaming `is_control_plane_target`, and a third
@@ -90,6 +100,15 @@ Cited by number, each labelled by what it does to this feature.
   everything else and declares each one's kind. Nothing here names a count FEAT-48 could
   invalidate: every census is derived from the tree this feature merges into, carries a floor, and
   is bound by a conservation law rather than by an expected number (D-14).
+- **A second sibling already landed, and the same lesson applies to it.** FEAT-45 merged while
+  this plan was being written, adding `test-panel-findings.py` and `test-plan-panel.py` to
+  `bin/`. Both are classified **integration** here by the issue #160 criterion, not by the
+  `UNIT_SCRIPTS` entry FEAT-45 gave them: each drives its artifact as a real subprocess and
+  asserts on that child's behaviour. They join T-02's set, taking the migrated integration
+  enumeration from 36 to 38, and they carry rows in the re-derived verdict-line baseline. No
+  check in this plan broke on that merge — the floors only weakened and the derived assertions
+  were untouched — and the numbers that had to be rewritten were all literals in prose. That is
+  the standing argument for the shape D-14 chose.
 - **Two inherited guards bind every test file this feature moves or writes, and neither is this
   feature's to weaken.** `test-suite-independence.py` statically forbids a test mutating any path
   derived from the live checkout, has no escape hatch, and discovers its scan set by walking the
@@ -103,8 +122,11 @@ Cited by number, each labelled by what it does to this feature.
 ## Success Criteria
 
 Every criterion is graded at the pinned `review_sha` (`git show <review_sha>:<path>`), never against
-the working tree. The per-file baselines the first two criteria compare against were measured at
-`ea6f51f` and are recorded in `notes/research-tests-layout.md`.
+the working tree. The per-file baselines the first two criteria compare against were re-derived at
+`56a30a0` over all 58 files and are recorded in `notes/research-tests-layout.md`. A verdict line is
+one whose first whitespace-delimited token, trailing colon stripped, is `ok`, `PASS` or `FAIL`, or
+which begins `not ok`; three suites print `PASS: (e) …`, so a literal first-token reading would
+score them 0 against non-zero rows and redden a correct tree.
 
 - SC-01: From the new layout, `run-unit-tests.sh --kind unit` exits 0, and the set of basenames in
   its tally lines equals exactly the set of `test-*.py` files present in `tests/unit/` — set
@@ -140,8 +162,11 @@ the working tree. The per-file baselines the first two criteria compare against 
   `tests/integration/test-run-unit-tests-layout.py`, `tests/manual/suite-census.py`. Three things
   make that sweep more than decoration: `suite_layout.py` and `suite-census.py` are asserted to
   MATCH the pattern, so a pattern that has stopped matching predicate-shaped code goes red instead
-  of reporting clean; the scanned set is asserted to be at least 90 tracked files, measured at
-  `50dafcf`, so a discovery returning nothing cannot read as a clean sweep; and the sweep is proven
+  of reporting clean; the scanned set is asserted to be at least 90 tracked files, and 104 were
+  measured at `56a30a0` — re-derived there after FEAT-45 added three `.py` files, and the
+  exemption list stays at exactly four, because neither of FEAT-45's two test files matches the
+  sweep (both regexes plus the fragment list return zero over all 104) — so a discovery returning
+  nothing cannot read as a clean sweep; and the sweep is proven
   able to fail against a planted reimplementation in each of three spellings, not one.
   Separately, exactly one non-comment line of `run-unit-tests.sh` names `suite_layout`, so the
   runner delegates rather than re-deriving. What this does NOT detect is stated in Verification
@@ -181,19 +206,24 @@ the working tree. The per-file baselines the first two criteria compare against 
 - SC-10: The migration is complete against the tree it merges into.
   `tests/manual/suite-census.py migration` derives the set of `test-*.py` basenames tracked under
   `.claude/skills/harness/bin/` at that ref — which by then contains FEAT-48's two — prints the
-  size of that set, refuses a set smaller than 56 so a truncated or empty discovery cannot read as
+  size of that set, refuses a set smaller than 58 so a truncated or empty discovery cannot read as
   a clean sweep, and exits non-zero unless every name is present at the review sha under exactly
   one of `tests/unit/` or `tests/integration/`. One deletion is declared on the command line
   (`test-run-unit-tests-kinds.py`) and is the only permitted absence; a file present with no
   baseline name is printed as new, not failed. What makes it red: dropping a file, copying where a
   move was intended, or FEAT-48 adding a test this feature does not migrate. The one number in it
-  is a floor measured at `ba338d8`, whose staleness can only make it weaker and never falsely
-  green.
+  is a floor of 58, measured at `origin/main` `75daa3b` — the ref this branch is rebased onto,
+  with FEAT-45 merged and FEAT-48 not yet, re-derivable as
+  `git ls-tree -r --name-only 75daa3b .claude/skills/harness/bin/ | grep -c '/test-.*\.py$'`.
+  FEAT-48 only adds, so the set at build time is 60 and the floor holds with two to spare. The
+  slack is deliberate: a floor equal to the count it guards passes only against the exact tree it
+  was written against, which is how this number went stale twice. Its staleness can only make it
+  weaker and never falsely green.
   verify: inspection
 
 ## Verification gaps
 
-Read against `test_kinds` in `.harness/harness.json` at `ea6f51f`.
+Read against `test_kinds` in `.harness/harness.json` at `56a30a0`; FEAT-45 did not change that file.
 
 - Every `verify: automated` criterion above rests on `unit` or `integration`. Both have a live
   runner (`run-unit-tests.sh --kind <kind>`), so no criterion here is carried by a soft skip.
@@ -219,16 +249,19 @@ Read against `test_kinds` in `.harness/harness.json` at `ea6f51f`.
   under a different shape would ship green.
   The independent reader's challenge, recorded with its answer: the hazard's measured base rate is
   zero and all four declared exemptions are files this feature itself writes, so is the sweep
-  decoration? No, and the reasons are separable. The graded set is the ~97 tracked `.py` files this
-  feature does not write, measured at `50dafcf` and matching none of them, so the assertion is
+  decoration? No, and the reasons are separable. The graded set is the 100 tracked `.py` files this
+  feature does not write — 104 at `56a30a0` less the four it declares — and the sweep matches none
+  of them, so the assertion is
   true by MEASUREMENT and not by construction; a regression guard's base rate is zero at authoring
   by definition, which is not evidence of vacuity; and the four exemptions being this feature's own
   files is precisely what makes the positive control possible, since two of them must MATCH or the
   pattern is dead. What is honestly conceded is only the shape above: a parameterised second
   predicate ships green, and `CODEOWNERS` plus SC-04 carry the runner, not the sweep.
 - **Two of `suite-census.py`'s four modes have a ONE-REVIEW shelf life, and say so in their own
-  interface rather than in a comment (D-18).** `verdict-lines` compares against a baseline measured
-  at `ea6f51f` that the first legitimate later test edit falsifies, so it reports drift and exits 0
+  interface rather than in a comment (D-18).** `verdict-lines` compares against a baseline
+  re-derived at `56a30a0` that the first legitimate later test edit falsifies — FEAT-45's merge
+  already falsified two of its rows, which is what a one-review shelf life means in practice — so
+  it reports drift and exits 0
   unless `--strict` is passed — SC-01 and SC-02 pass it, at the review sha, when the baseline is
   current. `migration --base <ref>` derives an empty set for any ref after this merge, so it exits
   2 with a message naming that cause instead of exit 1 on its floor. `children` and `residue` have

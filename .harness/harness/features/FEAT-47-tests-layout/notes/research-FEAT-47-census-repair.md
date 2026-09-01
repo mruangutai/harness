@@ -1,30 +1,41 @@
 # FEAT-47 census repair — FEAT-48 lands first, and no plan states an expected count
 
-**Every hardcoded test-file count is gone from `BRIEF.md` and `plan.yaml`.** What replaced them is a
-floor plus a per-file provenance check per task, and one conservation law asserted once at the end
-from the ref this feature merges into. The two plans' censuses now reconcile exactly, arithmetically
-verified: 56 in `bin/` today, 58 after FEAT-48, 20 to `tests/unit/` + 37 to `tests/integration/` +
-1 declared deletion = 58.
+**RE-DERIVED at `56a30a0` after FEAT-45 merged and this branch was rebased onto `origin/main`
+`75daa3b`. Every figure below is the post-rebase one; the pre-rebase figure is kept beside it
+where it was load-bearing.** The reconciliation this note first recorded — 56 in `bin/`, 58 after
+FEAT-48, 20 unit + 37 integration + 1 deletion = 58 — was arithmetically correct at `ea6f51f` and
+is now wrong at every term. FEAT-45 added `test-panel-findings.py` and `test-plan-panel.py`, both
+classified **integration** by the issue #160 criterion.
+
+**Every hardcoded test-file count is gone from `BRIEF.md` and `plan.yaml`.** What replaced them is
+a floor plus a per-file provenance check per task, and one conservation law asserted once at the
+end from the ref this feature merges into. Current reconciliation, measured:
+**58 in `bin/` at `75daa3b`, 60 after FEAT-48, 20 to `tests/unit/` + 39 to `tests/integration/` +
+1 declared deletion = 60.** Before FEAT-48: 19 + 38 + 1 = 58.
 
 ## What changed, by number
 
 | Was | Now | Where |
 |---|---|---|
-| `[ "$n" = 36 ]` | floor `-ge 37`, source named in the failure message | T-02 verify |
-| `[ "$n" = 19 ]` | floor `-ge 20`, source named | T-03 verify |
+| `[ "$n" = 36 ]` | floor `-ge 39`, source and measuring ref named in the failure message | T-02 verify |
+| `[ "$n" = 19 ]` | floor `-ge 20`, source and ref named | T-03 verify |
 | `grep -c "^R" >= 36` over `tests` + `bin` | per-file `R<sim> bin/<b> -> <f>` assertion, scoped to `test-*.py` only | T-02, T-03 |
 | bin sweep expecting emptiness | `left` must equal exactly `test-run-unit-tests-kinds.py` | T-03 |
 | tally counts `= 20` / `= 37` | set equality between tally lines and the kind's directory | T-05 |
-| — | new `suite-census.py migration` subcommand: conservation law + `--floor 56` | T-05 step 9 |
+| — | new `suite-census.py migration` subcommand: conservation law + `--floor 58` at `75daa3b` | T-05 step 9 |
 | `dec: DEC-206` (11 sites) | `DEC-207`; FEAT-48 takes DEC-206 | plan-wide, T-06 |
 | `gen-decisions-index.py --check` | `--stdout` captured, compared byte-for-byte | T-06 verify, SC-07 |
 | — | exactly one `run_pool.py` line, carrying `--mutation-check`, no serial loop | T-05 verify |
+| baseline rows 145 / 114, and no rows for FEAT-45's two | 147 / 117, plus rows 10 and 28 | `research-tests-layout.md` |
+| verdict line = "first token is ok/PASS/FAIL" | first token **with trailing colon stripped**, so `PASS: (e)` counts | T-05 step 9, SC-01/02 |
 
 ## Three defects the reorder exposed that were not in the brief
 
-1. **T-03's `bin/` sweep was already broken.** 36 + 19 = 55 of 56; `test-run-unit-tests-kinds.py`
+1. **T-03's `bin/` sweep was already broken.** 38 + 19 = 57 of 58 (36 + 19 = 55 of 56 when this
+   was first written); `test-run-unit-tests-kinds.py`
    stays in `bin/` until T-05 `git rm`s it, so a sweep expecting emptiness at T-03 was red for a
-   reason no task was wrong about. Now asserted as an exact residue.
+   reason no task was wrong about. Now asserted as an exact residue — and that residue assertion
+   is `git ls-files`-derived, which is why FEAT-45's merge did not break it.
 2. **The decision number shifts.** FEAT-48 lands first and takes `DEC-206`; FEAT-47's entry is
    `DEC-207`. T-06 now says to re-derive it and update every `dec:` field if it differs.
 3. **FEAT-48's own decision entry is inside T-06's live-file sweep.** If it names `UNIT_SCRIPTS` as
@@ -55,11 +66,18 @@ verified: 56 in `bin/` today, 58 after FEAT-48, 20 to `tests/unit/` + 37 to `tes
   with the message; token absent → clean; `git grep` errors → `rc=1, "git grep errored, status 129"`.
   **Old `if git grep … | grep .` form on the same erroring search → `rc=0, "sweep clean"`.**
 - `feat47-census-proof.py` — 18 checks, all pass, including `union + deletion == baseline` exactly.
-- `check-plan-routes.py <plan>` → `0 violation(s) across 1 plan(s)`, exit 0. Budgets: T-01 21,
-  T-02 27, T-03 37, T-04 16, T-05 48, T-06 30 — all under the 50-line cap; every verify block
-  passes `bash -n`.
-- The baseline table in `research-tests-layout.md` holds 56 rows: 55 migrated files with rows,
-  1 declared deletion, and FEAT-48's two correctly rowless and reported as `new`.
+  **Run at `ea6f51f`; not re-run at `56a30a0`.** What replaced it as evidence for the re-derivation
+  is the direct measurement recorded in `research-tests-layout.md`: the 58 names in the baseline
+  block are exactly `git ls-tree HEAD bin/` filtered to `test-*.py`, sorted, and the two
+  enumerated task sets union with the one declared deletion to exactly that 58 — machine-checked,
+  and re-checkable with the `comm -23` invocation T-02's intent now states.
+- `check-plan-routes.py <plan>` → `0 violation(s) across 1 plan(s)`, exit 0, re-run at `56a30a0`
+  after this re-derivation. Two `DEVIATION` lines for T-06 and T-07 are the expected DEC-174
+  carve-out output and do not gate. Verify-block budgets after the edits: T-01 10, T-02 13,
+  T-03 21, T-04 6, T-05 28, T-06 10, T-07 14 — all under the 50-line cap.
+- The baseline table in `research-tests-layout.md` now holds 58 rows: 57 migrated files with rows,
+  1 declared deletion, FEAT-45's two given rows measured at `56a30a0`, and FEAT-48's two still
+  correctly rowless and reported as `new`.
 
 ## Two corrections taken from FEAT-48's PM after the first pass
 
@@ -82,8 +100,12 @@ verified: 56 in `bin/` today, 58 after FEAT-48, 20 to `tests/unit/` + 37 to `tes
 - set equality: the runner discovering a file the directory lacks, or skipping one it holds.
 - conservation law: a dropped file, a copy where a move was intended, or FEAT-48 adding a test this
   feature does not migrate.
-- `--floor 56`: a `--base` ref whose history cannot be read. The floor can only go stale downward,
-  so it never turns falsely green.
+- `--floor 58`: a `--base` ref whose history cannot be read. The floor can only go stale downward,
+  so it never turns falsely green — which is exactly what happened when FEAT-45 merged: 56 stayed
+  true against 58 and merely stopped being tight. It is re-derived to 58 at `75daa3b` and
+  deliberately left two below the 60 that will be there at build time.
+- verdict-line baseline: a per-file assertion count that changed. This is the one check a sibling
+  merge falsifies by construction, and D-18 is why it reports rather than reddens by default.
 
 ## Open
 

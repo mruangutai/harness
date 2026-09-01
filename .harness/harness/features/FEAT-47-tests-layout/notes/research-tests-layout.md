@@ -1,21 +1,29 @@
-# Research — FEAT-47 tests layout — 2026-08-31
+# Research — FEAT-47 tests layout — 2026-08-31, re-derived at `56a30a0` 2026-08-31
 
 **BLUF.** Both fog items in `.harness/notes/grilling-tests-layout-2026-08-31.md` are resolved by
-measurement, and three of that artifact's counts are wrong. The kind split reassigns **10 files**
+measurement, and three of that artifact's counts are wrong. The kind split reassigns **12 files**
 (all unit to integration, none the other way). `bin/fixtures/` is **test support** and travels;
 `feature-schema.json` is **production** and stays. The migration is larger than "fix ~18 depth
-climbs": **all 57 files measured — the 56 tests plus the probe — resolve `bin/` implicitly or by
-depth, and every one of the 56 that move needs an anchor edit** (the 57th,
+climbs": **all 59 files measured — the 58 tests plus the probe — resolve `bin/` implicitly or by
+depth, and every one of the 58 that move needs an anchor edit** (the 59th,
 `test-run-unit-tests-kinds.py`, is deleted in place). Baseline census below is the load-bearing
 input to SC-01.
 
-## Corrections to the grilling artifact (measured at `ea6f51f`, worktree clean)
+**Re-derivation, and why this file carries two refs.** Everything here was first measured at
+`ea6f51f`. FEAT-45 then merged, adding `test-panel-findings.py`, `test-plan-panel.py` and
+`panel_findings.py` to `bin/`, and this branch was rebased onto `origin/main` `75daa3b`
+(worktree head `56a30a0`, whose `bin/` is identical to that ref). Every count below is now stated
+at `56a30a0` with the `ea6f51f` value kept beside it, so a later reader can tell a re-derivation
+from an error. Nothing but counts and two baseline rows changed: the criterion, the sub-rules and
+the fixture and schema rulings all re-derived unchanged.
+
+## Corrections to the grilling artifact (measured at `ea6f51f`, re-derived at `56a30a0`)
 
 | It says | Measured | How |
 |---|---|---|
-| 55 python tests, 28 unit / 27 integration | **56**, **29** unit / 27 integration, no duplicates, no overlap | parse both arrays out of `run-unit-tests.sh` at `ea6f51f`, compare to `glob('bin/test-*.py')` |
-| 40 non-test `.py` helpers stay | **42** | `glob('*.py')` minus `test-*` and `probe-*` |
-| 3 live references to `bin/test-` paths | **6** | see the table under *Live references* |
+| 55 python tests, 28 unit / 27 integration | **58**, **31** unit / 27 integration at `56a30a0` (56, 29/27 at `ea6f51f`), no duplicates, no overlap | parse both arrays out of `run-unit-tests.sh`, compare to `glob('bin/test-*.py')` |
+| 40 non-test `.py` helpers stay | **43** at `56a30a0` (42 at `ea6f51f`; `panel_findings.py` is the addition) | `glob('*.py')` minus `test-*` and `probe-*` |
+| 3 live references to `bin/test-` paths | **6**, unchanged — FEAT-45's three files name none | see the table under *Live references* |
 
 Nothing else in that artifact's `## Facts I verified` failed re-derivation.
 
@@ -40,7 +48,9 @@ assertion is observable in-process. Three sub-rules, each with the exemplar that
 - A shim that only **re-enters a test suite in another interpreter** inherits that suite's kind.
   `test-omp-hooks.py` forks `bun test omp-hooks.test.ts`, whose cases stub `getSessionFile`. Unit.
 
-**The 10 reassignments (unit → integration), with the child each one drives:**
+**The 12 reassignments (unit → integration), with the child each one drives.** The first ten were
+measured at `ea6f51f`; the last two arrived with FEAT-45 and were classified at `56a30a0` by the
+same criterion, not by the `UNIT_SCRIPTS` entry FEAT-45 gave them:
 
 | file | child observed |
 |---|---|
@@ -54,9 +64,15 @@ assertion is observable in-process. Three sub-rules, each with the exemplar that
 | test-layout-migration.py | `check-state.sh` x6 |
 | test-sync-agent-adapters.py | `python3 sync-agent-adapters.py` x4 |
 | test-validate-feature-json.py | `validate-feature-json.py` x6 |
+| test-panel-findings.py | `python3 panel_findings.py id --reader … --summary …` — the real CLI, asserting its exit-code contract (2 on an empty reader, 2 on a whitespace-only summary). The pure-function half is loaded in-process via `importlib`, but the CLI cases are not, so the file is integration on the whole |
+| test-plan-panel.py | `check-domain.sh --resolve <path>` x3 call sites, asserting the resolver's `stdout` and returncode. Not a stub and not a fixture builder: the gate script IS the thing whose answer the assertion depends on |
 
-No file moves integration → unit. Final split: **19 unit, 37 integration** (36 moved plus the new
-guard test), against today's 29/27. `test-hooks-install.py` stays integration on the first sub-rule's
+No file moves integration → unit. Final classification of the 58 at `56a30a0`: **19 unit, 39
+integration**, against today's arrays' 31/27. One of the 39, `test-run-unit-tests-kinds.py`, is
+deleted in place rather than moved, so **19 and 38 move**, and `tests/integration/` additionally
+receives FEAT-48's `test-run-pool.py` and the new guard test. At `ea6f51f` the same criterion gave
+19 and 37 over 56 files; only FEAT-45's two moved the integration figure.
+`test-hooks-install.py` stays integration on the first sub-rule's
 mirror image: its 121 `git` children are not fixtures alone — `git merge` **executes the installed
 hook**, which is the artifact.
 
@@ -105,10 +121,27 @@ feature moves or edits (measured: 2 path-form mentions of moved files, both anch
 into `run-unit-tests.sh`, `harness_boundary.py`, `team-config.yaml`, `harness.json`), so the
 anchor-rot check is not in play. Historical notes and receipts under `.harness/` stay as written.
 
-## Baseline census — measured at `ea6f51f`, all 56 files `rc=0`
+## Baseline census — re-derived at `56a30a0`, all 58 files `rc=0`
 
 Invocation, from the repo root, per file, exactly as the runner invokes it
-(`python3 <path>`), counting output lines whose first token is `ok`, `not ok`, `PASS` or `FAIL`:
+(`python3 <path>`), counting output lines whose first whitespace-delimited token, **with any
+trailing colon stripped**, is `ok`, `PASS` or `FAIL`, plus lines beginning `not ok`.
+
+**The colon is load-bearing and was nearly lost.** `test-hooks-install.py`,
+`test-post-merge-sweep.py` and `test-worktree-terminal.py` print `PASS: (e) …`, not `PASS …`. A
+literal first-token reading scores all three at **0** against rows of 29, 52 and 34 — three rows
+wrong by construction and a `--strict` run permanently red on a correct tree. Measured both ways
+at `56a30a0` against the 56 rows first recorded at `ea6f51f`: the colon-stripping rule reproduces
+**54** of them, the literal rule **51**. The plan's T-05 step 9 now pins the colon-stripping rule
+in the instrument's own specification.
+
+**What moved, and why.** Two rows changed and two were added, all four attributable to FEAT-45 and
+to nothing else: `test-check-state.py` 145 → **147** and `test-validate-digest.py` 114 → **117**
+(FEAT-45 added INV-32 cases to both), and `test-panel-findings.py` **10** and
+`test-plan-panel.py` **28** are new files that now carry rows rather than being reported as
+`new`. A migrated file with no baseline row is a file whose anchor repair `verdict-lines` cannot
+see, which is the reason for adding them rather than leaving them rowless. The other 54 rows
+re-derived byte-identical.
 
 ```text
 test-bash-write-guard.py	101
@@ -120,7 +153,7 @@ test-check-domain.py	203
 test-check-expertise.py	32
 test-check-omp-port.py	17
 test-check-plan-routes.py	92
-test-check-state.py	145
+test-check-state.py	147
 test-code-grade-cli.py	1
 test-code-grade.py	1
 test-dispatch-guard.py	42
@@ -156,25 +189,37 @@ test-no-distribution.py	35
 test-observations-merge.py	33
 test-omp-hooks.py	0
 test-orchestrator-playbook.py	11
+test-panel-findings.py	10
 test-plan-merge.py	110
+test-plan-panel.py	28
 test-post-merge-sweep.py	52
 test-render-brief.py	15
 test-run-unit-tests-kinds.py	23
 test-sync-agent-adapters.py	19
 test-team-catalog.py	10
 test-upgrade-config.py	10
-test-validate-digest.py	114
+test-validate-digest.py	117
 test-validate-feature-json.py	61
 test-wayfind.py	2
 test-worktree-terminal.py	34
 ```
 
-Total 3152 over 56 files. `test-run-unit-tests-kinds.py` (23) is deleted by this feature, so the
-55 migrated files must still total **3129**, each file individually equal to its row above. Three
+Total 3195 over 58 files, re-derived at `56a30a0`. `test-run-unit-tests-kinds.py` (23) is deleted
+by this feature, so the 57 migrated files must still total **3172**, each file individually equal
+to its row above. Three
 rows are low because those suites print their own summary format (`test-omp-hooks.py` delegates to
 `bun`); a row equal to its baseline is still the assertion, whatever the row's absolute meaning.
 
-**Runtime, same sha:** `--kind unit` 20s / rc 0, `--kind integration` 152s / rc 0. The CI comment
+**This block is the one artifact a sibling merge invalidates without breaking anything**, and it
+has now done so twice: FEAT-48 moved the enumeration in an earlier draft, FEAT-45 moved two rows
+here. There is no derived form of it — a per-file assertion count cannot be computed from the
+tree without running the tree — so it stays literal, carries its ref, and D-18 gives it a
+one-review shelf life so its inevitable staleness reports rather than reddens.
+
+**Runtime, measured at `ea6f51f` and NOT re-derived at `56a30a0`:** `--kind unit` 20s / rc 0,
+`--kind integration` 152s / rc 0. FEAT-48's pool changes both, so re-measuring here would be
+re-measuring a scheduler this feature does not touch; the figure is kept as the pre-pool serial
+reference only. The CI comment
 claiming "12 scripts, ~15s" for integration is stale by 15 scripts; out of scope here.
 
 ## Open
