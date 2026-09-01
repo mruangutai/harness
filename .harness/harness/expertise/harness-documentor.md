@@ -11,5 +11,6 @@
 - G-04: WHEN `.harness/harness/docs/SPEC.md` and a script under `.claude/skills/harness/bin/` disagree DO treat the script as authority and fix SPEC — SPEC states intent and drifts; several of its Expertise budget and precedence claims were falsified by the shipped scripts.
 - G-05: WHEN wording a decision's title or the bold run opening its body DO check the verbs `gen-decisions-index.py` scans — a line-initial SUPERSEDES, CORRECTS or INVERTS governing a decision number stamps that row SUPERSEDED BY, so narrative phrasing can mark a live ruling dead.
 - G-06: WHEN regenerating `DECISIONS-INDEX.md` DO hand-delete any orphan row first, then grep the output for `RULING PENDING` — the generator refuses to write at all while an orphan row survives, and stamps a placeholder ruling for an entry nobody has ruled on while still exiting 0.
+- G-07: WHEN authoring or re-authoring an index row's ruling in `.harness/harness/docs/DECISIONS-INDEX.md` DO write it between 20 non-whitespace characters and 30 words before regenerating — no task's `verify:` clause checks that band, so only the index unit tests catch a ruling that grew past it.
 ## Outcomes (max 10)
 ## Open (max 5)

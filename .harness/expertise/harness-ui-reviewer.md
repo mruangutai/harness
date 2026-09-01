@@ -37,4 +37,5 @@
 - O-03: WHEN citing a peer artifact as covering ground your own remit scoped out DO check whether that artifact predates the change it is cited for, and raise it as an open question rather than assume — provenance is checkable from any lens, and panel review confirmed this call correct.
 - O-04: WHEN a Mode A census measured no UI surface but your Mode A note left opens unresolved DO treat the opens as in-remit Mode B work, not grounds to decline — lead review confirmed: a census answers whether a surface exists, not whether prior opens are discharged.
 - O-05: WHEN a Mode B review finds no in-scope UI surface DO publish the census and provenance evidence (counts, footer checks) explicitly in the artifact — a lead cited exactly this evidence to scope out a later spawn, making the decline cheap without weakening the discriminator.
+- O-06: WHEN a dispatch names an adjacent non-rendered surface for you to check despite a no-UI decline DO produce advisory findings from it — panel review has credited a scoped-out reader's finding there as covering a gap no in-scope reader supplied (the union effect).
 ## Open (max 5)

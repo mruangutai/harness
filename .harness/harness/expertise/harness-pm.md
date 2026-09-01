@@ -1,6 +1,7 @@
 # Expertise — harness-pm
 ## Patterns (max 15)
 - P-01: WHEN a criterion declares evidence: unit DO confirm the file holding its assertions is in run-unit-tests.sh's UNIT_SCRIPTS and not INTEGRATION_SCRIPTS: the kind is a property of the script array, so a criterion can name a kind that never runs its own assertions.
+- P-02: WHEN an unmet criterion is remedied by editing validate-digest.py or test-validate-digest.py DO record that no squad can take it: DEC-174 makes both main-session-direct, so even a test-only fixture gap becomes a user-channel question rather than a task a lead can place.
 ## Gotchas (max 15)
 - G-01: WHEN a step must create, copy or move a file DO use the file tools or a Python script — `bash-write-guard.sh` denies redirects, `cp`, `mv` and `rm` in Bash whatever the target, including the session scratchpad and paths with no repo-like component.
 - G-02: WHEN a Bash command names a path the guard should allow DO spell it as a literal absolute path. The guard reads the command line, not the resolved path, so the same target written through a shell variable is refused.

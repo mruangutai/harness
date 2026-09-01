@@ -7,5 +7,6 @@
 - P-05: WHEN auditing an agent-definition or doctrine change DO diff both .claude/agents/<name>.md and .omp/agents/<name>.md for byte-identical additions — this repo duplicates agent and doctrine files across both runtimes, and an asymmetry (e.g. a missing spawns: field in the .claude format) may be pre-existing, not new.
 ## Gotchas (max 15)
 - G-01: WHEN auditing panel-finding severity handling DO diff every doctrine and agent copy of the severity vocabulary (team yaml, plan template, SKILL.md docs, the validator-lead agent file in both .claude and .omp) for byte-identical tokens — this repo declares it independently in about six places with no single source of truth.
+- G-02: WHEN auditing a new consumer of validate-digest.py's _repo_root_for_feature/_feature_dir_from_artifact DO confirm it routes through _contained_feature_dir's realpath-descendant check before trusting the resolved directory — a bypass reintroduces the artifact:-path traversal this feature closed.
 ## Outcomes (max 10)
 ## Open (max 5)
