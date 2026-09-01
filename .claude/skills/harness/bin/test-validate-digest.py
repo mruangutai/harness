@@ -2629,6 +2629,72 @@ def check_malformed_test_kinds(td, failures):
                         f"verification failure: {errors}")
 
 
+HOSTILE_ARTIFACT_PATHS = (
+    ".harness/../features/../notes/fake.md",
+    ".harness/./features/../notes/fake.md",
+    ".harness/harness/features/../notes/fake.md",
+    ".harness/../harness/features/FEAT-TRAVERSAL/notes/fake.md",
+)
+
+
+def _assert_honest_artifact_resolves(validator, repo, failures):
+    """The accept half: a real artifact path still resolves, and the root it yields is
+    the checkout it names. Without this, a validator wired to refuse every artifact path
+    would pass the refusal cases below."""
+    honest = "artifact: .harness/harness/features/FEAT-TRAVERSAL/notes/review.md\n"
+    feature_dir, error = validator._feature_dir_from_artifact(honest, repo)
+    expected = os.path.join(repo, ".harness", "harness", "features", "FEAT-TRAVERSAL")
+    if error or feature_dir != expected:
+        failures.append(f"an honest artifact path must still resolve: "
+                        f"{feature_dir!r} {error!r}")
+    elif validator._repo_root_for_feature(feature_dir) != os.path.realpath(repo):
+        failures.append("an honest artifact path must resolve the root it names")
+
+
+def check_artifact_path_traversal(td, failures):
+    """The panel's critical finding, pinned: an `artifact:` line whose captured segments
+    contain `.` or `..` must not be able to redirect the repository root.
+
+    `FEATURE_DIR_IN_ARTIFACT_RE`'s `[^/\\s]+` matches `..`, so
+    `.harness/../features/../notes/fake.md` satisfied the pattern; measured against the
+    real checkout before the fix, `_repo_root_for_feature` then resolved the PARENT
+    repository — a different git work tree sharing the same object store. That redirected
+    the `review_sha` read and every grading `git -C` call at once, so both sides of the
+    binding became digest-chosen, which is REQ-02 defeated from the inside.
+
+    Asserted at both levels because they regress independently: the derivation must
+    refuse the path, and `validate()` must refuse the digest carrying it.
+    """
+    validator = _fresh_validator()
+    config = os.path.join(td, "traversal-config.json")
+    write_review_config(config, "advisory_unless_high")
+    repo, base_oid, head_oid = make_graded_repo(
+        td, "traversal-repo", {"src/clean.py": CLEAN_PY})
+    make_feature_dir(repo, review_sha=head_oid, feat="FEAT-TRAVERSAL")
+
+    _assert_honest_artifact_resolves(validator, repo, failures)
+
+    for hostile in HOSTILE_ARTIFACT_PATHS:
+        feature_dir, error = validator._feature_dir_from_artifact(
+            f"artifact: {hostile}\n", repo)
+        if feature_dir is not None or not error:
+            failures.append(f"a traversing artifact path {hostile!r} must be refused, "
+                            f"got {feature_dir!r}")
+
+    hostile_digest = reviewer_digest(
+        "pass", reviewed=f"{base_oid}..{head_oid}",
+        artifact=HOSTILE_ARTIFACT_PATHS[0])
+    original_root = validator._root_or_none
+    validator._root_or_none = lambda: repo
+    try:
+        errors = validator.validate("harness-code-reviewer", hostile_digest, config)
+    finally:
+        validator._root_or_none = original_root
+    if not any("relative segment" in error for error in errors):
+        failures.append(f"validate() must refuse a digest whose artifact line traverses "
+                        f"out of the checkout: {errors}")
+
+
 def check_judgment_outranks_clean_grade(td, failures):
     """SC-08/REQ-05: a mechanically CLEAN range cannot rescue a review whose own human
     judgment failed. The reviewer keeps `must_fix` and severity; recomputing the grade
@@ -2685,6 +2751,7 @@ def _check_bug1081_enforcement(validator, config, td, failures):
     check_deletion_only_range(td, failures)
     check_missing_test_kinds(td, failures)
     check_malformed_test_kinds(td, failures)
+    check_artifact_path_traversal(td, failures)
     check_judgment_outranks_clean_grade(td, failures)
     check_plan_review_never_grades(validator, config, td, failures)
 

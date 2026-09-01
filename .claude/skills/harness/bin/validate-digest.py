@@ -790,6 +790,40 @@ def code_grade_enforcement_error(text, reviewed, code_grade, feature_dir=None):
 FEATURE_DIR_IN_ARTIFACT_RE = re.compile(r"(\.harness/[^/\s]+/features/[^/\s]+)(?:/|$)")
 
 
+def _contained_feature_dir(root, relative):
+    r"""`(dir, error)` for a captured `.harness/<repo>/features/<FEAT>` path — the ONE
+    place that decides the artifact line names a directory INSIDE `root`.
+
+    `[^/\s]+` matches `..`, so `.harness/../features/..` satisfied the pattern and
+    `_repo_root_for_feature`'s four `..` segments then resolved a DIFFERENT git work
+    tree — measured, against this checkout, resolving to the parent repository that
+    shares its object store. That redirected the review_sha read and every grading
+    `git -C` call at once, which makes both sides of the binding digest-chosen and
+    defeats REQ-02 exactly. Two checks, because they fail on different things:
+
+      - No `.` or `..` segment. With the four segments plain, `_repo_root_for_feature`
+        returns `root` BY CONSTRUCTION rather than by coincidence.
+      - The resolved path is a strict descendant of `root`. This is what a symlinked
+        `.harness` or `<repo>` component would defeat, which the token check cannot see.
+
+    The returned path is the literal join, NOT its realpath: callers compare it against
+    paths they built the same way, and on macOS a temp root resolves through
+    `/private`, so returning a realpath here would silently break that comparison.
+    """
+    if any(segment in (".", "..") or not segment for segment in relative.split("/")):
+        return None, (f"code_grade cannot be bound to review_sha: artifact path "
+                       f"{relative!r} contains a relative segment — write your review "
+                       f"under this feature's own .harness/<repo>/features/<FEAT>/notes/ "
+                       f"directory, not a path that traverses out of it.")
+    feature_dir = os.path.join(root, relative)
+    real_root = os.path.realpath(root)
+    if not os.path.realpath(feature_dir).startswith(real_root + os.sep):
+        return None, (f"code_grade cannot be bound to review_sha: artifact path "
+                       f"{relative!r} resolves outside this checkout, so the feature "
+                       f"it names is not the one under review.")
+    return feature_dir, None
+
+
 def _feature_dir_from_artifact(text, root):
     """The `.harness/<repo>/features/<FEAT>` directory named by this RETURN'S OWN
     `artifact:` line — the only field SEC-01 trusts to say which feature a
@@ -797,6 +831,9 @@ def _feature_dir_from_artifact(text, root):
     under that path (SPEC 8) and it is never a persona-chosen field an attacker
     could point elsewhere. Split out of `resolve_review_sha` so the "WHICH
     feature" half of the lookup grades independently of the "WHAT it pins" half.
+
+    Matching the pattern is NOT enough to trust the path; `_contained_feature_dir`
+    is what decides it names a directory inside `root`.
 
     Returns `(dir, error)`.
     """
@@ -813,7 +850,7 @@ def _feature_dir_from_artifact(text, root):
                        f"{path!r} does not name a "
                        f".harness/<repo>/features/<FEAT>/ location — write your "
                        f"review under that feature's notes/.")
-    return os.path.join(root, fm.group(1)), None
+    return _contained_feature_dir(root, fm.group(1))
 
 
 def _resolve_feature_dir(text, feature_dir=None):
