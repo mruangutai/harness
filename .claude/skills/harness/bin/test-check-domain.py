@@ -2769,6 +2769,77 @@ def _t09_symlink():
         f"exit {r9c.returncode}, stderr={r9c.stderr.strip()[:300]!r}")
 
 
+def _t09_other_routes():
+    """11. Hardlink, linked parent directory, and a chain too long (FEAT-41 C2-02)."""
+
+    # ---- 11. THE THREE ROUTES H-01's FIRST FIX STILL LEFT OPEN (FEAT-41 C2-02) ------------
+    # Cycle 2's panel, high, all three reproduced live by its security reviewer. H-01 closed the
+    # symlinked-FILE case it was shown and stopped there, which is the same mistake in kind that
+    # F-04's record made -- fixing the demonstrated instance and reading it as the class.
+    #
+    #   (a) HARDLINK. `os.path.islink` is False for one, so the hop loop broke immediately and
+    #       only the as-typed spelling was matched. A hardlink has NO target to read: it IS the
+    #       file, under another name, so no amount of path resolution can see it. Identity can.
+    #   (b) LINKED PARENT DIRECTORY. Only the full path was resolved, never an intermediate
+    #       component, so `notes-link/innocent.md` where `notes-link -> ../notes` was invisible.
+    #   (c) A CHAIN LONGER THAN THE HOP CAP FAILED **OPEN** -- the worst of the three. The real
+    #       plan.yaml never entered the candidate list, so the shape test found nothing and the
+    #       write was PERMITTED. A cap that runs out must refuse, not shrug.
+    #
+    # ONE MECHANISM PER QUESTION, and that is why the fix is not three patches: resolution
+    # answers "what path does this become" (b, c), and inode identity answers "is this the same
+    # file" (a). A hardlink is unanswerable by the first and trivial for the second.
+    base9 = ".harness/harness/features/FEAT-99-fixture"
+    for label, build, expect in (
+        ("a hardlink to plan.yaml", "hardlink", 2),
+        ("an innocent file under a LINKED parent directory", "dirlink", 2),
+        ("a symlink chain longer than the hop cap", "deepchain", 2),
+        ("a hardlink to a file that is NOT the plan", "hardlink_benign", 0),
+    ):
+        root, plan = _approval_root(rel=f"{base9}/plan.yaml", body=_PLAN_LEGAL)
+        featd = os.path.join(root, ".harness", "harness", "features", "FEAT-99-fixture")
+        notes = os.path.join(featd, "notes")
+        os.makedirs(notes, exist_ok=True)
+        if build == "hardlink":
+            target = os.path.join(notes, "innocent.md")
+            os.link(plan, target)
+        elif build == "dirlink":
+            # THE LINK ADDS A SEGMENT, and that is what defeats the pattern. `RE_PLAN_YAML`
+            # anchors on `features/<one segment>/plan.yaml`, so
+            # `features/FEAT-99-fixture/alias/plan.yaml` matches NOTHING even though its final
+            # component is spelled plan.yaml and the write lands in another feature's real plan.
+            #
+            # MY FIRST FIXTURE HERE WAS WRONG and passed for the wrong reason: I made the final
+            # component a symlink too, so the existing hop walk resolved it and the case went
+            # green while the directory route was still open. A linked DIRECTORY needs the
+            # innocent segment to be the directory, never the file.
+            other = os.path.join(root, ".harness", "harness", "features", "FEAT-98-other")
+            os.makedirs(other, exist_ok=True)
+            with open(os.path.join(other, "plan.yaml"), "w") as _f:
+                _f.write(_PLAN_LEGAL)
+            os.symlink(os.path.join("..", "FEAT-98-other"), os.path.join(featd, "alias"))
+            target = os.path.join(featd, "alias", "plan.yaml")
+        elif build == "deepchain":
+            prev = os.path.join("..", "plan.yaml")
+            for i in range(12):
+                link = os.path.join(notes, f"hop{i}.md")
+                os.symlink(prev, link)
+                prev = f"hop{i}.md"
+            target = os.path.join(notes, "hop11.md")
+        else:
+            other = os.path.join(featd, "BRIEF.md")
+            with open(other, "w") as _f:
+                _f.write("# BRIEF\n")
+            target = os.path.join(notes, "innocent2.md")
+            os.link(other, target)
+        r = _fire_write(root, target, _PLAN_LEGAL, agent="harness-orchestrator")
+        verb = "DENIED" if expect == 2 else "still ALLOWED"
+        t09(f"T-09 11: a Write through {label} is {verb} — identity and resolution are "
+            f"different questions and the plan needs both answered",
+            r.returncode == expect,
+            f"exit {r.returncode} (want {expect}), stderr={r.stderr.strip()[:300]!r}")
+
+
 # Path, over-budget body, and the word the refusal must carry. ONE ROW PER `_I`-WIDENED PATTERN
 # except RE_PLAN_YAML, which case 8 above already covers with its own case-fold case.
 _FOLD_ROWS = (
@@ -2842,6 +2913,7 @@ def run_t09():
     _t09_post_sweep()
     _t09_spelling()
     _t09_symlink()
+    _t09_other_routes()
     _t09_case_fold()
     return _T09_FAILS
 

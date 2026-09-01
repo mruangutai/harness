@@ -115,16 +115,36 @@ def is_tool(tok):
 # class `["'\s]` has no backslash in it (FEAT-41 H-02).
 CONTINUATION = re.compile(r"\\\r?\n")
 
+# A BRACED PARAMETER EXPANSION, which bash may expand to WHITESPACE (FEAT-41 C2-03).
+#
+# `plan-merge.py${IFS}sign-approval` reaches this gate as eleven literal characters inside ONE
+# shlex token, so neither the tool nor the verb appears as a token, the adjacency loop never
+# fires, and RAW_SIGN's `["'\s]` class matches nothing either. Bash expands and word-splits, and
+# argparse receives the verb. `${IFS}` needs no prearranged variable -- it is always set.
+#
+# BRACED ONLY, AND MEASURED. Bare `$IFS` immediately followed by letters is NOT an evasion: bash
+# consumes the longest valid name, so `$IFSsign-approval` expands `$IFSsign` to nothing and the
+# line becomes `plan-merge.py-approval`, which cannot sign. Denying that would be a guess, and
+# there is a precision control asserting it stays allowed. A bare `$IFS` FOLLOWED BY A SPACE
+# needs nothing here -- the space is already a separator.
+BRACED_EXPANSION = re.compile(r'"?\$\{[^{}]*\}"?')
+
 
 def as_bash_reads_it(line):
-    """Rejoin continued lines, so both scanners see the words bash will actually execute.
+    """Rejoin continued lines and neutralise braced expansions, so both scanners see the words
+    bash will actually execute.
 
-    ONE MECHANISM, APPLIED BEFORE EITHER PATH. F-03 needed its separator fix in the token scan
-    AND the text fallback, and teaching two scanners about backslashes separately would leave
-    the same asymmetry one escape away. This is not a widening: an ordinary newline still
-    separates commands, and only the two-character continuation is removed.
+    ONE MECHANISM, APPLIED BEFORE EITHER PATH -- for the third time in this file's history. F-03
+    needed its separator fix in the token scan AND the text fallback; H-02 needed the same for
+    the continuation; this is the same shape again, and teaching two scanners separately would
+    leave the same asymmetry one escape away.
+
+    THE HONEST RULE IS NOT "EVALUATE THE SHELL", which no PreToolUse hook can do. It is that an
+    expansion COULD be whitespace, so a gate deciding ADJACENCY must assume it is. That is
+    bounded: ordinary WORDS between the tool and the verb are not expansions and still break the
+    adjacency, which is what this file's `apply`-mentions-the-verb controls assert.
     """
-    return CONTINUATION.sub("", line)
+    return BRACED_EXPANSION.sub(" ", CONTINUATION.sub("", line))
 
 
 def denies(line, depth=0):

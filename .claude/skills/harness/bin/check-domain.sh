@@ -1551,40 +1551,81 @@ targets = []
 # while the write lands in the plan. Measured on this runtime: the Write tool FOLLOWS a symlink
 # — the link stayed a link and the target's bytes changed — so the route is real, and it runs
 # through a path every squad member is already granted.
-# RESOLVED WITH readlink, NOT realpath, and that is not a style choice. `realpath` canonicalises
-# the whole path, and on this platform `/var` is itself a link to `/private/var` — so it returns
-# a path in a DIFFERENT spelling namespace from the one the write was addressed in, `_norm` can
-# no longer strip the checkout prefix, and the shape match silently sees nothing. Measured: the
-# first cut of this fix was written with realpath and left the case red exactly that way. Joining
-# each link's own target against its own directory keeps every candidate in the namespace the
-# author typed, which is the only one the patterns describe.
-_MAX_HOPS = 8
+# WHY BOTH SIDES ARE RESOLVED, recorded because the wrong version shipped once. The first fix used
+# `realpath` on the path alone and left the case RED: `/var` is itself a link to `/private/var`
+# here, so resolving one side put the result in a different spelling namespace, `_norm` could not
+# strip the checkout prefix, and the shape match silently saw nothing. The reaction was to walk
+# `readlink` hops instead, which stayed in the right namespace but resolved only the FINAL
+# component and capped the walk -- leaving a linked parent directory invisible and a long chain
+# failing OPEN (FEAT-41 C2-02). Resolving the ROOT as well removes the original reason, and with
+# it the hop cap: realpath follows a chain of any length and raises on a loop.
 
 
-def _route_candidates(path):
-    """The written path, plus each link hop it would land through. All get shape-matched."""
-    seen = [_norm(path)]
-    cur = path
-    for _ in range(_MAX_HOPS):
+def _resolved_rel(path):
+    """Repo-relative form with EVERY component resolved, or None if it cannot be resolved.
+
+    BOTH SIDES ARE REALPATH'D, and that is the correction to H-01's first fix (FEAT-41 C2-02).
+    That version resolved only the final component, so a LINKED PARENT DIRECTORY was invisible:
+    `features/<F>/alias/plan.yaml` where `alias -> ../FEAT-OTHER` adds a segment, and
+    `RE_PLAN_YAML` anchors on `features/<one segment>/plan.yaml`, so it matched nothing while the
+    write landed in another feature's real plan.
+
+    It also replaces the hop walk, which existed only because realpath was used on ONE side:
+    `/var` is itself a link to `/private/var` here, so resolving the path but not the root left a
+    relpath full of `..` that matched no pattern. Resolving the root too removes that reason, and
+    with it the hop cap -- realpath follows a chain of ANY length, and raises on a loop.
+    """
+    try:
+        return os.path.relpath(os.path.realpath(path), os.path.realpath(root))
+    except OSError:
+        return None
+
+
+def _hardlink_plan(path):
+    """The plan.yaml this path IS under another name, or None.
+
+    A HARDLINK IS NOT A PATH QUESTION (FEAT-41 C2-02). It has no target to read -- it IS the
+    file, so `os.path.islink` is False and no amount of resolution can see it. Only identity can.
+
+    `st_nlink < 2` is the cheap gate and it keeps this off the common path: a file with one link
+    cannot be a hardlink to anything, which is every ordinary write. Only a genuinely multiply-
+    linked file reaches the scan.
+    """
+    try:
+        st = os.stat(path)
+    except OSError:
+        return None
+    if st.st_nlink < 2:
+        return None
+    import glob as _glob
+    for cand in _glob.glob(os.path.join(root, ".harness", "*", "features", "*", "plan.yaml")):
         try:
-            if not os.path.islink(cur):
-                break
-            cur = os.path.normpath(os.path.join(os.path.dirname(cur), os.readlink(cur)))
+            cs = os.stat(cand)
         except OSError:
-            # An unreadable or vanished path is not a route. A gate is not the place to raise on
-            # a filesystem it cannot inspect; the written spelling above is still matched. The
-            # hop cap covers a symlink LOOP, which readlink alone would follow forever.
-            break
-        seen.append(_norm(cur))
-    return seen
+            continue
+        if (cs.st_ino, cs.st_dev) == (st.st_ino, st.st_dev):
+            return _norm(cand)
+    return None
 
 
 def _plan_route(path):
     """The plan this write would reach, or None. Names the TARGET, never only the link."""
-    for cand in _route_candidates(path):
-        if RE_PLAN_YAML.match(cand):
-            return cand
-    return None
+    as_typed = _norm(path)
+    if RE_PLAN_YAML.match(as_typed):
+        return as_typed
+    resolved = _resolved_rel(path)
+    if resolved is None:
+        # FAIL CLOSED, and this is the correction that matters most (FEAT-41 C2-02). The hop cap
+        # this replaces failed OPEN: when it ran out, the real plan.yaml never entered the
+        # candidate list, the shape test found nothing, and the write was PERMITTED. A path whose
+        # resolution cannot be established is exactly when a route denial must refuse -- an
+        # unresolvable link is the shape an evasion has, not the shape ordinary work has.
+        if os.path.islink(path):
+            return as_typed
+        return None
+    if RE_PLAN_YAML.match(resolved):
+        return resolved
+    return _hardlink_plan(path)
 
 
 _reached_plan = _plan_route(target) if target else None
@@ -1641,7 +1682,8 @@ elif target:
     # the plan's bytes and then look up shape rules under the link's innocent name, find none,
     # and exit 0. The PRE denial above already refuses this route for every editor tool; this is
     # the same mechanism on the reporting side, so the two cannot drift apart.
-    _rel = next((c for c in _route_candidates(target) if has_shape_rules(c)), _norm(target))
+    _rel = next((c for c in (_norm(target), _resolved_rel(target), _hardlink_plan(target))
+                 if c and has_shape_rules(c)), _norm(target))
     if not has_shape_rules(_rel):
         sys.exit(0)
     try:

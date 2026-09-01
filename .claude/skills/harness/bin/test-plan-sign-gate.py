@@ -262,6 +262,68 @@ check("H-02 NEGATIVE CONTROL: a continuation inside an ordinary `apply` call is 
       "allowed — the line is rejoined, not blanket-denied",
       rc == 0, f"rc={rc} stderr={err[:300]!r}")
 
+# ---------------------------------------------------------------------------------------
+# FEAT-41 C2-03, high, found by cycle 2's panel and reproduced END TO END: a forged approval
+# block landed at exit 0 with no stderr from either gate.
+#
+# A PARAMETER EXPANSION IS NOT WHITESPACE UNTIL BASH MAKES IT WHITESPACE. H-02 taught the gate
+# to rejoin continued lines, which is a purely textual transform. `${IFS}` is not: the gate sees
+# eleven literal characters INSIDE one token, so neither the tool nor the verb appears as a token
+# at all, the adjacency loop never fires, and RAW_SIGN's `["'\s]+` separator class matches
+# nothing either. Bash expands it, word-splits, and argparse receives `sign-approval`. MEASURED:
+#     tokens -> ['python3', '...plan-merge.py${IFS}sign-approval', '--file', 'p.yaml']
+#     bash   -> ARG1=sign-approval
+#
+# THE GATE CANNOT EXPAND VARIABLES, so the honest rule is not "evaluate the shell" -- it is that
+# an expansion COULD be whitespace, therefore a gate deciding adjacency must assume it is. That
+# is a bounded widening, not "the verb appears somewhere after the tool": the negative controls
+# below and above still pass, because ordinary WORDS between the tool and the verb are not
+# expansions and still break the adjacency.
+#
+# WHAT THIS DOES NOT CLOSE, stated rather than implied: `$P` where P holds the whole command is
+# out of reach of any PreToolUse hook, and plan-sign-gate.py's own module docstring already says
+# so. This closes the form that needs no prearranged variable -- `${IFS}` is always set.
+# ---------------------------------------------------------------------------------------
+# WHICH FORMS ACTUALLY SPLIT WAS MEASURED, NOT GUESSED, and the first draft of this test was
+# wrong: it asserted that bare `$IFSsign-approval` must be denied. Bash reads the LONGEST valid
+# name, so that is `$IFSsign` -- unset, empty -- and the line becomes `plan-merge.py-approval`,
+# which cannot sign anything. Denying it would have been a false positive baked into a test.
+for _exp in ("${IFS}", '"${IFS}"', "${IFS}${IFS}"):
+    rc, err = gate(f"python3 .claude/skills/harness/bin/plan-merge.py{_exp}sign-approval "
+                   f"--file p.yaml --by Someone --date 2026-01-01",
+                   agent_type="harness-orchestrator")
+    check(f"C2-03: `plan-merge.py{_exp}sign-approval` is DENIED — bash word-splits the "
+          f"expansion, so the gate must treat it as the whitespace it may become",
+          rc == 2, f"rc={rc} stderr={err[:300]!r}")
+
+# PRECISION CONTROL, from the mistake above. `$IFSsign-approval` is NOT a signing attempt --
+# bash consumes `IFSsign` as the name -- so the gate must not deny it. This is the assertion that
+# stops the expansion rule from being widened into "any `$` near the verb".
+rc, err = gate("python3 .claude/skills/harness/bin/plan-merge.py$IFSsign-approval "
+               "--file p.yaml", agent_type="harness-orchestrator")
+check("C2-03 PRECISION CONTROL: `$IFSsign-approval` is ALLOWED — bash reads the longest name, "
+      "so this line cannot sign, and a gate that denied it would be guessing",
+      rc == 0, f"rc={rc} stderr={err[:300]!r}")
+
+# AND IN THE TEXT FALLBACK, for the third time in this file: F-03 and H-02 both had to land in
+# both scanners, and an evasion that survives in only one of them has merely moved.
+rc, err = gate("echo it's fine; python3 .claude/skills/harness/bin/plan-merge.py${IFS}"
+               "sign-approval --file p.yaml --by Someone --date 2026-01-01",
+               agent_type="harness-orchestrator")
+check("C2-03: the TEXT fallback also neutralises the expansion — an unlexable line carrying "
+      "`plan-merge.py${IFS}sign-approval` is DENIED",
+      rc == 2, f"rc={rc} stderr={err[:300]!r}")
+
+# NEGATIVE CONTROL FOR THE WIDENING, and it is the one that matters: neutralising expansions must
+# not make every mention of the verb a signing attempt. An expansion used as an ordinary ARGUMENT
+# on a legitimate `apply` line, with real words between tool and verb, stays allowed.
+rc, err = gate("python3 $HARNESS_BIN/plan-merge.py apply --file $PLAN --proposal q.yaml "
+               "  # not a sign-approval call",
+               agent_type="harness-orchestrator")
+check("C2-03 NEGATIVE CONTROL: expansions used as ordinary arguments on an `apply` line are "
+      "still allowed — words between the tool and the verb still break adjacency",
+      rc == 0, f"rc={rc} stderr={err[:300]!r}")
+
 
 print(f"\n{fails} failing." if fails else "\nall checks passed.")
 raise SystemExit(1 if fails else 0)
