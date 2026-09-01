@@ -197,7 +197,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 carve-out; validate-digest.py and its test are enforcement-layer files
     depends_on: [T-01]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/validate-digest.py
       - .claude/skills/harness/bin/test-validate-digest.py

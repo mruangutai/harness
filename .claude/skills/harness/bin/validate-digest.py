@@ -29,7 +29,7 @@ import sys, re, os, json, subprocess
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import harness_boundary
 import harness_yaml
-from code_grade import commit_oid
+from code_grade import classify, commit_oid, gated_set
 from gate_policy import GatePolicyError, evaluate_review, load_policy
 
 VERDICTS = {"PASS", "FAIL", "BLOCKED", "ESCALATE"}
@@ -538,27 +538,46 @@ def parse_digest(text):
     return out
 
 
-def resolve_reviewed_commit(revision):
-    """Resolve an untrusted review revision to a commit OID before using Git."""
+def _repo_root_for_feature(feature_dir):
+    """The checkout root that owns `feature_dir`.
+
+    A feature directory is always `<root>/.harness/<repo>/features/<FEAT>`, so its root
+    is four levels up. THIS IS THE ONE REPOSITORY BASIS every mechanical operation in
+    this module uses: the default-branch lookup, the merge base, every commit
+    resolution, the canonical diff and `gated_set()` all receive it explicitly, by
+    `git -C` or as `commit_oid`'s `repo_root`. BUG-1081: deriving any of them from
+    ambient cwd or from this file's installed location gave the grade a different
+    repository from the one the review pin belongs to — two bases, not one.
+    """
+    return os.path.realpath(os.path.join(feature_dir, "..", "..", "..", ".."))
+
+
+def resolve_reviewed_commit(root, revision):
+    """Resolve an untrusted review revision to a commit OID in `root`, or None.
+
+    `root` is the checkout that owns the feature under review
+    (`_repo_root_for_feature`) — never the process cwd. `commit_oid` refuses an
+    option-like revision before Git is ever invoked.
+    """
     try:
-        return commit_oid(".", revision).encode()
+        return commit_oid(root, revision).encode()
     except ValueError:
         return None
 
 
-def reviewed_python_change(reviewed):
+def reviewed_python_change(root, reviewed):
     """Return whether the review range changes Python, or a blocking range error."""
     if not isinstance(reviewed, str) or reviewed.count("..") != 1:
         return None, "reviewed range must name exactly one base..head range."
     base, head = (part.strip() for part in reviewed.split(".."))
     if not base or not head:
         return None, "reviewed range must name non-empty base and head revisions."
-    base_oid = resolve_reviewed_commit(base)
-    head_oid = resolve_reviewed_commit(head)
+    base_oid = resolve_reviewed_commit(root, base)
+    head_oid = resolve_reviewed_commit(root, head)
     if base_oid is None or head_oid is None:
         return None, "reviewed range could not be resolved to commit revisions."
     result = subprocess.run(
-        ["git", "diff", "--name-only", "-z", base_oid, head_oid, "--"],
+        ["git", "-C", root, "diff", "--name-only", "-z", base_oid, head_oid, "--"],
         capture_output=True,
     )
     if result.returncode:
@@ -566,120 +585,206 @@ def reviewed_python_change(reviewed):
     return any(path.endswith(b".py") for path in result.stdout.split(b"\0") if path), None
 
 
-# SEC-01 (FEAT-43 wave 2): a `code_grade` claim is trustworthy only if the range it
-# was computed over is the range the SYSTEM OF RECORD says was reviewed — never
-# whatever the digest itself names. Before this, `reviewed_python_change` above
-# diffed WHATEVER range a `harness-code-reviewer` digest claimed, and nothing
-# anywhere compared that range to `feature.json`'s `review_sha` — so a digest
-# naming a resolvable no-op range (base == head, touching nothing) produced an
-# empty diff, `code_grade: n_a` sailed through, and the gate this feature exists
-# to add was skipped by any reviewer who picked a convenient range. Reproduced
-# live by the security reviewer at this feature's own pin.
+# BUG-1081: a `code_grade` claim is a CLAIM. FEAT-43 (SEC-01) bound the range a review
+# reports to the range the system of record says was reviewed, and wave 4 stopped the
+# digest choosing the base for the `n_a` decision — but for `pass`, `fail` and `grade_2`
+# nothing ever RAN the grader. A review therefore passed when `code-grade.py` was
+# skipped, crashed, or reported a blocking result as a clean one, which is issue #1081.
 #
-# SEC-01 wave 4 (Q8-sec01-remedy-ruling.md): waves 2/3 above bind `reviewed`'s
-# HEAD to `review_sha` — correct, and unchanged here — but `code_grade: n_a`'s
-# DECISION still read `reviewed_python_change` over WHATEVER range the digest
-# itself named. `review_sha` is public (`feature.json`, not secret), so a
-# self-consistent no-op range AT review_sha (`review_sha..review_sha`, or
-# `review_sha~1..review_sha`, or any other ancestor pair ending there that
-# happens to touch no `.py` file) bought `n_a` for free: an honest HEAD paired
-# with a convenient BASE. Rejecting only `base == head` was considered and
-# refused (Q8) — it blacklists one shape out of an unbounded family; the digest
-# would still be the one choosing the base. The fix below never lets the
-# digest's `reviewed` field decide `n_a` AT ALL: the decision comes from
-# `merge-base(<default branch>, review_sha)..review_sha`, a range the
-# REPOSITORY derives with no digest input and no new `feature.json` field.
-# `reviewed_python_change` above keeps validating the digest's OWN `reviewed`
-# field's shape and resolvability (same wording, still catches a malformed or
-# option-like/injection revision) — Q8's "the digest's base becomes a reported
-# value that is cross-checked, never an input that decides": its RESULT is
-# discarded below, never its safety check.
-def _default_branch_or_none():
-    """This checkout's default branch — `origin/HEAD`'s target (e.g.
-    `refs/remotes/origin/main`) — or `None` when it cannot be resolved: no
-    such remote-tracking ref, a checkout that never set one, or `git`
-    unavailable. Bare `git symbolic-ref`, no `-C`: the SAME cwd basis
-    `resolve_reviewed_commit` already uses for every commit this file
-    resolves, so the branch found here and the commits bound elsewhere in
-    this module agree on one repository, not two independently-derived
-    roots. `origin/HEAD` is set once, at clone time, by whoever created this
-    checkout — never a value a digest or a review can name.
-    """
+# What changes here: the mechanical result is COMPUTED, for every ordinary code review,
+# over `merge-base(<default branch>, review_sha)..review_sha` — a range the REPOSITORY
+# derives with no digest input — and the digest's enum is REJECTED when it disagrees.
+# The reviewer keeps every judgement that is judgement: findings, `must_fix`, severity,
+# grade-2 reasons and the review policy, none of which this touches.
+#
+# The digest's own `reviewed` field is still validated (shape, and both revisions
+# resolvable — still catching a malformed or option-like/injection revision) and its
+# HEAD is still bound to `review_sha`. Its RESULT still decides nothing: Q8's ruling
+# that "the digest's base becomes a reported value that is cross-checked, never an
+# input that decides" is unchanged, and now holds for all four enum values rather than
+# for `n_a` alone.
+#
+# Availability is deliberately traded for enforcement (D-05). FEAT-43 carved `pass`,
+# `fail` and `grade_2` OUT of base derivation so an unresolvable default branch could
+# not brick reviewer validation generally; that carve-out is exactly the bypass, because
+# a checkout that cannot derive the repository-owned range cannot prove ANY mechanical
+# result. Every derivation or grading failure now REFUSES the digest and names the
+# repair. Reviews already require `origin/main` for the reviewer's own command, so the
+# honest response is to repair `origin/HEAD` or the review pin and rerun.
+_GRADE_PREFIX = "code_grade cannot be verified: "
+
+CODE_GRADE_VALUES = {"pass", "fail", "grade_2", "n_a"}
+
+
+def _git_line_or_none(root, *args):
+    """One stripped line of `git -C root <args>`, or None on any failure — a missing
+    ref, a non-zero exit, or `git` unavailable. Addressed with `-C` so every lookup in
+    this module resolves against the checkout that owns the feature under review."""
     try:
-        result = subprocess.run(
-            ["git", "symbolic-ref", "-q", "refs/remotes/origin/HEAD"],
-            text=True, capture_output=True, timeout=5,
-        )
+        result = subprocess.run(["git", "-C", root, *args],
+                                text=True, capture_output=True, timeout=5)
     except (OSError, subprocess.SubprocessError):
         return None
     if result.returncode:
         return None
-    ref = result.stdout.strip()
-    return ref or None
+    return result.stdout.strip() or None
 
 
-def _merge_base_or_none(ref_a, ref_b):
-    """`git merge-base ref_a ref_b`, or `None` on any failure — no common
-    ancestor, an unresolvable ref, or `git` unavailable. Same bare-`git`,
-    no-`-C` basis as `_default_branch_or_none`."""
-    try:
-        result = subprocess.run(
-            ["git", "merge-base", ref_a, ref_b],
-            text=True, capture_output=True, timeout=5,
-        )
-    except (OSError, subprocess.SubprocessError):
-        return None
-    if result.returncode:
-        return None
-    return result.stdout.strip()
+def _default_branch_or_none(root):
+    """`root`'s default branch — `origin/HEAD`'s target, e.g.
+    `refs/remotes/origin/main` — or None when it cannot be resolved: no such
+    remote-tracking ref, a checkout that never set one, or `git` unavailable.
+    `origin/HEAD` is set once, at clone time, by whoever created the checkout — never a
+    value a digest or a review can name."""
+    return _git_line_or_none(root, "symbolic-ref", "-q", "refs/remotes/origin/HEAD")
 
 
-def _derived_reviewed_python_change(review_sha):
-    """SEC-01 wave 4: whether Python changed over the range the REPOSITORY
-    derives for this review — `merge-base(default branch, review_sha)..
-    review_sha` — never the range a digest names. Called ONLY for
-    `code_grade == 'n_a'`; `pass`/`fail`/`grade_2` never reach this and are
-    never gated on base derivation, so an unresolvable default branch cannot
-    brick reviewer validation generally.
+def _merge_base_or_none(root, ref_a, ref_b):
+    """`git -C root merge-base ref_a ref_b`, or None on any failure — no common
+    ancestor, an unresolvable ref, or `git` unavailable."""
+    return _git_line_or_none(root, "merge-base", ref_a, ref_b)
 
-    Returns `(python_changed, error)`, FAILING CLOSED on three distinct,
-    narrow conditions, each its own named error:
-      - the default branch cannot be resolved;
-      - `review_sha` does not resolve to a commit, or no merge base with the
-        default branch can be computed;
-      - the derived range is DEGENERATE — `review_sha` is already an
-        ancestor of the default branch, so the range is empty BY
-        CONSTRUCTION and is zero evidence that nothing changed, not proof
-        that it didn't (the same accept-by-default shape SEC-01 removes,
-        one level up).
-    None of the three ever returns `python_changed=False`; each REFUSES the
-    claim rather than granting it.
+
+def _canonical_review_range(root, review_sha):
+    """The range the REPOSITORY owns for this review, as `(base_oid, head_oid, error)`.
+
+    `merge-base(<default branch>, review_sha)..review_sha` — never a range a digest
+    names, because a digest-chosen base decides which functions get graded. FAILS
+    CLOSED on four narrow conditions, each with its own repair: an unresolvable default
+    branch, a `review_sha` that does not resolve, no merge base, and a DEGENERATE range
+    (`review_sha` already an ancestor of the default branch), which is empty by
+    construction and is zero evidence that nothing changed rather than proof that it
+    did not. None of the four ever returns a result.
     """
-    default_ref = _default_branch_or_none()
+    default_ref = _default_branch_or_none(root)
     if default_ref is None:
-        return None, ("code_grade='n_a' cannot be confirmed: this checkout's "
-                       "default branch (origin/HEAD) could not be resolved, "
-                       "so the range the repository would review cannot be "
-                       "derived — this refuses the claim, it does not grant it.")
-    review_oid = resolve_reviewed_commit(review_sha)
-    if review_oid is None:
-        return None, (f"code_grade='n_a' cannot be confirmed: this feature's "
-                       f"recorded review_sha ({review_sha!r}) does not "
-                       f"resolve to a commit.")
-    review_oid = review_oid.decode()
-    base_oid = _merge_base_or_none(default_ref, review_oid)
+        return None, None, (_GRADE_PREFIX + "this checkout's default branch "
+                            "(origin/HEAD) could not be resolved, so the range the "
+                            "repository reviews cannot be derived — repair "
+                            "origin/HEAD in this checkout and rerun.")
+    head_oid = resolve_reviewed_commit(root, review_sha)
+    if head_oid is None:
+        return None, None, (_GRADE_PREFIX + f"this feature's recorded review_sha "
+                            f"({review_sha!r}) does not resolve to a commit — re-pin "
+                            f"review_sha in feature.json and rerun.")
+    head_oid = head_oid.decode()
+    base_oid = _merge_base_or_none(root, default_ref, head_oid)
     if base_oid is None:
-        return None, ("code_grade='n_a' cannot be confirmed: no merge base "
-                       "between the default branch and review_sha could be "
-                       "computed, so the range the repository would review "
-                       "cannot be derived.")
-    if base_oid == review_oid:
-        return None, (f"code_grade='n_a' cannot be confirmed: review_sha "
-                       f"({review_sha}) is already an ancestor of the "
-                       f"default branch, so the derived review range is "
-                       f"empty BY CONSTRUCTION — that is zero evidence "
-                       f"nothing changed, not proof that it didn't.")
-    return reviewed_python_change(f"{base_oid}..{review_oid}")
+        return None, None, (_GRADE_PREFIX + "no merge base between the default branch "
+                            "and review_sha could be computed, so the range the "
+                            "repository reviews cannot be derived — fetch the default "
+                            "branch into this checkout and rerun.")
+    if base_oid == head_oid:
+        return None, None, (_GRADE_PREFIX + f"review_sha ({review_sha}) is already an "
+                            f"ancestor of the default branch, so the derived review "
+                            f"range is empty BY CONSTRUCTION — that is zero evidence "
+                            f"nothing changed. Re-pin review_sha at the reviewed work "
+                            f"and rerun.")
+    return base_oid, head_oid, None
+
+
+def _load_test_kinds(root):
+    """`root`'s own `.harness/harness.json` `test_kinds` policy, as
+    `(test_kinds, error)`.
+
+    Read from the checkout under review, never from `review_config_path()`: the review
+    policy and the grade bars are different configuration with different owners, and the
+    bars must describe the repository actually being graded. A missing or empty policy
+    is a named refusal, never an implicit production bar.
+    """
+    path = os.path.join(root, ".harness", "harness.json")
+    try:
+        with open(path, encoding="utf-8") as handle:
+            doc = json.load(handle)
+    except (OSError, ValueError) as exc:
+        return None, (_GRADE_PREFIX + f"{path} could not be read ({exc}), so this "
+                      f"checkout's grade bars are unknown — repair harness.json "
+                      f"and rerun.")
+    kinds = doc.get("test_kinds") if isinstance(doc, dict) else None
+    if not isinstance(kinds, dict) or not kinds:
+        return None, (_GRADE_PREFIX + f"{path} carries no test_kinds policy, so a "
+                      f"production path cannot be told from a test path — repair "
+                      f"harness.json and rerun.")
+    return kinds, None
+
+
+def _classify_canonical_range(root, base_oid, head_oid, test_kinds):
+    """`code_grade.classify` over the canonical range's gated functions, as
+    `(result, error)`.
+
+    Every grading failure — a committed Python file that does not parse above all —
+    becomes a NAMED refusal here and never a traceback: a crash that escaped this
+    boundary would be indistinguishable from a hook defect (DEC-127) and would leave
+    the claim ungraded, which is the state BUG-1081 removes.
+    """
+    try:
+        gated, _informational = gated_set(root, base_oid, head_oid)
+        _records, result = classify(gated, test_kinds)
+    except SyntaxError as exc:
+        return None, (_GRADE_PREFIX + f"committed Python in "
+                      f"{base_oid[:12]}..{head_oid[:12]} does not parse "
+                      f"({exc.msg}, line {exc.lineno}) — fix the committed syntax "
+                      f"error and rerun.")
+    except Exception as exc:
+        return None, (_GRADE_PREFIX + f"grading {base_oid[:12]}..{head_oid[:12]} "
+                      f"failed ({type(exc).__name__}: {exc}).")
+    return result, None
+
+
+def _mechanical_code_grade(root, review_sha):
+    """The result the REPOSITORY computes for this review, as
+    `(result, range_text, error)` — the value a `code_grade` claim is CHECKED against
+    rather than trusted (REQ-01).
+
+    `n_a` is decided here and only here: the canonical range changed no `.py` path at
+    all. A deletion-only Python range is NOT `n_a` (D-04) — a Python path changed, there
+    is simply no head-side function left to gate, so it grades `pass`. Everything else
+    goes to `code_grade.classify`, which owns the bars and the fail > grade_2 > pass
+    precedence and never returns `n_a`.
+    """
+    base_oid, head_oid, error = _canonical_review_range(root, review_sha)
+    if error:
+        return None, None, error
+    range_text = f"{base_oid}..{head_oid}"
+    changed, error = reviewed_python_change(root, range_text)
+    if error:
+        return None, range_text, error
+    if not changed:
+        return "n_a", range_text, None
+    test_kinds, error = _load_test_kinds(root)
+    if error:
+        return None, range_text, error
+    result, error = _classify_canonical_range(root, base_oid, head_oid, test_kinds)
+    return result, range_text, error
+
+
+def code_grade_enforcement_error(text, reviewed, code_grade, feature_dir=None):
+    """REQ-01: check a code reviewer's `code_grade` claim against the result this
+    repository computes, and refuse the digest when they disagree.
+
+    Plan reviews (DEC-207) never reach here — a pending plan has no code diff and no
+    `review_sha`, and grading is not invoked for them at all (REQ-06/D-06). Returns an
+    error string, or None when the claim matches.
+    """
+    feature_dir, error = _resolve_feature_dir(text, feature_dir)
+    if error:
+        return error
+    review_sha, error = _read_review_sha(feature_dir)
+    if error:
+        return error
+    root = _repo_root_for_feature(feature_dir)
+    _discarded, shape_error = reviewed_python_change(root, reviewed)
+    if shape_error:
+        return shape_error
+    expected, range_text, error = _mechanical_code_grade(root, review_sha)
+    if error:
+        return error
+    if expected == code_grade:
+        return None
+    return (f"code_grade={code_grade!r} disagrees with the mechanical result this "
+            f"repository computes over {range_text}: expected {expected!r}. The "
+            f"reviewer's enum is an audit claim, not evidence of itself — rerun "
+            f"code-grade.py over the canonical range and report what it reports.")
 
 
 FEATURE_DIR_IN_ARTIFACT_RE = re.compile(r"(\.harness/[^/\s]+/features/[^/\s]+)(?:/|$)")
@@ -776,10 +881,7 @@ def _current_branch_or_none(branch_override=_BRANCH_UNSET, feature_dir=None):
     """The branch of the checkout that owns `feature_dir`, or None when unknown."""
     if branch_override is not _BRANCH_UNSET:
         return branch_override
-    if feature_dir is None:
-        root = _root_or_none()
-    else:
-        root = os.path.realpath(os.path.join(feature_dir, "..", "..", "..", ".."))
+    root = _root_or_none() if feature_dir is None else _repo_root_for_feature(feature_dir)
     if root is None:
         return None
     try:
@@ -822,31 +924,10 @@ def _branch_corroboration_error(feature_dir, current_branch):
             f"checkout, not another shipped feature's notes/ path.")
 
 
-def resolve_review_sha(text, feature_dir=None):
-    """The system-of-record commit this review is bound to: `feature.json`'s
-    `review_sha`, NEVER a value read from the digest under validation.
-
-    `feature_dir` is the fixture-override seam for tests — mirrors
-    `review_config_path`'s `config_path` parameter. Give it a directory and the
-    derivation below is skipped entirely; leave it `None` and production derives
-    it from the return's own `artifact:` line (`_feature_dir_from_artifact`).
-    Binding a review to a feature it never claims to belong to would be a new
-    hole, not a fix — this is why the derivation reads the digest's OWN artifact
-    line rather than accepting one as a parameter.
-
-    Returns `(sha, error)`. A `None` sha ALWAYS carries a non-`None` error, so
-    every caller fails CLOSED — an unresolvable binding is never "nothing to
-    check", it is "this claim is not trusted".
-    """
-    feature_dir, dir_error = _resolve_feature_dir(text, feature_dir)
-    if dir_error:
-        return None, dir_error
-    return _read_review_sha(feature_dir)
-
-
 def _parse_reviewed_range(reviewed):
     """Split `reviewed` into `(base, head, None)`, or `(None, None, error)` on a
-    malformed range — the same shape rules `reviewed_python_change` enforces,
+    malformed range — the same shape rules `reviewed_python_change` enforces on the
+    canonical range,
     factored out so `code_grade_bound_to_review` stays a flat sequence of checks."""
     if not isinstance(reviewed, str) or reviewed.count("..") != 1:
         return None, None, "reviewed range must name exactly one base..head range."
@@ -981,10 +1062,11 @@ def code_grade_bound_to_review(text, reviewed, code_grade, feature_dir=None,
     _base, head, range_error = _parse_reviewed_range(reviewed)
     if range_error:
         return range_error
-    head_oid = resolve_reviewed_commit(head)
+    root = _repo_root_for_feature(feature_dir)
+    head_oid = resolve_reviewed_commit(root, head)
     if head_oid is None:
         return "reviewed range could not be resolved to commit revisions."
-    pin_oid = resolve_reviewed_commit(review_sha)
+    pin_oid = resolve_reviewed_commit(root, review_sha)
     if pin_oid is None:
         return (f"code_grade cannot be bound to review_sha: this feature's "
                 f"recorded review_sha ({review_sha!r}) does not resolve to a "
@@ -1024,7 +1106,7 @@ def validate(persona, text, config_path=None, feature_dir=None, branch_override=
         # is reported by code_grade.py at severity `high` and is spelled here
         # `code_grade: fail`. There is no fifth enum value; `fail` already carries
         # that meaning and is reused rather than added to.
-        schema = {**schema, "code_grade": {"pass", "fail", "grade_2", "n_a"},
+        schema = {**schema, "code_grade": set(CODE_GRADE_VALUES),
                   "reviewed": str}
 
     # Echo-shadowing fix (BUILD task 22 follow-up): agents sometimes echo the
@@ -1229,22 +1311,15 @@ def validate(persona, text, config_path=None, feature_dir=None, branch_override=
         )
         if binding_error:
             err.append(binding_error)
-        if code_grade == "n_a" and not _is_plan_review(reviewed):
-            # SEC-01 wave 4: validate the digest's OWN reviewed range, but derive
-            # the Python-change answer from the repository-owned review range.
-            _discarded, shape_error = reviewed_python_change(reviewed)
-            if shape_error:
-                err.append(shape_error)
-            else:
-                review_sha, sha_error = resolve_review_sha(text, feature_dir)
-                if sha_error:
-                    err.append(sha_error)
-                else:
-                    python_changed, range_error = _derived_reviewed_python_change(review_sha)
-                    if range_error:
-                        err.append(range_error)
-                    elif python_changed:
-                        err.append("code_grade='n_a' is only valid when the reviewed diff has no Python file.")
+        if code_grade in CODE_GRADE_VALUES and not _is_plan_review(reviewed):
+            # BUG-1081: the mechanical result is RECOMPUTED here, for every ordinary
+            # code review, and the digest's enum is rejected when it disagrees. Before
+            # this, only `n_a` was re-derived and `pass`/`fail`/`grade_2` were taken on
+            # the reviewer's word, so a skipped, crashed or misreported grader passed.
+            grade_error = code_grade_enforcement_error(
+                text, reviewed, code_grade, feature_dir)
+            if grade_error:
+                err.append(grade_error)
         if code_grade == "grade_2":
             reasons = seen.get("grade_2_reasons")
             if not isinstance(reasons, list) or not reasons \
