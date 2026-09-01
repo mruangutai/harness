@@ -287,6 +287,28 @@ def test_diff_and_determinism(repo):
     return failures
 
 
+def test_absent_new_path_grades_the_range(repo):
+    """Grading a historical range whose new paths no longer exist in the working tree
+    reports the range's findings instead of aborting on the first absent path."""
+    write(repo, "src/absent_anchor.py", "def anchor():\n    return 0\n")
+    base = commit(repo, "absent-case base")
+    write(repo, "src/added_clean.py", "def added_clean():\n    return 1\n")
+    write(repo, "src/added_risky.py", """def added_risky(a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u):
+    return a and b and c and d and e and f and g and h and i and j and k and l and m and n and o and p and q and r and s and t and u
+""")
+    head = commit(repo, "absent-case head")
+    git(repo, "rm", "--quiet", "src/added_clean.py", "src/added_risky.py")
+    commit(repo, "absent-case worktree moves past the graded range")
+    result = run(repo, "--base", base, "--head", head)
+    failures = expect("Traceback" in result.stderr, False,
+                      "no crash when a path new in the range is absent from disk")
+    failures += expect("QUALNAME: added_risky" in result.stdout, True,
+                       "the masked finding is reported")
+    failures += expect("RESULT: FAIL" in result.stdout, True, "the range reports its verdict")
+    failures += expect(result.returncode, 1, "a blocking finding still blocks")
+    return failures
+
+
 def test_review_skill_states_severity_vocabulary():
     repo_root = Path(__file__).resolve().parents[4]
     skill_path = repo_root / ".claude/skills/harness-code-review/SKILL.md"
@@ -326,6 +348,7 @@ def main():
         failures += test_control_paths(repo)
         failures += test_rejected_revisions(repo)
         failures += test_bars_follow_test_kinds(repo)
+        failures += test_absent_new_path_grades_the_range(repo)
     failures += test_review_skill_states_severity_vocabulary()
     failures += test_diff_paths_complexity()
     if not failures:

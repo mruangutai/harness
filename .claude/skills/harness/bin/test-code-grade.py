@@ -451,6 +451,36 @@ def check_base_source_rename_fallback():
         return failures
 
 
+def check_base_source_absent_from_worktree():
+    """A path new in the graded range resolves to None even when it is absent from the
+    working tree, and a genuine git failure still raises rather than reading as absence."""
+    with tempfile.TemporaryDirectory() as directory:
+        repo_root = Path(directory)
+        _git(repo_root, "init")
+        _git(repo_root, "config", "user.email", "grader@example.test")
+        _git(repo_root, "config", "user.name", "Code Grader")
+        _write(repo_root, "old.py", "def kept():\n    return 1\n")
+        base_ref = _commit(repo_root, "base")
+        _write(repo_root, "added.py", "def added():\n    return 2\n")
+        _commit(repo_root, "add a path absent from base")
+        _git(repo_root, "rm", "--quiet", "added.py")
+        _commit(repo_root, "worktree moves past the graded range")
+        base_oid = code_grade.commit_oid(repo_root, base_ref)
+        failures = check(code_grade._git_show(repo_root, base_oid, "added.py"), None,
+                         "absent at ref and absent on disk resolves to None")
+        failures += check(
+            code_grade._resolve_base_source(repo_root, base_oid, "added.py", None), None,
+            "base source of a path new in the range is None")
+        try:
+            code_grade._git_show(repo_root, "not-a-real-ref", "old.py")
+        except RuntimeError:
+            raised = True
+        else:
+            raised = False
+        failures += check(raised, True, "a genuine git failure still raises")
+        return failures
+
+
 def check_nul_safe_changed_files():
     with tempfile.TemporaryDirectory() as directory:
         repo_root = Path(directory)
@@ -696,6 +726,7 @@ def main():
         check_changed_function_resolution,
         check_pre_image_resolution_priority,
         check_base_source_rename_fallback,
+        check_base_source_absent_from_worktree,
         check_commit_resolution,
         check_case_27_grade,
         check_worked_examples,

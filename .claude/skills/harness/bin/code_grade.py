@@ -310,6 +310,19 @@ def _git_output(repo_root, *args):
     return result.stdout
 
 
+def _tree_has_path(repo_root, ref, path):
+    """Whether ref's tree carries path. Raises when git cannot answer, so an
+    unreadable ref is never mistaken for an absent path."""
+    result = subprocess.run(
+        ["git", "-C", str(repo_root), "--literal-pathspecs",
+         "ls-tree", "--name-only", "-z", ref, "--", path],
+        capture_output=True,
+    )
+    if result.returncode != 0:
+        raise RuntimeError(result.stderr.decode(errors="replace").strip())
+    return bool(result.stdout.strip(b"\0"))
+
+
 def _git_show(repo_root, ref, path):
     result = subprocess.run(
         ["git", "-C", str(repo_root), "show", f"{ref}:{path}"],
@@ -318,7 +331,7 @@ def _git_show(repo_root, ref, path):
     )
     if result.returncode == 0:
         return result.stdout
-    if "exists on disk, but not in" in result.stderr:
+    if not _tree_has_path(repo_root, ref, path):
         return None
     raise RuntimeError(result.stderr.strip())
 

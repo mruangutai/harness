@@ -1,0 +1,10 @@
+{
+  "feature_id": "BUG-1055-code-grade-absent-path",
+  "branch": "feat/BUG-1055-code-grade-absent-path",
+  "pr": null,
+  "status": "Building",
+  "review_sha": "none",
+  "cycles_used": 0,
+  "max_total_cycles": 10,
+  "runs": []
+}
