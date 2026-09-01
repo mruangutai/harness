@@ -2769,6 +2769,70 @@ def _t09_symlink():
         f"exit {r9c.returncode}, stderr={r9c.stderr.strip()[:300]!r}")
 
 
+# Path, over-budget body, and the word the refusal must carry. ONE ROW PER `_I`-WIDENED PATTERN
+# except RE_PLAN_YAML, which case 8 above already covers with its own case-fold case.
+_FOLD_ROWS = (
+    ("features/FEAT-99-fixture/{}", "Feature.json", "feature.json", 301, "{}\n", "300"),
+    ("features/FEAT-99-fixture/notes/{}", "Handoff-Build.md", "handoff-build.md", 61,
+     "# h\n", "60"),
+    ("features/FEAT-99-fixture/{}", "State.md", "STATE.md", 121, "# s\n", "120"),
+)
+
+
+def _t09_case_fold():
+    """10. Every `_I`-widened pattern is tested, not only the one F-04 fixed."""
+
+    # ---- 10. THE OTHER FOUR `_I` PATTERNS ARE TESTED TOO ----------------------------------
+    # Cycle 1's QA, med, and MUTATION-PROVEN by them: removing `_I` from RE_FEATURE_JSON alone
+    # produced zero failures across this whole suite. F-04 widened six patterns and only
+    # RE_PLAN_YAML -- the one the finding was about -- got a case-fold case. The other five were
+    # defence-in-depth that the suite could not tell from dead code.
+    #
+    # THE DISCRIMINATOR IS THE PAIR, and it is why both spellings are asserted rather than only
+    # the folded one: the canonical path proves the BODY genuinely violates the budget, so when
+    # the folded path is also refused, the refusal is attributable to `_I` and to nothing else.
+    # Drop `_I` from any row's pattern and exactly that row's folded case reds while its
+    # canonical case stays green.
+    for tmpl, folded, canonical, nlines, unit, budget in _FOLD_ROWS:
+        body = unit * nlines
+        for spelling, folded_case in ((canonical, False), (folded, True)):
+            rel = ".harness/harness/" + tmpl.format(spelling)
+            root, full = _approval_root(rel=REL_PLAN, body=_PLAN_LEGAL)
+            abs_p = os.path.join(root, rel)
+            os.makedirs(os.path.dirname(abs_p), exist_ok=True)
+            r = _fire_write(root, abs_p, body, agent="harness-orchestrator")
+            t09(f"T-09 10: {spelling} over budget is DENIED"
+                + (" — the SPELLING is not a way past a budget" if folded_case else
+                   " — the canonical control, proving the body really violates it"),
+                r.returncode == 2 and budget in r.stderr,
+                f"exit {r.returncode}, stderr={r.stderr.strip()[:300]!r}")
+
+    # NEGATIVE CONTROL, ONE PER FOLDED SPELLING. A case-folded path carrying a LEGAL body is
+    # still allowed, so `_I` widened WHICH PATHS ARE MEASURED and did not turn a spelling into a
+    # denial of its own.
+    #
+    # EACH BODY IS LEGAL FOR ITS OWN FILE, and getting that wrong is how these first failed:
+    # `{}` repeated is over-budget-free but SCHEMA-invalid for feature.json, and three heading
+    # lines are within 60 but violate the handoff's four-section rule. Both refusals were real
+    # and had nothing to do with the fold, so the controls would have gone red for a reason that
+    # could not distinguish the fix from its absence.
+    _legal_bodies = {
+        "Feature.json": _legal_feature_json(20),
+        "Handoff-Build.md": "\n".join(["## Next", "## Trust", "## Dead ends",
+                                       "## Working set"] + ["x"] * 10) + "\n",
+        "State.md": "## Current\n" + "x" * 3 + "\n",
+    }
+    for tmpl, folded, _canon, _n, _unit, _b in _FOLD_ROWS:
+        rel = ".harness/harness/" + tmpl.format(folded)
+        root, _full = _approval_root(rel=REL_PLAN, body=_PLAN_LEGAL)
+        abs_p = os.path.join(root, rel)
+        os.makedirs(os.path.dirname(abs_p), exist_ok=True)
+        r = _fire_write(root, abs_p, _legal_bodies[folded], agent="harness-orchestrator")
+        t09(f"T-09 10 NEGATIVE CONTROL: {folded} within budget is still ALLOWED — the fold "
+            f"widened what is measured, not what is refused",
+            r.returncode == 0, f"exit {r.returncode}, stderr={r.stderr.strip()[:300]!r}")
+
+
 def run_t09():
     """FEAT-41 T-09: plan.yaml has exactly ONE writer, and the editor routes are refused."""
     global _T09_FAILS
@@ -2778,6 +2842,7 @@ def run_t09():
     _t09_post_sweep()
     _t09_spelling()
     _t09_symlink()
+    _t09_case_fold()
     return _T09_FAILS
 
 

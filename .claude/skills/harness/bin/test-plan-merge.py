@@ -836,6 +836,49 @@ def case_sign_approval_is_the_only_signer():
         shutil.rmtree(root, ignore_errors=True)
 
 
+def case_f02_verify_signature_is_not_dead_code():
+    """FEAT-41, cycle 1 QA, med, and MUTATION-PROVEN by them: `_verify_signature`'s refusal was
+    UNREACHABLE in this suite. Disabling the whole function with an early `return` broke nothing
+    -- every F-02 hostile value is already stopped one layer earlier by `_field_lines`, so the
+    "second independent layer" the F-02 commit claimed was, from the suite's point of view,
+    indistinguishable from dead code. A later refactor could have reintroduced raw interpolation
+    for one value class and shipped green.
+
+    FORCED THROUGH THE FRONT DOOR, NOT BY PATCHING THE MODULE. This suite drives the real CLI in
+    a subprocess, and a monkeypatched stand-in would prove something about a stand-in. A base
+    plan carrying a DUPLICATE `approved_by` inside its approval block reaches the comparison with
+    the escaping fully intact: the signature is spliced in correctly, and then YAML's last-wins
+    duplicate resolution hands the LATER value back, so the reloaded name is not the one signed.
+    That is the exact condition the comparison loop exists for, and nothing else in this suite
+    reaches it.
+
+    IT IS ALSO A REAL DOCUMENT, not a contrivance: a plan that already carried a stale signer
+    line is how a duplicate key gets there.
+    """
+    root, plan = fixture_root()
+    try:
+        write(plan, "schema: plan/1\nfeature: FEAT-99-fixture\napproval:\n"
+                    "  status: pending\n  approved_by: null\n  approved_by: stale-signer\n"
+                    "tasks:\n  - id: T-01\n    title: t\n")
+        before = read(plan)
+        r = run_verb("sign-approval", "--file", plan, "--by", "Mike Ruangutai",
+                     "--date", "2026-08-30")
+        check("F-02 layer two: a signature that would reload as a DIFFERENT name is REFUSED at "
+              "exit 5 — the comparison loop, which `_field_lines` cannot cover",
+              r.returncode == 5, f"rc={r.returncode} stderr={r.stderr[:200]!r}")
+        # ASSERTED ON stderr, WHERE REFUSALS GO. The first cut read stdout, which is empty on a
+        # refusal, so it failed while the behaviour was correct.
+        check("F-02 layer two: the refusal names both the value asked for and the value it "
+              "would reload as — a reader cannot act on 'refused' alone",
+              "Mike Ruangutai" in r.stderr and "stale-signer" in r.stderr,
+              f"stderr={r.stderr[:300]!r}")
+        check("F-02 layer two: and the plan is left BYTE-IDENTICAL — a refusal that had already "
+              "written would be worse than the bug",
+              read(plan) == before, "plan changed")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
 def case_add_tasks_alias():
     root, plan = fixture_root()
     try:
@@ -886,6 +929,7 @@ def main():
     case_illegal_station_exit_4()
     case_sign_approval()
     case_f02_sign_approval_cannot_write_an_unparseable_signature()
+    case_f02_verify_signature_is_not_dead_code()
     case_sign_approval_is_the_only_signer()
     case_add_tasks_alias()
     case_apply_still_refuses_a_changed_value()
