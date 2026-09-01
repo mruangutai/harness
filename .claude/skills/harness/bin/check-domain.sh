@@ -709,6 +709,42 @@ def approval_guard(rel, agent_name):
 
 
 
+RE_FEATURE_ARTIFACT = re.compile(r"^\.harness/[^/]+/features/([^/]+)/")
+
+
+def feature_checkout_guard(raw_rel, target_path):
+    """Bind a governed feature-artifact write to that feature's linked worktree.
+
+    The domain matcher deliberately accepts the same stripped feature path in the main
+    checkout and a worktree. During FEAT-45 that let six writes land in main; three
+    artifacts existed nowhere else. This is a checkout question, not a broader glob or
+    shape rule, and it only narrows a write that the domain decision already allowed.
+    """
+    match = RE_FEATURE_ARTIFACT.match(raw_rel)
+    if match is None:
+        return
+    feature_id = match.group(1)
+    try:
+        expected = harness_boundary.worktree_for_feature(root, feature_id)
+        if expected is None:
+            return
+        checkout = harness_boundary.checkout_relative(target_path)
+        if checkout is not None and harness_boundary.real(checkout[0]) == harness_boundary.real(expected):
+            return
+        print(f"check-domain: BLOCKED — {target_path} is a feature artifact whose write "
+              f"belongs in worktree {expected}.", file=sys.stderr)
+        print(f"  Write this artifact in {expected}, not the main checkout.", file=sys.stderr)
+        sys.exit(2)
+    except harness_boundary.AmbiguousWorktree as exc:
+        print(f"check-domain: BLOCKED — {target_path} belongs to feature {feature_id}, "
+              f"but its worktree is ambiguous: {exc}", file=sys.stderr)
+        sys.exit(2)
+    except Exception:
+        # Absorbing by design: a bug in this narrowing check must not turn an existing
+        # domain allowance into an ambiguous exit-1 that the host treats as non-blocking.
+        return
+
+
 def domain_check():
     # T-12: the manifest is PARSED, not skimmed. The scanner this replaced matched the
     # literal text `name:`/`path:` line by line, so it never had to close a bracket or
@@ -837,10 +873,12 @@ def domain_check():
         # granted plan.yaml and BRIEF.md whole, so a fragment denial placed on the deny
         # path would never fire. This is the difference between the words "except
         # ## Approval" being a COMMENT beside a grant and being enforced.
+        feature_checkout_guard(_verdict["rel"], target)
         approval_guard(rel, agent)
         return
 
     if _verdict["outcome"] == "shared":
+        feature_checkout_guard(_verdict["rel"], target)
         # Shared paths are owned by nobody and always serialized (DEC-85). Allow the
         # write, but say so — an unnoticed shared-file edit is how two agents collide.
         print(f"check-domain: {agent} is writing SHARED path {rel} "
@@ -1037,6 +1075,10 @@ RE_STATE_MD     = re.compile(r"^\.harness/[^/]+/features/[^/]+/STATE\.md$")
 # CLAUDE.md (issue #139). Not a state file, and included here anyway because this is
 # where the four-route machinery already lives — the alternative was a fifth gate.
 RE_CLAUDE_MD    = re.compile(r"^CLAUDE\.md$")
+RE_RUN_DIGEST    = re.compile(r"^\.harness/[^/]+/features/[^/]+/runs/[^/]+/digest\.md$")
+# Deliberately absent from SHAPE_PATTERNS and the post-hoc sweep globs. This rule needs
+# the content that existed BEFORE a whole-file Write. After the write, comparing the
+# file with itself cannot fire and would advertise enforcement that does not exist.
 # plan.yaml is DELIBERATELY ABSENT (DEC-182). It carries neither a budget nor a vocabulary
 # rule, which is what this gate is for: `feature.json` 300 and `CLAUDE.md` 80 are
 # budgets, `state.yaml`'s 23-key whitelist is a vocabulary, and STATE.md and the handoff
@@ -1061,7 +1103,7 @@ def has_shape_rules(rel):
 _SCHEMA_UNAVAILABLE_SAID = False
 
 
-def shape_problems(rel, content, display=None):
+def shape_problems(rel, content, display=None, absolute_path=None):
     """The stderr LINES for one file's text, or [] when it is clean. NEVER exits.
 
     Returning rather than exiting is the whole reason this is a function: one call site
@@ -1093,6 +1135,20 @@ def shape_problems(rel, content, display=None):
         out.append(_head("state-file shape (DEC-150)."))
         out.extend(f"  {m}" for m in msgs)
         out.append(f"  {ROUTING}")
+
+    # Issue #1058: a lead reused a cycle's run directory and a plain digest.md overwrite
+    # destroyed the cycle-0 record. This guard is intentionally Write/PRE-only: Edit and
+    # Bash carry no complete incoming payload to compare, and POST is already too late.
+    if RE_RUN_DIGEST.match(rel) and absolute_path is not None:
+        try:
+            with open(absolute_path, encoding="utf-8", errors="replace") as prior_file:
+                prior = prior_file.read()
+        except OSError:
+            prior = ""
+        if prior.strip() and not content.startswith(prior):
+            out.append(_head("run digest already holds a recorded digest; this Write "
+                             "would replace rather than extend it. Write this cycle's "
+                             "digest into a run directory of its own."))
 
     if RE_FEATURE_JSON.match(rel):
         # 300, not 200: FEAT-10 measures 173 lines with 32 runs, roughly 5 lines per run.
@@ -1354,8 +1410,8 @@ def shape_problems(rel, content, display=None):
 
 
 # --- WHAT TO CHECK, by mode and route. -------------------------------------
-# `targets` is [(repo-relative path, file text)]. Building it is the ONLY thing the two
-# modes disagree about; the gate itself is one function above, run over whatever lands here.
+# `targets` is [(repo-relative path, file text, display path, absolute path)]. Building it
+# is the ONLY thing the two modes disagree about; the gate itself consumes one uniform tuple.
 targets = []
 
 if not _post:
@@ -1367,7 +1423,7 @@ if not _post:
     if _tool != "Write" or not target:
         sys.exit(0)
     targets = [(_norm(target), (d.get("tool_input") or {}).get("content") or "",
-                _show(target))]
+                _show(target), os.path.abspath(target))]
 
 elif target:
     # POST, with a named file: Write, Edit, NotebookEdit. Read what LANDED — no
@@ -1378,7 +1434,7 @@ elif target:
         sys.exit(0)
     try:
         with open(os.path.abspath(target), encoding="utf-8", errors="replace") as _f:
-            targets = [(_rel, _f.read(), _show(target))]
+            targets = [(_rel, _f.read(), _show(target), os.path.abspath(target))]
     except OSError:
         # The tool may have failed, or the path may be a directory or already gone. A
         # post-hoc reporter that raises on an unreadable path would turn every such write
@@ -1500,9 +1556,8 @@ else:
                     if _rel_in_checkout not in _dirty_set:
                         continue
                 with open(_p, encoding="utf-8", errors="replace") as _f:
-                    # Third element: the repo-relative path WITHOUT the worktree strip, so
-                    # a finding names the checkout it came from.
-                    targets.append((_norm(_p), _f.read(), _show(_p)))
+                    # Display stays unstripped; absolute path identifies the exact checkout.
+                    targets.append((_norm(_p), _f.read(), _show(_p), _p))
             except OSError:
                 _unreadable = True
     # ADVANCE THE MARK WHETHER OR NOT ANYTHING WAS FOUND, and whether or not the report
@@ -1537,14 +1592,11 @@ else:
             pass
 
 _problems = []
-# UNIFORM 3-TUPLES. The first version threaded `display` through the SWEEP only and left
-# the other two routes as 2-tuples, read back with `_t[2] if len(_t) > 2 else None` — a
-# mixed arity that was itself the tell. Measured: a PostToolUse Edit naming
-# `.claude/worktrees/wt1/CLAUDE.md` printed a bare "CLAUDE.md", so an agent told its file
-# was 81 lines opened the 74-line root copy and concluded the gate was stale. I had fixed
-# the instance and not the class.
-for _rel, _text, _disp in targets:
-    _problems.extend(shape_problems(_rel, _text, display=_disp))
+# UNIFORM 4-TUPLES. Every route names the match path, content, display path and exact
+# on-disk target; mixed arity turns the guard off at exit 1.
+for _rel, _text, _disp, _absolute in targets:
+    _problems.extend(shape_problems(_rel, _text, display=_disp,
+                                    absolute_path=_absolute))
 
 if _problems:
     for _line in _problems:

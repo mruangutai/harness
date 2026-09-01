@@ -516,7 +516,7 @@ tasks:
     execution_reason: >-
       DEC-174 carve-out, validate-digest.py is the registered SubagentStop validator
     depends_on: []
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/validate-digest.py
     verify: |
@@ -585,7 +585,7 @@ tasks:
     execution_reason: >-
       DEC-174 carve-out, test-validate-digest.py is the validator gate's own test
     depends_on: [T-01]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/test-validate-digest.py
     verify: |
@@ -673,7 +673,7 @@ tasks:
     execution_reason: >-
       DEC-174 carve-out, check-domain.sh is the registered PreToolUse domain gate
     depends_on: [T-08]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/check-domain.sh
     intent: |
@@ -803,7 +803,7 @@ tasks:
     execution_reason: >-
       DEC-174 carve-out, check-domain.sh is the registered PreToolUse domain gate
     depends_on: [T-03]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/check-domain.sh
     intent: |
@@ -911,7 +911,7 @@ tasks:
     execution_reason: >-
       DEC-174 carve-out, test-check-domain.py is the domain gate's own test
     depends_on: [T-03, T-04]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/test-check-domain.py
     verify: |
@@ -1015,7 +1015,7 @@ tasks:
     execution_reason: >-
       resolves NOBODY, the team playbook is owned by no persona
     depends_on: [T-04]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness-team/SKILL.md
     verify: |
@@ -1048,7 +1048,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-documentor
     depends_on: [T-01, T-02, T-03, T-04, T-05, T-06, T-08, T-09, T-10, T-11, T-12]
-    status: pending
+    status: done
     files:
       - .harness/harness/docs/DECISIONS.md
       - .harness/harness/docs/DECISIONS-INDEX.md
@@ -1166,7 +1166,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: []
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/harness_boundary.py
       - .claude/skills/harness/bin/inflight_registry.py
@@ -1198,7 +1198,7 @@ tasks:
       except hb.AmbiguousWorktree as exc:
           assert 'FEAT-X' in str(exc), 'the refusal must name the candidates'
       assert ir.feature_root(d, 'FEAT-X-thing') == d, 'ambiguity must fall back to owner_root'
-      assert ir.feature_root(d, 'FEAT-Y-other') == d, 'no worktree must fall back to owner_root'
+      assert ir.feature_root(d, 'OTHER-thing') == d, 'no worktree must fall back to owner_root'
       src = open('.claude/skills/harness/bin/inflight_registry.py').read()
       assert 'os.path.basename(worktree)' not in src, 'inline basename loop still present'
       assert 'worktree_for_feature' in src, 'cutover not through the seam'
@@ -1262,7 +1262,7 @@ tasks:
     execution_reason: >-
       DEC-174 carve-out, bash-write-guard.sh is the registered PreToolUse Bash write guard
     depends_on: [T-08]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/bash-write-guard.sh
     verify: |
@@ -1385,7 +1385,7 @@ tasks:
     execution_reason: >-
       DEC-174 carve-out, test-bash-write-guard.py is the Bash write guard's own test
     depends_on: [T-09]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/test-bash-write-guard.py
     verify: |
@@ -1472,7 +1472,7 @@ tasks:
     execution_reason: >-
       DEC-174 carve-out, validate-digest.py is the registered SubagentStop validator
     depends_on: [T-08]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/validate-digest.py
     verify: |
@@ -1567,7 +1567,7 @@ tasks:
     execution_reason: >-
       DEC-174 carve-out, test-validate-digest.py is the validator gate's own test
     depends_on: [T-11]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/test-validate-digest.py
     verify: |

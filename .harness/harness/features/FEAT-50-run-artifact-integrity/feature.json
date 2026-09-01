@@ -2,9 +2,9 @@
   "feature_id": "FEAT-50-run-artifact-integrity",
   "branch": "feat/FEAT-50-run-artifact-integrity",
   "pr": null,
-  "status": "Plan",
+  "status": "Review",
   "review_sha": "none",
-  "cycles_used": 7,
+  "cycles_used": 8,
   "max_total_cycles": 10,
   "max_total_runs": 20,
   "runs": [
@@ -67,6 +67,49 @@
       "squad": "product",
       "agent": "harness-product-lead",
       "verdict": "PASS"
+    },
+    {
+      "id": "t08-eng",
+      "squad": "eng",
+      "agent": "harness-eng-lead",
+      "verdict": "ESCALATE"
     }
-  ]
+  ],
+  "github": {
+    "milestone": 35,
+    "parent": 1082,
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03",
+      "T-04",
+      "T-05",
+      "T-06",
+      "T-07",
+      "T-08",
+      "T-09",
+      "T-10",
+      "T-11",
+      "T-12"
+    ],
+    "issues": {
+      "T-01": 1083,
+      "T-02": 1084,
+      "T-03": 1085,
+      "T-04": 1086,
+      "T-05": 1087,
+      "T-06": 1088,
+      "T-07": 1089,
+      "T-08": 1090,
+      "T-09": 1091,
+      "T-10": 1092,
+      "T-11": 1093,
+      "T-12": 1094
+    },
+    "source_issues": [
+      1056,
+      1057,
+      1058
+    ]
+  }
 }

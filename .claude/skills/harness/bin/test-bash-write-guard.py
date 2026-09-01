@@ -304,9 +304,13 @@ def _linked_worktree(path, owner_root, wt_id, manifest_text):
     falls to the DEC-151 fail-open — which exits 0 for a reason that has nothing to do
     with worktrees.
     """
+    entry = os.path.join(owner_root, ".git", "worktrees", wt_id)
+    os.makedirs(entry, exist_ok=True)
     os.makedirs(os.path.join(path, ".harness"), exist_ok=True)
     with open(os.path.join(path, ".git"), "w") as f:
-        f.write("gitdir: %s\n" % os.path.join(owner_root, ".git", "worktrees", wt_id))
+        f.write("gitdir: %s\n" % entry)
+    with open(os.path.join(entry, "gitdir"), "w") as f:
+        f.write("%s\n" % os.path.join(path, ".git"))
     with open(os.path.join(path, ".harness", "team-config.yaml"), "w") as f:
         f.write(manifest_text)
 
@@ -828,6 +832,93 @@ def run_head_move():
     shutil.rmtree(tmp, ignore_errors=True)
     return fails
 
+def run_feat50_checkout_binding():
+    """Issue #1057: the Bash route binds an allowed feature write to its worktree."""
+    results = []
+
+    def check(name, ok, detail=""):
+        results.append((name, ok, detail))
+
+    manifest = """schema_version: 1
+teams:
+  - name: build
+    members:
+      - name: harness-documentor
+        domain:
+          - { path: .harness/*/features/*/BRIEF.md, upsert: true }
+"""
+    feature = "FEAT-X-thing"
+    rel = f".harness/harness/features/{feature}/BRIEF.md"
+
+    def root_with_worktree(wt_id=None):
+        root = fixture(manifest)
+        worktree = None
+        if wt_id:
+            worktree = os.path.join(root, ".claude", "worktrees", wt_id)
+            _linked_worktree(worktree, root, wt_id, manifest)
+        return root, worktree
+
+    root, worktree = root_with_worktree(feature)
+    target = os.path.join(root, rel)
+    os.makedirs(os.path.dirname(target), exist_ok=True)
+    main = fire(root, f"echo hi > {target}", agent="harness-documentor")
+    check("bash-feature-checkout-main", main.returncode == 2
+          and target in main.stderr and worktree in main.stderr,
+          f"{main.returncode}: {main.stderr}")
+
+    inside_target = os.path.join(worktree, rel)
+    os.makedirs(os.path.dirname(inside_target), exist_ok=True)
+    inside = fire(root, f"echo hi > {inside_target}", agent="harness-documentor")
+    check("bash-feature-checkout-inside", inside.returncode == 0,
+          f"{inside.returncode}: {inside.stderr}")
+
+    free_root, _ = root_with_worktree()
+    free_target = os.path.join(free_root, rel)
+    os.makedirs(os.path.dirname(free_target), exist_ok=True)
+    absent = fire(free_root, f"echo hi > {free_target}", agent="harness-documentor")
+    check("bash-feature-checkout-absent", absent.returncode == 0,
+          f"{absent.returncode}: {absent.stderr}")
+
+    short_root, short_worktree = root_with_worktree("FEAT-X")
+    short_target = os.path.join(short_root, rel)
+    os.makedirs(os.path.dirname(short_target), exist_ok=True)
+    short = fire(short_root, f"echo hi > {short_target}", agent="harness-documentor")
+    check("bash-feature-checkout-short", short.returncode == 2
+          and short_target in short.stderr and short_worktree in short.stderr,
+          f"{short.returncode}: {short.stderr}")
+
+    with open(GUARD, encoding="utf-8") as source_file:
+        source = source_file.read()
+    call = "            feature_checkout_guard(rel, ap)\n"
+    if source.count(call) != 1:
+        raise AssertionError("INCONCLUSIVE: Bash binding call anchor absent or ambiguous")
+    changed = source.replace(call, "", 1)
+    mutant = os.path.join(HERE, f".feat50-bash-write-guard-{os.getpid()}.sh")
+    with open(mutant, "w", encoding="utf-8") as mutant_file:
+        mutant_file.write(changed)
+    os.chmod(mutant, os.stat(GUARD).st_mode)
+    try:
+        payload = {"agent_type": "harness-documentor", "tool_name": "Bash",
+                   "tool_input": {"command": f"echo hi > {target}"}}
+        muted = subprocess.run([mutant], input=json.dumps(payload), capture_output=True,
+                               text=True, env=_env(root))
+        check("bash-feature-checkout-red", changed != source and main.returncode == 2
+              and muted.returncode == 0 and "Traceback" not in muted.stderr,
+              f"real={main.returncode}, mutant={muted.returncode}: {muted.stderr}")
+    finally:
+        os.unlink(mutant)
+
+    fails = 0
+    for name, ok, detail in results:
+        if ok:
+            print(f"ok    {name}")
+        else:
+            fails += 1
+            print(f"FAIL  {name}\n      | {detail}")
+    print(f"\n{len(results) - fails}/{len(results)} FEAT-50 Bash binding cases passed.")
+    return fails
+
+
 
 def main():
     fails = 0
@@ -848,6 +939,7 @@ def main():
     fails += run_worktree()
     fails += run_worktree_deep()
     fails += run_head_move()
+    fails += run_feat50_checkout_binding()
     return fails
 
 

@@ -228,6 +228,88 @@ def case_root_above():
         shutil.rmtree(tmp, ignore_errors=True)
 
 
+def make_worktree(mod, owner_root, name):
+    """A linked-worktree fixture: `<owner_root>/wt/<name>` as the checkout, wired to
+    `owner_root` with the two-sided gitdir pointer pair -- the worktree's own `.git`
+    FILE naming the owner's `.git/worktrees/<name>` entry, and that entry's `gitdir`
+    file naming the worktree's `.git` back -- which is the on-disk shape `git worktree
+    add` leaves and the one `linked_worktrees` reads. Returns the realpath-resolved
+    checkout dir, exactly what `linked_worktrees`/`worktree_for_feature` return.
+    """
+    path = os.path.join(owner_root, "wt", name)
+    entry = os.path.join(owner_root, ".git", "worktrees", name)
+    os.makedirs(path)
+    os.makedirs(entry)
+    with open(os.path.join(path, ".git"), "w") as fh:
+        fh.write("gitdir: %s\n" % entry)
+    with open(os.path.join(entry, "gitdir"), "w") as fh:
+        fh.write("%s\n" % os.path.join(path, ".git"))
+    return mod.real(path)
+
+
+# ============================== worktree_for_feature ==============================
+
+def case_worktree_for_feature():
+    mod = hb()
+
+    tmp = tempfile.mkdtemp()
+    try:
+        short = make_worktree(mod, tmp, "FEAT-X")
+
+        check("worktree_for_feature_exact_basename_match",
+              mod.worktree_for_feature(tmp, "FEAT-X") == short,
+              f"expected {short!r}, got {mod.worktree_for_feature(tmp, 'FEAT-X')!r}")
+
+        check("worktree_for_feature_short_form_prefix_match",
+              mod.worktree_for_feature(tmp, "FEAT-X-thing") == short,
+              f"expected {short!r}")
+
+        check("worktree_for_feature_unrelated_id_returns_none",
+              mod.worktree_for_feature(tmp, "FEAT-Y-other") is None,
+              "expected None for an id no worktree prefixes")
+
+        # Look the LONGER id up against the SHORTER basename: FEAT-XY must NOT match
+        # a FEAT-X worktree. Under the correct "equal, or prefix + hyphen" rule this
+        # is None (neither an exact match nor a FEAT-X-<rest> match). Under the
+        # boundary-less bug `feature_id.startswith(basename)` (dropping the "-"),
+        # "FEAT-XY".startswith("FEAT-X") is True and it would wrongly return short.
+        check("worktree_for_feature_hyphen_boundary_not_crossed",
+              mod.worktree_for_feature(tmp, "FEAT-XY") is None,
+              "a FEAT-X worktree must not match a FEAT-XY lookup")
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+    tmp2 = tempfile.mkdtemp()
+    try:
+        make_worktree(mod, tmp2, "FEAT-X")
+        make_worktree(mod, tmp2, "FEAT")
+        raised = None
+        try:
+            mod.worktree_for_feature(tmp2, "FEAT-X-thing")
+        except mod.AmbiguousWorktree as e:
+            raised = e
+        check("worktree_for_feature_two_candidates_raises_ambiguous",
+              raised is not None and "FEAT, FEAT-X" in str(raised),
+              f"expected AmbiguousWorktree naming both FEAT and FEAT-X, got {raised!r}")
+    finally:
+        shutil.rmtree(tmp2, ignore_errors=True)
+
+    tmp3 = tempfile.mkdtemp()
+    try:
+        raised3 = None
+        result3 = "unset"
+        try:
+            result3 = mod.worktree_for_feature(tmp3, "FEAT-X")
+        except Exception as e:
+            raised3 = e
+        check("worktree_for_feature_no_worktrees_dir_returns_none",
+              raised3 is None and result3 is None,
+              f"expected None with no raise when .git/worktrees is absent, "
+              f"got result={result3!r} raised={raised3!r}")
+    finally:
+        shutil.rmtree(tmp3, ignore_errors=True)
+
+
 def run_case(fn):
     """Run one case, tolerating a crash so one broken case does not silently skip
     every later one (an unguarded raise would abort main() and leave the rest
@@ -244,6 +326,7 @@ def main():
     run_case(case_resolve_root_strict)
     run_case(case_resolve_root_override_normalises_relative)
     run_case(case_root_above)
+    run_case(case_worktree_for_feature)
 
     if failures:
         print(f"\n{len(failures)} FAILURE(S): {failures}")

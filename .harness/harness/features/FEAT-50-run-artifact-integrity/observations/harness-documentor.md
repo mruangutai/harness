@@ -1,0 +1,5 @@
+# Observations - harness-documentor
+
+- 2026-09-01: T-07 (FEAT-50) prescribed a decision heading naming three rulings while the entry records five, and an open plan finding (PF-cec83ae4) already recorded that as the defect. Signed prose + its own fog contradicted each other; the resolution was to keep the graded prefix verbatim and extend only the clause list, so both greps still match while the index becomes searchable for all five.
+- 2026-09-01: DEC number allocation for a parallel-feature repo needs six vantages, not one — this worktree, the main checkout's WORKING TREE, main, all local+remote branches, and every sibling worktree's working copy. Only the working-tree reads can catch a concurrent documentor who has written but not committed.
+- 2026-09-01: proving check-decision-anchors.py discriminates by writing a mutated copy to mktemp is BLOCKED by bash-write-guard (redirect outside documentor domain). Importing the module and calling check_anchor() with a bogus line number gets the same evidence with no write.

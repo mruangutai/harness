@@ -727,16 +727,33 @@ DIGEST:
 artifact: .harness/notes/review-code.md
 """, 2, "must be a single value")
 
-# --- The three deliberate pass-throughs (DEC-122), each asserted at exit 0 ---
+# --- D-01 (issue #1056): PRESENCE, not truthiness -----------------------------
+# Absent, null and empty-string were ONE branch, so the platform's gap and the persona's
+# contract violation were indistinguishable and both exited 0. Five FEAT-45 returns were
+# empty and nothing in the record said so. Each case asserts the EXIT CODE and the stderr
+# TEXT, because exit 0 alone is what the defect also returned.
+
+hook_case("empty-string: a present but blank final message is the persona's violation",
+          "harness-qa", "   \n", 2, mentions="harness-qa")
+
+def _absent_key_case():
+    # The key omitted ENTIRELY — hook_case always sets it, so the payload is built here.
+    HOOK_CASES.append((
+        "absent-key: nothing supplied to validate is OUR gap, and is said so",
+        {"agent_type": "harness-qa"}, 0,
+        ("not validated", "our", "harness-qa")))
+_absent_key_case()
+
+hook_case("null-passthrough: an explicitly null final message is the same our-gap branch",
+          "harness-qa", None, 0, mentions=("not validated", "our", "harness-qa"))
+
+# --- The two deliberate pass-throughs (DEC-122), each asserted at exit 0 ---
 
 hook_case("pass-through: non-harness agent_type is not governed",
           "Explore", "VERDICT: PASS\nDIGEST:\nartifact: x.md\n", 0)
 
 hook_case("pass-through: stop_hook_active avoids the infinite-block loop",
           "harness-qa", "done", 0, stop_hook_active=True)
-
-hook_case("pass-through: empty last_assistant_message passes with a stated reason",
-          "harness-qa", "", 0, mentions="no final message")
 
 # --- DEC-156: a lead's WRITTEN digest.md must carry the contract block too ---
 # The kaya-ai FEAT-02 audit found every run digest.md was narrative markdown while
@@ -786,6 +803,48 @@ _p["last_assistant_message"] = (
     "  blocked_on: none\n  branch: none\n  files_touched: []\n  open_questions: []\n"
     "  expertise_update: []\nartifact: runs/r1/notes.md\n")
 HOOK_CASES.append((_n, _p, _e, _m))
+
+# Root and checkout must differ here. `_dec156_case` makes them coincide, so the old
+# owner-root join and the corrected feature-checkout join name the same file and cannot
+# distinguish the worktree-resolution defect.
+def _dec156_worktree_case(name, file_content, expect_exit, mentions=None, feature=True):
+    root = tempfile.mkdtemp(prefix="vd-dec156-worktree-")
+    os.makedirs(os.path.join(root, ".harness"), exist_ok=True)
+    with open(os.path.join(root, ".harness", "team-config.yaml"), "w") as marker:
+        marker.write("agents: {}\n")
+    wt_id = "FEAT-X"
+    worktree = os.path.join(root, ".claude", "worktrees", wt_id)
+    entry = os.path.join(root, ".git", "worktrees", wt_id)
+    os.makedirs(entry, exist_ok=True)
+    os.makedirs(os.path.join(worktree, ".harness"), exist_ok=True)
+    with open(os.path.join(worktree, ".git"), "w") as pointer:
+        pointer.write("gitdir: %s\n" % entry)
+    with open(os.path.join(entry, "gitdir"), "w") as pointer:
+        pointer.write("%s\n" % os.path.join(worktree, ".git"))
+    rel = os.path.join("runs", "r1", "digest.md")
+    os.makedirs(os.path.dirname(os.path.join(worktree, rel)), exist_ok=True)
+    if file_content is not None:
+        with open(os.path.join(worktree, rel), "w", encoding="utf-8") as digest:
+            digest.write(file_content)
+    msg = LEAD_BLOCK.replace(
+        "artifact: .harness/features/FEAT-01/runs/r1/digest.md", f"artifact: {rel}")
+    payload = {"agent_type": "harness-eng-lead", "last_assistant_message": msg,
+               "_root": root}
+    if feature:
+        payload["harness_feature"] = "FEAT-X-thing"
+    HOOK_CASES.append((name, payload, expect_exit, mentions))
+    return root, worktree, rel, payload
+
+
+_dec156_worktree_case(
+    "dec156-worktree-narrative: worktree narrative digest is rejected",
+    "# narrative digest, no contract block\n", 2, mentions="digest FILE")
+_dec156_worktree_case(
+    "dec156-worktree-valid: valid worktree digest passes",
+    LEAD_BLOCK, 0)
+_dec156_worktree_case(
+    "dec156-worktree-nofeature: absent feature preserves fail-open fallback",
+    "# narrative digest, no contract block\n", 0, mentions="INV-15", feature=False)
 
 
 # F6: absent agent_type key must be LOUD on stderr — distinguishable from a
@@ -1405,8 +1464,13 @@ def run_hook_cases():
         bad = []
         if r.returncode != want_exit:
             bad.append(f"expected exit {want_exit}, got {r.returncode}")
-        if mentions and mentions.lower() not in r.stderr.lower():
-            bad.append(f"stderr should mention {mentions!r}")
+        # A case may require SEVERAL substrings. D-01's fail-open line has to carry both
+        # the words that say the return went unvalidated AND the attribution of the gap to
+        # us, and a single substring can assert only one of them: exit 0 is what the DEFECT
+        # returned too, so the words are the whole discrimination.
+        for _want in ((mentions,) if isinstance(mentions, str) else (mentions or ())):
+            if _want.lower() not in r.stderr.lower():
+                bad.append(f"stderr should mention {_want!r}")
         if bad:
             fails += 1
             print(f"FAIL  [hook] {name}")
@@ -2818,8 +2882,148 @@ def run_code_grade_cases():
     return 0
 
 
+def run_empty_red_case():
+    """empty-red — proof the empty-string case CAN report red (REQ-05/REQ-06).
+
+    Reverts hook_mode()'s presence branch to the truthiness form it replaced and runs BOTH
+    binaries over the SAME payload as the empty-string case. The mutant lives in the
+    script's OWN directory because validate-digest.py imports sibling modules from it, so a
+    copy in a tmpdir dies at import and the case would pass while measuring nothing. The
+    name carries os.getpid() (D-07): that directory is shared and tracked, and two features
+    running in parallel under one fixed name means one run's `finally` deletes the other's
+    copy mid-read.
+    """
+    fails = 0
+
+    def bad(detail):
+        print("FAIL  [empty-red] %s" % detail)
+        return 1
+
+    with open(VALIDATE, encoding="utf-8") as fh:
+        source = fh.read()
+
+    # Located by its OWN SOURCE TEXT — never a line number and never a commit ref, both of
+    # which go stale silently and turn this proof into a pass that measured nothing.
+    head = '    raw = d.get("last_assistant_message", _ABSENT)'
+    start = source.find(head)
+    end = source.find("\n        return 2\n", start) + len("\n        return 2\n") if start >= 0 else -1
+    if start < 0 or end <= start:
+        print("FAIL  [empty-red] INCONCLUSIVE: the presence branch was not found by its "
+              "source text in %s — the anchor is stale, nothing was measured." % VALIDATE)
+        return 1
+
+    truthiness = (
+        '    text = d.get("last_assistant_message") or ""\n'
+        '    if not text.strip():\n'
+        '        print(f"check-digest: {agent} returned no final message to validate.",\n'
+        '              file=sys.stderr)\n'
+        '        return 0\n')
+    mutant_src = source[:start] + truthiness + source[end:]
+
+    mutant = os.path.join(os.path.dirname(os.path.realpath(VALIDATE)),
+                          ".validate-digest-empty-red-%d.py" % os.getpid())
+    payload = {"agent_type": "harness-qa", "last_assistant_message": "   \n"}
+    root = _isolated_root()
+    env = dict(os.environ, HARNESS_PROJECT_DIR=root, CLAUDE_PROJECT_DIR=root)
+    try:
+        with open(mutant, "w", encoding="utf-8") as fh:
+            fh.write(mutant_src)
+        os.chmod(mutant, os.stat(VALIDATE).st_mode & 0o7777)
+
+        if mutant_src == source:
+            return bad("INCONCLUSIVE: the copy is byte-identical to the original, so the "
+                       "revert changed nothing and the comparison below is vacuous.")
+
+        def fire(binary):
+            return subprocess.run([sys.executable, binary, "--hook"],
+                                  input=json.dumps(payload), capture_output=True,
+                                  text=True, env=env)
+
+        real = fire(VALIDATE)
+        old = fire(mutant)
+
+        # A SyntaxError or NameError exits nonzero with a traceback and would otherwise be
+        # indistinguishable from a real verdict, so the mutant's health is asserted first.
+        if old.returncode not in (0, 2) or "Traceback (most recent call last)" in old.stderr:
+            fails += bad("INCONCLUSIVE: the mutant crashed (exit %d) rather than returning "
+                         "a verdict:\n      | %s"
+                         % (old.returncode, old.stderr.strip().replace("\n", "\n      | ")))
+        if real.returncode != 2:
+            fails += bad("the real validator must exit 2 on a blank final message, got %d"
+                         % real.returncode)
+        if old.returncode != 0:
+            fails += bad("the truthiness revert must exit 0 — if it does not, the "
+                         "empty-string case is not what proves the fix, got %d"
+                         % old.returncode)
+    finally:
+        try:
+            os.remove(mutant)
+        except OSError:
+            pass
+
+    if not fails:
+        print("ok    [empty-red] the empty-string refusal fails against the truthiness revert")
+    print("\n%d/1 empty-red cases passed." % (0 if fails else 1,))
+    return 1 if fails else 0
+
+
+def run_dec156_worktree_red_case():
+    """dec156-worktree-red: the narrative case fails against the owner-root join."""
+    root, _worktree, _rel, payload = _dec156_worktree_case(
+        "red-fixture", "# narrative digest, no contract block\n", 2)
+    HOOK_CASES.pop()
+    payload = dict(payload)
+    payload.pop("_root", None)
+    env = dict(os.environ, HARNESS_PROJECT_DIR=root, CLAUDE_PROJECT_DIR=root)
+
+    with open(VALIDATE, encoding="utf-8") as source_file:
+        source = source_file.read()
+    function = source.find("def check_artifact_file(")
+    start = source.find("    if os.path.isabs(path):\n", function)
+    end = source.find("    found = next(", start)
+    if function < 0 or start < 0 or end <= start:
+        print("FAIL  [dec156-worktree-red] INCONCLUSIVE: resolution anchors absent")
+        return 1
+    old_join = ('    cands = ([path] if os.path.isabs(path) else '
+                '[os.path.join(_root_or_none() or "", path)])\n')
+    mutant_source = source[:start] + old_join + source[end:]
+    if mutant_source == source:
+        print("FAIL  [dec156-worktree-red] INCONCLUSIVE: mutant is byte-identical")
+        return 1
+
+    mutant = os.path.join(os.path.dirname(os.path.realpath(VALIDATE)),
+                          ".validate-digest-dec156-red-%d.py" % os.getpid())
+    try:
+        with open(mutant, "w", encoding="utf-8") as mutant_file:
+            mutant_file.write(mutant_source)
+        os.chmod(mutant, os.stat(VALIDATE).st_mode & 0o7777)
+
+        def fire(binary):
+            return subprocess.run([sys.executable, binary, "--hook"],
+                                  input=json.dumps(payload), capture_output=True,
+                                  text=True, env=env)
+
+        real = fire(VALIDATE)
+        old = fire(mutant)
+        ok = (real.returncode == 2 and old.returncode == 0
+              and "Traceback (most recent call last)" not in old.stderr)
+        if not ok:
+            print("FAIL  [dec156-worktree-red] real=%d mutant=%d\n      | %s"
+                  % (real.returncode, old.returncode, old.stderr.strip()))
+            return 1
+        print("ok    [dec156-worktree-red] owner-root join misses the worktree digest")
+        return 0
+    finally:
+        try:
+            os.remove(mutant)
+        except OSError:
+            pass
+
+
 def main():
     fails = run_cli_cases()
+    fails += run_empty_red_case()
+    fails += run_dec156_worktree_red_case()
     fails += run_joint_hint_case()
     fails += run_code_grade_cases()
     fails += run_hook_cases()
