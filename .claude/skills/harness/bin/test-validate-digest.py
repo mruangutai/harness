@@ -2695,6 +2695,59 @@ def check_artifact_path_traversal(td, failures):
                         f"out of the checkout: {errors}")
 
 
+def _assert_symlinked_component_refused(validator, root, link_name, target, failures,
+                                       label):
+    """One symlinked `<repo>` component pointing at `target`: every segment of the
+    artifact path is a plain name, so the `.`/`..` token check cannot see it and only the
+    realpath containment comparison can refuse it."""
+    os.makedirs(os.path.join(target, "features", "FEAT-LINKED"), exist_ok=True)
+    link = os.path.join(root, ".harness", link_name)
+    if not os.path.lexists(link):
+        os.symlink(target, link)
+    feature_dir, error = validator._feature_dir_from_artifact(
+        f"artifact: .harness/{link_name}/features/FEAT-LINKED/notes/review.md\n", root)
+    if feature_dir is not None or not error:
+        failures.append(f"{label} must be refused by the realpath containment check, "
+                        f"got {feature_dir!r}")
+    elif "resolves outside this checkout" not in error:
+        failures.append(f"{label}: the containment refusal must name its own cause, "
+                        f"not the token check's: {error!r}")
+
+
+def check_symlinked_feature_component(td, failures):
+    """`_contained_feature_dir`'s SECOND defence, which the token check cannot reach.
+
+    Panel cycle 2 measured with `sys.settrace` that the realpath containment line never
+    executed in the committed suite: all four `HOSTILE_ARTIFACT_PATHS` trip the `.`/`..`
+    token check first, so deleting the containment test left the suite fully green.
+    Correct today and pinned against regression by nothing — the exact
+    gate-that-cannot-report-red shape this whole feature exists to refuse. Both cases
+    below were confirmed discriminating by mutation (M8 removes the check, M9 drops the
+    `+ os.sep`; each reds here and nowhere else).
+    """
+    validator = _fresh_validator()
+    root = os.path.join(td, "symlink-root")
+    os.makedirs(os.path.join(root, ".harness"), exist_ok=True)
+
+    _assert_symlinked_component_refused(
+        validator, root, "escaped", os.path.join(td, "outside-the-checkout"), failures,
+        "a component symlinked out of the checkout")
+    # The `+ os.sep` boundary specifically: a sibling whose path shares the root's string
+    # prefix. A bare `startswith(real_root)` admits `<root>-evil`; only the separator
+    # makes "descendant" mean descendant.
+    _assert_symlinked_component_refused(
+        validator, root, "sibling", root + "-evil", failures,
+        "a component symlinked to a sibling sharing the root's prefix")
+
+    inside = os.path.join(root, ".harness", "harness", "features", "FEAT-INSIDE")
+    os.makedirs(inside, exist_ok=True)
+    feature_dir, error = validator._feature_dir_from_artifact(
+        "artifact: .harness/harness/features/FEAT-INSIDE/notes/review.md\n", root)
+    if error or feature_dir != inside:
+        failures.append(f"the containment check must still admit a real in-tree feature "
+                        f"directory: {feature_dir!r} {error!r}")
+
+
 def check_judgment_outranks_clean_grade(td, failures):
     """SC-08/REQ-05: a mechanically CLEAN range cannot rescue a review whose own human
     judgment failed. The reviewer keeps `must_fix` and severity; recomputing the grade
@@ -2752,6 +2805,7 @@ def _check_bug1081_enforcement(validator, config, td, failures):
     check_missing_test_kinds(td, failures)
     check_malformed_test_kinds(td, failures)
     check_artifact_path_traversal(td, failures)
+    check_symlinked_feature_component(td, failures)
     check_judgment_outranks_clean_grade(td, failures)
     check_plan_review_never_grades(validator, config, td, failures)
 
