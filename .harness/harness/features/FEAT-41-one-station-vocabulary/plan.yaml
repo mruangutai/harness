@@ -227,6 +227,28 @@ decisions:
       station has somewhere real to live, its feature.json key is deleted, and zero feature.json
       in the tree carry status. Requiring a plan.yaml for bug fixes too is the larger blast
       radius and the operator accepted it deliberately.
+  - id: D-18
+    dec: DEC-174
+    choice: >-
+      Three operator rulings on cycle 3's non-code items. (a) SC-01 is read as "no SOURCE declares
+      a second station vocabulary" and PASSES: its 54 remaining `_STATION_KEYS` hits are all
+      narrative prose in notes/ and observations/ discussing the retired constant, zero in any
+      .py/.sh/.json. The prose is NOT scrubbed. (b) MF-4 ships as fast-follow issue #1104, not in
+      this feature. (c) plan-sign-gate.py's denylist design becomes its own feature, issue #1103.
+    because: >-
+      (a) The criterion's intent was that no code declares a second vocabulary, and that is
+      verified mechanically. Rewriting 54 lines of history that explain WHY the constant was
+      retired, purely so a grep returns zero, would destroy the record to satisfy the measurement
+      - the inverse of what the criterion exists for. The panel refused to narrow a signed
+      criterion itself, correctly, and routed it up. (b) The gating half - a directory with no
+      BRIEF.md is never approval-checked - PREDATES 7c4f0bd and this feature never touched it; the
+      panel's own lead lowered it from high for that reason, and gating FEAT-41 on it would route
+      a fix cycle at code the feature did not introduce. (c) The gate has leaked four times in one
+      class across three cycles, and the structural fix is an identity check inside
+      cmd_sign_approval which CANNOT be written today - verified, not assumed: no runtime identity
+      signal reaches a subprocess, since HARNESS_AGENT_ID is a marker inside agent definition
+      files rather than an environment variable. That needs plumbing and a decision about the
+      default, so it needs its own brief.
 tasks:
   - id: T-01
     title: Declare the six stations once, as an ordered lowercase list in harness.json
