@@ -191,6 +191,52 @@ def as_bash_reads_it(line):
     return BRACED_EXPANSION.sub(" ", _strip_substitutions(CONTINUATION.sub("", line)))
 
 
+# Wrappers that build a command's argv from somewhere the gate cannot read: standard input, a
+# file, or a filename walk. `bash`/`sh` are deliberately ABSENT -- `denies` recurses into a nested
+# command line, so its verb IS determinable (FEAT-41 HIGH-2).
+INDIRECT = {"xargs", "parallel"}
+INTERPRETERS = {"python", "python3", "python2", "env", "nice", "time", "nohup", "stdbuf"}
+
+
+def _invokes_tool_indirectly(toks):
+    """True when a wrapper will run the tool with argv the gate cannot see.
+
+    FAIL CLOSED ON INDIRECTION, WHICH IS NOT ANOTHER SEPARATOR PATCH. Measured: three xargs
+    variants all deliver the verb, and the third reads it FROM A FILE --
+    `xargs plan-merge.py < verb.txt` -- so the verb's text never appears in the command line and
+    no text scanner can ever see it. Closing "the xargs form" would have been a fifth patch
+    leaving the class open. A gate that cannot determine the verb must refuse rather than guess,
+    exactly as an unresolvable path refuses in check-domain.sh.
+
+    THE COMMAND WORD IS RESOLVED, NOT MERELY SEARCHED FOR, and that is what keeps this narrow:
+    `xargs -I{} grep plan-merge.py dir` mentions the tool as grep's PATTERN and must stay allowed.
+    So we skip the wrapper's own flags, then read the next token as the COMMAND, allowing one
+    interpreter prefix (`python3 tool`). Only if THAT resolves to the tool is it an invocation.
+    """
+    for i, t in enumerate(toks):
+        base = os.path.basename(t.strip("\\'\"$()`"))
+        if base == "find":
+            # find's command begins after `-exec`/`-execdir`, not after its own flags.
+            for j in range(i + 1, len(toks)):
+                if toks[j] in ("-exec", "-execdir"):
+                    if any(is_tool(x) for x in toks[j + 1:j + 3]):
+                        return True
+            continue
+        if base not in INDIRECT:
+            continue
+        j = i + 1
+        while j < len(toks) and toks[j].startswith("-"):
+            j += 1
+        # One interpreter prefix is allowed, so `xargs python3 <tool>` is seen as invoking it.
+        for cand in (j, j + 1):
+            if cand < len(toks) and is_tool(toks[cand]):
+                return True
+            if not (cand < len(toks)
+                    and os.path.basename(toks[cand].strip("\\'\"$()`")) in INTERPRETERS):
+                break
+    return False
+
+
 def denies(line, depth=0):
     line = as_bash_reads_it(line)
     toks = words(line)
@@ -201,6 +247,11 @@ def denies(line, depth=0):
         # fine` was refused. It blocked ordinary work and caught nothing, because a real
         # evasion has no need of an unbalanced quote to hide behind.
         return bool(RAW_SIGN.search(line))
+    if _invokes_tool_indirectly(toks):
+        # THE VERB IS UNDETERMINABLE HERE, so this refuses without looking for it (FEAT-41
+        # HIGH-2). Every other branch in this function asks "is the verb in the right position";
+        # this one asks "can the position be read at all", and when it cannot the answer is no.
+        return True
     for i, t in enumerate(toks):
         # THE VERB MUST FOLLOW THE TOOL, PAST ANY END-OF-OPTIONS SEPARATOR (FEAT-41 F-03).
         # A bare `sign-approval` anywhere in a command line is not a signing attempt — an agent

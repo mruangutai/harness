@@ -379,5 +379,69 @@ check("MF-1: a normal signing call carrying a substitution in --date is still DE
       rc == 2, f"rc={rc} stderr={err[:300]!r}")
 
 
+# ---------------------------------------------------------------------------------------
+# FEAT-41 HIGH-2, high, cycle 4: `xargs` forged a real signature end to end, at exit 0.
+#
+# THIS IS WHERE FORM-CHASING STOPS BEING HONEST, and the measurement is why. Three variants all
+# deliver the verb:
+#     echo sign-approval | xargs -I{} ... plan-merge.py {} ...   -> ARG1=sign-approval
+#     echo sign-approval | xargs        ... plan-merge.py        -> ARG1=sign-approval (appended)
+#     xargs ... plan-merge.py < verb.txt                         -> ARG1=sign-approval
+# The third takes the verb FROM A FILE. Its text never appears in the command line, so NO
+# text-scanning gate can ever see it. Closing "the xargs form" would be a fifth patch that leaves
+# the class open, which is the pattern four review cycles have now demonstrated.
+#
+# SO THE RULE IS FAIL-CLOSED ON INDIRECTION, not another separator. When the tool's argv is
+# supplied by a wrapper that reads it from somewhere the gate cannot see, the verb is
+# UNDETERMINABLE -- and a gate that cannot determine the verb must refuse rather than guess. That
+# is the same posture MF-5 established for an unresolvable path, and for the same reason.
+#
+# `bash -c` is deliberately NOT in that class: `denies` already RECURSES into a nested command
+# line, so its verb is determinable and its own cases below still pass.
+#
+# WHAT THIS STILL DOES NOT MAKE COMPLETE is recorded in #1103: the structural answer is an
+# identity check inside cmd_sign_approval, which needs a runtime identity signal that does not
+# exist yet. This closes the reachable instances and the class of indirection; it does not turn a
+# text scanner into a boundary.
+# ---------------------------------------------------------------------------------------
+_TOOLPATH = "python3 .claude/skills/harness/bin/plan-merge.py"
+for _label, _cmd in (
+    ("xargs -I{} placeholder",
+     f"echo sign-approval | xargs -I{{}} {_TOOLPATH} {{}} --file p.yaml --by A --date 2026-01-01"),
+    ("xargs appending",
+     f"echo sign-approval | xargs {_TOOLPATH}"),
+    ("xargs reading a FILE, verb absent from the line",
+     f"xargs {_TOOLPATH} < /tmp/verb.txt"),
+    ("find -exec",
+     f"find . -name p.yaml -exec {_TOOLPATH} sign-approval --file {{}} \\;"),
+):
+    rc, err = gate(_cmd, agent_type="harness-orchestrator")
+    check(f"HIGH-2: the tool invoked through {_label} is DENIED — the gate cannot see which verb "
+          f"it will receive, so it must refuse rather than guess",
+          rc == 2, f"rc={rc} stderr={err[:300]!r}")
+
+# NEGATIVE CONTROL: an xargs line that does NOT invoke the tool is untouched. The rule is about
+# the tool being invoked indirectly, never about xargs being present.
+rc, err = gate("echo sign-approval | xargs -I{} grep {} .claude/skills/harness/bin/",
+               agent_type="harness-orchestrator")
+check("HIGH-2 NEGATIVE CONTROL: an xargs line that does not invoke plan-merge.py is still "
+      "allowed — grepping for the verb is legitimate work",
+      rc == 0, f"rc={rc} stderr={err[:300]!r}")
+
+# NEGATIVE CONTROL: `bash -c` stays allowed for a non-signing nested line, proving the
+# indirection rule did not swallow the recursion path that already works.
+rc, err = gate(f"bash -c '{_TOOLPATH} apply --file p.yaml --proposal q.yaml'",
+               agent_type="harness-orchestrator")
+check("HIGH-2 NEGATIVE CONTROL: `bash -c` with a non-signing nested line is still allowed — "
+      "recursion determines its verb, so it is not indirection",
+      rc == 0, f"rc={rc} stderr={err[:300]!r}")
+
+# AND `bash -c` CARRYING THE VERB IS STILL DENIED, by the recursion rather than by this rule.
+rc, err = gate(f"bash -c '{_TOOLPATH} sign-approval --file p.yaml --by A --date 2026-01-01'",
+               agent_type="harness-orchestrator")
+check("HIGH-2: `bash -c` carrying a real signing call is still DENIED, via recursion",
+      rc == 2, f"rc={rc} stderr={err[:300]!r}")
+
+
 print(f"\n{fails} failing." if fails else "\nall checks passed.")
 raise SystemExit(1 if fails else 0)
