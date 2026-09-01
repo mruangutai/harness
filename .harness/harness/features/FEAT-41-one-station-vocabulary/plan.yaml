@@ -1,6 +1,6 @@
 schema: plan/1
 feature: FEAT-41-one-station-vocabulary
-status: review
+status: done
 
 source_issues: [845, 867]
 
