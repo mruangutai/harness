@@ -700,6 +700,16 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
         policyRunner(ctx.cwd, "bash-write-guard.sh", [], payload),
         policyRunner(ctx.cwd, "plan-sign-gate.sh", [], payload),
       ]);
+      // #1103: the identity signal cmd_sign_approval (plan-merge.py) now checks on its own,
+      // rather than only the text-parsing denylist above. This is the SAME `currentAgent` the
+      // payload just carried to every one of those four scripts — never derived from `command`,
+      // never settable by the command itself. MERGED into any env the agent's own command
+      // already specified, never replacing it: an agent's own `env` choices for its command are
+      // its business; this is the one key it does not get to author.
+      if (!reason) {
+        const existingEnv = (input.env && typeof input.env === "object" ? input.env : {}) as Dict;
+        revisedInput = { ...input, env: { ...existingEnv, HARNESS_AGENT_TYPE: currentAgent } };
+      }
     }
     if (!reason && toolName === "task") {
       reason = taskModelOverride(input);

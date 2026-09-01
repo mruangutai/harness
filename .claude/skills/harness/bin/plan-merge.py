@@ -866,6 +866,38 @@ def cmd_sign_approval(args):
     on a proposal carrying a different one. That prohibition and this verb are the same rule seen
     from two sides: approval is written HERE, deliberately, by the main session, and nowhere
     else by accident."""
+    # #1103: a structural identity check INSIDE this verb, not only plan-sign-gate.py's hook.
+    # That hook must PARSE untrusted shell text to predict whether a command will reach here,
+    # and four shell forms have evaded that prediction across three review cycles (FEAT-41
+    # F-03, H-02, C2-03, MF-1) while still literally invoking this verb. This check needs no
+    # prediction: it reads the caller's own real identity at the moment this code actually runs.
+    #
+    # HARNESS_AGENT_TYPE is injected onto a governed subagent's Bash environment by the OMP
+    # host itself (harness-hooks.ts's `tool_call` handler), from the same `agent_type` the hook
+    # payload already carries — never from anything this command's own argv or text supplies,
+    # and never set by this process. AN ABSENT VARIABLE IS THE MAIN SESSION, the identical
+    # exemption plan-sign-gate.py's own hook already uses for the identical reason ("AN ABSENT
+    # OR EMPTY agent_type IS THE MAIN SESSION"), and the one convention this whole codebase
+    # applies without exception (dispatch-guard.sh, bash-write-guard.sh, check-domain.sh,
+    # validate-digest.py). Treating absence as a refusal here would refuse the main session's
+    # own legitimate signature — a stricter check that is wrong, not merely untested.
+    #
+    # RESIDUAL, STATED RATHER THAN HIDDEN: a caller sophisticated enough to scrub its own
+    # environment before invoking this command (`env -u HARNESS_AGENT_TYPE ...`) still defeats
+    # this, the same way plan-sign-gate.py's own docstring already concedes for itself — "a
+    # guardrail against a signature written out of over-eagerness, NOT a security boundary."
+    # This closes the four DEMONSTRATED shell-syntax leaks and needs no new case when a fifth
+    # surfaces; it does not claim to close deliberate sabotage of its own identity signal.
+    _signing_agent = os.environ.get("HARNESS_AGENT_TYPE") or ""
+    if _signing_agent:
+        for line in (
+            f"REFUSED: {_signing_agent} may not sign an approval — only the main session may "
+            "(REQ-05/DEC-120).",
+            "This is enforced from inside cmd_sign_approval itself, not only by the calling "
+            "hook, so no shell form of this call can reach a write.",
+        ):
+            print(line, file=sys.stderr)
+        sys.exit(10)
     resolved = _resolve_plan(args.file)
 
     def transform(base_bytes):

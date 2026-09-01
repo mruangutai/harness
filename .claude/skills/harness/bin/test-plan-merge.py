@@ -126,10 +126,12 @@ def run_apply(file_path, proposal_path):
     )
 
 
-def run_verb(*argv):
+def run_verb(*argv, env=None):
     """Any verb, argv passed through verbatim — so a case can assert on argument handling
-    itself rather than only on a well-formed invocation."""
-    return subprocess.run([sys.executable, CLI, *argv], capture_output=True, text=True)
+    itself rather than only on a well-formed invocation. `env=None` inherits this process's own
+    environment (os.environ default); a case that must control HARNESS_AGENT_TYPE passes an
+    explicit mapping so the ambient test-runner environment can never leak a false pass."""
+    return subprocess.run([sys.executable, CLI, *argv], capture_output=True, text=True, env=env)
 
 
 def read(path):
@@ -835,6 +837,49 @@ def case_sign_approval_is_the_only_signer():
     finally:
         shutil.rmtree(root, ignore_errors=True)
 
+def case_1103_sign_approval_refuses_a_governed_agent():
+    """#1103: the structural identity check, checked INSIDE cmd_sign_approval itself rather
+    than only by the calling hook's text-parsing denylist. HARNESS_AGENT_TYPE is what the OMP
+    host injects onto a governed subagent's own Bash environment (never derivable from this
+    command's own argv or text) — so this is the same signal plan-sign-gate.py's hook reads,
+    checked from the other end of the same call."""
+    root, plan = fixture_root()
+    try:
+        write(plan, render_plan(ids(1, 2)))
+        before = read(plan)
+        env = dict(os.environ, HARNESS_AGENT_TYPE="harness-pm")
+        r = run_verb("sign-approval", "--file", plan, "--by", "harness-pm",
+                     "--date", "2026-08-30", env=env)
+        after = read(plan)
+        check("a governed agent's sign-approval exits 10", r.returncode == 10,
+              f"rc={r.returncode} {r.stderr!r}")
+        check("the refusal names the agent and REQ-05/DEC-120",
+              "harness-pm" in r.stderr and "REQ-05" in r.stderr, r.stderr)
+        check("the plan is untouched — no partial write on refusal", after == before, after[:400])
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_1103_sign_approval_negative_control_absent_is_main_session():
+    """NEGATIVE CONTROL for the case above: an ABSENT HARNESS_AGENT_TYPE is the main session,
+    the same exemption plan-sign-gate.py's own hook already uses (`if not (payload.get
+    ("agent_type") or ""): sys.exit(0)`), and one this whole codebase applies consistently
+    (dispatch-guard.sh, bash-write-guard.sh, check-domain.sh, validate-digest.py). Refusing on
+    absence here would refuse the main session's own legitimate signature — a stricter check
+    that is provably wrong, not merely untested."""
+    root, plan = fixture_root()
+    try:
+        write(plan, render_plan(ids(1, 2)))
+        env = {k: v for k, v in os.environ.items() if k != "HARNESS_AGENT_TYPE"}
+        r = run_verb("sign-approval", "--file", plan, "--by", "Mike Ruangutai",
+                     "--date", "2026-08-30", env=env)
+        after = read(plan)
+        check("an absent HARNESS_AGENT_TYPE may still sign", r.returncode == 0,
+              f"rc={r.returncode} {r.stderr!r}")
+        check("the signature actually lands", "approved_by: Mike Ruangutai" in after, after[:400])
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
 
 def case_f02_verify_signature_is_not_dead_code():
     """FEAT-41, cycle 1 QA, med, and MUTATION-PROVEN by them: `_verify_signature`'s refusal was
@@ -973,6 +1018,8 @@ def main():
     case_f02_verify_signature_is_not_dead_code()
     case_high1_apply_cannot_mint_the_station_only_marker()
     case_sign_approval_is_the_only_signer()
+    case_1103_sign_approval_refuses_a_governed_agent()
+    case_1103_sign_approval_negative_control_absent_is_main_session()
     case_add_tasks_alias()
     case_apply_still_refuses_a_changed_value()
 
