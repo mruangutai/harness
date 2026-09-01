@@ -2,8 +2,8 @@
   "feature_id": "BUG-1081-code-grade-enforcement",
   "branch": "feat/BUG-1081-code-grade-enforcement",
   "pr": null,
-  "status": "Building",
-  "review_sha": "none",
+  "status": "Review",
+  "review_sha": "827219b57af74bfc448eddd999c16e0760385f81",
   "cycles_used": 1,
   "max_total_cycles": 10,
   "runs": [
