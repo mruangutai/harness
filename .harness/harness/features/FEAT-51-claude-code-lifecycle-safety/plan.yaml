@@ -745,7 +745,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: plan-sign-gate.sh is a registered PreToolUse Bash gate script, held back with the other gates by DEC-174 even though resolve answers harness-backend-dev
     depends_on: [T-02]
-    status: building
+    status: done
     files:
       - .claude/skills/harness/bin/plan-sign-gate.py
       - .claude/skills/harness/bin/plan-sign-gate.sh
@@ -1040,7 +1040,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 names check-domain.sh, plan-sign-gate.sh and the test file of each as enforcement layer, and resolve answers harness-backend-dev and harness-dev-ops so the carve-out holds all four back
     depends_on: [T-03, T-07]
-    status: ready
+    status: building
     files:
       - .claude/skills/harness/bin/test-check-domain.py
       - .claude/skills/harness/bin/test-plan-sign-gate.py

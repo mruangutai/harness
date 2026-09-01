@@ -12,7 +12,7 @@ blocks, so "nonzero" would let a crash read as a rejection).
 Both halves must stay green: the out-of-repo carve-out must not become a hole
 that lets a repo path through by dressing it up.
 """
-import json, os, subprocess, sys
+import json, os, shutil, subprocess, sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 HOOK = os.environ.get("CHECK_DOMAIN_BIN") or os.path.join(HERE, "check-domain.sh")
@@ -3433,7 +3433,7 @@ def run_feat51_orphan_write():
             )
         return root
 
-    def fire(root, rel, agent="harness-orchestrator"):
+    def fire(root, rel, agent="harness-orchestrator", hook=None):
         content = BRIEF_ON_DISK if rel == REL_BRIEF else "replacement\n"
         payload = {
             "agent_type": agent,
@@ -3445,8 +3445,8 @@ def run_feat51_orphan_write():
             },
         }
         return subprocess.run(
-            [HOOK], input=json.dumps(payload), capture_output=True, text=True,
-            env=_env(root),
+            [hook or HOOK], input=json.dumps(payload), capture_output=True,
+            text=True, env=_env(root),
         )
 
     def check(name, result, want, mention=None):
@@ -3456,6 +3456,22 @@ def run_feat51_orphan_write():
     root = root_with_claim("harness-qa")
     check("an orphan canonical write is quarantined", fire(root, REL_BRIEF), 2,
           "quarantine")
+    check("NEGATIVE CONTROL: with the registry healthy an orphan canonical write is still refused",
+          fire(root, REL_BRIEF), 2, "quarantine")
+
+    registry_path = os.path.join(root, reg.REGISTRY_REL)
+    os.remove(registry_path)
+    os.mkdir(registry_path)
+    check("a raising inflight_registry call fails OPEN at the check-domain.sh quarantine branch",
+          fire(root, REL_BRIEF), 0, "boundary was not enforced")
+
+    root = root_with_claim("harness-qa")
+    copybin = tempfile.mkdtemp()
+    shutil.copytree(HERE, copybin, dirs_exist_ok=True)
+    os.remove(os.path.join(copybin, "inflight_registry.py"))
+    check("an unimportable inflight_registry fails OPEN at the check-domain.sh quarantine branch",
+          fire(root, REL_BRIEF, hook=os.path.join(copybin, "check-domain.sh")),
+          0, "boundary was not enforced")
 
     root = root_with_claim("harness-orchestrator")
     check("the writer own live claim allows the canonical write",

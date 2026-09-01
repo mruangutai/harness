@@ -15,6 +15,7 @@ say which verb was refused.
 """
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -458,7 +459,7 @@ def _qroot(claims):
     return root
 
 
-def qgate(command, agent_type, session_id, root):
+def qgate(command, agent_type, session_id, root, gate_path=None):
     payload = {
         "agent_type": agent_type,
         "session_id": session_id,
@@ -466,8 +467,8 @@ def qgate(command, agent_type, session_id, root):
     }
     env = dict(os.environ, HARNESS_PROJECT_DIR=root)
     result = subprocess.run(
-        ["bash", GATE], input=json.dumps(payload), capture_output=True,
-        text=True, env=env,
+        ["bash", gate_path or GATE], input=json.dumps(payload),
+        capture_output=True, text=True, env=env,
     )
     return result.returncode, result.stderr
 
@@ -516,6 +517,31 @@ _qcheck("NEGATIVE CONTROL: a non-harness agent_type is not governed by the quara
 _qcheck("NEGATIVE CONTROL: an orphan apply whose --file value is a shell variable is allowed",
         "python3 plan-merge.py apply --file \"$PLAN\" --proposal proposal.yaml",
         0, _other)
+
+_qcheck("NEGATIVE CONTROL: with the registry healthy an orphan plan-merge apply is still refused",
+        _apply, 2, _other, mention="quarantine")
+
+_raise_root = _qroot(_other)
+_registry_path = os.path.join(_raise_root, _reg.REGISTRY_REL)
+os.remove(_registry_path)
+os.mkdir(_registry_path)
+_rc, _err = qgate(_apply.format(root=_raise_root), "harness-orchestrator",
+                  _session, _raise_root)
+check("a raising inflight_registry call fails OPEN at the plan-sign-gate.py quarantine rule",
+      _rc == 0 and "boundary was not enforced" in _err,
+      f"rc={_rc} stderr={_err[:500]!r}")
+
+_copybin = tempfile.mkdtemp()
+shutil.copytree(BIN, _copybin, dirs_exist_ok=True)
+os.remove(os.path.join(_copybin, "inflight_registry.py"))
+_import_root = _qroot(_other)
+_rc, _err = qgate(
+    _apply.format(root=_import_root), "harness-orchestrator", _session,
+    _import_root, gate_path=os.path.join(_copybin, "plan-sign-gate.sh"),
+)
+check("an unimportable inflight_registry fails OPEN at the plan-sign-gate.py quarantine rule",
+      _rc == 0 and "boundary was not enforced" in _err,
+      f"rc={_rc} stderr={_err[:500]!r}")
 
 print(f"\n{fails} failing." if fails else "\nall checks passed.")
 raise SystemExit(1 if fails else 0)
