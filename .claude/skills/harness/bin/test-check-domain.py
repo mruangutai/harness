@@ -2620,6 +2620,39 @@ def run_t09():
         "shape is legal",
         r7.returncode == 0, f"exit {r7.returncode}, stderr={r7.stderr.strip()[:400]!r}")
 
+    # ---- 8. THE SPELLING OF THE FILENAME IS NOT A ROUTE (FEAT-41 F-04) --------------------
+    # Panel finding F-04, high. RE_PLAN_YAML matched lowercase only, and this workstation's
+    # filesystem is case-INSENSITIVE: measured, `echo x > Plan.yaml` overwrites plan.yaml and
+    # reports the SAME INODE. So `Plan.yaml` was a write to the real plan that the route denial
+    # did not see, and it exited 0 with no stderr at all.
+    #
+    # ONE HALF OF THE FINDING DID NOT REPRODUCE, and it is recorded here so nobody re-fixes it:
+    # F-04 also called for realpath. Every path-shape evasion is ALREADY denied -- `./` prefix,
+    # a `notes/..` traversal, a doubled slash, an absolute path, and even a SYMLINKED feature
+    # directory. The pattern matches the path's SHAPE (`[^/]+/plan.yaml`), so where it resolves
+    # is irrelevant, which is stronger than realpath rather than weaker.
+    #
+    # THE FIX DENIES ON A CASE-SENSITIVE FILESYSTEM TOO, where `Plan.yaml` is a genuinely
+    # different file. That asymmetry is deliberate: a loud refusal of a file nobody legitimately
+    # writes is a far better error than a silent bypass of the one write denial in this gate.
+    for spelling in ("Plan.yaml", "PLAN.YAML", "plan.YAML"):
+        rel8 = f".harness/harness/features/FEAT-99-fixture/{spelling}"
+        root8, full8 = _approval_root(rel=rel8, body=_PLAN_LEGAL)
+        r8 = _fire_write(root8, full8, _PLAN_LEGAL, agent="harness-orchestrator")
+        t09(f"T-09 8 / F-04: a Write of {spelling} is DENIED — on a case-insensitive "
+            f"filesystem it lands on the same inode as plan.yaml",
+            r8.returncode == 2, f"exit {r8.returncode}, stderr={r8.stderr.strip()[:300]!r}")
+
+    # NEGATIVE CONTROL. Case-folding the plan pattern must not swallow a sibling whose name
+    # merely contains it -- `plan.yaml.bak` and `myplan.yaml` are not the plan.
+    for benign in ("plan.yaml.bak", "myplan.yaml"):
+        rel8b = f".harness/harness/features/FEAT-99-fixture/{benign}"
+        root8b, full8b = _approval_root(rel=rel8b, body=_PLAN_LEGAL)
+        r8b = _fire_write(root8b, full8b, _PLAN_LEGAL, agent="harness-orchestrator")
+        t09(f"T-09 8 NEGATIVE CONTROL: {benign} is still ALLOWED — the rule is anchored, not "
+            f"a substring match",
+            r8b.returncode == 0, f"exit {r8b.returncode}, stderr={r8b.stderr.strip()[:300]!r}")
+
     return _T09_FAILS
 
 

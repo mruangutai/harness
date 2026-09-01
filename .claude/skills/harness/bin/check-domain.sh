@@ -1072,18 +1072,27 @@ VERB = "OVER BUDGET (already written)" if _post else "BLOCKED"
 # whole file. Measured by review on a 200 MB non-state path: 228 ms, against 37 ms once the
 # pattern is consulted first. Two uses, one definition — duplicating them as a fast-path
 # guard would create exactly the silent drift `test-check-state.py` case (o) exists to catch.
-RE_FEATURE_JSON = re.compile(r"^\.harness/[^/]+/features/[^/]+/feature\.json$")
-RE_STATE_YAML   = re.compile(r"^\.harness/[^/]+/features/[^/]+/runs/[^/]+/state\.yaml$")
-RE_HANDOFF      = re.compile(r"^\.harness/[^/]+/features/[^/]+/notes/handoff-[a-z0-9-]+\.md$")
-RE_STATE_MD     = re.compile(r"^\.harness/[^/]+/features/[^/]+/STATE\.md$")
+_I = re.IGNORECASE
+RE_FEATURE_JSON = re.compile(r"^\.harness/[^/]+/features/[^/]+/feature\.json$", _I)
+RE_STATE_YAML   = re.compile(r"^\.harness/[^/]+/features/[^/]+/runs/[^/]+/state\.yaml$", _I)
+RE_HANDOFF      = re.compile(r"^\.harness/[^/]+/features/[^/]+/notes/handoff-[a-z0-9-]+\.md$",
+                             _I)
+RE_STATE_MD     = re.compile(r"^\.harness/[^/]+/features/[^/]+/STATE\.md$", _I)
 # CLAUDE.md (issue #139). Not a state file, and included here anyway because this is
 # where the four-route machinery already lives — the alternative was a fifth gate.
-RE_CLAUDE_MD    = re.compile(r"^CLAUDE\.md$")
-RE_RUN_DIGEST    = re.compile(r"^\.harness/[^/]+/features/[^/]+/runs/[^/]+/digest\.md$")
-RE_PLAN_YAML    = re.compile(r"^\.harness/[^/]+/features/[^/]+/plan\.yaml$")
+RE_CLAUDE_MD    = re.compile(r"^CLAUDE\.md$", _I)
+RE_RUN_DIGEST   = re.compile(r"^\.harness/[^/]+/features/[^/]+/runs/[^/]+/digest\.md$", _I)
+RE_PLAN_YAML    = re.compile(r"^\.harness/[^/]+/features/[^/]+/plan\.yaml$", _I)
 # RE_RUN_DIGEST is deliberately absent from SHAPE_PATTERNS and the post-hoc sweep globs (FEAT-50).
 # That rule needs the content that existed BEFORE a whole-file Write. After the write, comparing
-# the file with itself cannot fire and would advertise enforcement that does not exist.
+# the file with itself cannot fire and would advertise enforcement that does not exist. It carries
+# `_I` anyway, for the same reason every pattern here does (F-04, below): a spelling is not a route.
+#
+# plan.yaml IS PRESENT NOW, AND THAT REVERSES DEC-182 (FEAT-41 T-09, REQ-05). What stood here
+# argued the file was deliberately absent because it carries neither a budget nor a vocabulary
+# rule, and because a plan.yaml check would be a PARSE check that check-plan-routes.py already
+# performs before signature. That reasoning is not wrong so much as silent on a third thing it
+# never considered: a WRITE DENIAL.
 #
 # plan.yaml IS PRESENT, AND THAT REVERSES DEC-182 (FEAT-41 T-09, REQ-05). What stood here argued
 # the file was deliberately absent because it carries neither a budget nor a vocabulary rule, and
@@ -1098,13 +1107,33 @@ RE_PLAN_YAML    = re.compile(r"^\.harness/[^/]+/features/[^/]+/plan\.yaml$")
 # one refuses an author.
 #
 # IN THE SHAPE REGION, NEVER THE DOMAIN REGION. check-domain exits 0 for a payload with no
-# agent_type, so a denial in the domain region would exempt the main session — the one author most
-# likely to hand-edit a plan. DEC-180 makes the shape gate independent of domain and binding on
-# every author, which is the property this rule needs.
+# agent_type, so a denial in the domain region would exempt the main session — the one author
+# most likely to hand-edit a plan. DEC-180 makes the shape gate independent of domain and
+# binding on every author, which is the property this rule needs.
 #
-# THE TWO RULES ABOVE POINT OPPOSITE WAYS ON PURPOSE: RE_RUN_DIGEST stays OUT of SHAPE_PATTERNS
-# because its check cannot fire after the fact, while RE_PLAN_YAML goes IN because its check is a
-# route denial that must fire before it.
+# EVERY PATTERN IS CASE-INSENSITIVE, AND THAT CLOSES F-04. The panel found `Plan.yaml` walking
+# straight past this denial. Measured on this workstation: `echo x > Plan.yaml` beside an
+# existing plan.yaml overwrites it and reports the SAME INODE, so the alternate spelling was a
+# write to the real plan that the gate exited 0 on with no stderr at all.
+#
+# THE WHOLE TUPLE, NOT JUST THE PLAN. The other five carry the same hole and it would be a
+# special case to leave them: a `Feature.json` evades the 300-line budget and a `Claude.md`
+# evades the 80-line one. The harms differ in KIND -- for plan.yaml a prohibition is bypassed,
+# for the rest a measurement is skipped -- but the cause is one, so the fix is one.
+#
+# IT DENIES ON A CASE-SENSITIVE FILESYSTEM TOO, where `Plan.yaml` is a genuinely different
+# file. Deliberate: every pattern here is ANCHORED, so nothing legitimate is swallowed
+# (`plan.yaml.bak` and `myplan.yaml` are asserted still allowed), and a loud refusal of a name
+# nobody legitimately writes is a far better error than a silent bypass of the only write
+# denial this gate has.
+#
+# THE ON-DISK NAME IS UNAFFECTED, which is why the Bash post-sweep's globs below need no
+# change: writing `Plan.yaml` over an existing plan.yaml keeps the original lowercase name, so
+# the sweep still finds the file. Only the pre-write route denial could be walked past.
+#
+# THE TWO PATTERN RULES POINT OPPOSITE WAYS ON PURPOSE: RE_RUN_DIGEST stays OUT of SHAPE_PATTERNS
+# because its check cannot fire after the fact (FEAT-50), while RE_PLAN_YAML goes IN because its
+# check is a route denial that must fire before it.
 SHAPE_PATTERNS = (RE_FEATURE_JSON, RE_STATE_YAML, RE_HANDOFF, RE_STATE_MD, RE_CLAUDE_MD,
                   RE_PLAN_YAML)
 
