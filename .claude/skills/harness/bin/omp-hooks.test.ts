@@ -308,7 +308,45 @@ describe("OMP task lifecycle adapter", () => {
       input: { command: "git status --porcelain" },
     }, { cwd: "/repo", sessionManager: { getSessionId: () => "parent-session" } });
     expect(calls.some((call) => call.script === "plan-sign-gate.sh")).toBe(true);
-    expect(result).toBeUndefined();
+    // Not blocked. #1103 also merges HARNESS_AGENT_TYPE into every allowed bash call's env
+    // (asserted on its own below), so this no longer stays `undefined` — it now carries a
+    // revised input, and the thing this negative control must still prove is `block` absent.
+    expect(result?.block).toBeUndefined();
+  });
+
+  // #1103: cmd_sign_approval now checks its own caller's identity rather than relying solely
+  // on plan-sign-gate.sh's text-parsing denylist (BUG-1132's own commit). That check reads
+  // HARNESS_AGENT_TYPE from its own process environment — this proves the OMP host is the one
+  // actually setting it, from the SAME `currentAgent` the hook payload already carries, and
+  // that it MERGES into any env the caller's own command already specified rather than
+  // clobbering it.
+  test("#1103: a governed agent's bash call carries HARNESS_AGENT_TYPE, merged with its own env",
+       async () => {
+    const { handlers } = fixture();
+    await start(handlers);
+    const result = await handlers.get("tool_call")?.({
+      toolName: "bash",
+      input: { command: "echo hi", env: { EXISTING: "kept" } },
+    }, { cwd: "/repo", sessionManager: { getSessionId: () => "parent-session" } });
+    expect(result?.input?.env).toEqual({
+      EXISTING: "kept",
+      HARNESS_AGENT_TYPE: "harness-eng-lead",
+    });
+  });
+
+  // NEGATIVE CONTROL: a refused command must not ALSO carry a revised input — `firstBlock`'s
+  // `reason` and `revisedInput` are mutually exclusive branches in the real handler, and a
+  // block that also returned an input would be an inconsistent instruction to the caller.
+  test("#1103 negative control: a refused sign-approval call carries no revised input",
+       async () => {
+    const { handlers } = fixture();
+    await start(handlers);
+    const result = await handlers.get("tool_call")?.({
+      toolName: "bash",
+      input: { command: "python3 .claude/skills/harness/bin/plan-merge.py sign-approval --file p.yaml --by x --date 2026-09-01" },
+    }, { cwd: "/repo", sessionManager: { getSessionId: () => "parent-session" } });
+    expect(result).toEqual({ block: true, reason: "plan-sign-gate: refused" });
+    expect(result?.input).toBeUndefined();
   });
 
   test("releases settled blocking results before the parent resumes", async () => {
