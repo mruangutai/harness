@@ -586,7 +586,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: check-domain.sh --resolve answers NOBODY for both playbook files at the resolved sha (DEC-179)
     depends_on: [T-01, T-04]
-    status: ready
+    status: building
     files:
       - .claude/skills/harness/SKILL.md
       - .claude/skills/harness-team/SKILL.md
@@ -1040,7 +1040,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 names check-domain.sh, plan-sign-gate.sh and the test file of each as enforcement layer, and resolve answers harness-backend-dev and harness-dev-ops so the carve-out holds all four back
     depends_on: [T-03, T-07]
-    status: building
+    status: done
     files:
       - .claude/skills/harness/bin/test-check-domain.py
       - .claude/skills/harness/bin/test-plan-sign-gate.py

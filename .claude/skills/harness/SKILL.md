@@ -39,14 +39,18 @@ is namespaced under `.harness/harness/features/<FEAT>/` (DEC-120).
    dispatch another squad (DEC-118). Pass paths, never content; pin `review_sha` before any
    validator run (INV-6). In the build phase, sequence the segments below rather than composing a
    step list at dispatch.
-4. **Let OMP supervise the nested dispatch at the tool boundary.** Every lead and member is
-   declared `blocking: true` under OMP. Your `task` call therefore stays in the host while the lead
-   runs; your model is inactive and cannot poll, sleep, emit a heartbeat, or invent work. Do not
-   convert that edge to an async wait: a nested async Harness parent is forced toward `yield`
-   before its child finishes. When the task result returns, the lead is terminal. **Re-read
-   `STATE.md` and `feature.json` from disk before acting**, verify its cited artifact, and treat the
-   digest as a claim until disk confirms it. The main session's outer orchestrator dispatch remains
-   async, so the only user-channel parent receives OMP's automatic terminal delivery (DEC-204).
+4. **Let the host supervise the nested dispatch at the tool boundary.** Under OMP every lead and
+   member is declared `blocking: true`; the `task` call remains in the host while your model is
+   inactive. Under the Claude Code compatibility host, end a live-child turn only with
+   `VERDICT: SUSPENDED` and a DIGEST `awaiting:` list naming every live child. This is nonterminal
+   and reports nothing about the child work. Do not poll, sleep, emit heartbeats, or invent tool
+   calls: the count is zero. The host resumes this same parent when the child completes; while its
+   feature/persona claim is live, the registry prevents dispatch of a replacement parent. On
+   waking, before deciding anything, run `quarantine.py list --feature <FEAT>` and explicitly
+   `adopt --file <path>` or `discard --dir <path>` any result. Neither action is automatic or
+   timer-driven; ignored quarantine stays non-canonical. OMP remains unchanged. When a result
+   returns, re-read `STATE.md` and `feature.json`, verify its artifact, and treat the digest as a
+   claim until disk confirms it (DEC-204).
 5. **Weigh your own context before you continue.** You do nothing to obtain the figure. On your
    wake — the moment a `task` result returns — the harness hook reads your own OMP transcript off
    disk and, only when you are over `budgets.orchestrator_context_warn_tokens` in

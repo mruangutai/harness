@@ -123,11 +123,16 @@ while your model is inactive. Do not call `hub wait`, poll `hub jobs`, sleep, em
 manufacture work. This blocking tool boundary is deliberate: a nested async parent is otherwise
 forced to submit `yield` while its child is still live, and OMP stops it after repeated refusals.
 
-**Under the Claude Code compatibility host, never wait for a member — end your turn.** That host
-returns launch metadata instead. End the turn immediately; its completion wakes you. The tool may
-tell you to continue other work in the meantime; this rule overrides that suggestion. A turn-end refusal naming
-children in flight is expected: end the turn again without making a claim about them, and expect
-the refusal to recur on each later wake while a child remains live (DEC-201).
+**Under the Claude Code compatibility host, never wait for a member — suspend the turn.** End a
+live-child turn with `VERDICT: SUSPENDED` and an `awaiting:` list naming every live child, and
+nothing else; this is nonterminal and is not a report about their work. Do not poll, sleep, emit a
+heartbeat, or invent a tool call — zero such actions. The host resumes this same parent when the
+child completes, and the registry prevents a replacement parent while that feature/persona claim
+is live. On waking, before deciding anything, run `quarantine.py list --feature <FEAT>`; explicitly
+adopt a result with `quarantine.py adopt --file <path>` or discard it with
+`quarantine.py discard --dir <path>`. Neither happens by default or on a timer, so ignored
+quarantine stays non-canonical. The host's suggestion to continue other work does not override
+this conduct (DEC-201).
 
 **e. Collect returns after the blocking task result or on waking under the compatibility host.** Re-read
 `state.yaml` first, verify the cited artifact, then record `VERDICT`, DIGEST fields, and

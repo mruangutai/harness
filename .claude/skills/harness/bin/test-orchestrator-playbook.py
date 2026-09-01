@@ -155,6 +155,25 @@ def case9_plan_yaml_write_is_a_verb_not_an_edit(text):
           not offenders, f"lines prescribing an Edit of plan.yaml: {offenders}")
 
 
+def case10_claude_code_suspension(text):
+    start = text.find("Under the Claude Code compatibility host")
+    region = text[start:start + 1200] if start >= 0 else ""
+    checks = (
+        ("suspended awaiting",
+         re.search(r"VERDICT:?\s*`?\s*SUSPENDED.*awaiting", region, re.I | re.S)),
+        ("zero polling",
+         re.search(r"Do not poll.*sleep.*heartbeat.*invent.*zero", region, re.I | re.S)),
+        ("same parent registry",
+         re.search(r"same parent.*registry.*replacement parent", region, re.I | re.S)),
+        ("explicit quarantine adoption",
+         re.search(r"quarantine\.py list.*adopt.*discard.*automatic.*timer.*non-canonical",
+                   region, re.I | re.S)),
+    )
+    for clause, match in checks:
+        check(f"case10_claude_code_suspension_{clause.replace(' ', '_')}",
+              bool(match), f"compatibility region misses {clause}")
+
+
 def main():
     text, path = read_playbook()
     print(f"reading playbook from {path}")
@@ -167,6 +186,7 @@ def main():
     case7_absence_record_your_phase_in(text)
     case8_presence_record_your_status_in(text)
     case9_plan_yaml_write_is_a_verb_not_an_edit(text)
+    case10_claude_code_suspension(text)
 
     if failures:
         print(f"\n{len(failures)} FAILURE(S): {failures}")

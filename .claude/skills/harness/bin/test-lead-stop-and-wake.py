@@ -36,8 +36,10 @@ DECISIONS_PATH = os.path.join(ROOT, ".harness", "harness", "docs", "DECISIONS.md
 DECISIONS_INDEX_PATH = os.path.join(ROOT, ".harness", "harness", "docs", "DECISIONS-INDEX.md")
 INFLIGHT_REGISTRY_PATH = os.path.join(ROOT, ".claude", "skills", "harness", "bin", "inflight_registry.py")
 
-# Order matters for --only: it is compared against these exact paths.
-BOUND_SITES = [DECISIONS_PATH, INFLIGHT_REGISTRY_PATH]
+# FEAT-51 superseded inflight_registry.py's recurring-refusal prose with a
+# nonterminal suspension. The once-only floor still binds the decision authority,
+# where the old claim remains struck and qualified; it no longer binds the runtime.
+BOUND_SITES = [DECISIONS_PATH]
 
 # ---------------------------------------------------------------------------
 # Shared helpers
@@ -135,10 +137,10 @@ REGION_CASE_NAMES = [
     "case1_stop_half",
     "case2_wake_half",
     "case3_halves_adjacent",
-    "case4_refusal_expected",
-    "case5_stop_again",
-    "case6_refusal_recurs",
-    "case7_overrides_tool_text",
+    "claude_code_suspension_contract",
+    "claude_code_suspension_zero_polling",
+    "claude_code_suspension_same_parent",
+    "claude_code_suspension_quarantine_adoption",
 ]
 
 
@@ -187,42 +189,34 @@ def playbook_cases(text):
             )
         )
 
-        m4 = EXPECT_RE.search(region)
-        results.append(
+        suspension_checks = (
             (
-                "case4_refusal_expected",
-                bool(m4),
-                "" if m4 else "EXPECT_RE not found in d-to-e region",
-            )
-        )
-
-        m5 = AGAIN_RE.search(region)
-        results.append(
-            ("case5_stop_again", bool(m5), "" if m5 else "AGAIN_RE not found in d-to-e region")
-        )
-
-        m6 = RECUR_RE.search(region)
-        results.append(
+                "claude_code_suspension_contract",
+                re.search(r"VERDICT:?\s*`?\s*SUSPENDED.*awaiting.*live child",
+                          region, re.I | re.S),
+            ),
             (
-                "case6_refusal_recurs",
-                bool(m6),
-                "" if m6 else "RECUR_RE not found in d-to-e region",
-            )
-        )
-
-        case7 = False
-        for s, e in _sentences(region):
-            sent = region[s:e]
-            if NUDGE_RE.search(sent) and DENY_RE.search(sent):
-                case7 = True
-                break
-        results.append(
+                "claude_code_suspension_zero_polling",
+                re.search(r"Do not poll.*sleep.*heartbeat.*invent.*zero",
+                          region, re.I | re.S),
+            ),
             (
-                "case7_overrides_tool_text",
-                case7,
-                "" if case7 else "no single sentence matches both NUDGE_RE and DENY_RE",
-            )
+                "claude_code_suspension_same_parent",
+                re.search(r"same parent.*registry.*replacement parent",
+                          region, re.I | re.S),
+            ),
+            (
+                "claude_code_suspension_quarantine_adoption",
+                re.search(
+                    r"quarantine\.py list.*adopt.*discard.*default.*timer.*non-canonical",
+                    region, re.I | re.S,
+                ),
+            ),
         )
+        for name, match in suspension_checks:
+            results.append(
+                (name, bool(match), "" if match else f"{name} not found in d-to-e region")
+            )
 
     idx8 = text.find("Until every step is terminal")
     if idx8 == -1:
