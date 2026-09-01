@@ -1518,6 +1518,45 @@ def case_amend_n1_adjacent_comment_and_blank_survive():
         shutil.rmtree(root, ignore_errors=True)
 
 
+def case_amend_n1b_a_comment_inside_a_block_body_is_CONTENT():
+    """THE BUG N1's OWN FIX INTRODUCED, found before any panel saw it.
+
+    `_trim_tail` was applied to block scalars as well as plain ones, so a `|` body whose last
+    line is a shell or Python comment had that line silently truncated — `--show` returned less
+    than `yaml.safe_load` did, and a replace would have written the shortened value back.
+
+    Inside a block body `#` is CONTENT. It is document structure only for a plain scalar, whose
+    continuation cannot begin with `#`. FEAT-46's own `verify: |` blocks carry commented shell,
+    so this was not hypothetical.
+    """
+    root, plan = fixture_root()
+    try:
+        write(plan, "schema: plan/1\nfeature: FEAT-99-fixture\n\ntasks:\n"
+                    "  - id: T-01\n    verify: |\n"
+                    "      python3 -c \"print(1)\"\n"
+                    "      # a trailing comment that is REAL CONTENT\n"
+                    "    status: ready\n")
+        want = [t for t in yaml.safe_load(read(plan))["tasks"] if t["id"] == "T-01"][0]["verify"]
+        r = run_verb("amend", "--file", plan, "--key", "tasks", "--id", "T-01",
+                     "--field", "verify", "--show")
+        shown = "".join(ln + "\n" for ln in r.stdout.splitlines()
+                        if not ln.startswith("sha256:"))
+        check("N1b: --show returns the WHOLE block value, comment line included",
+              shown == want, f"shown={shown!r} want={want!r}")
+        fed = os.path.join(root, "fed.txt")
+        write(fed, shown)
+        sha, _ = _sha_of(plan, "tasks", "T-01", "verify")
+        r2 = run_verb("amend", "--file", plan, "--key", "tasks", "--id", "T-01",
+                      "--field", "verify", "--expect-sha256", sha or "x", "--value-file", fed)
+        check("N1b: and an identity replace keeps it", r2.returncode == 0,
+              f"rc={r2.returncode} {r2.stderr[:200]!r}")
+        got = [t for t in yaml.safe_load(read(plan))["tasks"] if t["id"] == "T-01"][0]["verify"]
+        check("N1b: the comment line survives the round trip", got == want,
+              f"got={got!r} want={want!r}")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
 def case_amend_n3_show_round_trips_into_value_file():
     """PANEL N3. `--show` printed the field BLOCK including its `field:` key line while
     `--value-file` takes the bare VALUE, so feeding the output back wrote
@@ -1616,6 +1655,7 @@ def main():
     case_amend_v4_unparseable_base_refuses_cleanly()
     case_amend_duplicate_id_is_refused()
     case_amend_n1_adjacent_comment_and_blank_survive()
+    case_amend_n1b_a_comment_inside_a_block_body_is_CONTENT()
     case_amend_n3_show_round_trips_into_value_file()
     case_amend_n5_do_no_harm_branch_is_live()
     case_sign_approval_is_the_only_signer()

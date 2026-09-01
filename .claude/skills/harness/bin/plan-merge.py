@@ -1071,21 +1071,29 @@ def _block_scalar_end(lines, head, end):
     return j
 
 
-def _trim_tail(lines, first, last):
-    """Pull `last` back past trailing comment and blank lines, which belong to the DOCUMENT.
+def _trim_tail(lines, first, last, comments_are_document):
+    """Pull `last` back past trailing lines that belong to the DOCUMENT, not the field.
 
     BUG-1128 panel N1, reproduced independently by all four reviewers. The tail scan stopped
     only at the next item or the next sibling key; a `# NOTE` line and a blank line match
     NEITHER, so both were swept into the replaced range and DELETED by the splice, at exit 0
     under a clean AMENDED receipt.
 
-    `_verify_amend` cannot catch this and never could: the amended field's own value is
-    exactly what was asked for. Only the boundary was wrong, and a value check cannot see a
-    boundary. That is why this fix belongs here and not in the verifier.
+    `_verify_amend` cannot catch that and never could: the amended field's own value is exactly
+    what was asked for. Only the boundary was wrong, and a value check cannot see a boundary.
+
+    `comments_are_document` IS NOT A CONVENIENCE. Inside a `|` body a `#` line is CONTENT — a
+    shell or Python comment in a verify script — and trimming it silently truncated the value.
+    The first cut of this fix did exactly that, found by loading a block whose last line was a
+    comment and comparing against `yaml.safe_load`. So comments are document structure for a
+    plain scalar, where a continuation cannot begin with `#`, and content for a block scalar.
     """
     while last - 1 > first:
         stripped = lines[last - 1].strip()
-        if stripped == "" or stripped.startswith("#"):
+        if stripped == "":
+            last -= 1
+            continue
+        if comments_are_document and stripped.startswith("#"):
             last -= 1
             continue
         break
@@ -1159,11 +1167,15 @@ def _field_block(lines, start, end, item_indent, field):
     first, indent = _find_field_line(lines, start, end, item_indent, field)
     if first is None:
         return None
-    if BLOCK_HEAD_RE.match(lines[first]):
+    is_block = bool(BLOCK_HEAD_RE.match(lines[first]))
+    if is_block:
         last = _block_scalar_end(lines, first, end)
     else:
         last = _plain_scalar_end(lines, first, end, indent)
-    return first, _trim_tail(lines, first, last), indent
+    # Comments are DOCUMENT structure for a plain scalar, whose continuation cannot begin with
+    # `#`, and CONTENT for a block scalar, whose body routinely carries shell and Python
+    # comments. Trimming them from a block silently truncated the value.
+    return first, _trim_tail(lines, first, last, not is_block), indent
 
 
 def _render_field(indent, field, value_text, original):
