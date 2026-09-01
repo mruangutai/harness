@@ -3996,6 +3996,36 @@ def case_inv34_an_emptied_plan_is_not_station_only():
 
 
 
+def case_inv34_marker_cannot_be_minted_onto_a_real_plan():
+    """FEAT-41 HIGH-1, cycle 4, found independently by two reviewers.
+
+    MF-3 made `station_only: true` a credential and validated it in ONE direction only, so the
+    marker could be MINTED onto a task-bearing SIGNED plan -- via the ungated `apply` verb or a
+    raw Bash write -- durably silencing the approval and STATE.md-task checks for that feature.
+
+    THIS CASE EXISTS BECAUSE A COMMENT CLAIMED IT ALREADY DID. `check-state.sh` cited case
+    (inv34.d) as asserting this guarantee; two reviewers checked at source and (inv34.d)'s fixture
+    carries NO marker, so the cited test never tested it. A false citation in a comment is worse
+    than a missing test, because it stops the next reader looking.
+    """
+    results = []
+    with tempfile.TemporaryDirectory() as tmp:
+        feat = _i34_station_only(tmp, _I34_TASK, state_md="## Current\nsee T-99\n")
+        plan = os.path.join(feat, "plan.yaml")
+        body = open(plan).read()
+        # Mint the credential onto the signed, task-bearing plan, exactly as a Bash write would.
+        with open(plan, "w") as f:
+            f.write("station_only: true\n" + body)
+        code, out = run(tmp)
+        # It must not go quiet. The load refusal is the expected outcome and is LOUDER than the
+        # checks the marker was being used to escape.
+        loud = ("does not load" in out) or ("T-99" in out) or ("station_only" in out)
+        results.append(("(inv34.f) the station_only marker CANNOT be minted onto a task-bearing "
+                        "plan to exempt it", loud, out[:500]))
+    return results
+
+
+
 def main():
     ok_a, code_a = case_a()
     ok_b, code_b = case_b()
@@ -4026,7 +4056,8 @@ def main():
     _i34 = (case_inv34_plan_required() + case_inv34_present_is_silent()
             + case_inv34_station_only_is_out_of_scope()
             + case_inv34_a_real_plan_is_still_checked()
-            + case_inv34_an_emptied_plan_is_not_station_only())
+            + case_inv34_an_emptied_plan_is_not_station_only()
+            + case_inv34_marker_cannot_be_minted_onto_a_real_plan())
     ok_i34 = True
     for _name, _ok, _detail in _i34:
         print(f"{'ok' if _ok else 'FAIL'} - case {_name}")

@@ -726,6 +726,20 @@ def test_load_plan_accepts_a_station_only_record_and_only_with_a_station():
         ("tasks absent entirely", "schema: plan/1\nfeature: BUG-99-x\nstatus: review\n"),
         ("tasks not a list",
          "schema: plan/1\nfeature: BUG-99-x\nstatus: review\ntasks: nope\n"),
+        # FEAT-41 HIGH-1, cycle 4, found independently by two reviewers. THE MARKER WAS VALIDATED
+        # IN ONE DIRECTION ONLY: empty tasks => marker required, never marker => tasks must be
+        # empty. So the credential could be MINTED onto a task-bearing signed plan -- through the
+        # ungated `apply` verb or a raw Bash write -- and it durably silenced the approval and
+        # STATE.md-task checks for that feature.
+        #
+        # MF-3 replaced "an absence cannot be a credential" with a FORGEABLE one, which is the
+        # same mistake wearing the opposite sign. A credential has to be checked BOTH ways: it
+        # must be present when claimed, and it must not be claimable when false.
+        ("station_only marker on a plan that HAS tasks",
+         "schema: plan/1\nfeature: BUG-99-x\nstatus: review\nstation_only: true\n"
+         "tasks:\n  - id: T-01\n    title: t\n    change_type: logic\n"
+         "    execution_mode: main-session-direct\n    status: done\n    files: [a.py]\n"
+         "    verify: run it\n    intent: do it\n"),
     ):
         with tempfile.TemporaryDirectory() as tmp:
             try:

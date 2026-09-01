@@ -64,6 +64,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import factory_config  # noqa: E402  (local import, after sys.path fix-up)
 import gh_board  # noqa: E402
 import harness_boundary  # noqa: E402
+import harness_yaml  # noqa: E402
 import harness_merge  # noqa: E402
 
 # Module-level literals. Each is mutated BY NAME in a copy of the tree by the test's red proofs.
@@ -310,6 +311,21 @@ def _verify_signature(spliced_bytes, resolved, fields):
             )
 
 
+def _schema_error(doc):
+    """The plan-schema complaint about `doc`, or None when it satisfies the schema.
+
+    ONE HOME FOR THE SCHEMA, called through `harness_yaml.validate_plan_doc` -- the same function
+    `load_plan` uses (FEAT-41 HIGH-1). A copy of the rules here would be a second place for them
+    to stop being true, which is the defect this feature keeps finding in its own work.
+    """
+    try:
+        harness_yaml.validate_plan_doc(doc, "the merged plan")
+    except harness_yaml.PlanSchemaError as exc:
+        return exc
+    return None
+
+
+
 def _verify_spliced(spliced_bytes, base_doc, prop_doc, out_order, added_ids):
     """Refuse rather than return a splice that does not reload as the merge it reported."""
     try:
@@ -327,6 +343,28 @@ def _verify_spliced(spliced_bytes, base_doc, prop_doc, out_order, added_ids):
         raise harness_merge.MergeRefusal(
             5, ["UNPARSEABLE: the merged plan is not a mapping — REFUSING to write it."]
         )
+    # AND IT MUST BE A LEGAL PLAN, NOT MERELY LEGAL YAML (FEAT-41 HIGH-1). `safe_load` above
+    # answers "is this YAML"; the schema answers "can a reader act on it". Without this, `apply`
+    # minted `station_only: true` onto a task-bearing signed plan, reported APPLIED, exited 0, and
+    # left a document no reader can load. Same shape as the splice defect STEP 9 exists for.
+    #
+    # THE SCHEMA HAS ONE HOME. `validate_plan_doc` is the function `load_plan` itself calls, so
+    # the writer cannot drift from the reader; a copy of the rules here would be a second place
+    # for them to stop being true.
+    # DO NO HARM, RATHER THAN DEMAND PERFECTION. Refusing every merge whose RESULT fails the
+    # schema would block legitimate repair of a plan that was already non-conforming -- measured:
+    # 21 existing cases went red that way, all with bases whose tasks predate REQUIRED_TASK_FIELDS.
+    # So the test is whether this MERGE introduces a violation: valid before, invalid after.
+    if _schema_error(base_doc) is None:
+        _err = _schema_error(reloaded)
+        if _err is not None:
+            raise harness_merge.MergeRefusal(
+                5,
+                ["ILLEGAL PLAN: this merge would make a legal plan illegal — REFUSING to write it.",
+                 f"  {_err}",
+                 "  the base satisfied the plan schema and the merged result does not, so the "
+                 "change itself is what the schema refuses."],
+            )
     for key in UNION_KEYS:
         if key not in out_order:
             continue

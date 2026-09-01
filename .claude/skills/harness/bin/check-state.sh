@@ -205,8 +205,15 @@ for feat in states:
 # AN ABSENCE CANNOT BE A CREDENTIAL. A checker must be TOLD a fact, never infer one from a missing
 # field; that is the same shape as the B-7 fail-open the loader's own comment records.
 #
-# THE EXEMPTION CANNOT WIDEN SILENTLY: a plan WITH tasks is still held to both, asserted by
-# case (inv34.d), and case (inv34.e) covers the emptied-plan state cycle 3 found uncovered.
+# THE EXEMPTION CANNOT WIDEN SILENTLY, and the guarantee is that the MARKER IS NOT MINTABLE: a
+# plan carrying tasks cannot wear it, enforced at `harness_yaml.load_plan` because that is the one
+# chokepoint every reader passes through -- a writer-side guard would leave the unmediated Bash
+# route open, which the BRIEF itself discloses.
+#
+# THIS COMMENT PREVIOUSLY CITED case (inv34.d) AS ASSERTING THAT, AND IT DID NOT (FEAT-41 HIGH-1).
+# Two of cycle 4's reviewers checked at source: (inv34.d)'s fixture carries no marker, so the test
+# named here never tested the guarantee claimed here. A false citation is worse than a missing test
+# -- it stops the next reader looking. Cases (inv34.e) and (inv34.f) cover the two forgeries.
 for feat, doc in plan_docs.items():
     if doc.get("station_only") is True:
         continue
@@ -1144,7 +1151,11 @@ for fy in sorted(glob.glob(os.path.join(H, "*", "features", "*", "feature.json")
                    f"`status` key). Create a station-only record: `schema: plan/1`, `feature:`, "
                    f"`status: <station>`, `station_only: true`, `tasks: []`, written through "
                    f"plan-merge.py apply. The marker is REQUIRED and is not inferred from an "
-                   f"empty `tasks:` — an emptied plan is not a station-only record.")
+                   f"empty `tasks:` — an emptied plan is not a station-only record.\n"
+                   f"    FIRST CHECK WHETHER A REAL PLAN WAS DELETED: `git log --diff-filter=D "
+                   f"-- {os.path.join(os.path.relpath(_fdir, root), 'plan.yaml')}`. If this "
+                   f"feature HAD tasks, restore that plan instead — a station-only stub would "
+                   f"record the station and silently discard the task history.")
 
 # --- INV-23 (DEC-150, mechanized — issue #132): the feature.json and STATE.md budgets,
 # swept from DISK. check-domain.sh enforces the same numbers on a WRITE payload, which is

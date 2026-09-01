@@ -314,7 +314,20 @@ def load_plan(path):
     consumer could not act on. Never returns a partially-valid plan: a caller that
     got a dict back can index every field named in REQUIRED_TASK_FIELDS.
     """
-    doc = load_file(path)
+    return validate_plan_doc(load_file(path), path)
+
+
+def validate_plan_doc(doc, path):
+    """Validate an ALREADY-PARSED plan document, returning it, or raise PlanSchemaError.
+
+    EXTRACTED SO THE READER AND THE WRITER CANNOT DISAGREE (FEAT-41 HIGH-1). `plan-merge.py`'s
+    pre-write check parsed the merged result with `yaml.safe_load`, which answers "is this YAML"
+    and not "is this a legal plan" -- so every rule below was invisible to the writer, and `apply`
+    persisted a document no reader could load while reporting APPLIED at exit 0.
+
+    A writer-side COPY of these rules would have been a second place for them to stop being true,
+    which is the defect this whole feature keeps finding. One home, two callers.
+    """
     if not isinstance(doc, dict):
         raise PlanSchemaError(path, "top level is not a mapping")
 
@@ -349,6 +362,26 @@ def load_plan(path):
             "`tasks:` is empty, so this must be a station-only record and must SAY so: it "
             "needs `station_only: true` and a top-level `status:`. An emptied plan is not a "
             "station-only record.")
+    if doc.get("station_only") is not None and (doc.get("station_only") is not True or tasks):
+        # AND THE CONVERSE, WHICH MF-3 OMITTED (FEAT-41 HIGH-1, cycle 4, two reviewers
+        # independently). The marker was checked in ONE direction only -- empty tasks means the
+        # marker is required -- and never the other, so it could be MINTED onto a task-bearing
+        # signed plan through the ungated `apply` verb or a raw Bash write. It then silenced the
+        # approval and STATE.md-task checks for that feature, durably.
+        #
+        # MF-3 REPLACED AN ABSENCE-AS-CREDENTIAL WITH A FORGEABLE ONE, which is the same mistake
+        # wearing the opposite sign. A credential must be checked BOTH ways: present when claimed,
+        # and not claimable when false.
+        #
+        # THE LOADER IS THE RIGHT CHOKEPOINT, and a writer-side fix could not do this job: the
+        # BRIEF's own disclosure is that Bash writes are unmediated, so anything that only guards
+        # `plan-merge.py` leaves the shell route open. Everything that reads a plan comes through
+        # here.
+        raise PlanSchemaError(
+            path,
+            "`station_only:` may only be `true` on a record with an EMPTY `tasks:` list. A plan "
+            "that carries tasks is not a station-only record, and the marker cannot be used to "
+            "exempt one from the approval and STATE.md checks.")
 
     seen = set()
     for i, t in enumerate(tasks):

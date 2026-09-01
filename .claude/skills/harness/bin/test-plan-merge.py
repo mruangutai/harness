@@ -909,6 +909,47 @@ def case_apply_still_refuses_a_changed_value():
 
 
 
+def case_high1_apply_cannot_mint_the_station_only_marker():
+    """FEAT-41 HIGH-1, cycle 4. `apply` wrote the `station_only: true` credential onto a
+    task-bearing SIGNED plan and exited 0, reporting APPLIED.
+
+    `_verify_spliced` parses the merged result with `yaml.safe_load`, which answers "is this
+    YAML" and not "is this a legal plan". So the schema rule the loader enforces was invisible to
+    the writer, and the tool cheerfully persisted a document that no reader can load -- the same
+    shape as the splice defect STEP 9 was added for.
+
+    THE FIX GIVES THE PLAN SCHEMA ONE HOME. `validate_plan_doc` is extracted from `load_plan` and
+    called by both, so the reader and the writer cannot disagree about what a legal plan is. A
+    writer-side copy of the rule would be a second place for it to stop being true.
+    """
+    root, plan = fixture_root()
+    try:
+        # A SCHEMA-VALID BASE, deliberately, and `render_plan` cannot supply one: its tasks omit
+        # REQUIRED_TASK_FIELDS, so the do-no-harm rule correctly SKIPS such a base and the case
+        # would pass for the wrong reason. The scenario that matters is minting the marker onto a
+        # LEGAL signed plan.
+        write(plan, "schema: plan/1\nfeature: FEAT-99-fixture\nstatus: building\n"
+                    "approval:\n  status: approved\n  approved_by: X\n  date: 2026-01-01\n"
+                    "tasks:\n  - id: T-01\n    title: t\n    change_type: logic\n"
+                    "    execution_mode: main-session-direct\n    status: done\n"
+                    "    files: [a.py]\n    verify: run it\n    intent: do it\n")
+        before = read(plan)
+        prop = os.path.join(root, "prop.yaml")
+        write(prop, "schema: plan/1\nfeature: FEAT-99-fixture\nstation_only: true\ntasks: []\n")
+        r = run_verb("apply", "--file", plan, "--proposal", prop)
+        check("HIGH-1: `apply` REFUSES to mint station_only onto a plan that has tasks",
+              r.returncode != 0, f"rc={r.returncode} stdout={r.stdout[:200]!r}")
+        check("HIGH-1: and the plan is left BYTE-IDENTICAL — a refusal that had already written "
+              "would be the defect it is meant to prevent",
+              read(plan) == before, "plan changed")
+        check("HIGH-1: the refusal names the marker, so the operator can act on it",
+              "station_only" in (r.stderr + r.stdout),
+              f"stderr={r.stderr[:200]!r} stdout={r.stdout[:200]!r}")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+
 def main():
     case_proposal_indent_differs_from_base()
     case_naive_last_writer_wins()
@@ -930,6 +971,7 @@ def main():
     case_sign_approval()
     case_f02_sign_approval_cannot_write_an_unparseable_signature()
     case_f02_verify_signature_is_not_dead_code()
+    case_high1_apply_cannot_mint_the_station_only_marker()
     case_sign_approval_is_the_only_signer()
     case_add_tasks_alias()
     case_apply_still_refuses_a_changed_value()
