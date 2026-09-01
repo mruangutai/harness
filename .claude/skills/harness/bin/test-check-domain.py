@@ -3421,7 +3421,7 @@ def run_feat51_orphan_write():
     feature = "FEAT-99-fixture"
     session = "feat51-writer"
 
-    def root_with_claim(agent=None, runtime=None):
+    def root_with_claim(agent=None, runtime=None, supervisor_pid=None):
         root, _ = _approval_root(rel=REL_BRIEF, body=BRIEF_ON_DISK)
         if agent:
             reg.claim_with_receipt(
@@ -3430,6 +3430,7 @@ def run_feat51_orphan_write():
                 session=("other-session"
                          if agent != "harness-orchestrator" else session),
                 runtime=runtime,
+                supervisor_pid=supervisor_pid,
             )
         return root
 
@@ -3453,11 +3454,20 @@ def run_feat51_orphan_write():
         ok = result.returncode == want and (mention is None or mention in result.stderr)
         results.append((name, ok, f"exit {result.returncode}: {result.stderr}"))
 
+    quarantine = (
+        ".harness/harness/features/FEAT-99-fixture/quarantine/"
+        "harness-orchestrator-feat51-w/BRIEF.md"
+    )
     root = root_with_claim("harness-qa")
-    check("an orphan canonical write is quarantined", fire(root, REL_BRIEF), 2,
-          "quarantine")
+    brief_path = os.path.join(root, REL_BRIEF)
+    before = open(brief_path, "rb").read()
+    refused = fire(root, REL_BRIEF)
+    after = open(brief_path, "rb").read()
+    check("an orphan canonical write is quarantined", refused, 2, quarantine)
+    results.append(("the refused orphan write does not modify the canonical artifact",
+                    before == after, "canonical BRIEF.md changed"))
     check("NEGATIVE CONTROL: with the registry healthy an orphan canonical write is still refused",
-          fire(root, REL_BRIEF), 2, "quarantine")
+          fire(root, REL_BRIEF), 2, quarantine)
 
     registry_path = os.path.join(root, reg.REGISTRY_REL)
     os.remove(registry_path)
@@ -3481,23 +3491,32 @@ def run_feat51_orphan_write():
     check("a feature with no live claim allows the canonical write",
           fire(root, REL_BRIEF), 0)
 
-    root = root_with_claim("harness-qa", runtime="omp")
-    check("an omp-runtime writer is never quarantined",
-          fire(root, REL_BRIEF), 0)
+    omp_supervisor = subprocess.Popen(
+        [sys.executable, "-c", "import time; time.sleep(60)"]
+    )
+    try:
+        root = root_with_claim(
+            "harness-qa", runtime="omp", supervisor_pid=omp_supervisor.pid
+        )
+        check("an omp-runtime writer is never quarantined",
+              fire(root, REL_BRIEF), 0)
+    finally:
+        omp_supervisor.terminate()
+        omp_supervisor.wait()
 
     root = root_with_claim("harness-qa")
     notes = ".harness/harness/features/FEAT-99-fixture/notes/report.txt"
     check("an orphan write to notes is allowed", fire(root, notes), 0)
 
-    quarantine = (
-        ".harness/harness/features/FEAT-99-fixture/quarantine/"
-        "harness-orchestrator--feat51-writer/BRIEF.md"
-    )
     check("an orphan write to the quarantine path is allowed",
           fire(root, quarantine), 0)
 
+    plan_result = fire(root, REL_PLAN)
     check("an orphan Write of plan.yaml keeps the FEAT-41 route denial",
-          fire(root, REL_PLAN), 2, "exactly ONE writer")
+          plan_result, 2, "exactly ONE writer")
+    results.append(("the plan.yaml route denial does not mention quarantine",
+                    "quarantine" not in plan_result.stderr,
+                    plan_result.stderr))
 
     fails = 0
     for name, ok, detail in results:

@@ -451,10 +451,12 @@ import inflight_registry as _reg
 
 def _qroot(claims):
     root = _root()
-    for agent, session, runtime in claims:
+    for claim in claims:
+        agent, session, runtime, *identity = claim
         _reg.claim_with_receipt(
             root, agent, "harness-product-lead", root,
             feature="FEAT-99-fixture", session=session, runtime=runtime,
+            supervisor_pid=(identity[0] if identity else None),
         )
     return root
 
@@ -476,7 +478,10 @@ def qgate(command, agent_type, session_id, root, gate_path=None):
 _session = "feat51-writer"
 _other = [("harness-qa", "other-session", "claude")]
 _own = [("harness-orchestrator", _session, "claude")]
-_omp = [("harness-qa", "other-session", "omp")]
+_omp_supervisor = subprocess.Popen(
+    [sys.executable, "-c", "import time; time.sleep(60)"]
+)
+_omp = [("harness-qa", "other-session", "omp", _omp_supervisor.pid)]
 _rel_plan = ".harness/harness/features/FEAT-99-fixture/plan.yaml"
 
 
@@ -504,6 +509,8 @@ _qcheck("a feature with no live claim allows the plan-merge apply",
         _apply, 0, [])
 _qcheck("an omp-runtime writer is never quarantined on the Bash route",
         _apply, 0, _omp)
+_omp_supervisor.terminate()
+_omp_supervisor.wait()
 _qcheck("an orphan quarantine.py adopt onto a canonical plan.yaml is quarantined",
         "python3 quarantine.py adopt --file {root}/.harness/harness/features/"
         "FEAT-99-fixture/quarantine/harness-pm-session/plan.yaml",
