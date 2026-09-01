@@ -109,7 +109,26 @@ def is_tool(tok):
     return os.path.basename(tok.strip("\\'\"$()`")) == TOOL
 
 
+# Bash's line continuation. Bash REMOVES `\<newline>` before the shell ever sees words, so the
+# tokens either side of it are adjacent at execution time. Neither scanner below removes it on
+# its own: shlex(posix=True) yields the literal token `'\nsign-approval'`, and the raw-text
+# class `["'\s]` has no backslash in it (FEAT-41 H-02).
+CONTINUATION = re.compile(r"\\\r?\n")
+
+
+def as_bash_reads_it(line):
+    """Rejoin continued lines, so both scanners see the words bash will actually execute.
+
+    ONE MECHANISM, APPLIED BEFORE EITHER PATH. F-03 needed its separator fix in the token scan
+    AND the text fallback, and teaching two scanners about backslashes separately would leave
+    the same asymmetry one escape away. This is not a widening: an ordinary newline still
+    separates commands, and only the two-character continuation is removed.
+    """
+    return CONTINUATION.sub("", line)
+
+
 def denies(line, depth=0):
+    line = as_bash_reads_it(line)
     toks = words(line)
     if toks is None:
         # UNPARSEABLE FALLS BACK TO A TEXT SCAN, IT DOES NOT BLANKET-DENY. gh-close-gate.py

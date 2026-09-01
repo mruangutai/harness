@@ -34,7 +34,7 @@ add-only. Do not re-open either; check that the records say what happened.
 
 ## Dead Ends
 
-- Do NOT re-fix F-04's realpath half; the pattern matches path SHAPE, which is stronger than realpath, and the measurement is in the test
+- Do NOT replace shape-matching WITH realpath in check-domain.sh; shape is stronger for `./`, `..`, doubled slashes, absolute paths and a symlinked feature DIRECTORY. This entry USED to say "do not re-fix F-04's realpath half" full stop, and cycle 1's panel found the hole that wording talked past: a symlinked FILE with an innocent name matched no pattern at all. Closed by ADDING resolved candidates (H-01), not by substituting resolution
 - Do NOT reconcile `_record_station` and `_commit_terminal_station` to use the same words: written-nowhere and written-but-uncommitted have OPPOSITE correct answers, both asserted
 - Do NOT exempt `--date` from sign-approval's escaping; a type-aware exemption is a hole in the check that closes F-02
 - Do NOT add a `required` column to plan-merge.py's VERBS table; if a verb needs an optional argument it gets its own registration

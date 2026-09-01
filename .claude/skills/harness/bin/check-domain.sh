@@ -1537,8 +1537,58 @@ targets = []
 #
 # BOTH ROUTES, EVERY AUTHOR, AND ONLY BEFORE THE FACT. In POST the write has already landed and
 # exit 2 merely carries stderr back; the vocabulary net in shape_problems is what speaks there.
-if not _post and _tool in ("Write", "Edit", "NotebookEdit") and target \
-        and RE_PLAN_YAML.match(_norm(target)):
+# A SYMLINK IS A ROUTE, AND ITS NAME IS NOT (FEAT-41 H-01).
+#
+# This is NOT the realpath fix case 8 of the T-09 suite refused, and the distinction is the
+# whole point. That one wanted to replace shape-matching WITH resolution, which would have
+# WEAKENED the gate: `./`, a `notes/..` traversal, a doubled slash, an absolute path and a
+# symlinked feature DIRECTORY are all denied today precisely because the shape of the path as
+# written still ends `<something>/plan.yaml`. This ADDS the resolved target as a second thing to
+# match, so nothing denied today becomes allowed.
+#
+# A SYMLINKED FILE IS THE OPPOSITE SHAPE FROM A SYMLINKED DIRECTORY. `notes/innocent.md ->
+# plan.yaml` is innocent at every component, so no pattern can match what the author typed,
+# while the write lands in the plan. Measured on this runtime: the Write tool FOLLOWS a symlink
+# — the link stayed a link and the target's bytes changed — so the route is real, and it runs
+# through a path every squad member is already granted.
+# RESOLVED WITH readlink, NOT realpath, and that is not a style choice. `realpath` canonicalises
+# the whole path, and on this platform `/var` is itself a link to `/private/var` — so it returns
+# a path in a DIFFERENT spelling namespace from the one the write was addressed in, `_norm` can
+# no longer strip the checkout prefix, and the shape match silently sees nothing. Measured: the
+# first cut of this fix was written with realpath and left the case red exactly that way. Joining
+# each link's own target against its own directory keeps every candidate in the namespace the
+# author typed, which is the only one the patterns describe.
+_MAX_HOPS = 8
+
+
+def _route_candidates(path):
+    """The written path, plus each link hop it would land through. All get shape-matched."""
+    seen = [_norm(path)]
+    cur = path
+    for _ in range(_MAX_HOPS):
+        try:
+            if not os.path.islink(cur):
+                break
+            cur = os.path.normpath(os.path.join(os.path.dirname(cur), os.readlink(cur)))
+        except OSError:
+            # An unreadable or vanished path is not a route. A gate is not the place to raise on
+            # a filesystem it cannot inspect; the written spelling above is still matched. The
+            # hop cap covers a symlink LOOP, which readlink alone would follow forever.
+            break
+        seen.append(_norm(cur))
+    return seen
+
+
+def _plan_route(path):
+    """The plan this write would reach, or None. Names the TARGET, never only the link."""
+    for cand in _route_candidates(path):
+        if RE_PLAN_YAML.match(cand):
+            return cand
+    return None
+
+
+_reached_plan = _plan_route(target) if target else None
+if not _post and _tool in ("Write", "Edit", "NotebookEdit") and _reached_plan:
     # THE REASON COMES FIRST, THEN THE ROUTE. A denial that says only what to use instead is
     # indistinguishable from a stuck or over-broad gate, and a reader who takes it for a harness
     # malfunction routes around it through a shell write of a legal station value — the one
@@ -1549,8 +1599,14 @@ if not _post and _tool in ("Write", "Edit", "NotebookEdit") and target \
     # and the writer live in the same bin directory, and the invariant that keeps them together
     # is that both are named in run-unit-tests.sh's own script list.
     _writer = "plan-merge.py"
+    # WHEN A LINK IS THE ROUTE, THE DENIAL NAMES WHERE THE WRITE LANDS (FEAT-41 H-01). Refusing
+    # `notes/innocent.md` with no further explanation reads as a malfunction, which is the one
+    # outcome the reason clause above exists to prevent — and the reader who believes it routes
+    # around the gate through a shell write.
+    _via = ("" if _reached_plan == _norm(target)
+            else f" — the write would land in {_reached_plan}, which it links to")
     sys.stderr.write(
-        f"check-domain: DENIED — {_show(target)}: plan.yaml has exactly ONE writer, "
+        f"check-domain: DENIED — {_show(target)}{_via}: plan.yaml has exactly ONE writer, "
         f"{_writer}, because every station value must be validated against the vocabulary "
         f"before it lands on disk. An editor write cannot do that, so this is not a shape "
         f"violation to be measured — it is a route that no longer exists (FEAT-41 REQ-05, "
@@ -1580,7 +1636,12 @@ elif target:
     # POST, with a named file: Write, Edit, NotebookEdit. Read what LANDED — no
     # reconstruction of `old_string`/`new_string`, no `replace_all` semantics, no TOCTOU
     # window, because the filesystem already holds the answer those would approximate.
-    _rel = _norm(target)
+    # CLASSIFIED BY WHERE THE WRITE LANDED, NOT BY WHAT WAS TYPED (FEAT-41 H-01). POST opens
+    # `os.path.abspath(target)`, which FOLLOWS a link — so without this the reporter would read
+    # the plan's bytes and then look up shape rules under the link's innocent name, find none,
+    # and exit 0. The PRE denial above already refuses this route for every editor tool; this is
+    # the same mechanism on the reporting side, so the two cannot drift apart.
+    _rel = next((c for c in _route_candidates(target) if has_shape_rules(c)), _norm(target))
     if not has_shape_rules(_rel):
         sys.exit(0)
     try:

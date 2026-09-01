@@ -2644,11 +2644,20 @@ def _t09_spelling():
     # reports the SAME INODE. So `Plan.yaml` was a write to the real plan that the route denial
     # did not see, and it exited 0 with no stderr at all.
     #
-    # ONE HALF OF THE FINDING DID NOT REPRODUCE, and it is recorded here so nobody re-fixes it:
-    # F-04 also called for realpath. Every path-shape evasion is ALREADY denied -- `./` prefix,
-    # a `notes/..` traversal, a doubled slash, an absolute path, and even a SYMLINKED feature
-    # directory. The pattern matches the path's SHAPE (`[^/]+/plan.yaml`), so where it resolves
-    # is irrelevant, which is stronger than realpath rather than weaker.
+    # HALF OF THE FINDING DID NOT REPRODUCE, and this paragraph WAS TOO WIDE WHEN FIRST WRITTEN
+    # -- cycle 1's panel found the hole it had talked past, so it is corrected here rather than
+    # deleted, because the wrong version is what a reader would otherwise trust.
+    #
+    # STILL TRUE: replacing shape-matching WITH realpath would WEAKEN the gate. `./` prefix, a
+    # `notes/..` traversal, a doubled slash, an absolute path and a SYMLINKED FEATURE DIRECTORY
+    # are all denied already, because the path as written still ends `[^/]+/plan.yaml` and the
+    # pattern matches SHAPE. Where such a path resolves is irrelevant.
+    #
+    # WHAT WAS WRONG: "even a symlinked feature directory" was read as covering symlinks in
+    # general, and it does not. A symlinked FILE is the opposite shape -- `notes/innocent.md ->
+    # plan.yaml` is innocent at every component, so no pattern matches what was typed, while the
+    # write lands in the plan. Case 9 below closes that, by ADDING resolved candidates to the
+    # shape test rather than substituting resolution for it.
     #
     # THE FIX DENIES ON A CASE-SENSITIVE FILESYSTEM TOO, where `Plan.yaml` is a genuinely
     # different file. That asymmetry is deliberate: a loud refusal of a file nobody legitimately
@@ -2672,6 +2681,94 @@ def _t09_spelling():
             r8b.returncode == 0, f"exit {r8b.returncode}, stderr={r8b.stderr.strip()[:300]!r}")
 
 
+def _t09_symlink():
+    """9. A symlink is a route, and its name is not (FEAT-41 H-01)."""
+
+    # ---- 9. A SYMLINK IS A ROUTE, AND ITS NAME IS NOT (FEAT-41 H-01) ----------------------
+    # Cycle 1's panel, high, and it is the half of F-04 that case 8 above dismissed TOO WIDELY.
+    # Case 8 says a symlinked feature DIRECTORY is already denied, which is true and stays
+    # true: the written path still ends `<something>/plan.yaml`, so the shape match sees it.
+    #
+    # A SYMLINKED FILE IS THE OPPOSITE SHAPE. `notes/innocent.md -> plan.yaml` is a path whose
+    # spelling is innocent at every component, so no pattern can match it, while the write
+    # lands in plan.yaml. MEASURED BOTH HALVES before fixing:
+    #   this runtime's Write tool follows a symlink -- the link stayed a link and the TARGET's
+    #     bytes changed, so the route is real and not theoretical
+    #   plan.yaml -> exit 2 DENIED; innocent.md -> exit 0 ALLOWED
+    # That is a forged approval through a path every squad member is already granted.
+    #
+    # WHY SHAPE-MATCHING THE TARGET IS NOT THE REALPATH FIX CASE 8 REFUSED. Case 8 refused to
+    # replace shape-matching WITH realpath, because resolution would have weakened `./`, `..`,
+    # doubled slashes and absolute paths, all of which the shape already denies. This ADDS the
+    # resolved target as a second thing to shape-match. Nothing denied today becomes allowed.
+    root9, full9 = _approval_root(rel=".harness/harness/features/FEAT-99-fixture/plan.yaml",
+                                  body=_PLAN_LEGAL)
+    link_abs = os.path.join(root9, ".harness", "harness", "features", "FEAT-99-fixture",
+                            "notes", "innocent.md")
+    os.makedirs(os.path.dirname(link_abs), exist_ok=True)
+    os.symlink(os.path.join("..", "plan.yaml"), link_abs)
+
+    r9 = _fire_write(root9, link_abs, _PLAN_LEGAL, agent="harness-orchestrator")
+    t09("T-09 9: a Write to a SYMLINK whose name is not plan.yaml is DENIED — the write lands "
+        "in the plan, so the link is a route",
+        r9.returncode == 2, f"exit {r9.returncode}, stderr={r9.stderr.strip()[:300]!r}")
+    # AND THE REFUSAL NAMES THE REAL FILE, not only the link the author typed. A denial that
+    # says `innocent.md` is not a route would read as a malfunction -- the exact failure the
+    # reason clause in the production denial exists to prevent.
+    #
+    # ASSERTED ON THE RESOLVED PATH, NOT THE WORD `plan.yaml`. The denial's own prose contains
+    # "plan.yaml has exactly ONE writer" whatever it refuses, so a bare substring check would
+    # have passed vacuously -- it would have gone green against a message naming only the link.
+    t09("T-09 9: the refusal names the feature's plan.yaml, the file the write would reach",
+        ".harness/harness/features/FEAT-99-fixture/plan.yaml" in r9.stderr,
+        f"stderr={r9.stderr.strip()[:300]!r}")
+    # NEGATIVE CONTROL. A symlink pointing at something that is NOT the plan stays allowed --
+    # the rule follows the link to a shape test, it does not refuse links as a class.
+    root9b, _full9b = _approval_root(rel=".harness/harness/features/FEAT-99-fixture/plan.yaml",
+                                     body=_PLAN_LEGAL)
+    ord_abs = os.path.join(root9b, ".harness", "harness", "features", "FEAT-99-fixture",
+                           "notes", "ordinary.md")
+    os.makedirs(os.path.dirname(ord_abs), exist_ok=True)
+    # THE TARGET CARRIES NO RULES OF ITS OWN, deliberately. Pointing it outside the feature
+    # trips the DOMAIN rule and pointing it at BRIEF.md trips that file's `## Approval` shape
+    # rule — either way the case would pass for a reason that has nothing to do with routes.
+    real_abs = os.path.join(root9b, ".harness", "harness", "features", "FEAT-99-fixture",
+                            "notes", "real.md")
+    with open(real_abs, "w") as _f:
+        _f.write("# note\n")
+    os.symlink("real.md", ord_abs)
+    r9b = _fire_write(root9b, ord_abs, "# note\n", agent="harness-orchestrator")
+    t09("T-09 9 NEGATIVE CONTROL: a symlink to a file that is not the plan is still ALLOWED — "
+        "links are followed to a shape test, not refused as a class",
+        r9b.returncode == 0, f"exit {r9b.returncode}, stderr={r9b.stderr.strip()[:300]!r}")
+
+    # AND THE POST REPORTER CLASSIFIES BY WHERE THE WRITE LANDED. POST opens the path, which
+    # follows the link, so it read the plan's bytes and then looked up rules under the link's
+    # innocent name and found none. PRE now refuses this route for every editor tool, so this
+    # case defends the REPORTING side against drifting away from the denial beside it.
+    root9c, _f9c = _approval_root(rel=".harness/harness/features/FEAT-99-fixture/plan.yaml",
+                                  body=_PLAN_LEGAL)
+    post_link = os.path.join(root9c, ".harness", "harness", "features", "FEAT-99-fixture",
+                             "notes", "innocent.md")
+    os.makedirs(os.path.dirname(post_link), exist_ok=True)
+    os.symlink(os.path.join("..", "plan.yaml"), post_link)
+    # An ILLEGAL station value, landed through the link, is what the vocabulary net must see.
+    _plan9c = os.path.join(root9c, ".harness", "harness", "features", "FEAT-99-fixture",
+                           "plan.yaml")
+    with open(_plan9c, "w") as _f:
+        _f.write(_PLAN_LEGAL.replace("status: building", "status: Sideways"))
+    # THE NAMED-FILE POST BRANCH, not the Bash glob sweep. The sweep finds plan.yaml by GLOB, so
+    # it catches a landed illegal value whatever route reached it; this branch is the one that
+    # looked up rules by the path it was HANDED, and so exited 0 on the link.
+    r9c = fire_post(root9c, {"agent_type": "harness-orchestrator", "tool_name": "Write",
+                             "hook_event_name": "PostToolUse",
+                             "tool_input": {"file_path": post_link, "content": "x"}})
+    t09("T-09 9: the POST reporter follows the link and the vocabulary net speaks — a landed "
+        "illegal station is reported even though the path written carries no rules",
+        r9c.returncode == 2 and "Sideways" in r9c.stderr,
+        f"exit {r9c.returncode}, stderr={r9c.stderr.strip()[:300]!r}")
+
+
 def run_t09():
     """FEAT-41 T-09: plan.yaml has exactly ONE writer, and the editor routes are refused."""
     global _T09_FAILS
@@ -2680,6 +2777,7 @@ def run_t09():
     _t09_binds_every_author()
     _t09_post_sweep()
     _t09_spelling()
+    _t09_symlink()
     return _T09_FAILS
 
 

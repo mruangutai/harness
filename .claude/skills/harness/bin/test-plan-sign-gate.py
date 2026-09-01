@@ -219,6 +219,49 @@ check("F-03 NEGATIVE CONTROL: an unlexable line that is not a signing attempt is
       "allowed — the fallback is a scan, never a blanket deny",
       rc == 0, f"rc={rc} stderr={err[:300]!r}")
 
+# ---------------------------------------------------------------------------------------
+# FEAT-41 H-02, high, found by cycle 1's panel. A SHELL LINE CONTINUATION EVADED BOTH PATHS.
+#
+# `\<newline>` is bash's line continuation: bash REMOVES it, so the verb lands adjacent to the
+# tool and the command signs. shlex does not remove it — with posix=True it yields the literal
+# token `'\nsign-approval'`, which is not equal to `sign-approval`, so the adjacency test saw
+# no verb at all. MEASURED both halves before fixing:
+#     tokens  -> ['python3', '...plan-merge.py', '\nsign-approval', '--file', 'p.yaml']
+#     bash    -> ARG1=sign-approval        <- executes as adjacent
+# The text fallback missed it for a different reason: backslash is absent from its `["'\s]`
+# separator class, so the scan stopped at the `\`.
+#
+# THE FIX IS TO ADOPT BASH'S OWN VIEW ONCE, before either path runs, rather than to teach two
+# scanners about backslashes separately. That is why F-03's lesson repeats here: its fix had to
+# land in both the token scan and the fallback, and a second per-path patch would have left the
+# same asymmetry one escape away.
+# ---------------------------------------------------------------------------------------
+rc, err = gate("python3 .claude/skills/harness/bin/plan-merge.py \\\nsign-approval "
+               "--file p.yaml --by Someone --date 2026-01-01",
+               agent_type="harness-orchestrator")
+check("H-02: `plan-merge.py \\<newline>sign-approval` is DENIED — bash removes the "
+      "continuation and signs, so the gate must read the line the way bash does",
+      rc == 2, f"rc={rc} stderr={err[:300]!r}")
+
+# AND IN THE TEXT FALLBACK, for the same reason F-03 needed both: an unlexable line carrying
+# the continuation must not survive one unbalanced quote away from the token scan.
+rc, err = gate("echo it's fine; python3 .claude/skills/harness/bin/plan-merge.py \\\n"
+               "sign-approval --file p.yaml --by Someone --date 2026-01-01",
+               agent_type="harness-orchestrator")
+check("H-02: the TEXT fallback also removes the continuation — an unlexable line carrying "
+      "`plan-merge.py \\<newline>sign-approval` is DENIED",
+      rc == 2, f"rc={rc} stderr={err[:300]!r}")
+
+# NEGATIVE CONTROL. Removing continuations must not make a genuine multi-line command that
+# merely MENTIONS the verb into a signing attempt — the join happens at the backslash only,
+# never at an ordinary newline, so a separate command on its own line stays separate.
+rc, err = gate("python3 .claude/skills/harness/bin/plan-merge.py apply --file p.yaml \\\n"
+               "--proposal q.yaml  # not a sign-approval call",
+               agent_type="harness-orchestrator")
+check("H-02 NEGATIVE CONTROL: a continuation inside an ordinary `apply` call is still "
+      "allowed — the line is rejoined, not blanket-denied",
+      rc == 0, f"rc={rc} stderr={err[:300]!r}")
+
 
 print(f"\n{fails} failing." if fails else "\nall checks passed.")
 raise SystemExit(1 if fails else 0)
