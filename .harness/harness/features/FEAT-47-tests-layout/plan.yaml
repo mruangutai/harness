@@ -150,6 +150,87 @@ decisions:
       staleness can only weaken it and never turn it falsely green, and the conservation law
       declares its one permitted absence rather than tolerating absences in general.
     dec: DEC-207
+  - id: D-15
+    choice: >
+      The runtime mutation check keeps watching the bin directory alone after the migration, and
+      the tests/ trees this feature creates are NOT added to it. run_pool.py takes exactly one
+      directory, so widening it would be a change to a FEAT-48 helper that T-05 otherwise forbids
+      itself. What this feature owes the flag is the argument, not the set: run-unit-tests.sh hands
+      it the bin directory, and T-05's verify asserts that argument equals the pool script's own
+      directory so carrying the old root argument forward is red here and not only in FEAT-48.
+    because: >
+      the hazard the check exists for is a test mutating the ARTIFACT under test, and every artifact
+      under test — the hooks, the gate scripts and the helper modules every test imports — stays in
+      bin after this migration. What the move does relocate out of the watched directory is the
+      write-beside-yourself site, so this feature makes one narrow vector newly unwatched at
+      runtime: a moved test mutating a file inside tests/ THROUGH A SUBPROCESS. It is named rather
+      than left implicit. What carries it: FEAT-48's test-suite-independence.py walks from the
+      repository root and covers tests/ for direct mutation with no escape hatch, and every fixture
+      in the moved set is already built under tempfile.mkdtemp(). Watching the root instead was
+      rejected upstream and must not be re-suggested here: agents write features/** continuously,
+      so a root-wide runtime set reddens a passing suite on a sibling's note. If the operator wants
+      the tests/ trees watched, that is a multi-directory --mutation-check and a FEAT-47 code change
+      to run_pool.py, which is scope this plan does not currently carry.
+    dec: DEC-207
+  - id: D-16
+    choice: >
+      REQ-07 is enforced by a declared LINE-exemption census, tests/manual/suite-census.py
+      residue, and NOT by widening the search's path exclusions. Its exemption list holds
+      (path, literal fragment) pairs — exactly three, each naming one sentence this feature
+      deliberately preserves — and the mode refuses its own list if any exempted path lies under
+      an expertise directory, refuses a pair that no longer matches, and refuses a search whose
+      positive control over the record prefixes comes back empty.
+    because: >
+      the three tokens sit in two different kinds of place and one pathspec cannot tell them
+      apart. A historical sentence in the past tense describes a state that really existed and
+      DEC-205 keeps it; injected craft in an Expertise file, or a comment claiming the arrays are
+      live, does not get that pass. The cheapest remedy — excluding .harness/harness/** — makes
+      the second class invisible, which is a gate turning green on the exact defect it exists to
+      catch, so the exclusion has to be per-SENTENCE. Exempting the sentence rather than the file
+      also leaves every FUTURE line of DECISIONS.md and of the moved probe inside the sweep, and
+      the expertise refusal makes the fail-open branch unreachable by anyone later rather than
+      merely unused today. The rejected alternative, kept so it is not re-suggested: paraphrase
+      the two preserved sentences so the tokens disappear. Refused because the token IS the
+      historical fact — "eight of twelve INTEGRATION_SCRIPTS entries" names the artifact that
+      existed, and "the forking-side script array" cannot be checked against the commit the
+      sentence describes.
+    dec: DEC-207
+  - id: D-17
+    choice: >
+      The two falsified Expertise entries are repaired inside this feature, by T-07, as
+      execution_mode main-session-direct — not by a distillation dispatch to harness-eng-lead and
+      harness-code-reviewer, and not deferred to a later curation pass.
+    because: >
+      each file is granted to its own persona alone (check-domain.sh --resolve confirms
+      harness-eng-lead and harness-code-reviewer respectively), and DEC-145 confines an agent's
+      write to its own Expertise to a distillation dispatch. So the only routes are a lead
+      dispatched as an executor, which no plan in this repository has ever done and which invites
+      the whole-file rewrite DEC-125 describes for a two-line correction, or the main session —
+      the same argument this plan's lanes block already makes for team-config.yaml, where the
+      owner of the surface is exactly the party that must not perform the write. Deferring was
+      refused outright: the entries are injected at every spawn of those two personas in this
+      repository, so between this merge and some later curation both seats are instructed to read
+      arrays that do not exist, and REQ-07 is violated with or without the sweep.
+    dec: DEC-145
+  - id: D-18
+    choice: >
+      suite-census.py's verdict-lines and migration modes declare their one-review shelf life in
+      the interface, not in a comment: verdict-lines reports drift and exits 0 unless --strict is
+      passed, and migration exits 2 with a message naming the cause when the ref it is handed is
+      after the migration rather than exit 1 on its floor. children keeps its default and is the
+      only mode with standing life.
+    because: >
+      both are one-shot review instruments shipped as permanent files. Post-merge, migration
+      --base origin/main derives an empty set and would fail its own floor forever, and
+      verdict-lines binds to a baseline measured at ea6f51f that the first legitimate later test
+      edit falsifies — a permanent red on correct work, which is the mirror of the failure issue
+      979 exists to kill and no better than a check that passes on broken work. T-05's verify
+      passes --strict, at the one moment the baseline is current, so the discrimination this
+      plan needs is unchanged; what changes is that a later reader gets an answer instead of a
+      meaningless failure. Deleting the two modes after the review was refused: nothing in the
+      plan removes them, and a mode that names its own validity window is cheaper than a deletion
+      task nobody will run.
+    dec: DEC-207
 
 tasks:
   - id: T-01
@@ -285,6 +366,17 @@ tasks:
       and repair its anchors by the recipe below. Its fixtures are already written under
       tempfile.mkdtemp(), so nothing but the anchor changes.
 
+      ONE COMMENT REPAIR INSIDE THE MOVED SET, and it is not tidying. test-factory-integration.py
+      carries two FEAT-33-era case headers, above case (J) and above case (K), each ending
+      "Adds no file to any list and edits neither INTEGRATION_SCRIPTS nor harness.json (both
+      already correct and both have other writers, per T-04's own intent)". Strike that sentence
+      from both headers and leave the rest of each header exactly as it is: the sentence records
+      the SCOPE BOUNDARY of a shipped FEAT-33 task, in the present tense, and its parenthetical
+      asserts the arrays are correct — a claim T-05 falsifies. It is not a past-tense record and
+      the record of that dispatch is FEAT-33's own plan; what the header exists to explain, why
+      the forking form is the discriminating one, survives untouched. Locate each by the sentence
+      itself, never by line number, because this task moves the file.
+
       Ten of those come from UNIT_SCRIPTS, by the measurement recorded in
       notes/research-tests-layout.md: test-board-lifecycle, test-board-station,
       test-branch-create-gate, test-check-omp-port, test-factory-decompose,
@@ -389,13 +481,30 @@ tasks:
       test-orchestrator-playbook.py test-render-brief.py test-team-catalog.py test-wayfind.py
 
       test-suite-independence.py NEEDS A DIFFERENT ANCHOR EDIT FROM EVERY OTHER FILE HERE, and
-      getting it wrong makes the guard scan nothing while still exiting 0 on a smaller set. It
-      imports no bin module. It derives the REPOSITORY ROOT from its own directory — four levels
-      up while it sits in bin, two levels up from tests/unit — and os.walks from there to discover
-      its own scan set. Repoint that climb to the two-level form, leave its --scan-dir override
-      alone, and read the discovered-file count it prints: its own live-tree case asserts that
-      count is at least 50, which is what makes a climb landing above or below the root go red
-      instead of reporting a clean sweep.
+      getting it wrong makes the guard scan nothing while still exiting 0 on a smaller set. What
+      follows is checked against FEAT-48's plan as it stands, not against the earlier draft an
+      earlier version of this paragraph was written from.
+
+      THERE IS NO CLIMB TO REPOINT, and the root needs no edit at all. FEAT-48's T-03 resolves the
+      repository root through harness_boundary.root_above, a pure marker walk with no depth
+      arithmetic and no environment read, wrapped in a named resolve_scan_root(start), and os.walks
+      from what that returns. It is layout-independent by construction, which is the property
+      FEAT-48 chose it for. Leave the root resolution alone and leave the --scan-dir override
+      alone. Do NOT point the walk at a __file__ climb: reintroducing a depth-counting root is
+      exactly what FEAT-48's root-refusal case exists to redden, because arithmetic cannot refuse.
+
+      WHAT DOES BREAK IS THE IMPORT. That file reaches harness_boundary by its own directory being
+      on sys.path, and after this move its own directory is tests/unit. It therefore takes the
+      sys.path half of T-02's recipe and nothing else: derive BIN_DIR from __file__ — two levels up
+      to the root, then .claude/skills/harness/bin — and sys.path.insert it before importing
+      harness_boundary. That climb is unavoidable and is the ONE place a literal depth survives in
+      this file, because the marker walk lives in the module being imported and cannot be called
+      before it is on the path. It locates the MODULE only: it must never become the scanned root,
+      and it cannot fail quietly, since a wrong climb is an ImportError at import time.
+
+      Then read the discovered-file count the run prints. FEAT-48's own live-tree case asserts that
+      count is at least 50 AND that the printed root equals the marker walk's answer, so a run that
+      walked the wrong tree or walked nothing is red there as well as in FEAT-48's verify block.
 
       After the move, bin holds exactly one test-*.py — test-run-unit-tests-kinds.py, which T-05
       deletes in place — and no *.test.ts. This task's verify asserts that exact residue rather
@@ -487,7 +596,9 @@ tasks:
       python3 -c 'sh=open(".claude/skills/harness/bin/run-unit-tests.sh").read().splitlines(); \
         inv=[l for l in sh if "run_pool.py" in l and not l.strip().startswith("#")]; \
         assert len(inv)==1, f"expected one pool invocation, found {len(inv)}"; \
-        assert "--mutation-check" in inv[0], "pool invocation lost --mutation-check"; \
+        p=inv[0].split("run_pool.py")[0].split()[-1].strip(chr(34)).rstrip("/"); \
+        a=(inv[0].split("--mutation-check")[1:] or ["!missing"])[0].split()[0].strip(chr(34)); \
+        assert a==p, f"--mutation-check must take the bin directory {p}, got {a}"; \
         assert not [l for l in sh if l.strip().startswith("for s in")]; print("pool call intact")'
       for k in unit integration; do
         o=$(.agents/skills/harness/bin/run-unit-tests.sh --kind "$k") \
@@ -503,7 +614,7 @@ tasks:
         --deleted test-run-unit-tests-kinds.py
       python3 tests/manual/suite-census.py verdict-lines \
         --baseline .harness/harness/features/FEAT-47-tests-layout/notes/research-tests-layout.md \
-        --deleted test-run-unit-tests-kinds.py
+        --deleted test-run-unit-tests-kinds.py --strict
     intent: |
       Delete the registration bookkeeping, make discovery directory-driven, and put the invariant
       that replaces it behind one predicate with two independent tests. WRITE THE TWO TEST FILES
@@ -523,7 +634,10 @@ tasks:
          Nothing else. It reads the filesystem, takes no environment and no cwd, and returns
          rather than printing or exiting, so both callers decide their own wording.
 
-      2. NEW FILE tests/unit/test-suite-layout.py — in-process, no subprocess, therefore unit. It
+      2. NEW FILE tests/unit/test-suite-layout.py — the artifact under test runs in-process and
+         the only child it spawns is git, enumerating tracked files for step 2b, which is a
+         dependency read and not behaviour under assertion, so it is unit under DEC-207's first
+         sub-rule and git is already in SC-09's declared fixture set. It
          imports suite_layout from BIN_DIR by the T-02 anchor recipe and asserts:
            - violations() over this repository's real root returns exactly the empty list
            - for each of four synthetic trees built in a tempdir, it returns exactly the expected
@@ -543,6 +657,57 @@ tasks:
              directory the runner walks is tests/manual (REQ-08). Split the pipe-separated detect
              string before matching: it is a string, not a list, so iterating it yields one
              character per step and prints like a successful enumeration
+      2b. SAME FILE — the sole-implementation sweep, which is what SC-05 rests on and the only
+         thing in this plan that can see a SECOND implementation of the predicate. Write it as a
+         local helper taking two arguments, the root and the list of relative paths to scan, so it
+         can be driven over a synthetic tree as well as over this repository. It returns the paths
+         that match BOTH kind directories AND contain one of os.listdir, os.scandir, os.walk,
+         glob.glob, iterdir, rglob or .glob( — the weakest fragment a copy-paste reimplementation
+         of a predicate over the two kind directories necessarily carries.
+         MATCH EACH DIRECTORY BY REGEX, NOT BY THE PATH LITERAL, and this is not a refinement:
+         os.path.join(root, "tests", "unit") contains no substring tests/unit, so a literal search
+         is blind to the joined-components form the module in step 1 is most likely to be written
+         in — it would fail its own positive control below while reporting a clean sweep over
+         every reimplementation of that shape. Use
+             tests['"]?\s*[,/]\s*['"]?\s*unit
+         and the same with integration. Verified before this task was written: those two regexes
+         plus the fragment list report a planted reimplementation in all three shapes — slash
+         literal, os.path.join components, and Path(r, "tests", "unit").glob — and match zero of
+         the 101 tracked .py files at 50dafcf, so the sweep is neither red on arrival nor blind to
+         the shapes it exists to catch. Four cases:
+           - EXEMPTIONS ARE DECLARED, NOT DERIVED: a module-level list of exactly four relative
+             paths, .claude/skills/harness/bin/suite_layout.py, tests/unit/test-suite-layout.py,
+             tests/integration/test-run-unit-tests-layout.py and tests/manual/suite-census.py,
+             with a comment above it saying exactly four on purpose, in the shape
+             test-no-distribution.py's ALLOW_LIST already uses. Over this repository the helper's
+             result minus that list is exactly empty, and the case names any path it reports.
+             Never build the list from what the sweep happens to return: an exemption list derived
+             from the finding is true by construction
+           - POSITIVE CONTROL, so a pattern that has stopped matching cannot report clean: the
+             helper's result over this repository CONTAINS
+             .claude/skills/harness/bin/suite_layout.py and tests/manual/suite-census.py. Both
+             read a kind directory by name and both must match; if either stops matching, the
+             fragment list is wrong and the case is red rather than green over a pattern that
+             matches nothing
+           - DISCOVERY FLOOR, for the same reason the migration census carries one: the scanned
+             path list has at least 90 entries. Build it from git ls-files -- "*.py" run at the
+             root with check=True on the exit status, never from a pipeline whose emptiness is
+             indistinguishable from its failure. 101 tracked .py files were measured at 50dafcf
+             and the migration only moves them, so the floor's staleness can only weaken it
+           - PROVEN ABLE TO FAIL, three shapes not one, because the shape a reimplementation is
+             written in is exactly what a literal search gets wrong: for each of a slash literal
+             ("tests/unit"), os.path.join components ("tests", "unit") and
+             Path(r, "tests", "unit").glob, build a tempdir holding one file under a name in no
+             list — tests/unit/kindcheck_helper.py is fine — whose body names both directories in
+             that shape and lists one of them. Drive the helper over that tree with its own path
+             list and assert, per shape, that the planted path is in the result and that the
+             exemption subtraction is therefore non-empty. These are the cases that distinguish a
+             working sweep from one that would report clean whatever it is pointed at
+         One more assertion in this file, on the delegation rather than on a duplicate: exactly one
+         non-comment line of .claude/skills/harness/bin/run-unit-tests.sh contains the string
+         suite_layout. Shell is NOT swept — the runner's own directory globs are discovery, not the
+         predicate — and that residue, along with a reimplementation that takes the two directories
+         as parameters, is disclosed in BRIEF's Verification gaps rather than claimed as covered.
       3. NEW FILE tests/integration/test-run-unit-tests-layout.py — drives run-unit-tests.sh as a
          subprocess, therefore integration. It builds a fixture root in a tempdir carrying
          .harness/team-config.yaml (harness_boundary.MARKER, which is what makes a directory a
@@ -586,18 +751,25 @@ tasks:
              tests/integration/test-*.py, all is both, in that order. These are REPO-RELATIVE
              PATHS, not basenames, and that is the ONLY behavioural change the pool sees. FEAT-48
              landed run_pool.py and invokes it on exactly one line:
-             python3 "$BIN_DIR/run_pool.py" --mutation-check "$ROOT" -- "${SCRIPTS[@]/#/$BIN_DIR/}"
+             python3 "$BIN_DIR/run_pool.py" --mutation-check "$BIN_DIR" -- "${SCRIPTS[@]/#/$BIN_DIR/}"
              where the array held bare filenames that bash prefixed with BIN_DIR. Drop only the
              prefixing and pass the discovered paths through unchanged. run_pool.py runs each path
              from the current directory, so keep the pool invoked with the resolved root as cwd,
              which is what the serial loop already relied on
-           - CARRY --mutation-check "$ROOT" FORWARD VERBATIM, using whatever name the script holds
-             the resolved root in. It is not optional (FEAT-48's D-11): it snapshots every tracked
-             file's size and mtime around the run and fails naming any that changed, and that
-             runtime enforcement is only real because the one caller CI runs always passes it.
-             Dropping the flag leaves a green suite that has stopped checking. After the edit there
-             must be exactly ONE line mentioning run_pool.py, it must carry the flag, and no serial
-             for loop over the script list may survive
+           - CARRY THE --mutation-check FLAG FORWARD, AND HAND IT THE BIN DIRECTORY, under whatever
+             name the script holds that directory in — the same name the pool script path already
+             uses. NOT the resolved root: run_pool.py watches exactly the directory it is handed
+             and derives nothing from it, so the argument is a real behavioural input rather than a
+             quotation. FEAT-48's D-11 is the single place the watched set is defined; read it
+             there, do not restate it here. This plan's own D-15 records what that set means for
+             the migrated tests/ trees, and it is the only claim about the flag this plan makes.
+             The flag is not optional: the runtime enforcement is only real if the one caller CI
+             runs always passes it, and dropping it leaves a green suite that has stopped checking.
+             After the edit there must be exactly ONE line mentioning run_pool.py, its
+             --mutation-check argument must be the bin directory and not the root, and no serial
+             for loop over the script list may survive. This task's verify asserts that argument
+             against the pool script's own directory rather than against a literal, so it holds
+             whatever the variable ends up being called
            - change NOTHING in run_pool.py, isolated_bin.py or any other bin helper: scheduling is
              FEAT-48's and selection is this feature's, which is exactly why the two could be
              ordered rather than merged
@@ -621,11 +793,19 @@ tasks:
          survives in either value — the assertion in step 2 is what keeps it out afterwards.
       7. tests/integration/test-check-plan-routes.py case_13 (lines 162-167 before the move)
          asserts that run-unit-tests.sh's SCRIPTS array lists this test by name. The arrays are
-         gone. Replace the case with the property that is now true and still worth pinning: this
-         file sits under tests/integration and the runner discovers it from the directory —
-         assert that run-unit-tests.sh contains the literal glob tests/integration/test-*.py and
-         contains neither UNIT_SCRIPTS nor INTEGRATION_SCRIPTS. Keep the case name's position in
-         the file's case list so no other numbering shifts.
+         gone. Replace the case with the POSITIVE property that is now true and still worth
+         pinning, and with that alone: this file sits under tests/integration and the runner
+         discovers it from the directory, so assert that run-unit-tests.sh contains the literal
+         glob tests/integration/test-*.py. Keep the case name's position in the file's case list
+         so no other numbering shifts.
+         DO NOT ADD THE MIRROR-IMAGE NEGATIVE — no assertion here may name UNIT_SCRIPTS or
+         INTEGRATION_SCRIPTS, and an earlier draft of this step did. Two reasons, and the first
+         is mechanical: this file lands in tests/integration/, which is not a record prefix, so
+         an assertion quoting either literal is a live file naming the deleted mechanism and
+         T-06's residue sweep reports it — the task would break the next task's gate to assert
+         something. The second is D-02's own argument: the arrays' absence has exactly one
+         reader, the residue sweep, and a second copy of that assertion in a test file is the
+         two-readers duplication this feature exists to delete.
       8. .github/CODEOWNERS lines 22-27 — the comment justifies owning run-unit-tests.sh by an
          attack the arrays made possible: move an entry between them and CI stops running a test
          while the drift detector stays quiet. That attack is gone; a smaller one replaces it, and
@@ -633,9 +813,9 @@ tasks:
          workflow's only substantive steps are --kind unit and --kind integration, and one edit
          here can narrow what either kind discovers or defeat the layout guard, without touching
          the workflow file. Leave the ownership line itself unchanged.
-      9. NEW FILE tests/manual/suite-census.py — the proof instrument for SC-01, SC-02, SC-09 and
-         SC-10, under tests/manual because no runner may run it. Three subcommands over a
-         directory of test files, defaulting to tests/unit and tests/integration:
+      9. NEW FILE tests/manual/suite-census.py — the proof instrument for SC-01, SC-02, SC-07,
+         SC-09 and SC-10, under tests/manual because no runner may run it. FOUR subcommands over
+         a directory of test files, defaulting to tests/unit and tests/integration:
            - verdict-lines: run each file with the current interpreter from the repository root,
              count output lines whose first token is ok, not ok, PASS or FAIL, and compare each
              file's count against a baseline table. --baseline takes a text file and reads ONLY the
@@ -651,6 +831,14 @@ tasks:
              the two test files this task adds and the two FEAT-48 adds all land in that bucket,
              because the baseline was measured before either existed. The comparison is PER FILE,
              never a total: a total is satisfied by two files that moved in opposite directions
+             ONE-REVIEW SHELF LIFE, DECLARED IN THE INTERFACE (D-18). The baseline is a snapshot
+             measured at ea6f51f, so the first legitimate later edit that adds an assertion to any
+             test falsifies it. Therefore: print the drift and EXIT 0 unless --strict is passed,
+             which is what turns the three failure conditions above into a non-zero exit. T-05's
+             verify passes --strict, at the one moment the baseline is current, and the SC-01 and
+             SC-02 goal-check passes it at the review sha. Without the flag the mode is a report.
+             A permanent file whose default is a permanent red on correct work is the mirror of
+             the failure issue 979 exists to kill, and no better
            - children: run each file with subprocess.Popen.__init__, os.system, os.fork and
              os.posix_spawn wrapped by a counter that also records the child's argv head, and
              print one line per file with the count and the child names. This is what SC-09 is
@@ -668,6 +856,57 @@ tasks:
              derived name is printed as new and does not fail. Resolve the ref with git, never
              with a working-tree read: the point is to compare against the tree this feature
              merges into, which is the only source FEAT-48 cannot silently invalidate
+             ONE-REVIEW SHELF LIFE, DECLARED IN THE INTERFACE (D-18). After this feature merges,
+             the ref a later reader reaches for has no test-*.py under bin at all, so the derived
+             set is empty and the floor above would fail forever for a reason that is not a
+             defect. Distinguish the two cases and never report the second as the first: when the
+             derived set is EMPTY and tests/unit and tests/integration at that ref already hold
+             test-*.py, exit 2 — cannot answer — with a message saying the ref is after the
+             migration and this mode is a one-shot migration check. Every other shortfall,
+             including an empty set with empty kind directories, stays exit 1 on the floor,
+             because that one really is a truncated or unreadable history. Exit 2 versus exit 1 is
+             the same distinction --check-layout already makes, and both are non-zero, so T-05's
+             verify discriminates exactly as before
+           - residue: the SC-07 and REQ-07 instrument, and the only check that can see the deleted
+             mechanism presented as current. It searches the three literals UNIT_SCRIPTS,
+             INTEGRATION_SCRIPTS and check-kinds over every TRACKED path except the three record
+             prefixes .harness/notes/, .harness/harness/features/ and .harness/logs/, prints
+             every match as path:line:text, and exits 1 unless every match is covered by a
+             declared exemption. --ref takes a git ref and reads the tree AT that ref; with no
+             --ref it reads the working tree, because a task's own verify runs before the commit
+             exists and a ref-read there passes for a deliverable that never landed. Print which
+             of the two was read as the first line of output, so a reader can never mistake one
+             for the other, and SC-07 names --ref <review_sha> for its own grading.
+             EXEMPTIONS ARE DECLARED BY LINE, NOT BY PATH, and that is the whole design (D-16): a
+             module-level list of (relative path, literal fragment) pairs, EXACTLY THREE, with a
+             comment saying exactly three on purpose, in the shape test-no-distribution.py's
+             ALLOW_LIST already uses. A match is covered when its path equals the pair's path and
+             its line contains the pair's fragment. The three:
+               (.harness/harness/docs/DECISIONS.md, "Eight of twelve") — DEC-197's "What forced
+               it", which T-06 keeps in the past tense because the token names the artifact that
+               existed and DEC-205 keeps an accurate record
+               (tests/manual/probe-omp-session-accessor.py, "It was first registered in") — the
+               provenance sentence T-04 keeps for the same reason
+               (tests/manual/suite-census.py, "RESIDUE_TOKENS") — this file's own definition of
+               the three literals it searches for. Exempted as ONE LINE and not as a path, so any
+               OTHER line of this instrument that names a token is still reported
+             FOUR RULES THE MODE ENFORCES ON ITS OWN LIST BEFORE IT REPORTS ANYTHING, each its own
+             exit-1 message. These are what make the sweep unable to fail open, which a widened
+             path exclusion could not be:
+               - NO EXEMPTED PATH MAY LIE UNDER AN EXPERTISE DIRECTORY: reject any pair whose path
+                 matches .harness/expertise/ or .harness/*/expertise/. Expertise is injected
+                 current craft at every spawn, never a record, so no later editor can buy silence
+                 for one by adding a pair. This is the branch the panel named and it is closed
+                 structurally, not by the list happening to omit those paths today
+               - EVERY DECLARED PAIR MUST STILL MATCH at whatever tree was read. A pair matching
+                 nothing is a stale exemption authorising more than it names, so repairing one of
+                 the two preserved sentences later forces its pair out rather than leaving cover
+                 behind
+               - POSITIVE CONTROL: the same three literals searched over
+                 .harness/harness/features/ must return at least one line. A search that has
+                 stopped working — a wrong pathspec, a ref with no such tree — cannot report clean
+               - THE COVERED LINES ARE PRINTED on success, all three of them, so a green run says
+                 exactly what it excused instead of saying nothing
       Order within the task is the order above, except that steps 2 and 3 are written before
       step 1 and run once against the absent module, so the Iron Law's failing state is observed
       rather than assumed.
@@ -682,11 +921,14 @@ tasks:
 
       TWO INHERITED GUARDS BIND THE TWO NEW TEST FILES, and neither is this task's to weaken.
       FEAT-48's test-suite-independence.py statically forbids any test mutating a path derived from
-      the live checkout, with no escape hatch. run_pool.py --mutation-check enforces the same
-      property at RUNTIME, snapshotting every tracked file's size and mtime around the run and
-      failing the run naming any that changed — so a mutation performed through a subprocess, which
-      the static scan cannot see, still reddens. Both new files build their trees under
-      tempfile.mkdtemp() as specified above; keep it that way, run test-suite-independence.py after
+      the live checkout, with no escape hatch, and it walks from the repository root, so it covers
+      the tests/ trees these two new files land in. run_pool.py --mutation-check enforces a related
+      property at RUNTIME and catches a vector the static scan cannot see, a mutation performed
+      through a subprocess. Its watched set is FEAT-48's D-11 and is not restated here; D-15 records
+      what that set covers once these files sit outside the bin directory, and the honest summary is
+      that for these two files the STATIC guard is the binding one at runtime. So the conduct is
+      what binds this task, not either mechanism: both new files build their trees under
+      tempfile.mkdtemp() as specified above, keep it that way, run test-suite-independence.py after
       writing them, and read the pool's own output for a MUTATED line rather than trusting the
       suite's exit code alone.
 
@@ -698,7 +940,7 @@ tasks:
     execution_reason: >
       granted to harness-documentor, taken direct under DEC-174 because the entry records a change
       to the enforcement layer itself
-    depends_on: [T-05]
+    depends_on: [T-05, T-07]
     status: pending
     files:
       - .harness/harness/docs/DECISIONS.md
@@ -713,17 +955,7 @@ tasks:
       python3 tests/integration/test-gen-decisions-index.py
       python3 tests/integration/test-check-decision-anchors.py
       grep -q "^## DEC-207 " .harness/harness/docs/DECISIONS.md
-      ctl=$(git grep -l -e UNIT_SCRIPTS -e INTEGRATION_SCRIPTS -- \
-        .harness/harness/features || true)
-      [ -n "$ctl" ] || { echo "positive control empty: git grep found no known history"; exit 1; }
-      set +e
-      live=$(git grep -n -e UNIT_SCRIPTS -e INTEGRATION_SCRIPTS -e "check-kinds" -- \
-        ':!.harness/notes' ':!.harness/harness/features' ':!.harness/logs')
-      rc=$?
-      set -e
-      [ "$rc" -le 1 ] || { echo "git grep errored, status $rc"; exit 1; }
-      [ "$rc" = 1 ] \
-        || { echo "a live file still presents the arrays as current"; printf '%s\n' "$live"; exit 1; }
+      python3 tests/manual/suite-census.py residue
     intent: |
       Write the new entry and rewrite the two that this feature falsified. DEC-205 governs the
       shape: an entry states current truth, a correction rewrites the entry it corrects, there are
@@ -797,15 +1029,97 @@ tasks:
            - "A cross-check is separate from this rule" (around 5592-5595), which describes the
              set comparison this feature deleted. Say that the cross-check existed to compare two
              hand-maintained lists, that DEC-207 deleted both, and that the rule stands without it
-         "What forced it" stays as history, in the past tense. Do not reword it into the present.
+         "What forced it" (around 5585-5590) STAYS AS HISTORY AND KEEPS THE LITERAL TOKEN, and it
+         is the one paragraph of this entry the residue sweep is told about: it is the first of
+         suite-census.py residue's three declared (path, fragment) exemptions, keyed on the
+         fragment "Eight of twelve" (D-16). Two things follow, and both are this step's work.
+         FIRST, put the WHOLE paragraph in the past tense, not just its opening clause. Its last
+         three sentences still read "The fix IS to name each file in integration.detect, which
+         leaves it matching both globs" — a present-tense claim about a fix this feature undoes,
+         which is exactly the falsification the sweep exists to catch and which no exemption may
+         excuse. Past-tense them: the fix WAS to name each file, which LEFT it matching both.
+         SECOND, do not paraphrase the token away. "Eight of twelve INTEGRATION_SCRIPTS entries
+         were absent from integration.detect" names the artifact that existed and can be checked
+         against the commit it describes; "the forking-side script array" cannot. If you reword
+         the sentence such that "Eight of twelve" no longer appears, the exemption goes stale and
+         residue exits 1 on the stale pair — that is the design, not a snag.
       3b. FEAT-48's entry landed before this one and DEC-205 makes an entry state current truth,
          so it gets the same treatment as DEC-187 and DEC-197 if it needs it: read it, and if it
          names UNIT_SCRIPTS, INTEGRATION_SCRIPTS or --check-kinds as a live mechanism, rewrite
          that sentence to the two directories and the layout guard. Its rulings — the private
          copy, the independence invariant, the pool, the rejection of change-based selection —
          are untouched, and the entry is not struck. This is not optional tidying: the verify's
-         sweep asserts git grep's exit status over every live file, and the decision log is one.
+         residue sweep reports every live file naming a token, and the decision log is one. It has
+         no exemption for FEAT-48's entry and must not be given one.
       4. Regenerate the index: run gen-decisions-index.py and commit
          .harness/harness/docs/DECISIONS-INDEX.md in the same edit. The index stores a per-row
          source line, so lengthening any entry shifts every later anchor and the regeneration test
          reddens even when no row's text changed.
+
+  - id: T-07
+    title: Repair the two Expertise entries this feature falsifies
+    traces: [REQ-07]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: >
+      D-17. Each file is granted to its own persona alone and DEC-145 confines that write to a
+      distillation dispatch, so the owner of the surface is the one party that must not perform
+      this correction — the same argument the lanes block already makes for team-config.yaml
+    depends_on: [T-05]
+    status: pending
+    files:
+      - .harness/harness/expertise/harness-eng-lead.md
+      - .harness/harness/expertise/harness-code-reviewer.md
+    verify: |
+      set -e
+      bash .claude/skills/harness/bin/check-expertise.sh \
+        .harness/harness/expertise/harness-eng-lead.md \
+        .harness/harness/expertise/harness-code-reviewer.md
+      python3 -c 'import sys; \
+        ps=[".harness/harness/expertise/harness-eng-lead.md", \
+            ".harness/harness/expertise/harness-code-reviewer.md"]; \
+        bad=[(p,n+1,l) for p in ps for n,l in enumerate(open(p)) \
+          if "UNIT_SCRIPTS" in l or "INTEGRATION_SCRIPTS" in l or "check-kinds" in l]; \
+        assert not bad, bad; \
+        t=[open(p).read() for p in ps]; \
+        assert "tests/integration" in t[0] and "tests/integration" in t[1], "entry not restated"; \
+        assert "- G-02:" in t[0] and "- G-04:" in t[1], "id renumbered or dropped"; \
+        print("both entries repaired, ids intact")'
+    intent: |
+      Two injected Expertise entries state the mechanism T-05 deletes, as current craft rather
+      than as history. Repair both IN PLACE, keeping each entry's id and each file's section
+      structure, and add nothing. This is a correction, not a distillation: no new entry, no
+      reordering, no touching any other bullet in either file.
+
+      1. .harness/harness/expertise/harness-eng-lead.md, the Gotchas entry G-02, whose text today
+         says to read run-unit-tests.sh's two arrays rather than harness.json's detect globs,
+         "because array membership decides which script actually executes". The INSIGHT survives
+         the change and is what makes this a rewrite rather than a drop: the thing that decides
+         which script executes is still not the detect globs. Restate it over the mechanism that
+         exists — the directory a test sits in, tests/unit or tests/integration, decides both
+         which script the runner discovers and which kind it runs as, while the detect globs
+         decide only which kind the qa matrix believes is required. Keep the id G-02, keep the
+         WHEN/DO shape, and keep it SHORT.
+      2. .harness/harness/expertise/harness-code-reviewer.md, the Gotchas entry G-04, whose text
+         today says to check both arrays by exact name because absence from both means a script
+         never executes. Same treatment, same surviving insight: what to check now is that the
+         file sits under tests/unit/ or tests/integration/, because a test-shaped file anywhere
+         else is discovered by no runner however green its own logic reads — and bin/ in
+         particular is now refused outright by the layout guard, so a script left there does not
+         merely go unrun, it reddens every invocation. Keep the id G-04.
+
+      THE BINDING BUDGET IS PER ENTRY, NOT PER FILE, and it was measured while writing this task
+      rather than assumed: check-expertise.sh caps a single entry at 50 WORDS and reports
+      "G-04 is 51 words — cap is 50; a rule, not a story" at exit 1. A first draft of the G-04
+      replacement, written to read naturally, came in at 51 and failed. Write each replacement,
+      then run check-expertise.sh on both files before anything else — the 40-line
+      repository-tier file budget is the cap that will NOT fire here and is not the one to aim at.
+
+      Do NOT reach for expertise-merge.py here. It computes a UNION and reports the same id
+      carrying two different texts as a conflict it refuses to apply, so it cannot express a
+      replacement; this is a direct edit to each file.
+
+      Both entries name a token the residue sweep searches for, and NEITHER path may ever be
+      exempted from it — the mode refuses any exemption pair under an expertise directory (D-16).
+      So this task is what makes T-06's sweep pass, and nothing about the way that sweep was made
+      satisfiable can silence these two files.

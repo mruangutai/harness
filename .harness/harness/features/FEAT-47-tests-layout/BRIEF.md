@@ -110,8 +110,10 @@ the working tree. The per-file baselines the first two criteria compare against 
   its tally lines equals exactly the set of `test-*.py` files present in `tests/unit/` — set
   equality against the directory, never a count, so a file the runner silently skips and a name it
   reports without a file both go red. Each migrated unit file emits exactly the verdict-line count
-  recorded for it in the baseline census; a file with no baseline row is reported as new and named
-  in the goal-check rather than failed.
+  recorded for it in the baseline census, graded by
+  `tests/manual/suite-census.py verdict-lines --strict` — without `--strict` that mode reports and
+  exits 0, by design (see Verification gaps), so the flag is part of the criterion; a file with no
+  baseline row is reported as new and named in the goal-check rather than failed.
   verify: automated        evidence: unit
 - SC-02: The same two clauses hold for `--kind integration` over `tests/integration/`.
   verify: automated        evidence: integration
@@ -130,20 +132,42 @@ the working tree. The per-file baselines the first two criteria compare against 
   verify: automated        evidence: integration
 - SC-05: The layout predicate is one function in one file, and driving it directly returns exactly
   the expected violation list for each of the four synthetic trees above and the empty list for this
-  repository's real tree. A second copy of the predicate anywhere would falsify this criterion,
-  because the two copies are what DEC-197 records going silently out of step.
+  repository's real tree. Against a SECOND implementation the criterion is bounded and says so: a
+  declared-exemption sweep over every tracked `*.py` file reports any file that names both kind
+  directories — in either spelling, the slash path or joined components, matched by regex rather
+  than by a path literal — beside a directory-listing call, and is not one of four names declared
+  in the test: `suite_layout.py`, `tests/unit/test-suite-layout.py`,
+  `tests/integration/test-run-unit-tests-layout.py`, `tests/manual/suite-census.py`. Three things
+  make that sweep more than decoration: `suite_layout.py` and `suite-census.py` are asserted to
+  MATCH the pattern, so a pattern that has stopped matching predicate-shaped code goes red instead
+  of reporting clean; the scanned set is asserted to be at least 90 tracked files, measured at
+  `50dafcf`, so a discovery returning nothing cannot read as a clean sweep; and the sweep is proven
+  able to fail against a planted reimplementation in each of three spellings, not one.
+  Separately, exactly one non-comment line of `run-unit-tests.sh` names `suite_layout`, so the
+  runner delegates rather than re-deriving. What this does NOT detect is stated in Verification
+  gaps, and the earlier claim that any second copy anywhere would falsify this criterion is
+  withdrawn as unsupportable.
   verify: automated        evidence: unit
 - SC-06: `test_kinds.unit.detect` and `test_kinds.integration.detect` in `.harness/harness.json`
   equal the values in `.claude/skills/harness/templates/harness.json`, and a test asserts that
   neither contains a `.claude/` path — so the appendix cannot silently return.
   verify: automated        evidence: unit
-- SC-07: At the review sha, no file outside `.harness/notes/`, `.harness/harness/features/` and
-  `.harness/logs/` mentions `UNIT_SCRIPTS`, `INTEGRATION_SCRIPTS` or `--check-kinds`; the search's
-  exit status is asserted, never a count of zero lines. `DECISIONS.md` carries the new entry,
-  DEC-187 and DEC-197 no longer describe the arrays as live, and the committed
-  `DECISIONS-INDEX.md` is byte-identical to `gen-decisions-index.py --stdout`. There is no
-  `--check` flag: the tool refuses any argv token but `--stdout` and exits 2, so a criterion
-  resting on one would fail for the wrong reason.
+- SC-07: At the review sha, every mention of `UNIT_SCRIPTS`, `INTEGRATION_SCRIPTS` or
+  `check-kinds` outside `.harness/notes/`, `.harness/harness/features/` and `.harness/logs/` is
+  one of exactly three declared, still-matching historical sentences, and there are no others.
+  Graded by `tests/manual/suite-census.py residue --ref <review_sha>`, whose exit status is
+  asserted — never a count of zero lines. The three exemptions are `(path, literal fragment)`
+  pairs, not path exclusions: `DECISIONS.md`'s "Eight of twelve" (DEC-197's *What forced it*, kept
+  in the past tense because the token names the artifact that existed), the moved probe's "It was
+  first registered in", and the instrument's own `RESIDUE_TOKENS` definition line. **No path under
+  an expertise directory may be exempted, and the mode refuses its own list if one is** — Expertise
+  is injected current craft at every spawn, not a record, so the two falsified entries are repaired
+  by T-07 and stay inside the sweep. What makes it red: a fourth mention anywhere, including a new
+  line in an exempted file; an exemption that no longer matches; or an empty positive control over
+  the record prefixes. `DECISIONS.md` also carries the new entry, DEC-187 and DEC-197 no longer
+  describe the arrays as live, and the committed `DECISIONS-INDEX.md` is byte-identical to
+  `gen-decisions-index.py --stdout`. There is no `--check` flag: the tool refuses any argv token
+  but `--stdout` and exits 2, so a criterion resting on one would fail for the wrong reason.
   verify: inspection
 - SC-08: `tests/manual/` is matched by no `detect` glob of any kind whose `status` is `active`, and
   by neither directory the runner walks — asserted in a test, so a later `detect` edit that captures
@@ -173,16 +197,59 @@ Read against `test_kinds` in `.harness/harness.json` at `ea6f51f`.
 
 - Every `verify: automated` criterion above rests on `unit` or `integration`. Both have a live
   runner (`run-unit-tests.sh --kind <kind>`), so no criterion here is carried by a soft skip.
-  SC-07, SC-09 and SC-10 are `inspection` and rest on named instruments — `git grep` with its exit
-  status asserted, and the two `tests/manual/suite-census.py` modes — not on any test kind.
+  SC-07, SC-09 and SC-10 are `inspection` and rest on named instruments — three
+  `tests/manual/suite-census.py` modes, each with its exit status asserted — not on any test kind.
 - `component`, `ui`, `eval` and `typecheck` have `cmd: null`, and `functional` is excluded by
   DEC-187. None of them covers a surface this feature touches: there is no UI, no model behaviour
   and no database path in it.
-- **The one gap this feature does not close, stated at the signature:** the guard makes `bin/` free
+- **A gap this feature does not close, stated at the signature:** the guard makes `bin/` free
   of test-**named** files, not of test **support**. `layout_fixtures.py` is imported only by two
   tests and stays in `bin/` under the settled scope, and FEAT-48's `isolated_bin.py` is a second
   module of exactly that shape. Nothing mechanical distinguishes a fixture module from production
   code. Purpose-level classification is left to #979.
+- **SC-05's sweep is bounded, and the residue is not detected by anything.** It reports a
+  copy-paste reimplementation of the layout predicate — a Python file naming both kind directories,
+  as a slash path or as joined components, beside a listing call — under any filename. It does NOT
+  detect a reimplementation that receives the two directories as parameters, or assembles either
+  name from a variable defined elsewhere, and it does not sweep shell at
+  all: `run-unit-tests.sh` is exempted because its own directory globs ARE discovery rather than
+  the predicate, and only its delegation (one non-comment `suite_layout` line) is asserted. What
+  carries the rest is not a check: the runner is one file, pinned by `.github/CODEOWNERS`, and its
+  four violation cases are driven end-to-end in SC-04. A semantically-equivalent second predicate
+  under a different shape would ship green.
+  The independent reader's challenge, recorded with its answer: the hazard's measured base rate is
+  zero and all four declared exemptions are files this feature itself writes, so is the sweep
+  decoration? No, and the reasons are separable. The graded set is the ~97 tracked `.py` files this
+  feature does not write, measured at `50dafcf` and matching none of them, so the assertion is
+  true by MEASUREMENT and not by construction; a regression guard's base rate is zero at authoring
+  by definition, which is not evidence of vacuity; and the four exemptions being this feature's own
+  files is precisely what makes the positive control possible, since two of them must MATCH or the
+  pattern is dead. What is honestly conceded is only the shape above: a parameterised second
+  predicate ships green, and `CODEOWNERS` plus SC-04 carry the runner, not the sweep.
+- **Two of `suite-census.py`'s four modes have a ONE-REVIEW shelf life, and say so in their own
+  interface rather than in a comment (D-18).** `verdict-lines` compares against a baseline measured
+  at `ea6f51f` that the first legitimate later test edit falsifies, so it reports drift and exits 0
+  unless `--strict` is passed — SC-01 and SC-02 pass it, at the review sha, when the baseline is
+  current. `migration --base <ref>` derives an empty set for any ref after this merge, so it exits
+  2 with a message naming that cause instead of exit 1 on its floor. `children` and `residue` have
+  standing life and keep their defaults. What this means for the operator: after this feature
+  lands, two of these four modes are reports rather than gates, and nothing in the repository
+  re-establishes them as gates. That is deliberate — a permanent file whose default is a permanent
+  red on correct work teaches a reader to ignore it — but it does mean SC-01's and SC-02's
+  verdict-line evidence is a POINT measurement at the review sha, exactly like SC-09's.
+- **REQ-03's classification correctness is graded ONCE, by inspection, and nothing automated
+  defends it afterwards.** SC-09 re-runs the child-process probe at the review sha; that is a
+  point measurement of the tree as merged. `suite_layout.violations()` tests directory SHAPE only —
+  emptiness, duplication, a planted file — and never the child-process property that actually
+  distinguishes the two kinds (issue #160). So a test added later, or edited later to fork, sits in
+  the wrong kind and NO gate reddens: not the layout guard, not the runner, not CI. It was
+  considered for automation and refused on cost, not on principle — the only instrument that can
+  see the property is `tests/manual/suite-census.py children`, which runs every test file under
+  spawn instrumentation and therefore costs a full suite run, well past a gate's budget. What
+  carries it instead: that mode is re-runnable by any reviewer with no argument but the mode, and a
+  misplacement costs the truthfulness of kind reporting and the speed split, never the correctness
+  of the suite — every test still runs under `--kind all`. Making it a standing gate needs a cheap
+  per-file measurement that does not exist yet, and belongs with #979's host kind.
 - Runtime: `--kind unit` 20s and `--kind integration` 152s were measured at `ea6f51f`, serially.
   FEAT-48's pool lands first and changes both, and this feature does not re-measure them — it
   changes which files each kind discovers, not how they are scheduled. SC-02's evidence therefore
