@@ -320,6 +320,47 @@ def run_case(fn):
         check(f"{fn.__name__}_did_not_crash", False, f"raised {e!r}")
 
 
+def case_real_keeps_one_namespace_when_unresolvable():
+    """FEAT-41 HIGH-3, cycle 4. `real()` must return a path in the SAME namespace whether or not
+    the input resolves, because every caller COMPARES its output against another `real()` result.
+
+    MF-2 made `real()` total by falling back to `abspath` on an unresolvable input. That stopped
+    the fail-open crash, but it returns an UNRESOLVED path -- and when the checkout root is
+    reached through a symlink, `real(root)` is fully resolved while `real(target)` is not. The two
+    no longer share a prefix, so `select_base`/`inside` classify an in-base target as
+    `not_a_domain_question` and `bash-write-guard.sh` exits 0 with empty stderr.
+
+    MEASURED on a symlinked root before the fix:
+        real('/tmp/h3/link')                    -> /private/tmp/h3/actual
+        real('/tmp/h3/link/sub/<unresolvable>')  -> /tmp/h3/link/sub/<unresolvable>
+        target.startswith(root)                  -> False
+
+    THE PERMIT IS PRE-EXISTING -- origin/main crashes fail-open on the same input, so the write
+    proceeded there too. What MF-2 changed is that it became SILENT rather than loud, which for a
+    guard is worse. So the fallback must resolve AS FAR AS IT SAFELY CAN: the longest ancestor
+    that resolves, plus the remainder verbatim.
+    """
+    mod = hb()
+    with tempfile.TemporaryDirectory() as tmp:
+        actual = os.path.join(tmp, "actual", "sub")
+        os.makedirs(actual, exist_ok=True)
+        link = os.path.join(tmp, "link")
+        os.symlink("actual", link)
+        root = mod.real(link)
+        target = mod.real(os.path.join(link, "sub", "in\x00valid"))
+        check("real() keeps ONE namespace: an unresolvable target still sits under the "
+              "resolved root",
+              target.startswith(root), f"root={root!r} target={target!r}")
+        check("real() is still TOTAL on an unresolvable input — it must not raise, or the whole "
+              "hook body fails open at exit 1",
+              isinstance(target, str) and target, f"target={target!r}")
+        # NEGATIVE CONTROL: a perfectly ordinary path is unaffected by the fallback.
+        ok = mod.real(os.path.join(link, "sub"))
+        check("real() NEGATIVE CONTROL: a resolvable path is unchanged by the fallback",
+              ok == os.path.realpath(os.path.join(link, "sub")), f"got={ok!r}")
+
+
+
 def main():
     run_case(case_marker_constant)
     run_case(case_root_from_script)
@@ -327,6 +368,7 @@ def main():
     run_case(case_resolve_root_override_normalises_relative)
     run_case(case_root_above)
     run_case(case_worktree_for_feature)
+    run_case(case_real_keeps_one_namespace_when_unresolvable)
 
     if failures:
         print(f"\n{len(failures)} FAILURE(S): {failures}")
