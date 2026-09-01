@@ -3852,6 +3852,113 @@ def case_inv6_producer_is_documented():
             print("        the runs-writing step does not name the key, so every recorded "
                   "plan panel omits it and INV-6 deadlocks again")
     return ok
+def _i34_fixture(tmp, with_plan):
+    """A feature directory with a feature.json, and a plan.yaml only when asked for."""
+    h = make_fixture(tmp, HARNESS_JSON_SYNC_OFF, "  parent: none")
+    feat = os.path.join(h, "harness", "features", "FEAT-TEST")
+    if with_plan:
+        with open(os.path.join(feat, "plan.yaml"), "w") as f:
+            f.write("schema: plan/1\nfeature: FEAT-TEST\nstatus: done\ntasks: []\n")
+    return feat
+
+
+def _i34_lines(out):
+    return [l for l in out.splitlines() if "INV-34" in l]
+
+
+def case_inv34_plan_required():
+    """FEAT-41 T-19 — INV-34: a feature directory with NO plan.yaml is REPORTED.
+
+    Operator-directed after cycle 2's C2-01. The one-record rule puts a feature's station in
+    plan.yaml, so a feature WITHOUT one has nowhere to record it -- which is exactly how this
+    feature destroyed BUG-1030's `Review` and then could not put it back: feature.json refuses
+    the key (exit 11) and, before T-19, plan.yaml refused to exist without tasks.
+
+    The invariant is what stops that recurring: the migration is a one-time repair, and without
+    a check the next plan-less feature reintroduces the same hole silently.
+    """
+    results = []
+    with tempfile.TemporaryDirectory() as tmp:
+        _i34_fixture(tmp, with_plan=False)
+        code, out = run(tmp)
+        ls = _i34_lines(out)
+        ok = bool(ls) and any("FEAT-TEST" in l for l in ls) and any("plan.yaml" in l for l in ls)
+        results.append(("(inv34.a) a feature with no plan.yaml is reported, naming the file",
+                        ok, out[:400]))
+    return results
+
+
+def case_inv34_present_is_silent():
+    """NEGATIVE CONTROL. A station-only plan.yaml satisfies it, so the invariant is about the
+    RECORD existing and not about tasks -- the twelve directories this feature backfilled carry
+    exactly this shape, and if they tripped it the migration would be self-defeating."""
+    results = []
+    with tempfile.TemporaryDirectory() as tmp:
+        _i34_fixture(tmp, with_plan=True)
+        code, out = run(tmp)
+        ls = _i34_lines(out)
+        results.append(("(inv34.b) a station-only plan.yaml is enough — no INV-34 line",
+                        not ls, out[:400]))
+    return results
+
+
+
+def _i34_station_only(tmp, tasks_block, state_md=None):
+    """A feature whose plan is station-only, or carries tasks, plus an optional STATE.md."""
+    h = make_fixture(tmp, HARNESS_JSON_SYNC_OFF, "  parent: none")
+    feat = os.path.join(h, "harness", "features", "FEAT-TEST")
+    with open(os.path.join(feat, "plan.yaml"), "w") as f:
+        f.write("schema: plan/1\nfeature: FEAT-TEST\nstatus: done\n" + tasks_block)
+    if state_md is not None:
+        with open(os.path.join(feat, "STATE.md"), "w") as f:
+            f.write(state_md)
+    return feat
+
+
+_I34_TASK = (
+    "tasks:\n"
+    "  - id: T-01\n"
+    "    title: t\n"
+    "    change_type: logic\n"
+    "    execution_mode: main-session-direct\n"
+    "    status: done\n"
+    "    files: [a.py]\n"
+    "    verify: run it\n"
+    "    intent: do it\n"
+)
+
+
+def case_inv34_station_only_is_out_of_scope():
+    """FEAT-41 T-19. A station-only record answers neither `is the goal signed` nor `does
+    STATE.md name a real task`, because it HAS no goal and no tasks.
+
+    THIS IS SCOPING, NOT A FAIL-OPEN, and the backfill is what forced the distinction: creating
+    twelve station-only plans made two checks visible that had skipped those directories for as
+    long as they had no plan at all. The alternative was to give each one an `approval:` block,
+    which would have FABRICATED twelve signatures nobody gave.
+    """
+    results = []
+    with tempfile.TemporaryDirectory() as tmp:
+        _i34_station_only(tmp, "tasks: []\n", state_md="## Current\nsee T-01 and T-99\n")
+        code, out = run(tmp)
+        quiet = ("no `approval:` block" not in out) and ("which is absent from its" not in out)
+        results.append(("(inv34.c) a station-only plan is exempt from the approval and "
+                        "STATE.md-task checks", quiet, out[:400]))
+    return results
+
+
+def case_inv34_a_real_plan_is_still_checked():
+    """NEGATIVE CONTROL, and the one that stops the exemption widening. A plan WITH tasks is
+    still held to both checks -- if this ever goes quiet, the exemption has swallowed the rule
+    for every plan in the tree, which is the failure mode this whole feature keeps finding."""
+    results = []
+    with tempfile.TemporaryDirectory() as tmp:
+        _i34_station_only(tmp, _I34_TASK, state_md="## Current\nsee T-99\n")
+        code, out = run(tmp)
+        loud = ("no `approval:` block" in out) and ("T-99" in out)
+        results.append(("(inv34.d) a plan WITH tasks is still checked for approval and for "
+                        "STATE.md task ids", loud, out[:400]))
+    return results
 
 
 
@@ -3881,6 +3988,16 @@ def main():
     ok_i28f = case_inv28_silent_sync_off()
     ok_i28g = case_41_t07_inv28_station_from_plan()
     ok_i28h = case_41_t07_inv28_negative_control_live_station()
+    # FEAT-41 T-19 — INV-34: every feature directory carries a plan.yaml.
+    _i34 = (case_inv34_plan_required() + case_inv34_present_is_silent()
+            + case_inv34_station_only_is_out_of_scope()
+            + case_inv34_a_real_plan_is_still_checked())
+    ok_i34 = True
+    for _name, _ok, _detail in _i34:
+        print(f"{'ok' if _ok else 'FAIL'} - case {_name}")
+        if not _ok:
+            ok_i34 = False
+            print(f"        {str(_detail).strip()[:300]}")
     # FEAT-41 T-14 / issue #867 — INV-33: the report, the byte-comparison discriminator, and
     # the two silences. Each returns a results LIST, so they join the aggregate below.
     #
@@ -3990,6 +4107,7 @@ def main():
             and ok_i29 and ok_i30 and ok_i31 and ok_i32 and ok_i32_severity
             and ok_i32_era and ok_i6_plan
             and ok_i33
+            and ok_i34
             and ok_exit_unchanged):
         sys.exit(0)
     sys.exit(1)

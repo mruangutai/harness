@@ -208,6 +208,25 @@ decisions:
       cost of finding out this late was mine: the worktree had gone 41 commits behind origin/main
       and I dispatched-checked before rebasing, so a whole cycle-1 panel would have reviewed a
       diff that no longer applied.
+  - id: D-17
+    dec: DEC-174
+    choice: >-
+      Every feature directory carries a plan.yaml, and a station-only record - a plan with
+      `tasks: []` and a top-level `status:` - is legal. `harness_yaml.load_plan` accepts an
+      EXPLICIT empty task list only when a station is declared; an empty list with no station
+      still raises, so the fail-open the original rejection was written against stays closed.
+      Twelve plan-less directories are backfilled with their ORIGINALLY RECORDED station,
+      lowercased, migrated faithfully rather than re-adjudicated. INV-34 enforces it.
+    because: >-
+      Cycle 2's C2-01 proved the hole by this feature falling into it: T-07 deleted
+      `status: Review` from BUG-1030, plan-less and non-terminal, and the record was
+      representable NOWHERE afterwards - feature.json refuses the key at exit 11 because the
+      schema declares none, and plan.yaml refused to exist without tasks. The operator chose
+      this over narrowing SC-08 or re-declaring the schema key, and it is the only option that
+      makes SC-08 literally TRUE rather than narrowed: with a plan.yaml everywhere, BUG-1071's
+      station has somewhere real to live, its feature.json key is deleted, and zero feature.json
+      in the tree carry status. Requiring a plan.yaml for bug fixes too is the larger blast
+      radius and the operator accepted it deliberately.
 tasks:
   - id: T-01
     title: Declare the six stations once, as an ordered lowercase list in harness.json
@@ -1728,3 +1747,25 @@ tasks:
       Strengthen the existing no-checkout-root case in the same pass - with a second candidate
       it passes while the candidate list is non-empty, which silently re-tests a condition
       another case already covers.
+  - id: T-19
+    title: Every feature has a plan.yaml, and a station-only record is legal
+    change_type: logic
+    execution_mode: main-session-direct
+    execution_reason: >-
+      DEC-174 - this changes the plan schema loader and adds a check-state invariant, both
+      enforcement layer, so it may not run through the enforcement path being changed.
+    depends_on: ['T-07']
+    status: done
+    files:
+      - .claude/skills/harness/bin/harness_yaml.py
+      - .claude/skills/harness/bin/check-state.sh
+      - .claude/skills/harness/bin/test-harness-yaml.py
+      - .claude/skills/harness/bin/test-check-state.py
+    verify: >-
+      test-harness-yaml.py and test-check-state.py both exit 0; a station-only plan loads and one
+      without a station still raises; INV-34 reports a plan-less feature and is silent on a
+      station-only plan; zero feature.json in the tree carry a status key.
+    intent: >-
+      Narrow the empty-tasks rejection instead of removing it, backfill the twelve plan-less
+      directories through plan-merge.py apply, delete BUG-1071's surviving feature.json.status,
+      and add INV-34 so the thirteenth plan-less feature cannot reintroduce the hole silently.

@@ -185,7 +185,21 @@ for feat in states:
 # fields REQUIRED_TASK_FIELDS names, so INV-4's "no change_type" case cannot reach here —
 # it is a load error now, caught above. What remains is what the loader does not police:
 # the approval block, and STATE.md pointing at a task the plan does not contain.
+# A STATION-ONLY RECORD IS OUT OF SCOPE FOR BOTH (FEAT-41 T-19). Neither question applies to it:
+# it declares a station and no tasks, so it HAS no goal to sign and no task ids for STATE.md to
+# name. Backfilling twelve of them made these two checks visible for directories that had been
+# skipped for as long as they carried no plan at all -- 31 lines, none of them a real finding.
+#
+# THIS IS SCOPING, NOT A FAIL-OPEN, and the alternative shows why: the only way to satisfy the
+# approval check here would be to write an `approval:` block into each of the twelve, which would
+# FABRICATE twelve signatures nobody gave. A check that can only be passed by inventing a record
+# is measuring the wrong thing.
+#
+# THE EXEMPTION CANNOT WIDEN SILENTLY: a plan WITH tasks is still held to both, asserted by
+# case (inv34.d), which goes red the moment this becomes the rule for every plan in the tree.
 for feat, doc in plan_docs.items():
+    if not doc["tasks"]:
+        continue
     _appr = doc.get("approval")
     if not isinstance(_appr, dict):
         bad.append(f"{fpath(feat, 'plan.yaml')} has no `approval:` block — cannot tell if the goal "
@@ -1099,6 +1113,27 @@ for rd in glob.glob(os.path.join(H, "*", "features", "*", "runs")):
                    f"invisible to run reconciliation and phase checks; instantiate it from "
                    f".agents/skills/harness/templates/feature.json (the playbook's first-cycle "
                    f"duty).")
+
+# --- INV-34 (FEAT-41 T-19): every feature directory carries a plan.yaml, because that is the
+# ONLY place a station may be recorded and a feature without one cannot record its own.
+#
+# OPERATOR-DIRECTED, after this feature proved the hole by falling into it. T-07 deleted
+# `status: Review` from BUG-1030 -- plan-less and non-terminal -- and it could not be put back:
+# feature.json refuses the key (undeclared, exit 11) and, before T-19, plan.yaml refused to exist
+# without tasks. The record was representable NOWHERE. Twelve directories were backfilled with
+# station-only plans; this is what stops the thirteenth reintroducing the hole in silence.
+#
+# A STATION-ONLY PLAN SATISFIES IT. The check is that the record EXISTS, not that it carries
+# tasks: a feature that predates the format, or a bug fix opened without a plan, honestly has no
+# tasks to record and inventing some to pass a schema would be fabrication.
+for fy in sorted(glob.glob(os.path.join(H, "*", "features", "*", "feature.json"))):
+    _fdir = os.path.dirname(fy)
+    if not os.path.isfile(os.path.join(_fdir, "plan.yaml")):
+        bad.append(f"INV-34: {os.path.basename(_fdir)} has no plan.yaml, so it has nowhere to "
+                   f"record its station — feature.json cannot hold one (the schema declares no "
+                   f"`status` key). Create a station-only record: "
+                   f"`schema: plan/1`, `feature:`, `status: <station>`, `tasks: []`, written "
+                   f"through plan-merge.py apply.")
 
 # --- INV-23 (DEC-150, mechanized — issue #132): the feature.json and STATE.md budgets,
 # swept from DISK. check-domain.sh enforces the same numbers on a WRITE payload, which is

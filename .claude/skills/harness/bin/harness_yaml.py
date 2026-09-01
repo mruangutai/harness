@@ -319,10 +319,27 @@ def load_plan(path):
         raise PlanSchemaError(path, "top level is not a mapping")
 
     tasks = doc.get("tasks")
-    if not isinstance(tasks, list) or not tasks:
+    if not isinstance(tasks, list):
         # A plan with no tasks is not a plan. Silence here would be the same
         # fail-open B-7 was: a checker reporting a clean tree it never looked at.
-        raise PlanSchemaError(path, "`tasks:` is missing, empty, or not a list")
+        raise PlanSchemaError(path, "`tasks:` is missing or not a list")
+    if not tasks and not str(doc.get("status") or "").strip():
+        # A STATION-ONLY RECORD IS LEGAL; AN ACCIDENTALLY EMPTY PLAN IS NOT (FEAT-41 T-19).
+        #
+        # The rule above is narrowed, NOT relaxed, and the reason it was written for is the
+        # reason the narrowing is safe. Under the one-record rule every feature needs a plan.yaml
+        # to hold its station, and thirteen directories have none -- they predate the format or
+        # were opened as bug fixes. For those the honest content is a station and no tasks;
+        # inventing tasks to satisfy a schema would be fabrication.
+        #
+        # An explicit `tasks: []` ALONGSIDE a top-level `status:` cannot be the silence B-7 was
+        # about: it carries a fact a checker can act on, and an accidentally empty plan has
+        # neither key. So the line is between a positive declaration and an absence, and the
+        # absence still raises here.
+        raise PlanSchemaError(
+            path,
+            "`tasks:` is empty and there is no top-level `status:` — a plan with neither "
+            "records nothing. A station-only record must declare the station it records.")
 
     seen = set()
     for i, t in enumerate(tasks):

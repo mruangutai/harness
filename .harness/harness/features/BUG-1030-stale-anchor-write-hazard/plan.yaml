@@ -1,0 +1,4 @@
+schema: plan/1
+feature: BUG-1030-stale-anchor-write-hazard
+status: review
+tasks: []

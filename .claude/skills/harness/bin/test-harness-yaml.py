@@ -679,6 +679,51 @@ def test_every_required_task_field_is_actually_required():
                     f"REQUIRED_TASK_FIELDS but nothing enforces it")
 
 
+def test_load_plan_accepts_a_station_only_record_and_only_with_a_station():
+    """FEAT-41 T-19, operator-directed after cycle 2's C2-01.
+
+    EVERY FEATURE MUST HAVE A plan.yaml, because the one-record rule needs somewhere to write.
+    Thirteen directories have none -- they predate the format or were opened as bug fixes -- and
+    for those the honest record is a station and no tasks. Inventing tasks to satisfy the schema
+    would be fabrication.
+
+    THE ORIGINAL REJECTION IS NOT BLANKET-RELAXED, and its reason is respected rather than
+    overruled. It read: "A plan with no tasks is not a plan. Silence here would be the same
+    fail-open B-7 was: a checker reporting a clean tree it never looked at." That risk is real for
+    an ACCIDENTALLY empty plan. It does not apply to an explicit `tasks: []` that also declares a
+    top-level `status:`, because such a file carries a checkable fact and cannot be the product of
+    silence -- an accidentally empty plan has neither key.
+
+    So the line is drawn between a positive declaration and an absence, and BOTH sides are
+    asserted here: with a station it loads, without one it still raises.
+    """
+    import harness_yaml as hy
+
+    station_only = "schema: plan/1\nfeature: BUG-99-x\nstatus: review\ntasks: []\n"
+    with tempfile.TemporaryDirectory() as tmp:
+        doc = hy.load_plan(_plan(tmp, station_only))
+        assert doc["tasks"] == [], doc["tasks"]
+        assert doc["status"] == "review", doc["status"]
+
+    # THE NEGATIVE HALF, and it is the one that keeps the original reason intact: an empty task
+    # list with NO station is still the fail-open the message warned about.
+    for label, text in (
+        ("empty tasks and no status", "schema: plan/1\nfeature: BUG-99-x\ntasks: []\n"),
+        ("empty tasks and a blank status",
+         "schema: plan/1\nfeature: BUG-99-x\nstatus: '   '\ntasks: []\n"),
+        ("tasks absent entirely", "schema: plan/1\nfeature: BUG-99-x\nstatus: review\n"),
+        ("tasks not a list",
+         "schema: plan/1\nfeature: BUG-99-x\nstatus: review\ntasks: nope\n"),
+    ):
+        with tempfile.TemporaryDirectory() as tmp:
+            try:
+                hy.load_plan(_plan(tmp, text))
+            except hy.PlanSchemaError:
+                pass
+            else:
+                raise AssertionError(f"ACCEPTED what it must reject: {label}")
+
+
 def test_load_plan_rejects_the_shapes_that_broke_PLAN_md():
     """The three failures issue #147 was filed about, now unrepresentable.
 
@@ -815,6 +860,7 @@ TESTS = [
     test_load_plan_backticked_path_is_not_silently_cleaned,
     test_load_plan_reports_line_and_column_on_malformed_yaml,
     test_the_shipped_template_and_the_SPEC_example_both_satisfy_load_plan,
+    test_load_plan_accepts_a_station_only_record_and_only_with_a_station,
 ]
 
 

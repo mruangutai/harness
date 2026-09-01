@@ -1,0 +1,4 @@
+schema: plan/1
+feature: BUG-1071-inv32-era-guard
+status: review
+tasks: []
