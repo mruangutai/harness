@@ -1140,12 +1140,19 @@ def shape_problems(rel, content, display=None, absolute_path=None):
     # destroyed the cycle-0 record. This guard is intentionally Write/PRE-only: Edit and
     # Bash carry no complete incoming payload to compare, and POST is already too late.
     if RE_RUN_DIGEST.match(rel) and absolute_path is not None:
+        prior = None
         try:
             with open(absolute_path, encoding="utf-8", errors="replace") as prior_file:
                 prior = prior_file.read()
+        except FileNotFoundError:
+            if not os.path.lexists(absolute_path):
+                prior = ""
         except OSError:
-            prior = ""
-        if prior.strip() and not content.startswith(prior):
+            pass
+        if prior is None:
+            out.append(_head("run digest already exists but cannot be read safely; "
+                             "refusing a Write that could destroy its recorded content."))
+        elif prior.strip() and not content.startswith(prior):
             out.append(_head("run digest already holds a recorded digest; this Write "
                              "would replace rather than extend it. Write this cycle's "
                              "digest into a run directory of its own."))

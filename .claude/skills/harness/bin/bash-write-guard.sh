@@ -782,6 +782,7 @@ for name, paths in findings:
             continue
 
         if verdict["outcome"] == "shared":
+            feature_checkout_guard(rel, ap)
             # Shared paths are owned by nobody and always serialized (DEC-85). Same
             # notice check-domain.sh prints on its own route.
             print(f"bash-write-guard: {agent} is writing SHARED path "
