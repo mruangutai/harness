@@ -276,7 +276,8 @@ def test_diff_and_determinism(repo):
         for order in (["src/zeta.py", "src/alpha.py"], ["src/alpha.py", "src/zeta.py"]):
             code_grade_cli._diff_paths = lambda root, base, head, order=order: supplied_orders.append(
                 tuple(order)) or order
-            records, ungraded = code_grade_cli._diff_report(left, head, "HEAD")
+            records, ungraded = code_grade_cli._diff_report(
+                left, head, "HEAD", code_grade_cli._load_test_kinds(left))
             failures += expect(code_grade_cli._text(records, ungraded), one.stdout,
                                f"supplied changed-path order {order!r}")
     finally:
@@ -306,6 +307,17 @@ def test_absent_new_path_grades_the_range(repo):
                        "the masked finding is reported")
     failures += expect("RESULT: FAIL" in result.stdout, True, "the range reports its verdict")
     failures += expect(result.returncode, 1, "a blocking finding still blocks")
+def test_rename_diff_paths(repo):
+    write(repo, "src/mover.py", "def mover():\n    pass\n")
+    base = commit(repo, "rename base")
+    git(repo, "mv", "src/mover.py", "src/moved.py")
+    head = commit(repo, "rename head")
+    raw_status = git(repo, "diff", "--name-status", "-z", "--find-renames", base, head).stdout
+    failures = expect(raw_status.startswith("R"), True,
+                      "git actually reports a rename status for the unchanged-content fixture")
+    paths = code_grade_cli._diff_paths(repo, base, head)
+    failures += expect(paths, ["src/moved.py"],
+                       "_diff_paths keeps only the renamed head-side path, never the old one")
     return failures
 
 
@@ -331,9 +343,18 @@ def test_diff_paths_complexity():
               for record in code_grade_cli.code_grade.grade_source(source, "code-grade.py")}
     failures = 0
     for qualname in ("_diff_paths", "_run_name_status_diff", "_name_status_entries",
-                     "_is_changed_python", "_record", "_status", "_severity", "_blocks"):
+                     "_is_changed_python", "_status", "_load_test_kinds"):
         failures += expect(qualname in records, True, f"{qualname} present in code-grade.py")
         failures += expect(records.get(qualname, 0) >= 4, True, f"{qualname} grades 4 or better")
+    for qualname in ("_record", "_severity", "_blocks", "_is_test", "_result", "_patterns"):
+        failures += expect(qualname in records, False,
+                           f"{qualname} moved out of code-grade.py, not duplicated")
+    seam_source = (SCRIPT.parent / "code_grade.py").read_text()
+    seam_records = {record.qualname: record.grade
+                    for record in code_grade_cli.code_grade.grade_source(seam_source, "code_grade.py")}
+    for qualname in ("classify", "_is_test_path", "_severity", "_blocks"):
+        failures += expect(qualname in seam_records, True, f"{qualname} present in code_grade.py")
+        failures += expect(seam_records.get(qualname, 0) >= 4, True, f"{qualname} grades 4 or better")
     return failures
 
 
@@ -345,6 +366,7 @@ def main():
         failures = test_paths(repo)
         failures += test_parse_and_usage(repo)
         failures += test_diff_and_determinism(repo)
+        failures += test_rename_diff_paths(repo)
         failures += test_control_paths(repo)
         failures += test_rejected_revisions(repo)
         failures += test_bars_follow_test_kinds(repo)

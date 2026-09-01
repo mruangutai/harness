@@ -2,9 +2,35 @@
   "feature_id": "BUG-1081-code-grade-enforcement",
   "branch": "feat/BUG-1081-code-grade-enforcement",
   "pr": null,
-  "status": "Plan",
+  "status": "Building",
   "review_sha": "none",
-  "cycles_used": 0,
+  "cycles_used": 1,
   "max_total_cycles": 10,
-  "runs": []
+  "runs": [
+    {
+      "id": "2026-09-01-01-eng",
+      "squad": "eng",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS"
+    }
+  ],
+  "github": {
+    "milestone": 36,
+    "parent": 1098,
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03",
+      "T-04"
+    ],
+    "issues": {
+      "T-01": 1099,
+      "T-02": 1100,
+      "T-03": 1101,
+      "T-04": 1102
+    },
+    "source_issues": [
+      1081
+    ]
+  }
 }

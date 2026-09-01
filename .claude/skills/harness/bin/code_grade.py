@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ast
+import fnmatch
 import hashlib
 import subprocess
 from dataclasses import dataclass
@@ -440,3 +441,80 @@ def gated_set(repo_root, base_ref, head_ref):
         gated.extend(file_gated)
         informational.extend(file_informational)
     return gated, informational
+
+
+class TestKindsError(ValueError):
+    """Raised when a caller's parsed ``test_kinds`` policy is missing or malformed.
+
+    Subclasses ValueError so an existing ``except ValueError -> parser.error`` catch site
+    (code-grade.py's CLI) keeps handling it unchanged.
+    """
+
+
+def _patterns(value):
+    return [part.strip() for part in value.split("|") if part.strip()]
+
+
+def _is_test_path(relative, test_kinds):
+    """Return True if `relative` matches an active test_kinds detect pattern, not excluded."""
+    if not isinstance(test_kinds, dict):
+        raise TestKindsError("test_kinds policy must be a mapping of kind name to config")
+    try:
+        return any(
+            any(fnmatch.fnmatch(relative, pattern) for pattern in _patterns(kind["detect"])) and
+            not any(fnmatch.fnmatch(relative, pattern)
+                    for pattern in _patterns(kind.get("exclude", "")))
+            for kind in test_kinds.values() if kind.get("status") == "active"
+        )
+    except (TypeError, KeyError, AttributeError) as error:
+        raise TestKindsError(f"malformed test_kinds policy: {error}") from error
+
+
+def _blocks(grade, bar):
+    return grade < bar and grade != 2
+
+
+def _severity(grade, bar):
+    if _blocks(grade, bar):
+        return "high"
+    return "med" if grade == 2 else None
+
+
+def _classify_record(grade, test_kinds):
+    bar = 3 if _is_test_path(grade.path, test_kinds) else 4
+    severity = _severity(grade.grade, bar)
+    record = {"path": grade.path, "line": grade.lineno, "qualname": grade.qualname,
+              "cyclomatic": grade.cyclomatic, "cognitive": grade.cognitive,
+              "cognitive_method": "Sonar-style approximation", "abc": grade.abc,
+              "grade": grade.grade, "driver": grade.driver, "bar": bar, "severity": severity}
+    record["result"] = "PASS" if grade.grade >= bar else "FAIL"
+    return record
+
+
+def classify(grades, test_kinds):
+    """Classify FunctionGrade records against an active test_kinds policy.
+
+    `grades` is any iterable of FunctionGrade (e.g. gated_set()'s gated list, or
+    grade_source()'s return). `test_kinds` is the caller's already-parsed active test_kinds
+    policy (harness.json's "test_kinds" mapping) -- this seam never reads configuration or
+    ambient cwd itself.
+
+    Returns (records, result): records is a list of dicts carrying every field
+    code-grade.py's CLI renders (path, line, qualname, cyclomatic, cognitive,
+    cognitive_method, abc, grade, driver, bar, severity, result); result is the
+    mixed-precedence summary over records -- "fail" if any record blocks (grade < bar and
+    grade != 2), else "grade_2" if any record graded exactly 2, else "pass". Never returns
+    "n_a": distinguishing "nothing changed" from "changed but nothing gated" is the
+    caller's job, not this seam's.
+
+    Raises TestKindsError if test_kinds is missing or malformed (and at least one record
+    needs it resolved).
+    """
+    records = [_classify_record(grade, test_kinds) for grade in grades]
+    if any(_blocks(record["grade"], record["bar"]) for record in records):
+        result = "fail"
+    elif any(record["grade"] == 2 for record in records):
+        result = "grade_2"
+    else:
+        result = "pass"
+    return records, result
