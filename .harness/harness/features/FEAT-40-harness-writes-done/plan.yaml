@@ -8,6 +8,16 @@ approval:
   # (DEC-120). Neither pm nor the orchestrator writes it, and check-domain.sh denies an
   # agent's write of this mapping. Any change to the task set resets this to pending.
   status: approved               # pending | approved
+  # BACKFILLED BY BUG-1071, NOT RECONSTRUCTED FROM MEMORY. This signature carried no
+  # `approved_by` and no `date`, which made it the one approved plan in the tree whose
+  # era INV-32 could not place — and therefore a permanent silent exemption from the
+  # invariant (panel finding F1). Both values are sourced from the commit that wrote
+  # `status: approved` onto this file: 2938a5c, 2026-08-25, "FEAT-40 the operator signs,
+  # and bounds execution at T-03 (#842)". The date is that commit's author date, not an
+  # estimate; recover it with
+  #   git log -S'status: approved' -- .harness/harness/features/FEAT-40-harness-writes-done/plan.yaml
+  approved_by: operator
+  date: 2026-08-25
 
 lanes:
   resolved_at: e69c2ae29897e66e0435fe955ae745aa4248bdb6

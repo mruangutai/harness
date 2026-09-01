@@ -199,14 +199,25 @@ for feat, doc in plan_docs.items():
     INV32_ERA_START = "2026-08-31"
     signed = str(approval.get("date", "")).strip()
     if not re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}", signed):
-        # AN UNPLACEABLE ERA WARNS, IT DOES NOT FAIL, and the warn names approval.date
-        # rather than the panel. The defect is an undated signature -- a different and
-        # smaller one -- and failing here would blame the panel for it, burying the real
-        # finding under a message about something else. FEAT-40-harness-writes-done is a
-        # live instance: approved, with no date at all.
-        warn.append(f"INV-32: {feat} is approved but approval.date is missing or "
-                    f"malformed ({signed!r}), so its panel era cannot be placed; "
-                    f"not graded. The undated signature is the defect to fix.")
+        # AN UNPLACEABLE ERA IS A VIOLATION (panel finding F1, closed at the operator's
+        # ruling). This branch WARNED in the first cut of this guard, and that was a
+        # fail-open on a fail-closed invariant: an approved plan with no `approval.date`
+        # was never graded, the exemption never expired, and nothing else in this file or
+        # in harness_yaml requires the key -- INV-3/4/5 check `approval.status` only. So
+        # omitting one line bought permanent silence from INV-32.
+        #
+        # It is safe to fail here because the tree has no undated approval left:
+        # FEAT-40-harness-writes-done was the only one, and BUG-1071 backfilled it from
+        # the commit that signed it (2938a5c, 2026-08-25) rather than from memory. Fixing
+        # the data BEFORE closing the hole is what keeps this from re-reddening the gate.
+        #
+        # The message still names approval.date rather than the panel, because that is
+        # the actual defect and the actual remedy -- a missing panel record is a
+        # different finding with a different fix.
+        bad.append(f"INV-32: {feat} is approved but approval.date is missing or "
+                   f"malformed ({signed!r}), so its panel era cannot be placed. "
+                   f"Add the signature date; recover it with "
+                   f"git log -S'status: approved' -- <this plan.yaml>.")
         continue
     if signed < INV32_ERA_START:
         warn.append(f"INV-32: {feat} was signed {signed}, before the adversarial panel "

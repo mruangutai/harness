@@ -3157,14 +3157,17 @@ def case_inv32_era_boundary_is_exact():
     return ok
 
 
-def case_inv32_undated_approval_warns():
-    """An approved plan with NO approval.date cannot be placed in an era. It warns and
-    names approval.date rather than failing the gate on the panel: the defect is the
-    undated signature, and FEAT-40-harness-writes-done is a live one."""
+def case_inv32_undated_approval_fails():
+    """An approved plan with NO approval.date cannot be placed in an era, and that is a
+    VIOLATION, not a note (panel finding F1). Warning here was a fail-open on a
+    fail-closed invariant: nothing else in check-state.sh or harness_yaml requires the
+    key, so omitting one line bought permanent silence from INV-32. The message must name
+    approval.date, not the panel, because that is the defect and the remedy."""
     _code, out, _ = _inv32_run(_inv32_plan(panel_marker=False, date=None))
-    ok = (not _inv32_violations(out)
-          and any("approval.date" in line for line in _inv32_notes(out)))
-    print(f"{'ok' if ok else 'FAIL'} - INV-32 undated approval warns, naming approval.date"
+    violations = _inv32_violations(out)
+    ok = (bool(violations)
+          and any("approval.date" in line for line in violations))
+    print(f"{'ok' if ok else 'FAIL'} - INV-32 undated approval is a violation naming approval.date"
           + ("" if ok else f"\n      {out}"))
     return ok
 
@@ -3283,7 +3286,7 @@ def main():
     ok_i32_era = all([
         case_inv32_pre_era_is_exempt(),
         case_inv32_era_boundary_is_exact(),
-        case_inv32_undated_approval_warns(),
+        case_inv32_undated_approval_fails(),
         case_inv32_era_guard_is_load_bearing(),
     ])
 
