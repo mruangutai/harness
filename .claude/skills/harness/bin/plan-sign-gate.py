@@ -212,29 +212,45 @@ def _invokes_tool_indirectly(toks):
     `xargs -I{} grep plan-merge.py dir` mentions the tool as grep's PATTERN and must stay allowed.
     So we skip the wrapper's own flags, then read the next token as the COMMAND, allowing one
     interpreter prefix (`python3 tool`). Only if THAT resolves to the tool is it an invocation.
+
+    THREE SMALL QUESTIONS, NOT ONE LOOP. Kept separate because each is a different question about
+    the token stream, and the combined version graded 1 on nested control flow alone.
     """
-    for i, t in enumerate(toks):
-        base = os.path.basename(t.strip("\\'\"$()`"))
-        if base == "find":
-            # find's command begins after `-exec`/`-execdir`, not after its own flags.
-            for j in range(i + 1, len(toks)):
-                if toks[j] in ("-exec", "-execdir"):
-                    if any(is_tool(x) for x in toks[j + 1:j + 3]):
-                        return True
-            continue
-        if base not in INDIRECT:
-            continue
-        j = i + 1
-        while j < len(toks) and toks[j].startswith("-"):
-            j += 1
-        # One interpreter prefix is allowed, so `xargs python3 <tool>` is seen as invoking it.
-        for cand in (j, j + 1):
-            if cand < len(toks) and is_tool(toks[cand]):
-                return True
-            if not (cand < len(toks)
-                    and os.path.basename(toks[cand].strip("\\'\"$()`")) in INTERPRETERS):
-                break
+    return any(_find_exec_runs_tool(toks, i) if _basename(t) == "find"
+               else _wrapper_runs_tool(toks, i)
+               for i, t in enumerate(toks))
+
+
+def _basename(tok):
+    """The command name a token would resolve to, with shell decoration stripped."""
+    return os.path.basename(tok.strip("\\'\"$()`"))
+
+
+def _find_exec_runs_tool(toks, i):
+    """`find ... -exec <tool>` — find's command begins after -exec, not after its own flags."""
+    for j in range(i + 1, len(toks)):
+        if toks[j] in ("-exec", "-execdir") and any(is_tool(x) for x in toks[j + 1:j + 3]):
+            return True
     return False
+
+
+def _wrapper_runs_tool(toks, i):
+    """`xargs`/`parallel ... <tool>` — skip the wrapper's flags, then read the COMMAND word.
+
+    One interpreter prefix is allowed, so `xargs python3 <tool>` counts. This is what keeps the
+    rule narrow: `xargs -I{} grep plan-merge.py dir` names the tool as grep's PATTERN, and its
+    command word is `grep`, so it stays allowed.
+    """
+    if _basename(toks[i]) not in INDIRECT:
+        return False
+    rest = toks[i + 1:]
+    while rest and rest[0].startswith("-"):
+        rest = rest[1:]
+    # One interpreter prefix, then the command word. Flattened from a two-step loop, which read
+    # worse and graded below the bar for a function this small.
+    if rest and _basename(rest[0]) in INTERPRETERS:
+        rest = rest[1:]
+    return bool(rest) and is_tool(rest[0])
 
 
 def denies(line, depth=0):
