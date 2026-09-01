@@ -3,3 +3,21 @@
 - 2026-08-31: FEAT-48 planning. The research note's fix direction (tempdir first on the child PYTHONPATH) cannot work for check-domain.sh: its heredoc runs sys.path.insert(0, _bin_dir) at line 125, so the real bin dir always wins. Re-derived the mechanism from the script before writing the task, and the fix became a private bin copy instead. A dispatch that hands me a fix direction is a hypothesis, not a spec.
 - 2026-08-31: prototyping the guard BEFORE specifying it changed three rule decisions and cut findings 47 -> 15 -> 10 with zero false positives. Specifying a static scanner without running it once would have shipped a rule someone deletes on its first false positive.
 - 2026-08-31: ran every verify block against the pre-change tree. Two of five would have passed unchanged if written the obvious way (bytes-only comparison for T-01, name-set comparison for T-02); polling during the run and adding mtime is what made them discriminating.
+- 2026-08-31: re-planning FEAT-48 after the plan panel. A verify clause I wrote to prove
+  attribution (`o.split(header)[-1].split("PASS "+n)[0]`) passed against a mutant that deleted the
+  block header entirely: a missing anchor made the slice the whole output. Only a mutation run
+  caught it; reading the block did not. Rewrote with `find` on both anchors plus an ordering check.
+- 2026-08-31: re-deriving the ten historical violation sites from the research note's reference
+  scanner gave 25, not 10 — my re-implementation of the per-scope taint model was broader than the
+  note's. The ten named sites were a subset, so I made the verify assert `want - sites == {}` rather
+  than set equality, and moved the false-positive burden onto the live half of the same block.
+- 2026-08-31: the plan-route checker's 50-line machine-field budget forced the T-04 split. An
+  independent reconstruction that does not trust the task's own new test file costs ~30 verify
+  lines, which one task cannot hold beside registration and measurement checks. Splitting the task
+  was cheaper than weakening the block.
+- 2026-08-31: FEAT-48 c1. A verify conjunct can be UNSATISFIABLE rather than merely weak: T-06 asserted `not [l for l in sh if l.strip().startswith("for s in")]` while the same intent mandated keeping the drift detector, whose line 64 is `for s in "${ALL_SCRIPTS[@]}"`. Nobody caught it in two panel cycles because reading a block confirms what it INTENDS; only substituting the post-change file and running the predicate shows it can never green. Substituting the file took one command.
+- 2026-08-31: FEAT-48 c1. Two readers attacked D-11 from opposite directions (too narrow / too broad) and both were right — the watched set was wrong on two axes at once. The synthesis was not a compromise between them but a change of the SET's definition (git-tracked-under-ROOT -> all-files-under-bin), which strictly widened one axis while narrowing the other. When two findings look contradictory, check whether they are about the same dimension before trading them off.
+- 2026-08-31: FEAT-48 c1. Prototyping a proposed check's mechanism in a tempdir before writing the plan text cost ~2 minutes and produced the __pycache__ exclusion, which nothing in either panel note anticipated and which would have made the shipped guard redden on every real run.
+- 2026-08-31: FEAT-48 cycle 2. A verify regex I authored for a DECISIONS.md section assumed the heading form `## DEC-NN Title` with a plain space; all 188 real headings use an em-dash. Generalised: when a verify block anchors on text a HUMAN will author, derive the anchor from the existing corpus (grep the real file and count) rather than from the sentence the intent tells them to write. Widening the regex beat documenting the required spelling, because the widened form cannot be broken by a later style pass.
+- 2026-08-31: exercising a regex as typed is not the same as exercising it as loaded. I re-extracted the pattern from yaml.safe_load(plan)[tasks] and ran it against a synthetic appended entry, which is the only form the doer ever sees.
+- 2026-08-31: bash-write-guard parses the two-character comparison operator (greater-than followed by equals) inside a python heredoc as a shell redirect and blocks the whole command. Rewrite the comparison as a negated less-than or the probe never runs.

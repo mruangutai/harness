@@ -101,14 +101,28 @@ decisions:
     dec: none
   - id: D-09
     choice: >
-      T-01 through T-03 ship AHEAD of FEAT-47. T-04 lands only after FEAT-47 has merged to
-      main and this branch has been rebased onto it.
+      FEAT-48 ships WHOLE and BEFORE FEAT-47. All six tasks are built, verified and merged
+      against today's array-driven run-unit-tests.sh. No task waits on FEAT-47, and no file
+      this feature writes is placed at a path FEAT-47 has not created yet.
     because: >
       the injection hazard is live today and corrupts every parallel measurement including
-      FEAT-47's own, and it is layout-independent: an edit before a git mv is carried forward
-      by the move, while the reverse order plans against paths that do not exist yet. The
-      worker pool is the one piece that genuinely builds on FEAT-47's directory-driven
-      discovery, so writing it twice is the only alternative.
+      FEAT-47's own, so the isolation half cannot wait. The pool half does not depend on
+      FEAT-47 either, which is what the earlier draft of this decision had wrong: D-05 puts
+      scheduling in run_pool.py, invoked once by bash which keeps kind selection, so the pool
+      receives a list of script paths and never sees how they were discovered. It replaces
+      the serial for loop at run-unit-tests.sh:147-157 with a single invocation line, which is
+      an ordinary edit for FEAT-47's later rewrite of that script to carry forward. Whether it
+      does carry it forward is FEAT-47's plan to state; nothing in FEAT-48 asserts that and
+      nothing depends on it, because FEAT-48 merges first, against today's runner. Nothing is
+      written twice and no cross-feature interleaving remains, so the ordering needs no
+      mechanical enforcement inside this plan.
+      THE CENSUS CONTRACT, which FEAT-47 depends on: this feature adds exactly TWO new
+      test-*.py under .claude/skills/harness/bin — test-suite-independence.py (unit, T-03)
+      and test-run-pool.py (integration, T-04) — plus two non-test helpers that stay in bin
+      beside the runner, isolated_bin.py (T-01) and run_pool.py (T-04). FEAT-47's enumerated
+      move set and its count assertions must absorb both test files; that reconciliation is
+      FEAT-47's plan to make, and this list is the contract it is made against. A later
+      change to this list is a cross-feature change, not a FEAT-48 detail.
     dec: none
   - id: D-10
     choice: >
@@ -119,6 +133,61 @@ decisions:
       they are the same hazard class as the injection site and the invariant cannot ship green
       beside them; an allowlist entry for the first three violations is an invariant that
       never bound anything.
+    dec: none
+  - id: D-11
+    choice: >
+      run_pool.py enforces REQ-01 at RUNTIME on every run, not only at fix time, over ONE
+      watched directory: given --mutation-check DIR it records (size, mtime_ns) for every file
+      at or below DIR before the first child starts and again after the last child exits —
+      tracked and UNTRACKED alike, by walking DIR rather than asking git, and excluding
+      __pycache__ directories and *.pyc — then fails the run naming, relative to DIR, every
+      path that changed, vanished or appeared. run-unit-tests.sh passes
+      --mutation-check "$BIN_DIR", the shared code directory, and never the repository root;
+      T-06's verify asserts that exact argument and T-04's asserts the check's behaviour.
+    because: >
+      the static invariant T-03 adds checks the SOURCE of the tests, and this feature's own
+      research note records the two classes it cannot see: a mutation performed through a
+      subprocess (notes/research-FEAT-48-independence-invariant.md, Open) and one wrapped in a
+      helper, since taint does not cross a call boundary. A before/after comparison of on-disk
+      state is blind to neither, because it grades the effect and not the syntax.
+      WHAT IT COVERS AND WHAT IT DOES NOT, stated because an earlier draft of this entry
+      claimed coverage "against every vector including the two the scan is blind to", which is
+      false of any bounded watched set and would stop the next auditor looking. Inside DIR it
+      is vector-agnostic, and it sees a NEW UNTRACKED file appear — the vector T-02's three
+      sites actually used (.mutant-*.sh and .mutant-*.py materialising in live bin/) and the
+      one a git ls-files watched set cannot see at all. Outside DIR it sees NOTHING: a test
+      that writes .harness/harness.json or a workflow file is caught only by T-03's static
+      scan, with that scan's two blind spots intact. THERE IS A THIRD UNCOVERED CLASS, named
+      here so the next auditor does not read the two named blind spots as the whole gap:
+      T-03's taint model seeds only the literal __file__, so a write to a path built from a
+      relative literal or joined onto os.getcwd() carries no tainted name and the static scan
+      reports nothing, while a target outside DIR is invisible to this check too. Such a write
+      is caught by NEITHER half. The two checks together are not complete and no criterion
+      here claims they are.
+      WHY DIR IS bin/ AND NOT THE ROOT. The root-wide set the first draft specified is
+      unusable in this factory, and not marginally: agents write .harness/harness/features/**
+      — plans, notes, runs, observations — continuously while suites run, and run-unit-tests.sh
+      is invoked BY those agents on the same machine. Operator measurement, 2026-08-31: 1,904
+      tracked files under that tree modified in three hours across the live worktrees. A
+      root-wide snapshot therefore reddens a passing suite whenever a sibling agent writes a
+      note — a new flake class introduced by the fix for a flake. bin/ is the shared code every
+      test file imports from, both observed hazard sites are in it, and no agent writes it
+      during a run. __pycache__ is excluded because a child importing a bin module writes
+      bin/__pycache__/*.pyc by itself on every run; that directory exists in the tree today, so
+      without the exclusion the check reddens on its own side effect.
+      THE RESIDUAL TRADE, accepted: an agent or a human who edits a file in bin/ DURING a run
+      trips it. That is rarer than the features-tree case by construction, and it is not a
+      false alarm in the same sense — the suite's own code changed under it, so the verdict is
+      untrustworthy either way — but it is a real red, so the failure line says that a file
+      edited during the run looks identical from here, and names the path. T-06 records the
+      tree condition its ten SC-05 runs were taken under, because that is the real operating
+      condition rather than the quiet tree the first draft assumed.
+      GIT IS NOT USED AT ALL. Dropping git ls-files is what makes untracked creation visible
+      and what lets test-run-pool.py's fixtures run outside a checkout; the refusal it replaces
+      — git absent or ls-files failing — becomes DIR absent or holding no files, exit 2, so a
+      check that measured nothing can never report clean. Cost is bounded above by the
+      root-wide measurement it replaces, 2 x 14ms over 2,069 paths at ea6f51f against a ~47s
+      run; bin/ holds 114 files.
     dec: none
 
 tasks:
@@ -327,8 +396,15 @@ tasks:
       python3 - <<'PY'
       import os, subprocess, sys, tempfile
       guard = ".claude/skills/harness/bin/test-suite-independence.py"
+      top = subprocess.run(["git", "rev-parse", "--show-toplevel"], capture_output=True,
+                           text=True, check=True).stdout.strip()
       live = subprocess.run([sys.executable, guard], capture_output=True, text=True)
-      print((live.stdout + live.stderr)[-800:])
+      lout = live.stdout + live.stderr
+      print(lout[-800:])
+      root = [l.split(None, 1)[1].strip() for l in lout.splitlines() if l.startswith("root ")]
+      disc = [int(l.split()[1]) for l in lout.splitlines() if l.startswith("discovered ")]
+      selfcmp = [l for l in open(guard).read().splitlines()
+                 if l.count("resolve_scan_root") > 1]
       d = tempfile.mkdtemp()
       names = ["test-check-domain.py", "test-check-state.py", "test-feature-worktree.py"]
       for n in names:
@@ -337,12 +413,21 @@ tasks:
           open(os.path.join(d, n), "wb").write(blob)
       old = subprocess.run([sys.executable, guard, "--scan-dir", d],
                            capture_output=True, text=True)
-      lines = [l for l in (old.stdout + old.stderr).splitlines() if "VIOLATION" in l]
-      named = {n for n in names if any(n in l for l in lines)}
-      inject = [l for l in lines if "test-check-domain.py" in l and ":1482" in l]
-      print("historical", len(lines), "named", sorted(named), "injection", inject[:1])
-      sys.exit(0 if (live.returncode == 0 and old.returncode != 0 and len(lines) >= 8
-                     and named == set(names) and len(inject) == 1) else 1)
+      sites = set()
+      for l in (old.stdout + old.stderr).splitlines():
+          if l.startswith("VIOLATION "):
+              p, _, n = l.split()[1].rpartition(":")
+              sites.add(os.path.basename(p) + ":" + n)
+      want = {"test-check-domain.py:1482", "test-check-domain.py:1489",
+              "test-check-state.py:2112", "test-check-state.py:2114",
+              "test-check-state.py:2133", "test-check-state.py:2248",
+              "test-check-state.py:2250", "test-check-state.py:2269",
+              "test-feature-worktree.py:584", "test-feature-worktree.py:605"}
+      print("root", root, "top", top, "discovered", disc, "found", len(sites), "selfcmp",
+            selfcmp, "missing", sorted(want - sites), "extra", sorted(sites - want))
+      sys.exit(0 if (live.returncode == 0 and root == [top] and len(disc) == 1
+                     and disc[0] >= 50 and old.returncode != 0 and not selfcmp
+                     and not (want - sites)) else 1)
       PY
     intent: |
       Add ONE new test file that is also the invariant: a static scan asserting no test in this
@@ -352,12 +437,45 @@ tasks:
       FILE: .claude/skills/harness/bin/test-suite-independence.py, executable, no third-party
       import, no subprocess — it belongs to the unit kind and must stay there.
 
-      DISCOVERY. os.walk from the repository root, which is four levels up from the file's own
-      directory at the time of writing; skip .git, .claude/worktrees, node_modules, .venv and
-      any directory beginning with a dot other than the root itself. Collect every file
-      matching test-*.py or test_*.py. Discovery is a walk, not a directory list and not the
-      runner's arrays, because FEAT-47 moves every one of these files to tests/unit,
-      tests/integration and tests/manual and the invariant must survive that move untouched.
+      DISCOVERY, AND THE ROOT IS RESOLVED, NEVER COUNTED. Do NOT spell a four-levels-up
+      climb. Import harness_boundary from this file's own directory and call
+      root_above(os.path.dirname(os.path.realpath(__file__))). If it returns None, print one
+      line naming the directory it started from and exit 2 — a scan that cannot find its root
+      must refuse, never scan something else. root_above and not the other two resolvers, for
+      two reasons that are both about this file: root_from_script (harness_boundary.py:44-50)
+      is the pure four-level arithmetic with zero filesystem access, which is exactly what
+      breaks silently when FEAT-47 moves this file two levels deep instead of four;
+      resolve_root (:53-79) reads HARNESS_PROJECT_DIR, and a stray override in a developer's
+      environment would point the invariant at a different checkout than the one under test.
+      root_above (:84-100) is a pure MARKER walk with no depth arithmetic and no environment
+      read, so this file may be moved anywhere inside the checkout and still resolve the same
+      root — which is what makes the ROOT RESOLUTION require no edit when FEAT-47 moves the
+      file. That is the whole of the claim: the harness_boundary import in this file is
+      anchored on its own directory, so the move does require an edit to that import, and
+      FEAT-48 asserts nothing about whether FEAT-47's plan makes it.
+
+      Then os.walk from that root, pruning EXACTLY FOUR directories and no others: .git,
+      .claude/worktrees, node_modules and .venv. There is NO general dot-directory rule, and
+      this is the load-bearing part of the sentence: .claude begins with a dot and must be
+      WALKED, because every test file in this repository lives under
+      .claude/skills/harness/bin, so a walk that pruned all dot-directories would discover
+      zero files and the invariant would scan nothing. .claude/worktrees is named as an
+      exclusion precisely because .claude itself is not one. Match .git, node_modules and
+      .venv by directory name at any depth; match .claude/worktrees as that path relative to
+      the resolved root. Measured against this rule on 2026-08-31: 58 files in the main
+      checkout, 56 in the FEAT-48 worktree, which is the margin behind the verify block's
+      floor of 50. Collect every file matching test-*.py or test_*.py. A walk, not a directory
+      list and not the runner's arrays, because FEAT-47 moves every one of these files to
+      tests/unit, tests/integration and tests/manual and the invariant must survive that move
+      untouched.
+
+      TWO LINES THE RUN MUST PRINT, both on stdout, both parsed by the verify block above and
+      therefore part of the contract rather than debug output:
+        root <the absolute resolved root>
+        discovered <n>
+      They are what makes a scan that walked the wrong tree, or walked nothing, distinguishable
+      from a clean run. Print them in both modes.
+
       Accept an optional --scan-dir DIR argument that scans exactly that directory instead;
       the verify block and the historical red proof both use it.
 
@@ -403,8 +521,26 @@ tasks:
           shutil.copytree(BIN_DIR, dest) where dest is a tempdir — a false positive on any of
           these makes the invariant unlivable and someone will delete it;
         - the live tree itself: zero findings, asserted as a case rather than only as the exit
-          code, so a scan that discovered no files at all cannot pass. Assert the discovered
-          file count is at least 50 in the same case.
+          code, so a scan that discovered no files at all cannot pass. In the same case assert
+          the discovered file count is at least 50, AND assert the resolved root against an
+          expected root RECOMPUTED INSIDE THE CASE: an inline loop, written in the case body,
+          walking up from os.path.dirname(os.path.realpath(__file__)) to the first directory
+          containing os.path.join(".harness", "team-config.yaml"). Do NOT write
+          resolve_scan_root(x) == resolve_scan_root(x), and do NOT build the expectation by
+          calling harness_boundary: a comparison of the resolver's output to itself, or to the
+          same function the resolver calls, asserts nothing and stays green for any resolver
+          including a depth-counting one. The inline walk is a SECOND, independent computation
+          of the same answer, so a resolver that lands one level above or below the true root
+          reddens this case. The verify block above rejects any single line mentioning
+          resolve_scan_root twice, which catches the literal self-comparison shape and nothing
+          subtler — which is why the recomputation is mandated here rather than only checked
+          there;
+        - the root refusal, in-process because this file forks nothing: give the resolution a
+          named function, resolve_scan_root(start), and assert it returns None for a tempdir
+          carrying no .harness/team-config.yaml, and that main() called against that start
+          raises SystemExit with code 2 and names the directory it started from. This is the
+          case that reddens if someone later reintroduces a depth-counting root, because
+          arithmetic cannot refuse.
 
       REGISTRATION. Add "test-suite-independence.py" to UNIT_SCRIPTS in run-unit-tests.sh.
       Do NOT add it to INTEGRATION_SCRIPTS and do NOT add it to
@@ -413,63 +549,85 @@ tasks:
       .claude/skills/harness/bin/test-*.py. Leaving it out of both arrays fails the drift
       detector with MISCONFIGURED, at exit 2.
 
-      Write the file and run it BEFORE T-01 and T-02 are on this branch if you can — against
-      ea6f51f it must report 10 findings across 3 files. If T-01 and T-02 are already landed,
-      the verify block's git show path is the same proof and is the one that ships.
+      THE HISTORICAL TARGET IS TEN NAMED SITES, NOT A COUNT. Against ea6f51f the rule set
+      above finds test-check-domain.py:1482 and :1489, test-check-state.py:2112, :2114, :2133,
+      :2248, :2250 and :2269, and test-feature-worktree.py:584 and :605
+      (notes/research-FEAT-48-independence-invariant.md:7-27). The verify block asserts each
+      of those ten individually rather than a threshold, because a threshold of eight is
+      satisfied by a scanner that quietly lost two of them. It does NOT forbid additional
+      findings on those three files: the false-positive gate is the LIVE half of the same
+      block — after T-01 and T-02 a scanner that over-reports cannot reach zero on the live
+      tree, so over-reporting reddens there rather than being tolerated here. Write the file
+      and run it BEFORE T-01 and T-02 are on this branch if you can; if they are already
+      landed, the verify block's git show path is the same proof and is the one that ships.
 
   - id: T-04
-    title: Put a worker pool behind run-unit-tests.sh with per-file attributable output
-    traces: [REQ-03, REQ-04, REQ-05, REQ-06, REQ-07]
+    title: Build run_pool.py and its test, registered in the same commit that creates them
+    traces: [REQ-01, REQ-03, REQ-04, REQ-05, REQ-07]
     change_type: cross_module
     execution_mode: main-session-direct
     execution_reason: >
-      DEC-174 carve-out. run-unit-tests.sh is the gate script the tests workflow runs as a
-      required step and CODEOWNERS pins, and this task also writes .harness/harness.json,
-      which no squad may take.
+      DEC-174 carve-out. run_pool.py becomes the execution half of run-unit-tests.sh, the gate
+      script the tests workflow runs as a required step and CODEOWNERS pins, and
+      test-run-pool.py is that gate's test.
     depends_on: [T-03]
     status: pending
     files:
       - .claude/skills/harness/bin/run_pool.py
-      - .claude/skills/harness/bin/run-unit-tests.sh
       - .claude/skills/harness/bin/test-run-pool.py
+      - .claude/skills/harness/bin/run-unit-tests.sh
       - .harness/harness.json
     verify: |
       python3 - <<'PY'
-      import subprocess, sys
-      b = ".claude/skills/harness/bin/"
-      pool = subprocess.run([sys.executable, b + "test-run-pool.py"],
-                            capture_output=True, text=True)
-      print((pool.stdout + pool.stderr)[-1200:])
-      ck = subprocess.run(["bash", b + "run-unit-tests.sh", "--check-kinds"],
-                          capture_output=True, text=True)
-      ran = [l for l in ck.stdout.splitlines() if l.startswith(("PASS", "FAIL"))]
-      bad = subprocess.run(["bash", b + "run-unit-tests.sh", "--kind", "nope"],
-                           capture_output=True, text=True)
-      print("pool", pool.returncode, "check_kinds", ck.returncode, "ran_any", ran,
-            "unknown_kind", bad.returncode)
-      sys.exit(0 if (pool.returncode == 0 and ck.returncode == 0 and not ran
-                     and bad.returncode == 2) else 1)
+      import os, subprocess, sys, tempfile
+      B = os.path.abspath(".claude/skills/harness/bin")
+      d, w = tempfile.mkdtemp(), tempfile.mkdtemp(); os.chdir(d)
+      open(os.path.join(w, "keep.txt"), "w").write("x\n")
+      ok = ["t0.py", "t1.py", "t2.py"]
+      for i, n in enumerate(ok): open(n, "w").write("print('TOK%d')" % i)
+      open("bad.py", "w").write("import sys; print('TOKX'); sys.exit(3)")
+      open("edit.py", "w").write("open(%r,'a').write('y')" % os.path.join(w, "keep.txt"))
+      open("new.py", "w").write("open(%r,'w').write('z')" % os.path.join(w, ".mutant-x.sh"))
+      def sh(*a, **k): return subprocess.run(list(a), capture_output=True, text=True, **k)
+      def run(*a, **k): return sh(sys.executable, B + "/run_pool.py", *a, **k)
+      def mut(x): return [l for l in x.stdout.splitlines() if l.startswith("MUTATED ")]
+      r = run("--workers", "3", "--", *ok, "bad.py"); o = r.stdout
+      att = all(0 <= o.find("----- " + n) < o.find("TOK%d" % i) < o.find("PASS " + n)
+                for i, n in enumerate(ok))
+      fails = [l for l in o.splitlines() if l.startswith("FAIL ")]
+      w3 = run("--", *ok, env={**os.environ, "HARNESS_TEST_WORKERS": "3"})
+      cl, ed, nw = [run("--mutation-check", w, "--", *ok, *x)
+                    for x in ([], ["edit.py"], ["new.py"])]
+      emp = run("--mutation-check", tempfile.mkdtemp(), "--", *ok)
+      ck = sh("bash", B + "/run-unit-tests.sh", "--check-kinds")
+      suite = sh(sys.executable, B + "/test-run-pool.py")
+      print("exit", r.returncode, "att", att, "fails", fails, "clean", cl.returncode, mut(cl),
+            "edit", ed.returncode, mut(ed), "new", nw.returncode, mut(nw), "empty",
+            emp.returncode, "ck", ck.returncode, "suite", suite.returncode, suite.stdout[-300:])
+      sys.exit(0 if (r.returncode == 1 and att and fails == ["FAIL bad.py"]
+                     and w3.returncode == 0 and "pool: 3 workers, 3 files" in w3.stdout
+                     and cl.returncode == 0 and not mut(cl)
+                     and ed.returncode == 1 and mut(ed) == ["MUTATED keep.txt"]
+                     and nw.returncode == 1 and mut(nw) == ["MUTATED .mutant-x.sh"]
+                     and emp.returncode == 2 and ck.returncode == 0
+                     and suite.returncode == 0) else 1)
       PY
     intent: |
-      SEQUENCING, READ FIRST (D-09). This task lands only after FEAT-47 has merged to main and
-      this branch has been rebased onto it, because it builds on that feature's
-      directory-driven discovery. Resolve the actual paths with git ls-files before editing:
-      if FEAT-47 has landed, the test files live under tests/ and discovery is directory-driven,
-      so registration means placing test-run-pool.py in the integration directory and the
-      harness.json edit may be unnecessary. If run-unit-tests.sh still carries UNIT_SCRIPTS and
-      INTEGRATION_SCRIPTS, add "test-run-pool.py" to INTEGRATION_SCRIPTS AND add the explicit
-      path .claude/skills/harness/bin/test-run-pool.py to test_kinds.integration.detect in
-      .harness/harness.json — the KIND CROSS-CHECK exits 2 if an INTEGRATION_SCRIPTS name is
-      absent from that string, and the drift detector exits 2 if the file is in neither array.
-      If the runner's shape has changed in a way neither branch describes, return BLOCKED for
-      re-planning rather than guessing.
+      SEQUENCING (D-09): this task builds against TODAY's tree. run-unit-tests.sh still carries
+      UNIT_SCRIPTS and INTEGRATION_SCRIPTS, and both new files go in
+      .claude/skills/harness/bin/ beside the runner. Nothing here waits on FEAT-47: the pool
+      receives a list of script paths on argv and never sees how they were discovered, so
+      FEAT-47's later directory-driven rewrite carries the single invocation line forward
+      without touching run_pool.py. Do not branch on FEAT-47's layout, and do not resolve
+      paths at build time; if run-unit-tests.sh does not look like the file this task
+      describes, return BLOCKED rather than guessing.
 
       WHAT TO BUILD.
 
       1. .claude/skills/harness/bin/run_pool.py — the scheduler, and the only new logic.
 
-         CLI: run_pool.py [--workers N] -- <script path> [<script path> ...]
-         Every path is run as [sys.executable, path] from the repository root, in its own
+         CLI: run_pool.py [--workers N] [--mutation-check DIR] -- <path> [<path> ...]
+         Every path is run as [sys.executable, path] from the current directory, in its own
          subprocess, exactly as the serial loop does today.
 
          WORKER COUNT (D-06): --workers when given; else HARNESS_TEST_WORKERS when it parses as
@@ -497,23 +655,36 @@ tasks:
            pool: <n> workers, <k> files, <total>s wall
            slowest: <basename> <secs>s, <basename> <secs>s, <basename> <secs>s
          The three slowest, so the floor stays visible to whoever next wonders why more workers
-         did not help.
+         did not help. The pool: line's spelling is asserted verbatim by this task's verify
+         block and by T-06's, so it is a contract, not a log line.
 
-         EXIT: 1 if any file exited non-zero, 0 otherwise, 2 for a usage or configuration
-         error. Never let one child's crash abandon the pool: every queued file runs, and the
-         verdict is the aggregate.
+         THE RUNTIME MUTATION CHECK (D-11, REQ-01). With --mutation-check DIR: before the
+         first child starts, os.walk DIR and record (size, st_mtime_ns) for every file at or
+         below it, skipping __pycache__ directories and any name ending .pyc. After the last
+         child exits, walk it again. For every path whose tuple differs — including one that
+         vanished and one that APPEARED, which is the vector the static scan and a git-based
+         watched set both miss — print
+           MUTATED <path relative to DIR>
+         on STDOUT, one per path, because the verify blocks parse stdout as they do for PASS and
+         FAIL. Then print, once, one line saying that a file under the watched directory changed
+         while the suite ran, that this violates REQ-01, and that a file edited by hand or by
+         another agent DURING the run looks identical from here. Any MUTATED line makes the run
+         exit 1 even when every file passed.
+         DO NOT USE git ls-files, and do not ask git anything: the untracked-creation vector is
+         invisible to it (D-11), and a git-free walk is what lets test-run-pool.py's fixtures
+         point the check at a bare tempdir. The refusal that replaces "git failed" is a walk
+         that measured nothing: if DIR does not exist, is not a directory, or the pre-run walk
+         finds zero files, exit 2 and say so — never report clean, which would be a check that
+         passed because it looked at nothing. Without the flag there is no snapshot at all;
+         T-06's verify asserts run-unit-tests.sh always passes it, and passes "$BIN_DIR"
+         specifically, so neither the off state nor a root-wide watched set is reachable from
+         CI.
 
-      2. run-unit-tests.sh — replace the serial for loop, and NOTHING else. The root
-         resolution, BIN_DIR, both script arrays, the --kind parsing, the --check-kinds mode,
-         the drift detector and the KIND CROSS-CHECK all stay exactly as they are, including
-         their exit-2 paths, because REQ-06 is a contract three callers depend on. The loop
-         becomes one call:
-           python3 "$BIN_DIR/run_pool.py" -- "${SCRIPTS[@]/#/$BIN_DIR/}"
-         and the script exits with the pool's status. Keep the comment block explaining the
-         unit/integration split; add one short one saying the pool owns scheduling and bash
-         owns selection, and why (D-05).
+         EXIT: 1 if any file exited non-zero or any watched path was mutated, 0 otherwise, 2
+         for a usage or configuration error. Never let one child's crash abandon the pool:
+         every queued file runs, and the verdict is the aggregate.
 
-      3. .claude/skills/harness/bin/test-run-pool.py — INTEGRATION, because every case forks
+      2. .claude/skills/harness/bin/test-run-pool.py — INTEGRATION, because every case forks
          the pool. Fixtures are shell or python scripts written under tempfile.mkdtemp() and
          removed in a finally; nothing is written into the live tree, and the invariant from
          T-03 will hold you to that. Cases, each asserting on OUTPUT and not merely on an exit
@@ -535,31 +706,156 @@ tasks:
               set of verdicts is identical to the same set run with --workers 1.
            f. the cap: with HARNESS_TEST_WORKERS unset, assert the reported count is at least 2
               and at most 8. Do not assert an exact number — it is machine-dependent by design.
+           g. the mutation check, all four legs in one case (SC-10): a watched directory in a
+              tempdir — a plain directory, NOT a git repository, which is the point — holding
+              one file. Run the pool with --mutation-check over passing fixtures and assert
+              exit 0 with no MUTATED line. Then run it again with one extra fixture that
+              appends to that file, and assert exit 1 with exactly one MUTATED line naming the
+              path relative to the watched directory. Then a leg for the SUBPROCESS vector the
+              static scan is blind to: the mutating fixture performs its write by shelling out
+              rather than by calling open, and the check must still catch it. Then a leg for
+              the UNTRACKED-CREATION vector, which is what T-02's three sites actually did: a
+              fixture that CREATES a new file under the watched directory — name it
+              .mutant-x.sh, so the case reads as the historical hazard — and assert exit 1 with
+              exactly one MUTATED line naming it. Finally assert that --mutation-check pointed
+              at an empty directory, and at a path that does not exist, exits 2 rather than
+              reporting clean. Include one file under a __pycache__ subdirectory of the watched
+              directory and rewrite it during the run: it must NOT be reported, or the check
+              reddens on the interpreter's own byte-code caching every real run.
+
+      3. REGISTRATION, IN THIS TASK AND NOT THE NEXT ONE. Add "test-run-pool.py" to
+         INTEGRATION_SCRIPTS in run-unit-tests.sh AND add the explicit path
+         .claude/skills/harness/bin/test-run-pool.py to test_kinds.integration.detect in
+         .harness/harness.json. Change nothing else in either file — the serial loop is T-06's.
+         WHY HERE: run-unit-tests.sh's drift detector (run-unit-tests.sh:60-74) exits 2
+         MISCONFIGURED for any test-*.py under bin/ that is in neither script array, and the
+         KIND CROSS-CHECK exits 2 if an INTEGRATION_SCRIPTS name is absent from that detect
+         string. CI runs on every push to an open PR (.github/workflows/tests.yml declares a
+         bare pull_request:, which includes synchronize), so a commit that creates the file
+         and leaves registration to T-06 is a red build on this branch, not a theoretical
+         window. This task's verify asserts --check-kinds exits 0, which is what proves both
+         edits agree. T-03 already follows this pattern for its own file.
 
       Test-first: write test-run-pool.py before run_pool.py, run it, and record the import or
       usage failure in the receipt.
 
-      ONE NOTE ON THE VERIFY BLOCK. Its --check-kinds and unknown-kind clauses are REGRESSION
-      clauses: measured 2026-08-31 at ea6f51f they already pass, exit 0 with no PASS or FAIL
-      line and exit 2 respectively, so they prove nothing about the pool and everything about
-      REQ-06. The discriminating half is test-run-pool.py, which does not exist until you write
-      it.
+      ON THIS TASK'S VERIFY BLOCK, and why it duplicates the suite it also runs. It does not
+      trust test-run-pool.py's exit code for the properties REQ-03..REQ-05 and REQ-01 rest on:
+      it builds its own fixtures, drives run_pool.py directly, and independently reconstructs
+      attribution (each token inside its own block), failure propagation (exactly one FAIL line
+      naming the failing file), the reported worker count, both mutation vectors (an edit to an
+      existing watched file and a NEW file appearing under the watched directory, each asserted
+      as exactly one MUTATED line naming the relative path), the empty-directory refusal, and
+      that --check-kinds agrees after this task's own registration edits. If the newly authored
+      suite has a defect that reports success, the reconstruction still fails. That is the same
+      discipline T-01, T-02 and T-03's blocks use.
 
-      FINALLY, THE THREE MEASUREMENTS NO RUNNER CAN TAKE. SC-02, SC-05 and SC-06 have no gate
-      behind them, so they are discharged here or by nobody. Record all three, verbatim output
-      and commands, in
-      .harness/harness/features/FEAT-48-parallel-safe-suite/notes/measurements-parallel-suite.md:
-        - SC-02: the poll from notes/research-parallel-safety.md re-run over a full --kind all
-          run, expecting zero broken reads of the live feature_schema.py; AND the same poll run
-          against git show ea6f51f of test-check-domain.py, which MUST see more than zero. A
-          control that sees nothing makes the zero inconclusive, not passing — say so in the
-          note if that is what happens.
-        - SC-05: ten consecutive --kind all runs at the runner's own worker count, each exit
-          code and wall time listed. State plainly that ten clean runs do not prove the hazard
-          is gone (this flake produced 6 consecutive clean 8-worker runs while present) and
-          that SC-01 and SC-03 carry that claim.
-        - SC-06: the runner's own pool: and slowest: lines from one --kind all run on the
-          12-core machine, and the serial 247s baseline it is being compared against.
+  - id: T-06
+    title: Wire the pool into run-unit-tests.sh and record the measurements no runner can take
+    traces: [REQ-03, REQ-05, REQ-06]
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_reason: >
+      DEC-174 carve-out. run-unit-tests.sh is the gate script the tests workflow runs as a
+      required step and CODEOWNERS pins, and this task also writes the measurements note the
+      three inspection criteria rest on.
+    depends_on: [T-04]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/run-unit-tests.sh
+      - .harness/harness/features/FEAT-48-parallel-safe-suite/notes/measurements-parallel-suite.md
+    verify: |
+      python3 - <<'PY'
+      import os, re, subprocess, sys
+      b = ".claude/skills/harness/bin/"
+      sh = open(b + "run-unit-tests.sh").read()
+      inv = [l for l in sh.splitlines()
+             if "run_pool.py" in l and not l.strip().startswith("#")]
+      serial = '"${SCRIPTS[@]}"' in sh
+      ck = subprocess.run(["bash", b + "run-unit-tests.sh", "--check-kinds"],
+                          capture_output=True, text=True)
+      ran = [l for l in ck.stdout.splitlines() if l.startswith(("PASS", "FAIL"))]
+      bad = subprocess.run(["bash", b + "run-unit-tests.sh", "--kind", "nope"],
+                           capture_output=True, text=True)
+      n = (".harness/harness/features/FEAT-48-parallel-safe-suite/notes/"
+           "measurements-parallel-suite.md")
+      t = open(n).read() if os.path.exists(n) else ""
+      runs = re.findall(r"^run \d+ exit (\d+) [0-9.]+s$", t, re.M)
+      ctrl = re.findall(r"^control broken reads (\d+)$", t, re.M)
+      post = re.findall(r"^post-fix broken reads (\d+)$", t, re.M)
+      wall = re.findall(r"^pool: \d+ workers, \d+ files, ([0-9.]+)s wall$", t, re.M)
+      tree = re.findall(r"^tree condition: \S.*$", t, re.M)
+      print("inv", inv, "serial", serial, "check_kinds", ck.returncode, ran, "unknown",
+            bad.returncode, "runs", runs, "ctrl", ctrl, "post", post, "wall", wall,
+            "tree", tree)
+      sys.exit(0 if (len(inv) == 1 and '--mutation-check "$BIN_DIR"' in inv[0]
+                     and not serial and ck.returncode == 0 and not ran
+                     and bad.returncode == 2 and len(runs) == 10
+                     and set(runs) == {"0"} and ctrl and int(ctrl[0]) > 0
+                     and post == ["0"] and wall and float(wall[0]) <= 120
+                     and len(tree) == 1
+                     and "PASS test-suite-independence.py" in t) else 1)
+      PY
+    intent: |
+      1. run-unit-tests.sh — replace the serial for loop at lines 147-157, and NOTHING else.
+         The root resolution, BIN_DIR, both script arrays, the --kind parsing, the
+         --check-kinds mode, the drift detector and the KIND CROSS-CHECK all stay exactly as
+         they are, including their exit-2 paths, because REQ-06 is a contract three callers
+         depend on. Registration of test-run-pool.py is NOT here — T-04 did it, in the commit
+         that created the file, so no intermediate commit on this branch ever carries an
+         unregistered test-*.py. The loop becomes one call:
+           python3 "$BIN_DIR/run_pool.py" --mutation-check "$BIN_DIR" -- "${SCRIPTS[@]/#/$BIN_DIR/}"
+         and the script exits with the pool's status. The flag's argument is "$BIN_DIR" and NOT
+         the resolved root (D-11): a root-wide watched set reddens whenever a sibling agent
+         writes a note under .harness/harness/features/**, which agents do continuously while
+         suites run. --mutation-check is not optional either: the runtime enforcement of REQ-01
+         is only real if the one caller CI runs always passes it. This task's verify therefore
+         asserts the literal substring --mutation-check "$BIN_DIR" on that line.
+         ON THE SERIAL-LOOP ASSERTION, and read this before you write it: the verify asserts
+         that the string "${SCRIPTS[@]}" no longer appears in the script, because line 148 is
+         its only occurrence and the new invocation spells "${SCRIPTS[@]/#/$BIN_DIR/}" instead.
+         It does NOT assert that no line begins "for s in" — the drift detector at line 64
+         begins exactly that way, stays, and an earlier draft of this block was unsatisfiable
+         for that reason. Keep the comment block explaining the unit/integration split; add one
+         short one saying the pool owns scheduling and bash owns selection, and why (D-05).
+
+      2. THE THREE MEASUREMENTS NO RUNNER CAN TAKE. SC-02, SC-05 and SC-06 have no gate behind
+         them, so they are discharged here or by nobody. Write
+         notes/measurements-parallel-suite.md with the verbatim command and output for each,
+         in a fenced block, AND the summary lines below, which this task's verify block parses.
+         The verify can check that the numbers are PRESENT and in range; only the fenced
+         verbatim output shows they were measured rather than typed, and a reviewer reads that.
+           - SC-02: the poll from notes/research-parallel-safety.md re-run over a full
+             --kind all run, and the same poll run against git show ea6f51f of
+             test-check-domain.py. Summary lines, exactly:
+               control broken reads <n>
+               post-fix broken reads <n>
+             The control MUST be greater than zero: a control that sees nothing makes the
+             post-fix zero inconclusive, not passing. If that happens, say so in the note and
+             return the task rather than recording a zero control.
+           - SC-05: ten consecutive --kind all runs at the runner's own worker count, one line
+             each, exactly:
+               run <i> exit <rc> <wall>s
+             Ten lines, i from 1 to 10. State plainly in the note that ten clean runs do not
+             prove the hazard is gone — this flake produced 6 consecutive clean 8-worker runs
+             while present — and that SC-01 and SC-03 carry that claim.
+             AND ONE MORE LINE, exactly, which the verify block requires to be present and
+             non-empty (D-11):
+               tree condition: <what else was writing this checkout during the ten runs>
+             Say which it was: no other agent active, or N agents writing
+             .harness/harness/features/** while the runs were taken. It is recorded because
+             --mutation-check watches bin/ and an edit to a file in bin/ during a run reddens it
+             for a reason that is not the pool's, so a reader must be able to tell a clean ten
+             taken on a quiet tree from a clean ten taken under load. A zero-agent tree is a
+             legitimate answer; an unrecorded one is not, and this is the sentence the first
+             draft of this plan assumed rather than measured.
+           - SC-06: the runner's own pool: and slowest: lines from one --kind all run on the
+             12-core machine, pasted verbatim, and the 247s serial baseline they are compared
+             against. The pool: line is what the verify block reads the wall time from.
+           - SC-04's evidence, in the same note: the PASS test-suite-independence.py line from
+             that --kind all run, pasted with its neighbours. The full unit kind takes longer
+             than a verify block's 60s budget, which is why it is recorded here and confirmed
+             independently by the qa run rather than asserted in this block.
 
   - id: T-05
     title: Record the decisions, including change-based selection as rejected
@@ -569,26 +865,33 @@ tasks:
     execution_reason: >
       granted to harness-documentor, taken direct under DEC-174 because the entry records the
       behaviour of the gate script the tests workflow runs.
-    depends_on: [T-04]
+    depends_on: [T-06]
     status: pending
     files:
       - .harness/harness/docs/DECISIONS.md
       - .harness/harness/docs/DECISIONS-INDEX.md
     verify: |
       python3 - <<'PY'
-      import subprocess, sys
+      import re, subprocess, sys
       dec = ".harness/harness/docs/DECISIONS.md"
       idx = ".harness/harness/docs/DECISIONS-INDEX.md"
       txt = open(dec, encoding="utf-8").read()
-      need = ["private copy", "change-based test selection", "HARNESS_TEST_WORKERS",
-              "test-suite-independence.py"]
-      missing = [n for n in need if n not in txt]
+      m = re.search(r"^## DEC-\d+\b[^\n]*?The suite runs in parallel.*?(?=^## DEC-|\Z)",
+                    txt, re.M | re.S)
+      sec = m.group(0) if m else ""
+      need = ["private copy", "isolated_bin.py", "test-suite-independence.py", "run_pool.py",
+              "--mutation-check", "HARNESS_TEST_WORKERS", "change-based test selection",
+              "REJECTED", "selecting nothing", "not statically knowable", "1,032,849",
+              "36.7", "247", "ea6f51f", "untracked", ".claude/skills/harness/bin"]
+      missing = [n for n in need if n not in sec]
+      words = len(sec.split())
       gen = subprocess.run([sys.executable,
                             ".claude/skills/harness/bin/gen-decisions-index.py", "--stdout"],
                            capture_output=True, text=True)
       drift = gen.returncode != 0 or gen.stdout != open(idx, encoding="utf-8").read()
-      print("missing", missing, "gen_exit", gen.returncode, "index_drift", drift)
-      sys.exit(0 if not missing and not drift else 1)
+      print("found", bool(m), "missing", missing, "words", words,
+            "gen_exit", gen.returncode, "index_drift", drift)
+      sys.exit(0 if m and not missing and words >= 300 and not drift else 1)
       PY
     intent: |
       APPEND one entry to .harness/harness/docs/DECISIONS.md, then regenerate the index and
@@ -598,6 +901,11 @@ tasks:
       TAKE THE NEXT FREE NUMBER AT AUTHORING TIME by reading the last heading in the file. Do
       not pin one here: FEAT-47 also appends entries and a pinned number collides with it. The
       heading is: The suite runs in parallel, and no test mutates state another test can see.
+      Write it in the file's house style, which is an em-dash between the number and the title
+      (## DEC-NN — Title, 188 of 188 existing headings on 2026-08-31). The verify block above
+      is separator-agnostic by construction, so it cannot redden on a house-style heading and
+      a later style pass cannot break it either; this sentence is a convenience, never a
+      constraint the gate enforces.
 
       The entry must state, each in one or two sentences with its reason:
         - the hazard, concretely: test-check-domain.py overwrote the live feature_schema.py for
@@ -612,6 +920,23 @@ tasks:
         - the pool: scheduling in run_pool.py, selection in bash, output buffered per file so
           it is attributable, and the worker count rule HARNESS_TEST_WORKERS else
           min(8, max(2, cpu_count)) with the 36.7s floor as the reason for the cap;
+        - the runtime half, and why the static scan alone was not enough: run_pool.py takes
+          --mutation-check and snapshots the size and mtime of every file under the watched
+          directory around the run, because the scan is blind to a mutation performed through a
+          subprocess or wrapped in a helper. State the watched directory by name
+          (.claude/skills/harness/bin) and say that it is that directory and NOT the repository
+          root, with the reason: agents write .harness/harness/features/** continuously while
+          suites run, so a root-wide watched set would redden a passing suite on a sibling
+          agent's note. Say that the snapshot covers untracked files as well as tracked ones,
+          which is what catches a mutant script appearing beside the original, and say plainly
+          what it does not cover — a mutation anywhere outside that directory, where the static
+          scan with its two blind spots is the only enforcement. State that the static scan is
+          not a backstop for every such write either: its taint model seeds only the literal
+          __file__, so a write to a path built from a relative literal or joined onto
+          os.getcwd(), landing outside the watched directory, is seen by neither half. That is
+          a third uncovered class and the entry must name it rather than leave a reader to
+          infer the two named blind spots are the whole gap. Name the trade: an edit to a
+          file in that directory during a run trips it;
         - change-based test selection REJECTED, in those words, with all three reasons:
           coverage becomes a function of the diff so a gate can pass by selecting nothing; the
           floor is set by one file most changes reach indirectly; and the edge from a bash gate
@@ -620,6 +945,12 @@ tasks:
         - the measurements, with their date, sha and machine: 247s serial across 56 files, ~47s
           at 8 workers, 68.7s at 4, floor ~36.7s, observed 2026-08-31 at ea6f51f on a 12-core
           M3 Pro.
+
+      SUBSTANCE, NOT KEYWORDS. The verify block reads only the section under this heading, and
+      requires every phrase above to appear INSIDE it plus at least 300 words. That floor
+      exists because the earlier draft of this block was four substring greps over the whole
+      file, which a one-line stub naming all four phrases satisfied. It is a floor, not a
+      target: say each thing once, with its reason.
 
       Then write the index row yourself, in the same commit, right of the :: separator, and
       regenerate with gen-decisions-index.py so the generated left-hand side is correct. There
