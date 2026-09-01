@@ -724,13 +724,94 @@ def case_sign_approval():
         check("sign-approval writes status: approved", "status: approved" in after, after[:400])
         check("sign-approval writes approved_by", "approved_by: Mike Ruangutai" in after,
               after[:400])
-        check("sign-approval writes date", "date: 2026-08-30" in after, after[:400])
+        # THE DATE IS ASSERTED BY VALUE, NOT BY SUBSTRING (FEAT-41 F-02). It used to grep for
+        # the bare text `date: 2026-08-30`. Signing now emits every field through YAML, which
+        # quotes this one -- bare, `2026-08-30` reloads as a datetime.date rather than as the
+        # string the operator typed and the signature records. No consumer reads the field, so
+        # the quoting is free; what matters is the value, and asking for the value is a stronger
+        # question than asking for the spelling. `--date` is as free-form as `--by`, so it is
+        # escaped by the same uniform rule rather than exempted -- an exemption would be a hole
+        # in the check that closes F-02.
+        check("sign-approval writes date, and it reloads as the string that was passed",
+              (yaml.safe_load(after).get("approval") or {}).get("date") == "2026-08-30",
+              after[:400])
         check("sign-approval leaves status: pending behind nowhere",
               "status: pending" not in after.split("tasks:")[0], after[:400])
         check("sign-approval does not disturb the tasks",
               after.split("tasks:")[1].count("status: pending") == 2, after)
     finally:
         shutil.rmtree(root, ignore_errors=True)
+
+def case_f02_sign_approval_cannot_write_an_unparseable_signature():
+    """FEAT-41 F-02, high, found by the validation panel.
+
+    `sign-approval` is the ONLY verb that writes a free-form operator string. The station verbs
+    validate their value against a closed vocabulary before the lock is taken (case
+    `illegal_station_exit_4`), so they cannot emit arbitrary text; `--by` and `--date` were
+    interpolated raw into `f"{indent}{key}: {value}"`. A signer name carrying a colon therefore
+    wrote an UNPARSEABLE signed plan.yaml and exited 0 -- and T-09 has just closed the editor
+    route that would have repaired it by hand, so the document was left unrecoverable through
+    any sanctioned path.
+
+    THE ASSERTION IS A ROUND TRIP, NOT A GREP. Checking for a quoted substring would bless one
+    particular escaping style and miss the two failures that are not syntax errors at all:
+    `#845 owner` is swallowed as a comment, and a bare `yes` reloads as the BOOLEAN True. What
+    matters is that the value read back equals the value passed, whatever quoting achieves it.
+
+    EITHER OUTCOME IS ACCEPTABLE, and the test says so deliberately: refuse and leave the file
+    untouched, or write it correctly. What is forbidden is the third thing it did -- report
+    success while leaving the document broken.
+    """
+    hostile = [
+        ("colon and space breaks the mapping", "Dr: Bob"),
+        ("a leading hash is swallowed as a comment", "#845 owner"),
+        ("a YAML boolean word must stay a STRING", "yes"),
+        ("a trailing colon", "Bob:"),
+        ("a quote of its own", "O'Brien \"Bob\""),
+        ("a bare newline", "Bob\nEvil: true"),
+    ]
+    for label, by in hostile:
+        root, plan = fixture_root()
+        try:
+            before = write(plan, render_plan(ids(1, 2)))
+            r = run_verb("sign-approval", "--file", plan, "--by", by, "--date", "2026-08-30")
+            after = read(plan)
+            if r.returncode != 0:
+                check(f"F-02 ({label}): refused, and the plan is byte-identical",
+                      after == before, f"rc={r.returncode} stderr={r.stderr[:200]!r}")
+                continue
+            try:
+                doc = yaml.safe_load(after)
+                loaded = True
+            except yaml.YAMLError as exc:
+                doc, loaded = None, False
+                detail = str(exc)[:200]
+            check(f"F-02 ({label}): it exited 0, so the plan it wrote MUST parse",
+                  loaded, detail if not loaded else "")
+            if not loaded:
+                continue
+            got = (doc.get("approval") or {}).get("approved_by")
+            check(f"F-02 ({label}): approved_by round-trips as the exact string passed",
+                  got == by, f"passed={by!r} reloaded={got!r}")
+            check(f"F-02 ({label}): the tasks are undisturbed",
+                  len(doc.get("tasks") or []) == 2, repr(doc.get("tasks")))
+        finally:
+            shutil.rmtree(root, ignore_errors=True)
+
+    # NEGATIVE CONTROL. An ordinary name must still land in the BARE form. Without this, quoting
+    # every value unconditionally would pass every case above while needlessly churning the
+    # appearance of a document a human signs and reads.
+    root, plan = fixture_root()
+    try:
+        write(plan, render_plan(ids(1, 2)))
+        run_verb("sign-approval", "--file", plan, "--by", "Mike Ruangutai",
+                 "--date", "2026-08-30")
+        after = read(plan)
+        check("F-02 NEGATIVE CONTROL: an ordinary signer name stays unquoted",
+              "approved_by: Mike Ruangutai" in after, after[:400])
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
 
 
 def case_sign_approval_is_the_only_signer():
@@ -804,6 +885,7 @@ def main():
     case_set_feature_station_insert_and_replace()
     case_illegal_station_exit_4()
     case_sign_approval()
+    case_f02_sign_approval_cannot_write_an_unparseable_signature()
     case_sign_approval_is_the_only_signer()
     case_add_tasks_alias()
     case_apply_still_refuses_a_changed_value()

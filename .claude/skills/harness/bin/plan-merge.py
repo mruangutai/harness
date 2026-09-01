@@ -229,6 +229,74 @@ def _index_list_items(lines, key_range):
     return ranges
 
 
+def _field_lines(indent, key, value):
+    """Emit `<indent><key>: <value>` as YAML, quoting ONLY when the value needs it.
+
+    FEAT-41 F-02. `sign-approval` is the one verb that writes a free-form operator string:
+    every other verb's value is validated against a closed vocabulary before the lock is taken,
+    so it cannot carry syntax. `--by` used to be interpolated raw, and a signer name with a
+    colon wrote an unparseable SIGNED plan.yaml and exited 0.
+
+    WHY `safe_dump` AND NOT A QUOTING RULE OF OUR OWN. Three of the six failures are not syntax
+    errors and no hand-written escape would have caught them: `#845 owner` is swallowed as a
+    comment, a bare `yes` reloads as the boolean True, and an embedded newline can open a
+    sibling key. PyYAML already knows the whole set; a local rule would only re-derive part of
+    it, and would drift from the parser that actually reads the file back.
+
+    QUOTING ONLY WHEN NEEDED IS PART OF THE CONTRACT, not an aesthetic. This document is signed
+    and read by a human, and `approved_by: 'Mike Ruangutai'` on every plan would be a visible
+    change to every signature for no benefit. test-plan-merge.py asserts the bare form survives.
+
+    A multi-line emission is indented per line so a continuation cannot escape the mapping.
+    """
+    dumped = yaml.safe_dump({key: value}, default_flow_style=False,
+                            width=10 ** 9, allow_unicode=True)
+    return "".join(f"{indent}{line}\n" if line else "\n"
+                   for line in dumped.rstrip("\n").split("\n"))
+
+
+def _verify_signature(spliced_bytes, resolved, fields):
+    """Refuse rather than write a signature that does not reload as the one that was asked for.
+
+    FEAT-41 F-02, the second half. `_field_lines` above fixes the cause; this catches anything
+    it misses, and the two are NOT redundant: the failures where the value is silently coerced
+    rather than corrupted (`yes` -> True, `#845 owner` -> None) leave a document that parses
+    perfectly, so a check that only asked "does it load" would pass them all.
+
+    IT COMPARES VALUES, NOT SYNTAX. That is the only check that can tell the difference between
+    a signature and something that merely looks like one. Exit 5 is the same code the splice
+    defect this mirrors already uses -- an unwritable result, not a bad argument.
+    """
+    try:
+        reloaded = yaml.safe_load(spliced_bytes.decode("utf-8"))
+    except yaml.YAMLError as exc:
+        raise harness_merge.MergeRefusal(
+            5,
+            [
+                "UNPARSEABLE: the signed plan does not load — REFUSING to write it.",
+                f"  {exc}",
+                "  this is a splice defect, not a bad signature: the base parsed.",
+            ],
+        )
+    if not isinstance(reloaded, dict) or not isinstance(reloaded.get("approval"), dict):
+        raise harness_merge.MergeRefusal(
+            5, [f"UNPARSEABLE: {resolved} has no approval mapping after signing — "
+                "REFUSING to write it."]
+        )
+    got = reloaded["approval"]
+    for key, want in fields.items():
+        if got.get(key) != want:
+            raise harness_merge.MergeRefusal(
+                5,
+                [
+                    f"REFUSED: the signature does not reload as written — approval.{key} "
+                    "would not say what was signed.",
+                    f"  asked for: {want!r}",
+                    f"  reloads as: {got.get(key)!r}",
+                ],
+            )
+
+
 def _verify_spliced(spliced_bytes, base_doc, prop_doc, out_order, added_ids):
     """Refuse rather than return a splice that does not reload as the merge it reported."""
     try:
@@ -740,14 +808,16 @@ def cmd_sign_approval(args):
         for line in lines[start + 1:end]:
             m = re.match(r"^(\s+)(status|approved_by|date):\s*(.*)$", line)
             if m and m.group(2) not in written:
-                out.append(f"{m.group(1)}{m.group(2)}: {fields[m.group(2)]}\n")
+                out.append(_field_lines(m.group(1), m.group(2), fields[m.group(2)]))
                 written.add(m.group(2))
             else:
                 out.append(line)
         for key in ("status", "approved_by", "date"):
             if key not in written:
-                out.insert(0, f"  {key}: {fields[key]}\n")
-        return "".join(lines[:start + 1] + out + lines[end:]).encode("utf-8")
+                out.insert(0, _field_lines("  ", key, fields[key]))
+        spliced = "".join(lines[:start + 1] + out + lines[end:]).encode("utf-8")
+        _verify_signature(spliced, resolved, fields)
+        return spliced
 
     try:
         harness_merge.locked_update(resolved, transform)
