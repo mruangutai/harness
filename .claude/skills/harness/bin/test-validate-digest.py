@@ -2945,11 +2945,29 @@ def check_derived_base_range(td, failures):
 
         feature_dir_degenerate = make_feature_dir(repo, review_sha=oid_a,
                                                    feat="FEAT-DERIVED-DEGENERATE")
-        _assert_derived_rejects(
-            validator, config, feature_dir_degenerate, f"{oid_a}..{oid_a}",
-            "already an ancestor of the default branch",
-            "a review_sha already merged into the default branch must refuse "
-            "with its own named error", failures)
+        # SC-11 binds the degenerate refusal to an ORDINARY pass/fail/grade_2 claim, not
+        # only to n_a. `_assert_derived_rejects` hardcodes an n_a digest, so sweeping all
+        # four values needs `_assert_grade_refused` — the same helper the other two
+        # availability conditions use. A criterion quantifying over four values is not
+        # satisfied by a fixture that exercises one of them.
+        for grade in ("n_a", "pass", "fail", "grade_2"):
+            _assert_grade_refused(validator, config, feature_dir_degenerate, oid_a, grade,
+                                  "already an ancestor of the default branch", failures)
+        _assert_repair_named(validator, config, feature_dir_degenerate, oid_a,
+                             "Re-pin review_sha", failures)
+
+
+def _assert_repair_named(validator, config, feature_dir, oid, repair, failures):
+    """SC-11 asks for a refusal that carries a REMEDIATION, not only a cause. A message
+    naming what broke and not what to do about it leaves a reviewer with a red gate and
+    no next step, which is how a fail-closed check gets worked around instead of fixed."""
+    errors = validator.validate(
+        "harness-code-reviewer",
+        reviewer_digest("pass", reviewed=f"{oid}..{oid}", artifact="a.md"),
+        config, feature_dir)
+    if not any(repair in error for error in errors):
+        failures.append(f"the refusal must carry its repair ({repair!r}), not only its "
+                        f"cause: {errors}")
 
 
 def _assert_grade_refused(validator, config, feature_dir, oid, grade, substring,
@@ -3038,6 +3056,8 @@ def check_no_merge_base(td, failures):
     for grade in ("n_a", "pass", "fail", "grade_2"):
         _assert_grade_refused(validator, config, feature_dir, oid_orphan, grade,
                               "no merge base", failures)
+    _assert_repair_named(validator, config, feature_dir, oid_orphan,
+                         "fetch the default branch", failures)
 
 
 def check_resolve_reviewed_commit_guard(validator, td, failures):
