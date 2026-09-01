@@ -3405,6 +3405,58 @@ def case_inv6_pinned_plan_run_silent():
     return ok
 
 
+def case_inv6_case_variant_is_not_exempt():
+    """Panel Q2: the gate's value test is EXACT, matching the schema's closed enum, so a
+    document can never be schema-invalid and gate-exempt at once. `N_A` fails both."""
+    out = _inv6_feature(_PLAN_RUN.replace("code_grade: n_a", "code_grade: N_A"))
+    ok = _PIN_MSG in out
+    print(f"{'ok' if ok else 'FAIL'} - INV-6 does not exempt a case-variant code_grade")
+    if not ok:
+        print("        the gate case-folds where the schema does not, so `N_A` is "
+              "gate-exempt and schema-invalid at the same time")
+    return ok
+
+
+def case_inv6_message_names_the_remedy():
+    """Panel Q3, and the BUG-1071 discoverability lesson: the violation must name the key
+    that fixes it, at the point of failure, or the operator has to find this file."""
+    out = _inv6_feature(_CODE_RUN)
+    line = [l for l in out.splitlines() if _PIN_MSG in l]
+    ok = bool(line) and "code_grade: n_a" in line[0]
+    print(f"{'ok' if ok else 'FAIL'} - INV-6's violation names code_grade: n_a")
+    if not ok:
+        print("        the message states the defect without the remedy")
+    return ok
+
+
+def case_inv6_producer_is_documented():
+    """THE BLOCKING PANEL FINDING. A legal exemption nothing writes is dead code, and the
+    next plan-phase panel reproduces #1080 verbatim. SKILL.md step 6 is the only
+    documented runs-writing instruction, so the key must be named there.
+
+    This is the `check-decision-anchors.py` shape - a tool that ships and is invoked by
+    nothing - which has recurred repeatedly in this repository. The test is cheap and it
+    is the only thing standing between a working gate and an inert one.
+    """
+    # Anchored on __file__, never SCRIPT: CHECK_STATE_BIN may point SCRIPT at a mutant
+    # copy in a temp dir, and this assertion is about the shipped skill, not the fixture.
+    skill = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "SKILL.md")
+    try:
+        with open(skill, encoding="utf-8") as fh:
+            text = fh.read()
+    except OSError as exc:
+        print(f"FAIL - INV-6's producer is documented: SKILL.md unreadable ({exc})")
+        return False
+    ok = "code_grade: n_a" in text
+    print(f"{'ok' if ok else 'FAIL'} - INV-6's exemption has a documented producer "
+          f"(SKILL.md names code_grade: n_a)")
+    if not ok:
+        print("        nothing instructs any writer to stamp the key, so every recorded "
+              "plan panel omits it and INV-6 deadlocks again")
+    return ok
+
+
+
 def main():
     ok_a, code_a = case_a()
     ok_b, code_b = case_b()
@@ -3504,6 +3556,10 @@ def main():
         case_inv6_mixed_runs_still_fire(),
         case_inv6_exempt_survives_signature(),
         case_inv6_pinned_plan_run_silent(),
+        # BUG-1080 cycle 1 — the panel's blocking finding and its two questions.
+        case_inv6_case_variant_is_not_exempt(),
+        case_inv6_message_names_the_remedy(),
+        case_inv6_producer_is_documented(),
     ])
 
     ok_exit_unchanged = code_a == code_b

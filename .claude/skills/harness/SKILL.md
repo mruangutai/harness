@@ -62,6 +62,10 @@ is namespaced under `.harness/harness/features/<FEAT>/` (DEC-120).
    `feature.json`'s DATA: the runs list, and `cycles_used` from the lead's reported SEND-BACKS,
    since a clean first-pass run adds ZERO cycles and only rework counts (DEC-157). Values, never
    narrative: the shape gate denies a feature.json over 200 lines or 20 comment lines (DEC-150).
+   **A validator run that graded a PLAN and no code carries `code_grade: n_a`** — the
+   plan-phase panel DEC-207 legalises. Omitting it declares the run reviewed code, and INV-6
+   then demands a `review_sha` that cannot exist before the Building → Review seam, which is
+   exactly the deadlock BUG-1080 closed. Every other run omits the key.
    Then route (below).
 7. **Advance until DONE — and done means the success criteria are met, not the tasks exhausted.**
    Each wake advances the plan by exactly one step. **There is no waiting anywhere in this loop.**

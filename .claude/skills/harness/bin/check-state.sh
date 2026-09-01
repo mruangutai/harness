@@ -441,8 +441,11 @@ for fy in glob.glob(os.path.join(H, "*", "features", "*", "feature.json")):
         # is the OPPOSITE default from the `agent` key, where FEAT-31 made absence
         # deliberately benign — every run recorded before this key existed reviewed
         # code, and a silent exemption would retire the invariant on the whole corpus.
-        if _squad == "validator" \
-                and str(entry.get("code_grade", "")).strip().lower() != "n_a":
+        # EXACT match, no strip and no case fold, so this test and
+        # feature-schema.json's `enum: ["n_a"]` cannot disagree (panel Q2). A document
+        # must never be schema-invalid and gate-exempt at the same time: any deviation
+        # fails BOTH, which is the fail-closed direction.
+        if _squad == "validator" and entry.get("code_grade") != "n_a":
             code_reviewing_runs.append(entry)
 
     # INV-6: reviewers must diff a pinned SHA, never a moving HEAD (DEC-50).
@@ -457,7 +460,8 @@ for fy in glob.glob(os.path.join(H, "*", "features", "*", "feature.json")):
     if code_reviewing_runs and (
             _sha == "" or _sha in harness_yaml.PLACEHOLDER_UNSET):
         bad.append(f"{feat}: a validator run reviewed code but review_sha is not pinned "
-                   f"— reviewers would diff HEAD (the GAP-7 failure).")
+                   f"— reviewers would diff HEAD (the GAP-7 failure). A run that graded a "
+                   f"plan and no code carries `code_grade: n_a` and needs no pin (DEC-207).")
 
     # INV-7: the fix-loop bound must actually count the failures it bounds.
     fails = sum(1 for _, _, v in runs if v.upper() == "FAIL")
