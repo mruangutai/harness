@@ -2,45 +2,45 @@
 
 ## Next
 
-Re-review cycle 2 against the NEW `review_sha`. Cycle 1 returned FAIL with two high must-fix
-(H-01, H-02) and two mutation-proven med; all four are fixed with their own commits and receipts
-in `42bc5fe..c4da870`. Inputs: `plan.yaml` (16 tasks, D-01..D-16), `BRIEF.md`, and those commits.
+C2-01 IS OPEN AND NEEDS THE OPERATOR, not another build pass — issue #1079. Cycle 2 found that
+this feature's own T-07 deleted `status: Review` from BUG-1030, a plan-less NON-terminal record,
+which is the exact shape #1079 exists to protect. Both repair paths are MECHANICALLY CLOSED and
+proven: `feature.json` refuses the key (MergeRefusal exit 11, undeclared key) and `plan.yaml`
+refuses to exist without tasks (PlanSchemaError). So a plan-less feature has NOWHERE to record a
+non-terminal station, and every fix contradicts SC-08's signed text. #1079 carries three options
+and a recommendation. Do NOT attempt this as a code fix.
 
-CYCLE 1'S OWN BLOCKING QUESTION IS ANSWERED BY MEASUREMENT, not opinion: the production Write
-tool DOES follow symlinks — link stayed a link, target's bytes changed — so H-01 was high, not
-informational, and it is fixed at both checkpoints.
+C2-02 and C2-03 ARE FIXED (`e071509`). Both cycle-1 HIGHs had been closed only for the instance
+shown: a hardlink, a linked parent DIRECTORY and an over-cap chain all still reached plan.yaml —
+the chain FAILING OPEN — and `${IFS}` still forged a signature end to end. Resolution now
+realpaths both sides, identity covers hardlinks, unresolvable links fail CLOSED, and
+`as_bash_reads_it` neutralises braced expansions.
 
-SC-08 IS FALSE BY EXACTLY ONE FILE, deliberately — issue #1079, and MEASURED not assumed: 35
-planned dirs and 10 plan-less terminal ones all carry no `status`. BUG-1071 alone does, because it
-is `Review` and plan-less, so that key is the only copy of a NON-TERMINAL fact. BUG-1055 was the
-same shape but `Done`, which is the class T-07 already migrated (FEAT-01 and nine others), so it
-was migrated here rather than filed. Do NOT close #1079 by editing SC-08.
-
-Cycle 0's two verdict items stay CLOSED by the operator: T-15's lane deviation is ratified in
-D-15, T-10's verify-line defect is recorded rather than rewritten because the plan format is
-add-only. T-18 is STRUCK in D-16, not implemented — FEAT-45 fixed that upstream, better.
+Cycle 0/1 verdict items stay closed: T-15's lane ratified in D-15, T-10's verify-line recorded not
+rewritten, T-18 STRUCK in D-16 because FEAT-45 fixed Q2 upstream better.
 
 ## Trust
 
-- unit exit 0, 505 PASS; integration exit 0, 819 PASS — verified-at 542e888, at the NEW base 7c4f0bd, both kinds run SERIALLY after every fix
+- unit exit 0, 505 PASS; integration exit 0, 819 PASS; check-state.sh exit 0 with ZERO violations — verified-at e071509
+- The new assertions print `ok`, not `PASS`, so the suite COUNTS ARE FLAT by design; confirmed they RAN under the runner by grepping its own log (4 T-09 11, 6 C2-03, 9 T-09 10) — verified-at e071509
+- C2-02's chain case FAILED OPEN, not closed: over the hop cap the plan never entered the candidate list and the write was permitted — verified-at e071509
+- A hardlink is unanswerable by path resolution and trivial by inode identity; `st_nlink < 2` keeps the scan off the common path — verified-at e071509
+- All five signing-gate evasion forms exit 2 END TO END through the real gate script, and all three controls still exit 0 — verified-at e071509
+- Only `${IFS}` braced splits; bare `$IFSsign-approval` becomes `plan-merge.py-approval` and CANNOT sign, so denying it would be a guess — verified-at e071509
+- BUG-1030's audit: 45 statuses stripped, 44 terminal and correct, 1 non-terminal — measured against origin/main, not inferred — verified-at e071509
 - Gated HIGH code-grade records: 0, measured with the NEW code_grade.py (it moved upstream) against merge-base 7c4f0bd — verified-at 542e888
-- H-01's fix uses readlink, NOT realpath (realpath leaves the path's spelling namespace, `/var` -> `/private/var`, and the case stays RED with the fix in); its POST case was written after the fix so the fix was MUTATED away to prove it discriminates — verified-at 42bc5fe
+- H-01's fix NO LONGER uses the readlink walk — C2-02 replaced it with realpath on BOTH sides, which is what the one-sided version should have been; its POST case was mutation-proved — verified-at e071509
 - H-02 is fixed ONCE, before either scanner: teaching two scanners about backslashes separately leaves F-03's asymmetry one escape away — verified-at 42bc5fe
 - Both QA mutations were RE-RUN against the fixes: `_I` removal now reds exactly one row, `_verify_signature` disabled goes from 0 failures to 3 — verified-at c4da870
 - F-02's layer two was UNREACHABLE until c4da870; QA proved it, and the forcing case uses a duplicate `approved_by` (YAML last-wins) rather than a monkeypatch — verified-at c4da870
 - T-14's invariant is INV-33 now, not 32: FEAT-45 shipped its own INV-32 first, so it owns the number; both suites' cases pass side by side — verified-at 8fa2d04
-- FEAT-45's records were migrated by THIS feature, not by FEAT-45: it shipped after T-04/T-07 ran, so its plan carried no station and its feature.json still carried `status` — verified-at 8fa2d04
-- The 33 INV-32 lines seen mid-rebase were a STALE BASE, not a defect here; BUG-1071's era guard resolves them — verified-at 8fa2d04
-- Q2 is fixed UPSTREAM: origin/main's `_hook_feature_dir` resolves the worktree via inflight_registry and SEC-01 bound to fb07ed6 when driven against the real layout — verified-at 8fa2d04
 - Cycle 0's F-01..F-05 are all closed and cycle 1's panel re-verified each at source; detail is in `787c7fa..9bdbe91` — verified-at c4da870
 - F-04's realpath half does NOT reproduce as a PATH SHAPE: `./`, `..`, doubled slash and absolute are denied; the SYMLINKED-FILE case was the real hole and is H-01 — verified-at 42bc5fe
-- `_commit_terminal_station` was printing a Python LIST at the operator (`['fatal: ...']`); rendered to confirm before fixing — verified-at 9bdbe91
-- INV-32 reports THIS feature's own review_sha until the pin moves; that is the invariant working, not a defect — verified-at a1dc932
-- T-14's four verify greps need `-F` or escaped parens under `pi-uu-grep 0.2.0`, which reads the pattern as ERE — verified-at a1dc932
+- Cycle 0's own findings (stale-base INV-32 lines, Q2 fixed upstream, the list-rendering print) are all closed; detail is in `787c7fa..9bdbe91` and D-16 — verified-at c4da870
 
 ## Dead Ends
 
-- Do NOT replace shape-matching WITH realpath in check-domain.sh, and do NOT rewrite H-01's readlink walk as realpath: shape is stronger for `./`, `..`, doubled slashes, absolute paths and a symlinked feature DIRECTORY, and realpath leaves the written path's spelling namespace so the gate looks green while denying nothing. This entry USED to stop at "do not re-fix F-04's realpath half", and cycle 1's panel found the hole that wording talked past — a symlinked FILE with an innocent name matched no pattern at all. Closed by ADDING resolved candidates (H-01), never by substituting resolution
+- Do NOT resolve paths on ONE side only in check-domain.sh. Shape-matching the as-typed path stays (it is stronger for `./`, `..`, doubled slashes and absolute paths, all denied), but resolution must realpath the path AND the root or it lands in a different spelling namespace and silently matches nothing. This entry twice recorded a conclusion that was too narrow: first "do not re-fix F-04's realpath half" (which talked past the symlinked-FILE hole, H-01), then "do not rewrite the readlink walk as realpath" (which forbade the actual fix, C2-02). Resolution answers what a path BECOMES; inode identity answers whether two names are the SAME FILE; a hardlink needs the second
 - Do NOT close SC-08 by editing SC-08, and do NOT delete BUG-1071's `feature.json.status` — it has no plan.yaml, so that key is the only record it is in review. Issue #1079
 - Do NOT reconcile `_record_station` and `_commit_terminal_station` to use the same words: written-nowhere and written-but-uncommitted have OPPOSITE correct answers, both asserted
 - Do NOT exempt `--date` from sign-approval's escaping; a type-aware exemption is a hole in the check that closes F-02
