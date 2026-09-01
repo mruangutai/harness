@@ -263,10 +263,16 @@ for feat, doc in plan_docs.items():
         # IT FIRES EVEN WHEN _era_start IS None. An undated signature is a record defect
         # in its own right, not merely an obstacle to placing an era, so a project with no
         # pre-panel era still owes the date.
+        # The recovery command NAMES THE FILE (cycle-1 ui finding). It printed a literal
+        # `<this plan.yaml>` placeholder, which is the one thing an operator cannot paste:
+        # a diagnostic whose remedy has to be hand-edited before it runs is a diagnostic
+        # that will be retyped wrong. The glob matches the tree's real layout,
+        # `.harness/*/features/*/`, so it resolves in a served repository too.
         bad.append(f"INV-32: {feat} is approved but approval.date is missing or "
                    f"malformed ({signed!r}), so its panel era cannot be placed. "
                    f"Add the signature date; recover it with "
-                   f"git log -S'status: approved' -- <this plan.yaml>.")
+                   f"git log -S'status: approved' -- "
+                   f".harness/*/features/{feat}/plan.yaml")
         continue
     if _era_start is not None and signed < _era_start:
         warn.append(f"INV-32: {feat} was signed {signed}, before the adversarial panel "
@@ -277,7 +283,18 @@ for feat, doc in plan_docs.items():
 # INV-32 ERA END (BUG-1071)
     panel = doc.get("panel")
     if not isinstance(panel, dict) or not str(panel.get("last_run", "")).strip() or not isinstance(panel.get("findings"), list):
-        bad.append(f"INV-32: {feat} plan is approved with no complete panel result recorded.")
+        # THE MESSAGE NAMES THE ERA KEY (cycle-1 Q1/Q2). This is the line a migrating
+        # legacy project sees, once per historical plan, the first time it upgrades: the
+        # template merges `panel_era_start: null`, null means "no pre-panel era", and every
+        # plan signed before that project's panel arrived is suddenly graded. The finding
+        # is correct and fail-closed, but WITHOUT this sentence its cause is invisible --
+        # the operator reads "no panel result recorded" against a plan signed months before
+        # the panel existed and has no reason to look at config. Naming the key here is
+        # what makes the residual self-diagnosing rather than merely reversible.
+        bad.append(f"INV-32: {feat} plan is approved with no complete panel result "
+                   f"recorded. If this plan predates the adversarial panel in this "
+                   f"project, set harness.json `panel_era_start` to the date the panel "
+                   f"became available here instead of recording one.")
         continue
     findings = panel.get("findings", [])
     finding_ids = {
