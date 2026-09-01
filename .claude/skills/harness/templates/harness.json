@@ -1,7 +1,9 @@
 {
   "_template": "Canonical harness.json. /harness-init copies this to .harness/harness.json and dev-ops fills every test_kinds.cmd by RUNNING it. See templates/README.md.",
-  "schema_version": 1,
+  "schema_version": 2,
   "cli_min_version": "2.1.217",
+  "_panel_era_start_note": "The date the adversarial plan panel (FEAT-45) became available in THIS project. INV-32 does not grade a plan signed before it, because a plan signed before the panel existed cannot carry a record of one. null means this project has no pre-panel era, so every approved plan is graded \u2014 the right value for a project onboarded after FEAT-45. check-state.sh is copied into every onboarded project, so this MUST be per-project: a hardcoded date would export one repository's history as another's gate (BUG-1071 panel finding F2).",
+  "panel_era_start": null,
   "_test_matrix_note": "change_type -> required test kinds. A FLOOR, not a ceiling: qa may add kinds it infers from the diff, never drop below. Predicate names in `when` are FIXED DATA so the gate is auditable; qa evaluates them against the diff.",
   "test_matrix": {
     "logic": {
