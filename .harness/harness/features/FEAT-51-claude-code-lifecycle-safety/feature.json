@@ -92,6 +92,12 @@
       "agent": "harness-validator-lead",
       "verdict": "FAIL",
       "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-01-01-eng",
+      "squad": "eng",
+      "agent": "harness-eng-lead",
+      "verdict": "ESCALATE"
     }
   ],
   "github": {
