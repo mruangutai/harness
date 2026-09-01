@@ -457,6 +457,6 @@ un-overruled. This brief takes no position on them.
 
 ## Approval
 
-status: pending
-approved-by:
-date:
+status: approved
+approved-by: operator (Mike Ruangutai), via main session
+date: 2026-08-31

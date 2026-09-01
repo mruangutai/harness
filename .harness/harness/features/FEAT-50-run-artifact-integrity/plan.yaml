@@ -12,9 +12,9 @@ source_issues: [1056, 1057, 1058]
 
 approval:
   # Written by the MAIN SESSION only (DEC-120). pm never touches this mapping.
-  status: pending
-  approved_by: <name>
-  date: <YYYY-MM-DD>
+  status: approved
+  approved_by: operator (Mike Ruangutai), via main session
+  date: 2026-08-31
 
 panel:
   # Transcribed by pm from runs/2026-08-31-6-validator/digest.md (cycle 1), UNIONED with the
