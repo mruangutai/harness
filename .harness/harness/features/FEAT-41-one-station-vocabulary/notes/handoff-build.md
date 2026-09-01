@@ -2,24 +2,27 @@
 
 ## Next
 
-Re-review cycle 1 against the NEW `review_sha`. All five of cycle 0's must-fix findings are
-fixed, each with its own commit and receipt in `787c7fa..add6993`. Zero gated HIGH code-grade
-records remain; six grade-2 records stand and need written reasons, not refactors. Inputs:
-`plan.yaml` (16 tasks, D-01..D-15), `BRIEF.md`, and the fix commits.
+Re-review cycle 1 against the NEW `review_sha`, on a branch REBASED onto 9f2a070 (0 behind).
+All five of cycle 0's must-fix findings are fixed, each with its own commit and receipt in
+`787c7fa..8fa2d04`. Zero gated HIGH code-grade records; six grade-2 records need written reasons,
+not refactors. Inputs: `plan.yaml` (16 tasks, D-01..D-16), `BRIEF.md`, and the fix commits.
 
-Q2 IS FIXED, so the code reviewer can yield this time — T-18, operator-directed into this cycle.
-If it still cannot, that is a NEW defect, not the one it hit before.
+THE REBASE CHANGED THE ANSWER TO Q2 AND TO T-18 — read D-16 before reviewing either. FEAT-45 had
+already fixed Q2 upstream, better, so T-18 is STRUCK and its station is `abandoned`. My duplicate
+mechanism is deleted; validate-digest.py is byte-identical to origin/main.
 
-Cycle 0's two verdict items are CLOSED, both by the operator: T-15's lane deviation is ratified
-in D-15, and T-10's verify-line defect is recorded rather than rewritten because the plan format
-is add-only. Do not re-open either; check that the records say what happened.
+Cycle 0's two verdict items are CLOSED by the operator: T-15's lane deviation is ratified in D-15,
+and T-10's verify-line defect is recorded rather than rewritten because the plan format is
+add-only. Do not re-open either; check that the records say what happened.
 
 ## Trust
 
-- unit exit 0, 493 PASS; integration exit 0, 816 PASS — verified-at 9bdbe91, both kinds run SERIALLY after every fix
-- Gated HIGH code-grade records: 0, measured against the same merge-base the reviewer uses — verified-at 9bdbe91
-- Q2's fix is proved in PRODUCTION SHAPE, not only in a unit test: a second checkout without FEAT-41 holding a copy of the script, cwd in the worktree — pre-fix BLOCKED, post-fix BOUND — verified-at add6993
-- Q2's fix is a STRENGTHENING: the single-root version returned a path it never looked at; feature.json must now exist, and no candidate is invented — verified-at add6993
+- unit exit 0, 505 PASS; integration exit 0, 816 PASS — verified-at 8fa2d04, both kinds run SERIALLY at the new base
+- Gated HIGH code-grade records: 0, against merge-base 9f2a070, the same the reviewer will use — verified-at 8fa2d04
+- T-14's invariant is INV-33 now, not 32: FEAT-45 shipped its own INV-32 first, so it owns the number; both suites' cases pass side by side — verified-at 8fa2d04
+- FEAT-45's records were migrated by THIS feature, not by FEAT-45: it shipped after T-04/T-07 ran, so its plan carried no station and its feature.json still carried `status` — verified-at 8fa2d04
+- The 33 INV-32 lines seen mid-rebase were a STALE BASE, not a defect here; BUG-1071's era guard resolves them — verified-at 8fa2d04
+- Q2 is fixed UPSTREAM: origin/main's `_hook_feature_dir` resolves the worktree via inflight_registry and SEC-01 bound to fb07ed6 when driven against the real layout — verified-at 8fa2d04
 - F-01's fix is cross-file: the test reads the sweep's gate literals OUT of post-merge-sweep.sh rather than retyping them — verified-at 787c7fa
 - F-02 had FIVE failures in three classes, not the one reported; `#845 owner` and `yes` PARSE FINE and still corrupt the value, so the check compares values — verified-at 8c2972e
 - F-02's two layers are independent: mutating the escaping away leaves the round-trip check refusing with the plan byte-identical — verified-at 8c2972e
