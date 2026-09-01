@@ -3,25 +3,23 @@
 ## Current
 
 - feature: BUG-1081-code-grade-enforcement
-- run: .harness/harness/features/BUG-1081-code-grade-enforcement/runs/2026-09-01-2-product/state.yaml
+- run: none
 - squad: none
-- status: awaiting-user
+- status: in-flight
 
-At the ship decision gate. All four tasks done; qa_gate PASS at the final pin (unit exit 0/0 FAIL,
-integration exit 0/0 FAIL); review panel PASS at cycle 2 with cycle 1's critical confirmed CLOSED
-by the reviewer that raised it; goal-check 12/12 after SC-11's test-only gap was closed at acda74d1.
-cycles_used 2 of 10. review_sha pinned at acda74d1527edbea279c914d685baec7eaf9d3cb.
-Briefing: notes/ship-review-BUG-1081.md (rendered alongside as .html).
+Rebased onto origin/main and reconciled to the new contract: feature.json no longer carries a
+station, plan.yaml carries `status: review`, and two rebase artifacts were repaired (a test whose
+`return failures` was consumed by the additive conflict resolution, and DEC-209's index ruling,
+lost when the conflict kept main's generated index, re-authored inside the 30-word cap).
 
-One blocking question for the user, in the briefing as P-1: main landed FEAT-41 T-07 and BUG-1080
-during this run, so this branch is behind main on the harness contract — main's schema now refuses
-the feature.json `status` key this branch's own schema requires. The remedy is a rebase, which
-moves HEAD and is refused to every governed agent.
+All four tasks done. Both gates green post-rebase: unit exit 0 / 0 FAIL, integration exit 0 / 0
+FAIL. Panel PASS at cycle 2 with cycle 1's critical CLOSED by the reviewer that raised it.
+Goal-check 12/12. cycles_used 2 of 10. review_sha pinned at b4cb23c0.
+
+Operator has accepted the ship: rebase then ship, keep the team-config resync, take backlog
+B-1..B-10. Remaining: create the backlog issues, run the ship sync, open and merge the PR, then
+feature-close distillation.
 
 ## Open Questions
 
-- P-1: rebase onto main before merge (feature.json `status` deleted by FEAT-41 T-07; `runs[].code_grade`
-  added by BUG-1080). Blocking, and not an agent's act to perform.
-- The `.harness/team-config.yaml` resync in 676940ce is an undeclared-file edit, declared for the
-  ship decision: comment-only drift, parsed YAML proven identical, and it was what made the blocking
-  integration gate honest. Strike it and it will be reverted.
+- none
