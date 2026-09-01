@@ -311,6 +311,45 @@ def _verify_signature(spliced_bytes, resolved, fields):
             )
 
 
+
+def _verify_amend(spliced_bytes, key, iid, field, want):
+    """Refuse rather than write an amendment that does not reload as the one asked for.
+
+    THE DISCIPLINE `cmd_sign_approval` ALREADY HELD, and `amend` did not inherit (BUG-1128
+    panel V3). The compare-and-swap protects CONTENT: it proves the block being replaced is
+    the block that was read. It says nothing about LOCATION or RESULT, because both hashes
+    are computed over whatever the locator returned — so they agree perfectly on the wrong
+    block, and a splice into the wrong field reports success at exit 0.
+
+    IT COMPARES VALUES, NOT SYNTAX, for the same reason `_verify_signature` does: a wrong-field
+    write and a silently re-formed value both leave a document that parses.
+    """
+    try:
+        reloaded = yaml.safe_load(spliced_bytes.decode("utf-8"))
+    except yaml.YAMLError as exc:
+        raise harness_merge.MergeRefusal(
+            5, ["UNPARSEABLE: the amended plan does not load — REFUSING to write it.",
+                f"  {exc}",
+                "  this is a splice defect, not a bad value: the base parsed."])
+    items = (reloaded or {}).get(key)
+    if not isinstance(items, list):
+        raise harness_merge.MergeRefusal(
+            5, [f"REFUSED: {key}: is not a list after the amendment — REFUSING to write it."])
+    got = [it for it in items if isinstance(it, dict) and it.get("id") == iid]
+    if len(got) != 1:
+        raise harness_merge.MergeRefusal(
+            5, [f"REFUSED: {iid} appears {len(got)} time(s) under {key}: after the amendment; "
+                "exactly one is required. A duplicate id cannot be amended unambiguously."])
+    if got[0].get(field) != want:
+        raise harness_merge.MergeRefusal(
+            5, [f"REFUSED: the amendment does not reload as written — {iid}.{field} would not "
+                "say what was asked for. This is the wrong-field write the content hash cannot "
+                "see.",
+                f"  asked for: {want!r}",
+                f"  reloads as: {got[0].get(field)!r}"])
+    return reloaded
+
+
 def _schema_error(doc):
     """The plan-schema complaint about `doc`, or None when it satisfies the schema.
 
@@ -994,23 +1033,54 @@ def _item_range(lines, key, iid):
     return start, hi, indent
 
 
+BLOCK_HEAD_RE = re.compile(r"^(\s*)([A-Za-z_][\w-]*):\s*([|>][+-]?\d*)\s*$")
+
+
+def _block_scalar_end(lines, head, end):
+    """First index after the block-scalar body opened at `head`.
+
+    A block scalar's body is every following line indented deeper than its key, plus blank
+    lines. NOTHING inside it is YAML: it is opaque text. Skipping it is what stops a prose
+    line that happens to read `verify:` from being mistaken for a key (BUG-1128 panel V1).
+    """
+    key_indent = len(BLOCK_HEAD_RE.match(lines[head]).group(1))
+    j = head + 1
+    while j < end:
+        stripped = lines[j].strip()
+        if stripped and (len(lines[j]) - len(lines[j].lstrip())) <= key_indent:
+            break
+        j += 1
+    return j
+
+
 def _field_block(lines, start, end, item_indent, field):
     """(first, last_exclusive, indent) of `field:` inside one item, or None.
 
-    The block runs from the `field:` line THROUGH its continuation lines, so a plain
-    multi-line scalar is one unit. It ends at the next sibling key at the same indent or
-    shallower, or the next item, or the item's end. A one-line splice would corrupt every
-    multi-line field, which is most of what FEAT-46 needs to rewrite.
+    BLOCK-SCALAR AWARE (BUG-1128 panel V1, found independently by three readers). The first
+    cut matched `^\\s*field:` over physical lines, so `--field verify` bound to a prose line
+    inside an `intent: |` body and the replace corrupted `intent` while reporting
+    `AMENDED ... verify` at exit 0. The compare-and-swap could not help: both hashes are taken
+    over whatever this function returns, so they agree perfectly on the wrong block.
+
+    The block runs from the `field:` line through its continuation lines — a plain multi-line
+    scalar or a `|` body is one unit — and ends at the next sibling key at the same indent or
+    shallower, the next item, or the item's end.
     """
-    first = None
-    indent = ""
-    for i in range(start, end):
+    first, indent, i = None, "", start
+    while i < end:
+        head = BLOCK_HEAD_RE.match(lines[i])
         m = SIBLING_KEY_RE.match(lines[i])
         if m and m.group(2) == field and len(m.group(1)) > len(item_indent):
             first, indent = i, m.group(1)
             break
+        if head and len(head.group(1)) > len(item_indent):
+            i = _block_scalar_end(lines, i, end)   # opaque text, never scanned for keys
+            continue
+        i += 1
     if first is None:
         return None
+    if BLOCK_HEAD_RE.match(lines[first]):
+        return first, _block_scalar_end(lines, first, end), indent
     for j in range(first + 1, end):
         if ITEM_ID_RE.match(lines[j]):
             return first, j, indent
@@ -1019,19 +1089,31 @@ def _field_block(lines, start, end, item_indent, field):
             return first, j, indent
     return first, end, indent
 
-def _render_field(indent, field, value_text):
-    """Emit the replacement through `_field_lines`, which is the ONE renderer.
 
-    The first cut of this verb hand-rolled a plain-vs-block decision and the suite caught it
-    on a colon. The real lesson was in `_field_lines`'s own docstring: a local quoting rule
-    re-derives only part of the set PyYAML already knows. Mine handled `: ` and leading
-    indicators and would still have shipped `verify: yes` reloading as the boolean True.
+def _render_field(indent, field, value_text, original):
+    """Emit the replacement, PRESERVING THE ORIGINAL FIELD'S FORM.
 
-    So there is no second grammar here. A trailing newline is stripped because the value is a
-    field body, not a document, and `_field_lines` renders exactly what it is given.
+    Two lessons, both paid for:
+
+    `_field_lines` is the one renderer for a plain value — a local quoting rule re-derives
+    only part of what PyYAML knows, and the first cut's rule would have written `title: yes`
+    reloading as boolean True.
+
+    BUT `yaml.safe_dump` NEVER EMITS `|` (BUG-1128 panel V2). Routing a literal block through
+    it changes the emitted form and drops the trailing newline a `|` body carries, so an
+    IDENTITY replace of a `verify: |` field altered what `safe_load` returned. SPEC.md:1813
+    makes that literal form a byte-exact contract. So when the original was a block scalar its
+    header is REUSED VERBATIM and the body is emitted as given, which is both form-preserving
+    and escape-free.
     """
-    # `_field_lines` returns the lines already joined; the splice concatenates lists, so wrap
-    # it rather than re-splitting text that is about to be joined again.
+    head = BLOCK_HEAD_RE.match(original[0]) if original else None
+    if head:
+        body_indent = f"{indent}  "
+        body = value_text[:-1] if value_text.endswith("\n") else value_text
+        out = [original[0]]
+        out += [f"{body_indent}{ln}\n" if ln.strip() else "\n"
+                for ln in body.split("\n")]
+        return ["".join(out)]
     return [_field_lines(indent, field, value_text.strip("\n"))]
 
 
@@ -1083,7 +1165,19 @@ def cmd_amend(args):
         value_text = fh.read()
 
     def transform(base_bytes):
-        cur = base_bytes.decode("utf-8").splitlines(keepends=True)
+        # THE BASE IS PARSED FIRST (panel V4, and its own de-vacuumed test). It used to be
+        # parsed last, outside a try, so a broken plan either crashed with a traceback or was
+        # reported as "a splice defect: the base parsed" — which was false. Repairing a plan
+        # nobody else may edit is this verb's whole purpose, so an unreadable base must refuse
+        # cleanly and say which document is at fault.
+        raw = base_bytes.decode("utf-8")
+        try:
+            base_doc = yaml.safe_load(raw)
+        except yaml.YAMLError as exc:
+            raise harness_merge.MergeRefusal(
+                8, [f"plan-merge: the plan on disk does not parse, so amend cannot tell whether "
+                    f"its own splice made things worse — {exc}"])
+        cur = raw.splitlines(keepends=True)
         s2, e2, i2 = _item_range(cur, args.key, args.id)
         if s2 is None:
             raise harness_merge.MergeRefusal(
@@ -1098,16 +1192,24 @@ def cmd_amend(args):
         if hashlib.sha256("".join(cur[f2:l2]).encode("utf-8")).hexdigest() != args.expect_sha256:
             raise harness_merge.MergeRefusal(
                 6, [f"plan-merge: {args.id}.{args.field} changed between the read and the lock."])
-        spliced = "".join(cur[:f2] + _render_field(ind2, args.field, value_text) + cur[l2:])
-        try:
-            reloaded = yaml.safe_load(spliced)
-        except yaml.YAMLError as exc:
-            raise harness_merge.MergeRefusal(
-                8, [f"plan-merge: the amended plan would not parse — {exc}"])
-        # DO NO HARM, the rule line 358 already sets: only hold the splice to the plan schema
-        # when the BASE satisfied it. A plan mid-authoring legitimately does not yet, and
-        # refusing to amend it would make this verb useless exactly where it is needed most.
-        if _schema_error(yaml.safe_load(base_bytes.decode("utf-8"))) is None:
+        spliced = "".join(cur[:f2]
+                         + _render_field(ind2, args.field, value_text, cur[f2:l2])
+                         + cur[l2:])
+        # THE CHECK THAT ACTUALLY BINDS (panel V3). The hash proves the block replaced is the
+        # block that was read; it cannot see that the splice landed in the wrong FIELD, nor that
+        # the value was re-formed on the way in, because both hashes are taken over whatever the
+        # locator returned. This compares the reloaded VALUE against what was asked for — the
+        # discipline `_verify_signature` already held for signing, and `amend` did not inherit.
+        #
+        # A `|` body KEEPS its trailing newline on reload, so the expected value is the file's
+        # bytes verbatim; a plain scalar carries none. Getting that backwards made the identity
+        # check refuse a CORRECT write, found by replacing a real `verify: |` with itself.
+        want = (value_text if BLOCK_HEAD_RE.match(cur[f2]) else value_text.strip("\n"))
+        reloaded = _verify_amend(spliced.encode("utf-8"), args.key, args.id, args.field, want)
+        # DO NO HARM: hold the splice to the plan schema only when the BASE satisfied it. A plan
+        # mid-authoring legitimately does not, and refusing to amend it would make this verb
+        # useless exactly where it is needed most.
+        if _schema_error(base_doc) is None:
             err = _schema_error(reloaded)
             if err:
                 raise harness_merge.MergeRefusal(

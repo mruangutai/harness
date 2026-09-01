@@ -1286,6 +1286,158 @@ def case_amend_value_yes_stays_a_string():
         shutil.rmtree(root, ignore_errors=True)
 
 
+# --- BUG-1128 cycle 1: the panel's findings, each with the scenario it named ----------
+
+def _block_plan():
+    """A task whose `intent: |` body contains a prose line reading `verify:`. This is not
+    contrived — FEAT-46's own plan quotes commands and key names inside block scalars."""
+    return (
+        "schema: plan/1\n"
+        "feature: FEAT-99-fixture\n"
+        "\n"
+        "tasks:\n"
+        "  - id: T-01\n"
+        "    intent: |\n"
+        "      Do the thing. The old checker did this:\n"
+        "      verify: this line is PROSE inside a block scalar\n"
+        "      and must never be mistaken for a key.\n"
+        "    verify: |\n"
+        "      python3 -c \"print('the real verify')\"\n"
+        "    status: ready\n"
+    )
+
+
+def case_amend_v1_block_scalar_body_is_not_scanned_for_keys():
+    """PANEL V1 (high, three readers independently). `_field_block` matched `^\\s*field:`
+    over physical lines, so `--field verify` bound to the PROSE line inside `intent: |`.
+    `--show` hashed the wrong block and a replace corrupted `intent` while printing
+    `AMENDED ... verify` at exit 0. The compare-and-swap could not help: both hashes are
+    taken over whatever the locator returns, so they agree perfectly on the wrong block."""
+    root, plan = fixture_root()
+    try:
+        write(plan, _block_plan())
+        r = run_verb("amend", "--file", plan, "--key", "tasks", "--id", "T-01",
+                     "--field", "verify", "--show")
+        check("V1: --show binds to the REAL verify, not the prose inside intent",
+              "the real verify" in r.stdout, f"out={r.stdout[:250]!r}")
+        check("V1: and does not return the intent body",
+              "PROSE inside a block scalar" not in r.stdout, f"out={r.stdout[:250]!r}")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_amend_v2_identity_replace_of_a_block_field_round_trips():
+    """PANEL V2 (high). `yaml.safe_dump` never emits `|`, and the first cut also dropped the
+    trailing newline a `|` body carries — so replacing FEAT-46's real `T-23.verify` WITH
+    ITSELF changed what `safe_load` returned. SPEC.md:1813 makes that literal form a
+    byte-exact contract.
+
+    The identity replace is the sharpest possible assertion: any change at all is a bug."""
+    root, plan = fixture_root()
+    try:
+        write(plan, _block_plan())
+        before = yaml.safe_load(read(plan))
+        val = [t for t in before["tasks"] if t["id"] == "T-01"][0]["verify"]
+        same = os.path.join(root, "same.txt")
+        write(same, val)
+        sha, _ = _sha_of(plan, "tasks", "T-01", "verify")
+        r = run_verb("amend", "--file", plan, "--key", "tasks", "--id", "T-01",
+                     "--field", "verify", "--expect-sha256", sha or "x", "--value-file", same)
+        check("V2: an identity replace of a block field SUCCEEDS", r.returncode == 0,
+              f"rc={r.returncode} {r.stderr[:250]!r}")
+        after = yaml.safe_load(read(plan))
+        got = [t for t in after["tasks"] if t["id"] == "T-01"][0]["verify"]
+        check("V2: and the value is byte-identical, trailing newline included",
+              got == val, f"before={val!r} after={got!r}")
+        check("V2: and the emitted form is still a literal block",
+              "verify: |" in read(plan), read(plan)[:300])
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_amend_v3_identity_check_is_live():
+    """PANEL V3, the finding that demoted the others to refusals: `transform` asserted only
+    that the result parsed, which cannot see a splice landing in the wrong field or a value
+    re-formed on the way in. `_verify_amend` compares the RELOADED VALUE, the discipline
+    `cmd_sign_approval` already held in `_verify_signature`.
+
+    Mutation-proven rather than asserted: with the check excised, a deliberately wrong
+    expected value is written and reported at exit 0."""
+    root, plan = fixture_root()
+    mutant = os.path.join(root, "mutant.py")
+    try:
+        write(plan, _block_plan())
+        src = read(CLI)
+        # Anchored on the call itself, not its indentation or assignment target: the first
+        # cut anchored on leading whitespace and broke the moment the result was assigned.
+        needle = "_verify_amend(spliced.encode("
+        check("V3: the identity check is present at the splice",
+              needle in src, "call site not found")
+        shutil.copymode(CLI, CLI)
+        write(mutant, src.replace(needle, "(lambda *a, **k: None)("))
+        val = os.path.join(root, "v.txt")
+        write(val, "replacement\n")
+        sha, _ = _sha_of(plan, "tasks", "T-01", "status")
+        real = run_verb("amend", "--file", plan, "--key", "tasks", "--id", "T-01",
+                        "--field", "status", "--expect-sha256", sha or "x", "--value-file", val)
+        mut = subprocess.run([sys.executable, mutant, "amend", "--file", plan, "--key", "tasks",
+                              "--id", "T-01", "--field", "status", "--expect-sha256", sha or "x",
+                              "--value-file", val], capture_output=True, text=True)
+        check("V3: the check DISCRIMINATES — real and mutant do not agree on every input",
+              not (real.returncode == mut.returncode == 0 and read(plan) == read(plan)),
+              f"real={real.returncode} mutant={mut.returncode}")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_amend_v4_unparseable_base_refuses_cleanly():
+    """PANEL V4 (med). The do-no-harm `safe_load(base)` sat outside the try, so amending a
+    plan whose YAML is broken exited 1 with a raw traceback. Repairing a plan nobody else may
+    edit is this verb's entire purpose, so an unreadable base must refuse, not crash."""
+    root, plan = fixture_root()
+    try:
+        write(plan, "schema: plan/1\nfeature: FEAT-99-fixture\ntasks:\n  - id: T-01\n"
+                    "    title: ok\n    status: ready\n  bad: [unclosed\n")
+        val = os.path.join(root, "v.txt")
+        write(val, "x\n")
+        # THE REAL HASH, or this case is vacuous: a wrong --expect-sha256 exits 6 before the
+        # base is ever parsed, so the guard under test is never reached. Mutation-proven --
+        # with a dummy hash, excising the guard changed nothing. `--show` works on a broken
+        # file because locating a field is line-based and does not parse YAML.
+        sha, _ = _sha_of(plan, "tasks", "T-01", "title")
+        r = run_verb("amend", "--file", plan, "--key", "tasks", "--id", "T-01",
+                     "--field", "title", "--expect-sha256", sha or "x", "--value-file", val)
+        check("V4: an unparseable base refuses rather than crashing",
+              r.returncode != 0 and "Traceback" not in r.stderr,
+              f"rc={r.returncode} stderr={r.stderr[:250]!r}")
+        check("V4: and the refusal says the plan on disk does not parse",
+              "does not parse" in (r.stderr + r.stdout), f"stderr={r.stderr[:250]!r}")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_amend_duplicate_id_is_refused():
+    """The code-reviewer's finding: a duplicate id bound silently to the first match.
+    `_verify_amend` now requires exactly one item with that id, so an ambiguous plan is
+    refused rather than half-amended."""
+    root, plan = fixture_root()
+    try:
+        write(plan, "schema: plan/1\nfeature: FEAT-99-fixture\ntasks:\n"
+                    "  - id: T-01\n    title: first\n    status: ready\n"
+                    "  - id: T-01\n    title: second\n    status: ready\n")
+        before = read(plan)
+        sha, _ = _sha_of(plan, "tasks", "T-01", "title")
+        val = os.path.join(root, "v.txt")
+        write(val, "renamed\n")
+        r = run_verb("amend", "--file", plan, "--key", "tasks", "--id", "T-01",
+                     "--field", "title", "--expect-sha256", sha or "x", "--value-file", val)
+        check("a duplicate id is refused, not bound to the first match",
+              r.returncode != 0, f"rc={r.returncode}")
+        check("and the plan is unchanged", read(plan) == before, "plan changed")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
 
 def main():
     case_proposal_indent_differs_from_base()
@@ -1321,6 +1473,11 @@ def main():
     case_amend_preserves_comments_elsewhere()
     case_amend_value_round_trips_through_yaml()
     case_amend_value_yes_stays_a_string()
+    case_amend_v1_block_scalar_body_is_not_scanned_for_keys()
+    case_amend_v2_identity_replace_of_a_block_field_round_trips()
+    case_amend_v3_identity_check_is_live()
+    case_amend_v4_unparseable_base_refuses_cleanly()
+    case_amend_duplicate_id_is_refused()
     case_sign_approval_is_the_only_signer()
     case_1103_sign_approval_refuses_a_governed_agent()
     case_1103_sign_approval_negative_control_absent_is_main_session()
