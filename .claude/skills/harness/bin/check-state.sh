@@ -195,10 +195,20 @@ for feat in states:
 # FABRICATE twelve signatures nobody gave. A check that can only be passed by inventing a record
 # is measuring the wrong thing.
 #
+# KEYED ON THE POSITIVE DECLARATION, NEVER ON THE ABSENCE OF TASKS (FEAT-41 MF-3). The first
+# version tested `if not doc["tasks"]`, and cycle 3 proved end to end what that cost: a Bash write
+# emptied a SIGNED plan's `tasks:` while keeping its `approval:` and `status:`, the document
+# inherited this exemption, and a real dangling-STATE.md-task violation went SILENT. An emptied
+# plan carries no `station_only:` marker, so it now fails to LOAD -- which is already a violation,
+# so the forged state is louder than the check it was escaping.
+#
+# AN ABSENCE CANNOT BE A CREDENTIAL. A checker must be TOLD a fact, never infer one from a missing
+# field; that is the same shape as the B-7 fail-open the loader's own comment records.
+#
 # THE EXEMPTION CANNOT WIDEN SILENTLY: a plan WITH tasks is still held to both, asserted by
-# case (inv34.d), which goes red the moment this becomes the rule for every plan in the tree.
+# case (inv34.d), and case (inv34.e) covers the emptied-plan state cycle 3 found uncovered.
 for feat, doc in plan_docs.items():
-    if not doc["tasks"]:
+    if doc.get("station_only") is True:
         continue
     _appr = doc.get("approval")
     if not isinstance(_appr, dict):
@@ -1131,9 +1141,10 @@ for fy in sorted(glob.glob(os.path.join(H, "*", "features", "*", "feature.json")
     if not os.path.isfile(os.path.join(_fdir, "plan.yaml")):
         bad.append(f"INV-34: {os.path.basename(_fdir)} has no plan.yaml, so it has nowhere to "
                    f"record its station — feature.json cannot hold one (the schema declares no "
-                   f"`status` key). Create a station-only record: "
-                   f"`schema: plan/1`, `feature:`, `status: <station>`, `tasks: []`, written "
-                   f"through plan-merge.py apply.")
+                   f"`status` key). Create a station-only record: `schema: plan/1`, `feature:`, "
+                   f"`status: <station>`, `station_only: true`, `tasks: []`, written through "
+                   f"plan-merge.py apply. The marker is REQUIRED and is not inferred from an "
+                   f"empty `tasks:` — an emptied plan is not a station-only record.")
 
 # --- INV-23 (DEC-150, mechanized — issue #132): the feature.json and STATE.md budgets,
 # swept from DISK. check-domain.sh enforces the same numbers on a WRITE payload, which is

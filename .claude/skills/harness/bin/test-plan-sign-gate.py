@@ -325,5 +325,59 @@ check("C2-03 NEGATIVE CONTROL: expansions used as ordinary arguments on an `appl
       rc == 0, f"rc={rc} stderr={err[:300]!r}")
 
 
+# ---------------------------------------------------------------------------------------
+# FEAT-41 MF-1, high, found INDEPENDENTLY by cycle 3's code reviewer and security reviewer, both
+# running the exact string through the real gate: exit 0, a real approval signature forged.
+#
+# THE SAME CLASS AS C2-03, ONE MEMBER LATER, and that is the finding about me rather than about
+# the code: C2-03 closed `${IFS}` and I wrote a regex for BRACED expansion only. An unquoted
+# `$(...)` word-splits identically -- `set --` proof gives argc=2 -- and backticks do the same.
+# MEASURED at source before fixing:
+#     bash  -> argc=3, so `sign-approval` arrives as its own argument
+#     gate  -> tokens ['plan-merge.py$', '(', 'printf', ...]; `(` and `)` are OPS and drop out,
+#              so the token after the tool is `printf`, the adjacency never fires, and RAW_SIGN's
+#              `["'\s]` class sees `)` rather than whitespace
+#
+# THE PANEL'S STANDING OBJECTION IS RECORDED RATHER THAN ANSWERED: this file is a DENYLIST of
+# evasion forms and closing two members does not make it complete. `cmd_sign_approval` has no
+# identity check of its own, so this gate is the sole enforcement REQ-05 rests on, and no runtime
+# identity signal reaches a subprocess today (`HARNESS_AGENT_ID` is a marker inside agent
+# definition files, not an env var) -- so the structural fix is not available from here. Routed up.
+# ---------------------------------------------------------------------------------------
+for _sub in ('$(printf " ")', "$(echo)", "$(:)", "`printf ' '`", '$(printf "%s" " ")'):
+    rc, err = gate(f"python3 .claude/skills/harness/bin/plan-merge.py{_sub}sign-approval "
+                   f"--file p.yaml --by Someone --date 2026-01-01",
+                   agent_type="harness-orchestrator")
+    check(f"MF-1: `plan-merge.py{_sub}sign-approval` is DENIED — a command substitution "
+          f"word-splits exactly as ${{IFS}} does",
+          rc == 2, f"rc={rc} stderr={err[:300]!r}")
+
+# NESTED SUBSTITUTION, because a naive `\$\([^)]*\)` stops at the FIRST `)` and would leave the
+# outer one behind -- which is how a one-line regex fix would have looked correct and leaked.
+rc, err = gate('python3 .claude/skills/harness/bin/plan-merge.py$(echo "$(printf " ")")'
+               'sign-approval --file p.yaml --by Someone --date 2026-01-01',
+               agent_type="harness-orchestrator")
+check("MF-1: a NESTED command substitution is DENIED — the scan must balance parens, not stop at "
+      "the first one",
+      rc == 2, f"rc={rc} stderr={err[:300]!r}")
+
+# NEGATIVE CONTROL, and the one that bounds the widening: a substitution used as an ordinary
+# ARGUMENT on a legitimate `apply` line stays allowed. Real words still sit between tool and verb.
+rc, err = gate("python3 .claude/skills/harness/bin/plan-merge.py apply --file $(ls p.yaml) "
+               "--proposal q.yaml  # not a sign-approval call",
+               agent_type="harness-orchestrator")
+check("MF-1 NEGATIVE CONTROL: a substitution as an ordinary argument on an `apply` line is still "
+      "allowed — neutralising it does not make every mention of the verb a signing attempt",
+      rc == 0, f"rc={rc} stderr={err[:300]!r}")
+
+# AND A DATE SUBSTITUTION ON A REAL SIGNING CALL IS STILL DENIED, which it already was -- asserted
+# so the neutralisation cannot accidentally turn a legitimate deny into an allow.
+rc, err = gate("python3 .claude/skills/harness/bin/plan-merge.py sign-approval --file p.yaml "
+               "--by Someone --date $(date +%F)",
+               agent_type="harness-orchestrator")
+check("MF-1: a normal signing call carrying a substitution in --date is still DENIED",
+      rc == 2, f"rc={rc} stderr={err[:300]!r}")
+
+
 print(f"\n{fails} failing." if fails else "\nall checks passed.")
 raise SystemExit(1 if fails else 0)

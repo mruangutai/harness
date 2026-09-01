@@ -316,8 +316,26 @@ def real(path):
     the normal case for a Write. Applied to BOTH sides of every comparison: resolving
     only the target would break any checkout reached through a link (`/var` on macOS is
     itself a link to `/private/var`).
+
+    AN UNRESOLVABLE PATH RETURNS ITS ABSOLUTE FORM RATHER THAN RAISING (FEAT-41 MF-2). realpath
+    raises ValueError -- not OSError -- on an embedded NUL, and this function is called from
+    `classify`, which runs inside check-domain.sh's Python body. That ValueError propagated all
+    the way out, and by that hook's own header exit 1 is NON-BLOCKING, so a single NUL in
+    `tool_input.file_path` disabled EVERY domain grant, budget and route denial at once and the
+    write proceeded.
+
+    MEASURED, AND THE ATTRIBUTION CORRECTED: cycle 3's panel reported this as introduced by
+    FEAT-41's own `_resolved_rel`. Running the identical fixture against `origin/main` reproduces
+    it at exit 1, so it is PRE-EXISTING and lives here. The finding was right; its blame was not.
+
+    Returning the absolute form keeps this function total. Callers that need to REFUSE an
+    unresolvable path do so on their own terms -- check-domain.sh's route denial treats one as a
+    refusal -- rather than depending on an exception from a path-normalising helper.
     """
-    return os.path.realpath(os.path.abspath(path))
+    try:
+        return os.path.realpath(os.path.abspath(path))
+    except (OSError, ValueError):
+        return os.path.abspath(path)
 
 
 def resolve_fleet(root, label):

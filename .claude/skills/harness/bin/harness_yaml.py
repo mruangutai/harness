@@ -323,23 +323,32 @@ def load_plan(path):
         # A plan with no tasks is not a plan. Silence here would be the same
         # fail-open B-7 was: a checker reporting a clean tree it never looked at.
         raise PlanSchemaError(path, "`tasks:` is missing or not a list")
-    if not tasks and not str(doc.get("status") or "").strip():
+    if not tasks and not (doc.get("station_only") is True
+                          and str(doc.get("status") or "").strip()):
         # A STATION-ONLY RECORD IS LEGAL; AN ACCIDENTALLY EMPTY PLAN IS NOT (FEAT-41 T-19).
         #
         # The rule above is narrowed, NOT relaxed, and the reason it was written for is the
         # reason the narrowing is safe. Under the one-record rule every feature needs a plan.yaml
-        # to hold its station, and thirteen directories have none -- they predate the format or
-        # were opened as bug fixes. For those the honest content is a station and no tasks;
-        # inventing tasks to satisfy a schema would be fabrication.
+        # to hold its station, and twelve directories had none -- they predate the format or were
+        # opened as bug fixes. For those the honest content is a station and no tasks; inventing
+        # tasks to satisfy a schema would be fabrication.
         #
-        # An explicit `tasks: []` ALONGSIDE a top-level `status:` cannot be the silence B-7 was
-        # about: it carries a fact a checker can act on, and an accidentally empty plan has
-        # neither key. So the line is between a positive declaration and an absence, and the
-        # absence still raises here.
+        # THE MARKER IS REQUIRED, AND `tasks: []` PLUS `status:` IS NOT ENOUGH (FEAT-41 MF-3).
+        # The first version of this keyed on the ABSENCE of tasks, and cycle 3 proved end to end
+        # what that cost: a Bash write emptied a SIGNED plan's `tasks:` while keeping its
+        # `approval:` and `status:`, and the emptied document inherited the station-only
+        # exemption downstream -- a real dangling-task violation went SILENT. An emptied plan
+        # carries no `station_only:` marker, so it now fails to LOAD, and a plan that does not
+        # load is already a violation. The forged state became louder than the check it escaped.
+        #
+        # AN ABSENCE CANNOT BE A CREDENTIAL. That is the general form of the mistake, and it is
+        # the same shape as B-7's fail-open: a checker must be told a fact, never infer one from
+        # a missing field.
         raise PlanSchemaError(
             path,
-            "`tasks:` is empty and there is no top-level `status:` — a plan with neither "
-            "records nothing. A station-only record must declare the station it records.")
+            "`tasks:` is empty, so this must be a station-only record and must SAY so: it "
+            "needs `station_only: true` and a top-level `status:`. An emptied plan is not a "
+            "station-only record.")
 
     seen = set()
     for i, t in enumerate(tasks):

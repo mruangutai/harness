@@ -130,21 +130,65 @@ CONTINUATION = re.compile(r"\\\r?\n")
 BRACED_EXPANSION = re.compile(r'"?\$\{[^{}]*\}"?')
 
 
-def as_bash_reads_it(line):
-    """Rejoin continued lines and neutralise braced expansions, so both scanners see the words
-    bash will actually execute.
+def _strip_substitutions(line):
+    """Replace every `$(...)` and backtick substitution with a space.
 
-    ONE MECHANISM, APPLIED BEFORE EITHER PATH -- for the third time in this file's history. F-03
-    needed its separator fix in the token scan AND the text fallback; H-02 needed the same for
-    the continuation; this is the same shape again, and teaching two scanners separately would
-    leave the same asymmetry one escape away.
+    SCANNED, NOT REGEXED, and the nested case is why (FEAT-41 MF-1). `\\$\\([^)]*\\)` stops at the
+    FIRST `)`, so `$(echo "$(printf " ")")` would leave the outer `)` behind and the token would
+    still not split where bash splits it -- a one-line fix that looks right and leaks. There is a
+    case for exactly that shape.
+    """
+    out, i, n = [], 0, len(line)
+    while i < n:
+        if line[i] == "$" and i + 1 < n and line[i + 1] == "(":
+            depth, j = 0, i + 1
+            while j < n:
+                if line[j] == "(":
+                    depth += 1
+                elif line[j] == ")":
+                    depth -= 1
+                    if depth == 0:
+                        break
+                j += 1
+            # An UNCLOSED substitution consumes the rest of the line. That is deliberate: bash
+            # cannot run it either, and leaving the text behind would let a truncated `$(` hide
+            # the verb from the scan while a later heredoc or continuation completed it.
+            out.append(" ")
+            i = j + 1
+            continue
+        if line[i] == "`":
+            j = line.find("`", i + 1)
+            out.append(" ")
+            i = (j + 1) if j != -1 else n
+            continue
+        out.append(line[i])
+        i += 1
+    return "".join(out)
+
+
+def as_bash_reads_it(line):
+    """Rejoin continued lines and neutralise expansions and substitutions, so both scanners see
+    the words bash will actually execute.
+
+    ONE MECHANISM, APPLIED BEFORE EITHER PATH -- for the FOURTH time in this file's history. F-03
+    needed its separator fix in the token scan AND the text fallback; H-02 needed it for the
+    continuation; C2-03 for `${IFS}`; this is `$(...)` and backticks, the next member of C2-03's
+    own class. The repetition is the point: teaching two scanners separately leaves the same
+    asymmetry one escape away every time.
 
     THE HONEST RULE IS NOT "EVALUATE THE SHELL", which no PreToolUse hook can do. It is that an
-    expansion COULD be whitespace, so a gate deciding ADJACENCY must assume it is. That is
-    bounded: ordinary WORDS between the tool and the verb are not expansions and still break the
-    adjacency, which is what this file's `apply`-mentions-the-verb controls assert.
+    expansion or substitution COULD be whitespace, so a gate deciding ADJACENCY must assume it is.
+    That is bounded: ordinary WORDS between the tool and the verb are not expansions and still
+    break the adjacency, which is what this file's `apply`-mentions-the-verb controls assert.
+
+    AND IT IS STILL A DENYLIST. Cycle 3's panel said so plainly and it is recorded here rather
+    than argued with: closing two members of a class does not close the class, and no reviewer can
+    enumerate the shell. The structural answer is an identity check inside `cmd_sign_approval`,
+    which cannot be written today -- no runtime identity signal reaches a subprocess, since
+    `HARNESS_AGENT_ID` is a marker inside agent definition FILES rather than an environment
+    variable. That design question is routed up, not silently left implied by a passing suite.
     """
-    return BRACED_EXPANSION.sub(" ", CONTINUATION.sub("", line))
+    return BRACED_EXPANSION.sub(" ", _strip_substitutions(CONTINUATION.sub("", line)))
 
 
 def denies(line, depth=0):

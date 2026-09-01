@@ -1573,11 +1573,21 @@ def _resolved_rel(path):
     It also replaces the hop walk, which existed only because realpath was used on ONE side:
     `/var` is itself a link to `/private/var` here, so resolving the path but not the root left a
     relpath full of `..` that matched no pattern. Resolving the root too removes that reason, and
-    with it the hop cap -- realpath follows a chain of ANY length, and raises on a loop.
+    with it the hop cap -- realpath follows a chain of ANY length.
+
+    IT DOES NOT RAISE ON A LOOP, and this docstring claimed it did (FEAT-41 MF-5). MEASURED:
+    `os.path.realpath` is non-strict by default and returns the path resolved as far as it can, so
+    a symlink loop RESOLVES. A case asserts a loop stays allowed, because a wrong claim here was
+    the justification for a fail-closed branch that could never fire.
+
+    ValueError IS CAUGHT, NOT ONLY OSError (FEAT-41 MF-2). realpath raises ValueError on an
+    embedded NUL, which used to propagate out of this whole Python body -- and by this file's own
+    header exit 1 is NON-BLOCKING, so the write proceeded. `_plan_route` runs unconditionally, so
+    one NUL took budgets, domain grants and the route denial down together.
     """
     try:
         return os.path.relpath(os.path.realpath(path), os.path.realpath(root))
-    except OSError:
+    except (OSError, ValueError):
         return None
 
 
@@ -1593,7 +1603,8 @@ def _hardlink_plan(path):
     """
     try:
         st = os.stat(path)
-    except OSError:
+    except (OSError, ValueError):
+        # ValueError for the same reason as `_resolved_rel` -- an embedded NUL (FEAT-41 MF-2).
         return None
     if st.st_nlink < 2:
         return None
@@ -1615,14 +1626,18 @@ def _plan_route(path):
         return as_typed
     resolved = _resolved_rel(path)
     if resolved is None:
-        # FAIL CLOSED, and this is the correction that matters most (FEAT-41 C2-02). The hop cap
-        # this replaces failed OPEN: when it ran out, the real plan.yaml never entered the
-        # candidate list, the shape test found nothing, and the write was PERMITTED. A path whose
-        # resolution cannot be established is exactly when a route denial must refuse -- an
-        # unresolvable link is the shape an evasion has, not the shape ordinary work has.
-        if os.path.islink(path):
-            return as_typed
-        return None
+        # UNRESOLVABLE IS ITS OWN ANSWER, AND IT IS A REFUSAL (FEAT-41 MF-5, and MF-2's remedy
+        # lands here). This used to be conditional on `os.path.islink(path)`, which made it DEAD
+        # for the case it mattered for: measured, `os.path.islink` on a NUL-bearing path is
+        # False, so widening `_resolved_rel`'s except to return None would have reopened the hole
+        # two lines from its own fix. Cycle 3's panel saw that coupling; neither of its reviewers
+        # could, because one found the crash and the other found the dead branch.
+        #
+        # REFUSING IS SAFE BECAUSE NON-STRICT realpath ALREADY SUCCEEDS FOR ABSENT PATHS. The
+        # only ways left to be unresolvable are pathological -- a NUL, or an OS-level path error.
+        # Ordinary work never produces one, and a first write to a not-yet-existing note resolves
+        # fine, which its own negative control asserts.
+        return as_typed
     if RE_PLAN_YAML.match(resolved):
         return resolved
     return _hardlink_plan(path)

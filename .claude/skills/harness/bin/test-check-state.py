@@ -3858,7 +3858,8 @@ def _i34_fixture(tmp, with_plan):
     feat = os.path.join(h, "harness", "features", "FEAT-TEST")
     if with_plan:
         with open(os.path.join(feat, "plan.yaml"), "w") as f:
-            f.write("schema: plan/1\nfeature: FEAT-TEST\nstatus: done\ntasks: []\n")
+            f.write("schema: plan/1\nfeature: FEAT-TEST\nstatus: done\n"
+                    "station_only: true\ntasks: []\n")
     return feat
 
 
@@ -3939,7 +3940,8 @@ def case_inv34_station_only_is_out_of_scope():
     """
     results = []
     with tempfile.TemporaryDirectory() as tmp:
-        _i34_station_only(tmp, "tasks: []\n", state_md="## Current\nsee T-01 and T-99\n")
+        _i34_station_only(tmp, "station_only: true\ntasks: []\n",
+                          state_md="## Current\nsee T-01 and T-99\n")
         code, out = run(tmp)
         quiet = ("no `approval:` block" not in out) and ("which is absent from its" not in out)
         results.append(("(inv34.c) a station-only plan is exempt from the approval and "
@@ -3958,6 +3960,38 @@ def case_inv34_a_real_plan_is_still_checked():
         loud = ("no `approval:` block" in out) and ("T-99" in out)
         results.append(("(inv34.d) a plan WITH tasks is still checked for approval and for "
                         "STATE.md task ids", loud, out[:400]))
+    return results
+
+
+
+def case_inv34_an_emptied_plan_is_not_station_only():
+    """FEAT-41 MF-3, high, proven END TO END by cycle 3's code reviewer.
+
+    A Bash write emptied a SIGNED plan's `tasks:` while keeping its `approval:` and `status:`.
+    The old exemption keyed on the ABSENCE of tasks, so the forged document inherited it and a
+    real dangling-STATE.md-task violation went SILENT. Cycle 3 also showed the existing control
+    was PARTLY VACUOUS -- deleting the exemption line left it green -- and that NO case covered
+    this state. This is that case.
+
+    THE FIX MAKES THE FORGED STATE LOUDER, not merely caught: an emptied plan carries no
+    `station_only:` marker, so `load_plan` refuses it, and a plan that does not load is already a
+    violation. The point is general -- AN ABSENCE CANNOT BE A CREDENTIAL. A checker must be told a
+    fact, never infer one from a missing field.
+    """
+    results = []
+    with tempfile.TemporaryDirectory() as tmp:
+        feat = _i34_station_only(tmp, _I34_TASK, state_md="## Current\nsee T-99\n")
+        plan = os.path.join(feat, "plan.yaml")
+        with open(plan, "w") as f:
+            f.write("schema: plan/1\nfeature: FEAT-TEST\nstatus: done\n"
+                    "approval:\n  status: approved\n  approved_by: X\n  date: 2026-01-01\n"
+                    "tasks: []\n")
+        code, out = run(tmp)
+        # It must NOT go quiet. Either the load refusal or the dangling-task line is acceptable
+        # evidence; what is unacceptable is silence, which is what the old keying produced.
+        loud = ("does not load" in out) or ("T-99" in out)
+        results.append(("(inv34.e) a SIGNED plan emptied to `tasks: []` does NOT inherit the "
+                        "station-only exemption", loud, out[:500]))
     return results
 
 
@@ -3991,7 +4025,8 @@ def main():
     # FEAT-41 T-19 — INV-34: every feature directory carries a plan.yaml.
     _i34 = (case_inv34_plan_required() + case_inv34_present_is_silent()
             + case_inv34_station_only_is_out_of_scope()
-            + case_inv34_a_real_plan_is_still_checked())
+            + case_inv34_a_real_plan_is_still_checked()
+            + case_inv34_an_emptied_plan_is_not_station_only())
     ok_i34 = True
     for _name, _ok, _detail in _i34:
         print(f"{'ok' if _ok else 'FAIL'} - case {_name}")

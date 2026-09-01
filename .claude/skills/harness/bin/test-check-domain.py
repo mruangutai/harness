@@ -2904,6 +2904,70 @@ def _t09_case_fold():
             r.returncode == 0, f"exit {r.returncode}, stderr={r.stderr.strip()[:300]!r}")
 
 
+
+def _t09_unresolvable():
+    """12. An unresolvable path refuses, and does not take the hook down (FEAT-41 MF-2/MF-5)."""
+
+    # ---- 12. UNRESOLVABLE MEANS REFUSE, NOT CRASH AND NOT SHRUG (FEAT-41 MF-2 + MF-5) -----
+    # Cycle 3's panel, two findings that are one bug, and the panel saw a coupling neither of its
+    # own reviewers could: the obvious fix for the crash lands inside the dead branch.
+    #
+    #   MF-2: `os.path.realpath` raises ValueError -- NOT OSError -- on an embedded NUL, so it
+    #         escaped `_resolved_rel`'s except and propagated out of the whole Python body. By
+    #         this file's own header, exit 1 is NON-blocking, so the write PROCEEDS. And
+    #         `_plan_route` is called unconditionally, so a NUL took budgets and domain grants
+    #         down with it, not only the plan route.
+    #   MF-5: the `islink` fail-closed branch was DEAD, and the docstring's claim that realpath
+    #         "raises on a loop" was FALSE. MEASURED both: realpath on a symlink loop RETURNS
+    #         (`/private/tmp/loopt/a`, non-strict), and `os.path.islink` on a NUL path is False.
+    #         So widening the except to return None would have routed to a branch that never
+    #         fires -- the hole reopening two lines away from its own fix.
+    #
+    # THE FIX IS THAT UNRESOLVABLE IS ITS OWN ANSWER. Not None, which means "not the plan", but a
+    # refusal. Non-strict realpath succeeds for paths that merely do not exist, so the only ways
+    # to be unresolvable are pathological -- a NUL, or an OS-level path error. Ordinary work never
+    # produces one, which is what makes refusing safe rather than obstructive.
+    root12, _p12 = _approval_root(rel=".harness/harness/features/FEAT-99-fixture/plan.yaml",
+                                  body=_PLAN_LEGAL)
+    nul = os.path.join(root12, ".harness", "harness", "features", "FEAT-99-fixture",
+                       "innocent\x00.md")
+    payload = {"agent_type": "harness-orchestrator", "tool_name": "Write",
+               "tool_input": {"file_path": nul, "content": _PLAN_LEGAL}}
+    r12 = subprocess.run([HOOK], input=json.dumps(payload), capture_output=True,
+                         text=True, env=_env(root12))
+    t09("T-09 12: a NUL-bearing path is REFUSED at exit 2, not exit 1 — exit 1 is non-blocking "
+        "here, so a crash is a fail-OPEN",
+        r12.returncode == 2, f"exit {r12.returncode}, stderr={r12.stderr.strip()[:300]!r}")
+    t09("T-09 12: and it does not crash — no traceback reaches the operator",
+        "Traceback" not in r12.stderr, f"stderr={r12.stderr.strip()[:300]!r}")
+
+    # NEGATIVE CONTROL. A path that simply DOES NOT EXIST is resolvable (realpath is non-strict)
+    # and must stay allowed, or every first write of a new note would be refused.
+    root12b, _p12b = _approval_root(rel=".harness/harness/features/FEAT-99-fixture/plan.yaml",
+                                    body=_PLAN_LEGAL)
+    fresh = os.path.join(root12b, ".harness", "harness", "features", "FEAT-99-fixture",
+                         "notes", "brand-new.md")
+    os.makedirs(os.path.dirname(fresh), exist_ok=True)
+    r12b = _fire_write(root12b, fresh, "# new\n", agent="harness-orchestrator")
+    t09("T-09 12 NEGATIVE CONTROL: a path that does not exist yet is still ALLOWED — realpath is "
+        "non-strict, so absence is not unresolvable",
+        r12b.returncode == 0, f"exit {r12b.returncode}, stderr={r12b.stderr.strip()[:300]!r}")
+
+    # AND A SYMLINK LOOP, which the docstring wrongly claimed realpath raises on. It RESOLVES,
+    # so the loop is not the unresolvable case and must not be reported as one.
+    root12c, _p12c = _approval_root(rel=".harness/harness/features/FEAT-99-fixture/plan.yaml",
+                                    body=_PLAN_LEGAL)
+    featc = os.path.join(root12c, ".harness", "harness", "features", "FEAT-99-fixture")
+    os.makedirs(os.path.join(featc, "notes"), exist_ok=True)
+    os.symlink("loop-b.md", os.path.join(featc, "notes", "loop-a.md"))
+    os.symlink("loop-a.md", os.path.join(featc, "notes", "loop-b.md"))
+    r12c = _fire_write(root12c, os.path.join(featc, "notes", "loop-a.md"), "x\n",
+                       agent="harness-orchestrator")
+    t09("T-09 12: a symlink LOOP is allowed, not refused — realpath resolves it rather than "
+        "raising, which the old docstring had backwards",
+        r12c.returncode == 0, f"exit {r12c.returncode}, stderr={r12c.stderr.strip()[:300]!r}")
+
+
 def run_t09():
     """FEAT-41 T-09: plan.yaml has exactly ONE writer, and the editor routes are refused."""
     global _T09_FAILS
@@ -2915,6 +2979,7 @@ def run_t09():
     _t09_symlink()
     _t09_other_routes()
     _t09_case_fold()
+    _t09_unresolvable()
     return _T09_FAILS
 
 

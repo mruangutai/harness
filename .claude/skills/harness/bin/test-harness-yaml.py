@@ -699,16 +699,28 @@ def test_load_plan_accepts_a_station_only_record_and_only_with_a_station():
     """
     import harness_yaml as hy
 
-    station_only = "schema: plan/1\nfeature: BUG-99-x\nstatus: review\ntasks: []\n"
+    station_only = ("schema: plan/1\nfeature: BUG-99-x\nstatus: review\n"
+                    "station_only: true\ntasks: []\n")
     with tempfile.TemporaryDirectory() as tmp:
         doc = hy.load_plan(_plan(tmp, station_only))
         assert doc["tasks"] == [], doc["tasks"]
         assert doc["status"] == "review", doc["status"]
+        assert doc["station_only"] is True, doc["station_only"]
 
     # THE NEGATIVE HALF, and it is the one that keeps the original reason intact: an empty task
     # list with NO station is still the fail-open the message warned about.
     for label, text in (
         ("empty tasks and no status", "schema: plan/1\nfeature: BUG-99-x\ntasks: []\n"),
+        # FEAT-41 MF-3, high. THE EXEMPTION MUST KEY ON A POSITIVE DECLARATION, not on the
+        # ABSENCE of tasks. Cycle 3 proved end to end that a Bash write could empty a SIGNED
+        # plan's `tasks:` while keeping its `approval:` and `status:`, and the emptied document
+        # then inherited the station-only exemption -- a real dangling-task violation went
+        # SILENT. An emptied plan carries no `station_only:` marker, so it now fails to LOAD,
+        # which is a louder outcome than the check it was escaping.
+        ("empty tasks, a status, but NO station_only marker",
+         "schema: plan/1\nfeature: BUG-99-x\nstatus: review\ntasks: []\n"),
+        ("empty tasks and station_only false",
+         "schema: plan/1\nfeature: BUG-99-x\nstatus: review\nstation_only: false\ntasks: []\n"),
         ("empty tasks and a blank status",
          "schema: plan/1\nfeature: BUG-99-x\nstatus: '   '\ntasks: []\n"),
         ("tasks absent entirely", "schema: plan/1\nfeature: BUG-99-x\nstatus: review\n"),

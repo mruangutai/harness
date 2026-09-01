@@ -1,4 +1,5 @@
 schema: plan/1
 feature: FEAT-04-decisions-index
 status: done
+station_only: true
 tasks: []
