@@ -4,7 +4,12 @@ Written at plan time so T-03 does not re-derive the rule set. The scope decision
 `plan.yaml` T-03 are not preferences: each one is the answer to a measured false-positive
 class, and a fourth variant would have been unusable.
 
-## The finding: exactly three files violate, at ten sites
+## The finding: exactly three files violate, at ten sites — re-derived, and corrected
+
+**Read the "Re-derived at `ccf674a`" section below before using any number here.** The ten
+sites are confirmed. Two other claims on this page did not survive re-derivation: the rule as
+written below does NOT give zero false positives, and the live tree now carries a fourth
+mutant site that FEAT-45 merged after this note was written.
 
 Scanning the three files at `ea6f51f` with the rule set T-03 specifies:
 
@@ -24,7 +29,8 @@ test-feature-worktree.py:605 os.remove
 Every one is a true positive, and all three are the same shape: a probe that needs the
 script under test to import its siblings, so it puts a mutant next to the original. T-01
 and T-02 fix all ten with one helper. Nothing else in the tree — 56 test files at
-`ea6f51f` — writes into the live checkout.
+`ea6f51f` — writes into the live checkout. **At `ccf674a` that last sentence is false: see
+below.**
 
 ## Three rule variants, measured, and why the third is the one
 
@@ -32,7 +38,7 @@ and T-02 fix all ten with one helper. Nothing else in the tree — 56 test files
 |---|---|---|
 | whole-file name taint | 47 | 37 — a function-local `tmp`, `path`, `fdir` in one function tainted the same name everywhere |
 | per-scope taint, order-sensitive | 15 | 5 — 4 were `str.replace` on source read from `__file__`, 1 was `os.symlink` where only args[0] is live |
-| + Path-typed receiver, + per-sink argument index | **10** | **0** |
+| + Path-typed receiver, + per-sink argument index | 10 claimed / **25 measured** | **0 claimed / 15 measured** — see the content-read correction below |
 
 The two refinements in the third row are therefore load-bearing, not polish:
 
@@ -102,6 +108,10 @@ def sink(call, tainted):
 Taint: walk the module body in source order, adding every `Assign` target whose value
 `mentions` the current set; that set seeds each function scope, and a function's own
 bindings (added the same way, in order, including `with ... as` targets) never leave it.
+**One clause is missing from that sentence and it is load-bearing** — a value expression that
+is a CONTENT READ (`.read`, `.readline`, `.readlines`, `.read_text`, `.read_bytes`, `.load`,
+`.safe_load`) binds the file's *content*, never a path, and must NOT propagate taint.
+`plan.yaml` T-03 states the corrected rule; this block is kept as written for provenance.
 
 ## Every verify block was run against the pre-change tree
 
@@ -111,8 +121,8 @@ A verify that would have passed before the work proves nothing (#979). Measured
 | task | exit | the output that makes it discriminating |
 |---|---|---|
 | T-01 | **1** | `bytes_equal True mtime_equal False crash_case 1 untouched_case 0` — the live module IS written today; the restore hides it from a bytes check but not from mtime |
-| T-02 | **1** | `appeared ['.mutant-check-state-t10.sh', '.mutant-check-state-t14.sh', '.mutant-feature-worktree-behind.py']` — the poll sees all three mutants enter the live bin directory |
-| T-03 | n/a | the guard does not exist yet; its historical half was proven with the prototype above: 10 findings, 3 files named, injection at `:1482` |
+| T-02 | **1** | `appeared ['.mutant-check-state-t10.sh', '.mutant-check-state-t14.sh', '.mutant-feature-worktree-behind.py']` — the poll sees all three mutants enter the live bin directory. **Re-run at `ccf674a`: exit 1, four names, `moved []`** |
+| T-03 | n/a | the guard does not exist yet; its historical half was proven with the prototype above: 10 findings, 3 files named, injection at `:1482`. **Re-derived at `ccf674a`, see below** |
 | T-04 | **1** | `test-run-pool.py` absent. Its `--check-kinds` and unknown-kind clauses already pass (exit 0, no PASS/FAIL line; exit 2) and are regression clauses only |
 | T-05 | **1** | all four required tokens missing from `DECISIONS.md`; `index_drift False`, so the `--stdout` comparison works and would catch a stale index |
 
@@ -128,3 +138,36 @@ Per-file timings taken at the same sha, for the sub-60s budget on those blocks:
   would mutate the tree and pass this scan. Deliberately out of scope: no such site exists
   today, and a sink model over argv strings has no precision worth having. If one appears,
   it is grounds to widen the rule, and this paragraph is the record that it was a choice.
+
+## Re-derived at `ccf674a`, 2026-08-31 — what moved
+
+FEAT-45 merged while this plan was unsigned. The three items below were measured against the
+rebased worktree at `ccf674a`, by reimplementing the reference scanner above from the rule
+text and running it over `git show ea6f51f:` copies and over the live tree.
+
+**1. The ten sites are confirmed, but only with the content-read clause.** The rule exactly as
+written on this page gives **25** findings over the three files at `ea6f51f`, not 10. The 15
+extras are all in `test-check-domain.py`, `:1786` to `:2071`: `manifest_src` is built from
+`ROOT` (tainted from `__file__`), the `with open(...) as f` / `manifest_text = f.read()` chain
+taints the file's *text*, `root = fixture(manifest_text)` taints a **tempdir** path, and every
+`os.makedirs` and `open('w')` beneath it is reported. They are unfixable — the paths are not in
+the live checkout at all. With the content-read exclusion the scan gives exactly the ten named
+sites, zero extras. This matters beyond tidiness: T-03's verify requires the LIVE scan to
+return 0, so without the clause that block is unsatisfiable in any tree.
+
+**2. There is a fourth mutant-beside-the-original site, and it is a true positive.** Commit
+`70fd441` ("fix: close FEAT-45 validation gaps") added
+`_inv32_mutant_is_discriminating` at `test-check-state.py:3066-3088`, which writes
+`.check-state-inv32-mutant.sh` into the live bin directory and removes it in a `finally` —
+the identical shape to T-02's other three. Static scan flags `:3077`, `:3079`, `:3088`;
+the live poll observes the file appear. `plan.yaml` D-10 and T-02 now carry four sites.
+Live-tree total at `ccf674a` over all 58 discovered files: **13** findings, all removed by
+T-01 and T-02.
+
+**3. The two test files FEAT-45 added are correctly clean.** `test-panel-findings.py` and
+`test-plan-panel.py` report zero findings, and they were audited for the subprocess vector
+this note's Open section names: their only `subprocess.run` calls invoke `panel_findings.py id`
+and `check-domain.sh --resolve`, neither of which writes. They are not an eleventh site.
+
+Discovery census at `ccf674a`: **58** files by T-03's walk rule in both the main checkout and
+this worktree (they converged on the rebase), against the verify block's floor of 50.

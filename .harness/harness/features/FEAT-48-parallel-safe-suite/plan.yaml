@@ -39,7 +39,7 @@ decisions:
     because: >
       check-domain.sh:125 does sys.path.insert(0, _bin_dir) inside its heredoc, so the real
       bin directory wins over PYTHONPATH and the note's PYTHONPATH direction cannot reach
-      this consumer. Measured cost of the copy: 48ms for 111 files.
+      this consumer. Measured cost of the copy at ccf674a: 44ms for 117 files.
     dec: none
   - id: D-02
     choice: >
@@ -72,7 +72,7 @@ decisions:
     because: >
       worker pools, per-file output capture and exit aggregation are not testable in bash at
       the granularity SC-04, SC-07 and SC-08 require. Cost: one extra interpreter launch per
-      suite run, against a 247s baseline.
+      suite run, against the 247s serial baseline observed at ea6f51f over 56 files.
     dec: none
   - id: D-06
     choice: >
@@ -81,7 +81,9 @@ decisions:
     because: >
       the floor is 36.7s, set by the slowest single file, so gains above 8 workers are bounded
       while fork and memory pressure is not; CI runners are about 4 vCPU, where the same rule
-      yields 4 and measured 68.7s.
+      yields 4 and measured 68.7s. All three figures were observed 2026-08-31 at ea6f51f over
+      56 files on a 12-core M3 Pro; the two files FEAT-45 added since cost 0.10s and 0.40s
+      serially, measured at ccf674a, so the floor and the cap's reasoning are unmoved.
     dec: none
   - id: D-07
     choice: >
@@ -126,14 +128,21 @@ decisions:
     dec: none
   - id: D-10
     choice: >
-      The three other live-tree mutation sites found by the same scan — two in
+      The four other live-tree mutation sites found by the same scan — three in
       test-check-state.py, one in test-feature-worktree.py — are fixed here rather than
       allowlisted.
     because: >
       they are the same hazard class as the injection site and the invariant cannot ship green
-      beside them; an allowlist entry for the first three violations is an invariant that
-      never bound anything.
-    dec: none
+      beside them; an allowlist entry for the first four violations is an invariant that
+      never bound anything. The count is four and not three because FEAT-45 merged a fourth
+      site into main while this plan was being written: commit 70fd441 added
+      _inv32_mutant_is_discriminating, which writes .check-state-inv32-mutant.sh into the live
+      bin directory. Re-derived at ccf674a, and measured rather than read — polling the live
+      bin directory across one test-check-state.py run at ccf674a reports
+      appeared ['.check-state-inv32-mutant.sh', '.mutant-check-state-t10.sh',
+      '.mutant-check-state-t14.sh']. This is the second time a sibling feature invalidated a
+      census here, which is why T-02's verify counts what appears rather than naming a fixed
+      set of basenames: a fifth site added by a future sibling reddens it on its own.
   - id: D-11
     choice: >
       run_pool.py enforces REQ-01 at RUNTIME on every run, not only at fix time, over ONE
@@ -153,8 +162,9 @@ decisions:
       WHAT IT COVERS AND WHAT IT DOES NOT, stated because an earlier draft of this entry
       claimed coverage "against every vector including the two the scan is blind to", which is
       false of any bounded watched set and would stop the next auditor looking. Inside DIR it
-      is vector-agnostic, and it sees a NEW UNTRACKED file appear — the vector T-02's three
-      sites actually used (.mutant-*.sh and .mutant-*.py materialising in live bin/) and the
+      is vector-agnostic, and it sees a NEW UNTRACKED file appear — the vector T-02's four
+      sites actually used (.mutant-*.sh, .mutant-*.py and .check-state-inv32-mutant.sh
+      materialising in live bin/) and the
       one a git ls-files watched set cannot see at all. Outside DIR it sees NOTHING: a test
       that writes .harness/harness.json or a workflow file is caught only by T-03's static
       scan, with that scan's two blind spots intact. THERE IS A THIRD UNCOVERED CLASS, named
@@ -187,7 +197,7 @@ decisions:
       — git absent or ls-files failing — becomes DIR absent or holding no files, exit 2, so a
       check that measured nothing can never report clean. Cost is bounded above by the
       root-wide measurement it replaces, 2 x 14ms over 2,069 paths at ea6f51f against a ~47s
-      run; bin/ holds 114 files.
+      run; bin/ holds 117 files at ccf674a, 2,150 tracked paths repository-wide.
     dec: none
 
 tasks:
@@ -294,7 +304,7 @@ tasks:
       Record that failure in the receipt. Then make the change and see all cases pass.
 
   - id: T-02
-    title: Route the three mutant-file probes through a private bin copy
+    title: Route the four mutant-file probes through a private bin copy
     traces: [REQ-01]
     change_type: bugfix
     execution_mode: main-session-direct
@@ -342,10 +352,14 @@ tasks:
       file in it that nothing else expects, and a tracked-file mtime is one editing mistake
       away.
 
-      THE THREE SITES, at ea6f51f:
+      THE FOUR SITES. The first three are at ea6f51f and at ccf674a alike; the fourth arrived
+      on the rebase, from FEAT-45's commit 70fd441, and its line numbers are at ccf674a:
         test-check-state.py:2109-2133      .mutant-check-state-t14.sh
         test-check-state.py:2245-2269      .mutant-check-state-t10.sh
+        test-check-state.py:3066-3088      .check-state-inv32-mutant.sh  (FEAT-45, INV-32)
         test-feature-worktree.py:583-607   .mutant-feature-worktree-behind.py
+      Re-derive the line numbers before you edit; do not trust these four anchors if the file
+      has moved under you again. The basenames are the durable identifier.
 
       Each carries a comment explaining why the mutant must live beside the original: the
       script under test imports harness_yaml, factory_config or harness_boundary from its OWN
@@ -374,8 +388,9 @@ tasks:
       FEATURE_WORKTREE_BIN; that env value must be the new iso path.
 
       Test-first is satisfied by the verify block above, which polls the bin directory while
-      both files run: run it BEFORE the change and it must fail, naming the three mutant
-      basenames under "appeared". Record that output in the receipt — it is the pre-fix
+      both files run: run it BEFORE the change and it must fail, naming all four mutant
+      basenames under "appeared". Measured at ccf674a, test-check-state.py alone already
+      accounts for three of them. Record that output in the receipt — it is the pre-fix
       positive control that makes the post-fix empty set mean something.
 
   - id: T-03
@@ -462,9 +477,13 @@ tasks:
       zero files and the invariant would scan nothing. .claude/worktrees is named as an
       exclusion precisely because .claude itself is not one. Match .git, node_modules and
       .venv by directory name at any depth; match .claude/worktrees as that path relative to
-      the resolved root. Measured against this rule on 2026-08-31: 58 files in the main
-      checkout, 56 in the FEAT-48 worktree, which is the margin behind the verify block's
-      floor of 50. Collect every file matching test-*.py or test_*.py. A walk, not a directory
+      the resolved root. Measured against this rule at ccf674a on 2026-08-31: 58 files in the
+      main checkout and 58 in the FEAT-48 worktree, the two trees having converged on the
+      rebase that brought FEAT-45's test-panel-findings.py and test-plan-panel.py in. That is
+      the margin behind the verify block's
+      floor of 50, and the floor is deliberately far below both so a sibling feature adding or
+      removing a handful of test files cannot move it. Collect every file matching
+      test-*.py or test_*.py. A walk, not a directory
       list and not the runner's arrays, because FEAT-47 moves every one of these files to
       tests/unit, tests/integration and tests/manual and the invariant must survive that move
       untouched.
@@ -483,12 +502,24 @@ tasks:
       ast and compute a TAINT set of names that hold a path inside the live tree:
         - the literal __file__ is always tainted;
         - a name bound by an assignment whose value expression mentions a tainted name becomes
-          tainted, evaluated in source order;
-        - a with-item target becomes tainted when its context expression mentions one;
+          tainted, evaluated in source order — EXCEPT where that value expression is a CONTENT
+          READ. A call to .read, .readline, .readlines, .read_text, .read_bytes, .load or
+          .safe_load binds the file's CONTENT and never a path, so it must not propagate taint.
+          THIS CLAUSE IS LOAD-BEARING AND WAS MISSING FROM THE RESEARCH NOTE'S WRITTEN RULE.
+          Without it, test-check-domain.py reads the live team-config.yaml at :1772, hands the
+          TEXT to fixture() at :1778, and every tempdir write beneath that fixture root is
+          reported — 15 findings between :1786 and :2071, none of them fixable, on paths that
+          are not in the live checkout at all. Re-derived at ccf674a by reimplementing the
+          note's own reference scanner: 25 findings over the three files at ea6f51f without
+          this clause, and exactly the ten named sites with it. A live-tree zero, which this
+          task's verify block requires, is unreachable without it;
+        - a with-item target becomes tainted when its context expression mentions one, subject
+          to the same content-read exclusion;
         - taint is per scope: the module scope seeds every function scope, and a function's
           local bindings do not leak to other functions. This is not a refinement, it is what
           makes the check usable — a whole-file name model measured 47 findings on the tree at
-          ea6f51f, of which 37 were function-local names in unrelated functions.
+          ea6f51f (research note, first table row; carried forward, not re-derived here), of
+          which 37 were function-local names in unrelated functions.
       Then report a VIOLATION for a call that mutates a tainted path:
         - open(p, mode) where mode contains w, a, x or + and p mentions a tainted name;
         - os.remove, unlink, rmdir, truncate, utime, chmod, makedirs, mkdir on args[0];
@@ -518,7 +549,12 @@ tasks:
           open(mpath, "w") and shutil.copymode(SCRIPT, mpath) — both must be flagged;
         - a CLEAN control that must NOT be flagged: the same writes against
           tempfile.mkdtemp(), plus src.replace(...) on text read from __file__, plus
-          shutil.copytree(BIN_DIR, dest) where dest is a tempdir — a false positive on any of
+          shutil.copytree(BIN_DIR, dest) where dest is a tempdir, plus the CONTENT-READ shape
+          itself — text = open(<a path built from __file__>).read(), then a directory made and
+          a file written under a root derived from that text and tempfile.mkdtemp(). That last
+          one is not hypothetical: it is the exact false positive measured at ccf674a, 15 of
+          them in test-check-domain.py, and it is what the content-read exclusion above exists
+          to prevent. A false positive on any of
           these makes the invariant unlivable and someone will delete it;
         - the live tree itself: zero findings, asserted as a case rather than only as the exit
           code, so a scan that discovered no files at all cannot pass. In the same case assert
@@ -549,11 +585,23 @@ tasks:
       .claude/skills/harness/bin/test-*.py. Leaving it out of both arrays fails the drift
       detector with MISCONFIGURED, at exit 2.
 
-      THE HISTORICAL TARGET IS TEN NAMED SITES, NOT A COUNT. Against ea6f51f the rule set
-      above finds test-check-domain.py:1482 and :1489, test-check-state.py:2112, :2114, :2133,
-      :2248, :2250 and :2269, and test-feature-worktree.py:584 and :605
-      (notes/research-FEAT-48-independence-invariant.md:7-27). The verify block asserts each
-      of those ten individually rather than a threshold, because a threshold of eight is
+      THE HISTORICAL TARGET IS TEN NAMED SITES, NOT A COUNT, AND IT IS NOW MEASURED RATHER
+      THAN ASSERTED. Against ea6f51f the rule set above finds test-check-domain.py:1482 and
+      :1489, test-check-state.py:2112, :2114, :2133, :2248, :2250 and :2269, and
+      test-feature-worktree.py:584 and :605
+      (notes/research-FEAT-48-independence-invariant.md:14-27). Re-derived at ccf674a against
+      git show ea6f51f copies of those three files, with the content-read exclusion in place:
+      exactly those ten, no more and no fewer. The reviewer's [unverified] flag on this claim
+      is discharged; what the re-derivation also found is that the rule as WRITTEN in the note
+      gave 25, which is why the content-read clause above is stated as part of the rule.
+      AND THE LIVE TREE IS NO LONGER TEN. At ccf674a the same scan over all 58 discovered
+      files reports THIRTEEN: the ten above plus test-check-state.py:3077, :3079 and :3088,
+      FEAT-45's fourth mutant site, which T-02 removes. The two test files FEAT-45 added,
+      test-panel-findings.py and test-plan-panel.py, report ZERO and are correctly clean —
+      audited for the subprocess vector too, and their only subprocess calls invoke
+      panel_findings.py id and check-domain.sh --resolve, neither of which writes.
+      The verify block asserts each of the ten individually rather than a threshold, because
+      a threshold of eight is
       satisfied by a scanner that quietly lost two of them. It does NOT forbid additional
       findings on those three files: the false-positive gate is the LIVE half of the same
       block — after T-01 and T-02 a scanner that over-reports cannot reach zero on the live
@@ -714,7 +762,7 @@ tasks:
               path relative to the watched directory. Then a leg for the SUBPROCESS vector the
               static scan is blind to: the mutating fixture performs its write by shelling out
               rather than by calling open, and the check must still catch it. Then a leg for
-              the UNTRACKED-CREATION vector, which is what T-02's three sites actually did: a
+              the UNTRACKED-CREATION vector, which is what T-02's four sites actually did: a
               fixture that CREATES a new file under the watched directory — name it
               .mutant-x.sh, so the case reads as the historical hazard — and assert exit 1 with
               exactly one MUTATED line naming it. Finally assert that --mutation-check pointed
@@ -902,7 +950,8 @@ tasks:
       not pin one here: FEAT-47 also appends entries and a pinned number collides with it. The
       heading is: The suite runs in parallel, and no test mutates state another test can see.
       Write it in the file's house style, which is an em-dash between the number and the title
-      (## DEC-NN — Title, 188 of 188 existing headings on 2026-08-31). The verify block above
+      (## DEC-NN — Title, 190 of 190 existing headings at ccf674a, last DEC-207). The verify
+      block above
       is separator-agnostic by construction, so it cannot redden on a house-style heading and
       a later style pass cannot break it either; this sentence is a convenience, never a
       constraint the gate enforces.

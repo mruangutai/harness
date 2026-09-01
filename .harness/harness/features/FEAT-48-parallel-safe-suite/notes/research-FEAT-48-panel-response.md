@@ -35,7 +35,7 @@ one at a time and observed to redden. Evidence is in the table at the bottom.
 
 The proposal was right and its reasoning is recorded in `D-11`. `REQ-01` was enforced at runtime
 exactly once — at fix time — and thereafter only by a static scan whose blind spots this feature's
-own research note documents (`research-FEAT-48-independence-invariant.md:127-130`: subprocess calls
+own research note documents (`research-FEAT-48-independence-invariant.md:137-140`: subprocess calls
 are not sinks; and taint does not cross a call boundary, so a mutation wrapped in a helper is
 invisible).
 
