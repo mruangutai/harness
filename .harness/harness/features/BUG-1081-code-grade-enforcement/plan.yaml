@@ -1,0 +1,306 @@
+schema: plan/1
+feature: BUG-1081-code-grade-enforcement
+status: review
+source_issues: [1081]
+
+approval:
+  status: approved
+  approved_by: operator
+  date: 2026-09-01
+  signatures:
+    - {date: 2026-09-01, covers: '4 tasks, REQ-01..REQ-06, SC-01..SC-12, panel findings resolved, compact before main-session execution'}
+
+panel:
+  last_run: notes/plan-panel-main-session.md
+  cycle: 0
+  readers:
+    - {reader: goalcheck, status: ran}
+    - {reader: scope, status: ran}
+    - {reader: should-not-exist, status: ran}
+  findings:
+    - id: PF-19f20bd2cd0df2fa7e8bad0688456898
+      severity: high
+      reader: goalcheck
+      summary: Shared grade-bar policy needed an explicit configuration source and complete fixtures.
+      disposition: resolved
+      resolved_by: T-02
+    - id: PF-b81c4cd7b90cd58838aac4a33a3e53ca
+      severity: high
+      reader: goalcheck
+      summary: Canonical base derivation would newly refuse every grade when the default branch is unavailable, but the availability consequence was not recorded or tested.
+      disposition: resolved
+      resolved_by: T-02
+    - id: PF-7ab845aa21faf10a01c8e3e89136824b
+      severity: med
+      reader: goalcheck
+      summary: The grade-bar criterion named unit evidence while its assertions lived only in the integration suite.
+      disposition: resolved
+      resolved_by: T-01
+    - id: PF-88c04700ffd0b0b1364b930f4b506ed9
+      severity: high
+      reader: scope
+      summary: The documentation tasks named deleted or unsupported verification commands.
+      disposition: resolved
+      resolved_by: T-04
+    - id: PF-3b056656a9fb0a7bbfc8157e6fb7e4ac
+      severity: high
+      reader: scope
+      summary: The plan derived the grading root from feature_dir while default-branch and commit helpers still used ambient cwd, creating two repository bases.
+      disposition: resolved
+      resolved_by: T-02
+    - id: PF-d79357ff7bcbffffe1d45949ed1b6ddb
+      severity: med
+      reader: should-not-exist
+      summary: The plan did not evaluate consuming the existing code-grade CLI JSON surface instead of adding a shared classification seam.
+      disposition: resolved
+      resolved_by: T-01
+    - id: PF-3fbde5c784ed4cd8b9a8123dc1e9cec6
+      severity: med
+      reader: should-not-exist
+      summary: The expected result for a deletion-only Python range was undefined.
+      disposition: resolved
+      resolved_by: T-02
+    - id: PF-72a6d90117d0b1381a011e62d5c8166f
+      severity: med
+      reader: scope
+      summary: The real hook-path mismatch and grader-failure cases needed exact exit-code coverage and mutation evidence.
+      disposition: resolved
+      resolved_by: T-02
+
+lanes:
+  resolved_at: origin/main
+  rows:
+    - surface: .claude/skills/harness/bin/code_grade.py
+      lane: team
+      agent: harness-backend-dev
+      reason: resolved to harness-backend-dev and harness-dev-ops; backend owns the importable grading API
+    - surface: .claude/skills/harness/bin/code-grade.py
+      lane: team
+      agent: harness-backend-dev
+      reason: resolved to harness-backend-dev and harness-dev-ops; kept with the shared grading contract it consumes
+    - surface: .claude/skills/harness/bin/test-code-grade.py
+      lane: team
+      agent: harness-backend-dev
+      reason: resolved to harness-backend-dev and harness-dev-ops; contract test for the importable grading API
+    - surface: .claude/skills/harness/bin/test-code-grade-cli.py
+      lane: team
+      agent: harness-backend-dev
+      reason: resolved to harness-backend-dev and harness-dev-ops; verifies the CLI still consumes the shared result rules
+    - surface: .claude/skills/harness/bin/validate-digest.py
+      lane: main-session-direct
+      reason: DEC-174 enforcement-layer carve-out; this is the gate being changed
+    - surface: .claude/skills/harness/bin/test-validate-digest.py
+      lane: main-session-direct
+      reason: DEC-174 includes a gate's own tests in the enforcement boundary
+    - surface: .claude/skills/harness-code-review/SKILL.md
+      lane: main-session-direct
+      reason: resolves NOBODY; documents the reviewer side of the cutover
+    - surface: .harness/harness/docs/DECISIONS.md
+      lane: team
+      agent: harness-documentor
+    - surface: .harness/harness/docs/DECISIONS-INDEX.md
+      lane: team
+      agent: harness-documentor
+
+decisions:
+  - id: D-01
+    choice: Keep `code_grade` in the reviewer digest and make the validator compute the expected value independently, rejecting disagreement.
+    because: The field remains a readable audit claim while it stops being trusted as evidence; removing it would widen this defect into a digest-schema migration with no additional enforcement value.
+    dec: DEC-122
+  - id: D-02
+    choice: >-
+      Derive both mechanical range boundaries from repository state: `review_sha` from feature.json
+      and the base from the default branch merge base.
+    because: Binding only the head still lets digest-authored base selection change which functions are graded.
+    dec: none
+  - id: D-03
+    choice: Put grade-bar and result classification in one importable grading API consumed by both code-grade.py and validate-digest.py.
+    because: >-
+      Duplicating production/test bars inside the validator creates drift. Calling the CLI as a
+      subprocess was rejected because the hook already imports code_grade, subprocess startup adds
+      latency to every reviewer stop, exit 0 combines pass with grade 2, and the validator would still
+      have to parse presentation-oriented records.
+    dec: DEC-174
+  - id: D-04
+    choice: >-
+      Mechanical result precedence is `fail`, then `grade_2`, then `pass`; `n_a` is reserved for a
+      canonical range with no changed Python path. A deletion-only Python range is `pass`, because a
+      Python path changed but no head-side function exists to gate.
+    because: >-
+      One blocking record must not be hidden by a simultaneous grade-2 record, and the deletion
+      boundary must not be left for an implementer to infer differently from the existing n_a check.
+    dec: none
+  - id: D-05
+    choice: >-
+      Any exception, unresolved default branch, missing merge base, degenerate canonical range,
+      syntax failure, missing grading configuration, or incomplete result rejects the digest with
+      a named remediation-bearing error and no traceback.
+    because: >-
+      This deliberately replaces the old n_a-only availability carve-out. A checkout that cannot
+      derive the repository-owned range cannot prove any mechanical result; falling back to the
+      digest's base would restore the bypass. Reviews already require origin/main for the reviewer
+      command, so the honest response is to repair origin/HEAD or the review pin and rerun.
+    dec: DEC-127
+  - id: D-06
+    choice: Plan reviews keep their DEC-207 path and do not call the code grader.
+    because: A pending plan has no code diff or review_sha; treating it as a degraded code review would break the existing separate target.
+    dec: DEC-207
+  - id: D-07
+    choice: Do not build a second grading implementation.
+    because: >-
+      Re-execution proves the check ran and catches crashes or false reporting; semantic grader
+      defects remain the responsibility of the one implementation's hand-derived contract tests.
+      This plan adds mutation evidence for the new classification and validator cutover rather than
+      claiming runtime independence from code_grade.py.
+    dec: none
+
+tasks:
+  - id: T-01
+    title: Expose one mechanical result API
+    change_type: cross_module
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: []
+    status: done
+    files:
+      - .claude/skills/harness/bin/code_grade.py
+      - .claude/skills/harness/bin/code-grade.py
+      - .claude/skills/harness/bin/test-code-grade.py
+      - .claude/skills/harness/bin/test-code-grade-cli.py
+    requirements: [REQ-04]
+    success_criteria: [SC-06]
+    verify: |
+      .agents/skills/harness/bin/run-unit-tests.sh --kind unit
+      .agents/skills/harness/bin/run-unit-tests.sh --kind integration
+    intent: |
+      Test-first, add one public importable classification seam over `gated_set()` and make
+      code-grade.py consume it. The seam receives the parsed active `test_kinds` policy explicitly;
+      it never discovers configuration from ambient cwd. Both the CLI and validator load the
+      configuration they already own and pass that policy in. Missing or malformed test_kinds is a
+      named error, never an implicit production bar.
+
+      Preserve the active-test bar of 3, production bar of 4, and `_blocks` rule that grade 2 is
+      reasoned rather than blocking. Return enough structured information to distinguish blocking
+      records, grade-2 records, and a clean graded result. Do not decide `n_a`: an empty pair from
+      `gated_set()` cannot distinguish no Python path from a changed file with no gated head-side
+      function. Pin mixed-result precedence: any blocking record yields `fail`; otherwise any
+      grade-2 record yields `grade_2`; otherwise the result is `pass`.
+
+      Move, rather than copy, the CLI's path-to-bar and blocking rules into the shared seam. Put
+      direct bar and precedence assertions in test-code-grade.py, and preserve the CLI's text, JSON,
+      severity, exit-status, and sorting behavior in test-code-grade-cli.py. Demonstrate both test
+      groups fail for the intended reason before adding the production API. Include mutation proof
+      that changing fail-over-grade_2 precedence or treating grade 2 as blocking reds the tests.
+
+  - id: T-02
+    title: Recompute code grade in digest validation
+    change_type: bugfix
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 carve-out; validate-digest.py and its test are enforcement-layer files
+    depends_on: [T-01]
+    status: done
+    files:
+      - .claude/skills/harness/bin/validate-digest.py
+      - .claude/skills/harness/bin/test-validate-digest.py
+    requirements: [REQ-01, REQ-02, REQ-03, REQ-04, REQ-05, REQ-06]
+    success_criteria: [SC-01, SC-02, SC-03, SC-04, SC-05, SC-06, SC-07, SC-08, SC-10, SC-11]
+    verify: |
+      .agents/skills/harness/bin/run-unit-tests.sh --kind integration
+    intent: |
+      Before any T-02 test or production edit, the operator-facing main session runs `/compact`.
+      T-02 does not begin in the planning session's accumulated context.
+
+      Execute this task directly under DEC-174, test-first. Build purpose-made temporary Git
+      repositories and drive the real validate() and --hook surfaces. Each fixture repository must
+      contain a complete .harness/harness.json with gates and active test_kinds, a feature.json with
+      branch and review_sha, a resolvable refs/remotes/origin/HEAD where the case requires it, and the
+      commits and branches named by the case. Resolve ONE repository root from the feature directory
+      selected by the existing artifact/registry binding, not from validate-digest.py's installed
+      location or ambient cwd. Every default-branch lookup, merge-base operation, review-OID
+      resolution, Python-path diff, and `gated_set()` call must use that root explicitly (`git -C`
+      or `commit_oid(root, ...)`). Rewrite the affected helper docstrings that currently claim
+      cwd/no-`-C` is the invariant; no shipped comment may describe the superseded root basis.
+      Read test_kinds from that same root's .harness/harness.json, never from review_config_path(),
+      and pass the parsed policy to the grading seam.
+
+      First demonstrate RED before changing validate-digest.py: through the real --hook JSON-stdin
+      path, a canonical range containing a new blocking production function accepts a reviewer digest
+      claiming `code_grade: pass`. A committed syntax-error Python file must separately show that the
+      old validator accepts a claim without grading it. Run those new assertions against the current
+      pre-fix tree and record the exact failing case names, the accepted `code_grade: pass`, and the
+      observed hook exit status 0 in the committed test explanation. Then implement the fix and make
+      the same assertions pass. Do not preserve or execute a second validator copy; the test-first
+      RED run is the discrimination evidence.
+
+      Refactor the existing repository-derived Python-change helper so one fail-closed path derives
+      and returns the canonical merge-base and review OIDs. Continue validating the digest's own
+      reviewed field and binding its head to feature.json's review_sha, but never use its base for
+      mechanical calculation. For ordinary code reviews, decide `n_a` only when the canonical diff
+      has no changed Python path. A deletion-only Python range expects `pass`: a Python path changed,
+      but there is no head-side function to gate. Otherwise call T-01's shared classification seam
+      with the configuration's parsed test_kinds and compare it with the digest enum. Every mismatch
+      names both claimed and expected values.
+
+      Any grader exception, syntax error, missing test_kinds, unresolved origin/HEAD, missing merge
+      base, or degenerate range is a contract violation with a specific repair and no traceback.
+      This intentionally removes the prior n_a-only availability carve-out: never fall back to the
+      digest's base. Preserve review-policy handling so must_fix or high severity still fails a
+      mechanically clean review. Preserve DEC-207 plan mode exactly: `plan:<path>` requires n_a and
+      never calls grading.
+
+      Cover honest and dishonest counterparts: blocking actual/fail and actual/pass, clean pass,
+      grade 2 with and without reasons, fail plus grade 2 proving fail wins, docs-only n_a,
+      deletion-only pass, one wrong claim for every computed state, a digest-authored alternate base,
+      committed syntax error, missing test_kinds, unresolved default branch, missing merge base,
+      degenerate range, and plan mode proving grading was not called. Exercise the exact --hook
+      rejection exit code for the blocking/pass mismatch and the syntax failure so a crash cannot
+      masquerade as a refusal. Include a mutation that bypasses comparison or converts a grading
+      exception into acceptance and prove the new integration assertions fail.
+
+  - id: T-03
+    title: Explain the enforced review contract
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: .claude/skills/harness-code-review/ resolves NOBODY
+    depends_on: [T-02]
+    status: done
+    files:
+      - .claude/skills/harness-code-review/SKILL.md
+    requirements: [REQ-01, REQ-05]
+    success_criteria: [SC-09]
+    verify: |
+      python3 -c "from pathlib import Path; t=Path('.claude/skills/harness-code-review/SKILL.md').read_text(); assert all(x in t for x in ('validate-digest.py', 'code_grade', 'n_a', 'grade_2'))"
+    intent: |
+      Update the code-review procedure after behavior is true. Keep the reviewer responsible for
+      running the CLI so it can cite blocking records and write grade-2 reasons, but state that the
+      digest enum is an audit claim and validate-digest.py independently recomputes it from the
+      repository-owned range. Explain that no changed Python path means n_a, while a deletion-only
+      Python range is pass, and that every mismatch refusal names the expected value. State plainly
+      that a crash or range-derivation failure refuses the digest and names how to repair the checkout.
+      Do not imply that a clean mechanical grade decides the whole review; must_fix and severity
+      remain independent human judgment.
+
+  - id: T-04
+    title: Record the enforcement ownership decision
+    change_type: docs
+    execution_mode: team
+    execution_agent: harness-documentor
+    depends_on: [T-02]
+    status: done
+    files:
+      - .harness/harness/docs/DECISIONS.md
+      - .harness/harness/docs/DECISIONS-INDEX.md
+    requirements: [REQ-01, REQ-02, REQ-03]
+    success_criteria: [SC-12]
+    verify: |
+      python3 .agents/skills/harness/bin/gen-decisions-index.py
+      .agents/skills/harness/bin/gen-decisions-index.py --stdout | diff - .harness/harness/docs/DECISIONS-INDEX.md
+      python3 -c "from pathlib import Path; import re; d=Path('.harness/harness/docs/DECISIONS.md').read_text().splitlines(); i=Path('.harness/harness/docs/DECISIONS-INDEX.md').read_text().splitlines(); hits=[re.match(r'## (DEC-[0-9]+) — Mechanical code-grade state is computed by the digest gate, not trusted from the reviewer$', x) for x in d]; ids=[m.group(1) for m in hits if m]; assert len(ids)==1; assert any(x.startswith('- '+ids[0]+' ') and x.split(' :: ',1)[1].strip() for x in i if ' :: ' in x)"
+    intent: |
+      Add one decision titled exactly “Mechanical code-grade state is computed by the digest gate,
+      not trusted from the reviewer”, allocating its DEC number against current origin/main before
+      writing. Record the repository-owned range, the deliberate availability consequence for missing
+      or degenerate default-branch derivation, remediation-bearing fail-closed behavior, retained
+      human-judgment boundary, deletion-only result, and why no second grading implementation or CLI
+      subprocess is introduced. Generate the index and author its ruling summary; never hand-edit the
+      generated left side of an index row.

@@ -2,6 +2,7 @@
 """Hand-derived contract tests for code_grade.py."""
 import ast
 import importlib.util
+import json
 import os
 from pathlib import Path
 import re
@@ -253,7 +254,7 @@ SELF_GRADING_ALLOWLIST = {
 }
 
 
-def _check_self_graded_file(filename, repo_root):
+def _check_self_graded_file(filename, repo_root, test_kinds):
     failures = 0
     path = Path(HERE) / filename
     failures += check(path.is_file(), True, f"{filename} exists")
@@ -265,7 +266,7 @@ def _check_self_graded_file(filename, repo_root):
         parses = False
     failures += check(parses, True, f"{filename} parses")
     relative = str(path.resolve().relative_to(repo_root))
-    bar = 3 if code_grade_cli._is_test(repo_root, relative) else 4
+    bar = 3 if code_grade._is_test_path(relative, test_kinds) else 4
     matched = set()
     for record in code_grade.grade_source(source, filename):
         key = (filename, record.qualname)
@@ -282,17 +283,19 @@ def _check_self_graded_file(filename, repo_root):
 def check_self_grading():
     """CR-01: every function `code_grade.grade_source` reports across SELF_GRADED_FILES — the full
     set of .py files this feature changed under bin/, production and test alike — must grade at or
-    above its derived bar (3 for test files per `code_grade_cli._is_test`, 4 for production),
+    above its derived bar (3 for test files per `code_grade._is_test_path`, 4 for production),
     except the qualnames named in SELF_GRADING_ALLOWLIST — each justified there — and each
     allowlist entry must still match a real below-bar record at the recorded grade, so a fix or a
     rename cannot let an exemption silently outlive it. Each named file is also asserted to exist
     and parse, so a rename or removal fails loudly instead of silently shrinking coverage.
     """
     repo_root = Path(HERE).resolve().parents[3]
+    with (repo_root / ".harness" / "harness.json").open(encoding="utf-8") as stream:
+        test_kinds = json.load(stream)["test_kinds"]
     failures = 0
     matched_allowlist = set()
     for filename in SELF_GRADED_FILES:
-        file_failures, matched = _check_self_graded_file(filename, repo_root)
+        file_failures, matched = _check_self_graded_file(filename, repo_root, test_kinds)
         failures += file_failures
         matched_allowlist |= matched
     failures += check(matched_allowlist, set(SELF_GRADING_ALLOWLIST),
@@ -401,13 +404,58 @@ def newly_added():
         return failures
 
 
-def _grade_stub(qualname, grade):
+def _grade_stub(qualname, grade, path="main.py"):
     return code_grade.FunctionGrade(
         qualname=qualname, lineno=1, cyclomatic=1, cognitive=1,
         abc_a=0, abc_b=0, abc_c=0, abc=0.0, grade=grade, driver="cyclomatic",
-        path="main.py",
+        path=path,
     )
 
+
+# CR-XX: direct bar and precedence assertions for the code_grade.classify() seam. These live
+# here (unit) rather than only in test-code-grade-cli.py (integration) per SC-06 / PF-7ab845aa.
+_CLASSIFY_TEST_KINDS = {"unit": {"detect": "test_*.py|tests/*.py", "exclude": "", "status": "active"}}
+
+
+def check_classify_bars():
+    records, result = code_grade.classify(
+        [_grade_stub("prod_fn", 4, path="src/prod.py")], _CLASSIFY_TEST_KINDS)
+    failures = check(records[0]["bar"], 4, "production path bars at 4")
+    failures += check(result, "pass", "clean production record classifies pass")
+    records, result = code_grade.classify(
+        [_grade_stub("test_fn", 3, path="test_sample.py")], _CLASSIFY_TEST_KINDS)
+    failures += check(records[0]["bar"], 3, "test path bars at 3")
+    failures += check(result, "pass", "clean test record classifies pass")
+    return failures
+
+
+def check_classify_grade_two_is_reasoned():
+    records, result = code_grade.classify(
+        [_grade_stub("boundary", 2, path="src/prod.py")], _CLASSIFY_TEST_KINDS)
+    failures = check(records[0]["severity"], "med", "grade two is reasoned, not blocking")
+    failures += check(result, "grade_2", "grade two alone classifies grade_2, not fail")
+    return failures
+
+
+def check_classify_precedence():
+    mixed = [_grade_stub("blocked", 1, path="src/prod.py"),
+             _grade_stub("reasoned", 2, path="src/prod.py")]
+    records, result = code_grade.classify(mixed, _CLASSIFY_TEST_KINDS)
+    failures = check(result, "fail", "a blocking record beats a simultaneous grade-two record")
+    records, result = code_grade.classify([], _CLASSIFY_TEST_KINDS)
+    failures += check(result, "pass", "an empty record set classifies pass")
+    return failures
+
+
+def check_classify_rejects_bad_test_kinds():
+    failures = 0
+    for bad in (None, [], {"unit": "not-a-mapping"}, {"unit": {"status": "active"}}):
+        try:
+            code_grade.classify([_grade_stub("fn", 4, path="src/prod.py")], bad)
+        except code_grade.TestKindsError:
+            continue
+        failures += check(True, False, f"malformed test_kinds {bad!r} must raise TestKindsError")
+    return failures
 
 def check_pre_image_resolution_priority():
     """Characterizes the priority _resolve_pre_image enforces: a qualname match wins
@@ -739,6 +787,10 @@ def main():
         check_delivery,
         check_self_grading,
         check_optional_field_guards,
+        check_classify_bars,
+        check_classify_grade_two_is_reasoned,
+        check_classify_precedence,
+        check_classify_rejects_bad_test_kinds,
     )
     failures = sum(fn() for fn in checks)
     if failures:

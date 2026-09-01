@@ -6436,3 +6436,53 @@ behaviours these rules replace: each one's failure mode was passing silently, so
 would preserve the defect under a name. It does not close the digest hook's `stop_hook_active`
 passthrough, which stays pre-existing and deliberate, and takes no position on INV-32's retroactive
 red across 32 approved plans, a separate operator ruling.
+## DEC-209 — Mechanical code-grade state is computed by the digest gate, not trusted from the reviewer
+
+**Chose:** `validate-digest.py` COMPUTES the code-grade result for every ordinary code review and
+rejects a `harness-code-reviewer` digest whose `code_grade` disagrees, naming the expected value.
+Origin: `BUG-1081-code-grade-enforcement`. The reviewer keeps every judgement that is judgement —
+findings, `must_fix`, severity, grade-2 reasons and the review policy, none of which this touches.
+The four enum values `pass`, `fail`, `grade_2` and `n_a` and the existing grade bars are UNCHANGED:
+what changes is WHO computes and verifies the result, never what a grade means.
+
+**What the reviewer's enum became.** An audit claim — readable in the digest, and no longer evidence
+of itself. Before this, only `n_a` was re-derived; `pass`, `fail` and `grade_2` were taken on the
+reviewer's word, so a review passed when the grader was never run, crashed, or was misreported.
+
+**The canonical range is derived by the repository, not named by a digest.**
+`merge-base(<default branch>, review_sha)..review_sha`, resolved in the checkout that owns the
+feature directory, with `review_sha` read from that feature's `feature.json`. A digest-chosen base
+decides which functions get graded, so no digest supplies one. The digest's own `reviewed:` field is
+still shape-checked and its HEAD is still bound to `review_sha`; its base can never change the
+mechanical result.
+
+**The availability consequence is a deliberate trade, not an oversight.** FEAT-43 exempted `pass`,
+`fail` and `grade_2` from base derivation precisely so an unresolvable default branch could not brick
+reviewer validation — and that exemption WAS the bypass, because nothing then ever ran the grader for
+those three values. Every derivation or grading failure now refuses the digest and NAMES ITS REPAIR:
+an unresolvable `origin/HEAD`, a `review_sha` that does not resolve, no merge base, a degenerate range
+(`review_sha` already an ancestor of the default branch, empty by construction and therefore zero
+evidence that nothing changed), a missing or malformed `test_kinds` policy in the graded checkout's
+`.harness/harness.json`, and committed Python that does not parse. A review already requires
+`origin/main` for the reviewer's own command, so the honest response is to repair the checkout or
+re-pin the review and rerun — never to fall back to the base the digest names.
+
+**Fail-closed, with no traceback.** A grading crash becomes a named refusal, because a crash escaping
+that boundary is indistinguishable from a hook defect (DEC-127) and leaves the claim ungraded, which
+is the state this decision exists to remove. A refusal is the ordinary digest rejection DEC-122 put
+behind this hook, never an acceptance and never an ambiguous exit.
+
+**A deletion-only Python range grades `pass`, not `n_a`.** `n_a` means the canonical range changed no
+`.py` path at all. Where the only Python change is a deletion, a Python path did change; there is
+simply no head-side function left to gate.
+
+**No second grading implementation, and no CLI subprocess.** Re-execution is what proves the check
+ran and catches a skipped run, a crash or a false report; semantic correctness of the one grading
+implementation stays with its contract tests and mutation evidence, and a second grader would claim a
+runtime independence nothing tests. The validator imports `code_grade.classify` rather than shelling
+out to `code-grade.py`, on four grounds: the hook already imports `code_grade`; subprocess startup
+would be paid on every reviewer stop; the CLI's exit 0 combines `pass` with grade 2; and the validator
+would still have to parse a presentation-oriented record to recover the result.
+
+**Plan reviews are untouched.** DEC-207's `reviewed: plan:<path>` target has no code diff and no
+pinned `review_sha`, and never invokes the grader.

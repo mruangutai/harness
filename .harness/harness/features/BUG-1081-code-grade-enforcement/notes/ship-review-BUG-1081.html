@@ -1,0 +1,106 @@
+<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>Ship review — BUG-1081, code-grade enforcement</title><style>
+:root{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:ui-sans-serif,-apple-system,"Segoe UI","Helvetica Neue",Arial,sans-serif;
+}
+/* Token-level theming: components style through the tokens and never inside the
+   media query, so the viewer's explicit toggle can override the OS in BOTH
+   directions. */
+@media (prefers-color-scheme:dark){
+  :root{ --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+         --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733; }
+}
+:root[data-theme="dark"]{
+  --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+  --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733;
+}
+:root[data-theme="light"]{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+}
+*{box-sizing:border-box}
+body{margin:0; background:var(--paper); color:var(--ink);
+  font:400 16px/1.65 var(--sans); padding:clamp(1.5rem,5vw,4rem) clamp(1rem,5vw,2rem) 6rem}
+.wrap{max-width:56rem; margin:0 auto}
+/* Layout owns the spacing: gap between siblings, not per-element margins that
+   collapse or double. */
+.wrap{display:flex; flex-direction:column; gap:1rem}
+.eyebrow{font:500 11px/1 var(--mono); letter-spacing:.14em; text-transform:uppercase;
+  color:var(--quiet); margin:0}
+h1{font:600 clamp(1.6rem,4vw,2.3rem)/1.15 var(--sans); letter-spacing:-.02em;
+  margin:.4rem 0 .2rem; text-wrap:balance}
+h2{font:600 1.15rem/1.3 var(--sans); letter-spacing:-.01em; margin:2rem 0 0;
+  padding-top:1.25rem; border-top:1px solid var(--line); text-wrap:balance}
+h3{font:600 .98rem/1.4 var(--sans); margin:1.1rem 0 0}
+h4,h5,h6{font:500 11px/1.4 var(--mono); letter-spacing:.1em; text-transform:uppercase;
+  color:var(--quiet); margin:1rem 0 0}
+p,li{max-width:65ch; margin:0}
+ul,ol{margin:0; padding-left:1.4rem; display:flex; flex-direction:column; gap:.4rem}
+li>ul,li>ol{margin-top:.4rem}
+strong{font-weight:600}
+code{font:400 .875em/1.5 var(--mono); background:var(--sunk); padding:.1em .35em; border-radius:3px}
+pre{background:var(--sunk); border:1px solid var(--line); border-radius:6px;
+  padding:.85rem 1rem; overflow-x:auto; margin:0}
+pre code{background:none; padding:0}
+blockquote{margin:0; padding:.75rem 1rem; border-left:3px solid var(--accent);
+  background:var(--accent-soft); border-radius:0 5px 5px 0}
+blockquote p{max-width:none}
+hr{border:0; border-top:1px solid var(--line); margin:.5rem 0}
+/* Wide content pans inside its OWN container; the page body never scrolls sideways. */
+.scroll{overflow-x:auto; border:1px solid var(--line); border-radius:6px}
+table{border-collapse:collapse; width:100%; font-size:.9rem}
+th,td{text-align:left; padding:.6rem .8rem; border-bottom:1px solid var(--line); vertical-align:top}
+thead th{font:500 10px/1.3 var(--mono); letter-spacing:.11em; text-transform:uppercase;
+  color:var(--quiet); background:var(--sunk); white-space:nowrap}
+tbody tr:last-child td{border-bottom:0}
+/* Figures in a column line up. */
+td,th{font-variant-numeric:tabular-nums}
+.derived{color:var(--slate); font-size:.85rem; margin-top:2.5rem;
+  padding-top:1rem; border-top:1px solid var(--line)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style></head><body><div class='wrap'><p class='eyebrow'>Ship review · reading view</p><h1 id="ship-review-bug-1081-code-grade-enforcement">Ship review — BUG-1081, code-grade enforcement</h1>
+<p><strong>Recommendation: ship, after one rebase.</strong> Every success criterion is met, the only blocking gate passes, and the review panel&#x27;s one critical finding was fixed and confirmed closed by the reviewer who raised it. One thing stands between this branch and a merge, and it has nothing to do with the change: <code>main</code> moved while we built, and this branch is now behind it on the harness contract itself. That is item <strong>P-1</strong> below and it needs your decision.</p>
+<p><strong>How this briefing was assembled.</strong> No report round was spawned — the run digests were read from disk. They are <code>runs/2026-09-01-01-eng/digest.md</code>, <code>runs/2026-09-01-1-product/digest.md</code>, <code>runs/2026-09-01-01-validator/digest.md</code>, <code>runs/2026-09-01-c2-validator/digest.md</code>, <code>runs/2026-09-01-2-product/digest.md</code>, all under <code>.harness/harness/features/BUG-1081-code-grade-enforcement/</code>, together with the reviewer and receipt notes cited by name throughout.</p>
+<hr>
+<h2 id="what-was-broken-and-what-now-holds">What was broken, and what now holds</h2>
+<p>A code reviewer reported <code>code_grade</code> as <code>pass</code>, <code>fail</code>, <code>grade_2</code> or <code>n_a</code>. The digest validator confirmed the report <em>ended</em> at the feature&#x27;s <code>review_sha</code> — and then, for <code>pass</code>, <code>fail</code> and <code>grade_2</code>, never ran the grader at all. A review therefore passed when <code>code-grade.py</code> was skipped, when it crashed, or when a blocking result was simply reported as a clean one.</p>
+<p>That is not a hypothetical. Measured against the unmodified validator before any code was written, with the process cwd inside the fixture repository so the reproduction matched how the hook actually ran in production:</p>
+<div class="scroll"><table><thead><tr><th>Case</th><th>Digest claimed</th><th><code>validate()</code></th><th><code>--hook</code> exit</th></tr></thead><tbody><tr><td>a new grade-1 production function</td><td><code>code_grade: pass</code></td><td><code>errors=[]</code></td><td><strong>0</strong></td></tr><tr><td>a committed Python file that does not parse</td><td><code>code_grade: pass</code></td><td><code>errors=[]</code></td><td><strong>0</strong></td></tr></tbody></table></div>
+<p>Both accepted, grader never invoked. That block is committed verbatim in the test file&#x27;s own header, so the evidence ships with the fix rather than living in a receipt nobody re-reads.</p>
+<p>Now the validator <strong>computes</strong> the result over a range the repository derives — <code>merge-base(&lt;default branch&gt;, review_sha)..review_sha</code> — and refuses any digest that disagrees, naming the value it expected. The reviewer keeps every part of the job that is judgment: findings, <code>must_fix</code>, severity, grade-2 reasons and the review policy. A mechanically clean grade still cannot rescue a review whose judgment failed.</p>
+<p><strong>The feature grades itself.</strong> At the pinned commit the canonical range contains 44 gated functions with no blocking and no grade-2 record, so an honest <code>code_grade: pass</code> from the panel&#x27;s own code reviewer was accepted by the very enforcement it was reviewing.</p>
+<hr>
+<h2 id="the-one-thing-that-needs-your-decision">The one thing that needs your decision</h2>
+<p><strong>P-1 — this branch is behind <code>main</code> on the harness contract, and a rebase is yours, not mine.</strong></p>
+<p>While this feature was being built, <code>main</code> landed FEAT-41 T-07 (<code>98b10135</code>), which <strong>deletes <code>status</code> from <code>feature.json</code></strong> and moves the feature&#x27;s station into <code>plan.yaml</code> so one file records it; and BUG-1080 (<code>a2fb6c0b</code>), which adds <code>runs[].code_grade</code>. Because hooks resolve through the project root, the schema now judging every write to this branch&#x27;s <code>feature.json</code> comes from the <code>main</code> checkout — and it refuses the <code>status</code> key that this branch&#x27;s own schema still <em>requires</em>. <code>gh-sync.py status</code> on <code>main</code> writes <code>plan.yaml</code>; on this branch it writes <code>feature.json</code>.</p>
+<p>Nothing here is caused by this change, and the branch is internally consistent — its suites run against its own copies and are green. But merged as-is it would land a <code>feature.json</code> carrying a key <code>main</code>&#x27;s schema rejects. <strong>The remedy is a rebase onto <code>main</code>, which moves HEAD and is refused to every governed agent, correctly.</strong> I did not attempt it.</p>
+<p>A related, smaller instance of the same drift I <em>did</em> resolve, and am declaring because it is an undeclared-file edit: this branch&#x27;s <code>.harness/team-config.yaml</code> had fallen two comment blocks behind <code>main</code>, and <code>test-check-plan-routes.py</code> compares it against the owner checkout&#x27;s copy — so the blocking integration gate was red for reasons wholly unrelated to the diff (7 failures). I confirmed the <strong>parsed YAML of the two copies is identical</strong>, so the resync changes no grant, route or domain, then took <code>main</code>&#x27;s copy. Both kinds went green immediately after. If you would rather that arrive via the rebase than in this diff, strike it and I will revert it.</p>
+<hr>
+<h2 id="gates">Gates</h2>
+<div class="scroll"><table><thead><tr><th>Gate</th><th>Result</th></tr></thead><tbody><tr><td><strong>qa_gate</strong> (blocking — the project&#x27;s only one)</td><td><strong>PASS.</strong> unit exit 0 / 0 <code>FAIL</code>; integration exit 0 / 0 <code>FAIL</code>. Re-run by me at the final pin, not taken from a digest</td></tr><tr><td><strong>review</strong> (<code>advisory_unless_high</code>)</td><td><strong>PASS at cycle 2.</strong> Cycle 1 returned FAIL/critical; that finding is closed</td></tr><tr><td><strong>goal-check</strong></td><td><strong>12 of 12 criteria MET</strong> (11 at the goal-check, SC-11 closed afterwards)</td></tr><tr><td><strong>uat</strong></td><td>Not applicable — no user-facing surface; the BRIEF declares no <code>verify: uat</code> criterion</td></tr></tbody></table></div>
+<p><strong>Cycles used: 2 of 10.</strong> One for a send-back inside T-01, one for the panel&#x27;s critical.</p>
+<hr>
+<h2 id="the-critical-finding-and-why-it-mattered">The critical finding, and why it mattered</h2>
+<p><code>harness-security-reviewer</code> found that <code>FEATURE_DIR_IN_ARTIFACT_RE</code>&#x27;s <code>[^/\s]+</code> segments match <code>..</code>, and <code>_repo_root_for_feature</code> took four <code>..</code> off the result with no containment check. I verified the premise myself before spending a cycle on it — a finding resting on a false premise buys a fix cycle for nothing — and it held: an artifact line of <code>.harness/../features/../notes/fake.md</code> resolved the repository root to <code>/Users/molchairuangutai/GitHub/harness</code>, a <strong>different git work tree sharing this one&#x27;s object store</strong>. Both the <code>review_sha</code> read and every grading <code>git -C</code> call would have run against a tree the digest itself chose, which defeats REQ-02 from the inside — the feature&#x27;s own central property, undone by its own new code.</p>
+<p>Fixed at <code>2562e45a</code>: <code>_contained_feature_dir</code> refuses any <code>.</code>, <code>..</code> or empty segment <em>and</em> requires the resolved path to be a strict descendant of the root. The security reviewer re-derived the evidence itself and returned <strong>CLOSED</strong> after nine defeat attempts — encodings, unicode variants, trailing dots, symlinked components, root-equality, absolute paths, Windows separators, and the <code>feature_dir=</code> override seam. All held. (<code>notes/review-harness-security-reviewer-c2.md</code>.)</p>
+<hr>
+<h2 id="a-theme-worth-your-attention-gates-that-cannot-report-red">A theme worth your attention: gates that cannot report red</h2>
+<p>This feature makes a gate grade itself, and three separate times a branch was <strong>green because nothing could make it red</strong>, not because it was correct:</p>
+<ol><li>A mutation turning the grader&#x27;s catch-all exception into an acceptance reddened <strong>nothing</strong> — the branch was unreachable from the suite. Closed by <code>check_malformed_test_kinds</code>.</li><li>The panel&#x27;s <code>sys.settrace</code> showed the new containment check&#x27;s realpath branch <strong>never executed</strong>; deleting it left everything green. Closed by <code>check_symlinked_feature_component</code>, including a sibling-prefix case for the <code>+ os.sep</code> boundary that a first fixture still missed.</li><li>The goal-check found SC-11&#x27;s degenerate-range refusal fixtured only against an <code>n_a</code> claim when the criterion binds it to <code>pass</code>/<code>fail</code>/<code>grade_2</code> too. Closed at <code>acda74d1</code>.</li></ol>
+<p>Each was found by a <em>different</em> reader, and none was visible to the others. Nine mutations were run in total, each against a staged copy with a control run, because staging alone produces failures that would otherwise be credited to the mutation. <code>validate-digest.py</code>&#x27;s checksum was verified identical before and after every one. (<code>notes/receipt-harness-orchestrator-reachability.md</code>, <code>notes/receipt-harness-orchestrator-T-02.md</code>.)</p>
+<hr>
+<h2 id="proposed-backlog">Proposed backlog</h2>
+<p>Unstruck rows become issues on ship acceptance. <strong>Anything not listed here dies silently.</strong></p>
+<div class="scroll"><table><thead><tr><th>ID</th><th>Nature</th><th>What</th></tr></thead><tbody><tr><td>B-1</td><td>chore</td><td><code>_load_test_kinds</code>-equivalent config read is spelled twice (<code>code-grade.py</code>, <code>validate-digest.py</code>), one raising and one fail-closed. Unifying changes CLI behaviour that T-01&#x27;s tests pin</td></tr><tr><td>B-2</td><td>chore</td><td>6 redundant <code>git rev-parse --verify</code> per code-review digest, measured at ~59 ms of 467 ms. Overlaps B-3&#x27;s mechanism; take both or neither</td></tr><tr><td>B-3</td><td>chore</td><td><code>notes/receipt-harness-backend-dev-simplify-simplification.md</code> Finding 1 overstates the duplication at <code>validate-digest.py:776</code>. Left uncorrected, a future simplify pass could delete a load-bearing injection check for the wrong reason</td></tr><tr><td>B-4</td><td>chore</td><td>Six refusal conditions enumerated in prose in three places (SKILL.md, the validator, DEC-209). The altitude reader&#x27;s own recommendation was <code>leave</code></td></tr><tr><td>B-5</td><td>bug</td><td>The validation squad cannot produce its own mutation evidence: <code>bash-write-guard</code> denies it the scratch copy and no disposable worktree is provisioned. Today that work falls to whoever holds Bash at the orchestrator tier</td></tr><tr><td>B-6</td><td>bug</td><td><code>bash-write-guard</code> behaved inconsistently across panel cycles — it permitted a <code>/tmp</code> copy that the previous cycle recorded as blocked — silently changing what the squad can measure run to run</td></tr><tr><td>B-7</td><td>bug</td><td>A relative-path section edit issued while cwd is the main checkout lands in the <strong>main</strong> checkout silently. Caught and reverted during T-04; a wrong-tree guard is warranted</td></tr><tr><td>B-8</td><td>bug</td><td><code>observations-merge.py</code> raises <code>FileNotFoundError</code> on its <code>.lock</code> path when the feature&#x27;s <code>observations/</code> directory does not yet exist, instead of creating it</td></tr><tr><td>B-9</td><td>bug</td><td>A lead&#x27;s run-dir write silently overwrote another run&#x27;s <code>state.yaml</code>: the guard fires only on <code>digest.md</code> while <code>state.yaml</code> carries <code>upsert: true</code>, and the stale run id was reused because <code>runs/**</code> returned nothing under glob</td></tr><tr><td>B-10</td><td>chore</td><td>T-01&#x27;s RED evidence is receipt-narrated; qa reproduced it in panel cycle 2 but not in cycle 1. T-02&#x27;s is committed in the test file, which is the pattern worth standardising</td></tr></tbody></table></div>
+<hr>
+<h2 id="what-is-deliberately-traded">What is deliberately traded</h2>
+<p><code>n_a</code>-only availability is gone. Previously <code>pass</code>, <code>fail</code> and <code>grade_2</code> were exempt from range derivation so an unresolvable default branch could not block reviewer validation generally. <strong>That exemption was the bypass</strong> — a checkout that cannot derive the repository-owned range cannot prove any mechanical result, and falling back to the digest&#x27;s base would restore digest-chosen grading. Every derivation or grading failure now refuses and names its repair: unresolvable <code>origin/HEAD</code>, unresolvable <code>review_sha</code>, no merge base, a degenerate range, a missing or malformed <code>test_kinds</code> policy, and committed Python that does not parse. Recorded as DEC-209.</p>
+<p>The practical cost: a checkout with a broken <code>origin/HEAD</code> can no longer land a code review until it is repaired. Reviews already require <code>origin/main</code> for the reviewer&#x27;s own command, so this asks for nothing a review did not already need.</p>
+<hr>
+<h2 id="state">State</h2>
+<ul><li>Branch <code>feat/BUG-1081-code-grade-enforcement</code>, 12 commits on <code>965c0e35</code>.</li><li><code>review_sha</code> pinned at <code>acda74d1527edbea279c914d685baec7eaf9d3cb</code>.</li><li>Parent issue #1098, sub-issues #1099–#1102, milestone #36, all at <strong>Review</strong>. Source issue #1081 is linked and reaches <code>Done</code> only when the merge lands, exactly as the BRIEF specifies.</li><li>The worktree still stands and is mine to work in, not to remove.</li></ul>
+<p><strong>The decision I need: ship (with the rebase in P-1), or strike rows first.</strong></p><p class='derived'>Derived from <code>ship-review-BUG-1081.md</code> — the markdown is the record; do not edit this file. Regenerate with <code>bin/render-brief.py</code>.</p></div></body></html>

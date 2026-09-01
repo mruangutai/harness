@@ -70,9 +70,37 @@ its report (JSON: `"severity": "high"`) and `RESULT: FAIL`. A record that passes
 emits; grade 2 never blocks the build (`RESULT: FAIL` still prints, but the run exits clean once
 reasoned) and is reported as `code_grade: grade_2`, never `fail`.
 
-The tool informs judgement; it is never the last word. Raise a `must_fix` when review judgement finds
-broken behaviour even if every grade improved, and never treat a clean grade report as a passing review
-by itself.
+### The enum is an audit claim, not evidence of itself
+
+**`validate-digest.py` recomputes `code_grade` independently and refuses your digest when it
+disagrees.** It grades `merge-base(<default branch>, review_sha)..review_sha` — the range the
+repository derives, which the `reviewed:` field you write cannot change — and compares the result
+with the value you reported. You still run the grader yourself: that is how you cite blocking
+records by file, line and driver metric, and how you write a reasoned answer to every
+`REASON REQUIRED` line. What you no longer do is decide the value. A review that skipped the tool,
+or whose run crashed, or that reported a blocking result as a clean one, is now rejected at source
+rather than accepted on your word.
+
+Three consequences worth knowing before you write the field:
+
+- **No changed Python path in that range means `n_a`** — and nothing else does. A range whose only
+  Python change is a DELETION is `pass`, not `n_a`: a Python file changed, there is simply no
+  head-side function left to gate.
+- **A mismatch refusal names the value the repository expected**, so the repair is to rerun the
+  grader over the canonical range and report what it reports — never to guess another enum value.
+- **A grading failure refuses the digest and tells you how to repair the checkout.** An unresolvable
+  `origin/HEAD`, a `review_sha` that does not resolve, no merge base with the default branch, a
+  range that is empty by construction because `review_sha` is already an ancestor of the default
+  branch, a missing or malformed `test_kinds` policy, or committed Python that does not parse — each
+  refuses, by name. None of them falls back to your `reviewed:` base, because a checkout that cannot
+  derive the repository's own range cannot prove any mechanical result. Fix the checkout or the pin
+  and rerun; there is nothing to write around it.
+
+The mechanical result is not the review. A clean grade decides nothing on its own: `must_fix`,
+severity and the review policy remain yours, and they still fail a mechanically clean change. The
+tool informs judgement; it is never the last word. Raise a `must_fix` when review judgement finds
+broken behaviour even if every grade improved, and never treat a clean grade report as a passing
+review by itself.
 
 ## Findings need failure scenarios
 
