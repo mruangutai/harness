@@ -519,7 +519,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-dev-ops
     depends_on: [T-02]
-    status: building
+    status: done
     files:
       - .claude/skills/harness/bin/quarantine.py
       - .claude/skills/harness/bin/test-quarantine.py
@@ -586,7 +586,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: check-domain.sh --resolve answers NOBODY for both playbook files at the resolved sha (DEC-179)
     depends_on: [T-01, T-04]
-    status: building
+    status: done
     files:
       - .claude/skills/harness/SKILL.md
       - .claude/skills/harness-team/SKILL.md
@@ -659,7 +659,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-documentor
     depends_on: [T-01, T-02, T-03, T-04, T-05, T-07]
-    status: ready
+    status: done
     files:
       - .harness/harness/docs/DECISIONS.md
       - .harness/harness/docs/DECISIONS-INDEX.md

@@ -6486,3 +6486,71 @@ would still have to parse a presentation-oriented record to recover the result.
 
 **Plan reviews are untouched.** DEC-207's `reviewed: plan:<path>` target has no code diff and no
 pinned `review_sha`, and never invokes the grader.
+
+## DEC-210 — On the Claude Code compatibility host a parent with live children suspends rather than completes, and an orphaned writer is quarantined at two governed write routes rather than killed
+
+**Chose:** A lead or orchestrator return with live children has THREE answers on the compatibility
+host, not two: an accepted nonterminal suspension — `VERDICT: SUSPENDED` carrying an `awaiting` list
+that names every live child — which exits 0; a refused terminal verdict, exit 2, while any child is
+still live; and the unchanged validation path when no child is live
+(`.claude/skills/harness/bin/validate-digest.py`, `hook_mode`). `SUSPENDED` is recognised ONLY inside
+`hook_mode` and is NOT a member of `VERDICTS`, so no member persona and no written digest can carry
+it. Origin: `FEAT-51-claude-code-lifecycle-safety`.
+
+**A suspension is not a completion: the suspending parent's claim is NOT released.** The accepted
+suspension returns ahead of the release step, so the parent still owns its claim while its children
+run. Every terminal or invalid return releases first, exactly as before.
+
+**Quarantine is a WRITE boundary, not a kill.** A governed writer holding no live claim for the
+feature it is writing, while some other live claim for that feature exists, is refused and told the
+exact quarantine path to write instead. An orphan may still finish its work: reads, greps, and writes
+to `notes/`, `observations/` and `runs/` are untouched, because the refusal keys on the four
+canonical artifact paths alone.
+
+**The four canonical artifacts are `plan.yaml`, `BRIEF.md`, `feature.json` and `STATE.md`, and the
+boundary is enforced at TWO registered gates.** `check-domain.sh`, on PreToolUse for Write and Edit,
+bites on `BRIEF.md`, `feature.json` and `STATE.md`. `plan-sign-gate.sh`, on PreToolUse for Bash,
+bites on the four mutating `plan-merge.py` verbs — `apply`, `add-tasks`, `set-task-station` and
+`set-feature-station` — and on `quarantine.py adopt`. Two gates because the two write routes are
+disjoint and neither can see the other's traffic. All three scripts sit in the enforcement layer
+DEC-174 keeps out of self-hosted execution, so each is verified by its own explicit test script
+rather than by the gates under change.
+
+**`plan.yaml` is covered by the `plan-sign-gate.sh` half, and NOT by FEAT-41's editor-route
+denial.** Its only write route is `plan-merge.py` invoked through Bash. That denial — exit 2 on an
+editor write of any `plan.yaml`, for every author, under DEC-182's reversal — is a second and
+independent refusal on a route nobody may use; the `check-domain.sh` quarantine branch sits AFTER it
+and defers to it, so the more fundamental refusal keeps its message.
+
+**What the boundary does NOT cover, stated as plainly as what it does.** `quarantine.py discard` is
+deliberately uncovered, so nothing here proves that an orphan cannot destroy a quarantined result: a
+rule on that verb, while a plain `rm -rf` of the same directory stays legal under the shared sandbox
+glob, would record a protection the tree does not have. And the boundary bounds those two GOVERNED
+routes alone — a generic Bash write (`cp`, `cat`, `tee`, `mv`, `sed -i`, `python3 -c`) to a canonical
+artifact INSIDE the writer's own domain reaches neither gate and is not refused, because
+`bash-write-guard.sh` passes an in-domain write and `check-domain.sh` is registered for Write and
+Edit only. That was measured: exit 0 on all three gates. Generic write-route enforcement needs a
+generic write-route gate, which is a different feature and goes to the backlog rather than being
+built here.
+
+**Adoption and discard are the only two explicit acts.** A quarantined result becomes canonical only
+when a resumed parent runs `quarantine.py adopt`; `discard` is the other explicit act. Neither is a
+default and neither is a timeout — quarantined content is inert until a parent acts on it. Adoption
+of `plan.yaml` goes through the locked union merge DEC-199 put behind `plan-merge.py`.
+
+**The quarantine sandbox is ONE shared glob**, `.harness/*/features/*/quarantine/**` in
+`team-config.yaml`'s `shared:` list, rather than twelve per-persona domain grants. One glob is what
+makes every persona's own quarantine directory writable without a grant of its own, and it is also
+why the `discard` gap above cannot be closed by a CLI rule.
+
+**OMP behaviour is unchanged.** The boundary fires only where a live claim for the feature has a
+runtime that is not `omp`; blocking nested edges, process-owned liveness and every OMP-path
+assertion in DEC-204 continue to hold. This entry supersedes nothing in DEC-204 and narrows nothing
+in DEC-201.
+
+**The honest bound.** Claude Code exposes no durable child-process owner, so beyond
+`CLAIM_TTL_SECONDS` — 1200 seconds, one normal PM cycle — a suspended parent cannot be distinguished
+from an interrupted one, and the boundary fails safe by treating the parent as gone. A member running
+longer than that TTL therefore meets the quarantine path on a NORMAL run. That is a cost of the
+compatibility host and does not exist on OMP, where a claim is owned by a supervisor process and a
+verified one is live at any age.
