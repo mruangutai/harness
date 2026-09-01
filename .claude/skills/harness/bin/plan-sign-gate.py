@@ -79,10 +79,19 @@ cmd = (payload.get("tool_input") or {}).get("command") or ""
 OPS = {";", "&", "&&", "|", "||", "(", ")", "<", ">", ">>", "\n"}
 MAX_DEPTH = 3
 
+# argparse's end-of-options marker. It is NOT a shell operator, so shlex hands it back as an
+# ordinary token and it broke the tool/verb adjacency test (FEAT-41 F-03).
+SEP = "--"
+
 # The TEXT fallback, for a command line `shlex` cannot lex at all. It reads the raw string,
 # so an unbalanced quote does not stop it. Weaker than tokenizing — it cannot see through
 # quoting or a path — and only ever reached when tokenizing is impossible.
-RAW_SIGN = re.compile(r"plan-merge\.py[\"'\s]+" + re.escape(VERB) + r"(\s|$)")
+#
+# IT SKIPS SEPARATORS TOO (FEAT-41 F-03). Fixing only the token scan above would have moved
+# the evasion rather than closed it: an unlexable line carrying `plan-merge.py -- sign-approval`
+# reaches exactly this regex, and the hole would have survived one unbalanced quote away.
+RAW_SIGN = re.compile(r"plan-merge\.py[\"'\s]+(?:" + re.escape(SEP) + r"[\"'\s]+)*"
+                      + re.escape(VERB) + r"(\s|$)")
 
 
 def words(s):
@@ -110,10 +119,28 @@ def denies(line, depth=0):
         # evasion has no need of an unbalanced quote to hide behind.
         return bool(RAW_SIGN.search(line))
     for i, t in enumerate(toks):
-        # THE VERB MUST FOLLOW THE TOOL. A bare `sign-approval` anywhere in a command line is
-        # not a signing attempt — an agent grepping for the verb, or writing a receipt that
-        # mentions it, is doing legitimate work, and a substring match would refuse both.
-        if is_tool(t) and toks[i + 1:i + 2] == [VERB]:
+        # THE VERB MUST FOLLOW THE TOOL, PAST ANY END-OF-OPTIONS SEPARATOR (FEAT-41 F-03).
+        # A bare `sign-approval` anywhere in a command line is not a signing attempt — an agent
+        # grepping for the verb, or writing a receipt that mentions it, is doing legitimate
+        # work, and a substring match would refuse both. So position still matters; what was
+        # wrong was testing STRICT adjacency.
+        #
+        # argparse treats a lone `--` as end-of-options and DROPS it, so `plan-merge.py --
+        # sign-approval` is a line argparse executes while no token sits adjacent to the tool.
+        # Measured against the real tool: one `--` signs, two `--` and an empty token are both
+        # refused by argparse at exit 2 and cannot sign at all.
+        #
+        # A RUN IS SKIPPED, NOT ONE, and deliberately: the repeated form cannot sign today, so
+        # skipping it costs nothing, and it means this gate does not silently reopen if
+        # argparse's handling of a second separator ever changes. Only `--` is skipped —
+        # widening to "the verb appears anywhere after the tool" would refuse the legitimate
+        # `apply` call asserted as a negative control in test-plan-sign-gate.py.
+        if not is_tool(t):
+            continue
+        j = i + 1
+        while toks[j:j + 1] == [SEP]:
+            j += 1
+        if toks[j:j + 1] == [VERB]:
             return True
     if depth < MAX_DEPTH:
         # `eval "... sign-approval ..."` and `bash -c '...'` carry a whole command line

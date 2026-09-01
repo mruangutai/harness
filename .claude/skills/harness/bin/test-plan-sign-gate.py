@@ -165,5 +165,60 @@ check("NEGATIVE CONTROL: the bare word sign-approval WITHOUT plan-merge.py befor
       "allowed — a grep or a receipt is not a signing attempt",
       rc == 0, f"rc={rc} stderr={err[:300]!r}")
 
+# ---------------------------------------------------------------------------------------
+# FEAT-41 F-03, high, found by the validation panel. THE ADJACENCY TEST WAS TOO STRICT.
+#
+# `denies()` required the verb to be the token IMMEDIATELY after the tool. argparse treats a
+# lone `--` as end-of-options and DROPS it, so `plan-merge.py -- sign-approval` broke the
+# adjacency the gate tested while remaining a command argparse actually executes. A habitual
+# `--`, not an attack, forged the user's signature.
+#
+# MEASURED, NOT ASSUMED, and the class is bounded. Driving the real plan-merge.py against a
+# throwaway plan:
+#     sign-approval          rc=0  SIGNS
+#     -- sign-approval       rc=0  SIGNS      <- the hole
+#     -- -- sign-approval    rc=2  argparse refuses, cannot sign
+#     '' sign-approval       rc=2  argparse refuses, cannot sign
+# So exactly one separator evades. The gate now skips a RUN of `--` rather than one: the
+# repeated form cannot sign today, and skipping it costs nothing, but it means the gate does
+# not silently reopen if argparse's handling of a second `--` ever changes.
+# ---------------------------------------------------------------------------------------
+for _sep in ("--", "-- --"):
+    rc, err = gate(f"python3 .claude/skills/harness/bin/plan-merge.py {_sep} sign-approval "
+                   f"--file p.yaml --by Someone --date 2026-01-01",
+                   agent_type="harness-orchestrator")
+    check(f"F-03: `plan-merge.py {_sep} sign-approval` is DENIED — argparse drops the "
+          f"separator, so adjacency is not what makes a line a signing attempt",
+          rc == 2, f"rc={rc} stderr={err[:300]!r}")
+
+# NEGATIVE CONTROL FOR THE WIDENING. Skipping separators must not turn the scan into "the verb
+# appears somewhere after the tool" — that would refuse a legitimate `apply` whose own argument
+# or a trailing comment happens to name the verb.
+rc, err = gate("python3 .claude/skills/harness/bin/plan-merge.py apply --file p.yaml "
+               "--proposal q.yaml  # not a sign-approval call",
+               agent_type="harness-orchestrator")
+check("F-03 NEGATIVE CONTROL: an `apply` call that merely MENTIONS sign-approval later on the "
+      "line is still allowed — separators are skipped, arbitrary tokens are not",
+      rc == 0, f"rc={rc} stderr={err[:300]!r}")
+
+# AND THE SAME HOLE IN THE TEXT FALLBACK. The three cases above all lex, so none of them
+# reaches `RAW_SIGN` — fixing only the token scan would have moved the evasion one unbalanced
+# quote away instead of closing it. `it's` is the cheapest real unlexable line there is, and it
+# is the exact shape gh-close-gate.py's blanket-deny measurement was about.
+rc, err = gate("echo it's fine; python3 .claude/skills/harness/bin/plan-merge.py -- "
+               "sign-approval --file p.yaml --by Someone --date 2026-01-01",
+               agent_type="harness-orchestrator")
+check("F-03: the TEXT fallback also skips the separator — an unlexable line carrying "
+      "`plan-merge.py -- sign-approval` is DENIED",
+      rc == 2, f"rc={rc} stderr={err[:300]!r}")
+
+# NEGATIVE CONTROL for the fallback: an unlexable line that is NOT a signing attempt still
+# passes, so the fallback did not quietly become the blanket deny it was written to avoid.
+rc, err = gate("echo it's fine && git status", agent_type="harness-orchestrator")
+check("F-03 NEGATIVE CONTROL: an unlexable line that is not a signing attempt is still "
+      "allowed — the fallback is a scan, never a blanket deny",
+      rc == 0, f"rc={rc} stderr={err[:300]!r}")
+
+
 print(f"\n{fails} failing." if fails else "\nall checks passed.")
 raise SystemExit(1 if fails else 0)
