@@ -2,13 +2,19 @@
   "feature_id": "BUG-1128-plan-amend-verb",
   "branch": "feat/BUG-1128-plan-amend-verb",
   "pr": null,
-  "review_sha": "08dd66bbc1116ce22f860350828d06705a9630ef",
-  "cycles_used": 1,
+  "review_sha": "dfcd37003544a166e9d8ebb7b1c565fdfeb96b0d",
+  "cycles_used": 2,
   "max_total_cycles": 10,
   "max_total_runs": 20,
   "runs": [
     {
       "id": "2026-09-01-01-validator",
+      "squad": "validator",
+      "verdict": "FAIL",
+      "agent": "harness-validator-lead"
+    },
+    {
+      "id": "2026-09-01-02-validator",
       "squad": "validator",
       "verdict": "FAIL",
       "agent": "harness-validator-lead"
