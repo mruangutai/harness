@@ -312,25 +312,23 @@ def _verify_signature(spliced_bytes, resolved, fields):
 
 
 
-def _verify_amend(spliced_bytes, key, iid, field, want):
-    """Refuse rather than write an amendment that does not reload as the one asked for.
-
-    THE DISCIPLINE `cmd_sign_approval` ALREADY HELD, and `amend` did not inherit (BUG-1128
-    panel V3). The compare-and-swap protects CONTENT: it proves the block being replaced is
-    the block that was read. It says nothing about LOCATION or RESULT, because both hashes
-    are computed over whatever the locator returned — so they agree perfectly on the wrong
-    block, and a splice into the wrong field reports success at exit 0.
-
-    IT COMPARES VALUES, NOT SYNTAX, for the same reason `_verify_signature` does: a wrong-field
-    write and a silently re-formed value both leave a document that parses.
-    """
+def _reload_or_refuse(spliced_bytes):
+    """The spliced document, or a refusal naming the splice as the fault."""
     try:
-        reloaded = yaml.safe_load(spliced_bytes.decode("utf-8"))
+        return yaml.safe_load(spliced_bytes.decode("utf-8"))
     except yaml.YAMLError as exc:
         raise harness_merge.MergeRefusal(
             5, ["UNPARSEABLE: the amended plan does not load — REFUSING to write it.",
                 f"  {exc}",
                 "  this is a splice defect, not a bad value: the base parsed."])
+
+
+def _sole_item(reloaded, key, iid):
+    """The one item under `key` whose id is `iid`, or a refusal.
+
+    Exactly one is required: a duplicate id cannot be amended unambiguously, and binding to
+    the first match silently is what the code-reviewer found in cycle 0.
+    """
     items = (reloaded or {}).get(key)
     if not isinstance(items, list):
         raise harness_merge.MergeRefusal(
@@ -340,13 +338,33 @@ def _verify_amend(spliced_bytes, key, iid, field, want):
         raise harness_merge.MergeRefusal(
             5, [f"REFUSED: {iid} appears {len(got)} time(s) under {key}: after the amendment; "
                 "exactly one is required. A duplicate id cannot be amended unambiguously."])
-    if got[0].get(field) != want:
+    return got[0]
+
+
+def _verify_amend(spliced_bytes, key, iid, field, want):
+    """Refuse rather than write an amendment that does not reload as the one asked for.
+
+    THE DISCIPLINE `cmd_sign_approval` ALREADY HELD, and `amend` did not inherit (BUG-1128
+    panel V3). The compare-and-swap protects CONTENT: it proves the block being replaced is
+    the block that was read. It says nothing about LOCATION or RESULT, because both hashes are
+    computed over whatever the locator returned — so they agree perfectly on the wrong block,
+    and a splice into the wrong field reports success at exit 0.
+
+    IT COMPARES VALUES, NOT SYNTAX, for the same reason `_verify_signature` does: a wrong-field
+    write and a silently re-formed value both leave a document that parses.
+
+    It CANNOT see a boundary error — `_trim_tail` owns that (panel N1) — because a deleted
+    adjacent comment leaves the amended value exactly as asked.
+    """
+    reloaded = _reload_or_refuse(spliced_bytes)
+    item = _sole_item(reloaded, key, iid)
+    if item.get(field) != want:
         raise harness_merge.MergeRefusal(
             5, [f"REFUSED: the amendment does not reload as written — {iid}.{field} would not "
                 "say what was asked for. This is the wrong-field write the content hash cannot "
                 "see.",
                 f"  asked for: {want!r}",
-                f"  reloads as: {got[0].get(field)!r}"])
+                f"  reloads as: {item.get(field)!r}"])
     return reloaded
 
 
@@ -1053,41 +1071,99 @@ def _block_scalar_end(lines, head, end):
     return j
 
 
-def _field_block(lines, start, end, item_indent, field):
-    """(first, last_exclusive, indent) of `field:` inside one item, or None.
+def _trim_tail(lines, first, last):
+    """Pull `last` back past trailing comment and blank lines, which belong to the DOCUMENT.
 
-    BLOCK-SCALAR AWARE (BUG-1128 panel V1, found independently by three readers). The first
-    cut matched `^\\s*field:` over physical lines, so `--field verify` bound to a prose line
-    inside an `intent: |` body and the replace corrupted `intent` while reporting
-    `AMENDED ... verify` at exit 0. The compare-and-swap could not help: both hashes are taken
-    over whatever this function returns, so they agree perfectly on the wrong block.
+    BUG-1128 panel N1, reproduced independently by all four reviewers. The tail scan stopped
+    only at the next item or the next sibling key; a `# NOTE` line and a blank line match
+    NEITHER, so both were swept into the replaced range and DELETED by the splice, at exit 0
+    under a clean AMENDED receipt.
 
-    The block runs from the `field:` line through its continuation lines — a plain multi-line
-    scalar or a `|` body is one unit — and ends at the next sibling key at the same indent or
-    shallower, the next item, or the item's end.
+    `_verify_amend` cannot catch this and never could: the amended field's own value is
+    exactly what was asked for. Only the boundary was wrong, and a value check cannot see a
+    boundary. That is why this fix belongs here and not in the verifier.
     """
-    first, indent, i = None, "", start
+    while last - 1 > first:
+        stripped = lines[last - 1].strip()
+        if stripped == "" or stripped.startswith("#"):
+            last -= 1
+            continue
+        break
+    return last
+
+
+def _dedent_value(block, indent, field):
+    """The field's VALUE as `--value-file` expects it, derived from raw lines only.
+
+    BUG-1128 panel N3. Two shapes, and the inverse of `_render_field` in both:
+
+    A block scalar's value is its body with the emission indent removed, and it keeps a
+    trailing newline because `|` does. A plain scalar's value is what follows `field: `, with
+    continuation lines joined at one space, which is how YAML folds them.
+
+    No parsing: `--show` must keep working on a plan whose YAML is broken, since repairing one
+    is what the verb is for.
+    """
+    if not block:
+        return ""
+    if BLOCK_HEAD_RE.match(block[0]):
+        body_indent = len(indent) + 2
+        out = [ln[body_indent:] if len(ln) > body_indent else ln.lstrip(" ")
+               for ln in block[1:]]
+        return "".join(out)
+    head = block[0].split(":", 1)[1].strip()
+    rest = [ln.strip() for ln in block[1:] if ln.strip()]
+    return " ".join([head] + rest) + "\n"
+
+
+def _find_field_line(lines, start, end, item_indent, field):
+    """(index, indent) of the item's own `field:` line, or (None, "").
+
+    BLOCK-SCALAR AWARE (BUG-1128 panel V1, three readers). The first cut matched
+    `^\\s*field:` over physical lines, so `--field verify` bound to a prose line inside an
+    `intent: |` body and the replace corrupted `intent` while reporting `AMENDED ... verify` at
+    exit 0. The compare-and-swap could not help: both hashes are taken over whatever the
+    locator returns, so they agree perfectly on the wrong block.
+    """
+    i = start
     while i < end:
-        head = BLOCK_HEAD_RE.match(lines[i])
         m = SIBLING_KEY_RE.match(lines[i])
         if m and m.group(2) == field and len(m.group(1)) > len(item_indent):
-            first, indent = i, m.group(1)
-            break
+            return i, m.group(1)
+        head = BLOCK_HEAD_RE.match(lines[i])
         if head and len(head.group(1)) > len(item_indent):
             i = _block_scalar_end(lines, i, end)   # opaque text, never scanned for keys
             continue
         i += 1
+    return None, ""
+
+
+def _plain_scalar_end(lines, first, end, indent):
+    """First index after a plain scalar's continuation lines."""
+    for j in range(first + 1, end):
+        if ITEM_ID_RE.match(lines[j]):
+            return j
+        m = SIBLING_KEY_RE.match(lines[j])
+        if m and len(m.group(1)) <= len(indent):
+            return j
+    return end
+
+
+def _field_block(lines, start, end, item_indent, field):
+    """(first, last_exclusive, indent) of `field:` inside one item, or None.
+
+    The block runs from the `field:` line through its continuation lines — a plain multi-line
+    scalar or a `|` body is one unit — and stops short of trailing comments and blank lines,
+    which belong to the document rather than the field (panel N1).
+    """
+    first, indent = _find_field_line(lines, start, end, item_indent, field)
     if first is None:
         return None
     if BLOCK_HEAD_RE.match(lines[first]):
-        return first, _block_scalar_end(lines, first, end), indent
-    for j in range(first + 1, end):
-        if ITEM_ID_RE.match(lines[j]):
-            return first, j, indent
-        m2 = SIBLING_KEY_RE.match(lines[j])
-        if m2 and len(m2.group(1)) <= len(indent):
-            return first, j, indent
-    return first, end, indent
+        last = _block_scalar_end(lines, first, end)
+    else:
+        last = _plain_scalar_end(lines, first, end, indent)
+    return first, _trim_tail(lines, first, last), indent
 
 
 def _render_field(indent, field, value_text, original):
@@ -1117,50 +1193,83 @@ def _render_field(indent, field, value_text, original):
     return [_field_lines(indent, field, value_text.strip("\n"))]
 
 
+def _die(code, *lines):
+    """Print a refusal to stderr and exit. Collapses the print/exit pairs that made
+    `cmd_amend` an ABC outlier without changing a single message."""
+    for line in lines:
+        print(line, file=sys.stderr)
+    sys.exit(code)
+
+
+def _amend_locate(args, resolved, lines):
+    """(first, last, indent) for the field named by `args`, or a refusal.
+
+    Both refusals name what IS present, because a caller who mistyped needs the real list
+    rather than a bare no. The id list is scoped to `--key`, the precedent
+    `_task_status_line` set: offering decision ids for a `--key tasks` miss invites a retry
+    that fails for an unrelated reason.
+    """
+    start, end, info = _item_range(lines, args.key, args.id)
+    if start is None:
+        _die(3, f"plan-merge: {args.id} is not under {args.key}: in {resolved} — it carries: "
+                f"{', '.join(info) or '(none)'}")
+    located = _field_block(lines, start, end, info, args.field)
+    if located is None:
+        _die(4, f"plan-merge: {args.id} carries no {args.field}: field. amend REPLACES; adding "
+                f"a field is apply's job, and a verb that silently grows a plan is how it "
+                f"acquires a key nobody reviewed.")
+    return located
+
+
+def _amend_show(lines, located, field, actual):
+    """Print the field's VALUE and its hash, and exit.
+
+    THE VALUE, NOT THE BLOCK (panel N3). It used to print the raw block INCLUDING the `field:`
+    key line, while `--value-file` takes the bare value. An operator who stripped the obvious
+    sha256 line and fed the rest back wrote `verify: '    verify: run the thing'` at exit 0 —
+    and the identity check cannot catch that in principle, because the corrupted value is
+    byte-for-byte what was asked for. Emitting what `--value-file` expects makes
+    `--show` -> `--value-file` a true round trip.
+
+    Derived from the raw lines, never by parsing, so `--show` still works on a plan whose YAML
+    is broken — which is the case the verb exists to repair.
+    """
+    first, last, indent = located
+    sys.stdout.write(_dedent_value(lines[first:last], indent, field))
+    print(f"sha256: {actual}")
+    sys.exit(0)
+
+
+def _amend_preconditions(args, actual):
+    """Refuse a replace that is missing its expectation, or naming a stale one."""
+    if not args.expect_sha256 or not args.value_file:
+        _die(2, "plan-merge: a replace needs BOTH --expect-sha256 and --value-file. Omitting "
+                "the hash would make this a force-write, which is the hand-edit T-09 denies "
+                "wearing a tool's name. Run --show first.")
+    if args.expect_sha256 != actual:
+        _die(6, f"plan-merge: --expect-sha256 does not match {args.id}.{args.field} — the field "
+                f"changed since you read it. expected {args.expect_sha256} actual sha256: "
+                f"{actual}. Re-run --show and re-derive your replacement.")
+
+
 def cmd_amend(args):
     import hashlib
 
     if args.key not in AMENDABLE_KEYS:
-        print(f"plan-merge: --key {args.key} is not amendable — expected one of: "
-              f"{', '.join(AMENDABLE_KEYS)}. `approval:` is the main session's alone "
-              f"(DEC-120) and sign-approval is its only writer.", file=sys.stderr)
-        sys.exit(2)
+        _die(2, f"plan-merge: --key {args.key} is not amendable — expected one of: "
+                f"{', '.join(AMENDABLE_KEYS)}. `approval:` is the main session's alone "
+                f"(DEC-120) and sign-approval is its only writer.")
 
     resolved = _resolve_plan(args.file)
-
     with open(resolved, "rb") as fh:
         lines = fh.read().decode("utf-8").splitlines(keepends=True)
-    start, end, info = _item_range(lines, args.key, args.id)
-    if start is None:
-        present = ", ".join(info) or "(none)"
-        print(f"plan-merge: {args.id} is not under {args.key}: in {resolved} — it carries: "
-              f"{present}", file=sys.stderr)
-        sys.exit(3)
-    located = _field_block(lines, start, end, info, args.field)
-    if located is None:
-        print(f"plan-merge: {args.id} carries no {args.field}: field. amend REPLACES; adding a "
-              f"field is apply's job, and a verb that silently grows a plan is how it acquires "
-              f"a key nobody reviewed.", file=sys.stderr)
-        sys.exit(4)
+    located = _amend_locate(args, resolved, lines)
     first, last, indent = located
-    block = "".join(lines[first:last])
-    actual = hashlib.sha256(block.encode("utf-8")).hexdigest()
+    actual = hashlib.sha256("".join(lines[first:last]).encode("utf-8")).hexdigest()
 
     if args.show:
-        sys.stdout.write(block if block.endswith("\n") else block + "\n")
-        print(f"sha256: {actual}")
-        sys.exit(0)
-
-    if not args.expect_sha256 or not args.value_file:
-        print("plan-merge: a replace needs BOTH --expect-sha256 and --value-file. Omitting the "
-              "hash would make this a force-write, which is the hand-edit T-09 denies wearing a "
-              "tool's name. Run --show first.", file=sys.stderr)
-        sys.exit(2)
-    if args.expect_sha256 != actual:
-        print(f"plan-merge: --expect-sha256 does not match {args.id}.{args.field} — the field "
-              f"changed since you read it. expected {args.expect_sha256} actual sha256: "
-              f"{actual}. Re-run --show and re-derive your replacement.", file=sys.stderr)
-        sys.exit(6)
+        _amend_show(lines, located, args.field, actual)
+    _amend_preconditions(args, actual)
     with open(args.value_file, encoding="utf-8") as fh:
         value_text = fh.read()
 

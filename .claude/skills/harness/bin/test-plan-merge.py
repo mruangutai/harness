@@ -1356,38 +1356,59 @@ def case_amend_v2_identity_replace_of_a_block_field_round_trips():
 
 
 def case_amend_v3_identity_check_is_live():
-    """PANEL V3, the finding that demoted the others to refusals: `transform` asserted only
-    that the result parsed, which cannot see a splice landing in the wrong field or a value
-    re-formed on the way in. `_verify_amend` compares the RELOADED VALUE, the discipline
-    `cmd_sign_approval` already held in `_verify_signature`.
+    """PANEL N2 REPLACES CYCLE 0's V3 CASE, WHICH PINNED NOTHING.
 
-    Mutation-proven rather than asserted: with the check excised, a deliberately wrong
-    expected value is written and reported at exit 0."""
-    root, plan = fixture_root()
-    mutant = os.path.join(root, "mutant.py")
+    The first cut had two independent defects the panel measured: its guard contained the
+    literal tautology `read(plan) == read(plan)`, and its string replacement deleted an open
+    paren without its match, so the "mutant" was a SyntaxError and the case discriminated on a
+    crash. A syntax-valid mutant removing only the comparison left the suite at 0 FAIL of 229,
+    so the claim of three caught assertions did not reproduce. That was a false evidence claim
+    and this case exists to make the real one.
+
+    IT TESTS `_verify_amend` DIRECTLY, because with V1 and V2 fixed nothing end-to-end
+    triggers it any more: it is defence in depth against a locator bug, and the honest way to
+    pin defence in depth is to call it. An end-to-end case would have to ship a locator bug to
+    exercise it.
+    """
+    sys.path.insert(0, HERE)
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("plan_merge_under_test", CLI)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+
+    doc = ("schema: plan/1\nfeature: FEAT-99-fixture\ntasks:\n"
+           "  - id: T-01\n    title: actual\n    status: ready\n").encode("utf-8")
+
+    ok_pass = True
     try:
-        write(plan, _block_plan())
-        src = read(CLI)
-        # Anchored on the call itself, not its indentation or assignment target: the first
-        # cut anchored on leading whitespace and broke the moment the result was assigned.
-        needle = "_verify_amend(spliced.encode("
-        check("V3: the identity check is present at the splice",
-              needle in src, "call site not found")
-        shutil.copymode(CLI, CLI)
-        write(mutant, src.replace(needle, "(lambda *a, **k: None)("))
-        val = os.path.join(root, "v.txt")
-        write(val, "replacement\n")
-        sha, _ = _sha_of(plan, "tasks", "T-01", "status")
-        real = run_verb("amend", "--file", plan, "--key", "tasks", "--id", "T-01",
-                        "--field", "status", "--expect-sha256", sha or "x", "--value-file", val)
-        mut = subprocess.run([sys.executable, mutant, "amend", "--file", plan, "--key", "tasks",
-                              "--id", "T-01", "--field", "status", "--expect-sha256", sha or "x",
-                              "--value-file", val], capture_output=True, text=True)
-        check("V3: the check DISCRIMINATES — real and mutant do not agree on every input",
-              not (real.returncode == mut.returncode == 0 and read(plan) == read(plan)),
-              f"real={real.returncode} mutant={mut.returncode}")
-    finally:
-        shutil.rmtree(root, ignore_errors=True)
+        mod._verify_amend(doc, "tasks", "T-01", "title", "actual")
+    except Exception as exc:  # noqa: BLE001 - any raise here is the failure
+        ok_pass = False
+        detail = repr(exc)
+    check("V3: _verify_amend ACCEPTS a value that reloads as asked",
+          ok_pass, detail if not ok_pass else "")
+
+    raised = None
+    try:
+        mod._verify_amend(doc, "tasks", "T-01", "title", "something else entirely")
+    except mod.harness_merge.MergeRefusal as exc:
+        raised = exc
+    check("V3: and REFUSES when the reloaded value is not what was asked for",
+          raised is not None and raised.code == 5,
+          f"raised={raised!r}")
+    check("V3: the refusal names both values, so the caller can see the difference",
+          raised is not None and any("actual" in ln for ln in raised.lines),
+          f"lines={getattr(raised, 'lines', None)!r}")
+
+    dup = ("schema: plan/1\nfeature: FEAT-99-fixture\ntasks:\n"
+           "  - id: T-01\n    title: a\n  - id: T-01\n    title: b\n").encode("utf-8")
+    raised2 = None
+    try:
+        mod._verify_amend(dup, "tasks", "T-01", "title", "a")
+    except mod.harness_merge.MergeRefusal as exc:
+        raised2 = exc
+    check("V3: and REFUSES a duplicate id rather than accepting the first match",
+          raised2 is not None, f"raised={raised2!r}")
 
 
 def case_amend_v4_unparseable_base_refuses_cleanly():
@@ -1414,6 +1435,122 @@ def case_amend_v4_unparseable_base_refuses_cleanly():
               "does not parse" in (r.stderr + r.stdout), f"stderr={r.stderr[:250]!r}")
     finally:
         shutil.rmtree(root, ignore_errors=True)
+
+
+def _schema_valid_plan():
+    """A base that satisfies REQUIRED_TASK_FIELDS — id, title, change_type, execution_mode,
+    files, verify, intent. `render_plan` and the amend fixtures all omit several, which is
+    exactly why the do-no-harm branch was dead in the whole suite (panel N5)."""
+    return (
+        "schema: plan/1\n"
+        "feature: FEAT-99-fixture\n"
+        "status: building\n"
+        "approval:\n  status: approved\n  approved_by: X\n  date: 2026-01-01\n"
+        "tasks:\n"
+        "  - id: T-01\n"
+        "    title: a real task\n"
+        "    change_type: logic\n"
+        "    execution_mode: main-session-direct\n"
+        "    files: [a.py]\n"
+        "    verify: run it\n"
+        "    intent: do it\n"
+        "    status: done\n"
+    )
+
+
+def case_amend_n5_do_no_harm_branch_is_live():
+    """PANEL N5. The schema branch never executed: every amend fixture omitted required task
+    fields, so `_schema_error(base_doc) is None` was never True and replacing the whole branch
+    with `pass` left the suite green. The disclosed `reloaded` NameError fix therefore shipped
+    with zero evidence.
+
+    With a schema-VALID base, amending `title` to an empty value must be refused by the schema,
+    which is the only thing that proves the branch runs at all."""
+    root, plan = fixture_root()
+    try:
+        write(plan, _schema_valid_plan())
+        base = read(plan)
+        check("N5: the fixture base really is schema-valid (or this case is vacuous)",
+              yaml.safe_load(base) is not None, "unparseable fixture")
+        sha, _ = _sha_of(plan, "tasks", "T-01", "title")
+        empty = os.path.join(root, "empty.txt")
+        write(empty, "\n")
+        r = run_verb("amend", "--file", plan, "--key", "tasks", "--id", "T-01",
+                     "--field", "title", "--expect-sha256", sha or "x", "--value-file", empty)
+        check("N5: a schema-breaking amendment on a schema-valid base is refused",
+              r.returncode != 0, f"rc={r.returncode} out={r.stdout[:150]!r}")
+        check("N5: and the plan is unchanged", read(plan) == base, "plan changed")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_amend_n1_adjacent_comment_and_blank_survive():
+    """PANEL N1 (high, all four reviewers). The tail scan stopped only at the next item or the
+    next sibling key, so a `# NOTE` line and a blank line between two fields matched neither,
+    were swept into the replaced range, and were DELETED at exit 0 under a clean AMENDED
+    receipt.
+
+    `_verify_amend` cannot catch this and never could: the amended value is exactly what was
+    asked for. Only the boundary was wrong, and a value check cannot see a boundary — which is
+    why `case_amend_preserves_comments_elsewhere` passed throughout: its comment is in the file
+    PREAMBLE, which intersects no field's range.
+    """
+    root, plan = fixture_root()
+    try:
+        write(plan, "schema: plan/1\nfeature: FEAT-99-fixture\n\ntasks:\n"
+                    "  - id: T-01\n    title: first\n"
+                    "    # NOTE: a load-bearing comment BETWEEN two fields\n"
+                    "\n"
+                    "    verify: run it\n    status: ready\n")
+        sha, _ = _sha_of(plan, "tasks", "T-01", "title")
+        val = os.path.join(root, "v.txt")
+        write(val, "renamed\n")
+        r = run_verb("amend", "--file", plan, "--key", "tasks", "--id", "T-01",
+                     "--field", "title", "--expect-sha256", sha or "x", "--value-file", val)
+        after = read(plan)
+        check("N1: the amendment succeeds", r.returncode == 0,
+              f"rc={r.returncode} {r.stderr[:200]!r}")
+        check("N1: the comment BETWEEN fields survives", "load-bearing comment" in after, after)
+        check("N1: the blank line between fields survives",
+              "\n\n    verify: run it" in after, repr(after))
+        check("N1: and the new value landed", "title: renamed" in after, after)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_amend_n3_show_round_trips_into_value_file():
+    """PANEL N3. `--show` printed the field BLOCK including its `field:` key line while
+    `--value-file` takes the bare VALUE, so feeding the output back wrote
+    `verify: '    verify: run the thing'` at exit 0 — and the identity check cannot catch that
+    in principle, since the corrupted value IS what the caller asked for.
+
+    The remedy was at the read end. This asserts the round trip: `--show` output, minus its
+    sha line, fed straight into `--value-file`, must leave the value unchanged."""
+    root, plan = fixture_root()
+    try:
+        write(plan, _block_plan())
+        before = yaml.safe_load(read(plan))
+        want = [t for t in before["tasks"] if t["id"] == "T-01"][0]["verify"]
+        r = run_verb("amend", "--file", plan, "--key", "tasks", "--id", "T-01",
+                     "--field", "verify", "--show")
+        shown = "".join(ln + "\n" for ln in r.stdout.splitlines()
+                        if not ln.startswith("sha256:"))
+        check("N3: --show emits the VALUE, not the block with its key line",
+              "verify:" not in shown, f"shown={shown!r}")
+        fed = os.path.join(root, "fed.txt")
+        write(fed, shown)
+        sha, _ = _sha_of(plan, "tasks", "T-01", "verify")
+        r2 = run_verb("amend", "--file", plan, "--key", "tasks", "--id", "T-01",
+                      "--field", "verify", "--expect-sha256", sha or "x", "--value-file", fed)
+        check("N3: feeding --show output back succeeds", r2.returncode == 0,
+              f"rc={r2.returncode} {r2.stderr[:200]!r}")
+        after = yaml.safe_load(read(plan))
+        got = [t for t in after["tasks"] if t["id"] == "T-01"][0]["verify"]
+        check("N3: and the value is unchanged — a true round trip",
+              got == want, f"want={want!r} got={got!r}")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
 
 
 def case_amend_duplicate_id_is_refused():
@@ -1478,6 +1615,9 @@ def main():
     case_amend_v3_identity_check_is_live()
     case_amend_v4_unparseable_base_refuses_cleanly()
     case_amend_duplicate_id_is_refused()
+    case_amend_n1_adjacent_comment_and_blank_survive()
+    case_amend_n3_show_round_trips_into_value_file()
+    case_amend_n5_do_no_harm_branch_is_live()
     case_sign_approval_is_the_only_signer()
     case_1103_sign_approval_refuses_a_governed_agent()
     case_1103_sign_approval_negative_control_absent_is_main_session()
