@@ -1,0 +1,10 @@
+{
+  "feature_id": "BUG-1081-code-grade-enforcement",
+  "branch": "feat/BUG-1081-code-grade-enforcement",
+  "pr": null,
+  "status": "Plan",
+  "review_sha": "none",
+  "cycles_used": 0,
+  "max_total_cycles": 10,
+  "runs": []
+}
