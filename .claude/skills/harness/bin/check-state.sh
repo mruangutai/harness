@@ -177,6 +177,43 @@ for feat, doc in plan_docs.items():
     approval = doc.get("approval")
     if not isinstance(approval, dict) or str(approval.get("status", "")).strip().lower() != "approved":
         continue
+# INV-32 ERA BEGIN (BUG-1071)
+    # WHY AN ERA GUARD EXISTS AT ALL. FEAT-45 T-07 shipped INV-32 with no era boundary,
+    # so it graded every plan ever signed: all 32 approved plans in this tree failed it,
+    # and NONE could pass, because a plan signed before the adversarial panel existed
+    # cannot carry a record of it. FEAT-45's own plan was among the 32. An invariant that
+    # fires on 100% of a corpus and admits nothing does not enforce a rule -- it only
+    # trains its reader to ignore the gate, which is the failure mode this file exists to
+    # prevent (see the INV-10 note at the foot of this script on the cost of a dead
+    # invariant). The rule itself is right; its retroactive reach was the defect.
+    #
+    # THE ERA KEY IS approval.date -- the only durable signature timestamp in the
+    # document, present on 31 of the 32 approved plans. Lexicographic comparison on
+    # YYYY-MM-DD is chronological, which is why the format is validated first rather
+    # than parsed.
+    #
+    # THE BOUNDARY IS THE DAY AFTER FEAT-45's OWN SIGNATURE, NOT THE DAY OF IT. The
+    # panel shipped 2026-08-30 and FEAT-45's plan was signed 2026-08-30, so a same-day
+    # `>=` would grade the bootstrap plan against a gate its own feature was still
+    # building. A plan signed from 2026-08-31 onward had the panel available to run.
+    INV32_ERA_START = "2026-08-31"
+    signed = str(approval.get("date", "")).strip()
+    if not re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}", signed):
+        # AN UNPLACEABLE ERA WARNS, IT DOES NOT FAIL, and the warn names approval.date
+        # rather than the panel. The defect is an undated signature -- a different and
+        # smaller one -- and failing here would blame the panel for it, burying the real
+        # finding under a message about something else. FEAT-40-harness-writes-done is a
+        # live instance: approved, with no date at all.
+        warn.append(f"INV-32: {feat} is approved but approval.date is missing or "
+                    f"malformed ({signed!r}), so its panel era cannot be placed; "
+                    f"not graded. The undated signature is the defect to fix.")
+        continue
+    if signed < INV32_ERA_START:
+        warn.append(f"INV-32: {feat} was signed {signed}, before the adversarial panel "
+                    f"shipped ({INV32_ERA_START}); not graded. A plan signed before the "
+                    f"panel existed cannot carry a record of it.")
+        continue
+# INV-32 ERA END (BUG-1071)
     panel = doc.get("panel")
     if not isinstance(panel, dict) or not str(panel.get("last_run", "")).strip() or not isinstance(panel.get("findings"), list):
         bad.append(f"INV-32: {feat} plan is approved with no complete panel result recorded.")
