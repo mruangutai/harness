@@ -1,0 +1,10 @@
+{
+  "feature_id": "BUG-1071-inv32-era-guard",
+  "branch": "feat/BUG-1071-inv32-era-guard",
+  "pr": null,
+  "status": "Review",
+  "review_sha": "bf12a96b",
+  "cycles_used": 0,
+  "max_total_cycles": 10,
+  "runs": []
+}
