@@ -256,14 +256,6 @@ def case_6b_children_refusal_lines():
     ts_count = sum(len(re.findall(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}", l)) for l in lines)
     check("case6b: two ISO-8601 timestamps appear", ts_count >= 2, lines)
     check("case6b: #551 is referenced", any("#551" in l for l in lines), lines)
-    AGAIN_RE = re.compile(
-        r"end your turn again|end the turn again|stop again|return again", re.I
-    )
-    check(
-        "case6b: the message prescribes ending the turn again",
-        any(AGAIN_RE.search(l) for l in lines),
-        lines,
-    )
 
 
 def case_7_concurrency(trials=20):
@@ -916,6 +908,96 @@ def case_28_featureless_claim_still_gets_a_remedy():
               root, agent="harness-pm", feature=inflight_registry.LEGACY_FEATURE
           ) is True, _read_raw(root))
 
+def case_29_orphan_write():
+    root = tempfile.mkdtemp()
+    feature = "FEAT-51-example"
+    inflight_registry.claim_with_receipt(
+        root, "harness-backend-dev", "harness-eng-lead", root,
+        feature=feature, session="child-session",
+    )
+    check("case29: another persona and session makes the writer an orphan",
+          inflight_registry.orphan_write(
+              root, "harness-pm", feature, "parent-session"
+          ) is True)
+    rel = f".harness/harness/features/{feature}/BRIEF.md"
+    check("case29: canonical artifact identifies feature and basename",
+          inflight_registry.canonical_artifact(rel) == (feature, "BRIEF.md"))
+    check("case29: nested feature artifacts are not canonical",
+          inflight_registry.canonical_artifact(
+              f".harness/harness/features/{feature}/notes/BRIEF.md"
+          ) is None)
+    check("case29: quarantine path is deterministic and session-scoped",
+          inflight_registry.quarantine_rel(
+              rel, "harness-pm", "1234567890"
+          ) == (
+              f".harness/harness/features/{feature}/quarantine/"
+              "harness-pm-12345678/BRIEF.md"
+          ))
+
+
+def case_30_own_claim_is_not_orphan_write():
+    root = tempfile.mkdtemp()
+    inflight_registry.claim_with_receipt(
+        root, "harness-pm", "harness-product-lead", root,
+        feature="FEAT-51-example", session="same-session",
+    )
+    check("case30: the writer's own visible claim is not orphaned",
+          inflight_registry.orphan_write(
+              root, "harness-pm", "FEAT-51-example", "same-session"
+          ) is False)
+
+
+def case_31_no_live_claim_fails_open():
+    root = tempfile.mkdtemp()
+    check("case31: a feature with no live claim is not orphaned",
+          inflight_registry.orphan_write(
+              root, "harness-pm", "FEAT-51-example", "session"
+          ) is False)
+
+
+def case_32_sessionless_claim_is_visible():
+    root = tempfile.mkdtemp()
+    inflight_registry.claim_with_receipt(
+        root, "harness-pm", "harness-product-lead", root,
+        feature="FEAT-51-example",
+    )
+    check("case32: a sessionless own claim is visible to every session",
+          inflight_registry.orphan_write(
+              root, "harness-pm", "FEAT-51-example", "different-session"
+          ) is False)
+
+
+def case_33_orphan_write_omp_runtime_is_never_orphaned():
+    root = tempfile.mkdtemp()
+    proc = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"])
+    try:
+        inflight_registry.claim_with_receipt(
+            root, "harness-backend-dev", "harness-eng-lead", root,
+            feature="FEAT-51-example", session="child-session",
+            runtime="omp", supervisor_pid=proc.pid,
+        )
+        check("case33: a live OMP-supervised feature is never treated as orphaned",
+              inflight_registry.orphan_write(
+                  root, "harness-pm", "FEAT-51-example", "other-session"
+              ) is False)
+    finally:
+        proc.terminate()
+        proc.wait()
+
+
+def case_34_children_refusal_names_suspension():
+    lines = inflight_registry.children_refusal_lines(
+        "harness-product-lead",
+        [("harness-pm", {
+            "feature": "FEAT-51-example",
+            "started_at": time.time(),
+        })],
+    )
+    joined = "\n".join(lines)
+    check("the children refusal names SUSPENDED and never says a repeated return ships",
+          "SUSPENDED" in joined and "identical return ships" not in joined, joined)
+
+
 
 
 def case_10_no_own_primitive():
@@ -963,6 +1045,12 @@ def main():
     case_26_start_time_read_pins_the_c_locale()
     case_27_non_finite_start_time_cannot_strand_the_registry()
     case_28_featureless_claim_still_gets_a_remedy()
+    case_29_orphan_write()
+    case_30_own_claim_is_not_orphan_write()
+    case_31_no_live_claim_fails_open()
+    case_32_sessionless_claim_is_visible()
+    case_33_orphan_write_omp_runtime_is_never_orphaned()
+    case_34_children_refusal_names_suspension()
 
     failed = [r for r in RESULTS if not r[1]]
     if failed:

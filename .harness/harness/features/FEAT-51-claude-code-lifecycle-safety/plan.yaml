@@ -353,7 +353,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: both write hooks import inflight_registry.py, so DEC-174 holds it back with the gates that read it
     depends_on: []
-    status: ready
+    status: building
     files:
       - .claude/skills/harness/bin/inflight_registry.py
       - .claude/skills/harness/bin/test-inflight-registry.py
