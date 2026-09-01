@@ -1,4 +1,5 @@
-e9b11035
+4a647e25
 base 9f2a0702
-pinned 2026-09-01 (cycle 1, producer + Q2/Q3 closed)
+pinned 2026-09-01 (cycle 2, post-panel test fixes)
 superseded a2fb6c0b (cycle 0: FAIL, 1 high must_fix)
+superseded e9b11035 (cycle 1: PASS, no must_fix, severity_max med)
