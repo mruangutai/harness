@@ -3,54 +3,55 @@
 ## Current
 
 - feature: FEAT-50-run-artifact-integrity
-- run: .harness/harness/features/FEAT-50-run-artifact-integrity/runs/2026-08-31-3-product/state.yaml
+- run: .harness/harness/features/FEAT-50-run-artifact-integrity/runs/2026-08-31-7-product/state.yaml
 - squad: none
 - status: awaiting-user
 
-Plan phase COMPLETE and at its user gate. `BRIEF.md` and `plan.yaml` are drafted,
-reviewed, panelled and left `pending`; only the main session signs. Five segments ran:
-product authoring, the eng four-angle simplify pass plus architecture review, the
-validator design-contract check, the panel goal-check against stated intent, and the
-`plan-panel` team. Two fix cycles were applied to the draft; 4 of 10 cycles used,
-6 runs recorded.
+Plan phase COMPLETE, amended under the operator's rulings, re-panelled, and back at its
+user gate. `BRIEF.md` and `plan.yaml` are `approval.status: pending`; only the main
+session signs. **No `high`, `critical` or unrated panel finding survives** — that is the
+fact the signature gate turns on, and it is what changed about signability.
 
-The plan covers issues #1056, #1057 and #1058. 7 REQ (all traced), 16 SC, 8 tasks
-(6 `main-session-direct` under DEC-174, 2 `team`), 8 decisions, 12 lane rows,
-`panel:` recording 3 readers `ran` and 7 open findings at `severity_max: high`.
+Cycle 1 ran four sequenced squad segments: the plan amendment, pm's goal-check of the
+amended plan against stated intent, the `plan-panel` team, and pm's transcription of
+`panel:`. 7 of 10 cycles used, 10 of 20 runs recorded.
 
-Gates run at 75daa3b: `check-plan-routes.py` exits 0, `0 violation(s) across 1 plan(s)`,
-`examined 46`. Suites untouched and green: unit exit 0 / 0 `^FAIL ` / 1463 lines,
-integration exit 0 / 0 `^FAIL ` / 1945 lines. `check-state.sh` exits 1 with exactly 32
-INV-32 rows before AND after — this feature adds none while pending.
+The plan covers issues #1056, #1057, #1058 and the `validate-digest.py` artifact-path
+resolution defect the operator newly authorized. 9 REQ, 21 SC, 12 tasks (10
+`main-session-direct` under DEC-174, 2 `team`), 11 decisions, 14 lane rows, `panel:`
+recording 3 readers `ran` and 11 open findings at `severity_max: med`. All four rulings
+are recorded verbatim in `notes/answers-2026-08-31-plan.md`: INV-32 answered `choice: d`
+so SC-11 requires `check-state.sh` exit 0 unweakened and no INV-32 work is planned; both
+`high` findings closed by FIX with `approval.rulings` absent (`PF-3d9ac1d0…` by
+REQ-08/T-09/T-10/D-10, `PF-964d6356…` by T-02 step 5 and SC-17); the fourth defect
+planned as REQ-09/T-11/T-12/D-11/SC-20/SC-21; Q4 out of scope and untouched.
 
-Three defects were found live inside this planning run and are corroborating evidence,
-not noise: #1058 reproduced (a product lead reused `runs/2026-08-31-01-product/` and
-its `digest.md` now holds cycle-2 content, destroying the cycle-0 record); three lead
-`digest.md` files fail the DEC-156 contract; and the reason they did is measured —
-`check_artifact_file` resolves a lead's relative `artifact:` path against the MAIN
-checkout, so for every lead running in a worktree the file is not found and the check
-is SKIPPED. That is the same blind spot #1057 names, in a fourth place the plan does
-not yet cover.
+The external INV-32 hold is LIFTED — the operator reported the fix merged into `main`,
+so D-09's precondition is met. **Build does not start**: that is the operator's
+instruction and the plan phase's own boundary. The feature branch is not yet updated
+from `origin/main` (the main session does that after this commit), which is why SC-11 is
+not gradeable in this worktree.
+
+Gates at the amended plan: `check-plan-routes.py` exits 0, `0 violation(s) across 1
+plan(s)`, 9 DEVIATION lines all DEC-174 carve-outs. `harness_yaml.load_plan` loads
+clean. All eleven `PF-` ids independently recomputed with `panel_findings.finding_id`
+and all eleven match, which is what proves the five carried cycle-0 summaries were
+carried verbatim. Nothing under `.claude/skills/` was modified in this phase.
 
 ## Open Questions
 
-- Q1 (blocking, operator): INV-32 is retroactively red across 32 approved plans, so
-  "check-state exits 0" cannot be met by fixing these three issues. Rule between
-  (a) scope INV-32 to plans approved on or after DEC-207, (b) backfill 32 signed plans
-  (PRINCIPLES rule 15 forbids it; recorded available and not recommended), or (c) the
-  shipped form — no violation naming FEAT-50 and an identical row count. The plan
-  carries (c) and plans no INV-32 work. Record the answer as an
-  `## Operator ruling — INV-32` section in `notes/answers-2026-08-31-plan.md`, NOT in
-  `approval.rulings`, which `check-state.sh` validates against `panel.findings`.
-- Q2 (blocking, operator): two `high` panel findings are open and un-overruled, so
-  INV-32 will refuse this plan at signature. Either resolve them in a fix cycle and
-  re-transcribe `panel:`, or record an overrule in `approval.rulings` carrying
-  `finding` (a `PF-` id present in `panel.findings`), `who`, a `YYYY-MM-DD` `date`,
-  and `ruling: overrule`. All four are validated.
-- Q3 (blocking, operator): the fourth defect above is verified, in scope by nature and
-  outside the three filed issues. Widen FEAT-50 to cover it, or file it as its own
-  ticket?
-- Q4 (non-blocking, harness owner): `check-state.sh` INV-6 fires for a plan-phase
-  validator run, but DEC-207 says a plan-phase gate grades a pending specification
-  WITHOUT a `review_sha`. The invariant cannot tell a specification review from a code
-  review, so a correct plan phase is structurally red.
+- Q1 (non-blocking, next phase): SC-11's clearing act for its rows 3–5 — the three
+  DEC-156-failing lead digests under `runs/` — is owned by no task. pm's goal-check and
+  panel finding `PF-b3e87de8…` reached this independently. The authoring leads' contexts
+  are gone and a third party rewriting another agent's digest would falsify it
+  (PRINCIPLES rule 15), so the honest disposition is the accepted-residual branch: the
+  three cannot reach the default branch because `.gitignore:7` excludes
+  `.harness/*/features/*/runs/**` (confirmed with `git check-ignore -v`) and the worktree
+  is removed post-merge.
+- Q2 (non-blocking, operator's to direct at signature): finding `PF-f52c5043…` (`med`) —
+  T-03's binding sits inside `domain_check()`'s allow/shared branches while `classify`'s
+  `not_a_domain_question` outcome returns earlier, so the two checkout-binding fixes are
+  asymmetric in verdict-shape coverage. Measured and settled as INERT today: no
+  production code sets `HARNESS_PROJECT_DIR`, so a governed agent's resolved root is
+  always the main checkout and the premise cannot hold. Kept open at the reader's own
+  severity; closing it would be a NEW task, never a severity change.

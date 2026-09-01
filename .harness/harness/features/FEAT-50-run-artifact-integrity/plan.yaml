@@ -2,6 +2,13 @@ schema: plan/1
 feature: FEAT-50-run-artifact-integrity
 
 source_issues: [1056, 1057, 1058]
+# The FOURTH scope item carries NO GitHub issue number: validate-digest.py's
+# check_artifact_file resolves a lead's relative artifact path against the MAIN checkout, so the
+# DEC-156 file-shape check is silently inert for every worktree-resident lead. It was found live
+# inside this planning run and added to this feature by the operator's ruling of 2026-08-31,
+# recorded at notes/answers-2026-08-31-plan.md under "Operator ruling — the fourth defect found
+# live in this run". source_issues stays the three filed issues because it is a list of issue
+# NUMBERS; REQ-09, D-11, T-11 and T-12 are where the fourth item lives.
 
 approval:
   # Written by the MAIN SESSION only (DEC-120). pm never touches this mapping.
@@ -10,59 +17,44 @@ approval:
   date: <YYYY-MM-DD>
 
 panel:
-  # Transcribed by pm from runs/2026-08-31-2-validator/digest.md. Every PF- id was
-  # computed with panel_findings.py from the reader id plus the summary as written here.
+  # Transcribed by pm from runs/2026-08-31-6-validator/digest.md (cycle 1), UNIONED with the
+  # five un-ruled cycle-0 findings from runs/2026-08-31-2-validator/digest.md, which this
+  # panel did not re-derive and took no position on. Every PF- id was computed with
+  # panel_findings.py from the reader id plus the summary as written in the source digest.
   # Severities are the readers' own and were not reassigned. Dispositions are all open:
   # only approval.rulings, written by the main session, records an overrule.
-  last_run: 2026-08-31-2-validator
-  cycle: 0
+  #
+  # TWO cycle-0 findings are REMOVED from this list rather than carried:
+  # PF-3d9ac1d054341cec6611f63aa2ce457a (high) and PF-964d635693c0db3e5803d36ed0df70a4 (high).
+  # Both were closed by FIX in cycle 1, NOT by overrule, and the cycle-1 panel verified each
+  # closure independently at source; their summaries no longer describe this plan.
+  # PF-3d9ac1d0... was closed by T-09 and T-10 under D-10 and REQ-08 (route-completeness over
+  # the Bash route). PF-964d6356... was closed by T-02 step 5, graded by SC-17.
+  last_run: 2026-08-31-6-validator
+  cycle: 1
   readers:
     - reader: should-not-exist
       persona: fable-advisor
       status: ran
-      verdict: FAIL
+      verdict: PASS
       artifact: none
       note: >-
         Holds no write grant; its findings reach disk only through the panel digest.
     - reader: scope
       persona: harness-code-reviewer
       status: ran
-      verdict: FAIL
-      artifact: .harness/harness/features/FEAT-50-run-artifact-integrity/notes/review-harness-code-reviewer-planpanel-c0.md
+      verdict: PASS
+      artifact: .harness/harness/features/FEAT-50-run-artifact-integrity/notes/review-harness-code-reviewer-planpanel-c1.md
     - reader: goalcheck
       persona: harness-pm
       status: ran
-      artifact: .harness/harness/features/FEAT-50-run-artifact-integrity/notes/research-FEAT-50-goalcheck-plan-c0.md
+      artifact: .harness/harness/features/FEAT-50-run-artifact-integrity/notes/research-FEAT-50-goalcheck-plan-c1.md
       note: >-
         Ran in the earlier product segment, outside the plan-panel team's two steps, which
-        is why the panel digest does not list it. Its nine findings were applied in the
-        plan-fix cycle and are not transcribed here; this entry records only that it ran.
+        is why the panel digest does not list it. Its findings were applied in the plan-fix
+        cycle and are not transcribed here; this entry records only that it ran.
   findings:
-    - id: PF-3d9ac1d054341cec6611f63aa2ce457a
-      severity: high
-      reader: scope
-      corroborated_by: should-not-exist
-      lands_on: [T-03, T-08, D-03, D-04, REQ-03]
-      disposition: open
-      summary: >-
-        The worktree binding is added to check-domain.sh only; bash-write-guard.sh's separate
-        classify() call leaves the identical governed main-checkout write allowed, neither closed
-        nor disclosed.
-      consequence: >-
-        A governed agent denied the Write can cat > / perl -pi the same main-checkout feature
-        artifact and it lands at exit 0. Issue 1057 ships looking closed. The refusal message
-        names the worktree, so it actively steers a pressured agent onto the unbound route.
-    - id: PF-964d635693c0db3e5803d36ed0df70a4
-      severity: high
-      reader: scope
-      lands_on: [T-01, T-02, D-01]
-      disposition: open
-      summary: >-
-        test-validate-digest.py already asserts exit 0 for a present-and-empty
-        last_assistant_message; D-01 redirects that payload to exit 2 and no task reconciles it.
-      consequence: >-
-        T-02's verify runs the whole file first, so the task cannot pass its own gate. A
-        main-session doer with no second review must invent the resolution unreviewed.
+    # --- carried forward from cycle 0, un-ruled and unchanged by the amendment ---
     - id: PF-799e61a6a794e0775aae68dbe84d02b0
       severity: med
       reader: scope
@@ -124,7 +116,100 @@ panel:
         A later legitimate rewording of any targeted branch reds the integration suite
         INCONCLUSIVE on a correct tree, and via SC-10 that red gates unrelated future features.
         Every other residual in this plan is recorded; this one is not.
-  severity_max: high
+    # --- new in cycle 1, runs/2026-08-31-6-validator/digest.md ---
+    - id: PF-f52c50439d67870e9fb1d6231e393498
+      severity: med
+      reader: scope
+      lands_on: [T-03, T-09, D-10, REQ-03, REQ-08]
+      disposition: open
+      summary: >-
+        T-03 places the worktree-checkout-binding check only inside `domain_check()`'s
+        allow/shared branches; `harness_boundary.classify`'s `not_a_domain_question` outcome
+        returns earlier and separately, so a write landing there never reaches T-03's check,
+        while T-09 narrows a single `bash-write-guard.sh:747` continue that covers both `allow`
+        and `not_a_domain_question` and would fire on it — the two "route-complete"
+        checkout-binding fixes are not symmetric in verdict-shape coverage.
+      consequence: >-
+        If a governed agent's resolved root can ever be the feature worktree, the tool route
+        silently permits exactly the main-checkout write REQ-03 exists to refuse while the Bash
+        route denies it. Discovered only in production, because neither T-03's verify nor any of
+        T-05's cases constructs a not_a_domain_question outcome.
+      note: >-
+        Reachability measured by the orchestrator at 5d12e68, settling the panel's non-blocking
+        Q3: HARNESS_PROJECT_DIR is READ in exactly one production file,
+        .claude/skills/harness/bin/harness_boundary.py:65-73, and is SET by no production code —
+        every other occurrence is a test fixture or a plan describing the behaviour. A governed
+        agent's resolved root is therefore always the derived root, the main checkout, never a
+        feature worktree, so a main-checkout feature target cannot classify
+        not_a_domain_question and this finding's premise does not hold today. Latent asymmetry,
+        not a live hole. It stays open at the reader's own med; severity is never reassigned.
+    - id: PF-cec83ae44219d710691dfae021622ce1
+      severity: low
+      reader: should-not-exist
+      lands_on: [T-07, SC-14, D-08]
+      disposition: open
+      summary: >-
+        T-07's prescribed decision heading, SC-14 and D-08 still say "three rules" while the
+        amended entry records FIVE rulings, so the permanent record's search surface omits the
+        fourth defect's rule.
+      consequence: >-
+        A later reader searching DECISIONS-INDEX.md for the Bash-route ruling or the
+        lead-digest-location ruling finds no heading naming either and infers it from the
+        scripts — the exact failure REQ-07 exists to prevent.
+    - id: PF-b3e87de8b82a68898a65afb90e928cfe
+      severity: low
+      reader: should-not-exist
+      lands_on: SC-11
+      disposition: open
+      summary: >-
+        SC-11's clearing act for rows 3-5 — the AUTHORING lead re-emitting its own digest — is
+        owned by no task, dispatch or criterion, and by SC-11's own grading vantage is never
+        needed: a wishful sentence inside a graded criterion.
+      consequence: >-
+        The three contract-violating digests stand in this worktree through build and review; any
+        gate run from the worktree reds with five FEAT-50-named rows no task clears. This
+        corroborates pm's own non-blocking Q1 in
+        notes/research-FEAT-50-goalcheck-plan-c1.md, reached independently.
+    - id: PF-b7646eb9860ae873ee3d6ebf2f4cb867
+      severity: low
+      reader: scope
+      lands_on: D-11
+      disposition: open
+      summary: >-
+        D-11 cites `validate-digest.py:1414` for the `cands = os.path.join(_root_or_none() or
+        "", path)` assignment; re-measured at 5d12e68 the assignment is at line 1413, and 1414 is
+        the following `found = next(...)` line.
+      consequence: >-
+        Trivial anchor drift; D-11's substance is correct and independently verified. T-11's
+        intent carries the same off-by-one.
+    - id: PF-8c40679dfd00d8b5341b560e3892ff50
+      severity: info
+      reader: should-not-exist
+      lands_on: [T-09, T-03, T-10]
+      disposition: open
+      summary: >-
+        T-09 replicates into a second gate the certified-unreachable write-the-branch-anyway
+        allow-arm that open cycle-0 finding PF-aaa29b58 recorded against T-03, doubling the
+        pattern without a ruling on the first instance.
+      consequence: >-
+        Two production gates now carry a branch whose first execution would be live. Whatever
+        ruling eventually lands on PF-aaa29b587e387e47e82da53e22f75948 must cover both sites.
+    - id: PF-bf9f521490b94d07d4489ac9ac4d4758
+      severity: info
+      reader: should-not-exist
+      lands_on: [REQ-01, REQ-08]
+      disposition: open
+      summary: >-
+        BRIEF.md's REQ-01 verification-gap bullet cites `validate-digest.py:1493-1494` for the
+        `stop_hook_active` passthrough; at 5d12e68 it sits at `:1478-1479` — the only wrong
+        anchor in an otherwise exactly-measured plan. Same entry records the verified
+        NotebookEdit route boundary.
+      consequence: >-
+        A signer re-measuring lands on unrelated code and must grep to decide whether the gap
+        claim is stale.
+  # Computed across all ELEVEN entries above (two carried med, one new med; the rest low or
+  # info). No high, critical or unrated finding survives.
+  severity_max: med
 
 lanes:
   # Every row's resolve verdict was produced by check-domain.sh --resolve, not read off
@@ -133,6 +218,10 @@ lanes:
   # A main-session-direct lane on a GRANTED path is a DEC-174 carve-out; check-plan-routes.py
   # reports it as a DEVIATION, exits 0, and only VIOLATION lines gate.
   resolved_at: 75daa3b
+  # The two bash-write-guard rows at the end of this list were resolved with the same
+  # --resolve invocation at 5d12e68, not at 75daa3b: they were added when the plan was amended
+  # to cover the Bash governed-write route. The value above is left as it was measured for
+  # every other row rather than rewritten to a sha those rows were never checked at.
   rows:
     - surface: .claude/skills/harness/bin/validate-digest.py
       lane: main-session-direct
@@ -200,6 +289,18 @@ lanes:
         the resolver GRANTS this file to harness-backend-dev and harness-dev-ops and DEC-174 does
         NOT override it: it is the library's own test, not a gate's. It is a UNIT script in
         run-unit-tests.sh, so cases added here are evidence of kind unit, not integration.
+    - surface: .claude/skills/harness/bin/bash-write-guard.sh
+      lane: main-session-direct
+      reason: >-
+        resolved at 5d12e68: the resolver GRANTS this file to harness-backend-dev and
+        harness-dev-ops, and DEC-174 OVERRIDES that grant. It is the registered PreToolUse Bash
+        write guard and is named in DEC-174's own enumeration of the enforcement layer.
+    - surface: .claude/skills/harness/bin/test-bash-write-guard.py
+      lane: main-session-direct
+      reason: >-
+        resolved at 5d12e68: the resolver GRANTS this file to harness-backend-dev and
+        harness-dev-ops, and DEC-174 OVERRIDES that grant. It is the Bash write guard's own
+        test, which is the only thing proving that gate discriminates.
 
 decisions:
   - id: D-01
@@ -329,9 +430,82 @@ decisions:
       in use on 2026-08-31, but this harness runs features in parallel and a concurrent
       documentor task can consume 208 before this one lands, at which point a pinned number is
       either a duplicate heading or a plan that contradicts the record it produced. Everything
-      downstream anchors on the entry's heading text instead. The INV-32 options change what done
-      means, so they wait on the operator.
+      downstream anchors on the entry's heading text instead. No INV-32 remedy is planned here,
+      and that is now a recorded ruling rather than a deferral: the operator ruled on 2026-08-31
+      (notes/answers-2026-08-31-plan.md, "Operator ruling — INV-32", choice d) that INV-32 is
+      being fixed in ANOTHER session, so neither option (a)'s approval.date scoping nor option
+      (b)'s 32-plan backfill enters this plan and check-state.sh is edited by no task here.
+      D-09 records what that ruling costs this feature.
     dec: none
+
+  - id: D-09
+    choice: >-
+      FEAT-50 carries the UNWEAKENED check-state.sh exit-0 criterion (SC-11) and BLOCKS its own
+      signature and its own build on an EXTERNAL event: the retroactive INV-32 fix landing on the
+      default branch. No task here touches check-state.sh, no approval.date scoping and no
+      32-plan panel backfill enters this plan. SC-11 therefore becomes gradeable only after that
+      external fix lands with FEAT-50's feature directory present.
+    because: >-
+      The operator ruled it on 2026-08-31, recorded verbatim at
+      notes/answers-2026-08-31-plan.md, "Operator ruling — INV-32", choice d: INV-32 is being
+      fixed in another session, hold signature and build until that lands, do not alter INV-32
+      here and do not weaken the exact exit-0 criterion. That is a FOURTH option, none of the
+      (a)/(b)/(c) the plan offered, and it is recorded as d rather than forced into that shape
+      because recording it as (c) would falsify what was ruled (PRINCIPLES rule 15). Form (c) —
+      no violation row names FEAT-50, exit code not graded — was a WEAKENING of stated-intent
+      constraint 4 and is refused; the "no row names FEAT-50" clause is KEPT ALONGSIDE the exit-0
+      clause, because adding a clause is not weakening one. The consequence is deliberate and is
+      not a plan defect: the 32 rows are outside this feature's diff and outside its branch, so
+      no task in any correct version of this plan could clear them, and pretending otherwise
+      would put an unreachable criterion behind a signature. This is the ONLY thing standing
+      between this plan and signature.
+    dec: none
+  - id: D-10
+    choice: >-
+      The checkout binding is enforced on BOTH governed write surfaces: check-domain.sh's
+      PreToolUse tool route (T-03) and bash-write-guard.sh's governed Bash write route (T-09),
+      through the SAME harness_boundary.worktree_for_feature seam, with no second derivation of
+      the selection. On the Bash route the rule NARROWS the allow-continue at
+      bash-write-guard.sh:747 and never widens: the product-workspace continue above it
+      (rel.startswith("..")) is untouched and stays out of scope. This closes the CHECKOUT
+      question (REQ-03, REQ-08) ONLY. REQ-04's run-digest preservation rule is NOT extended to
+      Bash and stays Write-only; D-06's residual stands unchanged.
+    because: >-
+      A refusal on one surface and silence on the other is a bypass by construction, and this
+      hook exists because an agent routed around the other one (DEC-151). Worse than silence:
+      T-03's refusal message NAMES the worktree, so a plan that stopped at the tool route would
+      hand a pressured agent the destination and leave the shell route open to reach it. One
+      seam rather than two implementations because two copies of a selection rule drift, and the
+      one-implementation proof the guard's own suite already runs (test-bash-write-guard.py's
+      both-routes-agree cases) is what keeps them honest. The scope fence is stated rather than
+      assumed because the two rules live in the same gates and a reader would otherwise take
+      route-completeness for the digest rule too: the digest rule needs the PRIOR CONTENT, which
+      only a whole-file Write payload carries, and no Bash command hands the gate one.
+    dec: DEC-151
+  - id: D-11
+    choice: >-
+      validate-digest.py's check_artifact_file resolves a RELATIVE artifact path against the
+      FEATURE'S checkout, using the file's own existing precedent — inflight_registry.feature_root
+      (owner_root, feature) as _hook_feature_dir already calls it — and falls back to
+      _root_or_none() when harness_feature is absent or the feature does not resolve. Absolute
+      artifact paths keep today's handling and fail-open-loudly is unchanged: a file still not
+      found exits 0 and keeps the INV-15 pointer line.
+    because: >-
+      _root_or_none() resolves from the INSTALLED script's own location, which is always the MAIN
+      checkout, so for every lead running in a worktree the digest file is not found, the DEC-156
+      file-shape check is SKIPPED, and the hook prints a pass-through line that reads like
+      housekeeping. Measured live in this planning run: three lead digest.md files in FEAT-50
+      itself fail the DEC-156 contract and were passed by this hook for exactly that reason.
+      AND, BECAUSE A READER WILL OTHERWISE SEE A CONTRADICTION: D-03 forbids reading
+      harness_feature in check-domain.sh's PreToolUse route, and that ban is ROUTE-SPECIFIC, not
+      a blanket one. It holds there because that key's presence varies by route while the target
+      path is present on every route. It does not extend here: this is the SubagentStop hook,
+      which ALREADY consumes d.get("harness_feature") at validate-digest.py:1514 and :1598-1599,
+      so the change follows the file's own established pattern rather than introducing a new
+      input, and the behaviour when the key is absent is today's exact behaviour and therefore no
+      regression. The fallback is what keeps this fail-open: a resolution that cannot be made is
+      still not a verdict.
+    dec: DEC-156
 
 tasks:
   - id: T-01
@@ -419,7 +593,8 @@ tasks:
         && python3 .claude/skills/harness/bin/test-run-unit-tests-kinds.py \
         && grep -q 'empty-red' .claude/skills/harness/bin/test-validate-digest.py \
         && grep -q 'not validated' .claude/skills/harness/bin/test-validate-digest.py \
-        && grep -q 'null-passthrough' .claude/skills/harness/bin/test-validate-digest.py
+        && grep -q 'null-passthrough' .claude/skills/harness/bin/test-validate-digest.py \
+        && test "$(grep -cF 'pass-through: empty last_assistant_message passes with a stated reason' .claude/skills/harness/bin/test-validate-digest.py)" -eq 0
     intent: |
       Add FOUR cases to .claude/skills/harness/bin/test-validate-digest.py, reusing the payload and
       subprocess helpers that file already has. Read them first; do not build a second harness.
@@ -461,6 +636,29 @@ tasks:
       original. The copy must live in the script's own directory because validate-digest.py imports
       sibling modules from it, so a copy in a tmpdir exits non-zero on import and the case would
       pass while measuring nothing.
+
+      5. RECONCILE THE OBSOLETE EXPECTATION ALREADY IN THIS FILE. It asserts the OPPOSITE of
+      case 1 today. At test-validate-digest.py:738-739, measured at 5d12e68, it registers
+
+        hook_case("pass-through: empty last_assistant_message passes with a stated reason",
+                  "harness-qa", "", 0, mentions="no final message")
+
+      -- exit 0 for exactly the present-and-empty payload T-01 redirects to exit 2 under D-01.
+      Leaving it in place makes this task unable to pass its own verify, because that verify runs
+      the whole file first.
+
+      DELETE that case outright, together with its own preceding comment line if that comment
+      describes only it. Do NOT rewrite it to expect exit 2 instead: case 1 (empty-string) already
+      covers that direction with the stronger assertion (exit 2 AND the persona named), so a
+      rewrite leaves a duplicate whose description still says "pass-through" while it asserts a
+      refusal -- a case whose name contradicts its assertion is worse than no case. This is a
+      decision made here, at plan time, so the doer does not have to invent it unreviewed.
+
+      Match it by the exact description string quoted above so there is no doubt which case goes.
+      The other two pass-throughs in that section -- non-harness agent_type, and stop_hook_active
+      -- are DEC-122 pass-throughs that STAY and must not be touched. Then fix the section
+      comment above them (test-validate-digest.py:730, "The three deliberate pass-throughs") so
+      it does not claim three when two remain.
 
       Register nothing. test-validate-digest.py is already in INTEGRATION_SCRIPTS in
       run-unit-tests.sh and is already an explicit entry in harness.json's integration.detect, so
@@ -849,7 +1047,7 @@ tasks:
     change_type: docs
     execution_mode: team
     execution_agent: harness-documentor
-    depends_on: [T-01, T-02, T-03, T-04, T-05, T-06, T-08]
+    depends_on: [T-01, T-02, T-03, T-04, T-05, T-06, T-08, T-09, T-10, T-11, T-12]
     status: pending
     files:
       - .harness/harness/docs/DECISIONS.md
@@ -882,8 +1080,8 @@ tasks:
       verify and SC-14 -- finds it by that heading text, not by a number, so a shifted number is
       not a failure; a changed heading is.
 
-      The entry records three rulings and their reasons. Keep it to the file's usual density --
-      the rule, one clause of why, and the measurement that forced it. Roughly 30 to 45 lines.
+      The entry records FIVE rulings and their reasons. Keep it to the file's usual density --
+      the rule, one clause of why, and the measurement that forced it. Roughly 45 to 65 lines.
 
       1. PRESENCE, NOT TRUTHINESS, in validate-digest.py's hook mode. The
       last_assistant_message key absent or null is OUR gap and fails open at exit 0, saying on
@@ -927,6 +1125,26 @@ tasks:
       Write-only, so an Edit, a NotebookEdit or a shell redirect reaches no enforcement point. That
       is accepted residual risk with the team playbook as its compensating control, not an
       oversight.
+
+      4. THE CHECKOUT BINDING IS ROUTE-COMPLETE ACROSS BOTH GOVERNED WRITE SURFACES. The same
+      rule as ruling 2 is enforced on bash-write-guard.sh's governed Bash write route, through
+      the same harness_boundary.worktree_for_feature seam. State why in one clause: a refusal on
+      the tool route alone is a signpost to the shell, and this hook exists precisely because an
+      agent routed around the other one (DEC-151), so a divergence between the two surfaces is a
+      bypass by construction. State the scope honestly: this closes the CHECKOUT question only.
+      Ruling 3's digest-preservation rule is NOT extended to Bash and stays Write-only. Cite
+      DEC-151 and DEC-174.
+
+      5. A LEAD'S DIGEST FILE IS LOCATED IN THE CHECKOUT THE LEAD IS RUNNING IN. validate-digest.py
+      resolves a relative artifact: path against the FEATURE'S checkout, via
+      inflight_registry.feature_root, falling back to the installed script's own root when the
+      payload names no feature. State the measurement that forced it: _root_or_none() resolves
+      from the INSTALLED script's location, which is always the main checkout, so for every lead
+      running in a worktree the digest file was not found, the DEC-156 file-shape check was
+      SKIPPED, and the hook printed a pass-through line nobody reads as a failure -- three lead
+      digest.md files in FEAT-50 itself fail the DEC-156 contract and were passed for that reason.
+      State that fail-open-loudly is unchanged: a file still not found exits 0 and keeps the
+      INV-15 pointer. Cite DEC-156, DEC-127, DEC-95.
 
       Add one closing paragraph recording what this entry does NOT do: it does not close
       validate-digest.py's stop_hook_active passthrough, which stays pre-existing and deliberate,
@@ -1036,3 +1254,383 @@ tasks:
       Register nothing. test-harness-boundary.py is already in UNIT_SCRIPTS in run-unit-tests.sh,
       so cases added here are evidence of kind unit; moving it would trip the runner's KIND-DRIFT
       check.
+  - id: T-09
+    title: Bind a governed agent's feature-artifact write to its worktree on the Bash route
+    traces: [REQ-08]
+    change_type: bugfix
+    execution_mode: main-session-direct
+    execution_reason: >-
+      DEC-174 carve-out, bash-write-guard.sh is the registered PreToolUse Bash write guard
+    depends_on: [T-08]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/bash-write-guard.sh
+    verify: |
+      bash -n .claude/skills/harness/bin/bash-write-guard.sh || exit 1
+      python3 - <<'EOF'
+      import json, os, subprocess, tempfile
+      G = os.path.abspath('.claude/skills/harness/bin/bash-write-guard.sh')
+      MAN = ("schema_version: 1\nteams:\n  - name: build\n    members:\n"
+             "      - name: harness-documentor\n        domain:\n"
+             "          - { path: .harness/*/features/*/BRIEF.md, upsert: true }\n")
+      REL = '.harness/harness/features/FEAT-X-thing/BRIEF.md'
+      def root(register):
+          d = os.path.realpath(tempfile.mkdtemp())
+          os.makedirs(os.path.join(d, '.harness'))
+          open(os.path.join(d, '.harness', 'team-config.yaml'), 'w').write(MAN)
+          os.makedirs(os.path.dirname(os.path.join(d, REL)))
+          if register:
+              wt = os.path.join(d, '.claude', 'worktrees', 'FEAT-X')
+              e = os.path.join(d, '.git', 'worktrees', 'FEAT-X')
+              os.makedirs(e); os.makedirs(os.path.join(wt, '.harness'))
+              open(os.path.join(wt, '.harness', 'team-config.yaml'), 'w').write(MAN)
+              open(os.path.join(wt, '.git'), 'w').write('gitdir: %s\n' % e)
+              open(os.path.join(e, 'gitdir'), 'w').write('%s\n' % os.path.join(wt, '.git'))
+          return d
+      def fire(d):
+          pay = {"agent_type": "harness-documentor", "tool_name": "Bash",
+                 "tool_input": {"command": "echo hi > %s" % os.path.join(d, REL)}}
+          return subprocess.run([G], input=json.dumps(pay), capture_output=True, text=True,
+                                env=dict(os.environ, CLAUDE_PROJECT_DIR=d,
+                                         HARNESS_PROJECT_DIR=d))
+      free, bound = fire(root(False)), fire(root(True))
+      assert free.returncode == 0, f'control: {free.returncode} {free.stderr[:300]}'
+      assert bound.returncode == 2, f'not refused: {bound.returncode} {bound.stderr[:300]}'
+      assert 'FEAT-X' in bound.stderr, f'worktree unnamed: {bound.stderr[:300]}'
+      print('OK')
+      EOF
+    intent: |
+      Close the Bash half of the checkout binding in
+      .claude/skills/harness/bin/bash-write-guard.sh. T-03 binds the tool route only; a governed
+      agent denied the Write can `cat > `, `perl -pi` or `cp` the SAME main-checkout feature
+      artifact and it lands at exit 0. Worse, T-03's refusal message NAMES the worktree, so the
+      unbound route is signposted. This task closes it. D-10 governs.
+
+      WHERE. The findings loop at bash-write-guard.sh:703-761 already computes, per extracted
+      write target: `ap` (absolute) and `rel` (ROOT-relative). At :747 it reads
+
+        if verdict["outcome"] in ("allow", "not_a_domain_question"): continue
+
+      NARROW THAT CONTINUE and never widen it. Before continuing, run the feature-checkout check;
+      only if it says nothing does the continue stand. Nothing on the DENY path changes: an
+      already-denied write stays denied with its existing message.
+
+      THE TWO CONTINUES ABOVE ARE OUT OF SCOPE, and this is load-bearing rather than a
+      preference. `if rel.startswith(".."): continue` at :744 is the product-workspace exclusion
+      the file's own comment at :735-743 records as deliberately kept: `rel` is ROOT-relative, so
+      every product-workspace path begins with `..`, and touching it would start enforcing
+      product-base domains on the Bash route for the first time — a widening with no REQ, no
+      criterion and no test behind it. Do not move it, do not narrow it, do not reorder it. The
+      DEC-153 `^\.claude/worktrees/` continue at :714 is likewise untouched; it is also why the
+      allowed-inside-the-worktree direction needs no new branch here.
+
+      WHICH `rel`. Use the LOOP's `rel` (computed at :706 as os.path.relpath(ap, root)) — the
+      ROOT-relative one — as the string you match the feature-path pattern against, and use `ap`
+      for containment. Do NOT use `verdict["rel"]`: the file's own comment at :758-762 records
+      that the verdict's `rel` is BASE-relative while the loop's is ROOT-relative, and in the
+      product base the two differ. The rule is about which CHECKOUT under this root the target
+      sits in, so the root-relative spelling is the one that means what the rule needs; a
+      base-relative path would silently change which string the anchored pattern sees.
+
+      WHAT IT DECIDES.
+      - Match the loop's `rel` against ^\.harness/[^/]+/features/([^/]+)/ to lift the feature id
+        FROM THE TARGET PATH. Do NOT read harness_feature or any other payload key (D-03): the
+        target path is present on every route, that key is not. No match: say nothing, continue.
+      - Call harness_boundary.worktree_for_feature(root, feature_id) — the SAME seam T-08 lands
+        and T-03 consumes. Do NOT re-derive the selection here and do NOT match worktree
+        basenames for equality, which this repository has already measured false
+        (feature-worktree.py:236-248). harness_boundary is already imported in this file.
+      - None returned (no registered worktree for that feature): the check does NOT fire.
+        Continue unchanged. A feature developed in the main checkout is legitimate.
+      - A registered worktree exists and the target resolves INSIDE it: allowed, continue
+        unchanged. Reached here in practice only for a worktree outside the DEC-153 segment,
+        because :714 already continues for anything under .claude/worktrees/; write the branch
+        anyway so the rule is total.
+      - A registered worktree exists and the target resolves in the MAIN checkout: deny(...) —
+        which exits 2. The message MUST name BOTH the target (as `ap`, so the checkout is
+        identifiable) AND the worktree the write belonged in, and say plainly that the write
+        belongs in that worktree. Without the second path the agent cannot act on the refusal,
+        and this is the message a pressured agent reads instead of routing around the tool gate.
+      - harness_boundary.AmbiguousWorktree — two registered worktrees both prefix this feature
+        id: deny(...) at exit 2, NAMING the candidates the exception carries. A guess binds the
+        write to a checkout nobody chose; a silent skip turns the gate off for exactly the setup
+        that most needs it. Catch this exception SPECIFICALLY, ahead of the absorbing catch.
+      - ANY OTHER EXCEPTION IS ABSORBING: print nothing, fire nothing, leave the prior verdict
+        standing and let the continue stand. An unhandled exception in this script exits
+        non-zero, which turns the whole guard off for that call — the failure mode is the guard
+        going silently dark, so the broad catch is the correct shape here and must be written.
+
+      CONTAINMENT is decided by harness_boundary.checkout_relative(ap): the target is inside the
+      selected worktree when checkout_relative names that checkout, and in the main checkout when
+      it names none. Do NOT compare realpath strings with startswith — a sibling checkout whose
+      name prefixes the selected one would be misclassified as inside it, which is the
+      prefix-collision class harness_boundary already fixed once in issue 103.
+
+      SCOPE FENCE, and write it into the code comment in as many words: this binds the CHECKOUT
+      question only. It does NOT extend REQ-04's run-digest preservation rule to the Bash route.
+      That rule needs the PRIOR content of the file, which only a whole-file Write payload
+      carries; a shell command hands this guard no payload to compare against. D-06's residual
+      stands and BRIEF.md's `## Verification gaps` still says so.
+
+      Also carry the comment recording the measured defect this closes: the tool route was bound
+      by T-03 while the Bash route allow-continued at :747, so the identical governed
+      main-checkout write landed at exit 0 through a route the tool-route refusal message itself
+      named the destination for.
+
+  - id: T-10
+    title: Test the Bash-route checkout binding and prove it can report red
+    traces: [REQ-06, REQ-08]
+    change_type: bugfix
+    execution_mode: main-session-direct
+    execution_reason: >-
+      DEC-174 carve-out, test-bash-write-guard.py is the Bash write guard's own test
+    depends_on: [T-09]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/test-bash-write-guard.py
+    verify: |
+      python3 .claude/skills/harness/bin/test-bash-write-guard.py || exit 1
+      T=.claude/skills/harness/bin/test-bash-write-guard.py
+      grep -q 'bash-feature-checkout-main' "$T" || exit 1
+      grep -q 'bash-feature-checkout-inside' "$T" || exit 1
+      grep -q 'bash-feature-checkout-absent' "$T" || exit 1
+      grep -q 'bash-feature-checkout-short' "$T" || exit 1
+      grep -q 'bash-feature-checkout-red' "$T" || exit 1
+      echo OK
+    intent: |
+      Add FIVE cases to .claude/skills/harness/bin/test-bash-write-guard.py covering T-09's
+      binding. REUSE THE FIXTURE AND INVOCATION HELPERS THAT FILE ALREADY HAS — read them first:
+      `fixture(text)` (:175), `fire(root, cmd, agent)` (:183), `_env(root)` (:20) and
+      `_linked_worktree(path, owner_root, wt_id, manifest_text)` (:297), which builds the on-disk
+      `.git` pointer shape by hand rather than invoking git. DO NOT BUILD A SECOND HARNESS. If
+      _linked_worktree does not also write the owner's `.git/worktrees/<id>/gitdir` pointer that
+      harness_boundary.linked_worktrees reads, EXTEND that one helper and re-run the existing
+      worktree cases, rather than adding a parallel builder beside it.
+
+      Every case asserts the EXACT exit code — 2 blocks, 0 passes, never "nonzero" (DEC-100) —
+      and the refusing cases assert on the captured stderr TEXT as well. Capture by subprocess
+      capture, never by piping to head or tail.
+
+      Name each case with the greppable token below in its description; this task's verify greps
+      for all five.
+
+      1. bash-feature-checkout-main — a fixture root with a registered worktree whose basename is
+      the feature id, and a governed-agent Bash write (a plain `echo hi > <abs path>`) naming the
+      MAIN checkout's .harness/<repo>/features/<FEAT>/BRIEF.md. The fixture manifest must GRANT
+      that path to the agent, so the verdict reaching :747 is `allow` and the denial can only be
+      the new binding. Assert exit 2, and assert the stderr names BOTH the target path and the
+      worktree the write belonged in. Exit 2 alone passes on a message an agent cannot act on.
+
+      2. bash-feature-checkout-inside — the identical write aimed at the same feature path INSIDE
+      that worktree. Assert exit 0. Be honest in the case's own comment about what this proves:
+      if the worktree sits under .claude/worktrees/ the DEC-153 continue at bash-write-guard.sh
+      :714 returns before classify is ever called, so the exit 0 is not evidence that the new
+      binding's allow branch ran — it is evidence that the new check did not disturb DEC-153's
+      carve-out, which is what this case actually binds.
+
+      3. bash-feature-checkout-absent — the same main-checkout write with NO worktree registered
+      for that feature id. Assert exit 0. A feature developed in the main checkout stays legal,
+      and this is the case that stops the rule from being an unconditional deny.
+
+      4. bash-feature-checkout-short — the SAME denial as case 1 with the registered worktree's
+      basename being the SHORT flow id the feature id extends: worktree basename FEAT-NN against
+      feature directory FEAT-NN-slug. Assert exit 2 and the same two names in stderr. THIS IS THE
+      CLAUSE AN EQUALITY-MATCHING IMPLEMENTATION FAILS while every other clause here stays green,
+      and it is the spelling this repository measured in the wild
+      (feature-worktree.py:236-239: all four live worktrees were FEAT-32 while every feature
+      directory was FEAT-32-concurrent-write-merge).
+
+      5. bash-feature-checkout-red — the reachability proof for case 1, by D-07's idiom. Write a
+      MARKER-FREE copy of bash-write-guard.sh with the feature-checkout binding removed — locate
+      the region by its own source text, never by a line number and never by any commit ref,
+      relative or pinned — to a DOT-PREFIXED path in the script's OWN directory whose name is
+      UNIQUE PER PROCESS by including os.getpid(); copy the file mode; remove it in a `finally`
+      block. That directory is shared and tracked and features run in parallel, so a fixed name
+      lets one run's finally delete another's copy mid-read. The copy MUST live in the script's
+      own directory: the guard imports harness_boundary and harness_yaml from there, so a copy in
+      a tmpdir exits non-zero on import and the case would pass while measuring nothing.
+
+      Run BOTH the real script and the mutant over case 1's fixture and assert ALL FOUR of: the
+      mutant text DIFFERS from the source; the mutant DID NOT CRASH, by requiring its exit code
+      to be 0 or 2 AND its stderr to carry no python traceback, so a SyntaxError or NameError
+      cannot masquerade as a passing return; the real script exits 2; and the mutant exits 0.
+      Fail loudly as INCONCLUSIVE if the source text searched for was not found or the copy is
+      byte-identical to the original. Note in the case comment that this file already honours a
+      BASH_WRITE_GUARD_BIN override (:17) — use it to point the invocation at the mutant rather
+      than hand-rolling a second subprocess path.
+
+      Register nothing. test-bash-write-guard.py is already in INTEGRATION_SCRIPTS in
+      run-unit-tests.sh:31 and is already an explicit entry in harness.json's integration.detect,
+      so cases added here are evidence of kind integration and no registration change is needed;
+      moving it would trip the runner's KIND-DRIFT check.
+
+  - id: T-11
+    title: Resolve a lead's artifact path against the feature's checkout in validate-digest.py
+    traces: [REQ-09]
+    change_type: bugfix
+    execution_mode: main-session-direct
+    execution_reason: >-
+      DEC-174 carve-out, validate-digest.py is the registered SubagentStop validator
+    depends_on: [T-08]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/validate-digest.py
+    verify: |
+      python3 - <<'EOF'
+      import importlib.util, os, sys, tempfile
+      B = os.path.abspath('.claude/skills/harness/bin')
+      sys.path.insert(0, B)
+      spec = importlib.util.spec_from_file_location('vd', os.path.join(B, 'validate-digest.py'))
+      vd = importlib.util.module_from_spec(spec); spec.loader.exec_module(vd)
+      d = os.path.realpath(tempfile.mkdtemp())
+      os.makedirs(os.path.join(d, '.harness'))
+      open(os.path.join(d, '.harness', 'team-config.yaml'), 'w').write('agents: {}\n')
+      wt = os.path.join(d, '.claude', 'worktrees', 'FEAT-X')
+      e = os.path.join(d, '.git', 'worktrees', 'FEAT-X')
+      os.makedirs(e); os.makedirs(os.path.join(wt, '.harness', 'runs', 'r1'))
+      open(os.path.join(wt, '.harness', 'team-config.yaml'), 'w').write('agents: {}\n')
+      open(os.path.join(wt, '.git'), 'w').write('gitdir: %s\n' % e)
+      open(os.path.join(e, 'gitdir'), 'w').write('%s\n' % os.path.join(wt, '.git'))
+      rel = os.path.join('.harness', 'runs', 'r1', 'digest.md')
+      open(os.path.join(wt, rel), 'w').write('# narrative digest, no contract block\n')
+      os.environ['HARNESS_PROJECT_DIR'] = d
+      text = 'VERDICT: PASS\nDIGEST:\n  headline: x\nartifact: %s\n' % rel
+      got = vd.check_artifact_file('harness-eng-lead', text, {'harness_feature': 'FEAT-X-thing'})
+      assert got == 2, 'worktree-resident digest not located: got %r' % got
+      got = vd.check_artifact_file('harness-eng-lead', text, {})
+      assert got == 0, 'no-feature fallback changed: got %r' % got
+      print('OK')
+      EOF
+    intent: |
+      Fix the artifact-path resolution in check_artifact_file
+      (.claude/skills/harness/bin/validate-digest.py:1374) so a lead running in a worktree has its
+      digest FILE actually found. D-11 governs.
+
+      THE DEFECT, measured at 5d12e68. Line 1414 reads
+
+        cands = ([path] if os.path.isabs(path) else [os.path.join(_root_or_none() or "", path)])
+
+      and _root_or_none() (:1343-1357) resolves the root from the INSTALLED script's own
+      location — always the MAIN checkout. So for every lead running in a worktree the relative
+      artifact path is joined onto the wrong checkout, the file is not found, the DEC-156
+      file-shape check is SKIPPED, and the hook prints the INV-15 pass-through line, which reads
+      like housekeeping. Three lead digest.md files in FEAT-50 itself fail the DEC-156 contract
+      and were passed by this hook for exactly that reason.
+
+      THE FIX, and it is the file's OWN precedent rather than a new mechanism. _hook_feature_dir
+      (:1359-1372) already resolves a feature's checkout correctly:
+
+        checkout_root = inflight_registry.feature_root(owner_root, feature)
+
+      Do the same for the relative-path candidate. Take the feature from the payload —
+      check_artifact_file already receives it as its `payload` argument — with
+      payload.get("harness_feature"), resolve owner_root with _root_or_none(), and where BOTH are
+      available resolve the base with inflight_registry.feature_root(owner_root, feature). Use
+      that base instead of the bare owner root when joining a relative artifact path.
+
+      FALLBACK, unchanged behaviour and therefore no regression: when harness_feature is absent
+      or falsy, when _root_or_none() returns None, or when the feature does not resolve, join
+      against _root_or_none() or "" exactly as today. feature_root's own contract already falls
+      back to the supplied owner_root on no match or ambiguity and raises nothing, so no
+      exception handling beyond the file's existing shape is needed; if you add any, it must
+      absorb into the same fallback and never into a verdict.
+
+      ABSOLUTE artifact paths keep today's handling verbatim: `[path]`, no resolution, no change.
+
+      FAIL-OPEN-LOUDLY IS UNCHANGED (DEC-127, and the docstring at :1384-1388 says so): if the
+      file is STILL not found after this resolution, print the same message and return 0. Do not
+      turn a lookup failure into a block. Keep the INV-15 pointer line exactly as it reads —
+      test-validate-digest.py's existing "missing file fails OPEN with the INV-15 pointer" case
+      asserts on the word INV-15.
+
+      WHY harness_feature IS LEGITIMATE INPUT HERE and D-03's ban does not reach it — carry this
+      as a comment, because the next reader will otherwise see a contradiction. D-03 forbids
+      reading harness_feature in check-domain.sh's PreToolUse route, where that key's presence
+      varies by route while the target path is present on every route. This is the SubagentStop
+      hook, which ALREADY consumes d.get("harness_feature") at :1514 and passes it to
+      _hook_feature_dir at :1598-1599. This change follows the file's own established pattern; it
+      introduces no new input.
+
+      Change nothing else in check_artifact_file: the VERDICT tail-anchoring, the digest.md suffix
+      filter, the validate() call and the two exit paths all stay as they are.
+
+      DEPENDS ON T-08 and the ordering is real, not decorative: feature_root only resolves the
+      SHORT-form worktree spelling once T-08 cuts it over to
+      harness_boundary.worktree_for_feature. Landing this first would fix the exact-basename case
+      and leave the spelling this repository actually measured in the wild still broken.
+
+  - id: T-12
+    title: Test worktree-resident artifact resolution and prove it can report red
+    traces: [REQ-06, REQ-09]
+    change_type: bugfix
+    execution_mode: main-session-direct
+    execution_reason: >-
+      DEC-174 carve-out, test-validate-digest.py is the validator gate's own test
+    depends_on: [T-11]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/test-validate-digest.py
+    verify: |
+      python3 .claude/skills/harness/bin/test-validate-digest.py || exit 1
+      T=.claude/skills/harness/bin/test-validate-digest.py
+      grep -q 'dec156-worktree-narrative' "$T" || exit 1
+      grep -q 'dec156-worktree-valid' "$T" || exit 1
+      grep -q 'dec156-worktree-nofeature' "$T" || exit 1
+      grep -q 'dec156-worktree-red' "$T" || exit 1
+      echo OK
+    intent: |
+      Add FOUR cases to .claude/skills/harness/bin/test-validate-digest.py covering T-11.
+
+      WHY THE EXISTING HELPER CANNOT SEE THIS DEFECT, and say so in a comment beside the new
+      cases. `_dec156_case` (test-validate-digest.py:750-769, measured at 5d12e68) builds each
+      fixture with the tmpdir root and the checkout COINCIDENT: it makes one directory `rd`,
+      writes `.harness/team-config.yaml` into it, places `runs/r1/digest.md` under it, and hands
+      `rd` over as the root. With root and checkout the same directory, joining the artifact path
+      onto the root and joining it onto the feature's checkout name the SAME FILE, so every one of
+      those four cases passes whether the resolution is right or wrong. That is precisely the
+      shape this defect hides in.
+
+      THE NEW FIXTURE SHAPE. Reuse `_dec156_case`'s pattern and its payload/subprocess helpers —
+      read them first, do not build a second harness — but build a fixture where root and
+      checkout DIFFER: a fixture root carrying `.harness/team-config.yaml`, plus a LINKED WORKTREE
+      registered under it (the checkout's `.git` pointer file holding
+      `gitdir: <root>/.git/worktrees/<id>`, and the owner-side `<root>/.git/worktrees/<id>/gitdir`
+      pointing back — the same by-hand shape test-bash-write-guard.py's `_linked_worktree` uses,
+      because standing up a real one would mean invoking git from the suite). Place the
+      `runs/r1/digest.md` INSIDE THE WORKTREE, not in the fixture root, and carry
+      `harness_feature` in the payload naming a feature id the worktree's basename prefixes.
+      Prefer factoring this as one small helper beside `_dec156_case` and calling it four times,
+      rather than repeating the fixture in each case.
+
+      Name each case with the greppable token below in its description; this task's verify greps
+      for all four. Every case asserts on the EXIT CODE and on the captured stderr TEXT.
+
+      1. dec156-worktree-narrative — a narrative digest.md with no contract block, inside the
+      worktree, harness_feature in the payload. Assert exit 2 and that stderr names the digest
+      FILE. THIS IS THE DEFECT'S DIRECTION: today the same fixture exits 0 with the INV-15
+      pass-through line, because the file is looked for in the main checkout and not found.
+
+      2. dec156-worktree-valid — the same fixture with a digest.md carrying a valid contract
+      block. Assert exit 0. Without this the case above is satisfied by an unconditional deny.
+
+      3. dec156-worktree-nofeature — the same worktree-resident narrative digest with NO
+      harness_feature key in the payload. Assert exit 0 AND that stderr carries the INV-15 pointer
+      line: this pins that the fallback is TODAY'S behaviour and that fail-open-loudly is intact,
+      which is the clause that makes the change a no-regression.
+
+      4. dec156-worktree-red — the reachability proof for case 1, by D-07's idiom and the same
+      four assertions the empty-red case uses. Write a MARKER-FREE copy of validate-digest.py
+      with the feature-checkout resolution reverted to the bare `_root_or_none()` join — locate
+      the region by its own source text, never by a line number and never by any commit ref —
+      to a DOT-PREFIXED path in the script's OWN directory, UNIQUE PER PROCESS via os.getpid(),
+      file mode copied, removed in a `finally`. The copy must live in the script's own directory
+      because validate-digest.py imports sibling modules from it. Run BOTH over case 1's fixture
+      and assert ALL FOUR of: the mutant text DIFFERS from the source; the mutant DID NOT CRASH
+      (exit code 0 or 2 AND no python traceback on stderr); the real script exits 2; the mutant
+      exits 0. Fail loudly as INCONCLUSIVE if the source text was not found or the copy is
+      byte-identical. Reuse the empty-red case's mutant helper rather than writing a second one.
+
+      Register nothing. test-validate-digest.py is already in INTEGRATION_SCRIPTS in
+      run-unit-tests.sh and is already an explicit entry in harness.json's integration.detect, so
+      cases added here are evidence of kind integration; moving it would trip the runner's
+      KIND-DRIFT check.

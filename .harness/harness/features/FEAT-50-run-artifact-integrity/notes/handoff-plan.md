@@ -1,56 +1,60 @@
-# Handoff — FEAT-50-run-artifact-integrity, plan → operator signature — written at 75daa3b, seq-1
+# Handoff — FEAT-50-run-artifact-integrity, plan → operator signature — written at 5d12e68, seq-2
 
 ## Next
 
-Do not dispatch a squad. The plan phase ends at the user gate: the operator holds ONE
-batched signature review (DEC-176) over the two `high` panel findings, the INV-32
-ruling, and the fourth defect found live in this run. Only after a ruling does work
-resume — resolving a finding means a pm fix cycle followed by a RE-TRANSCRIBE of
-`plan.yaml`'s `panel:` key, because a reworded finding gets a new content-hash id and
-the old ruling stops applying.
+Do not dispatch a squad. The plan phase ends at the user gate and the plan is SIGNABLE on
+panel grounds: no `high`, `critical` or unrated finding survives. The operator holds one
+batched signature review (DEC-176) over eleven advisory findings at `severity_max: med`.
+The external INV-32 hold is LIFTED — the fix merged into `main`, so D-09's precondition is
+met. After signature the FIRST act, before any build dispatch, is updating the feature
+branch from `origin/main` (main session's); SC-11 is ungradeable until then. Build
+sequences T-08 first — both T-03 and T-09 need its `worktree_for_feature` seam — and T-07
+last, which depends on all eleven others.
 
 ## Trust
 
-- BRIEF.md and plan.yaml are complete and mutually consistent: 7 REQ all traced, no
-  phantom traces, 16 SC, 8 tasks, 8 decisions, 12 lane rows — read from the loaded
-  plan with `harness_yaml.load_plan` — verified-at 75daa3b
-- `approval.status: pending`, four template keys, no `rulings` — verified-at 75daa3b
-- `panel:` records 3 readers `ran` and 7 open findings, `severity_max: high`, ids from
-  `panel_findings.py` — plan.yaml `panel:` — verified-at 75daa3b
-- `check-plan-routes.py` exits 0, `0 violation(s) across 1 plan(s)`, `examined 46` — verified-at 75daa3b
-- Suites are green and untouched: unit exit 0 / 0 `^FAIL ` / 1463 lines; integration
-  exit 0 / 0 `^FAIL ` / 1945 lines — /tmp baselines, nothing under `bin/` was edited — verified-at 75daa3b
-- `check-state.sh` exits 1 with 32 INV-32 rows BEFORE and AFTER this phase — FEAT-50
-  adds none while pending — /tmp/f50-cs.txt vs /tmp/f50-cs2.txt — verified-at 75daa3b
-- FEAT-50 adds 5 other check-state rows: BRIEF-not-approved and INV-6-no-review_sha
-  both clear or are structural to the plan phase; three lead `digest.md` files fail
-  DEC-156 — `validate-digest.py lead <path>` on each — verified-at 75daa3b
-- The DEC-156 file check FAILS OPEN for every lead in a worktree: `check_artifact_file`
-  joins the relative `artifact:` path to `_root_or_none()`, which returns the MAIN
-  checkout, so the file is not found and the check is skipped — measured directly,
-  `validate-digest.py:1408-1418` — verified-at 75daa3b
-- Issue #1058 reproduced live in this run: `runs/2026-08-31-01-product/digest.md` was
-  overwritten with cycle-2 content, destroying the cycle-0 authoring record — verified-at 75daa3b
-- The two `high` panel findings are true, re-measured at source, not taken on report:
-  `bash-write-guard.sh:747` allow-continues so the binding never reaches the Bash
-  route; `test-validate-digest.py:738-739` asserts exit 0 for exactly the input D-01
-  sends to exit 2 — verified-at 75daa3b
+- No `high`/`critical`/unrated finding survives; eleven `open` at `severity_max: med` — I
+  recomputed the gating set against `check-state.sh:218-219` — verified-at 5d12e68
+- All ELEVEN `PF-` ids recompute exactly from `panel_findings.finding_id(reader, summary)`,
+  which is also the proof the five carried cycle-0 summaries are verbatim — verified-at 5d12e68
+- `panel.readers` carries `should-not-exist`, `scope` AND `goalcheck`, each `ran`;
+  `check-state.sh:220-233` VIOLATES on a missing one — verified-at 5d12e68
+- `approval.status: pending`, `rulings` ABSENT; nothing under `.claude/skills/` modified
+  this phase — `git status --porcelain` — verified-at 5d12e68
+- `check-plan-routes.py` exits 0, `0 violation(s) across 1 plan(s)`, 9 DEVIATION lines all
+  DEC-174 carve-outs; `load_plan` gives T-01..T-12, D-01..D-11, 14 lanes — verified-at 5d12e68
+- Both cycle-0 `high` findings are true at source and their fixes land where they must:
+  `bash-write-guard.sh:747` allow-continue (T-09), obsolete case at
+  `test-validate-digest.py:738-739` (T-02 step 5) — re-measured myself — verified-at 5d12e68
+- The fourth defect's remedy has an in-file precedent: `check_artifact_file` joins to
+  `_root_or_none()` (`:1413`) while `_hook_feature_dir` (`:1359-1372`) already resolves the
+  feature's checkout correctly — verified-at 5d12e68
+- `PF-f52c5043…` (`med`) is INERT today: `HARNESS_PROJECT_DIR` is READ in exactly one
+  production file, `harness_boundary.py`, and SET by none — verified-at 5d12e68
+- The three DEC-156-failing digests cannot reach the default branch: `.gitignore:7` excludes
+  `.harness/*/features/*/runs/**` — `git check-ignore -v` — verified-at 5d12e68
+- **UNVERIFIED**: that INV-32 passes once APPROVED. I read the gate against the actual data
+  and every condition holds, but could not run it approved — `check-domain.sh` denies my
+  Edit of `approval:`, correctly. Re-check after signature.
+- **UNVERIFIED**: every `verify:` block. A panel grades a specification; they are prose
+  until someone runs them.
 
 ## Dead ends
 
-- Do not plan INV-32 backfill or rescoping — outside the operator's stated scope until
-  they rule — notes/answers-2026-08-31-plan.md `## Open question` — verified-at 75daa3b
-- Do not route enforcement-layer files to a squad. `check-domain.sh --resolve` GRANTS
-  them to backend-dev/dev-ops and DEC-174 overrides the grant — plan.yaml `lanes:` — verified-at 75daa3b
-- Do not re-raise the three closed review rounds' findings — runs/2026-08-31-1-eng,
-  -1-validator, and notes/research-FEAT-50-goalcheck-plan-c0.md — verified-at 75daa3b
-- Do not rewrite the three non-conforming lead digests. Rewriting another agent's
-  record falsifies it; the remedy is the fail-open fix — PRINCIPLES rule 15 — source
+- Do not re-open INV-32 options (a)/(b)/(c) — a fourth option was taken and the fix landed
+  externally — notes/answers-2026-08-31-plan.md `## Operator ruling — INV-32` — verified-at 5d12e68
+- Do not write `approval.rulings` — no overrule was taken; an entry is validated against
+  `panel.findings` and emits two INV-32 rows naming FEAT-50 — check-state.sh:189-204 — verified-at 5d12e68
+- Do not rewrite the three non-conforming lead digests; a third party editing another
+  agent's record falsifies it — PRINCIPLES rule 15 — verified-at 5d12e68
+- Do not reword any finding `summary:` — it is the content-hash input — panel_findings.py — verified-at 5d12e68
+- Do not start build before the branch is updated from `origin/main` — the operator's
+  instruction — notes/answers-2026-08-31-plan.md — source
 
 ## Working set
 
-- .harness/harness/features/FEAT-50-run-artifact-integrity/BRIEF.md
 - .harness/harness/features/FEAT-50-run-artifact-integrity/plan.yaml
+- .harness/harness/features/FEAT-50-run-artifact-integrity/BRIEF.md
 - .harness/harness/features/FEAT-50-run-artifact-integrity/notes/answers-2026-08-31-plan.md
-- .harness/harness/features/FEAT-50-run-artifact-integrity/runs/2026-08-31-2-validator/digest.md
+- .harness/harness/features/FEAT-50-run-artifact-integrity/runs/2026-08-31-6-validator/digest.md
 - .harness/harness/features/FEAT-50-run-artifact-integrity/feature.json

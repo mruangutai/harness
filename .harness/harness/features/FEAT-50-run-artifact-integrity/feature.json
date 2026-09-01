@@ -4,7 +4,7 @@
   "pr": null,
   "status": "Plan",
   "review_sha": "none",
-  "cycles_used": 4,
+  "cycles_used": 7,
   "max_total_cycles": 10,
   "max_total_runs": 20,
   "runs": [
@@ -40,6 +40,30 @@
     },
     {
       "id": "2026-08-31-3-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-31-4-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-31-5-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-31-6-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-31-7-product",
       "squad": "product",
       "agent": "harness-product-lead",
       "verdict": "PASS"
