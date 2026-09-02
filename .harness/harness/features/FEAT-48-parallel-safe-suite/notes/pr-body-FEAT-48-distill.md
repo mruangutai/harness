@@ -2,7 +2,7 @@ Post-merge Expertise distillation for FEAT-48-parallel-safe-suite (DEC-145), run
 
 ## What landed
 
-**41 entries changed across 11 Expertise files** — 24 new entries, 17 displacements — every one judged by the agent that owns the file, and every one applied by that owner.
+**42 entries changed across 12 Expertise files** — 24 new entries, 18 displacements — every one judged by the agent that owns the file, and every one applied by that owner.
 
 | file | tier | change |
 |---|---|---|
@@ -13,6 +13,7 @@ Post-merge Expertise distillation for FEAT-48-parallel-safe-suite (DEC-145), run
 | harness-qa | craft | P-06, G-06, G-09 displaced |
 | harness-ui-reviewer | craft | P-10 displaced, +O-07, +O-08 |
 | harness-product-lead | craft | +O-07, +O-08 |
+| harness-orchestrator | craft | G-14 displaced |
 | harness-pm | repository | +P-03, +P-04, +P-05, +P-06, +G-15 |
 | harness-orchestrator | repository | +P-02, +G-10 through +G-14 |
 | harness-security-reviewer | repository | +G-03, +G-04, +G-05 |
