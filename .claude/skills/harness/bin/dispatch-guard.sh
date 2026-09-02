@@ -137,6 +137,48 @@ if not root:
           file=sys.stderr)
     sys.exit(0)
 
+# T-09 -- a shell-less persona cannot resolve the feature tree itself. The
+# dispatcher supplies the resolved value and this block checks it before claim.
+try:
+    owner_root = hb.resolve_root(os.environ.get("HARNESS_GUARD_BIN_DIR") or os.getcwd(),
+                                 strict=False)
+    tools_file = os.path.join(owner_root, ".omp", "agents", dispatched + ".md")
+    raw_agent = open(tools_file, encoding="utf-8").read()
+    frontmatter = raw_agent.split("---", 2)[1]
+    tools_match = re.search(r"(?ms)^tools:\s*\n(.*?)(?=^[A-Za-z_-]+:|\Z)", frontmatter)
+    if tools_match is None:
+        raise ValueError("no tools key")
+    has_bash = bool(re.search(r"(?m)^\s*-\s*bash\s*$", tools_match.group(1)))
+except Exception:
+    has_bash = True
+
+if not has_bash:
+    declared_root = None
+    for prompt_line in prompt.splitlines():
+        stripped = prompt_line.strip()
+        if stripped.startswith("HARNESS-FEATURE-TREE-ROOT: "):
+            declared_root = stripped[len("HARNESS-FEATURE-TREE-ROOT: "):]
+            break
+    if not declared_root:
+        print("dispatch-guard: BLOCKED -- %s holds no shell and requires "
+              "HARNESS-FEATURE-TREE-ROOT: from inflight_registry.py feature-root --feature %s."
+              % (dispatched, declared), file=sys.stderr)
+        sys.exit(2)
+    if not os.path.isabs(declared_root):
+        print("dispatch-guard: BLOCKED -- HARNESS-FEATURE-TREE-ROOT value must be absolute: %r"
+              % (declared_root,), file=sys.stderr)
+        sys.exit(2)
+    try:
+        expected_root = reg.feature_root(owner_root, declared)
+    except Exception as exc:
+        print("dispatch-guard: feature tree resolver failed (%s) -- passing through." % (exc,),
+              file=sys.stderr)
+    else:
+        if os.path.realpath(declared_root) != os.path.realpath(expected_root):
+            print("dispatch-guard: BLOCKED -- declared feature-tree root %s disagrees with resolver %s."
+                  % (declared_root, expected_root), file=sys.stderr)
+            sys.exit(2)
+
 runtime = d.get("harness_runtime") or "claude"
 supervisor_pid = d.get("supervisor_pid") if runtime == "omp" else None
 if runtime == "omp" and (not isinstance(supervisor_pid, int) or supervisor_pid <= 0):
