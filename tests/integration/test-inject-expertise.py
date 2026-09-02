@@ -222,6 +222,35 @@ def case4c():
     report("case4c: unresolved root is injected loudly without blocking", ok,
            f"exit={r.returncode} context={ctx!r}")
 
+
+
+def case4d():
+    root = tempfile.mkdtemp()
+    home = fresh_home()
+    checker = os.path.join(root, ".claude", "skills", "harness", "bin",
+                           "check-instruction-paths.py")
+    os.makedirs(os.path.dirname(checker), exist_ok=True)
+    write(checker, """#!/usr/bin/env python3
+import sys
+agent = open(sys.argv[1]).read()
+if "UNANCHORED" in agent:
+    print("VIOLATION .omp/agents/harness-qa.md:1: unanchored instruction path: .harness/x")
+    raise SystemExit(1)
+print("scanned 4 file(s), 0 violation(s)")
+""")
+    os.chmod(checker, 0o755)
+    agent = os.path.join(root, ".omp", "agents", "harness-qa.md")
+    write(agent, "clean\n")
+    for name in ("harness-handoff", "harness-expertise", "harness-principles"):
+        write(os.path.join(root, ".claude", "skills", name, "SKILL.md"), "clean\n")
+    clean = get_context(run_hook(root, home, b'{"agent_type": "harness-qa"}')) or ""
+    write(agent, "UNANCHORED\n")
+    drifted = get_context(run_hook(root, home, b'{"agent_type": "harness-qa"}')) or ""
+    report("case4d: checker clean and drift branches stay distinct",
+           "HARNESS_PATH_DRIFT: none" in clean and "HARNESS_PATH_DRIFT: 1 unanchored path(s)" in drifted,
+           f"clean={clean!r} drifted={drifted!r}")
+
+
 # --- Case 5: missing agent_type, and invalid JSON ---------------------------
 def case5():
     root = tempfile.mkdtemp()
@@ -380,6 +409,7 @@ def main():
     case4()
     case4b()
     case4c()
+    case4d()
     case5()
     case6()
     case7()
