@@ -858,6 +858,18 @@ def domain_check():
               "`git worktree remove` rather than written into.", file=sys.stderr)
         sys.exit(2)
 
+    if _verdict["outcome"] == "wrong_checkout":
+        # Issue #895: the same relative path exists, unrefused, in every checkout of
+        # this repository — main and every worktree — because a domain grant is
+        # matched by SHAPE alone. This target sits in a REAL checkout of the same
+        # repository this session is rooted in, just not the one it is rooted in.
+        print(f"check-domain: BLOCKED — {target} is in {_verdict['checkout']}, but "
+              f"this session is rooted in {_verdict['root']}.", file=sys.stderr)
+        print(f"  Write it there instead: a domain grant is matched by relative path "
+              f"shape, and the identical path in a different checkout of this "
+              f"repository is not the same file.", file=sys.stderr)
+        sys.exit(2)
+
     if _verdict["outcome"] == "not_a_domain_question":
         # bash-write-guard.sh already said so ("outside repo — not this hook's
         # problem"), and this hook did not: a scratch script at /tmp/x.py was legal via

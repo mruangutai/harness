@@ -765,6 +765,20 @@ for name, paths in findings:
                  f"{verdict['expected']} — that tree ({verdict['checkout']}) should be "
                  "removed with `git worktree remove` rather than written into.")
 
+        if verdict["outcome"] == "wrong_checkout":
+            # Issue #895, same ground as out_of_place_worktree above: this must run
+            # BEFORE the outside-repo `rel.startswith("..")` continue below, or the
+            # fix is dead on this route exactly as issue #103 was before the
+            # out_of_place_worktree block landed here — a target outside root always
+            # produces a rel starting with "..", which is what let a worktree-rooted
+            # Bash write reach the main checkout unrefused while the same target via
+            # the Write tool was already denied (DEC-151: two surfaces disagreeing is
+            # a bypass by construction).
+            deny(f"{ap} is in {verdict['checkout']}, but this session is rooted in "
+                 f"{verdict['root']}. Write it there instead: a domain grant is "
+                 "matched by relative path shape, and the identical path in a "
+                 "different checkout of this repository is not the same file.")
+
         # THE OUTSIDE-REPO CONTINUE, MOVED BELOW classify AND NARROWED TO A FILTER ON
         # THE OUTCOME (D-07). It has to run after classify or the issue #103 fix is dead
         # code on this route — that continue is precisely what made a sibling worktree

@@ -3467,6 +3467,136 @@ def _bug1124_red_case(root, path, collision):
             f"real={collision.returncode}, mutant={muted.returncode}: {muted.stderr}")
 
 
+def _bug895_fixture():
+    root = fixture("""schema_version: 1
+teams:
+  - name: harness-documentor
+    domain:
+      - { path: .harness/allowed/**, upsert: true }
+""")
+    os.makedirs(os.path.join(root, ".harness", "allowed"), exist_ok=True)
+    wt = make_linked_worktree(
+        root, os.path.join(root, ".claude", "worktrees", "OTHER"), "OTHER")
+    os.makedirs(os.path.join(wt, ".harness", "allowed"), exist_ok=True)
+    # A session can only ROOT at wt (via HARNESS_PROJECT_DIR) if wt itself carries
+    # the MARKER harness_boundary.resolve_root checks for — unlike
+    # make_linked_worktree's usual callers, this test roots its session AT the
+    # worktree, not at `root`, so the worktree needs its own copy of the same grant.
+    # `.harness/allowed/**`, not a bare `allowed/**`: only a control-plane-shaped
+    # target (first segment `.harness`/`.claude`/`.agents`/`.omp`) can be granted at
+    # all on a bare harness base with no product workspace configured.
+    with open(os.path.join(wt, ".harness", "team-config.yaml"), "w") as f:
+        f.write("""schema_version: 1
+teams:
+  - name: harness-documentor
+    domain:
+      - { path: .harness/allowed/**, upsert: true }
+""")
+    return root, wt
+
+
+def _bug895_fire(session_root, abs_target):
+    payload = {"agent_type": "harness-documentor", "tool_name": "Write",
+               "tool_input": {"file_path": abs_target, "content": "x"}}
+    return subprocess.run([HOOK], input=json.dumps(payload), capture_output=True,
+                          text=True, env=_env(session_root))
+
+
+def _bug895_wrong_checkout_case(root, wt):
+    """Issue #895: a session rooted in a worktree, writing into its own main
+    checkout's copy of an identically-shaped allowed path, is refused by identity —
+    not waved through as 'not our problem', which is how FEAT-40's ship write-back
+    (commit 3952814) landed in main from a worktree session."""
+    r = _bug895_fire(wt, os.path.join(root, ".harness", "allowed", "x.txt"))
+    ok = (r.returncode == 2 and "BLOCKED" in r.stderr and "is rooted in" in r.stderr
+          and wt in r.stderr)
+    return ("wrong-checkout: worktree session writing into main is refused",
+            ok, f"{r.returncode}: {r.stderr}")
+
+
+def _bug895_own_checkout_case(wt):
+    """NEGATIVE CONTROL: the identical grant, written into the session's OWN
+    checkout, still works — this is a checkout-identity check, not a new denial on
+    the domain grant itself."""
+    r = _bug895_fire(wt, os.path.join(wt, ".harness", "allowed", "x.txt"))
+    return ("wrong-checkout NEGATIVE CONTROL: same session, own checkout, still allowed",
+            r.returncode == 0, f"{r.returncode}: {r.stderr}")
+
+
+def _bug895_scratch_case(wt):
+    """NEGATIVE CONTROL: an unrelated path outside any checkout of this repository
+    (e.g. /tmp) stays a not-a-domain-question, exit 0 — this only governs writes
+    that land in a REAL checkout of the SAME repository."""
+    scratch = os.path.join(tempfile.mkdtemp(), "scratch.txt")
+    r = _bug895_fire(wt, scratch)
+    return ("wrong-checkout NEGATIVE CONTROL: an unrelated scratch path is untouched",
+            r.returncode == 0, f"{r.returncode}: {r.stderr}")
+
+
+def _bug895_mutant_hook():
+    """A full copy of bin/ with harness_boundary.py's WRONG CHECKOUT detection block
+    removed, so `import harness_boundary` inside the copy's own check-domain.sh
+    resolves to the mutant — `sys.path.insert(0, _bin_dir)` makes the copy's own
+    directory win regardless of PYTHONPATH, so only a real sibling copy shadows it."""
+    with open(os.path.join(HERE, "harness_boundary.py"), encoding="utf-8") as f:
+        source = f.read()
+    start = source.find(
+        '        # WRONG CHECKOUT, SAME REPOSITORY (issue #895).')
+    end = source.find(
+        '        # NOT A DOMAIN QUESTION, unchanged.')
+    if start < 0 or end < 0 or end <= start:
+        return None
+    mutated = source[:start] + source[end:]
+    if mutated == source:
+        return None
+    mbin = tempfile.mkdtemp(prefix="bug895-boundary-mutant-")
+    shutil.copytree(HERE, mbin, dirs_exist_ok=True)
+    with open(os.path.join(mbin, "harness_boundary.py"), "w", encoding="utf-8") as f:
+        f.write(mutated)
+    return os.path.join(mbin, os.path.basename(HOOK))
+
+
+def _bug895_red_case(root, wt, real_result):
+    mutant_hook = _bug895_mutant_hook()
+    if mutant_hook is None:
+        return ("wrong-checkout-red", False,
+                "INCONCLUSIVE: the wrong-checkout block anchors were not found by "
+                "their source text")
+    payload = {"agent_type": "harness-documentor", "tool_name": "Write",
+               "tool_input": {"file_path": os.path.join(root, ".harness", "allowed", "x.txt"),
+                              "content": "x"}}
+    muted = subprocess.run([mutant_hook], input=json.dumps(payload),
+                           capture_output=True, text=True, env=_env(wt))
+    ok = (real_result.returncode == 2 and muted.returncode == 0
+          and "Traceback" not in muted.stderr)
+    return ("wrong-checkout-red", ok,
+            f"real={real_result.returncode} mutant={muted.returncode}: {muted.stderr}")
+
+
+def run_bug895_wrong_checkout_cases():
+    """Issue #895: path-shape authorization now sees WHICH checkout a write lands
+    in, not just whether the relative path shape matches a grant."""
+    root, wt = _bug895_fixture()
+    wrong = _bug895_wrong_checkout_case(root, wt)
+    results = [
+        wrong,
+        _bug895_own_checkout_case(wt),
+        _bug895_scratch_case(wt),
+        _bug895_red_case(root, wt, _bug895_fire(
+            wt, os.path.join(root, ".harness", "allowed", "x.txt"))),
+    ]
+    fails = 0
+    for name, ok, detail in results:
+        if ok:
+            print(f"ok    [bug895] {name}")
+        else:
+            fails += 1
+            print(f"FAIL  [bug895] {name}\n      | {detail}")
+    print(f"\n{len(results) - fails}/{len(results)} bug895 wrong-checkout cases passed.")
+    return fails
+
+
+
 def run_feat50_artifact_integrity():
     """Issues #1057/#1058: bind feature writes and preserve recorded digests."""
     main, root, worktree, target, refused = _feat50_binding_case(
@@ -3674,6 +3804,7 @@ def main():
     fails += run_runs_agent_write_path()
     fails += run_t14()
     fails += run_feat50_artifact_integrity()
+    fails += run_bug895_wrong_checkout_cases()
     fails += run_t09()
     fails += run_feat51_orphan_write()
     return fails
