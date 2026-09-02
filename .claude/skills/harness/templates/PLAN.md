@@ -6,7 +6,7 @@
 
 ## Lanes
 
-<Resolve every task's lane HERE, against `.harness/team-config.yaml` at a named SHA —
+<Resolve every task's lane HERE, against `<HARNESS_CONTROL_PLANE_ROOT>/.harness/team-config.yaml` at a named SHA —
 never at build time. The Grant column cites the granting line, or records that nothing
 grants the surface, which is a legitimate answer and becomes a declared main-session step.>
 

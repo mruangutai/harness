@@ -5,15 +5,15 @@ into a product repository.
 
 | Template | Instantiated to | By | When |
 |---|---|---|---|
-| `settings.snippet.json` | `.claude/settings.json` | `/harness-init` via `bin/merge-settings.py` | init — **merged**, never clobbered |
-| `harness.json` | `.harness/harness.json` | `/harness-init`, then `dev-ops` fills `test_kinds.cmd` | init |
-| `team-config.yaml` | `.harness/team-config.yaml` | `/harness-init`, seeding `# SEED` globs from detection | init |
-| `BRIEF.md` | `.harness/features/<FEAT>/BRIEF.md` | `/harness-init` drafts; `harness-pm` owns thereafter | init |
+| `settings.snippet.json` | `<HARNESS_CONTROL_PLANE_ROOT>/.claude/settings.json` | `/harness-init` via `bin/merge-settings.py` | init — **merged**, never clobbered |
+| `harness.json` | `<HARNESS_CONTROL_PLANE_ROOT>/.harness/harness.json` | `/harness-init`, then `dev-ops` fills `test_kinds.cmd` | init |
+| `team-config.yaml` | `<HARNESS_CONTROL_PLANE_ROOT>/.harness/team-config.yaml` | `/harness-init`, seeding `# SEED` globs from detection | init |
+| `BRIEF.md` | `<HARNESS_FEATURE_TREE_ROOT>/.harness/features/<FEAT>/BRIEF.md` | `/harness-init` drafts; `harness-pm` owns thereafter | init |
 | `gitignore.snippet` | `.gitignore` | `/harness-init` via `bin/merge-gitignore.sh` | init — **appended**, never overwritten |
-| `plan.yaml` | `.harness/features/<FEAT>/plan.yaml` | `harness-pm` | first planning pass, not init |
-| `PLAN.md` | `.harness/features/<FEAT>/PLAN.md` | `harness-pm` | **superseded by `plan.yaml` (DEC-182)** — never instantiated for a new feature; kept because features planned before DEC-182 keep their `PLAN.md` until they ship |
-| `STATE.md` | `.harness/features/<FEAT>/STATE.md` — **one per flow**, never a project-level file (DEC-120) | that feature's orchestrator | first run of that feature, not init |
-| `DESIGN.md` | `.harness/features/<FEAT>/DESIGN.md` | `harness-visual-designer` | init's optional design pass, for UI projects only |
+| `plan.yaml` | `<HARNESS_FEATURE_TREE_ROOT>/.harness/features/<FEAT>/plan.yaml` | `harness-pm` | first planning pass, not init |
+| `PLAN.md` | `<HARNESS_FEATURE_TREE_ROOT>/.harness/features/<FEAT>/PLAN.md` | `harness-pm` | **superseded by `plan.yaml` (DEC-182)** — never instantiated for a new feature; kept because features planned before DEC-182 keep their `PLAN.md` until they ship |
+| `STATE.md` | `<HARNESS_FEATURE_TREE_ROOT>/.harness/features/<FEAT>/STATE.md` — **one per flow**, never a project-level file (DEC-120) | that feature's orchestrator | first run of that feature, not init |
+| `DESIGN.md` | `<HARNESS_FEATURE_TREE_ROOT>/.harness/features/<FEAT>/DESIGN.md` | `harness-visual-designer` | init's optional design pass, for UI projects only |
 
 **Everything directly in this directory is a template.** Anything that is not one lives in
 `examples/` — currently `harness.kaya-ai.json`, the filled pilot config for `kaya-ai`, kept as a worked
