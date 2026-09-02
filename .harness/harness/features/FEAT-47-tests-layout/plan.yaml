@@ -1,6 +1,6 @@
 schema: plan/1
 feature: FEAT-47-tests-layout
-status: ready
+status: done
 
 # EMPTY ON PURPOSE. This feature was reached by grilling issue 979, and 979 is explicitly NOT in
 # scope: it is re-planned once this lands. Listing it here would land its card at the board's done
