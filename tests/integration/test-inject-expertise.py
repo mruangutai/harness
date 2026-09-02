@@ -319,10 +319,18 @@ def case13():
         "## Your Expertise — harness repository (repository tier)" in ctx,
         "REPO BODY THIRTEEN" in ctx,
         "kaya" not in ctx,
+
         stderr == "",
     ]
     report("case13: dangling symlink in repository tier -> unreadable guard skips it, no leak, clean stderr",
            all(checks), f"checks={checks} stderr={stderr!r} ctx={ctx[:300]!r}")
+
+def case14():
+    source = open(SCRIPT, encoding="utf-8").read()
+    matches = __import__("re").findall(r"^[ \t]*exit [1-9]", source, __import__("re").MULTILINE)
+    positive = bool(__import__("re").search(r"^[ \t]*exit [1-9]", "  exit 2", __import__("re").MULTILINE))
+    report("case14: hook contains no non-zero exit and the pattern has a positive control",
+           not matches and positive, repr(matches))
 
 
 def main():
@@ -334,6 +342,7 @@ def main():
     case6()
     case7()
     case8()
+    case14()
     case10()
     case11()
     case12()

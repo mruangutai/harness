@@ -1,10 +1,10 @@
 schema: plan/1
 feature: FEAT-52-factory-control-plane
 approval:
-  date: '2026-09-01'
+  date: '2026-09-02'
   approved_by: mruangutai
   status: approved
-status: plan
+status: ready
 source_issues: [356]
 
 lanes:
@@ -99,7 +99,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 carve-out, inflight_registry.py is imported by dispatch-guard.sh, a registered PreToolUse hook
     depends_on: []
-    status: ready
+    status: done
     files:
     - .claude/skills/harness/bin/inflight_registry.py
     - .claude/skills/harness/bin/test-inflight-registry.py
@@ -158,7 +158,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 carve-out, a new gate script and its test file are enforcement layer the moment the gate is wired
     depends_on: []
-    status: ready
+    status: done
     files:
       - .claude/skills/harness/bin/check-instruction-paths.py
       - .claude/skills/harness/bin/test-check-instruction-paths.py
@@ -306,7 +306,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 carve-out, inject-expertise.sh is a registered SubagentStart hook and its test file is enforcement layer
     depends_on: [T-02]
-    status: ready
+    status: done
     files:
       - .claude/skills/harness/bin/inject-expertise.sh
       - .claude/skills/harness/bin/test-inject-expertise.py
@@ -406,7 +406,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: agent definitions and harness skill files both resolve to NOBODY under check-domain.sh
     depends_on: [T-02]
-    status: ready
+    status: done
     files:
       - .omp/agents/**
       - .claude/agents/**
@@ -483,7 +483,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: the five doer agent files, harness-eng-lead and the harness references are all NOBODY under check-domain.sh
     depends_on: [T-02, T-04]
-    status: ready
+    status: done
     files:
       - .omp/agents/harness-ai-dev.md
       - .omp/agents/harness-backend-dev.md
@@ -541,7 +541,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: every harness skill file resolves to NOBODY under check-domain.sh
     depends_on: [T-02]
-    status: ready
+    status: done
     files:
       - .claude/skills/harness/SKILL.md
       - .claude/skills/harness-brief/SKILL.md
@@ -601,7 +601,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: templates resolve to NOBODY under check-domain.sh
     depends_on: [T-02]
-    status: ready
+    status: done
     files:
       - .claude/skills/harness/templates/README.md
       - .claude/skills/harness/templates/PLAN.md
@@ -655,7 +655,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: check-domain.sh --resolve reports NOBODY for every harness skill SKILL.md
     depends_on: [T-01, T-02, T-03]
-    status: ready
+    status: done
     files:
       - .claude/skills/harness-handoff/SKILL.md
     verify: |
@@ -718,7 +718,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 carve-out, dispatch-guard.sh is a registered PreToolUse gate and test-dispatch-guard.py is its test file
     depends_on: [T-01]
-    status: ready
+    status: done
     files:
       - .claude/skills/harness/bin/dispatch-guard.sh
       - .claude/skills/harness/bin/test-dispatch-guard.py
@@ -793,7 +793,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: check-domain.sh --resolve reports NOBODY for every harness skill SKILL.md
     depends_on: [T-06, T-08, T-09]
-    status: ready
+    status: done
     files:
       - .claude/skills/harness/SKILL.md
       - .claude/skills/harness-team/SKILL.md
@@ -841,7 +841,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: agent definitions are deliberately unowned, team-config.yaml line 53, and check-domain resolves them to NOBODY
     depends_on: [T-04, T-09]
-    status: ready
+    status: done
     files:
       - .omp/agents/harness-orchestrator.md
       - .omp/agents/harness-product-lead.md
@@ -890,7 +890,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-183, a gate cannot be wired into the job that must protect it by a run that job guards
     depends_on: [T-04, T-05, T-06, T-07, T-08, T-10, T-11]
-    status: ready
+    status: done
     files:
       - .github/workflows/tests.yml
       - .claude/skills/harness/bin/test-check-instruction-paths.py
@@ -945,13 +945,12 @@ tasks:
     execution_mode: team
     execution_agent: harness-documentor
     depends_on: [T-12]
-    status: ready
+    status: done
     files:
       - .harness/harness/docs/DECISIONS.md
       - .harness/harness/docs/DECISIONS-INDEX.md
     verify: |
-      python3 .agents/skills/harness/bin/gen-decisions-index.py --check \
-        && python3 .agents/skills/harness/bin/test-gen-decisions-index.py
+      python3 .agents/skills/harness/bin/gen-decisions-index.py --stdout | diff - .harness/harness/docs/DECISIONS-INDEX.md && python3 .agents/skills/harness/bin/test-gen-decisions-index.py
     intent: |
       Append ONE decision entry to DECISIONS.md - one entry, not two - taking the next free DEC
       number by reading the highest existing one, and write its index row in the SAME commit.
@@ -1025,7 +1024,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 carve-out, inject-expertise.sh is a registered SubagentStart hook and test-inject-expertise.py is its test file
     depends_on: [T-03]
-    status: ready
+    status: building
     files:
       - .claude/skills/harness/bin/test-inject-expertise.py
     verify: |
