@@ -38,4 +38,6 @@
 - O-04: WHEN a Mode A census measured no UI surface but your Mode A note left opens unresolved DO treat the opens as in-remit Mode B work, not grounds to decline — lead review confirmed: a census answers whether a surface exists, not whether prior opens are discharged.
 - O-05: WHEN a Mode B review finds no in-scope UI surface DO publish the census and provenance evidence (counts, footer checks) explicitly in the artifact — a lead cited exactly this evidence to scope out a later spawn, making the decline cheap without weakening the discriminator.
 - O-06: WHEN a dispatch names an adjacent non-rendered surface for you to check despite a no-UI decline DO produce advisory findings from it — panel review has credited a scoped-out reader's finding there as covering a gap no in-scope reader supplied (the union effect).
+- O-07: WHEN a LOW finding from a prior cycle is untouched by the new diff DO re-verify it against current bytes once and carry it forward as 'unchanged' rather than re-deriving the analysis — this passed ship review unchallenged each cycle.
+- O-08: WHEN auditing terminal or console output for a UI review DO execute the real commands and capture actual bytes rather than reading source alone — direct-execution verdicts held unchallenged through final ship review across repeated cycles.
 ## Open (max 5)
