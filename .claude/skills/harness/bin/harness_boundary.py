@@ -286,6 +286,7 @@ HARNESS_CONTROL_PLANE = [
     ".agents/**",
     ".omp/**",
     ".github/**",
+    "tests/**",
 ]
 
 
@@ -467,11 +468,13 @@ def select_base(abs_target, root, workspace_root, workspace_bases, fleet_path, l
 def is_control_plane_target(rel):
     """The TARGET-side test, used only in the harness base.
 
-    Target-keyed, not glob-keyed, and that is load-bearing: two of the four named
-    entries appear in no team-config grant, so a glob-keyed classifier would have
-    literally nothing to match them against. Anchored through the same `matches` idiom, so `README.md` means the
-    repository-root readme and never `docs/README.md`, and `.github/**` never matches
-    `vendor/.github/x`.
+    Target-keyed, not glob-keyed, and that is load-bearing: named entries may appear
+    in no team-config grant, so a glob-keyed classifier would have nothing to match
+    them against. `tests/**` is intentionally target-side only: keeping
+    `is_control_plane_glob("tests/**")` false leaves a product checkout's own tests in
+    its product base. Anchored through the same `matches` idiom, so `README.md` means
+    the repository-root readme and never `docs/README.md`, and `.github/**` never
+    matches `vendor/.github/x`.
     """
     if is_control_plane_glob(rel):
         return True
