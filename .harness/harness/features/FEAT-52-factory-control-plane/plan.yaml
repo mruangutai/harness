@@ -4,7 +4,7 @@ approval:
   date: '2026-09-02'
   approved_by: mruangutai
   status: approved
-status: ready
+status: review
 source_issues: [356]
 
 lanes:
@@ -417,7 +417,7 @@ tasks:
     verify: |
       python3 .agents/skills/harness/bin/check-instruction-paths.py .omp/agents .claude/agents .claude/skills/harness-expertise/SKILL.md .claude/skills/harness-qa-gate/SKILL.md .claude/skills/harness-verification-rules/SKILL.md .claude/skills/harness-tdd-enforcement/SKILL.md \
         && python3 .agents/skills/harness/bin/sync-agent-adapters.py --check \
-        && python3 -c "import sys;a='HARNESS_FEATURE_TREE_ROOT';pos=['.claude/skills/harness-expertise/SKILL.md','.claude/skills/harness-tdd-enforcement/SKILL.md','.omp/agents/harness-backend-dev.md'];miss=[f for f in pos if a not in open(f).read()];print('missing',miss);sys.exit(0 if not miss else 1)"
+        && python3 -c "import sys;a='HARNESS_FEATURE_TREE_ROOT';pos=['.claude/skills/harness-expertise/SKILL.md','.claude/skills/harness-tdd-enforcement/SKILL.md','.omp/agents/harness-orchestrator.md'];miss=[f for f in pos if a not in open(f).read()];print('missing',miss);sys.exit(0 if not miss else 1)"
     intent: |
       Rewrite every backticked relative Harness-owned path in these files so it carries the anchor
       its DIRECTION requires. Change the PATH only. Do not reword the surrounding prose, do not
