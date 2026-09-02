@@ -1436,14 +1436,26 @@ def shape_problems(rel, content, display=None, absolute_path=None):
         # run at all — it is a different run's checkpoint about to be silently destroyed.
         if absolute_path is not None:
             prior_state = None
+            prior_unreadable = False
             try:
                 with open(absolute_path, encoding="utf-8", errors="replace") as prior_file:
                     prior_state = prior_file.read()
             except FileNotFoundError:
                 if not os.path.lexists(absolute_path):
                     prior_state = ""
+                else:
+                    prior_unreadable = True
             except OSError:
-                pass
+                # FAIL CLOSED, matching the sibling #1058 digest guard directly above: a
+                # prior file that lexists but cannot be opened (permission denied, is a
+                # directory, a transient I/O error) is not the same as no prior file — and
+                # treating it as "nothing to compare" would let the exact silent-overwrite
+                # this guard exists to catch straight through under an unreadable prior.
+                prior_unreadable = True
+            if prior_unreadable:
+                out.append(_head("run state already exists but cannot be read safely; "
+                                 "refusing a Write that could destroy its recorded content."))
+                return out
             if prior_state:
                 try:
                     prior_doc = harness_yaml.load_str(prior_state, rel)

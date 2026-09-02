@@ -3441,6 +3441,17 @@ def _bug1124_new_file_case(root, path):
     return ("state-new-file-allowed", ok, f"{result.returncode}: {result.stderr}")
 
 
+def _bug1124_unreadable_case(root, path):
+    """Code review finding: a prior state.yaml that lexists but cannot be OPENED (here, a
+    directory sitting at the path) must deny, mirroring the sibling #1058 digest guard —
+    not fail open by treating an unreadable prior as "nothing to compare"."""
+    os.makedirs(path)
+    result = _bug1124_state_fire(root, path, "schema_version: 1\nrun_id: run-delta\n")
+    os.rmdir(path)
+    ok = result.returncode == 2 and "cannot be read safely" in result.stderr
+    return ("state-unreadable-prior-denied", ok, f"{result.returncode}: {result.stderr}")
+
+
 def _bug1124_red_case(root, path, collision):
     mutant = _feat50_mutant_between(
         "        # Issue #1124: the digest guard above (#1058) fires only on digest.md",
@@ -3470,6 +3481,7 @@ def run_feat50_artifact_integrity():
     state_root2, state_path2 = _bug1124_state_fixture()
     state_root3, state_path3 = _bug1124_state_fixture()
     state_root4, state_path4 = _bug1124_state_fixture()
+    state_root5, state_path5 = _bug1124_state_fixture()
     results = [
         main,
         short,
@@ -3486,6 +3498,7 @@ def run_feat50_artifact_integrity():
         _bug1124_no_run_id_case(state_root3, state_path3),
         _bug1124_new_file_case(state_root4, state_path4),
         _bug1124_red_case(state_root1, state_path1, collision),
+        _bug1124_unreadable_case(state_root5, state_path5),
     ]
     return _report_feat50_artifact_results(results)
 
