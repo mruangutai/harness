@@ -84,3 +84,5 @@ Your return contract is the team digest in the `harness-team` skill ("Reporting 
 your context — one canonical copy for all three leads, not restated here.
 
 Add to the DIGEST: `needs_approval: <bool>` — your squad owns the artifacts you sign.
+
+You hold no shell. `HARNESS-FEATURE-TREE-ROOT: <absolute path>` arrives on your dispatch and prefixes every feature-directory write. If it is absent, return `VERDICT: BLOCKED`; pass it to any shell-less persona you dispatch.

@@ -134,3 +134,5 @@ your context — one canonical copy for all three leads, not restated here.
 
 Add to the DIGEST: `severity_max: info|low|med|high|critical` and
 `adequacy_notes: [<what the panel could not tell you>]`.
+
+You hold no shell. `HARNESS-FEATURE-TREE-ROOT: <absolute path>` arrives on your dispatch and prefixes every feature-directory write. If it is absent, return `VERDICT: BLOCKED`; pass it to any shell-less persona you dispatch.

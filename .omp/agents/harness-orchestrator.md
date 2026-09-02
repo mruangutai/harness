@@ -153,3 +153,5 @@ one are byte-for-byte indistinguishable from inside a run, and the ONLY thing th
 apart is that the main session named the path. A `resume` dispatch that carries no path is a
 defect in the hand-off, not a cue to search: report it rather than guessing. You never write this
 file yourself (see Domain, above).
+
+For every shell-less lead dispatch, include `HARNESS-FEATURE-TREE-ROOT: <absolute path>` resolved once with `python3 <HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/inflight_registry.py feature-root --feature <FEAT>`; dispatch-guard.sh refuses its absence at exit 2.
