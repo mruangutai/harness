@@ -83,7 +83,26 @@ def main():
         new_path = os.path.join(watched, ".mutant-x.sh")
         create = script(root, "create.py", f"open({new_path!r}, 'w').write('z')\n")
         created = run(paths + [create], "--mutation-check", watched)
-        check("mutation check covers clean, direct, subprocess, and creation", clean.returncode == 0 and "MUTATED " not in clean.stdout and changed.returncode == 1 and "MUTATED keep.txt" in changed.stdout and shelled.returncode == 1 and "MUTATED keep.txt" in shelled.stdout and created.returncode == 1 and "MUTATED .mutant-x.sh" in created.stdout)
+        check(
+            "mutation check covers clean, direct, subprocess, and creation",
+            clean.returncode == 0 and "MUTATED " not in clean.stdout
+            and changed.returncode == 1 and "MUTATED keep.txt" in changed.stdout
+            and shelled.returncode == 1 and "MUTATED keep.txt" in shelled.stdout
+            and created.returncode == 1 and "MUTATED .mutant-x.sh" in created.stdout)
+        dangling_path = os.path.join(watched, "dangling")
+        dangling_script = script(
+            root, "dangling.py", f"import os; os.symlink('missing', {dangling_path!r})\n")
+        dangling = run(paths + [dangling_script], "--mutation-check", watched)
+        directory_path = os.path.join(watched, "linked-dir")
+        directory_script = script(
+            root, "linked_dir.py",
+            f"import os; os.symlink({root!r}, {directory_path!r}, target_is_directory=True)\n")
+        directory = run(paths + [directory_script], "--mutation-check", watched)
+        check(
+            "mutation check catches dangling and directory symlinks",
+            dangling.returncode == 1 and "MUTATED dangling" in dangling.stdout
+            and directory.returncode == 1 and "MUTATED linked-dir" in directory.stdout,
+            dangling.stdout + directory.stdout)
         empty = tempfile.mkdtemp()
         missing = run(paths, "--mutation-check", empty + "-missing")
         empty_result = run(paths, "--mutation-check", empty)

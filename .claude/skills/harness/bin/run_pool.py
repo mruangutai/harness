@@ -29,16 +29,28 @@ def worker_count(explicit):
 def snapshot(root):
     state = {}
     for current, dirs, files in os.walk(root):
-        dirs[:] = [d for d in dirs if d != "__pycache__"]
+        descend = []
+        for name in dirs:
+            if name == "__pycache__":
+                continue
+            path = os.path.join(current, name)
+            if os.path.islink(path):
+                stat = os.lstat(path)
+                state[os.path.relpath(path, root)] = (
+                    stat.st_mode, stat.st_size, stat.st_mtime_ns)
+            else:
+                descend.append(name)
+        dirs[:] = descend
         for name in files:
             if name.endswith(".pyc"):
                 continue
             path = os.path.join(current, name)
             try:
-                stat = os.stat(path)
+                stat = os.lstat(path)
             except OSError:
                 continue
-            state[os.path.relpath(path, root)] = (stat.st_size, stat.st_mtime_ns)
+            state[os.path.relpath(path, root)] = (
+                stat.st_mode, stat.st_size, stat.st_mtime_ns)
     return state
 
 

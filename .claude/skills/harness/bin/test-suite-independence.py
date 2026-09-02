@@ -129,7 +129,7 @@ def scan_file(path):
         return [(path, getattr(exc, "lineno", 1) or 1, "parse-error")]
     findings = []
     _scan_statements(tree.body, {"__file__"}, path, findings)
-    return findings
+    return sorted(set(findings))
 
 
 def discover(root):
@@ -152,6 +152,92 @@ def scan_directory(root):
     return files, findings
 
 
+def _fixture_findings(root, name, source):
+    path = os.path.join(root, name)
+    with open(path, "w", encoding="utf-8") as handle:
+        handle.write(source)
+    return scan_file(path)
+
+
+def _resolved_root_or_exit(start):
+    root = resolve_scan_root(start)
+    if root is None:
+        print(f"ERROR could not resolve scan root above {start}", file=sys.stderr)
+        raise SystemExit(2)
+    return root
+
+
+def run_self_tests():
+    failures = []
+    with tempfile.TemporaryDirectory() as root:
+        cases = [
+            ("injection idiom",
+             "import os\nfs=os.path.join(os.path.dirname(os.path.realpath(__file__)),'x')\nopen(fs,'w').write('x')\n",
+             {3}),
+            ("mutant beside original",
+             "import os,shutil\nSCRIPT=os.path.join(os.path.dirname(__file__),'s')\nmpath=os.path.join(os.path.dirname(os.path.realpath(SCRIPT)),'.m')\nopen(mpath,'w').write('x')\nshutil.copymode(SCRIPT,mpath)\n",
+             {4, 5}),
+            ("pid named mutant",
+             "import os\nHERE=os.path.dirname(__file__)\npath=os.path.join(HERE,f'.mutant-{os.getpid()}.sh')\nopen(path,'w').write('x')\n",
+             {4}),
+        ]
+        for index, (name, source, expected) in enumerate(cases):
+            got = {line for _path, line, _sink in
+                   _fixture_findings(root, f"test-red-{index}.py", source)}
+            ok = got == expected
+            print(f"{'ok' if ok else 'FAIL'} self-test {name}")
+            if not ok:
+                failures.append(f"{name}: expected {sorted(expected)}, got {sorted(got)}")
+
+        clean = """import os, pathlib, shutil, tempfile
+BIN_DIR=os.path.dirname(os.path.realpath(__file__))
+text=open(os.path.join(BIN_DIR,'source')).read()
+root=tempfile.mkdtemp()
+dest=os.path.join(root,'bin')
+shutil.copytree(BIN_DIR,dest)
+open(os.path.join(root,text),'w').write('x')
+pathlib.Path(root,'x').write_text('x')
+"""
+        clean_findings = _fixture_findings(root, "test-clean.py", clean)
+        ok = not clean_findings
+        print(f"{'ok' if ok else 'FAIL'} self-test clean controls")
+        if not ok:
+            failures.append(f"clean controls: {clean_findings!r}")
+
+    expected = None
+    current = os.path.dirname(os.path.realpath(__file__))
+    while True:
+        if os.path.isfile(os.path.join(current, ".harness", "team-config.yaml")):
+            expected = current
+            break
+        parent = os.path.dirname(current)
+        if parent == current:
+            break
+        current = parent
+    live_root = resolve_scan_root(HERE)
+    files, live_findings = scan_directory(live_root) if live_root else ([], [])
+    ok = live_root == expected and len(files) >= 50 and not live_findings
+    print(f"{'ok' if ok else 'FAIL'} self-test live tree, independent root and discovered floor")
+    if not ok:
+        failures.append(
+            f"live tree: root={live_root!r} expected={expected!r} "
+            f"discovered={len(files)} findings={len(live_findings)}")
+
+    with tempfile.TemporaryDirectory() as rootless:
+        none = resolve_scan_root(rootless)
+        try:
+            _resolved_root_or_exit(rootless)
+        except SystemExit as exc:
+            refused = exc.code == 2
+        else:
+            refused = False
+        ok = none is None and refused
+        print(f"{'ok' if ok else 'FAIL'} self-test unresolved root refuses")
+        if not ok:
+            failures.append(f"root refusal: resolved={none!r} refused={refused}")
+    return failures
+
+
 def main(argv=None, start=None):
     parser = argparse.ArgumentParser()
     parser.add_argument("--scan-dir")
@@ -160,17 +246,18 @@ def main(argv=None, start=None):
         root = os.path.abspath(args.scan_dir)
     else:
         origin = start or HERE
-        root = resolve_scan_root(origin)
-        if root is None:
-            print(f"ERROR could not resolve scan root above {origin}", file=sys.stderr)
-            raise SystemExit(2)
+        root = _resolved_root_or_exit(origin)
+    self_failures = run_self_tests()
     files, findings = scan_directory(root)
     print(f"root {root}")
     print(f"discovered {len(files)}")
     for path, line, sink in findings:
         print(f"VIOLATION {path}:{line} {sink} mutates a path derived from the live checkout")
-    if findings:
-        print(f"FAIL {len(findings)} live-tree mutation site(s)")
+    if findings or self_failures:
+        for failure in self_failures:
+            print(f"FAIL self-test detail: {failure}")
+        print(f"FAIL {len(findings)} live-tree mutation site(s), "
+              f"{len(self_failures)} self-test failure(s)")
         return 1
     print("ok no test mutates a path derived from the live checkout")
     return 0
