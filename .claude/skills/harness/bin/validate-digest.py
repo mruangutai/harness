@@ -1627,9 +1627,8 @@ def check_qa_matrix_claim(agent, text, payload):
     qa PASS, rather than trusting the claim on its own strength.
 
     FEAT-37's qa gate reported the matrix green at a SHA where CI failed on the first
-    open PR: the qa note's "27 scripts discovered" turned out to be counted from the
-    static INTEGRATION_SCRIPTS array rather than read off a real run's own output, and
-    "ALL PASSED" was recorded anyway. `GATE_FAIL_VALUES` above can only catch a digest
+    open PR: the qa note's discovered-script count was not read from a real run's own
+    output, and "ALL PASSED" was recorded anyway. `GATE_FAIL_VALUES` above can only catch a digest
     that CONTRADICTS itself (`suite: fail` beside `VERDICT: PASS`); it cannot catch a
     wrong-but-internally-consistent claim, because nothing before this re-executes the
     thing being claimed. This does — the report is evidence only once it is checked.

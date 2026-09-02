@@ -1,0 +1,152 @@
+#!/usr/bin/env python3
+"""Behavior tests for check-omp-port.py."""
+
+from __future__ import annotations
+import os as _anchor_os, sys as _anchor_sys
+_anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
+_anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
+_anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
+_anchor_sys.path.insert(0, _anchor_bin)
+
+import shutil
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[2]
+CHECK = ROOT / ".claude/skills/harness/bin/check-omp-port.py"
+
+
+def run(root: Path) -> subprocess.CompletedProcess[str]:
+    return subprocess.run([sys.executable, str(CHECK), str(root)], text=True, capture_output=True)
+
+
+def fixture() -> tuple[tempfile.TemporaryDirectory, Path]:
+    td = tempfile.TemporaryDirectory()
+    dst = Path(td.name)
+    for rel in (".omp", ".agents", ".claude"):
+        src = ROOT / rel
+        shutil.copytree(src, dst / rel, symlinks=True)
+    shutil.copy2(ROOT / "AGENTS.md", dst / "AGENTS.md")
+    shutil.copy2(ROOT / "CLAUDE.md", dst / "CLAUDE.md")
+    return td, dst
+
+
+def main() -> int:
+    failures = 0
+
+    def check(label: str, ok: bool, detail: str = "") -> None:
+        nonlocal failures
+        if ok:
+            print(f"ok    {label}")
+        else:
+            failures += 1
+            print(f"FAIL  {label}" + (f" — {detail}" if detail else ""))
+
+    claude_skills = ROOT / ".claude" / "skills"
+    canonical_link = ROOT / ".agents" / "skills"
+    check(
+        "Claude skills remain a real directory",
+        claude_skills.is_dir() and not claude_skills.is_symlink(),
+    )
+    check(
+        "Agent Skills path links to Claude skills",
+        canonical_link.is_symlink() and canonical_link.resolve() == claude_skills.resolve(),
+    )
+
+    clean = run(ROOT)
+    check("live provider-neutral tree passes", clean.returncode == 0, clean.stderr)
+
+    td, root = fixture()
+    try:
+        (root / "AGENTS.md").unlink()
+        result = run(root)
+        check("missing AGENTS.md fails", result.returncode == 1)
+        check("missing guidance is named", "AGENTS.md" in result.stderr)
+    finally:
+        td.cleanup()
+
+    td, root = fixture()
+    try:
+        agent = root / ".omp" / "agents" / "harness-backend-dev.md"
+        agent.write_text(agent.read_text().replace("model: '@standard'", "model: anthropic/claude-sonnet-5"))
+        result = run(root)
+        check("concrete model in canonical agent fails", result.returncode == 1)
+        check("provider coupling is named", "provider-neutral model alias" in result.stderr)
+    finally:
+        td.cleanup()
+
+    td, root = fixture()
+    try:
+        adapter = root / ".claude" / "agents" / "harness-backend-dev.md"
+        adapter.write_text(adapter.read_text() + "drift\n")
+        result = run(root)
+        check("stale Claude adapter fails", result.returncode == 1)
+        check("adapter drift is named", "adapters are stale" in result.stderr)
+    finally:
+        td.cleanup()
+    td, root = fixture()
+    try:
+        config = root / ".omp" / "config.yml"
+        config.write_text(config.read_text().replace("async:\n  enabled: true\n", ""))
+        result = run(root)
+        check("missing explicit async enablement fails", result.returncode == 1)
+        check("async liveness contract is named", "async.enabled" in result.stderr)
+    finally:
+        td.cleanup()
+
+    td, root = fixture()
+    try:
+        config = root / ".omp" / "config.yml"
+        config.write_text(config.read_text().replace("maxRuntimeMs: 0", "maxRuntimeMs: 60000"))
+        result = run(root)
+        check("task wall clock limit fails", result.returncode == 1)
+        check("wall-clock contract is named", "task.maxRuntimeMs" in result.stderr)
+    finally:
+        td.cleanup()
+
+    td, root = fixture()
+    try:
+        extension = root / ".omp" / "extensions" / "harness-hooks.ts"
+        extension.write_text(extension.read_text().replace("task:subagent:lifecycle", "task:lifecycle"))
+        result = run(root)
+        check("missing OMP child lifecycle wiring fails", result.returncode == 1)
+        check("lifecycle wiring gap is named", "task:subagent:lifecycle" in result.stderr)
+    finally:
+        td.cleanup()
+
+    # BUG-1132: plan-sign-gate.sh (REQ-05/DEC-120) is wired into `.claude/settings.json` for
+    # native Claude Code, and was silently absent from harness-hooks.ts's own bash gate list
+    # until this fix — invisible to this checker because the script was never in
+    # `required_wiring`. This proves the checker would now catch that class of gap recurring
+    # for ANY gate script, not just this one instance.
+    td, root = fixture()
+    try:
+        extension = root / ".omp" / "extensions" / "harness-hooks.ts"
+        extension.write_text(extension.read_text().replace("plan-sign-gate.sh", "plan-sign-gate-REMOVED.sh"))
+        result = run(root)
+        check("missing plan-sign-gate.sh wiring fails", result.returncode == 1)
+        check("sign-gate wiring gap is named", "plan-sign-gate.sh" in result.stderr)
+    finally:
+        td.cleanup()
+
+
+    td, root = fixture()
+    try:
+        agent = root / ".omp" / "agents" / "harness-backend-dev.md"
+        agent.write_text(agent.read_text().replace("blocking: true\n", ""))
+        result = run(root)
+        check("nonblocking nested Harness agent fails", result.returncode == 1)
+        check("nested supervision contract is named", "blocking: true" in result.stderr)
+    finally:
+        td.cleanup()
+
+
+
+    print(f"\n{19 - failures}/19 cases passed")
+    return 1 if failures else 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

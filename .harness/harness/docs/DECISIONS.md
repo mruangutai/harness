@@ -5069,9 +5069,9 @@ project-specific `python` kind, and reshaped four change types — and is broken
 therefore never resolve. Ungoverned tailoring is what this entry replaces.
 
 **Applied here: this repository excludes `functional`.** `run-unit-tests.sh` splits its suite on one
-stated principle from issue #160 — does this drive a real script end to end? — into in-process
-`UNIT_SCRIPTS` and forking `INTEGRATION_SCRIPTS`. There is no third bucket, this repository ships no
-service API, and pointing `functional` at either array would double-count files the other kind
+stated principle from issue #160 — does this depend on behaviour observed in another process? —
+between `tests/unit/` and `tests/integration/`. There is no third bucket, this repository ships no
+service API, and pointing `functional` at either directory would double-count files the other kind
 already runs. There is no honest `functional.cmd` here, so the requirement is removed from
 `api.always`, `cross_module.always` and `feature.always`, and the kind is retained with
 `status: excluded`.
@@ -5575,31 +5575,29 @@ harness's own tree and the enforcement-layer carve-out still governs what it may
 where a file matches more than one kind's `detect`, it resolves to the kind whose glob names it
 **explicitly**, never to the kind whose glob is a catch-all.
 
-Concretely: `unit.detect` carries `.claude/skills/harness/bin/test-*.py`, which matches every test
-script in `bin/`, and `integration.detect` is a list of filenames. A file in both is `integration`.
+Concretely: a file under `tests/integration/` whose name also matches unit's catch-all
+`**/*.test.*` pattern is integration, because the explicit directory wins.
 
 **Because:** the rule was already load-bearing and already consistently applied — four files sat in
 both lists and were treated as integration — and it was written nowhere. A convention nobody can
 find is one every reader has to re-derive from the data, and two readers who derive it differently
 will not be caught.
 
-**What this does not do, said plainly rather than discovered later.** Nothing implements it. There is
-no classifier. `test_kinds` is read by `harness-qa` by hand, and `run-unit-tests.sh` reads its own
-`UNIT_SCRIPTS` / `INTEGRATION_SCRIPTS` arrays and never opens `harness.json` at all. So this entry is
-the enforcement until something mechanical exists, and the failure mode it does not close is two
-readers disagreeing about an overlapping file.
+**What this does not do, said plainly rather than discovered later.** The runner reads the
+`tests/unit/` and `tests/integration/` directories. Those directories and this repository's current
+detect globs overlap for no test file, so no mechanical classifier is needed today. This entry
+remains the enforcement for any future overlap.
 
 **What forced it.** Eight of twelve `INTEGRATION_SCRIPTS` entries were absent from
 `integration.detect`, so `run-unit-tests.sh` ran them as integration while the qa matrix read them as
-unit — and every `evidence: integration` claim resting on one of those files was false. The fix is to
-name each file in `integration.detect`, which leaves it matching **both** globs. That fix means
-something only if this precedence is real, so the rule had to stop being folklore before the fix
+unit — and every `evidence: integration` claim resting on one of those files was false. The fix was
+to name each file in `integration.detect`, which left it matching **both** globs. That fix meant
+something only if this precedence was real, so the rule had to stop being folklore before the fix
 could be trusted.
 
-**A cross-check is separate from this rule, deliberately.** The check that the arrays and the
-`detect` lists agree is a set comparison; its correctness does not depend on the answer here, only
-its meaning does. Keeping them apart stops a check from silently encoding a rule the record does not
-state.
+**The former cross-check was separate from this rule, deliberately.** It compared two
+hand-maintained lists. DEC-213 deleted both lists by making the directory the kind; this precedence
+rule stands independently.
 
 **If this is ever implemented, the test must assert on a file matching BOTH globs** and go red when
 the resolution flips. A test over non-overlapping files passes under either rule and proves nothing
@@ -6644,3 +6642,47 @@ accepts for the other three. A separate, unfixed risk survives outside this deci
 `gh-sync.py`'s `board_lifecycle.audit_findings` call site degrades a consumer-side shape crash to a
 stderr line that `ship` does not fail on — hardening that swallow is future work, not part of this
 matrix binding.
+## DEC-213 — Harness's own tests live under tests/**, the directory is the kind, and tests/** is control-plane
+
+**Chose:** Harness's own executable tests live at the repository root under `tests/unit/**` and
+`tests/integration/**`, like tests in any other project. `.claude/skills/harness/bin/` holds the
+production scripts and their support modules. The directory containing a test is its kind; no
+registration list assigns either membership or kind.
+
+`tests/**` is a TARGET-side entry in `HARNESS_CONTROL_PLANE`.
+`is_control_plane_glob("tests/**")` remains false. This distinction lets the harness checkout treat
+its root test tree as control-plane while a product checkout's own test tree continues to resolve
+inside that product base. The write grant belongs to `harness-qa`, `harness-backend-dev`, and
+`harness-dev-ops`, and to no other seat. A test author therefore need not also hold permission to
+rewrite the enforcement script that the test exercises.
+
+**The kind criterion comes from issue 160.** A test is integration when an assertion depends on
+behaviour observed in a process other than the test's own: the artifact is executed as a script,
+the module is re-entered in a child, or the child exists to expose cross-process semantics. A child
+that only builds a fixture does not change the kind: `test-code-grade.py` may invoke git while the
+artifact remains in-process. A stub standing in for a dependency does not change the kind:
+`test-gh-board.py` invokes fake-gh but tests its own in-process module. A shim that only re-enters a
+test suite inherits that suite's kind: `test-omp-hooks.py` starts bun and remains unit. This rule
+requires behavioural inspection; token searches cannot distinguish those cases.
+
+**One predicate guards the shape.** `suite_layout.violations` runs before kind dispatch on every
+runner invocation. It refuses an empty kind directory, the same basename in both directories, or
+any test-shaped file left under bin. `tests/unit/test-suite-layout.py` drives the predicate
+directly, while `tests/integration/test-run-unit-tests-layout.py` proves the runner presents each
+refusal and discovers each directory. This single reader replaces parallel registration and drift
+checks that could disagree without seeing one another.
+
+`tests/manual/` contains probes and review instruments that no normal runner may execute and no
+active `test_kinds.detect` glob may match. The live-model probe belongs there because CI has no
+credentials and its output is not deterministic test evidence.
+
+**What this does not do.** Bin is free of test-named files, not necessarily test support.
+`layout_fixtures.py` is imported only by tests and remains in bin; nothing mechanical distinguishes
+such a fixture module from production code. Purpose-level classification remains issue 979's
+scope. The runtime mutation snapshot also remains limited to bin, so the static independence check
+is the binding protection for test files now outside it.
+
+**Considered and refused:** a third own-product base for Harness, because it adds a concept for one
+directory; renaming `is_control_plane_target`, because the behaviour would be identical and the
+enforcement-layer churn buys nothing; and retaining registration arrays as a directory
+cross-check, because that recreates the two-readers failure one level lower.

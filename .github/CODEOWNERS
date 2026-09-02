@@ -19,12 +19,9 @@
 # narrowing `on:`, or deleting CODEOWNERS all land here.
 /.github/                                      @mruangutai
 
-# The workflow's only substantive step is `run-unit-tests.sh --kind integration`, so
-# tampering here is equivalent to tampering with the workflow — and one edit does it
-# WITHOUT tripping the script's own drift detector. `--kind integration` sets SCRIPTS
-# from INTEGRATION_SCRIPTS, but the drift detector iterates ALL_SCRIPTS (the union of
-# both arrays). Move an entry from INTEGRATION_SCRIPTS to UNIT_SCRIPTS and it is still
-# "registered", so the detector stays quiet, while CI never executes it again.
+# The workflow's substantive steps are `run-unit-tests.sh --kind unit` and
+# `run-unit-tests.sh --kind integration`. One edit here can narrow either
+# directory-driven suite or defeat the layout guard without touching the workflow.
 #
 # Pinned to the one file, not to `/.claude/skills/harness/bin/`. That directory holds
 # every test file and hook script in the repo; owning it would put the owner in the

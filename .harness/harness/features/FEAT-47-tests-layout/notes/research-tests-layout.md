@@ -4,8 +4,8 @@
 measurement, and three of that artifact's counts are wrong. The kind split reassigns **12 files**
 (all unit to integration, none the other way). `bin/fixtures/` is **test support** and travels;
 `feature-schema.json` is **production** and stays. The migration is larger than "fix ~18 depth
-climbs": **all 59 files measured — the 58 tests plus the probe — resolve `bin/` implicitly or by
-depth, and every one of the 58 that move needs an anchor edit** (the 59th,
+climbs": **all 60 files measured — the 59 tests plus the probe — resolve `bin/` implicitly or by
+depth, and every one of the 59 that move needs an anchor edit** (the 60th,
 `test-run-unit-tests-kinds.py`, is deleted in place). Baseline census below is the load-bearing
 input to SC-01.
 
@@ -144,23 +144,23 @@ see, which is the reason for adding them rather than leaving them rowless. The o
 re-derived byte-identical.
 
 ```text
-test-bash-write-guard.py	101
-test-board-lifecycle.py	160
-test-board-station.py	12
+test-bash-write-guard.py	109
+test-board-lifecycle.py	163
+test-board-station.py	16
 test-branch-create-gate.py	8
 test-check-decision-anchors.py	8
-test-check-domain.py	203
+test-check-domain.py	285
 test-check-expertise.py	32
-test-check-omp-port.py	17
-test-check-plan-routes.py	92
-test-check-state.py	147
+test-check-omp-port.py	19
+test-check-plan-routes.py	122
+test-check-state.py	197
 test-code-grade-cli.py	1
 test-code-grade.py	1
 test-dispatch-guard.py	42
 test-expertise-merge.py	39
 test-factory-claim.py	120
 test-factory-cli.py	33
-test-factory-config.py	90
+test-factory-config.py	112
 test-factory-decompose.py	162
 test-factory-gh.py	244
 test-factory-integration.py	131
@@ -169,43 +169,44 @@ test-factory-workspace.py	30
 test-feature-json-merge.py	38
 test-feature-worktree.py	112
 test-gate-policy.py	27
-test-gen-decisions-index.py	11
-test-gh-board.py	26
+test-gen-decisions-index.py	14
+test-gh-board.py	44
 test-gh-close-gate.py	48
 test-gh-cost-log.py	39
-test-gh-sync.py	273
-test-harness-boundary.py	11
+test-gh-sync.py	301
+test-harness-boundary.py	27
 test-harness-merge.py	19
 test-harness-yaml-corpus.py	16
-test-harness-yaml.py	21
+test-harness-yaml.py	22
 test-hooks-install.py	29
-test-inflight-registry.py	112
+test-inflight-registry.py	120
 test-inject-expertise.py	17
 test-layout-migration.py	41
-test-lead-stop-and-wake.py	19
+test-lead-stop-and-wake.py	17
 test-merge-gitignore.py	7
 test-merge-settings.py	22
 test-no-distribution.py	35
 test-observations-merge.py	33
 test-omp-hooks.py	0
-test-orchestrator-playbook.py	11
+test-orchestrator-playbook.py	17
 test-panel-findings.py	10
-test-plan-merge.py	110
+test-config-shape-matrix.py	10
+test-plan-merge.py	285
 test-plan-panel.py	28
 test-post-merge-sweep.py	52
 test-render-brief.py	15
 test-run-unit-tests-kinds.py	23
 test-sync-agent-adapters.py	19
 test-team-catalog.py	10
-test-upgrade-config.py	10
-test-validate-digest.py	117
-test-validate-feature-json.py	61
+test-upgrade-config.py	12
+test-validate-digest.py	140
+test-validate-feature-json.py	69
 test-wayfind.py	2
-test-worktree-terminal.py	34
+test-worktree-terminal.py	42
 ```
 
-Total 3195 over 58 files, re-derived at `56a30a0`. `test-run-unit-tests-kinds.py` (23) is deleted
-by this feature, so the 57 migrated files must still total **3172**, each file individually equal
+Total 3700 over 59 files, re-derived at `06bd60c8`. `test-run-unit-tests-kinds.py` (23) is deleted
+by this feature, so the 58 migrated files must still total **3677**, each file individually equal
 to its row above. Three
 rows are low because those suites print their own summary format (`test-omp-hooks.py` delegates to
 `bun`); a row equal to its baseline is still the assertion, whatever the row's absolute meaning.
