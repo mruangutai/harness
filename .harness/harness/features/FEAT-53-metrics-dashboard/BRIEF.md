@@ -13,7 +13,7 @@ recorded `pending` and was never instrumented, so the target has no measurement 
 
 ## Goal
 
-Any onboarded project gets a live, interactive dashboard that computes six self-visibility KPIs from
+Any onboarded project gets a live, interactive dashboard that computes seven self-visibility KPIs from
 that project's own `.harness/` data, git history and code grader, and serves them in a browser the
 user can actually explore — feature by feature, and over time as it accrues. It is for the user's own
 visibility into their factory, not an investment gate and not a cross-project leaderboard. It ships
@@ -53,6 +53,14 @@ as part of the Harness distribution; this repository is only its first consumer.
 - REQ-14: On a machine missing the dashboard's runtime prerequisites, starting it fails loudly,
   naming the missing prerequisite and how to install it. It never renders a partial page or a
   substitute number.
+- REQ-15: Merged pull requests are visible over time, as a count for the window broken into weekly
+  buckets, with the sourcing rule stated where the number is shown: that the count is of shipped
+  features read from the durable ship record REQ-10 writes, and that one shipped feature is one
+  merged PR because DEC-200 holds exactly one merged PR per shipped feature. A shipped feature whose
+  record carries no `pr` still counts as one shipped feature and therefore one merged PR; a count of
+  populated `pr` fields under-reports and is not an acceptable presentation. A week in which the
+  record shows no ship is shown as unavailable with the reason naming that week, never as zero
+  (REQ-11).
 
 ## Constraints
 
@@ -79,8 +87,10 @@ decisions, not requirements — the requirements above survive changing every on
   at signature.
 - UI substrate stays Astryx (`@astryxdesign/core`), already pinned at `team-config.yaml:93-99`. No
   second-substrate deviation. SUPPLIES.
-- No new database and no cache at launch. Five of six KPIs compute on request from `feature.json`,
-  git log and a live `code-grade.py` run. The grilling's ~1.1s observation is **superseded**: it
+- No new database and no cache at launch. Five of seven KPIs compute on request from `feature.json`,
+  git log and a live `code-grade.py` run. The other two read an appended log rather than computing —
+  blocking human touchpoints from `touchpoints.jsonl`, and merged PRs by week from
+  `.harness/metrics/trend.jsonl` — and neither adds a data source. The grilling's ~1.1s observation is **superseded**: it
   predates the per-branch change-size work the plan specifies, and a per-item re-measurement on
   2026-09-01 puts the honest per-request total at 4.3–5.3s at current scale
   (`notes/receipt-harness-data-engineer-b-efficiency.md`), ~3.6s once the plan's single-call
@@ -136,12 +146,14 @@ with a runner. `component`, `ui`, `typecheck` and `eval` all ship `cmd: null`, s
   `T-21` and `T-22` install one executing render gate — vitest + jsdom + `@testing-library/react`,
   driven from `test-metrics-client-render.py`, registered in `INTEGRATION_SCRIPTS`, so it runs
   under the `integration` kind in CI — and SC-18 rests on it. What that gate does **not** cover is
-  every other rendered behaviour: it asserts the two chart mounts and each chart's own output, and
-  nothing else. No browser, no type checking, no interaction. The standing `component`/`typecheck`
-  runner gap is still a dev-ops backlog task in its own right and this feature does not close it.
+  every other rendered behaviour: it asserts the three gated chart mounts — Shape A in the grading
+  panel, Shape B in a trend panel, and Shape B in the merged-PR panel — and each of those charts'
+  own output, and nothing else. No browser, no type checking, no interaction. The standing
+  `component`/`typecheck` runner gap is still a dev-ops backlog task in its own right and this
+  feature does not close it.
 - SC-06's literal sweep cannot cover the bare-digit tokens `12` (the `.sh` count) and `3` (the
   `.ts` count): both occur inside values this feature legitimately ships — `1024` (the panel
-  breakpoint), `3x2` (the tile grid), `ES2022` (the tsconfig target) — so a literal grep for them
+  breakpoint), `3x3` (the tile grid), `ES2022` (the tsconfig target) — so a literal grep for them
   cannot discriminate a seeded mix figure from an unrelated number. Those two are therefore **not
   machine-checked**; they are carried by SC-15's ui-reviewer inspection at `review_sha`.
 
@@ -158,10 +170,10 @@ with a runner. `component`, `ui`, `typecheck` and `eval` all ship `cmd: null`, s
   from this repository, every KPI in the payload reflects the fixture, and no figure equals this
   repository's value for the same KPI.
   verify: automated        evidence: integration
-- SC-04: For a fixture with hand-labelled expected values, each of the six KPIs is asserted
-  individually — throughput, rework, escaped defects, touchpoints, grading distribution, agent/model
-  usage — against the hand-labelled number, not against a second run of the same code. Six
-  assertions, not one aggregate comparison.
+- SC-04: For a fixture with hand-labelled expected values, each of the six KPIs enumerated in this
+  criterion — throughput, rework, escaped defects, touchpoints, grading distribution, agent/model
+  usage — is asserted individually against the hand-labelled number, not against a second run of the
+  same code. Six assertions, one per KPI named here, not one aggregate comparison.
   verify: automated        evidence: unit
 - SC-05: The grading KPI's payload carries both the at-or-above-bar share and the named grade-1 and
   grade-2 outlier list; a payload carrying only a central tendency fails the assertion.
@@ -223,22 +235,37 @@ with a runner. `component`, `ui`, `typecheck` and `eval` all ship `cmd: null`, s
   so no mean is taken over a fabricated zero.
   verify: automated        evidence: integration
 - SC-18: The two chart shapes are actually mounted inside the panels that ship them, proven by an
-  executing render rather than by source text: rendering the real grading panel and a real trend
-  panel through `@testing-library/react` over a whole fixture payload puts each chart's element in
-  the document, **and** that element's own subtree carries output only the chart component can
-  produce — the five fixed grade categories inside the Shape A subtree, and one plotted line per
-  contiguous run inside the Shape B subtree. Both cases are graded by *status* from a
-  machine-readable reporter, so a skipped case fails the gate; and both are demonstrated failing
-  first, against `charts.tsx` present-but-unimported and against a placeholder element carrying
-  the testid alone.
+  executing render rather than by source text: rendering the real grading panel, a real trend panel
+  and the real merged-PR panel through `@testing-library/react` over a whole fixture payload puts
+  each chart's element in the document, **and** that element's own subtree carries output only the
+  chart component can produce — the five fixed grade categories inside the Shape A subtree, and one
+  plotted line per contiguous run inside each Shape B subtree. All three cases are graded by *status*
+  from a machine-readable reporter, so a skipped case fails the gate; and each is demonstrated
+  failing first, against `charts.tsx` present-but-unimported and against a placeholder element
+  carrying the testid alone.
   verify: automated        evidence: integration
+- SC-19: For a fixture ship record spanning several weeks, the payload's weekly merged-PR series
+  carries one bucket per week in the window in ascending order, matching the week count the payload
+  itself returns; each bucket's value equals the hand-labelled count of shipped features whose ship
+  date falls in that week; a fixture record carrying no `pr` is counted, so a series computed from
+  populated `pr` fields alone fails the assertion; and a week with no ship record is `null` carrying
+  the specific reason naming that week's date, asserted to be neither `0` nor `"0"`. Four
+  assertions, not one aggregate comparison, and the empty-week case is demonstrated failing before
+  it passes.
+  verify: automated        evidence: integration
+- SC-20: The merged-PR tile states its sourcing rule as persistent inline text beneath the figure —
+  not a tooltip, not a footnote, not a link — naming that the count is of shipped features and that
+  one shipped feature is one merged PR; and KPI 7 carries no per-feature column on the `/features`
+  route and no presence on `/features/$featureId`. ui-reviewer cites `file:line` for each clause,
+  reading the shipped source at `review_sha` via `git show <review_sha>:<path>`.
+  verify: inspection
 
 ### Coverage — total in both directions
 
 | REQ | covered by | SC | traces |
 |---|---|---|---|
 | REQ-01 | SC-01, SC-02, SC-15 | SC-01 | REQ-01, REQ-14 |
-| REQ-02 | SC-03 | SC-02 | REQ-01 |
+| REQ-02 | SC-03, SC-16 | SC-02 | REQ-01 |
 | REQ-03 | SC-04 | SC-03 | REQ-02 |
 | REQ-04 | SC-04 | SC-04 | REQ-03, REQ-04, REQ-05, REQ-06, REQ-07, REQ-09 |
 | REQ-05 | SC-04, SC-13 | SC-05 | REQ-07 |
@@ -247,14 +274,16 @@ with a runner. `component`, `ui`, `typecheck` and `eval` all ship `cmd: null`, s
 | REQ-08 | SC-06 | SC-08 | REQ-11 |
 | REQ-09 | SC-04, SC-14 | SC-09 | REQ-10 |
 | REQ-10 | SC-09 | SC-10 | REQ-06 |
-| REQ-11 | SC-07, SC-08, SC-17 | SC-11 | REQ-12 |
-| REQ-12 | SC-11, SC-16, SC-18 | SC-12 | REQ-13 |
+| REQ-11 | SC-07, SC-08, SC-17, SC-19 | SC-11 | REQ-12 |
+| REQ-12 | SC-11, SC-15, SC-16, SC-18 | SC-12 | REQ-13 |
 | REQ-13 | SC-12 | SC-13 | REQ-05 |
 | REQ-14 | SC-01 | SC-14 | REQ-09 |
-|  |  | SC-15 | REQ-01, REQ-12 |
+| REQ-15 | SC-19, SC-20 | SC-15 | REQ-01, REQ-12 |
 |  |  | SC-16 | REQ-02, REQ-12 |
 |  |  | SC-17 | REQ-06, REQ-11 |
 |  |  | SC-18 | REQ-07, REQ-12 |
+|  |  | SC-19 | REQ-11, REQ-15 |
+|  |  | SC-20 | REQ-15 |
 
 ## Approval
 

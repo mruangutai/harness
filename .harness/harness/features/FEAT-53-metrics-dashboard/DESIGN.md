@@ -99,7 +99,9 @@ below are re-measured against it rather than the anchor being forced.
 - radius: 6px controls and table cells, 10px cards and panels. No other radius.
 - container: max 1440px, 24px gutters, content centred.
 - breakpoints: 640 / 1024 / 1440. Below 1024 the KPI tile grid drops from 3 columns to 2, and below
-  640 to 1. **No layout below 640 is designed** (see §Out of scope).
+  640 to 1. **The seventh tile spans the full row width at every breakpoint** — three columns at
+  ≥1024, two below it, one below 640 — so it is always alone on the last row and the reading order
+  1…7 never changes. **No layout below 640 is designed** (see §Out of scope).
 - Charts fill their container width and are given an explicit height per shape (histogram 280px,
   time-series 320px); no chart has a fixed pixel width.
 
@@ -140,7 +142,7 @@ below are re-measured against it rather than the anchor being forced.
   which one is current at once, where a closed dropdown shows only the current one. No collapsed
   variant is designed, since below 640px is out of scope.
 
-## C-1 — the six surfaces, their hierarchy, and the navigation model
+## C-1 — the seven surfaces, their hierarchy, and the navigation model
 
 **Navigation model: TanStack Router, three routes, and all view state in the URL.** This is what
 makes SC-11 ("selects a feature and a time window and drills from an aggregate… no server restart, no
@@ -148,16 +150,18 @@ file edit") checkable rather than a matter of feel:
 
 | Route | Level | Shows |
 |---|---|---|
-| `/?window=<w>` | aggregate | the six KPI tiles for the window |
-| `/features?window=<w>&sort=<kpi>` | the rows behind an aggregate | one row per feature, all six KPIs as columns, sorted by the KPI drilled from |
-| `/features/$featureId?window=<w>` | one feature | that feature's six values, its trend lines, and its outlier list |
+| `/?window=<w>` | aggregate | the seven KPI tiles for the window |
+| `/features?window=<w>&sort=<kpi>` | the rows behind an aggregate | one row per feature, the **six per-feature KPIs (1–6)** as columns, sorted by the KPI drilled from. **KPI 7 has no column here** — it is a weekly aggregate, not a per-feature value, so `sort=7` is not a valid token and tile 7 drills straight to its own panel rather than through this route |
+| `/features/$featureId?window=<w>` | one feature | that feature's six per-feature values (1–6), its trend lines, and its outlier list. **KPI 7 does not appear**: a weekly count of ships is not a property of one feature |
 
 **Contract:** the selected window and the selected feature live **only** in the URL — search params and
 a path param. No component holds either in local state as the source of truth, and no reload,
 back-navigation or paste of the URL into a second tab loses them. `window` is a named token
 (`30d`, `90d`, `all`) rather than a date pair, so a URL stays meaningful when it is read a week later.
 
-**What the landing view shows first — a fixed 3×2 grid, in this order:**
+**What the landing view shows first — a fixed 3-column grid of three rows, `3×3` in cells, with tiles
+1–6 filling rows 1 and 2 three across and the seventh tile spanning the full third row. In this
+order:**
 
 1. **Throughput** — BRIEF-approval-to-ship cycle time (median, days), with run count and change size
    as the tile's secondary line. First because it is the FEAT-08 D-06 gap this feature exists to close.
@@ -177,12 +181,28 @@ back-navigation or paste of the URL into a second tab loses them. `window` is a 
    central tendency is a violation a reviewer may call without reading the payload.
 6. **Usage by agent / model tier** — the two-tier split, with the unattributed count named on the tile
    rather than dropped (SC-14).
+7. **Merged PRs over time** — the merged-PR count for the window as the headline figure, in weekly
+   buckets on the sparkline, with the secondary line "*n* merged PRs over *w* weeks — *k* weeks with
+   no ship record". Last, and the only tile spanning its whole row, because it is the one KPI that is
+   a **weekly aggregate** rather than a per-feature or per-window value, and the span is what marks
+   that difference on the grid before a reader looks for a per-feature column that does not exist.
+   **The sourcing rule travels with the figure** — as §Component direction requires and exactly as
+   KPI 4 does, persistent inline text beneath it, not a tooltip and not a footnote — stating that the
+   count is of **shipped features read from `.harness/metrics/trend.jsonl`**, one point per feature,
+   and that a shipped feature *is* a merged PR because DEC-200 holds exactly one merged PR per
+   shipped feature. No new data source: this is the same trend log KPIs 1, 3 and 5 already read.
+   **What the count is of, precisely:** shipped features, not populated `pr` fields. DEC-200 writes a
+   record's `pr` only when exactly one merged PR is found, so a record with `pr: null` still counts as
+   one shipped feature and therefore one merged PR. A tile that counted non-null `pr` fields would
+   under-report, and that is a violation a reviewer may call without reading the payload.
 
-Each tile carries: a 40pt headline figure, a one-line denominator or secondary, and — for the three
-trend KPIs (1, 3, 5) — an 8-point sparkline or its S-1/S-2 treatment. Nothing else.
+Each tile carries: a 40pt headline figure, a one-line denominator or secondary, and — for the four
+trend KPIs (1, 3, 5, 7) — an 8-point sparkline or its S-1/S-2 treatment. Nothing else. KPI 7's eight
+points are the window's last eight weekly buckets, and an empty bucket among them breaks the line
+(S-4, CAP-09) rather than dropping to zero.
 
 **One level down** is the per-KPI panel, reached by clicking the tile. **Not every KPI gets a chart.**
-Three do; three are tables (LD-1) — a third chart shape would add capabilities to T-15's probe against
+Four do; three are tables (LD-1) — a third chart shape would add capabilities to T-15's probe against
 an alpha API whose own named fallback is unproven, and a table renders these three honestly at none of
 that cost. A table can be promoted to a chart later without disturbing the substrate decision.
 **This is the panel inventory, and C-2 defines exactly these artifacts and nothing else:**
@@ -195,11 +215,18 @@ that cost. A table can be promoted to a chart later without disturbing the subst
 | 4 Escaped defects | **Table TBL-2**, no chart | C-2 §Tables |
 | 5 Code grading | Shape A, the histogram, beside the named outlier list; **and** Shape B for grade over time | C-2 §Shape A and §Shape B |
 | 6 Usage by agent / model tier | **Table TBL-3**, no chart | C-2 §Tables |
+| 7 Merged PRs over time | **Shape B, reused** — the weekly merged-PR line. No new shape, no new capability | C-2 §Shape B |
 
 Every panel also carries its caveats and a feature table. **Where the primary artifact is already
 per-feature — TBL-1 — it *is* that panel's feature table and there is no second table.** TBL-2 and
 TBL-3 are not per-feature, so those two panels carry a feature table beside the primary one, as the
-chart panels do. **Table ids are `TBL-n` and never `T-n`**, because `T-NN` is a plan task id.
+chart panels do. **Panel 7's primary artifact is a weekly aggregate rather than a per-feature value**,
+so it too carries a feature table beside the line — the ships in the window, one row per shipped
+feature: feature id linking to `/features/$featureId` · ship date · the week bucket it falls in ·
+`pr` where the record carries one and S-4's `—` where it does not, which changes no count (KPI 7).
+That is the same unnumbered per-panel feature table the chart panels carry and it **takes no `TBL-n`
+id**: TBL-1…TBL-3 remain the three table panels' primary artifacts and no fourth id exists.
+**Table ids are `TBL-n` and never `T-n`**, because `T-NN` is a plan task id.
 
 **What a user drills *into*** is a feature: a row in a panel's feature table navigates to
 `/features/$featureId`, and the aggregate-to-rows step is the `/features` route with `sort` set to the
@@ -217,8 +244,8 @@ is a *measured absence of outliers* and therefore neither S-1 nor S-4.
 
 ## C-2 — the two chart shapes and the three tables
 
-**Two chart shapes and three tables exist in this feature, and nothing else** — C-1's panel inventory
-uses every one of the five and asks for no sixth. Each chart capability below is a pass/fail question
+**Two chart shapes and three tables exist in this feature, and nothing else** — C-1's seven panels
+draw on every one of the five and ask for no sixth. Each chart capability below is a pass/fail question
 eng-lead can put to the charting library's current alpha API. **Where a capability names a server-side
 workaround, that workaround is the first fallback; React Charts (BRIEF `## Constraints`) is the second;
 a third library is neither, and needs its own plan Decision.** The three tables carry no capability
@@ -237,7 +264,11 @@ all. That is why the categorical panels are tables rather than a third chart sha
 | CAP-05 | The chart can be `aria-hidden` while an adjacent real `<table>` carries the same numbers. We supply the table; the library must not be the only route to the values. | hard requirement, and cheap — the table is ours |
 | CAP-06 | Bin meaning is readable **without a legend** — an axis label per bin. | render labels ourselves beneath the axis |
 
-**Shape B — time-series lines (cycle time, touchpoints, code grade over time; REQ-10).**
+**Shape B — time-series lines (cycle time, touchpoints, code grade over time, merged PRs by week;
+REQ-10).** Four panels mount it, and **the fourth changes nothing below.** KPI 7's x values are
+regular weekly buckets, and CAP-07 requires support for *irregular* spacing, which subsumes regular;
+an empty bucket is CAP-09's missing point, nothing new. It is a single series, so CAP-08 does not bear
+on it. **No capability row is added.**
 
 | ID | Capability | If absent |
 |---|---|---|
@@ -298,7 +329,8 @@ contract term.** Each clause below is written so a reviewer can name what violat
 
 **1 · What is a focus stop, and in what order.** On every route, tabbing from the document start
 reaches exactly these, in exactly this order: (a) the window selector's three segments, (b) the theme
-toggle, (c) each KPI tile in the 3×2 grid's reading order, (d) inside a panel, its sortable column
+toggle, (c) each of the seven KPI tiles in the grid's reading order 1…7, the full-width seventh last
+at every breakpoint, (d) inside a panel, its sortable column
 headers, then its row links in displayed order, (e) each inline disclosure's trigger.
 **Nothing else is a focus stop:** a chart is `aria-hidden` and not focusable (CAP-05), and a badge, a
 hatch cell, a caveat line and a headline figure are never focusable.
@@ -348,8 +380,11 @@ missing or zero lines. **The entire trend region is replaced**, not annotated: o
 region width, `surface` fill, a dashed 1px `unavailable-stroke` outline, **no axes, no gridlines, no
 zero baseline, no chart mounted at all.** Headline at 20pt: "No ship records yet". Body at 13pt: names
 `.harness/metrics/trend.jsonl`, states that the trend begins at the first ship after this capability
-landed, and states that history is never backfilled. The five non-trend KPIs render normally beside
-it — this state is scoped to the trend region, never to the page.
+landed, and states that history is never backfilled. The three non-trend KPIs (2, 4, 6) render
+normally beside it — this state is scoped to the trend region, never to the page. **KPI 7's tile and
+panel are trend regions and take S-1 whole**: a log with no records is not a project with zero merged
+PRs, it is a project with no ship record at all, so the tile's headline is S-1's replacement and never
+a `0`.
 *How a reviewer tells it from S-2:* on `/` and `/features`, **no axes are drawn**. On
 `/features/$featureId` the two treatments are deliberately identical and only the copy differs — see
 S-2.
@@ -382,7 +417,7 @@ trend region is replaced**, by the same treatment S-1 specifies — one Astryx c
 chart mounted — but with **S-2's copy, not S-1's**, because the reason is different: headline at 20pt
 "No trend for this feature", body at 13pt naming that this feature shipped before metrics, that the
 trend begins at the first ship after this capability landed, and that history is never backfilled.
-The feature's five non-trend KPIs render normally beside it.
+The feature's three non-trend KPIs (2, 4, 6) render normally beside it.
 **A `/features/$featureId` page that draws trend axes for a pre-capability feature is a violation**,
 and it is the first thing SC-08's hand test should try.
 
@@ -427,6 +462,18 @@ other feature the same absence is *not a measurement at all* and takes the unava
 D-21's reason. So a `0` cell and a `—` cell in the touchpoints column can sit one above the other on
 identical files, and the four differences above are the only thing separating them; a surface that
 renders `0` for an untracked feature has fabricated the number this whole section exists to prevent.
+
+**A weekly bucket with no trend record takes S-4, and no sixth state is added.** S-4's in-chart row
+already draws it exactly right — *no point plotted; the line breaks (CAP-09)* — and S-4's second-line
+rule already requires the specific reason, so nothing about this case needs a treatment the five
+states do not have. D-19 reserves `0` for a **measured** zero, and `.harness/metrics/trend.jsonl`
+records ships: it carries no notion of a week it covers but in which nothing shipped, so an absent
+record is not a measurement of zero merged PRs. The reason is specific to the week and arrives from
+the payload like every other S-4 reason — "no ship record in the week of `<YYYY-MM-DD>`" — never a
+generic "no data". The same rule governs KPI 7's tile sparkline; in panel 7's feature table an empty
+week is not a row at all, because that table lists ships rather than weeks. **A weekly bucket
+rendered as `0`, or a line interpolated across one, is the fabrication this section exists to
+prevent.**
 
 **S-5 · A large unattributed share, named rather than hidden** (REQ-09 / SC-14, D-13). Measured at
 this repository, 753 of 975 commit subjects carry no harness prefix at all
@@ -484,9 +531,10 @@ cannot show whether a transition reads correctly.
 **Status of the committed prototype at `notes/prototypes/FEAT-53/` — read this before waiving the
 gate.** It predates this contract and does not demonstrate it. It contains **no TBL-1, TBL-2 or
 TBL-3** (the three table panels C-2 §Tables pins), **no S-5 state** (C-4's unattributed-commit
-treatment), and **nothing implementing C-3's keyboard and focus clauses** — all three were added to
-this contract in this cycle, after the prototype was committed. What it does cover is the landing
-grid, one KPI panel, the drill and the window control over a fixture payload.
+treatment), **nothing implementing C-3's keyboard and focus clauses**, and **no seventh KPI tile and
+no `3×3` grid** — all four were added to this contract after the prototype was committed. What it
+does cover is the landing grid **as it stood at six tiles in a 3×2**, one KPI panel, the drill and the
+window control over a fixture payload.
 **Its appearance has never been observed by anyone, human or agent.** No browser was available to its
 author or to its reviewer, so it has never been rendered — not once, in either theme. Nothing visual
 about it is verified: not the palette, not the C-4 states, not the type scale. Any judgement of how it
@@ -527,6 +575,11 @@ looks is unmade, not merely unreviewed.
   `all`.** Chosen because a shipped feature is a rare event at this repo's rate and a shorter window
   would usually be empty — which would show S-1 constantly and teach the user to ignore it. Cheap and
   reversible; overrule it freely.
+- **Q4 (for harness-pm, non-blocking for this contract): KPI 7's secondary line and its S-4 reason
+  need two things from the payload the other six never asked for** — the window's week bounds, so
+  "*k* weeks with no ship record" and the week date inside the reason sentence are computable, and the
+  weekly buckets pre-segmented into contiguous runs the way T-10 already segments the other Shape B
+  series. Neither is a design choice; both are payload shape, which is the plan's (§Out of scope).
 
 **No genuine Astryx gap was found.** The one thing Astryx plausibly does not ship — the hatch fill —
 is composed from a StyleX gradient over an Astryx surface primitive (§Substrate rule 4), which is a

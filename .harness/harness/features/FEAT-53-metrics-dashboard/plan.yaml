@@ -93,7 +93,7 @@ decisions:
     because: measured at this repo, 753 of 975 commit subjects carry no harness prefix at all, so silent dropping would misreport three quarters of the work.
     dec: DEC-155
   - id: D-14
-    choice: Cycle time starts at the feature's BRIEF.md approval date - the date value in its Approval section, read only when that section's status is approved - day granularity, and ends at the shipped_at of the feature's trend record.
+    choice: 'Cycle time starts at the feature''s BRIEF.md approval date - the date value in its Approval section, read only when that section''s status is approved - day granularity, and ends at the shipped_at of the feature''s trend record. That read is exposed ONCE, as approval_date(feature_dir) -> (value, reason) in .claude/skills/harness/bin/brief_approval.py, created by T-06, and that function is the only place the Approval section is parsed: kpi.py''s per-feature approved_on and touchpoints.py''s feature_start both CALL it rather than restating the parse - one authority, two callers - so the four gap states and their D-19 reason sentences cannot drift apart between them.'
     because: 'REQ-03 and the grilling both name BRIEF approval, so a plan-approval origin measures a different quantity than the one the requirement commits to, and the plan moves rather than the requirement; the earlier argument for plan.yaml approval.date was convenience - it is written structurally by plan-merge.py sign-approval so no prose needs parsing - and convenience does not buy a different measurement. The BRIEF carrier is also the better populated of the two and needs no new field and no new ceremony: it is filled with status and approved-by at the existing signature act (templates/BRIEF.md Approval section). Measured 2026-09-02 in the main checkout at e74e0880 by a python3 scan of every .harness/*/features/*/BRIEF.md Approval section - 47 BRIEF.md files exist, 43 carry status approved with a YYYY-MM-DD date, 2 are approved with an empty date and 2 are pending - against 31 of the same 58 feature directories carrying a dated plan-side approval, being 24 in plan.yaml approval.date plus 7 in a pre-DEC-182 PLAN.md Approval section. The read is a sectioned key-value parse for which precedent already exists in this tree - has_approval_block in .claude/skills/harness/bin/check-state.sh locates and reads exactly this block, and parse_brief in .claude/skills/harness/bin/gh-sync.py already sections BRIEF.md - so no implementer needs to invent a parser shape.'
     dec: DEC-182
   - id: D-15
@@ -122,26 +122,34 @@ decisions:
     dec: none
 
   - id: D-21
-    choice: A touchpoint count is a measured zero only for a POST-INSTRUMENTATION feature, decided by a computable predicate - the project carries .harness/metrics/instrumented_at holding one RFC3339 UTC instant, written once by touchpoints.py record() on its first call in that project and never rewritten, and the feature's own start instant (the BRIEF.md approval date per D-14, else the author date of the first commit that added its feature directory) is at or after that instant; every other feature, including every feature in a project carrying no epoch file at all, reports null with a D-19 specific-sentence reason and never 0.
+    choice: 'A touchpoint count is a measured zero only for a POST-INSTRUMENTATION feature, decided by a computable predicate - the project carries .harness/metrics/instrumented_at holding one RFC3339 UTC instant, written once by touchpoints.py record() on its first call in that project and never rewritten, and the feature''s own start (the BRIEF.md approval date per D-14, else the author date of the first commit that added its feature directory) falls on or after the epoch''s own UTC CALENDAR DAY. The comparison is at DAY granularity: both sides are reduced to their UTC date and only a strictly earlier date is pre-instrumentation, so a feature whose start is the SAME calendar day the epoch was written is post-instrumentation, not pre. Every other feature, including every feature in a project carrying no epoch file at all, reports null with a D-19 specific-sentence reason and never 0. Day granularity is specific to THIS predicate: a date-only approval date read as 00:00:00Z would otherwise sort before an epoch written later that same day and report null for a feature that is genuinely tracked. It does not change D-14''s cycle-time arithmetic and does not weaken the general rule that a date-only value is read as 00:00:00Z wherever an instant is needed.'
     because: 'an absent touchpoints.jsonl is ambiguous by construction - it is both a tracked run in which nothing blocked and a feature that shipped before the counter existed - and at this repository every existing feature is the second kind: measured 2026-09-02 in the main checkout at e74e0880, 58 feature directories exist under .harness/*/features/, none of them carries a touchpoints.jsonl, and 43 of them carry a signed BRIEF approval date, so the unscoped rule fabricates exactly the launch-day autonomy tile D-19 forbids; the predicate lives HERE and not inside T-11''s intent because D-19 already exists for that reason, a rule stated only in a task''s intent gave every other reader a weaker contract than the code implements, and a prose test such as features that predate this feature is not computable at all; the epoch file is chosen over a harness.json key or a git log over touchpoints.py because it self-installs in any onboarded project with no harness-init change, and it fails closed - no epoch means nothing in that project is a measurement. THE EPOCH''S DURABILITY: D-22 settles it. .harness/metrics/instrumented_at is a committed record, not scratch, and the step whose execution first creates it commits it in the same act, so a second clone of the repository inherits the epoch rather than writing a later one - the fabricated-zero case a clone opened is closed. THE RESIDUAL RISK, recorded rather than closed: record() creates the file at runtime inside whichever worktree runs first (DEC-95), so a reclamation of that worktree between the create and the commit landing takes it, and the next record() writes a later instant. WHAT MOVES IF IT IS LOST - every feature whose start instant falls before the new epoch flips from branch 4 to branch 3 and reports unavailable-never-tracked in place of its measured count, which is loss of a measurement in the SAFE direction D-19 mandates and never a fabricated zero: a feature could only report a zero it did not measure if its own touchpoints.jsonl were lost while its start instant stayed after the epoch, and a worktree reclamation takes the epoch and that feature''s touchpoints.jsonl together, so that combination is unreachable. T-11''s branch-1 case, a project carrying no instrumented_at file reporting every feature unavailable, is the assertion that pins the post-loss state.'
     dec: none
 
   - id: D-22
     choice: >-
-      The two files touchpoints.py creates at runtime - .harness/metrics/instrumented_at and each
-      feature's touchpoints.jsonl - are COMMITTED records, never gitignored and never treated as
-      ephemeral scratch, and the step whose execution first creates or appends them commits them in
-      the same act; that step is T-20's three recorded instructions, and no other task owns it.
+      The three files this feature creates at runtime - .harness/metrics/instrumented_at and each
+      feature's touchpoints.jsonl, both written by touchpoints.py's record(), and
+      .harness/metrics/trend.jsonl, written by trend.py's append() - are COMMITTED records, never
+      gitignored and never treated as ephemeral scratch, and the step whose execution first creates or
+      appends each of them commits it in the same act; for the epoch and the touchpoints log that step is
+      T-20's three recorded instructions, and for trend.jsonl it is the record_ship call T-19 adds to
+      gh-sync.py's cmd_ship, which commits the appended line in the same act it appends it and is wrapped
+      non-fatally exactly as the append is, and no other task owns any of the three.
     because: >-
       measured 2026-09-02 in the FEAT-53 worktree on branch feat/FEAT-53, git check-ignore -v exits 1
       with no output for .harness/metrics/instrumented_at, .harness/metrics/trend.jsonl and a
       feature's touchpoints.jsonl, and .gitignore carries no metrics line at all, so today's
-      non-ignore is accidental - this decision makes it deliberate and names the committer. Both
-      directions are unsafe. An ignore rule over the epoch lets a second clone write a LATER instant,
-      and a feature whose start instant falls after that fabricated epoch then reports a measured
+      non-ignore is accidental - this decision makes it deliberate and names a committer for each of the
+      three. Both directions are unsafe. An ignore rule over the epoch lets a second clone write a LATER
+      instant, and a feature whose start instant falls after that fabricated epoch then reports a measured
       zero, which is exactly the fabrication D-21 exists to prevent. Leaving a created file
       uncommitted dirties the tree, and a dirty tree halts the next team run - the same failure
-      .harness/features/*/runs/** is ignored to prevent, arrived at from the other side. Committing
+      .harness/features/*/runs/** is ignored to prevent, arrived at from the other side. trend.jsonl had
+      no committer at all before this: gh-sync.py's _commit_terminal_station commits plan.yaml ONLY
+      (gh-sync.py:659-661), so the first real ship would append an unignored, untracked line and leave the
+      main checkout dirty at exactly the moment the next run starts - which is why the commit is named on
+      the appending step rather than deferred to a human. Committing
       at the moment of creation, rather than seeding the epoch from a task of its own, is the weakest
       sufficient form: D-21 gives record() sole authorship of the epoch, so an agent-authored seed
       would add a second writer to the one marker that separates a tracked project from an untracked
@@ -319,7 +327,9 @@ tasks:
       under DESIGN's prototype gate. This entry records the contract it is being built against and
       the check it must pass; it is not a dispatch to start the work again.
       The prototype is a high-fidelity Astryx and React build over a HAND-WRITTEN FIXTURE PAYLOAD,
-      never live data, showing simultaneously: the landing 3x2 tile grid in DESIGN C-1's fixed order;
+      never live data, showing simultaneously: the landing tile grid in DESIGN C-1's fixed order - a
+      fixed 3x3 grid of seven tiles, tiles 1-6 filling rows 1 and 2 three across and tile 7, Merged
+      PRs over time, LAST and spanning the full third row at every breakpoint;
       one KPI panel (grading, the panel that does not collapse to a figure - histogram beside the
       named grade-1/grade-2 outlier table); the aggregate to rows to feature drill across the three
       C-1 routes; the window control with tokens 30d, 90d and all; light and dark from one
@@ -384,10 +394,11 @@ tasks:
     depends_on: []
     status: ready
     files:
-      - .claude/skills/harness/bin/dashboard/kpi.py
-      - .claude/skills/harness/bin/test-metrics-kpi.py
-      - .claude/skills/harness/bin/run-unit-tests.sh
-      - .claude/skills/harness/bin/dashboard/fixtures/project-a/
+    - .claude/skills/harness/bin/dashboard/kpi.py
+    - .claude/skills/harness/bin/test-metrics-kpi.py
+    - .claude/skills/harness/bin/run-unit-tests.sh
+    - .claude/skills/harness/bin/dashboard/fixtures/project-a/
+    - .claude/skills/harness/bin/brief_approval.py
     verify: |
       bash .claude/skills/harness/bin/run-unit-tests.sh --check-kinds && python3 .claude/skills/harness/bin/test-metrics-kpi.py
     intent: |
@@ -398,15 +409,28 @@ tasks:
       each carrying feature.json (feature_id, branch, pr, review_sha, cycles_used,
       max_total_cycles, runs), BRIEF.md (its Approval section, which is where the approval date lives -
       D-14) and plan.yaml (its tasks, which T-09 reads).
-      Read the approval date out of BRIEF.md, never out of plan.yaml: locate the file's Approval
-      section, require its status value to be approved, and take its date value. Accept YYYY-MM-DD,
-      which is the only form observed in this tree, and read a date-only value as 00:00:00Z wherever an
-      instant rather than a day is needed. Do not invent a parser shape - has_approval_block in
+      Read the approval date out of BRIEF.md, never out of plan.yaml, and read it through the ONE
+      authority this task creates: a new module at .claude/skills/harness/bin/brief_approval.py - NOT
+      under bin/dashboard/, because touchpoints.py imports it too and must never reach into the dashboard
+      subtree (T-11) - exposing exactly one public function,
+        approval_date(feature_dir: Path) -> tuple[str | None, str | None]
+      returning (the YYYY-MM-DD date value, None) when that feature's BRIEF.md carries an Approval
+      section whose status is approved and whose date parses, and (None, reason) in every gap state.
+      kpi.py calls it for every feature's approved_on and never restates the parse; T-11's feature_start
+      calls the same function (D-14 - one authority, two callers).
+      Accept YYYY-MM-DD, which is the only form observed in this tree, and read a date-only value as
+      00:00:00Z wherever an instant rather than a day is needed. That 00:00:00Z reading is the general
+      rule; D-21's pre/post-instrumentation predicate compares at DAY granularity and is the single
+      exception to it, scoped to that one predicate (T-11 branch 3), so the two do not conflict.
+      Do not invent a parser shape - has_approval_block in
       .claude/skills/harness/bin/check-state.sh already locates and reads exactly this block, and
       parse_brief in .claude/skills/harness/bin/gh-sync.py already sections BRIEF.md; follow one of
-      them. An absent BRIEF.md, an absent Approval section, a status that is not approved, and an empty
-      or unparseable date are ALL gap states, not crashes: route each to that feature's unavailable map
-      with its own reason sentence. That branch is LIVE, not theoretical - measured 2026-09-02 in this
+      them. FOUR gap states, each its own branch of approval_date returning its OWN distinct reason
+      sentence and never a shared one: an absent BRIEF.md, a BRIEF.md with no Approval section, an
+      Approval section whose status is not approved, and an approved section whose date is empty or
+      unparseable. None of them is a crash: kpi.py puts each returned reason verbatim into that feature's
+      unavailable map (D-19), so all four gap states route to a specific reason.
+      That branch is LIVE, not theoretical - measured 2026-09-02 in this
       repository, 2 of 47 BRIEF.md files are approved with an empty date and 2 are still pending.
       Read every plan.yaml through harness_yaml.load_plan from
       .claude/skills/harness/bin/harness_yaml.py, never a bare yaml.safe_load: that module exists
@@ -448,11 +472,18 @@ tasks:
       versus 24 hours, inclusive versus exclusive - would count a feature inside the 90d window
       for throughput and outside it for attribution, a silent cross-KPI inconsistency no
       fixture-local test would catch.
-      Build fixture project-a under dashboard/fixtures/ - its own .harness/ tree with three feature
-      directories whose ids do not exist in this repository, one of them whose BRIEF carries no usable
-      approval date (an Approval section with an empty date value, the form 2 real features here
-      already have) and one with no ship record, and a hand-written expected-values JSON beside it.
+      Build fixture project-a under dashboard/fixtures/ - its own .harness/ tree with feature
+      directories whose ids do not exist in this repository: one carrying a signed, parseable approval
+      date and a ship record, one with no ship record, and FOUR gap features, one per gap state of
+      approval_date - a feature with NO BRIEF.md at all, one whose BRIEF.md has no Approval section, one
+      whose Approval section status is pending rather than approved, and one approved with an empty date
+      value (the form 2 real features here already have) - plus a hand-written expected-values JSON
+      beside it covering every one of them, including each gap feature's expected reason sentence.
       The tests assert against the HAND-LABELLED numbers, never against a second call of the same code.
+      The four gap features get FOUR SEPARATE assertions, one per feature: that feature's approved_on and
+      cycle_time_days are null and its unavailable map carries THAT gap's own distinct sentence, and the
+      four sentences are asserted to differ from one another. Never one aggregate assertion over the four,
+      and never a count of unavailable entries - a shared or copy-pasted sentence would pass both.
       Register test-metrics-kpi.py in run-unit-tests.sh UNIT_SCRIPTS. Do not add it to harness.json.
       Every function must grade at or above its bar under code-grade.py.
   - id: T-07
@@ -507,7 +538,7 @@ tasks:
       107 nor the literal 122 appears. Assert FIRST that the path list is non-empty, so an errored
       git call cannot pass as a clean sweep. Demonstrate the case failing before you make it pass,
       by seeding one of those digits into a scratch copy.
-      The tokens 12 and 3 are deliberately NOT grepped: they occur inside 1024, 3x2 and ES2022,
+      The tokens 12 and 3 are deliberately NOT grepped: they occur inside 1024, 3x3 and ES2022,
       all of which this feature legitimately ships, so a literal grep for them cannot discriminate
       a seeded mix figure from an unrelated number. BRIEF's Verification gaps records that those
       two are carried by SC-15's inspection instead, and this task must not pretend otherwise.
@@ -597,7 +628,10 @@ tasks:
       percent of the whole per-request budget, for data the same compute() call already holds.
   - id: T-10
     title: Define the trend record, its reader, and the append-only ship writer
-    traces: [REQ-10, REQ-11]
+    traces:
+    - REQ-10
+    - REQ-11
+    - REQ-15
     change_type: api
     execution_mode: team
     execution_agent: harness-backend-dev
@@ -648,6 +682,25 @@ tasks:
       depend on what the charting library does with nulls: the conditional version put a backend
       computation behind a frontend task's grant, which it does not have.
       Take the window boundary from kpi.resolve_window (T-06).
+      read() ALSO returns the WEEKLY MERGED-PR SERIES for the window (KPI 7): one bucket per week in
+      the window, in ascending week order, each bucket's value the COUNT OF SHIPPED FEATURES whose
+      shipped_at falls in that week. The count is of shipped features, NOT of populated pr fields -
+      DEC-200 writes a record's pr only when exactly one merged PR is found, so a record whose pr is
+      null still counts as one shipped feature and therefore one merged PR, and a count of non-null
+      pr fields under-reports. This adds NO data source: it is the same trend log the other series
+      already read.
+      A week with NO record in it is null with a D-19 specific sentence naming that week, verbatim:
+      "no ship record in the week of <YYYY-MM-DD>" - never 0, never the string "0", and never a value
+      interpolated across it. trend.jsonl records ships and carries no notion of a week it covers in
+      which nothing shipped, so an absent record is not a measurement of zero merged PRs and D-19
+      reserves 0 for a measured zero. The weekly series is PRE-SEGMENTED into contiguous runs exactly
+      as the other series are, by the same rule above, so the client renders one line per run.
+      The bucket boundaries come from kpi.resolve_window (T-06) as well - do NOT restate a window
+      boundary here, the same one-authority rule that governs the sentence above. Walk the weeks from
+      the start it returns, and return the window's WEEK BOUNDS alongside the series: the week count
+      and the count of empty buckets, so the tile's secondary line "n merged PRs over w weeks - k
+      weeks with no ship record" and the week date inside each empty bucket's reason are computable
+      by the client without it re-deriving any boundary (DESIGN open question Q4).
       Create test-metrics-trend.py and register it in run-unit-tests.sh INTEGRATION_SCRIPTS - T-03
       has already declared its literal in harness.json, so add it to the bash array only. It must
       assert: one append adds exactly one line with every prior byte unchanged (compare the whole
@@ -657,6 +710,14 @@ tasks:
       such a merge resolve to the later shipped_at with the discarded one named in the unavailable
       map; a line whose schema reads trend/2 is rejected with a reason naming that value; and a
       feature with no record reports unavailable-with-reason for every trend field rather than zero.
+      It must ALSO assert, for the weekly merged-PR series over a fixture spanning several weeks with
+      at least one week carrying no ship: one bucket per week in the window in ascending order, the
+      bucket count equal to the returned week count; each bucket's value equal to the hand-labelled
+      count of shipped features shipped in that week; a fixture record whose pr is null COUNTED, so a
+      series computed from populated pr fields alone fails this case; an empty week null with the
+      reason naming that week's date and asserted to be NEITHER 0 NOR the string "0"; the returned
+      empty-bucket count equal to the number of null buckets; and the weekly series segmented into
+      one run per contiguous stretch, the empty week ending a run.
   - id: T-11
     title: Count blocking human touchpoints at the moment each one happens
     traces:
@@ -699,9 +760,11 @@ tasks:
         the ONLY marker that separates a tracked project from an untracked one. It is written by
         record() alone, at runtime; NO agent authors it, no task lists it in files, and no dashboard
         route can reach it (REQ-13).
-        feature_start(project_root, feature_id) is that feature's own start instant - the feature's
-        BRIEF.md approval date (D-14: the date value in its Approval section, read only when that
-        section's status is approved, a date-only value read as 00:00:00Z), else the author date of the
+        feature_start(project_root, feature_id) is that feature's own start - the feature's BRIEF.md
+        approval date, read by CALLING approval_date(feature_dir) from
+        .claude/skills/harness/bin/brief_approval.py, the single authority T-06 creates (D-14): do NOT
+        restate the Approval-section parse here, and use the reason it returns rather than composing
+        a second one. When that call yields no date, fall back to the author date of the
         first commit that added the feature directory
         (git -C <root> log --diff-filter=A --format=%aI -1 -- <feature dir>), else None.
         It reads no approval date out of plan.yaml.
@@ -712,9 +775,15 @@ tasks:
           2. feature_start is None -> (None, "touchpoints cannot be dated for this feature - it has
              neither an approval date in its BRIEF.md nor a commit that added its directory, so
              pre-instrumentation and post-instrumentation cannot be told apart").
-          3. feature_start is strictly before the epoch -> (None, "this feature predates touchpoint
-             instrumentation in this project - touchpoints were never tracked for it"). Compare
-             instants in UTC; a date-only BRIEF approval date is read as 00:00:00Z on that date.
+          3. feature_start's UTC CALENDAR DAY is strictly BEFORE the epoch's UTC calendar day ->
+             (None, "this feature predates touchpoint instrumentation in this project - touchpoints
+             were never tracked for it"). This comparison is at DAY granularity, stated once here and
+             once in D-21 and nowhere else: reduce both sides to their UTC date and compare the dates,
+             so a feature whose start falls on the SAME calendar day the epoch was written is
+             post-instrumentation and reaches branch 4. Comparing instants instead would read a
+             date-only approval date as 00:00:00Z and report null for a feature that is genuinely
+             tracked; that general 00:00:00Z reading (T-06) still holds everywhere else - this
+             predicate is its one scoped exception, not a contradiction of it.
           4. otherwise POST-INSTRUMENTATION -> (the number of lines in that feature's
              touchpoints.jsonl, None), and 0 for an absent file, which here IS a measured zero -
              a tracked run in which no blocking touchpoint happened.
@@ -746,13 +815,26 @@ tasks:
         sentence in the unavailable map, and its value is asserted to be not 0 and not "0".
       Also assert, as their own cases: a project with NO instrumented_at file reports every feature
       through branch 1; a feature with neither a BRIEF approval date nor an adding commit reports
-      through branch 2; a simulated run recording two touchpoints reports 2 and the shipped trend
-      record carries 2; a run recording none, in an instrumented project, reports 0; an unknown event
-      name exits non-zero and writes nothing; and record()'s first call in a fresh project creates
-      instrumented_at while a second call leaves its bytes unchanged.
+      through branch 2; a feature whose BRIEF approval date is the SAME CALENDAR DAY as the epoch -
+      the epoch instant later in that day than 00:00:00Z - reaches branch 4 and is POST-instrumentation,
+      reporting a number (0 for an absent log) and NO unavailable entry, which is the case an
+      instant-granularity comparison gets wrong; a simulated run recording two touchpoints reports 2
+      and the shipped trend record carries 2; a run recording none, in an instrumented project,
+      reports 0; an unknown event name exits non-zero and writes nothing; and record()'s first call in
+      a fresh project creates instrumented_at while a second call leaves its bytes unchanged.
       Every fixture project this task builds lives under dashboard/fixtures/ and its files are the
       fixture's own, never this repository's .harness/metrics/ or feature directories - D-22's commit
       rule is about the real project root and does not reach fixture trees.
+      FIXTURES ARE COMMITTED FILES, SO NO CASE MUTATES ONE IN PLACE. Every case that WRITES - each
+      record() call, the fresh-project case that creates the instrumentation epoch, the two-touchpoint
+      run, and the simulated ship - first copies the fixture tree it needs into a temporary directory
+      (tempfile.TemporaryDirectory plus shutil.copytree) and passes that copy as project_root, so the
+      only bytes it changes are the copy's. Read-only cases - the branch 1, 2, 3 and same-day
+      assertions, and every kpi.compute() read - need no copy and must not make one; copying for them
+      would only slow the suite. Assert this as its own case: after the whole test run, the committed
+      dashboard/fixtures/ tree is byte-unchanged, checked by comparing a recursive digest of it taken
+      before and after, so a future case that forgets the copy fails loudly instead of dirtying tracked
+      files.
       Add one assertion to test-metrics-kpi.py as well: for fixture project-a, the per-feature
       touchpoints value, the aggregate mean, the count at zero and the count not tracked in
       kpi.compute()'s payload match the hand-labelled numbers, with at least one fixture feature on
@@ -882,7 +964,14 @@ tasks:
       No modal at any depth - every drill-down is a route.
   - id: T-14
     title: Build the tiles, panels, tables and the four honest-gap states
-    traces: [REQ-03, REQ-04, REQ-05, REQ-07, REQ-08, REQ-11]
+    traces:
+    - REQ-03
+    - REQ-04
+    - REQ-05
+    - REQ-07
+    - REQ-08
+    - REQ-11
+    - REQ-15
     change_type: frontend
     execution_mode: team
     execution_agent: harness-frontend-dev
@@ -898,14 +987,38 @@ tasks:
     intent: |
       Build the surfaces DESIGN C-1 and C-4 specify, consuming the payload's unavailable maps (D-19)
       as the sole trigger for every gap treatment.
-      LANDING: a fixed 3x2 tile grid in DESIGN's order - Throughput, Rework, Blocking human
-      touchpoints, Escaped defects, Code grading, Usage by agent/model tier. Each tile is a 40pt
-      headline figure, a one-line denominator or secondary, and for the three trend KPIs an 8-point
-      sparkline or its S-1/S-2 treatment. A figure NEVER appears without its denominator or unit.
+      LANDING: a fixed 3x3 tile grid in DESIGN's order - Throughput, Rework, Blocking human
+      touchpoints, Escaped defects, Code grading, Usage by agent/model tier, Merged PRs over time.
+      Tiles 1-6 fill rows 1 and 2 three across; tile 7 is LAST and spans the full third row at every
+      breakpoint - three columns at 1024 and above, two below it, one below 640 - so it is always
+      alone on the last row and the reading order 1 to 7 never changes. Each tile is a 40pt
+      headline figure, a one-line denominator or secondary, and for the four trend KPIs (1, 3, 5, 7) an
+      8-point sparkline or its S-1/S-2 treatment. A figure NEVER appears without its denominator or unit.
       The grading tile's headline is the at-or-above-bar SHARE; rendering any central tendency is a
       violation. The usage tile names the unattributed count on the tile rather than dropping it.
       Escaped defects carries its payload sourcing_rule as persistent inline text beneath the figure
       - not a tooltip, not a footnote, not a link.
+      TILE 7, merged PRs over time: the 40pt headline is the merged-PR count for the window; the
+      secondary line reads "n merged PRs over w weeks - k weeks with no ship record", taking w and k
+      from the payload's week bounds and empty-bucket count (T-10) and recomputing neither; the
+      sparkline's eight points are the window's LAST EIGHT weekly buckets. It carries its payload
+      sourcing_rule as persistent inline text beneath the figure exactly as the escaped-defects tile
+      does - not a tooltip, not a footnote, not a link - stating that the count is of shipped features
+      read from the ship record, one point per feature, and that one shipped feature is one merged PR
+      because DEC-200 holds exactly one merged PR per shipped feature. An empty weekly bucket takes
+      S-4 through UnavailableValue with the payload's own specific reason naming that week, and the
+      sparkline BREAKS there (CAP-09): never a 0, never the string "0", never a line interpolated
+      across it - rendering a bucket as 0 is the fabrication D-19 forbids. KPI 7 has NO per-feature
+      column on the /features route and NO presence on /features/$featureId: it is a weekly aggregate,
+      not a per-feature value, sort=7 is not a valid token, and adding either is a violation.
+      PANEL 7: its primary artifact is the weekly merged-PR line, which is Shape B REUSED and is
+      mounted by T-21 - add NO third chart shape and NO new chart capability here; CAP-01 to CAP-13 is
+      closed at thirteen. Beside the line the panel carries a feature table of the ships in the
+      window, one row per shipped feature: feature id linking to /features/$featureId, ship date, the
+      week bucket it falls in, and pr where the record carries one with S-4's em dash where it does
+      not, which changes no count. That table takes NO TBL-n id - TBL-1 to TBL-3 stay the three table
+      panels' primary artifacts - and an empty week is not a row in it at all, because it lists ships
+      rather than weeks.
       PANELS: one level down per KPI, reached from the tile - the chart, its caveats and its feature
       table. The grading panel puts the histogram and the NAMED grade-1/grade-2 outlier table side by
       side at 1024px and above, stacked below that. Each outlier row is qualname, path and line,
@@ -1083,6 +1196,14 @@ tasks:
       touchpoints.count(), and shipped_at as the current RFC3339 UTC instant - then calls append().
       Any field it cannot compute is null with its reason in the record's own unavailable map (D-19): a
       ship is NEVER blocked by an uncomputable metric, and never records a zero it did not measure.
+      THE APPEND AND ITS COMMIT ARE ONE ACT (D-22). Immediately after append() writes the line,
+      record_ship git-adds and commits project_root/.harness/metrics/trend.jsonl - that path is a
+      committed record, it is not gitignored, and no existing step commits it: gh-sync.py's
+      _commit_terminal_station commits plan.yaml alone (gh-sync.py:659-661), so without this the first
+      real ship leaves the checkout dirty at an unignored path and the next team run halts. The commit
+      is wrapped EXACTLY as the append is: any failure prints one loud line and the ship continues.
+      Never an abort, never a raise, never a non-zero exit - a metrics write, and equally a metrics
+      commit, must never be what stops a feature from landing.
       Then call record_ship from gh-sync.py's cmd_ship, the function that runs at the user-gated ship
       step and already receives feat_dir. Call it BEFORE the board writes, and wrap the call so a
       failure prints one loud line and does NOT abort the ship - a metrics write must never be what
@@ -1096,8 +1217,11 @@ tasks:
       line whose feature_id and touchpoint count match the fixture, and a second ship of the same
       feature is refused rather than appending a second line. Demonstrate the failing state first -
       before the call site exists, the fixture's trend.jsonl stays absent.
-      Do NOT touch this repository's own .harness/metrics/trend.jsonl. This task adds the CALLER; the
-      write happens when a real ship runs.
+      Do NOT touch this repository's own .harness/metrics/trend.jsonl. That rule governs THIS TASK's
+      own execution - you write the caller and the commit code, you do not run a ship - while the
+      commit sentence above governs the SHIPPED BEHAVIOUR, which acts on the trend.jsonl of whatever
+      project a real ship later runs in. The two are about different trees and do not conflict: the
+      write, and its commit, happen when a real ship runs.
   - id: T-20
     title: Record the three blocking human touchpoints at the three moments they happen
     traces: [REQ-06]
@@ -1145,7 +1269,12 @@ tasks:
       the main session's by nature.
   - id: T-21
     title: Mount T-15's charts inside T-14's panels and gate on the rendered output
-    traces: [REQ-07, REQ-10, REQ-11, REQ-12]
+    traces:
+    - REQ-07
+    - REQ-10
+    - REQ-11
+    - REQ-12
+    - REQ-15
     change_type: frontend
     execution_mode: team
     execution_agent: harness-frontend-dev
@@ -1157,7 +1286,7 @@ tasks:
       - .claude/skills/harness/bin/dashboard/client/src/panels.test.tsx
     verify: |
       out="$(npm --prefix .claude/skills/harness/bin/dashboard/client run --silent test -- --reporter=json 2>/dev/null)" \
-        && printf '%s' "$out" | python3 -c 'import json,sys;s=sys.stdin.read();d=json.JSONDecoder().raw_decode(s[s.index("{"):])[0];p={a.get("fullName","") for t in d["testResults"] for a in t["assertionResults"] if a.get("status")=="passed"};w=["grading panel mounts the Shape A histogram","trend panel mounts the Shape B time series"];m=[c for c in w if not any(c in n for n in p)];sys.exit(0 if not m else "not passed: "+", ".join(m))'
+        && printf '%s' "$out" | python3 -c 'import json,sys;s=sys.stdin.read();d=json.JSONDecoder().raw_decode(s[s.index("{"):])[0];p={a.get("fullName","") for t in d["testResults"] for a in t["assertionResults"] if a.get("status")=="passed"};w=["grading panel mounts the Shape A histogram","trend panel mounts the Shape B time series","merged PR panel mounts the Shape B weekly line"];m=[c for c in w if not any(c in n for n in p)];sys.exit(0 if not m else "not passed: "+", ".join(m))'
     intent: |
       T-14 creates panels.tsx and T-15 creates charts.tsx AFTER it, and no task in this plan ever
       touches panels.tsx again. Left as drafted, charts.tsx ships as a correct, unimported module
@@ -1174,19 +1303,25 @@ tasks:
       that would look more idiomatic here cannot reach the thing under test.
       IN panels.tsx, import both components from ./charts and mount them where DESIGN C-2 places
       them: Shape A inside the grading panel beside the named grade-1/grade-2 outlier table, and
-      Shape B inside each of the three trend panels (throughput, blocking human touchpoints, code
-      grading). Respect the gap states already built in T-14 - a panel whose payload region hands
+      Shape B inside each of the FOUR trend panels (throughput, blocking human touchpoints, code
+      grading, and merged PRs over time). Shape B is REUSED for the merged-PR panel unchanged - add
+      no third chart shape and no new capability, CAP-01 to CAP-13 is closed at thirteen. Respect the
+      gap states already built in T-14 - a panel whose payload region hands
       over to NoShipRecords (S-1) mounts NO chart and NO axes, so the mount sits on the branch
       where the data is whole, never above it.
       IN panels.test.tsx, render the REAL panel components through @testing-library/react over a
       hand-written whole fixture payload - not a mock of the chart, not a snapshot of the source -
-      and assert with getByTestId. Two cases, with these labels VERBATIM because the verify matches
+      and assert with getByTestId. Three cases, with these labels VERBATIM because the verify matches
       them verbatim against each case's status in the reporter's JSON:
         "grading panel mounts the Shape A histogram" - rendering the grading panel with a fixture
         payload whose bins object is non-empty AND leaves at least one of the five grades at 0 puts
         an element with data-testid chart-shape-a in the document.
         "trend panel mounts the Shape B time series" - rendering a trend panel with a fixture
         payload carrying TWO non-empty segmented runs puts an element with data-testid
+        chart-shape-b in the document.
+        "merged PR panel mounts the Shape B weekly line" - rendering the merged-PRs-over-time panel
+        with a fixture payload whose weekly series carries TWO non-empty segmented runs separated by
+        an empty week (null with its D-19 reason, never 0) puts an element with data-testid
         chart-shape-b in the document.
       THE TESTID ALONE IS NOT THE ASSERTION. A literal <div data-testid="chart-shape-a"/> written
       straight into panels.tsx, or a stub export in charts.tsx, satisfies a testid query while
@@ -1205,30 +1340,34 @@ tasks:
         pre-segmented into contiguous runs, render one line per run), AND the direct end-of-line
         series label T-15 renders appears as the trimmed text of a descendant element, with the
         label text taken from the fixture you wrote.
+        The merged-PR case asserts the SAME Shape B subtree assertions off its own chart-shape-b
+        element, over its own weekly fixture: at least two svg path descendants, one per contiguous
+        run, which is also what proves the empty week broke the line rather than being plotted as 0.
       If T-15's real output cannot satisfy the assertion as written - a differently rendered bin
       label, a non-path line mark - STOP and report what it does render, and let the plan be
       amended. Do NOT weaken the assertion to the testid alone; that is the defect this paragraph
       closes.
       WHAT MAKES EACH CASE RED is the absence of the mount and nothing else at the outer level:
       getByTestId throws when the chart component is not in the rendered output, which is precisely
-      the state panels.tsx is in before this task. Do not weaken either case into a source-text
+      the state panels.tsx is in before this task. Do not weaken any case into a source-text
       assertion, a mocked chart, a toMatchSnapshot, or a check that the import statement exists - a
       source-text assertion is the defect this task was created to close, so writing one here
       reproduces it with a greener face.
-      DEMONSTRATE BOTH REDS, and report both in your DIGEST: (1) with charts.tsx present but
-      unimported, each case fails on getByTestId; (2) with a placeholder element carrying only the
-      testid in place of the real component, each case still fails - on the subtree assertion. Then
-      revert the placeholder. A gate that has only been seen green proves nothing about either.
+      DEMONSTRATE THE REDS FOR ALL THREE CASES, and report each in your DIGEST: (1) with charts.tsx
+      present but unimported, each case fails on getByTestId; (2) with a placeholder element carrying
+      only the testid in place of the real component, each case still fails - on the subtree
+      assertion. Then revert the placeholder. A gate that has only been seen green proves nothing.
       A SKIPPED CASE MUST NOT PASS THIS GATE. vitest's verbose reporter prints a skipped test's
-      name and the run still exits 0, so test.skip on either case would satisfy a label grep. This
-      task's verify therefore drives --reporter=json and requires each label to be carried by an
-      assertionResults entry whose status is exactly "passed"; run the verify exactly as the plan
-      states it and report the observed statuses in your DIGEST. If the pinned vitest does not
+      name and the run still exits 0, so test.skip on any of the three would satisfy a label grep.
+      This task's verify therefore drives --reporter=json and requires each of the three labels to be
+      carried by an assertionResults entry whose status is exactly "passed"; run the verify exactly as
+      the plan states it and report the observed statuses in your DIGEST. If the pinned vitest does not
       emit that reporter, STOP and report it rather than falling back to a label grep - choosing a
       weaker gate is not yours.
-      Add a THIRD case if and only if you can make it fail honestly - a panel whose payload region
-      is S-1 renders no element with either testid - and label it as you like; the verify does not
-      grep for it.
+      All three cases above are GATED and none is optional. The one case that stays optional is the
+      S-1 negative - a panel whose payload region is S-1 renders no element with either testid - which
+      the verify does not grep for; add it only if you can make it fail honestly, and label it as you
+      like.
       The toolchain (vitest, jsdom, @testing-library/react, vitest.config.ts and the ResizeObserver
       stub) is stood up by T-04 and is a prerequisite of this task, not something to install here.
       This task's verify runs vitest directly. T-22 is what makes the same assertion reachable
@@ -1255,20 +1394,27 @@ tasks:
       there at all. This task is the one adapter that makes it a suite gate.
       Create .claude/skills/harness/bin/test-metrics-client-render.py. It runs
         npm --prefix .claude/skills/harness/bin/dashboard/client run --silent test -- --reporter=json
-      as a subprocess from the repository root, captures stdout, and FAILS unless all three hold:
-      the subprocess exited 0, and EACH of the two labels - "grading panel mounts the Shape A
-      histogram" and "trend panel mounts the Shape B time series" - is carried by at least one
-      assertionResults entry whose fullName contains it AND whose status is exactly "passed".
+      as a subprocess from the repository root, captures stdout, and FAILS unless all FOUR hold:
+      the subprocess exited 0, and EACH of the THREE labels -
+        "grading panel mounts the Shape A histogram"
+        "trend panel mounts the Shape B time series"
+        "merged PR panel mounts the Shape B weekly line"
+      - is carried by at least one assertionResults entry whose fullName contains it AND whose
+      status is exactly "passed". These are T-21's three GATED render cases, none optional, and
+      the labels are matched literally on both sides, so each must stay byte-identical to the
+      string T-21's own intent and verify carry: a one-character drift silently un-gates that
+      case rather than failing loudly.
       Decode the JSON from the first { with json.JSONDecoder().raw_decode so a stray npm or node
       line cannot break the parse. Print one ok line per assertion and exit non-zero on any
       failure. Do not re-implement the render - the whole value of this script is that it drives
       T-21's real test file.
       A LABEL PRESENT IN THE OUTPUT IS NOT A PASSING CASE, and this is why the reporter is
       machine-readable rather than greped: vitest's verbose reporter prints a SKIPPED test's name
-      and the run still exits 0, so test.skip on either case would have satisfied the label grep
-      this script first carried, restoring the green-with-nothing-mounted state PF-7408d83a found
-      one layer up. Assert status, never presence. If either case is absent from the JSON
-      altogether, that is a failure too, named as absent rather than reported as skipped.
+      and the run still exits 0, so test.skip on ANY of the three cases would have satisfied the
+      label grep this script first carried, restoring the green-with-nothing-mounted state
+      PF-7408d83a found one layer up. Assert status, never presence. If ANY of the three cases is
+      absent from the JSON altogether, that is a failure too, named as absent rather than reported
+      as skipped.
       NO SOFT SKIP, EVER. If node or npm is absent, or if the client's node_modules directory is
       absent, this script FAILS with one line naming what is missing and the exact command that
       fixes it (npm ci --prefix .claude/skills/harness/bin/dashboard/client). It must never
@@ -1309,7 +1455,7 @@ tasks:
       (T-12) and nowhere else. Nothing here changes harness-init, harness.json or any platform
       prerequisite list, and adding Flask to one of those would reverse D-03's stated scope.
       Change nothing else in the workflow.
-      Report in your DIGEST the observed exit status of test-metrics-client-render.py, the two
+      Report in your DIGEST the observed exit status of test-metrics-client-render.py, the three
       case statuses it read out of the JSON, and the node and npm versions you saw.
 
 # ============================================================================================
@@ -1504,8 +1650,8 @@ tasks:
 #
 # Open questions for the tier above are in the DIGEST, not here.
 panel:
-  last_run: 2026-09-02-02-validator
-  cycle: 3
+  last_run: 2026-09-02-05-validator
+  cycle: 4
   readers:
   - reader: should-not-exist
     persona: fable-advisor
@@ -1657,21 +1803,41 @@ panel:
     reader: should-not-exist
     summary: No task, decision or lane names a committer for .harness/metrics/trend.jsonl;
       D-22 scopes to the two touchpoints files and closes 'no other task owns it'.
-    disposition: open
+    disposition: resolved
+    resolved_by: D-22 + T-19
+    note: 'Operator ruling notes/answers-2026-09-02-plan-signature-c3.md; cycle-4
+      panel graded it CLOSED at source: D-22.choice (plan.yaml:130-138) names all
+      three runtime files and, for trend.jsonl, the record_ship call T-19 adds to
+      gh-sync.py''s cmd_ship; T-19.intent (plan.yaml:1199-1211) makes the append and
+      its commit one act; the lanes row (plan.yaml:42-45) routes .harness/metrics/trend.jsonl
+      to main-session-direct. The residual verification gap is carried forward as
+      cycle-4 finding C4-01'
   - id: V-2
     cycle: 3
     severity: med
     reader: scope + should-not-exist
     summary: 'The BRIEF ## Approval date parse has two independent authors (kpi.py
       T-06, touchpoints.py T-11) and no cited precedent that reads a date at all.'
-    disposition: open
+    disposition: resolved
+    resolved_by: T-06 + T-11
+    note: 'Operator ruling notes/answers-2026-09-02-plan-signature-c3.md; cycle-4
+      panel graded it CLOSED at source: T-06 creates the single approval_date() authority
+      in .claude/skills/harness/bin/brief_approval.py; T-11.intent (plan.yaml:763-767)
+      calls it and is forbidden to restate the parse; D-14.choice (plan.yaml:96) records
+      one-authority/two-callers'
   - id: V-3
     cycle: 3
     severity: med
     reader: scope
     summary: T-06 names four gap-state branches and fixtures only the empty-date one
       (plan.yaml:451-454).
-    disposition: open
+    disposition: resolved
+    resolved_by: T-06
+    note: 'Operator ruling notes/answers-2026-09-02-plan-signature-c3.md; cycle-4
+      panel graded it CLOSED at source: T-06.intent (plan.yaml:477-495) fixtures four
+      gap features - no BRIEF, no Approval section, status not approved, approved-with-empty-date
+      - as four separate assertions, with the aggregate assertion and the unavailable-count
+      assertion both forbidden'
   - id: V-4
     cycle: 3
     severity: med
@@ -1679,11 +1845,98 @@ panel:
     summary: T-11's mutating fixture cases (record() append, epoch creation) state
       no copy-to-temp discipline while writing under the committed dashboard/fixtures/
       tree.
-    disposition: open
+    disposition: resolved
+    resolved_by: T-11
+    note: 'Operator ruling notes/answers-2026-09-02-plan-signature-c3.md; cycle-4
+      panel graded it CLOSED at source: T-11.intent (plan.yaml:828-837) requires every
+      writing case to copy via TemporaryDirectory plus shutil.copytree, forbids the
+      read-only cases from copying, and asserts a recursive digest of dashboard/fixtures/
+      unchanged as its own case'
   - id: V-5
     cycle: 3
     severity: low
     reader: should-not-exist
     summary: D-21's at-or-after predicate compares a 00:00:00Z date-only start against
       an intra-day epoch, so a same-calendar-day feature reads as pre-instrumentation.
+    disposition: resolved
+    resolved_by: D-21 + T-11
+    note: 'Operator ruling notes/answers-2026-09-02-plan-signature-c3.md; cycle-4
+      panel graded it CLOSED at source: D-21.choice (plan.yaml:125) and T-11.intent
+      (plan.yaml:778-786) state the same UTC-date rule; T-06.intent (plan.yaml:422-424)
+      names it as the sole scoped exception; the same-calendar-day fixture case is
+      at T-11.intent (plan.yaml:818-821)'
+  - id: C4-01
+    cycle: 4
+    severity: med
+    reader: should-not-exist
+    summary: 'V-1''s commit path is structurally unobservable: T-19''s simulated-ship
+      test runs in a copytree temp dir that is not a git repo, so record_ship''s commit
+      only ever exercises its non-fatal failure branch and no gate sees it succeed'
+    remedy_size: single-clause - one T-19 case that git-inits the temp copy and asserts
+      the copy's tree is clean with trend.jsonl tracked
+    disposition: open
+  - id: C4-02
+    cycle: 4
+    severity: med
+    reader: should-not-exist
+    summary: 'Nothing defines what a week is: resolve_window is generated_at-relative
+      for 30d and 90d and returns no start for all, which is unfiltered (T-06.intent
+      :469-470), yet T-10.intent :698-702 says to walk the weeks from the start it
+      returns'
+    remedy_size: single-clause in T-10 pinning the week definition, for example UTC
+      ISO weeks with all anchored at the earliest record's week
+    disposition: open
+  - id: C4-03
+    cycle: 4
+    severity: med
+    reader: should-not-exist
+    summary: 'The record still presents two ruled decisions as open at signature -
+      D-08.choice calls the alpha fallback outstanding at signature, and D-20.because
+      with BRIEF ## Constraints :78-80 and :85-87 says the client build needs an explicit
+      yes or no - and DESIGN.md:250 still names dead React Charts as the second fallback'
+    remedy_size: larger than a single clause - four fields across three artifacts
+      (D-08, D-20, two BRIEF bullets, DESIGN C-2)
+    disposition: open
+  - id: C4-04
+    cycle: 4
+    severity: med
+    reader: scope + should-not-exist
+    summary: 'Accepted backlog rows B-7..B-10 have no live carrier: they exist only
+      in the immutable cycle-1 briefing (notes/ship-review-2026-09-01-plan.md:126-129),
+      while B-1..B-5 and B-12..B-14 survive as panel dispositions with a filing instruction,
+      so these four are wired to nothing'
+    remedy_size: single-clause naming B-7..B-10 wherever the others are filed at ship
+    disposition: open
+  - id: C4-05
+    cycle: 4
+    severity: low
+    reader: scope
+    summary: SC-13 asserts two things - that the count equals the hand-label, and
+      that the rule is stated in the UI beside the number - under verify automated
+      with evidence unit, and the UI half has no gate, mechanical or inspection
+    remedy_size: single-clause - move the UI clause into SC-15's inspection scope,
+      or narrow SC-13 to the count
+    disposition: open
+  - id: C4-06
+    cycle: 4
+    severity: low
+    reader: scope + should-not-exist
+    summary: 'BRIEF ## Verification gaps :154-158 and T-07.intent justify not grepping
+      the bare token 12 by claiming it occurs inside 1024, 3x3 and ES2022 - it occurs
+      in none of them; the true carriers are 127.0.0.1 and 122. This is the defective
+      part (e) of the operator Q3 order, pre-existing and not caused by the 3x2 to
+      3x3 grid change'
+    remedy_size: single-clause in each of the two artifacts, naming the true carriers
+    disposition: open
+  - id: C4-07
+    cycle: 4
+    severity: low
+    reader: should-not-exist
+    summary: T-05.intent's cycle-4 amendment to 3x3 with seven tiles is known-unmet
+      by its own committed artifact (DESIGN.md:531-541 shows six tiles in a 3x2, never
+      rendered), and T-05's verify greps only S-1..S-4, 30d and 90d so cannot detect
+      the divergence, while T-05's intent says a diverging artifact is a finding for
+      the plan
+    remedy_size: single-clause in T-05 recording the six-tile artifact as accepted
+      under DEC-5's closure
     disposition: open
