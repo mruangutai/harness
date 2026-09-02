@@ -2,7 +2,7 @@
   "feature_id": "FEAT-48-parallel-safe-suite",
   "branch": "feat/FEAT-48-parallel-safe-suite",
   "pr": null,
-  "review_sha": "e64e863e",
+  "review_sha": "27f8105b",
   "cycles_used": 8,
   "max_total_cycles": 10,
   "runs": [
