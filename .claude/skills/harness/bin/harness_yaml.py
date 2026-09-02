@@ -3,11 +3,13 @@
 
 D-12: this is the ONLY `try: import yaml / except ImportError:` in the whole
 tree. It parses nothing itself — it exits or grants. Every other module in
-this tree that needs YAML imports THIS module, never `yaml` directly — with
-one named exception, `plan-merge.py`, which is required to import PyYAML
-plainly. That tool therefore parses under plain PyYAML semantics, not this
-module's duplicate-key strictness (`DuplicateKeyError`, raised below): the
-two loaders disagree about what counts as a valid plan file.
+this tree that needs YAML READS imports THIS module, never `yaml` directly —
+`plan-merge.py` was the one named exception until issue #720: it now reads
+through `load_str`/`load_file` like everything else, and `import yaml`
+survives there only for `yaml.safe_dump`, which this module has no
+equivalent for (D-03: plan-merge.py never re-renders a whole document
+through a dumper; it splices bytes). Ten test files also `import yaml`
+directly — that looseness pre-dates this module and is left alone.
 
 Import-time behaviour is exactly the one `try/except` below and the loader
 class definitions that follow it (pure class construction, no I/O). No

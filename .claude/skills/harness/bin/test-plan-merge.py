@@ -487,6 +487,61 @@ def case_unparseable():
     check("case8: base file is byte identical to before", after == original, repr((original, after)))
 
 
+def case_issue_720_duplicate_key_proposal_is_refused():
+    """Issue #720. Before this fix, `plan-merge.py` parsed under plain `yaml.safe_load`, which
+    ACCEPTS a duplicated mapping key and silently keeps the last value — while
+    `harness_yaml.load_str`, the reader every OTHER harness tool and both write hooks go
+    through, REFUSES the identical document with `DuplicateKeyError`. A proposal with a
+    duplicated `status:` therefore used to merge clean and produce a plan.yaml that was then
+    unwritable and unreadable by the rest of the system — the merge reported success and the
+    NEXT tool reported the breakage, landing blame on the wrong step.
+
+    THE CONTROL: the identical document without the duplicate merges clean (case_green_union
+    and friends already cover that). The difference here is the duplicate, not the parser."""
+    _root, path = fixture_root()
+    original = write(path, render_plan(ids(1, 2)))
+
+    proposal = os.path.join(_root, "proposal.yaml")
+    write(proposal, "schema: plan/1\nfeature: FEAT-99-fixture\ntasks:\n"
+                    "  - id: T-03\n    title: t\n    status: ready\n    status: done\n")
+
+    r = run_apply(path, proposal)
+    check("issue #720: a proposal with a duplicated key exits 5, never 0",
+          r.returncode == 5, f"rc={r.returncode} {r.stdout + r.stderr}")
+    check("issue #720: the refusal names the duplicate key",
+          "status" in (r.stdout + r.stderr), r.stdout + r.stderr)
+    after = open(path, encoding="utf-8").read()
+    check("issue #720: the base is left byte-identical — no merge that later breaks a "
+          "downstream reader",
+          after == original, repr((original, after)))
+
+
+def case_issue_720_duplicate_key_base_on_disk_is_refused():
+    """Issue #720, half 2: the pre-existing base is now ALSO strict-loaded, not just the
+    proposal. Survey done before landing this half (per the ticket's own gating question):
+    all 55 tracked plan.yaml files in this repository (54 feature plans + the template) pass
+    a strict `harness_yaml.load_str` load with zero failures, so this is a safe floor, not a
+    migration. A base carrying a duplicate key — which cannot happen through this tool
+    anymore, but could still arrive via a hand-edit or an older artifact — now refuses to
+    merge into rather than accepting a proposal against ground it cannot trust."""
+    _root, path = fixture_root()
+    original = write(path, "schema: plan/1\nfeature: FEAT-99-fixture\ntasks:\n"
+                           "  - id: T-01\n    title: a\n    status: ready\n    status: done\n")
+
+    proposal = os.path.join(_root, "proposal.yaml")
+    write(proposal, render_plan(ids(1, 2)))
+
+    r = run_apply(path, proposal)
+    check("issue #720 half 2: a duplicate key already on disk refuses the merge, exit 5",
+          r.returncode == 5, f"rc={r.returncode} {r.stdout + r.stderr}")
+    check("issue #720 half 2: the refusal names the base side",
+          "base" in (r.stdout + r.stderr).lower(), r.stdout + r.stderr)
+    after = open(path, encoding="utf-8").read()
+    check("issue #720 half 2: the base is left byte-identical",
+          after == original, repr((original, after)))
+
+
+
 def case_comments_survive():
     """Case 9 — COMMENTS SURVIVE: a base carrying the plan.yaml template's own leading
     comment block still carries every one of those lines, byte identical, after a merge that
@@ -997,24 +1052,24 @@ def case_1103_sign_approval_negative_control_absent_is_main_session():
         shutil.rmtree(root, ignore_errors=True)
 
 
-def case_f02_verify_signature_is_not_dead_code():
-    """FEAT-41, cycle 1 QA, med, and MUTATION-PROVEN by them: `_verify_signature`'s refusal was
-    UNREACHABLE in this suite. Disabling the whole function with an early `return` broke nothing
-    -- every F-02 hostile value is already stopped one layer earlier by `_field_lines`, so the
-    "second independent layer" the F-02 commit claimed was, from the suite's point of view,
-    indistinguishable from dead code. A later refactor could have reintroduced raw interpolation
-    for one value class and shipped green.
+def case_f02_verify_signature_duplicate_key_is_caught_before_comparison():
+    """FEAT-41 cycle 1 QA, med, and MUTATION-PROVEN: `_verify_signature`'s refusal was
+    UNREACHABLE in this suite. A base plan carrying a DUPLICATE `approved_by` inside its
+    approval block used to reach the comparison loop with the escaping fully intact: the
+    signature spliced in correctly, and PyYAML's plain `safe_load` last-wins duplicate
+    resolution handed the LATER (stale) value back, so the reloaded name was not the one
+    signed.
 
-    FORCED THROUGH THE FRONT DOOR, NOT BY PATCHING THE MODULE. This suite drives the real CLI in
-    a subprocess, and a monkeypatched stand-in would prove something about a stand-in. A base
-    plan carrying a DUPLICATE `approved_by` inside its approval block reaches the comparison with
-    the escaping fully intact: the signature is spliced in correctly, and then YAML's last-wins
-    duplicate resolution hands the LATER value back, so the reloaded name is not the one signed.
-    That is the exact condition the comparison loop exists for, and nothing else in this suite
-    reaches it.
+    ISSUE #720 CHANGED THIS FOR THE BETTER: `_verify_signature` now reloads through
+    `harness_yaml.load_str`, the same strict, duplicate-key-refusing loader every other
+    harness tool uses. The exact document below is now caught ONE LAYER EARLIER — as an
+    UNPARSEABLE splice defect naming the duplicate key, never reaching the value-comparison
+    branch at all. That is a strictly better outcome (a named cause beats a value mismatch),
+    but it means this scenario no longer exercises the comparison loop — see the sibling case
+    below for that branch's own proof of liveness.
 
-    IT IS ALSO A REAL DOCUMENT, not a contrivance: a plan that already carried a stale signer
-    line is how a duplicate key gets there.
+    FORCED THROUGH THE FRONT DOOR, NOT BY PATCHING THE MODULE: this suite drives the real CLI
+    in a subprocess.
     """
     root, plan = fixture_root()
     try:
@@ -1024,20 +1079,50 @@ def case_f02_verify_signature_is_not_dead_code():
         before = read(plan)
         r = run_verb("sign-approval", "--file", plan, "--by", "Mike Ruangutai",
                      "--date", "2026-08-30")
-        check("F-02 layer two: a signature that would reload as a DIFFERENT name is REFUSED at "
-              "exit 5 — the comparison loop, which `_field_lines` cannot cover",
+        check("F-02: a duplicate approved_by key in the base is REFUSED at exit 5 — "
+              "caught by the stricter loader before signing, not after",
               r.returncode == 5, f"rc={r.returncode} stderr={r.stderr[:200]!r}")
-        # ASSERTED ON stderr, WHERE REFUSALS GO. The first cut read stdout, which is empty on a
-        # refusal, so it failed while the behaviour was correct.
-        check("F-02 layer two: the refusal names both the value asked for and the value it "
-              "would reload as — a reader cannot act on 'refused' alone",
-              "Mike Ruangutai" in r.stderr and "stale-signer" in r.stderr,
-              f"stderr={r.stderr[:300]!r}")
-        check("F-02 layer two: and the plan is left BYTE-IDENTICAL — a refusal that had already "
+        check("F-02: the refusal names the duplicate key, so a reader can act on it",
+              "approved_by" in r.stderr, f"stderr={r.stderr[:300]!r}")
+        check("F-02: and the plan is left BYTE-IDENTICAL — a refusal that had already "
               "written would be worse than the bug",
               read(plan) == before, "plan changed")
     finally:
         shutil.rmtree(root, ignore_errors=True)
+
+
+def case_f02_verify_signature_comparison_loop_is_not_dead_code():
+    """The sibling to the case above. Since #720, NOTHING reachable through the CLI's front
+    door can make a spliced signature parse cleanly yet reload with a different value:
+    `_field_lines` already routes every write through `yaml.safe_dump`, which quotes every
+    coercion hazard (`yes` -> True, `#845 owner` -> comment-swallowed, embedded newlines),
+    and the one remaining path — a duplicate key surviving the splice — is now caught by
+    `harness_yaml.load_str` before `_verify_signature`'s comparison ever runs (see the case
+    above). So the comparison loop's liveness can no longer be proven by any real document;
+    it is exercised directly, in-process, via `_load_pm()` — the suite's own documented
+    escape hatch for helper-level unit tests no end-to-end path can reach.
+
+    It remains real defense-in-depth: a future writer that bypasses `_field_lines` (a new
+    field, a refactor) would still be caught here rather than shipping a signature that
+    reloads as something else.
+    """
+    pm = _load_pm()
+    spliced = ("schema: plan/1\nfeature: FEAT-99-fixture\n"
+               "approval:\n  status: approved\n  approved_by: someone-else\n"
+               "tasks:\n  - id: T-01\n    title: t\n").encode("utf-8")
+    try:
+        pm._verify_signature(spliced, "plan.yaml", {"approved_by": "Mike Ruangutai"})
+        check("comparison loop: a clean-parsing but mismatched reload is REFUSED",
+              False, "no MergeRefusal raised — the comparison loop did not fire")
+    except pm.harness_merge.MergeRefusal as refusal:
+        detail = " ".join(refusal.lines)
+        check("comparison loop: a clean-parsing but mismatched reload is REFUSED",
+              refusal.code == 5, f"code={refusal.code}")
+        check("comparison loop: the refusal names both the value asked for and the "
+              "value it would reload as — a reader cannot act on 'refused' alone",
+              "Mike Ruangutai" in detail and "someone-else" in detail,
+              f"detail={detail!r}")
+
 
 
 def case_add_tasks_alias():
@@ -1869,6 +1954,8 @@ CASES = (
     case_idempotence,
     case_destination_refusal,
     case_unparseable,
+    case_issue_720_duplicate_key_proposal_is_refused,
+    case_issue_720_duplicate_key_base_on_disk_is_refused,
     case_comments_survive,
     case_structural_refusal,
     case_create_path_approval,
@@ -1881,7 +1968,8 @@ CASES = (
     case_sign_approval,
     case_sign_approval_inserts_absent_mapping,
     case_f02_sign_approval_cannot_write_an_unparseable_signature,
-    case_f02_verify_signature_is_not_dead_code,
+    case_f02_verify_signature_duplicate_key_is_caught_before_comparison,
+    case_f02_verify_signature_comparison_loop_is_not_dead_code,
     case_high1_apply_cannot_mint_the_station_only_marker,
     case_amend_show_reports_block_and_hash,
     case_amend_replaces_a_multiline_decision_field,
