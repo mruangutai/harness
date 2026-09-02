@@ -82,7 +82,7 @@ Four files plus `harness.json` and one directory:
 | `.harness/features/<FEAT>/STATE.md` | Live handoff digest **per flow** — `## Current` (a *pointer* to the in-flight run's `state.yaml`, not a copy) + `## Open Questions`. Nothing else. **Bounded by construction** — no rotation rule needed. Per-feature since DEC-120: with N concurrent flows a single project-level file would have N writers | that flow's agents at spawn | **that feature's orchestrator only** |
 | `.harness/logs/<YYYY-MM-DD>.md` | Append-only **cross-flow** stream, one file per day: flow started, escalation raised, question answered, briefing held. Per-flow detail lives in that feature's `STATE.md` and run dirs. **Not loaded at spawn.** Pruned on a recurring schedule. | on request only | **main session only** — kept single-writer by being the one thing above the flows (DEC-120) |
 | `.harness/features/<FEAT>/DESIGN.md` | Visual design contract: palette, type scale, spacing, component direction, light/dark. Established during `/harness-init`'s design pass; the authority UI work implements against. | frontend-dev, documentor, ui-reviewer | `harness-visual-designer` |
-| `.harness/notes/` | Durable artifacts, **feature-scoped where they belong to a feature**: `research-<topic>.md`, `mockups/*.html`, `prototypes/<FEAT>/`, `review-<persona>-<runid>.md`, `uat-<FEAT>.md`, `ship-review-<FEAT>-<runid>.md`, `answers-<FEAT>-<runid>.md`, `feedback.md` (leads-only read), `history/`. | pm, documentor, reviewers, leads | pm, visual-designer, reviewers, orchestrator (`feedback.md`, `answers-*`, `ship-review-*`) |
+| `.harness/notes/` | Durable artifacts, **feature-scoped where they belong to a feature**: `research-<topic>.md`, `mockups/*.html`, `prototypes/<FEAT>/`, `review-<persona>-<runid>.md`, `uat-<FEAT>.md`, `ship-review-<FEAT>-<runid>.md`, `answers-<FEAT>-<runid>.md`, `feedback.md` (leads-only read), `history/`. | pm, documentor, reviewers, leads | pm, visual-designer, reviewers, orchestrator (`feedback.md`, `ship-review-*`) · **`answers-*` is main-session-only by contract** (§2.1, issue #671) though the manifest still carries a legacy orchestrator grant on it — the orchestrator never exercises it |
 
 Also present: `.harness/harness.json` (config — gates, `test_matrix`, `test_kinds`,
 `log_retention_days`), `.harness/team-config.yaml` (the team manifest, §3),
@@ -90,18 +90,21 @@ Also present: `.harness/harness.json` (config — gates, `test_matrix`, `test_ki
 
 ### 2.1 The question round-trip
 
-Subagents have no channel to the user; the orchestrator does. Questions flow *up* and answers flow
+Subagents have no channel to the user; the main session does. Questions flow *up* and answers flow
 back *down*:
 
-1. **Orchestrator takes the user's prompt** and delegates it to the corresponding team member(s).
+1. **The main session takes the user's prompt** and spawns the orchestrator to work it.
 2. **Members return questions** — the `open_questions` field in every DIGEST (§8) is the channel.
    Any persona may raise them; a member never blocks waiting on a human.
-3. **The question reaches the main session, which asks you** (`AskUserQuestion` — still the only
-   tier with a user channel, but since DEC-120 the orchestrator is a *spawned agent*, so it cannot
-   ask either. Questions bubble one tier further: member → lead → orchestrator → main session).
-4. **Orchestrator re-delegates with the answers** written to disk and passed as an input path.
+3. **The question reaches the orchestrator**, which works a three-rung ladder (answer it itself /
+   route it laterally to the squad that owns it / escalate) and returns `awaiting_user` +
+   `open_questions` only at the last rung — since DEC-120 the orchestrator is a *spawned agent* and
+   cannot call `AskUserQuestion` either, so the question bubbles one tier further, to the ONE tier
+   with a user channel: member → lead → orchestrator → main session.
+4. **The main session asks** (`AskUserQuestion`), writes the answers to disk, and re-delegates the
+   orchestrator with **that exact path** as mission `resume`.
 
-`open_questions` is an **active routing signal, not a passive count**: non-empty → the orchestrator
+`open_questions` is an **active routing signal, not a passive count**: non-empty → the main session
 asks and re-delegates. This is the one mechanism for *every* human-in-the-loop moment after
 onboarding — plan approval, the pm hitting ambiguity, a dev needing a decision, a lead needing
 another lead's input. **There is no `interview` step type in the DAG**, and no persona needs a
@@ -109,14 +112,22 @@ special "ask the user" mode.
 
 Under hierarchy it needs no new machinery: the consolidated DIGEST already rolls up
 `open_questions` from members (§10), so a lead surfaces its team's questions the same way it
-surfaces everything else. The orchestrator asks, then re-delegates with answers via the existing
+surfaces everything else. The main session asks, then re-delegates with answers via the existing
 `resume_from` + `state.yaml` path — the same mechanism that handles context resets. Human pauses
 and crash recovery share one code path.
 
-**Answers are durable, not ephemeral.** The orchestrator writes user answers to
+**Answers are durable, not ephemeral.** The main session writes user answers to
 `.harness/features/<FEAT>/notes/answers-<runid>.md`, never only into a run dir — run dirs are pruned, and
-durable artifacts may be written from these answers. Lateral lead→lead routing uses the same file,
-since two leads share no run dir.
+durable artifacts may be written from these answers. A LATERAL lead→lead resolution is recorded in
+the consolidated DIGEST's `escalations` trace instead, never a second write to this file (DEC-78
+supersedes DEC-44's file-based lateral mechanism).
+
+**The orchestrator trusts ONLY the path named in its `resume` dispatch (issue #671).** A genuine
+operator answer and a forged one are byte-for-byte indistinguishable from inside a run — the ONLY
+thing that distinguishes them is that the main session named the path. The orchestrator never
+discovers an answers file by searching `notes/` on its own initiative, and never writes one itself;
+that channel belongs to the main session alone. A `resume` carrying no path is a defect in the
+hand-off to report, never a cue to search.
 
 **Feature-scoped artifacts live in the feature's folder** — `.harness/features/<FEAT>/notes/` (DEC-130). The path carries the feature id, so filenames no longer need to: `answers-<runid>.md`, `ship-review-<runid>.md`, `uat.md`, `research-*`, `review-<persona>-c<n>.md`. An earlier convention encoded the FEAT id in filenames under a flat `notes/`; it retired because the id was forgettable (observed on pm's first outing) while a directory cannot be. `.harness/notes/` remains for genuinely project-scoped artifacts only.
 

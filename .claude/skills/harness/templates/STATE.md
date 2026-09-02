@@ -21,8 +21,9 @@
 ## Open Questions
 
 <The channel from subagents to the user. A non-empty entry is an ACTIVE ROUTING
-SIGNAL, not a note: the orchestrator asks the user, writes the answers to
-.harness/features/<FEAT>/notes/answers-<runid>.md, and re-delegates with that path. Clear
+SIGNAL, not a note: the orchestrator surfaces it, the MAIN SESSION asks the user and writes
+the answers to .harness/features/<FEAT>/notes/answers-<runid>.md, and re-delegates the
+orchestrator with that exact path — the only answers file it will trust (issue #671). Clear
 each entry when it is answered.>
 
 - <question, and who is blocked on it>
