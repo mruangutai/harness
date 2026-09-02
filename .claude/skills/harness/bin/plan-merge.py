@@ -12,13 +12,14 @@ lock stays the one shared with every other write route in this feature.
     plan-merge.py add-tasks         --file <plan.yaml> --proposal <path or - for stdin>
     plan-merge.py set-task-station  --file <plan.yaml> --task T-NN --station <name>
     plan-merge.py set-feature-station --file <plan.yaml> --station <name>
+    plan-merge.py set-panel         --file <plan.yaml> --value-file <panel.yaml>
     plan-merge.py sign-approval     --file <plan.yaml> --by <name> --date <YYYY-MM-DD>
 
-FIVE VERBS, ONE WRITE ROUTE (FEAT-41 T-03). Every verb goes through
-harness_merge.locked_update and the text splice, and require_destination (exit 9) guards every
+CONTROLLED VERBS, ONE WRITE ROUTE (FEAT-41 T-03). Every mutating verb goes through
+harness_merge.locked_update and a text splice, and require_destination (exit 9) guards every
 path. ADD-ONLY IS A PROPERTY OF `apply` AND ITS ALIAS, NOT OF THE TOOL: the lock and the splice
-are what fix #628 and they hold for all five, while never deleting a task is a promise those two
-verbs alone make.
+are what fix #628 and they hold for every mutating verb, while never deleting a task is a promise
+those two verbs alone make.
 
 `set-task-station` and `set-feature-station` validate the station against the vocabulary
 factory_config declares — MANDATED_STATIONS plus TERMINAL_MARKER, imported, never respelled —
@@ -917,6 +918,75 @@ def cmd_set_feature_station(args):
     print(f"STATION {resolved} -> {args.station}")
     print(f"APPLIED {resolved}")
     sys.exit(0)
+def _load_panel_value(path):
+    try:
+        with open(path, encoding="utf-8") as handle:
+            panel = yaml.safe_load(handle)
+    except (OSError, yaml.YAMLError) as exc:
+        raise harness_merge.MergeRefusal(
+            5, [f"plan-merge: cannot load panel value from {path}: {exc}"])
+    required = {
+        "last_run": str,
+        "cycle": int,
+        "readers": list,
+        "findings": list,
+    }
+    if not isinstance(panel, dict):
+        raise harness_merge.MergeRefusal(
+            5, ["plan-merge: panel value must be a mapping"])
+    missing = [key for key in required if key not in panel]
+    if missing:
+        raise harness_merge.MergeRefusal(
+            5, [f"plan-merge: panel value is missing required key(s): {', '.join(missing)}"])
+    wrong = [
+        key for key, expected in required.items()
+        if not isinstance(panel[key], expected) or (key == "cycle" and isinstance(panel[key], bool))
+    ]
+    if wrong:
+        raise harness_merge.MergeRefusal(
+            5, [f"plan-merge: panel value has invalid type for: {', '.join(wrong)}"])
+    return panel
+
+
+def cmd_set_panel(args):
+    resolved = _resolve_plan(args.file)
+    try:
+        panel = _load_panel_value(args.value_file)
+    except harness_merge.MergeRefusal as refusal:
+        for line in refusal.lines:
+            print(line, file=sys.stderr)
+        sys.exit(refusal.code)
+    replacement = yaml.safe_dump({"panel": panel}, sort_keys=False).splitlines(keepends=True)
+
+    def transform(base_bytes):
+        text = base_bytes.decode("utf-8")
+        lines, _order, ranges, _preamble = _index_top_keys(text)
+        if "panel" in ranges:
+            start, end = ranges["panel"]
+            lines[start:end] = replacement
+        elif "tasks" in ranges:
+            start, _end = ranges["tasks"]
+            lines[start:start] = replacement
+        else:
+            lines.extend(replacement)
+        spliced = "".join(lines).encode("utf-8")
+        reloaded = _reload_or_refuse(spliced)
+        if reloaded.get("panel") != panel:
+            raise harness_merge.MergeRefusal(
+                5, ["plan-merge: panel does not reload as the value supplied"])
+        return spliced
+
+    try:
+        harness_merge.locked_update(resolved, transform)
+    except harness_merge.MergeRefusal as refusal:
+        for line in refusal.lines:
+            print(line, file=sys.stderr)
+        sys.exit(refusal.code)
+    print(f"PANEL cycle {panel['cycle']} -> {resolved}")
+    print(f"APPLIED {resolved}")
+    sys.exit(0)
+
+
 
 
 def cmd_sign_approval(args):
@@ -1456,6 +1526,8 @@ VERBS = (
      (_FILE, ("--task", "the task id, T-NN"), _STATION), cmd_set_task_station),
     ("set-feature-station", "set or insert the top-level status key",
      (_FILE, _STATION), cmd_set_feature_station),
+    ("set-panel", "replace the top-level panel mapping with a validated value",
+     (_FILE, ("--value-file", "YAML file holding the replacement panel mapping")), cmd_set_panel),
     ("sign-approval", "the ONLY route that writes the approval mapping",
      (_FILE, ("--by", "the signer's name"), ("--date", "YYYY-MM-DD")), cmd_sign_approval),
 )

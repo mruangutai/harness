@@ -1671,6 +1671,8 @@ if not _post and _tool in ("Write", "Edit", "NotebookEdit") and _reached_plan:
         f"set-task-station --file <plan.yaml> --task T-NN --station <station>\n"
         f"  Record the feature's station: python3 .claude/skills/harness/bin/{_writer} "
         f"set-feature-station --file <plan.yaml> --station <station>\n"
+        f"  Record a plan-panel cycle:    python3 .claude/skills/harness/bin/{_writer} "
+        f"set-panel --file <plan.yaml> --value-file <panel.yaml>\n"
         f"  Add tasks:                    python3 .claude/skills/harness/bin/{_writer} "
         f"add-tasks --file <plan.yaml> --proposal <path>\n"
         f"  Apply a proposal:             python3 .claude/skills/harness/bin/{_writer} "

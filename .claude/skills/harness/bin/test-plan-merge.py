@@ -695,6 +695,50 @@ def case_set_feature_station_insert_and_replace():
         shutil.rmtree(root, ignore_errors=True)
 
 
+def case_set_panel_replaces_mapping_and_validates_shape():
+    root, plan = fixture_root()
+    try:
+        original = render_plan(ids(1, 2))
+        panel_one = {
+            "last_run": "runs/c4-validator",
+            "cycle": 4,
+            "readers": [{"reader": "scope", "persona": "harness-code-reviewer", "status": "ran"}],
+            "findings": [],
+        }
+        panel_two = {
+            "last_run": "runs/c5-validator",
+            "cycle": 5,
+            "readers": [{"reader": "scope", "persona": "harness-code-reviewer", "status": "ran"}],
+            "findings": [{"id": "PF-1", "severity": "low", "disposition": "open"}],
+        }
+        write(plan, original + yaml.safe_dump({"panel": panel_one}, sort_keys=False))
+        value_file = os.path.join(root, "panel.yaml")
+        write(value_file, yaml.safe_dump(panel_two, sort_keys=False))
+
+        r = run_verb("set-panel", "--file", plan, "--value-file", value_file)
+        after = read(plan)
+        loaded = yaml.safe_load(after)
+        check("set-panel exits 0 for a complete panel mapping", r.returncode == 0,
+              f"rc={r.returncode} {r.stderr!r}")
+        check("set-panel replaces the whole panel mapping", loaded.get("panel") == panel_two,
+              repr(loaded.get("panel")))
+        check("set-panel leaves tasks and approval unchanged",
+              loaded.get("tasks") == yaml.safe_load(original).get("tasks")
+              and loaded.get("approval") == yaml.safe_load(original).get("approval"),
+              after)
+
+        before_refusal = read(plan)
+        write(value_file, yaml.safe_dump({"cycle": 6, "readers": [], "findings": []},
+                                         sort_keys=False))
+        refused = run_verb("set-panel", "--file", plan, "--value-file", value_file)
+        check("set-panel refuses a mapping missing last_run before writing",
+              refused.returncode != 0 and "last_run" in refused.stderr,
+              f"rc={refused.returncode} {refused.stderr!r}")
+        check("set-panel refusal leaves plan byte-identical", read(plan) == before_refusal)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
 def case_illegal_station_exit_4():
     """Exit 4 BEFORE the lock is taken, so a refused value never opens the file."""
     root, plan = fixture_root()
@@ -1764,6 +1808,7 @@ CASES = (
     case_set_task_station_one_line,
     case_set_task_station_unknown_id,
     case_set_feature_station_insert_and_replace,
+    case_set_panel_replaces_mapping_and_validates_shape,
     case_illegal_station_exit_4,
     case_sign_approval,
     case_f02_sign_approval_cannot_write_an_unparseable_signature,
