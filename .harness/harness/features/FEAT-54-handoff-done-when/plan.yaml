@@ -8,12 +8,12 @@ status: plan
 source_issues: []
 
 panel:
-  last_run: 2026-09-02-c2-validator
-  cycle: 2
+  last_run: 2026-09-02-c3-validator
+  cycle: 3
   readers:
-  - reader: should-not-exist
-    status: ran
   - reader: scope
+    status: ran
+  - reader: should-not-exist
     status: ran
   - reader: goalcheck
     status: ran
@@ -47,9 +47,12 @@ panel:
       no-mutation audit into the permanent integration suite, so any feature that
       writes a pre-sweep handoff note mid-build reddens test-check-state.py and the
       corpus problem presents as an unrelated test regression.
-    disposition: open - no operator ruling exists for this finding; both c2 readers
-      (scope and should-not-exist) independently re-derived it as STANDING against
-      the revised plan, not carried forward on the cycle-0 record.
+    disposition: 'ACCEPTED by the operator at the batched ruling of 2026-09-02: the
+      concurrency-sensitive real-corpus mtime and byte no-mutation audit leaves the
+      permanent integration suite, and historical-baseline confidence rides non-flaky
+      fixture coverage or explicit review-time evidence instead. Carried by T-06 case
+      (g), which runs the deterministic half over a fixture corpus, and by SC-04''s
+      review-time verification at review_sha.'
   - id: PF-918326616878584f5958be94fba0ede7
     severity: low
     reader: scope
@@ -57,18 +60,21 @@ panel:
       which all 8 existing kinds carry including the omp_session_accessor entry it
       names as its model, so code_grade.py:468-471 defaults it to none and a worktree-duplicated
       copy of the probe is classified where its siblings are excluded.
-    disposition: open - no operator ruling exists for this finding; both c2 readers
-      (scope and should-not-exist) independently re-derived it as STANDING against
-      the revised plan, not carried forward on the cycle-0 record.
+    disposition: 'ACCEPTED by the operator at the batched ruling of 2026-09-02: the
+      handoff_comprehension locally-run kind specifies the repository''s conventional
+      exclude. Carried by T-09, whose intent and verify now hold exclude set to .claude/worktrees/**
+      like its eight sibling kinds.'
   - id: PF-d0ea19ffc351a13d6b569f0169222109
     severity: low
     reader: should-not-exist
     summary: SC-14 plus the two forever-green cases T-03(h) and T-06(h) turn an out-of-scope
       exclusion into permanent machinery, so a future feature that legitimately revisits
       length budgeting must first dismantle tests this one planted.
-    disposition: open - no operator ruling exists for this finding; both c2 readers
-      (scope and should-not-exist) independently re-derived it as STANDING against
-      the revised plan, not carried forward on the cycle-0 record.
+    disposition: 'REJECTED by the operator at the batched ruling of 2026-09-02: the
+      deterministic no-per-section-cap regression coverage is KEPT, so SC-14, T-03
+      case (h) and T-06 case (h) stand unchanged. Accepted consequence, ruled knowingly:
+      a future deliberate change to that contract must update this coverage as part
+      of making the change.'
   - id: PF-f2aee0d45b76412d69f7e8a9496f86a8
     severity: med
     reader: scope
@@ -90,11 +96,35 @@ panel:
       analogue of the frozen baseline, so a future feature that RENAMES or NARROWS
       an authority type or an id format reddens every five-section note written before
       it - widening is safe, only rename or narrow bites.
-    disposition: open - the plan does not answer it. D-03 fixes the four authority
-      types and D-01/D-08's frozen baseline exempts SECTION PRESENCE only, never grammar,
-      so no decision, task or criterion covers a later rename or narrowing of a type
-      or id format; recorded for that feature's planner rather than repaired here,
-      since a grammar-version mechanism is outside this feature's scope.
+    disposition: "REJECTED by the operator at the batched ruling of 2026-09-02: the\
+      \ typed pointer grammar \u2014 the four authority types and the id format of\
+      \ each \u2014 is a STABLE CONTRACT. The persisted INV-17 pass validates grammar\
+      \ only and never target existence, and a future rename or narrowing of a type\
+      \ or of an id format is an explicit versioned contract change made by the feature\
+      \ that makes it, not machinery this feature builds. Recorded in D-10's because,\
+      \ together with the operator's Q3 confirmation that grammar validation is part\
+      \ of the persisted shape validation; no grammar-versioning mechanism is added\
+      \ here."
+  - id: PF-356837534b18f5a4e622e5f461c41a71
+    severity: low
+    reader: should-not-exist
+    summary: 'SC-04 is concrete enough to EXECUTE but not to CHECK: it pins no artifact
+      path for the review-time recording, so the criterion can be graded passed with
+      its evidence unfindable.'
+    disposition: 'resolved by this planfix-c3 run: SC-04''s verification sentence
+      now pins the reviewer''s own per-feature note, .harness/harness/features/FEAT-54-handoff-done-when/notes/review-<reviewer>-*.md,
+      as the home of the review-time check-state.sh recording, so the evidence has
+      a deterministic place to be found. verify stays inspection.'
+  - id: PF-86e99df98a2caca9ae1334ab55d9468c
+    severity: info
+    reader: should-not-exist
+    summary: T-06 case (g)'s fully resolving fixture qualifier buys nothing against
+      a persisted pass that runs resolve=False and never opens a target; it can mislead
+      a reader into thinking resolution matters to the state check, which D-10 rules
+      it never does.
+    disposition: 'assessed and DISMISSED as a repair by the panel at 2026-09-02-c3-validator:
+      the qualifier is misleading rather than wrong, so it is one sentence of upkeep
+      for a future editor, not a cycle. No repair demanded and none made.'
 lanes:
   resolved_at: b7956fc4
   rows:
@@ -174,7 +204,7 @@ decisions:
     dec: none
   - id: D-10
     choice: 'pointer TARGETS are resolved at write time only: check-domain.sh calls handoff_done_when.problems(..., resolve=True) and checks section presence, block shape, pointer grammar AND target resolution; check-state.sh (INV-17) calls the same single implementation with resolve=False and checks section presence against the frozen baseline, block shape and pointer GRAMMAR only — the authority prefix is one of the four legal types and the pointer is well formed for that type — and never opens a target. One module, one parser, one pointer grammar (DEC-179); resolve gates nothing but whether a target file is opened'
-    because: 'the operator ruled at the batched signature review of 2026-09-02, on finding PF-4205e7e2, that a standing re-resolution over the persisted corpus is a rot vector: a later BRIEF repair that renumbers an SC reddens an untouched, previously valid note and forces the very edit the frozen baseline exists to prevent, while the grilling settled resolution at write time only. Pointer GRAMMAR stays in the persisted pass because a typed prefix consults no target and therefore cannot rot, and a note whose authority is outside the four legal kinds must still be caught there'
+    because: 'the operator ruled at the batched signature review of 2026-09-02, on finding PF-4205e7e2, that a standing re-resolution over the persisted corpus is a rot vector: a later BRIEF repair that renumbers an SC reddens an untouched, previously valid note and forces the very edit the frozen baseline exists to prevent, while the grilling settled resolution at write time only. Pointer GRAMMAR stays in the persisted pass because a typed prefix consults no target and therefore cannot rot, and a note whose authority is outside the four legal kinds must still be caught there. The operator ruled at the same batched signature review of 2026-09-02, on finding PF-bd92960a, that the typed pointer grammar — the four authority types and the id format of each — is a STABLE CONTRACT: the persisted pass validates grammar only and never target existence, and any future rename or narrowing of an authority type or of an id format is an explicit versioned contract change made by the feature that makes it, not machinery this feature builds. The operator also confirmed (Q3) that grammar validation IS part of the persisted shape validation. This clause is a record of the ruling and adds no mechanism, no task, no criterion and no grammar-versioning machinery, which stays out of scope'
     dec: DEC-179
 
 tasks:
@@ -516,10 +546,19 @@ tasks:
           reported with the four legal prefixes listed;
       (f) an absent handoff_done_when_baseline key behaves as an empty list: every note must
           carry the section;
-      (g) the real repository corpus stays clean — run check-state.sh against the actual project
-          root and assert that no reported line mentions "Done when", and that the run leaves
-          every file under .harness/harness/features/*/notes/ unmodified (compare mtimes and
-          bytes before and after for the matched set);
+      (g) A CLEAN CORPUS AND NO MUTATION, ON A FIXTURE ROOT: build a fixture corpus under
+          tempfile.TemporaryDirectory holding TWO compliant notes — one whose repo-relative path
+          IS in that fixture's harness.json handoff_done_when_baseline and one that is NOT, each
+          carrying a well formed, fully resolving "## Done when" block — record every fixture
+          note's bytes and mtime, run check-state.sh against that fixture root, and assert BOTH
+          that no reported line mentions "Done when" AND that each fixture note is byte-identical
+          and mtime-identical afterwards. This case NEVER runs a gate over the real repository
+          tree and NEVER compares the mtime or bytes of a real feature note: a permanent suite
+          case that scanned the live corpus would redden whenever any concurrent feature wrote a
+          pre-sweep handoff note mid-build, and the corpus problem would then present as an
+          unrelated test regression (operator ruling of 2026-09-02 on PF-570b9c87). The real
+          corpus at review_sha is carried by SC-04 as a recorded review-time run, not by this
+          permanent suite;
       (h) NO PER-SECTION CAP EXISTS, asserted positively at the STATE CHECK: build a
           NON-BASELINED note whose "## Done when" block is well formed and fully resolving,
           whose "## Trust" section runs 25 lines, and whose whole file is exactly 60 lines, and
@@ -529,8 +568,9 @@ tasks:
           expected GREEN before and after this feature: its value is that it reddens the moment
           a per-section cap is added to INV-17.
 
-      Case (g) reads the real tree read-only; every other case builds its own fixture root under
-      tempfile.TemporaryDirectory, including a fixture .harness/harness.json.
+      Every case, (g) included, builds its own fixture root under tempfile.TemporaryDirectory,
+      including a fixture .harness/harness.json. No case in this file runs a gate over the real
+      repository tree, and none compares the mtime or bytes of a real feature note.
 
       Do not modify check-state.sh in this task. The expected state at the end is RED on cases
       (a), (c), (e2) and (f), with "Done when" in the output. Cases (b), (d), (e1), (g) and (h)
@@ -675,6 +715,7 @@ tasks:
       k=d['test_kinds']['handoff_comprehension']
       p='.claude/skills/harness/bin/probe-handoff-comprehension.py'
       assert k['status']=='locally_run' and k['detect']==p and k['cmd']==p, k
+      assert k['exclude']=='.claude/worktrees/**', k
       assert 'handoff_comprehension' not in json.dumps(d.get('test_matrix')), 'kind leaked into test_matrix'
       print('ok')" && ! grep -q 'probe-handoff-comprehension' .claude/skills/harness/bin/run-unit-tests.sh
     intent: |
@@ -701,9 +742,11 @@ tasks:
          .claude/skills/harness/bin/probe-handoff-comprehension.py, status "locally_run", and a
          runner_note in the register of omp_session_accessor's saying it needs a credentialled
          host, can never run in CI, and is rerun before a ship decision that changes the handoff
-         contract. Do NOT add it to test_matrix and do NOT add the probe to UNIT_SCRIPTS or
-         INTEGRATION_SCRIPTS: run-unit-tests.sh's probe-drift check requires exactly this shape
-         and exits 2 on any other.
+         contract. The entry also carries "exclude": ".claude/worktrees/**", exactly the value
+         omp_session_accessor carries: all 8 existing kinds declare exclude, and a kind without
+         it is the odd one out in the mapping. Do NOT add it to test_matrix and do NOT add the
+         probe to UNIT_SCRIPTS or INTEGRATION_SCRIPTS: run-unit-tests.sh's probe-drift check
+         requires exactly this shape and exits 2 on any other.
 
       This task edits the same .harness/harness.json that T-05 has already touched, which is why it
       depends on T-05. Read the file as it stands and ADD the handoff_comprehension entry to the

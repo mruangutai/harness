@@ -89,7 +89,16 @@ Decisions that bind, by number:
 - SC-04: The state check run over this repository's own corpus at `review_sha` reports no handoff
   violation — including over every handoff note this feature itself wrote, which is a NEW note and
   therefore carries `## Done when` like any other, and is not added to the frozen baseline.
-  verify: automated        evidence: integration
+  Verified at REVIEW TIME, not by a permanent suite case: at `review_sha`, from the repository
+  root, the reviewer runs `bash .claude/skills/harness/bin/check-state.sh` and records its exit
+  status, and that no reported line names `Done when`, in their own per-feature review note
+  `.harness/harness/features/FEAT-54-handoff-done-when/notes/review-<reviewer>-*.md` — the
+  deterministic place a later reader audits for whether this was executed. Falsified by any
+  such line, including one naming a note this feature wrote. A permanent test case that scanned
+  the live corpus would redden whenever a concurrent feature wrote a pre-sweep handoff note
+  (operator ruling of 2026-09-02 on PF-570b9c87); the deterministic half of the claim — a clean
+  corpus and no note mutated by the scan — is T-06 case (g) over a fixture corpus.
+  verify: inspection
 - SC-05: The 60-line cap still fires: a five-section note of 61 lines is refused with the cap
   message, and the same note at 60 lines is allowed.
   verify: automated        evidence: integration
