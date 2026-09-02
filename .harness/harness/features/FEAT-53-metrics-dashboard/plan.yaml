@@ -237,7 +237,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-visual-designer
     depends_on: []
-    status: building
+    status: ready
     files:
       - .harness/harness/features/FEAT-53-metrics-dashboard/notes/prototypes/FEAT-53/index.html
       - .harness/harness/features/FEAT-53-metrics-dashboard/notes/prototypes/FEAT-53/README.md
