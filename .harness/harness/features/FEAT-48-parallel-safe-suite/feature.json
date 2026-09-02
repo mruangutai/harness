@@ -122,6 +122,18 @@
       "squad": "product",
       "verdict": "FAIL",
       "agent": "harness-product-lead"
+    },
+    {
+      "id": "2026-09-02-c8-validator",
+      "squad": "validator",
+      "verdict": "FAIL",
+      "agent": "harness-validator-lead"
+    },
+    {
+      "id": "2026-09-02-18-product",
+      "squad": "product",
+      "verdict": "ESCALATE",
+      "agent": "harness-product-lead"
     }
   ],
   "github": {

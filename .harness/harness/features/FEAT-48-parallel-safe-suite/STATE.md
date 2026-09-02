@@ -3,88 +3,84 @@
 ## Current
 
 - feature: FEAT-48-parallel-safe-suite
-- run: none this round — I re-validated at my own tier; no squad was dispatched
-- squad: none
-- status: awaiting_user — **not shippable**, one operator ruling blocks the last criterion
+- run: `2026-09-02-c8-validator` (panel, FAIL) and `2026-09-02-18-product` (goal-check, ESCALATE)
+- squad: validator, then product
+- status: awaiting_user — **not shippable**; two `must_fix` and one operator ruling stand in the way
 
-Station `review`. `review_sha: e64e863e` (repinned by the main session at `8861850d`). The
-main-session-direct fix landed at `e64e863e`: T-03's in-file red proof and the symlink hardening.
+Station `review`. `review_sha: e64e863e`; `git diff --stat e64e863e..HEAD` touches only this
+feature's own `.harness/` files, so grading at the pin grades the shipped code.
 
-**The headline: the fix worked, and one criterion turns out to have a wrong premise.**
+**The headline: the fix is real, and the review it had never had found a gate it does not clear.**
 
-**What the fix closed, verified by my own runs and probes rather than accepted on report:**
-- **M1 is FIXED.** A dangling symlink and a symlinked subdirectory now each give exit 1 with a
-  `MUTATED` line naming the path relative to DIR; the clean control still exits 0, so no false
-  positive was traded for the fix. `snapshot()` now uses `os.lstat`, records symlinked directories
-  as entries instead of descending, and carries `st_mode`. `test-run-pool.py:92-105` pins both legs.
-- **SC-03's first half is now genuinely met.** The live-tree case asserts the resolved root against
-  an **inline recomputation** — a real second computation, not a call back into `harness_boundary` —
-  plus `discovered 63 >= 50` and zero findings. That was the exact defect pm named last round.
-- **SC-01, SC-04, SC-05, SC-06, SC-07, SC-09, SC-10 re-verified at the new pin**, not inherited.
-  SC-05 needed re-taking on the merits: the note's original ten runs were measured at `b86ce66a`,
-  **before `snapshot()` was rewritten**, so they no longer covered the shipped pool. My own ten
-  consecutive `--kind all` runs at `e64e863e`: all exit 0, zero `MUTATED`, zero `FAIL`,
-  42.61–48.71s wall at 8 workers over 63 files, on a tree with 0 modified paths at start and end.
-  Eleven green full runs in total this round.
+**What I verified myself, at my own tier, rather than accepting on report.**
+- **All six in-file cases run unconditionally in CI and all six DISCRIMINATE.** `main()` calls
+  `run_self_tests()` and returns 1 on any failure. Three monkeypatch probes, no edit to the
+  checkout: blinding `scan_file` reddens the three red cases; an over-eager `scan_file` also reddens
+  clean-controls and live-tree; patching `resolve_scan_root` so it never refuses reddens live-tree
+  and root-refusal. **Cases that can never turn red: none.** That is SC-03's first half proven as a
+  gate, not merely as text — the thing the previous round could only assert.
+- **The c7 symlink HIGH is closed with a red proof.** The same probe run against
+  `git show b86ce66a:run_pool.py` gives exit 0 and no `MUTATED` for both a dangling symlink and a
+  directory symlink; the shipped copy gives `exit 1 MUTATED dangling` and `exit 1 MUTATED
+  linked-dir`; the clean control stays exit 0 under **both**, so no false positive was traded.
+- **SC-01, SC-04, SC-09 met**, and one `--kind all` green at the tip: exit 0, 63 files, 8 workers,
+  48.87s, zero `FAIL`, zero `MUTATED`, `git status --porcelain` empty before and after.
 
-**What blocks the ship — SC-03's second half, and it is not a coding oversight.**
-SC-03 requires the invariant to flag, *in the same run*, the ten historical sites at `ea6f51f`,
-each asserted individually. No file under `bin/` mentions `ea6f51f`. But the remedy is not simply
-"write the assertion": **CI checks out with `actions/checkout@v4` and no `fetch-depth`
-(`.github/workflows/tests.yml:50`), so the default shallow clone puts `ea6f51f` out of reach**,
-while SC-04 requires that same file to pass in CI. Written literally, SC-03 and SC-04 cannot both
-hold on today's workflow. That makes SC-03 **unmet and unmeetable as written** — pm's to re-plan
-under the operator's approval, never mine to mark met, waived or edited.
+**What blocks the ship — two `must_fix` from the c8 panel, and one signature.**
+- **`code_grade: fail`, and the excuse for it does not survive.** Nine blocking records over
+  `d135364e..e64e863e`, three of severity `high`. The panel's code reviewer partitioned them
+  7 pre-existing / 2 introduced; **its own lead retracted that, and I confirmed why from source**:
+  `gated_set` gates a function only when it has no pre-image or its grade WORSENED
+  (`code_grade.py:427-431`), so an inherited-debt record is unrepresentable. All nine are FEAT-48's
+  own, seven of them in three files that do not exist on `main`. The worst is
+  `test-suite-independence.py:170 run_self_tests` — the very function the last fix added — at
+  CYCLOMATIC 14 / COGNITIVE 29 / ABC 49.7. A non-relocating decomposition preserves coverage.
+- **A new defect in the fix itself.** `run_pool.py:37-38` calls `os.lstat` on a directory symlink
+  with no `OSError` guard, where the file loop nine lines below has one. I reproduced the asymmetry
+  deterministically by injecting the failure with `islink` pinned True: the dir branch raises
+  `FileNotFoundError` **out of** `snapshot()` — which `main()` calls outside any try, so the whole
+  pool run aborts — while the identical failure in the file loop is swallowed. MED (it fails closed
+  and needs a race), and the remedy sits inside the function the first item must decompose anyway.
+- **SC-03 still needs the operator's signature**, unchanged in substance from last round and now
+  seconded by pm: 9 of 10 SCs MET, SC-03 `unmeetable-as-written`, remedy **(B)** recommended — make
+  the ten `ea6f51f` sites a review-time automated check rather than an in-CI clause, under which
+  SC-03 reads MET at `e64e863e` with **no code left to write**. Remedy (A) buys the literal wording
+  for ~22.6 MiB and 1023 commits fetched on every CI run.
 
-**The scanner itself is not in doubt.** I ran it over `git show ea6f51f:` for all three files and
-asserted each of the ten sites separately: **found 10, missing 0, extra 0**. The capability SC-03
-describes is present and proven at the new pin; what is missing is its enshrinement in a gate CI
-runs. That distinction is the whole of the remaining decision.
+**Every remedy is main-session-direct.** `.claude/skills/harness/bin/**` is `main-session-direct` by
+DEC-174 policy carve-out (`plan.yaml:15-23`) — the glob IS granted to backend-dev and dev-ops, so
+this is policy, not a missing grant. There is no lead I may route these to; they go up.
 
-**Still outstanding, all main-session-direct:**
-- **`code_grade` is still `fail`, and it moved the wrong way**: 7 FAIL records → **9** (19 passing).
-  The fix added grade-1 `test-suite-independence.py:170 run_self_tests` and grade-2
-  `run_pool.py:29 snapshot`. The panel had predicted the decomposition would clear three of five;
-  it added two instead. Worth naming plainly rather than filing as noise.
-- **M4 still open**: zero `pycache` mentions in `test-run-pool.py`, so T-04 intent item (g) is
-  unpinned. `run_pool.py` excludes `__pycache__` correctly, so this is unpinned behaviour, not a
-  live defect.
-- **M5 still open**: a same-size overwrite with an exact `os.utime` restore remains invisible —
-  I reproduced it, content demonstrably changed A→B with exit 0 and no `MUTATED`. Adding `st_mode`
-  narrowed the tuple's blind spot but did not close this one. Disclosure-level.
-- **Minor, new**: the clean control omits the `src.replace(...)` leg T-03 enumerates — the shape
-  that historically produced 4 of 47 false positives — so a regression that starts flagging
-  `str.replace` on `__file__`-derived text would not be caught.
-- **Residual risk, stated because nobody else will**: the code added by `e64e863e` has been through
-  **no reviewer panel**. Only my mechanical verification covers `run_self_tests` and the rewritten
-  `snapshot`. The scoped re-validation I was asked for does not substitute for a review of new code.
+**Also open, none of them gating:** DEC-211:6601-6602 overclaims that a content-derived write inside
+bin is still caught by the runtime snapshot — reproduced false (M5); `test-run-pool.py` still has no
+`__pycache__` leg (M4); the clean control still omits the `src.replace(...)` shape; `run_pool.py`'s
+`.pyc` skip is wider than SC-10's text licenses; `notes/measurements-parallel-suite.md` still holds
+the pre-rewrite runs; the suite is green only with `HARNESS_AGENT_TYPE` unset.
 
-Budgets: `cycles_used` stays **8 of 10** and `runs` stays 17. No squad ran this round, so no run is
-recorded, and the rework loop this fix belongs to was already counted when the two FAIL runs landed
-— counting the fix again would count one loop twice. `check-state.sh` agrees (8 >= 7 FAIL runs) and
-FEAT-48 carries zero findings. **The next rework loop does count, and it is the last one before
-`max_total_cycles` binds.**
+Budgets: `cycles_used` stays **8 of 10** — both leads reported **zero** send-backs and I routed no
+FAIL back, so no rework loop ran this round. `runs` is now **19 of an informational 20**: the next
+run crosses it. Nineteen runs on one feature is long, and I will say plainly that they have earned
+their place — the last three each closed something real (a wrong-premise criterion, a symlink
+blindness, and now a first review of code that had never had one) — but the count is a signal and
+the operator should see it before authorising more.
 
 ## Open Questions
 
-- **BLOCKING — operator ruling.** SC-03's ten-site clause cannot be met as written. **(A)** Add
-  `fetch-depth: 0` to `.github/workflows/tests.yml` and assert the ten sites inside
-  `test-suite-independence.py`: meets SC-03 literally, at the cost of a file outside the signed
-  plan's set and a full-history fetch on every CI run. **(B)** Amend SC-03 so the ten-site assertion
-  is a review-time automated check — which is what T-03's `verify:` block already is, and what I
-  re-executed cleanly this round. My recommendation is **(B)**, because the assertion's value is
-  proving the scanner detects the historical shapes, and that is fully obtained at review time,
-  whereas (A) charges every future CI run for a fixed historical fact. Either way it is a BRIEF
-  amendment and needs the signature.
-- **Needs a call.** Whether `code_grade: fail` (now 9 records) is remediated inside FEAT-48 or split
-  out. It moved the wrong way, so "it will clear itself with the next fix" is no longer a safe bet.
-- **Needs a call.** Whether M4, M5 and the missing `src.replace` control leg are fixed now or become
-  backlog rows.
+- **BLOCKING — operator ruling, unchanged.** SC-03's ten-site clause cannot be met as written.
+  **(B)** amend it to a review-time automated check (recommended by pm and by me), or **(A)** add
+  `fetch-depth: 0` and assert the ten sites in CI. Either way it is a BRIEF amendment needing the
+  signature. Under (B) nothing else about SC-03 remains to build.
+- **Needs a call.** `code_grade: fail` is a real gate and the "inherited debt" reading of it is now
+  disproven. Decompose `run_self_tests` (and `snapshot`) inside FEAT-48, or accept the grade
+  explicitly and record the acceptance? It fires no SC clause, so it will not fail a goal-check.
+- **Needs a call.** The `run_pool.py:37-38` guard: fix now alongside the decomposition, or backlog?
+  It is one line and it sits in the same function.
+- **Needs a call.** M4, M5, the missing `src.replace` control leg, the over-wide `.pyc` skip, and
+  the stale `measurements-parallel-suite.md` — fold into the ship or take as backlog rows.
 - **Backlog, not a gate.** The suite is not independent of the ambient environment: with
-  `HARNESS_AGENT_TYPE` set, `test-plan-merge.py` fails 11 `sign-approval` checks and the whole suite
-  exits 1. Pre-existing; the file is untouched by the diff.
-- **Backlog, not a gate.** `PASS <file>.py` is not a runner-reserved line shape — 63 files yield 69
-  file-level lines. Pre-existing, identical on `main`.
-- **Advisory.** SC-07's failing-file clause is established by composition, not by a gate.
-- Whether issue #1053 CLOSES on ship remains the operator's call; #1053's `## Scope` still reads
+  `HARNESS_AGENT_TYPE` set, `test-plan-merge.py` fails 11 checks and the suite exits 1. pm rules
+  this a genuinely new criterion no REQ or SC covers; it is pre-existing and the file is untouched.
+- **Harness defect, not a FEAT-48 finding.** `harness-qa` returned `severity_max: medium` where the
+  contract enum is `med`, and `validate-digest.py` accepted it. Raised, not normalised.
+- Whether issue #1053 closes on ship remains the operator's call; its `## Scope` still reads
   "Folded into FEAT-47" and only the operator's hand fixes an issue body.
