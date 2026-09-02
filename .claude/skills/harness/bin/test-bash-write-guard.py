@@ -1068,6 +1068,38 @@ def run_bug1106_bash_route():
         r.returncode == 2 and "digest.md or state.yaml" in r.stderr,
         f"exit {r.returncode}: {r.stderr.strip()[:200]}"))
 
+    # --- CODE REVIEW FINDING (PR #1249): run artifacts normally live inside a
+    # feature's own WORKTREE (DEC-95), not the main checkout. The guard must fire there
+    # too — it must not be inert behind the DEC-153 carve-out that exists for a
+    # different (domain-identity) question. A session rooted at the MAIN checkout,
+    # writing into a linked worktree's own run directory, must still be refused.
+    wt_tmp = tempfile.mkdtemp()
+    wt_root = os.path.join(wt_tmp, "root")
+    os.makedirs(os.path.join(wt_root, ".harness"))
+    with open(os.path.join(wt_root, ".harness", "team-config.yaml"), "w") as f:
+        f.write(RUN_ARTIFACT_MANIFEST)
+    wt = os.path.join(wt_root, ".claude", "worktrees", "FEAT-W")
+    _linked_worktree(wt, wt_root, "FEAT-W", RUN_ARTIFACT_MANIFEST)
+    wt_digest = os.path.join(
+        wt, ".harness", "harness", "features", "FEAT-W-thing", "runs", "r1", "digest.md")
+    os.makedirs(os.path.dirname(wt_digest), exist_ok=True)
+    wt_other = os.path.join(
+        wt, ".harness", "harness", "features", "FEAT-W-thing", "runs", "r1", "notes.txt")
+
+    r = fire(wt_root, f"echo hi > {wt_digest}")
+    results.append((
+        "bug1106 Bash route: a write to digest.md INSIDE A LINKED WORKTREE is ALSO "
+        "refused — the guard is checkout-agnostic, not inert behind DEC-153",
+        r.returncode == 2 and "digest.md or state.yaml" in r.stderr,
+        f"exit {r.returncode}: {r.stderr.strip()[:250]}"))
+
+    r = fire(wt_root, f"echo hi > {wt_other}")
+    results.append((
+        "bug1106 Bash route NEGATIVE CONTROL: an unrelated file inside the same "
+        "worktree run directory is still ALLOWED",
+        r.returncode == 0, f"exit {r.returncode}: {r.stderr.strip()[:200]}"))
+
+
     fails = 0
     for name, ok, detail in results:
         if ok:
