@@ -89,6 +89,7 @@ recorded in the wrong checkout is why the previous planning run could not spawn 
   specialist to Read `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness-systematic-debugging/SKILL.md` first (not preloaded,
   DEC-158): reproduce, hypothesize, confirm, then fix. **Three failed fixes and
   it stops** — roll that up as `BLOCKED`, do not authorize a fourth.
+That path is under the control-plane root, not your checkout. Reading it is permitted and read-only; your write grants are unchanged.
 
 ## No git, by design
 

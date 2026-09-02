@@ -69,6 +69,7 @@ deterministic.
 
 Read `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness-systematic-debugging/SKILL.md` first (not preloaded, DEC-158) and
 follow it — including the three-failed-fixes stop (`BLOCKED` with what you tested).
+That path is under the control-plane root, not your checkout. Reading it is permitted and read-only; your write grants are unchanged.
 
 ## Reaching a boundary
 
