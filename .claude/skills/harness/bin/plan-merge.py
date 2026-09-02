@@ -50,8 +50,12 @@ Exit codes are the interface:
     8  the proposal's approval mapping parses differently from the base's
     9  --file does not resolve to a plan.yaml this tool owns
 
-python3 stdlib plus PyYAML (DEC-171 requires it here; imported plainly, never through
-harness_yaml.py — that divergence is raised upward as a decision question, not resolved here).
+python3 stdlib plus PyYAML (DEC-171 requires it here). Reads go through harness_yaml.py, same as
+every other harness tool (issue #720): a duplicate mapping key refuses here exactly as it would
+downstream, instead of merging clean and breaking the next reader. `import yaml` survives ONLY
+for `yaml.safe_dump` — harness_yaml.py exposes no serializer, and this file never re-renders a
+whole document through one regardless (see D-03 below); it splices bytes and re-parses its own
+splice as a self-check.
 """
 import argparse
 import hashlib
@@ -283,8 +287,8 @@ def _verify_signature(spliced_bytes, resolved, fields):
     defect this mirrors already uses -- an unwritable result, not a bad argument.
     """
     try:
-        reloaded = yaml.safe_load(spliced_bytes.decode("utf-8"))
-    except yaml.YAMLError as exc:
+        reloaded = harness_yaml.load_str(spliced_bytes.decode("utf-8"), "<spliced signature>")
+    except harness_yaml.YamlParseError as exc:
         raise harness_merge.MergeRefusal(
             5,
             [
@@ -316,8 +320,8 @@ def _verify_signature(spliced_bytes, resolved, fields):
 def _reload_or_refuse(spliced_bytes):
     """The spliced document, or a refusal naming the splice as the fault."""
     try:
-        return yaml.safe_load(spliced_bytes.decode("utf-8"))
-    except yaml.YAMLError as exc:
+        return harness_yaml.load_str(spliced_bytes.decode("utf-8"), "<spliced plan>")
+    except harness_yaml.YamlParseError as exc:
         raise harness_merge.MergeRefusal(
             5, ["UNPARSEABLE: the amended plan does not load — REFUSING to write it.",
                 f"  {exc}",
@@ -387,8 +391,8 @@ def _schema_error(doc):
 def _verify_spliced(spliced_bytes, base_doc, prop_doc, out_order, added_ids):
     """Refuse rather than return a splice that does not reload as the merge it reported."""
     try:
-        reloaded = yaml.safe_load(spliced_bytes.decode("utf-8"))
-    except yaml.YAMLError as exc:
+        reloaded = harness_yaml.load_str(spliced_bytes.decode("utf-8"), "<merged plan>")
+    except harness_yaml.YamlParseError as exc:
         raise harness_merge.MergeRefusal(
             5,
             [
@@ -514,8 +518,8 @@ def apply_merge(base_bytes, proposal_text):
         # The proposal may not supply that mapping: accepting any caller-owned value would let
         # `apply` mint an approved plan, bypassing cmd_sign_approval's identity gate.
         try:
-            prop_doc = yaml.safe_load(proposal_text)
-        except yaml.YAMLError as exc:
+            prop_doc = harness_yaml.load_str(proposal_text, "<proposal>")
+        except harness_yaml.YamlParseError as exc:
             raise harness_merge.MergeRefusal(
                 5, [f"UNPARSEABLE: proposal failed to parse: {exc}"]
             )
@@ -541,12 +545,12 @@ def apply_merge(base_bytes, proposal_text):
 
     base_text = base_bytes.decode("utf-8")
     try:
-        base_doc = yaml.safe_load(base_text)
-    except yaml.YAMLError as exc:
+        base_doc = harness_yaml.load_str(base_text, "<base plan>")
+    except harness_yaml.YamlParseError as exc:
         raise harness_merge.MergeRefusal(5, [f"UNPARSEABLE: base failed to parse: {exc}"])
     try:
-        prop_doc = yaml.safe_load(proposal_text)
-    except yaml.YAMLError as exc:
+        prop_doc = harness_yaml.load_str(proposal_text, "<proposal>")
+    except harness_yaml.YamlParseError as exc:
         raise harness_merge.MergeRefusal(5, [f"UNPARSEABLE: proposal failed to parse: {exc}"])
     base_doc = base_doc if isinstance(base_doc, dict) else {}
     prop_doc = prop_doc if isinstance(prop_doc, dict) else {}
@@ -920,9 +924,8 @@ def cmd_set_feature_station(args):
     sys.exit(0)
 def _load_panel_value(path):
     try:
-        with open(path, encoding="utf-8") as handle:
-            panel = yaml.safe_load(handle)
-    except (OSError, yaml.YAMLError) as exc:
+        panel = harness_yaml.load_file(path)
+    except harness_yaml.YamlParseError as exc:
         raise harness_merge.MergeRefusal(
             5, [f"plan-merge: cannot load panel value from {path}: {exc}"])
     required = {
@@ -1356,8 +1359,8 @@ def _expected_value(rendered, indent, field):
     item_indent = indent[:-2] if len(indent) >= 2 else ""
     probe = f"_p:\n{item_indent}- id: _x\n" + "".join(rendered)
     try:
-        doc = yaml.safe_load(probe)
-    except yaml.YAMLError:
+        doc = harness_yaml.load_str(probe, "<rendered field probe>")
+    except harness_yaml.YamlParseError:
         return None
     items = (doc or {}).get("_p")
     if not isinstance(items, list) or not items or not isinstance(items[0], dict):
@@ -1384,8 +1387,8 @@ def _parsed_value(raw, key, iid, field):
     defect: first a quoting rule, then form preservation, now value extraction.
     """
     try:
-        doc = yaml.safe_load(raw)
-    except yaml.YAMLError:
+        doc = harness_yaml.load_str(raw, "<base plan>")
+    except harness_yaml.YamlParseError:
         return _UNPARSEABLE
     for item in (doc or {}).get(key) or []:
         if isinstance(item, dict) and item.get("id") == iid:
@@ -1421,9 +1424,8 @@ def _structured_field_lines(indent, field, value):
 
 def _load_structured_value(path):
     try:
-        with open(path, encoding="utf-8") as handle:
-            value = yaml.safe_load(handle)
-    except (OSError, yaml.YAMLError) as exc:
+        value = harness_yaml.load_file(path)
+    except harness_yaml.YamlParseError as exc:
         _die(5, f"plan-merge: cannot load structured value from {path}: {exc}")
     if not isinstance(value, (list, dict)):
         _die(5, "plan-merge: --yaml-value requires a YAML list or mapping")
@@ -1478,8 +1480,8 @@ def cmd_amend(args):
         # cleanly and say which document is at fault.
         raw = base_bytes.decode("utf-8")
         try:
-            base_doc = yaml.safe_load(raw)
-        except yaml.YAMLError as exc:
+            base_doc = harness_yaml.load_str(raw, "<base plan>")
+        except harness_yaml.YamlParseError as exc:
             raise harness_merge.MergeRefusal(
                 8, [f"plan-merge: the plan on disk does not parse, so amend cannot tell whether "
                     f"its own splice made things worse — {exc}"])
