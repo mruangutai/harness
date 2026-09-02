@@ -1,0 +1,1004 @@
+schema: plan/1
+feature: FEAT-53-metrics-dashboard
+status: plan
+source_issues: []
+
+approval:
+  status: pending
+  approved_by: none
+  date: none
+
+lanes:
+  resolved_at: 38dd36222258240b5dab251eb48ef869fde35447
+  rows:
+    - surface: .claude/skills/harness/bin/**
+      lane: team
+      agent: harness-backend-dev | harness-dev-ops | harness-frontend-dev after T-01
+    - surface: .harness/harness.json
+      lane: team
+      agent: harness-dev-ops
+    - surface: .harness/harness/docs/**
+      lane: team
+      agent: harness-documentor
+    - surface: .harness/harness/features/FEAT-53-metrics-dashboard/notes/prototypes/**
+      lane: team
+      agent: harness-visual-designer
+    - surface: .harness/harness/features/*/touchpoints.jsonl
+      lane: team
+      agent: harness-orchestrator
+    - surface: .harness/team-config.yaml
+      lane: main-session-direct
+      reason: it is the file the domain hook reads to decide every route, so no agent may widen its own grant
+    - surface: .gitignore
+      lane: main-session-direct
+      reason: ungranted to every agent, and the ignore set decides whether the tree is dirty for every later team run
+    - surface: .claude/skills/harness/templates/gitignore.snippet
+      lane: main-session-direct
+      reason: ungranted to every agent, and it is the distributed copy of the same ignore set
+    - surface: .harness/metrics/trend.jsonl
+      lane: main-session-direct
+      reason: the ship-time append happens in the user-gated ship step and the path is granted to no agent
+
+decisions:
+  - id: D-01
+    choice: The dashboard's server and client source live under .claude/skills/harness/bin/dashboard/, never under web/src/ or src/.
+    because: the authored skill tree IS the distribution now that deploy.sh is gone, and product-side globs resolve to NOBODY in the harness base.
+    dec: DEC-202
+  - id: D-02
+    choice: harness-frontend-dev is granted .claude/skills/harness/bin/dashboard/client/** by T-01 before any client task runs.
+    because: its only source grant today is a product-side glob that reaches nothing in this checkout, so without T-01 the client falls to backend-dev.
+    dec: DEC-189
+  - id: D-03
+    choice: The server is python3 stdlib ThreadingHTTPServer with a hand-written route table and no web framework; rejected FastAPI plus uvicorn, Flask, and a Node server.
+    because: three read-only loopback GET routes do not repay a framework, and each added runtime import becomes a hard prerequisite gate with a loud failure.
+    dec: DEC-190
+  - id: D-04
+    choice: The client is built at development time and its bundle committed under bin/dashboard/client/dist/; rejected build-on-first-start and CDN-loaded React.
+    because: REQ-01 and REQ-02 forbid a per-project build step and no onboarded project can be assumed to have Node.
+    dec: none
+  - id: D-05
+    choice: The server binds 127.0.0.1 only, with no flag to bind any other interface and no authentication.
+    because: a read-only local instrument panel on a single-operator machine has no threat model that a bind flag would not create.
+    dec: DEC-193
+  - id: D-06
+    choice: The dashboard starts on demand from one documented command, recomputes every KPI per request, and runs no background refresh job and no lifecycle auto-start.
+    because: a full recomputation projects to about 3.6 seconds at this repo's scale once T-06 pins the single-call git diff form, which is still cheaper than any staleness policy; the 1.1 second figure this decision carried before was taken before the per-branch change-size work T-06 specifies existed and is superseded by the per-item measurement of 2026-09-01.
+    dec: none
+  - id: D-07
+    choice: The client is React with TanStack Router and TanStack Query, on the Astryx substrate; no second component substrate is introduced.
+    because: the astryx-design-system convention makes a second substrate a Decision, and nothing here needs one.
+    dec: none
+  - id: D-08
+    choice: Charting is TanStack Charts at alpha, pinned as @tanstack/charts with its /react adapter; the fallback trigger is any of CAP-01, CAP-05, CAP-07 or CAP-11 unmet at T-18's probe, and NO FALLBACK LIBRARY IS NAMED - what to do when the trigger fires is an operator decision outstanding at signature.
+    because: alpha risk is accepted only while the four hard capabilities hold, and a named trigger keeps the swap a decision rather than a rescue - but the package this decision named before, npm react-charts, cannot be the net - its newest publication is 2023-11-02 and its peer is React 16, against this client's React 19 substrate, so it will not install beside Astryx at all. The two live options are to accept the alpha with a documented rollback, or to name a second, live charting library, which DESIGN requires be its own Decision. Recommendation - accept the alpha with a rollback, because T-18 now probes all thirteen capabilities before one line of client UI exists, so a STOP costs only the toolchain task and the operator can choose a library then with the probe in hand rather than now on speculation.
+    dec: none
+  - id: D-09
+    choice: No database and no cache at launch; a derived, gitignored, rebuildable SQLite cache over trend.jsonl is the named future lever and is not built now.
+    because: the measured cost of recomputation is about 3.6 seconds projected at this repo's scale, so a cache would add a staleness class of bug for a saving the single operator does not feel; T-12 re-measures it against an 8.0 second ceiling every run, so the deferral stays falsifiable rather than assumed.
+    dec: none
+  - id: D-10
+    choice: Trend data is appended one JSON line per ship to .harness/metrics/trend.jsonl and history is never recomputed or backfilled.
+    because: regrading about 967 commits costs roughly 16 minutes and would invent a past that was never measured.
+    dec: DEC-95
+  - id: D-11
+    choice: Trend fields live in trend.jsonl rather than in new feature.json keys.
+    because: the feature.json key set is closed with additionalProperties false, so extending it means a schema bump and a migration across every feature.
+    dec: DEC-191
+  - id: D-12
+    choice: KPI 5 reports the at-or-above-bar share plus the named grade-1 and grade-2 outlier list, and no central tendency appears in the payload at all.
+    because: a mean over per-record bars is not a statement anyone can act on.
+    dec: none
+  - id: D-13
+    choice: KPI 6 ships as usage by agent and model tier with named unattributed buckets no-prefix, human and unresolvable-step-id, never a two-bucket split.
+    because: measured at this repo, 753 of 975 commit subjects carry no harness prefix at all, so silent dropping would misreport three quarters of the work.
+    dec: DEC-155
+  - id: D-14
+    choice: Cycle time starts at plan.yaml approval.date, day granularity, and ends at the shipped_at of the feature's trend record.
+    because: approval.date is written structurally by plan-merge.py sign-approval and is populated for 41 of 54 features, so no prose needs parsing.
+    dec: DEC-182
+  - id: D-15
+    choice: An escaped defect is a BUG-NN feature unit whose directory first appears in the window, plus any commit whose subject begins Revert on the default branch; subjects beginning fix are excluded.
+    because: BUG-NN units and Revert commits are conventions every onboarded project shares, while fix subjects are mostly within-feature repairs and would inflate the count.
+    dec: none
+  - id: D-16
+    choice: A blocking human touchpoint is recorded at the moment it happens by appending one line to the feature's touchpoints.jsonl, for exactly three events - an approval signature request, an escalation that reaches the user, and a request to execute a UAT.
+    because: a count reconstructed later from prose logs is not a measurement, and the per-feature file merges the way every other harness artifact does.
+    dec: DEC-95
+  - id: D-17
+    choice: The entry point is one script at .claude/skills/harness/bin/dashboard/serve.py and no new slash command is added.
+    because: .claude/commands/** is granted to no agent, so a command file would add a main-session-only surface for no capability.
+    dec: DEC-174
+  - id: D-18
+    choice: A trend record is a single JSON object per line carrying schema, feature_id, shipped_at, approved_on, cycle_time_days, runs, cycles_used, max_total_cycles, insertions, deletions, files_changed, touchpoints, grade and attribution objects, plus an unavailable map.
+    because: fixing the schema now is what lets the reader distinguish a genuine zero from an absent measurement without guessing.
+    dec: none
+  - id: D-19
+    choice: Any value that cannot be computed is emitted as null with an entry in the sibling unavailable map whose value is a SPECIFIC SENTENCE naming the reason - no approval date in plan.yaml, never no data; zero is reserved for a measured zero; and a missing value is never interpolated and never substituted from a neighbouring feature.
+    because: REQ-11, SC-07 and DESIGN S-4 all rest on one mechanism, and two mechanisms would drift. The specific-sentence clause and the no-substitution clause live HERE because T-06, T-10, T-11 and T-14 all cite this decision as their authority; with them stated only inside T-06's intent, a reader who consulted the named authority alone got a weaker rule than the one the code implements.
+    dec: none
+  - id: D-20
+    choice: The dashboard HAS a client build at all - React with TanStack Router and Query on the Astryx substrate, an npm package under bin/dashboard/client/, and a committed dist bundle - rather than a server-rendered HTML surface with no npm anywhere.
+    because: the user settled React plus TanStack at the grilling (.harness/notes/grilling-metrics-dashboard-2026-09-01.md lines 76-78, and lines 20-22 for the live-server-not-static-HTML choice), and D-07 answers WHICH substrate while never arguing whether to have one, so this was the plan's one unwritten decision. Engineering's plan review records the live alternative, and it is new information - a server-rendered HTML surface off the same stdlib server satisfies REQ-01 and REQ-12 too, and would delete three of the four firsts - the frontend framework, package.json and the committed bundle - plus the entire alpha-charting risk. What the grilling rejected was the render-brief.py static-HTML-from-markdown convention, which is not the same thing as server-rendered HTML from this live server, so the alternative was never actually put to the operator. Recommendation - keep the client build, because REQ-12's browser drill across three routes with URL-held state is what the plan is built around and hand-written HTML would re-implement a router; but this reaches the operator at signature as an explicit yes or no.
+    dec: none
+
+tasks:
+  - id: T-01
+    title: Grant harness-frontend-dev the dashboard client subtree in team-config.yaml
+    traces: [REQ-12]
+    change_type: config
+    execution_mode: main-session-direct
+    execution_reason: team-config.yaml is the file the domain hook reads to decide every route, so no agent may widen its own grant
+    depends_on: []
+    status: ready
+    files:
+      - .harness/team-config.yaml
+    verify: |
+      bash .claude/skills/harness/bin/check-domain.sh --resolve .claude/skills/harness/bin/dashboard/client/src/App.tsx | grep -qx harness-frontend-dev
+    intent: |
+      In .harness/team-config.yaml, under teams -> Engineering -> members -> harness-frontend-dev ->
+      domain, add one entry immediately after the existing web/src/** entry:
+        - { path: .claude/skills/harness/bin/dashboard/client/**, upsert: true }
+      with a trailing comment saying it is the metrics dashboard client, control-plane source under
+      FEAT-53 D-01. Change nothing else in the file: no reordering, no reflowing, no other member.
+      This is a widening, not a move. harness-backend-dev and harness-dev-ops keep
+      .claude/skills/harness/bin/** and therefore keep this subtree too; the point is that the client
+      tasks route to the frontend specialist rather than to a backend one.
+      Do not touch the shared: block and do not add web/src/** anywhere else.
+  - id: T-02
+    title: Ignore the client node_modules and vite cache in the snippet and in this repo's gitignore
+    traces: [REQ-01]
+    change_type: config
+    execution_mode: main-session-direct
+    execution_reason: .gitignore and templates/gitignore.snippet are granted to no agent
+    depends_on: []
+    status: ready
+    files:
+      - .claude/skills/harness/templates/gitignore.snippet
+      - .gitignore
+    verify: |
+      bash .claude/skills/harness/bin/merge-gitignore.sh . --check && git check-ignore -q .claude/skills/harness/bin/dashboard/client/node_modules/react/package.json && git check-ignore -q .claude/skills/harness/bin/dashboard/client/.vite/x
+    intent: |
+      Add exactly two rules to .claude/skills/harness/templates/gitignore.snippet, with a comment
+      saying an installed dependency tree dirties the working tree and a dirty tree halts the next
+      team run, which is the same reason the run-dir rule above it exists:
+        .claude/skills/harness/bin/dashboard/client/node_modules/
+        .claude/skills/harness/bin/dashboard/client/.vite/
+      Then run: bash .claude/skills/harness/bin/merge-gitignore.sh .
+      so this repository's own .gitignore receives the same two rules under the harness marker block.
+      Do NOT ignore the dist/ directory: the built bundle is committed on purpose (D-04), and an
+      ignore rule over it would silently untrack the one artifact REQ-01 depends on.
+  - id: T-03
+    title: Pre-declare the two integration test literals in harness.json integration.detect
+    traces: [REQ-01, REQ-10]
+    change_type: config
+    execution_mode: team
+    execution_agent: harness-dev-ops
+    depends_on: []
+    status: ready
+    files:
+      - .harness/harness.json
+    verify: |
+      bash .claude/skills/harness/bin/run-unit-tests.sh --check-kinds && python3 -c "import json;d=json.load(open('.harness/harness.json'));s={p.strip() for p in d['test_kinds']['integration']['detect'].split('|')};assert '.claude/skills/harness/bin/test-metrics-dashboard.py' in s;assert '.claude/skills/harness/bin/test-metrics-trend.py' in s"
+    intent: |
+      Append two literal paths to the pipe-separated string at
+      .harness/harness.json test_kinds.integration.detect, keeping the existing entries and their
+      order untouched:
+        .claude/skills/harness/bin/test-metrics-dashboard.py
+        .claude/skills/harness/bin/test-metrics-trend.py
+      Change nothing else in harness.json. Do not add either name to run-unit-tests.sh: a name in
+      INTEGRATION_SCRIPTS whose file does not exist yet makes the suite FAIL, whereas an extra
+      declared detect literal with no file is inert. The tasks that create those two files register
+      them in the bash array themselves.
+      This task exists because the two lists live in files with different owners, and doing it here
+      is what keeps every later commit boundary green.
+  - id: T-04
+    title: Stand up the client toolchain and pin Astryx, React and TanStack at exact versions
+    traces: [REQ-01, REQ-14]
+    change_type: scaffolding
+    execution_mode: team
+    execution_agent: harness-dev-ops
+    depends_on: [T-02]
+    status: ready
+    files:
+      - .claude/skills/harness/bin/dashboard/client/package.json
+      - .claude/skills/harness/bin/dashboard/client/tsconfig.json
+      - .claude/skills/harness/bin/dashboard/client/vite.config.ts
+      - .claude/skills/harness/bin/dashboard/client/index.html
+      - .claude/skills/harness/bin/dashboard/client/package-lock.json
+    verify: |
+      python3 -c "import json,re;p=json.load(open('.claude/skills/harness/bin/dashboard/client/package.json'));d=dict(p.get('dependencies',{}),**p.get('devDependencies',{}));missing=[k for k in ['react','react-dom','@astryxdesign/core','@tanstack/react-router','@tanstack/react-query','@tanstack/charts','d3-scale','vite','typescript'] if not re.match(r'^[0-9]+\.[0-9]+\.[0-9]+',str(d.get(k,'')))];assert not missing, missing"
+    intent: |
+      Create the client package under .claude/skills/harness/bin/dashboard/client/.
+      package.json: private true, type module, name harness-metrics-client, scripts build set to
+      "vite build" and dev set to "vite". Every dependency version is an EXACT pin - a bare
+      x.y.z literal, no caret and no tilde - because DESIGN Q1 records that no version of
+      @astryxdesign/core is pinned anywhere in this repository and inventing a range would leave it
+      unpinned again. Pin, at their current stable releases resolved at install time:
+      react, react-dom, @astryxdesign/core, @tanstack/react-router, @tanstack/react-query,
+      @tanstack/charts (the alpha, D-08) - pin THAT package and import its /react adapter
+      subpath, NEVER @tanstack/react-charts, which its own README calls a compatibility package
+      kept for existing applications rather than the path for new work - and d3-scale as a DIRECT
+      pin, because CAP-07's temporal axis needs scaleUtc or scaleTime and the library's compact
+      scaleBand and scalePoint treat Date values as equally spaced categories, which renders a
+      plausible non-throwing line while fabricating exactly the cadence CAP-07 forbids. As
+      devDependencies: vite, typescript, @types/d3-scale and @vitejs/plugin-react.
+      Run npm install in that directory and COMMIT the resulting package-lock.json.
+      vite.config.ts: base set to "./" so the bundle works from any mount path, build.outDir set to
+      "dist", build.sourcemap false, and a single-chunk output so dist stays small enough to commit.
+      tsconfig.json: strict true, jsx react-jsx, moduleResolution bundler, target ES2022, noEmit.
+      index.html: one div with id root and a module script pointing at src/main.tsx.
+      Report the resolved @astryxdesign/core version in your DIGEST - it answers DESIGN Q1 and
+      nothing downstream can name it until you do.
+      If node or npm is absent on the machine, STOP and report it rather than working around it.
+  - id: T-05
+    title: Build the fixture-payload prototype covering the drill, both themes and all four gap states
+    traces: [REQ-11, REQ-12]
+    change_type: scaffolding
+    execution_mode: team
+    execution_agent: harness-visual-designer
+    depends_on: []
+    status: building
+    files:
+      - .harness/harness/features/FEAT-53-metrics-dashboard/notes/prototypes/FEAT-53/index.html
+      - .harness/harness/features/FEAT-53-metrics-dashboard/notes/prototypes/FEAT-53/README.md
+      - .harness/harness/features/FEAT-53-metrics-dashboard/notes/prototypes/FEAT-53/package.json
+      - .harness/harness/features/FEAT-53-metrics-dashboard/notes/prototypes/FEAT-53/vite.config.js
+      - .harness/harness/features/FEAT-53-metrics-dashboard/notes/prototypes/FEAT-53/.gitignore
+      - .harness/harness/features/FEAT-53-metrics-dashboard/notes/prototypes/FEAT-53/src/
+    verify: |
+      python3 -c "import pathlib,sys;d=pathlib.Path('.harness/harness/features/FEAT-53-metrics-dashboard/notes/prototypes/FEAT-53');f=[p for p in d.rglob('*') if p.is_file() and 'node_modules' not in p.parts and p.suffix in {'.html','.md','.js','.jsx','.ts','.tsx','.json','.css'}];sys.exit('no prototype source files') if not f else None;t=''.join(p.read_text(errors='ignore') for p in f);[sys.exit('missing '+k) for k in ['S-1','S-2','S-3','S-4','30d','90d'] if k not in t]"
+    intent: |
+      ALREADY IN FLIGHT - harness-visual-designer is building this now, approved rather than waived
+      under DESIGN's prototype gate. This entry records the contract it is being built against and
+      the check it must pass; it is not a dispatch to start the work again.
+      The prototype is a high-fidelity Astryx and React build over a HAND-WRITTEN FIXTURE PAYLOAD,
+      never live data, showing simultaneously: the landing 3x2 tile grid in DESIGN C-1's fixed order;
+      one KPI panel (grading, the panel that does not collapse to a figure - histogram beside the
+      named grade-1/grade-2 outlier table); the aggregate to rows to feature drill across the three
+      C-1 routes; the window control with tokens 30d, 90d and all; light and dark from one
+      defineTheme call; and all four C-4 states at once - S-1 with no axes at all, S-2 with axes
+      drawn and a broken line plus hatched table cells, S-3's persistent Python-only caveat beneath
+      the histogram, and S-4's unavailable-versus-zero pair differing in glyph, typography, fill and
+      badge.
+      Fixture numbers are invented EXCEPT the file-mix digits: 107, 12, 3, 122 and 12 percent are
+      this repository's measured mix and would seed the literal SC-06 forbids.
+      The four labels S-1 through S-4 appear as text so a reviewer can point at each.
+      If the built artifact diverges from this contract, that is a finding for the plan, not a
+      silent amendment to DESIGN.md.
+  - id: T-18
+    title: Probe the alpha charting API against CAP-01 through CAP-13 before any client UI exists
+    traces: [REQ-07, REQ-10, REQ-11]
+    change_type: scaffolding
+    execution_mode: team
+    execution_agent: harness-frontend-dev
+    depends_on: [T-01, T-04]
+    status: ready
+    files:
+      - .claude/skills/harness/bin/dashboard/client/CAP-probe.md
+    verify: |
+      python3 -c "import pathlib,re,sys;t=pathlib.Path('.claude/skills/harness/bin/dashboard/client/CAP-probe.md').read_text();[sys.exit('missing CAP-%02d' % i) for i in range(1,14) if 'CAP-%02d' % i not in t];sys.exit(0 if re.search(r'^VERDICT: (PROCEED|STOP)$', t, re.M) else 'no VERDICT: PROCEED or VERDICT: STOP line')"
+    intent: |
+      Put each of CAP-01 through CAP-13 to the alpha charting API T-04 pinned, and write CAP-probe.md
+      beside the client package. WRITE NO CHART COMPONENT AND NO UI HERE. This task exists so D-08's
+      fallback question is answered BEFORE the client shell and the panels are built: a trigger
+      evaluated after the client is sunk is not a gate, it is a rescue under pressure, which is the
+      exact dynamic D-08's own reasoning disclaims.
+      The file lives in the client tree rather than under notes/prototypes/ because that directory is
+      the visual designer's grant and you cannot write it.
+      One row per capability: the id, met or not met, the exact API surface you used or the reason it
+      is absent, and where DESIGN names a fallback for an absent capability, that you took it. Probe
+      against synthetic data in a throwaway entry point and delete that entry point before you finish.
+      TWO capabilities pass a lazy probe while being unmet, and each row must say what you actually
+      did:
+      CAP-07 - render two points one day apart and two points sixty days apart on the SAME series and
+      report the pixel-gap ratio, which must approximate 1 to 60. The x scale must be d3-scale's
+      scaleUtc or scaleTime; the compact scaleBand and scalePoint treat Date values as equally spaced
+      categories, so a naive does-it-render probe returns a plausible line that fabricates the cadence
+      CAP-07 forbids.
+      CAP-01 - render five rows over a FIXED five-category domain with one category at count 0 and
+      report that FIVE bars exist, not four; an inferred domain silently drops the empty category.
+      CAP-05 - say in its row that it is inert as a trigger: it is app composition, not a library
+      capability, so it passes for any library and can never itself fire the fallback.
+      CAP-11 - the dash pattern is a per-series channel and is crisp; marker SHAPE beyond the built-in
+      dot and hexagon needs a custom mark via createMark, so square and triangle are authorable rather
+      than free. State which reading you applied, because that is what decides met or unmet.
+      END THE FILE with one line, exactly VERDICT: PROCEED or exactly VERDICT: STOP, and nothing
+      after it. STOP is required when any of CAP-01, CAP-05, CAP-07 or CAP-11 is unmet (D-08's
+      trigger). On STOP: write nothing else, return the probe as your artifact, and say in your DIGEST
+      that no fallback library is named and the choice is the operator's (D-08). YOUR VERIFY PASSES ON
+      EITHER VERDICT - recording an honest STOP is this task succeeding, not failing, and T-13, T-14
+      and T-15 all wait on you.
+  - id: T-06
+    title: Build the KPI core with per-project resolution, throughput, rework and the unavailability contract
+    traces: [REQ-02, REQ-03, REQ-04, REQ-11]
+    change_type: logic
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: []
+    status: ready
+    files:
+      - .claude/skills/harness/bin/dashboard/kpi.py
+      - .claude/skills/harness/bin/test-metrics-kpi.py
+      - .claude/skills/harness/bin/run-unit-tests.sh
+      - .claude/skills/harness/bin/dashboard/fixtures/project-a/
+    verify: |
+      bash .claude/skills/harness/bin/run-unit-tests.sh --check-kinds && python3 .claude/skills/harness/bin/test-metrics-kpi.py
+    intent: |
+      Write the failing tests first, then the module. Create kpi.py exposing
+      compute(project_root: Path, window: str) -> dict, where window is one of 30d, 90d, all.
+      It resolves EVERYTHING from project_root and reads no path relative to the process cwd and no
+      value from this repository: the feature directories are project_root/.harness/*/features/*,
+      each carrying feature.json (feature_id, branch, pr, review_sha, cycles_used,
+      max_total_cycles, runs) and plan.yaml (approval.status, approval.date).
+      Read every plan.yaml through harness_yaml.load_plan from
+      .claude/skills/harness/bin/harness_yaml.py, never a bare yaml.safe_load: that module exists
+      because a from-scratch parse failed on 35 of 36 real task blocks for reasons an author would
+      not predict, and every other caller in this tree already goes through it. Catch its
+      YamlParseError and PlanSchemaError and route each to that feature's unavailable map with the
+      reason, rather than letting compute() raise - a foreign project's plan.yaml may be
+      station-only or malformed and that is a gap state, not a crash.
+      The returned payload is
+        {schema: "kpi/1", project: {root, name}, window, generated_at,
+         features: [ {feature_id, approved_on, shipped_at, cycle_time_days, runs, cycles_used,
+                      max_total_cycles, insertions, deletions, files_changed, touchpoints,
+                      unavailable: {}} ],
+         aggregate: {throughput: {...}, rework: {...}, touchpoints: {...}, escaped_defects: {...},
+                     grading: {...}, attribution: {...}, unavailable: {}},
+         trend: {points: [], unavailable: {}}}
+      This task fills throughput and rework and leaves the other four aggregate keys as null with an
+      unavailable reason "not yet implemented"; later tasks replace them.
+      THE UNAVAILABILITY CONTRACT, which every later task obeys: a value that cannot be computed is
+      null AND carries an entry in its object's sibling unavailable map whose value is a specific
+      sentence - "no approval date in plan.yaml", not "no data". Zero is written only for a measured
+      zero. Never interpolate and never substitute a neighbouring feature's value.
+      Throughput per feature: cycle_time_days = shipped_at minus approval.date in days, where
+      approved_on comes from plan.yaml approval.date (D-14) and shipped_at from the feature's trend
+      record when one exists, else null with reason "no ship record for this feature". Aggregate
+      throughput is the MEDIAN over features with both ends present, plus the count of features
+      excluded and why. runs is len(feature.json runs); change size is insertions, deletions and
+      files_changed from ONE git diff --numstat <default-branch>...<feature-branch> subprocess per
+      feature - the three-dot form in a single call, NEVER a git merge-base call followed by a
+      second git diff, which measured 56ms per branch against 33.5ms and would spend about a
+      second of the request budget for nothing - null with a reason when the branch is gone.
+      Rework per feature: cycles_used and max_total_cycles verbatim from feature.json; the aggregate
+      is the sum of each, reported as both terms and never as a lone ratio.
+      Window filtering keys on shipped_at; 30d and 90d are relative to generated_at, all is
+      unfiltered. A feature with no shipped_at is in the all window only.
+      Expose that rule ONCE as resolve_window(token, generated_at) -> (start, end) in kpi.py and
+      make it the only place any window boundary is decided; T-08, T-09 and T-10 call it rather
+      than restating it. Four private implementations disagreeing at an edge - calendar days
+      versus 24 hours, inclusive versus exclusive - would count a feature inside the 90d window
+      for throughput and outside it for attribution, a silent cross-KPI inconsistency no
+      fixture-local test would catch.
+      Build fixture project-a under dashboard/fixtures/ - its own .harness/ tree with three feature
+      directories whose ids do not exist in this repository, one of them with no approval date and
+      one with no ship record, and a hand-written expected-values JSON beside it. The tests assert
+      against the HAND-LABELLED numbers, never against a second call of the same code.
+      Register test-metrics-kpi.py in run-unit-tests.sh UNIT_SCRIPTS. Do not add it to harness.json.
+      Every function must grade at or above its bar under code-grade.py.
+  - id: T-07
+    title: Add the grading distribution KPI and the per-project ungraded share
+    traces: [REQ-07, REQ-08]
+    change_type: logic
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-06]
+    status: ready
+    files:
+      - .claude/skills/harness/bin/dashboard/grading.py
+      - .claude/skills/harness/bin/dashboard/kpi.py
+      - .claude/skills/harness/bin/test-metrics-kpi.py
+    verify: |
+      python3 .claude/skills/harness/bin/test-metrics-kpi.py
+    intent: |
+      Write the failing tests first. grading.py exposes
+      distribution(project_root: Path) -> dict, computed live at call time for the project passed in.
+      Run the grader as a subprocess with cwd set to project_root, because code-grade.py resolves the
+      git root from cwd and would otherwise grade THIS repository:
+        python3 <harness bin>/code-grade.py --json <every tracked .py path in project_root>
+      obtained from git -C project_root ls-files. Parse its JSON:
+      {records: [{path, line, qualname, cyclomatic, cognitive, abc, grade, driver, bar, result,
+      severity}], passing, ungraded}.
+      at_or_above_bar IS payload["passing"], read straight from that JSON. Do NOT re-derive it by
+      comparing each record's grade against its bar: code-grade.py already computes exactly that
+      predicate, and a second spelling of it here drifts silently the first time the bar rule is
+      refined. at_or_above_bar_share is that count over len(payload["records"]). Iterate records
+      only for what code-grade.py does not return - bins, outliers and file_mix.
+      Return
+        {graded_functions, at_or_above_bar, at_or_above_bar_share,
+         bins: {1: n, 2: n, 3: n, 4: n, 5: n},
+         outliers: [ {qualname, path, line, grade, driver, bar} ]  sorted by grade then path,
+         languages_covered: ["python"],
+         file_mix: {tracked_files, graded_files, ungraded_files, ungraded_share,
+                    by_extension: {".sh": n, ".ts": n, ...}},
+         sourcing_rule: "<one sentence naming code-grade.py whole-repo mode and the per-record bar>"}
+      outliers holds EVERY grade-1 and grade-2 record, named. NO MEAN, NO MEDIAN and no other central
+      tendency appears anywhere in this object - a payload carrying one is the failure D-12 forbids.
+      bins keeps an empty grade as an explicit 0, never a dropped key, because DESIGN CAP-01 forbids
+      a silently dropped category.
+      file_mix is counted from git -C project_root ls-files at call time. NO LITERAL of this
+      repository's own mix - not 107, 12, 3, 122 or 12 percent - may appear in any source file, a
+      default argument, a docstring example or a fixture that production code imports. SC-06 reads
+      the shipped source at review_sha for exactly those digits.
+      SC-06's DECLARED UNIT EVIDENCE IS A CASE IN test-metrics-kpi.py, and this is the only check
+      in the plan that reaches backend source: for every path git -C <root> ls-files returns under
+      .claude/skills/harness/bin/dashboard/, read that path's COMMITTED bytes with
+      git show HEAD:<path> - never the working tree, so an uncommitted file cannot evade the sweep
+      and the sweep grades the same bytes review_sha does - and assert that neither the literal
+      107 nor the literal 122 appears. Assert FIRST that the path list is non-empty, so an errored
+      git call cannot pass as a clean sweep. Demonstrate the case failing before you make it pass,
+      by seeding one of those digits into a scratch copy.
+      The tokens 12 and 3 are deliberately NOT grepped: they occur inside 1024, 3x2 and ES2022,
+      all of which this feature legitimately ships, so a literal grep for them cannot discriminate
+      a seeded mix figure from an unrelated number. BRIEF's Verification gaps records that those
+      two are carried by SC-15's inspection instead, and this task must not pretend otherwise.
+      Wire the result into kpi.py's aggregate.grading. Extend test-metrics-kpi.py: assert the
+      at-or-above-bar share and the named outlier list against fixture project-a's hand-labelled
+      values, assert that a payload with only a central tendency fails, and assert the ungraded share
+      CHANGES when a fixture file of a new extension is added.
+  - id: T-08
+    title: Add the escaped-defect KPI with its sourcing rule carried in the payload
+    traces: [REQ-05]
+    change_type: logic
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-06]
+    status: ready
+    files:
+      - .claude/skills/harness/bin/dashboard/defects.py
+      - .claude/skills/harness/bin/dashboard/kpi.py
+      - .claude/skills/harness/bin/test-metrics-kpi.py
+    verify: |
+      python3 .claude/skills/harness/bin/test-metrics-kpi.py
+    intent: |
+      Write the failing tests first. defects.py exposes
+      escaped(project_root: Path, window) -> dict implementing D-15 exactly:
+      an escaped defect is (a) a feature unit under project_root/.harness/*/features/ whose directory
+      name begins BUG- followed by digits, dated by the author date of the first commit that added
+      its directory (git -C project_root log --diff-filter=A --format=%aI -1 -- <dir>), and (b) any
+      commit on the default branch whose subject begins with "Revert " - git -C project_root log
+      --format=%H%x09%aI%x09%s. A subject beginning with "fix" is NOT counted, and the returned
+      sourcing_rule sentence says so, because most fix subjects are within-feature repairs.
+      Return {count, items: [{kind: bug_unit or revert, id, date, subject}], window,
+      sourcing_rule: "<the full rule as one sentence, including the fix exclusion>"}.
+      sourcing_rule travels IN THE PAYLOAD because REQ-05 and SC-13 require the rule to be shown
+      beside the number; it is not a comment and not documentation.
+      A project with no BUG-NN units and no reverts reports count 0 - a measured zero, not
+      unavailable. Unavailable applies only when git history cannot be read, and then the reason
+      names that.
+      Extend test-metrics-kpi.py: build a fixture git history with two BUG units, one Revert commit
+      and two commits whose subjects begin with fix, and assert count equals the hand-labelled 3 and
+      that both fix commits are absent from items.
+      Take the window boundary from kpi.resolve_window(token, generated_at) (T-06). Do not restate
+      the 30d/90d rule here - one authority, four callers.
+  - id: T-09
+    title: Join commit prefix to step id to execution_agent to model tier for the usage KPI
+    traces: [REQ-09]
+    change_type: logic
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-06]
+    status: ready
+    files:
+      - .claude/skills/harness/bin/dashboard/attribution.py
+      - .claude/skills/harness/bin/dashboard/kpi.py
+      - .claude/skills/harness/bin/test-metrics-kpi.py
+    verify: |
+      python3 .claude/skills/harness/bin/test-metrics-kpi.py
+    intent: |
+      Write the failing tests first. This is the join the grilling refused to assume was free.
+      attribution.py exposes by_tier(project_root: Path, window) -> dict.
+      For every commit in the window, read the subject and match a leading harness prefix of the
+      form [harness:<token>].
+      Resolution ladder, in order:
+        1. no match at all -> bucket no_prefix;
+        2. the token is "human" -> bucket human;
+        3. the token is a comma list -> split it and resolve each element, attributing the commit to
+           the first element that resolves;
+        4. an element of the form t-NN -> look it up in the plan.yaml of the feature that owns
+           the commit's branch, take that task's execution_agent, read
+           project_root/.claude/agents/<agent>.md front matter for its model: value, and bucket by
+           that model name;
+        5. an element of the form FEAT-NN or BUG-NN with no task id -> bucket feature_only;
+        6. anything else, or a task id absent from the plan, or an agent file with no model: key ->
+           bucket unresolvable_step_id.
+      Return {by_tier: {"<model>": n, ...}, unattributed: {no_prefix, human, feature_only,
+      unresolvable_step_id}, attributable_share, total_commits}.
+      EVERY bucket is reported by name and no commit is ever dropped from the totals - measured at
+      this repository, 753 of 975 subjects carry no prefix, so a two-bucket split would misreport
+      three quarters of the work. by_tier keys are the model names found, not a hardcoded pair.
+      Extend test-metrics-kpi.py with a fixture history whose commits resolve to two different model
+      tiers plus one commit whose step id is absent from the plan, and assert both tiers appear and
+      that the unresolvable commit is present in unresolvable_step_id and counted in total_commits.
+      Take the window boundary from kpi.resolve_window (T-06), and load every plan.yaml through
+      harness_yaml.load_plan, the same reader T-06 uses.
+      MEMOIZE that load by feature_id inside by_tier so one feature's plan.yaml is parsed once
+      however many commits resolve to it: measured at this repo, 63 commits carry a t-NN token
+      across at most 51 features, and the redundant re-parses cost about 0.78 seconds, 15 to 18
+      percent of the whole per-request budget, for data the same compute() call already holds.
+  - id: T-10
+    title: Define the trend record, its reader, and the append-only ship writer
+    traces: [REQ-10, REQ-11]
+    change_type: api
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-03, T-07, T-09]
+    status: ready
+    files:
+      - .claude/skills/harness/bin/dashboard/trend.py
+      - .claude/skills/harness/bin/dashboard/kpi.py
+      - .claude/skills/harness/bin/test-metrics-trend.py
+      - .claude/skills/harness/bin/run-unit-tests.sh
+    verify: |
+      bash .claude/skills/harness/bin/run-unit-tests.sh --check-kinds && python3 .claude/skills/harness/bin/test-metrics-trend.py
+    intent: |
+      Write the failing tests first. trend.py owns the only write in this whole feature.
+      RECORD (D-18), one JSON object per line, keys sorted, no trailing spaces, exactly one newline:
+        schema "trend/1", feature_id, shipped_at (RFC3339 UTC), approved_on (YYYY-MM-DD or null),
+        cycle_time_days (float or null), runs, cycles_used, max_total_cycles,
+        insertions, deletions, files_changed, touchpoints (int or null),
+        grade {graded_functions, at_or_above_bar, bins, grade_1, grade_2, ungraded_files,
+        tracked_files}, attribution {by_tier, unattributed}, and unavailable {field: reason}.
+      append(project_root, record) opens project_root/.harness/metrics/trend.jsonl with mode "a",
+      creating the directory if absent, writes ONE line, and never rewrites, sorts, dedupes or
+      truncates the file. It reads the existing bytes only to assert its own append did not disturb
+      them. It refuses a record whose feature_id already appears, exiting non-zero and naming the
+      duplicate, rather than writing a second one.
+      A duplicate feature_id that arrives through a git MERGE is a DIFFERENT case and read() owns
+      it - append()'s refusal is a check against the local copy and cannot see a line another
+      worktree merged in. Two lines carrying one feature_id is never silently first-wins: read()
+      keeps the record with the later shipped_at and reports the discarded one in the unavailable
+      map with a reason naming both timestamps, so a ship retried after an aborted first attempt
+      is visible rather than invisible.
+      read(project_root, window) returns the parsed points for the window plus an unavailable map;
+      a missing file, a zero-line file, and a line that does not parse are three DIFFERENT reasons
+      and each is reported as its own sentence. A feature with no record gets null trend values with
+      the reason "shipped before metrics existed", never zero and never an interpolation. Wire that
+      into kpi.py's trend key.
+      A line whose schema value is not trend/1 is REJECTED with its own reason sentence naming the
+      value found, never parsed as though it were trend/1 - a future trend/2 must fail loudly
+      rather than be mis-read as this version.
+      A nested object (grade, attribution) is ATOMIC: it either computes whole or its whole key
+      carries one reason in the unavailable map. There is no dotted-path partial form, so no
+      reader has to guess what a half-computed grade means.
+      read() also returns each series PRE-SEGMENTED into contiguous runs - a null or missing point
+      ends the current run and the next valid point starts a new one - so the client renders one
+      line per run and never decides where a gap belongs. This is UNCONDITIONAL and does not
+      depend on what the charting library does with nulls: the conditional version put a backend
+      computation behind a frontend task's grant, which it does not have.
+      Take the window boundary from kpi.resolve_window (T-06).
+      Create test-metrics-trend.py and register it in run-unit-tests.sh INTEGRATION_SCRIPTS - T-03
+      has already declared its literal in harness.json, so add it to the bash array only. It must
+      assert: one append adds exactly one line with every prior byte unchanged (compare the whole
+      file bytes before and after); THREE records appended in three separate git worktrees and
+      landed by TWO SEQUENTIAL MERGES all survive, none dropped and none reordered - two worktrees
+      is git's easy case and proves less than it looks; two lines carrying one feature_id after
+      such a merge resolve to the later shipped_at with the discarded one named in the unavailable
+      map; a line whose schema reads trend/2 is rejected with a reason naming that value; and a
+      feature with no record reports unavailable-with-reason for every trend field rather than zero.
+  - id: T-11
+    title: Count blocking human touchpoints at the moment each one happens
+    traces: [REQ-06]
+    change_type: feature
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-10]
+    status: ready
+    files:
+      - .claude/skills/harness/bin/touchpoints.py
+      - .claude/skills/harness/bin/dashboard/kpi.py
+      - .claude/skills/harness/bin/test-metrics-trend.py
+      - .claude/skills/harness/bin/test-metrics-kpi.py
+    verify: |
+      python3 .claude/skills/harness/bin/test-metrics-trend.py
+    intent: |
+      Write the failing test first, and make it fail for the right reason before the mechanism
+      exists - SC-10 requires the two-touchpoint case to be demonstrated failing.
+      touchpoints.py is a CLI plus a library implementing D-16, and it lives at
+      .claude/skills/harness/bin/touchpoints.py - NOT inside bin/dashboard/. The callers that
+      record events are the orchestrator, pm and the validator; none of them is dashboard code,
+      and the dashboard only READS the instrument. Homing harness-wide instrumentation inside a UI
+      feature's subtree would make every future caller reach into bin/dashboard/ for something
+      unrelated to rendering, and would take the counter with the subtree if it ever moved. bin/**
+      is already granted, so the placement costs nothing.
+        record(project_root, feature_id, event) appends one JSON line
+        {"at": <RFC3339 UTC>, "event": <kind>, "note": <optional one line>} to
+        project_root/.harness/<repo>/features/<feature_id>/touchpoints.jsonl, creating the file on
+        first use. Append only; it never rewrites the file.
+        count(project_root, feature_id) returns the number of lines, and 0 for an absent file - an
+        absent file means a run with no touchpoints, which is a measured zero, not unavailable.
+      The three counted events, and no others: approval_request (the user is asked to sign a BRIEF
+      or a plan), escalation (an ESCALATE or awaiting_user reaches the user), uat_request (the user
+      is asked to execute a UAT). Reject any other event name with a non-zero exit naming the three.
+      CLI: python3 touchpoints.py record --feature <FEAT> --event <kind> [--note <text>], and
+      python3 touchpoints.py count --feature <FEAT>. Both take an optional --root defaulting to the
+      git root of cwd.
+      Wire count into kpi.py's per-feature touchpoints and into the aggregate as a per-feature mean
+      plus the count of features at zero.
+      Extend test-metrics-trend.py: a simulated run recording two touchpoints reports 2 and the
+      shipped trend record carries 2; a run recording none reports 0; an unknown event name exits
+      non-zero and writes nothing.
+      Add one assertion to test-metrics-kpi.py as well: for fixture project-a, the per-feature
+      touchpoints value and the aggregate mean in kpi.compute()'s payload match the hand-labelled
+      numbers. The wiring into kpi.py is a unit-level fact and belongs in the unit script.
+      Do NOT add a counter key to feature.json - its key set is closed (D-11).
+  - id: T-12
+    title: Serve the payload over loopback from one entry point with a loud prerequisite gate
+    traces: [REQ-01, REQ-02, REQ-13, REQ-14]
+    change_type: api
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-03, T-08, T-10, T-11]
+    status: ready
+    files:
+      - .claude/skills/harness/bin/dashboard/serve.py
+      - .claude/skills/harness/bin/test-metrics-dashboard.py
+      - .claude/skills/harness/bin/run-unit-tests.sh
+    verify: |
+      bash .claude/skills/harness/bin/run-unit-tests.sh --check-kinds && python3 .claude/skills/harness/bin/test-metrics-dashboard.py
+    intent: |
+      Write the failing tests first. serve.py is the entry point (D-17) and uses only the Python
+      standard library - http.server.ThreadingHTTPServer plus a hand-written route table, no web
+      framework (D-03).
+      CLI: python3 .agents/skills/harness/bin/dashboard/serve.py [--root <project>] [--port <n>]
+      [--check]. --root defaults to the git root of cwd, so the dashboard reports on whichever
+      onboarded project it is run against with no per-project wiring (REQ-02).
+      BINDING: 127.0.0.1 ONLY (D-05). There is no flag that binds another interface and no auth.
+      Default port 8971; on a port already in use, exit non-zero naming the port.
+      ThreadingHTTPServer's thread count is UNBOUNDED and that is ACCEPTED, not overlooked: the
+      bind is loopback-only for one operator (D-05), so the realistic concurrent load is one
+      browser. Do not add a thread cap, a queue or a semaphore for it.
+      PREREQUISITE GATE, before binding anything and before serving one byte (REQ-14): assert
+      python3 3.10 or newer, that yaml imports, that the project root carries
+      .harness/harness.json, and that the built bundle exists at client/dist/index.html. On any
+      failure print one line naming the MISSING prerequisite and the exact install or build command,
+      exit non-zero, and serve NOTHING. There is no degraded mode and no partial page.
+      --check runs exactly that gate and exits, binding no port.
+      Do NOT assert jsonschema in that gate: no dashboard module imports it - schema validation
+      lives in validate-feature-json.py and check-domain.sh, which the dashboard never calls - so
+      gating on it would misrepresent what this feature is load-bearing on, which is yaml alone.
+      jsonschema is a harness-wide prerequisite already, declared in harness-init and installed in
+      CI, and this feature adds nothing there.
+      ROUTES: GET /api/kpis with a window query parameter of 30d, 90d or all returns
+      kpi.compute(root, window) as JSON; GET / and every unknown non-api path serves
+      client/dist/index.html so the client's three routes survive a reload; GET /assets/ serves from
+      client/dist/assets with a strict path check that refuses any traversal outside dist AND a
+      Content-Type set from mimetypes.guess_type with an explicit fallback table covering .js,
+      .mjs, .css, .html, .svg, .woff2 and .map - a browser enforcing strict MIME on a module
+      script REFUSES an ES module served as text/plain or as the wrong type, and the page then
+      renders blank with no error visible anywhere. A hand-written route table gets no
+      guess_type for free. An
+      unknown api path is 404 with a JSON body. An unsupported window token is 400 naming the three
+      legal tokens.
+      READ-ONLY (REQ-13): no handler creates, modifies or deletes any file anywhere. The append in
+      trend.py is not reachable from any route.
+      Create test-metrics-dashboard.py, register it in run-unit-tests.sh INTEGRATION_SCRIPTS (T-03
+      already declared its literal), and assert: the gate passes and the payload is served on a
+      clean checkout; with a prerequisite made absent the same invocation exits non-zero naming it
+      and serves nothing, asserted as its own case; run against fixture project-a every KPI reflects
+      the fixture and no figure equals this repository's value for the same KPI; git status is
+      byte-identical before and after serving every route; that a GET of one /assets/ JavaScript
+      file returns a Content-Type naming a JavaScript type and never text/plain, asserted as its
+      own case against a temporary root carrying a stub dist with one .js asset, so this case does
+      not wait on T-16's real bundle; and that a full computation for this repository completes
+      inside 8.0 SECONDS, measured by the test with the elapsed time printed.
+      THE CEILING IS 8.0 SECONDS AND THE OLD 5.0 WAS NOT DEFENSIBLE. Measured per item on
+      2026-09-01 at 47 real feature branches, 106 tracked .py files and 978 commits, the honest
+      per-request total was 4.3 to 5.3 seconds - 86 to 106 percent of the old ceiling - so 5.0 sat
+      inside its own measurement spread and the gate would have passed or failed on which of two
+      equally plan-consistent implementations T-06 picked. With T-06's single-call git diff and
+      T-09's memoised plan reads the projection is about 3.6 seconds, so 8.0 keeps the gate
+      falsifiable with real headroom rather than flaky on machine load. The 1.1 second figure the
+      plan carried before is superseded: it predates the per-branch change-size work T-06
+      specifies. If the measured elapsed time exceeds 8.0 seconds, that is a real finding about
+      D-09's cache deferral and it goes up, not a number to raise again.
+  - id: T-13
+    title: Build the client shell with all view state in the URL
+    traces: [REQ-12]
+    change_type: frontend
+    execution_mode: team
+    execution_agent: harness-frontend-dev
+    depends_on: [T-01, T-04, T-05, T-18]
+    status: ready
+    files:
+      - .claude/skills/harness/bin/dashboard/client/src/main.tsx
+      - .claude/skills/harness/bin/dashboard/client/src/routes.tsx
+      - .claude/skills/harness/bin/dashboard/client/src/theme.ts
+      - .claude/skills/harness/bin/dashboard/client/src/api.ts
+    verify: |
+      npm --prefix .claude/skills/harness/bin/dashboard/client run build && python3 -c "import pathlib,sys;s=''.join(p.read_text() for p in pathlib.Path('.claude/skills/harness/bin/dashboard/client/src').rglob('*.ts*'));[sys.exit('found '+k) for k in ['prefers-color-scheme','isDark'] if k in s]"
+    intent: |
+      Build the shell DESIGN C-1 specifies, against the prototype from T-05 and the payload T-12
+      serves at GET /api/kpis.
+      ROUTES, TanStack Router, exactly three: / with search param window; /features with search
+      params window and sort; /features/$featureId with search param window.
+      The selected window and the selected feature live ONLY in the URL. No component holds either
+      in local state as the source of truth, so a reload, a back-navigation or a paste into a second
+      tab loses neither. window is one of the tokens 30d, 90d, all (DESIGN Q3).
+      Data via TanStack Query against /api/kpis, one query keyed on window, no refetch interval and
+      no polling - the server recomputes per request (D-06).
+      THEME: one defineTheme call with light and dark tuples carrying the nine tokens DESIGN Palette
+      names (grade-1 through grade-5, series-1 through series-3, unavailable-stroke) alongside the
+      Astryx base. The toggle is an explicit control defaulting to the OS preference on first load
+      and persisting the choice in localStorage - browser storage only, nothing written to disk.
+      There is NO prefers-color-scheme query and NO isDark ternary in any component: a value that
+      differs by theme differs in the token (DESIGN C-3). That is what the verify greps for.
+      Every rendered element is an Astryx primitive or a composition of them. Raw hex appears in
+      exactly one file, the defineTheme call.
+      A region renders its skeleton until its data is whole and never a chart over a partial payload.
+      No modal at any depth - every drill-down is a route.
+  - id: T-14
+    title: Build the tiles, panels, tables and the four honest-gap states
+    traces: [REQ-03, REQ-04, REQ-05, REQ-07, REQ-08, REQ-11]
+    change_type: frontend
+    execution_mode: team
+    execution_agent: harness-frontend-dev
+    depends_on: [T-13]
+    status: ready
+    files:
+      - .claude/skills/harness/bin/dashboard/client/src/tiles.tsx
+      - .claude/skills/harness/bin/dashboard/client/src/panels.tsx
+      - .claude/skills/harness/bin/dashboard/client/src/gapstates.tsx
+      - .claude/skills/harness/bin/dashboard/client/src/tables.tsx
+    verify: |
+      npm --prefix .claude/skills/harness/bin/dashboard/client run build && python3 -c "import pathlib,sys;s=''.join(p.read_text() for p in pathlib.Path('.claude/skills/harness/bin/dashboard/client/src').rglob('*.tsx'));[sys.exit('missing '+k) for k in ['NoShipRecords','PreCapability','GradingCaveat','UnavailableValue'] if k not in s];[sys.exit('forbidden literal '+k) for k in ['107','122'] if k in s]"
+    intent: |
+      Build the surfaces DESIGN C-1 and C-4 specify, consuming the payload's unavailable maps (D-19)
+      as the sole trigger for every gap treatment.
+      LANDING: a fixed 3x2 tile grid in DESIGN's order - Throughput, Rework, Blocking human
+      touchpoints, Escaped defects, Code grading, Usage by agent/model tier. Each tile is a 40pt
+      headline figure, a one-line denominator or secondary, and for the three trend KPIs an 8-point
+      sparkline or its S-1/S-2 treatment. A figure NEVER appears without its denominator or unit.
+      The grading tile's headline is the at-or-above-bar SHARE; rendering any central tendency is a
+      violation. The usage tile names the unattributed count on the tile rather than dropping it.
+      Escaped defects carries its payload sourcing_rule as persistent inline text beneath the figure
+      - not a tooltip, not a footnote, not a link.
+      PANELS: one level down per KPI, reached from the tile - the chart, its caveats and its feature
+      table. The grading panel puts the histogram and the NAMED grade-1/grade-2 outlier table side by
+      side at 1024px and above, stacked below that. Each outlier row is qualname, path and line,
+      grade, driver, bar, with the grade cell tinted grade-1 or grade-2. The names are never behind a
+      hover, tooltip, disclosure or click. An empty list renders the words "no grade-1 or grade-2
+      functions in this window", which is a measured absence and therefore neither S-1 nor S-4.
+      FOUR GAP STATES, as four distinct components named NoShipRecords (S-1), PreCapability (S-2),
+      GradingCaveat (S-3) and UnavailableValue (S-4), each exactly as DESIGN C-4 draws it: S-1
+      replaces the whole trend region with a dashed card and mounts NO chart and NO axes; S-2 draws
+      axes, breaks the line, hatches the table cells with an em dash and the label "no trend -
+      shipped before metrics", and prints the n-of-m line beneath; S-3 is the persistent caveat under
+      the histogram whose counts and percentage come ONLY from the payload; S-4 differs from a
+      genuine zero in all four of glyph, typography, fill and badge, and its second line is the
+      payload's specific reason, never a generic "no data".
+      NO literal of this repository's file mix anywhere in this source - the verify greps for it.
+      Nothing is hover-only: every fact a hover would reveal is also present as text.
+  - id: T-15
+    title: Render the two chart shapes the probe cleared
+    traces: [REQ-07, REQ-10, REQ-11]
+    change_type: frontend
+    execution_mode: team
+    execution_agent: harness-frontend-dev
+    depends_on: [T-14, T-18]
+    status: ready
+    files:
+      - .claude/skills/harness/bin/dashboard/client/src/charts.tsx
+    verify: |
+      npm --prefix .claude/skills/harness/bin/dashboard/client run build && python3 -c "import pathlib,sys;s=pathlib.Path('.claude/skills/harness/bin/dashboard/client/src/charts.tsx').read_text();[sys.exit('missing '+k) for k in ['strokeDasharray','keyboard'] if k not in s];sys.exit(0 if ('scaleUtc' in s or 'scaleTime' in s) else 'no temporal scale - scaleBand/scalePoint fabricates cadence, CAP-07')"
+    intent: |
+      Build the two chart shapes DESIGN C-2 specifies, with the charting library T-18's probe cleared
+      (D-08). T-18 has already recorded VERDICT: PROCEED; if it recorded STOP this task is not yours
+      to run, because choosing what replaces the library is an operator decision.
+      SHAPE A, the grading histogram: pre-binned counts as a bar series over an ordinal axis of
+      exactly five grade categories, with a FIXED five-category domain so an empty grade renders as an
+      empty bar and is never dropped - an inferred domain drops it silently. Each bar takes its own
+      grade token from the datum; per-record bar membership is encoded as a datum-derived hatch on the
+      sub-portion and NEVER as one global reference line at 4; one bin label per bin so no legend is
+      needed. The chart is aria-hidden beside the real table T-14 supplies, AND it is passed keyboard
+      false explicitly: the React adapter defaults tabIndex 0, which would leave focusable content
+      inside an aria-hidden ancestor - an accessibility bug worse than the one the aria-hidden was for.
+      Zero graded functions hands over to NoShipRecords before the chart mounts.
+      SHAPE B, the time-series lines: the x scale is d3-scale's scaleUtc or scaleTime, NEVER the
+      compact scaleBand or scalePoint, which treat Date values as equally spaced categories and would
+      fabricate the cadence CAP-07 forbids while still rendering a plausible line.
+      The payload already arrives PRE-SEGMENTED into contiguous runs (T-10): render one line per run
+      and do no segmentation of your own. A missing point is already a break; there is no client-side
+      null handling to write and no server file for you to edit.
+      Per-series dash pattern (solid, 6-2 dash, 2-2 dot) through the strokeDasharray channel, and
+      marker shape (circle, square, triangle) set independently of colour, plus a direct end-of-line
+      label, so hue is never the only carrier. Square and triangle need a CUSTOM MARK via createMark -
+      the built-ins are dot and hexagon only - so budget for authoring one rather than looking for a
+      prop. Every colour, stroke and dash is a theme token passed in; no library default is used.
+      Histogram height 280px, time-series 320px, both filling container width.
+      CAP-08 is settled here, not left open: build THREE STACKED SINGLE-SERIES PLOTS sharing one x
+      axis, not one plot with three y axes. Cycle time in days, a touchpoint count and a grade share
+      are three incommensurable units; DESIGN C-3 records series-1 against series-2 at only 1.51 to 1
+      in light and 1.21 to 1 in dark, so on one shared canvas a reader must hold dash, marker, label
+      and hue together to separate three near-identical lines, while three single-series plots need no
+      series-to-series disambiguation at all. Faceted composition is also the library's most
+      documented path, which is less alpha surface than named multi-axis. Say in your DIGEST that you
+      built it this way.
+  - id: T-16
+    title: Build and commit the client bundle so no project needs a build step
+    traces: [REQ-01, REQ-02]
+    change_type: scaffolding
+    execution_mode: team
+    execution_agent: harness-dev-ops
+    depends_on: [T-12, T-15]
+    status: ready
+    files:
+      - .claude/skills/harness/bin/dashboard/client/dist/index.html
+      - .claude/skills/harness/bin/dashboard/client/dist/assets/
+    verify: |
+      npm --prefix .claude/skills/harness/bin/dashboard/client run build && git ls-files --error-unmatch .claude/skills/harness/bin/dashboard/client/dist/index.html && python3 .claude/skills/harness/bin/dashboard/serve.py --check
+    intent: |
+      Run the production build and COMMIT its output (D-04), so a user of any onboarded project
+      needs python3 and nothing else.
+      Build with npm --prefix .claude/skills/harness/bin/dashboard/client run build, then git add the
+      whole dist tree. dist must NOT be gitignored - T-02 deliberately ignored only node_modules
+      and the vite cache, and an ignore rule over dist would silently untrack the one artifact REQ-01
+      depends on. Confirm with git ls-files that index.html and every asset are tracked.
+      Assert the bundle is a single JS chunk with no source map, and report its byte size in your
+      DIGEST. If it exceeds 2 MB, stop and report rather than committing it.
+      Then run python3 .claude/skills/harness/bin/dashboard/serve.py --check and confirm it exits 0
+      now that the bundle exists - before this task it exits non-zero naming the missing bundle,
+      which is the prerequisite gate working.
+      Finally start the server on the default port, fetch / and the kpis endpoint with window all,
+      and fetch one of the built /assets/ JavaScript files; confirm the page carries the root div,
+      the payload parses as JSON, and the asset response's Content-Type names a JavaScript type
+      rather than text/plain - a wrong type there renders a blank page for every user. Report the
+      Content-Type you saw in your DIGEST. Then stop the server and
+      confirm git status is unchanged by the whole exercise. Report both in your DIGEST.
+  - id: T-17
+    title: Document the entry point, the prerequisites and the sourcing rules
+    traces: [REQ-01, REQ-05, REQ-08, REQ-14]
+    change_type: docs
+    execution_mode: team
+    execution_agent: harness-documentor
+    depends_on: [T-16]
+    status: ready
+    files:
+      - .harness/harness/docs/METRICS.md
+      - README.md
+    verify: |
+      python3 -c "import pathlib,sys;t=pathlib.Path('.harness/harness/docs/METRICS.md').read_text();[sys.exit('missing '+k) for k in ['dashboard/serve.py','127.0.0.1','30d','trend.jsonl','BUG-','code-grade.py'] if k not in t];sys.exit(0 if 'METRICS.md' in pathlib.Path('README.md').read_text() else 'README pointer missing')"
+    intent: |
+      Write .harness/harness/docs/METRICS.md, one screen, for a user who has just onboarded a project
+      and wants to see their numbers.
+      It must state: the single start command
+      python3 .agents/skills/harness/bin/dashboard/serve.py, that it binds 127.0.0.1 only and is
+      never network-exposed, the default port and the --port flag, --root for pointing it at another
+      project, and --check for testing prerequisites without starting it.
+      The prerequisites, and the exact failure line each produces when absent - python3, PyYAML,
+      jsonschema, an onboarded .harness/harness.json, and the committed bundle.
+      The six KPIs, one line each, and for the three that carry a stated rule the rule verbatim as
+      the payload carries it: escaped defects (BUG-NN units plus Revert commits, fix excluded),
+      grading (code-grade.py whole-repo mode, Python only, per-record bar), and usage attribution
+      (the commit-prefix ladder and its named unattributed buckets).
+      That the trend starts at the first ship after this capability landed, that history is never
+      backfilled, and that a feature shipped earlier has no trend line and the UI says so.
+      That viewing never mutates the project, and that the one write in the whole feature is the
+      append at ship to .harness/metrics/trend.jsonl.
+      The window tokens 30d, 90d and all.
+      Then add ONE line to README.md pointing at METRICS.md, in the existing list of docs, matching
+      its surrounding style. Change nothing else in README.md.
+  - id: T-19
+    title: Call the trend append at ship, so the trend file is ever written at all
+    traces: [REQ-10]
+    change_type: cross_module
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-10, T-11]
+    status: ready
+    files:
+      - .claude/skills/harness/bin/dashboard/trend.py
+      - .claude/skills/harness/bin/gh-sync.py
+      - .claude/skills/harness/bin/test-metrics-trend.py
+      - .claude/skills/harness/bin/test-metrics-kpi.py
+    verify: |
+      python3 .claude/skills/harness/bin/test-metrics-kpi.py && python3 .claude/skills/harness/bin/test-metrics-trend.py && python3 -c "import ast,sys;m=ast.parse(open('.claude/skills/harness/bin/gh-sync.py').read());f=[n for n in ast.walk(m) if isinstance(n,ast.FunctionDef) and n.name=='cmd_ship'];sys.exit('cmd_ship absent from gh-sync.py') if not f else None;names={getattr(c.func,'attr',getattr(c.func,'id','')) for c in ast.walk(f[0]) if isinstance(c,ast.Call)};sys.exit(0 if 'record_ship' in names else 'cmd_ship never calls record_ship')"
+    intent: |
+      trend.py's append() has NO CALLER anywhere in this plan: T-10 defines it and nothing invokes it.
+      Left as drafted, trend.jsonl stays permanently empty, and DESIGN's S-1 - no axes at all - is not
+      a transient gap state but the dashboard's permanent state for every feature, including ones
+      shipped after this lands. REQ-10 would ship as a correct, unused library. Close that.
+      Add record_ship(project_root, feature_dir) to trend.py. It assembles ONE record in D-18's shape
+      for that feature - approved_on, cycle_time_days, runs, cycles_used, max_total_cycles,
+      insertions, deletions and files_changed from kpi.py's per-feature fields, the grade object from
+      grading.distribution, the attribution object from attribution.by_tier, touchpoints from
+      touchpoints.count(), and shipped_at as the current RFC3339 UTC instant - then calls append().
+      Any field it cannot compute is null with its reason in the record's own unavailable map (D-19): a
+      ship is NEVER blocked by an uncomputable metric, and never records a zero it did not measure.
+      Then call record_ship from gh-sync.py's cmd_ship, the function that runs at the user-gated ship
+      step and already receives feat_dir. Call it BEFORE the board writes, and wrap the call so a
+      failure prints one loud line and does NOT abort the ship - a metrics write must never be what
+      stops a feature from landing. append()'s own duplicate-feature_id refusal (T-10) is the
+      ship-retry case and is not an error worth aborting on either.
+      Add to test-metrics-kpi.py: record_ship builds the record fixture project-a's hand-labelled
+      values predict, field by field, with an uncomputable field appearing as null plus a reason and
+      never as 0.
+      Add to test-metrics-trend.py: a simulated ship against fixture project-a appends exactly one
+      line whose feature_id and touchpoint count match the fixture, and a second ship of the same
+      feature is refused rather than appending a second line. Demonstrate the failing state first -
+      before the call site exists, the fixture's trend.jsonl stays absent.
+      Do NOT touch this repository's own .harness/metrics/trend.jsonl. This task adds the CALLER; the
+      write happens when a real ship runs.
+  - id: T-20
+    title: Record the three blocking human touchpoints at the three moments they happen
+    traces: [REQ-06]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: all three moments live in .claude/commands/ and .claude/skills/harness-uat/, every one of which check-domain.sh --resolve reports as NOBODY
+    depends_on: [T-11]
+    status: ready
+    files:
+      - .claude/commands/harness-plan.md
+      - .claude/commands/harness.md
+      - .claude/skills/harness-uat/SKILL.md
+    verify: |
+      python3 -c "import pathlib,sys;m={'.claude/commands/harness-plan.md':'approval_request','.claude/commands/harness.md':'escalation','.claude/skills/harness-uat/SKILL.md':'uat_request'};bad=[p for p,e in m.items() if 'touchpoints.py record' not in pathlib.Path(p).read_text() or e not in pathlib.Path(p).read_text()];sys.exit('no touchpoint record instruction in: '+repr(bad) if bad else 0)"
+    intent: |
+      touchpoints.py's record() has NO CALL SITE anywhere in this plan: T-11 builds it, kpi.py reads
+      count(), and nothing ever writes a line. Left alone, every feature's touchpoint count is a
+      silent zero forever - and INDISTINGUISHABLE from a real one, because D-19 defines an absent file
+      as a MEASURED zero - so REQ-06 ships as a permanently wrong number rather than an honest gap.
+      Add ONE instruction at each of the three moments D-16 names, each naming its event and the exact
+      command, each placed where that moment actually occurs:
+      approval_request - .claude/commands/harness-plan.md, at the terminus where the user is asked to
+      sign the BRIEF or the plan.
+      escalation - .claude/commands/harness.md, in the awaiting_user row of the return table, which is
+      where an escalation reaches the user.
+      uat_request - .claude/skills/harness-uat/SKILL.md, at the step that hands the UAT script to the
+      user.
+      The command, every time, is
+        python3 .claude/skills/harness/bin/touchpoints.py record --feature <FEAT> --event <kind>
+      run AT the moment, before the user is addressed - never reconstructed afterwards, which is
+      exactly what D-16 exists to forbid.
+      Change nothing else in any of the three files: one instruction each, in the surrounding style.
+      This is main-session-direct because all three files resolve to NOBODY, not because the work is
+      the main session's by nature.
+panel:
+  last_run: 2026-09-01-06-validator
+  cycle: 1
+  readers:
+    - reader: should-not-exist
+      status: ran
+    - reader: scope
+      status: ran
+  findings:
+    - id: PF-328f8f3cf2485de796e819decb0475aa
+      severity: high
+      reader: should-not-exist
+      summary: "KPI 4 absent-file-is-zero reports about 50 pre-instrument features as measured-zero touchpoints, 41 of which carry a signed approval date, so the launch-day autonomy tile is a fabricated record D-19 forbids"
+      disposition: open
+    - id: PF-6aa9faae67525aae35fe81805ee2e677
+      severity: med
+      reader: should-not-exist
+      summary: "Shape B trend charts should not be built this increment: they render only empty states for a month to a quarter at launch yet carry two of D-08's three live triggers"
+      disposition: open
+    - id: PF-7408d83abbae66d18e98f0a349f00dbb
+      severity: high
+      reader: scope
+      summary: "T-15 creates charts.tsx after T-14 creates panels.tsx and no later task touches panels.tsx, so the grading panel ships with no chart wired and both verifies stay green"
+      disposition: open
+    - id: PF-04c95fd65a8f1eb7b575bfee58d2b71b
+      severity: med
+      reader: should-not-exist
+      summary: "The committed dist bundle has no ongoing src-to-dist consistency guard and is unmergeable across worktrees, so a later client edit ships a stale UI with every verify green"
+      disposition: open
+    - id: PF-3713534d84c8a79f7c478fb122760829
+      severity: med
+      reader: should-not-exist
+      summary: "D-15's escaped-defect rule counts about 8 items in 5 months while excluding 32 fix commits unexamined, and is gamed in one direction because a fix commit instead of a BUG unit holds the number at zero"
+      disposition: open
+    - id: PF-55e28a6ee5221c9d78c8d4eb9a06dd60
+      severity: med
+      reader: should-not-exist
+      summary: "KPI 6's four-hop attribution join buys a tile that is about 77 percent no_prefix with a roughly 6 percent resolvable remainder already knowable from 16 static agent files"
+      disposition: open
+    - id: PF-d2fc95637db2222cfbec65f41fef202e
+      severity: med
+      reader: scope
+      summary: "BRIEF declares SC-07 evidence unit, but its only asserting test test-metrics-trend.py is registered in INTEGRATION_SCRIPTS, not UNIT_SCRIPTS"
+      disposition: open
+    - id: PF-ce8b018f5719dde6716225552ee32559
+      severity: med
+      reader: scope
+      summary: "T-13's forbidden theme-token grep covers the 4 client files existing at its dispatch while T-14 and T-15 add 5 more that are never re-checked, so DESIGN C-3 is enforced over 4 of 9 files"
+      disposition: open

@@ -1,0 +1,103 @@
+<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>FEAT-53 metrics dashboard — plan signature review</title><style>
+:root{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:ui-sans-serif,-apple-system,"Segoe UI","Helvetica Neue",Arial,sans-serif;
+}
+/* Token-level theming: components style through the tokens and never inside the
+   media query, so the viewer's explicit toggle can override the OS in BOTH
+   directions. */
+@media (prefers-color-scheme:dark){
+  :root{ --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+         --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733; }
+}
+:root[data-theme="dark"]{
+  --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+  --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733;
+}
+:root[data-theme="light"]{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+}
+*{box-sizing:border-box}
+body{margin:0; background:var(--paper); color:var(--ink);
+  font:400 16px/1.65 var(--sans); padding:clamp(1.5rem,5vw,4rem) clamp(1rem,5vw,2rem) 6rem}
+.wrap{max-width:56rem; margin:0 auto}
+/* Layout owns the spacing: gap between siblings, not per-element margins that
+   collapse or double. */
+.wrap{display:flex; flex-direction:column; gap:1rem}
+.eyebrow{font:500 11px/1 var(--mono); letter-spacing:.14em; text-transform:uppercase;
+  color:var(--quiet); margin:0}
+h1{font:600 clamp(1.6rem,4vw,2.3rem)/1.15 var(--sans); letter-spacing:-.02em;
+  margin:.4rem 0 .2rem; text-wrap:balance}
+h2{font:600 1.15rem/1.3 var(--sans); letter-spacing:-.01em; margin:2rem 0 0;
+  padding-top:1.25rem; border-top:1px solid var(--line); text-wrap:balance}
+h3{font:600 .98rem/1.4 var(--sans); margin:1.1rem 0 0}
+h4,h5,h6{font:500 11px/1.4 var(--mono); letter-spacing:.1em; text-transform:uppercase;
+  color:var(--quiet); margin:1rem 0 0}
+p,li{max-width:65ch; margin:0}
+ul,ol{margin:0; padding-left:1.4rem; display:flex; flex-direction:column; gap:.4rem}
+li>ul,li>ol{margin-top:.4rem}
+strong{font-weight:600}
+code{font:400 .875em/1.5 var(--mono); background:var(--sunk); padding:.1em .35em; border-radius:3px}
+pre{background:var(--sunk); border:1px solid var(--line); border-radius:6px;
+  padding:.85rem 1rem; overflow-x:auto; margin:0}
+pre code{background:none; padding:0}
+blockquote{margin:0; padding:.75rem 1rem; border-left:3px solid var(--accent);
+  background:var(--accent-soft); border-radius:0 5px 5px 0}
+blockquote p{max-width:none}
+hr{border:0; border-top:1px solid var(--line); margin:.5rem 0}
+/* Wide content pans inside its OWN container; the page body never scrolls sideways. */
+.scroll{overflow-x:auto; border:1px solid var(--line); border-radius:6px}
+table{border-collapse:collapse; width:100%; font-size:.9rem}
+th,td{text-align:left; padding:.6rem .8rem; border-bottom:1px solid var(--line); vertical-align:top}
+thead th{font:500 10px/1.3 var(--mono); letter-spacing:.11em; text-transform:uppercase;
+  color:var(--quiet); background:var(--sunk); white-space:nowrap}
+tbody tr:last-child td{border-bottom:0}
+/* Figures in a column line up. */
+td,th{font-variant-numeric:tabular-nums}
+.derived{color:var(--slate); font-size:.85rem; margin-top:2.5rem;
+  padding-top:1rem; border-top:1px solid var(--line)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style></head><body><div class='wrap'><p class='eyebrow'>Ship review · reading view</p><h1 id="feat-53-metrics-dashboard-plan-signature-review">FEAT-53 metrics dashboard — plan signature review</h1>
+<p><strong>The plan is finished and ready for your signature, and it is not ready to be signed as-is.</strong> Five things need your decision. Three are choices the factory deliberately refused to make for you; two are defects a panel found that neither I nor the product manager is permitted to overrule.</p>
+<p>Everything below is on disk in <code>.harness/harness/features/FEAT-53-metrics-dashboard/</code> on branch <code>feat/FEAT-53</code>. <code>BRIEF.md</code> (14 requirements, 16 success criteria), <code>DESIGN.md</code> (518 lines), <code>plan.yaml</code> (20 tasks, 20 decisions, panel result recorded). All three read <code>approval: pending</code> and will keep reading pending until you sign — only you can.</p>
+<p><strong>How this briefing was assembled.</strong> I spawned no reporting round. I read the nine run digests off disk and assembled from those, which is why this costs one document rather than three re-narrations: <code>runs/2026-09-01-01-product/</code>, <code>-02-product/</code>, <code>-03-product/</code>, <code>-04-product/</code>, <code>-05-product/</code>, <code>-01-eng/</code>, <code>-01-validator/</code>, <code>-05-validator/</code> (superseded) and <code>-06-validator/</code> (canonical panel), each <code>digest.md</code>. Where I state something as measured, I re-measured it myself; where a squad measured it, I say whose finding it is.</p>
+<hr>
+<h2 id="what-you-are-being-asked-to-decide">What you are being asked to decide</h2>
+<h3 id="dec-1-the-plan-reverses-something-you-settled-and-nobody-told-you-until-now">DEC-1 — The plan reverses something you settled, and nobody told you until now</h3>
+<p>You settled at the grilling that <strong>&quot;a real web framework (backend + a JS charting lib) is justified for this feature.&quot;</strong> The plan ships a <strong>python3 stdlib <code>ThreadingHTTPServer</code></strong> with a hand-written route table, and rejects FastAPI, Flask and a Node server outright (<code>D-03</code>).</p>
+<p>Engineering reviewed that choice <strong>on its merits and endorsed it</strong>: three read-only loopback GET routes do not repay a framework, and every added runtime import becomes a hard prerequisite gate in the Harness distribution itself — not in one application. It is, in my read, the better engineering call.</p>
+<p>That is not the problem. The problem is that the reversal was recorded inside a decision&#x27;s <code>because:</code> clause where you would never have seen it. pm&#x27;s goal-check against your own words caught it (<code>notes/research-FEAT-53-goalcheck-plan-c1.md</code>). <strong>Confirm the stdlib server, or hold the framework you settled on.</strong></p>
+<h3 id="dec-2-keep-the-client-build-at-all">DEC-2 — Keep the client build at all?</h3>
+<p><code>D-20</code> writes down, for the first time, a decision the plan had been resting on without stating: React + TanStack Router/Query on the Astryx substrate, an npm package under <code>bin/dashboard/client/</code>, and a committed <code>dist/</code> bundle.</p>
+<p>You settled React + TanStack at the grilling, so <strong>this is not being reopened</strong> — it reaches you because engineering&#x27;s review surfaced information you did not have then. A server-rendered HTML surface with no npm would delete the frontend framework, the first <code>package.json</code>, the committed bundle and the entire alpha-charting risk in one stroke. pm measured the blast radius of switching: it voids <code>D-02</code>, <code>D-04</code>, <code>D-07</code>, <code>D-08</code> and tasks <code>T-01</code>, <code>T-02</code>, <code>T-04</code>, <code>T-13</code>, <code>T-14</code>, <code>T-15</code>, <code>T-16</code>, <code>T-18</code> — <strong>over a third of the plan.</strong></p>
+<p>pm and both leads recommend keeping the client build. I agree, with one caveat: see DEC-3.</p>
+<h3 id="dec-3-the-charting-library-has-no-working-fallback">DEC-3 — The charting library has no working fallback</h3>
+<p><code>D-08</code> pins <strong>TanStack Charts at alpha</strong>, which you accepted knowingly. Its named fallback was <code>react-charts</code>. Engineering checked the package: <strong>it is dead</strong> — React 16 peer dependency, last published 2023-11-02, against a React ≥19 substrate. The fallback trigger currently fires into nothing. The dead reference has been struck; no replacement was invented in its place.</p>
+<p>Two further facts bear on this. The fallback trigger reads &quot;any of CAP-01, CAP-05, CAP-07 or CAP-11 unmet&quot;, but <code>T-18</code>&#x27;s own instructions make <strong>CAP-05 inert</strong>, so the net is three live triggers, not four. And the panel observed that two of those three (CAP-07, CAP-11) belong to trend charts that <strong>render nothing but empty states for roughly a month to a quarter after launch</strong>, because the trend record starts the day this ships.</p>
+<p><strong>Accept the alpha with a documented rollback, or name a second live charting library now.</strong> pm and I recommend accepting: <code>T-18</code> now probes all 13 chart capabilities <em>before</em> any client UI is built, so a STOP verdict arrives while it is still cheap. That reordering was itself a review finding.</p>
+<h3 id="dec-4-two-high-panel-findings-must-be-resolved-and-i-may-not-overrule-them">DEC-4 — Two high panel findings must be resolved, and I may not overrule them</h3>
+<p>The adversarial panel ran with <strong>both readers, neither skipped</strong> — the external adversarial reader resolved and returned five findings, the scope reader three. It returned <code>FAIL</code> at <code>severity_max: high</code>. All eight findings are recorded in <code>plan.yaml</code>&#x27;s <code>panel:</code> key with content-hash ids, all <code>disposition: open</code>.</p>
+<ul><li><strong><code>PF-328f8f3c</code> (high).</strong> KPI 4 — autonomy — treats an absent touchpoint file as a measured zero. On launch day that <strong>publishes ~50 pre-instrument features as having required zero human touchpoints</strong>, 41 of which carry a signed approval date. That is a fabricated autonomy record, and it is precisely the failure the plan&#x27;s own <code>D-19</code> forbids. Remedy: scope absent-file-is-zero to post-instrument features and mark the rest unavailable-with-reason — or KPI 4 does not ship this increment.</li><li><strong><code>PF-7408d83a</code> (high).</strong> <code>T-15</code> creates <code>charts.tsx</code> <em>after</em> <code>T-14</code> creates the panel that must render it, and <strong>no task ever touches the panel again</strong> — so the grading panel would ship with no chart wired, and both tasks&#x27; verify blocks stay green throughout. Remedy: add the wiring step and assert the chart is actually rendered rather than that the file matches design tokens.</li></ul>
+<p><strong>Order matters here.</strong> Settle DEC-3&#x27;s Shape-B question <em>before</em> anyone remediates <code>PF-7408d83a</code>: deferring the trend charts changes or removes <code>T-15</code>, so fixing it first may spend a cycle on a task your signature deletes.</p>
+<p>Both readers noted a shared root cause worth one sweep rather than two point fixes: several verify blocks check the wrong object — token content rather than composition, instruction text rather than behaviour. A clean 14/14 requirement census passed over both high findings, because both live in the gap between &quot;every requirement has a task&quot; and &quot;the tasks compose into the thing&quot;.</p>
+<h3 id="dec-5-the-prototype-has-never-been-seen-by-anyone">DEC-5 — The prototype has never been seen by anyone</h3>
+<p>The design gate calls for a prototype and one exists — 24 files, Astryx + React, it builds and server-renders. <strong>Nobody has ever looked at it.</strong> The designer who wrote it had no browser; the reviewer who audited it read it as source. The design contract has since moved on, so the prototype is now also stale against it (no tables, no fifth gap state, no focus clauses).</p>
+<p>The product lead recommends <strong>waiving</strong> rather than commissioning a rebuild: no agent here has a browser, so a rebuilt-but-unrendered prototype buys the letter of the gate and none of its purpose. The alternative is that you open it yourself before signing. Either way the staleness is on the record in <code>DESIGN.md</code>.</p>
+<hr>
+<h2 id="proposed-backlog">Proposed backlog</h2>
+<p>Residual findings that survived review but do not gate the signature. <strong>Strike any row by ID and it dies; anything not struck becomes a backlog issue on acceptance. Nothing here is carried anywhere else, so an unstruck row is the only way these survive.</strong></p>
+<div class="scroll"><table><thead><tr><th>ID</th><th>Nature</th><th>Finding</th></tr></thead><tbody><tr><td>B-1</td><td>bug</td><td><code>PF-04c95fd6</code> — the committed <code>dist/</code> bundle has no source-to-bundle freshness guard, and is unmergeable across worktrees. This is the same argument the grilling used to reject a binary database, applied to one artifact and not the other.</td></tr><tr><td>B-2</td><td>enhancement</td><td><code>PF-3713534d</code> — the escaped-defect rule counts ~8 items in 5 months while excluding 32 <code>fix:</code> commits unexamined. It is gameable in one direction: a <code>fix:</code> commit instead of a BUG unit holds the number at zero.</td></tr><tr><td>B-3</td><td>enhancement</td><td><code>PF-55e28a6e</code> — KPI 6&#x27;s four-hop attribution join powers a tile that is ~77% unattributed, whose ~6% resolvable remainder is already knowable from the 16 static agent files.</td></tr><tr><td>B-4</td><td>bug</td><td><code>PF-d2fc9563</code> — SC-07 declares <code>evidence: unit</code>, but its only asserting test is registered as an integration script.</td></tr><tr><td>B-5</td><td>bug</td><td><code>PF-ce8b018f</code> — the forbidden theme-token check covers 4 of the 9 client source files that exist at ship.</td></tr><tr><td>B-6</td><td>chore</td><td>Cycle-time start is <code>plan.yaml</code>&#x27;s approval date — i.e. <strong>plan</strong> approval — while the grilling and REQ-03 both say <strong>brief</strong> approval. Forced and sound, but undisclosed until now. Confirm, or REQ-03 is wrong.</td></tr><tr><td>B-7</td><td>bug</td><td>KPI 1&#x27;s change-size half reads <code>git diff default...branch</code>, which nulls once a merged branch is pruned. Most onboarded projects prune, so half of KPI 1 would be permanently empty off this repo. <code>review_sha</code> survives the prune and is already read by the same task.</td></tr><tr><td>B-8</td><td>chore</td><td>The KPI 6 tile is labelled &quot;by agent/model tier&quot; but its payload keys by model name only; the resolved agent is discarded. Keep the agent name, or relabel the tile.</td></tr><tr><td>B-9</td><td>chore</td><td>The start command is documented under <code>.agents/skills/...</code> while the source is pinned under <code>.claude/skills/...</code>. Both resolve — <code>.agents/skills</code> is a symlink — but the README should state one. I ruled <code>.claude/skills/...</code> for internal consistency with <code>D-01</code>/<code>D-17</code>; overridable.</td></tr><tr><td>B-10</td><td>chore</td><td>A design clause pins focus to the originating control on browser Back, which needs router behaviour that cannot be verified until TanStack Router is installed. If it cannot hold, the fallback is the page heading and the clause needs one sentence.</td></tr></tbody></table></div>
+<hr>
+<h2 id="harness-defects-found-while-doing-this-work">Harness defects found while doing this work</h2>
+<p>These are about the factory, not this feature. They cost real time here and will cost it again.</p>
+<ol><li><strong>A plan&#x27;s first panel cannot produce a valid digest.</strong> <code>plan-merge.py</code> <strong>refuses</strong> a proposal carrying an <code>approval:</code> key when creating a plan (exit 8), so a first-draft <code>plan.yaml</code> has no approval key at all — while <code>validate-digest.py</code>&#x27;s plan-review path <strong>requires</strong> <code>approval.status == &quot;pending&quot;</code> (<code>validate-digest.py:1001-1006</code>). I confirmed both at source. The scope reader was stuck in an unwinnable retry loop until the main session hand-added the stub. Every new feature&#x27;s first panel hits this.</li><li><strong>A read-only documentation lookup was refused by the <em>write</em> domain guard</strong>, forcing library facts to be gathered from <code>registry.npmjs.org</code> and <code>unpkg.com</code> instead. Raised independently by two squads.</li><li><strong>A run&#x27;s <code>digest.md</code> is immutable after its first write</strong>, so a digest that fails validation can only be repaired by opening a successor run directory. That is why run <code>05-validator</code> holds a superseded copy and <code>06-validator</code> is canonical.</li><li><strong><code>plan-merge.py</code> <code>safe_load</code>s a proposal file whole</strong>, so an artifact doubling as a proposal can carry a human-readable preamble only as <code>#</code>-prefixed lines. Any plain prose paragraph above the YAML exits 5.</li></ol>
+<hr>
+<h2 id="budgets-and-honesty-about-this-run">Budgets and honesty about this run</h2>
+<p>Seven runs against an informational budget of 20; <strong>3 rework cycles against a hard 10</strong>. The runs earn their place: each of the three review segments changed the plan materially, and the two high panel findings were invisible to every prior reader. Nothing here is close to a runaway.</p>
+<p>One thing I will not dress up: this feature began as FEAT-51, collided with an existing in-flight feature of that number, and was renumbered mid-run. No work was lost — every artifact was carried across — but roughly one product segment was spent twice, and the first plan draft died with the context that held it. Two of the three rework cycles trace to that and to the write-route defect above, not to anything wrong with the plan.</p>
+<p><strong>The prototype has never been rendered by anyone.</strong> I state that plainly because three separate artifacts now assert what this dashboard will look like, and not one of those assertions has been checked against a screen.</p><p class='derived'>Derived from <code>ship-review-2026-09-01-plan.md</code> — the markdown is the record; do not edit this file. Regenerate with <code>bin/render-brief.py</code>.</p></div></body></html>
