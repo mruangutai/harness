@@ -1258,7 +1258,8 @@ the baseline; qa may *add* requirements it infers from the diff. It never drops 
 | frontend component | ✅ | component | — | if interaction flow |
 | feature (UI + API) | ✅ | ✅ | ✅ | ✅ |
 | bugfix | ✅ (regression reproducing bug) | if functional | if integration | if UI |
-| config / scaffolding / docs | exempt | exempt | exempt | exempt |
+| config (shape change) | exempt | exempt | if touches config shape | exempt |
+| scaffolding / docs | exempt | exempt | exempt | exempt |
 
 `harness.json` schema. **Conditionals are structured predicates, not prose** — otherwise the
 table's "if touches DB/external" cells silently vanish and high-risk changes ship untested:
