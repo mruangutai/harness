@@ -46,7 +46,7 @@
   ONE act: `plan-merge.py set-feature-station --station ready` then `gh-sync.py status <dir> ready`.
   It moves the sub-issues only, never the parent (D-18). The GitHub mirror itself is now OPEN — I
   ran `gh-sync.py open` this session: milestone #41, parent #1220, sub-issues #1221-#1235, one per
-  T-NN, all 15 attached and recorded in feature.json `github`.
+  task, all 15 attached and recorded in feature.json `github`.
 - Q3 OPERATOR, non-blocking: parent #498's own body assigns its refresh to "the main session, at
   ship close", and FEAT-52 appears in none of its unit rows. Nothing about FEAT-52 was written to
   #498 this run. Whether FEAT-52 should be adopted as a unit of #498, or hang from #356 which is
