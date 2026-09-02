@@ -63,7 +63,7 @@ a{color:var(--accent)}
 :focus-visible{outline:2px solid var(--accent); outline-offset:2px}
 @media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
 </style></head><body><div class='wrap'><p class='eyebrow'>Ship review · reading view</p><h1 id="feat-51-claude-code-lifecycle-safety-ship-review">FEAT-51 Claude Code lifecycle safety — ship review</h1>
-<p><strong>The feature is built, validated and ready to ship, and one thing is blocking that only you can do: the SC-10 hand-test.</strong> Nine of nine tasks landed, eleven of twelve success criteria are met, SC-12 was withdrawn by your earlier ruling, and the review panel is clean at <code>severity_max: low</code> with no <code>must_fix</code>. The remaining criterion is <code>verify: uat</code> and nobody in the factory can close it.</p>
+<p><strong>The feature is built, validated, merged, and accepted for shipment.</strong> Nine of nine tasks landed, eleven success criteria are met, SC-10 and SC-12 were withdrawn by explicit operator rulings, and the review panel is clean at <code>severity_max: low</code> with no <code>must_fix</code>. The operator withdrew SC-10 on 2026-09-02 rather than represent the OMP pre-flight as Claude Code UAT evidence.</p>
 <p><strong>The validation was worth paying for.</strong> The panel found two high-severity defects at the first pin, and one of them was a regression in the very protection this feature exists to provide. Both are fixed and independently re-verified. Detail is §3.</p>
 <hr>
 <h2 id="how-this-briefing-was-assembled">How this briefing was assembled</h2>
@@ -71,9 +71,9 @@ a{color:var(--accent)}
 <p>Assembled from: <code>runs/2026-09-01-01-eng/digest.md</code> (T-04) · <code>runs/2026-09-01-02-eng/digest.md</code> (T-08) · <code>runs/2026-09-01-1-product/digest.md</code> (T-06) · <code>runs/2026-09-01-03-validator/digest.md</code> (qa gate) · <code>runs/2026-09-01-05-eng</code> and <code>runs/2026-09-01-04-product</code> (the two qa fix cycles) · <code>runs/2026-09-01-2-simplify-eng/digest.md</code> (SIMPLIFY) · <code>runs/2026-09-01-01-product/digest.md</code> (goal-check) · <code>runs/2026-09-01-04-validator</code> (panel) · <code>runs/2026-09-01-1-eng</code> (panel fix) · <code>runs/2026-09-01-05-validator</code> (panel delta) · <code>runs/2026-09-01-06-product</code> (SC-07 and UAT) · and for the plan phase, <code>notes/ship-review-plan-signature-c9.md</code>.</p>
 <p><strong>Everything I state as measured, I measured myself.</strong> Where a claim is a squad&#x27;s and I did not re-run it, I say so.</p>
 <hr>
-<h2 id="1-the-decision-ship-after-you-run-the-hand-test">§1 — The decision: ship, after you run the hand-test</h2>
-<p><code>gates.uat</code> is <code>blocking_when_uat_criteria_exist</code> and SC-10&#x27;s method is <code>uat</code>, so the gate is live. The script is <code>notes/uat-FEAT-51-c1.md</code>, about 35 minutes, ordered so the most falsifying step runs first. <strong>Run it from the main checkout after merge</strong> — a spawned agent loads its skills from there, not from the worktree, so running it in the worktree would test the wrong copy.</p>
-<p>Everything else is done. Merge, the PR and ship acceptance are yours; I have touched none of them.</p>
+<h2 id="1-the-decision-ship">§1 — The decision: ship</h2>
+<p>On 2026-09-02 the operator explicitly chose to skip the Claude Code-specific UAT and withdraw SC-10. The OMP pre-flight was not treated as a pass: it cannot exercise the compatibility-host quarantine branch. The feature therefore ships with live Claude Code parent resumption unverified.</p>
+<p>PR #1151 is merged. Record the ship transition.</p>
 <hr>
 <h2 id="2-what-shipped">§2 — What shipped</h2>
 <p>A third answer for a parent with live children, and a write boundary for an orphaned one.</p>
@@ -92,8 +92,8 @@ a{color:var(--accent)}
 <p><strong>So the project&#x27;s only blocking gate cannot go green on any branch that changes a route in <code>team-config.yaml</code>.</strong> That is gate placement, not this feature. Backlog row B-13.</p>
 <hr>
 <h2 id="5-success-criteria">§5 — Success criteria</h2>
-<p>Eleven met, one withdrawn by your ruling, one yours to close.</p>
-<div class="scroll"><table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td>SC-01 … SC-06</td><td><strong>met</strong> — suspension accepted, refusals, claim liveness, both gate surfaces, the CLI</td></tr><tr><td>SC-07</td><td><strong>met</strong>, after a fix — the OMP fixtures now carry a live supervisor pid and go red when the exemption is removed</td></tr><tr><td>SC-08, SC-09, SC-11, SC-13</td><td><strong>met</strong></td></tr><tr><td>SC-10</td><td><strong>pending your hand-test</strong> — <code>notes/uat-FEAT-51-c1.md</code></td></tr><tr><td>SC-12</td><td><strong>withdrawn</strong> by your plan-phase ruling, number left as a deliberate gap</td></tr></tbody></table></div>
+<p>Eleven met; SC-10 and SC-12 withdrawn by operator rulings.</p>
+<div class="scroll"><table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td>SC-01 … SC-06</td><td><strong>met</strong> — suspension accepted, refusals, claim liveness, both gate surfaces, the CLI</td></tr><tr><td>SC-07</td><td><strong>met</strong>, after a fix — the OMP fixtures now carry a live supervisor pid and go red when the exemption is removed</td></tr><tr><td>SC-08, SC-09, SC-11, SC-13</td><td><strong>met</strong></td></tr><tr><td>SC-10</td><td><strong>withdrawn</strong> by the operator on 2026-09-02; Claude Code live-host conduct remains unverified</td></tr><tr><td>SC-12</td><td><strong>withdrawn</strong> by the operator&#x27;s plan-phase ruling, number left as a deliberate gap</td></tr></tbody></table></div>
 <p>pm&#x27;s evidence: <code>notes/research-FEAT-51-goalcheck-build-c1.md</code> and <code>notes/research-FEAT-51-goalcheck-sc07-c2.md</code>.</p>
 <hr>
 <h2 id="6-proposed-backlog">§6 — Proposed backlog</h2>
