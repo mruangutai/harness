@@ -23,6 +23,7 @@ _anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness",
 _anchor_sys.path.insert(0, _anchor_bin)
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -37,7 +38,7 @@ fails = 0
 case_count = 0
 
 
-def run_hook(root, home, payload_bytes, cwd=None):
+def run_hook(root, home, payload_bytes, cwd=None, script=SCRIPT, create_marker=True):
     env = dict(os.environ)
     # BOTH NAMES, AND THE MARKER (FEAT-42 T-16). inject-expertise.sh resolves through
     # harness_boundary.resolve_root, which reads HARNESS_PROJECT_DIR and no other name, and
@@ -52,14 +53,15 @@ def run_hook(root, home, payload_bytes, cwd=None):
     # "nothing on disk" means no Expertise files, not "not a harness checkout" - and without
     # the marker that root is discarded and the hook injects the LIVE checkout's Expertise,
     # which is the opposite of what the case asserts.
-    _m = os.path.join(root, ".harness", "team-config.yaml")
-    if not os.path.exists(_m):
-        os.makedirs(os.path.dirname(_m), exist_ok=True)
-        with open(_m, "w") as _f:
-            _f.write("agents: {}\n")
+    if create_marker:
+        _m = os.path.join(root, ".harness", "team-config.yaml")
+        if not os.path.exists(_m):
+            os.makedirs(os.path.dirname(_m), exist_ok=True)
+            with open(_m, "w") as _f:
+                _f.write("agents: {}\n")
     env["HOME"] = home
     r = subprocess.run(
-        [SCRIPT],
+        [script],
         input=payload_bytes,
         capture_output=True,
         env=env,
@@ -200,6 +202,25 @@ def case4b():
     report("case4b: injected root is absolute control plane, never product cwd", ok,
            f"exit={r.returncode} injected={injected!r} cwd={product_cwd!r}")
 
+
+
+# --- Case 4c: an unresolvable hook root remains loud and non-blocking --------
+def case4c():
+    root = tempfile.mkdtemp()
+    home = fresh_home()
+    isolated = tempfile.mkdtemp()
+    script = os.path.join(isolated, "bin", "inject-expertise.sh")
+    os.makedirs(os.path.dirname(script))
+    shutil.copyfile(SCRIPT, script)
+    shutil.copyfile(os.path.join(HERE, "harness_boundary.py"),
+                    os.path.join(os.path.dirname(script), "harness_boundary.py"))
+    os.chmod(script, 0o755)
+    r = run_hook(root, home, b'{"agent_type": "harness-qa"}', script=script,
+                 create_marker=False)
+    ctx = get_context(r) or ""
+    ok = r.returncode == 0 and "HARNESS_CONTROL_PLANE_ROOT: UNRESOLVED" in ctx and "VERDICT: BLOCKED" in ctx
+    report("case4c: unresolved root is injected loudly without blocking", ok,
+           f"exit={r.returncode} context={ctx!r}")
 
 # --- Case 5: missing agent_type, and invalid JSON ---------------------------
 def case5():
@@ -358,6 +379,7 @@ def main():
     case3()
     case4()
     case4b()
+    case4c()
     case5()
     case6()
     case7()
