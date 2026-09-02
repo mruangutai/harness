@@ -6585,9 +6585,9 @@ reflects the measured 36.7 second floor set by the slowest file: workers beyond 
 memory pressure for little possible wall-time gain.
 
 **Static source inspection is necessary but insufficient.** `run_pool.py --mutation-check` snapshots
-size and nanosecond mtime for tracked and untracked files beneath
+mode, size and nanosecond mtime for tracked and untracked entries beneath
 `.claude/skills/harness/bin` before and after execution. It catches mutant scripts that appear
-beside an original, as well as mutations hidden in a helper or performed through a subprocess.
+beside an original, symlink changes, and mutations hidden in a helper or subprocess.
 The watched set is deliberately the bin directory, not the repository root: agents continuously
 write `.harness/harness/features/**`, and a root-wide snapshot would redden a correct suite because
 a sibling wrote a note. A legitimate hand or agent edit inside bin during a run still trips the
@@ -6599,8 +6599,9 @@ static scan is the only enforcement, with known blind spots: its taint begins on
 propagate taint through file content, so a target read from a manifest, config, or fixture is also
 unseen. The content exclusion is deliberate because propagating it produced fifteen false
 violations for writes beneath a tempdir and made a clean result impossible. A content-derived write
-inside bin is still caught by the runtime snapshot. No broader coverage is claimed than these two
-mechanisms deliver.
+inside bin is caught only when it changes an entry's mode, size or observed nanosecond mtime. A
+same-size rewrite that restores the original mtime is outside this metadata snapshot's coverage;
+content hashing is deferred rather than falsely claimed. No broader coverage is claimed.
 
 **The proposal of change-based test selection is REJECTED.** It makes coverage a function of the diff, allowing a
 gate to pass by selecting nothing. The runtime floor is dominated by one file that most changes

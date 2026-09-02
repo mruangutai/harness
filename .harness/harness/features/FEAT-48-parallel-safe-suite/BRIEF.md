@@ -66,16 +66,18 @@ investigation while fully present and unfixed.
   FAILS IF: any post-fix poll sees a raising `problems_for_text`, or the pre-fix control sees none
   — a control that cannot see the hazard makes the post-fix zero inconclusive, not passing.
   verify: inspection
-- SC-03: The invariant reports **zero** findings over the live tree — having first printed the root
-  it resolved and a `discovered` count of at least 50, so a zero cannot come from a walk that found
-  nothing — and, in the same run, flags the ten historical violating sites at `ea6f51f`:
-  `test-check-domain.py:1482` and `:1489`, `test-check-state.py:2112`, `:2114`, `:2133`, `:2248`,
-  `:2250`, `:2269`, `test-feature-worktree.py:584` and `:605`, each asserted individually.
-  FAILS IF: the live scan reports any finding; the printed root is not
-  `git rev-parse --show-toplevel`; fewer than 50 files were discovered; or the historical scan
-  misses any one of the ten sites — a threshold of "at least eight" is satisfied by a scanner that
-  quietly lost two, and an exit code alone is satisfied by a scanner that walked nothing.
-  verify: automated      evidence: unit
+- SC-03: The invariant's CI run reports **zero** findings over the live tree after printing the
+  independently resolved root and a `discovered` count of at least 50, and its six in-file
+  self-tests prove the scanner flags the injection, beside-original and PID-named mutation idioms
+  while accepting clean controls and refusing an unresolved root. At review time, the task's
+  automated verification also scans pinned `ea6f51f` blobs and individually finds all ten
+  historical sites: `test-check-domain.py:1482` and `:1489`, `test-check-state.py:2112`, `:2114`,
+  `:2133`, `:2248`, `:2250`, `:2269`, `test-feature-worktree.py:584` and `:605`.
+  FAILS IF: CI reports a live finding, resolves the wrong root, discovers fewer than 50 files, or
+  any in-file red proof stops discriminating; review fails if the pinned historical check misses
+  even one named site. The literal historical blobs are not re-fetched in shallow CI; the durable
+  CI gate is the equivalent idiom fixtures.
+  verify: automated      evidence: unit plus review-time pinned verification
 - SC-04: The invariant actually runs in CI: `run-unit-tests.sh --kind unit` emits
   `PASS test-suite-independence.py`.
   FAILS IF: that line is absent, which is what an unregistered test file looks like.
@@ -152,6 +154,8 @@ investigation while fully present and unfixed.
   line. What that still cannot prove is
   that the numbers were measured rather than typed; the fenced verbatim command output beside them
   is what a reviewer reads for that. SC-01 and SC-03 remain the mechanical hazard proof.
+- BACKLOG-C: Vendor the ten `ea6f51f` historical sites as committed fixtures so CI can re-check
+  their literal source without depending on git history or a deep checkout.
 - `component`, `ui`, `eval` and `typecheck` have `cmd: null` in `.harness/harness.json`. None of
   them detects any surface this feature touches (bash and Python gate scripts under
   `.claude/skills/harness/bin/`, covered by `unit` and `integration`, both of which have runners),

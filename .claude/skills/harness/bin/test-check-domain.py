@@ -1429,73 +1429,79 @@ SCHEMA_MANIFEST = FIXTURE_MANIFEST.replace(
     "          - { path: .harness/*/features/*/feature.json, upsert: true }")
 
 
-def run_schema():
-    """The write-time schema gate on feature.json, and the fail-open it used to have.
+def _schema_case(name, got, want, extra_ok=True, detail=""):
+    ok = got == want and extra_ok
+    if ok:
+        print(f"ok    schema/{name}")
+        return 0
+    print(f"FAIL  schema/{name}\n        wanted exit {want}, got {got}. {detail}")
+    return 1
 
-    The manifest GRANTS the path deliberately. Without that grant every case here exits 2
-    for a DOMAIN reason and the schema phase is never reached — three green cases proving
-    nothing, which is the vacuous shape this feature kept turning up.
 
-    Case 3 is the regression. `except ImportError:` alone let any OTHER exception out of
-    problems_for_text escape the hook: measured before the fix, an ILLEGAL document exited
-    **1 with a traceback** instead of 2, and exit 1 is NON-BLOCKING (line 14), so the bad
-    write landed. A schema loader raises far more than ImportError — a malformed
-    feature-schema.json is JSONDecodeError, an unreadable one OSError, a jsonschema
-    version drift SchemaError — and every one of them meant "written anyway".
-    """
-    import shutil
-    fails = 0
-    root = fixture(SCHEMA_MANIFEST)
-    os.makedirs(os.path.join(root, ".harness", "harness", "features", "FEAT-X"), exist_ok=True)
-    rel = ".harness/harness/features/FEAT-X/feature.json"
-    legal = _legal_feature_json(0)
-    illegal = json.dumps({"feature_id": "FEAT-X", "invented_key": 1}, indent=2)
+def _inject_schema_crash(copied_fs):
+    source = open(copied_fs, encoding="utf-8").read()
+    start = source.index("def problems_for_text(")
+    end = source.index("\n", source.index(":", source.index(")", start)))
+    injected = (source[:end + 1]
+                + '    raise ValueError("injected: checker is broken")\n'
+                + source[end + 1:])
+    with open(copied_fs, "w", encoding="utf-8") as copied_file:
+        copied_file.write(injected)
 
-    def case(name, got, want, extra_ok=True, detail=""):
-        nonlocal fails
-        ok = got == want and extra_ok
-        if not ok:
-            fails += 1
-            print(f"FAIL  schema/{name}\n        wanted exit {want}, got {got}. {detail}")
-        else:
-            print(f"ok    schema/{name}")
 
-    r = fire(root, rel, content=legal)
-    case("a legal ten-key document is ALLOWED", r.returncode, 0,
-         detail=" ".join((r.stderr or "").split())[:160])
+def _schema_copy_control(root, rel, illegal, copied_hook):
+    result = fire(root, rel, content=illegal, hook=copied_hook)
+    detail = " ".join((result.stderr or "").split())[:160]
+    return _schema_case(
+        "the copied unbroken hook DENIES the illegal document",
+        result.returncode, 2, "invented_key" in (result.stderr or ""), detail)
 
-    r = fire(root, rel, content=illegal)
-    case("an illegal document is DENIED and the offending key is NAMED", r.returncode, 2,
-         "invented_key" in r.stderr,
-         detail="stderr did not name invented_key: " + " ".join((r.stderr or "").split())[:160])
 
-    # Case 3: break a private checker copy. The live module is observed, never written.
+def _schema_crash_control(root, rel, illegal, copied_hook):
+    result = fire(root, rel, content=illegal, hook=copied_hook)
+    detail = " ".join((result.stderr or "").split())[:160]
+    return _schema_case(
+        "a CRASHING schema module DENIES the write rather than letting it through",
+        result.returncode, 2, "CRASHED" in (result.stderr or ""), detail)
+
+
+def _schema_crash_cases(root, rel, illegal):
     live_fs = os.path.join(HERE, "feature_schema.py")
     live_before = open(live_fs, "rb").read()
     live_mtime = os.stat(live_fs).st_mtime_ns
     iso = isolated_bin(root)
     copied_hook = os.path.join(iso, "check-domain.sh")
-    copied_fs = os.path.join(iso, "feature_schema.py")
-    r = fire(root, rel, content=illegal, hook=copied_hook)
-    case("the copied unbroken hook DENIES the illegal document", r.returncode, 2,
-         "invented_key" in r.stderr,
-         detail="copied-hook control failed: " + " ".join((r.stderr or "").split())[:160])
-    src = open(copied_fs, encoding="utf-8").read()
-    marker = "def problems_for_text("
-    i = src.index(marker)
-    j = src.index("\n", src.index(":", src.index(")", i)))
-    with open(copied_fs, "w", encoding="utf-8") as copied_file:
-        copied_file.write(
-            src[:j + 1] + '    raise ValueError("injected: checker is broken")\n' + src[j + 1:])
-    r = fire(root, rel, content=illegal, hook=copied_hook)
-    case("a CRASHING schema module DENIES the write rather than letting it through",
-         r.returncode, 2, "CRASHED" in r.stderr,
-         detail="fail-open: exit 1 is non-blocking, so this write would have landed. "
-                + " ".join((r.stderr or "").split())[:160])
-    live_unchanged = (open(live_fs, "rb").read() == live_before
-                      and os.stat(live_fs).st_mtime_ns == live_mtime)
-    case("the live feature_schema.py was never written (bytes and mtime unchanged)",
-         live_unchanged, True)
+    fails = _schema_copy_control(root, rel, illegal, copied_hook)
+    _inject_schema_crash(os.path.join(iso, "feature_schema.py"))
+    fails += _schema_crash_control(root, rel, illegal, copied_hook)
+    unchanged = (open(live_fs, "rb").read() == live_before
+                 and os.stat(live_fs).st_mtime_ns == live_mtime)
+    fails += _schema_case(
+        "the live feature_schema.py was never written (bytes and mtime unchanged)",
+        unchanged, True)
+    return fails
+
+def run_schema():
+    """Exercise legal, illegal, and crashing feature-schema write checks.
+
+    The manifest grants the path so every result reaches the schema phase. The crashing
+    private-copy case proves exceptions block rather than escaping with fail-open exit 1.
+    """
+    root = fixture(SCHEMA_MANIFEST)
+    os.makedirs(os.path.join(root, ".harness", "harness", "features", "FEAT-X"), exist_ok=True)
+    rel = ".harness/harness/features/FEAT-X/feature.json"
+    legal = _legal_feature_json(0)
+    illegal = json.dumps({"feature_id": "FEAT-X", "invented_key": 1}, indent=2)
+    allowed = fire(root, rel, content=legal)
+    fails = _schema_case(
+        "a legal ten-key document is ALLOWED", allowed.returncode, 0,
+        detail=" ".join((allowed.stderr or "").split())[:160])
+    denied = fire(root, rel, content=illegal)
+    fails += _schema_case(
+        "an illegal document is DENIED and the offending key is NAMED",
+        denied.returncode, 2, "invented_key" in (denied.stderr or ""),
+        " ".join((denied.stderr or "").split())[:160])
+    fails += _schema_crash_cases(root, rel, illegal)
     shutil.rmtree(root, ignore_errors=True)
     return fails
 
