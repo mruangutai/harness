@@ -1,4 +1,29 @@
-# FEAT-48 distillation — the 17 accepted ops the merge tool cannot write
+# FEAT-48 distillation — the 17 accepted ops the merge tool could not write
+
+## RESOLVED — all 17 landed under an operator ruling
+
+The operator ruled that these seventeen displacements complete now, in place, by the same method
+already verified for `harness-qa`, rather than waiting on a tool fix. Every one was applied **by
+the agent that owns the file** — the orchestrator is refused at exit 2 on every other agent's
+Expertise — as a targeted single-line rewrite keeping the entry's id and section, so every section
+held at its cap.
+
+**Verified by the orchestrator, id-by-id against the committed base:** 5 files, 17 entries changed,
+**zero ids added, zero removed**, entry counts unchanged (pm 40, security-reviewer 40,
+code-reviewer 40, ui-reviewer 38, validator-lead 40). `check-expertise.sh` exits 0 on both tiers.
+
+**One op did not land on the first pass and was caught by that check.** `harness-security-reviewer`
+G-10 was reported applied while line 28 still carried its base text. The squad's proof — a hash over
+the file's lines *excluding* the rewritten ones — is structurally blind to a rewrite that never
+happened: the missed line is excluded either way, and a replace op leaves the id census unchanged.
+It was routed back to its owner and landed with a content comparison instead. **Verify a rewrite by
+its content, never by what surrounds it.**
+
+Two entries needed re-rendering to clear the 50-word cap: `harness-validator-lead` repository G-03
+(53 → 44) and craft P-04 (51 → 50). The first cost a round-trip because the orchestrator quoted an
+agent's prose as "apply verbatim" without counting the words.
+
+The tooling defect below is unchanged and stands as a backlog item; nothing in this branch fixes it.
 
 **Every op below was ACCEPTED by the agent that owns the file, on the merits, and then refused by
 `expertise-merge.py` for a mechanical reason. None of them was rejected for weakness.** This note
