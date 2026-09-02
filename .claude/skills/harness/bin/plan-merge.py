@@ -1393,18 +1393,8 @@ def _parsed_value(raw, key, iid, field):
     return _UNPARSEABLE
 
 
-def _amend_show(lines, located, field, actual, raw, key, iid):
-    """Print the field's VALUE and its hash, and exit.
-
-    THE VALUE, NOT THE BLOCK (panel N3): `--value-file` takes the bare value, and printing the
-    block with its `field:` key line meant feeding the output back wrote the key line INTO the
-    value at exit 0. The identity check cannot catch that, because the corrupted value is
-    byte-for-byte what the caller asked for.
-
-    THE PARSER IS THE AUTHORITY (panel F1). The line-based path survives only as the fallback
-    for a document that will not parse — which is the case this verb exists to repair — and it
-    says so on stderr rather than pretending to be exact.
-    """
+def _amend_show(lines, located, field, actual, raw, key, iid, yaml_value=False):
+    """Print the field value and its hash, preserving structured values only by opt-in."""
     first, last, indent = located
     value = _parsed_value(raw, key, iid, field)
     if value is _UNPARSEABLE:
@@ -1412,14 +1402,32 @@ def _amend_show(lines, located, field, actual, raw, key, iid):
                          "from raw lines and may not match what YAML would load. It is shown to "
                          "help you repair the document, not to be fed back verbatim.\n")
         sys.stdout.write(_dedent_value(lines[first:last], indent, field))
-    elif not isinstance(value, str):
-        _die(4, f"plan-merge: {iid}.{field} is a {type(value).__name__}, not text. amend "
-                f"replaces TEXT scalars; a list or mapping field would need its structure "
-                f"rewritten, which is apply's job.")
-    else:
+    elif isinstance(value, str):
         sys.stdout.write(value if value.endswith("\n") else value + "\n")
+    elif yaml_value and isinstance(value, (list, dict)):
+        sys.stdout.write(yaml.safe_dump(value, sort_keys=False))
+    else:
+        _die(4, f"plan-merge: {iid}.{field} is a {type(value).__name__}, not text. amend "
+                f"replaces TEXT scalars unless --yaml-value explicitly selects a list or "
+                f"mapping field.")
     print(f"sha256: {actual}")
     sys.exit(0)
+
+
+def _structured_field_lines(indent, field, value):
+    dumped = yaml.safe_dump({field: value}, sort_keys=False).splitlines(keepends=True)
+    return [indent + line if line.strip() else line for line in dumped]
+
+
+def _load_structured_value(path):
+    try:
+        with open(path, encoding="utf-8") as handle:
+            value = yaml.safe_load(handle)
+    except (OSError, yaml.YAMLError) as exc:
+        _die(5, f"plan-merge: cannot load structured value from {path}: {exc}")
+    if not isinstance(value, (list, dict)):
+        _die(5, "plan-merge: --yaml-value requires a YAML list or mapping")
+    return value
 
 
 def _amend_preconditions(args, actual):
@@ -1451,10 +1459,16 @@ def cmd_amend(args):
     actual = hashlib.sha256("".join(lines[first:last]).encode("utf-8")).hexdigest()
 
     if args.show:
-        _amend_show(lines, located, args.field, actual, raw, args.key, args.id)
+        _amend_show(lines, located, args.field, actual, raw, args.key, args.id,
+                    yaml_value=args.yaml_value)
     _amend_preconditions(args, actual)
-    with open(args.value_file, encoding="utf-8") as fh:
-        value_text = fh.read()
+    if args.yaml_value:
+        want_value = _load_structured_value(args.value_file)
+        value_text = None
+    else:
+        with open(args.value_file, encoding="utf-8") as fh:
+            value_text = fh.read()
+        want_value = None
 
     def transform(base_bytes):
         # THE BASE IS PARSED FIRST (panel V4, and its own de-vacuumed test). It used to be
@@ -1480,18 +1494,18 @@ def cmd_amend(args):
                 4, [f"plan-merge: {args.id}.{args.field} vanished under the lock."])
         f2, l2, ind2 = loc2
         _require_locked_hash(cur[f2:l2], args.expect_sha256, args.id, args.field)
-        rendered = _render_field(ind2, args.field, value_text, cur[f2:l2])
+        if args.yaml_value:
+            current = _parsed_value(raw, args.key, args.id, args.field)
+            if not isinstance(current, (list, dict)):
+                raise harness_merge.MergeRefusal(
+                    5, [f"plan-merge: {args.id}.{args.field} is not a list or mapping under "
+                        "the lock; --yaml-value cannot change a scalar field's type."])
+            rendered = _structured_field_lines(ind2, args.field, want_value)
+            want = want_value
+        else:
+            rendered = _render_field(ind2, args.field, value_text, cur[f2:l2])
+            want = _expected_value(rendered, ind2, args.field)
         spliced = "".join(cur[:f2] + rendered + cur[l2:])
-        # THE CHECK THAT ACTUALLY BINDS (panel V3). The hash proves the block replaced is the
-        # block that was read; it cannot see that the splice landed in the wrong FIELD, nor that
-        # the value was re-formed on the way in, because both hashes are taken over whatever the
-        # locator returned. This compares the reloaded VALUE against what was asked for — the
-        # discipline `_verify_signature` already held for signing, and `amend` did not inherit.
-        #
-        # A `|` body KEEPS its trailing newline on reload, so the expected value is the file's
-        # bytes verbatim; a plain scalar carries none. Getting that backwards made the identity
-        # check refuse a CORRECT write, found by replacing a real `verify: |` with itself.
-        want = _expected_value(rendered, ind2, args.field)
         reloaded = _verify_amend(spliced.encode("utf-8"), args.key, args.id, args.field, want)
         # DO NO HARM: hold the splice to the plan schema only when the BASE satisfied it. A plan
         # mid-authoring legitimately does not, and refusing to amend it would make this verb
@@ -1568,6 +1582,8 @@ def _register_amend(sub):
                    help="the sha256 --show reported; a replace is refused without it")
     p.add_argument("--value-file", default=None,
                    help="file holding the replacement value; may be multi-line")
+    p.add_argument("--yaml-value", action="store_true",
+                   help="read/write the value-file as a YAML list or mapping")
     p.set_defaults(func=cmd_amend)
 
 
