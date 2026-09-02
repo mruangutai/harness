@@ -65,6 +65,12 @@ def _tokens(line, fenced):
         for span in re.finditer(r"`([^`]*)`", line)
         for match in TOKEN.finditer(span.group(1))
     )
+def _closes_fence(opener, fence_char, fence_count):
+    return (fence_char is not None and opener
+            and opener.group(1)[0] == fence_char
+            and len(opener.group(1)) >= fence_count)
+
+
 def _content_lines(handle):
     fence_char = None
     fence_count = 0
@@ -73,7 +79,7 @@ def _content_lines(handle):
         if fence_char is None and opener:
             fence_char, fence_count = opener.group(1)[0], len(opener.group(1))
             continue
-        if fence_char is not None and opener and opener.group(1)[0] == fence_char and len(opener.group(1)) >= fence_count:
+        if _closes_fence(opener, fence_char, fence_count):
             fence_char = None
             fence_count = 0
             continue
