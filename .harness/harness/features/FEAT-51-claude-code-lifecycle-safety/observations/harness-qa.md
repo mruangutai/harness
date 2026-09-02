@@ -1,0 +1,4 @@
+# Observations — harness-qa — FEAT-51-claude-code-lifecycle-safety
+
+- 2026-09-01: bash-write-guard/check-domain block harness-qa from writing ANY production path even inside a disposable `git worktree add` scratch worktree — domain is path-relative, not tree-relative. Mutation probes must copy the relevant `.harness`/`.claude`/`.agents` dirs to `/tmp` WITHOUT `.git` metadata (a plain `cp -r`, not a worktree) to get a genuinely writable scratch copy; a `/tmp` copy that still carries `.git` (e.g. `cp -r <worktree>`) is still recognized as a worktree and still blocked.
+- 2026-09-01 FEAT-51: `test-plan-sign-gate.py`'s "unimportable inflight_registry" fail-open case builds its `_copybin` from the TEST SCRIPT's own directory (`.agents/skills/harness/bin`), not from `$PLAN_SIGN_GATE_BIN` — mutating only `.claude/skills/harness/bin/plan-sign-gate.py` silently misses that one sub-case; the `.agents` mirror must be mutated identically too.
