@@ -117,6 +117,29 @@ def case_spec_names_the_main_session_as_asker():
           "SPEC.md does not correctly attribute asking/writing to the main session")
 
 
+def case_spec_lateral_routing_no_longer_claims_a_second_write():
+    """Code review of PR #1251: SPEC.md still carried DEC-44's 'lateral lead-to-lead
+    routing uses the same file' three lines from the new 'never writes it' rule — but no
+    lead holds a write grant on notes/answers-*.md, so only the orchestrator could have
+    performed that write, reopening the exact forgery vector via the lateral path. DEC-78
+    superseded DEC-44's file-based lateral mechanism with the escalations DIGEST trace."""
+    text = read(SPEC_MD)
+    check("case_spec_lateral_routing_no_longer_claims_a_second_write",
+          "Lateral lead" not in text or "escalations` trace instead" in text,
+          "SPEC.md still claims lateral routing writes to the answers file without citing "
+          "the DEC-78 supersession")
+
+
+def case_skill_lateral_routing_no_longer_claims_a_second_write():
+    """Same code-review finding, SKILL.md's copy of the same stale sentence."""
+    text = read(SKILL_MD)
+    check("case_skill_lateral_routing_no_longer_claims_a_second_write",
+          "DEC-78 supersedes DEC-44's file-based lateral mechanism" in text,
+          "SKILL.md still claims lateral routing writes to the answers file without citing "
+          "the DEC-78 supersession")
+
+
+
 def case_state_template_reconciled_with_dec_120():
     text = read(STATE_TEMPLATE)
     check("case_state_template_reconciled_with_dec_120",
@@ -142,10 +165,12 @@ def main():
     case_spec_states_the_provenance_rule()
     case_spec_no_longer_names_the_orchestrator_as_asker()
     case_spec_names_the_main_session_as_asker()
+    case_spec_lateral_routing_no_longer_claims_a_second_write()
+    case_skill_lateral_routing_no_longer_claims_a_second_write()
     case_state_template_reconciled_with_dec_120()
     case_state_template_no_longer_says_orchestrator_asks()
 
-    print(f"\n{11 - len(failures)}/11 cases passed.")
+    print(f"\n{13 - len(failures)}/13 cases passed.")
     return 1 if failures else 0
 
 

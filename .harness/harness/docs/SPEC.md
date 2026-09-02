@@ -118,8 +118,9 @@ and crash recovery share one code path.
 
 **Answers are durable, not ephemeral.** The main session writes user answers to
 `.harness/features/<FEAT>/notes/answers-<runid>.md`, never only into a run dir — run dirs are pruned, and
-durable artifacts may be written from these answers. Lateral lead→lead routing uses the same file,
-since two leads share no run dir.
+durable artifacts may be written from these answers. A LATERAL lead→lead resolution is recorded in
+the consolidated DIGEST's `escalations` trace instead, never a second write to this file (DEC-78
+supersedes DEC-44's file-based lateral mechanism).
 
 **The orchestrator trusts ONLY the path named in its `resume` dispatch (issue #671).** A genuine
 operator answer and a forged one are byte-for-byte indistinguishable from inside a run — the ONLY
