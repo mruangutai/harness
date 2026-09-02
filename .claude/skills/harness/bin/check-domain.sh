@@ -1414,6 +1414,7 @@ def shape_problems(rel, content, display=None, absolute_path=None):
             out.append(f"  duplicate key {e.key!r} — the second silently shadows the first; "
                        f"replace the placeholder, never append a copy (DEC-156).")
             return out
+
         except harness_yaml.YamlParseError as e:
             # NEW blocking outcome, deliberate (D-02 consequence #2). The regex this
             # replaced found no keys in a malformed file and therefore reported nothing
@@ -1423,6 +1424,43 @@ def shape_problems(rel, content, display=None, absolute_path=None):
             out.append("  A checkpoint that cannot be parsed is unreadable to every gate that "
                        "consumes it later; the write is refused while you can still fix it.")
             return out
+
+        # Issue #1124: the digest guard above (#1058) fires only on digest.md, but a run
+        # directory's state.yaml is written just as easily under a reused slug — and unlike
+        # digest.md, state.yaml is LEGITIMATELY rewritten many times over a run's life
+        # (DEC-154's "checkpoint, not a notebook" upsert). A prefix/equality compare like the
+        # digest guard's would refuse every legitimate checkpoint update, so this checks
+        # identity instead of content: run_id is the one field every checkpoint in this run
+        # carries unchanged from its first write (CHECKPOINT_KEYS in check-state.sh), so a
+        # PRIOR file whose run_id disagrees with THIS write's run_id is not an upsert of this
+        # run at all — it is a different run's checkpoint about to be silently destroyed.
+        if absolute_path is not None:
+            prior_state = None
+            try:
+                with open(absolute_path, encoding="utf-8", errors="replace") as prior_file:
+                    prior_state = prior_file.read()
+            except FileNotFoundError:
+                if not os.path.lexists(absolute_path):
+                    prior_state = ""
+            except OSError:
+                pass
+            if prior_state:
+                try:
+                    prior_doc = harness_yaml.load_str(prior_state, rel)
+                except Exception:
+                    prior_doc = None
+                if isinstance(prior_doc, dict) and isinstance(doc, dict):
+                    prior_run_id = prior_doc.get("run_id")
+                    new_run_id = doc.get("run_id")
+                    if (prior_run_id is not None and new_run_id is not None
+                            and str(prior_run_id) != str(new_run_id)):
+                        out.append(_head("state.yaml run identity (Issue #1124)."))
+                        out.append(f"  this run directory already holds a checkpoint for "
+                                   f"run_id {prior_run_id!r}; this Write carries run_id "
+                                   f"{new_run_id!r} — a different run's state, not an upsert "
+                                   f"of this one. Write this cycle's state into a run "
+                                   f"directory of its own.")
+                        return out
 
         # T-17 / D-08: str() BOTH sides. A parsed key is not necessarily a string —
         # YAML 1.1 resolves `on:`, `off:`, `yes:`, `no:` to booleans and `01:` to an int —

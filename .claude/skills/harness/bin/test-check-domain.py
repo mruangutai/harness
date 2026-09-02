@@ -3389,6 +3389,73 @@ def _report_feat50_artifact_results(results):
     return failures
 
 
+def _bug1124_state_fixture():
+    root = fixture("schema_version: 1\nteams: []\n")
+    worktree = make_linked_worktree(
+        root, os.path.join(root, ".claude", "worktrees", "FEAT-S"), "FEAT-S")
+    rel = ".harness/harness/features/FEAT-S-thing/runs/r1/state.yaml"
+    path = os.path.join(worktree, rel)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    return root, path
+
+
+def _bug1124_state_fire(root, path, content, *flags, hook=HOOK):
+    payload = {"tool_name": "Write",
+               "tool_input": {"file_path": path, "content": content}}
+    return subprocess.run([hook, *flags], input=json.dumps(payload), capture_output=True,
+                          text=True, env=_env(root))
+
+
+def _bug1124_collision_case(root, path):
+    """Issue #1124: a slug reused for a DIFFERENT run's state.yaml is refused."""
+    _feat50_write_text(path, "schema_version: 1\nrun_id: run-alpha\nstatus: building\n")
+    result = _bug1124_state_fire(root, path, "schema_version: 1\nrun_id: run-beta\nstatus: building\n")
+    ok = (result.returncode == 2
+          and "different run's state" in result.stderr
+          and "run directory of its own" in result.stderr)
+    return ("state-run-id-collision", ok, f"{result.returncode}: {result.stderr}"), result
+
+
+def _bug1124_upsert_case(root, path):
+    """The SAME run_id may be rewritten any number of times — the checkpoint upsert (DEC-154)."""
+    _feat50_write_text(path, "schema_version: 1\nrun_id: run-alpha\nstatus: building\n")
+    first = _bug1124_state_fire(root, path, "schema_version: 1\nrun_id: run-alpha\nstatus: reviewing\n")
+    second = _bug1124_state_fire(root, path, "schema_version: 1\nrun_id: run-alpha\ncycles_used: 3\n")
+    ok = first.returncode == 0 and second.returncode == 0
+    return ("state-run-id-upsert-allowed", ok,
+            f"first={first.returncode}:{first.stderr}, second={second.returncode}:{second.stderr}")
+
+
+def _bug1124_no_run_id_case(root, path):
+    """A prior file with no run_id (or a new write with none) cannot be compared — allowed
+    through unchanged, matching the pre-existing shape checks rather than a new denial."""
+    _feat50_write_text(path, "schema_version: 1\nstatus: building\n")
+    result = _bug1124_state_fire(root, path, "schema_version: 1\nrun_id: run-alpha\nstatus: building\n")
+    ok = result.returncode == 0
+    return ("state-no-prior-run-id-allowed", ok, f"{result.returncode}: {result.stderr}")
+
+
+def _bug1124_new_file_case(root, path):
+    result = _bug1124_state_fire(root, path, "schema_version: 1\nrun_id: run-gamma\nstatus: building\n")
+    ok = result.returncode == 0
+    return ("state-new-file-allowed", ok, f"{result.returncode}: {result.stderr}")
+
+
+def _bug1124_red_case(root, path, collision):
+    mutant = _feat50_mutant_between(
+        "        # Issue #1124: the digest guard above (#1058) fires only on digest.md",
+        "        # T-17 / D-08: str() BOTH sides.")
+    try:
+        muted = _bug1124_state_fire(root, path,
+                                    "schema_version: 1\nrun_id: run-beta\nstatus: building\n",
+                                    hook=mutant)
+    finally:
+        os.unlink(mutant)
+    ok = collision.returncode == 2 and muted.returncode == 0 and "Traceback" not in muted.stderr
+    return ("state-run-id-collision-red", ok,
+            f"real={collision.returncode}, mutant={muted.returncode}: {muted.stderr}")
+
+
 def run_feat50_artifact_integrity():
     """Issues #1057/#1058: bind feature writes and preserve recorded digests."""
     main, root, worktree, target, refused = _feat50_binding_case(
@@ -3398,6 +3465,11 @@ def run_feat50_artifact_integrity():
     digest_root, digest_path = _feat50_digest_fixture()
     prior = "recorded cycle-0 text\n"
     clobber_case, clobber = _feat50_digest_clobber_case(digest_root, digest_path, prior)
+    state_root1, state_path1 = _bug1124_state_fixture()
+    collision_case, collision = _bug1124_collision_case(state_root1, state_path1)
+    state_root2, state_path2 = _bug1124_state_fixture()
+    state_root3, state_path3 = _bug1124_state_fixture()
+    state_root4, state_path4 = _bug1124_state_fixture()
     results = [
         main,
         short,
@@ -3409,6 +3481,11 @@ def run_feat50_artifact_integrity():
         _feat50_digest_unreadable_case(digest_root, digest_path),
         _feat50_digest_post_case(digest_root, digest_path, prior),
         _feat50_digest_red_case(digest_root, digest_path, clobber),
+        collision_case,
+        _bug1124_upsert_case(state_root2, state_path2),
+        _bug1124_no_run_id_case(state_root3, state_path3),
+        _bug1124_new_file_case(state_root4, state_path4),
+        _bug1124_red_case(state_root1, state_path1, collision),
     ]
     return _report_feat50_artifact_results(results)
 
