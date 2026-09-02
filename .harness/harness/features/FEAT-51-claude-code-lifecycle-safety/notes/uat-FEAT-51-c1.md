@@ -1,7 +1,12 @@
 # UAT — FEAT-51 Claude Code lifecycle safety (SC-10)
 
-**You are the instrument. ~35 minutes.** Nothing here is run by an agent; SC-10 stays `not_met`
-until you record a verdict at the bottom.
+**Historical procedure, ~35 minutes.** This was not run in Claude Code and supplies no pass
+evidence; the criterion was withdrawn instead.
+
+**Status: withdrawn 2026-09-02.** The operator explicitly chose to skip this Claude Code-specific
+UAT and withdraw SC-10. The OMP pre-flight was not treated as a pass because it cannot exercise the
+compatibility-host quarantine branch. The procedure below is retained as the historical test that
+was offered, not as completed evidence.
 
 **Run from the MAIN checkout AFTER merge**, `/Users/molchairuangutai/GitHub/harness` — a spawned
 agent loads its skills from there, not from the FEAT-51 worktree (`BRIEF.md ## Verification gaps`,
@@ -104,8 +109,8 @@ nine tasks rest on a false premise. That is backlog item `B-4`, one run, and it 
 separately. If you want it in the same sitting, do it BEFORE Step 1 — it is cheaper and strictly
 more falsifying.
 
-## Verdict — you write this line
+## Verdict
 
-```
-SC-10: met | not_met     date: ________     Q1 observed: resumed | replaced | not reached
+```text
+SC-10: withdrawn     date: 2026-09-02     Q1 observed: not reached in Claude Code
 ```

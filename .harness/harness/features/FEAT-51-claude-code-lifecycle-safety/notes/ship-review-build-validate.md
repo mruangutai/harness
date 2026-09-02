@@ -1,9 +1,9 @@
 # FEAT-51 Claude Code lifecycle safety — ship review
 
-**The feature is built, validated and ready to ship, and one thing is blocking that only you can
-do: the SC-10 hand-test.** Nine of nine tasks landed, eleven of twelve success criteria are met,
-SC-12 was withdrawn by your earlier ruling, and the review panel is clean at `severity_max: low`
-with no `must_fix`. The remaining criterion is `verify: uat` and nobody in the factory can close it.
+**The feature is built, validated, merged, and accepted for shipment.** Nine of nine tasks landed,
+eleven success criteria are met, SC-10 and SC-12 were withdrawn by explicit operator rulings, and
+the review panel is clean at `severity_max: low` with no `must_fix`. The operator withdrew SC-10 on
+2026-09-02 rather than represent the OMP pre-flight as Claude Code UAT evidence.
 
 **The validation was worth paying for.** The panel found two high-severity defects at the first
 pin, and one of them was a regression in the very protection this feature exists to provide. Both
@@ -31,14 +31,13 @@ re-run it, I say so.
 
 ---
 
-## §1 — The decision: ship, after you run the hand-test
+## §1 — The decision: ship
 
-`gates.uat` is `blocking_when_uat_criteria_exist` and SC-10's method is `uat`, so the gate is live.
-The script is `notes/uat-FEAT-51-c1.md`, about 35 minutes, ordered so the most falsifying step runs
-first. **Run it from the main checkout after merge** — a spawned agent loads its skills from there,
-not from the worktree, so running it in the worktree would test the wrong copy.
+On 2026-09-02 the operator explicitly chose to skip the Claude Code-specific UAT and withdraw
+SC-10. The OMP pre-flight was not treated as a pass: it cannot exercise the compatibility-host
+quarantine branch. The feature therefore ships with live Claude Code parent resumption unverified.
 
-Everything else is done. Merge, the PR and ship acceptance are yours; I have touched none of them.
+PR #1151 is merged. Record the ship transition.
 
 ---
 
@@ -121,15 +120,15 @@ against the **owner** manifest, which is what the hook actually consults.
 
 ## §5 — Success criteria
 
-Eleven met, one withdrawn by your ruling, one yours to close.
+Eleven met; SC-10 and SC-12 withdrawn by operator rulings.
 
 | | |
 |---|---|
 | SC-01 … SC-06 | **met** — suspension accepted, refusals, claim liveness, both gate surfaces, the CLI |
 | SC-07 | **met**, after a fix — the OMP fixtures now carry a live supervisor pid and go red when the exemption is removed |
 | SC-08, SC-09, SC-11, SC-13 | **met** |
-| SC-10 | **pending your hand-test** — `notes/uat-FEAT-51-c1.md` |
-| SC-12 | **withdrawn** by your plan-phase ruling, number left as a deliberate gap |
+| SC-10 | **withdrawn** by the operator on 2026-09-02; Claude Code live-host conduct remains unverified |
+| SC-12 | **withdrawn** by the operator's plan-phase ruling, number left as a deliberate gap |
 
 pm's evidence: `notes/research-FEAT-51-goalcheck-build-c1.md` and
 `notes/research-FEAT-51-goalcheck-sc07-c2.md`.

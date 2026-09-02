@@ -162,11 +162,10 @@ that route; a resumed parent explicitly adopts or discards the result. OMP behav
   whole-region search for two script names is satisfied by the one that is present. The check can
   go red: an entry carrying `check-domain.sh` but no `plan-sign-gate.sh` fails the suite.
   verify: automated        evidence: integration
-- SC-10: The operator interrupts a real Claude Code parent while its member is mid-run, then resumes
-  it, and confirms three things by hand: a quarantine directory holds the orphan's result, no
-  canonical feature artifact was overwritten by the orphan, and nothing became canonical until he ran
-  `quarantine.py adopt` himself.
-  verify: uat
+- SC-10: **WITHDRAWN, not unmet.** It required the operator to interrupt and resume a real Claude
+  Code parent, then verify quarantine and explicit adoption by hand. On 2026-09-02 the operator
+  explicitly chose to skip this Claude Code-specific UAT and withdraw the criterion. The feature
+  therefore ships without live-host evidence that the compatibility parent resumes correctly.
 - SC-11: The quarantine boundary covers the `Bash` route, not only the editor route — and it is
   graded on `plan-sign-gate.sh`, the `PreToolUse` `Bash` hook, by name. At the reviewed sha, with a
   registry holding one live non-`omp` claim for `<FEAT>` held by another persona in another session,
@@ -208,10 +207,10 @@ that route; a resumed parent explicitly adopts or discards the result. OMP behav
   `status: unresolved`; `functional` is excluded under DEC-187. No SC above rests on any of them.
   The playbook task is `change_type: docs` under DEC-70's narrowing — a markdown playbook an agent
   preloads is graded by CONDUCT, not by a dataset eval — so no `eval` is owed.
-- **No runner in this repository executes a markdown playbook.** SC-08 grades text a human reads and
-  SC-10 is the only evidence of a parent's actual conduct under interruption. SC-10 stays `not_met`
-  until the operator runs it, and it must be run from the main checkout after merge: a spawned agent
-  loads its skills from there, not from this worktree (DEC-201's own measurement).
+- **No runner in this repository executes a markdown playbook.** SC-08 grades text a human reads.
+  SC-10, formerly the only live-host evidence of a parent's actual conduct under interruption, was
+  withdrawn by the operator on 2026-09-02. The Claude Code compatibility behavior is therefore
+  unverified in a live host at ship time.
 - The TTL is the compatibility host's honest limit, not a bug to be fixed here. Claude Code exposes
   no durable child-process owner, so beyond `CLAIM_TTL_SECONDS` (1200) the harness cannot distinguish
   a suspended parent from an interrupted one and fails safe: the write is quarantined and adoption is

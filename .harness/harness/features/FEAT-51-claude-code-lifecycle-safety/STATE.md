@@ -7,13 +7,12 @@
 - squad: none
 - status: Review
 
-BUILT AND VALIDATED. READY TO SHIP ON ONE OPERATOR ACT. All nine tasks are at station `done`,
-eleven of twelve success criteria are met, SC-12 is withdrawn by the operator's plan-phase ruling,
-and the review panel is clean at `severity_max: low` with no `must_fix`. The one thing outstanding
-is SC-10, whose declared method is `uat` — `gates.uat` is `blocking_when_uat_criteria_exist`, so it
-is a live gate and nobody inside the factory can close it. The script is `notes/uat-FEAT-51-c1.md`,
-about 35 minutes, and it must be run from the MAIN checkout after merge, because a spawned agent
-loads its skills from there rather than from the worktree.
+BUILT, VALIDATED, MERGED, AND ACCEPTED FOR SHIPMENT. All nine tasks are at station `done`; eleven
+success criteria are met; SC-10 and SC-12 are withdrawn by explicit operator rulings; and the review
+panel is clean at `severity_max: low` with no `must_fix`. On 2026-09-02 the operator chose to skip
+the Claude Code-specific hand-test and withdraw SC-10 after an OMP pre-flight demonstrated that OMP
+cannot exercise the compatibility-host quarantine path. Claude Code parent resumption therefore
+ships without live-host UAT evidence.
 
 THE BRIEFING FOR THE OPERATOR IS `notes/ship-review-build-validate.md`, with the rendered reading
 view beside it. It carries the ship decision, what validation caught, the success-criteria table,
@@ -56,18 +55,14 @@ against `max_total_runs` 20 — informational, named in the briefing rather than
 UNDER-REPORTING, because the six main-session-direct segments are not runs and never appear in
 `runs:`.
 
-MINE IS DONE. Merge, the PR and ship acceptance are the operator's, and I have touched none of them.
-Feature-close distillation runs after the merge lands, not before.
+Merge and PR #1151 are complete. The remaining operator act is the recorded ship transition.
+Feature-close distillation remains after shipment.
 
 ## Open Questions
 
-- OPERATOR ACT OUTSTANDING, gating: SC-10's hand-test, `notes/uat-FEAT-51-c1.md`, run from the MAIN
-  checkout after merge. `gates.uat` is `blocking_when_uat_criteria_exist` and no agent can close it.
-- OPERATOR DECISION, recommended BEFORE the ship decision: `PF-e380f685c0697fb709ff29f65af0cf24`
-  (backlog B-4) — does the host re-enter a parent that returned exit 0 from its Stop hook with a
-  live child claim, with nobody touching it? Nine tasks rest on that assumption. pm's finding, which
-  I endorse: the UAT does NOT answer it, because the UAT measures operator-driven resumption. The
-  spike is cheaper than the UAT and strictly more falsifying. — harness-pm
+- OPERATOR RULING, resolved 2026-09-02: skip the Claude Code-specific hand-test and withdraw SC-10.
+  The OMP pre-flight was not treated as a pass; it established that OMP cannot exercise the
+  compatibility-host branch. Live Claude Code parent resumption remains unverified at ship time.
 - OPERATOR DECISION, not gating: `PF-2545afb576b19ad86704f5bfcb556b9e` (low, open) asks to narrow
   SC-02's `awaiting` set-equality to a subset check. Narrowing a success criterion is the operator's.
 - HARNESS DEFECT, measured TWICE independently in this feature: a repo-relative editor write
