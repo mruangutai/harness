@@ -564,12 +564,12 @@ def case_structural_refusal():
 
 
 def case_create_path_approval():
-    """Case 11 — THE CREATE PATH MUST NOT CARRY THE PROPOSAL'S APPROVAL. Base does not exist
-    (step 3 treats it as an empty mapping, D-04 read together with step 7b): a proposal carrying
-    an approval key differs from the base's absent one, so it must refuse exit 8 rather than
-    write the proposal's signature to a brand-new file.
+    """Case 11 — NEW PLANS START UNSIGNED. `apply` owns initial creation, so it seeds the
+    approval mapping as pending rather than accepting one from the proposal. `sign-approval`
+    remains the only route that can transition that mapping to approved.
     """
-    # 11a: base does not exist, proposal carries NO approval key -> exit 0, file created, whole.
+    # 11a: base does not exist, proposal carries NO approval key -> exit 0, file created with
+    # the tool-owned pending approval block, then the main session can sign it.
     _root_a, path_a = fixture_root(prefix="plan-merge-test-c11a-")
     check("case11a: base file does not exist before apply", not os.path.exists(path_a), path_a)
     full = ids(1, 3)
@@ -583,9 +583,15 @@ def case_create_path_approval():
         content_a = open(path_a, encoding="utf-8").read()
         for tid in full:
             check(f"case11a: {tid} present in the created file", f"- id: {tid}\n" in content_a, content_a)
+        approval_a = (yaml.safe_load(content_a).get("approval") or {})
+        check("case11a: apply seeds approval as pending", approval_a.get("status") == "pending", content_a)
+        r_sign = run_verb("sign-approval", "--file", path_a, "--by", "main-session",
+                          "--date", "2026-09-01")
+        check("case11a: a newly created plan can be signed", r_sign.returncode == 0,
+              r_sign.stdout + r_sign.stderr)
 
-    # 11b: base does not exist, proposal DOES carry an approval key -> exit 8, nothing written,
-    # no file left behind (the create-path analogue of case10a's byte-identity check).
+    # 11b: a proposal may not choose any approval value, including approved. The tool seeds its
+    # own pending value instead, so a caller cannot mint a signature while creating a plan.
     _root_b, path_b = fixture_root(prefix="plan-merge-test-c11b-")
     check("case11b: base file does not exist before apply", not os.path.exists(path_b), path_b)
     proposal_b = os.path.join(_root_b, "proposal.yaml")
@@ -617,7 +623,6 @@ def case_create_path_approval():
         if n not in ("plan.yaml.lock",)
     ]
     check("case11b: no stray tempfile/plan.yaml left behind after the refusal", not stray, stray)
-
 
 # ---------------------------------------------------------------------------
 # FEAT-41 T-03: the four new verbs

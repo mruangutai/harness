@@ -25,19 +25,18 @@ factory_config declares — MANDATED_STATIONS plus TERMINAL_MARKER, imported, ne
 resolved through the harness.json of the checkout the target plan.yaml belongs to. The check runs
 BEFORE the lock is taken, so a refused value never opens the file.
 
-`approval:` is written by EXACTLY ONE VERB, `sign-approval` (D-04, amended by FEAT-41 T-03).
-Every other verb leaves the base file's approval bytes byte for byte. The main session — nobody
-else — signs approval, and now does so through this tool rather than by hand. A proposal
+`approval:` has two controlled write paths: `apply` seeds a brand-new plan with the
+unsigned `status: pending` mapping, and `sign-approval` is the only path that can transition it
+to approved. Every verb operating on an existing plan leaves its approval bytes byte for byte.
+The main session — nobody else — signs approval through this tool rather than by hand. A proposal
 that carries an approval mapping which PARSES differently from the base's is a REFUSAL (exit 8),
 not a silent drop: `apply` must be INCAPABLE of writing a signature (step 7) and must also NOTICE
 a caller that tried to sneak one past it (step 7b) — two different jobs, so two different guards.
 
-THAT PROHIBITION IS UNCHANGED IN FORCE AND NARROWER IN SCOPE. Before FEAT-41 T-03 the tool had
-one verb, so "apply cannot sign" and "this tool cannot sign" were the same sentence; they are not
-any more. Signing moved from a hand edit into `sign-approval` so that it happens under the same
-lock as every other plan write — a signature spliced by hand while another writer held the file
-was the remaining unguarded route into plan.yaml. `apply` still cannot sign, and still refuses a
-proposal that tries.
+The creation exception is deliberately narrower than signing: a proposal cannot choose the pending
+mapping's contents, and the tool emits only its fixed status. Without this bootstrap, a newly
+created plan cannot later be signed because `sign-approval` correctly refuses to invent a missing
+mapping.
 
 Exit codes are the interface:
     0  applied — stdout lists ADDED/PRESERVED ids, an IGNORED-APPROVAL line if the proposal
@@ -510,12 +509,9 @@ def apply_merge(base_bytes, proposal_text):
     Raises harness_merge.MergeRefusal(5|7|8) with nothing to write, per plan-merge.py's contract
     with harness_merge.locked_update: a raised MergeRefusal leaves the file untouched."""
     if base_bytes is None:
-        # Step 3: a base that does not exist is an empty mapping; the proposal is written whole
-        # UNLESS it carries an approval key. Read together with step 7b (D-04): the empty
-        # mapping has no approval key at all, so a proposal's approval value always "differs"
-        # from the base's absent one — the same structural refusal step 7b applies elsewhere,
-        # here on the create path, so the tool never becomes capable of writing a signature to
-        # a brand-new file.
+        # A new plan needs an unsigned approval mapping before the main session can later sign it.
+        # The proposal may not supply that mapping: accepting any caller-owned value would let
+        # `apply` mint an approved plan, bypassing cmd_sign_approval's identity gate.
         try:
             prop_doc = yaml.safe_load(proposal_text)
         except yaml.YAMLError as exc:
@@ -527,14 +523,20 @@ def apply_merge(base_bytes, proposal_text):
             raise harness_merge.MergeRefusal(
                 8,
                 [
-                    "REFUSED: proposal carries an approval mapping and the base does not exist "
-                    "(treated as an empty mapping with no approval key).",
+                    "REFUSED: proposal carries an approval mapping and the base does not exist.",
                     "  base approval: <absent>",
                     f"  proposal approval: {prop_doc.get('approval')!r}",
-                    "  the signer is the main session; plan-merge.py never writes approval.",
+                    "  apply seeds a fixed pending mapping; only the main session may approve it through sign-approval.",
                 ],
             )
-        return proposal_text.encode("utf-8"), [], [], False
+        lines = proposal_text.splitlines(keepends=True)
+        for index, line in enumerate(lines):
+            if FEATURE_LINE_RE.match(line):
+                lines[index + 1:index + 1] = ["approval:\n", "  status: pending\n"]
+                return "".join(lines).encode("utf-8"), [], [], False
+        raise harness_merge.MergeRefusal(
+            5, ["UNPARSEABLE: proposal carries no top-level feature: key to anchor approval."]
+        )
 
     base_text = base_bytes.decode("utf-8")
     try:
