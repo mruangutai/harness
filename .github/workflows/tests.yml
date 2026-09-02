@@ -197,6 +197,24 @@ jobs:
           echo "route gate entered ${examined} feature dir(s), checked ${plans} live plan(s); checker exit ${rc}"
           exit "$rc"
 
+      - name: Instruction-path gate
+        env:
+          CLAUDE_PROJECT_DIR: ${{ github.workspace }}
+        run: |
+          rc=0
+          out=$(python3 .agents/skills/harness/bin/check-instruction-paths.py 2>&1) || rc=$?
+          printf '%s\n' "$out"
+          summary=$(printf '%s\n' "$out" | grep -E '^scanned [0-9]+ file\(s\), [0-9]+ violation\(s\)$' | tail -1) || true
+          if [ -z "$summary" ]; then
+            echo "::error::check-instruction-paths.py scan did not run." >&2
+            exit 1
+          fi
+          if [ "$rc" -eq 2 ]; then
+            echo "::error::check-instruction-paths.py could not run." >&2
+            exit 1
+          fi
+          exit "$rc"
+
       # THE LAYOUT GATE (FEAT-20/T-03, REQ-06). Nothing in the repository asserts this
       # step is present or unneutered — still true at 2026-08-21, and it is the same hole the
       # Plan-route gate above carries. Both are accepted rather than unnoticed (DEC-183): a guard

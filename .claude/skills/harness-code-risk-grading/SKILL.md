@@ -171,7 +171,7 @@ grade-2 function passes only with a written reason naming the function. Before r
 changed Python functions with:
 
 ```sh
-python3 .claude/skills/harness/bin/code-grade.py --base "$(git merge-base origin/main HEAD)" --head HEAD
+python3 <HARNESS_CONTROL_PLANE_ROOT>/.claude/skills/harness/bin/code-grade.py --base "$(git merge-base origin/main HEAD)" --head HEAD
 ```
 
 The tool is evidence, not the last word: improve a function when its shape is hard to understand even
