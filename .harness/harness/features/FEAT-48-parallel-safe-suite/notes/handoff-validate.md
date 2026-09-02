@@ -1,60 +1,60 @@
-# Handoff — FEAT-48, validate → ship — written at 8e7f56dc, seq-3
+# Handoff — FEAT-48, validate → ship — written at e64e863e, seq-4
 
 ## Next
 
-**Do not ship. One bounded, main-session-direct fix step, then re-validate.** Deliver T-03's
-in-file red proof into `.claude/skills/harness/bin/test-suite-independence.py` — the six cases
-`plan.yaml` T-03 already mandates (injection idiom; mutant-beside-original; PID-named variant;
-clean control; live-tree case asserting `discovered >= 50` with the root recomputed by an INLINE
-walk, not by calling `harness_boundary`; root refusal). That is SC-03, graded `unmet`. It is
-**approved-but-unmet** — the signed plan already requires it, so no operator ruling is needed and
-it is a fix cycle, not a plan amendment. Every remedy here is `execution_mode: main-session-direct`
-under DEC-174; **routing it to a squad spends a cycle proving nobody may edit the files.**
-Then re-pin `review_sha` and re-check SC-01, SC-03, SC-04 and SC-09 at the new sha.
+**Do not ship. One operator ruling first.** SC-03's second half — "in the same run, flags the ten
+historical violating sites at `ea6f51f` … each asserted individually" — is asserted by NO gate and
+**cannot be met as written**: CI runs `actions/checkout@v4` with no `fetch-depth`
+(`.github/workflows/tests.yml:50`), so the default shallow clone puts `ea6f51f` out of reach, while
+SC-04 requires that same file to pass in CI. Route to **pm** for a re-plan recommendation under the
+operator's approval — not mine to waive, and not a fix cycle. Remedies: **(A)** add `fetch-depth: 0`
+and assert the ten sites in the invariant — literal, but adds a file outside the signed plan's set
+and a full-history fetch to every CI run; **(B)** amend SC-03 so the ten-site assertion is a
+review-time check, which is what T-03's `verify:` block already is. Three quality items
+(`code_grade`, M4, M5) need the same main-session-direct lane alongside the ruling.
 
 ## Trust
 
-- SC-01, SC-02, SC-04..SC-10 met, each graded by its own declared `verify:` method —
-  `notes/research-FEAT-48-goalcheck-validate.md` — verified-at 8e7f56dc.
-- SC-03 unmet; the invariant is scanner-only, 180 lines, zero case machinery, `tempfile` imported
-  at :9 and never used — `notes/qa-c7.md`, and I re-read the file — verified-at 8e7f56dc.
-- The scanner itself WORKS: T-03's verify block re-executed finds all ten `ea6f51f` sites, missing
-  0, extra 0. **The defect is that no gate re-executes it** — test-only remedy, not a code defect —
-  `notes/research-FEAT-48-goalcheck-validate.md` — verified-at 8e7f56dc.
-- `qa_gate` PASSES: `matrix_ok: true`, unit 33/33, integration 30/30 — `notes/qa-c7.md` — at 8e7f56dc.
-- Suite green and fast on a quiet tree: `--kind all` exit 0, `pool: 8 workers, 63 files, 48.09s
-  wall`, zero `MUTATED` — my own run — verified-at 8e7f56dc.
-- `run_pool.py --mutation-check` fails open on new **symlink-shaped** entries: a dangling symlink
-  and a symlinked subdirectory each give exit 0 and no `MUTATED`, while an ordinary new file
-  correctly gives exit 1 `MUTATED .mutant-x.sh` — my own tempdir probe — verified-at 8e7f56dc.
-  T-04's approved intent requires catching a path that "APPEARED", so this is approved-but-unmet.
-- `code_grade: fail` is MECHANICAL under DEC-209, not an opinion: `code-grade.py --base d135364e
-  --head 8e7f56dc` gives 18 passing, 7 FAIL (5 grade-1) — my own run — verified-at 8e7f56dc.
-- `review_sha` re-pinned `b86ce66a` → `8e7f56dc` to clear INV-33; the review target did not move —
-  `git diff --stat b86ce66a 8e7f56dc -- .claude .github` empty — verified-at 8e7f56dc.
-- FEAT-48 carries zero `check-state.sh` findings after the re-pin — my own run — verified-at 8e7f56dc.
+- SC-01, SC-02, SC-04..SC-10 all MET, re-verified by me at `e64e863e`, not inherited — at e64e863e.
+- SC-03 half one now MET: the live-tree case asserts the root against an INLINE recomputation (not a
+  call to `harness_boundary`), `discovered 63 >= 50`, zero findings —
+  `bin/test-suite-independence.py:206-224` — verified-at e64e863e.
+- SC-03 half two UNMET: no file under `bin/` mentions `ea6f51f`, zero grep hits — at e64e863e.
+- **The scanner itself is not in doubt.** I ran it over `git show ea6f51f:` for all three files and
+  asserted each of the ten sites individually: found 10, missing 0, extra 0. The capability is
+  present; only its enshrinement in a CI-run gate is missing — my probe — verified-at e64e863e.
+- M1 FIXED: a dangling symlink and a symlinked subdirectory each now give exit 1 with a `MUTATED`
+  line, while the clean control still exits 0 — my tempdir probe, and `bin/test-run-pool.py:92-105`
+  pins both legs — verified-at e64e863e.
+- Suite green and stable at the new pin: ELEVEN `--kind all` runs, all exit 0, zero `MUTATED`, zero
+  `FAIL`, 42.61–48.71s at 8 workers / 63 files, tree 0 modified paths at start and end. This
+  re-establishes SC-05/SC-06 against the CHANGED pool; the note's original ten were taken at
+  `b86ce66a`, before `snapshot()` was rewritten — my runs — verified-at e64e863e.
+- SC-01 re-verified: `test-check-domain.py` exit 0, `feature_schema.py` identical in mtime_ns, size
+  AND sha256, crashing-checker still asserts exit 2 with `CRASHED` (:1492) — at e64e863e.
+- `code_grade` STILL `fail` and WORSE: 7 FAIL records → **9** (19 passing). New grade-1
+  `test-suite-independence.py:170 run_self_tests`, new grade-2 `run_pool.py:29 snapshot` — at e64e863e.
+- M4 STILL open: zero `pycache` mentions in `bin/test-run-pool.py`; T-04 intent item (g) unpinned.
+  M5 STILL open: a same-size overwrite with an exact `os.utime` restore is invisible — adding
+  `st_mode` did not close it — my probes — verified-at e64e863e.
+- The code added by `e64e863e` has been through NO reviewer panel; only my mechanical verification
+  covers `run_self_tests` and the rewritten `snapshot` — UNVERIFIED by review.
 
 ## Dead ends
 
-- Do not route any remedy to a dev squad — all land in `.claude/skills/harness/bin/**` or
-  `DECISIONS.md`, every one `main-session-direct` — `plan.yaml` `lanes:`, DEC-174 — at 8e7f56dc.
-- Do not put SC-03's reading to the operator. Both the panel and pm raised it; `plan.yaml` T-03
-  ("ITS OWN RED PROOF, in the file, so CI keeps proving the guard can fail") settles it in the
-  signed text — `plan.yaml` T-03 intent — verified-at 8e7f56dc.
-- Do not grade T-07; `abandoned` history, no implementation — `plan.yaml` — verified-at 8e7f56dc.
-- Do not read a red suite as a FEAT-48 defect before clearing the environment: with
-  `HARNESS_AGENT_TYPE` set, `test-plan-merge.py` fails 11 `sign-approval` checks and the suite exits
-  1; that file is not in the diff. Use `env -u HARNESS_AGENT_TYPE` — my own run — at 8e7f56dc.
-- Do not raise the duplicate `PASS <file>` line as a REQ-06 regression: six test files print their
-  own summary and `main`'s runner printed `PASS $s` identically — `git show
-  d135364e:...run-unit-tests.sh` — verified-at 8e7f56dc.
-- Do not cite `runs/**` downstream; `.gitignore:7` excludes them, so those digests die with the
-  worktree. Cite `notes/` — `git check-ignore -v` — verified-at 8e7f56dc.
+- Do not route any remedy to a dev squad — all land in `bin/**`, `DECISIONS.md` or the workflow,
+  every one `main-session-direct` — `plan.yaml` `lanes:`, DEC-174 — verified-at e64e863e.
+- Do not re-add the six in-file cases or re-litigate SC-03's FIRST half; five of six landed and the
+  live-tree case is correct — `bin/test-suite-independence.py:170-235` — verified-at e64e863e.
+- Do not hand the ten-site gap back as a coding oversight. It is a wrong-premise criterion, and a
+  fix dispatch yields either a red CI or a silent skip — `.github/workflows/tests.yml:50` — at e64e863e.
+- Do not read a red suite as a FEAT-48 defect before clearing the environment: `HARNESS_AGENT_TYPE`
+  makes `test-plan-merge.py` fail 11 checks; that file is not in the diff — my run — at e64e863e.
 
 ## Working set
 
-- `.claude/skills/harness/bin/test-suite-independence.py`
-- `.harness/harness/features/FEAT-48-parallel-safe-suite/notes/research-FEAT-48-goalcheck-validate.md`
-- `.harness/harness/features/FEAT-48-parallel-safe-suite/notes/qa-c7.md`
-- `.harness/harness/features/FEAT-48-parallel-safe-suite/notes/review-harness-code-reviewer-c7.md`
-- `.harness/harness/features/FEAT-48-parallel-safe-suite/plan.yaml` (T-03, T-04 intent blocks)
+- `.claude/skills/harness/bin/test-suite-independence.py` (`run_self_tests`, :170)
+- `.claude/skills/harness/bin/run_pool.py` (`snapshot`, :29)
+- `.claude/skills/harness/bin/test-run-pool.py` (:92-105 symlink legs; no `__pycache__` leg)
+- `.github/workflows/tests.yml:50` (the shallow checkout that bounds SC-03)
+- `.harness/harness/features/FEAT-48-parallel-safe-suite/BRIEF.md` (SC-03, SC-04)
