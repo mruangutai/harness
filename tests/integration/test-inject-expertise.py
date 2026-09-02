@@ -166,14 +166,20 @@ def case3():
     report("case3: craft only, no repository text of any kind", all(checks), str(checks))
 
 
-# --- Case 4: nothing on disk -------------------------------------------------
+# --- Case 4: no Expertise still receives the control-plane block -------------
 def case4():
     root = tempfile.mkdtemp()
     home = fresh_home()
     r = run_hook(root, home, b'{"agent_type": "harness-qa"}')
-    out = r.stdout.decode("utf-8", errors="replace").strip()
-    ok = r.returncode == 0 and (out == "" or "hookSpecificOutput" not in out)
-    report("case4: nothing on disk -> exit 0, empty/no hookSpecificOutput", ok, f"exit={r.returncode} out={out!r}")
+    ctx = get_context(r) or ""
+    ok = (
+        r.returncode == 0
+        and ctx.startswith("## Harness control plane\n\nHARNESS_CONTROL_PLANE_ROOT: ")
+        and os.path.isabs(ctx.splitlines()[2].split(": ", 1)[1])
+        and "HARNESS_PATH_DRIFT: unknown" in ctx
+    )
+    report("case4: no Expertise still receives control-plane context", ok,
+           f"exit={r.returncode} context={ctx!r}")
 
 
 # --- Case 5: missing agent_type, and invalid JSON ---------------------------
