@@ -69,4 +69,4 @@ the actual plan.yaml/BRIEF.md text, not just in the c2 summary. D-04 (persisted 
 and T-13 (mutation-experiment note) are the two items the dispatch marked as the operator's call;
 no addition from this reader.
 
-reviewed: plan:.harness/harness/features/FEAT-52-handoff-done-when/plan.yaml
+reviewed: plan:.harness/harness/features/FEAT-54-handoff-done-when/plan.yaml

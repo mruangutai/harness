@@ -1,5 +1,5 @@
 schema: plan/1
-feature: FEAT-52-handoff-done-when
+feature: FEAT-54-handoff-done-when
 approval:
   status: pending
 
@@ -8,12 +8,14 @@ status: plan
 source_issues: []
 
 panel:
-  last_run: 2026-09-02-4-validator
-  cycle: 0
+  last_run: 2026-09-02-c2-validator
+  cycle: 2
   readers:
   - reader: should-not-exist
     status: ran
   - reader: scope
+    status: ran
+  - reader: goalcheck
     status: ran
   findings:
   - id: PF-4205e7e2f84e2eb24d421c924f4d7ac3
@@ -24,30 +26,10 @@ panel:
       settled only at write time; a later BRIEF repair that renumbers an SC reddens
       an untouched, previously-valid note and forces the very edit the frozen baseline
       exists to prevent.
-    disposition: open
-  - id: PF-570b9c87adac19d62513b5e90cce0f81
-    severity: low
-    reader: should-not-exist
-    summary: T-06 case (g) bakes a third run of the real-corpus scan plus an mtime/byte
-      no-mutation audit into the permanent integration suite, so any feature that
-      writes a pre-sweep handoff note mid-build reddens test-check-state.py and the
-      corpus problem presents as an unrelated test regression.
-    disposition: open
-  - id: PF-918326616878584f5958be94fba0ede7
-    severity: low
-    reader: scope
-    summary: T-09's specified test_kinds.handoff_comprehension entry omits exclude,
-      which all 8 existing kinds carry including the omp_session_accessor entry it
-      names as its model, so code_grade.py:468-471 defaults it to none and a worktree-duplicated
-      copy of the probe is classified where its siblings are excluded.
-    disposition: open
-  - id: PF-d0ea19ffc351a13d6b569f0169222109
-    severity: low
-    reader: should-not-exist
-    summary: SC-14 plus the two forever-green cases T-03(h) and T-06(h) turn an out-of-scope
-      exclusion into permanent machinery, so a future feature that legitimately revisits
-      length budgeting must first dismantle tests this one planted.
-    disposition: open
+    disposition: ACCEPTED by the operator at the batched ruling of 2026-09-02 and
+      implemented as decision D-10 (pointer targets resolved at write time only),
+      carried by T-01, T-02, T-06 cases e1 and e2, and T-07. D-01 no longer contradicts
+      it as of the planfix-c2c amend.
   - id: PF-1e45eb3a962725a1b45e3e0e90a271c6
     severity: info
     reader: should-not-exist
@@ -55,7 +37,64 @@ panel:
       - T-09, T-12's three cases, SC-09's registration clauses and the test_kinds
       entry - and a strike of T-09 alone leaves T-12 asserting a kind that does not
       exist and SC-09 ungradable.
-    disposition: open
+    disposition: 'REJECTED by the operator at the batched ruling of 2026-09-02: D-04
+      stands and the comprehension probe is kept whole, so T-09, T-12 and SC-09 are
+      retained unchanged.'
+  - id: PF-570b9c87adac19d62513b5e90cce0f81
+    severity: low
+    reader: should-not-exist
+    summary: T-06 case (g) bakes a third run of the real-corpus scan plus an mtime/byte
+      no-mutation audit into the permanent integration suite, so any feature that
+      writes a pre-sweep handoff note mid-build reddens test-check-state.py and the
+      corpus problem presents as an unrelated test regression.
+    disposition: open - no operator ruling exists for this finding; both c2 readers
+      (scope and should-not-exist) independently re-derived it as STANDING against
+      the revised plan, not carried forward on the cycle-0 record.
+  - id: PF-918326616878584f5958be94fba0ede7
+    severity: low
+    reader: scope
+    summary: T-09's specified test_kinds.handoff_comprehension entry omits exclude,
+      which all 8 existing kinds carry including the omp_session_accessor entry it
+      names as its model, so code_grade.py:468-471 defaults it to none and a worktree-duplicated
+      copy of the probe is classified where its siblings are excluded.
+    disposition: open - no operator ruling exists for this finding; both c2 readers
+      (scope and should-not-exist) independently re-derived it as STANDING against
+      the revised plan, not carried forward on the cycle-0 record.
+  - id: PF-d0ea19ffc351a13d6b569f0169222109
+    severity: low
+    reader: should-not-exist
+    summary: SC-14 plus the two forever-green cases T-03(h) and T-06(h) turn an out-of-scope
+      exclusion into permanent machinery, so a future feature that legitimately revisits
+      length budgeting must first dismantle tests this one planted.
+    disposition: open - no operator ruling exists for this finding; both c2 readers
+      (scope and should-not-exist) independently re-derived it as STANDING against
+      the revised plan, not carried forward on the cycle-0 record.
+  - id: PF-f2aee0d45b76412d69f7e8a9496f86a8
+    severity: med
+    reader: scope
+    summary: D-01's decision text asserts that the persisted INV-17 pass checks pointer
+      RESOLUTION whenever the section is present, which is exactly what D-10 forbids,
+      and T-07 cites per D-01 as its governing decision while its own body correctly
+      calls the module with resolve=False; a future engineer citing D-01 would reinstate
+      the rot vector the operator ruled against.
+    disposition: 'resolved by this planfix-c2c run: D-01''s choice and because were
+      amended so the decision''s scope is the frozen-baseline discriminator, the persisted
+      pass checks block shape and pointer GRAMMAR only, and the write-time versus
+      persisted split defers to D-10 by id. T-07''s per D-01 citation now agrees with
+      its resolve=False body.'
+  - id: PF-bd92960a1606d9794331d84a14e0b978
+    severity: info
+    reader: should-not-exist
+    summary: D-10's rationale that a typed prefix consults no target and therefore
+      cannot rot assumes the pointer GRAMMAR is itself immutable; there is no grammar-version
+      analogue of the frozen baseline, so a future feature that RENAMES or NARROWS
+      an authority type or an id format reddens every five-section note written before
+      it - widening is safe, only rename or narrow bites.
+    disposition: open - the plan does not answer it. D-03 fixes the four authority
+      types and D-01/D-08's frozen baseline exempts SECTION PRESENCE only, never grammar,
+      so no decision, task or criterion covers a later rename or narrowing of a type
+      or id format; recorded for that feature's planner rather than repaired here,
+      since a grammar-version mechanism is outside this feature's scope.
 lanes:
   resolved_at: b7956fc4
   rows:
@@ -101,8 +140,8 @@ lanes:
 
 decisions:
   - id: D-01
-    choice: 'INV-17 demands the fifth section only for a persisted note whose repo-relative path is absent from a frozen list handoff_done_when_baseline in .harness/harness.json (141 paths, the notes tracked at b7956fc4 that lack the section); block shape and pointer resolution are checked whenever the section is present, whoever wrote it'
-    because: 'a frozen path list needs no git history, so the answer cannot change with clone depth the way a git-log discriminator does in a depth-1 CI checkout; failure mode is a dead entry after a note is renamed, which exempts nothing; a historical note someone later edits is refused by the write gate until it gains the section, so it can only leave the historical set by becoming compliant'
+    choice: 'INV-17''s only discriminator is the frozen baseline: the fifth section is demanded of a persisted note whose repo-relative path is absent from the frozen list handoff_done_when_baseline in .harness/harness.json (141 paths, the notes tracked at b7956fc4 that lack the section), and is not demanded of a note whose path IS in that list. When the section is present, whoever wrote it, the persisted pass checks block shape and pointer GRAMMAR, never target resolution. On the write-time versus persisted split this decision decides nothing and defers to D-10.'
+    because: a frozen path list needs no git history, so the answer cannot change with clone depth the way a git-log discriminator does in a depth-1 CI checkout; failure mode is a dead entry after a note is renamed, which exempts nothing; a historical note someone later edits is refused by the write gate until it gains the section, so it can only leave the historical set by becoming compliant; what each pass checks once the section is present is D-10's ruling, not this one's, and is deferred to it by id.
     dec: none
   - id: D-02
     choice: 'one implementation of block parsing and pointer resolution, a new module .claude/skills/harness/bin/handoff_done_when.py, imported by check-domain.sh and check-state.sh'
@@ -133,10 +172,10 @@ decisions:
     choice: 'a handoff note written during this feature''s own build is a NEW note: it carries the five-section contract like any other, it is NEVER added to handoff_done_when_baseline, and the baseline stays exactly the 141 notes tracked at the feature''s base commit b7956fc4 (git merge-base main HEAD). Notes written between that base commit and the landing of T-04 escape the write gate, so T-11 brings each of them into compliance before review_sha is pinned'
     because: 'the operator settled that untouched historical handoffs remain valid AND that every newly written or edited handoff must use the five-section contract (grilling line 16); widening the baseline to cover this build''s own notes would exempt the first notes ever written under the new contract, and leaving them non-compliant would redden the corpus scan T-07 adds, for a planning reason no code fix addresses'
     dec: none
-  - id: D-09
-    choice: 'the single-implementation claim (SC-07) is graded by inspection over a recorded mutation experiment, notes/mutation-FEAT-52-shared-module.md authored by T-13, plus the two cited import sites — not by a permanent automated mutation test'
-    because: 'a permanent test that deletes the module''s resolution entry point would have to mutate a gate script from inside the suite that gates this repository, and DEC-174 keeps both suites main-session-direct; a recorded experiment carrying its reproduction command is falsifiable evidence a grader can re-run, whereas an automated mutation harness would add a second copy of the gate logic to keep in step (the very drift DEC-179 priced)'
-    dec: DEC-174
+  - id: D-10
+    choice: 'pointer TARGETS are resolved at write time only: check-domain.sh calls handoff_done_when.problems(..., resolve=True) and checks section presence, block shape, pointer grammar AND target resolution; check-state.sh (INV-17) calls the same single implementation with resolve=False and checks section presence against the frozen baseline, block shape and pointer GRAMMAR only — the authority prefix is one of the four legal types and the pointer is well formed for that type — and never opens a target. One module, one parser, one pointer grammar (DEC-179); resolve gates nothing but whether a target file is opened'
+    because: 'the operator ruled at the batched signature review of 2026-09-02, on finding PF-4205e7e2, that a standing re-resolution over the persisted corpus is a rot vector: a later BRIEF repair that renumbers an SC reddens an untouched, previously valid note and forces the very edit the frozen baseline exists to prevent, while the grilling settled resolution at write time only. Pointer GRAMMAR stays in the persisted pass because a typed prefix consults no target and therefore cannot rot, and a note whose authority is outside the four legal kinds must still be caught there'
+    dec: DEC-179
 
 tasks:
   - id: T-01
@@ -164,12 +203,15 @@ tasks:
       imported as `import handoff_done_when` after inserting its own directory on sys.path. The
       module's contract, which this test pins:
 
-        problems(rel_path, text, root) -> list[str]
+        problems(rel_path, text, root, resolve) -> list[str]
           rel_path  repo-relative path of the handoff note
           text      the note's full text
           root      absolute repository root
-          returns   [] when the note's Done when block is well formed and every pointer
-                    resolves; otherwise one message per problem
+          resolve   True: each pointer's TARGET is opened and must exist. False: section
+                    presence, block shape and pointer GRAMMAR only, and NO target file is
+                    opened at all (D-10)
+          returns   [] when the note's Done when block is well formed and, under resolve=True,
+                    every pointer resolves; otherwise one message per problem
 
       Cases required, each asserting on the RETURNED MESSAGES and not on source text:
       (a) a note with the four historical headings and no "## Done when" section returns exactly
@@ -179,9 +221,9 @@ tasks:
       (c) zero Scope: lines, two Scope: lines, zero Authority: lines, five Authority: lines, and
           a non-blank line that is neither Scope: nor Authority: each return a message naming the
           count or the offending text — five separate cases, five separate assertions;
-      (d) for EACH of the four pointer types, a resolving pointer returns [] and an
-          unresolvable pointer of the SAME type returns a message naming that pointer — eight
-          assertions, built over a temporary fixture repo laid out as
+      (d) for EACH of the four pointer types, WITH resolve=True, a resolving pointer returns []
+          and an unresolvable pointer of the SAME type returns a message naming that pointer —
+          eight assertions, built over a temporary fixture repo laid out as
           <tmp>/.harness/harness/features/FEAT-90-fixture/ with plan.yaml (a task T-03 carrying a
           non-empty verify), BRIEF.md (a line beginning "- SC-04:"), notes/review-fixture.md
           (a line carrying the token F-02) and BRIEF.md's "## Approval" heading. Assert per type;
@@ -194,7 +236,18 @@ tasks:
       (f) AND semantics, distinguished from ANY observably: four authorities all resolving returns
           [], proving the maximum is accepted, and the SAME block with exactly one of those four
           made unresolvable returns exactly one message, naming that pointer — a three-of-four
-          block must be REFUSED, which is what separates AND from ANY.
+          block must be REFUSED, which is what separates AND from ANY;
+      (g) resolve GATES TARGET RESOLUTION AND NOTHING ELSE (D-10), asserted as PAIRS — one pair
+          per authority type, over case (d)'s fixture: the SAME unresolvable-pointer input
+          returns NO message under resolve=False and exactly one message naming that pointer
+          under resolve=True. Four pairs, eight assertions. Plus a ninth: resolve=False opens no
+          target at all — a note whose block is well formed and whose pointers are all
+          syntactically legal, evaluated against a fixture feature directory where plan.yaml,
+          BRIEF.md and notes/review-fixture.md are ABSENT, returns [] under resolve=False. And
+          the counter-assertions that make the flag's scope observable: the missing-section
+          message (a), each of the five shape messages (c) and both unknown-authority refusals
+          (e) are returned under BOTH settings — asserted a second time with resolve=False, so a
+          flag that suppressed shape or grammar reddens here.
 
       Every fixture is built in a tempfile.TemporaryDirectory; the test must not read or write
       anything under .harness/harness/features outside that directory. The expected state at the
@@ -217,7 +270,7 @@ tasks:
       plainly, as plan-merge.py does), exposing:
 
         SECTION = "## Done when"
-        problems(rel_path, text, root) -> list[str]
+        problems(rel_path, text, root, resolve) -> list[str]
 
       Behaviour, exactly as test-handoff-done-when.py pins it:
 
@@ -243,9 +296,18 @@ tasks:
            approval:<path>#<head>  -> <root>/<path>; resolved when some line starting with one or
                                       more "#" characters has, after stripping them and
                                       whitespace, a case-insensitively equal text.
-         An unknown prefix returns a message listing the four legal prefixes. An unresolvable
-         pointer returns a message naming the pointer, the file consulted, and what was not found
-         in it. A target file that does not exist or does not parse is UNRESOLVED, never skipped.
+         An unknown prefix returns a message listing the four legal prefixes, under BOTH
+         settings of resolve. An unresolvable pointer returns a message naming the pointer, the
+         file consulted, and what was not found in it. A target file that does not exist or does
+         not parse is UNRESOLVED, never skipped.
+
+         `resolve` GATES TARGET RESOLUTION AND NOTHING ELSE (D-10). Under resolve=False: locate
+         the section, check its shape, and check each pointer's GRAMMAR — the prefix is one of
+         the four legal types and the remainder is well formed for that type — then return
+         WITHOUT opening plan.yaml, BRIEF.md, or any finding or approval target. No filesystem
+         read of a target may occur on that path. Under resolve=True: everything resolve=False
+         does, plus opening each target as described above. There is ONE parser and ONE pointer
+         grammar (DEC-179), and the flag adds no second code path through either.
       4. Every message is a single line with no leading whitespace and no markdown; the callers
          add their own indentation and head line. Messages name templates/HANDOFF.md.
       5. No I/O outside the paths named above, and no process spawn: both callers are hooks on a
@@ -309,6 +371,10 @@ tasks:
       notes/review-fixture.md (a line carrying F-02), and write the note under that feature's
       notes/ directory so the gate's own path resolution reaches them.
 
+      THE WRITE GATE CALLS THE MODULE WITH resolve=True: at write time presence, shape, pointer
+      grammar AND target resolution are all in force (REQ-06, D-10), so every pointer case here
+      is a resolving-or-refused case rather than a grammar-only one.
+
       Do not modify check-domain.sh in this task. The expected state at the end is RED: the new
       cases fail because the gate does not yet demand or parse the section, and the output names
       the section. Case (h) is expected GREEN before and after — it is a regression guard on the
@@ -333,10 +399,28 @@ tasks:
       - add "## Done when" to the required-heading list, and update that message's wording from
         "the four sections" to "the five sections";
       - import handoff_done_when from the same directory (follow the existing sibling-module
-        import pattern in this file) and append its problems(rel, content, root) messages,
-        indented the same way the other problems are, under the same
-        "handoff shape (DEC-159)." head line;
+        import pattern in this file) and append its
+        problems(rel, content, root, resolve=True) messages, indented the same way the other
+        problems are, under the same "handoff shape (DEC-159)." head line. THE WRITE GATE PASSES
+        resolve=True: at write time presence, shape, pointer grammar AND target resolution are
+        all in force, which is what REQ-06 demands and what D-10 confines to write time;
       - keep the 60-line whole-file cap and its message unchanged, and add no per-section cap;
+      - ALSO bring this gate's OWN PROSE into the five-section contract. Two live four-section
+        claims sit inside check-domain.sh today; locate each BY ITS CONTENT, never by line
+        number, which moves:
+        (i) the normative "DEC-159:" comment immediately above the RE_HANDOFF branch, which
+        today says the handoff note is working memory for a successor with "four fixed
+        sections". It must state FIVE fixed sections and name "## Done when".
+        (ii) the 60-line whole-file cap's refusal message, which today enumerates the note as
+        "intent, trust, dead ends and a working set". Its enumeration must state five and name
+        "## Done when" alongside the other four.
+        RESOLVING THE APPARENT CONFLICT WITH THE CAP CLAUSE ABOVE, which this clause does not
+        weaken: "keep the 60-line whole-file cap and its message unchanged" bounds the cap's
+        VALUE — the number 60 — and the absence of any per-section cap. It does NOT freeze that
+        message's four-section enumeration and is not licence to leave a four-section claim
+        standing. Both clauses hold together: 60 stays 60, no per-section cap appears anywhere,
+        AND the cap message enumerates five sections. Satisfying either clause by violating the
+        other is a failed task.
       - the module is consulted only when RE_HANDOFF matches, so no other route changes cost.
 
       Failure to import the module must be a REFUSAL naming the missing module, never a silent
@@ -394,7 +478,7 @@ tasks:
       writes to that one document from overwriting each other.
   - id: T-06
     title: Write the failing INV-17 cases in test-check-state.py
-    traces: [REQ-07, REQ-08]
+    traces: [REQ-06, REQ-07, REQ-08]
     change_type: logic
     execution_mode: main-session-direct
     execution_reason: 'DEC-174 — check-state.sh''s own test'
@@ -419,7 +503,17 @@ tasks:
       (c) a baselined note that DOES carry the section is checked for shape anyway: a malformed
           block in a baselined note is reported;
       (d) a non-baselined note with a well formed, fully resolving block is not reported;
-      (e) an unresolvable pointer in a note of either kind is reported, with the pointer named;
+      (e1) A SYNTACTICALLY LEGAL POINTER WHOSE TARGET IS ABSENT IS REPORTED BY NO LINE: a note
+          of either kind — baselined or not — whose block is well formed and whose Authority:
+          pointers are grammatical but name targets that do not exist (a plan-task id absent
+          from plan.yaml, a brief-sc id absent from BRIEF.md, a finding path that does not
+          exist, an approval heading that is not there) produces NO reported line naming that
+          note. The state check never opens a pointer's target (D-10), so an untouched,
+          previously valid note cannot rot when a later BRIEF renumbers an SC;
+      (e2) SHAPE AND GRAMMAR ARE STILL REPORTED, two separate assertions: the SAME note with a
+          malformed block (two Scope: lines) IS reported with the count named, and a note whose
+          Authority: prefix is outside the four legal types ("Authority: docs:whatever") IS
+          reported with the four legal prefixes listed;
       (f) an absent handoff_done_when_baseline key behaves as an empty list: every note must
           carry the section;
       (g) the real repository corpus stays clean — run check-state.sh against the actual project
@@ -439,9 +533,10 @@ tasks:
       tempfile.TemporaryDirectory, including a fixture .harness/harness.json.
 
       Do not modify check-state.sh in this task. The expected state at the end is RED on cases
-      (a), (c), (e) and (f), with "Done when" in the output. Cases (b), (d), (g) and (h) are
-      expected GREEN both before and after — (h) is a regression guard on the ABSENCE of a
-      per-section cap, so it must pass in this task's red state too.
+      (a), (c), (e2) and (f), with "Done when" in the output. Cases (b), (d), (e1), (g) and (h)
+      are expected GREEN both before and after — (e1) is the D-10 guard on the persisted pass
+      never re-resolving a target, and (h) is a regression guard on the ABSENCE of a per-section
+      cap, so both must pass in this task's red state too.
   - id: T-07
     title: Extend INV-17 to the fifth section with the frozen baseline
     traces: [REQ-07, REQ-08]
@@ -485,8 +580,13 @@ tasks:
         violation, worded in the existing INV-17 register and naming templates/HANDOFF.md;
       - for a note whose path IS in the list, a missing section is not reported;
       - whichever list a note is in, when the section IS present, append
-        handoff_done_when.problems(rel, text, root) to the violations for that note — shape and
-        pointer resolution are checked for every note that has a block;
+        handoff_done_when.problems(rel, text, root, resolve=False) to the violations for that
+        note — SECTION PRESENCE PER THE BASELINE, BLOCK SHAPE AND POINTER GRAMMAR ONLY. This
+        pass NEVER opens a pointer's target (D-10): resolution is a write-time obligation the
+        write gate discharges with resolve=True, and re-resolving here would redden an untouched,
+        previously valid note the moment a later BRIEF renumbers an SC. Grammar stays because a
+        typed prefix consults no target and so cannot rot, and a note whose authority is outside
+        the four legal kinds must still be caught;
       - leave the 60-line cap, the literal exemption and _handoff_exempt untouched, and add NO
         per-section cap: a five-section note whose Trust section runs 25 lines and whose whole file
         is 60 lines must stay clean;
@@ -530,14 +630,18 @@ tasks:
          not the phase or the feature; that the shape is exactly one Scope: line and one to four
          Authority: lines with no other prose; that authorities combine as a logical AND, every
          one of them satisfied; that the four authority types are the only legal ones and a
-         source-code location alone is not an authority; and that every pointer must resolve to an
-         existing target when the note is written. Keep the placeholders in angle brackets so the
-         template itself is not mistaken for a resolving note.
+         source-code location alone is not an authority; and that every pointer must resolve to
+         an existing target AT THE MOMENT THE NOTE IS WRITTEN OR EDITED — a write-time
+         obligation only, which the persisted-corpus state check never re-runs against the
+         target (D-10), so a note valid when written stays valid. Keep the placeholders in angle
+         brackets so the template itself is not mistaken for a resolving note.
 
       2. .claude/skills/harness/SKILL.md — the orchestrator playbook seam paragraph that today
          says "Four sections, ~60 lines, shape-gated at write" and names four. Rewrite it to say
-         five and name "## Done when" with its shape in one clause. Change nothing else in that
-         paragraph, and leave the context-triggered-handoff paragraph after it untouched.
+         five and name "## Done when" with its shape in one clause, stating that its pointers
+         resolve WHEN THE NOTE IS WRITTEN and claiming no standing re-resolution afterwards.
+         Change nothing else in that paragraph, and leave the context-triggered-handoff
+         paragraph after it untouched.
 
       No occurrence of a four-section claim may survive in either file.
   - id: T-09
@@ -628,7 +732,8 @@ tasks:
          must state FIVE sections and carry a fifth bullet for "## Done when": the completion
          boundary of the immediate action in Next, exactly one Scope: line plus one to four
          Authority: lines, authorities combining as a logical AND, the four legal authority types,
-         typed pointers that must resolve when the note is written. Keep the 60-line cap sentence
+         typed pointers that must resolve when the note is written and are NOT re-resolved by the
+         persisted-corpus check afterwards (D-10). Keep the 60-line cap sentence
          and its DEC-160 citation unchanged, and add no per-section cap. Also update the
          enforcement paragraph that follows so it describes the write gate and INV-17 demanding
          five sections, with the frozen baseline exempting only the notes that predate the
@@ -636,10 +741,13 @@ tasks:
       2. Add a new decision entry at the next free id (212 at b7956fc4 — recompute it, do not
          trust that number if other work has landed) recording THIS amendment: what changed, that
          untouched historical notes stay valid via the frozen per-project baseline in
-         harness.json, that pointer resolution is real and has one implementation
-         (handoff_done_when.py, DEC-179), and that the comprehension benchmark stays a
-         locally_run probe rather than a release gate. Cite FEAT-52 and the grilling artifact
-         .harness/notes/grilling-handoff-done-when-2026-09-02.md as its evidence.
+         harness.json, that pointer resolution is real, has one implementation
+         (handoff_done_when.py, DEC-179) and is a WRITE-TIME obligation — the write gate resolves
+         each target, while the persisted-corpus check verifies presence, shape and pointer
+         grammar only and never re-resolves a target (D-10) — and that the comprehension
+         benchmark stays a locally_run probe rather than a release gate. Cite FEAT-54 and the
+         grilling artifact .harness/notes/grilling-handoff-done-when-2026-09-02.md as its
+         evidence.
       3. Regenerate .harness/harness/docs/DECISIONS-INDEX.md with
          .claude/skills/harness/bin/gen-decisions-index.py, then hand-write the ' :: <ruling>'
          tail on the new entry's row and on DEC-159's row — the generator does not produce that
@@ -656,13 +764,13 @@ tasks:
     - T-05
     status: ready
     files:
-    - .harness/harness/features/FEAT-52-handoff-done-when/notes/
-    - .harness/harness/features/FEAT-52-handoff-done-when/notes/handoff-plan.md
+    - .harness/harness/features/FEAT-54-handoff-done-when/notes/
+    - .harness/harness/features/FEAT-54-handoff-done-when/notes/handoff-plan.md
     verify: |
       cd "$CLAUDE_PROJECT_DIR" && python3 -c "
       import glob, json, os, sys
       base = set(json.load(open('.harness/harness.json')).get('handoff_done_when_baseline', []))
-      notes = sorted(glob.glob('.harness/harness/features/FEAT-52-handoff-done-when/notes/handoff-*.md'))
+      notes = sorted(glob.glob('.harness/harness/features/FEAT-54-handoff-done-when/notes/handoff-*.md'))
       assert notes, 'no handoff note found for this feature: the sweep had nothing to prove'
       sys.path.insert(0, '.claude/skills/harness/bin')
       import handoff_done_when
@@ -675,7 +783,7 @@ tasks:
               bad.append((p, 'no ## Done when section'))
           if 60 < len(lines):
               bad.append((p, '%d lines vs cap 60' % len(lines)))
-          pr = handoff_done_when.problems(p, t, os.getcwd())
+          pr = handoff_done_when.problems(p, t, os.getcwd(), resolve=True)
           if pr:
               bad.append((p, pr))
       assert not bad, bad
@@ -687,7 +795,7 @@ tasks:
       the base commit b7956fc4 and never globs the working tree), so from T-07 onward INV-17
       demands the section from it.
 
-      Enumerate every .harness/harness/features/FEAT-52-handoff-done-when/notes/handoff-*.md whose
+      Enumerate every .harness/harness/features/FEAT-54-handoff-done-when/notes/handoff-*.md whose
       repo-relative path is absent from handoff_done_when_baseline in .harness/harness.json, and
       bring each one into compliance:
 
@@ -695,7 +803,9 @@ tasks:
         exactly one "Scope:" line naming the ONE action that note's "## Next" section describes —
         the immediate action, not the phase and not the feature — followed by one to four
         "Authority:" lines whose typed pointers RESOLVE against real targets at the time of the
-        edit (plan-task:T-NN.verify, brief-sc:SC-NN, finding:PATH#F-NN, approval:PATH#HEADING);
+        edit (plan-task:T-NN.verify, brief-sc:SC-NN, finding:PATH#F-NN, approval:PATH#HEADING).
+        The sweep's own verify calls the module with resolve=True, because it is validating notes
+        it has just edited and resolution is a write-time obligation (D-10);
       - keep the whole file inside the 60-line cap. If adding the section would exceed it, condense
         prose in the four narrative sections. Introduce no per-section cap and change no heading;
       - do not touch any note listed in handoff_done_when_baseline, and do not add any path to that
@@ -764,52 +874,3 @@ tasks:
       basename must not be added anywhere, and no test_kinds.integration.detect edit is needed.
       Expected end state: the whole file GREEN, and its output naming
       probe-handoff-comprehension.py.
-  - id: T-13
-    title: Record the shared-module mutation experiment
-    traces: [REQ-06]
-    change_type: docs
-    execution_mode: main-session-direct
-    execution_reason: 'DEC-174 — the experiment mutates handoff_done_when.py, which both gates import, and runs both gates'' own suites'
-    depends_on: [T-07]
-    status: ready
-    files:
-      - .harness/harness/features/FEAT-52-handoff-done-when/notes/mutation-FEAT-52-shared-module.md
-      - .claude/skills/harness/bin/handoff_done_when.py
-    verify: |
-      cd "$CLAUDE_PROJECT_DIR" && python3 -c "
-      import re, sys
-      p = '.harness/harness/features/FEAT-52-handoff-done-when/notes/mutation-FEAT-52-shared-module.md'
-      t = open(p).read()
-      for tok in ('test-check-domain.py', 'test-check-state.py', 'handoff_done_when', 'reproduce'):
-          assert tok in t, tok
-      assert 3 < len(re.findall(r'case[ _-]?[0-9a-z]+', t, re.I)), 'no case ids recorded'
-      sys.path.insert(0, '.claude/skills/harness/bin')
-      import handoff_done_when
-      assert callable(handoff_done_when.problems), 'module not restored'
-      print('ok')" && grep -q handoff_done_when .claude/skills/harness/bin/check-domain.sh && grep -q handoff_done_when .claude/skills/harness/bin/check-state.sh
-    intent: |
-      SC-07 claims block parsing and pointer resolution have ONE implementation reached by both
-      gates, and that removing that implementation's resolution entry point reddens a case in
-      test-check-domain.py AND a case in test-check-state.py. D-09 grades that claim by
-      inspection over a recorded experiment, because a permanent automated mutation test would
-      have to mutate a gate script from inside the suite that gates this repository.
-
-      Run the experiment on the tree as it stands after T-07, and write
-      .harness/harness/features/FEAT-52-handoff-done-when/notes/mutation-FEAT-52-shared-module.md
-      recording it. One screen, claims plus pointers:
-
-      1. Cite the two import sites, file:line, one in check-domain.sh and one in check-state.sh,
-         and state that neither gate carries its own copy of the parsing or resolution code.
-      2. Mutate handoff_done_when.py so its resolution entry point is gone — rename the exported
-         `problems` symbol (for example to `problems_disabled`) so the gates' import succeeds and
-         the call fails, which is the failure mode the claim is about.
-      3. Run python3 .claude/skills/harness/bin/test-check-domain.py and
-         python3 .claude/skills/harness/bin/test-check-state.py against the mutant and record, per
-         suite, the exact case NAMES that failed and each suite's exit code. At least one case per
-         suite must redden; if a suite stays green, that is the finding — record it as a finding
-         and raise it, do not reword the criterion.
-      4. RESTORE the module so it is byte-identical to its pre-mutation state, re-run both suites,
-         and record that both are green again. handoff_done_when.py appears in this task's files
-         only because it is mutated and restored; its net diff for this task is empty.
-      5. State the single command a grader can paste to reproduce the whole experiment, and the
-         sha the run was taken at, so the record is falsifiable rather than merely asserted.

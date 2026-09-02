@@ -1,4 +1,4 @@
-# Panel transcription — FEAT-52-handoff-done-when, plan-panel c0
+# Panel transcription — FEAT-54-handoff-done-when, plan-panel c0
 
 **BLUF: the c0 panel is recorded in plan.yaml's `panel:` key — `last_run: 2026-09-02-4-validator`,
 `cycle: 0`, both readers `ran`, all five findings `open` at the readers' own severities. Nothing else

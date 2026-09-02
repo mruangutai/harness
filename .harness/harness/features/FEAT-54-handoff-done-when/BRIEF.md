@@ -1,4 +1,4 @@
-# BRIEF — FEAT-52 Handoff Done when
+# BRIEF — FEAT-54 Handoff Done when
 
 ## Problem
 
@@ -32,8 +32,11 @@ the boundary instead of inferring it. The 141 handoff notes already on disk stay
   alone is not an authority.
 - REQ-05: Authorities are typed, machine-readable pointers: `plan-task:T-03.verify`,
   `brief-sc:SC-04`, `finding:<path>#F-02`, `approval:<path>#<heading>`.
-- REQ-06: A pointer that names no existing target is refused when the note is written. Syntactic
-  well-formedness alone never passes.
+- REQ-06: A pointer that names no existing target is refused when the note is written or edited;
+  syntactic well-formedness alone never passes at write. Resolution is a WRITE-TIME obligation
+  only: the check over the persisted corpus verifies section presence, block shape and pointer
+  grammar, and never re-resolves a pointer's target, so an untouched note that was valid when
+  written cannot be invalidated by a later change to something it points at.
 - REQ-07: Untouched historical notes remain valid: enforcing the new contract requires no edit to any
   note that existed at this feature's BASE COMMIT — `git merge-base main HEAD` = `b7956fc4`, where
   141 files match `.harness/harness/features/*/notes/handoff-*.md` and 0 of them carry
@@ -94,17 +97,30 @@ Decisions that bind, by number:
   historical set only by becoming compliant; the state check keeps exempting that path and checks the
   section's shape once it is present.
   verify: automated        evidence: integration
-- SC-07: Block parsing and pointer resolution have ONE implementation, evidenced at `review_sha`
-  (`git show <review_sha>:<path>`): `check-domain.sh` and `check-state.sh` each import
-  `handoff_done_when` at one cited file:line, and the recorded mutation experiment in
-  `.harness/harness/features/FEAT-52-handoff-done-when/notes/mutation-FEAT-52-shared-module.md`
-  names the case ids that reddened in `test-check-domain.py` AND in `test-check-state.py` when the
-  module's resolution entry point was removed, with the command that reproduces it.
+- SC-07: Block parsing and pointer resolution have ONE implementation. Read at `review_sha`
+  (`git show <review_sha>:<path>`): `check-domain.sh` imports `handoff_done_when` at one cited
+  file:line and `check-state.sh` imports it at one cited file:line, and NEITHER gate carries a
+  second block parser or a second pointer resolver of its own — no other parsing of the
+  `## Done when` body and no other reading of a pointer target appears in either file.
   verify: inspection
-- SC-08: Read at `review_sha` (`git show <review_sha>:<path>`), none of `templates/HANDOFF.md`,
-  `.claude/skills/harness/SKILL.md`, `check-domain.sh`'s required-section list,
-  `check-state.sh`'s handoff heading constants or the DEC record asserts a four-section contract; each
-  states five and names `## Done when`.
+- SC-08: Read at `review_sha` (`git show <review_sha>:<path>`), no assertion about the CURRENT
+  contract survives as four sections in `.claude/skills/harness/templates/HANDOFF.md`,
+  `.claude/skills/harness/SKILL.md`, the DEC record, or ANYWHERE in `check-domain.sh` or
+  `check-state.sh` — required-section lists, heading constants, normative comments AND user-facing
+  refusal or cap messages alike; each states five and names `## Done when`.
+  EXEMPT, and to be left byte-identical: a comment that reports a PAST MEASUREMENT or a past
+  incident rather than the live contract, identified mechanically by BOTH naming a specific past
+  commit sha or a past feature id AND reporting what was observed at that point — a count taken
+  then, or the behaviour of the code as it stood then. PRINCIPLES rule 15 forbids rewriting the
+  record, so such a line is not a defect and no task orders it edited. The
+  two known exempt sites, named by content because line numbers move, both in `check-state.sh`:
+  the FEAT-31 74-note migration measurement ("Measured at cf51dce ... All 74 carry the four
+  headings and are within the cap") and the INV-17 empty-body-check narrative (FEAT-31 T-10, "a
+  note carrying all four headings and nothing under any of them passed").
+  Falsified by: any line, or any comment wrapped across lines, in either gate script that states
+  the CURRENT contract as four sections — a required-heading list, a heading constant, a normative
+  comment above a branch, or a refusal or cap message enumerating intent, trust, dead ends and a
+  working set without `## Done when`. A line meeting the exemption test above is NOT a falsifier.
   verify: inspection
 - SC-09: The comprehension benchmark is rerunnable on demand and absent from the normal suites:
   with the probe registered, `run-unit-tests.sh`'s probe-registration check reports zero KIND-DRIFT
@@ -150,6 +166,14 @@ Decisions that bind, by number:
   `test-check-domain.py`, AND is reported by no line of the state check in `test-check-state.py`.
   The only length refusal remains the 60-line whole-file cap, so a per-section cap sneaked into
   either gate reddens one of the two cases.
+  verify: automated        evidence: integration
+- SC-15: The persisted-corpus check never re-resolves a pointer target, asserted as a pair in
+  `test-check-state.py`: (e1) a note — baselined or not — whose block is well formed and whose
+  pointers are grammatically legal but name targets that do not exist is reported by NO line of
+  the state check; (e2) the same note with a malformed block IS reported with the count named,
+  and a note whose authority prefix is outside the four legal types IS reported with the four
+  legal prefixes listed. So a later BRIEF that renumbers an SC cannot redden an untouched note,
+  while shape and grammar violations stay caught.
   verify: automated        evidence: integration
 
 ## Verification gaps

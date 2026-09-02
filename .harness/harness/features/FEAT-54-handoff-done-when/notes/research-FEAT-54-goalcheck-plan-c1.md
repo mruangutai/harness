@@ -1,4 +1,4 @@
-# Goal-check — FEAT-52 plan c1 vs stated intent
+# Goal-check — FEAT-54 plan c1 vs stated intent
 
 **Does this plan deliver the operator's stated intent? — Yes on mechanism: all ten settled answers are
 now bound by a criterion and none of the five exclusions leaks, but one high finding stands — SC-11's
@@ -6,7 +6,7 @@ positive control is inverted (`comm -13` instead of `comm -23`), so the criterio
 operator's central promise cannot detect its own broken pipeline.**
 
 Authority: `.harness/notes/grilling-handoff-done-when-2026-09-02.md`. Graded at 13 tasks, 9 decisions,
-14 criteria. `notes/research-FEAT-52-planfix-c1.md` was treated as a claim; every row below was
+14 criteria. `notes/research-FEAT-54-planfix-c1.md` was treated as a claim; every row below was
 re-derived from BRIEF.md / plan.yaml / the tree.
 
 ## 1. Closure of the six c0 findings — 5 of 6 closed, F-01 partial
@@ -30,7 +30,7 @@ printed `.../BUG-1030-stale-anchor-write-hazard/notes/handoff-build.md`. The cla
 But `comm -13` shows lines unique to **FILE2** — the `ls-tree` arm — i.e. the historical notes the diff
 did *not* touch, not "the notes this feature added". Measured on the current tree: diff arm 0 lines,
 `comm -13` 141 lines. The control is non-empty while the diff arm read nothing at all. `comm -23` is the
-arm that lists the added notes (measured: prints `.../FEAT-52.../notes/handoff-plan.md`).
+arm that lists the added notes (measured: prints `.../FEAT-54.../notes/handoff-plan.md`).
 
 ## 2. Ten settled answers and five exclusions — all 15
 
@@ -46,7 +46,7 @@ arm that lists the added notes (measured: prints `.../FEAT-52.../notes/handoff-p
 | h | historical valid; new/edited must comply (:16) | REQ-07 | SC-04, SC-06, SC-11 | covered; SC-11 control defective |
 | i | 60-line cap kept, no per-section caps (:17) | REQ-08 | SC-05 + SC-14 | covered (was partial); SC-14 clause 2 unauthored |
 | j | benchmark deterministic + rerun by hand (:18) | REQ-10 | SC-09 | covered |
-| X1 | no corpus rewrite (:26) | — | SC-11 | no leak — T-11 scoped to FEAT-52 notes, forbids touching baselined (plan.yaml:639-640) |
+| X1 | no corpus rewrite (:26) | — | SC-11 | no leak — T-11 scoped to FEAT-54 notes, forbids touching baselined (plan.yaml:639-640) |
 | X2 | cap not raised (:27) | — | SC-05 | no leak — T-04:290, T-07:431, T-11:637 |
 | X3 | no per-section caps (:28) | — | SC-14 | no leak — T-03(h):252-255, T-07:431-433, T-10:573 |
 | X4 | no token/latency claim (:29) | — | — | no leak — BRIEF.md:12-13 disclaims; T-09 prints fact coverage only |
@@ -131,4 +131,4 @@ mechanically, which the operator settled (grilling:18) and BRIEF.md:145-148 disc
 **Present but not asked for:** the frozen `handoff_done_when_baseline` + note keys in `harness.json`
 (T-05); the persisted probe and its `handoff_comprehension` kind (T-09, D-04); the three new cases in
 `test-run-unit-tests-kinds.py` (T-12); the shared module itself (D-02, forced by DEC-179); and
-`notes/mutation-FEAT-52-shared-module.md` (T-13) — the only one with no grilling line behind it.
+`notes/mutation-FEAT-54-shared-module.md` (T-13) — the only one with no grilling line behind it.

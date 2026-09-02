@@ -1,9 +1,9 @@
 {
-  "feature_id": "FEAT-52-handoff-done-when",
-  "branch": "feat/FEAT-52-handoff-done-when",
+  "feature_id": "FEAT-54-handoff-done-when",
+  "branch": "feat/FEAT-54-handoff-done-when",
   "pr": null,
   "review_sha": "none",
-  "cycles_used": 3,
+  "cycles_used": 8,
   "max_total_cycles": 10,
   "max_total_runs": 20,
   "runs": [
@@ -46,6 +46,43 @@
     },
     {
       "id": "2026-09-02-5-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead"
+    },
+    {
+      "id": "2026-09-02-c2-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead"
+    },
+    {
+      "id": "2026-09-02-c2goalcheck-product",
+      "squad": "product",
+      "verdict": "FAIL",
+      "agent": "harness-product-lead"
+    },
+    {
+      "id": "2026-09-02-1-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead"
+    },
+    {
+      "id": "2026-09-02-c2-validator",
+      "squad": "validator",
+      "verdict": "FAIL",
+      "agent": "harness-validator-lead",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-02-c2c-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead"
+    },
+    {
+      "id": "2026-09-02-c2d-product",
       "squad": "product",
       "verdict": "PASS",
       "agent": "harness-product-lead"

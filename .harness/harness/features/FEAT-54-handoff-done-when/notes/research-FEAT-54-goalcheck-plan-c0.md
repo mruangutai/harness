@@ -1,4 +1,4 @@
-# Goal-check — FEAT-52 plan c0 vs stated intent
+# Goal-check — FEAT-54 plan c0 vs stated intent
 
 **Does this plan deliver the operator's stated intent? — Not yet: the mechanism covers all ten settled
 answers, but four of them are bound by no success criterion, and the central promise (historical notes
