@@ -529,6 +529,26 @@ def classify(abs_target, root, globs, shared, label):
                     "unparsed": _wt_owner[1] is None,
                     "expected": worktree_refusal_location(_wt_owner[1])}
 
+        # WRONG CHECKOUT, SAME REPOSITORY (issue #895). abs_target can be outside
+        # BOTH bases and still be a real mistake rather than a scratch path: the main
+        # checkout, seen from a session rooted in one of its own worktrees, or a
+        # sibling worktree either way. Domain grants are declared once and matched by
+        # relative path SHAPE — the identical path exists, unrefused, in every
+        # checkout of the family — which is exactly what let FEAT-40's ship
+        # write-back land in main from a worktree session (commit 3952814). Checked
+        # AFTER out-of-place-worktree (an illegitimate placement is refused on that
+        # ground first) and BEFORE the not-a-domain-question fall-through, because
+        # /tmp and an unrelated repository are not this: this is the SAME repository,
+        # just the wrong tree of it.
+        _target_owner = _wt_owner[1] if _wt_owner is not None else None
+        _root_owner = worktree_owner(real(root))
+        _root_owner_root = _root_owner[1] if _root_owner is not None else None
+        if (_target_owner is not None and _root_owner_root is not None
+                and real(_target_owner) == real(_root_owner_root)):
+            return {"outcome": "wrong_checkout", "rel": None, "base": None,
+                    "advertise": [], "shared_advertise": [],
+                    "checkout": _wt_owner[0], "root": real(root)}
+
         # NOT A DOMAIN QUESTION, unchanged. bash-write-guard.sh already said so
         # ("outside repo — not this hook's problem"), and check-domain did not: a
         # scratch script at /tmp/x.py was legal via Bash and blocked via Write, so an
