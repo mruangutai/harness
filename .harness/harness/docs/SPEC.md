@@ -824,6 +824,10 @@ Craft entries naming a repository-specific token are reported by `bin/check-expe
 **ADVISORY only** — never a violation, never a change to its exit code. The token set lives in that
 script; it is not restated here.
 
+`bin/check-expertise.sh` also reports an **ADVISORY** (never blocking) once a file is within 10%
+of its own tier's budget — the only signal that fires while there is still headroom to displace an
+entry rather than overflow into the truncation backstop above (issue #613).
+
 The hook injects **global craft, then project craft, then every repository tier present** (sorted by
 segment name), and labels each block by scope alone. Precedence is repository over project over global, by specificity — and the hook says so in the injected text whenever a repository block is present. Because the hook cannot know which repository a spawn serves, a repository block whose segment is not the one the agent was dispatched against is **not authoritative** for that agent's work — the agent must read the segment name.
 
