@@ -25,7 +25,12 @@ import {Link as RouterLink} from '@tanstack/react-router';
 import {NUMERAL, RADIUS, T, TYPE, hatchFill} from '../theme.js';
 import {GapLabel, ValueCellBody} from './primitives.jsx';
 import {preCapability} from '../lib/series.js';
-import {KPIS, featuresInWindow} from '../fixture.js';
+import {
+  KPIS,
+  TOUCHPOINT_EPOCH_DATE,
+  featuresInWindow,
+  touchpointCoverage,
+} from '../fixture.js';
 
 /**
  * An unavailable measurement cannot be ranked against a measured one, so it
@@ -82,6 +87,7 @@ export function FeatureTable({windowToken, sortKey}) {
   const features = featuresInWindow(windowToken);
   const rows = sortRows(features, sortKey ?? 'throughput');
   const pre = preCapability(windowToken);
+  const tp = touchpointCoverage(windowToken);
 
   return (
     <VStack gap={2}>
@@ -141,6 +147,12 @@ export function FeatureTable({windowToken, sortKey}) {
           <Text style={{fontSize: TYPE.caveat}}>{pre.line}</Text>
         </VStack>
       ) : null}
+      <VStack gap={1}>
+        <GapLabel id="S-4" what="a tracked zero and a not-tracked feature in one column" />
+        <Text style={{fontSize: TYPE.caveat}}>
+          {`Blocking human touchpoints are tracked in this project from ${TOUCHPOINT_EPOCH_DATE}. ${tp.tracked.length} of ${rows.length} features in this window are tracked — ${tp.atZero.length} of those at a measured zero — and ${tp.notTracked.length} are not tracked at all: each of those carries an em-dash and its own reason, never a 0, and none of them is in the tile's mean.`}
+        </Text>
+      </VStack>
       <Text color="secondary" style={{fontSize: TYPE.tick}}>
         An unavailable measurement sorts last rather than sorting as zero: it is not a smaller
         number, it is not a number.

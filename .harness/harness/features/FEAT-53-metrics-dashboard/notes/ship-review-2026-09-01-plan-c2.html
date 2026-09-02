@@ -1,0 +1,99 @@
+<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>FEAT-53 metrics dashboard — plan signature review, pass 2</title><style>
+:root{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:ui-sans-serif,-apple-system,"Segoe UI","Helvetica Neue",Arial,sans-serif;
+}
+/* Token-level theming: components style through the tokens and never inside the
+   media query, so the viewer's explicit toggle can override the OS in BOTH
+   directions. */
+@media (prefers-color-scheme:dark){
+  :root{ --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+         --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733; }
+}
+:root[data-theme="dark"]{
+  --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+  --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733;
+}
+:root[data-theme="light"]{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+}
+*{box-sizing:border-box}
+body{margin:0; background:var(--paper); color:var(--ink);
+  font:400 16px/1.65 var(--sans); padding:clamp(1.5rem,5vw,4rem) clamp(1rem,5vw,2rem) 6rem}
+.wrap{max-width:56rem; margin:0 auto}
+/* Layout owns the spacing: gap between siblings, not per-element margins that
+   collapse or double. */
+.wrap{display:flex; flex-direction:column; gap:1rem}
+.eyebrow{font:500 11px/1 var(--mono); letter-spacing:.14em; text-transform:uppercase;
+  color:var(--quiet); margin:0}
+h1{font:600 clamp(1.6rem,4vw,2.3rem)/1.15 var(--sans); letter-spacing:-.02em;
+  margin:.4rem 0 .2rem; text-wrap:balance}
+h2{font:600 1.15rem/1.3 var(--sans); letter-spacing:-.01em; margin:2rem 0 0;
+  padding-top:1.25rem; border-top:1px solid var(--line); text-wrap:balance}
+h3{font:600 .98rem/1.4 var(--sans); margin:1.1rem 0 0}
+h4,h5,h6{font:500 11px/1.4 var(--mono); letter-spacing:.1em; text-transform:uppercase;
+  color:var(--quiet); margin:1rem 0 0}
+p,li{max-width:65ch; margin:0}
+ul,ol{margin:0; padding-left:1.4rem; display:flex; flex-direction:column; gap:.4rem}
+li>ul,li>ol{margin-top:.4rem}
+strong{font-weight:600}
+code{font:400 .875em/1.5 var(--mono); background:var(--sunk); padding:.1em .35em; border-radius:3px}
+pre{background:var(--sunk); border:1px solid var(--line); border-radius:6px;
+  padding:.85rem 1rem; overflow-x:auto; margin:0}
+pre code{background:none; padding:0}
+blockquote{margin:0; padding:.75rem 1rem; border-left:3px solid var(--accent);
+  background:var(--accent-soft); border-radius:0 5px 5px 0}
+blockquote p{max-width:none}
+hr{border:0; border-top:1px solid var(--line); margin:.5rem 0}
+/* Wide content pans inside its OWN container; the page body never scrolls sideways. */
+.scroll{overflow-x:auto; border:1px solid var(--line); border-radius:6px}
+table{border-collapse:collapse; width:100%; font-size:.9rem}
+th,td{text-align:left; padding:.6rem .8rem; border-bottom:1px solid var(--line); vertical-align:top}
+thead th{font:500 10px/1.3 var(--mono); letter-spacing:.11em; text-transform:uppercase;
+  color:var(--quiet); background:var(--sunk); white-space:nowrap}
+tbody tr:last-child td{border-bottom:0}
+/* Figures in a column line up. */
+td,th{font-variant-numeric:tabular-nums}
+.derived{color:var(--slate); font-size:.85rem; margin-top:2.5rem;
+  padding-top:1rem; border-top:1px solid var(--line)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style></head><body><div class='wrap'><p class='eyebrow'>Ship review · reading view</p><h1 id="feat-53-metrics-dashboard-plan-signature-review-pass-2">FEAT-53 metrics dashboard — plan signature review, pass 2</h1>
+<p><strong>Your five rulings are applied and hold up under a second adversarial reading. The plan is not signable yet, for two reasons that both need one word from you.</strong> The new panel found one high finding, and the cycle-time question you sent to the backlog turns out to gate the signature rather than follow it.</p>
+<p>Nothing you confirmed as drafted was reopened. <code>D-20</code> (the client build) and <code>D-08</code>/<code>T-18</code> (the TanStack Charts alpha, Shape B built this increment) are byte-unchanged, and both panel readers re-walked them without raising anything new.</p>
+<p><strong>How this briefing was assembled.</strong> I spawned no reporting round. I read three run digests off disk — <code>runs/2026-09-01-07-product/digest.md</code> (the remediation), <code>runs/2026-09-01-08-validator/digest.md</code> (the cycle-2 panel) and <code>runs/2026-09-01-09-product/digest.md</code> (the panel record) — plus the findings prose in the panel digest and the plan itself. Everything from the earlier phases stands as written in the first briefing, <code>notes/ship-review-2026-09-01-plan.md</code>; I have not re-narrated it here. Where I state something as measured, I measured it myself against <code>plan.yaml</code> on disk.</p>
+<hr>
+<h2 id="what-your-rulings-changed">What your rulings changed</h2>
+<p><strong>DEC-1, the framework — done.</strong> <code>D-03</code> now reads <em>&quot;The server is a real web framework — Flask, one WSGI application object in dashboard/serve.py&quot;</em> and rejects FastAPI plus uvicorn, a Node server and the stdlib <code>ThreadingHTTPServer</code> <strong>by name, with a reason each</strong>, in its own <code>because:</code> (<code>plan.yaml:52-53</code>). Flask was picked because the whole KPI core is Python — a Node server would mean porting six modules or paying an interpreter start per request against a 3.6s budget — and because <code>send_from_directory</code> supplies the traversal-safe join and the mimetype lookup the <code>/assets</code> route was going to hand-write. <code>T-12</code>&#x27;s prerequisite gate names Flask and <code>python3 -m pip install flask</code>; the loopback-only bind, the read-only guarantee, port 8971, <code>--check</code>, the Content-Type table and the 8.0s ceiling all survived the rewrite intact.</p>
+<p>One judgement inside that, recorded so you can overrule it: <strong>Flask is a dashboard-only prerequisite, not a ninth platform prerequisite.</strong> Nothing in <code>bin/</code> outside <code>bin/dashboard/</code> imports it, so declaring it platform-wide would make every onboarded project install a framework the factory never calls. <code>T-22</code> installs it in <em>this</em> repository&#x27;s CI job, and says in as many words that this is a claim about this repository only.</p>
+<p><strong>DEC-4 / <code>PF-328f8f3c</code> — done.</strong> New <code>D-21</code> makes &quot;post-instrumentation&quot; computable rather than rhetorical: <code>.harness/metrics/instrumented_at</code> holds one RFC3339 instant, a feature&#x27;s start is its <code>approval.date</code> or the author date of the first commit adding its directory, and a measured zero requires both to exist with start ≥ epoch. Everything else is null plus one of <code>D-19</code>&#x27;s specific sentences. <code>SC-17</code> asserts both branches separately.</p>
+<p><strong>DEC-4 / <code>PF-7408d83a</code> — done.</strong> <code>T-21</code> mounts the charts inside the panels and <code>T-22</code> makes that assertion reachable from <code>run-unit-tests.sh</code> and CI. The gate executes a real render and grades per-case status, after the first draft was sent back for being green on a skipped test.</p>
+<p><strong>DEC-5, the prototype — ready for you.</strong> The designer found the prototype still carried the retired two-term aggregate, and it was fixed rather than noted, because what you open at the gate is the prototype. It now renders a measured <code>0</code> beside <code>— unavailable · this feature predates touchpoint instrumentation</code> <strong>on identical input</strong> — neither feature has a touchpoints file, only their start dates differ. 37/37 smoke checks, a clean build and a dev server, all executed. It is at <code>notes/prototypes/FEAT-53/</code>. This gate is still open: nobody but you can close it.</p>
+<hr>
+<h2 id="what-needs-your-decision-now">What needs your decision now</h2>
+<h3 id="1-one-high-panel-finding-the-ordering-gap-that-would-undo-dec-4">1. One high panel finding — the ordering gap that would undo DEC-4</h3>
+<p><code>T-16</code> builds and commits the production <code>dist/</code> bundle and depends only on <code>[T-12, T-15]</code>, while <code>T-21</code> — the task that mounts the chart — depends on <code>[T-14, T-15]</code>. They become ready at the same point of the graph, in different lanes, and <strong>no task after <code>T-21</code> ever rebuilds the bundle.</strong> So the bytes a user actually receives from <code>serve.py</code> can be the ones built before the chart was mounted, reproducing exactly the failure you ruled must be fixed — while <code>T-21</code>&#x27;s and <code>T-22</code>&#x27;s render assertions stay green, because they exercise source through the test renderer and never the built artifact.</p>
+<p>The remedy is one line: add <code>T-21</code> (or <code>T-22</code>) to <code>T-16</code>&#x27;s <code>depends_on</code>. I did not apply it. A panel finding never opens its own pre-signature fix cycle (DEC-207), and only you resolve or overrule one. <strong>Say &quot;fix it&quot; and it is one pm dispatch.</strong></p>
+<h3 id="2-cycle-time-origin-b-6-gates-the-signature-after-all">2. Cycle-time origin — <code>B-6</code> gates the signature after all</h3>
+<p>You accepted <code>B-6</code> as a backlog issue. Working the plan showed why it cannot wait: the grilling (line 26) and <code>REQ-03</code> both say cycle time runs <strong>from BRIEF approval</strong>, while <code>D-14</code>, <code>T-06</code> and now <code>D-21</code> measure <strong>from <code>plan.yaml</code> approval.date</strong>. You are about to sign a BRIEF whose <code>REQ-03</code> the plan knowingly does not implement.</p>
+<ul><li><strong>Option A — match your words.</strong> Nothing records a BRIEF approval date machine-readably today, so <code>D-14</code>, <code>T-06</code>, <code>D-21</code> and the trend record all change and a new dated field has to be captured.</li><li><strong>Option B — keep <code>approval.date</code>,</strong> buildable as it stands, and <strong>reword <code>REQ-03</code></strong> so the BRIEF states what will actually be measured. Nobody reworded it to close the gap quietly; pm was explicitly told not to.</li></ul>
+<p>Either way this is one decision and it is yours. <code>B-6</code> then becomes redundant and should be struck.</p>
+<h3 id="3-four-lower-findings-accept-as-backlog-or-fix-now">3. Four lower findings — accept as backlog, or fix now</h3>
+<p>Same convention as last time: <strong>strike a row by ID and it dies; anything not struck becomes a backlog issue labelled <code>Dashboard</code>.</strong> The ten rows you already accepted (<code>B-1</code>..<code>B-10</code>) stand as accepted.</p>
+<div class="scroll"><table><thead><tr><th>ID</th><th>Sev</th><th>Finding</th><th>If you fix it now</th></tr></thead><tbody><tr><td>B-11</td><td>med</td><td><code>D-21</code>&#x27;s runtime files have no git disposition. <code>.harness/metrics/</code> matches no ignore rule, so the first <code>record()</code> call dirties the tree — the exact deadlock class <code>.harness/.pyyaml-bootstrap</code> is ignored to prevent. And with the epoch uncommitted, a <strong>second clone</strong> loses it, writes a later one, and a feature starting after that reports a measured zero — the fabricated zero you ruled out. <code>D-21</code>&#x27;s risk note covers worktree loss, which is genuinely safe; it does not cover a clone.</td><td>An ignore rule plus a stated disposition. The ignore file is <code>main-session-direct</code>, so it is your hands or mine, not a squad&#x27;s</td></tr><tr><td>B-12</td><td>med</td><td>The ~250 lines of stale <code>#</code> comments that a tool defect spliced into <code>plan.yaml</code> (see below) <strong>contradict the live YAML twice</strong> — they claim no task touches <code>tests.yml</code> for Flask (<code>T-22</code> does, <code>:1168</code>), and they quote a weaker <code>T-21</code> verify than the one that shipped. A reader trusting them would undo both fixes</td><td>Not removable by any sanctioned verb today. Needs the tool fix first</td></tr><tr><td>B-13</td><td>med</td><td><code>SC-17</code> declares <code>evidence: integration</code>, but its &quot;aggregate reports the not-tracked count by name&quot; clause is asserted only in a unit-registered script. A coverage matrix reads it as covered; an integration-only run — which is what CI splits out — asserts nothing for that clause. Same shape as the already-backlogged <code>B-4</code>, on a criterion authored this cycle</td><td>One evidence-kind correction</td></tr><tr><td>B-14</td><td>low</td><td><code>T-12</code>&#x27;s 8.0s ceiling is vacuous where it runs mechanically: CI checks out shallow and single-ref, so the timed case has no feature branches and a depth-1 history — it measures the fast unavailable branches, not the real cost, while every PR pays a whole-repo grader run forever. <code>D-09</code> stakes its no-cache deferral on that ceiling staying falsifiable</td><td>Scope the timing case to a run with real history, or make it report-only</td></tr></tbody></table></div>
+<hr>
+<h2 id="harness-defects-found-this-pass">Harness defects found this pass</h2>
+<p>Not about this feature. Each cost real time here.</p>
+<ol><li><strong><code>plan-merge.py apply</code> splices a proposal&#x27;s trailing comment block into <code>plan.yaml</code></strong> and <strong>no verb can remove it</strong> — <code>_trim_tail</code> treats trailing comments as document, <code>apply</code> never deletes, and the shape gate blocks every editor including yours. <code>safe_load</code> is unaffected and no gate flags it, but <code>B-12</code> is the consequence: unremovable stale prose inside an approval-gated artifact.</li><li><strong>A feature worktree vendors <code>.claude/skills</code>,</strong> so a <code>bin/</code> verb added after the worktree branched is unreachable in-tree: this checkout&#x27;s <code>plan-merge.py</code> exits 2 with <code>invalid choice: set-panel</code>. pm ran the main checkout&#x27;s copy by absolute path — same tool, same lock, same single write route. Any skill telling an agent to run a <code>bin/</code> tool from inside a worktree shares this.</li><li><strong>BUG-1080 reproduces on the return path.</strong> <code>validate-digest.py</code> rejects every <code>code_grade</code> value for a plan-phase feature with no <code>review_sha</code>, so the scope reader could not terminal-yield at all; its verdict and artifact were recovered from disk. The plan-phase exemption exists on the input path and is missing on the yield path.</li></ol>
+<p>Two smaller ones, for the record: <code>set-panel</code> refuses a <code>panel:</code>-wrapped value file with a message naming missing keys rather than the wrapper; and the two superseded validator digests from cycle 1 (<code>01-validator</code>, <code>05-validator</code>) still fail the lead digest contract in <code>check-state.sh</code>, because a digest is immutable once written.</p>
+<hr>
+<h2 id="budgets-honestly">Budgets, honestly</h2>
+<p><strong>Eleven runs against an informational budget of 20; six rework cycles against a hard 10.</strong> Two of this pass&#x27;s cycles were real rework and both earned their place: pm&#x27;s own goal-check failed its own cycle-1 work and closed five defects before anything left the squad, and the panel then found a sixth that no gate in the plan could see, because it is a property of the task graph rather than of any file. The remaining four trace to the FEAT-51→53 renumbering and the write-route defect, as recorded in the first briefing.</p>
+<p>The one thing I will not dress up: <strong>two readers is a thin panel for a 22-task plan.</strong> The evidence that they read rather than skimmed is that each found a defect the other missed while both independently found the same contradiction. That is convergence, not coverage.</p>
+<h2 id="what-i-need-from-you">What I need from you</h2>
+<ol><li>The high finding — <strong>fix, or overrule.</strong></li><li>Cycle-time origin — <strong>Option A or Option B</strong>, and if B, <code>REQ-03</code> gets reworded before you sign.</li><li><code>B-11</code>..<code>B-14</code> — <strong>strike any, or accept all as backlog.</strong></li><li><strong>Open the prototype</strong> (<code>notes/prototypes/FEAT-53/</code>) — DEC-5 is still open and only you can close it.</li></ol>
+<p>Then the main session signs <code>BRIEF.md</code> and <code>plan.yaml</code>, and the build phase starts.</p><p class='derived'>Derived from <code>ship-review-2026-09-01-plan-c2.md</code> — the markdown is the record; do not edit this file. Regenerate with <code>bin/render-brief.py</code>.</p></div></body></html>

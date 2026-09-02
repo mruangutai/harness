@@ -31,6 +31,30 @@ const ok = (value, secondary) => ({state: 'ok', value, secondary});
 const zero = (secondary) => ({state: 'ok', value: 0, secondary});
 const unavailable = (reason) => ({state: 'unavailable', reason});
 
+// D-21's instrumentation epoch. In the product this is the single RFC3339 instant
+// on line 1 of .harness/metrics/instrumented_at, written once by touchpoints.py
+// record() on its first call and never rewritten; no agent authors it and no
+// route can reach it. Here it is a fixture constant, and it is the ONLY thing
+// that separates a tracked feature from an untracked one.
+export const TOUCHPOINT_EPOCH = '2026-05-01T00:00:00Z';
+export const TOUCHPOINT_EPOCH_DATE = '2026-05-01';
+
+// D-21 branch 3's reason, verbatim except for the dash glyph. A feature whose
+// own start instant is before the epoch has NO touchpoint measurement — the
+// absence of its touchpoints.jsonl says nothing at all.
+const NOT_TRACKED =
+  'this feature predates touchpoint instrumentation in this project — touchpoints were never tracked for it';
+
+// D-21 branch 1's reason, for a window in which no feature is tracked at all.
+const NO_EPOCH =
+  'touchpoints were not tracked in this project — no .harness/metrics/instrumented_at epoch exists, so no count here is a measurement';
+
+// D-21 branch 4: a post-epoch feature with no touchpoints.jsonl. The absent
+// file IS the measurement — a tracked run in which nothing blocked — so this
+// cell is a zero, and it carries where the tracking came from.
+const trackedZero = () =>
+  zero(`blocking human touchpoints · tracked from ${TOUCHPOINT_EPOCH_DATE}, no touchpoints.jsonl written`);
+
 // A trend point may be missing entirely — CAP-09: the line breaks, it is never
 // interpolated and never coerced to zero. `null` for a metric means exactly that.
 const pt = (date, cycleDays, touchpoints, gradeShare) => ({
@@ -45,6 +69,7 @@ export const FEATURES = [
     id: 'FIX-01',
     name: 'Copper Kettle',
     shippedAt: '2026-08-24',
+    startedAt: '2026-06-02', // post-epoch → touchpoints are tracked
     preCapability: false,
     throughput: ok(3.1, '7 runs · 412 lines changed'),
     rework: ok('4 / 12', 'cycles used of cycles allowed'),
@@ -62,6 +87,7 @@ export const FEATURES = [
     id: 'FIX-02',
     name: 'Porcelain Spout',
     shippedAt: '2026-08-19',
+    startedAt: '2026-06-20', // post-epoch → touchpoints are tracked
     preCapability: false,
     throughput: ok(6.8, '11 runs · 1,204 lines changed'),
     rework: ok('9 / 12', 'cycles used of cycles allowed'),
@@ -79,10 +105,11 @@ export const FEATURES = [
     id: 'FIX-03',
     name: 'Cast Iron Lid',
     shippedAt: '2026-03-02',
+    startedAt: '2026-02-10', // PRE-epoch → touchpoints were never tracked (D-21 branch 3)
     preCapability: true, // S-2 — shipped before the metrics capability landed
     throughput: unavailable('no ship record for this feature'),
     rework: ok('7 / 12', 'cycles used of cycles allowed'),
-    touchpoints: unavailable('no ship record for this feature'),
+    touchpoints: unavailable(NOT_TRACKED),
     escaped: zero('0 of 2 shipped changes in window'),
     grading: ok('70%', '14 of 20 graded functions at or above bar'),
     usage: unavailable('no commit carries a resolvable step-id'),
@@ -92,6 +119,7 @@ export const FEATURES = [
     id: 'FIX-04',
     name: 'Glass Infuser',
     shippedAt: '2026-08-05',
+    startedAt: '2026-07-01', // post-epoch → touchpoints are tracked
     preCapability: false,
     throughput: ok(4.4, '5 runs · 288 lines changed'),
     rework: ok('3 / 12', 'cycles used of cycles allowed'),
@@ -109,11 +137,14 @@ export const FEATURES = [
     id: 'FIX-05',
     name: 'Bamboo Handle',
     shippedAt: '2026-08-28',
+    startedAt: '2026-07-26', // post-epoch → touchpoints are tracked
     preCapability: false,
     throughput: ok(2.2, '3 runs · 96 lines changed'),
     rework: ok('2 / 12', 'cycles used of cycles allowed'),
-    // S-4, right half of the pair: a GENUINE ZERO, a measurement.
-    touchpoints: zero('0 of 12 features needed one'),
+    // D-21 branch 4, and the whole point of the pair: this feature has NO
+    // touchpoints.jsonl either, exactly like FIX-03 — but it started after the
+    // epoch, so the absence is a measured zero rather than a hole.
+    touchpoints: trackedZero(),
     escaped: zero('0 of 1 shipped change in window'),
     grading: ok('92%', '11 of 12 graded functions at or above bar'),
     usage: ok('3 sonnet / 0 opus', '1 commit unattributed'),
@@ -126,6 +157,7 @@ export const FEATURES = [
     id: 'FIX-06',
     name: 'Stoneware Base',
     shippedAt: '2026-07-21',
+    startedAt: '2026-05-12', // post-epoch → touchpoints are tracked
     preCapability: false,
     throughput: ok(8.9, '14 runs · 2,617 lines changed'),
     rework: ok('12 / 12', 'cycles used of cycles allowed'),
@@ -143,10 +175,11 @@ export const FEATURES = [
     id: 'FIX-07',
     name: 'Tin Whistle',
     shippedAt: '2026-01-14',
+    startedAt: '2025-12-08', // PRE-epoch → touchpoints were never tracked (D-21 branch 3)
     preCapability: true, // second S-2 row, so the count reads "2 of 8"
     throughput: unavailable('no ship record for this feature'),
     rework: ok('5 / 12', 'cycles used of cycles allowed'),
-    touchpoints: unavailable('no ship record for this feature'),
+    touchpoints: unavailable(NOT_TRACKED),
     escaped: zero('0 of 1 shipped change in window'),
     grading: ok('76%', '16 of 21 graded functions at or above bar'),
     usage: unavailable('no commit carries a resolvable step-id'),
@@ -156,6 +189,7 @@ export const FEATURES = [
     id: 'FIX-08',
     name: 'Silver Filigree',
     shippedAt: '2026-08-30',
+    startedAt: '2026-06-30', // post-epoch → touchpoints are tracked
     preCapability: false,
     throughput: ok(3.7, '6 runs · 501 lines changed'),
     rework: ok('5 / 12', 'cycles used of cycles allowed'),
@@ -189,13 +223,44 @@ export const WINDOWS = {
 
 export const WINDOW_TOKENS = ['30d', '90d', 'all'];
 
+// D-21's split for a window, computed from the rows rather than hand-authored,
+// so the tile's three terms can never drift from the cells behind them.
+export function touchpointCoverage(w) {
+  const inWindow = featuresInWindow(w);
+  const tracked = inWindow.filter((f) => f.touchpoints.state === 'ok');
+  const notTracked = inWindow.filter((f) => f.touchpoints.state === 'unavailable');
+  const atZero = tracked.filter((f) => f.touchpoints.value === 0);
+  const total = tracked.reduce((n, f) => n + f.touchpoints.value, 0);
+  return {
+    tracked,
+    notTracked,
+    atZero,
+    // A not-tracked feature is NEVER in the denominator.
+    mean: tracked.length === 0 ? null : Math.round((total / tracked.length) * 10) / 10,
+  };
+}
+
+// KPI 3's tile cell. THREE terms, never two: the mean over tracked features
+// only, the count at a tracked zero, and the count not tracked. When no
+// feature in the window is tracked the headline is itself S-4's em-dash with
+// its reason, never 0 (DESIGN C-1 tile 3, plan.yaml D-21).
+function touchpointAggregate(w) {
+  const c = touchpointCoverage(w);
+  if (c.mean === null) return unavailable(NO_EPOCH);
+  return ok(
+    c.mean,
+    `${c.tracked.length} features tracked · ${c.atZero.length} at a tracked zero · ${c.notTracked.length} not tracked`,
+  );
+}
+
 // Aggregate figures the landing tiles show. Hand-authored per window so the
-// tiles stay coherent with the rows behind them.
+// tiles stay coherent with the rows behind them — except KPI 3, which is
+// derived from those rows so its three terms cannot drift from them.
 export const AGGREGATE = {
   '30d': {
     throughput: ok('2.9 d', 'median BRIEF-approval to ship · 9 runs · 597 lines'),
     rework: ok('7 / 24', 'cycles used of cycles allowed, 2 features'),
-    touchpoints: ok(1.5, 'per-feature mean · 1 of 2 features at zero'),
+    touchpoints: touchpointAggregate('30d'),
     escaped: zero('0 of 3 shipped changes in window'),
     grading: ok('84%', '26 of 31 at or above bar · 3 outliers named'),
     usage: ok('10 sonnet / 2 opus', '5 commits unattributed'),
@@ -203,7 +268,7 @@ export const AGGREGATE = {
   '90d': {
     throughput: ok('4.6 d', 'median BRIEF-approval to ship · 46 runs · 5,118 lines'),
     rework: ok('35 / 72', 'cycles used of cycles allowed, 6 features'),
-    touchpoints: ok(2.8, 'per-feature mean · 1 of 6 features at zero'),
+    touchpoints: touchpointAggregate('90d'),
     escaped: ok(3, '3 of 14 shipped changes in window'),
     grading: ok('78%', '77 of 98 at or above bar · 9 outliers named'),
     usage: ok('41 sonnet / 11 opus', '22 commits unattributed'),
@@ -211,7 +276,7 @@ export const AGGREGATE = {
   all: {
     throughput: ok('4.4 d', 'median BRIEF-approval to ship · 58 runs · 5,825 lines'),
     rework: ok('47 / 96', 'cycles used of cycles allowed, 8 features'),
-    touchpoints: ok(2.9, 'per-feature mean · 1 of 8 features at zero'),
+    touchpoints: touchpointAggregate('all'),
     escaped: ok(3, '3 of 21 shipped changes in window'),
     grading: ok('74%', '98 of 132 at or above bar · 17 outliers named'),
     usage: ok('61 sonnet / 18 opus', '24 commits unattributed'),
@@ -258,7 +323,7 @@ export const OUTLIERS = {
 export const KPIS = [
   {key: 'throughput', title: 'Throughput', unit: 'median days, BRIEF approval to ship', trend: true},
   {key: 'rework', title: 'Rework', unit: 'cycles used of cycles allowed', trend: false},
-  {key: 'touchpoints', title: 'Blocking human touchpoints', unit: 'per-feature mean', trend: true},
+  {key: 'touchpoints', title: 'Blocking human touchpoints', unit: 'per-feature mean, tracked features only', trend: true},
   {key: 'escaped', title: 'Escaped defects', unit: 'count in window', trend: false},
   {key: 'grading', title: 'Code grading', unit: 'share at or above bar', trend: true},
   {key: 'usage', title: 'Usage by agent / model tier', unit: 'runs by tier', trend: false},

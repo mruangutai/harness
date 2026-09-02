@@ -19,7 +19,8 @@ npm run dev        # http://localhost:5273
 ```
 
 Then walk the drill: a tile → the feature rows → one feature. `npm run build` produces `dist/`;
-`npm run smoke` renders all three routes in node and asserts the gap-state contract (below).
+`npm run smoke` renders all three routes in node, asserts the gap-state contract (below), and prints
+KPI 3's sentences exactly as they render, so its wording can be read without a browser.
 
 ## What to look at, and where
 
@@ -28,7 +29,12 @@ Then walk the drill: a tile → the feature rows → one feature. `npm run build
 | **S-1** | the `30d` trend panel, and the `30d` tile sparklines | the region is **replaced**: a dashed card naming `.harness/metrics/trend.jsonl`. **No axes, no gridlines, no zero baseline, no `<svg>` mounted at all.** The five non-trend KPIs render beside it |
 | **S-2** | the `90d` and `all` trend panels, and the trend column of the feature table | axes **are** drawn. Pre-capability features are excluded from the line's path, the line **breaks** across a missing value rather than descending to zero, hatched trend cells carry an em-dash and "no trend — shipped before metrics", and "2 of 8 features in this window shipped before metrics" is persistent text |
 | **S-3** | directly beneath the histogram, inside the grading panel | persistent 13pt: "Grading covers Python only. 7 of 48 tracked files in this project are ungraded (15%)." with a disclosure naming the ungraded extensions. Never a tooltip, never a page-foot footnote |
-| **S-4** | the pair panel, and every unavailable cell in the table | a genuine zero and an unavailable measurement differ in **all four** of glyph (`0` vs `—`), typography (mono 700 `text` vs mono 400 `unavailable-stroke`), fill (normal surface vs 45° hatch) and badge (none vs "unavailable"), and the reason is always specific |
+| **S-4** | the pair panel on the landing route, KPI 3's tile, and every unavailable cell in the table | a **tracked zero** and a **not-tracked** feature sit side by side on *identical* input: neither Bamboo Handle (`FIX-05`) nor Cast Iron Lid (`FIX-03`) has a `touchpoints.jsonl`, and only the instrumentation epoch — `2026-05-01` here, plan.yaml `D-21` — decides that one absence is a measured zero and the other is not a measurement at all. The two differ in **all four** of glyph (`0` vs `—`), typography (mono 700 `text` vs mono 400 `unavailable-stroke`), fill (normal surface vs 45° hatch) and badge (none vs "unavailable"), and the reason is always specific — the not-tracked cell carries D-21's own sentence, never "no data" |
+
+KPI 3's tile therefore carries **three** terms, never two: the per-feature mean **over tracked
+features only**, the count **at a tracked zero**, and the count **not tracked** (`2.8 · 6 features
+tracked · 1 at a tracked zero · 2 not tracked` on `all`). A not-tracked feature is never in the
+mean's denominator, and the feature-rows table repeats the split as persistent text beneath it.
 
 The window control exposes the literal tokens `30d`, `90d` and `all`; the window and the feature id
 live **only** in the URL, so every view is linkable, reloadable and back-button-safe. There is no

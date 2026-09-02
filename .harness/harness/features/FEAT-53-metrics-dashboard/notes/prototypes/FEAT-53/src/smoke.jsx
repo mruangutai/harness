@@ -13,6 +13,7 @@ import {renderToString} from 'react-dom/server';
 import {createMemoryHistory} from '@tanstack/react-router';
 import {RouterProvider} from '@tanstack/react-router';
 import {makeRouter} from './router.jsx';
+import {AGGREGATE, touchpointCoverage} from './fixture.js';
 
 async function render(path) {
   const router = makeRouter({history: createMemoryHistory({initialEntries: [path]})});
@@ -89,9 +90,49 @@ check('S-4 renders the em-dash glyph', aggregate.includes('\u2014'));
 check('S-4 hatch fill is a repeating-linear-gradient over a surface token', aggregate.includes('repeating-linear-gradient'));
 check(
   'S-4 reasons are specific, never "no data"',
-  aggregate.includes('no commit carries a resolvable step-id') && !aggregate.toLowerCase().includes('>no data<'),
+  rows.includes('no commit carries a resolvable step-id') && !rows.toLowerCase().includes('>no data<'),
 );
-check('S-4 genuine zero keeps its denominator', aggregate.includes('0 of 12 features needed one'));
+
+// D-21 — the three-term KPI 3, and the pair it rests on. Both features below
+// have NO touchpoints.jsonl: only the epoch separates a measured zero from a
+// feature that was never tracked.
+check(
+  'KPI 3 tile carries THREE terms, not two',
+  aggregate.includes('6 features tracked'),
+);
+check(
+  'KPI 3 names the tracked-zero count and the not-tracked count separately',
+  aggregate.includes('1 at a tracked zero') && aggregate.includes('2 not tracked'),
+);
+check(
+  'KPI 3 unit label scopes the mean to tracked features',
+  aggregate.includes('per-feature mean, tracked features only'),
+);
+check(
+  'KPI 3 mean excludes not-tracked features from its denominator',
+  AGGREGATE.all.touchpoints.value === 2.8 &&
+    touchpointCoverage('all').tracked.length === 6 &&
+    touchpointCoverage('all').notTracked.length === 2,
+  `mean ${AGGREGATE.all.touchpoints.value} over ${touchpointCoverage('all').tracked.length} tracked`,
+);
+check(
+  'the pair panel states the two cells share one input',
+  aggregate.includes('neither feature has a touchpoints.jsonl'),
+);
+check(
+  'a tracked zero carries its provenance, not a bare 0',
+  aggregate.includes('tracked from 2026-05-01, no touchpoints.jsonl written'),
+);
+check(
+  'a not-tracked feature carries D-21 branch 3 verbatim, never a 0',
+  aggregate.includes('predates touchpoint instrumentation in this project') &&
+    aggregate.includes('touchpoints were never tracked for it'),
+);
+check(
+  'both states sit in one column on the rows route',
+  rows.includes('predates touchpoint instrumentation in this project') &&
+    rows.includes('tracked from 2026-05-01, no touchpoints.jsonl written'),
+);
 
 console.log('--- the drill, three routes ---');
 check('aggregate route renders six tiles', count(aggregate, 'see the feature rows behind this figure') === 6);
@@ -105,6 +146,31 @@ console.log('--- no live data ---');
 for (const forbidden of ['fetch(', 'node:fs', 'child_process']) {
   check(`no ${forbidden} in rendered output`, !aggregate.includes(forbidden));
 }
+
+// KPI 3 is the one figure whose wording a reader has to weigh rather than
+// merely locate, so the smoke PRINTS it as rendered — the sentences below are
+// the ones on screen, tags stripped, not a paraphrase of them.
+console.log('--- KPI 3 as rendered ---');
+// Tags are stripped BEFORE the search, so a needle can never land inside an
+// attribute and a slice can never run off into markup. The tile title also
+// appears in the card's aria-label, so each needle below is text the surface
+// prints rather than a title.
+const asText = (html) =>
+  html
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&#x27;/g, "'")
+    .replace(/&amp;/g, '&')
+    .replace(/\s+/g, ' ');
+const aggregateText = asText(aggregate);
+const rowsText = asText(rows);
+const sentence = (text, needle, len) => {
+  const i = text.indexOf(needle);
+  return i === -1 ? `MISSING: ${needle}` : text.slice(i, i + len).trim();
+};
+console.log(`tile  : ${sentence(aggregateText, 'per-feature mean, tracked features only', 140)}`);
+console.log(`pairL : ${sentence(aggregateText, 'A tracked zero — a measurement', 380)}`);
+console.log(`pairR : ${sentence(aggregateText, 'Not tracked — no measurement exists', 400)}`);
+console.log(`rows  : ${sentence(rowsText, 'Blocking human touchpoints are tracked', 300)}`);
 
 console.log('');
 if (failures.length > 0) {

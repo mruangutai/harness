@@ -22,3 +22,4 @@
   cheap, decisive substitute for a browser when verifying a gap-state contract: "S-1 mounts no
   <svg>" and "more polylines than series, so the line breaks" are both checkable in the HTML string,
   and neither is checkable by reading the source. It does NOT verify appearance, and I said so.
+- 2026-09-01: rewording DESIGN.md C-1 tile 3 for D-21 (two-term aggregate becomes three-term) left the same claim standing in my own prototype fixture (`notes/prototypes/FEAT-53/src/fixture.js:198,206,214` — "per-feature mean · 1 of 2 features at zero") and in its tile unit label (line 261). A contract reword has restatements in the runnable prototype, not only in prose; grep the prototype for the old phrasing too.

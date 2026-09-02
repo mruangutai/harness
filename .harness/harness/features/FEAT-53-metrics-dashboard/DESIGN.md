@@ -162,8 +162,15 @@ back-navigation or paste of the URL into a second tab loses them. `window` is a 
 1. **Throughput** — BRIEF-approval-to-ship cycle time (median, days), with run count and change size
    as the tile's secondary line. First because it is the FEAT-08 D-06 gap this feature exists to close.
 2. **Rework** — `cycles_used` against `max_total_cycles`, as a ratio with both terms shown.
-3. **Blocking human touchpoints** — per-feature mean, with the count of features at zero. Third
-   because `BUILD.md` item 11's target has never had a measurement behind it.
+3. **Blocking human touchpoints** — the mean over **tracked features only**, and on the one secondary
+   line **both** counts, never one: *n* **at a tracked zero** (instrumentation was running for that
+   feature and nothing blocked — a measurement, S-4's genuine zero) and *m* **not tracked** (no
+   measurement exists for that feature, because it started before this project's touchpoint epoch or
+   the project carries no epoch at all — S-4's unavailable, plan.yaml D-21). The two counts sit under
+   those distinct phrases and are never summed into a single "features at zero"; a not-tracked
+   feature is also never in the mean's denominator, and when **no** feature in the window is tracked
+   the 40pt headline is itself S-4's `—` with its reason, never `0`. Third because `BUILD.md` item
+   11's target has never had a measurement behind it.
 4. **Escaped defects** — count in the window, with its sourcing rule inline beneath.
 5. **Code grading** — the at-or-above-bar share as the headline figure, the outlier count as the
    secondary line. **Never a mean** (REQ-07): the tile's headline is a share, and a tile rendering a
@@ -404,7 +411,7 @@ confusable states on the surface and a shared grey placeholder for both is a def
 | | Genuine zero | Unavailable, with reason |
 |---|---|---|
 | value slot | the numeral `0`, mono 700, `text` — **identical type and colour to any other value** | the glyph `—`, mono 400, `unavailable-stroke`. **Never a numeral, never `0`, never blank** |
-| second line | its denominator: "0 of 12 features" | **the reason, always present and always specific**: "no ship record for this feature", "no commit carries a resolvable step-id". A generic "no data" is a violation |
+| second line | its denominator: "0 of 12 features" | **the reason, always present and always specific**: "no ship record for this feature", "no commit carries a resolvable step-id", or — for a touchpoint count — the not-tracked sentence plan.yaml D-21 pins for that branch, rendered verbatim from the payload rather than restated here. A generic "no data" is a violation |
 | fill | normal `surface` | the hatch fill pinned in S-2 — 45°, 1px stroke, 6px period, `unavailable-stroke` on `surface` |
 | badge | none | an Astryx badge reading "unavailable" |
 | in a chart | a plotted point at zero | no point plotted; the line breaks (CAP-09) |
@@ -412,6 +419,14 @@ confusable states on the surface and a shared grey placeholder for both is a def
 Four independent differences — glyph, typography, fill, badge — because one is a coincidence away from
 looking like the other. **A zero is a measurement and is presented with the confidence of one.** No
 tile, cell or chart region is ever left blank, and no absence is ever rendered as grey-and-nothing.
+
+**KPI 3 is the sharpest instance of this pair, and the one where the same input produces both
+states.** An absent `touchpoints.jsonl` is a genuine zero **only** for a feature that started at or
+after this project's touchpoint epoch — instrumentation was running and nothing blocked. For every
+other feature the same absence is *not a measurement at all* and takes the unavailable column, with
+D-21's reason. So a `0` cell and a `—` cell in the touchpoints column can sit one above the other on
+identical files, and the four differences above are the only thing separating them; a surface that
+renders `0` for an untracked feature has fabricated the number this whole section exists to prevent.
 
 **S-5 · A large unattributed share, named rather than hidden** (REQ-09 / SC-14, D-13). Measured at
 this repository, 753 of 975 commit subjects carry no harness prefix at all

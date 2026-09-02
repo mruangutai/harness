@@ -72,7 +72,7 @@ decisions, not requirements — the requirements above survive changing every on
   at signature**.
 - **Disclosure, new since the grilling.** Plan review found that having a client build at all — the
   frontend framework, `package.json` and the committed bundle — was never weighed against a
-  server-rendered HTML surface served off the same stdlib server, which would satisfy REQ-01 and
+  server-rendered HTML surface served off the same Python server, which would satisfy REQ-01 and
   REQ-12 too and would remove the entire alpha-charting risk. What the grilling rejected was the
   `render-brief.py` static-HTML-from-markdown convention, which is a different thing. Plan `D-20`
   writes that decision down and recommends keeping the client build; it needs an explicit yes or no
@@ -104,6 +104,11 @@ decisions, not requirements — the requirements above survive changing every on
   a model, so a real join is required. SUPPLIES the signal, BLOCKS any assumption it is free.
 - The runtime dependencies are declared and gated the way DEC-190 gated `jsonschema` — an explicit
   prerequisite check with a loud failure, never a silent assumption or a quieter degraded mode.
+- The backend is a real web framework — plan `D-03` settled **Flask** on 2026-09-01, with FastAPI +
+  uvicorn, a Node server and a hand-written route table all rejected by name. It is a
+  **dashboard-only** prerequisite, gated in the entry point's own REQ-14 check and nowhere else:
+  no harness `bin/` script outside `bin/dashboard/` imports it, so it is deliberately **not** a
+  ninth platform prerequisite beside PyYAML and `jsonschema`. SUPPLIES.
 - Code authority stays inside DEC-193's two locations; nothing here introduces a third checkout.
 
 ## Out of scope
@@ -125,10 +130,15 @@ with a runner. `component`, `ui`, `typecheck` and `eval` all ship `cmd: null`, s
   Every rendered-surface claim is therefore carried by SC-02, SC-08 and SC-11 (uat, executed by the
   user) and by SC-15 (ui-reviewer inspection). Nothing about the browser experience is automatically
   proven, and no SC below claims otherwise.
-- `component` and `typecheck` have no runner, and this feature introduces the first `.tsx` and `.ts`
-  application code in the repo. React component behaviour and TypeScript type soundness are
-  therefore unproven by any gate. This is a standing dev-ops runner gap worth a backlog task in its
-  own right; it is not closed by this feature and must not be assumed away by it.
+- `component` and `typecheck` have no runner, and this feature introduces the first `.tsx` and
+  `.ts` application code in the repo. TypeScript type soundness is therefore unproven by any gate.
+  React component behaviour is **partly** proven, and this line was corrected on 2026-09-01: plan
+  `T-21` and `T-22` install one executing render gate — vitest + jsdom + `@testing-library/react`,
+  driven from `test-metrics-client-render.py`, registered in `INTEGRATION_SCRIPTS`, so it runs
+  under the `integration` kind in CI — and SC-18 rests on it. What that gate does **not** cover is
+  every other rendered behaviour: it asserts the two chart mounts and each chart's own output, and
+  nothing else. No browser, no type checking, no interaction. The standing `component`/`typecheck`
+  runner gap is still a dev-ops backlog task in its own right and this feature does not close it.
 - SC-06's literal sweep cannot cover the bare-digit tokens `12` (the `.sh` count) and `3` (the
   `.ts` count): both occur inside values this feature legitimately ships — `1024` (the panel
   breakpoint), `3x2` (the tile grid), `ES2022` (the tsconfig target) — so a literal grep for them
@@ -203,6 +213,25 @@ with a runner. `component`, `ui`, `typecheck` and `eval` all ship `cmd: null`, s
   projects ~3.6s once T-06's single-call `git diff` and T-09's memoised plan reads land. The
   grilling's ~1.1s figure predates the per-branch change-size work T-06 specifies and is superseded.
   verify: automated        evidence: integration
+- SC-17: The blocking-touchpoint count distinguishes tracked-and-genuinely-zero from never-tracked,
+  asserted as two separate cases and never as one: for a fixture project carrying the
+  instrumentation epoch, a feature whose start is **after** the epoch and whose `touchpoints.jsonl`
+  is absent reports `0` with **no** entry in its `unavailable` map; a feature whose start is
+  **before** the epoch reports `null` with the specific reason naming that touchpoints were never
+  tracked for it, and is asserted to be neither `0` nor `"0"`. A fixture project carrying no epoch
+  at all reports every feature as unavailable. The aggregate reports the not-tracked count by name,
+  so no mean is taken over a fabricated zero.
+  verify: automated        evidence: integration
+- SC-18: The two chart shapes are actually mounted inside the panels that ship them, proven by an
+  executing render rather than by source text: rendering the real grading panel and a real trend
+  panel through `@testing-library/react` over a whole fixture payload puts each chart's element in
+  the document, **and** that element's own subtree carries output only the chart component can
+  produce — the five fixed grade categories inside the Shape A subtree, and one plotted line per
+  contiguous run inside the Shape B subtree. Both cases are graded by *status* from a
+  machine-readable reporter, so a skipped case fails the gate; and both are demonstrated failing
+  first, against `charts.tsx` present-but-unimported and against a placeholder element carrying
+  the testid alone.
+  verify: automated        evidence: integration
 
 ### Coverage — total in both directions
 
@@ -213,17 +242,19 @@ with a runner. `component`, `ui`, `typecheck` and `eval` all ship `cmd: null`, s
 | REQ-03 | SC-04 | SC-03 | REQ-02 |
 | REQ-04 | SC-04 | SC-04 | REQ-03, REQ-04, REQ-05, REQ-06, REQ-07, REQ-09 |
 | REQ-05 | SC-04, SC-13 | SC-05 | REQ-07 |
-| REQ-06 | SC-04, SC-10 | SC-06 | REQ-08 |
-| REQ-07 | SC-04, SC-05 | SC-07 | REQ-11 |
+| REQ-06 | SC-04, SC-10, SC-17 | SC-06 | REQ-08 |
+| REQ-07 | SC-04, SC-05, SC-18 | SC-07 | REQ-11 |
 | REQ-08 | SC-06 | SC-08 | REQ-11 |
 | REQ-09 | SC-04, SC-14 | SC-09 | REQ-10 |
 | REQ-10 | SC-09 | SC-10 | REQ-06 |
-| REQ-11 | SC-07, SC-08 | SC-11 | REQ-12 |
-| REQ-12 | SC-11, SC-16 | SC-12 | REQ-13 |
+| REQ-11 | SC-07, SC-08, SC-17 | SC-11 | REQ-12 |
+| REQ-12 | SC-11, SC-16, SC-18 | SC-12 | REQ-13 |
 | REQ-13 | SC-12 | SC-13 | REQ-05 |
 | REQ-14 | SC-01 | SC-14 | REQ-09 |
 |  |  | SC-15 | REQ-01, REQ-12 |
 |  |  | SC-16 | REQ-02, REQ-12 |
+|  |  | SC-17 | REQ-06, REQ-11 |
+|  |  | SC-18 | REQ-07, REQ-12 |
 
 ## Approval
 
