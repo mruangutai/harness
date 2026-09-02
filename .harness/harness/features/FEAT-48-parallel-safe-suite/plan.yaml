@@ -198,16 +198,17 @@ decisions:
       invariant that never bound anything. What changed is where the set comes from, not whether every
       member of it is fixed.
 
-      WHAT THIS CHANGES AND WHAT IT DELIBERATELY LEAVES. T-02's verify MECHANISM was already derived and
-      is KEPT unchanged in substance: it polls the directory for anything that appeared rather than
-      matching fixed basenames, so a new site in a file it runs reddens it on its own. What failed was
-      the ENUMERATION around that mechanism — the four-item site list in T-02's intent and the two-file
-      run set its verify iterated by literal name, which is why the test-bash-write-guard.py site and
-      the second test-check-state.py mutant were invisible to a task that was otherwise correct. So the
-      site list goes, the poll stays, and a verify's run set is DERIVED from plan.yaml's own ownership
-      graph rather than spelled a second time where the two can drift apart: a task's run set is its own
-      files: list, plus the files of every task superseded into it, minus the files of every task still
-      live.
+      WHAT THIS CHANGES AND WHAT IT DELIBERATELY LEAVES. T-02's verify MECHANISM was already derived
+      and is KEPT unchanged in substance: it polls the directory for anything that appeared rather
+      than matching fixed basenames, so a new site in a file it runs reddens it on its own. What
+      failed was the ENUMERATION around that mechanism — the four-item site list in T-02's intent and
+      the two-file run set its verify iterated by literal name, which is why the
+      test-bash-write-guard.py site and the second test-check-state.py mutant were invisible to a task
+      that was otherwise correct. So the site list goes, the poll stays, and a verify's run set is
+      DERIVED from plan.yaml's own ownership graph rather than spelled a second time where the two can
+      drift apart: a task's run set is its own files: list, plus the files of every task superseded
+      into it, minus the files of every OTHER still-live task — the task's own files: are excluded
+      from that subtraction, so a file it also lists stays in the set.
 
       OWNERSHIP IS NO LONGER SPLIT BY FILE, AND T-07 IS SUPERSEDED. The tooling reason it ever existed
       is recorded here because nothing else records it, and because the same constraint will be met
@@ -215,16 +216,17 @@ decisions:
       plan-merge.py amend refuses a list field (measured, exit 4: "a list or mapping field would need
       its structure rewritten, which is apply's job") and apply refuses any existing id whose value
       differs (exit 7 CONFLICT). apply CAN add a new id, so cycle 4 made that site a task of its own,
-      T-07. THAT SPLIT WAS ITSELF THE DEFECT. It contradicted the derived shape this entry mandates, and
-      it put T-03's ordering into prose, because T-03's depends_on cannot be widened for the same reason
-      — leaving a task that had to land before T-03 sitting as T-03's sibling in a ready wave, held
-      apart by a sentence. Cycle 5 closes the hole without ever writing a list. T-07 is stationed
+      T-07. THAT SPLIT WAS ITSELF THE DEFECT. It contradicted the derived shape this entry mandates,
+      and it put T-03's ordering into prose, because T-03's depends_on cannot be widened for the same
+      reason — leaving a task that had to land before T-03 sitting as T-03's sibling in a ready wave,
+      held apart by a sentence. Cycle 5 closes the hole without ever writing a list. T-07 is stationed
       abandoned and superseded in place: there is no delete verb, and the record of why it existed is
       worth keeping. T-02 owns the site, and its verify reaches it by DERIVATION — its own files: plus
       the files of every task whose station is abandoned and whose depends_on names T-02, minus the
-      files of every still-live task, which is what keeps T-01's test-check-domain.py out of T-02's run
-      set. The ordering that was prose is now the edge T-03 already carries, depends_on [T-01, T-02];
-      between them T-01 and T-02 own every site the census scan reports.
+      files of every OTHER still-live task — T-02's own files: are excluded from that subtraction —
+      which is what keeps T-01's test-check-domain.py out of T-02's run set. The ordering that was
+      prose is now the edge T-03 already carries, depends_on [T-01, T-02]; between them T-01 and T-02
+      own every site the census scan reports.
 
       TWO INSTRUMENTS, ONE DIVISION, because neither alone fits a 60s verify budget. T-01's and T-02's
       verify blocks are the OWNERSHIP check over the files each task changes; measured serially at
@@ -380,11 +382,15 @@ tasks:
                would resolve back into the live tree and defeat the isolation."""
 
          Implement with shutil.copytree from os.path.dirname(os.path.realpath(__file__)), creating
-         parents. Measured cost: 48ms for 111 files. Name the four-levels-up shape in a comment: the
-         destination path is what makes the copied hook derive dest_root as its project root, which
-         is why the segment .claude/skills/harness/bin is not cosmetic. Do not add a mode, a filter
-         or a cache argument; one caller shape, one function. T-02 imports it for every site it
-         fixes, so it is built here and changed nowhere else.
+         parents. Measured cost, a DATED and NON-BINDING observation re-measured at 8ca95d65 on
+         2026-09-01 (D-10): 25 to 42ms across three runs, copying the 146 files copytree sees under that
+         directory. It replaces an unlabelled 48ms-for-111-files figure that was stale as well as
+         unlabelled, since D-11 records the directory at 117 files at ccf674a; re-derive rather than
+         trust it. Name the four-levels-up shape in a comment: the destination path is what makes the
+         copied hook derive dest_root as its project root, which is why the segment
+         .claude/skills/harness/bin is not cosmetic. Do not add a mode, a filter or a cache argument;
+         one caller shape, one function. T-02 imports it for every site it fixes, so it is built here
+         and changed nowhere else.
 
       2. SITE A. In run_schema, replace case 3 with four steps. Import the helper with
          sys.path.insert(0, HERE) beside the existing HERE constant.
@@ -497,15 +503,16 @@ tasks:
       finally. Same hazard class as T-01: for the duration of the run the shared tree holds a file
       nothing else expects, and a tracked-file mtime is one editing mistake away.
 
-      THE SCOPE IS DERIVED, NEVER READ OFF A LIST (D-10). Before you edit anything, run D-10's
-      census scan over every file in this task's RUN SET, and record its SITE lines in the receipt.
-      THE RUN SET IS NOT THE files: LIST ALONE. plan-merge.py has no verb that grows a write-once
-      list, so the verify block above derives the run set from plan.yaml instead: this task's files:
-      plus the files of every task superseded into it — station abandoned, depends_on naming T-02 —
-      minus the files of every task still live. Run that block once and read its run_set line; those
-      are the files you fix. That output — not any sentence in this plan — is the set you fix. The
-      basenames it prints are the durable identifiers; there are no line anchors here on purpose,
-      because the four this task carried in cycle 4 were stale within one cycle three times running.
+      THE SCOPE IS DERIVED, NEVER READ OFF A LIST (D-10). Before you edit anything, run D-10's census
+      scan over every file in this task's RUN SET, and record its SITE lines in the receipt. THE RUN SET
+      IS NOT THE files: LIST ALONE. plan-merge.py has no verb that grows a write-once list, so the
+      verify block above derives the run set from plan.yaml instead: this task's files: plus the files
+      of every task superseded into it — station abandoned, depends_on naming T-02 — minus the files of
+      every OTHER still-live task — this task's own files: are excluded from that subtraction. Run that
+      block once and read its run_set line; those are the files you fix. That output — not any sentence
+      in this plan — is the set you fix. The basenames it prints are the durable identifiers; there are
+      no line anchors here on purpose, because the four this task carried in cycle 4 were stale within
+      one cycle three times running.
 
       WHAT THE SCAN FOUND AT 2a5cbada, as a DATED, NON-BINDING OBSERVATION that sizes the work and
       does not define it: six sites in three files. Four in test-check-state.py, writing
@@ -696,7 +703,10 @@ tasks:
         root <the absolute resolved root>
         discovered <n>
       They are what makes a scan that walked the wrong tree, or walked nothing, distinguishable from
-      a clean run. Print them in both modes.
+      a clean run. Print them in both modes — and EXACTLY ONCE PER PROCESS INVOCATION, for the one
+      scan that invocation was asked to run, the live-tree walk or the --scan-dir directory, never
+      both; the in-file self-test cases below call the scan function directly and print neither line,
+      which is what keeps the verify block's single discovered line discriminating.
 
       Accept an optional --scan-dir DIR argument that scans exactly that directory instead; the
       verify block and the historical red proof both use it.
@@ -1308,14 +1318,14 @@ tasks:
       therefore lived in prose in two intents, which left a task that must precede T-03 sitting as
       T-03's sibling in a ready wave, held apart by a sentence a doer could miss.
 
-      WHAT REPLACED IT (cycle 5, D-10). T-02 owns the site. Its verify block no longer reads its
-      run set off its own files: list; it derives it from plan.yaml — T-02's files:, plus the files
-      of every task whose station is abandoned and whose depends_on names T-02, minus the files of
-      every still-live task. This task's depends_on [T-02] and its abandoned station are what carry
-      test-bash-write-guard.py into T-02's run set, so the write-once list is routed around rather
-      than fought. The ordering that was prose is now the edge T-03 already holds, depends_on
-      [T-01, T-02]. T-02's intent carries the site description, the isolated_bin shape and the
-      instruction to NAME the addition in the receipt.
+      WHAT REPLACED IT (cycle 5, D-10). T-02 owns the site. Its verify block no longer reads its run
+      set off its own files: list; it derives it from plan.yaml — T-02's files:, plus the files of
+      every task whose station is abandoned and whose depends_on names T-02, minus the files of every
+      OTHER still-live task — T-02's own files: are excluded from that subtraction. This task's
+      depends_on [T-02] and its abandoned station are what carry test-bash-write-guard.py into T-02's
+      run set, so the write-once list is routed around rather than fought. The ordering that was prose
+      is now the edge T-03 already holds, depends_on [T-01, T-02]. T-02's intent carries the site
+      description, the isolated_bin shape and the instruction to NAME the addition in the receipt.
 
       The verify block above is retained for the record only. It is a single-file instance of the
       same ownership check T-02's block now performs over its whole run set; the one assertion it

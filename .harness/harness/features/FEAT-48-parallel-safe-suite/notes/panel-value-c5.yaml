@@ -1,0 +1,110 @@
+# Cycle-5 plan-panel value, lifted VERBATIM from
+# runs/2026-09-01-07-validator/digest.md '## panel value — cycle 5'.
+# `id:` is absent by design — pm computes each finding's content hash with
+# panel_findings.py at transcription. Feed to: plan-merge.py set-panel --value-file.
+last_run: 2026-09-01-07-validator
+cycle: 5
+reviewed_at: 2a5cbada
+reviewed_at_note: "Plan phase, so no review_sha exists and none can be pinned (INV-6/DEC-207); 2a5cbada is the tip the panel graded, plus the uncommitted cycle-5 amend diff."
+severity_max: med
+verdict: PASS
+transcription_rule: "Each summary and pointer is the reader's own wording, markdown emphasis and backticks removed and wrapping collapsed to single spaces. Severity is the reader's own and is never reassigned. Ids are absent by design: the lead holds no Bash and pm computes identity once with panel_findings.py at transcription."
+readers:
+  - reader: goalcheck
+    persona: harness-pm
+    status: ran
+    artifact: .harness/harness/features/FEAT-48-parallel-safe-suite/notes/research-FEAT-48-goalcheck-plan-c5.md
+    artifact_note: "Graded the plan ONE EDIT before the T-03/T-07 repair landed. Its verdict stands; five passages are superseded, listed in this digest."
+  - reader: scope
+    persona: harness-code-reviewer
+    status: ran
+    artifact: .harness/harness/features/FEAT-48-parallel-safe-suite/notes/review-harness-code-reviewer-planpanel-c5.md
+    artifact_note: "Terminal yield refused by SEC-01 after one attempt as briefed; findings transcribed from the artifact on disk."
+  - reader: should-not-exist
+    persona: fable-advisor
+    status: ran
+    artifact: none
+    artifact_note: "Holds no write grant; its findings reach disk only through this transcription."
+findings:
+  - reader: goalcheck
+    severity: med
+    summary: "No criterion would fail if issue #1053's own symptom persisted; SC-05's ten runs are declared non-probative by the BRIEF and nothing asserts test-gh-sync.py passes N consecutive 8-worker runs"
+    pointer: "BRIEF.md:127-131; run-unit-tests.sh:31; plan.yaml:262-272 (D-11's third and fourth uncovered classes)"
+    disposition: open
+  - reader: goalcheck
+    severity: low
+    summary: "D-10 claims the census is deterministic on a given tree, but two of the eight mutants embed os.getpid(), so two doers print textually different SITE lines and a reviewer reads drift where there is none"
+    pointer: "plan.yaml:167"
+    disposition: open
+  - reader: goalcheck
+    severity: low
+    summary: "The derivation instrument and the completeness gate are different instruments: a chmod or utime-only site, or one under a subdirectory, is census-invisible and scan-visible, so T-03 returns BLOCKED on a site no task owns"
+    pointer: "plan.yaml:161-165 (census); T-03's repo-wide static scan"
+    disposition: open
+  - reader: goalcheck
+    severity: low
+    summary: "The census is a 250s pass over the live tree; a sibling agent editing any file in bin during it fabricates a SITE line attributed to whichever test was running, and nothing enforces the quiet-tree assumption"
+    pointer: "plan.yaml:170; :283-287"
+    disposition: open
+  - reader: goalcheck
+    severity: low
+    summary: "T-03's verify requires exactly one discovered line while the intent says to print root and discovered in both modes and the live invocation also scans fixture tempdirs, so a faithful implementation can redden a correct scanner"
+    pointer: "plan.yaml:601 (len(disc)==1); :667; :749-786"
+    disposition: open
+  - reader: goalcheck
+    severity: low
+    summary: "The ea6f51f control run inside an isolated root exits 1 with a FileNotFoundError traceback after the schema window has been produced, so the doer pasting verbatim output pastes a traceback and may read it as a failed control"
+    pointer: "test-check-domain.py:1770; plan.yaml T-06 SC-02 leg"
+    disposition: open
+  - reader: goalcheck
+    severity: low
+    summary: "Issue #1053's Scope section still reads Folded into FEAT-47 and no task updates the issue body, though BRIEF's half of cycle-4's PF-04e9 is fixed"
+    pointer: "issue #1053 body; BRIEF.md:213-224"
+    disposition: open
+  - reader: goalcheck
+    severity: low
+    summary: "#1053 headlines 5.3x while SC-06 accepts 120s against a 247s baseline, i.e. 2.06x, so a 119s outcome passes every criterion while delivering about 40 percent of the advertised win"
+    pointer: "BRIEF.md:139-146"
+    disposition: open
+  - reader: goalcheck
+    severity: low
+    summary: "Measured cost 48ms for 111 files carries no sha and no date and is the only unlabelled numeral left; bin holds 120 files today, so a later reader cannot tell drift from error"
+    pointer: "plan.yaml:382; D-01's twin figure at :44 is correctly sha'd"
+    disposition: open
+  - reader: code-reviewer
+    severity: med
+    summary: "T-07's supersession is not mechanically uniform across tooling: check-plan-routes.py still emits a DEVIATION line for T-07 identical in shape to live tasks, and build.yaml's steps_from carries no task status filter, so a reliable skip rests on convention plus T-07's own prose refusal"
+    pointer: "plan.yaml:1254; check-plan-routes.py run live (7 DEVIATION, 0 VIOLATION, exit 0); build.yaml steps_from comment"
+    disposition: open
+  - reader: code-reviewer
+    severity: low
+    summary: "T-02's declared files understates its actual touch scope because it will also edit test-bash-write-guard.py; signable, since check-domain.sh authorizes by lane glob and not by files, but a build-cycle reviewer diffing only files could misflag the edit as scope creep"
+    pointer: "plan.yaml:454-456 (T-02 files); :212-232 (D-10 ownership); :526 (T-02 intent)"
+    disposition: open
+  - reader: code-reviewer
+    severity: low
+    summary: "Issue #1053's Scope section is still stale and outside plan.yaml's write authority, flagged for the operator to close by hand"
+    pointer: "issue #1053 body; BRIEF.md:213-227"
+    disposition: open
+    corroborated_by: goalcheck
+  - reader: code-reviewer
+    severity: info
+    summary: "The orchestrator's stated count of surviving T-07 mentions is off by one: grep confirms 7, not 8"
+    pointer: "plan.yaml:212, :218, :221, :526, :648, :651, :1254"
+    disposition: open
+  - reader: should-not-exist
+    severity: low
+    summary: "The abandoned-task-as-ownership-carrier idiom collides with the factory-wide meaning of abandoned as dropped, and the collision has one verified live cost: gh-sync station review exits 2 for this feature's whole life, and first sync opens a sub-issue whose title is an instruction to ignore it"
+    pointer: "gh-sync.py:1147-1154 (lead re-measured; reader cited :1150); :1532; plan.yaml:1254-1255"
+    disposition: open
+    corroborated_by: code-reviewer
+  - reader: should-not-exist
+    severity: info
+    summary: "Census-shape verdict from the reader whose cycle-4 finding prompted the re-plan: the derived replacement is the right shape and not a relocation of the rot, verified by executing T-02's derivation against the plan as it stands"
+    pointer: "plan.yaml:146; :464-467; :585 (T-03's depends_on edge)"
+    disposition: open
+  - reader: should-not-exist
+    severity: info
+    summary: "T-02's self-referential verify carries two residual couplings: plain yaml.safe_load instead of the duplicate-key-strict loader the scheduler uses, and the absorbed non-empty guard permanently hard-wiring T-07's continued presence into T-02's gate"
+    pointer: "plan.yaml:461 (safe_load); :492 (absorbed non-empty); harness_yaml.py load_plan (D-12)"
+    disposition: open

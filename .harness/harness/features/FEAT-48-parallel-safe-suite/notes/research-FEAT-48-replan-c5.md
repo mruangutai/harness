@@ -177,3 +177,63 @@ line per paragraph **and drops the blank separators**, so feeding `--show` outpu
 through `--value-file` collapses a multi-paragraph folded value into a single paragraph. It happened
 to D-10's `because` on the first attempt; I re-split on the section openers and re-amended, and the
 eight paragraphs are back. Any future amend of a folded field has the same trap.
+
+## Cycle 6 — the three Advisor amends, applied
+
+**All three landed; nothing else in the plan changed.** A field-by-field diff of `HEAD:plan.yaml`
+against the working copy reports exactly five changed fields — `D-10.because`, `T-01.intent`,
+`T-02.intent`, `T-03.intent`, `T-07.intent` — and no other key, task, decision, `verify:`, `files:`,
+`status:`, `depends_on:`, `panel:` or `approval:` value differs. Base tip `8ca95d65`, tree otherwise
+clean apart from the pre-existing untracked `notes/panel-value-c5.yaml`.
+
+**Amend A — T-03's print contract (goalcheck F-05).** One sentence appended to the "TWO LINES THE RUN
+MUST PRINT" paragraph: the pair is printed exactly once per process invocation, for the one scan that
+invocation was asked to run (live-tree walk or `--scan-dir`, never both), and the in-file self-test
+cases call the scan function directly and print neither line. `T-03.verify` untouched, so
+`len(disc)==1` stays discriminating rather than being relaxed.
+
+**Amend B — T-01's unlabelled numeral (goalcheck F-10). I re-measured rather than attributed.** The
+48ms/111-files figure could not be attributed honestly: no cycle records the sha it was taken at, and
+D-11's 117-at-`ccf674a` shows it was already stale, so inventing a sha for it would have been a
+fabricated label. Re-measured here at `8ca95d65` on 2026-09-01: `shutil.copytree` of
+`.claude/skills/harness/bin` costs 25-42ms across three runs and copies 146 files (126 excluding
+`__pycache__`; copytree copies the caches too, which is why 146 is the number the function pays for).
+The sentence now carries the sha, the date, the D-10 non-binding marker, the superseded figure and a
+re-derive instruction — the house style D-01's twin figure at `:44` already sets.
+
+**Amend C — the derivation prose, four sites, one wording.** D-10's formula said the derived set
+subtracts "the files of every still-live task"; the code at `plan.yaml:466-467` excludes the task
+itself (`x["id"] != "T-02"`). That divergence is what put a false premise into a dispatch brief and
+cost part of a consult to disprove. All four sites — re-derived, now at `:210`, `:226`, `:510-511`,
+`:1323-1324` — read "minus the files of every OTHER still-live task" plus "the task's own `files:`
+are excluded from that subtraction", worded consistently. T-07's `intent:` is safe to amend: the
+derivation block reads `status`, `depends_on` and `files` only (`:464-467`), never `intent`.
+
+**Paragraph counts, before and after, re-read from disk after each amend** (raw block bodies, split
+on blank lines): `D-10.because` 8 to 8, `T-01.intent` 18 to 18, `T-02.intent` 10 to 10,
+`T-03.intent` 17 to 17, `T-07.intent` 5 to 5. No folded scalar collapsed — `D-10.because`'s LOADED
+value also still carries its 8 paragraph openers, checked against `git show HEAD:` of the same field.
+I avoided the `--show` flattening trap entirely: value files were extracted as RAW dedented block
+bodies through `plan-merge.py`'s own `_item_range`/`_field_block` locators, edited textually, and fed
+back; `--show` output was used for nothing but the sha256.
+
+**Every `plan-merge.py` invocation, all exit 0, no refusals.** Five `--show` reads (`D-10.because`
+`65b59d86...`, `T-01.intent` `b96bf281...`, `T-02.intent` `ec012c8a...`, `T-03.intent` `6be45c2f...`,
+`T-07.intent` `2b28b201...`), then five `amend --expect-sha256 <that sha> --value-file <path>`
+writes, each printing `AMENDED <key>:<id>.<field>` / `APPLIED <plan>`.
+
+**Gates after the change.** `check-plan-routes.py <plan>`: exit 0, `grep -c DEVIATION` = 7,
+`grep -c VIOLATION` = 0 — unchanged. `yaml.safe_load`: approval `pending`/`None`/`None`, feature
+status `plan`, `panel.cycle` 4, T-07 still `abandoned` with `depends_on: [T-02]`, T-02's `files:`
+still exactly `test-check-state.py` and `test-feature-worktree.py`.
+
+**The one regression these amends could plausibly cause is excluded.** T-02's own derivation block
+(`plan.yaml:459-470`) re-run against the amended plan:
+`run_set ['test-bash-write-guard.py', 'test-check-state.py', 'test-feature-worktree.py']`,
+`absorbed ['.claude/skills/harness/bin/test-bash-write-guard.py']` — non-empty, so T-02's positive
+control still reaches the superseded file.
+
+**Untouched, deliberately.** T-07's shape, T-02's `files:`/`verify:`, every `verify:` block, the
+`panel:` key (cycle 4's record, replaced by a separate `set-panel` dispatch), `approval:`,
+`BRIEF.md`, `feature.json`, `STATE.md`. No new task, no new decision. No re-dating of 59 to 60 or
+192/DEC-209 to 193/DEC-210: those are correctly-dated stale observations, which is what D-10 intends.
