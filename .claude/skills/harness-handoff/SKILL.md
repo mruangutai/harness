@@ -57,6 +57,15 @@ After the tool result or wake, re-read the durable checkpoint and verify the cit
 accepting a verdict. `yield` is the terminal Harness handoff; `agent_end` is notification-only.
 Claude Code keeps its measured end-turn/wake compatibility rule (DEC-201/204).
 
+## Harness-owned paths — anchored, never relative
+
+- Your starting context carries `HARNESS_CONTROL_PLANE_ROOT: <absolute path>`. It is the Harness control plane, not your working directory. If it says `UNRESOLVED`, return `VERDICT: BLOCKED`; do not guess.
+- `<HARNESS_CONTROL_PLANE_ROOT>` prefixes every read of a Harness-owned skill, rule, reference, decision, or config. `<HARNESS_FEATURE_TREE_ROOT>` prefixes every feature-directory write: receipts, observations, and notes. The anchors are not interchangeable.
+- You may read the control-plane root read-only; your write grants are unchanged and remain resolved by check-domain.sh.
+- Before your first feature-directory write, resolve its root with `python3 <HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/inflight_registry.py feature-root --feature <FEAT>`.
+- If your persona holds no shell, do not run that command. Your dispatcher supplies `HARNESS-FEATURE-TREE-ROOT: <absolute path>`; dispatch-guard.sh refuses its absence at exit 2. If it is absent anyway, return `VERDICT: BLOCKED`.
+- Never write a bare relative Harness-owned path into an instruction.
+
 ## Writing the artifact
 
 - **BLUF.** Lead with the conclusion or recommendation. Not "I explored X, then Y."
@@ -77,7 +86,7 @@ override this — the guard will deny it, correctly (#216).
 
 The receipt is the fallback for the personas that own no other per-feature path — the five engineers
 and the documentor. Only those six write
-`.harness/harness/features/<FEAT>/notes/receipt-<your-agent-name>-<runid>.md`. **Not your observations log.**
+`<HARNESS_FEATURE_TREE_ROOT>/.harness/harness/features/<FEAT>/notes/receipt-<your-agent-name>-<runid>.md`. **Not your observations log.**
 That log is the Expertise hot layer — it is never injected into any spawn, so anything a successor
 must read is lost there. Use it only for lessons about *how you work*.
 
