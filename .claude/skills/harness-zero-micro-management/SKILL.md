@@ -15,7 +15,7 @@ writing a deliverable is.
 
 ## Your loop
 
-1. **Match the request** against your members' `consult-when` in `.harness/team-config.yaml`.
+1. **Match the request** against your members' `consult-when` in `<HARNESS_CONTROL_PLANE_ROOT>/.harness/team-config.yaml`.
 2. **Spawn that member and delegate** — the task, the inputs, the paths, the goal. Carry two things
    **verbatim**: the task's `T-NN` id, and the task's `verify:` command exactly as the plan writes
    it. `verify:` is preloaded into no member's context, so an unquoted command is one the member

@@ -22,7 +22,7 @@ git merge-base HEAD <base>              # this is base
 Record it:
 
 ```
-.harness/harness/features/<FEAT>/review_sha     # contains the SHA and the timestamp
+<HARNESS_FEATURE_TREE_ROOT>/.harness/harness/features/<FEAT>/review_sha     # contains the SHA and the timestamp
 ```
 
 Every subsequent step diffs `base..<review_sha>`. **Never `..HEAD`.** If a `review_sha` already exists
@@ -38,7 +38,7 @@ git status --porcelain
 | Found | Action |
 |---|---|
 | `[harness:human]` commits since the last pin | **Report them explicitly** and treat the paths they touch as unreviewed. They do not inherit any earlier pass |
-| Uncommitted changes outside `.harness/**` | **Stop.** Report the dirty tree and ask the user to commit (with `[harness:human]`) or stash. Reviewing a tree that does not match any commit produces a meaningless verdict |
+| Uncommitted changes outside `<HARNESS_CONTROL_PLANE_ROOT>/.harness/**` | **Stop.** Report the dirty tree and ask the user to commit (with `[harness:human]`) or stash. Reviewing a tree that does not match any commit produces a meaningless verdict |
 | Unattributed commits that look manual | Report as a finding — attribution is what makes recovery and review scope derivable |
 
 The invariant: **a hand edit is never silently in scope.** Shipping on a green review that never saw the
@@ -49,7 +49,7 @@ user's change is worse than halting.
 **Ordered first deliberately** — wrong-thing-built-well is the costlier failure, and finding it
 second wastes the quality pass.
 
-Read `.harness/harness/features/<FEAT>/BRIEF.md`. For each `REQ-NN` and each `SC-NN`:
+Read `<HARNESS_FEATURE_TREE_ROOT>/.harness/harness/features/<FEAT>/BRIEF.md`. For each `REQ-NN` and each `SC-NN`:
 
 - Is it delivered by this diff, or explicitly out of scope for this change?
 - For `verify: automated` criteria — does the named test kind actually exercise it? (`harness-qa-gate`

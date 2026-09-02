@@ -16,14 +16,14 @@ asks for a cleanup.
    applies it by path, so an audit that reads one tier reports clean over the other.
 
    ```
-   .agents/skills/harness/bin/check-expertise.sh .harness/expertise/
-   for d in .harness/*/expertise/; do
-     [ -d "$d" ] && .agents/skills/harness/bin/check-expertise.sh "$d"
+   <HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/check-expertise.sh <HARNESS_CONTROL_PLANE_ROOT>/.harness/expertise/
+   for d in <HARNESS_CONTROL_PLANE_ROOT>/.harness/*/expertise/; do
+     [ -d "$d" ] && <HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/check-expertise.sh "$d"
    done
    ```
 
    Files reported `OK` are done — do not touch them.
-2. **Distill each failing file.** The contract lives in `.agents/skills/harness-distill/SKILL.md`
+2. **Distill each failing file.** The contract lives in `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness-distill/SKILL.md`
    — **read it first; it is NOT preloaded** (DEC-158). The summary below is a checklist, not the
    contract, and the ops schema and read-modify-write rule are only in that file. For each:
    - Every entry becomes **WHEN <situation> DO <action>**, ≤50 words, or a durable repo fact.
@@ -35,14 +35,14 @@ asks for a cleanup.
      the six-spawns test hardest: rules that fire on every dispatch beat rules for rare shapes.
    - Preserve entry IDs where the entry survives recognizably; renumber only on merge.
 3. **Move, don't destroy:** anything distilled away that is still feature-specific context worth
-   keeping goes to `.harness/harness/features/<FEAT>/observations/<agent>.md` if the feature dir exists;
+   keeping goes to `<HARNESS_FEATURE_TREE_ROOT>/.harness/harness/features/<FEAT>/observations/<agent>.md` if the feature dir exists;
    otherwise it is dropped — it already failed the durability test.
 4. **Verify:** re-run the same two-tier audit until every file passes:
 
    ```
-   .agents/skills/harness/bin/check-expertise.sh .harness/expertise/
-   for d in .harness/*/expertise/; do
-     [ -d "$d" ] && .agents/skills/harness/bin/check-expertise.sh "$d"
+   <HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/check-expertise.sh <HARNESS_CONTROL_PLANE_ROOT>/.harness/expertise/
+   for d in <HARNESS_CONTROL_PLANE_ROOT>/.harness/*/expertise/; do
+     [ -d "$d" ] && <HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/check-expertise.sh "$d"
    done
    ```
 

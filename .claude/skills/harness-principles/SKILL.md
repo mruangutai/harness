@@ -18,7 +18,7 @@ When a decision turns on a principle — not on a mechanism — open the full do
 by its heading. Do not paraphrase it from memory here.
 
 **It states intent, not mechanism.** The constitution describes the factory's destination, and parts
-of it are not built yet. Where the concrete system differs, `.harness/harness/docs/DECISIONS.md` governs what
+of it are not built yet. Where the concrete system differs, `<HARNESS_CONTROL_PLANE_ROOT>/.harness/harness/docs/DECISIONS.md` governs what
 exists and the constitution governs what it is for. A principle never overrides a signed decision.
 It is grounds to challenge one.
 

@@ -8,7 +8,7 @@ user-invocable: false
 
 You are `harness-orchestrator`, running **one feature**. The main session spawned you with a feature
 id and a goal; several of you may be running at once, one per flow, which is why everything you own
-is namespaced under `.harness/harness/features/<FEAT>/` (DEC-120).
+is namespaced under `<HARNESS_FEATURE_TREE_ROOT>/.harness/harness/features/<FEAT>/` (DEC-120).
 
 ## The loop
 
@@ -19,7 +19,7 @@ is namespaced under `.harness/harness/features/<FEAT>/` (DEC-120).
    `notes/` are archives, read by pointer when a digest is cited, **NEVER as a startup sweep** — a
    wholesale read of a mature feature dir costs ~100k tokens before the first decision (DEC-150).
    Resuming a predecessor: the handoff prompt is your working set, so read only what it names.
-   On the first cycle ever, instantiate both files from `.agents/skills/harness/templates/` (INV-18
+   On the first cycle ever, instantiate both files from `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/templates/` (INV-18
    names feature.json by path when it is missing); the budgets come from harness.json `budgets.`,
    never your own guess, and raising either is a user decision recorded in feature.json (DEC-157).
    **The approval gate depends on your mission.** On **ship**, the BRIEF's `## Approval` *and* the
@@ -54,7 +54,7 @@ is namespaced under `.harness/harness/features/<FEAT>/` (DEC-120).
 5. **Weigh your own context before you continue.** You do nothing to obtain the figure. On your
    wake — the moment a `task` result returns — the harness hook reads your own OMP transcript off
    disk and, only when you are over `budgets.orchestrator_context_warn_tokens` in
-   `.harness/harness.json`, appends one advisory line to the result you were already reading. That
+   `<HARNESS_CONTROL_PLANE_ROOT>/.harness/harness.json`, appends one advisory line to the result you were already reading. That
    line carries the measured tokens, the resolved threshold and the computed ratio, so the key is
    named here and the numeral never is. **The threshold ADVISES and the decision is yours**
    (DEC-198); crossing it is normal, so hand off at a seam rather than mid-phase. **Weight it by
@@ -112,10 +112,10 @@ planning reviews and before operator signature. Sequence these squad segments in
    plan against the operator's STATED INTENT — the grilling or wayfinding artifact handed through
    the plan door, not the BRIEF derived from it. Ask verbatim: **does this plan deliver the
    operator's stated intent?** pm writes
-   `.harness/<repo>/features/<feat>/notes/research-<FEAT>-goalcheck-plan-c<cycle>.md`; the cycle
+   `<HARNESS_FEATURE_TREE_ROOT>/.harness/<repo>/features/<feat>/notes/research-<FEAT>-goalcheck-plan-c<cycle>.md`; the cycle
    suffix is required because this segment re-runs.
 2. **The validator segment.** Pass that goal-check note to the `plan-panel` team, resolving
-   `.harness/teams/plan-panel.yaml` before `.claude/skills/harness/teams/plan-panel.yaml` as
+   `<HARNESS_CONTROL_PLANE_ROOT>/.harness/teams/plan-panel.yaml` before `<HARNESS_CONTROL_PLANE_ROOT>/.claude/skills/harness/teams/plan-panel.yaml` as
    `harness-team` requires. Its second model is a spawned non-harness reader wrapped by the lead:
    its own external frontmatter pin remains independent of both the dispatch chain and authoring
    model, while the repository roster remains sixteen. If that persona does not resolve, the lead
@@ -137,8 +137,8 @@ separate pre-signature fix dispatch; only `approval.rulings` records an operator
 A `build` team is single-squad by construction (DEC-118), so it is only the eng segment. The rest
 are orchestrator-sequenced squad segments, in this order.
 
-1. **The eng segment.** Dispatch the named `build` team — resolve it `.harness/teams/build.yaml`
-   first, then `.agents/skills/harness/teams/build.yaml` (`harness-team/SKILL.md` step 1). **You
+1. **The eng segment.** Dispatch the named `build` team — resolve it `<HARNESS_CONTROL_PLANE_ROOT>/.harness/teams/build.yaml`
+   first, then `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/teams/build.yaml` (`harness-team/SKILL.md` step 1). **You
    choose WHICH tasks go to `eng-lead`**; **the lead routes each one to the specialist that owns
    it** by `consult-when`. Two different decisions — it routes, it does not revisit your selection.
 2. **The qa segment**, a validator-squad segment. `harness-qa` writes and runs the tests and
@@ -148,7 +148,7 @@ are orchestrator-sequenced squad segments, in this order.
 3. **SIMPLIFY, the last build step** — once the matrix is green and **BEFORE `review_sha` is
    pinned**, because an apply commit after the pin moves the tip and invalidates the panel's
    verdict. Sequence it to `harness-eng-lead`, never the validator lead. **The dispatch must tell
-   the lead to read `.agents/skills/harness-simplify/SKILL.md` first** — it is not preloaded, and
+   the lead to read `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness-simplify/SKILL.md` first** — it is not preloaded, and
    the four angles, the apply rules and the one-fix ceiling all live there. Re-run the suites after
    the apply, before the pin. An empty pass is a real outcome; nothing is invented to justify the
    step.
@@ -229,7 +229,7 @@ and two retracted claims (DEC-177).
 `bin/gh-sync.py` mirrors the plan to GitHub. It is idempotent, it is **never a gate**, and its nine
 subcommands have **one owner each** — you run three of them and no others. The whole contract, the
 owner of every subcommand, the station-writer table and the failure shapes are in
-`.agents/skills/harness/references/github-mirror.md`. **Read it by path before your first sync point
+`<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/references/github-mirror.md`. **Read it by path before your first sync point
 of the run** (DEC-158 move 3). You never read GitHub state into harness state: the plan on disk is
 the truth and the mirror is a mirror.
 
@@ -237,7 +237,7 @@ the truth and the mirror is a mirror.
 
 Mission **debug** (symptom known, cause unknown — DEC-139) is the one mission outside the
 plan-to-ship loop. When your dispatch names it, Read
-`.agents/skills/harness/references/debug-mission.md` before acting — the full procedure lives there
+`<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/references/debug-mission.md` before acting — the full procedure lives there
 (DEC-158 move 3).
 
 ## Feature-close distillation — runs at MERGE, not at close-out (DEC-145)
@@ -251,10 +251,10 @@ Mid-run, nobody writes Expertise; `expertise_update: []` is the normal DIGEST. T
 place project Expertise changes.
 
 1. **Dispatch each lead that ran the feature, once:** "distill — **read
-   `.agents/skills/harness-distill/SKILL.md` first and tell each member to read it too**, read your
+   `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness-distill/SKILL.md` first and tell each member to read it too**, read your
    members' logs under `<FEAT>/observations/`, skim the run digests for lessons nobody logged, have
    each member distill what passes the six-spawns test into its Expertise file, run
-   `bin/check-expertise.sh .harness/expertise/`, report per-section counts before and after."
+   `bin/check-expertise.sh <HARNESS_CONTROL_PLANE_ROOT>/.harness/expertise/`, report per-section counts before and after."
    **The read is mandatory:** writing from new entries alone wipes every earlier one (DEC-125), and
    `check-expertise.sh` catches format violations but never a wipe.
 2. **The skim is recall, not judgment** (DEC-145). The lead relays **at most 3 candidates per member**
@@ -344,7 +344,7 @@ anywhere spawn-read.
    collation but does not gate, each with its nature (`bug`/`chore`/enhancement). The IDs let the
    user strike rows by name. Unstruck rows become backlog issues on ship acceptance (DEC-138),
    and **anything not listed dies silently — list them all.**
-4. **Write it** to `.harness/harness/features/<FEAT>/notes/ship-review-<runid>.md` — plain English,
+4. **Write it** to `<HARNESS_FEATURE_TREE_ROOT>/.harness/harness/features/<FEAT>/notes/ship-review-<runid>.md` — plain English,
    conclusions first, the one artifact addressed to a human. Then `bin/render-brief.py <that path>`
    renders the reading view; the markdown stays the record and the HTML is **never hand-authored**
    (DEC-141).
