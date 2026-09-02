@@ -970,7 +970,48 @@ def main():
     fails += run_worktree_deep()
     fails += run_head_move()
     fails += run_feat50_checkout_binding()
+    fails += run_bug895_wrong_checkout()
     return fails
+
+def run_bug895_wrong_checkout():
+    """Issue #895 code review (PR #1188): the Bash route must refuse the SAME
+    wrong-checkout write check-domain.sh (Write/Edit route) already refuses — two
+    surfaces disagreeing is a bypass by construction (DEC-151)."""
+    root = os.path.join(tempfile.mkdtemp(), "root")
+    os.makedirs(os.path.join(root, ".harness"))
+    os.makedirs(os.path.join(root, ".git", "worktrees", "OTHER"))
+    os.makedirs(os.path.join(root, ".harness", "allowed"))
+    with open(os.path.join(root, ".harness", "team-config.yaml"), "w") as f:
+        f.write(FIXTURE_MANIFEST)
+    wt = os.path.join(root, ".claude", "worktrees", "OTHER")
+    _linked_worktree(wt, root, "OTHER", FIXTURE_MANIFEST)
+
+    target_in_main = os.path.join(root, ".harness", "allowed", "x.txt")
+    r = fire(wt, "echo x > %s" % target_in_main)
+    ok = (r.returncode == 2 and "BLOCKED" in r.stderr and "is in" in r.stderr
+          and "this session is rooted in" in r.stderr)
+
+    # NEGATIVE CONTROL: the same session writing its OWN checkout's copy still works.
+    target_own = os.path.join(wt, ".harness", "allowed", "y.txt")
+    r_own = fire(wt, "echo x > %s" % target_own)
+    ok_own = r_own.returncode == 0
+
+    results = [
+        ("bug895 Bash route: worktree session writing into main is refused", ok,
+         f"{r.returncode}: {r.stderr}"),
+        ("bug895 Bash route NEGATIVE CONTROL: same session, own checkout, still allowed",
+         ok_own, f"{r_own.returncode}: {r_own.stderr}"),
+    ]
+    fails = 0
+    for name, ok_case, detail in results:
+        if ok_case:
+            print(f"ok    {name}")
+        else:
+            fails += 1
+            print(f"FAIL  {name}\n      | {detail}")
+    print(f"\n{len(results) - fails}/{len(results)} bug895 Bash-route cases passed.")
+    return fails
+
 
 
 if __name__ == "__main__":

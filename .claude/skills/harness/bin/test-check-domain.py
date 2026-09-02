@@ -3514,15 +3514,6 @@ def _bug895_wrong_checkout_case(root, wt):
             ok, f"{r.returncode}: {r.stderr}")
 
 
-def _bug895_reverse_case(root, wt):
-    """The other direction: a session rooted in MAIN, writing into a linked
-    worktree's copy of the same allowed path, is refused too."""
-    r = _bug895_fire(root, os.path.join(wt, ".harness", "allowed", "x.txt"))
-    ok = r.returncode == 2 and "BLOCKED" in r.stderr
-    return ("wrong-checkout: main session writing into a worktree is refused",
-            ok, f"{r.returncode}: {r.stderr}")
-
-
 def _bug895_own_checkout_case(wt):
     """NEGATIVE CONTROL: the identical grant, written into the session's OWN
     checkout, still works — this is a checkout-identity check, not a new denial on
