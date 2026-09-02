@@ -127,7 +127,7 @@ decisions:
       grant harness-qa already carries is inert until the target is classified. is_control_plane_glob
       stays False for it, which is what keeps a product checkout's own tests directory resolving in
       its product base. The other three Iron Law seats stay exactly as blocked as they are today
-    dec: pending-T-06
+    dec: DEC-213
   - id: D-02
     choice: >
       The directory a test sits in IS its kind. The two bash arrays, the drift detector and the
@@ -135,7 +135,7 @@ decisions:
     because: >
       two lists that describe the same thing and cannot see each other diverge silently, which is
       the failure DEC-197 was written to name. A directory cannot disagree with itself
-    dec: pending-T-06
+    dec: DEC-213
   - id: D-03
     choice: >
       The layout predicate is one function in one new module, bin/suite_layout.py, called by the
@@ -143,7 +143,7 @@ decisions:
     because: >
       the guard replaces bookkeeping, so it must itself be provably able to fail. A predicate
       duplicated in bash and in python would be the same two-readers failure one level down
-    dec: pending-T-06
+    dec: DEC-213
   - id: D-04
     choice: >
       Ten files move from unit to integration, decided by a runtime measurement of which child
@@ -152,7 +152,7 @@ decisions:
       issue 160 splits on whether an assertion depends on behaviour in another process, and a grep
       cannot see that. Measured, test-factory-gh.py mentions subprocess 93 times and spawns nothing,
       while test-harness-merge.py mentions it zero times and forks 43 times
-    dec: pending-T-06
+    dec: DEC-213
   - id: D-05
     choice: DEC-187 is rewritten, not struck
     because: >
@@ -182,7 +182,7 @@ decisions:
       write-denial text. layout_fixtures.py is test support that stays under the settled scope, so
       the guard is name-shaped and not purpose-shaped, which is recorded as a residue rather than
       hidden
-    dec: pending-T-06
+    dec: DEC-213
 
   - id: D-13
     choice: >
@@ -230,7 +230,7 @@ decisions:
       states the ref it was measured at so a later reader can tell staleness from error, and the
       conservation law declares its one permitted absence rather than tolerating absences in
       general.
-    dec: pending-T-06
+    dec: DEC-213
   - id: D-15
     choice: >
       The runtime mutation check keeps watching the bin directory alone after the migration, and
@@ -252,7 +252,7 @@ decisions:
       so a root-wide runtime set reddens a passing suite on a sibling's note. If the operator wants
       the tests/ trees watched, that is a multi-directory --mutation-check and a FEAT-47 code change
       to run_pool.py, which is scope this plan does not currently carry.
-    dec: pending-T-06
+    dec: DEC-213
   - id: D-16
     choice: >
       REQ-07 is enforced by a declared LINE-exemption census, tests/manual/suite-census.py
@@ -275,7 +275,7 @@ decisions:
       historical fact — "eight of twelve INTEGRATION_SCRIPTS entries" names the artifact that
       existed, and "the forking-side script array" cannot be checked against the commit the
       sentence describes.
-    dec: pending-T-06
+    dec: DEC-213
   - id: D-17
     choice: >
       Every falsified Expertise entry is repaired inside this feature, by T-07, as execution_mode
@@ -314,7 +314,7 @@ decisions:
       meaningless failure. Deleting the two modes after the review was refused: nothing in the
       plan removes them, and a mode that names its own validity window is cheaper than a deletion
       task nobody will run.
-    dec: pending-T-06
+    dec: DEC-213
   - id: D-19
     choice: >
       No literal this plan can be outlived by is load-bearing anywhere in it. Two censuses
@@ -344,7 +344,7 @@ decisions:
       lane is derived with the scope: all 28 files under the two globs resolve to their own
       persona alone and to no shared seat (check-domain.sh --resolve, every file, at 1c9c384), so
       D-17's argument holds for a sixth file nobody has written yet.
-    dec: pending-T-06
+    dec: DEC-213
 
 tasks:
   - id: T-01
@@ -356,7 +356,7 @@ tasks:
       DEC-174 carve-out over harness_boundary.py, which is the module every PreToolUse domain
       decision resolves through, plus team-config.yaml, which no seat may write
     depends_on: []
-    status: ready
+    status: done
     files:
       - .claude/skills/harness/bin/harness_boundary.py
       - .claude/skills/harness/bin/test-harness-boundary.py
@@ -437,7 +437,7 @@ tasks:
       DEC-174 carve-out. Every file moved is a test of a hook, validator or gate script, which
       AGENTS.md:8 names verbatim, and the destination is the surface T-01 has just opened
     depends_on: []
-    status: ready
+    status: done
     files:
       - .claude/skills/harness/bin/test-*.py
       - .claude/skills/harness/bin/fixtures/*
@@ -582,7 +582,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 carve-out, same surface and same reason as T-02
     depends_on: [T-02]
-    status: ready
+    status: done
     files:
       - .claude/skills/harness/bin/test-*.py
       - .claude/skills/harness/bin/omp-hooks.test.ts
@@ -688,7 +688,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 carve-out over the bin surface
     depends_on: [T-03]
-    status: ready
+    status: done
     files:
       - .claude/skills/harness/bin/probe-omp-session-accessor.py
       - tests/manual/probe-omp-session-accessor.py
@@ -722,7 +722,7 @@ tasks:
       DEC-174 carve-out. run-unit-tests.sh is the gate the tests workflow runs and CODEOWNERS pins,
       and this task also writes harness.json, which no squad may take under DEC-174
     depends_on: [T-03, T-04]
-    status: ready
+    status: done
     files:
       - .claude/skills/harness/bin/run-unit-tests.sh
       - .claude/skills/harness/bin/suite_layout.py
@@ -1116,7 +1116,7 @@ tasks:
       granted to harness-documentor, taken direct under DEC-174 because the entry records a change
       to the enforcement layer itself
     depends_on: [T-05, T-07]
-    status: ready
+    status: done
     files:
       - .harness/harness/docs/DECISIONS.md
       - .harness/harness/docs/DECISIONS-INDEX.md
@@ -1271,7 +1271,7 @@ tasks:
       party that must not perform this correction — and that holds for a file nobody has written
       yet, which is why this task declares globs rather than paths
     depends_on: [T-05]
-    status: ready
+    status: done
     files:
       - .harness/expertise/*.md
       - .harness/*/expertise/*.md

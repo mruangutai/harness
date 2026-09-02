@@ -9,7 +9,7 @@ failure that looked like a detector bug. Edit the table -> edit the stubs HERE, 
 
 The marker path itself is NOT restated anywhere: read `layout_migration.MARKER`.
 
-Not a test file (the run-unit-tests.sh drift detector scans only test-*.py). The
+Not a test file (`suite_layout.violations()` ignores this production-module name). The
 paren-balance constraint that binds layout_migration.py's table (issue #380) is NOT
 load-bearing here — this file contains none of case_20's probe predicates, so it is
 skipped by that scanner. Do not inherit that audit into fixture edits.
