@@ -1021,6 +1021,71 @@ def case_10_no_own_primitive():
     )
 
 
+def case_35_feature_root_cli():
+    owner_root = tempfile.mkdtemp()
+    linked = os.path.join(tempfile.mkdtemp(), "FEAT-90-alpha")
+    os.makedirs(linked)
+    linked = os.path.realpath(linked)
+    pointer = os.path.join(owner_root, ".git", "worktrees", "FEAT-90-alpha", "gitdir")
+    os.makedirs(os.path.dirname(pointer))
+    with open(pointer, "w", encoding="utf-8") as handle:
+        handle.write(os.path.join(linked, ".git"))
+    check(
+        "case35: feature-root uses linked checkout rather than owner root",
+        inflight_registry.feature_root(owner_root, "FEAT-90-alpha") == linked
+        and linked != owner_root,
+        (owner_root, linked),
+    )
+
+    linked_run = subprocess.run(
+        [sys.executable, CLI, "feature-root", "--root", owner_root, "--feature", "FEAT-90-alpha"],
+        capture_output=True,
+        text=True,
+    )
+    check(
+        "case35: feature-root CLI resolves linked worktree",
+        linked_run.returncode == 0 and linked_run.stdout.strip() != owner_root,
+        linked_run.stdout + linked_run.stderr,
+    )
+    short_owner = tempfile.mkdtemp()
+    short_linked = os.path.realpath(os.path.join(tempfile.mkdtemp(), "FEAT-90"))
+    os.makedirs(short_linked)
+    short_pointer = os.path.join(short_owner, ".git", "worktrees", "FEAT-90", "gitdir")
+    os.makedirs(os.path.dirname(short_pointer))
+    with open(short_pointer, "w", encoding="utf-8") as handle:
+        handle.write(os.path.join(short_linked, ".git"))
+    short_run = subprocess.run(
+        [sys.executable, CLI, "feature-root", "--root", short_owner, "--feature", "FEAT-90-alpha"],
+        capture_output=True,
+        text=True,
+    )
+    check(
+        "case35: feature-root accepts a short-form worktree basename",
+        short_run.returncode == 0 and short_run.stdout.strip() == short_linked,
+        short_run.stdout + short_run.stderr,
+    )
+    fallback = subprocess.run(
+        [sys.executable, CLI, "feature-root", "--root", owner_root, "--feature", "FEAT-91-beta"],
+        capture_output=True,
+        text=True,
+    )
+    check(
+        "case35: feature-root CLI falls back to owner root",
+        fallback.returncode == 0 and fallback.stdout.strip() == owner_root,
+        fallback.stdout + fallback.stderr,
+    )
+    missing = subprocess.run(
+        [sys.executable, CLI, "feature-root", "--root", owner_root],
+        capture_output=True,
+        text=True,
+    )
+    check(
+        "case35: feature-root requires --feature",
+        missing.returncode == 1 and not missing.stdout and "--feature" in missing.stderr,
+        missing.stdout + missing.stderr,
+    )
+
+
 def main():
     case_1_claim_then_live_claim()
     case_2_single_flight_and_parallel_asymmetry()
@@ -1060,6 +1125,7 @@ def main():
     case_33_orphan_write_omp_runtime_is_never_orphaned()
     case_34_children_refusal_names_suspension()
 
+    case_35_feature_root_cli()
     failed = [r for r in RESULTS if not r[1]]
     if failed:
         print(f"FAIL - {len(failed)}/{len(RESULTS)} checks failed")

@@ -636,7 +636,7 @@ def main(argv=None):
     argv = list(argv) if argv is not None else sys.argv[1:]
     if not argv:
         print(
-            "usage: inflight_registry.py {list|attach|release|release-all|reconcile} [options]",
+            "usage: inflight_registry.py {list|attach|release|release-all|reconcile|feature-root} [options]",
             file=sys.stderr,
         )
         return 1
@@ -646,6 +646,13 @@ def main(argv=None):
         print("inflight_registry: no checkout root and no --root was given", file=sys.stderr)
         return 1
 
+    if command == "feature-root":
+        feature = _option(rest, "--feature")
+        if not feature:
+            print("inflight_registry: feature-root requires --feature", file=sys.stderr)
+            return 1
+        print(feature_root(root, feature))
+        return 0
     if command == "list":
         _cli_list(root)
         return 0
