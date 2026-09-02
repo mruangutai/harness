@@ -887,6 +887,11 @@ def ensure_labels(repo, labels):
                        capture_output=True)
 
 
+def finished_stations():
+    """Task stations that no longer represent executable work."""
+    return ("done", factory_config.TERMINAL_MARKER)
+
+
 def cmd_open(feat_dir, repo, parent_arg=None):
     brief, tasks, rec = parse_brief(feat_dir), parse_tasks(feat_dir), load_recorded(feat_dir)
     # T-02 (FEAT-26): refreshed from the plan on EVERY run — a re-plan that changes the
@@ -940,6 +945,9 @@ def cmd_open(feat_dir, repo, parent_arg=None):
         print(f"gh-sync: parent #{rec['parent']} created")
 
     for task in tasks:
+        if task.get("status") == factory_config.TERMINAL_MARKER:
+            print(f"gh-sync: {task['id']} is abandoned — no sub-issue created")
+            continue
         if task["id"] in rec["issues"]:
             print(f"gh-sync: {task['id']} already issue #{rec['issues'][task['id']]} — skipping")
         else:
@@ -1147,9 +1155,10 @@ def cmd_status(feat_dir, station, repo, board):
         # a live default T-04's migration missed because T-04 grepped check-state.sh and the
         # plan corpus, never this file. An absent status reads as `ready`, exactly as
         # gh_board.derive_station and project treat it.
-        all_done = bool(tasks) and all((t.get("status") or "ready") == "done" for t in tasks)
+        all_done = bool(tasks) and all(
+            (t.get("status") or "ready") in finished_stations() for t in tasks)
         if not all_done:
-            refuse("station review refused — not every task in plan.yaml carries status done")
+            refuse("station review refused — not every task in plan.yaml is done or abandoned")
 
     _record_station(feat_dir, station)
 

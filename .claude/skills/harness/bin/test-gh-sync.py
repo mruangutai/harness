@@ -915,6 +915,25 @@ with tempfile.TemporaryDirectory() as tmp6:
           re.match(r"^4\d$", str((gh6.get("issues") or {}).get("T-01"))) is not None, doc6)
 
 
+# --- an abandoned plan task is historical record, not work to mirror as an open child.
+with tempfile.TemporaryDirectory() as tmp6b:
+    install_gh(tmp6b)
+    feat6b = stage(tmp6b, feat_name="FEAT-48-abandoned-open")
+    write_plan_yaml(feat6b, "FEAT-48-abandoned-open",
+                    [("T-01", "ready"), ("T-07", "abandoned")],
+                    approval={"status": "approved"}, plan_station="ready")
+    r = run(["open", feat6b], tmp6b)
+    task_creates = [line for line in calls(tmp6b)
+                    if "issue create" in line and re.search(r"\bT-0\d\b", line)]
+    recorded = (read_feature_json(os.path.join(feat6b, "feature.json")).get("github") or {})
+    check("open skips an abandoned task instead of creating a permanent child",
+          r.returncode == 0
+          and any("T-01" in line for line in task_creates)
+          and not any("T-07" in line for line in task_creates)
+          and set((recorded.get("issues") or {}).keys()) == {"T-01"},
+          f"rc={r.returncode} calls={task_creates!r} github={recorded!r}")
+
+
 # `issue edit ... --add-label` fails, and NOTHING ELSE does. The one write in `abandon` that is
 # purely cosmetic is the one made to fail, because that is the whole shape of the defect: a
 # cosmetic failure used to abort the run through `gh()`'s `skip()`, taking the backlog write,
@@ -1914,6 +1933,22 @@ with tempfile.TemporaryDirectory() as tmpSt3:
           ids_written3 == {"ITEM_40", "ITEM_41", "ITEM_42"}, str(editsSt3))
     check("status Review: every write selects the declared Review option",
           all("--single-select-option-id OPT_REVIEW" in l for l in editsSt3), str(editsSt3))
+
+# --- status Review treats abandoned as finished, while still refusing unfinished work.
+with tempfile.TemporaryDirectory() as tmpSt3b:
+    install_gh(tmpSt3b, FAKE_GH_STATIONS)
+    featSt3b = stage_station(
+        tmpSt3b, "FEAT-48-status-review-abandoned",
+        [("T-01", "done"), ("T-07", "abandoned")],
+        issues={"T-01": 41},
+        parent=40,
+    )
+    r = run(["status", featSt3b, "review"], tmpSt3b,
+            {"FACTORY_GH": os.path.join(tmpSt3b, "gh")})
+    check("status Review accepts done plus abandoned tasks as finished",
+          r.returncode == 0 and read_plan_station(featSt3b) == "review",
+          r.stdout + r.stderr)
+
 
 # --- status Plan, Done and Abandoned each write NO station at all — the harness never
 #     writes those three columns (Plan is board-station.py's, Done is `ship`'s alone -- ship
