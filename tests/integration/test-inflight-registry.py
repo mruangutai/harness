@@ -1038,6 +1038,16 @@ def _feature_root_cli(owner_root, feature=None):
     return subprocess.run(argv, capture_output=True, text=True)
 
 
+def _ambiguous_feature_root_case():
+    owner_root = tempfile.mkdtemp()
+    _linked_worktree(owner_root, "FEAT-90")
+    _linked_worktree(owner_root, "FEAT-90-alpha")
+    result = _feature_root_cli(owner_root, "FEAT-90-alpha-redo")
+    check("case35: feature-root CLI refuses an ambiguous worktree",
+          result.returncode == 1 and not result.stdout and "ambiguous" in result.stderr.lower()
+          and "FEAT-90" in result.stderr, result.stdout + result.stderr)
+
+
 def case_35_feature_root_cli():
     owner_root = tempfile.mkdtemp()
     linked = _linked_worktree(owner_root, "FEAT-90-alpha")
@@ -1057,13 +1067,7 @@ def case_35_feature_root_cli():
     missing = _feature_root_cli(owner_root)
     check("case35: feature-root requires --feature",
           missing.returncode == 1 and not missing.stdout and "--feature" in missing.stderr, missing.stdout + missing.stderr)
-    ambiguous_owner = tempfile.mkdtemp()
-    _linked_worktree(ambiguous_owner, "FEAT-90")
-    _linked_worktree(ambiguous_owner, "FEAT-90-alpha")
-    ambiguous = _feature_root_cli(ambiguous_owner, "FEAT-90-alpha-redo")
-    check("case35: feature-root CLI refuses an ambiguous worktree",
-          ambiguous.returncode == 1 and not ambiguous.stdout and "ambiguous" in ambiguous.stderr.lower()
-          and "FEAT-90" in ambiguous.stderr, ambiguous.stdout + ambiguous.stderr)
+    _ambiguous_feature_root_case()
 
 
 CASES = (
