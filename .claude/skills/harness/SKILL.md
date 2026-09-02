@@ -350,3 +350,7 @@ anywhere spawn-read.
    (DEC-141).
 5. **Return it** as `briefing:` in your digest. The main session presents it and sends the
    instruction — ship, fix, re-scope, stop — back down to you.
+
+## Shell-less dispatches
+
+Resolve `HARNESS-FEATURE-TREE-ROOT` once per feature with `python3 <HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/inflight_registry.py feature-root --feature <FEAT>` and include that absolute line when dispatching a persona that holds no shell.

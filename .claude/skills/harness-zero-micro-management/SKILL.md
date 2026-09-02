@@ -81,3 +81,5 @@ lives in `harness-spec-driven`; it is restated here because this is where the ve
 contract lives, and a rule split from its consequence is one nobody applies.
 
 | "I'll paraphrase the verify command" | The member cross-checks your verbatim string against PLAN and returns `BLOCKED` on mismatch. A paraphrase reads as a mismatch and stops the task |
+
+When dispatching a persona that holds no shell, include `HARNESS-FEATURE-TREE-ROOT: <absolute path>`; dispatch-guard.sh refuses its absence at exit 2. Leads hold no shell and use the value supplied on their own dispatch; if absent, return `VERDICT: BLOCKED` rather than guess.

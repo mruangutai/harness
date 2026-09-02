@@ -268,3 +268,5 @@ artifact: <run_dir>/digest.md                # your collated report — NOT stat
 | "I'll write state.yaml at the end" | Checkpoint before dispatch, or a crash leaves an undecidable run |
 | "I'll record my assessment reasoning in state.yaml so it survives" | Prose survives in `digest.md`. state.yaml carries verdicts and markers a fresh context can match, not read (DEC-154) |
 | "I'll reuse last cycle's run dir" | The digest write is refused rather than overwritten; a new cycle takes a run directory of its own |
+
+A conductor that holds no shell receives `HARNESS-FEATURE-TREE-ROOT: <absolute path>` on its dispatch; it does not resolve the value itself.
