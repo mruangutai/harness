@@ -1,0 +1,815 @@
+schema: plan/1
+feature: FEAT-52-handoff-done-when
+approval:
+  status: pending
+
+status: plan
+
+source_issues: []
+
+panel:
+  last_run: 2026-09-02-4-validator
+  cycle: 0
+  readers:
+  - reader: should-not-exist
+    status: ran
+  - reader: scope
+    status: ran
+  findings:
+  - id: PF-4205e7e2f84e2eb24d421c924f4d7ac3
+    severity: med
+    reader: should-not-exist
+    summary: INV-17 (T-06 case e, T-07's resolution clause) makes the state gate re-resolve
+      every pointer in every post-contract note forever, an obligation the grilling
+      settled only at write time; a later BRIEF repair that renumbers an SC reddens
+      an untouched, previously-valid note and forces the very edit the frozen baseline
+      exists to prevent.
+    disposition: open
+  - id: PF-570b9c87adac19d62513b5e90cce0f81
+    severity: low
+    reader: should-not-exist
+    summary: T-06 case (g) bakes a third run of the real-corpus scan plus an mtime/byte
+      no-mutation audit into the permanent integration suite, so any feature that
+      writes a pre-sweep handoff note mid-build reddens test-check-state.py and the
+      corpus problem presents as an unrelated test regression.
+    disposition: open
+  - id: PF-918326616878584f5958be94fba0ede7
+    severity: low
+    reader: scope
+    summary: T-09's specified test_kinds.handoff_comprehension entry omits exclude,
+      which all 8 existing kinds carry including the omp_session_accessor entry it
+      names as its model, so code_grade.py:468-471 defaults it to none and a worktree-duplicated
+      copy of the probe is classified where its siblings are excluded.
+    disposition: open
+  - id: PF-d0ea19ffc351a13d6b569f0169222109
+    severity: low
+    reader: should-not-exist
+    summary: SC-14 plus the two forever-green cases T-03(h) and T-06(h) turn an out-of-scope
+      exclusion into permanent machinery, so a future feature that legitimately revisits
+      length budgeting must first dismantle tests this one planted.
+    disposition: open
+  - id: PF-1e45eb3a962725a1b45e3e0e90a271c6
+    severity: info
+    reader: should-not-exist
+    summary: Striking D-04 at signature is priced as one task but costs four artifacts
+      - T-09, T-12's three cases, SC-09's registration clauses and the test_kinds
+      entry - and a strike of T-09 alone leaves T-12 asserting a kind that does not
+      exist and SC-09 ungradable.
+    disposition: open
+lanes:
+  resolved_at: b7956fc4
+  rows:
+    - surface: .claude/skills/harness/bin/check-domain.sh
+      lane: main-session-direct
+      reason: 'DEC-174 — registered PreToolUse write gate, granted by the resolver and still not squad work'
+    - surface: .claude/skills/harness/bin/check-state.sh
+      lane: main-session-direct
+      reason: 'DEC-174 — the state gate itself'
+    - surface: .claude/skills/harness/bin/test-check-domain.py
+      lane: main-session-direct
+      reason: 'DEC-174 — a gate''s own test is inside the category'
+    - surface: .claude/skills/harness/bin/test-check-state.py
+      lane: main-session-direct
+      reason: 'DEC-174 — a gate''s own test is inside the category'
+    - surface: .claude/skills/harness/bin/handoff_done_when.py
+      lane: main-session-direct
+      reason: 'DEC-174 — gate logic imported by both gates; the module IS the enforcement'
+    - surface: .claude/skills/harness/bin/test-handoff-done-when.py
+      lane: main-session-direct
+      reason: 'DEC-174 — the test of that gate logic'
+    - surface: .claude/skills/harness/bin/run-unit-tests.sh
+      lane: main-session-direct
+      reason: 'DEC-174 — the suite runner is a required check on main (DEC-183)'
+    - surface: .claude/skills/harness/templates/HANDOFF.md
+      lane: main-session-direct
+      reason: 'DEC-179 — resolver returns NOBODY; a declared carve-out, never a discovered one'
+    - surface: .claude/skills/harness/SKILL.md
+      lane: main-session-direct
+      reason: 'DEC-179 — resolver returns NOBODY'
+    - surface: .claude/skills/harness/bin/probe-handoff-comprehension.py
+      lane: team
+      agent: harness-dev-ops
+    - surface: .harness/harness.json
+      lane: team
+      agent: harness-dev-ops
+    - surface: .harness/harness/docs/DECISIONS.md
+      lane: team
+      agent: harness-documentor
+    - surface: .harness/harness/docs/DECISIONS-INDEX.md
+      lane: team
+      agent: harness-documentor
+
+decisions:
+  - id: D-01
+    choice: 'INV-17 demands the fifth section only for a persisted note whose repo-relative path is absent from a frozen list handoff_done_when_baseline in .harness/harness.json (141 paths, the notes tracked at b7956fc4 that lack the section); block shape and pointer resolution are checked whenever the section is present, whoever wrote it'
+    because: 'a frozen path list needs no git history, so the answer cannot change with clone depth the way a git-log discriminator does in a depth-1 CI checkout; failure mode is a dead entry after a note is renamed, which exempts nothing; a historical note someone later edits is refused by the write gate until it gains the section, so it can only leave the historical set by becoming compliant'
+    dec: none
+  - id: D-02
+    choice: 'one implementation of block parsing and pointer resolution, a new module .claude/skills/harness/bin/handoff_done_when.py, imported by check-domain.sh and check-state.sh'
+    because: 'DEC-179 priced a second matcher that drifts from the first; two gates asking the same question must ask the same code'
+    dec: DEC-179
+  - id: D-03
+    choice: 'resolution semantics, one clause per type. plan-task:T-NN.verify resolves against the note feature dir plan.yaml when a task with that id exists and its verify value is a non-empty string. brief-sc:SC-NN resolves against that dir BRIEF.md when a line begins with the SC id followed by a colon. finding:PATH-HASH-ID takes a repo-relative path and resolves when the file exists and some line carries the id as a whole token, id matching F-NN or PF-NNNN. approval:PATH-HASH-HEADING takes a repo-relative path and resolves when a markdown heading whose text case-insensitively equals the heading exists. Anything else is an unknown type and is refused'
+    because: 'the feature dir is derivable from the note own path, so resolution needs no configuration; an absent target file is unresolved rather than skipped, which is the whole point of real resolution'
+    dec: none
+  - id: D-04
+    choice: 'the comprehension benchmark is persisted as .claude/skills/harness/bin/probe-handoff-comprehension.py and registered in .harness/harness.json test_kinds as handoff_comprehension with status locally_run, in neither UNIT_SCRIPTS nor INTEGRATION_SCRIPTS and absent from test_matrix'
+    because: 'run-unit-tests.sh requires every probe under bin to be declared in exactly one locally_run kind, so persisting it unregistered exits 2; locally_run keeps it rerunnable at review without making a nondeterministic model run a release gate'
+    dec: DEC-201
+  - id: D-05
+    choice: 'refusal messages keep the existing register: the head line stays handoff shape (DEC-159), each problem names the rule, the count or pointer that broke it, and templates/HANDOFF.md'
+    because: 'the existing handoff and CLAUDE.md messages already explain the rule and name the template, and DEC-100b requires naming the offending item rather than leaving the author to guess'
+    dec: DEC-100b
+  - id: D-06
+    choice: 'the new test file .claude/skills/harness/bin/test-handoff-done-when.py joins UNIT_SCRIPTS only, and is not added to test_kinds.integration.detect'
+    because: 'it spawns no subprocess, and run-unit-tests.sh KIND-DRIFT fails when a UNIT_SCRIPTS name appears in integration.detect'
+    dec: none
+  - id: D-07
+    choice: 'DEC-159 is amended in place to state five sections and the amendment is recorded as a new decision at the next free id, 212 at b7956fc4'
+    because: 'a signed decision that still says four sections would contradict the gate that enforces five, and the amendment needs its own citable id'
+    dec: none
+
+  - id: D-08
+    choice: 'a handoff note written during this feature''s own build is a NEW note: it carries the five-section contract like any other, it is NEVER added to handoff_done_when_baseline, and the baseline stays exactly the 141 notes tracked at the feature''s base commit b7956fc4 (git merge-base main HEAD). Notes written between that base commit and the landing of T-04 escape the write gate, so T-11 brings each of them into compliance before review_sha is pinned'
+    because: 'the operator settled that untouched historical handoffs remain valid AND that every newly written or edited handoff must use the five-section contract (grilling line 16); widening the baseline to cover this build''s own notes would exempt the first notes ever written under the new contract, and leaving them non-compliant would redden the corpus scan T-07 adds, for a planning reason no code fix addresses'
+    dec: none
+  - id: D-09
+    choice: 'the single-implementation claim (SC-07) is graded by inspection over a recorded mutation experiment, notes/mutation-FEAT-52-shared-module.md authored by T-13, plus the two cited import sites — not by a permanent automated mutation test'
+    because: 'a permanent test that deletes the module''s resolution entry point would have to mutate a gate script from inside the suite that gates this repository, and DEC-174 keeps both suites main-session-direct; a recorded experiment carrying its reproduction command is falsifiable evidence a grader can re-run, whereas an automated mutation harness would add a second copy of the gate logic to keep in step (the very drift DEC-179 priced)'
+    dec: DEC-174
+
+tasks:
+  - id: T-01
+    title: Write the failing unit test for the Done when module
+    traces: [REQ-02, REQ-03, REQ-04, REQ-05, REQ-06]
+    change_type: logic
+    execution_mode: main-session-direct
+    execution_reason: 'DEC-174 — the test of gate logic imported by check-domain.sh and check-state.sh'
+    depends_on: []
+    status: ready
+    files:
+      - .claude/skills/harness/bin/test-handoff-done-when.py
+      - .claude/skills/harness/bin/run-unit-tests.sh
+    verify: |
+      cd "$CLAUDE_PROJECT_DIR" && out=$(python3 .claude/skills/harness/bin/test-handoff-done-when.py 2>&1); rc=$?
+      test "$rc" -ne 0 && printf '%s\n' "$out" | grep -q handoff_done_when
+    intent: |
+      Create .claude/skills/harness/bin/test-handoff-done-when.py, a stdlib-only self-checking
+      script in the style of the other test-*.py files in that directory (named cases, one
+      printed line per case, exit 1 on any failure), and register its basename in
+      run-unit-tests.sh UNIT_SCRIPTS. Do NOT add it to test_kinds.integration.detect: it spawns
+      no subprocess and KIND-DRIFT fails if a UNIT_SCRIPTS name appears there.
+
+      It tests a module that does not exist yet, .claude/skills/harness/bin/handoff_done_when.py,
+      imported as `import handoff_done_when` after inserting its own directory on sys.path. The
+      module's contract, which this test pins:
+
+        problems(rel_path, text, root) -> list[str]
+          rel_path  repo-relative path of the handoff note
+          text      the note's full text
+          root      absolute repository root
+          returns   [] when the note's Done when block is well formed and every pointer
+                    resolves; otherwise one message per problem
+
+      Cases required, each asserting on the RETURNED MESSAGES and not on source text:
+      (a) a note with the four historical headings and no "## Done when" section returns exactly
+          one message naming "## Done when" and templates/HANDOFF.md;
+      (b) a well formed block (one Scope: line, one Authority: line whose pointer resolves)
+          returns [];
+      (c) zero Scope: lines, two Scope: lines, zero Authority: lines, five Authority: lines, and
+          a non-blank line that is neither Scope: nor Authority: each return a message naming the
+          count or the offending text — five separate cases, five separate assertions;
+      (d) for EACH of the four pointer types, a resolving pointer returns [] and an
+          unresolvable pointer of the SAME type returns a message naming that pointer — eight
+          assertions, built over a temporary fixture repo laid out as
+          <tmp>/.harness/harness/features/FEAT-90-fixture/ with plan.yaml (a task T-03 carrying a
+          non-empty verify), BRIEF.md (a line beginning "- SC-04:"), notes/review-fixture.md
+          (a line carrying the token F-02) and BRIEF.md's "## Approval" heading. Assert per type;
+          a single aggregate count would be satisfied by three types resolving and one not;
+      (e) TWO refusals of an authority outside the four types, asserted separately: an Authority:
+          line whose prefix is none of the four ("Authority: docs:whatever") returns a message
+          saying so and listing the four legal prefixes; and an Authority: line carrying a BARE
+          SOURCE-CODE LOCATION ("Authority: check-domain.sh:1523") returns the same refusal, so
+          "a source-code location alone is not an authority" (REQ-04) is observed and not assumed;
+      (f) AND semantics, distinguished from ANY observably: four authorities all resolving returns
+          [], proving the maximum is accepted, and the SAME block with exactly one of those four
+          made unresolvable returns exactly one message, naming that pointer — a three-of-four
+          block must be REFUSED, which is what separates AND from ANY.
+
+      Every fixture is built in a tempfile.TemporaryDirectory; the test must not read or write
+      anything under .harness/harness/features outside that directory. The expected state at the
+      end of this task is RED: the import fails because the module is absent, and the failure
+      names handoff_done_when.
+  - id: T-02
+    title: Implement the shared Done when module
+    traces: [REQ-02, REQ-03, REQ-04, REQ-05, REQ-06]
+    change_type: logic
+    execution_mode: main-session-direct
+    execution_reason: 'DEC-174 — gate logic imported by both check-domain.sh and check-state.sh'
+    depends_on: [T-01]
+    status: ready
+    files:
+      - .claude/skills/harness/bin/handoff_done_when.py
+    verify: |
+      cd "$CLAUDE_PROJECT_DIR" && python3 .claude/skills/harness/bin/test-handoff-done-when.py
+    intent: |
+      Create .claude/skills/harness/bin/handoff_done_when.py, stdlib plus PyYAML (imported
+      plainly, as plan-merge.py does), exposing:
+
+        SECTION = "## Done when"
+        problems(rel_path, text, root) -> list[str]
+
+      Behaviour, exactly as test-handoff-done-when.py pins it:
+
+      1. Locate the section by a line whose stripped, lowercased form equals "## done when". Its
+         body runs to the next line whose stripped form starts with "##", or end of text. Absent
+         section: return one message naming the section and templates/HANDOFF.md.
+      2. Shape. Non-blank body lines must be exactly one line beginning "Scope:" followed by
+         between one and four lines beginning "Authority:". Report, one message each: a Scope:
+         count that is not 1 (name the count), an Authority: count outside 1..4 (name the count),
+         and any other non-blank line (quote its first 60 characters). Order of the lines within
+         the body is not enforced beyond Scope: appearing exactly once.
+      3. Pointer grammar and resolution, per D-03. The feature directory is derived from
+         rel_path: the ".harness/<repo>/features/<FEAT>/" ancestor of the note. If rel_path is
+         not inside such a directory, report it and resolve nothing.
+           plan-task:T-NN.verify   -> yaml.safe_load(<featdir>/plan.yaml); resolved when a task
+                                      with id T-NN exists and its verify value is a non-empty
+                                      string. The only legal field suffix is ".verify".
+           brief-sc:SC-NN          -> <featdir>/BRIEF.md; resolved when some line, stripped and
+                                      with a leading "- " removed, begins "SC-NN:".
+           finding:<path>#<id>     -> <root>/<path>; id matches F-NN or PF-NNNN; resolved when
+                                      the file exists and some line carries the id as a whole
+                                      token (regex word boundaries).
+           approval:<path>#<head>  -> <root>/<path>; resolved when some line starting with one or
+                                      more "#" characters has, after stripping them and
+                                      whitespace, a case-insensitively equal text.
+         An unknown prefix returns a message listing the four legal prefixes. An unresolvable
+         pointer returns a message naming the pointer, the file consulted, and what was not found
+         in it. A target file that does not exist or does not parse is UNRESOLVED, never skipped.
+      4. Every message is a single line with no leading whitespace and no markdown; the callers
+         add their own indentation and head line. Messages name templates/HANDOFF.md.
+      5. No I/O outside the paths named above, and no process spawn: both callers are hooks on a
+         latency budget.
+
+      Do not touch check-domain.sh or check-state.sh in this task. The expected state at the end
+      is GREEN for test-handoff-done-when.py and unchanged behaviour everywhere else.
+  - id: T-03
+    title: Write the failing write-gate cases in test-check-domain.py
+    traces:
+    - REQ-01
+    - REQ-02
+    - REQ-04
+    - REQ-05
+    - REQ-06
+    - REQ-08
+    change_type: logic
+    execution_mode: main-session-direct
+    execution_reason: 'DEC-174 — check-domain.sh''s own test'
+    depends_on: [T-02]
+    status: ready
+    files:
+      - .claude/skills/harness/bin/test-check-domain.py
+    verify: |
+      cd "$CLAUDE_PROJECT_DIR" && out=$(python3 .claude/skills/harness/bin/test-check-domain.py 2>&1); rc=$?
+      test "$rc" -ne 0 && printf '%s\n' "$out" | grep -qi 'done when'
+    intent: |
+      Extend .claude/skills/harness/bin/test-check-domain.py with the write-gate cases for the
+      fifth handoff section. Use the existing handoff fixture helpers in that file (the rows near
+      the current handoff cap and missing-section cases) so the new cases go through the real
+      check-domain.sh process and assert on its exit code and stderr, never on its source.
+
+      Cases, each a separate named assertion:
+      (a) a handoff note carrying "## Next", "## Trust", "## Dead ends", "## Working set" and no
+          "## Done when" is REFUSED with exit 2, and the stderr names "## Done when" and
+          templates/HANDOFF.md;
+      (b) the same note with a well formed block whose single authority resolves is ALLOWED,
+          exit 0;
+      (c) five malformed blocks refused, one case each: zero Scope: lines, two Scope: lines, zero
+          Authority: lines, five Authority: lines, a stray prose line. Each assertion checks that
+          the message names the count or the stray text;
+      (d) eight pointer cases, one RESOLVING and one UNRESOLVABLE per authority type
+          (plan-task, brief-sc, finding, approval), asserted separately: resolving is exit 0,
+          unresolvable is exit 2 with the pointer named;
+      (e) the 60-line cap still fires: a five-section note of 61 lines is refused with the cap
+          message, and the same note at 60 lines is allowed;
+      (f) an EDIT of an existing four-section note that does not add the section is refused, and
+          the same edit that adds a well formed block is allowed;
+      (g) an authority outside the four types is refused through the gate, TWO separate
+          assertions: an unknown prefix ("Authority: docs:whatever") and a BARE SOURCE-CODE
+          LOCATION ("Authority: check-domain.sh:1523"). Each is exit 2 and the stderr lists the
+          four legal prefixes. This is the gate-level proof of REQ-04's second sentence;
+      (h) NO PER-SECTION CAP EXISTS, asserted positively: a five-section note whose "## Trust"
+          section runs 25 lines and whose whole file is exactly 60 lines is ALLOWED, exit 0, and
+          the stderr mentions no cap. The only length refusal is the whole-file cap in case (e);
+          a fixture that is long in one section but inside the file budget must pass.
+
+      Every fixture needs a feature directory the pointers can resolve against: build
+      <tmp>/.harness/harness/features/FEAT-90-fixture/ with plan.yaml (task T-03 with a non-empty
+      verify), BRIEF.md (a "- SC-04:" line and an "## Approval" heading) and
+      notes/review-fixture.md (a line carrying F-02), and write the note under that feature's
+      notes/ directory so the gate's own path resolution reaches them.
+
+      Do not modify check-domain.sh in this task. The expected state at the end is RED: the new
+      cases fail because the gate does not yet demand or parse the section, and the output names
+      the section. Case (h) is expected GREEN before and after — it is a regression guard on the
+      absence of a per-section cap, and its value is that it reddens if one is ever added.
+  - id: T-04
+    title: Enforce the fifth section in the write gate
+    traces: [REQ-01, REQ-02, REQ-05, REQ-06, REQ-08]
+    change_type: logic
+    execution_mode: main-session-direct
+    execution_reason: 'DEC-174 — check-domain.sh is a registered PreToolUse gate script'
+    depends_on: [T-03]
+    status: ready
+    files:
+      - .claude/skills/harness/bin/check-domain.sh
+    verify: |
+      cd "$CLAUDE_PROJECT_DIR" && python3 .claude/skills/harness/bin/test-check-domain.py
+    intent: |
+      In .claude/skills/harness/bin/check-domain.sh, extend the RE_HANDOFF branch of
+      shape_problems (the block at the "handoff shape (DEC-159)" head) so that every handoff
+      write and edit it already sees must also satisfy the Done when contract:
+
+      - add "## Done when" to the required-heading list, and update that message's wording from
+        "the four sections" to "the five sections";
+      - import handoff_done_when from the same directory (follow the existing sibling-module
+        import pattern in this file) and append its problems(rel, content, root) messages,
+        indented the same way the other problems are, under the same
+        "handoff shape (DEC-159)." head line;
+      - keep the 60-line whole-file cap and its message unchanged, and add no per-section cap;
+      - the module is consulted only when RE_HANDOFF matches, so no other route changes cost.
+
+      Failure to import the module must be a REFUSAL naming the missing module, never a silent
+      pass: a gate that cannot load its own logic must not allow the write.
+
+      Do not edit test-check-domain.py in this task. The expected state at the end is GREEN for
+      test-check-domain.py, including every case T-03 added.
+  - id: T-05
+    title: Freeze the historical-note baseline in harness.json
+    traces: [REQ-07]
+    change_type: config
+    execution_mode: team
+    execution_agent: harness-dev-ops
+    depends_on: []
+    status: ready
+    files:
+      - .harness/harness.json
+    verify: |
+      cd "$CLAUDE_PROJECT_DIR" && python3 -c "
+      import json,os
+      d=json.load(open('.harness/harness.json'))
+      b=d['handoff_done_when_baseline']
+      assert d['_handoff_done_when_baseline_note']
+      assert len(b)==141 and len(set(b))==141, len(b)
+      for p in b:
+          assert os.path.isfile(p), p
+          assert not any(l.strip().lower()=='## done when' for l in open(p).read().splitlines()), p
+      print('ok', len(b))"
+    intent: |
+      Add two keys to .harness/harness.json, keeping the file's existing 2-space JSON formatting
+      and its convention of a leading underscore note beside the data it explains:
+
+        "_handoff_done_when_baseline_note": a note in the register of
+          "_panel_era_start_note" — read that key first. It must say: this is the FROZEN list of
+          handoff notes that existed at THIS FEATURE'S BASE COMMIT, `git merge-base main HEAD` =
+          b7956fc4, enumerated from
+          `git ls-tree -r --name-only b7956fc4 -- .harness/harness/features` filtered to files
+          matching notes/handoff-*.md that do not carry a "## Done when" line at that commit;
+          INV-17 does not demand the fifth section for a path in this list, and demands it for
+          every note that is not; the list is finite and MUST NEVER GROW, because a note edited
+          after the contract landed is refused at write until it complies, and a note written
+          DURING this feature's own build is a new note that complies (D-08) rather than a
+          baseline entry; it is per-project because check-state.sh is copied into every onboarded
+          project, so a hardcoded list would export this repository's history; an empty list is
+          the right value for a project onboarded after this feature.
+        "handoff_done_when_baseline": a JSON array of repo-relative path strings, exactly the
+          141 paths that enumeration yields, sorted.
+
+      Generate the list mechanically from that git command against the BASE COMMIT; do not
+      hand-type paths and do not glob the working tree, which would include notes written during
+      this feature's own build and so widen the baseline the operator's settled line does not
+      widen. Change nothing else in the file: no test_kinds edit, no test_matrix edit. T-09 later
+      adds a test_kinds entry handoff_comprehension to this same .harness/harness.json, and it
+      depends on this task, so confining this task to the two baseline keys is what keeps the two
+      writes to that one document from overwriting each other.
+  - id: T-06
+    title: Write the failing INV-17 cases in test-check-state.py
+    traces: [REQ-07, REQ-08]
+    change_type: logic
+    execution_mode: main-session-direct
+    execution_reason: 'DEC-174 — check-state.sh''s own test'
+    depends_on: [T-02, T-05]
+    status: ready
+    files:
+      - .claude/skills/harness/bin/test-check-state.py
+    verify: |
+      cd "$CLAUDE_PROJECT_DIR" && out=$(python3 .claude/skills/harness/bin/test-check-state.py 2>&1); rc=$?
+      test "$rc" -ne 0 && printf '%s\n' "$out" | grep -qi 'done when'
+    intent: |
+      Extend .claude/skills/harness/bin/test-check-state.py with the INV-17 cases for the fifth
+      section, reusing the existing INV-17 fixture builders (the helpers around the current
+      HANDOFF_GOOD note and the shape-line assertions) so each case runs the real check-state.sh
+      and asserts on its reported lines.
+
+      Cases, each separately named:
+      (a) a note whose repo-relative path is NOT in the fixture's harness.json
+          handoff_done_when_baseline and carries no "## Done when" is reported, and the line
+          names the section;
+      (b) a note whose path IS in that baseline and carries no "## Done when" is NOT reported;
+      (c) a baselined note that DOES carry the section is checked for shape anyway: a malformed
+          block in a baselined note is reported;
+      (d) a non-baselined note with a well formed, fully resolving block is not reported;
+      (e) an unresolvable pointer in a note of either kind is reported, with the pointer named;
+      (f) an absent handoff_done_when_baseline key behaves as an empty list: every note must
+          carry the section;
+      (g) the real repository corpus stays clean — run check-state.sh against the actual project
+          root and assert that no reported line mentions "Done when", and that the run leaves
+          every file under .harness/harness/features/*/notes/ unmodified (compare mtimes and
+          bytes before and after for the matched set);
+      (h) NO PER-SECTION CAP EXISTS, asserted positively at the STATE CHECK: build a
+          NON-BASELINED note whose "## Done when" block is well formed and fully resolving,
+          whose "## Trust" section runs 25 lines, and whose whole file is exactly 60 lines, and
+          assert that check-state.sh reports NO line naming that note's path at all — in
+          particular none mentioning a cap or any section length. This is the state-check half
+          of SC-14; T-03 case (h) is the write-gate half, and SC-14 requires both. It is
+          expected GREEN before and after this feature: its value is that it reddens the moment
+          a per-section cap is added to INV-17.
+
+      Case (g) reads the real tree read-only; every other case builds its own fixture root under
+      tempfile.TemporaryDirectory, including a fixture .harness/harness.json.
+
+      Do not modify check-state.sh in this task. The expected state at the end is RED on cases
+      (a), (c), (e) and (f), with "Done when" in the output. Cases (b), (d), (g) and (h) are
+      expected GREEN both before and after — (h) is a regression guard on the ABSENCE of a
+      per-section cap, so it must pass in this task's red state too.
+  - id: T-07
+    title: Extend INV-17 to the fifth section with the frozen baseline
+    traces: [REQ-07, REQ-08]
+    change_type: logic
+    execution_mode: main-session-direct
+    execution_reason: 'DEC-174 — check-state.sh is the project state gate'
+    depends_on:
+    - T-06
+    - T-11
+    status: ready
+    files:
+      - .claude/skills/harness/bin/check-state.sh
+    verify: |
+      cd "$CLAUDE_PROJECT_DIR" || exit 1
+      python3 .claude/skills/harness/bin/test-check-state.py || exit 1
+      grep -qi 'done when' .claude/skills/harness/bin/check-state.sh || exit 1
+      out=$(bash .claude/skills/harness/bin/check-state.sh 2>&1); rc=$?
+      test "$rc" -le 1 || exit 1
+      printf '%s\n' "$out" | grep -qi 'done when' && exit 1
+      printf 'ok rc=%s\n' "$rc"
+    intent: |
+      In .claude/skills/harness/bin/check-state.sh, extend the INV-17 handoff shape pass (the
+      glob over notes/handoff-*.md that today reports missing sections, the 60-line cap and empty
+      sections) so it also enforces the Done when contract, per D-01:
+
+      - THE HEADING CONSTANT MUST NAME FIVE SECTIONS. HANDOFF_HEADINGS at check-state.sh:1059 is
+        today ["## next", "## trust", "## dead ends", "## working set"] and is read twice: at :1199
+        to compute `miss`, and at :1219 to select the headings whose bodies must be non-empty. A
+        state check whose heading constant still names four sections cannot grade the fifth. Rename
+        it to HANDOFF_SECTIONS with all five entries, "## done when" last, and add
+        HANDOFF_NARRATIVE_HEADINGS = HANDOFF_SECTIONS[:4]. The empty-body loop reads
+        HANDOFF_NARRATIVE_HEADINGS: a present-but-empty Done when block is already reported by the
+        module's shape messages, and must not be reported twice under a second name. Update every
+        reader of the old name in the same edit and leave no reference to HANDOFF_HEADINGS.
+      - `miss` is computed PER NOTE. The four narrative headings are required of every note;
+        "## done when" is required only of a note whose repo-relative path is NOT in the baseline.
+      - read handoff_done_when_baseline from the already-parsed harness.json mapping (`cj`),
+        defaulting to an empty list when the key is absent, and normalise its entries to
+        repo-relative paths for comparison;
+      - for a note whose repo-relative path is NOT in that list, a missing "## Done when" is a
+        violation, worded in the existing INV-17 register and naming templates/HANDOFF.md;
+      - for a note whose path IS in the list, a missing section is not reported;
+      - whichever list a note is in, when the section IS present, append
+        handoff_done_when.problems(rel, text, root) to the violations for that note — shape and
+        pointer resolution are checked for every note that has a block;
+      - leave the 60-line cap, the literal exemption and _handoff_exempt untouched, and add NO
+        per-section cap: a five-section note whose Trust section runs 25 lines and whose whole file
+        is 60 lines must stay clean;
+      - import the module the way this file already imports its siblings, and make an import
+        failure a reported violation naming the module rather than a silent skip.
+
+      The baseline list is data, not a rule to infer: never add a path to it from this script, and
+      never treat the absence of a note from the list as permission to skip its shape.
+
+      Do not edit test-check-state.py in this task. Expected end state: test-check-state.py GREEN,
+      and check-state.sh over this repository reports no line mentioning Done when, with all 141
+      baselined notes unmodified. This task depends on T-11 because its verify runs the real corpus
+      scan: every handoff note written during this build is non-baselined (D-08), so one that does
+      not yet carry the section would be reported by the very pass this task adds.
+  - id: T-08
+    title: State the five-section contract in the template and the playbook
+    traces: [REQ-03, REQ-09]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: 'DEC-179 — both paths resolve to NOBODY; a declared carve-out, never a discovered one'
+    depends_on: [T-04]
+    status: ready
+    files:
+      - .claude/skills/harness/templates/HANDOFF.md
+      - .claude/skills/harness/SKILL.md
+    verify: |
+      cd "$CLAUDE_PROJECT_DIR" && grep -q '^## Done when' .claude/skills/harness/templates/HANDOFF.md && grep -q '^Scope:' .claude/skills/harness/templates/HANDOFF.md && grep -q '^Authority:' .claude/skills/harness/templates/HANDOFF.md && grep -qi 'five sections' .claude/skills/harness/SKILL.md && ! grep -rqi 'four sections' .claude/skills/harness/SKILL.md .claude/skills/harness/templates/HANDOFF.md
+    intent: |
+      Two documents, one change of record.
+
+      1. .claude/skills/harness/templates/HANDOFF.md — add a fifth section, last, after
+         "## Working set":
+
+           ## Done when
+
+           Scope: <concise label for the ONE action in Next>
+           Authority: <plan-task:T-NN.verify | brief-sc:SC-NN | finding:PATH#F-NN | approval:PATH#HEADING>
+
+         and update the header comment: five sections, all required, still ~60 lines total, still
+         denied at write. State in it that the section describes the immediate action in Next and
+         not the phase or the feature; that the shape is exactly one Scope: line and one to four
+         Authority: lines with no other prose; that authorities combine as a logical AND, every
+         one of them satisfied; that the four authority types are the only legal ones and a
+         source-code location alone is not an authority; and that every pointer must resolve to an
+         existing target when the note is written. Keep the placeholders in angle brackets so the
+         template itself is not mistaken for a resolving note.
+
+      2. .claude/skills/harness/SKILL.md — the orchestrator playbook seam paragraph that today
+         says "Four sections, ~60 lines, shape-gated at write" and names four. Rewrite it to say
+         five and name "## Done when" with its shape in one clause. Change nothing else in that
+         paragraph, and leave the context-triggered-handoff paragraph after it untouched.
+
+      No occurrence of a four-section claim may survive in either file.
+  - id: T-09
+    title: Persist and register the comprehension benchmark probe
+    traces: [REQ-10]
+    change_type: scaffolding
+    execution_mode: team
+    execution_agent: harness-dev-ops
+    depends_on:
+    - T-05
+    status: ready
+    files:
+      - .claude/skills/harness/bin/probe-handoff-comprehension.py
+      - .harness/harness.json
+    verify: |
+      cd "$CLAUDE_PROJECT_DIR" && python3 .claude/skills/harness/bin/probe-handoff-comprehension.py --dry-run && python3 -c "
+      import runpy, sys
+      P='.claude/skills/harness/bin/probe-handoff-comprehension.py'
+      BLOCKED=('socket.connect','socket.getaddrinfo','subprocess.Popen','os.system','urllib.Request')
+      def hook(event, args):
+          if event in BLOCKED: raise SystemExit('probe made a %s call during --dry-run' % event)
+      sys.addaudithook(hook)
+      sys.argv=[P,'--dry-run']
+      try:
+          runpy.run_path(P, run_name='__main__')
+      except SystemExit as e:
+          if e.code not in (0, None): raise
+      print('ok: dry run made no model call')" && python3 -c "
+      import json
+      d=json.load(open('.harness/harness.json'))
+      k=d['test_kinds']['handoff_comprehension']
+      p='.claude/skills/harness/bin/probe-handoff-comprehension.py'
+      assert k['status']=='locally_run' and k['detect']==p and k['cmd']==p, k
+      assert 'handoff_comprehension' not in json.dumps(d.get('test_matrix')), 'kind leaked into test_matrix'
+      print('ok')" && ! grep -q 'probe-handoff-comprehension' .claude/skills/harness/bin/run-unit-tests.sh
+    intent: |
+      Persist the comprehension benchmark so review can rerun it, without letting it into any
+      normal test run.
+
+      1. Create .claude/skills/harness/bin/probe-handoff-comprehension.py, following
+         probe-omp-session-accessor.py's shape: executable, stdlib only, a module docstring
+         stating that it needs the omp binary on PATH and live model credentials and can never
+         run in CI, and a --dry-run flag that prints the plan of work and exits 0 WITHOUT making
+         any model call or network request.
+         What a real run does: take one or more handoff note paths (default: the notes named on
+         the command line; with none, the newest note under
+         .harness/harness/features/*/notes/handoff-*.md), and for each note put a fixed question
+         set to the model twice — once with the note as written, once with the "## Done when"
+         section stripped — asking what completing the next action requires. Score each answer
+         against the required facts the note's own Done when block names (its Scope label and
+         each resolved authority), and print, per note and in total: required-fact coverage for
+         each arm and the count of answers covering every fact. Print the run's model id, the
+         note shas and the arm labels, so a review can record what was measured. Exit 0 whatever
+         the scores are: this probe REPORTS, it does not gate.
+      2. Register it in .harness/harness.json test_kinds as a new kind
+         "handoff_comprehension" with detect and cmd both
+         .claude/skills/harness/bin/probe-handoff-comprehension.py, status "locally_run", and a
+         runner_note in the register of omp_session_accessor's saying it needs a credentialled
+         host, can never run in CI, and is rerun before a ship decision that changes the handoff
+         contract. Do NOT add it to test_matrix and do NOT add the probe to UNIT_SCRIPTS or
+         INTEGRATION_SCRIPTS: run-unit-tests.sh's probe-drift check requires exactly this shape
+         and exits 2 on any other.
+
+      This task edits the same .harness/harness.json that T-05 has already touched, which is why it
+      depends on T-05. Read the file as it stands and ADD the handoff_comprehension entry to the
+      existing test_kinds mapping; do not regenerate the document and do not write it from a template.
+      The keys handoff_done_when_baseline and _handoff_done_when_baseline_note that T-05 added must
+      come out of this task byte-identical, including their order in the file, and the file keeps its
+      existing 2-space JSON formatting.
+  - id: T-10
+    title: Amend the decision record for the five-section contract
+    traces: [REQ-09]
+    change_type: docs
+    execution_mode: team
+    execution_agent: harness-documentor
+    depends_on: [T-04, T-07]
+    status: ready
+    files:
+      - .harness/harness/docs/DECISIONS.md
+      - .harness/harness/docs/DECISIONS-INDEX.md
+    verify: |
+      cd "$CLAUDE_PROJECT_DIR" && grep -q 'Done when' .harness/harness/docs/DECISIONS.md && before=$(cat .harness/harness/docs/DECISIONS-INDEX.md) && python3 .claude/skills/harness/bin/gen-decisions-index.py && test "$before" = "$(cat .harness/harness/docs/DECISIONS-INDEX.md)"
+    intent: |
+      Two edits and a regeneration.
+
+      1. Amend DEC-159 in .harness/harness/docs/DECISIONS.md in place, at its handoff paragraph
+         (the one beginning "The handoff: working memory, not summary" and its four bullets). It
+         must state FIVE sections and carry a fifth bullet for "## Done when": the completion
+         boundary of the immediate action in Next, exactly one Scope: line plus one to four
+         Authority: lines, authorities combining as a logical AND, the four legal authority types,
+         typed pointers that must resolve when the note is written. Keep the 60-line cap sentence
+         and its DEC-160 citation unchanged, and add no per-section cap. Also update the
+         enforcement paragraph that follows so it describes the write gate and INV-17 demanding
+         five sections, with the frozen baseline exempting only the notes that predate the
+         contract.
+      2. Add a new decision entry at the next free id (212 at b7956fc4 — recompute it, do not
+         trust that number if other work has landed) recording THIS amendment: what changed, that
+         untouched historical notes stay valid via the frozen per-project baseline in
+         harness.json, that pointer resolution is real and has one implementation
+         (handoff_done_when.py, DEC-179), and that the comprehension benchmark stays a
+         locally_run probe rather than a release gate. Cite FEAT-52 and the grilling artifact
+         .harness/notes/grilling-handoff-done-when-2026-09-02.md as its evidence.
+      3. Regenerate .harness/harness/docs/DECISIONS-INDEX.md with
+         .claude/skills/harness/bin/gen-decisions-index.py, then hand-write the ' :: <ruling>'
+         tail on the new entry's row and on DEC-159's row — the generator does not produce that
+         tail. Lengthening DEC-159 shifts every later row's source line, so the regeneration is
+         mandatory rather than optional.
+  - id: T-11
+    title: Bring this build's own handoff notes into the five-section contract
+    traces: [REQ-01, REQ-07]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: 'the resolver grants .harness/harness/features/*/notes/handoff-*.md to harness-orchestrator, which HOSTS the build rather than executing tasks, so per D-08 this sweep is a declared main-session step ordered before review_sha is pinned'
+    depends_on:
+    - T-04
+    - T-05
+    status: ready
+    files:
+    - .harness/harness/features/FEAT-52-handoff-done-when/notes/
+    - .harness/harness/features/FEAT-52-handoff-done-when/notes/handoff-plan.md
+    verify: |
+      cd "$CLAUDE_PROJECT_DIR" && python3 -c "
+      import glob, json, os, sys
+      base = set(json.load(open('.harness/harness.json')).get('handoff_done_when_baseline', []))
+      notes = sorted(glob.glob('.harness/harness/features/FEAT-52-handoff-done-when/notes/handoff-*.md'))
+      assert notes, 'no handoff note found for this feature: the sweep had nothing to prove'
+      sys.path.insert(0, '.claude/skills/harness/bin')
+      import handoff_done_when
+      bad = []
+      for p in notes:
+          if p in base:
+              bad.append((p, 'a note of this build must never be baselined')); continue
+          t = open(p).read(); lines = t.splitlines()
+          if not any(l.strip().lower() == '## done when' for l in lines):
+              bad.append((p, 'no ## Done when section'))
+          if 60 < len(lines):
+              bad.append((p, '%d lines vs cap 60' % len(lines)))
+          pr = handoff_done_when.problems(p, t, os.getcwd())
+          if pr:
+              bad.append((p, pr))
+      assert not bad, bad
+      print('ok', len(notes), 'notes compliant')"
+    intent: |
+      Close the one real gap D-08 names. A handoff note written at a build seam of THIS feature
+      before T-04 landed was written while the write gate still demanded four sections, so it
+      carries no "## Done when". It is not in handoff_done_when_baseline (T-05 froze that list at
+      the base commit b7956fc4 and never globs the working tree), so from T-07 onward INV-17
+      demands the section from it.
+
+      Enumerate every .harness/harness/features/FEAT-52-handoff-done-when/notes/handoff-*.md whose
+      repo-relative path is absent from handoff_done_when_baseline in .harness/harness.json, and
+      bring each one into compliance:
+
+      - append a "## Done when" section, last, in the shape templates/HANDOFF.md now states:
+        exactly one "Scope:" line naming the ONE action that note's "## Next" section describes —
+        the immediate action, not the phase and not the feature — followed by one to four
+        "Authority:" lines whose typed pointers RESOLVE against real targets at the time of the
+        edit (plan-task:T-NN.verify, brief-sc:SC-NN, finding:PATH#F-NN, approval:PATH#HEADING);
+      - keep the whole file inside the 60-line cap. If adding the section would exceed it, condense
+        prose in the four narrative sections. Introduce no per-section cap and change no heading;
+      - do not touch any note listed in handoff_done_when_baseline, and do not add any path to that
+        list — a note of this build is a new note, never a baseline entry (D-08).
+
+      THE SET IS NOT ENUMERABLE AT PLAN TIME: these notes are written at build seams after this
+      plan is signed, and none of them exists yet. The declared files: list therefore carries the
+      notes/ DIRECTORY the enumeration runs over plus the one note the plan can name, and the
+      sweep's real subject is the RESOLVED set the enumeration above returns at execution time —
+      every non-baselined handoff-*.md it finds under that directory, whether or not the plan
+      predicted it. The predicted case is notes/handoff-plan.md, written at the plan seam. If the
+      build wrote further mid-phase notes before T-04 landed, they are in scope by the same rule
+      and the enumeration finds them; a note written AFTER T-04 landed already complies, because
+      the write gate refused it otherwise, and needs no edit here.
+
+      depends_on carries T-05 as well as T-04: the verify reads handoff_done_when_baseline with
+      .get(..., []), so before T-05 has frozen that key the assertion "a note of this build must
+      never be baselined" passes against an empty set and proves nothing.
+
+      This task must land before review_sha is pinned: T-07's verify runs the real corpus scan and
+      a non-compliant note of this build would be reported by the pass T-07 itself adds.
+  - id: T-12
+    title: Assert the new probe's registration in the kinds cross-check test
+    traces: [REQ-10]
+    change_type: logic
+    execution_mode: main-session-direct
+    execution_reason: 'DEC-174 — test-run-unit-tests-kinds.py is run-unit-tests.sh''s own test, and the suite runner is a required check on main (DEC-183)'
+    depends_on: [T-09]
+    status: ready
+    files:
+      - .claude/skills/harness/bin/test-run-unit-tests-kinds.py
+    verify: |
+      cd "$CLAUDE_PROJECT_DIR" && out=$(python3 .claude/skills/harness/bin/test-run-unit-tests-kinds.py 2>&1); rc=$?
+      test "$rc" -eq 0 || exit 1
+      printf '%s\n' "$out" | grep -q 'probe-handoff-comprehension' || exit 1
+      printf 'ok\n'
+    intent: |
+      SC-09 rests on this file: it is the only member of INTEGRATION_SCRIPTS that drives
+      run-unit-tests.sh's probe-registration check — the KINDCHECK block, the inline
+      `python3 -I - <<'KINDCHECK'` heredoc in .claude/skills/harness/bin/run-unit-tests.sh. LOCATE
+      IT BY THE HEREDOC DELIMITER "KINDCHECK", never by line number: it spanned :111-163 when this
+      task was written and every earlier line citation in this plan for it was wrong. Its existing
+      probe cases 6-8 mutate omp_session_accessor and name
+      probe-omp-session-comprehension's counterpart, never the handoff probe. Add three cases in
+      the file's existing style — a named function, one `check(...)` line per assertion, appended
+      to the main() call list — and change no existing case:
+
+      (a) REGISTERED ON THE REAL TREE. Using the real .harness/harness.json, run the check the way
+          case_1 does and assert BOTH that there are zero KIND-DRIFT lines AND that
+          probe-handoff-comprehension.py is declared in the detect string of a kind whose status
+          is "locally_run" (read the config and assert the kind name is handoff_comprehension).
+          Case 1's zero-line assertion alone is satisfied by a probe nobody registered only
+          because the check would also fail — assert the registration positively.
+      (b) UNREGISTERING THE HANDOFF PROBE IS LOUD. Reusing _mutant_config_kind, empty
+          handoff_comprehension's detect string and assert exactly one KIND-DRIFT line names
+          probe-handoff-comprehension.py and says it is unregistered under locally_run. This is
+          case 6's shape aimed at the new probe: without it, nothing reddens if the handoff
+          probe's registration is later dropped.
+      (c) THE PROBE IS IN NEITHER SCRIPT ARRAY, so `--kind all` never executes it. Read
+          run-unit-tests.sh's text, extract the UNIT_SCRIPTS=(...) and INTEGRATION_SCRIPTS=(...)
+          assignments, and assert probe-handoff-comprehension.py appears in neither. Asserting on
+          those two array literals is legitimate here: the arrays ARE the subject of the claim,
+          not an implementation detail behind it.
+
+      Register nothing new in either array — this file is already in INTEGRATION_SCRIPTS, so its
+      basename must not be added anywhere, and no test_kinds.integration.detect edit is needed.
+      Expected end state: the whole file GREEN, and its output naming
+      probe-handoff-comprehension.py.
+  - id: T-13
+    title: Record the shared-module mutation experiment
+    traces: [REQ-06]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: 'DEC-174 — the experiment mutates handoff_done_when.py, which both gates import, and runs both gates'' own suites'
+    depends_on: [T-07]
+    status: ready
+    files:
+      - .harness/harness/features/FEAT-52-handoff-done-when/notes/mutation-FEAT-52-shared-module.md
+      - .claude/skills/harness/bin/handoff_done_when.py
+    verify: |
+      cd "$CLAUDE_PROJECT_DIR" && python3 -c "
+      import re, sys
+      p = '.harness/harness/features/FEAT-52-handoff-done-when/notes/mutation-FEAT-52-shared-module.md'
+      t = open(p).read()
+      for tok in ('test-check-domain.py', 'test-check-state.py', 'handoff_done_when', 'reproduce'):
+          assert tok in t, tok
+      assert 3 < len(re.findall(r'case[ _-]?[0-9a-z]+', t, re.I)), 'no case ids recorded'
+      sys.path.insert(0, '.claude/skills/harness/bin')
+      import handoff_done_when
+      assert callable(handoff_done_when.problems), 'module not restored'
+      print('ok')" && grep -q handoff_done_when .claude/skills/harness/bin/check-domain.sh && grep -q handoff_done_when .claude/skills/harness/bin/check-state.sh
+    intent: |
+      SC-07 claims block parsing and pointer resolution have ONE implementation reached by both
+      gates, and that removing that implementation's resolution entry point reddens a case in
+      test-check-domain.py AND a case in test-check-state.py. D-09 grades that claim by
+      inspection over a recorded experiment, because a permanent automated mutation test would
+      have to mutate a gate script from inside the suite that gates this repository.
+
+      Run the experiment on the tree as it stands after T-07, and write
+      .harness/harness/features/FEAT-52-handoff-done-when/notes/mutation-FEAT-52-shared-module.md
+      recording it. One screen, claims plus pointers:
+
+      1. Cite the two import sites, file:line, one in check-domain.sh and one in check-state.sh,
+         and state that neither gate carries its own copy of the parsing or resolution code.
+      2. Mutate handoff_done_when.py so its resolution entry point is gone — rename the exported
+         `problems` symbol (for example to `problems_disabled`) so the gates' import succeeds and
+         the call fails, which is the failure mode the claim is about.
+      3. Run python3 .claude/skills/harness/bin/test-check-domain.py and
+         python3 .claude/skills/harness/bin/test-check-state.py against the mutant and record, per
+         suite, the exact case NAMES that failed and each suite's exit code. At least one case per
+         suite must redden; if a suite stays green, that is the finding — record it as a finding
+         and raise it, do not reword the criterion.
+      4. RESTORE the module so it is byte-identical to its pre-mutation state, re-run both suites,
+         and record that both are green again. handoff_done_when.py appears in this task's files
+         only because it is mutated and restored; its net diff for this task is empty.
+      5. State the single command a grader can paste to reproduce the whole experiment, and the
+         sha the run was taken at, so the record is falsifiable rather than merely asserted.

@@ -1,0 +1,54 @@
+{
+  "feature_id": "FEAT-52-handoff-done-when",
+  "branch": "feat/FEAT-52-handoff-done-when",
+  "pr": null,
+  "review_sha": "none",
+  "cycles_used": 3,
+  "max_total_cycles": 10,
+  "max_total_runs": 20,
+  "runs": [
+    {
+      "id": "2026-09-02-01-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead"
+    },
+    {
+      "id": "2026-09-02-goalcheck-product",
+      "squad": "product",
+      "verdict": "FAIL",
+      "agent": "harness-product-lead"
+    },
+    {
+      "id": "2026-09-02-2-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead"
+    },
+    {
+      "id": "2026-09-02-goalcheck-c1-product",
+      "squad": "product",
+      "verdict": "FAIL",
+      "agent": "harness-product-lead"
+    },
+    {
+      "id": "2026-09-02-3-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead"
+    },
+    {
+      "id": "2026-09-02-4-validator",
+      "squad": "validator",
+      "verdict": "PASS",
+      "agent": "harness-validator-lead",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-02-5-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead"
+    }
+  ]
+}
