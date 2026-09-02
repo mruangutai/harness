@@ -13,7 +13,7 @@ Memory has **two layers**, and confusing them is the failure this skill exists t
 
 | Layer | File | Written | Injected at spawn |
 |---|---|---|---|
-| **Observations** — hot, granular, this feature | `<HARNESS_FEATURE_TREE_ROOT>/.harness/harness/features/<FEAT>/observations/<your-agent-name>.md` | by you, mid-run, freely | **never** |
+| **Observations** — hot, granular, this feature | `<HARNESS_FEATURE_TREE_ROOT>/.harness/<repo>/features/<FEAT>/observations/<your-agent-name>.md` | by you, mid-run, freely | **never** |
 | **Expertise, craft** — how you work, anywhere | `<HARNESS_CONTROL_PLANE_ROOT>/.harness/expertise/<your-agent-name>.md` | only under a **distillation dispatch** | every spawn |
 | **Expertise, repository** — true of ONE repo | `<HARNESS_CONTROL_PLANE_ROOT>/.harness/<repo>/expertise/<your-agent-name>.md` | only under a **distillation dispatch** | every spawn |
 The value is resolved from the FEAT id on the first line of the dispatch, as harness-handoff states.

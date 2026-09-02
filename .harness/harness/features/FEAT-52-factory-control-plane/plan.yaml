@@ -1024,7 +1024,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 carve-out, inject-expertise.sh is a registered SubagentStart hook and test-inject-expertise.py is its test file
     depends_on: [T-03]
-    status: building
+    status: done
     files:
       - .claude/skills/harness/bin/test-inject-expertise.py
     verify: |
@@ -1078,7 +1078,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 carve-out, a new gate test file registered in run-unit-tests.sh is enforcement layer the moment the gate is wired, the same route T-02 and T-12 take for these same two surfaces
     depends_on: [T-12]
-    status: ready
+    status: done
     files:
       - .claude/skills/harness/bin/test-anchor-directions.py
       - .claude/skills/harness/bin/run-unit-tests.sh

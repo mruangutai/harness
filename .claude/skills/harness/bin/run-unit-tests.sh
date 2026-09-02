@@ -12,6 +12,7 @@ BIN_DIR=".claude/skills/harness/bin"
 
 
 
+
 KIND="all"
 CHECK_LAYOUT_ONLY=0
 if [ "${1:-}" = "--kind" ]; then
