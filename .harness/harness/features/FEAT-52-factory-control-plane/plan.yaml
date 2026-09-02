@@ -753,12 +753,12 @@ tasks:
            value - inflight_registry.py feature-root --feature <the declared feature>.
          - A line whose value is not an absolute path: the same exit 2, saying the value must be
            absolute and quoting what was given.
-      4. With a value present, compare it to the truth. Call reg.feature_root(owner_root,
-         declared) inside try/except; on ANY exception print one stderr line and pass through -
-         AmbiguousWorktree is a refusal the resolver owns, not one this block should convert.
-         Compare os.path.realpath of both sides. Equal: continue to the existing runtime block.
-         Different: exit 2, with stderr naming BOTH paths and saying the dispatch declared a
-         feature-tree root the resolver does not agree with, which is a dispatcher that guessed.
+      4. With a value present, compare it to the truth. Call harness_boundary.worktree_for_feature(owner_root,
+         declared). A missing worktree resolves to owner_root. Catch AmbiguousWorktree specifically and
+         exit 2 naming the candidates: an ambiguous feature tree is not resolvable. Other resolver
+         exceptions print one stderr line and pass through. Compare os.path.realpath of both sides.
+         Equal: continue to the existing runtime block. Different: exit 2, with stderr naming BOTH
+         paths and saying the dispatch declared a feature-tree root the resolver does not agree with.
 
       Use no apostrophe anywhere inside this block. The whole python program is one
       single-quoted shell argument and the file says so at :58-60.
@@ -775,7 +775,8 @@ tasks:
         HARNESS-FEATURE-TREE-ROOT. A bare non-zero is not the assertion - a crash on the way in
         is also non-zero.
       - ALLOWED: the same payload with a second line reading HARNESS-FEATURE-TREE-ROOT: followed
-        by the value reg.feature_root returns for that root and feature. Assert exit 0.
+        by the resolved feature tree root. Assert exit 0.
+      - AMBIGUITY REFUSED: two ambiguous matching worktrees cause exit 2 with stderr naming the candidates.
       - DISCRIMINATION IN THE OTHER DIRECTION: subagent_type harness-backend-dev, the identical
         prompt with NO tree-root line. Assert exit 0. Without this case a guard that refuses
         every dispatch passes the first one.

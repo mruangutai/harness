@@ -171,7 +171,11 @@ if not has_bash:
               % (declared_root,), file=sys.stderr)
         sys.exit(2)
     try:
-        expected_root = reg.feature_root(owner_root, declared)
+        expected_root = hb.worktree_for_feature(owner_root, declared) or owner_root
+    except hb.AmbiguousWorktree as exc:
+        print("dispatch-guard: BLOCKED -- feature tree for %s is ambiguous (%s)."
+              % (declared, exc), file=sys.stderr)
+        sys.exit(2)
     except Exception as exc:
         print("dispatch-guard: feature tree resolver failed (%s) -- passing through." % (exc,),
               file=sys.stderr)

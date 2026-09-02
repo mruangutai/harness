@@ -651,7 +651,13 @@ def main(argv=None):
         if not feature:
             print("inflight_registry: feature-root requires --feature", file=sys.stderr)
             return 1
-        print(feature_root(root, feature))
+        try:
+            resolved = harness_boundary.worktree_for_feature(root, feature)
+        except harness_boundary.AmbiguousWorktree as exc:
+            print("inflight_registry: feature-root is ambiguous for %s (%s)" % (feature, exc),
+                  file=sys.stderr)
+            return 1
+        print(resolved if resolved is not None else root)
         return 0
     if command == "list":
         _cli_list(root)

@@ -23,6 +23,23 @@ def is_feature_path(path):
     return bool(FEATURE_RE.match(path))
 
 
+def _skill_docs(base):
+    return [
+        candidate for name in os.listdir(base)
+        if name.startswith("harness-") and name not in MAIN_SESSION_ONLY
+        for candidate in [os.path.join(base, name, "SKILL.md")]
+        if os.path.isfile(candidate)
+    ]
+
+
+def _markdown_under(base):
+    return [
+        os.path.join(current, name)
+        for current, _dirs, names in os.walk(base)
+        for name in names if name.endswith(".md")
+    ]
+
+
 def scope(root):
     paths = []
     for directory, pattern in (
@@ -33,22 +50,11 @@ def scope(root):
         (".claude/skills/harness/templates", "*.md"),
     ):
         base = os.path.join(root, directory)
-        if not os.path.isdir(base):
-            continue
-        if pattern == "harness-*/SKILL.md":
-            for name in os.listdir(base):
-                candidate = os.path.join(base, name, "SKILL.md")
-                if name.startswith("harness-") and name not in MAIN_SESSION_ONLY and os.path.isfile(candidate):
-                    paths.append(candidate)
-        else:
-            for current, _dirs, names in os.walk(base):
-                for name in names:
-                    if name.endswith(".md"):
-                        paths.append(os.path.join(current, name))
+        if os.path.isdir(base):
+            paths.extend(_skill_docs(base) if pattern == "harness-*/SKILL.md"
+                         else _markdown_under(base))
     own = os.path.join(root, ".claude/skills/harness/SKILL.md")
-    if os.path.isfile(own):
-        paths.append(own)
-    return sorted(set(paths))
+    return sorted(set(paths + [own] if os.path.isfile(own) else paths))
 
 
 def _tokens(line, fenced):
