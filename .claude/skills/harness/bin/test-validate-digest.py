@@ -1624,6 +1624,173 @@ def run_hook_cases():
     return fails
 
 
+QA_UNCONDITIONAL_PASS = """
+VERDICT: PASS
+DIGEST:
+  headline: suite green
+  suite: pass
+  failures: 0
+  coverage_gaps: []
+  matrix_ok: true
+  open_questions: []
+  files_touched: []
+  expertise_update: []
+artifact: a.md
+"""
+
+
+def _bug919_stub_script(root, exit_code):
+    """A fast run-unit-tests.sh stand-in for RUN_UNIT_TESTS_BIN — the real suite takes
+    minutes; this proves the wiring (which script ran, what its exit code did) instead."""
+    path = os.path.join(root, "stub-run-unit-tests-%d.sh" % exit_code)
+    with open(path, "w") as f:
+        f.write("#!/usr/bin/env bash\necho STUB_RAN\nexit %d\n" % exit_code)
+    os.chmod(path, 0o755)
+    return path
+
+
+def _bug919_fire(stub_path, text=QA_UNCONDITIONAL_PASS, agent="harness-qa", extra_env=None):
+    root = _isolated_root()
+    env = dict(os.environ, HARNESS_PROJECT_DIR=root, CLAUDE_PROJECT_DIR=root)
+    if stub_path is not None:
+        env["RUN_UNIT_TESTS_BIN"] = stub_path
+    else:
+        env.pop("RUN_UNIT_TESTS_BIN", None)
+    if extra_env:
+        env.update(extra_env)
+    payload = {"agent_type": agent, "last_assistant_message": text}
+    return subprocess.run([VALIDATE, "--hook"], input=json.dumps(payload),
+                          capture_output=True, text=True, env=env)
+
+
+def _bug919_agree_case(green):
+    r = _bug919_fire(green)
+    return ("independent re-run agrees (exit 0) — accepted", r.returncode == 0,
+            f"exit={r.returncode} stderr={r.stderr!r}")
+
+
+def _bug919_disagree_case(red):
+    r = _bug919_fire(red)
+    ok = (r.returncode == 2 and "919" in r.stderr
+          and "independent re-run" in r.stderr.lower())
+    return ("independent re-run disagrees (exit 1) — the false-PASS is refused",
+            ok, f"exit={r.returncode} stderr={r.stderr!r}")
+
+
+def _bug919_non_pass_case(green):
+    text = QA_UNCONDITIONAL_PASS.replace(
+        "VERDICT: PASS", "VERDICT: BLOCKED").replace(
+        "matrix_ok: true", "matrix_ok: n/a").replace("suite: pass", "suite: n/a")
+    r = _bug919_fire(green, text=text)
+    ok = r.returncode == 0 and "STUB_RAN" not in (r.stdout + r.stderr)
+    return ("a non-PASS verdict is never re-run — the stub was never asked to run",
+            ok, f"exit={r.returncode} out={r.stdout!r} err={r.stderr!r}")
+
+
+def _bug919_missing_script_case(tmp):
+    missing = os.path.join(tmp, "does-not-exist.sh")
+    r = _bug919_fire(missing)
+    ok = r.returncode == 0 and "could not independently re-run" in r.stderr.lower()
+    return ("a missing suite script fails OPEN, loudly — never blocks on our own gap",
+            ok, f"exit={r.returncode} stderr={r.stderr!r}")
+
+
+def _bug919_red_case(red):
+    mutant_source = _bug919_red_mutant()
+    if mutant_source is None:
+        return ("RED proof: with the qa wiring removed, the same false PASS is accepted",
+                False, "INCONCLUSIVE: the qa-wiring anchor was not found by its source text")
+    mutant = os.path.join(os.path.dirname(os.path.realpath(VALIDATE)),
+                          ".validate-digest-bug919-red-%d.py" % os.getpid())
+    root = _isolated_root()
+    env = dict(os.environ, HARNESS_PROJECT_DIR=root, CLAUDE_PROJECT_DIR=root,
+              RUN_UNIT_TESTS_BIN=red)
+    payload = {"agent_type": "harness-qa", "last_assistant_message": QA_UNCONDITIONAL_PASS}
+    try:
+        _install_mutant(mutant, mutant_source)
+        muted = subprocess.run([mutant, "--hook"], input=json.dumps(payload),
+                               capture_output=True, text=True, env=env)
+    finally:
+        _remove_mutant(mutant)
+    real = _bug919_fire(red)
+    ok = (real.returncode == 2 and muted.returncode == 0
+          and "Traceback" not in muted.stderr)
+    detail = f"real={real.returncode} mutant={muted.returncode}: {muted.stderr}"
+    return ("RED proof: with the qa wiring removed, the same false PASS is accepted",
+            ok, detail)
+
+
+def _report_bug919_results(cases):
+    fails = 0
+    for name, ok, detail in cases:
+        if ok:
+            print(f"ok    [bug919] {name}")
+        else:
+            fails += 1
+            print(f"FAIL  [bug919] {name}\n      | {detail}")
+    print(f"\n{len(cases) - fails}/{len(cases)} bug919 qa-matrix-reverify cases passed.")
+    return fails
+
+
+def run_bug919_qa_matrix_cases():
+    """Issue #919: an unconditional qa PASS (VERDICT: PASS, suite: pass, matrix_ok:
+    true) is independently re-verified against a real run of the suite, rather than
+    trusted on the strength of the self-report alone."""
+    tmp = tempfile.mkdtemp(prefix="vd-bug919-")
+    green = _bug919_stub_script(tmp, 0)
+    red = _bug919_stub_script(tmp, 1)
+    cases = [
+        _bug919_agree_case(green),
+        _bug919_disagree_case(red),
+        _bug919_non_pass_case(green),
+        _bug919_missing_script_case(tmp),
+        _bug919_red_case(red),
+    ]
+    return _report_bug919_results(cases)
+
+
+def run_bug919_resolve_fallback_case():
+    """Code review of #1185, Finding 1 (high): a named feature whose worktree lookup
+    FAILS must resolve to None, never silently substitute owner_root — run-unit-tests.sh
+    is a static, always-present path, so a wrong-root substitution here never 404s; it
+    just silently re-runs the suite against the wrong checkout and reports that
+    mismatched result as though it verified the claim."""
+    if HERE not in sys.path:
+        sys.path.insert(0, HERE)
+    import inflight_registry
+    spec = importlib.util.spec_from_file_location("_bug919_fallback_validator", VALIDATE)
+    validator = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(validator)
+
+    original_root_fn = validator._root_or_none
+    original_feature_root = inflight_registry.feature_root
+    validator._root_or_none = lambda: "/some/owner/root"
+    def _raise(root, feature):
+        raise LookupError("no unambiguous worktree for %r" % feature)
+    inflight_registry.feature_root = _raise
+    saved_env = os.environ.pop("RUN_UNIT_TESTS_BIN", None)
+    try:
+        resolved = validator._resolve_run_unit_tests_bin(
+            {"harness_feature": "some-ambiguous-feature"})
+    finally:
+        validator._root_or_none = original_root_fn
+        inflight_registry.feature_root = original_feature_root
+        if saved_env is not None:
+            os.environ["RUN_UNIT_TESTS_BIN"] = saved_env
+    ok = resolved is None
+    if ok:
+        print("ok    [bug919] a feature_root lookup failure resolves to None, "
+              "never a silent owner_root substitution")
+    else:
+        print(f"FAIL  [bug919] a feature_root lookup failure resolves to None, "
+              f"never a silent owner_root substitution\n      | got {resolved!r}")
+    print("\n%d/1 bug919 fallback-resolution cases passed." % (1 if ok else 0,))
+    return 0 if ok else 1
+
+
+
+
+
 # --- DEC-173: "nothing happened" must have a truthful encoding -----------------
 # The audit found 6 of 7 personas could not report a did-nothing state honestly:
 # the truthful value was REJECTED while a false one was ACCEPTED, which is the
@@ -3615,6 +3782,21 @@ def _empty_red_failures(real, old):
     return failures
 
 
+def _bug919_red_mutant():
+    """Read VALIDATE's own source and remove the `if norm(agent) == "qa":` dispatch to
+    check_qa_matrix_claim, leaving everything else — including check_qa_matrix_claim
+    itself, now simply unreachable — intact. Returns None if the anchor is absent."""
+    with open(VALIDATE, encoding="utf-8") as source_file:
+        source = source_file.read()
+    anchor = '        if norm(agent) == "qa":\n            return check_qa_matrix_claim(agent, text, d)\n'
+    if anchor not in source:
+        return None
+    mutant_source = source.replace(anchor, "", 1)
+    if mutant_source == source:
+        return None
+    return mutant_source
+
+
 def run_empty_red_case():
     """empty-red — prove the blank-string case distinguishes the truthiness regression."""
     with open(VALIDATE, encoding="utf-8") as source_file:
@@ -3698,6 +3880,8 @@ def main():
     fails = run_cli_cases()
     fails += run_empty_red_case()
     fails += run_dec156_worktree_red_case()
+    fails += run_bug919_qa_matrix_cases()
+    fails += run_bug919_resolve_fallback_case()
     fails += run_joint_hint_case()
     fails += run_code_grade_cases()
     fails += run_hook_cases()
