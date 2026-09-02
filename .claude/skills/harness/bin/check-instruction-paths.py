@@ -65,32 +65,39 @@ def _tokens(line, fenced):
         for span in re.finditer(r"`([^`]*)`", line)
         for match in TOKEN.finditer(span.group(1))
     )
-def violations(path, root):
-    found = []
+def _content_lines(handle):
     fence_char = None
     fence_count = 0
+    for number, line in enumerate(handle, 1):
+        opener = FENCE.match(line)
+        if fence_char is None and opener:
+            fence_char, fence_count = opener.group(1)[0], len(opener.group(1))
+            continue
+        if fence_char is not None and opener and opener.group(1)[0] == fence_char and len(opener.group(1)) >= fence_count:
+            fence_char = None
+            fence_count = 0
+            continue
+        yield number, line, fence_char is not None
+
+
+def _classify(token, prefix):
+    if prefix.endswith("<HARNESS_CONTROL_PLANE_ROOT>/"):
+        return "feature-directory path anchored to the control plane" if is_feature_path(token) else None
+    if prefix.endswith("<HARNESS_FEATURE_TREE_ROOT>/"):
+        return "control-plane path anchored to the feature tree" if not is_feature_path(token) else None
+    return "unanchored instruction path"
+
+
+def violations(path, root):
     with open(path, encoding="utf-8") as handle:
-        for number, line in enumerate(handle, 1):
-            opener = FENCE.match(line)
-            if fence_char is None and opener:
-                fence_char, fence_count = opener.group(1)[0], len(opener.group(1))
-                continue
-            if fence_char is not None and opener and opener.group(1)[0] == fence_char and len(opener.group(1)) >= fence_count:
-                fence_char = None
-                fence_count = 0
-                continue
-            for match, start in _tokens(line, fence_char is not None):
-                token = match.group(0).rstrip(".,:;)]}")
-                prefix = line[:start]
-                if prefix.endswith("<HARNESS_CONTROL_PLANE_ROOT>/") or prefix.endswith("<HARNESS_FEATURE_TREE_ROOT>/"):
-                    anchored = "feature" if prefix.endswith("<HARNESS_FEATURE_TREE_ROOT>/") else "control"
-                    if anchored == "control" and is_feature_path(token):
-                        found.append((number, "feature-directory path anchored to the control plane", token))
-                    elif anchored == "feature" and not is_feature_path(token):
-                        found.append((number, "control-plane path anchored to the feature tree", token))
-                else:
-                    found.append((number, "unanchored instruction path", token))
-    return found
+        return [
+            (number, reason, token)
+            for number, line, fenced in _content_lines(handle)
+            for match, start in _tokens(line, fenced)
+            for token in [match.group(0).rstrip(".,:;)]}")]
+            for reason in [_classify(token, line[:start])]
+            if reason is not None
+        ]
 
 
 def main(argv=None):
