@@ -5,11 +5,13 @@
 - feature: FEAT-48-parallel-safe-suite
 - run: .harness/harness/features/FEAT-48-parallel-safe-suite/runs/2026-09-01-10-validator/state.yaml
 - squad: validator
-- status: blocked
+- status: idle
 
 Plan phase COMPLETE and SIGNED (Mike Ruangutai, 2026-09-02, `85900e7f`) — both `plan.yaml`'s
 `approval:` mapping and `BRIEF.md`'s `## Approval`. Station `ready`; T-01..T-06 `ready`, T-07
-`abandoned`. **The plan-to-build mirror sync is HELD** — see the first open question.
+`abandoned`. Mirror OPEN: milestone #40, parent #1191, sub-issues #1192-#1197 all at `ready`, T-07 correctly
+absent. FEAT-48 carries **zero** `check-state.sh` violations. Ready for the build phase, which this
+session does not begin.
 
 Previously: Branch `feat/FEAT-48-parallel-safe-suite`, rebased onto
 `origin/main` `a93a1df9`. The plan graded by cycle 6 is `047f6914`; the signature commit follows.
@@ -38,16 +40,14 @@ plan phase, and each run resolved findings rather than repeating them.
 
 ## Open Questions
 
-- **BLOCKING the plan-to-build mirror sync.** `gh-sync.py open` would create a sub-issue for the
-  ABANDONED T-07: `parse_tasks` returns all seven tasks and `cmd_open`'s creation loop
-  (`gh-sync.py:942`) has no status filter. Measured by importing the module and calling it;
-  `recorded issues: {}`, so nothing exists yet. `ship` skips any card with an open child and
-  nothing else closes a task sub-issue, so that one issue would hold FEAT-48's parent at ship
-  forever. Fix, main-session-direct under DEC-174 and asked for: `continue` on an abandoned task
-  in that loop, in the same change as the `finished_stations()` one-liner at `gh-sync.py:1152`.
-  Two call sites, one root — the `abandoned`-station gap the panel and the Advisor both named,
-  biting one phase earlier than either predicted. `open` then `status <feature-dir> ready` run in
-  one act once it lands.
+- **NEW, discovered after signature, and NOT a plan defect.** The rebase onto `d135364e` brought a
+  new test file `test-check-fixture-secrets.py` carrying **two more live-tree mutation sites** at
+  `:150` and `:198`, both writing `.check-fixture-secrets-*mutant-<pid>.sh` into the live bin
+  directory. Discovered count is now **61**. This is the derived census's THIRD real test and it
+  passes by rule: the file is under `.claude/skills/harness/bin/**`, so T-02's widening clause
+  authorises the doer to fix it and NAME the addition in the receipt, and T-03's live-tree zero is
+  the mechanical backstop. **No plan edit is needed and none was made.** Under the enumerated D-10
+  the operator sent back, this would have forced another cycle.
 
 - Whether issue #1053 CLOSES on FEAT-48's ship is a product call the Advisor declined to settle: it
   settled the evidence question (SC-05's ten `--kind all` runs do exercise `test-gh-sync.py`, so a

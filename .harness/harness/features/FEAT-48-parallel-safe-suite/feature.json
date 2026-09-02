@@ -111,5 +111,28 @@
       "agent": "harness-product-lead",
       "code_grade": "n_a"
     }
-  ]
+  ],
+  "github": {
+    "milestone": 40,
+    "parent": 1191,
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03",
+      "T-04",
+      "T-06",
+      "T-05"
+    ],
+    "issues": {
+      "T-01": 1192,
+      "T-02": 1193,
+      "T-03": 1194,
+      "T-04": 1195,
+      "T-05": 1197,
+      "T-06": 1196
+    },
+    "source_issues": [
+      1053
+    ]
+  }
 }
