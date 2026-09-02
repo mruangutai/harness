@@ -1,6 +1,6 @@
 ---
 name: harness-verification-rules
-description: Verification discipline for QA — enforce the test matrix against the diff, resolve each test kind to one of four states, audit test-first compliance, and supply the evidence the goal-check consumes. Loaded by harness-qa.
+description: Verification discipline for QA — enforce the test matrix against the diff, resolve each test kind to one of five states, audit test-first compliance, and supply the evidence the goal-check consumes. Loaded by harness-qa.
 user-invocable: false
 ---
 
@@ -33,7 +33,7 @@ You may **add** a requirement the diff clearly warrants. You may never drop belo
 **Presence is not satisfied by an unrelated existing test.** A new endpoint is not covered because a
 different endpoint has one. Find the test exercising *this* change, or the kind is missing.
 
-## Resolve each kind to exactly one of four states
+## Resolve each kind to exactly one of five states
 
 Read **two** signals, never just the exit code: what kind of failure, not merely whether it failed.
 
@@ -42,6 +42,7 @@ Read **two** signals, never just the exit code: what kind of failure, not merely
 | **satisfied** | a named test ran, none failed | contributes to `PASS` |
 | **missing** | required, and nothing covers this change | **`FAIL`** |
 | **not applicable** | the tooling genuinely is absent (e.g. `ui` with no Playwright) | **soft skip.** Report it; do not FAIL |
+| **locally-run** | `test_kinds.<kind>.status == "locally_run"` (issue #1187) — a real `cmd` that cannot run in CI (needs a host and live credentials) | **not FAIL, not a soft skip.** If the change touched this kind's `detect` surface, require a recorded run under the feature's `notes/`; absent that note, `BLOCKED — locally-run kind '<kind>' has no recorded run` |
 | **misconfigured** | `cmd` is null/absent · no test files matched · the failure is a **load / import / collection / syntax error** rather than an assertion | **`BLOCKED`** — never `FAIL` |
 
 **An absence assertion is never a check on its own (DEC-169).** For every "X is gone" assertion,

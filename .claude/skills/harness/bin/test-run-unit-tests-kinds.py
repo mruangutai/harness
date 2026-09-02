@@ -66,6 +66,19 @@ def _mutant_config(tmp, transform):
     return path, original, doc["test_kinds"]["integration"]["detect"]
 
 
+def _mutant_config_kind(tmp, kind, transform):
+    """Like `_mutant_config`, but mutates an arbitrary `test_kinds.<kind>` entry rather than
+    `integration`. Used for the probe-registration cases (issue #1187)."""
+    with open(REAL_CONFIG, encoding="utf-8") as f:
+        doc = json.load(f)
+    original = dict(doc["test_kinds"][kind])
+    doc["test_kinds"][kind] = transform(dict(original))
+    path = os.path.join(tmp, "harness-mutant.json")
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(doc, f, indent=2)
+    return path, original, doc["test_kinds"][kind]
+
+
 def case_1_green_on_the_real_tree():
     """GREEN ON THE REAL TREE. Exit 0 and EXACTLY ZERO KIND-DRIFT lines. The count is
     recorded because case 2 compares against it — "more than before" is the claim, and it
@@ -192,12 +205,80 @@ def case_5_parser_did_not_regress():
           ran == [], f"{ran[:3]}")
 
 
+def case_6_unregistered_probe_is_loud():
+    """ISSUE #1187: a probe-*.py script that is not named in any locally_run kind's detect
+    must be a loud KIND-DRIFT failure, not a silent gap. Emptying omp_session_accessor's
+    detect string removes the one registration probe-omp-session-accessor.py has."""
+    tmp = tempfile.mkdtemp()
+    try:
+        path, original, mutated = _mutant_config_kind(
+            tmp, "omp_session_accessor", lambda k: {**k, "detect": ""})
+        check("case 6: the mutation cleared the detect string",
+              mutated["detect"] == "" and original["detect"] != "",
+              f"original={original.get('detect')!r} mutated={mutated.get('detect')!r}")
+
+        r = run_check_kinds(path)
+        lines = drift_lines(r)
+        named = [l for l in lines if "probe-omp-session-accessor.py" in l]
+        check("case 6: a KIND-DRIFT line names the unregistered probe script",
+              len(named) == 1, f"{lines}")
+        check("case 6: the message says it is unregistered under locally_run",
+              bool(named) and "locally_run" in named[0], f"{named}")
+        check("case 6: non-zero exit", r.returncode != 0, f"exit {r.returncode}")
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
+def case_7_status_change_away_from_locally_run_unregisters():
+    """A kind whose `detect` still lists the probe but whose `status` is no longer
+    `locally_run` must ALSO count as unregistered — the check reads status, not just
+    detect, so a demotion (e.g. to `unresolved`) cannot silently keep the probe watched."""
+    tmp = tempfile.mkdtemp()
+    try:
+        path, original, mutated = _mutant_config_kind(
+            tmp, "omp_session_accessor", lambda k: {**k, "status": "unresolved", "cmd": None})
+        check("case 7: the mutation changed status away from locally_run",
+              mutated["status"] != "locally_run" and original["status"] == "locally_run",
+              f"original={original.get('status')!r} mutated={mutated.get('status')!r}")
+
+        r = run_check_kinds(path)
+        lines = drift_lines(r)
+        named = [l for l in lines if "probe-omp-session-accessor.py" in l]
+        check("case 7: demoting the kind's status still drifts the probe",
+              len(named) == 1, f"{lines}")
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
+def case_8_non_string_detect_on_a_locally_run_kind_is_loud():
+    """A malformed `locally_run` kind (non-string detect) must fail loudly and name the
+    kind, never crash the parser or silently pass every probe as registered."""
+    tmp = tempfile.mkdtemp()
+    try:
+        path, original, mutated = _mutant_config_kind(
+            tmp, "omp_session_accessor", lambda k: {**k, "detect": ["not", "a", "string"]})
+        check("case 8: the mutation made detect a list, not a string",
+              isinstance(mutated["detect"], list), f"{mutated}")
+
+        r = run_check_kinds(path)
+        lines = drift_lines(r)
+        named = [l for l in lines if "omp_session_accessor" in l and "not a string" in l]
+        check("case 8: a KIND-DRIFT line names the malformed kind, not a traceback",
+              len(named) == 1, f"{lines} | stderr={r.stderr.strip()[:300]}")
+        check("case 8: non-zero exit", r.returncode != 0, f"exit {r.returncode}")
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
 def main():
     baseline = case_1_green_on_the_real_tree()
     case_2_red_with_the_name(baseline)
     case_3_the_other_direction()
     case_4_unreadable_config_is_loud()
     case_5_parser_did_not_regress()
+    case_6_unregistered_probe_is_loud()
+    case_7_status_change_away_from_locally_run_unregisters()
+    case_8_non_string_detect_on_a_locally_run_kind_is_loud()
 
     failed = 0
     for name, ok, detail in RESULTS:

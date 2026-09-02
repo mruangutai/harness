@@ -429,6 +429,28 @@ def check_classify_bars():
     return failures
 
 
+def check_classify_locally_run_bars_as_test():
+    """Issue #1187: a `locally_run` kind (a probe script that cannot run in CI) must still
+    bar its own path at 3, the test bar, not 4 — it is test code, not production code,
+    just because CI cannot run it. And a kind that is genuinely neither active nor
+    locally_run (e.g. unresolved) must NOT relax the bar."""
+    locally_run_kinds = {
+        "unit": {"detect": "test_*.py|tests/*.py", "exclude": "", "status": "active"},
+        "probe": {"detect": "probe_*.py", "exclude": "", "status": "locally_run"},
+        "component": {"detect": "spec_*.py", "exclude": "", "status": "unresolved"},
+    }
+    records, result = code_grade.classify(
+        [_grade_stub("probe_fn", 3, path="probe_thing.py")], locally_run_kinds)
+    failures = check(records[0]["bar"], 3, "a locally_run path bars at 3, the test bar")
+    failures += check(result, "pass", "clean locally_run record classifies pass")
+
+    records, result = code_grade.classify(
+        [_grade_stub("spec_fn", 4, path="spec_thing.py")], locally_run_kinds)
+    failures += check(records[0]["bar"], 4,
+                       "an unresolved-status kind does NOT relax the bar to 3")
+    return failures
+
+
 def check_classify_grade_two_is_reasoned():
     records, result = code_grade.classify(
         [_grade_stub("boundary", 2, path="src/prod.py")], _CLASSIFY_TEST_KINDS)
@@ -788,6 +810,7 @@ def main():
         check_self_grading,
         check_optional_field_guards,
         check_classify_bars,
+        check_classify_locally_run_bars_as_test,
         check_classify_grade_two_is_reasoned,
         check_classify_precedence,
         check_classify_rejects_bad_test_kinds,

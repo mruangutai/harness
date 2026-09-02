@@ -456,7 +456,10 @@ def _patterns(value):
 
 
 def _is_test_path(relative, test_kinds):
-    """Return True if `relative` matches an active test_kinds detect pattern, not excluded."""
+    """Return True if `relative` matches a detect pattern of a kind that actually runs —
+    status active (CI-gated) or locally_run (host-gated, issue #1187) — and is not excluded.
+    A locally-run probe script is still test code and must sit at the lighter complexity
+    bar 3, not be graded as production code just because CI cannot run it."""
     if not isinstance(test_kinds, dict):
         raise TestKindsError("test_kinds policy must be a mapping of kind name to config")
     try:
@@ -464,7 +467,8 @@ def _is_test_path(relative, test_kinds):
             any(fnmatch.fnmatch(relative, pattern) for pattern in _patterns(kind["detect"])) and
             not any(fnmatch.fnmatch(relative, pattern)
                     for pattern in _patterns(kind.get("exclude", "")))
-            for kind in test_kinds.values() if kind.get("status") == "active"
+            for kind in test_kinds.values()
+            if kind.get("status") in ("active", "locally_run")
         )
     except (TypeError, KeyError, AttributeError) as error:
         raise TestKindsError(f"malformed test_kinds policy: {error}") from error

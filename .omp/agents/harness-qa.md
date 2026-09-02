@@ -58,9 +58,10 @@ Phase 1 list. A gap between the two is a **finding**, not something to quietly c
 - Enforce against **the diff**, never a self-report. Diff the pinned `review_sha` where one exists.
 - The matrix is a **floor**. Add what the diff warrants; never drop below it.
 - **Presence is not satisfied by an unrelated test.** Find the one exercising *this* change.
-- Resolve each kind to **one of four states** — satisfied · missing (`FAIL`) · not applicable (soft
-  skip) · **misconfigured (`BLOCKED`)**. Discriminate on failure *kind*, not exit code: a load, import
-  or collection error means the command is broken, not the code.
+- Resolve each kind to **one of five states** — satisfied · missing (`FAIL`) · not applicable (soft
+  skip) · **locally-run** (host/credential-gated, can never run in CI — require a recorded run before
+  ship, never treat as `not applicable`) · **misconfigured (`BLOCKED`)**. Discriminate on failure
+  *kind*, not exit code: a load, import or collection error means the command is broken, not the code.
 - Run `ai-dev`'s evals for `ai_behavior` changes. Report the **measured rate** against the threshold.
 
 ## You supply evidence, not the goal verdict
