@@ -1132,7 +1132,7 @@ def run_post():
         ("handoff missing sections", "notes/handoff-build.md", "## Next\nonly one\n",
          "missing required section"),
         ("state.yaml checkpoint keys (DEC-154)", "runs/r1/state.yaml",
-         "schema_version: 1\nfindings: a notebook entry\n", "non-checkpoint top-level key"),
+         "schema_version: 1\nrun_id: r1\nfindings: a notebook entry\n", "non-checkpoint top-level key"),
         ("STATE.md sections (SPEC 2)", "STATE.md", "## Current\n## Not A Section\n",
          "illegal section"),
     ):
@@ -3434,12 +3434,40 @@ def _bug1124_upsert_case(root, path):
 
 
 def _bug1124_no_run_id_case(root, path):
-    """A prior file with no run_id (or a new write with none) cannot be compared — allowed
-    through unchanged, matching the pre-existing shape checks rather than a new denial."""
+    """Issue #1106, gap (b): a prior file with no run_id used to be silently allowed through
+    unchanged — the write could not be shown to be the same run, and "cannot verify" was
+    treated as "allow". Now it is refused: the identity cannot be verified, so a Write that
+    could silently replace the prior checkpoint is denied."""
     _feat50_write_text(path, "schema_version: 1\nstatus: building\n")
     result = _bug1124_state_fire(root, path, "schema_version: 1\nrun_id: run-alpha\nstatus: building\n")
-    ok = result.returncode == 0
-    return ("state-no-prior-run-id-allowed", ok, f"{result.returncode}: {result.stderr}")
+    ok = (result.returncode == 2
+          and "no run_id" in result.stderr
+          and "run directory of its own" in result.stderr)
+    return ("state-no-prior-run-id-refused", ok, f"{result.returncode}: {result.stderr}")
+
+
+def _bug1124_no_incoming_run_id_case(root, path):
+    """The symmetric case: a prior WITH run_id, and an incoming write that carries none.
+    Also refused — the incoming write cannot be shown to be an upsert of that run either."""
+    _feat50_write_text(path, "schema_version: 1\nrun_id: run-alpha\nstatus: building\n")
+    result = _bug1124_state_fire(root, path, "schema_version: 1\nstatus: reviewing\n")
+    ok = (result.returncode == 2
+          and "carries no run_id" in result.stderr
+          and "run directory of its own" in result.stderr)
+    return ("state-no-incoming-run-id-refused", ok, f"{result.returncode}: {result.stderr}")
+
+
+def _bug1124_prior_unparseable_case(root, path):
+    """Issue #1106, gap (b): a prior that exists with content but is not valid YAML — a
+    genuinely different failure mode from an UNREADABLE prior (permission denied, a
+    directory) already covered by `_bug1124_unreadable_case`. Must also refuse."""
+    _feat50_write_text(path, "status: [unterminated flow seq\n")
+    result = _bug1124_state_fire(root, path, "schema_version: 1\nrun_id: run-alpha\nstatus: building\n")
+    ok = (result.returncode == 2
+          and "does not parse" in result.stderr
+          and "silently replace" in result.stderr)
+    return ("state-prior-unparseable-refused", ok, f"{result.returncode}: {result.stderr}")
+
 
 
 def _bug1124_new_file_case(root, path):
@@ -3617,6 +3645,8 @@ def run_feat50_artifact_integrity():
     state_root3, state_path3 = _bug1124_state_fixture()
     state_root4, state_path4 = _bug1124_state_fixture()
     state_root5, state_path5 = _bug1124_state_fixture()
+    state_root6, state_path6 = _bug1124_state_fixture()
+    state_root7, state_path7 = _bug1124_state_fixture()
     results = [
         main,
         short,
@@ -3634,8 +3664,161 @@ def run_feat50_artifact_integrity():
         _bug1124_new_file_case(state_root4, state_path4),
         _bug1124_red_case(state_root1, state_path1, collision),
         _bug1124_unreadable_case(state_root5, state_path5),
+        _bug1124_no_incoming_run_id_case(state_root6, state_path6),
+        _bug1124_prior_unparseable_case(state_root7, state_path7),
     ]
     return _report_feat50_artifact_results(results)
+
+
+def _fire_digest_edit(root, path, old_s, new_s, replace_all=False):
+    # NO agent_type, matching _feat50_digest_fire/_bug1124_state_fire's payload shape:
+    # these cases test the SHAPE gate (DEC-180, domain-independent), not the domain
+    # phase, and check-domain.sh exempts a payload with no agent_type from the domain
+    # phase entirely so the shape-only behaviour can be isolated.
+    return _fire_edit(root, path, old_s, new_s, agent=None, replace_all=replace_all)
+
+
+def run_bug1106_edit_route_cases():
+    """Issue #1106, gap (a): an Edit targeting a run's digest.md or state.yaml is now
+    intercepted PRE-write, by reconstructing the full resulting content from the on-disk
+    prior and old_string/new_string, then running it through the SAME content guards the
+    Write route already uses (issue #1058's digest prefix test, issues #1124/#1106's
+    state.yaml run-identity test)."""
+    results = []
+
+    # --- digest.md: a REPLACE-shaped Edit (old_string spans the whole prior text) must
+    # be refused exactly like a Write that would replace it.
+    digest_root, digest_path = _feat50_digest_fixture()
+    prior = "recorded cycle-0 text\n"
+    _feat50_write_text(digest_path, prior)
+    r = _fire_digest_edit(digest_root, digest_path, prior, "wholly different digest\n")
+    results.append(("bug1106 Edit route: replacing a run's digest.md via Edit is REFUSED",
+                    r.returncode == 2 and "replace rather than extend" in r.stderr,
+                    f"exit {r.returncode}: {r.stderr.strip()[:250]}"))
+    on_disk = open(digest_path, encoding="utf-8").read()
+    results.append(("bug1106 Edit route: the refused digest Edit left the file untouched",
+                    on_disk == prior, repr((prior, on_disk))))
+
+    # --- digest.md: a genuine APPEND-shaped Edit (old_string is a true prefix, new_string
+    # extends it) is allowed — this is not a blanket "no Edit on digest.md" rule.
+    digest_root2, digest_path2 = _feat50_digest_fixture()
+    _feat50_write_text(digest_path2, prior)
+    r = _fire_digest_edit(digest_root2, digest_path2, prior, prior + "and more\n")
+    results.append(("bug1106 Edit route NEGATIVE CONTROL: a genuine append via Edit is "
+                    "ALLOWED", r.returncode == 0, f"exit {r.returncode}: {r.stderr[:200]}"))
+
+    # --- state.yaml: an Edit that changes run_id to a DIFFERENT run is refused exactly
+    # like the equivalent Write.
+    state_root, state_path = _bug1124_state_fixture()
+    _feat50_write_text(state_path, "schema_version: 1\nrun_id: run-alpha\nstatus: building\n")
+    r = _fire_digest_edit(state_root, state_path, "run_id: run-alpha", "run_id: run-beta")
+    results.append(("bug1106 Edit route: a state.yaml run_id collision via Edit is "
+                    "REFUSED",
+                    r.returncode == 2 and "different run's state" in r.stderr,
+                    f"exit {r.returncode}: {r.stderr.strip()[:250]}"))
+    on_disk = open(state_path, encoding="utf-8").read()
+    results.append(("bug1106 Edit route: the refused state.yaml Edit left the file "
+                    "untouched", "run-alpha" in on_disk, on_disk))
+
+    # --- state.yaml: the SAME run_id, a legitimate checkpoint upsert via Edit, is
+    # allowed.
+    state_root2, state_path2 = _bug1124_state_fixture()
+    _feat50_write_text(state_path2, "schema_version: 1\nrun_id: run-alpha\nstatus: building\n")
+    r = _fire_digest_edit(state_root2, state_path2, "status: building", "status: reviewing")
+    results.append(("bug1106 Edit route NEGATIVE CONTROL: a same-run_id checkpoint "
+                    "upsert via Edit is ALLOWED",
+                    r.returncode == 0, f"exit {r.returncode}: {r.stderr[:200]}"))
+
+    # --- AMBIGUOUS/no-op edits are not this gate's problem: an old_string absent from
+    # the file, or non-unique without replace_all, is left to the tool's own match
+    # requirement — this hook must not crash or wrongly refuse either shape.
+    state_root3, state_path3 = _bug1124_state_fixture()
+    _feat50_write_text(state_path3, "schema_version: 1\nrun_id: run-alpha\nstatus: building\n")
+    r = _fire_digest_edit(state_root3, state_path3, "no-such-text-in-file", "replacement")
+    results.append(("bug1106 Edit route: an old_string ABSENT from the file is not this "
+                    "gate's problem (exit 0, the Edit tool itself would refuse it)",
+                    r.returncode == 0, f"exit {r.returncode}: {r.stderr[:200]}"))
+
+    state_root4, state_path4 = _bug1124_state_fixture()
+    _feat50_write_text(
+        state_path4, "schema_version: 1\nrun_id: run-alpha\nstatus: x\nnote: x\n")
+    r = _fire_digest_edit(state_root4, state_path4, "x", "y")
+    results.append(("bug1106 Edit route: a NON-UNIQUE old_string without replace_all is "
+                    "not this gate's problem (exit 0)",
+                    r.returncode == 0, f"exit {r.returncode}: {r.stderr[:200]}"))
+
+    # --- An Edit to an UNRELATED file (not digest.md/state.yaml) is completely
+    # unaffected by this widening — the PRE route stays Write-only for everything else.
+    other_root, other_path = _feat50_digest_fixture()
+    other_path = other_path.replace("digest.md", "notes.md")
+    _feat50_write_text(other_path, "some notes\n")
+    r = _fire_digest_edit(other_root, other_path, "some notes", "different notes entirely")
+    results.append(("bug1106 Edit route NEGATIVE CONTROL: an unrelated file's Edit is "
+                    "still unaffected (no PRE check runs at all for it)",
+                    r.returncode == 0, f"exit {r.returncode}: {r.stderr[:200]}"))
+
+    fails = 0
+    for name, ok, detail in results:
+        if ok:
+            print(f"ok    {name}")
+        else:
+            fails += 1
+            print(f"FAIL  {name}\n      | {detail}")
+    print(f"\n{len(results) - fails}/{len(results)} bug1106 Edit-route cases passed.")
+    return fails
+
+
+def run_bug1106_shared_pattern_consistency():
+    """The digest.md/state.yaml patterns are respelled, not shared, between
+    check-domain.sh (whose shape-phase import of harness_boundary must stay ABSORBING —
+    see the comment beside RE_STATE_YAML there) and harness_boundary.py (which
+    bash-write-guard.sh imports safely). Assert the two copies are byte-identical so this
+    respelling cannot silently drift (issue #1106)."""
+    with open(HOOK, encoding="utf-8") as f:
+        cd_source = f.read()
+    with open(os.path.join(HERE, "harness_boundary.py"), encoding="utf-8") as f:
+        hb_source = f.read()
+
+    def _pattern_literal(source, varname):
+        marker = varname + " "
+        idx = source.find("\n" + marker)
+        if idx < 0:
+            return None
+        line = source[idx + 1:source.index("\n", idx + 1)]
+        if "re.compile(r" not in line:
+            return None
+        start = line.index('r"') + 1
+        end = line.index('"', start + 1)
+        return line[start:end + 1]
+
+    cd_digest = _pattern_literal(cd_source, "RE_RUN_DIGEST  ")
+    hb_digest = _pattern_literal(hb_source, "RE_RUN_DIGEST =")
+    cd_state = _pattern_literal(cd_source, "RE_STATE_YAML  ")
+    hb_state = _pattern_literal(hb_source, "RE_STATE_YAML =")
+
+    results = [
+        ("bug1106: RE_RUN_DIGEST is found in both check-domain.sh and harness_boundary.py",
+         cd_digest is not None and hb_digest is not None,
+         f"check-domain={cd_digest!r} harness_boundary={hb_digest!r}"),
+        ("bug1106: RE_RUN_DIGEST's pattern text is byte-identical in both files",
+         cd_digest == hb_digest, f"{cd_digest!r} != {hb_digest!r}"),
+        ("bug1106: RE_STATE_YAML is found in both check-domain.sh and harness_boundary.py",
+         cd_state is not None and hb_state is not None,
+         f"check-domain={cd_state!r} harness_boundary={hb_state!r}"),
+        ("bug1106: RE_STATE_YAML's pattern text is byte-identical in both files",
+         cd_state == hb_state, f"{cd_state!r} != {hb_state!r}"),
+    ]
+    fails = 0
+    for name, ok, detail in results:
+        if ok:
+            print(f"ok    {name}")
+        else:
+            fails += 1
+            print(f"FAIL  {name}\n      | {detail}")
+    print(f"\n{len(results) - fails}/{len(results)} bug1106 pattern-consistency cases "
+          "passed.")
+    return fails
+
 
 
 def _feat51_root(reg, agent=None, runtime=None, supervisor_pid=None):
@@ -3812,6 +3995,8 @@ def main():
     fails += run_bug895_wrong_checkout_cases()
     fails += run_t09()
     fails += run_feat51_orphan_write()
+    fails += run_bug1106_edit_route_cases()
+    fails += run_bug1106_shared_pattern_consistency()
     return fails
 
 

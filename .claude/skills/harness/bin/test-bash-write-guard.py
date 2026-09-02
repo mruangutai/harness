@@ -974,6 +974,7 @@ def main():
     fails += run_head_move()
     fails += run_feat50_checkout_binding()
     fails += run_bug895_wrong_checkout()
+    fails += run_bug1106_bash_route()
     return fails
 
 def run_bug895_wrong_checkout():
@@ -1015,6 +1016,67 @@ def run_bug895_wrong_checkout():
     print(f"\n{len(results) - fails}/{len(results)} bug895 Bash-route cases passed.")
     return fails
 
+
+
+RUN_ARTIFACT_MANIFEST = """schema_version: 1
+teams:
+  - name: build
+    members:
+      - name: harness-backend-dev
+        domain:
+          - { path: .harness/harness/features/**, upsert: true }
+"""
+
+
+def _run_artifact_fixture():
+    root = fixture(RUN_ARTIFACT_MANIFEST)
+    digest_rel = ".harness/harness/features/FEAT-99-fixture/runs/r1/digest.md"
+    state_rel = ".harness/harness/features/FEAT-99-fixture/runs/r1/state.yaml"
+    other_rel = ".harness/harness/features/FEAT-99-fixture/runs/r1/notes.txt"
+    os.makedirs(os.path.dirname(os.path.join(root, digest_rel)), exist_ok=True)
+    return root, digest_rel, state_rel, other_rel
+
+
+def run_bug1106_bash_route():
+    """Issue #1106, gap (a) on the Bash route. Bash carries no complete incoming payload
+    to compare against prior content, so content-based protection (issue #1058's digest
+    guard, issues #1124/#1106's state.yaml identity guard, both in check-domain.sh) is
+    structurally impossible here — a route-only refusal is the weakest sufficient rule."""
+    results = []
+    root, digest_rel, state_rel, other_rel = _run_artifact_fixture()
+
+    r = fire(root, f"echo hi > {os.path.join(root, digest_rel)}")
+    results.append(("bug1106 Bash route: a write to a run's digest.md is REFUSED",
+                    r.returncode == 2 and "digest.md or state.yaml" in r.stderr,
+                    f"exit {r.returncode}: {r.stderr.strip()[:200]}"))
+
+    r = fire(root, f"echo hi > {os.path.join(root, state_rel)}")
+    results.append(("bug1106 Bash route: a write to a run's state.yaml is REFUSED",
+                    r.returncode == 2 and "digest.md or state.yaml" in r.stderr,
+                    f"exit {r.returncode}: {r.stderr.strip()[:200]}"))
+
+    r = fire(root, f"echo hi > {os.path.join(root, other_rel)}")
+    results.append((
+        "bug1106 Bash route NEGATIVE CONTROL: an unrelated file in the same run "
+        "directory is still ALLOWED — this is not a blanket run-dir Bash ban",
+        r.returncode == 0, f"exit {r.returncode}: {r.stderr.strip()[:200]}"))
+
+    r = fire(root, f"echo hi | tee {os.path.join(root, digest_rel)}")
+    results.append((
+        "bug1106 Bash route: `tee` onto a run's digest.md is ALSO refused (a path "
+        "rule, not a redirect-only one)",
+        r.returncode == 2 and "digest.md or state.yaml" in r.stderr,
+        f"exit {r.returncode}: {r.stderr.strip()[:200]}"))
+
+    fails = 0
+    for name, ok, detail in results:
+        if ok:
+            print(f"ok    {name}")
+        else:
+            fails += 1
+            print(f"FAIL  {name}\n      | {detail}")
+    print(f"\n{len(results) - fails}/{len(results)} bug1106 Bash-route cases passed.")
+    return fails
 
 
 if __name__ == "__main__":

@@ -726,6 +726,24 @@ def feature_checkout_guard(rel, absolute_path):
         return
 
 
+def _run_artifact_guard(rel, absolute_path):
+    """Refuse a Bash write aimed at a run's digest.md or state.yaml (issue #1106, gap a).
+
+    The Write and Edit routes in check-domain.sh compare a proposed write against the
+    on-disk PRIOR content before it lands (issue #1058's digest prefix guard, issues
+    #1124/#1106's state.yaml run-identity guard). Bash has no equivalent: a shell command
+    carries no complete incoming payload to compare — the comment above this function
+    already says so. A content guard is therefore structurally impossible here, so a route
+    denial is the weakest sufficient rule: these two files must be written through Write or
+    Edit, where the content guard can actually adjudicate.
+    """
+    if (harness_boundary.RE_RUN_DIGEST.match(rel)
+            or harness_boundary.RE_STATE_YAML.match(rel)):
+        deny(f"{absolute_path} is a run's digest.md or state.yaml. Bash carries no "
+             f"complete incoming payload to compare against the prior content, so this "
+             f"route cannot safely write it. Use the Write or Edit tool, where the "
+             f"content guard adjudicates.")
+
 # THE DOMAIN DECISION IS harness_boundary.classify's, NOT THIS FILE'S (issue #261).
 # This guard used to carry its own glob_to_re/matches pair and match raw globs with no
 # notion of the two bases and no control-plane target-side test. Measured at a29ad06,
@@ -793,10 +811,12 @@ for name, paths in findings:
 
         if verdict["outcome"] in ("allow", "not_a_domain_question"):
             feature_checkout_guard(rel, ap)
+            _run_artifact_guard(rel, ap)
             continue
 
         if verdict["outcome"] == "shared":
             feature_checkout_guard(rel, ap)
+            _run_artifact_guard(rel, ap)
             # Shared paths are owned by nobody and always serialized (DEC-85). Same
             # notice check-domain.sh prints on its own route.
             print(f"bash-write-guard: {agent} is writing SHARED path "
