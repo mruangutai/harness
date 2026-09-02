@@ -41,7 +41,7 @@ Assign **one** change type per logical change. Judge from the diff, not from a t
 | `config` / `scaffolding` / `docs` | build config, deps, generated scaffolding, documentation |
 
 **A `config` change that alters a value's SHAPE — a key's container type, required-ness, or
-structural nesting in `.harness/harness.json`/`fleet.yaml` or any config a gate script reads — is
+structural nesting in `<HARNESS_CONTROL_PLANE_ROOT>/.harness/harness.json` or `fleet.yaml`, or any config a gate script reads — is
 still `config`, but trips the `touches_config_shape` predicate (DEC-212).** Changing `stations` from
 a mapping to a list is shape; bumping `max_total_runs` from 20 to 25 is not. A shape change has a
 consumer blast radius no test scoped to the producing module can see — issue #1033 shipped exactly
