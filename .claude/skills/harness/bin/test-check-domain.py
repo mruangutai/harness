@@ -15,6 +15,8 @@ that lets a repo path through by dressing it up.
 import json, os, shutil, subprocess, sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HERE)
+from isolated_bin import isolated_bin
 HOOK = os.environ.get("CHECK_DOMAIN_BIN") or os.path.join(HERE, "check-domain.sh")
 ROOT = os.path.abspath(os.path.join(HERE, "..", "..", "..", ".."))
 
@@ -146,10 +148,10 @@ def make_linked_worktree(root, wt_path, wt_id):
     return wt_path
 
 
-def fire(root, path, content="x", agent="harness-documentor"):
+def fire(root, path, content="x", agent="harness-documentor", hook=HOOK):
     payload = {"agent_type": agent, "tool_name": "Write",
                "tool_input": {"file_path": os.path.join(root, path), "content": content}}
-    return subprocess.run([HOOK], input=json.dumps(payload), capture_output=True,
+    return subprocess.run([hook], input=json.dumps(payload), capture_output=True,
                           text=True, env=_env(root))
 
 
@@ -1467,30 +1469,33 @@ def run_schema():
          "invented_key" in r.stderr,
          detail="stderr did not name invented_key: " + " ".join((r.stderr or "").split())[:160])
 
-    # Case 3: break the checker itself. Restored byte-identically, and the restore is
-    # ASSERTED — a probe that silently failed to restore would leave the tree mutated and
-    # every later case measuring the wrong file.
-    fs = os.path.join(os.path.dirname(os.path.realpath(__file__)), "feature_schema.py")
-    before = open(fs, "rb").read()
-    try:
-        src = before.decode()
-        marker = "def problems_for_text("
-        i = src.index(marker)
-        j = src.index("\n", src.index(":", src.index(")", i)))
-        open(fs, "w").write(src[:j + 1] + '    raise ValueError("injected: checker is broken")\n' + src[j + 1:])
-        r = fire(root, rel, content=illegal)
-        case("a CRASHING schema module DENIES the write rather than letting it through",
-             r.returncode, 2, "CRASHED" in r.stderr,
-             detail="fail-open: exit 1 is non-blocking, so this write would have landed. "
-                    + " ".join((r.stderr or "").split())[:160])
-    finally:
-        with open(fs, "wb") as f:
-            f.write(before)
-    if open(fs, "rb").read() != before:
-        fails += 1
-        print("FAIL  schema/probe restored feature_schema.py byte-identically")
-    else:
-        print("ok    schema/probe restored feature_schema.py byte-identically")
+    # Case 3: break a private checker copy. The live module is observed, never written.
+    live_fs = os.path.join(HERE, "feature_schema.py")
+    live_before = open(live_fs, "rb").read()
+    live_mtime = os.stat(live_fs).st_mtime_ns
+    iso = isolated_bin(root)
+    copied_hook = os.path.join(iso, "check-domain.sh")
+    copied_fs = os.path.join(iso, "feature_schema.py")
+    r = fire(root, rel, content=illegal, hook=copied_hook)
+    case("the copied unbroken hook DENIES the illegal document", r.returncode, 2,
+         "invented_key" in r.stderr,
+         detail="copied-hook control failed: " + " ".join((r.stderr or "").split())[:160])
+    src = open(copied_fs, encoding="utf-8").read()
+    marker = "def problems_for_text("
+    i = src.index(marker)
+    j = src.index("\n", src.index(":", src.index(")", i)))
+    with open(copied_fs, "w", encoding="utf-8") as copied_file:
+        copied_file.write(
+            src[:j + 1] + '    raise ValueError("injected: checker is broken")\n' + src[j + 1:])
+    r = fire(root, rel, content=illegal, hook=copied_hook)
+    case("a CRASHING schema module DENIES the write rather than letting it through",
+         r.returncode, 2, "CRASHED" in r.stderr,
+         detail="fail-open: exit 1 is non-blocking, so this write would have landed. "
+                + " ".join((r.stderr or "").split())[:160])
+    live_unchanged = (open(live_fs, "rb").read() == live_before
+                      and os.stat(live_fs).st_mtime_ns == live_mtime)
+    case("the live feature_schema.py was never written (bytes and mtime unchanged)",
+         live_unchanged, True)
     shutil.rmtree(root, ignore_errors=True)
     return fails
 
@@ -3273,7 +3278,7 @@ def _feat50_absent_case():
             f"{result.returncode}: {result.stderr}")
 
 
-def _feat50_mutant_between(start, end):
+def _feat50_mutant_between(start, end, iso):
     with open(HOOK, encoding="utf-8") as source_file:
         source = source_file.read()
     begin = source.find(start)
@@ -3283,7 +3288,7 @@ def _feat50_mutant_between(start, end):
     changed = source[:begin] + source[finish:]
     if changed == source:
         raise AssertionError("INCONCLUSIVE: mutant is byte-identical")
-    path = os.path.join(HERE, f".feat50-check-domain-{os.getpid()}.sh")
+    path = os.path.join(iso, "check-domain.sh")
     with open(path, "w", encoding="utf-8") as mutant_file:
         mutant_file.write(changed)
     os.chmod(path, os.stat(HOOK).st_mode)
@@ -3291,16 +3296,14 @@ def _feat50_mutant_between(start, end):
 
 
 def _feat50_binding_red_case(root, target, refused):
+    iso = isolated_bin(root)
     mutant = _feat50_mutant_between(
         '        feature_checkout_guard(_verdict["rel"], target)\n',
-        '        approval_guard(rel, agent)\n')
+        '        approval_guard(rel, agent)\n', iso)
     payload = {"agent_type": "harness-documentor", "tool_name": "Write",
                "tool_input": {"file_path": target, "content": "x"}}
-    try:
-        muted = subprocess.run([mutant], input=json.dumps(payload), capture_output=True,
-                               text=True, env=_env(root))
-    finally:
-        os.unlink(mutant)
+    muted = subprocess.run([mutant], input=json.dumps(payload), capture_output=True,
+                           text=True, env=_env(root))
     ok = refused.returncode == 2 and muted.returncode == 0 and "Traceback" not in muted.stderr
     return ("feature-checkout-red", ok,
             f"real={refused.returncode}, mutant={muted.returncode}: {muted.stderr}")
@@ -3365,13 +3368,11 @@ def _feat50_digest_post_case(root, path, prior):
 
 
 def _feat50_digest_red_case(root, path, clobber):
+    iso = isolated_bin(root)
     mutant = _feat50_mutant_between(
         "    # Issue #1058: a lead reused a cycle's run directory",
-        "    if RE_FEATURE_JSON.match(rel):")
-    try:
-        muted = _feat50_digest_fire(root, path, "wholly different digest\n", hook=mutant)
-    finally:
-        os.unlink(mutant)
+        "    if RE_FEATURE_JSON.match(rel):", iso)
+    muted = _feat50_digest_fire(root, path, "wholly different digest\n", hook=mutant)
     ok = clobber.returncode == 2 and muted.returncode == 0 and "Traceback" not in muted.stderr
     return ("digest-clobber-red", ok,
             f"real={clobber.returncode}, mutant={muted.returncode}: {muted.stderr}")
@@ -3453,15 +3454,13 @@ def _bug1124_unreadable_case(root, path):
 
 
 def _bug1124_red_case(root, path, collision):
+    iso = isolated_bin(root)
     mutant = _feat50_mutant_between(
         "        # Issue #1124: the digest guard above (#1058) fires only on digest.md",
-        "        # T-17 / D-08: str() BOTH sides.")
-    try:
-        muted = _bug1124_state_fire(root, path,
-                                    "schema_version: 1\nrun_id: run-beta\nstatus: building\n",
-                                    hook=mutant)
-    finally:
-        os.unlink(mutant)
+        "        # T-17 / D-08: str() BOTH sides.", iso)
+    muted = _bug1124_state_fire(root, path,
+                                "schema_version: 1\nrun_id: run-beta\nstatus: building\n",
+                                hook=mutant)
     ok = collision.returncode == 2 and muted.returncode == 0 and "Traceback" not in muted.stderr
     return ("state-run-id-collision-red", ok,
             f"real={collision.returncode}, mutant={muted.returncode}: {muted.stderr}")

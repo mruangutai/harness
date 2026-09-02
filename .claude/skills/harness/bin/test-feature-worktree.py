@@ -35,6 +35,7 @@ import time
 import yaml
 
 import harness_boundary
+from isolated_bin import isolated_bin
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 CLI = os.environ.get("FEATURE_WORKTREE_BIN") or os.path.join(HERE, "feature-worktree.py")
@@ -576,11 +577,10 @@ def case_behind_default_branch(fx):
             "no textual change",
         )
         return
-    # THE MUTANT LIVES BESIDE THE ORIGINAL, not in the fixture. feature-worktree.py
-    # imports factory_config and harness_boundary from its OWN directory, so a copy
-    # written anywhere else dies on import and returns a non-zero code that looks exactly
-    # like the refusal this proof is trying to distinguish. FEAT-30's Q3 was this same trap.
-    mutant = os.path.join(HERE, ".mutant-feature-worktree-behind.py")
+    # The mutant runs from a complete private bin copy, so its sibling imports resolve
+    # without exposing a transient executable in the shared live tree.
+    iso_root = tempfile.mkdtemp()
+    mutant = os.path.join(isolated_bin(iso_root), ".mutant-feature-worktree-behind.py")
     with open(mutant, "w") as f:
         f.write(mutant_text)
 
@@ -601,10 +601,7 @@ def case_behind_default_branch(fx):
             f"stdout={rm.stdout!r} stderr={rm.stderr!r}",
         )
     finally:
-        try:
-            os.remove(mutant)
-        except OSError:
-            pass
+        shutil.rmtree(iso_root, ignore_errors=True)
 
 def case_undeclared_repo(fx):
     r = run_cli(["list", "--repo", "org/nope"], fx)

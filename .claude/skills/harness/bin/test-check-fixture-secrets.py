@@ -12,11 +12,14 @@ RED-proofs the sk- fix against the original broken pattern.
     ./test-check-fixture-secrets.py     -> exit 0 all pass, 1 otherwise
 """
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HERE)
+from isolated_bin import isolated_bin
 GUARD = os.environ.get("CHECK_FIXTURE_SECRETS_BIN") or os.path.join(
     HERE, "check-fixture-secrets.sh")
 
@@ -147,7 +150,9 @@ def run_positive_control_red_proof():
     if broken == source:
         check("positive-control-red", False, "INCONCLUSIVE: mutant is byte-identical")
         return
-    mutant = os.path.join(HERE, ".check-fixture-secrets-mutant-%d.sh" % os.getpid())
+    iso_root = tempfile.mkdtemp()
+    mutant = os.path.join(
+        isolated_bin(iso_root), ".check-fixture-secrets-mutant-%d.sh" % os.getpid())
     try:
         with open(mutant, "w", encoding="utf-8") as f:
             f.write(broken)
@@ -160,10 +165,7 @@ def run_positive_control_red_proof():
               r.returncode == 2 and "POSITIVE CONTROL FAILED" in r.stderr,
               f"rc={r.returncode} {r.stderr!r}")
     finally:
-        try:
-            os.unlink(mutant)
-        except OSError:
-            pass
+        shutil.rmtree(iso_root, ignore_errors=True)
 
 
 def run_sk_ant_red_proof():
@@ -195,7 +197,9 @@ def run_sk_ant_red_proof():
     if reverted == source:
         check("sk-ant-red", False, "INCONCLUSIVE: mutant is byte-identical")
         return
-    mutant = os.path.join(HERE, ".check-fixture-secrets-skant-mutant-%d.sh" % os.getpid())
+    iso_root = tempfile.mkdtemp()
+    mutant = os.path.join(
+        isolated_bin(iso_root), ".check-fixture-secrets-skant-mutant-%d.sh" % os.getpid())
     try:
         with open(mutant, "w", encoding="utf-8") as f:
             f.write(reverted)
@@ -211,10 +215,7 @@ def run_sk_ant_red_proof():
               "key that shipped invisibly before #981's fix",
               ok, f"real={real.returncode} mutant={muted.returncode}: {muted.stdout!r}")
     finally:
-        try:
-            os.unlink(mutant)
-        except OSError:
-            pass
+        shutil.rmtree(iso_root, ignore_errors=True)
 
 def main():
     run_cases()

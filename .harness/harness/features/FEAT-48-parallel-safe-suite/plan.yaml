@@ -306,7 +306,7 @@ tasks:
       DEC-174 carve-out. test-check-domain.py is the test of check-domain.sh, the PreToolUse
       hook that decides every agent write, and AGENTS.md:8 names a gate's test verbatim.
     depends_on: []
-    status: ready
+    status: done
     files:
       - .claude/skills/harness/bin/isolated_bin.py
       - .claude/skills/harness/bin/test-check-domain.py
@@ -456,7 +456,7 @@ tasks:
       as a required step; test-feature-worktree.py is edited in the same change because the
       invariant T-03 adds cannot land green while any site in either file remains.
     depends_on: [T-01]
-    status: ready
+    status: done
     files:
       - .claude/skills/harness/bin/test-check-state.py
       - .claude/skills/harness/bin/test-feature-worktree.py
@@ -590,7 +590,7 @@ tasks:
       runs as a required step, is what enforces it, and the same task edits that runner's
       script list.
     depends_on: [T-01, T-02]
-    status: ready
+    status: done
     files:
       - .claude/skills/harness/bin/test-suite-independence.py
       - .claude/skills/harness/bin/run-unit-tests.sh
@@ -838,7 +838,7 @@ tasks:
       script the tests workflow runs as a required step and CODEOWNERS pins, and
       test-run-pool.py is that gate's test.
     depends_on: [T-03]
-    status: ready
+    status: done
     files:
       - .claude/skills/harness/bin/run_pool.py
       - .claude/skills/harness/bin/test-run-pool.py
@@ -1032,7 +1032,7 @@ tasks:
       required step and CODEOWNERS pins, and this task also writes the measurements note the
       three inspection criteria rest on.
     depends_on: [T-04]
-    status: ready
+    status: done
     files:
       - .claude/skills/harness/bin/run-unit-tests.sh
       - .harness/harness/features/FEAT-48-parallel-safe-suite/notes/measurements-parallel-suite.md
@@ -1157,7 +1157,7 @@ tasks:
       granted to harness-documentor, taken direct under DEC-174 because the entry records the
       behaviour of the gate script the tests workflow runs.
     depends_on: [T-06]
-    status: ready
+    status: done
     files:
       - .harness/harness/docs/DECISIONS.md
       - .harness/harness/docs/DECISIONS-INDEX.md
