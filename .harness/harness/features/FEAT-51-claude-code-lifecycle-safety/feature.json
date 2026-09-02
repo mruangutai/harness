@@ -1,7 +1,7 @@
 {
   "feature_id": "FEAT-51-claude-code-lifecycle-safety",
   "branch": "feat/FEAT-51-claude-code-lifecycle-safety",
-  "pr": null,
+  "pr": 1151,
   "review_sha": "aab31504560627044a4d03cdcad611d5947d0b3e",
   "cycles_used": 13,
   "max_total_cycles": 20,
