@@ -23,6 +23,14 @@ def make_root(body):
 def run(root, *args):
     return subprocess.run([sys.executable, CHECK, "--root", root, *args], text=True, capture_output=True)
 
+
+def workflow_gate_is_enforced(workflow):
+    start = workflow.find("name: Instruction-path gate")
+    if start < 0:
+        return False
+    gate = workflow[start:workflow.find("\n      - name:", start + 1)]
+    return "check-instruction-paths.py" in gate and 'exit "$rc"' in gate
+
 def main():
     root, path = make_root("` .harness/harness.json`\n```\n.claude/agents/harness-pm.md\n```\n")
     red = run(root)
@@ -68,10 +76,25 @@ def main():
                     encoding="utf-8").read()
     check(
         "workflow runs instruction gate and propagates its nonzero status",
-        "name: Instruction-path gate" in workflow
-        and "check-instruction-paths.py" in workflow
-        and 'exit "$rc"' in workflow,
+        workflow_gate_is_enforced(workflow),
         workflow[workflow.find("Instruction-path gate"):workflow.find("Instruction-path gate") + 800],
+    )
+    check(
+        "workflow mutant without instruction gate is refused",
+        not workflow_gate_is_enforced(
+            workflow.replace("name: Instruction-path gate", "name: Removed instruction gate", 1)
+        ),
+    )
+    gate_start = workflow.find("name: Instruction-path gate")
+    gate_end = workflow.find("\n      - name:", gate_start + 1)
+    ignored_status = (
+        workflow[:gate_start]
+        + workflow[gate_start:gate_end].replace('exit "$rc"', "exit 0", 1)
+        + workflow[gate_end:]
+    )
+    check(
+        "workflow mutant that ignores gate status is refused",
+        not workflow_gate_is_enforced(ignored_status),
     )
     outside = run(root, os.path.join(root, "nope.md"))
     check("outside scope refuses", outside.returncode == 2, outside.stdout + outside.stderr)
