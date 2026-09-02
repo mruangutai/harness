@@ -1557,6 +1557,102 @@ def check_artifact_file(agent, text, payload):
     return 2
 
 
+def _qa_claims_unconditional_pass(text):
+    """True iff `text`'s tail-anchored return is VERDICT: PASS with suite: pass AND
+    matrix_ok: true — the one claim #919 exists to independently re-verify."""
+    tail = text
+    anchors = list(re.finditer(r"^\s*VERDICT:", text, re.M))
+    if anchors:
+        tail = text[anchors[-1].start():]
+    verdict_match = re.search(r"^\s*VERDICT:\s*(\S+)", tail, re.M)
+    if (verdict_match.group(1) if verdict_match else None) != "PASS":
+        return False
+    seen = parse_digest(tail)
+    return seen.get("suite") == "pass" and seen.get("matrix_ok") is True
+
+
+def _resolve_run_unit_tests_bin(payload):
+    """The suite entrypoint to independently re-run, or None if it cannot be resolved.
+
+    RUN_UNIT_TESTS_BIN is test-only: it lets a fixture point this check at a fast stub
+    instead of spawning the real multi-minute suite for every hook-mode case.
+    """
+    run_bin = os.environ.get("RUN_UNIT_TESTS_BIN")
+    if run_bin:
+        return run_bin
+    owner_root = _root_or_none()
+    base = owner_root
+    feature = payload.get("harness_feature")
+    if owner_root and feature:
+        try:
+            sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
+            import inflight_registry
+            base = inflight_registry.feature_root(owner_root, feature)
+        except Exception:
+            base = owner_root
+    if not base:
+        return None
+    return os.path.join(base, ".claude", "skills", "harness", "bin",
+                        "run-unit-tests.sh")
+
+
+def _reverify_suite(run_bin):
+    """Run `run_bin` and return its CompletedProcess, or None if it could not be run
+    at all (missing file, spawn failure, timeout) — every case is our gap, not theirs."""
+    if not run_bin or not os.path.isfile(run_bin):
+        return None
+    try:
+        return subprocess.run(["bash", run_bin], capture_output=True, text=True,
+                              timeout=1800)
+    except Exception:
+        return None
+
+
+def check_qa_matrix_claim(agent, text, payload):
+    """Issue #919: independently re-run the suite before trusting an unconditional
+    qa PASS, rather than trusting the claim on its own strength.
+
+    FEAT-37's qa gate reported the matrix green at a SHA where CI failed on the first
+    open PR: the qa note's "27 scripts discovered" turned out to be counted from the
+    static INTEGRATION_SCRIPTS array rather than read off a real run's own output, and
+    "ALL PASSED" was recorded anyway. `GATE_FAIL_VALUES` above can only catch a digest
+    that CONTRADICTS itself (`suite: fail` beside `VERDICT: PASS`); it cannot catch a
+    wrong-but-internally-consistent claim, because nothing before this re-executes the
+    thing being claimed. This does — the report is evidence only once it is checked.
+
+    FIRES ONLY on the highest-stakes claim: VERDICT: PASS with suite: pass AND
+    matrix_ok: true. A FAIL/BLOCKED/n/a claim already carries its own honesty
+    (`validate()` above already refuses `suite: fail` + PASS); re-running to confirm a
+    claimed failure buys nothing this hook is positioned to check for free.
+
+    FAIL OPEN, LOUDLY when the suite cannot be located or run at all (missing root,
+    missing script, a spawn OSError, a timeout) — check-domain.sh's precedent: a hook
+    whose own execution environment is broken must never be the reason a legitimate qa
+    return is blocked. FAIL CLOSED when the suite DOES run and disagrees with the
+    claim — that disagreement is exactly the gap #919 exists to close.
+    """
+    if not _qa_claims_unconditional_pass(text):
+        return 0
+    run_bin = _resolve_run_unit_tests_bin(payload)
+    result = _reverify_suite(run_bin)
+    if result is None:
+        print(f"check-digest: could not independently re-run the suite at {run_bin!r} "
+              f"— {agent}'s matrix_ok: true / suite: pass claim was NOT verified; this "
+              f"is our gap, not theirs.", file=sys.stderr)
+        return 0
+    if result.returncode == 0:
+        return 0
+    print(f"{agent} reported VERDICT: PASS with suite: pass and matrix_ok: true, but "
+          f"an independent re-run of run-unit-tests.sh at this checkout exited "
+          f"{result.returncode} — the gate reported evidence it did not have (issue "
+          f"#919). Re-run the suite yourself, fix what fails, and return again once "
+          f"it is genuinely green. Tail of the independent run:", file=sys.stderr)
+    for line in ((result.stdout or "") + (result.stderr or "")).splitlines()[-20:]:
+        print(f"  {line}", file=sys.stderr)
+    return 2
+
+
+
 # Distinguishes an ABSENT `last_assistant_message` from one that is present and null.
 # Module level so hook_mode() allocates nothing per invocation.
 _ABSENT = object()
@@ -1781,6 +1877,8 @@ def hook_mode():
         # the orchestrator's successor reads runs/<id>/digest.md, never this message.
         if norm(agent) == "lead":
             return check_artifact_file(agent, text, d)
+        if norm(agent) == "qa":
+            return check_qa_matrix_claim(agent, text, d)
         return 0
 
     print(f"Your return does not satisfy the digest contract, so it cannot be accepted. "
