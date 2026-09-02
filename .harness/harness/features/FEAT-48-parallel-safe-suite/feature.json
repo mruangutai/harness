@@ -3,7 +3,7 @@
   "branch": "feat/FEAT-48-parallel-safe-suite",
   "pr": null,
   "review_sha": "8e7f56dc",
-  "cycles_used": 6,
+  "cycles_used": 8,
   "max_total_cycles": 10,
   "runs": [
     {

@@ -51,10 +51,15 @@ so `8e7f56dc` is a strict superset carrying byte-identical code. INV-6 and INV-3
 together and FEAT-48 carries **zero** `check-state.sh` findings. This also closed the standing
 SEC-01 blocker, which bound only while no `review_sha` was pinned.
 
-Budgets: `cycles_used` stays **6 of 10**. Both leads reported zero send-backs and no FAIL was routed
-back inside this phase, so counting a cycle here would falsify the record; the fix cycle belongs to
-whoever executes the remedy. 17 runs against an informational `max_total_runs` of 20 — the count is
-a floor, since the entire main-session-direct build appears in it nowhere.
+**Budget, and I got this wrong before a gate corrected me.** `cycles_used` is **8 of 10**. I first
+recorded 6, reasoning that no rework had happened *inside* this phase — both leads reported zero
+send-backs and I was returning the FAIL upward rather than routing it back. `check-state.sh`
+refused: seven FAIL runs are recorded and a FAIL run **is** a rework loop, whoever executes the
+remedy. The honest count is the prior 6 plus this phase's two FAIL runs. That leaves **2 cycles of
+headroom**, which is the real signal: the SC-03 fix plus its re-validation is roughly the entire
+remaining budget, and a second failed attempt exhausts it. 17 runs against an informational
+`max_total_runs` of 20 — the count is a floor, since the whole main-session-direct build appears in
+it nowhere.
 
 ## Open Questions
 
