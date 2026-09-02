@@ -242,6 +242,167 @@ def case_6_discard_refuses_path_outside_quarantine_segment():
         os.path.isdir(outside) and os.path.exists(os.path.join(outside, "keepme.txt")),
     )
 
+# ---------------------------------------------------------------------------
+# Case 9 — adopt refuses a --file whose realpath is outside any quarantine directory
+# ---------------------------------------------------------------------------
+
+def case_9_adopt_refuses_file_outside_quarantine():
+    root, feature_dir = fixture_root()
+    # feature.json, not plan.yaml: feature.json takes the harness_merge.locked_update arm,
+    # which has no downstream guard of its own, so a nonzero exit here can only have come
+    # from quarantine.py's own containment — never from a sibling tool refusing first.
+    canonical = os.path.join(feature_dir, "feature.json")
+    write(canonical, '{"feature": "FEAT-99-fixture", "real": true}\n')
+    canonical_before = sha256(canonical)
+
+    # A legally-named file that sits in a sibling `notes/` directory rather than under any
+    # `quarantine/<writer>/` segment — the shape adopt must still refuse.
+    decoy = os.path.join(feature_dir, "notes", "feature.json")
+    write(decoy, '{"feature": "FEAT-99-fixture", "decoy": true}\n')
+
+    result = run("adopt", "--file", decoy, "--root", root)
+    check(
+        "case9: file outside any quarantine directory exits 2",
+        result.returncode == 2,
+        result.stdout + result.stderr,
+    )
+    check(
+        "case9: the canonical feature.json is byte-unchanged",
+        sha256(canonical) == canonical_before,
+        "canonical feature.json was overwritten",
+    )
+
+
+# ---------------------------------------------------------------------------
+# Case 10 — a --file inside feature A's quarantine cannot land on feature B's canonical
+# ---------------------------------------------------------------------------
+
+def case_10_adopt_cannot_cross_from_feature_a_onto_feature_b():
+    root, feature_a = fixture_root()
+    feature_b = os.path.join(root, ".harness", "harness", "features", "FEAT-98-victim")
+    os.makedirs(feature_b, exist_ok=True)
+    victim = os.path.join(feature_b, "feature.json")
+    write(victim, '{"feature": "FEAT-98-victim", "real": true}\n')
+    victim_before = sha256(victim)
+
+    # A's own `quarantine/` segment is a SYMLINK onto feature B's directory. The OLD
+    # arithmetic (two dirname() hops up from the given file, oblivious to symlinks and to
+    # segment names) computes "A/quarantine/feature.json" as the write target — a string
+    # that, followed through the symlink at open() time, physically lands inside B.
+    quarantine_link = os.path.join(feature_a, "quarantine")
+    os.symlink(feature_b, quarantine_link)
+    writer_dir = os.path.join(quarantine_link, "writer")
+    subdir = os.path.join(writer_dir, "subdir")
+    os.makedirs(subdir, exist_ok=True)
+    quarantined = os.path.join(subdir, "feature.json")
+    write(quarantined, '{"feature": "FEAT-98-victim", "adopted": "wrongly"}\n')
+
+    result = run("adopt", "--file", quarantined, "--root", root)
+    check(
+        "case10: cross-feature adopt via symlinked quarantine exits 2",
+        result.returncode == 2,
+        result.stdout + result.stderr,
+    )
+    check(
+        "case10: feature B's canonical feature.json is byte-unchanged",
+        sha256(victim) == victim_before,
+        "feature B's canonical feature.json was overwritten by an adopt scoped to feature A",
+    )
+
+
+# ---------------------------------------------------------------------------
+# Case 11 — adopt refuses a --file nested deeper than one dir under quarantine/
+# ---------------------------------------------------------------------------
+
+def case_11_adopt_refuses_deeper_nesting_under_quarantine():
+    root, feature_dir = fixture_root()
+    # feature.json for the same reason as case 9: no downstream guard to mask a missing
+    # containment check, so "exits 2" can only be quarantine.py's own refusal.
+    canonical = os.path.join(feature_dir, "feature.json")
+    write(canonical, '{"feature": "FEAT-99-fixture", "real": true}\n')
+    canonical_before = sha256(canonical)
+
+    qdir = quarantine_dir(feature_dir)
+    subdir = os.path.join(qdir, "sub")
+    os.makedirs(subdir, exist_ok=True)
+    quarantined = os.path.join(subdir, "feature.json")
+    write(quarantined, '{"feature": "FEAT-99-fixture", "nested": true}\n')
+
+    result = run("adopt", "--file", quarantined, "--root", root)
+    check(
+        "case11: nesting deeper than one dir under quarantine/ exits 2",
+        result.returncode == 2,
+        result.stdout + result.stderr,
+    )
+    check(
+        "case11: the canonical feature.json is byte-unchanged",
+        sha256(canonical) == canonical_before,
+        "canonical feature.json was overwritten",
+    )
+
+
+# ---------------------------------------------------------------------------
+# Case 13 — adopt refuses a --file that is quarantine-shaped only under a DIFFERENT root
+# than the one it was invoked against (the wider hole root-anchoring closed in cycle 2)
+# ---------------------------------------------------------------------------
+
+def case_13_adopt_refuses_file_shaped_correctly_under_a_foreign_root():
+    root_attacker, feature_dir_attacker = fixture_root()
+    decoy = os.path.join(feature_dir_attacker, "quarantine", "w", "feature.json")
+    write(decoy, '{"feature": "FEAT-99-fixture", "attacker": true}\n')
+
+    root_victim, feature_dir_victim = fixture_root()
+    victim = os.path.join(feature_dir_victim, "feature.json")
+    write(victim, '{"feature": "FEAT-99-fixture", "real": true}\n')
+    victim_before = sha256(victim)
+
+    result = run("adopt", "--file", decoy, "--root", root_victim)
+    check(
+        "case13: a quarantine-shaped file under a foreign root exits 2",
+        result.returncode == 2,
+        result.stdout + result.stderr,
+    )
+    check(
+        "case13: the invoked root's canonical feature.json is byte-unchanged",
+        sha256(victim) == victim_before,
+        "a file merely shaped like a quarantine path under a different root overwrote "
+        "this root's canonical artifact",
+    )
+
+
+# ---------------------------------------------------------------------------
+# Case 12 — adopt refuses a symlink inside a legal quarantine dir whose realpath escapes it
+# ---------------------------------------------------------------------------
+
+def case_12_adopt_refuses_symlink_escaping_quarantine_dir():
+    root, feature_dir = fixture_root()
+    canonical = os.path.join(feature_dir, "plan.yaml")
+    write(canonical, render_plan(ids(1, 14)))
+    canonical_before = sha256(canonical)
+
+    escape_target = os.path.join(root, "escape.yaml")
+    write(escape_target, "not a quarantine proposal at all\n")
+    escape_before = sha256(escape_target)
+
+    qdir = quarantine_dir(feature_dir)
+    quarantined = os.path.join(qdir, "plan.yaml")
+    os.symlink(escape_target, quarantined)
+
+    result = run("adopt", "--file", quarantined, "--root", root)
+    check(
+        "case12: a symlink whose realpath escapes the quarantine dir exits 2",
+        result.returncode == 2,
+        result.stdout + result.stderr,
+    )
+    # The two byte-unchanged assertions this case carried in cycle 1 are DELETED, not
+    # strengthened: the cycle-1 receipt recorded both passing even on the pre-fix baseline
+    # (plan-merge's own schema refusal on the escape file's non-plan content left both
+    # targets untouched before quarantine.py's own containment ever mattered), so neither
+    # one discriminates this tool's containment from a downstream guard. "exits 2" above is
+    # the sole discriminator for this case, per the cycle-2 dispatch's instruction to delete
+    # a vacuous assertion rather than leave it standing.
+
+
 
 # ---------------------------------------------------------------------------
 # Case 7 — list changes no file
@@ -292,6 +453,11 @@ def main():
     case_6_discard_refuses_path_outside_quarantine_segment()
     case_7_list_changes_no_file()
     case_8_list_empty_prints_nothing_exits_0()
+    case_9_adopt_refuses_file_outside_quarantine()
+    case_10_adopt_cannot_cross_from_feature_a_onto_feature_b()
+    case_11_adopt_refuses_deeper_nesting_under_quarantine()
+    case_12_adopt_refuses_symlink_escaping_quarantine_dir()
+    case_13_adopt_refuses_file_shaped_correctly_under_a_foreign_root()
 
     fails = 0
     for name, ok, detail in RESULTS:
