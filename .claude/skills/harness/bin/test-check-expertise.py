@@ -212,6 +212,74 @@ def run_extra():
         record("case5: 151-line craft-form file over budget, names 150",
                "over the 150-line budget" in out, out)
 
+    # ---- case 7: near-budget advisory (issue #613) — a warning WHILE headroom still
+    # exists to displace an entry, not only after the file has already overflowed.
+    with tempfile.TemporaryDirectory() as d:
+        craft_dir = os.path.join(d, ".harness", "expertise")
+        os.makedirs(craft_dir, exist_ok=True)
+
+        craft_140 = os.path.join(craft_dir, "harness-security-reviewer.md")
+        n_line_file(craft_140, 140)
+        rc, out = run_cmd([CHECK, craft_140])
+        record("case7: a 140-line craft file (10 lines of headroom) gets an ADVISORY",
+               "ADVISORY" in out and "150-line budget" in out, out)
+        record("case7: and it is NOT reported over budget",
+               "over the 150-line budget" not in out, out)
+
+        craft_130 = os.path.join(craft_dir, "harness-orchestrator.md")
+        n_line_file(craft_130, 130)
+        rc, out = run_cmd([CHECK, craft_130])
+        no_advisory = not any(l.startswith("ADVISORY") for l in out.splitlines())
+        record("case7: a 130-line craft file (20 lines of headroom) gets NO advisory",
+               no_advisory, out)
+
+        craft_150 = os.path.join(craft_dir, "harness-qa.md")
+        n_line_file(craft_150, 150)
+        rc, out = run_cmd([CHECK, craft_150])
+        record("case7: a file AT the exact 150-line budget still gets the ADVISORY",
+               "ADVISORY" in out, out)
+        record("case7: and is NOT ALSO reported over budget (no double report)",
+               "over the 150-line budget" not in out, out)
+
+        craft_151 = os.path.join(craft_dir, "harness-eng-lead.md")
+        n_line_file(craft_151, 151)
+        rc, out = run_cmd([CHECK, craft_151])
+        record("case7: a file already OVER budget does not ALSO get the near-budget "
+               "advisory (they are mutually exclusive ranges)",
+               "ADVISORY" not in out, out)
+
+        repo_dir = os.path.join(d, ".harness", "harness", "expertise")
+        os.makedirs(repo_dir, exist_ok=True)
+        repo_37 = os.path.join(repo_dir, "harness-pm.md")
+        n_line_file(repo_37, 37)
+        rc, out = run_cmd([CHECK, repo_37])
+        record("case7: a 37-line repository-tier file (3 lines of headroom) gets an "
+               "ADVISORY naming the 40-line budget",
+               "ADVISORY" in out and "40-line budget" in out, out)
+
+        repo_30 = os.path.join(repo_dir, "harness-validator-lead.md")
+        n_line_file(repo_30, 30)
+        rc, out = run_cmd([CHECK, repo_30])
+        no_advisory = not any(l.startswith("ADVISORY") for l in out.splitlines())
+        record("case7: a 30-line repository-tier file gets NO advisory",
+               no_advisory, out)
+
+        # THE HAPPY PATH: a genuinely well-formed, clean file that is also near budget
+        # still reports OK and exits 0 — the advisory is visible, never blocking.
+        happy = os.path.join(craft_dir, "harness-backend-dev.md")
+        entry = "- P-01: WHEN a thing happens DO the other thing.\n"
+        body = ("# Expertise — harness-backend-dev\n\n## Patterns (max 15)\n"
+               + entry * 13
+               + "\n" * 118
+               + "## Gotchas (max 15)\n\n## Outcomes (max 10)\n\n## Open (max 5)\n")
+        open(happy, "w").write(body)
+        line_count = len(body.splitlines())
+        rc, out = run_cmd([CHECK, happy])
+        record(f"case7: a genuinely CLEAN near-budget file ({line_count} lines) still "
+               "reports OK and exits 0, with the advisory visible",
+               rc == 0 and "OK " in out and "ADVISORY" in out, out)
+
+
     # ---- case 6: budget by tier under a bare-path invocation (the abspath discriminator) ----
     with tempfile.TemporaryDirectory() as d:
         repo_dir = os.path.join(d, ".harness", "harness", "expertise")

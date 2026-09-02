@@ -15,6 +15,9 @@
 #     (the spawn hook truncates there); classified by the resolved absolute path
 #   - CRAFT-tier files only: an ADVISORY (never blocking) scan for repository-specific
 #     tokens (DEC-NN, .harness/, check-*.sh, ...) — see issue 340
+#   - both tiers: an ADVISORY (never blocking) once a file is within 10% of its own
+#     line budget — the only signal below that fires while there is still headroom
+#     to displace an entry rather than overflow (issue #613)
 #
 # Exit 0 = all files clean. Exit 1 = violations (listed). Exit 2 = usage error.
 set -uo pipefail
@@ -39,6 +42,11 @@ import re, sys, os
 CAPS = {"Patterns": 15, "Gotchas": 15, "Outcomes": 10, "Open": 5}
 CRAFT_LINE_BUDGET = 150
 REPO_LINE_BUDGET = 40
+# Issue #613: "near budget" is within 1/NEAR_BUDGET_FRACTION of the tier's own line
+# budget (150//10 = 15 lines of headroom for craft, 40//10 = 4 for repo) — fixed data,
+# not re-derived per call, so the threshold means the same thing for every file this
+# script checks.
+NEAR_BUDGET_FRACTION = 10
 WORD_CAP = 50
 SECTION_RE = re.compile(r"^## (\w+)(?: \(max (\d+)\))?\s*$")
 ENTRY_RE = re.compile(r"^- ([A-Z]{1,3}-\d+): ")
@@ -77,6 +85,23 @@ for path in sys.argv[1:]:
 
     if len(lines) > line_budget:
         problems.append(f"{len(lines)} lines — over the {line_budget}-line budget (the spawn hook truncates the rest)")
+
+    # Issue #613: the ONLY signal above is a hard failure once the file is ALREADY over
+    # budget — the first warning arrived after inject-expertise.sh had already truncated
+    # the tail from every spawn. A file caught here, three lines under 150, still has
+    # room to DISPLACE an entry before the next distillation pushes it over; that
+    # headroom is exactly what this advisory exists to spend while it still exists.
+    # NEAR_BUDGET_FRACTION mirrors CRAFT_LINE_BUDGET/REPO_LINE_BUDGET as fixed data
+    # (never re-derived per call) so "near" means the same thing everywhere this
+    # script runs. Applies to BOTH tiers — a repo-tier file is truncated by the exact
+    # same mechanism (inject-expertise.sh caps both), so its headroom is just as real.
+    near_budget_threshold = line_budget - line_budget // NEAR_BUDGET_FRACTION
+    if near_budget_threshold <= len(lines) <= line_budget:
+        advisories.append(
+            f"ADVISORY {path}: {len(lines)} lines of a {line_budget}-line budget "
+            f"({line_budget - len(lines)} of headroom) — the next entry must "
+            f"DISPLACE an existing one, not append (issue #613).")
+
 
     # --- TITLE (B-10). This file is injected whole into its agent's context at every
     # spawn, so line 1 is what tells the agent whose memory it is reading. A missing
