@@ -111,6 +111,20 @@ def run_cases():
     check("a missing file blocks rather than silently passing as clean",
           r.returncode == 1 and "not a readable file" in r.stderr, f"rc={r.returncode}")
 
+    # ---- FALSE-POSITIVE REGRESSION (code review of PR #1189): the unanchored
+    # sk-[A-Za-z0-9-]{16,} branch matched ordinary kebab-case text — "task-runner-
+    # for-this-project", "ask-your-teammate-about-this-config" — any word ending
+    # `-sk` followed by 16+ more hyphen/alnum characters, which saturates a
+    # captured transcript. The anchor `(^|[^A-Za-z0-9])` must let this stay clean.
+    kebab = write(tmp, "kebab.txt",
+                  "task-runner-for-this-project\n"
+                  "ask-your-teammate-about-this-config-value\n"
+                  "please-desk-check-the-risk-assessment-document\n")
+    r = fire(kebab)
+    check("ordinary kebab-case text (task-/ask-/desk-/risk-...) is NOT a false "
+          "positive after anchoring the sk- branch",
+          r.returncode == 0 and "clean" in r.stdout, f"rc={r.returncode} {r.stdout!r}")
+
     return clean, anthropic_key
 
 
@@ -118,10 +132,12 @@ def run_positive_control_red_proof():
     """The script's OWN positive controls must actually discriminate: if the secret
     pattern is broken, the script must refuse to run at all (exit 2), never silently
     report every file clean. Proven by mutating SECRET_PATTERN to a pattern that
-    cannot match its own control value."""
+    cannot match any of its own control values."""
     with open(GUARD, encoding="utf-8") as f:
         source = f.read()
-    anchor = "SECRET_PATTERN='credential_pin|-----BEGIN|AKIA[0-9A-Z]{16}|sk-ant-|sk-[A-Za-z0-9-]{16,}|(ghp|gho|github_pat|xox[abp])[-_][A-Za-z0-9]{8}'"
+    anchor = ("SECRET_PATTERN='credential_pin|-----BEGIN|AKIA[0-9A-Z]{16}|"
+             "(^|[^A-Za-z0-9])sk-ant-|(^|[^A-Za-z0-9])sk-[A-Za-z0-9-]{16,}|"
+             "(ghp|gho|github_pat|xox[abp])[-_][A-Za-z0-9]{8}'")
     if anchor not in source:
         check("positive-control-red", False,
               "INCONCLUSIVE: SECRET_PATTERN anchor not found by its source text")
@@ -151,14 +167,14 @@ def run_positive_control_red_proof():
 
 
 def run_sk_ant_red_proof():
-    """RED-proof of the actual #981 fix: revert SECRET_PATTERN to the ORIGINAL
-    broken shape (`sk[-_][A-Za-z0-9]{8}`, no hyphens allowed) and confirm the exact
-    Anthropic key from the real case above is silently accepted as clean — proving
-    this suite's first case would have caught the historical defect, and that the
-    fix (not merely the test) is what closes it."""
+    """RED-proof of the actual #981 fix: revert SECRET_PATTERN's sk- branches to the
+    ORIGINAL broken shape (`sk[-_][A-Za-z0-9]{8}`, no hyphens allowed, unanchored)
+    and confirm the exact Anthropic key from the real case above is silently
+    accepted as clean — proving this suite's first case would have caught the
+    historical defect, and that the fix (not merely the test) is what closes it."""
     with open(GUARD, encoding="utf-8") as f:
         source = f.read()
-    fixed = "sk-ant-|sk-[A-Za-z0-9-]{16,}"
+    fixed = "(^|[^A-Za-z0-9])sk-ant-|(^|[^A-Za-z0-9])sk-[A-Za-z0-9-]{16,}"
     original_broken = "(sk|ghp|gho|github_pat|xox[abp])[-_][A-Za-z0-9]{8}"
     if fixed not in source:
         check("sk-ant-red", False,
@@ -167,12 +183,15 @@ def run_sk_ant_red_proof():
     reverted = source.replace(
         fixed + "|(ghp|gho|github_pat|xox[abp])[-_][A-Za-z0-9]{8}",
         original_broken, 1)
-    # The mutant's OWN positive control must still fire — its purpose here is to
-    # prove the FILE check silently passes, not to trip the (still-correct, and
-    # already separately proven) positive-control safeguard.
+    # The mutant's OWN positive controls for the two sk- branches must still pass —
+    # their purpose here is to prove the FILE check silently passes, not to trip the
+    # (still-correct, and already separately proven) positive-control safeguard.
     reverted = reverted.replace(
-        'control_secret="sk-ant-api03-THIS-IS-A-SYNTHETIC-CONTROL-VALUE-NOT-A-REAL-KEY"',
-        'control_secret="sk-AbCdEfGh12345678synthetic"', 1)
+        '"sk-ant-api03-THIS-IS-A-SYNTHETIC-CONTROL-VALUE-NOT-A-REAL-KEY"',
+        '"sk-AbCdEfGh12345678synthetic1"', 1)
+    reverted = reverted.replace(
+        '"sk-proj-AbCdEfGh-1234-5678-XyZ9"',
+        '"sk-AbCdEfGh12345678synthetic2"', 1)
     if reverted == source:
         check("sk-ant-red", False, "INCONCLUSIVE: mutant is byte-identical")
         return
@@ -196,7 +215,6 @@ def run_sk_ant_red_proof():
             os.unlink(mutant)
         except OSError:
             pass
-
 
 def main():
     run_cases()

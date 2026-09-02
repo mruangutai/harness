@@ -39,9 +39,15 @@ set -uo pipefail
 # `sk-ant-api03-...` and `sk-proj-...` both match; `sk-ant-` is named explicitly on
 # top of it so even a short, truncated fragment (no 16 characters yet typed) still
 # trips the check — belt and suspenders on the credential this project is most likely
-# to leak. The GitHub/AWS/PEM branches are unchanged from the original sweep; they
-# were never the defect.
-SECRET_PATTERN='credential_pin|-----BEGIN|AKIA[0-9A-Z]{16}|sk-ant-|sk-[A-Za-z0-9-]{16,}|(ghp|gho|github_pat|xox[abp])[-_][A-Za-z0-9]{8}'
+# to leak. BOTH sk- branches are ANCHORED with `(^|[^A-Za-z0-9])` (code review of
+# #1189): unanchored, `sk-[A-Za-z0-9-]{16,}` false-positives on ordinary kebab-case
+# text saturating a captured transcript — "task-runner-for-this-project",
+# "ask-your-teammate-about-this" — any word ending `-sk` followed by 16+ more
+# hyphen/alnum characters. Real key material is never preceded by another
+# alphanumeric character, so the anchor costs nothing on true positives. The
+# GitHub/AWS/PEM branches are unchanged from the original sweep; they were never
+# the defect.
+SECRET_PATTERN='credential_pin|-----BEGIN|AKIA[0-9A-Z]{16}|(^|[^A-Za-z0-9])sk-ant-|(^|[^A-Za-z0-9])sk-[A-Za-z0-9-]{16,}|(ghp|gho|github_pat|xox[abp])[-_][A-Za-z0-9]{8}'
 
 # THE IDENTITY PATTERN. An absolute home-directory shape, not `$(whoami)`: fires
 # regardless of who runs the check or which machine the capture was taken on, because
@@ -57,22 +63,43 @@ usage() {
 [ "$#" -ge 1 ] || usage
 
 # POSITIVE CONTROLS, run once, before any file is checked. A synthetic string built
-# from each pattern must be found BY that pattern, or the sweep itself is broken and
-# every downstream "clean" is unearned.
-control_secret="sk-ant-api03-THIS-IS-A-SYNTHETIC-CONTROL-VALUE-NOT-A-REAL-KEY"
-if ! printf '%s\n' "$control_secret" | grep -qE "$SECRET_PATTERN"; then
-  echo "check-fixture-secrets: POSITIVE CONTROL FAILED — the secret pattern does not" >&2
-  echo "  match its own synthetic Anthropic-shaped control value. The sweep cannot be" >&2
-  echo "  trusted; fix the pattern before checking any file with it." >&2
-  exit 2
-fi
-control_home="/Users/example-synthetic-control-user/scratch.txt"
-if ! printf '%s\n' "$control_home" | grep -qE "$HOME_PATH_PATTERN"; then
-  echo "check-fixture-secrets: POSITIVE CONTROL FAILED — the home-directory pattern" >&2
-  echo "  does not match its own synthetic control path. The sweep cannot be trusted;" >&2
-  echo "  fix the pattern before checking any file with it." >&2
-  exit 2
-fi
+# from EVERY alternation branch must be found BY that branch, or the sweep itself is
+# broken and every downstream "clean" is unearned. Code review of #1189: the original
+# cut self-checked only 2 of 6 branches (sk-ant-, home-path); a broken AKIA/PEM/
+# GitHub-token/credential_pin branch would have shipped with no runtime signal, only
+# CI's separate test suite. Every branch gets its own control now, checked separately
+# so a failure names WHICH branch broke, not just "the pattern".
+_control_fail=0
+_check_control() {
+  # $1: label  $2: pattern  $3: control value  $4: extra guidance
+  if ! printf '%s\n' "$3" | grep -qE "$2"; then
+    echo "check-fixture-secrets: POSITIVE CONTROL FAILED — the $1 pattern does not" >&2
+    echo "  match its own synthetic control value ($3). $4" >&2
+    _control_fail=1
+  fi
+}
+_check_control "sk-ant- key" "$SECRET_PATTERN" \
+  "sk-ant-api03-THIS-IS-A-SYNTHETIC-CONTROL-VALUE-NOT-A-REAL-KEY" \
+  "The sweep cannot be trusted; fix the pattern before checking any file with it."
+_check_control "hyphenated sk- key" "$SECRET_PATTERN" \
+  "sk-proj-AbCdEfGh-1234-5678-XyZ9" \
+  "The sweep cannot be trusted; fix the pattern before checking any file with it."
+_check_control "AWS access key id" "$SECRET_PATTERN" \
+  "AKIA$(printf 'A%.0s' $(seq 1 16))" \
+  "The AWS branch cannot be trusted; fix the pattern before checking any file with it."
+_check_control "PEM private key header" "$SECRET_PATTERN" \
+  "-----BEGIN PRIVATE KEY-----" \
+  "The PEM branch cannot be trusted; fix the pattern before checking any file with it."
+_check_control "GitHub token" "$SECRET_PATTERN" \
+  "ghp_ABCDEFGH12345678" \
+  "The GitHub-token branch cannot be trusted; fix the pattern before checking any file with it."
+_check_control "credential_pin literal" "$SECRET_PATTERN" \
+  "credential_pin=xyz" \
+  "The credential_pin branch cannot be trusted; fix the pattern before checking any file with it."
+_check_control "home-directory" "$HOME_PATH_PATTERN" \
+  "/Users/example-synthetic-control-user/scratch.txt" \
+  "The identity check cannot be trusted; fix the pattern before checking any file with it."
+[ "$_control_fail" -eq 0 ] || exit 2
 
 failures=0
 for f in "$@"; do
@@ -96,5 +123,5 @@ done
 if [ "$failures" -gt 0 ]; then
   exit 1
 fi
-echo "check-fixture-secrets: clean — $# file(s) checked, both positive controls fired."
+echo "check-fixture-secrets: clean — $# file(s) checked, all positive controls fired."
 exit 0
