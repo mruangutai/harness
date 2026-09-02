@@ -93,8 +93,8 @@ decisions:
     because: measured at this repo, 753 of 975 commit subjects carry no harness prefix at all, so silent dropping would misreport three quarters of the work.
     dec: DEC-155
   - id: D-14
-    choice: Cycle time starts at plan.yaml approval.date, day granularity, and ends at the shipped_at of the feature's trend record.
-    because: approval.date is written structurally by plan-merge.py sign-approval and is populated for 41 of 54 features, so no prose needs parsing.
+    choice: Cycle time starts at the feature's BRIEF.md approval date - the date value in its Approval section, read only when that section's status is approved - day granularity, and ends at the shipped_at of the feature's trend record.
+    because: 'REQ-03 and the grilling both name BRIEF approval, so a plan-approval origin measures a different quantity than the one the requirement commits to, and the plan moves rather than the requirement; the earlier argument for plan.yaml approval.date was convenience - it is written structurally by plan-merge.py sign-approval so no prose needs parsing - and convenience does not buy a different measurement. The BRIEF carrier is also the better populated of the two and needs no new field and no new ceremony: it is filled with status and approved-by at the existing signature act (templates/BRIEF.md Approval section). Measured 2026-09-02 in the main checkout at e74e0880 by a python3 scan of every .harness/*/features/*/BRIEF.md Approval section - 47 BRIEF.md files exist, 43 carry status approved with a YYYY-MM-DD date, 2 are approved with an empty date and 2 are pending - against 31 of the same 58 feature directories carrying a dated plan-side approval, being 24 in plan.yaml approval.date plus 7 in a pre-DEC-182 PLAN.md Approval section. The read is a sectioned key-value parse for which precedent already exists in this tree - has_approval_block in .claude/skills/harness/bin/check-state.sh locates and reads exactly this block, and parse_brief in .claude/skills/harness/bin/gh-sync.py already sections BRIEF.md - so no implementer needs to invent a parser shape.'
     dec: DEC-182
   - id: D-15
     choice: An escaped defect is a BUG-NN feature unit whose directory first appears in the window, plus any commit whose subject begins Revert on the default branch; subjects beginning fix are excluded.
@@ -113,7 +113,7 @@ decisions:
     because: fixing the schema now is what lets the reader distinguish a genuine zero from an absent measurement without guessing.
     dec: none
   - id: D-19
-    choice: Any value that cannot be computed is emitted as null with an entry in the sibling unavailable map whose value is a SPECIFIC SENTENCE naming the reason - no approval date in plan.yaml, never no data; zero is reserved for a measured zero; and a missing value is never interpolated and never substituted from a neighbouring feature.
+    choice: Any value that cannot be computed is emitted as null with an entry in the sibling unavailable map whose value is a SPECIFIC SENTENCE naming the reason - no approval date in the feature's BRIEF.md, never no data; zero is reserved for a measured zero; and a missing value is never interpolated and never substituted from a neighbouring feature.
     because: REQ-11, SC-07 and DESIGN S-4 all rest on one mechanism, and two mechanisms would drift. The specific-sentence clause and the no-substitution clause live HERE because T-06, T-10, T-11 and T-14 all cite this decision as their authority; with them stated only inside T-06's intent, a reader who consulted the named authority alone got a weaker rule than the one the code implements.
     dec: none
   - id: D-20
@@ -122,10 +122,36 @@ decisions:
     dec: none
 
   - id: D-21
-    choice: A touchpoint count is a measured zero only for a POST-INSTRUMENTATION feature, decided by a computable predicate - the project carries .harness/metrics/instrumented_at holding one RFC3339 UTC instant, written once by touchpoints.py record() on its first call in that project and never rewritten, and the feature's own start instant (plan.yaml approval.date, else the author date of the first commit that added its feature directory) is at or after that instant; every other feature, including every feature in a project carrying no epoch file at all, reports null with a D-19 specific-sentence reason and never 0.
-    because: 'an absent touchpoints.jsonl is ambiguous by construction - it is both a tracked run in which nothing blocked and a feature that shipped before the counter existed - and at this repository about 50 features are the second kind with 41 of them carrying a signed approval date, so the unscoped rule fabricates exactly the launch-day autonomy tile D-19 forbids; the predicate lives HERE and not inside T-11''s intent because D-19 already exists for that reason, a rule stated only in a task''s intent gave every other reader a weaker contract than the code implements, and a prose test such as features that predate this feature is not computable at all; the epoch file is chosen over a harness.json key or a git log over touchpoints.py because it self-installs in any onboarded project with no harness-init change, and it fails closed - no epoch means nothing in that project is a measurement. THE EPOCH''S DURABILITY IS AN ACCEPTED RISK, recorded rather than closed: nothing commits .harness/metrics/instrumented_at and no task can, because check-domain.sh --resolve answers NOBODY for that path so no lane may write it, and record() creates it at runtime inside whichever worktree runs first (DEC-95), where a reclamation of that worktree takes it and the next record() writes a later instant. WHAT MOVES IF IT IS LOST - every feature whose start instant falls before the new epoch flips from branch 4 to branch 3 and reports unavailable-never-tracked in place of its measured count, which is loss of a measurement in the SAFE direction D-19 mandates and never a fabricated zero: a feature could only report a zero it did not measure if its own touchpoints.jsonl were lost while its start instant stayed after the epoch, and a worktree reclamation takes the epoch and that feature''s touchpoints.jsonl together, so that combination is unreachable. T-11''s branch-1 case, a project carrying no instrumented_at file reporting every feature unavailable, is the assertion that pins the post-loss state.'
+    choice: A touchpoint count is a measured zero only for a POST-INSTRUMENTATION feature, decided by a computable predicate - the project carries .harness/metrics/instrumented_at holding one RFC3339 UTC instant, written once by touchpoints.py record() on its first call in that project and never rewritten, and the feature's own start instant (the BRIEF.md approval date per D-14, else the author date of the first commit that added its feature directory) is at or after that instant; every other feature, including every feature in a project carrying no epoch file at all, reports null with a D-19 specific-sentence reason and never 0.
+    because: 'an absent touchpoints.jsonl is ambiguous by construction - it is both a tracked run in which nothing blocked and a feature that shipped before the counter existed - and at this repository every existing feature is the second kind: measured 2026-09-02 in the main checkout at e74e0880, 58 feature directories exist under .harness/*/features/, none of them carries a touchpoints.jsonl, and 43 of them carry a signed BRIEF approval date, so the unscoped rule fabricates exactly the launch-day autonomy tile D-19 forbids; the predicate lives HERE and not inside T-11''s intent because D-19 already exists for that reason, a rule stated only in a task''s intent gave every other reader a weaker contract than the code implements, and a prose test such as features that predate this feature is not computable at all; the epoch file is chosen over a harness.json key or a git log over touchpoints.py because it self-installs in any onboarded project with no harness-init change, and it fails closed - no epoch means nothing in that project is a measurement. THE EPOCH''S DURABILITY: D-22 settles it. .harness/metrics/instrumented_at is a committed record, not scratch, and the step whose execution first creates it commits it in the same act, so a second clone of the repository inherits the epoch rather than writing a later one - the fabricated-zero case a clone opened is closed. THE RESIDUAL RISK, recorded rather than closed: record() creates the file at runtime inside whichever worktree runs first (DEC-95), so a reclamation of that worktree between the create and the commit landing takes it, and the next record() writes a later instant. WHAT MOVES IF IT IS LOST - every feature whose start instant falls before the new epoch flips from branch 4 to branch 3 and reports unavailable-never-tracked in place of its measured count, which is loss of a measurement in the SAFE direction D-19 mandates and never a fabricated zero: a feature could only report a zero it did not measure if its own touchpoints.jsonl were lost while its start instant stayed after the epoch, and a worktree reclamation takes the epoch and that feature''s touchpoints.jsonl together, so that combination is unreachable. T-11''s branch-1 case, a project carrying no instrumented_at file reporting every feature unavailable, is the assertion that pins the post-loss state.'
     dec: none
 
+  - id: D-22
+    choice: >-
+      The two files touchpoints.py creates at runtime - .harness/metrics/instrumented_at and each
+      feature's touchpoints.jsonl - are COMMITTED records, never gitignored and never treated as
+      ephemeral scratch, and the step whose execution first creates or appends them commits them in
+      the same act; that step is T-20's three recorded instructions, and no other task owns it.
+    because: >-
+      measured 2026-09-02 in the FEAT-53 worktree on branch feat/FEAT-53, git check-ignore -v exits 1
+      with no output for .harness/metrics/instrumented_at, .harness/metrics/trend.jsonl and a
+      feature's touchpoints.jsonl, and .gitignore carries no metrics line at all, so today's
+      non-ignore is accidental - this decision makes it deliberate and names the committer. Both
+      directions are unsafe. An ignore rule over the epoch lets a second clone write a LATER instant,
+      and a feature whose start instant falls after that fabricated epoch then reports a measured
+      zero, which is exactly the fabrication D-21 exists to prevent. Leaving a created file
+      uncommitted dirties the tree, and a dirty tree halts the next team run - the same failure
+      .harness/features/*/runs/** is ignored to prevent, arrived at from the other side. Committing
+      at the moment of creation, rather than seeding the epoch from a task of its own, is the weakest
+      sufficient form: D-21 gives record() sole authorship of the epoch, so an agent-authored seed
+      would add a second writer to the one marker that separates a tracked project from an untracked
+      one. The stated disposition lives in .claude/skills/harness/templates/gitignore.snippet because
+      that is the distributed copy every onboarded project receives; merge-gitignore.sh strips comment
+      lines when it merges (it greps them out by leading hash), so a target .gitignore never receives
+      the sentence, and T-02 therefore gates this repository's side with git check-ignore rather than
+      with a comment. Fixture trees under dashboard/fixtures/ are outside this rule: T-11 writes there,
+      not at the real project root.
+    dec: none
 tasks:
   - id: T-01
     title: Grant harness-frontend-dev the dashboard client subtree in team-config.yaml
@@ -161,7 +187,7 @@ tasks:
       - .claude/skills/harness/templates/gitignore.snippet
       - .gitignore
     verify: |
-      bash .claude/skills/harness/bin/merge-gitignore.sh . --check && git check-ignore -q .claude/skills/harness/bin/dashboard/client/node_modules/react/package.json && git check-ignore -q .claude/skills/harness/bin/dashboard/client/.vite/x
+      bash .claude/skills/harness/bin/merge-gitignore.sh . --check && git check-ignore -q .claude/skills/harness/bin/dashboard/client/node_modules/react/package.json && git check-ignore -q .claude/skills/harness/bin/dashboard/client/.vite/x && grep -q instrumented_at .claude/skills/harness/templates/gitignore.snippet && grep -q 'touchpoints[.]jsonl' .claude/skills/harness/templates/gitignore.snippet && python3 -c "import subprocess,sys;bad=[p for p in ('.harness/metrics/instrumented_at','.harness/harness/features/FEAT-53-metrics-dashboard/touchpoints.jsonl') if subprocess.run(['git','check-ignore','-q',p]).returncode!=1];sys.exit('ignored or unresolvable, must stay committed records (D-22): '+repr(bad) if bad else 0)"
     intent: |
       Add exactly two rules to .claude/skills/harness/templates/gitignore.snippet, with a comment
       saying an installed dependency tree dirties the working tree and a dirty tree halts the next
@@ -172,6 +198,19 @@ tasks:
       so this repository's own .gitignore receives the same two rules under the harness marker block.
       Do NOT ignore the dist/ directory: the built bundle is committed on purpose (D-04), and an
       ignore rule over it would silently untrack the one artifact REQ-01 depends on.
+      Then add a THIRD thing to the snippet, which adds no ignore rule but RECORDS a disposition
+      (D-22): a comment naming .harness/metrics/instrumented_at and each feature's touchpoints.jsonl
+      and saying they are deliberately NOT ignored because they are committed records - an ignore rule
+      over the epoch would let a second clone write a later instant, and a feature starting after that
+      fabricated epoch would report a measured zero, which is exactly what D-21 exists to prevent. Add
+      NO rule for either path; the comment is the whole of it. Today's non-ignore is accidental - git
+      check-ignore matches neither path and .gitignore carries no metrics line - and this comment is
+      what makes it deliberate.
+      Know the mechanism before you place it: merge-gitignore.sh merges only the snippet's RULE lines
+      and greps its comment lines out, so this sentence stays in the snippet and this repository's own
+      .gitignore never receives it. That is why the verify gates the repository side by asserting git
+      check-ignore does not match those two paths, rather than by grepping .gitignore for a comment
+      that will never be there.
   - id: T-03
     title: Pre-declare the two integration test literals in harness.json integration.detect
     traces: [REQ-01, REQ-10]
@@ -357,7 +396,18 @@ tasks:
       It resolves EVERYTHING from project_root and reads no path relative to the process cwd and no
       value from this repository: the feature directories are project_root/.harness/*/features/*,
       each carrying feature.json (feature_id, branch, pr, review_sha, cycles_used,
-      max_total_cycles, runs) and plan.yaml (approval.status, approval.date).
+      max_total_cycles, runs), BRIEF.md (its Approval section, which is where the approval date lives -
+      D-14) and plan.yaml (its tasks, which T-09 reads).
+      Read the approval date out of BRIEF.md, never out of plan.yaml: locate the file's Approval
+      section, require its status value to be approved, and take its date value. Accept YYYY-MM-DD,
+      which is the only form observed in this tree, and read a date-only value as 00:00:00Z wherever an
+      instant rather than a day is needed. Do not invent a parser shape - has_approval_block in
+      .claude/skills/harness/bin/check-state.sh already locates and reads exactly this block, and
+      parse_brief in .claude/skills/harness/bin/gh-sync.py already sections BRIEF.md; follow one of
+      them. An absent BRIEF.md, an absent Approval section, a status that is not approved, and an empty
+      or unparseable date are ALL gap states, not crashes: route each to that feature's unavailable map
+      with its own reason sentence. That branch is LIVE, not theoretical - measured 2026-09-02 in this
+      repository, 2 of 47 BRIEF.md files are approved with an empty date and 2 are still pending.
       Read every plan.yaml through harness_yaml.load_plan from
       .claude/skills/harness/bin/harness_yaml.py, never a bare yaml.safe_load: that module exists
       because a from-scratch parse failed on 35 of 36 real task blocks for reasons an author would
@@ -377,10 +427,10 @@ tasks:
       unavailable reason "not yet implemented"; later tasks replace them.
       THE UNAVAILABILITY CONTRACT, which every later task obeys: a value that cannot be computed is
       null AND carries an entry in its object's sibling unavailable map whose value is a specific
-      sentence - "no approval date in plan.yaml", not "no data". Zero is written only for a measured
-      zero. Never interpolate and never substitute a neighbouring feature's value.
-      Throughput per feature: cycle_time_days = shipped_at minus approval.date in days, where
-      approved_on comes from plan.yaml approval.date (D-14) and shipped_at from the feature's trend
+      sentence - "no approval date in the feature's BRIEF.md", not "no data". Zero is written only for
+      a measured zero. Never interpolate and never substitute a neighbouring feature's value.
+      Throughput per feature: approved_on is that BRIEF approval date, cycle_time_days = shipped_at
+      minus approved_on in days (D-14), and shipped_at comes from the feature's trend
       record when one exists, else null with reason "no ship record for this feature". Aggregate
       throughput is the MEDIAN over features with both ends present, plus the count of features
       excluded and why. runs is len(feature.json runs); change size is insertions, deletions and
@@ -399,9 +449,10 @@ tasks:
       for throughput and outside it for attribution, a silent cross-KPI inconsistency no
       fixture-local test would catch.
       Build fixture project-a under dashboard/fixtures/ - its own .harness/ tree with three feature
-      directories whose ids do not exist in this repository, one of them with no approval date and
-      one with no ship record, and a hand-written expected-values JSON beside it. The tests assert
-      against the HAND-LABELLED numbers, never against a second call of the same code.
+      directories whose ids do not exist in this repository, one of them whose BRIEF carries no usable
+      approval date (an Approval section with an empty date value, the form 2 real features here
+      already have) and one with no ship record, and a hand-written expected-values JSON beside it.
+      The tests assert against the HAND-LABELLED numbers, never against a second call of the same code.
       Register test-metrics-kpi.py in run-unit-tests.sh UNIT_SCRIPTS. Do not add it to harness.json.
       Every function must grade at or above its bar under code-grade.py.
   - id: T-07
@@ -562,7 +613,9 @@ tasks:
     intent: |
       Write the failing tests first. trend.py owns the only write in this whole feature.
       RECORD (D-18), one JSON object per line, keys sorted, no trailing spaces, exactly one newline:
-        schema "trend/1", feature_id, shipped_at (RFC3339 UTC), approved_on (YYYY-MM-DD or null),
+        schema "trend/1", feature_id, shipped_at (RFC3339 UTC), approved_on (YYYY-MM-DD or null - it is
+        the feature's BRIEF approval date, D-14 owns that meaning and kpi.py is its only source here,
+        so do not re-derive it and do not read plan.yaml for it),
         cycle_time_days (float or null), runs, cycles_used, max_total_cycles,
         insertions, deletions, files_changed, touchpoints (int or null),
         grade {graded_functions, at_or_above_bar, bins, grade_1, grade_2, ungraded_files,
@@ -639,32 +692,37 @@ tasks:
         project_root/.harness/<repo>/features/<feature_id>/touchpoints.jsonl, creating the file on
         first use. Append only; it never rewrites the file. On its FIRST call in a project it also
         writes the instrumentation epoch (below) if that file is absent, and never rewrites it.
+        Both files are committed records, not scratch (D-22); the step that CALLS record() owns the
+        commit (T-20), and record() itself never runs git.
         instrumentation_epoch(project_root) returns the single RFC3339 UTC instant on the first line
         of project_root/.harness/metrics/instrumented_at, or None when that file is absent. This is
         the ONLY marker that separates a tracked project from an untracked one. It is written by
         record() alone, at runtime; NO agent authors it, no task lists it in files, and no dashboard
         route can reach it (REQ-13).
-        feature_start(project_root, feature_id) is that feature's own start instant - plan.yaml
-        approval.date read through harness_yaml.load_plan when present, else the author date of the
+        feature_start(project_root, feature_id) is that feature's own start instant - the feature's
+        BRIEF.md approval date (D-14: the date value in its Approval section, read only when that
+        section's status is approved, a date-only value read as 00:00:00Z), else the author date of the
         first commit that added the feature directory
         (git -C <root> log --diff-filter=A --format=%aI -1 -- <feature dir>), else None.
+        It reads no approval date out of plan.yaml.
         count(project_root, feature_id) returns a PAIR (value, reason) and is the whole of D-21.
         Four branches, in this order, and a zero is reachable through the last one only:
           1. instrumentation_epoch is None -> (None, "touchpoints were not tracked in this project -
              no .harness/metrics/instrumented_at epoch exists, so no count here is a measurement").
           2. feature_start is None -> (None, "touchpoints cannot be dated for this feature - it has
-             neither an approval date in plan.yaml nor a commit that added its directory, so
+             neither an approval date in its BRIEF.md nor a commit that added its directory, so
              pre-instrumentation and post-instrumentation cannot be told apart").
           3. feature_start is strictly before the epoch -> (None, "this feature predates touchpoint
              instrumentation in this project - touchpoints were never tracked for it"). Compare
-             instants in UTC; a date-only approval.date is read as 00:00:00Z on that date.
+             instants in UTC; a date-only BRIEF approval date is read as 00:00:00Z on that date.
           4. otherwise POST-INSTRUMENTATION -> (the number of lines in that feature's
              touchpoints.jsonl, None), and 0 for an absent file, which here IS a measured zero -
              a tracked run in which no blocking touchpoint happened.
         Each reason above is a D-19 specific sentence and goes in the unavailable map verbatim;
-        "no data" is not one of them. Measured at this repository about 50 features predate this
-        capability and 41 of them carry a signed approval date, so branch 3 is the common case at
-        launch and an unscoped branch 4 would fabricate the whole launch-day autonomy tile.
+        "no data" is not one of them. Measured 2026-09-02 in this repository, all 58 existing feature
+        directories predate this capability and 43 of them carry a signed BRIEF approval date, so
+        branch 3 is the common case at launch and an unscoped branch 4 would fabricate the whole
+        launch-day autonomy tile.
       The three counted events, and no others: approval_request (the user is asked to sign a BRIEF
       or a plan), escalation (an ESCALATE or awaiting_user reaches the user), uat_request (the user
       is asked to execute a UAT). Reject any other event name with a non-zero exit naming the three.
@@ -681,17 +739,20 @@ tasks:
       Extend test-metrics-trend.py with these cases, and print each ok line with the case label
       given here VERBATIM, because T-11's verify greps for exactly these two strings:
         "touchpoints post-instrumentation absent file is zero" - a fixture project carrying an
-        instrumented_at epoch and a feature whose approval.date is AFTER it, with no
+        instrumented_at epoch and a feature whose BRIEF approval date is AFTER it, with no
         touchpoints.jsonl at all, reports 0 and carries NO entry in the unavailable map.
         "touchpoints pre-instrumentation is unavailable not zero" - the same fixture project with a
-        feature whose approval.date is BEFORE the epoch reports None, carries the branch-3 sentence
-        in the unavailable map, and its value is asserted to be not 0 and not "0".
+        feature whose BRIEF approval date is BEFORE the epoch reports None, carries the branch-3
+        sentence in the unavailable map, and its value is asserted to be not 0 and not "0".
       Also assert, as their own cases: a project with NO instrumented_at file reports every feature
-      through branch 1; a feature with neither an approval date nor an adding commit reports through
-      branch 2; a simulated run recording two touchpoints reports 2 and the shipped trend record
-      carries 2; a run recording none, in an instrumented project, reports 0; an unknown event name
-      exits non-zero and writes nothing; and record()'s first call in a fresh project creates
+      through branch 1; a feature with neither a BRIEF approval date nor an adding commit reports
+      through branch 2; a simulated run recording two touchpoints reports 2 and the shipped trend
+      record carries 2; a run recording none, in an instrumented project, reports 0; an unknown event
+      name exits non-zero and writes nothing; and record()'s first call in a fresh project creates
       instrumented_at while a second call leaves its bytes unchanged.
+      Every fixture project this task builds lives under dashboard/fixtures/ and its files are the
+      fixture's own, never this repository's .harness/metrics/ or feature directories - D-22's commit
+      rule is about the real project root and does not reach fixture trees.
       Add one assertion to test-metrics-kpi.py as well: for fixture project-a, the per-feature
       touchpoints value, the aggregate mean, the count at zero and the count not tracked in
       kpi.compute()'s payload match the hand-labelled numbers, with at least one fixture feature on
@@ -912,7 +973,10 @@ tasks:
     change_type: scaffolding
     execution_mode: team
     execution_agent: harness-dev-ops
-    depends_on: [T-12, T-15]
+    depends_on:
+    - T-12
+    - T-15
+    - T-21
     status: ready
     files:
       - .claude/skills/harness/bin/dashboard/client/dist/index.html
@@ -930,6 +994,11 @@ tasks:
       whole dist tree. dist must NOT be gitignored - T-02 deliberately ignored only node_modules
       and the vite cache, and an ignore rule over dist would silently untrack the one artifact REQ-01
       depends on. Confirm with git ls-files that index.html and every asset are tracked.
+      This task runs AFTER T-21, which is why T-21 is a dependency here and not merely earlier in the
+      list: the bundle must be built from source that already has the charts mounted into the panels,
+      and a bundle built before that mount ships a chartless dashboard which no later task rebuilds.
+      T-22 is deliberately NOT a dependency - it adapts the render gate to the suite and to CI and
+      changes no client source, so it cannot change the bundle's bytes.
       Assert the bundle is a single JS chunk with no source map, and report its byte size in your
       DIGEST. If it exceeds 2 MB, stop and report rather than committing it.
       Then run python3 .claude/skills/harness/bin/dashboard/serve.py --check and confirm it exits 0
@@ -1006,7 +1075,9 @@ tasks:
       a transient gap state but the dashboard's permanent state for every feature, including ones
       shipped after this lands. REQ-10 would ship as a correct, unused library. Close that.
       Add record_ship(project_root, feature_dir) to trend.py. It assembles ONE record in D-18's shape
-      for that feature - approved_on, cycle_time_days, runs, cycles_used, max_total_cycles,
+      for that feature - approved_on (the feature's BRIEF approval date, D-14; take it from kpi.py's
+      per-feature field and never re-derive it, and never read plan.yaml for it), cycle_time_days,
+      runs, cycles_used, max_total_cycles,
       insertions, deletions and files_changed from kpi.py's per-feature fields, the grade object from
       grading.distribution, the attribution object from attribution.by_tier, touchpoints from
       touchpoints.count(), and shipped_at as the current RFC3339 UTC instant - then calls append().
@@ -1019,7 +1090,8 @@ tasks:
       ship-retry case and is not an error worth aborting on either.
       Add to test-metrics-kpi.py: record_ship builds the record fixture project-a's hand-labelled
       values predict, field by field, with an uncomputable field appearing as null plus a reason and
-      never as 0.
+      never as 0. Include the fixture feature whose BRIEF carries no usable approval date: its
+      approved_on and cycle_time_days are both null with reasons, never 0.
       Add to test-metrics-trend.py: a simulated ship against fixture project-a appends exactly one
       line whose feature_id and touchpoint count match the fixture, and a second ship of the same
       feature is refused rather than appending a second line. Demonstrate the failing state first -
@@ -1039,7 +1111,7 @@ tasks:
       - .claude/commands/harness.md
       - .claude/skills/harness-uat/SKILL.md
     verify: |
-      python3 -c "import pathlib,sys;m={'.claude/commands/harness-plan.md':'approval_request','.claude/commands/harness.md':'escalation','.claude/skills/harness-uat/SKILL.md':'uat_request'};bad=[p for p,e in m.items() if 'touchpoints.py record' not in pathlib.Path(p).read_text() or e not in pathlib.Path(p).read_text()];sys.exit('no touchpoint record instruction in: '+repr(bad) if bad else 0)"
+      python3 -c "import pathlib,sys;m={'.claude/commands/harness-plan.md':'approval_request','.claude/commands/harness.md':'escalation','.claude/skills/harness-uat/SKILL.md':'uat_request'};bad=[p for p,e in m.items() if any(s not in pathlib.Path(p).read_text() for s in ('touchpoints.py record', e, 'git add', 'instrumented_at'))];sys.exit('no record-and-commit instruction (D-22) in: '+repr(bad) if bad else 0)"
     intent: |
       touchpoints.py's record() has NO CALL SITE anywhere in this plan: T-11 builds it, kpi.py reads
       count(), and nothing ever writes a line. Left alone the instrumentation epoch is never written
@@ -1060,6 +1132,14 @@ tasks:
         python3 .claude/skills/harness/bin/touchpoints.py record --feature <FEAT> --event <kind>
       run AT the moment, before the user is addressed - never reconstructed afterwards, which is
       exactly what D-16 exists to forbid.
+      THIS TASK OWNS THE COMMIT OF THE FILES record() CREATES (D-22), and no other task does. Each of
+      the three instructions is one act with two steps: run the command, then git add and commit what
+      it wrote - the feature's touchpoints.jsonl, plus .harness/metrics/instrumented_at on the first
+      call in a project, which is the call that creates it. Write the git add and the commit into the
+      instruction itself, naming both paths, so the tree is never left dirty by a recorded touchpoint
+      and the epoch reaches the default branch rather than living untracked in one worktree. Do NOT
+      seed or hand-author the epoch file in this task: D-21 gives record() sole authorship of it, and a
+      second writer to that one marker is what D-21 forbids. record() itself never runs git.
       Change nothing else in any of the three files: one instruction each, in the surrounding style.
       This is main-session-direct because all three files resolve to NOBODY, not because the work is
       the main session's by nature.
