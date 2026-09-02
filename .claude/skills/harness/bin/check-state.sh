@@ -193,7 +193,20 @@ for _p in glob.glob(os.path.join(H, "*", "features", "*", "plan.yaml")):
 # rather than chased, per this invariant's own asymmetric design (a false deny is recoverable,
 # a false allow is not, so what remains unchecked here is a false ALLOW risk and is named as
 # such rather than left implicit).
-_KEY_PREFIX = re.compile(r"^\s*(?:-\s+)?(?:[A-Za-z_][A-Za-z0-9_]*:\s+)?")
+#
+# THE KEY ITSELF CAN BE QUOTED OR HYPHENATED, and `_KEY_PREFIX` must recognise both or the
+# strip fails silently in the dangerous direction. A validator's second pass (cycle 2, PR
+# #1145) proved this live: an earlier cut matched only a bare identifier key, so a quoted key
+# (`"my-key": value #217`) fell through the optional key group entirely, and
+# `_unquoted_hash_digit` then read the key's OWN opening quote as `value[0]`, tracked to the
+# key's own closing quote, and returned None -- silently swallowing the real truncation that
+# followed. `_KEY_PREFIX` now recognises three key shapes: a bare identifier (now including
+# `-`, since a hyphenated unquoted key hit the same fall-through in the block-scalar-open
+# direction, a false POSITIVE rather than a silence but the same root cause), a
+# double-quoted key, or a single-quoted key.
+_KEY_PREFIX = re.compile(
+    r'^\s*(?:-\s+)?(?:(?:[A-Za-z_][A-Za-z0-9_-]*|"[^"]*"|\'[^\']*\'):\s+)?'
+)
 _BLOCK_SCALAR_VALUE = re.compile(r"^[|>][+\-]?\d*\s*(#.*)?$")
 
 
