@@ -184,6 +184,7 @@ teams:
         domain:
           - { path: src/**, upsert: true }               # seeded by /harness-init
           - { path: .claude/skills/harness/bin/**, upsert: true }   # this repo's authored harness source (FEAT-02 Q3)
+          - { path: tests/**, upsert: true }              # tests/** — harness's own tests (FEAT-47)
           - { path: .harness/*/features/*/notes/receipt-harness-backend-dev-*.md, upsert: true }   # its verification receipt (B-7)
           - { path: .harness/expertise/harness-backend-dev.md, upsert: true }
           - { path: .harness/*/expertise/harness-backend-dev.md, upsert: true }  # repository tier, 40-line budget
@@ -225,6 +226,7 @@ teams:
           - { path: Dockerfile, upsert: true }
           - { path: .harness/harness.json, upsert: true }
           - { path: .claude/skills/harness/bin/**, upsert: true }   # this repo's authored harness source (FEAT-02 Q3)
+          - { path: tests/**, upsert: true }              # tests/** — harness's own tests (FEAT-47)
           - { path: .harness/*/features/*/notes/receipt-harness-dev-ops-*.md, upsert: true }   # its verification receipt (B-7)
           - { path: .harness/expertise/harness-dev-ops.md, upsert: true }
           - { path: .harness/*/expertise/harness-dev-ops.md, upsert: true }  # repository tier, 40-line budget

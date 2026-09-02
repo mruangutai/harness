@@ -43,6 +43,7 @@ COLLECT_FIXTURE = {
         [
             "src/**",
             ".claude/skills/harness/bin/**",
+            "tests/**",
             ".harness/*/features/*/notes/receipt-harness-backend-dev-*.md",
             ".harness/expertise/harness-backend-dev.md",
             ".harness/*/expertise/harness-backend-dev.md",
@@ -56,6 +57,7 @@ COLLECT_FIXTURE = {
             "Dockerfile",
             ".harness/harness.json",
             ".claude/skills/harness/bin/**",
+            "tests/**",
             ".harness/*/features/*/notes/receipt-harness-dev-ops-*.md",
             ".harness/expertise/harness-dev-ops.md",
             ".harness/*/expertise/harness-dev-ops.md",
