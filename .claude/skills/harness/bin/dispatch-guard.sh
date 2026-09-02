@@ -149,7 +149,9 @@ try:
     if tools_match is None:
         raise ValueError("no tools key")
     has_bash = bool(re.search(r"(?m)^\s*-\s*bash\s*$", tools_match.group(1)))
-except Exception:
+except Exception as exc:
+    print("dispatch-guard: could not read tool grants for %s (%s) -- passing through."
+          % (dispatched, exc), file=sys.stderr)
     has_bash = True
 
 if not has_bash:
