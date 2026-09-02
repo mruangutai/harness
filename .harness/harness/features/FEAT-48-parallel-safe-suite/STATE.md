@@ -3,75 +3,84 @@
 ## Current
 
 - feature: FEAT-48-parallel-safe-suite
-- run: none — no squad ran this session
-- squad: none
-- status: blocked — routing
+- run: 2026-09-02-16-validator (FAIL), 2026-09-02-17-product (FAIL) — validate phase COMPLETE
+- squad: validator, then product
+- status: in_review — **not shippable**, one bounded main-session-direct fix outstanding
 
-**The build phase did not start, and the reason is structural, not a failure.** All six executable
-tasks (and abandoned T-07) carry `execution_mode: main-session-direct` under DEC-174's
-enforcement-layer carve-out. `references/github-mirror.md:32-34` assigns those to the **main
-session**: *"Phases the main session holds itself: plan, ship acceptance, and any
-main-session-direct segment."* There is no `team` task in this plan, so an orchestrator has nothing
-to sequence and no lead has anything to route. Measured, not inferred: `check-domain.sh` exits 2
-for `harness-orchestrator` on `.claude/skills/harness/bin/**`, `.harness/harness.json` and
-`DECISIONS.md` — 8 of the 9 task surfaces. Dispatching a lead anyway would be the team run DEC-174
-forbids, against a signed `lanes:` block that declares the carve-out. Handed back for direct
-execution: `notes/handoff-build.md`.
+Station `review`. Validate ran to completion and reached a defensible verdict: **the feature is
+nine-tenths done and the missing tenth is a test that was specified, approved, and not written.**
 
-Station stays `ready`; no task was moved to `building`, no `gh-sync.py start-task` was run,
-`review_sha` stays `none`, `cycles_used` stays 6 (no rework occurred), and no run was recorded
-because none happened. Worktree clean at `cd8a0c34`, branch `feat/FEAT-48-parallel-safe-suite`.
+**The blocking result: SC-03 is `unmet`.** `test-suite-independence.py` ships as scanner only —
+180 lines, zero case machinery, `tempfile` imported at :9 and never used, which is the fingerprint
+of dropped fixtures. `plan.yaml` T-03's signed intent block mandates "ITS OWN RED PROOF, in the
+file, so CI keeps proving the guard can fail", enumerating six cases. None was delivered. **The
+scanner itself works** — T-03's verify block re-executed finds all ten `ea6f51f` sites, missing 0,
+extra 0 — so this is a *test-only* remedy, not a code defect, and it is **approved-but-unmet**:
+the signed plan already requires it, so it is a fix cycle and needs no new operator ruling.
+Two independent agents reached this separately (`notes/qa-c7.md`,
+`notes/review-harness-code-reviewer-c7.md`, `notes/research-FEAT-48-goalcheck-validate.md`), and
+I confirmed the absence at source myself.
 
-Work banked this session, so the direct build starts ahead rather than level:
-- **D-10's census scan was executed** — the first time anyone has run it (257s, 61 test files).
-  It reports **13 sites in 6 files** against D-10's dated 8-in-4, and it found
-  `test-validate-digest.py` (3 sites), which no artifact had flagged. `notes/census-d10-2026-09-02.md`.
-- **A standing blocker was disproved.** `gh-sync.py`'s review-station gate already accepts
-  `abandoned`; the open question below that predicted a refusal was stale.
-- FEAT-48 still carries **zero** `check-state.sh` violations.
+**The `qa_gate` PASSES** — `matrix_ok: true`, unit 33/33, integration 30/30, both required kinds
+satisfied. It had never run against this feature's code before now: the build was
+main-session-direct, so no build run exists in `runs:`.
 
-Previously: plan phase COMPLETE and SIGNED (Mike Ruangutai, 2026-09-02, `85900e7f`), both
-`plan.yaml`'s `approval:` and `BRIEF.md`'s `## Approval`. Mirror OPEN: milestone #40, parent #1191,
-sub-issues #1192-#1197 at `ready`, T-07 correctly absent. `panel:` cycle 6 `verdict: PASS`,
-`severity_max: med`, `must_fix: []`, 0 unsatisfiable / 0 under-specified. `fable-advisor` returned
-`approve: "yes"` over nine named residual risks, which the operator accepted. 15 runs against an
-informational `max_total_runs` of 20.
+**The review gate is `high`** (`gates.review: advisory_unless_high`), on findings I verified rather
+than relayed:
+- `run_pool.py --mutation-check` **fails open on symlink-shaped new entries**. My own tempdir probe:
+  a dangling symlink plus a symlinked subdirectory appear under the watched directory and the pool
+  exits **0** with no `MUTATED` line; the control, an ordinary new file, correctly exits 1 with
+  `MUTATED .mutant-x.sh`. T-04's approved intent requires catching a path that "APPEARED, which is
+  the vector the static scan and a git-based watched set both miss" — so this too is
+  approved-but-unmet, not a beyond-spec nicety. SC-10's three enumerated vectors all pass.
+- `code_grade: fail` is the **mechanical** DEC-209 result, not a reviewer opinion:
+  `code-grade.py --base d135364e --head 8e7f56dc` → 18 passing, 7 FAIL (5 grade-1). Both flagged
+  pre-existing functions (`test-check-domain.py:1432 run_schema`,
+  `test-check-fixture-secrets.py:171`) were **modified by this diff**, which is what pulled them
+  into the gated set — the feature did not author their complexity but did touch them.
+- `test-run-pool.py` omits the `__pycache__`-exclusion leg T-04 requires. `run_pool.py:32` excludes
+  it correctly, so this is unpinned behaviour rather than a live defect.
+- `snapshot()` records only `(st_size, st_mtime_ns)`, so a size-preserving overwrite with an exact
+  `os.utime` restore is invisible. A deliberate forge; its remedy is the same disclosure edit.
+
+**`review_sha` re-pinned `b86ce66a` → `8e7f56dc`, and the review target did not move.**
+`check-state.sh` raised INV-33 against the inherited pin: the seam commit rewrote `plan.yaml`
+(`status: ready` → `review`) *after* `b86ce66a` was pinned. Measured: `git diff --stat b86ce66a
+8e7f56dc -- .claude .github` is **empty** and the whole `plan.yaml` delta is that one status line,
+so `8e7f56dc` is a strict superset carrying byte-identical code. INV-6 and INV-33 are now satisfied
+together and FEAT-48 carries **zero** `check-state.sh` findings. This also closed the standing
+SEC-01 blocker, which bound only while no `review_sha` was pinned.
+
+Budgets: `cycles_used` stays **6 of 10**. Both leads reported zero send-backs and no FAIL was routed
+back inside this phase, so counting a cycle here would falsify the record; the fix cycle belongs to
+whoever executes the remedy. 17 runs against an informational `max_total_runs` of 20 — the count is
+a floor, since the entire main-session-direct build appears in it nowhere.
 
 ## Open Questions
 
-- **RESOLVED, and it was stale.** The prior entry predicted `gh-sync.py` would refuse the
-  review-station write while T-07 stands, and called for a one-line fix to land first. It is
-  already fixed: `gh-sync.py:1158-1161` tests membership in `finished_stations()`, which returns
-  `('done', 'abandoned')` (`factory_config.TERMINAL_MARKER`, read live), and the refusal text reads
-  "not every task in plan.yaml is done or abandoned". **No fix needs to land and no hand-sync is
-  needed.**
-
-- **NEW, from the census, and NOT a plan defect.** `test-validate-digest.py` writes three
-  `<pid>`-suffixed files into the live `bin/` and was flagged in no prior artifact.
-  `test-check-fixture-secrets.py` (2 sites) was already flagged. Both sit under the lanes glob, so
-  neither is a D-10 boundary escalation, and the operator's ruling on the first covers the second
-  identically. **T-02's derived run set does not reach either file; T-03's repository-wide walk
-  does, so T-03 cannot ship green until all five are fixed.** The doer names them in its receipt;
-  no plan edit is needed, which is D-10 passing its fourth real test.
-
-- `test-check-domain.py` exited 1 once in 5 runs at `cd8a0c34`, and I could not reproduce it —
-  including under a deliberately concurrent `check-state.sh`. The census discarded the failing
-  output, so the mechanism is **UNVERIFIED and the instrument gap is mine**. T-01's `verify:`
-  demands exit 0 plus an empty `appeared` set, so a doer may read a spurious red; run it on a quiet
-  tree and re-run before concluding failure.
-
-- Whether issue #1053 CLOSES on FEAT-48's ship is a product call the Advisor declined to settle. It
-  settled the evidence question (SC-05's ten `--kind all` runs do exercise `test-gh-sync.py`) and
-  left disposition to the operator; its own recommendation is close on ship, stating the evidence
-  honestly.
-- Issue #1053's `## Scope` still reads "Folded into FEAT-47". No plan task can write an issue body;
-  only the operator's hand fixes it.
-- T-07's exclusion from any expansion rests on prose, not a mechanical guard. It is moot while the
-  build is main-session-direct, and it returns the moment anything expands a task list here.
-- SEC-01, sixth consecutive cycle: `validate-digest.py harness-code-reviewer` refuses every
-  `code_grade` value — `n_a` included — and refuses the key's omission, while `feature.json` has no
-  pinned `review_sha`. Harness defect, no FEAT-48 owner; it binds until `review_sha` pins.
-- `plan-sign-gate.py` does not read the `panel:` key, so a signature can land on a plan whose own
-  last panel word is FAIL. Closed for FEAT-48 by the cycle-6 write; the guard gap is untracked.
-- `{{cycle}}` resolves from no `plan-panel` team input; hand-supplied six cycles running, and the
-  team file's `outputs:` template interpolates it, so a run without it overwrites a prior artifact.
+- **Answered, not escalated.** Both the panel and pm raised SC-03's reading (literal `evidence:
+  unit` vs the build-time verify block). It needs no operator ruling: `plan.yaml` T-03's signed text
+  mandates the in-file proof "asserted as a case rather than only as the exit code".
+- **Needs an operator call.** The symlink fail-open has two remedies: harden `snapshot()`
+  (`os.lstat`, record symlinks, decide `followlinks`), or amend D-11/DEC-211 to disclose the
+  boundary honestly. The default under approved-but-unmet is to deliver what T-04 approved — harden
+  the code — because the alternative edits a signed decision. The `(size, mtime_ns)` forge folds
+  into whichever is chosen.
+- **Needs an operator call.** Whether `code_grade: fail`'s five grade-1 records are remediated
+  inside this feature or split out. Three sit in files the SC-03 fix must edit anyway; two are
+  independent decomposition work.
+- **Backlog, not a gate.** The suite is not independent of the ambient environment: with
+  `HARNESS_AGENT_TYPE` set, `test-plan-merge.py` fails 11 `sign-approval` checks and the whole suite
+  exits 1. Out of FEAT-48's stated scope — REQ-01 covers shared-state *mutation*, REQ-07 covers
+  *order*, neither covers ambient env — and the file is untouched by the diff. It matters
+  operationally: every agent that runs the suite carries that variable.
+- **Backlog, not a gate.** `PASS <file>.py` is not a runner-reserved line shape: six test files
+  print their own summary and the runner prints another, so 63 files yield 69 file-level lines.
+  Pre-existing — `main`'s runner printed `PASS $s` per script identically.
+- **Advisory.** SC-07's failing-file clause is established by composition, not by a gate; no test
+  drives `run-unit-tests.sh` end-to-end with a deliberately failing file.
+- Whether issue #1053 CLOSES on ship remains the operator's call; the Advisor recommended
+  close-on-ship. Issue #1053's `## Scope` still reads "Folded into FEAT-47" and only the operator's
+  hand fixes an issue body.
+- `plan-sign-gate.py` does not read the `panel:` key, so a signature can land on a plan whose last
+  panel word is FAIL. Moot here; the guard gap is untracked.

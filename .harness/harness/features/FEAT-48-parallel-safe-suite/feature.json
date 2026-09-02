@@ -2,7 +2,7 @@
   "feature_id": "FEAT-48-parallel-safe-suite",
   "branch": "feat/FEAT-48-parallel-safe-suite",
   "pr": null,
-  "review_sha": "b86ce66a",
+  "review_sha": "8e7f56dc",
   "cycles_used": 6,
   "max_total_cycles": 10,
   "runs": [
@@ -110,6 +110,18 @@
       "verdict": "PASS",
       "agent": "harness-product-lead",
       "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-02-16-validator",
+      "squad": "validator",
+      "verdict": "FAIL",
+      "agent": "harness-validator-lead"
+    },
+    {
+      "id": "2026-09-02-17-product",
+      "squad": "product",
+      "verdict": "FAIL",
+      "agent": "harness-product-lead"
     }
   ],
   "github": {
