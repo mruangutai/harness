@@ -71,6 +71,33 @@ in-place source edits in the main checkout by design. Run the proof in a disposa
 (`isolation: worktree`, or `git worktree add`); verify the restore with
 `git status --porcelain <path>`, never a read-back.
 
+## Every criterion names its mutant, and its subject (issue #979)
+
+Nine real instances shipped past review because an assertion's subject was not the thing it
+claimed to bind: prose about a mechanism, not the mechanism; a stub, not the collaborator; a
+substring, not the count; a comparison that is false either way, not the operator under test. None
+failed loudly — all read as passing verification while verifying nothing.
+
+**Any criterion claiming to exclude a specific wrong implementation must name the mutant and be
+provable by flipping it.** A signed criterion asserting `>=` where the code only ever exercised
+`>` with a value the comparison is true either way for excludes nothing — measured live: an
+under-threshold test fixture whose value made both `28614 > 200000` and `28614 >= 200000` false,
+so the operator could be swapped and nothing reddened. Before signing off a criterion that names an
+operator, a threshold, or an exclusion, mutate the code to the wrong alternative and confirm the
+named test reddens. This is the single question in this defect class with the most teeth — ask it
+of every new assertion, not only the ones that feel risky.
+
+**Fixture provenance.** A fixture standing in for a nested or externally-produced artifact must
+name what it was captured *from* — depth, shape, or mode. A fixture captured from a main-session
+run is not proof of a nested-subagent path; if the plan or the code needs the nested case, demand a
+fixture that says so, not one that is merely present.
+
+**Measurement mode.** A claim about host or environment behaviour (a resolved package version, a
+binary's location) is only as good as the mode it was measured under — `bun run` and `bun test`
+resolved three different copies of the same package in this project's own history. If a coverage
+gap or an added test depends on measuring the real host, state the mode next to the claim; do not
+accept a claim measured under one execution mode as covering another.
+
 ## You supply the evidence, not the verdict on the goal
 
 `pm` goal-checks success criteria by **collecting** evidence rather than re-testing. For every SC marked
@@ -111,3 +138,4 @@ either to a qa return is the schema leak SC-05 exists to catch.
 | "The command errors, I'll skip that kind" | That is `BLOCKED`, loudly |
 | "Small change, the matrix is overkill" | The matrix is a floor. Size is not a change type |
 | "There's a test in that file already" | Does it exercise *this* behaviour? If not, missing |
+| "The test passes, so the criterion is proven" | Passing is not exclusion. Name the mutant, flip it, confirm it reddens |

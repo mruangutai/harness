@@ -48,6 +48,32 @@ reference that resolved to "valid" instead of blocking, a filter that returned a
 partial match. Both passed their test suites. Ask of every branch: *when this lookup misses, does it
 block or does it sail through?*
 
+**The assertion's subject (issue #979).** Nine real instances shipped past review because each
+one looked like verification and verified nothing — an assertion whose subject was not the thing
+it claimed to bind: prose about a mechanism, not the mechanism; a design document, not the API; a
+stub, not the collaborator; a substring, not the count. None failed loudly. All went green. For
+every new or changed assertion, ask two questions and report a finding if either has no answer:
+
+1. **What subject does this actually bind?** Not what it is near, not what it is named after —
+   the literal thing the assertion reads or executes. A test named `test_omits_deleted_tool` that
+   greps a sentence, not the tool list, binds the sentence.
+2. **What would have to break for this to fail?** If you cannot name a concrete change to the
+   subject that reddens the assertion, it is decoration that reads like proof, not proof. Naming
+   a mutant and confirming it reddens is the strongest form of this answer — the weakest is a
+   plausible English sentence, which is not sufficient on its own for a criterion that claims to
+   exclude a specific wrong implementation.
+
+**Fixture provenance.** A fixture standing in for a nested or externally-produced artifact (a
+captured subagent transcript, a host response, a database snapshot) must say what it was captured
+*from* — depth, shape, or mode — not just that it was captured. "A main-session capture" tested
+green while never exercising the nested-subagent case the feature existed for; a provenance line
+would have said so before the gap shipped.
+
+**Measurement mode.** A claim about host or environment behaviour (a resolved package version, a
+binary's location, a runtime flag) is only as good as the mode it was measured under. `bun run`
+and `bun test` resolved three different copies of the same package in this project's own history.
+State the mode next to the claim.
+
 Do **not** report what a linter catches, and do not restyle to personal preference.
 
 ### Grade changed Python
