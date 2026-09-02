@@ -739,6 +739,39 @@ def case_set_panel_replaces_mapping_and_validates_shape():
         shutil.rmtree(root, ignore_errors=True)
 
 
+def case_amend_structured_list_field():
+    root, plan = fixture_root()
+    try:
+        doc = yaml.safe_load(render_plan(ids(1, 2)))
+        doc["tasks"][0]["files"] = ["one.py"]
+        write(plan, yaml.safe_dump(doc, sort_keys=False))
+
+        shown = run_verb("amend", "--file", plan, "--key", "tasks", "--id", "T-01",
+                         "--field", "files", "--show", "--yaml-value")
+        hash_line = shown.stdout.splitlines()[-1] if shown.stdout.splitlines() else "sha256: missing"
+        value_file = os.path.join(root, "files.yaml")
+        write(value_file, yaml.safe_dump(["one.py", "two.py"], sort_keys=False))
+        replaced = run_verb(
+            "amend", "--file", plan, "--key", "tasks", "--id", "T-01",
+            "--field", "files", "--expect-sha256", hash_line.split(":", 1)[1].strip(),
+            "--value-file", value_file, "--yaml-value",
+        )
+        loaded = yaml.safe_load(read(plan))
+        shown_value = "\n".join(shown.stdout.splitlines()[:-1])
+        check("amend --show emits a structured list value and hash", shown.returncode == 0
+              and yaml.safe_load(shown_value) == ["one.py"],
+              f"rc={shown.returncode} out={shown.stdout!r} err={shown.stderr!r}")
+        check("amend --yaml-value replaces a list field", replaced.returncode == 0
+              and loaded["tasks"][0]["files"] == ["one.py", "two.py"],
+              f"rc={replaced.returncode} err={replaced.stderr!r} "
+              f"files={loaded['tasks'][0].get('files')!r}")
+        check("structured amend leaves sibling tasks intact",
+              len(loaded["tasks"]) == 2 and loaded["tasks"][1]["id"] == "T-02",
+              repr(loaded["tasks"]))
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
 def case_illegal_station_exit_4():
     """Exit 4 BEFORE the lock is taken, so a refused value never opens the file."""
     root, plan = fixture_root()
@@ -1843,6 +1876,7 @@ CASES = (
     case_set_task_station_unknown_id,
     case_set_feature_station_insert_and_replace,
     case_set_panel_replaces_mapping_and_validates_shape,
+    case_amend_structured_list_field,
     case_illegal_station_exit_4,
     case_sign_approval,
     case_sign_approval_inserts_absent_mapping,
