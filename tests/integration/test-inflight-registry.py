@@ -1106,46 +1106,33 @@ def case_35_feature_root_cli():
     )
 
 
-def main():
-    case_1_claim_then_live_claim()
-    case_2_single_flight_and_parallel_asymmetry()
-    case_2b_live_children_by_dispatcher()
-    case_2c_live_children_expires_stale()
-    case_3_staleness_live_claim()
-    case_4_release()
-    case_5_is_single_flight()
-    case_6_refusal_lines()
-    case_6b_children_refusal_lines()
-    case_7_concurrency()
-    case_8_corrupt_registry()
-    case_9_release_all()
-    case_10_no_own_primitive()
-    case_11_ttl_shorter_than_cycle()
-    case_12_foreign_session_expired()
-    case_13_release_refuses_ambiguous()
-    case_14_remedy_is_absolute()
-    case_15_feature_scoped_single_flight()
-    case_16_omp_claim_lives_with_supervisor()
-    case_17_targeted_release_keeps_other_feature()
-    case_18_legacy_registry_migrates_on_write()
-    case_19_attach_and_release_by_runtime_identity()
-    case_20_reconcile_only_target_feature()
-    case_21_live_query_does_not_expire_another_feature()
-    case_22_recycled_supervisor_pid_is_not_alive()
-    case_23_verified_claim_never_ages_out()
-    case_24_unverifiable_claim_cannot_strand_forever()
-    case_25_stranded_child_does_not_hold_its_parent()
-    case_26_start_time_read_pins_the_c_locale()
-    case_27_non_finite_start_time_cannot_strand_the_registry()
-    case_28_featureless_claim_still_gets_a_remedy()
-    case_29_orphan_write()
-    case_30_own_claim_is_not_orphan_write()
-    case_31_no_live_claim_fails_open()
-    case_32_sessionless_claim_is_visible()
-    case_33_orphan_write_omp_runtime_is_never_orphaned()
-    case_34_children_refusal_names_suspension()
+CASES = (
+    case_1_claim_then_live_claim, case_2_single_flight_and_parallel_asymmetry,
+    case_2b_live_children_by_dispatcher, case_2c_live_children_expires_stale,
+    case_3_staleness_live_claim, case_4_release, case_5_is_single_flight,
+    case_6_refusal_lines, case_6b_children_refusal_lines, case_7_concurrency,
+    case_8_corrupt_registry, case_9_release_all, case_10_no_own_primitive,
+    case_11_ttl_shorter_than_cycle, case_12_foreign_session_expired,
+    case_13_release_refuses_ambiguous, case_14_remedy_is_absolute,
+    case_15_feature_scoped_single_flight, case_16_omp_claim_lives_with_supervisor,
+    case_17_targeted_release_keeps_other_feature, case_18_legacy_registry_migrates_on_write,
+    case_19_attach_and_release_by_runtime_identity, case_20_reconcile_only_target_feature,
+    case_21_live_query_does_not_expire_another_feature,
+    case_22_recycled_supervisor_pid_is_not_alive, case_23_verified_claim_never_ages_out,
+    case_24_unverifiable_claim_cannot_strand_forever,
+    case_25_stranded_child_does_not_hold_its_parent,
+    case_26_start_time_read_pins_the_c_locale,
+    case_27_non_finite_start_time_cannot_strand_the_registry,
+    case_28_featureless_claim_still_gets_a_remedy, case_29_orphan_write,
+    case_30_own_claim_is_not_orphan_write, case_31_no_live_claim_fails_open,
+    case_32_sessionless_claim_is_visible, case_33_orphan_write_omp_runtime_is_never_orphaned,
+    case_34_children_refusal_names_suspension, case_35_feature_root_cli,
+)
 
-    case_35_feature_root_cli()
+
+def main():
+    for case in CASES:
+        case()
     failed = [r for r in RESULTS if not r[1]]
     if failed:
         print(f"FAIL - {len(failed)}/{len(RESULTS)} checks failed")
