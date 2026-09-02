@@ -3,39 +3,55 @@
 ## Current
 
 - feature: FEAT-48-parallel-safe-suite
-- run: .harness/harness/features/FEAT-48-parallel-safe-suite/runs/2026-09-01-02-validator/state.yaml
+- run: .harness/harness/features/FEAT-48-parallel-safe-suite/runs/2026-09-01-10-validator/state.yaml
 - squad: validator
 - status: awaiting-user
 
-Plan phase, post-rebase re-review cycle 4, complete. The branch was rebased onto `origin/main`
-(`38dd3622`); tip `a80d54a5`. Cycles 0-3 all graded pre-rebase trees (`d5c23a0` and earlier, whose
-base was `75daa3bb` — `git merge-base d5c23a0 origin/main`), so cycle 3's PASS is void as evidence
-about the current tip.
+Plan phase complete and **signable**. Branch `feat/FEAT-48-parallel-safe-suite`, rebased onto
+`origin/main` `a93a1df9`. The plan graded by cycle 6 is `047f6914`; the signature commit follows.
 
-Cycle 4 verdict: **not signable.** One `high` open finding (`PF-58719ff7b430616b91b5a7cfe49bde10`),
-two `med`, five `low`, all recorded in `plan.yaml`'s `panel:` key with disposition `open`. Under
-DEC-176 they go to the operator's one batched signature review; no pre-signature fix was dispatched.
+`plan.yaml`'s `panel:` key records **cycle 6**: `verdict: PASS`, `severity_max: med`,
+`must_fix: []`, satisfiability sweep 0 unsatisfiable / 0 under-specified (prior yields 2, 2, 0, 2,
+0-with-1). Sixteen findings, all `disposition: open`, none above `med`, so INV-32 gates nothing.
+`fable-advisor` returned `approve: "yes"` with nine named residual risks. `approval.status` stays
+`pending` — only the main session signs (DEC-120).
 
 Log:
-- 2026-08-31: plan station set to `plan`; six tasks moved off the non-vocabulary value `pending` to
-  station `plan` (the FEAT-41 one-station-vocabulary rule).
-- 2026-08-31: feature.json repaired — the schema-illegal `status` key removed (it moved to
-  plan.yaml under FEAT-41), the four prior validator runs recorded with `code_grade: n_a`
-  (DEC-207/BUG-1080), and `cycles_used` set from the recorded FAIL count.
-- 2026-09-01: cycle 4 — product goal-check (FAIL), plan-panel both readers ran (FAIL, high),
-  panel transcribed into `plan.yaml`. `cycles_used` 5 of 10.
+- 2026-08-31: cycles 0-3 (panel FAIL/FAIL/FAIL/PASS), all against pre-rebase trees.
+- 2026-09-01: cycle 4 post-rebase re-review — goal-check FAIL, panel FAIL at `high`. Operator sent
+  the plan back rather than overruling `PF-58719ff7b430616b91b5a7cfe49bde10`.
+- 2026-09-01: cycle 5 — D-10's enumerated census became a derived build-time procedure; T-07
+  superseded into T-02 and stationed `abandoned`, closing the T-03 ordering hole on the
+  `depends_on` edge T-03 already carried. Panel PASS.
+- 2026-09-01: cycle 6 — rebased onto current `main`, which the derived census absorbed with no plan
+  edit (a 60th test file, a 193rd decision, 21 changed plan-relevant files, zero amends forced).
+  Operator directed remaining design questions to the Advisor; three of its recommendations were
+  applied and ten findings routed to backlog. Final panel PASS.
+- 2026-09-01: `panel:` replaced with cycle 6's record via `plan-merge.py set-panel` — the route did
+  not exist for cycles 4 and 5, which is why the key had been stale at cycle 4 (FAIL/high).
+
+`cycles_used` 6 of 10; 15 runs recorded against an informational `max_total_runs` of 20 — a long
+plan phase, and each run resolved findings rather than repeating them.
 
 ## Open Questions
 
-- SEC-01, third consecutive cycle: `validate-digest.py harness-code-reviewer` refuses every
+- Whether issue #1053 CLOSES on FEAT-48's ship is a product call the Advisor declined to settle: it
+  settled the evidence question (SC-05's ten `--kind all` runs do exercise `test-gh-sync.py`, so a
+  persisting symptom does fail a criterion) and left the disposition to the operator. Its own
+  recommendation if asked: close on ship, stating the evidence honestly.
+- Issue #1053's `## Scope` still reads "Folded into FEAT-47". No plan task can write an issue body;
+  only the operator's hand fixes it.
+- `gh-sync.py:1152` requires every task `status == "done"` before the review-station write, with no
+  exemption for `abandoned`, so it will refuse for this feature while T-07 stands. The one-line fix
+  (test membership in `finished_stations()`) must land before FEAT-48 reaches station review, or the
+  operator hand-syncs. **No plan field, task, criterion or issue tracks that ordering.**
+- T-07's exclusion from `build.yaml`'s `steps_from` expansion rests on prose and convention, not a
+  mechanical guard. Confirm the exclusion at build-dispatch time.
+- SEC-01, sixth consecutive cycle: `validate-digest.py harness-code-reviewer` refuses every
   `code_grade` value — `n_a` included — and refuses the key's omission, while `feature.json` has no
-  pinned `review_sha`. A pre-signature code reviewer therefore cannot return a validating digest.
-  Blocked: the `scope` reader of `plan-panel`, on every plan-phase run. Harness defect, no FEAT-48
-  owner.
-- `{{cycle}}` resolves from no `plan-panel` team input and has been hand-supplied four cycles
-  running; the team file's `outputs:` template interpolates it, so a run without it overwrites a
-  prior cycle's artifact. Harness defect, no FEAT-48 owner.
-- INV-26's not-started exemption names only the `ready` station, so a plan at `plan` or `backlog` —
-  both legal FEAT-41 stations meaning not-started — trips a hard violation demanding
-  `gh-sync.py open`, which `references/github-mirror.md:38` says runs only after the approval gate
-  passes. Blocked: nothing; the gate is red on an unsigned plan. Harness defect, no FEAT-48 owner.
+  pinned `review_sha`. The build phase will run under it until a `review_sha` is pinned. Harness
+  defect, no FEAT-48 owner.
+- `plan-sign-gate.py` does not read the `panel:` key, so a signature can land on a plan whose own
+  last panel word is FAIL. Closed for FEAT-48 by the cycle-6 write; the guard gap is untracked.
+- `{{cycle}}` resolves from no `plan-panel` team input; hand-supplied six cycles running, and the
+  team file's `outputs:` template interpolates it, so a run without it overwrites a prior artifact.

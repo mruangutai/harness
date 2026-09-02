@@ -1,50 +1,55 @@
-# Handoff — FEAT-48-parallel-safe-suite, plan → operator signature gate — written at 32b6370d, seq-4
+# Handoff — FEAT-48-parallel-safe-suite, plan → signature then build — written at 047f6914, seq-6
 
 ## Next
 
-Nothing dispatches until the operator rules. Present `plan.yaml`'s `panel:` key as the one
-batched signature review (DEC-176): eight open findings, `severity_max: high`. Signature MUST
-carry either an `approval.rulings` overrule of `PF-58719ff7b430616b91b5a7cfe49bde10` by name, or
-a send-back. On a send-back the next dispatch is `harness-product-lead` → pm, re-planning D-10,
-T-01, T-02 and T-06 in ONE pass, with the census-shape decision (`PF-d6f80211bcb8f4748…`, med)
-settled FIRST because it changes what the F-01 repair is. That re-plan resets approval to pending
-and runs the panel again as cycle 5.
+Main signs: `plan-merge.py sign-approval` on
+`.harness/harness/features/FEAT-48-parallel-safe-suite/plan.yaml`, pre-authorised by the operator
+against `fable-advisor`'s `approve: "yes"`. **`BRIEF.md`'s own `## Approval` is also `pending` and
+both must read approved before any ship-mission orchestrator will start** (INV-3, and the ship
+step-0 gate). Then station the tasks `ready` and run `gh-sync.py open` — the mirror opens only
+after the approval gate passes (`references/github-mirror.md:38`), which is why INV-26 is red now.
+Build order is the plan's own DAG: T-01 → T-02 → T-03 → T-04 → T-06 → T-05. **T-07 is `abandoned`
+and must NOT be dispatched** — its exclusion is prose, not a mechanical guard, so exclude it by
+hand when choosing the task set for `eng-lead`.
 
 ## Trust
 
-- The panel record in `plan.yaml` is complete and machine-checkable: 8 findings, 3 readers all
-  `ran`, `last_run: 2026-09-01-02-validator` — `plan.yaml:1036-1150`; `check-state.sh` INV-32
-  raises nothing against it — verified-at 32b6370d
-- Cycle 3's PASS is void as evidence about this tip: the three F-01 site groups are ABSENT at
-  `d5c23a0` (what cycle 3 graded) and PRESENT at the tip — `git show d5c23a0:.claude/skills/harness/bin/test-bash-write-guard.py | grep -c feat50` → 0, tip → 1 — verified-at 32b6370d
-- The three F-01 site groups exist at source: `test-bash-write-guard.py:898-901`,
-  `test-check-domain.py:3285-3288`, `test-check-state.py:3591-3613` — verified-at a80d54a5
-- SEC-01 blocks any pre-signature code-reviewer digest: `validate-digest.py harness-code-reviewer`
-  refuses every `code_grade` value AND its omission while `review_sha` is `none` — measured
-  directly against a probe digest — verified-at a80d54a5
-- pm's aggregate "20 live sites over 59 files" is ONE measurement plus one derivation, not two —
-  `runs/2026-09-01-02-validator/digest.md` adequacy note A3 — UNVERIFIED
-- T-03's verify was never executed against any tree; F-01's T-03 leg is derivation only, because
-  the scanner does not exist yet — same digest, note A1 — UNVERIFIED
+- Plan is signable: `panel:` records cycle 6 `PASS`, `severity_max: med`, 16 findings all open and
+  none above med, three readers all `ran` — `plan.yaml` `panel:`; `check-state.sh` INV-32 silent —
+  verified-at 047f6914
+- Advisor's `approve: "yes"` with nine residual risks —
+  `runs/2026-09-01-10-validator/digest.md` `## Advisor recommendation` — verified-at 047f6914
+- The derived census is real, not cosmetic: a rebase adding a 60th test file and a 193rd decision
+  across 21 plan-relevant files forced zero plan edits — `git diff --stat 38dd3622 a93a1df9` —
+  verified-at 047f6914
+- Cycle 4's gating high is closed per-FILE, so anchor drift inside an owned file cannot reopen it;
+  only a hazard in a file no task owns can — `runs/2026-09-01-10-validator/digest.md` —
+  verified-at 047f6914
+- T-02's verify fails unless `absorbed` is non-empty, and `absorbed` derives from T-07 being
+  present, `abandoned`, and naming T-02. **Editing T-07's `status` or `depends_on` reddens T-02** —
+  `plan.yaml:492`, derivation `:464-467` — verified-at 047f6914
+- `gh-sync.py:1152` will refuse the review-station write while T-07 stands —
+  `check-state.sh`-independent, read at source by the validator lead — UNVERIFIED by me
+- The 0/0 satisfiability sweep had ONE sweeper; cycle 5's bare 0 from the same reader missed a case
+  the goal-check caught, and the goal-check did not re-run this cycle —
+  `runs/2026-09-01-10-validator/digest.md` adequacy note 1 — UNVERIFIED
 
 ## Dead ends
 
-- Do NOT re-derive whether `plan-merge.py`/`test-plan-merge.py` (BUG-1128, +827 lines on the
-  rebase) invalidates the plan: `grep -c "plan-merge" plan.yaml` → 0 and the added lines hold no
-  live-tree mutation site — `runs/2026-09-01-02-validator/digest.md`, "Assessed and dismissed",
-  item 6 — verified-at a80d54a5
-- Do NOT re-open the FEAT-47 fold: #1053's "Folded into FEAT-47" is superseded bilaterally by
-  FEAT-47 D-13 and FEAT-48 D-09 — `notes/research-FEAT-48-goalcheck-plan-c4.md` §2 —
-  verified-at a80d54a5
-- Do NOT run `gh-sync.py open` to silence INV-26: the mirror opens only after the approval gate
-  passes — `.agents/skills/harness/references/github-mirror.md:38` — verified-at a80d54a5
-- Do NOT pin `review_sha` to unblock SEC-01: INV-6 forbids a pin before the Building → Review
-  seam, which is the deadlock BUG-1080 closed — orchestrator playbook, step 6 — verified-at 32b6370d
+- Do NOT dissolve T-07 or grow T-02's `files:`: `amend --yaml-value` replaces a field and cannot
+  delete an item, so every variant leaves T-07 in the file and no tool observes a difference —
+  `runs/2026-09-01-08-validator/digest.md` Q1 — verified-at 047f6914
+- Do NOT re-date the stale numerals (59 files, 192/DEC-209, 117 files) on a rebase: that is the rot
+  treadmill D-10 abolished — same digest, Q4 — verified-at 047f6914
+- Do NOT add a closure criterion for #1053: SC-05's ten `--kind all` runs already exercise
+  `test-gh-sync.py` (`run-unit-tests.sh:31`, `:44`) — same digest, Q2 — verified-at 047f6914
+- Do NOT expect a pre-`review_sha` code-reviewer digest to validate: SEC-01 refuses every
+  `code_grade` including `n_a`, measured at this tip — `validate-digest.py` — verified-at 047f6914
 
 ## Working set
 
-- `.harness/harness/features/FEAT-48-parallel-safe-suite/plan.yaml` (`panel:` at :1036)
-- `.harness/harness/features/FEAT-48-parallel-safe-suite/notes/research-FEAT-48-goalcheck-plan-c4.md`
-- `.harness/harness/features/FEAT-48-parallel-safe-suite/notes/review-harness-code-reviewer-planpanel-c4.md`
-- `.harness/harness/features/FEAT-48-parallel-safe-suite/runs/2026-09-01-02-validator/digest.md`
+- `.harness/harness/features/FEAT-48-parallel-safe-suite/plan.yaml` (`panel:` and the seven tasks)
+- `.harness/harness/features/FEAT-48-parallel-safe-suite/BRIEF.md` (`## Approval` still pending)
+- `.harness/harness/features/FEAT-48-parallel-safe-suite/runs/2026-09-01-10-validator/digest.md`
+- `.harness/harness/features/FEAT-48-parallel-safe-suite/runs/2026-09-01-08-validator/digest.md`
 - `.harness/harness/features/FEAT-48-parallel-safe-suite/STATE.md`
