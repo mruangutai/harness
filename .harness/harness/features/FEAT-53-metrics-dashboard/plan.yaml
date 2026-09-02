@@ -1504,12 +1504,14 @@ tasks:
 #
 # Open questions for the tier above are in the DIGEST, not here.
 panel:
-  last_run: 2026-09-01-08-validator
-  cycle: 2
+  last_run: 2026-09-02-02-validator
+  cycle: 3
   readers:
   - reader: should-not-exist
+    persona: fable-advisor
     status: ran
   - reader: scope
+    persona: harness-code-reviewer
     status: ran
   findings:
   - id: PF-328f8f3cf2485de796e819decb0475aa
@@ -1595,7 +1597,11 @@ panel:
     summary: T-16 (plan.yaml:909) builds and commits the production dist bundle but
       depends only on T-12 and T-15, so the bundle can be committed before T-21 (plan.yaml:1066)
       mounts the chart and no later task reruns npm run build
-    disposition: open
+    disposition: resolved
+    resolved_by: T-16
+    note: Operator ruling Q1 FIX (notes/answers-2026-09-01-plan-signature-c2.md);
+      T-16 depends_on now carries T-21, and both cycle-3 readers independently confirmed
+      closure, scope by a mechanical 22/22 acyclic graph check
   - id: PF-3b85f18809cf5c4ad01b9008e1eace1c
     cycle: 2
     severity: med
@@ -1605,7 +1611,12 @@ panel:
       by any task or covered by T-02''s ignore set (templates/gitignore.snippet:8-11),
       so an untracked marker dirties the tree and a second clone writes a later epoch
       and reports a fabricated zero'
-    disposition: open
+    disposition: resolved
+    resolved_by: D-22
+    note: 'Operator ruling Q3 FIX B-11: D-22 with T-02 and T-20 closes this for its
+      two named paths only, .harness/metrics/instrumented_at and the per-feature touchpoints.jsonl;
+      the same defect shape survives at .harness/metrics/trend.jsonl and is carried
+      forward as cycle-3 finding V-1'
   - id: PF-0f3f4101447923844b00515e7312ce0e
     cycle: 2
     severity: med
@@ -1615,7 +1626,9 @@ panel:
       tests.yml while T-22 lists it (plan.yaml:1168) and adds flask to that job (plan.yaml:1217-1221),
       and plan.yaml:1339-1341 quotes T-21''s verify as the reporter=verbose grep form
       while live T-21.verify (plan.yaml:1078-1080) is the reporter=json form'
-    disposition: open
+    disposition: backlog
+    note: Briefing row B-12 (notes/ship-review-2026-09-01-plan-c2.md); operator accepted
+      it as backlog in the pass-2 ruling Q3, labeled Dashboard
   - id: PF-aa9c41f6ef1f6c977d02645dc095d2d5
     cycle: 2
     severity: med
@@ -1624,7 +1637,9 @@ panel:
       but its aggregate not-tracked-count clause is asserted only in test-metrics-kpi.py,
       which T-06 registers in UNIT_SCRIPTS (plan.yaml:405) per T-11's intent (plan.yaml:695-699),
       so that clause has no integration-kind assertion under CI's split (.github/workflows/tests.yml:83-92)
-    disposition: open
+    disposition: backlog
+    note: Briefing row B-13 (notes/ship-review-2026-09-01-plan-c2.md); operator accepted
+      it as backlog in the pass-2 ruling Q3, labeled Dashboard
   - id: PF-ed0712ea279a7c0ba45f4acb3ce97f6e
     cycle: 2
     severity: low
@@ -1633,4 +1648,42 @@ panel:
       bare actions/checkout@v4 (.github/workflows/tests.yml:50), so the timed permanent
       integration case measures the fast unavailable-with-reason branches rather than
       the real per-request cost D-09 stakes its no-cache deferral on
+    disposition: backlog
+    note: Briefing row B-14 (notes/ship-review-2026-09-01-plan-c2.md); operator accepted
+      it as backlog in the pass-2 ruling Q3, labeled Dashboard
+  - id: V-1
+    cycle: 3
+    severity: high
+    reader: should-not-exist
+    summary: No task, decision or lane names a committer for .harness/metrics/trend.jsonl;
+      D-22 scopes to the two touchpoints files and closes 'no other task owns it'.
+    disposition: open
+  - id: V-2
+    cycle: 3
+    severity: med
+    reader: scope + should-not-exist
+    summary: 'The BRIEF ## Approval date parse has two independent authors (kpi.py
+      T-06, touchpoints.py T-11) and no cited precedent that reads a date at all.'
+    disposition: open
+  - id: V-3
+    cycle: 3
+    severity: med
+    reader: scope
+    summary: T-06 names four gap-state branches and fixtures only the empty-date one
+      (plan.yaml:451-454).
+    disposition: open
+  - id: V-4
+    cycle: 3
+    severity: med
+    reader: should-not-exist
+    summary: T-11's mutating fixture cases (record() append, epoch creation) state
+      no copy-to-temp discipline while writing under the committed dashboard/fixtures/
+      tree.
+    disposition: open
+  - id: V-5
+    cycle: 3
+    severity: low
+    reader: should-not-exist
+    summary: D-21's at-or-after predicate compares a 00:00:00Z date-only start against
+      an intra-day epoch, so a same-calendar-day feature reads as pre-instrumentation.
     disposition: open

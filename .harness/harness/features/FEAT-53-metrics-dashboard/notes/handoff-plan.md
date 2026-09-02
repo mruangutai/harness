@@ -1,52 +1,35 @@
-# Handoff — FEAT-53-metrics-dashboard, plan → build — written at 9bb833f1, seq-8
+# Handoff — FEAT-53, plan → plan (pass 4) — written at ba5b4a50+, seq-3
 
 ## Next
 
-Do not dispatch a build segment and do not fix the open panel finding. The plan is unsigned and the
-cycle-2 panel returned FAIL at high, so the next act is the operator's: read
-`notes/ship-review-2026-09-01-plan-c2.md` and rule on four things — the high finding `PF-45518258`
-(one `depends_on` line on `T-16`), the cycle-time origin (Option A changes `D-14`/`T-06`/`D-21`,
-Option B rewords `REQ-03`), backlog rows `B-11`..`B-14`, and opening the DEC-5 prototype at
-`notes/prototypes/FEAT-53/`. Once ruled, one pm dispatch through `harness-product-lead` applies the
-consolidated answers file; only the main session signs (`plan-merge.py sign-approval`).
+Wait for the operator's pass-3 ruling on `notes/ship-review-2026-09-02-plan-c3.md`, which arrives as
+`notes/answers-<runid>.md`. If they rule FIX on `V-1` (and on any of `B-15`..`B-18` they do not
+strike), dispatch ONE consolidated `harness-product-lead` → `harness-pm` pass, then re-run the
+`plan-panel` team at cycle 4, then have pm transcribe the panel into `plan.yaml`'s `panel` key. Every
+one of the five is a sentence or a clause in an already-drafted task or decision — `V-1` in `D-22`'s
+`choice` or `T-19`, `B-15` in `T-06`+`T-11`, `B-16` in `T-06`, `B-17` in `T-11`, `B-18` in `D-21`. If
+they overrule `V-1`, the plan goes straight back for signature; only the main session signs.
 
 ## Trust
 
-- plan.yaml carries 22 tasks, 21 decisions, `status: plan`, `approval.status: pending`, and `panel:`
-  at `cycle: 2` with 13 findings — 8 cycle-1 dispositioned (2 resolved, 6 overruled), 5 cycle-2 open
-  — re-loaded with `yaml.safe_load` myself — verified-at 9bb833f1
-- `D-03` names Flask and rejects FastAPI+uvicorn, a Node server and stdlib ThreadingHTTPServer by
-  name; no line in plan.yaml, BRIEF.md or DESIGN.md still asserts a stdlib server, and the only
-  surviving `stdlib` matches are D-03's own reject list, T-12's replacement note and the spliced
-  comment block — grepped myself — verified-at 9bb833f1
-- The cycle-2 high finding is a graph property, invisible to every declared verify in the plan:
-  `T-16` (`depends_on: [T-12, T-15]`) commits the bundle, `T-21` (`depends_on: [T-14, T-15]`) mounts
-  the chart, nothing rebuilds after — `runs/2026-09-01-08-validator/digest.md` — verified-at 9bb833f1
-- `check-state.sh` flags nothing about the ~250-line comment block spliced into plan.yaml between
-  the last task and `panel:`; `safe_load` is unaffected and no sanctioned verb can remove it — ran it
-  myself — verified-at 9bb833f1
-- The DEC-5 prototype renders a tracked zero beside a never-tracked feature on identical input, 37/37
-  smoke checks — `runs/2026-09-01-07-product/digest.md` — UNVERIFIED by me: I did not execute the
-  prototype, and nobody has opened it in a browser
+- All three pass-2 rulings are applied and the plan is otherwise sound — `runs/2026-09-02-1-product/digest.md`, and I re-read T-16's `depends_on`, D-14, D-19, D-21 and D-22 on disk — verified-at ba5b4a50
+- `V-1` is real: `cmd_ship`'s only commit is `_commit_terminal_station`, which commits `plan.yaml` alone ("ONLY THIS ONE FILE … implies `--only`") — `.agents/skills/harness/bin/gh-sync.py:659-661` — verified-at ba5b4a50 by me, not adopted from the reader
+- `plan.yaml`'s `panel` key holds 18 findings, cycle 3, both readers `ran` — `load_plan` over the file, every diff hunk inside `panel:` — verified-at ba5b4a50
+- BRIEF `## Approval` `date:` is populated in 43 of 47 BRIEFs in the main checkout; the main session has confirmed it will fill it at signature — measured 2026-09-02, and the IRC confirmation is in this session's transcript — verified-at ba5b4a50
+- `cycles_used` is 7 of a hard 10; a fix pass plus its panel re-read makes 8 — `feature.json` — verified-at ba5b4a50
 
 ## Dead ends
 
-- Do not open a pre-signature fix cycle for a panel finding at high or worse: DEC-207 routes it to
-  the operator's one batched review pass, and only `approval.rulings` records an overrule —
-  `DECISIONS.md:6366-6373` — verified-at 9bb833f1
-- Do not reopen `D-20` (client build) or `D-08`/`T-18` (charting alpha, Shape B built this
-  increment): confirmed as drafted by the operator, and both cycle-2 readers re-walked them and
-  raised nothing — `notes/answers-2026-09-01-plan-signature.md` — verified-at 9bb833f1
-- Do not run `plan-merge.py` from inside this worktree: it vendors `.claude/skills`, so its copy
-  predates `set-panel` and exits 2 with `invalid choice`. Run the main checkout's copy by absolute
-  path — same tool, same lock — `runs/2026-09-01-09-product/digest.md` — verified-at 9bb833f1
-- Do not expect a `review_sha` or a code grade for any plan-phase validator run: DEC-207 grades a
-  specification and `code_grade: n_a` is correct — verified-at 9bb833f1
+- DEC-5 / the visual prototype: CLOSED by the operator after two browser reviews including post-fix — `notes/answers-2026-09-01-plan-signature-c2.md` — do not reopen
+- `B-6` (cycle-time origin): struck as redundant, Q2 resolved it — same answers file
+- `B-12`/`B-13`/`B-14` and the ~250 stale spliced `#` comments: accepted backlog, not fixable by any sanctioned verb today — same answers file
+- Widening `D-22` beyond the two files the operator named: that narrowing was MY dispatch instruction and it is what produced `V-1` — `notes/ship-review-2026-09-02-plan-c3.md` §1 — do not repeat it
+- `plan-merge.py apply` for anything but a genuinely new block, and never with comment lines in the proposal: it splices them permanently — `notes/ship-review-2026-09-01-plan-c2.md` defect 1
 
 ## Working set
 
-- .harness/harness/features/FEAT-53-metrics-dashboard/notes/ship-review-2026-09-01-plan-c2.md
-- .harness/harness/features/FEAT-53-metrics-dashboard/notes/answers-2026-09-01-plan-signature.md
-- .harness/harness/features/FEAT-53-metrics-dashboard/plan.yaml
-- .harness/harness/features/FEAT-53-metrics-dashboard/runs/2026-09-01-08-validator/digest.md
-- .harness/harness/features/FEAT-53-metrics-dashboard/BRIEF.md
+- `.harness/harness/features/FEAT-53-metrics-dashboard/notes/ship-review-2026-09-02-plan-c3.md`
+- `.harness/harness/features/FEAT-53-metrics-dashboard/plan.yaml`
+- `.harness/harness/features/FEAT-53-metrics-dashboard/runs/2026-09-02-02-validator/digest.md`
+- `.harness/harness/features/FEAT-53-metrics-dashboard/notes/answers-2026-09-01-plan-signature-c2.md`
+- `.harness/harness/features/FEAT-53-metrics-dashboard/feature.json`

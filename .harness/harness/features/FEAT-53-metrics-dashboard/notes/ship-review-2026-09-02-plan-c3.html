@@ -1,0 +1,103 @@
+<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>FEAT-53 metrics dashboard — plan signature review, pass 3</title><style>
+:root{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:ui-sans-serif,-apple-system,"Segoe UI","Helvetica Neue",Arial,sans-serif;
+}
+/* Token-level theming: components style through the tokens and never inside the
+   media query, so the viewer's explicit toggle can override the OS in BOTH
+   directions. */
+@media (prefers-color-scheme:dark){
+  :root{ --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+         --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733; }
+}
+:root[data-theme="dark"]{
+  --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+  --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733;
+}
+:root[data-theme="light"]{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+}
+*{box-sizing:border-box}
+body{margin:0; background:var(--paper); color:var(--ink);
+  font:400 16px/1.65 var(--sans); padding:clamp(1.5rem,5vw,4rem) clamp(1rem,5vw,2rem) 6rem}
+.wrap{max-width:56rem; margin:0 auto}
+/* Layout owns the spacing: gap between siblings, not per-element margins that
+   collapse or double. */
+.wrap{display:flex; flex-direction:column; gap:1rem}
+.eyebrow{font:500 11px/1 var(--mono); letter-spacing:.14em; text-transform:uppercase;
+  color:var(--quiet); margin:0}
+h1{font:600 clamp(1.6rem,4vw,2.3rem)/1.15 var(--sans); letter-spacing:-.02em;
+  margin:.4rem 0 .2rem; text-wrap:balance}
+h2{font:600 1.15rem/1.3 var(--sans); letter-spacing:-.01em; margin:2rem 0 0;
+  padding-top:1.25rem; border-top:1px solid var(--line); text-wrap:balance}
+h3{font:600 .98rem/1.4 var(--sans); margin:1.1rem 0 0}
+h4,h5,h6{font:500 11px/1.4 var(--mono); letter-spacing:.1em; text-transform:uppercase;
+  color:var(--quiet); margin:1rem 0 0}
+p,li{max-width:65ch; margin:0}
+ul,ol{margin:0; padding-left:1.4rem; display:flex; flex-direction:column; gap:.4rem}
+li>ul,li>ol{margin-top:.4rem}
+strong{font-weight:600}
+code{font:400 .875em/1.5 var(--mono); background:var(--sunk); padding:.1em .35em; border-radius:3px}
+pre{background:var(--sunk); border:1px solid var(--line); border-radius:6px;
+  padding:.85rem 1rem; overflow-x:auto; margin:0}
+pre code{background:none; padding:0}
+blockquote{margin:0; padding:.75rem 1rem; border-left:3px solid var(--accent);
+  background:var(--accent-soft); border-radius:0 5px 5px 0}
+blockquote p{max-width:none}
+hr{border:0; border-top:1px solid var(--line); margin:.5rem 0}
+/* Wide content pans inside its OWN container; the page body never scrolls sideways. */
+.scroll{overflow-x:auto; border:1px solid var(--line); border-radius:6px}
+table{border-collapse:collapse; width:100%; font-size:.9rem}
+th,td{text-align:left; padding:.6rem .8rem; border-bottom:1px solid var(--line); vertical-align:top}
+thead th{font:500 10px/1.3 var(--mono); letter-spacing:.11em; text-transform:uppercase;
+  color:var(--quiet); background:var(--sunk); white-space:nowrap}
+tbody tr:last-child td{border-bottom:0}
+/* Figures in a column line up. */
+td,th{font-variant-numeric:tabular-nums}
+.derived{color:var(--slate); font-size:.85rem; margin-top:2.5rem;
+  padding-top:1rem; border-top:1px solid var(--line)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style></head><body><div class='wrap'><p class='eyebrow'>Ship review · reading view</p><h1 id="feat-53-metrics-dashboard-plan-signature-review-pass-3">FEAT-53 metrics dashboard — plan signature review, pass 3</h1>
+<p><strong>All three of your pass-2 rulings are applied and verified at source. One high panel finding stands between you and signature, and it is your own Q3 ruling applied to a third file I wrongly scoped out.</strong> Everything else this pass is a one-clause tidy-up you can strike or accept in a single word.</p>
+<p>DEC-5 is closed and is not mentioned again below. The cycle-time question is settled and <code>B-6</code> is struck.</p>
+<p><strong>How this briefing was assembled.</strong> I spawned no reporting round. I read three run digests off disk — <code>runs/2026-09-02-1-product/digest.md</code> (the fix pass), <code>runs/2026-09-02-02-validator/digest.md</code> (the cycle-3 panel) and <code>runs/2026-09-02-03-product/digest.md</code> (the panel transcription) — plus <code>notes/research-FEAT-53-goalcheck-plan-c3.md</code> and the plan itself. Earlier phases stand as written in the first two briefings and are not re-narrated here. Everything I state as measured, I measured against disk myself.</p>
+<hr>
+<h2 id="what-your-rulings-changed">What your rulings changed</h2>
+<p><strong>Q1, the ordering gap — done, and verified as a graph rather than as a field.</strong> <code>T-16.depends_on</code> is now <code>[T-12, T-15, T-21]</code> (<code>plan.yaml:976-979</code>), and <code>T-16</code>&#x27;s intent says why, including why <code>T-22</code> is deliberately <em>not</em> a dependency: it adapts the render gate to the suite and to CI and changes no client source, so it cannot change the bundle&#x27;s bytes (<code>:997-1000</code>). The whole 22-task graph was walked: every <code>depends_on</code> id resolves, it is acyclic, and the topological order runs <code>… T-19 → T-20 → T-21 → T-16 → T-17 → T-22</code>. Both cycle-3 readers independently confirmed the closure, one of them by a mechanical graph check that also found no orphan task and no task tracing a REQ that does not exist. <code>PF-45518258</code> is recorded <code>resolved</code>.</p>
+<p><strong>Q2, cycle-time origin — Option A, done, and it needed no new ceremony after all.</strong> The pass-2 briefing told you nothing records a BRIEF approval date machine-readably. <strong>That was wrong, and I owe you the correction:</strong> <code>BRIEF.md</code>&#x27;s <code>## Approval</code> block has carried a <code>date:</code> field in the template all along (<code>templates/BRIEF.md:55-59</code>), and it is populated in <strong>43 of 47</strong> BRIEFs in the main checkout — 2 approved with an empty date, 2 still pending. The carrier being replaced, <code>plan.yaml approval.date</code>, is populated in 31 of the same 58 feature directories. So the origin you asked for is not merely defensible, it is <strong>better recorded</strong> than the one it replaces, and your signature act does not change: you fill <code>status</code>, <code>approved-by</code> and <code>date</code> together, as you confirmed.</p>
+<p><code>D-14</code>, <code>D-19</code>, <code>D-21</code>, <code>T-06</code>, <code>T-10</code>, <code>T-11</code> and <code>T-19</code> all moved. Three references to the old origin deliberately survive in live YAML and each was justified individually: <code>D-14</code>&#x27;s <code>because</code> records the <em>rejected</em> origin, and <code>T-06</code>&#x27;s and <code>T-11</code>&#x27;s intents carry the <em>prohibition</em> (&quot;read the approval date out of BRIEF.md, never out of plan.yaml&quot;). No live site measures cycle time or a feature&#x27;s start instant from the plan&#x27;s approval date. <strong>REQ-03 is delivered as written for the first time.</strong></p>
+<p>Two consequences stated rather than hidden: cycle time is <strong>day-granular</strong>, because the BRIEF date carries no time of day; and the missing-date branch is <strong>live, not theoretical</strong> — 2 real BRIEFs carry the empty-date form today, so those features report <code>null</code> plus a <code>D-19</code> sentence naming <code>BRIEF.md</code>, never a zero.</p>
+<p><strong>Q3, the git disposition — done for the two files you named.</strong> New <code>D-22</code> (<code>plan.yaml:129-154</code>) records that <code>.harness/metrics/instrumented_at</code> and each feature&#x27;s <code>touchpoints.jsonl</code> are <strong>committed records</strong>, never gitignored, and that the step whose execution first creates them commits them in the same act. <code>T-02</code> states the disposition and — this is the part that matters — <strong>gates</strong> it: its <code>verify</code> asserts those paths are <em>not</em> ignored, and it was shown to go red under a mutant <code>.gitignore</code> carrying <code>.harness/metrics/</code>, so it binds the rule rather than asserting today&#x27;s accidental state. <code>T-20</code> is the single named owner of the commit step (<code>:1135-1141</code>), with <code>T-11</code>&#x27;s fixture trees explicitly carved out.</p>
+<p>One mechanism correction pm applied rather than spending a round trip on: <code>merge-gitignore.sh</code> strips comment lines when it merges, so a snippet comment never reaches this repository&#x27;s <code>.gitignore</code>. Both halves you asked for — <em>stated</em> and <em>enforced</em> — are satisfied, by the sentence living in the snippet every onboarded project receives and this repository&#x27;s side being gated by <code>check-ignore</code>. I judge that the right call.</p>
+<hr>
+<h2 id="what-needs-your-decision-now">What needs your decision now</h2>
+<h3 id="1-v-1-high-trend-jsonl-has-the-hole-you-just-ordered-closed">1. <code>V-1</code>, high — <code>trend.jsonl</code> has the hole you just ordered closed</h3>
+<p><strong>This is my error, not the panel&#x27;s discovery of a new problem.</strong> Your Q3 ruling was about metrics runtime records being committed rather than left dirtying the tree. I scoped pm to the two files you named by name and told it not to widen to <code>.harness/metrics/trend.jsonl</code>. The panel found that the third file has <strong>exactly the same shape</strong>: no task, decision or lane names a committer for it, and <code>D-22</code> now explicitly closes &quot;no other task owns it&quot; around the other two.</p>
+<p>I verified the premise at source rather than adopting it on the reader&#x27;s word. <code>T-19</code>&#x27;s <code>record_ship</code> appends the ship record to <code>trend.jsonl</code> from inside <code>gh-sync.py</code>&#x27;s <code>cmd_ship</code>, and the only commit that function makes is <code>_commit_terminal_station</code>, whose own docstring says <strong>&quot;ONLY THIS ONE FILE. <code>git commit &lt;path&gt;</code> implies <code>--only</code>&quot;</strong> (<code>gh-sync.py:659-661</code>) — it commits <code>plan.yaml</code> and nothing else. So the first real ship leaves your main checkout dirty at a path no ignore rule covers, which is the condition <code>D-22</code>&#x27;s own reasoning says halts the next team run; and until someone commits it by hand, every ship record REQ-10 promises to make durable lives in one working tree, where a <code>git clean</code> destroys the lot silently.</p>
+<p>The remedy is one sentence — name the committer in <code>D-22</code>&#x27;s <code>choice</code>, or state it in <code>T-19</code>. I did not apply it: a panel finding never opens its own pre-signature fix cycle (DEC-207), and only you resolve or overrule one. <strong>Recommendation: fix.</strong></p>
+<h3 id="2-four-advisory-findings-all-one-clause-all-in-the-same-pm-dispatch-if-you-want-them">2. Four advisory findings — all one-clause, all in the same pm dispatch if you want them</h3>
+<p>Same convention: <strong>strike a row by ID and it dies; anything not struck becomes a backlog issue labelled <code>Dashboard</code>.</strong> <code>B-1</code>..<code>B-5</code> and <code>B-7</code>..<code>B-14</code> stand as already accepted; <code>B-6</code> is struck as redundant, since Q2 resolved it.</p>
+<div class="scroll"><table><thead><tr><th>ID</th><th>Sev</th><th>Finding</th><th>If you fix it now</th></tr></thead><tbody><tr><td>B-15</td><td>med</td><td>The BRIEF <code>## Approval</code> date parse has <strong>two independent authors</strong> — <code>T-06</code>&#x27;s <code>kpi.py</code> and <code>T-11</code>&#x27;s <code>touchpoints.py</code> — and neither cited precedent actually reads a date (<code>has_approval_block</code> only asserts the heading; <code>approved()</code> only greps status; <code>parse_brief</code> sections SC lines). A later edge fix lands in one file, and one payload then dates a feature for throughput while KPI 4 says that same feature cannot be dated — every gate green. This departs from the plan&#x27;s own one-authority discipline (<code>D-19</code>&#x27;s siting, <code>resolve_window</code>&#x27;s &quot;one authority, four callers&quot;)</td><td>Name one authority and have the other call it — one clause in <code>T-06</code> and one in <code>T-11</code></td></tr><tr><td>B-16</td><td>med</td><td><code>T-06</code> names four gap-state branches and fixtures <strong>only</strong> the empty-date one (<code>plan.yaml:451-454</code>). <code>compute()</code> iterates every feature directory, so an uncaught exception on the absent-<code>## Approval</code> branch crashes the whole project&#x27;s numbers for every window — not one degraded row. Fix <code>B-15</code> first: settling one parse authority makes the branches fixturable once instead of twice</td><td>Add the three missing fixture cases to <code>T-06</code></td></tr><tr><td>B-17</td><td>med</td><td><code>T-11</code>&#x27;s mutating fixture cases (a <code>record()</code> append, epoch creation) state <strong>no copy-to-temp discipline</strong> while writing under the committed <code>dashboard/fixtures/</code> tree. Anyone running <code>run-unit-tests.sh</code> leaves untracked files under a tracked directory and the next team run halts on a dirty tree with nothing pointing at the suite. <code>T-10</code> explicitly stages its merges in separate worktrees; <code>T-11</code> says nothing, and an ignore rule cannot rescue it because <code>T-02</code>&#x27;s verify asserts <code>touchpoints.jsonl</code> is <em>not</em> ignored. Fires on every local run, deterministically</td><td>One sentence in <code>T-11</code>: mutating cases copy the fixture to a temp dir first</td></tr><tr><td>B-18</td><td>low</td><td><code>D-21</code>&#x27;s at-or-after predicate compares a <code>00:00:00Z</code> date-only start against an intra-day epoch, so a feature approved on the <strong>same calendar day</strong> the epoch was written reads as pre-instrumentation. On launch day the first instrumented feature — including the one whose own <code>approval_request</code> created the epoch — reports &quot;touchpoints were never tracked for it&quot; permanently while its <code>touchpoints.jsonl</code> sits on disk with lines in it. The loss is in the safe direction (<code>null</code>, never a fabricated zero) but the sentence is false</td><td>One clause in <code>D-21</code>: compare at day granularity, or take the epoch&#x27;s date</td></tr></tbody></table></div>
+<p><strong>My recommendation: fix all five in one pm dispatch, including <code>V-1</code>.</strong> Every one is a sentence or a clause in an already-drafted task or decision, none needs new design, and the plan is unsigned so nothing has to be re-approved afterwards. That costs one cycle and one panel re-read. Strike anything you would rather carry.</p>
+<hr>
+<h2 id="what-the-panel-confirmed-rather-than-found">What the panel confirmed rather than found</h2>
+<p>Recorded because a gate that only ever reports problems tells you nothing when it is quiet.</p>
+<ul><li><strong><code>T-16</code>/<code>PF-45518258</code> is closed.</strong> Both readers independently; the graph check shows <code>T-16</code> transitively covers every client-source task via <code>T-04 → T-13 → T-14 → T-15 → T-21 → T-16</code>, and both confirm <code>T-17</code>, <code>T-19</code>, <code>T-20</code> and <code>T-22</code> touch no client source.</li><li><strong>Ruling 2 holds end to end.</strong> Both readers independently found exactly the three sanctioned survivors and <strong>no rule stated twice-and-differently</strong> across the seven changed sites — which is the specific failure <code>D-19</code> exists because of.</li><li><strong><code>T-02</code>&#x27;s <code>D-22</code> gate is discriminating, not decorative</strong> — it reddens under a mutant <code>.gitignore</code>. That retires the &quot;asserts today&#x27;s accidental state&quot; worry for the two paths it covers. <code>V-1</code> is the third path it does not cover.</li><li><strong>The out-of-scope list held with zero violations.</strong> Neither reader re-raised DEC-5, the stale comment block, <code>B-13</code>, <code>B-14</code>, <code>B-6</code> or the pending approval status.</li><li><strong><code>plan.yaml</code>, <code>BRIEF.md</code>, <code>feature.json</code> and <code>STATE.md</code> were byte-identical before and after the panel</strong> — I checked with <code>git diff</code>, since the lead holds no Bash and correctly said it could not.</li></ul>
+<hr>
+<h2 id="harness-defects-found-this-pass">Harness defects found this pass</h2>
+<p>Not about this feature; each cost real time.</p>
+<ol><li><strong>BUG-1080 reproduced again on the yield path.</strong> <code>validate-digest.py</code> rejects every <code>code_grade</code> value for a plan-phase feature with no <code>review_sha</code> — any enum value gives &quot;cannot be bound to review_sha&quot;, absence gives &quot;missing code_grade&quot; — so <code>harness-code-reviewer</code> could not terminal-yield and returned its digest in-band. Third occurrence across two cycles.</li><li><strong>A recorded digest cannot be replaced (DEC-208), so a run that needs to rewrite its own digest consumes a second run directory.</strong> The cycle-3 panel occupies <code>2026-09-02-01-validator</code> (a superseded first draft) and <code>2026-09-02-02-validator</code> (canonical). One run, two directories, and nothing on disk says which is which without reading both.</li><li>The worktree-vendored <code>.claude/skills</code> problem recurred as expected — <code>set-panel</code> is unreachable in-tree, so the main checkout&#x27;s binary was run against the worktree&#x27;s <code>plan.yaml</code> by absolute path. Same tool, same lock, same single write route.</li></ol>
+<hr>
+<h2 id="budgets-honestly">Budgets, honestly</h2>
+<p><strong>15 runs against an informational budget of 20; 7 rework cycles against a hard 10.</strong> One cycle was added this pass: the fix pass itself, which is rework by definition since it descends from a panel FAIL you routed back.</p>
+<p><strong>One cycle I did not count, and you should know why.</strong> The first <code>harness-pm</code> dispatch died at 11m43s on a host <code>overloaded_error</code> after 10 retries, and the lead reported it as a cycle. It applied nothing — <code>plan.yaml</code> was verified byte-unchanged before re-dispatch — and no send-back was issued on the work itself. DEC-157 defines rework as a FAIL routed back, an unmet-SC re-dispatch, or a send-back; a host failure is none of those. Counting it would move the meter that can block this feature for an infrastructure retry. I recorded 7, not 8.</p>
+<p>If you accept the recommendation above, the fix pass and its panel re-read put this at 8 of 10 before signature. That is enough, but it is not roomy, and a second round of findings after that one would be the point at which I would come back to you rather than spend the last cycle.</p>
+<hr>
+<h2 id="what-i-need-from-you">What I need from you</h2>
+<ol><li><strong><code>V-1</code> — fix, or overrule.</strong> It gates the signature (DEC-207); nothing else does.</li><li><strong><code>B-15</code>..<code>B-18</code> — strike any, or accept.</strong> My recommendation is to fix all four alongside <code>V-1</code> in the single consolidated dispatch.</li></ol>
+<p>Then the main session signs <code>BRIEF.md</code> — <code>status</code>, <code>approved-by</code> <strong>and</strong> <code>date</code>, since <code>date</code> is now load-bearing — and <code>plan.yaml</code>, and the build phase starts.</p><p class='derived'>Derived from <code>ship-review-2026-09-02-plan-c3.md</code> — the markdown is the record; do not edit this file. Regenerate with <code>bin/render-brief.py</code>.</p></div></body></html>
