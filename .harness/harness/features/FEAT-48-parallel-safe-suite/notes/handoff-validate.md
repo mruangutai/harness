@@ -1,22 +1,22 @@
-# Handoff — FEAT-48, validate → ship — written at 27f8105b, seq-6
+# Handoff — FEAT-48, validate → ship — written at 27f8105b, seq-7
 
 ## Next
 
-**Take the operator's ruling on B-1, then ship or re-pin.** Validate is complete: both c8
-`must_fix` closed with proofs I took myself, `code_grade` clean at the pin, no criterion failure
-from the panel, and pm grades **all ten SCs MET**
-(`notes/research-FEAT-48-goalcheck-validate-c9.md`). The one open item is a **scope ruling only the
-operator can make**: a test blinds `--mutation-check` by removing a directory's execute bit (B-1);
-it is present since `b86ce66a`, fails no criterion, and `.claude/skills/harness/bin/**` is
-`main-session-direct` (`plan.yaml:15-23`) so no lead may fix it. Briefing and the full B-row table:
-`notes/ship-review-2026-09-02-c9.md`. **Ship** → open the PR, then file the unstruck B-rows.
-**Fix** → `_record` swallows only `FileNotFoundError`; that moves the tip, so re-pin `review_sha`
-and re-run panel + goal-check.
+**Ship. Validate is complete and PASS; the operator has ruled and nothing is open.**
+Both c8 `must_fix` are closed with proofs re-taken at the pin, `code_grade` is clean, and pm grades
+**all ten SCs MET** (`notes/research-FEAT-48-goalcheck-validate-c9.md`). The panel's one escalation
+— a test blinding `--mutation-check` by removing a directory's execute bit — is **settled by
+ruling, not left open**: ship it, record it as B-1, fold nothing in
+(`notes/answers-2026-09-02-c9.md`). The ship phase owes three acts and no engineering: open the PR
+at the current tip with **`review_sha` UNMOVED at `27f8105b`**; file **B-1 … B-15** as backlog
+issues on ship acceptance (DEC-138), table in `notes/ship-review-2026-09-02-c9.md`; close issue
+**#1053** through `gh-sync.py ship`. **B-9 becomes its own `BUG-NN`.** No source, plan or BRIEF
+change is authorised.
 
 ## Trust
 
 - `code-grade.py --base origin/main --head 27f8105b` → exit 0, `PASSING: 70`, zero blocking records;
-  `run_self_tests` CYC 3 / COG 0 / ABC 6.5 — mine, verified-at 27f8105b.
+  still 0 at the tip, whose delta from the pin is feature artifacts only — mine, at 27f8105b.
 - All six in-file self-tests **DISCRIMINATE**, never-red cases NONE — three monkeypatch probes, no
   edit to the checkout; the file was rewritten in `993ac997` so c8's proof did NOT carry — mine,
   verified-at 27f8105b.
@@ -32,21 +32,21 @@ and re-run panel + goal-check.
   identical on mtime_ns+size+sha256 with `CRASHED` intact; SC-09 index `cmp`-identical — mine, at pin.
 - **B-1 reproduces identically at `b86ce66a`, `e64e863e` and `27f8105b`**, so it is NOT a regression
   from `993ac997` — mine, verified-at all three.
-- T-06's `verify:` exits 1 solely on `post == ["0"]`; the duplicate predates the fixes — mine, at pin.
+- T-06's `verify:` exits 1 solely on `post == ["0"]`; accepted as B-6, NOT fixed — mine, at pin.
 - SC-01..SC-10 all MET on evidence re-taken at the pin —
   `notes/research-FEAT-48-goalcheck-validate-c9.md` — pm's, not mine.
-- The `__pycache__` basename skip admits any payload at any depth and defeats symlink tracking when
-  the symlink is named `__pycache__` — `notes/review-harness-security-reviewer-c9.md` — theirs,
-  UNVERIFIED beyond §3 of `notes/validate-evidence-c9.md`.
+- `check-state.sh`: **zero FEAT-48 violations**; the two VIOLATIONs are FEAT-51's, pre-existing and
+  outside this feature. One FEAT-48 note, INV-22 — mine, verified-at the tip.
 
 ## Dead ends
 
-- Do not route a remedy to a dev squad: `bin/**` is `main-session-direct` by the DEC-174 carve-out,
-  not a missing grant — `plan.yaml:15-23` — verified-at 27f8105b.
+- Do not move `review_sha`. The rulings authorised no code change and the pin is `27f8105b`.
+- Do not fold any backlog row into this feature — ruling 5. B-1 … B-15 are issues filed at ship.
 - Do not re-run the six self-tests, the ten pinned sites, or `code_grade` — this note's Trust.
-- Do not call B-1 introduced by `993ac997`, nor a criterion failure: SC-10's six clauses all pass.
+- Do not re-open B-1 as a fix: ruled accepted, it fails no criterion, and `bin/**` is
+  `main-session-direct` by the DEC-174 carve-out — `plan.yaml:15-23` — verified-at 27f8105b.
 - Do not accept that DEC-211:6599-6604 is false. *"Caught only when…"* is a **necessary**-condition
-  sentence. The overclaim is D-11's "Inside DIR it is vector-agnostic" — verified-at 27f8105b.
+  sentence. The overclaim is D-11's "Inside DIR it is vector-agnostic", scoped as B-2.
 - Do not delete the duplicate `post-fix broken reads 0` line to green T-06's verify: it sits inside
   the fenced transcript T-06's intent mandates. The clause is wrong; all five graders concur.
 - Do not read a red suite as a FEAT-48 defect before unsetting `HARNESS_AGENT_TYPE`, which fails 11
@@ -54,7 +54,6 @@ and re-run panel + goal-check.
 
 ## Working set
 
-- `notes/ship-review-2026-09-02-c9.md` · `notes/validate-evidence-c9.md`
-- `notes/research-FEAT-48-goalcheck-validate-c9.md` · `notes/review-harness-security-reviewer-c9.md`
-- `.claude/skills/harness/bin/run_pool.py` (`_record` :29-34, `_snapshot_directory` :37-49)
-- `feature.json` (runs 21, cycles 8/10)
+- `notes/answers-2026-09-02-c9.md` · `notes/ship-review-2026-09-02-c9.md`
+- `notes/validate-evidence-c9.md` · `notes/research-FEAT-48-goalcheck-validate-c9.md`
+- `feature.json` (review_sha 27f8105b, runs 21, cycles 8/10) · `plan.yaml` (`status: review`)
