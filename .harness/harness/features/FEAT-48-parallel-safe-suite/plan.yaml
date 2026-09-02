@@ -5,9 +5,9 @@ status: plan
 source_issues: [1053]
 
 approval:
-  status: pending
-  approved_by:
-  date:
+  status: approved
+  approved_by: Mike Ruangutai
+  date: '2026-09-02'
 
 lanes:
   resolved_at: ea6f51f6a06a9247b069339d794247a977f67887

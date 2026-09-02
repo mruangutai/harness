@@ -229,6 +229,6 @@ pinned one, so the two features cannot claim the same number (`plan.yaml` T-05).
 
 ## Approval
 
-status: pending
-approved_by:
-date:
+status: approved
+approved_by: Mike Ruangutai
+date: 2026-09-02
