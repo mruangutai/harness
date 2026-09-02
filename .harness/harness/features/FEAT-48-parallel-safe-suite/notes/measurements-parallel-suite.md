@@ -28,32 +28,32 @@ bash .claude/skills/harness/bin/run-unit-tests.sh --kind all
 ```
 
 ```text
-run 1 exit 0 47.88s
-run 2 exit 0 53.16s
-run 3 exit 0 50.49s
-run 4 exit 0 46.90s
-run 5 exit 0 46.84s
-run 6 exit 0 46.89s
-run 7 exit 0 47.71s
-run 8 exit 0 46.87s
-run 9 exit 0 47.36s
-run 10 exit 0 47.39s
+run 1 exit 0 42.64s
+run 2 exit 0 42.73s
+run 3 exit 0 42.88s
+run 4 exit 0 44.70s
+run 5 exit 0 43.05s
+run 6 exit 0 43.19s
+run 7 exit 0 42.97s
+run 8 exit 0 43.12s
+run 9 exit 0 43.63s
+run 10 exit 0 47.82s
 ```
 
-tree condition: one FEAT-48 main session writing feature notes between runs; no process wrote bin during a run
+tree condition: committed implementation at `993ac997`; no process wrote bin or any source file during any run
 
 Ten clean runs do not prove the race is gone: the old hazard previously survived six consecutive clean eight-worker runs. The static invariant and runtime mutation check carry that claim.
 
 ## Representative pool output
 
-The serial baseline measured during planning was 247s. The post-fix full run on this 12-core M3 Pro emitted:
+The serial baseline measured during planning was 247s. A representative post-fix full run on this 12-core M3 Pro emitted:
 
 ```text
 PASS test-suite-independence.py
-pool: 8 workers, 63 files, 48.13s wall
-slowest: test-gh-sync.py 46.46s, test-check-state.py 43.81s, test-check-plan-routes.py 35.02s
+pool: 8 workers, 63 files, 42.40s wall
+slowest: test-check-state.py 40.80s, test-gh-sync.py 40.15s, test-check-plan-routes.py 33.46s
 ```
 
-pool: 8 workers, 63 files, 48.13s wall
-slowest: test-gh-sync.py 46.46s, test-check-state.py 43.81s, test-check-plan-routes.py 35.02s
+pool: 8 workers, 63 files, 42.40s wall
+slowest: test-check-state.py 40.80s, test-gh-sync.py 40.15s, test-check-plan-routes.py 33.46s
 PASS test-suite-independence.py
