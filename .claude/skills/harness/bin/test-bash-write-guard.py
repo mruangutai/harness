@@ -974,6 +974,7 @@ def main():
     fails += run_head_move()
     fails += run_feat50_checkout_binding()
     fails += run_bug895_wrong_checkout()
+    fails += run_bug1106_bash_route()
     return fails
 
 def run_bug895_wrong_checkout():
@@ -1015,6 +1016,99 @@ def run_bug895_wrong_checkout():
     print(f"\n{len(results) - fails}/{len(results)} bug895 Bash-route cases passed.")
     return fails
 
+
+
+RUN_ARTIFACT_MANIFEST = """schema_version: 1
+teams:
+  - name: build
+    members:
+      - name: harness-backend-dev
+        domain:
+          - { path: .harness/harness/features/**, upsert: true }
+"""
+
+
+def _run_artifact_fixture():
+    root = fixture(RUN_ARTIFACT_MANIFEST)
+    digest_rel = ".harness/harness/features/FEAT-99-fixture/runs/r1/digest.md"
+    state_rel = ".harness/harness/features/FEAT-99-fixture/runs/r1/state.yaml"
+    other_rel = ".harness/harness/features/FEAT-99-fixture/runs/r1/notes.txt"
+    os.makedirs(os.path.dirname(os.path.join(root, digest_rel)), exist_ok=True)
+    return root, digest_rel, state_rel, other_rel
+
+
+def run_bug1106_bash_route():
+    """Issue #1106, gap (a) on the Bash route. Bash carries no complete incoming payload
+    to compare against prior content, so content-based protection (issue #1058's digest
+    guard, issues #1124/#1106's state.yaml identity guard, both in check-domain.sh) is
+    structurally impossible here — a route-only refusal is the weakest sufficient rule."""
+    results = []
+    root, digest_rel, state_rel, other_rel = _run_artifact_fixture()
+
+    r = fire(root, f"echo hi > {os.path.join(root, digest_rel)}")
+    results.append(("bug1106 Bash route: a write to a run's digest.md is REFUSED",
+                    r.returncode == 2 and "digest.md or state.yaml" in r.stderr,
+                    f"exit {r.returncode}: {r.stderr.strip()[:200]}"))
+
+    r = fire(root, f"echo hi > {os.path.join(root, state_rel)}")
+    results.append(("bug1106 Bash route: a write to a run's state.yaml is REFUSED",
+                    r.returncode == 2 and "digest.md or state.yaml" in r.stderr,
+                    f"exit {r.returncode}: {r.stderr.strip()[:200]}"))
+
+    r = fire(root, f"echo hi > {os.path.join(root, other_rel)}")
+    results.append((
+        "bug1106 Bash route NEGATIVE CONTROL: an unrelated file in the same run "
+        "directory is still ALLOWED — this is not a blanket run-dir Bash ban",
+        r.returncode == 0, f"exit {r.returncode}: {r.stderr.strip()[:200]}"))
+
+    r = fire(root, f"echo hi | tee {os.path.join(root, digest_rel)}")
+    results.append((
+        "bug1106 Bash route: `tee` onto a run's digest.md is ALSO refused (a path "
+        "rule, not a redirect-only one)",
+        r.returncode == 2 and "digest.md or state.yaml" in r.stderr,
+        f"exit {r.returncode}: {r.stderr.strip()[:200]}"))
+
+    # --- CODE REVIEW FINDING (PR #1249): run artifacts normally live inside a
+    # feature's own WORKTREE (DEC-95), not the main checkout. The guard must fire there
+    # too — it must not be inert behind the DEC-153 carve-out that exists for a
+    # different (domain-identity) question. A session rooted at the MAIN checkout,
+    # writing into a linked worktree's own run directory, must still be refused.
+    wt_tmp = tempfile.mkdtemp()
+    wt_root = os.path.join(wt_tmp, "root")
+    os.makedirs(os.path.join(wt_root, ".harness"))
+    with open(os.path.join(wt_root, ".harness", "team-config.yaml"), "w") as f:
+        f.write(RUN_ARTIFACT_MANIFEST)
+    wt = os.path.join(wt_root, ".claude", "worktrees", "FEAT-W")
+    _linked_worktree(wt, wt_root, "FEAT-W", RUN_ARTIFACT_MANIFEST)
+    wt_digest = os.path.join(
+        wt, ".harness", "harness", "features", "FEAT-W-thing", "runs", "r1", "digest.md")
+    os.makedirs(os.path.dirname(wt_digest), exist_ok=True)
+    wt_other = os.path.join(
+        wt, ".harness", "harness", "features", "FEAT-W-thing", "runs", "r1", "notes.txt")
+
+    r = fire(wt_root, f"echo hi > {wt_digest}")
+    results.append((
+        "bug1106 Bash route: a write to digest.md INSIDE A LINKED WORKTREE is ALSO "
+        "refused — the guard is checkout-agnostic, not inert behind DEC-153",
+        r.returncode == 2 and "digest.md or state.yaml" in r.stderr,
+        f"exit {r.returncode}: {r.stderr.strip()[:250]}"))
+
+    r = fire(wt_root, f"echo hi > {wt_other}")
+    results.append((
+        "bug1106 Bash route NEGATIVE CONTROL: an unrelated file inside the same "
+        "worktree run directory is still ALLOWED",
+        r.returncode == 0, f"exit {r.returncode}: {r.stderr.strip()[:200]}"))
+
+
+    fails = 0
+    for name, ok, detail in results:
+        if ok:
+            print(f"ok    {name}")
+        else:
+            fails += 1
+            print(f"FAIL  {name}\n      | {detail}")
+    print(f"\n{len(results) - fails}/{len(results)} bug1106 Bash-route cases passed.")
+    return fails
 
 
 if __name__ == "__main__":

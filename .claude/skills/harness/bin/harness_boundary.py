@@ -32,6 +32,18 @@ import sys
 # then blocks the main session on.
 WORKTREES_SEGMENT = ".claude/worktrees"
 
+# THE RUN-ARTIFACT PATTERNS, shared between check-domain.sh (content guards on the Write
+# and Edit routes) and bash-write-guard.sh (a route-only refusal on Bash, which carries no
+# complete payload to compare content against). Issue #1106: these used to live only inside
+# check-domain.sh's embedded Python, reachable by neither bash-write-guard.sh nor any other
+# caller — the same "split issue #261 reports" this module exists to close, recurring for a
+# second pair of patterns. One definition, both guards import it, so the two write surfaces
+# cannot silently disagree about which paths are protected.
+RE_RUN_DIGEST = re.compile(r"^\.harness/[^/]+/features/[^/]+/runs/[^/]+/digest\.md$",
+                            re.IGNORECASE)
+RE_STATE_YAML = re.compile(r"^\.harness/[^/]+/features/[^/]+/runs/[^/]+/state\.yaml$",
+                            re.IGNORECASE)
+
 # A directory is a harness checkout when it contains MARKER. Never a caller-supplied
 # parameter (FEAT-42 T-01): a parameter is what let each caller invent its own
 # definition — check-plan-routes.py probed team-config.yaml, factory_config.py probed
