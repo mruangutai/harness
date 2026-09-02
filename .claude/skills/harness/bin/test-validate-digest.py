@@ -1749,6 +1749,46 @@ def run_bug919_qa_matrix_cases():
     return _report_bug919_results(cases)
 
 
+def run_bug919_resolve_fallback_case():
+    """Code review of #1185, Finding 1 (high): a named feature whose worktree lookup
+    FAILS must resolve to None, never silently substitute owner_root — run-unit-tests.sh
+    is a static, always-present path, so a wrong-root substitution here never 404s; it
+    just silently re-runs the suite against the wrong checkout and reports that
+    mismatched result as though it verified the claim."""
+    if HERE not in sys.path:
+        sys.path.insert(0, HERE)
+    import inflight_registry
+    spec = importlib.util.spec_from_file_location("_bug919_fallback_validator", VALIDATE)
+    validator = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(validator)
+
+    original_root_fn = validator._root_or_none
+    original_feature_root = inflight_registry.feature_root
+    validator._root_or_none = lambda: "/some/owner/root"
+    def _raise(root, feature):
+        raise LookupError("no unambiguous worktree for %r" % feature)
+    inflight_registry.feature_root = _raise
+    saved_env = os.environ.pop("RUN_UNIT_TESTS_BIN", None)
+    try:
+        resolved = validator._resolve_run_unit_tests_bin(
+            {"harness_feature": "some-ambiguous-feature"})
+    finally:
+        validator._root_or_none = original_root_fn
+        inflight_registry.feature_root = original_feature_root
+        if saved_env is not None:
+            os.environ["RUN_UNIT_TESTS_BIN"] = saved_env
+    ok = resolved is None
+    if ok:
+        print("ok    [bug919] a feature_root lookup failure resolves to None, "
+              "never a silent owner_root substitution")
+    else:
+        print(f"FAIL  [bug919] a feature_root lookup failure resolves to None, "
+              f"never a silent owner_root substitution\n      | got {resolved!r}")
+    print("\n%d/1 bug919 fallback-resolution cases passed." % (1 if ok else 0,))
+    return 0 if ok else 1
+
+
+
 
 
 # --- DEC-173: "nothing happened" must have a truthful encoding -----------------
@@ -3841,6 +3881,7 @@ def main():
     fails += run_empty_red_case()
     fails += run_dec156_worktree_red_case()
     fails += run_bug919_qa_matrix_cases()
+    fails += run_bug919_resolve_fallback_case()
     fails += run_joint_hint_case()
     fails += run_code_grade_cases()
     fails += run_hook_cases()

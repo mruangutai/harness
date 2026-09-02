@@ -1576,20 +1576,34 @@ def _resolve_run_unit_tests_bin(payload):
 
     RUN_UNIT_TESTS_BIN is test-only: it lets a fixture point this check at a fast stub
     instead of spawning the real multi-minute suite for every hook-mode case.
+
+    A NAMED FEATURE MUST RESOLVE TO ITS OWN CHECKOUT, OR NOT AT ALL (code review of
+    #1185). check_artifact_file's owner_root/feature_root pattern falls back to
+    owner_root on any lookup failure, and that is safe THERE because a wrong root
+    means the specific run digest simply 404s, loudly. run-unit-tests.sh is a static,
+    always-present path: a wrong-root fallback here never 404s, it just silently
+    re-runs the suite against the WRONG checkout and reports that mismatched result as
+    though it verified the claim — reproducing #919's exact failure mode inside the
+    gate built to close it. So a feature_root lookup failure returns None (cannot
+    resolve) rather than substituting owner_root; the caller's existing "could not
+    independently re-run" fail-open path is where that lands.
     """
     run_bin = os.environ.get("RUN_UNIT_TESTS_BIN")
     if run_bin:
         return run_bin
     owner_root = _root_or_none()
-    base = owner_root
     feature = payload.get("harness_feature")
-    if owner_root and feature:
+    if not feature:
+        base = owner_root
+    elif not owner_root:
+        base = None
+    else:
         try:
             sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
             import inflight_registry
             base = inflight_registry.feature_root(owner_root, feature)
         except Exception:
-            base = owner_root
+            base = None
     if not base:
         return None
     return os.path.join(base, ".claude", "skills", "harness", "bin",
