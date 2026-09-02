@@ -48,9 +48,8 @@ plan first, then the subcommand, or the parent write is a silent no-op.
   `runs/2026-09-01-08-validator/digest.md` Q1 — verified-at 047f6914
 - Do NOT re-date the stale numerals (59 files, 192/DEC-209, 117 files) — that is the rot treadmill
   D-10 abolished — same digest, Q4 — verified-at 047f6914
-- Do NOT call `gh-sync.py open` again — the receipts in `feature.json`'s `github` block make it an
-  idempotent no-op, and re-running to "discover" a receipt is what the mirror contract forbids —
-  `references/github-mirror.md` — verified-at 99dab78a
+- Do NOT call `gh-sync.py open` again — `feature.json`'s `github` receipts make it a no-op, and
+  re-running to "discover" one is what the contract forbids — `github-mirror.md` — at 99dab78a
 
 ## Working set
 
