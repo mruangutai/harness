@@ -1764,6 +1764,9 @@ panel:
   - reader: scope
     persona: harness-code-reviewer
     status: ran
+  - reader: goalcheck
+    persona: harness-pm
+    status: ran
   findings:
   - id: PF-328f8f3cf2485de796e819decb0475aa
     cycle: 1
