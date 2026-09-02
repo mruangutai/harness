@@ -4188,6 +4188,43 @@ def case_inv35_coincidental_block_indicator_substring_still_fires():
         return ok
 
 
+def case_inv35_quoted_key_still_fires():
+    """(inv35.j) REGRESSION -- validator panel finding, cycle 2 (harness-code-reviewer, PR
+    #1145). `_KEY_PREFIX` originally recognised only a bare-identifier key, so a QUOTED key
+    (`"my-key": value #217`) fell through the optional key group untouched, and
+    `_unquoted_hash_digit` then read the key's own opening quote as the value's first
+    character, tracked to the key's own closing quote, and returned None -- silently
+    swallowing the real truncation that followed. `_KEY_PREFIX` now recognises a
+    double-quoted, single-quoted, or hyphenated-identifier key as well as a bare one."""
+    with tempfile.TemporaryDirectory() as tmp:
+        _i35_fixture(tmp, '"my-key": value for the record #217\n')
+        code, out = run(tmp)
+        ls = _i35_lines(out)
+        ok = bool(ls) and any("#217" in l for l in ls)
+        print(f"{'ok' if ok else 'FAIL'} - case (inv35.j) a quoted key does not suppress a "
+              f"real truncation in its value")
+        if not ok:
+            print(f"        {out[:400]}")
+        return ok
+
+
+def case_inv35_hyphenated_key_block_scalar_is_exempt():
+    """(inv35.k) SIBLING of (inv35.j), same root cause. An unquoted key containing a hyphen
+    (`my-key: |`) was not recognised by `_KEY_PREFIX` either, which left the whole line
+    un-stripped and made the block-scalar-open check miss it -- a false POSITIVE risk on the
+    block's own content lines rather than a silence, but the identical seam."""
+    with tempfile.TemporaryDirectory() as tmp:
+        _i35_fixture(tmp, "my-key: |\n  close out the fix for #217\n  and nothing else\n")
+        code, out = run(tmp)
+        ls = _i35_lines(out)
+        ok = not ls
+        print(f"{'ok' if ok else 'FAIL'} - case (inv35.k) a hyphenated key's block scalar is "
+              f"recognised and exempt")
+        if not ok:
+            print(f"        {out[:400]}")
+        return ok
+
+
 
 def main():
     ok_a, code_a = case_a()
@@ -4239,6 +4276,8 @@ def main():
         case_inv35_digit_inside_an_already_started_comment_is_silent(),
         case_inv35_apostrophe_before_truncation_still_fires(),
         case_inv35_coincidental_block_indicator_substring_still_fires(),
+        case_inv35_quoted_key_still_fires(),
+        case_inv35_hyphenated_key_block_scalar_is_exempt(),
     ])
     # FEAT-41 T-14 / issue #867 — INV-33: the report, the byte-comparison discriminator, and
     # the two silences. Each returns a results LIST, so they join the aggregate below.
