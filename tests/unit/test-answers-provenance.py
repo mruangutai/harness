@@ -14,7 +14,7 @@ import os
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-ROOT = os.path.abspath(os.path.join(HERE, "..", "..", "..", ".."))
+ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
 
 HARNESS_MD = os.path.join(ROOT, ".claude", "commands", "harness.md")
 ORCH_CANONICAL = os.path.join(ROOT, ".omp", "agents", "harness-orchestrator.md")

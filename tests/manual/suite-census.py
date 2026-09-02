@@ -140,11 +140,40 @@ finally:
         print(f"{path.name} children={len(names)} names={rendered}")
     return 0
 
+def add_verdict_parser(subparsers):
+    parser = subparsers.add_parser("verdict-lines")
+    parser.add_argument("--baseline", required=True)
+    parser.add_argument("--deleted", action="append", default=[])
+    parser.add_argument("--strict", action="store_true")
+    parser.set_defaults(fn=verdict)
+
+
+def add_migration_parser(subparsers):
+    parser = subparsers.add_parser("migration")
+    parser.add_argument("--base", required=True)
+    parser.add_argument("--floor", type=int, required=True)
+    parser.add_argument("--deleted", action="append", default=[])
+    parser.set_defaults(fn=migration)
+
+
+def add_residue_parser(subparsers):
+    parser = subparsers.add_parser("residue")
+    parser.add_argument("--ref")
+    parser.set_defaults(fn=residue)
+
+
+def add_children_parser(subparsers):
+    parser = subparsers.add_parser("children")
+    parser.set_defaults(fn=children)
+
+
 def main():
-    ap=argparse.ArgumentParser(); sp=ap.add_subparsers(dest="cmd",required=True)
-    p=sp.add_parser("verdict-lines"); p.add_argument("--baseline",required=True); p.add_argument("--deleted",action="append",default=[]); p.add_argument("--strict",action="store_true"); p.set_defaults(fn=verdict)
-    p=sp.add_parser("migration"); p.add_argument("--base",required=True); p.add_argument("--floor",type=int,required=True); p.add_argument("--deleted",action="append",default=[]); p.set_defaults(fn=migration)
-    p=sp.add_parser("residue"); p.add_argument("--ref"); p.set_defaults(fn=residue)
-    p=sp.add_parser("children"); p.set_defaults(fn=children)
-    a=ap.parse_args(); return a.fn(a)
+    parser = argparse.ArgumentParser()
+    subparsers = parser.add_subparsers(dest="cmd", required=True)
+    add_verdict_parser(subparsers)
+    add_migration_parser(subparsers)
+    add_residue_parser(subparsers)
+    add_children_parser(subparsers)
+    args = parser.parse_args()
+    return args.fn(args)
 if __name__=="__main__": raise SystemExit(main())

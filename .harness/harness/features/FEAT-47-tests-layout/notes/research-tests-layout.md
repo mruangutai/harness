@@ -144,13 +144,14 @@ see, which is the reason for adding them rather than leaving them rowless. The o
 re-derived byte-identical.
 
 ```text
-test-bash-write-guard.py	109
+test-answers-provenance.py	13
+test-bash-write-guard.py	115
 test-board-lifecycle.py	163
 test-board-station.py	16
 test-branch-create-gate.py	8
 test-check-decision-anchors.py	8
-test-check-domain.py	285
-test-check-expertise.py	32
+test-check-domain.py	300
+test-check-expertise.py	45
 test-check-omp-port.py	19
 test-check-plan-routes.py	122
 test-check-state.py	197
@@ -205,9 +206,9 @@ test-wayfind.py	2
 test-worktree-terminal.py	42
 ```
 
-Total 3700 over 59 files, re-derived at `06bd60c8`. `test-run-unit-tests-kinds.py` (23) is deleted
-by this feature, so the 58 migrated files must still total **3677**, each file individually equal
-to its row above. Three
+Total 3747 over 60 files, re-derived at `38888449`. `test-run-unit-tests-kinds.py` (23) is deleted
+by this feature, so the 59 migrated files represented in this baseline must still total **3724**,
+each file individually equal to its row above. Three
 rows are low because those suites print their own summary format (`test-omp-hooks.py` delegates to
 `bun`); a row equal to its baseline is still the assertion, whatever the row's absolute meaning.
 
