@@ -1,59 +1,60 @@
-# Handoff — FEAT-48, validate → ship — written at e64e863e, seq-5
+# Handoff — FEAT-48, validate → ship — written at 27f8105b, seq-6
 
 ## Next
 
-**Do not ship. Three main-session-direct items, then a re-validation scoped to the touched code.**
-The c8 panel (`runs/2026-09-02-c8-validator/digest.md`) — the first review the fix commit has had —
-returned FAIL, `severity_max: high`, two `must_fix`. **(1) `code_grade: fail`** over
-`d135364e..e64e863e`: 9 blocking records, three `high` (`run_pool.py main`,
-`test-suite-independence.py _sink`, `:170 run_self_tests` at CYC 14 / COG 29 / ABC 49.7); a
-non-relocating decomposition of `run_self_tests` preserves coverage verbatim. **(2)
-`run_pool.py:37-38`**: the directory-symlink `os.lstat` has no `OSError` guard where the file loop
-below does, so a failure there aborts the pool run — one edit with (1), same function.
-**(3) SC-03's operator signature**: pm grades 9/10 SCs MET and SC-03 `unmeetable-as-written`,
-recommending remedy **(B)** — the ten `ea6f51f` sites become a review-time automated check, under
-which SC-03 reads MET at `e64e863e` with no code left to write. Not a fix cycle, not mine to waive.
+**Take the operator's ruling on B-1, then ship or re-pin.** Validate is complete: both c8
+`must_fix` closed with proofs I took myself, `code_grade` clean at the pin, no criterion failure
+from the panel, and pm grades **all ten SCs MET**
+(`notes/research-FEAT-48-goalcheck-validate-c9.md`). The one open item is a **scope ruling only the
+operator can make**: a test blinds `--mutation-check` by removing a directory's execute bit (B-1);
+it is present since `b86ce66a`, fails no criterion, and `.claude/skills/harness/bin/**` is
+`main-session-direct` (`plan.yaml:15-23`) so no lead may fix it. Briefing and the full B-row table:
+`notes/ship-review-2026-09-02-c9.md`. **Ship** → open the PR, then file the unstruck B-rows.
+**Fix** → `_record` swallows only `FileNotFoundError`; that moves the tip, so re-pin `review_sha`
+and re-run panel + goal-check.
 
 ## Trust
 
-- All six in-file cases run unconditionally in CI and **all six DISCRIMINATE** — three monkeypatch
-  probes, no edit to the checkout: blinding `scan_file` reddens the three red cases, an over-eager
-  `scan_file` also reddens clean-controls and live-tree, patching `resolve_scan_root` reddens
-  live-tree and root-refusal; never-red cases: NONE — `test-suite-independence.py:170-266` — mine,
-  verified-at e64e863e.
-- The c7 symlink HIGH (M1) is closed **with a red proof**: the same probe against
-  `git show b86ce66a:run_pool.py` gives exit 0 / no MUTATED for a dangling AND a directory symlink,
-  the shipped copy gives `exit 1 MUTATED dangling` and `MUTATED linked-dir`, and the clean control
-  stays exit 0 in both — no false positive traded — mine, verified-at e64e863e.
-- `run_pool.py:37-38` raises `FileNotFoundError` **out of** `snapshot()` when lstat fails on a
-  directory symlink while the same injected failure at `:44-47` is swallowed — deterministic fault
-  injection pinning `islink` True, not a raced repro — mine, verified-at e64e863e.
-- **All 9 `code_grade` records are FEAT-48's own**: `gated_set` gates only a record with no
-  pre-image or a WORSENED grade (`code_grade.py:427-431`) and 7 of 9 sit in three files absent from
-  `main`, so the c8 review's "7 pre-existing" partition — retracted by its own lead — was
-  unrepresentable — mine, verified-at e64e863e.
-- SC-01 MET (`feature_schema.py` mtime_ns/size/sha256 identical after `test-check-domain.py` exit 0
-  — never written, not restored); SC-04 MET (`--kind unit` exit 0, 33 files, emits its PASS line);
-  SC-09 MET (DEC-211 carries all five items, the index is `cmp`-identical); suite green (`--kind
-  all` exit 0, 63 files, 48.87s, zero FAIL/MUTATED, clean tree) — mine, verified-at e64e863e.
-- SC-02, SC-05..SC-08, SC-10 MET on evidence pm re-took at the pin, incl. ten post-rewrite
-  `--kind all` runs — `notes/research-FEAT-48-goalcheck-validate-c8.md` — pm's, not mine.
-- M5 (same-size + restored-mtime swap) and M4 (no `__pycache__` leg) stay open at MED, and
-  DEC-211:6601-6602 **overclaims** content-derived writes are caught — theirs, verified-at e64e863e.
+- `code-grade.py --base origin/main --head 27f8105b` → exit 0, `PASSING: 70`, zero blocking records;
+  `run_self_tests` CYC 3 / COG 0 / ABC 6.5 — mine, verified-at 27f8105b.
+- All six in-file self-tests **DISCRIMINATE**, never-red cases NONE — three monkeypatch probes, no
+  edit to the checkout; the file was rewritten in `993ac997` so c8's proof did NOT carry — mine,
+  verified-at 27f8105b.
+- The lstat guard covers **both** branches and is **reachable** (bypassing it makes the same
+  injection escape in both). Scope the injection to `run_pool`'s own `os`: patching `os.lstat`
+  globally makes `os.path.islink` false and measures the wrong branch — mine, verified-at 27f8105b.
+- SC-03 both halves: T-03's verify verbatim exits 0; the ten pinned `ea6f51f` sites found
+  **individually**, `missing [] extra []` — mine, verified-at 27f8105b.
+- `__pycache__` rewritten and newly created ignored; loose `.pyc` reported; missing/empty watched
+  dirs exit 2 — mine, verified-at 27f8105b.
+- Suite green: `--kind all` exit 0 / 63 files / 8 workers / 48.29s / zero `FAIL` / zero `MUTATED` /
+  clean tree; `--kind unit` emits `PASS test-suite-independence.py`; SC-01 `feature_schema.py`
+  identical on mtime_ns+size+sha256 with `CRASHED` intact; SC-09 index `cmp`-identical — mine, at pin.
+- **B-1 reproduces identically at `b86ce66a`, `e64e863e` and `27f8105b`**, so it is NOT a regression
+  from `993ac997` — mine, verified-at all three.
+- T-06's `verify:` exits 1 solely on `post == ["0"]`; the duplicate predates the fixes — mine, at pin.
+- SC-01..SC-10 all MET on evidence re-taken at the pin —
+  `notes/research-FEAT-48-goalcheck-validate-c9.md` — pm's, not mine.
+- The `__pycache__` basename skip admits any payload at any depth and defeats symlink tracking when
+  the symlink is named `__pycache__` — `notes/review-harness-security-reviewer-c9.md` — theirs,
+  UNVERIFIED beyond §3 of `notes/validate-evidence-c9.md`.
 
 ## Dead ends
 
-- Do not route any remedy to a dev squad: `.claude/skills/harness/bin/**` is `main-session-direct`
-  by DEC-174 policy carve-out, not absence of a grant — `plan.yaml:15-23` — verified-at e64e863e.
-- Do not re-run the six cases or re-litigate SC-03's first half — this note's Trust — at e64e863e.
-- Do not call any `code_grade` record pre-existing debt — `code_grade.py:427-431` — at e64e863e.
+- Do not route a remedy to a dev squad: `bin/**` is `main-session-direct` by the DEC-174 carve-out,
+  not a missing grant — `plan.yaml:15-23` — verified-at 27f8105b.
+- Do not re-run the six self-tests, the ten pinned sites, or `code_grade` — this note's Trust.
+- Do not call B-1 introduced by `993ac997`, nor a criterion failure: SC-10's six clauses all pass.
+- Do not accept that DEC-211:6599-6604 is false. *"Caught only when…"* is a **necessary**-condition
+  sentence. The overclaim is D-11's "Inside DIR it is vector-agnostic" — verified-at 27f8105b.
+- Do not delete the duplicate `post-fix broken reads 0` line to green T-06's verify: it sits inside
+  the fenced transcript T-06's intent mandates. The clause is wrong; all five graders concur.
 - Do not read a red suite as a FEAT-48 defect before unsetting `HARNESS_AGENT_TYPE`, which fails 11
-  checks in `test-plan-merge.py`, a file not in the diff — mine, verified-at e64e863e.
-- Do not hand SC-03's ten-site clause back as a coding oversight — `.github/workflows/tests.yml:50`
-  puts `ea6f51f` out of a bare `actions/checkout@v4`'s reach — verified-at e64e863e.
+  checks in `test-plan-merge.py`, a file not in the diff — verified-at 27f8105b.
 
 ## Working set
 
-- `.claude/skills/harness/bin/run_pool.py` (`snapshot` :29, unguarded `lstat` :37-38)
-- `.claude/skills/harness/bin/test-suite-independence.py` (`run_self_tests` :170)
-- `runs/2026-09-02-c8-validator/digest.md` · `notes/research-FEAT-48-goalcheck-validate-c8.md`
+- `notes/ship-review-2026-09-02-c9.md` · `notes/validate-evidence-c9.md`
+- `notes/research-FEAT-48-goalcheck-validate-c9.md` · `notes/review-harness-security-reviewer-c9.md`
+- `.claude/skills/harness/bin/run_pool.py` (`_record` :29-34, `_snapshot_directory` :37-49)
+- `feature.json` (runs 21, cycles 8/10)

@@ -45,3 +45,18 @@
 - 2026-09-01: a text-level splice keyed on `  - reader: ` matches the `readers:` list entries as well as the findings — it raised IndexError after 3 of 16. Gate the splice on having passed the `findings:` line. The failure was loud only because the id list ran out; with 20 ids it would have silently written ids onto reader entries.
 - 2026-09-02: FEAT-48 c8 goal-check. SC-05 demanded ten consecutive runs; the committed ten predated the snapshot() rewrite that IS the pool the criterion watches, so an inherited pass would have covered code that no longer ships. Re-took all ten myself (525s wall, 47.6-78.5s each) rather than hedge — the cost was nine minutes and it converted an UNPROVEN into a MET with my own numbers.
 - 2026-09-02: FEAT-48 SC-03 was unmeetable for a reason outside the repository's code: the criterion demands a historical blob be asserted in a run SC-04 requires CI to make, and CI's bare actions/checkout@v4 clones depth 1. Settled it with one command (git clone --depth 1 then git cat-file -e <sha> -> exit 128) instead of arguing from documentation. Lesson: when a criterion couples 'in the same run' to 'runs in CI', price the CI checkout before grading either half.
+- 2026-09-02: c9 goal-check. A case-scoped grep nearly produced a false UNMET on SC-09: I searched
+  DEC-211 for `[Rr]eject` and the entry spells it `REJECTED` (DECISIONS.md:6606), so the clause read
+  absent when it was present with three reasons. Grading a criterion whose text uses emphatic caps
+  needs a case-insensitive or all-caps-inclusive pattern.
+- 2026-09-02: bash-write-guard denies a heredoc'd python block containing a bare `>` comparison
+  (`if i>start`) — it parses the command line textually and reports "redirect targets start". Two
+  calls lost. Write comparisons with `<` reversed, or avoid `>` inside heredocs entirely.
+- 2026-09-02: `test-suite-independence.py --scan-dir <tempdir>` prints
+  "ERROR could not resolve scan root above <dir>" to stderr even on a healthy run — it comes from the
+  `unresolved root refuses` self-test's own probe (`:264-274`), not from the scan. T-03's verify only
+  asserts `old.returncode != 0`, so the ten-site set clause is what actually carries SC-03's pinned
+  half; read the FAIL summary line before concluding a non-zero exit is attributable to findings.
+- 2026-09-02: the same `--kind all` command took 42.40s on a quiet tree (carrier note) and 79.72s
+  while a sibling review panel ran. A wall-time criterion graded during a live panel needs headroom;
+  SC-06's 120s bound absorbed it, a 60s bound would have failed on load, not on regression.
