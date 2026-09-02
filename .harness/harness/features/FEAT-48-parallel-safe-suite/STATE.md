@@ -5,16 +5,19 @@
 - feature: FEAT-48-parallel-safe-suite
 - run: .harness/harness/features/FEAT-48-parallel-safe-suite/runs/2026-09-01-10-validator/state.yaml
 - squad: validator
-- status: awaiting-user
+- status: blocked
 
-Plan phase complete and **signable**. Branch `feat/FEAT-48-parallel-safe-suite`, rebased onto
+Plan phase COMPLETE and SIGNED (Mike Ruangutai, 2026-09-02, `85900e7f`) — both `plan.yaml`'s
+`approval:` mapping and `BRIEF.md`'s `## Approval`. Station `ready`; T-01..T-06 `ready`, T-07
+`abandoned`. **The plan-to-build mirror sync is HELD** — see the first open question.
+
+Previously: Branch `feat/FEAT-48-parallel-safe-suite`, rebased onto
 `origin/main` `a93a1df9`. The plan graded by cycle 6 is `047f6914`; the signature commit follows.
 
 `plan.yaml`'s `panel:` key records **cycle 6**: `verdict: PASS`, `severity_max: med`,
 `must_fix: []`, satisfiability sweep 0 unsatisfiable / 0 under-specified (prior yields 2, 2, 0, 2,
 0-with-1). Sixteen findings, all `disposition: open`, none above `med`, so INV-32 gates nothing.
-`fable-advisor` returned `approve: "yes"` with nine named residual risks. `approval.status` stays
-`pending` — only the main session signs (DEC-120).
+`fable-advisor` returned `approve: "yes"` with nine named residual risks, which the operator accepted.
 
 Log:
 - 2026-08-31: cycles 0-3 (panel FAIL/FAIL/FAIL/PASS), all against pre-rebase trees.
@@ -34,6 +37,17 @@ Log:
 plan phase, and each run resolved findings rather than repeating them.
 
 ## Open Questions
+
+- **BLOCKING the plan-to-build mirror sync.** `gh-sync.py open` would create a sub-issue for the
+  ABANDONED T-07: `parse_tasks` returns all seven tasks and `cmd_open`'s creation loop
+  (`gh-sync.py:942`) has no status filter. Measured by importing the module and calling it;
+  `recorded issues: {}`, so nothing exists yet. `ship` skips any card with an open child and
+  nothing else closes a task sub-issue, so that one issue would hold FEAT-48's parent at ship
+  forever. Fix, main-session-direct under DEC-174 and asked for: `continue` on an abandoned task
+  in that loop, in the same change as the `finished_stations()` one-liner at `gh-sync.py:1152`.
+  Two call sites, one root — the `abandoned`-station gap the panel and the Advisor both named,
+  biting one phase earlier than either predicted. `open` then `status <feature-dir> ready` run in
+  one act once it lands.
 
 - Whether issue #1053 CLOSES on FEAT-48's ship is a product call the Advisor declined to settle: it
   settled the evidence question (SC-05's ten `--kind all` runs do exercise `test-gh-sync.py`, so a
