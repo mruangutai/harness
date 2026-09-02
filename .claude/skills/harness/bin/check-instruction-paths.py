@@ -106,6 +106,28 @@ def violations(path, root):
         ]
 
 
+def _select(files, raw_paths):
+    selected = set()
+    for raw in raw_paths:
+        target = os.path.abspath(raw)
+        matches = [path for path in files if path == target or (os.path.isdir(target) and path.startswith(target + os.sep))]
+        if not matches:
+            print(f"check-instruction-paths: {raw} selects nothing in scope", file=sys.stderr)
+            return None
+        selected.update(matches)
+    return sorted(selected)
+
+
+def _report(files, root):
+    total = 0
+    for path in files:
+        for line, reason, token in violations(path, root):
+            print(f"VIOLATION {os.path.relpath(path, root)}:{line}: {reason}: {token}")
+            total += 1
+    print(f"scanned {len(files)} file(s), {total} violation(s)")
+    return 1 if total else 0
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser()
     parser.add_argument("--root")
@@ -125,22 +147,10 @@ def main(argv=None):
         print("check-instruction-paths: scope is empty", file=sys.stderr)
         return 2
     if args.paths:
-        selected = set()
-        for raw in args.paths:
-            target = os.path.abspath(raw)
-            matches = [path for path in files if path == target or (os.path.isdir(target) and path.startswith(target + os.sep))]
-            if not matches:
-                print(f"check-instruction-paths: {raw} selects nothing in scope", file=sys.stderr)
-                return 2
-            selected.update(matches)
-        files = sorted(selected)
-    total = 0
-    for path in files:
-        for line, reason, token in violations(path, root):
-            print(f"VIOLATION {os.path.relpath(path, root)}:{line}: {reason}: {token}")
-            total += 1
-    print(f"scanned {len(files)} file(s), {total} violation(s)")
-    return 1 if total else 0
+        files = _select(files, args.paths)
+        if files is None:
+            return 2
+    return _report(files, root)
 
 
 if __name__ == "__main__":
