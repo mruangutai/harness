@@ -3,7 +3,7 @@
 ## Current
 
 - feature: FEAT-52-factory-control-plane
-- run: .harness/harness/features/FEAT-52-factory-control-plane/runs/2026-09-02-01-validator/state.yaml
+- run: .harness/harness/features/FEAT-52-factory-control-plane/runs/2026-09-02-01-validator/digest.md
 - squad: none
 - status: awaiting-user
 - station: plan — SIGNED, and the build cannot be orchestrator-hosted. Both approvals landed on
