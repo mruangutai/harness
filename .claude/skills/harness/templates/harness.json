@@ -72,7 +72,13 @@
       ]
     },
     "config": {
-      "always": []
+      "always": [],
+      "when": [
+        {
+          "kind": "integration",
+          "if": "touches_config_shape"
+        }
+      ]
     },
     "scaffolding": {
       "always": []

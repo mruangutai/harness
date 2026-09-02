@@ -33,6 +33,10 @@ You may **add** a requirement the diff clearly warrants. You may never drop belo
 **Presence is not satisfied by an unrelated existing test.** A new endpoint is not covered because a
 different endpoint has one. Find the test exercising *this* change, or the kind is missing.
 
+**A `config` task that changes a value's shape** (a key's container type, required-ness, or
+structural nesting in a config a gate script reads) **trips `touches_config_shape` and requires
+`integration`** (DEC-212) — a value tweak does not.
+
 ## Resolve each kind to exactly one of five states
 
 Read **two** signals, never just the exit code: what kind of failure, not merely whether it failed.

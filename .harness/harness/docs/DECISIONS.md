@@ -6612,3 +6612,35 @@ selection silently incomplete.
 **Measurements:** on 2026-08-31 at `ea6f51f`, a 12-core M3 Pro ran 56 files in 247 seconds
 serially, about 47 seconds with eight workers and 68.7 seconds with four; the single-file floor was
 about 36.7 seconds. These observations explain the policy but do not replace its invariants.
+
+## DEC-212 — A config-shape change is bound to the integration floor by a fixed predicate, closing the gap that let FEAT-41 T-01 ship a broken state gate green
+
+**Chose:** a new fixed predicate, `touches_config_shape`, added beside DEC-35's three
+(`touches_db_or_external`, `has_interaction_flow`, `match_bug_class`), and a `when` clause on the
+`config` change type: `{"kind": "integration", "if": "touches_config_shape"}`.
+**Over:** leaving `config.always: []` as the only rule (the status quo that let #1033 through);
+widening `config`'s `always` to unconditionally require `integration` (over-broad — a config VALUE
+edit, e.g. bumping a budget number, has no consumer blast radius and gains nothing from a forced
+integration run); inventing new test infrastructure (unnecessary — `test-check-state.py` already
+forks the real `check-state.sh` against a real `.harness/harness.json` fixture, and
+`test-factory-integration.py` already forks `board_lifecycle.py` against a real board built from
+`factory_config`; both are already members of `test_kinds.integration.detect` and already run under
+`--kind integration`).
+**Because:** measured live during FEAT-41's build (2026-08-30, issue #1033) — `github.board.stations`
+changed from a six-key mapping to an ordered list, one JSON value in one module. The task's own
+`verify:` (a unit-kind test exercising the validator in isolation) passed 112/112 and the task shipped
+committed green while `board_lifecycle.py`, `gh-sync.py` and `check-state.sh`'s own INV-26 block threw
+a `TypeError` against the changed shape — **the project's own state gate was down** for roughly twenty
+minutes in one worktree. The matrix's `cross_module` floor exists for exactly this blast radius but
+nothing bound a config-schema change to it: the change read as unit-scoped because nothing said
+otherwise. `touches_config_shape` asks qa to judge, from the diff, whether an edit changes the
+*container shape* of a value `harness.json` or `fleet.yaml` a gate script reads — a key's type,
+required-ness, or structural nesting — as distinct from changing the value a key already holds. That
+judgment is qa's, same as the other three predicates; fixing the name as data keeps it auditable
+rather than letting it silently vanish as prose (DEC-35).
+**Tradeoff accepted:** the predicate is a judgment call, not a mechanical diff rule — a boundary case
+(e.g. adding a new optional key to an existing object) is qa's call, same latitude DEC-35 already
+accepts for the other three. A separate, unfixed risk survives outside this decision's scope:
+`gh-sync.py`'s `board_lifecycle.audit_findings` call site degrades a consumer-side shape crash to a
+stderr line that `ship` does not fail on — hardening that swallow is future work, not part of this
+matrix binding.
