@@ -295,6 +295,6 @@ with a runner. `component`, `ui`, `typecheck` and `eval` all ship `cmd: null`, s
 
 ## Approval
 
-status: pending
-approved-by:
-date:
+status: approved
+approved-by: operator (Mike Ruangutai), via main session
+date: 2026-09-02
