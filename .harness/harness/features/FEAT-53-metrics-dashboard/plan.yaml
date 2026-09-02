@@ -69,8 +69,8 @@ decisions:
     because: the astryx-design-system convention makes a second substrate a Decision, and nothing here needs one.
     dec: none
   - id: D-08
-    choice: Charting is TanStack Charts at alpha, pinned as @tanstack/charts with its /react adapter; the fallback trigger is any of CAP-01, CAP-05, CAP-07 or CAP-11 unmet at T-18's probe, and NO FALLBACK LIBRARY IS NAMED - what to do when the trigger fires is an operator decision outstanding at signature.
-    because: alpha risk is accepted only while the four hard capabilities hold, and a named trigger keeps the swap a decision rather than a rescue - but the package this decision named before, npm react-charts, cannot be the net - its newest publication is 2023-11-02 and its peer is React 16, against this client's React 19 substrate, so it will not install beside Astryx at all. The two live options are to accept the alpha with a documented rollback, or to name a second, live charting library, which DESIGN requires be its own Decision. Recommendation - accept the alpha with a rollback, because T-18 now probes all thirteen capabilities before one line of client UI exists, so a STOP costs only the toolchain task and the operator can choose a library then with the probe in hand rather than now on speculation.
+    choice: Charting is TanStack Charts at alpha, pinned as @tanstack/charts with its /react adapter; the alpha is ACCEPTED, ruled by the operator on 2026-09-01 (notes/answers-2026-09-01-plan-signature.md, DEC-3), with the rollback named in this decision's because clause; the capability trigger is unchanged - any of CAP-01, CAP-05, CAP-07 or CAP-11 unmet at T-18's probe.
+    because: 'alpha risk is accepted only while the four hard capabilities hold, and a named trigger keeps the swap a decision rather than a rescue - but the package this decision named before, npm react-charts, cannot be the net - its newest publication is 2023-11-02 and its peer is React 16, against this client''s React 19 substrate, so it will not install beside Astryx at all. THE ROLLBACK, named here because the operator''s 2026-09-01 acceptance was conditional on it being written down, has three parts. (a) The alpha is PINNED to an exact version in the client package.json (T-04) and the built bundle is COMMITTED (D-04), so an upstream alpha change cannot reach a user without an explicit version bump made by a task and reviewed as one. (b) Where a capability is unmet and its DESIGN C-2 If absent cell names a workaround, THAT WORKAROUND IS THE ROLLBACK and it is applied in place with no library change: CAP-02 renders five single-bar series, CAP-03 encodes bar membership as a datum-derived hatch computed server-side and never one global line, CAP-04 and CAP-10 hand the region to DESIGN S-1 before the chart mounts, CAP-06 draws the bin labels ourselves beneath the axis, CAP-09 segments each series server-side into contiguous runs, which T-10 already does unconditionally, CAP-12 is ours to supply, and CAP-13 wraps the chart in a resize observer. CAP-08 is not a fallback at all - DESIGN C-2 pre-authorised three stacked single-series plots as the chosen build. (c) Where an unmet capability''s If absent cell reads hard requirement - CAP-01, CAP-05, CAP-07 and CAP-11, exactly the four in the trigger, with CAP-11 additionally offering an overlaid-marker series for its dash-and-shape half - T-18 records VERDICT STOP, the chart-building tasks do not start, and choosing a replacement library becomes an operator decision taken THEN on the probe''s own evidence rather than a question left outstanding at signature. NO FALLBACK LIBRARY IS NAMED IN ADVANCE because none survives the React 19 substrate check today. T-18 probes all thirteen capabilities before one line of client UI exists, so a STOP costs only the toolchain task and the operator chooses then, with the probe in hand, rather than now on speculation; naming a second, live charting library would in any case be its own Decision, which DESIGN requires.'
     dec: none
   - id: D-09
     choice: No database and no cache at launch; a derived, gitignored, rebuildable SQLite cache over trend.jsonl is the named future lever and is not built now.
@@ -118,7 +118,7 @@ decisions:
     dec: none
   - id: D-20
     choice: The dashboard HAS a client build at all - React with TanStack Router and Query on the Astryx substrate, an npm package under bin/dashboard/client/, and a committed dist bundle - rather than a server-rendered HTML surface with no npm anywhere.
-    because: the user settled React plus TanStack at the grilling (.harness/notes/grilling-metrics-dashboard-2026-09-01.md lines 76-78, and lines 20-22 for the live-server-not-static-HTML choice), and D-07 answers WHICH substrate while never arguing whether to have one, so this was the plan's one unwritten decision. Engineering's plan review records the live alternative, and it is new information - a server-rendered HTML surface off the same Python server satisfies REQ-01 and REQ-12 too, and would delete three of the four firsts - the frontend framework, package.json and the committed bundle - plus the entire alpha-charting risk. What the grilling rejected was the render-brief.py static-HTML-from-markdown convention, which is not the same thing as server-rendered HTML from this live server, so the alternative was never actually put to the operator. Recommendation - keep the client build, because REQ-12's browser drill across three routes with URL-held state is what the plan is built around and hand-written HTML would re-implement a router; but this reaches the operator at signature as an explicit yes or no.
+    because: 'the user settled React plus TanStack at the grilling (.harness/notes/grilling-metrics-dashboard-2026-09-01.md lines 76-78, and lines 20-22 for the live-server-not-static-HTML choice), and D-07 answers WHICH substrate while never arguing whether to have one, so this was the plan''s one unwritten decision. Engineering''s plan review records the live alternative, and it is new information - a server-rendered HTML surface off the same Python server satisfies REQ-01 and REQ-12 too, and would delete three of the four firsts - the frontend framework, package.json and the committed bundle - plus the entire alpha-charting risk. What the grilling rejected was the render-brief.py static-HTML-from-markdown convention, which is not the same thing as server-rendered HTML from this live server, so the alternative was never actually put to the operator. RULED by the operator on 2026-09-01 (notes/answers-2026-09-01-plan-signature.md, DEC-2): the client build is KEPT and this decision stands as drafted. The server-rendered alternative was weighed and REJECTED - REQ-12''s browser drill across three routes with URL-held state is what the plan is built around, and hand-written HTML would re-implement a router - so the disclosure above stands as a recorded consideration of what was weighed, not as a question open at signature.'
     dec: none
 
   - id: D-21
@@ -159,6 +159,45 @@ decisions:
       the sentence, and T-02 therefore gates this repository's side with git check-ignore rather than
       with a comment. Fixture trees under dashboard/fixtures/ are outside this rule: T-11 writes there,
       not at the real project root.
+    dec: none
+  - id: D-23
+    choice: >-
+      The accepted backlog rows from every plan cycle of this feature are filed at ship as GitHub
+      issues, one issue per row, each labelled Dashboard, and this decision is their single carrier.
+      The complete accepted set is B-1, B-2, B-3, B-4, B-5, B-7, B-8, B-9, B-10, B-12, B-13, B-14,
+      B-23 and B-25. B-1..B-5 and B-12..B-14 additionally carry their own panel-finding note in this
+      plan's panel.findings, and so do B-23 and B-25 - B-23's disposition is C4-05 and B-25's is
+      C4-07, both reading backlog. Only B-7..B-10 have no panel disposition of their own. Every
+      row's subject is recorded here regardless of its carrier, so ONE decision names the complete
+      accepted set in one place and a filer at ship does not have to reconstruct any of it from a
+      briefing. B-7 - KPI 1's change-size half reads git diff default...branch, which nulls once a
+      merged branch is pruned, and most onboarded projects prune, while review_sha survives the
+      prune and is already read by the same task. B-8 - the KPI 6 tile is labelled by agent and
+      model tier but its payload keys by model name only and the resolved agent is discarded, so
+      keep the agent name or relabel the tile. B-9 - the start command is documented under
+      .agents/skills while the source is pinned under .claude/skills, both resolve because
+      .agents/skills is a symlink, and the README should state one; .claude/skills was ruled for
+      internal consistency with D-01 and D-17, overridable. B-10 - a design clause pins focus to the
+      originating control on browser Back, which needs router behaviour that cannot be verified
+      until TanStack Router is installed, and if it cannot hold the fallback is the page heading and
+      the clause needs one sentence. B-23 - SC-13 asserts both the escaped-defect count and that the
+      rule is stated in the UI beside the number under verify automated with evidence unit, and the
+      UI half has no gate, so either move the UI clause into SC-15's inspection scope or narrow
+      SC-13 to the count. B-25 - T-05's contract was updated to the 3x3 seven-tile grid while the
+      committed prototype it points at is a six-tile 3x2 build that no one has ever rendered, and
+      T-05's verify cannot detect the divergence, so T-05 wants one clause recording the six-tile
+      artifact as accepted under DEC-5's closure.
+    because: >-
+      the listed set is the COMPLETE accepted set and nothing else is owed: B-6 was STRUCK by the
+      operator, and B-11, B-15, B-16, B-17, B-18, B-19, B-20, B-21, B-22 and B-24 were FIXED in
+      later cycles, so no other briefing row survives. The four cycle-1 rows B-7..B-10 existed only
+      inside pass 1's immutable briefing (notes/ship-review-2026-09-01-plan.md:126-129) and were
+      wired to nothing live, while B-23 and B-25 were accepted as backlog in the pass-4 ruling
+      (notes/answers-2026-09-02-plan-signature-c4.md Q2) after the last panel run, so without one
+      decision naming every row a filer at ship has to reassemble the set from three separate
+      briefings. The filing MECHANISM is the existing one and is not invented here - one issue per
+      row, label Dashboard, at ship - exactly what the panel notes on B-1..B-5 and B-12..B-14
+      already instruct.
     dec: none
 tasks:
   - id: T-01
@@ -538,14 +577,19 @@ tasks:
       107 nor the literal 122 appears. Assert FIRST that the path list is non-empty, so an errored
       git call cannot pass as a clean sweep. Demonstrate the case failing before you make it pass,
       by seeding one of those digits into a scratch copy.
-      The tokens 12 and 3 are deliberately NOT grepped: they occur inside 1024, 3x3 and ES2022,
-      all of which this feature legitimately ships, so a literal grep for them cannot discriminate
-      a seeded mix figure from an unrelated number. BRIEF's Verification gaps records that those
-      two are carried by SC-15's inspection instead, and this task must not pretend otherwise.
-      Wire the result into kpi.py's aggregate.grading. Extend test-metrics-kpi.py: assert the
-      at-or-above-bar share and the named outlier list against fixture project-a's hand-labelled
-      values, assert that a payload with only a central tendency fails, and assert the ungraded share
-      CHANGES when a fixture file of a new extension is added.
+      The tokens 12 and 3 are deliberately NOT grepped, and their real carriers are these. 12 occurs
+      inside 127.0.0.1 - D-05's loopback-only bind, shipped in serve.py by T-12 and required in
+      METRICS.md by T-17's own verify - and inside 122 itself, which is one of the mix literals this
+      sweep hunts in its own right, so a bare-12 sweep cannot tell a legitimate hit from the literal
+      it is looking for. 3 occurs inside the tile grid's own dimensions, the fixed 3x3 seven-tile
+      grid (T-05, T-14), and inside python3, the documented start command (T-17). All of those this
+      feature legitimately ships, so a literal grep for 12 or for 3 cannot discriminate a seeded mix
+      figure from an unrelated number. BRIEF's Verification gaps records that those two are carried
+      by SC-15's inspection instead, and this task must not pretend otherwise. Wire the result into
+      kpi.py's aggregate.grading. Extend test-metrics-kpi.py: assert the at-or-above-bar share and
+      the named outlier list against fixture project-a's hand-labelled values, assert that a payload
+      with only a central tendency fails, and assert the ungraded share CHANGES when a fixture file
+      of a new extension is added.
   - id: T-08
     title: Add the escaped-defect KPI with its sourcing rule carried in the payload
     traces: [REQ-05]
@@ -696,28 +740,71 @@ tasks:
       reserves 0 for a measured zero. The weekly series is PRE-SEGMENTED into contiguous runs exactly
       as the other series are, by the same rule above, so the client renders one line per run.
       The bucket boundaries come from kpi.resolve_window (T-06) as well - do NOT restate a window
-      boundary here, the same one-authority rule that governs the sentence above. Walk the weeks from
-      the start it returns, and return the window's WEEK BOUNDS alongside the series: the week count
-      and the count of empty buckets, so the tile's secondary line "n merged PRs over w weeks - k
-      weeks with no ship record" and the week date inside each empty bucket's reason are computable
-      by the client without it re-deriving any boundary (DESIGN open question Q4).
-      Create test-metrics-trend.py and register it in run-unit-tests.sh INTEGRATION_SCRIPTS - T-03
-      has already declared its literal in harness.json, so add it to the bash array only. It must
-      assert: one append adds exactly one line with every prior byte unchanged (compare the whole
-      file bytes before and after); THREE records appended in three separate git worktrees and
-      landed by TWO SEQUENTIAL MERGES all survive, none dropped and none reordered - two worktrees
-      is git's easy case and proves less than it looks; two lines carrying one feature_id after
-      such a merge resolve to the later shipped_at with the discarded one named in the unavailable
-      map; a line whose schema reads trend/2 is rejected with a reason naming that value; and a
-      feature with no record reports unavailable-with-reason for every trend field rather than zero.
-      It must ALSO assert, for the weekly merged-PR series over a fixture spanning several weeks with
-      at least one week carrying no ship: one bucket per week in the window in ascending order, the
-      bucket count equal to the returned week count; each bucket's value equal to the hand-labelled
-      count of shipped features shipped in that week; a fixture record whose pr is null COUNTED, so a
-      series computed from populated pr fields alone fails this case; an empty week null with the
-      reason naming that week's date and asserted to be NEITHER 0 NOR the string "0"; the returned
-      empty-bucket count equal to the number of null buckets; and the weekly series segmented into
-      one run per contiguous stretch, the empty week ending a run.
+      boundary here, the same one-authority rule that governs the sentence above. WHAT A WEEK IS,
+      pinned here so no builder invents it: weeks are UTC ISO-8601 weeks - each bucket starts Monday
+      00:00:00Z and ends the next Monday 00:00:00Z, EXCLUSIVE - and a record falls in the bucket
+      containing its shipped_at instant in UTC. Each bucket's LABEL, the <YYYY-MM-DD> that appears in
+      the verbatim empty-week reason above, is that bucket's own Monday date. For 30d and 90d the
+      FIRST bucket is the ISO week CONTAINING the start resolve_window returns and the LAST is the
+      ISO week containing its end; that is DERIVED from resolve_window and is not a restatement of a
+      window boundary, so the one-authority rule stated in this task and in T-06 still holds and
+      still forbids computing a window boundary here. WHAT A BOUNDARY BUCKET COUNTS, pinned here for
+      the same reason: a bucket counts ONLY the ships falling inside BOTH its own ISO week AND the
+      window, because REQ-15 asks for the count FOR THE WINDOW broken into weekly buckets, so a ship
+      in a bucket's ISO week but outside the window is NOT counted. THE INVARIANT THAT FOLLOWS, and
+      the reason this clause exists: the bucket values SUM EXACTLY to tile 7's own headline count for
+      the same window - the series and the headline can never disagree. The first and last buckets of
+      30d and 90d are therefore PARTIAL weeks (resolve_window's start is generated_at-relative, so
+      the first bucket almost always begins mid-week), and the WEEK BOUNDS this function returns MARK
+      WHICH BUCKETS ARE PARTIAL, alongside the week count and the empty-bucket count. A PARTIAL
+      bucket with no ship inside its window portion does NOT carry the whole-week sentence above -
+      that sentence would assert something false about the rest of its week - it carries its own
+      verbatim reason instead: "no ship record between <YYYY-MM-DD>T<HH:MM:SS>Z and
+      <YYYY-MM-DD>T<HH:MM:SS>Z, the part of that week inside the window". The whole-week sentence
+      above stays EXACTLY as written and is for FULL buckets only. Both sentences take their instants
+      from the bounds resolve_window already returned, so this task still computes no window boundary
+      of its own. For all, which is unfiltered and returns NO
+      start, the series is anchored at the ISO week containing the EARLIEST record's shipped_at and
+      runs through the week containing generated_at. If there are NO records at all the weekly series
+      is EMPTY and carries its own reason in the unavailable map, never a zero-length run of nulls
+      and never a fabricated span. Walk the weeks from that start, and return the window's WEEK
+      BOUNDS alongside the series: the week count and the count of empty buckets, so the tile's
+      secondary line "n merged PRs over w weeks - k weeks with no ship record" and the week date
+      inside each empty bucket's reason are computable by the client without it re-deriving any
+      boundary (DESIGN open question Q4). Create test-metrics-trend.py and register it in
+      run-unit-tests.sh INTEGRATION_SCRIPTS - T-03 has already declared its literal in harness.json,
+      so add it to the bash array only. It must assert: one append adds exactly one line with every
+      prior byte unchanged (compare the whole file bytes before and after); THREE records appended in
+      three separate git worktrees and landed by TWO SEQUENTIAL MERGES all survive, none dropped and
+      none reordered - two worktrees is git's easy case and proves less than it looks; two lines
+      carrying one feature_id after such a merge resolve to the later shipped_at with the discarded
+      one named in the unavailable map; a line whose schema reads trend/2 is rejected with a reason
+      naming that value; and a feature with no record reports unavailable-with-reason for every trend
+      field rather than zero. It must ALSO assert, for the weekly merged-PR series over a fixture
+      spanning several weeks with at least one week carrying no ship: one bucket per week in the
+      window in ascending order, the bucket count equal to the returned week count; each bucket's
+      value equal to the hand-labelled count of shipped features shipped in that week; a fixture
+      record whose pr is null COUNTED, so a series computed from populated pr fields alone fails this
+      case; an empty week null with the reason naming that week's date and asserted to be NEITHER 0
+      NOR the string "0"; the returned empty-bucket count equal to the number of null buckets; and
+      the weekly series segmented into one run per contiguous stretch, the empty week ending a run.
+      It must ALSO assert, as a case IN ITS OWN RIGHT rather than as a property of another case, that
+      the bucket values SUM EXACTLY to tile 7's headline count for the same window - that assertion is
+      the cheapest gate that tells the windowed reading apart from a whole-week one, and a build that
+      counted whole ISO weeks at the boundary fails it.
+      The weekly cases must ALSO fixture ALL THREE definitional edges above. THE all ANCHOR: a fixture
+      whose earliest record is several weeks before the next one, asserted to produce a first bucket
+      equal to the ISO week of that earliest shipped_at, with no bucket before it and the last bucket
+      the week containing generated_at. A BUCKET BOUNDARY: two records whose shipped_at instants fall
+      within one minute either side of the same Monday 00:00:00Z, each asserted into its own expected
+      bucket - the earlier one into the closing week and the one at or after the boundary into the
+      opening week - so the EXCLUSIVE end of a bucket is what the assertion turns on rather than a
+      rounding that happens to agree. A WINDOW-BOUNDARY PARTIAL WEEK: a window whose start falls
+      mid-week, with one ship earlier in that SAME ISO week but BEFORE the window start and at least
+      one ship inside the window, asserting all four - the earlier ship NOT counted; that first bucket
+      marked PARTIAL in the returned week bounds; its reason, when its window portion holds no ship,
+      the partial-span sentence and NOT the whole-week one; and the bucket sum still equal to tile 7's
+      headline count.
   - id: T-11
     title: Count blocking human touchpoints at the moment each one happens
     traces:
@@ -1215,13 +1302,31 @@ tasks:
       approved_on and cycle_time_days are both null with reasons, never 0.
       Add to test-metrics-trend.py: a simulated ship against fixture project-a appends exactly one
       line whose feature_id and touchpoint count match the fixture, and a second ship of the same
-      feature is refused rather than appending a second line. Demonstrate the failing state first -
-      before the call site exists, the fixture's trend.jsonl stays absent.
-      Do NOT touch this repository's own .harness/metrics/trend.jsonl. That rule governs THIS TASK's
-      own execution - you write the caller and the commit code, you do not run a ship - while the
-      commit sentence above governs the SHIPPED BEHAVIOUR, which acts on the trend.jsonl of whatever
-      project a real ship later runs in. The two are about different trees and do not conflict: the
-      write, and its commit, happen when a real ship runs.
+      feature is refused rather than appending a second line. BOTH COMMIT BRANCHES MUST BE COVERED,
+      and the case that covers the SUCCEEDING one makes the copy a CLEAN git repository first: run
+      git init in the copytree temp copy of fixture project-a, set a LOCAL user.name and user.email in
+      it (git -C <copy> config user.name, git -C <copy> config user.email) so a commit can be made at
+      all, and then make ONE BASELINE COMMIT OF THE WHOLE COPIED TREE (git -C <copy> add -A, then
+      git -C <copy> commit -m baseline) - all of it BEFORE the simulated ship runs. That baseline is
+      what makes the post-ship assertions turn on record_ship's commit ALONE: git init by itself
+      leaves every copied fixture file UNTRACKED, so status --porcelain would print a ?? line for each
+      of them and the case would fail for a reason unrelated to the commit under test. After the
+      baseline the tree is CLEAN and trend.jsonl is absent-or-committed, so any dirt left after the
+      ship is record_ship's own. That case then asserts, after the ship, that the copy's
+      working tree is CLEAN (git -C <copy> status --porcelain prints nothing) and that
+      .harness/metrics/trend.jsonl is TRACKED in that copy (git -C <copy> ls-files --error-unmatch on
+      that path exits zero) - present on disk is NOT the assertion, because an uncommitted file is
+      present on disk too. KEEP the existing non-git case as well, explicitly labelled as the
+      FAILURE-BRANCH case: in a copy that is not a git repository the commit fails, record_ship
+      prints one loud line, the ship continues and the append itself still happened. Neither case
+      substitutes for the other - a non-git temp dir can only ever reach the failure branch, which is
+      exactly why no gate has so far seen the commit succeed. Demonstrate the failing state first -
+      before the call site exists, the fixture's trend.jsonl stays absent. Do NOT touch this
+      repository's own .harness/metrics/trend.jsonl. That rule governs THIS TASK's own execution -
+      you write the caller and the commit code, you do not run a ship - while the commit sentence
+      above governs the SHIPPED BEHAVIOUR, which acts on the trend.jsonl of whatever project a real
+      ship later runs in. The two are about different trees and do not conflict: the write, and its
+      commit, happen when a real ship runs.
   - id: T-20
     title: Record the three blocking human touchpoints at the three moments they happen
     traces: [REQ-06]
@@ -1650,8 +1755,8 @@ tasks:
 #
 # Open questions for the tier above are in the DIGEST, not here.
 panel:
-  last_run: 2026-09-02-05-validator
-  cycle: 4
+  last_run: 2026-09-02-08-validator
+  cycle: 5
   readers:
   - reader: should-not-exist
     persona: fable-advisor
@@ -1874,7 +1979,15 @@ panel:
       only ever exercises its non-fatal failure branch and no gate sees it succeed'
     remedy_size: single-clause - one T-19 case that git-inits the temp copy and asserts
       the copy's tree is clean with trend.jsonl tracked
-    disposition: open
+    disposition: resolved
+    resolved_by: T-19
+    note: Operator ruling notes/answers-2026-09-02-plan-signature-c4.md Q2 FIX B-19;
+      T-19.intent (plan.yaml:1279-1291) now requires the SUCCEEDING commit case to
+      git init the copytree copy of fixture project-a and set a local user.name and
+      user.email before the simulated ship, then assert git status --porcelain prints
+      nothing and .harness/metrics/trend.jsonl is tracked via ls-files --error-unmatch
+      rather than merely present on disk, and keeps the non-git case as the explicitly
+      labelled failure-branch case so both branches are covered
   - id: C4-02
     cycle: 4
     severity: med
@@ -1885,7 +1998,16 @@ panel:
       returns'
     remedy_size: single-clause in T-10 pinning the week definition, for example UTC
       ISO weeks with all anchored at the earliest record's week
-    disposition: open
+    disposition: resolved
+    resolved_by: T-10
+    note: Operator ruling notes/answers-2026-09-02-plan-signature-c4.md Q2 FIX B-20;
+      T-10.intent (plan.yaml:741-753) pins the week - UTC ISO-8601, Monday 00:00:00Z
+      to the next Monday exclusive, the bucket label its own Monday date, the 30d
+      and 90d first and last buckets the ISO weeks containing resolve_window's start
+      and end as a DERIVED value with the one-authority rule restated, all anchored
+      at the ISO week of the earliest record's shipped_at through the week containing
+      generated_at, and an empty series with its own reason when there are no records;
+      the all-anchor and bucket-boundary fixtures are at plan.yaml:774-781
   - id: C4-03
     cycle: 4
     severity: med
@@ -1896,7 +2018,25 @@ panel:
       yes or no - and DESIGN.md:250 still names dead React Charts as the second fallback'
     remedy_size: larger than a single clause - four fields across three artifacts
       (D-08, D-20, two BRIEF bullets, DESIGN C-2)
-    disposition: open
+    disposition: resolved
+    resolved_by: D-08 + D-20
+    note: 'Operator ruling notes/answers-2026-09-02-plan-signature-c4.md Q2 FIX B-21,
+      recording the 2026-09-01 rulings (notes/answers-2026-09-01-plan-signature.md
+      DEC-2 and DEC-3) and changing nothing about the build: D-08.choice (plan.yaml:72)
+      states the alpha ACCEPTED with the capability trigger unchanged; D-08.because
+      (plan.yaml:73) names the three-part rollback - exact version pin plus committed
+      bundle, DESIGN C-2 If-absent workarounds applied in place for CAP-02, CAP-03,
+      CAP-04, CAP-06, CAP-09, CAP-10, CAP-12 and CAP-13, and T-18 VERDICT STOP for
+      the four hard-requirement rows CAP-01, CAP-05, CAP-07 and CAP-11; D-20.because
+      (plan.yaml:121) states the client build KEPT with the server-rendered alternative
+      weighed and rejected; BRIEF ## Constraints (BRIEF.md:77-82 and BRIEF.md:88-90)
+      carries both rulings. The DESIGN C-2 half is applied too: the C-2 preamble now
+      states that where a capability''s If absent cell names a server-side workaround
+      THAT workaround is the fallback, names no replacement charting library in advance,
+      and records that naming one would be an operator decision taken on T-18''s probe
+      evidence and needing its own plan Decision - DESIGN.md:249-252; the sibling
+      visual-designer''s sweep (notes/mockups/design-c5-fallback-fix.md) found and
+      removed the single React Charts occurrence and zero survive in DESIGN.md.'
   - id: C4-04
     cycle: 4
     severity: med
@@ -1906,7 +2046,17 @@ panel:
       while B-1..B-5 and B-12..B-14 survive as panel dispositions with a filing instruction,
       so these four are wired to nothing'
     remedy_size: single-clause naming B-7..B-10 wherever the others are filed at ship
-    disposition: open
+    disposition: resolved
+    resolved_by: D-23
+    note: 'Operator ruling notes/answers-2026-09-02-plan-signature-c4.md Q2 FIX B-22;
+      D-23 (plan.yaml:163-201) is the single carrier for the accepted backlog, naming
+      all fourteen rows - B-1, B-2, B-3, B-4, B-5, B-7, B-8, B-9, B-10, B-12, B-13,
+      B-14, B-23 and B-25 - with a one-line subject for six of them (B-7..B-10, B-23
+      and B-25); only B-7..B-10 have no panel disposition of their own, while B-23
+      and B-25 carry C4-05 and C4-07 respectively, and D-23 lists them too so ONE
+      decision names the complete accepted set in one place, and recording that B-6
+      was struck and B-11, B-15..B-22 and B-24 were fixed, so the list is complete.
+      The filing mechanism is unchanged: one issue per row, label Dashboard, at ship'
   - id: C4-05
     cycle: 4
     severity: low
@@ -1916,7 +2066,9 @@ panel:
       with evidence unit, and the UI half has no gate, mechanical or inspection
     remedy_size: single-clause - move the UI clause into SC-15's inspection scope,
       or narrow SC-13 to the count
-    disposition: open
+    disposition: backlog
+    note: Briefing row B-23 (notes/ship-review-2026-09-02-plan-c4.md); operator accepted
+      it as backlog in the pass-4 ruling Q2, labeled Dashboard; carried by D-23
   - id: C4-06
     cycle: 4
     severity: low
@@ -1927,7 +2079,17 @@ panel:
       part (e) of the operator Q3 order, pre-existing and not caused by the 3x2 to
       3x3 grid change'
     remedy_size: single-clause in each of the two artifacts, naming the true carriers
-    disposition: open
+    disposition: resolved
+    resolved_by: T-07
+    note: 'Operator ruling notes/answers-2026-09-02-plan-signature-c4.md Q2 FIX B-24;
+      the false evidence is deleted from both artifacts - 1024 and ES2022 no longer
+      appear in either clause - and the verified carriers are written: T-07.intent
+      (plan.yaml:578-585) and BRIEF ## Verification gaps (BRIEF.md:157-166) both give
+      12 as carried by 127.0.0.1 (D-05''s loopback bind, shipped by T-12 and required
+      in METRICS.md by T-17''s verify) and by 122 (a mix literal SC-06 greps in its
+      own right), and 3 as carried by the fixed 3x3 seven-tile grid (T-05, T-14) and
+      by python3 in the documented start command (T-17). The conclusion is unchanged
+      - 12 and 3 cannot be grepped bare and stay carried by SC-15''s ui-reviewer inspection'
   - id: C4-07
     cycle: 4
     severity: low
@@ -1939,4 +2101,71 @@ panel:
       the plan
     remedy_size: single-clause in T-05 recording the six-tile artifact as accepted
       under DEC-5's closure
-    disposition: open
+    disposition: backlog
+    note: Briefing row B-25 (notes/ship-review-2026-09-02-plan-c4.md); operator accepted
+      it as backlog in the pass-4 ruling Q2, labeled Dashboard; carried by D-23
+  - id: PF-0f13227f5dc23a9e7b0e987fda5dd493
+    cycle: 5
+    severity: med
+    reader: should-not-exist
+    summary: "T-10 never pins whether a 30d/90d boundary bucket counts window-filtered\
+      \ ships or the whole ISO week; resolve_window's start is generated_at-relative\
+      \ so the first bucket is a partial week ~6 days in 7. Windowed reading yields\
+      \ a null bucket carrying D-19's verbatim 'no ship record in the week of <Monday>'\
+      \ \u2014 literally false in the KPI whose contract is never fabricating; whole-week\
+      \ reading makes the bucket sum exceed tile 7's own headline. Neither B-20 fixture\
+      \ probes a partial boundary week, so every gate stays green either way."
+    remedy_size: one sentence in T-10 pinning boundary-bucket semantics
+    disposition: resolved
+    resolved_by: T-10
+    note: 'Amended in the cycle-5 fix pass: T-10.intent (plan.yaml:751-766) pins that
+      a bucket counts ONLY ships falling inside BOTH its ISO week and the window -
+      the reading REQ-15 forces (BRIEF.md:56, ''as a count for the window broken into
+      weekly buckets'') - states the invariant that the bucket values sum EXACTLY
+      to tile 7''s own headline count for the window, requires the returned week bounds
+      to mark WHICH buckets are partial, and gives a partial bucket with no in-window
+      ship its own verbatim partial-span reason instead of the whole-week sentence,
+      which stays exactly as written for full buckets. The sum invariant is asserted
+      as a case in its own right (plan.yaml:791-794) and a window-start-mid-week fixture
+      with a same-ISO-week pre-window ship is added (plan.yaml:802-807). RECORDED,
+      not reconciled: the panel''s own lead considered high and settled on med deliberately,
+      and both ratings are on the record in runs/2026-09-02-08-validator/digest.md'
+  - id: PF-1b818430804d209162381618314ec9f5
+    cycle: 5
+    severity: low
+    reader: should-not-exist
+    summary: 'T-19''s new succeeding-commit case cannot pass as written: git init
+      on the copytree copy leaves the whole fixture tree untracked and record_ship
+      commits only trend.jsonl, so ''git status --porcelain prints nothing'' fails
+      on ?? lines for a reason unrelated to the commit under test. The setup names
+      no initial commit of the copied tree.'
+    remedy_size: one clause adding git add -A && git commit to the case's setup
+    disposition: resolved
+    resolved_by: T-19
+    note: 'Amended in the cycle-5 fix pass: T-19.intent (plan.yaml:1306-1315) makes
+      the succeeding-commit case build a CLEAN repository before the ship - git init,
+      the local user.name/user.email, then one baseline commit of the whole copied
+      tree (add -A, then commit) - so the untracked fixture files cannot print ??
+      lines and the post-ship assertions turn on record_ship''s commit alone. The
+      assertions themselves are unchanged in meaning (status --porcelain prints nothing,
+      trend.jsonl TRACKED via ls-files --error-unmatch), and the non-git FAILURE-BRANCH
+      case is kept verbatim'
+  - id: PF-804ec98d2f26bd12285a095a8809e659
+    cycle: 5
+    severity: low
+    reader: scope
+    summary: 'D-23.choice (plan.yaml:164-165) states ''B-7..B-10, B-23 and B-25 have
+      no panel disposition of their own'', but C4-05 (:2026) and C4-07 (:2059) are
+      exactly that for B-23 and B-25. Lead extension: the identical false clause also
+      appears in C4-04''s own note (:2020-2026), so the remedy is two clauses, not
+      one. Only B-7..B-10 are genuinely carrier-less.'
+    remedy_size: one clause in each of D-23 and C4-04's note
+    disposition: resolved
+    resolved_by: D-23 + C4-04
+    note: Amended in the cycle-5 fix pass at BOTH sites the lead identified. D-23.choice
+      (plan.yaml:168-173) now records that B-23's disposition is C4-05 and B-25's
+      is C4-07, both reading backlog, that only B-7..B-10 have no panel disposition
+      of their own, and that every row's subject is recorded in D-23 regardless of
+      carrier so one decision names the complete accepted set in one place. C4-04's
+      own note above carries the same corrected statement. The fourteen-row set and
+      every per-row subject are unchanged

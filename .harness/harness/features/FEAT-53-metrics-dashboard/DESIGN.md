@@ -246,11 +246,12 @@ is a *measured absence of outliers* and therefore neither S-1 nor S-4.
 
 **Two chart shapes and three tables exist in this feature, and nothing else** — C-1's seven panels
 draw on every one of the five and ask for no sixth. Each chart capability below is a pass/fail question
-eng-lead can put to the charting library's current alpha API. **Where a capability names a server-side
-workaround, that workaround is the first fallback; React Charts (BRIEF `## Constraints`) is the second;
-a third library is neither, and needs its own plan Decision.** The three tables carry no capability
-list because they need none: they are Astryx table primitives with no charting-library dependency at
-all. That is why the categorical panels are tables rather than a third chart shape (LD-1), and why
+eng-lead can put to the charting library's current alpha API. **Where a capability's `If absent` cell
+names a server-side workaround, that workaround is the fallback; no replacement charting library is
+named in advance, and naming one would be an operator decision taken on T-18's probe evidence, needing
+its own plan Decision.** The three tables carry no capability list because they need none: they are
+Astryx table primitives with no charting-library dependency at all. That is why the categorical panels
+are tables rather than a third chart shape (LD-1), and why
 **CAP-01…CAP-13 is closed at thirteen.**
 
 **Shape A — distribution histogram (code grading, REQ-07 / SC-05).**

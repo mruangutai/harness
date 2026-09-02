@@ -74,17 +74,20 @@ decisions, not requirements — the requirements above survive changing every on
   Charts, chosen with its alpha status known and accepted; eng-lead checks at plan time that the
   current alpha API covers distribution histograms and time-series lines. **The fallback named at
   the grilling — npm `react-charts` — is dead**: last published 2023-11-02 with a React 16 peer,
-  against this client's React 19 substrate, so it cannot install beside Astryx at all. No fallback
-  library is named today; plan `D-08` records the two live options (accept the alpha with a
-  documented rollback, or name a second live library) and it is an **operator decision outstanding
-  at signature**.
+  against this client's React 19 substrate, so it cannot install beside Astryx at all. The alpha
+  was **accepted on 2026-09-01** (`notes/answers-2026-09-01-plan-signature.md`, DEC-3) with the
+  rollback plan `D-08` now documents: the exact version pin plus the committed bundle, DESIGN
+  C-2's in-place workaround wherever an unmet capability's `If absent` cell names one, and a
+  `T-18` STOP wherever it reads hard requirement. No fallback library is named in advance,
+  because none survives the React 19 substrate check today.
 - **Disclosure, new since the grilling.** Plan review found that having a client build at all — the
   frontend framework, `package.json` and the committed bundle — was never weighed against a
   server-rendered HTML surface served off the same Python server, which would satisfy REQ-01 and
   REQ-12 too and would remove the entire alpha-charting risk. What the grilling rejected was the
   `render-brief.py` static-HTML-from-markdown convention, which is a different thing. Plan `D-20`
-  writes that decision down and recommends keeping the client build; it needs an explicit yes or no
-  at signature.
+  writes that decision down, and it was **ruled on 2026-09-01** (same answers file, DEC-2): the
+  client build is **kept**, and the server-rendered alternative stands recorded as weighed and
+  rejected rather than as a question open at signature.
 - UI substrate stays Astryx (`@astryxdesign/core`), already pinned at `team-config.yaml:93-99`. No
   second-substrate deviation. SUPPLIES.
 - No new database and no cache at launch. Five of seven KPIs compute on request from `feature.json`,
@@ -152,10 +155,15 @@ with a runner. `component`, `ui`, `typecheck` and `eval` all ship `cmd: null`, s
   `component`/`typecheck` runner gap is still a dev-ops backlog task in its own right and this
   feature does not close it.
 - SC-06's literal sweep cannot cover the bare-digit tokens `12` (the `.sh` count) and `3` (the
-  `.ts` count): both occur inside values this feature legitimately ships — `1024` (the panel
-  breakpoint), `3x3` (the tile grid), `ES2022` (the tsconfig target) — so a literal grep for them
-  cannot discriminate a seeded mix figure from an unrelated number. Those two are therefore **not
-  machine-checked**; they are carried by SC-15's ui-reviewer inspection at `review_sha`.
+  `.ts` count): both occur inside values this feature legitimately ships. `12` occurs in
+  `127.0.0.1` — `D-05`'s loopback-only bind, shipped in `serve.py` by `T-12` and required in
+  `METRICS.md` by `T-17`'s verify — and in `122` itself, one of the mix literals the sweep hunts
+  in its own right, so a bare-`12` sweep cannot tell a legitimate hit from the literal it is
+  looking for. `3` occurs in the tile grid's own dimensions, the fixed `3x3` seven-tile grid
+  (`T-05`, `T-14`), and in `python3`, the documented start command (`T-17`). So a literal grep
+  for either cannot discriminate a seeded mix figure from an unrelated number. Those two are
+  therefore **not machine-checked**; they are carried by SC-15's ui-reviewer inspection at
+  `review_sha`.
 
 ## Success Criteria
 

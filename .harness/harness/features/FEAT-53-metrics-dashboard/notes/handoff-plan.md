@@ -1,50 +1,57 @@
-# Handoff — FEAT-53, plan → plan (pass 5) — written at bdba1c61, seq-4
+# Handoff — FEAT-53-metrics-dashboard, plan → build — written at 04f7655c, seq-1
 
 ## Next
 
-Wait for the operator's pass-4 ruling on `notes/ship-review-2026-09-02-plan-c4.md`, which arrives as
-`notes/answers-<runid>.md`. **Two answers are expected, and the budget one is load-bearing.**
-
-1. **`max_total_cycles`.** 9 of a hard 10 are spent, all in the plan phase. If they raise it, write
-   the new value with
-   `feature-json-merge.py set-key <feature.json> max_total_cycles <n>` — it is a user decision and
-   only they may authorise it (DEC-157).
-2. **`B-19`..`B-25`** (panel findings `C4-01`..`C4-07`, all `disposition: open` in `plan.yaml`'s
-   `panel` key, each carrying a `remedy_size` clause). None gates — the cycle-4 panel returned PASS,
-   `severity_max: med`, `must_fix: []`.
-
-If they fix any: ONE consolidated `harness-product-lead` → `harness-pm` pass, then the `plan-panel`
-team at cycle 5, then pm transcribes the panel key — the same three-run shape this pass used.
-`B-19` is a `T-19` test case, `B-20` a `T-10` clause, `B-21` four fields across `D-08`/`D-20`/BRIEF
-`## Constraints`/DESIGN C-2, `B-22` a filing clause, `B-23` `SC-13`, `B-24` two artifacts, `B-25`
-`T-05`. If they fix nothing, the plan goes straight to signature; **only the main session signs**,
-and it must fill BRIEF `## Approval`'s `date:` as well as `status` and `approved-by`, because `date`
-is load-bearing for cycle time under D-14.
+**Do nothing until the main session signs both artifacts.** The plan phase ends at a user gate:
+`plan.yaml` `approval:` and `BRIEF.md` `## Approval` both read `pending`, and only the main session
+signs — including BRIEF's `date`, which is load-bearing for the cycle-time KPI this very feature
+builds (D-14). Once both read `approved`, the first build dispatch is the eng segment of the `build`
+team to `harness-eng-lead` with the tasks that have no `depends_on` — **T-01** (grant
+harness-frontend-dev the client subtree in team-config.yaml) and **T-06** (create
+`bin/brief_approval.py`, `kpi.resolve_window`, and fixture project-a) — T-06 being the one task with
+no dependencies and the authority half the plan calls. `T-20` and `T-04`'s node/npm prerequisite are
+`main-session-direct` (`execution_reason` on each task) and are NOT the eng lead's to take.
 
 ## Trust
 
-- Every pass-3 ruling is applied and the cycle-4 panel gates nothing — `runs/2026-09-02-05-validator/digest.md`, both readers `ran` — verified-at bdba1c61
-- `plan.yaml` at HEAD: `status: plan`, `approval.status: pending`, 22 tasks, 22 decisions, `panel` cycle 4 with 25 findings — `load_plan` over `git show HEAD:<path>` — verified-at bdba1c61
-- The task graph is sound: 22 tasks, every `depends_on` id resolves, acyclic, all 15 REQs traced by at least one task — I re-derived it mechanically myself, not adopted from a reader — verified-at bdba1c61
-- `cycles_used` is 9 of a hard 10; `runs` is 18 of an informational 20; `review_sha` is `none` and correctly so, nothing is built — `feature.json` at HEAD — verified-at bdba1c61
-- The accuracy / handoff-eval KPI is absent from `BRIEF.md`, `DESIGN.md` and `plan.yaml` — regex over all three, mine and pm's independently — verified-at bdba1c61
-- Two of this pass's cycles were send-backs caused by MY under-specification, counted as rework anyway per DEC-157 — `runs/2026-09-02-04-product/digest.md` — verified-at bdba1c61
+- Five operator-ordered fixes B-19/B-20/B-21/B-22/B-24 landed at their named fields — read each
+  field: `plan.yaml` T-19.intent :1306-1317, T-10.intent :743-781, D-08, D-20, D-23, T-07.intent
+  :578-585; `BRIEF.md` :73-92 and :157-166; `DESIGN.md` :249-252 — verified-at 04f7655c (working
+  tree; see Dead ends on the commit)
+- Three cycle-5 panel residues closed: T-10 boundary bucket, T-19 baseline commit, D-23/C4-04 clause
+  — `runs/2026-09-02-09-product/digest.md` — verified-at 04f7655c, by me at source, NOT by a panel
+- Panel gates nothing: `must_fix: []`, `severity_max: med`, both readers ran —
+  `runs/2026-09-02-08-validator/digest.md` + `digest-corrigendum.md` — verified-at 04f7655c
+- Budget is 11/20 cycles, 20 runs recorded of `max_total_runs` 20 (INFORMATIONAL, INV-22 note only,
+  it never stops a feature) — `feature.json` — verified-at 04f7655c
+- `approval:` and `## Approval` are both `pending` and byte-untouched across all three cycle-5 runs —
+  `plan.yaml:6-9`, `BRIEF.md:296-300` — verified-at 04f7655c
+- T-19's succeeding-commit case is satisfiable only WITH the baseline commit — measured directly:
+  `git init` + commit of one file leaves `?? a.txt` in `status --porcelain` — verified-at 04f7655c
 
 ## Dead ends
 
-- The accuracy / handoff-eval KPI: OUT OF SCOPE for FEAT-53 by operator ruling, becoming FEAT-54 — `notes/answers-2026-09-02-plan-signature-c3.md` — do not add it anywhere, in any form
-- DEC-5 / the visual prototype: CLOSED after two browser reviews — `notes/answers-2026-09-01-plan-signature-c2.md` — do not reopen. `B-25` is about `T-05`'s contract, not about the gate
-- `B-6`: struck as redundant — same answers file
-- `B-12`/`B-13`/`B-14` and the stale spliced `#` comment block: accepted backlog, not fixable by any sanctioned verb today — same answers file
-- Spending cycle 10 on the seven advisory findings without the operator saying so: they ruled explicitly that further findings come back to them rather than into another unilateral cycle — `notes/answers-2026-09-02-plan-signature-c3.md` budget note
-- Narrowing a fix dispatch to the paths a finding names: doing that to `D-22` is what produced `V-1` in the first place — `notes/ship-review-2026-09-02-plan-c3.md` §1
-- The worktree's vendored `.claude/skills/harness/bin/plan-merge.py`: stale, predates `set-panel` and `--yaml-value`. Run the MAIN checkout's binary at `/Users/molchairuangutai/GitHub/harness/.agents/skills/harness/bin/plan-merge.py` against the worktree plan by absolute `--file`
-- `git diff --stat` as a dispatch acceptance criterion inside a live feature dir: it grades the tree, not the change, and is unmeetable while earlier edits sit uncommitted
+- Do NOT re-open DEC-5 (prototype gate), the accuracy/handoff-eval KPI (it is FEAT-54, verified
+  absent from all three artifacts by regex), or backlog rows B-1..B-5, B-7..B-10, B-12..B-14, B-23,
+  B-25 — all operator-accepted as backlog and carried by D-23 — `plan.yaml` D-23 + `panel.findings`
+  — verified-at 04f7655c
+- Do NOT treat `approval: pending` as a finding — raised and dismissed in five consecutive panels —
+  `runs/2026-09-02-08-validator/digest.md` `assessed_and_dismissed` — verified-at 04f7655c
+- Do NOT use the worktree-vendored `.claude/skills/harness/bin/plan-merge.py`: it is stale and
+  predates `set-panel` and `--yaml-value`. Run the MAIN checkout binary with an absolute `--file` —
+  `runs/2026-09-02-07-product/digest.md` — verified-at 04f7655c
+- Do NOT set an acceptance criterion of the form "plan.yaml is the only changed file" via
+  `git diff --stat`: this feature dir carries uncommitted work from several cycles and the criterion
+  grades the tree, not the change — `notes/ship-review-2026-09-02-plan-c4.md` harness-defect 3 —
+  source: prior orchestrator, verified-at 04f7655c
+- The plan-phase artifacts are COMMITTED as of this handoff's commit; HEAD before it carried no
+  D-23 at all, so any inherited claim of the form "unchanged since HEAD" taken before that commit is
+  UNVERIFIED
 
 ## Working set
 
-- `.harness/harness/features/FEAT-53-metrics-dashboard/notes/ship-review-2026-09-02-plan-c4.md`
-- `.harness/harness/features/FEAT-53-metrics-dashboard/plan.yaml`
-- `.harness/harness/features/FEAT-53-metrics-dashboard/runs/2026-09-02-05-validator/digest.md`
-- `.harness/harness/features/FEAT-53-metrics-dashboard/notes/research-FEAT-53-goalcheck-plan-c4.md`
-- `.harness/harness/features/FEAT-53-metrics-dashboard/feature.json`
+- `.harness/harness/features/FEAT-53-metrics-dashboard/plan.yaml` (22 tasks, 23 decisions, panel c5)
+- `.harness/harness/features/FEAT-53-metrics-dashboard/BRIEF.md` (15 REQ, 20 SC, the approval gate)
+- `.harness/harness/features/FEAT-53-metrics-dashboard/notes/ship-review-2026-09-02-plan-c5.md`
+- `.harness/harness/features/FEAT-53-metrics-dashboard/feature.json` (budget, 20 runs)
+- `.harness/harness/features/FEAT-53-metrics-dashboard/STATE.md`
