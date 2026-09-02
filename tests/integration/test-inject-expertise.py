@@ -37,7 +37,7 @@ fails = 0
 case_count = 0
 
 
-def run_hook(root, home, payload_bytes):
+def run_hook(root, home, payload_bytes, cwd=None):
     env = dict(os.environ)
     # BOTH NAMES, AND THE MARKER (FEAT-42 T-16). inject-expertise.sh resolves through
     # harness_boundary.resolve_root, which reads HARNESS_PROJECT_DIR and no other name, and
@@ -63,6 +63,7 @@ def run_hook(root, home, payload_bytes):
         input=payload_bytes,
         capture_output=True,
         env=env,
+        cwd=cwd,
     )
     return r
 
@@ -180,6 +181,24 @@ def case4():
     )
     report("case4: no Expertise still receives control-plane context", ok,
            f"exit={r.returncode} context={ctx!r}")
+
+
+# --- Case 4b: the injected root is the control plane, not agent cwd ----------
+def case4b():
+    root = tempfile.mkdtemp()
+    home = fresh_home()
+    product_cwd = tempfile.mkdtemp()
+    r = run_hook(root, home, b'{"agent_type": "harness-qa"}', cwd=product_cwd)
+    ctx = get_context(r) or ""
+    root_line = next(
+        (line for line in ctx.splitlines()
+         if line.startswith("HARNESS_CONTROL_PLANE_ROOT: ")),
+        "",
+    )
+    injected = root_line.split(": ", 1)[1] if ": " in root_line else ""
+    ok = r.returncode == 0 and injected == root and injected != product_cwd
+    report("case4b: injected root is absolute control plane, never product cwd", ok,
+           f"exit={r.returncode} injected={injected!r} cwd={product_cwd!r}")
 
 
 # --- Case 5: missing agent_type, and invalid JSON ---------------------------
@@ -338,6 +357,7 @@ def main():
     case2()
     case3()
     case4()
+    case4b()
     case5()
     case6()
     case7()

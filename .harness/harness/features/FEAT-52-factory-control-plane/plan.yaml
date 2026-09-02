@@ -306,7 +306,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 carve-out, inject-expertise.sh is a registered SubagentStart hook and its test file is enforcement layer
     depends_on: [T-02]
-    status: done
+    status: building
     files:
       - .claude/skills/harness/bin/inject-expertise.sh
       - .claude/skills/harness/bin/test-inject-expertise.py
