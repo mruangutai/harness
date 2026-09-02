@@ -1,6 +1,7 @@
 # Expertise — harness-orchestrator
 ## Patterns (max 15)
 - P-01: WHEN reading `run-unit-tests.sh` output DO count `^FAIL ` lines and capture the runner's exit status in a variable — its final line is the last script's own `N/N checks passed`, so a tail read reports a red suite as green, and a piped `$?` returns the pipe's last command.
+- P-02: WHEN appending a run record for a run that graded CODE DO omit the code_grade key entirely — the record's enum is closed to n_a and ABSENCE is the signal, the opposite default from the digest field of the same name, and append-run refuses the key.
 ## Gotchas (max 15)
 - G-01: WHEN quoting `check-state.sh`'s board-read cost DO re-measure rather than recall it — the figure moved from ~500 points (board 3, 486 items, `e1bcdc1`) to 5 (board 3, 473 items, `8c2c24d`), and a cost recalled without its conditions is the rot this repository keeps rediscovering.
 - G-02: WHEN invoking `validate-digest.py` DO pass the PERSONA first and the path second. Path-only prints `BLOCKED (contract violation) — unknown persona '<the path>'`, which reads exactly like a malformed digest and will make you reject a valid one.
@@ -11,6 +12,11 @@
 - G-07: WHEN deciding whether writing `status: Done` before the merge trips the terminal-worktree invariant DO check that its classifier reads the landed status from the DEFAULT BRANCH, so a status written on a feature branch is invisible to it. Ship-then-merge is therefore safe.
 - G-08: WHEN passing operator-authored briefing rows into a shell command DO expand each through an environment variable inside double quotes — accepted rows carry apostrophes AND backticks, so single-quoting breaks on the first and double-quoting turns the second into command substitution.
 - G-09: WHEN dispatching feature-close distillation after a merge DO name the surviving artifacts explicitly — the runs tree is gitignored, so every run digest died with the worktree the post-merge hook removed, leaving only `notes/` and `observations/`. Unnamed, a lead hunts for files that no longer exist.
+- G-10: WHEN running gh-sync.py ship DO invoke it from the main checkout: it refuses at exit 1, before any write or network call, when the feature directory resolves inside .claude/worktrees/, and it prints the path to use instead.
+- G-11: WHEN the post-merge sweep has shipped a feature DO run ship again explicitly with --body-file: the sweep passes none, so the operator briefing never posts on the parent issue, and the second call is idempotent for the station writes.
+- G-12: WHEN staging briefing rows as backlog issues DO map every row's nature onto bug, chore or enhancement — the verb accepts nothing else — and prefix each title with its briefing row id, so the returned issue numbers map back without a second lookup.
+- G-13: WHEN a seam commit writes the feature station into the plan after review_sha is pinned DO re-pin to the seam commit — the pin-precedes-station invariant trips otherwise, and re-pinning is free once a diff of the code paths between the two commits is empty.
+- G-14: WHEN running the unit suite from an agent tool DO clear HARNESS_AGENT_TYPE inside the command with env -u — the tool's env parameter leaks into every test subprocess and reddens the plan-merge approval checks as a phantom squad-visible regression.
 ## Outcomes (max 10)
 ## Open (max 5)
 - O-01: Shared `.harness/expertise/` has no lineage protection. Nothing reconciles a landed diff against the plan's declared files, so an undeclared edit to a per-spawn-injected file rides any cluster commit and only a human notices. Whether the fix is diff-vs-plan reconciliation, write-guard scoping, or keeping Expertise off feature branches is undecided.

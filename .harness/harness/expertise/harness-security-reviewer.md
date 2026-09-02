@@ -8,5 +8,8 @@
 ## Gotchas (max 15)
 - G-01: WHEN auditing panel-finding severity handling DO diff every doctrine and agent copy of the severity vocabulary (team yaml, plan template, SKILL.md docs, the validator-lead agent file in both .claude and .omp) for byte-identical tokens — this repo declares it independently in about six places with no single source of truth.
 - G-02: WHEN auditing a new consumer of validate-digest.py's _repo_root_for_feature/_feature_dir_from_artifact DO confirm it routes through _contained_feature_dir's realpath-descendant check before trusting the resolved directory — a bypass reintroduces the artifact:-path traversal this feature closed.
+- G-03: WHEN auditing bin/run_pool.py's snapshot()-based mutation detector DO check `_record`'s except-OSError swallow for the chmod-0600-directory bypass and the `__pycache__` basename skip preceding the symlink branch — both are known, accepted-as-backlog gaps present since the feature's first commit, not new regressions.
+- G-04: WHEN evaluating a coverage claim about run_pool.py's detector DO check DEC-211 and plan.yaml D-11 separately — DEC-211's metadata-tuple sentence is a narrow, accurate necessary-condition claim, while D-11's affirmative 'vector-agnostic inside DIR' claim is broader and can be false even when DEC-211 holds.
+- G-05: WHEN auditing a signed run digest under `.harness/*/features/*/runs/**` for rule-15 (additive-only) compliance DO note that `.gitignore:7` excludes this whole tree from git — `git diff`/`log` structurally cannot verify prose-preservation there; `validate-digest.py`'s structural pass is the only available check.
 ## Outcomes (max 10)
 ## Open (max 5)

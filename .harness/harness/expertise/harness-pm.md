@@ -2,6 +2,10 @@
 ## Patterns (max 15)
 - P-01: WHEN a criterion declares evidence: unit DO confirm the file holding its assertions is in run-unit-tests.sh's UNIT_SCRIPTS and not INTEGRATION_SCRIPTS: the kind is a property of the script array, so a criterion can name a kind that never runs its own assertions.
 - P-02: WHEN an unmet criterion is remedied by editing validate-digest.py or test-validate-digest.py DO record that no squad can take it: DEC-174 makes both main-session-direct, so even a test-only fixture gap becomes a user-channel question rather than a task a lead can place.
+- P-03: WHEN a plan needs one task to land before another DO put it in `depends_on`: teams/build.yaml reads only `from_task_depends_on`, so an ordering written as prose in `intent` is invisible to the scheduler, and both id order and file order place a later-added task last.
+- P-04: WHEN widening an existing task's `files:` or `depends_on:` DO use `plan-merge.py amend --field <list> --yaml-value` with `--expect-sha256`. `apply` exits 7 CONFLICT on any changed value, so a new task id is not the only route.
+- P-05: WHEN a criterion rests on a CI-run gate that reads git history DO price the workflow's checkout depth first: a bare `actions/checkout@v4` clones depth 1, so a pinned historical blob is unreachable in CI and the criterion is unmeetable as written.
+- P-06: WHEN transcribing a panel finding id DO compute it from the digest summary unaltered and record the normalization in `panel.transcription_rule`: panel_findings.py only lowercases and collapses whitespace, so stripping a backtick changes the hash and the operator's later ruling reads as a stale override.
 ## Gotchas (max 15)
 - G-01: WHEN a step must create, copy or move a file DO use the file tools or a Python script — `bash-write-guard.sh` denies redirects, `cp`, `mv` and `rm` in Bash whatever the target, including the session scratchpad and paths with no repo-like component.
 - G-02: WHEN a Bash command names a path the guard should allow DO spell it as a literal absolute path. The guard reads the command line, not the resolved path, so the same target written through a shell variable is refused.
@@ -17,5 +21,6 @@
 - G-12: WHEN check-plan-routes.py prints DEVIATION for a granted main-session-direct path DO read it as the expected DEC-174 carve-out output: it exits 0 and only VIOLATION lines gate. Reading a deviation as a failure sends you rewriting correct lanes.
 - G-13: WHEN a verify greps DECISIONS-INDEX.md for a ruling phrase DO note the ' :: <ruling>' tail is hand-written by the entry's author and gen-decisions-index.py does not produce it, so regeneration alone never satisfies the grep and the task intent must say to write the row text.
 - G-14: WHEN proving check-state.sh reddens against a mutant copy DO place the copy inside the harness bin directory: it resolves its root from its own location, so a copy in a temp directory tracebacks and the failure reads as the asserted region being absent.
+- G-15: WHEN a Bash command carries a python heredoc DO avoid a bare `>` comparison inside it: bash-write-guard.sh parses the command line textually, reports redirect targets and blocks the whole call. Write the comparison reversed with `<`.
 ## Outcomes (max 10)
 ## Open (max 5)

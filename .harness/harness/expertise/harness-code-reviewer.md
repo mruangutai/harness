@@ -6,5 +6,7 @@
 - G-03: WHEN reviewing check-expertise.sh's directory-sweep mode over `.harness/*/expertise/` DO build a dangling-symlink fixture — its unguarded `open()` crashes and aborts the sweep, reusing exit 1 with "violations found", so later-sorted files go silently unaudited.
 - G-04: WHEN judging whether a script in `.claude/skills/harness/bin/` actually runs in any gate DO check both `run-unit-tests.sh`'s UNIT_SCRIPTS and INTEGRATION_SCRIPTS arrays by exact name — absence from both means even a real-data self-test never executes, however green its own internal logic reads.
 - G-05: WHEN writing a feature artifact from inside this repo's FEAT worktree DO use an absolute path — feature.json/plan.yaml/STATE.md live only in the worktree copy while notes/ and runs/ also sync to the main checkout, so a relative write can land in the main checkout and later fail code_grade binding.
+- G-06: WHEN reading a code-grade.py report DO remember it only lists functions with no pre-image (new) or a worsened grade versus base — it never emits an 'inherited, unrelated, unchanged' record, so a partition claiming that shape for any listed record is definitionally wrong.
+- G-07: WHEN reviewing run_pool.py's --mutation-check snapshot DO note `_record`'s `except OSError` swallows every OSError, not only FileNotFoundError — removing a watched directory's execute bit mid-run hides any file created inside it from both snapshots (open backlog row, unresolved as of this build).
 ## Outcomes (max 10)
 ## Open (max 5)

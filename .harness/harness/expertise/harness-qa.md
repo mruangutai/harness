@@ -7,5 +7,7 @@
 - G-04: WHEN citing run-unit-tests.sh's printed PASS-line count as a test-case total DO discount it — line ~139 emits exactly one PASS per script regardless of internal case count, so a script using its own ok/FAIL convention contributes one line for dozens of real cases, deflating any cross-run comparison.
 - G-05: WHEN a feature branch's later merge-from-main reintroduces run-unit-tests.sh's UNIT_SCRIPTS/INTEGRATION_SCRIPTS entries for files main already deleted DO expect the KIND-DRIFT union check to exit 2 for --kind unit, --kind integration, AND --check-kinds alike — it scans the combined array before any kind dispatch, so no single kind avoids it.
 - G-06: WHEN bash-write-guard blocks a Bash-tool scratch-copy (cp/redirect) for a perturbation proof DO create a disposable git worktree under .claude/worktrees/ instead — the guard permits `git worktree add` there while denying ad hoc scratch copies elsewhere, and Bash-copy permissiveness is not reliable session to session.
+- G-07: WHEN invoking run-unit-tests.sh DO always unset HARNESS_AGENT_TYPE first (env -u HARNESS_AGENT_TYPE) — with it set, test-plan-merge.py fails 11 checks and the suite exits 1, a false regression unrelated to the diff under test.
+- G-08: WHEN a task's change_type resolves to bugfix in .harness/harness.json's test_matrix DO note its when: match_bug_class clause is currently an unresolvable placeholder — no bug-class taxonomy entry fires for any diff yet, so the floor stays at unit alone despite the clause's presence.
 ## Outcomes (max 10)
 ## Open (max 5)
