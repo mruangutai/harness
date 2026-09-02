@@ -1084,6 +1084,26 @@ def case_35_feature_root_cli():
         missing.returncode == 1 and not missing.stdout and "--feature" in missing.stderr,
         missing.stdout + missing.stderr,
     )
+    ambiguous_owner = tempfile.mkdtemp()
+    for name in ("FEAT-90", "FEAT-90-alpha"):
+        worktree = os.path.realpath(os.path.join(tempfile.mkdtemp(), name))
+        os.makedirs(worktree)
+        pointer = os.path.join(ambiguous_owner, ".git", "worktrees", name, "gitdir")
+        os.makedirs(os.path.dirname(pointer), exist_ok=True)
+        with open(pointer, "w", encoding="utf-8") as handle:
+            handle.write(os.path.join(worktree, ".git"))
+    ambiguous = subprocess.run(
+        [sys.executable, CLI, "feature-root", "--root", ambiguous_owner,
+         "--feature", "FEAT-90-alpha-redo"],
+        capture_output=True, text=True,
+    )
+    check(
+        "case35: feature-root CLI refuses an ambiguous worktree",
+        ambiguous.returncode == 1 and not ambiguous.stdout
+        and "ambiguous" in ambiguous.stderr.lower()
+        and "FEAT-90" in ambiguous.stderr,
+        ambiguous.stdout + ambiguous.stderr,
+    )
 
 
 def main():
