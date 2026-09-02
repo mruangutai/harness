@@ -2,9 +2,47 @@
   "feature_id": "FEAT-47-tests-layout",
   "branch": "feat/FEAT-47-tests-layout",
   "pr": null,
-  "status": "Plan",
   "review_sha": "none",
-  "cycles_used": 0,
+  "cycles_used": 2,
   "max_total_cycles": 10,
-  "runs": []
+  "max_total_runs": 20,
+  "runs": [
+    {
+      "id": "2026-08-31-01-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-02-01-advisor-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS",
+      "code_grade": "n_a"
+    }
+  ],
+  "github": {
+    "milestone": 42,
+    "parent": 1236,
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03",
+      "T-04",
+      "T-05",
+      "T-06",
+      "T-07"
+    ],
+    "issues": {
+      "T-01": 1237,
+      "T-02": 1238,
+      "T-03": 1239,
+      "T-04": 1240,
+      "T-05": 1241,
+      "T-06": 1242,
+      "T-07": 1243
+    },
+    "source_issues": []
+  }
 }

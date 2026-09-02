@@ -1,5 +1,6 @@
 schema: plan/1
 feature: FEAT-47-tests-layout
+status: ready
 
 # EMPTY ON PURPOSE. This feature was reached by grilling issue 979, and 979 is explicitly NOT in
 # scope: it is re-planned once this lands. Listing it here would land its card at the board's done
@@ -355,7 +356,7 @@ tasks:
       DEC-174 carve-out over harness_boundary.py, which is the module every PreToolUse domain
       decision resolves through, plus team-config.yaml, which no seat may write
     depends_on: []
-    status: pending
+    status: ready
     files:
       - .claude/skills/harness/bin/harness_boundary.py
       - .claude/skills/harness/bin/test-harness-boundary.py
@@ -436,7 +437,7 @@ tasks:
       DEC-174 carve-out. Every file moved is a test of a hook, validator or gate script, which
       AGENTS.md:8 names verbatim, and the destination is the surface T-01 has just opened
     depends_on: []
-    status: pending
+    status: ready
     files:
       - .claude/skills/harness/bin/test-*.py
       - .claude/skills/harness/bin/fixtures/*
@@ -581,7 +582,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 carve-out, same surface and same reason as T-02
     depends_on: [T-02]
-    status: pending
+    status: ready
     files:
       - .claude/skills/harness/bin/test-*.py
       - .claude/skills/harness/bin/omp-hooks.test.ts
@@ -687,7 +688,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 carve-out over the bin surface
     depends_on: [T-03]
-    status: pending
+    status: ready
     files:
       - .claude/skills/harness/bin/probe-omp-session-accessor.py
       - tests/manual/probe-omp-session-accessor.py
@@ -721,7 +722,7 @@ tasks:
       DEC-174 carve-out. run-unit-tests.sh is the gate the tests workflow runs and CODEOWNERS pins,
       and this task also writes harness.json, which no squad may take under DEC-174
     depends_on: [T-03, T-04]
-    status: pending
+    status: ready
     files:
       - .claude/skills/harness/bin/run-unit-tests.sh
       - .claude/skills/harness/bin/suite_layout.py
@@ -1115,7 +1116,7 @@ tasks:
       granted to harness-documentor, taken direct under DEC-174 because the entry records a change
       to the enforcement layer itself
     depends_on: [T-05, T-07]
-    status: pending
+    status: ready
     files:
       - .harness/harness/docs/DECISIONS.md
       - .harness/harness/docs/DECISIONS-INDEX.md
@@ -1270,7 +1271,7 @@ tasks:
       party that must not perform this correction — and that holds for a file nobody has written
       yet, which is why this task declares globs rather than paths
     depends_on: [T-05]
-    status: pending
+    status: ready
     files:
       - .harness/expertise/*.md
       - .harness/*/expertise/*.md
