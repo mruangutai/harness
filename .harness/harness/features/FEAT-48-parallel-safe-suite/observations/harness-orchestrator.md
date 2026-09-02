@@ -15,3 +15,20 @@
 - 2026-09-02: a review panel's prediction about what a fix will do to a mechanical gate is not evidence. The panel said decomposing for M2/M4 would clear three of five code_grade records; the fix ADDED two, taking 7 to 9. Re-run the gate after the fix rather than carrying the prediction forward as an expected outcome.
 - 2026-09-02: verifying a fix means re-running the probe that CAUGHT the defect, plus the controls. My symlink probe re-run showed both vectors now exit 1 — but the clean control still exiting 0 is what proved no false positive was traded for the fix, and only the control could show that.
 - 2026-09-02: I graded five of six mandated fixture cases delivered by reading the file, then found the sixth gap (`src.replace` leg) only by grepping for the specific construct the plan enumerated. Enumerated requirements need enumerated checks; reading for general shape found the five and missed the one.
+- 2026-09-02: FEAT-48 c8. My first fault-injection probe of `run_pool.snapshot()` patched `os.lstat`
+  alone and reported "no crash" — wrong branch: `os.path.islink` itself calls `os.lstat` and swallows
+  OSError, so the victim returned False and never reached the line I meant to test. Pinning `islink`
+  True as well flipped the result to `FileNotFoundError` out of `snapshot()`. A probe that misses its
+  target returns a clean, plausible, entirely false negative.
+- 2026-09-02: FEAT-48 c8. The panel's code reviewer partitioned 9 `code_grade` records as
+  "7 pre-existing / 2 introduced"; its own lead retracted it, and one read of `code_grade.py:427-431`
+  settled it — `gated_set` gates only functions with no pre-image or a worsened grade, so the
+  inherited-debt shape is unrepresentable. Checking the tool's selection rule was cheaper than
+  adjudicating between two reviewers' readings of the output.
+- 2026-09-02: FEAT-48 c8. Dispatching the validator panel and the product goal-check in one message
+  cost nothing: they share no files (each persona owns its own `notes/` name) and neither moves the
+  tip. The only sequencing that mattered was doing my own mechanical checks FIRST, so both dispatches
+  carried measured numbers instead of asking two squads to re-measure the same thing.
+- 2026-09-02: FEAT-48 c8. The handoff shape gate refused four successive drafts at 74, 70, 68, 67, 66
+  and 65 lines against a 60-line cap. Shaving a line per attempt wasted six writes; cutting whole
+  bullets and budgeting the section line counts up front would have landed it in one.
