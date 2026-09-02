@@ -73,7 +73,16 @@ for f in "$BIN_DIR"/test-*.py; do
   fi
 done
 
-# --- KIND CROSS-CHECK (FEAT-31 T-12) ---------------------------------------------
+# PROBE DRIFT (issue #1187): a `probe-*.py` script under BIN_DIR is, by naming convention,
+# deliberately excluded from the test-*.py sweep above and from both UNIT_SCRIPTS and
+# INTEGRATION_SCRIPTS — it needs a real host and live credentials CI does not carry (DEC-201).
+# That naming convention is exactly how it could go unregistered forever: nothing else in this
+# file would ever notice. So every probe-*.py must appear in test_kinds.<some kind>.detect for
+# a kind whose status is "locally_run", checked below alongside the kind cross-check.
+shopt -s nullglob
+PROBE_FILES=("$BIN_DIR"/probe-*.py)
+shopt -u nullglob
+
 # WHY THIS EXISTS. The drift detector above reads only the two bash arrays and NEVER opens
 # harness.json, which is exactly how eight files came to sit in INTEGRATION_SCRIPTS while
 # the qa matrix classified them as unit (D-18). Two lists that describe the same thing and
@@ -98,6 +107,7 @@ kind_drift_out="$(
   HARNESS_JSON="$HARNESS_JSON" \
   UNIT_LIST="$(printf '%s\n' "${UNIT_SCRIPTS[@]}")" \
   INTEGRATION_LIST="$(printf '%s\n' "${INTEGRATION_SCRIPTS[@]}")" \
+  PROBE_LIST="$(printf '%s\n' "${PROBE_FILES[@]##*/}")" \
   python3 -I - <<'KINDCHECK'
 import json, os, sys
 
@@ -105,7 +115,8 @@ path = os.environ["HARNESS_JSON"]
 try:
     with open(path, encoding="utf-8") as f:
         doc = json.load(f)
-    detect = doc["test_kinds"]["integration"]["detect"]
+    kinds = doc["test_kinds"]
+    detect = kinds["integration"]["detect"]
     if not isinstance(detect, str):
         raise TypeError("integration.detect is %s, not a string" % type(detect).__name__)
 except Exception as e:
@@ -116,6 +127,7 @@ PREFIX = ".claude/skills/harness/bin/"
 declared = {p.strip() for p in detect.split("|") if p.strip()}
 unit = [n for n in os.environ.get("UNIT_LIST", "").splitlines() if n.strip()]
 integ = [n for n in os.environ.get("INTEGRATION_LIST", "").splitlines() if n.strip()]
+probes = [n for n in os.environ.get("PROBE_LIST", "").splitlines() if n.strip()]
 
 bad = 0
 for name in integ:
@@ -128,6 +140,25 @@ for name in unit:
         print("KIND-DRIFT: %s is in UNIT_SCRIPTS but present in "
               "test_kinds.integration.detect" % name, file=sys.stderr)
         bad += 1
+
+locally_run_declared = set()
+for kind_name, kind in kinds.items():
+    if not isinstance(kind, dict) or kind.get("status") != "locally_run":
+        continue
+    kind_detect = kind.get("detect")
+    if not isinstance(kind_detect, str):
+        print("KIND-DRIFT: test_kinds.%s has status locally_run but detect is %s, "
+              "not a string" % (kind_name, type(kind_detect).__name__), file=sys.stderr)
+        bad += 1
+        continue
+    locally_run_declared |= {p.strip() for p in kind_detect.split("|") if p.strip()}
+for name in probes:
+    if PREFIX + name not in locally_run_declared:
+        print("KIND-DRIFT: %s exists under bin/ but is not registered in any "
+              "test_kinds kind with status locally_run — it would be watched only "
+              "by memory, never by name (issue #1187)" % name, file=sys.stderr)
+        bad += 1
+
 sys.exit(2 if bad else 0)
 KINDCHECK
 )" 2>&1

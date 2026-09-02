@@ -60,7 +60,7 @@ exists. Then run its `cmd`.
 **Presence is not satisfied by an unrelated existing test.** A new endpoint is not covered because some
 other endpoint has a test. Find the test that exercises the changed behavior, or the kind is missing.
 
-### 5. Resolve each kind to exactly one of FOUR states
+### 5. Resolve each kind to exactly one of FIVE states
 
 Collapsing these is how a hard gate silently becomes a no-op — or how it sends you hunting in the wrong
 place.
@@ -73,7 +73,14 @@ test* run and fail its assertion, or did the runner fall over before it could ru
 | **satisfied** | at least one named test ran, none failed | contributes to `PASS` |
 | **missing** | required kind, and no test covers this change (detect globs find nothing relevant) | **`FAIL`** — name the kind and what needs testing |
 | **not applicable** | the tooling genuinely is not present in this project (e.g. `ui` with no Playwright installed) | **soft skip.** Report `ui: skipped (no browser target)` and do **not** FAIL |
+| **locally-run** | the kind's `test_kinds` entry carries `status: "locally_run"` (issue #1187) — a real, working `cmd`, but one that structurally cannot run in CI (needs a host and live credentials the checkout does not have) | **not FAIL, not a soft skip.** Confirm the change actually touched this kind's `detect` surface, then require a recorded run: a note under the feature's `notes/` naming who ran it, when, and the result. No note for an in-scope surface is `BLOCKED — locally-run kind '<kind>' has no recorded run`, never silently PASS |
 | **misconfigured** | `cmd` is `null`/absent; **no test files matched**; or the failure is a **load / import / collection / syntax error** rather than an assertion failure | **`BLOCKED`** — never `FAIL` |
+
+A `locally-run` kind is never `missing` (that would FAIL the gate for something CI is structurally
+unable to run) and never `not applicable` (that would mean no obligation exists at all, when one does —
+it is just discharged by a human on a credentialled host rather than by CI). It is its own state because
+neither of those two is honest about what actually happened.
+
 
 ⚠️ **Do NOT use "zero tests collected" as the test for misconfiguration** — some runners synthesize
 a failing test out of a load error (`node --test` reports `tests 1 / fail 1` on `MODULE_NOT_FOUND`).
@@ -117,6 +124,7 @@ Tests for this change
   python       PASS       31 named tests, all passed   uv run pytest
   integration  BLOCKED    ImportError during collection — cmd misconfigured, not a code bug
   ui           skipped    no browser target in this project
+  omp_session_accessor  locally-run   not on this diff's touched surface — no run required
 
 What's needed
   A story test for the author-filter control covering the empty and
@@ -140,3 +148,4 @@ hides three skips is misleading.
 | "There's already a test in that file" | Does it exercise the changed behavior? If not, the kind is missing |
 | "This is a small change, the matrix is overkill" | The matrix is a floor. Size is not an exemption; `change_type` is |
 | "I'll infer change type from what they asked for" | Infer it from the diff. The diff is the ground truth |
+| "I can't run it in CI, so I'll skip that kind" | Check `test_kinds.<kind>.status` first. `locally_run` is not `not applicable` — it needs a recorded run, not silence |
