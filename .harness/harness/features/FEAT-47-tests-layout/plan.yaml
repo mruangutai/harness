@@ -7,9 +7,9 @@ feature: FEAT-47-tests-layout
 source_issues: []
 
 approval:
-  status: pending
-  approved_by: <name>
-  date: <YYYY-MM-DD>
+  status: approved
+  approved_by: Mike Ruangutai
+  date: '2026-09-02'
 
 panel:
   last_run: runs/2026-08-31-01-validator
