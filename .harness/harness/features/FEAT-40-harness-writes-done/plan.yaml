@@ -1149,7 +1149,7 @@ tasks:
       operator's, not this task's.
 
   - id: T-10
-    title: Close #728 end to end with nobody touching GitHub
+    title: "Close #728 end to end with nobody touching GitHub"
     traces: [REQ-01, REQ-02, REQ-03]
     change_type: scaffolding
     execution_mode: main-session-direct

@@ -564,12 +564,12 @@ def case_structural_refusal():
 
 
 def case_create_path_approval():
-    """Case 11 — THE CREATE PATH MUST NOT CARRY THE PROPOSAL'S APPROVAL. Base does not exist
-    (step 3 treats it as an empty mapping, D-04 read together with step 7b): a proposal carrying
-    an approval key differs from the base's absent one, so it must refuse exit 8 rather than
-    write the proposal's signature to a brand-new file.
+    """Case 11 — NEW PLANS START UNSIGNED. `apply` owns initial creation, so it seeds the
+    approval mapping as pending rather than accepting one from the proposal. `sign-approval`
+    remains the only route that can transition that mapping to approved.
     """
-    # 11a: base does not exist, proposal carries NO approval key -> exit 0, file created, whole.
+    # 11a: base does not exist, proposal carries NO approval key -> exit 0, file created with
+    # the tool-owned pending approval block, then the main session can sign it.
     _root_a, path_a = fixture_root(prefix="plan-merge-test-c11a-")
     check("case11a: base file does not exist before apply", not os.path.exists(path_a), path_a)
     full = ids(1, 3)
@@ -583,9 +583,15 @@ def case_create_path_approval():
         content_a = open(path_a, encoding="utf-8").read()
         for tid in full:
             check(f"case11a: {tid} present in the created file", f"- id: {tid}\n" in content_a, content_a)
+        approval_a = (yaml.safe_load(content_a).get("approval") or {})
+        check("case11a: apply seeds approval as pending", approval_a.get("status") == "pending", content_a)
+        r_sign = run_verb("sign-approval", "--file", path_a, "--by", "main-session",
+                          "--date", "2026-09-01")
+        check("case11a: a newly created plan can be signed", r_sign.returncode == 0,
+              r_sign.stdout + r_sign.stderr)
 
-    # 11b: base does not exist, proposal DOES carry an approval key -> exit 8, nothing written,
-    # no file left behind (the create-path analogue of case10a's byte-identity check).
+    # 11b: a proposal may not choose any approval value, including approved. The tool seeds its
+    # own pending value instead, so a caller cannot mint a signature while creating a plan.
     _root_b, path_b = fixture_root(prefix="plan-merge-test-c11b-")
     check("case11b: base file does not exist before apply", not os.path.exists(path_b), path_b)
     proposal_b = os.path.join(_root_b, "proposal.yaml")
@@ -617,7 +623,6 @@ def case_create_path_approval():
         if n not in ("plan.yaml.lock",)
     ]
     check("case11b: no stray tempfile/plan.yaml left behind after the refusal", not stray, stray)
-
 
 # ---------------------------------------------------------------------------
 # FEAT-41 T-03: the four new verbs
@@ -686,6 +691,50 @@ def case_set_feature_station_insert_and_replace():
               and len(after2.splitlines()) == len(after.splitlines()), after2[:200])
         check("set-feature-station does not touch a task's status",
               after2.split("tasks:")[1].count("status: pending") == 2, after2)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_set_panel_replaces_mapping_and_validates_shape():
+    root, plan = fixture_root()
+    try:
+        original = render_plan(ids(1, 2))
+        panel_one = {
+            "last_run": "runs/c4-validator",
+            "cycle": 4,
+            "readers": [{"reader": "scope", "persona": "harness-code-reviewer", "status": "ran"}],
+            "findings": [],
+        }
+        panel_two = {
+            "last_run": "runs/c5-validator",
+            "cycle": 5,
+            "readers": [{"reader": "scope", "persona": "harness-code-reviewer", "status": "ran"}],
+            "findings": [{"id": "PF-1", "severity": "low", "disposition": "open"}],
+        }
+        write(plan, original + yaml.safe_dump({"panel": panel_one}, sort_keys=False))
+        value_file = os.path.join(root, "panel.yaml")
+        write(value_file, yaml.safe_dump(panel_two, sort_keys=False))
+
+        r = run_verb("set-panel", "--file", plan, "--value-file", value_file)
+        after = read(plan)
+        loaded = yaml.safe_load(after)
+        check("set-panel exits 0 for a complete panel mapping", r.returncode == 0,
+              f"rc={r.returncode} {r.stderr!r}")
+        check("set-panel replaces the whole panel mapping", loaded.get("panel") == panel_two,
+              repr(loaded.get("panel")))
+        check("set-panel leaves tasks and approval unchanged",
+              loaded.get("tasks") == yaml.safe_load(original).get("tasks")
+              and loaded.get("approval") == yaml.safe_load(original).get("approval"),
+              after)
+
+        before_refusal = read(plan)
+        write(value_file, yaml.safe_dump({"cycle": 6, "readers": [], "findings": []},
+                                         sort_keys=False))
+        refused = run_verb("set-panel", "--file", plan, "--value-file", value_file)
+        check("set-panel refuses a mapping missing last_run before writing",
+              refused.returncode != 0 and "last_run" in refused.stderr,
+              f"rc={refused.returncode} {refused.stderr!r}")
+        check("set-panel refusal leaves plan byte-identical", read(plan) == before_refusal)
     finally:
         shutil.rmtree(root, ignore_errors=True)
 
@@ -1028,35 +1077,811 @@ def case_high1_apply_cannot_mint_the_station_only_marker():
         shutil.rmtree(root, ignore_errors=True)
 
 
+# ---------------------------------------------------------------------------
+# BUG-1128 — the `amend` verb. plan.yaml had NO amend route at all: FEAT-41 T-09
+# denies every Edit/Write to a plan.yaml for every author, and `apply` is ADD-ONLY
+# (exit 7 on any changed value). So a signed plan could not be corrected by anyone,
+# and FEAT-46 accumulated eight staged-but-unappliable amendment blocks.
+#
+# The verb is a COMPARE-AND-SWAP, not a write. `--show` prints the current field
+# block and its sha256; replacing requires `--expect-sha256`. That is what makes it
+# safe under the same concurrency `apply` already guards: a caller who read a stale
+# value cannot overwrite a newer one, because the hash it names no longer matches.
+#
+# It MUST reach `decisions:` as well as `tasks:`. FEAT-46's worst overclaims live in
+# D-05 and D-14, so a task-scoped verb would leave exactly the blocks that motivated
+# it unreachable.
+# ---------------------------------------------------------------------------
+
+
+def _amend_plan():
+    """A plan carrying a multi-line `because:` on a decision, which is the real shape:
+    FEAT-46's staged blocks rewrite prose, not one-word values."""
+    return (
+        "schema: plan/1\n"
+        "feature: FEAT-99-fixture\n"
+        "\n"
+        "tasks:\n"
+        "  - id: T-01\n"
+        "    title: first\n"
+        "    verify: run the thing\n"
+        "    status: ready\n"
+        "  - id: T-02\n"
+        "    title: second\n"
+        "    status: ready\n"
+        "\n"
+        "decisions:\n"
+        "  - id: D-05\n"
+        "    choice: two readers confirm a strike\n"
+        "    because: a wrong strike stays detectable afterwards\n"
+        "      as a dangling citation, so one reader suffices\n"
+        "      for the rest.\n"
+        "  - id: D-14\n"
+        "    choice: receipts keep the documentor prefix\n"
+    )
+
+
+def _sha_of(path, key, iid, field):
+    r = run_verb("amend", "--file", path, "--key", key, "--id", iid,
+                 "--field", field, "--show")
+    for line in (r.stdout or "").splitlines():
+        if line.startswith("sha256:"):
+            return line.split(":", 1)[1].strip(), r
+    return None, r
+
+
+def case_amend_show_reports_block_and_hash():
+    """`--show` is the only way a caller can learn the hash it must name, so it is a
+    precondition of every legal replace, not a convenience."""
+    root, plan = fixture_root()
+    try:
+        write(plan, _amend_plan())
+        sha, r = _sha_of(plan, "decisions", "D-05", "because")
+        ok = r.returncode == 0 and sha is not None and len(sha) == 64
+        check("amend --show prints a 64-char sha256 for the named field",
+              ok, f"rc={r.returncode} sha={sha!r} out={r.stdout[:200]!r}")
+        check("amend --show prints the field's MULTI-LINE body, not just its first line",
+              "for the rest." in (r.stdout or ""), f"out={r.stdout[:300]!r}")
+        check("amend --show does not modify the plan",
+              read(plan) == _amend_plan(), "the plan changed under a read-only verb")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_amend_replaces_a_multiline_decision_field():
+    """THE MOTIVATING CASE. D-05's `because:` is three lines and FEAT-46's staged block
+    rewrites it. A one-line splice cannot do this, which is why the verb replaces a field
+    BLOCK bounded by the next key at the same indent."""
+    root, plan = fixture_root()
+    try:
+        write(plan, _amend_plan())
+        sha, _ = _sha_of(plan, "decisions", "D-05", "because")
+        newval = os.path.join(root, "new.txt")
+        write(newval, "the detectability argument is VOID: this plan repoints every\n"
+                      "durable citation, so a wrongly struck entry dangles nowhere.\n")
+        r = run_verb("amend", "--file", plan, "--key", "decisions", "--id", "D-05",
+                     "--field", "because", "--expect-sha256", sha or "x",
+                     "--value-file", newval)
+        after = read(plan)
+        check("amend replaces a multi-line decision field", r.returncode == 0,
+              f"rc={r.returncode} {r.stderr[:300]!r}")
+        check("the new prose is present", "dangles nowhere" in after, after[-400:])
+        check("the OLD prose is gone — a replace that appends is not a replace",
+              "stays detectable afterwards" not in after, after[-400:])
+        check("the sibling decision D-14 survives untouched",
+              "receipts keep the documentor prefix" in after, after[-300:])
+        check("the tasks: key is untouched",
+              "verify: run the thing" in after, after[:400])
+        check("the result still parses as YAML",
+              yaml.safe_load(after) is not None, "unparseable after amend")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_amend_refuses_a_stale_hash():
+    """THE COMPARE-AND-SWAP. A caller holding a hash from before someone else's write must
+    be refused, and the plan left byte-identical. This is the whole reason the verb takes a
+    hash rather than trusting the caller to have read recently."""
+    root, plan = fixture_root()
+    try:
+        write(plan, _amend_plan())
+        newval = os.path.join(root, "new.txt")
+        write(newval, "whatever\n")
+        before = read(plan)
+        r = run_verb("amend", "--file", plan, "--key", "decisions", "--id", "D-05",
+                     "--field", "because",
+                     "--expect-sha256", "0" * 64, "--value-file", newval)
+        check("amend refuses a stale --expect-sha256", r.returncode != 0,
+              f"rc={r.returncode}")
+        check("and leaves the plan BYTE-IDENTICAL", read(plan) == before, "plan changed")
+        check("and the refusal reports the ACTUAL hash, so the caller can re-read",
+              "sha256" in (r.stderr + r.stdout).lower(),
+              f"stderr={r.stderr[:200]!r}")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_amend_requires_the_hash():
+    """Omitting the hash must not default to force. A verb that writes without a named
+    expectation is the hand-edit T-09 exists to deny, wearing a tool's name."""
+    root, plan = fixture_root()
+    try:
+        write(plan, _amend_plan())
+        newval = os.path.join(root, "new.txt")
+        write(newval, "whatever\n")
+        before = read(plan)
+        r = run_verb("amend", "--file", plan, "--key", "tasks", "--id", "T-01",
+                     "--field", "title", "--value-file", newval)
+        check("amend without --expect-sha256 is refused", r.returncode != 0,
+              f"rc={r.returncode}")
+        check("and nothing is written", read(plan) == before, "plan changed")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_amend_refuses_absent_id_and_lists_what_is_there():
+    """A refusal that does not say what IS present makes the caller guess. `set-task-station`
+    already sets this precedent and scopes its id list to the key it was asked about."""
+    root, plan = fixture_root()
+    try:
+        write(plan, _amend_plan())
+        newval = os.path.join(root, "new.txt")
+        write(newval, "x\n")
+        r = run_verb("amend", "--file", plan, "--key", "tasks", "--id", "T-99",
+                     "--field", "title", "--expect-sha256", "0" * 64,
+                     "--value-file", newval)
+        out = r.stderr + r.stdout
+        check("amend refuses an absent id", r.returncode != 0, f"rc={r.returncode}")
+        check("and names the ids that ARE present", "T-01" in out, f"out={out[:250]!r}")
+        check("and does NOT list decision ids for a --key tasks miss — a refusal that "
+              "suggests a wrong next step is worse than a terse one",
+              "D-05" not in out, f"out={out[:250]!r}")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_amend_refuses_absent_field():
+    """T-02 has no `verify:`. Amending it must refuse rather than INSERT one: adding a field
+    is `apply`'s job, and a verb that silently grows the document is how a plan acquires a
+    key nobody reviewed."""
+    root, plan = fixture_root()
+    try:
+        write(plan, _amend_plan())
+        newval = os.path.join(root, "new.txt")
+        write(newval, "x\n")
+        before = read(plan)
+        r = run_verb("amend", "--file", plan, "--key", "tasks", "--id", "T-02",
+                     "--field", "verify", "--expect-sha256", "0" * 64,
+                     "--value-file", newval)
+        check("amend refuses a field the item does not carry", r.returncode != 0,
+              f"rc={r.returncode}")
+        check("and does not insert it", read(plan) == before, "plan grew a new key")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_amend_refuses_an_unknown_key():
+    """`--key` is closed to tasks|decisions. An open key would let the verb rewrite
+    `approval:` — the one mapping the main session alone may write (DEC-120)."""
+    root, plan = fixture_root()
+    try:
+        write(plan, _amend_plan())
+        newval = os.path.join(root, "new.txt")
+        write(newval, "approved\n")
+        before = read(plan)
+        r = run_verb("amend", "--file", plan, "--key", "approval", "--id", "x",
+                     "--field", "status", "--expect-sha256", "0" * 64,
+                     "--value-file", newval)
+        check("amend refuses --key approval", r.returncode != 0, f"rc={r.returncode}")
+        check("and the plan is unchanged", read(plan) == before, "plan changed")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_amend_preserves_comments_elsewhere():
+    """The splice discipline the other verbs keep: a comment far from the amended field
+    must survive, because a whole-document rewrite would silently drop it."""
+    root, plan = fixture_root()
+    try:
+        write(plan, "# a load-bearing comment about this fixture\n" + _amend_plan())
+        sha, _ = _sha_of(plan, "tasks", "T-01", "title")
+        newval = os.path.join(root, "new.txt")
+        write(newval, "first, renamed\n")
+        r = run_verb("amend", "--file", plan, "--key", "tasks", "--id", "T-01",
+                     "--field", "title", "--expect-sha256", sha or "x",
+                     "--value-file", newval)
+        after = read(plan)
+        check("amend succeeds on a single-line task field", r.returncode == 0,
+              f"rc={r.returncode} {r.stderr[:200]!r}")
+        check("the leading comment survives the splice",
+              "load-bearing comment" in after, after[:200])
+        check("the new title is present", "first, renamed" in after, after[:400])
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_amend_value_round_trips_through_yaml():
+    """THE BUG THE SUITE FOUND, kept as its own guard.
+
+    The first cut rendered every value as a plain scalar, so a value containing `: ` —
+    `the argument is VOID: this plan ...` — reparsed as a nested mapping and killed the
+    document. `_render_field` now falls back to a literal block scalar.
+
+    Asserted as a ROUND TRIP rather than a substring: the value that comes back out of
+    `yaml.safe_load` must be exactly the value written. A substring check would pass on a
+    document that had silently restructured around the colon.
+    """
+    root, plan = fixture_root()
+    try:
+        write(plan, _amend_plan())
+        sha, _ = _sha_of(plan, "tasks", "T-01", "verify")
+        hostile = ("VOID: a colon mid-line breaks a plain scalar\n"
+                   "- and a leading dash starts a list\n"
+                   "# and a hash starts a comment")
+        newval = os.path.join(root, "hostile.txt")
+        write(newval, hostile + "\n")
+        r = run_verb("amend", "--file", plan, "--key", "tasks", "--id", "T-01",
+                     "--field", "verify", "--expect-sha256", sha or "x",
+                     "--value-file", newval)
+        check("amend accepts a value carrying a colon, a dash and a hash",
+              r.returncode == 0, f"rc={r.returncode} {r.stderr[:250]!r}")
+        doc = yaml.safe_load(read(plan))
+        got = None
+        for t in (doc or {}).get("tasks") or []:
+            if t.get("id") == "T-01":
+                got = t.get("verify")
+        check("the value ROUND-TRIPS byte-identical through yaml.safe_load",
+              got == hostile, f"got={got!r}")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_amend_value_yes_stays_a_string():
+    """THE BUG MY OWN QUOTING RULE WOULD HAVE SHIPPED.
+
+    The first cut of `_render_field` decided plain-vs-block by hand. It caught `: ` and
+    leading indicators and would still have written `verify: yes`, which `yaml.safe_load`
+    returns as the BOOLEAN True — not a syntax error, so nothing would have failed loudly.
+
+    `_field_lines` already existed and already routes through `yaml.safe_dump` for exactly
+    this reason, documented in its own docstring: a local rule re-derives only part of the
+    set PyYAML knows. This case exists so nobody re-introduces the second grammar.
+    """
+    root, plan = fixture_root()
+    try:
+        write(plan, _amend_plan())
+        sha, _ = _sha_of(plan, "tasks", "T-01", "title")
+        newval = os.path.join(root, "yes.txt")
+        write(newval, "yes\n")
+        r = run_verb("amend", "--file", plan, "--key", "tasks", "--id", "T-01",
+                     "--field", "title", "--expect-sha256", sha or "x",
+                     "--value-file", newval)
+        check("amend accepts a value that is a YAML boolean word",
+              r.returncode == 0, f"rc={r.returncode} {r.stderr[:200]!r}")
+        doc = yaml.safe_load(read(plan))
+        got = None
+        for t in (doc or {}).get("tasks") or []:
+            if t.get("id") == "T-01":
+                got = t.get("title")
+        check("`yes` reloads as the STRING 'yes', not the boolean True",
+              got == "yes" and isinstance(got, str), f"got={got!r} type={type(got).__name__}")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+# --- BUG-1128 cycle 1: the panel's findings, each with the scenario it named ----------
+
+def _block_plan():
+    """A task whose `intent: |` body contains a prose line reading `verify:`. This is not
+    contrived — FEAT-46's own plan quotes commands and key names inside block scalars."""
+    return (
+        "schema: plan/1\n"
+        "feature: FEAT-99-fixture\n"
+        "\n"
+        "tasks:\n"
+        "  - id: T-01\n"
+        "    intent: |\n"
+        "      Do the thing. The old checker did this:\n"
+        "      verify: this line is PROSE inside a block scalar\n"
+        "      and must never be mistaken for a key.\n"
+        "    verify: |\n"
+        "      python3 -c \"print('the real verify')\"\n"
+        "    status: ready\n"
+    )
+
+
+def case_amend_v1_block_scalar_body_is_not_scanned_for_keys():
+    """PANEL V1 (high, three readers independently). `_field_block` matched `^\\s*field:`
+    over physical lines, so `--field verify` bound to the PROSE line inside `intent: |`.
+    `--show` hashed the wrong block and a replace corrupted `intent` while printing
+    `AMENDED ... verify` at exit 0. The compare-and-swap could not help: both hashes are
+    taken over whatever the locator returns, so they agree perfectly on the wrong block."""
+    root, plan = fixture_root()
+    try:
+        write(plan, _block_plan())
+        r = run_verb("amend", "--file", plan, "--key", "tasks", "--id", "T-01",
+                     "--field", "verify", "--show")
+        check("V1: --show binds to the REAL verify, not the prose inside intent",
+              "the real verify" in r.stdout, f"out={r.stdout[:250]!r}")
+        check("V1: and does not return the intent body",
+              "PROSE inside a block scalar" not in r.stdout, f"out={r.stdout[:250]!r}")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_amend_v2_identity_replace_of_a_block_field_round_trips():
+    """PANEL V2 (high). `yaml.safe_dump` never emits `|`, and the first cut also dropped the
+    trailing newline a `|` body carries — so replacing FEAT-46's real `T-23.verify` WITH
+    ITSELF changed what `safe_load` returned. SPEC.md:1813 makes that literal form a
+    byte-exact contract.
+
+    The identity replace is the sharpest possible assertion: any change at all is a bug."""
+    root, plan = fixture_root()
+    try:
+        write(plan, _block_plan())
+        before = yaml.safe_load(read(plan))
+        val = [t for t in before["tasks"] if t["id"] == "T-01"][0]["verify"]
+        same = os.path.join(root, "same.txt")
+        write(same, val)
+        sha, _ = _sha_of(plan, "tasks", "T-01", "verify")
+        r = run_verb("amend", "--file", plan, "--key", "tasks", "--id", "T-01",
+                     "--field", "verify", "--expect-sha256", sha or "x", "--value-file", same)
+        check("V2: an identity replace of a block field SUCCEEDS", r.returncode == 0,
+              f"rc={r.returncode} {r.stderr[:250]!r}")
+        after = yaml.safe_load(read(plan))
+        got = [t for t in after["tasks"] if t["id"] == "T-01"][0]["verify"]
+        check("V2: and the value is byte-identical, trailing newline included",
+              got == val, f"before={val!r} after={got!r}")
+        check("V2: and the emitted form is still a literal block",
+              "verify: |" in read(plan), read(plan)[:300])
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_amend_v3_identity_check_is_live():
+    """PANEL N2 REPLACES CYCLE 0's V3 CASE, WHICH PINNED NOTHING.
+
+    The first cut had two independent defects the panel measured: its guard contained the
+    literal tautology `read(plan) == read(plan)`, and its string replacement deleted an open
+    paren without its match, so the "mutant" was a SyntaxError and the case discriminated on a
+    crash. A syntax-valid mutant removing only the comparison left the suite at 0 FAIL of 229,
+    so the claim of three caught assertions did not reproduce. That was a false evidence claim
+    and this case exists to make the real one.
+
+    IT TESTS `_verify_amend` DIRECTLY, because with V1 and V2 fixed nothing end-to-end
+    triggers it any more: it is defence in depth against a locator bug, and the honest way to
+    pin defence in depth is to call it. An end-to-end case would have to ship a locator bug to
+    exercise it.
+    """
+    sys.path.insert(0, HERE)
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("plan_merge_under_test", CLI)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+
+    doc = ("schema: plan/1\nfeature: FEAT-99-fixture\ntasks:\n"
+           "  - id: T-01\n    title: actual\n    status: ready\n").encode("utf-8")
+
+    ok_pass = True
+    try:
+        mod._verify_amend(doc, "tasks", "T-01", "title", "actual")
+    except Exception as exc:  # noqa: BLE001 - any raise here is the failure
+        ok_pass = False
+        detail = repr(exc)
+    check("V3: _verify_amend ACCEPTS a value that reloads as asked",
+          ok_pass, detail if not ok_pass else "")
+
+    raised = None
+    try:
+        mod._verify_amend(doc, "tasks", "T-01", "title", "something else entirely")
+    except mod.harness_merge.MergeRefusal as exc:
+        raised = exc
+    check("V3: and REFUSES when the reloaded value is not what was asked for",
+          raised is not None and raised.code == 5,
+          f"raised={raised!r}")
+    check("V3: the refusal names both values, so the caller can see the difference",
+          raised is not None and any("actual" in ln for ln in raised.lines),
+          f"lines={getattr(raised, 'lines', None)!r}")
+
+    dup = ("schema: plan/1\nfeature: FEAT-99-fixture\ntasks:\n"
+           "  - id: T-01\n    title: a\n  - id: T-01\n    title: b\n").encode("utf-8")
+    raised2 = None
+    try:
+        mod._verify_amend(dup, "tasks", "T-01", "title", "a")
+    except mod.harness_merge.MergeRefusal as exc:
+        raised2 = exc
+    check("V3: and REFUSES a duplicate id rather than accepting the first match",
+          raised2 is not None, f"raised={raised2!r}")
+
+
+def case_amend_v4_unparseable_base_refuses_cleanly():
+    """PANEL V4 (med). The do-no-harm `safe_load(base)` sat outside the try, so amending a
+    plan whose YAML is broken exited 1 with a raw traceback. Repairing a plan nobody else may
+    edit is this verb's entire purpose, so an unreadable base must refuse, not crash."""
+    root, plan = fixture_root()
+    try:
+        write(plan, "schema: plan/1\nfeature: FEAT-99-fixture\ntasks:\n  - id: T-01\n"
+                    "    title: ok\n    status: ready\n  bad: [unclosed\n")
+        val = os.path.join(root, "v.txt")
+        write(val, "x\n")
+        # THE REAL HASH, or this case is vacuous: a wrong --expect-sha256 exits 6 before the
+        # base is ever parsed, so the guard under test is never reached. Mutation-proven --
+        # with a dummy hash, excising the guard changed nothing. `--show` works on a broken
+        # file because locating a field is line-based and does not parse YAML.
+        sha, _ = _sha_of(plan, "tasks", "T-01", "title")
+        r = run_verb("amend", "--file", plan, "--key", "tasks", "--id", "T-01",
+                     "--field", "title", "--expect-sha256", sha or "x", "--value-file", val)
+        check("V4: an unparseable base refuses rather than crashing",
+              r.returncode != 0 and "Traceback" not in r.stderr,
+              f"rc={r.returncode} stderr={r.stderr[:250]!r}")
+        check("V4: and the refusal says the plan on disk does not parse",
+              "does not parse" in (r.stderr + r.stdout), f"stderr={r.stderr[:250]!r}")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def _schema_valid_plan():
+    """A base that satisfies REQUIRED_TASK_FIELDS — id, title, change_type, execution_mode,
+    files, verify, intent. `render_plan` and the amend fixtures all omit several, which is
+    exactly why the do-no-harm branch was dead in the whole suite (panel N5)."""
+    return (
+        "schema: plan/1\n"
+        "feature: FEAT-99-fixture\n"
+        "status: building\n"
+        "approval:\n  status: approved\n  approved_by: X\n  date: 2026-01-01\n"
+        "tasks:\n"
+        "  - id: T-01\n"
+        "    title: a real task\n"
+        "    change_type: logic\n"
+        "    execution_mode: main-session-direct\n"
+        "    files: [a.py]\n"
+        "    verify: run it\n"
+        "    intent: do it\n"
+        "    status: done\n"
+    )
+
+
+def case_amend_n5_do_no_harm_branch_is_live():
+    """PANEL N5. The schema branch never executed: every amend fixture omitted required task
+    fields, so `_schema_error(base_doc) is None` was never True and replacing the whole branch
+    with `pass` left the suite green. The disclosed `reloaded` NameError fix therefore shipped
+    with zero evidence.
+
+    With a schema-VALID base, amending `title` to an empty value must be refused by the schema,
+    which is the only thing that proves the branch runs at all."""
+    root, plan = fixture_root()
+    try:
+        write(plan, _schema_valid_plan())
+        base = read(plan)
+        check("N5: the fixture base really is schema-valid (or this case is vacuous)",
+              yaml.safe_load(base) is not None, "unparseable fixture")
+        sha, _ = _sha_of(plan, "tasks", "T-01", "title")
+        empty = os.path.join(root, "empty.txt")
+        write(empty, "\n")
+        r = run_verb("amend", "--file", plan, "--key", "tasks", "--id", "T-01",
+                     "--field", "title", "--expect-sha256", sha or "x", "--value-file", empty)
+        check("N5: a schema-breaking amendment on a schema-valid base is refused",
+              r.returncode != 0, f"rc={r.returncode} out={r.stdout[:150]!r}")
+        check("N5: and the plan is unchanged", read(plan) == base, "plan changed")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_amend_n1_adjacent_comment_and_blank_survive():
+    """PANEL N1 (high, all four reviewers). The tail scan stopped only at the next item or the
+    next sibling key, so a `# NOTE` line and a blank line between two fields matched neither,
+    were swept into the replaced range, and were DELETED at exit 0 under a clean AMENDED
+    receipt.
+
+    `_verify_amend` cannot catch this and never could: the amended value is exactly what was
+    asked for. Only the boundary was wrong, and a value check cannot see a boundary — which is
+    why `case_amend_preserves_comments_elsewhere` passed throughout: its comment is in the file
+    PREAMBLE, which intersects no field's range.
+    """
+    root, plan = fixture_root()
+    try:
+        write(plan, "schema: plan/1\nfeature: FEAT-99-fixture\n\ntasks:\n"
+                    "  - id: T-01\n    title: first\n"
+                    "    # NOTE: a load-bearing comment BETWEEN two fields\n"
+                    "\n"
+                    "    verify: run it\n    status: ready\n")
+        sha, _ = _sha_of(plan, "tasks", "T-01", "title")
+        val = os.path.join(root, "v.txt")
+        write(val, "renamed\n")
+        r = run_verb("amend", "--file", plan, "--key", "tasks", "--id", "T-01",
+                     "--field", "title", "--expect-sha256", sha or "x", "--value-file", val)
+        after = read(plan)
+        check("N1: the amendment succeeds", r.returncode == 0,
+              f"rc={r.returncode} {r.stderr[:200]!r}")
+        check("N1: the comment BETWEEN fields survives", "load-bearing comment" in after, after)
+        check("N1: the blank line between fields survives",
+              "\n\n    verify: run it" in after, repr(after))
+        check("N1: and the new value landed", "title: renamed" in after, after)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_amend_n1b_a_comment_inside_a_block_body_is_CONTENT():
+    """THE BUG N1's OWN FIX INTRODUCED, found before any panel saw it.
+
+    `_trim_tail` was applied to block scalars as well as plain ones, so a `|` body whose last
+    line is a shell or Python comment had that line silently truncated — `--show` returned less
+    than `yaml.safe_load` did, and a replace would have written the shortened value back.
+
+    Inside a block body `#` is CONTENT. It is document structure only for a plain scalar, whose
+    continuation cannot begin with `#`. FEAT-46's own `verify: |` blocks carry commented shell,
+    so this was not hypothetical.
+    """
+    root, plan = fixture_root()
+    try:
+        write(plan, "schema: plan/1\nfeature: FEAT-99-fixture\n\ntasks:\n"
+                    "  - id: T-01\n    verify: |\n"
+                    "      python3 -c \"print(1)\"\n"
+                    "      # a trailing comment that is REAL CONTENT\n"
+                    "    status: ready\n")
+        want = [t for t in yaml.safe_load(read(plan))["tasks"] if t["id"] == "T-01"][0]["verify"]
+        r = run_verb("amend", "--file", plan, "--key", "tasks", "--id", "T-01",
+                     "--field", "verify", "--show")
+        shown = "".join(ln + "\n" for ln in r.stdout.splitlines()
+                        if not ln.startswith("sha256:"))
+        check("N1b: --show returns the WHOLE block value, comment line included",
+              shown == want, f"shown={shown!r} want={want!r}")
+        fed = os.path.join(root, "fed.txt")
+        write(fed, shown)
+        sha, _ = _sha_of(plan, "tasks", "T-01", "verify")
+        r2 = run_verb("amend", "--file", plan, "--key", "tasks", "--id", "T-01",
+                      "--field", "verify", "--expect-sha256", sha or "x", "--value-file", fed)
+        check("N1b: and an identity replace keeps it", r2.returncode == 0,
+              f"rc={r2.returncode} {r2.stderr[:200]!r}")
+        got = [t for t in yaml.safe_load(read(plan))["tasks"] if t["id"] == "T-01"][0]["verify"]
+        check("N1b: the comment line survives the round trip", got == want,
+              f"got={got!r} want={want!r}")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_amend_f1_all_four_block_forms_round_trip():
+    """PANEL F1 (high). The read path re-implemented YAML and diverged from it on FOUR legal
+    shapes at once: `|` clips to one trailing newline, `|-` strips it, `|+` keeps every one,
+    and `>` FOLDS newlines into spaces. All four produced identical `--show` output and four
+    different real values, so the tool's own documented `--show` -> `--value-file` workflow
+    silently rewrote the field at exit 0 — and `_verify_amend` could not see it, because the
+    operator asked for the value the tool itself computed wrong.
+
+    Both directions now ask the parser: `--show` reads the value via `yaml.safe_load`, and the
+    expected value is derived by parsing the rendered field rather than encoding four chomping
+    rules by hand. This was the THIRD hand-rolled-YAML defect in this feature, after a quoting
+    rule and form preservation.
+    """
+    for header in ("|", "|-", "|+", ">"):
+        root, plan = fixture_root()
+        try:
+            write(plan, "schema: plan/1\nfeature: FEAT-99-fixture\n\ntasks:\n"
+                        f"  - id: T-01\n    verify: {header}\n"
+                        "      line one\n      line two\n    status: ready\n")
+            before = [t for t in yaml.safe_load(read(plan))["tasks"]
+                      if t["id"] == "T-01"][0]["verify"]
+            r = run_verb("amend", "--file", plan, "--key", "tasks", "--id", "T-01",
+                         "--field", "verify", "--show")
+            shown = "".join(ln + "\n" for ln in r.stdout.splitlines()
+                            if not ln.startswith("sha256:"))
+            fed = os.path.join(root, "fed.txt")
+            write(fed, shown)
+            sha, _ = _sha_of(plan, "tasks", "T-01", "verify")
+            r2 = run_verb("amend", "--file", plan, "--key", "tasks", "--id", "T-01",
+                          "--field", "verify", "--expect-sha256", sha or "x",
+                          "--value-file", fed)
+            after = [t for t in yaml.safe_load(read(plan))["tasks"]
+                     if t["id"] == "T-01"][0]["verify"]
+            check(f"F1: `{header}` round-trips byte-identical through --show -> --value-file",
+                  r2.returncode == 0 and after == before,
+                  f"rc={r2.returncode} before={before!r} after={after!r}")
+            check(f"F1: `{header}` keeps its emitted form",
+                  f"verify: {header}" in read(plan), read(plan)[:200])
+        finally:
+            shutil.rmtree(root, ignore_errors=True)
+
+
+def case_amend_f1_non_text_field_is_refused():
+    """PANEL F1's sibling, from the code-reviewer: a null field became an empty string and a
+    list field would be flattened to text. amend replaces TEXT scalars; anything else needs its
+    structure rewritten, which is apply's job. Refuse rather than coerce."""
+    root, plan = fixture_root()
+    try:
+        write(plan, "schema: plan/1\nfeature: FEAT-99-fixture\n\ntasks:\n"
+                    "  - id: T-01\n    files: [a.py, b.py]\n    empty:\n    status: ready\n")
+        before = read(plan)
+        r = run_verb("amend", "--file", plan, "--key", "tasks", "--id", "T-01",
+                     "--field", "files", "--show")
+        check("F1: a list field is refused rather than flattened to text",
+              r.returncode != 0, f"rc={r.returncode} out={r.stdout[:150]!r}")
+        r2 = run_verb("amend", "--file", plan, "--key", "tasks", "--id", "T-01",
+                      "--field", "empty", "--show")
+        check("F1: a null field is refused rather than shown as an empty string",
+              r2.returncode != 0, f"rc={r2.returncode} out={r2.stdout[:150]!r}")
+        check("F1: and neither refusal wrote anything", read(plan) == before, "plan changed")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def _load_pm():
+    """The tool as a module, for unit-testing helpers no end-to-end path can reach."""
+    import importlib.util
+    sys.path.insert(0, HERE)
+    spec = importlib.util.spec_from_file_location("plan_merge_under_test", CLI)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def case_amend_f2_under_lock_hash_is_pinned():
+    """PANEL F2, OPEN SINCE CYCLE 0 AND UNPINNED FOR FOUR CYCLES.
+
+    The under-lock sha256 re-check — the one the code's own comment calls "the check that is
+    actually load-bearing" — survived being mutated out at 0 of 244 FAIL, three cycles running.
+    Nothing could reach it: reproducing the race end-to-end needs two processes interleaved
+    inside one flock, which a single-process suite cannot orchestrate.
+
+    So it was extracted and is tested directly, the same remedy `_verify_amend` got. A guarantee
+    that no test can reach is a guarantee nobody is keeping.
+    """
+    mod = _load_pm()
+    block = ["    title: actual\n"]
+    good = __import__("hashlib").sha256("".join(block).encode("utf-8")).hexdigest()
+
+    ok = True
+    try:
+        mod._require_locked_hash(block, good, "T-01", "title")
+    except Exception as exc:  # noqa: BLE001
+        ok = False
+        detail = repr(exc)
+    check("F2: the under-lock check ACCEPTS a block that still matches",
+          ok, detail if not ok else "")
+
+    raised = None
+    try:
+        mod._require_locked_hash(block, "0" * 64, "T-01", "title")
+    except mod.harness_merge.MergeRefusal as exc:
+        raised = exc
+    check("F2: and REFUSES a block that changed under the lock",
+          raised is not None and raised.code == 6, f"raised={raised!r}")
+    check("F2: naming the field, so the caller knows what to re-read",
+          raised is not None and any("T-01.title" in ln for ln in raised.lines),
+          f"lines={getattr(raised, 'lines', None)!r}")
+
+    # REACHABILITY, SEPARATELY AND HONESTLY LABELLED. The three checks above pin the function's
+    # BEHAVIOUR. They cannot pin its INVOCATION: deleting the call from `transform` leaves this
+    # suite green, measured, because reaching that line requires two processes interleaved
+    # inside one flock. So the wiring is asserted at the source level and named for what it is
+    # — a reachability check, not a behavioural one. Together they cover "it refuses correctly"
+    # and "it is actually wired in", which is the pair a behavioural test alone cannot give.
+    src = read(CLI)
+    check("F2: and the check is WIRED INTO the locked transform (reachability, not behaviour)",
+          "_require_locked_hash(cur[f2:l2]" in src,
+          "the under-lock call site is gone: the guarantee is unreachable")
+
+
+def case_amend_n3_show_round_trips_into_value_file():
+    """PANEL N3. `--show` printed the field BLOCK including its `field:` key line while
+    `--value-file` takes the bare VALUE, so feeding the output back wrote
+    `verify: '    verify: run the thing'` at exit 0 — and the identity check cannot catch that
+    in principle, since the corrupted value IS what the caller asked for.
+
+    The remedy was at the read end. This asserts the round trip: `--show` output, minus its
+    sha line, fed straight into `--value-file`, must leave the value unchanged."""
+    root, plan = fixture_root()
+    try:
+        write(plan, _block_plan())
+        before = yaml.safe_load(read(plan))
+        want = [t for t in before["tasks"] if t["id"] == "T-01"][0]["verify"]
+        r = run_verb("amend", "--file", plan, "--key", "tasks", "--id", "T-01",
+                     "--field", "verify", "--show")
+        shown = "".join(ln + "\n" for ln in r.stdout.splitlines()
+                        if not ln.startswith("sha256:"))
+        check("N3: --show emits the VALUE, not the block with its key line",
+              "verify:" not in shown, f"shown={shown!r}")
+        fed = os.path.join(root, "fed.txt")
+        write(fed, shown)
+        sha, _ = _sha_of(plan, "tasks", "T-01", "verify")
+        r2 = run_verb("amend", "--file", plan, "--key", "tasks", "--id", "T-01",
+                      "--field", "verify", "--expect-sha256", sha or "x", "--value-file", fed)
+        check("N3: feeding --show output back succeeds", r2.returncode == 0,
+              f"rc={r2.returncode} {r2.stderr[:200]!r}")
+        after = yaml.safe_load(read(plan))
+        got = [t for t in after["tasks"] if t["id"] == "T-01"][0]["verify"]
+        check("N3: and the value is unchanged — a true round trip",
+              got == want, f"want={want!r} got={got!r}")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+
+def case_amend_duplicate_id_is_refused():
+    """The code-reviewer's finding: a duplicate id bound silently to the first match.
+    `_verify_amend` now requires exactly one item with that id, so an ambiguous plan is
+    refused rather than half-amended."""
+    root, plan = fixture_root()
+    try:
+        write(plan, "schema: plan/1\nfeature: FEAT-99-fixture\ntasks:\n"
+                    "  - id: T-01\n    title: first\n    status: ready\n"
+                    "  - id: T-01\n    title: second\n    status: ready\n")
+        before = read(plan)
+        sha, _ = _sha_of(plan, "tasks", "T-01", "title")
+        val = os.path.join(root, "v.txt")
+        write(val, "renamed\n")
+        r = run_verb("amend", "--file", plan, "--key", "tasks", "--id", "T-01",
+                     "--field", "title", "--expect-sha256", sha or "x", "--value-file", val)
+        check("a duplicate id is refused, not bound to the first match",
+              r.returncode != 0, f"rc={r.returncode}")
+        check("and the plan is unchanged", read(plan) == before, "plan changed")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+
+# THE CASE LIST IS DATA, NOT CONTROL FLOW (BUG-1128 panel F3).
+#
+# `main` was a flat sequence of one call per line, and every case this feature added made
+# it worse: ABC reached 48.5, grade 1 — worse than any residue in plan-merge.py itself, and
+# a regression this feature caused. There was no logic to simplify, because there is no
+# logic: the case set is a list. Written as a list it grades 5 and adding a case costs one
+# row instead of one more branchless statement in a function nobody can read.
+CASES = (
+    case_proposal_indent_differs_from_base,
+    case_naive_last_writer_wins,
+    case_green_union,
+    case_approval_byte_identity,
+    case_concurrency_real,
+    case_conflict,
+    case_idempotence,
+    case_destination_refusal,
+    case_unparseable,
+    case_comments_survive,
+    case_structural_refusal,
+    case_create_path_approval,
+    case_set_task_station_one_line,
+    case_set_task_station_unknown_id,
+    case_set_feature_station_insert_and_replace,
+    case_set_panel_replaces_mapping_and_validates_shape,
+    case_illegal_station_exit_4,
+    case_sign_approval,
+    case_sign_approval_inserts_absent_mapping,
+    case_f02_sign_approval_cannot_write_an_unparseable_signature,
+    case_f02_verify_signature_is_not_dead_code,
+    case_high1_apply_cannot_mint_the_station_only_marker,
+    case_amend_show_reports_block_and_hash,
+    case_amend_replaces_a_multiline_decision_field,
+    case_amend_refuses_a_stale_hash,
+    case_amend_requires_the_hash,
+    case_amend_refuses_absent_id_and_lists_what_is_there,
+    case_amend_refuses_absent_field,
+    case_amend_refuses_an_unknown_key,
+    case_amend_preserves_comments_elsewhere,
+    case_amend_value_round_trips_through_yaml,
+    case_amend_value_yes_stays_a_string,
+    case_amend_v1_block_scalar_body_is_not_scanned_for_keys,
+    case_amend_v2_identity_replace_of_a_block_field_round_trips,
+    case_amend_v3_identity_check_is_live,
+    case_amend_v4_unparseable_base_refuses_cleanly,
+    case_amend_duplicate_id_is_refused,
+    case_amend_n1_adjacent_comment_and_blank_survive,
+    case_amend_n1b_a_comment_inside_a_block_body_is_CONTENT,
+    case_amend_n3_show_round_trips_into_value_file,
+    case_amend_n5_do_no_harm_branch_is_live,
+    case_sign_approval_is_the_only_signer,
+    case_1103_sign_approval_refuses_a_governed_agent,
+    case_1103_sign_approval_negative_control_absent_is_main_session,
+    case_add_tasks_alias,
+    case_apply_still_refuses_a_changed_value,
+    case_amend_f1_all_four_block_forms_round_trip,
+    case_amend_f1_non_text_field_is_refused,
+    case_amend_f2_under_lock_hash_is_pinned,
+)
+
 
 def main():
-    case_proposal_indent_differs_from_base()
-    case_naive_last_writer_wins()
-    case_green_union()
-    case_approval_byte_identity()
-    case_concurrency_real()
-    case_conflict()
-    case_idempotence()
-    case_destination_refusal()
-    case_unparseable()
-    case_comments_survive()
-    case_structural_refusal()
-    case_create_path_approval()
-
-    case_set_task_station_one_line()
-    case_set_task_station_unknown_id()
-    case_set_feature_station_insert_and_replace()
-    case_illegal_station_exit_4()
-    case_sign_approval()
-    case_sign_approval_inserts_absent_mapping()
-    case_f02_sign_approval_cannot_write_an_unparseable_signature()
-    case_f02_verify_signature_is_not_dead_code()
-    case_high1_apply_cannot_mint_the_station_only_marker()
-    case_sign_approval_is_the_only_signer()
-    case_1103_sign_approval_refuses_a_governed_agent()
-    case_1103_sign_approval_negative_control_absent_is_main_session()
-    case_add_tasks_alias()
-    case_apply_still_refuses_a_changed_value()
+    for case in CASES:
+        case()
 
     fails = 0
     for name, ok, detail in RESULTS:

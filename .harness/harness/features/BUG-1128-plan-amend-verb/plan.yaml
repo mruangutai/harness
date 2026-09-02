@@ -1,0 +1,5 @@
+schema: plan/1
+feature: BUG-1128-plan-amend-verb
+status: review
+station_only: true
+tasks: []
