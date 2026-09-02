@@ -12,7 +12,7 @@ blocks, so "nonzero" would let a crash read as a rejection).
 Both halves must stay green: the out-of-repo carve-out must not become a hole
 that lets a repo path through by dressing it up.
 """
-import json, os, subprocess, sys
+import json, os, shutil, subprocess, sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 HOOK = os.environ.get("CHECK_DOMAIN_BIN") or os.path.join(HERE, "check-domain.sh")
@@ -2430,7 +2430,8 @@ APPROVAL_MANIFEST = FIXTURE_MANIFEST.replace(
     '    - ".harness/*/features/*/PLAN.md ## Approval"\n'
     '    - ".harness/*/features/*/plan.yaml approval:"\n'
     '    - ".harness/logs/**"\n'
-    "shared:\n")
+    "shared:\n"
+    "  - { path: .harness/*/features/*/quarantine/** }\n")
 
 PLAN_ON_DISK = (
     "schema: plan/1\n"
@@ -3412,6 +3413,144 @@ def run_feat50_artifact_integrity():
     return _report_feat50_artifact_results(results)
 
 
+def _feat51_root(reg, agent=None, runtime=None, supervisor_pid=None):
+    root, _ = _approval_root(rel=REL_BRIEF, body=BRIEF_ON_DISK)
+    if agent:
+        reg.claim_with_receipt(
+            root, agent, "harness-product-lead", root,
+            feature="FEAT-99-fixture",
+            session=("feat51-writer" if agent == "harness-orchestrator"
+                     else "other-session"),
+            runtime=runtime,
+            supervisor_pid=supervisor_pid,
+        )
+    return root
+
+
+def _feat51_fire(root, rel, hook=None):
+    content = BRIEF_ON_DISK if rel == REL_BRIEF else "replacement\n"
+    payload = {
+        "agent_type": "harness-orchestrator",
+        "session_id": "feat51-writer",
+        "tool_name": "Write",
+        "tool_input": {"file_path": os.path.join(root, rel), "content": content},
+    }
+    return subprocess.run(
+        [hook or HOOK], input=json.dumps(payload), capture_output=True,
+        text=True, env=_env(root),
+    )
+
+
+def _feat51_result(name, result, want, mention=None):
+    ok = result.returncode == want and (mention is None or mention in result.stderr)
+    return name, ok, f"exit {result.returncode}: {result.stderr}"
+
+
+def _feat51_refusal_cases(reg, quarantine):
+    root = _feat51_root(reg, "harness-qa")
+    brief_path = os.path.join(root, REL_BRIEF)
+    before = open(brief_path, "rb").read()
+    refused = _feat51_fire(root, REL_BRIEF)
+    after = open(brief_path, "rb").read()
+    return [
+        _feat51_result("an orphan canonical write is quarantined",
+                       refused, 2, quarantine),
+        ("the refused orphan write does not modify the canonical artifact",
+         before == after, "canonical BRIEF.md changed"),
+        _feat51_result(
+            "NEGATIVE CONTROL: with the registry healthy an orphan canonical write is still refused",
+            _feat51_fire(root, REL_BRIEF), 2, quarantine),
+    ], root
+
+
+def _feat51_fail_open_cases(reg, root):
+    registry_path = os.path.join(root, reg.REGISTRY_REL)
+    os.remove(registry_path)
+    os.mkdir(registry_path)
+    raising = _feat51_result(
+        "a raising inflight_registry call fails OPEN at the check-domain.sh quarantine branch",
+        _feat51_fire(root, REL_BRIEF), 0, "boundary was not enforced")
+
+    root = _feat51_root(reg, "harness-qa")
+    copybin = tempfile.mkdtemp()
+    shutil.copytree(HERE, copybin, dirs_exist_ok=True)
+    os.remove(os.path.join(copybin, "inflight_registry.py"))
+    unimportable = _feat51_result(
+        "an unimportable inflight_registry fails OPEN at the check-domain.sh quarantine branch",
+        _feat51_fire(root, REL_BRIEF, hook=os.path.join(copybin, "check-domain.sh")),
+        0, "boundary was not enforced")
+    return [raising, unimportable]
+
+
+def _feat51_omp_case(reg):
+    supervisor = subprocess.Popen(
+        [sys.executable, "-c", "import time; time.sleep(60)"]
+    )
+    try:
+        root = _feat51_root(
+            reg, "harness-qa", runtime="omp", supervisor_pid=supervisor.pid
+        )
+        return _feat51_result(
+            "an omp-runtime writer is never quarantined",
+            _feat51_fire(root, REL_BRIEF), 0)
+    finally:
+        supervisor.terminate()
+        supervisor.wait()
+
+
+def _feat51_allow_cases(reg, quarantine):
+    own = _feat51_root(reg, "harness-orchestrator")
+    empty = _feat51_root(reg)
+    orphan = _feat51_root(reg, "harness-qa")
+    notes = ".harness/harness/features/FEAT-99-fixture/notes/report.txt"
+    return [
+        _feat51_result("the writer own live claim allows the canonical write",
+                       _feat51_fire(own, REL_BRIEF), 0),
+        _feat51_result("a feature with no live claim allows the canonical write",
+                       _feat51_fire(empty, REL_BRIEF), 0),
+        _feat51_omp_case(reg),
+        _feat51_result("an orphan write to notes is allowed",
+                       _feat51_fire(orphan, notes), 0),
+        _feat51_result("an orphan write to the quarantine path is allowed",
+                       _feat51_fire(orphan, quarantine), 0),
+    ], orphan
+
+
+def _feat51_route_cases(root):
+    result = _feat51_fire(root, REL_PLAN)
+    return [
+        _feat51_result("an orphan Write of plan.yaml keeps the FEAT-41 route denial",
+                       result, 2, "exactly ONE writer"),
+        ("the plan.yaml route denial does not mention quarantine",
+         "quarantine" not in result.stderr, result.stderr),
+    ]
+
+
+def _report_feat51_results(results):
+    fails = 0
+    for name, ok, detail in results:
+        print(("ok    " if ok else "FAIL  ") + name)
+        if not ok:
+            fails += 1
+            print("      " + detail[:500])
+    return fails
+
+
+def run_feat51_orphan_write():
+    sys.path.insert(0, HERE)
+    import inflight_registry as reg
+
+    quarantine = (
+        ".harness/harness/features/FEAT-99-fixture/quarantine/"
+        "harness-orchestrator-feat51-w/BRIEF.md"
+    )
+    refusal, refused_root = _feat51_refusal_cases(reg, quarantine)
+    allowed, orphan_root = _feat51_allow_cases(reg, quarantine)
+    results = refusal + _feat51_fail_open_cases(reg, refused_root) + allowed
+    results += _feat51_route_cases(orphan_root)
+    return _report_feat51_results(results)
+
+
 def main():
     fails = 0
     for name, path, want, agent, tool in CASES:
@@ -3446,6 +3585,7 @@ def main():
     fails += run_t14()
     fails += run_feat50_artifact_integrity()
     fails += run_t09()
+    fails += run_feat51_orphan_write()
     return fails
 
 

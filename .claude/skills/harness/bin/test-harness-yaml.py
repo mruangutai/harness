@@ -28,6 +28,16 @@ MANIFEST_PATH = os.path.join(REPO_ROOT, ".harness", "team-config.yaml")
 # check-domain.sh:105-126, run against this repo's real .harness/team-config.yaml
 # and inlined here as literals (not derived from harness_yaml — that would prove
 # nothing). manifest_domains() must return exactly these tuples for these agents.
+# The nine `shared` manifest paths every agent's row below repeats verbatim. ONE literal
+# list, still not derived from harness_yaml — same reason the fixture as a whole is inlined
+# (see above): this must catch harness_yaml disagreeing with the manifest, never agree with
+# it by construction.
+SHARED_MANIFEST_PATHS = [
+    ".harness/*/features/*/quarantine/**",
+    "package.json", "package-lock.json", "pnpm-lock.yaml", "yarn.lock",
+    "pyproject.toml", "uv.lock", "requirements.txt", "tsconfig.json",
+]
+
 COLLECT_FIXTURE = {
     "harness-backend-dev": (
         [
@@ -38,10 +48,7 @@ COLLECT_FIXTURE = {
             ".harness/*/expertise/harness-backend-dev.md",
             ".harness/*/features/*/observations/harness-backend-dev.md",
         ],
-        [
-            "package.json", "package-lock.json", "pnpm-lock.yaml", "yarn.lock",
-            "pyproject.toml", "uv.lock", "requirements.txt", "tsconfig.json",
-        ],
+        SHARED_MANIFEST_PATHS,
     ),
     "harness-dev-ops": (
         [
@@ -54,10 +61,7 @@ COLLECT_FIXTURE = {
             ".harness/*/expertise/harness-dev-ops.md",
             ".harness/*/features/*/observations/harness-dev-ops.md",
         ],
-        [
-            "package.json", "package-lock.json", "pnpm-lock.yaml", "yarn.lock",
-            "pyproject.toml", "uv.lock", "requirements.txt", "tsconfig.json",
-        ],
+        SHARED_MANIFEST_PATHS,
     ),
     "harness-pm": (
         [
@@ -72,10 +76,7 @@ COLLECT_FIXTURE = {
             ".harness/*/expertise/harness-pm.md",
             ".harness/*/features/*/observations/harness-pm.md",
         ],
-        [
-            "package.json", "package-lock.json", "pnpm-lock.yaml", "yarn.lock",
-            "pyproject.toml", "uv.lock", "requirements.txt", "tsconfig.json",
-        ],
+        SHARED_MANIFEST_PATHS,
     ),
     "harness-documentor": (
         [
@@ -88,10 +89,7 @@ COLLECT_FIXTURE = {
             ".harness/*/expertise/harness-documentor.md",
             ".harness/*/features/*/observations/harness-documentor.md",
         ],
-        [
-            "package.json", "package-lock.json", "pnpm-lock.yaml", "yarn.lock",
-            "pyproject.toml", "uv.lock", "requirements.txt", "tsconfig.json",
-        ],
+        SHARED_MANIFEST_PATHS,
     ),
     # These two live OUTSIDE teams[].members[] — bare top-level `orchestrator:`
     # and `leads:` — so a manifest_domains() that walks only teams[].members[]
@@ -110,10 +108,7 @@ COLLECT_FIXTURE = {
             # to write into and its 41-minute report had nowhere to land.
             ".harness/notes/analysis-*.md",
         ],
-        [
-            "package.json", "package-lock.json", "pnpm-lock.yaml", "yarn.lock",
-            "pyproject.toml", "uv.lock", "requirements.txt", "tsconfig.json",
-        ],
+        SHARED_MANIFEST_PATHS,
     ),
     "harness-orchestrator": (
         [
@@ -124,10 +119,7 @@ COLLECT_FIXTURE = {
             ".harness/*/expertise/harness-orchestrator.md",
             ".harness/*/features/*/observations/harness-orchestrator.md",
         ],
-        [
-            "package.json", "package-lock.json", "pnpm-lock.yaml", "yarn.lock",
-            "pyproject.toml", "uv.lock", "requirements.txt", "tsconfig.json",
-        ],
+        SHARED_MANIFEST_PATHS,
     ),
 }
 

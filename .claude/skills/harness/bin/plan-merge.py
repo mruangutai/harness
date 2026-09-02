@@ -1033,21 +1033,34 @@ def cmd_sign_approval(args):
     def transform(base_bytes):
         text = base_bytes.decode("utf-8")
         lines = text.splitlines(keepends=True)
+        fields = {"status": "approved", "approved_by": args.by, "date": args.date}
         start = None
         for i, line in enumerate(lines):
             if re.match(r"^approval:\s*$", line):
                 start = i
                 break
         if start is None:
-            raise harness_merge.MergeRefusal(
-                5, [f"plan-merge: {resolved} carries no approval: mapping to sign"]
+            insert_at = next(
+                (i + 1 for i, line in enumerate(lines) if re.match(r"^feature:\s*", line)),
+                None,
             )
+            if insert_at is None:
+                raise harness_merge.MergeRefusal(
+                    5, [f"plan-merge: {resolved} carries no feature key before signing"]
+                )
+            approval = ["approval:\n"]
+            approval.extend(
+                _field_lines("  ", key, fields[key])
+                for key in ("status", "approved_by", "date")
+            )
+            spliced = "".join(lines[:insert_at] + approval + lines[insert_at:]).encode("utf-8")
+            _verify_signature(spliced, resolved, fields)
+            return spliced
         end = len(lines)
         for j in range(start + 1, len(lines)):
             if lines[j].strip() and not lines[j].startswith((" ", "\t")):
                 end = j
                 break
-        fields = {"status": "approved", "approved_by": args.by, "date": args.date}
         written = set()
         out = []
         for line in lines[start + 1:end]:

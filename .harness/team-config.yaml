@@ -75,6 +75,8 @@ universal_rules:
 # (DEC-85), so pretending otherwise would either void the parallel-safety claim
 # or block routine work on files nobody may touch.
 shared:
+  # FEAT-51: quarantined content is inert until explicit adoption.
+  - { path: .harness/*/features/*/quarantine/** }
   - { path: package.json }
   - { path: package-lock.json }
   - { path: pnpm-lock.yaml }

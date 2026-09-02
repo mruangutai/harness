@@ -1430,6 +1430,132 @@ def run_t09():
     print("\n%d/%d T-09 cases passed." % (len(T09) - fails, len(T09)))
     return fails
 
+def _t51_suspended(awaiting):
+    rows = "".join(f"    - {persona}\n" for persona in awaiting)
+    return f"VERDICT: SUSPENDED\nDIGEST:\n  awaiting:\n{rows}"
+
+
+def _t51_fixture(reg, parent="harness-product-lead", children=("harness-pm",)):
+    root = _t09_root()
+    session = "feat51-session"
+    reg.claim_with_receipt(
+        root, parent, "harness-orchestrator", root, session=session
+    )
+    for child in children:
+        reg.claim_with_receipt(root, child, parent, root, session=session)
+    return root, session
+
+
+def _t51_result(name, result, expected):
+    return name, result.returncode == expected, (
+        f"exit {result.returncode}: {result.stderr}"
+    )
+
+
+def _t51_accepted(reg):
+    root, session = _t51_fixture(reg)
+    result = _t09_fire(
+        root, "harness-product-lead", _t51_suspended(["harness-pm"]),
+        session_id=session,
+    )
+    parent, _ = reg.live_claim(root, "harness-product-lead", session=session)
+    return [
+        _t51_result("a SUSPENDED return with a live child is accepted", result, 0),
+        ("a SUSPENDED return leaves the parent claim live",
+         parent is not None, repr(parent)),
+    ]
+
+
+def _t51_terminal(reg):
+    root, session = _t51_fixture(reg)
+    result = _t09_fire(
+        root, "harness-product-lead",
+        "VERDICT: PASS\nDIGEST:\n  headline: done\n", session_id=session,
+    )
+    return [_t51_result("a terminal PASS with a live child is refused", result, 2)]
+
+def _t51_missing_message(reg):
+    results = []
+    for label, include_null in (("absent", False), ("null", True)):
+        root, session = _t51_fixture(reg)
+        payload = {
+            "agent_type": "harness-product-lead",
+            "cwd": root,
+            "session_id": session,
+        }
+        if include_null:
+            payload["last_assistant_message"] = None
+        result = subprocess.run(
+            [VALIDATE, "--hook"], input=json.dumps(payload),
+            capture_output=True, text=True,
+            env=dict(os.environ, CLAUDE_PROJECT_DIR=root,
+                     HARNESS_PROJECT_DIR=root),
+        )
+        parent, _ = reg.live_claim(
+            root, "harness-product-lead", session=session
+        )
+        results.extend([
+            _t51_result(
+                f"a live child with {label} last_assistant_message is refused",
+                result, 2,
+            ),
+            (f"the {label}-message refusal leaves the parent claim live",
+             parent is not None, repr(parent)),
+        ])
+    return results
+
+
+
+def _t51_no_child():
+    root = _t09_root()
+    result = _t09_fire(
+        root, "harness-product-lead", _t51_suspended(["harness-pm"]),
+        session_id="empty-session",
+    )
+    return [_t51_result("a SUSPENDED return with no live child is refused", result, 2)]
+
+
+def _t51_omitted_child(reg):
+    root, session = _t51_fixture(reg, children=("harness-pm", "harness-qa"))
+    result = _t09_fire(
+        root, "harness-product-lead", _t51_suspended(["harness-pm"]),
+        session_id=session,
+    )
+    return [_t51_result("a SUSPENDED return omitting a live child is refused", result, 2)]
+
+
+def _t51_member(reg):
+    root, session = _t51_fixture(
+        reg, parent="harness-pm", children=("harness-documentor",)
+    )
+    result = _t09_fire(
+        root, "harness-pm", _t51_suspended(["harness-documentor"]),
+        session_id=session,
+    )
+    return [_t51_result("a SUSPENDED return from a member persona is refused", result, 2)]
+
+
+def run_t51_suspension_cases():
+    reg = _reg_module()
+    results = []
+    for case in (
+        _t51_accepted(reg),
+        _t51_terminal(reg),
+        _t51_missing_message(reg),
+        _t51_no_child(),
+        _t51_omitted_child(reg),
+        _t51_member(reg),
+    ):
+        results.extend(case)
+    fails = 0
+    for name, ok, detail in results:
+        print(("PASS " if ok else "FAIL ") + name)
+        if not ok:
+            fails += 1
+            print("     ", detail[:500])
+    return fails
+
+
 
 _ISOLATED_ROOT = None
 
@@ -3576,6 +3702,7 @@ def main():
     fails += run_code_grade_cases()
     fails += run_hook_cases()
     fails += run_t09()
+    fails += run_t51_suspension_cases()
     fails += run_template_cases()
     fails += run_reviewer_severity_enum_cases()
     print(f"\n{'ALL PASSED' if not fails else f'{fails} FAILING'}.")

@@ -793,6 +793,40 @@ def case_sign_approval():
     finally:
         shutil.rmtree(root, ignore_errors=True)
 
+def case_sign_approval_inserts_absent_mapping():
+    """A new plan has no approval key until the operator signs it.
+
+    `sign-approval` is already the sole authorized approval writer, so it must be able to
+    create that mapping rather than require an impossible prior write through a forbidden route.
+    """
+    root, plan = fixture_root()
+    try:
+        before = write(plan, render_plan(ids(1, 2), approval=None))
+        r = run_verb("sign-approval", "--file", plan, "--by", "Mike Ruangutai",
+                     "--date", "2026-09-01")
+        after = read(plan)
+        approval = (yaml.safe_load(after) or {}).get("approval")
+        check("sign-approval inserts an absent approval mapping", r.returncode == 0,
+              f"rc={r.returncode} stderr={r.stderr!r}")
+        check("the inserted approval records the exact signature",
+              approval == {
+                  "status": "approved",
+                  "approved_by": "Mike Ruangutai",
+                  "date": "2026-09-01",
+              }, after[:400])
+        check("inserting approval preserves every pre-existing byte",
+              after.replace(
+                  "approval:\n"
+                  "  status: approved\n"
+                  "  approved_by: Mike Ruangutai\n"
+                  "  date: '2026-09-01'\n",
+                  "",
+              ) == before,
+              after[:400])
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
 def case_f02_sign_approval_cannot_write_an_unparseable_signature():
     """FEAT-41 F-02, high, found by the validation panel.
 
@@ -1811,6 +1845,7 @@ CASES = (
     case_set_panel_replaces_mapping_and_validates_shape,
     case_illegal_station_exit_4,
     case_sign_approval,
+    case_sign_approval_inserts_absent_mapping,
     case_f02_sign_approval_cannot_write_an_unparseable_signature,
     case_f02_verify_signature_is_not_dead_code,
     case_high1_apply_cannot_mint_the_station_only_marker,

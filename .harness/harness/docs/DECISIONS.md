@@ -5705,16 +5705,19 @@ exercised, not hypothetical — because a fix that can brick every later dispatc
 is what "on one checkout" means: a shared registry would refuse a second feature's product manager while the first's is
 live.
 
-**Only the dispatch cause of issue #551 is closed.** Its two reporting consequences — a lead emitting a terminal verdict
-about members it cannot see, an orchestrator inferring run verdicts from disk — are NOT closed, and no wait can close
-them: the `SubagentStop` hook passes through on `stop_hook_active` to avoid an infinite stop loop, so a stop refusal
-fires at most once per consecutive stop sequence and re-fires on each later wake while a child is still live. What ships
-is aimed at the false REPORT — a lead or orchestrator returning while a child it dispatched is still claimed is REFUSED
-on that hook once per consecutive stop sequence, the one-correction-round strength every other digest contract in that
-file has, and again on each later wake; the loss itself is prevented at the `PreToolUse` hook, whose refusals have no
-once-only bound. The residual, plainly: a second identical return ships when it is immediate, the refusal re-fires only
-on a later wake while a child is still live, and an orphaned child of an interrupted parent has no parent left to refuse
-it.
+**Issue #551's dispatch cause is closed, and so is the first of its two reporting consequences.** A lead emitting a
+terminal verdict about members it cannot see is closed by DEC-210: a lead or orchestrator whose children are live has a
+legal NONTERMINAL turn-end, `VERDICT: SUSPENDED` carrying an `awaiting` list naming every live child, accepted at exit 0
+inside `validate-digest.py`'s `hook_mode` (`.agents/skills/harness/bin/validate-digest.py:1662`), so no parent is forced
+to grade work it has not seen. The second consequence — an orchestrator inferring run verdicts from disk — is NOT
+closed, and nothing in this file closes it. No wait closes either: the `SubagentStop` hook passes through on
+`stop_hook_active` to avoid an infinite stop loop, so a stop refusal fires at most once per consecutive stop sequence and
+re-fires on each later wake while a child is still live. What ships is aimed at the false REPORT — a lead or
+orchestrator returning a TERMINAL verdict while a child it dispatched is still claimed is REFUSED on that hook once per
+consecutive stop sequence, the one-correction-round strength every other digest contract in that file has, and again on
+each later wake; the loss itself is prevented at the `PreToolUse` hook, whose refusals have no once-only bound. The
+residual, plainly: a second identical return ships when it is immediate, the refusal re-fires only on a later wake while
+a child is still live, and an orphaned child of an interrupted parent has no parent left to refuse it.
 
 **The bound is per consecutive stop sequence, not per run.** The hook keeps no state marking a return already refused —
 `validate-digest.py` returns early on `stop_hook_active` and reads live children fresh, and `live_children` is a read
@@ -5722,7 +5725,9 @@ that only expires stale claims — so a wake that finds a child still live is re
 on the code path the lead tier uses carries two stop refusals naming DIFFERENT child sets, which is a distinct refusal
 event and not replayed context (`agent-a89be3fd837d1b779`). Ending a lead's turn after every dispatch raises the rate of
 stop attempts made with children live, so each attempt risks its own refusal rather than there being one per return.
-`inflight_registry.py`'s refusal message states the same bound.
+`inflight_registry.py`'s refusal message carries no once-only bound; it ends by naming the legal turn-end for a lead or
+orchestrator whose child is live — `VERDICT: SUSPENDED` with an awaiting list naming every live child
+(`.agents/skills/harness/bin/inflight_registry.py:579-582`).
 
 **#551's count is a FLOOR, never a total.** At least eight are measured as of this commit, and the mechanism fired again
 during the build of its own fix: 5 through 8 came from this feature's own runs. The count has already moved four → seven
@@ -6486,3 +6491,71 @@ would still have to parse a presentation-oriented record to recover the result.
 
 **Plan reviews are untouched.** DEC-207's `reviewed: plan:<path>` target has no code diff and no
 pinned `review_sha`, and never invokes the grader.
+
+## DEC-210 — On the Claude Code compatibility host a parent with live children suspends rather than completes, and an orphaned writer is quarantined at two governed write routes rather than killed
+
+**Chose:** A lead or orchestrator return with live children has THREE answers on the compatibility
+host, not two: an accepted nonterminal suspension — `VERDICT: SUSPENDED` carrying an `awaiting` list
+that names every live child — which exits 0; a refused terminal verdict, exit 2, while any child is
+still live; and the unchanged validation path when no child is live
+(`.claude/skills/harness/bin/validate-digest.py`, `hook_mode`). `SUSPENDED` is recognised ONLY inside
+`hook_mode` and is NOT a member of `VERDICTS`, so no member persona and no written digest can carry
+it. Origin: `FEAT-51-claude-code-lifecycle-safety`.
+
+**A suspension is not a completion: the suspending parent's claim is NOT released.** The accepted
+suspension returns ahead of the release step, so the parent still owns its claim while its children
+run. Every terminal or invalid return releases first, exactly as before.
+
+**Quarantine is a WRITE boundary, not a kill.** A governed writer holding no live claim for the
+feature it is writing, while some other live claim for that feature exists, is refused and told the
+exact quarantine path to write instead. An orphan may still finish its work: reads, greps, and writes
+to `notes/`, `observations/` and `runs/` are untouched, because the refusal keys on the four
+canonical artifact paths alone.
+
+**The four canonical artifacts are `plan.yaml`, `BRIEF.md`, `feature.json` and `STATE.md`, and the
+boundary is enforced at TWO registered gates.** `check-domain.sh`, on PreToolUse for Write and Edit,
+bites on `BRIEF.md`, `feature.json` and `STATE.md`. `plan-sign-gate.sh`, on PreToolUse for Bash,
+bites on the four mutating `plan-merge.py` verbs — `apply`, `add-tasks`, `set-task-station` and
+`set-feature-station` — and on `quarantine.py adopt`. Two gates because the two write routes are
+disjoint and neither can see the other's traffic. All three scripts sit in the enforcement layer
+DEC-174 keeps out of self-hosted execution, so each is verified by its own explicit test script
+rather than by the gates under change.
+
+**`plan.yaml` is covered by the `plan-sign-gate.sh` half, and NOT by FEAT-41's editor-route
+denial.** Its only write route is `plan-merge.py` invoked through Bash. That denial — exit 2 on an
+editor write of any `plan.yaml`, for every author, under DEC-182's reversal — is a second and
+independent refusal on a route nobody may use; the `check-domain.sh` quarantine branch sits AFTER it
+and defers to it, so the more fundamental refusal keeps its message.
+
+**What the boundary does NOT cover, stated as plainly as what it does.** `quarantine.py discard` is
+deliberately uncovered, so nothing here proves that an orphan cannot destroy a quarantined result: a
+rule on that verb, while a plain `rm -rf` of the same directory stays legal under the shared sandbox
+glob, would record a protection the tree does not have. And the boundary bounds those two GOVERNED
+routes alone — a generic Bash write (`cp`, `cat`, `tee`, `mv`, `sed -i`, `python3 -c`) to a canonical
+artifact INSIDE the writer's own domain reaches neither gate and is not refused, because
+`bash-write-guard.sh` passes an in-domain write and `check-domain.sh` is registered for Write and
+Edit only. That was measured: exit 0 on all three gates. Generic write-route enforcement needs a
+generic write-route gate, which is a different feature and goes to the backlog rather than being
+built here.
+
+**Adoption and discard are the only two explicit acts.** A quarantined result becomes canonical only
+when a resumed parent runs `quarantine.py adopt`; `discard` is the other explicit act. Neither is a
+default and neither is a timeout — quarantined content is inert until a parent acts on it. Adoption
+of `plan.yaml` goes through the locked union merge DEC-199 put behind `plan-merge.py`.
+
+**The quarantine sandbox is ONE shared glob**, `.harness/*/features/*/quarantine/**` in
+`team-config.yaml`'s `shared:` list, rather than twelve per-persona domain grants. One glob is what
+makes every persona's own quarantine directory writable without a grant of its own, and it is also
+why the `discard` gap above cannot be closed by a CLI rule.
+
+**OMP behaviour is unchanged.** The boundary fires only where a live claim for the feature has a
+runtime that is not `omp`; blocking nested edges, process-owned liveness and every OMP-path
+assertion in DEC-204 continue to hold. This entry supersedes nothing in DEC-204 and narrows nothing
+in DEC-201.
+
+**The honest bound.** Claude Code exposes no durable child-process owner, so beyond
+`CLAIM_TTL_SECONDS` — 1200 seconds, one normal PM cycle — a suspended parent cannot be distinguished
+from an interrupted one, and the boundary fails safe by treating the parent as gone. A member running
+longer than that TTL therefore meets the quarantine path on a NORMAL run. That is a cost of the
+compatibility host and does not exist on OMP, where a claim is owned by a supervisor process and a
+verified one is live at any age.

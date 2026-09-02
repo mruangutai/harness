@@ -1,0 +1,1205 @@
+schema: plan/1
+feature: FEAT-51-claude-code-lifecycle-safety
+approval:
+  status: approved
+  approved_by: Mike Ruangutai
+  date: '2026-09-01'
+status: review
+
+source_issues: [280, 551]
+
+# NO approval MAPPING, AND THAT IS A HARNESS DEFECT, NOT AN OMISSION AND NOT A CHOICE THIS
+# PLAN MADE. Re-measured on 2026-09-01 against main at
+# 0bc57c887b06a5f651363153b5895437c6748e6d, and all three legs still hold. plan-merge.py
+# apply exits 8 on a proposal carrying an approval mapping onto an absent base, refusing
+# with "proposal carries an approval mapping and the base does not exist". plan-merge.py
+# sign-approval exits 5 on a plan carrying no approval mapping, refusing with "carries no
+# approval: mapping to sign". check-domain.sh exits 2 on a Write and on an Edit of any
+# plan.yaml for every author, agent_type main included, with the FEAT-41 route-denial text.
+# So no route creates the mapping and no route signs a plan without it, and absence is the
+# unsigned state for this plan. Nothing here may be read as an approval. Recorded as
+# blocking open question Q1 in notes/research-reanchor-c1.md; it is a harness defect being
+# routed separately, not a scope item for this feature. The user's signature for FEAT-51 is
+# held in BRIEF.md's own Approval section, which is unsigned.
+
+panel:
+  last_run: plan-panel-c9-validator
+  cycle: 9
+  readers:
+    - reader: should-not-exist
+      status: ran
+      persona: fable-advisor
+    - reader: scope
+      status: ran
+      persona: harness-code-reviewer
+    - reader: goalcheck
+      status: ran
+      persona: harness-pm
+  findings:
+    - id: PF-2b48984b50ff69c5dfdf8afa20c3956b
+      severity: high
+      reader: should-not-exist
+      summary: "D-16/D-17/T-09 discard coverage guards a route orphans will not use while D-06's shared glob legalizes the route they would (rm -rf), so the protection DEC-209 records is illusory"
+      disposition: resolved
+    - id: PF-5d8bf4a531ff09d8a871da695f0702e1
+      severity: high
+      reader: validator-lead
+      summary: "The DEC-209 authority entry is exposed to three independent failures at once — incomplete (SR-1), premature (F-3), and false (F-1) — guarded by one test that cannot distinguish them"
+      disposition: resolved
+    - id: PF-ba976e85d89cca1d56310530d12a05ef
+      severity: high
+      reader: scope
+      summary: "The catch-all any-exception fail-open around every inflight_registry call in check-domain.sh and plan-sign-gate.py has zero test coverage across the whole plan"
+      disposition: resolved
+      resolved_by: T-10
+    - id: PF-e050d4756f4ab0a6a5e7fe71461a8262
+      severity: med
+      reader: scope
+      summary: "D-15 has no analogue of D-17's self-contained correction, so T-06 can ship the superseded instruction with its own verify green"
+      disposition: resolved
+      resolved_by: T-06
+    - id: PF-e380f685c0697fb709ff29f65af0cf24
+      severity: med
+      reader: should-not-exist
+      summary: "Nine tasks across twenty surfaces are built before the single load-bearing host assumption — the host resumes the SAME parent after an exit-0 suspension — is ever observed"
+      disposition: open
+    - id: PF-7f73167ab7fd5d5961d92df08c08e89f
+      severity: med
+      reader: scope
+      summary: "T-07 has no --file negative control proving D-13's fail-open under a live orphan claim, while T-09 gives --dir exactly that case"
+      disposition: resolved
+      resolved_by: T-07
+    - id: PF-6ac0675ca516deebb12428be36b02096
+      severity: low
+      reader: should-not-exist
+      summary: "T-06 (depends_on T-01..T-05) and T-08 (depends_on T-06) carry no edge to T-07 or T-09, so the authority entry can land before the enforcement it asserts"
+      disposition: resolved
+      resolved_by: T-06
+    - id: PF-c7ab6506f6ffde4765e238519f337887
+      severity: high
+      reader: should-not-exist
+      summary: "The write boundary does not bound the generic Bash write, so an orphaned harness-pm lands cp evil.yaml plan.yaml or cat over BRIEF.md and every gate this plan builds passes it"
+      disposition: resolved
+      resolved_by: T-06
+    - id: PF-f7dfa606a0148e567da56f66aa0f2477
+      severity: med
+      reader: should-not-exist
+      summary: "children_refusal_lines still coaches the superseded conduct, that an immediate second identical return ships, and never names VERDICT SUSPENDED"
+      disposition: resolved
+      resolved_by: T-02
+    - id: PF-f0c2d3e93284ceb44f75daa1aa83aced
+      severity: med
+      reader: scope
+      summary: "T-06's intent bullet list calls itself exhaustive yet carries zero occurrences of plan-sign-gate, Bash, PreToolUse or D-15, and the two bullets D-15 supersedes are still there near-verbatim"
+      disposition: resolved
+      resolved_by: T-06
+    - id: PF-2545afb576b19ad86704f5bfcb556b9e
+      severity: low
+      reader: should-not-exist
+      summary: "SC-02's awaiting set-equality refuses only compliant parents while the registry already holds ground truth and stop_hook_active stays open"
+      disposition: open
+    - id: PF-3b34920908a79dda63342a9eef302348
+      severity: low
+      reader: should-not-exist
+      summary: "T-08 hard-couples three permanent suite tests to one decision entry's prose"
+      disposition: open
+    - id: PF-70a9981cb0d570ece43d57d486126764
+      severity: low
+      reader: scope
+      summary: "T-01's two line hints known stale is a sample and not a bound: essentially every numeric anchor inside hook_mode is off about 112 lines and 1527 now lands inside check_artifact_file"
+      disposition: resolved
+      resolved_by: T-01
+
+lanes:
+  # RE-RESOLVED, EVERY SURFACE, at the sha below with the MAIN checkout's own
+  # check-domain.sh --resolve. The worktree base 6ddcac3 is an ancestor of this sha and
+  # FEAT-41 landed between them; the governing hooks resolve through the main checkout,
+  # so a lane resolved against the worktree's manifest is not the lane that enforces.
+  resolved_at: ad93d43e1f232ec1ab87e08ccf70a01a08c206b7
+  rows:
+    - surface: .claude/skills/harness/bin/validate-digest.py
+      lane: main-session-direct
+      reason: granted to harness-backend-dev and harness-dev-ops, held back by DEC-174 as a named enforcement-layer validator
+    - surface: .claude/skills/harness/bin/test-validate-digest.py
+      lane: main-session-direct
+      reason: granted to harness-backend-dev and harness-dev-ops, held back by DEC-174 as the test file of a named validator
+    - surface: .claude/skills/harness/bin/inflight_registry.py
+      lane: main-session-direct
+      reason: both write hooks import it, so its answer is the gate answer under DEC-174
+    - surface: .claude/skills/harness/bin/test-inflight-registry.py
+      lane: main-session-direct
+      reason: the test file of the module both hooks import, same DEC-174 category
+    - surface: .claude/skills/harness/bin/check-domain.sh
+      lane: main-session-direct
+      reason: named in DEC-174 enforcement layer; resolve answers harness-backend-dev and harness-dev-ops and the carve-out holds it back
+    - surface: .claude/skills/harness/bin/test-check-domain.py
+      lane: main-session-direct
+      reason: named in DEC-174 enforcement layer as the test file of check-domain.sh
+    - surface: .claude/skills/harness/bin/quarantine.py
+      lane: team
+      agent: harness-dev-ops
+    - surface: .claude/skills/harness/bin/test-quarantine.py
+      lane: team
+      agent: harness-dev-ops
+    - surface: .claude/skills/harness/bin/run-unit-tests.sh
+      lane: team
+      agent: harness-dev-ops
+    - surface: .claude/skills/harness/bin/test-orchestrator-playbook.py
+      lane: main-session-direct
+      reason: carried with the playbook it guards, whose own file resolves to NOBODY
+    - surface: .claude/skills/harness/bin/test-lead-stop-and-wake.py
+      lane: main-session-direct
+      reason: carried with the playbook it guards, whose own file resolves to NOBODY
+    - surface: .harness/harness.json
+      lane: team
+      agent: harness-dev-ops
+    - surface: .harness/harness/docs/DECISIONS.md
+      lane: team
+      agent: harness-documentor
+    - surface: .harness/harness/docs/DECISIONS-INDEX.md
+      lane: team
+      agent: harness-documentor
+    - surface: .claude/skills/harness/SKILL.md
+      lane: main-session-direct
+      reason: check-domain.sh --resolve answered NOBODY at the resolved sha
+    - surface: .claude/skills/harness-team/SKILL.md
+      lane: main-session-direct
+      reason: check-domain.sh --resolve answered NOBODY at the resolved sha
+    - surface: .harness/team-config.yaml
+      lane: main-session-direct
+      reason: check-domain.sh --resolve answered NOBODY at the resolved sha
+    - surface: .claude/skills/harness/bin/plan-sign-gate.py
+      lane: main-session-direct
+      reason: granted to harness-backend-dev and harness-dev-ops, held back by DEC-174 as a named enforcement-layer gate script
+    - surface: .claude/skills/harness/bin/plan-sign-gate.sh
+      lane: main-session-direct
+      reason: granted to harness-backend-dev and harness-dev-ops, held back by DEC-174 as a named enforcement-layer gate script
+    - surface: .claude/skills/harness/bin/test-plan-sign-gate.py
+      lane: main-session-direct
+      reason: granted to harness-backend-dev and harness-dev-ops, held back by DEC-174 as the test file of a named enforcement-layer gate script
+    - surface: .claude/skills/harness/bin/test-gen-decisions-index.py
+      lane: team
+      agent: harness-dev-ops
+
+decisions:
+  - id: D-01
+    choice: The digest hook gains a third answer for a lead or orchestrator return, a nonterminal suspension spelled VERDICT SUSPENDED with an awaiting list naming every live child, while a terminal verdict with live children stays refused at exit 2
+    because: the false-reporting harm is the terminal verdict, not the turn-end, so only the turn-end is legalised
+    dec: DEC-210
+  - id: D-02
+    choice: A suspension does not release the suspending parent claim; only a terminal return does
+    because: the orphan predicate reads claim liveness, so releasing on suspension would make every suspended parent child look orphaned
+    dec: DEC-210
+  - id: D-03
+    choice: Orphanhood is self-referential - a writer is an orphan when the registry holds at least one live claim for the target feature and none for that writer persona in that writer session
+    because: a parent claim is not a reliable signal since a main-session dispatch records no claim for the orchestrator, and this predicate needs only schema-2 data already recorded
+    dec: DEC-210
+  - id: D-04
+    choice: The quarantine boundary applies only to claims whose runtime is not omp
+    because: OMP liveness is process-owned, so the OMP path must be unable to reach this branch at all
+    dec: DEC-204
+  - id: D-05
+    choice: Canonical feature artifacts are exactly plan.yaml, BRIEF.md, feature.json and STATE.md directly under a feature directory; notes, observations and runs stay writable
+    because: those three are per-agent or merge-safe, and quarantining them would destroy the completed analysis the operator wants recoverable
+    dec: DEC-210
+  - id: D-06
+    choice: The quarantine sandbox is granted by one glob added to team-config.yaml shared, .harness/*/features/*/quarantine/**, not by twelve per-persona domain grants
+    because: shared already means owned by nobody and writable by any specialist, and quarantined content is inert until adoption
+    dec: DEC-85
+  - id: D-07
+    choice: Adoption of a quarantined plan.yaml goes through plan-merge.py locked union, never a whole-file replace
+    because: adopting a one-task orphan file must not be able to delete a fourteen-task canonical plan, which is the measured loss in issue 551
+    dec: DEC-199
+  - id: D-08
+    choice: Every code task except the adoption CLI is main-session-direct; quarantine.py is imported by no gate and is routed to harness-dev-ops, which also holds the test registration surfaces
+    because: DEC-174 forbids executing a change to the enforcement layer through the harness, and splitting registration off would strand a new test file the drift detector already refuses
+    dec: DEC-174
+  - id: D-09
+    choice: New assertions for enforcement-layer scripts land in their existing INTEGRATION_SCRIPTS test files, so every criterion citing them declares evidence integration
+    because: the kind is a property of the script array, so an assertion in an integration-array file cannot be cited as unit evidence; the matrix unit requirement is met by the unchanged unit array running green
+    dec: none
+  - id: D-10
+    choice: The playbook task is change_type docs, not ai_behavior
+    because: DEC-70 scopes the eval kind to prompt, model and tool-integration changes and grades a preloaded markdown playbook by conduct, which SC-10 carries
+    dec: DEC-70
+  - id: D-11
+    choice: The quarantine branch sits AFTER the FEAT-41 plan.yaml route denial in check-domain.sh and defers to it, so at the Write gate the boundary governs BRIEF.md, feature.json and STATE.md while an editor write of plan.yaml keeps the route-denial message it already has
+    because: FEAT-41 made an editor write of plan.yaml a route that does not exist for every author, so a quarantine denial placed ahead of it would replace a correct refusal with advice about a route nobody may use, and would be non-discriminating there
+    dec: DEC-210
+
+  - id: D-12
+    choice: The Bash half of the quarantine boundary is a SECOND RULE inside the already registered plan-sign-gate.sh and plan-sign-gate.py, not a new PreToolUse Bash hook and not a check inside plan-merge.py itself
+    because: it is the only candidate needing no .claude/settings.json entry and no new test-file registration, it inherits a tokenizer already hardened through five measured evasion classes, and a check inside plan-merge.py would sit inside the very tool that quarantine.py adopt delegates to under D-07, so adoption would have to be exempted from its own gate and the exemption would be the hole
+    dec: DEC-174
+  - id: D-13
+    choice: The Bash rule bites on the four mutating plan-merge.py verbs AND on quarantine.py adopt, and it falls OPEN when the value of --file cannot be resolved to a canonical-artifact path
+    because: adopt is the only other command that turns a quarantined file canonical, so REQ-05 is unreachable on this route without it, and failing open on an unresolvable value matches orphan_write's own fail-open on a missing registry and preserves the asserted control that an apply written with a shell variable as its --file value stays allowed
+    dec: none
+  - id: D-14
+    choice: The quarantine rule reads the root plan-sign-gate.sh already resolves from its own directory through harness_boundary.resolve_root, the same root check-domain.sh resolves at its _root, and never a root derived from the command line
+    because: the two routes must read ONE claims registry or an orphan quarantined at the Write gate could be allowed at the Bash gate for no reason a reader could see, and a root taken from the caller's own argument is a root the caller can choose
+    dec: DEC-204
+
+  - id: D-15
+    choice: The DEC-210 entry T-06 writes carries BOTH halves of the quarantine boundary, and this decision SUPERSEDES two bullets of T-06's immutable intent, the bullet saying the boundary is refused at the check-domain.sh Write gate on the canonical artifacts and the bullet beginning The four canonical artifacts are plan.yaml BRIEF.md feature.json and STATE.md; the entry must instead state (a) the check-domain.sh Write and Edit half, which bites on BRIEF.md, feature.json and STATE.md, (b) the plan-sign-gate.sh PreToolUse Bash half, which bites on the four mutating plan-merge.py verbs apply, add-tasks, set-task-station and set-feature-station and on quarantine.py adopt, and (c) explicitly that plan.yaml's only write route is plan-merge.py invoked through Bash, so plan.yaml is covered by the plan-sign-gate.sh half and NOT by FEAT-41's editor route denial, which is a second and independent refusal on a route nobody may use
+    because: a documentor following T-06's bullet list verbatim writes an entry that omits the Bash half entirely and leaves a reader believing plan.yaml is covered because the FEAT-41 denial handles it, which is the exact false belief T-07 exists to overturn, and DEC-210 is the entry future readers rely on to know what the boundary covers, so an incomplete entry understates the contract that shipped
+    dec: DEC-210
+  - id: D-18
+    choice: quarantine.py discard is deliberately NOT covered by the Bash quarantine rule, the DEC-210 entry must NOT claim that an orphan cannot destroy a quarantined result, and enforcement against a plain removal of a quarantine directory is out of scope for this feature and is filed as backlog
+    because: a rule guarding discard while bash-write-guard.sh permits rm -rf of the same directory under D-06's shared glob would record a protection that does not exist, and generic deletion enforcement for quarantine directories is a different feature
+    dec: DEC-210
+  - id: D-19
+    choice: The quarantine boundary bounds exactly the two GOVERNED write routes the harness can reach, the Write and Edit editor route through check-domain.sh and the plan-merge.py mutating verbs plus quarantine.py adopt through plan-sign-gate.sh, and it does NOT bound a generic Bash write such as cp, cat, tee, mv, sed -i or python3 -c to a canonical artifact that lies inside the writer's own domain; no artifact this feature ships may assert the boundary without that qualification
+    because: bash-write-guard.sh passes an in-domain write and exempts harness-dev-ops outright, check-domain.sh is registered on PreToolUse for Write and Edit only, and closing the generic write route needs a generic write-route gate, which is a different feature and is filed as backlog
+    dec: DEC-210
+
+tasks:
+  - id: T-01
+    title: Give validate-digest.py a nonterminal suspension answer for a parent with live children
+    traces: [REQ-02, REQ-06]
+    change_type: api
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 names validate-digest.py and its test file as enforcement layer
+    depends_on: []
+    status: done
+    files:
+      - .claude/skills/harness/bin/validate-digest.py
+      - .claude/skills/harness/bin/test-validate-digest.py
+    verify: |
+      grep -q 'a SUSPENDED return with a live child is accepted' .agents/skills/harness/bin/test-validate-digest.py &&
+      grep -q 'a SUSPENDED return leaves the parent claim live' .agents/skills/harness/bin/test-validate-digest.py &&
+      python3 .agents/skills/harness/bin/test-validate-digest.py
+    intent: |
+      Every line number below was RE-MEASURED at
+      0bc57c887b06a5f651363153b5895437c6748e6d, because validate-digest.py grew by about
+      112 net lines after the earlier measurement and essentially every anchor inside
+      hook_mode() moved by that shift. Re-read before you edit; treat the quoted literals
+      as the anchors and the numbers as hints.
+
+      Write the six new cases in test-validate-digest.py FIRST, run them against the
+      unchanged validate-digest.py, and record that each fails, before editing
+      validate-digest.py.
+
+      DO NOT use the case() helper at :239 - it is the CLI schema harness, it drives
+      validate-digest.py with a persona argument and no payload, and it cannot carry a
+      registry. Use the T-09 group's fixture builders, which are exactly this shape
+      already: _t09_root() at :1241 makes a throwaway checkout carrying
+      .harness/team-config.yaml, _reg_module() at :1231 loads inflight_registry from the
+      binary under test so claims are written with claim_with_receipt, _t09_fire(root,
+      agent, text, hook=None, extra...) at :1249 fires validate-digest.py --hook with a
+      JSON payload on stdin and both root env names set, and t09(name, ok, detail) at
+      :1227 records. Add a new group function beside run_t09 with its own results list and
+      register it in main() at :3571 next to the other fails += run_...() lines, beside
+      fails += run_t09() at :3578. Use these
+      exact label strings so the verify grep resolves: a SUSPENDED return with a live child
+      is accepted, a terminal PASS with a live child is refused, a SUSPENDED return with no
+      live child is refused, a SUSPENDED return omitting a live child is refused, a
+      SUSPENDED return from a member persona is refused, a SUSPENDED return leaves the
+      parent claim live. Assert EXACT exit codes, 0 or 2, as that group does. Read the
+      claim back off disk for the last case with the claims() reader defined inside
+      run_t09 at :1286, not from the exit code. VALIDATE_DIGEST_BIN at :18 already exists
+      for pointing the suite at a control copy: place the pre-change copy of
+      validate-digest.py INSIDE .claude/skills/harness/bin, because a copy in /tmp cannot
+      import its siblings, and delete it once the six exit codes are recorded.
+
+      Then change hook_mode() in validate-digest.py, which begins at :1565. Today the
+      block under the comment STEP TWO - THE D-09 RETURN CONTRACT at :1661 - note the
+      comment uses an em dash, so grep for D-09 RETURN CONTRACT - answers any lead or
+      orchestrator return with a non-empty _reg.live_children() result at :1675 by printing
+      _reg.children_refusal_lines at :1687, then one release_cmd line per child from the
+      _reg.release_cmd call at :1698, then returning 2 at :1706. Replace that single answer
+      with three, evaluated on the last_assistant_message text after the same last-VERDICT
+      tail slice validate() uses. Note the text is read at :1714, AFTER this block, so the
+      suspension branch must read d.get("last_assistant_message") itself rather than move
+      that read.
+
+      1. The text carries VERDICT SUSPENDED. Legal only when norm(agent) is lead or
+         orchestrator AND live_children is non-empty AND the DIGEST block carries an
+         awaiting value that is a YAML list naming every persona in live_children. Set
+         equality on the persona strings, not a subset; live_children returns a list of
+         (persona, claim) pairs, so the personas are the first element of each pair. On
+         all three holding, return 0 and print one stderr line naming the personas the
+         parent is suspended on. On any of them failing, return 2 with a message that
+         states which condition failed and the actual live child personas; do not print
+         children_refusal_lines for this branch, because the parent is not being told to
+         wait.
+      2. The text carries a terminal VERDICT (PASS, FAIL, BLOCKED, ESCALATE) and
+         live_children is non-empty. Unchanged: children_refusal_lines plus the per-child
+         release_cmd lines, return 2.
+      3. No live children. Unchanged: fall through to the existing schema validation, where
+         SUSPENDED must be REJECTED as an unknown verdict by the existing VERDICTS check at
+         :35.
+
+      SUSPENDED is NOT added to VERDICTS and no persona schema gains a suspension shape.
+      The suspension is recognised only inside hook_mode, so a member cannot return it and
+      no artifact digest can carry it.
+
+      One further change, in the SAME function and load-bearing: STEP ONE at :1639
+      currently calls _reg.release(...) at :1646 on EVERY return. It must not release on
+      the accepted-suspension branch. Since step one runs before the text is classified,
+      either classify first and skip the release, or move the release below the
+      classification - whichever you choose, leave every other path byte-identical in
+      behaviour, including the failure swallowing at :1656: the release step still may
+      never change the verdict, and the two steps must stay in the order the comment at
+      :1610 requires for every non-suspension return. Keep every existing pass-through (no
+      agent_type at :1598, a non-harness agent_type at :1604, stop_hook_active at :1606, an
+      unreadable payload, an unavailable registry at :1622, no root at :1635) exactly as it
+      is.
+
+  - id: T-02
+    title: Add the orphan-write predicate and the quarantine path rule to inflight_registry.py
+    traces: [REQ-04, REQ-07]
+    change_type: logic
+    execution_mode: main-session-direct
+    execution_reason: both write hooks import inflight_registry.py, so DEC-174 holds it back with the gates that read it
+    depends_on: []
+    status: done
+    files:
+      - .claude/skills/harness/bin/inflight_registry.py
+      - .claude/skills/harness/bin/test-inflight-registry.py
+    verify: |
+      grep -q 'def case_29_orphan_write' .agents/skills/harness/bin/test-inflight-registry.py &&
+      grep -q 'def case_33_orphan_write_omp_runtime_is_never_orphaned' .agents/skills/harness/bin/test-inflight-registry.py &&
+      grep -q 'the children refusal names SUSPENDED and never says a repeated return ships' .agents/skills/harness/bin/test-inflight-registry.py &&
+      python3 .agents/skills/harness/bin/test-inflight-registry.py
+    intent: |
+      Re-measured at ad93d43e1f232ec1ab87e08ccf70a01a08c206b7: the highest case number in
+      test-inflight-registry.py is case_28_featureless_claim_still_gets_a_remedy, so 29 to
+      33 are free, and main() at the foot of that file calls every case by name - register
+      the five new ones there or they never run.
+
+      Write cases 29 to 33 first, in the file's existing def case_NN_name style with a
+      check(name, ok, detail) assertion per claim, and run them against the unchanged
+      module to record that each fails. The five cases are: 29 a live claim for the feature
+      held by another persona in another session makes this writer an orphan; 30 the writer
+      own live claim in its own session makes it not an orphan; 31 a feature with no live
+      claim at all makes it not an orphan, which is the fail-open case for a dispatch whose
+      claim was never recorded; 32 a claim whose session key is absent is visible to any
+      session and makes it not an orphan; 33 a claim whose runtime is omp with a live
+      supervisor pid is never orphaned, whatever the session. Name case 29 exactly
+      case_29_orphan_write and case 33 exactly
+      case_33_orphan_write_omp_runtime_is_never_orphaned. Build fixtures the way cases 16
+      and 21 already do, with claim_with_receipt and a real child process for the
+      supervisor pid.
+
+      Then add three public names to inflight_registry.py, beside live_children at :289 and
+      using _update_registry at :82, _expire_where at :222, _matches at :235 and _visible
+      at :247 rather than new primitives:
+
+      CANONICAL_ARTIFACTS = ("plan.yaml", "BRIEF.md", "feature.json", "STATE.md")
+
+      canonical_artifact(rel) -> (feature, basename) or None. Matches a checkout-relative
+      POSIX path against ^\.harness/[^/]+/features/([^/]+)/(plan\.yaml|BRIEF\.md|feature\.json|STATE\.md)$
+      and nothing else. A path under notes/, observations/, runs/ or quarantine/ returns
+      None, and so does a deeper or shallower path.
+
+      quarantine_rel(rel, agent, session) -> the checkout-relative path a quarantined write
+      goes to: the feature directory of rel, then quarantine/, then agent plus the
+      character - plus the first eight characters of session (the literal nosession when
+      session is None or empty), then the basename of rel. Pure string work, no filesystem
+      access, so both the hook and the CLI can call it.
+
+      orphan_write(root, agent, feature, session, now=None) -> bool. True when, reading the
+      registry once under the existing lock: at least one live claim exists for feature
+      whose runtime is not omp, AND no live claim for feature matches agent and is _visible
+      to session. False in every other case, including a missing or unparseable registry
+      file, a feature with no live claims, and any case where the only claims for the
+      feature carry runtime omp. Expiry stays query-scoped: pass feature into the predicate
+      used by _expire_where so looking up one feature never sweeps another feature claim,
+      exactly as live_children does. Do not change CLAIM_TTL_SECONDS at :24,
+      OMP_UNVERIFIED_TTL_SECONDS at :31, SINGLE_FLIGHT_AGENTS at :21, release, release_all,
+      reconcile, or any existing signature.
+
+      ONE FURTHER CHANGE, in the same two files, and it is the reason issue 551 occurrence
+      7 landed a false terminal verdict. children_refusal_lines, re-measured at
+      0bc57c887b06a5f651363153b5895437c6748e6d at :521 to :537 of inflight_registry.py,
+      ends by appending a line that reads, verbatim today, "this refusal fires at most once
+      per consecutive stop sequence; an immediate second identical return ships, and it
+      re-fires on a later wake while a child is still live - correct any claim about a
+      child you cannot see and end the turn again." That line coaches the exact conduct
+      this feature supersedes: it tells a refused lead that repeating the terminal verdict
+      works, and it names no suspension. REPLACE that LAST appended line, and only it.
+      Keep the line above it, the one naming issue 551, byte-unchanged.
+
+      The replacement line must state that the legal turn-end for a lead or an orchestrator
+      whose child is live is a return whose VERDICT is SUSPENDED carrying an awaiting list
+      naming every live child, and it must NOT tell the caller that a repeated or identical
+      return ships. Do not add a second line beside the old one and do not soften the old
+      one in place, or the refusal carries two contradictory instructions.
+
+      Add ONE assertion for it in test-inflight-registry.py, with EXACTLY this label
+      string, because the task verify greps it: the children refusal names SUSPENDED and
+      never says a repeated return ships. It asserts, on the joined output of
+      children_refusal_lines for a fixture with one live child, both halves as separate
+      conditions with their own detail strings: that the literal SUSPENDED occurs, and that
+      the literal phrase identical return ships does NOT occur. Register it in main() the
+      same way the five new cases are registered, or it never runs.
+
+  - id: T-03
+    title: Quarantine an orphan write to a canonical feature artifact at the check-domain.sh Write gate
+    traces: [REQ-03, REQ-04]
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 names check-domain.sh and its test file as enforcement layer, and team-config.yaml resolves to NOBODY
+    depends_on: [T-02]
+    status: done
+    files:
+      - .claude/skills/harness/bin/check-domain.sh
+      - .claude/skills/harness/bin/test-check-domain.py
+      - .harness/team-config.yaml
+    verify: |
+      grep -q 'an orphan canonical write is quarantined' .agents/skills/harness/bin/test-check-domain.py &&
+      grep -q 'an omp-runtime writer is never quarantined' .agents/skills/harness/bin/test-check-domain.py &&
+      python3 .agents/skills/harness/bin/test-check-domain.py
+    intent: |
+      Everything below was re-measured at ad93d43e1f232ec1ab87e08ccf70a01a08c206b7, after
+      FEAT-41 added a plan.yaml route-denial region to this file. Re-read the two anchor
+      regions before editing.
+
+      Write the cases first and record their failures against the unchanged hook. DO NOT
+      use the case(name, path, want, agent, tool) helper at :41 of test-check-domain.py -
+      its payload carries no session_id and no registry, so it cannot express any of these
+      cases. Follow the T-09 group instead: a local fire() closure building the payload
+      dict with agent_type, session_id, tool_name and tool_input.file_path plus
+      tool_input.content, subprocess.run([HOOK], input=json.dumps(payload), env=_env(root))
+      where _env is the builder at :22, and a group recorder in the style of t09 at :2495.
+      CHECK_DOMAIN_BIN at :18 already exists for pointing the suite at a control copy of
+      the pre-change hook. Each case gets its own temp root holding
+      .harness/team-config.yaml and a .harness/.inflight-claims.json built with
+      inflight_registry.claim_with_receipt. Exit codes are asserted EXACTLY, 2 or 0. Use
+      these exact label strings: an orphan canonical write is quarantined, the writer own
+      live claim allows the canonical write, a feature with no live claim allows the
+      canonical write, an omp-runtime writer is never quarantined, an orphan write to notes
+      is allowed, an orphan write to the quarantine path is allowed. Grade the canonical
+      case on BRIEF.md, NOT on plan.yaml: an editor write of plan.yaml is already refused
+      at exit 2 for every author by the region at :1529 to :1678, so a plan.yaml case
+      cannot discriminate and would pass on the unchanged hook. Add one further case
+      asserting that an orphan Write of plan.yaml still exits 2 with the FEAT-41
+      route-denial text, which is what pins the ordering D-11 chose.
+
+      Then add the quarantine branch to check-domain.sh, inside the Python heredoc that
+      begins at :103. Place it immediately AFTER the plan.yaml route denial ends at :1678
+      and BEFORE the mode split at if not _post: on :1680. That position is load-bearing
+      three ways: domain_check() has already run at :911, so a write the domain check
+      refuses keeps its existing message and this branch never re-derives a grant; the
+      FEAT-41 route denial keeps precedence on plan.yaml (D-11); and every name the branch
+      needs is defined by then, _governed at :310, _post at :318, _tool at :320, root,
+      agent, _norm at :1022 and _show at :1012. Guard it with _governed and not _post and
+      _tool in ("Write", "Edit", "NotebookEdit") - the same tuple :1647 uses. Logic, using
+      the module the file already reaches by PYTHONPATH:
+
+        import inflight_registry as _reg inside a try that, on any exception, prints one
+        stderr line saying the quarantine boundary was not enforced and falls through -
+        fail OPEN on our own gap, which is the precedent every other branch in this file
+        sets.
+
+        _art = _reg.canonical_artifact(_norm(target)); if it is None, fall through
+        unchanged.
+
+        Otherwise call _reg.orphan_write(root, agent, feature, session) with the feature
+        from _art and the session from the payload, d.get("session_id") - note this file
+        reads no session today, so this is a new payload read and d is already parsed at
+        the top of the heredoc. On False, fall through unchanged. On True, print BLOCKED
+        lines and sys.exit(2). The message must name: the refused canonical path via
+        _show(target); that this writer holds no live claim for that feature, so its parent
+        is gone and a replacement may already be writing; the EXACT path from
+        _reg.quarantine_rel(...) to write instead; and that the result becomes canonical
+        only when a resumed parent runs quarantine.py adopt on it. Do not kill, do not
+        touch the registry, and do not refuse a Read, a Grep or a Bash call.
+
+      In .harness/team-config.yaml add exactly one entry to the existing shared list at
+      :77, { path: .harness/*/features/*/quarantine/** }, with a one-line comment naming
+      this feature and saying quarantined content is inert until adoption. Do not add or
+      widen any per-persona domain entry, and do not touch main_session.writes at :17.
+
+  - id: T-04
+    title: Ship quarantine.py, the explicit adopt and discard CLI, and register its test file
+    traces: [REQ-05]
+    change_type: feature
+    execution_mode: team
+    execution_agent: harness-dev-ops
+    depends_on: [T-02]
+    status: done
+    files:
+      - .claude/skills/harness/bin/quarantine.py
+      - .claude/skills/harness/bin/test-quarantine.py
+      - .claude/skills/harness/bin/run-unit-tests.sh
+      - .harness/harness.json
+    verify: |
+      python3 .agents/skills/harness/bin/test-quarantine.py &&
+      .agents/skills/harness/bin/run-unit-tests.sh --kind unit
+    intent: |
+      Write test-quarantine.py first and record its failures before writing quarantine.py.
+      Then create .claude/skills/harness/bin/quarantine.py, a stdlib-only CLI with three
+      subcommands and no scheduler, no timer, no TTL and no implicit action:
+
+        list --feature FEAT [--root R] : one line per quarantined file found under
+          .harness/*/features/FEAT/quarantine/*/*, printing the quarantine path, the
+          persona and session parsed from the directory name, the mtime, and the canonical
+          target path it would be adopted onto. Exit 0 even when nothing is found, printing
+          nothing. It MUST NOT modify any file.
+
+        adopt --file <quarantined path> [--root R] : resolves the canonical target as the
+          same basename directly under the feature directory. For plan.yaml it delegates to
+          plan-merge.py apply, feeding the quarantined file as the proposal, so the union by
+          task id and decision id and the byte-identical carry-forward of the approval block
+          are the merge tool answer and not a second implementation. Re-measured at
+          ad93d43e: apply exits 7 when an existing id carries a different value and exits 8
+          when the proposal's approval mapping differs from the base's - surface both exit
+          codes and both messages verbatim rather than swallowing them, because both are
+          outcomes an operator must act on. For BRIEF.md, feature.json and STATE.md it
+          replaces the canonical file through harness_merge locked atomic replace. Any other
+          basename exits 2 with a message naming the four legal ones. On success it prints
+          ADOPTED <canonical path> FROM <quarantined path> and leaves the quarantine
+          directory in place, so adoption is auditable and discard stays a separate act.
+
+        discard --dir <quarantine dir> [--root R] : removes that one directory tree in
+          Python, never through a shell, and prints DISCARDED <dir>. It refuses with exit 2
+          any directory that is not under a features/*/quarantine/ segment.
+
+      Resolve the root with harness_boundary.resolve_root and reuse inflight_registry
+      CANONICAL_ARTIFACTS and quarantine_rel rather than restating either rule.
+
+      test-quarantine.py covers, each in its own temp root: adopting a one-task quarantined
+      plan.yaml onto a fourteen-task canonical plan.yaml yields all fifteen task ids and
+      never the one-task file; the approval block of the canonical plan survives adoption
+      byte-identical; adopting BRIEF.md replaces it; adopt on an illegal basename exits 2;
+      discard removes only the named directory; discard refuses a path outside a quarantine
+      segment; and list changes no file, proven by sha256 of the canonical and quarantined
+      files before and after. Note the fourteen-task canonical fixture must satisfy
+      harness_yaml.load_plan, whose REQUIRED_TASK_FIELDS are id, title, change_type,
+      execution_mode, files, verify and intent, or plan-merge.py refuses the merge for a
+      reason that has nothing to do with adoption.
+
+      Register the new file in BOTH lists that must agree or the suite exits 2 before
+      running a test: append test-quarantine.py to INTEGRATION_SCRIPTS at :31 of
+      run-unit-tests.sh, and append the literal
+      .agents/skills/harness/bin/test-quarantine.py to test_kinds.integration.detect in
+      .harness/harness.json. The cross-check at :98 to :131 of run-unit-tests.sh compares
+      the two as sets and uses the .agents spelling as its prefix, so the .claude spelling
+      fails it. Change nothing else in either file.
+
+  - id: T-05
+    title: Write the Claude Code suspension, no-polling, same-parent-resume and adoption conduct into both playbooks
+    traces: [REQ-01, REQ-03, REQ-06]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: check-domain.sh --resolve answers NOBODY for both playbook files at the resolved sha (DEC-179)
+    depends_on: [T-01, T-04]
+    status: done
+    files:
+      - .claude/skills/harness/SKILL.md
+      - .claude/skills/harness-team/SKILL.md
+      - .claude/skills/harness/bin/test-orchestrator-playbook.py
+      - .claude/skills/harness/bin/test-lead-stop-and-wake.py
+    verify: |
+      grep -q 'case10_claude_code_suspension' .agents/skills/harness/bin/test-orchestrator-playbook.py &&
+      grep -q 'claude_code_suspension' .agents/skills/harness/bin/test-lead-stop-and-wake.py &&
+      python3 .agents/skills/harness/bin/test-orchestrator-playbook.py &&
+      python3 .agents/skills/harness/bin/test-lead-stop-and-wake.py
+    intent: |
+      Re-measured at ad93d43e1f232ec1ab87e08ccf70a01a08c206b7. Two things moved since this
+      task was first written and both change what you do.
+
+      FIRST: case9 in test-orchestrator-playbook.py is TAKEN. FEAT-41 added
+      case9_plan_yaml_write_is_a_verb_not_an_edit at :129. Your case is
+      case10_claude_code_suspension, and main() at :158 calls every case by name - register
+      it there or it never runs. The playbook path override in that file is the
+      PLAYBOOK_PATH environment variable, read by read_playbook() at :40, and the recorder
+      is check(name, cond, detail) at :32.
+
+      SECOND: the lead playbook already carries a compatibility paragraph, at :126 to :130
+      of .claude/skills/harness-team/SKILL.md, ending with the clause that a turn-end
+      refusal naming children in flight is expected and that the refusal should be expected
+      to recur on each later wake. That clause is what this feature SUPERSEDES: after T-01
+      the legal turn-end is the suspension and the refusal is not expected. Rewrite that
+      paragraph rather than adding a second passage beside it, or the playbook carries two
+      contradictory instructions. Keep the DEC-201 never-wait rule it states; replace only
+      the recurring-refusal advice.
+
+      Add the passage in four clauses, each of which the reviewer must be able to cite by
+      file and line:
+
+        1. On Claude Code, ending a turn while a child is live is done by returning
+           VERDICT SUSPENDED with an awaiting list naming every live child, and nothing
+           else. That return carries no terminal verdict and is not a report about the
+           child work.
+        2. The parent does not poll, sleep, emit a heartbeat, or invent a tool call to stay
+           alive. Zero, not a small number.
+        3. The host resumes the SAME parent when the child completes. A replacement parent
+           is never dispatched while a child claim for that feature and persona is live;
+           the registry is what settles whether one is.
+        4. On waking, before deciding anything, the parent runs quarantine.py list
+           --feature <FEAT> and, if a result is quarantined, either adopts it with
+           quarantine.py adopt or discards it with quarantine.py discard. Neither happens
+           by default and neither happens on a timer, so a quarantined result that is
+           ignored simply stays non-canonical.
+
+      In .claude/skills/harness/SKILL.md the home is step 4 of the loop at :42 to :49,
+      which today states only the OMP half; add the compatibility half there rather than as
+      a new top-level section. In .claude/skills/harness-team/SKILL.md it is the rewritten
+      paragraph at :126 to :130 inside step 3d. Phrase each clause once, worded for its own
+      tier, and do NOT restate the never-wait rule: FEAT-35 and FEAT-37 shipped it and
+      DEC-201 owns it.
+
+      Guard both with region-scoped synonym alternations, not exact-literal greps. In
+      test-lead-stop-and-wake.py add the assertions inside playbook_cases(text) at :155, so
+      they are derived from the passed-in text and reachable through the TEAM_PLAYBOOK_PATH
+      environment override read by run_playbook_group at :467 - TEAM_PLAYBOOK_DEFAULT at
+      :34 is the default, not the override. Give the group or the case names a
+      claude_code_suspension substring. Each clause gets its OWN assertion - a whole-file
+      search would be satisfied by the three easy clauses and blind to a missing fourth.
+      Prove both suites discriminate by running each against the pre-change file through
+      the path override and recording the failing exit code.
+
+  - id: T-06
+    title: Record the compatibility lifecycle contract as a new decision entry and regenerate the index
+    traces: [REQ-02, REQ-05, REQ-07]
+    change_type: docs
+    execution_mode: team
+    execution_agent: harness-documentor
+    depends_on: [T-01, T-02, T-03, T-04, T-05, T-07]
+    status: done
+    files:
+      - .harness/harness/docs/DECISIONS.md
+      - .harness/harness/docs/DECISIONS-INDEX.md
+    verify: |
+      awk '/^## DEC-[0-9]/{buf=""} {buf = buf $0 "\n"} END{printf "%s", buf}' .harness/harness/docs/DECISIONS.md | grep -q 'plan-sign-gate\.sh' &&
+      awk '/^## DEC-[0-9]/{buf=""} {buf = buf $0 "\n"} END{printf "%s", buf}' .harness/harness/docs/DECISIONS.md | grep -q 'plan-merge\.py' &&
+      grep -q 'DEC-210' .harness/harness/docs/DECISIONS-INDEX.md &&
+      python3 .agents/skills/harness/bin/gen-decisions-index.py --stdout | diff -q - .harness/harness/docs/DECISIONS-INDEX.md &&
+      python3 .agents/skills/harness/bin/test-gen-decisions-index.py
+    intent: |
+      Append one new entry to .harness/harness/docs/DECISIONS.md numbered DEC-210, which is
+      the next free number RE-MEASURED at main's tip 0bc57c88, where the entry immediately
+      preceding it - BUG-1081's entry recording that mechanical code-grade state is computed
+      by the digest gate and not trusted from the reviewer - is the highest numbered entry in
+      the file. If DEC-210 is already taken when you run, take the next free number, use it
+      consistently in DECISIONS.md and DECISIONS-INDEX.md and in the T-08 constant, and
+      report the number you used as an open question in your digest. Do NOT edit plan.yaml:
+      repointing this plan's dec: pointers is pm's act through plan-merge.py, and plan.yaml
+      is not this persona's domain.
+
+      The entry states current truth in the present tense, per DEC-205, with no amendment
+      sub-section, and it carries exactly these claims, each in one or two sentences:
+
+        - On the Claude Code compatibility host a lead or orchestrator return with live
+          children has THREE answers, not two: an accepted nonterminal suspension (VERDICT
+          SUSPENDED with an awaiting list naming every live child), a refused terminal
+          verdict, and the unchanged validation path when no child is live. SUSPENDED is
+          recognised only inside validate-digest.py hook_mode and is not a member of
+          VERDICTS, so no member persona and no written digest can carry it.
+        - A suspension is not a completion: the suspending parent claim is not released.
+        - Quarantine is a WRITE boundary, not a kill. A governed writer with no live claim
+          for the feature it is writing, while some other live claim for that feature
+          exists, is refused and told the exact quarantine path to use instead. Reads,
+          greps and writes to notes, observations and runs are untouched.
+        - The four canonical artifacts are plan.yaml, BRIEF.md, feature.json and STATE.md,
+          and the boundary is enforced at TWO registered gates, which the entry must name by
+          script name. (a) check-domain.sh, on PreToolUse for Write and Edit, bites on
+          BRIEF.md, feature.json and STATE.md. (b) plan-sign-gate.sh, on PreToolUse for
+          Bash, bites on the four mutating plan-merge.py verbs - apply, add-tasks,
+          set-task-station and set-feature-station - and on quarantine.py adopt.
+        - plan.yaml's only write route is plan-merge.py invoked through Bash, so plan.yaml
+          is covered by the plan-sign-gate.sh half and NOT by FEAT-41's editor route denial.
+          That denial, which exits 2 on an editor write of any plan.yaml for every author
+          under DEC-182's reversal, is a second and independent refusal on a route nobody
+          may use; the check-domain.sh quarantine branch sits after it and defers to it, so
+          the more fundamental refusal keeps its message.
+        - What the boundary does NOT cover, stated as plainly as what it does, because an
+          entry asserting the boundary unqualified records a protection that does not exist.
+          quarantine.py discard is deliberately uncovered, so nothing here proves that an
+          orphan cannot destroy a quarantined result (D-18). And the boundary bounds only
+          those two GOVERNED write routes: a generic Bash write - cp, cat, tee, mv, sed -i,
+          python3 -c - to a canonical artifact inside the writer's own domain reaches
+          neither gate and is not refused, because bash-write-guard.sh passes an in-domain
+          write and check-domain.sh is registered for Write and Edit only (D-19). Generic
+          write-route enforcement is out of scope for this feature and is filed as backlog.
+        - A quarantined result becomes canonical only when a resumed parent runs
+          quarantine.py adopt; discard is the other explicit act. Neither is a default and
+          neither is a timeout. Adoption of plan.yaml goes through plan-merge.py locked
+          union under DEC-199.
+        - The quarantine sandbox is one shared glob in team-config.yaml,
+          .harness/*/features/*/quarantine/**, rather than twelve per-persona grants.
+        - OMP behaviour is unchanged. The boundary applies only to claims whose runtime is
+          not omp; blocking nested edges, process-owned liveness and every OMP-path
+          assertion in DEC-204 continue to hold. This entry supersedes nothing in DEC-204
+          and narrows nothing in DEC-201.
+        - The honest bound: Claude Code exposes no durable child-process owner, so beyond
+          CLAIM_TTL_SECONDS a suspended parent cannot be distinguished from an interrupted
+          one and the boundary fails safe. A member running longer than the TTL meets the
+          quarantine path on a normal run, which is a cost of the compatibility host and
+          does not exist on OMP.
+
+      Reference DEC-174, DEC-182, DEC-199, DEC-201 and DEC-204 by number in the refs of the
+      index row. Then run python3 .agents/skills/harness/bin/gen-decisions-index.py to
+      regenerate DECISIONS-INDEX.md - the generator produces the row and its anchor, but
+      the ' :: <ruling>' tail of the row is written by hand, so write a ruling clause that
+      names the Claude Code compatibility host, the suspension, the quarantine write
+      boundary and the OMP-unchanged claim. Every later row anchor shifts when this entry
+      lands, which is why the regeneration is part of this task and not a follow-up.
+  - id: T-07
+    title: Guard plan-merge mutations and quarantine adoption on the Bash route
+    traces: [REQ-04, REQ-05]
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_reason: plan-sign-gate.sh is a registered PreToolUse Bash gate script, held back with the other gates by DEC-174 even though resolve answers harness-backend-dev
+    depends_on: [T-02]
+    status: done
+    files:
+      - .claude/skills/harness/bin/plan-sign-gate.py
+      - .claude/skills/harness/bin/plan-sign-gate.sh
+      - .claude/skills/harness/bin/test-plan-sign-gate.py
+    verify: |
+      grep -q 'an orphan agent plan-merge apply on plan.yaml is quarantined' .agents/skills/harness/bin/test-plan-sign-gate.py &&
+      grep -q 'an omp-runtime writer is never quarantined on the Bash route' .agents/skills/harness/bin/test-plan-sign-gate.py &&
+      grep -q 'an orphan quarantine.py adopt onto a canonical plan.yaml is quarantined' .agents/skills/harness/bin/test-plan-sign-gate.py &&
+      grep -q 'NEGATIVE CONTROL: an orphan apply whose --file value is a shell variable is allowed' .agents/skills/harness/bin/test-plan-sign-gate.py &&
+      python3 .agents/skills/harness/bin/test-plan-sign-gate.py
+    intent: |
+      WHY THIS TASK EXISTS, in one measurement taken at
+      ad93d43e1f232ec1ab87e08ccf70a01a08c206b7: .claude/settings.json registers
+      check-domain.sh on PreToolUse for Write and Edit ONLY, at the matcher on :19. The
+      PreToolUse Bash matcher on :27 runs branch-create-gate.sh, bash-write-guard.sh,
+      gh-close-gate.sh and plan-sign-gate.sh, and check-domain.sh --post on :62 is a POST
+      sweep. Since FEAT-41 reversed DEC-182, plan.yaml has exactly one writer,
+      plan-merge.py, and it is invoked through Bash. So T-03's quarantine branch, which
+      lives in check-domain.sh, covers BRIEF.md, feature.json and STATE.md and cannot reach
+      plan.yaml at all. Issue 551's first measured occurrence is a fourteen-task plan.yaml
+      replaced sixty-three seconds later by a one-task file, which is a plan.yaml write.
+      This task puts the boundary on the route that write travels.
+
+      WHAT FEAT-41 ALREADY BUYS, AND NOT MORE: plan-merge.py's locked union merge prevents
+      the DELETION half, so an orphan can no longer shrink a fourteen-task plan to one. It
+      does nothing for REQ-05. An orphaned child can still land NEW canonical plan content
+      with no parent, no wake and no adoption, and apply prints APPLIED and exits 0.
+
+      Every line number below was measured at ad93d43e. Re-read each anchor before editing
+      and treat the quoted literals as the anchors.
+
+      STEP ONE, THE TESTS, AND THEY GO FIRST. Add ONE new group at the foot of
+      test-plan-sign-gate.py, after the HIGH-2 group that ends at :443 and BEFORE the
+      summary print at :446. Do NOT modify ROOT at :54 or gate() at :57: gate() builds a
+      payload with no session_id against a fixture root holding no registry file, so all
+      twenty-eight existing cases fall through the new rule untouched. Confirm that by
+      running them rather than assuming it. Add instead:
+
+        _qroot(claims) - a throwaway root built exactly as _root() at :36 does, .harness
+        holding harness.json and team-config.yaml, since resolve_root honours
+        HARNESS_PROJECT_DIR only when .harness/team-config.yaml is readable underneath it.
+        Then write each requested claim with inflight_registry.claim_with_receipt, imported
+        from the bin directory the way test-inflight-registry.py already imports it.
+
+        qgate(command, agent_type, session_id, root) - subprocess.run(["bash", GATE], ...)
+        with HARNESS_PROJECT_DIR set to root and session_id carried in the payload.
+        Returns (returncode, stderr), like gate().
+
+      Use these exact label strings, because the task verify greps four of them:
+
+        an orphan agent plan-merge apply on plan.yaml is quarantined
+        an orphan set-task-station on plan.yaml is quarantined
+        the writer own live claim allows the plan-merge apply
+        a feature with no live claim allows the plan-merge apply
+        an omp-runtime writer is never quarantined on the Bash route
+        an orphan quarantine.py adopt onto a canonical plan.yaml is quarantined
+        NEGATIVE CONTROL: an orphan apply on a non-canonical file path is allowed
+        NEGATIVE CONTROL: a non-harness agent_type is not governed by the quarantine rule
+        NEGATIVE CONTROL: an orphan apply whose --file value is a shell variable is allowed
+
+      Assert exit codes EXACTLY, 2 or 0, and for each deny also assert the stderr names the
+      quarantine path. The orphan fixture is the one T-02's case 29 uses: a live claim for
+      the feature held by ANOTHER persona in ANOTHER session, runtime not omp. The
+      not-orphan fixture is the writer's own live claim in its own session.
+
+      The LAST label is the --file fail-open control D-13 asserts and nothing in this plan
+      proves. It runs under the SAME live-orphan fixture as the refusing cases - a live claim
+      for the feature held by another persona in another session, runtime not omp - and
+      asserts EXACTLY exit 0, because step 4 above returns None when the --file value carries
+      no .harness/ segment, so the rule never reaches orphan_write. Run under a fixture with
+      no live claim it would pass for the wrong reason and prove nothing about the fail-open.
+
+      PROVE THE GROUP DISCRIMINATES, and record the failing output in your receipt. GATE at
+      :22 reads PLAN_SIGN_GATE_BIN. Copy the pre-change plan-sign-gate.sh and
+      plan-sign-gate.py to plan-sign-gate.pre.sh and plan-sign-gate.pre.py INSIDE
+      .claude/skills/harness/bin - not a temp directory, because the wrapper resolves its
+      root from its own location and the python file imports its siblings - and change the
+      single exec line of the .pre.sh to name plan-sign-gate.pre.py. Run the suite with
+      PLAN_SIGN_GATE_BIN pointing at it, record that the new cases fail and the twenty-eight
+      existing ones pass, then DELETE both copies.
+
+      STEP TWO, THE RULE, in plan-sign-gate.py. Leave the sign-approval rule and every
+      constant, helper and comment it owns behaviour-identical: VERB at :32, TOOL at :33,
+      REASON at :50, the payload read at :64, the main-session exemption at :73, and OPS,
+      SEP, MAX_DEPTH, RAW_SIGN, words(), is_tool(), as_bash_reads_it(), the INDIRECT rule
+      and denies() at :256. Add beside them:
+
+        MUTATING_VERBS = ("apply", "add-tasks", "set-task-station", "set-feature-station"),
+        the four non-signing verbs of plan-merge.py's VERBS table at :932 of plan-merge.py,
+        re-measured at ad93d43e. sign-approval is deliberately absent: it is already refused
+        for every agent by the existing rule.
+
+        ADOPT_TOOL = "quarantine.py", with the single verb adopt. discard is deliberately
+        NOT covered - it removes a quarantine directory and can make nothing canonical - and
+        list is read-only. Say so in a comment, because the omission must read as a choice.
+        That comment must cite D-18 and give its measured reason: an orphan can already
+        remove a quarantine directory with a plain rm -rf, which the shared glob D-06 adds
+        legalises, so a rule covering only quarantine.py discard would advertise a protection
+        the tree does not have.
+
+        quarantines(line, agent, session, depth=0) -> a (rel, feature, quarantine_rel) tuple
+        or None, mirroring denies()'s shape so the two rules read as siblings:
+
+          1. line = as_bash_reads_it(line); toks = words(line). On None, meaning the line
+             will not lex, RETURN None and fall open. State in a comment why there is no
+             raw-text fallback here: this rule needs the VALUE of --file, and the text
+             fallback cannot read an argument value through quoting. It is the same stated
+             blind spot the module docstring already records for a tool name produced only
+             by shell expansion, and the same posture as D-13.
+          2. Find an invocation: an index i where _basename(toks[i]) at :224 equals TOOL and
+             the next token, past a run of SEP exactly as denies() skips one at :291, is in
+             MUTATING_VERBS; or _basename(toks[i]) equals ADOPT_TOOL and that next token is
+             adopt. No match, and no eval or bash -c token to recurse into under MAX_DEPTH
+             the way denies() does at :299, returns None.
+          3. Read the value of --file from the tokens after i: the token following a literal
+             --file, or the tail of a --file=VALUE token. Absent returns None.
+          4. Normalise that value to a checkout-relative POSIX path by taking the tail from
+             its LAST .harness/ segment. A value with no .harness/ segment returns None, and
+             that is what keeps the existing controls at :150, :320 and :366 allowed - a bare
+             --file p, a --file whose value is a shell variable, and a --file whose value is
+             a command substitution. Those three are why the rule fails open here rather
+             than closed.
+          5. For a plan-merge.py verb, call _reg.canonical_artifact(rel); None returns None,
+             otherwise the feature is its first element. For quarantine.py adopt the path
+             points INTO the quarantine directory, which canonical_artifact returns None for
+             by design, so match rel against
+             ^\.harness/[^/]+/features/([^/]+)/quarantine/[^/]+/(.+)$ and require the
+             trailing basename to be in _reg.CANONICAL_ARTIFACTS; anything else returns None,
+             because T-04's adopt already exits 2 on an illegal basename.
+          6. Return None unless _reg.orphan_write(ROOT, agent, feature, session) is True.
+             ROOT at :35 is the root the wrapper resolved through
+             harness_boundary.resolve_root from this script's own directory, which is the
+             same root check-domain.sh resolves at its _root() on :154. That is D-14, and the
+             reason both routes read one registry.
+
+        Import inflight_registry INSIDE quarantines() and only AFTER step 2 has matched, in a
+        try that on any exception writes one stderr line saying the quarantine boundary was
+        not enforced and returns None. Two reasons, both load-bearing: failing OPEN on our
+        own gap is the precedent every branch of check-domain.sh sets, and this hook runs
+        ahead of EVERY Bash call in the session, so an unconditional import and registry read
+        would be paid by every git status in the harness.
+
+      Then, at the foot of the file, replace the single decision at :304 with two, the
+      sign-approval rule FIRST:
+
+        if denies(cmd): stderr REASON, exit 2, unchanged.
+        else: _q = quarantines(cmd, agent, session); if _q is not None, stderr the quarantine
+        refusal and exit 2.
+        else: exit 0.
+
+      agent is the agent_type already read at :73; the quarantine rule applies only when
+      agent.startswith("harness-"), the same _governed test check-domain.sh states at :310,
+      because registry personas are harness-*. A non-harness agent_type keeps its existing
+      sign-approval refusal and is not reached by this rule. session is a NEW payload read,
+      payload.get("session_id") on the payload parsed at :65. The order of the two rules is
+      not observable, since sign-approval is not in MUTATING_VERBS, and is fixed so it cannot
+      become so.
+
+      The quarantine refusal is its own text, never REASON, and names four things: the
+      canonical path refused, spelled as the checkout-relative rel; that this writer holds no
+      live claim for that feature, so its parent is gone and a replacement may already be
+      writing; the EXACT path from _reg.quarantine_rel(rel, agent, session) to write instead,
+      or for an adopt call that adoption is the resumed parent's act and this caller is not
+      it; and that a quarantined result becomes canonical only when a resumed parent runs
+      quarantine.py adopt. Do not touch the registry, do not kill anything, and refuse
+      nothing else.
+
+      STEP THREE, plan-sign-gate.sh. Its header comment at :2 says this hook refuses one
+      verb, and :16 says IT REFUSES ONE VERB, NOT THE TOOL. Both stop being true. Rewrite the
+      header to state that this is the PreToolUse Bash gate for plan-merge.py and
+      quarantine.py, carrying TWO rules - the unconditional sign-approval refusal under
+      DEC-120, and the quarantine boundary for an orphaned governed writer under this
+      feature's decision - and keep every other paragraph, including the stated blind spot,
+      the stdin reasoning and the one-python3 reasoning. Change no code in the wrapper: it
+      already resolves the root and already execs the .py with it. The file is NOT renamed:
+      renaming it would require a .claude/settings.json edit and would strand the
+      registration of test-plan-sign-gate.py, which is the whole cost D-12 chose this home to
+      avoid.
+  - id: T-08
+    title: Guard the DEC-210 entry so an omitted Bash half turns the suite red
+    traces: [REQ-04, REQ-05]
+    change_type: scaffolding
+    execution_mode: team
+    execution_agent: harness-dev-ops
+    depends_on: [T-06]
+    status: done
+    files:
+      - .claude/skills/harness/bin/test-gen-decisions-index.py
+    verify: |
+      grep -q 'def test_dec_210_entry_names_both_enforcement_points' .agents/skills/harness/bin/test-gen-decisions-index.py &&
+      grep -q 'def test_dec_210_entry_states_the_bash_write_route_for_plan_yaml' .agents/skills/harness/bin/test-gen-decisions-index.py &&
+      grep -q 'def test_dec_210_index_row_names_the_compatibility_host_in_the_ruling' .agents/skills/harness/bin/test-gen-decisions-index.py &&
+      python3 .agents/skills/harness/bin/test-gen-decisions-index.py
+    intent: |
+      SC-09 grades the DEC-210 entry's CONTENT and declares verify automated with evidence
+      integration. Nothing in the plan asserts that content today, so an entry that omits
+      the plan-sign-gate.sh half would ship graded met. This task is the assertion. It adds
+      NO new test file, so neither run-unit-tests.sh INTEGRATION_SCRIPTS nor
+      harness.json test_kinds.integration.detect changes, and it does not touch
+      DECISIONS.md or DECISIONS-INDEX.md, so no index regeneration is owed here.
+      change_type is scaffolding because the deliverable IS the guard - no production
+      behaviour changes and the matrix owes this row nothing beyond the guard itself.
+
+      Everything below was measured at ad93d43e1f232ec1ab87e08ccf70a01a08c206b7. Re-read
+      each anchor before editing and treat the quoted literals as the anchors.
+
+      Add THREE module-level test functions at the foot of
+      .claude/skills/harness/bin/test-gen-decisions-index.py, immediately after
+      test_no_amendment_construct_survives_in_the_authority which begins at :829 and ends
+      at :869, and BEFORE the TESTS list at :872. Register ALL THREE in that TESTS list - main()
+      at :887 iterates TESTS and nothing else, so an unregistered function never runs.
+      Follow that neighbour's shape exactly: it guards the LIVE authority file rather than a
+      fixture, it wraps its whole body in try/except printing FAIL - <name> on an exception,
+      it prints ok - <name> and returns True on success, and every FAIL message names the
+      file and what was missing. Reuse the module constants already present rather than
+      restating any path - REPO_ROOT at :22 and gdi.DECISIONS_PATH, the pair that neighbour
+      composes at :837 to reach the real DECISIONS.md.
+
+      Add one module-level constant beside them:
+
+        QUARANTINE_DEC = "DEC-210"
+
+      with a comment saying that T-06 takes the next free number if DEC-210 is taken when it
+      runs, and that this constant moves with it. The two region tests below must FAIL
+      LOUDLY, never skip, when no heading for QUARANTINE_DEC is present - a skip on an absent
+      heading is a green that proves nothing, and after T-06 the heading is present by
+      construction.
+
+      Those two region tests slice the SAME region and each must compute it the same way, so extract one
+      module-level helper beside the constant, _dec_region(text, dec) -> str or None. The
+      authority's live headings are ## DEC-N followed by an em dash and a title; harvest them
+      with the fence toggle the file already defines at :46,
+      fence_guarded_dec_headings(text), so a heading inside a ``` fence is never taken as the
+      region start. The region runs from the ## DEC-210 heading line to the next line
+      matching ^##\s+DEC-\d+ outside a fence, or to end of file. Return None when the heading
+      is absent. Bound the region on BOTH sides - an unbounded tail would let a later entry's
+      text satisfy every assertion below.
+
+      test_dec_210_entry_names_both_enforcement_points asserts, on that region, with a
+      SEPARATE check and its own FAIL message per clause rather than one combined condition,
+      because a combined condition is satisfied by the clauses that hold and blind to the one
+      that does not:
+
+        1. the literal check-domain.sh occurs in the region;
+        2. the literal plan-sign-gate.sh occurs in the region;
+        3. the literal quarantine.py adopt occurs in the region.
+
+      test_dec_210_entry_states_the_bash_write_route_for_plan_yaml asserts, on that same
+      region with its newlines collapsed to single spaces so a sentence wrapped across lines
+      still matches, again one check per clause:
+
+        1. the literal Bash occurs in the region, case-sensitive, as a whole word;
+        2. one sentence of the region - split the collapsed text on the literal period
+           followed by a space - carries BOTH plan.yaml and plan-merge.py. A whole-region
+           search for the two names is satisfied by two unrelated sentences, which is exactly
+           the entry this test exists to reject.
+
+      test_dec_210_index_row_names_the_compatibility_host_in_the_ruling closes the last
+      ungraded clause of SC-09, which requires the DECISIONS-INDEX.md row to name the
+      compatibility host in the hand-written ruling half and which nothing else in this plan
+      asserts. Same shape as the other two - whole body in try/except printing FAIL - <name>
+      on an exception, ok - <name> and True on success, every FAIL message naming the file
+      and what was missing - and no path restated: read the index through the module constant
+      REAL_INDEX at :25, the one the committed-index tests already use. Locate the row by
+      matching every line of that file against ROW_RE, the generator's own row grammar bound
+      at :43, and taking the one whose group(1) equals QUARANTINE_DEC. ROW_RE group(2) IS the
+      ruling half - the grammar splits on the literal ' :: ' separator - so use it rather than
+      splitting a second time, and assert the literal Claude Code occurs in group(2),
+      case-sensitive. It goes RED when the ruling half omits the host name, and equally when
+      the host name occurs only in the generated left half of the row before the separator,
+      which is the failure a whole-row search cannot see. It must FAIL LOUDLY, never skip,
+      when no line parses as a ROW_RE row for QUARANTINE_DEC - an absent row means the entry
+      was never indexed, and after T-06 the row is present by construction.
+
+      Do not assert the ABSENCE of the FEAT-41 sentence. FEAT-41's route denial is a true
+      second refusal and the entry may legitimately mention it; the defect being guarded is
+      an entry that names it INSTEAD OF the Bash half, and clauses 1 to 3 above already turn
+      that entry red.
+
+      Change nothing else in the file. Do not touch the eleven existing tests, run_gen at
+      :64, make_authority at :83, or the GEN_DECISIONS_INDEX_BIN override at :29.
+
+      Recorded baseline, observed at ad93d43e from the main checkout - the task verify block
+      above run verbatim exits 1 with no output, because the first grep fails, while its tail
+      conjunct alone, python3 .agents/skills/harness/bin/test-gen-decisions-index.py, exits 0
+      today printing eleven ok lines. The three greps are therefore the whole discriminator and
+      no earlier conjunct masks them.
+  - id: T-10
+    title: Cover the inflight_registry fail-open on both quarantine routes so a widened handler cannot ship green
+    traces: [REQ-03, REQ-04]
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 names check-domain.sh, plan-sign-gate.sh and the test file of each as enforcement layer, and resolve answers harness-backend-dev and harness-dev-ops so the carve-out holds all four back
+    depends_on: [T-03, T-07]
+    status: done
+    files:
+      - .claude/skills/harness/bin/test-check-domain.py
+      - .claude/skills/harness/bin/test-plan-sign-gate.py
+      - .claude/skills/harness/bin/check-domain.sh
+      - .claude/skills/harness/bin/plan-sign-gate.py
+    verify: |
+      grep -q 'a raising inflight_registry call fails OPEN at the check-domain.sh quarantine branch' .agents/skills/harness/bin/test-check-domain.py &&
+      grep -q 'an unimportable inflight_registry fails OPEN at the check-domain.sh quarantine branch' .agents/skills/harness/bin/test-check-domain.py &&
+      grep -q 'NEGATIVE CONTROL: with the registry healthy an orphan canonical write is still refused' .agents/skills/harness/bin/test-check-domain.py &&
+      grep -q 'a raising inflight_registry call fails OPEN at the plan-sign-gate.py quarantine rule' .agents/skills/harness/bin/test-plan-sign-gate.py &&
+      grep -q 'an unimportable inflight_registry fails OPEN at the plan-sign-gate.py quarantine rule' .agents/skills/harness/bin/test-plan-sign-gate.py &&
+      grep -q 'NEGATIVE CONTROL: with the registry healthy an orphan plan-merge apply is still refused' .agents/skills/harness/bin/test-plan-sign-gate.py &&
+      python3 .agents/skills/harness/bin/test-check-domain.py &&
+      python3 .agents/skills/harness/bin/test-plan-sign-gate.py
+    intent: |
+      THE ANCHORS AND THE SHA. Every line number, literal and behaviour below was measured
+      from the MAIN checkout at ad93d43e1f232ec1ab87e08ccf70a01a08c206b7, the sha this plan
+      lanes block resolves at. Re-measured 2026-09-01 at the main checkout HEAD 2e2e45d2:
+      git hash-object over check-domain.sh, test-check-domain.py, plan-sign-gate.sh,
+      plan-sign-gate.py, test-plan-sign-gate.py, inflight_registry.py, harness_boundary.py
+      and harness_merge.py is IDENTICAL at ad93d43e, at 2e2e45d2 and in the working tree, so
+      every anchor below holds at all three. Re-read each anchor before editing and treat the
+      quoted literals as the anchors, never the numbers.
+
+      WHY THIS TASK EXISTS. Panel finding PF-ba976e85d89cca1d56310530d12a05ef, severity high,
+      reader scope: the catch-all any-exception fail-open around every inflight_registry call
+      in check-domain.sh and plan-sign-gate.py has zero test coverage across the whole plan.
+      T-03 at its quarantine branch and T-07 at quarantines() both specify the identical
+      wrapped-call shape, and none of T-02 cases 29 to 33, nor the
+      fifteen labels across T-03 and T-07, ever forces that handler to fire. Both
+      failure modes therefore ship unobserved in the SOLE enforcement mechanism for REQ-03 and
+      REQ-04: a handler widened until it swallows a real refusal, and a crash where a
+      fall-through was promised. This task adds the coverage and nothing else. It does NOT
+      change the fail-open POSTURE, which is D-13 and is deliberate.
+
+      SCOPE, AND THE ONE PERMITTED SOURCE EDIT. The deliverable is test cases, in the two
+      existing test files, which are both in run-unit-tests.sh INTEGRATION_SCRIPTS (D-09).
+      check-domain.sh and plan-sign-gate.py are in files for ONE bounded reason: the handler
+      must ENCLOSE the registry CALLS and not the import alone, or case A below is
+      unreachable. T-03 and T-07 describe the try around the import with the calls written
+      after it, and that reading is ambiguous in their prose. If the landed code encloses only
+      the import, widen the SAME existing try so it also encloses the canonical_artifact and
+      orphan_write calls, changing nothing else: no new handler, no second try, no message
+      change, no posture change. If it already encloses them, the source files are untouched.
+      Nothing else in either source file is in scope for this task.
+
+      FOUR CASES, TWO PER SURFACE, PLUS A NEGATIVE CONTROL PER SURFACE. The two failure shapes
+      are NOT one shape twice, and only one of them is an exception raised by a call:
+
+        CASE A, THE CALL RAISES FROM INSIDE THE TRY. Mechanism, MEASURED, and it uses the REAL
+        module rather than a stub so the real call site is the thing exercised: make the
+        registry PATH a DIRECTORY. REGISTRY_REL at inflight_registry.py:33 is
+        .harness/.inflight-claims.json and _registry_path at :39 joins it under the root, and
+        every predicate reads it through _update_registry at :82 to :97, which calls
+        harness_merge.locked_update. Measured 2026-09-01 against the current tree: with
+        .harness/.inflight-claims.json created as a DIRECTORY, live_claim(root, "harness-pm")
+        raises IsADirectoryError errno 21, and that propagates out of the predicate. Every
+        predicate that reads the registry shares that one code path, so orphan_write raises
+        the same way. Two candidate mechanisms were measured and REJECTED, and the task must
+        not use them: a MALFORMED registry file does not raise, it prints
+        "is corrupt or unparseable, treating as empty" from _parse at :47 to :55 and returns
+        cleanly, which is T-02 specified behaviour; and .harness chmod 0o500 does not raise
+        either, live_claim returned (None, 0). The raise lands on the orphan_write call and
+        NOT on canonical_artifact, which T-02 specifies as pure string work with no filesystem
+        access. UNDO: the directory lives in the case OWN throwaway root, which is created per
+        case and removed with shutil.rmtree in a finally, so no later case inherits it.
+
+        CASE B, THE MODULE IS UNIMPORTABLE. This is the other half the finding names and it
+        does not travel the same code path: the import statement itself raises ImportError, so
+        no call is ever made. Mechanism, MEASURED: shutil.copytree(bin_dir, copybin) into a
+        throwaway directory, then os.remove of copybin/inflight_registry.py, then fire the
+        COPIED hook DIRECTLY. This is the idiom test-check-domain.py already uses at :2370 to
+        :2377, where a copytree of the bin dir with feature_schema.py overwritten is fired as
+        mhook and its verdict compared with the real hook. It reaches the import because
+        check-domain.sh puts its OWN directory on PYTHONPATH at :102 and inserts it at
+        sys.path[0] at :125, so the module set in the copy directory IS the module set the
+        hook imports, and the #556 case at :1676 to :1703 is the standing proof that nothing
+        outside that directory can supply it. For plan-sign-gate.sh the same copy works
+        because _selfbin at :53 is the copy directory, resolve_root at harness_boundary.py:64
+        to :68 honours HARNESS_PROJECT_DIR whenever the override carries MARKER, which is
+        .harness/team-config.yaml at :41 and which both _root() at test-plan-sign-gate.py:36
+        and T-07 _qroot write, and :60 execs plan-sign-gate.py from the copy directory so its
+        sibling imports resolve there too.
+
+        DO NOT re-point the WHOLE suite at a copy for these cases. Measured 2026-09-01: with
+        CHECK_DOMAIN_BIN set to a copytree copy the suite went from 251 ok and 0 FAIL to 250
+        ok and 1 FAIL, reddening "schema/a CRASHING schema module DENIES the write rather than
+        letting it through", which builds its own mutant relative to the real HOOK. Per-case
+        direct fire has no such effect: measured, a copytree copy with inflight_registry.py
+        removed, and again with a raising stub in its place, returns the SAME verdict as the
+        real hook on a governed in-domain write, exit 0 and empty stderr. For the plan-sign
+        surface the whole-suite route IS safe and was measured green, 45 ok and 0 FAIL through
+        PLAN_SIGN_GATE_BIN at a copytree copy both with and without inflight_registry.py, so
+        either route may be used there; prefer the per-case copy for symmetry.
+
+        THE NEGATIVE CONTROL, one per surface, and it is what catches a WIDENED handler. With
+        the registry HEALTHY and a live orphan claim for the feature held by another persona
+        in another session with runtime not omp, which is T-02 case 29 fixture, the refusal
+        must STILL fire at exit 2. Without it every other case in this group is satisfied by a
+        handler broadened to swallow every exception, which is precisely the confusion the
+        finding names. These two controls deliberately restate an assertion T-03 and T-07
+        already make, INSIDE this group, so the group cannot be read as coverage of a handler
+        that no longer refuses anything.
+
+      TWO ASSERTIONS PER FAIL-OPEN CASE, BOTH MANDATORY, each its own check() or wt() call
+      with its own detail string, because a combined condition is satisfied by the half that
+      holds:
+
+        1. The write or the command is PERMITTED, asserted as the EXACT exit code 0. Never
+           "not 2". A test that accepts anything other than 2 also accepts exit 1, which is
+           the unhandled-traceback outcome this task exists to distinguish from a deliberate
+           fall-through.
+        2. The stderr carries the diagnostic line saying the quarantine boundary was not
+           enforced, the line T-03 and T-07 specify the handler to print. Exit code alone
+           cannot tell a deliberate fall-through from a handler that silently swallowed
+           everything, which is the finding own words.
+
+      FIXTURES AND TARGETS. On the check-domain.sh surface, grade the canonical write on
+      BRIEF.md and NOT on plan.yaml, for the reason T-03 records: an editor write of plan.yaml
+      is already refused at exit 2 for every author by the FEAT-41 route-denial region at
+      :1529 to :1678, so a plan.yaml case cannot reach the quarantine branch at all. Use a
+      governed harness- persona whose domain PERMITS that write, harness-pm, because
+      domain_check has already run at :911 and a write the domain check refuses never reaches
+      the branch. Reuse T-03 own fire() closure and _env at test-check-domain.py:22, and
+      CHECK_DOMAIN_BIN at :18. On the plan-sign-gate surface reuse T-07 _qroot(claims) and
+      qgate(command, agent_type, session_id, root); do not define a second fixture pair, do
+      not touch ROOT at :54 or gate() at :57, and add the group at the foot of the file AFTER
+      the T-07 group and BEFORE the summary line, which is the literal print(f"\n{fails}
+      failing." measured at :446 with the SystemExit at :447, so anchor on the literal and not
+      on the number.
+
+      USE THESE EXACT LABEL STRINGS. The task verify greps six of them, so a typo in any of
+      those six is a red verify on correct work:
+
+        a raising inflight_registry call fails OPEN at the check-domain.sh quarantine branch
+        an unimportable inflight_registry fails OPEN at the check-domain.sh quarantine branch
+        NEGATIVE CONTROL: with the registry healthy an orphan canonical write is still refused at the check-domain.sh quarantine branch
+        a raising inflight_registry call fails OPEN at the plan-sign-gate.py quarantine rule
+        an unimportable inflight_registry fails OPEN at the plan-sign-gate.py quarantine rule
+        NEGATIVE CONTROL: with the registry healthy an orphan plan-merge apply is still refused at the plan-sign-gate.py quarantine rule
+        the raising call fail-open at check-domain.sh NAMES the unenforced boundary on stderr
+        the unimportable module fail-open at check-domain.sh NAMES the unenforced boundary on stderr
+        the raising call fail-open at plan-sign-gate.py NAMES the unenforced boundary on stderr
+        the unimportable module fail-open at plan-sign-gate.py NAMES the unenforced boundary on stderr
+
+      PROVE THE GROUP DISCRIMINATES and record the failing output. Write the ten assertions
+      FIRST and record them failing against the tree as T-07 leaves it, before touching either
+      source file. If the handler already encloses the calls, the four fail-open assertions
+      pass on first run and the discrimination proof is the WIDENED-HANDLER mutant instead:
+      replace the handler except clause body with a bare pass that returns the allow, and both
+      NEGATIVE CONTROL cases must go RED while the four fail-open cases stay green. Record
+      both numbers. Do not leave any copy, stub or mutant on disk.
+
+      RECORDED BASELINE, observed 2026-09-01 from the MAIN checkout at 2e2e45d2 with all eight
+      files byte-identical to ad93d43e. This task verify block run VERBATIM exits 1 with NO
+      output, because the first grep fails. The literal inflight_registry occurs 0 times in
+      test-check-domain.py, in test-plan-sign-gate.py and in plan-sign-gate.py today, so each
+      of the six greps fails individually. The two tail conjuncts alone are green today:
+      python3 .agents/skills/harness/bin/test-check-domain.py exits 0 printing 251 ok lines
+      and 0 FAIL lines, and python3 .agents/skills/harness/bin/test-plan-sign-gate.py exits 0
+      printing 45 ok lines and 0 FAIL lines. The six greps are therefore the whole
+      discriminator, and no earlier conjunct masks them because the greps run FIRST.

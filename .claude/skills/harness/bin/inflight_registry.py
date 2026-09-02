@@ -9,6 +9,7 @@ import datetime
 import json
 import math
 import os
+import re
 import shlex
 import subprocess
 import sys
@@ -19,6 +20,10 @@ import harness_boundary
 import harness_merge
 
 SINGLE_FLIGHT_AGENTS = ("harness-pm",)
+CANONICAL_ARTIFACTS = ("plan.yaml", "BRIEF.md", "feature.json", "STATE.md")
+_CANONICAL_ARTIFACT_RE = re.compile(
+    r"^\.harness/[^/]+/features/([^/]+)/(plan\.yaml|BRIEF\.md|feature\.json|STATE\.md)$"
+)
 # Claude Code exposes no durable child-process owner. FEAT-37 deliberately shortened this to one
 # normal PM cycle so an interrupted compatibility-host run does not strand a tier for an hour.
 CLAIM_TTL_SECONDS = 1200
@@ -265,6 +270,48 @@ def feature_root(owner_root, feature):
         return owner_root
     return resolved if resolved is not None else owner_root
 
+
+def canonical_artifact(rel):
+    match = _CANONICAL_ARTIFACT_RE.fullmatch(rel)
+    return match.groups() if match else None
+
+
+def quarantine_rel(rel, agent, session):
+    artifact = canonical_artifact(rel)
+    if artifact is None:
+        return None
+    feature, basename = artifact
+    session_key = session[:8] if session else "nosession"
+    return (
+        f".harness/harness/features/{feature}/quarantine/"
+        f"{agent}-{session_key}/{basename}"
+    )
+
+
+def orphan_write(root, agent, feature, session, now=None):
+    now = now if now is not None else time.time()
+    if not os.path.exists(_registry_path(root)):
+        return False
+
+    def mutator(data):
+        live, _expired = _expire_where(
+            data.get("claims", []),
+            now,
+            lambda claim: _matches(claim, feature=feature),
+        )
+        data["claims"] = live
+        feature_claims = [claim for claim in live if _matches(claim, feature=feature)]
+        has_compatibility_claim = any(
+            claim.get("runtime") != "omp" for claim in feature_claims
+        )
+        writer_is_live = any(
+            _matches(claim, agent=agent, feature=feature)
+            and _visible(claim, feature, session)
+            for claim in feature_claims
+        )
+        return data, has_compatibility_claim and not writer_is_live
+
+    return _update_registry(root, mutator)
 
 def live_claim(root, agent, now=None, session=None, feature=None):
     now = now if now is not None else time.time()
@@ -530,9 +577,8 @@ def children_refusal_lines(agent, children):
         "something the reporter cannot see."
     )
     lines.append(
-        "  this refusal fires at most once per consecutive stop sequence; an immediate second "
-        "identical return ships, and it re-fires on a later wake while a child is still live — "
-        "correct any claim about a child you cannot see and end the turn again."
+        "  the legal turn-end for a lead or orchestrator whose child is live is VERDICT "
+        "SUSPENDED with an awaiting list naming every live child."
     )
     return lines
 

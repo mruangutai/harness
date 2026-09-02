@@ -1,0 +1,199 @@
+{
+  "feature_id": "FEAT-51-claude-code-lifecycle-safety",
+  "branch": "feat/FEAT-51-claude-code-lifecycle-safety",
+  "pr": 1151,
+  "review_sha": "aab31504560627044a4d03cdcad611d5947d0b3e",
+  "cycles_used": 13,
+  "max_total_cycles": 20,
+  "runs": [
+    {
+      "id": "plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "plan-fix-c1-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "ESCALATE"
+    },
+    {
+      "id": "plan-fix-c2-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "plan-goalcheck-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "plan-fix-c3-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "plan-fix-c4-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "plan-panel-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "plan-transcribe-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "plan-ruling-c6-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "plan-ruling-c7-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "plan-decnum-c8-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "plan-panel-c9-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "plan-panelfix-c9-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "plan-panelverify-c9-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-01-01-eng",
+      "squad": "eng",
+      "agent": "harness-eng-lead",
+      "verdict": "ESCALATE"
+    },
+    {
+      "id": "2026-09-01-1-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-09-01-02-eng",
+      "squad": "eng",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-09-01-03-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "ESCALATE"
+    },
+    {
+      "id": "2026-09-01-05-eng",
+      "squad": "eng",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-09-01-04-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-09-01-2-simplify-eng",
+      "squad": "eng",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-09-01-01-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "FAIL"
+    },
+    {
+      "id": "2026-09-01-panel-c1-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL"
+    },
+    {
+      "id": "2026-09-01-1-eng",
+      "squad": "eng",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-09-01-delta-c1-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-09-01-06-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS"
+    }
+  ],
+  "github": {
+    "milestone": 38,
+    "parent": 1135,
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03",
+      "T-04",
+      "T-05",
+      "T-06",
+      "T-07",
+      "T-08",
+      "T-10"
+    ],
+    "issues": {
+      "T-01": 1136,
+      "T-02": 1137,
+      "T-03": 1138,
+      "T-04": 1139,
+      "T-05": 1140,
+      "T-06": 1141,
+      "T-07": 1142,
+      "T-08": 1143,
+      "T-10": 1144
+    },
+    "source_issues": [
+      280,
+      551
+    ]
+  }
+}
