@@ -38,9 +38,10 @@ decisions:
       The crashing-checker probe gets its broken feature_schema.py from a private COPY of the
       bin directory in a tempdir, not from a tempdir placed first on the child PYTHONPATH.
     because: >
-      check-domain.sh:125 does sys.path.insert(0, _bin_dir) inside its heredoc, so the real
-      bin directory wins over PYTHONPATH and the note's PYTHONPATH direction cannot reach
-      this consumer. Measured cost of the copy at ccf674a: 44ms for 117 files.
+      check-domain.sh runs sys.path.insert(0, _bin_dir) inside its heredoc — at line 125 as a DATED,
+      NON-BINDING anchor at 2a5cbada on 2026-09-01, whose durable identifier is that insert call
+      itself — so the real bin directory wins over PYTHONPATH and the note's PYTHONPATH direction
+      cannot reach this consumer. Measured cost of the copy at ccf674a: 44ms for 117 files.
     dec: none
   - id: D-02
     choice: >
@@ -122,7 +123,9 @@ decisions:
       FEAT-47 either, which is what the earlier draft of this decision had wrong: D-05 puts
       scheduling in run_pool.py, invoked once by bash which keeps kind selection, so the pool
       receives a list of script paths and never sees how they were discovered. It replaces
-      the serial for loop at run-unit-tests.sh:147-157 with a single invocation line, which is
+      the serial for loop — at run-unit-tests.sh:147-157 as a DATED, NON-BINDING anchor at
+      2a5cbada on 2026-09-01, whose durable identifier is that it is the only line in that script
+      containing "${SCRIPTS[@]}" — with a single invocation line, which is
       an ordinary edit for FEAT-47's later rewrite of that script to carry forward. Whether it
       does carry it forward is FEAT-47's plan to state; nothing in FEAT-48 asserts that and
       nothing depends on it, because FEAT-48 merges first, against today's runner. Nothing is
@@ -138,21 +141,99 @@ decisions:
     dec: none
   - id: D-10
     choice: >
-      The four other live-tree mutation sites found by the same scan — three in
-      test-check-state.py, one in test-feature-worktree.py — are fixed here rather than
-      allowlisted.
+      Every live-tree mutation site the census scan reports AT BUILD TIME is fixed here rather than
+      allowlisted, and the fix scope is DERIVED by running that scan rather than read off an
+      enumeration in this plan. No count and no file list anywhere in this plan defines that scope.
     because: >
-      they are the same hazard class as the injection site and the invariant cannot ship green
-      beside them; an allowlist entry for the first four violations is an invariant that
-      never bound anything. The count is four and not three because FEAT-45 merged a fourth
-      site into main while this plan was being written: commit 70fd441 added
-      _inv32_mutant_is_discriminating, which writes .check-state-inv32-mutant.sh into the live
-      bin directory. Re-derived at ccf674a, and measured rather than read — polling the live
-      bin directory across one test-check-state.py run at ccf674a reports
-      appeared ['.check-state-inv32-mutant.sh', '.mutant-check-state-t10.sh',
-      '.mutant-check-state-t14.sh']. This is the second time a sibling feature invalidated a
-      census here, which is why T-02's verify counts what appears rather than naming a fixed
-      set of basenames: a fifth site added by a future sibling reddens it on its own.
+      They are the same hazard class as the injection site T-01 removes and the invariant T-03 adds
+      cannot ship green beside them. THE ENUMERATION IS THE DEFECT, NOT THE COUNT, which is why this
+      entry no longer carries one. The earlier drafts of this decision named three sites, then four
+      after FEAT-45's commit 70fd441 merged one in during drafting, and the rebase onto origin/main then
+      took it to eight across four files as FEAT-50 and BUG-1071 landed. Three rewrites of one list,
+      each correct when written and stale within a cycle, on a branch whose whole subject is that the
+      shared tree changes underneath a running suite. A scope defined by a list is a scope that rots at
+      sibling-merge frequency; a scope defined by a procedure does not.
+
+      THE CENSUS SCAN, the derivation, stated precisely enough that two doers get the same set. It needs
+      no code this feature has not shipped and no judgement calls: (1) list every test-*.py directly
+      under .claude/skills/harness/bin, sorted by name, which is the file set the lanes glob bounds; (2)
+      snapshot (size, st_mtime_ns) for every file directly under that directory, skipping __pycache__
+      and any name ending .pyc; (3) run each test file in turn as [sys.executable, path] from the
+      repository root, with a daemon thread polling os.listdir of that directory throughout and
+      recording every name absent from the snapshot; (4) after each file exits, re-snapshot and record
+      every snapshotted path whose tuple changed or vanished; (5) print one line per pair, SITE
+      test-file basename, sorted. The derived set is exactly the set of SITE lines. It is deterministic
+      on a given tree because every known site creates its mutant unconditionally on the path the suite
+      always takes, and it is reproducible by anyone: no grep pattern to get wrong and no taint model to
+      reimplement. The basename is the durable identifier, as this plan already held; the anchors never
+      were. Cost is one serial suite pass over those files, about 250s at 2a5cbada, which is why it is a
+      build-time procedure the doer runs and records, and NOT a verify block.
+
+      DATED OBSERVATION, NON-BINDING, AND THE ONLY FIGURE THIS ENTRY STATES. Derived at source at
+      2a5cbada on 2026-09-01 by reading each site rather than by running the scan: EIGHT sites in FOUR
+      files. test-check-state.py writes .mutant-check-state-t14.sh, .mutant-check-state-t10.sh,
+      .check-state-inv32-mutant.sh and .check-state-inv32-era-mutant.sh; test-feature-worktree.py writes
+      .mutant-feature-worktree-behind.py; test-bash-write-guard.py writes
+      .feat50-bash-write-guard-PID.sh; test-check-domain.py writes .feat50-check-domain-PID.sh from the
+      helper _feat50_mutant_between, which has two callers, and separately overwrites the live
+      feature_schema.py, which is the site T-01 always owned. Two of those eight basenames embed
+      os.getpid(), so no fixed basename list could ever have named them — the shape argument in one
+      line. THIS FIGURE SIZES THE WORK AND DOES NOT DEFINE IT. If the scan at build time reports a
+      different set, the SCAN is right and this sentence is stale, and no task may be skipped or
+      narrowed on the strength of it.
+
+      THE BOUNDARY, AND IT IS AN ESCALATION, NEVER A SILENT WRITE. The census scan's file set is bounded
+      by the lanes glob .claude/skills/harness/bin/**. lanes: keys on that GLOB and not on individual
+      files, so every test file beneath it is already lane-resolved and adding one to a task's files:
+      needs no new lanes row. D-03's static walk is REPOSITORY-WIDE and can therefore report a site
+      OUTSIDE the glob: such a site has no lanes row, no task owns it, and the doer must STOP and
+      escalate to the operator rather than write it. At 2a5cbada all 59 discovered test files live under
+      the glob, so the boundary is vacuous today; it is stated because FEAT-47 moves the whole tree to
+      tests/unit, tests/integration and tests/manual, and D-09 has FEAT-48 merging first precisely so
+      that move happens after this scope closes.
+
+      AN ALLOWLIST IS STILL REFUSED, and deriving the scope is NOT a softening of D-04. Derivation makes
+      the SET open; it does not make any member optional. An allowlist entry makes a member optional,
+      which is how an invariant dies quietly — an allowlist covering the first eight violations is an
+      invariant that never bound anything. What changed is where the set comes from, not whether every
+      member of it is fixed.
+
+      WHAT THIS CHANGES AND WHAT IT DELIBERATELY LEAVES. T-02's verify MECHANISM was already derived and
+      is KEPT unchanged in substance: it polls the directory for anything that appeared rather than
+      matching fixed basenames, so a new site in a file it runs reddens it on its own. What failed was
+      the ENUMERATION around that mechanism — the four-item site list in T-02's intent and the two-file
+      run set its verify iterated by literal name, which is why the test-bash-write-guard.py site and
+      the second test-check-state.py mutant were invisible to a task that was otherwise correct. So the
+      site list goes, the poll stays, and a verify's run set is DERIVED from plan.yaml's own ownership
+      graph rather than spelled a second time where the two can drift apart: a task's run set is its own
+      files: list, plus the files of every task superseded into it, minus the files of every task still
+      live.
+
+      OWNERSHIP IS NO LONGER SPLIT BY FILE, AND T-07 IS SUPERSEDED. The tooling reason it ever existed
+      is recorded here because nothing else records it, and because the same constraint will be met
+      again. The test-bash-write-guard.py site could not be ADDED to T-02's files:, because
+      plan-merge.py amend refuses a list field (measured, exit 4: "a list or mapping field would need
+      its structure rewritten, which is apply's job") and apply refuses any existing id whose value
+      differs (exit 7 CONFLICT). apply CAN add a new id, so cycle 4 made that site a task of its own,
+      T-07. THAT SPLIT WAS ITSELF THE DEFECT. It contradicted the derived shape this entry mandates, and
+      it put T-03's ordering into prose, because T-03's depends_on cannot be widened for the same reason
+      — leaving a task that had to land before T-03 sitting as T-03's sibling in a ready wave, held
+      apart by a sentence. Cycle 5 closes the hole without ever writing a list. T-07 is stationed
+      abandoned and superseded in place: there is no delete verb, and the record of why it existed is
+      worth keeping. T-02 owns the site, and its verify reaches it by DERIVATION — its own files: plus
+      the files of every task whose station is abandoned and whose depends_on names T-02, minus the
+      files of every still-live task, which is what keeps T-01's test-check-domain.py out of T-02's run
+      set. The ordering that was prose is now the edge T-03 already carries, depends_on [T-01, T-02];
+      between them T-01 and T-02 own every site the census scan reports.
+
+      TWO INSTRUMENTS, ONE DIVISION, because neither alone fits a 60s verify budget. T-01's and T-02's
+      verify blocks are the OWNERSHIP check over the files each task changes; measured serially at
+      2a5cbada, those files cost 22.5s, 33.6s, 5.7s and 7.8s, which is what bounds them and why T-02
+      runs its three concurrently — serially they would blow the budget, concurrently the wall clock is
+      the slowest of them. Each is true by construction about completeness and claims nothing about it.
+      COMPLETENESS is T-03's live-tree ZERO over every file D-03's walk discovers — the derived
+      instrument that sees a site in a file no task names. A site either of them missed reddens there,
+      in CI, on every push to an open PR.
   - id: D-11
     choice: >
       run_pool.py enforces REQ-01 at RUNTIME on every run, not only at fix time, over ONE
@@ -164,65 +245,58 @@ decisions:
       --mutation-check "$BIN_DIR", the shared code directory, and never the repository root;
       T-06's verify asserts that exact argument and T-04's asserts the check's behaviour.
     because: >
-      the static invariant T-03 adds checks the SOURCE of the tests, and this feature's own
-      research note records the two classes it cannot see: a mutation performed through a
-      subprocess (notes/research-FEAT-48-independence-invariant.md, Open) and one wrapped in a
-      helper, since taint does not cross a call boundary. A before/after comparison of on-disk
-      state is blind to neither, because it grades the effect and not the syntax.
-      WHAT IT COVERS AND WHAT IT DOES NOT, stated because an earlier draft of this entry
-      claimed coverage "against every vector including the two the scan is blind to", which is
-      false of any bounded watched set and would stop the next auditor looking. Inside DIR it
-      is vector-agnostic, and it sees a NEW UNTRACKED file appear — the vector T-02's four
-      sites actually used (.mutant-*.sh, .mutant-*.py and .check-state-inv32-mutant.sh
-      materialising in live bin/) and the
-      one a git ls-files watched set cannot see at all. Outside DIR it sees NOTHING: a test
-      that writes .harness/harness.json or a workflow file is caught only by T-03's static
-      scan, with that scan's two blind spots intact. THERE IS A THIRD UNCOVERED CLASS, named
-      here so the next auditor does not read the two named blind spots as the whole gap:
-      T-03's taint model seeds only the literal __file__, so a write to a path built from a
-      relative literal or joined onto os.getcwd() carries no tainted name and the static scan
-      reports nothing, while a target outside DIR is invisible to this check too. Such a write
-      is caught by NEITHER half.
-      THERE IS A FOURTH UNCOVERED CLASS, opened by T-03's own content-read exclusion and named
-      here for the same reason: because a value read out of a file does not carry that file's
-      taint, a write to a target derived from the CONTENT of a tainted read — a path string
-      embedded in a manifest, config or fixture the test reads — is never tainted, so the static
-      scan misses it even where the target is inside the live checkout. Inside DIR the runtime
-      check still grades it, because that half grades the effect; outside DIR neither half sees
-      it. It is unexploited at d5c23a0 — the scan re-derived independently there finds exactly
-      the ten known sites and nothing else — and the exclusion stays, because without it SC-03's
-      live-tree zero is unreachable in any tree.
-      The two checks together are not complete and no criterion
-      here claims they are.
-      WHY DIR IS bin/ AND NOT THE ROOT. The root-wide set the first draft specified is
-      unusable in this factory, and not marginally: agents write .harness/harness/features/**
-      — plans, notes, runs, observations — continuously while suites run, and run-unit-tests.sh
-      is invoked BY those agents on the same machine. Operator measurement, 2026-08-31: 1,904
-      tracked files under that tree modified in three hours across the live worktrees. A
-      root-wide snapshot therefore reddens a passing suite whenever a sibling agent writes a
-      note — a new flake class introduced by the fix for a flake. bin/ is the shared code every
-      test file imports from, both observed hazard sites are in it, and no agent writes it
-      during a run. __pycache__ is excluded because a child importing a bin module writes
-      bin/__pycache__/*.pyc by itself on every run; that directory exists in the tree today, so
-      without the exclusion the check reddens on its own side effect.
-      THE RESIDUAL TRADE, accepted: an agent or a human who edits a file in bin/ DURING a run
-      trips it. That is rarer than the features-tree case by construction, and it is not a
-      false alarm in the same sense — the suite's own code changed under it, so the verdict is
-      untrustworthy either way — but it is a real red, so the failure line says that a file
-      edited during the run looks identical from here, and names the path. T-06 records the
-      tree condition its ten SC-05 runs were taken under, because that is the real operating
-      condition rather than the quiet tree the first draft assumed.
-      GIT IS NOT USED AT ALL. Dropping git ls-files is what makes untracked creation visible
-      and what lets test-run-pool.py's fixtures run outside a checkout; the refusal it replaces
-      — git absent or ls-files failing — becomes DIR absent or holding no files, exit 2, so a
-      check that measured nothing can never report clean. Cost is bounded above by the
-      root-wide measurement it replaces, 2 x 14ms over 2,069 paths at ea6f51f against a ~47s
-      run; bin/ holds 117 files at ccf674a, 2,150 tracked paths repository-wide.
+      the static invariant T-03 adds checks the SOURCE of the tests, and this feature's own research
+      note records the two classes it cannot see: a mutation performed through a subprocess
+      (notes/research-FEAT-48-independence-invariant.md, Open) and one wrapped in a helper, since taint
+      does not cross a call boundary. A before/after comparison of on-disk state is blind to neither,
+      because it grades the effect and not the syntax. WHAT IT COVERS AND WHAT IT DOES NOT, stated
+      because an earlier draft of this entry claimed coverage "against every vector including the two
+      the scan is blind to", which is false of any bounded watched set and would stop the next auditor
+      looking. Inside DIR it is vector-agnostic, and it sees a NEW UNTRACKED file appear — the vector
+      every live-tree mutation site T-01 and T-02 remove actually used (.mutant-*.sh, .mutant-*.py,
+      .check-state-inv32*.sh and the PID-named .feat50-*.sh materialising in live bin/; the set is
+      derived at build time and not counted here, per D-10) and the one a git ls-files watched set
+      cannot see at all. Outside DIR it sees NOTHING: a test that writes .harness/harness.json or a
+      workflow file is caught only by T-03's static scan, with that scan's two blind spots intact. THERE
+      IS A THIRD UNCOVERED CLASS, named here so the next auditor does not read the two named blind spots
+      as the whole gap: T-03's taint model seeds only the literal __file__, so a write to a path built
+      from a relative literal or joined onto os.getcwd() carries no tainted name and the static scan
+      reports nothing, while a target outside DIR is invisible to this check too. Such a write is caught
+      by NEITHER half. THERE IS A FOURTH UNCOVERED CLASS, opened by T-03's own content-read exclusion
+      and named here for the same reason: because a value read out of a file does not carry that file's
+      taint, a write to a target derived from the CONTENT of a tainted read — a path string embedded in
+      a manifest, config or fixture the test reads — is never tainted, so the static scan misses it even
+      where the target is inside the live checkout. Inside DIR the runtime check still grades it,
+      because that half grades the effect; outside DIR neither half sees it. It is unexploited at
+      d5c23a0 — the scan re-derived independently there finds exactly the ten known sites and nothing
+      else — and the exclusion stays, because without it SC-03's live-tree zero is unreachable in any
+      tree. The two checks together are not complete and no criterion here claims they are. WHY DIR IS
+      bin/ AND NOT THE ROOT. The root-wide set the first draft specified is unusable in this factory,
+      and not marginally: agents write .harness/harness/features/** — plans, notes, runs, observations —
+      continuously while suites run, and run-unit-tests.sh is invoked BY those agents on the same
+      machine. Operator measurement, 2026-08-31: 1,904 tracked files under that tree modified in three
+      hours across the live worktrees. A root-wide snapshot therefore reddens a passing suite whenever a
+      sibling agent writes a note — a new flake class introduced by the fix for a flake. bin/ is the
+      shared code every test file imports from, both observed hazard sites are in it, and no agent
+      writes it during a run. __pycache__ is excluded because a child importing a bin module writes
+      bin/__pycache__/*.pyc by itself on every run; that directory exists in the tree today, so without
+      the exclusion the check reddens on its own side effect. THE RESIDUAL TRADE, accepted: an agent or
+      a human who edits a file in bin/ DURING a run trips it. That is rarer than the features-tree case
+      by construction, and it is not a false alarm in the same sense — the suite's own code changed
+      under it, so the verdict is untrustworthy either way — but it is a real red, so the failure line
+      says that a file edited during the run looks identical from here, and names the path. T-06 records
+      the tree condition its ten SC-05 runs were taken under, because that is the real operating
+      condition rather than the quiet tree the first draft assumed. GIT IS NOT USED AT ALL. Dropping git
+      ls-files is what makes untracked creation visible and what lets test-run-pool.py's fixtures run
+      outside a checkout; the refusal it replaces — git absent or ls-files failing — becomes DIR absent
+      or holding no files, exit 2, so a check that measured nothing can never report clean. Cost is
+      bounded above by the root-wide measurement it replaces, 2 x 14ms over 2,069 paths at ea6f51f
+      against a ~47s run; bin/ holds 117 files at ccf674a, 2,150 tracked paths repository-wide.
     dec: none
 
 tasks:
   - id: T-01
-    title: Give the crashing-checker probe a private bin copy instead of overwriting the live module
+    title: Give both test-check-domain.py mutation probes a private bin copy instead of the live tree
     traces: [REQ-01]
     change_type: bugfix
     execution_mode: main-session-direct
@@ -236,41 +310,64 @@ tasks:
       - .claude/skills/harness/bin/test-check-domain.py
     verify: |
       python3 - <<'PY'
-      import os, subprocess, sys
-      fs = ".claude/skills/harness/bin/feature_schema.py"
-      b, m = open(fs, "rb").read(), os.stat(fs).st_mtime_ns
-      r = subprocess.run([sys.executable, ".claude/skills/harness/bin/test-check-domain.py"],
+      import os, subprocess, sys, threading
+      b = ".claude/skills/harness/bin"
+      fs = os.path.join(b, "feature_schema.py")
+      before, m = open(fs, "rb").read(), os.stat(fs).st_mtime_ns
+      base, appeared, stop = set(os.listdir(b)), set(), threading.Event()
+      def poll():
+          while not stop.is_set():
+              try:
+                  appeared.update(set(os.listdir(b)) - base)
+              except OSError:
+                  pass
+      threading.Thread(target=poll, daemon=True).start()
+      r = subprocess.run([sys.executable, os.path.join(b, "test-check-domain.py")],
                          capture_output=True, text=True)
-      a, m2 = open(fs, "rb").read(), os.stat(fs).st_mtime_ns
-      out = r.stdout + r.stderr
-      crash = [l for l in out.splitlines()
-               if l.startswith("ok") and "CRASHING schema module DENIES" in l]
-      untouched = [l for l in out.splitlines()
-                   if l.startswith("ok") and "never written" in l]
-      print("exit", r.returncode, "bytes_equal", a == b, "mtime_equal", m == m2,
-            "crash_case", len(crash), "untouched_case", len(untouched))
-      sys.exit(0 if (r.returncode == 0 and a == b and m == m2
-                     and len(crash) == 1 and len(untouched) == 1) else 1)
+      stop.set()
+      after, m2 = open(fs, "rb").read(), os.stat(fs).st_mtime_ns
+      out = (r.stdout + r.stderr).splitlines()
+      crash = [l for l in out if l.startswith("ok") and "CRASHING schema module DENIES" in l]
+      untouched = [l for l in out if l.startswith("ok") and "never written" in l]
+      print("exit", r.returncode, "bytes_equal", after == before, "mtime_equal", m == m2,
+            "crash_case", len(crash), "untouched_case", len(untouched),
+            "appeared", sorted(appeared))
+      sys.exit(0 if (r.returncode == 0 and after == before and m == m2 and len(crash) == 1
+                     and len(untouched) == 1 and not appeared) else 1)
       PY
     intent: |
-      Remove the shared-file mutation at test-check-domain.py:1475-1490 and keep the case it
-      proves. Do not narrow the window, do not retry, do not reorder: the hazard is removed,
-      not made less likely.
+      Remove BOTH shared-file mutation sites in test-check-domain.py and keep every case they
+      prove. Do not narrow a window, do not retry, do not reorder: the hazard is removed, not made
+      less likely.
 
-      WHAT IS WRONG TODAY. run_schema case 3 proves that a crashing schema checker DENIES a
+      RE-DERIVE THE SITES BEFORE YOU EDIT. Every line number below is a DATED OBSERVATION at
+      2a5cbada on 2026-09-01 and is NON-BINDING (D-10); the basenames and the function names are the
+      durable identifiers. Run D-10's census scan over this file first and record its SITE lines in
+      the receipt. If it reports a site in this file that is not described below, fix it in the same
+      shape and say so in the receipt; a site outside .claude/skills/harness/bin/** is an escalation
+      to the operator, never a silent write.
+
+      SITE A — run_schema case 3, at 1470-1492. It proves that a crashing schema checker DENIES a
       write rather than failing open. It does so by rewriting the LIVE
-      .claude/skills/harness/bin/feature_schema.py, firing the hook, and restoring the bytes
-      in a finally. The restore is correct and asserted. The invariant it protects is "the
-      file is intact afterwards"; the invariant concurrency needs is "no other process reads
-      this file while it is broken", and no care inside one process can supply that. Measured
-      2026-08-31: 5,105 of 1,032,849 polls saw a broken module, first at 8.68s into one run.
+      .claude/skills/harness/bin/feature_schema.py, firing the hook, and restoring the bytes in a
+      finally. The restore is correct and asserted. The invariant it protects is "the file is intact
+      afterwards"; the invariant concurrency needs is "no other process reads this file while it is
+      broken", and no care inside one process can supply that. Measured 2026-08-31: 5,105 of
+      1,032,849 polls saw a broken module, first at 8.68s into one run.
       notes/research-parallel-safety.md holds the evidence.
 
-      WHY PYTHONPATH IS NOT THE ANSWER, despite what that note proposes. check-domain.sh
-      exports PYTHONPATH with its own directory first (line 102) and then its heredoc runs
-      sys.path.insert(0, _bin_dir) with _bin_dir taken from argv (line 125). Both entries are
-      the real bin directory, so a tempdir on PYTHONPATH loses. The child must therefore run a
-      hook whose OWN directory is private.
+      SITE B — the helper _feat50_mutant_between, at 3275-3289, which writes
+      .feat50-check-domain-PID.sh INTO the live bin directory, chmods it, runs it, and unlinks it in
+      a finally. Two callers, _feat50_binding_red_case at 3293 and the second at 3367. Same hazard
+      class as SITE A and strictly worse in one respect: the basename embeds os.getpid(), so no
+      fixed-name census could ever have listed it, which is why D-10's scope is derived. It was
+      absent at d5c23a0 and arrived on the rebase with FEAT-50.
+
+      WHY PYTHONPATH IS NOT THE ANSWER for either, despite what the research note proposes.
+      check-domain.sh exports PYTHONPATH with its own directory first (line 102) and then its
+      heredoc runs sys.path.insert(0, _bin_dir) with _bin_dir taken from argv (line 125). Both
+      entries are the real bin directory, so a tempdir on PYTHONPATH loses. The child must therefore
+      run a hook whose OWN directory is private.
 
       WHAT TO BUILD.
 
@@ -282,56 +379,76 @@ tasks:
                derives its root with cd/pwd on dirname(BASH_SOURCE), so a symlinked script
                would resolve back into the live tree and defeat the isolation."""
 
-         Implement with shutil.copytree from os.path.dirname(os.path.realpath(__file__)),
-         creating parents. Measured cost: 48ms for 111 files. Name the four-levels-up shape in
-         a comment: the destination path is what makes the copied hook derive dest_root as its
-         project root, which is why the segment .claude/skills/harness/bin is not cosmetic.
-         Do not add a mode, a filter or a cache argument; one caller shape, one function.
+         Implement with shutil.copytree from os.path.dirname(os.path.realpath(__file__)), creating
+         parents. Measured cost: 48ms for 111 files. Name the four-levels-up shape in a comment: the
+         destination path is what makes the copied hook derive dest_root as its project root, which
+         is why the segment .claude/skills/harness/bin is not cosmetic. Do not add a mode, a filter
+         or a cache argument; one caller shape, one function. T-02 imports it for every site it
+         fixes, so it is built here and changed nowhere else.
 
-      2. In test-check-domain.py run_schema, replace case 3 with four steps. Import the helper
-         with sys.path.insert(0, HERE) beside the existing HERE constant.
+      2. SITE A. In run_schema, replace case 3 with four steps. Import the helper with
+         sys.path.insert(0, HERE) beside the existing HERE constant.
 
-         a. iso = isolated_bin(root), where root is the SCHEMA_MANIFEST fixture the function
-            already builds. Reusing the fixture root keeps one root: the copied hook derives
-            it from its own location and _env already points HARNESS_PROJECT_DIR at it.
+         a. iso = isolated_bin(root), where root is the SCHEMA_MANIFEST fixture the function already
+            builds. Reusing the fixture root keeps one root: the copied hook derives it from its own
+            location and _env already points HARNESS_PROJECT_DIR at it.
          b. A CONTROL, and it is load-bearing: fire the COPIED, UNBROKEN hook at the illegal
-            document and assert exit 2 with invented_key in stderr. Without it, case 3's exit
-            2 could come from any difference between the copy and the original rather than
-            from the injection, and the case would be green for the wrong reason. Assert it
-            with the existing case() helper, named so it reads as a control.
-         c. Break the copy in place: same marker search on
-            os.path.join(iso, "feature_schema.py"), same injected raise. No before-bytes, no
-            try, no finally, no restore — nothing shared is being mutated, and a restore here
-            would only re-teach the pattern.
+            document and assert exit 2 with invented_key in stderr. Without it, case 3's exit 2
+            could come from any difference between the copy and the original rather than from the
+            injection, and the case would be green for the wrong reason. Assert it with the existing
+            case() helper, named so it reads as a control.
+         c. Break the copy in place: same marker search on os.path.join(iso, "feature_schema.py"),
+            same injected raise. No before-bytes, no try, no finally, no restore — nothing shared is
+            being mutated, and a restore here would only re-teach the pattern.
          d. Fire the copied hook again at the illegal document and keep the existing assertion
             verbatim: exit 2 and CRASHED in stderr, with the same detail string.
 
-         Then replace the old restoration assertion with the property that actually matters,
-         phrased so the verify block above can find it — the case name must contain the words
-         "never written":
+         Then replace the old restoration assertion with the property that actually matters, phrased
+         so the verify block above can find it — the case name must contain the words "never
+         written":
 
            the live feature_schema.py was never written (bytes and mtime unchanged)
 
-         Capture bytes and st_mtime_ns of the LIVE module at the top of run_schema and compare
-         at the end. Assert both. mtime as well as bytes: a byte-identical rewrite is still a
-         write, and mtime is what a concurrent reader's cache sees.
+         Capture bytes and st_mtime_ns of the LIVE module at the top of run_schema and compare at
+         the end. Assert both. mtime as well as bytes: a byte-identical rewrite is still a write,
+         and mtime is what a concurrent reader's cache sees.
 
-      Keep shutil.rmtree(root, ignore_errors=True) at the end; the iso copy lives under it and
-      goes with it.
+         Keep shutil.rmtree(root, ignore_errors=True) at the end; the iso copy lives under it and
+         goes with it.
 
-      Test-first is satisfied by ordering: add the new never-written assertion BEFORE changing
-      case 3 and run the file — it must FAIL, because today the probe writes the live module.
-      Record that failure in the receipt. Then make the change and see all cases pass.
+      3. SITE B, in the same isolated_bin shape. _feat50_mutant_between currently takes (start, end)
+         and returns a path in HERE. Give it the destination instead — _feat50_mutant_between(start,
+         end, iso) returning os.path.join(iso, "check-domain.sh") — and have each caller build its
+         own iso = isolated_bin(tempfile.mkdtemp()) from the fixture root it already has, exactly as
+         step 2a does. Write the mutated source over the COPY's check-domain.sh, keeping
+         os.chmod(path, os.stat(HOOK).st_mode) so the executable bit is right. HOOK stays the LIVE
+         hook for the stat and for the source read: reading is not the hazard.
+
+         Keep every existing assertion, message and INCONCLUSIVE branch byte-for-byte — both anchor
+         refusals and the byte-identical refusal included. This changes WHERE the mutant lives and
+         nothing about what is proved. Delete the finally that unlinks the mutant from the live tree;
+         remove the iso tempdir instead, with shutil.rmtree(..., ignore_errors=True). Rewrite any
+         comment that says the mutant must live beside the original to state the new mechanism, so
+         the next reader does not restore the old one for the reason it gives. The mutant runs from
+         inside a COMPLETE copy of bin, so every sibling import it needs resolves — which is the
+         reasoning the old comment gave and isolated_bin satisfies.
+
+      Test-first is satisfied by ordering: add the new never-written assertion BEFORE changing case
+      3 and run the file — it must FAIL, because today the probe writes the live module. Then run
+      this task's verify block BEFORE touching SITE B: its "appeared" set must be non-empty and name
+      .feat50-check-domain-PID.sh, which is the positive control that makes the post-fix empty set
+      mean something. Record both failures in the receipt. Then make the changes and see all cases
+      pass with an empty appeared set.
 
   - id: T-02
-    title: Route the four mutant-file probes through a private bin copy
+    title: Route every mutant-file probe in the two files this task owns through a private bin copy
     traces: [REQ-01]
     change_type: bugfix
     execution_mode: main-session-direct
     execution_reason: >
-      DEC-174 carve-out. test-check-state.py is the test of check-state.sh, a gate script CI
-      runs as a required step; test-feature-worktree.py is edited in the same change because
-      the invariant T-03 adds cannot land green while either site remains.
+      DEC-174 carve-out. test-check-state.py is the test of check-state.sh, a gate script CI runs
+      as a required step; test-feature-worktree.py is edited in the same change because the
+      invariant T-03 adds cannot land green while any site in either file remains.
     depends_on: [T-01]
     status: plan
     files:
@@ -339,79 +456,122 @@ tasks:
       - .claude/skills/harness/bin/test-feature-worktree.py
     verify: |
       python3 - <<'PY'
-      import os, subprocess, sys, threading
-      bin_dir = ".claude/skills/harness/bin"
-      base = set(os.listdir(bin_dir))
-      mtimes = {n: os.stat(os.path.join(bin_dir, n)).st_mtime_ns
-                for n in base if os.path.isfile(os.path.join(bin_dir, n))}
+      import concurrent.futures as cf, os, subprocess, sys, threading, yaml
+      b = ".claude/skills/harness/bin"
+      p = ".harness/harness/features/FEAT-48-parallel-safe-suite/plan.yaml"
+      T = yaml.safe_load(open(p))["tasks"]
+      me = [x for x in T if x["id"] == "T-02"][0]
+      absorbed = {f for x in T if x.get("status") == "abandoned"
+                  and "T-02" in (x.get("depends_on") or []) for f in x["files"]}
+      absorbed -= {f for x in T if x["id"] != "T-02" and x.get("status") != "abandoned"
+                   for f in x["files"]}
+      run_set = sorted(f for f in set(me["files"]) | absorbed
+                       if os.path.basename(f).startswith("test-"))
+      missing = [f for f in run_set if not os.path.isfile(f)]
+      base = set(os.listdir(b))
+      mt = {n: os.stat(os.path.join(b, n)).st_mtime_ns
+            for n in base if os.path.isfile(os.path.join(b, n))}
       appeared, stop = set(), threading.Event()
       def poll():
           while not stop.is_set():
-              try:
-                  appeared.update(set(os.listdir(bin_dir)) - base)
-              except OSError:
-                  pass
-      t = threading.Thread(target=poll, daemon=True)
-      t.start()
-      fails = []
-      for name in ("test-check-state.py", "test-feature-worktree.py"):
-          r = subprocess.run([sys.executable, os.path.join(bin_dir, name)],
-                             capture_output=True, text=True)
-          if r.returncode != 0:
-              fails.append((name, r.returncode, r.stdout[-400:]))
-      stop.set(); t.join(timeout=5)
-      moved = sorted(n for n, v in mtimes.items()
-                     if os.path.exists(os.path.join(bin_dir, n))
-                     and os.stat(os.path.join(bin_dir, n)).st_mtime_ns != v)
-      print("fails", [f[:2] for f in fails], "appeared", sorted(appeared), "moved", moved)
-      sys.exit(0 if not fails and not appeared and not moved else 1)
+              try: appeared.update(set(os.listdir(b)) - base)
+              except OSError: pass
+      threading.Thread(target=poll, daemon=True).start()
+      def one(f):
+          return (os.path.basename(f),
+                  subprocess.run([sys.executable, f], capture_output=True, text=True).returncode)
+      with cf.ThreadPoolExecutor(max_workers=max(1, len(run_set))) as ex:
+          res = list(ex.map(one, run_set))
+      stop.set()
+      moved = sorted(n for n, v in mt.items()
+                     if os.path.exists(os.path.join(b, n))
+                     and os.stat(os.path.join(b, n)).st_mtime_ns != v)
+      fails = [x for x in res if x[1] != 0]
+      print("run_set", [os.path.basename(f) for f in run_set], "absorbed", sorted(absorbed),
+            "fails", fails, "appeared", sorted(appeared), "moved", moved, "missing", missing)
+      sys.exit(0 if (absorbed and not missing and not fails and not appeared and not moved)
+               else 1)
       PY
     intent: |
-      Three probes write a mutant script INTO the live bin directory, run it, and delete it in
-      a finally. Same hazard class as T-01: for the duration of the run, the shared tree has a
-      file in it that nothing else expects, and a tracked-file mtime is one editing mistake
-      away.
+      Several probes write a mutant script INTO the live bin directory, run it, and delete it in a
+      finally. Same hazard class as T-01: for the duration of the run the shared tree holds a file
+      nothing else expects, and a tracked-file mtime is one editing mistake away.
 
-      THE FOUR SITES. The first three are at ea6f51f and at ccf674a alike; the fourth arrived
-      on the rebase, from FEAT-45's commit 70fd441, and its line numbers are at ccf674a:
-        test-check-state.py:2109-2133      .mutant-check-state-t14.sh
-        test-check-state.py:2245-2269      .mutant-check-state-t10.sh
-        test-check-state.py:3066-3088      .check-state-inv32-mutant.sh  (FEAT-45, INV-32)
-        test-feature-worktree.py:583-607   .mutant-feature-worktree-behind.py
-      Re-derive the line numbers before you edit; do not trust these four anchors if the file
-      has moved under you again. The basenames are the durable identifier.
+      THE SCOPE IS DERIVED, NEVER READ OFF A LIST (D-10). Before you edit anything, run D-10's
+      census scan over every file in this task's RUN SET, and record its SITE lines in the receipt.
+      THE RUN SET IS NOT THE files: LIST ALONE. plan-merge.py has no verb that grows a write-once
+      list, so the verify block above derives the run set from plan.yaml instead: this task's files:
+      plus the files of every task superseded into it — station abandoned, depends_on naming T-02 —
+      minus the files of every task still live. Run that block once and read its run_set line; those
+      are the files you fix. That output — not any sentence in this plan — is the set you fix. The
+      basenames it prints are the durable identifiers; there are no line anchors here on purpose,
+      because the four this task carried in cycle 4 were stale within one cycle three times running.
 
-      Each carries a comment explaining why the mutant must live beside the original: the
+      WHAT THE SCAN FOUND AT 2a5cbada, as a DATED, NON-BINDING OBSERVATION that sizes the work and
+      does not define it: six sites in three files. Four in test-check-state.py, writing
+      .mutant-check-state-t14.sh, .mutant-check-state-t10.sh, .check-state-inv32-mutant.sh and
+      .check-state-inv32-era-mutant.sh — that last one arrived on the rebase with BUG-1071, from
+      case_inv32_era_guard_is_load_bearing, which main() calls unconditionally, and it is a SECOND
+      mutant in a file whose earlier draft of this task believed it had three. One in
+      test-feature-worktree.py, writing .mutant-feature-worktree-behind.py. One in
+      test-bash-write-guard.py, where the helper _feat50_bash_mutant writes
+      .feat50-bash-write-guard-PID.sh into the live bin directory, chmods it from the live guard's
+      mode, and its caller _feat50_bash_red_case runs it and unlinks it in a finally; that basename
+      embeds os.getpid(), which is why no fixed-name list could ever have carried it, and it arrived
+      on the rebase with FEAT-50.
+
+      THAT THIRD FILE IS YOURS, and it is the one addition to watch for. It sits inside the lanes
+      glob .claude/skills/harness/bin/**, so it is already lane-resolved; the census scan reports it;
+      and it reaches you through the derived run set rather than through a files: list, because no
+      verb can put it there. Cycle 4 carved it out as a task of its own, T-07; that task is stationed
+      abandoned and superseded by this one (D-10). Fix it in exactly the same isolated_bin shape as
+      the rest, and NAME the addition in the receipt, because no task's files: list predicted it.
+
+      If the scan reports a different set in these files, the scan is right. If it reports a site in
+      a FURTHER file under .claude/skills/harness/bin/**, that file is lane-resolved by the glob and
+      you may fix it in the same shape — but NAME the addition in the receipt, because no task's
+      files: list predicted it. A site outside that glob is an ESCALATION to the operator, never a
+      silent write.
+
+      Each site carries a comment explaining why the mutant must live beside the original: the
       script under test imports harness_yaml, factory_config or harness_boundary from its OWN
-      directory, so a copy written into a bare tmpdir dies on import and returns a non-zero
-      code indistinguishable from the refusal the proof is trying to see. That reasoning is
-      correct, and isolated_bin from T-01 satisfies it: the mutant lands in a COMPLETE copy of
-      the bin directory, so every sibling import resolves.
+      directory, so a copy written into a bare tmpdir dies on import and returns a non-zero code
+      indistinguishable from the refusal the proof is trying to see. That reasoning is correct, and
+      isolated_bin from T-01 satisfies it: the mutant lands in a COMPLETE copy of the bin directory,
+      so every sibling import resolves.
 
-      FOR EACH SITE:
-        1. iso = isolated_bin(tempfile.mkdtemp()) — or the fixture root the case already
-           builds, when there is one.
-        2. Write the mutant text to os.path.join(iso, <same basename as today>), keeping the
+      FOR EACH SITE THE SCAN REPORTS:
+        1. iso = isolated_bin(tempfile.mkdtemp()) — or the fixture root the case already builds,
+           when there is one.
+        2. Write the mutant text to os.path.join(iso, <the same basename as today>), keeping the
            existing shutil.copymode(SCRIPT, mpath) so the executable bit is right.
-        3. Run the mutant from that path. Keep every existing assertion, message and
-           INCONCLUSIVE branch byte-for-byte: this task changes WHERE the mutant lives and
-           nothing about what is proved. In particular keep the pre-flight assertion that the
-           mutation changed the source, and keep comparing mutant against original on the same
-           fixture input.
+        3. Run the mutant from that path. Keep every existing assertion, message and INCONCLUSIVE
+           branch byte-for-byte: this task changes WHERE the mutant lives and nothing about what is
+           proved. In particular keep the pre-flight assertion that the mutation changed the source,
+           keep the markers-absent branch that prints FAIL rather than raising, and keep comparing
+           mutant against original on the same fixture input.
         4. Delete the finally that removes the mutant from the live tree, and the os.remove /
            os.path.exists dance with it. Remove the tempdir instead, with
            shutil.rmtree(..., ignore_errors=True).
-        5. Rewrite the beside-the-original comment to state the new mechanism, so the next
-           reader does not restore the old one for the reason it gives.
+        5. Rewrite the beside-the-original comment to state the new mechanism, so the next reader
+           does not restore the old one for the reason it gives.
 
       In test-feature-worktree.py the mutant path is also passed to the child through
       FEATURE_WORKTREE_BIN; that env value must be the new iso path.
 
-      Test-first is satisfied by the verify block above, which polls the bin directory while
-      both files run: run it BEFORE the change and it must fail, naming all four mutant
-      basenames under "appeared". Measured at ccf674a, test-check-state.py alone already
-      accounts for three of them. Record that output in the receipt — it is the pre-fix
-      positive control that makes the post-fix empty set mean something.
+      TEST-FIRST is satisfied by the verify block above, and it needs no editing to follow the
+      derived set: it reads its run set out of plan.yaml — this task's files: plus what was
+      superseded into it, minus what a live task owns — so no filename is spelled twice and the two
+      cannot drift. Run it BEFORE the change and it must FAIL, naming under "appeared" every mutant
+      basename the census scan found in those files, .feat50-bash-write-guard-PID.sh included.
+      Record that output in the receipt — it is the pre-fix positive control that makes the post-fix
+      empty set mean something. It runs the files concurrently because serially they measured 33.6s,
+      5.7s and 7.8s at 2a5cbada, and the budget is 60s.
+
+      WHAT THIS BLOCK DOES NOT PROVE, said plainly because a green here is not a clean tree: it is
+      an OWNERSHIP check over the files in its run set, true by construction about the rest of the
+      repository.
+      COMPLETENESS is T-03's live-tree zero over every file D-03's walk discovers (D-10).
 
   - id: T-03
     title: Add the suite-independence invariant and register it in the unit kind
@@ -466,80 +626,103 @@ tasks:
       PY
     intent: |
       Add ONE new test file that is also the invariant: a static scan asserting no test in this
-      repository mutates a path inside the live checkout. It reports zero over the live tree
-      and reddens on a violating one, and both directions are asserted in the same run.
+      repository mutates a path inside the live checkout. It reports zero over the live tree and
+      reddens on a violating one, and both directions are asserted in the same run.
+
+      THIS TASK IS THE COMPLETENESS INSTRUMENT (D-10), and that is why its live-tree zero is the
+      only assertion in this plan that quantifies over the whole tree. T-01 and T-02 each
+      prove OWNERSHIP over the files they change and are true by construction about the rest; this
+      file is what sees a mutation site in a file no task names, on every push to an open PR.
+
+      EVERY file:line ANCHOR BELOW IS A DATED, NON-BINDING OBSERVATION at 2a5cbada on 2026-09-01
+      unless it names a sha (D-10). That covers the harness_boundary.py resolver anchors and the
+      test-check-domain.py false-positive anchors, both of which are ILLUSTRATION: the durable
+      identifiers are the function names and the code shapes, and the test-check-domain.py ones
+      already drift by two lines against the ccf674a measurement they were taken at. Re-derive any
+      anchor you act on. THE ONE EXCEPTION is the ten historical sites near the end: they are read
+      out of a PINNED tree, git show ea6f51f, so they cannot rot and are binding as written.
+
+      ORDERING, AND IT IS CARRIED BY THE DAG, NOT BY THIS PARAGRAPH. This task requires T-01 AND
+      T-02 landed: its verify block asserts a live-tree ZERO and every unfixed site reddens it.
+      depends_on names exactly those two, so the requirement is an EDGE and a doer cannot reach this
+      task with either one unlanded. Cycle 4 had a third task, T-07, carrying one file that could not
+      be added to T-02's write-once files: list; its ordering lived in this paragraph as prose,
+      because depends_on cannot be widened either — amend refuses a list (exit 4) and apply refuses a
+      changed value (exit 7). That prose is gone: T-07 is stationed abandoned, T-02 owns its file
+      through the derived run set, and the edge to T-02 now covers what the sentence used to (D-10).
+      What remains yours: do not narrow the rule, do not add an exclusion, and do not fix another
+      task's site from inside this task.
 
       FILE: .claude/skills/harness/bin/test-suite-independence.py, executable, no third-party
       import, no subprocess — it belongs to the unit kind and must stay there.
 
-      DISCOVERY, AND THE ROOT IS RESOLVED, NEVER COUNTED. Do NOT spell a four-levels-up
-      climb. Import harness_boundary from this file's own directory and call
-      root_above(os.path.dirname(os.path.realpath(__file__))). If it returns None, print one
-      line naming the directory it started from and exit 2 — a scan that cannot find its root
-      must refuse, never scan something else. root_above and not the other two resolvers, for
-      two reasons that are both about this file: root_from_script (harness_boundary.py:44-50)
-      is the pure four-level arithmetic with zero filesystem access, which is exactly what
-      breaks silently when FEAT-47 moves this file two levels deep instead of four;
-      resolve_root (:53-79) reads HARNESS_PROJECT_DIR, and a stray override in a developer's
-      environment would point the invariant at a different checkout than the one under test.
-      root_above (:84-100) is a pure MARKER walk with no depth arithmetic and no environment
-      read, so this file may be moved anywhere inside the checkout and still resolve the same
-      root — which is what makes the ROOT RESOLUTION require no edit when FEAT-47 moves the
-      file. That is the whole of the claim: the harness_boundary import in this file is
-      anchored on its own directory, so the move does require an edit to that import, and
-      FEAT-48 asserts nothing about whether FEAT-47's plan makes it.
+      DISCOVERY, AND THE ROOT IS RESOLVED, NEVER COUNTED. Do NOT spell a four-levels-up climb.
+      Import harness_boundary from this file's own directory and call
+      root_above(os.path.dirname(os.path.realpath(__file__))). If it returns None, print one line
+      naming the directory it started from and exit 2 — a scan that cannot find its root must
+      refuse, never scan something else. root_above and not the other two resolvers, for two reasons
+      that are both about this file: root_from_script (harness_boundary.py:44-50) is the pure
+      four-level arithmetic with zero filesystem access, which is exactly what breaks silently when
+      FEAT-47 moves this file two levels deep instead of four; resolve_root (:53-79) reads
+      HARNESS_PROJECT_DIR, and a stray override in a developer's environment would point the
+      invariant at a different checkout than the one under test. root_above (:84-100) is a pure
+      MARKER walk with no depth arithmetic and no environment read, so this file may be moved
+      anywhere inside the checkout and still resolve the same root — which is what makes the ROOT
+      RESOLUTION require no edit when FEAT-47 moves the file. That is the whole of the claim: the
+      harness_boundary import in this file is anchored on its own directory, so the move does require
+      an edit to that import, and FEAT-48 asserts nothing about whether FEAT-47's plan makes it.
 
       Then os.walk from that root, pruning EXACTLY FOUR directories and no others: .git,
-      .claude/worktrees, node_modules and .venv. There is NO general dot-directory rule, and
-      this is the load-bearing part of the sentence: .claude begins with a dot and must be
-      WALKED, because every test file in this repository lives under
-      .claude/skills/harness/bin, so a walk that pruned all dot-directories would discover
-      zero files and the invariant would scan nothing. .claude/worktrees is named as an
-      exclusion precisely because .claude itself is not one. Match .git, node_modules and
-      .venv by directory name at any depth; match .claude/worktrees as that path relative to
-      the resolved root. Measured against this rule at ccf674a on 2026-08-31: 58 files in the
-      main checkout and 58 in the FEAT-48 worktree, the two trees having converged on the
-      rebase that brought FEAT-45's test-panel-findings.py and test-plan-panel.py in. That is
-      the margin behind the verify block's
-      floor of 50, and the floor is deliberately far below both so a sibling feature adding or
-      removing a handful of test files cannot move it. Collect every file matching
-      test-*.py or test_*.py. A walk, not a directory
-      list and not the runner's arrays, because FEAT-47 moves every one of these files to
-      tests/unit, tests/integration and tests/manual and the invariant must survive that move
-      untouched.
+      .claude/worktrees, node_modules and .venv. There is NO general dot-directory rule, and this is
+      the load-bearing part of the sentence: .claude begins with a dot and must be WALKED, because
+      every test file in this repository lives under .claude/skills/harness/bin, so a walk that
+      pruned all dot-directories would discover zero files and the invariant would scan nothing.
+      .claude/worktrees is named as an exclusion precisely because .claude itself is not one. Match
+      .git, node_modules and .venv by directory name at any depth; match .claude/worktrees as that
+      path relative to the resolved root. Collect every file matching test-*.py or test_*.py. A
+      walk, not a directory list and not the runner's arrays, because FEAT-47 moves every one of
+      these files to tests/unit, tests/integration and tests/manual and the invariant must survive
+      that move untouched.
+
+      A DATED, NON-BINDING OBSERVATION on that rule (D-10), and the only figure in this task: at
+      2a5cbada on 2026-09-01 the walk discovers 59 files, every one of them under
+      .claude/skills/harness/bin. That is the margin behind the verify block's floor of 50, and the
+      floor is deliberately far below it so a sibling feature adding or removing a handful of test
+      files cannot move it. RE-DERIVE rather than trust the 59: it was 56, then 58, then 59 across
+      three sibling merges on this branch's life, and nothing here may depend on the value.
 
       TWO LINES THE RUN MUST PRINT, both on stdout, both parsed by the verify block above and
       therefore part of the contract rather than debug output:
         root <the absolute resolved root>
         discovered <n>
-      They are what makes a scan that walked the wrong tree, or walked nothing, distinguishable
-      from a clean run. Print them in both modes.
+      They are what makes a scan that walked the wrong tree, or walked nothing, distinguishable from
+      a clean run. Print them in both modes.
 
-      Accept an optional --scan-dir DIR argument that scans exactly that directory instead;
-      the verify block and the historical red proof both use it.
+      Accept an optional --scan-dir DIR argument that scans exactly that directory instead; the
+      verify block and the historical red proof both use it.
 
-      THE RULE, stated as the weakest thing that catches the real defect. Per file, parse with
-      ast and compute a TAINT set of names that hold a path inside the live tree:
+      THE RULE, stated as the weakest thing that catches the real defect. Per file, parse with ast
+      and compute a TAINT set of names that hold a path inside the live tree:
         - the literal __file__ is always tainted;
         - a name bound by an assignment whose value expression mentions a tainted name becomes
-          tainted, evaluated in source order — EXCEPT where that value expression is a CONTENT
-          READ. A call to .read, .readline, .readlines, .read_text, .read_bytes, .load or
-          .safe_load binds the file's CONTENT and never a path, so it must not propagate taint.
-          THIS CLAUSE IS LOAD-BEARING AND WAS MISSING FROM THE RESEARCH NOTE'S WRITTEN RULE.
-          Without it, test-check-domain.py reads the live team-config.yaml at :1772, hands the
-          TEXT to fixture() at :1778, and every tempdir write beneath that fixture root is
-          reported — 15 findings between :1786 and :2071, none of them fixable, on paths that
-          are not in the live checkout at all. Re-derived at ccf674a by reimplementing the
-          note's own reference scanner: 25 findings over the three files at ea6f51f without
-          this clause, and exactly the ten named sites with it. A live-tree zero, which this
-          task's verify block requires, is unreachable without it;
-        - a with-item target becomes tainted when its context expression mentions one, subject
-          to the same content-read exclusion;
-        - taint is per scope: the module scope seeds every function scope, and a function's
-          local bindings do not leak to other functions. This is not a refinement, it is what
-          makes the check usable — a whole-file name model measured 47 findings on the tree at
-          ea6f51f (research note, first table row; carried forward, not re-derived here), of
-          which 37 were function-local names in unrelated functions.
+          tainted, evaluated in source order — EXCEPT where that value expression is a CONTENT READ.
+          A call to .read, .readline, .readlines, .read_text, .read_bytes, .load or .safe_load binds
+          the file's CONTENT and never a path, so it must not propagate taint. THIS CLAUSE IS
+          LOAD-BEARING AND WAS MISSING FROM THE RESEARCH NOTE'S WRITTEN RULE. Without it,
+          test-check-domain.py reads the live team-config.yaml at :1772, hands the TEXT to fixture()
+          at :1778, and every tempdir write beneath that fixture root is reported — 15 findings
+          between :1786 and :2071, none of them fixable, on paths that are not in the live checkout
+          at all. Re-derived at ccf674a by reimplementing the note's own reference scanner: 25
+          findings over the three files at ea6f51f without this clause, and exactly the ten named
+          sites with it. A live-tree zero, which this task's verify block requires, is unreachable
+          without it;
+        - a with-item target becomes tainted when its context expression mentions one, subject to
+          the same content-read exclusion;
+        - taint is per scope: the module scope seeds every function scope, and a function's local
+          bindings do not leak to other functions. This is not a refinement, it is what makes the
+          check usable — a whole-file name model measured 47 findings on the tree at ea6f51f
+          (research note, first table row; carried forward, not re-derived here), of which 37 were
+          function-local names in unrelated functions.
       Then report a VIOLATION for a call that mutates a tainted path:
         - open(p, mode) where mode contains w, a, x or + and p mentions a tainted name;
         - os.remove, unlink, rmdir, truncate, utime, chmod, makedirs, mkdir on args[0];
@@ -549,85 +732,91 @@ tasks:
           destination; shutil.rmtree on args[0];
         - a method call write_text, write_bytes, touch, unlink, rename, replace, mkdir, rmdir,
           chmod, symlink_to or hardlink_to whose receiver both mentions a tainted name AND is
-          syntactically a Path(...) or pathlib.Path(...) call, or a Path built with the /
-          operator. The Path-typed requirement is not tidiness: str.replace on source text read
-          from __file__ is extremely common in this suite and produced 4 of the 47 findings.
+          syntactically a Path(...) or pathlib.Path(...) call, or a Path built with the / operator.
+          The Path-typed requirement is not tidiness: str.replace on source text read from __file__
+          is extremely common in this suite and produced 4 of the 47 findings.
       A finding prints exactly one line:
         VIOLATION <path>:<lineno> <sink> mutates a path derived from the live checkout
       and the run exits 1 with a count. Zero findings prints a one-line ok and exits 0.
 
-      NO ESCAPE HATCH. No allowlist file, no per-line pragma comment (D-04). A legitimate
-      live-tree write is grounds to amend this rule in a diff a human reads.
+      NO ESCAPE HATCH. No allowlist file, no per-line pragma comment (D-04). A legitimate live-tree
+      write is grounds to amend this rule in a diff a human reads. D-10 derives the SCOPE of the fix
+      and changes nothing here: an open set is not an optional membership.
 
-      ITS OWN RED PROOF, in the file, so CI keeps proving the guard can fail. Build fixture
-      SOURCES as string literals in a tempdir and scan them with the same function:
-        - the pre-fix injection idiom verbatim from notes/research-parallel-safety.md — fs
-          assigned from os.path.dirname(os.path.realpath(__file__)) then open(fs, "w") — must
-          be flagged, and the reported line number must be the line of the open call;
+      ITS OWN RED PROOF, in the file, so CI keeps proving the guard can fail. Build fixture SOURCES
+      as string literals in a tempdir and scan them with the same function:
+        - the pre-fix injection idiom verbatim from notes/research-parallel-safety.md — fs assigned
+          from os.path.dirname(os.path.realpath(__file__)) then open(fs, "w") — must be flagged, and
+          the reported line number must be the line of the open call;
         - a mutant-beside-the-original site: mpath assigned from
           os.path.dirname(os.path.realpath(SCRIPT)) where SCRIPT came from __file__, then
           open(mpath, "w") and shutil.copymode(SCRIPT, mpath) — both must be flagged;
-        - a CLEAN control that must NOT be flagged: the same writes against
-          tempfile.mkdtemp(), plus src.replace(...) on text read from __file__, plus
-          shutil.copytree(BIN_DIR, dest) where dest is a tempdir, plus the CONTENT-READ shape
-          itself — text = open(<a path built from __file__>).read(), then a directory made and
-          a file written under a root derived from that text and tempfile.mkdtemp(). That last
-          one is not hypothetical: it is the exact false positive measured at ccf674a, 15 of
-          them in test-check-domain.py, and it is what the content-read exclusion above exists
-          to prevent. A false positive on any of
-          these makes the invariant unlivable and someone will delete it;
-        - the live tree itself: zero findings, asserted as a case rather than only as the exit
-          code, so a scan that discovered no files at all cannot pass. In the same case assert
-          the discovered file count is at least 50, AND assert the resolved root against an
-          expected root RECOMPUTED INSIDE THE CASE: an inline loop, written in the case body,
-          walking up from os.path.dirname(os.path.realpath(__file__)) to the first directory
-          containing os.path.join(".harness", "team-config.yaml"). Do NOT write
-          resolve_scan_root(x) == resolve_scan_root(x), and do NOT build the expectation by
-          calling harness_boundary: a comparison of the resolver's output to itself, or to the
-          same function the resolver calls, asserts nothing and stays green for any resolver
-          including a depth-counting one. The inline walk is a SECOND, independent computation
-          of the same answer, so a resolver that lands one level above or below the true root
-          reddens this case. The verify block above rejects any single line mentioning
-          resolve_scan_root twice, which catches the literal self-comparison shape and nothing
-          subtler — which is why the recomputation is mandated here rather than only checked
-          there;
-        - the root refusal, in-process because this file forks nothing: give the resolution a
-          named function, resolve_scan_root(start), and assert it returns None for a tempdir
-          carrying no .harness/team-config.yaml, and that main() called against that start
-          raises SystemExit with code 2 and names the directory it started from. This is the
-          case that reddens if someone later reintroduces a depth-counting root, because
-          arithmetic cannot refuse.
+        - the PID-NAMED variant, added because it is what a fixed-basename census could never see
+          (D-10): path assigned from os.path.join(HERE, f".mutant-{os.getpid()}.sh") where HERE came
+          from __file__, then open(path, "w") — flagged, on the open line. The f-string must not
+          change the answer;
+        - a CLEAN control that must NOT be flagged: the same writes against tempfile.mkdtemp(), plus
+          src.replace(...) on text read from __file__, plus shutil.copytree(BIN_DIR, dest) where dest
+          is a tempdir, plus the CONTENT-READ shape itself — text = open(<a path built from
+          __file__>).read(), then a directory made and a file written under a root derived from that
+          text and tempfile.mkdtemp(). That last one is not hypothetical: it is the exact false
+          positive measured at ccf674a, 15 of them in test-check-domain.py, and it is what the
+          content-read exclusion above exists to prevent. A false positive on any of these makes the
+          invariant unlivable and someone will delete it;
+        - the live tree itself: zero findings, asserted as a case rather than only as the exit code,
+          so a scan that discovered no files at all cannot pass. In the same case assert the
+          discovered file count is at least 50, AND assert the resolved root against an expected root
+          RECOMPUTED INSIDE THE CASE: an inline loop, written in the case body, walking up from
+          os.path.dirname(os.path.realpath(__file__)) to the first directory containing
+          os.path.join(".harness", "team-config.yaml"). Do NOT write
+          resolve_scan_root(x) == resolve_scan_root(x), and do NOT build the expectation by calling
+          harness_boundary: a comparison of the resolver's output to itself, or to the same function
+          the resolver calls, asserts nothing and stays green for any resolver including a
+          depth-counting one. The inline walk is a SECOND, independent computation of the same
+          answer, so a resolver that lands one level above or below the true root reddens this case.
+          The verify block above rejects any single line mentioning resolve_scan_root twice, which
+          catches the literal self-comparison shape and nothing subtler — which is why the
+          recomputation is mandated here rather than only checked there;
+        - the root refusal, in-process because this file forks nothing: give the resolution a named
+          function, resolve_scan_root(start), and assert it returns None for a tempdir carrying no
+          .harness/team-config.yaml, and that main() called against that start raises SystemExit with
+          code 2 and names the directory it started from. This is the case that reddens if someone
+          later reintroduces a depth-counting root, because arithmetic cannot refuse.
 
-      REGISTRATION. Add "test-suite-independence.py" to UNIT_SCRIPTS in run-unit-tests.sh.
-      Do NOT add it to INTEGRATION_SCRIPTS and do NOT add it to
-      test_kinds.integration.detect in .harness/harness.json: the KIND CROSS-CHECK fails if a
-      UNIT_SCRIPTS name appears in that detect string, and the unit detect glob already matches
-      .claude/skills/harness/bin/test-*.py. Leaving it out of both arrays fails the drift
-      detector with MISCONFIGURED, at exit 2.
+      REGISTRATION. Add "test-suite-independence.py" to UNIT_SCRIPTS in run-unit-tests.sh. Do NOT add
+      it to INTEGRATION_SCRIPTS and do NOT add it to test_kinds.integration.detect in
+      .harness/harness.json: the KIND CROSS-CHECK fails if a UNIT_SCRIPTS name appears in that detect
+      string, and the unit detect glob already matches .claude/skills/harness/bin/test-*.py. Leaving
+      it out of both arrays fails the drift detector with MISCONFIGURED, at exit 2.
 
-      THE HISTORICAL TARGET IS TEN NAMED SITES, NOT A COUNT, AND IT IS NOW MEASURED RATHER
-      THAN ASSERTED. Against ea6f51f the rule set above finds test-check-domain.py:1482 and
-      :1489, test-check-state.py:2112, :2114, :2133, :2248, :2250 and :2269, and
+      THE HISTORICAL TARGET IS TEN NAMED SITES, NOT A COUNT, AND THOSE TEN CANNOT ROT because they
+      are read out of a PINNED tree: the verify block scans git show ea6f51f copies of three files,
+      and ea6f51f does not change. Against ea6f51f the rule set above finds test-check-domain.py:1482
+      and :1489, test-check-state.py:2112, :2114, :2133, :2248, :2250 and :2269, and
       test-feature-worktree.py:584 and :605
-      (notes/research-FEAT-48-independence-invariant.md:14-27). Re-derived at ccf674a against
-      git show ea6f51f copies of those three files, with the content-read exclusion in place:
-      exactly those ten, no more and no fewer. The reviewer's [unverified] flag on this claim
-      is discharged; what the re-derivation also found is that the rule as WRITTEN in the note
-      gave 25, which is why the content-read clause above is stated as part of the rule.
-      AND THE LIVE TREE IS NO LONGER TEN. At ccf674a the same scan over all 58 discovered
-      files reports THIRTEEN: the ten above plus test-check-state.py:3077, :3079 and :3088,
-      FEAT-45's fourth mutant site, which T-02 removes. The two test files FEAT-45 added,
-      test-panel-findings.py and test-plan-panel.py, report ZERO and are correctly clean —
-      audited for the subprocess vector too, and their only subprocess calls invoke
-      panel_findings.py id and check-domain.sh --resolve, neither of which writes.
-      The verify block asserts each of the ten individually rather than a threshold, because
-      a threshold of eight is
-      satisfied by a scanner that quietly lost two of them. It does NOT forbid additional
-      findings on those three files: the false-positive gate is the LIVE half of the same
-      block — after T-01 and T-02 a scanner that over-reports cannot reach zero on the live
-      tree, so over-reporting reddens there rather than being tolerated here. Write the file
-      and run it BEFORE T-01 and T-02 are on this branch if you can; if they are already
-      landed, the verify block's git show path is the same proof and is the one that ships.
+      (notes/research-FEAT-48-independence-invariant.md:14-27). Re-derived at ccf674a against those
+      same git show copies, with the content-read exclusion in place: exactly those ten, no more and
+      no fewer. The reviewer's [unverified] flag on this claim is discharged; what the re-derivation
+      also found is that the rule as WRITTEN in the note gave 25, which is why the content-read
+      clause above is stated as part of the rule. The verify block asserts each of the ten
+      individually rather than a threshold, because a threshold of eight is satisfied by a scanner
+      that quietly lost two of them. It does NOT forbid additional findings on those three files: the
+      false-positive gate is the LIVE half of the same block — after T-01 and T-02 a scanner
+      that over-reports cannot reach zero on the live tree, so over-reporting reddens there rather
+      than being tolerated here.
+
+      THE LIVE-TREE FINDING COUNT IS NOT ASSERTED ANYWHERE AND IS NOT STATED HERE (D-10). Earlier
+      drafts of this task carried one — ten, then thirteen — and each was stale within a cycle. The
+      live half of the verify block asserts ZERO after T-01 and T-02, which is the only
+      live-tree claim this plan makes and the only one a sibling merge cannot invalidate. As a DATED,
+      NON-BINDING sizing observation: at 2a5cbada the sites this scan should report before those
+      two tasks land are the eight D-10 records, in four files. Do not treat that as a target; run
+      the scan. The two test files FEAT-45 added, test-panel-findings.py and test-plan-panel.py,
+      reported ZERO at ccf674a and were audited for the subprocess vector too — their only subprocess
+      calls invoke panel_findings.py id and check-domain.sh --resolve, neither of which writes.
+
+      Write the file and run it BEFORE T-01 and T-02 are on this branch if you can; if they are
+      already landed, the verify block's git show path is the same proof and is the one that ships.
 
   - id: T-04
     title: Build run_pool.py and its test, registered in the same commit that creates them
@@ -782,7 +971,8 @@ tasks:
               path relative to the watched directory. Then a leg for the SUBPROCESS vector the
               static scan is blind to: the mutating fixture performs its write by shelling out
               rather than by calling open, and the check must still catch it. Then a leg for
-              the UNTRACKED-CREATION vector, which is what T-02's four sites actually did: a
+              the UNTRACKED-CREATION vector, which is what the live-tree mutation sites T-01,
+              T-02 remove actually did: a
               fixture that CREATES a new file under the watched directory — name it
               .mutant-x.sh, so the case reads as the historical hazard — and assert exit 1 with
               exactly one MUTATED line naming it. Finally assert that --mutation-check pointed
@@ -795,7 +985,9 @@ tasks:
          INTEGRATION_SCRIPTS in run-unit-tests.sh AND add the explicit path
          .claude/skills/harness/bin/test-run-pool.py to test_kinds.integration.detect in
          .harness/harness.json. Change nothing else in either file — the serial loop is T-06's.
-         WHY HERE: run-unit-tests.sh's drift detector (run-unit-tests.sh:60-74) exits 2
+         WHY HERE: run-unit-tests.sh's drift detector — at run-unit-tests.sh:60-74 as a DATED,
+         NON-BINDING anchor at 2a5cbada on 2026-09-01, in a file this task edits, so re-derive it;
+         its durable identifier is the comment line "Drift detector:" — exits 2
          MISCONFIGURED for any test-*.py under bin/ that is in neither script array, and the
          KIND CROSS-CHECK exits 2 if an INTEGRATION_SCRIPTS name is absent from that detect
          string. CI runs on every push to an open PR (.github/workflows/tests.yml declares a
@@ -817,6 +1009,8 @@ tasks:
       that --check-kinds agrees after this task's own registration edits. If the newly authored
       suite has a defect that reports success, the reconstruction still fails. That is the same
       discipline T-01, T-02 and T-03's blocks use.
+
+
 
   - id: T-06
     title: Wire the pool into run-unit-tests.sh and record the measurements no runner can take
@@ -849,81 +1043,100 @@ tasks:
            "measurements-parallel-suite.md")
       t = open(n).read() if os.path.exists(n) else ""
       runs = re.findall(r"^run \d+ exit (\d+) [0-9.]+s$", t, re.M)
+      cm = re.findall(r"^control method: isolated bin copy$", t, re.M)
       ctrl = re.findall(r"^control broken reads (\d+)$", t, re.M)
       post = re.findall(r"^post-fix broken reads (\d+)$", t, re.M)
       wall = re.findall(r"^pool: \d+ workers, \d+ files, ([0-9.]+)s wall$", t, re.M)
       tree = re.findall(r"^tree condition: \S.*$", t, re.M)
       print("inv", inv, "serial", serial, "check_kinds", ck.returncode, ran, "unknown",
-            bad.returncode, "runs", runs, "ctrl", ctrl, "post", post, "wall", wall,
+            bad.returncode, "runs", runs, "cm", cm, "ctrl", ctrl, "post", post, "wall", wall,
             "tree", tree)
       sys.exit(0 if (len(inv) == 1 and '--mutation-check "$BIN_DIR"' in inv[0]
                      and not serial and ck.returncode == 0 and not ran
                      and bad.returncode == 2 and len(runs) == 10
-                     and set(runs) == {"0"} and ctrl and int(ctrl[0]) > 0
+                     and set(runs) == {"0"} and len(cm) == 1 and ctrl and int(ctrl[0]) > 0
                      and post == ["0"] and wall and float(wall[0]) <= 120
                      and len(tree) == 1
                      and "PASS test-suite-independence.py" in t) else 1)
       PY
     intent: |
-      1. run-unit-tests.sh — replace the serial for loop at lines 147-157, and NOTHING else.
-         The root resolution, BIN_DIR, both script arrays, the --kind parsing, the
-         --check-kinds mode, the drift detector and the KIND CROSS-CHECK all stay exactly as
-         they are, including their exit-2 paths, because REQ-06 is a contract three callers
-         depend on. Registration of test-run-pool.py is NOT here — T-04 did it, in the commit
-         that created the file, so no intermediate commit on this branch ever carries an
-         unregistered test-*.py. The loop becomes one call:
+      1. run-unit-tests.sh — replace the serial for loop, and NOTHING else. The DURABLE IDENTIFIER
+         of that loop is that it is the only line in the script containing "${SCRIPTS[@]}"; its
+         position is 147-157 as a DATED, NON-BINDING anchor at 2a5cbada on 2026-09-01, and this task
+         edits that file, so re-derive it rather than trusting the numbers. The root resolution,
+         BIN_DIR, both script arrays, the --kind parsing, the --check-kinds mode, the drift detector
+         and the KIND CROSS-CHECK all stay exactly as they are, including their exit-2 paths, because
+         REQ-06 is a contract three callers depend on. Registration of test-run-pool.py is NOT here —
+         T-04 did it, in the commit that created the file, so no intermediate commit on this branch
+         ever carries an unregistered test-*.py. The loop becomes one call:
            python3 "$BIN_DIR/run_pool.py" --mutation-check "$BIN_DIR" -- "${SCRIPTS[@]/#/$BIN_DIR/}"
-         and the script exits with the pool's status. The flag's argument is "$BIN_DIR" and NOT
-         the resolved root (D-11): a root-wide watched set reddens whenever a sibling agent
-         writes a note under .harness/harness/features/**, which agents do continuously while
-         suites run. --mutation-check is not optional either: the runtime enforcement of REQ-01
-         is only real if the one caller CI runs always passes it. This task's verify therefore
-         asserts the literal substring --mutation-check "$BIN_DIR" on that line.
-         ON THE SERIAL-LOOP ASSERTION, and read this before you write it: the verify asserts
-         that the string "${SCRIPTS[@]}" no longer appears in the script, because line 148 is
-         its only occurrence and the new invocation spells "${SCRIPTS[@]/#/$BIN_DIR/}" instead.
-         It does NOT assert that no line begins "for s in" — the drift detector at line 64
-         begins exactly that way, stays, and an earlier draft of this block was unsatisfiable
-         for that reason. Keep the comment block explaining the unit/integration split; add one
-         short one saying the pool owns scheduling and bash owns selection, and why (D-05).
+         and the script exits with the pool's status. The flag's argument is "$BIN_DIR" and NOT the
+         resolved root (D-11): a root-wide watched set reddens whenever a sibling agent writes a note
+         under .harness/harness/features/**, which agents do continuously while suites run.
+         --mutation-check is not optional either: the runtime enforcement of REQ-01 is only real if
+         the one caller CI runs always passes it. This task's verify therefore asserts the literal
+         substring --mutation-check "$BIN_DIR" on that line.
+         ON THE SERIAL-LOOP ASSERTION, and read this before you write it: the verify asserts that the
+         string "${SCRIPTS[@]}" no longer appears in the script, because that loop line is its only
+         occurrence and the new invocation spells "${SCRIPTS[@]/#/$BIN_DIR/}" instead. It does NOT
+         assert that no line begins "for s in" — the drift detector's own loop begins exactly that
+         way, stays, and an earlier draft of this block was unsatisfiable for that reason. Keep the
+         comment block explaining the unit/integration split; add one short one saying the pool owns
+         scheduling and bash owns selection, and why (D-05).
 
-      2. THE THREE MEASUREMENTS NO RUNNER CAN TAKE. SC-02, SC-05 and SC-06 have no gate behind
-         them, so they are discharged here or by nobody. Write
-         notes/measurements-parallel-suite.md with the verbatim command and output for each,
-         in a fenced block, AND the summary lines below, which this task's verify block parses.
-         The verify can check that the numbers are PRESENT and in range; only the fenced
-         verbatim output shows they were measured rather than typed, and a reviewer reads that.
-           - SC-02: the poll from notes/research-parallel-safety.md re-run over a full
-             --kind all run, and the same poll run against git show ea6f51f of
-             test-check-domain.py. Summary lines, exactly:
+      2. THE THREE MEASUREMENTS NO RUNNER CAN TAKE. SC-02, SC-05 and SC-06 have no gate behind them,
+         so they are discharged here or by nobody. Write notes/measurements-parallel-suite.md with the
+         verbatim command and output for each, in a fenced block, AND the summary lines below, which
+         this task's verify block parses. The verify can check that the numbers are PRESENT and in
+         range; only the fenced verbatim output shows they were measured rather than typed, and a
+         reviewer reads that.
+           - SC-02: the poll from notes/research-parallel-safety.md, run twice — a CONTROL that must
+             see broken reads, and the POST-FIX run over a full --kind all run that must see none.
+             THE CONTROL IS TAKEN INSIDE AN ISOLATED BIN COPY, AND THAT ROUTE IS NOT OPTIONAL. Do NOT
+             re-perform the removed hazard on the live shared checkout to obtain it. This machine runs
+             sibling agents and other suites concurrently, so deliberately reopening a window in which
+             the live feature_schema.py is broken is the very defect this feature exists to remove,
+             and a deliberate one is worse than the accident. Use the mechanism T-01 already shipped:
+               iso = isolated_bin(tempfile.mkdtemp())
+               write git show ea6f51f:.claude/skills/harness/bin/test-check-domain.py into iso
+               run [sys.executable, os.path.join(iso, "test-check-domain.py")]
+               poll os.path.join(iso, "feature_schema.py") for the injected marker
+             The pre-fix probe derives its target from os.path.dirname(os.path.realpath(__file__)), so
+             inside the copy it breaks the COPY's module and the live one is never touched. That is
+             what lets the control be non-zero while the tree stays clean, and it is the route the
+             cycle-4 panel recorded as the only one that makes this leg satisfiable — which the task
+             text did not name. Record in the note that the live feature_schema.py's bytes and
+             st_mtime_ns were unchanged across the control run.
+             Summary lines, exactly:
+               control method: isolated bin copy
                control broken reads <n>
                post-fix broken reads <n>
-             The control MUST be greater than zero: a control that sees nothing makes the
-             post-fix zero inconclusive, not passing. If that happens, say so in the note and
-             return the task rather than recording a zero control.
-           - SC-05: ten consecutive --kind all runs at the runner's own worker count, one line
-             each, exactly:
+             The control MUST be greater than zero: a zero control makes the post-fix zero
+             inconclusive, not passing. If it comes out zero, the remedy is to fix the poll or the
+             fixture — NEVER to move the control onto the live tree. Say so in the note and return the
+             task.
+           - SC-05: ten consecutive --kind all runs at the runner's own worker count, one line each,
+             exactly:
                run <i> exit <rc> <wall>s
-             Ten lines, i from 1 to 10. State plainly in the note that ten clean runs do not
-             prove the hazard is gone — this flake produced 6 consecutive clean 8-worker runs
-             while present — and that SC-01 and SC-03 carry that claim.
-             AND ONE MORE LINE, exactly, which the verify block requires to be present and
-             non-empty (D-11):
+             Ten lines, i from 1 to 10. State plainly in the note that ten clean runs do not prove the
+             hazard is gone — this flake produced 6 consecutive clean 8-worker runs while present — and
+             that SC-01 and SC-03 carry that claim.
+             AND ONE MORE LINE, exactly, which the verify block requires to be present and non-empty
+             (D-11):
                tree condition: <what else was writing this checkout during the ten runs>
-             Say which it was: no other agent active, or N agents writing
-             .harness/harness/features/** while the runs were taken. It is recorded because
-             --mutation-check watches bin/ and an edit to a file in bin/ during a run reddens it
-             for a reason that is not the pool's, so a reader must be able to tell a clean ten
-             taken on a quiet tree from a clean ten taken under load. A zero-agent tree is a
-             legitimate answer; an unrecorded one is not, and this is the sentence the first
-             draft of this plan assumed rather than measured.
-           - SC-06: the runner's own pool: and slowest: lines from one --kind all run on the
-             12-core machine, pasted verbatim, and the 247s serial baseline they are compared
-             against. The pool: line is what the verify block reads the wall time from.
-           - SC-04's evidence, in the same note: the PASS test-suite-independence.py line from
-             that --kind all run, pasted with its neighbours. The full unit kind takes longer
-             than a verify block's 60s budget, which is why it is recorded here and confirmed
-             independently by the qa run rather than asserted in this block.
+             Say which it was: no other agent active, or N agents writing .harness/harness/features/**
+             while the runs were taken. It is recorded because --mutation-check watches bin/ and an
+             edit to a file in bin/ during a run reddens it for a reason that is not the pool's, so a
+             reader must be able to tell a clean ten taken on a quiet tree from a clean ten taken under
+             load. A zero-agent tree is a legitimate answer; an unrecorded one is not, and this is the
+             sentence the first draft of this plan assumed rather than measured.
+           - SC-06: the runner's own pool: and slowest: lines from one --kind all run on the 12-core
+             machine, pasted verbatim, and the 247s serial baseline they are compared against. The
+             pool: line is what the verify block reads the wall time from.
+           - SC-04's evidence, in the same note: the PASS test-suite-independence.py line from that
+             --kind all run, pasted with its neighbours. The full unit kind takes longer than a verify
+             block's 60s budget, which is why it is recorded here and confirmed independently by the qa
+             run rather than asserted in this block.
 
   - id: T-05
     title: Record the decisions, including change-based selection as rejected
@@ -950,7 +1163,8 @@ tasks:
       need = ["private copy", "isolated_bin.py", "test-suite-independence.py", "run_pool.py",
               "--mutation-check", "HARNESS_TEST_WORKERS", "change-based test selection",
               "REJECTED", "selecting nothing", "not statically knowable", "1,032,849",
-              "36.7", "247", "ea6f51f", "untracked", ".claude/skills/harness/bin"]
+              "36.7", "247", "ea6f51f", "untracked", ".claude/skills/harness/bin",
+              "derived and not enumerated", "os.getpid()"]
       missing = [n for n in need if n not in sec]
       words = len(sec.split())
       gen = subprocess.run([sys.executable,
@@ -962,77 +1176,151 @@ tasks:
       sys.exit(0 if m and not missing and words >= 300 and not drift else 1)
       PY
     intent: |
-      APPEND one entry to .harness/harness/docs/DECISIONS.md, then regenerate the index and
-      commit both together. DEC-205 governs the shape: an entry states current truth, a
-      correction rewrites the entry it corrects, and there are no dated amendment logs.
+      APPEND one entry to .harness/harness/docs/DECISIONS.md, then regenerate the index and commit
+      both together. DEC-205 governs the shape: an entry states current truth, a correction rewrites
+      the entry it corrects, and there are no dated amendment logs.
 
-      TAKE THE NEXT FREE NUMBER AT AUTHORING TIME by reading the last heading in the file. Do
-      not pin one here: FEAT-47 also appends entries and a pinned number collides with it. The
-      heading is: The suite runs in parallel, and no test mutates state another test can see.
+      TAKE THE NEXT FREE NUMBER AT AUTHORING TIME by reading the last heading in the file. Do not pin
+      one here: FEAT-47 also appends entries and a pinned number collides with it. The heading is:
+      The suite runs in parallel, and no test mutates state another test can see.
       Write it in the file's house style, which is an em-dash between the number and the title
-      (## DEC-NN — Title, 190 of 190 existing headings at ccf674a, last DEC-207). The verify
-      block above
-      is separator-agnostic by construction, so it cannot redden on a house-style heading and
-      a later style pass cannot break it either; this sentence is a convenience, never a
-      constraint the gate enforces.
+      (## DEC-NN — Title). A DATED, NON-BINDING OBSERVATION on that style (D-10): at 2a5cbada on
+      2026-09-01, 192 of 192 existing headings carry the em-dash and the last is DEC-209. Re-derive
+      both by reading the file rather than trusting this sentence — it was 190 and DEC-207 one cycle
+      ago. The verify block above is separator-agnostic by construction, so it cannot redden on a
+      house-style heading and a later style pass cannot break it either; the count and the last
+      number are a convenience, never a constraint the gate enforces.
 
       The entry must state, each in one or two sentences with its reason:
-        - the hazard, concretely: test-check-domain.py overwrote the live feature_schema.py for
-          a ~90ms window per run, and 5,105 of 1,032,849 polls observed a broken module. A
+        - the hazard, concretely: test-check-domain.py overwrote the live feature_schema.py for a
+          ~90ms window per run, and 5,105 of 1,032,849 polls observed a broken module. A
           crashing-checker probe now gets a private copy of the bin directory instead
-          (isolated_bin.py); the words "private copy" must appear, since narrowing the window
-          is what a later reader will propose;
-        - that this was proven by the hazard being absent, never by the flake ceasing to
-          reproduce: it went quiet for 6 consecutive 8-worker runs while fully present;
+          (isolated_bin.py); the words "private copy" must appear, since narrowing the window is what
+          a later reader will propose;
+        - that this was proven by the hazard being absent, never by the flake ceasing to reproduce:
+          it went quiet for 6 consecutive 8-worker runs while fully present;
+        - that the fix's SCOPE was "derived and not enumerated", in those words, which the verify
+          block above greps for, and why: the same census of live-tree mutation sites was written
+          three times and stale within a cycle each time as sibling features merged, and two of the
+          sites name themselves with os.getpid() so no fixed list could ever have held them. Say
+          that every site the scan reports is fixed and none is allowlisted, and that the scan's
+          file set is bounded by .claude/skills/harness/bin/** with anything outside it escalated
+          rather than silently written;
         - test-suite-independence.py, what it forbids, that it has no escape hatch, and that it
           discovers its scan set by walking the tree so a layout change cannot blind it;
-        - the pool: scheduling in run_pool.py, selection in bash, output buffered per file so
-          it is attributable, and the worker count rule HARNESS_TEST_WORKERS else
-          min(8, max(2, cpu_count)) with the 36.7s floor as the reason for the cap;
+        - the pool: scheduling in run_pool.py, selection in bash, output buffered per file so it is
+          attributable, and the worker count rule HARNESS_TEST_WORKERS else min(8, max(2, cpu_count))
+          with the 36.7s floor as the reason for the cap;
         - the runtime half, and why the static scan alone was not enough: run_pool.py takes
-          --mutation-check and snapshots the size and mtime of every file under the watched
-          directory around the run, because the scan is blind to a mutation performed through a
-          subprocess or wrapped in a helper. State the watched directory by name
-          (.claude/skills/harness/bin) and say that it is that directory and NOT the repository
-          root, with the reason: agents write .harness/harness/features/** continuously while
-          suites run, so a root-wide watched set would redden a passing suite on a sibling
-          agent's note. Say that the snapshot covers untracked files as well as tracked ones,
-          which is what catches a mutant script appearing beside the original, and say plainly
-          what it does not cover — a mutation anywhere outside that directory, where the static
-          scan with its two blind spots is the only enforcement. State that the static scan is
-          not a backstop for every such write either: its taint model seeds only the literal
-          __file__, so a write to a path built from a relative literal or joined onto
-          os.getcwd(), landing outside the watched directory, is seen by neither half. That is
-          a third uncovered class and the entry must name it rather than leave a reader to
-          infer the two named blind spots are the whole gap. Name a fourth alongside it, for
-          the same reason: the scan does not propagate taint through a file's CONTENT, so a
-          write to a target read out of a manifest, config or fixture — rather than derived
-          from __file__ — is unflagged even inside the live checkout, and only the watched
-          directory's before/after snapshot catches it. The exclusion that opens it is
-          deliberate: without it the scan reports fifteen writes under a tempdir as live-tree
-          violations and can never read zero. Say the entry claims no more coverage than the
-          two mechanisms deliver. Name the trade: an edit to a
-          file in that directory during a run trips it;
-        - change-based test selection REJECTED, in those words, with all three reasons:
-          coverage becomes a function of the diff so a gate can pass by selecting nothing; the
-          floor is set by one file most changes reach indirectly; and the edge from a bash gate
-          script to the test that forks it is not statically knowable. This is the clause a
-          future scan will re-suggest, so it carries the reason, not just the verdict;
-        - the measurements, with their date, sha and machine: 247s serial across 56 files, ~47s
-          at 8 workers, 68.7s at 4, floor ~36.7s, observed 2026-08-31 at ea6f51f on a 12-core
-          M3 Pro.
+          --mutation-check and snapshots the size and mtime of every file under the watched directory
+          around the run, because the scan is blind to a mutation performed through a subprocess or
+          wrapped in a helper. State the watched directory by name (.claude/skills/harness/bin) and
+          say that it is that directory and NOT the repository root, with the reason: agents write
+          .harness/harness/features/** continuously while suites run, so a root-wide watched set would
+          redden a passing suite on a sibling agent's note. Say that the snapshot covers untracked
+          files as well as tracked ones, which is what catches a mutant script appearing beside the
+          original, and say plainly what it does not cover — a mutation anywhere outside that
+          directory, where the static scan with its two blind spots is the only enforcement. State
+          that the static scan is not a backstop for every such write either: its taint model seeds
+          only the literal __file__, so a write to a path built from a relative literal or joined onto
+          os.getcwd(), landing outside the watched directory, is seen by neither half. That is a third
+          uncovered class and the entry must name it rather than leave a reader to infer the two named
+          blind spots are the whole gap. Name a fourth alongside it, for the same reason: the scan does
+          not propagate taint through a file's CONTENT, so a write to a target read out of a manifest,
+          config or fixture — rather than derived from __file__ — is unflagged even inside the live
+          checkout, and only the watched directory's before/after snapshot catches it. The exclusion
+          that opens it is deliberate: without it the scan reports fifteen writes under a tempdir as
+          live-tree violations and can never read zero. Say the entry claims no more coverage than the
+          two mechanisms deliver. Name the trade: an edit to a file in that directory during a run
+          trips it;
+        - change-based test selection REJECTED, in those words, with all three reasons: coverage
+          becomes a function of the diff so a gate can pass by selecting nothing; the floor is set by
+          one file most changes reach indirectly; and the edge from a bash gate script to the test
+          that forks it is not statically knowable. This is the clause a future scan will re-suggest,
+          so it carries the reason, not just the verdict;
+        - the measurements, with their date, sha and machine: 247s serial across 56 files, ~47s at 8
+          workers, 68.7s at 4, floor ~36.7s, observed 2026-08-31 at ea6f51f on a 12-core M3 Pro.
 
       SUBSTANCE, NOT KEYWORDS. The verify block reads only the section under this heading, and
-      requires every phrase above to appear INSIDE it plus at least 300 words. That floor
-      exists because the earlier draft of this block was four substring greps over the whole
-      file, which a one-line stub naming all four phrases satisfied. It is a floor, not a
-      target: say each thing once, with its reason.
+      requires every phrase above to appear INSIDE it plus at least 300 words. That floor exists
+      because the earlier draft of this block was four substring greps over the whole file, which a
+      one-line stub naming all four phrases satisfied. It is a floor, not a target: say each thing
+      once, with its reason.
 
       Then write the index row yourself, in the same commit, right of the :: separator, and
-      regenerate with gen-decisions-index.py so the generated left-hand side is correct. There
-      is no --check flag; the verify block compares --stdout against the file. Adding an entry
-      lengthens the file and shifts every later @line anchor, so the regeneration is mandatory
-      rather than tidy.
+      regenerate with gen-decisions-index.py so the generated left-hand side is correct. There is no
+      --check flag; the verify block compares --stdout against the file. Adding an entry lengthens
+      the file and shifts every later @line anchor, so the regeneration is mandatory rather than tidy.
+  - id: T-07
+    title: SUPERSEDED by T-02 — do not dispatch; the test-bash-write-guard.py site is T-02's
+    traces: [REQ-01]
+    change_type: bugfix
+    execution_mode: main-session-direct
+    execution_reason: >
+      DEC-174 carve-out. test-bash-write-guard.py is the test of bash-write-guard.sh, a
+      registered PreToolUse gate script, and AGENTS.md:8 names a gate's test verbatim.
+    depends_on: [T-02]
+    status: abandoned
+    files:
+      - .claude/skills/harness/bin/test-bash-write-guard.py
+    verify: |
+      python3 - <<'PY'
+      import os, subprocess, sys, threading
+      b = ".claude/skills/harness/bin"
+      base = set(os.listdir(b))
+      mt = {n: os.stat(os.path.join(b, n)).st_mtime_ns
+            for n in base if os.path.isfile(os.path.join(b, n))}
+      appeared, stop = set(), threading.Event()
+      def poll():
+          while not stop.is_set():
+              try:
+                  appeared.update(set(os.listdir(b)) - base)
+              except OSError:
+                  pass
+      threading.Thread(target=poll, daemon=True).start()
+      r = subprocess.run([sys.executable, os.path.join(b, "test-bash-write-guard.py")],
+                         capture_output=True, text=True)
+      stop.set()
+      moved = sorted(n for n, v in mt.items()
+                     if os.path.exists(os.path.join(b, n))
+                     and os.stat(os.path.join(b, n)).st_mtime_ns != v)
+      red = [l for l in (r.stdout + r.stderr).splitlines()
+             if l.startswith("ok") and "bash-feature-checkout-red" in l]
+      print("exit", r.returncode, "appeared", sorted(appeared), "moved", moved,
+            "red_case", len(red))
+      sys.exit(0 if (r.returncode == 0 and not appeared and not moved and red) else 1)
+      PY
+    intent: |
+      SUPERSEDED BY T-02. DO NOT DISPATCH THIS TASK. It is stationed abandoned and kept only as
+      the record of why it existed; there is no delete verb, and deleting the reasoning would
+      invite the next planner to re-create the same split. Nothing below is an instruction.
+
+      WHY IT EXISTED. One live-tree mutation site sits in test-bash-write-guard.py, and that file
+      could not be ADDED to T-02's files: list: plan-merge.py amend refuses a list field (measured,
+      exit 4) and apply refuses any existing id whose value differs (exit 7 CONFLICT), while apply
+      CAN add a new id. So cycle 4 made the site a task of its own rather than an unwritable edit
+      to T-02 (D-10).
+
+      WHY THAT WAS WRONG. The split contradicted D-10's derived shape — a scope defined by a
+      procedure, not by which task's files: list happened to name a file — and it created an
+      ordering hole. This task had to land before T-03, whose verify asserts a live-tree ZERO, but
+      T-03's depends_on could not be widened to name it for the same tooling reason. The ordering
+      therefore lived in prose in two intents, which left a task that must precede T-03 sitting as
+      T-03's sibling in a ready wave, held apart by a sentence a doer could miss.
+
+      WHAT REPLACED IT (cycle 5, D-10). T-02 owns the site. Its verify block no longer reads its
+      run set off its own files: list; it derives it from plan.yaml — T-02's files:, plus the files
+      of every task whose station is abandoned and whose depends_on names T-02, minus the files of
+      every still-live task. This task's depends_on [T-02] and its abandoned station are what carry
+      test-bash-write-guard.py into T-02's run set, so the write-once list is routed around rather
+      than fought. The ordering that was prose is now the edge T-03 already holds, depends_on
+      [T-01, T-02]. T-02's intent carries the site description, the isolated_bin shape and the
+      instruction to NAME the addition in the receipt.
+
+      The verify block above is retained for the record only. It is a single-file instance of the
+      same ownership check T-02's block now performs over its whole run set; the one assertion it
+      carried that T-02's does not is the bash-feature-checkout-red ok-line, which T-02 subsumes
+      into the requirement that every file in the run set exit 0.
 panel:
   last_run: 2026-09-01-02-validator
   cycle: 4

@@ -145,7 +145,9 @@ investigation while fully present and unfixed.
   operator-recorded measurements rather than a gate. What is therefore NOT proven mechanically: the
   suite's speed and its run-to-run stability. What carries them: `notes/measurements-parallel-suite.md`,
   which `plan.yaml` T-06 requires and whose SHAPE T-06's verify now enforces — ten `run <i> exit <rc>
-  <wall>s` lines all exiting 0, a `control broken reads <n>` greater than zero, a `post-fix broken
+  <wall>s` lines all exiting 0, a `control method: isolated bin copy` line (the SC-02 control is
+  taken inside a private copy of the bin directory, never by reopening the removed hazard on the
+  live shared tree), a `control broken reads <n>` greater than zero, a `post-fix broken
   reads 0`, a `pool:` line whose wall time is at or under 120s, and a non-empty `tree condition:`
   line. What that still cannot prove is
   that the numbers were measured rather than typed; the fenced verbatim command output beside them
@@ -210,13 +212,20 @@ investigation while fully present and unfixed.
   8 workers, 68.7s at 4 workers, top 5 files = 142s = 57% of the total, 28 of 56 under 1s, hard
   floor ~36.7s set by the slowest single file.
 
-## Open question for the operator
+## The FEAT-47 boundary — settled, and not an operator question
 
-FEAT-47 must shed the scope that duplicates this feature — the collision hunt, the worker pool and
-the requirements behind them — or the same work is planned twice and the two builds collide in
-`run-unit-tests.sh` and in the decisions log. That re-plan is in flight and is not FEAT-48's to
-edit. FEAT-48's decision entry therefore takes the next free `DEC-` number **at authoring time**
-rather than a pinned one, so the two features cannot claim the same number.
+FEAT-47 has already shed the scope that duplicated this feature. The carve-out is recorded on both
+sides, in a diff, with the vacated ids retired rather than renumbered: FEAT-47 `plan.yaml` D-13
+("FEAT-48 ships WHOLE and lands BEFORE this feature … the D-NN numbers D-09 to D-12 and the tasks
+T-07 to T-09 that once held that scope are removed, not renumbered") and FEAT-47 `BRIEF.md`:87-94,
+against `plan.yaml` D-09 and `## Constraints` above on this side. Nothing in it is put to the
+operator; an earlier draft of this section posed it as open, which spent the signature on a
+decision already taken.
+
+Both plans are still `approval.status: pending`, so the settlement holds between two unsigned
+drafts and becomes binding when both are signed. One consequence stands and needs no ruling:
+FEAT-48's decision entry takes the next free `DEC-` number **at authoring time** rather than a
+pinned one, so the two features cannot claim the same number (`plan.yaml` T-05).
 
 ## Approval
 
