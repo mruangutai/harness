@@ -1,0 +1,174 @@
+{
+  "feature_id": "FEAT-48-parallel-safe-suite",
+  "branch": "feat/FEAT-48-parallel-safe-suite",
+  "pr": 1198,
+  "review_sha": "27f8105b",
+  "cycles_used": 8,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "2026-08-31-01-validator",
+      "squad": "validator",
+      "verdict": "FAIL",
+      "agent": "harness-validator-lead",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-08-31-02-validator",
+      "squad": "validator",
+      "verdict": "FAIL",
+      "agent": "harness-validator-lead",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-08-31-03-validator",
+      "squad": "validator",
+      "verdict": "FAIL",
+      "agent": "harness-validator-lead",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-08-31-04-validator",
+      "squad": "validator",
+      "verdict": "PASS",
+      "agent": "harness-validator-lead",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-01-01-product",
+      "squad": "product",
+      "verdict": "FAIL",
+      "agent": "harness-product-lead",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-01-02-validator",
+      "squad": "validator",
+      "verdict": "FAIL",
+      "agent": "harness-validator-lead",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-01-03-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-01-04-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-01-05-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-01-06-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-01-07-validator",
+      "squad": "validator",
+      "verdict": "PASS",
+      "agent": "harness-validator-lead",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-01-08-validator",
+      "squad": "validator",
+      "verdict": "PASS",
+      "agent": "harness-validator-lead",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-01-09-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-01-10-validator",
+      "squad": "validator",
+      "verdict": "PASS",
+      "agent": "harness-validator-lead",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-01-11-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-02-16-validator",
+      "squad": "validator",
+      "verdict": "FAIL",
+      "agent": "harness-validator-lead"
+    },
+    {
+      "id": "2026-09-02-17-product",
+      "squad": "product",
+      "verdict": "FAIL",
+      "agent": "harness-product-lead"
+    },
+    {
+      "id": "2026-09-02-c8-validator",
+      "squad": "validator",
+      "verdict": "FAIL",
+      "agent": "harness-validator-lead"
+    },
+    {
+      "id": "2026-09-02-18-product",
+      "squad": "product",
+      "verdict": "ESCALATE",
+      "agent": "harness-product-lead"
+    },
+    {
+      "id": "2026-09-02-c9-validator",
+      "squad": "validator",
+      "verdict": "ESCALATE",
+      "agent": "harness-validator-lead"
+    },
+    {
+      "id": "2026-09-02-c9-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead"
+    }
+  ],
+  "github": {
+    "milestone": 40,
+    "parent": 1191,
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03",
+      "T-04",
+      "T-06",
+      "T-05"
+    ],
+    "issues": {
+      "T-01": 1192,
+      "T-02": 1193,
+      "T-03": 1194,
+      "T-04": 1195,
+      "T-05": 1197,
+      "T-06": 1196
+    },
+    "source_issues": [
+      1053
+    ]
+  }
+}

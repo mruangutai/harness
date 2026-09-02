@@ -12,11 +12,14 @@ RED-proofs the sk- fix against the original broken pattern.
     ./test-check-fixture-secrets.py     -> exit 0 all pass, 1 otherwise
 """
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HERE)
+from isolated_bin import isolated_bin
 GUARD = os.environ.get("CHECK_FIXTURE_SECRETS_BIN") or os.path.join(
     HERE, "check-fixture-secrets.sh")
 
@@ -147,7 +150,9 @@ def run_positive_control_red_proof():
     if broken == source:
         check("positive-control-red", False, "INCONCLUSIVE: mutant is byte-identical")
         return
-    mutant = os.path.join(HERE, ".check-fixture-secrets-mutant-%d.sh" % os.getpid())
+    iso_root = tempfile.mkdtemp()
+    mutant = os.path.join(
+        isolated_bin(iso_root), ".check-fixture-secrets-mutant-%d.sh" % os.getpid())
     try:
         with open(mutant, "w", encoding="utf-8") as f:
             f.write(broken)
@@ -160,61 +165,57 @@ def run_positive_control_red_proof():
               r.returncode == 2 and "POSITIVE CONTROL FAILED" in r.stderr,
               f"rc={r.returncode} {r.stderr!r}")
     finally:
-        try:
-            os.unlink(mutant)
-        except OSError:
-            pass
+        shutil.rmtree(iso_root, ignore_errors=True)
 
 
-def run_sk_ant_red_proof():
-    """RED-proof of the actual #981 fix: revert SECRET_PATTERN's sk- branches to the
-    ORIGINAL broken shape (`sk[-_][A-Za-z0-9]{8}`, no hyphens allowed, unanchored)
-    and confirm the exact Anthropic key from the real case above is silently
-    accepted as clean — proving this suite's first case would have caught the
-    historical defect, and that the fix (not merely the test) is what closes it."""
-    with open(GUARD, encoding="utf-8") as f:
-        source = f.read()
+def _sk_ant_mutant(source):
     fixed = "(^|[^A-Za-z0-9])sk-ant-|(^|[^A-Za-z0-9])sk-[A-Za-z0-9-]{16,}"
-    original_broken = "(sk|ghp|gho|github_pat|xox[abp])[-_][A-Za-z0-9]{8}"
     if fixed not in source:
-        check("sk-ant-red", False,
-              "INCONCLUSIVE: the fixed sk- pattern anchor was not found")
-        return
+        return None
+    original_broken = "(sk|ghp|gho|github_pat|xox[abp])[-_][A-Za-z0-9]{8}"
     reverted = source.replace(
         fixed + "|(ghp|gho|github_pat|xox[abp])[-_][A-Za-z0-9]{8}",
         original_broken, 1)
-    # The mutant's OWN positive controls for the two sk- branches must still pass —
-    # their purpose here is to prove the FILE check silently passes, not to trip the
-    # (still-correct, and already separately proven) positive-control safeguard.
-    reverted = reverted.replace(
-        '"sk-ant-api03-THIS-IS-A-SYNTHETIC-CONTROL-VALUE-NOT-A-REAL-KEY"',
-        '"sk-AbCdEfGh12345678synthetic1"', 1)
-    reverted = reverted.replace(
-        '"sk-proj-AbCdEfGh-1234-5678-XyZ9"',
-        '"sk-AbCdEfGh12345678synthetic2"', 1)
-    if reverted == source:
-        check("sk-ant-red", False, "INCONCLUSIVE: mutant is byte-identical")
-        return
-    mutant = os.path.join(HERE, ".check-fixture-secrets-skant-mutant-%d.sh" % os.getpid())
+    controls = [
+        ('"sk-ant-api03-THIS-IS-A-SYNTHETIC-CONTROL-VALUE-NOT-A-REAL-KEY"',
+         '"sk-AbCdEfGh12345678synthetic1"'),
+        ('"sk-proj-AbCdEfGh-1234-5678-XyZ9"',
+         '"sk-AbCdEfGh12345678synthetic2"'),
+    ]
+    for fixed_control, broken_control in controls:
+        reverted = reverted.replace(fixed_control, broken_control, 1)
+    return reverted
+
+
+def _exercise_sk_ant_mutant(reverted):
+    iso_root = tempfile.mkdtemp()
+    mutant = os.path.join(
+        isolated_bin(iso_root), ".check-fixture-secrets-skant-mutant-%d.sh" % os.getpid())
     try:
-        with open(mutant, "w", encoding="utf-8") as f:
-            f.write(reverted)
+        with open(mutant, "w", encoding="utf-8") as mutant_file:
+            mutant_file.write(reverted)
         os.chmod(mutant, os.stat(GUARD).st_mode)
         tmp = tempfile.mkdtemp(prefix="check-fixture-secrets-skantred-")
-        anthropic_key = write(tmp, "anthropic.jsonl",
-                              '{"key": "sk-ant-api03-AbCdEfGh12345678-XyZ99900112233"}\n')
-        real = fire(anthropic_key)
-        muted = fire(anthropic_key, guard=mutant)
-        ok = (real.returncode == 1 and muted.returncode == 0
-              and "Traceback" not in muted.stderr)
-        check("sk-ant-red: the original broken pattern silently passes the exact "
-              "key that shipped invisibly before #981's fix",
-              ok, f"real={real.returncode} mutant={muted.returncode}: {muted.stdout!r}")
+        key = write(tmp, "anthropic.jsonl",
+                    '{"key": "sk-ant-api03-AbCdEfGh12345678-XyZ99900112233"}\n')
+        return fire(key), fire(key, guard=mutant)
     finally:
-        try:
-            os.unlink(mutant)
-        except OSError:
-            pass
+        shutil.rmtree(iso_root, ignore_errors=True)
+
+
+def run_sk_ant_red_proof():
+    """Prove the original #981 sk-ant pattern silently accepted the reported key."""
+    with open(GUARD, encoding="utf-8") as guard_file:
+        source = guard_file.read()
+    reverted = _sk_ant_mutant(source)
+    if reverted is None or reverted == source:
+        check("sk-ant-red", False, "INCONCLUSIVE: mutant could not be constructed")
+        return
+    real, muted = _exercise_sk_ant_mutant(reverted)
+    ok = real.returncode == 1 and muted.returncode == 0 and "Traceback" not in muted.stderr
+    check("sk-ant-red: the original broken pattern silently passes the exact "
+          "key that shipped invisibly before #981's fix",
+          ok, f"real={real.returncode} mutant={muted.returncode}: {muted.stdout!r}")
 
 def main():
     run_cases()

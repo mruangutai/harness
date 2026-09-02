@@ -13,6 +13,8 @@ noticed because each was only ever exercised by the example that happened to pas
 import contextlib, importlib.util, json, re, subprocess, sys, os, shutil, tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HERE)
+from isolated_bin import isolated_bin
 # Overridable so the pre-fix binary can be run through the SAME suite to prove
 # each new regression case actually fails against the old code (task 22).
 VALIDATE = os.environ.get("VALIDATE_DIGEST_BIN") or os.path.join(HERE, "validate-digest.py")
@@ -1700,8 +1702,9 @@ def _bug919_red_case(red):
     if mutant_source is None:
         return ("RED proof: with the qa wiring removed, the same false PASS is accepted",
                 False, "INCONCLUSIVE: the qa-wiring anchor was not found by its source text")
-    mutant = os.path.join(os.path.dirname(os.path.realpath(VALIDATE)),
-                          ".validate-digest-bug919-red-%d.py" % os.getpid())
+    iso_root = tempfile.mkdtemp()
+    mutant = os.path.join(
+        isolated_bin(iso_root), ".validate-digest-bug919-red-%d.py" % os.getpid())
     root = _isolated_root()
     env = dict(os.environ, HARNESS_PROJECT_DIR=root, CLAUDE_PROJECT_DIR=root,
               RUN_UNIT_TESTS_BIN=red)
@@ -1711,7 +1714,7 @@ def _bug919_red_case(red):
         muted = subprocess.run([mutant, "--hook"], input=json.dumps(payload),
                                capture_output=True, text=True, env=env)
     finally:
-        _remove_mutant(mutant)
+        shutil.rmtree(iso_root, ignore_errors=True)
     real = _bug919_fire(red)
     ok = (real.returncode == 2 and muted.returncode == 0
           and "Traceback" not in muted.stderr)
@@ -3809,8 +3812,9 @@ def run_empty_red_case():
         return _red_failure(
             "empty-red", "INCONCLUSIVE: the mutant is byte-identical to the original")
 
-    mutant = os.path.join(os.path.dirname(os.path.realpath(VALIDATE)),
-                          ".validate-digest-empty-red-%d.py" % os.getpid())
+    iso_root = tempfile.mkdtemp()
+    mutant = os.path.join(
+        isolated_bin(iso_root), ".validate-digest-empty-red-%d.py" % os.getpid())
     payload = {"agent_type": "harness-qa", "last_assistant_message": "   \n"}
     root = _isolated_root()
     env = dict(os.environ, HARNESS_PROJECT_DIR=root, CLAUDE_PROJECT_DIR=root)
@@ -3820,7 +3824,7 @@ def run_empty_red_case():
             _fire_hook_binary(VALIDATE, payload, env),
             _fire_hook_binary(mutant, payload, env))
     finally:
-        _remove_mutant(mutant)
+        shutil.rmtree(iso_root, ignore_errors=True)
 
     if not failures:
         print("ok    [empty-red] the empty-string refusal fails against the truthiness revert")
@@ -3860,8 +3864,9 @@ def run_dec156_worktree_red_case():
         return _red_failure(
             "dec156-worktree-red", "INCONCLUSIVE: resolution anchors absent")
 
-    mutant = os.path.join(os.path.dirname(os.path.realpath(VALIDATE)),
-                          ".validate-digest-dec156-red-%d.py" % os.getpid())
+    iso_root = tempfile.mkdtemp()
+    mutant = os.path.join(
+        isolated_bin(iso_root), ".validate-digest-dec156-red-%d.py" % os.getpid())
     try:
         _install_mutant(mutant, mutant_source)
         real = _fire_hook_binary(VALIDATE, payload, env)
@@ -3873,7 +3878,7 @@ def run_dec156_worktree_red_case():
         print("ok    [dec156-worktree-red] owner-root join misses the worktree digest")
         return 0
     finally:
-        _remove_mutant(mutant)
+        shutil.rmtree(iso_root, ignore_errors=True)
 
 
 def main():

@@ -1,0 +1,15 @@
+bug:[FEAT-48 B-1] run_pool.py _record swallows every OSError, so an unreadable directory hides a mutation from both snapshots
+chore:[FEAT-48 B-2] Correct D-11: the mutation check is not vector-agnostic inside a watched directory
+bug:[FEAT-48 B-3] The __pycache__ skip is keyed on directory basename and checked before the symlink branch, admitting any payload at any depth
+bug:[FEAT-48 B-4] run_pool snapshot() never records plain directories, so a new empty directory under bin/ is invisible
+chore:[FEAT-48 B-5] Amend D-11 and T-04 intent: the .pyc suffix skip was deliberately removed and the code is safer than the plan text
+bug:[FEAT-48 B-6] FEAT-48 T-06 verify clause is wrong: post == [0] fails on a duplicated carrier line, use set(post) == {0}
+chore:[FEAT-48 B-7] test-check-fixture-secrets.py merged two distinct mutant diagnostics into one generic message
+chore:[FEAT-48 B-8] test-suite-independence.py _scan_statements can double-count a nested finding, inflating the site count
+bug:[FEAT-48 B-9] The suite is green only with HARNESS_AGENT_TYPE unset: test-plan-merge.py fails 11 checks when it is set
+chore:[FEAT-48 B-10] FEAT-48 BRIEF.md Approval block carries no distinct re-signature for the approved SC-03 amendment
+chore:[FEAT-48 B-11] Issue #1053 Scope section still reads Folded into FEAT-47
+enhancement:[FEAT-48 B-12] BACKLOG-C: vendor the ten ea6f51f fixture-secret sites as committed fixtures so CI can re-check them
+bug:[FEAT-48 B-13] bash-write-guard.sh blocks all bash-level file writes including /tmp for read-only reviewer personas
+bug:[FEAT-48 B-14] validate-digest.py accepted severity_max medium where the contract enum is med
+chore:[FEAT-48 B-15] test-run-pool.py case_cache_exclusion pins only the .pyc leg, so narrowing the __pycache__ skip would pass unchanged

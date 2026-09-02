@@ -6559,3 +6559,56 @@ from an interrupted one, and the boundary fails safe by treating the parent as g
 longer than that TTL therefore meets the quarantine path on a NORMAL run. That is a cost of the
 compatibility host and does not exist on OMP, where a claim is owned by a supervisor process and a
 verified one is live at any age.
+
+## DEC-211 — The suite runs in parallel, and no test mutates state another test can see
+
+**The shared checkout is never a test fixture.** `test-check-domain.py` previously overwrote the
+live `feature_schema.py` for about a 90ms window per run. In measurement, 5,105 of 1,032,849 polls
+observed the broken module. The crashing-checker probe now receives a private copy of the complete
+bin directory through `isolated_bin.py`; shortening or retrying the window is not a fix. Absence of
+the hazard is the proof: while the defect was fully present it nevertheless went quiet for six
+consecutive eight-worker runs.
+
+**The repair scope is derived and not enumerated.** A build-time census finds every live-tree
+mutation site and every reported site is fixed; none is allowlisted. Three enumerations became stale
+within one planning cycle as sibling features merged, and two mutant basenames include
+`os.getpid()`, so a fixed list could not describe the set. The census is bounded by
+`.claude/skills/harness/bin/**`; a report outside that lane is escalated rather than silently
+written. `test-suite-independence.py` then walks the repository for test files independently of
+their layout and forbids writes through paths derived from `__file__`. It has no escape hatch.
+
+**Scheduling belongs to Python and selection remains in bash.** `run_pool.py` receives the selected
+script paths, runs them through a fixed thread pool, captures each subprocess's combined output, and
+prints one contiguous attributed block per completed file. The worker rule is
+`HARNESS_TEST_WORKERS` when explicitly set, otherwise `min(8, max(2, os.cpu_count() or 2))`. The cap
+reflects the measured 36.7 second floor set by the slowest file: workers beyond eight add fork and
+memory pressure for little possible wall-time gain.
+
+**Static source inspection is necessary but insufficient.** `run_pool.py --mutation-check` snapshots
+mode, size and nanosecond mtime for tracked and untracked entries beneath
+`.claude/skills/harness/bin` before and after execution. It catches mutant scripts that appear
+beside an original, symlink changes, and mutations hidden in a helper or subprocess.
+The watched set is deliberately the bin directory, not the repository root: agents continuously
+write `.harness/harness/features/**`, and a root-wide snapshot would redden a correct suite because
+a sibling wrote a note. A legitimate hand or agent edit inside bin during a run still trips the
+check, because it is indistinguishable from a test mutation.
+
+**The coverage boundary is explicit.** The runtime snapshot sees nothing outside bin. There the
+static scan is the only enforcement, with known blind spots: its taint begins only at literal
+`__file__`, so a target built from a relative literal or `os.getcwd()` can evade it; and it does not
+propagate taint through file content, so a target read from a manifest, config, or fixture is also
+unseen. The content exclusion is deliberate because propagating it produced fifteen false
+violations for writes beneath a tempdir and made a clean result impossible. A content-derived write
+inside bin is caught only when it changes an entry's mode, size or observed nanosecond mtime. A
+same-size rewrite that restores the original mtime is outside this metadata snapshot's coverage;
+content hashing is deferred rather than falsely claimed. No broader coverage is claimed.
+
+**The proposal of change-based test selection is REJECTED.** It makes coverage a function of the diff, allowing a
+gate to pass by selecting nothing. The runtime floor is dominated by one file that most changes
+reach indirectly, so selection does not remove the controlling cost. Finally, the dependency from
+a bash gate script to the test that forks it is not statically knowable, making apparently precise
+selection silently incomplete.
+
+**Measurements:** on 2026-08-31 at `ea6f51f`, a 12-core M3 Pro ran 56 files in 247 seconds
+serially, about 47 seconds with eight workers and 68.7 seconds with four; the single-file floor was
+about 36.7 seconds. These observations explain the policy but do not replace its invariants.

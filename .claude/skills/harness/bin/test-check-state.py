@@ -23,6 +23,7 @@ SCRIPT = os.environ.get("CHECK_STATE_BIN") or os.path.join(
 # rule moves (FEAT-42 T-21). Imported from THIS file's directory, not SCRIPT's, so a
 # reverted CHECK_STATE_BIN still grades against the live rule.
 sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
+from isolated_bin import isolated_bin
 import harness_boundary as _hb
 
 HARNESS_JSON_SYNC_ON = """{
@@ -2237,8 +2238,8 @@ def case_t14_red():
         print("FAIL - case (t14-red): INCONCLUSIVE — the mutation did not change the source")
         return False
 
-    mpath = os.path.join(os.path.dirname(os.path.realpath(SCRIPT)),
-                         ".mutant-check-state-t14.sh")
+    iso_root = tempfile.mkdtemp()
+    mpath = os.path.join(isolated_bin(iso_root), ".mutant-check-state-t14.sh")
     try:
         with open(mpath, "w") as f:
             f.write(mutant_text)
@@ -2260,8 +2261,7 @@ def case_t14_red():
               f"mutant reports {n_mut}")
         return True
     finally:
-        if os.path.exists(mpath):
-            os.remove(mpath)
+        shutil.rmtree(iso_root, ignore_errors=True)
 
 
 # ---------------------------------------------------------------------------
@@ -2373,8 +2373,8 @@ def case_t10_red():
         print("FAIL - case (t10-red): INCONCLUSIVE — the mutation did not change the source")
         return False
 
-    mpath = os.path.join(os.path.dirname(os.path.realpath(SCRIPT)),
-                         ".mutant-check-state-t10.sh")
+    iso_root = tempfile.mkdtemp()
+    mpath = os.path.join(isolated_bin(iso_root), ".mutant-check-state-t10.sh")
     try:
         with open(mpath, "w") as f:
             f.write(mutant_text)
@@ -2396,8 +2396,7 @@ def case_t10_red():
               f"{n_real}, mutant {n_mut}")
         return True
     finally:
-        if os.path.exists(mpath):
-            os.remove(mpath)
+        shutil.rmtree(iso_root, ignore_errors=True)
 
 # --- T-05 (FEAT-26): INV-28 — a Done feature whose pull request number was never
 # recorded. Warn level, gated on github.sync, one line per offending feature.
@@ -3283,7 +3282,8 @@ def _inv32_mutant_is_discriminating(missing):
     source = open(SCRIPT, encoding="utf-8").read()
     begin = "# INV-32 BEGIN (FEAT-45 T-07)"
     end = "# INV-32 END (FEAT-45 T-07)"
-    mutant = os.path.join(os.path.dirname(SCRIPT), ".check-state-inv32-mutant.sh")
+    iso_root = tempfile.mkdtemp()
+    mutant = os.path.join(isolated_bin(iso_root), ".check-state-inv32-mutant.sh")
     try:
         assert begin in source and end in source
         left, rest = source.split(begin, 1)
@@ -3300,8 +3300,7 @@ def _inv32_mutant_is_discriminating(missing):
                 sc04_refusal)
         return all(_inv32_mutant_fixture_passes(doc, mutant) for doc in docs)
     finally:
-        if os.path.exists(mutant):
-            os.unlink(mutant)
+        shutil.rmtree(iso_root, ignore_errors=True)
 
 
 def case_inv32():
@@ -3588,7 +3587,8 @@ def case_inv32_era_guard_is_load_bearing():
     source = open(SCRIPT, encoding="utf-8").read()
     begin = "# INV-32 ERA BEGIN (BUG-1071)"
     end = "# INV-32 ERA END (BUG-1071)"
-    mutant = os.path.join(os.path.dirname(SCRIPT), ".check-state-inv32-era-mutant.sh")
+    iso_root = tempfile.mkdtemp()
+    mutant = os.path.join(isolated_bin(iso_root), ".check-state-inv32-era-mutant.sh")
     try:
         if begin not in source or end not in source:
             print("FAIL - INV-32 era guard markers absent; cannot mutate")
@@ -3609,8 +3609,7 @@ def case_inv32_era_guard_is_load_bearing():
               f"mutant={len(_inv32_violations(mut_out))} violations)")
         return ok
     finally:
-        if os.path.exists(mutant):
-            os.unlink(mutant)
+        shutil.rmtree(iso_root, ignore_errors=True)
 
 
 # BUG-1071 F2 — the boundary is the PROJECT'S, read from harness.json, not a literal

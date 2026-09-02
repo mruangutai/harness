@@ -11,9 +11,11 @@ Two halves, and both must stay green:
   MUST PASS  — legitimate commands the guard had been blocking
   MUST BLOCK — the DEC-151 bypass shapes it exists to stop
 """
-import json, os, subprocess, sys
+import json, os, shutil, subprocess, sys, tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HERE)
+from isolated_bin import isolated_bin
 GUARD = os.environ.get("BASH_WRITE_GUARD_BIN") or os.path.join(HERE, "bash-write-guard.sh")
 
 
@@ -888,14 +890,14 @@ def _feat50_bash_absent_case():
             f"{result.returncode}: {result.stderr}")
 
 
-def _feat50_bash_mutant():
+def _feat50_bash_mutant(iso):
     with open(GUARD, encoding="utf-8") as source_file:
         source = source_file.read()
     call = "            feature_checkout_guard(rel, ap)\n"
     if source.count(call) != 2:
         raise AssertionError("INCONCLUSIVE: Bash binding call anchors absent or ambiguous")
     changed = source.replace(call, "")
-    path = os.path.join(HERE, f".feat50-bash-write-guard-{os.getpid()}.sh")
+    path = os.path.join(iso, f".feat50-bash-write-guard-{os.getpid()}.sh")
     with open(path, "w", encoding="utf-8") as mutant_file:
         mutant_file.write(changed)
     os.chmod(path, os.stat(GUARD).st_mode)
@@ -903,14 +905,15 @@ def _feat50_bash_mutant():
 
 
 def _feat50_bash_red_case(root, target, main):
-    source, changed, mutant = _feat50_bash_mutant()
+    iso_root = tempfile.mkdtemp()
+    source, changed, mutant = _feat50_bash_mutant(isolated_bin(iso_root))
     payload = {"agent_type": "harness-documentor", "tool_name": "Bash",
                "tool_input": {"command": f"echo hi > {target}"}}
     try:
         muted = subprocess.run([mutant], input=json.dumps(payload), capture_output=True,
                                text=True, env=_env(root))
     finally:
-        os.unlink(mutant)
+        shutil.rmtree(iso_root, ignore_errors=True)
     ok = (changed != source and main.returncode == 2 and muted.returncode == 0
           and "Traceback" not in muted.stderr)
     return ("bash-feature-checkout-red", ok,
