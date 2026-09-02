@@ -1,7 +1,7 @@
 {
   "feature_id": "FEAT-48-parallel-safe-suite",
   "branch": "feat/FEAT-48-parallel-safe-suite",
-  "pr": null,
+  "pr": 1198,
   "review_sha": "27f8105b",
   "cycles_used": 8,
   "max_total_cycles": 10,
