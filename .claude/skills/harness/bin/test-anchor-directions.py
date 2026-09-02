@@ -38,25 +38,21 @@ def show(path):
         raise RuntimeError("git show %s: %s" % (path, result.stderr.strip()))
     return result.stdout
 
-def main():
-    verified = subprocess.run(["git", "-C", ROOT, "rev-parse", "--verify", REF + "^{commit}"], text=True, capture_output=True)
-    if verified.returncode:
-        print("FAIL - unresolved review ref %s: %s" % (REF, verified.stderr.strip()))
-        return 1
-    failed = 0
-    for name, path, token, expected, minimum in ROWS:
-        content = show(path)
-        problems = direction_failures(content, token, expected, minimum)
-        wrong = "<HARNESS_CONTROL_PLANE_ROOT>/" if expected == "HARNESS_FEATURE_TREE_ROOT" else "<HARNESS_FEATURE_TREE_ROOT>/"
-        bare = re.sub(r"\\", "", token).replace("(?:agents|claude)", "agents")
-        wrong_fixture = wrong + bare * minimum
-        bare_fixture = bare
-        red = direction_failures(wrong_fixture, token, expected, minimum) and direction_failures(bare_fixture, token, expected, minimum)
-        if name == "SC-11 S2 write observations":
-            red = red and direction_failures("<HARNESS_FEATURE_TREE_ROOT>/" + bare + bare, token, expected, minimum)
-        ok = not problems and red
-        print(("PASS" if ok else "FAIL") + " - " + name + (" (%s)" % problems if problems else ""))
-        failed += not ok
+def _check_row(name, path, token, expected, minimum):
+    content = show(path)
+    problems = direction_failures(content, token, expected, minimum)
+    wrong = "<HARNESS_CONTROL_PLANE_ROOT>/" if expected == "HARNESS_FEATURE_TREE_ROOT" else "<HARNESS_FEATURE_TREE_ROOT>/"
+    bare = re.sub(r"\\", "", token).replace("(?:agents|claude)", "agents")
+    red = direction_failures(wrong + bare * minimum, token, expected, minimum)
+    red = red and direction_failures(bare, token, expected, minimum)
+    if name == "SC-11 S2 write observations":
+        red = red and direction_failures("<HARNESS_FEATURE_TREE_ROOT>/" + bare + bare, token, expected, minimum)
+    ok = not problems and red
+    print(("PASS" if ok else "FAIL") + " - " + name + (" (%s)" % problems if problems else ""))
+    return ok
+
+
+def _whole_scope_ok():
     scope = subprocess.run([sys.executable, CHECKER, "--root", ROOT, "--list-scope"], text=True, capture_output=True)
     paths = [p for p in scope.stdout.splitlines() if p]
     temp = tempfile.mkdtemp()
@@ -70,9 +66,18 @@ def main():
         summary = re.search(r"scanned (\d+) file\(s\), 0 violation\(s\)", check.stdout)
         ok = check.returncode == 0 and summary and int(summary.group(1)) == len(paths)
         print(("PASS" if ok else "FAIL") + " - reviewed-sha whole scope" + ("" if ok else "\n" + check.stdout + check.stderr))
-        failed += not ok
+        return ok
     finally:
         shutil.rmtree(temp)
+
+
+def main():
+    verified = subprocess.run(["git", "-C", ROOT, "rev-parse", "--verify", REF + "^{commit}"], text=True, capture_output=True)
+    if verified.returncode:
+        print("FAIL - unresolved review ref %s: %s" % (REF, verified.stderr.strip()))
+        return 1
+    failed = sum(not _check_row(*row) for row in ROWS)
+    failed += not _whole_scope_ok()
     return int(bool(failed))
 
 if __name__ == "__main__":
