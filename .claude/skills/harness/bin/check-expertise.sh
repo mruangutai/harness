@@ -99,8 +99,8 @@ for path in sys.argv[1:]:
     if near_budget_threshold <= len(lines) <= line_budget:
         advisories.append(
             f"ADVISORY {path}: {len(lines)} lines of a {line_budget}-line budget "
-            f"({line_budget - len(lines)} of headroom) — the next entry must "
-            f"DISPLACE an existing one, not append (issue #613).")
+            f"({line_budget - len(lines)} lines of headroom) — the next entry must "
+            f"DISPLACE an existing one, not append (issue #613)")
 
 
     # --- TITLE (B-10). This file is injected whole into its agent's context at every

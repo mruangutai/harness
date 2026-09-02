@@ -264,6 +264,37 @@ def run_extra():
         record("case7: a 30-line repository-tier file gets NO advisory",
                no_advisory, out)
 
+        # THE EXACT BOUNDARY, should-fix from code review of PR #1250: the threshold
+        # itself is line_budget - line_budget // NEAR_BUDGET_FRACTION, i.e. 135 for
+        # craft (150 - 150//10) and 36 for repo (40 - 40//10). One line below it must
+        # get no advisory; the threshold line itself must.
+        craft_135 = os.path.join(craft_dir, "harness-frontend-dev.md")
+        n_line_file(craft_135, 135)
+        rc, out = run_cmd([CHECK, craft_135])
+        record("case7: a craft file AT the exact threshold (135 lines) gets the "
+               "ADVISORY", "ADVISORY" in out, out)
+
+        craft_134 = os.path.join(craft_dir, "harness-ai-dev.md")
+        n_line_file(craft_134, 134)
+        rc, out = run_cmd([CHECK, craft_134])
+        no_advisory = not any(l.startswith("ADVISORY") for l in out.splitlines())
+        record("case7: a craft file ONE LINE BELOW the threshold (134 lines) gets NO "
+               "advisory", no_advisory, out)
+
+        repo_36 = os.path.join(repo_dir, "harness-product-lead.md")
+        n_line_file(repo_36, 36)
+        rc, out = run_cmd([CHECK, repo_36])
+        record("case7: a repo-tier file AT the exact threshold (36 lines) gets the "
+               "ADVISORY", "ADVISORY" in out, out)
+
+        repo_35 = os.path.join(repo_dir, "harness-dev-ops.md")
+        n_line_file(repo_35, 35)
+        rc, out = run_cmd([CHECK, repo_35])
+        no_advisory = not any(l.startswith("ADVISORY") for l in out.splitlines())
+        record("case7: a repo-tier file ONE LINE BELOW the threshold (35 lines) gets "
+               "NO advisory", no_advisory, out)
+
+
         # THE HAPPY PATH: a genuinely well-formed, clean file that is also near budget
         # still reports OK and exits 0 — the advisory is visible, never blocking.
         happy = os.path.join(craft_dir, "harness-backend-dev.md")
