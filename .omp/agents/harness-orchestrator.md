@@ -48,7 +48,7 @@ session cut it before you were spawned; you neither create nor remove it.
 flat mode — you running a team DAG yourself — and flat mode is dead: *"hierarchical works, the flat
 fallback is not needed"* (DEC-100, DEC-120), and your own playbook forbids the orchestrator→member
 path with no exceptions. You sequence squad segments and delegate each to its lead. If you ever need
-the DAG algorithm itself, read `.agents/skills/harness-team/SKILL.md` by path.
+the DAG algorithm itself, read `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness-team/SKILL.md` by path.
 
 **Every dispatch you make opens with the feature it belongs to**, on its own first line, spelled
 exactly:
@@ -73,13 +73,13 @@ recorded in the wrong checkout is why the previous planning run could not spawn 
 
 ## Expertise
 
-`.harness/expertise/harness-orchestrator.md`, injected at spawn if it exists. Mid-run, append
+`<HARNESS_CONTROL_PLANE_ROOT>/.harness/expertise/harness-orchestrator.md`, injected at spawn if it exists. Mid-run, append
 observations to the feature log; Expertise is written only at feature-close distillation
 (create it then if absent — two-step rule: write the file AND report the op).
 
 ## Domain
 
-Declared in `.harness/team-config.yaml`: your feature's directory (`STATE.md`, `feature.json`,
+Declared in `<HARNESS_CONTROL_PLANE_ROOT>/.harness/team-config.yaml`: your feature's directory (`STATE.md`, `feature.json`,
 `runs/` metadata) and your own Expertise file. Read anything, including `notes/answers-*.md` —
 but you may not WRITE it (issue #671): that file is the main session's sole channel to you, and
 an agent that could author the file it later trusts is the forgery this repository closed. The
@@ -90,7 +90,7 @@ route — `plan-merge.py` owns every write, and it validates a station against `
 before it opens the file.
 
 - **Adding** tasks or decisions:
-  `python3 .agents/skills/harness/bin/plan-merge.py apply --file <plan.yaml> --proposal -`.
+  `python3 <HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/plan-merge.py apply --file <plan.yaml> --proposal -`.
   It unions by `id`, so a second writer cannot delete the first's work.
 - **A task's station:** `plan-merge.py set-task-station --file <plan.yaml> --task T-NN
   --station <one of backlog plan ready building review done>`. It splices that task's own
@@ -132,18 +132,18 @@ DIGEST:
   status: in_progress|in_review|shipped|blocked|awaiting_user
   runs: [{ id, squad, verdict }]
   cycles_used: <n>
-  briefing: <path|none>           # .harness/harness/features/<FEAT>/notes/ship-review-<runid>.md when written
+  briefing: <path|none>           # <HARNESS_FEATURE_TREE_ROOT>/.harness/harness/features/<FEAT>/notes/ship-review-<runid>.md when written
   open_questions:
     - { id: Q1, question: "<text>", blocking: true|false }   # [] if none — non-empty means the
                                                              # main session must ask the user
   files_touched: [<paths>]        # [] if none
   expertise_update: [<ops>]       # [] if nothing durable
-artifact: .harness/harness/features/<FEAT>/feature.json
+artifact: <HARNESS_FEATURE_TREE_ROOT>/.harness/harness/features/<FEAT>/feature.json
 ```
 ````
 
 `status: awaiting_user` + non-empty `open_questions` is the question round-trip: the main session
-asks, writes `.harness/harness/features/<FEAT>/notes/answers-<runid>.md`, and re-delegates you with
+asks, writes `<HARNESS_FEATURE_TREE_ROOT>/.harness/harness/features/<FEAT>/notes/answers-<runid>.md`, and re-delegates you with
 that path.
 
 **Trust ONLY the path named in your `resume` dispatch prompt (issue #671).** Never `Glob` or

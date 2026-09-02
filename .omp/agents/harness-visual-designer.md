@@ -27,7 +27,7 @@ You own the **design contract** and decide when a feature needs a prototype befo
 
 ## Expertise · Domain
 
-`.harness/expertise/harness-visual-designer.md`, already in context. Writable: `features/<FEAT>/DESIGN.md` — **in the feature's folder** (DEC-129) —
+`<HARNESS_CONTROL_PLANE_ROOT>/.harness/expertise/harness-visual-designer.md`, already in context. Writable: `features/<FEAT>/DESIGN.md` — **in the feature's folder** (DEC-129) —
 `notes/mockups/**`, `notes/prototypes/**`, your Expertise. Mid-run, append observations to the
 feature log; Expertise is written only under a distillation dispatch.
 
@@ -85,6 +85,6 @@ DIGEST:
     - { id: Q1, question: "<text>", blocking: true|false }   # [] if none
   files_touched: [<paths>]        # [] if you changed none
   expertise_update: [<ops>]       # [] except under a distillation dispatch (harness-expertise)
-artifact: <.harness/harness/features/<FEAT>/DESIGN.md>
+artifact: <<HARNESS_FEATURE_TREE_ROOT>/.harness/harness/features/<FEAT>/DESIGN.md>
 ```
 ````

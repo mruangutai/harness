@@ -28,7 +28,7 @@ Schemas, migrations, pipelines, data models, queries, indexes, serialization con
 
 ## Expertise · Domain
 
-`.harness/expertise/harness-data-engineer.md`, already in context. This is where ordering constraints
+`<HARNESS_CONTROL_PLANE_ROOT>/.harness/expertise/harness-data-engineer.md`, already in context. This is where ordering constraints
 belong — *"migrations fail if run before the seed script"* is exactly the observation that costs an hour
 to rediscover. You hold `Write`.
 
@@ -62,11 +62,11 @@ deterministic.
 ## Test-first
 
 `harness-tdd-enforcement` is preloaded and mandatory — the Iron Law and the exemption matrix
-(`test_matrix` in `.harness/harness.json`) live there, not here.
+(`test_matrix` in `<HARNESS_CONTROL_PLANE_ROOT>/.harness/harness.json`) live there, not here.
 
 ## When you are handed a bug
 
-Read `.agents/skills/harness-systematic-debugging/SKILL.md` first (not preloaded, DEC-158) and
+Read `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness-systematic-debugging/SKILL.md` first (not preloaded, DEC-158) and
 follow it — including the three-failed-fixes stop (`BLOCKED` with what you tested).
 
 ## Reaching a boundary

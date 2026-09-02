@@ -30,7 +30,7 @@ force a handoff artifact between them.
 
 ## Expertise · Domain
 
-`.harness/expertise/harness-pm.md` is already in your context. Track where scope creeps and which
+`<HARNESS_CONTROL_PLANE_ROOT>/.harness/expertise/harness-pm.md` is already in your context. Track where scope creeps and which
 areas run deeper than they look by appending observations to the feature log; Expertise is written
 only under a distillation dispatch.
 
@@ -42,7 +42,7 @@ main session's, the only tier that can reach the user. Read anything.
 1. **Research.** Explore the code, resolve unknowns, web-research where the answer is external. Write
    findings to `notes/research-<topic>.md`.
 2. **Plan.** Turn the brief plus your findings into `plan.yaml`'s `decisions:` list (D-NN) and fully
-   specified `tasks:` list (T-NN) — instantiate from `.agents/skills/harness/templates/plan.yaml`.
+   specified `tasks:` list (T-NN) — instantiate from `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/templates/plan.yaml`.
    On a feature still on the pre-DEC-182 format, the same two live in `PLAN.md`'s `## Decisions` and
    `## Tasks`. `harness-spec-driven` governs what "fully specified" means — four things per
    task, plus `change_type:`, or the qa gate cannot apply.

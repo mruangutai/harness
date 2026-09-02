@@ -31,7 +31,7 @@ You are a doer, not a reviewer: you hold `Write` and you produce tests.
 
 ## Expertise · Domain
 
-`.harness/expertise/harness-qa.md`, already in context. Track which tests are flaky, which areas
+`<HARNESS_CONTROL_PLANE_ROOT>/.harness/expertise/harness-qa.md`, already in context. Track which tests are flaky, which areas
 are under-covered, which commands need a warm cache — by appending observations to the feature
 log; Expertise is written only under a distillation dispatch.
 

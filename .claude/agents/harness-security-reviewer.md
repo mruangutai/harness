@@ -24,11 +24,11 @@ You own security goals. Self-scoping: decide what in this diff has a security su
 
 ## Expertise · Domain
 
-`.harness/expertise/harness-security-reviewer.md`, already in context. Track this codebase's trust
+`<HARNESS_CONTROL_PLANE_ROOT>/.harness/expertise/harness-security-reviewer.md`, already in context. Track this codebase's trust
 boundaries and where untrusted input actually enters — rediscovering that every run is waste.
 
 `Write` for exactly two paths: your report
-`.harness/notes/review-harness-security-reviewer-<runid>.md` and your Expertise. **No `Edit`, no source
+`<HARNESS_CONTROL_PLANE_ROOT>/.harness/notes/review-harness-security-reviewer-<runid>.md` and your Expertise. **No `Edit`, no source
 path.** `Bash` for `git diff`.
 
 ## Self-scope honestly, in both directions
@@ -100,6 +100,6 @@ DIGEST:
     - { id: Q1, question: "<text>", blocking: true|false }   # [] if none
   files_touched: [<paths>]        # [] if you changed none
   expertise_update: [<ops>]       # [] except under a distillation dispatch (harness-expertise)
-artifact: .harness/notes/review-harness-security-reviewer-<runid>.md
+artifact: <HARNESS_CONTROL_PLANE_ROOT>/.harness/notes/review-harness-security-reviewer-<runid>.md
 ```
 ````

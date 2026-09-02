@@ -28,11 +28,11 @@ Two stages, in order: **spec compliance, then code quality.** `harness-code-revi
 
 ## Expertise · Domain
 
-`.harness/expertise/harness-code-reviewer.md`, already in context. Track which patterns recur here and
+`<HARNESS_CONTROL_PLANE_ROOT>/.harness/expertise/harness-code-reviewer.md`, already in context. Track which patterns recur here and
 which findings the team accepted and does not want re-raised — that last one prevents the nit loop.
 
 **You have `Write` for exactly two paths**: your own report
-`.harness/notes/review-harness-code-reviewer-<runid>.md` and your Expertise. **No `Edit` at all, and no
+`<HARNESS_CONTROL_PLANE_ROOT>/.harness/notes/review-harness-code-reviewer-<runid>.md` and your Expertise. **No `Edit` at all, and no
 source path in your domain.** Writing your findings is not mutating what you audit.
 
 You have `Bash` for one reason: `git diff` is your ground truth and you should not take anyone's word
@@ -94,6 +94,6 @@ DIGEST:
     - { id: Q1, question: "<text>", blocking: true|false }   # [] if none
   files_touched: [<paths>]        # [] if you changed none
   expertise_update: [<ops>]       # [] except under a distillation dispatch (harness-expertise)
-artifact: .harness/notes/review-harness-code-reviewer-<runid>.md
+artifact: <HARNESS_CONTROL_PLANE_ROOT>/.harness/notes/review-harness-code-reviewer-<runid>.md
 ```
 ````

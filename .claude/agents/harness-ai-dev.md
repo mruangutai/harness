@@ -31,7 +31,7 @@ evals** that gate them.
 
 ## Expertise · Domain
 
-`.harness/expertise/harness-ai-dev.md`, already in context. Track which prompt shapes work in this
+`<HARNESS_CONTROL_PLANE_ROOT>/.harness/expertise/harness-ai-dev.md`, already in context. Track which prompt shapes work in this
 domain, which failure modes recur, what the model gets reliably wrong. You hold `Write`.
 
 Writable paths and `evals/**` are in the manifest.
@@ -68,11 +68,11 @@ never present an eval as live coverage.
 ## Test-first
 
 `harness-tdd-enforcement` is preloaded and mandatory — the Iron Law and the exemption matrix
-(`test_matrix` in `.harness/harness.json`) live there, not here.
+(`test_matrix` in `<HARNESS_CONTROL_PLANE_ROOT>/.harness/harness.json`) live there, not here.
 
 ## When you are handed a bug
 
-Read `.agents/skills/harness-systematic-debugging/SKILL.md` first (not preloaded, DEC-158) and
+Read `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness-systematic-debugging/SKILL.md` first (not preloaded, DEC-158) and
 follow it — including the three-failed-fixes stop (`BLOCKED` with what you tested).
 
 ## Reaching a boundary
