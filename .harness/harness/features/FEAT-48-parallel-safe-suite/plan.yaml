@@ -1,6 +1,6 @@
 schema: plan/1
 feature: FEAT-48-parallel-safe-suite
-status: review
+status: done
 
 source_issues: [1053]
 
