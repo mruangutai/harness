@@ -1258,7 +1258,8 @@ the baseline; qa may *add* requirements it infers from the diff. It never drops 
 | frontend component | ✅ | component | — | if interaction flow |
 | feature (UI + API) | ✅ | ✅ | ✅ | ✅ |
 | bugfix | ✅ (regression reproducing bug) | if functional | if integration | if UI |
-| config / scaffolding / docs | exempt | exempt | exempt | exempt |
+| config (shape change) | exempt | exempt | if touches config shape | exempt |
+| scaffolding / docs | exempt | exempt | exempt | exempt |
 
 `harness.json` schema. **Conditionals are structured predicates, not prose** — otherwise the
 table's "if touches DB/external" cells silently vanish and high-risk changes ship untested:
@@ -1274,7 +1275,9 @@ table's "if touches DB/external" cells silently vanish and high-risk changes shi
   "feature":      { "always": ["unit","functional","integration","ui"] },
   "bugfix":       { "always": ["unit"],
                     "when": [{ "kind":"__bug_class__", "if":"match_bug_class" }] },
-  "config": { "always": [] }, "scaffolding": { "always": [] }, "docs": { "always": [] }
+  "config": { "always": [],
+              "when": [{ "kind":"integration", "if":"touches_config_shape" }] },
+  "scaffolding": { "always": [] }, "docs": { "always": [] }
 },
 "test_kinds": {
   "unit":        { "detect": "tests/unit/**|*.test.*|*_test.*", "cmd": "<project test cmd>" },
@@ -1287,7 +1290,8 @@ table's "if touches DB/external" cells silently vanish and high-risk changes shi
 
 - **Predicate evaluation** is qa's judgment against the diff, but the *predicate names are fixed
   data* so behavior is auditable (`touches_db_or_external`, `has_interaction_flow`,
-  `match_bug_class`).
+  `match_bug_class`, `touches_config_shape` — the last for a `config` change that alters a value's
+  container shape rather than its value, DEC-212).
 - **`test_kinds` supplies two things** without which "missing required kind → FAIL" is not
   computable: how to *detect* a kind's presence in a diff (`detect` globs), and *what command runs
   it* (`cmd`, per project).

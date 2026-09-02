@@ -68,7 +68,13 @@
       ]
     },
     "config": {
-      "always": []
+      "always": [],
+      "when": [
+        {
+          "kind": "integration",
+          "if": "touches_config_shape"
+        }
+      ]
     },
     "scaffolding": {
       "always": []
@@ -99,6 +105,13 @@
       ],
       "added": [],
       "signed": "DEC-187"
+    },
+    "config": {
+      "removed": [],
+      "added": [
+        "integration"
+      ],
+      "signed": "DEC-212"
     }
   },
   "_test_kinds_note": "EVERY cmd ships as null. dev-ops replaces it with a command it has RUN and seen pass, or leaves it null and REPLACES the placeholder _reason with the real one. NEVER write a plausible-looking command you have not executed: `node --test src/` reports `tests 1 / fail 1` for a module-load error, which reads exactly like a failing suite (DEC-98). A null cmd is BLOCKED in the qa gate, never a skip. The ONLY soft skip is status: excluded with a signed decision id \u2014 a human's recorded call, never inferred at gate time (DEC-187). An invented cmd turns a hard gate into a silent no-op, which is worse than either. DELETE the _reason on any kind whose cmd you fill \u2014 leaving 'unset, detection has not run' beside a verified command is a lie about the project's own config. `exclude` keeps worktree and vendor dirs out of diff scans \u2014 measured 3x test-file inflation in kaya-ai without it. A FOURTH status, `locally_run` (issue #1187), names a kind that is registered and has a real, working `cmd` \u2014 unlike `unresolved` \u2014 but can structurally never run in CI: it needs a real host and live credentials `tests.yml` does not carry (no `secrets.*`, DEC-201). It is neither a CI-runnable `active` kind nor a dead `excluded` one; run-unit-tests.sh's drift detector requires every `probe-*.py` script under bin/ to appear in exactly one `locally_run` kind's `detect`, so the check stays discoverable rather than remembered. `runner_note` replaces `excluded_because`/`_reason` to say what host and credentials the cmd needs and where its run record lives.",
