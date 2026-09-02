@@ -1021,89 +1021,49 @@ def case_10_no_own_primitive():
     )
 
 
-def case_35_feature_root_cli():
-    owner_root = tempfile.mkdtemp()
-    linked = os.path.join(tempfile.mkdtemp(), "FEAT-90-alpha")
+def _linked_worktree(owner_root, name):
+    linked = os.path.realpath(os.path.join(tempfile.mkdtemp(), name))
     os.makedirs(linked)
-    linked = os.path.realpath(linked)
-    pointer = os.path.join(owner_root, ".git", "worktrees", "FEAT-90-alpha", "gitdir")
-    os.makedirs(os.path.dirname(pointer))
+    pointer = os.path.join(owner_root, ".git", "worktrees", name, "gitdir")
+    os.makedirs(os.path.dirname(pointer), exist_ok=True)
     with open(pointer, "w", encoding="utf-8") as handle:
         handle.write(os.path.join(linked, ".git"))
-    check(
-        "case35: feature-root uses linked checkout rather than owner root",
-        inflight_registry.feature_root(owner_root, "FEAT-90-alpha") == linked
-        and linked != owner_root,
-        (owner_root, linked),
-    )
+    return linked
 
-    linked_run = subprocess.run(
-        [sys.executable, CLI, "feature-root", "--root", owner_root, "--feature", "FEAT-90-alpha"],
-        capture_output=True,
-        text=True,
-    )
-    check(
-        "case35: feature-root CLI resolves linked worktree",
-        linked_run.returncode == 0 and linked_run.stdout.strip() != owner_root,
-        linked_run.stdout + linked_run.stderr,
-    )
+
+def _feature_root_cli(owner_root, feature=None):
+    argv = [sys.executable, CLI, "feature-root", "--root", owner_root]
+    if feature:
+        argv += ["--feature", feature]
+    return subprocess.run(argv, capture_output=True, text=True)
+
+
+def case_35_feature_root_cli():
+    owner_root = tempfile.mkdtemp()
+    linked = _linked_worktree(owner_root, "FEAT-90-alpha")
+    check("case35: feature-root uses linked checkout rather than owner root",
+          inflight_registry.feature_root(owner_root, "FEAT-90-alpha") == linked and linked != owner_root)
+    linked_run = _feature_root_cli(owner_root, "FEAT-90-alpha")
+    check("case35: feature-root CLI resolves linked worktree",
+          linked_run.returncode == 0 and linked_run.stdout.strip() == linked, linked_run.stdout + linked_run.stderr)
     short_owner = tempfile.mkdtemp()
-    short_linked = os.path.realpath(os.path.join(tempfile.mkdtemp(), "FEAT-90"))
-    os.makedirs(short_linked)
-    short_pointer = os.path.join(short_owner, ".git", "worktrees", "FEAT-90", "gitdir")
-    os.makedirs(os.path.dirname(short_pointer))
-    with open(short_pointer, "w", encoding="utf-8") as handle:
-        handle.write(os.path.join(short_linked, ".git"))
-    short_run = subprocess.run(
-        [sys.executable, CLI, "feature-root", "--root", short_owner, "--feature", "FEAT-90-alpha"],
-        capture_output=True,
-        text=True,
-    )
-    check(
-        "case35: feature-root accepts a short-form worktree basename",
-        short_run.returncode == 0 and short_run.stdout.strip() == short_linked,
-        short_run.stdout + short_run.stderr,
-    )
-    fallback = subprocess.run(
-        [sys.executable, CLI, "feature-root", "--root", owner_root, "--feature", "FEAT-91-beta"],
-        capture_output=True,
-        text=True,
-    )
-    check(
-        "case35: feature-root CLI falls back to owner root",
-        fallback.returncode == 0 and fallback.stdout.strip() == owner_root,
-        fallback.stdout + fallback.stderr,
-    )
-    missing = subprocess.run(
-        [sys.executable, CLI, "feature-root", "--root", owner_root],
-        capture_output=True,
-        text=True,
-    )
-    check(
-        "case35: feature-root requires --feature",
-        missing.returncode == 1 and not missing.stdout and "--feature" in missing.stderr,
-        missing.stdout + missing.stderr,
-    )
+    short_linked = _linked_worktree(short_owner, "FEAT-90")
+    short_run = _feature_root_cli(short_owner, "FEAT-90-alpha")
+    check("case35: feature-root accepts a short-form worktree basename",
+          short_run.returncode == 0 and short_run.stdout.strip() == short_linked, short_run.stdout + short_run.stderr)
+    fallback = _feature_root_cli(owner_root, "FEAT-91-beta")
+    check("case35: feature-root CLI falls back to owner root",
+          fallback.returncode == 0 and fallback.stdout.strip() == owner_root, fallback.stdout + fallback.stderr)
+    missing = _feature_root_cli(owner_root)
+    check("case35: feature-root requires --feature",
+          missing.returncode == 1 and not missing.stdout and "--feature" in missing.stderr, missing.stdout + missing.stderr)
     ambiguous_owner = tempfile.mkdtemp()
-    for name in ("FEAT-90", "FEAT-90-alpha"):
-        worktree = os.path.realpath(os.path.join(tempfile.mkdtemp(), name))
-        os.makedirs(worktree)
-        pointer = os.path.join(ambiguous_owner, ".git", "worktrees", name, "gitdir")
-        os.makedirs(os.path.dirname(pointer), exist_ok=True)
-        with open(pointer, "w", encoding="utf-8") as handle:
-            handle.write(os.path.join(worktree, ".git"))
-    ambiguous = subprocess.run(
-        [sys.executable, CLI, "feature-root", "--root", ambiguous_owner,
-         "--feature", "FEAT-90-alpha-redo"],
-        capture_output=True, text=True,
-    )
-    check(
-        "case35: feature-root CLI refuses an ambiguous worktree",
-        ambiguous.returncode == 1 and not ambiguous.stdout
-        and "ambiguous" in ambiguous.stderr.lower()
-        and "FEAT-90" in ambiguous.stderr,
-        ambiguous.stdout + ambiguous.stderr,
-    )
+    _linked_worktree(ambiguous_owner, "FEAT-90")
+    _linked_worktree(ambiguous_owner, "FEAT-90-alpha")
+    ambiguous = _feature_root_cli(ambiguous_owner, "FEAT-90-alpha-redo")
+    check("case35: feature-root CLI refuses an ambiguous worktree",
+          ambiguous.returncode == 1 and not ambiguous.stdout and "ambiguous" in ambiguous.stderr.lower()
+          and "FEAT-90" in ambiguous.stderr, ambiguous.stdout + ambiguous.stderr)
 
 
 CASES = (
