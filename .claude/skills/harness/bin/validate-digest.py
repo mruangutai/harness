@@ -1679,25 +1679,27 @@ def hook_mode():
                     )
                     return 0
 
-            # Every terminal or invalid return releases first. Only the accepted
-            # nonterminal suspension above keeps the parent claim live.
-            _agent_id = d.get("harness_agent_id")
-            _job_id = d.get("harness_job_id")
-            try:
-                _released = _reg.release(
-                    _root,
-                    agent=agent,
-                    feature=_feature,
-                    agent_id=_agent_id,
-                    job_id=_job_id,
-                )
-                if _released:
-                    print(f"check-digest: released the #551 claim for {agent}.",
+            # Terminal returns release. An unvalidated return with live children does not:
+            # the parent is still the only owner able to resume those children safely.
+            _keep_parent = bool(_kids and _return_verdict not in VERDICTS)
+            if not _keep_parent:
+                _agent_id = d.get("harness_agent_id")
+                _job_id = d.get("harness_job_id")
+                try:
+                    _released = _reg.release(
+                        _root,
+                        agent=agent,
+                        feature=_feature,
+                        agent_id=_agent_id,
+                        job_id=_job_id,
+                    )
+                    if _released:
+                        print(f"check-digest: released the #551 claim for {agent}.",
+                              file=sys.stderr)
+                except Exception as _e:
+                    print(f"check-digest: could not release {agent}'s claim ({_e!r}) — it will "
+                          f"expire or reconcile on supervisor loss. Not blocking on our own errand.",
                           file=sys.stderr)
-            except Exception as _e:
-                print(f"check-digest: could not release {agent}'s claim ({_e!r}) — it will "
-                      f"expire or reconcile on supervisor loss. Not blocking on our own errand.",
-                      file=sys.stderr)
 
             if _suspension_error is not None:
                 print(
@@ -1708,7 +1710,13 @@ def hook_mode():
                 )
                 return 2
 
-            if _kids and _return_verdict in VERDICTS:
+            if _kids:
+                if _return_verdict not in VERDICTS:
+                    print(
+                        f"check-digest: REFUSED unvalidated return from {agent}; "
+                        "live children still make this parent nonterminal.",
+                        file=sys.stderr,
+                    )
                 for _line in _reg.children_refusal_lines(agent, _kids):
                     print(_line, file=sys.stderr)
                 try:

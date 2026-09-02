@@ -1474,6 +1474,37 @@ def _t51_terminal(reg):
     )
     return [_t51_result("a terminal PASS with a live child is refused", result, 2)]
 
+def _t51_missing_message(reg):
+    results = []
+    for label, include_null in (("absent", False), ("null", True)):
+        root, session = _t51_fixture(reg)
+        payload = {
+            "agent_type": "harness-product-lead",
+            "cwd": root,
+            "session_id": session,
+        }
+        if include_null:
+            payload["last_assistant_message"] = None
+        result = subprocess.run(
+            [VALIDATE, "--hook"], input=json.dumps(payload),
+            capture_output=True, text=True,
+            env=dict(os.environ, CLAUDE_PROJECT_DIR=root,
+                     HARNESS_PROJECT_DIR=root),
+        )
+        parent, _ = reg.live_claim(
+            root, "harness-product-lead", session=session
+        )
+        results.extend([
+            _t51_result(
+                f"a live child with {label} last_assistant_message is refused",
+                result, 2,
+            ),
+            (f"the {label}-message refusal leaves the parent claim live",
+             parent is not None, repr(parent)),
+        ])
+    return results
+
+
 
 def _t51_no_child():
     root = _t09_root()
@@ -1510,6 +1541,7 @@ def run_t51_suspension_cases():
     for case in (
         _t51_accepted(reg),
         _t51_terminal(reg),
+        _t51_missing_message(reg),
         _t51_no_child(),
         _t51_omitted_child(reg),
         _t51_member(reg),

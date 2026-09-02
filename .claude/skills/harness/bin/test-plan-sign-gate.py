@@ -515,6 +515,22 @@ _qcheck("an orphan quarantine.py adopt onto a canonical plan.yaml is quarantined
         "python3 quarantine.py adopt --file {root}/.harness/harness/features/"
         "FEAT-99-fixture/quarantine/harness-pm-session/plan.yaml",
         2, _other, mention="quarantine")
+_alias_root = _qroot(_other)
+_real_adopt = os.path.join(
+    _alias_root, ".harness/harness/features/FEAT-99-fixture/quarantine/"
+    "harness-pm-session/plan.yaml",
+)
+os.makedirs(os.path.dirname(_real_adopt), exist_ok=True)
+open(_real_adopt, "w", encoding="utf-8").write("fixture\n")
+_alias_adopt = os.path.join(_alias_root, "adopt-alias")
+os.symlink(_real_adopt, _alias_adopt)
+_rc, _err = qgate(
+    f"python3 quarantine.py adopt --file {_alias_adopt}",
+    "harness-orchestrator", _session, _alias_root,
+)
+check("an orphan adopt reached through a symlink is recognized by real containment",
+      _rc == 2 and "quarantine" in _err,
+      f"rc={_rc} stderr={_err[:500]!r}")
 _qcheck("NEGATIVE CONTROL: an orphan apply on a non-canonical file path is allowed",
         "python3 plan-merge.py apply --file {root}/notes/plan.yaml "
         "--proposal proposal.yaml",

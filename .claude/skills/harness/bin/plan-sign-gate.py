@@ -336,6 +336,20 @@ def _checkout_rel(value):
     return value[index:] if index >= 0 else None
 
 
+def _quarantine_artifact(value, canonical_artifacts):
+    resolved_root = os.path.realpath(ROOT)
+    candidate = value if os.path.isabs(value) else os.path.join(resolved_root, value)
+    resolved = os.path.realpath(candidate)
+    rel = os.path.relpath(resolved, resolved_root).replace(os.sep, "/")
+    match = re.fullmatch(
+        r"\.harness/[^/]+/features/([^/]+)/quarantine/[^/]+/([^/]+)",
+        rel,
+    )
+    if match is None or match.group(2) not in canonical_artifacts:
+        return None
+    return rel, match.group(1)
+
+
 def quarantines(line, agent, session, depth=0):
     line = as_bash_reads_it(line)
     toks = words(line)
@@ -356,8 +370,10 @@ def quarantines(line, agent, session, depth=0):
 
     start, tool = found
     value = _file_arg(toks, start)
-    rel = _checkout_rel(value) if value is not None else None
-    if rel is None:
+    if value is None:
+        return None
+    rel = _checkout_rel(value) if tool == TOOL else None
+    if tool == TOOL and rel is None:
         return None
 
     try:
@@ -369,13 +385,10 @@ def quarantines(line, agent, session, depth=0):
             feature, _basename_value = artifact
             quarantine_rel = _reg.quarantine_rel(rel, agent, session)
         else:
-            match = re.fullmatch(
-                r"\.harness/[^/]+/features/([^/]+)/quarantine/[^/]+/(.+)",
-                rel,
-            )
-            if match is None or match.group(2) not in _reg.CANONICAL_ARTIFACTS:
+            artifact = _quarantine_artifact(value, _reg.CANONICAL_ARTIFACTS)
+            if artifact is None:
                 return None
-            feature = match.group(1)
+            rel, feature = artifact
             quarantine_rel = rel
         if not _reg.orphan_write(ROOT, agent, feature, session):
             return None
