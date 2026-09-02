@@ -483,7 +483,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: the five doer agent files, harness-eng-lead and the harness references are all NOBODY under check-domain.sh
     depends_on: [T-02, T-04]
-    status: done
+    status: building
     files:
       - .omp/agents/harness-ai-dev.md
       - .omp/agents/harness-backend-dev.md
@@ -890,7 +890,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-183, a gate cannot be wired into the job that must protect it by a run that job guards
     depends_on: [T-04, T-05, T-06, T-07, T-08, T-10, T-11]
-    status: done
+    status: building
     files:
       - .github/workflows/tests.yml
       - .claude/skills/harness/bin/test-check-instruction-paths.py

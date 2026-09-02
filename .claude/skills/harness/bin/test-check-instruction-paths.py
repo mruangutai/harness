@@ -46,6 +46,33 @@ def main():
     listed = subprocess.run([sys.executable, CHECK, "--root", repo_root, "--list-scope"], text=True, capture_output=True)
     for expected in ("harness-qa-gate/SKILL.md", "harness-expertise/SKILL.md", "harness-handoff/SKILL.md"):
         check("scope contains " + expected, expected in listed.stdout, listed.stdout)
+    for expected in ("harness-backend-dev.md", "harness/templates/PLAN.md"):
+        check("scope contains canonical carrier " + expected, expected in listed.stdout, listed.stdout)
+    product_cwd = tempfile.mkdtemp()
+    backend = os.path.join(repo_root, ".omp", "agents", "harness-backend-dev.md")
+    with open(backend, encoding="utf-8") as handle:
+        debug_line = next(
+            line for line in handle
+            if "harness-systematic-debugging/SKILL.md" in line
+        ).strip()
+    debug_path = debug_line.split("`", 2)[1].replace("<HARNESS_CONTROL_PLANE_ROOT>", repo_root)
+    check(
+        "product clone can read anchored systematic-debugging skill",
+        os.path.isfile(debug_path)
+        and "harness-systematic-debugging" in open(debug_path, encoding="utf-8").read(200)
+        and not os.path.exists(os.path.join(product_cwd, ".agents", "skills",
+                                            "harness-systematic-debugging", "SKILL.md")),
+        debug_path,
+    )
+    workflow = open(os.path.join(repo_root, ".github", "workflows", "tests.yml"),
+                    encoding="utf-8").read()
+    check(
+        "workflow runs instruction gate and propagates its nonzero status",
+        "name: Instruction-path gate" in workflow
+        and "check-instruction-paths.py" in workflow
+        and 'exit "$rc"' in workflow,
+        workflow[workflow.find("Instruction-path gate"):workflow.find("Instruction-path gate") + 800],
+    )
     outside = run(root, os.path.join(root, "nope.md"))
     check("outside scope refuses", outside.returncode == 2, outside.stdout + outside.stderr)
     failed = [row for row in RESULTS if not row[1]]
