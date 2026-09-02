@@ -2,9 +2,58 @@
   "feature_id": "FEAT-48-parallel-safe-suite",
   "branch": "feat/FEAT-48-parallel-safe-suite",
   "pr": null,
-  "status": "Plan",
   "review_sha": "none",
-  "cycles_used": 0,
+  "cycles_used": 5,
   "max_total_cycles": 10,
-  "runs": []
+  "runs": [
+    {
+      "id": "2026-08-31-01-validator",
+      "squad": "validator",
+      "verdict": "FAIL",
+      "agent": "harness-validator-lead",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-08-31-02-validator",
+      "squad": "validator",
+      "verdict": "FAIL",
+      "agent": "harness-validator-lead",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-08-31-03-validator",
+      "squad": "validator",
+      "verdict": "FAIL",
+      "agent": "harness-validator-lead",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-08-31-04-validator",
+      "squad": "validator",
+      "verdict": "PASS",
+      "agent": "harness-validator-lead",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-01-01-product",
+      "squad": "product",
+      "verdict": "FAIL",
+      "agent": "harness-product-lead",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-01-02-validator",
+      "squad": "validator",
+      "verdict": "FAIL",
+      "agent": "harness-validator-lead",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-01-03-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead",
+      "code_grade": "n_a"
+    }
+  ]
 }

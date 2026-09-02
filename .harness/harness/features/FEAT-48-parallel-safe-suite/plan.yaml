@@ -1,5 +1,6 @@
 schema: plan/1
 feature: FEAT-48-parallel-safe-suite
+status: plan
 
 source_issues: [1053]
 
@@ -229,7 +230,7 @@ tasks:
       DEC-174 carve-out. test-check-domain.py is the test of check-domain.sh, the PreToolUse
       hook that decides every agent write, and AGENTS.md:8 names a gate's test verbatim.
     depends_on: []
-    status: pending
+    status: plan
     files:
       - .claude/skills/harness/bin/isolated_bin.py
       - .claude/skills/harness/bin/test-check-domain.py
@@ -332,7 +333,7 @@ tasks:
       runs as a required step; test-feature-worktree.py is edited in the same change because
       the invariant T-03 adds cannot land green while either site remains.
     depends_on: [T-01]
-    status: pending
+    status: plan
     files:
       - .claude/skills/harness/bin/test-check-state.py
       - .claude/skills/harness/bin/test-feature-worktree.py
@@ -422,7 +423,7 @@ tasks:
       runs as a required step, is what enforces it, and the same task edits that runner's
       script list.
     depends_on: [T-01, T-02]
-    status: pending
+    status: plan
     files:
       - .claude/skills/harness/bin/test-suite-independence.py
       - .claude/skills/harness/bin/run-unit-tests.sh
@@ -638,7 +639,7 @@ tasks:
       script the tests workflow runs as a required step and CODEOWNERS pins, and
       test-run-pool.py is that gate's test.
     depends_on: [T-03]
-    status: pending
+    status: plan
     files:
       - .claude/skills/harness/bin/run_pool.py
       - .claude/skills/harness/bin/test-run-pool.py
@@ -827,7 +828,7 @@ tasks:
       required step and CODEOWNERS pins, and this task also writes the measurements note the
       three inspection criteria rest on.
     depends_on: [T-04]
-    status: pending
+    status: plan
     files:
       - .claude/skills/harness/bin/run-unit-tests.sh
       - .harness/harness/features/FEAT-48-parallel-safe-suite/notes/measurements-parallel-suite.md
@@ -933,7 +934,7 @@ tasks:
       granted to harness-documentor, taken direct under DEC-174 because the entry records the
       behaviour of the gate script the tests workflow runs.
     depends_on: [T-06]
-    status: pending
+    status: plan
     files:
       - .harness/harness/docs/DECISIONS.md
       - .harness/harness/docs/DECISIONS-INDEX.md
@@ -1032,3 +1033,101 @@ tasks:
       is no --check flag; the verify block compares --stdout against the file. Adding an entry
       lengthens the file and shifts every later @line anchor, so the regeneration is mandatory
       rather than tidy.
+panel:
+  last_run: 2026-09-01-02-validator
+  cycle: 4
+  reviewed_at: a80d54a5
+  reviewed_at_note: "Plan phase, so no review_sha exists; a80d54a5 is the rebased tip the panel graded."
+  severity_max: high
+  verdict: FAIL
+  transcription_rule: "Each summary and pointer is the digest table cell verbatim, with markdown emphasis and backtick markers removed and line wrapping collapsed to single spaces. Every id is panel_findings.py id hashed on exactly the reader and summary strings recorded here."
+  readers:
+    - reader: goalcheck
+      persona: harness-pm
+      status: ran
+      artifact: .harness/harness/features/FEAT-48-parallel-safe-suite/notes/research-FEAT-48-goalcheck-plan-c4.md
+    - reader: scope
+      persona: harness-code-reviewer
+      status: ran
+      artifact: .harness/harness/features/FEAT-48-parallel-safe-suite/notes/review-harness-code-reviewer-planpanel-c4.md
+    - reader: should-not-exist
+      persona: fable-advisor
+      status: ran
+      artifact: none
+      artifact_note: "Holds no write grant; its findings reach disk only through this transcription."
+  findings:
+    - id: PF-58719ff7b430616b91b5a7cfe49bde10
+      reader: code-reviewer
+      severity: high
+      gating: true
+      corroborated_by: should-not-exist
+      summary: "Three groups of live-tree mutation sites unowned by any task; T-02 and T-03 verify blocks redden on faithful, spec-compliant execution"
+      pointer: "test-bash-write-guard.py:899,:901; test-check-domain.py:3286,:3288; test-check-state.py:3598,:3600,:3613; plan.yaml:139-156 (D-10), :373-382 (T-02)"
+      disposition: open
+    - id: PF-d6f80211bcb8f4748a2d54b8800e7b80
+      reader: should-not-exist
+      severity: med
+      gating: false
+      summary: "The enumerated census should not be the load-bearing definition of the fix's scope; re-enumerating to seven rebuilds an artifact that has rotted twice"
+      pointer: "plan.yaml:139-156, :375-381; tests.yml:22"
+      disposition: open
+    - id: PF-2781572957dd1fed494c0b18fbba5155
+      reader: should-not-exist
+      severity: med
+      gating: false
+      summary: "T-06's SC-02 control procedure as written directs the doer to re-perform the removed hazard on the live shared machine, or else fail with a zero control"
+      pointer: "plan.yaml:896-903, :901-903"
+      disposition: open
+    - id: PF-fa5127af58944f09ad76a303015e2a6a
+      reader: should-not-exist
+      severity: low
+      gating: false
+      summary: "SC-05's ten-consecutive-clean-runs gate is ceremony the plan itself declares non-probative, priced in factory quietness"
+      pointer: "plan.yaml:904-914; verify leg :861-862"
+      disposition: open
+    - id: PF-de766c578a1c31ed94ee0a8238402574
+      reader: code-reviewer
+      severity: low
+      gating: false
+      summary: "T-02's three test-check-state.py anchors stale (pm F-02) \u2014 severity reconciled, see below"
+      pointer: "plan.yaml:376-378; now :2241, :2377, :3286"
+      disposition: open
+      severity_reconciliation: "pm rated this med, code-reviewer low; the validator lead took LOW and explicitly did not average, because plan.yaml:381-382 already instructs the doer to re-derive the anchors and designates basenames as the durable identifier, so the anchors are illustration, not contract."
+    - id: PF-f44a92962d493af2d33d19c801183830
+      reader: code-reviewer
+      severity: low
+      gating: false
+      summary: "Discovered count 58 \u2192 59 (pm F-03); floor of 50 unaffected"
+      pointer: "plan.yaml:499-500"
+      disposition: open
+    - id: PF-3c7fcaf3931a40ce1cb9ab1d5e3c8bb6
+      reader: code-reviewer
+      severity: low
+      gating: false
+      summary: "\"190 headings, last DEC-207\" \u2192 192, last DEC-209 (pm F-05); verify is separator-agnostic and checks neither"
+      pointer: "plan.yaml:972"
+      disposition: open
+    - id: PF-04e9f2759a20c919ed61d55f4306fda6
+      reader: code-reviewer
+      severity: low
+      gating: false
+      summary: "#1053 ## Scope still reads \"Folded into FEAT-47\"; BRIEF poses a settled question as open (pm F-06/F-07)"
+      pointer: "BRIEF.md:213-219; FEAT-47 plan.yaml D-13"
+      disposition: open
+  fix_order:
+    - rank: 1
+      item: "Decide the census shape (should-not-exist f1, med). Load-bearing on rank 2's form."
+    - rank: 2
+      item: "F-01 (code-reviewer, high, GATING). Three unowned live-tree mutation site groups."
+    - rank: 3
+      item: "T-06's SC-02 control route (should-not-exist f2, med), repaired in the same re-plan that opens T-06."
+    - rank: 4
+      item: "Doc staleness, one cleanup pass over the low findings (pm F-02, F-03, F-05, F-06, F-07). None gating."
+    - rank: 5
+      item: "SC-05's ten-run gate (should-not-exist f3, low). Advisory only."
+  fix_order_note: "The order is NOT interchangeable: choosing census-v3 versus an operational definition changes what the F-01 repair IS."
+  panel_friction:
+    - "SEC-01 blocked the scope reader's terminal yield for the third consecutive cycle (c2, c3, c4): validate-digest.py harness-code-reviewer refuses every value of code_grade, n_a included, while feature.json carries no pinned review_sha; omitting the key is refused too. A pre-signature code-reviewer cannot produce a digest that validates. The reader made one attempt as briefed, left its artifact on disk and reported by hub."
+    - "fable-advisor deviated from the one-key return contract for the second consecutive cycle, differently each time: c3 returned findings plus notes, c4 returned a four-key envelope of reader, verdict, findings_yaml and assessed_and_dismissed. The substance complied, so the lead transcribed it rather than spending the on_fail re-prompt."
+    - "{{cycle}} is not resolvable from any team input and was hand-supplied for the fourth cycle running. plan-panel.yaml's outputs template interpolates it, so a cycle run without it would overwrite a prior cycle's artifact."
+  history: "Cycles 0-3 (runs/2026-08-31-01..04-validator; verdicts FAIL, FAIL, FAIL, PASS) all graded PRE-REBASE trees, cycle 3 at d5c23a0, so cycle 3's PASS is void as evidence about the current tip a80d54a5; the branch was rebased onto origin/main at 38dd3622 per STATE.md:10-11."
