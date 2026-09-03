@@ -1,12 +1,12 @@
 schema: plan/1
 feature: FEAT-53-metrics-dashboard
-status: ready
+status: plan
 source_issues: []
 
 approval:
-  status: approved
-  approved_by: operator (Mike Ruangutai), via main session
-  date: '2026-09-02'
+  status: pending
+  approved_by: none
+  date: none
 
 lanes:
   resolved_at: 38dd36222258240b5dab251eb48ef869fde35447
@@ -345,7 +345,7 @@ tasks:
       nothing downstream can name it until you do.
       If node or npm is absent on the machine, STOP and report it rather than working around it.
   - id: T-05
-    title: Build the fixture-payload prototype covering the drill, both themes and all four gap states
+    title: Rebuild the fixture-payload prototype against the final design contract
     traces: [REQ-11, REQ-12]
     change_type: scaffolding
     execution_mode: team
@@ -360,27 +360,37 @@ tasks:
       - .harness/harness/features/FEAT-53-metrics-dashboard/notes/prototypes/FEAT-53/.gitignore
       - .harness/harness/features/FEAT-53-metrics-dashboard/notes/prototypes/FEAT-53/src/
     verify: |
-      python3 -c "import pathlib,sys;d=pathlib.Path('.harness/harness/features/FEAT-53-metrics-dashboard/notes/prototypes/FEAT-53');f=[p for p in d.rglob('*') if p.is_file() and 'node_modules' not in p.parts and p.suffix in {'.html','.md','.js','.jsx','.ts','.tsx','.json','.css'}];sys.exit('no prototype source files') if not f else None;t=''.join(p.read_text(errors='ignore') for p in f);[sys.exit('missing '+k) for k in ['S-1','S-2','S-3','S-4','30d','90d'] if k not in t]"
+      cd .harness/harness/features/FEAT-53-metrics-dashboard/notes/prototypes/FEAT-53 &&
+      npm ci &&
+      npm run build &&
+      python3 -c "import pathlib,sys;d=pathlib.Path('.');f=[p for p in d.rglob('*') if p.is_file() and 'node_modules' not in p.parts and p.suffix in {'.html','.md','.js','.jsx','.ts','.tsx','.json','.css'}];sys.exit('no prototype source files') if not f else None;t=''.join(p.read_text(errors='ignore') for p in f);[sys.exit('missing '+k) for k in ['S-1','S-2','S-3','S-4','S-5','TBL-1','TBL-2','TBL-3','30d','90d','3x3'] if k not in t]"
     intent: |
-      ALREADY IN FLIGHT - harness-visual-designer is building this now, approved rather than waived
-      under DESIGN's prototype gate. This entry records the contract it is being built against and
-      the check it must pass; it is not a dispatch to start the work again.
-      The prototype is a high-fidelity Astryx and React build over a HAND-WRITTEN FIXTURE PAYLOAD,
-      never live data, showing simultaneously: the landing tile grid in DESIGN C-1's fixed order - a
-      fixed 3x3 grid of seven tiles, tiles 1-6 filling rows 1 and 2 three across and tile 7, Merged
-      PRs over time, LAST and spanning the full third row at every breakpoint;
-      one KPI panel (grading, the panel that does not collapse to a figure - histogram beside the
-      named grade-1/grade-2 outlier table); the aggregate to rows to feature drill across the three
-      C-1 routes; the window control with tokens 30d, 90d and all; light and dark from one
-      defineTheme call; and all four C-4 states at once - S-1 with no axes at all, S-2 with axes
-      drawn and a broken line plus hatched table cells, S-3's persistent Python-only caveat beneath
-      the histogram, and S-4's unavailable-versus-zero pair differing in glyph, typography, fill and
-      badge.
-      Fixture numbers are invented EXCEPT the file-mix digits: 107, 12, 3, 122 and 12 percent are
-      this repository's measured mix and would seed the literal SC-06 forbids.
-      The four labels S-1 through S-4 appear as text so a reviewer can point at each.
-      If the built artifact diverges from this contract, that is a finding for the plan, not a
-      silent amendment to DESIGN.md.
+      Replace the committed, pre-contract prototype; it is evidence neither for this plan nor for the
+      operator's approval. Build a high-fidelity Astryx and React prototype over a HAND-WRITTEN
+      FIXTURE PAYLOAD, never live data, then record the exact local run command and browser-observation
+      checklist in its README.md. This is the prototype required by DESIGN's gate, not a dispatch to
+      restyle the product implementation.
+
+      Render the complete final surface simultaneously: DESIGN C-1's fixed 3x3 grid of seven tiles
+      (tiles 1-6 filling rows 1 and 2, tile 7, Merged PRs over time, LAST and full-width on row 3);
+      all three C-2 tables, labelled TBL-1, TBL-2 and TBL-3, with their pinned group and row semantics;
+      the grading histogram and named grade-1/grade-2 outlier table; and the aggregate → rows →
+      feature drill across the three C-1 routes. Include the 30d, 90d and all window controls and
+      light and dark themes from one defineTheme call.
+
+      Show all five C-4 states at once, labelled S-1 through S-5: S-1 has no axes; S-2 has axes, a
+      broken line and hatched table cells; S-3 retains the Python-only caveat beneath the histogram;
+      S-4 places unavailable and measured-zero values side by side with distinct glyph, typography,
+      fill and badge; S-5 demonstrates unattributed commits as their named bucket treatment. Implement
+      C-3's keyboard and focus contract in the prototype: its focus-stop order, a 2px text-token ring
+      with 2px offset, and each specified focus landing after drill, Back, theme and disclosure
+      transitions. Charts are aria-hidden and their adjacent real tables carry the values.
+
+      Run the verification command. Then launch the prototype and inspect it in a real browser in both
+      themes: operate each window control; drill aggregate → rows → feature and Back; sort each table;
+      tab through the documented focus sequence and transitions; and visually distinguish S-1 through
+      S-5. Capture the observed result and any divergence in README.md. If the artifact diverges from
+      DESIGN.md, report a finding for the plan rather than silently amending the design.
   - id: T-18
     title: Probe the alpha charting API against CAP-01 through CAP-13 before any client UI exists
     traces: [REQ-07, REQ-10, REQ-11]
