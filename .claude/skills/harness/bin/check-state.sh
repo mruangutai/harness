@@ -50,6 +50,10 @@ import sys, os, re, glob, json, subprocess
 
 sys.path.insert(0, sys.argv[2])
 import harness_yaml
+try:
+    import handoff_done_when
+except Exception as _handoff_done_when_error:
+    handoff_done_when = None
 
 # Review finding 1: `require_or_die` is the module's documented gate for exactly
 # this script and had ZERO production callers, so a missing PyYAML surfaced as
@@ -995,6 +999,12 @@ if cfg:
     except Exception:
         cj = {}
         bad.append(".harness/harness.json is not valid JSON.")
+_handoff_baseline = set()
+for _entry in cj.get("handoff_done_when_baseline", []) if isinstance(cj, dict) else []:
+    if not isinstance(_entry, str):
+        continue
+    _path = os.path.relpath(_entry, root) if os.path.isabs(_entry) else _entry
+    _handoff_baseline.add(os.path.normpath(_path).replace(os.sep, "/"))
 
 import subprocess
 
@@ -1066,7 +1076,8 @@ if _missing_seam_rows:
     bad.append("check-state.sh: SEAM_NOTES has no row for station(s) %s — the seam table and "
                "the station vocabulary have drifted, and INV-17 would raise KeyError on the "
                "first feature at one of them." % ", ".join(_missing_seam_rows))
-HANDOFF_HEADINGS = ["## next", "## trust", "## dead ends", "## working set"]
+HANDOFF_SECTIONS = ["## next", "## trust", "## dead ends", "## working set", "## done when"]
+HANDOFF_NARRATIVE_HEADINGS = HANDOFF_SECTIONS[:4]
 
 # The literal exemption set. FEAT-01 and FEAT-02 are Done, carry zero handoff notes, and
 # finished before DEC-159 existed: no seam was crossed, so no honest handoff note can be
@@ -1205,8 +1216,12 @@ for fy in glob.glob(os.path.join(H, "*", "features", "*", "feature.json")):
     # OWED. Once a file exists its shape is checked whoever wrote it and whatever the
     # feature's status.
     for hp in sorted(glob.glob(os.path.join(os.path.dirname(fy), "notes", "handoff-*.md"))):
-        hl = [l.strip().lower() for l in (read(hp) or "").splitlines()]
-        miss = [h for h in HANDOFF_HEADINGS if h not in hl]
+        _text = read(hp) or ""
+        hl = [l.strip().lower() for l in _text.splitlines()]
+        _rel_handoff = os.path.normpath(os.path.relpath(hp, root)).replace(os.sep, "/")
+        miss = [h for h in HANDOFF_NARRATIVE_HEADINGS if h not in hl]
+        if "## done when" not in hl and _rel_handoff not in _handoff_baseline:
+            miss.append("## done when")
         # INV-17 empty-body check (FEAT-31 T-10)
         # SC-15 requires the relay be SHOWN TO FAIL when "## Next" is emptied. Until now it
         # could not be: `miss` tests only that the HEADING is present, so a note carrying all
@@ -1226,7 +1241,7 @@ for fy in glob.glob(os.path.join(H, "*", "features", "*", "feature.json")):
         # adds zero violations.
         _empty = []
         for _i, _l in enumerate(hl):
-            if _l not in HANDOFF_HEADINGS:
+            if _l not in HANDOFF_NARRATIVE_HEADINGS:
                 continue
             _body = []
             for _n in hl[_i + 1:]:
@@ -1235,11 +1250,22 @@ for fy in glob.glob(os.path.join(H, "*", "features", "*", "feature.json")):
                 _body.append(_n)
             if not any(_b for _b in _body):
                 _empty.append(_l)
-        if miss or len(hl) > 60 or _empty:
+        _done_when_problems = []
+        if "## done when" in hl:
+            if handoff_done_when is None:
+                _done_when_problems.append(
+                    "handoff_done_when.py could not be imported: "
+                    f"{type(_handoff_done_when_error).__name__}: {_handoff_done_when_error}")
+            else:
+                _done_when_problems.extend(
+                    handoff_done_when.problems(_rel_handoff, _text, root, resolve=False))
+        if miss or len(hl) > 60 or _empty or _done_when_problems:
             why = []
-            if miss: why.append(f"missing section(s) {miss}")
+            if miss:
+                why.append(f"missing section(s) {miss}; follow templates/HANDOFF.md")
             if len(hl) > 60: why.append(f"{len(hl)} lines vs cap 60")
             if _empty: why.append(f"empty section(s) {_empty}")
+            why.extend(_done_when_problems)
             bad.append(f"{feat}: notes/{os.path.basename(hp)} fails the shape "
                        f"({'; '.join(why)}) — a freeform handoff drifts like an "
                        f"unvalidated digest did (DEC-159/160).")

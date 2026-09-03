@@ -521,7 +521,7 @@ tasks:
     depends_on:
     - T-06
     - T-11
-    status: ready
+    status: done
     files:
       - .claude/skills/harness/bin/check-state.sh
     verify: |

@@ -1185,13 +1185,17 @@ def case_o():
     tpl = open(os.path.join(here, "..", "templates", "HANDOFF.md"), encoding="utf-8").read()
     ha = {h.lower() for h in _re.findall(r'"(## [^"]+)"',
           _re.search(r'required = \[(.*?)\]', dom, _re.S).group(1))}
-    hb = {h.lower() for h in _re.findall(r'"(## [^"]+)"',
-          _re.search(r"HANDOFF_HEADINGS = \[(.*?)\]", sta, _re.S).group(1))}
+    hb_ordered = [h.lower() for h in _re.findall(r'"(## [^"]+)"',
+                  _re.search(r"HANDOFF_SECTIONS = \[(.*?)\]", sta, _re.S).group(1))]
+    hb = set(hb_ordered)
+    narrative_is_prefix = bool(_re.search(
+        r"HANDOFF_NARRATIVE_HEADINGS\s*=\s*HANDOFF_SECTIONS\[:4\]", sta))
     hc = {h.strip().lower() for h in _re.findall(r"^(## .+)$", tpl, _re.M)}
-    hgood = bool(ha) and ha == hb and ha <= hc
+    hgood = (bool(ha) and ha == hb and ha <= hc and narrative_is_prefix
+             and hb_ordered[-1:] == ["## done when"])
     ok_all &= hgood
     checks.append(f"handoff headings: check-domain {sorted(ha)}, check-state {sorted(hb)}, "
-                  f"template {sorted(hc)}")
+                  f"narrative-prefix {narrative_is_prefix}, template {sorted(hc)}")
 
     print(f"{'ok' if ok_all else 'FAIL'} - case (o): check-domain.sh, check-state.sh and "
           f"HANDOFF.md agree on every duplicated budget, key and heading")
