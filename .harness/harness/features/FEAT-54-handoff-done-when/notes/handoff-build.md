@@ -2,9 +2,10 @@
 
 ## Next
 
-Run the validation panel against the exact `review_sha` recorded in `feature.json`. The panel must assess the complete approved diff and return its own spec-compliance and code-quality verdict before any goal-check or ship work begins.
-
-All planned tasks are already `done`; do not reopen build scope unless the panel returns a concrete must-fix. If it does, route the fix inside the validation phase, re-run the affected suites, commit it, and re-pin before re-review.
+Run SC-04's exact repository-state inspection before the validation panel. The state command must
+exit 0 without weakening the checker or substituting a fixture. Once that prerequisite passes,
+run the panel against the exact `review_sha` recorded in `feature.json`; route any concrete
+must-fix inside validation, re-run affected suites, commit, and re-pin before re-review.
 
 ## Trust
 
@@ -33,5 +34,5 @@ All planned tasks are already `done`; do not reopen build scope unless the panel
 
 ## Done when
 
-Scope: validate the final build against the signed success criteria
-Authority: approval:.harness/harness/features/FEAT-54-handoff-done-when/BRIEF.md#Approval
+Scope: establish the clean repository-state prerequisite for validation
+Authority: brief-sc:SC-04

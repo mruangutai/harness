@@ -2,11 +2,10 @@
 
 ## Next
 
-Main session re-signs the amended `plan.yaml` and `BRIEF.md` through the existing main-session
-approval routes under the user's delegated Advisor approval. This is the one next action; do not
-resume build first. After both signatures are current, return the feature to build at the first
-unfinished task in PLAN order. T-05 is already `done`; no other build task was executed during c4
-recovery.
+After the main session re-signs the amended `plan.yaml` and `BRIEF.md` through the existing
+approval routes, execute T-01 as the first build action. Do not continue to later tasks until
+T-01's declared verification passes. T-05 is already `done`; no other build task was executed
+during c4 recovery.
 
 The plan is at station `plan`. Its c4 panel is complete and PASS: the c4 product goal-check plus both
 configured validator readers ran, all four surviving findings are advisory, and no high, critical or
@@ -51,5 +50,5 @@ reset-to-pending verb; the main session explicitly owns the re-signature act.
 - .harness/harness/features/FEAT-54-handoff-done-when/feature.json
 - .harness/harness/features/FEAT-54-handoff-done-when/runs/2026-09-02-c4-validator/digest.md
 ## Done when
-Scope: re-sign the amended plan and brief
-Authority: approval:.harness/harness/features/FEAT-54-handoff-done-when/BRIEF.md#Approval
+Scope: execute and verify the first unfinished build task
+Authority: plan-task:T-01.verify
