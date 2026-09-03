@@ -99,24 +99,24 @@ path in this list is a READ target and anchors to the control plane.
   asserted case runs with the process working directory set to a temporary directory that is NOT
   the resolved root, and the test asserts the injected path DIFFERS from that working directory. A
   case in which the two coincide cannot fail for the reason this feature exists.
-  verify: automated        evidence: unit
+  verify: automated        evidence: integration
 - SC-02: When the root cannot be resolved, the hook still exits 0, and the injected block says the
   root is UNRESOLVED and instructs the agent to return `VERDICT: BLOCKED`. Both branches are
   asserted. The no-non-zero-exit clause carries its own assertion: the committed test greps the
   shipped script for `^[[:space:]]*exit [1-9]` and asserts ZERO matches, and in the same case
   asserts the SAME pattern DOES match a one-line fixture reading `exit 2` — the positive control,
   without which a search that errored reads as an absence.
-  verify: automated        evidence: unit
+  verify: automated        evidence: integration
 - SC-03: The lint's scope is demonstrably complete: `check-instruction-paths.py --list-scope` prints
   one factory-reachable instruction file per line, and the test asserts the presence of EACH of the
   five canonical sites S1-S5 above with five separate assertions. A count is not evidence; the Nth
   file is named individually.
-  verify: automated        evidence: unit
+  verify: automated        evidence: integration
 - SC-04: `check-instruction-paths.py` exits 0 over the whole declared scope at the reviewed sha, and
   each of the five canonical sites S1-S5 separately shows its path written with the correct anchor
   prefix for its direction — one assertion per site, read via `git show <review_sha>:<path>`, never
   the working tree.
-  verify: automated        evidence: unit
+  verify: automated        evidence: integration
 - SC-05: The lint can report RED, on BOTH shapes it must see. Run against a negative fixture whose
   scope files hold exactly two relative `.harness/` instruction paths — one inside a
   backtick-delimited inline span, one inside a fenced code block opened by three backticks — the
@@ -124,13 +124,13 @@ path in this list is a READ target and anchors to the control plane.
   and its summary reports two violations. The fenced case is required, not decorative: S2 carries
   the observations write path inside a fenced block, and a fixture exercising only the inline shape
   leaves that blind spot untested and green.
-  verify: automated        evidence: unit
+  verify: automated        evidence: integration
 - SC-06: F5 is answered by anchoring PLUS read-through, proven in both directions: with the process
   working directory set to a temporary product-shaped checkout carrying no Harness skills, the
   debugging-skill path as written in a doer's instruction resolves against the injected root and
   opens; and the same path with the placeholder stripped — the pre-change spelling — does not
   exist relative to that working directory. The second half is what makes the first discriminating.
-  verify: automated        evidence: unit
+  verify: automated        evidence: integration
 - SC-07: No write permission widened. Between the base sha and the reviewed sha, the set of
   write-granted path patterns in `.harness/team-config.yaml` is unchanged, and no agent file gains a
   writable-path claim naming a control-plane path.
@@ -163,7 +163,7 @@ path in this list is a READ target and anchors to the control plane.
   over the whole declared scope at the reviewed sha, and S2 and S3 are each separately shown
   writing their feature-directory paths under `<HARNESS_FEATURE_TREE_ROOT>/`, read via
   `git show <review_sha>:<path>`.
-  verify: automated        evidence: unit
+  verify: automated        evidence: integration
 - SC-12: The spawn-time assertion can report RED on PATH DRIFT for the agent actually spawning, not
   merely on an unresolved root. `inject-expertise.sh` scans the four instruction files every harness
   agent receives — `.omp/agents/<agent_type>.md` and the three always-preloaded skills
@@ -172,7 +172,7 @@ path in this list is a READ target and anchors to the control plane.
   to five `<file>:<line>` lines. Two committed cases against a fixture root: a clean agent file
   yields `none`; the SAME file with one relative `.harness/` span yields the count line naming that
   file AND that line number. Exit status is 0 in both, so DECISIONS.md:1503's contract is unbroken.
-  verify: automated        evidence: unit
+  verify: automated        evidence: integration
 - SC-13: A persona that holds no shell is never left to guess its write anchor, and the refusal is
   observable at runtime. Against a temporary owner root carrying `.omp/agents/` entries for one
   shell-less persona (`harness-product-lead`, tools `read, glob, grep, task, write`) and one that
@@ -222,4 +222,4 @@ path in this list is a READ target and anchors to the control plane.
 
 status: approved
 approved-by: mruangutai
-date: 2026-09-01
+date: 2026-09-02
