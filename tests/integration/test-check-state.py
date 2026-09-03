@@ -2175,24 +2175,52 @@ def _feat54_check_case(outcomes, label, note, baseline_marker,
         outcomes.append(ok)
 
 
+def _feat54_case_notes():
+    missing = HANDOFF_GOOD.split("## Done when", 1)[0]
+    return {
+        "missing": missing,
+        "malformed": HANDOFF_GOOD.replace(
+            "Scope: implementation complete", "Scope: one\nScope: two"),
+        "absent_targets": HANDOFF_GOOD.replace(
+            "Authority: plan-task:T-03.verify",
+            "Authority: plan-task:T-99.verify\nAuthority: brief-sc:SC-99\n"
+            "Authority: finding:missing.md#F-99\nAuthority: approval:missing.md#Missing"),
+        "unknown": HANDOFF_GOOD.replace(
+            "Authority: plan-task:T-03.verify", "Authority: docs:whatever"),
+        "blank_scope": HANDOFF_GOOD.replace(
+            "Scope: implementation complete", "Scope:   "),
+        "reversed_order": HANDOFF_GOOD.replace(
+            "Scope: implementation complete\nAuthority: plan-task:T-03.verify",
+            "Authority: plan-task:T-03.verify\nScope: implementation complete"),
+        "unsafe": HANDOFF_GOOD.replace(
+            "Authority: plan-task:T-03.verify",
+            "Authority: finding:../review.md#F-02"),
+        "unsafe_approval": HANDOFF_GOOD.replace(
+            "Authority: plan-task:T-03.verify",
+            "Authority: approval:../review.md#Approval"),
+        "nested": HANDOFF_GOOD.replace(
+            "Authority: plan-task:T-03.verify",
+            "Authority: plan-task:T-03.verify\n### hidden\nstray prose"),
+        "duplicate": HANDOFF_GOOD.replace(
+            "Authority: plan-task:T-03.verify",
+            "Authority: plan-task:T-03.verify\n## Done when\n"
+            "Scope: hidden\nAuthority: plan-task:T-99.verify"),
+    }
+
+
 def _feat54_baseline_cases(outcomes):
     baseline_path = ".harness/harness/features/FEAT-TEST/notes/handoff-plan.md"
-    missing = HANDOFF_GOOD.split("## Done when", 1)[0]
-    malformed = HANDOFF_GOOD.replace("Scope: implementation complete",
-                                     "Scope: one\nScope: two")
-    absent_targets = HANDOFF_GOOD.replace(
-        "Authority: plan-task:T-03.verify",
-        "Authority: plan-task:T-99.verify\nAuthority: brief-sc:SC-99\n"
-        "Authority: finding:missing.md#F-99\nAuthority: approval:missing.md#Missing")
-    unknown = HANDOFF_GOOD.replace("Authority: plan-task:T-03.verify",
-                                   "Authority: docs:whatever")
-    blank_scope = HANDOFF_GOOD.replace("Scope: implementation complete", "Scope:   ")
-    reversed_order = HANDOFF_GOOD.replace(
-        "Scope: implementation complete\nAuthority: plan-task:T-03.verify",
-        "Authority: plan-task:T-03.verify\nScope: implementation complete")
-    unsafe = HANDOFF_GOOD.replace(
-        "Authority: plan-task:T-03.verify",
-        "Authority: finding:../review.md#F-02")
+    notes = _feat54_case_notes()
+    missing = notes["missing"]
+    malformed = notes["malformed"]
+    absent_targets = notes["absent_targets"]
+    unknown = notes["unknown"]
+    blank_scope = notes["blank_scope"]
+    reversed_order = notes["reversed_order"]
+    unsafe = notes["unsafe"]
+    unsafe_approval = notes["unsafe_approval"]
+    nested = notes["nested"]
+    duplicate = notes["duplicate"]
 
     _feat54_check_case(
         outcomes, "non-baselined missing section reports", missing, [], True)
@@ -2219,6 +2247,15 @@ def _feat54_baseline_cases(outcomes):
         "before every Authority")
     _feat54_check_case(
         outcomes, "unsafe target grammar remains enforced", unsafe, [], True, "unsafe")
+    _feat54_check_case(
+        outcomes, "unsafe approval grammar remains enforced",
+        unsafe_approval, [], True, "unsafe")
+    _feat54_check_case(
+        outcomes, "nested heading cannot truncate validation",
+        nested, [], True, "unexpected line")
+    _feat54_check_case(
+        outcomes, "duplicate heading cannot truncate validation",
+        duplicate, [], True, "expected exactly 1")
     _feat54_check_case(
         outcomes, "absent baseline key means no exemption", missing, None, True)
 

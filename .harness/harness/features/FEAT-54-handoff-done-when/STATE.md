@@ -3,20 +3,20 @@
 ## Current
 
 - feature: FEAT-54-handoff-done-when
-- run: .harness/harness/features/FEAT-54-handoff-done-when/runs/2026-09-03-qa-post-simplify-c2-validator/digest.md
-- squad: validation repair c2 — implementation, SIMPLIFY, and blocking QA complete
-- status: review (plan.yaml `status: review`), awaiting repair commit and re-review
+- run: .harness/harness/features/FEAT-54-handoff-done-when/runs/2026-09-03-simplify-validation-c3-eng/digest.md
+- squad: validation repair c3 — QA and SIMPLIFY complete
+- status: review (plan.yaml `status: review`), ready to commit/re-pin/review
 
-The c0 panel failed at pinned `e75767df4b75e71f2c9b12766604cee5008d94e1`. Product resolved that approved REQ-02 requires a non-empty `Scope:` before every `Authority:`. Main-direct repairs now make authority targets contained and fail-closed, validate Edit candidates before mutation (including unreadable existing bytes), enforce Scope value/order, and clear production/test complexity. Engineering secured the credentialled manual probe against outside, traversal, symlink, non-regular, wrong-name, and oversized inputs with zero model calls on refusal.
+The c2 full panel at `53e1745462b75e1c54967b43e2f4fbdfc7037e23` confirmed all original F-01–F-07 implementation findings closed except external SC-04. It found nested/duplicate headings could truncate the Done-when block, approval resolution accepted non-ATX lookalikes, and approval containment lacked independent mutation-proof coverage.
 
-The c1 QA send-back found one test helper below the risk bar; c2 refactored it without assertion loss. Post-repair SIMPLIFY ran all four angles and applied one behavior-preserving unreachable-branch cleanup in the probe. The final post-SIMPLIFY matrix passes with 25 unit and 44 integration files discovered, and the exact 62 changed-function risk census passes.
+Main-direct c3 repairs now reject nested/duplicate truncation, require strict 1–6-hash ATX approval headings with a separator, and independently cover approval absolute, traversal, symlink, and special targets. The configured c3 matrix passes with 25 unit and 44 integration files discovered; relevant changed functions clear their risk bars. Five FEAT-54 run digests that themselves reddened the corpus check were representation-corrected and each passes `validate-digest.py lead`. The c3 SIMPLIFY pass ran all four angles and applied nothing.
 
-The remaining blocker is external to FEAT-54: the exact SC-04 root command still exits 1 because done feature FEAT-51 lacks `notes/handoff-validate.md`. The approved boundary forbids FEAT-54 from touching unrelated features, Main confirmed no active FEAT-51 owner, and neither the command nor SC-04 may be weakened or replaced by a fixture.
+The only known remaining blocker is external: exact SC-04 root `check-state.sh` exits 1 because done FEAT-51 lacks `notes/handoff-validate.md`. FEAT-54 cannot touch unrelated features, Main confirmed no FEAT-51 owner is active, and the approved criterion forbids substituting a fixture or ignoring a nonzero exit.
 
-Next: commit the c2 repair/artifacts, re-pin review_sha, and rerun the complete four-reader panel. If it fails only on literal SC-04, stop BLOCKED with the external dependency named; do not run product goal-check because panel PASS is its prerequisite.
+Next: commit the c3 repairs/artifacts, pin the new SHA, and rerun the complete four-reader panel. If every implementation/review finding is closed but SC-04 remains red, stop BLOCKED and hand Main the external dependency. Do not run product goal-check because panel PASS is a hard prerequisite.
 
-Cycles used: 18 of 30. Runs exceed the informational 20-run budget; each added validation/fix run closed a concrete high/medium gate or supplied required QA/SIMPLIFY evidence.
+Cycles used: 19 of 30. Runs exceed the informational 20-run budget; the additional runs are still efficient because each found or closed concrete fail-open, coverage, digest-contract, QA, or simplification work.
 
 ## Open Questions
 
-- None for the operator. External dependency: FEAT-51 must acquire its required validate handoff through its own owner before SC-04 can pass.
+- None for the operator. External dependency: FEAT-51 must gain its own required validate handoff before literal SC-04 can pass.

@@ -4091,6 +4091,12 @@ def _handoff_grammar_cases(results, root, target, valid):
         ("five Authority", "Scope: only\n" + "\n".join(
             ["Authority: plan-task:T-03.verify"] * 5), "has 5 Authority: lines"),
         ("stray prose", valid + "\nstray prose", "stray prose"),
+        ("nested heading cannot truncate",
+         valid + "\n### hidden\nstray prose\nAuthority: plan-task:T-99.verify",
+         "unexpected line"),
+        ("duplicate heading cannot truncate",
+         valid + "\n## Done when\nScope: hidden\nAuthority: plan-task:T-99.verify",
+         "expected exactly 1"),
     ]
     for name, body, needle in malformed:
         _record_handoff_result(
@@ -4123,6 +4129,20 @@ def _handoff_pointer_cases(results, root, target):
             results, f"handoff unknown authority {value}",
             _invoke_handoff(root, target, _handoff_text(
                 f"Scope: done\nAuthority: {value}")), 2, legal_prefixes)
+    feat = os.path.dirname(os.path.dirname(target))
+    invalid_headings = {
+        "bad-nospace.md": "#Approval\n",
+        "bad-seven.md": "####### Approval\n",
+    }
+    for name, content in invalid_headings.items():
+        path = os.path.join(feat, name)
+        with open(path, "w") as f:
+            f.write(content)
+        pointer = f"approval:{os.path.relpath(path, root)}#Approval"
+        _record_handoff_result(
+            results, f"handoff approval rejects invalid ATX {name}",
+            _invoke_handoff(root, target, _handoff_text(
+                f"Scope: done\nAuthority: {pointer}")), 2, pointer)
 
 
 def _handoff_unsafe_cases(results, root, notes, target):
@@ -4130,6 +4150,8 @@ def _handoff_unsafe_cases(results, root, notes, target):
         "finding:/tmp/review.md#F-02",
         "finding:../review.md#F-02",
         "finding:.harness/harness/features/FEAT-90-fixture/notes/\x00review.md#F-02",
+        "approval:/tmp/review.md#Approval",
+        "approval:../review.md#Approval",
     ):
         _record_handoff_result(
             results, f"handoff unsafe authority {value!r}",
@@ -4137,17 +4159,19 @@ def _handoff_unsafe_cases(results, root, notes, target):
                 f"Scope: done\nAuthority: {value}")), 2, "unsafe")
     outside = os.path.join(os.path.dirname(root), os.path.basename(root) + "-outside.md")
     with open(outside, "w") as f:
-        f.write("F-02\n")
+        f.write("F-02\n# Approval\n")
     escape = os.path.join(notes, "escape.md")
     os.symlink(outside, escape)
     special = os.path.join(notes, "special.md")
     os.mkfifo(special)
     for name, path in (("symlink escape", escape), ("special target", special)):
         rel_pointer = os.path.relpath(path, root)
-        _record_handoff_result(
-            results, f"handoff {name}",
-            _invoke_handoff(root, target, _handoff_text(
-                f"Scope: done\nAuthority: finding:{rel_pointer}#F-02")), 2, "unsafe")
+        for kind, suffix in (("finding", "F-02"), ("approval", "Approval")):
+            _record_handoff_result(
+                results, f"handoff {kind} {name}",
+                _invoke_handoff(root, target, _handoff_text(
+                    f"Scope: done\nAuthority: {kind}:{rel_pointer}#{suffix}")),
+                2, "unsafe")
     return outside
 
 

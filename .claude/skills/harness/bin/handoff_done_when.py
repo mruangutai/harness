@@ -21,15 +21,18 @@ def _message(text):
     return f"{text}; follow templates/HANDOFF.md"
 
 
-def _body(text):
-    lines = text.splitlines()
-    headings = [index for index, line in enumerate(lines)
-                if line.strip().startswith("##")]
-    for position, index in enumerate(headings):
-        if lines[index].strip().lower() == SECTION.lower():
-            end = headings[position + 1] if position + 1 < len(headings) else len(lines)
-            return lines[index + 1:end]
-    return None
+def _done_when_indices(lines):
+    return [index for index, line in enumerate(lines)
+            if re.fullmatch(r"##[ \t]+Done when[ \t]*", line.strip(), re.IGNORECASE)]
+
+
+def _body(lines, start):
+    end = len(lines)
+    for index in range(start + 1, len(lines)):
+        if re.match(r"^##(?!#)(?:[ \t]|$)", lines[index].strip()):
+            end = index
+            break
+    return lines[start + 1:end]
 
 
 def _grammar(pointer):
@@ -148,6 +151,13 @@ def _resolve_finding(pointer, match, _feature_dir, root):
         pointer, target, f"finding {finding_id} was not found")
 
 
+def _atx_heading_text(line):
+    match = re.fullmatch(r"[ \t]{0,3}(#{1,6})[ \t]+(.+?)[ \t]*", line)
+    if match is None:
+        return None
+    return re.sub(r"[ \t]+#+[ \t]*$", "", match.group(2)).strip()
+
+
 def _resolve_approval(pointer, match, _feature_dir, root):
     target = root / match.group(1)
     heading = match.group(2)
@@ -156,8 +166,7 @@ def _resolve_approval(pointer, match, _feature_dir, root):
     except ValueError as exc:
         return _message(f"Authority pointer {pointer!r} has unsafe target {target}: {exc}")
     wanted = heading.strip().lower()
-    ok = any(line.lstrip().startswith("#")
-             and line.lstrip("#").strip().lower() == wanted for line in lines)
+    ok = any((_atx_heading_text(line) or "").lower() == wanted for line in lines)
     return None if ok else _unresolved(
         pointer, target, f"heading {heading!r} was not found")
 
@@ -249,23 +258,31 @@ def _classified_lines(body):
     authorities = [line for line in nonblank if line.startswith("Authority:")]
     return nonblank, scopes, authorities
 
+def _resolve_all(rel_path, parsed, root):
+    root = Path(root)
+    feature_dir = _feature_dir(rel_path, root)
+    if feature_dir is None:
+        return [_message(
+            f"handoff path {rel_path!r} is not inside .harness/<repo>/features/<FEAT>/")]
+    return _resolution_problems(parsed, feature_dir, root)
+
+
+
 
 def problems(rel_path, text, root, resolve):
     """Return one single-line problem for each violation in a handoff note."""
-    body = _body(text)
-    if body is None:
+    lines = text.splitlines()
+    indices = _done_when_indices(lines)
+    if not indices:
         return [_message(f"handoff note is missing required section {SECTION}")]
+    if len(indices) != 1:
+        return [_message(
+            f"handoff note has {len(indices)} {SECTION} sections; expected exactly 1")]
+    body = _body(lines, indices[0])
     nonblank, scopes, authorities = _classified_lines(body)
     result = _shape_problems(nonblank, scopes, authorities)
     parsed, grammar_problems = _parse_authorities(authorities)
     result.extend(grammar_problems)
-    if not resolve:
-        return result
-    root = Path(root)
-    feature_dir = _feature_dir(rel_path, root)
-    if feature_dir is None:
-        result.append(_message(
-            f"handoff path {rel_path!r} is not inside .harness/<repo>/features/<FEAT>/"))
-        return result
-    result.extend(_resolution_problems(parsed, feature_dir, root))
+    if resolve:
+        result.extend(_resolve_all(rel_path, parsed, root))
     return result

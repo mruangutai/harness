@@ -54,6 +54,21 @@ finally:
 valid = "Scope: build complete\nAuthority: plan-task:T-03.verify"
 check("well formed", problems(valid) == [], repr(problems(valid)))
 
+for name, malformed_note in [
+    ("nested heading cannot truncate validation",
+     note("Scope: done\nAuthority: plan-task:T-03.verify\n"
+          "### hidden\nstray prose\nAuthority: plan-task:T-99.verify")),
+    ("duplicate heading cannot truncate validation",
+     note("Scope: done\nAuthority: plan-task:T-03.verify\n"
+          "## Done when\nScope: hidden\nAuthority: plan-task:T-99.verify")),
+]:
+    td, root, rel = fixture()
+    try:
+        got = handoff_done_when.problems(rel, malformed_note, root, True)
+        check(name, bool(got), repr(got))
+    finally:
+        td.cleanup()
+
 shape_cases = [
     ("zero scope", "Authority: plan-task:T-03.verify", "Scope", "0"),
     ("two scope", "Scope: one\nScope: two\nAuthority: plan-task:T-03.verify", "Scope", "2"),
@@ -77,6 +92,8 @@ unsafe_pointers = [
     "finding:/tmp/review.md#F-02",
     "finding:../review.md#F-02",
     "finding:.harness/harness/features/FEAT-90-fixture/notes/\x00review.md#F-02",
+    "approval:/tmp/review.md#Approval",
+    "approval:../review.md#Approval",
     "approval:.harness/harness/features/FEAT-90-fixture/notes/\x01review.md#Approval",
 ]
 for pointer in unsafe_pointers:
@@ -114,6 +131,19 @@ one_bad = "Scope: done\n" + "\n".join(
 got = problems(one_bad)
 check("all authorities required", len(got) == 1 and pointers[2][2] in got[0], repr(got))
 
+td, root, rel = fixture()
+try:
+    feat = root / ".harness/harness/features/FEAT-90-fixture"
+    (feat / "bad-nospace.md").write_text("#Approval\n")
+    (feat / "bad-seven.md").write_text("####### Approval\n")
+    for name in ("bad-nospace.md", "bad-seven.md"):
+        pointer = f"approval:.harness/harness/features/FEAT-90-fixture/{name}#Approval"
+        got = handoff_done_when.problems(
+            rel, note(f"Scope: done\nAuthority: {pointer}"), root, True)
+        check(f"approval requires real ATX heading {name}", len(got) == 1, repr(got))
+finally:
+    td.cleanup()
+
 # resolve=False still enforces section, shape, and grammar.
 td, root, rel = fixture()
 try:
@@ -149,9 +179,13 @@ with tempfile.TemporaryDirectory() as td_name:
     fifo = notes / "special.md"
     os.mkfifo(fifo)
     rel = ".harness/harness/features/FEAT-90-fixture/notes/handoff-build.md"
+    relative_link = link.relative_to(root).as_posix()
+    relative_fifo = fifo.relative_to(root).as_posix()
     for name, pointer in [
-        ("symlink escape", f"finding:{link.relative_to(root).as_posix()}#F-02"),
-        ("special file", f"finding:{fifo.relative_to(root).as_posix()}#F-02"),
+        ("finding symlink escape", f"finding:{relative_link}#F-02"),
+        ("finding special file", f"finding:{relative_fifo}#F-02"),
+        ("approval symlink escape", f"approval:{relative_link}#Approval"),
+        ("approval special file", f"approval:{relative_fifo}#Approval"),
     ]:
         got = handoff_done_when.problems(
             rel, note(f"Scope: done\nAuthority: {pointer}"), root, True)
