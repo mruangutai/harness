@@ -702,7 +702,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-documentor
     depends_on: [T-04, T-07]
-    status: ready
+    status: done
     files:
       - .harness/harness/docs/DECISIONS.md
       - .harness/harness/docs/DECISIONS-INDEX.md
