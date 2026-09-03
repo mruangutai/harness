@@ -6686,7 +6686,7 @@ is the binding protection for test files now outside it.
 directory; renaming `is_control_plane_target`, because the behaviour would be identical and the
 enforcement-layer churn buys nothing; and retaining registration arrays as a directory
 cross-check, because that recreates the two-readers failure one level lower.
-## DEC-213 — Instruction paths take two anchors: an injected control-plane root for every read, and a dispatch-resolved feature-tree root for every write
+## DEC-214 — Instruction paths take two anchors: an injected control-plane root for every read, and a dispatch-resolved feature-tree root for every write
 
 **Chose:** TWO placeholders, because one value cannot serve both directions. The control-plane
 placeholder `<HARNESS_CONTROL_PLANE_ROOT>` is injected into every harness agent's preamble by the
