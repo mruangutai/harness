@@ -51,7 +51,7 @@ def done_when_facts(text: str) -> list[str]:
         return []
     lines = (line.strip() for line in match.group().splitlines()[1:])
     return [line.split(":", 1)[1].strip() for line in lines
-            if line.startswith(("Scope:", "Authority:")) and ":" in line]
+            if line.startswith(("Scope:", "Authority:"))]
 
 
 def without_done_when(text: str) -> str:
