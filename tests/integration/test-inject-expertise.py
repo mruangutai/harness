@@ -247,7 +247,9 @@ print("scanned 4 file(s), 0 violation(s)")
     write(agent, "UNANCHORED\n")
     drifted = get_context(run_hook(root, home, b'{"agent_type": "harness-qa"}')) or ""
     report("case4d: checker clean and drift branches stay distinct",
-           "HARNESS_PATH_DRIFT: none" in clean and "HARNESS_PATH_DRIFT: 1 unanchored path(s)" in drifted,
+           "HARNESS_PATH_DRIFT: none" in clean
+           and "HARNESS_PATH_DRIFT: 1 unanchored path(s)" in drifted
+           and ".omp/agents/harness-qa.md:1" in drifted,
            f"clean={clean!r} drifted={drifted!r}")
 
 
