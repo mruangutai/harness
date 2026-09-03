@@ -583,7 +583,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: 'DEC-179 — both paths resolve to NOBODY; a declared carve-out, never a discovered one'
     depends_on: [T-04]
-    status: ready
+    status: done
     files:
       - .claude/skills/harness/templates/HANDOFF.md
       - .claude/skills/harness/SKILL.md

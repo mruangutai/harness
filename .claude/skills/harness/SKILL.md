@@ -309,10 +309,12 @@ station before it opens the file, and plan.yaml has exactly one write route.
 the plan.
 
 **At the seam, write the handoff** — `notes/handoff-<phase>.md` from `templates/HANDOFF.md`: your
-working memory, not a summary. Four sections, ~60 lines, shape-gated at write: `## Next` (the decided
+working memory, not a summary. Five sections, ~60 lines, shape-gated at write: `## Next` (the decided
 next action, cited to PLAN), `## Trust` (`claim — evidence pointer — verified-at <sha> | UNVERIFIED`),
-`## Dead ends` (exclusions active for the next phase, same grammar — no pointer, no entry) and
-`## Working set` (3–5 paths). **Superseded, never appended.**
+`## Dead ends` (exclusions active for the next phase, same grammar — no pointer, no entry),
+`## Working set` (3–5 paths) and `## Done when` (exactly one `Scope:` plus one to four `Authority:`
+pointers, all of which resolve when the note is written or edited; no standing target
+re-resolution). **Superseded, never appended.**
 
 **A context-triggered handoff uses that same note** (DEC-159) — no new seam, no new artifact. Write
 it at the next STEP boundary, never mid-dispatch and never with a child in flight.
