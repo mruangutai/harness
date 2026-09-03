@@ -1,0 +1,87 @@
+<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>FEAT-54 — handoff &quot;Done when&quot; — build halted, one decision needed</title><style>
+:root{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:ui-sans-serif,-apple-system,"Segoe UI","Helvetica Neue",Arial,sans-serif;
+}
+/* Token-level theming: components style through the tokens and never inside the
+   media query, so the viewer's explicit toggle can override the OS in BOTH
+   directions. */
+@media (prefers-color-scheme:dark){
+  :root{ --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+         --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733; }
+}
+:root[data-theme="dark"]{
+  --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+  --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733;
+}
+:root[data-theme="light"]{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+}
+*{box-sizing:border-box}
+body{margin:0; background:var(--paper); color:var(--ink);
+  font:400 16px/1.65 var(--sans); padding:clamp(1.5rem,5vw,4rem) clamp(1rem,5vw,2rem) 6rem}
+.wrap{max-width:56rem; margin:0 auto}
+/* Layout owns the spacing: gap between siblings, not per-element margins that
+   collapse or double. */
+.wrap{display:flex; flex-direction:column; gap:1rem}
+.eyebrow{font:500 11px/1 var(--mono); letter-spacing:.14em; text-transform:uppercase;
+  color:var(--quiet); margin:0}
+h1{font:600 clamp(1.6rem,4vw,2.3rem)/1.15 var(--sans); letter-spacing:-.02em;
+  margin:.4rem 0 .2rem; text-wrap:balance}
+h2{font:600 1.15rem/1.3 var(--sans); letter-spacing:-.01em; margin:2rem 0 0;
+  padding-top:1.25rem; border-top:1px solid var(--line); text-wrap:balance}
+h3{font:600 .98rem/1.4 var(--sans); margin:1.1rem 0 0}
+h4,h5,h6{font:500 11px/1.4 var(--mono); letter-spacing:.1em; text-transform:uppercase;
+  color:var(--quiet); margin:1rem 0 0}
+p,li{max-width:65ch; margin:0}
+ul,ol{margin:0; padding-left:1.4rem; display:flex; flex-direction:column; gap:.4rem}
+li>ul,li>ol{margin-top:.4rem}
+strong{font-weight:600}
+code{font:400 .875em/1.5 var(--mono); background:var(--sunk); padding:.1em .35em; border-radius:3px}
+pre{background:var(--sunk); border:1px solid var(--line); border-radius:6px;
+  padding:.85rem 1rem; overflow-x:auto; margin:0}
+pre code{background:none; padding:0}
+blockquote{margin:0; padding:.75rem 1rem; border-left:3px solid var(--accent);
+  background:var(--accent-soft); border-radius:0 5px 5px 0}
+blockquote p{max-width:none}
+hr{border:0; border-top:1px solid var(--line); margin:.5rem 0}
+/* Wide content pans inside its OWN container; the page body never scrolls sideways. */
+.scroll{overflow-x:auto; border:1px solid var(--line); border-radius:6px}
+table{border-collapse:collapse; width:100%; font-size:.9rem}
+th,td{text-align:left; padding:.6rem .8rem; border-bottom:1px solid var(--line); vertical-align:top}
+thead th{font:500 10px/1.3 var(--mono); letter-spacing:.11em; text-transform:uppercase;
+  color:var(--quiet); background:var(--sunk); white-space:nowrap}
+tbody tr:last-child td{border-bottom:0}
+/* Figures in a column line up. */
+td,th{font-variant-numeric:tabular-nums}
+.derived{color:var(--slate); font-size:.85rem; margin-top:2.5rem;
+  padding-top:1rem; border-top:1px solid var(--line)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style></head><body><div class='wrap'><p class='eyebrow'>Ship review · reading view</p><h1 id="feat-54-handoff-done-when-build-halted-one-decision-needed">FEAT-54 — handoff &quot;Done when&quot; — build halted, one decision needed</h1>
+<p><strong>The build stopped after one of twelve tasks, and it is not a build problem.</strong> The approved plan pins five of its files at paths this repository forbids, and justifies two of its decisions by machinery that no longer exists in <code>run-unit-tests.sh</code>. FEAT-47-tests-layout merged <strong>at the plan&#x27;s own declared base commit</strong> and moved every test under <code>tests/</code> and every probe under <code>tests/manual/</code>; the plan was drafted against the layout that merge replaced. Nothing a squad can do closes this. It needs your ruling on one question, then a pm amendment and a re-signature.</p>
+<p><strong>What did land is real and green.</strong> T-05 froze the historical-note baseline — 141 sorted, unique paths from <code>b7956fc4</code>, none of them a note of this build. Its verify prints <code>ok 141</code>; the unit suite is green in the worktree (exit 0, zero <code>FAIL</code> lines, 66 files). Committed as <code>669b7152</code>.</p>
+<h2 id="the-decision-i-need-from-you">The decision I need from you</h2>
+<p><strong>Q4 — the plan is written against the old test layout. How do you want it repaired?</strong></p>
+<div class="scroll"><table><thead><tr><th>Option</th><th>What it costs</th><th>My recommendation</th></tr></thead><tbody><tr><td><strong>A. Repoint the plan to <code>tests/</code></strong> — tests to <code>tests/integration/</code>, the probe to <code>tests/manual/</code> beside the precedent probe; restate D-04&#x27;s and D-06&#x27;s falsified rationales</td><td>pm amendment to 2 decisions, 5 tasks&#x27; <code>files:</code>, 6 <code>verify:</code> blocks. Resets approval to pending, re-runs the plan panel, needs your signature again</td><td><strong>This one.</strong> It moves the plan to where the repository already is</td></tr><tr><td><strong>B. Amend <code>suite_layout.py</code> to exempt registered probes under <code>bin/</code></strong></td><td>Weakens an invariant FEAT-47 landed with its own test, to accommodate a stale plan. Adds a third file to the change</td><td>No. The gate&#x27;s value is that it admits no exceptions</td></tr></tbody></table></div>
+<p>Option A is also the eng-lead&#x27;s recommendation, independently reached.</p>
+<h2 id="the-evidence-all-measured-at-head-63af2eda-all-re-derived-by-me-rather-than-relayed">The evidence, all measured at HEAD <code>63af2eda</code>, all re-derived by me rather than relayed</h2>
+<ul><li><code>suite_layout.violations()</code> reports any <code>test-*.py</code>, <code>*.test.*</code> or <code>probe-*</code> left under <code>.claude/skills/harness/bin/</code> (<code>suite_layout.py:29-33</code>), and <code>run-unit-tests.sh:31</code> runs it on every invocation. <strong>T-01, T-03, T-06, T-09 and T-12 all pin their files there.</strong></li><li><code>run-unit-tests.sh</code> has <strong>no</strong> <code>UNIT_SCRIPTS</code>, <strong>no</strong> <code>INTEGRATION_SCRIPTS</code>, <strong>no</strong> <code>KINDCHECK</code> heredoc and <strong>no</strong> probe-drift check. It globs <code>tests/unit/test-*.py</code> and <code>tests/integration/test-*.py</code> (<code>:25-27</code>). D-04&#x27;s and D-06&#x27;s <code>because</code> clauses both cite that absent machinery, and T-12&#x27;s three cases have no subject at all.</li><li><code>test-check-domain.py</code> and <code>test-check-state.py</code> live at <code>tests/integration/</code>. T-03 and T-06 say &quot;extend&quot; a file at a path where nothing exists. <code>test-run-unit-tests-kinds.py</code> — T-12&#x27;s entire subject — exists nowhere; the nearest file is <code>tests/integration/test-run-unit-tests-layout.py</code>.</li><li>T-02&#x27;s module <code>handoff_done_when.py</code> is <strong>not</strong> affected: the invariant bans only test- and probe-shaped names under <code>bin/</code>.</li></ul>
+<h2 id="how-this-briefing-was-assembled">How this briefing was assembled</h2>
+<p><strong>No report round was spawned.</strong> I read the run digests off disk, per DEC-69. The paths: <code>runs/2026-09-02-{01,2,3,5,1,c2,c2c,c2d,c3,c3b,goalcheck,c2goalcheck}-product/digest.md</code>, <code>runs/2026-09-02-{4,c2,c3}-validator/digest.md</code>, and <code>runs/2026-09-02-t05t09-eng/digest.md</code> — seventeen recorded runs, sixteen with a digest on disk (<code>2026-09-02-goalcheck-c1-product</code> has a run record but no digest directory).</p>
+<ul><li><strong>Engineering</strong> (<code>runs/2026-09-02-t05t09-eng/digest.md</code>) — T-05 PASS with <code>task_verify: pass</code> and zero send-backs; T-09 BLOCKED, unimplementable as approved. The lead re-derived the member&#x27;s three claims itself and added a fourth the dispatch had wrong: D-04&#x27;s rationale describes a gate that does not exist.</li><li><strong>Product</strong>, twelve runs, all plan phase — the plan reached signature through four goal-check cycles. The last (<code>runs/2026-09-02-c3-product/digest.md</code>) found 0 uncarried settled lines and 0 out-of-scope re-admissions; <code>runs/2026-09-02-c3b-product/digest.md</code> closed the panel-record defect.</li><li><strong>Validation</strong>, three plan-panel runs. The last (<code>runs/2026-09-02-c3-validator/digest.md</code>) ran all three readers, <code>severity_max: med</code>, nothing high, critical or unrated. Its own <code>adequacy_notes</code> state plainly: <em>&quot;NO GATE SCRIPT WAS EXECUTED and NO PLAN TASK WAS BUILT… This panel cannot distinguish a plan that will BUILD correctly from one that READS correctly.&quot;</em> <strong>That is exactly the blind spot the build then walked into</strong> — see B-5 below.</li><li><strong>Goal-check against the success criteria: not yet run.</strong> It is a build-completion step and the build did not complete. <strong>UAT: not reached.</strong> No SC is graded, met or waived.</li></ul>
+<p>I verified on disk, not from the digests, that both approval gates read <code>approved</code> (Mike Ruangutai, 2026-09-02), that <code>plan.yaml</code>&#x27;s <code>panel:</code> records cycle 3 with all three readers <code>ran</code>, nine findings and no stale disposition, and that no FEAT-54 note entered the frozen baseline.</p>
+<h2 id="budgets">Budgets</h2>
+<ul><li><strong>Cycles: 9 of 30.</strong> You raised the cap from 10 in this dispatch; it is recorded in <code>feature.json</code>. <strong>No cycle was charged for this run</strong> — the lead reported zero send-backs and nothing was routed back. A falsified plan premise is not rework (DEC-157).</li><li><strong>Runs: 17 of 20.</strong> Under budget. Sixteen of the seventeen are plan-phase; that is a heavy plan for a change whose core is a few hundred lines, and it did not catch the defect that stopped the build.</li></ul>
+<h2 id="open-questions">Open questions</h2>
+<ul><li><strong>Q4 — blocking, yours.</strong> The layout repair above.</li><li><strong>Q1, Q2, Q3 — non-blocking, harness owner.</strong> Carried unchanged from the plan phase: the plan-panel&#x27;s non-harness reader deviated from the team spec&#x27;s envelope for a second consecutive cycle with only the hosting lead validating it; two product-lead contexts collided on one run directory; a stray literal <code>yield</code> token opens the scope reviewer&#x27;s c3 note.</li><li><strong>Q5 — non-blocking, new, harness owner.</strong> Four goal-checks and three panel cycles read this plan without noticing that five of its declared <code>files:</code> paths are forbidden by a gate that runs on every suite invocation.</li></ul>
+<p><strong>Resolved escalations: none this run.</strong> The eng-lead&#x27;s E1 is routed to pm and is pending your Q4 ruling. The plan phase&#x27;s E1 (no <code>approval.rulings</code> key) was closed by the ruling that none was needed — no high, critical or unrated finding remained open.</p>
+<h2 id="proposed-backlog-strike-any-row-by-id-anything-not-listed-dies-silently">Proposed backlog — strike any row by ID; anything not listed dies silently</h2>
+<div class="scroll"><table><thead><tr><th>ID</th><th>Nature</th><th>Row</th></tr></thead><tbody><tr><td>B-1</td><td>chore</td><td>Add a plan-phase check resolving every task&#x27;s declared <code>files:</code> path against <code>suite_layout.violations()</code>, so a plan cannot be signed pinning a file at a forbidden path (Q5)</td></tr><tr><td>B-2</td><td>bug</td><td>Enforce the plan-panel team spec&#x27;s single-key <code>findings</code> envelope mechanically, or restate it as the non-harness persona&#x27;s actual return shape (Q1)</td></tr><tr><td>B-3</td><td>bug</td><td>Make run-directory slugs collision-proof, or have the run-dir writer refuse an occupied directory rather than overwrite its <code>state.yaml</code> (Q2)</td></tr><tr><td>B-4</td><td>chore</td><td>Strip the stray literal <code>yield</code> token from <code>notes/review-harness-code-reviewer-planpanel-c3.md:1</code> (Q3)</td></tr><tr><td>B-5</td><td>enhancement</td><td>The plan panel is text-only and says so in its own <code>adequacy_notes</code>; give it one mechanical pass that resolves the plan&#x27;s cited paths and greps its cited machinery against the real tree</td></tr><tr><td>B-6</td><td>chore</td><td>Pin an artifact path for SC-04&#x27;s review-time evidence, and for SC-07, SC-08 and SC-11, which carry the same looseness (panel F-2, low)</td></tr><tr><td>B-7</td><td>chore</td><td>Drop T-06 case (g)&#x27;s misleading <code>fully resolving</code> qualifier — the state-check pass runs <code>resolve=False</code> and never opens a target (panel F-3, info)</td></tr></tbody></table></div>
+<h2 id="what-happens-next-if-you-take-option-a">What happens next, if you take option A</h2>
+<ol><li>You authorize the amendment; the main session sends pm through <code>harness-product-lead</code> to repoint D-04, D-06 and T-01/T-03/T-06/T-09/T-12, and to re-derive whether those tasks&#x27; <code>intent:</code> bodies need rewriting too — several describe registration in script arrays that no longer exist.</li><li>The amendment resets approval to pending and the plan panel re-runs over the unfinished tasks.</li><li>You sign, and the build resumes at T-01. <strong>T-05 does not need redoing</strong>; it is committed and green.</li></ol>
+<p>One thing needs doing whatever you decide, and it is not mine to do: the GitHub mirror opened this run (parent <strong>#1262</strong>, sub-issues <strong>#1263-#1274</strong>, milestone 43) because the session check found it had never run at all. The twelve cards were created at <code>backlog</code> while the plan says <code>ready</code>. The signature-time promotion — <code>gh-sync.py status &lt;feature-dir&gt; ready</code> — is the main session&#x27;s row under DEC-138&#x27;s one-owner table, so I left it rather than write another owner&#x27;s column.</p><p class='derived'>Derived from <code>ship-review-2026-09-02-t05t09-eng.md</code> — the markdown is the record; do not edit this file. Regenerate with <code>bin/render-brief.py</code>.</p></div></body></html>
