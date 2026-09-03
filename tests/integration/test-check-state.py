@@ -2232,10 +2232,11 @@ def _feat54_baseline_cases(outcomes):
     _feat54_check_case(
         outcomes, "non-baselined resolving block passes", HANDOFF_GOOD, [], False)
     _feat54_check_case(
-        outcomes, "non-baselined absent targets do not rot", absent_targets, [], False)
+        outcomes, "non-baselined absent targets do not rot",
+        absent_targets, [], False, ())
     _feat54_check_case(
         outcomes, "baselined absent targets do not rot",
-        absent_targets, [baseline_path], False)
+        absent_targets, [baseline_path], False, ())
     _feat54_check_case(
         outcomes, "shape remains enforced", malformed, [], True, ("Scope", "2"))
     _feat54_check_case(
@@ -2295,11 +2296,56 @@ def _feat54_line_cap_case(outcomes):
         outcomes.append(ok)
 
 
+def _feat54_resolution_mutant(iso_root):
+    source = open(SCRIPT, encoding="utf-8").read()
+    old = "handoff_done_when.problems(_rel_handoff, _text, root, resolve=False)"
+    new = "handoff_done_when.problems(_rel_handoff, _text, root, resolve=True)"
+    if source.count(old) != 1:
+        return None
+    mutant = os.path.join(isolated_bin(iso_root), ".check-state-feat54-resolve-mutant.sh")
+    with open(mutant, "w", encoding="utf-8") as file:
+        file.write(source.replace(old, new))
+    shutil.copymode(SCRIPT, mutant)
+    return mutant
+
+
+def _feat54_resolution_mutant_counts(mutant):
+    with tempfile.TemporaryDirectory() as tmp:
+        absent = _feat54_case_notes()["absent_targets"]
+        _feat54_fixture_case(tmp, absent, [])
+        _, real_out = run(tmp)
+        result = subprocess.run(
+            [mutant], cwd=tmp, capture_output=True, text=True, env=_root_env(tmp))
+    real_hits = [line for line in real_out.splitlines() if "handoff-plan.md" in line]
+    mutant_hits = [line for line in result.stdout.splitlines()
+                   if "handoff-plan.md" in line]
+    return len(real_hits), len(mutant_hits), result.returncode
+
+
+def _feat54_resolution_mode_mutant_case(outcomes):
+    """Prove SC-15 depends on check-state using shape-only authority validation."""
+    iso_root = tempfile.mkdtemp()
+    try:
+        mutant = _feat54_resolution_mutant(iso_root)
+        if mutant is None:
+            print("FAIL - FEAT-54 state caller-mode mutant could not be constructed")
+            outcomes.append(False)
+            return
+        real_count, mutant_count, returncode = _feat54_resolution_mutant_counts(mutant)
+        ok = real_count == 0 and mutant_count > 0 and returncode == 1
+        print(f"{'ok' if ok else 'FAIL'} - FEAT-54 state caller-mode mutation "
+              f"(real={real_count}, mutant={mutant_count})")
+        outcomes.append(ok)
+    finally:
+        shutil.rmtree(iso_root, ignore_errors=True)
+
+
 def case_feat54_done_when():
     outcomes = []
     _feat54_baseline_cases(outcomes)
     _feat54_clean_corpus_case(outcomes)
     _feat54_line_cap_case(outcomes)
+    _feat54_resolution_mode_mutant_case(outcomes)
     return all(outcomes)
 
 

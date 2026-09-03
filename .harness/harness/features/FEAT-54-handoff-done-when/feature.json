@@ -2,8 +2,8 @@
   "feature_id": "FEAT-54-handoff-done-when",
   "branch": "feat/FEAT-54-handoff-done-when",
   "pr": null,
-  "review_sha": "39602414e1cfe792655b7e68bce367e92790c32a",
-  "cycles_used": 19,
+  "review_sha": "f05e1e6cd74c7d91580dd6ef565a00432faac1ad",
+  "cycles_used": 20,
   "max_total_cycles": 30,
   "max_total_runs": 20,
   "runs": [
@@ -49,7 +49,9 @@
     {"id": "2026-09-03-review-c2-validator", "squad": "validator", "verdict": "FAIL", "agent": "harness-validator-lead"},
     {"id": "2026-09-03-qa-validation-c3-validator", "squad": "validator", "verdict": "PASS", "agent": "harness-validator-lead"},
     {"id": "2026-09-03-simplify-validation-c3-eng", "squad": "engineering", "verdict": "PASS", "agent": "harness-eng-lead"},
-    {"id": "2026-09-03-review-c3-validator", "squad": "validator", "verdict": "FAIL", "agent": "harness-validator-lead"}
+    {"id": "2026-09-03-review-c3-validator", "squad": "validator", "verdict": "FAIL", "agent": "harness-validator-lead"},
+    {"id": "2026-09-03-review-c4-validator", "squad": "validator", "verdict": "FAIL", "agent": "harness-validator-lead"},
+    {"id": "2026-09-03-sec-f10-c5-eng", "squad": "engineering", "verdict": "PASS", "agent": "harness-eng-lead"}
   ],
   "github": {
     "milestone": 43,

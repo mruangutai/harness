@@ -3,18 +3,18 @@
 ## Current
 
 - feature: FEAT-54-handoff-done-when
-- run: .harness/harness/features/FEAT-54-handoff-done-when/runs/2026-09-03-review-c3-validator/digest.md
-- squad: validation — c3 full panel complete
-- status: review (plan.yaml `status: review`), blocked on external SC-04 prerequisite
+- run: .harness/harness/features/FEAT-54-handoff-done-when/runs/2026-09-03-sec-f10-c5-eng/digest.md
+- squad: validation — c4 findings repaired, full c5 panel pending
+- status: review (plan.yaml `status: review`)
 
-The full c3 panel reviewed pinned `39602414e1cfe792655b7e68bce367e92790c32a`. All four readers ran. The configured matrix passed with 25 unit and 44 integration files discovered; all 86 applicable changed-function grades passed. Every FEAT-54 implementation finding F-01–F-03 and F-05–F-09 is closed with discriminating coverage, and SC-07, SC-08, and SC-11 pass inspection. Five malformed FEAT-54 lead digests were representation-corrected and now pass the lead digest validator.
+The complete c4 panel reviewed pinned `f05e1e6cd74c7d91580dd6ef565a00432faac1ad`. All four readers ran. Literal SC-04 is now clean: the exact repository-root state check exits 0 with zero violations and zero `Done when` findings. The configured matrix passed with 25 unit and 44 integration files discovered, and all 86 changed-function grades passed.
 
-The panel still fails one high-severity must-fix: literal SC-04 requires `bash .claude/skills/harness/bin/check-state.sh` from the repository root to exit 0, but it exits 1 because done feature FEAT-51 lacks `notes/handoff-validate.md`. The same run reports zero Done-when findings. Main confirmed FEAT-51 has no active owner and declined to mutate it because this feature's approved boundary forbids touching unrelated features. The criterion cannot be waived, weakened, or fixture-substituted.
+C4 found two independent high blockers. F-10 showed that SC-15's absent-target integration fixtures filtered away the unresolved-authority output produced by a `resolve=False` to `resolve=True` regression. Main repaired the main-session-direct test lane so both cases reject every output line naming the fixture and added an executable caller-mode mutant (`real=0`, `mutant=1`). SEC-F-10 showed the manual probe passed repository-controlled text to an auto-approved tool-enabled OMP agent. The engineering fix now invokes OMP with exactly one `--no-tools`, omits `--auto-approve`, and pins that argv contract in the focused unit test.
 
-Validation therefore stops BLOCKED at Review. Product goal-check and SC-10 UAT did not run because panel PASS is their prerequisite. Resume only after FEAT-51's own owner restores its required validate handoff; then re-pin, rerun the complete panel, and proceed to goal-check only on PASS. Durable working memory is in `notes/handoff-validate.md`.
+Both focused suites pass together, and the corrected engineering digest passes `validate-digest.py lead`. The next action is to commit the two fixes, re-pin at that commit, sync Review, and run the complete four-reader c5 panel over the same 16-path scope. Product goal-check remains gated on panel PASS; SC-10 remains pending operator UAT.
 
-Cycles used: 19 of 30. Runs exceed the informational 20-run budget, but the validation sequence earned its place by closing multiple high-severity fail-open/disclosure findings and producing non-vacuous QA evidence; the hard rework cap is unexhausted.
+Cycles used: 20 of 30. Runs exceed the informational 20-run budget, but they continue to earn their place by discovering and closing independent high-severity fail-open/tool-authority defects; the hard cycle cap is unexhausted.
 
 ## Open Questions
 
-- None for the operator. External unblock action: FEAT-51's owner must add its required `notes/handoff-validate.md` outside FEAT-54.
+- None.

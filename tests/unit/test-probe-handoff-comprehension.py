@@ -94,6 +94,17 @@ class ProbePathSecurityTest(unittest.TestCase):
         self.exercise([self.valid])
         self.assertEqual(2, len(self.calls))
 
+    def test_ask_disables_tools_without_auto_approval(self):
+        probe = load_probe()
+        probe.ROOT = self.root
+        completed = types.SimpleNamespace(returncode=0, stdout="answer\n", stderr="")
+        with mock.patch.object(probe.subprocess, "run", return_value=completed) as run:
+            self.assertEqual(("answer", ""), probe.ask("/bin/omp", "test-model", "note"))
+
+        argv = run.call_args.args[0]
+        self.assertEqual(1, argv.count("--no-tools"))
+        self.assertNotIn("--auto-approve", argv)
+
     def test_dry_run_makes_no_model_call(self):
         args = types.SimpleNamespace(notes=[self.valid], dry_run=True, model="test-model")
         with mock.patch.object(self.probe, "arguments", return_value=args):

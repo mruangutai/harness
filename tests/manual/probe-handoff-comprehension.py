@@ -134,7 +134,7 @@ def ask(omp: str, model: str, note: str) -> tuple[str, str]:
     try:
         result = subprocess.run(
             [omp, "-p", prompt(note), "--no-extensions", "--no-skills", "--no-rules",
-             "--auto-approve", "--model", model],
+             "--no-tools", "--model", model],
             cwd=ROOT, capture_output=True, text=True, timeout=600,
         )
     except (OSError, subprocess.SubprocessError) as exc:
