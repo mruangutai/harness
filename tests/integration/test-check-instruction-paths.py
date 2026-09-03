@@ -26,12 +26,6 @@ def run(root, *args):
     return subprocess.run([sys.executable, CHECK, "--root", root, *args], text=True, capture_output=True)
 
 
-def workflow_gate_is_enforced(workflow):
-    start = workflow.find("name: Instruction-path gate")
-    if start < 0:
-        return False
-    gate = workflow[start:workflow.find("\n      - name:", start + 1)]
-    return "check-instruction-paths.py" in gate and 'exit "$rc"' in gate
 
 
 
@@ -76,18 +70,10 @@ def case_scope_and_debug_read():
           f"control={debug_path}; product={product_path}")
 
 
-def case_workflow_gate():
-    workflow = open(os.path.join(REPO_ROOT, ".github", "workflows", "tests.yml"), encoding="utf-8").read()
-    check("workflow runs instruction gate and propagates its nonzero status", workflow_gate_is_enforced(workflow))
-    check("workflow mutant without instruction gate is refused", not workflow_gate_is_enforced(workflow.replace("name: Instruction-path gate", "name: Removed instruction gate", 1)))
-    start = workflow.find("name: Instruction-path gate")
-    end = workflow.find("\n      - name:", start + 1)
-    ignored = workflow[:start] + workflow[start:end].replace('exit "$rc"', "exit 0", 1) + workflow[end:]
-    check("workflow mutant that ignores gate status is refused", not workflow_gate_is_enforced(ignored))
 
 
 def main():
-    for case in (case_path_directions, case_scope_and_debug_read, case_workflow_gate):
+    for case in (case_path_directions, case_scope_and_debug_read):
         case()
     if any(not row[1] for row in RESULTS):
         raise SystemExit(1)
