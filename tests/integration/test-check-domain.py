@@ -4033,8 +4033,11 @@ def run_feat51_orphan_write():
 
 def run_handoff_done_when():
     results = []
-    def record(name, result, want, needle=None):
-        ok = result.returncode == want and (needle is None or needle.lower() in result.stderr.lower())
+    def record(name, result, want, needles=None):
+        needles = () if needles is None else (
+            needles if isinstance(needles, tuple) else (needles,))
+        stderr = result.stderr.lower()
+        ok = result.returncode == want and all(needle.lower() in stderr for needle in needles)
         results.append((name, ok, f"exit {result.returncode}: {result.stderr.strip()[:180]}"))
     with tempfile.TemporaryDirectory() as root:
         os.makedirs(os.path.join(root, ".harness"), exist_ok=True)
@@ -4064,14 +4067,16 @@ def run_handoff_done_when():
         valid = "Scope: build complete\nAuthority: plan-task:T-03.verify"
         missing = "\n".join(["## Next", "next", "## Trust", "trust",
                              "## Dead ends", "none", "## Working set", "set"]) + "\n"
-        record("handoff Done when missing", invoke(missing), 2, "## Done when")
+        record("handoff Done when missing", invoke(missing), 2,
+               ("## Done when", "templates/HANDOFF.md"))
         record("handoff Done when valid", invoke(handoff(valid)), 0)
         malformed = [
-            ("zero Scope", "Authority: plan-task:T-03.verify", "Scope"),
-            ("two Scope", "Scope: one\nScope: two\nAuthority: plan-task:T-03.verify", "Scope"),
-            ("zero Authority", "Scope: only", "Authority"),
+            ("zero Scope", "Authority: plan-task:T-03.verify", ("Scope", "0")),
+            ("two Scope", "Scope: one\nScope: two\nAuthority: plan-task:T-03.verify",
+             ("Scope", "2")),
+            ("zero Authority", "Scope: only", ("Authority", "0")),
             ("five Authority", "Scope: only\n" + "\n".join(
-                ["Authority: plan-task:T-03.verify"] * 5), "Authority"),
+                ["Authority: plan-task:T-03.verify"] * 5), ("Authority", "5")),
             ("stray prose", valid + "\nstray prose", "stray prose"),
         ]
         for name, body, needle in malformed:
@@ -4090,9 +4095,11 @@ def run_handoff_done_when():
                    invoke(handoff(f"Scope: done\nAuthority: {good}")), 0)
             record(f"handoff {name} unresolved",
                    invoke(handoff(f"Scope: done\nAuthority: {bad}")), 2, bad)
+        legal_prefixes = ("plan-task:", "brief-sc:", "finding:", "approval:")
         for value in ("docs:whatever", "check-domain.sh:1523"):
             record(f"handoff unknown authority {value}",
-                   invoke(handoff(f"Scope: done\nAuthority: {value}")), 2, "plan-task:")
+                   invoke(handoff(f"Scope: done\nAuthority: {value}")), 2,
+                   legal_prefixes)
         # The existing-note edit route is the post-write sweep, not a second parser.
         with open(target, "w") as f:
             f.write(missing)

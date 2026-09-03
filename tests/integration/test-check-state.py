@@ -2161,12 +2161,14 @@ def case_feat54_done_when():
             f.write("Finding F-02 remains.\n")
         return fdir
 
-    def check_case(label, note, baseline_marker, expect_report, needle="Done when"):
+    def check_case(label, note, baseline_marker, expect_report, needles="Done when"):
+        needles = needles if isinstance(needles, tuple) else (needles,)
         with tempfile.TemporaryDirectory() as tmp:
             fixture_case(tmp, note, baseline_marker)
             _, out = run(tmp)
             lines = [line for line in out.splitlines()
-                     if "handoff-plan.md" in line and needle.lower() in line.lower()]
+                     if "handoff-plan.md" in line
+                     and all(needle.lower() in line.lower() for needle in needles)]
             ok = bool(lines) == expect_report
             print(f"{'ok' if ok else 'FAIL'} - FEAT-54 {label}")
             if not ok:
@@ -2186,11 +2188,12 @@ def case_feat54_done_when():
 
     check_case("non-baselined missing section reports", missing, [], True)
     check_case("baselined missing section is exempt", missing, [baseline_path], False)
-    check_case("baselined malformed block reports", malformed, [baseline_path], True)
+    check_case("baselined malformed block reports", malformed, [baseline_path], True,
+               ("Scope", "2"))
     check_case("non-baselined resolving block passes", HANDOFF_GOOD, [], False)
     check_case("non-baselined absent targets do not rot", absent_targets, [], False)
     check_case("baselined absent targets do not rot", absent_targets, [baseline_path], False)
-    check_case("shape remains enforced", malformed, [], True)
+    check_case("shape remains enforced", malformed, [], True, ("Scope", "2"))
     check_case("grammar remains enforced", unknown, [], True, "legal prefixes")
     check_case("absent baseline key means no exemption", missing, None, True)
 
