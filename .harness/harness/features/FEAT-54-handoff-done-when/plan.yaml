@@ -5,7 +5,7 @@ approval:
   approved_by: Mike Ruangutai
   status: approved
 
-status: plan
+status: building
 
 source_issues: []
 
@@ -147,7 +147,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: 'DEC-174 — the test of gate logic imported by check-domain.sh and check-state.sh'
     depends_on: []
-    status: ready
+    status: done
     files:
     - tests/unit/test-handoff-done-when.py
     verify: |
@@ -225,7 +225,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: 'DEC-174 — gate logic imported by both check-domain.sh and check-state.sh'
     depends_on: [T-01]
-    status: ready
+    status: done
     files:
       - .claude/skills/harness/bin/handoff_done_when.py
     verify: |
@@ -293,7 +293,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: 'DEC-174 — check-domain.sh''s own test'
     depends_on: [T-02]
-    status: ready
+    status: done
     files:
     - tests/integration/test-check-domain.py
     verify: |
@@ -351,7 +351,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: 'DEC-174 — check-domain.sh is a registered PreToolUse gate script'
     depends_on: [T-03]
-    status: ready
+    status: done
     files:
       - .claude/skills/harness/bin/check-domain.sh
     verify: |

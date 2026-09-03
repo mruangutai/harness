@@ -2558,6 +2558,7 @@ _PLAN_LEGAL = (
     "tasks:\n"
     "  - id: T-01\n"
     f"    status: {_fc09.MANDATED_STATIONS[5]}\n"
+    "    verify: python3 test.py\n"
 )
 _PLAN_ILLEGAL = _PLAN_LEGAL.replace(
     f"    status: {_fc09.MANDATED_STATIONS[5]}", "    status: Sideways")
@@ -2926,13 +2927,14 @@ def _t09_case_fold():
     #
     # EACH BODY IS LEGAL FOR ITS OWN FILE, and getting that wrong is how these first failed:
     # `{}` repeated is over-budget-free but SCHEMA-invalid for feature.json, and three heading
-    # lines are within 60 but violate the handoff's four-section rule. Both refusals were real
+    # lines are within 60 but violate the handoff's five-section rule. Both refusals were real
     # and had nothing to do with the fold, so the controls would have gone red for a reason that
     # could not distinguish the fix from its absence.
     _legal_bodies = {
         "Feature.json": _legal_feature_json(20),
-        "Handoff-Build.md": "\n".join(["## Next", "## Trust", "## Dead ends",
-                                       "## Working set"] + ["x"] * 10) + "\n",
+        "Handoff-Build.md": "\n".join(
+            ["## Next", "## Trust"] + ["x"] * 10 + ["## Dead ends", "## Working set",
+             "## Done when", "Scope: fixture", "Authority: plan-task:T-01.verify"]) + "\n",
         "State.md": "## Current\n" + "x" * 3 + "\n",
     }
     for tmpl, folded, _canon, _n, _unit, _b in _FOLD_ROWS:
@@ -4029,6 +4031,95 @@ def run_feat51_orphan_write():
     return _report_feat51_results(results)
 
 
+def run_handoff_done_when():
+    results = []
+    def record(name, result, want, needle=None):
+        ok = result.returncode == want and (needle is None or needle.lower() in result.stderr.lower())
+        results.append((name, ok, f"exit {result.returncode}: {result.stderr.strip()[:180]}"))
+    with tempfile.TemporaryDirectory() as root:
+        os.makedirs(os.path.join(root, ".harness"), exist_ok=True)
+        with open(os.path.join(root, ".harness", "team-config.yaml"), "w") as f:
+            f.write(FIXTURE_MANIFEST)
+        feat = os.path.join(root, ".harness", "harness", "features", "FEAT-90-fixture")
+        notes = os.path.join(feat, "notes")
+        os.makedirs(notes, exist_ok=True)
+        with open(os.path.join(feat, "plan.yaml"), "w") as f:
+            f.write("tasks:\n  - id: T-03\n    verify: python3 test.py\n")
+        with open(os.path.join(feat, "BRIEF.md"), "w") as f:
+            f.write("# BRIEF\n\n- SC-04: observable\n\n## Approval\n")
+        with open(os.path.join(notes, "review-fixture.md"), "w") as f:
+            f.write("Finding F-02 remains.\n")
+        target = os.path.join(notes, "handoff-build.md")
+        def handoff(body, trust_lines=1):
+            lines = ["## Next", "next", "## Trust"]
+            lines += [f"trust {n}" for n in range(trust_lines)]
+            lines += ["## Dead ends", "none", "## Working set", "set", "## Done when"]
+            lines += body.splitlines()
+            return "\n".join(lines) + "\n"
+        def invoke(content):
+            payload = {"tool_name": "Write",
+                       "tool_input": {"file_path": target, "content": content}}
+            return subprocess.run([HOOK], input=json.dumps(payload), capture_output=True,
+                                  text=True, env=_env(root))
+        valid = "Scope: build complete\nAuthority: plan-task:T-03.verify"
+        missing = "\n".join(["## Next", "next", "## Trust", "trust",
+                             "## Dead ends", "none", "## Working set", "set"]) + "\n"
+        record("handoff Done when missing", invoke(missing), 2, "## Done when")
+        record("handoff Done when valid", invoke(handoff(valid)), 0)
+        malformed = [
+            ("zero Scope", "Authority: plan-task:T-03.verify", "Scope"),
+            ("two Scope", "Scope: one\nScope: two\nAuthority: plan-task:T-03.verify", "Scope"),
+            ("zero Authority", "Scope: only", "Authority"),
+            ("five Authority", "Scope: only\n" + "\n".join(
+                ["Authority: plan-task:T-03.verify"] * 5), "Authority"),
+            ("stray prose", valid + "\nstray prose", "stray prose"),
+        ]
+        for name, body, needle in malformed:
+            record(f"handoff {name}", invoke(handoff(body)), 2, needle)
+        pointers = [
+            ("plan", "plan-task:T-03.verify", "plan-task:T-99.verify"),
+            ("brief", "brief-sc:SC-04", "brief-sc:SC-99"),
+            ("finding",
+             "finding:.harness/harness/features/FEAT-90-fixture/notes/review-fixture.md#F-02",
+             "finding:.harness/harness/features/FEAT-90-fixture/notes/review-fixture.md#F-99"),
+            ("approval", "approval:.harness/harness/features/FEAT-90-fixture/BRIEF.md#Approval",
+             "approval:.harness/harness/features/FEAT-90-fixture/BRIEF.md#Missing"),
+        ]
+        for name, good, bad in pointers:
+            record(f"handoff {name} resolves",
+                   invoke(handoff(f"Scope: done\nAuthority: {good}")), 0)
+            record(f"handoff {name} unresolved",
+                   invoke(handoff(f"Scope: done\nAuthority: {bad}")), 2, bad)
+        for value in ("docs:whatever", "check-domain.sh:1523"):
+            record(f"handoff unknown authority {value}",
+                   invoke(handoff(f"Scope: done\nAuthority: {value}")), 2, "plan-task:")
+        # The existing-note edit route is the post-write sweep, not a second parser.
+        with open(target, "w") as f:
+            f.write(missing)
+        edit_payload = {"tool_name": "Edit", "hook_event_name": "PostToolUse",
+                        "tool_input": {"file_path": target, "old_string": "old",
+                                       "new_string": "new"}}
+        record("handoff edit without Done when",
+               subprocess.run([HOOK], input=json.dumps(edit_payload), capture_output=True,
+                              text=True, env=_env(root)), 2, "## Done when")
+        with open(target, "w") as f:
+            f.write(handoff(valid))
+        record("handoff edit with Done when",
+               subprocess.run([HOOK], input=json.dumps(edit_payload), capture_output=True,
+                              text=True, env=_env(root)), 0)
+        sixty = handoff(valid, trust_lines=50)
+        sixty_one = handoff(valid, trust_lines=51)
+        assert len(sixty.splitlines()) == 60 and len(sixty_one.splitlines()) == 61
+        record("handoff 60-line boundary", invoke(sixty), 0)
+        record("handoff 61-line boundary", invoke(sixty_one), 2, "cap is 60")
+        record("handoff no per-section cap", invoke(sixty), 0)
+    fails = 0
+    for name, ok, detail in results:
+        print(("ok   " if ok else "FAIL "), name, "" if ok else detail)
+        fails += not ok
+    return fails
+
+
 def main():
     fails = 0
     for name, path, want, agent, tool in CASES:
@@ -4067,6 +4158,7 @@ def main():
     fails += run_feat51_orphan_write()
     fails += run_bug1106_edit_route_cases()
     fails += run_bug1106_shared_pattern_consistency()
+    fails += run_handoff_done_when()
     return fails
 
 

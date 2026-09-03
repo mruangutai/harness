@@ -1544,20 +1544,27 @@ def shape_problems(rel, content, display=None, absolute_path=None):
             return out
 
     if RE_HANDOFF.match(rel):
-        # DEC-159: the handoff note is working memory for a successor — four fixed
-        # sections, hard-capped, denied at write while the author can still fix it.
+        # DEC-159: the handoff note is working memory for a successor — five fixed
+        # sections including ## Done when, hard-capped, denied at write while the author can still fix it.
         # Cap 60 (DEC-160): the first live handoff was 49 lines with zero fat.
         problems = []
         if len(lines) > 60:
             problems.append(f"handoff note is {len(lines)} lines — cap is 60. It is intent, trust,"
-                            f" dead ends and a working set, not a narrative; history lives on disk.")
-        required = ["## Next", "## Trust", "## Dead ends", "## Working set"]
+                            f" dead ends, a working set and ## Done when, not a narrative; history lives on disk.")
+        required = ["## Next", "## Trust", "## Dead ends", "## Working set", "## Done when"]
         low = [l.strip().lower() for l in lines]
         missing = [h for h in required if h.lower() not in low]
         if missing:
-            problems.append(f"missing required section(s) {missing} — the four sections are the"
+            problems.append(f"missing required section(s) {missing} — the five sections are the"
                             f" contract (templates/HANDOFF.md); a freeform handoff drifts like an"
                             f" unvalidated digest did (DEC-156).")
+        try:
+            import handoff_done_when
+        except Exception as exc:
+            problems.append("the Done when validator handoff_done_when.py could not be imported — "
+                            f"REFUSING the write ({type(exc).__name__}: {exc})")
+        else:
+            problems.extend(handoff_done_when.problems(rel, content, root, resolve=True))
         if problems:
             out.append(_head("handoff shape (DEC-159)."))
             out.extend(f"  {m}" for m in problems)
