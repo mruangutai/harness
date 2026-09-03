@@ -3,18 +3,41 @@
 ## Current
 
 - feature: FEAT-54-handoff-done-when
-- run: .harness/harness/features/FEAT-54-handoff-done-when/runs/2026-09-03-review-c5-validator/digest.md
-- squad: validation — c5 complete
-- status: review (plan.yaml `status: review`), blocked on external SC-04 prerequisite
+- run: .harness/harness/features/FEAT-54-handoff-done-when/runs/2026-09-03-review-c6-validator/digest.md
+- squad: validation — c6 PASS, panel closed
+- status: review (plan.yaml `status: review`), panel clear, product goal-check next
 
-The complete c5 panel reviewed pinned `4690f724cdbbdf03649f0cbea07efe7be3c03ce0`. All four readers ran. The configured matrix was non-vacuous and green with 25 unit and 44 integration files discovered; all 90 applicable changed-function grades passed. F-10's caller-mode mutant closes the SC-15 fail-open proof gap, and SEC-F-10's real argv now contains exactly one `--no-tools` and no `--auto-approve`.
+The c5 blocker F-04 / SC-04 is resolved externally. I re-ran the exact repository-root
+`bash .claude/skills/harness/bin/check-state.sh` myself: exit 0, 478 lines, zero refusal/fail
+lines, zero INV-29 lines, zero lines naming `Done when`. The BUG-1157-approval-overrule checkout
+is gone from disk and from `git worktree list`.
 
-C5 found F-11 in the two real FEAT-54 handoffs. Main repaired both main-session-direct notes: `handoff-plan.md` now treats re-signature as a precondition and bounds the immediate action with `plan-task:T-01.verify`; `handoff-build.md` makes the literal SC-04 inspection the immediate action and bounds it with `brief-sc:SC-04`. Direct write-time resolution returns no problems for either note.
+Pin reconciled per INV-6. c5 graded `4690f724`; the F-11 handoff-note repair landed in `dd55b357`,
+so c5's verdicts could not cover the repaired bytes. The code diff between the two commits outside
+this feature's directory is EMPTY, so c5's code verdicts carry forward unchanged, but the repair
+itself needed a graded pin. `review_sha` is now `dd55b357`, committed at `1e3cc982`, and
+`gh-sync.py status ... review` moved the parent #1262 and all twelve sub-issues to review.
 
-The sole remaining gate is external F-04 / SC-04. The exact repository-root `bash .claude/skills/harness/bin/check-state.sh` exits 1 because INV-29 reports the unrelated standing `.claude/worktrees/harness/BUG-1157-approval-overrule` checkout whose terminal state cannot be determined because its landed `feature.json` is missing. The same c5 run records zero output lines naming `Done when`. FEAT-54 may not weaken the state gate or remove another feature's worktree from inside this checkout. Product goal-check and SC-10 UAT remain gated on a complete panel PASS.
+The c6 panel ran all four readers over the pinned commit and returned PASS with `must_fix: []`.
+Both c5 blockers close on evidence gathered at the pin: QA's own literal SC-04 run (exit 0, 478
+lines, 49 distinct feature ids proving the read was non-vacuous), and code-review's hand-applied
+semantic test over all three handoff notes including `handoff-validate.md`, which c5 never scoped.
+Code review Stage 2 ran for the first time in this feature — it had never been entered, because
+c5's ordered review stopped at a failing Stage 1 — and cleared 90/90 on the Python risk grade.
 
-Cycles used: 21 of 30. Runs exceed the informational 20-run budget, but the c4/c5 runs earned their place by closing two independent high-severity defects and exposing the remaining external repository-state blocker; the hard cycle cap is unexhausted.
+Two live advisories, neither gating under `gates.review: advisory_unless_high`. SEC-F-08 (med):
+raw repository/model/provider terminal controls remain printable. VL-F-01 (med, new, raised by the
+lead as a union finding no single reader could make): the shipped gate cannot detect the F-11
+defect class — the OLD defective approval pointer resolved clean too, so `problems: []` says
+nothing about the semantic test. Its remedy edits the DEC-174 main-session-direct gate tree, which
+this squad may not execute, so failing would have bought a cycle to prove that.
+
+Cycles used: 21 of 30; c6 used zero send-backs. Runs stand at 47 against the informational budget
+of 20. The overrun is real and worth stating plainly: the c4/c5/c6 sequence closed two independent
+high-severity defects, exposed an external repository-state blocker, and delivered the only code
+quality clearance this feature has. The hard cycle cap is unexhausted.
 
 ## Open Questions
 
-- None for the operator. External unblock action: the BUG-1157 owner or main worktree-lifecycle lane must restore determinable landed state or otherwise reconcile that standing worktree outside FEAT-54.
+- None for the operator yet. SC-10 is `verify: uat` and remains the one criterion no agent can
+  grade; its hand-test script is the next product deliverable.
