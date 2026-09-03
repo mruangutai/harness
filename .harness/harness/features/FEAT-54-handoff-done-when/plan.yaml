@@ -818,7 +818,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: 'DEC-174 — test-run-unit-tests-kinds.py is run-unit-tests.sh''s own test, and the suite runner is a required check on main (DEC-183)'
     depends_on: [T-09]
-    status: ready
+    status: done
     files:
     - tests/integration/test-run-unit-tests-kinds.py
     verify: |
