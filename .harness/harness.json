@@ -281,6 +281,13 @@
       "status": "locally_run",
       "runner_note": "requires the omp binary on PATH and live anthropic/claude-sonnet-5 credentials (issue #1187); tests.yml carries no secrets.*, so this can never run in CI. Run on a credentialled host before a ship decision that touches inflight_registry.py's session-file resolution, and record the result under the feature's notes/ directory."
     },
+    "handoff_comprehension": {
+      "detect": "tests/manual/probe-handoff-comprehension.py",
+      "exclude": ".claude/worktrees/**",
+      "cmd": "tests/manual/probe-handoff-comprehension.py",
+      "status": "locally_run",
+      "runner_note": "requires the omp binary on PATH and live model credentials; this can never run in CI. Run on a credentialled host before a ship decision that changes the handoff contract, and record the result under the feature's notes/ directory."
+    },
     "integration": {
       "detect": "tests/integration/**",
       "exclude": ".claude/worktrees/**|node_modules/**|vendor/**|.venv/**",

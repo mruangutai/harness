@@ -627,7 +627,7 @@ tasks:
     execution_agent: harness-dev-ops
     depends_on:
     - T-05
-    status: ready
+    status: done
     files:
     - tests/manual/probe-handoff-comprehension.py
     - .harness/harness.json
