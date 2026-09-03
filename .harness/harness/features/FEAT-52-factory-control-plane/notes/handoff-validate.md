@@ -18,6 +18,10 @@
 - Ten signed `plan.yaml` `verify:` commands still reference deleted legacy `bin/test-*.py` carriers. The final goal check identified this as false-red post-ship bookkeeping, not a success-criterion failure; amending them resets approval and remains an operator decision.
 - Close distillation contacted product and validator leads plus four members. No Expertise operation was accepted; targeted `check-expertise.sh` passed. Its detailed digest is retained in the close-distillation run.
 
+## Dead ends
+
+- Reconstructing a contemporaneous handoff is impossible: the original was never written. This note records only retained evidence and labels the omission.
+
 ## Working set
 
 - `.harness/harness/features/FEAT-52-factory-control-plane/notes/research-FEAT-52-factory-control-plane-goalcheck-confirm-c14.md`
