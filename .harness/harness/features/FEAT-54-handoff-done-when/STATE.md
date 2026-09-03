@@ -11,7 +11,7 @@ All twelve plan tasks are `done`; T-05 was inherited complete and T-01–T-04/T-
 
 The build is now at its validate seam. GitHub parent #1262 and task issues #1263–#1274 were moved to Review. `review_sha` is re-pinned after the final seam commit. The exact next action is the validation panel against that pin; do not resume build tasks or run the goal-check before the panel returns.
 
-Cycles used: 15 of 30. Runs exceed the informational 20-run budget because c4 plan recovery, two engineering/product task runs, three QA passes, and SIMPLIFY all produced durable evidence; the hard rework cap remains unexhausted.
+Cycles used: 16 of 30. Runs exceed the informational 20-run budget because c4 plan recovery, two engineering/product task runs, three QA passes, SIMPLIFY, and one QA-digest format repair all produced or preserved durable evidence; the hard rework cap remains unexhausted.
 
 ## Open Questions
 

@@ -13,7 +13,7 @@ All planned tasks are already `done`; do not reopen build scope unless the panel
 - SIMPLIFY ran all four independent angles, applied one eligible cleanup, and left two advisory alternatives unapplied — `.harness/harness/features/FEAT-54-handoff-done-when/runs/2026-09-02-simplify-eng/digest.md` — verified-at d384ca91.
 - Post-SIMPLIFY unit and integration suites pass with 24 and 44 discovered files — `.harness/harness/features/FEAT-54-handoff-done-when/notes/receipt-harness-dev-ops-simplify-apply.md` — verified-at d384ca91.
 - The feature and every task issue were moved to Review — `.harness/harness/features/FEAT-54-handoff-done-when/plan.yaml` and GitHub issues #1262–#1274 — UNVERIFIED.
-- Rework is within the hard cap at 15 of 30 cycles; run count is above the informational 20-run budget — `.harness/harness/features/FEAT-54-handoff-done-when/feature.json` — UNVERIFIED.
+- Rework is within the hard cap at 16 of 30 cycles; run count is above the informational 20-run budget — `.harness/harness/features/FEAT-54-handoff-done-when/feature.json` — UNVERIFIED.
 
 ## Dead ends
 
