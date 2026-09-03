@@ -129,8 +129,9 @@ planning reviews and before operator signature. Sequence these squad segments in
 
 Every re-plan that resets approval to pending runs the panel again over unfinished tasks in a new
 run directory. High, critical, or unrated findings return `awaiting_user`; neither you nor pm may
-overrule them. Under DEC-176 they enter the operator's one batched signature review, rather than a
-separate pre-signature fix dispatch; only `approval.rulings` records an operator overrule.
+accept their risk. Under DEC-176 they enter the operator's one batched signature review, rather than
+a separate pre-signature fix dispatch; only an `approval.rulings` entry written by the main
+session's `sign-approval --overrule PF-ID:<reason>` records that acceptance.
 
 ## The build phase — four segments you sequence yourself
 

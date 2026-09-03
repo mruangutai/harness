@@ -489,20 +489,29 @@ for feat, doc in plan_docs.items():
     if not isinstance(rulings, list):
         bad.append(f"INV-32: {feat} approval.rulings is malformed; expected a list.")
         rulings = []
-    overruled = set()
+    accepted_risks = set()
     for ruling in rulings:
         if not isinstance(ruling, dict):
             bad.append(f"INV-32: {feat} has a malformed approval ruling.")
             continue
         fid = str(ruling.get("finding", "")).strip()
-        if not str(ruling.get("who", "")).strip() or not re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}", str(ruling.get("date", "")).strip()):
-            bad.append(f"INV-32: {feat} ruling for {fid or '<missing>'} is unattributed or has an invalid date.")
+        who = str(ruling.get("who", "")).strip()
+        date = str(ruling.get("date", "")).strip()
+        reason = str(ruling.get("reason", "")).strip()
+        complete = bool(fid and who and reason and re.fullmatch(
+            r"[0-9]{4}-[0-9]{2}-[0-9]{2}", date
+        ))
+        if not complete:
+            bad.append(
+                f"INV-32: {feat} risk acceptance for {fid or '<missing>'} must carry "
+                "finding, who, a valid date, and a non-empty reason."
+            )
         if fid not in finding_ids:
-            bad.append(f"INV-32: {feat} STALE OVERRIDE {fid or '<missing>'}: a reworded finding gets "
-                       f"a NEW content-hash id, so the old ruling stopped applying and the operator "
-                       f"is asked again.")
-        elif str(ruling.get("ruling", "")).strip().lower() == "overrule":
-            overruled.add(fid)
+            bad.append(f"INV-32: {feat} STALE RISK ACCEPTANCE {fid or '<missing>'}: a reworded "
+                       f"finding gets a NEW content-hash id, so the old acceptance stopped "
+                       f"applying and the operator is asked again.")
+        elif complete:
+            accepted_risks.add(fid)
     for item in findings:
         if not isinstance(item, dict):
             bad.append(f"INV-32: {feat} has a malformed panel finding.")
@@ -512,10 +521,11 @@ for feat, doc in plan_docs.items():
         disposition = str(item.get("disposition", "")).strip().lower()
         if disposition == "resolved":
             warn.append(f"INV-32: {feat} finding {fid} disposition resolved.")
-        elif fid in overruled:
-            warn.append(f"INV-32: {feat} finding {fid} disposition overruled.")
+        elif fid in accepted_risks:
+            warn.append(f"INV-32: {feat} operator accepted risk for finding {fid}.")
         elif severity not in {"info", "low", "med"}:
-            bad.append(f"INV-32: {feat} finding {fid} is {severity or 'unrated'} and remains open without an operator overrule.")
+            bad.append(f"INV-32: {feat} finding {fid} is {severity or 'unrated'} and remains "
+                       "open without operator risk acceptance.")
     expected_readers = {"should-not-exist", "scope", "goalcheck"}
     readers = panel.get("readers")
     if not isinstance(readers, list):

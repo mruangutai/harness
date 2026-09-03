@@ -25,7 +25,7 @@
 #   plan-merge.py add-tasks           --file <plan.yaml> --proposal <path or ->
 #   plan-merge.py set-task-station    --file <plan.yaml> --task T-NN --station <name>
 #   plan-merge.py set-feature-station --file <plan.yaml> --station <name>
-#   plan-merge.py sign-approval       --file <plan.yaml> --by <name> --date <YYYY-MM-DD>
+#   plan-merge.py sign-approval       --file <plan.yaml> --by <name> --date <YYYY-MM-DD> [--overrule PF-ID:<reason>]...
 #
 # A hand edit is what #628 was: two whole-file writes, the second silently losing what the
 # first added. The verbs splice text under a lock instead, and a station outside the declared
@@ -50,10 +50,11 @@ approval:
   # Written by the MAIN SESSION only, because it is the only tier with a user channel
   # (DEC-120). Neither pm nor the orchestrator writes it, and check-domain.sh denies an
   # agent's write of this mapping. Any change to the task set resets this to pending.
-  # Only the main session may add approval.rulings. Each ruling names a PF- id present in
-  # panel.findings and carries ruling: overrule, who: <operator>, date: YYYY-MM-DD, and a
-  # one-clause reason. check-state.sh REFUSES an absent id as a stale override: rewording
-  # creates a new content-hash id, so an old ruling stops applying and the operator is asked again.
+  # Only the main session may add approval.rulings, through sign-approval --overrule.
+  # Each ruling names a PF- id present in panel.findings and carries who: <operator>,
+  # date: YYYY-MM-DD, and a one-clause reason. check-state.sh REFUSES an absent id as a
+  # stale risk acceptance: rewording creates a new content-hash id, so an old ruling stops
+  # applying and the operator is asked again.
   status: pending                # pending | approved
   approved_by: <name>
   date: <YYYY-MM-DD>
@@ -76,7 +77,7 @@ panel:
       severity: unrated              # info | low | med | high | critical | unrated
       reader: should-not-exist        # should-not-exist | scope | goalcheck
       summary: <one line>
-      disposition: open              # open | resolved | overruled
+      disposition: open              # open | resolved; risk acceptance requires approval.rulings
       # resolved_by: T-NN            # present only when resolved
   # unrated is gating-equivalent to high, so omitted judgment fails closed.
 

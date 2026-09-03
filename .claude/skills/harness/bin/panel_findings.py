@@ -6,11 +6,11 @@ check-state.sh cannot disagree about what a finding is called. python3 stdlib on
 third-party import.
 
 WHY A CONTENT HASH AND NOT A SEQUENTIAL ID. A sequential id is assigned per run, so a
-re-run renumbers and an overrule recorded against finding 2 silently starts covering
+re-run renumbers and a risk acceptance recorded against finding 2 silently starts covering
 whatever is second next time. A content hash keeps an unchanged finding's id stable
-across runs, so an overrule survives a re-run, and gives a REWORDED finding a NEW id, so
-the old ruling stops applying and check-state.sh reports it as a stale override. That
-failure direction is deliberate and it is closed, not open.
+across runs, so an acceptance survives a re-run, and gives a REWORDED finding a NEW id, so
+the old ruling stops applying and check-state.sh reports it as a stale risk acceptance.
+That failure direction is deliberate and it is closed, not open.
 """
 import argparse
 import hashlib

@@ -889,6 +889,84 @@ def case_sign_approval():
     finally:
         shutil.rmtree(root, ignore_errors=True)
 
+def case_1157_sign_approval_records_validated_overrules():
+    """#1157: the sole approval writer must also write the risk acceptance INV-32 reads.
+
+    Grade-2 reason: success and every refusal share one exact fixture and byte-identity baseline;
+    splitting them would obscure that all invalid inputs leave the same plan untouched. The bug is
+    the missing route: argparse rejected --overrule before validation or approval.rulings writes.
+    """
+    root, plan = fixture_root()
+    try:
+        panel = (
+            "panel:\n"
+            "  last_run: panel-validator\n"
+            "  cycle: 0\n"
+            "  findings:\n"
+            "    - id: PF-deadbeef\n"
+            "      severity: high\n"
+            "      disposition: open\n"
+            "    - id: PF-cafebabe\n"
+            "      severity: critical\n"
+            "      disposition: open\n"
+            "  readers: []\n\n"
+        )
+        write(plan, render_plan(ids(1, 2), approval=None).replace("tasks:\n", panel + "tasks:\n"))
+        r = run_verb(
+            "sign-approval", "--file", plan, "--by", "Operator: One",
+            "--date", "2026-09-02",
+            "--overrule", "PF-deadbeef:accepted for launch",
+            "--overrule", "PF-cafebabe:risk owner: operator",
+        )
+        after = read(plan)
+        approval = (yaml.safe_load(after) or {}).get("approval")
+        check("1157: sign-approval accepts repeatable --overrule", r.returncode == 0,
+              f"rc={r.returncode} stderr={r.stderr!r}")
+        check("1157: each ruling records finding, attribution, date, and full reason",
+              approval and approval.get("rulings") == [
+                  {"finding": "PF-deadbeef", "who": "Operator: One",
+                   "date": "2026-09-02", "reason": "accepted for launch"},
+                  {"finding": "PF-cafebabe", "who": "Operator: One",
+                   "date": "2026-09-02", "reason": "risk owner: operator"},
+              ], repr(approval))
+
+        before_refusal = write(
+            plan, render_plan(ids(1, 2), approval=None).replace("tasks:\n", panel + "tasks:\n")
+        )
+        unknown = run_verb(
+            "sign-approval", "--file", plan, "--by", "operator", "--date", "2026-09-02",
+            "--overrule", "PF-unknown:accepted",
+        )
+        check("1157: an overrule for a non-current finding is refused without writing",
+              unknown.returncode != 0 and read(plan) == before_refusal, unknown.stderr)
+
+        empty_reason = run_verb(
+            "sign-approval", "--file", plan, "--by", "operator", "--date", "2026-09-02",
+            "--overrule", "PF-deadbeef:",
+        )
+        check("1157: an empty overrule reason is refused without writing",
+              empty_reason.returncode != 0 and read(plan) == before_refusal,
+              empty_reason.stderr)
+
+        invalid_date = run_verb(
+            "sign-approval", "--file", plan, "--by", "operator", "--date", "September 2",
+            "--overrule", "PF-deadbeef:accepted",
+        )
+        check("1157: a risk acceptance with an invalid date is refused without writing",
+              invalid_date.returncode != 0 and read(plan) == before_refusal,
+              invalid_date.stderr)
+
+        missing_who = run_verb(
+            "sign-approval", "--file", plan, "--by", "", "--date", "2026-09-02",
+            "--overrule", "PF-deadbeef:accepted",
+        )
+        check("1157: an unattributed risk acceptance is refused without writing",
+              missing_who.returncode != 0 and read(plan) == before_refusal,
+              missing_who.stderr)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
 def case_sign_approval_inserts_absent_mapping():
     """A new plan has no approval key until the operator signs it.
 
@@ -1974,6 +2052,7 @@ CASES = (
     case_amend_structured_list_field,
     case_illegal_station_exit_4,
     case_sign_approval,
+    case_1157_sign_approval_records_validated_overrules,
     case_sign_approval_inserts_absent_mapping,
     case_f02_sign_approval_cannot_write_an_unparseable_signature,
     case_f02_verify_signature_duplicate_key_is_caught_before_comparison,
