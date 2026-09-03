@@ -1,51 +1,52 @@
-# Handoff — FEAT-54-handoff-done-when, plan → build — written 2026-09-02, seq-3
+# Handoff — FEAT-54-handoff-done-when, plan → signature — written 2026-09-02, c4
 
 ## Next
 
-Start the build with T-01 when the operator requests it. `BRIEF.md` and `plan.yaml` were both signed
-by Mike Ruangutai on 2026-09-02. Goal-check c3 passed, the panel ran all three readers with nothing
-high, critical or unrated, and every finding is dispositioned. T-01 is `main-session-direct` under
-DEC-174; follow the task's test-first sequence and its `verify` block exactly.
+Main session re-signs the amended `plan.yaml` and `BRIEF.md` through the existing main-session
+approval routes under the user's delegated Advisor approval. This is the one next action; do not
+resume build first. After both signatures are current, return the feature to build at the first
+unfinished task in PLAN order. T-05 is already `done`; no other build task was executed during c4
+recovery.
+
+The plan is at station `plan`. Its c4 panel is complete and PASS: the c4 product goal-check plus both
+configured validator readers ran, all four surviving findings are advisory, and no high, critical or
+unrated finding remains. Existing approval bytes still say approved because governed agents have no
+reset-to-pending verb; the main session explicitly owns the re-signature act.
 
 ## Trust
 
-- Rulings landed: T-06 case (g) is a fixture-corpus case naming no real path, SC-04 is
-  `verify: inspection` with its evidence home pinned, T-09 states `exclude: .claude/worktrees/**` in
-  intent AND verify, D-10's `because` carries the grammar-stability clause and the Q3 confirmation —
-  verified by parsing plan.yaml/BRIEF.md back from disk after each run.
-- Rejections honoured: SC-14, T-03(h), T-06(h), D-04, T-09's probe scope, T-12, SC-09, D-01, D-03 are
-  unchanged — verified by reading each back and by the c3 panel's independent leave-list check.
-- `plan.yaml` `panel:` reads cycle 3, `last_run: 2026-09-02-c3-validator`, three readers `ran`, nine
-  findings, and NO disposition says "no operator ruling exists" — verified by parsing the key.
-- 12 tasks T-01..T-12, decisions D-01..D-08 + D-10, `status: plan`; both approval blocks are signed
-  by Mike Ruangutai on 2026-09-02 — verified from `plan.yaml` and `BRIEF.md`.
-- `check-plan-routes.py`: 0 violations across 6 plans; the DEVIATION lines are the declared DEC-174
-  carve-outs — verified-at working tree during cycle 3.
-- No `approval.rulings` entry is required: no high, critical or unrated finding remains open. The
-  separate missing-writer defect is tracked by issue #1157.
-- cycles_used 9 of 10, runs 16 of 20 — one cycle left; raising the budget is the operator's call.
-- UNVERIFIED: whether SC-04's review-time run will actually be performed and recorded at review. It
-  is an instruction to a future reviewer, not a gate, and the panel said plainly it cannot judge it.
+- The authorized mechanism/location amendment preserves the stated intent —
+  `runs/2026-09-02-planfix-c4-product/digest.md` and
+  `runs/2026-09-02-goalcheck-plan-c4-product/digest.md` — verified-at 4e823f8a.
+- The c4 validator panel completed with two configured validator readers, `code_grade: n_a`, four
+  findings, severity max med and no must-fix — `runs/2026-09-02-c4-validator/digest.md` — verified-at
+  4e823f8a for the ledger entry and plan transcription; the run tree itself is gitignored.
+- `plan.yaml panel` records goalcheck/harness-pm, should-not-exist/fable-advisor and
+  scope/harness-code-reviewer as ran, plus C4-SNE-01, C4-SCOPE-01, C4-SNE-02 and C4-SNE-03 with
+  reader severities and dispositions — `plan.yaml:12-56` — verified-at 4e823f8a.
+- No high, critical or unrated finding survives; the maximum is med — `plan.yaml:22-56` and
+  `runs/2026-09-02-c4-validator/digest.md` — verified-at 4e823f8a.
+- Feature state records 23 runs and 11 of 30 rework cycles; the 20-run budget is informational and
+  the hard cycle cap remains unexhausted — `feature.json`, `STATE.md` — verified-at 4e823f8a.
+- Approval bytes in both artifacts still carry Mike Ruangutai's 2026-09-02 approval; they were not
+  forged or reset by a governed agent — `plan.yaml:3-6`, `BRIEF.md:199-203` — verified-at 4e823f8a.
 
 ## Dead ends
 
-- Do not `Edit`, `Write` or redirect into `plan.yaml`: one writer, `plan-merge.py`. `apply` is
-  add-only (exit 7 on a changed value); `amend --show` then `--expect-sha256` changes a field;
-  `set-panel` replaces the panel whole, so anything that must survive goes in the value file —
-  verified this run by using each.
-- Do not add an `approval.rulings` entry for this plan: no blocking finding is being accepted as risk.
-  Issue #1157 tracks the missing writer for a future plan that genuinely needs an override.
-- Do not re-open the four ruled findings. Two were accepted and implemented, two were rejected by the
-  operator; a reader re-deriving one of them is producing noise the operator already priced.
-- Do not pass relative paths or shell variables to a write command: `bash-write-guard` resolves
-  relative paths against the MAIN checkout and refuses any unexpanded `$var` target.
-- Do not let a dispatch omit its run-dir slug: two contexts have already collided on one on this
-  feature. Name the slug in the dispatch.
+- Do not edit or redirect into `plan.yaml`; `plan-merge.py` remains its only writer.
+- Do not search for or invent a reset-to-pending verb. None exists. The main session instructed this
+  recovery to leave approval bytes untouched and re-sign through its existing approval routes.
+- Do not rerun the amendment, goal-check or validator readers. Their canonical c4 results are on
+  disk and recorded; the interrupted validator state is terminal complete.
+- Do not treat C4-SNE-01 through C4-SNE-03 or C4-SCOPE-01 as gating. Their recorded severities are
+  med/med/low/info; preserve them for the build successor rather than silently dropping them.
+- Do not execute T-01, T-03, T-06, T-09, T-12 or any other build work before re-signature. T-05 is
+  the only completed build task.
 
 ## Working set
 
 - .harness/harness/features/FEAT-54-handoff-done-when/plan.yaml
 - .harness/harness/features/FEAT-54-handoff-done-when/BRIEF.md
-- .harness/harness/features/FEAT-54-handoff-done-when/notes/signature-inputs-c3.md
-- .harness/harness/features/FEAT-54-handoff-done-when/notes/research-FEAT-54-goalcheck-plan-c3.md
-- .harness/harness/features/FEAT-54-handoff-done-when/runs/2026-09-02-c3-validator/digest.md
+- .harness/harness/features/FEAT-54-handoff-done-when/STATE.md
+- .harness/harness/features/FEAT-54-handoff-done-when/feature.json
+- .harness/harness/features/FEAT-54-handoff-done-when/runs/2026-09-02-c4-validator/digest.md
