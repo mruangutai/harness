@@ -55,3 +55,6 @@ panel, so it needs the operator's signature first.
 - .harness/harness/features/FEAT-54-handoff-done-when/runs/2026-09-02-t05t09-eng/digest.md
 - .claude/skills/harness/bin/suite_layout.py
 - .claude/skills/harness/bin/run-unit-tests.sh
+## Done when
+Scope: amend the stale test-layout plan
+Authority: approval:.harness/harness/features/FEAT-54-handoff-done-when/BRIEF.md#Approval

@@ -746,7 +746,7 @@ tasks:
     depends_on:
     - T-04
     - T-05
-    status: ready
+    status: done
     files:
     - .harness/harness/features/FEAT-54-handoff-done-when/notes/
     - .harness/harness/features/FEAT-54-handoff-done-when/notes/handoff-plan.md

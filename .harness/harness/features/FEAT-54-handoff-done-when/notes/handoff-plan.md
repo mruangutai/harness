@@ -50,3 +50,6 @@ reset-to-pending verb; the main session explicitly owns the re-signature act.
 - .harness/harness/features/FEAT-54-handoff-done-when/STATE.md
 - .harness/harness/features/FEAT-54-handoff-done-when/feature.json
 - .harness/harness/features/FEAT-54-handoff-done-when/runs/2026-09-02-c4-validator/digest.md
+## Done when
+Scope: re-sign the amended plan and brief
+Authority: approval:.harness/harness/features/FEAT-54-handoff-done-when/BRIEF.md#Approval
