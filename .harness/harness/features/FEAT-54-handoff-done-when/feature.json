@@ -2,7 +2,7 @@
   "feature_id": "FEAT-54-handoff-done-when",
   "branch": "feat/FEAT-54-handoff-done-when",
   "pr": null,
-  "review_sha": "none",
+  "review_sha": "d384ca91eb73365761d6e0c9ea3f89ddb01e415d",
   "cycles_used": 15,
   "max_total_cycles": 30,
   "max_total_runs": 20,
@@ -160,6 +160,30 @@
       "squad": "product",
       "verdict": "PASS",
       "agent": "harness-product-lead"
+    },
+    {
+      "id": "2026-09-02-qa-validator",
+      "squad": "validator",
+      "verdict": "FAIL",
+      "agent": "harness-validator-lead"
+    },
+    {
+      "id": "2026-09-02-c1-validator",
+      "squad": "validator",
+      "verdict": "FAIL",
+      "agent": "harness-validator-lead"
+    },
+    {
+      "id": "2026-09-02-qa-c2-validator",
+      "squad": "validator",
+      "verdict": "PASS",
+      "agent": "harness-validator-lead"
+    },
+    {
+      "id": "2026-09-02-simplify-eng",
+      "squad": "engineering",
+      "verdict": "PASS",
+      "agent": "harness-eng-lead"
     }
   ],
   "github": {
