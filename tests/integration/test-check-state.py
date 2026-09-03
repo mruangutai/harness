@@ -2138,43 +2138,44 @@ def _shape_lines(out, needle):
             if l.startswith("  VIOLATION") and "fails the shape" in l and needle in l]
 
 
-def case_feat54_done_when():
-    outcomes = []
+def _feat54_fixture_case(tmp, note, baseline_marker, name="handoff-plan.md"):
+    fdir = _handoff_fixture(tmp, "Building", {name: note})
+    cfg = {"github": {"sync": False, "repo": None}}
+    if baseline_marker is not None:
+        cfg["handoff_done_when_baseline"] = baseline_marker
+    with open(os.path.join(tmp, ".harness", "harness.json"), "w") as f:
+        json.dump(cfg, f)
+    with open(os.path.join(fdir, "plan.yaml"), "w") as f:
+        f.write("schema: plan/1\nfeature: FEAT-TEST\nstatus: building\ntasks:\n"
+                "  - id: T-03\n    title: Fixture task\n    traces: [REQ-01]\n"
+                "    change_type: logic\n    execution_mode: main-session-direct\n"
+                "    execution_reason: fixture\n    depends_on: []\n    status: done\n"
+                "    files: [tests/fixture.py]\n    verify: python3 test.py\n"
+                "    intent: fixture\n")
+    with open(os.path.join(fdir, "BRIEF.md"), "w") as f:
+        f.write("# BRIEF\n\n- SC-04: observable\n\n## Approval\n")
+    with open(os.path.join(fdir, "notes", "review-fixture.md"), "w") as f:
+        f.write("Finding F-02 remains.\n")
+    return fdir
 
-    def fixture_case(tmp, note, baseline_marker, name="handoff-plan.md"):
-        fdir = _handoff_fixture(tmp, "Building", {name: note})
-        cfg = {"github": {"sync": False, "repo": None}}
-        if baseline_marker is not None:
-            cfg["handoff_done_when_baseline"] = baseline_marker
-        with open(os.path.join(tmp, ".harness", "harness.json"), "w") as f:
-            json.dump(cfg, f)
-        with open(os.path.join(fdir, "plan.yaml"), "w") as f:
-            f.write("schema: plan/1\nfeature: FEAT-TEST\nstatus: building\ntasks:\n"
-                    "  - id: T-03\n    title: Fixture task\n    traces: [REQ-01]\n"
-                    "    change_type: logic\n    execution_mode: main-session-direct\n"
-                    "    execution_reason: fixture\n    depends_on: []\n    status: done\n"
-                    "    files: [tests/fixture.py]\n    verify: python3 test.py\n"
-                    "    intent: fixture\n")
-        with open(os.path.join(fdir, "BRIEF.md"), "w") as f:
-            f.write("# BRIEF\n\n- SC-04: observable\n\n## Approval\n")
-        with open(os.path.join(fdir, "notes", "review-fixture.md"), "w") as f:
-            f.write("Finding F-02 remains.\n")
-        return fdir
 
-    def check_case(label, note, baseline_marker, expect_report, needles="Done when"):
-        needles = needles if isinstance(needles, tuple) else (needles,)
-        with tempfile.TemporaryDirectory() as tmp:
-            fixture_case(tmp, note, baseline_marker)
-            _, out = run(tmp)
-            lines = [line for line in out.splitlines()
-                     if "handoff-plan.md" in line
-                     and all(needle.lower() in line.lower() for needle in needles)]
-            ok = bool(lines) == expect_report
-            print(f"{'ok' if ok else 'FAIL'} - FEAT-54 {label}")
-            if not ok:
-                print(f"        {out.strip()[:300]}")
-            outcomes.append(ok)
+def _feat54_check_case(outcomes, label, note, baseline_marker,
+                       expect_report, needles="Done when"):
+    needles = needles if isinstance(needles, tuple) else (needles,)
+    with tempfile.TemporaryDirectory() as tmp:
+        _feat54_fixture_case(tmp, note, baseline_marker)
+        _, out = run(tmp)
+        lines = [line for line in out.splitlines()
+                 if "handoff-plan.md" in line
+                 and all(needle.lower() in line.lower() for needle in needles)]
+        ok = bool(lines) == expect_report
+        print(f"{'ok' if ok else 'FAIL'} - FEAT-54 {label}")
+        if not ok:
+            print(f"        {out.strip()[:300]}")
+        outcomes.append(ok)
 
+
+def _feat54_baseline_cases(outcomes):
     baseline_path = ".harness/harness/features/FEAT-TEST/notes/handoff-plan.md"
     missing = HANDOFF_GOOD.split("## Done when", 1)[0]
     malformed = HANDOFF_GOOD.replace("Scope: implementation complete",
@@ -2185,21 +2186,48 @@ def case_feat54_done_when():
         "Authority: finding:missing.md#F-99\nAuthority: approval:missing.md#Missing")
     unknown = HANDOFF_GOOD.replace("Authority: plan-task:T-03.verify",
                                    "Authority: docs:whatever")
+    blank_scope = HANDOFF_GOOD.replace("Scope: implementation complete", "Scope:   ")
+    reversed_order = HANDOFF_GOOD.replace(
+        "Scope: implementation complete\nAuthority: plan-task:T-03.verify",
+        "Authority: plan-task:T-03.verify\nScope: implementation complete")
+    unsafe = HANDOFF_GOOD.replace(
+        "Authority: plan-task:T-03.verify",
+        "Authority: finding:../review.md#F-02")
 
-    check_case("non-baselined missing section reports", missing, [], True)
-    check_case("baselined missing section is exempt", missing, [baseline_path], False)
-    check_case("baselined malformed block reports", malformed, [baseline_path], True,
-               ("Scope", "2"))
-    check_case("non-baselined resolving block passes", HANDOFF_GOOD, [], False)
-    check_case("non-baselined absent targets do not rot", absent_targets, [], False)
-    check_case("baselined absent targets do not rot", absent_targets, [baseline_path], False)
-    check_case("shape remains enforced", malformed, [], True, ("Scope", "2"))
-    check_case("grammar remains enforced", unknown, [], True, "legal prefixes")
-    check_case("absent baseline key means no exemption", missing, None, True)
+    _feat54_check_case(
+        outcomes, "non-baselined missing section reports", missing, [], True)
+    _feat54_check_case(
+        outcomes, "baselined missing section is exempt", missing, [baseline_path], False)
+    _feat54_check_case(
+        outcomes, "baselined malformed block reports", malformed, [baseline_path], True,
+        ("Scope", "2"))
+    _feat54_check_case(
+        outcomes, "non-baselined resolving block passes", HANDOFF_GOOD, [], False)
+    _feat54_check_case(
+        outcomes, "non-baselined absent targets do not rot", absent_targets, [], False)
+    _feat54_check_case(
+        outcomes, "baselined absent targets do not rot",
+        absent_targets, [baseline_path], False)
+    _feat54_check_case(
+        outcomes, "shape remains enforced", malformed, [], True, ("Scope", "2"))
+    _feat54_check_case(
+        outcomes, "grammar remains enforced", unknown, [], True, "legal prefixes")
+    _feat54_check_case(
+        outcomes, "blank Scope remains enforced", blank_scope, [], True, "non-empty")
+    _feat54_check_case(
+        outcomes, "Scope ordering remains enforced", reversed_order, [], True,
+        "before every Authority")
+    _feat54_check_case(
+        outcomes, "unsafe target grammar remains enforced", unsafe, [], True, "unsafe")
+    _feat54_check_case(
+        outcomes, "absent baseline key means no exemption", missing, None, True)
 
+
+def _feat54_clean_corpus_case(outcomes):
+    baseline_path = ".harness/harness/features/FEAT-TEST/notes/handoff-plan.md"
     with tempfile.TemporaryDirectory() as tmp:
         second = HANDOFF_GOOD.replace("implementation complete", "validation complete")
-        fixture_case(tmp, HANDOFF_GOOD, [baseline_path])
+        _feat54_fixture_case(tmp, HANDOFF_GOOD, [baseline_path])
         fdir = os.path.join(tmp, ".harness", "harness", "features", "FEAT-TEST")
         second_path = os.path.join(fdir, "notes", "handoff-build.md")
         with open(second_path, "w") as f:
@@ -2212,6 +2240,8 @@ def case_feat54_done_when():
         print(f"{'ok' if ok else 'FAIL'} - FEAT-54 clean corpus is not mutated")
         outcomes.append(ok)
 
+
+def _feat54_line_cap_case(outcomes):
     with tempfile.TemporaryDirectory() as tmp:
         lines = ["# handoff", "## Next", "next", "## Trust"]
         lines += [f"trust {index}" for index in range(25)]
@@ -2220,13 +2250,19 @@ def case_feat54_done_when():
         lines += ["## Done when", "Scope: complete", "Authority: plan-task:T-03.verify"]
         note = "\n".join(lines) + "\n"
         assert len(note.splitlines()) == 60
-        fixture_case(tmp, note, [])
+        _feat54_fixture_case(tmp, note, [])
         _, out = run(tmp)
         hits = [line for line in out.splitlines() if "handoff-plan.md" in line]
         ok = not hits
         print(f"{'ok' if ok else 'FAIL'} - FEAT-54 no per-section cap")
         outcomes.append(ok)
 
+
+def case_feat54_done_when():
+    outcomes = []
+    _feat54_baseline_cases(outcomes)
+    _feat54_clean_corpus_case(outcomes)
+    _feat54_line_cap_case(outcomes)
     return all(outcomes)
 
 

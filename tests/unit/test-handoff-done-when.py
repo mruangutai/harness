@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 from pathlib import Path
+import os
 import sys
 import tempfile
 
@@ -64,6 +65,26 @@ for name, body, first, second in shape_cases:
     got = problems(body)
     check(name, any(first in message and (second is None or second in message) for message in got), repr(got))
 
+ordering_cases = [
+    ("blank scope", "Scope:   \nAuthority: plan-task:T-03.verify", "non-empty"),
+    ("scope after authority", "Authority: plan-task:T-03.verify\nScope: done", "before"),
+]
+for name, body, needle in ordering_cases:
+    got = problems(body)
+    check(name, any(needle in message for message in got), repr(got))
+
+unsafe_pointers = [
+    "finding:/tmp/review.md#F-02",
+    "finding:../review.md#F-02",
+    "finding:.harness/harness/features/FEAT-90-fixture/notes/\x00review.md#F-02",
+    "approval:.harness/harness/features/FEAT-90-fixture/notes/\x01review.md#Approval",
+]
+for pointer in unsafe_pointers:
+    for resolve in (True, False):
+        got = problems(f"Scope: done\nAuthority: {pointer}", resolve)
+        check(f"unsafe pointer rejected resolve={resolve} {pointer!r}",
+              len(got) == 1 and "unsafe" in got[0].lower(), repr(got))
+
 pointers = [
     ("plan", "plan-task:T-03.verify", "plan-task:T-99.verify"),
     ("brief", "brief-sc:SC-04", "brief-sc:SC-99"),
@@ -114,5 +135,27 @@ with tempfile.TemporaryDirectory() as td_name:
          "Authority: finding:missing.md#F-02", "Authority: approval:missing.md#Approval"])
     got = handoff_done_when.problems(rel, note(grammar_only), root, False)
     check("resolve false opens no target", got == [], repr(got))
+
+# Resolution must stay inside the project root and read only regular files.
+with tempfile.TemporaryDirectory() as td_name:
+    root = Path(td_name)
+    feat = root / ".harness/harness/features/FEAT-90-fixture"
+    notes = feat / "notes"
+    notes.mkdir(parents=True)
+    outside = root.parent / f"{root.name}-outside.md"
+    outside.write_text("F-02\n")
+    link = notes / "escape.md"
+    link.symlink_to(outside)
+    fifo = notes / "special.md"
+    os.mkfifo(fifo)
+    rel = ".harness/harness/features/FEAT-90-fixture/notes/handoff-build.md"
+    for name, pointer in [
+        ("symlink escape", f"finding:{link.relative_to(root).as_posix()}#F-02"),
+        ("special file", f"finding:{fifo.relative_to(root).as_posix()}#F-02"),
+    ]:
+        got = handoff_done_when.problems(
+            rel, note(f"Scope: done\nAuthority: {pointer}"), root, True)
+        check(name, len(got) == 1 and "unsafe" in got[0].lower(), repr(got))
+    outside.unlink()
 
 raise SystemExit(1 if failures else 0)

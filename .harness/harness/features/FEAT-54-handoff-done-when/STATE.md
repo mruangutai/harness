@@ -3,16 +3,20 @@
 ## Current
 
 - feature: FEAT-54-handoff-done-when
-- run: .harness/harness/features/FEAT-54-handoff-done-when/runs/2026-09-02-simplify-eng/digest.md
-- squad: engineering — SIMPLIFY complete after QA PASS
-- status: review (plan.yaml `status: review`), validation panel not yet started
+- run: .harness/harness/features/FEAT-54-handoff-done-when/runs/2026-09-03-qa-post-simplify-c2-validator/digest.md
+- squad: validation repair c2 — implementation, SIMPLIFY, and blocking QA complete
+- status: review (plan.yaml `status: review`), awaiting repair commit and re-review
 
-All twelve plan tasks are `done`; T-05 was inherited complete and T-01–T-04/T-06–T-12 landed in this build. The blocking QA matrix reached PASS at `2ac5fe95`: unit discovered 24 files and integration discovered 44 files, both with zero failed scripts. SIMPLIFY then ran four independent angles, applied one behavior-preserving cleanup to the manual comprehension probe, and left two advisory alternatives unapplied under its rules. The post-SIMPLIFY unit and integration suites both pass.
+The c0 panel failed at pinned `e75767df4b75e71f2c9b12766604cee5008d94e1`. Product resolved that approved REQ-02 requires a non-empty `Scope:` before every `Authority:`. Main-direct repairs now make authority targets contained and fail-closed, validate Edit candidates before mutation (including unreadable existing bytes), enforce Scope value/order, and clear production/test complexity. Engineering secured the credentialled manual probe against outside, traversal, symlink, non-regular, wrong-name, and oversized inputs with zero model calls on refusal.
 
-The build is now at its validate seam. GitHub parent #1262 and task issues #1263–#1274 were moved to Review. `review_sha` is re-pinned after the final seam commit. The exact next action is the validation panel against that pin; do not resume build tasks or run the goal-check before the panel returns.
+The c1 QA send-back found one test helper below the risk bar; c2 refactored it without assertion loss. Post-repair SIMPLIFY ran all four angles and applied one behavior-preserving unreachable-branch cleanup in the probe. The final post-SIMPLIFY matrix passes with 25 unit and 44 integration files discovered, and the exact 62 changed-function risk census passes.
 
-Cycles used: 16 of 30. Runs exceed the informational 20-run budget because c4 plan recovery, two engineering/product task runs, three QA passes, SIMPLIFY, and one QA-digest format repair all produced or preserved durable evidence; the hard rework cap remains unexhausted.
+The remaining blocker is external to FEAT-54: the exact SC-04 root command still exits 1 because done feature FEAT-51 lacks `notes/handoff-validate.md`. The approved boundary forbids FEAT-54 from touching unrelated features, Main confirmed no active FEAT-51 owner, and neither the command nor SC-04 may be weakened or replaced by a fixture.
+
+Next: commit the c2 repair/artifacts, re-pin review_sha, and rerun the complete four-reader panel. If it fails only on literal SC-04, stop BLOCKED with the external dependency named; do not run product goal-check because panel PASS is its prerequisite.
+
+Cycles used: 18 of 30. Runs exceed the informational 20-run budget; each added validation/fix run closed a concrete high/medium gate or supplied required QA/SIMPLIFY evidence.
 
 ## Open Questions
 
-- None blocking. SIMPLIFY's two unapplied alternatives remain advisory for validation/briefing: consolidating caller-level presence checks and authority grammar would require main-session-direct changes outside the one-fix apply ceiling.
+- None for the operator. External dependency: FEAT-51 must acquire its required validate handoff through its own owner before SC-04 can pass.

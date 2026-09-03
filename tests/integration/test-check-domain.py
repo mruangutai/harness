@@ -4031,100 +4031,261 @@ def run_feat51_orphan_write():
     return _report_feat51_results(results)
 
 
-def run_handoff_done_when():
-    results = []
-    def record(name, result, want, needles=None):
-        needles = () if needles is None else (
-            needles if isinstance(needles, tuple) else (needles,))
-        stderr = result.stderr.lower()
-        ok = result.returncode == want and all(needle.lower() in stderr for needle in needles)
-        results.append((name, ok, f"exit {result.returncode}: {result.stderr.strip()[:180]}"))
-    with tempfile.TemporaryDirectory() as root:
-        os.makedirs(os.path.join(root, ".harness"), exist_ok=True)
-        with open(os.path.join(root, ".harness", "team-config.yaml"), "w") as f:
-            f.write(FIXTURE_MANIFEST)
-        feat = os.path.join(root, ".harness", "harness", "features", "FEAT-90-fixture")
-        notes = os.path.join(feat, "notes")
-        os.makedirs(notes, exist_ok=True)
-        with open(os.path.join(feat, "plan.yaml"), "w") as f:
-            f.write("tasks:\n  - id: T-03\n    verify: python3 test.py\n")
-        with open(os.path.join(feat, "BRIEF.md"), "w") as f:
-            f.write("# BRIEF\n\n- SC-04: observable\n\n## Approval\n")
-        with open(os.path.join(notes, "review-fixture.md"), "w") as f:
-            f.write("Finding F-02 remains.\n")
-        target = os.path.join(notes, "handoff-build.md")
-        def handoff(body, trust_lines=1):
-            lines = ["## Next", "next", "## Trust"]
-            lines += [f"trust {n}" for n in range(trust_lines)]
-            lines += ["## Dead ends", "none", "## Working set", "set", "## Done when"]
-            lines += body.splitlines()
-            return "\n".join(lines) + "\n"
-        def invoke(content):
-            payload = {"tool_name": "Write",
-                       "tool_input": {"file_path": target, "content": content}}
-            return subprocess.run([HOOK], input=json.dumps(payload), capture_output=True,
-                                  text=True, env=_env(root))
-        valid = "Scope: build complete\nAuthority: plan-task:T-03.verify"
-        missing = "\n".join(["## Next", "next", "## Trust", "trust",
-                             "## Dead ends", "none", "## Working set", "set"]) + "\n"
-        record("handoff Done when missing", invoke(missing), 2,
-               ("## Done when", "templates/HANDOFF.md"))
-        record("handoff Done when valid", invoke(handoff(valid)), 0)
-        malformed = [
-            ("zero Scope", "Authority: plan-task:T-03.verify", "has 0 Scope: lines"),
-            ("two Scope", "Scope: one\nScope: two\nAuthority: plan-task:T-03.verify",
-             "has 2 Scope: lines"),
-            ("zero Authority", "Scope: only", "has 0 Authority: lines"),
-            ("five Authority", "Scope: only\n" + "\n".join(
-                ["Authority: plan-task:T-03.verify"] * 5), "has 5 Authority: lines"),
-            ("stray prose", valid + "\nstray prose", "stray prose"),
-        ]
-        for name, body, needle in malformed:
-            record(f"handoff {name}", invoke(handoff(body)), 2, needle)
-        pointers = [
-            ("plan", "plan-task:T-03.verify", "plan-task:T-99.verify"),
-            ("brief", "brief-sc:SC-04", "brief-sc:SC-99"),
-            ("finding",
-             "finding:.harness/harness/features/FEAT-90-fixture/notes/review-fixture.md#F-02",
-             "finding:.harness/harness/features/FEAT-90-fixture/notes/review-fixture.md#F-99"),
-            ("approval", "approval:.harness/harness/features/FEAT-90-fixture/BRIEF.md#Approval",
-             "approval:.harness/harness/features/FEAT-90-fixture/BRIEF.md#Missing"),
-        ]
-        for name, good, bad in pointers:
-            record(f"handoff {name} resolves",
-                   invoke(handoff(f"Scope: done\nAuthority: {good}")), 0)
-            record(f"handoff {name} unresolved",
-                   invoke(handoff(f"Scope: done\nAuthority: {bad}")), 2, bad)
-        legal_prefixes = ("plan-task:", "brief-sc:", "finding:", "approval:")
-        for value in ("docs:whatever", "check-domain.sh:1523"):
-            record(f"handoff unknown authority {value}",
-                   invoke(handoff(f"Scope: done\nAuthority: {value}")), 2,
-                   legal_prefixes)
-        # The existing-note edit route is the post-write sweep, not a second parser.
-        with open(target, "w") as f:
-            f.write(missing)
-        edit_payload = {"tool_name": "Edit", "hook_event_name": "PostToolUse",
-                        "tool_input": {"file_path": target, "old_string": "old",
-                                       "new_string": "new"}}
-        record("handoff edit without Done when",
-               subprocess.run([HOOK], input=json.dumps(edit_payload), capture_output=True,
-                              text=True, env=_env(root)), 2, "## Done when")
-        with open(target, "w") as f:
-            f.write(handoff(valid))
-        record("handoff edit with Done when",
-               subprocess.run([HOOK], input=json.dumps(edit_payload), capture_output=True,
-                              text=True, env=_env(root)), 0)
-        sixty = handoff(valid, trust_lines=50)
-        sixty_one = handoff(valid, trust_lines=51)
-        assert len(sixty.splitlines()) == 60 and len(sixty_one.splitlines()) == 61
-        record("handoff 60-line boundary", invoke(sixty), 0)
-        record("handoff 61-line boundary", invoke(sixty_one), 2, "cap is 60")
-        record("handoff no per-section cap", invoke(sixty), 0)
+def _record_handoff_result(results, name, result, want, needles=None):
+    needles = () if needles is None else (
+        needles if isinstance(needles, tuple) else (needles,))
+    stderr = result.stderr.lower()
+    ok = result.returncode == want and all(needle.lower() in stderr for needle in needles)
+    results.append((name, ok, f"exit {result.returncode}: {result.stderr.strip()[:180]}"))
+
+
+def _handoff_text(body, trust_lines=1):
+    lines = ["## Next", "next", "## Trust"]
+    lines += [f"trust {n}" for n in range(trust_lines)]
+    lines += ["## Dead ends", "none", "## Working set", "set", "## Done when"]
+    lines += body.splitlines()
+    return "\n".join(lines) + "\n"
+
+
+def _invoke_handoff(root, target, content):
+    payload = {"tool_name": "Write",
+               "tool_input": {"file_path": target, "content": content}}
+    return subprocess.run([HOOK], input=json.dumps(payload), capture_output=True,
+                          text=True, env=_env(root))
+
+
+def _handoff_done_when_fixture(root):
+    os.makedirs(os.path.join(root, ".harness"), exist_ok=True)
+    with open(os.path.join(root, ".harness", "team-config.yaml"), "w") as f:
+        f.write(FIXTURE_MANIFEST)
+    feat = os.path.join(root, ".harness", "harness", "features", "FEAT-90-fixture")
+    notes = os.path.join(feat, "notes")
+    os.makedirs(notes, exist_ok=True)
+    with open(os.path.join(feat, "plan.yaml"), "w") as f:
+        f.write("tasks:\n  - id: T-03\n    verify: python3 test.py\n")
+    with open(os.path.join(feat, "BRIEF.md"), "w") as f:
+        f.write("# BRIEF\n\n- SC-04: observable\n\n## Approval\n")
+    with open(os.path.join(notes, "review-fixture.md"), "w") as f:
+        f.write("Finding F-02 remains.\n")
+    return notes, os.path.join(notes, "handoff-build.md")
+
+
+def _handoff_grammar_cases(results, root, target, valid):
+    missing = "\n".join(["## Next", "next", "## Trust", "trust",
+                         "## Dead ends", "none", "## Working set", "set"]) + "\n"
+    _record_handoff_result(
+        results, "handoff Done when missing",
+        _invoke_handoff(root, target, missing), 2,
+        ("## Done when", "templates/HANDOFF.md"))
+    _record_handoff_result(
+        results, "handoff Done when valid",
+        _invoke_handoff(root, target, _handoff_text(valid)), 0)
+    malformed = [
+        ("zero Scope", "Authority: plan-task:T-03.verify", "has 0 Scope: lines"),
+        ("two Scope", "Scope: one\nScope: two\nAuthority: plan-task:T-03.verify",
+         "has 2 Scope: lines"),
+        ("blank Scope", "Scope:   \nAuthority: plan-task:T-03.verify", "non-empty"),
+        ("Scope after Authority", "Authority: plan-task:T-03.verify\nScope: only",
+         "before every Authority"),
+        ("zero Authority", "Scope: only", "has 0 Authority: lines"),
+        ("five Authority", "Scope: only\n" + "\n".join(
+            ["Authority: plan-task:T-03.verify"] * 5), "has 5 Authority: lines"),
+        ("stray prose", valid + "\nstray prose", "stray prose"),
+    ]
+    for name, body, needle in malformed:
+        _record_handoff_result(
+            results, f"handoff {name}",
+            _invoke_handoff(root, target, _handoff_text(body)), 2, needle)
+
+
+def _handoff_pointer_cases(results, root, target):
+    pointers = [
+        ("plan", "plan-task:T-03.verify", "plan-task:T-99.verify"),
+        ("brief", "brief-sc:SC-04", "brief-sc:SC-99"),
+        ("finding",
+         "finding:.harness/harness/features/FEAT-90-fixture/notes/review-fixture.md#F-02",
+         "finding:.harness/harness/features/FEAT-90-fixture/notes/review-fixture.md#F-99"),
+        ("approval", "approval:.harness/harness/features/FEAT-90-fixture/BRIEF.md#Approval",
+         "approval:.harness/harness/features/FEAT-90-fixture/BRIEF.md#Missing"),
+    ]
+    for name, good, bad in pointers:
+        _record_handoff_result(
+            results, f"handoff {name} resolves",
+            _invoke_handoff(root, target, _handoff_text(
+                f"Scope: done\nAuthority: {good}")), 0)
+        _record_handoff_result(
+            results, f"handoff {name} unresolved",
+            _invoke_handoff(root, target, _handoff_text(
+                f"Scope: done\nAuthority: {bad}")), 2, bad)
+    legal_prefixes = ("plan-task:", "brief-sc:", "finding:", "approval:")
+    for value in ("docs:whatever", "check-domain.sh:1523"):
+        _record_handoff_result(
+            results, f"handoff unknown authority {value}",
+            _invoke_handoff(root, target, _handoff_text(
+                f"Scope: done\nAuthority: {value}")), 2, legal_prefixes)
+
+
+def _handoff_unsafe_cases(results, root, notes, target):
+    for value in (
+        "finding:/tmp/review.md#F-02",
+        "finding:../review.md#F-02",
+        "finding:.harness/harness/features/FEAT-90-fixture/notes/\x00review.md#F-02",
+    ):
+        _record_handoff_result(
+            results, f"handoff unsafe authority {value!r}",
+            _invoke_handoff(root, target, _handoff_text(
+                f"Scope: done\nAuthority: {value}")), 2, "unsafe")
+    outside = os.path.join(os.path.dirname(root), os.path.basename(root) + "-outside.md")
+    with open(outside, "w") as f:
+        f.write("F-02\n")
+    escape = os.path.join(notes, "escape.md")
+    os.symlink(outside, escape)
+    special = os.path.join(notes, "special.md")
+    os.mkfifo(special)
+    for name, path in (("symlink escape", escape), ("special target", special)):
+        rel_pointer = os.path.relpath(path, root)
+        _record_handoff_result(
+            results, f"handoff {name}",
+            _invoke_handoff(root, target, _handoff_text(
+                f"Scope: done\nAuthority: finding:{rel_pointer}#F-02")), 2, "unsafe")
+    return outside
+
+
+def _handoff_valid_pre_edit_cases(results, root, target, valid):
+    with open(target, "w") as f:
+        f.write(_handoff_text(valid))
+    before = open(target, "rb").read()
+    pre_edit = {"tool_name": "Edit",
+                "tool_input": {"file_path": target,
+                               "old_string": "Scope: build complete",
+                               "new_string": "Scope:   "}}
+    pre_result = subprocess.run(
+        [HOOK], input=json.dumps(pre_edit), capture_output=True, text=True, env=_env(root))
+    _record_handoff_result(
+        results, "handoff pre-Edit blocks invalid candidate",
+        pre_result, 2, "non-empty")
+    results.append(("handoff blocked pre-Edit leaves file unchanged",
+                    open(target, "rb").read() == before, "file bytes changed"))
+    return before
+
+
+def _handoff_invalid_utf8_pre_edit_case(results, root, target, before):
+    unreadable = b"\xff\xfehandoff\n"
+    with open(target, "wb") as f:
+        f.write(unreadable)
+    unreadable_edit = {
+        "tool_name": "Edit",
+        "tool_input": {
+            "file_path": target,
+            "old_string": "handoff",
+            "new_string": "changed",
+        },
+    }
+    try:
+        unreadable_result = subprocess.run(
+            [HOOK], input=json.dumps(unreadable_edit), capture_output=True,
+            text=True, env=_env(root))
+        combined = unreadable_result.stderr + unreadable_result.stdout
+        unchanged = open(target, "rb").read() == unreadable
+        results.append((
+            "handoff pre-Edit unreadable existing file fails closed",
+            unreadable_result.returncode == 2
+            and "cannot be reconstructed" in combined.lower()
+            and unchanged,
+            f"exit {unreadable_result.returncode}: {combined.strip()[:180]}; "
+            f"bytes unchanged: {unchanged}",
+        ))
+    finally:
+        with open(target, "wb") as f:
+            f.write(before)
+
+
+def _handoff_pre_edit_cases(results, root, target, outside, valid):
+    os.unlink(outside)
+    before = _handoff_valid_pre_edit_cases(results, root, target, valid)
+    _handoff_invalid_utf8_pre_edit_case(results, root, target, before)
+
+
+def _handoff_validator_exception_case(results, root, valid):
+    isolated = os.path.join(root, "isolated")
+    isolated_bin = os.path.join(isolated, ".agents", "skills", "harness", "bin")
+    os.makedirs(isolated_bin)
+    isolated_hook = os.path.join(isolated_bin, "check-domain.sh")
+    shutil.copy2(HOOK, isolated_hook)
+    with open(os.path.join(isolated_bin, "handoff_done_when.py"), "w") as f:
+        f.write("def problems(*args, **kwargs):\n    raise RuntimeError('injected failure')\n")
+    isolated_target = os.path.join(
+        isolated, ".harness", "harness", "features", "FEAT-90-fixture",
+        "notes", "handoff-build.md")
+    os.makedirs(os.path.dirname(isolated_target), exist_ok=True)
+    isolated_payload = {
+        "tool_name": "Write",
+        "tool_input": {"file_path": isolated_target, "content": _handoff_text(valid)},
+    }
+    _record_handoff_result(
+        results, "handoff validator exception fails closed",
+        subprocess.run([isolated_hook], input=json.dumps(isolated_payload),
+                       capture_output=True, text=True, env=_env(isolated)),
+        2, ("injected failure", "REFUSING"))
+
+
+def _handoff_existing_edit_cases(results, root, target, missing, valid):
+    # The existing-note edit route is the post-write sweep, not a second parser.
+    with open(target, "w") as f:
+        f.write(missing)
+    edit_payload = {"tool_name": "Edit", "hook_event_name": "PostToolUse",
+                    "tool_input": {"file_path": target, "old_string": "old",
+                                   "new_string": "new"}}
+    _record_handoff_result(
+        results, "handoff edit without Done when",
+        subprocess.run([HOOK], input=json.dumps(edit_payload), capture_output=True,
+                       text=True, env=_env(root)), 2, "## Done when")
+    with open(target, "w") as f:
+        f.write(_handoff_text(valid))
+    _record_handoff_result(
+        results, "handoff edit with Done when",
+        subprocess.run([HOOK], input=json.dumps(edit_payload), capture_output=True,
+                       text=True, env=_env(root)), 0)
+
+
+def _handoff_line_cap_cases(results, root, target, valid):
+    sixty = _handoff_text(valid, trust_lines=50)
+    sixty_one = _handoff_text(valid, trust_lines=51)
+    assert len(sixty.splitlines()) == 60 and len(sixty_one.splitlines()) == 61
+    _record_handoff_result(
+        results, "handoff 60-line boundary",
+        _invoke_handoff(root, target, sixty), 0)
+    _record_handoff_result(
+        results, "handoff 61-line boundary",
+        _invoke_handoff(root, target, sixty_one), 2, "cap is 60")
+    _record_handoff_result(
+        results, "handoff no per-section cap",
+        _invoke_handoff(root, target, sixty), 0)
+
+
+def _report_handoff_results(results):
     fails = 0
     for name, ok, detail in results:
         print(("ok   " if ok else "FAIL "), name, "" if ok else detail)
         fails += not ok
     return fails
+
+
+def run_handoff_done_when():
+    results = []
+    with tempfile.TemporaryDirectory() as root:
+        notes, target = _handoff_done_when_fixture(root)
+        valid = "Scope: build complete\nAuthority: plan-task:T-03.verify"
+        missing = "\n".join(["## Next", "next", "## Trust", "trust",
+                             "## Dead ends", "none", "## Working set", "set"]) + "\n"
+        _handoff_grammar_cases(results, root, target, valid)
+        _handoff_pointer_cases(results, root, target)
+        outside = _handoff_unsafe_cases(results, root, notes, target)
+        _handoff_pre_edit_cases(results, root, target, outside, valid)
+        _handoff_validator_exception_case(results, root, valid)
+        _handoff_existing_edit_cases(results, root, target, missing, valid)
+        _handoff_line_cap_cases(results, root, target, valid)
+    return _report_handoff_results(results)
 
 
 def main():

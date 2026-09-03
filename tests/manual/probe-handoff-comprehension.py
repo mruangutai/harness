@@ -9,12 +9,16 @@ making a model call or network request. A real run reports evidence only and alw
 from __future__ import annotations
 
 import argparse
+import fnmatch
 import hashlib
+import os
 import re
 import shutil
+import stat
 import subprocess
 import sys
 from pathlib import Path
+from typing import NamedTuple
 
 ROOT = Path(__file__).resolve().parents[2]
 MODEL = "anthropic/claude-sonnet-5"
@@ -25,6 +29,15 @@ QUESTIONS = (
     "Which authorities define when that action is complete?",
     "What evidence would show that every authority is satisfied?",
 )
+MAX_NOTE_BYTES = 1_048_576
+
+
+class ValidatedNote(NamedTuple):
+    path: Path
+    text: str
+    mtime_ns: int
+
+
 DONE_WHEN_RE = re.compile(
     r"(?ims)^## Done when\s*$.*?(?=^##(?:\s|$)|\Z)"
 )
@@ -38,11 +51,61 @@ def arguments() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def note_paths(requested: list[Path]) -> list[Path]:
-    if requested:
-        return [path if path.is_absolute() else ROOT / path for path in requested]
-    matches = list(ROOT.glob(".harness/harness/features/*/notes/handoff-*.md"))
-    return [max(matches, key=lambda path: path.stat().st_mtime_ns)] if matches else []
+def is_handoff_note(path: Path) -> bool:
+    try:
+        relative = path.relative_to(ROOT.resolve() / ".harness/harness/features")
+    except ValueError:
+        return False
+    return (
+        len(relative.parts) == 3
+        and relative.parts[1] == "notes"
+        and fnmatch.fnmatchcase(relative.name, "handoff-*.md")
+    )
+
+
+def read_regular_file(path: Path) -> tuple[bytes, int]:
+    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0)
+    descriptor = os.open(path, flags)
+    try:
+        metadata = os.fstat(descriptor)
+        if not stat.S_ISREG(metadata.st_mode):
+            raise ValueError("target is not a regular file")
+        if metadata.st_size > MAX_NOTE_BYTES:
+            raise ValueError(f"note exceeds {MAX_NOTE_BYTES} bytes")
+        with os.fdopen(descriptor, "rb") as stream:
+            descriptor = -1
+            payload = stream.read(MAX_NOTE_BYTES + 1)
+    finally:
+        if descriptor >= 0:
+            os.close(descriptor)
+    if len(payload) > MAX_NOTE_BYTES:
+        raise ValueError(f"note exceeds {MAX_NOTE_BYTES} bytes")
+    return payload, metadata.st_mtime_ns
+
+
+def validate_note(candidate: Path) -> ValidatedNote | None:
+    path = candidate if candidate.is_absolute() else ROOT / candidate
+    try:
+        if path.is_symlink():
+            raise ValueError("symlinks are not allowed")
+        resolved = path.resolve(strict=True)
+        if not is_handoff_note(resolved):
+            raise ValueError("path is not a feature handoff note")
+        payload, mtime_ns = read_regular_file(path)
+        return ValidatedNote(resolved, payload.decode("utf-8"), mtime_ns)
+    except (OSError, UnicodeError, ValueError) as exc:
+        print(f"note: {path}\nerror: refusing note: {exc}")
+        return None
+
+
+def note_paths(requested: list[Path]) -> list[ValidatedNote]:
+    candidates = requested or list(
+        ROOT.glob(".harness/harness/features/*/notes/handoff-*.md")
+    )
+    notes = [note for path in candidates if (note := validate_note(path)) is not None]
+    if requested or not notes:
+        return notes
+    return [max(notes, key=lambda note: note.mtime_ns)]
 
 
 def done_when_facts(text: str) -> list[str]:
@@ -91,7 +154,7 @@ def covered_facts(answer: str, facts: list[str]) -> list[str]:
     return [fact for fact in facts if normalized(fact) in haystack]
 
 
-def print_plan(paths: list[Path], model: str) -> None:
+def print_plan(notes: list[ValidatedNote], model: str) -> None:
     print("handoff comprehension probe: DRY RUN")
     print(f"model: {model}")
     print(f"arms: {', '.join(ARMS)}")
@@ -99,51 +162,56 @@ def print_plan(paths: list[Path], model: str) -> None:
     for question in QUESTIONS:
         print(f"- {question}")
     print("notes:")
-    if not paths:
+    if not notes:
         print("- (none found)")
-    for path in paths:
-        print(f"- {path}")
-    print(f"planned model calls: {len(paths) * len(ARMS)} (not executed)")
+    for note in notes:
+        print(f"- {note.path}")
+    print(f"planned model calls: {len(notes) * len(ARMS)} (not executed)")
 
 
-def measure_note(path: Path, omp: str, model: str) -> dict[str, tuple[int, int, bool]]:
-    try:
-        text = path.read_text(encoding="utf-8")
-    except (OSError, UnicodeError) as exc:
-        print(f"note: {path}\nerror: cannot read note: {exc}")
-        return {}
-
-    facts = done_when_facts(text)
-    sha = hashlib.sha256(text.encode()).hexdigest()
-    print(f"note: {path}")
+def print_note_header(note: ValidatedNote, facts: list[str]) -> None:
+    sha = hashlib.sha256(note.text.encode()).hexdigest()
+    print(f"note: {note.path}")
     print(f"note sha256: {sha}")
     print(f"required facts ({len(facts)}):")
     for fact in facts:
         print(f"- {fact}")
 
-    evidence = {}
-    notes = (text, without_done_when(text))
-    for label, arm_note in zip(ARMS, notes):
-        answer, error = ask(omp, model, arm_note)
-        covered = covered_facts(answer, facts)
-        complete = bool(facts) and len(covered) == len(facts)
-        evidence[label] = (len(covered), len(facts), complete)
-        print(f"arm: {label}")
-        print(f"coverage: {len(covered)}/{len(facts)}")
-        print(f"covers every fact: {'yes' if complete else 'no'}")
-        if error:
-            print(f"error: {error}")
-        missing = [fact for fact in facts if fact not in covered]
-        for fact in missing:
-            print(f"missing: {fact}")
-        print("answer:")
-        print(answer or "(no answer)")
+
+def measure_arm(
+    label: str, text: str, facts: list[str], omp: str, model: str
+) -> tuple[int, int, bool]:
+    answer, error = ask(omp, model, text)
+    covered = covered_facts(answer, facts)
+    complete = bool(facts) and len(covered) == len(facts)
+    print(f"arm: {label}")
+    print(f"coverage: {len(covered)}/{len(facts)}")
+    print(f"covers every fact: {'yes' if complete else 'no'}")
+    if error:
+        print(f"error: {error}")
+    for fact in (fact for fact in facts if fact not in covered):
+        print(f"missing: {fact}")
+    print("answer:")
+    print(answer or "(no answer)")
+    return len(covered), len(facts), complete
+
+
+def measure_note(
+    note: ValidatedNote, omp: str, model: str
+) -> dict[str, tuple[int, int, bool]]:
+    facts = done_when_facts(note.text)
+    print_note_header(note, facts)
+    arm_notes = (note.text, without_done_when(note.text))
+    evidence = {
+        label: measure_arm(label, text, facts, omp, model)
+        for label, text in zip(ARMS, arm_notes)
+    }
     complete_answers = sum(complete for _, _, complete in evidence.values())
     print(f"note complete answers: {complete_answers}/{len(ARMS)}")
     return evidence
 
 
-def run(paths: list[Path], model: str) -> None:
+def run(notes: list[ValidatedNote], model: str) -> None:
     print("handoff comprehension probe: REAL RUN")
     print(f"model: {model}")
     print(f"arm labels: {', '.join(ARMS)}")
@@ -154,10 +222,8 @@ def run(paths: list[Path], model: str) -> None:
 
     totals = {label: [0, 0, 0] for label in ARMS}
     measured = 0
-    for path in paths:
-        evidence = measure_note(path, omp, model)
-        if not evidence:
-            continue
+    for note in notes:
+        evidence = measure_note(note, omp, model)
         measured += 1
         for label, (covered, required, complete) in evidence.items():
             totals[label][0] += covered

@@ -1560,11 +1560,10 @@ def shape_problems(rel, content, display=None, absolute_path=None):
                             f" unvalidated digest did (DEC-156).")
         try:
             import handoff_done_when
-        except Exception as exc:
-            problems.append("the Done when validator handoff_done_when.py could not be imported — "
-                            f"REFUSING the write ({type(exc).__name__}: {exc})")
-        else:
             problems.extend(handoff_done_when.problems(rel, content, root, resolve=True))
+        except Exception as exc:
+            problems.append("the Done when validator handoff_done_when.py failed — "
+                            f"REFUSING the write ({type(exc).__name__}: {exc})")
         if problems:
             out.append(_head("handoff shape (DEC-159)."))
             out.extend(f"  {m}" for m in problems)
@@ -1817,6 +1816,9 @@ if (_governed and not _post and _tool in ("Write", "Edit", "NotebookEdit")
                 file=sys.stderr,
             )
 
+_UNREADABLE_EDIT = object()
+
+
 def _edit_reconstructed_content(absolute_path, old_string, new_string, replace_all):
     """Issue #1106, gap (a). The full file content Claude's Edit tool would produce, or
     None when the edit itself is ambiguous or a no-op — in which case it is not this
@@ -1834,8 +1836,10 @@ def _edit_reconstructed_content(absolute_path, old_string, new_string, replace_a
     if not isinstance(old_string, str) or not old_string or not isinstance(new_string, str):
         return None
     try:
-        with open(absolute_path, encoding="utf-8", errors="replace") as _f:
+        with open(absolute_path, encoding="utf-8") as _f:
             disk = _f.read()
+    except UnicodeError:
+        return _UNREADABLE_EDIT
     except OSError:
         return None
     count = disk.count(old_string)
@@ -1847,24 +1851,21 @@ def _edit_reconstructed_content(absolute_path, old_string, new_string, replace_a
 
 
 if not _post:
-    # PRE. Only `Write` carries a whole-file `content` to measure, so only `Write` can be
-    # blocked before the fact. `d` was parsed once at the top of this process (T-13);
-    # re-parsing here was leftover from the four-launch version — and inconsistent
-    # leftover: this copy exited 0 on a failure the first one absorbed with `d = {}`, so
-    # the two disagreed about what a bad payload means. Review finding 2.
-    #
-    # ISSUE #1106, GAP (a): an Edit targeting a run's digest.md or state.yaml is NARROWLY
-    # widened into this route — narrowly, because shape_problems() also carries budget and
-    # vocabulary rules (feature.json, CLAUDE.md, handoff, plan.yaml) this fix does not
-    # touch; widening the whole PRE route to Edit would pull those in too, unreviewed. The
-    # reconstructed content feeds the SAME shape_problems() the Write route already uses,
-    # so the digest prefix test and the state.yaml identity test apply unchanged.
+    # PRE. Write supplies complete content. Edit is reconstructed only for the protected
+    # artifact identities whose contracts must reject an invalid candidate before mutation:
+    # run digests, run state, and handoff notes.
     if (_tool == "Edit" and target
-            and (RE_RUN_DIGEST.match(_norm(target)) or RE_STATE_YAML.match(_norm(target)))):
+            and (RE_RUN_DIGEST.match(_norm(target))
+                 or RE_STATE_YAML.match(_norm(target))
+                 or RE_HANDOFF.match(_norm(target)))):
         _ti = d.get("tool_input") or {}
         _content = _edit_reconstructed_content(
             os.path.abspath(target), _ti.get("old_string"), _ti.get("new_string"),
             bool(_ti.get("replace_all")))
+        if _content is _UNREADABLE_EDIT:
+            print("check-domain: BLOCKED — existing file is not valid UTF-8, so the Edit "
+                  "candidate cannot be reconstructed safely.", file=sys.stderr)
+            sys.exit(2)
         if _content is None:
             sys.exit(0)
         targets = [(_norm(target), _content, _show(target), os.path.abspath(target))]

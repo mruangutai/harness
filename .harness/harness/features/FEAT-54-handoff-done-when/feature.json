@@ -2,8 +2,8 @@
   "feature_id": "FEAT-54-handoff-done-when",
   "branch": "feat/FEAT-54-handoff-done-when",
   "pr": null,
-  "review_sha": "864c3471861ceab8b1704234e17bf247d1dcef86",
-  "cycles_used": 16,
+  "review_sha": "e75767df4b75e71f2c9b12766604cee5008d94e1",
+  "cycles_used": 18,
   "max_total_cycles": 30,
   "max_total_runs": 20,
   "runs": [
@@ -184,6 +184,66 @@
       "squad": "engineering",
       "verdict": "PASS",
       "agent": "harness-eng-lead"
+    },
+    {
+      "id": "2026-09-02-review-c0-validator",
+      "squad": "validator",
+      "verdict": "FAIL",
+      "agent": "harness-validator-lead"
+    },
+    {
+      "id": "2026-09-02-validation-order-c1-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead"
+    },
+    {
+      "id": "2026-09-02-validation-c1-eng",
+      "squad": "engineering",
+      "verdict": "PASS",
+      "agent": "harness-eng-lead"
+    },
+    {
+      "id": "2026-09-03-qa-validation-c1-validator",
+      "squad": "validator",
+      "verdict": "FAIL",
+      "agent": "harness-validator-lead"
+    },
+    {
+      "id": "2026-09-03-validation-c1-grade-aggregators-eng",
+      "squad": "engineering",
+      "verdict": "PASS",
+      "agent": "harness-eng-lead"
+    },
+    {
+      "id": "2026-09-03-validation-c1-unreadable-corrected-eng",
+      "squad": "engineering",
+      "verdict": "PASS",
+      "agent": "harness-eng-lead"
+    },
+    {
+      "id": "2026-09-03-validation-c2-eng",
+      "squad": "engineering",
+      "verdict": "PASS",
+      "agent": "harness-eng-lead"
+    },
+    {
+      "id": "2026-09-03-qa-validation-c2-validator",
+      "squad": "validator",
+      "verdict": "PASS",
+      "agent": "harness-validator-lead"
+    },
+    {
+      "id": "2026-09-03-simplify-validation-c2-eng",
+      "squad": "engineering",
+      "verdict": "PASS",
+      "agent": "harness-eng-lead"
+    },
+    {
+      "id": "2026-09-03-qa-post-simplify-c2-validator",
+      "squad": "validator",
+      "verdict": "PASS",
+      "agent": "harness-validator-lead"
     }
   ],
   "github": {
