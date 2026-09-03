@@ -132,10 +132,13 @@ Decisions that bind, by number:
   working set without `## Done when`. A line meeting the exemption test above is NOT a falsifier.
   verify: inspection
 - SC-09: The comprehension benchmark is rerunnable on demand and absent from the normal suites:
-  with the probe registered, `run-unit-tests.sh`'s probe-registration check reports zero KIND-DRIFT
-  lines over the real config; un-registering that kind produces a KIND-DRIFT line naming
-  `probe-handoff-comprehension.py`; and the probe's basename appears in neither `UNIT_SCRIPTS` nor
-  `INTEGRATION_SCRIPTS`, so `--kind all` never executes it.
+  `.harness/harness.json` registers `test_kinds.handoff_comprehension` with `status: locally_run`
+  and `detect` and `cmd` both `tests/manual/probe-handoff-comprehension.py`, asserted positively
+  against the real config and shown to discriminate against a mutant config whose entry is
+  emptied or removed; and the probe sits under `tests/manual/`, covered by neither of the two
+  globs `run-unit-tests.sh` selects suites by (`tests/unit/test-*.py`,
+  `tests/integration/test-*.py`), proved by running the real runner with `--kind all` over a
+  fixture tree holding the probe and observing it never executes.
   verify: automated        evidence: integration
 - SC-10: The operator writes one real handoff note in the new shape and judges the refusal messages
   actionable, the section worth its lines against the 60-line budget, and the `Scope:` label the

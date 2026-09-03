@@ -5,128 +5,58 @@ approval:
   approved_by: Mike Ruangutai
   status: approved
 
-status: building
+status: plan
 
 source_issues: []
 
 panel:
-  last_run: 2026-09-02-c3-validator
-  cycle: 3
+  last_run: 2026-09-02-c4-validator
+  cycle: 4
   readers:
-  - reader: scope
-    status: ran
   - reader: should-not-exist
+    persona: fable-advisor
+    status: ran
+  - reader: scope
+    persona: harness-code-reviewer
     status: ran
   - reader: goalcheck
+    persona: harness-pm
     status: ran
   findings:
-  - id: PF-4205e7e2f84e2eb24d421c924f4d7ac3
+  - id: C4-SNE-01
+    reader: should-not-exist
     severity: med
-    reader: should-not-exist
-    summary: INV-17 (T-06 case e, T-07's resolution clause) makes the state gate re-resolve
-      every pointer in every post-contract note forever, an obligation the grilling
-      settled only at write time; a later BRIEF repair that renumbers an SC reddens
-      an untouched, previously-valid note and forces the very edit the frozen baseline
-      exists to prevent.
-    disposition: ACCEPTED by the operator at the batched ruling of 2026-09-02 and
-      implemented as decision D-10 (pointer targets resolved at write time only),
-      carried by T-01, T-02, T-06 cases e1 and e2, and T-07. D-01 no longer contradicts
-      it as of the planfix-c2c amend.
-  - id: PF-1e45eb3a962725a1b45e3e0e90a271c6
-    severity: info
-    reader: should-not-exist
-    summary: Striking D-04 at signature is priced as one task but costs four artifacts
-      - T-09, T-12's three cases, SC-09's registration clauses and the test_kinds
-      entry - and a strike of T-09 alone leaves T-12 asserting a kind that does not
-      exist and SC-09 ungradable.
-    disposition: 'REJECTED by the operator at the batched ruling of 2026-09-02: D-04
-      stands and the comprehension probe is kept whole, so T-09, T-12 and SC-09 are
-      retained unchanged.'
-  - id: PF-570b9c87adac19d62513b5e90cce0f81
-    severity: low
-    reader: should-not-exist
-    summary: T-06 case (g) bakes a third run of the real-corpus scan plus an mtime/byte
-      no-mutation audit into the permanent integration suite, so any feature that
-      writes a pre-sweep handoff note mid-build reddens test-check-state.py and the
-      corpus problem presents as an unrelated test regression.
-    disposition: 'ACCEPTED by the operator at the batched ruling of 2026-09-02: the
-      concurrency-sensitive real-corpus mtime and byte no-mutation audit leaves the
-      permanent integration suite, and historical-baseline confidence rides non-flaky
-      fixture coverage or explicit review-time evidence instead. Carried by T-06 case
-      (g), which runs the deterministic half over a fixture corpus, and by SC-04''s
-      review-time verification at review_sha.'
-  - id: PF-918326616878584f5958be94fba0ede7
-    severity: low
+    summary: T-12 cases (a) and (b) create a standing exact-entry registration gate
+      for one locally-run probe, despite DEC-213's rejection of parallel registration/drift
+      readers.
+    disposition: survives as advisory and is ranked first; no repair is demanded because
+      the reader described three buildable choices, but the operator should knowingly
+      choose whether to keep, generalize, or drop this amended mechanism before signature
+  - id: C4-SCOPE-01
     reader: scope
-    summary: T-09's specified test_kinds.handoff_comprehension entry omits exclude,
-      which all 8 existing kinds carry including the omp_session_accessor entry it
-      names as its model, so code_grade.py:468-471 defaults it to none and a worktree-duplicated
-      copy of the probe is classified where its siblings are excluded.
-    disposition: 'ACCEPTED by the operator at the batched ruling of 2026-09-02: the
-      handoff_comprehension locally-run kind specifies the repository''s conventional
-      exclude. Carried by T-09, whose intent and verify now hold exclude set to .claude/worktrees/**
-      like its eight sibling kinds.'
-  - id: PF-d0ea19ffc351a13d6b569f0169222109
-    severity: low
-    reader: should-not-exist
-    summary: SC-14 plus the two forever-green cases T-03(h) and T-06(h) turn an out-of-scope
-      exclusion into permanent machinery, so a future feature that legitimately revisits
-      length budgeting must first dismantle tests this one planted.
-    disposition: 'REJECTED by the operator at the batched ruling of 2026-09-02: the
-      deterministic no-per-section-cap regression coverage is KEPT, so SC-14, T-03
-      case (h) and T-06 case (h) stand unchanged. Accepted consequence, ruled knowingly:
-      a future deliberate change to that contract must update this coverage as part
-      of making the change.'
-  - id: PF-f2aee0d45b76412d69f7e8a9496f86a8
     severity: med
-    reader: scope
-    summary: D-01's decision text asserts that the persisted INV-17 pass checks pointer
-      RESOLUTION whenever the section is present, which is exactly what D-10 forbids,
-      and T-07 cites per D-01 as its governing decision while its own body correctly
-      calls the module with resolve=False; a future engineer citing D-01 would reinstate
-      the rot vector the operator ruled against.
-    disposition: 'resolved by this planfix-c2c run: D-01''s choice and because were
-      amended so the decision''s scope is the frozen-baseline discriminator, the persisted
-      pass checks block shape and pointer GRAMMAR only, and the write-time versus
-      persisted split defers to D-10 by id. T-07''s per D-01 citation now agrees with
-      its resolve=False body.'
-  - id: PF-bd92960a1606d9794331d84a14e0b978
-    severity: info
+    summary: T-12's new test file can trip test-suite-layout.py's sole-implementation
+      sweep if its fixture builder combines literal tests/unit and tests/integration
+      paths with a discovery fragment.
+    disposition: survives as an implementer warning; assessed and dismissed as a plan
+      repair because the trigger is conditional on implementation style and T-12 can
+      satisfy its contract by following the existing loop-variable fixture idiom without
+      glob or directory-discovery calls
+  - id: C4-SNE-02
     reader: should-not-exist
-    summary: D-10's rationale that a typed prefix consults no target and therefore
-      cannot rot assumes the pointer GRAMMAR is itself immutable; there is no grammar-version
-      analogue of the frozen baseline, so a future feature that RENAMES or NARROWS
-      an authority type or an id format reddens every five-section note written before
-      it - widening is safe, only rename or narrow bites.
-    disposition: "REJECTED by the operator at the batched ruling of 2026-09-02: the\
-      \ typed pointer grammar \u2014 the four authority types and the id format of\
-      \ each \u2014 is a STABLE CONTRACT. The persisted INV-17 pass validates grammar\
-      \ only and never target existence, and a future rename or narrowing of a type\
-      \ or of an id format is an explicit versioned contract change made by the feature\
-      \ that makes it, not machinery this feature builds. Recorded in D-10's because,\
-      \ together with the operator's Q3 confirmation that grammar validation is part\
-      \ of the persisted shape validation; no grammar-versioning mechanism is added\
-      \ here."
-  - id: PF-356837534b18f5a4e622e5f461c41a71
     severity: low
+    summary: T-12's instruction to follow but not import the existing tree helper
+      requires a second permanent copy of the runner fixture builder.
+    disposition: survives as advisory; prefer a shared non-test-shaped fixture helper
+      or remove the no-import clause, but this maintenance risk does not make the
+      plan unbuildable
+  - id: C4-SNE-03
     reader: should-not-exist
-    summary: 'SC-04 is concrete enough to EXECUTE but not to CHECK: it pins no artifact
-      path for the review-time recording, so the criterion can be graded passed with
-      its evidence unfindable.'
-    disposition: 'resolved by this planfix-c3 run: SC-04''s verification sentence
-      now pins the reviewer''s own per-feature note, .harness/harness/features/FEAT-54-handoff-done-when/notes/review-<reviewer>-*.md,
-      as the home of the review-time check-state.sh recording, so the evidence has
-      a deterministic place to be found. verify stays inspection.'
-  - id: PF-86e99df98a2caca9ae1334ab55d9468c
     severity: info
-    reader: should-not-exist
-    summary: T-06 case (g)'s fully resolving fixture qualifier buys nothing against
-      a persisted pass that runs resolve=False and never opens a target; it can mislead
-      a reader into thinking resolution matters to the state check, which D-10 rules
-      it never does.
-    disposition: 'assessed and DISMISSED as a repair by the panel at 2026-09-02-c3-validator:
-      the qualifier is misleading rather than wrong, so it is one sentence of upkeep
-      for a future editor, not a cycle. No repair demanded and none made.'
+    summary: T-12's verify reruns the whole layout suite only to grep PASS planted
+      in a file T-12 is forbidden to modify.
+    disposition: survives as advisory; deleting that conjunct would remove an ownership-crossing,
+      weakly discriminating check, while the required suite continues to run independently
 lanes:
   resolved_at: b7956fc4
   rows:
@@ -184,16 +114,16 @@ decisions:
     because: 'the feature dir is derivable from the note own path, so resolution needs no configuration; an absent target file is unresolved rather than skipped, which is the whole point of real resolution'
     dec: none
   - id: D-04
-    choice: 'the comprehension benchmark is persisted as .claude/skills/harness/bin/probe-handoff-comprehension.py and registered in .harness/harness.json test_kinds as handoff_comprehension with status locally_run, in neither UNIT_SCRIPTS nor INTEGRATION_SCRIPTS and absent from test_matrix'
-    because: 'run-unit-tests.sh requires every probe under bin to be declared in exactly one locally_run kind, so persisting it unregistered exits 2; locally_run keeps it rerunnable at review without making a nondeterministic model run a release gate'
+    choice: the comprehension benchmark is persisted as tests/manual/probe-handoff-comprehension.py and registered in .harness/harness.json test_kinds as handoff_comprehension with status locally_run, under neither of the two directories run-unit-tests.sh globs (tests/unit and tests/integration) so --kind all cannot execute it, and absent from test_matrix
+    because: 'registration is what grades the probe as TEST code: code_grade._is_test_path counts a locally_run kind''s detect matches at the lighter complexity bar 3 instead of grading a probe script as production code (code_grade.py:458-472), so a persisted but unregistered probe is graded at the production bar; the kind must be locally_run and never active because tests/unit/test-suite-layout.py:105 requires that no ACTIVE kind''s detect names tests/manual; and locally_run keeps it rerunnable at review without making a nondeterministic model run a release gate'
     dec: DEC-201
   - id: D-05
     choice: 'refusal messages keep the existing register: the head line stays handoff shape (DEC-159), each problem names the rule, the count or pointer that broke it, and templates/HANDOFF.md'
     because: 'the existing handoff and CLAUDE.md messages already explain the rule and name the template, and DEC-100b requires naming the offending item rather than leaving the author to guess'
     dec: DEC-100b
   - id: D-06
-    choice: 'the new test file .claude/skills/harness/bin/test-handoff-done-when.py joins UNIT_SCRIPTS only, and is not added to test_kinds.integration.detect'
-    because: 'it spawns no subprocess, and run-unit-tests.sh KIND-DRIFT fails when a UNIT_SCRIPTS name appears in integration.detect'
+    choice: the new test file tests/unit/test-handoff-done-when.py is a UNIT test by placement — run-unit-tests.sh selects the unit suite by the glob tests/unit/test-*.py — and no per-file entry is added to test_kinds.integration.detect
+    because: it spawns no subprocess, which is exactly the criterion separating tests/unit from tests/integration, and placement under tests/unit is the whole of its registration because the runner globs that directory; the integration half has no per-file subject left at HEAD — test_kinds.integration.detect is the single directory glob tests/integration/** which cannot match a file under tests/unit, and tests/unit/test-suite-layout.py:101-102 pins that value byte-for-byte to templates/harness.json, so editing it to name a file would redden that assertion
     dec: none
   - id: D-07
     choice: 'DEC-159 is amended in place to state five sections and the amendment is recorded as a new decision at the next free id, 212 at b7956fc4'
@@ -219,21 +149,24 @@ tasks:
     depends_on: []
     status: ready
     files:
-      - .claude/skills/harness/bin/test-handoff-done-when.py
-      - .claude/skills/harness/bin/run-unit-tests.sh
+    - tests/unit/test-handoff-done-when.py
     verify: |
-      cd "$CLAUDE_PROJECT_DIR" && out=$(python3 .claude/skills/harness/bin/test-handoff-done-when.py 2>&1); rc=$?
+      cd "$CLAUDE_PROJECT_DIR" && out=$(python3 tests/unit/test-handoff-done-when.py 2>&1); rc=$?
       test "$rc" -ne 0 && printf '%s\n' "$out" | grep -q handoff_done_when
     intent: |
-      Create .claude/skills/harness/bin/test-handoff-done-when.py, a stdlib-only self-checking
-      script in the style of the other test-*.py files in that directory (named cases, one
-      printed line per case, exit 1 on any failure), and register its basename in
-      run-unit-tests.sh UNIT_SCRIPTS. Do NOT add it to test_kinds.integration.detect: it spawns
-      no subprocess and KIND-DRIFT fails if a UNIT_SCRIPTS name appears there.
+      Create tests/unit/test-handoff-done-when.py, a stdlib-only self-checking script in the
+      style of the other test-*.py files under tests/unit/ (named cases, one printed line per
+      case, exit 1 on any failure). PLACEMENT IS REGISTRATION: run-unit-tests.sh selects the unit
+      suite by the glob tests/unit/test-*.py, so a file dropped in that directory is registered by
+      being there, and no runner edit registers anything. Do NOT add any per-file entry to
+      test_kinds.integration.detect: that value is the directory glob tests/integration/**, it
+      cannot match a file under tests/unit, and tests/unit/test-suite-layout.py:101-102 pins it
+      byte-for-byte to templates/harness.json.
 
       It tests a module that does not exist yet, .claude/skills/harness/bin/handoff_done_when.py,
-      imported as `import handoff_done_when` after inserting its own directory on sys.path. The
-      module's contract, which this test pins:
+      imported as `import handoff_done_when` after inserting .claude/skills/harness/bin on
+      sys.path, the pattern tests/unit/test-suite-layout.py:10-14 uses. The module's contract,
+      which this test pins:
 
         problems(rel_path, text, root, resolve) -> list[str]
           rel_path  repo-relative path of the handoff note
@@ -296,7 +229,7 @@ tasks:
     files:
       - .claude/skills/harness/bin/handoff_done_when.py
     verify: |
-      cd "$CLAUDE_PROJECT_DIR" && python3 .claude/skills/harness/bin/test-handoff-done-when.py
+      cd "$CLAUDE_PROJECT_DIR" && python3 tests/unit/test-handoff-done-when.py
     intent: |
       Create .claude/skills/harness/bin/handoff_done_when.py, stdlib plus PyYAML (imported
       plainly, as plan-merge.py does), exposing:
@@ -362,12 +295,12 @@ tasks:
     depends_on: [T-02]
     status: ready
     files:
-      - .claude/skills/harness/bin/test-check-domain.py
+    - tests/integration/test-check-domain.py
     verify: |
-      cd "$CLAUDE_PROJECT_DIR" && out=$(python3 .claude/skills/harness/bin/test-check-domain.py 2>&1); rc=$?
+      cd "$CLAUDE_PROJECT_DIR" && out=$(python3 tests/integration/test-check-domain.py 2>&1); rc=$?
       test "$rc" -ne 0 && printf '%s\n' "$out" | grep -qi 'done when'
     intent: |
-      Extend .claude/skills/harness/bin/test-check-domain.py with the write-gate cases for the
+      Extend tests/integration/test-check-domain.py with the write-gate cases for the
       fifth handoff section. Use the existing handoff fixture helpers in that file (the rows near
       the current handoff cap and missing-section cases) so the new cases go through the real
       check-domain.sh process and assert on its exit code and stderr, never on its source.
@@ -422,7 +355,7 @@ tasks:
     files:
       - .claude/skills/harness/bin/check-domain.sh
     verify: |
-      cd "$CLAUDE_PROJECT_DIR" && python3 .claude/skills/harness/bin/test-check-domain.py
+      cd "$CLAUDE_PROJECT_DIR" && python3 tests/integration/test-check-domain.py
     intent: |
       In .claude/skills/harness/bin/check-domain.sh, extend the RE_HANDOFF branch of
       shape_problems (the block at the "handoff shape (DEC-159)" head) so that every handoff
@@ -517,12 +450,12 @@ tasks:
     depends_on: [T-02, T-05]
     status: ready
     files:
-      - .claude/skills/harness/bin/test-check-state.py
+    - tests/integration/test-check-state.py
     verify: |
-      cd "$CLAUDE_PROJECT_DIR" && out=$(python3 .claude/skills/harness/bin/test-check-state.py 2>&1); rc=$?
+      cd "$CLAUDE_PROJECT_DIR" && out=$(python3 tests/integration/test-check-state.py 2>&1); rc=$?
       test "$rc" -ne 0 && printf '%s\n' "$out" | grep -qi 'done when'
     intent: |
-      Extend .claude/skills/harness/bin/test-check-state.py with the INV-17 cases for the fifth
+      Extend tests/integration/test-check-state.py with the INV-17 cases for the fifth
       section, reusing the existing INV-17 fixture builders (the helpers around the current
       HANDOFF_GOOD note and the shape-line assertions) so each case runs the real check-state.sh
       and asserts on its reported lines.
@@ -593,7 +526,7 @@ tasks:
       - .claude/skills/harness/bin/check-state.sh
     verify: |
       cd "$CLAUDE_PROJECT_DIR" || exit 1
-      python3 .claude/skills/harness/bin/test-check-state.py || exit 1
+      python3 tests/integration/test-check-state.py || exit 1
       grep -qi 'done when' .claude/skills/harness/bin/check-state.sh || exit 1
       out=$(bash .claude/skills/harness/bin/check-state.sh 2>&1); rc=$?
       test "$rc" -le 1 || exit 1
@@ -696,12 +629,12 @@ tasks:
     - T-05
     status: ready
     files:
-      - .claude/skills/harness/bin/probe-handoff-comprehension.py
-      - .harness/harness.json
+    - tests/manual/probe-handoff-comprehension.py
+    - .harness/harness.json
     verify: |
-      cd "$CLAUDE_PROJECT_DIR" && python3 .claude/skills/harness/bin/probe-handoff-comprehension.py --dry-run && python3 -c "
+      cd "$CLAUDE_PROJECT_DIR" && python3 tests/manual/probe-handoff-comprehension.py --dry-run && python3 -c "
       import runpy, sys
-      P='.claude/skills/harness/bin/probe-handoff-comprehension.py'
+      P='tests/manual/probe-handoff-comprehension.py'
       BLOCKED=('socket.connect','socket.getaddrinfo','subprocess.Popen','os.system','urllib.Request')
       def hook(event, args):
           if event in BLOCKED: raise SystemExit('probe made a %s call during --dry-run' % event)
@@ -715,17 +648,17 @@ tasks:
       import json
       d=json.load(open('.harness/harness.json'))
       k=d['test_kinds']['handoff_comprehension']
-      p='.claude/skills/harness/bin/probe-handoff-comprehension.py'
+      p='tests/manual/probe-handoff-comprehension.py'
       assert k['status']=='locally_run' and k['detect']==p and k['cmd']==p, k
       assert k['exclude']=='.claude/worktrees/**', k
       assert 'handoff_comprehension' not in json.dumps(d.get('test_matrix')), 'kind leaked into test_matrix'
-      print('ok')" && ! grep -q 'probe-handoff-comprehension' .claude/skills/harness/bin/run-unit-tests.sh
+      print('ok')" && bash .claude/skills/harness/bin/run-unit-tests.sh --check-layout
     intent: |
       Persist the comprehension benchmark so review can rerun it, without letting it into any
       normal test run.
 
-      1. Create .claude/skills/harness/bin/probe-handoff-comprehension.py, following
-         probe-omp-session-accessor.py's shape: executable, stdlib only, a module docstring
+      1. Create tests/manual/probe-handoff-comprehension.py, following
+         tests/manual/probe-omp-session-accessor.py's shape: executable, stdlib only, a module docstring
          stating that it needs the omp binary on PATH and live model credentials and can never
          run in CI, and a --dry-run flag that prints the plan of work and exits 0 WITHOUT making
          any model call or network request.
@@ -741,14 +674,20 @@ tasks:
          the scores are: this probe REPORTS, it does not gate.
       2. Register it in .harness/harness.json test_kinds as a new kind
          "handoff_comprehension" with detect and cmd both
-         .claude/skills/harness/bin/probe-handoff-comprehension.py, status "locally_run", and a
+         tests/manual/probe-handoff-comprehension.py, status "locally_run", and a
          runner_note in the register of omp_session_accessor's saying it needs a credentialled
          host, can never run in CI, and is rerun before a ship decision that changes the handoff
          contract. The entry also carries "exclude": ".claude/worktrees/**", exactly the value
          omp_session_accessor carries: all 8 existing kinds declare exclude, and a kind without
-         it is the odd one out in the mapping. Do NOT add it to test_matrix and do NOT add the
-         probe to UNIT_SCRIPTS or INTEGRATION_SCRIPTS: run-unit-tests.sh's probe-drift check
-         requires exactly this shape and exits 2 on any other.
+         it is the odd one out in the mapping. Do NOT add it to test_matrix, and persist the probe
+         under tests/manual/, a directory neither of the runner's two suite globs
+         (tests/unit/test-*.py, tests/integration/test-*.py) covers, so --kind all cannot execute
+         it. Under .claude/skills/harness/bin/ it would instead be a layout violation:
+         suite_layout.violations() reports any probe-* left there and run-unit-tests.sh exits 2 on
+         any violation, which is why the probe is persisted under tests/manual/ and not beside the
+         gate scripts. The kind stays locally_run rather than active because
+         tests/unit/test-suite-layout.py:105 requires that no ACTIVE kind's detect names
+         tests/manual.
 
       This task edits the same .harness/harness.json that T-05 has already touched, which is why it
       depends on T-05. Read the file as it stands and ADD the handoff_comprehension entry to the
@@ -881,41 +820,57 @@ tasks:
     depends_on: [T-09]
     status: ready
     files:
-      - .claude/skills/harness/bin/test-run-unit-tests-kinds.py
+    - tests/integration/test-run-unit-tests-kinds.py
     verify: |
-      cd "$CLAUDE_PROJECT_DIR" && out=$(python3 .claude/skills/harness/bin/test-run-unit-tests-kinds.py 2>&1); rc=$?
+      cd "$CLAUDE_PROJECT_DIR" && out=$(python3 tests/integration/test-run-unit-tests-kinds.py 2>&1); rc=$?
       test "$rc" -eq 0 || exit 1
       printf '%s\n' "$out" | grep -q 'probe-handoff-comprehension' || exit 1
+      python3 tests/integration/test-run-unit-tests-layout.py | grep -q '^PASS planted' || exit 1
       printf 'ok\n'
     intent: |
-      SC-09 rests on this file: it is the only member of INTEGRATION_SCRIPTS that drives
-      run-unit-tests.sh's probe-registration check — the KINDCHECK block, the inline
-      `python3 -I - <<'KINDCHECK'` heredoc in .claude/skills/harness/bin/run-unit-tests.sh. LOCATE
-      IT BY THE HEREDOC DELIMITER "KINDCHECK", never by line number: it spanned :111-163 when this
-      task was written and every earlier line citation in this plan for it was wrong. Its existing
-      probe cases 6-8 mutate omp_session_accessor and name
-      probe-omp-session-comprehension's counterpart, never the handoff probe. Add three cases in
-      the file's existing style — a named function, one `check(...)` line per assertion, appended
-      to the main() call list — and change no existing case:
+      Create tests/integration/test-run-unit-tests-kinds.py, a NEW file. Placement IS registration:
+      run-unit-tests.sh globs tests/integration/test-*.py, so no runner edit and no test_kinds edit
+      registers it. Do NOT modify tests/integration/test-run-unit-tests-layout.py or
+      .claude/skills/harness/bin/suite_layout.py in this task: weakening either is forbidden, and
+      this task needs neither touched.
 
-      (a) REGISTERED ON THE REAL TREE. Using the real .harness/harness.json, run the check the way
-          case_1 does and assert BOTH that there are zero KIND-DRIFT lines AND that
-          probe-handoff-comprehension.py is declared in the detect string of a kind whose status
-          is "locally_run" (read the config and assert the kind name is handoff_comprehension).
-          Case 1's zero-line assertion alone is satisfied by a probe nobody registered only
-          because the check would also fail — assert the registration positively.
-      (b) UNREGISTERING THE HANDOFF PROBE IS LOUD. Reusing _mutant_config_kind, empty
-          handoff_comprehension's detect string and assert exactly one KIND-DRIFT line names
-          probe-handoff-comprehension.py and says it is unregistered under locally_run. This is
-          case 6's shape aimed at the new probe: without it, nothing reddens if the handoff
-          probe's registration is later dropped.
-      (c) THE PROBE IS IN NEITHER SCRIPT ARRAY, so `--kind all` never executes it. Read
-          run-unit-tests.sh's text, extract the UNIT_SCRIPTS=(...) and INTEGRATION_SCRIPTS=(...)
-          assignments, and assert probe-handoff-comprehension.py appears in neither. Asserting on
-          those two array literals is legitimate here: the arrays ARE the subject of the claim,
-          not an implementation detail behind it.
+      The obligation under REQ-10 is to assert the comprehension probe's registration and its
+      absence from the normal suites. The machinery the pre-FEAT-47 draft of this task named — an
+      inline heredoc inside run-unit-tests.sh that cross-checked each probe against the declared test
+      kinds and printed a drift line per unregistered probe, plus two shell arrays naming the scripts
+      each suite ran — does not exist: the runner selects suites by glob and reads no test kinds at
+      all. So the registration claim is asserted against .harness/harness.json directly, and the
+      non-execution claim is asserted by running the real runner over a fixture tree.
 
-      Register nothing new in either array — this file is already in INTEGRATION_SCRIPTS, so its
-      basename must not be added anywhere, and no test_kinds.integration.detect edit is needed.
-      Expected end state: the whole file GREEN, and its output naming
-      probe-handoff-comprehension.py.
+      Write the file in the style of tests/integration/test-run-unit-tests-layout.py: a
+      check(name, condition, detail) helper printing PASS or FAIL per case, a fixture builder in the
+      shape of that file's tree() (read it and follow it; do not import from it), and exit 1 if any
+      case failed. Three cases, each separately named:
+
+      (a) REGISTERED ON THE REAL TREE. Read the real .harness/harness.json and assert, positively:
+          test_kinds.handoff_comprehension exists; its status is "locally_run"; its detect and its
+          cmd are both exactly tests/manual/probe-handoff-comprehension.py; its exclude is
+          .claude/worktrees/**; the kind name appears nowhere in test_matrix; and that path exists
+          on disk. A count-of-problems assertion alone would be satisfied by a probe nobody
+          registered — assert the registration itself.
+      (b) DROPPING THE REGISTRATION IS LOUD. Factor (a)'s predicate into a function taking a parsed
+          config mapping and returning a list of problem strings, then run it over two mutant copies
+          of the real config: one with handoff_comprehension's detect emptied, one with the whole
+          kind removed. Assert the unmutated config yields no problems and that EACH mutant yields
+          at least one problem naming probe-handoff-comprehension.py. No runner check reports this
+          any more, so THIS TEST IS the registration gate; the two mutants are what prove it
+          discriminates rather than being ever-green.
+      (c) --kind all CANNOT EXECUTE THE PROBE. Build a fixture root under
+          tempfile.TemporaryDirectory in the shape of test-run-unit-tests-layout.py's tree():
+          .harness/team-config.yaml, plus run-unit-tests.sh, harness_boundary.py, suite_layout.py
+          and run_pool.py copied into <tmp>/.claude/skills/harness/bin, one passing test-*.py under
+          tests/unit and one under tests/integration. Add tests/manual/probe-handoff-comprehension.py
+          to that fixture, a file that prints a unique sentinel string and exits 1. Run the
+          fixture's run-unit-tests.sh with --kind all and assert exit 0, both fixture tests' output
+          present, and the sentinel ABSENT: the probe sits under neither globbed directory, so
+          --kind all cannot execute it. Assert also that --check-layout over that same fixture exits
+          0, so a probe under tests/manual is not a layout violation — while the identical file
+          under .claude/skills/harness/bin is one, which the layout suite already covers.
+
+      At least one case name or detail must print probe-handoff-comprehension.py, which this task's
+      verify greps for. Expected end state: the whole file GREEN.
