@@ -4071,12 +4071,12 @@ def run_handoff_done_when():
                ("## Done when", "templates/HANDOFF.md"))
         record("handoff Done when valid", invoke(handoff(valid)), 0)
         malformed = [
-            ("zero Scope", "Authority: plan-task:T-03.verify", ("Scope", "0")),
+            ("zero Scope", "Authority: plan-task:T-03.verify", "has 0 Scope: lines"),
             ("two Scope", "Scope: one\nScope: two\nAuthority: plan-task:T-03.verify",
-             ("Scope", "2")),
-            ("zero Authority", "Scope: only", ("Authority", "0")),
+             "has 2 Scope: lines"),
+            ("zero Authority", "Scope: only", "has 0 Authority: lines"),
             ("five Authority", "Scope: only\n" + "\n".join(
-                ["Authority: plan-task:T-03.verify"] * 5), ("Authority", "5")),
+                ["Authority: plan-task:T-03.verify"] * 5), "has 5 Authority: lines"),
             ("stray prose", valid + "\nstray prose", "stray prose"),
         ]
         for name, body, needle in malformed:
