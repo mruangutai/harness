@@ -1,14 +1,11 @@
-# Handoff — FEAT-54-handoff-done-when, plan → signature — written 2026-09-02, seq-3
+# Handoff — FEAT-54-handoff-done-when, plan → build — written 2026-09-02, seq-3
 
 ## Next
 
-Do nothing to the plan until the operator signs. Cycle 3 is complete: the four batched rulings of
-2026-09-02 are applied and recorded, the goal-check says the plan delivers the stated intent, the
-panel ran both readers with nothing high/critical/unrated, and every panel finding carries a
-disposition. The signature is the main session's act — `plan-merge.py sign-approval` for `plan.yaml`
-and the `## Approval` block in `BRIEF.md`, both currently `pending`. Read
-`notes/signature-inputs-c3.md` first: it holds the exact ruling inputs and the sign command. After
-signature the build starts at T-01, main-session-direct like 10 of the 12 tasks under DEC-174.
+Start the build with T-01 when the operator requests it. `BRIEF.md` and `plan.yaml` were both signed
+by Mike Ruangutai on 2026-09-02. Goal-check c3 passed, the panel ran all three readers with nothing
+high, critical or unrated, and every finding is dispositioned. T-01 is `main-session-direct` under
+DEC-174; follow the task's test-first sequence and its `verify` block exactly.
 
 ## Trust
 
@@ -20,13 +17,12 @@ signature the build starts at T-01, main-session-direct like 10 of the 12 tasks 
   unchanged — verified by reading each back and by the c3 panel's independent leave-list check.
 - `plan.yaml` `panel:` reads cycle 3, `last_run: 2026-09-02-c3-validator`, three readers `ran`, nine
   findings, and NO disposition says "no operator ruling exists" — verified by parsing the key.
-- 12 tasks T-01..T-12, decisions D-01..D-08 + D-10, `status: plan`, `approval: {status: pending}` —
-  verified by parsing plan.yaml through harness_yaml.
+- 12 tasks T-01..T-12, decisions D-01..D-08 + D-10, `status: plan`; both approval blocks are signed
+  by Mike Ruangutai on 2026-09-02 — verified from `plan.yaml` and `BRIEF.md`.
 - `check-plan-routes.py`: 0 violations across 6 plans; the DEVIATION lines are the declared DEC-174
-  carve-outs — verified-at working tree by running it this cycle.
-- `approval.rulings` has no write route in any verb — verified at `plan-merge.py:1052-1055` (the
-  three fields `sign-approval` writes), `:1449-1451` (amend refuses the key) and `:567-581` (apply
-  exits 8). INV-32 reads the key at `check-state.sh:488-506`.
+  carve-outs — verified-at working tree during cycle 3.
+- No `approval.rulings` entry is required: no high, critical or unrated finding remains open. The
+  separate missing-writer defect is tracked by issue #1157.
 - cycles_used 9 of 10, runs 16 of 20 — one cycle left; raising the budget is the operator's call.
 - UNVERIFIED: whether SC-04's review-time run will actually be performed and recorded at review. It
   is an instruction to a future reviewer, not a gate, and the panel said plainly it cannot judge it.
@@ -37,8 +33,8 @@ signature the build starts at T-01, main-session-direct like 10 of the 12 tasks 
   add-only (exit 7 on a changed value); `amend --show` then `--expect-sha256` changes a field;
   `set-panel` replaces the panel whole, so anything that must survive goes in the value file —
   verified this run by using each.
-- Do not try to record the rulings in `approval.rulings`: no verb writes it and hand-editing is
-  denied by the shape gate. `notes/signature-inputs-c3.md` is where they live until the verb exists.
+- Do not add an `approval.rulings` entry for this plan: no blocking finding is being accepted as risk.
+  Issue #1157 tracks the missing writer for a future plan that genuinely needs an override.
 - Do not re-open the four ruled findings. Two were accepted and implemented, two were rejected by the
   operator; a reader re-deriving one of them is producing noise the operator already priced.
 - Do not pass relative paths or shell variables to a write command: `bash-write-guard` resolves
