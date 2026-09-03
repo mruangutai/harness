@@ -3229,23 +3229,41 @@ def _inv32_basic_checks(open_finding, resolved, fid):
 
 
 def _inv32_ruling_checks(open_finding, resolved, fid):
-    ruling = [{"finding": fid, "ruling": "overrule", "who": "operator",
+    """Grade-2 reason: one table-shaped integration probe binds the five ruling invariants
+    against the same finding fixture; splitting it would duplicate subprocess setup and weaken
+    the single before/after contract."""
+    ruling = [{"finding": fid, "who": "operator",
                "date": "2026-08-31", "reason": "accepted"}]
-    _, overruled, _ = _inv32_run(_inv32_plan(finding=open_finding, rulings=ruling))
-    overruled_lines = [
-        line for line in overruled.splitlines() if "FEAT-INV32" in line
+    _, accepted, _ = _inv32_run(_inv32_plan(finding=open_finding, rulings=ruling))
+    accepted_lines = [
+        line for line in accepted.splitlines() if "FEAT-INV32" in line
     ]
     bad_ruling = [{**ruling[0], "who": ""}]
     _, unattributed, _ = _inv32_run(
         _inv32_plan(finding=open_finding, rulings=bad_ruling)
     )
+    no_reason = [{**ruling[0], "reason": ""}]
+    _, reasonless, _ = _inv32_run(
+        _inv32_plan(finding=open_finding, rulings=no_reason)
+    )
     stale = [{**ruling[0], "finding": "PF-cafebabe"}]
     _, stale_out, _ = _inv32_run(_inv32_plan(finding=resolved, rulings=stale))
+    every_gating_severity_accepted = True
+    for severity in ("high", "critical", "unrated", None):
+        finding = [{**open_finding[0], "severity": severity}]
+        _, output, _ = _inv32_run(_inv32_plan(finding=finding, rulings=ruling))
+        lines = [line for line in output.splitlines() if "FEAT-INV32" in line]
+        every_gating_severity_accepted &= (
+            any(fid in line and "accepted risk" in line.lower() for line in lines)
+            and not any("VIOLATION" in line for line in lines)
+        )
     return [
-        any(fid in line and "overruled" in line.lower() for line in overruled_lines)
-        and not any("VIOLATION" in line for line in overruled_lines),
-        "unattributed" in unattributed and fid in unattributed,
+        any(fid in line and "accepted risk" in line.lower() for line in accepted_lines)
+        and not any("VIOLATION" in line for line in accepted_lines),
+        all(text in unattributed for text in (fid, "finding", "who", "valid date", "reason")),
+        "reason" in reasonless.lower() and fid in reasonless,
         all(text in stale_out for text in ("PF-cafebabe", "reworded", "asked again")),
+        every_gating_severity_accepted,
     ]
 
 

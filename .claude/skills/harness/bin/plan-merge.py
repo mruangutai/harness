@@ -13,7 +13,7 @@ lock stays the one shared with every other write route in this feature.
     plan-merge.py set-task-station  --file <plan.yaml> --task T-NN --station <name>
     plan-merge.py set-feature-station --file <plan.yaml> --station <name>
     plan-merge.py set-panel         --file <plan.yaml> --value-file <panel.yaml>
-    plan-merge.py sign-approval     --file <plan.yaml> --by <name> --date <YYYY-MM-DD>
+    plan-merge.py sign-approval     --file <plan.yaml> --by <name> --date <YYYY-MM-DD> [--overrule PF-ID:<reason>]...
 
 CONTROLLED VERBS, ONE WRITE ROUTE (FEAT-41 T-03). Every mutating verb goes through
 harness_merge.locked_update and a text splice, and require_destination (exit 9) guards every
@@ -28,8 +28,9 @@ BEFORE the lock is taken, so a refused value never opens the file.
 
 `approval:` has two controlled write paths: `apply` seeds a brand-new plan with the
 unsigned `status: pending` mapping, and `sign-approval` is the only path that can transition it
-to approved. Every verb operating on an existing plan leaves its approval bytes byte for byte.
-The main session — nobody else — signs approval through this tool rather than by hand. A proposal
+to approved or append an attributed risk acceptance to `approval.rulings`. Every other verb
+operating on an existing plan leaves its approval bytes byte for byte. The main session — nobody
+else — signs approval through this tool rather than by hand. A proposal
 that carries an approval mapping which PARSES differently from the base's is a REFUSAL (exit 8),
 not a silent drop: `apply` must be INCAPABLE of writing a signature (step 7) and must also NOTICE
 a caller that tried to sneak one past it (step 7b) — two different jobs, so two different guards.
@@ -272,6 +273,91 @@ def _field_lines(indent, key, value):
                             width=10 ** 9, allow_unicode=True)
     return "".join(f"{indent}{line}\n" if line else "\n"
                    for line in dumped.rstrip("\n").split("\n"))
+
+
+def _panel_finding_ids(doc):
+    panel = doc.get("panel") if isinstance(doc, dict) else None
+    findings = panel.get("findings", []) if isinstance(panel, dict) else []
+    return {
+        str(item.get("id", "")).strip()
+        for item in findings
+        if isinstance(item, dict) and str(item.get("id", "")).strip()
+    }
+
+
+def _parse_overrule(spec, finding_ids):
+    finding, separator, reason = spec.partition(":")
+    finding, reason = finding.strip(), reason.strip()
+    if not separator or not finding or not reason:
+        raise harness_merge.MergeRefusal(
+            4, ["plan-merge: --overrule must be FINDING-ID:non-empty reason"]
+        )
+    if finding not in finding_ids:
+        present = ", ".join(sorted(finding_ids)) or "<none>"
+        raise harness_merge.MergeRefusal(
+            4, [f"plan-merge: --overrule finding {finding} is not in panel.findings",
+                f"  current finding ids: {present}"],
+        )
+    return finding, reason
+
+
+def _requested_overrules(specs, doc, who, date):
+    """Validate `FINDING:REASON` arguments against the panel snapshot being signed."""
+    invalid_attribution = (
+        not str(who).strip()
+        or not re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}", str(date).strip())
+    )
+    if specs and invalid_attribution:
+        raise harness_merge.MergeRefusal(
+            4, ["plan-merge: --overrule requires a non-empty --by and YYYY-MM-DD --date"]
+        )
+    finding_ids = _panel_finding_ids(doc)
+    parsed = [_parse_overrule(spec, finding_ids) for spec in specs]
+    return [
+        {"finding": finding, "who": who, "date": date, "reason": reason}
+        for finding, reason in parsed
+    ]
+
+
+def _rulings_lines(indent, rulings):
+    dumped = yaml.safe_dump(rulings, sort_keys=False, width=10 ** 9, allow_unicode=True)
+    return [f"{indent}rulings:\n"] + [
+        f"{indent}  {line}\n" for line in dumped.rstrip("\n").split("\n")
+    ]
+
+
+def _rulings_key(lines):
+    for index, line in enumerate(lines):
+        match = re.match(r"^(\s+)rulings:\s*(.*)$", line)
+        if match:
+            return index, match.group(1)
+    return None, "  "
+
+
+def _before_trailing_comments(lines, floor=0):
+    index = len(lines)
+    while index > floor and (
+        not lines[index - 1].strip() or lines[index - 1].lstrip().startswith("#")
+    ):
+        index -= 1
+    return index
+
+
+def _next_approval_key(lines, start, indent):
+    sibling = re.compile(rf"^{re.escape(indent)}[A-Za-z_][\w-]*:")
+    return next((i for i in range(start, len(lines)) if sibling.match(lines[i])), len(lines))
+
+
+def _splice_approval_rulings(lines, rulings):
+    """Replace only approval.rulings, retaining sibling fields and trailing comments."""
+    key_at, indent = _rulings_key(lines)
+    if key_at is None:
+        insert_at = _before_trailing_comments(lines)
+        return lines[:insert_at] + _rulings_lines(indent, rulings) + lines[insert_at:]
+    end = _next_approval_key(lines, key_at + 1, indent)
+    content_end = _before_trailing_comments(lines[:end], key_at + 1)
+    return (lines[:key_at] + _rulings_lines(indent, rulings)
+            + lines[content_end:])
 
 
 def _verify_signature(spliced_bytes, resolved, fields):
@@ -992,6 +1078,84 @@ def cmd_set_panel(args):
 
 
 
+def _approval_fields(base_bytes, args):
+    fields = {"status": "approved", "approved_by": args.by, "date": args.date}
+    base_doc = _reload_or_refuse(base_bytes)
+    requested = _requested_overrules(args.overrule, base_doc, args.by, args.date)
+    if not requested:
+        return fields
+    approval = base_doc.get("approval") or {}
+    existing = approval.get("rulings", [])
+    if not isinstance(existing, list):
+        raise harness_merge.MergeRefusal(
+            5, ["plan-merge: approval.rulings is malformed; expected a list"]
+        )
+    fields["rulings"] = existing + requested
+    return fields
+
+
+def _approval_span(lines):
+    start = next((i for i, line in enumerate(lines)
+                  if re.match(r"^approval:\s*$", line)), None)
+    if start is None:
+        return None, None
+    end = next((i for i in range(start + 1, len(lines))
+                if lines[i].strip() and not lines[i].startswith((" ", "\t"))), len(lines))
+    return start, end
+
+
+def _new_approval_block(fields):
+    block = ["approval:\n"]
+    block.extend(_field_lines("  ", key, fields[key])
+                 for key in ("status", "approved_by", "date"))
+    if "rulings" in fields:
+        block.extend(_rulings_lines("  ", fields["rulings"]))
+    return block
+
+
+def _replace_signature_fields(body, fields):
+    written = set()
+    output = []
+    for line in body:
+        match = re.match(r"^(\s+)(status|approved_by|date):\s*(.*)$", line)
+        if not match or match.group(2) in written:
+            output.append(line)
+            continue
+        output.append(_field_lines(match.group(1), match.group(2), fields[match.group(2)]))
+        written.add(match.group(2))
+    return output, written
+
+
+def _updated_approval_body(body, fields):
+    output, written = _replace_signature_fields(body, fields)
+    missing = [key for key in ("status", "approved_by", "date") if key not in written]
+    for key in missing:
+        output.insert(0, _field_lines("  ", key, fields[key]))
+    if "rulings" in fields:
+        return _splice_approval_rulings(output, fields["rulings"])
+    return output
+
+
+def _signed_approval_bytes(base_bytes, resolved, args):
+    lines = base_bytes.decode("utf-8").splitlines(keepends=True)
+    fields = _approval_fields(base_bytes, args)
+    start, end = _approval_span(lines)
+    if start is None:
+        insert_at = next(
+            (i + 1 for i, line in enumerate(lines) if re.match(r"^feature:\s*", line)), None
+        )
+        if insert_at is None:
+            raise harness_merge.MergeRefusal(
+                5, [f"plan-merge: {resolved} carries no feature key before signing"]
+            )
+        lines[insert_at:insert_at] = _new_approval_block(fields)
+    else:
+        lines[start + 1:end] = _updated_approval_body(lines[start + 1:end], fields)
+    spliced = "".join(lines).encode("utf-8")
+    _verify_signature(spliced, resolved, fields)
+    return spliced
+
+
 def cmd_sign_approval(args):
     """THE ONLY WAY THE APPROVAL MAPPING IS EVER WRITTEN (D-04, FEAT-41 T-03).
 
@@ -1034,51 +1198,7 @@ def cmd_sign_approval(args):
     resolved = _resolve_plan(args.file)
 
     def transform(base_bytes):
-        text = base_bytes.decode("utf-8")
-        lines = text.splitlines(keepends=True)
-        fields = {"status": "approved", "approved_by": args.by, "date": args.date}
-        start = None
-        for i, line in enumerate(lines):
-            if re.match(r"^approval:\s*$", line):
-                start = i
-                break
-        if start is None:
-            insert_at = next(
-                (i + 1 for i, line in enumerate(lines) if re.match(r"^feature:\s*", line)),
-                None,
-            )
-            if insert_at is None:
-                raise harness_merge.MergeRefusal(
-                    5, [f"plan-merge: {resolved} carries no feature key before signing"]
-                )
-            approval = ["approval:\n"]
-            approval.extend(
-                _field_lines("  ", key, fields[key])
-                for key in ("status", "approved_by", "date")
-            )
-            spliced = "".join(lines[:insert_at] + approval + lines[insert_at:]).encode("utf-8")
-            _verify_signature(spliced, resolved, fields)
-            return spliced
-        end = len(lines)
-        for j in range(start + 1, len(lines)):
-            if lines[j].strip() and not lines[j].startswith((" ", "\t")):
-                end = j
-                break
-        written = set()
-        out = []
-        for line in lines[start + 1:end]:
-            m = re.match(r"^(\s+)(status|approved_by|date):\s*(.*)$", line)
-            if m and m.group(2) not in written:
-                out.append(_field_lines(m.group(1), m.group(2), fields[m.group(2)]))
-                written.add(m.group(2))
-            else:
-                out.append(line)
-        for key in ("status", "approved_by", "date"):
-            if key not in written:
-                out.insert(0, _field_lines("  ", key, fields[key]))
-        spliced = "".join(lines[:start + 1] + out + lines[end:]).encode("utf-8")
-        _verify_signature(spliced, resolved, fields)
-        return spliced
+        return _signed_approval_bytes(base_bytes, resolved, args)
 
     try:
         harness_merge.locked_update(resolved, transform)
@@ -1557,9 +1677,19 @@ VERBS = (
      (_FILE, _STATION), cmd_set_feature_station),
     ("set-panel", "replace the top-level panel mapping with a validated value",
      (_FILE, ("--value-file", "YAML file holding the replacement panel mapping")), cmd_set_panel),
-    ("sign-approval", "the ONLY route that writes the approval mapping",
-     (_FILE, ("--by", "the signer's name"), ("--date", "YYYY-MM-DD")), cmd_sign_approval),
 )
+
+
+def _register_sign_approval(sub):
+    p = sub.add_parser("sign-approval", help="the ONLY route that writes the approval mapping")
+    p.add_argument("--file", required=True, help="path to the plan.yaml")
+    p.add_argument("--by", required=True, help="the signer's name")
+    p.add_argument("--date", required=True, help="YYYY-MM-DD")
+    p.add_argument(
+        "--overrule", action="append", default=[], metavar="FINDING-ID:REASON",
+        help="accept a current panel finding's risk; repeat for multiple findings",
+    )
+    p.set_defaults(func=cmd_sign_approval)
 
 
 def _register_amend(sub):
@@ -1597,6 +1727,7 @@ def main():
         for flag, arghelp in arguments:
             p.add_argument(flag, required=True, help=arghelp)
         p.set_defaults(func=func)
+    _register_sign_approval(sub)
     _register_amend(sub)
     args = parser.parse_args()
     args.func(args)
