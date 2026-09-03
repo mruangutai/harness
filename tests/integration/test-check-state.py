@@ -2099,6 +2099,10 @@ The one that did not work.
 
 ## Working set
 one/file.py
+
+## Done when
+Scope: implementation complete
+Authority: plan-task:T-03.verify
 """
 
 
@@ -2128,6 +2132,95 @@ def _shape_lines(out, needle):
     just detected — case (t14-f) turns on the count being exactly 1."""
     return [l for l in out.splitlines()
             if l.startswith("  VIOLATION") and "fails the shape" in l and needle in l]
+
+
+def case_feat54_done_when():
+    outcomes = []
+
+    def fixture_case(tmp, note, baseline_marker, name="handoff-plan.md"):
+        fdir = _handoff_fixture(tmp, "Building", {name: note})
+        cfg = {"github": {"sync": False, "repo": None}}
+        if baseline_marker is not None:
+            cfg["handoff_done_when_baseline"] = baseline_marker
+        with open(os.path.join(tmp, ".harness", "harness.json"), "w") as f:
+            json.dump(cfg, f)
+        with open(os.path.join(fdir, "plan.yaml"), "w") as f:
+            f.write("schema: plan/1\nfeature: FEAT-TEST\nstatus: building\ntasks:\n"
+                    "  - id: T-03\n    title: Fixture task\n    traces: [REQ-01]\n"
+                    "    change_type: logic\n    execution_mode: main-session-direct\n"
+                    "    execution_reason: fixture\n    depends_on: []\n    status: done\n"
+                    "    files: [tests/fixture.py]\n    verify: python3 test.py\n"
+                    "    intent: fixture\n")
+        with open(os.path.join(fdir, "BRIEF.md"), "w") as f:
+            f.write("# BRIEF\n\n- SC-04: observable\n\n## Approval\n")
+        with open(os.path.join(fdir, "notes", "review-fixture.md"), "w") as f:
+            f.write("Finding F-02 remains.\n")
+        return fdir
+
+    def check_case(label, note, baseline_marker, expect_report, needle="Done when"):
+        with tempfile.TemporaryDirectory() as tmp:
+            fixture_case(tmp, note, baseline_marker)
+            _, out = run(tmp)
+            lines = [line for line in out.splitlines()
+                     if "handoff-plan.md" in line and needle.lower() in line.lower()]
+            ok = bool(lines) == expect_report
+            print(f"{'ok' if ok else 'FAIL'} - FEAT-54 {label}")
+            if not ok:
+                print(f"        {out.strip()[:300]}")
+            outcomes.append(ok)
+
+    baseline_path = ".harness/harness/features/FEAT-TEST/notes/handoff-plan.md"
+    missing = HANDOFF_GOOD.split("## Done when", 1)[0]
+    malformed = HANDOFF_GOOD.replace("Scope: implementation complete",
+                                     "Scope: one\nScope: two")
+    absent_targets = HANDOFF_GOOD.replace(
+        "Authority: plan-task:T-03.verify",
+        "Authority: plan-task:T-99.verify\nAuthority: brief-sc:SC-99\n"
+        "Authority: finding:missing.md#F-99\nAuthority: approval:missing.md#Missing")
+    unknown = HANDOFF_GOOD.replace("Authority: plan-task:T-03.verify",
+                                   "Authority: docs:whatever")
+
+    check_case("non-baselined missing section reports", missing, [], True)
+    check_case("baselined missing section is exempt", missing, [baseline_path], False)
+    check_case("baselined malformed block reports", malformed, [baseline_path], True)
+    check_case("non-baselined resolving block passes", HANDOFF_GOOD, [], False)
+    check_case("non-baselined absent targets do not rot", absent_targets, [], False)
+    check_case("baselined absent targets do not rot", absent_targets, [baseline_path], False)
+    check_case("shape remains enforced", malformed, [], True)
+    check_case("grammar remains enforced", unknown, [], True, "legal prefixes")
+    check_case("absent baseline key means no exemption", missing, None, True)
+
+    with tempfile.TemporaryDirectory() as tmp:
+        second = HANDOFF_GOOD.replace("implementation complete", "validation complete")
+        fixture_case(tmp, HANDOFF_GOOD, [baseline_path])
+        fdir = os.path.join(tmp, ".harness", "harness", "features", "FEAT-TEST")
+        second_path = os.path.join(fdir, "notes", "handoff-build.md")
+        with open(second_path, "w") as f:
+            f.write(second)
+        paths = [os.path.join(fdir, "notes", "handoff-plan.md"), second_path]
+        before = [(open(path, "rb").read(), os.stat(path).st_mtime_ns) for path in paths]
+        _, out = run(tmp)
+        after = [(open(path, "rb").read(), os.stat(path).st_mtime_ns) for path in paths]
+        ok = "Done when" not in out and before == after
+        print(f"{'ok' if ok else 'FAIL'} - FEAT-54 clean corpus is not mutated")
+        outcomes.append(ok)
+
+    with tempfile.TemporaryDirectory() as tmp:
+        lines = ["# handoff", "## Next", "next", "## Trust"]
+        lines += [f"trust {index}" for index in range(25)]
+        lines += ["## Dead ends", "none", "## Working set"]
+        lines += [f"path {index}" for index in range(25)]
+        lines += ["## Done when", "Scope: complete", "Authority: plan-task:T-03.verify"]
+        note = "\n".join(lines) + "\n"
+        assert len(note.splitlines()) == 60
+        fixture_case(tmp, note, [])
+        _, out = run(tmp)
+        hits = [line for line in out.splitlines() if "handoff-plan.md" in line]
+        ok = not hits
+        print(f"{'ok' if ok else 'FAIL'} - FEAT-54 no per-section cap")
+        outcomes.append(ok)
+
+    return all(outcomes)
 
 
 def case_t14_widening():
@@ -4396,6 +4489,7 @@ def main():
         case_inv6_message_names_the_remedy(),
         case_inv6_producer_is_documented(),
     ])
+    ok_feat54_done_when = case_feat54_done_when()
 
     ok_exit_unchanged = code_a == code_b
     print(
@@ -4408,7 +4502,7 @@ def main():
             and ok_i28a and ok_i28b and ok_i28c and ok_i28d and ok_i28e and ok_i28f
             and ok_i28g and ok_i28h
             and ok_i29 and ok_i30 and ok_i31 and ok_i32 and ok_i32_severity
-            and ok_i32_era and ok_i6_plan
+            and ok_i32_era and ok_i6_plan and ok_feat54_done_when
             and ok_i33
             and ok_i34
             and ok_i35

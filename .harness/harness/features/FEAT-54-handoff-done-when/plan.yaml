@@ -448,7 +448,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: 'DEC-174 — check-state.sh''s own test'
     depends_on: [T-02, T-05]
-    status: ready
+    status: done
     files:
     - tests/integration/test-check-state.py
     verify: |
