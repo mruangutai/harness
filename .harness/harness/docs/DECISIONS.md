@@ -6686,3 +6686,66 @@ is the binding protection for test files now outside it.
 directory; renaming `is_control_plane_target`, because the behaviour would be identical and the
 enforcement-layer churn buys nothing; and retaining registration arrays as a directory
 cross-check, because that recreates the two-readers failure one level lower.
+## DEC-214 — Instruction paths take two anchors: an injected control-plane root for every read, and a dispatch-resolved feature-tree root for every write
+
+**Chose:** TWO placeholders, because one value cannot serve both directions. The control-plane
+placeholder `<HARNESS_CONTROL_PLANE_ROOT>` is injected into every harness agent's preamble by the
+`SubagentStart` hook as the line `HARNESS_CONTROL_PLANE_ROOT: <absolute path>`
+(`.claude/skills/harness/bin/inject-expertise.sh`), and prefixes every READ of a Harness-owned
+skill, rule, reference, decision or config. The feature-tree placeholder
+`<HARNESS_FEATURE_TREE_ROOT>` is NOT injected, and prefixes every WRITE into a feature directory.
+Origin: `FEAT-52-factory-control-plane`.
+
+**The asymmetry is the whole ruling, and it is a consequence of who can resolve what.** A persona
+that holds a shell resolves the feature-tree root from the FEAT id on the first line of its own
+dispatch (DEC-204) with `inflight_registry.py feature-root --feature FEAT-NN-slug`, which returns
+`worktree_for_feature(owner_root, feature)` or `owner_root` — the checkout that HOLDS the feature
+directory. A persona that holds NO shell never resolves it: its dispatcher does, and passes it on a
+`HARNESS-FEATURE-TREE-ROOT` line of the dispatch, which `dispatch-guard.sh` refuses the dispatch
+without, at exit 2. The predicate is the tool grant, never a name list, so a persona that loses its
+shell is covered on the day it loses it. Reading anything under the control-plane root is permitted
+and read-only, and no write grant is widened by it.
+
+**Both spellings are enforced by `check-instruction-paths.py` over inline spans AND fenced code
+blocks**, as a required step of the integration CI job, and a feature-directory path anchored to the
+control plane is reported as a violation in its own right — not merely as an unanchored path.
+
+**The reasoning.** The defect is that a relative path in prose resolves against the AGENT's working
+directory, and until the factory that directory was always the harness checkout, so nothing ever had
+to distinguish where the work is from where the control plane is. Two anchors rather than one
+because measured at `e8e1b78be3379d4a669aa7e28aef8f76eb942471`, `settings.json` registers the MAIN
+checkout's copy of `inject-expertise.sh` and `harness_boundary.resolve_root` is
+script-directory-relative, so the injected root is the main checkout even for an agent standing in a
+feature worktree — anchoring writes there sends a Harness self-development agent's receipt and
+observations off the reviewed branch, while leaving them relative sends a factory worker's into a
+disposable product workspace the next claim force-resets, which issue 356 comment 1 ruled against.
+An environment variable is not the carrier because `CLAUDE_PROJECT_DIR` is session-scoped and was
+measured UNSET in an agent's own tool shell, so an agent cannot anchor its own paths with it. The
+hook signals through text and not an exit code because its contract under DEC-101 is that it always
+exits 0 so it can never block a spawn, which leaves the refusal to the agent, which returns
+`VERDICT: BLOCKED` when the injected value reads `UNRESOLVED`. The three severities the defect
+produced are why the check is mechanical rather than advisory: a denied write is loud, a wrong read
+is silent and dangerous, and a missing skill read has no signal at all.
+
+**Two alternatives were considered and refused, recorded because a future scan will re-suggest
+both.** Injecting a SECOND resolved value from `inject-expertise.sh` was refused because the hook
+cannot identify the spawning agent's feature: `dispatch-guard.sh:77-79` records that
+`tool_input.prompt` exists only on the dispatch payload and reaches no other hook, and DEC-64 fixes
+the `SubagentStart` payload's contract at `agent_type`, so the hook would have to scan the inflight
+registry of the control plane and of every linked worktree for a claim keyed on persona alone —
+ambiguous whenever two spawns of one non-single-flight persona run on different features at once.
+Granting the three shell-less leads `Bash` was refused because DEC-116 removes the shell
+deliberately so a lead cannot do a member's work, and re-granting it would widen a capability in
+order to repair a path-resolution defect.
+
+**The spawn-time assertion.** The hook invokes the same checker over the four instruction files every
+agent receives — its own `.omp/agents/<agent_type>.md` and the three always-preloaded skills — and
+reports `HARNESS_PATH_DRIFT` in the injected block, still exiting 0 on every branch.
+
+**Scope of the originating ticket.** Issue 356 measured this class across five path families:
+`.harness/harness.json`; `.harness/expertise/<agent>.md`;
+`.harness/features/<FEAT>/observations/<agent>.md`;
+`.harness/features/<FEAT>/notes/receipt-<agent>-<runid>.md`; and the read of
+`harness-systematic-debugging/SKILL.md` from a product clone, which is the silent one. Issue 357 —
+the `bin/` to `src/` source-location question — is neither upstream nor downstream of this: it fixes
+the code half and leaves this half untouched.

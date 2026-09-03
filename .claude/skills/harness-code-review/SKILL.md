@@ -16,7 +16,7 @@ Wrong-thing-built-well is the costlier failure, and finding it second wastes the
 
 ## Stage 1 — spec compliance
 
-Read `.harness/harness/features/<FEAT>/BRIEF.md` and the plan's decisions — `plan.yaml`'s `decisions:` list,
+Read `<HARNESS_FEATURE_TREE_ROOT>/.harness/harness/features/<FEAT>/BRIEF.md` and the plan's decisions — `plan.yaml`'s `decisions:` list,
 or `PLAN.md ## Decisions` for a feature still on the pre-DEC-182 format — then the diff. Ask four
 questions:
 
@@ -81,7 +81,7 @@ Do **not** report what a linter catches, and do not restyle to personal preferen
 Run the grader against the pinned review, never `HEAD`:
 
 ```sh
-python3 .claude/skills/harness/bin/code-grade.py \
+python3 <HARNESS_CONTROL_PLANE_ROOT>/.claude/skills/harness/bin/code-grade.py \
   --base "$(git merge-base origin/main "$review_sha")" \
   --head "$review_sha"
 ```
@@ -154,7 +154,7 @@ Every finding states **specific inputs or state → specific wrong outcome.**
 
 ## Review a pinned SHA
 
-Diff `base..review_sha` from `.harness/harness/features/<FEAT>/review_sha` — **never `..HEAD`**. A commit landing
+Diff `base..review_sha` from `<HARNESS_FEATURE_TREE_ROOT>/.harness/harness/features/<FEAT>/review_sha` — **never `..HEAD`**. A commit landing
 mid-review must not change what you reviewed.
 
 Check for `[harness:human]` commits since the last pin: those are hand edits that **inherit no earlier

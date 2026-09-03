@@ -103,7 +103,7 @@ placeholder here would fail for a reason that has nothing to do with what the ex
 
 ## Exemptions
 
-Read `test_matrix` in `.harness/harness.json`. Change types mapping to `[]` — `config`, `scaffolding`,
+Read `test_matrix` in `<HARNESS_CONTROL_PLANE_ROOT>/.harness/harness.json`. Change types mapping to `[]` — `config`, `scaffolding`,
 `docs` — are exempt from the Iron Law and the cycle. This is most of `dev-ops`'s work.
 
 **The zero-placeholder gate is never exempt.** It applies to every task of every type.
@@ -118,7 +118,7 @@ and those are different questions — a green suite has never meant a green `ver
 Your dispatch carries the task's `T-NN` id and its `verify:` command **verbatim** (the lead is
 required to quote both). Run the command before you return, report the result as `task_verify`, and
 paste the command together with its **verbatim** output into your B-7 receipt at
-`.harness/harness/features/<FEAT>/notes/receipt-<your-agent-name>-<runid>.md`.
+`<HARNESS_FEATURE_TREE_ROOT>/.harness/harness/features/<FEAT>/notes/receipt-<your-agent-name>-<runid>.md`.
 
 Why the receipt and not just the field: `task_verify: pass` is a claim, and a claim with nothing
 behind it converts a skipped check into an unfalsifiable one. The receipt is what a reviewer checks

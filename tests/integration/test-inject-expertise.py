@@ -23,6 +23,7 @@ _anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness",
 _anchor_sys.path.insert(0, _anchor_bin)
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -37,7 +38,7 @@ fails = 0
 case_count = 0
 
 
-def run_hook(root, home, payload_bytes):
+def run_hook(root, home, payload_bytes, cwd=None, script=SCRIPT, create_marker=True):
     env = dict(os.environ)
     # BOTH NAMES, AND THE MARKER (FEAT-42 T-16). inject-expertise.sh resolves through
     # harness_boundary.resolve_root, which reads HARNESS_PROJECT_DIR and no other name, and
@@ -52,17 +53,19 @@ def run_hook(root, home, payload_bytes):
     # "nothing on disk" means no Expertise files, not "not a harness checkout" - and without
     # the marker that root is discarded and the hook injects the LIVE checkout's Expertise,
     # which is the opposite of what the case asserts.
-    _m = os.path.join(root, ".harness", "team-config.yaml")
-    if not os.path.exists(_m):
-        os.makedirs(os.path.dirname(_m), exist_ok=True)
-        with open(_m, "w") as _f:
-            _f.write("agents: {}\n")
+    if create_marker:
+        _m = os.path.join(root, ".harness", "team-config.yaml")
+        if not os.path.exists(_m):
+            os.makedirs(os.path.dirname(_m), exist_ok=True)
+            with open(_m, "w") as _f:
+                _f.write("agents: {}\n")
     env["HOME"] = home
     r = subprocess.run(
-        [SCRIPT],
+        [script],
         input=payload_bytes,
         capture_output=True,
         env=env,
+        cwd=cwd,
     )
     return r
 
@@ -166,14 +169,88 @@ def case3():
     report("case3: craft only, no repository text of any kind", all(checks), str(checks))
 
 
-# --- Case 4: nothing on disk -------------------------------------------------
+# --- Case 4: no Expertise still receives the control-plane block -------------
 def case4():
     root = tempfile.mkdtemp()
     home = fresh_home()
     r = run_hook(root, home, b'{"agent_type": "harness-qa"}')
-    out = r.stdout.decode("utf-8", errors="replace").strip()
-    ok = r.returncode == 0 and (out == "" or "hookSpecificOutput" not in out)
-    report("case4: nothing on disk -> exit 0, empty/no hookSpecificOutput", ok, f"exit={r.returncode} out={out!r}")
+    ctx = get_context(r) or ""
+    ok = (
+        r.returncode == 0
+        and ctx.startswith("## Harness control plane\n\nHARNESS_CONTROL_PLANE_ROOT: ")
+        and os.path.isabs(ctx.splitlines()[2].split(": ", 1)[1])
+        and "HARNESS_PATH_DRIFT: unknown" in ctx
+    )
+    report("case4: no Expertise still receives control-plane context", ok,
+           f"exit={r.returncode} context={ctx!r}")
+
+
+# --- Case 4b: the injected root is the control plane, not agent cwd ----------
+def case4b():
+    root = tempfile.mkdtemp()
+    home = fresh_home()
+    product_cwd = tempfile.mkdtemp()
+    r = run_hook(root, home, b'{"agent_type": "harness-qa"}', cwd=product_cwd)
+    ctx = get_context(r) or ""
+    root_line = next(
+        (line for line in ctx.splitlines()
+         if line.startswith("HARNESS_CONTROL_PLANE_ROOT: ")),
+        "",
+    )
+    injected = root_line.split(": ", 1)[1] if ": " in root_line else ""
+    ok = r.returncode == 0 and injected == root and injected != product_cwd
+    report("case4b: injected root is absolute control plane, never product cwd", ok,
+           f"exit={r.returncode} injected={injected!r} cwd={product_cwd!r}")
+
+
+
+# --- Case 4c: an unresolvable hook root remains loud and non-blocking --------
+def case4c():
+    root = tempfile.mkdtemp()
+    home = fresh_home()
+    isolated = tempfile.mkdtemp()
+    script = os.path.join(isolated, "bin", "inject-expertise.sh")
+    os.makedirs(os.path.dirname(script))
+    shutil.copyfile(SCRIPT, script)
+    shutil.copyfile(os.path.join(HERE, "harness_boundary.py"),
+                    os.path.join(os.path.dirname(script), "harness_boundary.py"))
+    os.chmod(script, 0o755)
+    r = run_hook(root, home, b'{"agent_type": "harness-qa"}', script=script,
+                 create_marker=False)
+    ctx = get_context(r) or ""
+    ok = r.returncode == 0 and "HARNESS_CONTROL_PLANE_ROOT: UNRESOLVED" in ctx and "VERDICT: BLOCKED" in ctx
+    report("case4c: unresolved root is injected loudly without blocking", ok,
+           f"exit={r.returncode} context={ctx!r}")
+
+
+
+def case4d():
+    root = tempfile.mkdtemp()
+    home = fresh_home()
+    checker = os.path.join(root, ".claude", "skills", "harness", "bin",
+                           "check-instruction-paths.py")
+    os.makedirs(os.path.dirname(checker), exist_ok=True)
+    write(checker, """#!/usr/bin/env python3
+import sys
+agent = open(sys.argv[1]).read()
+if "UNANCHORED" in agent:
+    print("VIOLATION .omp/agents/harness-qa.md:1: unanchored instruction path: .harness/x")
+    raise SystemExit(1)
+print("scanned 4 file(s), 0 violation(s)")
+""")
+    os.chmod(checker, 0o755)
+    agent = os.path.join(root, ".omp", "agents", "harness-qa.md")
+    write(agent, "clean\n")
+    for name in ("harness-handoff", "harness-expertise", "harness-principles"):
+        write(os.path.join(root, ".claude", "skills", name, "SKILL.md"), "clean\n")
+    clean = get_context(run_hook(root, home, b'{"agent_type": "harness-qa"}')) or ""
+    write(agent, "UNANCHORED\n")
+    drifted = get_context(run_hook(root, home, b'{"agent_type": "harness-qa"}')) or ""
+    report("case4d: checker clean and drift branches stay distinct",
+           "HARNESS_PATH_DRIFT: none" in clean
+           and "HARNESS_PATH_DRIFT: 1 unanchored path(s)" in drifted
+           and ".omp/agents/harness-qa.md:1" in drifted,
+           f"clean={clean!r} drifted={drifted!r}")
 
 
 # --- Case 5: missing agent_type, and invalid JSON ---------------------------
@@ -313,10 +390,18 @@ def case13():
         "## Your Expertise — harness repository (repository tier)" in ctx,
         "REPO BODY THIRTEEN" in ctx,
         "kaya" not in ctx,
+
         stderr == "",
     ]
     report("case13: dangling symlink in repository tier -> unreadable guard skips it, no leak, clean stderr",
            all(checks), f"checks={checks} stderr={stderr!r} ctx={ctx[:300]!r}")
+
+def case14():
+    source = open(SCRIPT, encoding="utf-8").read()
+    matches = __import__("re").findall(r"^[ \t]*exit [1-9]", source, __import__("re").MULTILINE)
+    positive = bool(__import__("re").search(r"^[ \t]*exit [1-9]", "  exit 2", __import__("re").MULTILINE))
+    report("case14: hook contains no non-zero exit and the pattern has a positive control",
+           not matches and positive, repr(matches))
 
 
 def main():
@@ -324,10 +409,14 @@ def main():
     case2()
     case3()
     case4()
+    case4b()
+    case4c()
+    case4d()
     case5()
     case6()
     case7()
     case8()
+    case14()
     case10()
     case11()
     case12()

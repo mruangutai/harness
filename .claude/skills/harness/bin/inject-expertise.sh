@@ -42,15 +42,6 @@ fi
 # without it. The failure is still NOT SILENT — it goes to stderr — and the only tree that can
 # reach it is one with no .harness/team-config.yaml anywhere above this script, which has no
 # Expertise to inject either. Do not name the retired variables here even in prose.
-_selfbin="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
-root="$(python3 -I -c 'import sys; sys.path.insert(0, sys.argv[1]); import harness_boundary; print(harness_boundary.resolve_root(sys.argv[1]))' "$_selfbin" 2>/dev/null)"
-if [ -z "$root" ] || [ ! -d "$root" ]; then
-  echo "inject-expertise.sh: no harness root resolved from $_selfbin — no Expertise injected." >&2
-  exit 0
-fi
-proj="$root/.harness/expertise/$agent.md"
-glob="$HOME/.harness/expertise/$agent.md"
-
 emit() {
   python3 -I -c '
 import sys, json
@@ -61,6 +52,38 @@ if body.strip():
         "additionalContext": body,
     }}))
 '
+}
+
+_selfbin="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
+root="$(python3 -I -c 'import sys; sys.path.insert(0, sys.argv[1]); import harness_boundary; print(harness_boundary.resolve_root(sys.argv[1]))' "$_selfbin" 2>/dev/null)"
+if [ -z "$root" ] || [ ! -d "$root" ]; then
+  echo "inject-expertise.sh: no harness root resolved from $_selfbin — no Expertise injected." >&2
+  printf '## Harness control plane\n\nHARNESS_CONTROL_PLANE_ROOT: UNRESOLVED\n\nThe control plane could not be located from this spawn. Do not guess a path and do not fall back to your working directory. Return VERDICT: BLOCKED naming the unresolved control-plane root.\n' | emit
+  exit 0
+fi
+proj="$root/.harness/expertise/$agent.md"
+glob="$HOME/.harness/expertise/$agent.md"
+
+control_plane_block() {
+  local checker="$root/.claude/skills/harness/bin/check-instruction-paths.py"
+  local output status count
+  printf '## Harness control plane\n\nHARNESS_CONTROL_PLANE_ROOT: %s\n' "$root"
+  if [ ! -f "$checker" ]; then
+    printf 'HARNESS_PATH_DRIFT: unknown\n\n'
+    return
+  fi
+  output="$(python3 "$checker" "$root/.omp/agents/$agent.md" "$root/.claude/skills/harness-handoff/SKILL.md" "$root/.claude/skills/harness-expertise/SKILL.md" "$root/.claude/skills/harness-principles/SKILL.md" 2>&1)"
+  status=$?
+  if [ "$status" -eq 0 ]; then
+    printf 'HARNESS_PATH_DRIFT: none\n\n'
+  elif [ "$status" -eq 1 ]; then
+    count="$(printf '%s\n' "$output" | grep -c '^VIOLATION ' || true)"
+    printf 'HARNESS_PATH_DRIFT: %s unanchored path(s)\n' "$count"
+    printf '%s\n' "$output" | sed -n 's/^VIOLATION \([^:]*:[0-9]*\):.*/  \1/p' | sed -n '1,5p'
+    printf 'Treat anchored-looking paths in these files as unreliable and say so in your DIGEST.\n\n'
+  else
+    printf 'HARNESS_PATH_DRIFT: unknown\n\n'
+  fi
 }
 
 # Expertise file budget (DEC-145): 150 lines for craft tiers, 40 for repository
@@ -109,6 +132,7 @@ if [ "${#repo_segments[@]}" -gt 0 ]; then
 fi
 
 {
+  control_plane_block
   # Global tier first, project tier second. Precedence among tiers is stated
   # explicitly in the precedence line emitted below (when a repository tier is
   # present) — ordering here is presentation only, not the precedence rule.

@@ -9,7 +9,7 @@ investigate — that is a plan mission with a `BUG-NN` id (the FEAT-02 pattern).
 1. **Investigation segment** — dispatch eng-lead: one specialist, chosen by `consult-when`, in
    debug mode (`harness-systematic-debugging` governs it — NOT preloaded since DEC-158: the
    dispatch prompt must tell the specialist to Read
-   `.agents/skills/harness-systematic-debugging/SKILL.md` first): **reproduce → localize → root-cause,
+   `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness-systematic-debugging/SKILL.md` first): **reproduce → localize → root-cause,
    with evidence — no fix.** The deliverable is a root-cause report in the flow's `notes/`
    (repro steps, the failing case, the causal chain with `file:line` anchors, and the fix surface
    it implies). Three failed reproduction/hypothesis cycles → `BLOCKED` up, per the skill — an

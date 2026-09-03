@@ -1021,45 +1021,82 @@ def case_10_no_own_primitive():
     )
 
 
-def main():
-    case_1_claim_then_live_claim()
-    case_2_single_flight_and_parallel_asymmetry()
-    case_2b_live_children_by_dispatcher()
-    case_2c_live_children_expires_stale()
-    case_3_staleness_live_claim()
-    case_4_release()
-    case_5_is_single_flight()
-    case_6_refusal_lines()
-    case_6b_children_refusal_lines()
-    case_7_concurrency()
-    case_8_corrupt_registry()
-    case_9_release_all()
-    case_10_no_own_primitive()
-    case_11_ttl_shorter_than_cycle()
-    case_12_foreign_session_expired()
-    case_13_release_refuses_ambiguous()
-    case_14_remedy_is_absolute()
-    case_15_feature_scoped_single_flight()
-    case_16_omp_claim_lives_with_supervisor()
-    case_17_targeted_release_keeps_other_feature()
-    case_18_legacy_registry_migrates_on_write()
-    case_19_attach_and_release_by_runtime_identity()
-    case_20_reconcile_only_target_feature()
-    case_21_live_query_does_not_expire_another_feature()
-    case_22_recycled_supervisor_pid_is_not_alive()
-    case_23_verified_claim_never_ages_out()
-    case_24_unverifiable_claim_cannot_strand_forever()
-    case_25_stranded_child_does_not_hold_its_parent()
-    case_26_start_time_read_pins_the_c_locale()
-    case_27_non_finite_start_time_cannot_strand_the_registry()
-    case_28_featureless_claim_still_gets_a_remedy()
-    case_29_orphan_write()
-    case_30_own_claim_is_not_orphan_write()
-    case_31_no_live_claim_fails_open()
-    case_32_sessionless_claim_is_visible()
-    case_33_orphan_write_omp_runtime_is_never_orphaned()
-    case_34_children_refusal_names_suspension()
+def _linked_worktree(owner_root, name):
+    linked = os.path.realpath(os.path.join(tempfile.mkdtemp(), name))
+    os.makedirs(linked)
+    pointer = os.path.join(owner_root, ".git", "worktrees", name, "gitdir")
+    os.makedirs(os.path.dirname(pointer), exist_ok=True)
+    with open(pointer, "w", encoding="utf-8") as handle:
+        handle.write(os.path.join(linked, ".git"))
+    return linked
 
+
+def _feature_root_cli(owner_root, feature=None):
+    argv = [sys.executable, CLI, "feature-root", "--root", owner_root]
+    if feature:
+        argv += ["--feature", feature]
+    return subprocess.run(argv, capture_output=True, text=True)
+
+
+def _ambiguous_feature_root_case():
+    owner_root = tempfile.mkdtemp()
+    _linked_worktree(owner_root, "FEAT-90")
+    _linked_worktree(owner_root, "FEAT-90-alpha")
+    result = _feature_root_cli(owner_root, "FEAT-90-alpha-redo")
+    check("case35: feature-root CLI refuses an ambiguous worktree",
+          result.returncode == 1 and not result.stdout and "ambiguous" in result.stderr.lower()
+          and "FEAT-90" in result.stderr, result.stdout + result.stderr)
+
+
+def case_35_feature_root_cli():
+    owner_root = tempfile.mkdtemp()
+    linked = _linked_worktree(owner_root, "FEAT-90-alpha")
+    check("case35: feature-root uses linked checkout rather than owner root",
+          inflight_registry.feature_root(owner_root, "FEAT-90-alpha") == linked and linked != owner_root)
+    linked_run = _feature_root_cli(owner_root, "FEAT-90-alpha")
+    check("case35: feature-root CLI resolves linked worktree",
+          linked_run.returncode == 0 and linked_run.stdout.strip() == linked, linked_run.stdout + linked_run.stderr)
+    short_owner = tempfile.mkdtemp()
+    short_linked = _linked_worktree(short_owner, "FEAT-90")
+    short_run = _feature_root_cli(short_owner, "FEAT-90-alpha")
+    check("case35: feature-root accepts a short-form worktree basename",
+          short_run.returncode == 0 and short_run.stdout.strip() == short_linked, short_run.stdout + short_run.stderr)
+    fallback = _feature_root_cli(owner_root, "FEAT-91-beta")
+    check("case35: feature-root CLI falls back to owner root",
+          fallback.returncode == 0 and fallback.stdout.strip() == owner_root, fallback.stdout + fallback.stderr)
+    missing = _feature_root_cli(owner_root)
+    check("case35: feature-root requires --feature",
+          missing.returncode == 1 and not missing.stdout and "--feature" in missing.stderr, missing.stdout + missing.stderr)
+    _ambiguous_feature_root_case()
+
+
+CASES = (
+    case_1_claim_then_live_claim, case_2_single_flight_and_parallel_asymmetry,
+    case_2b_live_children_by_dispatcher, case_2c_live_children_expires_stale,
+    case_3_staleness_live_claim, case_4_release, case_5_is_single_flight,
+    case_6_refusal_lines, case_6b_children_refusal_lines, case_7_concurrency,
+    case_8_corrupt_registry, case_9_release_all, case_10_no_own_primitive,
+    case_11_ttl_shorter_than_cycle, case_12_foreign_session_expired,
+    case_13_release_refuses_ambiguous, case_14_remedy_is_absolute,
+    case_15_feature_scoped_single_flight, case_16_omp_claim_lives_with_supervisor,
+    case_17_targeted_release_keeps_other_feature, case_18_legacy_registry_migrates_on_write,
+    case_19_attach_and_release_by_runtime_identity, case_20_reconcile_only_target_feature,
+    case_21_live_query_does_not_expire_another_feature,
+    case_22_recycled_supervisor_pid_is_not_alive, case_23_verified_claim_never_ages_out,
+    case_24_unverifiable_claim_cannot_strand_forever,
+    case_25_stranded_child_does_not_hold_its_parent,
+    case_26_start_time_read_pins_the_c_locale,
+    case_27_non_finite_start_time_cannot_strand_the_registry,
+    case_28_featureless_claim_still_gets_a_remedy, case_29_orphan_write,
+    case_30_own_claim_is_not_orphan_write, case_31_no_live_claim_fails_open,
+    case_32_sessionless_claim_is_visible, case_33_orphan_write_omp_runtime_is_never_orphaned,
+    case_34_children_refusal_names_suspension, case_35_feature_root_cli,
+)
+
+
+def main():
+    for case in CASES:
+        case()
     failed = [r for r in RESULTS if not r[1]]
     if failed:
         print(f"FAIL - {len(failed)}/{len(RESULTS)} checks failed")

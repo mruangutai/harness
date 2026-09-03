@@ -39,6 +39,9 @@ RESULTS = []
 # FEAT-42 T-18: every governed dispatch declares the feature it belongs to.
 FEATURE_LINE = "HARNESS-FEATURE: FEAT-42-one-root-resolver"
 
+# The checked-in personas are resolved from the guard's own control-plane root.
+FEATURE_TREE_ROOT = os.path.realpath(os.path.join(BIN_DIR, "../../../.."))
+
 
 def check(name, ok, detail=""):
     RESULTS.append((name, ok, detail))
@@ -145,6 +148,12 @@ def _checkout():
     os.makedirs(os.path.join(tmp, ".harness"))
     with open(os.path.join(tmp, ".harness", "team-config.yaml"), "w") as fh:
         fh.write("agents: {}\n")
+    os.makedirs(os.path.join(tmp, ".omp", "agents"))
+    for persona in ("harness-backend-dev", "harness-product-lead"):
+        shutil.copyfile(
+            os.path.join(FEATURE_TREE_ROOT, ".omp", "agents", persona + ".md"),
+            os.path.join(tmp, ".omp", "agents", persona + ".md"),
+        )
     return tmp
 
 
@@ -174,7 +183,10 @@ def _task(dispatched, dispatcher="harness-orchestrator", cwd=None):
             # built by this helper is a legitimate dispatch and must carry it; case 11 strips
             # it deliberately to prove the refusal.
             "tool_input": {"subagent_type": dispatched,
-                           "prompt": FEATURE_LINE + "\nx"}}
+                           "prompt": FEATURE_LINE + (
+                               "\nHARNESS-FEATURE-TREE-ROOT: " + (cwd or FEATURE_TREE_ROOT)
+                               if dispatched == "harness-product-lead" else ""
+                           ) + "\nx"}}
 
 
 def case_6_single_flight_refusal():
@@ -453,6 +465,40 @@ def case_16_system_python_compatibility():
     )
 
 
+def case_17_shell_less_persona_requires_matching_feature_root():
+    root = _checkout()
+    try:
+        missing = _task("harness-product-lead", "harness-orchestrator", root)
+        missing["tool_input"]["prompt"] = FEATURE_LINE + "\nplan"
+        allowed = _task("harness-product-lead", "harness-orchestrator", root)
+        bash = _task("harness-backend-dev", "harness-eng-lead", root)
+        mismatched = _task("harness-product-lead", "harness-orchestrator", root)
+        mismatched["tool_input"]["prompt"] = (
+            FEATURE_LINE + "\nHARNESS-FEATURE-TREE-ROOT: " + FEATURE_TREE_ROOT + "\nplan"
+        )
+        env = {"CLAUDE_PROJECT_DIR": root, "HARNESS_PROJECT_DIR": root}
+        r_missing = fire(missing, env=env)
+        r_allowed = fire(allowed, env=env)
+        r_bash = fire(bash, env=env)
+        r_mismatched = fire(mismatched, env=env)
+        check("case 17: shell-less product lead without a root exits 2",
+              r_missing.returncode == 2, r_missing.stderr)
+        check("case 17: missing root refusal names persona and anchor",
+              "harness-product-lead" in r_missing.stderr
+              and "HARNESS-FEATURE-TREE-ROOT:" in r_missing.stderr, r_missing.stderr)
+        check("case 17: shell-less product lead with matching root exits 0",
+              r_allowed.returncode == 0, r_allowed.stderr)
+        check("case 17: bash-enabled backend lead needs no feature root",
+              r_bash.returncode == 0, r_bash.stderr)
+        check("case 17: mismatched absolute root exits 2",
+              r_mismatched.returncode == 2, r_mismatched.stderr)
+        check("case 17: mismatch names declared and resolver roots",
+              root in r_mismatched.stderr and FEATURE_TREE_ROOT in r_mismatched.stderr,
+              r_mismatched.stderr)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
 def main():
     # ISOLATE THE WHOLE RUN, and do it HERE rather than in any case.
     #
@@ -497,6 +543,7 @@ def main():
     case_14_single_flight_is_per_feature()
     case_15_omp_dispatch_records_supervisor_and_receipt()
     case_16_system_python_compatibility()
+    case_17_shell_less_persona_requires_matching_feature_root()
 
     failed = 0
     for name, ok, detail in RESULTS:

@@ -3658,6 +3658,45 @@ def run_bug895_wrong_checkout_cases():
     print(f"\n{len(results) - fails}/{len(results)} bug895 wrong-checkout cases passed.")
     return fails
 
+def _feat52_foreign_cwd_receipt_pair():
+    workspace = tempfile.mkdtemp()
+    root = fixture_fleet(
+        """schema_version: 1
+teams:
+  - name: build
+    members:
+      - name: harness-documentor
+        domain:
+          - { path: .harness/*/features/*/runs/**, upsert: true }
+""",
+        ("schema: factory-fleet/1\n"
+         f"workspace_root: {workspace}\n"
+         "repos:\n"
+         "  - name: acme/widget\n"
+         "    default_branch: main\n"),
+    )
+    worktree = make_linked_worktree(
+        root, os.path.join(root, ".claude", "worktrees", "FEAT-90"), "FEAT-90"
+    )
+    rel = ".harness/harness/features/FEAT-90-alpha/runs/r1/receipt.md"
+    receipt = os.path.join(worktree, rel)
+    product_cwd = os.path.join(workspace, "widget")
+    os.makedirs(os.path.dirname(receipt), exist_ok=True)
+    os.makedirs(product_cwd, exist_ok=True)
+
+    def invoke(path):
+        payload = {"agent_type": "harness-documentor", "tool_name": "Write",
+                   "tool_input": {"file_path": path, "content": "x"}}
+        return subprocess.run([HOOK], input=json.dumps(payload), capture_output=True,
+                              text=True, env=_env(root), cwd=product_cwd)
+
+    allowed = invoke(receipt)
+    refused = invoke(os.path.join(product_cwd, rel))
+    return (
+        "SC-15 PAIR: foreign product cwd allows its feature-worktree receipt and refuses its product twin",
+        allowed.returncode == 0 and refused.returncode == 2,
+        f"allow={allowed.returncode}: {allowed.stderr}; refuse={refused.returncode}: {refused.stderr}",
+    )
 
 
 def run_feat50_artifact_integrity():
@@ -3696,6 +3735,7 @@ def run_feat50_artifact_integrity():
         _bug1124_unreadable_case(state_root5, state_path5),
         _bug1124_no_incoming_run_id_case(state_root6, state_path6),
         _bug1124_prior_unparseable_case(state_root7, state_path7),
+        _feat52_foreign_cwd_receipt_pair(),
     ]
     return _report_feat50_artifact_results(results)
 

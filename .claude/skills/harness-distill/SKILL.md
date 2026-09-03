@@ -17,7 +17,7 @@ distillation stays inline"* — that governs the ORCHESTRATOR's dispatch procedu
 `harness/SKILL.md`, which still runs every ship and is still inline. What moved is the MEMBER's
 write-rules, which fire once per agent per feature. Different tier, different frequency.
 
-You touch `.harness/expertise/<your-agent-name>.md` **only when your dispatch explicitly says
+You touch `<HARNESS_CONTROL_PLANE_ROOT>/.harness/expertise/<your-agent-name>.md` **only when your dispatch explicitly says
 "distill"** — at feature close, under a curation note, or via `/harness-curate`. Then:
 
 1. Read your observations log(s) and your current Expertise (already in context).
@@ -29,8 +29,8 @@ You touch `.harness/expertise/<your-agent-name>.md` **only when your dispatch ex
    scratch file, then run:
 
    ```
-   python3 .agents/skills/harness/bin/expertise-merge.py apply \
-     --file .harness/expertise/<your-agent-name>.md --entries <your scratch file>
+   python3 <HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/expertise-merge.py apply \
+     --file <HARNESS_CONTROL_PLANE_ROOT>/.harness/expertise/<your-agent-name>.md --entries <your scratch file>
    ```
 
    A **whole-file write** to an Expertise file is what loses another run's entries (DEC-125), and
@@ -47,7 +47,7 @@ You touch `.harness/expertise/<your-agent-name>.md` **only when your dispatch ex
    | 9 | `--file` is not an Expertise file | you named the wrong path — fix it, never work around it |
 
    Report the ops in your DIGEST's `expertise_update` as the receipt.
-4. Run `.agents/skills/harness/bin/check-expertise.sh <file>` and fix every violation before
+4. Run `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/check-expertise.sh <file>` and fix every violation before
    returning. Report per-section entry counts before and after.
 
 ## The entry format — rules, not stories
@@ -61,8 +61,8 @@ Your Expertise is split by **what the knowledge is about**, not by what you were
 
 | Layer | Holds | Lives at | Budget |
 |---|---|---|---|
-| **Craft** | how you work, true wherever you work | `.harness/expertise/<agent>.md` | 150 lines |
-| **Repository** | what is true of ONE repository | `.harness/<repo>/expertise/<agent>.md` | 40 lines |
+| **Craft** | how you work, true wherever you work | `<HARNESS_CONTROL_PLANE_ROOT>/.harness/expertise/<agent>.md` | 150 lines |
+| **Repository** | what is true of ONE repository | `<HARNESS_CONTROL_PLANE_ROOT>/.harness/<repo>/expertise/<agent>.md` | 40 lines |
 
 **The default is craft, and the test is one question: could this entry be true and useful in a
 repository you have never seen?** If yes, it is craft. It is repository-layer only when it turns on

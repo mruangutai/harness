@@ -9,15 +9,15 @@ user-invocable: false
 You author `BRIEF.md` and `plan.yaml`. They are the spec — there is no separate spec artifact.
 
 **`plan.yaml` is REAL YAML, and nothing in it is prose for a human** (DEC-182). The human reads
-`BRIEF.md`. Instantiate from `.agents/skills/harness/templates/plan.yaml`.
+`BRIEF.md`. Instantiate from `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/templates/plan.yaml`.
 
 **Every write goes through a verb. There is no other route** — not an `Edit`, not a `Write`,
 not a shell redirect. The shape gate denies all three, and a station outside the vocabulary
 `harness.json` declares is refused before the file is opened.
 
 ```bash
-python3 .agents/skills/harness/bin/plan-merge.py apply \
-  --file .harness/<repo>/features/<FEAT>/plan.yaml --proposal -
+python3 <HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/plan-merge.py apply \
+  --file <HARNESS_FEATURE_TREE_ROOT>/.harness/<repo>/features/<FEAT>/plan.yaml --proposal -
 ```
 
 `apply` unions by task and decision `id`, so a second pm spawn cannot delete the first's tasks.
@@ -84,11 +84,11 @@ one as `execution_mode: **SPLIT (D-10…)`; the regex captured `**SPLIT`, report
 unrecognised token, and the eng squad hit exit 2 on it. Splitting the enum from its reason is what
 makes that unwritable.
 
-And every plan opens with a `lanes:` block, resolved against `.harness/team-config.yaml` at a named
+And every plan opens with a `lanes:` block, resolved against `<HARNESS_CONTROL_PLANE_ROOT>/.harness/team-config.yaml` at a named
 SHA.
 
 **Before handing a plan back, run
-`python3 .agents/skills/harness/bin/check-plan-routes.py <plan path>` and fix every
+`python3 <HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/check-plan-routes.py <plan path>` and fix every
 violation. A non-zero exit is not a plan that is ready for signature.**
 Run it here because plan time is when the fix is one edit, not a rewrite of work already built.
 The `integration` CI job runs the same checker over every live plan and is a required check on
@@ -98,7 +98,7 @@ The `integration` CI job runs the same checker over every live plan and is a req
 
 ```yaml
 verify: |            # correct — newlines survive
-  python3 .agents/skills/harness/bin/run-unit-tests.sh
+  python3 <HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/run-unit-tests.sh
 
 verify: >            # WRONG — folding turns every newline into a space
   python3 ...
@@ -120,7 +120,7 @@ tries to dispatch it.
 
 pm transcribes the validator lead's digest into plan.yaml's top-level `panel` key and never edits
 a finding's severity. Compute every id with
-`python3 .claude/skills/harness/bin/panel_findings.py id --reader <r> --summary <s>`; never type it.
+`python3 <HARNESS_CONTROL_PLANE_ROOT>/.claude/skills/harness/bin/panel_findings.py id --reader <r> --summary <s>`; never type it.
 Transcribe one `panel.readers` entry for EVERY named reader, including `skipped` with the persona
 and the lead's reason. Never convert a skipped reader into one that ran cleanly or omit it because
 it produced no findings. A finding pm believes fixed remains present with disposition `resolved`
@@ -153,7 +153,7 @@ classic D-NN: record the load-bearing reason so it is not re-litigated.
 
 ## The glossary — the domain's language is yours to keep sharp
 
-`.harness/glossary.md` is the domain's **ubiquitous language**: one
+`<HARNESS_CONTROL_PLANE_ROOT>/.harness/glossary.md` is the domain's **ubiquitous language**: one
 canonical term per concept, no implementation detail — a glossary, never a spec or scratch pad.
 Working rules (DEC-149, adapted from domain-modeling practice):
 

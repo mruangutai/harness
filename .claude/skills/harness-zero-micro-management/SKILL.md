@@ -15,7 +15,7 @@ writing a deliverable is.
 
 ## Your loop
 
-1. **Match the request** against your members' `consult-when` in `.harness/team-config.yaml`.
+1. **Match the request** against your members' `consult-when` in `<HARNESS_CONTROL_PLANE_ROOT>/.harness/team-config.yaml`.
 2. **Spawn that member and delegate** — the task, the inputs, the paths, the goal. Carry two things
    **verbatim**: the task's `T-NN` id, and the task's `verify:` command exactly as the plan writes
    it. `verify:` is preloaded into no member's context, so an unquoted command is one the member
@@ -81,3 +81,5 @@ lives in `harness-spec-driven`; it is restated here because this is where the ve
 contract lives, and a rule split from its consequence is one nobody applies.
 
 | "I'll paraphrase the verify command" | The member cross-checks your verbatim string against PLAN and returns `BLOCKED` on mismatch. A paraphrase reads as a mismatch and stops the task |
+
+When dispatching a persona that holds no shell, include `HARNESS-FEATURE-TREE-ROOT: <absolute path>`; dispatch-guard.sh refuses its absence at exit 2. Leads hold no shell and use the value supplied on their own dispatch; if absent, return `VERDICT: BLOCKED` rather than guess.

@@ -14,9 +14,9 @@ A criterion with no method is not verifiable, and discovering that at ship time 
 
 ### 1. Read what exists
 
-- `.harness/harness/features/<FEAT>/BRIEF.md` if present — you are updating, not replacing.
+- `<HARNESS_FEATURE_TREE_ROOT>/.harness/harness/features/<FEAT>/BRIEF.md` if present — you are updating, not replacing.
 - The repo's `CLAUDE.md` for project context.
-- **`.harness/harness/docs/DECISIONS-INDEX.md`, grepped for the surface this feature touches.**
+- **`<HARNESS_CONTROL_PLANE_ROOT>/.harness/harness/docs/DECISIONS-INDEX.md`, grepped for the surface this feature touches.**
   Open the two or three entries it names. Never read `DECISIONS.md` whole (DEC-150). A brief that
   contradicts a live decision, or restates one as if new, sends the build to argue with the tree.
 - Do **not** explore the whole codebase. This is a scope document, not a research task.
@@ -39,7 +39,7 @@ below).
 ## The feature id — you coin it, once
 
 `FEAT-NN-<kebab-slug>` for features, **`BUG-NN-<kebab-slug>` for defects** (independent number
-sequences, same rules; both live under `.harness/harness/features/`). Slug from the goal, 2–4 words — a
+sequences, same rules; both live under `<HARNESS_FEATURE_TREE_ROOT>/.harness/harness/features/`). Slug from the goal, 2–4 words — a
 bare number tells the user nothing (DEC-133). **Immutable once created**: recorded references
 break on rename.
 
@@ -81,7 +81,7 @@ signature.
 
 ## Verification gaps — say them out loud, at the signature (DEC-163)
 
-Before writing a single `verify: automated`, read `test_kinds` in `.harness/harness.json`. A kind
+Before writing a single `verify: automated`, read `test_kinds` in `<HARNESS_CONTROL_PLANE_ROOT>/.harness/harness.json`. A kind
 with `cmd: null` has **no runner**: qa resolves it to a soft skip, so an SC resting on it can never
 be met and never fails loudly — a gate that looks real and does nothing.
 
@@ -129,10 +129,10 @@ comes back, spelled the way it is spelled there.
 | Do | Do not |
 |---|---|
 | `owner_root`, `workspace_root`, `harness_root` | `<repo root>`, `<this checkout>`, "the base dir" |
-| `WORKTREES_SEGMENT` | `.claude/worktrees` spelled out again |
+| `WORKTREES_SEGMENT` | `<HARNESS_CONTROL_PLANE_ROOT>/.claude/worktrees` spelled out again |
 | the segment `DECISIONS.md` uses | a clearer synonym you prefer |
 
-**A path is a name.** `.harness/<repo>/features/` and `.harness/<product>/features/` are the same
+**A path is a name.** `<HARNESS_FEATURE_TREE_ROOT>/.harness/<repo>/features/` and `<HARNESS_FEATURE_TREE_ROOT>/.harness/<product>/features/` are the same
 idea with two spellings, and one of them is wrong. Check which the tree uses.
 
 **If the established name is genuinely wrong, amend the decision that owns it** — one statement, one
@@ -197,7 +197,7 @@ Do not set `## Approval` yourself. Ever.
 Report in plain English, not IDs:
 
 ```
-BRIEF written — .harness/harness/features/<FEAT>/BRIEF.md
+BRIEF written — <HARNESS_FEATURE_TREE_ROOT>/.harness/harness/features/<FEAT>/BRIEF.md
 
 Goal      Reviewers can narrow a long transcript to one author.
 2 requirements, 3 success criteria.

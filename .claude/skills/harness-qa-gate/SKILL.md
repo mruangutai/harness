@@ -22,7 +22,7 @@ git diff --stat <merge-base>..HEAD
 git diff <merge-base>..HEAD
 ```
 
-If `.harness/harness/features/<FEAT>/review_sha` exists, diff `base..<review_sha>` instead — reviewing a pinned
+If `<HARNESS_FEATURE_TREE_ROOT>/.harness/harness/features/<FEAT>/review_sha` exists, diff `base..<review_sha>` instead — reviewing a pinned
 SHA, not a moving `HEAD`.
 
 ### 2. Classify each changed path
@@ -41,7 +41,7 @@ Assign **one** change type per logical change. Judge from the diff, not from a t
 | `config` / `scaffolding` / `docs` | build config, deps, generated scaffolding, documentation |
 
 **A `config` change that alters a value's SHAPE — a key's container type, required-ness, or
-structural nesting in `.harness/harness.json`/`fleet.yaml` or any config a gate script reads — is
+structural nesting in `<HARNESS_CONTROL_PLANE_ROOT>/.harness/harness.json` or `fleet.yaml`, or any config a gate script reads — is
 still `config`, but trips the `touches_config_shape` predicate (DEC-212).** Changing `stations` from
 a mapping to a list is shape; bumping `max_total_runs` from 20 to 25 is not. A shape change has a
 consumer blast radius no test scoped to the producing module can see — issue #1033 shipped exactly
@@ -50,7 +50,7 @@ this, unit-green, while `check-state.sh`'s own INV-26 block and `board_lifecycle
 
 ### 3. Look up required kinds
 
-Read `test_matrix` and `test_kinds` from `.harness/harness.json`. If it is absent, **stop and say so** —
+Read `test_matrix` and `test_kinds` from `<HARNESS_CONTROL_PLANE_ROOT>/.harness/harness.json`. If it is absent, **stop and say so** —
 do not invent a matrix.
 
 The matrix is a **floor, not a ceiling**: you may add a requirement the diff clearly warrants. You may
@@ -106,7 +106,7 @@ The failure kind is the signal; the count is noise.
 A genuine `FAIL` looks different: a **named** test with an assertion diff — *expected X, received Y*.
 
 A misconfigured cmd returns `VERDICT: BLOCKED — test command misconfigured for kind '<kind>'`,
-naming the cmd, the error, and the fix location (`.harness/harness.json`) — the code is not the problem.
+naming the cmd, the error, and the fix location (`<HARNESS_CONTROL_PLANE_ROOT>/.harness/harness.json`) — the code is not the problem.
 
 **No test files matched, with exit 0, is also `BLOCKED`** — a runner that silently matched nothing has
 told you the glob is wrong, and passing on it is exactly the no-op'd hard gate this section exists to

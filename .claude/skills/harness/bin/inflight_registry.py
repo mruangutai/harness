@@ -632,11 +632,26 @@ def _option(rest, name):
     return rest[index + 1]
 
 
+def _feature_root_command(root, rest):
+    feature = _option(rest, "--feature")
+    if not feature:
+        print("inflight_registry: feature-root requires --feature", file=sys.stderr)
+        return 1
+    try:
+        resolved = harness_boundary.worktree_for_feature(root, feature)
+    except harness_boundary.AmbiguousWorktree as exc:
+        print("inflight_registry: feature-root is ambiguous for %s (%s)" % (feature, exc),
+              file=sys.stderr)
+        return 1
+    print(resolved if resolved is not None else root)
+    return 0
+
+
 def main(argv=None):
     argv = list(argv) if argv is not None else sys.argv[1:]
     if not argv:
         print(
-            "usage: inflight_registry.py {list|attach|release|release-all|reconcile} [options]",
+            "usage: inflight_registry.py {list|attach|release|release-all|reconcile|feature-root} [options]",
             file=sys.stderr,
         )
         return 1
@@ -646,6 +661,8 @@ def main(argv=None):
         print("inflight_registry: no checkout root and no --root was given", file=sys.stderr)
         return 1
 
+    if command == "feature-root":
+        return _feature_root_command(root, rest)
     if command == "list":
         _cli_list(root)
         return 0

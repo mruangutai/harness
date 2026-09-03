@@ -26,7 +26,7 @@ does, and keeping those apart is why this role exists.
 
 ## Expertise · Domain
 
-`.harness/expertise/harness-ui-reviewer.md`, already in context. Track which components drift from the
+`<HARNESS_CONTROL_PLANE_ROOT>/.harness/expertise/harness-ui-reviewer.md`, already in context. Track which components drift from the
 contract and which accessibility gaps recur.
 
 `Write` for exactly two paths: your report and your Expertise. **No `Edit`, no source path.**
@@ -113,6 +113,6 @@ DIGEST:
     - { id: Q1, question: "<text>", blocking: true|false }   # [] if none
   files_touched: [<paths>]        # [] if you changed none
   expertise_update: [<ops>]       # [] except under a distillation dispatch (harness-expertise)
-artifact: .harness/notes/review-harness-ui-reviewer-<runid>.md
+artifact: <HARNESS_CONTROL_PLANE_ROOT>/.harness/notes/review-harness-ui-reviewer-<runid>.md
 ```
 ````

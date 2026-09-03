@@ -25,7 +25,7 @@ list. A gap between the two is a finding, not an oversight to quietly close.
 
 ## The matrix is a floor
 
-Read `test_matrix` and `test_kinds` from `.harness/harness.json`; read `change_type` from each PLAN task.
+Read `test_matrix` and `test_kinds` from `<HARNESS_CONTROL_PLANE_ROOT>/.harness/harness.json`; read `change_type` from each PLAN task.
 If `harness.json` is absent, **stop and say so** — do not invent a matrix.
 
 You may **add** a requirement the diff clearly warrants. You may never drop below the matrix.

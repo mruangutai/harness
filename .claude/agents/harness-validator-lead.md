@@ -27,7 +27,7 @@ the reviewers finish — it is your defining job.
 
 ## Expertise
 
-`.harness/expertise/harness-validator-lead.md`, already in your context. Track which tests are flaky,
+`<HARNESS_CONTROL_PLANE_ROOT>/.harness/expertise/harness-validator-lead.md`, already in your context. Track which tests are flaky,
 which findings recur, which reviewers over- or under-report. You are the only agent that sees every
 reviewer's output, so calibration lives here.
 
@@ -35,7 +35,7 @@ No `Edit` — propose `expertise_update` ops in your DIGEST.
 
 ## Domain
 
-`.harness/team-config.yaml` under `leads:` — your squad's run dir and your own Expertise.
+`<HARNESS_CONTROL_PLANE_ROOT>/.harness/team-config.yaml` under `leads:` — your squad's run dir and your own Expertise.
 
 ## Your squad
 
@@ -128,3 +128,5 @@ your context — one canonical copy for all three leads, not restated here.
 
 Add to the DIGEST: `severity_max: info|low|med|high|critical` and
 `adequacy_notes: [<what the panel could not tell you>]`.
+
+You hold no shell. `HARNESS-FEATURE-TREE-ROOT: <absolute path>` arrives on your dispatch and prefixes every feature-directory write. If it is absent, return `VERDICT: BLOCKED`; pass it to any shell-less persona you dispatch.

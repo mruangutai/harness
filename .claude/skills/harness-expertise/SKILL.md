@@ -13,9 +13,10 @@ Memory has **two layers**, and confusing them is the failure this skill exists t
 
 | Layer | File | Written | Injected at spawn |
 |---|---|---|---|
-| **Observations** — hot, granular, this feature | `.harness/harness/features/<FEAT>/observations/<your-agent-name>.md` | by you, mid-run, freely | **never** |
-| **Expertise, craft** — how you work, anywhere | `.harness/expertise/<your-agent-name>.md` | only under a **distillation dispatch** | every spawn |
-| **Expertise, repository** — true of ONE repo | `.harness/<repo>/expertise/<your-agent-name>.md` | only under a **distillation dispatch** | every spawn |
+| **Observations** — hot, granular, this feature | `<HARNESS_FEATURE_TREE_ROOT>/.harness/<repo>/features/<FEAT>/observations/<your-agent-name>.md` | by you, mid-run, freely | **never** |
+| **Expertise, craft** — how you work, anywhere | `<HARNESS_CONTROL_PLANE_ROOT>/.harness/expertise/<your-agent-name>.md` | only under a **distillation dispatch** | every spawn |
+| **Expertise, repository** — true of ONE repo | `<HARNESS_CONTROL_PLANE_ROOT>/.harness/<repo>/expertise/<your-agent-name>.md` | only under a **distillation dispatch** | every spawn |
+The value is resolved from the FEAT id on the first line of the dispatch, as harness-handoff states.
 
 Craft is the default: **could this be true and useful in a repository you have never seen?** If yes,
 it is craft. The full rule is in `harness-distill`, which you read when you are told to distill.
@@ -33,8 +34,8 @@ Append through the merge tool instead — it merges under a lock and replaces at
 both contexts keep their bullets:
 
 ```bash
-python3 .agents/skills/harness/bin/observations-merge.py apply \
-  --file .harness/<repo>/features/<FEAT>/observations/<your-agent-name>.md --entries -
+python3 <HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/bin/observations-merge.py apply \
+  --file <HARNESS_FEATURE_TREE_ROOT>/.harness/<repo>/features/<FEAT>/observations/<your-agent-name>.md --entries -
 ```
 
 Entries arrive on stdin in the same bullet format the log already uses.
@@ -68,8 +69,8 @@ Those rules — the procedure, the entry format, the ops schema, the caps — ar
 (DEC-158): they governed ~33 spawns per feature that never write the file.
 
 **When your dispatch says "distill", read
-`.agents/skills/harness-distill/SKILL.md` first.** Until then the only thing you need to know is
-that you do not touch `.harness/expertise/<your-agent-name>.md`.
+`<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness-distill/SKILL.md` first.** Until then the only thing you need to know is
+that you do not touch `<HARNESS_CONTROL_PLANE_ROOT>/.harness/expertise/<your-agent-name>.md`.
 
 ## Red flags
 
