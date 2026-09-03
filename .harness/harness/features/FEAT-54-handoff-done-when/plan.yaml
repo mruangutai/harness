@@ -5,7 +5,7 @@ approval:
   approved_by: Mike Ruangutai
   status: approved
 
-status: plan
+status: building
 
 source_issues: []
 
@@ -467,7 +467,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-dev-ops
     depends_on: []
-    status: ready
+    status: done
     files:
       - .harness/harness.json
     verify: |

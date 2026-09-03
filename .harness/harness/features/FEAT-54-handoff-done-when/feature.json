@@ -4,7 +4,7 @@
   "pr": null,
   "review_sha": "none",
   "cycles_used": 9,
-  "max_total_cycles": 10,
+  "max_total_cycles": 30,
   "max_total_runs": 20,
   "runs": [
     {
@@ -105,6 +105,45 @@
       "squad": "product",
       "verdict": "PASS",
       "agent": "harness-product-lead"
+    },
+    {
+      "id": "2026-09-02-t05t09-eng",
+      "squad": "engineering",
+      "verdict": "BLOCKED",
+      "agent": "harness-eng-lead"
     }
-  ]
+  ],
+  "github": {
+    "milestone": 43,
+    "parent": 1262,
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03",
+      "T-04",
+      "T-05",
+      "T-06",
+      "T-07",
+      "T-08",
+      "T-09",
+      "T-10",
+      "T-11",
+      "T-12"
+    ],
+    "issues": {
+      "T-01": 1263,
+      "T-02": 1264,
+      "T-03": 1265,
+      "T-04": 1266,
+      "T-05": 1267,
+      "T-06": 1268,
+      "T-07": 1269,
+      "T-08": 1270,
+      "T-09": 1271,
+      "T-10": 1272,
+      "T-11": 1273,
+      "T-12": 1274
+    },
+    "source_issues": []
+  }
 }
