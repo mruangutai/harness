@@ -1,7 +1,7 @@
 {
   "feature_id": "FEAT-52-factory-control-plane",
   "branch": "feat/FEAT-52-factory-control-plane",
-  "pr": null,
+  "pr": 1275,
   "review_sha": "1d93c727",
   "cycles_used": 7,
   "max_total_cycles": 10,
