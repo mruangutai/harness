@@ -69,7 +69,7 @@ decisions:
     because: the astryx-design-system convention makes a second substrate a Decision, and nothing here needs one.
     dec: none
   - id: D-08
-    choice: Charting is TanStack Charts at alpha, pinned as @tanstack/charts with its /react adapter; the alpha is ACCEPTED, ruled by the operator on 2026-09-01 (notes/answers-2026-09-01-plan-signature.md, DEC-3), with the rollback named in this decision's because clause; the capability trigger is unchanged - any of CAP-01, CAP-05, CAP-07 or CAP-11 unmet at T-18's probe.
+    choice: 'Charting is TanStack Charts at alpha, pinned as @tanstack/charts with its /react adapter; the alpha is ACCEPTED, ruled by the operator on 2026-09-01 (notes/answers-2026-09-01-plan-signature.md, DEC-3), with the rollback named in this decision''s because clause; the capability trigger is unchanged - any of CAP-01, CAP-05, CAP-07 or CAP-11 unmet at T-18''s probe. A STOP VERDICT DOES NOT HOLD THE PYTHON HALF: the instrumentation and payload chain - T-03, T-06, T-07, T-08, T-09, T-10, T-11, T-12, T-19, T-20 - depends on no client task, so it builds FIRST and a T-18 STOP stalls only the client. Under D-10 history is never recomputed, so every ship and every touchpoint that passes during a charting deliberation is unmeasured forever, which makes execution order a correctness matter and not a scheduling preference. On STOP the candidates to weigh include the server-rendered surface D-20 recorded as weighed-and-rejected, not only a second React charting library.'
     because: 'alpha risk is accepted only while the four hard capabilities hold, and a named trigger keeps the swap a decision rather than a rescue - but the package this decision named before, npm react-charts, cannot be the net - its newest publication is 2023-11-02 and its peer is React 16, against this client''s React 19 substrate, so it will not install beside Astryx at all. THE ROLLBACK, named here because the operator''s 2026-09-01 acceptance was conditional on it being written down, has three parts. (a) The alpha is PINNED to an exact version in the client package.json (T-04) and the built bundle is COMMITTED (D-04), so an upstream alpha change cannot reach a user without an explicit version bump made by a task and reviewed as one. (b) Where a capability is unmet and its DESIGN C-2 If absent cell names a workaround, THAT WORKAROUND IS THE ROLLBACK and it is applied in place with no library change: CAP-02 renders five single-bar series, CAP-03 encodes bar membership as a datum-derived hatch computed server-side and never one global line, CAP-04 and CAP-10 hand the region to DESIGN S-1 before the chart mounts, CAP-06 draws the bin labels ourselves beneath the axis, CAP-09 segments each series server-side into contiguous runs, which T-10 already does unconditionally, CAP-12 is ours to supply, and CAP-13 wraps the chart in a resize observer. CAP-08 is not a fallback at all - DESIGN C-2 pre-authorised three stacked single-series plots as the chosen build. (c) Where an unmet capability''s If absent cell reads hard requirement - CAP-01, CAP-05, CAP-07 and CAP-11, exactly the four in the trigger, with CAP-11 additionally offering an overlaid-marker series for its dash-and-shape half - T-18 records VERDICT STOP, the chart-building tasks do not start, and choosing a replacement library becomes an operator decision taken THEN on the probe''s own evidence rather than a question left outstanding at signature. NO FALLBACK LIBRARY IS NAMED IN ADVANCE because none survives the React 19 substrate check today. T-18 probes all thirteen capabilities before one line of client UI exists, so a STOP costs only the toolchain task and the operator chooses then, with the probe in hand, rather than now on speculation; naming a second, live charting library would in any case be its own Decision, which DESIGN requires.'
     dec: none
   - id: D-09
@@ -259,7 +259,7 @@ tasks:
       check-ignore does not match those two paths, rather than by grepping .gitignore for a comment
       that will never be there.
   - id: T-03
-    title: Pre-declare the two integration test literals in harness.json integration.detect
+    title: Pre-declare the integration test literals and resolve the component test kind in harness.json
     traces: [REQ-01, REQ-10]
     change_type: config
     execution_mode: team
@@ -269,7 +269,7 @@ tasks:
     files:
       - .harness/harness.json
     verify: |
-      bash .claude/skills/harness/bin/run-unit-tests.sh --check-kinds && python3 -c "import json;d=json.load(open('.harness/harness.json'));s={p.strip() for p in d['test_kinds']['integration']['detect'].split('|')};assert '.claude/skills/harness/bin/test-metrics-dashboard.py' in s;assert '.claude/skills/harness/bin/test-metrics-trend.py' in s;assert '.claude/skills/harness/bin/test-metrics-client-render.py' in s"
+      bash .claude/skills/harness/bin/run-unit-tests.sh --check-kinds && python3 -c "import json;d=json.load(open('.harness/harness.json'));s={p.strip() for p in d['test_kinds']['integration']['detect'].split('|')};assert '.claude/skills/harness/bin/test-metrics-dashboard.py' in s;assert '.claude/skills/harness/bin/test-metrics-trend.py' in s;assert '.claude/skills/harness/bin/test-metrics-client-render.py' in s" && python3 -c "import json;d=json.load(open('.harness/harness.json'));c=d['test_kinds']['component'];assert c['status']=='resolved',c;assert c['cmd'] and 'run test' in c['cmd'],c;assert '.test.tsx' in c['detect'],c"
     intent: |
       Append three literal paths to the pipe-separated string at
       .harness/harness.json test_kinds.integration.detect, keeping the existing entries and their
@@ -287,6 +287,28 @@ tasks:
       to the bash array without this literal exits 2 for the whole suite rather than failing one test.
       This task exists because the two lists live in files with different owners, and doing it here
       is what keeps every later commit boundary green.
+
+      Then RESOLVE test_kinds.component, which is the second half of this task and not an optional extra.
+      .harness/harness.json test_matrix.frontend.always is [unit, component] and it is a FLOOR qa may not
+      drop below, while test_kinds.component today carries cmd: null with status "unresolved" and a detect
+      glob (**/*.spec.tsx|**/*.stories.tsx|**/*.stories.ts) that matches nothing this plan creates. The
+      blocking qa_gate returns BLOCKED for a required kind whose cmd is null, and BLOCKED again for a
+      required kind that matches no file, so T-13 - the first task in this plan declaring
+      change_type: frontend, along with T-14, T-15 and T-21 - would halt the run. Routing the render gate
+      through the integration kind (T-21, T-22) closes the evidentiary gap and does NOT touch this one.
+      So, in the same edit:
+        set test_kinds.component.cmd to
+          npm --prefix .claude/skills/harness/bin/dashboard/client run test
+        set test_kinds.component.detect to
+          .claude/skills/harness/bin/dashboard/client/src/**/*.test.tsx
+        set test_kinds.component.status to "resolved" and replace its _reason with one sentence saying the
+        kind is discharged by the vitest + jsdom + @testing-library/react gate T-04 installs and T-21 and
+        T-22 stand up, so component and integration run the same executing render assertion by design
+        rather than by accident.
+      Keep component.exclude exactly as it is. Do NOT set status to "excluded": an exclusion needs a
+      recorded human call and a _matrix_provenance entry, and this project genuinely HAS the runner once
+      T-04 lands, so resolving is the weaker and truer form. This half of the task is inert until T-04
+      creates the client, exactly like the third detect literal above.
   - id: T-04
     title: Stand up the client toolchain and pin Astryx, React and TanStack at exact versions
     traces: [REQ-01, REQ-14]
@@ -353,12 +375,13 @@ tasks:
     depends_on: []
     status: ready
     files:
-      - .harness/harness/features/FEAT-53-metrics-dashboard/notes/prototypes/FEAT-53/index.html
-      - .harness/harness/features/FEAT-53-metrics-dashboard/notes/prototypes/FEAT-53/README.md
-      - .harness/harness/features/FEAT-53-metrics-dashboard/notes/prototypes/FEAT-53/package.json
-      - .harness/harness/features/FEAT-53-metrics-dashboard/notes/prototypes/FEAT-53/vite.config.js
-      - .harness/harness/features/FEAT-53-metrics-dashboard/notes/prototypes/FEAT-53/.gitignore
-      - .harness/harness/features/FEAT-53-metrics-dashboard/notes/prototypes/FEAT-53/src/
+    - .harness/harness/features/FEAT-53-metrics-dashboard/notes/prototypes/FEAT-53/index.html
+    - .harness/harness/features/FEAT-53-metrics-dashboard/notes/prototypes/FEAT-53/README.md
+    - .harness/harness/features/FEAT-53-metrics-dashboard/notes/prototypes/FEAT-53/package.json
+    - .harness/harness/features/FEAT-53-metrics-dashboard/notes/prototypes/FEAT-53/vite.config.js
+    - .harness/harness/features/FEAT-53-metrics-dashboard/notes/prototypes/FEAT-53/package-lock.json
+    - .harness/harness/features/FEAT-53-metrics-dashboard/notes/prototypes/FEAT-53/.gitignore
+    - .harness/harness/features/FEAT-53-metrics-dashboard/notes/prototypes/FEAT-53/src/
     verify: |
       cd .harness/harness/features/FEAT-53-metrics-dashboard/notes/prototypes/FEAT-53 &&
       npm ci &&
@@ -385,6 +408,12 @@ tasks:
       C-3's keyboard and focus contract in the prototype: its focus-stop order, a 2px text-token ring
       with 2px offset, and each specified focus landing after drill, Back, theme and disclosure
       transitions. Charts are aria-hidden and their adjacent real tables carry the values.
+
+      COMMIT the prototype's package-lock.json, and REMOVE the package-lock.json line from this
+      prototype's own .gitignore, which ignores it today. This task's verify begins with npm ci, and
+      npm ci refuses to run without a committed lockfile, so an ignored lockfile makes the verify
+      unrunnable on any clean checkout of the very tree this task commits - the same pattern T-04
+      already follows for the client package. Keep the node_modules/, dist/ and .smoke/ rules.
 
       Run the verification command. Then launch the prototype and inspect it in a real browser in both
       themes: operate each window control; drill aggregate → rows → feature and Back; sort each table;
@@ -874,7 +903,13 @@ tasks:
              pre-instrumentation and post-instrumentation cannot be told apart").
           3. feature_start's UTC CALENDAR DAY is strictly BEFORE the epoch's UTC calendar day ->
              (None, "this feature predates touchpoint instrumentation in this project - touchpoints
-             were never tracked for it"). This comparison is at DAY granularity, stated once here and
+             were never tracked for it") when that feature has NO touchpoints.jsonl, and (None, "this feature
+           started before touchpoint instrumentation in this project - the N touchpoints recorded for it
+           after instrumentation began are not a complete count") when the file EXISTS with N >= 1 lines.
+           The value is null either way; only the sentence differs, because a verbatim "never tracked"
+           rendered beside a file that holds real lines is a false D-19 reason - and the transition window
+           is not hypothetical: every feature in flight when this ships has a pre-epoch BRIEF approval date
+           and will accrue real lines from T-20's recorded instructions. This comparison is at DAY granularity, stated once here and
              once in D-21 and nowhere else: reduce both sides to their UTC date and compare the dates,
              so a feature whose start falls on the SAME calendar day the epoch was written is
              post-instrumentation and reaches branch 4. Comparing instants instead would read a
@@ -910,6 +945,9 @@ tasks:
         "touchpoints pre-instrumentation is unavailable not zero" - the same fixture project with a
         feature whose BRIEF approval date is BEFORE the epoch reports None, carries the branch-3
         sentence in the unavailable map, and its value is asserted to be not 0 and not "0".
+      Also assert, as its own case, the transition window: the same fixture project with a pre-epoch
+      feature whose touchpoints.jsonl EXISTS and holds two lines reports None with the incomplete-count
+      sentence, asserted to name the recorded count and NOT to say the touchpoints were never tracked.
       Also assert, as their own cases: a project with NO instrumented_at file reports every feature
       through branch 1; a feature with neither a BRIEF approval date nor an adding commit reports
       through branch 2; a feature whose BRIEF approval date is the SAME CALENDAR DAY as the epoch -
@@ -1765,8 +1803,8 @@ tasks:
 #
 # Open questions for the tier above are in the DIGEST, not here.
 panel:
-  last_run: 2026-09-02-08-validator
-  cycle: 5
+  last_run: 2026-09-03-c7-validator
+  cycle: 7
   readers:
   - reader: should-not-exist
     persona: fable-advisor
@@ -2182,3 +2220,79 @@ panel:
       carrier so one decision names the complete accepted set in one place. C4-04's
       own note above carries the same corrected statement. The fourteen-row set and
       every per-row subject are unchanged
+  - id: PF-d7fee939145e583a9c6a5a479043ca2b
+    cycle: 7
+    severity: high
+    reader: scope
+    summary: 'T-05''s verify begins with npm ci but package-lock.json was neither
+      in T-05''s files: nor committed, and the prototype''s own .gitignore ignores
+      it, so the task''s literal verify cannot run on a clean checkout of the tree
+      it commits. Carry-forward of c6''s F-1, still live at e6b93643.'
+    remedy_size: 'one files: entry plus one intent clause, matching T-04''s pattern'
+    disposition: resolved
+    resolved_by: T-05
+    note: T-05.files now lists notes/prototypes/FEAT-53/package-lock.json, and T-05.intent
+      instructs the task to COMMIT the lockfile and REMOVE the package-lock.json line
+      from the prototype's own .gitignore while keeping node_modules/, dist/ and .smoke/.
+      The verify is unchanged.
+  - id: PF-acd2ba13e2d3735209dd617f9ceff8c2
+    cycle: 7
+    severity: high
+    reader: scope
+    summary: 'harness.json test_matrix.frontend.always requires the component kind
+      as a floor, but test_kinds.component carries cmd: null / status unresolved and
+      a detect glob matching nothing this plan creates, with no _matrix_provenance.frontend
+      exclusion. qa_gate is blocking, so T-13 - the first of T-13/T-14/T-15/T-21 declaring
+      change_type: frontend - would return BLOCKED on both the null cmd and the zero
+      matched files. Routing the render gate through the integration kind (T-21/T-22)
+      closes the evidentiary gap and not this one. Missed by all six prior cycles.'
+    remedy_size: one added clause in T-03, whose files already include harness.json,
+      plus one verify assertion
+    disposition: resolved
+    resolved_by: T-03
+    note: 'T-03 is retitled and now resolves the kind in the same edit: component.cmd
+      set to npm --prefix .claude/skills/harness/bin/dashboard/client run test, detect
+      set to that client''s src/**/*.test.tsx, status set to resolved with a _reason
+      naming the vitest + jsdom + @testing-library/react gate T-04 installs and T-21/T-22
+      stand up; exclude untouched, and status is deliberately NOT excluded because
+      the project genuinely has the runner once T-04 lands. T-03.verify gained an
+      assertion on all three fields. The half is inert until T-04, exactly like the
+      third integration detect literal.'
+  - id: PF-088cd1e2e8fcb9481d41367db196a47e
+    cycle: 7
+    severity: medium
+    reader: should-not-exist
+    summary: T-11 count() branch 3 returned the verbatim reason 'touchpoints were
+      never tracked for it' on feature_start < epoch-day alone, without checking whether
+      that feature's touchpoints.jsonl exists. Every feature in flight when this ships
+      has a pre-epoch BRIEF approval date and will accrue real lines from T-20's instructions,
+      so the UI would render a sentence the file beside it disproves - and D-19's
+      premise is that the reason is specific and TRUE.
+    remedy_size: one branch-3 clause plus one test case; no schema change and no branch
+      reordering
+    disposition: resolved
+    resolved_by: T-11
+    note: 'Branch 3 now returns two sentences off one predicate: the ''never tracked''
+      sentence when no touchpoints.jsonl exists, and an incomplete-count sentence
+      naming N when the file exists with N >= 1 lines. The value stays null in both,
+      so no consumer changes. T-11 also gained a transition-window test case asserting
+      the incomplete-count sentence names the recorded count and does not claim the
+      touchpoints were never tracked.'
+  - id: PF-06c538fbbfa37f49d1545926fda4ad52
+    cycle: 7
+    severity: medium
+    reader: should-not-exist
+    summary: 'Sequencing risk the DAG permits but the plan never stated: the instrumentation
+      and payload chain depends on no client task, yet a T-18 STOP - a possibility
+      the plan itself designs for - would stall it while the charting fallback is
+      deliberated. Under D-10 history is never recomputed, so every ship and touchpoint
+      passing during that stall is unmeasured forever, which makes execution order
+      a correctness matter rather than a scheduling preference.'
+    remedy_size: two sentences on D-08; no task changes
+    disposition: resolved
+    resolved_by: D-08
+    note: 'D-08.choice now records that a STOP verdict does not hold the Python half:
+      T-03, T-06..T-12, T-19 and T-20 build first because they depend on no client
+      task, a STOP stalls only the client, and the candidates weighed on STOP include
+      the server-rendered surface D-20 recorded as weighed-and-rejected rather than
+      only a second React charting library.'
