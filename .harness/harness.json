@@ -147,6 +147,7 @@
     ".harness/harness/features/FEAT-50-run-artifact-integrity/notes/handoff-validate.md",
     ".harness/harness/features/FEAT-51-claude-code-lifecycle-safety/notes/handoff-build.md",
     ".harness/harness/features/FEAT-51-claude-code-lifecycle-safety/notes/handoff-plan.md",
+    ".harness/harness/features/FEAT-51-claude-code-lifecycle-safety/notes/handoff-validate.md",
     ".harness/harness/features/FEAT-52-factory-control-plane/notes/handoff-build.md",
     ".harness/harness/features/FEAT-52-factory-control-plane/notes/handoff-plan.md",
     ".harness/harness/features/FEAT-52-factory-control-plane/notes/handoff-validate.md"
