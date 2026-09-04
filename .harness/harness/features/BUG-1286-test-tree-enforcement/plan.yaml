@@ -1,0 +1,539 @@
+schema: plan/1
+feature: BUG-1286-test-tree-enforcement
+status: plan
+approval:
+  status: pending
+source_issues: [1286]
+
+lanes:
+  resolved_at: 1977ebd68d34cc0308968b03ad2d24399c0b5335
+  rows:
+    - surface: .claude/skills/harness/bin/suite_layout.py
+      lane: team
+      agent: harness-backend-dev
+    - surface: tests/unit/test-suite-layout.py
+      lane: team
+      agent: harness-backend-dev
+    - surface: tests/integration/test-run-unit-tests-layout.py
+      lane: team
+      agent: harness-backend-dev
+    - surface: tests/manual/suite-census.py
+      lane: team
+      agent: harness-backend-dev
+    - surface: .harness/harness/features/BUG-1286-test-tree-enforcement/notes/qa-tree-audit.md
+      lane: team
+      agent: harness-qa
+    - surface: .harness/harness/docs/DECISIONS.md
+      lane: team
+      agent: harness-documentor
+    - surface: .harness/harness/docs/DECISIONS-INDEX.md
+      lane: team
+      agent: harness-documentor
+
+decisions:
+  - id: D-01
+    choice: >-
+      The authoritative vocabulary for the NEW repository-wide clause is a basename match against
+      test-*, test_*, *_test.*, *.test.* or probe-*, restricted to the source extensions
+      .py .sh .ts .tsx .js .mjs .cjs; Markdown, JSONL and other captured data are out of scope of that
+      clause, probe-shaped records included. The extension restriction is scoped to that clause alone and
+      is not a repository-wide property of probe-shaped names: the pre-existing filesystem clause over the
+      bin directory deliberately keeps its own unrestricted probe-* glob, so a probe-shaped file under bin
+      stays refused whatever its extension, because that clause reads the filesystem rather than the Git
+      index and is the untracked-plant net; the pre-existing under-tests/ clause likewise keeps its own
+      three .py shapes. Three clauses, three deliberately different vocabularies, none of them widened by
+      this feature.
+    because: >-
+      eight of the nine tracked matches outside the test tree at the pinned SHA are Markdown or JSONL
+      records of probes, and refusing a feature's own honest record would make the guard fight the
+      evidence trail rather than the drift.
+    dec: none
+  - id: D-02
+    choice: >-
+      Exceptions live in one module-level DOCUMENTED_EXCEPTIONS tuple of exact relative path plus
+      written reason inside suite_layout.py, never a glob, and the registry polices itself: a glob
+      character, a duplicate, an entry absent from the tracked set, and an entry the vocabulary would
+      never have flagged are each their own violation.
+    because: >-
+      an exception that cannot go stale silently is the only kind that stays honest, and a separate
+      data file would add a module to the sole-implementation sweep for no gain.
+    dec: none
+  - id: D-03
+    choice: >-
+      Tracked means the current Git index read by git ls-files in the root, so a staged addition is
+      scanned and a staged deletion is not; the clause runs only when the root carries a .git entry, the
+      git toplevel equals the root, and the index carries suite_layout.py itself, and once the root claims
+      to be a checkout any enumeration failure is reported as a violation; the toplevel comparison is a
+      precondition of enumeration and must not be moved after the self-ownership test, because a fixture
+      root nested inside another checkout enumerates empty, which would fail self-ownership and go
+      silently inert instead of fail-closed.
+    because: >-
+      the ownership condition scopes repository-wide enforcement to a checkout whose own index carries
+      this predicate at that exact relative path, and violations() has exactly one caller, Harness's own
+      run-unit-tests.sh (pinned by the runner-delegates-layout-once assertion at
+      tests/unit/test-suite-layout.py lines 136 to 139), so a product checkout is reached by neither the
+      clause nor the runner; DEC-189 (DECISIONS.md heading "The write guard resolves against two bases")
+      records that the factory works on repositories it does not contain, that a product repo is checked
+      out under the fleet's workspace_root and is worked on from a harness-rooted session, and that it is
+      harness's hooks that fire and never the product's, so harness's own runner is the only thing that
+      ever calls violations(); while a root with no index at all must stay usable for the synthetic layout
+      fixtures rather than being reported as a failure.
+    dec: none
+  - id: D-04
+    choice: >-
+      The existing filesystem clause over the bin directory is retained beside the new index-driven
+      clause, and a path the bin clause already reported is not reported twice.
+    because: >-
+      the filesystem clause catches untracked plants that an index scan cannot see, and dropping it
+      would both weaken the guard and redden the fixtures that plant such files.
+    dec: none
+  - id: D-05
+    choice: >-
+      FEAT-44 evidence/probe-session-accessors.ts is an allowed documented exception at its exact
+      current path and is not relocated, so the consumer reference in
+      tests/manual/probe-omp-session-accessor.py lines 54 to 55 stays exactly as it is.
+    because: >-
+      relocating it would force edits to a landed feature's evidence README and shipped review note,
+      rewriting the record of completed work to satisfy a layout rule, and keeping it makes the live
+      registry entry load-bearing so the real repository is itself positive coverage; and the coupling is
+      accepted with its consequence stated: if that evidence file is ever archived or removed, the
+      registry entry reports "no longer tracked" on every runner invocation until suite_layout.py, granted
+      to backend-dev and dev-ops and not to whoever archives a feature, is edited.
+    dec: none
+  - id: D-06
+    choice: >-
+      DEC-213 is amended in place with an Amended-by paragraph that supersedes its bin-only
+      enumeration clause, and DECISIONS-INDEX.md is regenerated in the same task with its DEC-213
+      ruling tail rewritten by hand.
+    because: >-
+      the index records each entry's source line, so lengthening DEC-213 moves every later anchor,
+      and the text right of the row separator is hand-written and survives regeneration untouched.
+    dec: DEC-213
+
+panel:
+  last_run: 2026-09-04-08-validator
+  cycle: 3
+  severity_max: med
+  transcription_rule: 'Each summary is the digest''s own summary: field carried verbatim
+    from notes/review-plan-panel-c3.md; no markdown emphasis or backticks were present,
+    so no character was removed and no wrapping collapsed. Every id computed with
+    panel_findings.py id over the exact string stored here.'
+  readers:
+  - reader: should-not-exist
+    persona: fable-advisor
+    status: ran
+  - reader: scope
+    persona: harness-code-reviewer
+    status: ran
+  - reader: goalcheck
+    persona: harness-pm
+    status: ran
+    note: Ran in a separate product segment outside this team's two panel steps; its
+      findings were applied in the plan-fix cycles rather than transcribed here.
+  findings:
+  - id: PF-b1381e1d1016bfebf6d3364eddb5ef59
+    severity: low
+    reader: scope
+    summary: T-03's --against output contract doesn't state whether the row/TOTAL
+      block still prints under comparison mode
+    disposition: open
+  - id: PF-5504924547ecd6b632f6cb1f10246055
+    severity: med
+    reader: scope
+    summary: D-05's accepted archival landmine
+    disposition: open
+    corroborates:
+    - PF-806758dcc7e53f9217d3bfa230b272bf
+  - id: PF-806758dcc7e53f9217d3bfa230b272bf
+    severity: low
+    reader: should-not-exist
+    summary: The D-05 coupling should be accepted at low severity; the reddening is
+      a loud self-describing one-line finding fixable by a one-tuple-entry edit, and
+      the alternatives are rewriting a landed feature's shipped record or letting
+      exceptions go silently stale, which breaches AC-07
+    disposition: open
+    corroborates:
+    - PF-5504924547ecd6b632f6cb1f10246055
+  - id: PF-3d6c9ec01bf1eda038fda9b7703e22d6
+    severity: info
+    reader: scope
+    summary: SC-06's exact-equality assertion is acceptable, not brittle in the way
+      asked
+    disposition: open
+    corroborates:
+    - PF-8f95b3a90e31a1ceeabab4fa860c1c7c
+  - id: PF-8f95b3a90e31a1ceeabab4fa860c1c7c
+    severity: info
+    reader: should-not-exist
+    summary: SC-06's exact-equality grader should stand; whole-list equality is the
+      only form that proves the valid unit, integration and manual files and the copied
+      bin module each contributed nothing, and the pinned string is also asserted
+      at the runner boundary in T-02
+    disposition: open
+    corroborates:
+    - PF-3d6c9ec01bf1eda038fda9b7703e22d6
+  - id: PF-43252b3fa6f8521818b37a4681924e4a
+    severity: info
+    reader: scope
+    summary: 'harness.json detect residual: disclosure is sufficient and does not
+      gate'
+    disposition: open
+    corroborates:
+    - PF-093f4650a55ddd59ad77f704d7101d5f
+  - id: PF-093f4650a55ddd59ad77f704d7101d5f
+    severity: low
+    reader: should-not-exist
+    summary: The unit.detect residual should not gate the signature but should not
+      end at disclosure either; the only in-scope fix edits harness.json, which AC-11
+      and SC-14 forbid, so gating deadlocks the feature against itself
+    disposition: open
+    corroborates:
+    - PF-43252b3fa6f8521818b37a4681924e4a
+  - id: PF-d33300cef5eb898cfa0a971c791c8107
+    severity: info
+    reader: should-not-exist
+    summary: |-
+      The repository-wide clause and every task carrying it should be built; issue #1286 explicitly mandates pre-dispatch refusal, so the T-03 audit alone or a pre-commit/CI check cannot discharge the ticket
+    disposition: open
+  - id: PF-ae6d643363371bf038d536934837962a
+    severity: info
+    reader: should-not-exist
+    summary: 'T-03''s --against mode should be kept despite issue #1286 not requesting
+      it; SC-12/AC-09 require the note''s fenced row set proven identical to a re-run,
+      and --against mechanizes exactly that comparison'
+    disposition: open
+  cross_references:
+  - topic: D-05's archival coupling, sighted independently by both readers at different
+      severities; neither severity is reconciled
+    findings:
+    - PF-5504924547ecd6b632f6cb1f10246055
+    - PF-806758dcc7e53f9217d3bfa230b272bf
+  - topic: SC-06's exact-equality grader, judged acceptable independently by both
+      readers
+    findings:
+    - PF-3d6c9ec01bf1eda038fda9b7703e22d6
+    - PF-8f95b3a90e31a1ceeabab4fa860c1c7c
+  - topic: The harness.json unit.detect residual, raised independently by both readers;
+      both judge it non-gating and they differ on whether disclosure alone is the
+      right end state
+    findings:
+    - PF-43252b3fa6f8521818b37a4681924e4a
+    - PF-093f4650a55ddd59ad77f704d7101d5f
+  - topic: 'Not a corroboration pair - both findings concern T-03''s --against mode
+      but they are distinct claims: one an output-contract ambiguity, the other a
+      keep-or-strike judgement'
+    findings:
+    - PF-b1381e1d1016bfebf6d3364eddb5ef59
+    - PF-ae6d643363371bf038d536934837962a
+  adequacy_notes:
+  - SC-06's unrebound two-finding baseline was not re-measured by the panel - scope
+    traced the rebound one-element result by hand, but no reader re-ran the c3 prototype;
+    if that count is wrong the rebinding rationale moves, not the assertion.
+  - SC-02 (test-first red proof) is ungradable at plan phase by construction; no panel
+    finding bears on whether qa's later base-commit audit happens.
+tasks:
+  - id: T-01
+    title: Refuse tracked test-shaped files outside the test tree, with its unit coverage written first
+    traces: [REQ-01, REQ-02, REQ-03, REQ-04, REQ-05, REQ-08]
+    change_type: cross_module
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: []
+    status: ready
+    files:
+      - tests/unit/test-suite-layout.py
+      - .claude/skills/harness/bin/suite_layout.py
+    verify: |
+      python3 tests/unit/test-suite-layout.py && .claude/skills/harness/bin/run-unit-tests.sh --check-layout
+    intent: |
+      Extend suite_layout.violations(root) so it also refuses every TRACKED test-shaped file outside
+      tests/, and write the covering assertions in tests/unit/test-suite-layout.py FIRST, observing
+      each of them fail against the current predicate before you change it. Keep every existing
+      clause, message string and ordering in the predicate exactly as it is; this work is additive.
+
+      Add these module-level constants to suite_layout.py:
+        NAME_PATTERNS = ("test-*", "test_*", "*_test.*", "*.test.*", "probe-*")
+        SOURCE_EXTENSIONS = (".py", ".sh", ".ts", ".tsx", ".js", ".mjs", ".cjs")
+        DOCUMENTED_EXCEPTIONS = one tuple of (relative_path, reason) pairs, seeded with exactly one
+        entry whose path is
+        .harness/harness/features/FEAT-44-omp-context-advisory/evidence/probe-session-accessors.ts
+        and whose reason states: FEAT-44 evidence, the committed OMP extension that
+        tests/manual/probe-omp-session-accessor.py loads; classified as evidence, not a test
+        (BUG-1286 D-05).
+      A path is test-shaped when fnmatch.fnmatch(basename, pattern) holds for some NAME_PATTERNS
+      entry AND os.path.splitext(path)[1] is in SOURCE_EXTENSIONS. Both conditions are required.
+      These two constants and the extension restriction govern the NEW repository-wide clause ONLY.
+      Do not feed them into the existing under-tests/ clause or the existing bin clause: both keep their
+      own globs byte-identical, including the bin clause's deliberately unrestricted probe-* (D-01, D-04),
+      which is what keeps a probe-shaped plant under bin refused whatever its extension.
+
+      Add def tracked_paths(root): returns a sorted tuple of POSIX-relative tracked paths. It runs
+      git ls-files -z with cwd=root, text=True, timeout=20, splits on NUL and drops empties, and
+      raises LookupError with a one-line reason on any of: git missing (FileNotFoundError), non-zero
+      exit (use the stderr first line), subprocess.TimeoutExpired, or git rev-parse --show-toplevel
+      not resolving via os.path.realpath to the same directory as root. The toplevel comparison is
+      required so a fixture root nested inside another checkout can never be scanned against the
+      outer index.
+
+      In violations(), after the existing bin clause, run the repository-wide clause only when
+      os.path.exists(os.path.join(root, ".git")) is true. Then:
+        - call tracked_paths(root); on LookupError append exactly one line
+          "cannot enumerate tracked files under {root}: {reason}" and skip every tracked-dependent
+          check below (never return clean, never report a partial set);
+        - if ".claude/skills/harness/bin/suite_layout.py" is not in the tracked set, the repository
+          under scan does not ship this rule: contribute nothing further and do not report a
+          violation. This is what keeps a product checkout unaffected;
+        - otherwise, for every tracked path that is test-shaped, does not start with "tests/", is not
+          already reported by the bin clause — compute that set once as
+          {p.relative_to(root).as_posix() for p in set(planted)} and test membership against it,
+          never a substring of the bin clause's message, which carries an absolute path — and is not
+          an exact DOCUMENTED_EXCEPTIONS path, append
+          "tracked test-shaped file outside tests/: {rel}" — iterating the sorted tracked set so the
+          output order is stable across runs.
+      Registry self-policing, appended after the file findings and sorted by entry path, and running
+      whether or not the index is available except where noted:
+        - a path containing any of * ? [ -> "documented exception is not an exact path: {rel}"
+        - a path listed more than once -> "documented exception is listed twice: {rel}"
+        - a path that is not test-shaped, or starts with "tests/" -> "documented exception is
+          unnecessary: {rel}"
+        - index available and the path absent from the tracked set -> "documented exception is no
+          longer tracked: {rel}"
+      Every finding is a plain string in the returned list, same as today, and violations() must stay
+      importable and side-effect free.
+
+      Unit coverage in tests/unit/test-suite-layout.py, added with the existing check() helper and
+      the existing failures list, each case cleaning up its temporary directory:
+        1. a real Git fixture: mkdtemp, git init -b main, write .harness/team-config.yaml, create
+           tests/unit/test-unit.py, tests/integration/test-integration.py and a legal manual file
+           tests/manual/probe-fixture.py, copy this repository's suite_layout.py to
+           .claude/skills/harness/bin/suite_layout.py, add a rogue .harness/tools/test_rogue.py,
+           git add -A and commit with -c user.email=t@example.com -c user.name=t -q -m fixture; assert
+           the rogue path appears in exactly one finding and that finding is the "tracked test-shaped
+           file outside tests/" line, and assert SEPARATELY that no finding names
+           tests/manual/probe-fixture.py. The probe-*.py shape is the manual shape asserted here and it
+           is chosen deliberately: the unchanged under-tests/ clause rglobs test-*.py, test_*.py and
+           *_test.py and refuses any match whose parent is not tests/unit or tests/integration, so a
+           tests/manual/test-*.py file is refused today and is the wrong shape to plant as legal.
+           Then, in this same case and on this same fixture, add the EXACT-EQUALITY assertion that is
+           the grader of SC-06's first clause. With suite_layout.DOCUMENTED_EXCEPTIONS temporarily
+           rebound to () inside a try/finally — case 6's mechanism, restored in the finally block —
+           assert that the returned list is EQUAL to exactly this one-element list:
+             ["tracked test-shaped file outside tests/: .harness/tools/test_rogue.py"]
+           Write it as equality on the whole returned list. Never `in`, never a containment, membership
+           or substring test, and never a length check paired with a membership test: only equality
+           proves that the valid tests/unit, tests/integration and tests/manual files, and the copied
+           bin module, each contributed NOTHING. Any second element fails the assertion, which is
+           exactly the property SC-06 needs.
+           The rebinding is REQUIRED for that assertion to be satisfiable and is not bookkeeping: the
+           registry self-policing clause above reports "documented exception is no longer tracked:
+           {rel}" whenever the index is available and a DOCUMENTED_EXCEPTIONS path is absent from the
+           tracked set, and the seeded FEAT-44 path
+           .harness/harness/features/FEAT-44-omp-context-advisory/evidence/probe-session-accessors.ts
+           is not tracked in this fixture, so the UNREBOUND call returns TWO findings — that staleness
+           line and the rogue line — measured on a faithful prototype of this spec against this exact
+           fixture. Do NOT instead create and track that FEAT-44 path inside the fixture: that couples
+           case 1 to the live registry's contents, which case 7 exists to keep out of every other case.
+           Nothing is lost by rebinding, because the registry's own behaviour is graded by cases 6
+           and 7 and is not case 1's subject;
+        2. the same fixture with the rogue file present but NEVER git added: assert no finding names
+           it — this is the tracked-versus-untracked distinction and it must be its own case;
+        3. three rogue tracked files in different directories: assert all three are reported and that
+           their order in the returned list is the sorted path order, and that a second call returns
+           an identical list;
+        4. a fixture where .git is replaced by an empty directory: assert exactly one finding starting
+           "cannot enumerate tracked files under" and that no tracked-dependent finding is present;
+        5. the existing non-git legal_tree(): assert the repository-wide clause contributes nothing
+           and the existing four-violation case still returns exactly its four findings;
+        6. registry cases on a Git fixture, each by temporarily rebinding
+           suite_layout.DOCUMENTED_EXCEPTIONS in a try/finally: a listed tracked rogue path is
+           accepted; an entry containing a * is refused as not an exact path; the same path listed
+           twice is refused as listed twice; an entry naming a tracked non-test-shaped file is refused
+           as unnecessary; an entry naming an untracked path is refused as no longer tracked;
+        7. the live registry is load-bearing: read the single entry's path from
+           suite_layout.DOCUMENTED_EXCEPTIONS first and assert against that value rather than a
+           literal, so a later registry change cannot redden this case; with DOCUMENTED_EXCEPTIONS
+           temporarily set to () assert violations(ROOT) contains that path, and with it restored
+           assert violations(ROOT) == [];
+        8. vocabulary boundary: a tracked .harness/notes/probe-something.md in the Git fixture
+           produces no finding, while a tracked .harness/notes/probe-something.py does;
+        9. self-ownership is load-bearing in the other direction: a Git fixture built exactly like
+           case 1 but WITHOUT .claude/skills/harness/bin/suite_layout.py in its index — do not copy
+           the module in; the fixture needs only the two kind directories and the tracked rogue file
+           — must produce no "tracked test-shaped file outside tests/" finding at all, which is the
+           clause that leaves a checkout not shipping this rule untouched.
+      Do not modify .harness/harness.json, run-unit-tests.sh, or any file outside the two named here.
+  - id: T-02
+    title: Prove the runner presents the refusal before any test sentinel runs
+    traces: [REQ-01, REQ-02, REQ-03]
+    change_type: scaffolding
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-01]
+    status: ready
+    files:
+      - tests/integration/test-run-unit-tests-layout.py
+    verify: |
+      python3 tests/integration/test-run-unit-tests-layout.py
+    intent: |
+      Add integration coverage to tests/integration/test-run-unit-tests-layout.py for the
+      repository-wide clause, driving the real .claude/skills/harness/bin/run-unit-tests.sh through
+      the existing tree() and run() helpers. Keep every existing case and its expectations unchanged.
+
+      Add a git_tree() helper that builds tree() and then makes it a real checkout: git init -b main,
+      git add -A, and commit with -c user.email=t@example.com -c user.name=t -q -m fixture, so the
+      copied .claude/skills/harness/bin/suite_layout.py is tracked at that relative path (the
+      predicate requires this to enforce repository-wide, per T-01). Cases:
+        1. clean git_tree(): run(r, "--kind", "all") returns 0 and stdout carries both
+           "PASS test-unit.py" and "PASS test-integration.py" — the guard costs nothing when clean;
+        2. git_tree() with a tracked rogue file: write .harness/tools/test_rogue.py, git add and
+           commit it, then run(r, "--kind", "all") and assert ALL THREE of returncode == 2,
+           ".harness/tools/test_rogue.py" present in stderr on a line beginning "MISCONFIGURED:",
+           and "PASS test-unit.py" NOT present in stdout. The third assertion is the ordering
+           guarantee: the refusal must arrive before any sentinel executes, so a run that reported the
+           violation after running the suite would fail this case;
+        3. same as 2 but with three tracked rogue files in different directories: assert all three
+           appear in stderr and that the MISCONFIGURED lines naming them are in sorted path order;
+        4. git_tree() with .git replaced by an empty directory: run(r, "--kind", "all") returns 2,
+           stderr carries "cannot enumerate tracked files under", and stdout carries no
+           "PASS test-" sentinel — enumeration failure is a closed failure at the runner boundary too;
+        5. untracked control: git_tree() with the rogue file written but not added returns 0 and runs
+           both sentinels.
+      Use only subprocess, tempfile, shutil and pathlib as the file already does, keep the per-case
+      check() reporting, and do not edit run-unit-tests.sh or suite_layout.py.
+  - id: T-03
+    title: Add a re-runnable tree-audit census subcommand for any ref
+    traces: [REQ-06]
+    change_type: scaffolding
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-01]
+    status: ready
+    files:
+      - tests/manual/suite-census.py
+    verify: |
+      out=$(python3 tests/manual/suite-census.py tree-audit --ref HEAD) && printf '%s\n' "$out" | grep -q 'probe-session-accessors\.ts.*documented-exception'
+    intent: |
+      Add a tree-audit subcommand to tests/manual/suite-census.py, registered the same way the
+      existing subcommands are (an add_tree_audit_parser function plus its entry in the parser table),
+      so the repository audit is an instrument anyone can re-run at a named ref rather than a one-off
+      measurement.
+
+      Arguments: --ref, defaulting to HEAD, and --against, an optional path to a Markdown note.
+      Import suite_layout by inserting ROOT/.claude/skills/harness/bin at the front of sys.path, and
+      take NAME_PATTERNS, SOURCE_EXTENSIONS and DOCUMENTED_EXCEPTIONS from it — never re-declare
+      them here, so the audit and the guard can never disagree.
+
+      Enumerate with git ls-tree -r --name-only <ref> run with cwd=ROOT, check=True. Select every
+      path whose basename matches a NAME_PATTERNS entry, WITHOUT the extension filter, so records the
+      guard deliberately ignores are still measured and dispositioned. For each selected path print
+      one row, path then a single tab then the disposition, sorted by path:
+        - in-tests-tree      when the path starts with tests/
+        - documented-exception when the path is an exact DOCUMENTED_EXCEPTIONS entry
+        - out-of-vocabulary  when the extension is not in SOURCE_EXTENSIONS
+        - violation          otherwise
+      Print the rows inside a fenced text block so the same block can be pasted into a note, then a
+      final line "TOTAL <n> OUTSIDE <n> VIOLATIONS <n>" counting selected paths, selected paths not
+      under tests/, and violation rows. Exit 1 if any violation row exists, else 0.
+
+      With --against, extract the fenced text block from the given note by reusing the same
+      fenced-block pattern baseline() applies at tests/manual/suite-census.py line 24 — a
+      triple-backtick fence, an optional text info string, and a lazy dot-all body — but parse each
+      extracted line as path then a single tab then disposition. Do NOT call baseline() itself: its
+      row regex requires a test-prefixed .py basename followed by an integer, matches no tree-audit
+      row, and would silently compare the measurement against an empty set. Compare the note's row
+      set to the measured rows, print each row present in one side only prefixed MISSING or EXTRA,
+      and exit 1 on any difference. Exit 0 only when the note's rows and the measured rows are
+      identical and no violation exists.
+
+      At the pinned SHA the expected measurement is 9 rows outside tests/, of which 1 is the FEAT-44
+      documented exception and 8 are out-of-vocabulary Markdown or JSONL records, and 0 violations; if
+      your run disagrees, report the difference rather than adjusting the classification.
+  - id: T-04
+    title: Record the repository audit and every outside-tree disposition at the reviewed revision
+    traces: [REQ-06]
+    change_type: docs
+    execution_mode: team
+    execution_agent: harness-qa
+    depends_on: [T-03]
+    status: ready
+    files:
+      - .harness/harness/features/BUG-1286-test-tree-enforcement/notes/qa-tree-audit.md
+    verify: |
+      out=$(python3 tests/manual/suite-census.py tree-audit --ref HEAD --against .harness/harness/features/BUG-1286-test-tree-enforcement/notes/qa-tree-audit.md) && printf '%s\n' "$out" | grep -q 'probe-session-accessors\.ts.*documented-exception'
+    intent: |
+      Run python3 tests/manual/suite-census.py tree-audit --ref HEAD from the repository root and
+      write the audit record to
+      .harness/harness/features/BUG-1286-test-tree-enforcement/notes/qa-tree-audit.md. The note must
+      contain, in this order:
+        1. a one-line BLUF stating the ref you measured (the full 40-character SHA of the commit you
+           ran against, not the word HEAD), the total number of matches, the number outside tests/,
+           and the number of violations;
+        2. the instrument's fenced text block of rows, pasted verbatim and unedited, so the
+           tree-audit --against comparison can reproduce it byte for byte;
+        3. one line per row outside tests/ giving its disposition and the reason in your own words:
+           for the FEAT-44 probe, that it is the documented exception carried by D-05 and consumed by
+           tests/manual/probe-omp-session-accessor.py, citing suite_layout.DOCUMENTED_EXCEPTIONS as
+           the authority for the classification; for each Markdown or JSONL record, that it is a
+           probe write-up or captured output and out of the D-01 vocabulary;
+        4. an explicit closing line stating whether any match is unexplained. If any row is a
+           violation, the audit FAILS: report it rather than reclassifying it, and do not add an
+           exception yourself, because the registry is T-01's and a new exception needs a decision.
+      Do not edit any file other than this note.
+  - id: T-05
+    title: Amend DEC-213 to the shipped repository-wide invariant and regenerate the decisions index
+    traces: [REQ-07]
+    change_type: docs
+    execution_mode: team
+    execution_agent: harness-documentor
+    depends_on: [T-01, T-02]
+    status: ready
+    files:
+      - .harness/harness/docs/DECISIONS.md
+      - .harness/harness/docs/DECISIONS-INDEX.md
+    verify: |
+      grep -q "Amended by BUG-1286-test-tree-enforcement" .harness/harness/docs/DECISIONS.md && grep -q '^- DEC-213 @.* :: .*tracked test-shaped file outside' .harness/harness/docs/DECISIONS-INDEX.md && python3 .claude/skills/harness/bin/gen-decisions-index.py --stdout | diff - .harness/harness/docs/DECISIONS-INDEX.md && python3 .claude/skills/harness/bin/check-decision-anchors.py
+    intent: |
+      DEC-213's paragraph beginning "One predicate guards the shape" says the predicate refuses an
+      empty kind directory, a duplicated basename, or any test-shaped file left under bin. That
+      enumeration is now narrower than the code. Append an amendment paragraph to DEC-213, in the
+      house style used at DECISIONS.md lines 4908, 5296 and 6174, opening with
+      "**Amended by BUG-1286-test-tree-enforcement — the predicate's reach, not its principle.**"
+      and stating, as the current contract:
+        - the predicate additionally refuses every tracked test-shaped file outside tests/, where the
+          authoritative vocabulary FOR THAT CLAUSE is NAME_PATTERNS and SOURCE_EXTENSIONS in
+          .claude/skills/harness/bin/suite_layout.py — name that module as the authority and do not
+          re-list the patterns or the extensions here; state only the consequence, that records of
+          probes carrying a non-source extension (Markdown, JSONL) are deliberately out of scope OF
+          THE REPOSITORY-WIDE CLAUSE. Do not write that the extension restriction holds everywhere: it
+          does not, and saying so would contradict the retained bin clause (D-01);
+        - the bin clause is retained beside it, unchanged and with its own deliberately unrestricted
+          probe-* glob, because it reads the filesystem and therefore catches untracked plants that an
+          index scan cannot see — so a probe-shaped file under bin is refused whatever its extension;
+          the bin-only enumeration is superseded as a statement of the predicate's reach, not as a rule;
+        - the authoritative tracked set is the Git index read in the root, active only under the three
+          conditions suite_layout.py's repository-wide clause tests (see that module), which scope
+          enforcement to a checkout that ships this rule; a product checkout is reached by neither
+          that clause nor Harness's own runner, the predicate's single caller — cite DEC-189 for why a
+          product checkout is worked from a harness-rooted session and do not restate its argument
+          here;
+        - a root with no index at all keeps the other clauses and contributes nothing here, which is
+          what the synthetic layout fixtures require, while an unreadable index in a root that claims
+          to be a checkout is reported as a violation and never as a clean result;
+        - exceptions are exact paths in one DOCUMENTED_EXCEPTIONS registry inside the predicate, and
+          a glob, a duplicate, an untracked entry or an unnecessary entry is each itself a violation;
+          the sole live entry is FEAT-44's evidence/probe-session-accessors.ts, classified evidence
+          consumed by tests/manual/probe-omp-session-accessor.py.
+      Also state that the paragraph beginning "What this does not do" still holds for bin support
+      modules such as layout_fixtures.py, which is not test-shaped and needs no exception.
+
+      Then update the DEC-213 row in DECISIONS-INDEX.md: the text right of the " :: " separator is
+      hand-written and is preserved verbatim across regeneration, so rewrite it yourself to say the
+      layout predicate refuses every tracked test-shaped file outside tests/, with exact documented
+      exceptions and a fail-closed index read. Before you edit, confirm that
+      grep -c "tracked test-shaped file outside" .harness/harness/docs/DECISIONS-INDEX.md reports 0,
+      so the verify clause asserting that phrase is non-vacuous, and make sure the row text you write
+      contains that exact phrase. Afterwards run
+      python3 .claude/skills/harness/bin/gen-decisions-index.py with no arguments to regenerate the
+      generated left-hand side, because lengthening DEC-213 moves the source-line anchor of every
+      later row, and confirm python3 .claude/skills/harness/bin/check-decision-anchors.py still
+      reports 0 failed. Change no other decision entry.
