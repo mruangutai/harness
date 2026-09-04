@@ -293,6 +293,8 @@ jobs:
         env:
           CLAUDE_PROJECT_DIR: ${{ github.workspace }}
         run: |
+          git config core.hooksPath .claude/skills/harness/hooks
+
           features=$(git ls-files '.harness/*/features/*/feature.json' | wc -l | tr -d ' ')
           if [ "$features" -eq 0 ]; then
             echo "::error::no .harness/*/features/*/feature.json is tracked, so check-state.sh would have nothing to examine and would exit 0 on an empty corpus. Refusing to report a pass." >&2
