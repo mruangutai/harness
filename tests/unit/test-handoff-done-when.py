@@ -192,4 +192,104 @@ with tempfile.TemporaryDirectory() as td_name:
         check(name, len(got) == 1 and "unsafe" in got[0].lower(), repr(got))
     outside.unlink()
 
+# ---------------------------------------------------------------------------
+# B-1: RESOLUTION IS NOT SATISFACTION (FEAT-54 c6 finding VL-F-01).
+#
+# The defect these cases defend against passed every earlier gate: a note citing an
+# authority that was ALREADY satisfied resolved clean, so `problems` returned [] and a
+# successor could read the section, find it green, and skip the work in `## Next`.
+# Existence was the only question asked, which is why the F-11 closure rested on a
+# hand-applied semantic test rather than on this module.
+
+
+def satisfaction_fixture(task_status, approval_status):
+    """A feature whose single task and single approval carry the given states."""
+    td = tempfile.TemporaryDirectory()
+    root = Path(td.name)
+    feat = root / ".harness/harness/features/FEAT-91-satisfaction"
+    (feat / "notes").mkdir(parents=True)
+    (feat / "plan.yaml").write_text(
+        "tasks:\n  - id: T-03\n    verify: python3 test.py\n"
+        f"    status: {task_status}\n")
+    (feat / "BRIEF.md").write_text(
+        f"# BRIEF\n\n- SC-04: observable\n\n## Approval\n\nstatus: {approval_status}\n")
+    rel = ".harness/harness/features/FEAT-91-satisfaction/notes/handoff-build.md"
+    return td, root, rel
+
+
+APPROVAL_POINTER = ("approval:.harness/harness/features/FEAT-91-satisfaction/"
+                    "BRIEF.md#Approval")
+
+# Each row: name, task status, approval status, pointers, whether it must be refused.
+for _name, _task, _appr, _pointers, _refuse in [
+    ("done task alone binds nothing", "done", "pending",
+     ["plan-task:T-03.verify"], True),
+    ("abandoned task alone binds nothing", "abandoned", "pending",
+     ["plan-task:T-03.verify"], True),
+    ("approved approval alone binds nothing", "building", "approved",
+     [APPROVAL_POINTER], True),
+    ("every pointer satisfied binds nothing", "done", "approved",
+     ["plan-task:T-03.verify", APPROVAL_POINTER], True),
+    # AND semantics: one unsatisfied pointer keeps the whole section binding.
+    ("open task still binds", "building", "approved",
+     ["plan-task:T-03.verify"], False),
+    ("pending approval still binds", "done", "pending",
+     [APPROVAL_POINTER], False),
+    ("satisfied plus open task still binds", "done", "pending",
+     ["plan-task:T-03.verify", APPROVAL_POINTER], False),
+    # Indeterminate is never satisfied: an SC is met by judgment, not by a field.
+    ("criterion alone is indeterminate", "done", "approved",
+     ["brief-sc:SC-04"], False),
+    ("satisfied task plus criterion still binds", "done", "approved",
+     ["plan-task:T-03.verify", "brief-sc:SC-04"], False),
+]:
+    _td, _root, _rel = satisfaction_fixture(_task, _appr)
+    try:
+        _body = "Scope: do the thing\n" + "\n".join(
+            f"Authority: {_pointer}" for _pointer in _pointers)
+        _got = handoff_done_when.problems(_rel, note(_body), _root, True)
+        if _refuse:
+            check(f"satisfaction: {_name}",
+                  len(_got) == 1 and "binds nothing" in _got[0]
+                  and "templates/HANDOFF.md" in _got[0], repr(_got))
+        else:
+            check(f"satisfaction: {_name}", _got == [], repr(_got))
+    finally:
+        _td.cleanup()
+
+# A missing status field is INDETERMINATE, not satisfied — the pre-DEC-182 plans and any
+# hand-written task carry no station, and refusing those would be a false positive.
+_td, _root, _rel = satisfaction_fixture("done", "approved")
+try:
+    _feat = _root / ".harness/harness/features/FEAT-91-satisfaction"
+    (_feat / "plan.yaml").write_text("tasks:\n  - id: T-03\n    verify: python3 test.py\n")
+    _got = handoff_done_when.problems(
+        _rel, note("Scope: do the thing\nAuthority: plan-task:T-03.verify"), _root, True)
+    check("satisfaction: stationless task is indeterminate", _got == [], repr(_got))
+finally:
+    _td.cleanup()
+
+# The check is WRITE-TIME ONLY, exactly like resolution: the persisted-corpus pass must
+# never reopen targets, or every superseded note on disk turns the state gate red as its
+# tasks land.
+_td, _root, _rel = satisfaction_fixture("done", "approved")
+try:
+    _got = handoff_done_when.problems(
+        _rel, note("Scope: do the thing\nAuthority: plan-task:T-03.verify"), _root, False)
+    check("satisfaction: silent when resolve is false", _got == [], repr(_got))
+finally:
+    _td.cleanup()
+
+# An unresolved pointer must report ITS OWN error and nothing else — stacking a
+# "binds nothing" line on top would bury the line the author has to fix.
+_td, _root, _rel = satisfaction_fixture("done", "approved")
+try:
+    _got = handoff_done_when.problems(
+        _rel, note("Scope: do the thing\nAuthority: plan-task:T-99.verify"), _root, True)
+    check("satisfaction: unresolved wins over vacuity",
+          len(_got) == 1 and "unresolved" in _got[0] and "binds nothing" not in _got[0],
+          repr(_got))
+finally:
+    _td.cleanup()
+
 raise SystemExit(1 if failures else 0)

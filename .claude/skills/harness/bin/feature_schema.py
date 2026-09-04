@@ -29,6 +29,7 @@ never pulls PyYAML in at all (T-01 receipt records this placement).
 """
 import json
 import os
+import re
 import sys
 
 try:
@@ -284,6 +285,93 @@ def _problems_for_doc(doc, display, for_path=None):
     problems.extend(_runs_agent_problems(doc, display))
     return problems
 
+
+# ---------------------------------------------------------------------------
+# THE LINE BUDGET COUNTS THE JOURNAL, NOT THE LEDGER (FEAT-54 backlog B-4).
+#
+# The 300-line cap exists to stop feature.json becoming a narrative — DEC-150's "it is data
+# a script parses, not a journal". But `runs:` is exactly the data a script parses, and its
+# length is a function of how long the feature ran, not of anyone's prose. MEASURED on
+# FEAT-54's own record at `f1ae55f2`: 336 lines total, of which 294 are the 48-entry runs
+# array and 42 are everything else. The old cap therefore fired on the one part of the file
+# that is legitimately unbounded, and the only ways to satisfy it were to delete real history
+# or to raise a number that would be wrong again at 60 runs.
+#
+# Excluding the array keeps the cap's teeth where they bite: 42 lines of non-runs content has
+# a great deal of room before 300, so a feature.json growing comment keys, rationale strings
+# or an `escalations` narrative still trips exactly as before.
+FEATURE_JSON_LINE_BUDGET = 300
+
+
+_RUNS_KEY_RE = re.compile(r'"runs"\s*:\s*\[')
+
+
+def _string_end(text, index):
+    """Offset just past the JSON string opening at `index`."""
+    index += 1
+    while index < len(text):
+        if text[index] == "\\":
+            index += 2
+            continue
+        if text[index] == '"':
+            return index + 1
+        index += 1
+    return index
+
+
+def _array_end(text, start):
+    """Offset just past the array opening at `start`, or None if it never closes."""
+    depth = 0
+    index = start
+    while index < len(text):
+        char = text[index]
+        if char == '"':
+            index = _string_end(text, index)
+            continue
+        if char in "[{":
+            depth += 1
+        elif char in "]}":
+            depth -= 1
+            if not depth:
+                return index + 1
+        index += 1
+    return None
+
+
+def _runs_span(text):
+    """(start, end) character offsets of the top-level `runs` array, or None.
+
+    Scans rather than re-serialising, because the budget is about the bytes ON DISK: a
+    round-trip through json.dumps would measure a formatting choice this function does not
+    make. Strings are skipped wholesale, so a `"runs":[` sequence inside any value — a run
+    id, a rationale string, a path — cannot be mistaken for the key.
+    """
+    index = 0
+    while index < len(text):
+        char = text[index]
+        if char == '"':
+            match = _RUNS_KEY_RE.match(text, index)
+            if match is None:
+                index = _string_end(text, index)
+                continue
+            start = match.end() - 1
+            end = _array_end(text, start)
+            return None if end is None else (start, end)
+        index += 1
+    return None
+
+
+def journal_lines(text):
+    """Line count of a feature.json with its `runs` ledger removed.
+
+    A file with no `runs` key, or one this cannot locate, counts whole — the budget must
+    never be loosened by a parse it did not understand.
+    """
+    span = _runs_span(text)
+    if span is None:
+        return len(text.splitlines())
+    start, end = span
+    return len((text[:start] + text[end:]).splitlines())
 
 def problems_for_text(text, display, for_path=None):
     """Validate JSON document TEXT against the schema. Returns a list of

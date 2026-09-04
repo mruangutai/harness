@@ -1149,8 +1149,13 @@ def case_o():
 
     checks, ok_all = [], True
     for what, dpat, spat in (
-        ("feature.json lines",  r"feature\.json is \{len\(lines\)\} lines — budget is (\d+)",
-                                r"feature\.json'\)\} is \{len\(fl\)\} lines — budget is (\d+)"),
+        # The feature.json pair is GONE because the DUPLICATE is gone: FEAT-54's B-4 moved
+        # the number and the counting rule into feature_schema.FEATURE_JSON_LINE_BUDGET, and
+        # both gates now import it. That pair is policed by its own block below, which
+        # asserts the single source AND that neither gate's fallback literal disagrees with
+        # it — a fallback that drifts is the same defect this case exists to catch, just
+        # hidden one branch deeper.
+        #
         # The comment-line budget pair is GONE, not relaxed. T-06 removed the check from
         # both files because JSON has no comments, so it could never fire — and a pair of
         # numbers that can never be printed is a duplicate this case cannot police.
@@ -1166,6 +1171,33 @@ def case_o():
         good = bool(a) and a == b
         ok_all &= good
         checks.append(f"{what}: check-domain {a or 'NOT FOUND'} vs check-state {b or 'NOT FOUND'}")
+
+    # THE feature.json BUDGET, NOW SINGLE-SOURCED (FEAT-54 B-4). Three things must hold or
+    # the de-duplication is worse than the duplication it replaced: the constant exists, both
+    # gates read it BY NAME, and every fallback literal they carry for an unimportable helper
+    # equals it. The third is the one a reader would miss — a fallback saying 250 would
+    # silently enforce a different budget on exactly the path nobody tests.
+    schema_src = open(os.path.join(here, "feature_schema.py"), encoding="utf-8").read()
+    declared = _re.search(r"^FEATURE_JSON_LINE_BUDGET = (\d+)$", schema_src, _re.M)
+    fallbacks = sorted({int(x) for x in
+                        _re.findall(r"_(?:inv23_)?budget = (\d+)", dom + sta)})
+    reads_constant = ("FEATURE_JSON_LINE_BUDGET" in dom
+                      and "FEATURE_JSON_LINE_BUDGET" in sta)
+    fgood = (declared is not None and reads_constant
+             and fallbacks in ([], [int(declared.group(1))]))
+    ok_all &= fgood
+    checks.append(
+        f"feature.json budget: declared "
+        f"{declared.group(1) if declared else 'NOT FOUND'}, both gates read the constant "
+        f"{reads_constant}, fallback literals {fallbacks or 'none'}")
+
+    # AND THE COUNTING RULE ITSELF IS SHARED, not merely the number. Either gate counting
+    # whole-file lines while the other excludes the ledger would enforce two budgets under
+    # one name, which is exactly the drift class above with the numbers still matching.
+    counts_journal = ("journal_lines" in dom and "journal_lines" in sta
+                      and "def journal_lines" in schema_src)
+    ok_all &= counts_journal
+    checks.append(f"feature.json counting rule shared: {counts_journal}")
 
     # The checkpoint vocabulary, the oldest deliberate duplicate in the pair.
     va = set(_re.findall(r'"([a-z_]+)"',

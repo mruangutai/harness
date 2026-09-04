@@ -42,6 +42,23 @@ DONE_WHEN_RE = re.compile(
     r"(?ims)^## Done when\s*$.*?(?=^##(?:\s|$)|\Z)"
 )
 
+# SEC-F-08. THIS PROBE PRINTS BYTES FROM TWO UNTRUSTED PRODUCERS: a repository
+# contributor, who chooses handoff filenames and the `Scope:`/`Authority:` facts, and the
+# model, whose answer is arbitrary text. Both reach an operator's terminal raw. Crafted
+# ESC/OSC sequences can clear the screen, rewrite the evidence the operator is reading, or
+# on permissive terminals touch terminal state and the clipboard — which makes the probe's
+# own output the least trustworthy part of a run whose entire purpose is producing evidence.
+#
+# NEWLINE AND TAB SURVIVE, everything else in C0/C1 and DEL is escaped visibly. A model
+# answer is genuinely multi-line and mangling it would defeat the measurement; no legitimate
+# producer here needs any other control byte.
+CONTROL_RE = re.compile(r"[\x00-\x08\x0b-\x1f\x7f-\x9f]")
+
+
+def safe(value: object) -> str:
+    """`value` as text with control bytes escaped — every print sink goes through this."""
+    return CONTROL_RE.sub(lambda m: f"\\x{ord(m.group()):02x}", str(value))
+
 
 def arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
@@ -94,7 +111,7 @@ def validate_note(candidate: Path) -> ValidatedNote | None:
         payload, mtime_ns = read_regular_file(path)
         return ValidatedNote(resolved, payload.decode("utf-8"), mtime_ns)
     except (OSError, UnicodeError, ValueError) as exc:
-        print(f"note: {path}\nerror: refusing note: {exc}")
+        print(f"note: {safe(path)}\nerror: refusing note: {safe(exc)}")
         return None
 
 
@@ -156,7 +173,7 @@ def covered_facts(answer: str, facts: list[str]) -> list[str]:
 
 def print_plan(notes: list[ValidatedNote], model: str) -> None:
     print("handoff comprehension probe: DRY RUN")
-    print(f"model: {model}")
+    print(f"model: {safe(model)}")
     print(f"arms: {', '.join(ARMS)}")
     print("questions:")
     for question in QUESTIONS:
@@ -165,17 +182,17 @@ def print_plan(notes: list[ValidatedNote], model: str) -> None:
     if not notes:
         print("- (none found)")
     for note in notes:
-        print(f"- {note.path}")
+        print(f"- {safe(note.path)}")
     print(f"planned model calls: {len(notes) * len(ARMS)} (not executed)")
 
 
 def print_note_header(note: ValidatedNote, facts: list[str]) -> None:
     sha = hashlib.sha256(note.text.encode()).hexdigest()
-    print(f"note: {note.path}")
+    print(f"note: {safe(note.path)}")
     print(f"note sha256: {sha}")
     print(f"required facts ({len(facts)}):")
     for fact in facts:
-        print(f"- {fact}")
+        print(f"- {safe(fact)}")
 
 
 def measure_arm(
@@ -184,15 +201,15 @@ def measure_arm(
     answer, error = ask(omp, model, text)
     covered = covered_facts(answer, facts)
     complete = bool(facts) and len(covered) == len(facts)
-    print(f"arm: {label}")
+    print(f"arm: {safe(label)}")
     print(f"coverage: {len(covered)}/{len(facts)}")
     print(f"covers every fact: {'yes' if complete else 'no'}")
     if error:
-        print(f"error: {error}")
+        print(f"error: {safe(error)}")
     for fact in (fact for fact in facts if fact not in covered):
-        print(f"missing: {fact}")
+        print(f"missing: {safe(fact)}")
     print("answer:")
-    print(answer or "(no answer)")
+    print(safe(answer) or "(no answer)")
     return len(covered), len(facts), complete
 
 
@@ -213,7 +230,7 @@ def measure_note(
 
 def run(notes: list[ValidatedNote], model: str) -> None:
     print("handoff comprehension probe: REAL RUN")
-    print(f"model: {model}")
+    print(f"model: {safe(model)}")
     print(f"arm labels: {', '.join(ARMS)}")
     omp = shutil.which("omp")
     if omp is None:

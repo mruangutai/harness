@@ -272,3 +272,39 @@ jobs:
 
           echo "layout gate examined ${feature_dirs} feature dir(s), ${doc_roots} doc root(s), ${reader_files} reader file(s); checker exit ${rc}"
           exit "$rc"
+
+      # THE REPOSITORY-STATE GATE, PROMOTED (FEAT-54 backlog B-5). SC-04 asserted a clean
+      # `check-state.sh` at ONE review pin and bound no later commit: the gate ran because a
+      # criterion told a human to run it, so the next commit could redden the corpus and
+      # nothing would say so until the next feature happened to look. This step is the
+      # standing detector that criterion could not be.
+      #
+      # IN THIS JOB, FOR THE REASON THE PLAN-ROUTE GATE RECORDS ABOVE: branch protection
+      # requires exactly the `integration` context, which is this job's ID. A job of its own
+      # would emit a context nobody requires and merge with this gate red or absent.
+      #
+      # EXIT CODE IS THE VERDICT, BUT SILENCE IS NOT A PASS. check-state.sh prints one row per
+      # finding and nothing at all when the corpus is clean, so exit 0 with no output is
+      # genuinely ambiguous between "clean" and "discovered nothing to check" — this
+      # repository's most-repeated defect. The corpus count below is the positive control:
+      # it comes from git, not from the checker, so a root-derivation change or a sparse
+      # checkout that blinds the checker cannot also silence the guard.
+      - name: Repository-state gate
+        env:
+          CLAUDE_PROJECT_DIR: ${{ github.workspace }}
+        run: |
+          features=$(git ls-files '.harness/*/features/*/feature.json' | wc -l | tr -d ' ')
+          if [ "$features" -eq 0 ]; then
+            echo "::error::no .harness/*/features/*/feature.json is tracked, so check-state.sh would have nothing to examine and would exit 0 on an empty corpus. Refusing to report a pass." >&2
+            exit 1
+          fi
+
+          rc=0
+          out=$(bash .agents/skills/harness/bin/check-state.sh 2>&1) || rc=$?
+          printf '%s\n' "$out"
+
+          # NOTE ROWS ARE NOT VIOLATIONS. check-state.sh already decides that: it exits 0
+          # with note rows present and non-zero only for a refusal, so this step adds no
+          # severity judgment of its own and cannot drift from the checker's.
+          echo "repository-state gate examined ${features} tracked feature record(s); checker exit ${rc}"
+          exit "$rc"

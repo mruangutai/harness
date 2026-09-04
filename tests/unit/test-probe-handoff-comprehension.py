@@ -111,6 +111,28 @@ class ProbePathSecurityTest(unittest.TestCase):
             self.assertEqual(0, self.probe.main())
         self.assertEqual([], self.calls)
 
+    def test_control_bytes_are_escaped_before_printing(self):
+        """SEC-F-08: neither producer's control bytes may reach the terminal raw."""
+        crafted = "scope\x1b[2Jcleared\x1b]0;title\x07\x00\x7f"
+        got = self.probe.safe(crafted)
+        for byte in ("\x1b", "\x07", "\x00", "\x7f"):
+            self.assertNotIn(byte, got)
+        self.assertIn("\\x1b", got)
+
+    def test_newline_and_tab_survive_scrubbing(self):
+        """A model answer is multi-line; mangling it would defeat the measurement."""
+        self.assertEqual("a\nb\tc", self.probe.safe("a\nb\tc"))
+
+    def test_every_untrusted_sink_is_scrubbed(self):
+        """A crafted fact and a crafted answer both reach the terminal escaped."""
+        printed = []
+        with mock.patch("builtins.print", side_effect=lambda *a, **k: printed.append(
+                " ".join(str(part) for part in a))):
+            self.probe.measure_arm("as-written", "note", ["fact\x1b[2J"],
+                                   "/bin/omp", "test-model")
+        self.assertTrue(printed)
+        self.assertNotIn("\x1b", "\n".join(printed))
+
 
 if __name__ == "__main__":
     unittest.main()

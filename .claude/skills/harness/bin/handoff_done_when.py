@@ -178,6 +178,104 @@ RESOLVERS = {
     "approval:": _resolve_approval,
 }
 
+# ---------------------------------------------------------------------------
+# ALREADY-SATISFIED AUTHORITY (B-1, from FEAT-54 c6 finding VL-F-01).
+#
+# RESOLUTION IS NOT SATISFACTION, and c5 found the gap the hard way: BOTH real FEAT-54
+# handoff notes cited an authority that was ALREADY satisfied before the note's own next
+# action began. Every pointer resolved, `problems: []` came back clean, and a successor
+# could check the authority, see it green, and stop without doing the work. Existence was
+# the only question this module asked.
+#
+# THE RULE IS `ALL`, NEVER `ANY`, and that follows from the template's own semantics:
+# authorities combine as logical AND, so one satisfied pointer among several leaves the
+# rest binding and the section still means something. Only when EVERY pointer is already
+# satisfied does the block bind nothing at all — which is the defect, stated exactly.
+#
+# INDETERMINATE IS NOT SATISFIED. `brief-sc:` and `finding:` have no machine-readable
+# satisfaction state — a criterion is met by a goal-check's judgment, not by a field — so
+# they return None and a note citing one is never refused here. That is deliberate
+# under-reach: this check must produce no false refusals, because a gate that blocks
+# honest notes gets disabled and then protects nothing.
+
+
+def _plan_task(match, feature_dir, root):
+    doc = yaml.safe_load(_read_target(feature_dir / "plan.yaml", root))
+    tasks = doc.get("tasks", []) if isinstance(doc, dict) else []
+    return next((task for task in tasks
+                 if isinstance(task, dict) and task.get("id") == match.group(1)), None)
+
+
+def _satisfied_plan(match, feature_dir, root):
+    """True when the cited task has already reached its terminal station."""
+    task = _plan_task(match, feature_dir, root)
+    if task is None:
+        return None
+    status = task.get("status")
+    if not isinstance(status, str):
+        return None
+    return status.strip().lower() in ("done", "abandoned")
+
+
+def _heading_body(lines, heading):
+    wanted = heading.strip().lower()
+    for index, line in enumerate(lines):
+        if (_atx_heading_text(line) or "").lower() != wanted:
+            continue
+        body = []
+        for following in lines[index + 1:]:
+            if _atx_heading_text(following) is not None:
+                break
+            body.append(following)
+        return body
+    return None
+
+
+def _satisfied_approval(match, _feature_dir, root):
+    """True when the cited approval heading already reads `approved`."""
+    body = _heading_body(_read_target(root / match.group(1), root).splitlines(),
+                         match.group(2))
+    if body is None:
+        return None
+    for line in body:
+        key, _, value = line.partition(":")
+        if key.strip().lower() == "status":
+            return value.strip().lower() == "approved"
+    return None
+
+
+SATISFACTION = {
+    "plan-task:": _satisfied_plan,
+    "approval:": _satisfied_approval,
+}
+
+
+def _satisfied(pointer, match, feature_dir, root):
+    """True | False | None (not determinable) for one resolved pointer."""
+    prefix = next(prefix for prefix in LEGAL_PREFIXES if pointer.startswith(prefix))
+    check = SATISFACTION.get(prefix)
+    if check is None:
+        return None
+    try:
+        return check(match, feature_dir, root)
+    except Exception:
+        # The pointer already RESOLVED to reach this line, so an exception here is a
+        # shape surprise in the target, not a missing target. Indeterminate, never a
+        # refusal: this check may only ever narrow what a clean resolution permits.
+        return None
+
+
+def _satisfaction_problems(parsed, feature_dir, root):
+    states = [(pointer, _satisfied(pointer, match, feature_dir, root))
+              for pointer, match in parsed]
+    if not states or not all(state is True for _pointer, state in states):
+        return []
+    cited = ", ".join(repr(pointer) for pointer, _state in states)
+    return [_message(
+        f"{SECTION} binds nothing: every authority it cites ({cited}) is ALREADY "
+        f"satisfied, so a successor can check it, see it green, and stop without doing "
+        f"the action in ## Next. Cite an authority the action itself discharges")]
+
 
 def _resolve(pointer, match, feature_dir, root):
     prefix = next(prefix for prefix in LEGAL_PREFIXES if pointer.startswith(prefix))
@@ -264,7 +362,13 @@ def _resolve_all(rel_path, parsed, root):
     if feature_dir is None:
         return [_message(
             f"handoff path {rel_path!r} is not inside .harness/<repo>/features/<FEAT>/")]
-    return _resolution_problems(parsed, feature_dir, root)
+    unresolved = _resolution_problems(parsed, feature_dir, root)
+    if unresolved:
+        # SATISFACTION IS ASKED ONLY OF POINTERS THAT RESOLVED. Asking it of a pointer
+        # whose target is missing would report a vacuous section on top of the real
+        # error and bury the line the author has to fix.
+        return unresolved
+    return _satisfaction_problems(parsed, feature_dir, root)
 
 
 

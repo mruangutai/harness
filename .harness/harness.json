@@ -312,8 +312,9 @@
       "detect": "evals/**|tests/**eval**",
       "exclude": ".claude/worktrees/**|node_modules/**|.venv/**",
       "cmd": null,
-      "_reason": "unset \u2014 dev-ops has not run detection yet. Required only for change_type: ai_behavior; ai-dev authors the eval, qa gates it.",
-      "status": "unresolved"
+      "status": "excluded",
+      "excluded_because": "detection HAS run and found no evals/ tree: this repository's ai_behavior surface is the two probe scripts already registered as their own locally_run kinds, handoff_comprehension and omp_session_accessor, and those probes ARE the evals DEC-70 requires ai-dev to author and qa to gate. Pointing eval at them would double-count files another kind already runs, which is the same rationale DEC-187 signed for functional. The prior record read 'dev-ops has not run detection yet' with status unresolved, which DEC-187 does not permit for a kind the matrix names and which read as absent coverage rather than covered-elsewhere.",
+      "signed": "DEC-187"
     },
     "typecheck": {
       "detect": "**/*.ts|**/*.tsx",

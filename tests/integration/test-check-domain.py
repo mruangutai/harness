@@ -2559,6 +2559,13 @@ _PLAN_LEGAL = (
     "  - id: T-01\n"
     f"    status: {_fc09.MANDATED_STATIONS[5]}\n"
     "    verify: python3 test.py\n"
+    # T-02 IS DELIBERATELY NOT TERMINAL. T-01 is `done`, and under FEAT-54's B-1 satisfaction
+    # rule a handoff whose every authority is already satisfied binds nothing and is refused —
+    # so a fixture handoff citing T-01 alone reds for a reason its own case never names. Any
+    # case here that needs a LEGAL handoff body cites T-02.
+    "  - id: T-02\n"
+    f"    status: {_fc09.MANDATED_STATIONS[3]}\n"
+    "    verify: python3 test.py\n"
 )
 _PLAN_ILLEGAL = _PLAN_LEGAL.replace(
     f"    status: {_fc09.MANDATED_STATIONS[5]}", "    status: Sideways")
@@ -2934,7 +2941,7 @@ def _t09_case_fold():
         "Feature.json": _legal_feature_json(20),
         "Handoff-Build.md": "\n".join(
             ["## Next", "## Trust"] + ["x"] * 10 + ["## Dead ends", "## Working set",
-             "## Done when", "Scope: fixture", "Authority: plan-task:T-01.verify"]) + "\n",
+             "## Done when", "Scope: fixture", "Authority: plan-task:T-02.verify"]) + "\n",
         "State.md": "## Current\n" + "x" * 3 + "\n",
     }
     for tmpl, folded, _canon, _n, _unit, _b in _FOLD_ROWS:
@@ -4312,6 +4319,82 @@ def run_handoff_done_when():
     return _report_handoff_results(results)
 
 
+# ---------------------------------------------------------------------------
+# B-2: THE HOOK'S CWD IS NOT THE PROJECT ROOT, AND A CLAIMED PATH MAY BE RELATIVE.
+#
+# Every case below fires the SAME payload from two working directories and asserts
+# ONE verdict. That pairing is the whole point: before `_claimed_abs`, the relative
+# spelling from outside the tree exited 0 on a note the gate never opened, while the
+# absolute spelling refused — so a suite that fired only from the repo root, as every
+# other suite in this file does, could not see either hole.
+#
+# TWO INDEPENDENT HOLES, and the pair below covers one each. The SHAPE phase resolved
+# the claimed path with `os.path.abspath`; the DOMAIN phase handed the raw claimed path
+# to `harness_boundary.classify`, whose parameter is named `abs_target` and which calls
+# `real()` on it. Fixing either alone leaves the other open, which is why the domain
+# case is not merely a duplicate of the shape case with a different agent.
+B2_OUTSIDE_CWD = "/tmp"
+
+
+def _b2_fire(payload, cwd, root):
+    return subprocess.run([HOOK], input=json.dumps(payload), capture_output=True,
+                          text=True, cwd=cwd, env=_env(root)).returncode
+
+
+def _b2_case(results, name, payload, want, root, rel_path):
+    """Assert one verdict from BOTH cwds, for the absolute and relative spelling."""
+    for cwd_label, cwd in (("repo root", root), ("outside", B2_OUTSIDE_CWD)):
+        for spelling, path in (("absolute", os.path.join(root, rel_path)),
+                               ("relative", rel_path)):
+            got = _b2_fire({**payload, "tool_input": {**payload["tool_input"],
+                                                      "file_path": path}}, cwd, root)
+            results.append((f"{name} — {spelling} claimed path, cwd {cwd_label}",
+                            got == want, f"wanted exit {want}, got {got}"))
+
+
+def _b2_fixture(root):
+    """A governed tree with a handoff note path and a blank-`Scope:` candidate."""
+    shutil.copytree(os.path.join(ROOT, ".harness"), os.path.join(root, ".harness"),
+                    ignore=shutil.ignore_patterns("worktrees", "*.lock"))
+    feature = os.path.join(".harness", "harness", "features", "FEAT-B2", "notes")
+    os.makedirs(os.path.join(root, feature), exist_ok=True)
+    return os.path.join(feature, "handoff-validate.md").replace(os.sep, "/")
+
+
+_B2_BLANK_SCOPE = "\n".join([
+    "## Next", "next", "## Trust", "- a — b — verified-at 0000000",
+    "## Dead ends", "- a — b — verified-at 0000000", "## Working set", "- x",
+    "## Done when", "Scope:", "Authority: brief-sc:SC-01"]) + "\n"
+
+
+def run_b2_cwd_independence():
+    """B-2: neither phase may depend on the hook's working directory."""
+    results = []
+    with tempfile.TemporaryDirectory() as root:
+        handoff_rel = _b2_fixture(root)
+        # SHAPE phase: a blank `Scope:` is refused wherever the gate is standing.
+        _b2_case(results, "blank Scope: in a handoff note",
+                 {"tool_name": "Write", "agent_type": "harness-orchestrator",
+                  "tool_input": {"content": _B2_BLANK_SCOPE}}, 2, root, handoff_rel)
+        # DOMAIN phase: an ungranted write is refused, and a granted one is not.
+        spec_rel = ".harness/harness/docs/SPEC.md"
+        _b2_case(results, "ungranted agent writing harness docs",
+                 {"tool_name": "Write", "agent_type": "harness-frontend-dev",
+                  "tool_input": {"content": "x"}}, 2, root, spec_rel)
+        _b2_case(results, "granted agent writing harness docs",
+                 {"tool_name": "Write", "agent_type": "harness-documentor",
+                  "tool_input": {"content": "x"}}, 0, root, spec_rel)
+    fails = 0
+    for name, ok, detail in results:
+        if ok:
+            print(f"ok    [b2] {name}")
+        else:
+            fails += 1
+            print(f"FAIL  [b2] {name}\n      | {detail}")
+    print(f"\n{len(results) - fails}/{len(results)} b2 cwd-independence cases passed.")
+    return fails
+
+
 def main():
     fails = 0
     for name, path, want, agent, tool in CASES:
@@ -4351,6 +4434,7 @@ def main():
     fails += run_bug1106_edit_route_cases()
     fails += run_bug1106_shared_pattern_consistency()
     fails += run_handoff_done_when()
+    fails += run_b2_cwd_independence()
     return fails
 
 

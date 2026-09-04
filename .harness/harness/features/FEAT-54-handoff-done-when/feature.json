@@ -3,7 +3,7 @@
   "branch": "feat/FEAT-54-handoff-done-when",
   "pr": null,
   "review_sha": "dd55b3570c6a20f5ca1da016d6959752bd0ffc74",
-  "cycles_used": 21,
+  "cycles_used": 22,
   "max_total_cycles": 30,
   "max_total_runs": 20,
   "runs": [
@@ -298,6 +298,24 @@
       "squad": "product",
       "verdict": "PASS",
       "agent": "harness-product-lead"
+    },
+    {
+      "id": "2026-09-03-validation-c1-eng",
+      "squad": "eng",
+      "verdict": "PASS",
+      "agent": "harness-eng-lead"
+    },
+    {
+      "id": "2026-09-03-validation-c1-unreadable-eng",
+      "squad": "eng",
+      "verdict": "PASS",
+      "agent": "harness-eng-lead"
+    },
+    {
+      "id": "2026-09-03-sec-f10-c5-correction-eng",
+      "squad": "eng",
+      "verdict": "BLOCKED",
+      "agent": "harness-eng-lead"
     }
   ],
   "github": {

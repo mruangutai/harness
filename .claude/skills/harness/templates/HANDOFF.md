@@ -11,9 +11,14 @@
      other prose. Authorities combine as logical AND: every pointer must resolve when
      the note is written or edited. The only legal types are plan-task:T-NN.verify,
      brief-sc:SC-NN, finding:PATH#F-NN and approval:PATH#HEADING; a source-code
-     location alone is not authority. Resolution is a write-time obligation only:
-     the persisted-corpus state check validates shape and grammar but never reopens
-     targets, so a note valid when written stays valid. -->
+     location alone is not authority. RESOLVING IS NOT ENOUGH: an authority already
+     satisfied when you write binds nothing, so a successor could check it, see it
+     green, and skip the action entirely — at least one cited pointer must be one
+     the action in Next actually discharges. A task at station done or abandoned,
+     and an approval already reading approved, are satisfied; a criterion and a
+     finding are judged, so neither counts either way. Both obligations are
+     write-time only: the persisted-corpus state check validates shape and grammar
+     but never reopens targets, so a note valid when written stays valid. -->
 
 ## Next
 

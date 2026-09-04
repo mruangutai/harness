@@ -1332,11 +1332,26 @@ for fy in sorted(glob.glob(os.path.join(H, "*", "features", "*", "feature.json")
 # VOCABULARY stays in sync with check-domain.sh; the MECHANISM deliberately does not
 # (D-02) — that one measures a payload, this one measures a file.
 for fy in sorted(glob.glob(os.path.join(H, "*", "features", "*", "feature.json"))):
-    fl = (read(fy) or "").splitlines()
+    _ftext = read(fy) or ""
+    fl = _ftext.splitlines()
     feat = os.path.basename(os.path.dirname(fy))
     # 300, not 200: FEAT-10 measures 173 lines with 32 runs, roughly 5 lines per run.
-    if len(fl) > 300:
-        warn.append(f"INV-23 {fpath(feat, 'feature.json')} is {len(fl)} lines — budget is 300. It is "
+    #
+    # THE COUNT EXCLUDES `runs:` (FEAT-54 backlog B-4), through the SAME helper the
+    # write-time gate uses — the vocabulary sync this block's header promises now covers the
+    # definition of a counted line, not only the wording of the message.
+    try:
+        import feature_schema as _fs_inv23
+        _inv23_budget = _fs_inv23.FEATURE_JSON_LINE_BUDGET
+        _inv23_count = _fs_inv23.journal_lines(_ftext)
+        _inv23_basis = "excluding the runs ledger"
+    except Exception:
+        _inv23_budget = 300
+        _inv23_count = len(fl)
+        _inv23_basis = "whole file — feature_schema was not importable"
+    if _inv23_count > _inv23_budget:
+        warn.append(f"INV-23 {fpath(feat, 'feature.json')} is {_inv23_count} lines "
+                    f"({_inv23_basis}) — budget is {_inv23_budget}. It is "
                     f"data a script parses, not a journal (DEC-150).")
     # The comment-line budget is GONE, not relaxed: JSON has no comments, so it could never
     # fire, and a check that cannot fire is a check a reader trusts.
