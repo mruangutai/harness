@@ -3,51 +3,54 @@
 ## Current
 
 - feature: FEAT-54-handoff-done-when
-- run: post-rebase final review and goal-check at `df5f7ea10ce6ea84478e6f1663497fe0fae57bcf`
-- squad: fallback independent reviewer and product goal-check; canonical leads unavailable from provider rate limiting
-- status: review (plan.yaml `status: review`), ready for the operator's ship decision
+- run: ship — branch pushed, PR #1285 open, BLOCKED on the required `integration` check
+- squad: none spawned this run; the ship path is orchestrator and main-session work
+- status: review (plan.yaml `status: review`) — the station stays here until the merge lands
 
-The final independent review passed with no findings at the exact review pin. Its first pass found
-one real rebase defect: the conflict resolution had edited FEAT-51's historical validation handoff.
-That file is now byte-identical to `main`, included in the refreshed 146-entry frozen baseline, and
-the review confirmed the previous P1 closed. The product goal-check then found all 15 success
-criteria met. SC-10's operator UAT remains the human evidence: all mechanical steps behaved as
-scripted, the refusal messages were actionable, the section cost 5 of 60 lines, and the template
-elicited an immediate-action `Scope:` unprompted.
+The ship run pushed `feat/FEAT-54-handoff-done-when` (45 ahead of `origin/main`, 0 behind, so no
+force was needed) and opened **PR #1285**, recorded as `pr: 1285`. Ten of eleven CI steps pass,
+including the unit suite, the integration suite, the plan-route, instruction-path and layout gates.
 
-The operator then directed that the whole proposed backlog be fixed rather than filed. All seven
-landed main-session-direct, because every remedy touches the enforcement tree DEC-174 reserves:
+**The merge is blocked by this feature's own new CI step.** The `Repository-state gate` added
+post-review as B-5 runs `check-state.sh` and exits on its status; on a GitHub runner that checker
+reports exactly one violation — `INV-31: core.hooksPath is unset` — because `actions/checkout`
+never sets it and INV-31 asks whether THIS MACHINE runs the `post-merge` hook. The step is red by
+construction on every runner, `integration` is the single required context with
+`enforce_admins: true`, so nothing in this repository can merge until it is fixed.
 
-- B-1 — `handoff_done_when.py` now refuses a `## Done when` whose EVERY authority is already
-  satisfied. A `plan-task:` at `done`/`abandoned` and an `approval:` reading `approved` are
-  satisfied; `brief-sc:` and `finding:` are judged, so they stay indeterminate and never refuse.
-  The F-11 defect class is mechanical for the first time; 12 unit cases, write-time only.
-- B-2 — `check-domain.sh` had TWO cwd fail-opens, not one. The shape phase resolved a claimed path
-  with `os.path.abspath`, and the domain phase handed the raw claimed path to
-  `harness_boundary.classify`, whose parameter is `abs_target`. Both now go through `_claimed_abs`.
-  12 integration cases fire every payload from two working directories; 3 fail without the fix.
-- B-3 — the comprehension probe escapes C0/C1 and DEL at every print sink; newline and tab survive.
-- B-4 — the 300-line `feature.json` budget now counts the JOURNAL, not the `runs` ledger, through
-  one shared `feature_schema.journal_lines`. FEAT-54's own record: 336 lines, 43 of them journal.
-- B-5 — CI gained a Repository-state gate step running `check-state.sh` per commit, with a
-  git-derived corpus count as its positive control. SC-04 is no longer pin-only.
-- B-6 — the three unrecorded run dirs are in the ledger and `cycles_used` corrected 21 -> 22 from
-  the sec-f10 run's own reported send-back.
-- B-7 — `eval` moved from `unresolved`/"detection has not run" to `excluded` with a reason naming
-  the two `locally_run` probe kinds that are this repository's ai_behavior surface.
+Measured in a fresh clone of the branch at `91495a60`, under CI's own conditions: hooksPath unset →
+exit 1, that one violation and nothing else; hooksPath set to `.claude/skills/harness/hooks` →
+exit 0 over 877 rows. The remedy is one `git config` line inside the existing step, and it
+suppresses nothing — INV-31's second branch then really does assert `hooks/post-merge` exists and
+is executable, and it passes.
 
-Unit and integration suites pass (exit 0 each); the repository-root state gate exits 0 over 827
-rows with zero violations. Three suite fixtures were corrected, not relaxed: the 301-line boundary
-case now counts real journal lines, `_PLAN_LEGAL` gained a non-terminal T-02 so a legal fixture
-handoff does not cite a satisfied authority, and the cross-file drift detector asserts the
-single-sourced budget plus the shared counting rule.
+The remedy edits `.github/workflows/tests.yml`, which hosts the required check's own gate steps.
+The path resolver grants that file to `harness-dev-ops`, so a squad dispatch was available; it was
+refused on the merits, not on domain. DEC-174 stops self-hosting at the enforcement layer, and this
+feature's own record already settled the lane for this exact row — all seven post-review remedies,
+B-5 among them, landed main-session-direct. It is returned up as F-01 with the patch text.
 
-Cycles used: 22 of 30. Runs stand at 51 against the informational budget of 20 — over by more than
-double, disclosed rather than excused. The branch is rebased onto `main`; merge, PR, and feature
-worktree removal remain the operator's acts.
+Not done, each for a stated reason: the merge (branch protection, no override exists); the `done`
+station (false over an unmerged feature); `gh-sync.py ship` and `record-pr` (both refuse at exit 1
+while the feature dir resolves inside `.claude/worktrees/`); worktree removal (never this agent's
+act — DEC-193; the `post-merge` hook takes it when `main` pulls).
+
+Everything the feature itself had to prove still holds: final independent review PASS with no
+findings at `df5f7ea1`, product goal-check PASS on 15/15, unit and integration suites exit 0, and
+the repository-state gate exits 0 in a correctly configured clone. `review_sha` stays `df5f7ea1`;
+every commit after it touches only this feature's record and notes, no code.
+
+Cycles used: 22 of 30 — this run added none, because F-01 was routed up, not back to a lead
+(DEC-157 counts rework only). Runs stand at 51 against the informational budget of 20; this run
+spawned nobody. Operator briefing: `notes/ship-review-2026-09-04-ship.md`.
 
 ## Open Questions
 
+- Q1 (blocking, for the operator): F-01. Apply the one-line `git config core.hooksPath` fix to the
+  `Repository-state gate` step in `.github/workflows/tests.yml` — main-session-direct under
+  DEC-174 — or overrule that reading and have it routed to `harness-dev-ops`. Nothing merges in
+  this repository until it lands. Patch text and both measurement arms are in
+  `notes/ship-review-2026-09-04-ship.md` F-01.
 - One residual cannot be closed without fabricating an artifact: ledger entry
   `2026-09-02-goalcheck-c1-product` has no run directory. The run is real — its evidence survives
   as `notes/research-FEAT-54-goalcheck-plan-c1.md` — so the entry is truthful and was kept.
