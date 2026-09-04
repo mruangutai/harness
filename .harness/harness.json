@@ -3,7 +3,7 @@
   "cli_min_version": "2.1.217",
   "_panel_era_start_note": "The date the adversarial plan panel (FEAT-45) became available in THIS project. INV-32 does not grade a plan signed before it, because a plan signed before the panel existed cannot carry a record of one. null means this project has no pre-panel era, so every approved plan is graded \u2014 the right value for a project onboarded after FEAT-45. check-state.sh is copied into every onboarded project, so this MUST be per-project: a hardcoded date would export one repository's history as another's gate (BUG-1071 panel finding F2).",
   "panel_era_start": "2026-08-31",
-  "_handoff_done_when_baseline_note": "This is the FROZEN list of handoff notes that existed at THIS FEATURE'S BASE COMMIT, `git merge-base main HEAD` = b7956fc4, enumerated from `git ls-tree -r --name-only b7956fc4 -- .harness/harness/features` filtered to files matching notes/handoff-*.md that do not carry a \"## Done when\" line at that commit. INV-17 does not demand the fifth section for a path in this list, and demands it for every note that is not. The list is finite and MUST NEVER GROW: a note edited after the contract landed is refused at write until it complies, and a note written DURING this feature's own build is a new note that complies (D-08) rather than a baseline entry. It is per-project because check-state.sh is copied into every onboarded project, so a hardcoded list would export this repository's history as another's gate. An empty list is the right value for a project onboarded after this feature.",
+  "_handoff_done_when_baseline_note": "This is the FROZEN list of handoff notes that existed at THIS FEATURE'S BASE COMMIT, `git merge-base main HEAD` = a12aa4e9, enumerated from `git ls-tree -r --name-only a12aa4e9 -- .harness/harness/features` filtered to files matching notes/handoff-*.md that do not carry a \"## Done when\" line at that commit. INV-17 does not demand the fifth section for a path in this list, and demands it for every note that is not. The list is finite and MUST NEVER GROW after the reviewed base is fixed: a note edited after the contract landed is refused at write until it complies, and a note written DURING this feature's own build is a new note that complies (D-08) rather than a baseline entry. It is per-project because check-state.sh is copied into every onboarded project; a global list would export this repository's history as another's policy.",
   "handoff_done_when_baseline": [
     ".harness/harness/features/BUG-1030-stale-anchor-write-hazard/notes/handoff-build.md",
     ".harness/harness/features/BUG-1030-stale-anchor-write-hazard/notes/handoff-plan.md",
@@ -19,6 +19,7 @@
     ".harness/harness/features/BUG-1081-code-grade-enforcement/notes/handoff-validate.md",
     ".harness/harness/features/BUG-1128-plan-amend-verb/notes/handoff-build.md",
     ".harness/harness/features/BUG-1128-plan-amend-verb/notes/handoff-plan.md",
+    ".harness/harness/features/BUG-1157-approval-overrule/notes/handoff-build.md",
     ".harness/harness/features/FEAT-03-subissue-mirror/notes/handoff-build.md",
     ".harness/harness/features/FEAT-03-subissue-mirror/notes/handoff-plan.md",
     ".harness/harness/features/FEAT-03-subissue-mirror/notes/handoff-validate.md",
@@ -145,7 +146,10 @@
     ".harness/harness/features/FEAT-50-run-artifact-integrity/notes/handoff-ship.md",
     ".harness/harness/features/FEAT-50-run-artifact-integrity/notes/handoff-validate.md",
     ".harness/harness/features/FEAT-51-claude-code-lifecycle-safety/notes/handoff-build.md",
-    ".harness/harness/features/FEAT-51-claude-code-lifecycle-safety/notes/handoff-plan.md"
+    ".harness/harness/features/FEAT-51-claude-code-lifecycle-safety/notes/handoff-plan.md",
+    ".harness/harness/features/FEAT-52-factory-control-plane/notes/handoff-build.md",
+    ".harness/harness/features/FEAT-52-factory-control-plane/notes/handoff-plan.md",
+    ".harness/harness/features/FEAT-52-factory-control-plane/notes/handoff-validate.md"
   ],
   "_test_matrix_note": "change_type -> required test kinds. A FLOOR, not a ceiling: qa may add kinds it infers from the diff, never drop below. Predicate names in `when` are FIXED DATA so the gate is auditable; qa evaluates them against the diff. This matrix is PER-PROJECT (DEC-187): every kind it names must exist in test_kinds and be active or excluded, and any change_type differing from the template needs a _matrix_provenance entry with a signed decision. DEC-35's 'fixed data' is the predicate names, not the table.",
   "test_matrix": {
