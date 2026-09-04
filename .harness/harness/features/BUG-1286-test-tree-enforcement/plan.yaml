@@ -33,20 +33,36 @@ lanes:
 decisions:
   - id: D-01
     choice: >-
-      The authoritative vocabulary for the NEW repository-wide clause is a basename match against
-      test-*, test_*, *_test.*, *.test.* or probe-*, restricted to the source extensions
-      .py .sh .ts .tsx .js .mjs .cjs; Markdown, JSONL and other captured data are out of scope of that
-      clause, probe-shaped records included. The extension restriction is scoped to that clause alone and
-      is not a repository-wide property of probe-shaped names: the pre-existing filesystem clause over the
-      bin directory deliberately keeps its own unrestricted probe-* glob, so a probe-shaped file under bin
-      stays refused whatever its extension, because that clause reads the filesystem rather than the Git
-      index and is the untracked-plant net; the pre-existing under-tests/ clause likewise keeps its own
-      three .py shapes. Three clauses, three deliberately different vocabularies, none of them widened by
-      this feature.
+      The authoritative vocabulary for the NEW repository-wide clause is a basename match in TWO GROUPS
+      with deliberately different extension policies. Group one, extension-restricted: test-*, test_* and
+      probe-*, refused only when the extension is one of the source extensions .py .sh .ts .tsx .js .mjs
+      .cjs, so Markdown, JSONL and other captured data matching those three shapes stay out of scope of
+      that clause, probe-shaped records included. Group two, extension-agnostic: *_test.* and *.test.*,
+      refused whatever the extension, exactly mirroring harness.json test_kinds.unit.detect. The extension
+      policy is a property of group one within that clause alone and is not a repository-wide property of
+      probe-shaped names: the pre-existing filesystem clause over the bin directory deliberately keeps its
+      own unrestricted probe-* glob, so a probe-shaped file under bin stays refused whatever its
+      extension, because that clause reads the filesystem rather than the Git index and is the
+      untracked-plant net; the pre-existing under-tests/ clause likewise keeps its own three .py shapes.
+      Three clauses, three deliberately different vocabularies, none of them widened by this feature.
     because: >-
-      eight of the nine tracked matches outside the test tree at the pinned SHA are Markdown or JSONL
-      records of probes, and refusing a feature's own honest record would make the guard fight the
-      evidence trail rather than the drift.
+      the split is what makes each half defensible on its own evidence, and the group-one membership is
+      justified shape by shape rather than in bulk. The extension restriction on probe-* survives because
+      eight of the nine tracked matches outside the test tree are Markdown or JSONL records of probes, and
+      refusing a feature's own honest record would make the guard fight the evidence trail rather than the
+      drift; probe-* is also matched by no harness.json detect glob at all, so a probe record is
+      discovered by nothing and needs no guard to keep it honest. test_* stays restricted because
+      test_kinds.unit.detect reaches it only as **/test_*.py, which the source-extension form strictly
+      contains, so nothing the kind map discovers escapes the guard. test-* stays restricted because it is
+      the runner's own selection shape and is matched by no detect glob either. The extension-agnostic
+      pair is the one place where a restricted guard would be narrower than discovery: detect carries
+      **/*.test.* and **/*_test.* with no extension filter, so a tracked session_test.md or
+      run.test.jsonl outside tests/ would be counted a unit test by the map, permitted by an
+      extension-restricted guard, and executed by no runner - the same silently-smaller-suite defect this
+      feature exists to close, one size down. The guard must therefore be at least as wide as what
+      unit.detect discovers, on exactly those two shapes and no others. Widening them is inert on the
+      present tree and so costs nothing already committed: measured at c040c319, zero tracked paths
+      outside tests/ have a basename matching *_test.* or *.test.*.
     dec: none
   - id: D-02
     choice: >-
@@ -111,13 +127,22 @@ decisions:
     dec: DEC-213
 
 panel:
-  last_run: 2026-09-04-08-validator
-  cycle: 3
+  last_run: 2026-09-04-14-validator
+  cycle: 4
   severity_max: med
-  transcription_rule: 'Each summary is the digest''s own summary: field carried verbatim
-    from notes/review-plan-panel-c3.md; no markdown emphasis or backticks were present,
-    so no character was removed and no wrapping collapsed. Every id computed with
-    panel_findings.py id over the exact string stored here.'
+  high_critical_or_unrated_present: false
+  severity_statement: 'No finding in this record is high, critical or unrated: the
+    cycle-4 digest reports high_critical_or_unrated_present false with an empty must_fix,
+    and the severities recorded below are exactly one med, one low, three info, plus
+    the scope reader''s own none-severity clean-pass entry. Nothing here is a risk
+    the operator must personally accept.'
+  transcription_rule: Each summary is the digest's own summary field from notes/review-plan-panel-c4.md,
+    carried in the reader's own wording with markdown stripped and wrapping collapsed
+    to single spaces; no other character was changed and no severity was reassigned.
+    Every id was computed with panel_findings.py id over the exact reader and summary
+    strings stored here. This record REPLACES the cycle-3 record wholesale because
+    the operator's amendment changed the plan text the panel grades; no cycle-3 finding
+    id survives.
   readers:
   - reader: should-not-exist
     persona: fable-advisor
@@ -128,109 +153,101 @@ panel:
   - reader: goalcheck
     persona: harness-pm
     status: ran
-    note: Ran in a separate product segment outside this team's two panel steps; its
-      findings were applied in the plan-fix cycles rather than transcribed here.
+    note: Ran in a separate product segment outside this team's two panel steps, so
+      it is recorded for continuity and is not a panel step; its cycle-4 result is
+      notes/research-BUG-1286-test-tree-enforcement-goalcheck-plan-c4.md.
   findings:
-  - id: PF-b1381e1d1016bfebf6d3364eddb5ef59
-    severity: low
-    reader: scope
-    summary: T-03's --against output contract doesn't state whether the row/TOTAL
-      block still prints under comparison mode
-    disposition: open
-  - id: PF-5504924547ecd6b632f6cb1f10246055
+  - id: PF-8de8d64458a4a30d8c7ba0b111546ccd
     severity: med
-    reader: scope
-    summary: D-05's accepted archival landmine
+    reader: should-not-exist
+    summary: The guard-at-least-as-wide-as-detect invariant that justifies the entire
+      widening is asserted by no test and can silently decay the first time a future
+      feature edits unit.detect
     disposition: open
-    corroborates:
-    - PF-806758dcc7e53f9217d3bfa230b272bf
-  - id: PF-806758dcc7e53f9217d3bfa230b272bf
+    remedy_window: closes at signature
+  - id: PF-8da87ee5041dd05ed45864fd98318883
     severity: low
     reader: should-not-exist
-    summary: The D-05 coupling should be accepted at low severity; the reddening is
-      a loud self-describing one-line finding fixable by a one-tuple-entry edit, and
-      the alternatives are rewriting a landed feature's shipped record or letting
-      exceptions go silently stale, which breaches AC-07
+    summary: T-03's note parser inherits a find-all-fences pattern while T-04 never
+      caps the note at one fenced block, so a correct audit note with a second fence
+      can fail the comparison
     disposition: open
-    corroborates:
-    - PF-5504924547ecd6b632f6cb1f10246055
-  - id: PF-3d6c9ec01bf1eda038fda9b7703e22d6
+    remedy_window: closes at signature
+  - id: PF-ad4ebc0d6802b7e15b884a977b08b855
     severity: info
+    reader: should-not-exist
+    summary: No spec-compliant reading of the amended output contract makes T-04's
+      verify fail on a correct note; the fix-1 wording closes the cycle-3 gap
+    disposition: open
+  - id: PF-9bbcf800dd4a0e7702acf290fefaa4ba
+    severity: info
+    reader: should-not-exist
+    summary: The widening breaks no assertion authored against the narrower rule;
+      SC-06, the 85/9/0 counts and T-04's dispositions all survive, verified independently
+    disposition: open
+  - id: PF-fdb52d13749f742cbe3ff8a5efbe980e
+    severity: info
+    reader: should-not-exist
+    summary: Keep verdict on every questioned element; the agnostic widening is grounded
+      insurance and the two-group split is enforceable without being memorized
+    disposition: open
+  - id: PF-c2a38975f4668aa79d77beca790e9d4c
+    severity: none
     reader: scope
-    summary: SC-06's exact-equality assertion is acceptable, not brittle in the way
-      asked
-    disposition: open
-    corroborates:
-    - PF-8f95b3a90e31a1ceeabab4fa860c1c7c
-  - id: PF-8f95b3a90e31a1ceeabab4fa860c1c7c
-    severity: info
-    reader: should-not-exist
-    summary: SC-06's exact-equality grader should stand; whole-list equality is the
-      only form that proves the valid unit, integration and manual files and the copied
-      bin module each contributed nothing, and the pinned string is also asserted
-      at the runner boundary in T-02
-    disposition: open
-    corroborates:
-    - PF-3d6c9ec01bf1eda038fda9b7703e22d6
-  - id: PF-43252b3fa6f8521818b37a4681924e4a
-    severity: info
-    reader: scope
-    summary: 'harness.json detect residual: disclosure is sufficient and does not
-      gate'
-    disposition: open
-    corroborates:
-    - PF-093f4650a55ddd59ad77f704d7101d5f
-  - id: PF-093f4650a55ddd59ad77f704d7101d5f
-    severity: low
-    reader: should-not-exist
-    summary: The unit.detect residual should not gate the signature but should not
-      end at disclosure either; the only in-scope fix edits harness.json, which AC-11
-      and SC-14 forbid, so gating deadlocks the feature against itself
-    disposition: open
-    corroborates:
-    - PF-43252b3fa6f8521818b37a4681924e4a
-  - id: PF-d33300cef5eb898cfa0a971c791c8107
-    severity: info
-    reader: should-not-exist
-    summary: |-
-      The repository-wide clause and every task carrying it should be built; issue #1286 explicitly mandates pre-dispatch refusal, so the T-03 audit alone or a pre-commit/CI check cannot discharge the ticket
-    disposition: open
-  - id: PF-ae6d643363371bf038d536934837962a
-    severity: info
-    reader: should-not-exist
-    summary: 'T-03''s --against mode should be kept despite issue #1286 not requesting
-      it; SC-12/AC-09 require the note''s fenced row set proven identical to a re-run,
-      and --against mechanizes exactly that comparison'
+    summary: Empty findings list from a reader that genuinely looked; the amendment
+      holds at all five split sites, SC-18's graders exist as described, and no verify
+      clause is vacuous
     disposition: open
   cross_references:
-  - topic: D-05's archival coupling, sighted independently by both readers at different
-      severities; neither severity is reconciled
+  - topic: Fix 1, T-03's amended output contract against T-04's verify - both readers
+      asked whether a correct note can still fail and both independently found no
+      reading that breaks it
+    readers:
+    - should-not-exist
+    - scope
     findings:
-    - PF-5504924547ecd6b632f6cb1f10246055
-    - PF-806758dcc7e53f9217d3bfa230b272bf
-  - topic: SC-06's exact-equality grader, judged acceptable independently by both
-      readers
+    - PF-ad4ebc0d6802b7e15b884a977b08b855
+    note: Two readers, one conclusion, not collapsed - scope carries it as section
+      4 of notes/review-harness-code-reviewer-planpanel-c4.md with no finding raised,
+      should-not-exist as the info finding cited here.
+  - topic: The multi-fence note-shape hazard - the panel's ONE direct disagreement;
+      should-not-exist raises it at low on a find-all-fences reading, scope dismisses
+      it on a first-block reading plus a self-correcting-gate argument
+    readers:
+    - should-not-exist
+    - scope
     findings:
-    - PF-3d6c9ec01bf1eda038fda9b7703e22d6
-    - PF-8f95b3a90e31a1ceeabab4fa860c1c7c
-  - topic: The harness.json unit.detect residual, raised independently by both readers;
-      both judge it non-gating and they differ on whether disclosure alone is the
-      right end state
+    - PF-8da87ee5041dd05ed45864fd98318883
+    note: Resolved by the lead at suite-census.py:24, not averaged. findall is correct,
+      the info-string filter narrows the trigger, the fault is build-time. Finding
+      stands at low.
+  - topic: The census measurement TOTAL 85 OUTSIDE 9 VIOLATIONS 0 and the agnostic-pair
+      count of zero outside tests/
+    readers:
+    - should-not-exist
+    - scope
+    - goalcheck
     findings:
-    - PF-43252b3fa6f8521818b37a4681924e4a
-    - PF-093f4650a55ddd59ad77f704d7101d5f
-  - topic: 'Not a corroboration pair - both findings concern T-03''s --against mode
-      but they are distinct claims: one an output-contract ambiguity, the other a
-      keep-or-strike judgement'
-    findings:
-    - PF-b1381e1d1016bfebf6d3364eddb5ef59
-    - PF-ae6d643363371bf038d536934837962a
+    - PF-9bbcf800dd4a0e7702acf290fefaa4ba
+    - PF-c2a38975f4668aa79d77beca790e9d4c
+    note: Three independent enumerations agree (both readers plus pm's goal-check,
+      by two different git plumbing commands). The panel's strongest evidence, and
+      a corroboration rather than a finding.
   adequacy_notes:
-  - SC-06's unrebound two-finding baseline was not re-measured by the panel - scope
-    traced the rebound one-element result by hand, but no reader re-ran the c3 prototype;
-    if that count is wrong the rebinding rationale moves, not the assertion.
-  - SC-02 (test-first red proof) is ungradable at plan phase by construction; no panel
-    finding bears on whether qa's later base-commit audit happens.
+  - 'Neither reader could grade SC-02 (test-first red proof) or SC-12/SC-13 (graded
+    at review_sha): they are ungradable at plan phase by construction, not gaps the
+    panel missed.'
+  - 'scope returned an empty findings list. That cannot by itself distinguish a clean
+    specification from a shallow pass, so the discriminator is falsification evidence,
+    and both readers produced it independently: two different enumerations of the
+    tracked tree (scope by git ls-files, should-not-exist by git ls-files plus a whole-history
+    sweep, pm''s goal-check by git ls-tree) that could have disagreed on 85/9/0 and
+    did not, plus 0-hit non-vacuity checks on both of T-05''s greps.'
+  - No reader can tell you whether the two-group split stays true of harness.json,
+    only that it is true of harness.json today. That is exactly the med finding, and
+    it is the panel's blind spot made explicit rather than closed.
+  - The panel graded text. Nothing here is evidence about code, and the census counts
+    85/9/0 were re-measured against the working tree, not against any future review_sha.
 tasks:
   - id: T-01
     title: Refuse tracked test-shaped files outside the test tree, with its unit coverage written first
@@ -251,8 +268,11 @@ tasks:
       each of them fail against the current predicate before you change it. Keep every existing
       clause, message string and ordering in the predicate exactly as it is; this work is additive.
 
-      Add these module-level constants to suite_layout.py:
-        NAME_PATTERNS = ("test-*", "test_*", "*_test.*", "*.test.*", "probe-*")
+      Add these module-level constants to suite_layout.py. The vocabulary is TWO pattern tuples with
+      different extension policies, not one tuple plus one restriction, because a single tuple cannot
+      express two policies (D-01):
+        RESTRICTED_NAME_PATTERNS = ("test-*", "test_*", "probe-*")
+        AGNOSTIC_NAME_PATTERNS = ("*_test.*", "*.test.*")
         SOURCE_EXTENSIONS = (".py", ".sh", ".ts", ".tsx", ".js", ".mjs", ".cjs")
         DOCUMENTED_EXCEPTIONS = one tuple of (relative_path, reason) pairs, seeded with exactly one
         entry whose path is
@@ -260,9 +280,16 @@ tasks:
         and whose reason states: FEAT-44 evidence, the committed OMP extension that
         tests/manual/probe-omp-session-accessor.py loads; classified as evidence, not a test
         (BUG-1286 D-05).
-      A path is test-shaped when fnmatch.fnmatch(basename, pattern) holds for some NAME_PATTERNS
-      entry AND os.path.splitext(path)[1] is in SOURCE_EXTENSIONS. Both conditions are required.
-      These two constants and the extension restriction govern the NEW repository-wide clause ONLY.
+      A path is test-shaped when exactly this holds, with basename = os.path.basename(path):
+        any(fnmatch.fnmatch(basename, p) for p in AGNOSTIC_NAME_PATTERNS)
+        or (any(fnmatch.fnmatch(basename, p) for p in RESTRICTED_NAME_PATTERNS)
+            and os.path.splitext(path)[1] in SOURCE_EXTENSIONS)
+      SOURCE_EXTENSIONS applies to RESTRICTED_NAME_PATTERNS ONLY. An AGNOSTIC_NAME_PATTERNS match is
+      test-shaped whatever the extension, so a tracked session_test.md or run.test.jsonl outside tests/
+      is refused; a tracked probe-notes.md is not. Both pattern tuples AND SOURCE_EXTENSIONS are the
+      authority T-03's census imports, so the audit and the guard cannot diverge - do not make either
+      tuple a local, and do not fold them into one.
+      These three constants govern the NEW repository-wide clause ONLY.
       Do not feed them into the existing under-tests/ clause or the existing bin clause: both keep their
       own globs byte-identical, including the bin clause's deliberately unrestricted probe-* (D-01, D-04),
       which is what keeps a probe-shaped plant under bin refused whatever its extension.
@@ -314,6 +341,9 @@ tasks:
            is chosen deliberately: the unchanged under-tests/ clause rglobs test-*.py, test_*.py and
            *_test.py and refuses any match whose parent is not tests/unit or tests/integration, so a
            tests/manual/test-*.py file is refused today and is the wrong shape to plant as legal.
+           Do NOT add any *_test.* or *.test.* file to this fixture: no basename in it matches either
+           agnostic shape, which is what keeps the exact-equality list below a ONE-element list. The
+           agnostic pair gets its own case 10.
            Then, in this same case and on this same fixture, add the EXACT-EQUALITY assertion that is
            the grader of SC-06's first clause. With suite_layout.DOCUMENTED_EXCEPTIONS temporarily
            rebound to () inside a try/finally — case 6's mechanism, restored in the finally block —
@@ -354,13 +384,22 @@ tasks:
            literal, so a later registry change cannot redden this case; with DOCUMENTED_EXCEPTIONS
            temporarily set to () assert violations(ROOT) contains that path, and with it restored
            assert violations(ROOT) == [];
-        8. vocabulary boundary: a tracked .harness/notes/probe-something.md in the Git fixture
-           produces no finding, while a tracked .harness/notes/probe-something.py does;
+        8. extension-restricted boundary: a tracked .harness/notes/probe-something.md in the Git
+           fixture produces no finding, while a tracked .harness/notes/probe-something.py does. This is
+           the half of the split that keeps a feature's honest Markdown probe record legal;
         9. self-ownership is load-bearing in the other direction: a Git fixture built exactly like
            case 1 but WITHOUT .claude/skills/harness/bin/suite_layout.py in its index — do not copy
            the module in; the fixture needs only the two kind directories and the tracked rogue file
            — must produce no "tracked test-shaped file outside tests/" finding at all, which is the
-           clause that leaves a checkout not shipping this rule untouched.
+           clause that leaves a checkout not shipping this rule untouched;
+       10. extension-agnostic mirror, the other half of the split and its own case: on a Git fixture
+           built like case 1, additionally create and track .harness/tools/session_test.md and
+           .harness/evidence/run.test.jsonl, and assert that BOTH are named by their own
+           "tracked test-shaped file outside tests/" finding, with no extension in play. Assert it in
+           this case and not by widening case 1's fixture, so case 1's exact-equality list stays a
+           one-element list. Case 8 and case 10 together are the split asserted in both directions: a
+           non-source extension is out of scope for a restricted pattern and in scope for an agnostic
+           one, and without both halves only one direction is proved.
       Do not modify .harness/harness.json, run-unit-tests.sh, or any file outside the two named here.
   - id: T-02
     title: Prove the runner presents the refusal before any test sentinel runs
@@ -420,34 +459,58 @@ tasks:
 
       Arguments: --ref, defaulting to HEAD, and --against, an optional path to a Markdown note.
       Import suite_layout by inserting ROOT/.claude/skills/harness/bin at the front of sys.path, and
-      take NAME_PATTERNS, SOURCE_EXTENSIONS and DOCUMENTED_EXCEPTIONS from it — never re-declare
-      them here, so the audit and the guard can never disagree.
+      take RESTRICTED_NAME_PATTERNS, AGNOSTIC_NAME_PATTERNS, SOURCE_EXTENSIONS and
+      DOCUMENTED_EXCEPTIONS from it — never re-declare them here, so the audit and the guard can never
+      disagree.
 
-      Enumerate with git ls-tree -r --name-only <ref> run with cwd=ROOT, check=True. Select every
-      path whose basename matches a NAME_PATTERNS entry, WITHOUT the extension filter, so records the
-      guard deliberately ignores are still measured and dispositioned. For each selected path print
+      Enumerate with git ls-tree -r --name-only <ref> run with cwd=ROOT, check=True. Select every path
+      whose basename matches an entry of EITHER pattern tuple, WITHOUT the extension filter, so records
+      the guard deliberately ignores are still measured and dispositioned. For each selected path print
       one row, path then a single tab then the disposition, sorted by path:
         - in-tests-tree      when the path starts with tests/
         - documented-exception when the path is an exact DOCUMENTED_EXCEPTIONS entry
-        - out-of-vocabulary  when the extension is not in SOURCE_EXTENSIONS
+        - out-of-vocabulary  when the basename matches ONLY RESTRICTED_NAME_PATTERNS and the extension
+          is not in SOURCE_EXTENSIONS. This disposition means exactly one thing: matched an
+          extension-restricted pattern with a non-source extension. A Markdown or JSONL file whose
+          basename matches *_test.* or *.test.* is NOT out-of-vocabulary — the agnostic pair carries no
+          extension policy, so such a file is a violation (D-01)
         - violation          otherwise
-      Print the rows inside a fenced text block so the same block can be pasted into a note, then a
-      final line "TOTAL <n> OUTSIDE <n> VIOLATIONS <n>" counting selected paths, selected paths not
-      under tests/, and violation rows. Exit 1 if any violation row exists, else 0.
 
-      With --against, extract the fenced text block from the given note by reusing the same
-      fenced-block pattern baseline() applies at tests/manual/suite-census.py line 24 — a
+      OUTPUT CONTRACT, unconditional. The complete fenced row block and the final line
+      "TOTAL <n> OUTSIDE <n> VIOLATIONS <n>" — counting selected paths, selected paths not under tests/,
+      and violation rows — print on EVERY invocation, with --against and without it, and they print
+      BEFORE any comparison or verdict output. Nothing about --against suppresses, truncates, filters or
+      replaces either of them. A diff-only implementation that prints just MISSING/EXTRA lines under
+      --against violates this task even though it would satisfy a looser reading. The reason is
+      mechanical and both this task's verify: and T-04's verify: depend on it: each pipes the
+      subcommand's stdout into
+      grep -q 'probe-session-accessors\.ts.*documented-exception'
+      as a non-vacuity anchor, and T-04 runs it WITH --against, so the FEAT-44 documented-exception row
+      must appear in stdout in comparison mode exactly as it does in plain mode. Print the block first,
+      then the TOTAL line, then any --against output.
+
+      Without --against, exit 1 if any violation row exists, else 0.
+
+      With --against, the MISSING/EXTRA lines are ADDITIVE output that FOLLOWS the block and the TOTAL
+      line, never a replacement for either. Extract the fenced text block from the given note by reusing
+      the same fenced-block pattern baseline() applies at tests/manual/suite-census.py line 24 — a
       triple-backtick fence, an optional text info string, and a lazy dot-all body — but parse each
       extracted line as path then a single tab then disposition. Do NOT call baseline() itself: its
       row regex requires a test-prefixed .py basename followed by an integer, matches no tree-audit
       row, and would silently compare the measurement against an empty set. Compare the note's row
-      set to the measured rows, print each row present in one side only prefixed MISSING or EXTRA,
-      and exit 1 on any difference. Exit 0 only when the note's rows and the measured rows are
-      identical and no violation exists.
+      set to the measured rows and print each row present in one side only prefixed MISSING or EXTRA.
+      The exit status under --against is the COMBINATION of both conditions: non-zero on any row
+      difference AND non-zero on any violation row. Exit 0 only when the note's rows and the measured
+      rows are identical and no violation row exists; either fault alone is a non-zero exit.
 
-      At the pinned SHA the expected measurement is 9 rows outside tests/, of which 1 is the FEAT-44
-      documented exception and 8 are out-of-vocabulary Markdown or JSONL records, and 0 violations; if
-      your run disagrees, report the difference rather than adjusting the classification.
+      Expected measurement, re-measured for this amendment at c040c319 with a clean worktree and
+      reported in
+      notes/research-BUG-1286-vocabulary-split.md: TOTAL 85, OUTSIDE 9, VIOLATIONS 0. Of the 9 rows
+      outside tests/, 1 is the FEAT-44 documented exception (.ts) and 8 are out-of-vocabulary Markdown
+      or JSONL probe records, all 8 matching probe-* only. Zero tracked paths outside tests/ have a
+      basename matching *_test.* or *.test.*, so widening those two shapes to any extension changes no
+      row's disposition on the present tree. If your run disagrees, report the difference rather than
+      adjusting the classification.
   - id: T-04
     title: Record the repository audit and every outside-tree disposition at the reviewed revision
     traces: [REQ-06]
@@ -500,12 +563,19 @@ tasks:
       "**Amended by BUG-1286-test-tree-enforcement — the predicate's reach, not its principle.**"
       and stating, as the current contract:
         - the predicate additionally refuses every tracked test-shaped file outside tests/, where the
-          authoritative vocabulary FOR THAT CLAUSE is NAME_PATTERNS and SOURCE_EXTENSIONS in
-          .claude/skills/harness/bin/suite_layout.py — name that module as the authority and do not
-          re-list the patterns or the extensions here; state only the consequence, that records of
-          probes carrying a non-source extension (Markdown, JSONL) are deliberately out of scope OF
-          THE REPOSITORY-WIDE CLAUSE. Do not write that the extension restriction holds everywhere: it
-          does not, and saying so would contradict the retained bin clause (D-01);
+          authoritative vocabulary FOR THAT CLAUSE is TWO pattern groups with deliberately different
+          extension policies: an extension-restricted group, refused only at one of the source
+          extensions, and an extension-agnostic group, refused whatever the extension. Both groups and
+          the extension set are RESTRICTED_NAME_PATTERNS, AGNOSTIC_NAME_PATTERNS and SOURCE_EXTENSIONS
+          in .claude/skills/harness/bin/suite_layout.py — name that module as the authority and do NOT
+          re-list the patterns or the extensions here. State the consequence per group, because it
+          differs: a record of a probe carrying a non-source extension (Markdown, JSONL) is deliberately
+          out of scope OF THE REPOSITORY-WIDE CLAUSE, while a file matching the agnostic group is in
+          scope at ANY extension, which is what keeps this clause at least as wide as what
+          harness.json test_kinds.unit.detect already discovers. Do not write that the extension
+          restriction covers the whole vocabulary, or that it holds everywhere: it governs one group
+          inside one clause, and either wider claim would contradict the agnostic group and the retained
+          bin clause alike (D-01);
         - the bin clause is retained beside it, unchanged and with its own deliberately unrestricted
           probe-* glob, because it reads the filesystem and therefore catches untracked plants that an
           index scan cannot see — so a probe-shaped file under bin is refused whatever its extension;

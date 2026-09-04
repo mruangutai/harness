@@ -141,6 +141,16 @@ tests exactly as they do today, and the governing decision says what the code no
   directory and bin clauses still report their violations, and the repository-wide clause contributes
   nothing.
   verify: automated        evidence: unit
+- SC-18: The repository-wide vocabulary's two extension policies are each asserted, in opposite
+  directions, by the same method. A tracked file outside `tests/**` whose basename matches
+  `*_test.*` or `*.test.*` is refused at a non-source extension — T-01 case 10 tracks
+  `.harness/tools/session_test.md` and `.harness/evidence/run.test.jsonl` and requires each to be
+  named by its own `tracked test-shaped file outside tests/` finding. A tracked `probe-*` file
+  outside `tests/**` at a non-source extension is not refused — T-01 case 8 requires
+  `.harness/notes/probe-something.md` to produce no finding while `.harness/notes/probe-something.py`
+  does. What fails it: either case absent, either direction asserted only as the other's negation,
+  or a single case carrying both halves so that one passing masks the other.
+  verify: automated        evidence: unit
 
 ### Traceability
 
@@ -166,6 +176,7 @@ ticket's own order) it covers:
 | SC-15 | REQ-08 | AC-11 mutation-snapshot scope unchanged |
 | SC-16 | REQ-08 | AC-11 product-checkout discovery unchanged |
 | SC-17 | REQ-03, REQ-04 | AC-04 no-index root: not a failure, not a silent scan |
+| SC-18 | REQ-01, REQ-04 | AC-01 rejected at any extension for the agnostic shapes; AC-06 legitimate non-test probe records remain accepted |
 
 ## Verification gaps
 
@@ -176,14 +187,22 @@ ticket's own order) it covers:
 - The one TypeScript file in play, FEAT-44's `probe-session-accessors.ts`, is classified data rather
   than changed code; with `typecheck` unrunnable it is not type-checked, and nothing in this feature
   executes it.
-- `harness.json`'s `unit.detect` remains extension-agnostic (`**/*.test.*`, `**/*_test.*`) while
-  D-01's vocabulary is restricted to source extensions, so a tracked `*_test.md` or `*.test.jsonl`
-  outside `tests/**` would be discovered as a `unit` test by the kind map, permitted by the guard,
-  and executed by no runner. That class is empty at the reviewed revision — every out-of-vocabulary
-  match is `probe-*`, which no `detect` glob matches — and it is measured rather than unseen: T-03's
-  audit selects without the extension filter, so any such file appears as an `out-of-vocabulary` row
-  and is dispositioned. Correcting the `detect` text is out of scope (SC-14 freezes `harness.json`);
-  this records the residual and its control.
+- `harness.json`'s `unit.detect` is extension-agnostic (`**/*.test.*`, `**/*_test.*`), and the
+  repository-wide guard now mirrors it: `*_test.*` and `*.test.*` are refused whatever the
+  extension (D-01). The class that was previously a disclosed residual — a tracked `*_test.md` or
+  `*.test.jsonl` outside `tests/**`, discovered as a `unit` test by the kind map, permitted by the
+  guard and executed by no runner — is therefore closed by the guard rather than disclosed, with
+  `harness.json` still byte-unchanged (SC-14). No residual remains on this surface: `probe-*`,
+  which keeps its source-extension restriction, is matched by no `detect` glob at all, and
+  `test_*` is reached by `detect` only as `**/test_*.py`, which the source-extension form strictly
+  contains.
+- The widening was re-measured before it was written, not inferred: at `c040c319` with a clean
+  worktree, `git ls-files` in the worktree root filtered by basename against the five shapes gives
+  85 total matches, 9 outside `tests/**`, 0 violations — one FEAT-44 documented exception and eight
+  `probe-*` Markdown/JSONL records. Zero tracked paths outside `tests/**` have a basename matching
+  `*_test.*` or `*.test.*`, so the widening makes no tracked file a new violation and changes no
+  existing row's disposition. The command and its output are recorded in
+  `notes/research-BUG-1286-vocabulary-split.md`; the falsifiable criterion is SC-18, not this note.
 
 ## Approval
 
