@@ -1,0 +1,98 @@
+<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>Ship review — FEAT-54, the ship run</title><style>
+:root{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:ui-sans-serif,-apple-system,"Segoe UI","Helvetica Neue",Arial,sans-serif;
+}
+/* Token-level theming: components style through the tokens and never inside the
+   media query, so the viewer's explicit toggle can override the OS in BOTH
+   directions. */
+@media (prefers-color-scheme:dark){
+  :root{ --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+         --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733; }
+}
+:root[data-theme="dark"]{
+  --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+  --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733;
+}
+:root[data-theme="light"]{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+}
+*{box-sizing:border-box}
+body{margin:0; background:var(--paper); color:var(--ink);
+  font:400 16px/1.65 var(--sans); padding:clamp(1.5rem,5vw,4rem) clamp(1rem,5vw,2rem) 6rem}
+.wrap{max-width:56rem; margin:0 auto}
+/* Layout owns the spacing: gap between siblings, not per-element margins that
+   collapse or double. */
+.wrap{display:flex; flex-direction:column; gap:1rem}
+.eyebrow{font:500 11px/1 var(--mono); letter-spacing:.14em; text-transform:uppercase;
+  color:var(--quiet); margin:0}
+h1{font:600 clamp(1.6rem,4vw,2.3rem)/1.15 var(--sans); letter-spacing:-.02em;
+  margin:.4rem 0 .2rem; text-wrap:balance}
+h2{font:600 1.15rem/1.3 var(--sans); letter-spacing:-.01em; margin:2rem 0 0;
+  padding-top:1.25rem; border-top:1px solid var(--line); text-wrap:balance}
+h3{font:600 .98rem/1.4 var(--sans); margin:1.1rem 0 0}
+h4,h5,h6{font:500 11px/1.4 var(--mono); letter-spacing:.1em; text-transform:uppercase;
+  color:var(--quiet); margin:1rem 0 0}
+p,li{max-width:65ch; margin:0}
+ul,ol{margin:0; padding-left:1.4rem; display:flex; flex-direction:column; gap:.4rem}
+li>ul,li>ol{margin-top:.4rem}
+strong{font-weight:600}
+code{font:400 .875em/1.5 var(--mono); background:var(--sunk); padding:.1em .35em; border-radius:3px}
+pre{background:var(--sunk); border:1px solid var(--line); border-radius:6px;
+  padding:.85rem 1rem; overflow-x:auto; margin:0}
+pre code{background:none; padding:0}
+blockquote{margin:0; padding:.75rem 1rem; border-left:3px solid var(--accent);
+  background:var(--accent-soft); border-radius:0 5px 5px 0}
+blockquote p{max-width:none}
+hr{border:0; border-top:1px solid var(--line); margin:.5rem 0}
+/* Wide content pans inside its OWN container; the page body never scrolls sideways. */
+.scroll{overflow-x:auto; border:1px solid var(--line); border-radius:6px}
+table{border-collapse:collapse; width:100%; font-size:.9rem}
+th,td{text-align:left; padding:.6rem .8rem; border-bottom:1px solid var(--line); vertical-align:top}
+thead th{font:500 10px/1.3 var(--mono); letter-spacing:.11em; text-transform:uppercase;
+  color:var(--quiet); background:var(--sunk); white-space:nowrap}
+tbody tr:last-child td{border-bottom:0}
+/* Figures in a column line up. */
+td,th{font-variant-numeric:tabular-nums}
+.derived{color:var(--slate); font-size:.85rem; margin-top:2.5rem;
+  padding-top:1rem; border-top:1px solid var(--line)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style></head><body><div class='wrap'><p class='eyebrow'>Ship review · reading view</p><h1 id="ship-review-feat-54-the-ship-run">Ship review — FEAT-54, the ship run</h1>
+<p><strong>Recommendation: one line in <code>.github/workflows/tests.yml</code>, then merge. Do not merge as it stands, and do not merge past the red check.</strong></p>
+<p>The pull request is open — <strong>#1285</strong>, <code>feat/FEAT-54-handoff-done-when</code> → <code>main</code>, 45 commits, 0 behind. Ten of the eleven CI steps pass, including every suite and every gate this feature wrote. The eleventh is the one this feature ADDED, and it cannot pass on a GitHub runner. It is the single required context on <code>main</code> (<code>integration</code>, <code>enforce_admins: true</code>), so <strong>nothing in this repository can merge until it is fixed</strong> — not this feature, not the next one.</p>
+<p>The cause is one line and the fix is one line. Both are measured below, not inferred.</p>
+<h2 id="f-01-the-blocker-feat-54-s-own-ci-gate-step-fails-on-every-clone-github-makes">F-01 — the blocker: FEAT-54&#x27;s own CI gate step fails on every clone GitHub makes</h2>
+<p>The <code>Repository-state gate</code> step (added post-review as B-5, main-session-direct) runs <code>check-state.sh</code> and exits on its status. On a CI checkout that checker reports exactly one violation:</p>
+<pre><code>VIOLATION  INV-31: core.hooksPath is unset, not .claude/skills/harness/hooks
+           — no harness hook runs on this clone.</code></pre>
+<p>INV-31 (FEAT-40) asks whether <strong>this machine</strong> runs the <code>post-merge</code> hook that runs <code>gh-sync.py ship</code>. A GitHub runner never ships, and <code>actions/checkout@v4</code> never sets <code>core.hooksPath</code>, so the answer is always no and the step is red by construction. It is not a defect in the handoff work, and it is not a pre-existing condition: PR #1275 merged four steps ago without this step existing.</p>
+<p><strong>Measured, two arms, in a fresh <code>git clone</code> of the branch at <code>91495a60</code> (<code>/tmp/feat54-ci-probe</code>, CI&#x27;s own conditions):</strong></p>
+<div class="scroll"><table><thead><tr><th>Arm</th><th><code>core.hooksPath</code></th><th><code>check-state.sh</code></th><th>Violations</th></tr></thead><tbody><tr><td>1 — as CI runs it</td><td>unset</td><td><strong>exit 1</strong></td><td>1 — INV-31, and nothing else</td></tr><tr><td>2 — remedy applied</td><td><code>.claude/skills/harness/hooks</code></td><td><strong>exit 0</strong></td><td>0, over 877 rows</td></tr></tbody></table></div>
+<p>Arm 2 also silences nothing: with the path configured, INV-31&#x27;s second branch really does assert that <code>hooks/post-merge</code> exists and is executable in the checkout, and it passes — so CI gains a committed-state fact instead of losing one.</p>
+<p><strong>The remedy</strong> — inside the existing step, before it runs the checker:</p>
+<pre><code># CI IS NOT A SHIPPING CLONE. INV-31 asks whether THIS MACHINE runs the post-merge hook;
+# actions/checkout never sets core.hooksPath, so the row is red by construction on every
+# runner. Pointing it at the in-tree hooks directory makes the checkout a faithful working
+# clone rather than suppressing the row — INV-31 then still asserts hooks/post-merge exists
+# and is executable, which is a committed-state fact worth checking.
+git config core.hooksPath .claude/skills/harness/hooks</code></pre>
+<p><strong>Why I did not apply it.</strong> <code>.github/workflows/tests.yml</code> hosts the required check&#x27;s own gate steps. DEC-174 stops self-hosting at the enforcement layer, and this feature&#x27;s own record already settled the lane for this exact row: all seven post-review remedies, B-5 among them, landed main-session-direct &quot;because every remedy touches the enforcement tree DEC-174 reserves&quot; (<code>STATE.md</code>). The path resolver grants <code>.github/workflows/tests.yml</code> to <code>harness-dev-ops</code>, so a squad dispatch would have been <em>available</em> — I refused it on the merits rather than on domain: having a squad member edit the definition of the one required check is the act DEC-174 names.</p>
+<h2 id="what-this-run-did-and-did-not-do">What this run did and did not do</h2>
+<p>Done: pushed the branch (new remote branch, no force needed — 0 behind <code>origin/main</code>, so no <code>--force-with-lease</code> was required); opened PR #1285 with the verification record in its body; recorded <code>pr: 1285</code> in <code>feature.json</code>; wrote <code>notes/handoff-ship.md</code>.</p>
+<p>Not done, and each for a stated reason:</p>
+<ul><li><strong>The merge.</strong> Branch protection refuses it while <code>integration</code> is red, and <code>enforce_admins</code> is on, so there is no override to take and none should exist.</li><li><strong>The station.</strong> <code>plan.yaml</code> stays at <code>review</code>. Writing <code>done</code> over an unmerged, blocked feature would be a false record, and INV-28 does not fire until it is Done.</li><li><strong><code>gh-sync.py ship</code> / <code>record-pr</code>.</strong> Both refuse at exit 1 while the feature directory resolves inside <code>.claude/worktrees/</code>, before any write. They run from the main checkout after the merge.</li><li><strong>Worktree removal.</strong> Never this agent&#x27;s act (DEC-193): <code>git worktree remove</code> exits 0 from inside the tree it deletes. The <code>post-merge</code> hook takes it when <code>main</code> pulls.</li></ul>
+<h2 id="how-this-briefing-was-assembled">How this briefing was assembled</h2>
+<p><strong>No report round was spawned.</strong> I read from disk: <code>STATE.md</code>, <code>plan.yaml</code> (station, approval, lanes, task stations), <code>BRIEF.md</code> (requirements and all 15 criteria), and the previous briefing <code>notes/ship-review-2026-09-03-review-c6-validator.md</code>, which is the record of the plan, build and validate phases and names the digests it rests on. I did not re-read the 51 run directories, and the phase summaries here are that briefing&#x27;s, not re-derived. Everything about F-01 I measured myself in this run, from the CI logs and the fresh-clone probe.</p>
+<h2 id="residual-backlog">Residual backlog</h2>
+<p>Strike any row by ID and it dies. <strong>Anything not listed here is lost silently.</strong></p>
+<div class="scroll"><table><thead><tr><th>ID</th><th>Nature</th><th>What</th></tr></thead><tbody><tr><td>R-1</td><td>chore</td><td>Ledger entry <code>2026-09-02-goalcheck-c1-product</code> has no run directory. The run is real — its evidence is <code>notes/research-FEAT-54-goalcheck-plan-c1.md</code> — so the entry was kept: deleting it erases a recorded FAIL, and writing a digest invents one. Known ledger-floor gap</td></tr><tr><td>R-2</td><td>chore</td><td>B-7&#x27;s <code>eval</code> exclusion cites <code>signed: DEC-187</code>, the decision that signed <code>functional</code>&#x27;s exclusion on the same rationale. A DEC of its own for <code>eval</code> is a documentor dispatch if you want the record explicit</td></tr><tr><td>R-3</td><td>chore</td><td>Local <code>main</code> is <strong>4 commits ahead of <code>origin/main</code></strong> and unpushed — FEAT-52 and BUG-1157 record commits (<code>a12aa4e9</code>, <code>a85134aa</code>, <code>142baff2</code>, <code>0df47889</code>). Unrelated to this feature, but it means the post-merge <code>main</code> pull is a real merge, not a fast-forward</td></tr><tr><td>R-4</td><td>chore</td><td>INV-28 still reports <code>BUG-1081-code-grade-enforcement</code> as Done with no pull request recorded. One command closes it: <code>gh-sync.py record-pr .harness/harness/features/BUG-1081-code-grade-enforcement</code></td></tr><tr><td>R-5</td><td>chore</td><td>Three legacy records carry INV-23 note rows (<code>FEAT-02</code>, <code>FEAT-05</code>, <code>FEAT-43</code> STATE.md sections and length; two feature.json over budget). Notes, not violations — but the new CI step prints them on every commit from now on, so they are noise with a fixed cost</td></tr></tbody></table></div>
+<h2 id="budgets">Budgets</h2>
+<p><strong>Cycles: 22 of 30.</strong> This run added none: F-01 was routed <strong>up</strong>, not back to a lead, and DEC-157 counts a FAIL routed back, an unmet-SC re-dispatch, or a lead-reported send-back. None applies.</p>
+<p><strong>Runs: 51 against an informational budget of 20</strong> — over by more than double, and unchanged by this run, which spawned nobody. The previous briefing&#x27;s read stands: the c4–c6 sequence earned its runs, the four pre-signature plan panels are the weaker half of the story.</p>
+<h2 id="what-i-need-from-you">What I need from you</h2>
+<ol><li><strong>Apply the one line</strong> above to <code>.github/workflows/tests.yml</code>, or tell me to route it to <code>harness-dev-ops</code> and overrule the DEC-174 reading.</li><li><strong>Then, in order:</strong> commit and push it, let <code>integration</code> go green, merge #1285, pull <code>main</code>, run <code>gh-sync.py record-pr</code> and <code>gh-sync.py ship &lt;feature-dir&gt; --body-file &lt;this note&gt;</code> from the main checkout, and let the <code>post-merge</code> hook take the worktree. <code>notes/handoff-ship.md</code> carries that sequence with the traps attached.</li><li><strong>Strike any residual rows</strong> you do not want carried.</li></ol><p class='derived'>Derived from <code>ship-review-2026-09-04-ship.md</code> — the markdown is the record; do not edit this file. Regenerate with <code>bin/render-brief.py</code>.</p></div></body></html>

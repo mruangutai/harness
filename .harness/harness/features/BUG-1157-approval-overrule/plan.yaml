@@ -1,0 +1,24 @@
+schema: plan/1
+feature: BUG-1157-approval-overrule
+approval:
+  status: pending
+status: done
+tasks:
+  - id: T-01
+    title: Add a repeatable operator overrule writer for INV-32 accepted-risk findings
+    change_type: logic
+    execution_mode: main-session-direct
+    files:
+      - .claude/skills/harness/bin/plan-merge.py
+      - .claude/skills/harness/bin/check-state.sh
+      - .claude/skills/harness/bin/panel_findings.py
+      - .claude/skills/harness/templates/plan.yaml
+      - .claude/skills/harness/SKILL.md
+    verify: |
+      python3 tests/integration/test-plan-merge.py && python3 tests/integration/test-check-state.py
+    intent: |
+      DEC-174 carve-out: issue #1157 found that no sanctioned route could write an operator
+      overrule into approval.rulings, so INV-32 had no way to record accepted risk. Fixed
+      directly, main-session-direct, because the changed surfaces are the harness's own
+      enforcement scripts (plan-merge.py, check-state.sh) — never dispatched through a team
+      run whose gates are the thing being changed.

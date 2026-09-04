@@ -331,6 +331,28 @@ root = _root()
 manifest = os.path.join(root, ".harness", "team-config.yaml")
 
 
+def _claimed_abs(path):
+    """Absolute form of a CLAIMED path, anchored to `root` and never to cwd.
+
+    `os.path.abspath` anchors a relative path to the CURRENT WORKING DIRECTORY, and a
+    hook's cwd is not guaranteed to be the project root. MEASURED at `f1ae55f2`, four
+    arms on the same blank-`Scope:` handoff note: an ABSOLUTE claimed path from `/tmp`
+    refused (exit 2); the same path spelled RELATIVE from `/tmp` exited 0 having never
+    opened the note; relative from the checkout root refused; and setting
+    `CLAUDE_PROJECT_DIR` did NOT change the `/tmp` result, because the fault was never
+    root derivation — `_root()` was already correct — but the JOIN of the claimed path
+    onto it. Anchoring here is the whole fix, and it belongs with the other two
+    cwd-independence guards at the top of this file rather than at each call site.
+
+    An absolute claimed path is returned untouched, so this is a no-op on the production
+    route where the hook already runs with the project root as cwd. That is exactly why
+    the hole was latent: every arm that mattered in practice resolved identically.
+    """
+    return path if os.path.isabs(path) else os.path.join(root, path)
+
+
+
+
 ti = d.get("tool_input", {}) or {}
 # Write/Edit use file_path; NotebookEdit uses notebook_path.
 target = ti.get("file_path") or ti.get("notebook_path") or ""
@@ -564,7 +586,7 @@ def approval_guard(rel, agent_name):
         return
 
     try:
-        disk = open(target, encoding="utf-8").read()
+        disk = open(_claimed_abs(target), encoding="utf-8").read()
     except Exception as exc:
         print("check-domain: could not read %s (%r) — no fragment denial applied."
               % (rel, exc), file=sys.stderr)
@@ -838,7 +860,14 @@ def domain_check():
     # harness-documentor writing src/main.py INSIDE harness exited 2. The same logical
     # path was blocked in this repo and permitted outside it, silently, with the write
     # landing.
-    _verdict = harness_boundary.classify(target, root, globs, shared, "check-domain")
+    # `classify` NAMES ITS PARAMETER `abs_target` AND MEANS IT: it calls `real()` on the
+    # value, which anchors a relative path to cwd. Passing the raw claimed path made the
+    # whole DOMAIN phase fail open whenever the hook's cwd was not the project root —
+    # measured at `f1ae55f2`, `harness-frontend-dev` writing `.harness/harness/docs/SPEC.md`
+    # spelled relative from `/tmp` exited 0, the same write spelled absolute exited 2. That
+    # is a second, independent hole from the shape-phase one `_claimed_abs` was added for,
+    # and it was invisible because the sibling `--resolve` route already joined onto root.
+    _verdict = harness_boundary.classify(_claimed_abs(target), root, globs, shared, "check-domain")
 
     if _verdict["outcome"] == "out_of_place_worktree":
         # A write INTO a sibling worktree, from a session standing outside it. The
@@ -1028,7 +1057,7 @@ def _show(path):
     and must strip, or a worktree write matches no pattern; `_show` answers "which file
     am I talking about" and must NOT strip, or every checkout collapses onto one name.
     """
-    return os.path.relpath(os.path.abspath(path), os.path.abspath(root))
+    return os.path.relpath(_claimed_abs(path), os.path.abspath(root))
 
 
 def _norm(path):
@@ -1058,10 +1087,10 @@ def _norm(path):
     The shape phase must not gain a fail-closed dependency: that would block the main
     session on the very write that repairs the module.
     """
-    rel = os.path.relpath(os.path.abspath(path), os.path.abspath(root))
+    rel = os.path.relpath(_claimed_abs(path), os.path.abspath(root))
     try:
         import harness_boundary as _hb
-        _ck = _hb.checkout_relative(os.path.abspath(path))
+        _ck = _hb.checkout_relative(_claimed_abs(path))
         if _ck is not None and _hb.real(_ck[0]) != _hb.real(root):
             return _ck[1]
     except Exception:
@@ -1285,10 +1314,33 @@ def shape_problems(rel, content, display=None, absolute_path=None):
         # 300, not 200: FEAT-10 measures 173 lines with 32 runs, roughly 5 lines per run.
         # The comment-line budget is GONE, not relaxed — JSON has no comments, so it could
         # never fire, and a check that cannot fire is a check a reader trusts.
+        #
+        # THE COUNT EXCLUDES `runs:` (FEAT-54 backlog B-4). The cap is DEC-150's "data, not a
+        # journal", and the run ledger is the data — its length tracks how long the feature
+        # ran, not anyone's prose. Measured on FEAT-54's own record: 336 lines, 294 of them
+        # the 48-entry array. Counting it fired the cap on the only legitimately unbounded
+        # part of the file, and both remedies were wrong: delete real history, or raise a
+        # number that is wrong again at 60 runs. `journal_lines` lives in feature_schema so
+        # this gate and check-state.sh's INV-23 cannot drift on the definition.
         problems = []
-        if len(lines) > 300:
-            problems.append(f"feature.json is {len(lines)} lines — budget is 300. It is data a script "
-                            f"parses, not a journal.")
+        try:
+            import feature_schema as _fs_budget
+            _budget = _fs_budget.FEATURE_JSON_LINE_BUDGET
+            # `content`, NEVER "\n".join(lines): joining drops trailing blank lines, because
+            # splitlines does not create an entry for a final newline. Measured — a 301-line
+            # padded fixture counted 300 that way and the boundary case at 301 exited 0.
+            _counted = _fs_budget.journal_lines(content)
+            _basis = "excluding the runs ledger"
+        except Exception:
+            # THE FALLBACK COUNTS EVERYTHING, deliberately. An unimportable helper must not
+            # loosen a budget; it makes this stricter than intended, which is the safe way
+            # for a shape gate to be wrong.
+            _budget = 300
+            _counted = len(lines)
+            _basis = "whole file — feature_schema was not importable"
+        if _counted > _budget:
+            problems.append(f"feature.json is {_counted} lines ({_basis}) — budget is "
+                            f"{_budget}. It is data a script parses, not a journal.")
         if problems:
             deny(problems)
 
@@ -1544,20 +1596,26 @@ def shape_problems(rel, content, display=None, absolute_path=None):
             return out
 
     if RE_HANDOFF.match(rel):
-        # DEC-159: the handoff note is working memory for a successor — four fixed
-        # sections, hard-capped, denied at write while the author can still fix it.
+        # DEC-159: the handoff note is working memory for a successor — five fixed
+        # sections including ## Done when, hard-capped, denied at write while the author can still fix it.
         # Cap 60 (DEC-160): the first live handoff was 49 lines with zero fat.
         problems = []
         if len(lines) > 60:
             problems.append(f"handoff note is {len(lines)} lines — cap is 60. It is intent, trust,"
-                            f" dead ends and a working set, not a narrative; history lives on disk.")
-        required = ["## Next", "## Trust", "## Dead ends", "## Working set"]
+                            f" dead ends, a working set and ## Done when, not a narrative; history lives on disk.")
+        required = ["## Next", "## Trust", "## Dead ends", "## Working set", "## Done when"]
         low = [l.strip().lower() for l in lines]
         missing = [h for h in required if h.lower() not in low]
         if missing:
-            problems.append(f"missing required section(s) {missing} — the four sections are the"
+            problems.append(f"missing required section(s) {missing} — the five sections are the"
                             f" contract (templates/HANDOFF.md); a freeform handoff drifts like an"
                             f" unvalidated digest did (DEC-156).")
+        try:
+            import handoff_done_when
+            problems.extend(handoff_done_when.problems(rel, content, root, resolve=True))
+        except Exception as exc:
+            problems.append("the Done when validator handoff_done_when.py failed — "
+                            f"REFUSING the write ({type(exc).__name__}: {exc})")
         if problems:
             out.append(_head("handoff shape (DEC-159)."))
             out.extend(f"  {m}" for m in problems)
@@ -1683,7 +1741,7 @@ def _resolved_rel(path):
     one NUL took budgets, domain grants and the route denial down together.
     """
     try:
-        return os.path.relpath(os.path.realpath(path), os.path.realpath(root))
+        return os.path.relpath(os.path.realpath(_claimed_abs(path)), os.path.realpath(root))
     except (OSError, ValueError):
         return None
 
@@ -1699,7 +1757,7 @@ def _hardlink_plan(path):
     linked file reaches the scan.
     """
     try:
-        st = os.stat(path)
+        st = os.stat(_claimed_abs(path))
     except (OSError, ValueError):
         # ValueError for the same reason as `_resolved_rel` -- an embedded NUL (FEAT-41 MF-2).
         return None
@@ -1810,6 +1868,9 @@ if (_governed and not _post and _tool in ("Write", "Edit", "NotebookEdit")
                 file=sys.stderr,
             )
 
+_UNREADABLE_EDIT = object()
+
+
 def _edit_reconstructed_content(absolute_path, old_string, new_string, replace_all):
     """Issue #1106, gap (a). The full file content Claude's Edit tool would produce, or
     None when the edit itself is ambiguous or a no-op — in which case it is not this
@@ -1827,8 +1888,10 @@ def _edit_reconstructed_content(absolute_path, old_string, new_string, replace_a
     if not isinstance(old_string, str) or not old_string or not isinstance(new_string, str):
         return None
     try:
-        with open(absolute_path, encoding="utf-8", errors="replace") as _f:
+        with open(absolute_path, encoding="utf-8") as _f:
             disk = _f.read()
+    except UnicodeError:
+        return _UNREADABLE_EDIT
     except OSError:
         return None
     count = disk.count(old_string)
@@ -1840,32 +1903,29 @@ def _edit_reconstructed_content(absolute_path, old_string, new_string, replace_a
 
 
 if not _post:
-    # PRE. Only `Write` carries a whole-file `content` to measure, so only `Write` can be
-    # blocked before the fact. `d` was parsed once at the top of this process (T-13);
-    # re-parsing here was leftover from the four-launch version — and inconsistent
-    # leftover: this copy exited 0 on a failure the first one absorbed with `d = {}`, so
-    # the two disagreed about what a bad payload means. Review finding 2.
-    #
-    # ISSUE #1106, GAP (a): an Edit targeting a run's digest.md or state.yaml is NARROWLY
-    # widened into this route — narrowly, because shape_problems() also carries budget and
-    # vocabulary rules (feature.json, CLAUDE.md, handoff, plan.yaml) this fix does not
-    # touch; widening the whole PRE route to Edit would pull those in too, unreviewed. The
-    # reconstructed content feeds the SAME shape_problems() the Write route already uses,
-    # so the digest prefix test and the state.yaml identity test apply unchanged.
+    # PRE. Write supplies complete content. Edit is reconstructed only for the protected
+    # artifact identities whose contracts must reject an invalid candidate before mutation:
+    # run digests, run state, and handoff notes.
     if (_tool == "Edit" and target
-            and (RE_RUN_DIGEST.match(_norm(target)) or RE_STATE_YAML.match(_norm(target)))):
+            and (RE_RUN_DIGEST.match(_norm(target))
+                 or RE_STATE_YAML.match(_norm(target))
+                 or RE_HANDOFF.match(_norm(target)))):
         _ti = d.get("tool_input") or {}
         _content = _edit_reconstructed_content(
-            os.path.abspath(target), _ti.get("old_string"), _ti.get("new_string"),
+            _claimed_abs(target), _ti.get("old_string"), _ti.get("new_string"),
             bool(_ti.get("replace_all")))
+        if _content is _UNREADABLE_EDIT:
+            print("check-domain: BLOCKED — existing file is not valid UTF-8, so the Edit "
+                  "candidate cannot be reconstructed safely.", file=sys.stderr)
+            sys.exit(2)
         if _content is None:
             sys.exit(0)
-        targets = [(_norm(target), _content, _show(target), os.path.abspath(target))]
+        targets = [(_norm(target), _content, _show(target), _claimed_abs(target))]
     elif _tool != "Write" or not target:
         sys.exit(0)
     else:
         targets = [(_norm(target), (d.get("tool_input") or {}).get("content") or "",
-                    _show(target), os.path.abspath(target))]
+                    _show(target), _claimed_abs(target))]
 
 elif target:
     # POST, with a named file: Write, Edit, NotebookEdit. Read what LANDED — no
@@ -1881,8 +1941,8 @@ elif target:
     if not has_shape_rules(_rel):
         sys.exit(0)
     try:
-        with open(os.path.abspath(target), encoding="utf-8", errors="replace") as _f:
-            targets = [(_rel, _f.read(), _show(target), os.path.abspath(target))]
+        with open(_claimed_abs(target), encoding="utf-8", errors="replace") as _f:
+            targets = [(_rel, _f.read(), _show(target), _claimed_abs(target))]
     except OSError:
         # The tool may have failed, or the path may be a directory or already gone. A
         # post-hoc reporter that raises on an unreadable path would turn every such write

@@ -1149,8 +1149,13 @@ def case_o():
 
     checks, ok_all = [], True
     for what, dpat, spat in (
-        ("feature.json lines",  r"feature\.json is \{len\(lines\)\} lines — budget is (\d+)",
-                                r"feature\.json'\)\} is \{len\(fl\)\} lines — budget is (\d+)"),
+        # The feature.json pair is GONE because the DUPLICATE is gone: FEAT-54's B-4 moved
+        # the number and the counting rule into feature_schema.FEATURE_JSON_LINE_BUDGET, and
+        # both gates now import it. That pair is policed by its own block below, which
+        # asserts the single source AND that neither gate's fallback literal disagrees with
+        # it — a fallback that drifts is the same defect this case exists to catch, just
+        # hidden one branch deeper.
+        #
         # The comment-line budget pair is GONE, not relaxed. T-06 removed the check from
         # both files because JSON has no comments, so it could never fire — and a pair of
         # numbers that can never be printed is a duplicate this case cannot police.
@@ -1166,6 +1171,33 @@ def case_o():
         good = bool(a) and a == b
         ok_all &= good
         checks.append(f"{what}: check-domain {a or 'NOT FOUND'} vs check-state {b or 'NOT FOUND'}")
+
+    # THE feature.json BUDGET, NOW SINGLE-SOURCED (FEAT-54 B-4). Three things must hold or
+    # the de-duplication is worse than the duplication it replaced: the constant exists, both
+    # gates read it BY NAME, and every fallback literal they carry for an unimportable helper
+    # equals it. The third is the one a reader would miss — a fallback saying 250 would
+    # silently enforce a different budget on exactly the path nobody tests.
+    schema_src = open(os.path.join(here, "feature_schema.py"), encoding="utf-8").read()
+    declared = _re.search(r"^FEATURE_JSON_LINE_BUDGET = (\d+)$", schema_src, _re.M)
+    fallbacks = sorted({int(x) for x in
+                        _re.findall(r"_(?:inv23_)?budget = (\d+)", dom + sta)})
+    reads_constant = ("FEATURE_JSON_LINE_BUDGET" in dom
+                      and "FEATURE_JSON_LINE_BUDGET" in sta)
+    fgood = (declared is not None and reads_constant
+             and fallbacks in ([], [int(declared.group(1))]))
+    ok_all &= fgood
+    checks.append(
+        f"feature.json budget: declared "
+        f"{declared.group(1) if declared else 'NOT FOUND'}, both gates read the constant "
+        f"{reads_constant}, fallback literals {fallbacks or 'none'}")
+
+    # AND THE COUNTING RULE ITSELF IS SHARED, not merely the number. Either gate counting
+    # whole-file lines while the other excludes the ledger would enforce two budgets under
+    # one name, which is exactly the drift class above with the numbers still matching.
+    counts_journal = ("journal_lines" in dom and "journal_lines" in sta
+                      and "def journal_lines" in schema_src)
+    ok_all &= counts_journal
+    checks.append(f"feature.json counting rule shared: {counts_journal}")
 
     # The checkpoint vocabulary, the oldest deliberate duplicate in the pair.
     va = set(_re.findall(r'"([a-z_]+)"',
@@ -1185,13 +1217,17 @@ def case_o():
     tpl = open(os.path.join(here, "..", "templates", "HANDOFF.md"), encoding="utf-8").read()
     ha = {h.lower() for h in _re.findall(r'"(## [^"]+)"',
           _re.search(r'required = \[(.*?)\]', dom, _re.S).group(1))}
-    hb = {h.lower() for h in _re.findall(r'"(## [^"]+)"',
-          _re.search(r"HANDOFF_HEADINGS = \[(.*?)\]", sta, _re.S).group(1))}
+    hb_ordered = [h.lower() for h in _re.findall(r'"(## [^"]+)"',
+                  _re.search(r"HANDOFF_SECTIONS = \[(.*?)\]", sta, _re.S).group(1))]
+    hb = set(hb_ordered)
+    narrative_is_prefix = bool(_re.search(
+        r"HANDOFF_NARRATIVE_HEADINGS\s*=\s*HANDOFF_SECTIONS\[:4\]", sta))
     hc = {h.strip().lower() for h in _re.findall(r"^(## .+)$", tpl, _re.M)}
-    hgood = bool(ha) and ha == hb and ha <= hc
+    hgood = (bool(ha) and ha == hb and ha <= hc and narrative_is_prefix
+             and hb_ordered[-1:] == ["## done when"])
     ok_all &= hgood
     checks.append(f"handoff headings: check-domain {sorted(ha)}, check-state {sorted(hb)}, "
-                  f"template {sorted(hc)}")
+                  f"narrative-prefix {narrative_is_prefix}, template {sorted(hc)}")
 
     print(f"{'ok' if ok_all else 'FAIL'} - case (o): check-domain.sh, check-state.sh and "
           f"HANDOFF.md agree on every duplicated budget, key and heading")
@@ -2099,6 +2135,10 @@ The one that did not work.
 
 ## Working set
 one/file.py
+
+## Done when
+Scope: implementation complete
+Authority: plan-task:T-03.verify
 """
 
 
@@ -2128,6 +2168,217 @@ def _shape_lines(out, needle):
     just detected — case (t14-f) turns on the count being exactly 1."""
     return [l for l in out.splitlines()
             if l.startswith("  VIOLATION") and "fails the shape" in l and needle in l]
+
+
+def _feat54_fixture_case(tmp, note, baseline_marker, name="handoff-plan.md"):
+    fdir = _handoff_fixture(tmp, "Building", {name: note})
+    cfg = {"github": {"sync": False, "repo": None}}
+    if baseline_marker is not None:
+        cfg["handoff_done_when_baseline"] = baseline_marker
+    with open(os.path.join(tmp, ".harness", "harness.json"), "w") as f:
+        json.dump(cfg, f)
+    with open(os.path.join(fdir, "plan.yaml"), "w") as f:
+        f.write("schema: plan/1\nfeature: FEAT-TEST\nstatus: building\ntasks:\n"
+                "  - id: T-03\n    title: Fixture task\n    traces: [REQ-01]\n"
+                "    change_type: logic\n    execution_mode: main-session-direct\n"
+                "    execution_reason: fixture\n    depends_on: []\n    status: done\n"
+                "    files: [tests/fixture.py]\n    verify: python3 test.py\n"
+                "    intent: fixture\n")
+    with open(os.path.join(fdir, "BRIEF.md"), "w") as f:
+        f.write("# BRIEF\n\n- SC-04: observable\n\n## Approval\n")
+    with open(os.path.join(fdir, "notes", "review-fixture.md"), "w") as f:
+        f.write("Finding F-02 remains.\n")
+    return fdir
+
+
+def _feat54_check_case(outcomes, label, note, baseline_marker,
+                       expect_report, needles="Done when"):
+    needles = needles if isinstance(needles, tuple) else (needles,)
+    with tempfile.TemporaryDirectory() as tmp:
+        _feat54_fixture_case(tmp, note, baseline_marker)
+        _, out = run(tmp)
+        lines = [line for line in out.splitlines()
+                 if "handoff-plan.md" in line
+                 and all(needle.lower() in line.lower() for needle in needles)]
+        ok = bool(lines) == expect_report
+        print(f"{'ok' if ok else 'FAIL'} - FEAT-54 {label}")
+        if not ok:
+            print(f"        {out.strip()[:300]}")
+        outcomes.append(ok)
+
+
+def _feat54_case_notes():
+    missing = HANDOFF_GOOD.split("## Done when", 1)[0]
+    return {
+        "missing": missing,
+        "malformed": HANDOFF_GOOD.replace(
+            "Scope: implementation complete", "Scope: one\nScope: two"),
+        "absent_targets": HANDOFF_GOOD.replace(
+            "Authority: plan-task:T-03.verify",
+            "Authority: plan-task:T-99.verify\nAuthority: brief-sc:SC-99\n"
+            "Authority: finding:missing.md#F-99\nAuthority: approval:missing.md#Missing"),
+        "unknown": HANDOFF_GOOD.replace(
+            "Authority: plan-task:T-03.verify", "Authority: docs:whatever"),
+        "blank_scope": HANDOFF_GOOD.replace(
+            "Scope: implementation complete", "Scope:   "),
+        "reversed_order": HANDOFF_GOOD.replace(
+            "Scope: implementation complete\nAuthority: plan-task:T-03.verify",
+            "Authority: plan-task:T-03.verify\nScope: implementation complete"),
+        "unsafe": HANDOFF_GOOD.replace(
+            "Authority: plan-task:T-03.verify",
+            "Authority: finding:../review.md#F-02"),
+        "unsafe_approval": HANDOFF_GOOD.replace(
+            "Authority: plan-task:T-03.verify",
+            "Authority: approval:../review.md#Approval"),
+        "nested": HANDOFF_GOOD.replace(
+            "Authority: plan-task:T-03.verify",
+            "Authority: plan-task:T-03.verify\n### hidden\nstray prose"),
+        "duplicate": HANDOFF_GOOD.replace(
+            "Authority: plan-task:T-03.verify",
+            "Authority: plan-task:T-03.verify\n## Done when\n"
+            "Scope: hidden\nAuthority: plan-task:T-99.verify"),
+    }
+
+
+def _feat54_baseline_cases(outcomes):
+    baseline_path = ".harness/harness/features/FEAT-TEST/notes/handoff-plan.md"
+    notes = _feat54_case_notes()
+    missing = notes["missing"]
+    malformed = notes["malformed"]
+    absent_targets = notes["absent_targets"]
+    unknown = notes["unknown"]
+    blank_scope = notes["blank_scope"]
+    reversed_order = notes["reversed_order"]
+    unsafe = notes["unsafe"]
+    unsafe_approval = notes["unsafe_approval"]
+    nested = notes["nested"]
+    duplicate = notes["duplicate"]
+
+    _feat54_check_case(
+        outcomes, "non-baselined missing section reports", missing, [], True)
+    _feat54_check_case(
+        outcomes, "baselined missing section is exempt", missing, [baseline_path], False)
+    _feat54_check_case(
+        outcomes, "baselined malformed block reports", malformed, [baseline_path], True,
+        ("Scope", "2"))
+    _feat54_check_case(
+        outcomes, "non-baselined resolving block passes", HANDOFF_GOOD, [], False)
+    _feat54_check_case(
+        outcomes, "non-baselined absent targets do not rot",
+        absent_targets, [], False, ())
+    _feat54_check_case(
+        outcomes, "baselined absent targets do not rot",
+        absent_targets, [baseline_path], False, ())
+    _feat54_check_case(
+        outcomes, "shape remains enforced", malformed, [], True, ("Scope", "2"))
+    _feat54_check_case(
+        outcomes, "grammar remains enforced", unknown, [], True, "legal prefixes")
+    _feat54_check_case(
+        outcomes, "blank Scope remains enforced", blank_scope, [], True, "non-empty")
+    _feat54_check_case(
+        outcomes, "Scope ordering remains enforced", reversed_order, [], True,
+        "before every Authority")
+    _feat54_check_case(
+        outcomes, "unsafe target grammar remains enforced", unsafe, [], True, "unsafe")
+    _feat54_check_case(
+        outcomes, "unsafe approval grammar remains enforced",
+        unsafe_approval, [], True, "unsafe")
+    _feat54_check_case(
+        outcomes, "nested heading cannot truncate validation",
+        nested, [], True, "unexpected line")
+    _feat54_check_case(
+        outcomes, "duplicate heading cannot truncate validation",
+        duplicate, [], True, "expected exactly 1")
+    _feat54_check_case(
+        outcomes, "absent baseline key means no exemption", missing, None, True)
+
+
+def _feat54_clean_corpus_case(outcomes):
+    baseline_path = ".harness/harness/features/FEAT-TEST/notes/handoff-plan.md"
+    with tempfile.TemporaryDirectory() as tmp:
+        second = HANDOFF_GOOD.replace("implementation complete", "validation complete")
+        _feat54_fixture_case(tmp, HANDOFF_GOOD, [baseline_path])
+        fdir = os.path.join(tmp, ".harness", "harness", "features", "FEAT-TEST")
+        second_path = os.path.join(fdir, "notes", "handoff-build.md")
+        with open(second_path, "w") as f:
+            f.write(second)
+        paths = [os.path.join(fdir, "notes", "handoff-plan.md"), second_path]
+        before = [(open(path, "rb").read(), os.stat(path).st_mtime_ns) for path in paths]
+        _, out = run(tmp)
+        after = [(open(path, "rb").read(), os.stat(path).st_mtime_ns) for path in paths]
+        ok = "Done when" not in out and before == after
+        print(f"{'ok' if ok else 'FAIL'} - FEAT-54 clean corpus is not mutated")
+        outcomes.append(ok)
+
+
+def _feat54_line_cap_case(outcomes):
+    with tempfile.TemporaryDirectory() as tmp:
+        lines = ["# handoff", "## Next", "next", "## Trust"]
+        lines += [f"trust {index}" for index in range(25)]
+        lines += ["## Dead ends", "none", "## Working set"]
+        lines += [f"path {index}" for index in range(25)]
+        lines += ["## Done when", "Scope: complete", "Authority: plan-task:T-03.verify"]
+        note = "\n".join(lines) + "\n"
+        assert len(note.splitlines()) == 60
+        _feat54_fixture_case(tmp, note, [])
+        _, out = run(tmp)
+        hits = [line for line in out.splitlines() if "handoff-plan.md" in line]
+        ok = not hits
+        print(f"{'ok' if ok else 'FAIL'} - FEAT-54 no per-section cap")
+        outcomes.append(ok)
+
+
+def _feat54_resolution_mutant(iso_root):
+    source = open(SCRIPT, encoding="utf-8").read()
+    old = "handoff_done_when.problems(_rel_handoff, _text, root, resolve=False)"
+    new = "handoff_done_when.problems(_rel_handoff, _text, root, resolve=True)"
+    if source.count(old) != 1:
+        return None
+    mutant = os.path.join(isolated_bin(iso_root), ".check-state-feat54-resolve-mutant.sh")
+    with open(mutant, "w", encoding="utf-8") as file:
+        file.write(source.replace(old, new))
+    shutil.copymode(SCRIPT, mutant)
+    return mutant
+
+
+def _feat54_resolution_mutant_counts(mutant):
+    with tempfile.TemporaryDirectory() as tmp:
+        absent = _feat54_case_notes()["absent_targets"]
+        _feat54_fixture_case(tmp, absent, [])
+        _, real_out = run(tmp)
+        result = subprocess.run(
+            [mutant], cwd=tmp, capture_output=True, text=True, env=_root_env(tmp))
+    real_hits = [line for line in real_out.splitlines() if "handoff-plan.md" in line]
+    mutant_hits = [line for line in result.stdout.splitlines()
+                   if "handoff-plan.md" in line]
+    return len(real_hits), len(mutant_hits), result.returncode
+
+
+def _feat54_resolution_mode_mutant_case(outcomes):
+    """Prove SC-15 depends on check-state using shape-only authority validation."""
+    iso_root = tempfile.mkdtemp()
+    try:
+        mutant = _feat54_resolution_mutant(iso_root)
+        if mutant is None:
+            print("FAIL - FEAT-54 state caller-mode mutant could not be constructed")
+            outcomes.append(False)
+            return
+        real_count, mutant_count, returncode = _feat54_resolution_mutant_counts(mutant)
+        ok = real_count == 0 and mutant_count > 0 and returncode == 1
+        print(f"{'ok' if ok else 'FAIL'} - FEAT-54 state caller-mode mutation "
+              f"(real={real_count}, mutant={mutant_count})")
+        outcomes.append(ok)
+    finally:
+        shutil.rmtree(iso_root, ignore_errors=True)
+
+
+def case_feat54_done_when():
+    outcomes = []
+    _feat54_baseline_cases(outcomes)
+    _feat54_clean_corpus_case(outcomes)
+    _feat54_line_cap_case(outcomes)
+    _feat54_resolution_mode_mutant_case(outcomes)
+    return all(outcomes)
 
 
 def case_t14_widening():
@@ -4396,6 +4647,7 @@ def main():
         case_inv6_message_names_the_remedy(),
         case_inv6_producer_is_documented(),
     ])
+    ok_feat54_done_when = case_feat54_done_when()
 
     ok_exit_unchanged = code_a == code_b
     print(
@@ -4408,7 +4660,7 @@ def main():
             and ok_i28a and ok_i28b and ok_i28c and ok_i28d and ok_i28e and ok_i28f
             and ok_i28g and ok_i28h
             and ok_i29 and ok_i30 and ok_i31 and ok_i32 and ok_i32_severity
-            and ok_i32_era and ok_i6_plan
+            and ok_i32_era and ok_i6_plan and ok_feat54_done_when
             and ok_i33
             and ok_i34
             and ok_i35

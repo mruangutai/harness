@@ -3696,9 +3696,9 @@ Small features collapse naturally: short phases mean cheap sessions, and a featu
 to plan-and-ship in one sitting never meets a seam worth paying a relay for.
 
 **The handoff: working memory, not summary.** Everything the checkpoint discipline covers is
-already on disk; what dies with the context is exactly four things, so the note
+already on disk; what dies with the context is exactly five things, so the note
 (`notes/handoff-<ending-phase>.md`, template `templates/HANDOFF.md`, ~60-line cap (raised from 40 at DEC-160),
-superseded never appended) has exactly four sections:
+superseded never appended) has exactly five sections:
 
 - `## Next` — the decided-but-not-dispatched action, cited to PLAN.
 - `## Trust` — claims the successor will act on, one line each in the grammar
@@ -3707,6 +3707,11 @@ superseded never appended) has exactly four sections:
 - `## Dead ends` — exclusions active for the next phase, same grammar; no pointer, no entry.
   Durable exclusions belong in PLAN Decisions or observations, never here.
 - `## Working set` — the 3–5 paths read first; everything else is archive.
+- `## Done when` — the completion boundary of the immediate action in `## Next`: exactly one
+  `Scope:` line and one to four `Authority:` lines. Authorities combine as a logical AND and use
+  only `plan-task:`, `brief-sc:`, `finding:`, or `approval:` typed pointers. Every pointer must
+  resolve when the note is written or edited; the persisted-corpus check does not re-resolve it
+  afterwards (D-10). There is no per-section cap.
 
 The successor's step zero is validating `## Next` against PLAN/STATE (one grep) — the note never
 grants trust, it prices it. STATE.md remains the single durable truth per feature, `## Current`
@@ -3714,11 +3719,12 @@ replaced across every orchestrator that ever serves it; the note is ephemeral an
 validated. **Disk-only reconstruction stays fully supported** — the note is an accelerator, and
 nothing may ever require it, or a crash becomes unrecoverable.
 
-**Enforcement, the digest pattern (DEC-156) pointed at a new artifact:** check-domain.sh's
-DEC-150 write-time shape gate grows a third pattern — handoff-*.md is denied on a missing
-required heading or >40 lines while the author is still alive to fix it; check-state.sh INV-17
-flags a feature whose `phase:` sits past a seam with no handoff note for the crossing, or a
-note that fails the shape.
+**Enforcement, the digest pattern (DEC-156) pointed at a new artifact:** the DEC-150 write-time
+shape gate demands all five sections and the 60-line whole-file cap, and validates the `## Done
+when` block's shape, pointer grammar, and target resolution while the author is still alive to fix
+it. `check-state.sh` INV-17 demands all five sections except from the frozen baseline of notes that
+predate this contract; whenever the fifth section is present, INV-17 checks its shape and pointer
+grammar but never re-resolves a target.
 
 **The in-flight warning, and the metric it is not.** The watchdog is no longer only a post-hoc
 audit: a running `harness-orchestrator` is told, in its OWN context while it runs, that its
@@ -3740,7 +3746,7 @@ the live fix loop that would justify it has still not been observed.
 **The mid-flight case, which the seam rule does not cover.** Per-phase assumes a boundary is
 reachable; the warning can land when a phase is genuinely mid-flight. A warned orchestrator
 determines the nearest seam and writes the state a successor needs before it ends. Where no seam
-is reachable it writes a mid-phase handoff rather than continuing — the same note, the same four
+is reachable it writes a mid-phase handoff rather than continuing — the same note, the same five
 required sections, the same cap. This is when "a mid-phase relay is the bounded escape" above
 applies, and the note is what bounds it.
 
@@ -6749,3 +6755,33 @@ reports `HARNESS_PATH_DRIFT` in the injected block, still exiting 0 on every bra
 `harness-systematic-debugging/SKILL.md` from a product clone, which is the silent one. Issue 357 —
 the `bin/` to `src/` source-location question — is neither upstream nor downstream of this: it fixes
 the code half and leaves this half untouched.
+
+## DEC-215 — Handoff completion boundaries are explicit, resolved when written, and stable afterwards
+
+**Chose:** FEAT-54 adds `## Done when` as the fifth required handoff section. It describes the
+completion boundary of the one immediate action in `## Next` with exactly one `Scope:` line and one
+to four typed `Authority:` lines, all of which must be satisfied. The only legal authority types are
+`plan-task:`, `brief-sc:`, `finding:`, and `approval:`.
+
+**Historical notes remain valid by a frozen fact, not by weakening the contract.**
+`.harness/harness.json` carries the per-project `handoff_done_when_baseline`: the paths of notes that
+predate this contract. INV-17 exempts only those paths from fifth-section presence. A new or edited
+note must carry the section; a baselined note that already carries it is still checked for shape and
+pointer grammar.
+
+**Resolution is a write-time obligation with one implementation.**
+`.claude/skills/harness/bin/handoff_done_when.py` is the single parser and resolver used by both
+gates, applying DEC-179's rule that a second implementation may not drift from the governing one.
+The write gate calls it with target resolution enabled and resolves every pointer. The
+persisted-corpus INV-17 pass calls the same implementation with target resolution disabled: it
+checks required presence under the frozen baseline, block shape, and typed-pointer grammar, but
+never re-resolves a target (D-10). A later target edit therefore cannot invalidate an untouched note
+that was valid when written.
+
+**The comprehension benchmark is a probe, not a release gate.**
+`tests/manual/probe-handoff-comprehension.py` remains registered as `locally_run`: it can compare
+successor comprehension with and without the section, while its credentialed, nondeterministic model
+run cannot decide a release.
+
+**Evidence:** FEAT-54 and
+`.harness/notes/grilling-handoff-done-when-2026-09-02.md`.
