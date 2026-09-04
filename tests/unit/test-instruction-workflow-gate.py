@@ -25,8 +25,13 @@ def repository_state_gate_is_runnable(workflow):
         return False
     gate = workflow[start:workflow.find("\n      - name:", start + 1)]
     setup = "git config core.hooksPath .claude/skills/harness/hooks"
-    return (setup in gate and gate.find(setup) < gate.find("check-state.sh")
-            and 'exit "$rc"' in gate)
+    commands = [line.strip() for line in gate.splitlines()]
+    try:
+        setup_index = commands.index(setup)
+        check_index = next(i for i, line in enumerate(commands) if "check-state.sh" in line)
+    except (ValueError, StopIteration):
+        return False
+    return setup_index < check_index and 'exit "$rc"' in gate
 
 
 workflow = (ROOT / ".github" / "workflows" / "tests.yml").read_text()
@@ -45,6 +50,14 @@ check("repository-state gate installs tracked hooks before checking INV-31",
 check("repository-state mutant without hook setup is refused",
       not repository_state_gate_is_runnable(workflow.replace(
           "git config core.hooksPath .claude/skills/harness/hooks", "", 1)))
+check("repository-state mutant with commented hook setup is refused",
+      not repository_state_gate_is_runnable(workflow.replace(
+          "git config core.hooksPath .claude/skills/harness/hooks",
+          "# git config core.hooksPath .claude/skills/harness/hooks", 1)))
+check("repository-state mutant that only echoes hook setup is refused",
+      not repository_state_gate_is_runnable(workflow.replace(
+          "git config core.hooksPath .claude/skills/harness/hooks",
+          "echo git config core.hooksPath .claude/skills/harness/hooks", 1)))
 
 if FAILURES:
     raise SystemExit(1)
