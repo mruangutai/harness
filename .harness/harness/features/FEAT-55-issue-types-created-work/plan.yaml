@@ -73,8 +73,8 @@ decisions:
     because: DEC-205 ended the amendment-sub-section convention even though DEC-138's own history used it.
     dec: DEC-205
   - id: D-08
-    choice: the eighth read-back purpose is written into DEC-203's own copy of the enumerated list AND into the table in .claude/skills/harness/references/github-mirror.md, in identical wording, as ONE row covering three clauses - the new capability-and-declared-names read, the issue-identifier reads gh_issues.internal_id_args and gh_issue_types.node_id_args make against an already-recorded number, and the type read-back the probe makes under its create opt-in.
-    because: the two lists are separately maintained copies of one set, and one row is what keeps them from drifting. The three clauses are one bounded class - a lookup against a repository or against an issue whose number Harness already recorded locally - and the identifier clause names practice that has existed since sub-issue mirroring shipped (gh-sync.py:974 and :1215, factory_gh.py:981, verified at eb9d044e) and that the enumeration never listed; naming it is completing the record, not authorising a new read.
+    choice: 'the eighth read-back purpose is written into DEC-203''s own copy of the enumerated list AND into the table in .claude/skills/harness/references/github-mirror.md, in identical wording, as ONE row covering only the reads THIS feature introduces - the capability-and-declared-names query, the node identifier of an issue whose number Harness already recorded locally read immediately before a type-apply, and the type read-back the probe makes under its explicit create opt-in. The pre-existing identifier reads gh_issues.internal_id_args makes for sub-issue attach and detach are NOT in the pinned row: they are stated ONCE, as prose, in DEC-138''s own paragraph in .harness/harness/docs/DECISIONS.md and in no second file, under no character-for-character pin. Whatever text remains duplicated is guarded by a STANDING assertion - tests/unit/test-issue-types-pin.py, written by T-01 and run forever by run-unit-tests.sh - which fails both when a copy is MISSING the row and when the two copies DRIFT, and not by a task verify that stops running once review_sha pins.'
+    because: 'the two lists are separately maintained copies of one set, and one row is what keeps them from drifting. The row is bounded to the reads this feature introduces - one capability query answering both halves of the first clause, the node-id lookup a type-apply needs, and the probe''s opt-in read-back - so what is duplicated character for character is exactly what REQ-09 asks the record to state and no more. The retroactive enumeration of the pre-existing gh_issues.internal_id_args reads (gh-sync.py:974 and :1215, factory_gh.py:981, verified at eb9d044e) is OUT of the pinned row: it is record hygiene REQ-09 does not ask this feature for, it made every future rewording a two-file lockstep edit forever, and it dragged SC-11''s inspection reviewer into grading sub-issue attach and detach claims inside an issue-types change. DEC-138''s write-only reading of the mirror is still false without a mention of it, so it survives as one unpinned prose sentence in DECISIONS.md alone - the weakest form that keeps the record honest and the form that costs no duplication. The duplication that does remain is guarded by a standing unit assertion rather than by a task verify, because a drift guard that expires when this feature''s gate passes leaves the row unprotected for exactly as long as the row exists.'
     dec: DEC-203
   - id: D-09
     choice: the issue_types_live test kind is registered in .harness/harness.json test_kinds with a non-null cmd and status locally_run, in its own task that the probe task depends on.
@@ -98,7 +98,7 @@ decisions:
     dec: DEC-138
   - id: D-14
     choice: the type is applied AFTER creation through gh api graphql updateIssue with issueTypeId, never through a gh issue create flag.
-    because: gh 2.92.0 has no --type flag on issue create or issue edit, measured, so the CLI cannot set a native type at all.
+    because: gh 2.92.0 has no --type flag on issue create or issue edit, measured, so the gh CLI's own create cannot carry a type. A GraphQL createIssue with issueTypeId IS possible - issueTypeId is a measured input field of CreateIssueInput as well as of UpdateIssueInput (T-02) - and it is DELIBERATELY UNUSED. The create stays on the gh CLI path that already builds every label, milestone, body and sub-issue argument, and the type is applied afterwards through updateIssue, so the create-then-type window is a design choice and not a physical constraint; its ordering is what the D-10 and D-20 provenance receipt and every remnant case (T-03 F and G, T-05 E and G, T-07 E and I) pin, and a builder who moves the create to GraphQL unwinds all of them.
     dec: none
   - id: D-15
     choice: a capability query that FAILS - non-zero exit with a top-level errors array, or unparseable output - is classified query_failed, runs in compatibility mode with its own one-line diagnostic, and never gates the run.
@@ -144,8 +144,8 @@ decisions:
       leaves an issue untyped rather than retyping an issue somebody else owns.
     dec: DEC-138
 panel:
-  last_run: 2026-09-05-27-validator
-  cycle: 4
+  last_run: 2026-09-05-02-validator
+  cycle: 5
   severity_max: med
   readers:
   - reader: should-not-exist
@@ -158,79 +158,79 @@ panel:
     persona: harness-pm
     status: ran
   findings:
-  - id: PF-56a2ce7a053111a3aff62a4b97c5902e
-    reader: should-not-exist
-    severity: low
-    summary: the behaviourally inert adopted provenance marker was written into approval-gated
-      BRIEF SC-12 (:164-174) while PF-0c12a033 - the unruled finding that it is inert
-      - still rides to the operator
-    why: if the operator accepts PF-0c12a033 at signature, the surfaces to unwind
-      grow from three test cases to a signed success criterion plus two decisions
-      and three task intents
-    disposition: batched_to_signature_review
-  - id: PF-452948136bf467869d223e027191ae49
+  - id: PF-f8e806d111d71a0bb6c4298cd47963c9
     reader: scope
-    severity: med
-    summary: T-06's verify omits tests/integration/test-gh-issue-types.py though T-06's
-      own intent (:653-654) says to run it; T-08's verify runs all three files its
-      intent names.
-    why: T-06 rewires main()'s trailing-parameter passing and reuses detect_issue_types/apply_issue_type
-      in the same gh-sync.py whose cmd_open typed branch T-04 just added. A miswiring
-      made while routing issue_types into cmd_backlog could regress cmd_open's available
-      path with T-06's mechanical gate (:650-652) green; only a later full-suite run
-      would surface it, and only because prose says so.
+    severity: low
+    summary: github-mirror.md:7 caption still says 'seven purposes' after T-12 adds
+      the eighth row; no T-12 instruction or verify updates the count
+    why: 'T-11''s parallel edit to DECISIONS.md is explicitly told to rewrite ''carried
+      forward and now SEVEN purposes'' to ''EIGHT purposes'', and T-11''s verify greps
+      for the literal ''EIGHT purposes''. T-12''s intent (sections 1-3) never touches
+      github-mirror.md line 7''s caption (''bounded to an enumerated set - seven purposes''),
+      and T-12''s three verify checks (the github.issue_types substring, the pin-guard
+      test, the two-file identity script) never grep for an updated count. A faithful
+      builder therefore ships a table of eight rows under a caption that still says
+      seven: a future reader auditing this reference file for how many bounded read-back
+      purposes exist gets the wrong count from prose that contradicts its own table,
+      and no gate catches it. Anchors: github-mirror.md:7, unmatched by any T-12 section
+      1-3 instruction or verify check; plan.yaml T-12 verify and intent, which never
+      mention the caption.'
     disposition: batched_to_signature_review
-  - id: PF-e27f1c3018b6b8477547a1b028607f96
+  - id: PF-bc6cbd0c92ecd36a44eee2da8762f05a
+    reader: scope
+    severity: low
+    summary: T-01's pin-guard verify greps for the substring DRIFTED and cannot prove
+      missing-pin and drifted-pin are two independently triggerable failures
+    why: 'T-01 section 13 correctly specifies three separate assertions (missing in
+      DECISIONS.md, missing in github-mirror.md, then equality) and explicitly warns
+      ''A single comparison ... is NOT enough ... two absent values compare equal.''
+      The mechanical gate, grep -qF DRIFTED tests/unit/test-issue-types-pin.py, is
+      satisfied by any implementation that merely prints a string containing DRIFTED
+      somewhere, including a naive ''if a != b: print(DRIFTED...)'' that treats two
+      absent (None) extractions as equal and so passes silently on exactly the state
+      the guard exists to catch. The design in prose is correct; only its gate is
+      a proxy. Same defect class as PF-e74a2da89380cfa94f6b1693191d759d (a grep loop
+      buys gate parity, never behavioural coverage) at a new site: T-01''s pin guard
+      rather than T-03/T-05/T-07''s case loops. The reader flagged the new location
+      for the record and did not re-rank that disposition. Anchors: plan.yaml T-01
+      verify (the grep -qF DRIFTED line) against T-01 intent section 13''s three-separate-failures
+      prose.'
+    disposition: batched_to_signature_review
+  - id: PF-17e86df90d8237d8fdf5eb5cb96a274a
     reader: should-not-exist
     severity: low
-    summary: T-05 case F asserts a compat-mode rerun emits three MORE issue create
-      argv, enshrining today's duplicate-creation as permanent green contract.
-    why: The receipt-absence assertion alone bounds this feature's blast radius. The
-      extra assertion makes the suite defend duplicate creation as if it were a promise;
-      any future feature fixing compat-mode backlog duplication must first discover
-      and delete a green test asserting the bug.
+    summary: CAPABILITY_QUERY pins unpaginated issueTypes(first:10) and T-01 assertion
+      8 bakes the literal in, while GitHub documents up to 25 org issue types, so
+      a declared type beyond node 10 triggers REQ-07's refusal on all three routes
+    why: 'The premise was independently re-verified at docs.github.com: ''You can
+      create up to 25 issue types.'' T-02''s CAPABILITY_QUERY reads issueTypes(first:10)
+      with no pagination, and T-01 assertion 8 pins that literal into a standing unit
+      test, so the bound is hardened permanently rather than left as an implementation
+      detail. No fixture in the plan declares more than six types, so no planned gate
+      binds the bound. In an organisation declaring more than ten issue types, a declared
+      type sitting beyond node 10 is invisible to the capability read, and the run
+      then refuses under REQ-07 on all three creation routes - gh-sync, backlog and
+      factory alike. The fail direction is loud and safe (refuse before create, nothing
+      is created), which is why this is low and not med, but the specification is
+      wrong about a real repository. Neither reader could bind first:10 against a
+      live org repository, so the consequence is derived from GitHub''s documented
+      limit plus the plan''s own fixtures, not from an observed failure.'
     disposition: batched_to_signature_review
-  - id: PF-0c12a033f69bb6bc60b8f96134f94fd0
+  - id: PF-bad4d5185e8a8cedba6acd7d5ed1bb79
     reader: should-not-exist
     severity: low
-    summary: "The 'adopted' provenance string (D-20, T-04 \xA77, T-08 \xA78) is behaviourally\
-      \ inert under absent-means-never-typed, yet three test cases pin it."
-    why: "Backfill acts only on the exact string 'created'; 'adopted' and ABSENT are\
-      \ both never typed, never promoted, never overwritten. Recording 'adopted' changes\
-      \ no observable behaviour on any run \u2014 the out-of-scope(a) guarantee is\
-      \ carried entirely by the absence rule. Cost is a third receipt vocabulary value,\
-      \ write-ordering prose on two routes, and cases H/H2/F pinning a distinction\
-      \ with no consumer-observable consequence."
-    disposition: batched_to_signature_review
-  - id: PF-9a71cb9a0c590b06b890ff1517b80385
-    reader: should-not-exist
-    severity: info
-    summary: "The character-identical 511-char eighth-purpose row duplicated across\
-      \ DECISIONS.md and github-mirror.md (D-08, T-11 \xA73, T-12) has drift protection\
-      \ that expires when this feature's gate passes."
-    why: "T-12's regex compare runs only in this feature's verify, so after review_sha\
-      \ pins, editing either copy silently reintroduces the drift the row exists to\
-      \ prevent \u2014 while the other seven rows of the same duplicated list were\
-      \ never protected at all. Every future rewording must change a 511-character\
-      \ string in two files in lockstep."
-    disposition: batched_to_signature_review
-  - id: PF-62b2b8ae0acc3509b474b744469137dc
-    reader: scope (med) + should-not-exist (info) - one defect, two reporters; scope's
-      med stands for ranking, neither reader's value reassigned
-    severity: med
-    summary: T-10 section 6 gives two distinct SKIP wordings - capability query failed
-      on target (plan.yaml:1190-1192) and gh cannot reach target (:1193-1196) - but
-      classify_capability has a single query_failed state (T-01 assertion 7) with
-      no discriminating rule, and no automated gate ever exercises the --create-in
-      opt-in path.
-    why: T-01 assertion 7 pins NOT_FOUND and authorisation errors into query_failed
-      with only a raw message string, so nothing tells an implementer which of the
-      two wordings to emit; producing the third shape distinctly needs a per-host
-      gh auth status pre-probe that buys a message variant and nothing else. Two implementers
-      can reasonably choose differently and T-10's verify never invokes --create-in,
-      so the choice is permanently unverified by any automated gate. Safety is not
-      affected - both outcomes are SKIP exit 0 creating nothing - so the remedy is
-      one sentence, or deleting the third bullet.
+    summary: The pin extraction regex has no re.DOTALL, so the 394-char row must sit
+      on one physical line, but no task tells T-11 that and DECISIONS.md:6064-6077
+      wraps its comparable entries
+    why: 'The premise was re-verified at source: DECISIONS.md:6064-6077 wraps items
+      4, 5 and 7 at roughly 100 columns, which is the file''s house style, and pat.search
+      without re.DOTALL cannot match a row broken across physical lines. T-11 is told
+      to reproduce the 394-character row ''EXACTLY, character for character'' but
+      is never told UNWRAPPED, so a faithful T-11 that wraps the row to the surrounding
+      style writes a row the extraction regex cannot see. The failure does not land
+      in T-11: it lands in T-12''s verify - a different task, a different executor,
+      across the squad and main-session boundary - and it leaves the standing pin
+      guard tests/unit/test-issue-types-pin.py red.'
     disposition: batched_to_signature_review
   - id: PF-e74a2da89380cfa94f6b1693191d759d
     reader: should-not-exist (info) + scope (med) - one defect, two reporters; recorded
@@ -244,8 +244,43 @@ panel:
       own disposition said gate uniformity, not coverage, so the operator was not
       misled. Recorded so edit 2 is not read as coverage at signature; the case''s
       content remains bound only by its CASE marker and by human review of T-04''s
-      verify run.'
+      verify run. The cycle-5 panel re-derived the loop at source and found it unchanged;
+      it now covers the three new case markers (T-03 case K, T-05 case H, T-07 case
+      J) and the nobug literal exactly as it covered everything before - file-global
+      gate parity, never coverage.'
     disposition: batched_to_signature_review
+  - id: PF-56a2ce7a053111a3aff62a4b97c5902e
+    reader: should-not-exist
+    severity: low
+    summary: the behaviourally inert adopted provenance marker was written into approval-gated
+      BRIEF SC-12 (:164-174) while PF-0c12a033 - the unruled finding that it is inert
+      - still rides to the operator
+    why: if the operator accepts PF-0c12a033 at signature, the surfaces to unwind
+      grow from three test cases to a signed success criterion plus two decisions
+      and three task intents
+    disposition: operator_accepted
+  - id: PF-0c12a033f69bb6bc60b8f96134f94fd0
+    reader: should-not-exist
+    severity: low
+    summary: "The 'adopted' provenance string (D-20, T-04 \xA77, T-08 \xA78) is behaviourally\
+      \ inert under absent-means-never-typed, yet three test cases pin it."
+    why: "Backfill acts only on the exact string 'created'; 'adopted' and ABSENT are\
+      \ both never typed, never promoted, never overwritten. Recording 'adopted' changes\
+      \ no observable behaviour on any run \u2014 the out-of-scope(a) guarantee is\
+      \ carried entirely by the absence rule. Cost is a third receipt vocabulary value,\
+      \ write-ordering prose on two routes, and cases H/H2/F pinning a distinction\
+      \ with no consumer-observable consequence."
+    disposition: operator_accepted
+  - id: PF-e27f1c3018b6b8477547a1b028607f96
+    reader: should-not-exist
+    severity: low
+    summary: T-05 case F asserts a compat-mode rerun emits three MORE issue create
+      argv, enshrining today's duplicate-creation as permanent green contract.
+    why: The receipt-absence assertion alone bounds this feature's blast radius. The
+      extra assertion makes the suite defend duplicate creation as if it were a promise;
+      any future feature fixing compat-mode backlog duplication must first discover
+      and delete a green test asserting the bug.
+    disposition: operator_accepted
   - id: PF-d8a7b516b793e1227b17d61c754240c7
     reader: should-not-exist
     severity: low
@@ -266,80 +301,102 @@ panel:
       new one; the id changed only because the summary was narrowed to the half that
       still reproduces.'
     supersedes: PF-1280cd8fc7536c65bc22f076576c28fa
-    disposition: batched_to_signature_review
-  - id: PF-1f968f2cd73a799708e4be589d48e61b
-    reader: scope
-    severity: med
-    summary: No case makes the required set's backfill contribution the SOLE source
-      of a missing type
-    why: "Anchors T-04 \xA74 'THE REQUIRED SET IS NOT ONLY WHAT WILL BE CREATED' and\
-      \ T-08 \xA76 'THE REQUIRED SET ALSO COVERS THE BACKFILL'. In T-03 F / T-05 G\
-      \ / T-07 I the to-be-created tasks already need undeclared Task, so refusal\
-      \ fires regardless. An implementation omitting backfill candidates from missing_types\
-      \ \u2014 while still ordering backfill after the refusal check \u2014 passes\
-      \ every planned case, then on an all-recorded rerun computes an empty required\
-      \ set, never refuses, and raises an uncaught KeyError on declared[type_name]\
-      \ instead of REQ-07's actionable refusal_text. Remedy: one added case."
-    disposition: batched_to_signature_review
-  - id: PF-383a1a92195cf2cdfba9828bda854195
-    reader: should-not-exist
-    severity: low
-    summary: D-08's eighth read-back purpose exceeds REQ-09 and mandates permanent
-      byte-identical 511-char duplication across two files
-    why: "Anchors D-08 because 'names practice that has existed since sub-issue mirroring\
-      \ shipped \u2026 completing the record, not authorising', T-11 \xA73 'EXACTLY,\
-      \ character for character', T-12 \xA71's identical row. Retroactively enumerating\
-      \ pre-existing gh_issues.internal_id_args reads is record hygiene, not this\
-      \ feature; it makes every future rewording a two-file lockstep edit forever,\
-      \ gives T-12's regex-identity verify no purpose but policing self-inflicted\
-      \ duplication, and forces SC-11's inspection reviewer to grade sub-issue attach/detach\
-      \ claims inside an issue-types change. Related to but distinct from PF-9a71cb9a\
-      \ (which says the drift guard expires; this says the row should not be that\
-      \ large)."
-    disposition: batched_to_signature_review
-  - id: PF-e02dcbdf60fdf5eede40feb6066e8a08
-    reader: should-not-exist
-    severity: info
-    summary: "D-14's because ('gh 2.92.0 \u2026 so the CLI cannot set a native type\
-      \ at all') is contradicted one task later by T-02's own 'issueTypeId is a measured\
-      \ input field of both CreateIssueInput and UpdateIssueInput'"
-    why: The create-then-type window that D-10/D-20 provenance, the backfill and all
-      three remnant cases exist to manage is presented as physically unavoidable when
-      it is a correct design choice. A builder or SC-04 inspection reviewer who notices
-      the contradiction may defect to createIssue-with-issueTypeId mid-build and unwind
-      the receipt ordering every remnant test pins. One sentence in D-14's because
-      closes it.
-    disposition: batched_to_signature_review
+    disposition: operator_accepted
   must_fix: []
   fix_order:
-  - PF-1f968f2cd73a799708e4be589d48e61b
-  - PF-383a1a92195cf2cdfba9828bda854195
-  - PF-e02dcbdf60fdf5eede40feb6066e8a08
-  fix_order_reason: 'Ranks the THREE findings new this cycle only, in the validator
-    lead''s order: PF-1f968f2cd73a799708e4be589d48e61b (scope, med) first because
-    its remedy adds one case to the T-03/T-05/T-07 verify loops the cycle-7 edits
-    just touched and it is the one implementation shape every currently-planned case
-    passes; then PF-383a1a92195cf2cdfba9828bda854195 (should-not-exist, low), then
-    PF-e02dcbdf60fdf5eede40feb6066e8a08 (should-not-exist, info), a one-sentence edit
-    to D-14''s because. The other eight findings in this record - the seven carried
-    verbatim plus the re-scoped survivor of PF-1280cd8fc7536c65bc22f076576c28fa -
-    are deliberately UNRANKED: they are unruled operator decisions batched to the
-    signature review, not a fix queue, and the panel returned must_fix: [] with nothing
-    gating.'
+  - PF-bad4d5185e8a8cedba6acd7d5ed1bb79
+  - PF-17e86df90d8237d8fdf5eb5cb96a274a
+  - PF-f8e806d111d71a0bb6c4298cd47963c9
+  - PF-bc6cbd0c92ecd36a44eee2da8762f05a
+  fix_order_reason: 'Ranks the FOUR findings new this cycle only, in the validator
+    lead''s own order (N4, N3, N1, N2), not their listing order. N4 first: it is the
+    only new finding that can redden a blocking gate, and its remedy edits the same
+    T-11/T-12 instruction block N1''s caption fix rides in. N3 second: it is wrong
+    about a real repository and is hardened permanently by T-01''s literal assertion.
+    N1 third: one clause in T-12 section 1, cheapest once N4 has settled that block.
+    N2 last: its defect class is already ruled acceptable at PF-e74a2da89380cfa94f6b1693191d759d,
+    so it is a record entry rather than a repair. All four are severity low and nothing
+    gates. The five carried entries in this record - the one carried med and the four
+    operator_accepted surfaces - are deliberately UNRANKED: they are unruled-or-already-ruled
+    operator matters batched to the signature review, not a fix queue. The panel returned
+    must_fix: [] with severity_max: med and nothing gating the signature pass.'
+  discharged_at_cycle_5:
+  - id: PF-1f968f2cd73a799708e4be589d48e61b
+    evidence: 'HOLDING on all three routes: T-03 ''K. THE BACKFILL IS THE SOLE SOURCE
+      OF A MISSING TYPE'' with ''for c in A B C D E F G H H2 I J K''; T-05 ''H. ...
+      on this route'' with ''for c in A B C D E F G H''; T-07 ''J. ... on the factory
+      route'' with ''for c in A B C D E F G H I J''. Each fixture is route-own (feature.json
+      typed=created / backlog-issues.json typed false / factory.yaml typed=created)
+      and each is non-inert via FAKE_TYPES=nobug plus ''EVERY ISSUE THIS RUN WOULD
+      CREATE HAS A DECLARED TYPE''.'
+  - id: PF-e02dcbdf60fdf5eede40feb6066e8a08
+    evidence: 'HOLDING, swept plan-wide: D-14 now reads ''A GraphQL createIssue with
+      issueTypeId IS possible ... DELIBERATELY UNUSED'' and T-02 reads ''so a create
+      CAN carry the type; this plan deliberately does not use it''. The phrase ''so
+      the type can only be applied after the create'' occurs nowhere; the only survivors
+      of the old wording are the historical quotes inside panel.findings, which are
+      inert record.'
+  - id: PF-452948136bf467869d223e027191ae49
+    evidence: 'HOLDING: T-06 verify carries ''python3 tests/integration/test-gh-issue-types.py
+      || exit 1'' and its intent reads ''BOTH ARE IN YOUR VERIFY, which runs test-gh-issue-types.py
+      itself''.'
+  - id: PF-62b2b8ae0acc3509b474b744469137dc
+    evidence: 'HOLDING: T-10 section 6 now carries one query_failed bullet, ''THAT
+      ONE WORDING COVERS EVERY NON-ANSWER, and there is no second one:'', naming authorisation
+      errors, NOT_FOUND and an unreachable host together. Section 7''s four tokens
+      are unchanged and no fifth exists.'
+  - id: PF-383a1a92195cf2cdfba9828bda854195
+    evidence: 'HOLDING as the scope half of the coupled pin ruling: D-08 now bounds
+      the row to ''the reads THIS feature introduces'', leaving gh_issues.internal_id_args
+      unpinned in DECISIONS.md alone, and T-11 section 3 and T-12 section 1 re-extracted
+      with T-12''s own regex are byte-identical at 394 characters, down from the 511-character
+      row.'
+  - id: PF-9a71cb9a0c590b06b890ff1517b80385
+    evidence: 'HOLDING as the durability half of the same coupled ruling: the drift
+      guard is now the standing unit test tests/unit/test-issue-types-pin.py, whose
+      design T-01 section 13 specifies as ''MISSING PIN ... DRIFTED PIN with both
+      strings ... A single comparison ... is NOT enough'', so protection no longer
+      expires when this feature''s verify stops running.'
+  sequencing_note:
+  - question: 5(d) - does anything invoke the standing unit suite between T-01 and
+      T-12?
+    answer: 'Answered by the cycle-5 panel. No plan gate and no task verify between
+      T-01 and T-12 invokes the standing unit suite: plan.yaml carries no gates: key
+      and every task''s verify names specific files. But the guarantee is NOT plan-encoded.
+      tests/unit/test-issue-types-pin.py is deliberately red until T-11 and T-12 land;
+      harness.json test_kinds.unit.cmd runs run-unit-tests.sh, which globs tests/unit/test-*.py
+      and so picks that file up; every test_matrix change_type carries unit in always;
+      gates.qa_gate is blocking; and T-12 is main-session-direct (DEC-174 carve-out)
+      with no ordering rule relative to the qa segment. If qa runs before T-12 lands,
+      the only blocking gate fails and its loop_back has no valid owner, because no
+      squad may write T-12''s file.'
+    status: 'Recorded as the panel''s finding of record, reported not fixed. Deliberately
+      NOT expressed as a task, a decision or a depends_on edge: build-phase segment
+      ordering is the orchestrator''s execution-time authority, and the orchestrator
+      is carrying this constraint in its handoff.'
   transcription_rule: Every PF- id is computed by panel_findings.py id from the exact
-    reader and summary strings stored here, never hand-written. Carried findings were
-    transcribed verbatim from the cycle-2 block and each id re-derived to confirm
-    it reproduces.
+    reader and summary strings stored here, never hand-written. New findings were
+    transcribed from the 2026-09-05-02-validator digest's findings list and their
+    why expanded from the readers' own notes. Carried findings were transcribed verbatim
+    from the cycle-4 block - reader, severity and summary unaltered, so the id reproduces
+    - and each id was re-derived to confirm it does; PF-e74a2da89380cfa94f6b1693191d759d's
+    why gained one closing clause recording the cycle-5 re-derivation, which does
+    not enter the identity.
 tasks:
   - id: T-01
     title: Write the failing unit test for the issue-type mapping and capability classifier
-    traces: [REQ-02, REQ-03, REQ-04]
+    traces:
+    - REQ-02
+    - REQ-03
+    - REQ-04
+    - REQ-09
     change_type: scaffolding
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: []
     files:
-      - tests/unit/test-issue-types.py
+    - tests/unit/test-issue-types.py
+    - tests/unit/test-issue-types-pin.py
     verify: |
       python3 -c "import ast; ast.parse(open('tests/unit/test-issue-types.py').read())" || exit 1
       for w in bugfix feature logic api cross_module frontend ai_behavior docs config scaffolding infra ci bug chore enhancement; do
@@ -350,7 +407,13 @@ tasks:
         grep -qF "$s" tests/unit/test-issue-types.py || { echo "MISSING the assertion group naming: $s - every numbered assertion group in this task's intent must be present, so an OMITTED group fails this gate as loudly as a failing one"; exit 1; }
       done
       python3 tests/unit/test-issue-types.py && { echo "UNEXPECTED PASS: this test must be RED before T-02"; exit 1; }
-      echo "RED as required - all twelve assertion groups present"
+      python3 -c "import ast; ast.parse(open('tests/unit/test-issue-types-pin.py').read())" || exit 1
+      grep -qF ".harness/harness/docs/DECISIONS.md" tests/unit/test-issue-types-pin.py || { echo "MISSING the DECISIONS.md half of the pin guard"; exit 1; }
+      grep -qF ".claude/skills/harness/references/github-mirror.md" tests/unit/test-issue-types-pin.py || { echo "MISSING the github-mirror.md half of the pin guard"; exit 1; }
+      grep -qF "whether a target repository supports native Issue Types" tests/unit/test-issue-types-pin.py || { echo "MISSING the pinned-row extraction pattern"; exit 1; }
+      grep -qF "DRIFTED" tests/unit/test-issue-types-pin.py || { echo "MISSING the drift failure - a missing pin and a drifted pin must fail separately"; exit 1; }
+      python3 tests/unit/test-issue-types-pin.py && { echo "UNEXPECTED PASS: the pin guard must be RED until T-11 and T-12 write the row"; exit 1; }
+      echo "RED as required - all twelve assertion groups plus the standing pin guard present"
     intent: |
       Write tests/unit/test-issue-types.py. It must be RED when you finish: the module it
       imports does not exist yet and is written by T-02. Run it and paste the failure in your
@@ -423,6 +486,33 @@ tasks:
           The third argument is the CANONICAL override key that repairs it - one of "Bug",
           "Feature", "Task", "parent" - never the change_type or the nature that resolved to it,
           because that is not a key the configuration accepts.
+
+      13. THE PINNED READ-BACK ROW, asserted in a SECOND FILE - tests/unit/test-issue-types-pin.py.
+          Write that file in this task too, in the same style, and it must be RED when you finish
+          for the same reason the rest is: the row it asserts is written later, by T-11 into
+          .harness/harness/docs/DECISIONS.md and by T-12 into
+          .claude/skills/harness/references/github-mirror.md.
+          IT IS A SECOND FILE RATHER THAN AN ASSERTION GROUP INSIDE test-issue-types.py because
+          T-02's verify runs test-issue-types.py and requires it GREEN, and T-02 lands long before
+          either documentation task does; folding this assertion into that file would make T-02's
+          gate unpassable for a reason that has nothing to do with T-02.
+          Resolve the repository root two levels up from the test file, exactly as the header idiom
+          above does, and read both documents at repo-root-relative paths. Extract each copy with
+          the regex r"whether a target repository supports native Issue Types.*?explicit create
+          opt-in" and assert THREE things as separate failures, so each can report RED on its own:
+            - .harness/harness/docs/DECISIONS.md contains the row - report MISSING PIN and the path
+              when it does not;
+            - .claude/skills/harness/references/github-mirror.md contains it - same report;
+            - the two extracted strings are IDENTICAL - report DRIFTED PIN with both strings when
+              they are not.
+          A single comparison of two extractions is NOT enough: with the row missing from both
+          files, two absent values compare equal and the guard would pass on exactly the state it
+          exists to catch. Assert presence first, per file, then equality. Do not hard-code the
+          row's full text in the test as a third copy to compare against - the pin is that the two
+          FILES agree, and a third copy is a third thing to keep in lockstep.
+          run-unit-tests.sh globs tests/unit/test-*.py, so this file runs in the STANDING unit suite
+          forever, which is the whole point (D-08): T-12's verify stops running the moment
+          review_sha pins, and the duplicated row does not stop existing.
 
   - id: T-02
     title: Add the shared gh_issue_types module - mapping, capability classifier and argv builders
@@ -522,9 +612,13 @@ tasks:
       mutation($id:ID!,$type:ID!){ updateIssue(input:{id:$id,issueTypeId:$type}){ issue { id } } }
       apply_type_args(node_id, type_id): ["api", "graphql", "-f",
       "query=" + APPLY_TYPE_MUTATION, "-f", "id=" + node_id, "-f", "type=" + type_id].
-      issueTypeId is a measured input field of both CreateIssueInput and UpdateIssueInput;
-      updateIssue is used because gh 2.92.0 has no --type flag on issue create or issue edit,
-      so the type can only be applied after the create.
+      issueTypeId is a measured input field of BOTH CreateIssueInput and UpdateIssueInput, so a
+      create CAN carry the type; this plan deliberately does not use it. The create stays on the
+      gh CLI path, which already builds every label, milestone, body and sub-issue argument, and
+      gh 2.92.0 has no --type flag on issue create or issue edit, so that path itself cannot
+      carry the type - the type is applied afterwards through updateIssue. The create-then-type
+      window that results is a design choice, and its ordering is what the D-10/D-20 provenance
+      receipt and the remnant cases pin.
 
       missing_types(required_names, declared): sorted, de-duplicated list of the names in
       required_names that are not keys of declared.
@@ -547,14 +641,14 @@ tasks:
       - tests/integration/test-gh-issue-types.py
     verify: |
       python3 -c "import ast; ast.parse(open('tests/integration/test-gh-issue-types.py').read())" || exit 1
-      for c in A B C D E F G H H2 I J; do
+      for c in A B C D E F G H H2 I J K; do
         grep -qF "CASE $c:" tests/integration/test-gh-issue-types.py || { echo "MISSING case $c - label every case from this task's intent with a line carrying the literal marker 'CASE $c:' (comment, docstring or print), so an OMITTED case fails this gate as loudly as a failing one"; exit 1; }
       done
-      for s in IT_feature IT_bug IT_task IT_defect IT_epic IT_maintenance updateIssue issueTypes 4242 adopted created partial github.issue_types; do
+      for s in IT_feature IT_bug IT_task IT_defect IT_epic IT_maintenance updateIssue issueTypes 4242 adopted created partial nobug github.issue_types; do
         grep -qF "$s" tests/integration/test-gh-issue-types.py || { echo "MISSING required assertion string: $s"; exit 1; }
       done
       python3 tests/integration/test-gh-issue-types.py && { echo "UNEXPECTED PASS: this test must be RED before T-04"; exit 1; }
-      echo "RED as required - all eleven cases present"
+      echo "RED as required - all twelve cases present"
     intent: |
       Write tests/integration/test-gh-issue-types.py, asserting the gh-sync.py open route's
       new behaviour. It must be RED when you finish - gh-sync.py is unchanged and is T-04's
@@ -572,7 +666,9 @@ tasks:
           nodes array declaring Bug, Feature, Task, Defect, Epic and Maintenance with
           distinct ids (IT_bug, IT_feature, IT_task, IT_defect, IT_epic,
           IT_maintenance); when "partial", echo a nodes
-          array declaring only Bug and Feature - Task absent; when "failed", echo
+          array declaring only Bug and Feature - Task absent; when "nobug", echo a nodes
+          array declaring only Feature IT_feature and Task IT_task - Bug ABSENT, the mirror image
+          of "partial" and the state case K needs; when "failed", echo
           {"data":{"repository":null},"errors":[{"message":"Could not resolve to a Repository"}]}
           and exit 1.
         - argv containing "--jq .node_id" -> echo "I_node" followed by the issue number
@@ -677,6 +773,32 @@ tasks:
          is never typed on the first run nor on any later one. Assert also that the run still
          exits 0 and still creates and types the tasks that are NOT recorded, so the case
          proves the bound and not a dead run.
+      K. THE BACKFILL IS THE SOLE SOURCE OF A MISSING TYPE - the discriminating case no other case
+         on this route reaches. FAKE_TYPES=nobug, so the repository declares Feature and Task and
+         does NOT declare Bug. Build the fixture with feature.json ALREADY recording the BUGFIX
+         task's issue number (use 502) in github.issues and github.typed["<that task id>"] =
+         "created", so that task is already recorded and this run does not create it. EVERY ISSUE
+         THIS RUN WOULD CREATE HAS A DECLARED TYPE - the parent needs Feature, and the config, the
+         logic and the feature task each need Task (D-18) - so the pre-creation refusal CANNOT fire
+         from the creation side at all. The only undeclared type is Bug, and the only thing in the
+         invocation that needs Bug is the already-recorded "created" remnant that section 6's
+         backfill would type.
+         Assert a NON-ZERO process exit status; that the combined stdout+stderr names both "Bug"
+         and "github.issue_types"; ZERO argv containing "issue create" reached the fake; and ZERO
+         argv containing updateIssue - including, named separately, zero updateIssue argv carrying
+         a node id derived from 502. Assert also that the remnant is UNCHANGED by the refused run:
+         github.issues still holds 502 for that task and github.typed for it is still exactly the
+         string "created" - not True, not absent, not rewritten.
+         Case F cannot catch what this case catches: there the tasks still to be created already
+         need the undeclared Task, so an implementation whose required set covers only what it will
+         create refuses anyway. Here that implementation computes an EMPTY missing_types, refuses
+         nothing, reaches the backfill and raises an uncaught KeyError on declared["Bug"] instead
+         of REQ-07's refusal, while passing every other case in this file. This case is what fails
+         when T-04 section 4's clause "THE REQUIRED SET IS NOT ONLY WHAT WILL BE CREATED" is not
+         implemented. It buys that discrimination and not coverage of the refusal wording: the
+         grep -qF loop in this task's verify is file-global gate parity only (recorded as
+         PF-e74a2da89380cfa94f6b1693191d759d) and that stays true of the K marker and of the nobug
+         literal.
 
   - id: T-04
     title: Type every issue gh-sync open creates, suppress bug and chore labels, refuse before creating
@@ -830,14 +952,14 @@ tasks:
       - tests/integration/test-gh-backlog-issue-types.py
     verify: |
       python3 -c "import ast; ast.parse(open('tests/integration/test-gh-backlog-issue-types.py').read())" || exit 1
-      for c in A B C D E F G; do
+      for c in A B C D E F G H; do
         grep -qF "CASE $c:" tests/integration/test-gh-backlog-issue-types.py || { echo "MISSING case $c - label every case from this task's intent with a line carrying the literal marker 'CASE $c:' (comment, docstring or print), so an OMITTED case fails this gate as loudly as a failing one"; exit 1; }
       done
-      for s in IT_bug IT_task IT_feature updateIssue issueTypes backlog-issues.json FAKE_TYPE_APPLY partial github.issue_types; do
+      for s in IT_bug IT_task IT_feature updateIssue issueTypes backlog-issues.json FAKE_TYPE_APPLY partial nobug github.issue_types; do
         grep -qF "$s" tests/integration/test-gh-backlog-issue-types.py || { echo "MISSING required assertion string: $s"; exit 1; }
       done
       python3 tests/integration/test-gh-backlog-issue-types.py && { echo "UNEXPECTED PASS: this test must be RED before T-06"; exit 1; }
-      echo "RED as required - all seven cases present"
+      echo "RED as required - all eight cases present"
     intent: |
       Write tests/integration/test-gh-backlog-issue-types.py for the gh-sync.py backlog route.
       It must be RED when you finish - cmd_backlog is unchanged and is T-06's work. Run it and
@@ -848,7 +970,9 @@ tasks:
       FAKE_TYPES env var ("absent" -> {"data":{"repository":{"issueTypes":null}}} exit 0;
       "available" -> nodes declaring Bug IT_bug, Feature IT_feature, Task IT_task; "partial" ->
       nodes declaring only Bug IT_bug and Feature IT_feature, with Task ABSENT, which is the
-      same partial shape T-03's fake uses), answering
+      same partial shape T-03's fake uses; "nobug" -> nodes declaring only Feature IT_feature and
+      Task IT_task, with Bug ABSENT, the mirror image of "partial" and the same nobug shape T-03's
+      fake uses, which case H needs), answering
       "--jq .node_id" with a node id derived from the number, and answering updateIssue with
       success unless FAKE_TYPE_APPLY is "fail". Exit 0 on all pass, 1 otherwise.
 
@@ -921,6 +1045,34 @@ tasks:
          as a correct one does. Without this case REQ-07 is red-then-green tested on the open
          route alone, which the operator's ruling of 2026-09-04
          (notes/answers-plan-panel-20260904.md) does not accept.
+      H. THE BACKFILL IS THE SOLE SOURCE OF A MISSING TYPE, on this route - the discriminating
+         case G cannot reach. FAKE_TYPES=nobug (Feature IT_feature and Task IT_task declared, Bug
+         ABSENT), the same three-item command, and a feature directory whose
+         <featdir>/backlog-issues.json ALREADY records exactly one item - "bug:a defect" with
+         number 602 and typed false, this route's created-but-not-yet-typed provenance and the
+         exact shape case E asserts a crashed run leaves behind. THE TWO ITEMS THIS RUN WOULD
+         CREATE BOTH HAVE A DECLARED TYPE - the chore item resolves to Task and the enhancement
+         item to Feature - so the refusal cannot fire from the creation side at all. The only
+         undeclared type is Bug, and the only thing that needs it is the recorded item that
+         section 5's backfill would type on this rerun.
+         Assert a NON-ZERO process exit status; that the combined stdout+stderr names both "Bug"
+         and "github.issue_types"; ZERO argv containing "issue create" reached the fake; and ZERO
+         argv containing updateIssue - including, named separately, zero updateIssue argv carrying
+         a node id derived from 602. Assert also that <featdir>/backlog-issues.json still holds
+         exactly the one entry for "bug:a defect" with number 602 and typed still exactly false -
+         not true, not removed, not rewritten - and no entry for the chore item or the enhancement
+         item.
+         Case G cannot catch what this case catches: there the chore item still to be created
+         needs the undeclared Task, so an implementation whose required set covers only the items
+         it will CREATE refuses anyway. T-06 section 3 computes missing_types over the WHOLE item
+         list, already-recorded items included, and that is exactly the clause this case fails on:
+         an implementation that narrows the required set to the items it is about to create
+         computes an EMPTY missing_types here, refuses nothing, reaches the backfill and raises an
+         uncaught KeyError on declared["Bug"] instead of REQ-07's refusal, while passing every
+         other case in this file. The case buys that discrimination and not coverage of the
+         refusal wording: the grep -qF loop in this task's verify is file-global gate parity only
+         (recorded as PF-e74a2da89380cfa94f6b1693191d759d) and that stays true of the H marker and
+         of the nobug literal.
 
   - id: T-06
     title: Type backlog issues and give cmd_backlog its net-new local receipt
@@ -933,13 +1085,16 @@ tasks:
       - .claude/skills/harness/bin/gh-sync.py
     verify: |
       python3 tests/integration/test-gh-backlog-issue-types.py || exit 1
+      python3 tests/integration/test-gh-issue-types.py || exit 1
       python3 tests/integration/test-gh-sync.py
     intent: |
       Change cmd_backlog in .claude/skills/harness/bin/gh-sync.py (currently :1410-1429).
       tests/integration/test-gh-backlog-issue-types.py exists and is red; make it green without
       editing it. tests/integration/test-gh-issue-types.py and tests/integration/test-gh-sync.py
-      must both still pass - test-gh-sync.py is in your verify, run test-gh-issue-types.py too
-      and report. The shared module gh_issue_types.py, detect_issue_types(), apply_issue_type()
+      must both still pass and BOTH ARE IN YOUR VERIFY, which runs test-gh-issue-types.py itself:
+      a miswiring made while routing issue_types into cmd_backlog that regresses cmd_open's typed
+      path fails THIS task's gate rather than surfacing in a later full-suite run. Do not rely on
+      running it by hand. The shared module gh_issue_types.py, detect_issue_types(), apply_issue_type()
       and the three-state vocabulary already exist from T-02 and T-04; reuse them, do not write
       a second copy.
 
@@ -1022,14 +1177,14 @@ tasks:
       - tests/integration/test-factory-issue-types.py
     verify: |
       python3 -c "import ast; ast.parse(open('tests/integration/test-factory-issue-types.py').read())" || exit 1
-      for c in A B C D E F G H I; do
+      for c in A B C D E F G H I J; do
         grep -qF "CASE $c:" tests/integration/test-factory-issue-types.py || { echo "MISSING case $c - label every case from this task's intent with a line carrying the literal marker 'CASE $c:' (comment, docstring or print), so an OMITTED case fails this gate as loudly as a failing one"; exit 1; }
       done
-      for s in IT_feature IT_bug IT_task IT_story updateIssue issueTypes 4242 adopted created partial github.issue_types; do
+      for s in IT_feature IT_bug IT_task IT_story updateIssue issueTypes 4242 adopted created partial nobug github.issue_types; do
         grep -qF "$s" tests/integration/test-factory-issue-types.py || { echo "MISSING required assertion string: $s"; exit 1; }
       done
       python3 tests/integration/test-factory-issue-types.py && { echo "UNEXPECTED PASS: this test must be RED before T-08"; exit 1; }
-      echo "RED as required - all nine cases present"
+      echo "RED as required - all ten cases present"
     intent: |
       Write tests/integration/test-factory-issue-types.py for factory_decompose.py's parent
       and task creation. It must be RED when you finish - factory_decompose.py and
@@ -1044,7 +1199,9 @@ tasks:
       {"data":{"repository":{"issueTypes":null}}} exit 0; "available" -> nodes declaring Bug
       IT_bug, Feature IT_feature, Task IT_task, Story IT_story; "partial" -> nodes declaring
       only Bug IT_bug and Feature IT_feature, with Task ABSENT, the same partial shape T-03's
-      fake uses); "--jq .node_id" with a node id
+      fake uses; "nobug" -> nodes declaring only Feature IT_feature and Task IT_task, with Bug
+      ABSENT, the mirror image of "partial" and the same nobug shape T-03's fake uses, which case
+      J needs); "--jq .node_id" with a node id
       derived from the number; updateIssue with success unless FAKE_TYPE_APPLY is "fail"; and
       every other call the existing factory fixture already answers so decomposition reaches
       step 6. Exit 0 on all pass, 1 otherwise.
@@ -1140,6 +1297,32 @@ tasks:
          correct one does. Without this case REQ-07 is red-then-green tested on the open
          route alone, which the operator's ruling of 2026-09-04
          (notes/answers-plan-panel-20260904.md) does not accept.
+      J. THE BACKFILL IS THE SOLE SOURCE OF A MISSING TYPE, on the factory route - the
+         discriminating case I cannot reach. FAKE_TYPES=nobug (Feature IT_feature and Task IT_task
+         declared, Bug ABSENT), and a factory.yaml that ALREADY records the BUGFIX task's issue
+         number (use 703) with factory["typed"] for that task id set to exactly the string
+         "created", that task therefore OUT of the "new" disposition and not created by this run.
+         EVERY ISSUE THIS RUN WOULD CREATE HAS A DECLARED TYPE - the parent needs Feature and the
+         config task and the feature task each need Task (D-18) - so the refusal cannot fire from
+         the creation side at all. The only undeclared type is Bug, and the only thing that needs
+         it is the already-recorded "created" remnant that step 8's backfill would type.
+         Assert a NON-ZERO process exit status; that the combined stdout+stderr names both "Bug"
+         and "github.issue_types"; ZERO argv containing "issue create" reached the fake, THE
+         PARENT'S CREATE INCLUDED; and ZERO argv containing updateIssue - including, named
+         separately, zero updateIssue argv carrying the node id derived from 703. Assert also that
+         factory.yaml afterwards records no parent number and no task issue number other than the
+         seeded remnant, and that THE REMNANT IS UNCHANGED: 703 is still recorded and its typed
+         value is still exactly the string "created" - not True, not absent, not rewritten.
+         Case I cannot catch what this case catches: there the "new" tasks already need the
+         undeclared Task, so an implementation whose required set covers only what it will create
+         refuses anyway. Here that implementation computes an EMPTY missing_types, refuses nothing,
+         reaches the backfill and raises an uncaught KeyError on declared["Bug"] instead of
+         REQ-07's refusal, while passing every other case in this file. This case is what fails
+         when T-08 step 6's clause "THE REQUIRED SET ALSO COVERS THE BACKFILL" is not implemented.
+         It buys that discrimination and not coverage of the refusal wording: the grep -qF loop in
+         this task's verify is file-global gate parity only (recorded as
+         PF-e74a2da89380cfa94f6b1693191d759d) and that stays true of the J marker and of the nobug
+         literal.
 
   - id: T-08
     title: Type factory parent and factory task issues and suppress the two labels
@@ -1367,13 +1550,18 @@ tasks:
              f"probe-issue-types: CAPABILITY ABSENT {target} declares no native issue types" and
              exit 0, creating nothing. An opt-in aimed at a repository that is not enabled is a
              capability report, never a failure.
-           - the capability query on the TARGET fails (state "query_failed"): print
+           - the capability query on the TARGET does not answer (state "query_failed"): print
              f"probe-issue-types: SKIP capability query failed on {target} ({message})" and exit 0,
-             creating nothing.
-           - gh cannot reach the TARGET - gh auth status fails for its host, or the query comes
-             back with an authorisation or not-found error: print
-             f"probe-issue-types: SKIP gh cannot reach {target} ({message})" and exit 0, creating
-             nothing. An unreachable repository is not a failed acceptance, exactly as in step 4.
+             creating nothing. THAT ONE WORDING COVERS EVERY NON-ANSWER, and there is no second one:
+             an authorisation error, a NOT_FOUND, and gh being unable to reach the TARGET's host at
+             all - gh auth status failing for that host included - ALL classify query_failed and ALL
+             emit exactly this line, creating nothing and exiting 0, exactly as in step 4.
+             classify_capability has ONE query_failed state and no discriminating rule (T-01
+             assertion 7), so do not write a second SKIP wording for the unreachable-host outcome and
+             do not add a per-host gh auth status pre-probe to tell the three apart: it would buy a
+             message variant and nothing else, and no automated gate exercises --create-in, so the
+             variant would be permanently unverified. The raw {message} is where the difference
+             between them survives.
          With the flag and the TARGET in state "available": resolve the type a real create would use
          - gh_issue_types.type_for_parent(overrides) read from the same harness.json - and if
          gh_issue_types.missing_types names it, print "probe-issue-types: SKIP " followed by
@@ -1434,26 +1622,40 @@ tasks:
          (:2939-2944) intact and say so: recovery reads the local receipt, never GitHub, and an
          adopted issue's type is never changed.
       2. DEC-138's write-only reading of the mirror: state that the reads enumerated in the new
-         row below are authorised, that the capability read is the only NEW read this feature
-         adds, and that the identifier reads it also names have been made since sub-issue
-         mirroring shipped and are being enumerated for the first time, not introduced.
+         row below are authorised, and that this feature adds exactly TWO new reads - the
+         capability query, and the node-id lookup gh_issue_types.node_id_args makes immediately
+         before a type-apply against a number the local receipt already holds.
+         Then, in ONE SENTENCE AND IN THIS FILE ONLY, keep the record honest about what is not
+         new: gh_issues.internal_id_args has read an already-recorded issue's identifier for
+         sub-issue attach and detach since sub-issue mirroring shipped (gh-sync.py:974 and :1215,
+         factory_gh.py:981, all verified at eb9d044e), the enumeration never listed it, and
+         nothing in this feature removes those call sites. THAT SENTENCE IS UNPINNED PROSE AND IT
+         LIVES NOWHERE ELSE: it is deliberately NOT part of section 3's pinned row and is NOT
+         written into github-mirror.md, because completing an old record is not what this feature
+         authorises, and duplicating it character for character would make every future rewording
+         a two-file lockstep edit (D-08).
       3. DEC-203's own copy of the read-back purposes (currently :6064-6077, "carried forward
          and now SEVEN purposes"): rewrite it to EIGHT purposes, adding one row whose wording
          is EXACTLY, character for character, this - because T-12 writes the identical row into
          .claude/skills/harness/references/github-mirror.md and a wording drift between the two
          copies is the defect this row exists to prevent:
-          whether a target repository supports native Issue Types, and which native issue types a repository declares; the numeric and node identifiers of an issue whose number Harness already recorded locally - existing practice named here for the first time, read by gh_issues.internal_id_args for sub-issue attach and detach and by gh_issue_types.node_id_args before a type-apply; and the native type assigned to an issue Harness created, read back by tests/manual/probe-issue-types.py under its explicit create opt-in
+          whether a target repository supports native Issue Types, and which native issue types a repository declares; the node identifier of an issue whose number Harness already recorded locally, read by gh_issue_types.node_id_args immediately before a type-apply; and the native type assigned to an issue Harness created, read back by tests/manual/probe-issue-types.py under its explicit create opt-in
          with the consumer named as the shared type-apply path in gh_issue_types.py used by
-         gh-sync.py and factory_decompose.py, plus the two existing sub-issue call paths.
+         gh-sync.py and factory_decompose.py, plus tests/manual/probe-issue-types.py for the
+         read-back clause. The row names ONLY the reads this feature introduces (D-08); the
+         pre-existing sub-issue identifier reads belong to section 2's one unpinned sentence and
+         must NOT be written into this row.
          Say in as many words: that one capability query answers both halves of the first
-         clause; that the identifier read of the second clause is ALREADY MADE TODAY by
-         gh_issues.internal_id_args at gh-sync.py:974 (sub-issue attach), gh-sync.py:1215
-         (detach) and factory_gh.py:981 (all three verified at eb9d044e), so this row completes
-         an enumeration that was incomplete rather than authorising something new - and that
-         nothing in this feature removes those call sites; that the type read-back of the third
-         clause happens only under the probe's explicit create opt-in (D-19); and that every
-         value stays process-local for the invocation, apart from the typed flag in the local
-         receipt, and reaches no approval-gated artifact.
+         clause; that the node-id read of the second clause is made only against an issue whose
+         number is already in the local receipt, immediately before the type-apply, so it reaches
+         no issue Harness has not recorded; that the type read-back of the third clause happens
+         only under the probe's explicit create opt-in (D-19); and that every value stays
+         process-local for the invocation, apart from the typed flag in the local receipt, and
+         reaches no approval-gated artifact.
+         The wording is pinned because T-12 writes the identical row into github-mirror.md and
+         tests/unit/test-issue-types-pin.py (T-01) asserts FOREVER, in the standing unit suite,
+         that both files carry it and that the two copies are identical - so a later drift reddens
+         run-unit-tests.sh rather than passing unnoticed once review_sha has pinned.
       4. Regenerate the index with
          python3 .claude/skills/harness/bin/gen-decisions-index.py so DECISIONS-INDEX.md
          matches. The generator preserves everything right of " :: " verbatim and derives
@@ -1471,6 +1673,7 @@ tasks:
       - .claude/skills/harness/references/github-mirror.md
     verify: |
       grep -q "github.issue_types" .claude/skills/harness/references/github-mirror.md || exit 1
+      python3 tests/unit/test-issue-types-pin.py || exit 1
       python3 -c "
       import re
       pat = re.compile(r'whether a target repository supports native Issue Types.*?explicit create opt-in')
@@ -1489,18 +1692,19 @@ tasks:
 
       1. Add one row to that table, whose purpose text is EXACTLY the wording T-11 wrote into
          DEC-203's own copy of the same list, character for character:
-          whether a target repository supports native Issue Types, and which native issue types a repository declares; the numeric and node identifiers of an issue whose number Harness already recorded locally - existing practice named here for the first time, read by gh_issues.internal_id_args for sub-issue attach and detach and by gh_issue_types.node_id_args before a type-apply; and the native type assigned to an issue Harness created, read back by tests/manual/probe-issue-types.py under its explicit create opt-in
+          whether a target repository supports native Issue Types, and which native issue types a repository declares; the node identifier of an issue whose number Harness already recorded locally, read by gh_issue_types.node_id_args immediately before a type-apply; and the native type assigned to an issue Harness created, read back by tests/manual/probe-issue-types.py under its explicit create opt-in
          The consumer column names the shared type-apply path in
          .claude/skills/harness/bin/gh_issue_types.py, used by gh-sync.py and
-         factory_decompose.py, plus the two existing sub-issue call paths that already read an
-         issue's identifiers - gh-sync.py:974 and :1215 and factory_gh.py:981, verified at
-         eb9d044e. One row, not four: the single measured query
+         factory_decompose.py, plus tests/manual/probe-issue-types.py for the read-back clause.
+         One row, not three: the single measured query
          issueTypes(first:10){ nodes { id name } } returns JSON null when the repository
          declares no native types and names every declared type otherwise, so capability and
-         the declared names are one answer, and the identifier and type reads are the same
-         bounded class of lookup against an issue whose number is already recorded locally.
-         This row does not authorise a new identifier read: those three call sites exist today
-         and this feature does not remove them.
+         the declared names are one answer, and the node-id read and the type read-back are the
+         same bounded class of lookup against an issue whose number is already recorded locally.
+         The row names ONLY the reads this feature introduces (D-08). Do NOT add the pre-existing
+         gh_issues.internal_id_args sub-issue reads to it, in the purpose column or the consumer
+         column: they are recorded once, as unpinned prose, in DEC-138 alone, and duplicating
+         them here is the two-file lockstep D-08 removed.
       2. Leave the unconditional rule at :20 - no read-back ever reaches an approval-gated
          artifact - exactly as it stands; it covers this purpose the same way it covers the
          other seven.
