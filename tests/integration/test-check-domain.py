@@ -3954,9 +3954,16 @@ def _feat51_fail_open_cases(reg, root):
     registry_path = os.path.join(root, reg.REGISTRY_REL)
     os.remove(registry_path)
     os.mkdir(registry_path)
+    fired = _feat51_fire(root, REL_BRIEF)
     raising = _feat51_result(
-        "a raising inflight_registry call fails OPEN at the check-domain.sh quarantine branch",
-        _feat51_fire(root, REL_BRIEF), 0, "boundary was not enforced")
+        "an existing-but-unreadable registry (a directory) is refused fail-closed at the "
+        "BUG-1304 claim boundary before the quarantine branch (REQ-05/SC-10 supersede this "
+        "FEAT-51 fixture; quarantine fail-open stays pinned by the unimportable case below "
+        "and by test-plan-sign-gate.py)",
+        fired, 2, "claim registries are unreadable")
+    names_file = (
+        "the unreadable-registry refusal names the registry file to repair (REQ-05)",
+        reg.REGISTRY_REL in fired.stderr, fired.stderr)
 
     root = _feat51_root(reg, "harness-qa")
     copybin = tempfile.mkdtemp()
@@ -3966,7 +3973,7 @@ def _feat51_fail_open_cases(reg, root):
         "an unimportable inflight_registry fails OPEN at the check-domain.sh quarantine branch",
         _feat51_fire(root, REL_BRIEF, hook=os.path.join(copybin, "check-domain.sh")),
         0, "boundary was not enforced")
-    return [raising, unimportable]
+    return [raising, names_file, unimportable]
 
 
 def _feat51_omp_case(reg):
