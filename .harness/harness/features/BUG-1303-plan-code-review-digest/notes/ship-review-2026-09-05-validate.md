@@ -5,7 +5,7 @@ with no `must_fix`, and every gate this repository runs is green. One decision i
 after the merge: F-02, below. Nothing is blocking.
 
 **Feature:** BUG-1303-plan-code-review-digest · branch `feat/BUG-1303-plan-code-review-digest` ·
-`review_sha` **e2c800f1** (HEAD, tree clean) · base `63404ef0`.
+`review_sha` **e2c800f1** · base `63404ef0` · tree clean.
 
 ---
 
@@ -32,7 +32,7 @@ I spawned **no report round**. This briefing is assembled from artifacts already
 `notes/handoff-plan.md`, `notes/handoff-build.md`, `notes/research-BUG-1303-panel-record.md`,
 `notes/qa-BUG-1303-build.md`, `notes/research-BUG-1303-goalcheck-validate-c5.md`,
 `notes/review-harness-{code-reviewer,qa,security-reviewer,ui-reviewer}-c4.md`, the two c5
-confirmation notes, and the run digests `runs/2026-09-05-{08,13,14}-validator/digest.md`,
+confirmation notes, and the run digests `runs/2026-09-05-{08,13,14,17}-validator/digest.md`,
 `runs/2026-09-05-{13,14}-product/digest.md`, `runs/2026-09-05-mf2-eng/digest.md`. The earlier
 build-phase digests are represented through the two handoff notes rather than read individually.
 
@@ -60,6 +60,9 @@ build-phase digests are represented through the two handoff notes rather than re
   - The c5 confirmation pass ruled both **RESOLVED**, `matrix_ok: true`, `code_grade: pass`,
     `must_fix: []`, `severity_max: med`. The security and ui lenses were deliberately not re-run
     (recorded as carried forward with reasons, never presented as having run).
+  - A final cycle went on nothing but bookkeeping: two of the squad's own run digests failed the
+    lead digest contract on shape, which held `check-state.sh` red on an otherwise finished feature.
+    Both now validate. It cost a full cycle — see B-12.
 
 ## Goal-check — 8 of 8 met
 
@@ -70,11 +73,12 @@ the feature's whole surface is a test suite and three documents.
 
 **Gates, all run by me at the pin:** digest-validator suite exit 0, zero `FAIL` lines, `ALL PASSED` ·
 `test-config-shape-matrix.py` 19/19 · `run-unit-tests.sh --kind integration` exit 0 over 46 files ·
-index regeneration byte-identical · `check-state.sh` exit 0 · working tree clean.
+index regeneration byte-identical · `check-state.sh` exit 0 with zero violations · working tree clean.
 
-**Budgets.** 5 rework cycles of 8. **17 runs of a budget of 20** — informational only, and worth a
+**Budgets.** 6 rework cycles of 8. **19 runs of a budget of 20** — informational only, and worth a
 sentence: the count is high because the plan panel ran three cycles and the validate phase ran a
-find-fix-confirm loop. Each run resolved a named finding; none was a retry of an unchanged input.
+find-fix-confirm loop plus the digest-shape repair. Each run resolved a named finding; none was a
+retry of an unchanged input. The last one was pure record-keeping, which is what B-12 is about.
 
 ## The one decision — F-02
 
@@ -106,6 +110,8 @@ Unstruck rows become issues on ship acceptance. Anything not listed here dies si
 | B-9 | enhancement | `_reviewer_plan_mode_results` short-circuits on a derivation error and prints one FAIL line where eight assertions exist — it still gates, but a broken derivation under-reports |
 | B-10 | enhancement | SC-02's two discrimination directions share a single report line; both are separately asserted, so this is diagnosability, not ever-greenness |
 | B-11 | chore | `harness-qa`'s repository Expertise still says the bugfix floor "stays at unit alone" — false since DEC-217. Fix at the next distillation |
+| B-12 | bug | The run-digest guard refuses in-place replacement, so correcting one contract token in a digest spawned two extra run directories — each of which `check-state.sh` then graded — and the correction had to be appended BELOW the block it supersedes. Either permit a same-run correction that preserves every recorded verdict, or exempt superseded digests from the invariant |
+| B-13 | enhancement | A scoped panel that deliberately does not re-dispatch a reviewer has no contract-legal slot for it — `members[].status: skipped` is reserved for the optional advisor — so the honest record lives in an ad-hoc `not_rerun:` key the validator ignores rather than validates. Make it first-class |
 
 ## One thing I could not verify
 

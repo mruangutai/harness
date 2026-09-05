@@ -3,11 +3,11 @@
 ## Current
 
 - feature: BUG-1303-plan-code-review-digest
-- run: .harness/harness/features/BUG-1303-plan-code-review-digest/runs/2026-09-05-14-validator/digest.md
+- run: .harness/harness/features/BUG-1303-plan-code-review-digest/runs/2026-09-05-17-validator/digest.md
 - squad: validator
 - status: validate-complete, ship-ready pending the operator's briefing decision
 
-Validate phase closed. `review_sha` is pinned at `e2c800f1`, HEAD, tree clean. The c4 reviewer panel
+Validate phase closed. `review_sha` is pinned at `e2c800f1`, tree clean. The c4 reviewer panel
 returned FAIL with two `must_fix`; both were fixed in one cycle and independently confirmed resolved
 at c5 (`notes/review-harness-code-reviewer-c5.md`, `notes/review-harness-qa-c5.md`). MF-1: the DEC-217
 `DECISIONS-INDEX.md` row carried hand-written tags no regeneration reproduces, which reddened
@@ -16,13 +16,15 @@ row moved, ruling text unchanged. MF-2: the plan-mode `code_grade` assertion ret
 deriving it, against SC-03's own words — it now probes `_pending_plan_review_error` across
 `CODE_GRADE_VALUES` and keeps the single member that rule accepts, and reds loudly when zero or many
 qualify. pm's goal-check grades **8 of 8 criteria met** at the new pin
-(`notes/research-BUG-1303-goalcheck-validate-c5.md`). Gates at `e2c800f1`, all orchestrator-run:
-digest-validator suite exit 0 / zero `^FAIL ` / `ALL PASSED`; `test-config-shape-matrix.py` 19/19;
-`--kind integration` exit 0 over 46 files; index regeneration byte-identical; `check-state.sh` exit 0.
-Panel `severity_max` is `med` with `must_fix: []` — under `gates.review: advisory_unless_high` nothing
-gates. F-01, the build phase's blocking matrix-floor question, is **RESOLVED** by DEC-217, the
-delegated-Advisor ruling the main session implemented at `e014ede3`. cycles_used 5 of 8; 17 runs of a
-budget of 20 — informational, and each run of this phase resolved a named finding.
+(`notes/research-BUG-1303-goalcheck-validate-c5.md`). A final cycle repaired two validator run
+digests that failed the lead digest contract on shape alone; both now read `digest ok`. Gates at
+`e2c800f1`, all orchestrator-run: digest-validator suite exit 0 / zero `^FAIL ` / `ALL PASSED`;
+`test-config-shape-matrix.py` 19/19; `--kind integration` exit 0 over 46 files; index regeneration
+byte-identical; `check-state.sh` exit 0 with zero violations. Panel `severity_max` is `med` with
+`must_fix: []` — under `gates.review: advisory_unless_high` nothing gates. F-01, the build phase's
+blocking matrix-floor question, is **RESOLVED** by DEC-217, the delegated-Advisor ruling the main
+session implemented at `e014ede3`. cycles_used 6 of 8; 19 runs of a budget of 20 — informational, and
+each run of this phase resolved a named finding.
 Briefing: `notes/ship-review-2026-09-05-validate.md`. Handoff: `notes/handoff-validate.md`.
 
 ## Open Questions
@@ -53,6 +55,12 @@ Briefing: `notes/ship-review-2026-09-05-validate.md`. Handoff: `notes/handoff-va
   return, and the job preview can surface a SUPERSEDED draft whose verdict is the opposite of the
   agent's own artifact. Both harness-qa (c4) and harness-backend-dev (MF-2) hit it. A lead routing on
   tool status or on the preview would have discarded correct work or shipped a red gate.
+- Harness defect, the costliest of this phase: the run-digest guard refuses in-place REPLACEMENT, so
+  correcting a contract token in a digest cost two extra run directories, and `check-state.sh` then
+  graded each of them. The correction finally had to be APPENDED below the block it supersedes.
+  Related: a scoped panel that deliberately does not re-dispatch a reviewer has no contract-legal slot
+  for it — `members[].status: skipped` is reserved for the optional advisor — so the honest record
+  lives in an ad-hoc `not_rerun:` key the validator ignores rather than validates.
 - Harness defect, RECURRENCE, two independent leads this run: `check-domain.sh` guards
   `<run_dir>/digest.md` against replacement but applies no guard to `<run_dir>/state.yaml`, and
   `runs/` is gitignored so a Glob of it returns nothing. Each lead opened an existing run dir and
