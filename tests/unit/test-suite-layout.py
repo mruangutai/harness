@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import ast
 import fnmatch
 import json
 import os
@@ -9,6 +10,13 @@ import shutil
 import subprocess
 import sys
 import tempfile
+
+SELF_AST = ast.parse(Path(__file__).read_text())
+
+
+def _self_fn(name):
+    return next(node for node in ast.walk(SELF_AST)
+                if isinstance(node, ast.FunctionDef) and node.name == name)
 
 TESTS_DIR = Path(__file__).resolve().parent
 ROOT = TESTS_DIR.parents[1]
@@ -150,24 +158,34 @@ def _is_violations_invocation(line):
 
 
 def _violations_callers(root, source_extensions):
-    """Non-test, git-tracked, source-extension files that invoke
-    suite_layout.violations(...). Comment lines never count as callers."""
+    """Tracked non-test callers plus named entries for unreadable source files.
+
+    Comment lines never count as callers. A tracked source that cannot be read is returned as
+    ``unreadable tracked source <path>: <ErrorType>`` so the caller's equality assertion fails
+    with the path named instead of raising.
+    """
     tracked = subprocess.run(
         ["git", "ls-files"], cwd=root, check=True,
         text=True, capture_output=True).stdout.splitlines()
     callers = []
+    unreadable = []
     for rel in tracked:
         if rel.startswith("tests/"):
             continue
         if os.path.splitext(rel)[1] not in source_extensions:
             continue
-        for line in (root / rel).read_text().splitlines():
+        try:
+            text = (root / rel).read_text()
+        except (OSError, UnicodeDecodeError) as error:
+            unreadable.append(f"unreadable tracked source {rel}: {type(error).__name__}")
+            continue
+        for line in text.splitlines():
             if line.strip().startswith("#"):
                 continue
             if _is_violations_invocation(line):
                 callers.append(rel)
                 break
-    return sorted(set(callers))
+    return sorted(set(callers) | set(unreadable))
 
 
 check("violations() has exactly one non-test caller repository-wide",
@@ -430,9 +448,40 @@ def _is_inside_tests(pattern):
         prefix_segments.append(segment)
     prefix = "/".join(prefix_segments)
     normalized = posixpath.normpath(prefix) if prefix else ""
-    if not normalized or normalized in (".", "..") or posixpath.isabs(normalized):
+    if not normalized or normalized == "." or posixpath.isabs(normalized):
         return False
     return normalized == "tests" or normalized.startswith("tests/")
+
+B5_CORPUS = (
+    ("tests/unit/**", True),
+    ("tests/integration/**", True),
+    ("tests", True),
+    ("tests/manual/probe-omp-session-accessor.py", True),
+    ("./tests/*.py", True),
+    ("**/*_test.*", False),
+    ("**/test_*.py", False),
+    ("../x/*.py", False),
+    ("tests/../evil/*.py", False),
+    ("a/../tests/*.py", False),
+    ("/abs/tests/*.py", False),
+    ("*", False),
+    ("", False),
+    ("./*.py", False),
+    ("testsuite/*.py", False),
+)
+b5_mismatches = [
+    (pattern, expected, _is_inside_tests(pattern))
+    for pattern, expected in B5_CORPUS
+    if _is_inside_tests(pattern) is not expected
+]
+check("b5 corpus: _is_inside_tests verdicts unchanged",
+      b5_mismatches == [], repr(b5_mismatches))
+b5_dotdot_count = sum(
+    isinstance(node, ast.Constant) and node.value == ".."
+    for node in ast.walk(_self_fn("_is_inside_tests"))
+)
+check("b5 structural: no unreachable dotdot comparison",
+      b5_dotdot_count == 1, f"dotdot constants={b5_dotdot_count}")
 
 
 def _literal_key_present(core):
@@ -445,10 +494,46 @@ def _literal_key_present(core):
         last_wildcard = max(wildcard_positions) if wildcard_positions else -1
         trailing = core[last_wildcard + 1:]
         if (trailing.startswith(".")
-                and not any(ch in trailing for ch in "*?[")
                 and any(trailing.endswith(ext) for ext in suite_layout.SOURCE_EXTENSIONS)):
             return True
     return False
+
+B4_CORPUS = (
+    ("test-*.py", True),
+    ("test_*.py", True),
+    ("probe-*.py", True),
+    ("x_test.*", True),
+    ("x.test.*", True),
+    ("probe-*.md", False),
+    ("test-*.p*y", False),
+    ("test_*x", False),
+    ("test-x.py", False),
+    ("test-*.zzz", False),
+    ("test-*.", False),
+    ("probe-*[ab].py", False),
+    ("*.py", False),
+)
+b4_mismatches = [
+    (core, expected, _literal_key_present(core))
+    for core, expected in B4_CORPUS
+    if _literal_key_present(core) is not expected
+]
+check("b4 corpus: _literal_key_present verdicts unchanged",
+      b4_mismatches == [], repr(b4_mismatches))
+b4_fn = _self_fn("_literal_key_present")
+b4_any_count = sum(
+    isinstance(node, ast.Call)
+    and isinstance(node.func, ast.Name)
+    and node.func.id == "any"
+    for node in ast.walk(b4_fn)
+)
+b4_wildcard_count = sum(
+    isinstance(node, ast.Constant) and node.value == "*?["
+    for node in ast.walk(b4_fn)
+)
+check("b4 structural: the tautological conjunct is absent",
+      b4_any_count == 1 and b4_wildcard_count == 1,
+      f"any calls={b4_any_count}, wildcard constants={b4_wildcard_count}")
 
 
 ADVERSARIAL_CORPUS = (
@@ -556,10 +641,72 @@ if control_candidate is not None:
     check("case 11 behavioural: positive control offender is detected",
           control_result == [control_candidate], repr(control_result))
 else:
-    print("INAPPLICABLE case 11 behavioural: positive control -- no candidate in the corpus "
-          "is counted-but-unrefused under the live test_kinds config")
+    check("case 11 behavioural: positive control offender is detected", False,
+          "no CANDIDATE_CORPUS entry is counted-but-unrefused under the live "
+          "test_kinds config -- either extend CANDIDATE_CORPUS with a shape the new "
+          "config counts, or treat the config change as a detection regression")
+
+CORPUS_BLIND_KINDS = {"unit": {"status": "active", "detect": "tests/unit/**"}}
+blind_candidate = select_control_candidate(CORPUS_BLIND_KINDS)
+check("b6 reachability: no candidate under a corpus-blind config",
+      blind_candidate is None, repr(blind_candidate))
+
+b6_branches = [
+    node for node in ast.walk(SELF_AST)
+    if isinstance(node, ast.If)
+    and isinstance(node.test, ast.Compare)
+    and isinstance(node.test.left, ast.Name)
+    and node.test.left.id == "control_candidate"
+    and any(isinstance(op, ast.IsNot) for op in node.test.ops)
+]
+b6_calls = [
+    node for branch in b6_branches
+    for statement in branch.orelse
+    for node in ast.walk(statement)
+    if isinstance(node, ast.Call)
+    and isinstance(node.func, ast.Name)
+    and node.func.id == "check"
+]
+b6_call = b6_calls[0] if len(b6_calls) == 1 else None
+b6_detail = (
+    b6_call.args[2].value
+    if b6_call is not None
+    and len(b6_call.args) > 2
+    and isinstance(b6_call.args[2], ast.Constant)
+    and isinstance(b6_call.args[2].value, str)
+    else ""
+)
+b6_condition = b6_call.args[1] if b6_call is not None and len(b6_call.args) > 1 else None
+check("b6 message: the no-candidate failure names both remedies",
+      b6_call is not None
+      and "extend CANDIDATE_CORPUS" in b6_detail
+      and "detection regression" in b6_detail
+      and isinstance(b6_condition, ast.Constant)
+      and b6_condition.value is False,
+      f"detail={b6_detail!r}, condition={b6_condition!r}")
 
 uncertified = hygiene_uncertified(test_kinds_cfg)
 check("case 11 hygiene: every running-kind detect pattern is certified",
       uncertified == [], repr(uncertified))
+
+td = base_git_fixture(include_self=False)
+try:
+    (td / "deleted.py").write_text("pass\n")
+    (td / "binary.py").write_bytes(b"\xff\xfe" + b"pass\n")
+    git_commit(td)
+    (td / "deleted.py").unlink()
+    try:
+        unreadable_callers = _violations_callers(td, suite_layout.SOURCE_EXTENSIONS)
+    except Exception as error:
+        check("b14: unreadable tracked sources are reported, not raised",
+              False, f"{type(error).__name__}: {error}")
+    else:
+        check("b14: unreadable tracked sources are reported, not raised",
+              any("unreadable tracked source deleted.py: FileNotFoundError" == item
+                  for item in unreadable_callers)
+              and any("unreadable tracked source binary.py: UnicodeDecodeError" == item
+                      for item in unreadable_callers),
+              repr(unreadable_callers))
+finally:
+    shutil.rmtree(td)
 raise SystemExit(1 if failures else 0)

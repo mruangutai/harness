@@ -4,7 +4,7 @@ approval:
   date: '2026-09-05'
   approved_by: mruangutai
   status: approved
-status: plan
+status: building
 source_issues: [1302]
 
 lanes:
@@ -83,7 +83,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 carve-out, tests/unit/test-suite-layout.py is the test file of the run-unit-tests.sh gate
     depends_on: []
-    status: ready
+    status: done
     files:
       - tests/unit/test-suite-layout.py
     verify: |
@@ -144,7 +144,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 carve-out, tests/unit/test-suite-layout.py is the test file of the run-unit-tests.sh gate
     depends_on: [T-01]
-    status: ready
+    status: done
     files:
       - tests/unit/test-suite-layout.py
     verify: |
@@ -211,7 +211,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 carve-out, tests/unit/test-suite-layout.py is the test file of the run-unit-tests.sh gate
     depends_on: [T-02]
-    status: ready
+    status: done
     files:
       - tests/unit/test-suite-layout.py
     verify: |
@@ -276,7 +276,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 carve-out, tests/unit/test-suite-layout.py is the test file of the run-unit-tests.sh gate
     depends_on: [T-03]
-    status: ready
+    status: done
     files:
       - tests/unit/test-suite-layout.py
     verify: |
@@ -337,7 +337,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 carve-out, tests/integration/test-run-unit-tests-layout.py is the test file of the run-unit-tests.sh gate
     depends_on: []
-    status: ready
+    status: done
     files:
       - tests/integration/test-run-unit-tests-layout.py
     verify: |

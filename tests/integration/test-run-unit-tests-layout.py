@@ -90,7 +90,7 @@ try:
     check("git tracked rogue refused before sentinels",
           p.returncode == 2
           and any(".harness/tools/test_rogue.py" in line for line in misconfigured)
-          and "PASS test-unit.py" not in p.stdout,
+          and "PASS test-" not in p.stdout,
           p.stdout + p.stderr)
 finally: shutil.rmtree(r)
 
