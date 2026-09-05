@@ -24,3 +24,14 @@
   kind. Running it myself cost 5 seconds and 27 files. A gate-only panel step will substitute
   argument for execution when the argument is good; the required-kind list is the thing to check
   against what actually ran, not the verdict.
+- 2026-09-05 (BUG-1306, delta validation): the INV-35 false positive was closed by REWORDING the
+  data, not by fixing the line-based checker — the issue reference `#1103` became `issue 1103` in
+  one panel `consequence` string. It works and check-state now exits 0, but the checker will
+  false-positive on the next quoted continuation line carrying an issue reference, and the plan
+  lost its issue hyperlink to buy the green. Name it as a workaround in the briefing so nobody
+  reads it as a checker fix.
+- 2026-09-05 (BUG-1306, delta validation): when an owner re-pins after touching an approval-gated
+  artifact, the cheap decisive check is `git rev-parse` of the SHA-and-path pair at EVERY pin the
+  feature has had — blob-object equality across five pins settles "the reviewed code is unchanged"
+  in one call, where a diff settles it only pairwise and a re-run of the suite proves nothing about
+  the pin at all.
