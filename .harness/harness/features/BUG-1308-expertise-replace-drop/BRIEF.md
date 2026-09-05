@@ -36,7 +36,8 @@ vocabulary afterwards, so no agent is instructed to emit an op nothing can apply
 - REQ-08: The distillation contract text and the merge mechanism agree: every op the contract tells an
   agent to emit is either applied by the tool or rewritten by the contract into ops that are.
 - REQ-09: Regression coverage exists for replacement at capacity, removal, a missing target, an
-  ambiguous target, and atomic failure.
+  ambiguous target, atomic failure, and a single proposal carrying two operations on distinct
+  entries of one section.
 
 ## Constraints
 
@@ -68,10 +69,11 @@ vocabulary afterwards, so no agent is instructed to emit an op nothing can apply
 - SC-03: A proposal naming an id absent from the file exits 10, its output carries `MISSING TARGET`
   with the section and the id, and the file's sha256 is unchanged.
   verify: automated        evidence: integration
-- SC-04: Each of the three ambiguity conditions — a bare id matching entries in more than one section,
-  a file already carrying a duplicate id inside one section, and two ops in one proposal naming the
-  same target — exits 11 with `AMBIGUOUS TARGET` naming the section, the id and the reason, and the
-  file's sha256 is unchanged.
+- SC-04: Each of the two ambiguity conditions — a file already carrying a duplicate id inside one
+  section, and two ops in one proposal naming the same section and id — exits 11 with
+  `AMBIGUOUS TARGET` naming the section, the id and the reason, and the file's sha256 is unchanged.
+  There is no third condition: `section` is required on every op, so an id spanning sections is
+  refused at exit 12 by shape before any resolution runs.
   verify: automated        evidence: integration
 - SC-05: A proposal whose first ops are valid and whose last op is refusable exits non-zero and leaves
   the file's sha256 byte-identical to before the invocation.
@@ -88,29 +90,49 @@ vocabulary afterwards, so no agent is instructed to emit an op nothing can apply
   `bash .claude/skills/harness/bin/check-expertise.sh <file>` at exit 0, so the format the checker
   governs is unbroken.
   verify: automated        evidence: integration
-- SC-09: A contract-drift case reads `.claude/skills/harness-distill/SKILL.md` as text and asserts
-  exactly this: Every op verb the distillation contract names is either accepted by the
-  expertise-merge.py ops subcommand or is merge, the one verb the contract itself rewrites with the
-  literal sentence: a replace on the surviving id plus a drop of the absorbed id; and the tool
-  accepts no verb the contract does not name. The case is additionally demonstrated RED in the same
-  run against a deliberately drifted COPY of the SKILL.md text — one copy with that literal sentence
-  deleted, one copy naming an extra verb the tool does not accept — so a one-sided change is shown
-  to fail rather than assumed to, in the manner SC-07 uses for the resolver.
+- SC-09: A contract-drift case reads `.claude/skills/harness-distill/SKILL.md` as text, normalises
+  it — every run of whitespace collapsed to one space, backticks, asterisks and underscores removed
+  — and asserts exactly this: every op verb the distillation contract names is either accepted by
+  the `expertise-merge.py ops` subcommand or is `merge`, the one verb the contract itself rewrites,
+  detected by BOTH of the phrases `replace on the surviving id` and `drop of the absorbed id`
+  occurring in the normalised text; and the tool accepts no verb the contract does not name. The
+  rewrite is pinned character for character only where the feature owns the characters — the tool's
+  own exit-12 refusal line — so a copy-edit of the skill's prose cannot redden the suite. The case
+  is additionally demonstrated RED in the same run against two deliberately drifted COPIES of the
+  SKILL.md text — one with the phrase `drop of the absorbed id` removed, one naming an extra verb
+  the tool does not accept — so a one-sided change is shown to fail rather than assumed to, in the
+  manner SC-07 uses for the resolver.
   verify: automated        evidence: integration
 - SC-10: `.harness/harness/docs/DECISIONS-INDEX.md` carries a `DEC-216` row whose hand-written ruling
   carries the literal string `replace and drop through the ops subcommand`, and
   `python3 tests/integration/test-gen-decisions-index.py`
   exits 0, so the index is what the generator produces.
   verify: automated        evidence: integration
-- SC-11 (REQ-07, concurrency half): Two invocations against the SAME Expertise file overlap in time
-  — an add-only
-  `apply --entries` adding `P-09` and `P-10`, and an `ops` replace of `P-07`'s text — with the
-  overlap forced structurally: both children are spawned with `subprocess.Popen` before either is
-  waited on. Both exit 0; the final file's id census holds every id present before plus `P-09` and
-  `P-10`, none lost; and `P-07` carries the replacement text, not its old text. Each child is waited
-  with a 30-second timeout, so the case is bounded well under 60 seconds. A shared-lock regression
-  (D-09) reports RED as one writer's entries missing from the census — `P-09`/`P-10` absent, or an
-  id that existed before gone — or as `P-07` still carrying its old text.
+- SC-11 (REQ-07, concurrency half): Lock contention is forced DETERMINISTICALLY and with no
+  production test bypass — no environment variable, no injected sleep, no test-only flag, and no
+  edit to `expertise-merge.py` or `harness_merge.py`. The test process itself takes the production
+  lock through `harness_merge.acquire(<file>.lock)`, the same primitive `locked_update` uses on the
+  same path, and inside that block spawns both writers with `subprocess.Popen` — an add-only
+  `apply --entries` adding `P-09` and `P-10`, and an `ops` replace of `P-07`'s text. Still holding
+  the lock it polls both children every 0.05s for a 2.0-second hold window and asserts NEITHER has
+  exited: a child that completes while the lock is held is the RED, because it is not taking the
+  shared lock (D-09). The window sits far below `harness_merge.LOCK_TIMEOUT_SECONDS` (10.0), so a
+  correctly-locking child is still waiting rather than refused at exit 6. After release each child
+  is waited with a 20-second timeout; both exit 0; the final file's id census holds every id present
+  before plus `P-09` and `P-10`, none lost; and `P-07` carries the replacement text, not its old
+  text. The other two RED shapes are a writer's entries missing from the census and `P-07` still
+  carrying its old text. Worst case, including every FAIL path, is the 2.0-second hold plus two
+  20-second waits — under 45 seconds.
+  verify: automated        evidence: integration
+- SC-12 (REQ-01, REQ-02, multi-op composition): One proposal carrying two ops on DISTINCT ORIGINAL
+  INDICES of one section — a drop of the entry at the low index and a replace of an entry at a
+  higher index — exits 0, and the section's surviving id sequence IN FILE ORDER is exactly the base
+  sequence minus the dropped id, with the replaced entry carrying the new text at its preserved
+  position relative to every survivor. The identical result is asserted with the two ops given in
+  the opposite order, so the outcome is shown independent of op order rather than assumed to be. A
+  second shape, two drops at distinct original indices in one section, asserts its own surviving id
+  sequence. Evidence: `tests/integration/test-expertise-merge.py` case19, with
+  `tests/unit/test-expertise-ops.py` u11 and u12 as the unit half.
   verify: automated        evidence: integration
 
 ## Verification gaps

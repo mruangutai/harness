@@ -14,3 +14,15 @@
   one it wants.
 - 2026-09-05: BUG-1308 c1 re-grade — a cycle-0 "the four places must agree" finding is closed fastest by grepping the literal sentence in each place and diffing the strings, not by reading the repair note; all four carried it byte-identical. Anchor "case 8" in the integration suite is a DOCSTRING label (case_cap_drift_detector), so a grep for `def case8` returns nothing and reads as a rotted anchor when it is not.
 - 2026-09-05: BUG-1308 panel c1 transcription — wrote panel findings' summary as double-quoted SINGLE-LINE scalars in the set-panel value file rather than folded '>-'; re-derived every PF- id from the LOADED plan.yaml afterwards (7/7 ID_OK), which catches a fold that reflows differently from the digest text.
+- 2026-09-05: BUG-1308 c2. Narrowing a contract (section optional -> required) has a fan-out no single
+  finding names: D-02, D-03, D-05, D-06, T-01 Step A/B/C, T-02 case14, T-03 intent AND the SC that
+  grades each. I found the D-06 breakage (it claimed a replaced entry keeps its EXACT index, false the
+  moment the same proposal drops an entry above it) only by re-reading every decision against the new
+  Step D, not from the panel.
+- 2026-09-05: BUG-1308 c2. Requiring a key on every op silently broke a test probe design: case17's
+  ACCEPTED set probes each candidate verb with one op, and a missing-section refusal is the SAME exit
+  code (12) as an unknown-verb refusal. Same-code-different-reason is how a set-difference assertion
+  populates wrong and still passes. Folded the fix into T-02's intent.
+- 2026-09-05: BUG-1308 c2. Ran both rewritten verify blocks against the unbuilt tree before yielding:
+  T-03 exit 1 naming 'expertise-merge.py ops --file', T-04 exit 1 naming 'Chose:'. A verify that only
+  greps for text the task is about to write must be shown red first or it is unfalsifiable.
