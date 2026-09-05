@@ -142,6 +142,39 @@ check("runner delegates layout once",
       sum("suite_layout" in line and not line.strip().startswith("#")
           for line in runner) == 1)
 
+def _is_violations_invocation(line):
+    """True when line invokes suite_layout.violations(...) with an argument --
+    excludes the zero-arg `suite_layout.violations()` mention that appears in
+    layout_fixtures.py's own docstring, which is prose, not a call."""
+    return re.search(r"suite_layout\.violations\(\s*[^)\s]", line) is not None
+
+
+def _violations_callers(root, source_extensions):
+    """Non-test, git-tracked, source-extension files that invoke
+    suite_layout.violations(...). Comment lines never count as callers."""
+    tracked = subprocess.run(
+        ["git", "ls-files"], cwd=root, check=True,
+        text=True, capture_output=True).stdout.splitlines()
+    callers = []
+    for rel in tracked:
+        if rel.startswith("tests/"):
+            continue
+        if os.path.splitext(rel)[1] not in source_extensions:
+            continue
+        for line in (root / rel).read_text().splitlines():
+            if line.strip().startswith("#"):
+                continue
+            if _is_violations_invocation(line):
+                callers.append(rel)
+                break
+    return sorted(set(callers))
+
+
+check("violations() has exactly one non-test caller repository-wide",
+      set(_violations_callers(ROOT, suite_layout.SOURCE_EXTENSIONS))
+      == {".claude/skills/harness/bin/run-unit-tests.sh"},
+      repr(_violations_callers(ROOT, suite_layout.SOURCE_EXTENSIONS)))
+
 def base_git_fixture(include_self=True):
     td = Path(tempfile.mkdtemp())
     subprocess.run(["git", "init", "-b", "main", "-q"], cwd=td, check=True)

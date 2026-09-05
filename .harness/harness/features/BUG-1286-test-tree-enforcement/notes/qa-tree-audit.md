@@ -1,6 +1,6 @@
 # QA Tree Audit — BUG-1286-test-tree-enforcement
 
-BLUF: at commit 5f76d6b139c9cd5fc3cc7d4011f063335210cb8e, `tests/manual/suite-census.py tree-audit --ref HEAD` measured TOTAL 85, OUTSIDE 9, VIOLATIONS 0.
+BLUF: at commit 4b343d8083d94d97477d3f2ebd7b848e83f01871, `tests/manual/suite-census.py tree-audit --ref HEAD` measured TOTAL 85, OUTSIDE 9, VIOLATIONS 0.
 
 Instrument output (verbatim, one fence, do not edit):
 
