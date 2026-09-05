@@ -4,7 +4,7 @@ approval:
   date: '2026-09-05'
   approved_by: mruangutai
   status: approved
-status: building
+status: review
 source_issues: [1303]
 
 lanes:
@@ -95,6 +95,10 @@ panel:
     status: ran
   - reader: should-not-exist
     status: ran
+  - reader: goalcheck
+    status: ran
+    persona: harness-pm
+    findings: 0
   findings:
   - id: PF-2e69b27e422520816d381adac766f1a6
     severity: high
