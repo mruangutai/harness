@@ -143,16 +143,18 @@ Recorded verbatim from the grilling note's `## Out of scope`:
   verify: automated        evidence: integration
 - SC-10: `tests/manual/probe-issue-types.py` exists, is registered in `.harness/harness.json`
   `test_kinds` as a `locally_run` kind with a non-null `cmd`, and when run against the pinned
-  `github.repo` reports exactly one of three verdicts: a live pass naming the native types it
-  observed on issues it created, reachable only under the probe's explicit create opt-in; a
+  `github.repo`, or against a repository the operator names explicitly through the probe's create
+  opt-in, reports exactly one of three verdicts: a live pass naming the native types it
+  observed on issues it created in the repository the opt-in named, reachable only under that
+  explicit create opt-in and counting whether or not that repository is the configured one; a
   capability-present verdict naming the repository and the type names it declares while creating
   nothing, which is what the read-only default invocation reports against an Issue-Types-enabled
   repository; or an explicit capability-absent verdict naming the repository. It never
   reports a pass derived from a fixture. **An environmental skip is not a verdict and never
-  satisfies this criterion**: no `gh` on PATH, `github.sync` false, an unpinned repo, a failed
-  capability query, or a create opt-in naming a repository other than the configured one all
-  make the probe report nothing about the repository, so they are outside the three verdicts
-  and are never read as a pass — SC-10 stays unmet until one of the three is recorded.
+  satisfies this criterion**: no `gh` on PATH, `github.sync` false, an unpinned repo, or a failed
+  capability query all make the probe report nothing about the repository, so they are outside
+  the three verdicts and are never read as a pass — SC-10 stays unmet until one of the three is
+  recorded.
   **This is the criterion that carries #1289's
   enabled-repository acceptance** — see `## Verification gaps`.
   verify: automated        evidence: issue_types_live

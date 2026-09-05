@@ -144,8 +144,8 @@ decisions:
       leaves an issue untyped rather than retyping an issue somebody else owns.
     dec: DEC-138
 panel:
-  last_run: 2026-09-04-14-validator
-  cycle: 2
+  last_run: 2026-09-04-18-validator
+  cycle: 3
   severity_max: high
   readers:
   - persona: fable-advisor
@@ -157,38 +157,6 @@ panel:
     status: ran
     reason: none
   findings:
-  - id: PF-60f3544bd486fe9d3541a26658e5fa9f
-    reader: scope
-    severity: high
-    summary: T-03 case F (plan.yaml:522-524) omits the ZERO-updateIssue assertion
-      T-05 case G (:774-775) and T-07 case I (:960-961) both carry, though SC-08 requires
-      zero type-assignment calls per command in that command's own test file
-    why: a backfill apply_issue_type ordered before missing_types completes mutates
-      a real existing issue's native type on a run specified to refuse cleanly - open
-      route only - with every plan-defined gate green; T-03's required-string loop
-      (:460) does not bind case F because updateIssue is satisfied by cases A/E/G/H
-    disposition: awaiting_user
-  - id: PF-08da208931348b8cb200b34e8e7a1d31
-    reader: should-not-exist
-    severity: med
-    summary: T-10 section 6 (plan.yaml:1166-1170) requires --create-in to EQUAL github.repo,
-      which the plan measures as not Issue-Type-enabled, so the operator's granted
-      live create is unreachable and the flag's stated safety is a config echo
-    why: the only route to SC-10's LIVE verdict is mutating github.repo to a foreign
-      enabled repo and reverting; while mutated every concurrent gh-sync/factory run
-      mirrors real feature issues into that foreign repo, outside any guard
-    disposition: batched_to_signature_review
-  - id: PF-8b5853220e5f2768339090bdbc44b1a5
-    reader: scope + should-not-exist (one defect, two reporters, both low - no reconciliation
-      needed)
-    severity: low
-    summary: T-03's required-string loop (:460) omits partial and github.issue_types
-      while T-05 (:709) and T-07 (:872) require both - goal-check C3-01, independently
-      confirmed twice
-    why: 'a writer labelling CASE F: while asserting a weaker refusal passes T-03''s
-      gate; the same omission fails loudly on the other two routes. Gate uniformity,
-      not coverage'
-    disposition: batched_to_signature_review
   - id: PF-56a2ce7a053111a3aff62a4b97c5902e
     reader: should-not-exist
     severity: low
@@ -258,20 +226,129 @@ panel:
       \ never protected at all. Every future rewording must change a 511-character\
       \ string in two files in lockstep."
     disposition: batched_to_signature_review
+  - id: PF-df3caaeb7d520653866034e477d3718b
+    reader: should-not-exist + scope (one defect, two readers, both high - no reconciliation
+      needed)
+    severity: high
+    summary: 'Cycle-5 edit 1 did not discharge PF-60f3544bd486fe9d3541a26658e5fa9f:
+      the zero-updateIssue assertion it added to T-03 case F (plan.yaml:532-539),
+      and the copies it mirrors in T-05 case G (:785-796) and T-07 case I (:969-984),
+      are inert on all three, because those are the plan''s only FAKE_TYPES=partial
+      cases and each specifies a FRESH fixture, so the backfill route PF-60f3544bd486fe9d3541a26658e5fa9f
+      names is still untested on every route.'
+    why: 'The required set that the missing-types check draws from is defined at T-04
+      section 4 (:623-634) and T-08 section 6 (:1037-1046) as every already-recorded
+      key whose provenance is the string created. In a fresh fixture that set is empty,
+      so a backfill-before-refusal-check implementation emits zero updateIssue argv
+      on all three cases and passes identically to a correct one; on a fresh fixture
+      the clause is also subsumed by the pre-existing zero issue-create assertion.
+      The only state producing a created remnant is T-03 case G (:540), which runs
+      under FAKE_TYPES=available and never partial, so no case anywhere pairs a remnant
+      with a refusal. plan.yaml:539 now records case F as what fails when it does
+      - false confidence carried into the signature pass. Falsifiable: if the eventual
+      case F fixture pre-records a typed created entry, F1 dissolves.'
+    disposition: awaiting_user
+  - id: PF-1280cd8fc7536c65bc22f076576c28fa
+    reader: should-not-exist
+    severity: low
+    summary: 'T-10 section 6 carries two residues of the removed equality design:
+      the live-pass type is resolved from the LOCAL harness.json overrides but applied
+      against a foreign TARGET (plan.yaml:1197-1199), and section 1''s configured-repo
+      environmental gate still fronts the explicit opt-in (:1157-1160).'
+    why: 'With github.issue_types.parent set locally, a probe aimed at a vanilla Issue-Type-enabled
+      TARGET that declares no such name SKIPs on refusal_text, so SC-10''s live verdict
+      is again unreachable without mutating shared configuration - a miniature of
+      the shape the operator''s PF-08da208931348b8cb200b34e8e7a1d31 ruling just paid
+      to remove - and mutating that override changes real create behaviour in the
+      configured repository. Separately, github.sync false or an unpinned repo kills
+      an opt-in aimed at an unrelated TARGET although neither bears on that write''s
+      safety (moot while this repo is pinned). The widened TARGET is otherwise safe
+      on its own merits: every new failure shape reaches a non-creating outcome before
+      the create step.'
+    disposition: batched_to_signature_review
+  - id: PF-62b2b8ae0acc3509b474b744469137dc
+    reader: scope (med) + should-not-exist (info) - one defect, two reporters; scope's
+      med stands for ranking, neither reader's value reassigned
+    severity: med
+    summary: T-10 section 6 gives two distinct SKIP wordings - capability query failed
+      on target (plan.yaml:1190-1192) and gh cannot reach target (:1193-1196) - but
+      classify_capability has a single query_failed state (T-01 assertion 7) with
+      no discriminating rule, and no automated gate ever exercises the --create-in
+      opt-in path.
+    why: T-01 assertion 7 pins NOT_FOUND and authorisation errors into query_failed
+      with only a raw message string, so nothing tells an implementer which of the
+      two wordings to emit; producing the third shape distinctly needs a per-host
+      gh auth status pre-probe that buys a message variant and nothing else. Two implementers
+      can reasonably choose differently and T-10's verify never invokes --create-in,
+      so the choice is permanently unverified by any automated gate. Safety is not
+      affected - both outcomes are SKIP exit 0 creating nothing - so the remedy is
+      one sentence, or deleting the third bullet.
+    disposition: batched_to_signature_review
+  - id: PF-3626edafbb21d2afb151ff470a450714
+    reader: scope
+    severity: low
+    summary: T-07 (plan.yaml:869) and T-08 (:988) implement and test REQ-10's adopted-parent-never-typed
+      guarantee on the factory route but omit REQ-10 from their traces, though BRIEF
+      SC-12 says REQ-10's only falsifiable grading runs on both the gh-sync and the
+      factory route.
+    why: Only T-03 and T-04, the gh-sync route, list REQ-10. Nothing breaks at build
+      time, but an REQ-10 audit that trusts the traces metadata alone - which the
+      goal-check does - misses half the implementation and would report the factory
+      route as unimplemented or the coverage as narrower than it is.
+    disposition: batched_to_signature_review
+  - id: PF-595ce69d5574361d12a048900fcf3e0f
+    reader: should-not-exist
+    severity: low
+    summary: D-12's sixteen-key override surface (plan.yaml:91-93, T-02 :415-417,
+      T-01 assertion 5 :322-326) exceeds what REQ-03 needs, which is name-level overrides
+      for four things - Bug, Feature, Task and parent - not per-change_type keys.
+    why: Renaming the Task type repo-wide needs eleven change_type keys plus the chore
+      nature key changed in lockstep; a partial set, where the repository declares
+      both names, silently splits one role across two declared native types with no
+      refusal, fragmenting the canonical Bug/Feature/Task dimension the brief names
+      as the destination. A four-key map keyed by canonical name satisfies REQ-03
+      and SC-06 verbatim, cannot be misused this way, and deletes the per-key pins
+      T-01 assertion 5 carries.
+    disposition: batched_to_signature_review
+  - id: PF-e74a2da89380cfa94f6b1693191d759d
+    reader: should-not-exist (info) + scope (med) - one defect, two reporters; recorded
+      not ranked into fix_order, neither reader's value reassigned
+    severity: med
+    summary: 'Cycle-5 edit 2 (T-03 verify :470) buys loop parity, not coverage: the
+      grep -qF loop is file-global on all three routes, so partial and github.issue_types
+      are satisfied by text outside case F and a file labelling CASE F while asserting
+      weaker refusal wording still passes the enlarged loop.'
+    why: 'This is the accepted scope of a ruled remedy, not a new defect: PF-8b5853220e5f2768339090bdbc44b1a5''s
+      own disposition said gate uniformity, not coverage, so the operator was not
+      misled. Recorded so edit 2 is not read as coverage at signature; the case''s
+      content remains bound only by its CASE marker and by human review of T-04''s
+      verify run.'
+    disposition: batched_to_signature_review
   must_fix:
-  - 'F1 (scope, high - gating): add the assertion ''ZERO argv containing updateIssue''
-    to T-03 case F''s intent (plan.yaml:522-524), matching T-05 case G and T-07 case
-    I and BRIEF SC-08''s per-command zero-type-assignment requirement. One line; a
-    completeness fix pm makes directly, not an operator decision.'
+  - 'F1 - T-03 case F (:532-539), T-05 case G (:785-796) and T-07 case I (:969-984)
+    are the plan''s ONLY FAKE_TYPES=partial cases and all three are specified with
+    a FRESH fixture, so the required set T-04 section 4 (:623-634) and T-08 section
+    6 (:1037-1046) build from already-recorded created keys is EMPTY there. A backfill-before-refusal-check
+    implementation therefore emits zero updateIssue argv on all three cases and passes
+    identically to a correct one. Reader severity: high (should-not-exist), high (scope).
+    Gating: severity_max high clears gates.review advisory_unless_high. Not repaired
+    pre-signature (DEC-176); disposition awaiting_user.'
   fix_order:
-  - 1. F1 (high, must_fix) - T-03 case F gains the zero-updateIssue assertion.
-  - '2. F3 (low) - add partial and github.issue_types to T-03''s required-string loop.
-    SAME task and SAME verify block as F1: do both in one edit, or the second re-opens
-    the first''s file for a one-line change.'
-  - 3. F2 (med) - needs the operator's answer to Q1 first. Do not edit section 6 before
-    the ruling; the remedy changes what SC-10 can ever report.
-  - 4. F4 (low) - decide only after PF-0c12a033 is ruled; the remedy edits an approval-gated
-    success criterion.
+  - F1
+  - N5
+  - N2
+  - N3
+  - N4
+  fix_order_reason: 'Deliberate and NOT severity order, per the cycle-3 digest: F1
+    leads because its remedy adds cases to the same verify loops cycle-5 edit 2 just
+    changed, and N5 and N2 are adjacent edits to one region of T-10 section 6. N5
+    is ranked above N2 despite its lower stated severity because it is a fresh consequence
+    of the ruling the operator just made. N6 is recorded and not ranked - it is the
+    accepted scope of a ruled remedy, not a new defect.'
+  transcription_rule: Every PF- id is computed by panel_findings.py id from the exact
+    reader and summary strings stored here, never hand-written. Carried findings were
+    transcribed verbatim from the cycle-2 block and each id re-derived to confirm
+    it reproduces.
 tasks:
   - id: T-01
     title: Write the failing unit test for the issue-type mapping and capability classifier
@@ -467,7 +544,7 @@ tasks:
       for c in A B C D E F G H H2 I J; do
         grep -qF "CASE $c:" tests/integration/test-gh-issue-types.py || { echo "MISSING case $c - label every case from this task's intent with a line carrying the literal marker 'CASE $c:' (comment, docstring or print), so an OMITTED case fails this gate as loudly as a failing one"; exit 1; }
       done
-      for s in IT_feature IT_bug IT_task IT_defect IT_epic updateIssue issueTypes 4242 adopted created; do
+      for s in IT_feature IT_bug IT_task IT_defect IT_epic updateIssue issueTypes 4242 adopted created partial github.issue_types; do
         grep -qF "$s" tests/integration/test-gh-issue-types.py || { echo "MISSING required assertion string: $s"; exit 1; }
       done
       python3 tests/integration/test-gh-issue-types.py && { echo "UNEXPECTED PASS: this test must be RED before T-04"; exit 1; }
@@ -530,8 +607,13 @@ tasks:
          carries IT_defect and the parent's carries IT_epic, and that the config task's and the
          feature task's still carry IT_task.
       F. FAKE_TYPES=partial (Task not declared), fresh fixture: assert ZERO argv containing
-         "issue create" reached the fake, the process exit status is non-zero, and the combined
-         stdout+stderr names both "Task" and "github.issue_types".
+         "issue create" reached the fake, ZERO argv containing updateIssue, a non-zero process
+         exit status, and that the combined stdout+stderr names both "Task" and
+         "github.issue_types". T-04 section 4 computes missing_types over the parent and every
+         task together, before any create and before any type-apply, so a refusal ordered after
+         apply_issue_type - a backfill that types an already-recorded issue on a run specified to
+         refuse cleanly - mutates a real existing issue's native type with every other
+         plan-defined gate green, and this case is what fails when it does.
       G. FAKE_TYPES=available FAKE_TYPE_APPLY=fail on the first run: assert feature.json's
          github.typed records the first task's id with the value "created" and NOT True - the
          number and the create-time provenance are written in one act, and the flag is promoted
@@ -1169,28 +1251,46 @@ tasks:
          f"probe-issue-types: CAPABILITY PRESENT {repo} declares native issue types <names>",
          and exit 0. Nothing is created, nothing is written to GitHub, and no issue-level read
          is made.
-      6. The opt-in. Accept exactly one argument, --create-in <owner/name>, and require its
-         value to EQUAL the repository resolved in step 1: on a mismatch print
-         "probe-issue-types: SKIP --create-in <value> does not name the configured repository
-         <repo>" to stdout and exit 2, creating nothing. Retyping the repository is the whole
-         safety of the flag. With the flag and state "available": resolve the type a real
-         create would use - gh_issue_types.type_for_parent(overrides) read from the same
-         harness.json - and if gh_issue_types.missing_types names it, print
-         "probe-issue-types: SKIP " followed by gh_issue_types.refusal_text(...) and exit 0
-         WITHOUT creating. Otherwise create one throwaway issue titled
-         "probe-issue-types scratch <UTC timestamp>" with the label harness, apply that type
-         through gh_issue_types.apply_type_args, read the created issue's type back with a
-         GraphQL query for issue(number:N){ issueType { name } }, close the issue in a finally
-         block so a failure does not leave it open, and print exactly one line:
-         f"probe-issue-types: LIVE PASS {repo} created issue N, read back native type <name>,
-         closed it - remove it with gh issue delete N --repo {repo} --yes". Exit 0 when the
-         read-back name equals the applied name, and exit 1 with a line naming both the applied
-         and the observed name when it does not. The read-back is authorised by the eighth
-         read-back purpose T-11 and T-12 write; it happens only on this opt-in path.
+      6. The opt-in. Accept exactly one argument, --create-in <owner/name>. Its value MAY name a
+         repository other than the one resolved in step 1: the operator's ruling of 2026-09-04
+         (notes/answers-plan-panel-20260904-c2.md) allows the write target to be any explicitly
+         supplied Issue-Type-enabled repository. The explicit opt-in remains the WHOLE safety
+         mechanism - absent the flag the probe creates nothing, anywhere (D-19), and with it the
+         repository written to is one the operator typed out. Call the flag's value the TARGET, and
+         run the capability classification of steps 2 to 4 against the TARGET rather than against
+         the configured repository, creating in the TARGET. Every outcome maps onto the four
+         verdicts of section 7; add no fifth token:
+           - the TARGET declares no native issue types (state "absent"): print
+             f"probe-issue-types: CAPABILITY ABSENT {target} declares no native issue types" and
+             exit 0, creating nothing. An opt-in aimed at a repository that is not enabled is a
+             capability report, never a failure.
+           - the capability query on the TARGET fails (state "query_failed"): print
+             f"probe-issue-types: SKIP capability query failed on {target} ({message})" and exit 0,
+             creating nothing.
+           - gh cannot reach the TARGET - gh auth status fails for its host, or the query comes
+             back with an authorisation or not-found error: print
+             f"probe-issue-types: SKIP gh cannot reach {target} ({message})" and exit 0, creating
+             nothing. An unreachable repository is not a failed acceptance, exactly as in step 4.
+         With the flag and the TARGET in state "available": resolve the type a real create would use
+         - gh_issue_types.type_for_parent(overrides) read from the same harness.json - and if
+         gh_issue_types.missing_types names it, print "probe-issue-types: SKIP " followed by
+         gh_issue_types.refusal_text(...) and exit 0 WITHOUT creating. Otherwise create one
+         throwaway issue in the TARGET titled "probe-issue-types scratch <UTC timestamp>" with the
+         label harness, apply that type through gh_issue_types.apply_type_args, read the created
+         issue's type back with a GraphQL query for issue(number:N){ issueType { name } }, close the
+         issue in a finally block so a failure does not leave it open, and print exactly one line:
+         f"probe-issue-types: LIVE PASS {target} created issue N, read back native type <name>,
+         closed it - remove it with gh issue delete N --repo {target} --yes". The repository named
+         in that line is the one actually written to - the TARGET, which is not necessarily the
+         configured github.repo. Exit 0 when the read-back name equals the applied name, and exit 1
+         with a line naming both the applied and the observed name when it does not. The read-back
+         is authorised by the eighth read-back purpose T-11 and T-12 write; it happens only on this
+         opt-in path.
       7. Exactly one verdict line, always prefixed "probe-issue-types: ", and exactly one of
          LIVE PASS, CAPABILITY PRESENT, CAPABILITY ABSENT or SKIP. No other line starts with
          that prefix, and every verdict except a SKIP for an unresolvable repository names the
-         repository.
+         repository it reports on: the configured github.repo on the default invocation, and the
+         --create-in TARGET whenever the flag was supplied.
 
   - id: T-11
     title: Rewrite DEC-138 and DEC-203 in place and regenerate the decisions index

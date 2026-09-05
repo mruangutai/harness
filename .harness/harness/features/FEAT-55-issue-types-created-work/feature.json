@@ -3,7 +3,7 @@
   "branch": "feat/issue-1289-issue-types",
   "pr": null,
   "review_sha": "none",
-  "cycles_used": 5,
+  "cycles_used": 6,
   "max_total_cycles": 10,
   "max_total_runs": 20,
   "runs": [
@@ -98,6 +98,45 @@
       "squad": "product",
       "verdict": "PASS",
       "agent": "harness-pm"
+    },
+    {
+      "id": "2026-09-04-16-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-pm"
+    },
+    {
+      "id": "2026-09-04-17-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-pm"
+    },
+    {
+      "id": "2026-09-04-18-validator",
+      "squad": "validator",
+      "verdict": "FAIL",
+      "agent": "harness-code-reviewer",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-04-20-validator",
+      "squad": "validator",
+      "verdict": "ESCALATE",
+      "agent": "fable-advisor",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-04-21-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-pm"
+    },
+    {
+      "id": "2026-09-04-22-validator",
+      "squad": "validator",
+      "verdict": "PASS",
+      "agent": "fable-advisor",
+      "code_grade": "n_a"
     }
   ]
 }
