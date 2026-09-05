@@ -109,18 +109,39 @@ loses its tail — the budget is physics, not advice. **Craft is 150 lines; the 
 and both layers are injected at every spawn, so a generous second budget would double a per-spawn
 cost DEC-105 already treats as expensive.
 
-Updates are **ops**, each naming its target:
+Updates are **ops**. The vocabulary is exactly `add | replace | merge | drop`. Every op requires
+both `target` and `section`: `target` names the entry ID, `section` names one of the four sections,
+and resolution never leaves that section. There is no whole-file lookup and no omitted section.
 
 ```yaml
 expertise_update:
-  - op: replace              # add | replace | merge | drop
-    target: P-01             # the exact existing entry ID; omit only for `add`
+  - op: replace
+    target: P-01
     section: Patterns
     entry: "WHEN running migrations DO run the seed script first — they fail on a clean DB."
     why: "three observations this feature, same root cause"
 ```
 
-An op naming a nonexistent target is a contract violation — it is rejected, not guessed at.
+`merge` is an authoring outcome, not a mechanism op. Express it as a replace on the surviving id
+plus a drop of the absorbed id; the tool refuses an `op: merge`. Apply the JSON form of the
+`expertise_update` list with:
+
+```bash
+python3 .claude/skills/harness/bin/expertise-merge.py ops --file <expertise file> --ops <path or ->
+```
+
+The operation refuses without writing:
+
+- `7 CONFLICT`
+- `8 CAP EXCEEDED`
+- `9 not an Expertise file`
+- `10 MISSING TARGET`
+- `11 AMBIGUOUS TARGET`
+- `12 MALFORMED OPS`
+
+A missing target is a contract violation: it is rejected, not guessed at. A target is ambiguous
+only when its ID appears more than once in its section, or two ops in one proposal name the same
+section and ID. Add-only proposals may still use `apply --entries`, unchanged.
 
 At a section cap during distillation, condense until you are under it — distillation IS the
 curation step, so the old flag-and-stop rule does not apply to you here. If you genuinely cannot
