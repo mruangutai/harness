@@ -84,5 +84,24 @@
       "agent": "harness-product-lead",
       "verdict": "PASS"
     }
-  ]
+  ],
+  "github": {
+    "milestone": 48,
+    "parent": 1325,
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03",
+      "T-04"
+    ],
+    "issues": {
+      "T-01": 1326,
+      "T-02": 1327,
+      "T-03": 1328,
+      "T-04": 1329
+    },
+    "source_issues": [
+      1308
+    ]
+  }
 }
