@@ -1,6 +1,6 @@
 schema: plan/1
 feature: BUG-1286-test-tree-enforcement
-status: ready
+status: building
 approval:
   date: '2026-09-05'
   approved_by: mruangutai
@@ -488,7 +488,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: []
-    status: ready
+    status: done
     files:
       - tests/unit/test-suite-layout.py
       - .claude/skills/harness/bin/suite_layout.py
@@ -859,7 +859,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: [T-01]
-    status: ready
+    status: building
     files:
       - tests/integration/test-run-unit-tests-layout.py
     verify: |
@@ -897,7 +897,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: [T-01]
-    status: ready
+    status: building
     files:
       - tests/manual/suite-census.py
     verify: |
