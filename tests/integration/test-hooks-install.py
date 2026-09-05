@@ -96,7 +96,9 @@ def _repo(path, branch="main"):
     os.makedirs(path, exist_ok=True)
     for cmd in (["git", "init", "-q", "-b", branch],
                 ["git", "config", "user.email", "t@example.com"],
-                ["git", "config", "user.name", "t"]):
+                ["git", "config", "user.name", "t"],
+                ["git", "config", "maintenance.auto", "false"],
+                ["git", "config", "gc.auto", "0"]):
         subprocess.run(cmd, cwd=path, capture_output=True)
     with open(os.path.join(path, "f.txt"), "w") as f:
         f.write("x\n")
@@ -166,6 +168,8 @@ def _clone(origin, dest):
     # CI and succeeded locally. The fixture must not depend on the environment for this.
     subprocess.run(["git", "config", "user.email", "t@example.com"], cwd=dest, capture_output=True)
     subprocess.run(["git", "config", "user.name", "t"], cwd=dest, capture_output=True)
+    subprocess.run(["git", "config", "maintenance.auto", "false"], cwd=dest, capture_output=True)
+    subprocess.run(["git", "config", "gc.auto", "0"], cwd=dest, capture_output=True)
     return dest
 
 
