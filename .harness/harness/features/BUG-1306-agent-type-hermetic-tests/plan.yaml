@@ -108,8 +108,8 @@ panel:
     severity: med
     summary: SC-05 gates which files changed, not which lines, so a case_1103_ predicate
       weakened under an unchanged check() name evades SC-01/02/04/05
-    consequence: 'A future r.returncode in (0, 10) at test-plan-merge.py:1111 still
-      prints PASS over a suite that no longer proves the #1103 refusal.'
+    consequence: A future r.returncode in (0, 10) at test-plan-merge.py:1111 still
+      prints PASS over a suite that no longer proves the issue 1103 refusal.
     disposition: advisory
     note: 'Open as a standing gap for future edits. For THIS change the remedy was
       homed in T-01''s intent: a reviewer confirmation that lines 1097-1140 are byte-identical
