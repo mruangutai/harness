@@ -991,7 +991,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-qa
     depends_on: [T-03]
-    status: ready
+    status: done
     files:
       - .harness/harness/features/BUG-1286-test-tree-enforcement/notes/qa-tree-audit.md
     verify: |
@@ -1039,7 +1039,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-documentor
     depends_on: [T-01, T-02]
-    status: ready
+    status: building
     files:
       - .harness/harness/docs/DECISIONS.md
       - .harness/harness/docs/DECISIONS-INDEX.md
