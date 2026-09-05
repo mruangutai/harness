@@ -9,6 +9,8 @@
 - G-05: WHEN writing a sibling checker that needs `gen-decisions-index.py`'s default DECISIONS.md path DO call `harness_boundary.resolve_root(_BIN_DIR)` directly instead of importing its `DECISIONS_PATH` constant — that constant is relative and assumes the generator's own `os.chdir` already ran.
 - G-06: WHEN adding a test_kinds JSON loader under bin/ DO reuse/wrap `code_grade.py`'s existing loader rather than define a second same-named function in a sibling script — two independent copies here already diverged: one raises on a bad file, the other fails closed with a repair.
 - G-07: WHEN `validate-digest.py`'s `code_grade_enforcement_error` looks like it discards `reviewed_python_change`'s return DO NOT delete the call — `code_grade_bound_to_review` resolves the digest's HEAD only (BASE is discarded), so this call is the sole assertion the declared BASE revision resolves.
+- G-08: WHEN a fixture tree must satisfy `suite_layout.py`'s DOCUMENTED_EXCEPTIONS self-policing check DO seed a stand-in file at the exact documented path in the fixture — omitting it makes `_registry_findings` report the entry stale in every synthetic tree, falsely reddening unrelated clean/control cases.
+- G-09: WHEN adding a non-test call site for `suite_layout.violations()` DO confine it to files under `tests/` — the repository's single-caller sweep asserts `run-unit-tests.sh` is the sole non-test caller and reddens on any other invocation outside `tests/`.
 ## Outcomes (max 10)
 - O-01: WHEN reviewing this repo's plan decisions list for simplification DO flag an entry marked dec: none whose body only restates an adjacent block's already-stated methodology — it inflates the decision count with an audit record nobody chose, not a real decision.
 ## Open (max 5)

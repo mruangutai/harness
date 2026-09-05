@@ -1,6 +1,7 @@
 # Expertise — harness-dev-ops
 ## Patterns (max 15)
 - P-01: WHEN editing `inject-expertise.sh`'s emit order DO keep tier precedence stated as an explicit line in the output, never implied by emission order alone — craft, project, then sorted repository blocks are emitted in a fixed sequence, but that sequence is presentation only.
+- P-02: WHEN citing which files count as test-shaped in this repo DO point to suite_layout.py's NAME_PATTERNS/SOURCE_EXTENSIONS constants rather than restating the pattern/extension list in prose — the constants are the only place the vocabulary can change, and prose restatements go stale silently.
 ## Gotchas (max 15)
 - G-01: Nothing invokes check-state.sh automatically — it is manual-only, so a green session is not evidence it ran. (This gotcha used to also cover check-docs.sh's exec-bit fail-open; that script and INV-10 were struck under DEC-188.)
 - G-02: `.claude/skills/harness/templates/harness.json` is merged additively into `.harness/harness.json` by `.claude/skills/harness/bin/upgrade-config.py`, and copied verbatim on init — editing one without the other creates silent drift on the next upgrade or init.
@@ -13,5 +14,6 @@
 - G-10: WHEN a merge from `main` moves or resurrects Harness tests DO run `run-unit-tests.sh --check-layout` immediately — `suite_layout.violations` rejects a test in the wrong directory or under bin before any kind collects.
 - G-11: WHEN reviewing validate-digest.py's code-grade enforcement path DO check whether review_sha/base_oid are still each re-resolved via separate git rev-parse --verify calls instead of a single shared resolution, and re-measure the cost yourself — do not treat any prior number here as current, it rots at the first refactor.
 - G-12: WHEN reviewing the six code-grade refusal conditions duplicated in harness-code-review/SKILL.md, validate-digest.py, and DECISIONS.md DO treat it as an accepted residual, not a fresh finding — test-validate-digest.py's N_A_REFUSAL_SUBSTRINGS table already ties refusal wording to code.
+- G-13: WHEN documenting why a path is exempted from suite_layout's tests/ enforcement DO quote suite_layout.DOCUMENTED_EXCEPTIONS' stored reason string verbatim rather than paraphrasing — independent paraphrases in decisions, plans, and audit notes drift from the code's own stored justification and from each other.
 ## Outcomes (max 10)
 ## Open (max 5)

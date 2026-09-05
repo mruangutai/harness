@@ -14,6 +14,7 @@
 - P-12: WHEN judging a depends_on edge in a task DAG DO check whether the dependent's own intent or verify block reads a file the predecessor wrote. An edge with no such read is narrative-only; dropping narrative-only edges collapses over-serialized waves into parallel ones.
 - P-13: WHEN a depends_on edge fails that content-read test DO still check whether both tasks write the same file or data structure before dropping it — a write-conflict-only edge is genuinely load-bearing even though it looks like a false content dependency.
 - P-14: WHEN two independently-dispatched subagents each restate the same instruction DO NOT flag it as duplication — separate dispatches share no context, so each needs its own copy or the rule silently stops applying to one of them. Duplication only applies within one reader's context.
+- P-15: WHEN a measured per-call redundancy seems material alone DO check the suite's own timing breakdown (slowest-file/pool summary) for what dominates wall time before flagging it as a finding — a real, correctly-scaled cost can still not move the total if a slower file sets the ceiling.
 ## Gotchas (max 15)
 - G-01: WHEN timing-probing a CLI that shells out to an external service (e.g. `gh`) DO wire the fake-binary env vars first, or run from a directory outside any real target — probing from a real project root can reach production and issue live network calls.
 - G-02: WHEN a docstring or spec claims a function raises but the code path returns silently DO enumerate every real caller before flagging it as a live risk — if every caller pre-filters the case, it is a stale docstring, not a runtime hole.
@@ -22,5 +23,6 @@
 - G-05: WHEN a comment cites a numbered label (e.g. "CHANGE 1") as its rationale DO grep the file for that label before trusting it — a label existing only in a planning artifact narrates the plan's own bookkeeping, not a present fact, and goes stale once the plan closes.
 - G-06: WHEN claiming a "full read" of a file as your check DO also run a targeted probe for the failure mode under review (e.g. grep a stated rationale across the file for duplication) — a linear read can miss content that repeats without registering as a repeat.
 - G-07: WHEN two tasks' verify blocks both run the same full-suite command DO check whether each run proves a different task's own registration didn't break a drift invariant before flagging it as duplicate work — a repeated command can be two independent proofs, not one redundant one.
+- G-08: WHEN two code paths shell out to git and look duplicated DO check whether one reads the staged index (git ls-files) and the other a committed ref (git ls-tree) before calling it redundant — index-vs-ref is a semantic difference, and merging them changes correctness guarantees.
 ## Outcomes (max 10)
 ## Open (max 5)
