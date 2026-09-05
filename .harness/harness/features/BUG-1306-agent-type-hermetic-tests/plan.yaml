@@ -1,6 +1,6 @@
 schema: plan/1
 feature: BUG-1306-agent-type-hermetic-tests
-status: review
+status: done
 approval:
   date: '2026-09-05'
   approved_by: mruangutai
