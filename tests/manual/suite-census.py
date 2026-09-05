@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """One-shot and review-time census tools for FEAT-47."""
 import argparse
+import fnmatch
 import json
+import os
 from pathlib import Path
 import re
 import subprocess
@@ -9,6 +11,13 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[2]
 KIND_DIRS = (ROOT / "tests/unit", ROOT / "tests/integration")
+sys.path.insert(0, str(ROOT / ".claude/skills/harness/bin"))
+from suite_layout import (  # noqa: E402
+    AGNOSTIC_NAME_PATTERNS,
+    DOCUMENTED_EXCEPTIONS,
+    RESTRICTED_NAME_PATTERNS,
+    SOURCE_EXTENSIONS,
+)
 RESIDUE_TOKENS = ("UNIT_SCRIPTS", "INTEGRATION_SCRIPTS", "check-kinds")
 # Exactly three historical line exemptions, on purpose.
 RESIDUE_EXEMPTIONS = (
@@ -57,6 +66,97 @@ def migration(args):
         if name in deleted and not hits: continue
         if len(hits)!=1: print(f"{name}: expected exactly one destination, got {hits}"); bad+=1
     return 1 if bad else 0
+
+
+def _vocabulary_paths(ref):
+    """Sorted (path, basename, agnostic, restricted) tuples matching either vocabulary tuple."""
+    names = subprocess.run(
+        ["git", "ls-tree", "-r", "--name-only", ref], cwd=ROOT, text=True,
+        capture_output=True, check=True,
+    ).stdout.splitlines()
+    selected = []
+    for path in names:
+        basename = os.path.basename(path)
+        agnostic = any(fnmatch.fnmatch(basename, p) for p in AGNOSTIC_NAME_PATTERNS)
+        restricted = any(fnmatch.fnmatch(basename, p) for p in RESTRICTED_NAME_PATTERNS)
+        if agnostic or restricted:
+            selected.append((path, basename, agnostic, restricted))
+    return sorted(selected, key=lambda entry: entry[0])
+
+
+def _disposition(path, basename, agnostic, restricted, exception_paths):
+    if path.startswith("tests/"):
+        return "in-tests-tree"
+    if path in exception_paths:
+        return "documented-exception"
+    if restricted and not agnostic and os.path.splitext(path)[1] not in SOURCE_EXTENSIONS:
+        return "out-of-vocabulary"
+    return "violation"
+
+
+def _measure(ref):
+    exception_paths = {entry[0] for entry in DOCUMENTED_EXCEPTIONS}
+    rows = []
+    for path, basename, agnostic, restricted in _vocabulary_paths(ref):
+        rows.append((path, _disposition(path, basename, agnostic, restricted, exception_paths)))
+    return rows
+
+
+def _read_note_rows(path):
+    """Parse an --against note's single fenced block into a row set.
+
+    Prints the exact refusal message and returns None for zero or 2+ blocks."""
+    blocks = re.findall(r"```(?:text)?\n(.*?)\n```", Path(path).read_text(), re.S)
+    if not blocks:
+        print(f"note carries no fenced block: {path}", file=sys.stderr)
+        return None
+    if len(blocks) > 1:
+        print(f"note carries {len(blocks)} fenced blocks, expected exactly 1: {path}", file=sys.stderr)
+        return None
+    rows = set()
+    for line in blocks[0].splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        fields = line.split("\t")
+        if len(fields) == 2:
+            rows.add((fields[0], fields[1]))
+    return rows
+
+
+def _print_measurement(rows):
+    for path, disposition in rows:
+        print(f"{path}\t{disposition}")
+    total = len(rows)
+    outside = sum(1 for _, disposition in rows if disposition != "in-tests-tree")
+    violations = sum(1 for _, disposition in rows if disposition == "violation")
+    print(f"TOTAL {total} OUTSIDE {outside} VIOLATIONS {violations}")
+    return violations
+
+
+def _print_diff(rows, against):
+    note_rows = _read_note_rows(against)
+    if note_rows is None:
+        return 2
+    measured = set(rows)
+    missing = sorted(measured - note_rows)
+    extra = sorted(note_rows - measured)
+    for path, disposition in missing:
+        print(f"MISSING {path}\t{disposition}")
+    for path, disposition in extra:
+        print(f"EXTRA {path}\t{disposition}")
+    return 1 if missing or extra else 0
+
+
+def tree_audit(args):
+    rows = _measure(args.ref)
+    violations = _print_measurement(rows)
+    if args.against:
+        diff_status = _print_diff(rows, args.against)
+        if diff_status == 2:
+            return 2
+        return 1 if diff_status or violations else 0
+    return 1 if violations else 0
 
 def residue(args):
     if any("/expertise/" in f"/{p}/" for p,_ in RESIDUE_EXEMPTIONS): print("expertise exemption refused"); return 1
@@ -167,6 +267,13 @@ def add_children_parser(subparsers):
     parser.set_defaults(fn=children)
 
 
+def add_tree_audit_parser(subparsers):
+    parser = subparsers.add_parser("tree-audit")
+    parser.add_argument("--ref", default="HEAD")
+    parser.add_argument("--against")
+    parser.set_defaults(fn=tree_audit)
+
+
 def main():
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(dest="cmd", required=True)
@@ -174,6 +281,7 @@ def main():
     add_migration_parser(subparsers)
     add_residue_parser(subparsers)
     add_children_parser(subparsers)
+    add_tree_audit_parser(subparsers)
     args = parser.parse_args()
     return args.fn(args)
 if __name__=="__main__": raise SystemExit(main())
