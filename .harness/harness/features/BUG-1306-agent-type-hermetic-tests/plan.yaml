@@ -2,7 +2,9 @@ schema: plan/1
 feature: BUG-1306-agent-type-hermetic-tests
 status: plan
 approval:
-  status: pending
+  date: '2026-09-05'
+  approved_by: mruangutai
+  status: approved
 source_issues: [1306]
 
 lanes:

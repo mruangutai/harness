@@ -99,6 +99,6 @@ a failure of the change.
 
 ## Approval
 
-status: pending
-approved-by:
-date:
+status: approved
+approved-by: mruangutai
+date: 2026-09-05
