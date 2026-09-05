@@ -1,0 +1,4 @@
+# Observations - harness-ui-reviewer
+
+- 2026-09-05: BUG-1286 c2 re-pin (bb3a31ed) - before live-executing tools in the worktree, confirmed HEAD (be46f5d4, one commit ahead of the pin) is byte-identical to bb3a31ed on every non-feature-directory path via git diff bb3a31ed..HEAD --stat over the repo minus the feature dir (empty) before trusting working-tree execution as evidence for the pinned sha.
+- 2026-09-05: BUG-1286 c2 - the read tool's selector-range read of suite_layout.py:1-60 returned a simple, un-decomposed violations(root) body that does not match the file on disk (which has the B-1 decomposition with helpers at the same commit); a direct shell read (sed/cat) of the same range showed the correct decomposed content. Treat a read-tool code-selector result as suspect and cross-check with a direct shell read when the file was recently rewritten mid-feature.
