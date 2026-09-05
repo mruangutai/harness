@@ -73,6 +73,12 @@
       "verdict": "FAIL",
       "agent": "harness-code-reviewer",
       "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-04-12-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-pm"
     }
   ]
 }
