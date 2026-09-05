@@ -3,24 +3,27 @@
 ## Current
 
 - feature: BUG-1306-agent-type-hermetic-tests
-- run: .harness/harness/features/BUG-1306-agent-type-hermetic-tests/runs/2026-09-05-06-validator/state.yaml
+- run: .harness/harness/features/BUG-1306-agent-type-hermetic-tests/runs/2026-09-05-01-eng-simplify/state.yaml
 - squad: none
-- status: awaiting-user
+- status: build-complete
 
-Plan phase COMPLETE. BRIEF.md and plan.yaml are approval-ready and both read `pending`;
-only the main session signs. Station `plan`. `cycles_used` 1 of 8 (one lead-reported
-send-back inside the panel-close run). Handoff at `notes/handoff-plan.md`.
+Build phase COMPLETE. The one planned task T-01 is at station `done`; the feature station is
+still `building` because the `review` transition is coupled to `gh-sync.py status <dir> review`
+and this run was instructed not to touch GitHub. `review_sha` is pinned; `cycles_used` is 1 of 8
+(unchanged — all three build segments returned PASS with zero send-backs). Handoff at
+`notes/handoff-build.md`.
 
-The defect (issue #1306 / B-13): `tests/integration/test-plan-merge.py` inherits
-`HARNESS_AGENT_TYPE` from the running agent's shell, and `plan-merge.py:1188`
-`cmd_sign_approval` — the only production reader of that variable from the environment —
-refuses at exit 10, so the suite is red for an agent and green for a human. Reproduced by
-the orchestrator at HEAD `c369fb1`: governed env 14 `FAIL` lines / exit 1, clean env 0 / exit 0.
+T-01 landed one module-import statement in `tests/integration/test-plan-merge.py`:
+`os.environ.pop("HARNESS_AGENT_TYPE", None)`, with its comment and one added sentence in
+`run_verb`'s docstring. Both `case_1103_` bodies are byte-identical to the pre-fix blob
+(region sha1 `0f5a679182…` on both sides; the two diff hunks sit at pre-image lines 34 and 141,
+neither intersecting 1097-1140 — orchestrator-verified, not inferred from a green suite).
 
-The plan is one task: pop the variable once at module import in that file only. The
-adversarial panel ran both readers at cycle 0, raised one HIGH (SC-03 had no automated
-gate), and that finding was CLOSED in T-01's `verify:` before signature — recorded in
-plan.yaml `panel` as PF-8d2608761fd582d9e04a7fe844b2e0da, disposition `resolved`.
+Evidence: T-01's `verify:` block prints `VERIFY-OK` at exit 0, both halves 291 PASS / 0 FAIL
+(orchestrator-run, and independently by the builder and by qa). qa self-measured the pre-fix red
+in an isolated checkout rather than inheriting it. The orchestrator additionally proved the suite
+CAN report red at the SHIPPED file: pointing `PLAN_MERGE_BIN` at a wrapper that re-injects the
+identity returns exit 1 with 17 failing checks, no repo file modified.
 
 Log:
 
@@ -28,6 +31,11 @@ Log:
 - 2026-09-05: advisor consult settled scope and mechanism (D-01..D-04).
 - 2026-09-05: BRIEF + plan drafted; goal-check PASS; SC-05 pinned to a merge-base diff.
 - 2026-09-05: plan panel FAIL (one HIGH); finding closed, panel transcribed; plan phase ends.
+- 2026-09-05: operator signed BRIEF and plan; station `building`.
+- 2026-09-05: eng segment PASS (T-01, backend-dev, 0 send-backs); committed.
+- 2026-09-05: qa segment PASS — test_matrix gate green, `notes/qa-BUG-1306-integration.md`.
+- 2026-09-05: simplify PASS — four angles, nothing applied; three residual notes.
+- 2026-09-05: T-01 station `done`; build phase ends at the validate seam.
 
 ## Open Questions
 
@@ -37,3 +45,12 @@ Log:
   note's worktree-stripped path joined to the MAIN checkout root, and no in-flight feature
   dir exists there — all nine live feature dirs are worktree-local. Worked around here with
   a path-carrying `approval:` pointer.
+- Harness defect, non-blocking: two of the builder's early edit-tool calls landed in the
+  sibling MAIN checkout instead of the assigned worktree; the builder detected and reverted
+  them. Independently confirmed clean by the orchestrator
+  (`git -C /Users/molchairuangutai/GitHub/harness status --porcelain -- tests bin .claude .agents`
+  is empty). Worth a guard, since only a shell-holding tier can confirm it.
+- Harness defect, non-blocking: qa reported the Edit tool returning a current-file hash
+  inconsistent with two fresh identical reads of the same file, in a worktree several agents
+  run against concurrently. It cost qa the mutation check, which the orchestrator then took
+  by a different route.

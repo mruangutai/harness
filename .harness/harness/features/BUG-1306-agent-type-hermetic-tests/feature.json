@@ -2,7 +2,7 @@
   "feature_id": "BUG-1306-agent-type-hermetic-tests",
   "branch": "feat/BUG-1306-agent-type-hermetic-tests",
   "pr": null,
-  "review_sha": "none",
+  "review_sha": "7e38d0ae",
   "cycles_used": 1,
   "max_total_cycles": 8,
   "runs": [
@@ -31,6 +31,24 @@
       "agent": "harness-validator-lead",
       "verdict": "FAIL",
       "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-05-07-eng",
+      "squad": "eng",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-09-05-07-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-09-05-01-eng-simplify",
+      "squad": "eng",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS"
     }
   ]
 }

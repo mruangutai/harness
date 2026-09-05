@@ -207,7 +207,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: []
-    status: building
+    status: done
     files:
       - tests/integration/test-plan-merge.py
     verify: |
