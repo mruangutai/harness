@@ -72,8 +72,13 @@ placed worktree write does today changes.
   READ/REFUSAL path this bug adds must not inherit it. Chosen fail-closed because the guarded
   direction is precisely the one REQ-03 found has no legitimate case, so refusing costs nothing
   real, while a wrong guess writes to the wrong branch; it also matches the treatment an unparsed
-  worktree pointer already gets on both routes. A defect inside the guard's own code keeps failing
-  open, unchanged.
+  worktree pointer already gets on both routes. THAT REFUSAL IS SCOPED, NOT FACTORY-WIDE: it binds
+  exactly the governed writes the READABLE roots cannot place. A destination that lies inside a
+  worktree proven by a readable registry stays allowed while an unrelated scanned registry is
+  unreadable, because a destination already inside a proven member stays inside the claim set
+  however many members the unreadable root would have added. REQ-03 is therefore not amended: its
+  promise that a write inside the assigned worktree keeps working is kept unconditionally. A defect
+  inside the guard's own code keeps failing open, unchanged.
 - REQ-06: A refusal is actionable: it names the worktrees the agent holds and the destination the
   agent should have written, and never advises removing a worktree. For a destination under the
   control-plane root's `.harness/expertise/`, the advice is the sanctioned CLI
@@ -199,8 +204,8 @@ placed worktree write does today changes.
   still refused. It fails against any implementation whose enumerator returns an empty list for an
   unreadable root, which is what `inflight_registry._parse` does today.
   verify: automated        evidence: integration
-- SC-11 (BOUND TO T-09 — if the operator strikes T-09 at signature this criterion is struck with
-  it, and no other task carries it): with an injected `now` that makes a non-OMP claim
+- SC-11 (carried by T-09, which is IN SCOPE — the fourth binding ruling settled that and the
+  criterion is not conditional on anything): with an injected `now` that makes a non-OMP claim
   dispatch-expired (older than `inflight_registry.CLAIM_TTL_SECONDS`) but younger than
   `inflight_registry.OMP_UNVERIFIED_TTL_SECONDS`, the claim is STILL PRESENT in the registry
   file's JSON on disk after `reconcile`, `live_children` and at least one of `orphan_write` and
@@ -212,6 +217,22 @@ placed worktree write does today changes.
   `started_at` is stored data, so no clock is mocked. It fails against a read-side-only
   implementation, which leaves the file pruned, and against a shared-primitive change that
   stretches admission to the backstop.
+  verify: automated        evidence: integration
+- SC-12: The unreadable-registry refusal is SCOPED to the writes the readable roots cannot place,
+  proven in one fixture on BOTH routes: the writer's own live claim sits in a READABLE registry
+  that proves its assigned worktree, and one UNRELATED scanned registry among the same roots
+  exists and holds unparseable JSON. Two assertions, each made separately on the Write/Edit route
+  and on the Bash route: a write whose destination is inside the writer's OWN assigned worktree
+  exits 0; and a governed MAIN-CHECKOUT write by the SAME agent in the SAME fixture exits 2 with
+  stderr naming the unreadable file. The refusal half carries SC-06's full pre-change proof through
+  `bug1304_assert_pre_change_allows` — exit 0 at the frozen guard, no `enforcement OFF`, `was not
+  enforced` or `passing through` marker on its stderr, and the positive control still refused with
+  exit 2. Deterministic: the corruption is stored bytes and no clock is mocked. It can fail in both
+  directions, which is why the pair is one criterion: an implementation that requires every scanned
+  registry to be readable before comparing the destination refuses the allow half, and an
+  implementation that builds a partial claim set and then ignores the unreadable root allows the
+  refusal half. SC-10 is a DISJOINT fixture — there the agent's only claim is the corrupt one, so
+  the readable roots place nothing and the refusal stands under the same rule.
   verify: automated        evidence: integration
 
 ## Verification gaps

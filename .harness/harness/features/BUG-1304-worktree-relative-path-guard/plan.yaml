@@ -6,8 +6,8 @@ status: plan
 source_issues: [1304]
 
 panel:
-  last_run: 2026-09-05-07-validator
-  cycle: 2
+  last_run: 2026-09-05-09-validator
+  cycle: 3
   transcription_rule: 'Finding ids are computed with panel_findings.py id --reader
     <r> --summary <s> over the
 
@@ -31,28 +31,36 @@ panel:
   - reader: harness-code-reviewer
     persona: harness-code-reviewer
     status: ran
-    verdict: FAIL
+    verdict: PASS
+    deviation: none
     findings:
-    - PF-055b89703a96f6c82edc6d37e6fb973c
-    - PF-5b09773491bc20f90f69a59b84294788
-    artifact: notes/review-harness-code-reviewer-planpanel-c2.md
+    - PF-976e37a61a8066731119885a2a18b1a7
+    artifact: notes/review-harness-code-reviewer-planpanel-c3.md
   - reader: fable-advisor
     persona: fable-advisor
     status: ran
     verdict: PASS
-    deviation: none
-    contract_compliance: At cycle 2 this reader returned the contract token PASS,
+    deviation: "RETURN SHAPE. This reader returned a JSON object carrying extra top-level\
+      \ keys rather than the one fenced YAML mapping the contract asks for. Recorded,\
+      \ not normalised away, in the same spirit as the cycle-1 deviation under history:\
+      \ a later reader of this panel must be able to see that the shape differed.\
+      \ It did NOT weaken the result \u2014 the return was parseable, the verdict\
+      \ token was the reader's own word, every finding carried a severity rating,\
+      \ and on_fail did not fire."
+    contract_compliance: At cycle 3 this reader returned the contract token PASS,
       so the verdict recorded here is the reader's own word and not a lead's mapping.
-      The cycle-1 non-contract-token deviation recorded under history did NOT recur.
+      The cycle-1 non-contract-token deviation did not recur; the deviation recorded
+      above is one of SHAPE only.
     findings:
-    - PF-ab844e4aee4a085a94f6d02f099f5f9c
-    - PF-92716a13456619ae3f7d2c83af5a70ec
-    - PF-6cdded94c74f2ef14cef8e84fb47df6f
+    - PF-38710650d22f8a915b45bbe8bb31988d
+    - PF-6c5cdabdc5b756059dbe4436ddd6103e
     artifact: none
-    attribution_note: 'F3, F4 and F5 are attributed to this reader by the product
-      lead: they appear in no reviewer artifact, this was the only other reader that
-      ran, and a PASS is a verdict on the plan rather than an absence of advisory
-      findings.'
+    attribution_note: "F-C3-2 and F-C3-3 are attributed to this reader by the product\
+      \ lead, exactly as at cycle 2: they appear in no reviewer artifact, this was\
+      \ the only other reader that ran, and the advisor returned no artifact file.\
+      \ F-C3-3's sharper reading \u2014 that case 2 as written contradicts case 8\
+      \ rather than merely under-specifying a runtime \u2014 is the validator lead's\
+      \ assessment of the advisor's finding, not the advisor's own wording."
   history:
   - cycle: 1
     last_run: 2026-09-05-05-validator
@@ -86,6 +94,34 @@ panel:
       - PF-0cb8c0e6452b98d08ebbda096419188a
       - PF-75068d8beb1d03439e260834ae41a386
       artifact: none
+  - cycle: 2
+    last_run: 2026-09-05-07-validator
+    readers:
+    - reader: harness-code-reviewer
+      persona: harness-code-reviewer
+      status: ran
+      verdict: FAIL
+      findings:
+      - PF-055b89703a96f6c82edc6d37e6fb973c
+      - PF-5b09773491bc20f90f69a59b84294788
+      artifact: notes/review-harness-code-reviewer-planpanel-c2.md
+    - reader: fable-advisor
+      persona: fable-advisor
+      status: ran
+      verdict: PASS
+      deviation: none
+      contract_compliance: At cycle 2 this reader returned the contract token PASS,
+        so the verdict recorded here is the reader's own word and not a lead's mapping.
+        The cycle-1 non-contract-token deviation recorded under history did NOT recur.
+      findings:
+      - PF-ab844e4aee4a085a94f6d02f099f5f9c
+      - PF-92716a13456619ae3f7d2c83af5a70ec
+      - PF-6cdded94c74f2ef14cef8e84fb47df6f
+      artifact: none
+      attribution_note: 'F3, F4 and F5 are attributed to this reader by the product
+        lead: they appear in no reviewer artifact, this was the only other reader
+        that ran, and a PASS is a verdict on the plan rather than an absence of advisory
+        findings.'
   findings:
   - id: PF-0afc7673196c450d317d61ad49cee122
     label: L-01
@@ -228,16 +264,17 @@ panel:
       the destination is known, so one corrupt registry anywhere refuses every governed
       write factory-wide, including writes inside the writer''s own healthy assigned
       worktree'
-    disposition: open_choice_at_signature
-    resolution: 'NOT resolved by pm and NOT resolvable by a lead (DEC-176). D-10''s
-      cost paragraph is corrected to the actual factory-wide scope, and both candidate
-      remedies are recorded verbatim with neither selected: (a) allow a destination
-      inside a member of the PARTIAL S, sound under any superset of S, changing the
-      ordering inside T-02''s predicate and needing a NEW criterion for the allow
-      half; (b) keep the global rule and carve the exception into REQ-03, whose proposed
-      text is recorded in D-10 as proposed only and is NOT written into BRIEF.md.
-      T-02''s intent states the ordering as an unresolved operator choice. Q1 is superseded
-      by D-10''s paragraph and is resolved with it.'
+    disposition: resolved
+    resolution: 'CLOSED by the fourth binding Advisor ruling, operator-authorised
+      with no overrules (notes/review-fable-advisor-plan-BUG-1304-f1-binding.md).
+      Remedy (a), partial-S allow, is SELECTED; remedy (b) is rejected because it
+      would amend REQ-03 to fit an implementation ordering. D-10 is RETAINED and now
+      states one selected rule. The refusal binds exactly the governed writes the
+      readable roots cannot place: a destination inside a worktree proven by a readable
+      registry stays allowed while an unrelated scanned registry is unreadable. REQ-03
+      is NOT amended. REQ-05 carries the scoping sentence, SC-12 binds both halves
+      on both routes, and T-02 carries the seam shape. No operator choice remains.'
+    resolved_by: T-02, T-03, T-05, BRIEF SC-12
   - id: PF-5b09773491bc20f90f69a59b84294788
     label: F2
     severity: med
@@ -246,11 +283,13 @@ panel:
     summary: harness_boundary.linked_worktrees is fail-OPEN on OSError and on an unreadable
       pointer while REQ-05's registry input is now fail-CLOSED, so one predicate takes
       opposite rules for its two inputs and the fail-open half is B-10's silent unbound-allow
-    disposition: deferred_to_signature
-    resolution: 'Recorded, not repaired: stated in D-10''s because as a known asymmetry
-      the operator sees before signing, with both anchors re-verified in the worktree
-      (harness_boundary.py:170-173 OSError to [], :177-183 unreadable pointer skipped).
-      No task added and no scope widened; closing it is its own issue.'
+    disposition: separate_issue_required
+    resolution: 'NOT fixed here and NOT waived. The fourth binding ruling requires
+      it be FILED as its own issue, alongside OC-3 (validate-digest live_children
+      horizon) and the struck T-08 defect (dispatch-guard _root_for basename equality).
+      Recorded so the operator sees the asymmetry before signing: harness_boundary.linked_worktrees
+      is fail-OPEN on OSError and on an unreadable pointer while the registry input
+      is fail-CLOSED.'
   - id: PF-ab844e4aee4a085a94f6d02f099f5f9c
     label: F3
     severity: low
@@ -300,6 +339,83 @@ panel:
       with one def and nine call sites: tightened count 9 (old count 10), and 8 call
       sites fails the floor. Both blocks remain literal | scalars and run from the
       repo root.'
+  - id: PF-976e37a61a8066731119885a2a18b1a7
+    label: F-C3-1
+    severity: med
+    reader: harness-code-reviewer
+    cycle: 3
+    summary: T-07's verify gates none of obligation 1c, so a doer can pass T-07 green
+      while omitting D-10's unreadable-registry doctrine from DECISIONS.md.
+    disposition: resolved
+    resolved_by: T-07
+    resolution: 'Cycle 10 added exactly one conjunct to T-07''s verify, before the
+      final negative check and inside the same literal | scalar: && grep -qi "readable
+      roots cannot place" .harness/harness/docs/DECISIONS.md. It binds obligation
+      1c''s SCOPE DOCTRINE rather than its vocabulary: the phrase is the tail of 1c''s
+      own mandated sentence THE REFUSAL BINDS EXACTLY THE GOVERNED WRITES THE READABLE
+      ROOTS CANNOT PLACE, which the task already requires the doer to write, so the
+      conjunct can pass. It is case-insensitive, the defect class cycle-1 finding
+      L-03 recorded. Verified it can FAIL: the phrase matches ZERO lines of DECISIONS.md
+      at c369fb1f before T-07 lands. No other conjunct, and nothing else in T-07,
+      was changed.'
+  - id: PF-38710650d22f8a915b45bbe8bb31988d
+    label: F-C3-2
+    severity: low
+    reader: fable-advisor
+    cycle: 3
+    summary: D-10's because and T-07 obligation 1c still state that no advisor ruled
+      on the unreadable-registry case and that the operator ratifies or strikes it
+      at signature, which the fourth binding ruling falsified.
+    disposition: resolved
+    resolved_by: D-10, T-07
+    resolution: "Both sentences corrected at cycle 10. D-10's because now opens THE\
+      \ SHAPE BEGAN AS THE ADVISOR'S REQ-05 PATTERN EXTENDED BY PM AT CYCLE 1, AND\
+      \ THE FOURTH BINDING RULING HAS SINCE RULED THE CASE ITSELF, and closes the\
+      \ paragraph with the fourth binding ruling SUBSEQUENTLY ruling on exactly this\
+      \ case, SELECTING remedy (a), the operator AUTHORISING it with NO overrules,\
+      \ and nothing left awaiting a ratify-or-strike at signature \u2014 so it no\
+      \ longer contradicts this same decision's later sentence that nothing about\
+      \ the unreadable-registry rule is left for the operator to pick between. T-07\
+      \ obligation 1c's closing provenance clause now instructs the doer to record\
+      \ the rule and its selected scope as RULED by the Advisor's fourth binding ruling\
+      \ and AUTHORISED by the operator with no overrules, keeping the clause's purpose\
+      \ that a later reader can tell which parts of the entry an advisor settled.\
+      \ Every other paragraph of D-10's because and every other sentence of obligation\
+      \ 1c is unchanged."
+  - id: PF-6c5cdabdc5b756059dbe4436ddd6103e
+    label: F-C3-3
+    severity: info
+    reader: fable-advisor
+    cycle: 3
+    summary: T-01 live_claims case 2 names no runtime, so read literally it contradicts
+      case 8's proven-identity OMP claim and duplicates case 7.
+    disposition: resolved
+    resolved_by: T-01
+    resolution: 'Resolved in ONE clause at cycle 10: T-01''s test-inflight-registry.py
+      live_claims case 2 now reads a NON-OMP claim (runtime absent or "claude") past
+      the BINDING horizon is not returned. That removes the literal contradiction
+      with case 8, which requires a PROVEN-identity OMP claim back-dated past OMP_UNVERIFIED_TTL_SECONDS
+      to STILL be returned. Nothing else changed: the panel judged case 2''s resulting
+      overlap with case 7 not worth cycle 10, so no case was restructured, renumbered,
+      merged or deleted, and T-01''s verify is untouched.'
+  cycle_2_disposition_update: F1 and F2 dispositions were rewritten by the orchestrator
+    after cycle 2 closed, on the fourth binding ruling. The readers, verdicts, finding
+    ids and summaries are untouched; only the dispositions and their resolution text
+    moved. Cycle 3 reads a panel with no open choice left in it.
+  cycle_3_verification: 'Cycle 3''s headline conclusion: all nine required_plan_repairs
+    from the fourth binding Advisor ruling (notes/review-fable-advisor-plan-BUG-1304-f1-binding.md)
+    were independently verified APPLIED FAITHFULLY at source, against plan.yaml and
+    BRIEF.md text rather than against pm''s cycle-8 repair note taken on trust. The
+    reviewer re-read every repaired anchor itself: REQ-05''s scoping sentence with
+    REQ-03 unamended, SC-12''s two halves on both routes, SC-10 disjoint from SC-12
+    at the fixture level, D-10''s selected remedy (a) with (b) reduced to one rejection
+    line, T-02''s three-clause seam shape, T-01''s rewritten case 7 and added case
+    8, T-03''s and T-05''s case pairs and exact floors, T-04''s and T-06''s resolved-destination
+    sentences, and T-07''s obligation 1c. It also re-checked T-08 for dangling depends_on
+    (none) and swept both files for a surviving open operator choice (none live).
+    Evidence: notes/review-harness-code-reviewer-planpanel-c3.md. Both readers returned
+    PASS; the only repair-adjacent gap, F-C3-1, is resolved by cycle 10''s signature-packaging
+    pass.'
 lanes:
   resolved_at: c369fb1fdfc74a8f78edc9a2df2a8fea738afc94
   rows:
@@ -387,22 +503,23 @@ decisions:
       silently unbound, so a genuinely live compatibility-host agent older than the backstop
       reads unbound and its governed main-checkout writes are allowed again.
       THE BACKSTOP VALUE IS THE EXISTING OMP_UNVERIFIED_TTL_SECONDS, 86400s
-      (inflight_registry.py:36). This is the advisor's recommendation carried as the PLANNED
-      value and RATIFIED AT SIGNATURE: naming a different binding horizon is the operator's
-      call, and no alternative is invented here.
-      IF T-09 IS STRUCK AT SIGNATURE the registry-FILE retention half does not land, and the
-      strike OVERRIDES Advisor rulings A and B, which classified this asymmetry as a DEFECT
-      this feature must close rather than a residue it may accept. It is NOT the symmetric
-      twin of striking T-08: T-08's strike costs nothing, because T-02 resolves each claim's
-      own feature field whatever file it sits in, while this strike leaves the founding
-      incident REACHABLE. OC-1 asks only WHERE the retention half lands, here or as its own
-      issue; it does not ask whether the hole may stay open. The consequence, stated plainly
-      rather than left to be discovered: a dispatch-expired non-OMP claim is still deleted
-      from the registry file by the pruning that runs on every dispatch and at every parent
-      return, so the enumerator cannot see it however correct its predicate is, the agent
-      reads unbound, and the exact main-checkout write of this bug's founding incident is
-      allowed again on the suspend path until the separate issue lands. SC-11 is struck with
-      the task, so nothing else in the plan asserts the retention half.
+      (inflight_registry.py:36), AND IT IS RATIFIED, NOT PROPOSED. The fourth binding ruling
+      (notes/review-fable-advisor-plan-BUG-1304-f1-binding.md) ratified this exact constant: no new
+      constant, no different value, and no second binding horizon — a second one would turn this
+      decision's two questions over one stored claim into three numbers, one of them unmeasured. The
+      value carries its own measured justification at inflight_registry.py:30-35, and the accepted
+      residue above stands exactly as recorded here.
+      T-09 IS IN SCOPE AND THE REGISTRY-FILE RETENTION HALF LANDS IN THIS FEATURE. The same ruling
+      settled that too, on the ground the earlier draft recorded as the cost of striking it:
+      dispatch-guard.sh:197 calls the mutating live_claim on every dispatch and
+      validate-digest.py:1755-1760 calls live_children at every parent return, so a dispatch-expired
+      non-OMP claim would otherwise be deleted from the registry file on the routine suspend path, the
+      enumerator could not see it however correct its predicate is, the agent would read unbound, and
+      this bug's founding main-checkout write would be allowed again — a read-side-only guard is
+      ceremonial on that host. Advisor rulings A and B classified that as a DEFECT this feature must
+      close rather than a residue it may accept, the closure sits entirely inside files T-02 already
+      owns, and the answer/written seam split plus case_bug1304_retention_admission protects FEAT-37's
+      1200s single-flight admission. SC-11 binds the retention half and is not conditional on anything.
     because: |
       Advisor ruling 3 (notes/review-fable-advisor-plan-BUG-1304-ttl-residue.md) measured the
       asymmetry and ruled it a DEFECT rather than a residue, on the two tests an accepted
@@ -422,81 +539,85 @@ decisions:
     dec: DEC-204
   - id: D-10
     choice: |
-      AN UNREADABLE OR UNREPRESENTABLE REGISTRY IS A REFUSE CASE, not an empty one. A registry
-      file that EXISTS among the scanned roots and cannot be read as a claim list — unparseable
-      JSON, a payload that is not a JSON object, or a mapping that is neither schema_version 2
-      nor migratable — makes inflight_registry.live_claims raise UnreadableRegistry carrying
-      that path; harness_boundary.claim_worktrees propagates it as it propagates
-      AmbiguousWorktree; and both guards exit 2 with ONE seam-built message naming the file to
-      repair. A MISSING registry file still returns an empty list: absent and unreadable are
-      different answers. The CLAIM/WRITE path is untouched — _parse keeps its treat-as-empty
-      fallback (inflight_registry.py:56-65) and case_8_corrupt_registry
-      (tests/integration/test-inflight-registry.py:329) stays green. Only the READ/REFUSAL path
-      this feature adds refuses.
+      AN UNREADABLE OR UNREPRESENTABLE REGISTRY IS A REFUSE CASE FOR THE GOVERNED WRITES THE READABLE
+      ROOTS CANNOT PLACE — not an empty answer, and not a factory-wide stop. A registry file that EXISTS
+      among the scanned roots and cannot be read as a claim list — unparseable JSON, a payload that is not
+      a JSON object, or a mapping that is neither schema_version 2 nor migratable — makes
+      inflight_registry.live_claims raise UnreadableRegistry carrying that path.
+      THE ORDERING IS PART OF THIS DECISION AND IS SELECTED, not left open: the fourth binding ruling
+      (notes/review-fable-advisor-plan-BUG-1304-f1-binding.md) adopted remedy (a). For a governed write
+      with resolved absolute destination d, harness_boundary.claim_worktrees builds S_p from every
+      READABLE scanned registry while collecting the set U of unreadable registry paths, and then:
+        1. d lies inside a member of S_p — the ordinary allow path, whatever U holds;
+        2. U is empty — S_p is the full S and the ordinary D-01 rule applies unchanged, including the
+           empty-S unbound allow;
+        3. U is non-empty AND d lies inside no member of S_p — exit 2 on BOTH routes with ONE seam-built
+           message naming EVERY file in U. This clause covers both the empty S_p case, which is SC-10's
+           founding fixture, and the non-empty one.
+      An unreadable root is NEVER read as "no claims here". A MISSING registry file still returns an empty
+      list: absent and unreadable are different answers. The CLAIM/WRITE path is untouched — _parse keeps
+      its treat-as-empty fallback (inflight_registry.py:56-65) and case_8_corrupt_registry
+      (tests/integration/test-inflight-registry.py:329) stays green. Only the READ/REFUSAL path this
+      feature adds refuses.
     because: |
-      THE ADVISOR'S REQ-05 PATTERN EXTENDED BY PM, RATIFIED AT SIGNATURE. It is flagged that way
-      deliberately, so the operator reads an extension rather than a silent widening. Advisor
+      THE SHAPE BEGAN AS THE ADVISOR'S REQ-05 PATTERN EXTENDED BY PM AT CYCLE 1, AND THE FOURTH
+      BINDING RULING HAS SINCE RULED THE CASE ITSELF. It is flagged that way deliberately, so the
+      operator reads where each half came from rather than a silent widening. Advisor
       rulings 1 and 2 fixed REQ-05's shape — a record that exists, claims to carry the answer
       and cannot be read is refused, never treated as absent — and enumerated the destination
       .git pointer and claim ambiguity, but never reached the registry file itself. The
       cycle-1 plan panel measured the consequence: live_claims spec'd to return an empty list
       for a corrupt root empties S, the agent reads UNBOUND, and this bug's founding
       main-checkout write is ALLOWED with every success criterion green — a fail-open under a
-      failure mode this codebase already names and tests elsewhere. No advisor ruled on the
-      case, so pm applies the existing pattern rather than inventing a rule, and the operator
-      ratifies or strikes it at signature.
-      THE TRUE COST, STATED AT ITS ACTUAL SCOPE — CORRECTED AT PANEL CYCLE 2. The refusal is NOT
-      scoped to the write's own destination, nor to the registry that would place that write.
-      claim_worktrees(owner_root, agent_type) scans the owner-root registry PLUS every linked
-      worktree's registry while it BUILDS S, and the destination is not an argument to that function
-      at all, so every scanned registry must be readable before any destination is compared to S.
-      Stated plainly: while ANY scanned registry file is unreadable, EVERY governed write by EVERY
-      governed persona on EVERY feature is refused with exit 2 — including a write squarely inside
-      the writer's own healthy assigned worktree, the paradigm case REQ-03 promises keeps working
-      unchanged — until that one unrelated file is repaired. The refusal is loud and names the file,
-      and it replaces a silent fail-open in which a corrupt registry anywhere emptied S and allowed
-      this bug's founding main-checkout write; but the trade is FACTORY-WIDE, not per-write. The
-      earlier wording of this paragraph said only that a governed persona's governed writes are
-      refused loudly, which states a NARROWER rule than the plan implements. It is corrected here so
-      that signature ratifies the trade that exists rather than a smaller one.
-      THE bash-write-guard.sh:684-694 COMPARISON IS KEPT ONLY FOR THE DIRECTION OF THE TRADE, and is
-      explicitly NOT a precedent for its scope: that manifest refusal is bounded to the write whose
-      own manifest cannot be read, while this one is bounded by nothing the write itself controls.
-      SC-10 binds the refusal, and its paired well-formed control keeps the criterion from being
-      satisfied by the ordinary claim-set refusal — but no criterion and no task case in this plan
-      exercises "my own destination and my own registry are healthy while an unrelated feature's
-      registry is corrupt", so that scope is disclosed here at signature rather than measured by a
-      gate.
-      THE REMEDY IS AN OPEN CHOICE AT SIGNATURE AND NEITHER OPTION IS SELECTED HERE. Panel cycle 2
-      raised it as a HIGH finding (PF-055b89703a96f6c82edc6d37e6fb973c, harness-code-reviewer,
-      notes/review-harness-code-reviewer-planpanel-c2.md); under DEC-176 a HIGH finding is not
-      accepted by pm or by a lead, so both remedies are recorded verbatim and the operator picks one.
-      REMEDY (a) — NARROW THE RULE TO THE WRITE THAT ASKED. Allow a write whose resolved destination
-      lies inside a member of the PARTIAL S built from the readable roots, and require full
-      readability only when the partial S does not already place the destination. The panel's own
-      assessment, carried here unchanged: this is sound under ANY superset of S, because a
-      destination already inside a proven member stays inside S however many members a readable
-      registry would have added. WHAT IT CHANGES: the ordering inside T-02's predicate — resolve the
-      destination first, compare it against the partial S, and raise UnreadableRegistry only when the
-      answer would depend on the unreadable root. WHAT BINDS IT: SC-10 as written binds the refusal,
-      not the allow, so remedy (a) needs a NEW criterion, which would assert that with one scanned
-      registry unreadable and the writer's own registry readable, a write inside the writer's own
-      worktree exits 0 while a main-checkout write still exits 2 naming the unreadable file. REQ-03
-      stands unamended under (a).
-      REMEDY (b) — KEEP THE GLOBAL RULE AND CARVE THE EXCEPTION INTO REQ-03. The factory-wide blast
-      radius is accepted and REQ-03's unconditional promise is amended to match it. PROPOSED CARVE-OUT
-      TEXT, RECORDED HERE AS PROPOSED ONLY AND DELIBERATELY NOT WRITTEN INTO BRIEF.md: "EXCEPTION:
-      while any registry file among the scanned roots cannot be read as a claim list, every governed
-      write is refused, including writes whose destination is inside the writer's own assigned
-      worktree, until that file is repaired; the refusal names the file to repair." WHAT BINDS IT:
-      SC-10 already binds the refusal itself, so (b) needs one added criterion asserting by inspection
-      that the seam's message names the unreadable file and states the repair — the operator would be
-      accepting a factory-wide stop, so the recovery instruction is the part that must be verifiable.
-      THE CHOICE IS NOT PRE-EMPTED BY PM, AND IT SUPERSEDES Q1. pm's own open question Q1
+      failure mode this codebase already names and tests elsewhere. At cycle 1 no advisor had yet reached the registry
+      file itself, so pm extended the existing pattern rather than inventing a rule. The FOURTH BINDING
+      RULING (notes/review-fable-advisor-plan-BUG-1304-f1-binding.md) SUBSEQUENTLY ruled on exactly
+      this case, SELECTED remedy (a), and the operator AUTHORISED that ruling with NO overrules.
+      Nothing here is left awaiting a ratify-or-strike at signature.
+      THE TRUE COST, STATED AT ITS ACTUAL SCOPE UNDER THE SELECTED REMEDY (a). The refusal binds every
+      governed write the READABLE roots cannot place, and NEVER a write whose resolved destination lies
+      inside a proven member of the partial S_p. Stated plainly: while a scanned registry file is
+      unreadable, an agent whose own claim is readable keeps writing inside its own assigned worktree, and
+      what is refused is the governed write the readable roots cannot account for — the main-checkout
+      write, the sibling-worktree write, and every governed write by an agent whose only claim sits in the
+      unreadable file. That is a per-write refusal, not a factory-wide stop. It is sound under any superset
+      of S: a destination already inside a proven member stays inside S however many members the unreadable
+      root would have added, so repairing the file can never revoke an allow this rule gave. The cost that
+      DOES remain is real and is what signature ratifies: an agent whose OWN claim sits in the unreadable
+      file is refused every governed write outside the worktrees the readable roots still prove for it,
+      until that file is repaired, and the refusal is loud and names every unreadable file. The
+      panel-cycle-2 wording of this paragraph — that the trade is FACTORY-WIDE, refusing even a write
+      inside the writer's own healthy worktree — described the ordering the plan carried BEFORE the fourth
+      binding ruling and no longer describes the plan; it is corrected here rather than left for a reader
+      to reconcile.
+      THE bash-write-guard.sh:684-694 COMPARISON NOW HOLDS IN SCOPE AS WELL AS DIRECTION. That manifest
+      refusal is bounded to the write whose own manifest cannot be read; under the selected remedy this
+      refusal is likewise bounded by the write itself — its own resolved destination decides whether the
+      unreadable root can matter to it. The gap panel cycle 2 named, that no criterion and no task case
+      exercised "my own destination and my own registry are healthy while an unrelated feature's registry
+      is corrupt", is CLOSED rather than disclosed: BRIEF SC-12 asserts exactly that pair on both routes,
+      generated by T-03 and T-05, and SC-10 keeps binding the refusal on its own disjoint fixture where the
+      agent's only claim is the corrupt one.
+      THE REMEDY IS SELECTED AND THE CHOICE IS CLOSED. Panel cycle 2 raised the blast radius as a HIGH
+      finding (PF-055b89703a96f6c82edc6d37e6fb973c, harness-code-reviewer,
+      notes/review-harness-code-reviewer-planpanel-c2.md); under DEC-176 neither pm nor a lead may accept a
+      HIGH finding, so it went to the advisor, and the operator authorised the fourth binding ruling
+      (notes/review-fable-advisor-plan-BUG-1304-f1-binding.md) with no overrules.
+      SELECTED — REMEDY (a), NARROW THE RULE TO THE WRITE THAT ASKED. Resolve the destination first,
+      compare it against the partial S_p built from the readable roots, and raise UnreadableRegistry only
+      when the answer would depend on an unreadable root. It keeps REQ-03 unamended, keeps the fail-closed
+      refusal for exactly the writes the readable roots cannot place, and covers SC-10's founding case
+      verbatim. The ordering it fixes is written into this decision's choice above and into T-02's intent;
+      the allow half it needs is BRIEF SC-12, whose evidence T-03 and T-05 generate.
+      REJECTED — REMEDY (b), KEEP THE GLOBAL RULE AND CARVE THE EXCEPTION INTO REQ-03: rejected because it
+      repairs the contradiction by amending REQ-03's promise to fit an implementation ordering, accepting a
+      factory-wide stop of every governed write as the price of a per-write question. Its proposed REQ-03
+      carve-out text was never written into BRIEF.md and is not written now.
+      Q1 IS RESOLVED WITH THIS PARAGRAPH RATHER THAN CARRIED FORWARD. pm's own question Q1
       (notes/research-BUG-1304-plan-repair-panelc1.md:85-86) disclosed only the narrower REQ-01
-      unbound-agent scope; the panel judged that wording inadequate for exactly this reason. Q1 is
-      superseded by this paragraph and must be resolved together with it, never signed off separately
-      on its narrower framing.
+      unbound-agent scope, which the panel judged inadequate for exactly this reason; it was superseded by
+      the blast-radius paragraph above and is answered by the same ruling that selected remedy (a). Nothing
+      about the unreadable-registry rule is left for the operator to pick between.
       A KNOWN ASYMMETRY, RECORDED AND NOT REPAIRED, SO THE OPERATOR SEES IT BEFORE SIGNING (panel
       cycle 2 finding PF-5b09773491bc20f90f69a59b84294788, med, harness-code-reviewer; no task is
       added for it and this feature does not widen to reach it). S has TWO inputs and this decision
@@ -512,6 +633,42 @@ decisions:
       input, which is what makes its report-grade tolerance load-bearing. Likelihood is lower than a
       corrupt registry file, since it needs an I/O fault on the directory itself, hence med and not
       high. Closing it is its own issue.
+    dec: none
+  - id: D-11
+    choice: |
+      THREE DEFECTS THIS FEATURE FOUND AND DELIBERATELY DOES NOT CLOSE ARE FILED AS THEIR OWN
+      ISSUES, and filing them is REQUIRED, not optional. They are recorded here in one place so a
+      struck task and two panel findings cannot quietly become forgotten ones:
+        1. dispatch-guard.sh _root_for places a claim by basename EQUALITY
+           (dispatch-guard.sh:122) with an owner-root fallback (:126), so a short-form worktree's
+           claim is written into the owner-root registry rather than its own. The fix is prefix
+           alignment through harness_boundary.worktree_for_feature. This is struck T-08's work,
+           cut by the fourth binding ruling (Q4) because the enforcement remedy resolves every
+           claim by its own feature field and is therefore placement-agnostic.
+        2. harness_boundary.linked_worktrees is fail-OPEN where this feature's registry input is
+           now fail-CLOSED: it returns [] on any OSError listing owner_root/.git/worktrees
+           (harness_boundary.py:170-173) and silently skips a pointer file it cannot read
+           (:177-183), so an I/O fault reads as "no worktrees exist" and the agent reads unbound.
+           Panel cycle 2 finding PF-5b09773491bc20f90f69a59b84294788, med.
+        3. validate-digest.py live_children (validate-digest.py:1755) cannot see a
+           compatibility-host child past CLAIM_TTL_SECONDS, so a parent can release and complete
+           while a long child still runs — a DEC-210 dispatch-side defect this guard work does not
+           own. Carried as OC-3 since Advisor ruling 3.
+      NO TASK IN THIS PLAN OWNS ANY OF THE THREE, and none of them is a residue this feature
+      accepts: each is a real defect with a named anchor, deferred to its own ticket rather than
+      absorbed into a two-gate bug fix.
+    because: |
+      The fourth binding ruling (notes/review-fable-advisor-plan-BUG-1304-f1-binding.md, Q4) struck
+      T-08 and made its follow-up issue REQUIRED in the same breath, "alongside the two already-named
+      separate issues". Before this decision those two lived only in prose — F2 inside D-10's
+      asymmetry paragraph, OC-3 only in STATE.md and the advisor notes — so the obligation was
+      recorded in three places and owned by none, which is exactly how a deferral turns into a
+      silent drop. One decision, signed once, is the weakest form that makes all three falsifiable:
+      after signature the operator can check three issues exist.
+      The alternative — widening this feature to close them — is what the ruling rejected: two of
+      the three live outside the two gate scripts this bug owns, and the third costs the remedy
+      nothing because T-02 resolves each claim's own feature field whatever registry file it sits
+      in.
     dec: none
 tasks:
   - id: T-01
@@ -542,7 +699,7 @@ tasks:
         1. two live claims for one agent in one registry are BOTH returned, with their own
            feature fields intact (live_claim returns only the oldest, which is why this
            function is needed);
-        2. a claim past the BINDING horizon is not returned. The binding horizon is
+        2. a NON-OMP claim (runtime absent or "claude") past the BINDING horizon is not returned. The binding horizon is
            OMP_UNVERIFIED_TTL_SECONDS, not CLAIM_TTL_SECONDS: back-date started_at further than
            OMP_UNVERIFIED_TTL_SECONDS before the injected now and assert the claim is absent.
            Do not write this case against CLAIM_TTL_SECONDS — under D-09 a claim in that window
@@ -579,12 +736,16 @@ tasks:
 
       In tests/unit/test-harness-boundary.py add case_bug1304_claim_set and register it in
       main() with the exact line: run_case(case_bug1304_claim_set)
-      It tests a new seam function harness_boundary.claim_worktrees(owner_root, agent_type),
-      which returns S as a sorted list of absolute worktree paths, built as follows and no
-      other way: enumerate every live claim held by agent_type across ALL registries,
-      INCLUDING the owner-root registry itself, and resolve EACH claim's own feature field
-      through harness_boundary.worktree_for_feature(owner_root, feature). A claim contributes
-      a member only when worktree_for_feature returns a real worktree.
+      It tests a new seam function
+      harness_boundary.claim_worktrees(owner_root, agent_type, destination), which returns S as a
+      sorted list of absolute worktree paths, built as follows and no other way: enumerate every
+      live claim held by agent_type across ALL registries, INCLUDING the owner-root registry
+      itself, and resolve EACH claim's own feature field through
+      harness_boundary.worktree_for_feature(owner_root, feature). A claim contributes
+      a member only when worktree_for_feature returns a real worktree. The third parameter is the
+      write's RESOLVED ABSOLUTE DESTINATION and it matters only when a scanned registry cannot be
+      read (D-10 clauses 1 and 3, cases 7 and 8 below); with every scanned registry readable the
+      returned S does not depend on it, so cases 1 through 6 may pass any resolved path.
       Build fixtures with tempfile plus real .git pointer files, in the shape the existing
       case_worktree_for_feature uses. Assert, each as its own case:
         1. a claim whose feature is FEAT-32-concurrent-write-merge, held in a registry, with
@@ -611,7 +772,7 @@ tasks:
       sanctioned CLI python3 expertise-merge.py apply instead of advising the agent to write
       it in its own worktree.
 
-      THE UNREADABLE-REGISTRY CASES (REQ-05, SC-10, panel finding L-01). _parse treats an
+      THE UNREADABLE-REGISTRY CASES (REQ-05, SC-10, SC-12, panel finding L-01). _parse treats an
       unreadable registry as empty (inflight_registry.py:56-65), and case_8_corrupt_registry
       (tests/integration/test-inflight-registry.py:329) pins that fallback deliberately FOR THE
       CLAIM/WRITE PATH. The READ/REFUSAL path this bug adds must NOT inherit it: an unreadable
@@ -630,11 +791,24 @@ tasks:
            collapses them; case 4 above is the absent half, this is the assertion that it stays
            that way.
 
-      In tests/unit/test-harness-boundary.py, one more assertion inside case_bug1304_claim_set:
-        7. claim_worktrees PROPAGATES UnreadableRegistry from any scanned root, the owner-root
-           registry included, rather than dropping that root's contribution and returning a
-           smaller S. Assert the propagated exception carries the offending file path, because
-           the refusal message names the file the operator must repair.
+      In tests/unit/test-harness-boundary.py, two more assertions inside case_bug1304_claim_set,
+      which together pin D-10's selected ordering — the refusal is scoped to the writes the
+      readable roots cannot place, so ONE of these two must go red under either wrong ordering:
+        7. THE REFUSAL HALF. With one scanned root's registry unreadable and a destination lying
+           OUTSIDE every member of the partial S built from the READABLE roots, claim_worktrees
+           RAISES UnreadableRegistry rather than dropping that root's contribution and returning a
+           smaller S. Assert the propagated exception carries every offending file path, because
+           the refusal message names the files the operator must repair. Assert it for an
+           unreadable OWNER-ROOT registry as well as for an unreadable linked-worktree registry,
+           so no root is exempt. This case goes red against an implementation that builds S from
+           the readable roots and then ignores the unreadable one.
+        8. THE ALLOW HALF (SC-12 at the unit level). With one root's registry unreadable and a
+           READABLE root proving a worktree that CONTAINS the destination, claim_worktrees RETURNS
+           that partial S and RAISES NOTHING. It is sound because a destination already inside a
+           proven member stays inside S however many members the unreadable root would have added.
+           This case goes red against an implementation that requires every scanned registry to be
+           readable before it compares the destination — the ordering this plan carried before the
+           fourth binding ruling. Assert the returned list contains the proving worktree.
 
   - id: T-02
     title: Implement claim_worktrees, claim_set_refusal and the read-only claim enumerator
@@ -683,8 +857,10 @@ tasks:
       twenty minutes and re-allow this bug's founding incident on that host. A claim with a
       missing or non-finite started_at is not live.
 
-      In harness_boundary.py add claim_worktrees(owner_root, agent_type) -> sorted list of
-      absolute worktree paths. Build the candidate registry roots as owner_root PLUS every
+      In harness_boundary.py add claim_worktrees(owner_root, agent_type, destination) -> sorted
+      list of absolute worktree paths. The THIRD PARAMETER is the write's RESOLVED ABSOLUTE
+      DESTINATION and it is required, not optional: the ordering paragraph below is the whole
+      reason it exists. Build the candidate registry roots as owner_root PLUS every
       path in linked_worktrees(owner_root). For each root call
       inflight_registry.live_claims(root, agent_type); for each returned claim read its own
       feature field and call worktree_for_feature(owner_root, claim_feature). Add the result
@@ -714,28 +890,38 @@ tasks:
       green. live_claims is the read/refusal path, and inheriting the fallback there empties S for
       an agent that may well be bound, which is allowed-by-silence.
 
-      claim_worktrees lets UnreadableRegistry propagate to its caller, exactly as it lets
-      AmbiguousWorktree propagate.
-
-      THE ORDERING OF THAT REQUIREMENT IS AN UNRESOLVED OPERATOR CHOICE, RECORDED IN D-10 — DO NOT
-      DECIDE IT HERE, AND DO NOT SILENTLY NARROW IT. As this task stands, claim_worktrees requires
-      EVERY scanned root's registry to be readable while it BUILDS S, before any destination is
-      compared to S; the destination is not an argument to this function at all. So one unreadable
-      registry anywhere refuses every governed write, including a write inside the writer's own
-      healthy assigned worktree. Panel cycle 2 raised that blast radius as a HIGH finding
-      (PF-055b89703a96f6c82edc6d37e6fb973c), and D-10 records the two candidate remedies — (a)
-      resolve the destination first and allow a destination lying inside a member of the PARTIAL S
-      before requiring every scanned registry to be readable, or (b) keep the global rule and carve
-      the exception into REQ-03 — as the operator's choice at signature, with neither selected.
-      Build exactly what is written above; remedy (a), if the operator picks it, is a reordering
-      confined to this one function and arrives as a re-issued task, never as a doer's improvisation.
+      THE ORDERING INSIDE claim_worktrees IS DECIDED, NOT OPEN, AND THIS IS THE RULE TO BUILD (D-10,
+      selected remedy (a) — notes/review-fable-advisor-plan-BUG-1304-f1-binding.md). For a governed
+      write with resolved absolute destination d, build S_p from every READABLE scanned registry —
+      the owner root plus every linked worktree — while COLLECTING, not raising on, the set U of
+      registry paths whose live_claims call raised UnreadableRegistry. Then decide in exactly this
+      order:
+        1. d lies inside a member of S_p — RETURN S_p without raising. This is the ordinary allow
+           path and it holds whatever U contains. It is sound under any superset of S: a destination
+           already inside a proven member stays inside S however many members an unreadable root
+           would have added;
+        2. U is empty — S_p IS the full S, so RETURN it and let the ordinary D-01 rule apply
+           unchanged in the caller, including the empty-S unbound allow;
+        3. U is non-empty AND d lies inside no member of S_p — RAISE UnreadableRegistry carrying
+           EVERY path in U, so the seam message can name every file the operator must repair. This
+           clause covers both an empty S_p, which is SC-10's founding fixture, and a non-empty one.
+      An unreadable root is NEVER read as "no claims here", and a MISSING registry file still
+      returns [] from live_claims: absent and unreadable stay different answers.
+      THE MEMBERSHIP TEST IN CLAUSE 1 USES THE SAME CONTAINMENT PRIMITIVE THE GUARDS USE for their
+      own destination-inside-a-member comparison, called from this one seam, so the two comparisons
+      cannot drift into two different answers about the same path. Do not hand-roll a prefix
+      comparison here.
+      AmbiguousWorktree still propagates to the caller exactly as it does today, and it is not
+      subject to this ordering: it means a claim the agent HOLDS cannot be placed, which no
+      destination can make irrelevant.
 
       THE REFUSAL DECISION IS TAKEN ONCE, IN THIS SEAM, NEVER PER ROUTE (REQ-04: one predicate, one
       message builder). Extend claim_set_refusal, or add a sibling builder beside it, so the seam
-      owns the unreadable case too: the message names the agent_type, the registry file that could
-      not be read, and states that the agent's binding cannot be determined so the write is
-      refused rather than allowed, and it advises repairing or removing that file. T-04 and T-06
-      only catch the exception and print what the seam returns; neither reimplements the rule.
+      owns the unreadable case too: the message names the agent_type, EVERY registry file that could
+      not be read, and states that the agent's binding cannot be determined for THIS destination so
+      the write is refused rather than allowed, and it advises repairing or removing those files.
+      T-04 and T-06 only catch the exception and print what the seam returns; neither reimplements
+      the rule.
 
   - id: T-03
     title: Add the failing Write and Edit route claim-set cases to the check-domain suite
@@ -756,7 +942,7 @@ tasks:
         && grep -q 'def bug1304_assert_pre_change_allows' tests/integration/test-check-domain.py \
         && n=$(grep 'bug1304_assert_pre_change_allows(' tests/integration/test-check-domain.py \
              | grep -vc '^ *def bug1304_assert_pre_change_allows') \
-        && test "$n" -ge 9 \
+        && test "$n" -ge 10 \
         && { python3 tests/integration/test-check-domain.py; test $? -eq 1; }
     intent: |
       Write these tests BEFORE T-04 touches check-domain.sh. The suite must exit 1 when you
@@ -878,6 +1064,27 @@ tasks:
            readable claim present the write would be refused anyway, so the exit code alone
            discriminates nothing.
 
+      THE SC-12 PAIR — THE REFUSAL IS SCOPED TO THE WRITES THE READABLE ROOTS CANNOT PLACE (D-10's
+      selected ordering). ONE fixture, DISJOINT from case 14's: the agent's OWN live claim sits in a
+      READABLE registry and proves its assigned worktree, and ONE UNRELATED scanned registry among
+      the same roots exists and holds unparseable JSON. Both halves fire the same agent identity
+      against the same fixture, and the pair is what makes either wrong ordering go red:
+       16. THE ALLOW HALF. A write whose destination is INSIDE the writer's own assigned worktree:
+           exit 0, with no pre-change call, because nothing is being refused. It goes red against
+           an implementation that requires every scanned registry to be readable before it compares
+           the destination.
+       17. THE REFUSAL HALF. A governed MAIN-CHECKOUT write by the SAME agent against the SAME
+           fixture: exit 2, and stderr names the unreadable registry file. Route it through
+           bug1304_assert_pre_change_allows like every other refusal case, so it carries SC-06's
+           full pre-change proof. It goes red against an implementation that builds the partial
+           claim set and then ignores the unreadable root.
+
+      THE CALL-SITE FLOOR IN verify IS AN EXACT COUNT, NOT A CUSHION. Ten cases refuse and therefore
+      call bug1304_assert_pre_change_allows: cases 1, 2, 3, 7's second-claim observable, 9, 10, 11,
+      13, 14 and 17. The verify counts exactly ten call sites, excluding the helper's own def line,
+      so the L-04 tooth carries zero slack: dropping any single pre-change call makes the count nine
+      and the verify fails.
+
   - id: T-04
     title: Bind the Write and Edit route to the claim set in check-domain.sh
     traces: [REQ-01, REQ-02, REQ-03, REQ-04, REQ-05, REQ-06]
@@ -903,7 +1110,10 @@ tasks:
         - return immediately when agent_type is empty or does not start with harness- ,
           because the main session is the DEC-174 executor of gate-script work and carries no
           agent identity;
-        - call harness_boundary.claim_worktrees(root, agent_type) to get S;
+        - call harness_boundary.claim_worktrees(root, agent_type, destination) to get S, passing
+          the RESOLVED ABSOLUTE DESTINATION as the third argument — the seam needs it to apply
+          D-10's selected ordering, and passing anything else there silently changes which writes
+          the unreadable-registry rule refuses;
         - return immediately when S is empty: an unbound agent is out of the rule's scope
           (REQ-01), and this is the Q3(a) and Q3(b) allow;
         - otherwise resolve the destination's own checkout with the harness_boundary
@@ -919,13 +1129,15 @@ tasks:
       The rule keys on the HARNESS BASE ONLY. Do not bind destinations under
       workspace_root/<repo>, the DEC-189 two-base second location (D-06).
 
-      UNREADABLE REGISTRY (REQ-05, SC-10, panel finding L-01). inflight_registry.UnreadableRegistry
+      UNREADABLE REGISTRY (REQ-05, SC-10, SC-12, panel finding L-01). inflight_registry.UnreadableRegistry
       raised while building S is a REFUSAL, and the rule is decided in the seam, not here: catch it
       exactly where AmbiguousWorktree is caught, print the message T-02's seam builder returns for
       it, and exit 2. Never treat it as an empty S — empty means unbound, and an unreadable root
       means the question could not be answered. This exception is NOT a defect inside the guard's
       own code, so it must NOT take the quarantine-style fail-open branch above; that branch stays
-      for genuinely unexpected exceptions.
+      for genuinely unexpected exceptions. Because the destination was passed in, the seam raises
+      only for a destination the readable roots cannot place, so this catch never fires for a write
+      inside a worktree a readable registry already proved (SC-12's allow half).
 
   - id: T-05
     title: Add the failing Bash route claim-set cases to the bash-write-guard suite
@@ -946,7 +1158,7 @@ tasks:
         && grep -q 'def bug1304_assert_pre_change_allows' tests/integration/test-bash-write-guard.py \
         && n=$(grep 'bug1304_assert_pre_change_allows(' tests/integration/test-bash-write-guard.py \
              | grep -vc '^ *def bug1304_assert_pre_change_allows') \
-        && test "$n" -ge 11 \
+        && test "$n" -ge 12 \
         && { python3 tests/integration/test-bash-write-guard.py; test $? -eq 1; }
     intent: |
       Write these tests BEFORE T-06 touches bash-write-guard.sh. The suite must exit 1 when
@@ -1079,6 +1291,27 @@ tasks:
            readable claim present the redirect would be refused anyway, so the exit code alone
            discriminates nothing.
 
+      THE SC-12 PAIR ON THIS ROUTE — THE REFUSAL IS SCOPED TO THE WRITES THE READABLE ROOTS CANNOT
+      PLACE (D-10's selected ordering). ONE fixture, DISJOINT from case 16's: the agent's OWN live
+      claim sits in a READABLE registry and proves its assigned worktree, and ONE UNRELATED scanned
+      registry among the same roots exists and holds unparseable JSON. Both halves fire the same
+      agent identity against the same fixture:
+       18. THE ALLOW HALF. A REDIRECT whose destination is INSIDE the writer's own assigned
+           worktree: exit 0, with no pre-change call, because nothing is being refused. It goes red
+           against an implementation that requires every scanned registry to be readable before it
+           compares the destination.
+       19. THE REFUSAL HALF. A REDIRECT to a governed MAIN-CHECKOUT path by the SAME agent against
+           the SAME fixture: exit 2, and stderr names the unreadable registry file. Route it
+           through bug1304_assert_pre_change_allows like every other refusal case, so it carries
+           SC-06's full pre-change proof. It goes red against an implementation that builds the
+           partial claim set and then ignores the unreadable root.
+
+      THE CALL-SITE FLOOR IN verify IS AN EXACT COUNT, NOT A CUSHION. Twelve cases refuse and
+      therefore call bug1304_assert_pre_change_allows: cases 1, 2, 3, 4, 8's second-claim
+      observable, 10, 11, 12, 13's positive control, 15, 16 and 19. The verify counts exactly twelve
+      call sites, excluding the helper's own def line, so the L-04 tooth carries zero slack:
+      dropping any single pre-change call makes the count eleven and the verify fails.
+
   - id: T-06
     title: Narrow the DEC-153 blanket worktree allow to the assigned worktree in bash-write-guard.sh
     traces: [REQ-01, REQ-02, REQ-03, REQ-04, REQ-05, REQ-06]
@@ -1099,7 +1332,10 @@ tasks:
       matching the leading .claude/worktrees/ segment, so a governed agent may write into ANY
       worktree, not only its own. Narrow it: the continue applies only when the destination
       lies inside a member of S, the claim set from
-      harness_boundary.claim_worktrees(root, agent_type). When S is empty the agent is
+      harness_boundary.claim_worktrees(root, agent_type, destination). Pass the RESOLVED ABSOLUTE
+      DESTINATION as the third argument, exactly as T-04 does: the seam needs it to apply D-10's
+      selected ordering, and passing anything else there silently changes which writes the
+      unreadable-registry rule refuses. When S is empty the agent is
       unbound and the carve-out keeps its current blanket behaviour for worktree paths
       (REQ-01, Q3(a) and Q3(b)). When S is non-empty and the destination is a worktree path
       outside every member, print harness_boundary.claim_set_refusal(...) and exit 2.
@@ -1130,12 +1366,14 @@ tasks:
 
       The rule keys on the HARNESS BASE ONLY; leave workspace_root/<repo> unbound (D-06).
 
-      UNREADABLE REGISTRY (REQ-05, SC-10, panel finding L-01). Identical to T-04's clause, from the
-      same seam and with the same message: inflight_registry.UnreadableRegistry raised while
+      UNREADABLE REGISTRY (REQ-05, SC-10, SC-12, panel finding L-01). Identical to T-04's clause, from
+      the same seam and with the same message: inflight_registry.UnreadableRegistry raised while
       building S is a REFUSAL — caught where AmbiguousWorktree is caught, printed from T-02's seam
-      builder, exit 2 — never an empty S, and never route-local logic. Both routes refuse
-      identically (REQ-04), which on this route means the check sits with the main-checkout
-      claim-set check added above and inside the same in-repo-destinations-only gate, so a
+      builder, exit 2 — never an empty S, and never route-local logic. Because the destination was
+      passed in, the seam raises only for a destination the readable roots cannot place, so this catch
+      never fires for a redirect inside a worktree a readable registry already proved (SC-12's allow
+      half). Both routes refuse identically (REQ-04), which on this route means the check sits with the
+      main-checkout claim-set check added above and inside the same in-repo-destinations-only gate, so a
       not_a_domain_question destination is still not this rule's business.
 
   - id: T-07
@@ -1156,6 +1394,7 @@ tasks:
         && grep -q "the assigned worktree" .harness/harness/docs/DECISIONS.md \
         && grep -q "OMP_UNVERIFIED_TTL_SECONDS" .harness/harness/docs/DECISIONS.md \
         && grep -q "inflight_registry.py:30-35" .harness/harness/docs/DECISIONS.md \
+        && grep -qi "readable roots cannot place" .harness/harness/docs/DECISIONS.md \
         && ! grep -qi "Bash route keeps DEC-153's blanket allow" .harness/harness/docs/DECISIONS.md
     intent: |
       Three obligations, ONE landing. Do not fold any of them into an implementation task.
@@ -1199,12 +1438,16 @@ tasks:
         - THE RESIDUE. Past-backstop silent unbinding is ACCEPTED, with its named reason
           quoted from inflight_registry.py:30-35: no supervisor proof exists on the
           compatibility host, and a claim that can never age out strands its parent's yield
-          through validate-digest.py's held-child gate forever. The backstop is
-          OMP_UNVERIFIED_TTL_SECONDS, well above the 7,200s longest measured leaf run.
-        - IF T-09 WAS STRUCK AT SIGNATURE, the entry must say so plainly: the registry-file
-          retention half did not land, so a dispatch-expired non-OMP claim is still pruned
-          FROM THE FILE on the suspend path, and the hole stays open there until the separate
-          issue lands. Do not write that sentence if T-09 stands.
+          through validate-digest.py's held-child gate forever. The backstop is the EXISTING
+          OMP_UNVERIFIED_TTL_SECONDS, 86400s, ratified rather than re-chosen — no new constant
+          and no second binding horizon — and it is well above the 7,200s longest measured leaf
+          run.
+        - THE REGISTRY-FILE RETENTION HALF LANDS IN THIS FEATURE, carried by T-09, and the entry
+          states it as shipped behaviour: a dispatch-expired non-OMP claim is RETAINED in the
+          registry file until the binding backstop, while every caller's returned answer stays
+          at 1200s. Write no conditional sentence about a strike: T-09 is in scope, settled by
+          the fourth binding ruling, and a doctrine entry hedging on it would misreport what
+          shipped.
 
       2. SAME-EDIT REWRITE OF DEC-153. Rewrite its worktree carve-out clause in place so it
       reads that bash-write-guard permits a governed agent's writes under THE ASSIGNED
@@ -1231,55 +1474,53 @@ tasks:
       two residues: a registry file that exists among the scanned roots and cannot be read as a
       claim list leaves the claim set INCOMPLETE, so the governed write is refused naming the file
       to repair, and an unreadable root is never read as "no claims here"; the claim/write path
-      keeps its treat-as-empty fallback unchanged. Record it as the REQ-05 pattern extended by pm
-      and ratified at signature, not as an advisor ruling, so a later reader can tell which parts
-      of this entry an advisor settled and which the operator ratified.
+      keeps its treat-as-empty fallback unchanged. Add the scope in the same breath, because the
+      rule is not global: THE REFUSAL BINDS EXACTLY THE GOVERNED WRITES THE READABLE ROOTS CANNOT
+      PLACE — a destination inside a worktree proven by a readable registry stays allowed while an
+      unrelated scanned registry is unreadable, which is why REQ-03's promise needed no amendment.
+      Record the rule and its selected scope as RULED by the Advisor's fourth binding ruling
+      (notes/review-fable-advisor-plan-BUG-1304-f1-binding.md) and AUTHORISED by the operator with no
+      overrules, so a later reader can tell which parts of this entry an advisor settled.
 
   - id: T-08
-    title: Align dispatch-guard.sh _root_for to prefix matching
+    title: STRUCK — dispatch-guard.sh _root_for prefix alignment, filed as its own issue (D-11)
     traces: [REQ-01]
     change_type: logic
     execution_mode: main-session-direct
     execution_reason: "DEC-174 carve-out: dispatch-guard.sh is a registered PreToolUse gate script (DEC-179)."
     depends_on: [T-02]
-    status: ready
+    status: abandoned
     files:
       - .claude/skills/harness/bin/dispatch-guard.sh
       - tests/integration/test-dispatch-guard.py
     verify: |
-      grep -q 'worktree_for_feature(owner_root, flow)' .claude/skills/harness/bin/dispatch-guard.sh \
-        && ! grep -q 'os.path.basename(wt) == flow' .claude/skills/harness/bin/dispatch-guard.sh \
-        && python3 tests/integration/test-dispatch-guard.py \
-        && python3 tests/integration/test-check-domain.py \
-        && python3 tests/integration/test-bash-write-guard.py
+      ! grep -q 'worktree_for_feature(owner_root, flow)' .claude/skills/harness/bin/dispatch-guard.sh
     intent: |
-      STRIKEABLE AT SIGNATURE. This task exists so the operator answers ONE open scope
-      question with one stroke: does the BUG-1304 remedy ALSO require making the registry's
-      own layout correct, or is guard-side resolution through worktree_for_feature, which
-      T-02 delivers, sufficient? Both close the enforcement hole. Only this task makes the
-      claim land in the right registry file in the first place. If the operator answers
-      "guard-side resolution is sufficient", STRIKE this task at signature; the rest of the
-      plan stands unchanged and the enforcement hole is still closed, because T-02 resolves
-      each claim's feature field rather than trusting the file it sits in. Do not fold this
-      work into any other task and do not decide the question in the build.
+      STRUCK. This task lands NOTHING and is dispatched to nobody: its station is the terminal
+      marker, and it is retained in the plan only so the record shows what was considered and why
+      it was cut. The fourth binding ruling
+      (notes/review-fable-advisor-plan-BUG-1304-f1-binding.md, Q4) struck it, the operator
+      authorised that ruling with no overrules, and nothing here is an open choice any longer.
 
-      If it stands: dispatch-guard.sh _root_for(flow) places a claim by
-      os.path.basename(wt) == flow at dispatch-guard.sh:122, with an owner_root fallback at
-      :126. That is EQUALITY, and this repository measured the equality premise false in its
-      own source: worktree_for_feature's docstring at harness_boundary.py:215-221 records
-      that four live worktrees were named FEAT-32 while every feature directory was
-      FEAT-32-concurrent-write-merge, and that equality alone leaves every short-form
-      worktree unmatched and silently unbound. Replace the loop with a call to
-      harness_boundary.worktree_for_feature(owner_root, flow), keeping the owner_root
-      fallback when it returns None, and keeping the existing behaviour for
-      AmbiguousWorktree, which dispatch-guard.sh already handles at :175-177 in its other
-      caller: name the candidates and block rather than guess.
-      Add a case to tests/integration/test-dispatch-guard.py asserting that a dispatch for
-      feature FEAT-32-concurrent-write-merge with a linked worktree named FEAT-32 records its
-      claim in THAT worktree's registry and not in the owner root's, and demonstrate it fails
-      against the pre-change copy through the suite's existing DISPATCH_GUARD_BIN override.
-      Re-run both guard suites afterwards: T-04 and T-06 must stay green under the changed
-      claim placement, which is the whole point of resolving claims by feature field.
+      WHY IT WAS STRUCK. The enforcement remedy this bug ships is placement-agnostic: D-02 and T-02
+      scan the owner-root registry along with every linked worktree's and resolve EVERY claim by its
+      own feature field, and T-01's claim_worktrees case 2 pins exactly that. So a claim misplaced
+      into the owner-root registry still binds its holder, and aligning the registry's own layout
+      buys the remedy nothing. SC-08 already pins the behaviour this task's re-runs were meant to
+      cross-check — a short-form worktree refusal on both routes — and T-10 runs the full suite
+      regardless. Retaining it would widen a two-gate bug fix into a third gate script.
+
+      THE DEFECT IS REAL AND ITS FOLLOW-UP ISSUE IS REQUIRED, NOT OPTIONAL (D-11). dispatch-guard.sh
+      _root_for(flow) places a claim by os.path.basename(wt) == flow at dispatch-guard.sh:122, with
+      an owner_root fallback at :126. That is EQUALITY, and this repository measured the equality
+      premise false in its own source: worktree_for_feature's docstring at harness_boundary.py:215-221
+      records that four live worktrees were named FEAT-32 while every feature directory was
+      FEAT-32-concurrent-write-merge. The consequence is a short-form worktree's claim written into
+      the owner-root registry rather than its own. The fix, when the issue is taken: replace the loop
+      with harness_boundary.worktree_for_feature(owner_root, flow), keep the owner_root fallback when
+      it returns None, and keep dispatch-guard.sh's existing AmbiguousWorktree handling at :175-177,
+      which names the candidates and blocks rather than guessing. D-11 records the filing obligation
+      alongside this feature's two other deliberately unclosed defects.
   - id: T-09
     title: Retain a dispatch-expired non-OMP claim in the registry file until the binding backstop
     traces: [REQ-01, REQ-05]
@@ -1299,25 +1540,22 @@ tasks:
         && python3 tests/integration/test-inflight-registry.py \
         && python3 tests/integration/test-dispatch-guard.py
     intent: |
-      STRIKEABLE AT SIGNATURE, AND THE STRIKE IS NOT FREE. Striking this task OVERRIDES
-      Advisor rulings A and B (notes/review-fable-advisor-plan-BUG-1304-ttl-residue.md), which
-      classified the compatibility-host TTL asymmetry as a DEFECT this feature must close and
-      named registry-FILE retention as one half of the closing boundary. It is NOT symmetric
-      with T-08's strike: striking T-08 leaves the remedy intact, because T-02 resolves each
-      claim's own feature field whatever registry file it sits in. Striking THIS task leaves
-      B-10 REACHABLE on a supported host: dispatch-guard.sh:197 calls the mutating live_claim
-      on every dispatch and validate-digest.py:1755-1760 calls live_children at every parent
-      return, so a compatibility-host claim older than 1200s is DELETED FROM THE FILE on the
-      routine suspend path, the guards' enumerator cannot see it however correct its predicate
-      is, the agent reads unbound, and its governed main-checkout write is allowed — this bug's
-      founding incident, verbatim, not a residue. OC-1 asks only WHERE that closure lands, here
-      or as its own issue; answering "separate issue" is a decision to leave the hole OPEN until
-      that issue lands, and it is the operator's to make with that cost in view, not a scope
-      question with a free answer. If struck: no other task depends on it, T-10 does not name it
-      in depends_on, SC-11 is struck with it, T-07 obligation 1b's strike sentence applies, and
-      the rest of the plan stands.
+      IN SCOPE, AND SETTLED. The fourth binding ruling
+      (notes/review-fable-advisor-plan-BUG-1304-f1-binding.md, Q2) ruled this task IN SCOPE and the
+      operator authorised that ruling with no overrules. It is not strikeable and no part of it is an
+      open question: Advisor rulings A and B
+      (notes/review-fable-advisor-plan-BUG-1304-ttl-residue.md) classified the compatibility-host TTL
+      asymmetry as a DEFECT this feature must close and named registry-FILE retention as one half of
+      the closing boundary, and the ruling agreed. THE HOLE IT CLOSES, so a later reader knows what
+      this task is worth: dispatch-guard.sh:197 calls the mutating live_claim on every dispatch and
+      validate-digest.py:1755-1760 calls live_children at every parent return, so without this task a
+      compatibility-host claim older than 1200s is DELETED FROM THE FILE on the routine suspend path,
+      the guards' enumerator cannot see it however correct its predicate is, the agent reads unbound,
+      and its governed main-checkout write is allowed — this bug's founding incident, verbatim, not a
+      residue. A read-side-only guard is ceremonial on that host. The closure sits entirely inside
+      files T-02 already owns, and SC-11 binds it.
 
-      Both halves below strike TOGETHER, because assertion (b) is the only thing that catches
+      Both halves below land TOGETHER, because assertion (b) is the only thing that catches
       the suspend-path side-channel and it moves with the retention change.
 
       TEST FIRST, exactly as T-01 precedes T-02. Write (b) before (a) and confirm the suite
@@ -1362,9 +1600,11 @@ tasks:
       reconcile (:519) and _all_live (:593) — retain in the file, return today's answers.
 
       A claim past OMP_UNVERIFIED_TTL_SECONDS is pruned from the file as before, at every one of
-      these sites. Dispatch liveness does not change anywhere: CLAIM_TTL_SECONDS stays 1200s and
-      no dispatch-side answer moves (D-09). What changes is only that the record survives to the
-      binding backstop, so the guards' enumerator can still see it.
+      these sites. The backstop is the EXISTING OMP_UNVERIFIED_TTL_SECONDS, 86400s
+      (inflight_registry.py:36), ratified by the fourth binding ruling: do not add a constant and do
+      not introduce a second horizon. Dispatch liveness does not change anywhere: CLAIM_TTL_SECONDS
+      stays 1200s and no dispatch-side answer moves (D-09). What changes is only that the record
+      survives to the binding backstop, so the guards' enumerator can still see it.
 
       (b) THE ASSERTIONS, RULING D case (4). TWO case functions, both wired into the file's CASES
       tuple by bare name, which is that file's convention. Back-date started_at as stored data in
@@ -1414,10 +1654,10 @@ tasks:
       PreToolUse gates (check-domain.sh, bash-write-guard.sh) and two shared libraries
       (harness_boundary.py, inflight_registry.py). A gate's blast radius is EVERY governed
       write in the repository, and a shared-library change breaks callers that no guard
-      suite imports — the three guard suites T-08 re-runs are the widest verification the
-      rest of this plan carries, and they are narrower than the change. Nothing else in the
-      plan runs the full suite or the state checker, and both are named in the issue's own
-      success definition.
+      suite imports — the two guard suites T-03 and T-05 build, plus the registry suite T-01
+      and T-09 extend, are the widest verification the rest of this plan carries, and they
+      are narrower than the change. Nothing else in the plan runs the full suite or the state
+      checker, and both are named in the issue's own success definition.
 
       RUN, IN THIS ORDER, FROM THE REPOSITORY ROOT, AND BOTH MUST EXIT 0:
         bash .claude/skills/harness/bin/run-unit-tests.sh --kind all
@@ -1430,11 +1670,11 @@ tasks:
       violations printed, 2 means it could not resolve a root. This is deliberately the
       slowest verify in the plan and it is expected to exceed a minute.
 
-      ORDERING. It runs LAST, after every implementation task that survives signature.
-      Its depends_on names only the tasks that always land (T-02, T-04, T-06, T-07), so no
-      edge dangles if the operator strikes either strikeable task. The two strikeable ones
-      are T-08 (dispatch-guard _root_for) and T-09 (registry-file retention): if either
-      stands, this task runs after it as well, even though no depends_on edge says so.
+      ORDERING. It runs LAST, after every other task in the plan. Its depends_on names T-02,
+      T-04, T-06 and T-07. T-09 carries no depends_on edge to this task and none is added,
+      but T-09 stands unconditionally — the fourth binding ruling settled its scope — so this
+      task runs after T-09 as well. No task in this plan is strikeable any longer: T-08 is
+      struck and lands nothing, and every remaining task is in scope.
 
       DO NOT bolt this onto another task's verify, and do not narrow it to the suites the
       change happens to touch. A failure here is a real finding: report it, do not

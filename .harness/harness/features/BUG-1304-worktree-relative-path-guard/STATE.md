@@ -3,61 +3,61 @@
 ## Current
 
 - feature: BUG-1304-worktree-relative-path-guard
-- run: .harness/harness/features/BUG-1304-worktree-relative-path-guard/runs/2026-09-05-08-product/state.yaml
+- run: .harness/harness/features/BUG-1304-worktree-relative-path-guard/runs/2026-09-05-10-product/state.yaml
 - squad: none
 - status: awaiting-user
 
-Plan phase COMPLETE at c369fb1f. BRIEF and plan.yaml are drafted, panel-reviewed twice, and
-approval-pending on both. cycles_used 7 of 8.
+Plan phase COMPLETE and SIGNATURE-READY. cycles_used 10 of 10 (operator extended 8 to 10; the
+extension authorised no further one). No blocking finding, no open high finding, and no unresolved
+operator choice anywhere in plan.yaml or BRIEF.md.
 
-NO `notes/handoff-plan.md` EXISTS, and that is a harness defect, not an omission — see Open
-Questions. This section is the successor's working memory instead; the disk-only handoff path is
-supported.
+NEXT ACTION: the main session signs both approvals with `plan-merge.py sign-approval`. No
+`--overrule` is required — every panel finding is dispositioned, and the four questions that were
+open were settled by the Advisor's fourth binding ruling, operator-authorised with no overrules.
 
-NEXT ACTION: the main session presents panel finding F1 to the operator, takes the pick, then
-signs both approvals with `plan-merge.py sign-approval`. Four operator decisions ride that one
-signature:
-- F1 (HIGH, open): D-10 raises `UnreadableRegistry` while BUILDING S, before the destination is
-  compared to S, so one corrupt registry refuses every governed write — including one inside the
-  writer's own healthy worktree, which REQ-03 promises keeps working. Remedies recorded unselected
-  in D-10: (a) allow a destination inside the PARTIAL S — panel judged sound under any superset of
-  S; (b) keep the global rule and carve the exception into REQ-03; or strike D-10.
-- OC-1: is T-09 (registry-file retention) in scope or its own issue? Striking it OVERRIDES Advisor
-  rulings A and B and leaves B-10 reachable on the compatibility host's suspend/prune path.
-- OC-2: ratify `OMP_UNVERIFIED_TTL_SECONDS` (86400s) as the binding backstop.
-- T-08 (`dispatch-guard.sh _root_for` prefix alignment): strikeable at no cost to the remedy. pm and
-  the product lead both recommend STRIKE and file separately.
+WHAT THE PLAN DECIDES. A governed write is refused when its resolved destination falls outside S,
+the set of worktrees the writing agent holds a live claim in — by DESTINATION, never by SPELLING.
+S is built from each live claim's own `feature` through `worktree_for_feature`'s PREFIX matcher.
+Partial-S allow (remedy (a)): build S_p from readable registries collecting unreadable paths U; a
+destination inside a member of S_p is allowed; U empty falls through to the ordinary rule including
+empty-S unbound-allow; U non-empty with the destination outside S_p refuses on both routes naming
+every file in U. Absent and unreadable stay different answers. Binding-liveness is split from
+dispatch-liveness so a compatibility-host claim does not age out at 1200s and reopen B-10; the
+binding backstop is the existing `OMP_UNVERIFIED_TTL_SECONDS` = 86400.
 
-BUILD IS NOT A SQUAD DISPATCH. All 10 tasks are `execution_mode: main-session-direct` under
-DEC-174 — the enforcement layer is never executed through the gates being changed.
+BUILD IS NOT A SQUAD DISPATCH. All nine live tasks are `execution_mode: main-session-direct` under
+DEC-174 — the enforcement layer is never executed through the gates being changed. T-08 is at
+station `abandoned` (struck by ruling; `plan-merge.py` is add-only, so a strike record is the
+terminal form, not a deletion). Ten listed ids, nine live, no renumbering.
 
-DEAD ENDS, do not re-open:
-- The binding key is claim-set membership. Candidate `currentFeature` is OMP-only, absent from both
-  write payloads, and DEC-208 ruling 2 already rejected a payload key.
-- Build S from each claim's own `feature` through `worktree_for_feature`'s PREFIX matcher, never
-  from which registry FILE a claim sits in — a short-form worktree empties S with every SC green.
-- Never filter the binding enumerator with `_expire` or `CLAIM_TTL_SECONDS`; that bakes the 1200s
-  hole in. It survives in the plan only as a prohibition (D-09).
-- SC-06 discrimination uses vendored pre-change byte copies, NOT `CHECK_DOMAIN_BIN` /
-  `BASH_WRITE_GUARD_BIN` — those resolve once at module import and cannot fire two binaries per run.
-- OC-3 (`live_children` at `validate-digest.py:1755`) is out of scope and deliberately has no task.
+THREE FOLLOW-UP ISSUES ARE REQUIRED, not optional, and must be filed:
+1. T-08's struck defect — `dispatch-guard.sh:122` `_root_for` basename equality should be
+   `worktree_for_feature` prefix alignment.
+2. F2 — `harness_boundary.linked_worktrees` is fail-OPEN on OSError and on an unreadable pointer
+   while the registry input is fail-CLOSED.
+3. OC-3 — `validate-digest.py:1755` `live_children` cannot see a compatibility child past 1200s.
 
-VERIFIED BY THE ORCHESTRATOR at c369fb1f: plan.yaml loads under `yaml.safe_load`; all 10 tasks
-carry literal files, runnable verify, execution_mode and REQ/SC traceability with zero
-placeholders; `check-plan-routes.py` exits 0 (10 DEVIATION lines, 0 violations); both approvals
-read `pending`; the Advisor's third ruling was transcribed and diffed byte-identical.
+DEAD ENDS, do not re-open: the binding key (`currentFeature` is OMP-only and DEC-208 ruling 2
+rejected a payload key); building S from which registry FILE a claim sits in; filtering the binding
+enumerator with `_expire` or `CLAIM_TTL_SECONDS`; the `CHECK_DOMAIN_BIN`/`BASH_WRITE_GUARD_BIN`
+override for SC-06 discrimination (resolves once at module import).
+
+VERIFIED BY THE ORCHESTRATOR at 8a19d208+: plan.yaml loads under `yaml.safe_load`; all 10 tasks
+complete on files/verify/execution_mode/traceability with zero placeholders; `check-plan-routes.py`
+exits 0 with 0 violations; both approvals read `pending`; all 13 panel findings across 3 cycles are
+dispositioned with none open; the stale provenance sentence is gone; T-07 carries 6 greps.
 
 ## Open Questions
 
-- F1 (HIGH) blocks signature. Recorded in plan.yaml `panel` as `open_choice_at_signature`; neither
-  pm nor the orchestrator may accept its risk (DEC-176). Operator decides.
 - HARNESS DEFECT — a handoff note cannot be written from a worktree. `check-domain.sh:1614` calls
   `handoff_done_when.problems(rel, content, root, resolve=True)` with `rel` worktree-STRIPPED and
-  `root` the MAIN checkout, and `handoff_done_when.FEATURE_RE` is `^`-anchored, so the feature dir
-  resolves to `<main>/.harness/harness/features/<FEAT>/`, which does not exist while the feature
-  lives only on its branch. Every authority pointer is then unresolvable; absolute pointers are
-  refused outright as "is absolute". Measured both ways at c369fb1f. This is BUG-1304's own defect
-  class one layer up and needs its own issue.
-- Two `runs/*/state.yaml` files were clobbered mid-run by a later run (pm self-reported; the panel
-  repeated it). `digest.md` is guarded against replacement, `state.yaml` is not. Sibling flow
-  BUG-1305 owns this.
+  `root` the MAIN checkout, while `handoff_done_when.FEATURE_RE` is `^`-anchored, so the feature dir
+  resolves into the main checkout where a branch-only feature does not exist. Every authority
+  pointer is then unresolvable and absolute pointers are refused as "is absolute". Measured both
+  ways. This is BUG-1304's own defect class one layer up; needs its own issue.
+- HARNESS DEFECT — `runs/*/state.yaml` is clobbered by a later run reusing a run id. `digest.md` is
+  guarded against replacement, `state.yaml` is not; it happened three times here. Sibling flow
+  BUG-1305 owns this class.
+- HARNESS DEFECT — two subagents returned well-formed VERDICT/DIGEST blocks while the task tool
+  reported `failed (exit 1)` with "yield called with null data". Content contract met, exit path
+  not. Worth a look at the yield/exit mapping.
