@@ -127,7 +127,7 @@ plus a drop of the absorbed id; the tool refuses an `op: merge`. Apply the JSON 
 `expertise_update` list with:
 
 ```bash
-python3 .claude/skills/harness/bin/expertise-merge.py ops --file <expertise file> --ops <path or ->
+python3 <HARNESS_CONTROL_PLANE_ROOT>/.claude/skills/harness/bin/expertise-merge.py ops --file <expertise file> --ops <path or ->
 ```
 
 The operation refuses without writing:
