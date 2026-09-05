@@ -239,43 +239,51 @@ def run_reviewer_severity_enum_cases():
     print(f"\n{checked - fails}/{checked} reviewer severity_max enum checks passed.")
     return fails
 
+def _skill_documented_block(lines):
+    digest_at = None
+    for index, line in enumerate(lines):
+        if line.lstrip().startswith("DIGEST:"):
+            digest_at = index
+            break
+    if digest_at is None:
+        return None
+    open_at = None
+    for index in range(digest_at - 1, -1, -1):
+        if lines[index].strip().startswith("```"):
+            open_at = index
+            break
+    close_at = None
+    for index in range(digest_at + 1, len(lines)):
+        if lines[index].strip().startswith("```"):
+            close_at = index
+            break
+    if open_at is None or close_at is None:
+        return None
+    return "\n".join(lines[open_at + 1:close_at])
+
+
+def _agent_documented_block(lines):
+    output_at = None
+    for index, line in enumerate(lines):
+        if line.strip() == "## Output":
+            output_at = index
+            break
+    if output_at is None:
+        return None
+    end_at = len(lines)
+    for index in range(output_at + 1, len(lines)):
+        if re.match(r"^#{1,2}\s", lines[index]):
+            end_at = index
+            break
+    return "\n".join(lines[output_at:end_at])
+
+
 def documented_block(source_text, source_path):
     """Return the documented DIGEST block for an agent or shared skill."""
     lines = source_text.splitlines()
     if source_path.endswith("SKILL.md"):
-        digest_at = next(
-            (i for i, line in enumerate(lines)
-             if line.lstrip().startswith("DIGEST:")),
-            None,
-        )
-        if digest_at is None:
-            return None
-        open_at = next(
-            (i for i in range(digest_at - 1, -1, -1)
-             if lines[i].strip().startswith("```")),
-            None,
-        )
-        close_at = next(
-            (i for i in range(digest_at + 1, len(lines))
-             if lines[i].strip().startswith("```")),
-            None,
-        )
-        if open_at is None or close_at is None:
-            return None
-        return "\n".join(lines[open_at + 1:close_at])
-
-    output_at = next(
-        (i for i, line in enumerate(lines) if line.strip() == "## Output"),
-        None,
-    )
-    if output_at is None:
-        return None
-    end_at = next(
-        (i for i in range(output_at + 1, len(lines))
-         if re.match(r"^#{1,2}\s", lines[i])),
-        len(lines),
-    )
-    return "\n".join(lines[output_at:end_at])
+        return _skill_documented_block(lines)
+    return _agent_documented_block(lines)
 
 
 def documented_contract_gaps(required_fields, documented_text):
@@ -374,22 +382,16 @@ def _report_contract_result(ok, line):
     return 0 if ok else 1
 
 
-def run_documented_contract_cases():
-    """Keep persona output instructions aligned with the validator's schema."""
-    spec = importlib.util.spec_from_file_location("_validator_contract_guard", VALIDATE)
-    validator = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(validator)
-    roster = sorted(validator.ALIAS)
-    required_by_persona = {
+def _required_contracts(validator, roster):
+    required = {
         persona: set(validator.SCHEMAS[validator.norm(persona)])
         for persona in roster
     }
-    required_by_persona["harness-code-reviewer"].update(("code_grade", "reviewed"))
+    required["harness-code-reviewer"].update(("code_grade", "reviewed"))
+    return required
 
-    results = documented_contract_results(
-        roster, CONTRACT_SOURCES, required_by_persona, _contract_source)
-    fails = sum(_report_contract_result(ok, line) for ok, line in results)
 
+def _reviewer_plan_mode_results(validator):
     reviewer_sources = (
         ".claude/agents/harness-code-reviewer.md",
         ".omp/agents/harness-code-reviewer.md",
@@ -397,72 +399,98 @@ def run_documented_contract_cases():
     )
     reviewed_token = "reviewed: " + validator._PLAN_REVIEW_PREFIX
     code_grade_line = re.compile(r"^\s*code_grade\s*:.*\bn_a\b", re.MULTILINE)
+    results = []
     for source_path in reviewer_sources:
         source_text = _contract_source(source_path) or ""
-        required_tokens = [
-            (reviewed_token in source_text, reviewed_token),
-            (code_grade_line.search(source_text) is not None, "code_grade: ... n_a"),
-        ]
+        results.append((
+            reviewed_token in source_text,
+            f"{source_path} plan-mode token {reviewed_token!r}",
+        ))
+        results.append((
+            code_grade_line.search(source_text) is not None,
+            f"{source_path} plan-mode token 'code_grade: ... n_a'",
+        ))
         if source_path.endswith("harness-code-reviewer.md"):
-            artifact_fragment = "features/<FEAT>/notes/review-harness-code-reviewer-"
-            required_tokens.append((artifact_fragment in source_text, artifact_fragment))
-        for ok, token in required_tokens:
-            fails += _report_contract_result(
-                ok, f"{source_path} plan-mode token {token!r}")
+            fragment = "features/<FEAT>/notes/review-harness-code-reviewer-"
+            results.append((
+                fragment in source_text,
+                f"{source_path} plan-mode token {fragment!r}",
+            ))
+    return results
 
+
+def _discrimination_ok():
     pre_fix_gaps = documented_contract_gaps(("code_grade",), PRE_FIX_REVIEWER_BLOCK)
     with_code_grade = PRE_FIX_REVIEWER_BLOCK.replace(
         '  reviewed: "base..<review_sha>"',
         '  code_grade: pass|fail|grade_2|n_a\n  reviewed: "base..<review_sha>"',
     )
-    discrimination_ok = (
+    return (
         pre_fix_gaps == ["code_grade"]
         and documented_contract_gaps(("code_grade",), with_code_grade) == []
     )
-    if discrimination_ok:
-        print("ok    [documented contract discrimination] omitted field reported, present field accepted")
-    else:
-        fails += 1
-        print("FAIL  [documented contract discrimination] omitted field reported, present field accepted")
 
-    synthetic_roster = ("unmapped", "empty", "absent", "unlocatable", "outside", "control")
-    synthetic_sources = {
+
+def _synthetic_contract_results():
+    roster = ("unmapped", "empty", "absent", "unlocatable", "outside", "control")
+    sources = {
         "empty": [],
         "absent": ["absent.md"],
         "unlocatable": ["unlocatable.md"],
         "outside": ["outside.md"],
         "control": ["control.md"],
     }
-    synthetic_required = {persona: {"needed"} for persona in synthetic_roster}
-    synthetic_text = {
+    required = {persona: {"needed"} for persona in roster}
+    source_text = {
         "unlocatable.md": "needed: yes\n# No output section\n",
         "outside.md": "needed: outside\n## Output\nother: value\n",
         "control.md": "## Output\nneeded: yes\n",
     }
-    synthetic_results = documented_contract_results(
-        synthetic_roster,
-        synthetic_sources,
-        synthetic_required,
-        synthetic_text.get,
+    return documented_contract_results(roster, sources, required, source_text.get)
+
+
+def _contains_line(lines, *terms):
+    return any(all(term in line for term in terms) for line in lines)
+
+
+def _completeness_ok(results):
+    failures = [line for ok, line in results if not ok]
+    controls = [line for ok, line in results if ok]
+    checks = (
+        _contains_line(failures, "unmapped", "no documented-contract source"),
+        _contains_line(failures, "empty", "no documented-contract source"),
+        _contains_line(failures, "absent.md", "absent"),
+        _contains_line(failures, "unlocatable.md", "could not be located"),
+        _contains_line(failures, "outside", "needed"),
+        controls == ["control: control.md"],
     )
-    synthetic_failures = [line for ok, line in synthetic_results if not ok]
-    synthetic_controls = [line for ok, line in synthetic_results if ok]
-    completeness_ok = (
-        any("unmapped" in line and "no documented-contract source" in line
-            for line in synthetic_failures)
-        and any("empty" in line and "no documented-contract source" in line
-                for line in synthetic_failures)
-        and any("absent.md" in line and "absent" in line for line in synthetic_failures)
-        and any("unlocatable.md" in line and "could not be located" in line
-                for line in synthetic_failures)
-        and any("outside" in line and "needed" in line for line in synthetic_failures)
-        and synthetic_controls == ["control: control.md"]
+    return all(checks)
+
+
+def _report_group_result(label, ok):
+    print(f"{'ok  ' if ok else 'FAIL'}  {label}")
+    return 0 if ok else 1
+
+
+def run_documented_contract_cases():
+    """Keep persona output instructions aligned with the validator's schema."""
+    spec = importlib.util.spec_from_file_location("_validator_contract_guard", VALIDATE)
+    validator = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(validator)
+    roster = sorted(validator.ALIAS)
+    results = documented_contract_results(
+        roster, CONTRACT_SOURCES, _required_contracts(validator, roster), _contract_source)
+    results.extend(_reviewer_plan_mode_results(validator))
+    fails = sum(_report_contract_result(ok, line) for ok, line in results)
+    fails += _report_group_result(
+        "[documented contract discrimination] omitted field reported, present field accepted",
+        _discrimination_ok(),
     )
-    if completeness_ok:
-        print("ok    [documented contract completeness] unmapped persona, absent source, unlocatable block and out-of-block field each reported by name")
-    else:
-        fails += 1
-        print("FAIL  [documented contract completeness] unmapped persona, absent source, unlocatable block and out-of-block field each reported by name")
+    fails += _report_group_result(
+        "[documented contract completeness] unmapped persona, absent source, "
+        "unlocatable block and out-of-block field each reported by name",
+        _completeness_ok(_synthetic_contract_results()),
+    )
     return fails
 
 # (name, persona, digest text, expect_ok, must_mention)
