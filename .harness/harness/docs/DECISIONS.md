@@ -6814,3 +6814,29 @@ prose satisfy all seven.
 **Unchanged:** DEC-207 is unamended and plan-review mode's semantics are untouched; the SEC-01
 `review_sha` binding, DEC-209's mechanical recomputation of `code_grade` and INV-6 all stand; and
 `validate-digest.py` is not edited by BUG-1303 at all. Refs: DEC-207, DEC-209, DEC-174.
+
+## DEC-217 — Bugfix test kinds follow the changed surface instead of an unconditional unit label
+
+**Chose:** replace `test_matrix.bugfix.always: [unit]` with two fixed conditional legs while
+retaining `match_bug_class`: `unit` when `touches_runtime_code`, and `integration` when
+`fix_confined_to_tests_and_contract_docs`.
+
+`touches_runtime_code` means the bugfix diff modifies at least one file that is not under
+`tests/**`, is not a `*.md` documentation or contract file, and is not under `.harness/`. This is
+true for ordinary code fixes, so they retain the unit floor. `fix_confined_to_tests_and_contract_docs`
+means every non-`.harness` change is either a `*.md` documentation or contract file or lives under
+`tests/**`; that predicate requires integration, and DEC-35's presence rule still requires the diff
+itself to contain the test exercising the change.
+
+**Over:** retaining an unconditional unit test for every bugfix; adding a ceremonial unit test for
+unchanged runtime code; or copying an already mutation-proven integration contract guard into
+`tests/unit/**` solely to satisfy a directory label.
+
+**Because:** BUG-1303 changes no runtime code. Its executable artifact is the red-capable guard that
+checks the validator's documented contract across agent and skill markdown, placed by the signed
+plan beside the existing severity-enum contract guard in `tests/integration/test-validate-digest.py`.
+Relocating or duplicating it would add no discrimination. The prior unruled instance was BUG-1128.
+The predicates keep code bugfixes on the unit floor while giving test-and-contract-only fixes the
+integration kind their observable boundary requires.
+
+**Record:** delegated Advisor ruling, 2026-09-05. Refs: DEC-35, DEC-212, DEC-213.

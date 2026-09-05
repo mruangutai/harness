@@ -50,6 +50,20 @@ def _config_has_shape_predicate(doc, label):
           len(matched) == 1, f"when={when!r}")
 
 
+def _config_has_bugfix_predicates(doc, label):
+    bugfix = doc.get("test_matrix", {}).get("bugfix", {})
+    when = bugfix.get("when", [])
+    expected = [
+        {"kind": "unit", "if": "touches_runtime_code"},
+        {"kind": "integration", "if": "fix_confined_to_tests_and_contract_docs"},
+        {"kind": "__bug_class__", "if": "match_bug_class"},
+    ]
+    check(f"{label}: bugfix has no unconditional test kind",
+          bugfix.get("always") == [], f"always={bugfix.get('always')!r}")
+    check(f"{label}: bugfix predicates are complete and unique",
+          when == expected, f"when={when!r}")
+
+
 def case_project_config_binds_shape_to_integration():
     doc = _load(PROJECT_CONFIG)
     _config_has_shape_predicate(doc, "project harness.json")
@@ -65,9 +79,29 @@ def case_project_config_binds_shape_to_integration():
               provenance.get("signed") == "DEC-212", f"{provenance!r}")
 
 
+
+def case_project_config_routes_bugfix_kinds_by_surface():
+    doc = _load(PROJECT_CONFIG)
+    _config_has_bugfix_predicates(doc, "project harness.json")
+
+    provenance = doc.get("_matrix_provenance", {}).get("bugfix")
+    check("project harness.json: _matrix_provenance.bugfix exists",
+          isinstance(provenance, dict), f"{provenance!r}")
+    if isinstance(provenance, dict):
+        check("project harness.json: bugfix provenance records moved and added kinds",
+              provenance.get("removed") == ["unit"]
+              and provenance.get("added") == ["unit", "integration"],
+              f"{provenance!r}")
+        check("project harness.json: bugfix provenance is signed DEC-217",
+              provenance.get("signed") == "DEC-217", f"{provenance!r}")
+
 def case_template_config_binds_shape_to_integration():
     doc = _load(TEMPLATE_CONFIG)
     _config_has_shape_predicate(doc, "templates/harness.json")
+
+
+def case_template_config_routes_bugfix_kinds_by_surface():
+    _config_has_bugfix_predicates(_load(TEMPLATE_CONFIG), "templates/harness.json")
 
 
 def case_decision_212_exists_and_is_named_correctly():
@@ -78,6 +112,20 @@ def case_decision_212_exists_and_is_named_correctly():
     check("DEC-212's heading names touches_config_shape's purpose",
           "config-shape change" in text.split("## DEC-212", 1)[-1][:200],
           "DEC-212 heading text does not describe a config-shape change")
+
+
+def case_decision_217_exists_and_defines_bugfix_predicates():
+    with open(DECISIONS_MD, encoding="utf-8") as f:
+        text = f.read()
+    decision = text.split("## DEC-217", 1)
+    check("DECISIONS.md declares ## DEC-217",
+          len(decision) == 2, "no DEC-217 heading found")
+    if len(decision) == 2:
+        body = decision[-1][:2500]
+        check("DEC-217 defines both bugfix predicates",
+              "touches_runtime_code" in body
+              and "fix_confined_to_tests_and_contract_docs" in body,
+              "predicate definitions absent from DEC-217")
 
 
 def case_skills_teach_the_new_predicate():
@@ -97,8 +145,11 @@ def case_skills_teach_the_new_predicate():
 
 def main():
     case_project_config_binds_shape_to_integration()
+    case_project_config_routes_bugfix_kinds_by_surface()
+    case_template_config_routes_bugfix_kinds_by_surface()
     case_template_config_binds_shape_to_integration()
     case_decision_212_exists_and_is_named_correctly()
+    case_decision_217_exists_and_defines_bugfix_predicates()
     case_skills_teach_the_new_predicate()
 
     fails = 0
