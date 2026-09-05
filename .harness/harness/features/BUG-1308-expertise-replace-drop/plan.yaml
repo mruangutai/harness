@@ -332,7 +332,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: []
-    status: ready
+    status: done
     files:
       - .claude/skills/harness/bin/expertise-merge.py
       - tests/unit/test-expertise-ops.py
