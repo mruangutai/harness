@@ -1,0 +1,601 @@
+schema: plan/1
+feature: BUG-1303-plan-code-review-digest
+approval:
+  date: '2026-09-05'
+  approved_by: mruangutai
+  status: approved
+status: plan
+source_issues: [1303]
+
+lanes:
+  resolved_at: c369fb1f
+  rows:
+    - surface: .claude/skills/harness/bin/validate-digest.py
+      lane: main-session-direct
+      reason: "DEC-174 carve-out for the enforcement layer; this feature deliberately edits none of it (SC-04)"
+    - surface: tests/integration/test-validate-digest.py
+      lane: main-session-direct
+      reason: "DEC-174 extends to the enforcement layer's own tests, edited directly and run explicitly"
+    - surface: .claude/agents/harness-code-reviewer.md
+      lane: main-session-direct
+      reason: "check-domain.sh --resolve returns NOBODY at c369fb1f"
+    - surface: .omp/agents/harness-code-reviewer.md
+      lane: main-session-direct
+      reason: "check-domain.sh --resolve returns NOBODY at c369fb1f"
+    - surface: .claude/skills/harness-code-review/SKILL.md
+      lane: main-session-direct
+      reason: "check-domain.sh --resolve returns NOBODY at c369fb1f"
+    - surface: .harness/harness/docs/DECISIONS.md
+      lane: team
+      agent: harness-documentor
+    - surface: .harness/harness/docs/DECISIONS-INDEX.md
+      lane: team
+      agent: harness-documentor
+
+decisions:
+  - id: D-01
+    choice: The remedy is a mechanical guard, not doctrine alone - a check that every persona's documented output block carries every field the validator schema requires of that persona
+    because: "measured at c369fb1f the same check over all sixteen personas reddens on exactly one field, so the guard costs one fix today and closes the whole class"
+    dec: none
+  - id: D-02
+    choice: The guard is one-directional - a required field must be documented, but a documented field the schema does not enumerate stays legal
+    because: "SCHEMAS holds only the enum-and-typed required fields, while headline, files_touched and open_questions are required elsewhere in validate(), so a two-directional check would redden on fourteen conformant personas"
+    dec: none
+  - id: D-03
+    choice: A NEW decision records the contract-divergence rule and DEC-207 is not amended
+    because: "DEC-207's ruling that plan mode is legal is unchanged and correct - what was missing is that a persona's documented output block is an enforced half of the digest contract"
+    dec: none
+  - id: D-04
+    choice: Plan mode is documented in harness-code-review/SKILL.md as well as in the persona output block
+    because: "the SKILL is where a reviewer is told to diff base..review_sha and never HEAD, and that is the instruction which misroutes a plan-phase reader"
+    dec: none
+  - id: D-05
+    choice: The pre-fix reviewer output block is stored in the test as an inert string constant rather than read from git
+    because: "the same test file already stores a prior revision's bytes as inert fixture data, and a git-read fixture rots the moment the commit it names drifts"
+    dec: none
+
+  - id: D-06
+    choice: >-
+      A persona's DOCUMENTED OUTPUT BLOCK is an enforced half of the digest contract in full - its
+      DIGEST fields, the artifact: path it names, and the Write grant sentence that says where that
+      report may be written - so correcting all three in one task is REQ-01's own logic rather than
+      new scope, and doing it before signature is planning rather than a change to an approved
+      artifact
+    because: >-
+      measured at c369fb1f in this worktree, a plan-mode digest carrying code_grade n_a and a correct
+      reviewed plan target is still BLOCKED at exit 1 with the single error that the artifact does
+      not name a .harness/repo/features/FEAT location, while the identical digest with only the
+      artifact line moved under the feature's own notes/ returns digest ok at exit 0 - so the field
+      fix alone leaves REQ-01 unmeetable, the whole defect closes with zero change to
+      validate-digest.py, and a file that corrects the artifact line while its write-grant prose
+      still names the refused path contradicts itself
+    dec: none
+  - id: D-07
+    choice: >-
+      The canonical persona source is .omp/agents/**; the .claude/agents/** copies are GENERATED
+      compatibility adapters and are never hand-edited. Any persona-file change in this feature is
+      made in the .omp source and then regenerated with sync-agent-adapters.py --apply, and
+      sync-agent-adapters.py --check returning rc 0 is what asserts the two copies agree
+    because: >-
+      sync-agent-adapters.py's own docstring, lines 3-5, states it verbatim - "Canonical role policy
+      lives in .omp/agents. Claude files are generated compatibility adapters; edit the OMP source,
+      then run --apply" - so a hand edit to the generated copy is silently reverted by the next
+      --apply and the fix disappears without anything asserting anything false; --check compares all
+      sixteen adapter pairs over the whole file, exits 0 at c369fb1f, and is already run by
+      check-omp-port.py:156-166, so this feature needs no third guard of its own for that invariant
+    dec: none
+panel:
+  last_run: runs/2026-09-05-08-validator
+  cycle: 3
+  transcription_rule: Each summary is the reader finding condensed to one plain-text
+    line with no markdown; every id was computed by panel_findings.py id over that
+    stored summary and reader verbatim, so a reworded summary yields a new id.
+  readers:
+  - reader: scope
+    status: ran
+  - reader: should-not-exist
+    status: ran
+  findings:
+  - id: PF-2e69b27e422520816d381adac766f1a6
+    severity: high
+    reader: scope
+    summary: T-01 step 3 completeness branches are specified but exercised by no case
+      and never run against the fully-mapped 16-persona registry, so a swallowed FAIL
+      ships with ALL PASSED.
+    disposition: resolved
+    resolved_by: T-01
+  - id: PF-6efc08015899ed2657c9d87bc0a20732
+    severity: med
+    reader: should-not-exist
+    summary: D-06 artifact-path half is guarded only by T-02 one-shot verify greps,
+      so no suite assertion reddens if the artifact line is reverted.
+    disposition: resolved
+    resolved_by: T-01
+  - id: PF-17b83de034aa3c08c64b228bf4feb2e1
+    severity: med
+    reader: should-not-exist
+    summary: T-01 case (6) and SC-08 duplicate sync-agent-adapters.py --check, which
+      already compares all 16 pairs full-file and is already wired into check-omp-port.py.
+    disposition: resolved
+    resolved_by: T-01
+  - id: PF-56f01265dc9d28433045d79aad5fdfc2
+    severity: med
+    reader: scope
+    summary: T-01 step 4 bare n_a assertion is vacuous today because n_a already occurs
+      in SKILL.md before T-03 lands.
+    disposition: resolved
+    resolved_by: T-01
+  - id: PF-c4303fdea9c772f8896aa8a1d49b15e4
+    severity: info
+    reader: should-not-exist
+    summary: T-01 step 4 should assert the composite reviewed field plus _PLAN_REVIEW_PREFIX
+      rather than the bare plan token, which survives in ordinary prose.
+    disposition: resolved
+    resolved_by: T-01
+  - id: PF-7041b66e94ff9bb78ff885acdd8af73f
+    severity: low
+    reader: should-not-exist
+    summary: documented_contract_gaps searches whole files, so the seven personas
+      sharing two SKILL.md sources can false-green.
+    disposition: resolved
+    resolved_by: T-01
+  - id: PF-d37f710e93d107d5127b5df3059fc508
+    severity: low
+    reader: scope
+    summary: T-04 depends_on T-03 is sequencing rather than a data dependency, serialising
+      T-04 behind three main-session-direct tasks for no stated reason.
+    disposition: resolved
+    resolved_by: T-04
+  - id: PF-5ba1bdad5e4f89e55fefa3a6bb0ef447
+    severity: med
+    reader: should-not-exist
+    summary: 'T-02 edit (4), the write-grant sentence, is asserted by nothing that
+      can fail: after a complete fix the new fragment occurs twice per file and both
+      T-02 grep -qF and T-01 step 6 in-suite assertion are satisfied by the artifact
+      line alone.'
+    disposition: resolved
+    resolved_by: T-02
+  - id: PF-9c43910b2d2e6e14595b28a0c264a7f9
+    severity: low
+    reader: should-not-exist
+    summary: T-01 step 5 hand-mirrors the inline per-persona schema extension in validate(),
+      so T-04 decision entry must scope checked mechanically to SCHEMAS plus the reviewer
+      known extension and name the mirror site.
+    disposition: resolved
+    resolved_by: T-04
+  - id: PF-87f1837ea32b6a51a980a10d527431fc
+    severity: low
+    reader: scope
+    summary: A persona present in CONTRACT_SOURCES with an empty list value takes
+      the per-source branch, loops zero times and emits no line at all - neither pass
+      nor named failure, invisible to the main() FAIL count.
+    disposition: resolved
+    resolved_by: T-01
+  - id: PF-49abc17456e3e70e647d1f831bf115d3
+    severity: info
+    reader: should-not-exist
+    summary: Nine personas are graded twice through both agent copies whose bodies
+      sync-agent-adapters.py --check already asserts identical, so the .claude grading
+      lines add no discriminating power.
+    disposition: resolved
+    resolved_by: T-01
+tasks:
+  - id: T-01
+    title: Add a documented-contract conformance guard to the digest validator suite
+    traces: [REQ-02, REQ-04]
+    change_type: bugfix
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 carve-out - the enforcement layer's own tests are edited directly and run explicitly
+    depends_on: []
+    status: ready
+    files:
+      - tests/integration/test-validate-digest.py
+    verify: |
+      python3 tests/integration/test-validate-digest.py | python3 -c "import sys;o=sys.stdin.read();a='ok    [documented contract discrimination] omitted field reported, present field accepted';b='ok    [documented contract completeness] unmapped persona, absent source, unlocatable block and out-of-block field each reported by name';sys.exit(0 if a in o and b in o else 1)"
+    intent: |
+      Add a documented-contract conformance guard to tests/integration/test-validate-digest.py,
+      modelled on run_reviewer_severity_enum_cases() already in that file. That function guards
+      severity_max enum drift between the validator and the reviewer agent templates; reuse its
+      shape, its mechanical-discovery discipline and its ok/FAIL print style rather than inventing a
+      second convention. Edit no other file. In particular do NOT edit
+      .claude/skills/harness/bin/validate-digest.py: it already implements DEC-207 plan-review mode
+      correctly, and this feature must leave it byte-identical.
+
+      Every assertion added here has a failing direction that is DEMONSTRATED rather than argued: either a
+      synthetic case in (7) that reports it red inside this same suite run, or a real red at the end of
+      this task which T-02/T-03 close. Nothing is asserted whose red state nobody has seen.
+
+      Add, in this order:
+
+      (1) A pure helper documented_block(source_text, source_path) returning the region of source_text
+      that documents a persona's DIGEST block, or None when it cannot be located. When source_path ends
+      with SKILL.md the block is the fenced block carrying the line whose first non-space token is
+      DIGEST: - scan to that line, then out to the nearest fence line above and the nearest fence line
+      below. For any other source, an agent file, the block is the "## Output" section: the "## Output"
+      heading line through to the next line that opens a heading of the same or higher depth, or end of
+      file. It takes TEXT and a path STRING and reads nothing from disk, so it is exercisable on
+      synthetic input.
+
+      Why the block and not the whole file: four dev personas share .claude/skills/harness-digest-dev/SKILL.md
+      and three leads share .claude/skills/harness-team/SKILL.md, so a whole-file search lets one required
+      field name occurring anywhere in prose satisfy the guard for seven of the sixteen personas at once.
+      Measured at c369fb1f in this worktree, that is latent rather than live: grepping the required field
+      names of SCHEMAS["dev"] against harness-digest-dev/SKILL.md matches only at lines 18-27 and those of
+      SCHEMAS["lead"] against harness-team/SKILL.md only at lines 240-253, every match inside the single
+      fenced digest block. Scope it anyway - the shape is wrong either way and those seven personas are
+      one prose edit away from a false green.
+
+      (2) A pure helper documented_contract_gaps(required_fields, documented_text) returning the
+      sorted list of names in required_fields for which documented_text contains no line whose
+      first non-space token is that name followed by a colon. It takes TEXT, never a path, so it
+      can be exercised on synthetic input.
+
+      (3) A module-level CONTRACT_SOURCES map from persona name to the repo-relative file or files that
+      document that persona's DIGEST block. It is a PATH MAP AND NOTHING ELSE: it must not double as the
+      roster of personas under test, and no expected count, floor or roster literal may be written beside
+      it. Nine personas document their own block in their agent file and map to ONE source, the
+      canonical .omp/agents/<persona>.md and that copy only: harness-pm, harness-qa, harness-documentor,
+      harness-dev-ops, harness-visual-designer, harness-code-reviewer, harness-security-reviewer,
+      harness-ui-reviewer, harness-orchestrator. Do NOT also map .claude/agents/<persona>.md for those nine: D-07 establishes
+      .omp/agents/** as canonical and .claude/agents/** as generated adapters, so the canonical copy is
+      the one a contract is authored in, and the standing sync-agent-adapters.py --check - all sixteen
+      pairs, already invoked by check-omp-port.py:156-166 - is what asserts the generated copy agrees.
+      Only this path map shrinks: step (6)'s three reviewer sources are not CONTRACT_SOURCES and are
+      unchanged, and the seven SKILL.md-documented personas below are unchanged because there is no
+      .omp/skills/ tree for D-07's argument to reach. The four dev personas harness-frontend-dev,
+      harness-backend-dev, harness-ai-dev and harness-data-engineer map to .claude/skills/harness-digest-dev/SKILL.md. The three leads
+      harness-product-lead, harness-eng-lead and harness-validator-lead map to
+      .claude/skills/harness-team/SKILL.md.
+
+      (4) A PURE grading helper documented_contract_results(roster, sources, required_by_persona,
+      read_source) returning a list of (ok, line) pairs, one per graded unit, in roster order. It reads NO
+      module global: the roster, the path map, the per-persona required-field sets and the source reader
+      all arrive as ARGUMENTS, so the whole grading path is exercisable on synthetic input exactly as (2)
+      is. read_source(path) returns that source's text, or None when the path does not exist on disk. For
+      each persona in roster, sorted:
+
+        - sources carries no entry for that persona: one (False, ...) line naming that persona and stating
+          it is present in the validator registry but has no documented-contract source mapped. An entry
+          that is PRESENT but whose list of sources is EMPTY takes this same branch and is reported by
+          name the same way: an empty mapping is an unmapped persona, never a zero-iteration
+          silent pass. This is the completeness check and it is the point of deriving the roster elsewhere: a seventeenth persona
+          added to validator.ALIAS/SCHEMAS must redden this section BY NAME, not merely produce a smaller
+          count that still passes.
+        - otherwise, for each mapped source, in order: read_source returns None - one (False, ...) line
+          naming that path as absent from disk; documented_block returns None - one (False, ...) line
+          naming that path and stating its documented block could not be located, never a silent pass;
+          otherwise one (ok, line) pair naming BOTH the persona and the source path, ok False when
+          documented_contract_gaps of that persona's required set over the BLOCK - never over the whole
+          source text - is non-empty, with the missing field names in the line.
+
+      Never iterate sources to decide who is graded; the roster argument alone decides that.
+
+      (5) run_documented_contract_cases(). Load the validator with importlib exactly as
+      run_reviewer_severity_enum_cases does (spec_from_file_location over VALIDATE).
+
+      DERIVE the persona roster under test from the validator's own registry: sorted(validator.ALIAS),
+      whose keys are the persona names the validator recognises (sixteen at c369fb1f). Never iterate
+      CONTRACT_SOURCES to decide who is under test, and never hand-type the roster or a count of it. The
+      file's own _reviewer_template_paths (tests/integration/test-validate-digest.py:117) already derives
+      its subject set from validator.norm()/ALIAS this way; follow it. The point is that the set being
+      graded comes from the artefact that DEFINES it, so it cannot be shrunk by an omission in the artefact
+      being graded.
+
+      Build required_by_persona from the module, never retyped: for each roster persona,
+      set(validator.SCHEMAS[validator.norm(persona)]), and for harness-code-reviewer add code_grade and
+      reviewed - mirroring validate()'s own per-persona schema extension. Pass sorted(validator.ALIAS),
+      CONTRACT_SOURCES, that mapping, and a read_source that reads repo-relative paths from the repository
+      root, into documented_contract_results; print every returned pair as an ok/FAIL line in the file's
+      style and count the FAILs.
+
+      Write no expected-count assertion and no hand-typed floor anywhere in this section. The floor is
+      deliberately removed rather than relocated: a floor typed beside the map it grades is derived from
+      the artefact it grades, so a persona missing from BOTH the map and the floor cleared it silently -
+      which is the exact failure REQ-04 exists to end.
+
+      (6) Reviewer plan-mode assertions. For each of .claude/agents/harness-code-reviewer.md,
+      .omp/agents/harness-code-reviewer.md and .claude/skills/harness-code-review/SKILL.md print one
+      ok/FAIL line asserting that the file documents the DEC-207 plan form. Assert COMPOSITES, never bare
+      substrings, with both tokens taken FROM THE VALIDATOR MODULE and never retyped:
+
+        - the literal "reviewed: " concatenated with validator._PLAN_REVIEW_PREFIX must occur in the file.
+          Bare _PLAN_REVIEW_PREFIX is "plan:" and survives in ordinary prose ("the plan:"), so the bare
+          form would keep the guard green after the plan-form line was deleted.
+        - the file must carry a line whose first non-space token is code_grade: and which contains the n_a
+          member of validator.CODE_GRADE_VALUES. Bare n_a is already present at
+          .claude/skills/harness-code-review/SKILL.md:112-113, in the unrelated pre-existing "enum is an
+          audit claim" passage (measured at c369fb1f), so a bare-substring assertion is vacuous for that
+          file today; pairing the token with its own field is what makes it evidence. The field-paired form
+          is satisfied by T-02's "code_grade: pass|fail|grade_2|n_a" line and by T-03's "code_grade: n_a".
+        - for the two agent-file copies ONLY, additionally the literal fragment
+
+            features/<FEAT>/notes/review-harness-code-reviewer-
+
+          which is the artifact-path half of D-06 - the half that is fatal on its own, and which is
+          otherwise guarded only by T-02's one-shot verify and never enters the suite. Without it, a later
+          edit reverting that line reddens nothing and B-9 recurs verbatim, under a decision entry claiming
+          the class is checked mechanically.
+
+      FAIL naming the file and the missing token in each case.
+
+      Failing direction for all of (6), demonstrated by this task's own run: at the end of this task every
+      one of these assertions is RED - the composite reviewed line and the code_grade line for all three
+      sources, and the artifact fragment for the two agent copies, none of which exists yet - and each goes
+      green only when T-02 (agent copies) and T-03 (SKILL.md) land. Quote that red output in your receipt.
+
+      (7) Two synthetic discrimination groups. Both run on synthetic input only, so both are green before
+      and after T-02 and T-03 land - which is the property this task's verify rests on.
+
+        (7a) Store the harness-code-reviewer section titled Output exactly as it stands BEFORE this feature
+        as an inert string constant PRE_FIX_REVIEWER_BLOCK in the test file. The file already stores a prior
+        revision's bytes as inert fixture data; follow that convention, and do not read it from git. Case
+        one: documented_contract_gaps over PRE_FIX_REVIEWER_BLOCK must contain code_grade. Case two: the
+        same text with a code_grade line inserted, spelled exactly as T-02 will spell it, must yield an
+        empty gap list. When both hold print exactly this line, spaced as the file's other ok lines are:
+        ok    [documented contract discrimination] omitted field reported, present field accepted
+
+        (7b) A synthetic-registry case for the branches of (4) that the real registry cannot exercise: it
+        maps all sixteen personas, every mapped path exists and every block is locatable, so those branches
+        have zero live executions and a swallowed FAIL in any of them would ship under ALL PASSED. and
+        surface only when a seventeenth persona is added - exactly when REQ-04's promise is needed.
+
+        Build a synthetic roster, a synthetic sources map, a synthetic required_by_persona and a
+        dict-backed read_source, and call documented_contract_results ONCE on them. Within that one call
+        assert all six:
+          - a roster persona carrying no entry in the synthetic map yields a failure line NAMING that
+            persona;
+          - a roster persona whose entry in the synthetic map is an EMPTY list yields that same failure
+            line NAMING that persona, never zero lines;
+          - a mapped path for which read_source returns None yields a failure line NAMING that path;
+          - a mapped source whose text contains no locatable documented block yields a failure line NAMING
+            that path;
+          - a mapped source carrying the required field name only OUTSIDE its documented block - in prose
+            above the block - yields a failure line naming that persona and that field, which a whole-file
+            search would have passed;
+          - a fully-mapped, fully-documented synthetic control yields no failure line at all.
+        When all six hold print exactly this line, spaced as the file's other ok lines are:
+        ok    [documented contract completeness] unmapped persona, absent source, unlocatable block and out-of-block field each reported by name
+        The ok-line text above is UNCHANGED by the empty-list case and must stay byte-identical to the
+        string this task's verify greps: an empty mapping is an unmapped persona, so that line already
+        names it truthfully.
+
+      (8) Register it in main() as: fails plus-equals run_documented_contract_cases().
+
+      At the end of this task the suite is EXPECTED TO BE RED, for exactly these reasons:
+      harness-code-reviewer missing code_grade in its documented block in both agent trees, and the
+      plan-mode assertions of (6) for all three sources. That red state is the point of this task and is
+      closed by T-02 and T-03. Quote the red output in your receipt. The verify command above checks only
+      the two synthetic ok lines of (7), both of which are green before and after those two tasks land.
+
+  - id: T-02
+    title: Document code_grade and the DEC-207 plan form in the code-reviewer persona output block
+    traces: [REQ-01, REQ-02]
+    change_type: bugfix
+    execution_mode: main-session-direct
+    execution_reason: check-domain.sh --resolve returns NOBODY for both agent-file copies, so no team lane may write them
+    depends_on: [T-01]
+    status: ready
+    files:
+      - .claude/agents/harness-code-reviewer.md
+      - .omp/agents/harness-code-reviewer.md
+    verify: |
+      python3 .claude/skills/harness/bin/sync-agent-adapters.py --check && grep -qF "code_grade: pass|fail|grade_2|n_a" .claude/agents/harness-code-reviewer.md && grep -qF "code_grade: pass|fail|grade_2|n_a" .omp/agents/harness-code-reviewer.md && grep -qF "reviewed: plan:" .claude/agents/harness-code-reviewer.md && grep -qF "reviewed: plan:" .omp/agents/harness-code-reviewer.md && grep -qF "features/<FEAT>/notes/review-harness-code-reviewer-" .claude/agents/harness-code-reviewer.md && grep -qF "features/<FEAT>/notes/review-harness-code-reviewer-" .omp/agents/harness-code-reviewer.md && ! grep -qF "<HARNESS_CONTROL_PLANE_ROOT>/.harness/notes/review-harness-code-reviewer-" .claude/agents/harness-code-reviewer.md && ! grep -qF "<HARNESS_CONTROL_PLANE_ROOT>/.harness/notes/review-harness-code-reviewer-" .omp/agents/harness-code-reviewer.md && python3 -c "import sys;k='# Harness: Code Reviewer';a=open('.claude/agents/harness-code-reviewer.md').read();b=open('.omp/agents/harness-code-reviewer.md').read();sys.exit(0 if a[a.index(k):] == b[b.index(k):] else 1)"
+    intent: |
+      The section titled Output in the harness-code-reviewer persona documents a digest that
+      validate-digest.py rejects unconditionally. It never mentions code_grade, which the validator requires
+      of this persona; it offers only the quoted base..review_sha range, which cannot be written in the plan
+      phase because no commit exists yet; and its artifact: line names a path outside any feature directory,
+      which the validator refuses before it will bind code_grade at all.
+
+      EDIT THE CANONICAL SOURCE, THEN REGENERATE. .omp/agents/harness-code-reviewer.md is the canonical
+      role policy and .claude/agents/harness-code-reviewer.md is a GENERATED compatibility adapter of it -
+      sync-agent-adapters.py's own docstring, lines 3-5: "Canonical role policy lives in `.omp/agents`.
+      Claude files are generated compatibility adapters; edit the OMP source, then run `--apply`."
+      Hand-editing the generated copy is silently reverted by the next --apply. So:
+
+        a. Make ALL FOUR edits below in .omp/agents/harness-code-reviewer.md and in that file only.
+        b. Then run: python3 .claude/skills/harness/bin/sync-agent-adapters.py --apply
+           which regenerates .claude/agents/harness-code-reviewer.md from it. Both files change on disk,
+           which is why both are in this task's files: list, but only one is authored.
+        c. Confirm python3 .claude/skills/harness/bin/sync-agent-adapters.py --check returns rc 0. The
+           bodies must remain byte-identical from the "# Harness: Code Reviewer" heading onward; only
+           frontmatter differs, and the verify compares them.
+
+      Recorded as D-07. Make exactly the four edits enumerated below, and no others.
+
+      (1) In the fenced yaml DIGEST block, immediately above the existing reviewed: line, add this field,
+      spelled exactly so, because T-01's guard and the verify both grep for it:
+
+        code_grade: pass|fail|grade_2|n_a
+
+      Follow it with a trailing comment saying it is REQUIRED, that validate-digest.py recomputes it
+      independently from the range merge-base(default branch, review_sha)..review_sha and refuses a digest
+      whose claim disagrees (DEC-209), and that it is therefore an audit claim rather than evidence of
+      itself.
+
+      (2) Extend the reviewed: line so both legal targets are documented. Keep the existing quoted
+      base..review_sha value as the post-pin form, and add beneath it a second, commented line showing the
+      plan form: the field name reviewed, a colon, the token plan, a colon, and then the path to this
+      feature's own plan.yaml written as an angle-bracketed placeholder named path-to-plan.yaml. The
+      comment must state that this form is written in the PLAN phase, before any commit exists, together
+      with code_grade: n_a (DEC-207), and must name the three conditions the validator enforces for it:
+      the path must be this feature's own plan.yaml, the plan's approval.status must be pending, and
+      feature.json must have no pinned review_sha. The characters "reviewed: plan:" must appear literally
+      on that line - the verify greps for them.
+
+      (3) Replace the artifact: line that closes the same fenced block. It reads today:
+
+        artifact: <HARNESS_CONTROL_PLANE_ROOT>/.harness/notes/review-harness-code-reviewer-<runid>.md
+
+      which names no feature directory, and that is fatal on its own. Measured at c369fb1f in this
+      worktree: a plan-mode digest that is otherwise entirely correct - code_grade: n_a plus a well-formed
+      reviewed: plan: line naming this feature's own plan.yaml - is still refused, exit 1, with exactly one
+      error, "code_grade cannot be bound to review_sha: artifact '...' does not name a
+      .harness/<repo>/features/<FEAT>/ location - write your review under that feature's notes/."; the same
+      digest with only the artifact line moved under the feature's own notes/ returns "digest ok", exit 0.
+      Write the replacement line exactly as:
+
+        artifact: <HARNESS_FEATURE_TREE_ROOT>/.harness/<repo>/features/<FEAT>/notes/review-harness-code-reviewer-<runid>.md
+
+      This is the per-feature artifact shape harness-handoff already mandates for a persona that owns a
+      notes/ path. The characters
+
+        features/<FEAT>/notes/review-harness-code-reviewer-
+
+      must therefore appear literally on that line: the verify greps for exactly that fragment, in both
+      copies, and T-01's guard asserts it in both copies too.
+
+      (4) Correct the write-grant sentence in the same canonical file, in the "Expertise / Domain" section
+      near the top of the body. It reads today: You have Write for exactly two paths: your own report
+      <HARNESS_CONTROL_PLANE_ROOT>/.harness/notes/review-harness-code-reviewer-<runid>.md and your
+      Expertise. Rewrite only the report path in it, to the identical feature-directory form written in
+      (3), leaving the rest of that sentence and its surrounding paragraph untouched.
+
+      Why (4) is in scope for this task and is not creep: it names the SAME wrong path as the artifact:
+      line, a few lines earlier and more emphatically, and it is the sentence that tells the reviewer where
+      it is PERMITTED to write. Correct only the artifact: line and the file contradicts itself - the
+      reviewer reads that it may not write where the validator demands it write - so REQ-01, that a
+      reviewer working from only this persona file can produce a digest the validator accepts, stays
+      unmeetable. It touches no file that was not already in this task's files: list. Ruled at plan repair
+      cycle 1; recorded as D-06.
+
+      How (4) is checked, and why (3) alone does not satisfy the verify: the verify asserts that the OLD
+      fragment <HARNESS_CONTROL_PLANE_ROOT>/.harness/notes/review-harness-code-reviewer- is ABSENT from
+      BOTH .claude/agents/harness-code-reviewer.md and .omp/agents/harness-code-reviewer.md, as well as
+      that the new fragment is present. The old path occurs twice per file today - once on the artifact:
+      line of (3) and once in this write-grant sentence - so doing (3) and skipping (4) leaves the verify
+      RED. Presence alone could not distinguish the two, because after a complete fix the new fragment
+      occurs twice and grep -qF is satisfied by one occurrence (plan panel cycle 2, finding A-5).
+
+      Change nothing else in either file. Apart from those four edits - the code_grade field, the
+      reviewed: plan form, the artifact: line and the write-grant sentence - no other field, no other
+      section, no other prose, no frontmatter. If --apply produces any change to a file other than
+      .claude/agents/harness-code-reviewer.md, stop and report it: that is a pre-existing adapter drift,
+      not this task's, and it is not yours to absorb.
+
+  - id: T-03
+    title: Document plan-phase review in the code-review skill beside the pinned-SHA instruction
+    traces: [REQ-01, REQ-03]
+    change_type: bugfix
+    execution_mode: main-session-direct
+    execution_reason: check-domain.sh --resolve returns NOBODY for .claude/skills/harness-code-review/SKILL.md
+    depends_on: [T-01, T-02]
+    status: ready
+    files:
+      - .claude/skills/harness-code-review/SKILL.md
+    verify: |
+      grep -qF "reviewed: plan:" .claude/skills/harness-code-review/SKILL.md && grep -qF "DEC-207" .claude/skills/harness-code-review/SKILL.md && python3 tests/integration/test-validate-digest.py
+    intent: |
+      .claude/skills/harness-code-review/SKILL.md tells every code reviewer to diff base..review_sha
+      from the feature's review_sha file and never HEAD, in the section headed "Review a pinned
+      SHA", and says nothing about the plan phase. A reviewer dispatched before the operator signs
+      therefore has no contract it can satisfy: there is no review_sha to read and no diff to grade.
+
+      Add a short section immediately AFTER that pinned-SHA section - the reader who has just been
+      told to find a review_sha is exactly the reader who needs this - headed "Before there is a
+      SHA: plan-phase review", at the same heading depth. In the skill's existing voice, in under
+      fifteen lines, it must state:
+
+      - When it applies: a dispatch that grades a DRAFTED plan before the operator signs it, while
+        the feature's approval.status is pending and feature.json has no pinned review_sha
+        (DEC-207).
+      - What is graded: the specification, meaning BRIEF.md and plan.yaml - never a diff. There is
+        no commit the findings are about and no suite to run.
+      - What to write: the reviewed field carrying the token plan, a colon, and the path to THIS
+        feature's own plan.yaml (write the placeholder as an angle-bracketed path-to-plan.yaml), and
+        the code_grade field set to n_a. Two literal strings must appear in this section, because
+        T-01's guard greps for both and the verify greps for the first: the characters
+        "reviewed: plan:", and a line whose first non-space token is code_grade: carrying n_a, that
+        is, the characters "code_grade: n_a". Say that the validator accepts this form
+        only while those conditions hold, and that it is a distinct target rather than a fallback
+        for a missing SHA.
+      - The bound: findings enter the one batched review pass at the signature gate (DEC-176) and
+        never open a separate pre-signature fix dispatch.
+
+      Add one row to the existing Red flags table: the thought "there is no review_sha, so I will
+      diff against HEAD" against the reality that a plan-phase review grades the plan and writes the
+      plan form, while a post-pin review always has a SHA to read.
+
+      Change nothing else. Do NOT weaken or reword the pinned-SHA instruction itself: the post-pin
+      path must stay exactly as strict as it is today (REQ-03). In particular leave the pre-existing
+      "enum is an audit claim" passage at SKILL.md:112-113 alone; T-01's guard deliberately no longer
+      counts its bare n_a as evidence, so it neither helps nor blocks this task. After this task the
+      whole suite goes green, which is why the verify runs it.
+
+      Baseline for that suite run, so a red here is attributable to this feature's own change rather than
+      to inherited breakage: measured before any task of this feature landed, python3
+      tests/integration/test-validate-digest.py at sha c369fb1f in worktree
+      BUG-1303-plan-code-review-digest exited 0 with zero lines matching ^FAIL and a final "ALL PASSED."
+      in 18.9 seconds. Do not re-run it against the pre-change tree - that measurement is recorded, not
+      yours to repeat. If your run is red in a section none of T-01, T-02 or T-03 touched, that is a
+      separate defect: report it in your receipt and escalate it, do not absorb it into this task.
+
+  - id: T-04
+    title: Record the contract-divergence rule as a new decision and index it
+    traces: [REQ-05]
+    change_type: docs
+    execution_mode: team
+    execution_agent: harness-documentor
+    depends_on:
+    - T-01
+    status: ready
+    files:
+      - .harness/harness/docs/DECISIONS.md
+      - .harness/harness/docs/DECISIONS-INDEX.md
+    verify: |
+      grep -qF "documented output block" .harness/harness/docs/DECISIONS-INDEX.md && .agents/skills/harness/bin/gen-decisions-index.py --stdout | diff -q - .harness/harness/docs/DECISIONS-INDEX.md
+    intent: |
+      Append ONE new decision entry to the end of .harness/harness/docs/DECISIONS.md. Number it as
+      one more than the highest DEC- heading present in the file AT THE MOMENT YOU EDIT IT: several
+      features are planning concurrently, so do not trust a number quoted anywhere else, including
+      in this plan. Re-derive it.
+
+      Its ruling: a persona's DOCUMENTED OUTPUT BLOCK is an enforced half of the digest contract,
+      not commentary on it. The block a persona is instructed to write must carry every field
+      validate-digest.py's schema requires of that persona, and that agreement is checked
+      mechanically by tests/integration/test-validate-digest.py rather than left to whoever last
+      edited either side.
+
+      Scope that mechanical claim exactly, and do not let the entry overclaim it: what is checked is the
+      required fields of validate-digest.py's SCHEMAS for each persona PLUS the reviewer's known inline
+      per-persona extension, code_grade and reviewed, which validate() applies in code rather than as
+      data. The entry must NAME the guard's own required_by_persona construction in
+      run_documented_contract_cases (tests/integration/test-validate-digest.py) as the hand-written
+      mirror of that inline extension, so any future inline schema extension in validate() must update
+      that site or the guard silently under-checks the persona it extends.
+
+      Why this task depends on T-01 and on nothing else: the sentence above asserts that the agreement is
+      checked mechanically by tests/integration/test-validate-digest.py, and that sentence is only TRUE
+      once T-01 has landed. The dependency is a record-integrity dependency on T-01 - never falsify the
+      record - not a data dependency, and not a dependency on T-02 or T-03: this task consumes no artefact
+      any of the three produces. Depending on T-03 would serialise a docs-only task in a different lane
+      (harness-documentor) behind two further main-session-direct tasks it does not need.
+
+      The entry must record, in the file's existing Chose-and-why voice and in under twenty-five
+      lines:
+      - Origin: BUG-1303. Measured at c369fb1f, .claude/agents/harness-code-reviewer.md and its
+        .omp twin documented no code_grade field at all while the validator required one, so the
+        persona's own documented digest was invalid in every phase - and in the plan phase a
+        reviewer that had done its job settled as failed.
+      - Why doctrine alone was refused: the divergence is silent on both sides. The validator never
+        reads the block and the block's author never runs the validator, so nothing asserts anything
+        false and the pointer simply dies.
+      - The direction of the check and why: required-by-schema must be documented, while a
+        documented field the schema does not enumerate stays legal, because SCHEMAS holds only the
+        enum-and-typed required fields whereas headline, files_touched and open_questions are
+        required elsewhere in validate().
+      - The scope of the check: a persona's documented block, located mechanically, never the whole
+        file - seven of the sixteen personas share two files, so a whole-file search would let one
+        field name in unrelated prose satisfy the guard for all seven.
+      - What it does NOT change: DEC-207 is unamended and plan-review mode's semantics are
+        untouched; the SEC-01 review_sha binding, DEC-209's mechanical recomputation of code_grade
+        and INV-6 are all unchanged; and validate-digest.py is not edited by BUG-1303 at all.
+      - refs: DEC-207, DEC-209, DEC-174.
+
+      Then add the entry's row to .harness/harness/docs/DECISIONS-INDEX.md. Everything left of the
+      separator is generated; the ruling text to its right is HAND-WRITTEN by the entry's author in
+      the same commit and is never produced by the generator. The ruling must contain the exact
+      phrase "documented output block", because the verify greps for it. Then regenerate with
+      .agents/skills/harness/bin/gen-decisions-index.py so the row's line anchor, tags and refs are
+      the generator's own, and confirm that a second regeneration to --stdout is byte-identical to
+      the file on disk.
