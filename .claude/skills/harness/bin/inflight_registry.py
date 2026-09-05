@@ -41,6 +41,18 @@ LEGACY_FEATURE = "legacy"
 RELEASE_ALL_CMD = "python3 .agents/skills/harness/bin/inflight_registry.py release-all"
 
 
+class UnreadableRegistry(Exception):
+    """One or more existing claim registries could not be read safely."""
+
+    def __init__(self, paths):
+        if isinstance(paths, (str, bytes, os.PathLike)):
+            paths = [paths]
+        self.paths = tuple(sorted({os.fspath(path) for path in paths}))
+        super().__init__(
+            "unreadable in-flight claim registries: " + ", ".join(self.paths)
+        )
+
+
 def _registry_path(root):
     return os.path.join(root, REGISTRY_REL)
 
@@ -257,6 +269,53 @@ def _visible(claim, feature=None, session=None):
     if session is not None and claim.get("runtime") != "omp":
         return claim.get("session") in (None, session)
     return True
+
+
+def live_claims(root, agent, now=None):
+    """Return claims that still bind ``agent`` to worktrees, without mutating state."""
+    path = _registry_path(root)
+    try:
+        with open(path, "r", encoding="utf-8", errors="strict") as handle:
+            text = handle.read()
+    except FileNotFoundError:
+        return []
+    except (OSError, UnicodeError) as error:
+        raise UnreadableRegistry(path) from error
+
+    try:
+        raw = json.loads(text)
+    except (json.JSONDecodeError, ValueError) as error:
+        raise UnreadableRegistry(path) from error
+    if not isinstance(raw, dict):
+        raise UnreadableRegistry(path)
+    is_v2 = (
+        raw.get("schema_version") == SCHEMA_VERSION
+        and isinstance(raw.get("claims"), list)
+    )
+    is_v1 = (
+        "schema_version" not in raw
+        and all(isinstance(key, str) and isinstance(entries, list)
+                for key, entries in raw.items())
+    )
+    if not (is_v2 or is_v1):
+        raise UnreadableRegistry(path)
+
+    claims = _parse(text, path)["claims"]
+    current = time.time() if now is None else now
+    live = []
+    for claim in claims:
+        if not _matches(claim, agent=agent) or not _visible(claim):
+            continue
+        started = claim.get("started_at")
+        if not _is_number(started):
+            continue
+        if claim.get("runtime") == "omp":
+            binding_live = _omp_claim_live(claim, current)
+        else:
+            binding_live = current - started <= OMP_UNVERIFIED_TTL_SECONDS
+        if binding_live:
+            live.append(claim)
+    return sorted(live, key=lambda claim: claim["started_at"])
 
 
 def is_single_flight(agent):

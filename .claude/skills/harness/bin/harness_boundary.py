@@ -241,6 +241,68 @@ def worktree_for_feature(owner_root, feature_id):
     )
 
 
+def inside(child, parent):
+    """Whether one resolved absolute path is contained by another."""
+    try:
+        return os.path.commonpath([child, parent]) == parent
+    except ValueError:
+        return False
+
+
+def claim_worktrees(owner_root, agent_type, destination):
+    """Return the linked worktrees bound to an agent's live feature claims."""
+    import inflight_registry
+
+    owner_root = real(owner_root)
+    destination = real(destination)
+    claim_set = set()
+    unreadable = set()
+    roots = [owner_root] + linked_worktrees(owner_root)
+    for registry_root in roots:
+        try:
+            claims = inflight_registry.live_claims(registry_root, agent_type)
+        except inflight_registry.UnreadableRegistry as error:
+            unreadable.update(error.paths)
+            continue
+        for claim in claims:
+            worktree = worktree_for_feature(owner_root, claim.get("feature"))
+            if worktree is not None:
+                claim_set.add(worktree)
+
+    result = sorted(claim_set)
+    if any(inside(destination, worktree) for worktree in result):
+        return result
+    if unreadable:
+        raise inflight_registry.UnreadableRegistry(unreadable)
+    return result
+
+
+def claim_set_refusal(agent_type, claim_set, destination, unreadable_paths=None):
+    """Build the single actionable refusal used by every governed write route."""
+    destination = real(destination)
+    if unreadable_paths:
+        files = ", ".join(sorted(set(unreadable_paths)))
+        return (
+            f"{agent_type} binding cannot be determined for destination {destination}; "
+            f"the write is refused because these claim registries are unreadable: {files}. "
+            "Repair or remove those registry files, then retry."
+        )
+
+    held = ", ".join(sorted(set(claim_set)))
+    home = root_above(os.path.dirname(destination)) or os.path.dirname(destination)
+    message = (
+        f"{agent_type} holds worktree claim(s): {held}. Destination {destination} "
+        f"belongs in its proper checkout at {home}; write it from a bound worktree."
+    )
+    expertise_segment = os.sep + os.path.join(".harness", "expertise") + os.sep
+    if expertise_segment in destination:
+        message += (
+            " For control-plane expertise, use the sanctioned "
+            "python3 expertise-merge.py apply route."
+        )
+    return message
+
+
 def glob_to_re(pat):
     """Translate a glob to a regex. `**` crosses separators, `*` does not.
 
@@ -443,11 +505,8 @@ def select_base(abs_target, root, workspace_root, workspace_bases, fleet_path, l
     """
     abs_root = real(root)
 
-    def inside(child, parent):
-        try:
-            return os.path.commonpath([child, parent]) == parent
-        except ValueError:      # different drives / unrelated roots
-            return False
+    # All containment decisions use the module-level primitive shared with
+    # claim_worktrees, so path membership cannot drift between the guard and seam.
 
     if inside(abs_target, abs_root):
         # THE HARNESS BASE. Every glob is applicable — nothing is filtered on the glob
