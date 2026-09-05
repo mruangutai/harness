@@ -1,6 +1,6 @@
 schema: plan/1
 feature: BUG-1306-agent-type-hermetic-tests
-status: plan
+status: building
 approval:
   date: '2026-09-05'
   approved_by: mruangutai
@@ -207,7 +207,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: []
-    status: ready
+    status: building
     files:
       - tests/integration/test-plan-merge.py
     verify: |
