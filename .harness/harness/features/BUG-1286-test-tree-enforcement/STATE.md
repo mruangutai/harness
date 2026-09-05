@@ -3,48 +3,49 @@
 ## Current
 
 - feature: BUG-1286-test-tree-enforcement
-- run: entering validate — panel not yet dispatched
+- run: 2026-09-05-06-validator (panel, FAIL) and 2026-09-05-02-product (goal-check, FAIL)
 - squad: none
-- status: review
+- status: blocked
 
-Build phase COMPLETE. All five tasks T-01..T-05 are at station `done` and committed. The
-orchestrator re-ran every plan `verify:` verbatim rather than accepting a digest: unit 341 PASS /
-0 FAIL / 27 files (316 before this feature), integration 14 PASS / 0 FAIL, `--check-layout` exit 0,
-census `TOTAL 85 OUTSIDE 9 VIOLATIONS 0` with the `--against` round-trip at exit 0, decision anchors
-30 examined / 0 failed.
+BLOCKED at the operator gate with the rework budget exhausted at 10 of 10. Not merged, no PR, the
+worktree stands. `review_sha` is pinned at `9adbce6b690cd4b319c3758ab2a16505dd15900e`; the plan's
+feature station is `review` and all five task stations are `done`.
 
-The plan phase's stated honest limit is CLOSED. Case 11's four red cases and two green controls were
-re-proved against the BUILT artifact by the orchestrator's own probe, and the wiring was confirmed by
-reading `tests/unit/test-suite-layout.py:493,528`, where the live `repo_cfg["test_kinds"]` reaches
-`hygiene_uncertified`. Every earlier result on record was a hand-simulation of the specification.
+The feature WORKS. Four reviewer lenses found zero behavioural defects, the blocking `test_matrix`
+gate passed, and 17 of 19 success criteria are met. Every task `verify:` was re-run verbatim by the
+orchestrator: unit 341 PASS / 0 FAIL / 27 files (316 before the feature), integration 14/0,
+`--check-layout` exit 0, tree-audit `TOTAL 85 OUTSIDE 9 VIOLATIONS 0`, anchors 30/0,
+`check-state.sh` exit 0 with nothing for this feature. The plan phase's stated honest limit is
+CLOSED: case 11's four red cases and two green controls were re-proved against the BUILT artifact by
+the orchestrator's own probe, with the live-config wiring confirmed at
+`tests/unit/test-suite-layout.py:493,528`.
 
-The qa `test_matrix` gate PASSED with `must_fix` empty. It surfaced one real defect: T-02 case 3's
-ordering assertion was tautological and could not report red. That was fixed as forward work and the
-assertion now derives from the runner's actual output order. SIMPLIFY then ran its four angles and
-applied two behaviour-preserving changes.
+Three things block, each verified by the orchestrator rather than relayed:
+- B-1, high, gating: `code-grade.py` exits 1 at the pinned sha — `violations` grade 1 and
+  `_registry_findings` grade 3 against a bar of 4. Re-run independently because the panel raised it
+  on a single run it could not repeat. A COMPLEXITY finding, not a behavioural one.
+- B-2, SC-12: `notes/qa-tree-audit.md` records `5f76d6b1…`, confirmed by `git merge-base
+  --is-ancestor` NOT to be an ancestor of `review_sha`. It was orphaned by the origin/main rebase
+  the main session performed at the orchestrator's request AFTER the note was written; the rows are
+  byte-identical at both SHAs, so only the provenance token is wrong.
+- B-3, SC-16: `violations()` does have exactly one caller (`run-unit-tests.sh:33`, verified by
+  `git grep` at the pinned sha), but no unit assertion pins it repository-wide. Unproven, not wrong.
 
-The main session rebased onto origin/main from outside the worktree — `bash-write-guard.sh` refuses
-every HEAD move for a governed agent. HEAD is `6a5e0e0b`, tree clean, all suites re-run green after
-the rebase.
-
-`cycles_used` is 10 of 10, EXHAUSTED. `runs` is 35 against an informational `max_total_runs: 20`;
-INV-22 notes it and never gates.
+The briefing is `notes/ship-review-2026-09-05-ship.md`, rendered to `.html`. It carries twelve
+backlog rows, B-1 through B-12; anything not listed there dies silently.
 
 ## Open Questions
 
-- The budget ruling, from `fable-advisor` via the validator lead: the qa lead's send-back DOES
-  increment `cycles_used` under DEC-157 however the lead characterised it, and at 10 of 10 forward
-  first-pass work continues while the branch stops at the first actual rework demand. Practical
-  effect: any FAIL, unmet SC or high panel finding from here is `BLOCKED`, not a fix dispatch.
-- Doctrine residual for the operator: "exhausts" is undefined as reached-versus-crossed in both
-  DEC-157 and the orchestrator playbook, and there is no mechanical check on `max_total_cycles` at
-  all — `check-state.sh` only enforces INV-7. A one-line decision clarification retires it.
-- Two qa-gate advisory lows ride into the panel: the latent non-gating `INAPPLICABLE` branch at
-  `tests/unit/test-suite-layout.py:524`, and SIMPLIFY's two verified-dead conditions backlogged as
-  F-1 and F-2 in `notes/receipt-harness-dev-ops-simplify-simplification-build-c1.md`.
-- Harness defect carried from the plan phase: `validate-digest.py` requires `code_grade` on a
-  code-reviewer digest and rejects every value while `review_sha` reads `none`, so a plan-phase panel
-  reader that did its job settles as `failed`. Out of this feature's scope.
-- Harness hazard observed twice this run: members assigned to a worktree edited the MAIN checkout by
-  passing bare relative paths to file tools. Both incidents were caught and reverted, and the main
-  checkout is clean of feature paths. Worth a guard.
+- BLOCKING, for the operator: raise the cycle budget for one decomposition cycle, risk-accept B-1
+  under DEC-176 and ship with two criteria UNMET, or stop. All three remedies are small and routable
+  to squads that already own the files. Raising the budget is the operator's decision under DEC-157
+  and accepting a high finding's risk is the operator's alone under DEC-176.
+- Doctrine, non-blocking: "exhausts" is undefined as reached-versus-crossed in both DEC-157 and the
+  playbook, and there is NO mechanical check on `max_total_cycles` — `check-state.sh` enforces only
+  INV-7. `fable-advisor` ruled reached-does-not-stop and forward first-pass work continues; that
+  ruling is what let validation run at all. A one-line decision retires the ambiguity.
+- Harness defects observed this session, all in the briefing's backlog: members assigned to a
+  worktree editing the MAIN checkout through bare relative paths (twice, both reverted);
+  `check-domain.sh` refusing a first digest write as already-recorded; two runs' `state.yaml`
+  clobbered by a later run and repaired from their surviving digests; and the carried-forward
+  `validate-digest.py` `code_grade` deadlock for plan-phase readers.
