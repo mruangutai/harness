@@ -11,8 +11,9 @@ Validation is COMPLETE and PASSES at the pinned `review_sha`. The four-seat pane
 `severity_max: low`; the qa test-matrix hard gate passes; the goal-check grades all ten success
 criteria met. Every one of the five B-rows was mutation-proven to discriminate the defect it names,
 in a disposable probe worktree, so the two DEC-174 files stayed byte-identical to the pin throughout
-validation. The feature is ready for the operator's ship decision; the briefing is in
-`notes/ship-review-2026-09-05-validate.md`. Nothing here is merged, shipped or PR'd.
+validation. `check-state.sh` now exits 0 with zero violations tree-wide. The feature is ready for the
+operator's ship decision; the briefing is `notes/ship-review-2026-09-05-validate.md`. Nothing here is
+merged, shipped or PR'd.
 
 ## Open Questions
 
@@ -26,8 +27,10 @@ validation. The feature is ready for the operator's ship decision; the briefing 
 - Structural AST pins may need main-session fixture maintenance after a legitimate refactor, under a
   FAIL name that misdescribes the cause. Recorded in BRIEF.md; the ui reviewer re-raised it as two
   low advisories and it is a briefing row, not a gate.
-- `runs/2026-09-05-1-eng/digest.md` fails the DEC-156 lead-digest contract and CANNOT be repaired:
-  `check-domain.sh` refuses any Write to a run digest that already holds one. A malformed digest is
-  therefore permanent. This is a harness defect, carried to the operator as a briefing row.
+- `runs/2026-09-05-1-eng/digest.md` was repaired: the eng lead had written no contract block,
+  believing the structured DIGEST lived only in its return. `check-domain.sh` refuses a Write that
+  REPLACES a recorded run digest but permits one that EXTENDS it, so the block was appended with the
+  original 6339 bytes preserved byte-identically (md5 fb265e2b3feb6eb2e5bb9267aaee279f). The doctrine
+  gap that produced the malformed digest is carried to the operator as a briefing row.
 - Harness tooling defects observed during planning and validation remain outside this issue's scope
   and are carried as briefing rows, not fixed here.

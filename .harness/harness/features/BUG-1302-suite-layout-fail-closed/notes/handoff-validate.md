@@ -1,4 +1,4 @@
-# Handoff — BUG-1302-suite-layout-fail-closed, validate → ship — written at ac8dd671, seq-2
+# Handoff — BUG-1302-suite-layout-fail-closed, validate → ship — written at 1361c0a1, seq-2
 
 ## Next
 
@@ -22,19 +22,24 @@ checkout; it refuses at exit 1 when the feature dir resolves inside `.claude/wor
   orchestrator-tier count over both blobs — verified-at ac8dd671
 - SC-02/SC-04's structural pins genuinely separate base from fix: any() 2→1, `"*?["` 2→1, `".."`
   2→1 — orchestrator-tier AST census, base c369fb1 vs pin — verified-at ac8dd671
-- plan.yaml `panel.readers` now carries all three INV-32 readers, with `approval:` and `status:`
-  byte-unchanged — `git diff ac8dd671 -- .../plan.yaml` is the 3-line reader block — verified-at ac8dd671
-- `runs/2026-09-05-1-eng/digest.md` fails the DEC-156 contract and CANNOT be repaired — check-domain
-  refuses every Write to a run digest that already holds one — verified-at ac8dd671
+- plan.yaml `panel.readers` carries all three INV-32 readers with `approval:` and `status:`
+  byte-unchanged; the re-pin covers it — `git diff ac8dd671 d5dbb9da -- tests/ .claude/` is empty
+  — verified-at 1361c0a1
+- `check-state.sh` exits 0 with ZERO violations tree-wide — run at the orchestrator tier from this
+  worktree, which is the only checkout whose working tree holds this feature — verified-at 1361c0a1
+- runs/2026-09-05-1-eng/digest.md now satisfies the DEC-156 contract; the lead's original 6339 bytes
+  are preserved byte-identically — `validate-digest.py lead` exits 0, head -c 6339 md5
+  fb265e2b3feb6eb2e5bb9267aaee279f — verified-at 1361c0a1
 
 ## Dead ends
 
-- Repairing that 1-eng digest — the anti-clobber guard also blocks correction; carried as briefing
-  row B-2 instead — check-domain.sh refusal observed this run — verified-at ac8dd671
 - Editing either test file to produce more red evidence — DEC-174 reserves both to the main session,
   and qa already produced the evidence out-of-tree — BRIEF.md ## Constraints — verified-at ac8dd671
+- REPLACING a recorded run digest — check-domain refuses it and permits only an EXTEND, so a
+  malformed digest is repaired by appending, never by rewriting —
+  check-domain.sh refusal observed this run — verified-at 1361c0a1
 - `brief-sc:` and `plan-task:` authority pointers from inside a worktree — they resolve against the
-  main checkout, where this feature dir does not exist; briefing row B-4 — verified-at ac8dd671
+  main checkout, where this feature dir does not exist; briefing row B-4 — verified-at 1361c0a1
 - Re-running the plan panel — it ran at cycle 1 and all four PF- findings are recorded `resolved`;
   approval was never reset — plan.yaml `panel.findings` — verified-at ac8dd671
 - Removing this worktree from inside it — `git worktree remove` exits 0 from within and destroys the
