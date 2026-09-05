@@ -37,6 +37,10 @@ tests exactly as they do today, and the governing decision says what the code no
 - REQ-07: The governing record describes the invariant that shipped, with no narrower claim left
   standing as current behaviour.
 - REQ-08: Product-checkout test discovery and the runtime mutation-snapshot scope are unchanged.
+- REQ-09: The guard's refusal vocabulary is at least as wide as the `unit` kind map's discovery, and
+  stays that way: no file that `harness.json` `test_kinds.unit.detect` counts as a unit test can sit
+  outside the test tree permitted by the guard, and a later edit that widens `detect` past the guard
+  fails loudly rather than reopening the gap in silence.
 
 ## Constraints
 
@@ -112,11 +116,15 @@ tests exactly as they do today, and the governing decision says what the code no
   file is reported and an otherwise identical untracked file in the same location is not.
   verify: automated        evidence: unit
 - SC-12: The audit at `review_sha` records the complete measured set of vocabulary matches outside
-  `tests/**`, each with an explicit disposition, and reports no unexplained match. Graded by reading
+  `tests/**`, each with an explicit disposition, and reports no unexplained match, in a note whose
+  row block is unambiguous. Graded by reading
   `git show <review_sha>:.harness/harness/features/BUG-1286-test-tree-enforcement/notes/qa-tree-audit.md`
-  against a re-run of the audit at `review_sha`: the fenced row set must be identical, and the SHA
-  the note records must be an ancestor of `review_sha` with no tracked vocabulary match added or
-  removed between them.
+  against a re-run of the audit at `review_sha`: the note must carry EXACTLY ONE fenced block, that
+  block's row set must be identical to the re-run's, and the SHA the note records must be an
+  ancestor of `review_sha` with no tracked vocabulary match added or removed between them. What
+  fails it: a note carrying zero fenced blocks, or two or more — the instrument refuses that note by
+  name with `note carries {n} fenced blocks, expected exactly 1` and exit 2, and a second fence is a
+  failure of this criterion, not merely of a command.
   verify: inspection
 - SC-13: `git show <review_sha>:.harness/harness/docs/DECISIONS.md` describes the repository-wide
   invariant in DEC-213 and marks the earlier bin-only enumeration as superseded rather than current,
@@ -151,6 +159,27 @@ tests exactly as they do today, and the governing decision says what the code no
   does. What fails it: either case absent, either direction asserted only as the other's negation,
   or a single case carrying both halves so that one passing masks the other.
   verify: automated        evidence: unit
+- SC-19: The guard-covers-`detect` invariant is asserted, not argued, and its exemption is bounded
+  by the test tree. At test time the assertion READS `test_kinds.unit.detect` from
+  `.harness/harness.json`, splits it on `|`, and partitions every glob from the glob string alone.
+  A glob whose final `/`-separated segment contains a wildcard and is not composed of wildcard
+  characters alone constrains a basename: it is checked by synthesising one representative path
+  under a fixed directory outside `tests/**` and requiring `suite_layout.is_test_shaped` — the same
+  imported predicate the repository-wide clause itself calls — to judge it test-shaped. Every other
+  glob is directory-only, and is exempt from that check ONLY when its literal prefix — the leading
+  segments before the first segment carrying a wildcard — is `tests` or lies under `tests/`; a
+  directory-only glob rooted anywhere else fails the assertion by its existence, named in the
+  failure, because it makes the kind map count files no unit runner reaches. Today that is three
+  basename globs, one exempt, none rooted outside `tests/`. What fails it, both of which the
+  pre-existing template-equality assertion at `tests/unit/test-suite-layout.py:100-103` passes
+  because it is applied to both files together: adding `**/*.spec.*` to `unit.detect` in
+  `.harness/harness.json` and in `.claude/skills/harness/templates/harness.json`, which synthesises
+  `.harness/tools/x.spec.x` and matches no group of the guard's vocabulary; and substituting
+  `docs/**` for `tests/unit/**` in those same two files, a directory-only glob rooted outside
+  `tests/` that the assertion must name and fail on. Also fails it: an assertion that re-implements
+  the vocabulary instead of importing the predicate, that carries a copy of today's four globs
+  instead of reading them, or that exempts a directory-only glob without testing its literal prefix.
+  verify: automated        evidence: unit
 
 ### Traceability
 
@@ -177,6 +206,7 @@ ticket's own order) it covers:
 | SC-16 | REQ-08 | AC-11 product-checkout discovery unchanged |
 | SC-17 | REQ-03, REQ-04 | AC-04 no-index root: not a failure, not a silent scan |
 | SC-18 | REQ-01, REQ-04 | AC-01 rejected at any extension for the agnostic shapes; AC-06 legitimate non-test probe records remain accepted |
+| SC-19 | REQ-09 | AC-01 the refusal vocabulary stays at least as wide as `unit.detect` |
 
 ## Verification gaps
 
@@ -195,7 +225,11 @@ ticket's own order) it covers:
   `harness.json` still byte-unchanged (SC-14). No residual remains on this surface: `probe-*`,
   which keeps its source-extension restriction, is matched by no `detect` glob at all, and
   `test_*` is reached by `detect` only as `**/test_*.py`, which the source-extension form strictly
-  contains.
+  contains. The closure is asserted rather than assumed: T-01 case 11 reads `unit.detect` from
+  `.harness/harness.json` at test time and requires the guard's imported `is_test_shaped` predicate
+  to accept a synthesised representative name for every glob that constrains a basename, so a later
+  widening of `unit.detect` past the guard reddens the unit suite instead of silently reopening this
+  residual. The falsifiable criterion is SC-19.
 - The widening was re-measured before it was written, not inferred: at `c040c319` with a clean
   worktree, `git ls-files` in the worktree root filtered by basename against the five shapes gives
   85 total matches, 9 outside `tests/**`, 0 violations — one FEAT-44 documented exception and eight

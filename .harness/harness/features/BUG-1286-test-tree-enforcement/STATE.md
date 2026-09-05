@@ -3,28 +3,37 @@
 ## Current
 
 - feature: BUG-1286-test-tree-enforcement
-- run: .harness/harness/features/BUG-1286-test-tree-enforcement/runs/2026-09-04-15-product/state.yaml
+- run: .harness/harness/features/BUG-1286-test-tree-enforcement/runs/2026-09-04-21-product/state.yaml
 - squad: none
 - status: awaiting-user
 
-Plan phase at its terminus for the second time, after the operator's signature-gate amendment.
-Fix 1 (T-03's `--against` output contract is unconditional and additive) and Fix 2 (D-01's
-repository-wide vocabulary split into an extension-restricted group `test-*`, `test_*`, `probe-*`
-and an extension-agnostic group `*_test.*`, `*.test.*` mirroring `unit.detect`) are applied and
-carried through D-01, T-01, T-03, T-05 and BRIEF; the `harness.json` residual is closed from the
-guard's side with `harness.json` untouched, measured inert on the present tree. BRIEF carries 18 SC
-over all eleven ticket acceptance criteria; plan.yaml carries 6 decisions and 5 tasks at station
-`plan`. The cycle-4 goal-check returned PASS with no surviving gap, and a fresh cycle-4 panel
-returned PASS at severity_max `med` with nothing high, critical or unrated. Both approvals remain
-`pending`: only the main session signs. check-state reports one violation for this feature, the
-expected unsigned BRIEF.
+The operator's second signature-gate amendment is applied: the guard-covers-`unit.detect` invariant
+is now a runtime-derived unit assertion (T-01 case 11, REQ-09, SC-19) and the audit note carries
+exactly one fenced block by contract (T-03, T-04, SC-12). The cycle-5 goal-check found and pm closed
+GAP-1, a `docs/**` substitution that kept the assertion green. The fresh cycle-6 panel then FAILED:
+`severity_max: high`, seven findings, all dispositions `open`, no risk accepted anywhere. Both
+readers independently defeated case 11's partition at the same root cause — it reasons lexically and
+segment-wise, while the repository's only mechanical `unit.detect` consumer, `code_grade._is_test_path`
+(`code_grade.py:466-471`), matches full relative paths with `fnmatch`, where `*` crosses `/`.
+BRIEF carries 9 REQ and 19 SC over eleven acceptance criteria; plan.yaml carries 6 decisions and 5
+tasks at station `plan`. Both approvals remain `pending`.
 
 ## Open Questions
 
-- Two cycle-4 panel findings carry `remedy_window: closes at signature` and are the operator's to
-  rule on. PF-8de8d64458a4a30d8c7ba0b111546ccd (med): the guard-covers-`unit.detect` invariant that
-  justifies the whole widening is asserted by no test, so a future `detect` widening re-creates the
-  defect silently; remedy is one assertion in `tests/unit/test-suite-layout.py`, which T-01 already
-  owns. PF-8da87ee5041dd05ed45864fd98318883 (low): T-03's note parser finds every fenced block while
-  T-04 never caps the note at one, so a correct audit note carrying a second bare fence can fail the
-  comparison; one sentence in either task closes it.
+- PF-c145e8377fc22dff2d33f76386c8bc6a (F-01, HIGH, scope). Case 11's excused test is an unnormalized
+  lexical prefix compare, so a directory-only `detect` glob whose text begins `tests/` but escapes
+  the tree is excused rather than rogue. The lead reproduced the mechanism but found the stated
+  consequence non-reproducible today (`tests/../evil/**` matches no tracked path under `fnmatch`).
+  A high finding reaches the operator; no agent may accept its risk. Remedy: normalize the literal
+  prefix and reject any `..` component before the `tests/` comparison.
+- PF-b3b6afcdbfce07dcf98d1e0fb29865e3 (F-02, med). Case 11's partition and final-segment-only
+  synthesis assume wildcards do not cross `/`; the governing matcher does not. Remedy: state the
+  matcher semantics in D-01/REQ-09/SC-19 and assert no `unit.detect` glob carries a wildcard in a
+  non-final segment.
+- Which matcher semantics does REQ-09's word "counts" denote? Under `fnmatch` over full relative
+  paths, today's unmutated `**/test_*.py` already counts any file beneath a tracked `test_*`-named
+  directory outside `tests/**` — basename innocent, so the guard structurally cannot refuse it —
+  which falsifies REQ-09's absolute wording while SC-19 stays green. Narrowing a requirement is the
+  operator's call, not pm's and not the panel's.
+- Four lower findings (F-03..F-06, two med two low) and one info keep verdict entry are recorded in
+  plan.yaml's `panel:` and enter the same signature review.

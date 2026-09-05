@@ -1,56 +1,59 @@
-# Handoff — BUG-1286-test-tree-enforcement, plan → build — written at c040c319, seq-2
+# Handoff — BUG-1286-test-tree-enforcement, plan → build — written at a185a41c, seq-3
 
 ## Next
 
-Present BRIEF.md and plan.yaml to the operator for signature (main session only: `plan-merge.py
-sign-approval` for the plan, the BRIEF's `## Approval` section for the brief). Two cycle-4 panel
-findings carry `remedy_window: closes at signature` and must be ruled on in the same sitting —
-PF-8de8d64458a4a30d8c7ba0b111546ccd (med) and PF-8da87ee5041dd05ed45864fd98318883 (low). On
-signature, enter build: plan.yaml T-01 is the eng segment's first task, the only one with an empty
-`depends_on`; T-02 and T-03 unblock behind it, T-04 behind T-03, T-05 behind T-01 and T-02.
+Return to the operator, not to signature. The cycle-6 panel FAILED at `severity_max: high` and a
+high finding may be accepted by no agent — only the main session's `sign-approval --overrule`
+records acceptance. The operator must rule on three things in one sitting: F-01
+(PF-c145e8377fc22dff2d33f76386c8bc6a, high) — fix by normalizing case 11's literal prefix, or
+overrule; F-02 (PF-b3b6afcdbfce07dcf98d1e0fb29865e3, med) — state the governing matcher semantics;
+and what REQ-09's word "counts" denotes, which narrows a requirement and is scope. Only after that
+does signature, and then build entry at plan.yaml T-01, become the next action.
 
 ## Trust
 
-- The cycle-4 panel PASSED at severity_max med with nothing high, critical or unrated, so no finding
-  needs operator risk-acceptance — notes/review-plan-panel-c4.md — verified-at c040c319 by reading
-  plan.yaml `panel:` directly (cycle 4, 6 findings, 1 med / 1 low / 3 info / 1 none, all `open`).
-- The cycle-4 goal-check found no surviving gap and all eleven acceptance criteria delivered —
-  notes/research-BUG-1286-test-tree-enforcement-goalcheck-plan-c4.md — verified-at c040c319 by
-  reading BRIEF.md's 18 SC and its AC table.
-- Widening `*_test.*` and `*.test.*` to any extension is inert on the present tree: zero tracked
-  matches outside `tests/**`, one inside (`tests/unit/omp-hooks.test.ts`) —
-  notes/research-BUG-1286-vocabulary-split.md, corroborated by three independent enumerations in the
-  panel — verified-at c040c319.
-- plan.yaml loads, routes clean (`check-plan-routes.py`, 0 violations), all five tasks carry all
-  eleven keys, `status: plan`, `approval.status: pending`; `check-state.sh` reports one violation
-  for this feature, the expected unsigned BRIEF — verified-at c040c319 by the orchestrator running
-  both checkers itself.
-- T-01's premises hold at HEAD: `run-unit-tests.sh --check-layout` exists (line 20), the runner's
-  sole `violations()` caller is line 33, the mutation snapshot's scope is line 47's
-  `--mutation-check "$BIN_DIR"` — verified-at 1977ebd6 by direct read.
+- The cycle-6 panel FAILED with one high, three med, two low and one info finding, all dispositions
+  `open`, no risk accepted — notes/review-plan-panel-c6.md — verified-at a185a41c by reading
+  plan.yaml `panel:` (cycle 6, `last_run: 2026-09-04-20-validator`, seven findings).
+- Both readers reached F-01/F-02 independently from opposite ends and landed on one root cause: case
+  11 reasons lexically and segment-wise, while `code_grade._is_test_path` (`code_grade.py:466-471`)
+  is the only mechanical `unit.detect` consumer and matches full relative paths with `fnmatch` —
+  notes/review-plan-panel-c6.md, notes/review-harness-code-reviewer-planpanel-c6.md — UNVERIFIED at
+  this tier beyond the lead's own stated re-check of the consumer census; re-read `code_grade.py`
+  before acting on it.
+- GAP-1 from the cycle-5 goal-check is closed and measured closed: the `docs/**`-for-`tests/unit/**`
+  substitution is now RED, the `**/*.spec.*` mutant is RED, today's four globs pass —
+  notes/research-BUG-1286-test-tree-enforcement-detect-partition-c6.md — verified-at a185a41c.
+- Everything else the panel probed held under independent re-measurement: the one-fence contract's
+  identity across T-03/T-04/SC-12, SC-06's exact-equality assertion, the 85/9/0 census, the task DAG
+  and the SC-to-AC traceability — notes/review-plan-panel-c6.md — verified-at a185a41c.
+- plan.yaml loads, routes clean, all five tasks carry all eleven keys, `status: plan`,
+  `approval.status: pending`, and `check-state.sh` reports one violation for this feature, the
+  expected unsigned BRIEF — verified-at a185a41c by the orchestrator running both checkers itself.
 
 ## Dead ends
 
 - Do not unify the three clauses' test-shape vocabularies — notes/review-harness-eng-lead-plan-c0.md
-  "Two member findings rejected at this tier" — verified-at 1977ebd6: feeding `probe-*` into the
-  under-`tests/` clause makes `violations()` report tests/manual/probe-omp-session-accessor.py and
-  contradicts DEC-213.
+  "Two member findings rejected at this tier" — verified-at 1977ebd6.
 - Do not add a `tracked_paths_fn` injection seam to `violations()` — same note, ALTITUDE Q3 —
-  verified-at 1977ebd6: a test handed a path list proves nothing about `git ls-files`.
-- Do not edit `.harness/harness.json` — the `unit.detect` residual is closed from the guard's side by
-  D-01's two-group vocabulary — plan.yaml D-01 — verified-at c040c319; AC-11 and SC-16 freeze it.
-- Do not relocate, generalise or weaken FEAT-44's `evidence/probe-session-accessors.ts` exception —
-  plan.yaml D-05 — verified-at c040c319: the operator ruled it stays exactly as written.
+  verified-at 1977ebd6.
+- Do not edit `.harness/harness.json` — the residual is closed guard-side by D-01's two-group
+  vocabulary — plan.yaml D-01 — verified-at a185a41c; AC-11 and SC-16 freeze it.
+- Do not relocate, generalise or weaken FEAT-44's exception — plan.yaml D-05 — verified-at a185a41c:
+  the operator ruled it stays exactly as written.
+- Do not close F-01 by deleting or weakening case 11 — notes/review-plan-panel-c6.md F-07, the
+  should-not-exist reader's explicit keep verdict on the runtime-derived assertion — verified-at
+  a185a41c.
 
 ## Working set
 
 - .harness/harness/features/BUG-1286-test-tree-enforcement/plan.yaml
 - .harness/harness/features/BUG-1286-test-tree-enforcement/BRIEF.md
-- .harness/harness/features/BUG-1286-test-tree-enforcement/notes/review-plan-panel-c4.md
-- .harness/harness/features/BUG-1286-test-tree-enforcement/notes/research-BUG-1286-test-tree-enforcement-goalcheck-plan-c4.md
-- .claude/skills/harness/bin/suite_layout.py
+- .harness/harness/features/BUG-1286-test-tree-enforcement/notes/review-plan-panel-c6.md
+- .harness/harness/features/BUG-1286-test-tree-enforcement/notes/research-BUG-1286-test-tree-enforcement-goalcheck-plan-c5.md
+- .claude/skills/harness/bin/code_grade.py
 
 ## Done when
 
-Scope: Operator signature on the approval artifacts, then build entry at T-01
+Scope: Operator rulings on F-01, F-02 and REQ-09's matcher semantics, then signature
 Authority: approval:.claude/worktrees/harness/BUG-1286-test-tree-enforcement/.harness/harness/features/BUG-1286-test-tree-enforcement/BRIEF.md#Approval
