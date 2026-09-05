@@ -1,0 +1,36 @@
+{
+  "feature_id": "BUG-1308-expertise-replace-drop",
+  "branch": "feat/BUG-1308-expertise-replace-drop",
+  "pr": null,
+  "review_sha": "none",
+  "cycles_used": 1,
+  "max_total_cycles": 8,
+  "runs": [
+    {
+      "id": "2026-09-05-01-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-09-05-01-product-goalcheck",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "FAIL",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "plan-fix-c1-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-09-05-goalcheck-c1-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "code_grade": "n_a"
+    }
+  ]
+}

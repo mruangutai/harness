@@ -1,0 +1,521 @@
+schema: plan/1
+feature: BUG-1308-expertise-replace-drop
+status: plan
+approval:
+  status: pending
+source_issues: [1308]
+
+lanes:
+  resolved_at: c369fb1fdfc74a8f78edc9a2df2a8fea738afc94
+  rows:
+    - surface: .claude/skills/harness/bin/expertise-merge.py
+      lane: team
+      agent: harness-backend-dev
+    - surface: tests/unit/test-expertise-ops.py
+      lane: team
+      agent: harness-backend-dev
+    - surface: tests/integration/test-expertise-merge.py
+      lane: team
+      agent: harness-qa
+    - surface: .claude/skills/harness-distill/SKILL.md
+      lane: main-session-direct
+      reason: check-domain.sh --resolve reports NOBODY at c369fb1, DEC-174 carve-out
+    - surface: .harness/harness/docs/SPEC.md
+      lane: team
+      agent: harness-documentor
+    - surface: .harness/harness/docs/DECISIONS.md
+      lane: team
+      agent: harness-documentor
+    - surface: .harness/harness/docs/DECISIONS-INDEX.md
+      lane: team
+      agent: harness-documentor
+
+decisions:
+  - id: D-01
+    choice: >-
+      Replace and drop ship as a second subcommand, ops, taking the distill contract's op objects as
+      JSON; apply --entries and compute_union are not touched.
+    because: >-
+      The entries stream is the markdown format check-expertise.sh also parses, so a verb inside it
+      changes a format two tools read; the contract's ops are already structured data in the DIGEST.
+    dec: none
+  - id: D-02
+    choice: >-
+      target is required on every op and names the entry id; section is required for add and optional
+      for replace and drop, where an omitted section resolves the id across the whole file.
+    because: >-
+      One uniform key cannot be forgotten on one verb, and an omitted section is what makes the
+      cross-section ambiguity case reachable rather than unrepresentable.
+    dec: none
+  - id: D-03
+    choice: >-
+      Exactly three conditions are ambiguous and each exits 11 with AMBIGUOUS TARGET naming section,
+      id and reason - an unqualified id matching entries in more than one section, a target id
+      appearing more than once inside one section of the base file, and two ops in one proposal
+      resolving to the same section and id.
+    because: >-
+      An enumerated refusal set is auditable; guessing which of two entries was meant is the one
+      behaviour DEC-66 forbids outright.
+    dec: DEC-66
+  - id: D-04
+    choice: >-
+      A replace or drop whose target resolves to no entry exits 10, MISSING TARGET, naming section
+      and id.
+    because: 10 and 11 are free beside the established 6, 7, 8 and 9, so no caller's routing changes.
+    dec: none
+  - id: D-05
+    choice: >-
+      A malformed proposal exits 12, MALFORMED OPS - undecodable JSON, a payload that is not a list,
+      an unknown op verb, a missing or forbidden key, or a section outside the four canonical names.
+    because: A shape error and a target error are different repairs, so they must be different codes.
+    dec: none
+  - id: D-06
+    choice: >-
+      A replaced entry keeps its exact index inside its section; only its text changes, and section
+      length is unchanged, so replace at capacity is legal.
+    because: Position drift turns a one-entry change into an unreviewable whole-section diff.
+    dec: none
+  - id: D-07
+    choice: >-
+      Caps are evaluated once, on the final merged state, after every op has been applied, so a
+      proposal that drops one entry and adds another in the same section at capacity succeeds.
+    because: Evaluating per op would refuse a net-zero proposal on a transient over-cap state.
+    dec: DEC-145
+  - id: D-08
+    choice: >-
+      Every op resolves against the one base snapshot read inside the transform, nothing is applied
+      until all ops have resolved, and any refusal raises MergeRefusal before a byte is written.
+    because: >-
+      locked_update writes only what the transform returns, so an all-or-nothing transform is
+      byte-identity on refusal, proven by a sha256 comparison in the regression.
+    dec: none
+  - id: D-09
+    choice: >-
+      Compatibility means the apply code path is unmodified - its exit 0, 7 and 8 semantics and its
+      ADDED, PRESERVED and APPLIED tokens are what they are today - and ops takes the same lock file,
+      so the two subcommands serialise against each other.
+    because: The concurrency guarantee DEC-95 bought is a property of the lock path, not of the verb.
+    dec: DEC-95
+  - id: D-10
+    choice: >-
+      merge stays an authoring concept and is not a mechanism op; the tool refuses op merge at exit 12
+      with a message naming the rewrite, a replace on the surviving id plus a drop of the absorbed id.
+    because: >-
+      Merging synthesises new text from two entries, which only the authoring agent can do, so merge
+      survives as an authoring concept the contract rewrites rather than as a verb the tool applies. The
+      agreement this buys is the one SC-09, T-02 case17 and T-03 all state: Every op verb the distillation
+      contract names is either accepted by the expertise-merge.py ops subcommand or is merge, the one verb
+      the contract itself rewrites with the literal sentence: a replace on the surviving id plus a drop of
+      the absorbed id; and the tool accepts no verb the contract does not name.
+    dec: DEC-66
+  - id: D-11
+    choice: >-
+      The contract text is realigned in the same feature - harness-distill SKILL.md as a
+      main-session-direct step, SPEC.md section 5.3 and a new DEC-216 through the documentor.
+    because: >-
+      The issue's Alternative is only reachable if the mechanism is not built; building it makes the
+      contract true, and a text that still promises an unapplied verb reopens the same defect.
+    dec: none
+  - id: D-12
+    choice: >-
+      The ban on reusing a dropped entry id is enforced only where the tool can see it - a drop and an
+      add of the same section and id in one proposal exit 11 - and stays a contract rule across time.
+    because: The tool reads the current file only and cannot know an id was dropped in an earlier run.
+    dec: DEC-66
+
+  - id: D-13
+    choice: >-
+      The mid-build yield to the main session is accepted for exactly one edge and removed
+      everywhere else: T-02 keeps depends_on T-03 because case17 grades the contract text T-03
+      writes, while T-04 drops its dependency on T-03 - SPEC 5.3 and DEC-216 describe the
+      mechanism, not the skill text, so nothing in T-04 reads what T-03 wrote.
+    because: >-
+      T-03 is main-session-direct under DEC-174, so every task depending on it is a barrier the
+      squad build must stop at; the cost is one orchestrator round trip inside the build phase,
+      priced against an 8-cycle cap, and it is paid once rather than twice. Reordering the
+      remaining edge away is not possible - a drift detector that runs before the text it detects
+      drift in would grade the pre-change file and pass on work never done.
+    dec: DEC-174
+  - id: D-14
+    choice: >-
+      Record the operator-delegated Advisor's cycle-1 rulings as given, changing no task: D-12's
+      in-proposal-only id-reuse ban stands with no tombstone, D-10's contract/tool split on merge
+      stands, and T-02 keeps change_type scaffolding; the three answers are held verbatim at
+      .harness/harness/features/BUG-1308-expertise-replace-drop/notes/research-BUG-1308-expertise-replace-drop-advisor-c1.md
+    because: >-
+      the signature review needs the rulings pointed at from the plan, and that note is where they
+      live verbatim
+    dec: none
+panel:
+  last_run: 2026-09-05-plan-panel-c1-validator
+  cycle: 1
+  readers:
+  - reader: should-not-exist
+    status: ran
+    persona: fable-advisor
+  - reader: scope
+    status: ran
+    persona: harness-code-reviewer
+  findings:
+  - id: PF-f4d258f365f54f04d9cc976baf0ad981
+    severity: high
+    reader: scope
+    summary: T-01 Step D applies ops in given order at indices resolved against the
+      ORIGINAL snapshot but never says how the two reconcile under in-place mutation;
+      a drop at a low index followed by a replace/drop at a higher index in the same
+      section crashes or writes the wrong entry, and no case exercises that combination.
+    disposition: open
+  - id: PF-3f8a11143ba40f67b0f326d532381d5e
+    severity: med
+    reader: should-not-exist
+    summary: D-02's optional section on replace/drop is an affordance no caller emits,
+      built solely so the cross-section ambiguity case is reachable; requiring section
+      on every op deletes the affordance, one third of the exit-11 taxonomy, u4, case14(a)
+      and contract prose.
+    disposition: open
+  - id: PF-21e98fb21fbbe9fefe7c47cc9784c99b
+    severity: med
+    reader: should-not-exist
+    summary: case18/SC-11's Popen-both-before-wait forces no interleave, so the shared-lock
+      claim it exists to regression-test is only probabilistically covered.
+    disposition: open
+  - id: PF-0fd81890be0279f72e1fd44bc27f9828
+    severity: med
+    reader: scope
+    summary: T-03 and T-04 verify blocks machine-check a narrow subset of what their
+      own intents mandate - T-03 omits exit tokens 7/8/9/12 and the apply-unchanged
+      sentence, T-04 omits SPEC's 10/11/12 and DEC-216's Over/Because/Tradeoff content.
+    disposition: open
+  - id: PF-5674cd3640c7f69731e86e655135ca8c
+    severity: low
+    reader: should-not-exist
+    summary: case17's verbatim-unbackticked-substring gate on a SKILL.md sentence,
+      plus its two every-run drifted-copy mutants, pins documentation phrasing the
+      tool's own exit-12 refusal already carries at its point of use.
+    disposition: open
+  - id: PF-12c69147fda194c41e76361acb23eef1
+    severity: low
+    reader: should-not-exist
+    summary: u10, the PERMANENT RED CASE, pins compute_union's inability to replace
+      as a forever contract; u1 already reddens on the same revert, and u10 additionally
+      blocks a legitimate future unification of the two resolution paths.
+    disposition: open
+  - id: PF-f9161ebeb204bb05a72667ebc1f7df84
+    severity: info
+    reader: scope
+    summary: Exit-12 byte-identity is unit-proven only (u7 is a pure-function call);
+      no integration case drives MALFORMED OPS through the CLI with a sha256 before/after.
+    disposition: open
+tasks:
+  - id: T-01
+    title: Add the ops subcommand to expertise-merge.py with its unit coverage
+    traces: [REQ-01, REQ-02, REQ-03, REQ-04, REQ-05, REQ-06, REQ-07]
+    change_type: bugfix
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: []
+    status: ready
+    files:
+      - .claude/skills/harness/bin/expertise-merge.py
+      - tests/unit/test-expertise-ops.py
+    verify: |
+      python3 "$(git rev-parse --show-toplevel)/tests/unit/test-expertise-ops.py"
+    intent: |
+      Write tests/unit/test-expertise-ops.py FIRST, watch it fail, then make it pass. Do not touch
+      compute_union, cmd_apply, parse_expertise, render, CAPS or require_expertise_destination -
+      REQ-07 is that the existing apply path is unchanged.
+
+      Add to .claude/skills/harness/bin/expertise-merge.py, python3 stdlib only:
+
+      1. A PURE function resolve_ops(base_sections, base_order, ops) -> (merged, order, outcomes). It
+         never does IO and never calls sys.exit; it raises harness_merge.MergeRefusal(code, lines)
+         for every refusal, exactly as compute_union's caller does today. This is the function the
+         unit tests import and exercise directly.
+
+         An op is a dict:
+           op:      one of "add", "replace", "drop"          (required)
+           target:  the entry id string, for example P-01    (required on all three verbs)
+           section: one of Patterns, Gotchas, Outcomes, Open (required for add, optional otherwise)
+           entry:   the entry text WITHOUT the leading "- <id>: " (required for add and replace,
+                    and must be absent for drop)
+           why:     any string, accepted and ignored, so an op copied from a DIGEST applies verbatim
+
+         Step A, shape. A payload that is not a list, an op that is not a dict, an unknown op verb,
+         op == "merge", a missing required key, a forbidden key for that verb, or a section outside
+         CAPS -> MergeRefusal(12, ["MALFORMED OPS <one line naming the op index, the offending key
+         or verb, and what was expected>"]). For op == "merge" the line must read: MALFORMED OPS
+         op=merge is not a mechanism op; express it as a replace on the surviving id plus a drop of
+         the absorbed id.
+
+         Step B, resolution, EVERY op against the ORIGINAL base_sections, never against the result of
+         an earlier op. For replace and drop, candidates are every (section_name, index) whose entry
+         id equals target, restricted to the op's section key when that key is present.
+           zero candidates    -> MergeRefusal(10, ["MISSING TARGET section=<the named section, or
+                                 the literal any> id=<target> reason=no entry with this id exists"])
+           two or more        -> MergeRefusal(11, ["AMBIGUOUS TARGET section=<the matching section
+                                 names, comma joined> id=<target> reason=<the id appears in N
+                                 sections | the id appears N times in section X>"])
+         For add, the candidate section is the op's section key; if that section already holds target
+         with IDENTICAL text the op is a no-op reported PRESERVED, and if it holds target with
+         different text raise MergeRefusal(7, ...) using the existing CONFLICT line shape from
+         cmd_apply - CONFLICT section=<n> id=<id>, then the existing text and proposed text lines.
+
+         Step C, proposal-internal ambiguity. If two ops resolve to the same section and id -
+         including a drop and an add of the same target - raise MergeRefusal(11, ["AMBIGUOUS TARGET
+         section=<n> id=<id> reason=two ops in one proposal name this target"]).
+
+         Step D, application, in the order the ops were given. replace rewrites the text at the
+         resolved index, leaving the index and the section length unchanged. drop removes the entry
+         at the resolved index. add appends (target, entry) to the end of its section, creating the
+         section and appending its name to order when it is absent.
+
+         Step E, caps, ONCE on the final state, for every name in CAPS: size > cap ->
+         MergeRefusal(8, ["CAP EXCEEDED section=<n> cap=<c> union_size=<s>"]) - the same line the
+         existing cap check emits.
+
+         outcomes is the per-op verb for stdout, in op order: REPLACED, DROPPED, ADDED or PRESERVED,
+         each paired with its id.
+
+      2. A cmd_ops(args) modelled on cmd_apply: call require_expertise_destination(args.file) first,
+         printing its refusal lines to stderr and exiting 9 unchanged; read args.ops from a path or
+         from stdin when it is "-"; json.loads it, accepting either a list of ops or a mapping whose
+         expertise_update key holds that list, and raising the exit 12 refusal on a JSONDecodeError;
+         then run harness_merge.locked_update(resolved, transform) where transform parses the base -
+         a None base means empty sections, so an ops-only add creates the file exactly as apply does
+         today - and calls resolve_ops. Print refusal lines to stdout and sys.exit(refusal.code),
+         matching cmd_apply. On success print one line per op in op order - REPLACED <id>,
+         DROPPED <id>, ADDED <id> or PRESERVED <id> - then APPLIED <file path>, then sys.exit(0).
+
+      3. Register the subparser: ops --file <path> --ops <path or ->, both required, help text naming
+         the JSON payload. argparse's own exit 2 is untouched.
+
+      tests/unit/test-expertise-ops.py loads the module with importlib.util.spec_from_file_location
+      (the filename is hyphenated) from .claude/skills/harness/bin/expertise-merge.py, resolving the
+      repository root from its own __file__, and writes nothing under that bin directory. Follow the
+      RESULTS/check/main shape of tests/integration/test-expertise-merge.py: print PASS or FAIL per
+      case and exit 1 if any failed. Cases, all against resolve_ops directly:
+        u1  Patterns holding 15 entries, replace P-07: merged Patterns still has 15 entries, index 6
+            carries the new text, and every other id is untouched at its own index.
+        u2  drop G-03: G-03 absent, every other id present, section length one smaller.
+        u3  replace naming an id in no section: MergeRefusal.code == 10 and the line starts
+            MISSING TARGET.
+        u4  the same id present in Patterns and in Gotchas, op omits section: code 11, line starts
+            AMBIGUOUS TARGET and names both sections.
+        u5  a base whose Patterns holds P-04 twice, op names section Patterns: code 11.
+        u6  two ops naming the same section and id: code 11.
+        u7  op merge: code 12 and the line names the replace plus drop rewrite.
+        u8  Patterns at 15, one drop and one add in the same proposal: succeeds, final length 15.
+        u9  Patterns at 15, one add: code 8, line starts CAP EXCEEDED.
+        u10 THE PERMANENT RED CASE. Feed u1's exact base and replacement text to compute_union
+            instead - as a single-entry proposal for section Patterns carrying id P-07 with the new
+            text - and assert it returns a non-empty conflicts list AND that its merged Patterns
+            still carries the OLD text at index 6. This pins the defect the feature fixes, so
+            reverting resolve_ops to the union path reddens this file.
+
+  - id: T-02
+    title: Add the regression cases the issue names to the expertise-merge integration suite
+    traces:
+    - REQ-01
+    - REQ-02
+    - REQ-03
+    - REQ-04
+    - REQ-05
+    - REQ-06
+    - REQ-07
+    - REQ-08
+    - REQ-09
+    change_type: scaffolding
+    execution_mode: team
+    execution_agent: harness-qa
+    depends_on: [T-01, T-03]
+    status: ready
+    files:
+      - tests/integration/test-expertise-merge.py
+    verify: |
+      python3 "$(git rev-parse --show-toplevel)/tests/integration/test-expertise-merge.py"
+    intent: |
+      Extend tests/integration/test-expertise-merge.py with new case functions and register each in
+      main(). Change no existing case. Reuse the file's own helpers - write_file, write_entries,
+      target(root, stem), run_apply, check - and add a run_ops(file_path, ops_path) beside run_apply
+      that invokes [sys.executable, CLI, "ops", "--file", file_path, "--ops", ops_path]. Ops payloads
+      are written with json.dump. Capture the file's sha256 with hashlib before each refusal case and
+      compare it after; a byte-identity assertion is the point of three of these cases.
+
+      case11 REPLACE AT CAPACITY. Patterns with 15 entries P-01 through P-15. One op replacing P-07.
+        Assert exit 0; REPLACED P-07 in stdout; the written file still parses to 15 Patterns entries;
+        the 7th entry line carries the new text; and
+        bash .claude/skills/harness/bin/check-expertise.sh on the written file exits 0.
+      case12 REMOVAL. Gotchas with G-01 through G-05. One drop of G-03. Assert exit 0; DROPPED G-03
+        in stdout; the string "- G-03:" absent from the file; G-01, G-02, G-04 and G-05 all still
+        present; and check-expertise.sh on the written file exits 0.
+      case13 MISSING TARGET. One replace naming P-99. Assert exit 10; the combined stdout and stderr
+        carries MISSING TARGET, the id and the section token; the file's sha256 is unchanged; and a
+        following add-only run_apply still exits 0.
+      case14 AMBIGUOUS TARGET, three sub-cases, each its own fixture and each asserting exit 11, the
+        token AMBIGUOUS TARGET, the id, the section names and a reason, plus an unchanged sha256:
+        (a) one id present in two sections and the op omits section; (b) a base file whose Patterns
+        section carries P-04 twice and the op names Patterns; (c) two ops in one proposal naming the
+        same section and id.
+      case15 ATOMIC FAILURE. A three-op proposal whose first two ops are a valid replace and a valid
+        drop and whose third names a missing target. Assert non-zero exit, that the file's sha256
+        equals the sha256 taken before the invocation - neither of the first two ops landed - and
+        that a following add-only run_apply still exits 0.
+      case16 ADD-ONLY COMPATIBILITY. Through apply --entries only: an add-only proposal exits 0 and
+        prints the ADDED, PRESERVED and APPLIED tokens; a same-id-different-text proposal still exits
+        7; an over-cap proposal still exits 8. Assert the tokens by exact string.
+      case17 CONTRACT DRIFT DETECTOR, the same idiom as case 8. The one statement this case exists to
+        hold, worded exactly as SC-09, D-10 and T-03 word it: Every op verb the distillation contract
+        names is either accepted by the expertise-merge.py ops subcommand or is merge, the one verb the
+        contract itself rewrites with the literal sentence: a replace on the surviving id plus a drop of
+        the absorbed id; and the tool accepts no verb the contract does not name.
+
+        Mechanise it with NO judgement anywhere, as a function contract_drift(skill_text) -> list of
+        failure strings, so the same function can be run against a drifted copy:
+          CONTRACT = the set of op verbs named by the ops vocabulary line of
+            .claude/skills/harness-distill/SKILL.md, read as TEXT and collected the way case 8 collects
+            its vocabulary.
+          ACCEPTED = the set of verbs expertise-merge.py's ops parser accepts, collected by probing each
+            verb in CONTRACT plus each verb the parser's own help names, with a well-formed single op
+            against a throwaway fixture, and treating exit 12 whose line names an unknown verb or names
+            op=merge as NOT accepted.
+          REWRITTEN = {"merge"} if the literal string
+            a replace on the surviving id plus a drop of the absorbed id
+            occurs verbatim in skill_text, else the empty set. This is a substring test on the exact
+            characters, never a reading of what the sentence means.
+        Then assert both directions, each reported as its own failure string:
+          CONTRACT minus ACCEPTED == REWRITTEN - every contract verb the tool does not accept is exactly
+            the set the contract itself rewrites;
+          ACCEPTED minus CONTRACT == the empty set - the tool accepts no verb the contract omits.
+        Run contract_drift against the real file and assert it returns no failures.
+
+        MUTATION DEMONSTRATION, in the same case, so "fails if either side changes alone" is shown and
+        not assumed. Build two drifted COPIES of the SKILL.md text in the case's own tmp dir and assert
+        contract_drift returns a NON-EMPTY failure list for each:
+          (a) the copy with the literal sentence
+              a replace on the surviving id plus a drop of the absorbed id
+              deleted - REWRITTEN becomes empty while merge is still named, so the first direction fails;
+          (b) the copy with one extra verb, "prune", inserted into the ops vocabulary line - CONTRACT
+              grows a verb that is neither accepted nor rewritten, so the first direction fails again.
+        Copies only: the real SKILL.md is never written by this test.
+      case18 CONCURRENT WRITERS, SC-11. One Expertise file whose Patterns holds P-01 through P-08.
+        Force the overlap structurally, never with a sleep: build both children first, spawn BOTH with
+        subprocess.Popen before either is waited on, and only then communicate() with each -
+          child A: apply --entries adding two new Patterns entries P-09 and P-10;
+          child B: ops replacing P-07's text with a distinct marker string.
+        Wait each child with timeout=30 so the case is bounded well under 60 seconds; a TimeoutExpired
+        is a FAIL, not a skip. Then assert, on the final file:
+          both children exited 0;
+          the id census - the set of ids parsed out of Patterns - is exactly the eight ids that were
+            present before plus P-09 and P-10, so neither writer's work was lost;
+          the P-07 entry carries child B's marker text, not its original text.
+        These are the two shapes a shared-lock regression takes (D-09): one writer's entries absent from
+        the census, or the replaced entry still carrying its old text. Assert both, and name which one
+        fired in the FAIL message. The order the two land in is not asserted - either order leaves the
+        same final state, which is why this case is deterministic.
+
+  - id: T-03
+    title: Realign the distillation ops contract with the mechanism
+    traces: [REQ-08]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: >-
+      check-domain.sh --resolve reports NOBODY for .claude/skills/harness-distill/SKILL.md at
+      c369fb1; DEC-174 keeps skill-tree contract text off the squad lane.
+    depends_on: [T-01]
+    status: ready
+    files:
+      - .claude/skills/harness-distill/SKILL.md
+    verify: |
+      S="$(git rev-parse --show-toplevel)/.claude/skills/harness-distill/SKILL.md"
+      grep -q 'expertise-merge.py ops --file' "$S" &&
+      grep -q 'a replace on the surviving id plus a drop of the absorbed id' "$S" &&
+      grep -q 'MISSING TARGET' "$S" &&
+      grep -q 'AMBIGUOUS TARGET' "$S"
+    intent: |
+      Rewrite the ops block of .claude/skills/harness-distill/SKILL.md - the yaml example and the
+      sentences around it, currently the region introduced by "Updates are ops, each naming its
+      target" - so the contract states exactly what the mechanism does. Keep it short; this file is
+      read only at distillation but it is still a skill.
+
+      The statement the rewritten text must make true is the one SC-09, D-10 and T-02 case17 all word
+      identically: Every op verb the distillation contract names is either accepted by the
+      expertise-merge.py ops subcommand or is merge, the one verb the contract itself rewrites with the
+      literal sentence: a replace on the surviving id plus a drop of the absorbed id; and the tool
+      accepts no verb the contract does not name.
+
+      Two hard consequences for the text you write, both machine-checked by case17:
+        - the ops vocabulary line names EXACTLY add, replace, merge and drop - no fifth verb, and none
+          of add, replace or drop dropped;
+        - the file carries, VERBATIM and as a contiguous substring, the characters
+            a replace on the surviving id plus a drop of the absorbed id
+          in the sentence that says how a merge is expressed. Do not paraphrase it, do not reorder it,
+          do not break it across a line, and do not wrap any of it in backticks or emphasis - case17
+          greps for those exact characters and T-03's own verify greps for them too.
+
+      It must state, in the file's own voice:
+
+        - target is required on every op and names the entry id; section is required for add and
+          optional for replace and drop, and an id given without a section must match exactly one
+          entry in the whole file or the op is refused.
+        - merge is an authoring outcome, not a mechanism op: express it as a replace on the surviving
+          id plus a drop of the absorbed id. The tool refuses op merge and says so.
+        - the invocation, as a bash block:
+          python3 .claude/skills/harness/bin/expertise-merge.py ops --file <expertise file>
+          --ops <path or -> , with the payload being the JSON form of the expertise_update list.
+        - the refusal vocabulary and its exit codes, one line each: 7 CONFLICT, 8 CAP EXCEEDED,
+          9 not an Expertise file, 10 MISSING TARGET, 11 AMBIGUOUS TARGET, 12 MALFORMED OPS.
+        - the three conditions that make a target ambiguous, from D-03.
+        - that add-only proposals may still go through apply --entries, unchanged.
+
+      Keep the existing sentence that an op naming a nonexistent target is a contract violation,
+      rejected and not guessed at - it is now enforced at exit 10 rather than only asserted.
+      Change nothing else in the file.
+
+  - id: T-04
+    title: Record the operation in SPEC section 5.3 and as DEC-216
+    traces: [REQ-08]
+    change_type: docs
+    execution_mode: team
+    execution_agent: harness-documentor
+    depends_on:
+    - T-01
+    status: ready
+    files:
+      - .harness/harness/docs/SPEC.md
+      - .harness/harness/docs/DECISIONS.md
+      - .harness/harness/docs/DECISIONS-INDEX.md
+    verify: |
+      R="$(git rev-parse --show-toplevel)"
+      grep -q '^## DEC-216' "$R/.harness/harness/docs/DECISIONS.md" &&
+      grep -q '^- DEC-216 .* :: .*replace and drop through the ops subcommand' "$R/.harness/harness/docs/DECISIONS-INDEX.md" &&
+      grep -q 'expertise-merge.py ops' "$R/.harness/harness/docs/SPEC.md" &&
+      python3 "$R/tests/integration/test-gen-decisions-index.py"
+    intent: |
+      Three edits, one commit.
+
+      1. SPEC.md section 5.3, the paragraph that begins "The apply is a union merge, not a whole-file
+         write" and the invocation block under it. Add the second subcommand beside the first: the
+         ops invocation, that a target is keyed on section plus entry id, that a replace keeps the
+         entry's position so section size is unchanged, that caps are evaluated once on the final
+         state, and the exit codes 10 MISSING TARGET, 11 AMBIGUOUS TARGET and 12 MALFORMED OPS beside
+         the existing 6, 7, 8 and 9. Do not restate the caps as numbers - point at CAPS.
+      2. DECISIONS.md, append DEC-216 in the established Chose/Over/Because/Tradeoff accepted shape,
+         titled for the operation. Chose: replace and drop are a second subcommand, ops, taking the
+         distill contract's op objects as JSON, keyed on section plus entry id, every op resolved
+         against one base snapshot under the shared lock, with merge left an authoring concept
+         rewritten as replace plus drop. Over: a directive verb inside the apply --entries markdown
+         stream. Because: that stream is the format check-expertise.sh also parses, so a verb inside
+         it changes a format two tools read, while the contract's ops are already structured data in
+         the DIGEST. Tradeoff accepted: two payload formats for one file class, and an author must
+         convert a YAML DIGEST op to JSON. Reference DEC-66, DEC-95 and DEC-145.
+      3. DECISIONS-INDEX.md, regenerate with
+         python3 .claude/skills/harness/bin/gen-decisions-index.py and then WRITE the hand-written
+         ruling after the " :: " on the new DEC-216 row - the generator does not produce that half.
+         The ruling must carry, VERBATIM and as a contiguous substring, the characters
+           replace and drop through the ops subcommand
+         - unbackticked, unhyphenated, not broken across a line. T-04's verify greps that exact string
+         on the DEC-216 row and SC-10 is graded on it; the bare word "ops" is not a discriminator,
+         because it occurs incidentally on other rows. A ruling reading, for example, "replace and drop
+         through the ops subcommand, keyed on section plus entry id" satisfies it.
+         Appending an entry shifts every later row's source anchor, so the regeneration is mandatory
+         even though no earlier row's text changes.
