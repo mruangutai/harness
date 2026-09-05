@@ -2,7 +2,7 @@
   "feature_id": "BUG-1286-test-tree-enforcement",
   "branch": "feat/BUG-1286-test-tree-enforcement",
   "pr": null,
-  "review_sha": "none",
+  "review_sha": "9adbce6b690cd4b319c3758ab2a16505dd15900e",
   "cycles_used": 10,
   "max_total_cycles": 10,
   "max_total_runs": 20,
