@@ -1,58 +1,60 @@
-# Handoff — FEAT-55, plan → signature (round 3) — written at 407af0ba, seq-6
+# Handoff — FEAT-55, plan → signature (round 4) — written at 0141315d, seq-7
 
 ## Next
 
-Take the operator's THIRD batched signature pass. Pass two's rulings are applied in one consolidated
-revision (c5); the panel re-ran at cycle 3 and FAILed. `PF-df3caaeb7d520653866034e477d3718b` (F1,
-`awaiting_user`) gates it: it proves the operator's OWN ruled fix inert. Twelve findings ride this
-pass, each carrying a `fable-advisor` recommendation by operator instruction. Collect every ruling
-into ONE `notes/answers-<runid>.md`, then dispatch exactly one consolidated revision. Cited:
-plan.yaml `panel:`, STATE `## Open Questions` Q1–Q9.
+Take the operator's FOURTH batched signature pass. Pass three's five rulings are applied in one
+consolidated revision (c6), the SC-06 gap they opened is closed (c7), and the cycle-4 panel returned
+PASS with `severity_max: med` and `must_fix: []`. **Nothing gates the signature.** Eleven findings
+ride this pass, all `med`/`low`/`info`, each carrying a `fable-advisor` recommendation by operator
+instruction. Either sign with `sign-approval --overrule PF-ID:<reason>` per accepted finding, or
+order a fourth ruling batch first — but only TWO cycles remain of ten. Collect any rulings into ONE
+`notes/answers-<runid>.md`, then dispatch exactly one consolidated revision. Cited: plan.yaml
+`panel:`, STATE `## Open Questions` Q1–Q12.
 
 ## Trust
 
-- Both c5 rulings are in the plan: T-03 case F asserts ZERO `updateIssue`, its verify loop carries
-  `partial` and `github.issue_types`, T-10 §6 runs on an explicit TARGET, BRIEF SC-10 matches —
-  plan.yaml, BRIEF.md — verified-at 407af0ba
-- Neither approval fragment moved — plan.yaml `approval`, BRIEF.md `## Approval` — verified-at
-  407af0ba
-- `panel:` holds TWELVE findings — six carried verbatim with every id reproducing, six new —
-  `notes/research-FEAT-55-panel-transcription-c3.md` — verified-at 407af0ba
-- Both readers RAN at cycle 3, none skipped — `runs/2026-09-04-19-validator/digest.md` —
-  verified-at 407af0ba
-- F1's premise HOLDS: three `partial` cases, all fresh, backfill set empty by construction —
-  `.harness/notes/analysis-fable-advisor-consult-FEAT-55-c3.md` — verified-at 407af0ba
-- Intent delivered, eleven baseline findings closed, 0 route violations —
-  `notes/research-FEAT-55-goalcheck-plan-c4.md` — verified-at 407af0ba
-- Anchors inside `panel:` findings past plan.yaml`:159` are stale by +77; re-measured table —
-  `.harness/notes/analysis-fable-advisor-consult-FEAT-55-c3-tail.md` — verified-at 407af0ba
-- `github.issue_types` is absent from `.harness/harness.json`, so D-12's "EXISTING key" is
-  inaccurate and N4 has no installed base — lead-verified at `:357` — UNVERIFIED by me
+- All five c3 rulings are in the plan and the cycle-4 `scope` reader re-verified each HOLDING at
+  source — `runs/2026-09-05-27-validator/digest.md` `discharged_rollcall` — verified-at 0141315d
+- R1 is no longer inert: the three `FAKE_TYPES=partial` cases seed a declared-type `created`
+  remnant, so a backfill-before-refusal implementation reddens — plan.yaml T-03 F / T-05 G / T-07 I
+  — verified-at 0141315d
+- Neither approval fragment moved; both read `pending` — plan.yaml `approval:`, BRIEF.md
+  `## Approval` — verified-at 0141315d
+- `panel:` holds ELEVEN findings, all seven carried ids reproducing, nothing above `med`, and its
+  readers block is `reader:`-keyed with three entries per the SIGNED FEAT-52 precedent, so INV-32
+  has no hard BAD at signature — `bin/check-state.sh:533-546` — verified-at 0141315d
+- Intent delivered, unhedged YES, 0 route violations — `notes/research-FEAT-55-goalcheck-plan-c6.md`
+  — verified-at 0141315d
+- Both readers RAN at cycle 4, neither skipped, and the advisor consult RAN and moved three carried
+  items — `.harness/notes/analysis-fable-advisor-consult-FEAT-55-c4.md` — verified-at 0141315d
+- The advisor's Q2 deferral rests on DEC-205's rewrite-in-place rule, which the validator lead did
+  not re-read — `runs/2026-09-05-28-validator/digest.md` `adequacy_notes` — UNVERIFIED
 
 ## Dead ends
 
 - No pre-signature fix dispatch for any panel finding, gating or not — `skill://harness` plan phase,
-  DEC-176 — verified-at 407af0ba
-- Do not dispatch F1's remedy as a fix cycle: neither pm nor the orchestrator may discharge a `high`
-  finding's risk — plan.yaml `panel:` F1 `disposition` — verified-at 407af0ba
-- Do not pin `review_sha`: cycle 3 graded a specification, `code_grade: n_a` — feature.json `runs` —
-  verified-at 407af0ba
-- Do not re-run goal-check or panel before a revision — plan.yaml `panel.cycle` — verified-at
-  407af0ba
+  DEC-176 — verified-at 0141315d
+- Do not re-run the goal-check or the panel before a revision — plan.yaml `panel.cycle: 4` —
+  verified-at 0141315d
+- Do not pin `review_sha`: cycle 4 graded a specification, `code_grade: n_a` — feature.json `runs` —
+  verified-at 0141315d
+- Do not trust a line anchor stored inside a `panel:` finding: the cycle-4 transcription rewrote the
+  block wholesale — `notes/research-FEAT-55-panel-transcription-c4.md` — verified-at 0141315d
 - `apply` cannot revise an existing task or decision: add-only, exits 7. `amend` is the verb —
-  `plan-merge.py --help` — verified-at 407af0ba
+  `plan-merge.py --help` — verified-at 0141315d
 - Do not mirror to GitHub: this plan is unsigned — `references/github-mirror.md` — verified-at
-  407af0ba
+  0141315d
+- Do not re-raise the old Q10: the `step:`-keyed two-entry readers block was a FEAT-55 transcription
+  defect, now corrected — `notes/research-FEAT-55-panel-transcription-c4.md` — verified-at 0141315d
 
 ## Working set
 
 - .harness/harness/features/FEAT-55-issue-types-created-work/plan.yaml
 - .harness/harness/features/FEAT-55-issue-types-created-work/BRIEF.md
-- .harness/harness/features/FEAT-55-issue-types-created-work/runs/2026-09-04-19-validator/digest.md
-- .harness/notes/analysis-fable-advisor-consult-FEAT-55-c3.md
-- .harness/notes/analysis-fable-advisor-consult-FEAT-55-c3-tail.md
+- .harness/harness/features/FEAT-55-issue-types-created-work/runs/2026-09-05-27-validator/digest.md
+- .harness/notes/analysis-fable-advisor-consult-FEAT-55-c4.md
 
 ## Done when
 
-Scope: the operator's third batched signature pass over FEAT-55's revised plan package
+Scope: the operator's fourth batched signature pass over FEAT-55's revised plan package
 Authority: approval:.claude/worktrees/harness/FEAT-55-issue-types-created-work/.harness/harness/features/FEAT-55-issue-types-created-work/BRIEF.md#Approval
