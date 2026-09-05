@@ -2,7 +2,7 @@
   "feature_id": "BUG-1303-plan-code-review-digest",
   "branch": "feat/BUG-1303-plan-code-review-digest",
   "pr": null,
-  "review_sha": "b9939139",
+  "review_sha": "59c5de9764c363eebd67a55cd2f55285bacda69a",
   "cycles_used": 4,
   "max_total_cycles": 8,
   "runs": [
