@@ -1165,6 +1165,83 @@ def case_37_live_claims_refuses_unreadable_registry():
           inflight_registry.live_claims(missing, agent) == [])
 
 
+def _bug1304_registry_features(root):
+    return [
+        claim.get("feature")
+        for claim in _read_raw(root).get("claims", [])
+        if isinstance(claim, dict)
+    ]
+
+
+def case_bug1304_retention():
+    agent = "harness-backend-dev"
+    feature = "BUG-1304-retained"
+    now = 3_000_000
+    expired = _bug1304_claim(agent, feature, now - ASSUMED_TTL_SECONDS - 1)
+
+    root = tempfile.mkdtemp()
+    _write_raw(root, {"schema_version": 2, "claims": [expired]})
+    removed = inflight_registry.reconcile(root, now=now)
+    check("bug1304 retention: reconcile answer still reports dispatch expiry",
+          removed == 1, removed)
+    check("bug1304 retention: reconcile keeps binding-age record on disk",
+          feature in _bug1304_registry_features(root))
+
+    root = tempfile.mkdtemp()
+    _write_raw(root, {"schema_version": 2, "claims": [expired]})
+    children = inflight_registry.live_children(
+        root, "harness-orchestrator", now=now, feature=feature)
+    check("bug1304 retention: live_children answer excludes dispatch-expired claim",
+          children == [], children)
+    check("bug1304 retention: live_children keeps binding-age record on disk",
+          feature in _bug1304_registry_features(root))
+
+    root = tempfile.mkdtemp()
+    _write_raw(root, {"schema_version": 2, "claims": [expired]})
+    orphan = inflight_registry.orphan_write(
+        root, agent, feature, session=None, now=now)
+    check("bug1304 retention: orphan_write answer remains false",
+          orphan is False, orphan)
+    check("bug1304 retention: orphan_write keeps binding-age record on disk",
+          feature in _bug1304_registry_features(root))
+
+    root = tempfile.mkdtemp()
+    ancient = _bug1304_claim(
+        agent, feature, now - ASSUMED_OMP_BACKSTOP_SECONDS - 1)
+    _write_raw(root, {"schema_version": 2, "claims": [ancient]})
+    removed = inflight_registry.reconcile(root, now=now)
+    check("bug1304 retention: backstop-expired record is still reported removed",
+          removed == 1, removed)
+    check("bug1304 retention: backstop-expired record is pruned from disk",
+          feature not in _bug1304_registry_features(root))
+
+
+def case_bug1304_retention_admission():
+    agent = "harness-pm"
+    feature = "BUG-1304-retained-admission"
+    now = 4_000_000
+    old = _bug1304_claim(agent, feature, now - ASSUMED_TTL_SECONDS - 1)
+    old["claim_id"] = "retained-old"
+    _write_raw(
+        root := tempfile.mkdtemp(),
+        {"schema_version": 2, "claims": [old]},
+    )
+    receipt = inflight_registry.claim_with_receipt(
+        root, agent, "harness-product-lead", "/fixture/new",
+        now=now, feature=feature)
+    check("bug1304 admission: retained claim does not block fresh single-flight",
+          isinstance(receipt, dict), receipt)
+    check("bug1304 admission: old binding record and new claim both remain on disk",
+          len(_read_raw(root).get("claims", [])) == 2, _read_raw(root))
+    visible, expired = inflight_registry.live_claim(
+        root, agent, now=now, feature=feature)
+    check("bug1304 admission: dispatch answer exposes only the fresh claim",
+          visible is not None
+          and visible.get("claim_id") == receipt.get("claim_id")
+          and expired == 1,
+          (visible, expired))
+
+
 CASES = (
     case_1_claim_then_live_claim, case_2_single_flight_and_parallel_asymmetry,
     case_2b_live_children_by_dispatcher, case_2c_live_children_expires_stale,
@@ -1188,6 +1265,8 @@ CASES = (
     case_34_children_refusal_names_suspension, case_35_feature_root_cli,
     case_36_live_claims_read_only_and_binding_horizon,
     case_37_live_claims_refuses_unreadable_registry,
+    case_bug1304_retention,
+    case_bug1304_retention_admission,
 )
 
 
