@@ -57,5 +57,18 @@
       "verdict": "PASS",
       "code_grade": "n_a"
     }
-  ]
+  ],
+  "github": {
+    "milestone": 45,
+    "parent": 1309,
+    "attached": [
+      "T-01"
+    ],
+    "issues": {
+      "T-01": 1310
+    },
+    "source_issues": [
+      1306
+    ]
+  }
 }
