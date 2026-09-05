@@ -1,0 +1,287 @@
+schema: plan/1
+feature: BUG-1306-agent-type-hermetic-tests
+status: plan
+approval:
+  status: pending
+source_issues: [1306]
+
+lanes:
+  resolved_at: c369fb1
+  rows:
+    - surface: tests/integration/test-plan-merge.py
+      lane: team
+      agent: harness-backend-dev
+    - surface: .harness/harness/features/BUG-1306-agent-type-hermetic-tests/**
+      lane: team
+      agent: harness-pm
+
+decisions:
+  - id: D-01
+    choice: Confine the fix to tests/integration/test-plan-merge.py; no shared tests/integration helper and no second test file is touched.
+    because: Exactly one production script reads the variable from the environment (plan-merge.py line 1188), so generalising would edit about 26 further test files whose behaviour cannot differ under any environment today, and would pull the enforcement-layer test files into one task the squad cannot execute through the harness under DEC-174.
+    dec: none
+  - id: D-02
+    choice: Make the file hermetic by popping HARNESS_AGENT_TYPE from os.environ once at module import, plus a comment naming plan-merge.py line 1188 as the coupling and one sentence in run_verb's docstring.
+    because: It is the only candidate that stays hermetic for a future case written with a raw subprocess.run or Popen rather than a helper, and this file already has two raw Popens at lines 305 and 309; it covers run_apply and both Popens with zero per-site edits.
+    dec: none
+  - id: D-03
+    choice: Do not change .claude/skills/harness/bin/plan-merge.py.
+    because: Its environment read is deliberate issue-1103 defence-in-depth added after four demonstrated shell-form leaks past the hook's text prediction, and a test-mode escape hatch would add a bypass to an enforcement-adjacent guard.
+    dec: none
+  - id: D-04
+    choice: Explicitly dropped as over-building — a shared tests/integration hermetic helper, a mandatory-explicit-env rule at every call site, any tree-wide lint or gate on environment discipline, per-site edits to run_apply and the two Popens, and a central scrub in run_pool.py or run-unit-tests.sh.
+    because: The scrubbed-default helper and the explicit-env rule are bypassed by raw call sites; a central scrub in the pool turns the suite green while every file stays non-hermetic under the direct python3 tests/... invocation agents actually use, hiding the defect at the layer that would surface it.
+    dec: none
+  - id: D-05
+    choice: No new permanent regression case is added to the file.
+    because: An in-process assertion that os.environ.get of HARNESS_AGENT_TYPE is None is tautological, re-asserting the pop two lines above it. The non-tautological variant, spawning a fresh child interpreter with the variable set and asserting the pop, COULD be written as a case; it is declined on the Iron Law, not on impossibility — a test earns its place only where a plausible bug would fail it, and the 13 checks across six cases that go red again the moment the pop is removed are standing, non-tautological proof already, so such a meta-case would add no failure mode while pinning implementation structure and duplicating SC-04's cheaper inspection. The instrument that reconstructs the ambient-governed precondition is the invocation itself, which is the verify clause.
+    dec: none
+  - id: D-06
+    choice: This flow runs under an eight cycle build and review cap, extendable only by the Advisor, with twenty as the hard maximum.
+    because: The operator set it at the 2026-09-05 grilling, and the single source of the cap is BRIEF.md's Constraints section, which already carries the numbers verbatim; this entry records only that the operator chose the cap and that the Advisor is its sole extender, and defers the numbers themselves to BRIEF.md, so an extension amends one document and no gate can read a stale figure here.
+    dec: none
+  - id: D-07
+    choice: The focused regression proof for this test-only change is the pre-fix red and post-fix green pair under the ambient governed invocation, and nothing else; the builder records the post-fix green in notes/receipt-harness-backend-dev-<runid>.md and qa records its independent run in notes/qa-BUG-1306-integration.md.
+    because: The pre-fix red is already recorded by the orchestrator's measurement at HEAD c369fb1 (14 FAIL lines, exit 1), so the only missing half is the same command returning exit 0 with zero FAIL lines after the change, taken by an agent from its own governed shell.
+    dec: none
+
+panel:
+  last_run: 2026-09-05-06-validator
+  cycle: 0
+  severity_max: high
+  team: plan-panel
+  transcription_rule: Finding ids are content hashes from panel_findings.py id --reader
+    <step> --summary <summary>, computed over the digest's summary text unaltered;
+    the summary stored here is byte-identical to the string hashed.
+  readers:
+  - reader: should-not-exist
+    persona: fable-advisor
+    status: ran
+    verdict: PASS
+    findings: 3
+    note: Ran in runs/2026-09-05-06-validator; findings-only, contract-shaped return,
+      none above low.
+  - reader: scope
+    persona: harness-code-reviewer
+    status: ran
+    verdict: FAIL
+    findings: 3
+    artifact: notes/review-harness-code-reviewer-planpanel-c0.md
+    note: Ran in runs/2026-09-05-06-validator; produced the one HIGH finding and re-derived
+      the D-02 mechanism at source.
+  - reader: goalcheck
+    persona: harness-pm
+    status: ran
+    verdict: PASS
+    findings: 0
+    artifact: notes/research-BUG-1306-goalcheck-plan-c0.md
+    note: 'Ran as a separate cycle-0 dispatch, not inside the runs/2026-09-05-06-validator
+      directory, which is why the validator digest records steps_run 2. It is this
+      plan''s goal-check: it grades intent coverage against the grilling note, rates
+      all five criteria for determinism, and its Q1 and Q2 are the questions the two
+      panel readers then answered. It raised no finding of its own beyond the SC-05
+      review_sha pin, which was already taken before this panel ran.'
+  findings:
+  - id: PF-8d2608761fd582d9e04a7fe844b2e0da
+    panel_label: F1
+    reader: scope
+    severity: high
+    summary: 'SC-03 is verify: automated but no automated command in the plan runs
+      the clean-env control'
+    consequence: 'T-01''s verify: ran only the governed invocation; the SC-03 command
+      survived as intent prose. D-07 scopes QA to the governed run and SC-03 is not
+      verify: inspection, so no gate owned it.'
+    disposition: resolved
+    resolved_by: T-01
+    note: 'The panel raised this at HIGH and it gated signature. It was closed BEFORE
+      signature, not absent from the panel: in the 2026-09-05 pm panel-close pass
+      T-01''s verify: block was amended through plan-merge.py amend to run the clean-environment
+      control (env -u HARNESS_AGENT_TYPE python3 tests/integration/test-plan-merge.py)
+      as a second, independently failing half with its own clean_rc and its own guarded
+      exit 1. The amended block has not been executed; its shell is unproven as an
+      artifact, exactly as the panel''s adequacy note said of the original.'
+  - id: PF-15e50cd4137f8309fac4057506bd40a5
+    panel_label: F2a
+    reader: scope
+    severity: med
+    summary: SC-05 gates which files changed, not which lines, so a case_1103_ predicate
+      weakened under an unchanged check() name evades SC-01/02/04/05
+    consequence: 'A future r.returncode in (0, 10) at test-plan-merge.py:1111 still
+      prints PASS over a suite that no longer proves the #1103 refusal.'
+    disposition: advisory
+    note: 'Open as a standing gap for future edits. For THIS change the remedy was
+      homed in T-01''s intent: a reviewer confirmation that lines 1097-1140 are byte-identical
+      against pre-fix HEAD. No new success criterion was added; both readers agreed
+      that is the wrong instrument.'
+  - id: PF-7dbd0f9ca42e7e5beb281e2fe75f1658
+    panel_label: F2b
+    reader: should-not-exist
+    severity: low
+    summary: The predicate-weakening hole is real but its remedy is one line in the
+      reviewer's dispatch, not a new success criterion
+    consequence: Any hunk inside 1097-1140 breaches T-01's explicit leave-them-alone
+      instruction and fails spec compliance on sight; a new SC would never fire before
+      review does.
+    disposition: advisory
+    note: 'Taken, with a durable home rather than a per-cycle dispatch line: the confirmation
+      now lives in T-01''s intent:, so it survives a re-dispatch.'
+  - id: PF-b8ccb532a6a33f15d965f89b4e36c639
+    panel_label: F3a
+    reader: should-not-exist
+    severity: low
+    summary: D-06 duplicates the BRIEF's cycle-cap constraint and its no-other-home
+      rationale is false
+    consequence: Two homes for the cap means an Advisor extension amends one copy,
+      and a later gate reads the stale number.
+    disposition: advisory
+    note: 'Ruled keep-and-correct in the pm panel-close pass. Dropping D-06 has no
+      write route: plan-merge.py''s verbs are apply, add-tasks, set-task-station,
+      set-feature-station, set-panel, sign-approval and amend; apply adds and never
+      deletes, amend replaces one field of one named item, and there is no remove
+      verb. D-06''s because: was amended to name BRIEF.md''s Constraints section as
+      the single source of the numbers.'
+  - id: PF-cb4a8c789b3bab85977655430512d244
+    panel_label: F3b
+    reader: scope
+    severity: low
+    summary: D-06 is process bookkeeping rather than a choice about this change
+    consequence: Inflates the decision count without adding leverage to T-01; honestly
+      labelled, no task cites it via dec:, so nothing is misapplied.
+    disposition: advisory
+    note: Accepted as accurate and left standing; the entry is now scoped to recording
+      the operator's choice and the Advisor's sole right to extend.
+  - id: PF-bb1fe70831759ed975fdeae8739f7f86
+    panel_label: F4
+    reader: should-not-exist
+    severity: info
+    summary: D-05's conclusion is endorsed but its claim that the child-process variant
+      cannot be written as a case at all is overstated
+    consequence: Decisions here get quoted as settled rulings; a future flow citing
+      'unwritable' as fact would skip an in-child probe where it is the right tool.
+      Correct ground is the Iron Law, not impossibility.
+    disposition: advisory
+    note: "Taken in the pm panel-close pass. D-05's conclusion and the tautology argument\
+      \ are unchanged; only the false ground was replaced \u2014 the child-process\
+      \ variant COULD be written and is declined on the Iron Law, the 13 standing\
+      \ checks already reddening the moment the pop is removed."
+  dismissed:
+  - claim: CI blindness (pm Q1) as a standalone finding
+    reason: should-not-exist was asked directly and landed on D-05 sound; scope confirmed
+      at source that .github/workflows/tests.yml runs the integration kind with no
+      HARNESS_AGENT_TYPE, so CI is already clean and this fix cannot change its result.
+      Survives only as the sharpened consequence attached to F1.
+  - claim: D-02's module-import os.environ pop is unsound or reaches another caller
+    reason: "scope re-derived run_pool.py:61-63 (one subprocess.run per file), swept\
+      \ both bin/ trees (plan-merge.py:1188 is the sole production env read), swept\
+      \ tests/ (no other Python reader), and opened both in-process importlib loads\
+      \ at :1662 and :1915 \u2014 neither reaches cmd_sign_approval. No caller shares\
+      \ a process."
+  - claim: SC-05 does not grade the same way twice
+    reason: The amended two-dot pinned form is deterministic under normal main history
+      and closes all three named escape routes; the lifecycle-artifacts clause admits
+      only paths under this feature's directory, none executable by production code.
+  - claim: Orphan REQ, criterion tracing to nothing, or non-topological dependency
+      shape
+    reason: T-01 traces REQ-01..03, which is every REQ in the BRIEF; a single task
+      has no ordering to violate. Neither reader found one.
+  adequacy_notes:
+  - F1's own author rated its functional risk low; the lead did not. scope established
+    CI runs this suite with no HARNESS_AGENT_TYPE, so a builder writing del os.environ[...]
+    instead of pop(..., None) raises KeyError at module import, stays green under
+    the governed invocation, and reddens every CI run after merge. The high stands
+    on functional grounds.
+  - 'Nothing was executed by the panel: that tier held no shell. T-01''s verify: block
+    has never been run in either direction, and the F1 amendment inherits that.'
+  - SC-05's stability rests on an unmeasured assumption about main history (no rebase,
+    no force-push).
+  - A two-reader panel over a one-task plan cannot distinguish a clean plan from a
+    shallow read; scope produced falsification evidence at source, the advisor produced
+    reasoning, and the dismissals are recorded accordingly.
+tasks:
+  - id: T-01
+    title: Make test-plan-merge.py hermetic against HARNESS_AGENT_TYPE at module import
+    traces: [REQ-01, REQ-02, REQ-03]
+    change_type: bugfix
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: []
+    status: ready
+    files:
+      - tests/integration/test-plan-merge.py
+    verify: |
+      cd "$(git rev-parse --show-toplevel)"
+      out=$(HARNESS_AGENT_TYPE=harness-orchestrator python3 tests/integration/test-plan-merge.py)
+      rc=$?
+      if [ "$rc" -ne 0 ]; then exit 1; fi
+      if printf '%s\n' "$out" | grep -q "^FAIL"; then exit 1; fi
+      printf '%s\n' "$out" | grep -qF "PASS  a governed agent's sign-approval exits 10" || exit 1
+      printf '%s\n' "$out" | grep -qF "PASS  the signature actually lands" || exit 1
+      # SC-03 clean-environment control. NOT redundant with SC-01: a builder who writes
+      # del os.environ["HARNESS_AGENT_TYPE"] instead of os.environ.pop("HARNESS_AGENT_TYPE", None)
+      # raises KeyError at module import whenever the variable is ABSENT — green under the governed
+      # invocation above, red on every CI run after merge, because .github/workflows/tests.yml runs
+      # this suite with no HARNESS_AGENT_TYPE. This half is the only gate that fails on it.
+      clean_out=$(env -u HARNESS_AGENT_TYPE python3 tests/integration/test-plan-merge.py)
+      clean_rc=$?
+      if [ "$clean_rc" -ne 0 ]; then exit 1; fi
+      if printf '%s\n' "$clean_out" | grep -q "^FAIL"; then exit 1; fi
+      echo VERIFY-OK
+    intent: |
+      In tests/integration/test-plan-merge.py ONLY, make the file independent of the ambient
+      HARNESS_AGENT_TYPE variable. Total change is about 15 lines and touches no other file.
+
+      What to write, at module import time, in the import block near the top of the file (after
+      "import os", alongside the TESTS_DIR / ROOT / BIN_DIR / CLI constants at lines 28-33) and
+      therefore BEFORE any case body and BEFORE the two raw Popen call sites near lines 305 and
+      309:
+
+        os.environ.pop("HARNESS_AGENT_TYPE", None)
+
+      Above it write a short comment stating: this suite shells out to plan-merge.py, whose
+      cmd_sign_approval reads HARNESS_AGENT_TYPE from the process environment at
+      .claude/skills/harness/bin/plan-merge.py line 1188 and exits 10 for any non-empty value; a
+      Harness agent's own shell carries that variable, so without this pop 13 checks across six
+      cases fail for the agent and pass for a human. Popping once here covers run_apply, run_verb
+      and any raw subprocess.run or Popen a future case writes, with no per-call-site rule.
+
+      Write the pop as os.environ.pop("HARNESS_AGENT_TYPE", None) exactly. Do NOT write
+      del os.environ["HARNESS_AGENT_TYPE"]: that raises KeyError at module import whenever the
+      variable is ABSENT, which is every CI run, since .github/workflows/tests.yml runs this suite
+      with no HARNESS_AGENT_TYPE. The clean-environment half of this task's verify block is the only
+      gate that fails on that mistake.
+
+      Add ONE sentence to run_verb's existing docstring (line 137-141) saying that the ambient
+      HARNESS_AGENT_TYPE is removed at module import, so env=None is already hermetic and an
+      explicit mapping is needed only when a case wants a specific identity.
+
+      Do NOT change plan-merge.py. Do NOT add a helper shared with other test files. Do NOT edit
+      run_pool.py, run-unit-tests.sh, or any other test file. Do NOT add a new case: an in-process
+      assertion that the variable is absent merely re-asserts the pop, and the child-process
+      variant (a fresh interpreter spawned with the variable set) COULD be written but is declined
+      on the Iron Law, since a test earns its place only where a plausible bug would fail it and
+      the 13 checks across six cases already go red the moment the pop is removed.
+
+      Leave both case_1103_ cases exactly as they are (lines 1097-1140). The positive case sets
+      HARNESS_AGENT_TYPE explicitly and must still assert exit 10; the negative control's env
+      filter becomes a redundant no-op while its assertion, that an absent identity signs at exit 0
+      and the signature lands, is unchanged and still meaningful.
+
+      BYTE-IDENTITY OF THE case_1103_ REGION, AND HOW IT IS CHECKED. Lines 1097-1140 of
+      tests/integration/test-plan-merge.py — both case_1103_ case bodies in full — must be
+      BYTE-IDENTICAL after this change. The reviewer of this task is to CONFIRM that against
+      pre-fix HEAD, by diffing the file against the pre-fix commit and establishing that no hunk
+      range intersects lines 1097-1140, and NOT to infer it from a green suite or from unchanged
+      check() name strings. The reason it needs its own confirmation: SC-01, SC-02, SC-04 and SC-05
+      all gate either which FILES changed or which strings PRINT, so a weakened predicate under an
+      unchanged check() name — r.returncode in (0, 10) written in place of == 10 at
+      test-plan-merge.py:1111 — still prints PASS and evades every one of them. This is a reviewer
+      confirmation step, not a new success criterion.
+
+      Then run the verify command from this task verbatim and record its full output, including the
+      pass and fail counts, in
+      .harness/harness/features/BUG-1306-agent-type-hermetic-tests/notes/receipt-harness-backend-dev-<runid>.md.
+      The verify block now runs both halves: the governed invocation and the clean-environment
+      control (env -u HARNESS_AGENT_TYPE python3 tests/integration/test-plan-merge.py), each of
+      which must exit 0 with zero FAIL lines. Record both. The pre-fix red half of the evidence pair
+      is already recorded: at HEAD c369fb1 the governed invocation printed 14 FAIL lines and
+      exited 1.
