@@ -190,30 +190,41 @@ tests exactly as they do today, and the governing decision says what the code no
   existing reporting channel and does not fail. So the empty real set cannot leave this half
   unfalsifiable, and no property of today's `detect` value is pinned inside the assertion.
   HYGIENE: every `detect` pattern of every running kind is certified either inside-tests — by a
-  NORMALIZED literal prefix, with
-  any `..` component rejected outright — or guard-covered — by carrying no `/` once a single
-  leading `**/` is removed, and leaving no basename of a fixed adversarial corpus
-  matched-and-unrefused. The two categories must partition the pattern set and the guard-covered
-  bucket must be non-empty. That certification is a SUFFICIENT condition on pattern SHAPE, not the
-  universal property that every path a pattern can match outside `tests/` is refused by the
-  vocabulary — no `**/`-prefixed `fnmatch` pattern satisfies that property, because a bare `*`
-  crosses `/`, so a hygiene half asserting it directly could never be green on today's own
-  `detect`. It therefore does not close the directory-component residual disclosed under
-  `## Verification gaps`: `**/test_*.py` certifies guard-covered while counting
-  `.harness/tools/test_dir/gen.py`, whose basename the vocabulary cannot refuse. The BEHAVIOURAL
-  half is what closes that residual; the hygiene half catches a `detect` EDIT whose shape newly
-  escapes the vocabulary. What fails it, all three verified on a prototype of the assertion and
-  none of them caught by the pre-existing template-equality assertion at
-  `tests/unit/test-suite-layout.py:100-103` because both config files move together: substituting
-  `tests/../evil/**` for `tests/unit/**` in `.harness/harness.json` and in
-  `.claude/skills/harness/templates/harness.json`, which the `..` rejection refuses; introducing a
-  wildcard in a NON-FINAL segment such as `**/test_*/**`, whose core spans a `/`; and adding
-  `**/*.spec.*`, whose core matches corpus basenames the vocabulary does not refuse. Also fails
-  it: an assertion that re-implements the vocabulary or the matcher instead of importing both,
-  that carries a copy of today's `detect` value instead of reading it, that synthesises a
-  representative path from a glob's final segment, that pins how many patterns land in either
-  bucket, that names the control's subject instead of selecting it with the live matcher, or that
-  fails when no candidate qualifies instead of recording the control INAPPLICABLE.
+  NORMALIZED literal prefix, with any `..` component rejected outright — or guard-covered, where
+  guard-covered means ALL FOUR of: the core, the pattern with a single leading `**/` removed,
+  carries no `/`; the core is non-degenerate; the core carries FIXED wildcard-free literal text the
+  vocabulary keys on, being either the extension-agnostic infix `_test.` or `.test.`, or one of the
+  restricted prefixes `test-`, `test_`, `probe-` TOGETHER WITH a fixed wildcard-free source
+  extension; and no basename of a fixed adversarial corpus — which must carry extension-poison
+  entries such as `test_x.pw` and `a_test.pw` — is left matched-and-unrefused by the imported
+  `is_test_shaped`. The two categories must PARTITION the pattern set, and a pattern certifying as
+  NEITHER fails the case naming the pattern: FAIL-CLOSED BY DESIGN, as a general rule and never a
+  list of banned shapes, so a `detect` shape nobody anticipated blocks until someone certifies it.
+  Nothing is asserted about how many patterns land in either bucket, nor that either is occupied.
+  The certification is a SUFFICIENT condition and is stated as one: the universal property — every
+  path a pattern can match outside `tests/` is refused by the vocabulary — IS satisfiable by a
+  `**/`-prefixed pattern (`**/*_test.py` satisfies it, its slash-free literal suffix surviving into
+  every basename it can match), but it is not decidable by inspection for an arbitrary glob,
+  whereas fixed slash-free literal text is — and that literal text is what closes the escape. The
+  rule is sufficient over the leak axes ENUMERATED TO DATE, the directory-component axis and the
+  extension-position axis, both found by picking an axis by hand; a third is not excluded
+  (`## Verification gaps`). It therefore does not close the directory-component residual:
+  `**/test_*.py` certifies guard-covered while counting `.harness/tools/test_dir/gen.py`, whose
+  basename the vocabulary cannot refuse, and the BEHAVIOURAL half is what carries that residual
+  over paths that actually exist. What fails it, all four verified on a prototype of the assertion
+  against the real `.harness/harness.json` and none of them caught by the pre-existing
+  template-equality assertion at `tests/unit/test-suite-layout.py:100-103` because both config
+  files move together: substituting `tests/../evil/**` for `tests/unit/**` in
+  `.harness/harness.json` and in `.claude/skills/harness/templates/harness.json`, which the `..`
+  rejection refuses; introducing a wildcard in a NON-FINAL segment such as `**/test_*/**`, whose
+  core spans a `/`; adding the extension-position core `**/test_*.p?`, which carries no fixed
+  extension and counts `.harness/test_evil.pw` at an extension the vocabulary refuses nowhere; and
+  a pattern of ANY shape that certifies as neither category, `**/*.spec.*` being the worked
+  instance. Also fails it: an assertion that re-implements the vocabulary or the matcher instead of
+  importing both, that carries a copy of today's `detect` value instead of reading it, that
+  synthesises a representative path from a glob's final segment, that names the control's subject
+  instead of selecting it with the live matcher, or that fails when no candidate qualifies instead
+  of recording the control INAPPLICABLE.
   verify: automated        evidence: unit
 
 ### Traceability
@@ -285,6 +296,19 @@ ticket's own order) it covers:
   `cab6adb2` no such tracked path exists, so REQ-09 holds today; T-01 case 11's behavioural half
   reddens the unit suite on the commit that adds one, and the remedy is then to move the file, to
   widen the vocabulary, or to record the exception. The falsifiable criterion is SC-19.
+- The hygiene half of T-01 case 11 is a SUFFICIENT rule, not a proof, and the operator signs against
+  that limit explicitly. It closes the leak axes ENUMERATED TO DATE — the non-final-segment form of
+  the directory-component axis, by requiring the core to carry no `/`, which refuses a wildcard in
+  any NON-FINAL segment while the directory-component residual above stays with the behavioural
+  half; and the extension-position axis, by requiring FIXED wildcard-free literal text the
+  vocabulary keys on, which is what refuses `**/test_*.p?` (core `test_*.p?`, no fixed extension,
+  counting `.harness/test_evil.pw` at an extension the vocabulary
+  refuses nowhere). BOTH axes were found by picking an axis by hand; nobody enumerated the axis
+  space, so a THIRD axis is not excluded and no claim of exhaustive proof over future glob shapes
+  is made here. Two things bound that residual and neither is a proof either: a pattern certifying
+  as neither category FAILS the case by name, so an unrecognised glob shape is refused rather than
+  waved through; and the behavioural half carries the residual over paths that actually exist,
+  reddening the unit suite on the commit that adds one. The falsifiable criterion is SC-19.
 - The vocabulary widening was re-measured before it was written, not inferred: at `c040c319` with
   a clean worktree, `git ls-files` in the worktree root filtered by basename against the five
   shapes gives 85 total matches, 9 outside `tests/**`, 0 violations — one FEAT-44 documented

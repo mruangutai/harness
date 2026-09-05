@@ -49,3 +49,28 @@
 - 2026-09-04: BUG-1286 c7 amendment — a positive control that names its subject is a config pin one level down from the cardinality pin F-03/F-04 struck. Re-basing it as "select the first qualifying candidate from a fixed literal corpus, using the live matcher" kept every red (escape, non-final wildcard, new pattern family) and dropped the false red on a legitimate narrowing. Measured, not argued: dropping **/test_*.py re-selects .harness/tools/a.test.d/gen.py.
 - 2026-09-04: plan-merge.py amend replaces a WHOLE field, so amending one paragraph of a 260-line intent means supplying the entire value. Deriving the new value by yaml.safe_load + a single unique-anchor string replacement (asserting count==1) avoids retyping and caught nothing silently.
 - 2026-09-04: BUG-1286 c8 panel transcription — plan-merge.py has a fifth verb, set-panel --file --value-file, that replaces the whole top-level panel mapping under the lock and re-dumps it with yaml.safe_dump; it validates last_run/cycle/readers/findings types and refuses (exit 5) if the reload differs. It is the only route for a wholesale panel replacement; apply would have exit-7'd on every changed value. It takes a FILE, not stdin, so the value has to be staged (/tmp works; the notes dir grants only research-*.md).
+- 2026-09-04: BUG-1286 c9 amendment. A reviewer-supplied "correct rule" can still be unbuildable: the operator's literal fixed-slash-free-SUFFIX wording certified none of today's three `**/`-prefixed unit patterns (measured against the real .harness/harness.json) and would have reddened the unmutated config. Prototyping the ruling BEFORE writing it took two minutes and saved a cycle; the refinement (fixed-literal keying at the BASENAME axis, on top of core-has-no-slash) is green today and red on all four escape shapes.
+- 2026-09-04: BUG-1286 c9. Two escape-detection conditions looked redundant and are not: `**/test_*.p?` is caught by both the structural fixed-extension condition and the poisoned corpus oracle, but `**/test_*.[ps]y` is caught by the structural condition ALONE because no corpus basename matches it. Measuring each condition against a shape the OTHER cannot see is what showed the pair is minimal.
+- 2026-09-04: plan-merge.py amend with a single-line --value-file under a `>-` field emits one 4.5k-char line. Re-amending with the same string hard-wrapped at 100 cols folds back to the identical value (length unchanged) and keeps the plan diffable.
+- 2026-09-04: observations-merge.py `--entries -` is refused by bash-write-guard, which reads the bare `-` as a redirect target. Passing a file path to `--entries` works.
+- 2026-09-04 (BUG-1286 c9 goal-check): grading an operator ruling LITERALLY against the live config
+  before grading the amendment is what settled the divergence — all three `**/`-prefixed unit
+  patterns fail the ruling's fixed-suffix wording (two have no fixed suffix, `.py` is not a refused
+  suffix), so the literal ruling was unbuildable and the refinement was forced, not a softening.
+- 2026-09-04 (BUG-1286 c9): a per-pattern "matches at least one corpus entry" oracle is not the
+  bucket-occupancy pin the panel struck, but it is the same family: measured 4 of 7 source
+  extensions unsampled, so `**/test-*.sh`, `**/probe-*.ts`, `**/test_*.js`, `**/test_*.mjs` all
+  redden while legitimately covered. Fail-closed with an additive remedy, so non-gating.
+- 2026-09-04 (BUG-1286 c9): a claim self-corrected four lines later still counts as an
+  overstatement at the signature site — `closed by (a)` vs the residual sentence in the same
+  paragraph, at two sites, where D-01 already had the correct wording to copy.
+- 2026-09-04 (BUG-1286 c9 strike): the witness cited for "(c) and (d) are both load-bearing" was
+  false on its own terms — the text claimed no corpus basename matches `**/test_*.[ps]y`, but
+  `fnmatch('test_x.py','test_*.[ps]y')` is True. When a justification names a specific witness,
+  evaluate the witness before deciding whether the claim is merely unsupported or actually wrong.
+- 2026-09-04 (BUG-1286 c9 strike): striking a conjunct from a spec means grepping for every
+  downstream sentence that only exists to service it — here a remedy bullet 70 lines later and a
+  load-bearing claim 20 lines earlier. The conjunct's own text is the smallest part of the edit.
+- 2026-09-04: BUG-1286 c10 panel transcription. plan-merge.py has a set-panel verb (--value-file) that replaces the whole top-level panel mapping through the same lock; it is the right route for a panel rewrite, and re-running it on the same value file is byte-identical (md5 unchanged), which doubles as a confinement proof.
+- 2026-09-04: BUG-1286 c10. Proving "nothing outside panel: changed" without a pre-write snapshot: the panel block grew by exactly 63 lines (173-410 -> 173-473) and every task-region line the c10 readers cited pre-write (plan.yaml:664 condition (b), :733 anti-occupancy) now sits at old+63 with identical text. A fixed shift across independent anchors is a cheap, falsifiable confinement measurement.
+- 2026-09-04: BUG-1286 c10. runs/ is gitignored, so a lead digest only survives as a tracked notes/ copy. shutil.copyfile via python3 -c is the sanctioned route (bash-write-guard denies cp) and md5sum on both paths proves verbatim.

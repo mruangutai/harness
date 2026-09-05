@@ -72,30 +72,41 @@ decisions:
       **/*.test.* and **/*_test.* with no extension filter, so a tracked session_test.md or run.test.jsonl
       outside tests/ would be counted a unit test by the matcher, permitted by an extension-restricted
       guard, and executed by no runner - the same silently-smaller-suite defect this feature exists to
-      close, one size down.
-      The at-least-as-wide property is now ASSERTED against the matcher's own semantics rather than
-      argued from a snapshot of today's detect value, and the argument that once stood here - that
-      **/test_*.py reaches only paths the source-extension form contains - is WITHDRAWN as a
-      segment-wise misreading: under fnmatch the * in that pattern crosses /, so it also counts
+      close, one size down. The at-least-as-wide property is now ASSERTED against the matcher's own
+      semantics rather than argued from a snapshot of today's detect value, and the argument that once
+      stood here - that **/test_*.py reaches only paths the source-extension form contains - is WITHDRAWN
+      as a segment-wise misreading: under fnmatch the * in that pattern crosses /, so it also counts
       .harness/tools/test_dir/gen.py, whose basename gen.py no basename vocabulary can refuse. T-01 case
       11 states the property in two halves. The BEHAVIOURAL half quantifies over actual path sets - the
       repository's own tracked set and a fixed synthetic tracked set - and requires that every path
       outside tests/ that code_grade._is_test_path counts is accepted by the imported is_test_shaped
-      predicate and is not a DOCUMENTED_EXCEPTIONS entry, so a counted-but-permitted file reddens the
-      unit suite on the commit that introduces it. The HYGIENE half certifies every detect pattern of
-      every running kind as inside-tests, by a normalized literal prefix with any .. component rejected
-      outright, or as guard-covered, by requiring that the pattern leaves no basename of a fixed
-      adversarial corpus matched and unrefused; anything uncertified fails the case by name.
-      Measured at cab6adb2 against the real .harness/harness.json and the real Git index, the set of
-      tracked paths outside tests/ that the matcher counts is EMPTY, so the behavioural half over the
-      real root is a TRIPWIRE today rather than a demonstration. That is why the synthetic set exists and
-      why the case also proves the tripwire discriminates. The residual is stated rather than certified
-      away: because * crosses /, a pattern like **/test_*.py can reach a path whose basename the guard
-      never refuses, and the behavioural half - not the hygiene half - is what catches such a path the
-      day one is committed.
-      Widening the agnostic pair to any extension is inert on the present tree and so costs nothing
-      already committed: measured at c040c319, zero tracked paths outside tests/ have a basename matching
-      *_test.* or *.test.*.
+      predicate and is not a DOCUMENTED_EXCEPTIONS entry, so a counted-but-permitted file reddens the unit
+      suite on the commit that introduces it. The HYGIENE half certifies every detect pattern of every
+      running kind as inside-tests, by a normalized literal prefix with any .. component rejected
+      outright, or as guard-covered, by requiring that the pattern's core - the pattern with a single
+      leading **/ removed - contains no /, carries FIXED wildcard-free literal text the vocabulary keys on
+      (either the extension-agnostic infix _test. or .test., or one of the restricted prefixes test-,
+      test_ and probe- together with a fixed source extension), and leaves no basename of a fixed
+      adversarial corpus matched and unrefused. That is a SUFFICIENT condition and it is stated as one:
+      the universal property - every path the pattern can match outside tests/ is refused by the
+      vocabulary - IS satisfiable by a **/-prefixed pattern, **/*_test.py being one, but is not decidable
+      by inspection for an arbitrary glob, whereas fixed slash-free literal text is, and that literal text
+      is what actually closes the escape. A pattern certifying as NEITHER category fails the case by name,
+      so a glob shape the rule does not recognise is refused rather than waved through - fail-closed by
+      design, and the part of the rule that generalises beyond the leak axes enumerated to date. Measured
+      at cab6adb2 against the real .harness/harness.json and the real Git index, the set of tracked paths
+      outside tests/ that the matcher counts is EMPTY, so the behavioural half over the real root is a
+      TRIPWIRE today rather than a demonstration. That is why the synthetic set exists and why the case
+      also proves the tripwire discriminates. The residual is stated rather than certified away: because *
+      crosses /, a pattern like **/test_*.py can reach a path whose basename the guard never refuses, and
+      the behavioural half - not the hygiene half - is what catches such a path the day one is committed.
+      Of the leak axes enumerated to date the hygiene half closes the extension-position axis - exhibited
+      by **/test_*.p?, which counts .harness/test_evil.pw whose .pw extension the vocabulary refuses
+      nowhere - and refuses a wildcard in any non-final segment, while the directory-component residual
+      above stays with the behavioural half; both axes were found by picking an axis by hand and the axis
+      space was never enumerated, so a third is not excluded. Widening the agnostic pair to any extension
+      is inert on the present tree and so costs nothing already committed: measured at c040c319, zero
+      tracked paths outside tests/ have a basename matching *_test.* or *.test.*.
     dec: none
   - id: D-02
     choice: >-
@@ -160,31 +171,29 @@ decisions:
     dec: DEC-213
 
 panel:
-  last_run: 2026-09-04-25-validator
-  cycle: 8
+  last_run: 2026-09-04-30-validator
+  cycle: 10
   verdict: PASS
   severity_max: med
   high_critical_or_unrated_present: false
   severity_statement: NO finding in this record is high, critical or unrated. The
-    maximum severity is med, over four findings (two med, two low), and must_fix is
-    empty. NOTHING in this record therefore requires operator risk-acceptance, and
-    no disposition here accepts any risk. The panel gate (must_fix non-empty OR severity_max
-    at or above high) is not tripped, and gates.review in harness.json is advisory_unless_high,
-    which agrees. Under DEC-176 these findings enter the operator's ONE batched signature
-    review rather than a pre-signature fix dispatch; this transcription run therefore
-    transcribes and fixes nothing.
-  transcription_rule: 'This record REPLACES the cycle-6 record WHOLESALE, not by merge:
-    all seven cycle-6 findings were addressed and the plan text the panel grades changed
-    substantially, so no cycle-6 finding id survives and no PF- id from that record
-    appears here. Each summary is the reader''s own wording, taken from the cycle-8
-    lead digest''s own summary line for that finding, with markdown stripped and wrapping
-    collapsed to single spaces. No severity was reassigned, averaged or normalised;
-    where the two readers contradict, both positions are carried and the contested
-    block records how the lead resolved it and on what evidence. Every id was computed
-    with panel_findings.py id over the exact reader and summary strings stored here,
-    so an id is reproducible from this file alone. The verbatim lead digest is copied
-    to notes/research-BUG-1286-test-tree-enforcement-panel-c8.md because runs/ is
-    gitignored.'
+    maximum severity is med, over five cycle-10 rows (one med, two low, two info),
+    and must_fix is empty. NOTHING in this record therefore requires operator risk-acceptance,
+    and no disposition here accepts any risk. The panel gate (must_fix non-empty OR
+    severity_max at or above high) is not tripped, and gates.review in harness.json
+    is advisory_unless_high, which agrees. Under DEC-176 these findings enter the
+    operator's ONE batched signature review rather than a pre-signature fix dispatch;
+    this transcription run therefore transcribes and fixes nothing.
+  transcription_rule: 'This record REPLACES the cycle-8 record''s cycle-10-relevant
+    content, but the four cycle-8 findings are CARRIED FORWARD under superseded_cycle_8_findings
+    as resolved rather than deleted: a record that erases what a panel found is the
+    falsified record harness-principles rule 15 forbids. Each summary is the reader''s
+    own wording, taken from the cycle-10 lead digest''s own summary line for that
+    finding, with markdown stripped and wrapping collapsed to single spaces. No severity
+    was reassigned, averaged or normalised. Every cycle-10 id was computed with panel_findings.py
+    id over the exact reader and summary strings stored here, so an id is reproducible
+    from this file alone. The verbatim lead digest is copied to notes/research-BUG-1286-test-tree-enforcement-panel-c10.md
+    because runs/ is gitignored.'
   readers:
   - reader: should-not-exist
     persona: fable-advisor
@@ -192,211 +201,276 @@ panel:
     note: Holds no write grant, so its findings are transcribed from its return via
       the lead digest rather than from an artifact of its own. It carries no VERDICT
       of its own; the lead mapped its row to PASS because its maximum severity is
-      med, and recorded that mapping as the lead's, not a claim the reader made.
+      low, and that mapping is the lead's, not a claim the reader made.
   - reader: scope
     persona: harness-code-reviewer
     status: ran
-    artifact: .harness/harness/features/BUG-1286-test-tree-enforcement/notes/review-harness-code-reviewer-planpanel-c8.md
+    artifact: .harness/harness/features/BUG-1286-test-tree-enforcement/notes/review-harness-code-reviewer-planpanel-c10.md
+    note: Its host job settled failed (exit 1) on the validate-digest.py harness defect
+      recorded at Q1, NOT on its work; the lead verified the artifact present, complete
+      and self-consistent and treated the return as valid.
   - reader: goalcheck
     persona: harness-pm
     status: ran
     note: Ran in a separate product segment outside this team's two panel steps, so
-      it is recorded for continuity and is not a panel step; its cycle-7 result is
-      notes/research-BUG-1286-test-tree-enforcement-goalcheck-plan-c7.md.
+      it is recorded for continuity and is not a panel step; its cycle-9 result is
+      notes/research-BUG-1286-test-tree-enforcement-goalcheck-plan-c9.md.
   findings:
-  - id: PF-5f9440b904a275b9a85e79ad14696f63
+  - id: PF-7f5eff475a69a7db20cc8293d4b6e9f7
     severity: med
-    reader: should-not-exist
-    summary: The hygiene half's corpus-sampled condition certifies extension-wildcard
-      cores (**/test_*.p?, **/test_*.p*, **/test_*.[ps]y, **/probe-*.p?) as guard-covered
-      while under fnmatch they count basename-level paths the extension policy never
-      refuses
-    consequence: Simulated case 11 exactly as specified passes ALL halves under unit.detect
-      += "|**/test_*.p?" while the matcher newly counts .harness/test_evil.pw - stem
-      restricted, extension .pw outside SOURCE_EXTENSIONS, refused nowhere, NO directory
-      component involved. REQ-09 promises a widening edit "fails loudly rather than
-      reopening the gap in silence"; for this edit class that promise is false until
-      a tracked instance lands.
-    disposition: open
-  - id: PF-2e5117c5af28b52e4ae49fe9f8a35da0
-    severity: med
-    reader: should-not-exist
-    summary: The guard-covered bucket must be non-empty clause is a live-config occupancy
-      pin, not an invariant
-    consequence: unit.detect := tests/unit/** alone - with other running kinds' patterns
-      inside-tests literals - leaves hygiene ok, bucket EMPTY, control INAPPLICABLE,
-      case RED, with no uncertified pattern to fix and no vocabulary to widen. That
-      end state is the ideal fulfilment of DEC-213's directory-is-the-kind rule, so
-      the maintainer doing the right thing is trained to edit an assertion marked
-      NEVER-weaken. The trained-to-delete channel F-03/F-04 closed, rebuilt one notch
-      weaker (at-least-one instead of exactly-one).
-    disposition: open
-  - id: PF-e41c5dbf8071553d1dee17b0fa53c831
-    severity: low
-    reader: should-not-exist
-    summary: 'The impossibility claim justifying the substitution is overstated at
-      BOTH sites (SC-19 and T-01 case 11): "no **/-prefixed fnmatch pattern satisfies
-      that property" is false'
-    consequence: Falsifiable at review time by any inspector who tries one pattern
-      - a manufactured spec-vs-fact dispute of exactly the kind cycle 6 flagged in
-      SC-12 - and a future amender who trusts it will wrongly rule out fixed-suffix
-      patterns as necessarily leaky.
-    disposition: open
-  - id: PF-e6721a307394caf409dba6ea04b901b0
-    severity: low
     reader: scope
-    summary: 'Same defect as SNE-3, from the code side: the impossibility sentence
-      in D-01''s because (plan.yaml ~88) and SC-19''s HYGIENE paragraph (BRIEF.md
-      ~190) is technically overbroad'
-    consequence: Zero operational consequence today - none of the four running kinds'
-      detect values are of the exempted shape, and the plan's own hygiene rule classifies
-      such a pattern UNCERTIFIED (fail-closed, not fail-open). A justification overstatement,
-      not a coverage gap.
+    summary: Condition (b) NON-DEGENERATE requires a wildcard in core, unmotivated
+      by and contrary to the fixed-slash-free-literal-text insight - a fully-literal
+      core is classified as neither category and trips fail-closed
+    consequence: No live pattern hits it today (all 3 unit cores carry *); a future
+      literal-basename detect entry would redden case 11 with NO valid remedy among
+      the three the plan names, since nothing is wrong with the pattern.
+    disposition: open
+  - id: PF-05f39a094144a23ae881610aacf06572
+    severity: low
+    reader: should-not-exist
+    summary: Same conjunct, refusing fully-literal **/ cores such as **/test_foo.py
+    consequence: 'Fail-closed keeps it safe; the showcase-vs-rule contradiction costs
+      a confused maintenance cycle. One-clause fix: note in the mechanism text that
+      literal cores are deliberately routed to the fail-closed remedy.'
+    disposition: open
+  - id: PF-f5b511cdfc8011bff25fcc5d0e64f369
+    severity: low
+    reader: should-not-exist
+    summary: BRIEF's "One residual is DISCLOSED" bullet exemplifies the directory-component
+      residual with **/test_*.py alone, while all three **/ patterns carry live instances
+    consequence: An operator reading the SIGNING SURFACE could sign believing a narrowing
+      of detect retires the residual when it does not - .harness/tools/a.test.d/gen.py
+      and a_test.d/gen.py survive via **/*.test.* and **/*_test.*.
+    disposition: open
+  - id: PF-f721f7c480c1fcc46b108d18ce2e0481
+    severity: info
+    reader: scope
+    summary: Same bullet names only test_dir/gen.py ("a path such as") though the
+      mechanism fires identically for the other two
+    consequence: None - SC-19's corpus-spanning language and T-01's intent already
+      name and measure all three; one prose bullet gives one example.
+    disposition: open
+  - id: PF-5693e2f41057d5d82ffb033a03954199
+    severity: info
+    reader: should-not-exist
+    summary: Post-strike (d) is provably entailed by (c) for refusal power, and its
+      real load-bearing role - coupling (c)'s hardcoded key text to the IMPORTED is_test_shaped
+      against vocabulary drift - is stated nowhere
+    consequence: A future simplify pass can delete (d) citing the plan's own disclaimer,
+      severing the only in-case link between the re-spelled keys and the live vocabulary.
+      Bounded (cases 8/10 and the behavioural half still catch drift), hence info.
     disposition: open
   cross_references:
-  - topic: The overstated impossibility claim - ONE defect reported by BOTH readers,
-      at low and low
+  - topic: Condition (b)'s wildcard-in-core conjunct - ONE defect reported by BOTH
+      readers, at med and low
+    readers:
+    - scope
+    - should-not-exist
+    findings:
+    - PF-7f5eff475a69a7db20cc8293d4b6e9f7
+    - PF-05f39a094144a23ae881610aacf06572
+    note: Kept as SEPARATE rows because de-duplication is on normalised summary PLUS
+      reader id, and both ratings and both wordings are the record. They are ONE edit,
+      not two.
+  - topic: The BRIEF residual-example bullet - ONE defect reported by BOTH readers,
+      at low and info
     readers:
     - should-not-exist
     - scope
     findings:
-    - PF-e41c5dbf8071553d1dee17b0fa53c831
-    - PF-e6721a307394caf409dba6ea04b901b0
-    note: Kept as SEPARATE rows exactly as the lead did, because de-duplication is
-      on normalised summary PLUS reader id and both ratings and both wordings are
-      the record. They are ONE edit, not two. Whoever rewords the sentence must take
-      should-not-exist's formulation, not scope's - see advisor_consultation part
-      a, rule_divergence.
+    - PF-f5b511cdfc8011bff25fcc5d0e64f369
+    - PF-f721f7c480c1fcc46b108d18ce2e0481
+    note: Kept as SEPARATE rows because de-duplication is on normalised summary PLUS
+      reader id. They are ONE edit, not two, and the remedy should take should-not-exist's
+      formulation because it names the consequence at the surface the operator actually
+      reads.
+  lead_adjudications:
+  - topic: The F-1 aggravator
+    resolution: FALSE, re-measured at source by the lead. Both readers rest part of
+      their case on (b) contradicting the plan's own showcase; it does not, in live
+      text. The LIVE withdrawal paragraph (plan.yaml:684-687) cites **/*_test.py,
+      whose core clears (a) no slash, (b) carries a wildcard and (c) agnostic key
+      _test. - it DOES certify. The non-certifying witness **/test_foo.py occurs only
+      inside the frozen cycle-8 audit block (plan.yaml:297-298), a preserved record
+      rather than live specification text, so self-contradiction at the signing surface
+      is not an available aggravator. The (b) over-refusal itself is real and confirmed
+      at plan.yaml:664. BOTH severities are carried unchanged, as they must be.
+  - topic: The apparent reader contradiction on condition (d)'s independence
+    resolution: Resolved from the artifacts, not escalated. (d) does fire on **/test_*.p?
+      and **/*.spec.*, but both also fail (c), so (d) has no independent refusal power
+      over anything (c) admits. should-not-exist's framing (0 of 3,423 (c)-passing
+      cores where (d) fails) is the precise one, and the plan's own text already says
+      exactly this.
+  - topic: The med/low and low/info severity splits
+    resolution: Immaterial to routing. gates.review in harness.json is advisory_unless_high,
+      so neither med nor low gates and the gate result is identical under either reading.
+      At 9 of 10 cycles that is the load-bearing fact, and no cycle need be spent
+      on the splits.
+  - topic: Honest record - the lead's own dispatch carried the error F-2 describes
+    resolution: The lead briefed both readers that **/test_*.py was the ONE known
+      residual. should-not-exist caught it and cited it as field evidence of the misreading
+      its finding predicts. Recorded because it strengthens their finding rather than
+      the dispatch.
+  superseded_cycle_8_findings:
+    note: The four findings of the cycle-8 panel record, preserved rather than deleted
+      - a record that erases what a panel found is the falsified record harness-principles
+      rule 15 forbids. Each keeps its ORIGINAL id, severity and reader; none is restated
+      as a cycle-10 finding and none was re-severitied. All four were addressed by
+      the single cycle-9 amendment carried by T-01 (notes/research-BUG-1286-amend-c9-advisor.md).
+      Closing them against T-01 was flagged as GAP-3 by the cycle-9 goal-check (notes/research-BUG-1286-test-tree-enforcement-goalcheck-plan-c9.md,
+      non-gating item 3) and again as Q2 by the cycle-10 panel; both recorded that
+      THIS transcription owns it.
+    findings:
+    - id: PF-5f9440b904a275b9a85e79ad14696f63
+      severity: med
+      reader: should-not-exist
+      summary: The hygiene half's corpus-sampled condition certifies extension-wildcard
+        cores as guard-covered while under fnmatch they count basename-level paths
+        the extension policy never refuses
+      disposition: resolved
+      resolved_by: T-01
+      closed_by: The cycle-9 amendment replaced the corpus-sampled condition with
+        the (a)-(d) certification rule whose condition (c) requires a fixed wildcard-free
+        source extension for the restricted key, so **/test_*.p? now fails (c) - prototype
+        case 5 RED at worktree a8532ce3 - and the fixed adversarial corpus gained
+        extension-poison basenames.
+    - id: PF-2e5117c5af28b52e4ae49fe9f8a35da0
+      severity: med
+      reader: should-not-exist
+      summary: The guard-covered bucket must be non-empty clause is a live-config
+        occupancy pin, not an invariant
+      disposition: resolved
+      resolved_by: T-01
+      closed_by: The occupancy pin was deleted outright with no replacement - T-01
+        now makes NO assertion that either bucket is occupied (plan.yaml:733-743)
+        - so the clause the finding attacked no longer exists, and the cycle-9 goal-check
+        recorded cycle-8 Q2 as moot for that reason.
+    - id: PF-e41c5dbf8071553d1dee17b0fa53c831
+      severity: low
+      reader: should-not-exist
+      summary: The impossibility claim justifying the substitution is overstated at
+        BOTH sites (SC-19 and T-01 case 11)
+      disposition: resolved
+      resolved_by: T-01
+      closed_by: The false sentence was explicitly WITHDRAWN at plan.yaml:684-687
+        and the reason restated as a sufficient condition at all three live sites
+        - T-01, D-01 because, and BRIEF SC-19 - in should-not-exist's fixed-slash-free-literal-suffix
+        formulation; the cycle-9 goal-check greps found zero surviving assertions
+        of the claim outside the frozen panel record.
+    - id: PF-e6721a307394caf409dba6ea04b901b0
+      severity: low
+      reader: scope
+      summary: 'Same defect as SNE-3, from the code side: the impossibility sentence
+        in D-01''s because and SC-19''s HYGIENE paragraph is technically overbroad'
+      disposition: resolved
+      resolved_by: T-01
+      closed_by: Closed by the same one edit at the two code-side sites it named,
+        D-01's because and BRIEF SC-19, which the cycle-9 goal-check confirmed now
+        state the sufficient-condition reason correctly.
   advisor_consultation:
-    directed_by: The operator DIRECTED that this ambiguity be settled by the Advisor
+    directed_by: The operator DIRECTED that these ambiguities be settled by the Advisor
       rather than by asking the operator, so the Advisor's answer is what the operator
       will act on and it is recorded here in plan.yaml itself rather than only in
       the run digest.
-    a_impossibility_claim:
-      question: Is pm's impossibility claim TRUE as stated?
-      answer: FALSE AS STATED, and falsified INDEPENDENTLY by BOTH readers. This is
-        the panel's firmest result. The buildability conclusion nonetheless survives
-        - see part b.
-      method_should_not_exist: fnmatch.translate closure plus adversarial fuzz. fnmatch.translate("**/*_test.py")
-        yields a pattern every match of which must END with the /-free literal suffix
-        _test.py, which therefore survives into the basename and is refused; a 280-path
-        adversarial corpus returned 0 escapes for each of **/test_foo.py, **/*_test.py
-        and **/*.test.py.
-      method_scope: Code-side derivation exhibiting **/test_foo.py, a **/-prefixed
-        pattern whose every match has the fixed literal basename test_foo.py, which
-        is_test_shaped always accepts - so there is no escaping path at all.
-      rule_divergence: 'The two readers'' RULES differ, and should-not-exist''s is
-        the CORRECT one. What closes the escape is a FIXED LITERAL SUFFIX CONTAINING
-        NO SLASH, not the absence of a wildcard after the leading **/ as scope stated:
-        **/*_test.py does carry a wildcard after the **/ and still satisfies the universal
-        form. Whoever rewords SC-19 and D-01 must take should-not-exist''s formulation;
-        taking scope''s would replace one false sentence with another.'
-    b_substitution_sound:
-      question: Is the substitution of a sufficient condition for the operator's universal
-        wording SOUND?
-      answer: 'YES, per BOTH readers, and it was forced. All three of today''s repo-wide
-        unit patterns violate the universal (**/*.test.* and **/*_test.* at 32 escapes
-        each in the corpus, **/test_*.py at 4), so a hygiene half asserting the universal
-        DIRECTLY could never be green on the unmutated config. Only the stated REASON
-        is wrong: it is a claim about THIS pattern set, not about all **/-prefixed
-        shapes.'
-      enforcement_mode: 'Both readers reached the same precision point independently:
-        what carries the residual is case 11''s own assertion, not suite_layout.violations().
-        is_test_shaped is basename-only by construction and structurally can never
-        flag .harness/tools/test_dir/gen.py. So for the residual class the guarantee
-        is "the unit suite reddens on the next run", NEVER REQ-01''s "refused before
-        any test executes". The plan says "reddens the unit suite" at both sites and
-        is therefore DISCLOSED, not misrepresented - a clarity exposure for the builder,
-        which neither reader raised as a finding.'
-    c_escaping_class:
-      question: Does any class of counted-but-unrefused path escape BOTH halves?
-      answer: YES. ONE genuinely new escaping class is NAMED, and it is currently
-        UNDISCLOSED in the plan.
-      named_class: Extension-position wildcard cores of the shape **/test_*.p? certify
-        as guard-covered while counting .harness/test_evil.pw, whose .pw extension
-        the guard's vocabulary refuses NOWHERE, with NO directory component involved.
-        Recorded as finding PF-5f9440b904a275b9a85e79ad14696f63.
-      scope_none_found: 'scope returned NONE FOUND for part c, but this was a NARROWER
-        search: it varied the DIRECTORY position only, across all three wildcard-bearing
-        patterns, and NEVER varied the extension position. A none-found from a search
-        that did not cover the region is not evidence of absence there, so it is NOT
-        a refutation, and the lead did not treat it as one. scope''s work stands as
-        correct within its own scope.'
-  contested:
-    topic: Whether the "guard-covered bucket must be non-empty" clause earns its place.
-      This is the ONE place the two readers DIRECTLY contradict; the disagreement
-      is recorded, not erased.
-    positions:
-    - reader: should-not-exist
-      rating: med
-      position: The clause is a live-config occupancy pin, not an invariant. unit.detect
-        := tests/unit/** alone leaves hygiene ok, the bucket EMPTY, the control INAPPLICABLE
-        and the case RED, with no uncertified pattern to fix - training the maintainer
-        doing the right thing to edit an assertion marked NEVER-weaken.
-    - reader: scope
-      rating: earns its place (no severity assigned; recorded as a clean item, not
-        a finding)
-      position: Not a hardcoded value pin - it asserts non-emptiness only, without
-        pinning which or how many patterns land there. Replaces a cardinality pin
-        with a coverage-sanity check, correctly per F-03/F-04.
-    lead_resolution: 'RESOLVED in should-not-exist''s favour, on EVIDENCE grounds:
-      that reader SIMULATED the narrowing config and reddened the case, while scope
-      reasoned about the clause WITHOUT testing it, and a demonstrated red beats an
-      untested "earns its place". Both ratings are carried UNREASSIGNED; the severity
-      stays med exactly as should-not-exist stated it, and scope''s dissent travels
-      up unedited.'
-    preserved_from_scope: scope's true half - non-emptiness is strictly WEAKER than
-      cardinality - is preserved and is CORRECT. What is not established is its CONCLUSION,
-      because the config that reds the clause was never tested against it.
-    lead_observation: This is the THIRD CONSECUTIVE cycle in which a clause pinning
-      the LIVE CONFIG's shape has been flagged - the exactly-one cardinality at cycle
-      6, now the at-least-one non-emptiness. The RECURRENCE is itself the signal.
-    operator_may_overrule: The operator may prefer to OVERRULE the lead's resolution;
-      it is carried as open question Q2 and is not settled by this record.
+    a_literal_unbuildability:
+      question: Is the operator's LITERAL wording buildable against today's patterns
+        - does every **/-prefixed unit pattern certify under it?
+      answer: NO, and CONFIRMED per pattern by BOTH readers independently, 3 of 3.
+        **/*.test.* and **/*_test.* end in * so their maximal fixed suffix is empty;
+        **/test_*.py has suffix .py, which is refused nowhere (gen.py, conftest.py,
+        helper.py). This is the panel's firmest result and it is what makes the divergence
+        legitimate rather than convenient.
+      falsification_control: 'should-not-exist ran a CONTROL: **/*_test.py DOES certify
+        under the literal ruling (suffix _test.py universally refused). The three
+        NOs are therefore a property of today''s patterns, not an artifact of a simulator
+        that says NO to everything.'
+      finding: none
+    b_refinement_faithful:
+      question: Is the basename-axis refinement FAITHFUL to what the operator ruled?
+      answer: 'FAITHFUL, per both readers. The force is carried by (a) core-has-no-slash
+        and (c) fixed-literal key, and both keys were derived SOUND analytically:
+        agnostic - any basename matching carries the literal, which is_test_shaped
+        refuses at any extension; restricted - prefix at position 0 plus a wildcard-free
+        terminal region ending in a source extension forces splitext into SOURCE_EXTENSIONS.'
+      reservation_carried: scope's med reservation on condition (b)'s contains-a-wildcard
+        conjunct stands ALONGSIDE that judgement; the FAITHFUL verdict does not erase
+        it. It is finding PF-7f5eff475a69a7db20cc8293d4b6e9f7, with should-not-exist's
+        low-rated PF-05f39a094144a23ae881610aacf06572 on the same conjunct.
+    c_undisclosed_escape:
+      question: Does any undisclosed class of counted-but-unrefused path escape the
+        rule?
+      answer: NO UNDISCLOSED SURVIVOR, from both readers, by different instruments.
+      search_scale: 'should-not-exist: 3,423 fuzzed (a)(b)(c)-passing cores x 33,731
+        basenames, plus hand-built adversaries (unclosed brackets, character-class
+        smuggling, ?-crossing, .spy/.pyc/..py/.PY endswith ambiguity), giving 0 basename-level
+        escapes. scope: a 220-core generative sweep plus an algebraic soundness argument
+        per key.'
+      convergence: 'Both converged structurally: every constructible escape routes
+        through the DISCLOSED wildcard-crosses-/ mechanism. Two independent analytic
+        derivations reaching the same closure is much stronger than two fuzz runs
+        agreeing, and it is why an empty result here is credible.'
+      known_residual: The one known residual - **/test_*.py counting .harness/tools/test_dir/gen.py
+        - is DISCLOSED, and the same mechanism fires for **/*.test.* and **/*_test.*
+        (findings PF-f5b511cdfc8011bff25fcc5d0e64f369 and PF-f721f7c480c1fcc46b108d18ce2e0481
+        are about how one prose bullet exemplifies it, not about the mechanism being
+        hidden).
+    d_strike_sound:
+      question: Is the strike of condition (d)'s corpus-match conjunct SOUND?
+      answer: SOUND, per both readers, each RE-MEASURING rather than reading the cycle-9
+        note's numbers - 4/4 red cases still fail, 7/7 running-kind patterns certify,
+        4/4 previously over-refused shapes now certify.
+      independence: 'should-not-exist went further: over 3,423 (c)-passing cores there
+        are 0 where (d) fails, so the struck conjunct''s absence cannot open a refusal
+        hole. Both accept the evidence as adequate FOR A PLAN-PHASE GATE precisely
+        because T-01 mandates re-proving the four red cases against the built artifact.'
   adequacy_notes:
-  - NEITHER reader could exercise the real guard, because NO code exists. Every "case
-    11 is green/red under X" result in this panel is a HAND-SIMULATION of a SPECIFICATION,
-    not an execution of it. The panel cannot say the built artifact behaves this way
-    - only that the spec, read literally and simulated faithfully, does.
-  - The hygiene half's sufficient condition is CORPUS-SAMPLED and its leak-axis space
-    is UNENUMERATED. Two leaks are now known - the directory-component axis (DISCLOSED)
-    and the extension-position axis (PF-5f9440b904a275b9a85e79ad14696f63, NOT disclosed)
-    - and BOTH were found by picking an axis BY HAND. Nobody enumerated the axis space,
-    so a THIRD leak is not excluded. This is the panel's LARGEST RESIDUAL, and no
-    individual reader is positioned to state it.
-  - scope's part-c "NONE FOUND" is credible ONLY along the axis it searched. It probed
-    the directory-component escape across all three wildcard-bearing patterns and
-    stopped; it never varied the extension position. A narrower search, NOT a refutation.
-  - 'The enforcement-MODE sentence is the one most likely to be MISREAD by whoever
-    builds this: for the residual class the guarantee is "the unit suite reddens on
-    the next run", never REQ-01''s "refused before any test executes". The plan states
-    it correctly but quietly.'
-  remedy_assessment: 'THE PANEL''S ASSESSMENT, RECORDED ONLY - NOT ACTED ON BY THIS
-    TRANSCRIPTION. All FOUR findings land in the SAME TWO SITES, T-01 case 11 and
-    SC-19, and are remediable in ONE edit, in this order: (1) the overstated impossibility
-    claim, reworded using should-not-exist''s formulation, not scope''s; (2) the extension-position
-    class, by adding extension-poison basenames to the hygiene corpus and disclosing
-    the class beside the directory-component residual bullet so the known leaks are
-    ENUMERATED; (3) if accepted, the bucket clause, replaced by a fixed-literal self-test
-    of the certifier. Step 1 precedes step 2 because step 2 rewrites the same paragraph.
-    None of these remedies touches an operator-ruled item; none narrows REQ-09, touches
-    D-01''s vocabulary or D-05, or deletes or weakens case 11.'
+  - Every result in this panel is a HAND-SIMULATION of a specification against reader-written
+    reimplementations. Three independent implementations now agree (pm's prototype
+    at a8532ce3, the cycle-9 goal-check's, and each reader's own), which is convergent
+    evidence - but NONE of them is the artifact that ships. T-01's mandate to re-prove
+    the four red cases against the BUILT artifact is the only thing that closes this,
+    and it is deferred to build.
+  - The panel closed the BASENAME axis ANALYTICALLY, not merely by fuzzing - both
+    readers derived independently that the agnostic key is airtight (any basename
+    matching it carries the literal, which is_test_shaped refuses at any extension)
+    and that the restricted key is sound. Neither reader can bound the AXIS SPACE
+    itself; a THIRD axis remains unexcluded exactly as the plan's honest limit states.
+  - 'Reader independence is PARTIAL: both received the same four-part question and
+    the same named probes, so convergence on (a)/(c)/(d) is less independent than
+    it looks. Their METHODS diverged substantially (advisor 3,423 x 33,731 fuzz plus
+    analytic derivation; scope a 220-core generative sweep plus an algebraic argument),
+    which recovers most but not all of it.'
+  - No qa, security or UI reader ran. plan-panel is a two-reader team by design and
+    nothing here is user-facing or credential-handling, so this is correct scoping
+    rather than a coverage gap.
+  - Neither reader could tell the lead whether the condition (b) defect is worth the
+    last cycle. That is a budget judgement, raised as Q3.
+  panel_recommendation: 'Carry ALL findings into the operator''s ONE batched signature
+    review under DEC-176 rather than spending the last cycle on the condition (b)
+    clause: no finding gates, gates.review is advisory_unless_high, and the remedy
+    is one clause of mechanism text that a build-phase task can carry.'
   open_questions:
   - id: Q1
     blocking: false
-    question: 'HARNESS DEFECT, not a plan defect: the scope step''s process settled
-      failed (exit 1) while emitting a contract-shaped VERDICT PASS digest and writing
-      its artifact. The lead verified the artifact exists and is substantive and treated
-      the return as valid rather than firing on_fail. If the host exit code is ever
-      routed on, a clean reviewer return would be misrouted as a failure.'
+    question: 'HARNESS DEFECT, not a plan defect: validate-digest.py refuses EVERY
+      plan-phase harness-code-reviewer digest. It requires a code_grade and then rejects
+      every value, because feature.json necessarily reads review_sha none before the
+      Building-to-Review seam (INV-6/DEC-207/BUG-1080). The scope reader''s job settled
+      failed (exit 1) despite a complete review and a written artifact, so a reader
+      that did its job is recorded as failed. The remedy edits .claude/skills/harness/bin/,
+      which no lead or reader may write - an operator decision, not a fix cycle.'
   - id: Q2
     blocking: false
-    question: The two readers CONTRADICT on whether the "guard-covered bucket must
-      be non-empty" clause earns its place. The lead resolved it in should-not-exist's
-      favour on evidence grounds (it simulated the config; scope reasoned about it)
-      and carries both positions unreassigned. The OPERATOR may prefer to OVERRULE
-      that resolution - it is the third cycle running that a clause pinning the live
-      config's shape has been flagged.
+    question: 'The cycle-8 findings were still recorded disposition open although
+      the cycle-9 one-edit remedy addressed all four. DISCHARGED BY THIS RECORD: all
+      four are carried under superseded_cycle_8_findings with disposition resolved
+      and resolved_by T-01, at their original severities and readers.'
+  - id: Q3
+    blocking: false
+    question: Spend the last cycle on the condition (b) one-clause fix, or carry all
+      findings into the operator's ONE batched signature review under DEC-176? The
+      panel recommends the latter; see panel_recommendation.
 tasks:
   - id: T-01
     title: Refuse tracked test-shaped files outside the test tree, with its unit coverage written first
@@ -646,43 +720,95 @@ tasks:
                exactly "tests" or starts with "tests/". Normalization plus ".." rejection is the whole
                rule; a longer string compare is not a substitute for it.
              - GUARD-COVERED. Take core = the pattern with a single leading "**/" removed if present.
-               The pattern is guard-covered only when ALL of these hold: core contains no "/"; core
-               contains a wildcard and core.strip("*?[") is non-empty; core matches at least one basename
-               of the fixed adversarial CORPUS below; and every corpus basename core matches is judged
-               test-shaped by is_test_shaped when placed under the fixed outside-tests directory
-               ".harness/tools/". The no-"/" condition is a SUFFICIENT condition on pattern SHAPE, and
-               this half certifies nothing beyond it. The property it approximates is universal -- every
-               path the pattern can match outside tests/ is refused by the guard's vocabulary -- and NO
-               "**/"-prefixed fnmatch pattern satisfies that property, because a bare * crosses "/", so a
-               hygiene half asserting it directly would fail on today's own unmutated detect and could
-               never be green. State plainly what the sufficient condition therefore does NOT catch:
-               **/test_*.py has core test_*.py, which carries no "/" and so certifies GUARD-COVERED, while
-               under fnmatch it counts .harness/tools/test_dir/gen.py -- a DIRECTORY-component match whose
-               basename gen.py the vocabulary cannot refuse. That residual is assigned to the BEHAVIOURAL
-               half above, which is sound over the tracked set and reddens the unit suite on the commit
-               that adds such a file; it is disclosed in the BRIEF's "## Verification gaps" residual
-               bullet. The hygiene half's job is to catch a detect EDIT whose SHAPE newly escapes the
-               vocabulary, not to prove the current patterns are basename-confined. The mechanism it
-               enforces: because * crosses "/", a pattern carrying a wildcard in a NON-FINAL segment can
-               match a path whose BASENAME the guard never refuses, so such a pattern is not guard-covered
-               and this case fails naming it. The CORPUS is a fixed tuple written in this test, derived from no pattern, and must
+               Certification rests on FIXED, WILDCARD-FREE LITERAL TEXT inside core that the guard's
+               vocabulary keys on. The pattern is guard-covered only when ALL FOUR of these hold:
+                 (a) NO DIRECTORY ESCAPE -- core contains no "/". This is the condition that refuses a
+                     wildcard in a non-final segment, and it is unchanged.
+                 (b) NON-DEGENERATE -- core contains a wildcard and core.strip("*?[") is non-empty.
+                 (c) FIXED-LITERAL KEY -- the condition that closes the extension-position escape. Exactly
+                     one of two keys must be present, and each is fixed text carrying none of "*", "?",
+                     "[", "]":
+                       AGNOSTIC KEY: core contains the literal "_test." or the literal ".test.". Every
+                       basename core can match therefore carries that literal, and the vocabulary's
+                       agnostic group refuses it AT ANY EXTENSION, so no fixed extension is required.
+                       RESTRICTED KEY: core BEGINS at position 0, before any wildcard, with the literal
+                       "test-", "test_" or "probe-", AND core's trailing region -- the text after the LAST
+                       of "*", "?", "[", "]" -- begins with ".", carries no wildcard, and ends with one of
+                       the source extensions the vocabulary's restricted group is limited to. BOTH halves
+                       are required, because that group refuses the stem only at a source extension.
+                     A core carrying neither key is NOT guard-covered, whatever else holds of it.
+                 (d) CORPUS ORACLE -- every basename of the fixed adversarial CORPUS below that core
+                     matches must be judged test-shaped by the IMPORTED is_test_shaped when placed under
+                     the fixed outside-tests directory ".harness/tools/". This is the vocabulary check and
+                     it must never be replaced by re-spelling the vocabulary in this test. The oracle is
+                     therefore VACUOUSLY SATISFIED when no corpus basename matches core. An earlier form of
+                     (d) also required core to match at least one corpus basename; that conjunct is STRUCK
+                     because it caught nothing (c) did not, while reporting the legitimately covered shapes
+                     **/test-*.sh, **/probe-*.ts, **/test_*.js and **/test_*.mjs as UNCERTIFIED -- the corpus
+                     samples restricted shapes at only 3 of the 7 source extensions. All four red cases below
+                     still fail on (a) or (c) without it.
+               WHY THIS IS A SUFFICIENT CONDITION AND NOT THE UNIVERSAL ONE. The justification that stood
+               here was FALSE and is WITHDRAWN: it is not true that no "**/"-prefixed fnmatch pattern can
+               satisfy the universal property. **/*_test.py satisfies it -- every path it matches ends in
+               the slash-free literal "_test.py", which necessarily survives into the basename and is
+               refused there. What makes the universal property unusable AS THE ASSERTION is that deciding
+               it for an arbitrary glob is not decidable by inspection, whereas the presence of fixed,
+               slash-free literal text the vocabulary keys on IS decidable by inspection -- and it is the
+               property that actually closes the escape.
+               THE WORKED COUNTEREXAMPLE, the finding this rule closes: **/test_*.p? has core test_*.p?,
+               which carries no "/" and would have certified under the previous shape-only rule, while
+               under fnmatch it counts .harness/test_evil.pw -- basename test_evil.pw, stem restricted but
+               extension .pw outside the source extensions, so the vocabulary refuses it NOWHERE and no
+               directory component is involved. Under (c) it fails: the region after the last wildcard is
+               empty, so there is no fixed extension and the RESTRICTED key is absent.
+               What the surviving (d) buys is separate from (c): it fails a pattern whose core matches a
+               corpus basename the vocabulary does not accept, which is how **/test_*.p? (core matches
+               test_x.pw) and **/*.spec.* (core matches x.spec.y) fail it. No basename escape under
+               (a)+(b)+(c) alone has been exhibited, so nothing here claims (d) catches a shape (c) misses.
+               THE HONEST LIMIT, stated because the operator signs against it. This is a SUFFICIENT rule
+               over the leak axes ENUMERATED TO DATE -- the extension-position axis, closed by (c), and the
+               non-final-segment form of the directory-component axis, since (a) refuses a wildcard in any
+               NON-FINAL segment while the directory-component residual stays with the behavioural half.
+               Both were found by picking an axis by hand; the axis space was never enumerated, so a third
+               axis is not excluded and this is not a proof over all future glob shapes. Two things bound the
+               residual: the FAIL-CLOSED clause below,
+               and the BEHAVIOURAL half, which is sound over paths that actually exist. **/test_*.py
+               certifies guard-covered under (a) to (d) and still counts .harness/tools/test_dir/gen.py,
+               whose basename gen.py the vocabulary cannot refuse; the behavioural half is what reddens the
+               unit suite on the commit that adds such a file. Disclosed in the BRIEF's
+               "## Verification gaps".
+               FAIL-CLOSED BY DESIGN, as a general rule and never as a list of banned shapes: a pattern
+               certifying as NEITHER inside-tests NOR guard-covered FAILS this case, naming the pattern and
+               its reason. A glob shape this rule does not recognise is therefore REFUSED rather than waved
+               through, so a future detect shape nobody anticipated blocks until someone certifies it. That
+               clause, not the two closed axes, is what generalises this fix.
+               The CORPUS is a fixed tuple written in this test, derived from no pattern, and must
                contain at least gen.py, foo.py, notes.md, README.md, conftest.py, helper.ts, data.jsonl,
                x.test.y, x.test.py, run.test.jsonl, a_test.md, x_test.py, test_x.py, test_x.md, test-x.py,
-               probe-x.py, probe-x.md, x.spec.y, x.spec.tsx, x.e2e.spec.ts, test_dir, evil.py.
+               probe-x.py, probe-x.md, x.spec.y, x.spec.tsx, x.e2e.spec.ts, test_dir, evil.py, and the
+               EXTENSION-POISON basenames test_x.pw, probe-x.pw, test-x.pw, a_test.pw and x.test.pw,
+               without which the corpus cannot see the extension-position axis at all. Entries are ADDED,
+               never removed or altered.
            Judge every basename with the IMPORTED is_test_shaped only: do not re-spell the expression and
            do not consult the pattern tuples directly. Exclude patterns are deliberately ignored in this
            half, which makes it strictly conservative; the behavioural half honours them through
            _is_test_path.
-           COMPLETENESS, stated semantically and NEVER as a count. Assert that the two categories
-           PARTITION the pattern set -- no pattern uncertified, with the failure message naming each
-           uncertified pattern and its reason -- and assert that the GUARD-COVERED bucket is non-empty,
-           so a certification rule that degenerates into excusing everything as inside-tests cannot pass
-           silently. Do NOT assert how many patterns land in either bucket: a legitimate future
-           tests/-rooted glob, or a fifth running kind, moves those numbers with no invariant broken, and
-           a hardcoded cardinality is the trained-to-delete channel this amendment exists to close.
-           THE RED CASES this case MUST fail, each with its mechanism. All three were verified on a
-           throwaway prototype of this specification against the real .harness/harness.json before this
-           task was written:
+           COMPLETENESS, stated semantically and NEVER as a count and NEVER as an occupancy. Assert that
+           the two categories PARTITION the pattern set -- no pattern uncertified, with the failure message
+           naming each uncertified pattern and its reason. Make NO assertion about how many patterns land
+           in either bucket, and NO assertion that either bucket is occupied. Both are properties of
+           today's configuration rather than invariants: a legitimate future tests/-rooted glob, a fifth
+           running kind, or the ideal DEC-213 end state in which every running kind's detect is
+           tests/-rooted, moves those numbers with no invariant broken. An occupancy assertion would then
+           redden with NO uncertified pattern to fix and NO vocabulary to widen, training the maintainer
+           who did the right thing to edit an assertion marked NEVER-weaken. That trained-to-delete channel
+           is what this specification exists to close: do not rebuild it in any form, a ">= 1" form
+           included.
+           THE RED CASES this case MUST fail, each with its mechanism. All four were verified on a
+           throwaway prototype of this specification against the real .harness/harness.json, most recently
+           at a8532ce3 with the certification rule exactly as re-expressed above; the same prototype
+           confirmed today's unmutated detect certifies completely, and that the legitimate NARROWING which
+           drops **/test_*.py stays GREEN:
              (i) SUBSTITUTING tests/../evil/** for tests/unit/** in BOTH .harness/harness.json AND
                  .claude/skills/harness/templates/harness.json -- both files move together, so the
                  pre-existing "unit detect matches template" assertion at
@@ -699,6 +825,12 @@ tasks:
                  Mechanism: core *.spec.* is a single segment and matches the corpus basenames x.spec.y,
                  x.spec.tsx and x.e2e.spec.ts, none of which is_test_shaped accepts, so it is not
                  guard-covered and the case FAILS naming the escaping basenames.
+             (iv) ADDING **/test_*.p? to unit.detect in both files -- the extension-position escape.
+                 Mechanism: core test_*.p? carries no "/" and clears (a) and (b), but the region after its
+                 last wildcard is empty, so no fixed source extension is present and the RESTRICTED key of
+                 (c) is absent; independently it matches the corpus basename test_x.pw, which is_test_shaped
+                 does not accept, so (d) fails too. Uncertified, and the case FAILS naming it. Under fnmatch
+                 that pattern counts .harness/test_evil.pw, an extension the vocabulary refuses nowhere.
            THE REMEDY when this case fires, so a future builder does not mistake a real red for churn. A red
            names a legitimate maintenance event, and the response is exactly one of:
              - widen the guard's vocabulary in suite_layout.py to cover the new shape;
