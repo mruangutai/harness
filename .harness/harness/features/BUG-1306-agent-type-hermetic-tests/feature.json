@@ -1,0 +1,86 @@
+{
+  "feature_id": "BUG-1306-agent-type-hermetic-tests",
+  "branch": "feat/BUG-1306-agent-type-hermetic-tests",
+  "pr": 1317,
+  "review_sha": "6b2ef992b14dd207223310b3912220ac4cf05784",
+  "cycles_used": 1,
+  "max_total_cycles": 8,
+  "runs": [
+    {
+      "id": "2026-09-05-02-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-05-03-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-09-05-04-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-09-05-06-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-05-07-eng",
+      "squad": "eng",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-09-05-07-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-09-05-01-eng-simplify",
+      "squad": "eng",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-09-05-01-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-05-08-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-09-05-09-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS"
+    }
+  ],
+  "github": {
+    "milestone": 45,
+    "parent": 1309,
+    "attached": [
+      "T-01"
+    ],
+    "issues": {
+      "T-01": 1310
+    },
+    "source_issues": [
+      1306
+    ]
+  }
+}
