@@ -37,10 +37,17 @@ tests exactly as they do today, and the governing decision says what the code no
 - REQ-07: The governing record describes the invariant that shipped, with no narrower claim left
   standing as current behaviour.
 - REQ-08: Product-checkout test discovery and the runtime mutation-snapshot scope are unchanged.
-- REQ-09: The guard's refusal vocabulary is at least as wide as the `unit` kind map's discovery, and
-  stays that way: no file that `harness.json` `test_kinds.unit.detect` counts as a unit test can sit
-  outside the test tree permitted by the guard, and a later edit that widens `detect` past the guard
-  fails loudly rather than reopening the gap in silence.
+- REQ-09: The guard's refusal vocabulary is at least as wide as Harness's ACTUAL test-path
+  discovery, and stays that way: every tracked path outside the test tree that
+  `code_grade._is_test_path` counts — `fnmatch` over the FULL relative path, across every
+  `.harness/harness.json` `test_kinds` entry whose `status` is `active` or `locally_run`, minus
+  that kind's `exclude` — is refused by the guard and is not a permitted documented exception,
+  and a later edit that widens `detect` past the guard fails loudly rather than reopening the gap
+  in silence. The obligation is a SUPERSET of that matcher, not a mirror of the `unit` kind: the
+  guard additionally carries the manual-probe source-name rule (`test-*`, `probe-*`) that no
+  `detect` pattern expresses. Measured at `cab6adb2` against the real `.harness/harness.json` and
+  the real Git index, the counted-outside-`tests/` set is EMPTY, so this requirement holds today
+  and its assertion is a tripwire rather than a demonstration.
 
 ## Constraints
 
@@ -122,9 +129,13 @@ tests exactly as they do today, and the governing decision says what the code no
   against a re-run of the audit at `review_sha`: the note must carry EXACTLY ONE fenced block, that
   block's row set must be identical to the re-run's, and the SHA the note records must be an
   ancestor of `review_sha` with no tracked vocabulary match added or removed between them. What
-  fails it: a note carrying zero fenced blocks, or two or more — the instrument refuses that note by
-  name with `note carries {n} fenced blocks, expected exactly 1` and exit 2, and a second fence is a
-  failure of this criterion, not merely of a command.
+  fails it: a note carrying zero fenced blocks, or two or more. Those are two SEPARATE,
+  SEPARATELY MESSAGED, SEPARATELY OBSERVABLE failures and neither message covers the other's
+  case: a note with no fenced block is refused by name with `note carries no fenced block:
+  <path>` and exit 2, and a note with two or more is refused by name with `note carries {n}
+  fenced blocks, expected exactly 1: <path>` and exit 2. Either is a failure of this criterion,
+  not merely of a command. Exit 2 is this instrument's own refusal status for those two
+  conditions and is not a globally reserved code — `argparse` exits 2 on its own usage errors.
   verify: inspection
 - SC-13: `git show <review_sha>:.harness/harness/docs/DECISIONS.md` describes the repository-wide
   invariant in DEC-213 and marks the earlier bin-only enumeration as superseded rather than current,
@@ -159,26 +170,50 @@ tests exactly as they do today, and the governing decision says what the code no
   does. What fails it: either case absent, either direction asserted only as the other's negation,
   or a single case carrying both halves so that one passing masks the other.
   verify: automated        evidence: unit
-- SC-19: The guard-covers-`detect` invariant is asserted, not argued, and its exemption is bounded
-  by the test tree. At test time the assertion READS `test_kinds.unit.detect` from
-  `.harness/harness.json`, splits it on `|`, and partitions every glob from the glob string alone.
-  A glob whose final `/`-separated segment contains a wildcard and is not composed of wildcard
-  characters alone constrains a basename: it is checked by synthesising one representative path
-  under a fixed directory outside `tests/**` and requiring `suite_layout.is_test_shaped` — the same
-  imported predicate the repository-wide clause itself calls — to judge it test-shaped. Every other
-  glob is directory-only, and is exempt from that check ONLY when its literal prefix — the leading
-  segments before the first segment carrying a wildcard — is `tests` or lies under `tests/`; a
-  directory-only glob rooted anywhere else fails the assertion by its existence, named in the
-  failure, because it makes the kind map count files no unit runner reaches. Today that is three
-  basename globs, one exempt, none rooted outside `tests/`. What fails it, both of which the
-  pre-existing template-equality assertion at `tests/unit/test-suite-layout.py:100-103` passes
-  because it is applied to both files together: adding `**/*.spec.*` to `unit.detect` in
-  `.harness/harness.json` and in `.claude/skills/harness/templates/harness.json`, which synthesises
-  `.harness/tools/x.spec.x` and matches no group of the guard's vocabulary; and substituting
-  `docs/**` for `tests/unit/**` in those same two files, a directory-only glob rooted outside
-  `tests/` that the assertion must name and fail on. Also fails it: an assertion that re-implements
-  the vocabulary instead of importing the predicate, that carries a copy of today's four globs
-  instead of reading them, or that exempts a directory-only glob without testing its literal prefix.
+- SC-19: The guard-covers-discovery invariant is asserted against Harness's ACTUAL matcher, never
+  argued from a snapshot and never read segment-wise. At test time the assertion reads
+  `test_kinds` from `.harness/harness.json` and calls `code_grade._is_test_path` itself, so it
+  exercises `fnmatch` over the full relative path — where a bare `*` crosses `/` — across every
+  kind whose `status` is `active` or `locally_run`. Two halves, both required. BEHAVIOURAL: over
+  a fixed synthetic tracked set AND over the repository's own tracked set, every path outside
+  `tests/` that the matcher counts is judged test-shaped by the imported
+  `suite_layout.is_test_shaped` and is not a `DOCUMENTED_EXCEPTIONS` entry; and a POSITIVE CONTROL
+  proves the detector is not inert. The control's subject is DERIVED at test time by the live
+  matcher from a fixed candidate corpus of literal paths written in the test — a candidate
+  qualifies only if it sits outside `tests/`, is counted by `_is_test_path`, is NOT
+  `is_test_shaped`, and is no `DOCUMENTED_EXCEPTIONS` entry — and the same helper must then report
+  exactly that derived path, and only it, when it is added to the synthetic set. The corpus spans
+  the pattern families in play (a `test_*` directory component such as
+  `.harness/tools/test_dir/gen.py`, and the `*.test.*` / `*_test.*` directory-component shapes), so
+  a legitimate NARROWING of `detect` re-selects a subject rather than reddening the case. If no
+  candidate qualifies, the control records itself INAPPLICABLE with the reason through the file's
+  existing reporting channel and does not fail. So the empty real set cannot leave this half
+  unfalsifiable, and no property of today's `detect` value is pinned inside the assertion.
+  HYGIENE: every `detect` pattern of every running kind is certified either inside-tests — by a
+  NORMALIZED literal prefix, with
+  any `..` component rejected outright — or guard-covered — by carrying no `/` once a single
+  leading `**/` is removed, and leaving no basename of a fixed adversarial corpus
+  matched-and-unrefused. The two categories must partition the pattern set and the guard-covered
+  bucket must be non-empty. That certification is a SUFFICIENT condition on pattern SHAPE, not the
+  universal property that every path a pattern can match outside `tests/` is refused by the
+  vocabulary — no `**/`-prefixed `fnmatch` pattern satisfies that property, because a bare `*`
+  crosses `/`, so a hygiene half asserting it directly could never be green on today's own
+  `detect`. It therefore does not close the directory-component residual disclosed under
+  `## Verification gaps`: `**/test_*.py` certifies guard-covered while counting
+  `.harness/tools/test_dir/gen.py`, whose basename the vocabulary cannot refuse. The BEHAVIOURAL
+  half is what closes that residual; the hygiene half catches a `detect` EDIT whose shape newly
+  escapes the vocabulary. What fails it, all three verified on a prototype of the assertion and
+  none of them caught by the pre-existing template-equality assertion at
+  `tests/unit/test-suite-layout.py:100-103` because both config files move together: substituting
+  `tests/../evil/**` for `tests/unit/**` in `.harness/harness.json` and in
+  `.claude/skills/harness/templates/harness.json`, which the `..` rejection refuses; introducing a
+  wildcard in a NON-FINAL segment such as `**/test_*/**`, whose core spans a `/`; and adding
+  `**/*.spec.*`, whose core matches corpus basenames the vocabulary does not refuse. Also fails
+  it: an assertion that re-implements the vocabulary or the matcher instead of importing both,
+  that carries a copy of today's `detect` value instead of reading it, that synthesises a
+  representative path from a glob's final segment, that pins how many patterns land in either
+  bucket, that names the control's subject instead of selecting it with the live matcher, or that
+  fails when no candidate qualifies instead of recording the control INAPPLICABLE.
   verify: automated        evidence: unit
 
 ### Traceability
@@ -206,7 +241,7 @@ ticket's own order) it covers:
 | SC-16 | REQ-08 | AC-11 product-checkout discovery unchanged |
 | SC-17 | REQ-03, REQ-04 | AC-04 no-index root: not a failure, not a silent scan |
 | SC-18 | REQ-01, REQ-04 | AC-01 rejected at any extension for the agnostic shapes; AC-06 legitimate non-test probe records remain accepted |
-| SC-19 | REQ-09 | AC-01 the refusal vocabulary stays at least as wide as `unit.detect` |
+| SC-19 | REQ-09 | AC-01 the refusal vocabulary stays at least as wide as actual matcher discovery |
 
 ## Verification gaps
 
@@ -214,29 +249,50 @@ ticket's own order) it covers:
   and `eval` are signed `excluded` (DEC-187). This change touches none of those surfaces: it is a
   Python predicate, a bash runner path, two Python test files and two Markdown records, all covered
   by the `unit` and `integration` runners. No SC here rests on a null kind.
+- Forward-looking consequence of that same null-kind set, and it is MEASURED rather than
+  anticipated. `code_grade._is_test_path` unions every kind whose `status` is `active` or
+  `locally_run`, so ACTIVATING any of those three kinds extends this feature's guard obligation to
+  that kind's `detect` patterns and reddens T-01 case 11 as specified. Measured at `cab6adb2` by
+  flipping `status` to `active` one kind at a time: `component` leaves 3 patterns uncertified
+  (`**/*.spec.tsx`, `**/*.stories.tsx`, `**/*.stories.ts`); `ui` leaves 2 (`e2e/**`,
+  `**/*.e2e.spec.ts`); `typecheck` leaves 2 (`**/*.ts`, `**/*.tsx`) and additionally turns two
+  tracked paths into counted-but-unrefused offenders — FEAT-44's documented exception
+  `probe-session-accessors.ts`, which stops being permitted and becomes counted, and
+  `.omp/extensions/harness-hooks.ts`. The consequence at signature: the DEC-163 dev-ops work that
+  would give `ui` or `typecheck` a runner is blocked until either `suite_layout.py`'s vocabulary
+  widens or DEC-213 records the scope. This feature deliberately does NOT widen the vocabulary for
+  those kinds — issue #1286's scope is the kinds that RUN — so the disclosure is the deliverable
+  and the cost lands on whoever activates a kind. T-01 case 11's remedy text names kind activation
+  so the red reads as a remedy, and T-05 records the mechanism in DEC-213.
 - The one TypeScript file in play, FEAT-44's `probe-session-accessors.ts`, is classified data rather
   than changed code; with `typecheck` unrunnable it is not type-checked, and nothing in this feature
   executes it.
 - `harness.json`'s `unit.detect` is extension-agnostic (`**/*.test.*`, `**/*_test.*`), and the
-  repository-wide guard now mirrors it: `*_test.*` and `*.test.*` are refused whatever the
-  extension (D-01). The class that was previously a disclosed residual — a tracked `*_test.md` or
-  `*.test.jsonl` outside `tests/**`, discovered as a `unit` test by the kind map, permitted by the
-  guard and executed by no runner — is therefore closed by the guard rather than disclosed, with
-  `harness.json` still byte-unchanged (SC-14). No residual remains on this surface: `probe-*`,
-  which keeps its source-extension restriction, is matched by no `detect` glob at all, and
-  `test_*` is reached by `detect` only as `**/test_*.py`, which the source-extension form strictly
-  contains. The closure is asserted rather than assumed: T-01 case 11 reads `unit.detect` from
-  `.harness/harness.json` at test time and requires the guard's imported `is_test_shaped` predicate
-  to accept a synthesised representative name for every glob that constrains a basename, so a later
-  widening of `unit.detect` past the guard reddens the unit suite instead of silently reopening this
-  residual. The falsifiable criterion is SC-19.
-- The widening was re-measured before it was written, not inferred: at `c040c319` with a clean
-  worktree, `git ls-files` in the worktree root filtered by basename against the five shapes gives
-  85 total matches, 9 outside `tests/**`, 0 violations — one FEAT-44 documented exception and eight
-  `probe-*` Markdown/JSONL records. Zero tracked paths outside `tests/**` have a basename matching
-  `*_test.*` or `*.test.*`, so the widening makes no tracked file a new violation and changes no
-  existing row's disposition. The command and its output are recorded in
-  `notes/research-BUG-1286-vocabulary-split.md`; the falsifiable criterion is SC-18, not this note.
+  repository-wide guard covers those two shapes at any extension (D-01). The class that was
+  previously a disclosed residual — a tracked `*_test.md` or `*.test.jsonl` outside `tests/**`,
+  counted by the kind map, permitted by an extension-restricted guard and executed by no runner —
+  is therefore closed by the guard rather than disclosed, with `harness.json` still byte-unchanged
+  (SC-14). The closure argument is the MATCHER CONTRACT, not a snapshot of today's `detect` value:
+  `code_grade._is_test_path` (`code_grade.py:458-473`) `fnmatch`es the FULL relative path across
+  every kind whose `status` is `active` or `locally_run`, so the guard's obligation is a superset
+  of that matcher's reach outside `tests/**`, plus the manual-probe source-name rule no `detect`
+  pattern expresses. T-01 case 11 asserts exactly that by calling the matcher, never by reading a
+  glob segment by segment.
+- One residual is DISCLOSED rather than closed, and it is the reason the guard is stated as a
+  superset obligation instead of a mirror. Because a bare `*` crosses `/` under `fnmatch`,
+  `**/test_*.py` also counts a path such as `.harness/tools/test_dir/gen.py`, whose basename no
+  basename vocabulary can refuse — the pattern matched a DIRECTORY component. Measured at
+  `cab6adb2` no such tracked path exists, so REQ-09 holds today; T-01 case 11's behavioural half
+  reddens the unit suite on the commit that adds one, and the remedy is then to move the file, to
+  widen the vocabulary, or to record the exception. The falsifiable criterion is SC-19.
+- The vocabulary widening was re-measured before it was written, not inferred: at `c040c319` with
+  a clean worktree, `git ls-files` in the worktree root filtered by basename against the five
+  shapes gives 85 total matches, 9 outside `tests/**`, 0 violations — one FEAT-44 documented
+  exception and eight `probe-*` Markdown/JSONL records. Zero tracked paths outside `tests/**` have
+  a basename matching `*_test.*` or `*.test.*`, so the widening makes no tracked file a new
+  violation and changes no existing row's disposition. The command and its output are recorded in
+  `notes/research-BUG-1286-vocabulary-split.md`. This census is evidence for SC-12 and SC-18 and
+  carries no part of REQ-09's closure argument, which rests on the matcher contract above.
 
 ## Approval
 

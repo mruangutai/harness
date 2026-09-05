@@ -3,37 +3,38 @@
 ## Current
 
 - feature: BUG-1286-test-tree-enforcement
-- run: .harness/harness/features/BUG-1286-test-tree-enforcement/runs/2026-09-04-21-product/state.yaml
+- run: .harness/harness/features/BUG-1286-test-tree-enforcement/runs/2026-09-04-26-product/state.yaml
 - squad: none
 - status: awaiting-user
 
-The operator's second signature-gate amendment is applied: the guard-covers-`unit.detect` invariant
-is now a runtime-derived unit assertion (T-01 case 11, REQ-09, SC-19) and the audit note carries
-exactly one fenced block by contract (T-03, T-04, SC-12). The cycle-5 goal-check found and pm closed
-GAP-1, a `docs/**` substitution that kept the assertion green. The fresh cycle-6 panel then FAILED:
-`severity_max: high`, seven findings, all dispositions `open`, no risk accepted anywhere. Both
-readers independently defeated case 11's partition at the same root cause — it reasons lexically and
-segment-wise, while the repository's only mechanical `unit.detect` consumer, `code_grade._is_test_path`
-(`code_grade.py:466-471`), matches full relative paths with `fnmatch`, where `*` crosses `/`.
+The operator's third ruling, "Match actual discovery", is applied: the guard-covers-discovery
+contract is re-based on `code_grade._is_test_path`'s full-relative-path `fnmatch` semantics over
+every running kind, REQ-09 keeps its full breadth, F-01 is fixed rather than overruled (normalized
+literal prefix, `..` rejected outright), and T-01 case 11 survives repaired with a behavioural half,
+a hygiene half and a positive control that selects its subject from the live config. The cycle-7
+goal-check found two gaps — a control pinned to today's `detect`, and an undisclosed three-kind
+activation blast radius — and both were closed. The cycle-8 panel PASSED at `severity_max: med`,
+four findings, nothing high, critical or unrated, so nothing needs operator risk-acceptance.
 BRIEF carries 9 REQ and 19 SC over eleven acceptance criteria; plan.yaml carries 6 decisions and 5
-tasks at station `plan`. Both approvals remain `pending`.
+tasks at station `plan`. Both approvals remain `pending`. check-state reports one violation for this
+feature, the expected unsigned BRIEF.
 
 ## Open Questions
 
-- PF-c145e8377fc22dff2d33f76386c8bc6a (F-01, HIGH, scope). Case 11's excused test is an unnormalized
-  lexical prefix compare, so a directory-only `detect` glob whose text begins `tests/` but escapes
-  the tree is excused rather than rogue. The lead reproduced the mechanism but found the stated
-  consequence non-reproducible today (`tests/../evil/**` matches no tracked path under `fnmatch`).
-  A high finding reaches the operator; no agent may accept its risk. Remedy: normalize the literal
-  prefix and reject any `..` component before the `tests/` comparison.
-- PF-b3b6afcdbfce07dcf98d1e0fb29865e3 (F-02, med). Case 11's partition and final-segment-only
-  synthesis assume wildcards do not cross `/`; the governing matcher does not. Remedy: state the
-  matcher semantics in D-01/REQ-09/SC-19 and assert no `unit.detect` glob carries a wildcard in a
-  non-final segment.
-- Which matcher semantics does REQ-09's word "counts" denote? Under `fnmatch` over full relative
-  paths, today's unmutated `**/test_*.py` already counts any file beneath a tracked `test_*`-named
-  directory outside `tests/**` — basename innocent, so the guard structurally cannot refuse it —
-  which falsifies REQ-09's absolute wording while SC-19 stays green. Narrowing a requirement is the
-  operator's call, not pm's and not the panel's.
-- Four lower findings (F-03..F-06, two med two low) and one info keep verdict entry are recorded in
-  plan.yaml's `panel:` and enter the same signature review.
+- The Advisor consultation the operator directed is answered and recorded in plan.yaml's `panel:`.
+  Its three parts: (a) pm's impossibility claim justifying the hygiene half's sufficient-condition
+  substitution is FALSE as stated, falsified independently by both readers; (b) the substitution is
+  nonetheless SOUND and was forced; (c) one escaping class is named and currently UNDISCLOSED in the
+  plan — extension-position wildcard cores of shape `**/test_*.p?` certify guard-covered while
+  counting `.harness/test_evil.pw`, an extension the vocabulary refuses nowhere.
+- Four panel findings, all `disposition: open`, entering the operator's batched signature review:
+  PF-5f9440b904a275b9a85e79ad14696f63 (med) the extension-position escaping class;
+  PF-2e5117c5af28b52e4ae49fe9f8a35da0 (med) the guard-covered-bucket non-emptiness clause as a
+  live-config occupancy pin; PF-e41c5dbf8071553d1dee17b0fa53c831 (low) and
+  PF-e6721a307394caf409dba6ea04b901b0 (low), the overstated impossibility sentence at both sites.
+  The panel's own assessment is that all four are fixable in ONE edit to T-01 case 11 plus SC-19.
+- The two readers CONTRADICT on the bucket clause; the lead resolved it on evidence grounds in the
+  simulating reader's favour and carried both ratings. Third consecutive cycle in which a clause
+  pinning the live config's shape was flagged.
+- `len(runs)` is 24 against an informational `max_total_runs` of 20. Raising the budget is a user
+  decision and has not been made; the value stands at 20.
