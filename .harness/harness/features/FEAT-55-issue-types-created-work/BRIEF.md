@@ -129,9 +129,13 @@ Recorded verbatim from the grilling note's `## Out of scope`:
   five routes, and `harness`, `feature:<FEAT>` and `factory:claimed` are still present exactly where
   they are today; in compatibility mode `bug` and `chore` reappear unchanged.
   verify: automated        evidence: integration
-- SC-08: With Issue Types available and a mapped type name absent from the repository, zero
-  `issue create` calls reach the fake `gh`, the exit status is non-zero, and the message names both
-  the missing type name and the configuration key to repair.
+- SC-08: With Issue Types available and a mapped type name absent from the repository, each of the
+  three creation commands separately — `gh-sync.py open`, `gh-sync.py backlog` and
+  `factory_decompose.py` — refuses before creating anything: zero `issue create` calls reach the
+  fake `gh`, zero type-assignment calls are made, the exit status is non-zero, and the message
+  names both the missing type name and the configuration key to repair. Asserted per command, in
+  that command's own test file; a refusal proven on one command never discharges this criterion
+  for another.
   verify: automated        evidence: integration
 - SC-09: In a fixture where creation succeeds and type assignment then fails, the issue is not
   recorded as mirrored; rerunning the same command makes no second `issue create` call, no delete or
