@@ -46,6 +46,9 @@ panel:
   - reader: scope
     status: ran
     persona: harness-code-reviewer
+  - reader: goalcheck
+    status: ran
+    persona: harness-pm
   findings:
   - id: PF-fc35850348334fa161835c8a8d817636
     severity: med

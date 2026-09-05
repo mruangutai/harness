@@ -1,0 +1,84 @@
+<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>Ship review — BUG-1302-suite-layout-fail-closed — validation complete</title><style>
+:root{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:ui-sans-serif,-apple-system,"Segoe UI","Helvetica Neue",Arial,sans-serif;
+}
+/* Token-level theming: components style through the tokens and never inside the
+   media query, so the viewer's explicit toggle can override the OS in BOTH
+   directions. */
+@media (prefers-color-scheme:dark){
+  :root{ --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+         --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733; }
+}
+:root[data-theme="dark"]{
+  --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+  --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733;
+}
+:root[data-theme="light"]{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+}
+*{box-sizing:border-box}
+body{margin:0; background:var(--paper); color:var(--ink);
+  font:400 16px/1.65 var(--sans); padding:clamp(1.5rem,5vw,4rem) clamp(1rem,5vw,2rem) 6rem}
+.wrap{max-width:56rem; margin:0 auto}
+/* Layout owns the spacing: gap between siblings, not per-element margins that
+   collapse or double. */
+.wrap{display:flex; flex-direction:column; gap:1rem}
+.eyebrow{font:500 11px/1 var(--mono); letter-spacing:.14em; text-transform:uppercase;
+  color:var(--quiet); margin:0}
+h1{font:600 clamp(1.6rem,4vw,2.3rem)/1.15 var(--sans); letter-spacing:-.02em;
+  margin:.4rem 0 .2rem; text-wrap:balance}
+h2{font:600 1.15rem/1.3 var(--sans); letter-spacing:-.01em; margin:2rem 0 0;
+  padding-top:1.25rem; border-top:1px solid var(--line); text-wrap:balance}
+h3{font:600 .98rem/1.4 var(--sans); margin:1.1rem 0 0}
+h4,h5,h6{font:500 11px/1.4 var(--mono); letter-spacing:.1em; text-transform:uppercase;
+  color:var(--quiet); margin:1rem 0 0}
+p,li{max-width:65ch; margin:0}
+ul,ol{margin:0; padding-left:1.4rem; display:flex; flex-direction:column; gap:.4rem}
+li>ul,li>ol{margin-top:.4rem}
+strong{font-weight:600}
+code{font:400 .875em/1.5 var(--mono); background:var(--sunk); padding:.1em .35em; border-radius:3px}
+pre{background:var(--sunk); border:1px solid var(--line); border-radius:6px;
+  padding:.85rem 1rem; overflow-x:auto; margin:0}
+pre code{background:none; padding:0}
+blockquote{margin:0; padding:.75rem 1rem; border-left:3px solid var(--accent);
+  background:var(--accent-soft); border-radius:0 5px 5px 0}
+blockquote p{max-width:none}
+hr{border:0; border-top:1px solid var(--line); margin:.5rem 0}
+/* Wide content pans inside its OWN container; the page body never scrolls sideways. */
+.scroll{overflow-x:auto; border:1px solid var(--line); border-radius:6px}
+table{border-collapse:collapse; width:100%; font-size:.9rem}
+th,td{text-align:left; padding:.6rem .8rem; border-bottom:1px solid var(--line); vertical-align:top}
+thead th{font:500 10px/1.3 var(--mono); letter-spacing:.11em; text-transform:uppercase;
+  color:var(--quiet); background:var(--sunk); white-space:nowrap}
+tbody tr:last-child td{border-bottom:0}
+/* Figures in a column line up. */
+td,th{font-variant-numeric:tabular-nums}
+.derived{color:var(--slate); font-size:.85rem; margin-top:2.5rem;
+  padding-top:1rem; border-top:1px solid var(--line)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style></head><body><div class='wrap'><p class='eyebrow'>Ship review · reading view</p><h1 id="ship-review-bug-1302-suite-layout-fail-closed-validation-complete">Ship review — BUG-1302-suite-layout-fail-closed — validation complete</h1>
+<p><strong>Recommendation: SHIP.</strong> Validation passes at the pinned <code>review_sha</code> <code>ac8dd671742dc20cea91c03715a9579c7c879e31</code> with zero gating findings. All ten success criteria are met, the qa test-matrix hard gate passes, and the four-seat review panel returned PASS with <code>must_fix: []</code> and <code>severity_max: low</code>. Nothing is merged, PR&#x27;d or shipped; that decision is yours.</p>
+<p><strong>The thing that makes this verdict worth trusting</strong> is not that the suites are green — they were green before the feature too. It is that every one of the five fixes was <strong>mutation-proven to discriminate the defect it names</strong>. qa reintroduced each original defect in a disposable probe worktree at the pin and watched the specific new check go red, then reverted. The two DEC-174 files were byte-identical to the pin before validation and byte-identical after it (<code>git diff ac8dd671 -- tests/</code> is empty), so nothing in the reviewed tree was disturbed to obtain that evidence.</p>
+<h2 id="what-was-fixed-and-what-proves-it">What was fixed, and what proves it</h2>
+<div class="scroll"><table><thead><tr><th>Row</th><th>Fix</th><th>Does the evidence discriminate?</th></tr></thead><tbody><tr><td>B-4</td><td>tautological conjunct removed from <code>_literal_key_present</code></td><td><strong>Yes</strong> — but only the structural AST pin fires. The behavioural corpus stays PASS with the dead code restored, because dead code is invisible to every input. That is expected, not a gap</td></tr><tr><td>B-5</td><td>unreachable <code>&quot;..&quot;</code> comparison removed from <code>_is_inside_tests</code></td><td><strong>Yes</strong>, same shape — structural pin fires, corpus cannot</td></tr><tr><td>B-6</td><td>case 11&#x27;s fail-open <code>INAPPLICABLE</code> print became a hard failure naming both remedies</td><td><strong>Yes</strong>, three independent mutants all reddened, including the two the criterion names</td></tr><tr><td>B-14</td><td><code>_violations_callers</code> reports unreadable tracked sources instead of raising</td><td><strong>Yes</strong> — the unguarded form reddens with the literal <code>UnicodeDecodeError</code> text</td></tr><tr><td>B-8</td><td>integration case 2 widened to reject either sentinel</td><td><strong>Yes</strong> — and this is the strong one: against an identical mutated runner the widened clause reddens and the old narrow clause falsely passes</td></tr></tbody></table></div>
+<p>Independent of the panel, the orchestrator confirmed the suite now <strong>discovers more, not less</strong>: <code>check(</code> call sites in the unit file went 39 → 48, and no pre-existing named check disappeared.</p>
+<h2 id="where-the-verdict-came-from">Where the verdict came from</h2>
+<p><strong>No report round was spawned.</strong> This briefing was assembled by reading the run digests already on disk (DEC-69). The files read, all under <code>.harness/harness/features/BUG-1302-suite-layout-fail-closed/</code>:</p>
+<ul><li><code>runs/2026-09-05-1-validator/digest.md</code> — Advisor: DEC-174 binds both test files (RULING); B-6 remedy (a) (recommendation)</li><li><code>runs/2026-09-05-2-validator/digest.md</code> — same ruling, recorded with its evidence paragraph</li><li><code>runs/2026-09-05-2-product/digest.md</code> — plan goal-check FAIL: three BRIEF defects before signature</li><li><code>runs/2026-09-05-3-product/digest.md</code>, <code>runs/2026-09-05-4-product/digest.md</code> — BRIEF and plan drafted, then all 12 findings applied</li><li><code>runs/2026-09-05-3-validator/digest.md</code>, <code>runs/2026-09-05-4-validator/digest.md</code> — plan panel, cycle 1, <code>severity_max: med</code>, <code>must_fix</code> empty</li><li><code>runs/2026-09-05-1-eng/digest.md</code>, <code>runs/2026-09-05-2-eng/digest.md</code> — four-angle pass and architecture review of the plan draft</li><li><code>runs/2026-09-05-5-product/digest.md</code> — all four panel findings resolved and transcribed</li><li><code>runs/2026-09-05-6-validator/digest.md</code> — <strong>the review panel at the pin: PASS, must_fix empty</strong></li><li><code>runs/2026-09-05-6-product/digest.md</code>, <code>runs/2026-09-05-7-product/digest.md</code> — goal-check, then SC-06 re-graded to met</li><li><code>notes/qa-2026-09-05-6.md</code> — the mutation evidence the whole verdict rests on</li></ul>
+<p>The build phase left no run digest: it was main-session-direct under DEC-174, so <code>runs:</code> records no eng run for T-01..T-05. Its evidence is <code>notes/handoff-build.md</code> and <code>notes/red-demonstrations-2026-09-05.md</code>.</p>
+<h2 id="budget">Budget</h2>
+<p>Cycles 4 of 8 — three from the plan phase, one from this phase (SC-06 was returned to pm for re-grading once the qa evidence surfaced). Runs 13 of 20. Neither budget is near its bound and no crossing needs surfacing.</p>
+<h2 id="two-things-you-should-know-before-you-sign">Two things you should know before you sign</h2>
+<ol><li><strong>B-6&#x27;s residual blind spot is real and is the price of the chosen remedy.</strong> A well-formed <code>test_kinds</code> change that blinds the gate to a genuine offending path is caught by neither the positive control nor the hygiene certification. BRIEF.md records this; the panel found nothing that narrows it. The compensating control certifies detect-pattern <em>shape</em>, never a live path through <code>offenders()</code>.</li><li><strong>Two of the four panel seats reached PASS by reading, not by falsification.</strong> Security and UI both declined-after-looking rather than being skipped, which is the correct outcome for this surface, but it means the panel&#x27;s discriminating power came almost entirely from qa&#x27;s mutants and the code reviewer&#x27;s base-vs-pin re-derivation. A clean panel is not by itself proof of a clean diff.</li></ol>
+<h2 id="proposed-backlog">Proposed backlog</h2>
+<p>Unstruck rows become issues on ship acceptance. <strong>Anything not listed here dies silently.</strong></p>
+<div class="scroll"><table><thead><tr><th>ID</th><th>Nature</th><th>Row</th></tr></thead><tbody><tr><td>B-1</td><td>bug</td><td><code>sole_implementations()</code> handles the same two hazards T-04 just fixed by <strong>silently skipping</strong> them — a tracked-then-deleted <code>.py</code> drops out of the sole-implementation sweep with no signal. After this feature the one file holds two opposite policies for one hazard class. Ruled out of scope here; it is a genuine fail-open of B-6&#x27;s own class</td></tr><tr><td>B-2</td><td>bug</td><td>A malformed lead digest can never be repaired: <code>runs/2026-09-05-1-eng/digest.md</code> fails the DEC-156 contract, and <code>check-domain.sh</code> refuses every Write to a run digest that already holds one. The guard that prevents clobbering also prevents correction, so the defect is permanent by construction</td></tr><tr><td>B-3</td><td>bug</td><td><code>plan-merge.py apply</code> cannot write <code>panel.readers</code> — <code>UNION_KEYS</code> is <code>(tasks, decisions)</code> only, so <code>panel</code> falls to whole-value equality and exits 7 CONFLICT. The working verb is <code>set-panel</code>. Any instruction that mandates <code>apply</code> for a panel edit is unsatisfiable</td></tr><tr><td>B-4</td><td>bug</td><td>Handoff authority pointers <code>brief-sc:</code> and <code>plan-task:</code> cannot resolve for a feature living in a worktree: <code>handoff_done_when.py</code> derives the feature dir and reads it against the <strong>main checkout</strong> root, where the feature directory does not exist. Only <code>approval:</code> and <code>finding:</code>, which carry an explicit path, work from a worktree</td></tr><tr><td>B-5</td><td>bug</td><td>A subagent job exits 1 with <code>Subagent called yield with null data</code> while emitting a complete, conformant fenced return whose artifact is present and correct on disk. Observed twice in this feature (pm in <code>5-product</code>, code-reviewer in <code>6-validator</code>). Routing on job status alone would discard valid PASSes</td></tr><tr><td>B-6</td><td>chore</td><td><code>notes/red-demonstrations-2026-09-05.md</code> carries no cross-reference to the two SC-06 mutation transcripts, which live in <code>notes/qa-2026-09-05-6.md</code>. A reader following SC-06&#x27;s literal wording finds only the one fail-open FAIL line. One line fixes it</td></tr><tr><td>B-7</td><td>chore</td><td>BRIEF SC-08&#x27;s prose calls the two surviving <code>&quot;PASS test-&quot; not in p.stdout</code> occurrences &quot;cases 2 and 4&quot;. Measured, they are at <code>:93</code> and <code>:121</code>, and <code>:121</code> is the <em>git enumeration failure</em> case. SC-08&#x27;s actual pin — narrow clause absent, generic count exactly 2 — holds; only the prose anchor is wrong</td></tr><tr><td>B-8</td><td>enhancement</td><td>DEC-174&#x27;s enumeration still does not name <code>run-unit-tests.sh</code>, so its carve-out over both gate test files rests on an Advisor ruling by category rather than on the text. An explicit non-goal of this feature; amending it is your call</td></tr></tbody></table></div>
+<h2 id="next-steps-and-who-owns-them">Next steps, and who owns them</h2>
+<p>Everything below is <strong>yours or the main session&#x27;s</strong> — no squad can perform any of it.</p>
+<ol><li><strong>Merge the branch.</strong> <code>feat/BUG-1302-suite-layout-fail-closed</code>, currently at the validation commit. GitHub milestone 46, parent issue <strong>#1311</strong>, sub-issues <strong>#1312–#1316</strong> (T-01..T-05), source issue <strong>#1302</strong>.</li><li><strong><code>gh-sync.py ship</code></strong> from the <strong>main checkout</strong>, not this worktree — it refuses at exit 1 when the feature directory resolves inside <code>.claude/worktrees/</code>. Pass <code>--body-file</code> pointing at this note so the briefing posts on #1311.</li><li><strong>File the unstruck backlog rows</strong> above as issues, mapping each <code>nature</code> onto <code>bug</code>, <code>chore</code> or <code>enhancement</code> and prefixing every title with its row id.</li><li><strong>Let the <code>post-merge</code> hook remove this worktree.</strong> Do not remove it from inside; <code>check-state.sh</code> INV-29 refuses while a worktree stands for a feature that reached a terminal state.</li></ol><p class='derived'>Derived from <code>ship-review-2026-09-05-validate.md</code> — the markdown is the record; do not edit this file. Regenerate with <code>bin/render-brief.py</code>.</p></div></body></html>
