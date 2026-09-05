@@ -1,6 +1,6 @@
 schema: plan/1
 feature: BUG-1286-test-tree-enforcement
-status: review
+status: done
 approval:
   date: '2026-09-05'
   approved_by: mruangutai
