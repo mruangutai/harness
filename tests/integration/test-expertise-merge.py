@@ -17,6 +17,8 @@ _anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..",
 _anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
 _anchor_sys.path.insert(0, _anchor_bin)
 import ast
+import hashlib
+import json
 import os
 import re
 import shutil
@@ -385,6 +387,632 @@ def case_stale_lock_recovery(root):
     )
 
 
+def write_ops(path, ops):
+    """Write an ops payload — ALWAYS a bare JSON list; the tool accepts no mapping wrapper
+    (T-01's settled payload shape). case20(c) is the one exception and writes its own
+    digest-shaped mapping directly, never through this helper."""
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(ops, f)
+    return path
+
+
+def run_ops(file_path, ops_path):
+    return subprocess.run(
+        [sys.executable, CLI, "ops", "--file", file_path, "--ops", ops_path],
+        capture_output=True,
+        text=True,
+    )
+
+
+_ENTRY_LINE_RE = re.compile(r"^- ([A-Za-z]{1,3}-\d+): (.*)$")
+
+
+def parse_section_entries(content, section):
+    """A minimal, independent re-implementation of the entry-line shape, section-scoped, so
+    assertions about section order and content never depend on the tool's own parser."""
+    in_section = False
+    out = []
+    for line in content.splitlines():
+        if line.startswith("## "):
+            in_section = line[3:].split(" ")[0] == section
+            continue
+        if in_section:
+            m = _ENTRY_LINE_RE.match(line)
+            if m:
+                out.append((m.group(1), m.group(2)))
+    return out
+
+
+def case_replace_at_capacity(root):
+    """Case 11 — REPLACE AT CAPACITY (D-06, D-07). A replace never changes section length, so
+    a section already at its cap accepts a replace."""
+    path = target(root, "case11")
+    fifteen = [(f"P-{i:02d}", f"text {i}") for i in range(1, 16)]
+    write_file(path, [("Patterns", fifteen)])
+    ops_path = write_ops(
+        os.path.join(root, "case11_ops.json"),
+        [{"op": "replace", "target": "P-07", "section": "Patterns", "entry": "REPLACED TEXT SEVEN"}],
+    )
+
+    r = run_ops(path, ops_path)
+    check("case11: replace at capacity exits 0", r.returncode == 0, r.stdout + r.stderr)
+    check("case11: stdout carries REPLACED P-07", "REPLACED P-07" in r.stdout, r.stdout)
+
+    content = open(path, encoding="utf-8").read()
+    entries = parse_section_entries(content, "Patterns")
+    check("case11: Patterns still holds 15 entries", len(entries) == 15, content)
+    ids = [eid for eid, _ in entries]
+    check(
+        "case11: the 7th entry line is P-07",
+        len(ids) >= 7 and ids[6] == "P-07",
+        ids,
+    )
+    texts = dict(entries)
+    check(
+        "case11: the 7th entry line carries the new text",
+        texts.get("P-07") == "REPLACED TEXT SEVEN",
+        content,
+    )
+
+    r2 = subprocess.run([CHECK_EXPERTISE_BIN, path], capture_output=True, text=True)
+    check(
+        "case11: check-expertise.sh still accepts the written file",
+        r2.returncode == 0,
+        r2.stdout + r2.stderr,
+    )
+
+
+def case_removal(root):
+    """Case 12 — REMOVAL. A drop deletes the entry outright and leaves its neighbours in
+    place."""
+    path = target(root, "case12")
+    five = [(f"G-{i:02d}", f"text {i}") for i in range(1, 6)]
+    write_file(path, [("Gotchas", five)])
+    ops_path = write_ops(
+        os.path.join(root, "case12_ops.json"),
+        [{"op": "drop", "target": "G-03", "section": "Gotchas"}],
+    )
+
+    r = run_ops(path, ops_path)
+    check("case12: drop exits 0", r.returncode == 0, r.stdout + r.stderr)
+    check("case12: stdout carries DROPPED G-03", "DROPPED G-03" in r.stdout, r.stdout)
+
+    content = open(path, encoding="utf-8").read()
+    check("case12: the string - G-03: is absent from the file", "- G-03:" not in content, content)
+    for eid in ("G-01", "G-02", "G-04", "G-05"):
+        check(f"case12: {eid} is still present", f"- {eid}:" in content, content)
+
+    r2 = subprocess.run([CHECK_EXPERTISE_BIN, path], capture_output=True, text=True)
+    check(
+        "case12: check-expertise.sh still accepts the written file",
+        r2.returncode == 0,
+        r2.stdout + r2.stderr,
+    )
+
+
+def case_missing_target(root):
+    """Case 13 — MISSING TARGET (D-04). A replace naming an id absent from its section exits
+    10, writes nothing, and the file stays writable afterward."""
+    path = target(root, "case13")
+    original = write_file(path, [("Patterns", [("P-01", "one")])])
+    before = hashlib.sha256(open(path, "rb").read()).hexdigest()
+    ops_path = write_ops(
+        os.path.join(root, "case13_ops.json"),
+        [{"op": "replace", "target": "P-99", "section": "Patterns", "entry": "does not exist"}],
+    )
+
+    r = run_ops(path, ops_path)
+    combined = r.stdout + r.stderr
+    check("case13: missing target exits 10", r.returncode == 10, combined)
+    check("case13: combined output carries MISSING TARGET", "MISSING TARGET" in combined, combined)
+    check("case13: combined output carries the id P-99", "P-99" in combined, combined)
+    check("case13: combined output carries the section Patterns", "Patterns" in combined, combined)
+
+    after = hashlib.sha256(open(path, "rb").read()).hexdigest()
+    check("case13: file sha256 is unchanged", after == before, (before, after))
+    check(
+        "case13: file content is byte identical to before",
+        open(path, encoding="utf-8").read() == original,
+        None,
+    )
+
+    entries_noop = os.path.join(root, "case13_entries_noop.md")
+    write_entries(entries_noop, [("Patterns", [("P-01", "one")])])
+    r2 = run_apply(path, entries_noop)
+    check("case13: a following add-only apply still exits 0", r2.returncode == 0, r2.stdout + r2.stderr)
+
+
+def case_ambiguous_target(root):
+    """Case 14 — AMBIGUOUS TARGET, D-03's whole set, TWO sub-cases: (b) a duplicate id inside
+    one section of the base file, (c) two ops in one proposal naming the same target. The
+    former sub-case (a) — one id in two sections with the op omitting section — is DELETED, not
+    renamed: D-02 makes section required on every op, so that input is refused at exit 12 by
+    shape before any resolution runs (exercised through the CLI by case20 instead)."""
+    # (b) — a base file whose Patterns section carries P-04 twice.
+    path_b = target(root, "case14b")
+    write_file(path_b, [("Patterns", [("P-01", "one"), ("P-04", "four-a"), ("P-04", "four-b")])])
+    before_b = hashlib.sha256(open(path_b, "rb").read()).hexdigest()
+    ops_b = write_ops(
+        os.path.join(root, "case14b_ops.json"),
+        [{"op": "replace", "target": "P-04", "section": "Patterns", "entry": "new text"}],
+    )
+    r_b = run_ops(path_b, ops_b)
+    combined_b = r_b.stdout + r_b.stderr
+    check("case14: (b) a duplicate id in one section exits 11", r_b.returncode == 11, combined_b)
+    check("case14: (b) combined output carries AMBIGUOUS TARGET", "AMBIGUOUS TARGET" in combined_b, combined_b)
+    check("case14: (b) combined output carries the id P-04", "P-04" in combined_b, combined_b)
+    check("case14: (b) combined output carries the section Patterns", "Patterns" in combined_b, combined_b)
+    check("case14: (b) combined output carries a reason", "reason=" in combined_b, combined_b)
+    after_b = hashlib.sha256(open(path_b, "rb").read()).hexdigest()
+    check("case14: (b) file sha256 is unchanged", after_b == before_b, (before_b, after_b))
+
+    # (c) — two ops in one proposal naming the same section and id.
+    path_c = target(root, "case14c")
+    write_file(path_c, [("Patterns", [("P-01", "one"), ("P-02", "two")])])
+    before_c = hashlib.sha256(open(path_c, "rb").read()).hexdigest()
+    ops_c = write_ops(
+        os.path.join(root, "case14c_ops.json"),
+        [
+            {"op": "replace", "target": "P-01", "section": "Patterns", "entry": "first replace"},
+            {"op": "replace", "target": "P-01", "section": "Patterns", "entry": "second replace"},
+        ],
+    )
+    r_c = run_ops(path_c, ops_c)
+    combined_c = r_c.stdout + r_c.stderr
+    check("case14: (c) two ops naming the same target exits 11", r_c.returncode == 11, combined_c)
+    check("case14: (c) combined output carries AMBIGUOUS TARGET", "AMBIGUOUS TARGET" in combined_c, combined_c)
+    check("case14: (c) combined output carries the id P-01", "P-01" in combined_c, combined_c)
+    check("case14: (c) combined output carries the section Patterns", "Patterns" in combined_c, combined_c)
+    check("case14: (c) combined output carries a reason", "reason=" in combined_c, combined_c)
+    after_c = hashlib.sha256(open(path_c, "rb").read()).hexdigest()
+    check("case14: (c) file sha256 is unchanged", after_c == before_c, (before_c, after_c))
+
+
+def case_atomic_failure(root):
+    """Case 15 — ATOMIC FAILURE (D-08). A three-op proposal whose first two ops are valid and
+    whose third names a missing target leaves the file untouched — nothing is applied until
+    every op has resolved."""
+    path = target(root, "case15")
+    write_file(path, [("Patterns", [("P-01", "one"), ("P-02", "two"), ("P-03", "three")])])
+    before = hashlib.sha256(open(path, "rb").read()).hexdigest()
+    ops_path = write_ops(
+        os.path.join(root, "case15_ops.json"),
+        [
+            {"op": "replace", "target": "P-01", "section": "Patterns", "entry": "one replaced"},
+            {"op": "drop", "target": "P-02", "section": "Patterns"},
+            {"op": "replace", "target": "P-99", "section": "Patterns", "entry": "missing"},
+        ],
+    )
+
+    r = run_ops(path, ops_path)
+    check("case15: atomic failure exits non-zero", r.returncode != 0, r.stdout + r.stderr)
+    after = hashlib.sha256(open(path, "rb").read()).hexdigest()
+    check(
+        "case15: file sha256 equals the sha256 taken before the invocation",
+        after == before,
+        (before, after),
+    )
+
+    entries_noop = os.path.join(root, "case15_entries_noop.md")
+    write_entries(entries_noop, [("Patterns", [("P-01", "one")])])
+    r2 = run_apply(path, entries_noop)
+    check("case15: a following add-only apply still exits 0", r2.returncode == 0, r2.stdout + r2.stderr)
+
+
+def case_add_only_compatibility(root):
+    """Case 16 — ADD-ONLY COMPATIBILITY (D-09). Through apply --entries only, unmodified: the
+    ADDED/PRESERVED/APPLIED tokens, exit 7 on divergent text, exit 8 over cap."""
+    path = target(root, "case16")
+    write_file(path, [("Patterns", [(f"P-{i:02d}", f"text {i}") for i in range(1, 15)])])  # P-01..P-14
+    entries_add = os.path.join(root, "case16_entries_add.md")
+    write_entries(entries_add, [("Patterns", [("P-01", "text 1"), ("P-15", "text 15")])])
+    r = run_apply(path, entries_add)
+    check("case16: add-only proposal exits 0", r.returncode == 0, r.stdout + r.stderr)
+    check("case16: stdout carries the ADDED token", "ADDED P-15" in r.stdout, r.stdout)
+    check("case16: stdout carries the PRESERVED token", "PRESERVED P-01" in r.stdout, r.stdout)
+    check("case16: stdout carries the APPLIED token", "APPLIED" in r.stdout, r.stdout)
+
+    entries_conflict = os.path.join(root, "case16_entries_conflict.md")
+    write_entries(entries_conflict, [("Patterns", [("P-01", "DIFFERENT TEXT")])])
+    r2 = run_apply(path, entries_conflict)
+    check("case16: same-id-different-text proposal still exits 7", r2.returncode == 7, r2.stdout + r2.stderr)
+
+    entries_overcap = os.path.join(root, "case16_entries_overcap.md")
+    write_entries(entries_overcap, [("Patterns", [("P-16", "text 16")])])
+    r3 = run_apply(path, entries_overcap)
+    check("case16: over-cap proposal still exits 8", r3.returncode == 8, r3.stdout + r3.stderr)
+
+
+class _ContractHarvestError(Exception):
+    """Raised when contract_drift cannot mechanically locate the ops vocabulary line, the
+    parser's own --ops help text, or runs a broken probe. Caught only inside contract_drift,
+    which turns it into a failure string rather than crashing the case."""
+
+
+def _normalise(text):
+    """Collapse whitespace runs to one space and strip backtick/asterisk/underscore, so a
+    reflow, a rewrap or an emphasis change cannot redden contract_drift."""
+    text = re.sub(r"[`*_]", "", text)
+    text = re.sub(r"\s+", " ", text)
+    return text.strip()
+
+
+def _harvest_contract_verbs(normalised):
+    """CONTRACT, harvested MECHANICALLY: the ONE pipe-separated verb list carried on the ops
+    example's `op:` key. Never restated as a literal set — a restated copy is exactly what
+    would make this blind to the drift it exists to catch."""
+    matches = re.findall(r"op: \w+ # (\w+(?: \| \w+)+)", normalised)
+    if len(matches) != 1:
+        raise _ContractHarvestError(
+            "the ops vocabulary line could not be located: pattern 'op: <verb> # <a | b | ...>' "
+            f"matched {len(matches)} times in the normalised SKILL.md text, expected exactly 1"
+        )
+    return [tok.strip() for tok in matches[0].split("|")]
+
+
+def _harvest_help_verbs():
+    """A SECOND, independent source of candidate verbs: the ops parser's own --ops help text,
+    which is what makes ACCEPTED - CONTRACT able to fail at all."""
+    r = subprocess.run([sys.executable, CLI, "ops", "--help"], capture_output=True, text=True)
+    m = re.search(r"list of ([\w/]+) ops", r.stdout)
+    if not m:
+        raise _ContractHarvestError(
+            f"the ops --help text did not name a slash-separated verb list: {r.stdout!r}"
+        )
+    return m.group(1).split("/")
+
+
+def _probe_accepted_verbs(candidate_verbs):
+    """ACCEPTED, collected by probing each candidate verb with a well-formed single op against
+    its own throwaway fixture. Every probe op carries a target and section that EXIST in that
+    fixture, so a refusal is attributable to the verb, never to a missing key."""
+    tmp = tempfile.mkdtemp(prefix="expertise-merge-case17-probe-")
+    try:
+        accepted = set()
+        for verb in candidate_verbs:
+            fixture = target(tmp, f"probe-{verb}")
+            write_file(fixture, [("Patterns", [("X-01", "known text")])])
+            op = {"op": verb, "target": "X-01", "section": "Patterns"}
+            if verb == "add":
+                op["entry"] = "known text"
+            elif verb == "replace":
+                op["entry"] = "probe replaced text"
+            ops_path = write_ops(os.path.join(tmp, f"{verb}_ops.json"), [op])
+            r = run_ops(fixture, ops_path)
+            combined = r.stdout + r.stderr
+            if r.returncode == 12:
+                if re.search(r"unknown op verb|op=merge", combined):
+                    continue
+                raise _ContractHarvestError(
+                    f"broken probe for verb {verb!r} — exit 12 did not name the verb, it named "
+                    f"a key instead: {combined!r}"
+                )
+            accepted.add(verb)
+        return accepted
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
+def contract_drift(skill_text):
+    """Mechanised contract-drift detector (BUG-1308, D-10, SC-09, T-02 case17). Returns a list
+    of failure strings — empty means the ops subcommand and the distillation contract agree.
+    Runnable against a drifted COPY of the skill text: CONTRACT and REWRITTEN are re-harvested
+    from `skill_text` every call; ACCEPTED is probed against the real tool, unaffected by the
+    copy, because it names what the TOOL accepts, not what the text claims."""
+    normalised = _normalise(skill_text)
+    try:
+        contract = set(_harvest_contract_verbs(normalised))
+        help_verbs = set(_harvest_help_verbs())
+        accepted = _probe_accepted_verbs(sorted(contract | help_verbs))
+    except _ContractHarvestError as exc:
+        return [str(exc)]
+
+    rewritten = (
+        {"merge"}
+        if "replace on the surviving id" in normalised and "drop of the absorbed id" in normalised
+        else set()
+    )
+
+    failures = []
+    left = contract - accepted
+    if left != rewritten:
+        failures.append(
+            f"CONTRACT - ACCEPTED == {sorted(left)!r} but REWRITTEN == {sorted(rewritten)!r}"
+        )
+    right = accepted - contract
+    if right:
+        failures.append(f"ACCEPTED - CONTRACT == {sorted(right)!r}, expected empty set()")
+    return failures
+
+
+def case_contract_drift():
+    """Case 17 — CONTRACT DRIFT DETECTOR (D-10, SC-09, T-03), the same idiom as case 8. The one
+    statement this case exists to hold: every op verb the distillation contract names is either
+    accepted by the ops subcommand or is merge, the verb the contract itself rewrites into a
+    replace on the surviving id plus a drop of the absorbed id — and the tool accepts no verb
+    the contract omits."""
+    skill_path = os.path.join(ROOT, ".claude", "skills", "harness-distill", "SKILL.md")
+    skill_text = open(skill_path, encoding="utf-8").read()
+
+    anchor_pattern = r"op: \w+ # (\w+(?: \| \w+)+)"
+    anchor_matches = re.findall(anchor_pattern, _normalise(skill_text))
+    check(
+        "case17: the op: vocabulary anchor matches the real SKILL.md exactly once",
+        len(anchor_matches) == 1,
+        f"pattern={anchor_pattern!r} matches={anchor_matches!r}",
+    )
+
+    real_failures = contract_drift(skill_text)
+    check("case17: contract_drift(real SKILL.md) returns no failures", real_failures == [], real_failures)
+
+    # MUTATION DEMONSTRATION — three drifted COPIES built in this case's own tmp dir. The real
+    # SKILL.md is never written.
+    copy_a = skill_text.replace("drop of the absorbed id", "handling of the absorbed id")
+    check(
+        "case17: copy (a) actually removed the phrase 'drop of the absorbed id'",
+        "drop of the absorbed id" not in copy_a and "replace on the surviving id" in copy_a,
+        None,
+    )
+    failures_a = contract_drift(copy_a)
+    check(
+        "case17: copy (a) — rewrite phrase removed — reddens the FIRST direction "
+        "(CONTRACT - ACCEPTED)",
+        any(f.startswith("CONTRACT - ACCEPTED") for f in failures_a),
+        failures_a,
+    )
+    check(
+        "case17: copy (a) does not redden the SECOND direction (ACCEPTED - CONTRACT)",
+        not any(f.startswith("ACCEPTED - CONTRACT") for f in failures_a),
+        failures_a,
+    )
+
+    copy_b = skill_text.replace(
+        "# add | replace | merge | drop", "# add | replace | merge | drop | prune"
+    )
+    check(
+        "case17: copy (b) actually inserted the extra verb prune",
+        "| drop | prune" in copy_b,
+        None,
+    )
+    failures_b = contract_drift(copy_b)
+    check(
+        "case17: copy (b) — extra verb prune inserted — reddens the FIRST direction "
+        "(CONTRACT - ACCEPTED)",
+        any(f.startswith("CONTRACT - ACCEPTED") for f in failures_b),
+        failures_b,
+    )
+    check(
+        "case17: copy (b) does not redden the SECOND direction (ACCEPTED - CONTRACT)",
+        not any(f.startswith("ACCEPTED - CONTRACT") for f in failures_b),
+        failures_b,
+    )
+
+    copy_c = skill_text.replace("# add | replace | merge | drop", "# add | replace | merge")
+    check(
+        "case17: copy (c) actually removed the verb drop from the vocabulary line",
+        "# add | replace | merge" in copy_c
+        and "# add | replace | merge | drop" not in copy_c,
+        None,
+    )
+    failures_c = contract_drift(copy_c)
+    check(
+        "case17: copy (c) — drop removed from the vocabulary line — reddens the SECOND "
+        "direction (ACCEPTED - CONTRACT)",
+        any(f.startswith("ACCEPTED - CONTRACT") for f in failures_c),
+        failures_c,
+    )
+    check(
+        "case17: copy (c) does not redden the FIRST direction (CONTRACT - ACCEPTED)",
+        not any(f.startswith("CONTRACT - ACCEPTED") for f in failures_c),
+        failures_c,
+    )
+
+
+def case_concurrent_writers(root):
+    """Case 18 — CONCURRENT WRITERS (SC-11, D-09). Contention forced DETERMINISTICALLY by the
+    test itself holding the production lock, with NO production test bypass: no environment
+    variable, no injected sleep, no test-only flag, no edit of expertise-merge.py or
+    harness_merge.py."""
+    path = target(root, "case18")
+    eight = [(f"P-{i:02d}", f"text {i}") for i in range(1, 9)]
+    write_file(path, [("Patterns", eight)])
+
+    entries_a = os.path.join(root, "case18_entries.md")
+    write_entries(entries_a, [("Patterns", [("P-09", "text 9"), ("P-10", "text 10")])])
+    marker = "CHILD B MARKER TEXT"
+    ops_b = write_ops(
+        os.path.join(root, "case18_ops.json"),
+        [{"op": "replace", "target": "P-07", "section": "Patterns", "entry": marker}],
+    )
+
+    lock_path = path + ".lock"
+    hold_window = 2.0
+    with harness_merge.acquire(lock_path):
+        child_a = subprocess.Popen(
+            [sys.executable, CLI, "apply", "--file", path, "--entries", entries_a],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+        )
+        child_b = subprocess.Popen(
+            [sys.executable, CLI, "ops", "--file", path, "--ops", ops_b],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+        )
+        started = time.monotonic()
+        deadline = started + hold_window
+        premature = None
+        while time.monotonic() < deadline:
+            if child_a.poll() is not None:
+                premature = "child A (apply)"
+                break
+            if child_b.poll() is not None:
+                premature = "child B (ops)"
+                break
+            time.sleep(0.05)
+        held_wall_clock = time.monotonic() - started
+        check(
+            f"case18: neither child exits during the {hold_window}s hold window while the "
+            f"test holds the production lock ({held_wall_clock:.2f}s observed)",
+            premature is None,
+            (
+                f"{premature} exited while the test held the lock — it did not take the "
+                "lock the core defines; this is the D-09 regression"
+            ) if premature else "",
+        )
+
+    try:
+        out_a, err_a = child_a.communicate(timeout=20)
+        check(
+            "case18: child A (apply) exits 0 once the lock is released",
+            child_a.returncode == 0,
+            f"exit {child_a.returncode}: {out_a + err_a}",
+        )
+    except subprocess.TimeoutExpired:
+        child_a.kill()
+        check("case18: child A (apply) completes within 20s of the lock being released", False, "")
+
+    try:
+        out_b, err_b = child_b.communicate(timeout=20)
+        check(
+            "case18: child B (ops) exits 0 once the lock is released",
+            child_b.returncode == 0,
+            f"exit {child_b.returncode}: {out_b + err_b}",
+        )
+    except subprocess.TimeoutExpired:
+        child_b.kill()
+        check("case18: child B (ops) completes within 20s of the lock being released", False, "")
+
+    content = open(path, encoding="utf-8").read()
+    entries = parse_section_entries(content, "Patterns")
+    ids = sorted(eid for eid, _ in entries)
+    expected_ids = sorted([f"P-{i:02d}" for i in range(1, 9)] + ["P-09", "P-10"])
+    check(
+        "case18: the Patterns id census is exactly the original eight plus P-09 and P-10",
+        ids == expected_ids,
+        ids,
+    )
+    texts = dict(entries)
+    check(
+        "case18: the P-07 entry carries child B's marker text",
+        texts.get("P-07") == marker,
+        content,
+    )
+
+
+def case_multi_op_composition(root):
+    """Case 19 — MULTI-OP COMPOSITION IN ONE SECTION, through the CLI (cycle-1 panel finding).
+    Two ops on distinct original indices of one section, low index first: drop P-01 (index 0),
+    then replace P-05 (index 4). u11 is the unit half; the reversed-order run is deliberately
+    not repeated here — u11 asserts order-independence directly against resolve_ops."""
+    path = target(root, "case19")
+    five = [(f"P-{i:02d}", f"text {i}") for i in range(1, 6)]
+    write_file(path, [("Patterns", five)])
+    marker = "CASE19 MARKER TEXT"
+    ops_path = write_ops(
+        os.path.join(root, "case19_ops.json"),
+        [
+            {"op": "drop", "target": "P-01", "section": "Patterns"},
+            {"op": "replace", "target": "P-05", "section": "Patterns", "entry": marker},
+        ],
+    )
+
+    r = run_ops(path, ops_path)
+    check("case19: multi-op composition exits 0", r.returncode == 0, r.stdout + r.stderr)
+    check("case19: stdout carries DROPPED P-01", "DROPPED P-01" in r.stdout, r.stdout)
+    check("case19: stdout carries REPLACED P-05", "REPLACED P-05" in r.stdout, r.stdout)
+
+    content = open(path, encoding="utf-8").read()
+    entries = parse_section_entries(content, "Patterns")
+    ids = [eid for eid, _ in entries]
+    check(
+        "case19: the id sequence is exactly P-02, P-03, P-04, P-05 in file order",
+        ids == ["P-02", "P-03", "P-04", "P-05"],
+        ids,
+    )
+    texts = dict(entries)
+    check("case19: the P-05 entry carries the marker text", texts.get("P-05") == marker, content)
+    other_marked = [eid for eid, text in entries if eid != "P-05" and text == marker]
+    check("case19: no other entry carries the marker text", other_marked == [], other_marked)
+
+    r2 = subprocess.run([CHECK_EXPERTISE_BIN, path], capture_output=True, text=True)
+    check(
+        "case19: check-expertise.sh still accepts the written file",
+        r2.returncode == 0,
+        r2.stdout + r2.stderr,
+    )
+
+
+def case_malformed_ops_cli(root):
+    """Case 20 — MALFORMED OPS THROUGH THE CLI, WITH BYTE IDENTITY (D-02, D-05, SC-04). The
+    exit-12 shape branch's CLI half. (a)/(b) are the required-section ruling; u13 is their unit
+    half. (c) is the payload-shape refusal; u14 is its unit half."""
+    path = target(root, "case20")
+    three = [(f"P-{i:02d}", f"text {i}") for i in range(1, 4)]
+    write_file(path, [("Patterns", three)])
+
+    # (a) — a well-formed replace op with the section key ABSENT.
+    before_a = hashlib.sha256(open(path, "rb").read()).hexdigest()
+    ops_a = write_ops(
+        os.path.join(root, "case20a_ops.json"),
+        [{"op": "replace", "target": "P-01", "entry": "new text"}],
+    )
+    r_a = run_ops(path, ops_a)
+    combined_a = r_a.stdout + r_a.stderr
+    check("case20: (a) missing section key exits 12", r_a.returncode == 12, combined_a)
+    check("case20: (a) combined output carries MALFORMED OPS", "MALFORMED OPS" in combined_a, combined_a)
+    check("case20: (a) combined output names the offending key section", "section" in combined_a, combined_a)
+    check("case20: (a) combined output names the op's index", "index=0" in combined_a, combined_a)
+    after_a = hashlib.sha256(open(path, "rb").read()).hexdigest()
+    check("case20: (a) file sha256 is unchanged", after_a == before_a, (before_a, after_a))
+
+    entries_noop_a = os.path.join(root, "case20a_entries_noop.md")
+    write_entries(entries_noop_a, [("Patterns", [("P-01", "text 1")])])
+    r_a2 = run_apply(path, entries_noop_a)
+    check(
+        "case20: (a) a following add-only apply still exits 0, so the file is still writable",
+        r_a2.returncode == 0,
+        r_a2.stdout + r_a2.stderr,
+    )
+
+    # (b) — the same op with section present but the empty string.
+    before_b = hashlib.sha256(open(path, "rb").read()).hexdigest()
+    ops_b = write_ops(
+        os.path.join(root, "case20b_ops.json"),
+        [{"op": "replace", "target": "P-01", "section": "", "entry": "new text"}],
+    )
+    r_b = run_ops(path, ops_b)
+    combined_b = r_b.stdout + r_b.stderr
+    check("case20: (b) empty section key exits 12", r_b.returncode == 12, combined_b)
+    check("case20: (b) combined output carries MALFORMED OPS", "MALFORMED OPS" in combined_b, combined_b)
+    check("case20: (b) combined output names the offending key section", "section" in combined_b, combined_b)
+    check("case20: (b) combined output names the op's index", "index=0" in combined_b, combined_b)
+    after_b = hashlib.sha256(open(path, "rb").read()).hexdigest()
+    check("case20: (b) file sha256 is unchanged", after_b == before_b, (before_b, after_b))
+
+    # (c) — a DIGEST-shaped mapping rather than a bare list; the settled payload shape has no
+    # mapping wrapper (T-01), so this is written directly, never through write_ops.
+    before_c = hashlib.sha256(open(path, "rb").read()).hexdigest()
+    ops_c = os.path.join(root, "case20c_ops.json")
+    with open(ops_c, "w", encoding="utf-8") as f:
+        json.dump(
+            {
+                "expertise_update": [
+                    {"op": "replace", "target": "P-01", "section": "Patterns", "entry": "new text"}
+                ]
+            },
+            f,
+        )
+    r_c = run_ops(path, ops_c)
+    combined_c = r_c.stdout + r_c.stderr
+    check("case20: (c) digest-shaped mapping exits 12", r_c.returncode == 12, combined_c)
+    check("case20: (c) combined output carries MALFORMED OPS", "MALFORMED OPS" in combined_c, combined_c)
+    check(
+        "case20: (c) combined output carries the literal token expertise_update",
+        "expertise_update" in combined_c,
+        combined_c,
+    )
+    after_c = hashlib.sha256(open(path, "rb").read()).hexdigest()
+    check("case20: (c) file sha256 is unchanged", after_c == before_c, (before_c, after_c))
+
+
 def main():
     root = tempfile.mkdtemp(prefix="expertise-merge-test-")
     try:
@@ -397,6 +1025,16 @@ def main():
         case_destination_refusal(root)
         case_cap_drift_detector()
         case_stale_lock_recovery(root)
+        case_replace_at_capacity(root)
+        case_removal(root)
+        case_missing_target(root)
+        case_ambiguous_target(root)
+        case_atomic_failure(root)
+        case_add_only_compatibility(root)
+        case_contract_drift()
+        case_concurrent_writers(root)
+        case_multi_op_composition(root)
+        case_malformed_ops_cli(root)
     finally:
         shutil.rmtree(root, ignore_errors=True)
 

@@ -519,7 +519,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-qa
     depends_on: [T-01, T-03]
-    status: ready
+    status: done
     files:
       - tests/integration/test-expertise-merge.py
     verify: |
@@ -702,7 +702,7 @@ tasks:
       check-domain.sh --resolve reports NOBODY for .claude/skills/harness-distill/SKILL.md at
       c369fb1; DEC-174 keeps skill-tree contract text off the squad lane.
     depends_on: [T-01]
-    status: ready
+    status: done
     files:
       - .claude/skills/harness-distill/SKILL.md
     verify: |
