@@ -1,0 +1,87 @@
+<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>Ship review — BUG-1286-test-tree-enforcement (final)</title><style>
+:root{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:ui-sans-serif,-apple-system,"Segoe UI","Helvetica Neue",Arial,sans-serif;
+}
+/* Token-level theming: components style through the tokens and never inside the
+   media query, so the viewer's explicit toggle can override the OS in BOTH
+   directions. */
+@media (prefers-color-scheme:dark){
+  :root{ --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+         --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733; }
+}
+:root[data-theme="dark"]{
+  --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+  --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733;
+}
+:root[data-theme="light"]{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+}
+*{box-sizing:border-box}
+body{margin:0; background:var(--paper); color:var(--ink);
+  font:400 16px/1.65 var(--sans); padding:clamp(1.5rem,5vw,4rem) clamp(1rem,5vw,2rem) 6rem}
+.wrap{max-width:56rem; margin:0 auto}
+/* Layout owns the spacing: gap between siblings, not per-element margins that
+   collapse or double. */
+.wrap{display:flex; flex-direction:column; gap:1rem}
+.eyebrow{font:500 11px/1 var(--mono); letter-spacing:.14em; text-transform:uppercase;
+  color:var(--quiet); margin:0}
+h1{font:600 clamp(1.6rem,4vw,2.3rem)/1.15 var(--sans); letter-spacing:-.02em;
+  margin:.4rem 0 .2rem; text-wrap:balance}
+h2{font:600 1.15rem/1.3 var(--sans); letter-spacing:-.01em; margin:2rem 0 0;
+  padding-top:1.25rem; border-top:1px solid var(--line); text-wrap:balance}
+h3{font:600 .98rem/1.4 var(--sans); margin:1.1rem 0 0}
+h4,h5,h6{font:500 11px/1.4 var(--mono); letter-spacing:.1em; text-transform:uppercase;
+  color:var(--quiet); margin:1rem 0 0}
+p,li{max-width:65ch; margin:0}
+ul,ol{margin:0; padding-left:1.4rem; display:flex; flex-direction:column; gap:.4rem}
+li>ul,li>ol{margin-top:.4rem}
+strong{font-weight:600}
+code{font:400 .875em/1.5 var(--mono); background:var(--sunk); padding:.1em .35em; border-radius:3px}
+pre{background:var(--sunk); border:1px solid var(--line); border-radius:6px;
+  padding:.85rem 1rem; overflow-x:auto; margin:0}
+pre code{background:none; padding:0}
+blockquote{margin:0; padding:.75rem 1rem; border-left:3px solid var(--accent);
+  background:var(--accent-soft); border-radius:0 5px 5px 0}
+blockquote p{max-width:none}
+hr{border:0; border-top:1px solid var(--line); margin:.5rem 0}
+/* Wide content pans inside its OWN container; the page body never scrolls sideways. */
+.scroll{overflow-x:auto; border:1px solid var(--line); border-radius:6px}
+table{border-collapse:collapse; width:100%; font-size:.9rem}
+th,td{text-align:left; padding:.6rem .8rem; border-bottom:1px solid var(--line); vertical-align:top}
+thead th{font:500 10px/1.3 var(--mono); letter-spacing:.11em; text-transform:uppercase;
+  color:var(--quiet); background:var(--sunk); white-space:nowrap}
+tbody tr:last-child td{border-bottom:0}
+/* Figures in a column line up. */
+td,th{font-variant-numeric:tabular-nums}
+.derived{color:var(--slate); font-size:.85rem; margin-top:2.5rem;
+  padding-top:1rem; border-top:1px solid var(--line)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style></head><body><div class='wrap'><p class='eyebrow'>Ship review · reading view</p><h1 id="ship-review-bug-1286-test-tree-enforcement-final">Ship review — BUG-1286-test-tree-enforcement (final)</h1>
+<p><strong>Reviewed revision <code>bb3a31ed</code>. Branch <code>feat/BUG-1286-test-tree-enforcement</code>, not merged, worktree intact.</strong></p>
+<h2 id="ready-to-ship">Ready to ship</h2>
+<p>Every gate is green and every criterion is met. Your cycle-11 authorisation closed all three remedies, and the revalidation found nothing new that gates.</p>
+<ul><li><strong>Reviewer panel: PASS</strong>, <code>must_fix</code> empty, <code>severity_max: med</code>. All four lenses ran.</li><li><strong>pm goal-check: 19 of 19 success criteria MET</strong>, every one re-derived from scratch at the new pin rather than carried forward from the earlier pass.</li><li><strong><code>code-grade.py</code>: exit 0</strong>, zero high-severity records.</li><li><strong>qa <code>test_matrix</code> gate: PASS</strong> — the project&#x27;s only blocking gate.</li><li>unit 342 PASS / 0 FAIL / 27 files; integration 14 / 0; <code>--check-layout</code> exit 0; tree-audit <code>TOTAL 85 OUTSIDE 9 VIOLATIONS 0</code> and the note round-trips at exit 0; decision anchors 30 / 0; <code>check-state.sh</code> exit 0 with no violation and no note for this feature.</li></ul>
+<p>All of the above I ran myself at the pinned revision rather than accepting a report.</p>
+<p><strong>The one decision left is yours: merge.</strong> <code>gates.merge</code> is <code>user_gated</code>, and neither the merge nor the worktree removal is mine.</p>
+<h2 id="what-your-cycle-bought">What your cycle bought</h2>
+<p><strong>B-1, the gating finding — closed.</strong> <code>violations()</code> went from grade 1 to a fourteen-line delegating function that no longer produces a grade record at all; <code>_registry_findings</code> went from grade 3 to grade 5. Twelve named helpers were introduced and every one grades 4 or 5. The panel verified the decomposition is byte- and order-identical in its output, and — the part that mattered most — it drove <strong>D-03&#x27;s ordering constraint live against a real nested-checkout fixture for the first time in this feature&#x27;s history</strong> and confirmed it fails <em>closed</em>. That was the one way this refactor could have silently fail-opened, and it did not.</p>
+<p><strong>B-2 — closed.</strong> The audit note&#x27;s SHA now reads <code>4b343d80</code>, its post-rebase ancestor twin, and the recorded measurement was re-confirmed true at that commit rather than merely plausible.</p>
+<p><strong>B-3 — closed.</strong> <code>violations()</code>&#x27;s single-caller property now has a repository-wide assertion, proven by live probe to redden on a second caller and to be immune to the nine files that mention the function in prose.</p>
+<h2 id="two-things-you-should-see-anyway">Two things you should see anyway</h2>
+<p><strong>The record is not perfectly clean, and I would rather say so.</strong> <code>runs/2026-09-05-02-validator/ digest.md</code> fails the lead digest contract — it has no <code>artifact:</code> line. pm caught it and I confirmed it directly. It is gitignored, absent from the reviewed tree, covered by no criterion, and superseded by the <code>-03</code> record, so it gates nothing. But it is a false-looking entry in the factory&#x27;s own record and it is row B-11 below. pm also reported <code>check-state.sh</code> exiting 1 where I measured 0, twice, before and after; I could not reproduce their exit 1 and I am reporting the disagreement rather than resolving it in my own favour.</p>
+<p><strong>A harness defect worth its own ticket, found by two independent readers.</strong> The integration suite is not hermetic against <code>HARNESS_AGENT_TYPE</code>. Any Harness subagent running it from its own shell sees 15 FAIL lines on a suite a human sees green — reproduced unchanged at the merge-base, so it is inherited, not caused here. It means agents have been grading a red suite as evidence. Row B-13.</p>
+<h2 id="budget">Budget</h2>
+<p><code>cycles_used</code> finished at <strong>11 of 11</strong>, exactly the one cycle you authorised and no more. Three squads ran eight further runs across the fix and revalidation, all first-pass, none reporting a send-back. <code>runs</code> is 41 against an informational budget of 20; INV-22 notes it and never gates. My read: 29 of the 41 predate this session, and of this session&#x27;s twelve, none was wasted.</p>
+<h2 id="how-this-briefing-was-assembled">How this briefing was assembled</h2>
+<p><strong>No report round was spawned.</strong> I read the digests and notes from disk and from the returns I received. First-hand: every <code>runs/2026-09-05-*/digest.md</code>, the four <code>notes/review-harness-*-c2.md</code> panel notes plus <code>review-harness-qa-c2-integration.md</code>, <code>notes/research-BUG-1286-goalcheck-build- c2.md</code>, <code>notes/receipt-harness-backend-dev-c11-fix.md</code>, <code>notes/qa-audit-sha-correction.md</code>, and the cycle-1 equivalents. <strong>The plan phase I did not run</strong> and read through <code>notes/handoff-plan.md</code>, <code>plan.yaml</code>&#x27;s <code>panel:</code> block and <code>STATE.md</code> rather than its 29 run digests — treat that account as inherited.</p>
+<h2 id="proposed-backlog">Proposed backlog</h2>
+<p>Nothing here gates. Anything not listed dies silently, so this is everything that survived collation across both cycles. Strike rows by ID.</p>
+<div class="scroll"><table><thead><tr><th>ID</th><th>Nature</th><th>Item</th></tr></thead><tbody><tr><td>B-4</td><td>chore</td><td>Tautological conjunct in <code>_literal_key_present</code> (<code>tests/unit/test-suite-layout.py</code>) — can never be False. Also the remaining grade-2 med code-grade record.</td></tr><tr><td>B-5</td><td>chore</td><td>Unreachable <code>&quot;..&quot;</code> disjunct in <code>_is_inside_tests</code>.</td></tr><tr><td>B-6</td><td>chore</td><td>Case 11&#x27;s <code>INAPPLICABLE</code> branch — latent, non-gating; confirmed not currently taken.</td></tr><tr><td>B-7</td><td>chore</td><td>Stale BRIEF line-number pins (SC-06, SC-07, SC-19 and others moved by the decomposition). BRIEF is approval-gated so nobody touched them.</td></tr><tr><td>B-8</td><td>chore</td><td>Integration case 2 asserts one sentinel absent where case 4 asserts both.</td></tr><tr><td>B-9</td><td>bug</td><td><code>validate-digest.py</code> demands <code>code_grade</code> on a code-reviewer digest and rejects every value while <code>review_sha</code> is unpinned, so a plan-phase reader that did its job settles as <code>failed</code>.</td></tr><tr><td>B-10</td><td>bug</td><td>Agents assigned to a worktree edited the <strong>main checkout</strong> via bare relative paths — twice, both caught and reverted, main checkout verified clean. A guard refusing relative paths under a worktree dispatch would close it.</td></tr><tr><td>B-11</td><td>bug</td><td><code>runs/2026-09-05-02-validator/digest.md</code> fails the lead digest contract (no <code>artifact:</code>). Gitignored and superseded, but a false-looking record. Two other runs had <code>state.yaml</code> clobbered by a later run and needed repair.</td></tr><tr><td>B-12</td><td>enhancement</td><td>Define &quot;exhausts&quot; for <code>max_total_cycles</code> as reached-versus-crossed, and decide whether it deserves a mechanical check at all — today there is none.</td></tr><tr><td>B-13</td><td>bug</td><td><code>tests/integration/test-plan-merge.py</code> is not hermetic against <code>HARNESS_AGENT_TYPE</code>: 15 FAIL lines suite-wide under an agent&#x27;s own env, green for a human. Inherited, reproduced at the merge-base. Remedy: strip it from the default env and opt back in per case.</td></tr><tr><td>B-14</td><td>chore</td><td><code>_violations_callers</code> <code>read_text()</code>s every tracked source file, so a tracked-but-deleted or non-UTF-8 source would raise rather than fail as an assertion.</td></tr><tr><td>B-15</td><td>chore</td><td>The audit note&#x27;s <code>--against</code> comparison binds the row block but not the BLUF&#x27;s prose counts; consistent by inspection, nothing mechanical enforces it.</td></tr></tbody></table></div>
+<h2 id="what-i-did-not-do">What I did not do</h2>
+<p>Not merged, not pushed, no PR opened. The worktree stands; its removal is not mine. No risk was accepted, no scope changed, and no fix was dispatched beyond the three you authorised.</p><p class='derived'>Derived from <code>ship-review-2026-09-05-ship-final.md</code> — the markdown is the record; do not edit this file. Regenerate with <code>bin/render-brief.py</code>.</p></div></body></html>
