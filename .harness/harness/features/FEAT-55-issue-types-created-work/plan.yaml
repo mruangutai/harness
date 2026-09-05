@@ -1,0 +1,1254 @@
+schema: plan/1
+feature: FEAT-55-issue-types-created-work
+status: plan
+approval:
+  status: pending
+
+source_issues: [1289]
+
+lanes:
+  resolved_at: eb9d044e
+  rows:
+    - surface: .claude/skills/harness/bin/**
+      lane: team
+      agent: harness-backend-dev | harness-dev-ops
+    - surface: tests/unit/**
+      lane: team
+      agent: harness-backend-dev | harness-dev-ops | harness-qa
+    - surface: tests/integration/**
+      lane: team
+      agent: harness-backend-dev | harness-dev-ops | harness-qa
+    - surface: tests/manual/**
+      lane: team
+      agent: harness-backend-dev | harness-dev-ops | harness-qa
+    - surface: .harness/harness.json
+      lane: team
+      agent: harness-dev-ops
+    - surface: .harness/harness/docs/DECISIONS.md
+      lane: team
+      agent: harness-documentor
+    - surface: .harness/harness/docs/DECISIONS-INDEX.md
+      lane: team
+      agent: harness-documentor
+    - surface: .claude/skills/harness/references/**
+      lane: main-session-direct
+      reason: resolves to no domain under DEC-174, so no squad may write it
+    - surface: .claude/skills/harness/SKILL.md
+      lane: main-session-direct
+      reason: resolves to no domain under DEC-174, so no squad may write it
+    - surface: .claude/skills/harness/templates/**
+      lane: main-session-direct
+      reason: resolves to no domain under DEC-174, so no squad may write it
+    - surface: docs/SPEC.md
+      lane: main-session-direct
+      reason: resolves to no domain under DEC-174, so no squad may write it
+
+decisions:
+  - id: D-01
+    choice: change_type bugfix maps to the native type name Bug.
+    because: it is the only member of BUG_TYPES and names a defect outright.
+    dec: none
+  - id: D-02
+    choice: change_type feature does NOT map to Feature - on a task sub-issue it maps to Task like every other implementation change_type - while both the gh-sync feature parent and the factory parent map to Feature through type_for_parent. The override key feature stays legal and still renames that task type per repository (D-12).
+    because: D-18 settles that the type follows the issue's ROLE, and this decision was under-specified about role. The grilling named parents explicitly as Feature and classified implementation tasks as Task, and a planned or factory task sub-issue is an implementation task whatever its change_type says. bugfix stays Bug on every route (D-01).
+    dec: none
+  - id: D-03
+    choice: the ten remaining change_type values - logic, api, cross_module, frontend, ai_behavior, docs, config, scaffolding, infra, ci - all map to Task.
+    because: the mapping classifies the NATURE of the work, and a planned T-NN of any of those shapes is an implementation task or a chore.
+    dec: none
+  - id: D-04
+    choice: backlog natures map bug to Bug, chore to Task, enhancement to Feature.
+    because: the three natures already name the axis the type vocabulary uses.
+    dec: none
+  - id: D-05
+    choice: a change_type or nature outside those sets is a loud refusal before any issue is created, never an untyped issue.
+    because: REQ-04 requires an unrecognised value to be reported rather than silently accepted.
+    dec: none
+  - id: D-06
+    choice: infra and ci stay in CHORE_TYPES and factory_decompose CHORE_TYPES untouched, and both map to Task.
+    because: Task is exactly what CHORE_TYPES membership already meant in label mode, so behaviour is preserved and pruning the vocabulary is out of scope.
+    dec: none
+  - id: D-07
+    choice: DEC-138 and DEC-203 are amended by rewriting the falsified paragraphs in place to present-tense current truth; no dated amendment sub-section is appended.
+    because: DEC-205 ended the amendment-sub-section convention even though DEC-138's own history used it.
+    dec: DEC-205
+  - id: D-08
+    choice: the eighth read-back purpose is written into DEC-203's own copy of the enumerated list AND into the table in .claude/skills/harness/references/github-mirror.md, in identical wording, as ONE row covering three clauses - the new capability-and-declared-names read, the issue-identifier reads gh_issues.internal_id_args and gh_issue_types.node_id_args make against an already-recorded number, and the type read-back the probe makes under its create opt-in.
+    because: the two lists are separately maintained copies of one set, and one row is what keeps them from drifting. The three clauses are one bounded class - a lookup against a repository or against an issue whose number Harness already recorded locally - and the identifier clause names practice that has existed since sub-issue mirroring shipped (gh-sync.py:974 and :1215, factory_gh.py:981, verified at eb9d044e) and that the enumeration never listed; naming it is completing the record, not authorising a new read.
+    dec: DEC-203
+  - id: D-09
+    choice: the issue_types_live test kind is registered in .harness/harness.json test_kinds with a non-null cmd and status locally_run, in its own task that the probe task depends on.
+    because: DEC-187 forbids qa treating an unknown or null-cmd kind as a soft skip.
+    dec: DEC-187
+  - id: D-10
+    choice: crash recovery is receipt-only - create the issue, record its number AND the provenance value created in the SAME receipt write, apply the type, then promote that entry to True - and a rerun retries the idempotent type-apply only against a locally recorded number whose recorded provenance says Harness created it (D-20); a number whose provenance is absent or adopted is never typed.
+    because: DEC-138 rejects discovering an existing issue by title or label search, and a local id cannot be defeated by a title collision or a partial create.
+    dec: DEC-138
+  - id: D-11
+    choice: capability detection, type-name resolution, the mapping table and response parsing live in ONE new shared module, .claude/skills/harness/bin/gh_issue_types.py, imported by gh-sync.py and factory_gh.py; only the invocation glue stays per-caller.
+    because: gh_issues.py already proves the shared argv-builder pattern across both callers, and ensure_labels' two independent implementations are the failure mode not to repeat.
+    dec: none
+  - id: D-12
+    choice: the per-repository override is a flat string-to-string map at the EXISTING key github.issue_types in .harness/harness.json, keyed by the twelve change_type values, the three backlog natures, and the literal key parent; an absent key falls through to the default.
+    because: it reuses the github block rather than opening a new configuration surface, and mirrors the flat style of the sibling board mapping.
+    dec: none
+  - id: D-13
+    choice: cmd_backlog gains a NET-NEW local receipt file, backlog-issues.json in the feature directory, keyed by the nature:title item string and carrying number and typed - read and written ONLY where the target repository declares native Issue Types.
+    because: that route has no receipt at all today, so REQ-08's guarantee has nothing to extend there, and the receipt is written locally rather than read back from GitHub. It is gated on the available state because REQ-05 and clause 3 of the grilling's Settled require the label path preserved exactly - a net-new file in the feature directory, and the duplicate-suppression its read would cause, are an ungranted behaviour change on the compatibility path, where there is no type to recover and so nothing for a receipt to serve.
+    dec: DEC-138
+  - id: D-14
+    choice: the type is applied AFTER creation through gh api graphql updateIssue with issueTypeId, never through a gh issue create flag.
+    because: gh 2.92.0 has no --type flag on issue create or issue edit, measured, so the CLI cannot set a native type at all.
+    dec: none
+  - id: D-15
+    choice: a capability query that FAILS - non-zero exit with a top-level errors array, or unparseable output - is classified query_failed, runs in compatibility mode with its own one-line diagnostic, and never gates the run.
+    because: the measured discriminator is the response shape, and treating a failed query as capability-absent would silently downgrade an enabled repository while treating it as fatal would make the mirror a gate.
+    dec: none
+  - id: D-16
+    choice: github.issue_types is NOT added to .claude/skills/harness/templates/harness.json.
+    because: the pre-creation refusal message names the exact key that repairs it, which is the discovery path the requirement actually needs, and the template stays free of a key most projects never set.
+    dec: none
+  - id: D-17
+    choice: the new behaviour is asserted in three NEW integration test files rather than by extending tests/integration/test-gh-sync.py and test-factory-decompose.py.
+    because: the legacy files must keep asserting today's label behaviour unchanged as the compatibility-mode control, and a red-then-green task pair needs a file whose whole content is the new contract.
+    dec: none
+
+  - id: D-18
+    choice: the native type is determined by the issue's ROLE, not by the change_type string alone - the gh-sync feature parent and the factory parent type as Feature through type_for_parent, a backlog item types by its nature (enhancement Feature, bug Bug, chore Task), and a TASK SUB-ISSUE, planned or factory, types as Bug when its change_type is bugfix and as Task for every other change_type INCLUDING feature.
+    because: the destination is that project and organisation views can use the canonical Bug / Feature / Task dimension, and a Feature nested under a Feature destroys exactly that dimension. Issue 1289 and the grilling both say implementation tasks become Task, and a planned T-NN is an implementation task whatever the shape of its diff. Defects stay Bug on every route, so the settled mapping's first clause is preserved. This REFINES D-02, which was under-specified about role. The mapping stays total with no fall-through, and an unrecognised value still refuses loudly.
+    dec: none
+  - id: D-19
+    choice: tests/manual/probe-issue-types.py creates nothing by default - its default invocation is read-only and reports the capability verdict and the declared type names - and it creates a throwaway live issue only when the operator passes an explicit opt-in flag naming the target repository, after which it reports what it created and how to remove it.
+    because: no operator grant exists for the probe to write to any repository - neither the grilling note nor issue 1289 authorises a live write, and issue 1289 asks for an acceptance observation. A probe that writes to a repository by default is authority nobody granted it, and the kind registered in harness.json runs the default invocation unattended.
+    dec: none
+  - id: D-20
+    choice: >-
+      provenance is recorded POSITIVELY at creation and ABSENCE MEANS UNKNOWN, which is never
+      typed. In feature.json's github.typed and in factory.yaml's typed, an entry is written
+      in the SAME receipt act as the issue number, carrying the string created; it is promoted
+      to True only after the type-apply succeeds, and the string adopted records a number
+      Harness took over rather than created. An entry that is ABSENT is unknown provenance and
+      is NEVER typed - not on the first run, not on any rerun, and on no route. Only an entry
+      whose recorded value is exactly created is ever backfilled.
+    because: >-
+      the typed mapping is net-new, so the key-presence reading it replaces treats every receipt
+      written before this feature ships as a backfill candidate. Measured in this tree, 41 of 41
+      feature.json files with a numeric github.parent carry no typed mapping, and DECISIONS.md
+      records the parents of FEAT-34 and FEAT-35 as recorded by hand - issues Harness did not
+      create. Typing them breaches the grilling note's out-of-scope item (a) and REQ-10.
+      DEC-138's own history records an origin marker that was read after the fact and came back
+      null for exactly this reason, so a marker written only after the apply cannot distinguish
+      a legacy receipt from a mid-crash one. The direction must fail safe: type only what the
+      record positively says Harness created. The cost is that a genuine Harness-created issue
+      recorded before this ships is never typed by a rerun, which is the acceptable side - it
+      leaves an issue untyped rather than retyping an issue somebody else owns.
+    dec: DEC-138
+panel:
+  last_run: 2026-09-04-11-validator
+  cycle: 1
+  severity_max: high
+  readers:
+  - persona: fable-advisor
+    step: should-not-exist
+    status: ran
+    reason: none
+  - persona: harness-code-reviewer
+    step: scope
+    status: ran
+    reason: none
+  findings:
+  - id: PF-f1031f76b4537f1cd9b60ddc0559b7d1
+    reader: scope
+    severity: high
+    summary: T-05 (gh-sync backlog) and T-07 (factory) carry no refusal test case
+      and do not trace REQ-07, though T-06 and T-08 both implement and trace REQ-07's
+      refuse-before-create.
+    why: "FAKE_TYPES=partial occurs only in T-03's intent (plan :361, :403-405); T-05\
+      \ (:572) and T-07 (:713) omit it. A bug in T-06's or T-08's refusal logic \u2014\
+      \ first-item-only check, refusal after creates already reached gh, or mis-ordering\
+      \ against apply_issue_type \u2014 ships with every plan-defined gate green,\
+      \ because neither task's verify runs a partial-types fixture. BRIEF SC-08 names\
+      \ no route, unlike SC-01/SC-07, so nothing forces per-route coverage."
+    disposition: awaiting_user
+  - id: PF-1286544c197d1b0eb4a9b0dc8e1234dc
+    reader: should-not-exist
+    severity: med
+    summary: D-13/T-06's net-new backlog-issues.json specifies a plain json.dump writer,
+      duplicating receipt machinery already in the same file and re-creating the zero-byte-window
+      defect gh-sync.py:441-449 documents as fixed.
+    why: "cmd_backlog (gh-sync.py:1410) runs in the feature directory where load_recorded/save_recorded\
+      \ (:471/:806) already maintain the receipt through a locked atomic writer. T-06\
+      \ \xA75 mandates 'a plain json.dump of the whole document after every state\
+      \ change'; a crash mid-write truncates the receipt, the rerun reads nothing\
+      \ recorded, and backlog issues are re-created \u2014 the exact duplicate REQ-08\
+      \ forbids. Also two receipt schemas per feature directory, permanently."
+    disposition: batched_to_signature_review
+  - id: PF-610431f7d96408d23666cc4e60071501
+    reader: should-not-exist
+    severity: med
+    summary: "T-10 \xA76's probe live-create opt-in builds a real-write capability\
+      \ D-19's own 'because' states no operator granted, to prove what the first real\
+      \ run proves for free."
+    why: The third clause of the pinned eighth read-back purpose (T-11/T-12) exists
+      only to authorise this path, T-10 grows a create/apply/read-back/close protocol
+      plus a repo-retyping safety flag, and SC-10 gains a LIVE verdict. The same proof
+      arrives from the first gh-sync open against an enabled repository, whose failure
+      is already recoverable by the REQ-08 machinery this plan builds. Against the
+      pinned mruangutai/harness the mode is unreachable (issueTypes null at eb9d044).
+    disposition: batched_to_signature_review
+  - id: PF-452948136bf467869d223e027191ae49
+    reader: scope
+    severity: med
+    summary: T-06's verify omits tests/integration/test-gh-issue-types.py though T-06's
+      own intent (:653-654) says to run it; T-08's verify runs all three files its
+      intent names.
+    why: T-06 rewires main()'s trailing-parameter passing and reuses detect_issue_types/apply_issue_type
+      in the same gh-sync.py whose cmd_open typed branch T-04 just added. A miswiring
+      made while routing issue_types into cmd_backlog could regress cmd_open's available
+      path with T-06's mechanical gate (:650-652) green; only a later full-suite run
+      would surface it, and only because prose says so.
+    disposition: batched_to_signature_review
+  - id: PF-e27f1c3018b6b8477547a1b028607f96
+    reader: should-not-exist
+    severity: low
+    summary: T-05 case F asserts a compat-mode rerun emits three MORE issue create
+      argv, enshrining today's duplicate-creation as permanent green contract.
+    why: The receipt-absence assertion alone bounds this feature's blast radius. The
+      extra assertion makes the suite defend duplicate creation as if it were a promise;
+      any future feature fixing compat-mode backlog duplication must first discover
+      and delete a green test asserting the bug.
+    disposition: batched_to_signature_review
+  - id: PF-0c12a033f69bb6bc60b8f96134f94fd0
+    reader: should-not-exist
+    severity: low
+    summary: "The 'adopted' provenance string (D-20, T-04 \xA77, T-08 \xA78) is behaviourally\
+      \ inert under absent-means-never-typed, yet three test cases pin it."
+    why: "Backfill acts only on the exact string 'created'; 'adopted' and ABSENT are\
+      \ both never typed, never promoted, never overwritten. Recording 'adopted' changes\
+      \ no observable behaviour on any run \u2014 the out-of-scope(a) guarantee is\
+      \ carried entirely by the absence rule. Cost is a third receipt vocabulary value,\
+      \ write-ordering prose on two routes, and cases H/H2/F pinning a distinction\
+      \ with no consumer-observable consequence."
+    disposition: batched_to_signature_review
+  - id: PF-9a71cb9a0c590b06b890ff1517b80385
+    reader: should-not-exist
+    severity: info
+    summary: "The character-identical 511-char eighth-purpose row duplicated across\
+      \ DECISIONS.md and github-mirror.md (D-08, T-11 \xA73, T-12) has drift protection\
+      \ that expires when this feature's gate passes."
+    why: "T-12's regex compare runs only in this feature's verify, so after review_sha\
+      \ pins, editing either copy silently reintroduces the drift the row exists to\
+      \ prevent \u2014 while the other seven rows of the same duplicated list were\
+      \ never protected at all. Every future rewording must change a 511-character\
+      \ string in two files in lockstep."
+    disposition: batched_to_signature_review
+  must_fix:
+  - "REQ-07 refuse-before-create is red-then-green tested on one of three routes:\
+    \ add a FAKE_TYPES=partial-style refusal case to T-05 and T-07 and add REQ-07\
+    \ to both tasks' traces:, or record an explicit operator ruling that single-route\
+    \ coverage is the accepted floor (scope, high \u2014 gating)."
+  - "T-06 \xA75's plain json.dump writer for backlog-issues.json must not ship as\
+    \ written: use the existing locked atomic receipt writer (gh-sync.py:471/:806),\
+    \ or fold the receipt into a namespaced sub-key of the existing github block.\
+    \ Entered on my ranking at the reader's own severity med \u2014 not reassigned\
+    \ \u2014 because the plan prescribes a write shape the same file documents as\
+    \ an already-fixed defect, and correcting it now costs one intent edit versus\
+    \ a feature cycle after signature (should-not-exist, med)."
+  fix_order:
+  - "1. backlog receipt writer (finding 2) \u2014 it changes what T-05's fixtures\
+    \ assert, including case E's typed 'exactly false' and case F."
+  - "2. REQ-07 refusal cases (finding 1) \u2014 author T-05 case G / T-07 case I against\
+    \ the receipt shape settled above."
+  - "3. T-05 case F's duplicate-creation assertion (finding 5) \u2014 decide once\
+    \ surrounding cases are final."
+  - "4. T-06 verify addition (finding 4) \u2014 independent, no ordering constraint."
+tasks:
+  - id: T-01
+    title: Write the failing unit test for the issue-type mapping and capability classifier
+    traces: [REQ-02, REQ-03, REQ-04]
+    change_type: scaffolding
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: []
+    files:
+      - tests/unit/test-issue-types.py
+    verify: |
+      python3 -c "import ast; ast.parse(open('tests/unit/test-issue-types.py').read())" || exit 1
+      for w in bugfix feature logic api cross_module frontend ai_behavior docs config scaffolding infra ci bug chore enhancement; do
+        grep -q "[\"']$w[\"']" tests/unit/test-issue-types.py || { echo "MISSING enumerated value: $w"; exit 1; }
+      done
+      grep -q "UnknownWorkNature" tests/unit/test-issue-types.py || { echo "MISSING the unrecognised-value assertion"; exit 1; }
+      for s in type_for_change_type type_for_nature type_for_parent overrides_from_config classify_capability query_failed capability_query_args node_id_args apply_type_args missing_types refusal_text Defect Story Epic Maintenance; do
+        grep -qF "$s" tests/unit/test-issue-types.py || { echo "MISSING the assertion group naming: $s - every numbered assertion group in this task's intent must be present, so an OMITTED group fails this gate as loudly as a failing one"; exit 1; }
+      done
+      python3 tests/unit/test-issue-types.py && { echo "UNEXPECTED PASS: this test must be RED before T-02"; exit 1; }
+      echo "RED as required - all twelve assertion groups present"
+    intent: |
+      Write tests/unit/test-issue-types.py. It must be RED when you finish: the module it
+      imports does not exist yet and is written by T-02. Run it and paste the failure in your
+      receipt. Do not create gh_issue_types.py in this task.
+
+      Header: copy the sys.path anchor idiom from tests/integration/test-gh-sync.py:11-16 -
+      resolve the repository root two levels up from the test file, join
+      ".claude/skills/harness/bin", insert it at sys.path[0], then "import gh_issue_types".
+      Exit 0 when every case passes, 1 otherwise, matching the convention in the docstring of
+      tests/integration/test-gh-sync.py.
+
+      Assert, ONE ASSERTION PER VALUE, never a loop-wide count:
+
+      1. gh_issue_types.type_for_change_type(ct, {}) returns exactly:
+         bugfix -> "Bug"; and "Task" for each of feature, logic, api, cross_module, frontend,
+         ai_behavior, docs, config, scaffolding, infra, ci.
+         Twelve separate assertions. feature -> "Task" is deliberate and is D-18: this resolver
+         answers for a TASK SUB-ISSUE, whose role is an implementation task whatever the shape
+         of its diff. A parent's type comes from type_for_parent, never from here.
+      2. gh_issue_types.type_for_nature(n, {}) returns: bug -> "Bug", chore -> "Task",
+         enhancement -> "Feature". Three separate assertions.
+      3. gh_issue_types.type_for_parent({}) returns "Feature".
+      4. type_for_change_type("hovercraft", {}) raises gh_issue_types.UnknownWorkNature, and
+         str(exc) contains both "hovercraft" and "no issue type is mapped". Same for
+         type_for_nature("hovercraft", {}). Assert the raise, not a returned None.
+      5. Overrides: type_for_change_type("bugfix", {"bugfix": "Defect"}) == "Defect";
+         type_for_change_type("logic", {"bugfix": "Defect"}) == "Task" (fall-through);
+         type_for_change_type("feature", {"feature": "Story"}) == "Story" - D-18 changes
+         feature's DEFAULT, not the override surface, and the override key stays legal (D-12);
+         type_for_parent({"parent": "Epic"}) == "Epic";
+         type_for_nature("chore", {"chore": "Maintenance"}) == "Maintenance".
+      6. gh_issue_types.overrides_from_config(cfg) returns {} for cfg={},
+         for cfg={"github": {}}, and for cfg={"github": {"issue_types": "not-a-map"}}; and
+         returns {"bugfix": "Defect"} for cfg={"github": {"issue_types": {"bugfix": "Defect"}}}.
+      7. gh_issue_types.classify_capability(returncode, stdout) returns a 3-tuple
+         (state, declared, message) where declared maps type NAME to type id:
+         - (0, '{"data":{"repository":{"issueTypes":null}}}')
+           -> state "absent", declared {}, message "".
+         - (0, '{"data":{"repository":{"issueTypes":{"nodes":[{"id":"IT_1","name":"Bug"},{"id":"IT_2","name":"Task"}]}}}}')
+           -> state "available", declared {"Bug": "IT_1", "Task": "IT_2"}.
+         - (1, '{"data":{"repository":null},"errors":[{"type":"NOT_FOUND","message":"Could not resolve to a Repository with the name x."}]}')
+           -> state "query_failed", declared {}, and message contains "Could not resolve".
+         - (0, "") -> state "query_failed" (unparseable output is never read as absent).
+         These four are the discriminator the whole feature rests on: exit 0 with no top-level
+         errors key and a JSON null issueTypes means the repository has no native types; a
+         non-zero exit with a top-level errors array means the query failed and must NOT be
+         read as capability-absent.
+      8. gh_issue_types.capability_query_args("owner/name") returns a list whose first two
+         elements are "api" and "graphql", that contains "-f" followed by "owner=owner" and
+         "-f" followed by "name=name", and whose query element contains the substrings
+         "issueTypes(first:10)", "nodes", "id" and "name".
+      9. gh_issue_types.node_id_args("owner/name", 77) ==
+         ["api", "repos/owner/name/issues/77", "--jq", ".node_id"].
+      10. gh_issue_types.apply_type_args("I_node", "IT_1") returns a list starting
+          ["api", "graphql"], whose query element contains "updateIssue" and "issueTypeId",
+          and which passes the node id and the type id as -f values.
+      11. gh_issue_types.missing_types(["Bug", "Task"], {"Bug": "IT_1"}) == ["Task"] and
+          missing_types(["Bug"], {"Bug": "IT_1"}) == [].
+      12. gh_issue_types.refusal_text("owner/name", "Task", "chore") contains the type name
+          "Task", the string "github.issue_types.chore" and the repo "owner/name".
+
+  - id: T-02
+    title: Add the shared gh_issue_types module - mapping, capability classifier and argv builders
+    traces: [REQ-02, REQ-03, REQ-04]
+    change_type: logic
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-01]
+    files:
+      - .claude/skills/harness/bin/gh_issue_types.py
+    verify: |
+      python3 tests/unit/test-issue-types.py
+    intent: |
+      Create .claude/skills/harness/bin/gh_issue_types.py, a pure module on the
+      gh_issues.py pattern: mapping data, response parsing and argv builders only. It
+      EXECUTES NOTHING - no subprocess, no network - because gh-sync.py and factory_gh.py
+      have different failure semantics (skip-and-exit-0 versus raise GhError) and each keeps
+      its own runner. Do not modify any other file in this task. tests/unit/test-issue-types.py
+      already exists and is red; make it green without editing it.
+
+      The mapping resolves an issue's type from its ROLE, which is D-18. There are three
+      resolvers and each answers for exactly one role: type_for_change_type for a TASK
+      SUB-ISSUE (planned or factory), type_for_nature for a backlog item, type_for_parent for
+      a feature or factory parent. No caller may resolve a parent through
+      type_for_change_type.
+
+      Module contents, exactly:
+
+      DEFAULT_TYPE_BY_CHANGE_TYPE = {"bugfix": "Bug", "feature": "Task", "logic": "Task",
+      "api": "Task", "cross_module": "Task", "frontend": "Task", "ai_behavior": "Task",
+      "docs": "Task", "config": "Task", "scaffolding": "Task", "infra": "Task", "ci": "Task"}
+      All twelve keys spelled out. "feature": "Task" is D-18 and is not a typo: this table is
+      consulted only for a task sub-issue, and a task sub-issue is an implementation task
+      whatever the shape of its diff - a Feature nested under a Feature is exactly what the
+      canonical dimension must not contain. bugfix is the only Bug. infra and ci are included
+      deliberately: they are members of CHORE_TYPES in gh-sync.py:102 and
+      factory_decompose.py:48 and are not legal values of the change_type enum, and Task is
+      exactly what CHORE_TYPES membership meant in label mode. Do not prune them from either
+      CHORE_TYPES set; that is out of scope.
+
+      DEFAULT_TYPE_BY_NATURE = {"bug": "Bug", "chore": "Task", "enhancement": "Feature"}
+      PARENT_KEY = "parent" and DEFAULT_PARENT_TYPE = "Feature".
+
+      class UnknownWorkNature(Exception) - raised, never returned, by both resolvers.
+
+      type_for_change_type(change_type, overrides): the type of a task sub-issue. If
+      change_type is not a key of DEFAULT_TYPE_BY_CHANGE_TYPE, raise UnknownWorkNature with the
+      message f"{change_type!r} is not a known change_type, so no issue type is mapped for it -
+      add it to DEFAULT_TYPE_BY_CHANGE_TYPE or fix the plan". Otherwise return
+      overrides.get(change_type) or DEFAULT_TYPE_BY_CHANGE_TYPE[change_type], where an override
+      value that is not a non-empty string is ignored. Every one of the twelve keys remains a
+      legal override key, feature included (D-12): D-18 changes that key's default, not the
+      configuration surface.
+
+      type_for_nature(nature, overrides): the type of a backlog item, same shape against
+      DEFAULT_TYPE_BY_NATURE, same "no issue type is mapped" wording.
+
+      type_for_parent(overrides): overrides.get(PARENT_KEY) or DEFAULT_PARENT_TYPE.
+
+      overrides_from_config(cfg): cfg is a loaded harness.json mapping. Return
+      cfg["github"]["issue_types"] when it is a dict of str to non-empty str, else {}. Never
+      raise; a malformed override block falls through to the defaults.
+
+      CAPABILITY_QUERY is the query measured against mruangutai/harness:
+      query($owner:String!,$name:String!){ repository(owner:$owner,name:$name){ issueTypes(first:10){ nodes { id name } } } }
+      capability_query_args(repo): split repo on "/" into owner and name and return
+      ["api", "graphql", "-f", "query=" + CAPABILITY_QUERY, "-f", "owner=" + owner,
+      "-f", "name=" + name].
+
+      classify_capability(returncode, stdout) -> (state, declared, message):
+      parse stdout as JSON. If parsing fails, return ("query_failed", {}, <the parse error or
+      the raw first 200 chars>). If the parsed document has a top-level "errors" key that is a
+      non-empty list, return ("query_failed", {}, <the first error's message>) - regardless of
+      returncode. If returncode is non-zero, return ("query_failed", {}, <stdout truncated to
+      200 chars>). Otherwise read data.repository.issueTypes: JSON null (or the repository key
+      null) means ("absent", {}, ""); a mapping with a "nodes" list means ("available",
+      {node["name"]: node["id"] for each node with both keys}, ""). Anything else is
+      ("query_failed", {}, ...). The three states are the entire vocabulary; no fourth value.
+
+      node_id_args(repo, number): ["api", f"repos/{repo}/issues/{number}", "--jq", ".node_id"].
+      This is node_id, NOT the .id that gh_issues.internal_id_args reads: the sub-issue REST
+      endpoint takes the database id, and the GraphQL mutation takes the node id. They are
+      different values and swapping them 422s.
+
+      APPLY_TYPE_MUTATION:
+      mutation($id:ID!,$type:ID!){ updateIssue(input:{id:$id,issueTypeId:$type}){ issue { id } } }
+      apply_type_args(node_id, type_id): ["api", "graphql", "-f",
+      "query=" + APPLY_TYPE_MUTATION, "-f", "id=" + node_id, "-f", "type=" + type_id].
+      issueTypeId is a measured input field of both CreateIssueInput and UpdateIssueInput;
+      updateIssue is used because gh 2.92.0 has no --type flag on issue create or issue edit,
+      so the type can only be applied after the create.
+
+      missing_types(required_names, declared): sorted, de-duplicated list of the names in
+      required_names that are not keys of declared.
+
+      refusal_text(repo, type_name, config_key): a single line reading
+      f"issue type {type_name!r} is not declared by {repo} - set github.issue_types.{config_key}
+      in .harness/harness.json to a type name this repository declares, or add the type to the
+      repository". One line, no newline inside it.
+
+  - id: T-03
+    title: Write the failing integration test for gh-sync open - typing, label suppression, refusal and rerun
+    traces: [REQ-01, REQ-03, REQ-05, REQ-06, REQ-07, REQ-08, REQ-10]
+    change_type: scaffolding
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-02]
+    files:
+      - tests/integration/test-gh-issue-types.py
+    verify: |
+      python3 -c "import ast; ast.parse(open('tests/integration/test-gh-issue-types.py').read())" || exit 1
+      for c in A B C D E F G H H2 I J; do
+        grep -qF "CASE $c:" tests/integration/test-gh-issue-types.py || { echo "MISSING case $c - label every case from this task's intent with a line carrying the literal marker 'CASE $c:' (comment, docstring or print), so an OMITTED case fails this gate as loudly as a failing one"; exit 1; }
+      done
+      for s in IT_feature IT_bug IT_task IT_defect IT_epic updateIssue issueTypes 4242 adopted created; do
+        grep -qF "$s" tests/integration/test-gh-issue-types.py || { echo "MISSING required assertion string: $s"; exit 1; }
+      done
+      python3 tests/integration/test-gh-issue-types.py && { echo "UNEXPECTED PASS: this test must be RED before T-04"; exit 1; }
+      echo "RED as required - all eleven cases present"
+    intent: |
+      Write tests/integration/test-gh-issue-types.py, asserting the gh-sync.py open route's
+      new behaviour. It must be RED when you finish - gh-sync.py is unchanged and is T-04's
+      work. Run it, and paste the failure into your receipt. Do not edit gh-sync.py, and do
+      not edit tests/integration/test-gh-sync.py: that file's existing label assertions
+      (:768-771, :825-834) are the compatibility-mode control and must keep passing untouched.
+
+      Fixture. Copy the bash fake-gh idiom from tests/integration/test-gh-sync.py:31-56 and
+      its wiring at :177-178: write the fake to a temp path, point env GH_SYNC_GH at it, and
+      have it append every invocation to the file named by env FAKE_LOG. Keep every case the
+      original fake answers (issue create returning a /issues/<n> URL, the milestone POST,
+      "sub_issues -F sub_issue_id=", "--jq .id") and ADD:
+        - argv containing "issueTypes" -> when env FAKE_TYPES is "absent", echo
+          {"data":{"repository":{"issueTypes":null}}} and exit 0; when "available", echo a
+          nodes array declaring Bug, Feature, Task, Defect and Epic with distinct ids
+          (IT_bug, IT_feature, IT_task, IT_defect, IT_epic); when "partial", echo a nodes
+          array declaring only Bug and Feature - Task absent; when "failed", echo
+          {"data":{"repository":null},"errors":[{"message":"Could not resolve to a Repository"}]}
+          and exit 1.
+        - argv containing "--jq .node_id" -> echo "I_node" followed by the issue number
+          parsed out of the path, exit 0.
+        - argv containing "updateIssue" -> when env FAKE_TYPE_APPLY is "fail", print an error
+          and exit 1; otherwise echo {"data":{"updateIssue":{"issue":{"id":"I_node"}}}} exit 0.
+      The null-returning fake is the case SC-03 names; the "available" fake is its positive
+      control, and both must exist in this file or detection is never actually exercised.
+
+      Build a feature directory fixture with a BRIEF.md, a plan.yaml carrying FOUR tasks with
+      distinct change_types - one bugfix, one config, one logic, one feature - and a
+      .harness/harness.json whose github block has sync true and repo "owner/name". The
+      feature-change_type task is load-bearing: D-18 types it Task, not Feature, and this file
+      is where that is proven on the planned sub-issue route. Exit 0 on all pass, 1 otherwise.
+
+      Cases, each asserted against the recorded call log, PER ISSUE and never as a total count:
+      A. FAKE_TYPES=available, run gh-sync.py open <featdir>. For the parent and for EACH of
+         the four task sub-issues separately, assert the log contains an "api graphql" call
+         whose argv carries updateIssue, that issue's node id, and the expected type id:
+         IT_feature for the parent, IT_bug for the bugfix task, IT_task for the config task,
+         IT_task for the logic task and IT_task for the FEATURE task (D-18 - a task sub-issue
+         is an implementation task, so no sub-issue ever carries IT_feature).
+      B. Same run: assert NO create argv carries "--label bug" and none carries "--label
+         chore", while every create argv carries "--label harness", and the sub-issue creates
+         still carry "--milestone <FEAT>".
+      C. FAKE_TYPES=absent, fresh fixture: assert the create argv label lists are exactly
+         today's - harness plus chore for the config task, harness plus bug for the bugfix
+         task, harness alone for the logic task, harness alone for the feature task, harness
+         alone for the parent - assert ZERO argv contains updateIssue, and assert stdout
+         contains EXACTLY ONE line matching "^gh-sync: issue types " for a run creating five
+         issues.
+      D. FAKE_TYPES=absent, then rerun the SAME command on the SAME directory, where every
+         task and the parent are already recorded in feature.json: assert zero "issue create"
+         argv in the second run's log and still EXACTLY ONE line matching "^gh-sync: issue
+         types " on its stdout. This is the invocation that prints zero if the detector is
+         called lazily inside the create branch.
+      E. FAKE_TYPES=available with harness.json github.issue_types set to
+         {"bugfix": "Defect", "parent": "Epic"}: assert the bugfix sub-issue's updateIssue call
+         carries IT_defect and the parent's carries IT_epic, and that the config task's and the
+         feature task's still carry IT_task.
+      F. FAKE_TYPES=partial (Task not declared), fresh fixture: assert ZERO argv containing
+         "issue create" reached the fake, the process exit status is non-zero, and the combined
+         stdout+stderr names both "Task" and "github.issue_types".
+      G. FAKE_TYPES=available FAKE_TYPE_APPLY=fail on the first run: assert feature.json's
+         github.typed records the first task's id with the value "created" and NOT True - the
+         number and the create-time provenance are written in one act, and the flag is promoted
+         only after the apply succeeds (D-20). Then rerun with FAKE_TYPE_APPLY
+         unset and assert the second run's log has NO "issue create" argv for that task, no
+         "issue delete" and no "issue close" argv anywhere, and DOES contain an updateIssue
+         call carrying the node id of the number recorded in feature.json, after which
+         github.typed's entry for that task is True.
+      H. FAKE_TYPES=available with --parent 4242 supplied: assert no updateIssue argv carries
+         a node id derived from 4242, and that no updateIssue argv carries a node id derived
+         from any number in plan.yaml's source_issues. Also assert feature.json's github.typed
+         records the parent as the string "adopted", which is what makes H2 provable.
+      H2. THE ADOPTION EXEMPTION ACROSS RUNS, and REQ-10's only falsifiable case. Take H's
+         fixture after its --parent 4242 run and rerun gh-sync.py open <featdir> WITHOUT
+         --parent, still FAKE_TYPES=available, so the parent is recorded-but-not-typed-by-us.
+         Assert the second run's log contains ZERO updateIssue argv carrying the node id
+         derived from 4242 - the rerun backfill must skip an adopted parent forever, not once -
+         and that github.typed's parent entry is still the string "adopted", never True and
+         never "created".
+      I. FAKE_TYPES=failed: assert the run still exits 0, creates the issues with today's
+         labels, and prints exactly one line matching "^gh-sync: issue types ".
+      J. ABSENT PROVENANCE IS NEVER TYPED - the legacy receipt, and the fail-safe direction
+         D-20 fixes. Build a fixture whose feature.json ALREADY carries github.parent as a
+         number and github.issues recording one task's number, with NO github.typed mapping at
+         all and no entry for either key - the shape of every feature.json written before this
+         feature ships. FAKE_TYPES=available, run gh-sync.py open <featdir>: assert ZERO
+         updateIssue argv carries a node id derived from either recorded number, and that
+         github.typed afterwards still has NO entry for "parent" and none for that task id -
+         not "created", not "adopted", not True. Then rerun the identical command and assert
+         both again on the second run's log: absent provenance means unknown provenance, and it
+         is never typed on the first run nor on any later one. Assert also that the run still
+         exits 0 and still creates and types the tasks that are NOT recorded, so the case
+         proves the bound and not a dead run.
+
+  - id: T-04
+    title: Type every issue gh-sync open creates, suppress bug and chore labels, refuse before creating
+    traces: [REQ-01, REQ-02, REQ-03, REQ-05, REQ-06, REQ-07, REQ-08, REQ-10]
+    change_type: logic
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-03]
+    files:
+      - .claude/skills/harness/bin/gh-sync.py
+    verify: |
+      python3 tests/integration/test-gh-issue-types.py || exit 1
+      python3 tests/integration/test-gh-sync.py
+    intent: |
+      Change .claude/skills/harness/bin/gh-sync.py so that gh-sync.py open types every issue
+      it creates. tests/integration/test-gh-issue-types.py exists and is red; make it green
+      without editing it. tests/integration/test-gh-sync.py must ALSO still pass unchanged -
+      it is in your verify - because its label assertions are the compatibility-mode control.
+      Do not touch cmd_backlog in this task; that is T-06.
+
+      1. Import the shared module: add "import gh_issue_types" beside the existing
+         gh_issues import block at gh-sync.py:87-98.
+
+      2. Config. load_config (gh-sync.py:220-251) currently returns (repo, board). Return
+         (repo, board, issue_types) where issue_types is
+         gh_issue_types.overrides_from_config(cfg) read from the same cfg it already loaded at
+         :235. There is exactly ONE call site, main() at :1753 - unpack three values there and
+         pass issue_types into cmd_open as a new trailing parameter. No other cmd_* signature
+         changes.
+
+      3. Detection, ONCE PER INVOCATION AND UNCONDITIONAL. Add
+         detect_issue_types(repo) -> (state, declared, message): run
+         subprocess.run([GH] + gh_issue_types.capability_query_args(repo),
+         capture_output=True, text=True), pass returncode and stdout to
+         gh_issue_types.classify_capability, and print exactly one line when the state is not
+         "available":
+           absent      -> f"gh-sync: issue types unavailable on {repo} - labels only"
+           query_failed-> f"gh-sync: issue types could not be determined on {repo} ({message}) - labels only"
+         Print nothing when available. Never call skip() and never exit from here: the absence
+         of issue types must not fail a run.
+         Call it as the FIRST statement of cmd_open, before parse_brief and before any
+         already-recorded skip branch. A rerun in which every task is already recorded makes
+         zero creates and must still print exactly one line.
+
+      4. Required types and the pre-creation refusal. After detection, when the state is
+         "available": build the required set for this invocation -
+         gh_issue_types.type_for_parent(issue_types) when the parent will be created (skip it
+         when the parent is already recorded or was adopted through --parent), plus
+         gh_issue_types.type_for_change_type(task["change_type"], issue_types) for every task
+         that is not already recorded and not at the terminal station. THE REQUIRED SET IS NOT
+         ONLY WHAT WILL BE CREATED: add the type of every already-recorded key that section 6
+         will backfill - that is, every key whose recorded provenance value is the string
+         "created" - resolved by the same role rules (type_for_parent for the parent key,
+         type_for_change_type for a task key). A raised
+         UnknownWorkNature is a caller error: print its message to stderr and exit 2 before any
+         create. Then compute gh_issue_types.missing_types(required, declared); if it is
+         non-empty, print gh_issue_types.refusal_text(repo, name, key) to stderr for each
+         missing name - key is the change_type or the literal "parent" that produced it - and
+         exit 2 BEFORE any issue create call and BEFORE any type-apply. Zero creates and zero
+         updateIssue calls must have happened. A backfill whose type name is undeclared is
+         refused by exactly this check and by no other: there is no path on which a type name
+         the repository does not declare reaches an apply.
+         A task sub-issue's type ALWAYS comes from type_for_change_type and the parent's ALWAYS
+         from type_for_parent (D-18); never resolve a parent through the change_type table.
+
+      5. Labels. Where the state is "available", the sub-issue label list at :957 becomes
+         ["harness"] alone - type_label() is not consulted - and the ensure_labels call at
+         :901 ensures only {"harness"}. Where the state is not "available", both lines keep
+         today's behaviour byte for byte. Do not delete type_label() or CHORE_TYPES: they
+         remain the compatibility path.
+
+      6. Applying the type, and the receipt ordering. Add
+         apply_issue_type(repo, number, type_id) which calls gh(gh_issue_types.node_id_args(
+         repo, number)) to read the node id, then gh(gh_issue_types.apply_type_args(node_id,
+         type_id), capture=False). Extend the record: load_recorded's default dict at :496-497
+         gains "typed": {} and reads an existing github.typed mapping from feature.json the
+         same way it reads "issues"; save_recorded's transform at :857-863 gains
+         "typed": dict(sorted(rec["typed"].items())).
+         PROVENANCE IS RECORDED POSITIVELY AT CREATION, AND ABSENCE MEANS UNKNOWN (D-20).
+         rec["typed"][key] carries exactly one of three recorded values, and its ABSENCE is a
+         fourth, distinct reading:
+           "created"  - Harness created this issue; its type is not yet applied.
+           True       - Harness created this issue and its type has been applied.
+           "adopted"  - the number was adopted, never created by Harness (section 7).
+           ABSENT     - provenance is UNKNOWN. NEVER typed - not on this run, not on any
+                        later run, and on no route.
+         Do NOT read this mapping with a key-presence test. A key-presence test treats an
+         absent entry as a backfill candidate, and rec["typed"] is net-new: every feature.json
+         recorded before this feature ships carries no entry for its parent or its tasks
+         (measured: 41 of 41 feature.json files with a numeric github.parent in
+         .harness/harness/features/), including the two parents DECISIONS.md records as having
+         been recorded by hand. Typing those breaches the grilling note's out-of-scope item (a)
+         and REQ-10.
+         The order is exactly: create the issue, then in ONE save_recorded set BOTH
+         rec["parent"] or rec["issues"][task_id] AND rec["typed"][key] = "created"; then apply
+         the type; then set rec["typed"][key] = True and save_recorded again. The key is
+         "parent" for the parent and the task id for a task. The provenance value and the
+         number are never written in separate acts: a receipt that carries the number must
+         carry the provenance too, or a crash between the two writes reproduces exactly the
+         unknown-provenance state this ordering exists to prevent.
+         THE BACKFILL, and it is bounded by the recorded value. For each task and for the
+         parent: if the number is already recorded, the state is "available", and
+         rec["typed"][key] is exactly the string "created", apply the type and promote the
+         value to True. This is the rerun path, and it must NOT create, delete, close or search
+         for anything; the number comes from the local receipt only.
+         Backfill NOTHING ELSE. A key whose recorded value is "adopted" is NEVER typed - not on
+         this run and not on any later one - and neither is anything in rec["source_issues"].
+         A key that is ABSENT from rec["typed"] while its number is recorded is NEVER typed
+         either, on this run or on any later one, and it is never promoted to "created": absent
+         provenance stays absent. T-03 case J is the test that fails if it is typed.
+         When the state is not "available", no type is applied and no provenance value and no
+         typed flag are written - the receipt stays byte-identical to today's.
+
+      7. Adopted parents stay untyped, and the receipt is what remembers it. The --parent
+         branch at :934-937 records the number and, in the SAME save_recorded call, records
+         rec["typed"]["parent"] = "adopted". It applies no type, never writes "created" and
+         never writes True. The marker is not cosmetic: it records the adoption POSITIVELY, in
+         the same act as the number, so the receipt states that provenance rather than leaving
+         it unknown, and a later run must never overwrite it - not with "created", not with
+         True. feature.json stores the parent as a bare int, so the marker is the only thing
+         that distinguishes an adopted parent from one Harness created. That is the grilling
+         note's out-of-scope item (a) and REQ-10, and T-03 case H2 is the test that fails if
+         this marker is missing or is overwritten on a rerun. rec["source_issues"] is likewise
+         never typed.
+
+      8. Correct the module docstring at gh-sync.py:67-69: it currently states the label
+         derivation as the whole truth. Rewrite that paragraph to say that where the target
+         repository declares native Issue Types, the type is applied from the mapping in
+         gh_issue_types.py and the bug and chore labels are not applied, and that the label
+         derivation described there is the compatibility path for repositories without them.
+
+  - id: T-05
+    title: Write the failing integration test for gh-sync backlog - receipt, typing and one diagnostic
+    traces: [REQ-01, REQ-04, REQ-05, REQ-06, REQ-08]
+    change_type: scaffolding
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-02]
+    files:
+      - tests/integration/test-gh-backlog-issue-types.py
+    verify: |
+      python3 -c "import ast; ast.parse(open('tests/integration/test-gh-backlog-issue-types.py').read())" || exit 1
+      for c in A B C D E F; do
+        grep -qF "CASE $c:" tests/integration/test-gh-backlog-issue-types.py || { echo "MISSING case $c - label every case from this task's intent with a line carrying the literal marker 'CASE $c:' (comment, docstring or print), so an OMITTED case fails this gate as loudly as a failing one"; exit 1; }
+      done
+      for s in IT_bug IT_task IT_feature updateIssue issueTypes backlog-issues.json FAKE_TYPE_APPLY; do
+        grep -qF "$s" tests/integration/test-gh-backlog-issue-types.py || { echo "MISSING required assertion string: $s"; exit 1; }
+      done
+      python3 tests/integration/test-gh-backlog-issue-types.py && { echo "UNEXPECTED PASS: this test must be RED before T-06"; exit 1; }
+      echo "RED as required - all six cases present"
+    intent: |
+      Write tests/integration/test-gh-backlog-issue-types.py for the gh-sync.py backlog route.
+      It must be RED when you finish - cmd_backlog is unchanged and is T-06's work. Run it and
+      paste the failure into your receipt. Do not edit gh-sync.py.
+
+      Use the same fake-gh fixture shape as tests/integration/test-gh-issue-types.py: a bash
+      fake at GH_SYNC_GH logging every argv to FAKE_LOG, answering the issueTypes query by the
+      FAKE_TYPES env var ("absent" -> {"data":{"repository":{"issueTypes":null}}} exit 0;
+      "available" -> nodes declaring Bug IT_bug, Feature IT_feature, Task IT_task), answering
+      "--jq .node_id" with a node id derived from the number, and answering updateIssue with
+      success unless FAKE_TYPE_APPLY is "fail". Exit 0 on all pass, 1 otherwise.
+
+      The command under test is:
+      gh-sync.py backlog <featdir> "bug:a defect" "chore:a chore" "enhancement:a wish"
+
+      Cases:
+      A. FAKE_TYPES=available: assert three "issue create" argv, and for EACH of the three
+         issues separately an updateIssue argv carrying that issue's node id and the right
+         type id - IT_bug for the bug item, IT_task for the chore item, IT_feature for the
+         enhancement item.
+      B. Same run: assert no create argv carries "--label bug" or "--label chore", and every
+         create argv carries "--label harness".
+      C. FAKE_TYPES=absent: assert the label lists are today's exactly - harness plus bug for
+         the bug item, harness plus chore for the chore item, harness alone for the
+         enhancement item - zero updateIssue argv, EXACTLY ONE stdout line matching
+         "^gh-sync: issue types " for a run creating three issues, and that NO
+         <featdir>/backlog-issues.json was written: in compatibility mode the net-new receipt
+         does not exist at all (D-13 as amended, and case F is the behavioural half of it).
+      D. Receipt and rerun: after a successful FAKE_TYPES=available run, assert
+         <featdir>/backlog-issues.json exists and holds an entry per item string carrying its
+         issue number and typed true. Then rerun the identical command and assert the second
+         run's log contains ZERO "issue create" argv, that it contains EXACTLY ONE argv
+         containing "issueTypes" - detection is unconditional and once per invocation even
+         when the invocation creates nothing, which is the lazily-called-detector trap - and
+         ZERO stdout lines matching "^gh-sync: issue types ", because the available state
+         prints no diagnostic. A zero-create invocation is unreachable in compatibility mode
+         on this route (main() dies on a backlog command with no items, gh-sync.py:1777-1778,
+         and the receipt is not consulted there), so the query count in this case is where the
+         zero-create half of REQ-05's once-per-invocation guarantee is asserted.
+      E. Crash between create and type: FAKE_TYPES=available FAKE_TYPE_APPLY=fail, then rerun
+         with apply succeeding. Assert the first run wrote an entry for EVERY item, each
+         carrying typed exactly false - not absent, and not a missing item key: T-06 section 5
+         writes the number and typed false in one act, so an absent value or a missing entry is
+         the no-receipt state that is itself what makes a rerun duplicate, and it must fail this
+         case rather than satisfy it. Assert also that
+         the second run makes no "issue create" argv, no "issue close" and no "issue delete"
+         argv, and does make an updateIssue call per recorded number.
+      F. Compatibility mode is byte-identical to today, which is clause 3 of the grilling's
+         Settled: FAKE_TYPES=absent, run the identical command TWICE on the same feature
+         directory. Assert the second run makes three MORE "issue create" argv - today's
+         duplicate behaviour, which this feature must not silently change on the label path -
+         that no <featdir>/backlog-issues.json exists after either run, that no stdout line
+         names a skipped recorded item, and that the second invocation still prints EXACTLY
+         ONE line matching "^gh-sync: issue types ".
+
+  - id: T-06
+    title: Type backlog issues and give cmd_backlog its net-new local receipt
+    traces: [REQ-01, REQ-04, REQ-05, REQ-06, REQ-07, REQ-08]
+    change_type: logic
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-04, T-05]
+    files:
+      - .claude/skills/harness/bin/gh-sync.py
+    verify: |
+      python3 tests/integration/test-gh-backlog-issue-types.py || exit 1
+      python3 tests/integration/test-gh-sync.py
+    intent: |
+      Change cmd_backlog in .claude/skills/harness/bin/gh-sync.py (currently :1410-1429).
+      tests/integration/test-gh-backlog-issue-types.py exists and is red; make it green without
+      editing it. tests/integration/test-gh-issue-types.py and tests/integration/test-gh-sync.py
+      must both still pass - test-gh-sync.py is in your verify, run test-gh-issue-types.py too
+      and report. The shared module gh_issue_types.py, detect_issue_types(), apply_issue_type()
+      and the three-state vocabulary already exist from T-02 and T-04; reuse them, do not write
+      a second copy.
+
+      1. main() already unpacks (repo, board, issue_types) from load_config. Pass issue_types
+         into cmd_backlog as a new trailing parameter.
+
+      2. Call detect_issue_types(repo) as the FIRST statement of cmd_backlog, before the item
+         loop and before any validation - exactly once per invocation, whatever the item count.
+         In compatibility mode that is exactly one diagnostic line per invocation; in the
+         available state it is exactly one capability query and no diagnostic line at all.
+         Do not claim more than that: a backlog invocation with zero items is refused by main()
+         (:1777-1778) and the receipt is not consulted in compatibility mode (§5), so a
+         zero-create compatibility invocation does not exist on this route.
+
+      3. Validate every item first, then refuse before creating. Parse all items into
+         (nature, title) pairs and reject a bad nature exactly as today (die, exit non-zero).
+         When the state is "available", resolve each item's type with
+         gh_issue_types.type_for_nature(nature, issue_types); an UnknownWorkNature is a caller
+         error - print it to stderr and exit 2. Then compute
+         gh_issue_types.missing_types(required, declared) over the WHOLE item list and, if
+         non-empty, print gh_issue_types.refusal_text(repo, name, nature) to stderr and exit 2
+         BEFORE any issue create call.
+
+      4. Labels: where the state is "available" the label list is ["harness"] alone; otherwise
+         it stays exactly today's ["harness"] plus the nature for bug and chore.
+
+      5. The net-new receipt, and it exists ONLY on the available path. cmd_backlog has no
+         receipt today, so a rerun duplicates issues. Add <featdir>/backlog-issues.json holding
+         {"items": {"<nature>:<title>": {"number": <int>, "typed": <bool>}}}, READ AND WRITTEN
+         ONLY WHEN the state is "available". Where the state is not "available", cmd_backlog
+         behaves byte for byte as it does today: no receipt file is created, no item is skipped,
+         and a rerun duplicates exactly as it does now. That gate is the point - clause 3 of
+         the grilling's Settled requires today's label-mode behaviour preserved exactly, and a
+         net-new file in the feature directory plus new duplicate-suppression on the
+         compatibility path is a behaviour change nobody granted. The receipt exists to serve
+         REQ-08, which only has content where a type must be applied.
+         On the available path, per item, in this order: read the document at the top of the
+         item loop; if the item string is already recorded with a number, do not create -
+         otherwise call gh, parse the number from the URL as today, record number with typed
+         false, save; then when typed is not true, apply_issue_type, set typed true, save.
+         Write it with a plain json.dump of the whole document after every state change. Never
+         read GitHub back to discover whether an item was already created: the item string plus
+         the local receipt is the only key.
+
+      6. Keep the existing printed line per created issue, unchanged, in both modes. The new
+         line for a skipped item naming its recorded number is printed ONLY on the available
+         path, where the receipt is read - in compatibility mode nothing is ever skipped, so
+         that line must never appear there.
+
+  - id: T-07
+    title: Write the failing integration test for the factory routes - typing, labels and rerun
+    traces: [REQ-01, REQ-03, REQ-05, REQ-06, REQ-08]
+    change_type: scaffolding
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-02]
+    files:
+      - tests/integration/test-factory-issue-types.py
+    verify: |
+      python3 -c "import ast; ast.parse(open('tests/integration/test-factory-issue-types.py').read())" || exit 1
+      for c in A B C D E F G H; do
+        grep -qF "CASE $c:" tests/integration/test-factory-issue-types.py || { echo "MISSING case $c - label every case from this task's intent with a line carrying the literal marker 'CASE $c:' (comment, docstring or print), so an OMITTED case fails this gate as loudly as a failing one"; exit 1; }
+      done
+      for s in IT_feature IT_bug IT_task IT_story updateIssue issueTypes 4242 adopted created; do
+        grep -qF "$s" tests/integration/test-factory-issue-types.py || { echo "MISSING required assertion string: $s"; exit 1; }
+      done
+      python3 tests/integration/test-factory-issue-types.py && { echo "UNEXPECTED PASS: this test must be RED before T-08"; exit 1; }
+      echo "RED as required - all eight cases present"
+    intent: |
+      Write tests/integration/test-factory-issue-types.py for factory_decompose.py's parent
+      and task creation. It must be RED when you finish - factory_decompose.py and
+      factory_gh.py are unchanged and are T-08's work. Run it and paste the failure into your
+      receipt. Do not edit tests/integration/test-factory-decompose.py: its section 5
+      (:466-481) asserts today's chore/bug labels and is the compatibility control.
+
+      The factory reads its gh binary from the FACTORY_GH env var, not GH_SYNC_GH - see the
+      wiring in tests/integration/test-factory-decompose.py:1505-1508. Install the same style
+      of bash fake at FACTORY_GH, logging every argv, answering: "issue create" with a
+      /issues/<n> URL; the issueTypes query by FAKE_TYPES ("absent" ->
+      {"data":{"repository":{"issueTypes":null}}} exit 0; "available" -> nodes declaring Bug
+      IT_bug, Feature IT_feature, Task IT_task, Story IT_story); "--jq .node_id" with a node id
+      derived from the number; updateIssue with success unless FAKE_TYPE_APPLY is "fail"; and
+      every other call the existing factory fixture already answers so decomposition reaches
+      step 6. Exit 0 on all pass, 1 otherwise.
+
+      Fixture: a feature whose plan.yaml has one bugfix task, one config task and one feature
+      task, all in the "new" disposition, plus a parent that does not yet exist.
+
+      Cases:
+      A. FAKE_TYPES=available: assert PER ISSUE - the factory parent and each of the three
+         task issues separately - an updateIssue argv carrying that issue's node id and the
+         right type id: IT_feature for the parent, IT_bug for the bugfix task, IT_task for the
+         config task, and IT_task for the FEATURE task. That last one is D-18: a task
+         sub-issue is an implementation task whatever its change_type says, and no task issue
+         on any route ever carries IT_feature. The parent's IT_feature comes from
+         type_for_parent, never from the change_type table.
+      B. Same run: assert no create argv carries "--label chore" or "--label bug", and that
+         every create argv still carries "--label harness", "--label feature:<FEAT>", and that
+         factory:claimed is still applied exactly where it is today.
+      C. FAKE_TYPES=absent: assert the labels are byte-identical to today - harness,
+         feature:<FEAT> plus chore for the config task and plus bug for the bugfix task - zero
+         updateIssue argv, and EXACTLY ONE stdout or stderr line matching "^factory: issue
+         types " for a run creating four issues.
+      D. Overrides, and SC-06 needs both a task sub-issue and a parent: with the target
+         repository's harness.json github.issue_types declaring
+         {"bugfix": "Story", "parent": "Story"}, assert the BUGFIX TASK's updateIssue call
+         carries IT_story and the PARENT's carries IT_story, while the config task's and the
+         feature task's still carry IT_task. Do not assert an override on the feature key here
+         - under D-18 that key's default is Task, and the override surface itself is pinned by
+         T-01 assertion 5.
+      E. Crash between create and type: FAKE_TYPES=available FAKE_TYPE_APPLY=fail, then rerun.
+         Assert that after the first run factory.yaml records the issue number AND its typed
+         entry with the value "created", not True and not absent - the number and the
+         create-time provenance are written in one act and the flag is promoted only after the
+         apply succeeds (D-20). Assert the rerun makes no second "issue create" argv
+         for that task, no close and no delete, and does make an updateIssue call for the
+         recorded number, after which that typed entry is True.
+      F. THE ADOPTED PARENT, on the factory route - REQ-10 and the grilling's out-of-scope
+         item (a). FAKE_TYPES=available, run decomposition with --parent 4242 supplied.
+         Assert ZERO updateIssue argv carries the node id derived from 4242, and that
+         factory.yaml's typed mapping records the parent as the string "adopted". Then rerun
+         the same decomposition WITHOUT --parent, so the parent is recorded but not typed by
+         us, and assert the second run still makes ZERO updateIssue argv for that node id and
+         that the marker is still "adopted", never True and never "created". Without the marker
+         the step-8 backfill has no positive record of the adoption, and this case is what
+         fails when it is missing.
+      G. ZERO CREATES STILL DIAGNOSE ONCE - the lazily-called-detector trap, which section 5
+         of notes/receipt-harness-backend-dev-plan-eng-research.md measured. FAKE_TYPES=absent,
+         run the decomposition once so the parent and all three tasks are recorded, then rerun
+         it with every task out of the "new" disposition and the parent already recorded.
+         Assert the second run's log contains ZERO "issue create" argv and that its combined
+         stdout+stderr contains EXACTLY ONE line matching "^factory: issue types ".
+      H. ABSENT PROVENANCE IS NEVER TYPED, on the factory route - the legacy factory.yaml, and
+         the fail-safe direction D-20 fixes. Build a fixture whose factory.yaml ALREADY records
+         a parent number and one task's issue number with NO typed mapping at all - the shape
+         of every factory.yaml written before this feature ships. FAKE_TYPES=available, run the
+         decomposition: assert ZERO updateIssue argv carries a node id derived from either
+         recorded number, and that factory.yaml afterwards still has NO typed entry for the
+         parent and none for that task - not "created", not "adopted", not True. Rerun the same
+         decomposition and assert both again: absent provenance is unknown provenance and is
+         never typed, on the first run or on any later one. Assert the run still exits 0 and
+         still types the tasks that are NOT recorded, so the case proves the bound rather than
+         a dead run.
+
+  - id: T-08
+    title: Type factory parent and factory task issues and suppress the two labels
+    traces: [REQ-01, REQ-02, REQ-03, REQ-05, REQ-06, REQ-07, REQ-08]
+    change_type: cross_module
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-07]
+    files:
+      - .claude/skills/harness/bin/factory_gh.py
+      - .claude/skills/harness/bin/factory_decompose.py
+    verify: |
+      python3 tests/integration/test-factory-issue-types.py || exit 1
+      python3 tests/integration/test-factory-decompose.py || exit 1
+      python3 tests/unit/test-factory-gh.py
+    intent: |
+      Change factory_gh.py and factory_decompose.py so the factory types every issue it
+      creates. tests/integration/test-factory-issue-types.py exists and is red; make it green
+      without editing it. tests/integration/test-factory-decompose.py and
+      tests/unit/test-factory-gh.py must both still pass - both are in your verify. Reuse the
+      shared module from T-02; do not write a second mapping or a second query.
+
+      In factory_gh.py:
+      1. "import gh_issue_types" beside the existing "import gh_issues" (:28 area).
+      2. Add detect_issue_types(repo) -> (state, declared, message): call
+         run_gh(gh_issue_types.capability_query_args(repo)) inside try/except GhError; on
+         success pass (0, output) to gh_issue_types.classify_capability, and on GhError pass
+         (its status or 1, its stdout or its stderr). Return the 3-tuple. This function never
+         raises - an undetectable capability is compatibility mode, not a failure.
+      3. Add apply_issue_type(repo, number, type_id): node_id =
+         run_gh(gh_issue_types.node_id_args(repo, number)).strip(), then
+         run_gh(gh_issue_types.apply_type_args(node_id, type_id)). Propagate GhError, exactly
+         as create_issue does - a failed type-apply must be visible, and the caller's receipt
+         ordering is what makes it recoverable.
+      Do NOT change create_issue's signature: the type is applied after the create because
+      gh 2.92.0 has no --type flag on issue create.
+
+      In factory_decompose.py _main():
+      4. Read the target repository's overrides from its OWN configuration:
+         overrides = gh_issue_types.overrides_from_config(
+         factory_config.product_config(fleet, args.repo)), wrapped so a FleetError yields {}
+         and the defaults apply. Capability is per target repository and is never inherited.
+      5. Call factory_gh.detect_issue_types(args.repo) ONCE, unconditionally, near the top of
+         _main() - before the step-5 parent branch and before the step-6 task loop, and not
+         inside either. Print exactly one line when the state is not "available":
+           absent       -> f"factory: issue types unavailable on {args.repo} - labels only"
+           query_failed -> f"factory: issue types could not be determined on {args.repo} ({message}) - labels only"
+         A run that creates nothing still prints exactly one line - T-07 case G is that test.
+      6. Refuse before creating: when the state is "available", resolve
+         gh_issue_types.type_for_parent(overrides) for a parent that will be created and
+         gh_issue_types.type_for_change_type(t["change_type"], overrides) for every task in
+         the "new" disposition; an UnknownWorkNature is a caller error - print it to stderr and
+         exit 2. THE REQUIRED SET ALSO COVERS THE BACKFILL: add the type of every already-
+         recorded key that step 8 will backfill - every key whose recorded provenance value in
+         factory["typed"] is the string "created" - resolved by the same role rules
+         (type_for_parent for the parent key, type_for_change_type for a task key).
+         Run gh_issue_types.missing_types over that whole set and, if non-empty, print
+         gh_issue_types.refusal_text(args.repo, name, key) to stderr and exit 2 before any
+         factory_gh.create_issue call AND before any apply_issue_type call. A backfill whose
+         type name the repository does not declare is refused by exactly this check and by no
+         other. A task issue's type ALWAYS comes from
+         type_for_change_type and the parent's ALWAYS from type_for_parent (D-18).
+      7. Labels: when the state is "available", _task_labels (:325-332) returns ["harness",
+         f"feature:{feat_id}"] with no chore and no bug appended, and the ensured label list at
+         :395 drops "chore" and "bug" while keeping harness, feature:<FEAT> and
+         factory:claimed. When the state is not "available", both keep today's behaviour byte
+         for byte. Pass the state in rather than reading a global.
+      8. Receipt ordering, both routes, and the provenance that bounds the backfill (D-20).
+         factory["typed"] carries exactly one of three recorded values per key, and its ABSENCE
+         is a fourth, distinct reading:
+           "created"  - the factory created this issue; its type is not yet applied.
+           True       - the factory created this issue and its type has been applied.
+           "adopted"  - the number was adopted, never created by the factory.
+           ABSENT     - provenance is UNKNOWN. NEVER typed, on this run or on any later one.
+         Do NOT read this mapping with a key-presence test. factory["typed"] is net-new, so
+         every factory.yaml written before this feature ships carries no entry for its recorded
+         parent or its recorded tasks, and a key-presence test would type issues the factory
+         did not create - the grilling note's out-of-scope item (a) and REQ-10.
+         Parent create (:421-425): create, then in ONE write_factory set BOTH
+         factory["parent"] = num AND factory.setdefault("typed", {})["parent"] = "created";
+         then apply_issue_type; then factory["typed"]["parent"] = True, write_factory.
+         Task (:433-437): create, then in ONE write_factory set BOTH factory["issues"][tid]
+         = num AND factory.setdefault("typed", {})[tid] = "created"; then apply_issue_type;
+         then factory["typed"][tid] = True, write_factory. The number and its provenance are
+         never written in separate acts.
+         THE ADOPTED PARENT. The --parent branch at :404-407 records args.parent and, in the
+         same write_factory call, records factory.setdefault("typed", {})["parent"] =
+         "adopted". It applies no type, never writes "created" and never writes True, and no
+         later run overwrites that value. factory.yaml stores the parent as a bare number, so
+         this marker is the only thing that records the adoption positively rather than leaving
+         the parent's provenance unknown.
+         THE BACKFILL, bounded by the recorded value: before the create branch, for a parent or
+         a task carrying a recorded number whose factory["typed"] value is exactly the string
+         "created", apply the type from the RECORDED number and promote the value to True -
+         never search GitHub for it. Backfill nothing else. A value of "adopted" is NEVER
+         typed, not on this run and not on any later one; a key ABSENT from factory["typed"] is
+         NEVER typed either, on this run or on any later one, and is never promoted to
+         "created" - absent provenance stays absent. T-07 case F is the test that fails if the
+         adoption exemption is missing, and T-07 case H is the test that fails if an absent
+         entry is typed.
+      9. Correct the comment at factory_decompose.py:47-49 ("DEC-138, applied mechanically per
+         task"): say that where the repository declares native Issue Types the type is applied
+         from gh_issue_types.py's mapping and these two labels are not, and that the label
+         path is the compatibility mode.
+
+  - id: T-09
+    title: Register the issue_types_live test kind in harness.json
+    traces: [REQ-11]
+    change_type: config
+    execution_mode: team
+    execution_agent: harness-dev-ops
+    depends_on: []
+    files:
+      - .harness/harness.json
+    verify: |
+      python3 -c "import json,sys; k=json.load(open('.harness/harness.json'))['test_kinds']['issue_types_live']; sys.exit(0 if k['cmd'] and k['status']=='locally_run' and k['detect']=='tests/manual/probe-issue-types.py' else 1)"
+    intent: |
+      Add one kind to test_kinds in .harness/harness.json, in the same shape as the two
+      locally_run kinds already there (omp_session_accessor at :282-288 and
+      handoff_comprehension at :289-295):
+
+        "issue_types_live": {
+          "detect": "tests/manual/probe-issue-types.py",
+          "exclude": ".claude/worktrees/**",
+          "cmd": "tests/manual/probe-issue-types.py",
+          "status": "locally_run",
+          "runner_note": "<one sentence: needs gh authenticated against the pinned github.repo and reads that repository's native Issue Types; it creates nothing, it can never run in CI, so run it on a credentialled host before a ship decision that touches the issue-type path and record the verdict under the feature's notes/ directory>"
+        }
+
+      The cmd is the probe's DEFAULT invocation, which under D-19 is READ-ONLY: never register
+      the create opt-in flag in cmd, and never add an argument to it. A registered kind is run
+      unattended by whoever runs the suite, so a cmd that could create an issue in the
+      operator's repository is authority nobody granted.
+
+      The cmd MUST NOT be null: DEC-187 makes a null cmd a BLOCKED gate, never a skip, and
+      status locally_run is the honest home DEC-163 licenses for a host-only probe. Do not add
+      an "excluded_because" or a "signed" key - this kind is not excluded. Change nothing else
+      in the file: not test_matrix, not the github block, not the other kinds.
+
+  - id: T-10
+    title: Add the host-only probe that reports live pass or capability absent
+    traces: [REQ-11]
+    change_type: scaffolding
+    execution_mode: team
+    execution_agent: harness-dev-ops
+    depends_on: [T-02, T-09]
+    files:
+      - tests/manual/probe-issue-types.py
+    verify: |
+      py=$(command -v python3)
+      repo=$("$py" -c "import json; print(json.load(open('.harness/harness.json'))['github']['repo'])") || exit 1
+      out=$("$py" tests/manual/probe-issue-types.py); rc=$?
+      test "$rc" = 0 || { echo "the default invocation must exit 0, got $rc: $out"; exit 1; }
+      test "$(printf '%s\n' "$out" | grep -c '^probe-issue-types: ')" = 1 || { echo "not exactly one verdict line: $out"; exit 1; }
+      printf '%s\n' "$out" | grep -Eq "^probe-issue-types: (CAPABILITY ABSENT|CAPABILITY PRESENT) $repo " || printf '%s\n' "$out" | grep -Eq "^probe-issue-types: SKIP .*$repo" || { echo "no verdict line naming the configured repo $repo: $out"; exit 1; }
+      printf '%s\n' "$out" | grep -Eq "created issue|LIVE PASS" && { echo "the default invocation must create nothing (D-19): $out"; exit 1; }
+      skip=$(env PATH=/usr/bin:/bin "$py" tests/manual/probe-issue-types.py); rc=$?
+      test "$rc" = 0 || { echo "an absent gh must SKIP and exit 0, got $rc: $skip"; exit 1; }
+      printf '%s\n' "$skip" | grep -Eq "^probe-issue-types: SKIP " || { echo "an absent gh must SKIP, got: $skip"; exit 1; }
+      echo "probe verdict names $repo, creates nothing, and skips without gh"
+    intent: |
+      Write tests/manual/probe-issue-types.py, executable, run on a credentialled host against
+      the real GitHub. It is the only check in this feature that touches the real API; every
+      other criterion runs against a fake, so this file must NEVER import a fixture, never set
+      GH_SYNC_GH, and never fall back to a canned response. A fixture-derived pass here would
+      make the one live gate a no-op.
+
+      IT CREATES NOTHING BY DEFAULT (D-19). The default invocation is READ-ONLY: it reports the
+      capability verdict and the declared type names and creates no issue in any repository.
+      Creating a throwaway issue happens only under the explicit opt-in of §6.
+
+      Behaviour:
+      1. Resolve the repository from .harness/harness.json github.repo. If github.sync is
+         false, the repo is unpinned, gh is not on PATH, or gh auth status fails, print
+         "probe-issue-types: SKIP <reason>" and exit 0. Name the repository in the reason
+         whenever one was resolvable.
+      2. Import gh_issue_types from .claude/skills/harness/bin (same sys.path anchor idiom as
+         tests/integration/test-gh-sync.py:11-16), run the real
+         gh_issue_types.capability_query_args(repo) through subprocess, and classify the
+         result with gh_issue_types.classify_capability.
+      3. On state "absent", print exactly one line:
+         f"probe-issue-types: CAPABILITY ABSENT {repo} declares no native issue types" and
+         exit 0. This is the verdict expected against the pinned mruangutai/harness, which
+         returned issueTypes null at eb9d044.
+      4. On state "query_failed", print
+         f"probe-issue-types: SKIP capability query failed on {repo} ({message})" and exit 0 -
+         an unreachable API is not a failed acceptance.
+      5. On state "available" WITHOUT the opt-in flag - the default - print exactly one line
+         naming the repository and every type it declares, in sorted order:
+         f"probe-issue-types: CAPABILITY PRESENT {repo} declares native issue types <names>",
+         and exit 0. Nothing is created, nothing is written to GitHub, and no issue-level read
+         is made.
+      6. The opt-in. Accept exactly one argument, --create-in <owner/name>, and require its
+         value to EQUAL the repository resolved in step 1: on a mismatch print
+         "probe-issue-types: SKIP --create-in <value> does not name the configured repository
+         <repo>" to stdout and exit 2, creating nothing. Retyping the repository is the whole
+         safety of the flag. With the flag and state "available": resolve the type a real
+         create would use - gh_issue_types.type_for_parent(overrides) read from the same
+         harness.json - and if gh_issue_types.missing_types names it, print
+         "probe-issue-types: SKIP " followed by gh_issue_types.refusal_text(...) and exit 0
+         WITHOUT creating. Otherwise create one throwaway issue titled
+         "probe-issue-types scratch <UTC timestamp>" with the label harness, apply that type
+         through gh_issue_types.apply_type_args, read the created issue's type back with a
+         GraphQL query for issue(number:N){ issueType { name } }, close the issue in a finally
+         block so a failure does not leave it open, and print exactly one line:
+         f"probe-issue-types: LIVE PASS {repo} created issue N, read back native type <name>,
+         closed it - remove it with gh issue delete N --repo {repo} --yes". Exit 0 when the
+         read-back name equals the applied name, and exit 1 with a line naming both the applied
+         and the observed name when it does not. The read-back is authorised by the eighth
+         read-back purpose T-11 and T-12 write; it happens only on this opt-in path.
+      7. Exactly one verdict line, always prefixed "probe-issue-types: ", and exactly one of
+         LIVE PASS, CAPABILITY PRESENT, CAPABILITY ABSENT or SKIP. No other line starts with
+         that prefix, and every verdict except a SKIP for an unresolvable repository names the
+         repository.
+
+  - id: T-11
+    title: Rewrite DEC-138 and DEC-203 in place and regenerate the decisions index
+    traces: [REQ-09]
+    change_type: docs
+    execution_mode: team
+    execution_agent: harness-documentor
+    depends_on: []
+    files:
+      - .harness/harness/docs/DECISIONS.md
+      - .harness/harness/docs/DECISIONS-INDEX.md
+    verify: |
+      grep -q "which native issue types a repository declares" .harness/harness/docs/DECISIONS.md || exit 1
+      grep -q "the native type assigned to an issue Harness created" .harness/harness/docs/DECISIONS.md || exit 1
+      grep -q "EIGHT purposes" .harness/harness/docs/DECISIONS.md || exit 1
+      grep -riq "DEC-138 amendment\|DEC-138 am\." .harness/harness/docs/DECISIONS.md && { echo "an appended amendment sub-section was written; DEC-205 forbids it"; exit 1; }
+      python3 .claude/skills/harness/bin/gen-decisions-index.py --stdout | diff - .harness/harness/docs/DECISIONS-INDEX.md
+    intent: |
+      Amend two entries in .harness/harness/docs/DECISIONS.md by REWRITING the falsified
+      paragraphs IN PLACE to present-tense current truth. Do NOT append a dated amendment
+      sub-section and do not add a "DEC-138 amendment N" heading: DEC-205 (:6275-6293) ended
+      that convention, and DEC-138's own history using it is exactly the trap. The file
+      currently carries no such heading; keep it that way. Every file-and-line anchor you
+      write is subject to DEC-205's anchor-rot check, so cite only anchors you have opened.
+
+      1. DEC-138, the Mapping paragraph (currently :2933-2935) and the module-docstring claim
+         it stands behind: it presently states the change_type-to-label derivation as the whole
+         truth. Rewrite it to state that where the target repository declares native GitHub
+         Issue Types, every issue Harness CREATES carries a native type resolved from
+         .claude/skills/harness/bin/gh_issue_types.py's mapping - defects Bug, backlog
+         enhancements Feature, feature and factory parents Feature, and every task sub-issue
+         Task whatever its change_type says (D-18) - overridable per repository at
+         .harness/harness.json github.issue_types; that the competing bug and chore labels are
+         not applied in that mode while harness, feature:<FEAT>, factory:claimed and abandoned
+         are applied in both; and that the label derivation described there remains the
+         behaviour for a repository that declares no native types. Keep DEC-138's
+         adopted-or-created-but-never-discovered rule and its asymmetric-truth boundary
+         (:2939-2944) intact and say so: recovery reads the local receipt, never GitHub, and an
+         adopted issue's type is never changed.
+      2. DEC-138's write-only reading of the mirror: state that the reads enumerated in the new
+         row below are authorised, that the capability read is the only NEW read this feature
+         adds, and that the identifier reads it also names have been made since sub-issue
+         mirroring shipped and are being enumerated for the first time, not introduced.
+      3. DEC-203's own copy of the read-back purposes (currently :6064-6077, "carried forward
+         and now SEVEN purposes"): rewrite it to EIGHT purposes, adding one row whose wording
+         is EXACTLY, character for character, this - because T-12 writes the identical row into
+         .claude/skills/harness/references/github-mirror.md and a wording drift between the two
+         copies is the defect this row exists to prevent:
+          whether a target repository supports native Issue Types, and which native issue types a repository declares; the numeric and node identifiers of an issue whose number Harness already recorded locally - existing practice named here for the first time, read by gh_issues.internal_id_args for sub-issue attach and detach and by gh_issue_types.node_id_args before a type-apply; and the native type assigned to an issue Harness created, read back by tests/manual/probe-issue-types.py under its explicit create opt-in
+         with the consumer named as the shared type-apply path in gh_issue_types.py used by
+         gh-sync.py and factory_decompose.py, plus the two existing sub-issue call paths.
+         Say in as many words: that one capability query answers both halves of the first
+         clause; that the identifier read of the second clause is ALREADY MADE TODAY by
+         gh_issues.internal_id_args at gh-sync.py:974 (sub-issue attach), gh-sync.py:1215
+         (detach) and factory_gh.py:981 (all three verified at eb9d044e), so this row completes
+         an enumeration that was incomplete rather than authorising something new - and that
+         nothing in this feature removes those call sites; that the type read-back of the third
+         clause happens only under the probe's explicit create opt-in (D-19); and that every
+         value stays process-local for the invocation, apart from the typed flag in the local
+         receipt, and reaches no approval-gated artifact.
+      4. Regenerate the index with
+         python3 .claude/skills/harness/bin/gen-decisions-index.py so DECISIONS-INDEX.md
+         matches. The generator preserves everything right of " :: " verbatim and derives
+         everything left of it; lengthening an entry shifts later source lines, so regenerate
+         rather than hand-editing rows.
+
+  - id: T-12
+    title: Add the eighth read-back purpose and the label paragraph to github-mirror.md
+    traces: [REQ-09]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 carve-out - .claude/skills/harness/references/** resolves to no domain, so no squad may write it
+    depends_on: [T-11]
+    files:
+      - .claude/skills/harness/references/github-mirror.md
+    verify: |
+      grep -q "github.issue_types" .claude/skills/harness/references/github-mirror.md || exit 1
+      python3 -c "
+      import re
+      pat = re.compile(r'whether a target repository supports native Issue Types.*?explicit create opt-in')
+      def pin(p):
+          m = pat.search(open(p, encoding='utf-8').read())
+          assert m, 'pinned read-back wording missing from ' + p
+          return m.group(0)
+      a = pin('.claude/skills/harness/references/github-mirror.md')
+      b = pin('.harness/harness/docs/DECISIONS.md')
+      assert a == b, 'the pinned read-back wording differs between the two copies'
+      print('pinned read-back wording present and identical in both copies')
+      "
+    intent: |
+      Edit .claude/skills/harness/references/github-mirror.md. Its read-back table (:7-18)
+      enumerates seven bounded purposes and is INCOMPLETE, not false, after this feature.
+
+      1. Add one row to that table, whose purpose text is EXACTLY the wording T-11 wrote into
+         DEC-203's own copy of the same list, character for character:
+          whether a target repository supports native Issue Types, and which native issue types a repository declares; the numeric and node identifiers of an issue whose number Harness already recorded locally - existing practice named here for the first time, read by gh_issues.internal_id_args for sub-issue attach and detach and by gh_issue_types.node_id_args before a type-apply; and the native type assigned to an issue Harness created, read back by tests/manual/probe-issue-types.py under its explicit create opt-in
+         The consumer column names the shared type-apply path in
+         .claude/skills/harness/bin/gh_issue_types.py, used by gh-sync.py and
+         factory_decompose.py, plus the two existing sub-issue call paths that already read an
+         issue's identifiers - gh-sync.py:974 and :1215 and factory_gh.py:981, verified at
+         eb9d044e. One row, not four: the single measured query
+         issueTypes(first:10){ nodes { id name } } returns JSON null when the repository
+         declares no native types and names every declared type otherwise, so capability and
+         the declared names are one answer, and the identifier and type reads are the same
+         bounded class of lookup against an issue whose number is already recorded locally.
+         This row does not authorise a new identifier read: those three call sites exist today
+         and this feature does not remove them.
+      2. Leave the unconditional rule at :20 - no read-back ever reaches an approval-gated
+         artifact - exactly as it stands; it covers this purpose the same way it covers the
+         other seven.
+      3. Add one short paragraph stating that where the repository declares native Issue Types,
+         issues Harness creates carry a native type instead of the derived bug and chore
+         labels, that the type names are overridable at .harness/harness.json
+         github.issue_types, and that harness, feature:<FEAT>, factory:claimed and abandoned
+         are applied identically in both modes.
+      Change nothing else in the file, and do not restate the label-derivation rule that lives
+      in gh-sync.py's module docstring.

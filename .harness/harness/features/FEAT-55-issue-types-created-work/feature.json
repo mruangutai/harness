@@ -1,0 +1,78 @@
+{
+  "feature_id": "FEAT-55-issue-types-created-work",
+  "branch": "feat/issue-1289-issue-types",
+  "pr": null,
+  "review_sha": "none",
+  "cycles_used": 4,
+  "max_total_cycles": 10,
+  "max_total_runs": 20,
+  "runs": [
+    {
+      "id": "2026-09-04-01-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-pm"
+    },
+    {
+      "id": "2026-09-04-01-eng",
+      "squad": "eng",
+      "verdict": "PASS",
+      "agent": "harness-backend-dev"
+    },
+    {
+      "id": "2026-09-04-1-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-pm"
+    },
+    {
+      "id": "2026-09-04-04-product",
+      "squad": "product",
+      "verdict": "FAIL",
+      "agent": "harness-pm"
+    },
+    {
+      "id": "2026-09-04-05-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-pm"
+    },
+    {
+      "id": "2026-09-04-06-product",
+      "squad": "product",
+      "verdict": "FAIL",
+      "agent": "harness-pm"
+    },
+    {
+      "id": "2026-09-04-07-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-pm"
+    },
+    {
+      "id": "2026-09-04-08-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-pm"
+    },
+    {
+      "id": "2026-09-04-09-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-pm"
+    },
+    {
+      "id": "2026-09-04-10-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-pm"
+    },
+    {
+      "id": "2026-09-04-11-validator",
+      "squad": "validator",
+      "verdict": "FAIL",
+      "agent": "harness-code-reviewer",
+      "code_grade": "n_a"
+    }
+  ]
+}
