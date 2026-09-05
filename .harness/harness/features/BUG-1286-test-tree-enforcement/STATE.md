@@ -3,52 +3,50 @@
 ## Current
 
 - feature: BUG-1286-test-tree-enforcement
-- run: 2026-09-05-09-validator (panel, PASS) and 2026-09-05-03-product (goal-check, PASS)
+- run: pre-merge reconciliation complete
 - squad: none
 - status: awaiting_user
 
-At the ship gate, every gate green. Not merged, no PR, the worktree stands. `review_sha` is pinned
-at `bb3a31edc1971447b998fda1f9a736944bc8e612`; the plan's feature station is `review` and all five
-task stations are `done`. `gates.merge` is `user_gated`, so the merge and the worktree removal are
-the main session's acts, not the orchestrator's.
+Ship ACCEPTED by the operator (`notes/answers-2026-09-05-ship.md`, mruangutai, 2026-09-05: "Ship
+now", advisor-pruned backlog). The pre-merge record is committed and the branch is ready. Not
+merged, no PR, the worktree stands — the merge, the backlog filing and the worktree removal are the
+main session's acts, not the orchestrator's.
 
-The operator authorised ONE additional rework cycle (`notes/answers-2026-09-05-budget-c11.md`,
-mruangutai, 2026-09-05) to close B-1, B-2 and B-3, explicitly withholding risk acceptance, scope
-change, merge and worktree removal. All three landed in `bb3a31ed` and the branch revalidated:
+`review_sha` is pinned at `bb3a31edc1971447b998fda1f9a736944bc8e612`; feature station `review`, all
+five task stations `done`. `cycles_used` 11 of 11 — exactly the one cycle the operator authorised.
 
-- Reviewer panel PASS, `must_fix` empty, `severity_max: med`, all four lenses ran.
-- pm goal-check **19 of 19 SC MET**, every cycle-1 MET re-derived from scratch at the new pin.
-- `code-grade.py` exit 0, zero high-severity records; two grade-2 med records remain
-  (`tracked_paths`, `_literal_key_present`), both backlogged and non-gating.
-- unit 342 PASS / 0 FAIL / 27 files; integration 14/0; `--check-layout` exit 0; tree-audit
-  `TOTAL 85 OUTSIDE 9 VIOLATIONS 0` with the note round-trip at exit 0; anchors 30/0;
-  `check-state.sh` exit 0 with nothing for this feature.
+All gates green at the pinned revision, each re-measured by the orchestrator rather than relayed:
+reviewer panel PASS with `must_fix` empty and `severity_max: med`; pm goal-check **19 of 19 SC MET**;
+`code-grade.py` exit 0 with zero high-severity records; unit 342 PASS / 0 FAIL / 27 files;
+integration 14/0; `--check-layout` exit 0; tree-audit `TOTAL 85 OUTSIDE 9 VIOLATIONS 0` with the
+note round-trip at exit 0; decision anchors 30/0.
 
-All figures re-measured by the orchestrator at the pinned revision rather than relayed. B-1's
-decomposition was confirmed byte- and order-identical in output, and the panel drove D-03's
-ordering constraint live against a real nested-checkout fixture for the first time in this
-feature's history, confirming it fails CLOSED — the one way the refactor could have fail-opened.
+**`check-state.sh` run FROM THE WORKTREE exits 0** with no violation for this feature and only the
+informational INV-22 run-count note. That qualification is load-bearing and is why the pre-merge
+reconciliation happened: see below.
 
-`cycles_used` is 11 of 11 — exactly the authorised cycle, no more. `runs` is 41 against an
-informational `max_total_runs: 20`; INV-22 notes it and never gates. Zero send-backs were reported
-across the eight runs of the fix and revalidation.
-
-The briefing is `notes/ship-review-2026-09-05-ship-final.md`, rendered to `.html`, carrying twelve
-backlog rows B-4 through B-15. The earlier blocked briefing survives at
-`notes/ship-review-2026-09-05-ship.md` as the record that justified the cycle.
+Two orphan run directories were discarded, documented in
+`notes/run-reconciliation-2026-09-05.md`: `runs/2026-09-05-02-validator`, whose digest failed the
+lead contract and is superseded by the recorded, valid `-03`; and `runs/2026-09-05-07-validator`,
+whose own `artifact:` line names `-08` as its record. Both were superseded duplicates of recorded
+runs whose evidence is committed under `notes/`. `runs/` is gitignored, so neither deletion appears
+in any diff — which is exactly why it is written down.
 
 ## Open Questions
 
-- For the operator: merge or not. That is the only decision left; every gate is green.
-- Record hygiene, non-blocking: `runs/2026-09-05-02-validator/digest.md` fails the lead digest
-  contract (no `artifact:`). Gitignored, absent from the reviewed tree, covered by no SC, and
-  superseded by the `-03` record. pm also reported `check-state.sh` exiting 1 where the
-  orchestrator measured 0 twice, before and after; the disagreement is reported rather than
-  resolved. Backlog B-11.
-- Harness defect found independently by two readers, backlog B-13: the integration suite is not
-  hermetic against `HARNESS_AGENT_TYPE` — 15 FAIL lines under an agent's own env, green for a
-  human, reproduced unchanged at the merge-base. Agents have been grading a red suite as evidence.
-- Carried harness defects: `validate-digest.py`'s `code_grade` deadlock for plan-phase readers
-  (B-9); members editing the MAIN checkout through bare relative paths under a worktree dispatch,
-  twice, both reverted (B-10); `max_total_cycles` having no mechanical check and no definition of
-  "exhausts" (B-12).
+- For the main session: merge, then file the operator's pruned backlog with `gh-sync.py backlog` —
+  B-13, B-9, B-10, B-11 and B-6, with B-4, B-5, B-8 and B-14 consolidated into B-6 and B-7, B-12 and
+  B-15 struck. Then remove the worktree from outside it.
+- **Correction to this feature's own earlier record.** The orchestrator ran `check-state.sh` from
+  the MAIN checkout four times and read exit 0 as clean, including immediately before declaring the
+  ship gate green. Those readings were VACUOUS: this feature's directory exists only in the
+  worktree, so a checker run from the main checkout never discovered it. The main session's
+  canonical run found the violation; the orchestrator's did not. A `check-state.sh` result is
+  evidence only about features the invocation can actually see.
+- Harness defect, backlog B-13, found independently by two readers: the integration suite is not
+  hermetic against `HARNESS_AGENT_TYPE` — 15 FAIL lines under an agent's own env, green for a human,
+  reproduced unchanged at the merge-base. Agents have been grading a red suite as evidence.
+- Carried harness defects filed as B-9, B-10 and B-11: `validate-digest.py`'s `code_grade` deadlock
+  for plan-phase readers; members editing the MAIN checkout through bare relative paths under a
+  worktree dispatch, twice, both caught and reverted; and run-artifact hygiene — two digests written
+  without their contract block and two `state.yaml` files clobbered by a later run and repaired.
