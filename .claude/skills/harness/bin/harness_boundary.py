@@ -289,18 +289,19 @@ def claim_set_refusal(agent_type, claim_set, destination, unreadable_paths=None)
         )
 
     held = ", ".join(sorted(set(claim_set)))
+    expertise_segment = os.sep + os.path.join(".harness", "expertise") + os.sep
+    if expertise_segment in destination:
+        return (
+            f"{agent_type} holds worktree claim(s): {held}. Destination {destination} "
+            "belongs to the control-plane expertise route. Use the sanctioned "
+            "python3 expertise-merge.py apply command."
+        )
+
     home = root_above(os.path.dirname(destination)) or os.path.dirname(destination)
-    message = (
+    return (
         f"{agent_type} holds worktree claim(s): {held}. Destination {destination} "
         f"belongs in its proper checkout at {home}; write it from a bound worktree."
     )
-    expertise_segment = os.sep + os.path.join(".harness", "expertise") + os.sep
-    if expertise_segment in destination:
-        message += (
-            " For control-plane expertise, use the sanctioned "
-            "python3 expertise-merge.py apply route."
-        )
-    return message
 
 
 def glob_to_re(pat):
