@@ -115,7 +115,7 @@ and resolution never leaves that section. There is no whole-file lookup and no o
 
 ```yaml
 expertise_update:
-  - op: replace
+  - op: replace              # add | replace | merge | drop
     target: P-01
     section: Patterns
     entry: "WHEN running migrations DO run the seed script first — they fail on a clean DB."
