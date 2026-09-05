@@ -726,6 +726,41 @@ def feature_checkout_guard(rel, absolute_path):
         return
 
 
+def claim_checkout_guard(destination):
+    """Bind an in-repository Bash write to the agent's live claim worktrees."""
+    if not agent or not agent.startswith("harness-"):
+        return []
+    destination = harness_boundary.real(destination)
+    if not harness_boundary.inside(destination, harness_boundary.real(root)):
+        return []
+    try:
+        claim_set = harness_boundary.claim_worktrees(root, agent, destination)
+    except harness_boundary.AmbiguousWorktree as exc:
+        deny(f"{agent} has an ambiguous worktree claim: {exc}")
+    except Exception as exc:
+        try:
+            import inflight_registry
+            if isinstance(exc, inflight_registry.UnreadableRegistry):
+                deny(harness_boundary.claim_set_refusal(
+                    agent, [], destination, unreadable_paths=exc.paths
+                ))
+        except SystemExit:
+            raise
+        except Exception:
+            pass
+        print(
+            "bash-write-guard: claim-worktree boundary was not enforced; passing "
+            f"through because the guard failed internally: {exc}",
+            file=sys.stderr,
+        )
+        return []
+    if not claim_set:
+        return []
+    if any(harness_boundary.inside(destination, worktree) for worktree in claim_set):
+        return claim_set
+    deny(harness_boundary.claim_set_refusal(agent, claim_set, destination))
+
+
 def _worktree_stripped(rel):
     """`rel` with a leading `.claude/worktrees/<name>/` segment removed, so a
     checkout-agnostic rule can match a path regardless of which worktree it lives in.
@@ -792,6 +827,7 @@ for name, paths in findings:
         # worktree. The MAIN checkout stays hard-protected. Reviewers never reach this
         # branch (denied on any write pattern above).
         if re.match(r"^\.claude/worktrees/", rel):
+            claim_checkout_guard(ap)
             continue
         # tmp/cache noise is not a domain question.
         if re.match(r"^(\.pytest_cache|node_modules|__pycache__|\.venv)", rel):
@@ -837,12 +873,17 @@ for name, paths in findings:
         if rel.startswith(".."):
             continue
 
-        if verdict["outcome"] in ("allow", "not_a_domain_question"):
+        if verdict["outcome"] == "allow":
             feature_checkout_guard(rel, ap)
+            claim_checkout_guard(ap)
+            continue
+
+        if verdict["outcome"] == "not_a_domain_question":
             continue
 
         if verdict["outcome"] == "shared":
             feature_checkout_guard(rel, ap)
+            claim_checkout_guard(ap)
             # Shared paths are owned by nobody and always serialized (DEC-85). Same
             # notice check-domain.sh prints on its own route.
             print(f"bash-write-guard: {agent} is writing SHARED path "
