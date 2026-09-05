@@ -5,27 +5,19 @@
 - feature: BUG-1286-test-tree-enforcement
 - run: .harness/harness/features/BUG-1286-test-tree-enforcement/runs/2026-09-04-31-product/state.yaml
 - squad: none
-- status: awaiting-user
+- status: ready
 
-Plan phase complete at the signature gate. The operator's fourth ruling is applied: the guard-covered
-certification rests on fixed wildcard-free literal text, the false impossibility rationale is gone at
-every site, an uncertifiable pattern of any shape fails closed as a general rule, and the recurring
-live-config occupancy pin is deleted with no replacement — as was condition (d)'s corpus-match
-conjunct, which the cycle-9 goal-check measured as over-refusing four legitimately covered shapes.
-The honest limit is completed by subtraction rather than by disclosure. Preserved untouched: REQ-09's
-breadth, full-relative-path `fnmatch` semantics over every running kind, normalization plus `..`
-rejection, the manual-probe rule, the F-01 fix, D-05's FEAT-44 exception and the three-kind
-blast-radius disclosure.
+Plan phase complete. The operator approved BRIEF.md and plan.yaml on 2026-09-05, and `gh-sync.py
+status ... ready` recorded the Ready station. The GitHub mirror found no task sub-issues to move.
 
-The cycle-10 panel PASSED at `severity_max: med`, `must_fix` empty, nothing high, critical or
-unrated, so nothing needs operator risk-acceptance. Its five findings are `open` and enter the
-operator's one batched signature review; the four superseded cycle-8 findings are carried forward as
-`resolved_by: T-01` rather than dropped. BRIEF carries 9 REQ and 19 SC over eleven acceptance
-criteria; plan.yaml carries 6 decisions and 5 tasks at station `plan`. Both approvals remain
-`pending`. check-state reports one violation for this feature, the expected unsigned BRIEF.
+The cycle-10 panel PASSED at `severity_max: med`, `must_fix` empty, with nothing high, critical or
+unrated. Its five non-gating findings carry into build. T-01 must re-prove the four specified red
+cases against the built artifact; all plan-phase results were simulations of the specification.
 
-`cycles_used` is 9 of a hard 10 and `len(runs)` is 29 against an informational 20; neither budget was
-raised, which is a user decision.
+BRIEF carries 9 REQ and 19 SC over eleven acceptance criteria; plan.yaml carries 6 decisions and
+5 tasks. Preserved: REQ-09's breadth, full-relative-path `fnmatch` semantics over every running
+kind, normalization plus `..` rejection, the manual-probe rule, the F-01 fix, D-05's FEAT-44
+exception, and the three-kind blast-radius disclosure.
 
 ## Open Questions
 

@@ -320,6 +320,6 @@ ticket's own order) it covers:
 
 ## Approval
 
-status: pending
-approved-by:
-date:
+status: approved
+approved-by: mruangutai
+date: 2026-09-05

@@ -1,8 +1,10 @@
 schema: plan/1
 feature: BUG-1286-test-tree-enforcement
-status: plan
+status: ready
 approval:
-  status: pending
+  date: '2026-09-05'
+  approved_by: mruangutai
+  status: approved
 source_issues: [1286]
 
 lanes:
