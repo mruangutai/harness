@@ -1,0 +1,113 @@
+{
+  "feature_id": "BUG-1302-suite-layout-fail-closed",
+  "branch": "feat/BUG-1302-suite-layout-fail-closed",
+  "pr": 1323,
+  "review_sha": "d5dbb9dab31853eaa65823aaec752724ce98bc91",
+  "cycles_used": 4,
+  "max_total_cycles": 8,
+  "runs": [
+    {
+      "id": "2026-09-05-1-validator",
+      "squad": "validator",
+      "verdict": "PASS",
+      "agent": "harness-validator-lead",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-05-2-validator",
+      "squad": "validator",
+      "verdict": "PASS",
+      "agent": "harness-validator-lead",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-05-3-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead"
+    },
+    {
+      "id": "2026-09-05-2-product",
+      "squad": "product",
+      "verdict": "FAIL",
+      "agent": "harness-product-lead"
+    },
+    {
+      "id": "2026-09-05-1-eng",
+      "squad": "eng",
+      "verdict": "PASS",
+      "agent": "harness-eng-lead"
+    },
+    {
+      "id": "2026-09-05-2-eng",
+      "squad": "eng",
+      "verdict": "PASS",
+      "agent": "harness-eng-lead"
+    },
+    {
+      "id": "2026-09-05-4-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead"
+    },
+    {
+      "id": "2026-09-05-3-validator",
+      "squad": "validator",
+      "verdict": "PASS",
+      "agent": "harness-validator-lead",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-05-4-validator",
+      "squad": "validator",
+      "verdict": "PASS",
+      "agent": "harness-validator-lead",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-05-5-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead"
+    },
+    {
+      "id": "2026-09-05-6-validator",
+      "squad": "validator",
+      "verdict": "PASS",
+      "agent": "harness-validator-lead"
+    },
+    {
+      "id": "2026-09-05-6-product",
+      "squad": "product",
+      "verdict": "ESCALATE",
+      "agent": "harness-product-lead"
+    },
+    {
+      "id": "2026-09-05-7-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead"
+    }
+  ],
+  "github": {
+    "milestone": 46,
+    "parent": 1311,
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03",
+      "T-04",
+      "T-05"
+    ],
+    "issues": {
+      "T-01": 1312,
+      "T-02": 1313,
+      "T-03": 1314,
+      "T-04": 1315,
+      "T-05": 1316
+    },
+    "source_issues": [
+      1302
+    ]
+  }
+}

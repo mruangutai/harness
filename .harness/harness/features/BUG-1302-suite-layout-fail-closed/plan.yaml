@@ -1,0 +1,393 @@
+schema: plan/1
+feature: BUG-1302-suite-layout-fail-closed
+approval:
+  date: '2026-09-05'
+  approved_by: mruangutai
+  status: approved
+status: review
+source_issues: [1302]
+
+lanes:
+  resolved_at: c369fb1fdfc74a8f78edc9a2df2a8fea738afc94
+  rows:
+    - surface: tests/unit/test-suite-layout.py
+      lane: main-session-direct
+      reason: DEC-174 carve-out, the test file of the run-unit-tests.sh gate
+    - surface: tests/integration/test-run-unit-tests-layout.py
+      lane: main-session-direct
+      reason: DEC-174 carve-out, the test file of the run-unit-tests.sh gate
+
+decisions:
+  - id: D-01
+    choice: Every implementation task in this plan runs main-session-direct, and the DEVIATION line check-plan-routes.py prints for the two test files is accepted as designed audit trail.
+    because: run-unit-tests.sh is a gate and DEC-174 reaches the test file of each, so the blanket tests wildcard granted to backend-dev, dev-ops and qa does not apply.
+    dec: DEC-174
+  - id: D-02
+    choice: B-6 is fixed by converting the INAPPLICABLE else branch into a hard check failure whose detail names both remedies, not by synthesising a positive control independent of the live test_kinds config.
+    because: a synthetic control proves only that the pipeline can go red in a fabricated world and would pass silently through the live-config regression B-6 exists to catch; the accepted risk is a fixture-maintenance red when no CANDIDATE_CORPUS entry qualifies.
+    dec: Advisor RECOMMENDATION Q2 (a), runs/2026-09-05-2-validator/digest.md — no decision record covers the remedy choice, so the authority is the Advisor's labelled recommendation, not this plan
+  - id: D-03
+    choice: The future red that D-02 accepts is owned by the main session, and the BRIEF records that ownership.
+    because: CANDIDATE_CORPUS lives inside a DEC-174 file, so the fixture repair is main-session-direct by construction and no squad member can clear that red.
+    dec: Advisor RECOMMENDATION Q2 (a) accepted-risk clause, runs/2026-09-05-2-validator/digest.md, with DEC-174 fixing who can clear the resulting red
+
+panel:
+  last_run: 2026-09-05-4-validator
+  cycle: 1
+  transcription_rule: Finding ids are panel_findings.py id over the reader id and
+    the digest summary string recorded verbatim below. runs/2026-09-05-4-validator/digest.md
+    records finding 2's reader as the persona harness-code-reviewer; it is transcribed
+    here as the reader id scope, which is the readers-list id that persona ran, and
+    the id was hashed over reader=scope. No summary was reworded.
+  readers:
+  - reader: should-not-exist
+    status: ran
+    persona: fable-advisor
+  - reader: scope
+    status: ran
+    persona: harness-code-reviewer
+  - reader: goalcheck
+    status: ran
+    persona: harness-pm
+  findings:
+  - id: PF-fc35850348334fa161835c8a8d817636
+    severity: med
+    reader: should-not-exist
+    summary: T-05's mandated red demonstration (untrack the fixture rogue) fails identically
+      for the unfixed narrow clause and the fixed widened clause, so the recorded
+      FAIL proves nothing about B-8
+    disposition: resolved
+    resolved_by: T-05
+  - id: PF-1059ca60a52554428bd249d00f0d2fb4
+    severity: low
+    reader: scope
+    summary: 'SC-09 is falsifiable as written but no task''s verify: executes its
+      named-check command, and no owner is stated'
+    disposition: resolved
+  - id: PF-1ada4741b4b00970cf6013518244f0f5
+    severity: low
+    reader: should-not-exist
+    summary: T-01/T-02 structural AST count pins are the correct trade in this file,
+      but their false-positive cost is main-session-only to clear and belongs on the
+      signature record
+    disposition: resolved
+  - id: PF-00b01248362bad264b494db4f764ef99
+    severity: info
+    reader: should-not-exist
+    summary: 'REDISCOVERY of goal-check F-4 / Advisor R2, same conclusion: the BRIEF''s
+      accepted fixture-maintenance red is correctly-provenanced Advisor delegation,
+      not a breach of the operator''s no-risk-acceptance stop condition'
+    disposition: resolved
+tasks:
+  - id: T-01
+    title: Remove the unreachable dotdot comparison from _is_inside_tests and pin its verdicts
+    traces: [REQ-02, REQ-06]
+    change_type: bugfix
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 carve-out, tests/unit/test-suite-layout.py is the test file of the run-unit-tests.sh gate
+    depends_on: []
+    status: done
+    files:
+      - tests/unit/test-suite-layout.py
+    verify: |
+      out=$(python3 tests/unit/test-suite-layout.py) &&
+      printf '%s\n' "$out" | grep -q '^PASS b5 corpus: _is_inside_tests verdicts unchanged' &&
+      printf '%s\n' "$out" | grep -q '^PASS b5 structural: no unreachable dotdot comparison'
+    intent: |
+      In tests/unit/test-suite-layout.py, function _is_inside_tests:
+
+      1. Replace the guard condition
+             if not normalized or normalized in (".", "..") or posixpath.isabs(normalized):
+         with
+             if not normalized or normalized == "." or posixpath.isabs(normalized):
+         Leave the earlier guard, if ".." in segments: return False, exactly as it is. The ".."
+         element is unreachable because that earlier guard rejects every pattern containing a ".."
+         segment before normalization runs, so the removal is behaviour preserving.
+
+      2. Immediately after the function definition, add a module-level tuple named B5_CORPUS of
+         (pattern, expected) pairs and one check over it. The corpus MUST contain these exact pairs,
+         which are the verdicts measured against the pre-removal function at
+         c369fb1fdfc74a8f78edc9a2df2a8fea738afc94:
+             ("tests/unit/**", True), ("tests/integration/**", True), ("tests", True),
+             ("tests/manual/probe-omp-session-accessor.py", True), ("./tests/*.py", True),
+             ("**/*_test.*", False), ("**/test_*.py", False), ("../x/*.py", False),
+             ("tests/../evil/*.py", False), ("a/../tests/*.py", False),
+             ("/abs/tests/*.py", False), ("*", False), ("", False), ("./*.py", False),
+             ("testsuite/*.py", False)
+         The three patterns carrying a ".." segment are the inputs that motivated the removed code
+         and must not be dropped. Assert with the existing check() helper, one call named exactly
+         "b5 corpus: _is_inside_tests verdicts unchanged", condition
+         all(_is_inside_tests(p) is e for p, e in B5_CORPUS), and a detail listing every pair whose
+         verdict differs from its expectation.
+
+      3. Add a structural check that goes red if the removed comparison is reintroduced, and bind the
+         shared AST machinery that T-02 and T-03 reuse. Add "import ast" at the top of the file
+         alongside the existing imports, and immediately after that import bind, at module scope,
+         exactly these two names:
+             SELF_AST = ast.parse(Path(__file__).read_text())
+             def _self_fn(name):
+                 return next(n for n in ast.walk(SELF_AST)
+                             if isinstance(n, ast.FunctionDef) and n.name == name)
+         SELF_AST is the ONE parse of this file: T-02 and T-03 reference SELF_AST and _self_fn and
+         must never call ast.parse or read_text again. Then, over _self_fn("_is_inside_tests"), count
+         the ast.Constant nodes whose value is the string "..". Exactly one must remain, the early
+         segments guard. Name the check exactly "b5 structural: no unreachable dotdot comparison",
+         and put the observed count in the detail.
+
+      Do not touch any other function, case or check in the file. Before committing, demonstrate the
+      red: restore the (".", "..") tuple, confirm the structural check FAILS, then revert; record the
+      mutation and the literal FAIL line observed, before reverting, in
+      .harness/harness/features/BUG-1302-suite-layout-fail-closed/notes/red-demonstrations-2026-09-05.md,
+      one dated section per task.
+
+  - id: T-02
+    title: Remove the tautological conjunct from _literal_key_present and pin its verdicts
+    traces: [REQ-01, REQ-06]
+    change_type: bugfix
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 carve-out, tests/unit/test-suite-layout.py is the test file of the run-unit-tests.sh gate
+    depends_on: [T-01]
+    status: done
+    files:
+      - tests/unit/test-suite-layout.py
+    verify: |
+      out=$(python3 tests/unit/test-suite-layout.py) &&
+      printf '%s\n' "$out" | grep -q '^PASS b4 corpus: _literal_key_present verdicts unchanged' &&
+      printf '%s\n' "$out" | grep -q '^PASS b4 structural: the tautological conjunct is absent' &&
+      python3 -c "import sys;sys.path.insert(0,'.claude/skills/harness/bin');import code_grade;from pathlib import Path;p='tests/unit/test-suite-layout.py';g=[r for r in code_grade.grade_source(Path(p).read_text(),p) if r.qualname=='_literal_key_present'];assert len(g)==1 and g[0].grade==3,g"
+    intent: |
+      In tests/unit/test-suite-layout.py, function _literal_key_present:
+
+      1. Delete the conjunct
+             and not any(ch in trailing for ch in "*?[")
+         from the return-True condition, leaving
+             if (trailing.startswith(".")
+                     and any(trailing.endswith(ext) for ext in suite_layout.SOURCE_EXTENSIONS)):
+         The conjunct can never be False: trailing is core[last_wildcard + 1:], the span after the
+         LAST wildcard character, so it contains no wildcard by construction.
+
+      2. Immediately after the function definition, add a module-level tuple named B4_CORPUS of
+         (core, expected) pairs and one check over it. The corpus MUST contain these exact pairs,
+         which are the verdicts measured against the pre-removal function at
+         c369fb1fdfc74a8f78edc9a2df2a8fea738afc94:
+             ("test-*.py", True), ("test_*.py", True), ("probe-*.py", True),
+             ("x_test.*", True), ("x.test.*", True),
+             ("probe-*.md", False), ("test-*.p*y", False), ("test_*x", False),
+             ("test-x.py", False), ("test-*.zzz", False), ("test-*.", False),
+             ("probe-*[ab].py", False), ("*.py", False)
+         The corpus covers both halves of the removal: cores whose trailing span after the last
+         wildcard IS a clean source extension, and cores whose trailing span is NOT. Assert with the
+         existing check() helper, one call named exactly
+         "b4 corpus: _literal_key_present verdicts unchanged", condition
+         all(_literal_key_present(c) is e for c, e in B4_CORPUS), and a detail listing every pair
+         whose verdict differs from its expectation.
+
+      3. Add a structural check that goes red if the conjunct is reintroduced. Use the module-level
+         SELF_AST and _self_fn that T-01 binds -- call _self_fn("_literal_key_present"); do NOT call
+         ast.parse or Path(__file__).read_text() again, this file is parsed exactly once. Inside that
+         FunctionDef assert BOTH of these counts: exactly ONE ast.Call whose func is an ast.Name with
+         id any, and exactly ONE ast.Constant whose value is the string "*?[". The surviving any()
+         call is the SOURCE_EXTENSIONS extension check, which the removal keeps; the surviving "*?["
+         constant is the wildcard-position list comprehension. Measured at
+         c369fb1fdfc74a8f78edc9a2df2a8fea738afc94 the pre-removal function carries 2 of each, so
+         reintroducing the conjunct restores both to 2 and the check FAILS. Do NOT assert zero any()
+         calls: that is false of the correct fix, because the extension check is itself an any() call.
+         Name the check exactly "b4 structural: the tautological conjunct is absent" and put both
+         observed counts in the detail.
+
+      This removal also clears a code-grade record, and the verify pins it: _literal_key_present is
+      grade 2 at c369fb1fdfc74a8f78edc9a2df2a8fea738afc94 (cyclomatic 12, cognitive 13, abc 18.4) and
+      grade 3 after the deletion (cyclomatic 10, cognitive 13, abc 15.1). The verify's code_grade
+      clause asserts grade 3, so a removal that does not actually land leaves it red. Change nothing
+      else in the function to chase that number.
+
+      Do not touch any other function, case or check. Before committing, demonstrate the red:
+      restore the conjunct, confirm the structural check FAILS, then revert; record the mutation and
+      the literal FAIL line observed, before reverting, in
+      .harness/harness/features/BUG-1302-suite-layout-fail-closed/notes/red-demonstrations-2026-09-05.md,
+      one dated section per task.
+
+  - id: T-03
+    title: Convert case 11's INAPPLICABLE branch into a hard failure that names both remedies
+    traces: [REQ-03, REQ-06]
+    change_type: bugfix
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 carve-out, tests/unit/test-suite-layout.py is the test file of the run-unit-tests.sh gate
+    depends_on: [T-02]
+    status: done
+    files:
+      - tests/unit/test-suite-layout.py
+    verify: |
+      out=$(python3 tests/unit/test-suite-layout.py) &&
+      printf '%s\n' "$out" | grep -q '^PASS b6 reachability: no candidate under a corpus-blind config' &&
+      printf '%s\n' "$out" | grep -q '^PASS b6 message: the no-candidate failure names both remedies' &&
+      ! grep -q INAPPLICABLE tests/unit/test-suite-layout.py
+    intent: |
+      In tests/unit/test-suite-layout.py, case 11, the branch taken when
+      select_control_candidate(test_kinds_cfg) returns None:
+
+      1. Replace the print("INAPPLICABLE case 11 behavioural: positive control ...") else branch with
+         a hard failure through the existing check() helper, so the run turns red:
+             else:
+                 check("case 11 behavioural: positive control offender is detected", False,
+                       "no CANDIDATE_CORPUS entry is counted-but-unrefused under the live "
+                       "test_kinds config -- either extend CANDIDATE_CORPUS with a shape the new "
+                       "config counts, or treat the config change as a detection regression")
+         The name must be byte identical to the name the if-branch already uses, so both branches
+         report the same criterion. The second positional argument must be the literal False, not an
+         expression that evaluates false: the structural check in step 3 asserts exactly that. No
+         INAPPLICABLE string may remain anywhere in the file.
+
+      2. Add a reachability check proving the branch can fire. Directly after the if/else, assert
+         that select_control_candidate returns None under a literal fixture config in which no
+         CANDIDATE_CORPUS entry qualifies:
+             CORPUS_BLIND_KINDS = {"unit": {"status": "active", "detect": "tests/unit/**"}}
+         Name the check exactly "b6 reachability: no candidate under a corpus-blind config",
+         condition select_control_candidate(CORPUS_BLIND_KINDS) is None, detail
+         repr(select_control_candidate(CORPUS_BLIND_KINDS)). This is a measured fact at
+         c369fb1fdfc74a8f78edc9a2df2a8fea738afc94: under the live config the selected candidate is
+         .harness/tools/test_dir/gen.py, and under CORPUS_BLIND_KINDS it is None.
+
+      3. Add ONE message-and-shape check proving the failure both routes and fails closed. Walk the
+         module-level SELF_AST that T-01 binds -- do NOT call ast.parse or read_text again; T-03
+         targets an ast.If, not a FunctionDef, so it uses SELF_AST directly and needs no _self_fn.
+         Locate the ast.If whose test compares the name control_candidate to None and take its orelse
+         body. Find the check() Call in that branch and assert ALL THREE facts in one condition:
+           - its concatenated string constants contain the phrase naming CANDIDATE_CORPUS extension;
+           - its concatenated string constants contain the phrase naming a detection regression;
+           - its SECOND positional argument is an ast.Constant whose value is False.
+         The third clause is what makes the criterion fail-closed: without it, a branch rewritten as
+         check(name, some_truthy_expr, ...) satisfies both phrase clauses while staying fail-open,
+         which is the exact defect B-6 is. Name the check exactly
+         "b6 message: the no-candidate failure names both remedies" and put the extracted detail
+         string and the repr of the second argument node in the check detail.
+
+      Leave the unconditional hygiene_uncertified assertion and every other case untouched. Before
+      committing, demonstrate the red three times: temporarily pass CORPUS_BLIND_KINDS to
+      select_control_candidate at the case 11 call site and confirm the run FAILS with the two-remedy
+      message, then revert; delete one remedy phrase from the detail string, confirm the message
+      check FAILS, then revert; and replace the literal False second argument with a truthy
+      expression, confirm the message check FAILS, then revert. Record each mutation and the literal
+      FAIL line observed, before reverting, in
+      .harness/harness/features/BUG-1302-suite-layout-fail-closed/notes/red-demonstrations-2026-09-05.md,
+      one dated section per task.
+
+  - id: T-04
+    title: Guard _violations_callers so an unreadable tracked source fails as a named assertion
+    traces: [REQ-04, REQ-06]
+    change_type: bugfix
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 carve-out, tests/unit/test-suite-layout.py is the test file of the run-unit-tests.sh gate
+    depends_on: [T-03]
+    status: done
+    files:
+      - tests/unit/test-suite-layout.py
+    verify: |
+      out=$(python3 tests/unit/test-suite-layout.py) &&
+      printf '%s\n' "$out" | grep -q '^PASS b14: unreadable tracked sources are reported, not raised'
+    intent: |
+      In tests/unit/test-suite-layout.py, function _violations_callers:
+
+      1. Guard the per-file read. Replace
+             for line in (root / rel).read_text().splitlines():
+         with a guarded read that records the path instead of propagating:
+             try:
+                 text = (root / rel).read_text()
+             except (OSError, UnicodeDecodeError) as error:
+                 unreadable.append(f"unreadable tracked source {rel}: {type(error).__name__}")
+                 continue
+             for line in text.splitlines():
+         Initialise unreadable = [] beside callers = [], and return
+             sorted(set(callers) | set(unreadable))
+         so the existing repository-wide equality check fails with the offending path inside its
+         detail rather than the run dying on a traceback. Do not swallow and re-raise: an exception
+         that still propagates is not a fix.
+         Update the function's docstring in the same edit: it currently states the superseded
+         contract ("Non-test, git-tracked, source-extension files that invoke
+         suite_layout.violations(...)"). Rewrite it to state that the returned list carries those
+         caller paths PLUS one "unreadable tracked source <path>: <ErrorType>" entry per tracked
+         file that could not be read, so a caller's equality assertion fails with the path named
+         rather than raising. Keep the existing sentence about comment lines never counting.
+
+      2. Add a new case at the end of the file, after case 11, exercising BOTH hazards for real.
+         Build the fixture with the helpers this file already owns, not by hand:
+             td = base_git_fixture(include_self=False)
+         then write into td:
+           - deleted.py, with the text "pass\n";
+           - binary.py, with Path.write_bytes of b"\xff\xfe" + b"pass\n", so read_text() raises
+             UnicodeDecodeError.
+         Commit both with git_commit(td), then remove only the first from the working tree with
+         (td / "deleted.py").unlink() and do NOT commit the deletion, so git ls-files still lists it.
+         base_git_fixture's own extra files cannot perturb the result set: .harness/team-config.yaml
+         is .yaml and so not a SOURCE_EXTENSION, and every tests/... file is dropped by the
+         rel.startswith("tests/") guard.
+         Call _violations_callers(td, suite_layout.SOURCE_EXTENSIONS) inside a try/except Exception;
+         if it raises, fail the check with the exception text. Name the check exactly
+         "b14: unreadable tracked sources are reported, not raised", and require that the returned
+         list contains one entry naming deleted.py and one naming binary.py, with the detail carrying
+         repr of the returned list. Remove the fixture in a finally block with shutil.rmtree.
+
+      Do not change the repository-wide caller check's expected set. Before committing, demonstrate
+      the red: revert the guard to the unguarded read_text() and confirm the new case raises and the
+      run exits non-zero; record the mutation and the literal FAIL line observed, before reverting, in
+      .harness/harness/features/BUG-1302-suite-layout-fail-closed/notes/red-demonstrations-2026-09-05.md,
+      one dated section per task.
+
+  - id: T-05
+    title: Widen integration case 2 to assert both sentinels are absent
+    traces: [REQ-05, REQ-06]
+    change_type: bugfix
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 carve-out, tests/integration/test-run-unit-tests-layout.py is the test file of the run-unit-tests.sh gate
+    depends_on: []
+    status: done
+    files:
+      - tests/integration/test-run-unit-tests-layout.py
+    verify: |
+      python3 tests/integration/test-run-unit-tests-layout.py && ! grep -q '"PASS test-unit.py" not in p.stdout' tests/integration/test-run-unit-tests-layout.py && test "$(grep -c '"PASS test-" not in p.stdout' tests/integration/test-run-unit-tests-layout.py)" = 2
+    intent: |
+      In tests/integration/test-run-unit-tests-layout.py, case 2, the check named
+      "git tracked rogue refused before sentinels":
+
+      Replace the sentinel clause
+          and "PASS test-unit.py" not in p.stdout
+      with the generic prefix clause
+          and "PASS test-" not in p.stdout
+      so the case asserts that NEITHER sentinel ran, matching what case 4 already asserts. The
+      fixture prints PASS test-unit.py and PASS test-integration.py, so the narrower clause passes
+      even when the integration sentinel has run before the refusal; the wider clause cannot.
+
+      Keep every other clause of the check unchanged: p.returncode == 2, and the MISCONFIGURED line
+      naming .harness/tools/test_rogue.py. Change no other case and no fixture.
+
+      Before committing, demonstrate the red. Every mutation below is temporary and reverted before
+      the commit, so nothing in this paragraph changes what lands. The demonstration MUST hold every
+      OTHER clause of case 2's assertion TRUE and vary ONLY the property the widened clause adds --
+      whether a sentinel ran before the refusal. Do NOT untrack the rogue: that falsifies all three
+      clauses at once, because integration case 5 already pins the untracked state at
+      p.returncode == 0 with BOTH sentinels in stdout, so case 2 would go red identically for the
+      unfixed narrow clause and for the fixed widened clause and the recorded FAIL would be evidence
+      for a fix it cannot distinguish.
+
+      Instead keep the rogue TRACKED and force the integration sentinel to run BEFORE the layout
+      refusal, by mutating the runner copy the fixture already owns: tree() copies run-unit-tests.sh
+      into the temp tree and run() executes THAT copy, so the runner is mutable in place inside the
+      case. In case 2 only, after git_commit(r, "rogue") and before run(r, "--kind", "all"), insert
+      the line
+          python3 tests/integration/test-integration.py
+      into r/".claude/skills/harness/bin/run-unit-tests.sh" immediately BEFORE the line that begins
+      layout_out= , leaving every other line of that script untouched. Under that state the runner
+      prints PASS test-integration.py on stdout and then refuses, so p.returncode == 2 holds, the
+      MISCONFIGURED line naming .harness/tools/test_rogue.py holds, and stdout carries
+      PASS test-integration.py and not PASS test-unit.py.
+
+      Run case 2 twice against that one mutated state and record BOTH results, because the pair is
+      what discriminates:
+        - with the widened clause in place (the fix), case 2 FAILS -- that is the red;
+        - with the narrow clause "PASS test-unit.py" not in p.stdout temporarily restored (the
+          unfixed code), case 2 PASSES -- proving the old assertion misses exactly this defect.
+      Then revert the runner mutation and the restored narrow clause, leaving only the widened clause.
+
+      Record the mutation and the literal FAIL line observed, before reverting, in
+      .harness/harness/features/BUG-1302-suite-layout-fail-closed/notes/red-demonstrations-2026-09-05.md,
+      one dated section per task.
