@@ -2,7 +2,7 @@
   "feature_id": "BUG-1302-suite-layout-fail-closed",
   "branch": "feat/BUG-1302-suite-layout-fail-closed",
   "pr": null,
-  "review_sha": "ac8dd671742dc20cea91c03715a9579c7c879e31",
+  "review_sha": "d5dbb9dab31853eaa65823aaec752724ce98bc91",
   "cycles_used": 4,
   "max_total_cycles": 8,
   "runs": [
