@@ -391,6 +391,42 @@ def _required_contracts(validator, roster):
     return required
 
 
+def _derive_plan_mode_code_grade(validator):
+    """SC-03: the plan-mode `code_grade` value is not typed here — it is derived by
+    probing the validator's OWN plan-mode rule, `_pending_plan_review_error`
+    (validate-digest.py:1026-1032), across every member of `validator.CODE_GRADE_VALUES`
+    (validate-digest.py:616) and keeping whichever single member that rule does not
+    reject for its grade. Renaming the accepted grade in `CODE_GRADE_VALUES` changes
+    what this probe keeps, so the derived value tracks the validator instead of a
+    retyped literal.
+
+    Returns (grade, None) when exactly one member qualifies. Returns (None, reason)
+    when zero or more than one member qualifies, or when the probe itself raises —
+    never a silent default, never `None` masquerading as success.
+    """
+    try:
+        with tempfile.TemporaryDirectory() as td:
+            config = os.path.join(td, "harness.json")
+            write_review_config(config, "advisory_unless_high")
+            feature_dir, plan_path, artifact, _digest = _plan_review_fixture(
+                os.path.join(td, "plan-mode-probe"))
+            qualifying = []
+            for grade in sorted(validator.CODE_GRADE_VALUES):
+                digest = reviewer_digest(
+                    grade, reviewed=f"plan:{plan_path}", artifact=artifact)
+                errors = _plan_review_errors(validator, config, feature_dir, digest)
+                if not any("code_grade must be" in error for error in errors):
+                    qualifying.append(grade)
+    except Exception as exc:
+        return None, f"probe raised {exc!r}"
+    if len(qualifying) != 1:
+        return None, (
+            f"expected exactly one qualifying member of CODE_GRADE_VALUES, "
+            f"found {qualifying!r}"
+        )
+    return qualifying[0], None
+
+
 def _reviewer_plan_mode_results(validator):
     reviewer_sources = (
         ".claude/agents/harness-code-reviewer.md",
@@ -398,8 +434,16 @@ def _reviewer_plan_mode_results(validator):
         ".claude/skills/harness-code-review/SKILL.md",
     )
     reviewed_token = "reviewed: " + validator._PLAN_REVIEW_PREFIX
-    code_grade_line = re.compile(r"^\s*code_grade\s*:.*\bn_a\b", re.MULTILINE)
+    derived_grade, derive_error = _derive_plan_mode_code_grade(validator)
     results = []
+    if derive_error:
+        results.append((
+            False,
+            f"plan-mode code_grade derivation from CODE_GRADE_VALUES failed: {derive_error}",
+        ))
+        return results
+    code_grade_line = re.compile(
+        rf"^\s*code_grade\s*:.*\b{re.escape(derived_grade)}\b", re.MULTILINE)
     for source_path in reviewer_sources:
         source_text = _contract_source(source_path) or ""
         results.append((
@@ -408,7 +452,7 @@ def _reviewer_plan_mode_results(validator):
         ))
         results.append((
             code_grade_line.search(source_text) is not None,
-            f"{source_path} plan-mode token 'code_grade: ... n_a'",
+            f"{source_path} plan-mode token 'code_grade: ... {derived_grade}'",
         ))
         if source_path.endswith("harness-code-reviewer.md"):
             fragment = "features/<FEAT>/notes/review-harness-code-reviewer-"
