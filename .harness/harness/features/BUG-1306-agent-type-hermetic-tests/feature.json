@@ -2,7 +2,7 @@
   "feature_id": "BUG-1306-agent-type-hermetic-tests",
   "branch": "feat/BUG-1306-agent-type-hermetic-tests",
   "pr": null,
-  "review_sha": "536afda3",
+  "review_sha": "da05ea28",
   "cycles_used": 1,
   "max_total_cycles": 8,
   "runs": [
