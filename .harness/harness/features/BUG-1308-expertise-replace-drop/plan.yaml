@@ -122,7 +122,7 @@ decisions:
   - id: D-11
     choice: >-
       The contract text is realigned in the same feature - harness-distill SKILL.md as a
-      main-session-direct step, SPEC.md section 5.3 and a new DEC-216 through the documentor.
+      main-session-direct step, SPEC.md section 5.3 and a new DEC-218 through the documentor.
     because: >-
       The issue's Alternative is only reachable if the mechanism is not built; building it makes the
       contract true, and a text that still promises an unapplied verb reopens the same defect.
@@ -138,7 +138,7 @@ decisions:
     choice: >-
       The mid-build yield to the main session is accepted for exactly one edge and removed
       everywhere else: T-02 keeps depends_on T-03 because case17 grades the contract text T-03
-      writes, while T-04 drops its dependency on T-03 - SPEC 5.3 and DEC-216 describe the
+      writes, while T-04 drops its dependency on T-03 - SPEC 5.3 and DEC-218 describe the
       mechanism, not the skill text, so nothing in T-04 reads what T-03 wrote.
     because: >-
       T-03 is main-session-direct under DEC-174, so every task depending on it is a barrier the
@@ -177,6 +177,19 @@ decisions:
       The revision is the operator's, not the plan author's, so the plan must say whose call each
       change was and where the reasoning lives; the per-finding record of what changed and why is at
       .harness/harness/features/BUG-1308-expertise-replace-drop/notes/research-BUG-1308-expertise-replace-drop-revision-c2.md
+    dec: none
+  - id: D-16
+    choice: >-
+      BUG-1308's decision number is 218 rather than the 216 both this plan and the BRIEF originally
+      carried, because BUG-1303 landed 216 and 217 first; every signed BUG-1308 reference and the
+      T-04 verify were renumbered to DEC-218 accordingly. The cycle-1 panel finding recorded under
+      panel.findings still reads 216 and is left byte-identical as transcribed history, since its
+      id is a hash over the reader plus the validator lead's own summary text and the record of what
+      a reader actually said is not rewritten.
+    because: >-
+      DEC-215 was the highest entry on the worktree branch, on local main and on origin/main when
+      both features were planned, so the collision was invisible to either plan and neither plan
+      author could have avoided it.
     dec: none
 panel:
   last_run: 2026-09-05-plan-panel-c2-validator
@@ -763,7 +776,7 @@ tasks:
       Change nothing else in the file.
 
   - id: T-04
-    title: Record the operation in SPEC section 5.3 and as DEC-216
+    title: Record the operation in SPEC section 5.3 and as DEC-218
     traces: [REQ-08]
     change_type: docs
     execution_mode: team
@@ -777,16 +790,16 @@ tasks:
       - .harness/harness/docs/DECISIONS-INDEX.md
     verify: |
       R="$(git rev-parse --show-toplevel)"
-      E="$(sed -n '/^## DEC-216/,$p' "$R/.harness/harness/docs/DECISIONS.md")"
+      E="$(sed -n '/^## DEC-218/,$p' "$R/.harness/harness/docs/DECISIONS.md")"
       N="$(printf '%s' "$E" | tr -s '[:space:]' ' ' | tr -d '\140*_')"
       for t in 'Chose:' 'Over:' 'Because:' 'Tradeoff accepted:' 'DEC-66' 'DEC-95' 'DEC-145'; do
-        printf '%s' "$N" | grep -qF "$t" || { echo "T-04 DEC-216 MISSING: $t"; exit 1; }
+        printf '%s' "$N" | grep -qF "$t" || { echo "T-04 DEC-218 MISSING: $t"; exit 1; }
       done
       M="$(tr -s '[:space:]' ' ' < "$R/.harness/harness/docs/SPEC.md" | tr -d '\140*_')"
       for t in 'expertise-merge.py ops' '10 MISSING TARGET' '11 AMBIGUOUS TARGET' '12 MALFORMED OPS'; do
         printf '%s' "$M" | grep -qF "$t" || { echo "T-04 SPEC MISSING: $t"; exit 1; }
       done
-      grep -q '^- DEC-216 .* :: .*replace and drop through the ops subcommand' \
+      grep -q '^- DEC-218 .* :: .*replace and drop through the ops subcommand' \
         "$R/.harness/harness/docs/DECISIONS-INDEX.md" || { echo "T-04 index ruling missing"; exit 1; }
       python3 "$R/tests/integration/test-gen-decisions-index.py"
     intent: |
@@ -803,8 +816,8 @@ tasks:
          existing 6, 7, 8 and 9. Do not restate the caps as numbers - point at CAPS. This task's
          verify greps SPEC.md for the string expertise-merge.py ops and for each of those three token
          pairs, after collapsing whitespace and stripping backticks, asterisks and underscores.
-      2. DECISIONS.md, append DEC-216 in the established shape, using the file's own literal labels
-         Chose:, Over:, Because: and Tradeoff accepted: - the verify greps all four inside the DEC-216
+      2. DECISIONS.md, append DEC-218 in the established shape, using the file's own literal labels
+         Chose:, Over:, Because: and Tradeoff accepted: - the verify greps all four inside the DEC-218
          entry, so a paraphrased label fails the task. Titled for the operation. Chose: replace and
          drop are a second subcommand, ops, taking the distill contract's op objects as JSON, keyed on
          section plus entry id with both required, every op resolved against one base snapshot under
@@ -817,11 +830,11 @@ tasks:
          DEC-145 by those literal strings - the verify greps each of the three.
       3. DECISIONS-INDEX.md, regenerate with
          python3 .claude/skills/harness/bin/gen-decisions-index.py and then WRITE the hand-written
-         ruling after the " :: " on the new DEC-216 row - the generator does not produce that half.
+         ruling after the " :: " on the new DEC-218 row - the generator does not produce that half.
          The ruling must carry, VERBATIM and as a contiguous substring, the characters
            replace and drop through the ops subcommand
          - unbackticked, unhyphenated, not broken across a line. T-04's verify greps that exact string
-         on the DEC-216 row and SC-10 is graded on it; the bare word "ops" is not a discriminator,
+         on the DEC-218 row and SC-10 is graded on it; the bare word "ops" is not a discriminator,
          because it occurs incidentally on other rows. A ruling reading, for example, "replace and drop
          through the ops subcommand, keyed on section plus entry id" satisfies it.
          Appending an entry shifts every later row's source anchor, so the regeneration is mandatory
