@@ -239,6 +239,232 @@ def run_reviewer_severity_enum_cases():
     print(f"\n{checked - fails}/{checked} reviewer severity_max enum checks passed.")
     return fails
 
+def documented_block(source_text, source_path):
+    """Return the documented DIGEST block for an agent or shared skill."""
+    lines = source_text.splitlines()
+    if source_path.endswith("SKILL.md"):
+        digest_at = next(
+            (i for i, line in enumerate(lines)
+             if line.lstrip().startswith("DIGEST:")),
+            None,
+        )
+        if digest_at is None:
+            return None
+        open_at = next(
+            (i for i in range(digest_at - 1, -1, -1)
+             if lines[i].strip().startswith("```")),
+            None,
+        )
+        close_at = next(
+            (i for i in range(digest_at + 1, len(lines))
+             if lines[i].strip().startswith("```")),
+            None,
+        )
+        if open_at is None or close_at is None:
+            return None
+        return "\n".join(lines[open_at + 1:close_at])
+
+    output_at = next(
+        (i for i, line in enumerate(lines) if line.strip() == "## Output"),
+        None,
+    )
+    if output_at is None:
+        return None
+    end_at = next(
+        (i for i in range(output_at + 1, len(lines))
+         if re.match(r"^#{1,2}\s", lines[i])),
+        len(lines),
+    )
+    return "\n".join(lines[output_at:end_at])
+
+
+def documented_contract_gaps(required_fields, documented_text):
+    """Required field names that do not begin a line in the documented block."""
+    return sorted(
+        field for field in required_fields
+        if not re.search(rf"^\s*{re.escape(field)}\s*:", documented_text, re.MULTILINE)
+    )
+
+
+CONTRACT_SOURCES = {
+    "harness-pm": [".omp/agents/harness-pm.md"],
+    "harness-qa": [".omp/agents/harness-qa.md"],
+    "harness-documentor": [".omp/agents/harness-documentor.md"],
+    "harness-dev-ops": [".omp/agents/harness-dev-ops.md"],
+    "harness-visual-designer": [".omp/agents/harness-visual-designer.md"],
+    "harness-code-reviewer": [".omp/agents/harness-code-reviewer.md"],
+    "harness-security-reviewer": [".omp/agents/harness-security-reviewer.md"],
+    "harness-ui-reviewer": [".omp/agents/harness-ui-reviewer.md"],
+    "harness-orchestrator": [".omp/agents/harness-orchestrator.md"],
+    "harness-frontend-dev": [".claude/skills/harness-digest-dev/SKILL.md"],
+    "harness-backend-dev": [".claude/skills/harness-digest-dev/SKILL.md"],
+    "harness-ai-dev": [".claude/skills/harness-digest-dev/SKILL.md"],
+    "harness-data-engineer": [".claude/skills/harness-digest-dev/SKILL.md"],
+    "harness-product-lead": [".claude/skills/harness-team/SKILL.md"],
+    "harness-eng-lead": [".claude/skills/harness-team/SKILL.md"],
+    "harness-validator-lead": [".claude/skills/harness-team/SKILL.md"],
+}
+
+
+def documented_contract_results(roster, sources, required_by_persona, read_source):
+    """Grade each registry persona against only its mapped documented block."""
+    results = []
+    for persona in sorted(roster):
+        persona_sources = sources.get(persona)
+        if not persona_sources:
+            results.append((
+                False,
+                f"{persona}: present in validator registry but has no documented-contract source mapped",
+            ))
+            continue
+        for source_path in persona_sources:
+            source_text = read_source(source_path)
+            if source_text is None:
+                results.append((False, f"{persona}: documented-contract source absent: {source_path}"))
+                continue
+            block = documented_block(source_text, source_path)
+            if block is None:
+                results.append((
+                    False,
+                    f"{persona}: documented block could not be located: {source_path}",
+                ))
+                continue
+            gaps = documented_contract_gaps(required_by_persona[persona], block)
+            results.append((
+                not gaps,
+                f"{persona}: {source_path}"
+                + (f" missing fields: {', '.join(gaps)}" if gaps else ""),
+            ))
+    return results
+
+
+PRE_FIX_REVIEWER_BLOCK = """
+## Output
+
+````
+```yaml
+VERDICT: PASS | FAIL
+DIGEST:
+  headline: <one line>
+  severity_max: none|low|med|high|critical|n/a
+  findings: <n>
+  must_fix: [<item>]
+  spec_violations: [{ kind: scope_creep|omission|mismatch, path: ..., ref: D-NN }]
+  reviewed: "base..<review_sha>"
+  human_commits_in_scope: [<sha>]
+  open_questions:
+  files_touched: [<paths>]
+  expertise_update: [<ops>]
+artifact: <HARNESS_CONTROL_PLANE_ROOT>/.harness/notes/review-harness-code-reviewer-<runid>.md
+```
+````
+"""
+
+
+def _contract_source(path):
+    try:
+        with open(os.path.join(REPO_ROOT, path)) as source:
+            return source.read()
+    except FileNotFoundError:
+        return None
+
+
+def _report_contract_result(ok, line):
+    print(f"{'ok  ' if ok else 'FAIL'}  [documented contract] {line}")
+    return 0 if ok else 1
+
+
+def run_documented_contract_cases():
+    """Keep persona output instructions aligned with the validator's schema."""
+    spec = importlib.util.spec_from_file_location("_validator_contract_guard", VALIDATE)
+    validator = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(validator)
+    roster = sorted(validator.ALIAS)
+    required_by_persona = {
+        persona: set(validator.SCHEMAS[validator.norm(persona)])
+        for persona in roster
+    }
+    required_by_persona["harness-code-reviewer"].update(("code_grade", "reviewed"))
+
+    results = documented_contract_results(
+        roster, CONTRACT_SOURCES, required_by_persona, _contract_source)
+    fails = sum(_report_contract_result(ok, line) for ok, line in results)
+
+    reviewer_sources = (
+        ".claude/agents/harness-code-reviewer.md",
+        ".omp/agents/harness-code-reviewer.md",
+        ".claude/skills/harness-code-review/SKILL.md",
+    )
+    reviewed_token = "reviewed: " + validator._PLAN_REVIEW_PREFIX
+    code_grade_line = re.compile(r"^\s*code_grade\s*:.*\bn_a\b", re.MULTILINE)
+    for source_path in reviewer_sources:
+        source_text = _contract_source(source_path) or ""
+        required_tokens = [
+            (reviewed_token in source_text, reviewed_token),
+            (code_grade_line.search(source_text) is not None, "code_grade: ... n_a"),
+        ]
+        if source_path.endswith("harness-code-reviewer.md"):
+            artifact_fragment = "features/<FEAT>/notes/review-harness-code-reviewer-"
+            required_tokens.append((artifact_fragment in source_text, artifact_fragment))
+        for ok, token in required_tokens:
+            fails += _report_contract_result(
+                ok, f"{source_path} plan-mode token {token!r}")
+
+    pre_fix_gaps = documented_contract_gaps(("code_grade",), PRE_FIX_REVIEWER_BLOCK)
+    with_code_grade = PRE_FIX_REVIEWER_BLOCK.replace(
+        '  reviewed: "base..<review_sha>"',
+        '  code_grade: pass|fail|grade_2|n_a\n  reviewed: "base..<review_sha>"',
+    )
+    discrimination_ok = (
+        pre_fix_gaps == ["code_grade"]
+        and documented_contract_gaps(("code_grade",), with_code_grade) == []
+    )
+    if discrimination_ok:
+        print("ok    [documented contract discrimination] omitted field reported, present field accepted")
+    else:
+        fails += 1
+        print("FAIL  [documented contract discrimination] omitted field reported, present field accepted")
+
+    synthetic_roster = ("unmapped", "empty", "absent", "unlocatable", "outside", "control")
+    synthetic_sources = {
+        "empty": [],
+        "absent": ["absent.md"],
+        "unlocatable": ["unlocatable.md"],
+        "outside": ["outside.md"],
+        "control": ["control.md"],
+    }
+    synthetic_required = {persona: {"needed"} for persona in synthetic_roster}
+    synthetic_text = {
+        "unlocatable.md": "needed: yes\n# No output section\n",
+        "outside.md": "needed: outside\n## Output\nother: value\n",
+        "control.md": "## Output\nneeded: yes\n",
+    }
+    synthetic_results = documented_contract_results(
+        synthetic_roster,
+        synthetic_sources,
+        synthetic_required,
+        synthetic_text.get,
+    )
+    synthetic_failures = [line for ok, line in synthetic_results if not ok]
+    synthetic_controls = [line for ok, line in synthetic_results if ok]
+    completeness_ok = (
+        any("unmapped" in line and "no documented-contract source" in line
+            for line in synthetic_failures)
+        and any("empty" in line and "no documented-contract source" in line
+                for line in synthetic_failures)
+        and any("absent.md" in line and "absent" in line for line in synthetic_failures)
+        and any("unlocatable.md" in line and "could not be located" in line
+                for line in synthetic_failures)
+        and any("outside" in line and "needed" in line for line in synthetic_failures)
+        and synthetic_controls == ["control: control.md"]
+    )
+    if completeness_ok:
+        print("ok    [documented contract completeness] unmapped persona, absent source, unlocatable block and out-of-block field each reported by name")
+    else:
+        fails += 1
+        print("FAIL  [documented contract completeness] unmapped persona, absent source, unlocatable block and out-of-block field each reported by name")
+    return fails
+
 # (name, persona, digest text, expect_ok, must_mention)
 CASES = []
 # (name, agent_type, last_assistant_message text or None, payload_overrides dict,
@@ -3902,6 +4128,7 @@ def main():
     fails += run_t51_suspension_cases()
     fails += run_template_cases()
     fails += run_reviewer_severity_enum_cases()
+    fails += run_documented_contract_cases()
     print(f"\n{'ALL PASSED' if not fails else f'{fails} FAILING'}.")
     return 1 if fails else 0
 
