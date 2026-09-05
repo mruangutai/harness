@@ -1,0 +1,73 @@
+{
+  "feature_id": "BUG-1303-plan-code-review-digest",
+  "branch": "feat/BUG-1303-plan-code-review-digest",
+  "pr": null,
+  "review_sha": "none",
+  "cycles_used": 3,
+  "max_total_cycles": 8,
+  "runs": [
+    {
+      "id": "2026-09-05-01-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "pass"
+    },
+    {
+      "id": "2026-09-05-02-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "fail"
+    },
+    {
+      "id": "2026-09-05-03-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "pass"
+    },
+    {
+      "id": "2026-09-05-05-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "fail",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-05-06-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "pass"
+    },
+    {
+      "id": "2026-09-05-07-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "pass",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-05-08-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "pass"
+    },
+    {
+      "id": "2026-09-05-09-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "pass"
+    },
+    {
+      "id": "2026-09-05-08-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "pass",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-05-10-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "pass"
+    }
+  ]
+}
