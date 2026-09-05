@@ -6788,3 +6788,28 @@ run cannot decide a release.
 
 **Evidence:** FEAT-54 and
 `.harness/notes/grilling-handoff-done-when-2026-09-02.md`.
+
+## DEC-216 — A persona's documented output block is an enforced half of the digest contract
+
+**Chose:** BUG-1303. The block a persona is instructed to write must carry every field
+`validate-digest.py`'s schema requires of that persona, and `tests/integration/test-validate-digest.py`
+checks that agreement mechanically rather than leaving it to whoever last edited either side. Measured
+at `c369fb1f`, `.claude/agents/harness-code-reviewer.md` and its `.omp` twin documented no `code_grade`
+at all while the validator required one, so the reviewer's own documented digest was invalid in every
+phase — and in the plan phase a reviewer that had done its job settled as failed. Doctrine alone was
+refused because the divergence is silent on both sides: the validator never reads the block, the
+block's author never runs the validator, nothing asserts anything false, and the pointer just dies.
+
+**The check runs one way.** Required-by-schema must be documented, while a documented field the schema
+does not enumerate stays legal, because `SCHEMAS` holds only the enum-and-typed required fields whereas
+`headline`, `files_touched` and `open_questions` are required elsewhere in `validate()`. Checked is
+those plus the reviewer's inline per-persona extension, `code_grade` and `reviewed`, which `validate()`
+applies in code rather than as data: `required_by_persona` in `run_documented_contract_cases`
+(`tests/integration/test-validate-digest.py`) is that extension's hand-written mirror, so a future
+inline extension must update that site or the guard silently under-checks the persona it extends. Scope
+is the persona's own block, mechanically located, never the whole file: seven of the sixteen personas
+share two files, so a whole-file search would let one field name in unrelated prose satisfy all seven.
+
+**Unchanged:** DEC-207 is unamended and plan-review mode's semantics are untouched; the SEC-01
+`review_sha` binding, DEC-209's mechanical recomputation of `code_grade` and INV-6 all stand; and
+`validate-digest.py` is not edited by BUG-1303 at all. Refs: DEC-207, DEC-209, DEC-174.

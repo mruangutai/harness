@@ -1,0 +1,4 @@
+# Observations - harness-documentor
+
+- 2026-09-05: BUG-1303 T-04. Allocating a DEC number: the worktree file and every remote ref topped at 215, but local `refs/heads/feat/FEAT-46-decision-standard` reaches DEC-548 under an unmerged alternate numbering scheme. `git merge-base --is-ancestor <ref> origin/main` is what settles whether a ref bounds the sequence; a bare max-over-all-refs sweep would have made me allocate DEC-549.
+- 2026-09-05: BUG-1303 T-04. `gen-decisions-index.py` derived the new row tags `[digest,plan,tests]` and refs `DEC-174 DEC-207 DEC-209` from body mentions alone — the trailing hand-written `Refs:` sentence is prose, not the refs source. The index unit test lives at tests/integration/test-gen-decisions-index.py, NOT tests/unit/ despite being a unit-flavoured suite; it is the only check of the ruling length budget, and T-04 verify does not run it.
