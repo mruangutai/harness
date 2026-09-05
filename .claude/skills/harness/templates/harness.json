@@ -56,10 +56,16 @@
       ]
     },
     "bugfix": {
-      "always": [
-        "unit"
-      ],
+      "always": [],
       "when": [
+        {
+          "kind": "unit",
+          "if": "touches_runtime_code"
+        },
+        {
+          "kind": "integration",
+          "if": "fix_confined_to_tests_and_contract_docs"
+        },
         {
           "kind": "__bug_class__",
           "if": "match_bug_class"

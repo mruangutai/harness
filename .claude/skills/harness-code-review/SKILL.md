@@ -160,6 +160,22 @@ mid-review must not change what you reviewed.
 Check for `[harness:human]` commits since the last pin: those are hand edits that **inherit no earlier
 review**, and their paths are in scope for you now.
 
+## Before there is a SHA: plan-phase review
+
+For a drafted plan awaiting operator signature, while `approval.status` is pending and
+`feature.json` has no pinned `review_sha`, DEC-207 defines a distinct plan-review target.
+Grade `BRIEF.md` and `plan.yaml` as the specification—never a diff; no reviewed commit or suite
+exists yet. Write:
+
+```yaml
+reviewed: plan:<path-to-plan.yaml>
+code_grade: n_a
+```
+
+The path names this feature's own plan. The validator accepts this form only while all three
+preconditions hold; it is not a fallback for a missing SHA. Findings enter the one batched
+signature review under DEC-176 and never open a separate pre-signature fix dispatch.
+
 ## Red flags
 
 | Thought | Reality |
@@ -170,3 +186,4 @@ review**, and their paths are in scope for you now.
 | "It probably handles that case" | Read the branch. "Probably" is how fail-open ships |
 | "The tests pass, so it's correct" | Tests prove what was tested. Both measured fail-opens passed theirs |
 | "I'll fix this small one myself" | You are read-only. Report it |
+| "There is no review_sha, so I'll diff HEAD" | Plan-phase review grades the plan and writes `reviewed: plan:<path-to-plan.yaml>` with `code_grade: n_a`; post-pin review always reads a SHA |

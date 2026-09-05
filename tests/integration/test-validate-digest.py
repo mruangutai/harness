@@ -239,6 +239,304 @@ def run_reviewer_severity_enum_cases():
     print(f"\n{checked - fails}/{checked} reviewer severity_max enum checks passed.")
     return fails
 
+def _skill_documented_block(lines):
+    digest_at = None
+    for index, line in enumerate(lines):
+        if line.lstrip().startswith("DIGEST:"):
+            digest_at = index
+            break
+    if digest_at is None:
+        return None
+    open_at = None
+    for index in range(digest_at - 1, -1, -1):
+        if lines[index].strip().startswith("```"):
+            open_at = index
+            break
+    close_at = None
+    for index in range(digest_at + 1, len(lines)):
+        if lines[index].strip().startswith("```"):
+            close_at = index
+            break
+    if open_at is None or close_at is None:
+        return None
+    return "\n".join(lines[open_at + 1:close_at])
+
+
+def _agent_documented_block(lines):
+    output_at = None
+    for index, line in enumerate(lines):
+        if line.strip() == "## Output":
+            output_at = index
+            break
+    if output_at is None:
+        return None
+    end_at = len(lines)
+    for index in range(output_at + 1, len(lines)):
+        if re.match(r"^#{1,2}\s", lines[index]):
+            end_at = index
+            break
+    return "\n".join(lines[output_at:end_at])
+
+
+def documented_block(source_text, source_path):
+    """Return the documented DIGEST block for an agent or shared skill."""
+    lines = source_text.splitlines()
+    if source_path.endswith("SKILL.md"):
+        return _skill_documented_block(lines)
+    return _agent_documented_block(lines)
+
+
+def documented_contract_gaps(required_fields, documented_text):
+    """Required field names that do not begin a line in the documented block."""
+    return sorted(
+        field for field in required_fields
+        if not re.search(rf"^\s*{re.escape(field)}\s*:", documented_text, re.MULTILINE)
+    )
+
+
+CONTRACT_SOURCES = {
+    "harness-pm": [".omp/agents/harness-pm.md"],
+    "harness-qa": [".omp/agents/harness-qa.md"],
+    "harness-documentor": [".omp/agents/harness-documentor.md"],
+    "harness-dev-ops": [".omp/agents/harness-dev-ops.md"],
+    "harness-visual-designer": [".omp/agents/harness-visual-designer.md"],
+    "harness-code-reviewer": [".omp/agents/harness-code-reviewer.md"],
+    "harness-security-reviewer": [".omp/agents/harness-security-reviewer.md"],
+    "harness-ui-reviewer": [".omp/agents/harness-ui-reviewer.md"],
+    "harness-orchestrator": [".omp/agents/harness-orchestrator.md"],
+    "harness-frontend-dev": [".claude/skills/harness-digest-dev/SKILL.md"],
+    "harness-backend-dev": [".claude/skills/harness-digest-dev/SKILL.md"],
+    "harness-ai-dev": [".claude/skills/harness-digest-dev/SKILL.md"],
+    "harness-data-engineer": [".claude/skills/harness-digest-dev/SKILL.md"],
+    "harness-product-lead": [".claude/skills/harness-team/SKILL.md"],
+    "harness-eng-lead": [".claude/skills/harness-team/SKILL.md"],
+    "harness-validator-lead": [".claude/skills/harness-team/SKILL.md"],
+}
+
+
+def documented_contract_results(roster, sources, required_by_persona, read_source):
+    """Grade each registry persona against only its mapped documented block."""
+    results = []
+    for persona in sorted(roster):
+        persona_sources = sources.get(persona)
+        if not persona_sources:
+            results.append((
+                False,
+                f"{persona}: present in validator registry but has no documented-contract source mapped",
+            ))
+            continue
+        for source_path in persona_sources:
+            source_text = read_source(source_path)
+            if source_text is None:
+                results.append((False, f"{persona}: documented-contract source absent: {source_path}"))
+                continue
+            block = documented_block(source_text, source_path)
+            if block is None:
+                results.append((
+                    False,
+                    f"{persona}: documented block could not be located: {source_path}",
+                ))
+                continue
+            gaps = documented_contract_gaps(required_by_persona[persona], block)
+            results.append((
+                not gaps,
+                f"{persona}: {source_path}"
+                + (f" missing fields: {', '.join(gaps)}" if gaps else ""),
+            ))
+    return results
+
+
+PRE_FIX_REVIEWER_BLOCK = """
+## Output
+
+````
+```yaml
+VERDICT: PASS | FAIL
+DIGEST:
+  headline: <one line>
+  severity_max: none|low|med|high|critical|n/a
+  findings: <n>
+  must_fix: [<item>]
+  spec_violations: [{ kind: scope_creep|omission|mismatch, path: ..., ref: D-NN }]
+  reviewed: "base..<review_sha>"
+  human_commits_in_scope: [<sha>]
+  open_questions:
+  files_touched: [<paths>]
+  expertise_update: [<ops>]
+artifact: <HARNESS_CONTROL_PLANE_ROOT>/.harness/notes/review-harness-code-reviewer-<runid>.md
+```
+````
+"""
+
+
+def _contract_source(path):
+    try:
+        with open(os.path.join(REPO_ROOT, path)) as source:
+            return source.read()
+    except FileNotFoundError:
+        return None
+
+
+def _report_contract_result(ok, line):
+    print(f"{'ok  ' if ok else 'FAIL'}  [documented contract] {line}")
+    return 0 if ok else 1
+
+
+def _required_contracts(validator, roster):
+    required = {
+        persona: set(validator.SCHEMAS[validator.norm(persona)])
+        for persona in roster
+    }
+    required["harness-code-reviewer"].update(("code_grade", "reviewed"))
+    return required
+
+
+def _derive_plan_mode_code_grade(validator):
+    """SC-03: the plan-mode `code_grade` value is not typed here — it is derived by
+    probing the validator's OWN plan-mode rule, `_pending_plan_review_error`
+    (validate-digest.py:1026-1032), across every member of `validator.CODE_GRADE_VALUES`
+    (validate-digest.py:616) and keeping whichever single member that rule does not
+    reject for its grade. Renaming the accepted grade in `CODE_GRADE_VALUES` changes
+    what this probe keeps, so the derived value tracks the validator instead of a
+    retyped literal.
+
+    Returns (grade, None) when exactly one member qualifies. Returns (None, reason)
+    when zero or more than one member qualifies, or when the probe itself raises —
+    never a silent default, never `None` masquerading as success.
+    """
+    try:
+        with tempfile.TemporaryDirectory() as td:
+            config = os.path.join(td, "harness.json")
+            write_review_config(config, "advisory_unless_high")
+            feature_dir, plan_path, artifact, _digest = _plan_review_fixture(
+                os.path.join(td, "plan-mode-probe"))
+            qualifying = []
+            for grade in sorted(validator.CODE_GRADE_VALUES):
+                digest = reviewer_digest(
+                    grade, reviewed=f"plan:{plan_path}", artifact=artifact)
+                errors = _plan_review_errors(validator, config, feature_dir, digest)
+                if not any("code_grade must be" in error for error in errors):
+                    qualifying.append(grade)
+    except Exception as exc:
+        return None, f"probe raised {exc!r}"
+    if len(qualifying) != 1:
+        return None, (
+            f"expected exactly one qualifying member of CODE_GRADE_VALUES, "
+            f"found {qualifying!r}"
+        )
+    return qualifying[0], None
+
+
+def _reviewer_plan_mode_results(validator):
+    reviewer_sources = (
+        ".claude/agents/harness-code-reviewer.md",
+        ".omp/agents/harness-code-reviewer.md",
+        ".claude/skills/harness-code-review/SKILL.md",
+    )
+    reviewed_token = "reviewed: " + validator._PLAN_REVIEW_PREFIX
+    derived_grade, derive_error = _derive_plan_mode_code_grade(validator)
+    results = []
+    if derive_error:
+        results.append((
+            False,
+            f"plan-mode code_grade derivation from CODE_GRADE_VALUES failed: {derive_error}",
+        ))
+        return results
+    code_grade_line = re.compile(
+        rf"^\s*code_grade\s*:.*\b{re.escape(derived_grade)}\b", re.MULTILINE)
+    for source_path in reviewer_sources:
+        source_text = _contract_source(source_path) or ""
+        results.append((
+            reviewed_token in source_text,
+            f"{source_path} plan-mode token {reviewed_token!r}",
+        ))
+        results.append((
+            code_grade_line.search(source_text) is not None,
+            f"{source_path} plan-mode token 'code_grade: ... {derived_grade}'",
+        ))
+        if source_path.endswith("harness-code-reviewer.md"):
+            fragment = "features/<FEAT>/notes/review-harness-code-reviewer-"
+            results.append((
+                fragment in source_text,
+                f"{source_path} plan-mode token {fragment!r}",
+            ))
+    return results
+
+
+def _discrimination_ok():
+    pre_fix_gaps = documented_contract_gaps(("code_grade",), PRE_FIX_REVIEWER_BLOCK)
+    with_code_grade = PRE_FIX_REVIEWER_BLOCK.replace(
+        '  reviewed: "base..<review_sha>"',
+        '  code_grade: pass|fail|grade_2|n_a\n  reviewed: "base..<review_sha>"',
+    )
+    return (
+        pre_fix_gaps == ["code_grade"]
+        and documented_contract_gaps(("code_grade",), with_code_grade) == []
+    )
+
+
+def _synthetic_contract_results():
+    roster = ("unmapped", "empty", "absent", "unlocatable", "outside", "control")
+    sources = {
+        "empty": [],
+        "absent": ["absent.md"],
+        "unlocatable": ["unlocatable.md"],
+        "outside": ["outside.md"],
+        "control": ["control.md"],
+    }
+    required = {persona: {"needed"} for persona in roster}
+    source_text = {
+        "unlocatable.md": "needed: yes\n# No output section\n",
+        "outside.md": "needed: outside\n## Output\nother: value\n",
+        "control.md": "## Output\nneeded: yes\n",
+    }
+    return documented_contract_results(roster, sources, required, source_text.get)
+
+
+def _contains_line(lines, *terms):
+    return any(all(term in line for term in terms) for line in lines)
+
+
+def _completeness_ok(results):
+    failures = [line for ok, line in results if not ok]
+    controls = [line for ok, line in results if ok]
+    checks = (
+        _contains_line(failures, "unmapped", "no documented-contract source"),
+        _contains_line(failures, "empty", "no documented-contract source"),
+        _contains_line(failures, "absent.md", "absent"),
+        _contains_line(failures, "unlocatable.md", "could not be located"),
+        _contains_line(failures, "outside", "needed"),
+        controls == ["control: control.md"],
+    )
+    return all(checks)
+
+
+def _report_group_result(label, ok):
+    print(f"{'ok  ' if ok else 'FAIL'}  {label}")
+    return 0 if ok else 1
+
+
+def run_documented_contract_cases():
+    """Keep persona output instructions aligned with the validator's schema."""
+    spec = importlib.util.spec_from_file_location("_validator_contract_guard", VALIDATE)
+    validator = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(validator)
+    roster = sorted(validator.ALIAS)
+    results = documented_contract_results(
+        roster, CONTRACT_SOURCES, _required_contracts(validator, roster), _contract_source)
+    results.extend(_reviewer_plan_mode_results(validator))
+    fails = sum(_report_contract_result(ok, line) for ok, line in results)
+    fails += _report_group_result(
+        "[documented contract discrimination] omitted field reported, present field accepted",
+        _discrimination_ok(),
+    )
+    fails += _report_group_result(
+        "[documented contract completeness] unmapped persona, absent source, "
+        "unlocatable block and out-of-block field each reported by name",
+        _completeness_ok(_synthetic_contract_results()),
+    )
+    return fails
+
 # (name, persona, digest text, expect_ok, must_mention)
 CASES = []
 # (name, agent_type, last_assistant_message text or None, payload_overrides dict,
@@ -3902,6 +4200,7 @@ def main():
     fails += run_t51_suspension_cases()
     fails += run_template_cases()
     fails += run_reviewer_severity_enum_cases()
+    fails += run_documented_contract_cases()
     print(f"\n{'ALL PASSED' if not fails else f'{fails} FAILING'}.")
     return 1 if fails else 0
 
