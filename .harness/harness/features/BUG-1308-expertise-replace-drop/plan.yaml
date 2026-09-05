@@ -177,15 +177,23 @@ decisions:
       .harness/harness/features/BUG-1308-expertise-replace-drop/notes/research-BUG-1308-expertise-replace-drop-revision-c2.md
     dec: none
 panel:
-  last_run: 2026-09-05-plan-panel-c1-validator
-  cycle: 1
+  last_run: 2026-09-05-plan-panel-c2-validator
+  cycle: 2
+  transcription_rule: summaries are the validator lead's own text, whitespace-folded
+    only; ids are panel_findings.py id over reader plus that text
   readers:
   - reader: should-not-exist
     status: ran
     persona: fable-advisor
+    findings: 3
   - reader: scope
     status: ran
     persona: harness-code-reviewer
+    findings: 4
+  - reader: goalcheck
+    status: ran
+    persona: harness-pm
+    findings: 0
   findings:
   - id: PF-f4d258f365f54f04d9cc976baf0ad981
     severity: high
@@ -194,7 +202,9 @@ panel:
       ORIGINAL snapshot but never says how the two reconcile under in-place mutation;
       a drop at a low index followed by a replace/drop at a higher index in the same
       section crashes or writes the wrong entry, and no case exercises that combination.
-    disposition: open
+    cycle: 1
+    disposition: resolved
+    resolved_by: T-01
   - id: PF-3f8a11143ba40f67b0f326d532381d5e
     severity: med
     reader: should-not-exist
@@ -202,40 +212,116 @@ panel:
       built solely so the cross-section ambiguity case is reachable; requiring section
       on every op deletes the affordance, one third of the exit-11 taxonomy, u4, case14(a)
       and contract prose.
-    disposition: open
+    cycle: 1
+    disposition: resolved
+    resolved_by: T-01
   - id: PF-21e98fb21fbbe9fefe7c47cc9784c99b
     severity: med
     reader: should-not-exist
     summary: case18/SC-11's Popen-both-before-wait forces no interleave, so the shared-lock
       claim it exists to regression-test is only probabilistically covered.
-    disposition: open
+    cycle: 1
+    disposition: resolved
+    resolved_by: T-02
   - id: PF-0fd81890be0279f72e1fd44bc27f9828
     severity: med
     reader: scope
     summary: T-03 and T-04 verify blocks machine-check a narrow subset of what their
       own intents mandate - T-03 omits exit tokens 7/8/9/12 and the apply-unchanged
       sentence, T-04 omits SPEC's 10/11/12 and DEC-216's Over/Because/Tradeoff content.
-    disposition: open
+    cycle: 1
+    disposition: resolved
+    resolved_by: T-03
   - id: PF-5674cd3640c7f69731e86e655135ca8c
     severity: low
     reader: should-not-exist
     summary: case17's verbatim-unbackticked-substring gate on a SKILL.md sentence,
       plus its two every-run drifted-copy mutants, pins documentation phrasing the
       tool's own exit-12 refusal already carries at its point of use.
-    disposition: open
+    cycle: 1
+    disposition: resolved
+    resolved_by: T-02
   - id: PF-12c69147fda194c41e76361acb23eef1
     severity: low
     reader: should-not-exist
     summary: u10, the PERMANENT RED CASE, pins compute_union's inability to replace
       as a forever contract; u1 already reddens on the same revert, and u10 additionally
       blocks a legitimate future unification of the two resolution paths.
+    cycle: 1
     disposition: open
   - id: PF-f9161ebeb204bb05a72667ebc1f7df84
     severity: info
     reader: scope
     summary: Exit-12 byte-identity is unit-proven only (u7 is a pure-function call);
       no integration case drives MALFORMED OPS through the CLI with a sha256 before/after.
-    disposition: open
+    cycle: 1
+    disposition: resolved
+    resolved_by: T-02
+  - id: PF-6eace9b84f7491d9c0f9461b164da28f
+    severity: med
+    reader: scope
+    summary: 'D-05/SC-04''s new claim - an op missing section on ANY verb refuses
+      at exit 12 MALFORMED OPS - is the mechanism that ENACTS the operator''s R2 ruling,
+      yet no case in u1..u12 or case11..case19 exercises it; u7 is the only exit-12
+      case and it targets op: merge.'
+    cycle: 2
+    disposition: resolved
+    resolved_by: T-01
+  - id: PF-fc185bd5f67813ea22007906c445bc46
+    severity: med
+    reader: should-not-exist
+    summary: cmd_ops's dual payload shape - a bare list OR a mapping whose expertise_update
+      key holds the list - sits against D-05's exit-12 taxonomy and exists in no contract
+      text and no test.
+    cycle: 2
+    disposition: resolved
+    resolved_by: T-01
+  - id: PF-9806b1eebdbadbc4e1c4ccdd1382bacd
+    severity: med
+    reader: scope
+    summary: T-01 and T-02 verify blocks remain whole-suite invocations, so an implementation
+      that never writes u11/u12/case19 - the plan's own fix for cycle 1's HIGH - still
+      exits 0 on both; SC-12 is not falsifiable by its task's declared verification.
+    cycle: 2
+    disposition: resolved
+    resolved_by: T-01
+  - id: PF-3438775a7c1207792bb12c759fae0c02
+    severity: med
+    reader: scope
+    summary: 'D-15 states the cycle-1 HIGH "is resolved before signature", yet panel.findings
+      still carries disposition: open with no resolved_by for it or the three other
+      ruled findings.'
+    cycle: 2
+    disposition: resolved
+  - id: PF-f4ebe4d9be854c06c6171cb796d9b10e
+    severity: low
+    reader: should-not-exist
+    summary: 'SC-09''s second direction, ACCEPTED - CONTRACT == {}, is unfalsifiable
+      as specified: the probe set is CONTRACT plus verbs "the parser''s own help names",
+      no task requires the help to enumerate verbs, and neither mutation copy demonstrates
+      this direction firing.'
+    cycle: 2
+    disposition: resolved
+    resolved_by: T-02
+  - id: PF-b2f2b9dbb61f45c4da64d3870c5fb00f
+    severity: low
+    reader: scope
+    summary: A section reduced to EMPTY by drops, and an op naming the ONLY entry
+      in a section, are determined by Step D's general rebuild rule but exercised
+      by no case in u1..u12 or case11..case19.
+    cycle: 2
+    disposition: resolved
+    resolved_by: T-01
+  - id: PF-01888451a6ea7d757ba1ed591cd2f0e8
+    severity: info
+    reader: should-not-exist
+    summary: case19's second half - repeating the whole case on a fresh fixture with
+      reversed ops, asserting byte-identical output - re-proves at the CLI a pure
+      resolve_ops property that u11's own reversal already pins, through a verbatim
+      pass-through layer.
+    cycle: 2
+    disposition: resolved
+    resolved_by: T-02
 tasks:
   - id: T-01
     title: Add the ops subcommand to expertise-merge.py with its unit coverage
@@ -249,7 +335,11 @@ tasks:
       - .claude/skills/harness/bin/expertise-merge.py
       - tests/unit/test-expertise-ops.py
     verify: |
-      python3 "$(git rev-parse --show-toplevel)/tests/unit/test-expertise-ops.py"
+      U="$(git rev-parse --show-toplevel)/tests/unit/test-expertise-ops.py"
+      for c in u1 u2 u3 u5 u6 u7 u8 u9 u10 u11 u12 u13 u14 u15 u16; do
+        grep -qF "$c: " "$U" || { echo "T-01 MISSING CASE: $c"; exit 1; }
+      done
+      python3 "$U"
     intent: |
       Write tests/unit/test-expertise-ops.py FIRST, watch it fail, then make it pass. Do not touch
       compute_union, cmd_apply, parse_expertise, render, CAPS or require_expertise_destination -
@@ -276,7 +366,9 @@ tasks:
          section outside CAPS -> MergeRefusal(12, ["MALFORMED OPS <one line naming the op index, the
          offending key or verb, and what was expected>"]). For op == "merge" the line must read:
          MALFORMED OPS op=merge is not a mechanism op; express it as a replace on the surviving id
-         plus a drop of the absorbed id.
+         plus a drop of the absorbed id. For a payload that is not a list the line must name the
+         expertise_update list, so an author who pasted a whole DIGEST mapping is told what to pass:
+         MALFORMED OPS payload is not a list; pass the expertise_update list itself.
 
          Step B, resolution, EVERY op against the ORIGINAL base_sections, never against the result of
          an earlier op, and always scoped to the op's own section - there is no whole-file resolution
@@ -309,7 +401,9 @@ tasks:
              entry unchanged;
            - then append that section's add ops, in proposal order, after the walk, creating the
              section and appending its name to order when it is absent.
-         Sections no op names are carried through untouched.
+         Sections no op names are carried through untouched. A section every one of whose entries is
+         dropped survives as an EMPTY section - its name stays in order and it renders with no
+         entries; it is never deleted from the merged mapping, and the empty state is legal.
          Because the walk preserves base order, a replaced entry keeps its original ordinal among the
          surviving entries (D-06), and the merged section is INDEPENDENT OF THE ORDER the ops were
          given in for replace and drop. Only adds are order-sensitive, and only relative to each
@@ -324,22 +418,35 @@ tasks:
 
       2. A cmd_ops(args) modelled on cmd_apply: call require_expertise_destination(args.file) first,
          printing its refusal lines to stderr and exiting 9 unchanged; read args.ops from a path or
-         from stdin when it is "-"; json.loads it, accepting either a list of ops or a mapping whose
-         expertise_update key holds that list, and raising the exit 12 refusal on a JSONDecodeError;
+         from stdin when it is "-"; json.loads it, raising the exit 12 refusal on a JSONDecodeError;
          then run harness_merge.locked_update(resolved, transform) where transform parses the base -
          a None base means empty sections, so an ops-only add creates the file exactly as apply does
          today - and calls resolve_ops. Print refusal lines to stdout and sys.exit(refusal.code),
          matching cmd_apply. On success print one line per op in op order - REPLACED <id>,
          DROPPED <id>, ADDED <id> or PRESERVED <id> - then APPLIED <file path>, then sys.exit(0).
 
-      3. Register the subparser: ops --file <path> --ops <path or ->, both required, help text naming
-         the JSON payload. argparse's own exit 2 is untouched.
+         PAYLOAD SHAPE OWNERSHIP, settled here so no builder has to choose: resolve_ops Step A owns
+         the ENTIRE payload shape check and cmd_ops owns none of it - cmd_ops decodes the JSON text
+         and hands whatever json.loads returned to resolve_ops UNALTERED, so there is no
+         expertise_update mapping wrapper and no normalisation layer, any payload that is not a list
+         refuses at exit 12 with the line above, and resolve_ops may assume nothing about its ops
+         argument beyond it being the decoded JSON value.
+
+      3. Register the subparser: ops --file <path> --ops <path or ->, both required. The --ops help
+         text MUST NAME THE ACCEPTED VERBS literally - add, replace, drop - as well as the JSON
+         payload, because T-02 case17 collects ACCEPTED by probing every verb in CONTRACT plus every
+         verb the parser's own help names, and that second source is the only thing that lets the
+         ACCEPTED minus CONTRACT direction of SC-09 ever be non-empty. argparse's own exit 2 is
+         untouched.
 
       tests/unit/test-expertise-ops.py loads the module with importlib.util.spec_from_file_location
       (the filename is hyphenated) from .claude/skills/harness/bin/expertise-merge.py, resolving the
       repository root from its own __file__, and writes nothing under that bin directory. Follow the
       RESULTS/check/main shape of tests/integration/test-expertise-merge.py: print PASS or FAIL per
-      case and exit 1 if any failed. Cases, all against resolve_ops directly:
+      case and exit 1 if any failed. EVERY case is reported through check() under a label whose first
+      token is its own case id followed by a colon - check("u11: ...", ...) - because this task's
+      verify greps each literal id-and-colon token to confirm the case exists before running the
+      suite. Cases, all against resolve_ops directly:
         u1  Patterns holding 15 entries, replace P-07: merged Patterns still has 15 entries, index 6
             carries the new text, and every other id is untouched at its own index.
         u2  drop G-03: G-03 absent, every other id present, section length one smaller.
@@ -363,11 +470,34 @@ tasks:
             marker text while no other entry does. Then run the SAME two ops in the OPPOSITE order
             against the same base and assert an identical merged section, so Step D's
             order-independence is asserted rather than assumed. This is the case the cycle-1 panel
-            found no case exercised.
+            found no case exercised, and it is the ONLY place the reversal is asserted - it is never
+            trimmed.
         u12 TWO DROPS AT DISTINCT ORIGINAL INDICES IN ONE SECTION. The same P-01..P-05 base; one
             proposal dropping P-01 and P-04. Assert the merged Patterns id sequence is EXACTLY
             [P-02, P-03, P-05] and its length is 3 - not an IndexError, and not P-05 dropped in
             place of P-04.
+        u13 MISSING SECTION IS A SHAPE REFUSAL - the branch that ENACTS required-section (D-02, D-05)
+            and the one thing no other case reaches. Four separate calls against a base holding
+            Patterns P-01..P-03 and Gotchas G-01: an otherwise well-formed add, an otherwise
+            well-formed replace, and an otherwise well-formed drop, each with the section key ABSENT;
+            then a replace with section present but the empty string. Assert for EACH of the four
+            that MergeRefusal.code == 12, that the line starts MALFORMED OPS, and that the line names
+            BOTH the offending key, the literal token section, AND the op's index in the payload.
+            Assert also that the returned base mapping is unchanged - resolve_ops is pure, so a shape
+            refusal cannot have mutated its input.
+        u14 A PAYLOAD THAT IS NOT A LIST. Call resolve_ops with the DIGEST-shaped mapping
+            {"expertise_update": [<one valid replace op>]}, and separately with a bare string, and
+            assert for each: code 12, the line starts MALFORMED OPS, and it carries the literal token
+            expertise_update, so the refusal tells an author who pasted a whole DIGEST what to pass.
+            This is the case that pins the settled shape ownership above: there is no wrapper.
+        u15 A SECTION REDUCED TO EMPTY BY DROPS. Base whose Gotchas holds EXACTLY G-01 and G-02 and
+            whose Patterns holds P-01; one proposal dropping both G-01 and G-02. Assert no refusal;
+            the merged mapping still CARRIES the key Gotchas with ZERO entries; Gotchas is still in
+            order at its original position; and Patterns is untouched.
+        u16 AN OP NAMING THE ONLY ENTRY IN A SECTION. Base whose Open holds EXACTLY O-01. (a) replace
+            O-01 with marker text: Open still has length 1 and carries the marker; (b) against the
+            same base, drop O-01: Open has length 0 and is still present. Both shapes are determined
+            by Step D's rebuild rule and neither was exercised before (cycle-2 panel rank 6).
         There is no u4: the cross-section ambiguity case it held is unrepresentable now that D-02
         requires section on every op. The number is left unused rather than reassigned.
 
@@ -391,15 +521,23 @@ tasks:
     files:
       - tests/integration/test-expertise-merge.py
     verify: |
-      python3 "$(git rev-parse --show-toplevel)/tests/integration/test-expertise-merge.py"
+      I="$(git rev-parse --show-toplevel)/tests/integration/test-expertise-merge.py"
+      for c in case11 case12 case13 case14 case15 case16 case17 case18 case19 case20; do
+        grep -qF "$c: " "$I" || { echo "T-02 MISSING CASE: $c"; exit 1; }
+      done
+      python3 "$I"
     intent: |
       Extend tests/integration/test-expertise-merge.py with new case functions and register each in
       main(). Change no existing case. Reuse the file's own helpers - write_file, write_entries,
       target(root, stem), run_apply, check - and add a run_ops(file_path, ops_path) beside run_apply
       that invokes [sys.executable, CLI, "ops", "--file", file_path, "--ops", ops_path]. Ops payloads
-      are written with json.dump. Capture the file's sha256 with hashlib before each refusal case and
-      compare it after; a byte-identity assertion is the point of three of these cases. Every op in
-      every payload carries both target and section - D-02 requires section on all three verbs.
+      are written with json.dump, ALWAYS as a bare JSON list - the tool accepts no mapping wrapper.
+      Capture the file's sha256 with hashlib before each refusal case and compare it after; a
+      byte-identity assertion is the point of four of these cases. Every op in every payload carries
+      both target and section - D-02 requires section on all three verbs. Every check() label starts
+      with its own case id followed by a colon, exactly as case1..case9 already do -
+      check("case20: ...", ...) - because T-02's verify greps each literal id-and-colon token to
+      confirm the case exists before running the suite.
 
       case11 REPLACE AT CAPACITY. Patterns with 15 entries P-01 through P-15. One op replacing P-07.
         Assert exit 0; REPLACED P-07 in stdout; the written file still parses to 15 Patterns entries;
@@ -418,8 +556,9 @@ tasks:
         (c) two ops in one proposal naming the same section and id.
         The former sub-case (a) - one id in two sections with the op omitting section - is DELETED,
         not renamed: section is required on every op, so that input is refused at exit 12 by shape
-        before any resolution runs. The (b) and (c) labels are left as they are; nothing is
-        renumbered.
+        before any resolution runs. That exit-12 refusal is not left as an assertion in prose: it is
+        exercised through the CLI by case20 below. The (b) and (c) labels are left as they are;
+        nothing is renumbered.
       case15 ATOMIC FAILURE. A three-op proposal whose first two ops are a valid replace and a valid
         drop and whose third names a missing target. Assert non-zero exit, that the file's sha256
         equals the sha256 taken before the invocation - neither of the first two ops landed - and
@@ -439,15 +578,25 @@ tasks:
             characters backtick, asterisk and underscore removed. Every text test below runs against
             NORMALISED, so a reflow, a rewrap or an emphasis change cannot redden this case.
           CONTRACT = the set of op verbs named by the ops vocabulary line of
-            .claude/skills/harness-distill/SKILL.md, read as TEXT and collected the way case 8 collects
-            its vocabulary.
+            .claude/skills/harness-distill/SKILL.md, read as TEXT from that file and NEVER restated as a
+            literal set in this test - a restated copy is exactly what would make this case blind to the
+            drift it exists to catch. Collect it mechanically: in NORMALISED, find the ONE
+            pipe-separated verb list the ops example's op: key carries - after normalisation the current
+            file's reads: op: replace # add | replace | merge | drop - and take each pipe-separated
+            token, stripped of surrounding spaces, as one verb. If no such list is found, or if more
+            than one matches, the case FAILS LOUDLY saying the ops vocabulary line could not be located;
+            it never falls back to an empty or hard-coded set, because an empty CONTRACT satisfies the
+            first direction by construction.
           ACCEPTED = the set of verbs expertise-merge.py's ops parser accepts, collected by probing each
             verb in CONTRACT plus each verb the parser's own help names, with a well-formed single op
             against a throwaway fixture, and treating exit 12 whose line names an unknown verb or names
-            op=merge as NOT accepted. Every probe op must carry a target and a section that EXIST in the
-            throwaway fixture, so a refusal is attributable to the verb and not to a missing key: an
-            exit 12 whose line names a key rather than a verb is a broken probe and must FAIL the case
-            loudly, never be counted as "not accepted".
+            op=merge as NOT accepted. The parser's help is a SECOND, INDEPENDENT source of candidate
+            verbs and is what makes the second direction below able to fail at all - T-01 requires the
+            ops --ops help text to name add, replace and drop literally, so a verb the tool accepts is
+            probed even when the contract text stops naming it. Every probe op must carry a target and a
+            section that EXIST in the throwaway fixture, so a refusal is attributable to the verb and not
+            to a missing key: an exit 12 whose line names a key rather than a verb is a broken probe and
+            must FAIL the case loudly, never be counted as "not accepted".
           REWRITTEN = {"merge"} if NORMALISED contains BOTH of the substrings
               replace on the surviving id
               drop of the absorbed id
@@ -462,16 +611,22 @@ tasks:
           ACCEPTED minus CONTRACT == the empty set - the tool accepts no verb the contract omits.
         Run contract_drift against the real file and assert it returns no failures.
 
-        MUTATION DEMONSTRATION, in the same case, so "fails if either side changes alone" is shown and
-        not assumed. Build two drifted COPIES of the SKILL.md text in the case's own tmp dir and assert
-        contract_drift returns a NON-EMPTY failure list for each:
+        MUTATION DEMONSTRATION, in the same case, so EACH DIRECTION is shown able to fail and neither is
+        assumed. Build THREE drifted COPIES of the SKILL.md text in the case's own tmp dir and assert
+        contract_drift returns a NON-EMPTY failure list for each, ASSERTING PER COPY WHICH direction's
+        failure string is the one present:
           (a) the copy with the phrase
               drop of the absorbed id
-              removed - REWRITTEN becomes empty while merge is still named, so the first direction
+              removed - REWRITTEN becomes empty while merge is still named, so the FIRST direction
               fails; this is the copy that proves the case still detects a contract that stops
               rewriting merge;
           (b) the copy with one extra verb, "prune", inserted into the ops vocabulary line - CONTRACT
-              grows a verb that is neither accepted nor rewritten, so the first direction fails again.
+              grows a verb that is neither accepted nor rewritten, so the FIRST direction fails again;
+          (c) the copy with the verb "drop" REMOVED from the ops vocabulary line - CONTRACT loses a verb
+              the tool still accepts and still names in its own help, so ACCEPTED minus CONTRACT is
+              {"drop"} and the SECOND direction fails. Without this copy the second direction is
+              satisfied by construction and can never fail (cycle-2 panel rank 5); the case must assert
+              that the failure string reported here is the second direction's, not the first's.
         Copies only: the real SKILL.md is never written by this test.
       case18 CONCURRENT WRITERS, SC-11 - contention forced DETERMINISTICALLY by the test itself, with
         NO production test bypass: no environment variable, no injected sleep, no test-only flag, and
@@ -508,10 +663,33 @@ tasks:
         marker text. Assert exit 0; DROPPED P-01 and REPLACED P-05 both in stdout; the id sequence
         parsed out of the written file's Patterns section is EXACTLY P-02, P-03, P-04, P-05 IN FILE
         ORDER; the P-05 entry carries the marker text and no other entry does; and check-expertise.sh
-        on the written file exits 0. Then repeat the whole case on a fresh fixture with the two ops in
-        the OPPOSITE order and assert byte-identical file content, so the CLI path is shown
-        order-independent for replace and drop. This is the integration half of the composition the
-        cycle-1 panel found untested; u11 is the unit half.
+        on the written file exits 0. This is the integration half of the composition the cycle-1 panel
+        found untested; u11 is the unit half.
+        The reversed-order run is DELIBERATELY NOT repeated here: u11 asserts order-independence
+        directly against resolve_ops, and the CLI is a verbatim pass-through to that same function, so
+        no plausible bug fails a reversed CLI run while passing both u11's reversal and this case
+        (cycle-2 panel rank 7, reconciled against rank 3 - existence is grep-checked in T-02's verify
+        instead). u11's reversal is never trimmed.
+      case20 MALFORMED OPS THROUGH THE CLI, WITH BYTE IDENTITY. The exit-12 shape branch has been
+        unit-proven only; this is its CLI half and it is also the integration case cycle-1's INFO
+        finding asked for. Fixture: an Expertise file whose Patterns holds P-01 through P-03. Take the
+        file's sha256 before each invocation and compare after each:
+        (a) a payload of one otherwise well-formed replace op with the section key ABSENT. Assert
+            exit 12; the combined stdout and stderr carries MALFORMED OPS and names BOTH the offending
+            key, the literal token section, AND the op's INDEX in the payload - cmd_ops prints
+            resolve_ops's refusal lines verbatim, so the CLI line IS the resolver line, and SC-04's CLI
+            half is asserted in full here rather than half-discharged at the unit layer; the sha256 is
+            UNCHANGED; and a following add-only run_apply still exits 0, so the file is not merely
+            untouched but still writable.
+        (b) the same op with section present but the empty string: exit 12, MALFORMED OPS, the literal
+            token section AND the op's index in the payload both named, sha256 unchanged.
+        (c) a payload that is the DIGEST-shaped mapping {"expertise_update": [<one valid replace op>]}
+            rather than a bare list: exit 12, the output carries MALFORMED OPS and the literal token
+            expertise_update, sha256 unchanged. This pins at the CLI the settled payload shape T-01
+            states - there is no mapping wrapper.
+        Sub-cases (a) and (b) are the mechanism that enacts the operator's required-section ruling
+        (D-02, D-05, SC-04), and u13 is their unit half; sub-case (c) is the payload-shape refusal, and
+        u14 is its unit half.
 
   - id: T-03
     title: Realign the distillation ops contract with the mechanism

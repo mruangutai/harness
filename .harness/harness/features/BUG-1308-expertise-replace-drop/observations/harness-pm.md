@@ -26,3 +26,18 @@
 - 2026-09-05: BUG-1308 c2. Ran both rewritten verify blocks against the unbuilt tree before yielding:
   T-03 exit 1 naming 'expertise-merge.py ops --file', T-04 exit 1 naming 'Chose:'. A verify that only
   greps for text the task is about to write must be shown red first or it is unfalsifiable.
+- 2026-09-05: BUG-1308 panel c2 — a whole-suite `verify:` is made falsifiable cheaply by grepping each case's own `check("<id>: ` label token before running the suite, but only if the task intent MANDATES that label shape; without that sentence the grep is a token search over free-form source. `"u1: "` vs `"u11: "` disambiguates only because the colon-space is required.
+- 2026-09-05: BUG-1308 panel c2 — `plan-merge.py set-panel` validates only that the value is a mapping carrying `last_run` (str), `cycle` (int), `readers` (list), `findings` (list); per-finding keys (`disposition`, `resolved_by`, extra keys like `cycle:`) are unvalidated, and it reloads the spliced file and refuses if the panel does not round-trip. Generating the value file from a script that loads the digest and the live plan keeps summaries byte-faithful and gives free ID re-derivation.
+- 2026-09-05: BUG-1308 panel c2 — `check-state.sh` INV-32 expects three readers (`should-not-exist`, `scope`, `goalcheck`) but a validator-lead digest for a plan panel names only the two validator-segment readers; the goal-check runs in the product segment. Transcribing what the lead recorded leaves INV-32 unsatisfiable by pm.
+- 2026-09-05: BUG-1308 panel c2 — an `edit` range for a wrapped markdown criterion must start at the FIRST line whose text changes, not at the line where my replacement prose happens to begin; I clipped SC-09 by one line and duplicated two lines of SC-12 by mis-anchoring, both visible only on re-read.
+- 2026-09-05: plan-merge set-panel REPLACES the whole panel mapping from --value-file, so the safe
+  route is: safe_load the plan, mutate panel in memory, safe_dump it to the value file, then
+  re-load and deep-compare findings after. A hand-typed value file is where fourteen findings get
+  silently dropped.
+- 2026-09-05: INV-32 (check-state.sh:533) names THREE readers - should-not-exist, scope, goalcheck -
+  and hard-fails any whose status is neither ran nor skipped. goalcheck runs in the product segment,
+  which is why it keeps getting omitted from panel.readers; where it runs does not change that the
+  invariant counts it.
+- 2026-09-05: BUG-1308 c3 polish — an intent gloss cross-referencing unit cases ('u13 and u14 are their unit halves') mis-paired them; the operative case texts were right. Re-derive every id pairing from BOTH definitions, never from the gloss.
+- 2026-09-05: BUG-1308 c3 — an SC/case mismatch is not automatically a criterion to narrow: T-01 pinned the refusal line shape (op index + key) and cmd_ops prints resolver lines verbatim, so widening the CLI case was the evidence-backed fix. Check whether the mechanism already supplies the clause before weakening the criterion.
+- 2026-09-05: plan-merge.py amend --show prints the dedented value then a trailing 'sha256: <hex>' line that is NOT part of the value; rebuild the --value-file without it or the field grows a stray line.

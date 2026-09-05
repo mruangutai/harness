@@ -73,8 +73,13 @@ vocabulary afterwards, so no agent is instructed to emit an op nothing can apply
   section, and two ops in one proposal naming the same section and id — exits 11 with
   `AMBIGUOUS TARGET` naming the section, the id and the reason, and the file's sha256 is unchanged.
   There is no third condition: `section` is required on every op, so an id spanning sections is
-  refused at exit 12 by shape before any resolution runs.
-  verify: automated        evidence: integration
+  refused at exit 12 by shape before any resolution runs — and that shape refusal is exercised,
+  not merely asserted: an op with `section` absent, and one with it empty, each refuse at exit 12
+  with `MALFORMED OPS` naming the offending key `section` and the op's index — at the resolver in
+  `tests/unit/test-expertise-ops.py` `u13`, and through the CLI in
+  `tests/integration/test-expertise-merge.py` `case20`, where the file's sha256 is unchanged
+  across the refusal and a following `apply --entries` still exits 0.
+  verify: automated        evidence: unit, integration
 - SC-05: A proposal whose first ops are valid and whose last op is refusable exits non-zero and leaves
   the file's sha256 byte-identical to before the invocation.
   verify: automated        evidence: integration
@@ -98,10 +103,14 @@ vocabulary afterwards, so no agent is instructed to emit an op nothing can apply
   occurring in the normalised text; and the tool accepts no verb the contract does not name. The
   rewrite is pinned character for character only where the feature owns the characters — the tool's
   own exit-12 refusal line — so a copy-edit of the skill's prose cannot redden the suite. The case
-  is additionally demonstrated RED in the same run against two deliberately drifted COPIES of the
-  SKILL.md text — one with the phrase `drop of the absorbed id` removed, one naming an extra verb
-  the tool does not accept — so a one-sided change is shown to fail rather than assumed to, in the
-  manner SC-07 uses for the resolver.
+  is additionally demonstrated RED in the same run against THREE deliberately drifted COPIES of
+  the SKILL.md text — one with the phrase `drop of the absorbed id` removed, one naming an extra
+  verb the tool does not accept, and one with the verb `drop` REMOVED from the vocabulary line so
+  that `ACCEPTED − CONTRACT` is `{drop}` — and the case asserts WHICH direction's failure each
+  copy produces, so BOTH directions are shown able to fail rather than assumed to, in the manner
+  SC-07 uses for the resolver. The second direction is reachable only because the `ops`
+  subparser's own `--ops` help text names the accepted verbs `add`, `replace` and `drop`, which
+  is what lets the probe set exceed `CONTRACT` when the contract text stops naming a verb.
   verify: automated        evidence: integration
 - SC-10: `.harness/harness/docs/DECISIONS-INDEX.md` carries a `DEC-216` row whose hand-written ruling
   carries the literal string `replace and drop through the ops subcommand`, and
@@ -126,14 +135,16 @@ vocabulary afterwards, so no agent is instructed to emit an op nothing can apply
   verify: automated        evidence: integration
 - SC-12 (REQ-01, REQ-02, multi-op composition): One proposal carrying two ops on DISTINCT ORIGINAL
   INDICES of one section — a drop of the entry at the low index and a replace of an entry at a
-  higher index — exits 0, and the section's surviving id sequence IN FILE ORDER is exactly the base
-  sequence minus the dropped id, with the replaced entry carrying the new text at its preserved
-  position relative to every survivor. The identical result is asserted with the two ops given in
-  the opposite order, so the outcome is shown independent of op order rather than assumed to be. A
-  second shape, two drops at distinct original indices in one section, asserts its own surviving id
-  sequence. Evidence: `tests/integration/test-expertise-merge.py` case19, with
-  `tests/unit/test-expertise-ops.py` u11 and u12 as the unit half.
-  verify: automated        evidence: integration
+  higher index — exits 0, and the section's surviving id sequence IN FILE ORDER is exactly the
+  base sequence minus the dropped id, with the replaced entry carrying the new text at its
+  preserved position relative to every survivor. The identical result is asserted with the two
+  ops given in the OPPOSITE order at the resolver, so the outcome is shown independent of op
+  order rather than assumed to be; the CLI half is not repeated in reverse, because the CLI is a
+  verbatim pass-through to the same function. A second shape, two drops at distinct original
+  indices in one section, asserts its own surviving id sequence. Evidence:
+  `tests/integration/test-expertise-merge.py` case19 for the file-order claim, with
+  `tests/unit/test-expertise-ops.py` u11 (including its reversal) and u12 as the unit half.
+  verify: automated        evidence: unit, integration
 
 ## Verification gaps
 

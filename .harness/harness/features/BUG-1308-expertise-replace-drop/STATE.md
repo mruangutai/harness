@@ -3,35 +3,41 @@
 ## Current
 
 - feature: BUG-1308-expertise-replace-drop
-- run: .harness/harness/features/BUG-1308-expertise-replace-drop/runs/2026-09-05-panel-record-c1-product/state.yaml
+- run: .harness/harness/features/BUG-1308-expertise-replace-drop/runs/2026-09-05-01-plan-polish-c3-product/state.yaml
 - squad: product
 - status: awaiting-user
 
-Plan phase COMPLETE at the operator signature gate. BRIEF.md and plan.yaml are drafted, goal-checked
-against stated intent (PASS at cycle 1), read by the full adversarial plan panel (both readers ran),
-and the panel is transcribed into plan.yaml `panel` with all seven findings `disposition: open`.
+Plan phase COMPLETE and SIGNATURE-READY. BRIEF.md carries REQ-01..09 and SC-01..12; plan.yaml carries
+15 decisions and 4 tasks. The operator read cycle 1's panel and ruled REVISE rather than overrule; the
+revision was applied, then goal-checked PASS, then re-read by the full panel at cycle 2, which returned
+severity_max med with no gating finding and confirmed the cycle-1 HIGH closed. All fourteen findings
+across both cycles are recorded: 13 resolved, 1 open — PF-12c69147 (low, u10), left standing on the
+validator lead's own recommendation and the operator's ruling. NO OPEN HIGH OR CRITICAL FINDING.
 Approval is `pending` in both artifacts by design — only the main session signs. Station: plan.
-Cycles used 1 of 8. Worktree: .claude/worktrees/harness/BUG-1308-expertise-replace-drop.
+Cycles used 3 of 8. Worktree: .claude/worktrees/harness/BUG-1308-expertise-replace-drop.
 
 Log:
-- 2026-09-05: plan phase opened; feature.json and STATE.md instantiated; station -> plan.
-- 2026-09-05: BRIEF + plan drafted (run 2026-09-05-01-product, PASS).
-- 2026-09-05: plan goal-check c0 FAIL, 3 must_fix + 3 advisory; routed back — cycle 1.
-- 2026-09-05: plan repaired (plan-fix-c1-product, PASS); goal-check c1 PASS, all six closed.
-- 2026-09-05: plan panel c1 FAIL, severity_max high, 7 findings; Advisor answered A1/A2/A3.
-- 2026-09-05: panel transcribed to plan.yaml, D-14 records the Advisor's rulings; handoff written.
+- 2026-09-05: plan opened; feature.json and STATE.md instantiated; station -> plan.
+- 2026-09-05: BRIEF + plan drafted (PASS).
+- 2026-09-05: goal-check c0 FAIL, 3 must_fix + 3 advisory; routed back — cycle 1.
+- 2026-09-05: plan repaired; goal-check c1 PASS, all six closed.
+- 2026-09-05: plan panel c1 FAIL, severity_max high, 7 findings; Advisor answered A1/A2/A3; panel
+  transcribed, D-14 records the rulings; returned to the operator for signature.
+- 2026-09-05: operator ruled REVISE not overrule; consolidated revision applied — cycle 2.
+- 2026-09-05: goal-check c2 PASS (R1-R4 all met); plan panel c2 PASS, severity_max med, no gating
+  finding, cycle-1 HIGH confirmed closed.
+- 2026-09-05: cycle-2 meds closed and both cycles' dispositions recorded — cycle 3; INV-32's third
+  reader recorded; goal-check c3 PASS; three intent imprecisions closed.
 
 ## Open Questions
 
-- PF-f4d258f365f54f04d9cc976baf0ad981 (high, gating, scope reader): T-01 Step D never reconciles
-  original-index resolution with in-place mutation, and no case exercises two ops on different
-  original indices in one section. Blocked on: the operator's signature ruling — sign with
-  `--overrule`, or send one consolidated revision. Neither the orchestrator nor pm may accept this
-  risk (DEC-176).
-- Contract-shape call for the operator at signature: A3 keeps `merge` as a contract verb the tool
-  refuses, while PF-3f8a11143ba40f67b0f326d532381d5e (med) proposes deleting D-02's optional
-  `section` the tool accepts. The panel states it cannot settle this; it is not a squad question.
-- Harness defect, non-blocking, for the harness owner: the plan panel's `scope` step returned host
-  status `failed (exit 1)` while emitting a well-formed digest and a complete artifact, after a
-  digest re-submission over the reviewer `reviewed` field on a plan-only cycle with no `review_sha`.
-  A valid return that exits 1 is indistinguishable from a real failure to the tier above.
+- Harness defect, non-blocking, for the harness owner — CONFIRMED THREE TIMES (plan panel c1, plan
+  panel c2, and the c2 revision dispatch): a subagent returns host status `failed (exit 1)` while
+  emitting a well-formed digest and a complete artifact, after a digest re-submission over the
+  reviewer `reviewed` / `code_grade` fields on a plan-only cycle that has no `review_sha`. A valid
+  return that exits 1 is indistinguishable from a real failure to the tier above.
+- Harness defect, non-blocking: `check-state.sh` INV-32 (`:533`) requires a `goalcheck` entry in
+  `panel.readers`, but `plan-panel.yaml` defines only `should-not-exist` and `scope` — the goal-check
+  runs in the PRODUCT segment. Nothing in the team file or the playbook tells the recorder to add the
+  third entry, so the honest record fails the invariant until someone measures it. Recorded here as
+  `ran`, persona harness-pm, because it did run.
