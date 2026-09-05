@@ -4,7 +4,7 @@ approval:
   date: '2026-09-05'
   approved_by: mruangutai
   status: approved
-status: plan
+status: building
 source_issues: [1303]
 
 lanes:
@@ -187,7 +187,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 carve-out - the enforcement layer's own tests are edited directly and run explicitly
     depends_on: []
-    status: ready
+    status: done
     files:
       - tests/integration/test-validate-digest.py
     verify: |
@@ -374,7 +374,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: check-domain.sh --resolve returns NOBODY for both agent-file copies, so no team lane may write them
     depends_on: [T-01]
-    status: ready
+    status: done
     files:
       - .claude/agents/harness-code-reviewer.md
       - .omp/agents/harness-code-reviewer.md
@@ -480,7 +480,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: check-domain.sh --resolve returns NOBODY for .claude/skills/harness-code-review/SKILL.md
     depends_on: [T-01, T-02]
-    status: ready
+    status: done
     files:
       - .claude/skills/harness-code-review/SKILL.md
     verify: |
@@ -538,7 +538,7 @@ tasks:
     execution_agent: harness-documentor
     depends_on:
     - T-01
-    status: ready
+    status: done
     files:
       - .harness/harness/docs/DECISIONS.md
       - .harness/harness/docs/DECISIONS-INDEX.md

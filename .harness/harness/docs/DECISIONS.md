@@ -6804,11 +6804,12 @@ block's author never runs the validator, nothing asserts anything false, and the
 does not enumerate stays legal, because `SCHEMAS` holds only the enum-and-typed required fields whereas
 `headline`, `files_touched` and `open_questions` are required elsewhere in `validate()`. Checked is
 those plus the reviewer's inline per-persona extension, `code_grade` and `reviewed`, which `validate()`
-applies in code rather than as data: `required_by_persona` in `run_documented_contract_cases`
-(`tests/integration/test-validate-digest.py`) is that extension's hand-written mirror, so a future
-inline extension must update that site or the guard silently under-checks the persona it extends. Scope
-is the persona's own block, mechanically located, never the whole file: seven of the sixteen personas
-share two files, so a whole-file search would let one field name in unrelated prose satisfy all seven.
+applies in code rather than as data: `_required_contracts`, which `run_documented_contract_cases`
+calls (`tests/integration/test-validate-digest.py`), is that extension's hand-written mirror, so a
+future inline extension must update that site or the guard silently under-checks the persona it
+extends. Scope is the persona's own block, mechanically located, never the whole file: seven of the
+sixteen personas share two files, so a whole-file search would let one field name in unrelated
+prose satisfy all seven.
 
 **Unchanged:** DEC-207 is unamended and plan-review mode's semantics are untouched; the SEC-01
 `review_sha` binding, DEC-209's mechanical recomputation of `code_grade` and INV-6 all stand; and
