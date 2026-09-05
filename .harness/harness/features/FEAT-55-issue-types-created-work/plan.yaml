@@ -49,7 +49,7 @@ decisions:
     because: it is the only member of BUG_TYPES and names a defect outright.
     dec: none
   - id: D-02
-    choice: change_type feature does NOT map to Feature - on a task sub-issue it maps to Task like every other implementation change_type - while both the gh-sync feature parent and the factory parent map to Feature through type_for_parent. The override key feature stays legal and still renames that task type per repository (D-12).
+    choice: change_type feature does NOT map to Feature - on a task sub-issue it maps to Task like every other implementation change_type - while both the gh-sync feature parent and the factory parent map to Feature through type_for_parent. A repository that wants a different name for that task type renames the canonical Task key, which is one of D-12's four override keys; there is no per-change_type override key, so the feature change_type has no override key of its own.
     because: D-18 settles that the type follows the issue's ROLE, and this decision was under-specified about role. The grilling named parents explicitly as Feature and classified implementation tasks as Task, and a planned or factory task sub-issue is an implementation task whatever its change_type says. bugfix stays Bug on every route (D-01).
     dec: none
   - id: D-03
@@ -89,11 +89,11 @@ decisions:
     because: gh_issues.py already proves the shared argv-builder pattern across both callers, and ensure_labels' two independent implementations are the failure mode not to repeat.
     dec: none
   - id: D-12
-    choice: the per-repository override is a flat string-to-string map at the EXISTING key github.issue_types in .harness/harness.json, keyed by the twelve change_type values, the three backlog natures, and the literal key parent; an absent key falls through to the default.
-    because: it reuses the github block rather than opening a new configuration surface, and mirrors the flat style of the sibling board mapping.
+    choice: 'the per-repository override is a flat string-to-string map at github.issue_types in .harness/harness.json, a NET-NEW key inside the existing github block and not an existing one - that file carries a github block with no issue_types key today, and D-16 keeps the key out of the shipped template. It has exactly four legal keys, and they are CANONICAL TYPE NAMES rather than internal vocabulary: Bug, Feature, Task, and the literal key parent. Bug, Feature and Task rename the canonical type wherever it is resolved, whichever change_type or backlog nature resolved to it; parent renames the type a feature parent or a factory parent takes. Internal QA change_type values and backlog natures are NOT override keys and are never read as one: a key outside the four is ignored and the default applies, exactly as an absent key does.'
+    because: 'it reuses the github block rather than opening a new configuration surface, and mirrors the flat style of the sibling board mapping. The surface is four canonical names rather than the sixteen internal keys an earlier draft carried because REQ-03 asks only that the four type NAMES be renameable: with per-change_type keys, renaming Task repository-wide means changing eleven change_type keys plus the chore nature in lockstep, and a partial set splits one role across two declared native types with no refusal, fragmenting the canonical Bug / Feature / Task dimension the brief names as the destination. Four keys satisfy REQ-03 and SC-06 verbatim and cannot be misused that way.'
     dec: none
   - id: D-13
-    choice: cmd_backlog gains a NET-NEW local receipt file, backlog-issues.json in the feature directory, keyed by the nature:title item string and carrying number and typed - read and written ONLY where the target repository declares native Issue Types.
+    choice: 'cmd_backlog gains a NET-NEW local receipt file, backlog-issues.json in the feature directory, keyed by the nature:title item string and carrying number and typed - read and written ONLY where the target repository declares native Issue Types. It is written through the established locked atomic writer, harness_merge.locked_update, the same primitive load_recorded and save_recorded already reach through feature_json_write for feature.json (gh-sync.py:471 and :806), never a plain truncating open-and-dump. Acceptance: a crash at any instant during a write leaves the receipt either byte-identical to its previous content or completely written to its new content, never truncated, empty or partial - a receipt that can be read as empty re-creates issues that already exist, which is the zero-byte-window defect gh-sync.py:441-449 records as already fixed once in this file.'
     because: that route has no receipt at all today, so REQ-08's guarantee has nothing to extend there, and the receipt is written locally rather than read back from GitHub. It is gated on the available state because REQ-05 and clause 3 of the grilling's Settled require the label path preserved exactly - a net-new file in the feature directory, and the duplicate-suppression its read would cause, are an ungranted behaviour change on the compatibility path, where there is no type to recover and so nothing for a receipt to serve.
     dec: DEC-138
   - id: D-14
@@ -144,18 +144,19 @@ decisions:
       leaves an issue untyped rather than retyping an issue somebody else owns.
     dec: DEC-138
 panel:
-  last_run: 2026-09-04-18-validator
-  cycle: 3
-  severity_max: high
+  last_run: 2026-09-05-27-validator
+  cycle: 4
+  severity_max: med
   readers:
-  - persona: fable-advisor
-    step: should-not-exist
+  - reader: should-not-exist
+    persona: fable-advisor
     status: ran
-    reason: none
-  - persona: harness-code-reviewer
-    step: scope
+  - reader: scope
+    persona: harness-code-reviewer
     status: ran
-    reason: none
+  - reader: goalcheck
+    persona: harness-pm
+    status: ran
   findings:
   - id: PF-56a2ce7a053111a3aff62a4b97c5902e
     reader: should-not-exist
@@ -166,19 +167,6 @@ panel:
     why: if the operator accepts PF-0c12a033 at signature, the surfaces to unwind
       grow from three test cases to a signed success criterion plus two decisions
       and three task intents
-    disposition: batched_to_signature_review
-  - id: PF-1286544c197d1b0eb4a9b0dc8e1234dc
-    reader: should-not-exist
-    severity: med
-    summary: D-13/T-06's net-new backlog-issues.json specifies a plain json.dump writer,
-      duplicating receipt machinery already in the same file and re-creating the zero-byte-window
-      defect gh-sync.py:441-449 documents as fixed.
-    why: "cmd_backlog (gh-sync.py:1410) runs in the feature directory where load_recorded/save_recorded\
-      \ (:471/:806) already maintain the receipt through a locked atomic writer. T-06\
-      \ \xA75 mandates 'a plain json.dump of the whole document after every state\
-      \ change'; a crash mid-write truncates the receipt, the rerun reads nothing\
-      \ recorded, and backlog issues are re-created \u2014 the exact duplicate REQ-08\
-      \ forbids. Also two receipt schemas per feature directory, permanently."
     disposition: batched_to_signature_review
   - id: PF-452948136bf467869d223e027191ae49
     reader: scope
@@ -226,46 +214,6 @@ panel:
       \ never protected at all. Every future rewording must change a 511-character\
       \ string in two files in lockstep."
     disposition: batched_to_signature_review
-  - id: PF-df3caaeb7d520653866034e477d3718b
-    reader: should-not-exist + scope (one defect, two readers, both high - no reconciliation
-      needed)
-    severity: high
-    summary: 'Cycle-5 edit 1 did not discharge PF-60f3544bd486fe9d3541a26658e5fa9f:
-      the zero-updateIssue assertion it added to T-03 case F (plan.yaml:532-539),
-      and the copies it mirrors in T-05 case G (:785-796) and T-07 case I (:969-984),
-      are inert on all three, because those are the plan''s only FAKE_TYPES=partial
-      cases and each specifies a FRESH fixture, so the backfill route PF-60f3544bd486fe9d3541a26658e5fa9f
-      names is still untested on every route.'
-    why: 'The required set that the missing-types check draws from is defined at T-04
-      section 4 (:623-634) and T-08 section 6 (:1037-1046) as every already-recorded
-      key whose provenance is the string created. In a fresh fixture that set is empty,
-      so a backfill-before-refusal-check implementation emits zero updateIssue argv
-      on all three cases and passes identically to a correct one; on a fresh fixture
-      the clause is also subsumed by the pre-existing zero issue-create assertion.
-      The only state producing a created remnant is T-03 case G (:540), which runs
-      under FAKE_TYPES=available and never partial, so no case anywhere pairs a remnant
-      with a refusal. plan.yaml:539 now records case F as what fails when it does
-      - false confidence carried into the signature pass. Falsifiable: if the eventual
-      case F fixture pre-records a typed created entry, F1 dissolves.'
-    disposition: awaiting_user
-  - id: PF-1280cd8fc7536c65bc22f076576c28fa
-    reader: should-not-exist
-    severity: low
-    summary: 'T-10 section 6 carries two residues of the removed equality design:
-      the live-pass type is resolved from the LOCAL harness.json overrides but applied
-      against a foreign TARGET (plan.yaml:1197-1199), and section 1''s configured-repo
-      environmental gate still fronts the explicit opt-in (:1157-1160).'
-    why: 'With github.issue_types.parent set locally, a probe aimed at a vanilla Issue-Type-enabled
-      TARGET that declares no such name SKIPs on refusal_text, so SC-10''s live verdict
-      is again unreachable without mutating shared configuration - a miniature of
-      the shape the operator''s PF-08da208931348b8cb200b34e8e7a1d31 ruling just paid
-      to remove - and mutating that override changes real create behaviour in the
-      configured repository. Separately, github.sync false or an unpinned repo kills
-      an opt-in aimed at an unrelated TARGET although neither bears on that write''s
-      safety (moot while this repo is pinned). The widened TARGET is otherwise safe
-      on its own merits: every new failure shape reaches a non-creating outcome before
-      the create step.'
-    disposition: batched_to_signature_review
   - id: PF-62b2b8ae0acc3509b474b744469137dc
     reader: scope (med) + should-not-exist (info) - one defect, two reporters; scope's
       med stands for ranking, neither reader's value reassigned
@@ -284,32 +232,6 @@ panel:
       affected - both outcomes are SKIP exit 0 creating nothing - so the remedy is
       one sentence, or deleting the third bullet.
     disposition: batched_to_signature_review
-  - id: PF-3626edafbb21d2afb151ff470a450714
-    reader: scope
-    severity: low
-    summary: T-07 (plan.yaml:869) and T-08 (:988) implement and test REQ-10's adopted-parent-never-typed
-      guarantee on the factory route but omit REQ-10 from their traces, though BRIEF
-      SC-12 says REQ-10's only falsifiable grading runs on both the gh-sync and the
-      factory route.
-    why: Only T-03 and T-04, the gh-sync route, list REQ-10. Nothing breaks at build
-      time, but an REQ-10 audit that trusts the traces metadata alone - which the
-      goal-check does - misses half the implementation and would report the factory
-      route as unimplemented or the coverage as narrower than it is.
-    disposition: batched_to_signature_review
-  - id: PF-595ce69d5574361d12a048900fcf3e0f
-    reader: should-not-exist
-    severity: low
-    summary: D-12's sixteen-key override surface (plan.yaml:91-93, T-02 :415-417,
-      T-01 assertion 5 :322-326) exceeds what REQ-03 needs, which is name-level overrides
-      for four things - Bug, Feature, Task and parent - not per-change_type keys.
-    why: Renaming the Task type repo-wide needs eleven change_type keys plus the chore
-      nature key changed in lockstep; a partial set, where the repository declares
-      both names, silently splits one role across two declared native types with no
-      refusal, fragmenting the canonical Bug/Feature/Task dimension the brief names
-      as the destination. A four-key map keyed by canonical name satisfies REQ-03
-      and SC-06 verbatim, cannot be misused this way, and deletes the per-key pins
-      T-01 assertion 5 carries.
-    disposition: batched_to_signature_review
   - id: PF-e74a2da89380cfa94f6b1693191d759d
     reader: should-not-exist (info) + scope (med) - one defect, two reporters; recorded
       not ranked into fix_order, neither reader's value reassigned
@@ -324,27 +246,86 @@ panel:
       content remains bound only by its CASE marker and by human review of T-04''s
       verify run.'
     disposition: batched_to_signature_review
-  must_fix:
-  - 'F1 - T-03 case F (:532-539), T-05 case G (:785-796) and T-07 case I (:969-984)
-    are the plan''s ONLY FAKE_TYPES=partial cases and all three are specified with
-    a FRESH fixture, so the required set T-04 section 4 (:623-634) and T-08 section
-    6 (:1037-1046) build from already-recorded created keys is EMPTY there. A backfill-before-refusal-check
-    implementation therefore emits zero updateIssue argv on all three cases and passes
-    identically to a correct one. Reader severity: high (should-not-exist), high (scope).
-    Gating: severity_max high clears gates.review advisory_unless_high. Not repaired
-    pre-signature (DEC-176); disposition awaiting_user.'
+  - id: PF-d8a7b516b793e1227b17d61c754240c7
+    reader: should-not-exist
+    severity: low
+    summary: 'T-10 section 6 carries ONE surviving residue of the removed equality
+      design: the live-pass type is resolved from the LOCAL harness.json overrides
+      (gh_issue_types.type_for_parent(overrides)) but applied against a foreign TARGET.
+      Supersedes PF-1280cd8fc7536c65bc22f076576c28fa, whose other residue - section
+      1''s configured-repo availability gate fronting the explicit opt-in - was discharged
+      by operator ruling R4 and re-verified as HOLDING by the cycle-4 panel.'
+    why: 'With github.issue_types.parent set locally, a probe aimed at a vanilla Issue-Type-enabled
+      TARGET that declares no such name SKIPs on refusal_text, so SC-10''s live verdict
+      is again unreachable without mutating shared configuration - a miniature of
+      the shape the operator''s PF-08da208931348b8cb200b34e8e7a1d31 ruling just paid
+      to remove - and mutating that override changes real create behaviour in the
+      configured repository. The widened TARGET is otherwise safe on its own merits:
+      every new failure shape reaches a non-creating outcome before the create step.
+      This is the surviving half of a finding the operator has already read, not a
+      new one; the id changed only because the summary was narrowed to the half that
+      still reproduces.'
+    supersedes: PF-1280cd8fc7536c65bc22f076576c28fa
+    disposition: batched_to_signature_review
+  - id: PF-1f968f2cd73a799708e4be589d48e61b
+    reader: scope
+    severity: med
+    summary: No case makes the required set's backfill contribution the SOLE source
+      of a missing type
+    why: "Anchors T-04 \xA74 'THE REQUIRED SET IS NOT ONLY WHAT WILL BE CREATED' and\
+      \ T-08 \xA76 'THE REQUIRED SET ALSO COVERS THE BACKFILL'. In T-03 F / T-05 G\
+      \ / T-07 I the to-be-created tasks already need undeclared Task, so refusal\
+      \ fires regardless. An implementation omitting backfill candidates from missing_types\
+      \ \u2014 while still ordering backfill after the refusal check \u2014 passes\
+      \ every planned case, then on an all-recorded rerun computes an empty required\
+      \ set, never refuses, and raises an uncaught KeyError on declared[type_name]\
+      \ instead of REQ-07's actionable refusal_text. Remedy: one added case."
+    disposition: batched_to_signature_review
+  - id: PF-383a1a92195cf2cdfba9828bda854195
+    reader: should-not-exist
+    severity: low
+    summary: D-08's eighth read-back purpose exceeds REQ-09 and mandates permanent
+      byte-identical 511-char duplication across two files
+    why: "Anchors D-08 because 'names practice that has existed since sub-issue mirroring\
+      \ shipped \u2026 completing the record, not authorising', T-11 \xA73 'EXACTLY,\
+      \ character for character', T-12 \xA71's identical row. Retroactively enumerating\
+      \ pre-existing gh_issues.internal_id_args reads is record hygiene, not this\
+      \ feature; it makes every future rewording a two-file lockstep edit forever,\
+      \ gives T-12's regex-identity verify no purpose but policing self-inflicted\
+      \ duplication, and forces SC-11's inspection reviewer to grade sub-issue attach/detach\
+      \ claims inside an issue-types change. Related to but distinct from PF-9a71cb9a\
+      \ (which says the drift guard expires; this says the row should not be that\
+      \ large)."
+    disposition: batched_to_signature_review
+  - id: PF-e02dcbdf60fdf5eede40feb6066e8a08
+    reader: should-not-exist
+    severity: info
+    summary: "D-14's because ('gh 2.92.0 \u2026 so the CLI cannot set a native type\
+      \ at all') is contradicted one task later by T-02's own 'issueTypeId is a measured\
+      \ input field of both CreateIssueInput and UpdateIssueInput'"
+    why: The create-then-type window that D-10/D-20 provenance, the backfill and all
+      three remnant cases exist to manage is presented as physically unavoidable when
+      it is a correct design choice. A builder or SC-04 inspection reviewer who notices
+      the contradiction may defect to createIssue-with-issueTypeId mid-build and unwind
+      the receipt ordering every remnant test pins. One sentence in D-14's because
+      closes it.
+    disposition: batched_to_signature_review
+  must_fix: []
   fix_order:
-  - F1
-  - N5
-  - N2
-  - N3
-  - N4
-  fix_order_reason: 'Deliberate and NOT severity order, per the cycle-3 digest: F1
-    leads because its remedy adds cases to the same verify loops cycle-5 edit 2 just
-    changed, and N5 and N2 are adjacent edits to one region of T-10 section 6. N5
-    is ranked above N2 despite its lower stated severity because it is a fresh consequence
-    of the ruling the operator just made. N6 is recorded and not ranked - it is the
-    accepted scope of a ruled remedy, not a new defect.'
+  - PF-1f968f2cd73a799708e4be589d48e61b
+  - PF-383a1a92195cf2cdfba9828bda854195
+  - PF-e02dcbdf60fdf5eede40feb6066e8a08
+  fix_order_reason: 'Ranks the THREE findings new this cycle only, in the validator
+    lead''s order: PF-1f968f2cd73a799708e4be589d48e61b (scope, med) first because
+    its remedy adds one case to the T-03/T-05/T-07 verify loops the cycle-7 edits
+    just touched and it is the one implementation shape every currently-planned case
+    passes; then PF-383a1a92195cf2cdfba9828bda854195 (should-not-exist, low), then
+    PF-e02dcbdf60fdf5eede40feb6066e8a08 (should-not-exist, info), a one-sentence edit
+    to D-14''s because. The other eight findings in this record - the seven carried
+    verbatim plus the re-scoped survivor of PF-1280cd8fc7536c65bc22f076576c28fa -
+    are deliberately UNRANKED: they are unruled operator decisions batched to the
+    signature review, not a fix queue, and the panel returned must_fix: [] with nothing
+    gating.'
   transcription_rule: Every PF- id is computed by panel_findings.py id from the exact
     reader and summary strings stored here, never hand-written. Carried findings were
     transcribed verbatim from the cycle-2 block and each id re-derived to confirm
@@ -395,15 +376,24 @@ tasks:
       4. type_for_change_type("hovercraft", {}) raises gh_issue_types.UnknownWorkNature, and
          str(exc) contains both "hovercraft" and "no issue type is mapped". Same for
          type_for_nature("hovercraft", {}). Assert the raise, not a returned None.
-      5. Overrides: type_for_change_type("bugfix", {"bugfix": "Defect"}) == "Defect";
-         type_for_change_type("logic", {"bugfix": "Defect"}) == "Task" (fall-through);
-         type_for_change_type("feature", {"feature": "Story"}) == "Story" - D-18 changes
-         feature's DEFAULT, not the override surface, and the override key stays legal (D-12);
+      5. Overrides, and they are keyed by CANONICAL TYPE NAME - D-12 gives the map exactly four
+         legal keys, "Bug", "Feature", "Task" and "parent", and no change_type key and no
+         backlog-nature key is an override key:
+         type_for_change_type("bugfix", {"Bug": "Defect"}) == "Defect";
+         type_for_change_type("logic", {"Bug": "Defect"}) == "Task" - renaming Bug leaves Task
+         alone, which is the fall-through assertion;
+         type_for_change_type("feature", {"Task": "Story"}) == "Story" - D-18 makes Task this
+         change_type's default, so the Task override is what renames it, and renaming Task
+         renames it for every change_type that resolves to Task;
          type_for_parent({"parent": "Epic"}) == "Epic";
-         type_for_nature("chore", {"chore": "Maintenance"}) == "Maintenance".
+         type_for_nature("chore", {"Task": "Maintenance"}) == "Maintenance";
+         type_for_change_type("bugfix", {"bugfix": "Defect"}) == "Bug" - a change_type string is
+         NOT an override key and must be ignored rather than honoured.
       6. gh_issue_types.overrides_from_config(cfg) returns {} for cfg={},
-         for cfg={"github": {}}, and for cfg={"github": {"issue_types": "not-a-map"}}; and
-         returns {"bugfix": "Defect"} for cfg={"github": {"issue_types": {"bugfix": "Defect"}}}.
+         for cfg={"github": {}}, and for cfg={"github": {"issue_types": "not-a-map"}};
+         returns {"Bug": "Defect"} for cfg={"github": {"issue_types": {"Bug": "Defect"}}}; and
+         returns {} for cfg={"github": {"issue_types": {"bugfix": "Defect"}}} - a key outside
+         the four legal keys is dropped by the loader and never reaches a resolver.
       7. gh_issue_types.classify_capability(returncode, stdout) returns a 3-tuple
          (state, declared, message) where declared maps type NAME to type id:
          - (0, '{"data":{"repository":{"issueTypes":null}}}')
@@ -428,8 +418,11 @@ tasks:
           and which passes the node id and the type id as -f values.
       11. gh_issue_types.missing_types(["Bug", "Task"], {"Bug": "IT_1"}) == ["Task"] and
           missing_types(["Bug"], {"Bug": "IT_1"}) == [].
-      12. gh_issue_types.refusal_text("owner/name", "Task", "chore") contains the type name
-          "Task", the string "github.issue_types.chore" and the repo "owner/name".
+      12. gh_issue_types.refusal_text("owner/name", "Maintenance", "Task") contains the type
+          name "Maintenance", the string "github.issue_types.Task" and the repo "owner/name".
+          The third argument is the CANONICAL override key that repairs it - one of "Bug",
+          "Feature", "Task", "parent" - never the change_type or the nature that resolved to it,
+          because that is not a key the configuration accepts.
 
   - id: T-02
     title: Add the shared gh_issue_types module - mapping, capability classifier and argv builders
@@ -472,26 +465,37 @@ tasks:
 
       DEFAULT_TYPE_BY_NATURE = {"bug": "Bug", "chore": "Task", "enhancement": "Feature"}
       PARENT_KEY = "parent" and DEFAULT_PARENT_TYPE = "Feature".
+      LEGAL_OVERRIDE_KEYS = ("Bug", "Feature", "Task", "parent") - the WHOLE configuration
+      surface (D-12). An override map is keyed by CANONICAL TYPE NAME plus the literal parent;
+      change_type values and backlog natures are internal vocabulary and are not configuration
+      keys.
 
       class UnknownWorkNature(Exception) - raised, never returned, by both resolvers.
 
       type_for_change_type(change_type, overrides): the type of a task sub-issue. If
       change_type is not a key of DEFAULT_TYPE_BY_CHANGE_TYPE, raise UnknownWorkNature with the
       message f"{change_type!r} is not a known change_type, so no issue type is mapped for it -
-      add it to DEFAULT_TYPE_BY_CHANGE_TYPE or fix the plan". Otherwise return
-      overrides.get(change_type) or DEFAULT_TYPE_BY_CHANGE_TYPE[change_type], where an override
-      value that is not a non-empty string is ignored. Every one of the twelve keys remains a
-      legal override key, feature included (D-12): D-18 changes that key's default, not the
-      configuration surface.
+      add it to DEFAULT_TYPE_BY_CHANGE_TYPE or fix the plan". Otherwise resolve the canonical
+      default first - default = DEFAULT_TYPE_BY_CHANGE_TYPE[change_type] - and return
+      overrides.get(default) or default, where an override value that is not a non-empty string
+      is ignored. THE LOOKUP IS BY CANONICAL NAME, never by the change_type string (D-12):
+      renaming Task renames it for every change_type that resolves to Task, feature included,
+      and there is no per-change_type key for a repository to set.
 
       type_for_nature(nature, overrides): the type of a backlog item, same shape against
-      DEFAULT_TYPE_BY_NATURE, same "no issue type is mapped" wording.
+      DEFAULT_TYPE_BY_NATURE - resolve the canonical default, then look the OVERRIDE up by that
+      name - and the same "no issue type is mapped" wording.
 
-      type_for_parent(overrides): overrides.get(PARENT_KEY) or DEFAULT_PARENT_TYPE.
+      type_for_parent(overrides): overrides.get(PARENT_KEY) or DEFAULT_PARENT_TYPE. The parent
+      has its own key so a repository can name its parent type independently of the type its
+      enhancement backlog items take.
 
-      overrides_from_config(cfg): cfg is a loaded harness.json mapping. Return
-      cfg["github"]["issue_types"] when it is a dict of str to non-empty str, else {}. Never
-      raise; a malformed override block falls through to the defaults.
+      overrides_from_config(cfg): cfg is a loaded harness.json mapping. Read
+      cfg["github"]["issue_types"] and, when it is a dict, return the subset of its entries
+      whose key is in LEGAL_OVERRIDE_KEYS and whose value is a non-empty string; every other
+      key is DROPPED here, so no resolver ever sees one. Return {} when the block is missing or
+      is not a dict. Never raise; a malformed or unrecognised override block falls through to
+      the defaults.
 
       CAPABILITY_QUERY is the query measured against mruangutai/harness:
       query($owner:String!,$name:String!){ repository(owner:$owner,name:$name){ issueTypes(first:10){ nodes { id name } } } }
@@ -525,7 +529,9 @@ tasks:
       missing_types(required_names, declared): sorted, de-duplicated list of the names in
       required_names that are not keys of declared.
 
-      refusal_text(repo, type_name, config_key): a single line reading
+      refusal_text(repo, type_name, config_key): config_key is one of LEGAL_OVERRIDE_KEYS - the
+      canonical key whose value the operator would set, never a change_type or a nature, which
+      the configuration does not accept. A single line reading
       f"issue type {type_name!r} is not declared by {repo} - set github.issue_types.{config_key}
       in .harness/harness.json to a type name this repository declares, or add the type to the
       repository". One line, no newline inside it.
@@ -544,7 +550,7 @@ tasks:
       for c in A B C D E F G H H2 I J; do
         grep -qF "CASE $c:" tests/integration/test-gh-issue-types.py || { echo "MISSING case $c - label every case from this task's intent with a line carrying the literal marker 'CASE $c:' (comment, docstring or print), so an OMITTED case fails this gate as loudly as a failing one"; exit 1; }
       done
-      for s in IT_feature IT_bug IT_task IT_defect IT_epic updateIssue issueTypes 4242 adopted created partial github.issue_types; do
+      for s in IT_feature IT_bug IT_task IT_defect IT_epic IT_maintenance updateIssue issueTypes 4242 adopted created partial github.issue_types; do
         grep -qF "$s" tests/integration/test-gh-issue-types.py || { echo "MISSING required assertion string: $s"; exit 1; }
       done
       python3 tests/integration/test-gh-issue-types.py && { echo "UNEXPECTED PASS: this test must be RED before T-04"; exit 1; }
@@ -563,8 +569,9 @@ tasks:
       "sub_issues -F sub_issue_id=", "--jq .id") and ADD:
         - argv containing "issueTypes" -> when env FAKE_TYPES is "absent", echo
           {"data":{"repository":{"issueTypes":null}}} and exit 0; when "available", echo a
-          nodes array declaring Bug, Feature, Task, Defect and Epic with distinct ids
-          (IT_bug, IT_feature, IT_task, IT_defect, IT_epic); when "partial", echo a nodes
+          nodes array declaring Bug, Feature, Task, Defect, Epic and Maintenance with
+          distinct ids (IT_bug, IT_feature, IT_task, IT_defect, IT_epic,
+          IT_maintenance); when "partial", echo a nodes
           array declaring only Bug and Feature - Task absent; when "failed", echo
           {"data":{"repository":null},"errors":[{"message":"Could not resolve to a Repository"}]}
           and exit 1.
@@ -603,17 +610,40 @@ tasks:
          types " on its stdout. This is the invocation that prints zero if the detector is
          called lazily inside the create branch.
       E. FAKE_TYPES=available with harness.json github.issue_types set to
-         {"bugfix": "Defect", "parent": "Epic"}: assert the bugfix sub-issue's updateIssue call
-         carries IT_defect and the parent's carries IT_epic, and that the config task's and the
-         feature task's still carry IT_task.
-      F. FAKE_TYPES=partial (Task not declared), fresh fixture: assert ZERO argv containing
-         "issue create" reached the fake, ZERO argv containing updateIssue, a non-zero process
-         exit status, and that the combined stdout+stderr names both "Task" and
-         "github.issue_types". T-04 section 4 computes missing_types over the parent and every
-         task together, before any create and before any type-apply, so a refusal ordered after
-         apply_issue_type - a backfill that types an already-recorded issue on a run specified to
-         refuse cleanly - mutates a real existing issue's native type with every other
-         plan-defined gate green, and this case is what fails when it does.
+         {"Bug": "Defect", "Task": "Maintenance", "parent": "Epic"} - the canonical-name
+         override surface D-12 defines, whose only four legal keys are Bug, Feature, Task
+         and parent: assert the bugfix sub-issue's updateIssue call carries IT_defect, the
+         parent's updateIssue call carries IT_epic, and the config task's and the feature
+         task's each carry IT_maintenance - three DECLARED, non-default type ids, one per
+         override key, each asserted BY TYPE ID on its own issue. The three keys resolve
+         independently: Bug renames only the bugfix sub-issue, parent only the parent, and
+         the canonical Task key renames every implementation task issue at once (D-18,
+         which resolves the feature change_type to Task), so the config task and the
+         feature task are the chore leg BRIEF SC-06 names - a repository-declared
+         non-default name for canonical Task work. A Task override is legal here: D-12's
+         four keys make Task one of them.
+      F. FAKE_TYPES=partial (Task not declared), and the fixture is PRE-SEEDED with exactly one
+         already-recorded remnant so the backfill set is NOT empty: build the feature directory
+         with feature.json ALREADY recording the BUGFIX task's issue number (use 501) in
+         github.issues and github.typed["<that task id>"] = "created" - a legitimate member of
+         the backfill set T-04 section 4 builds from already-recorded "created" keys, and its
+         type is Bug, which the partial fake DOES declare, so it is the remnant a
+         backfill-before-refusal-check implementation would successfully type. The other three
+         tasks and the parent are unrecorded, so Task is still missing and the run must refuse.
+         Assert ZERO argv containing "issue create" reached the fake, ZERO argv containing
+         updateIssue - including, named separately, zero updateIssue argv carrying a node id
+         derived from 501 - a non-zero process exit status, and that the combined stdout+stderr
+         names both "Task" and "github.issue_types". Assert also that THE REMNANT IS UNCHANGED
+         by the refused run: feature.json's github.issues entry for that task still holds 501
+         and github.typed for it is still exactly the string "created" - not True, not absent,
+         not rewritten. T-04 section 4 computes missing_types over the parent, every task to be
+         created AND every already-recorded "created" key, before any create and before any
+         type-apply, so a refusal ordered after apply_issue_type - a backfill that types an
+         already-recorded issue on a run specified to refuse cleanly - mutates a real existing
+         issue's native type with every other plan-defined gate green, and this case is what
+         fails when it does. The pre-seeded remnant is what gives that assertion something to
+         catch: on a fresh fixture the backfill set is empty and a wrongly-ordered
+         implementation emits zero updateIssue argv exactly as a correct one does.
       G. FAKE_TYPES=available FAKE_TYPE_APPLY=fail on the first run: assert feature.json's
          github.typed records the first task's id with the value "created" and NOT True - the
          number and the create-time provenance are written in one act, and the flag is promoted
@@ -704,7 +734,10 @@ tasks:
          UnknownWorkNature is a caller error: print its message to stderr and exit 2 before any
          create. Then compute gh_issue_types.missing_types(required, declared); if it is
          non-empty, print gh_issue_types.refusal_text(repo, name, key) to stderr for each
-         missing name - key is the change_type or the literal "parent" that produced it - and
+         missing name - key is the CANONICAL override key that produced the name, one of "Bug",
+         "Feature", "Task" or the literal "parent", which are D-12's only four legal
+         configuration keys; never a change_type value, which the configuration does not accept
+         and which would name a repair that cannot be made - and
          exit 2 BEFORE any issue create call and BEFORE any type-apply. Zero creates and zero
          updateIssue calls must have happened. A backfill whose type name is undeclared is
          refused by exactly this check and by no other: there is no path on which a type name
@@ -751,7 +784,9 @@ tasks:
          parent: if the number is already recorded, the state is "available", and
          rec["typed"][key] is exactly the string "created", apply the type and promote the
          value to True. This is the rerun path, and it must NOT create, delete, close or search
-         for anything; the number comes from the local receipt only.
+         for anything; the number comes from the local receipt only. It runs only after
+         section 4's refusal check has passed - on a refusing run the backfill never executes,
+         which is what T-03 case F's pre-seeded remnant proves.
          Backfill NOTHING ELSE. A key whose recorded value is "adopted" is NEVER typed - not on
          this run and not on any later one - and neither is anything in rec["source_issues"].
          A key that is ABSENT from rec["typed"] while its number is recorded is NEVER typed
@@ -860,19 +895,32 @@ tasks:
          names a skipped recorded item, and that the second invocation still prints EXACTLY
          ONE line matching "^gh-sync: issue types ".
       G. REQ-07's refuse-before-create ON THIS ROUTE - the partial-types case, in the same
-         fixture shape T-03 case F uses on the open route. FAKE_TYPES=partial (Bug and Feature
-         declared, Task absent), fresh feature directory, the same three-item command: the
-         chore item resolves to Task and the repository does not declare it. Assert ZERO argv
-         containing "issue create" reached the fake, ZERO argv containing updateIssue, a
-         non-zero process exit status, that the combined stdout+stderr names both "Task" and
-         "github.issue_types", and that NO <featdir>/backlog-issues.json exists afterwards -
-         the refusal precedes the first create, so the receipt T-06 section 5 writes has
-         nothing to record. T-06 section 3 computes missing_types over the WHOLE item list
-         before any create, so a first-item-only check, a refusal raised after the first create
-         has already reached gh, or a refusal ordered after apply_issue_type each fails this
-         case and each would otherwise ship with every plan-defined gate green. Without this
-         case REQ-07 is red-then-green tested on the open route alone, which the operator's
-         ruling of 2026-09-04 (notes/answers-plan-panel-20260904.md) does not accept.
+         fixture shape T-03 case F uses on the open route, and PRE-SEEDED the same way so the
+         backfill set is not empty. FAKE_TYPES=partial (Bug and Feature declared, Task absent),
+         the same three-item command, and a feature directory whose <featdir>/backlog-issues.json
+         ALREADY records exactly one item - "bug:a defect" with number 601 and typed false.
+         That entry is this route's created-but-not-yet-typed provenance, the exact shape case E
+         asserts a crashed run leaves behind, and it is a legitimate member of the set T-06
+         section 5 backfills on a rerun; its type is Bug, which the partial fake DOES declare,
+         so it is the remnant a backfill-before-refusal-check implementation would successfully
+         type. The chore item still resolves to Task and the repository does not declare it, so
+         the run must refuse. Assert ZERO argv containing "issue create" reached the fake, ZERO
+         argv containing updateIssue - including, named separately, zero updateIssue argv
+         carrying a node id derived from 601 - a non-zero process exit status, and that the
+         combined stdout+stderr names both "Task" and "github.issue_types". Assert also that THE
+         SEEDED REMNANT IS UNCHANGED by the refused run: <featdir>/backlog-issues.json still
+         holds exactly the one entry for "bug:a defect" with number 601 and typed still exactly
+         false - not true, not removed, not rewritten - and holds no entry for the chore item or
+         the enhancement item, so the refusal precedes the first create and records nothing.
+         T-06 section 3 computes missing_types over the WHOLE item list before any create, so a
+         first-item-only check, a refusal raised after the first create has already reached gh,
+         or a refusal ordered after apply_issue_type each fails this case and each would
+         otherwise ship with every plan-defined gate green. The pre-seeded entry is what gives
+         the zero-updateIssue clause something to catch: with no recorded item there is nothing
+         to backfill, and a wrongly-ordered implementation emits zero updateIssue argv exactly
+         as a correct one does. Without this case REQ-07 is red-then-green tested on the open
+         route alone, which the operator's ruling of 2026-09-04
+         (notes/answers-plan-panel-20260904.md) does not accept.
 
   - id: T-06
     title: Type backlog issues and give cmd_backlog its net-new local receipt
@@ -903,7 +951,7 @@ tasks:
          In compatibility mode that is exactly one diagnostic line per invocation; in the
          available state it is exactly one capability query and no diagnostic line at all.
          Do not claim more than that: a backlog invocation with zero items is refused by main()
-         (:1777-1778) and the receipt is not consulted in compatibility mode (§5), so a
+         (:1777-1778) and the receipt is not consulted in compatibility mode (section 5), so a
          zero-create compatibility invocation does not exist on this route.
 
       3. Validate every item first, then refuse before creating. Parse all items into
@@ -912,8 +960,11 @@ tasks:
          gh_issue_types.type_for_nature(nature, issue_types); an UnknownWorkNature is a caller
          error - print it to stderr and exit 2. Then compute
          gh_issue_types.missing_types(required, declared) over the WHOLE item list and, if
-         non-empty, print gh_issue_types.refusal_text(repo, name, nature) to stderr and exit 2
-         BEFORE any issue create call.
+         non-empty, print gh_issue_types.refusal_text(repo, name, key) to stderr and exit 2
+         BEFORE any issue create call and BEFORE any type-apply, including the backfill of
+         section 5. key is the canonical override key that produced the name - one of "Bug",
+         "Feature", "Task" - never the backlog nature, which D-12 does not accept as a
+         configuration key.
 
       4. Labels: where the state is "available" the label list is ["harness"] alone; otherwise
          it stays exactly today's ["harness"] plus the nature for bug and chore.
@@ -932,9 +983,21 @@ tasks:
          item loop; if the item string is already recorded with a number, do not create -
          otherwise call gh, parse the number from the URL as today, record number with typed
          false, save; then when typed is not true, apply_issue_type, set typed true, save.
-         Write it with a plain json.dump of the whole document after every state change. Never
-         read GitHub back to discover whether an item was already created: the item string plus
-         the local receipt is the only key.
+         WRITE IT THROUGH THE ESTABLISHED LOCKED ATOMIC WRITER, NEVER A PLAIN TRUNCATING DUMP.
+         Every state change goes through harness_merge.locked_update(path, transform) - the
+         same primitive feature_json_write.write_feature_json wraps for feature.json, and
+         therefore the one load_recorded (gh-sync.py:471) and save_recorded (:806) already use
+         in this very file: an fcntl lock on the sibling .lock, a same-directory tempfile, an
+         fsync and an os.replace. Do not open the receipt with open(path, "w") and json.dump
+         into it, and do not write a second lock or rename primitive of your own.
+         ACCEPTANCE: a crash at any instant during a write leaves the receipt either
+         byte-identical to its previous content or completely written to its new content -
+         never truncated, never zero bytes, never a prefix. A reader that can observe an empty
+         receipt reads "nothing is recorded" and the rerun re-creates issues that already
+         exist, which is the duplicate REQ-08 forbids and the exact zero-byte-window defect
+         gh-sync.py:441-449 documents as already fixed once for feature.json.
+         Never read GitHub back to discover whether an item was already created: the item
+         string plus the local receipt is the only key.
 
       6. Keep the existing printed line per created issue, unchanged, in both modes. The new
          line for a skipped item naming its recorded number is printed ONLY on the available
@@ -950,6 +1013,7 @@ tasks:
     - REQ-06
     - REQ-07
     - REQ-08
+    - REQ-10
     change_type: scaffolding
     execution_mode: team
     execution_agent: harness-backend-dev
@@ -1005,11 +1069,14 @@ tasks:
          types " for a run creating four issues.
       D. Overrides, and SC-06 needs both a task sub-issue and a parent: with the target
          repository's harness.json github.issue_types declaring
-         {"bugfix": "Story", "parent": "Story"}, assert the BUGFIX TASK's updateIssue call
-         carries IT_story and the PARENT's carries IT_story, while the config task's and the
-         feature task's still carry IT_task. Do not assert an override on the feature key here
-         - under D-18 that key's default is Task, and the override surface itself is pinned by
-         T-01 assertion 5.
+         {"Bug": "Story", "parent": "Story"} - the canonical-name surface D-12 defines, whose
+         only four legal keys are Bug, Feature, Task and parent - assert the BUGFIX TASK's
+         updateIssue call carries IT_story and the PARENT's carries IT_story, while the config
+         task's and the feature task's still carry IT_task, because renaming Bug leaves Task
+         alone. Do not override Task in this case: under D-18 the feature change_type resolves
+         to Task like every other implementation change_type, so a Task override would rename
+         all three task issues at once and prove nothing about which key produced which type.
+         The override surface itself is pinned by T-01 assertion 5.
       E. Crash between create and type: FAKE_TYPES=available FAKE_TYPE_APPLY=fail, then rerun.
          Assert that after the first run factory.yaml records the issue number AND its typed
          entry with the value "created", not True and not absent - the number and the
@@ -1044,25 +1111,47 @@ tasks:
          still types the tasks that are NOT recorded, so the case proves the bound rather than
          a dead run.
       I. REQ-07's refuse-before-create ON THIS ROUTE - the partial-types case, in the same
-         fixture shape T-03 case F uses on the open route. FAKE_TYPES=partial (Bug and Feature
-         declared, Task absent), fresh fixture, the same three-task decomposition: the config
-         task and the feature task both resolve to Task and the repository does not declare it.
+         fixture shape T-03 case F uses on the open route, and PRE-SEEDED the same way so the
+         backfill set is not empty. FAKE_TYPES=partial (Bug and Feature declared, Task absent),
+         the same three-task decomposition, and a factory.yaml that ALREADY records the BUGFIX
+         task's issue number (use 701) with factory["typed"] for that task id set to exactly
+         the string "created" - a legitimate member of the set T-08 section 6 adds to the
+         required types from already-recorded "created" keys, and its type is Bug, which the
+         partial fake DOES declare, so it is the remnant a backfill-before-refusal-check
+         implementation would successfully type. The config task and the feature task are both
+         still "new", both resolve to Task, and the repository does not declare it, so the run
+         must refuse.
          Assert ZERO argv containing "issue create" reached the fake - THE PARENT'S CREATE
          INCLUDED, because the refusal precedes every create and not merely the task loop -
-         ZERO argv containing updateIssue, a non-zero process exit status, and that the
+         ZERO argv containing updateIssue, including, named separately, zero updateIssue argv
+         carrying the node id derived from 701, a non-zero process exit status, and that the
          combined stdout+stderr names both "Task" and "github.issue_types". Assert also that
-         factory.yaml afterwards records no parent number and no task issue number, so nothing
-         was published before the refusal. T-08 section 6 computes the required set over the
-         parent and every "new" task together, so a parent-only check, a per-task check that
-         refuses only after earlier creates have already reached gh, or a refusal ordered after
-         apply_issue_type each fails this case and each would otherwise ship with every
-         plan-defined gate green. Without this case REQ-07 is red-then-green tested on the open
+         factory.yaml afterwards records no parent number and no task issue number other than
+         the seeded remnant, and that THE REMNANT IS UNCHANGED: the bugfix task's recorded
+         number is still 701 and its typed value is still exactly the string "created" - not
+         True, not absent, not rewritten - so nothing was published and nothing was typed
+         before the refusal. T-08 section 6 computes the required set over the parent, every
+         "new" task AND every already-recorded "created" key together, so a parent-only check,
+         a per-task check that refuses only after earlier creates have already reached gh, or a
+         refusal ordered after apply_issue_type each fails this case and each would otherwise
+         ship with every plan-defined gate green. The pre-seeded remnant is what gives the
+         zero-updateIssue clause something to catch: with nothing recorded the backfill set is
+         empty and a wrongly-ordered implementation emits zero updateIssue argv exactly as a
+         correct one does. Without this case REQ-07 is red-then-green tested on the open
          route alone, which the operator's ruling of 2026-09-04
          (notes/answers-plan-panel-20260904.md) does not accept.
 
   - id: T-08
     title: Type factory parent and factory task issues and suppress the two labels
-    traces: [REQ-01, REQ-02, REQ-03, REQ-05, REQ-06, REQ-07, REQ-08]
+    traces:
+    - REQ-01
+    - REQ-02
+    - REQ-03
+    - REQ-05
+    - REQ-06
+    - REQ-07
+    - REQ-08
+    - REQ-10
     change_type: cross_module
     execution_mode: team
     execution_agent: harness-backend-dev
@@ -1117,8 +1206,12 @@ tasks:
          (type_for_parent for the parent key, type_for_change_type for a task key).
          Run gh_issue_types.missing_types over that whole set and, if non-empty, print
          gh_issue_types.refusal_text(args.repo, name, key) to stderr and exit 2 before any
-         factory_gh.create_issue call AND before any apply_issue_type call. A backfill whose
-         type name the repository does not declare is refused by exactly this check and by no
+         factory_gh.create_issue call AND before any apply_issue_type call, the step-8 backfill
+         included. key is the CANONICAL override key that produced the name - one of "Bug",
+         "Feature", "Task" or the literal "parent", D-12's only four legal configuration keys -
+         never a change_type value, which the configuration does not accept and which would
+         name a repair that cannot be made. A backfill whose type name the repository does not
+         declare is refused by exactly this check and by no
          other. A task issue's type ALWAYS comes from
          type_for_change_type and the parent's ALWAYS from type_for_parent (D-18).
       7. Labels: when the state is "available", _task_labels (:325-332) returns ["harness",
@@ -1150,15 +1243,17 @@ tasks:
          later run overwrites that value. factory.yaml stores the parent as a bare number, so
          this marker is the only thing that records the adoption positively rather than leaving
          the parent's provenance unknown.
-         THE BACKFILL, bounded by the recorded value: before the create branch, for a parent or
+         THE BACKFILL, bounded by the recorded value: before the create branch and AFTER step
+         6's refusal check has passed, for a parent or
          a task carrying a recorded number whose factory["typed"] value is exactly the string
          "created", apply the type from the RECORDED number and promote the value to True -
          never search GitHub for it. Backfill nothing else. A value of "adopted" is NEVER
          typed, not on this run and not on any later one; a key ABSENT from factory["typed"] is
          NEVER typed either, on this run or on any later one, and is never promoted to
          "created" - absent provenance stays absent. T-07 case F is the test that fails if the
-         adoption exemption is missing, and T-07 case H is the test that fails if an absent
-         entry is typed.
+         adoption exemption is missing, T-07 case H is the test that fails if an absent
+         entry is typed, and T-07 case I - whose fixture pre-records one "created" remnant - is
+         the test that fails if this backfill runs before step 6 refuses.
       9. Correct the comment at factory_decompose.py:47-49 ("DEC-138, applied mechanically per
          task"): say that where the repository declares native Issue Types the type is applied
          from gh_issue_types.py's mapping and these two labels are not, and that the label
@@ -1228,13 +1323,21 @@ tasks:
 
       IT CREATES NOTHING BY DEFAULT (D-19). The default invocation is READ-ONLY: it reports the
       capability verdict and the declared type names and creates no issue in any repository.
-      Creating a throwaway issue happens only under the explicit opt-in of §6.
+      Creating a throwaway issue happens only under the explicit opt-in of section 6.
 
       Behaviour:
-      1. Resolve the repository from .harness/harness.json github.repo. If github.sync is
-         false, the repo is unpinned, gh is not on PATH, or gh auth status fails, print
-         "probe-issue-types: SKIP <reason>" and exit 0. Name the repository in the reason
-         whenever one was resolvable.
+      1. Resolve the repository from .harness/harness.json github.repo. If gh is not on PATH or
+         gh auth status fails, print "probe-issue-types: SKIP <reason>" and exit 0 - that is a
+         host gate and it applies on every invocation. If github.sync is false or the repo is
+         unpinned, print "probe-issue-types: SKIP <reason>" and exit 0 ONLY WHEN NO --create-in
+         TARGET WAS SUPPLIED. THE EXPLICIT OPT-IN IS EXEMPT FROM THE CONFIGURED-REPOSITORY
+         AVAILABILITY GATE: github.sync false and an unpinned github.repo say nothing about
+         whether a TARGET the operator typed out is reachable or safe to write to, and letting
+         them kill the opt-in makes SC-10's live verdict unreachable for a reason unrelated to
+         the write. With the flag supplied, neither condition ends the run - the probe proceeds
+         against the TARGET under section 6 and the configured repository is simply not
+         consulted for reachability. Name the repository in the reason whenever one was
+         resolvable.
       2. Import gh_issue_types from .claude/skills/harness/bin (same sys.path anchor idiom as
          tests/integration/test-gh-sync.py:11-16), run the real
          gh_issue_types.capability_query_args(repo) through subprocess, and classify the

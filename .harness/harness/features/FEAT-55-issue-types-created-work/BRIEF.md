@@ -151,10 +151,12 @@ Recorded verbatim from the grilling note's `## Out of scope`:
   nothing, which is what the read-only default invocation reports against an Issue-Types-enabled
   repository; or an explicit capability-absent verdict naming the repository. It never
   reports a pass derived from a fixture. **An environmental skip is not a verdict and never
-  satisfies this criterion**: no `gh` on PATH, `github.sync` false, an unpinned repo, or a failed
-  capability query all make the probe report nothing about the repository, so they are outside
+  satisfies this criterion**: no `gh` on PATH, a failed capability query, or — on the default
+  invocation, which reports on the configured repository — `github.sync` false or an unpinned
+  repo, all make the probe report nothing about the repository, so they are outside
   the three verdicts and are never read as a pass — SC-10 stays unmet until one of the three is
-  recorded.
+  recorded. Under the explicit create opt-in the configured-repository availability gate does
+  not apply, because the repository reported on is the one the operator named.
   **This is the criterion that carries #1289's
   enabled-repository acceptance** — see `## Verification gaps`.
   verify: automated        evidence: issue_types_live
