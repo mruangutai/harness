@@ -1,7 +1,9 @@
 schema: plan/1
 feature: BUG-1304-worktree-relative-path-guard
 approval:
-  status: pending
+  date: '2026-09-05'
+  approved_by: mruangutai
+  status: approved
 status: plan
 source_issues: [1304]
 
