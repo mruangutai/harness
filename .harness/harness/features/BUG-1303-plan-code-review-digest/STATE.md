@@ -3,42 +3,72 @@
 ## Current
 
 - feature: BUG-1303-plan-code-review-digest
-- run: .harness/harness/features/BUG-1303-plan-code-review-digest/runs/2026-09-05-12-product/state.yaml
-- squad: product
-- status: build-complete, awaiting-user on the QA matrix floor
+- run: .harness/harness/features/BUG-1303-plan-code-review-digest/runs/2026-09-05-14-validator/digest.md
+- squad: validator
+- status: validate-complete, ship-ready pending the operator's briefing decision
 
-Build phase closed. All four tasks are at station `done`: T-01/T-02/T-03 landed main-session-direct
-(cdfce3cb, plus the main session's own complexity split at 8596745f), T-04 landed as DEC-216 with its
-hand-written index row (b724a0f4), corrected at b9939139 to name `_required_contracts` — the mirror
-site 8596745f created — after the simplify pass caught the stale identifier. `review_sha` is pinned at
-b9939139. The full digest-validator suite exits 0 with zero `^FAIL ` lines and `ALL PASSED` in 19.0s,
-carrying 16 per-persona `ok [documented contract]` lines plus both synthetic group lines;
-`validate-digest.py` is absent from `63404ef0..b9939139`, which is SC-04's structural evidence.
-Simplify ran all four angles: one fix applied (the DEC-216 pointer), efficiency and altitude clean.
-QA returned FAIL on the test matrix only — F-01 below; the change's own tests are green and proven
-red-capable. Handoff: notes/handoff-build.md. cycles_used 4 of 8.
+Validate phase closed. `review_sha` is pinned at `e2c800f1`, HEAD, tree clean. The c4 reviewer panel
+returned FAIL with two `must_fix`; both were fixed in one cycle and independently confirmed resolved
+at c5 (`notes/review-harness-code-reviewer-c5.md`, `notes/review-harness-qa-c5.md`). MF-1: the DEC-217
+`DECISIONS-INDEX.md` row carried hand-written tags no regeneration reproduces, which reddened
+`run-unit-tests.sh --kind integration` and falsified SC-06's byte-identity clause — regenerated, one
+row moved, ruling text unchanged. MF-2: the plan-mode `code_grade` assertion retyped `n_a` instead of
+deriving it, against SC-03's own words — it now probes `_pending_plan_review_error` across
+`CODE_GRADE_VALUES` and keeps the single member that rule accepts, and reds loudly when zero or many
+qualify. pm's goal-check grades **8 of 8 criteria met** at the new pin
+(`notes/research-BUG-1303-goalcheck-validate-c5.md`). Gates at `e2c800f1`, all orchestrator-run:
+digest-validator suite exit 0 / zero `^FAIL ` / `ALL PASSED`; `test-config-shape-matrix.py` 19/19;
+`--kind integration` exit 0 over 46 files; index regeneration byte-identical; `check-state.sh` exit 0.
+Panel `severity_max` is `med` with `must_fix: []` — under `gates.review: advisory_unless_high` nothing
+gates. F-01, the build phase's blocking matrix-floor question, is **RESOLVED** by DEC-217, the
+delegated-Advisor ruling the main session implemented at `e014ede3`. cycles_used 5 of 8; 17 runs of a
+budget of 20 — informational, and each run of this phase resolved a named finding.
+Briefing: `notes/ship-review-2026-09-05-validate.md`. Handoff: `notes/handoff-validate.md`.
 
 ## Open Questions
 
-- F-01 — BLOCKING, operator only: `test_matrix.bugfix.always` is `["unit"]` and `gates.qa_gate` is
-  `blocking`, but this bugfix's entire test surface is a contract guard over `.md` files across two
-  trees — integration-shaped by construction, and no team lane may write `.harness/harness.json`.
-  BUG-1128 raised the identical gap (`notes/qa-c1.md:22-46`) and it was never ruled. Either sign a
-  `_matrix_provenance.bugfix` carve-out or rule that the floor stands and this feature is gated.
-  Evidence: notes/qa-BUG-1303-build.md.
-- Non-blocking, for the ship briefing: DEC-216's body now deliberately diverges from T-04's signed
-  intent text, which still dictates the pre-8596745f identifier `required_by_persona`. The plan
-  records what was asked; DECISIONS.md records what is true. No re-signature sought.
-- Harness defect, not a BUG-1303 finding: inside a worktree, `handoff_done_when` authority pointers
-  and a panel reader's structured `yield` both resolve against the MAIN checkout, because
-  check-domain strips the `.claude/worktrees/<seg>/` prefix for glob matching and then reuses the
-  stripped path for resolution. Measured again this run: `brief-sc:` and `plan-task:` are therefore
-  UNUSABLE from a worktree — both derive the feature dir from the stripped path — leaving only
-  `finding:` and `approval:`, which take a path that can be spelled through `.claude/worktrees/`.
-  Blocked on: infra-tier attention.
-- Harness defect: bash-write-guard.sh parses the whole command line textually, so plan-merge.py's
-  sanctioned `apply --proposal -` stdin route is refused when the proposal body contains an angle
-  bracket; and `amend --value-file -` is not wired to stdin although `apply --proposal -` is.
-- Harness defect, observed this run: both the validator lead and the eng lead each created two
-  identical run directories for one segment (01/02-validator, 1/2-eng). Harmless — `runs/` is
-  gitignored — but the duplicate is bookkeeping noise no lead reported.
+- F-02 — operator decision, non-blocking, the one live item the ship decision carries: DEC-217's two
+  predicates `touches_runtime_code` and `fix_confined_to_tests_and_contract_docs` are documented in
+  neither `.claude/skills/harness-qa-gate/SKILL.md` nor `.claude/skills/harness-verification-rules/SKILL.md`,
+  where DEC-212's `touches_config_shape` is documented in both AND asserted by
+  `tests/unit/test-config-shape-matrix.py`. qa evaluates these predicate names against a diff at gate
+  time from its preloaded skills; their definitions exist only in `DECISIONS.md`. Raised `high` by the
+  code reviewer, reconciled to `med` by the validator lead because the two predicates are exact
+  complements so no diff can require zero kinds. Both remedy files resolve to `NOBODY` under
+  `check-domain.sh` — main-session-only, unroutable to any squad. Evidence:
+  `notes/review-harness-code-reviewer-c4.md`, restated at c5.
+- Non-blocking, operator's to reconcile: applied literally to this feature's own diff,
+  `touches_runtime_code` is TRUE — solely via `.claude/skills/harness/templates/harness.json`, which is
+  not under `tests/**`, not `*.md` and not under `.harness/` — and
+  `fix_confined_to_tests_and_contract_docs` is FALSE for that same file. So the matrix requires `unit`,
+  where DEC-217's own worked example says BUG-1303 changes no runtime code and integration is its
+  kind. The gate passes either way (both kinds are present and green), so this is a wording
+  reconciliation, not a defect. Amending a signed Advisor ruling is not a squad's.
+- Backlog, low: `.harness/harness.json:214-217` keeps the `__bug_class__` / `match_bug_class` leg while
+  `test_kinds` defines no `__bug_class__` — a predicate placeholder that can never resolve, which
+  `DECISIONS.md:5074` calls broken in another project's config. Not gating; DEC-217's retention of the
+  leg is binding. Raised by the validator lead (VL-1).
+- Harness defect, observed twice this run: a member's job returns `failed (exit 1)` with
+  "Subagent called yield with null data" while its final message carries a complete, well-formed
+  return, and the job preview can surface a SUPERSEDED draft whose verdict is the opposite of the
+  agent's own artifact. Both harness-qa (c4) and harness-backend-dev (MF-2) hit it. A lead routing on
+  tool status or on the preview would have discarded correct work or shipped a red gate.
+- Harness defect, RECURRENCE, two independent leads this run: `check-domain.sh` guards
+  `<run_dir>/digest.md` against replacement but applies no guard to `<run_dir>/state.yaml`, and
+  `runs/` is gitignored so a Glob of it returns nothing. Each lead opened an existing run dir and
+  silently replaced an earlier run's checkpoint before the digest write refused. Extend the guard to
+  `state.yaml`. A stray `runs/2026-09-05-01-product/send-back-criteria.md` also remains — the
+  orchestrator's `rm` of it was correctly refused as out-of-domain, so no tier holding a shell can
+  remove it.
+- Harness defect: the code reviewer reports its own injected persona text was byte-identical to the
+  STALE main-checkout copy of `.omp/agents/harness-code-reviewer.md`, not the worktree's fixed copy —
+  the reviewer of a fix to the reviewer's own contract was loaded with the pre-fix contract. Same root
+  as the standing worktree-resolution defect below.
+- Harness defect, carried from build and re-measured: inside a worktree, `handoff_done_when` authority
+  pointers resolve against the MAIN checkout, so `brief-sc:` and `plan-task:` are UNUSABLE from here;
+  only `finding:` and `approval:` can be spelled through `.claude/worktrees/`. Also carried:
+  `bash-write-guard.sh` parses the whole command line textually, refusing `plan-merge.py apply
+  --proposal -` when the proposal body contains an angle bracket.
+- Documentation defect, cost one send-back this run: dispatch text templated
+  `gen-decisions-index.py --apply`. That flag does not exist — the tool exits 2 and the BARE
+  invocation is the in-place write.
