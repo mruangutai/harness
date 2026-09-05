@@ -41,10 +41,15 @@ import factory_cli
 import factory_config
 import factory_gh
 import feature_json_write
+import gh_issue_types
 import harness_merge
 import harness_yaml
 
-# DEC-138, applied mechanically per task.
+# DEC-138, applied mechanically per task - but ONLY in compatibility mode (T-08, FEAT-55).
+# Where the target repository declares native GitHub Issue Types, an issue's type comes
+# from gh_issue_types.py's mapping instead, applied via factory_gh.apply_issue_type after
+# create, and neither of these two labels is added. This label pair is what a repository
+# with no Issue Types declared still gets.
 CHORE_TYPES = {"config", "scaffolding", "infra", "ci"}
 BUG_TYPES = {"bugfix"}
 
@@ -99,6 +104,7 @@ def _empty_factory():
         "issues": {},
         "items": {},
         "edges": {"parent": [], "blocked_by": {}},
+        "typed": {},
     }
 
 
@@ -142,6 +148,15 @@ def load_factory(feat_dir):
             for k, v in blocked.items():
                 if isinstance(v, list):
                     factory["edges"]["blocked_by"][str(k)] = [str(x) for x in v]
+
+    # T-08: provenance is positive and absence means unknown (D-20) - only the three
+    # legal recorded values survive the read, so a corrupt or hand-edited entry is
+    # treated the same as absent rather than typed on a later run.
+    typed = f.get("typed")
+    if isinstance(typed, dict):
+        for k, v in typed.items():
+            if v is True or (isinstance(v, str) and v in ("created", "adopted")):
+                factory["typed"][str(k)] = v
 
     return factory
 
@@ -223,6 +238,7 @@ def write_factory(feat_dir, factory, feat_id=None):
                 "blocked_by": {k: list(v)
                                for k, v in sorted(factory["edges"]["blocked_by"].items())},
             },
+            "typed": dict(sorted(factory.get("typed", {}).items())),
         }
         return json.dumps(doc, indent=2) + "\n"
 
@@ -322,14 +338,112 @@ def _issue_body(task):
     return f"{task['intent'].strip()}\n\nchange_type: {ct}\ntraces: {traces}"
 
 
-def _task_labels(task, feat_id):
+def _task_labels(task, feat_id, state):
     labels = ["harness", f"feature:{feat_id}"]
-    ct = task["change_type"]
-    if ct in CHORE_TYPES:
-        labels.append("chore")
-    elif ct in BUG_TYPES:
-        labels.append("bug")
+    if state != "available":
+        ct = task["change_type"]
+        if ct in CHORE_TYPES:
+            labels.append("chore")
+        elif ct in BUG_TYPES:
+            labels.append("bug")
     return labels
+
+
+# --------------------------------------------------------------------------
+# Issue Types (T-08, FEAT-55). D-18: a task issue's type is ALWAYS resolved through
+# type_for_change_type and a parent's ALWAYS through type_for_parent - no task issue on any
+# route ever carries the parent's type. D-20: factory["typed"] is positive provenance;
+# absence is UNKNOWN and is never typed, this run or any later one.
+# --------------------------------------------------------------------------
+
+def _issue_type_overrides(fleet, repo):
+    """The target repository's OWN github.issue_types overrides. Capability is per target
+    repository and is never inherited; a FleetError (the repo's harness.json is unreadable
+    or invalid) yields {} so the defaults apply rather than aborting the run."""
+    try:
+        return gh_issue_types.overrides_from_config(factory_config.product_config(fleet, repo))
+    except factory_config.FleetError:
+        return {}
+
+
+def _print_issue_types_state(repo, state, message):
+    """Exactly one diagnostic line when native Issue Types are not usable - printed
+    unconditionally, even on a run that creates nothing (T-07 case G)."""
+    if state == "absent":
+        print(f"factory: issue types unavailable on {repo} - labels only", file=sys.stderr)
+    elif state == "query_failed":
+        print(
+            f"factory: issue types could not be determined on {repo} ({message}) - "
+            f"labels only",
+            file=sys.stderr,
+        )
+
+
+def _task_issue_type(task, overrides):
+    """(type name, canonical config key) for one task's issue. An UnknownWorkNature is a
+    caller error - print it and exit 2, never let it propagate as an unhandled failure."""
+    change_type = task["change_type"]
+    try:
+        type_name = gh_issue_types.type_for_change_type(change_type, overrides)
+    except gh_issue_types.UnknownWorkNature as e:
+        print(f"factory: {TOOL}: {e}", file=sys.stderr)
+        sys.exit(factory_cli.EXIT_REFUSED)
+    return type_name, gh_issue_types.DEFAULT_TYPE_BY_CHANGE_TYPE[change_type]
+
+
+def _required_issue_types(tasks, dispositions, factory, overrides, need_parent_create):
+    """Every (type name, config key) this run must have declared before any create or
+    backfill apply - the issues about to be created AND the backfill set step 8 will apply
+    (T-07 case J: the backfill alone can be what triggers the refusal)."""
+    typed = factory.get("typed", {})
+    required = []
+    if need_parent_create or typed.get("parent") == "created":
+        required.append((gh_issue_types.type_for_parent(overrides), gh_issue_types.PARENT_KEY))
+    for t in tasks:
+        tid = str(t["id"])
+        if dispositions[tid] == "new" or typed.get(tid) == "created":
+            required.append(_task_issue_type(t, overrides))
+    return required
+
+
+def _refuse_on_missing_types(required, declared, repo):
+    """REQ-07: refuse before ANY create or apply-type call, the parent's create and the
+    step-8 backfill included, when the required set is not fully declared."""
+    missing = gh_issue_types.missing_types([name for name, _ in required], declared)
+    if not missing:
+        return
+    for name, key in required:
+        if name in missing:
+            print(f"factory: {TOOL}: {gh_issue_types.refusal_text(repo, name, key)}",
+                  file=sys.stderr)
+            sys.exit(factory_cli.EXIT_REFUSED)
+
+
+def _apply_and_promote(feat_dir, factory, feat_id, repo, number, key, type_id):
+    """Apply the type to an already-"created" number, then promote its provenance to True
+    in its own write_factory call - the receipt ordering that survives a crash between the
+    two remote calls (T-07 case E)."""
+    factory_gh.apply_issue_type(repo, number, type_id)
+    factory["typed"][key] = True
+    write_factory(feat_dir, factory, feat_id=feat_id)
+
+
+def _backfill_issue_types(feat_dir, factory, tasks, overrides, declared, feat_id, repo):
+    """Apply the type for every already-recorded key whose provenance is exactly the string
+    "created" - never search GitHub, never touch "adopted" or an absent entry (D-20). Every
+    name resolved here was already proven present in `declared` by _refuse_on_missing_types,
+    which covers this exact set."""
+    typed = factory.setdefault("typed", {})
+    if factory["parent"] is not None and typed.get("parent") == "created":
+        type_name = gh_issue_types.type_for_parent(overrides)
+        _apply_and_promote(feat_dir, factory, feat_id, repo, factory["parent"], "parent",
+                            declared[type_name])
+    for t in tasks:
+        tid = str(t["id"])
+        num = factory["issues"].get(tid)
+        if num is not None and typed.get(tid) == "created":
+            type_name = gh_issue_types.type_for_change_type(t["change_type"], overrides)
+            _apply_and_promote(feat_dir, factory, feat_id, repo, num, tid, declared[type_name])
 
 
 def _main():
@@ -386,13 +500,29 @@ def _main():
     tasks = plan["tasks"]
     dispositions = sort_dispositions(tasks, factory)
 
+    # 4b. issue types (T-08). Detection is UNCONDITIONAL and runs exactly once, before the
+    # step-5 parent branch and the step-6 task loop, and not inside either - a run that
+    # creates nothing still reports its state (T-07 case G).
+    overrides = _issue_type_overrides(fleet, args.repo)
+    state, declared, detect_message = factory_gh.detect_issue_types(args.repo)
+    _print_issue_types_state(args.repo, state, detect_message)
+    need_parent_create = factory["parent"] is None and args.parent is None
+    if state == "available":
+        required = _required_issue_types(tasks, dispositions, factory, overrides,
+                                          need_parent_create)
+        _refuse_on_missing_types(required, declared, args.repo)
+        _backfill_issue_types(feat_dir, factory, tasks, overrides, declared, feat_id, args.repo)
+
     edges_drawn = 0
     edges_skipped = 0
 
     need_step5 = any(d == "new" for d in dispositions.values()) or factory["parent"] is None
     if need_step5:
         # THE POINT OF NO RETURN. The first remote write this tool makes.
-        ensured = ["harness", f"feature:{feat_id}", "chore", "bug", "factory:claimed"]
+        ensured = ["harness", f"feature:{feat_id}"]
+        if state != "available":
+            ensured += ["chore", "bug"]
+        ensured.append("factory:claimed")
         factory_gh.ensure_labels(args.repo, ensured)
 
         # 5b. the parent — adopt or create.
@@ -403,6 +533,7 @@ def _main():
             )
         elif args.parent is not None:
             factory["parent"] = args.parent
+            factory.setdefault("typed", {})["parent"] = "adopted"
             write_factory(feat_dir, factory, feat_id=feat_id)
             factory_gh.add_label(args.repo, args.parent, f"feature:{feat_id}")
         else:
@@ -422,6 +553,7 @@ def _main():
                 args.repo, title, body, ["harness", f"feature:{feat_id}"],
             )
             factory["parent"] = num
+            factory.setdefault("typed", {})["parent"] = "created"
             write_factory(feat_dir, factory, feat_id=feat_id)
 
     # 6. create an issue for every task in the third disposition (new).
@@ -431,10 +563,20 @@ def _main():
             continue
         title = f"{tid} {t['title']}"
         num = factory_gh.create_issue(
-            args.repo, title, _issue_body(t), _task_labels(t, feat_id),
+            args.repo, title, _issue_body(t), _task_labels(t, feat_id, state),
         )
         factory["issues"][tid] = num
+        factory.setdefault("typed", {})[tid] = "created"
         write_factory(feat_dir, factory, feat_id=feat_id)
+
+    # 6b. the SAME run's own creates are typed here, not inline per-create - reusing the
+    # backfill pass right after the genesis run that creates the parent (need_parent_create),
+    # so a fresh feature is fully typed in one shot (T-07 case A). A run that finds the
+    # parent already recorded defers every fresh task's typing to the ordinary pre-create
+    # backfill on a LATER run instead (T-07 case H) - the same reconciliation path recovery
+    # already uses, rather than a second, parallel typing mechanism.
+    if need_parent_create and state == "available":
+        _backfill_issue_types(feat_dir, factory, tasks, overrides, declared, feat_id, args.repo)
 
     # 7. add every task issue with no recorded item id to the board. The parent is NEVER added.
     # The item id is recorded ONLY after project_field_set returns (T-04 defect fix): recording

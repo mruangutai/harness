@@ -2931,10 +2931,12 @@ kaya-ai tracks milestones and tasks in GitHub Issues, mirroring FEAT→T-NN. The
 decided:
 
 **Mapping.** `FEAT-NN-<slug>` → milestone (DEC-133's slug makes the title readable) · `T-NN` →
-issue labeled `harness`, body carrying the task spec, `change_type` and `traces:` · SC-NN → the
-milestone description's checklist · `[harness:t-NN]` commits gain `#<issue>` so GitHub auto-links
-and `closes #` auto-closes · shipped → milestone closed. Issue numbers are recorded in
-`feature.yaml` (`issues: {T-01: <n>}`) at creation — without that, closure is guesswork.
+issue labeled `harness` and — where the target repository declares native GitHub Issue Types —
+carrying a native issue type (see *Issue type* below), body carrying the task spec, `change_type`
+and `traces:` · SC-NN → the milestone description's checklist · `[harness:t-NN]` commits gain
+`#<issue>` so GitHub auto-links and `closes #` auto-closes · shipped → milestone closed. Issue
+numbers are recorded in `feature.yaml` (`issues: {T-01: <n>}`) at creation — without that, closure
+is guesswork.
 
 **Asymmetric truth.** Issues are pm's research INPUT at plan time — existing backlog can become
 tasks, through pm, under the user's signature. After approval, sync is strictly OUTBOUND. GitHub
@@ -3024,10 +3026,33 @@ rule. **No `blocked_by` edge is emitted by the Issues sync at all**: the builder
 caller is wayfinding. Migration was new-features-only — no backfill, no retrofit, no edit to any
 existing feature's recorded map.
 
-**Issue type labels derive from `change_type`,** so no agent judgment is involved:
-`config`/`scaffolding`/`infra`/`ci` → `chore` · `bugfix` → `bug` · everything else → unlabeled.
-`gh-sync.py` applies it at issue creation. The `harness` provenance label is orthogonal and stays —
-it marks agent-created issues, not their type.
+**The mirror stays write-only apart from the read-backs DEC-203 enumerates, and the reads named in
+its eighth purpose are authorised.** This feature adds exactly two of them: the
+capability-and-declared-names query, and the node-id lookup `gh_issue_types.node_id_args` makes
+immediately before a type-apply, against a number the local receipt already holds. Not new, and
+never enumerated: `gh_issues.internal_id_args` has read an already-recorded issue's identifier for
+sub-issue attach and detach since sub-issue mirroring shipped (`gh-sync.py:974` and `:1215`,
+`factory_gh.py:981`, all verified at `eb9d044e`), the enumeration never listed it, and nothing in
+this feature removes those call sites.
+
+**Issue type.** Where the target repository declares native GitHub Issue Types, every issue Harness
+CREATES carries a native type, resolved from `.claude/skills/harness/bin/gh_issue_types.py`'s
+mapping: a defect is `Bug` — including a task sub-issue whose `change_type` is `bugfix` — a backlog
+enhancement is `Feature`, the `gh-sync` feature parent and the factory parent are `Feature`, and
+every other task sub-issue is `Task` whatever its `change_type` says, `feature` included (D-18 of
+FEAT-55: the type follows the issue's ROLE, and a planned `T-NN` is an implementation task whatever
+the shape of its diff). A repository renames any of the four canonical names — `Bug`, `Feature`,
+`Task`, `parent` — at `.harness/harness.json` `github.issue_types`. In that mode the competing `bug`
+and `chore` labels are NOT applied; `harness`, `feature:<FEAT>`, `factory:claimed` and `abandoned`
+are applied in both modes, because they carry provenance and lifecycle rather than type. For a
+repository that declares NO native types, the label derivation remains the behaviour:
+`config`/`scaffolding`/`infra`/`ci` → `chore` · `bugfix` → `bug` · everything else → unlabeled,
+applied by `gh-sync.py` at issue creation, so no agent judgment is involved on either route.
+
+**Native types change nothing about adoption or recovery.** The
+adopted-or-created-but-never-discovered rule and the asymmetric-truth boundary above stand intact: a
+type is applied only to an issue Harness creates, an adopted issue's type is never changed, and
+recovery reads the local receipt, never GitHub.
 
 **The triage route.** "What should we do next?" belongs to no orchestrator — it exists before a
 feature does. It is pm's remit through product-lead, and it is **the one sanctioned direct
@@ -6061,7 +6086,7 @@ parent with no open children is finished whoever opened it. A parent with open c
 finished even when the harness created it. Origin also failed in practice: `parent_origin` read null
 on the two most recent features that recorded a parent, because both were recorded by hand.
 
-**5. The read-back bound, carried forward and now SEVEN purposes.** A factory or mirror
+**5. The read-back bound, carried forward and now EIGHT purposes.** A factory or mirror
 tool may read GitHub state back for these and no others:
 
 1. whether an item is claimed;
@@ -6074,7 +6099,27 @@ tool may read GitHub state back for these and no others:
 6. which children a card's ticket has — bounded to `gh-sync.py ship`;
 7. which closed tickets a repository holds, with their close reasons and labels, and which station
    options its board declares — the detection reads inside `board_lifecycle.py`'s audit — bounded to
-   `/harness-init` and to `gh-sync.py ship`, which calls the audit.
+   `/harness-init` and to `gh-sync.py ship`, which calls the audit;
+8. whether a target repository supports native Issue Types, and which native issue types a repository declares; the node identifier of an issue whose number Harness already recorded locally, read by gh_issue_types.node_id_args immediately before a type-apply; and the native type assigned to an issue Harness created, read back by tests/manual/probe-issue-types.py under its explicit create opt-in
+   — consumed by the shared type-apply path in `.claude/skills/harness/bin/gh_issue_types.py`, used
+   by `gh-sync.py` and `factory_decompose.py`, plus `tests/manual/probe-issue-types.py` for the
+   read-back clause.
+
+**The eighth purpose is one row, and its bounds are why it stays one.** A single capability query —
+`issueTypes(first:10){ nodes { id name } }` — answers both halves of its first clause: it returns
+JSON null where the repository declares no native types, and names every declared type otherwise.
+The node-id read of the second clause is made only against an issue whose number is already in the
+local receipt, immediately before the type-apply, so it reaches no issue Harness has not recorded.
+The type read-back of the third clause happens only under the probe's explicit create opt-in, and
+only against the issue that opt-in just created (D-19 of FEAT-55; the default probe invocation
+creates nothing). Every value stays process-local for the invocation — apart from the `typed` flag
+written into the local receipt — and reaches no approval-gated artifact.
+
+**That row's wording is pinned, character for character, across two files.** The identical row is
+written into `.claude/skills/harness/references/github-mirror.md`'s read-back table, and
+`tests/unit/test-issue-types-pin.py` asserts in the standing unit suite that both files carry it and
+that the two copies are identical — so a later drift in either copy reddens `run-unit-tests.sh`
+rather than passing unnoticed once a `review_sha` has pinned.
 
 **The fourth purpose's surface is WIDER here than the superseded bound left it, and that is a
 ruling, not a tidy-up.** That bound restricted the workflow read to `/harness-init` in the words

@@ -206,6 +206,6 @@ Recorded verbatim from the grilling note's `## Out of scope`:
 
 ## Approval
 
-status: pending
-approved-by:
-date:
+status: approved
+approved-by: molchairuangutai
+date: 2026-09-05

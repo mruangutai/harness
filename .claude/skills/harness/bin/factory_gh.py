@@ -26,6 +26,7 @@ import subprocess
 import factory_cli
 import gh_cost_log
 import gh_issues
+import gh_issue_types
 
 _LABEL_COLOR = "5319e7"
 
@@ -209,6 +210,25 @@ def create_issue(repo, title, body, labels):
             "output did not contain a /issues/<n> URL",
         )
     return int(tail[1].strip())
+
+
+def detect_issue_types(repo):
+    """Detect whether `repo` supports native GitHub Issue Types (T-08). NEVER raises: an
+    undetectable capability - the query itself failing - is compatibility mode, not a tool
+    failure, so the caller falls back to the label vocabulary instead of aborting."""
+    try:
+        output = run_gh(gh_issue_types.capability_query_args(repo))
+    except GhError as e:
+        return gh_issue_types.classify_capability(e.status or 1, e.stdout or e.stderr or "")
+    return gh_issue_types.classify_capability(0, output)
+
+
+def apply_issue_type(repo, number, type_id):
+    """Apply `type_id` (a node id from detect_issue_types' declared mapping) to issue
+    `number`. Propagates GhError exactly as create_issue does - a failed type-apply must be
+    visible, and the caller's receipt ordering is what makes it recoverable."""
+    node_id = run_gh(gh_issue_types.node_id_args(repo, number)).strip()
+    run_gh(gh_issue_types.apply_type_args(node_id, type_id))
 
 
 def issue_view(repo, number, fields):

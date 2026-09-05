@@ -1,8 +1,31 @@
 schema: plan/1
 feature: FEAT-55-issue-types-created-work
-status: plan
+status: building
 approval:
-  status: pending
+  date: '2026-09-05'
+  approved_by: molchairuangutai
+  status: approved
+  rulings:
+    - finding: PF-bad4d5185e8a8cedba6acd7d5ed1bb79
+      who: molchairuangutai
+      date: '2026-09-05'
+      reason: accepted at signature as residual low - pin row wrapping risk, non-gating
+    - finding: PF-17e86df90d8237d8fdf5eb5cb96a274a
+      who: molchairuangutai
+      date: '2026-09-05'
+      reason: accepted at signature as residual low - issueTypes first:10 bound fails safe by refusing before create
+    - finding: PF-f8e806d111d71a0bb6c4298cd47963c9
+      who: molchairuangutai
+      date: '2026-09-05'
+      reason: accepted at signature as residual low - github-mirror.md caption count, doc-only
+    - finding: PF-bc6cbd0c92ecd36a44eee2da8762f05a
+      who: molchairuangutai
+      date: '2026-09-05'
+      reason: accepted at signature as residual low - pin-guard verify is a proxy gate, design prose is correct
+    - finding: PF-e74a2da89380cfa94f6b1693191d759d
+      who: molchairuangutai
+      date: '2026-09-05'
+      reason: accepted at signature as residual med - grep loop is gate parity not coverage, scope of an already-ruled remedy
 
 source_issues: [1289]
 

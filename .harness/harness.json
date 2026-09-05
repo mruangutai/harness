@@ -309,6 +309,13 @@
       "status": "locally_run",
       "runner_note": "requires the omp binary on PATH and live model credentials; this can never run in CI. Run on a credentialled host before a ship decision that changes the handoff contract, and record the result under the feature's notes/ directory."
     },
+    "issue_types_live": {
+      "detect": "tests/manual/probe-issue-types.py",
+      "exclude": ".claude/worktrees/**",
+      "cmd": "tests/manual/probe-issue-types.py",
+      "status": "locally_run",
+      "runner_note": "requires gh authenticated against the pinned github.repo to read that repository's native Issue Types; it creates nothing and can never run in CI, so run it on a credentialled host before a ship decision that touches the issue-type path and record the verdict under the feature's notes/ directory."
+    },
     "integration": {
       "detect": "tests/integration/**",
       "exclude": ".claude/worktrees/**|node_modules/**|vendor/**|.venv/**",

@@ -3,7 +3,7 @@
   "branch": "feat/issue-1289-issue-types",
   "pr": null,
   "review_sha": "none",
-  "cycles_used": 9,
+  "cycles_used": 11,
   "max_total_cycles": 10,
   "max_total_runs": 20,
   "runs": [
@@ -194,6 +194,18 @@
       "verdict": "PASS",
       "agent": "harness-code-reviewer",
       "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-05-01-eng",
+      "squad": "eng",
+      "verdict": "BLOCKED",
+      "agent": "harness-eng-lead"
+    },
+    {
+      "id": "2026-09-05-01-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-documentor"
     }
   ]
 }
