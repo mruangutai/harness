@@ -153,6 +153,6 @@ vocabulary afterwards, so no agent is instructed to emit an op nothing can apply
 
 ## Approval
 
-status: pending
-approved-by:
-date:
+status: approved
+approved-by: mruangutai
+date: 2026-09-05

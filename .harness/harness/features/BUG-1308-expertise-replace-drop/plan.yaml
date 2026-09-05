@@ -2,7 +2,9 @@ schema: plan/1
 feature: BUG-1308-expertise-replace-drop
 status: plan
 approval:
-  status: pending
+  date: '2026-09-05'
+  approved_by: mruangutai
+  status: approved
 source_issues: [1308]
 
 lanes:
