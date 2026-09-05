@@ -1,0 +1,26 @@
+# Observations — harness-pm — BUG-1290-factory-claim-repo-root
+
+- 2026-09-05: bash-write-guard BLOCKS a heredoc feeding `plan-merge.py apply --proposal -`: it reads
+  `<<'PROPOSAL'` as a redirect whose target is `-`, "outside your domain". Route that worked: write
+  the proposal to `/tmp/<name>.yaml` with the Write tool (allowed — outside the repo) and pass the
+  path to `--proposal`. Same single write route, no guard collision.
+- 2026-09-05: deleting a `.harness`/`features` join from a bin script is never a one-file change in
+  this repo — `layout_migration.READER_TABLE` has a row per reader file, one reader classified
+  `neither` makes the whole `features` surface `CANNOT_VERIFY`, and check-state.sh INV-27 turns that
+  into a failure. Measured baseline at eb9d044e: surface CLEAN, factory_claim.py `migrated`. The
+  fixture module `layout_fixtures.py` must change its STUB key in the SAME edit (import-time guard).
+  Check the reader table before planning any deletion of a path join.
+- 2026-09-05: `plan-merge.py apply` with an ABSENT base writes the proposal verbatim and injects
+  `approval:\n  status: pending` right after the `feature:` line — so the proposal must carry a
+  top-level `feature:` key and no `approval:` (exit 8 otherwise). Post-creation single-field fixes
+  go through `amend --show` then `amend --expect-sha256 --value-file`.
+- 2026-09-05: BUG-1290 fix cycle 1. plan-merge.py `amend --expect-sha256 --value-file` is the working route for REVISING existing decision/task fields; `apply` would have exited 7 CONFLICT on all fourteen. `--field files` additionally needs `--yaml-value` for both `--show` and the write, otherwise exit 4.
+- 2026-09-05: BUG-1290. A "free home" clause in a decision hid three separate couplings (a second caller needing a different composition root, an existing duplicate derivation, and a fixture dict keyed by path alone). Deferring a placement to the builder is only weakest-sufficient when nothing downstream is keyed on the placement — here three things were.
+- 2026-09-05: BUG-1290. check-domain.sh denied every write for ~2 minutes, including /tmp, because the MAIN checkout's factory_gh.py had an uncommitted import of a module that did not exist yet (another feature in flight). Retrying worked. A denial naming fleet.yaml is not necessarily about my write.
+- 2026-09-05: BUG-1290 panel segment 1. Grading a plan against the GRILLING note rather than the BRIEF surfaced two things the BRIEF had already smoothed over: the ticket's Scope wording deviates identically to the grilling's but D-01 names only one of them, and "mutation-proven" survived from ticket to REQ-07 to SC-08 without any task step producing the evidence. Deriving the grading set from the two source documents, never from the artifact under grading, is what made both visible.
+- 2026-09-05: BUG-1290. A per-task "could this verify green hollow?" pass is highest-yield on the tasks whose verify is a whole-suite exit code: T-01 (`test $? -ne 0`, six new cases, one red satisfies it) and T-04 (case 22 asserts CLEAN only, so row REMOVAL greens a task whose decision is a MOVE). Both were signed off by an eng panel and a lead assessment before this pass.
+- 2026-09-05 (BUG-1290 fix c2): plan-merge apply is ADD-ONLY (exit 7 on a changed value, plan-merge.py:738/:1218); rewriting an existing task verify or decision choice needs `amend --key/--id/--field --expect-sha256 --value-file`, and amend PRESERVES the original scalar form (a `verify: |` stays literal, a `choice: >-` stays folded), so the value file is the body, not a re-quoted YAML value.
+- 2026-09-05 (BUG-1290 fix c2): a mutation proof at the unit boundary can be built without touching the file under test — install a proxy on the consumer's module attribute (factory_claim.factory_config) that discards the seam function's argument; because attribute lookup is at CALL time the proxy survives the suite's own later monkeypatch. Measured: kaya-ai candidate collapses onto the harness segment root.
+- 2026-09-05: BUG-1290 panel fix c3. A panel finding of the shape 'task B's verify reddens on a correct A' resolved by re-reading the PREDECESSOR's file scope with a whole-file grep: the two known line numbers were an incomplete inventory, and the grep's other hits each needed an explicit out-of-scope reason in the intent so a doer does not migrate them too.
+- 2026-09-05: When a detector regex and the code it watches disagree, the cheaper-looking fix (widen the regex) is the weaker one; binding the code to a paren-free local kept the drift detector intact and needed no probe edit, because the probe's own control string already spelled the paren-free form.
+- 2026-09-05: plan-merge.py has a dedicated set-panel verb (validates last_run/cycle/readers/findings types and re-reads its own splice); amend --expect-sha256 --value-file handled title/intent/verify rewrites with no apply CONFLICT.

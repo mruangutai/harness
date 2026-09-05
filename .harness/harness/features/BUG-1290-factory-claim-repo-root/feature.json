@@ -1,0 +1,61 @@
+{
+  "feature_id": "BUG-1290-factory-claim-repo-root",
+  "branch": "feat/BUG-1290-factory-claim-repo-root",
+  "pr": null,
+  "review_sha": "none",
+  "cycles_used": 3,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "2026-09-05-01-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-09-05-02-eng",
+      "squad": "eng",
+      "agent": "harness-eng-lead",
+      "verdict": "FAIL"
+    },
+    {
+      "id": "2026-09-05-03-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-09-05-04-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-05-05-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-09-05-06-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-05-07-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-09-05-08-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS",
+      "code_grade": "n_a"
+    }
+  ]
+}
