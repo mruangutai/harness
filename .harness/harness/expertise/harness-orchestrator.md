@@ -17,6 +17,8 @@
 - G-12: WHEN staging briefing rows as backlog issues DO map every row's nature onto bug, chore or enhancement — the verb accepts nothing else — and prefix each title with its briefing row id, so the returned issue numbers map back without a second lookup.
 - G-13: WHEN a seam commit writes the feature station into the plan after review_sha is pinned DO re-pin to the seam commit — the pin-precedes-station invariant trips otherwise, and re-pinning is free once a diff of the code paths between the two commits is empty.
 - G-14: WHEN running the unit suite from an agent tool DO clear HARNESS_AGENT_TYPE inside the command with env -u — the tool's env parameter leaks into every test subprocess and reddens the plan-merge approval checks as a phantom squad-visible regression.
+- G-15: WHEN reading check-state.sh as evidence about a feature DO run it from the checkout whose working tree actually holds that feature's directory — invoked elsewhere it discovers the feature not at all and exits 0, byte-identical to passing on the merits.
 ## Outcomes (max 10)
+- O-01: WHEN a budget or doctrine question turns on undefined wording with no mechanical check behind it DO route it to the advisor through the validator lead — the orchestrator cannot spawn that persona directly and preflight refuses rather than falling back.
 ## Open (max 5)
 - O-01: Shared `.harness/expertise/` has no lineage protection. Nothing reconciles a landed diff against the plan's declared files, so an undeclared edit to a per-spawn-injected file rides any cluster commit and only a human notices. Whether the fix is diff-vs-plan reconciliation, write-guard scoping, or keeping Expertise off feature branches is undecided.

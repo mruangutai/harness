@@ -6,6 +6,7 @@
 - P-04: WHEN widening an existing task's `files:` or `depends_on:` DO use `plan-merge.py amend --field <list> --yaml-value` with `--expect-sha256`. `apply` exits 7 CONFLICT on any changed value, so a new task id is not the only route.
 - P-05: WHEN a criterion rests on a CI-run gate that reads git history DO price the workflow's checkout depth first: a bare `actions/checkout@v4` clones depth 1, so a pinned historical blob is unreachable in CI and the criterion is unmeetable as written.
 - P-06: WHEN transcribing a panel finding id DO compute it from the digest summary unaltered and record the normalization in `panel.transcription_rule`: panel_findings.py only lowercases and collapses whitespace, so stripping a backtick changes the hash and the operator's later ruling reads as a stale override.
+- P-07: WHEN a plan.yaml does not exist yet DO create it with plan-merge.py apply and a proposal carrying no approval mapping: an absent base bootstraps and the tool splices approval status pending itself. Only a proposal that carries its own approval block is refused. Direct writes are unnecessary.
 ## Gotchas (max 15)
 - G-01: WHEN a step must create, copy or move a file DO use the file tools or a Python script — `bash-write-guard.sh` denies redirects, `cp`, `mv` and `rm` in Bash whatever the target, including the session scratchpad and paths with no repo-like component.
 - G-02: WHEN a Bash command names a path the guard should allow DO spell it as a literal absolute path. The guard reads the command line, not the resolved path, so the same target written through a shell variable is refused.
@@ -23,4 +24,5 @@
 - G-14: WHEN proving check-state.sh reddens against a mutant copy DO place the copy inside the harness bin directory: it resolves its root from its own location, so a copy in a temp directory tracebacks and the failure reads as the asserted region being absent.
 - G-15: WHEN a Bash command carries a python heredoc DO avoid a bare `>` comparison inside it: bash-write-guard.sh parses the command line textually, reports redirect targets and blocks the whole call. Write the comparison reversed with `<`.
 ## Outcomes (max 10)
+- O-01: WHEN running a Harness gate suite as grading evidence DO clear HARNESS_AGENT_TYPE from the environment first: a pm-typed shell makes plan-merge refuse sign-approval and the plan-merge integration file returns ten FAILs that read exactly like a regression. Treat any failure naming your own persona as contamination.
 ## Open (max 5)

@@ -40,4 +40,5 @@
 - O-06: WHEN a dispatch names an adjacent non-rendered surface for you to check despite a no-UI decline DO produce advisory findings from it — panel review has credited a scoped-out reader's finding there as covering a gap no in-scope reader supplied (the union effect).
 - O-07: WHEN a LOW finding from a prior cycle is untouched by the new diff DO re-verify it against current bytes once and carry it forward as 'unchanged' rather than re-deriving the analysis — this passed ship review unchallenged each cycle.
 - O-08: WHEN auditing terminal or console output for a UI review DO execute the real commands and capture actual bytes rather than reading source alone — direct-execution verdicts held unchallenged through final ship review across repeated cycles.
+- O-09: WHEN live-executing tools against a working tree as evidence for a pinned-commit review DO first confirm the tree is byte-identical to the pin outside the review's own artifact directory — this caught a stale-worktree risk before it reached the verdict, unchallenged across a re-pin cycle.
 ## Open (max 5)

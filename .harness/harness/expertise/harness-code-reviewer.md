@@ -8,5 +8,6 @@
 - G-05: WHEN writing a feature artifact from inside this repo's FEAT worktree DO use an absolute path — feature.json/plan.yaml/STATE.md live only in the worktree copy while notes/ and runs/ also sync to the main checkout, so a relative write can land in the main checkout and later fail code_grade binding.
 - G-06: WHEN reading a code-grade.py report DO remember it only lists functions with no pre-image (new) or a worsened grade versus base — it never emits an 'inherited, unrelated, unchanged' record, so a partition claiming that shape for any listed record is definitionally wrong.
 - G-07: WHEN reviewing run_pool.py's --mutation-check snapshot DO note `_record`'s `except OSError` swallows every OSError, not only FileNotFoundError — removing a watched directory's execute bit mid-run hides any file created inside it from both snapshots (open backlog row, unresolved as of this build).
+- G-08: WHEN reviewing suite_layout.py violations() DO check whether _registry_findings runs unconditionally on any successful git enumeration, independent of the self-ownership test -- it misfires on a checkout that does not itself ship suite_layout.py, past a narrower one-prefix assertion that misses it (open, unresolved).
 ## Outcomes (max 10)
 ## Open (max 5)
