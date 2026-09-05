@@ -32,6 +32,10 @@ def git_tree():
     exc_dir.mkdir(parents=True)
     (exc_dir/"probe-session-accessors.ts").write_text("// fixture stand-in for D-05 documented exception\n")
     subprocess.run(["git", "init", "-b", "main", "-q"], cwd=r, check=True, capture_output=True)
+    # These repositories live for milliseconds. Background maintenance can race
+    # fixture teardown and recreate/remove files while shutil.rmtree walks .git.
+    subprocess.run(["git", "config", "--local", "maintenance.auto", "false"], cwd=r, check=True, capture_output=True)
+    subprocess.run(["git", "config", "--local", "gc.auto", "0"], cwd=r, check=True, capture_output=True)
     git_commit(r)
     return r
 
