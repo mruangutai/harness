@@ -104,7 +104,7 @@ try:
     git_commit(r, "rogues")
     p = run(r, "--kind", "all")
     misconfigured = [line for line in p.stderr.splitlines() if line.startswith("MISCONFIGURED:")]
-    ordered = [rel for rel in rogue_paths for line in misconfigured if rel in line]
+    ordered = [rel for line in misconfigured for rel in rogue_paths if rel in line]
     check("git three tracked rogues reported in sorted path order",
           p.returncode == 2 and all(any(rel in line for line in misconfigured) for rel in rogue_paths)
           and ordered == sorted(rogue_paths),

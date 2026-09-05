@@ -3,37 +3,33 @@
 ## Current
 
 - feature: BUG-1286-test-tree-enforcement
-- run: .harness/harness/features/BUG-1286-test-tree-enforcement/runs/2026-09-04-31-product/state.yaml
-- squad: none
-- status: ready
+- run: eng segment T-01/T-02/T-03 in flight
+- squad: eng
+- status: building
 
-Plan phase complete. The operator approved BRIEF.md and plan.yaml on 2026-09-05, and `gh-sync.py
-status ... ready` recorded the Ready station. The GitHub mirror found no task sub-issues to move.
+Build phase entered 2026-09-05 at 5eebad66. BRIEF `## Approval` and plan.yaml `approval.status`
+both read `approved` (mruangutai, 2026-09-05), verified by reading both files. `gh-sync.py open`
+created milestone #44, parent #1295 and sub-issues #1296..#1300 (T-01..T-05); plan.yaml feature
+station and T-01/T-02/T-03 task stations are `building`, and `start-task` moved those three cards.
 
-The cycle-10 panel PASSED at `severity_max: med`, `must_fix` empty, with nothing high, critical or
-unrated. Its five non-gating findings carry into build. T-01 must re-prove the four specified red
-cases against the built artifact; all plan-phase results were simulations of the specification.
+Baseline captured before any edit, at 5eebad66 with a clean worktree: `run-unit-tests.sh --kind unit`
+exits 0 with 316 PASS lines, 0 FAIL, 27 files. `check-state.sh` reports no violation and no note for
+this feature.
 
-BRIEF carries 9 REQ and 19 SC over eleven acceptance criteria; plan.yaml carries 6 decisions and
-5 tasks. Preserved: REQ-09's breadth, full-relative-path `fnmatch` semantics over every running
-kind, normalization plus `..` rejection, the manual-probe rule, the F-01 fix, D-05's FEAT-44
-exception, and the three-kind blast-radius disclosure.
+Cycle budget is the binding constraint: `cycles_used: 9` of `max_total_cycles: 10`. Exactly ONE
+rework cycle remains for the whole rest of the feature, so every segment is dispatched to land
+first-pass. `len(runs)` is 29 against an informational `max_total_runs: 20` — INV-22 notes it and
+never stops a branch.
 
 ## Open Questions
 
-- Five cycle-10 findings, all `disposition: open`, in the batched signature review. One med:
-  PF-7f5eff475a69a7db20cc8293d4b6e9f7 — condition (b)'s NON-DEGENERATE conjunct requires a wildcard
-  in the core, which is unmotivated by the fixed-literal insight and trips fail-closed on a fully
-  literal core such as `**/test_foo.py`. Two low and two info concern the same conjunct and the
-  BRIEF's residual bullet exemplifying only one of the three live `**/` patterns. The panel's own
-  recommendation is to carry them rather than spend the last cycle: none gates, `gates.review` is
-  `advisory_unless_high`, and the remedy is one clause a build-phase task can carry.
-- The honest limit the panel refused to soften: every green/red result on record is a hand-simulation
-  of a SPECIFICATION against reader-written reimplementations. Three independent implementations
-  agree and none is the artifact that ships; T-01's mandate to re-prove the four red cases against
-  the BUILT artifact is the only thing that closes it, and it is deferred to build.
-- Harness defect the panel surfaced: `validate-digest.py` requires a `code_grade` and then rejects
-  every value for a plan-phase feature, because `feature.json` necessarily reads `review_sha: none`
-  before the Building-to-Review seam. It refuses every plan-phase code-reviewer digest, so a reader
-  that did its job settles as `failed`. The remedy edits `.claude/skills/harness/bin/`, which no lead
-  or reader may write.
+- Five cycle-10 panel findings ride into build, all `disposition: open`, none gating. The med one,
+  PF-7f5eff475a69a7db20cc8293d4b6e9f7, says condition (b)'s NON-DEGENERATE conjunct requires a
+  wildcard in the core and so trips fail-closed on a fully literal core such as `**/test_foo.py`.
+  The operator signed the plan with these carried; they are not a build-phase fix mandate.
+- The honest limit T-01 must close: every green/red result on record is a hand-simulation of the
+  SPECIFICATION against reader-written reimplementations. T-01 case 11's four red cases must be
+  re-proved against the BUILT artifact.
+- Harness defect surfaced at plan time: `validate-digest.py` requires `code_grade` on a code-reviewer
+  digest and rejects every value while `feature.json` reads `review_sha: none`, so a plan-phase panel
+  reader that did its job settles as `failed`. Not this feature's scope; carried to the briefing.

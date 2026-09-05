@@ -17,6 +17,7 @@ from suite_layout import (  # noqa: E402
     DOCUMENTED_EXCEPTIONS,
     RESTRICTED_NAME_PATTERNS,
     SOURCE_EXTENSIONS,
+    is_test_shaped,
 )
 RESIDUE_TOKENS = ("UNIT_SCRIPTS", "INTEGRATION_SCRIPTS", "check-kinds")
 # Exactly three historical line exemptions, on purpose.
@@ -89,7 +90,7 @@ def _disposition(path, basename, agnostic, restricted, exception_paths):
         return "in-tests-tree"
     if path in exception_paths:
         return "documented-exception"
-    if restricted and not agnostic and os.path.splitext(path)[1] not in SOURCE_EXTENSIONS:
+    if restricted and not agnostic and not is_test_shaped(path):
         return "out-of-vocabulary"
     return "violation"
 

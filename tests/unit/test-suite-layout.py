@@ -248,7 +248,8 @@ try:
 finally:
     shutil.rmtree(td)
 
-# Case 5: the existing non-git legal_tree() is unaffected by the new clause.
+# Case 5: a non-git tree is unaffected by the tracked-outside-tests clause, which
+# never fires without a .git index.
 r = legal_tree()
 try:
     (r/"tests/unit/test-unit.py").unlink()
