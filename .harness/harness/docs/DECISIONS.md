@@ -3438,14 +3438,14 @@ tooling allowed. A fixes-orchestrator additionally made probe edits to source vi
 in PR #299) — content doer-produced and gate-checked, but staged by an agent whose domain is
 `.harness/features/**`. Nothing dirty at HEAD anywhere.
 
-Two sanctions, both user-decided. **Perturbation proofs get a legal home:** bash-write-guard now
-permits governed-agent writes under `.claude/worktrees/**` — disposable checkouts are where
-mutation proofs live; the main checkout stays hard-gated; reviewers stay read-only everywhere
-(they never reach the path check). qa's rule skill states the protocol: worktree, byte-identity
-restore verification, never "just briefly" in the main checkout. **The commit pen is the
-orchestrator's:** it stages by explicit pathspec and commits the feature branch it owns; merge/PR/
-deploy stay user-gated; probe edits must be byte-verified restored before any commit. Recorded in
-the playbook.
+Two sanctions, both user-decided. **Perturbation proofs get a legal home:** bash-write-guard permits
+a governed agent's writes under the assigned worktree — disposable checkouts are where mutation
+proofs live; other worktrees and the main checkout stay hard-gated; reviewers stay read-only
+everywhere (they never reach the path check). qa's rule skill states the protocol: assigned
+worktree, byte-identity restore verification, never "just briefly" in the main checkout. **The
+commit pen is the orchestrator's:** it stages by explicit pathspec and commits the feature branch
+it owns; merge/PR/deploy stay user-gated; probe edits must be byte-verified restored before any
+commit. Recorded in the playbook.
 
 Residual, stated honestly: python-heredoc writes evade the guard's shell parsing (found by the
 audit's second pass) — the guard remains a casual-shape filter per DEC-151; heredoc evasion is
@@ -5335,8 +5335,8 @@ would still leave every other prefix-dependent rule broken there.
 to close.** The requirement commits to one shared **implementation**, not to identical verdicts, and
 three divergences between the two write routes survive deliberately:
 
-- The Bash route keeps DEC-153's blanket allow for governed agents writing under
-  `.claude/worktrees/`, which the Write route does not have.
+- Both routes bind a governed write to the writer's claim set. The Bash route's remaining
+  DEC-153 carve-out permits only writes inside the assigned worktree.
 - The Bash route still does not enforce product-base domains for paths outside the harness root: its
   outside-repo pass-through is preserved, narrowed to a filter on the verdict rather than removed,
   because dropping it would begin enforcing those domains there for the first time. **Preservation
@@ -6788,3 +6788,60 @@ run cannot decide a release.
 
 **Evidence:** FEAT-54 and
 `.harness/notes/grilling-handoff-done-when-2026-09-02.md`.
+
+## DEC-218 — Claim-set membership binds governed writes to assigned worktrees on both routes
+
+**Chose:** CLAIM-SET MEMBERSHIP is the binding key. For the writing `agent_type`, build $S$ from
+every live claim across every linked-worktree registry and the owner-root registry. Resolve each
+claim's own `feature` through `harness_boundary.worktree_for_feature`; it contributes to $S$ only
+when that returns a real worktree. An empty $S$ means the persona is unbound and the write is
+allowed. A non-empty $S$ permits a governed write only when the resolved destination lies inside a
+member of $S$; otherwise both Write/Edit and Bash exit 2, name the members of $S$, and name the
+destination's proper home. Origin: `BUG-1304-worktree-relative-path-guard`.
+
+**Destination decides; spelling does not.** Relative and absolute paths, main-checkout copies, and
+sibling worktrees receive the same answer after resolution. The host-uniform predicate lives in
+DEC-193's shared `harness_boundary.py` seam, is fed only by `agent_type`, and adds no payload
+plumbing. DEC-208's rejected payload key remains rejected: such a key exists only on routes that
+happen to carry it, while Git's worktree registry cannot drift. An unresolvable or ambiguous
+assignment refuses rather than guessing. Scratch paths, unbound agents, and DEC-193's second legal
+location, `workspace_root/<repo>` under DEC-189, retain their prior behavior. Control-plane
+Expertise distillation remains carved out by its sanctioned merge route, not by a destination glob
+(DEC-153).
+
+**Two identity residues are accepted, not hidden.** FALSE-ALLOW: persona P dispatched for feature A
+may write into B's worktree while a concurrent P session holds B, because B is a member of $S$.
+FALSE-REFUSE: P holding a worktree-backed claim may be refused when a concurrent P claim for a
+feature without a worktree writes the main checkout, because $S$ is non-empty. Exact dispatch
+matching is unbuildable on Claude Code: write payloads carry no feature identity. OMP could add a
+capture, but an untested current-feature capture has a wrong-feature-first branch that would both
+refuse legitimate writes and permit the sibling harm. The set rule is therefore the weakest
+host-uniform enforcement supported by durable inputs.
+
+**Binding liveness and dispatch liveness are separate questions over one stored claim.** The
+guards' enumerator answers binding liveness: an OMP claim remains live through `_omp_claim_live`;
+a non-OMP claim remains binding until `OMP_UNVERIFIED_TTL_SECONDS`. Dispatch-side answers —
+single-flight admission, `live_children`, and reconciliation counts — retain
+`CLAIM_TTL_SECONDS = 1200`, preserving FEAT-37's unstranding behavior. That 1,200-second horizon is
+not a binding horizon: applying it to the enumerator would empty $S$ for every compatibility-host
+agent after twenty minutes and re-open this bug's founding incident.
+
+Past-backstop silent unbinding is accepted. The reason remains recorded at
+`inflight_registry.py:30-35`: the compatibility host has no supervisor proof, while a claim that
+never ages out can hold its parent's yield forever through `validate-digest.py`'s held-child gate.
+The existing `OMP_UNVERIFIED_TTL_SECONDS = 86400` is ratified, not re-chosen; it is above the
+7,200-second longest measured leaf run. A dispatch-expired non-OMP claim stays in the registry file
+until that binding backstop, while every dispatch-side returned answer remains bounded at 1,200
+seconds.
+
+**An existing unreadable registry makes the claim set incomplete.** It is refused fail-closed,
+names the file to repair, and is never read as “no claims here.” The listed JSON failures are
+illustrative, not exhaustive: OSError and undecodable input are also unreadable. This refusal binds
+exactly the governed writes the readable roots cannot place; a destination already proven inside a
+worktree by a readable registry stays allowed despite an unrelated unreadable registry. Claim and
+write paths retain their pre-existing treat-as-empty recovery behavior. This narrows FEAT-51's
+directory fixture: an existing registry path that is a directory now refuses before quarantine,
+while failures in quarantine machinery itself, including an unimportable registry module, remain
+fail-open. This scope was ruled by the Advisor and authorized by the operator without overrule.
+
+Lineage: DEC-100, DEC-110, DEC-153, DEC-174, DEC-189, DEC-193, DEC-205, and DEC-208.
