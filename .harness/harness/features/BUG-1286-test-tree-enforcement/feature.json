@@ -2,7 +2,7 @@
   "feature_id": "BUG-1286-test-tree-enforcement",
   "branch": "feat/BUG-1286-test-tree-enforcement",
   "pr": null,
-  "review_sha": "9adbce6b690cd4b319c3758ab2a16505dd15900e",
+  "review_sha": "bb3a31edc1971447b998fda1f9a736944bc8e612",
   "cycles_used": 11,
   "max_total_cycles": 11,
   "max_total_runs": 20,
@@ -236,6 +236,19 @@
       "squad": "product",
       "verdict": "FAIL",
       "agent": "harness-product-lead"
+    },
+    {
+      "id": "2026-09-05-c11-eng",
+      "squad": "eng",
+      "verdict": "PASS",
+      "agent": "harness-eng-lead"
+    },
+    {
+      "id": "2026-09-05-08-validator",
+      "squad": "validator",
+      "verdict": "PASS",
+      "agent": "harness-validator-lead",
+      "code_grade": "n_a"
     }
   ],
   "github": {
