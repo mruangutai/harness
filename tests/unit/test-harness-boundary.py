@@ -18,10 +18,13 @@ _anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
 _anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
 _anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
 _anchor_sys.path.insert(0, _anchor_bin)
+import inflight_registry
 import os
+import json
 import shutil
 import sys
 import tempfile
+import time
 
 TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
@@ -254,6 +257,26 @@ def make_worktree(mod, owner_root, name):
     return mod.real(path)
 
 
+def write_claims(root, claims):
+    path = os.path.join(root, inflight_registry.REGISTRY_REL)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", encoding="utf-8") as handle:
+        json.dump({"schema_version": inflight_registry.SCHEMA_VERSION,
+                   "claims": claims}, handle)
+    return path
+
+
+def live_claim(agent, feature):
+    return {
+        "agent": agent,
+        "dispatcher": "harness-orchestrator",
+        "cwd": "/fixture",
+        "feature": feature,
+        "runtime": "claude",
+        "started_at": time.time(),
+    }
+
+
 # ============================== worktree_for_feature ==============================
 
 def case_worktree_for_feature():
@@ -315,6 +338,126 @@ def case_worktree_for_feature():
               f"got result={result3!r} raised={raised3!r}")
     finally:
         shutil.rmtree(tmp3, ignore_errors=True)
+
+
+# ============================== BUG-1304 claim set ==============================
+
+def case_bug1304_claim_set():
+    mod = hb()
+    agent = "harness-backend-dev"
+
+    owner = tempfile.mkdtemp()
+    try:
+        short = make_worktree(mod, owner, "FEAT-32")
+        write_claims(short, [live_claim(agent, "FEAT-32-concurrent-write-merge")])
+        got = mod.claim_worktrees(owner, agent, owner)
+        check("bug1304: short-form worktree prefix contributes to S",
+              got == [short], f"expected {[short]!r}, got {got!r}")
+    finally:
+        shutil.rmtree(owner, ignore_errors=True)
+
+    owner = tempfile.mkdtemp()
+    try:
+        linked = make_worktree(mod, owner, "FEAT-40")
+        write_claims(owner, [live_claim(agent, "FEAT-40-harness-writes-done")])
+        got = mod.claim_worktrees(owner, agent, owner)
+        check("bug1304: owner-root registry claim resolves by its feature",
+              got == [linked], f"expected {[linked]!r}, got {got!r}")
+    finally:
+        shutil.rmtree(owner, ignore_errors=True)
+
+    owner = tempfile.mkdtemp()
+    try:
+        write_claims(owner, [live_claim(agent, "FEAT-404-missing")])
+        check("bug1304: unresolved feature contributes no worktree",
+              mod.claim_worktrees(owner, agent, owner) == [])
+    finally:
+        shutil.rmtree(owner, ignore_errors=True)
+
+    owner = tempfile.mkdtemp()
+    try:
+        first = make_worktree(mod, owner, "FEAT-31")
+        second = make_worktree(mod, owner, "FEAT-32")
+        write_claims(owner, [
+            live_claim(agent, "FEAT-31-orchestrator-context-watch"),
+            live_claim(agent, "FEAT-32-concurrent-write-merge"),
+        ])
+        check("bug1304: claims in two features yield both worktrees",
+              mod.claim_worktrees(owner, agent, owner) == sorted([first, second]))
+    finally:
+        shutil.rmtree(owner, ignore_errors=True)
+
+    owner = tempfile.mkdtemp()
+    try:
+        check("bug1304: no claims yields an empty set",
+              mod.claim_worktrees(owner, agent, owner) == [])
+    finally:
+        shutil.rmtree(owner, ignore_errors=True)
+
+    owner = tempfile.mkdtemp()
+    try:
+        make_worktree(mod, owner, "FEAT")
+        make_worktree(mod, owner, "FEAT-X")
+        write_claims(owner, [live_claim(agent, "FEAT-X-thing")])
+        raised = None
+        try:
+            mod.claim_worktrees(owner, agent, owner)
+        except mod.AmbiguousWorktree as error:
+            raised = error
+        check("bug1304: ambiguous feature worktrees propagate",
+              raised is not None and "FEAT, FEAT-X" in str(raised), repr(raised))
+    finally:
+        shutil.rmtree(owner, ignore_errors=True)
+
+    owner = tempfile.mkdtemp()
+    try:
+        linked = make_worktree(mod, owner, "FEAT-50")
+        owner_registry = write_claims(
+            owner, [live_claim(agent, "FEAT-50-run-artifact-integrity")])
+        linked_registry = write_claims(linked, [])
+        with open(linked_registry, "w", encoding="utf-8") as handle:
+            handle.write("{")
+        outside = os.path.join(owner, "outside")
+        raised = None
+        try:
+            mod.claim_worktrees(owner, agent, outside)
+        except inflight_registry.UnreadableRegistry as error:
+            raised = error
+        check("bug1304: unreadable linked registry refuses an outside destination",
+              raised is not None and linked_registry in str(raised), repr(raised))
+
+        with open(owner_registry, "w", encoding="utf-8") as handle:
+            handle.write("{")
+        write_claims(linked, [live_claim(agent, "FEAT-50-run-artifact-integrity")])
+        raised = None
+        try:
+            mod.claim_worktrees(owner, agent, outside)
+        except inflight_registry.UnreadableRegistry as error:
+            raised = error
+        check("bug1304: unreadable owner registry also refuses",
+              raised is not None and owner_registry in str(raised), repr(raised))
+
+        got = mod.claim_worktrees(owner, agent, os.path.join(linked, "inside"))
+        check("bug1304: proven destination is allowed with unrelated unreadable registry",
+              got == [linked], f"expected {[linked]!r}, got {got!r}")
+    finally:
+        shutil.rmtree(owner, ignore_errors=True)
+
+    members = ["/tmp/wt-a", "/tmp/wt-b"]
+    destination = "/tmp/main/.harness/file"
+    refusal = mod.claim_set_refusal(agent, members, destination)
+    check("bug1304: refusal names every claim worktree and destination home",
+          all(value in refusal for value in members)
+          and destination in refusal and "/tmp/main" in refusal,
+          refusal)
+    check("bug1304: refusal never advises removing a worktree",
+          "remove the worktree" not in refusal.lower(), refusal)
+    expertise_refusal = mod.claim_set_refusal(
+        agent, members, "/tmp/main/.harness/expertise/harness-backend-dev.md")
+    check("bug1304: expertise refusal names the sanctioned merge CLI",
+          "expertise-merge.py apply" in expertise_refusal
+          and "remove the worktree" not in expertise_refusal.lower(),
+          expertise_refusal)
 
 
 def run_case(fn):
@@ -391,6 +534,7 @@ def main():
     run_case(case_resolve_root_override_normalises_relative)
     run_case(case_root_above)
     run_case(case_worktree_for_feature)
+    run_case(case_bug1304_claim_set)
     run_case(case_real_keeps_one_namespace_when_unresolvable)
     run_case(case_tests_are_target_side_control_plane_only)
 
