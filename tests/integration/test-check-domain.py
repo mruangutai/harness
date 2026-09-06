@@ -4443,12 +4443,16 @@ def bug1304_assert_pre_change_allows(results, name, root, destination, agent):
     shutil.rmtree(isolated, ignore_errors=True)
 
 
-def run_bug1304_claim_set():
-    """Issue #1304 claim-set cases; frozen guard provenance: a4e8ecf7."""
-    import inflight_registry
+def _bug1304_domain_expect(results, root, agent, name, destination, want,
+                           contains=None, tool="Write"):
+    response = _bug1304_fire(root, destination, agent, tool=tool)
+    text = response.stdout + response.stderr
+    ok = response.returncode == want and (contains is None or contains in text)
+    results.append((name, ok, f"exit={response.returncode} output={text[:180]!r}"))
+    return response
 
-    results = []
-    agent = "harness-documentor"
+
+def _bug1304_domain_context(agent, inflight_registry):
     manifest = FIXTURE_MANIFEST.replace(
         '          - { path: ".", read: true }',
         '          - { path: ".claude/worktrees/**", upsert: true }\n'
@@ -4462,155 +4466,198 @@ def run_bug1304_claim_set():
     inflight_registry.claim(
         first, agent, "harness-product-lead", first,
         feature="FEAT-1304-A-claim-guard")
+    return {
+        "manifest": manifest, "root": root, "first": first, "second": second,
+        "agent": agent, "main": ".harness/allowed/main.md",
+    }
 
-    def expect(name, destination, want, contains=None, tool="Write"):
-        response = _bug1304_fire(root, destination, agent, tool=tool)
-        text = response.stdout + response.stderr
-        ok = response.returncode == want and (contains is None or contains in text)
-        results.append((name, ok, f"exit={response.returncode} output={text[:180]!r}"))
-        return response
 
-    main_rel = ".harness/allowed/main.md"
-    expect("relative main-checkout write is refused", main_rel, 2, first)
-    bug1304_assert_pre_change_allows(results, "relative main", root, main_rel, agent)
-    expect("absolute main-checkout write is refused", os.path.join(root, main_rel), 2, first)
-    bug1304_assert_pre_change_allows(
-        results, "absolute main", root, os.path.join(root, main_rel), agent)
-    sibling = os.path.join(second, ".harness", "allowed", "sibling.md")
-    expect("sibling-worktree write is refused", sibling, 2, first)
-    bug1304_assert_pre_change_allows(results, "sibling", root, sibling, agent)
+def _bug1304_domain_main_routes(results, context):
+    root = context["root"]
+    agent = context["agent"]
+    first = context["first"]
+    main = context["main"]
+    cases = (
+        ("relative main", main),
+        ("absolute main", os.path.join(root, main)),
+        ("sibling", os.path.join(context["second"], ".harness", "allowed", "sibling.md")),
+    )
+    for label, destination in cases:
+        _bug1304_domain_expect(
+            results, root, agent, f"{label}-checkout write is refused",
+            destination, 2, first)
+        bug1304_assert_pre_change_allows(
+            results, label, root, destination, agent)
 
-    expect("relative held-worktree write is allowed",
-           os.path.relpath(os.path.join(first, ".harness", "allowed", "own.md"), root), 0)
-    expect("absolute held-worktree write is allowed",
-           os.path.join(first, ".harness", "allowed", "own-absolute.md"), 0)
+    _bug1304_domain_expect(
+        results, root, agent, "relative held-worktree write is allowed",
+        os.path.relpath(os.path.join(first, ".harness", "allowed", "own.md"), root), 0)
+    _bug1304_domain_expect(
+        results, root, agent, "absolute held-worktree write is allowed",
+        os.path.join(first, ".harness", "allowed", "own-absolute.md"), 0)
 
-    empty_root = fixture(manifest)
-    response = _bug1304_fire(empty_root, main_rel, agent)
+
+def _bug1304_domain_unbound_routes(results, context):
+    agent = context["agent"]
+    root = fixture(context["manifest"])
+    response = _bug1304_fire(root, context["main"], agent)
     results.append(("unbound agent remains allowed", response.returncode == 0,
                     f"exit={response.returncode}"))
     scratch = os.path.join(tempfile.mkdtemp(), "scratch.md")
-    expect("scratch write remains allowed", scratch, 0)
+    _bug1304_domain_expect(
+        results, context["root"], agent, "scratch write remains allowed", scratch, 0)
 
-    unmatched_root = fixture(manifest)
+
+def _bug1304_domain_owner_claim(results, context, inflight_registry):
+    agent = context["agent"]
+    root = fixture(context["manifest"])
     matching = make_linked_worktree(
-        unmatched_root,
-        os.path.join(unmatched_root, ".claude", "worktrees", "FEAT-1304-C"), "C")
+        root, os.path.join(root, ".claude", "worktrees", "FEAT-1304-C"), "C")
     inflight_registry.claim(
-        unmatched_root, agent, "harness-product-lead", unmatched_root,
-        feature="FEAT-404-no-worktree")
-    unmatched_main = ".harness/allowed/unmatched.md"
-    response = _bug1304_fire(unmatched_root, unmatched_main, agent)
+        root, agent, "harness-product-lead", root, feature="FEAT-404-no-worktree")
+    destination = ".harness/allowed/unmatched.md"
+    response = _bug1304_fire(root, destination, agent)
     results.append(("unresolved owner-root claim remains unbound",
                     response.returncode == 0, f"exit={response.returncode}"))
     inflight_registry.claim(
-        unmatched_root, agent, "harness-product-lead", unmatched_root,
-        feature="FEAT-1304-C-linked")
-    response = _bug1304_fire(unmatched_root, unmatched_main, agent)
-    results.append(("owner-root matching claim refuses main write",
-                    response.returncode == 2, f"exit={response.returncode}"))
+        root, agent, "harness-product-lead", root, feature="FEAT-1304-C-linked")
+    _bug1304_domain_expect(
+        results, root, agent, "owner-root matching claim refuses main write",
+        destination, 2, matching)
     bug1304_assert_pre_change_allows(
-        results, "owner-root matching claim", unmatched_root, unmatched_main, agent)
+        results, "owner-root matching claim", root, destination, agent)
 
+
+def _bug1304_domain_multi_and_malformed(results, context, inflight_registry):
+    agent = context["agent"]
     inflight_registry.claim(
-        second, agent, "harness-product-lead", second,
+        context["second"], agent, "harness-product-lead", context["second"],
         feature="FEAT-1304-B-claim-guard")
-    expect("two claims still allow either held worktree",
-           os.path.join(second, ".harness", "allowed", "own.md"), 0)
+    _bug1304_domain_expect(
+        results, context["root"], agent, "two claims still allow either held worktree",
+        os.path.join(context["second"], ".harness", "allowed", "own.md"), 0)
 
-    malformed = os.path.join(root, ".claude", "worktrees", "broken")
+    malformed = os.path.join(context["root"], ".claude", "worktrees", "broken")
     os.makedirs(malformed, exist_ok=True)
     with open(os.path.join(malformed, ".git"), "w", encoding="utf-8") as handle:
         handle.write("not-a-pointer\n")
-    expect("malformed checkout pointer refuses with a nonempty claim set",
-           os.path.join(malformed, ".harness", "allowed", "x.md"), 2)
+    destination = os.path.join(malformed, ".harness", "allowed", "x.md")
+    _bug1304_domain_expect(
+        results, context["root"], agent,
+        "malformed checkout pointer refuses with a nonempty claim set",
+        destination, 2, context["first"])
     bug1304_assert_pre_change_allows(
-        results, "malformed checkout", root,
-        os.path.join(malformed, ".harness", "allowed", "x.md"), agent)
+        results, "malformed checkout", context["root"], destination, agent)
 
-    ambiguous_root = fixture(manifest)
+
+def _bug1304_domain_ambiguous(results, context, inflight_registry):
+    agent = context["agent"]
+    root = fixture(context["manifest"])
     make_linked_worktree(
-        ambiguous_root,
-        os.path.join(ambiguous_root, ".claude", "worktrees", "FEAT"), "AMB1")
+        root, os.path.join(root, ".claude", "worktrees", "FEAT"), "AMB1")
     make_linked_worktree(
-        ambiguous_root,
-        os.path.join(ambiguous_root, ".claude", "worktrees", "FEAT-X"), "AMB2")
+        root, os.path.join(root, ".claude", "worktrees", "FEAT-X"), "AMB2")
     inflight_registry.claim(
-        ambiguous_root, agent, "harness-product-lead", ambiguous_root,
-        feature="FEAT-X-ambiguous")
-    response = _bug1304_fire(ambiguous_root, main_rel, agent)
-    text = response.stdout + response.stderr
-    results.append(("ambiguous claim refuses and names candidates",
-                    response.returncode == 2 and "FEAT, FEAT-X" in text,
-                    f"exit={response.returncode} output={text[:180]!r}"))
+        root, agent, "harness-product-lead", root, feature="FEAT-X-ambiguous")
+    _bug1304_domain_expect(
+        results, root, agent, "ambiguous claim refuses and names candidates",
+        context["main"], 2, "FEAT, FEAT-X")
     bug1304_assert_pre_change_allows(
-        results, "ambiguous claim", ambiguous_root, main_rel, agent)
+        results, "ambiguous claim", root, context["main"], agent)
 
-    short_root = fixture(manifest)
+
+def _bug1304_domain_short_claim(results, context, inflight_registry):
+    agent = context["agent"]
+    root = fixture(context["manifest"])
     short = make_linked_worktree(
-        short_root, os.path.join(short_root, ".claude", "worktrees", "BUG-1304"), "SHORT")
+        root, os.path.join(root, ".claude", "worktrees", "BUG-1304"), "SHORT")
     inflight_registry.claim(
         short, agent, "harness-product-lead", short,
         feature="BUG-1304-worktree-relative-path-guard")
-    response = _bug1304_fire(short_root, main_rel, agent)
-    results.append(("short-form worktree claim refuses main write",
-                    response.returncode == 2, f"exit={response.returncode}"))
-    bug1304_assert_pre_change_allows(results, "short-form", short_root, main_rel, agent)
+    _bug1304_domain_expect(
+        results, root, agent, "short-form worktree claim refuses main write",
+        context["main"], 2)
+    bug1304_assert_pre_change_allows(
+        results, "short-form", root, context["main"], agent)
 
-    registry = os.path.join(first, inflight_registry.REGISTRY_REL)
+
+def _bug1304_domain_aged_claim(results, context, inflight_registry):
+    registry = os.path.join(context["first"], inflight_registry.REGISTRY_REL)
     data = json.load(open(registry, encoding="utf-8"))
     data["claims"][0]["started_at"] = (
         __import__("time").time() - inflight_registry.CLAIM_TTL_SECONDS - 5)
     with open(registry, "w", encoding="utf-8") as handle:
         json.dump(data, handle)
-    expect("aged compatibility claim still refuses", main_rel, 2, first)
-    bug1304_assert_pre_change_allows(results, "aged claim", root, main_rel, agent)
-
-    unreadable_root = fixture(manifest)
-    unreadable_wt = make_linked_worktree(
-        unreadable_root,
-        os.path.join(unreadable_root, ".claude", "worktrees", "FEAT-BAD"), "BAD")
-    inflight_registry.claim(
-        unreadable_wt, agent, "harness-product-lead", unreadable_wt,
-        feature="FEAT-BAD-unreadable")
-    unreadable_registry = os.path.join(unreadable_wt, inflight_registry.REGISTRY_REL)
-    with open(unreadable_registry, "w", encoding="utf-8") as handle:
-        handle.write("{")
-    response = _bug1304_fire(unreadable_root, main_rel, agent)
-    text = response.stdout + response.stderr
-    results.append(("unreadable registry refuses and names file",
-                    response.returncode == 2 and unreadable_registry in text,
-                    f"exit={response.returncode} output={text[:180]!r}"))
+    _bug1304_domain_expect(
+        results, context["root"], context["agent"],
+        "aged compatibility claim still refuses",
+        context["main"], 2, context["first"])
     bug1304_assert_pre_change_allows(
-        results, "unreadable registry", unreadable_root, main_rel, agent)
-    with open(unreadable_registry, "w", encoding="utf-8") as handle:
+        results, "aged claim", context["root"], context["main"], context["agent"])
+
+
+def _bug1304_domain_unreadable(results, context, inflight_registry):
+    agent = context["agent"]
+    root = fixture(context["manifest"])
+    worktree = make_linked_worktree(
+        root, os.path.join(root, ".claude", "worktrees", "FEAT-BAD"), "BAD")
+    inflight_registry.claim(
+        worktree, agent, "harness-product-lead", worktree,
+        feature="FEAT-BAD-unreadable")
+    registry = os.path.join(worktree, inflight_registry.REGISTRY_REL)
+    with open(registry, "w", encoding="utf-8") as handle:
+        handle.write("{")
+    _bug1304_domain_expect(
+        results, root, agent, "unreadable registry refuses and names file",
+        context["main"], 2, registry)
+    bug1304_assert_pre_change_allows(
+        results, "unreadable registry", root, context["main"], agent)
+    with open(registry, "w", encoding="utf-8") as handle:
         json.dump({"schema_version": 2, "claims": []}, handle)
-    response = _bug1304_fire(unreadable_root, main_rel, agent)
+    response = _bug1304_fire(root, context["main"], agent)
     results.append(("readable empty registry remains allowed",
                     response.returncode == 0, f"exit={response.returncode}"))
 
-    mixed_root = fixture(manifest)
+
+def _bug1304_domain_partial_registry(results, context, inflight_registry):
+    agent = context["agent"]
+    root = fixture(context["manifest"])
     own = make_linked_worktree(
-        mixed_root, os.path.join(mixed_root, ".claude", "worktrees", "FEAT-OWN"), "OWN")
+        root, os.path.join(root, ".claude", "worktrees", "FEAT-OWN"), "OWN")
     corrupt = make_linked_worktree(
-        mixed_root, os.path.join(mixed_root, ".claude", "worktrees", "FEAT-CORRUPT"), "CORRUPT")
+        root, os.path.join(root, ".claude", "worktrees", "FEAT-CORRUPT"), "CORRUPT")
     inflight_registry.claim(
         own, agent, "harness-product-lead", own, feature="FEAT-OWN-readable")
-    corrupt_registry = os.path.join(corrupt, inflight_registry.REGISTRY_REL)
-    os.makedirs(os.path.dirname(corrupt_registry), exist_ok=True)
-    with open(corrupt_registry, "w", encoding="utf-8") as handle:
+    registry = os.path.join(corrupt, inflight_registry.REGISTRY_REL)
+    os.makedirs(os.path.dirname(registry), exist_ok=True)
+    with open(registry, "w", encoding="utf-8") as handle:
         handle.write("{")
     response = _bug1304_fire(
-        mixed_root, os.path.join(own, ".harness", "allowed", "inside.md"), agent)
+        root, os.path.join(own, ".harness", "allowed", "inside.md"), agent)
     results.append(("readable member allows despite unrelated unreadable registry",
                     response.returncode == 0, f"exit={response.returncode}"))
-    response = _bug1304_fire(mixed_root, main_rel, agent)
-    text = response.stdout + response.stderr
-    results.append(("outside partial claim set refuses unreadable registry",
-                    response.returncode == 2 and corrupt_registry in text,
-                    f"exit={response.returncode} output={text[:180]!r}"))
+    _bug1304_domain_expect(
+        results, root, agent, "outside partial claim set refuses unreadable registry",
+        context["main"], 2, registry)
     bug1304_assert_pre_change_allows(
-        results, "partial unreadable", mixed_root, main_rel, agent)
+        results, "partial unreadable", root, context["main"], agent)
+
+
+def run_bug1304_claim_set():
+    """Issue #1304 claim-set cases; frozen guard provenance: a4e8ecf7."""
+    import inflight_registry
+
+    results = []
+    context = _bug1304_domain_context("harness-documentor", inflight_registry)
+    _bug1304_domain_main_routes(results, context)
+    _bug1304_domain_unbound_routes(results, context)
+    _bug1304_domain_owner_claim(results, context, inflight_registry)
+    _bug1304_domain_multi_and_malformed(results, context, inflight_registry)
+    _bug1304_domain_ambiguous(results, context, inflight_registry)
+    _bug1304_domain_short_claim(results, context, inflight_registry)
+    _bug1304_domain_aged_claim(results, context, inflight_registry)
+    _bug1304_domain_unreadable(results, context, inflight_registry)
+    _bug1304_domain_partial_registry(results, context, inflight_registry)
 
     failures = 0
     for name, ok, detail in results:

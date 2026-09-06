@@ -249,6 +249,18 @@ def inside(child, parent):
         return False
 
 
+def _registry_claim_worktrees(owner_root, registry_root, agent_type):
+    """Resolve one registry's live claims to linked worktrees."""
+    import inflight_registry
+
+    result = set()
+    for claim in inflight_registry.live_claims(registry_root, agent_type):
+        worktree = worktree_for_feature(owner_root, claim.get("feature"))
+        if worktree is not None:
+            result.add(worktree)
+    return result
+
+
 def claim_worktrees(owner_root, agent_type, destination):
     """Return the linked worktrees bound to an agent's live feature claims."""
     import inflight_registry
@@ -257,17 +269,12 @@ def claim_worktrees(owner_root, agent_type, destination):
     destination = real(destination)
     claim_set = set()
     unreadable = set()
-    roots = [owner_root] + linked_worktrees(owner_root)
-    for registry_root in roots:
+    for registry_root in [owner_root] + linked_worktrees(owner_root):
         try:
-            claims = inflight_registry.live_claims(registry_root, agent_type)
+            claim_set.update(
+                _registry_claim_worktrees(owner_root, registry_root, agent_type))
         except inflight_registry.UnreadableRegistry as error:
             unreadable.update(error.paths)
-            continue
-        for claim in claims:
-            worktree = worktree_for_feature(owner_root, claim.get("feature"))
-            if worktree is not None:
-                claim_set.add(worktree)
 
     result = sorted(claim_set)
     if any(inside(destination, worktree) for worktree in result):

@@ -342,10 +342,17 @@ def case_worktree_for_feature():
 
 # ============================== BUG-1304 claim set ==============================
 
-def case_bug1304_claim_set():
+def _bug1304_unreadable(mod, owner, agent, destination):
+    try:
+        mod.claim_worktrees(owner, agent, destination)
+    except inflight_registry.UnreadableRegistry as error:
+        return error
+    return None
+
+
+def case_bug1304_short_claim():
     mod = hb()
     agent = "harness-backend-dev"
-
     owner = tempfile.mkdtemp()
     try:
         short = make_worktree(mod, owner, "FEAT-32")
@@ -356,6 +363,10 @@ def case_bug1304_claim_set():
     finally:
         shutil.rmtree(owner, ignore_errors=True)
 
+
+def case_bug1304_owner_claim():
+    mod = hb()
+    agent = "harness-backend-dev"
     owner = tempfile.mkdtemp()
     try:
         linked = make_worktree(mod, owner, "FEAT-40")
@@ -366,6 +377,10 @@ def case_bug1304_claim_set():
     finally:
         shutil.rmtree(owner, ignore_errors=True)
 
+
+def case_bug1304_unresolved_and_empty_claims():
+    mod = hb()
+    agent = "harness-backend-dev"
     owner = tempfile.mkdtemp()
     try:
         write_claims(owner, [live_claim(agent, "FEAT-404-missing")])
@@ -373,7 +388,17 @@ def case_bug1304_claim_set():
               mod.claim_worktrees(owner, agent, owner) == [])
     finally:
         shutil.rmtree(owner, ignore_errors=True)
+    owner = tempfile.mkdtemp()
+    try:
+        check("bug1304: no claims yields an empty set",
+              mod.claim_worktrees(owner, agent, owner) == [])
+    finally:
+        shutil.rmtree(owner, ignore_errors=True)
 
+
+def case_bug1304_multiple_claims():
+    mod = hb()
+    agent = "harness-backend-dev"
     owner = tempfile.mkdtemp()
     try:
         first = make_worktree(mod, owner, "FEAT-31")
@@ -387,13 +412,10 @@ def case_bug1304_claim_set():
     finally:
         shutil.rmtree(owner, ignore_errors=True)
 
-    owner = tempfile.mkdtemp()
-    try:
-        check("bug1304: no claims yields an empty set",
-              mod.claim_worktrees(owner, agent, owner) == [])
-    finally:
-        shutil.rmtree(owner, ignore_errors=True)
 
+def case_bug1304_ambiguous_claim():
+    mod = hb()
+    agent = "harness-backend-dev"
     owner = tempfile.mkdtemp()
     try:
         make_worktree(mod, owner, "FEAT")
@@ -409,6 +431,24 @@ def case_bug1304_claim_set():
     finally:
         shutil.rmtree(owner, ignore_errors=True)
 
+
+def _bug1304_check_owner_unreadable(mod, owner, linked, agent,
+                                    owner_registry, outside):
+    with open(owner_registry, "w", encoding="utf-8") as handle:
+        handle.write("{")
+    write_claims(linked, [live_claim(agent, "FEAT-50-run-artifact-integrity")])
+    raised = _bug1304_unreadable(mod, owner, agent, outside)
+    check("bug1304: unreadable owner registry also refuses",
+          raised is not None and owner_registry in str(raised), repr(raised))
+
+    got = mod.claim_worktrees(owner, agent, os.path.join(linked, "inside"))
+    check("bug1304: proven destination is allowed with unrelated unreadable registry",
+          got == [linked], f"expected {[linked]!r}, got {got!r}")
+
+
+def case_bug1304_unreadable_claims():
+    mod = hb()
+    agent = "harness-backend-dev"
     owner = tempfile.mkdtemp()
     try:
         linked = make_worktree(mod, owner, "FEAT-50")
@@ -418,31 +458,19 @@ def case_bug1304_claim_set():
         with open(linked_registry, "w", encoding="utf-8") as handle:
             handle.write("{")
         outside = os.path.join(owner, "outside")
-        raised = None
-        try:
-            mod.claim_worktrees(owner, agent, outside)
-        except inflight_registry.UnreadableRegistry as error:
-            raised = error
+        raised = _bug1304_unreadable(mod, owner, agent, outside)
         check("bug1304: unreadable linked registry refuses an outside destination",
               raised is not None and linked_registry in str(raised), repr(raised))
 
-        with open(owner_registry, "w", encoding="utf-8") as handle:
-            handle.write("{")
-        write_claims(linked, [live_claim(agent, "FEAT-50-run-artifact-integrity")])
-        raised = None
-        try:
-            mod.claim_worktrees(owner, agent, outside)
-        except inflight_registry.UnreadableRegistry as error:
-            raised = error
-        check("bug1304: unreadable owner registry also refuses",
-              raised is not None and owner_registry in str(raised), repr(raised))
-
-        got = mod.claim_worktrees(owner, agent, os.path.join(linked, "inside"))
-        check("bug1304: proven destination is allowed with unrelated unreadable registry",
-              got == [linked], f"expected {[linked]!r}, got {got!r}")
+        _bug1304_check_owner_unreadable(
+            mod, owner, linked, agent, owner_registry, outside)
     finally:
         shutil.rmtree(owner, ignore_errors=True)
 
+
+def case_bug1304_refusal_text():
+    mod = hb()
+    agent = "harness-backend-dev"
     members = ["/tmp/wt-a", "/tmp/wt-b"]
     destination = "/tmp/main/.harness/file"
     refusal = mod.claim_set_refusal(agent, members, destination)
@@ -458,6 +486,16 @@ def case_bug1304_claim_set():
           "expertise-merge.py apply" in expertise_refusal
           and "remove the worktree" not in expertise_refusal.lower(),
           expertise_refusal)
+
+
+def case_bug1304_claim_set():
+    case_bug1304_short_claim()
+    case_bug1304_owner_claim()
+    case_bug1304_unresolved_and_empty_claims()
+    case_bug1304_multiple_claims()
+    case_bug1304_ambiguous_claim()
+    case_bug1304_unreadable_claims()
+    case_bug1304_refusal_text()
 
 
 def run_case(fn):

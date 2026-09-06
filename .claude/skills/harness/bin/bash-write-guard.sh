@@ -652,6 +652,11 @@ def deny(reason):
           "as an open_question.", file=sys.stderr)
     sys.exit(2)
 
+def deny_bare(reason):
+    """Refuse without suggesting a different write surface."""
+    print(f"bash-write-guard: BLOCKED — {reason}", file=sys.stderr)
+    sys.exit(2)
+
 if agent in REVIEWERS:
     pats = ", ".join(sorted({f[0] for f in findings}))
     deny(f"{agent} is READ-ONLY and this command writes files ({pats}). "
@@ -736,12 +741,12 @@ def claim_checkout_guard(destination):
     try:
         claim_set = harness_boundary.claim_worktrees(root, agent, destination)
     except harness_boundary.AmbiguousWorktree as exc:
-        deny(f"{agent} has an ambiguous worktree claim: {exc}")
+        deny_bare(f"{agent} has an ambiguous worktree claim: {exc}")
     except Exception as exc:
         try:
             import inflight_registry
             if isinstance(exc, inflight_registry.UnreadableRegistry):
-                deny(harness_boundary.claim_set_refusal(
+                deny_bare(harness_boundary.claim_set_refusal(
                     agent, [], destination, unreadable_paths=exc.paths
                 ))
         except SystemExit:
@@ -758,7 +763,7 @@ def claim_checkout_guard(destination):
         return []
     if any(harness_boundary.inside(destination, worktree) for worktree in claim_set):
         return claim_set
-    deny(harness_boundary.claim_set_refusal(agent, claim_set, destination))
+    deny_bare(harness_boundary.claim_set_refusal(agent, claim_set, destination))
 
 
 def _worktree_stripped(rel):
