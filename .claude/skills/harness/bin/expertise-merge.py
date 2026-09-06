@@ -174,8 +174,17 @@ def _reject_multiline(value, index, field):
     headers/entries that `_check_caps` (D-07) never sees because it only ever counts parsed list
     length. Refuse it here, at the single Step A shape gate, rather than at each of render's /
     `_rebuild_section`'s write sites — the apply path's `render` must not carry this policy
+    SEC-01/F1 (fix cycle 2): the check below now refuses any value for which
+    `len(value.splitlines()) > 1` — the same boundary set `parse_expertise`'s `str.splitlines()`
+    call recognizes (as of this Python, `\\n \\r \\v \\f \\x1c \\x1d \\x1e \\x85 \\u2028 \\u2029`,
+    a superset of `\\n`/`\\r`) — so the validator and the parser share one definition of "a line"
+    and cannot diverge by construction, regardless of which characters a future Python release
+    adds to or removes from that set. The narrower `\\n`/`\\r` check retained below is now a
+    strict subset of this one and never fires on its own.
     (REQ-07)."""
     if "\n" in value or "\r" in value:
+        _malformed(index, f"{field} must be a single line")
+    if len(value.splitlines()) > 1:
         _malformed(index, f"{field} must be a single line")
 
 

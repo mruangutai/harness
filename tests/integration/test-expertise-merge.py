@@ -18,6 +18,7 @@ _anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness",
 _anchor_sys.path.insert(0, _anchor_bin)
 import ast
 import hashlib
+import importlib.util
 import json
 import os
 import re
@@ -36,6 +37,17 @@ CLI = os.environ.get("EXPERTISE_MERGE_BIN") or os.path.join(HERE, "expertise-mer
 CHECK_EXPERTISE_BIN = os.path.join(HERE, "check-expertise.sh")
 sys.path.insert(0, os.path.dirname(os.path.abspath(CLI)))
 import harness_merge  # noqa: E402  (local import, after sys.path fix-up)
+_expertise_merge_spec = importlib.util.spec_from_file_location("expertise_merge_it_under_test", CLI)
+expertise_merge = importlib.util.module_from_spec(_expertise_merge_spec)
+_expertise_merge_spec.loader.exec_module(expertise_merge)
+
+# Derived from Python's own `str.splitlines()` — the exact alphabet `parse_expertise` uses to
+# count physical lines — rather than a hand-copied literal list, so this constant tracks the
+# parser instead of a snapshot of it (SEC-01/F1, fix cycle 2).
+LINE_BREAKING_CHARS = tuple(
+    chr(c) for c in list(range(0x00, 0xA0)) + [0x2028, 0x2029]
+    if len(("a" + chr(c) + "b").splitlines()) > 1
+)
 
 RESULTS = []
 
@@ -1032,65 +1044,122 @@ def case_malformed_ops_cli(root):
     _case20_digest_mapping_payload(root, path)
 
 
-def case_ops_entry_injection(root):
-    """Case 21 — ENTRY INJECTION (VL-01). An `entry` carrying an embedded newline (`\\n` or
-    `\\r`) is a MALFORMED OPS(12) shape refusal, not a value `render` ever writes verbatim into
-    the file. `replace` is the exact shape the exploit needs: it never changes a section's
-    entry COUNT, so `_check_caps` (D-07) — which only ever counts parsed list length — sees no
-    overflow, while the embedded newline still becomes real physical lines once `render` writes
-    it, forging a fake section header/entry inside an already-at-cap section."""
-    path = target(root, "case21")
-    write_file(path, [("Gotchas", [(f"G-{i:02d}", f"text {i}") for i in range(1, 16)])])  # at cap
-    before = hashlib.sha256(open(path, "rb").read()).hexdigest()
-    forged = "## Gotchas (max 15)\n- G-16: forged additional entry"
-
-    for label, newline in (("a", "\\n"), ("b", "\\r")):
-        real_newline = "\n" if newline == "\\n" else "\r"
+def _case21_full_alphabet(root, path, before, forged):
+    """Every character `str.splitlines()` treats as a line boundary (LINE_BREAKING_CHARS,
+    derived from `splitlines()` itself, not hardcoded) is refused the same way `\\n`/`\\r` are."""
+    for sep in LINE_BREAKING_CHARS:
+        label = f"U+{ord(sep):04X}"
         ops = write_ops(
-            os.path.join(root, f"case21{label}_ops.json"),
+            os.path.join(root, f"case21_{ord(sep):04x}_ops.json"),
             [{"op": "replace", "target": "G-08", "section": "Gotchas",
-              "entry": f"harmless text{real_newline}{forged}"}],
+              "entry": f"harmless text{sep}{forged}"}],
         )
         r = run_ops(path, ops)
         combined = r.stdout + r.stderr
-        check(f"case21: ({label}) an entry embedding {newline} exits 12", r.returncode == 12, combined)
+        check(f"case21: ({label}) an entry embedding it exits 12", r.returncode == 12, combined)
         check(f"case21: ({label}) combined output carries MALFORMED OPS", "MALFORMED OPS" in combined, combined)
         after = hashlib.sha256(open(path, "rb").read()).hexdigest()
         check(f"case21: ({label}) file sha256 is unchanged", after == before, (before, after))
 
+
+def _case21_cap_bypass(root):
+    """SEC-01's P1 exploit: U+2028 embedded in a `replace` on an AT-CAP Gotchas section. Asserts
+    the RE-PARSED file (the tool's own `parse_expertise`, not exit code alone) never grows past
+    the cap — the exit-code-only gap that let this through cycle 1."""
+    path = target(root, "case21-cap-bypass")
+    write_file(path, [("Gotchas", [(f"G-{i:02d}", f"text {i}") for i in range(1, 16)])])
+    ops = write_ops(
+        os.path.join(root, "case21-cap-bypass-ops.json"),
+        [{"op": "replace", "target": "G-08", "section": "Gotchas",
+          "entry": "harmless text\u2028- G-16: forged additional entry"}],
+    )
+    r = run_ops(path, ops)
+    check("case21: (cap bypass) U+2028 replace on at-cap Gotchas exits 12", r.returncode == 12, r.stdout + r.stderr)
+    content = open(path, encoding="utf-8").read()
+    _, sections, _, _ = expertise_merge.parse_expertise(content)
+    check("case21: (cap bypass) re-parsed Gotchas count stays 15", len(sections["Gotchas"]) == 15, sections["Gotchas"])
+
+
+def _case21_cross_section(root):
+    """SEC-01's escalated exploit: a VT-embedded forged `## Gotchas (max 15)` header inside a
+    `Patterns` entry, which pre-fix reclassified the rest of `Patterns` into `Gotchas`. Asserts
+    BOTH re-parsed section counts stay at their base values."""
+    path = target(root, "case21-cross-section")
+    write_file(path, [
+        ("Patterns", [(f"P-{i:02d}", f"ptext {i}") for i in range(1, 15)]),  # 14/15, room for one
+        ("Gotchas", [(f"G-{i:02d}", f"gtext {i}") for i in range(1, 16)]),   # at cap
+    ])
+    ops = write_ops(
+        os.path.join(root, "case21-cross-section-ops.json"),
+        [{"op": "replace", "target": "P-08", "section": "Patterns",
+          "entry": "real text\x0b## Gotchas (max 15)\x0b- G-16: forged..."}],
+    )
+    r = run_ops(path, ops)
+    check("case21: (cross-section) VT-embedded forged header exits 12", r.returncode == 12, r.stdout + r.stderr)
+    content = open(path, encoding="utf-8").read()
+    _, sections, _, _ = expertise_merge.parse_expertise(content)
+    check("case21: (cross-section) re-parsed Patterns count stays 14", len(sections["Patterns"]) == 14, sections["Patterns"])
+    check("case21: (cross-section) re-parsed Gotchas count stays 15", len(sections["Gotchas"]) == 15, sections["Gotchas"])
+
+
+def case_ops_entry_injection(root):
+    """Case 21 — ENTRY INJECTION (VL-01/SEC-01). An `entry` carrying any `str.splitlines()`
+    line-boundary character is a MALFORMED OPS(12) shape refusal, not a value `render` ever
+    writes verbatim into the file. `replace` is the exact shape the exploit needs: it never
+    changes a section's entry COUNT, so a validator narrower than `parse_expertise` would pass
+    Step A while `_check_caps` still sees no overflow — SEC-01/F1's gap, pinned closed here for
+    the full alphabet plus the panel's two escalated exploits (cap bypass, cross-section
+    reclassification), each proven via a RE-PARSE, not the exit code alone."""
+    path = target(root, "case21")
+    write_file(path, [("Gotchas", [(f"G-{i:02d}", f"text {i}") for i in range(1, 16)])])  # at cap
+    before = hashlib.sha256(open(path, "rb").read()).hexdigest()
+    forged = "- G-16: forged additional entry"
+    _case21_full_alphabet(root, path, before, forged)
+
     content = open(path, encoding="utf-8").read()
     check(
-        "case21: the forged header never reaches the file",
-        "## Gotchas (max 15)\n- G-16:" not in content,
+        "case21: the forged entry never reaches the file",
+        "G-16:" not in content,
         content,
     )
 
+    _case21_cap_bypass(root)
+    _case21_cross_section(root)
 
-def case_ops_target_injection(root):
-    """Case 22 — TARGET INJECTION (VL-01). A `target` carrying an embedded newline (`\\n` or
-    `\\r`) is the same MALFORMED OPS(12) shape refusal as an injected `entry` — `target` is
-    written verbatim into a replace/drop refusal's stdout and, on `add`, into the rendered file
-    itself, so it gets no weaker a check than `entry`."""
-    path = target(root, "case22")
-    write_file(path, [("Patterns", [("P-01", "one")])])
-    before = hashlib.sha256(open(path, "rb").read()).hexdigest()
 
-    for label, newline in (("a", "\\n"), ("b", "\\r")):
-        real_newline = "\n" if newline == "\\n" else "\r"
-        forged_target = f"P-99{real_newline}- P-77: forged via target"
+def _case22_full_alphabet(root, path, before):
+    """Every character `str.splitlines()` treats as a line boundary (LINE_BREAKING_CHARS,
+    derived from `splitlines()` itself, not hardcoded) is refused the same way `\\n`/`\\r` are."""
+    for sep in LINE_BREAKING_CHARS:
+        label = f"U+{ord(sep):04X}"
+        forged_target = f"P-99{sep}- P-77: forged via target"
         ops = write_ops(
-            os.path.join(root, f"case22{label}_ops.json"),
+            os.path.join(root, f"case22_{ord(sep):04x}_ops.json"),
             [{"op": "add", "target": forged_target, "section": "Patterns", "entry": "harmless"}],
         )
         r = run_ops(path, ops)
         combined = r.stdout + r.stderr
-        check(f"case22: ({label}) a target embedding {newline} exits 12", r.returncode == 12, combined)
+        check(f"case22: ({label}) a target embedding it exits 12", r.returncode == 12, combined)
         check(f"case22: ({label}) combined output carries MALFORMED OPS", "MALFORMED OPS" in combined, combined)
         after = hashlib.sha256(open(path, "rb").read()).hexdigest()
         check(f"case22: ({label}) file sha256 is unchanged", after == before, (before, after))
 
+
+def case_ops_target_injection(root):
+    """Case 22 — TARGET INJECTION (VL-01/SEC-01). A `target` carrying any `str.splitlines()`
+    line-boundary character is the same MALFORMED OPS(12) shape refusal as an injected `entry`
+    — `target` is written verbatim into a replace/drop refusal's stdout and, on `add`, into the
+    rendered file itself, so it gets no weaker a check than `entry`. Separators are
+    LINE_BREAKING_CHARS, derived from `splitlines()` itself, not hardcoded."""
+    path = target(root, "case22")
+    write_file(path, [("Patterns", [("P-01", "one")])])
+    before = hashlib.sha256(open(path, "rb").read()).hexdigest()
+    _case22_full_alphabet(root, path, before)
+
     content = open(path, encoding="utf-8").read()
     check("case22: the forged line never reaches the file", "P-77" not in content, content)
+    _, sections, _, _ = expertise_merge.parse_expertise(content)
+    check("case22: re-parsed Patterns count stays 1", len(sections["Patterns"]) == 1, sections["Patterns"])
 
 
 def case_ops_non_string_target(root):

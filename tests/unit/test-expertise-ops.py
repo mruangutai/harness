@@ -24,6 +24,18 @@ resolve_ops = expertise_merge.resolve_ops
 compute_union = expertise_merge.compute_union
 MergeRefusal = expertise_merge.harness_merge.MergeRefusal
 
+
+# Derived from Python's own `str.splitlines()` — the exact alphabet `parse_expertise` uses to
+# count physical lines — rather than a hand-copied literal list, so this constant tracks the
+# parser instead of a snapshot of it (SEC-01/F1, fix cycle 2). Probes the C0/C1 control range
+# plus the two Unicode line/paragraph separators; anything Python treats as a line boundary
+# lands here.
+LINE_BREAKING_CHARS = tuple(
+    chr(c) for c in list(range(0x00, 0xA0)) + [0x2028, 0x2029]
+    if len(("a" + chr(c) + "b").splitlines()) > 1
+)
+
+
 RESULTS = []
 
 
@@ -274,23 +286,26 @@ def _assert_malformed(secs, order, ops_payload, label):
 
 
 def case_u17():
-    """AN ENTRY EMBEDDING A NEWLINE IS A MALFORMED-OPS SHAPE REFUSAL (VL-01), not a value
-    `render` ever writes verbatim into a rendered file. `replace` keeps the base's own entry
-    count unchanged, matching the exact shape the exploit needs."""
-    for newline in ("\n", "\r"):
+    """AN ENTRY EMBEDDING ANY splitlines() LINE-BOUNDARY CHARACTER IS A MALFORMED-OPS SHAPE
+    REFUSAL (VL-01/SEC-01), not a value `render` ever writes verbatim into a rendered file.
+    `replace` keeps the base's own entry count unchanged, matching the exact shape the exploit
+    needs. Separators are LINE_BREAKING_CHARS, derived from `str.splitlines()` itself, not a
+    hardcoded `\n`/`\r` pair — so this case cannot silently fall behind the parser it guards."""
+    for sep in LINE_BREAKING_CHARS:
         secs, order = base_sections([("Patterns", [("P-01", "one")])])
-        entry = f"harmless{newline}## Gotchas (max 15)"
-        _assert_malformed(secs, order, [op("replace", "Patterns", "P-01", entry)], f"u17: {newline!r} entry")
+        entry = f"harmless{sep}## Gotchas (max 15)"
+        _assert_malformed(secs, order, [op("replace", "Patterns", "P-01", entry)], f"u17: U+{ord(sep):04X} entry")
 
 
 def case_u18():
-    """A TARGET EMBEDDING A NEWLINE IS THE SAME MALFORMED-OPS SHAPE REFUSAL (VL-01) an entry
-    gets — target is written verbatim into a replace/drop refusal's stdout and, on add, into
-    the rendered file."""
-    for newline in ("\n", "\r"):
+    """A TARGET EMBEDDING ANY splitlines() LINE-BOUNDARY CHARACTER IS THE SAME MALFORMED-OPS
+    SHAPE REFUSAL (VL-01/SEC-01) an entry gets — target is written verbatim into a replace/drop
+    refusal's stdout and, on add, into the rendered file. Separators are LINE_BREAKING_CHARS,
+    derived from `str.splitlines()` itself."""
+    for sep in LINE_BREAKING_CHARS:
         secs, order = base_sections([("Patterns", [("P-01", "one")])])
-        forged_target = f"P-99{newline}- P-77: forged"
-        _assert_malformed(secs, order, [op("add", "Patterns", forged_target, "harmless")], f"u18: {newline!r} target")
+        forged_target = f"P-99{sep}- P-77: forged"
+        _assert_malformed(secs, order, [op("add", "Patterns", forged_target, "harmless")], f"u18: U+{ord(sep):04X} target")
 
 
 def case_u19():
