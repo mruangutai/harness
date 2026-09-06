@@ -3,95 +3,107 @@
 ## Current
 
 - feature: BUG-1308-expertise-replace-drop
-- run: .harness/harness/features/BUG-1308-expertise-replace-drop/runs/2026-09-05-simplify-eng/digest.md
-- squad: eng
+- run: .harness/harness/features/BUG-1308-expertise-replace-drop/runs/2026-09-05-review-panel-c4-validator/digest.md
+- squad: validator
 - status: in_review
 
-BUILD IS COMPLETE. All four tasks are done and committed; the qa `test_matrix` blocking gate PASSED;
-SIMPLIFY ran and was an empty pass. Cycles used 5 of 8 — this whole resume segment added ZERO, since
-every run returned first-pass PASS with no send-back. Next: pin `review_sha`, move the GitHub mirror
-to `review`, then the review panel and pm's goal-check.
+SHIP-READY, pending the operator's acceptance and the main-session-only GitHub steps. Validation is
+green: review panel cycle 4 PASS (severity_max `med`, no `must_fix`, VL-01 through VL-06 all closed),
+pm's final goal-check PASS (twelve of twelve criteria met). Cycles used 8 of 8 — the budget is
+EXHAUSTED, so a further gating finding would stop the feature rather than buy a fix.
 
-The branch was REBASED onto origin/main (4b0d04e9) by the main session — `git rebase` is refused for
-every governed agent by `bash-write-guard.sh`, so the orchestrator cannot perform it. Verified after
-the fact: `git merge-base --is-ancestor 4b0d04e9 HEAD` exits 0.
+Merged onto latest `origin/main` (`0f885a0a`, BUG-1305's ship state) at `cc16f721`, clean, no
+conflicts. Both the rebase onto `4b0d04e9` and this merge were performed by the MAIN SESSION:
+`git rebase` and `git merge` are in `bash-write-guard.sh`'s closed `HEAD_MOVERS` set and are refused
+to every governed agent, this orchestrator included. Verified after the fact —
+`git merge-base --is-ancestor 0f885a0a HEAD` exits 0.
 
-DECISION NUMBER, SECOND RENUMBER. This feature's decision is now **DEC-219**. It was DEC-216, was
-renumbered to DEC-218 when BUG-1303 landed 216 and 217, and had to move again when BUG-1304 landed
-DEC-218 ("Claim-set membership binds governed writes to assigned worktrees") on main. DEC-219 was
-verified free before allocation: zero hits in both DECISIONS.md and DECISIONS-INDEX.md on landed
-main, no in-flight feature claiming it, registry `NO CLAIMS`. The operator allocated it, ruled it a
-pure identifier substitution, waived a new plan panel and kept both signatures standing. All 11 live
-`plan.yaml` references and BRIEF SC-10 read DEC-219; the single surviving `DEC-218` token in
-`plan.yaml` is at :184 inside D-16, where it correctly names BUG-1304's entry.
+DECISION NUMBER. This feature's decision is **DEC-219**, and it survived the merge unique and still
+highest (`grep -c '^## DEC-219'` = 1, one index row, max entry 219). It was DEC-216, became DEC-218
+when BUG-1303 landed 216 and 217, and moved again when BUG-1304 landed DEC-218. Each move was an
+operator ruling, treated as a pure identifier substitution with the plan panel waived and both
+signatures standing.
 
-TASKS. T-01 `182a2788` added the `ops` subcommand (`resolve_ops` keyed on the stable (section, id)
-pair, never an index, so a replace never moves an entry and multi-op results are order-independent).
-T-03 `17ad7746`/`aaa761fd` realigned the distillation contract. T-02 `8fd6ffcb` added
-case11..case20. T-04 `fd8e4374` recorded the operation in SPEC §5.3, appended DEC-219 and
-regenerated the index. `30b84a94` carried the DEC-219 renumber and T-04's station. `c6aaf9e1`
-recorded the qa gate.
+WHAT SHIPPED. `expertise-merge.py` gains a second subcommand, `ops`, carrying the distill contract's
+op objects as JSON **from a file path** (`--ops <path>`, never inline JSON). Targets are keyed on
+section plus entry id, both required; every op resolves against one base snapshot under the lock
+`apply` already holds; each affected section is rebuilt in base order, so a proposal is
+order-independent, a replace rewrites its entry without moving it, and caps are checked once on the
+final state. `merge` stays an authoring concept. Refusals: 10 MISSING TARGET, 11 AMBIGUOUS TARGET,
+12 MALFORMED OPS. Recorded as SPEC §5.3 and DEC-219.
 
-TRUST — measured by the orchestrator at this tree, not relayed:
-- unit exit 0, 0 `^FAIL ` lines, 28 files. Integration exit 0, 0 `^FAIL ` lines, 46 files.
-- T-04's own `verify:` block re-run verbatim: exit 0, including
-  `tests/integration/test-gen-decisions-index.py` (14 ok lines).
-- The DEC-219 renumber: `grep -c DEC-219 plan.yaml` = 11; the DEC-216 panel finding survives
-  byte-identical at :248; both approvals still read `approved`.
-- SIMPLIFY changed no source: `git diff --stat HEAD` over the three code files is empty.
-- UNVERIFIED, inherited and still unverified: the post-amendment re-signature. The main session
-  reported SIGNED/APPLIED with no diff because the fields were already identical. The orchestrator
-  can neither write nor re-run `sign-approval`.
+WHAT THE PANEL COST, AND WHY IT EARNED IT. Three consecutive panels each found a high the suites did
+not: VL-01 (a newline in an op entry injected a section header past the cap check, falsifying
+REQ-03), then VL-05 (VL-01's ROOT CAUSE survived its own fix — the validator rejected two characters
+where the parser's `str.splitlines()` breaks on ten), then VL-06 (`target` was never matched against
+`ENTRY_RE`, so `add` could persist data the tool's own parser could not see, or plant a duplicate id
+that locked that entry against every future replace and drop). Every one landed on a surface no
+success criterion named, which is why twelve green criteria coexisted with a falsified requirement.
 
-DEAD ENDS, still active. Do NOT re-anchor T-02 case17's harvest onto the SKILL.md prose sentence —
-the normalised file carries ~14 competing pipe-separated runs from markdown tables, so only the `op:`
-key is unambiguous (verified at `aaa761fd`). Do NOT renumber the cycle-1 panel finding, now at
-`plan.yaml:248` and reading DEC-216: its id is a hash over the reader plus that text and the operator
-approved keeping it as transcribed history. Do NOT attempt to restore any file under `runs/` —
-`.gitignore:7` means that tree was never tracked. Do NOT let a simplification drop the wording guards
-at `tests/integration/test-expertise-merge.py:542-545` and `:563-566`; they are the ONLY assertions
-pinning the exit-11 message tokens, since the unit cases pin the code alone.
+TRUST — measured by the orchestrator on the MERGED tree, not relayed:
+- unit exit 0, 0 `^FAIL ` lines, 29 files (BUG-1305 added one). Integration exit 0, 0 FAIL, 46 files.
+- Exploit probes, run directly against the tool: newline, U+2028, `\x0b` and `\x85` in an entry, and
+  targets `PPPP-1` and `P-01: fake prefix`, ALL refuse at 12 with the file's sha256 byte-unchanged.
+  Positive controls: `add P-09`, `replace P-01` and `drop G-01` each exit 0. The refusals cannot be
+  passing by rejecting everything.
+- T-04's own `verify:` block passes verbatim on the merged tree, `test-gen-decisions-index.py` exit 0.
+- REQ-07 holds mechanically: `git diff origin/main -- expertise-merge.py | grep -c '^-[^-]'` is 0 —
+  pure addition across every cycle, so the `apply` path is untouched.
+- Board parent #1325 and sub-issues #1326-#1329 all read `review`.
+- UNVERIFIED, inherited: the post-amendment re-signature. The main session reported SIGNED/APPLIED
+  with no diff because the fields were already identical; this orchestrator can neither write nor
+  re-run `sign-approval`.
 
-WORKING SET. `plan.yaml` (T-04 at :780) · this `STATE.md` · `feature.json` ·
-`notes/qa-gate-bug1308.md` · `runs/2026-09-05-simplify-eng/digest.md`.
+DEAD ENDS, still active. Do NOT renumber the cycle-1 panel finding at `plan.yaml:248`, which reads
+DEC-216 — its id is a hash over the reader plus that text and the operator ruled it stays as
+transcribed history. Do NOT repair SPEC §5.3's APPLY-SIDE citations (`compute_union`, `cmd_apply`,
+`CAPS`, the dead `acquire_lock` symbol); that drift predates this feature and is a backlog row, kept
+out of this diff deliberately. Do NOT re-type `ENTRY_RE`'s grammar or `str.splitlines()`'s alphabet
+anywhere — both checks are DERIVED from their source on purpose, and a hand-copied duplicate is
+exactly the defect VL-05 and VL-06 were. Do NOT touch the `apply` path: REQ-07 forbids it.
+
+WORKING SET. `BRIEF.md` · `plan.yaml` · `feature.json` ·
+`runs/2026-09-05-review-panel-c4-validator/digest.md` ·
+`notes/research-BUG-1308-expertise-replace-drop-goalcheck-sc-c4.md`.
 
 ## Open Questions
 
-- **Harness defect, blocking the handoff NOTE only (not the work).** `notes/handoff-*.md` cannot be
-  written for a feature whose directory exists only in a worktree: no legal `## Done when` authority
-  both resolves AND binds. Measured by the predecessor: `plan-task:` and `brief-sc:` resolve
-  `feature_dir` against the PROJECT ROOT (`handoff_done_when.py:116,131`) and the main checkout has
-  no such directory; `finding:` requires `F-\d+`/`PF-\d+` (`FINDING_RE:14`) but this repo mints hex
-  ids like `PF-f4d258f365f54f04d9cc976baf0ad981`; `approval:` is the only resolvable type and both
-  approvals now read `approved`, so it binds nothing and is correctly refused. Suggested fix: resolve
-  `plan-task:`/`brief-sc:` against the feature-tree root per DEC-214's two-anchor rule, and widen
-  `FINDING_RE` to the hex ids `panel_findings.py` actually mints. This section is the documented
-  disk-only successor path and carries the handoff content.
-- **Harness defect, recurring and now cost-bearing.** `runs/<dir>/state.yaml` is UNGUARDED where
-  `runs/<dir>/digest.md` is guarded, and nothing stops an agent writing into an occupied run
-  directory. `runs/2026-09-05-01-product/state.yaml` has now been overwritten TWICE by two different
-  product runs; the second attempted a reconstruction from the surviving digest. It is not
-  restorable — `.gitignore:7` means it was never tracked. The canonical record is intact: that run's
-  `digest.md` survives and `feature.json` `runs[]` is unchanged.
+- **OPERATOR DECISION, non-blocking: adopt SC-13 and SC-14?** pm recommends two criteria and
+  deliberately did not adopt them, BRIEF being approval-gated. SC-13 covers REQ-03 clause 2 (cap
+  preservation under adversarial text, quantified over `str.splitlines()`'s boundary set derived at
+  test time rather than hardcoded); SC-14 covers target identity (a target `ENTRY_RE` does not parse
+  back out equal to itself exits 12, both failure shapes exercised, plus the no-lockout consequence
+  asserted directly). Both would grade MET today, so adoption changes no verdict — it makes two
+  surfaces graded rather than incidentally covered. Full wording in
+  `notes/research-BUG-1308-expertise-replace-drop-goalcheck-sc-c4.md` §4.
+- **Harness process, observed THREE times in this feature.** A REQ-falsifying panel finding creates
+  no criterion, so consecutive goal-checks re-grade the same SC list and stay blind to the same
+  class. VL-01, VL-05 and VL-06 each landed on a surface no SC named. Should a REQ-falsifying panel
+  finding be required to propose an SC alongside its fix?
+- **Harness defect, confirmed live at this HEAD (re-measured, not inherited).** `notes/handoff-*.md`
+  cannot be written for a feature whose directory exists only in a worktree. `handoff_done_when.py`
+  resolves `feature_dir` against the PROJECT ROOT, and the main checkout has no
+  `.harness/harness/features/BUG-1308-.../`, so `brief-sc:` and `plan-task:` are both unresolvable;
+  `finding:` requires `F-\d+`/`PF-\d+` while this repo mints hex ids; `approval:` resolves but both
+  approvals read `approved`, so it binds nothing and is correctly refused. An attempted write of
+  `handoff-build.md` citing `brief-sc:SC-10` was BLOCKED with exactly that message. BUG-1304 did not
+  fix it. Suggested fix: resolve `plan-task:`/`brief-sc:` against the feature-tree root per DEC-214's
+  two-anchor rule, and widen `FINDING_RE` to the hex ids `panel_findings.py` mints. This section is
+  the documented disk-only successor path and carries the handoff content.
+- Harness defect: `runs/<dir>/state.yaml` is UNGUARDED where `digest.md` is guarded, and nothing
+  stops an agent writing into an occupied run directory. `runs/2026-09-05-01-product/state.yaml` was
+  overwritten twice by two different product runs. Not restorable — `.gitignore:7` means it was
+  never tracked. Canonical record intact: that run's `digest.md` survives and `feature.json` `runs[]`
+  is unchanged.
 - Harness defect: the run-digest append-only guard refuses a REPLACING write, so a digest first
-  written without the §10.4 contract block cannot be corrected in place. qa worked around it by
-  creating a sibling run directory `2026-09-05-qa-gate-record-validator`. One run, one member, zero
-  cycles, identical verdict — the sibling is a guard artifact and is NOT recorded as a run.
-- Harness defect: `bash-write-guard.sh` blocked a plain shell redirect into a `mktemp -d` scratch
-  path and reported the target as `"xx"`, while the same fixture written via a python3 heredoc to an
-  explicit `/tmp` path was allowed. Its redirect matcher looks defective on scratch paths.
-- Harness defect: `plan-merge.py amend` re-emits a folded `>-` scalar as one long line, so a
-  value-only change reflows the whole field. A naive re-wrap split `main-session-direct` across the
-  fold and YAML folding turned the break into a space. pm caught and corrected it.
-- Harness defect: `check-state.sh` INV-32 (`:533`) requires a `goalcheck` entry in `panel.readers`,
-  but `plan-panel.yaml` defines only `should-not-exist` and `scope` — the goal-check runs in the
-  PRODUCT segment, so an honest record fails the invariant.
-- Record correction, non-blocking: T-04's `intent:` justifies the mandatory index regeneration with
-  "appending an entry shifts every later row's source anchor". The documentor measured that it does
-  not — DEC-219 appended at EOF moved no earlier `@line` anchor. The instruction's OUTCOME is right
-  (the generator is what emits the new row and its `RULING PENDING` sentinel at all) but its stated
-  reason is wrong, and it should be corrected before it is copied into a future task.
-- Informational, `max_total_runs`: `runs[]` stands at 19 against a budget of 20, and the panel plus
-  goal-check will cross it. INV-22 emits a NOTE and never stops a branch. The runs still earn their
-  place: every one in this segment returned first-pass PASS with zero send-backs, and the crossing is
-  driven by a plan phase that ran two panel cycles, not by rework in the build.
+  written without the §10.4 contract block cannot be corrected in place; qa worked around it with a
+  sibling run directory. Also `bash-write-guard.sh` blocked a redirect into a `mktemp -d` scratch
+  path and reported the target as `"xx"`, while the same content written by a python3 heredoc to an
+  explicit `/tmp` path was allowed.
+- Harness defect: the unit runner's discovery count is caller-dependent — 28, 29 and 74 files were
+  reported from the same command by different callers, and it false-fails `test-plan-merge.py`
+  unless invoked as `env -u HARNESS_AGENT_TYPE`. A zero FAIL count therefore does not bound what ran.
+- Informational, `max_total_runs`: `runs[]` stands at 31 against a budget of 20. INV-22 emits a NOTE
+  and never stops a branch. The runs earn their place: the overrun is three adversarial panel cycles
+  that each caught a high the suites could not, plus their fixes — not churn. Every run returned a
+  verdict and advanced the feature.
