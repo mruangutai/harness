@@ -1,6 +1,6 @@
 schema: plan/1
 feature: BUG-1305-run-state-clobber
-status: ready
+status: review
 approval:
   date: '2026-09-05'
   approved_by: operator
@@ -295,7 +295,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: "DEC-174 carve-out - a module imported by check-domain.sh and check-state.sh is enforcement-layer code the harness plans but does not execute"
     depends_on: []
-    status: ready
+    status: done
     files:
       - .claude/skills/harness/bin/run_identity.py
       - tests/unit/test-run-identity.py
@@ -441,7 +441,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: 'DEC-174 carve-out - check-domain.sh is a registered PreToolUse and PostToolUse gate script, bash-write-guard.sh is the registered Bash write guard, harness_boundary.py is the pattern module both import, and each gate''s own test file rides the same carve-out; --resolve at c369fb1f grants all three surfaces to harness-backend-dev and harness-dev-ops, and the routing is recorded here rather than in lanes: because no plan-merge.py verb reaches the lanes: block'
     depends_on: [T-01]
-    status: ready
+    status: done
     files:
     - .claude/skills/harness/bin/check-domain.sh
     - .claude/skills/harness/bin/check-state.sh
@@ -693,7 +693,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: "DEC-174 carve-out - check-state.sh is the state gate script, and its own test file rides the same carve-out"
     depends_on: [T-01]
-    status: ready
+    status: done
     files:
       - .claude/skills/harness/bin/check-state.sh
       - tests/integration/test-check-state.py
@@ -830,7 +830,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: "DEC-174 carve-out - validate-digest.py is the registered SubagentStop hook, and its own test file rides the same carve-out"
     depends_on: []
-    status: ready
+    status: done
     files:
       - .claude/skills/harness/bin/validate-digest.py
       - tests/integration/test-validate-digest.py
@@ -900,7 +900,7 @@ tasks:
     depends_on:
     - T-02
     - T-09
-    status: ready
+    status: done
     files:
       - .claude/skills/harness/bin/check-domain.sh
       - tests/integration/test-check-domain.py
@@ -991,7 +991,7 @@ tasks:
     - T-05
     - T-06
     - T-09
-    status: ready
+    status: done
     files:
       - .harness/harness/features/BUG-1305-run-state-clobber/notes/regression-delta-BUG-1305.md
     verify: |
@@ -1085,7 +1085,7 @@ tasks:
     execution_reason: "DEC-174 carve-out - check-domain.sh is a registered PreToolUse gate script and run_identity.py is a module imported by two registered gate scripts, so the harness plans this change and does not execute it"
     depends_on:
     - T-02
-    status: ready
+    status: done
     files:
     - .claude/skills/harness/bin/check-domain.sh
     - .claude/skills/harness-team/SKILL.md
@@ -1286,7 +1286,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: "DEC-174 carve-out - the probe drives the registered PreToolUse and PostToolUse gate scripts with a live tool call and reports on their behaviour"
     depends_on: []
-    status: ready
+    status: done
     files:
       - .harness/harness/features/BUG-1305-run-state-clobber/notes/probe-notebookedit-BUG-1305.md
     verify: |

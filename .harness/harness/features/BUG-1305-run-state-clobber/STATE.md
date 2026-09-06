@@ -3,13 +3,14 @@
 ## Current
 
 - feature: BUG-1305-run-state-clobber
-- run: none
-- squad: none
-- status: blocked
-- station: ready (signed 2026-09-05 at 75cdd200; no task started)
-- blocker: all eight live tasks are execution_mode main-session-direct under DEC-174, so no squad may build them; segments for the main session are in notes/build-segments-BUG-1305.md
-- cycles: 9/9 — a first-pass run costs none, the first send-back exhausts the budget and stops
+- run: .harness/harness/features/BUG-1305-run-state-clobber/runs/qa-c1-validator/state.yaml
+- squad: validator
+- status: in-flight
+- station: review; all eight live tasks recorded done; review_sha pinned at the seam commit
+- gates so far: qa test_matrix PASS, SIMPLIFY PASS, SC-01 re-gate MET (cycle 10), code-grade exit 0 with 50 passing records after the cycle-11 refactor
 
 ## Open Questions
 
-- Main session: execute segments S1-S5 (notes/build-segments-BUG-1305.md) yourself, or rule that DEC-174's carve-out does not cover these surfaces and re-route them to the eng squad. The orchestrator cannot dispatch a squad against a main-session-direct task.
+- Main session: INV-26 reports no mirrored issues; gh-sync.py open has not run for this feature.
+- Main session: the scratch worktree .claude/worktrees/harness/qa-regate-sc01-baseline-c10 (detached 592e88dc) still stands and INV-29 will notice it. Removal is not a subagent's act.
+- Harness defect, twice observed: per-persona worktree claims are cross-feature exclusive, so a lead dispatched against BUG-1305 was refused writes into its own BUG-1305 run directory while holding claims on FEAT-55 and BUG-1308. The qa collated digest could not be persisted; its evidence is durable at notes/qa-testmatrix-c1.md.
