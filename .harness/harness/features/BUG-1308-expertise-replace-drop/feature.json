@@ -3,7 +3,7 @@
   "branch": "feat/BUG-1308-expertise-replace-drop",
   "pr": null,
   "review_sha": "4c76f0f51a7e8eddc871f5a721d92602762ac103",
-  "cycles_used": 5,
+  "cycles_used": 6,
   "max_total_cycles": 8,
   "runs": [
     {
@@ -132,6 +132,12 @@
       "squad": "validator",
       "agent": "harness-validator-lead",
       "verdict": "ESCALATE"
+    },
+    {
+      "id": "2026-09-05-review-panel-c1-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL"
     }
   ],
   "github": {
