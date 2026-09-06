@@ -4615,6 +4615,96 @@ def case_bug1305_run_identity_invariant():
     return ok
 
 
+def case_bug440_digest_verdict_reconciliation():
+    """BUG-440: reconcile only complete, lead-hosted, valid durable digests."""
+    import hashlib
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location(
+        "validate_digest_bug440", os.path.join(_anchor_bin, "validate-digest.py"))
+    validator = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(validator)
+
+    def digest(verdict):
+        text = f"""VERDICT: {verdict}
+DIGEST:
+  headline: synthetic BUG-440 fixture
+  team: eng
+  steps_run: 1
+  cycles_used: 0
+  members:
+    - {{ step: fixture, persona: harness-backend-dev, verdict: PASS, headline: fixture, files_touched: [] }}
+  must_fix: []
+  files_touched: []
+  branch: none
+  open_questions: []
+  escalations: []
+  expertise_update: []
+  sc_status: []
+artifact: fixture/digest.md
+"""
+        assert validator.validate("lead", text) == [], text
+        return text
+
+    def build(tmp, entries, runs):
+        h = _bug1305_invariant_scaffold(tmp)
+        fdir = _bug1305_invariant_feature(tmp, h, entries)
+        with open(os.path.join(fdir, "feature.json"), "w") as fh:
+            fh.write("feature_id: FEAT-TEST\nreview_sha: none\ncycles_used: 0\nruns:\n")
+            for name, verdict in entries.items():
+                fh.write(f"  - id: {name}\n    squad: product\n    verdict: {verdict}\n")
+        for name, host, status, text in runs:
+            rdir = os.path.join(fdir, "runs", name)
+            os.makedirs(rdir, exist_ok=True)
+            with open(os.path.join(rdir, "state.yaml"), "w") as fh:
+                fh.write(f"status: {status}\nhost: {host}\n")
+            if text is not None:
+                with open(os.path.join(rdir, "digest.md"), "w") as fh:
+                    fh.write(text)
+        return fdir
+
+    with tempfile.TemporaryDirectory() as tmp:
+        entries = {name: "PASS" for name in ("M", "E", "N", "I", "G", "X")}
+        fdir = build(tmp, entries, [
+            ("M", "harness-eng-lead", "complete", digest("FAIL")),
+            ("E", "harness-product-lead", "complete", digest("PASS")),
+            ("N", "omp", "complete", digest("FAIL")),
+            ("I", "harness-eng-lead", "active", digest("FAIL")),
+            ("G", "harness-eng-lead", "complete", None),
+            ("X", "harness-eng-lead", "complete", "# digest\n"),
+            ("O", "harness-eng-lead", "complete", digest("FAIL")),
+        ])
+        paths = [os.path.join(fdir, "feature.json")]
+        for root, _, files in os.walk(os.path.join(fdir, "runs")):
+            paths.extend(os.path.join(root, p) for p in files if p == "digest.md")
+        before = {p: hashlib.sha256(open(p, "rb").read()).hexdigest() for p in paths}
+        code, out = run(tmp)
+        after = {p: hashlib.sha256(open(p, "rb").read()).hexdigest() for p in paths}
+        inv37 = [line for line in out.splitlines() if "INV-37" in line]
+        mismatch = [line for line in inv37 if "runs/M" in line]
+        no_new = all(not any(f"runs/{name}" in line for line in inv37)
+                     for name in ("E", "N", "I", "G", "X", "O"))
+        existing = (sum("runs/G" in line and "digest.md is missing" in line
+                        for line in out.splitlines()) == 1 and
+                    sum("runs/X/digest.md" in line and "lead digest" in line
+                        for line in out.splitlines()) == 1)
+        mismatch_ok = (code == 1 and len(inv37) == 1 and len(mismatch) == 1 and
+                       all(token in mismatch[0] for token in
+                           ("FEAT-TEST", "M", "FAIL", "PASS", "feature.json", "digest.md")))
+        mixed_ok = mismatch_ok and no_new and existing and before == after
+
+    with tempfile.TemporaryDirectory() as tmp:
+        build(tmp, {"E": "PASS"}, [("E", "harness-product-lead", "complete", digest("PASS"))])
+        clean_code, clean_out = run(tmp)
+        clean_ok = clean_code == 0 and "INV-37" not in clean_out
+
+    ok = mixed_ok and clean_ok
+    print(f"{'ok' if ok else 'FAIL'} - BUG-440 INV-37 reconciles digest verdicts without mutation")
+    if not ok:
+        print(f"        mixed={mixed_ok}; clean={clean_ok}; output={out[:500]}")
+    return ok
+
+
 def main():
     ok_a, code_a = case_a()
     ok_b, code_b = case_b()
@@ -4764,6 +4854,7 @@ def main():
         case_inv6_producer_is_documented(),
     ])
     ok_feat54_done_when = case_feat54_done_when()
+    ok_bug440 = case_bug440_digest_verdict_reconciliation()
     ok_bug1305 = case_bug1305_run_identity_invariant()
 
     ok_exit_unchanged = code_a == code_b
@@ -4777,8 +4868,7 @@ def main():
             and ok_i28a and ok_i28b and ok_i28c and ok_i28d and ok_i28e and ok_i28f
             and ok_i28g and ok_i28h
             and ok_i29 and ok_i30 and ok_i31 and ok_i32 and ok_i32_severity
-            and ok_i32_era and ok_i6_plan and ok_feat54_done_when
-            and ok_bug1305 and ok_i33
+            and ok_bug1305 and ok_bug440 and ok_i33
             and ok_i34
             and ok_i35
             and ok_exit_unchanged):

@@ -131,4 +131,6 @@ a finding it has today.
 
 ## Approval
 
-status: pending
+status: approved
+approved_by: operator
+date: 2026-09-06

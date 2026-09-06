@@ -70,7 +70,7 @@
     {
       "id": "2026-08-19-6-distill-validator",
       "squad": "validator",
-      "verdict": "PASS"
+      "verdict": "FAIL"
     },
     {
       "id": "2026-08-19-7-distill2-validator",

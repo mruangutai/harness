@@ -601,6 +601,7 @@ except Exception:
     _git_top = None
 
 # --- INV-6..8: per-feature execution facts.
+run_verdicts = {}
 for fy in glob.glob(os.path.join(H, "*", "features", "*", "feature.json")):
     feat = os.path.basename(os.path.dirname(fy))
     # T-07 / issue #11 — a REAL parser, not a regex over two hand-listed shapes.
@@ -650,6 +651,8 @@ for fy in glob.glob(os.path.join(H, "*", "features", "*", "feature.json")):
         runs.append((str(entry.get("id", "")).strip(),
                      _squad,
                      str(entry.get("verdict", "")).strip()))
+        run_verdicts.setdefault(os.path.dirname(fy), {}).setdefault(
+            str(entry.get("id", "")).strip(), []).append(str(entry.get("verdict", "")).strip())
         # BUG-1080: a validator run that graded no CODE has no commit to pin. DEC-207
         # legalises exactly that run and spells it `code_grade: n_a`, so the record
         # states what was reviewed and INV-6 reads the claim rather than guessing.
@@ -1526,13 +1529,32 @@ for sy in glob.glob(os.path.join(H, "*", "features", "*", "runs", "*", "state.ya
                        f"Digest files are UNCHECKED — likely a partial deploy.")
         else:
             try:
-                _errs = _vd_mod.validate("lead", open(dg, encoding="utf-8", errors="replace").read())
+                _dtext = open(dg, encoding="utf-8", errors="replace").read()
+                _errs = _vd_mod.validate("lead", _dtext)
             except Exception as _e:
                 _errs = [f"validate() raised: {_e}"]
             if _errs:
                 bad.append(f"{os.path.relpath(dg, H)}: does not satisfy the lead digest "
                            f"contract — a successor reads this file, not the transcript "
                            f"(DEC-156). Run bin/validate-digest.py lead on it for reasons.")
+            else:
+                _feat_dir = os.path.dirname(os.path.dirname(rundir))
+                _rid = os.path.basename(rundir)
+                _recorded = run_verdicts.get(_feat_dir, {})
+                if _rid in _recorded:
+                    # Keep validate-digest.py:1155-1160's tail-anchor semantics byte-for-byte.
+                    _anchors = list(re.finditer(r"^\s*VERDICT:", _dtext, re.M))
+                    _tail = _dtext[_anchors[-1].start():] if _anchors else _dtext
+                    _dm = re.search(r"^\s*VERDICT:\s*(\S+)", _tail, re.M)
+                    if _dm:
+                        for _rv in dict.fromkeys(_recorded[_rid]):
+                            if _dm.group(1) != _rv:
+                                bad.append(
+                                    f"INV-37: {os.path.basename(_feat_dir)} run {_rid}: "
+                                    f"digest verdict {_dm.group(1)!r} in "
+                                    f"{os.path.relpath(dg, H)} differs from feature.json verdict "
+                                    f"{_rv!r} in {os.path.relpath(os.path.join(_feat_dir, 'feature.json'), H)}; "
+                                    "the gate does not decide which record is wrong.")
 
 # --- INV-19 (DEC-162): no glossary means the domain's ubiquitous language lives
 # nowhere — "create lazily" fired zero times across three shipped features while
