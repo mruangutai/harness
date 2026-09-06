@@ -549,6 +549,21 @@ def case_real_keeps_one_namespace_when_unresolvable():
 
 
 
+def case_run_identity_pattern():
+    mod = hb()
+    marker = ".harness/harness/features/BUG-1305-run-state-clobber/runs/r1/.run-identity.json"
+    check("run identity pattern matches marker", mod.RE_RUN_IDENTITY.match(marker))
+    check("run identity pattern is case insensitive",
+          mod.RE_RUN_IDENTITY.match(marker.upper()))
+    for path in (
+            ".harness/harness/features/F/runs/r1/state.yaml",
+            ".harness/harness/features/F/runs/r1/digest.md",
+            ".harness/harness/features/F/runs/.run-identity.json",
+            "tmp/runs/r1/.run-identity.json"):
+        check(f"run identity pattern rejects {path}",
+              not mod.RE_RUN_IDENTITY.match(path))
+
+
 def case_tests_are_target_side_control_plane_only():
     mod = hb()
     for path in (
@@ -574,6 +589,7 @@ def main():
     run_case(case_worktree_for_feature)
     run_case(case_bug1304_claim_set)
     run_case(case_real_keeps_one_namespace_when_unresolvable)
+    run_case(case_run_identity_pattern)
     run_case(case_tests_are_target_side_control_plane_only)
 
 

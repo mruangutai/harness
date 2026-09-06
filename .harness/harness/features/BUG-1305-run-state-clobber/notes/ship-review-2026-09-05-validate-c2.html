@@ -1,0 +1,81 @@
+<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>Ship review — BUG-1305-run-state-clobber</title><style>
+:root{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:ui-sans-serif,-apple-system,"Segoe UI","Helvetica Neue",Arial,sans-serif;
+}
+/* Token-level theming: components style through the tokens and never inside the
+   media query, so the viewer's explicit toggle can override the OS in BOTH
+   directions. */
+@media (prefers-color-scheme:dark){
+  :root{ --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+         --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733; }
+}
+:root[data-theme="dark"]{
+  --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+  --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733;
+}
+:root[data-theme="light"]{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+}
+*{box-sizing:border-box}
+body{margin:0; background:var(--paper); color:var(--ink);
+  font:400 16px/1.65 var(--sans); padding:clamp(1.5rem,5vw,4rem) clamp(1rem,5vw,2rem) 6rem}
+.wrap{max-width:56rem; margin:0 auto}
+/* Layout owns the spacing: gap between siblings, not per-element margins that
+   collapse or double. */
+.wrap{display:flex; flex-direction:column; gap:1rem}
+.eyebrow{font:500 11px/1 var(--mono); letter-spacing:.14em; text-transform:uppercase;
+  color:var(--quiet); margin:0}
+h1{font:600 clamp(1.6rem,4vw,2.3rem)/1.15 var(--sans); letter-spacing:-.02em;
+  margin:.4rem 0 .2rem; text-wrap:balance}
+h2{font:600 1.15rem/1.3 var(--sans); letter-spacing:-.01em; margin:2rem 0 0;
+  padding-top:1.25rem; border-top:1px solid var(--line); text-wrap:balance}
+h3{font:600 .98rem/1.4 var(--sans); margin:1.1rem 0 0}
+h4,h5,h6{font:500 11px/1.4 var(--mono); letter-spacing:.1em; text-transform:uppercase;
+  color:var(--quiet); margin:1rem 0 0}
+p,li{max-width:65ch; margin:0}
+ul,ol{margin:0; padding-left:1.4rem; display:flex; flex-direction:column; gap:.4rem}
+li>ul,li>ol{margin-top:.4rem}
+strong{font-weight:600}
+code{font:400 .875em/1.5 var(--mono); background:var(--sunk); padding:.1em .35em; border-radius:3px}
+pre{background:var(--sunk); border:1px solid var(--line); border-radius:6px;
+  padding:.85rem 1rem; overflow-x:auto; margin:0}
+pre code{background:none; padding:0}
+blockquote{margin:0; padding:.75rem 1rem; border-left:3px solid var(--accent);
+  background:var(--accent-soft); border-radius:0 5px 5px 0}
+blockquote p{max-width:none}
+hr{border:0; border-top:1px solid var(--line); margin:.5rem 0}
+/* Wide content pans inside its OWN container; the page body never scrolls sideways. */
+.scroll{overflow-x:auto; border:1px solid var(--line); border-radius:6px}
+table{border-collapse:collapse; width:100%; font-size:.9rem}
+th,td{text-align:left; padding:.6rem .8rem; border-bottom:1px solid var(--line); vertical-align:top}
+thead th{font:500 10px/1.3 var(--mono); letter-spacing:.11em; text-transform:uppercase;
+  color:var(--quiet); background:var(--sunk); white-space:nowrap}
+tbody tr:last-child td{border-bottom:0}
+/* Figures in a column line up. */
+td,th{font-variant-numeric:tabular-nums}
+.derived{color:var(--slate); font-size:.85rem; margin-top:2.5rem;
+  padding-top:1rem; border-top:1px solid var(--line)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style></head><body><div class='wrap'><p class='eyebrow'>Ship review · reading view</p><h1 id="ship-review-bug-1305-run-state-clobber">Ship review — BUG-1305-run-state-clobber</h1>
+<p><strong>Reviewed revision <code>e77b30ca</code> (code-identical to your fix commit <code>2728aa20</code>). Branch <code>feat/BUG-1305-run-state-clobber</code>, not merged, not pushed, no PR. Worktree intact.</strong></p>
+<h2 id="where-it-stands">Where it stands</h2>
+<p><strong>Every success criterion is met and one high finding is yours to rule on.</strong> The goal-check graded all eleven live criteria MET at the pin, re-derived from scratch rather than carried forward, and both failure modes are independently declarable delivered. The delta panel&#x27;s four readers each returned PASS. The validator lead nonetheless returned ESCALATE, because its own union reading found something no single reader reported — and that is the one decision left.</p>
+<ul><li><strong>pm goal-check: 11 of 11 live SCs MET.</strong> SC-08 and SC-12 are retired with their struck requirements and are not graded.</li><li><strong>Delta panel: code-review PASS, security countersign PASS, qa PASS, ui CARRIED from cycle 1 (recorded as not re-run, not as a fresh pass).</strong></li><li><strong>qa <code>test_matrix</code> gate: PASS</strong> — the project&#x27;s only blocking gate.</li><li><strong>Mechanical grade: exit 0.</strong> The delta&#x27;s one changed function grades 3, PASS.</li><li>Suites at the pin: unit 28 files exit 0; integration 46 files exit 0; state checker exit 0, notes only.</li></ul>
+<p><strong>The decision: VL-01.</strong> REQ-01 promises the seed-field refusal on both governed routes. On the <strong>Edit</strong> route with an <strong>absent</strong> prior checkpoint, <code>check-domain.sh</code> reaches <code>sys.exit(0)</code> through <code>_edit_reconstructed_content</code>&#x27;s <code>except OSError: return None</code> before the witness is ever consulted — measured exit 0 at both pins, with a refusing control at exit 2 and the Write route measured closed. SC-01(a) is <em>literally</em> met, because its FAILS-if clause does not reach this case; REQ-01&#x27;s two-route promise is not delivered. It is <strong>pre-existing rather than introduced here</strong>, dormant on this host, and REQ-02 detection is unaffected. The remedy, if you want it, mirrors the F-04 fix exactly: consult the witness for <code>RE_STATE_YAML</code> before calling <code>_edit_reconstructed_content</code> and refuse on <code>None</code>. That file is main-session-direct, so no squad may do it — it is a thirteenth cycle or a named residual, and both are yours.</p>
+<p><strong>One fact that bounds it, measured rather than argued:</strong> this host&#x27;s <code>Edit</code> tool refuses a nonexistent <code>file_path</code> outright (&quot;File not found ... Use the write tool to create new files&quot;), with an existing-path control proving the probe shape valid. That makes the class dormant <em>here</em>. It is not a reason to weaken the portable fix already shipped for F-04 — the hole was real by payload at the old pin, and another host may differ.</p>
+<h2 id="what-the-cycles-bought">What the cycles bought</h2>
+<p>Twelve cycles, three Advisor extensions, and each round found something the previous one could not. Planning replaced the Mode-A mechanism twice: session identity was killed for refusing a resumed owner, marker-acquisition was killed by a panel <code>critical</code> showing it refused approximately only the legitimate owner and approximately no foreign run, and the minted <code>run_uid</code> that survived is the Advisor&#x27;s own recorded fallback. In build, qa caught SC-01&#x27;s Edit half asserted on Write only; the first panel caught the witness unguarded on every route; cycle 11 closed F-04 and three evidence gaps. <strong>Four of the last five sharpest defects were found in the union of two readers&#x27; scopes</strong>, where each reader was individually correct — that is now this feature&#x27;s signature failure shape and it is worth carrying into how panels are briefed.</p>
+<h2 id="how-this-briefing-was-assembled">How this briefing was assembled</h2>
+<p><strong>No report round was spawned.</strong> I read the digests and notes from disk. First-hand: <code>runs/review-c2-validator/digest.md</code>, <code>runs/goalcheck-build-c2-product/digest.md</code>, <code>runs/review-c1-validator/digest.md</code>, <code>runs/goalcheck-build-c1-product/digest.md</code>, <code>runs/simplify-eng/digest.md</code>, <code>notes/qa-testmatrix-c1.md</code>, <code>notes/qa-regate-sc01-c10.md</code>, <code>notes/receipt-harness-dev-ops-editprobe-c1.md</code>, <code>notes/receipt-harness-dev-ops-diag-c1.md</code>, <code>notes/review-harness-code-reviewer-advisor-c1.md</code>, and the plan-phase goal-checks and panel digests. <strong>The production work itself I did not execute</strong> — every task is main-session-direct under DEC-174 — so the account of what the code does is read from the reviewed tree and from the readers&#x27; measurements, not from having built it.</p>
+<p><code>runs</code> is 23 against an informational budget of 20; INV-22 notes it and never gates. My read: the count is honest work, not churn — thirteen of the twenty-three are grading runs, and every one of the eight rework cycles closed a defect a later round confirmed closed.</p>
+<h2 id="proposed-backlog">Proposed backlog</h2>
+<p>Nothing below gates. Anything not listed dies silently, so this is everything that survived collation. Strike rows by ID.</p>
+<div class="scroll"><table><thead><tr><th>ID</th><th>Nature</th><th>Item</th></tr></thead><tbody><tr><td>B-1</td><td>bug</td><td><strong>VL-01, if you accept it rather than fix it:</strong> REQ-01&#x27;s seed-field refusal is absent on the Edit route with an absent prior. Pre-existing, dormant on this host, Write route closed.</td></tr><tr><td>B-2</td><td>bug</td><td>SEC-01 — directory-level Bash <code>rm</code>/<code>mv</code> destroys witness, checkpoint and digest with no refusal. Already filed as <strong>#1376</strong> under your Advisor-delegated acceptance; listed so it is not double-filed.</td></tr><tr><td>B-3</td><td>enhancement</td><td>A portable regression for the Edit-creates path that does not depend on any one host&#x27;s <code>Edit</code> semantics.</td></tr><tr><td>B-4</td><td>chore</td><td><code>check-state.sh:1502-1514</code> keeps a shadow copy of <code>uid_conflict</code>&#x27;s own guard and has already drifted on a whitespace <code>run_uid</code>. SIMPLIFY&#x27;s one recommended apply, deliberately not applied.</td></tr><tr><td>B-5</td><td>chore</td><td><code>harness_boundary.py:22</code> imports <code>MARKER_NAME</code> eagerly: +6.45 ms on every governed write, measured over a 60-invocation A/B.</td></tr><tr><td>B-6</td><td>chore</td><td>POST effective-uid selection lives in a shell heredoc with no importable function and no unit test.</td></tr><tr><td>B-7</td><td>chore</td><td>Two citation-rot lines in <code>notes/regression-delta-BUG-1305.md</code> (a case renamed at cycle 11; the composed digest case uncited). Non-gating; you ruled against spending a cycle.</td></tr><tr><td>B-8</td><td>chore</td><td><code>check-domain.sh:1240</code> still reads like the false PRE-only comment REQ-06 removed. Its subject is the POST-sweep exclusion and it is true; it will mislead the next reader anyway.</td></tr><tr><td>B-9</td><td>chore</td><td>Sweep the remaining criteria for the pattern that produced two highs: a criterion&#x27;s test grading a materially easier case than the criterion&#x27;s own body describes.</td></tr><tr><td>B-10</td><td>bug</td><td>Harness: worktree claims are keyed per persona globally, so a lead correctly dispatched at BUG-1305 was refused writes into its own BUG-1305 run directory while holding a claim on another feature. Blocked three digests this feature.</td></tr><tr><td>B-11</td><td>bug</td><td>Harness: members emitted complete, well-formed returns that the host recorded as <code>failed (exit 1) — yield with null data</code>. A good return looks like a crashed member.</td></tr><tr><td>B-12</td><td>bug</td><td>Harness: a pre-plan <code>harness-code-reviewer</code> cannot yield at all — <code>validate-digest.py</code> demands a binding that cannot exist before a plan is drafted.</td></tr><tr><td>B-13</td><td>chore</td><td>Harness: no <code>plan-merge.py</code> verb reaches the <code>lanes:</code> block, so late-added surfaces are recorded in a task&#x27;s <code>execution_reason</code> instead.</td></tr><tr><td>B-14</td><td>chore</td><td>Harness: <code>check-state.sh</code> INV-26 reddens every signature-pending plan, demanding a mirror step that legitimately runs only after approval.</td></tr><tr><td>B-15</td><td>chore</td><td>Stale scratch worktrees: <code>.claude/worktrees/harness/qa-regate-sc01-baseline-c10</code> stands, and a <code>.git/worktrees</code> entry may survive <code>qa-redproof-sc13-c1</code>. <code>git worktree prune</code> plus a removal, both yours.</td></tr><tr><td>B-16</td><td>enhancement</td><td>Define &quot;exhausts&quot; for <code>max_total_cycles</code> (BUG-1286&#x27;s B-12). Undefined again here and it cost two Advisor round-trips.</td></tr></tbody></table></div>
+<h2 id="what-i-did-not-do">What I did not do</h2>
+<p>Not merged, not pushed, no PR, no ship, no worktree removal, no distillation. No residual was accepted and no gate waived by me: SEC-01&#x27;s acceptance is yours under Advisor delegation, and VL-01 is unruled. Cycles stand at 12 of 12 — a thirteenth needs a fresh ruling.</p><p class='derived'>Derived from <code>ship-review-2026-09-05-validate-c2.md</code> — the markdown is the record; do not edit this file. Regenerate with <code>bin/render-brief.py</code>.</p></div></body></html>

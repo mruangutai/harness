@@ -19,6 +19,7 @@ the agent sees.
 import os
 import re
 import sys
+from run_identity import MARKER_NAME as _RUN_IDENTITY_MARKER
 
 # THE LEGITIMATE WORKTREE LOCATION, named once. Every rule in this module that needs
 # it reads this constant, so mutating it here changes the rule everywhere it applies
@@ -32,17 +33,17 @@ import sys
 # then blocks the main session on.
 WORKTREES_SEGMENT = ".claude/worktrees"
 
-# THE RUN-ARTIFACT PATTERNS, shared between check-domain.sh (content guards on the Write
-# and Edit routes) and bash-write-guard.sh (a route-only refusal on Bash, which carries no
-# complete payload to compare content against). Issue #1106: these used to live only inside
-# check-domain.sh's embedded Python, reachable by neither bash-write-guard.sh nor any other
-# caller — the same "split issue #261 reports" this module exists to close, recurring for a
-# second pair of patterns. One definition, both guards import it, so the two write surfaces
-# cannot silently disagree about which paths are protected.
+# THE RUN-ARTIFACT PATTERNS, shared between check-domain.sh (content or route
+# guards on Write/Edit) and bash-write-guard.sh (route-only refusal on Bash).
+# One definition keeps both write surfaces from silently disagreeing.
 RE_RUN_DIGEST = re.compile(r"^\.harness/[^/]+/features/[^/]+/runs/[^/]+/digest\.md$",
                             re.IGNORECASE)
 RE_STATE_YAML = re.compile(r"^\.harness/[^/]+/features/[^/]+/runs/[^/]+/state\.yaml$",
                             re.IGNORECASE)
+RE_RUN_IDENTITY = re.compile(
+    r"^\.harness/[^/]+/features/[^/]+/runs/[^/]+/"
+    + re.escape(_RUN_IDENTITY_MARKER) + r"$",
+    re.IGNORECASE)
 
 # A directory is a harness checkout when it contains MARKER. Never a caller-supplied
 # parameter (FEAT-42 T-01): a parameter is what let each caller invent its own

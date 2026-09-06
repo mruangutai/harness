@@ -1,0 +1,1388 @@
+schema: plan/1
+feature: BUG-1305-run-state-clobber
+status: done
+approval:
+  date: '2026-09-05'
+  approved_by: operator
+  status: approved
+  rulings:
+    - finding: PF-bf3d1974a749f7eaf7f59ecc803ee540
+      who: operator
+      date: '2026-09-05'
+      reason: The contradictory constraint is corrected before signature; the full unit and integration regression suites are necessary to prove the enforcement change preserves existing refusals.
+    - finding: PF-fb4e9fcf23478184b4625b9fb861e01d
+      who: operator
+      date: '2026-09-05'
+      reason: The plan explicitly discloses that hook delivery is a host assumption not continuously reverified by INV-9; accept that residual rather than inventing an in-repo proof of host behavior.
+    - finding: PF-e6f741cb180ce67ce67a5502a49fcd90
+      who: operator
+      date: '2026-09-05'
+      reason: Keep the NotebookEdit probe because it measures an independent host property and is the evidence for the signed NotebookEdit residual in REQ-01 and SC-11.
+    - finding: PF-195f75a329d8acda7fc24810f62b0bee
+      who: operator
+      date: '2026-09-05'
+      reason: Keep the witness because it detects legacy or corrupt run-state clobbering that run_uid alone cannot, and keep Mode B because the source issue and B-11 explicitly include it.
+source_issues: [1305]
+
+lanes:
+  resolved_at: c369fb1f
+  rows:
+    - surface: .claude/skills/harness/bin/check-domain.sh
+      lane: main-session-direct
+      reason: "DEC-174 carve-out; check-domain.sh --resolve at c369fb1f grants harness-backend-dev and harness-dev-ops, and the harness does not execute changes to its own registered PreToolUse gate"
+    - surface: .claude/skills/harness/bin/check-state.sh
+      lane: main-session-direct
+      reason: "DEC-174 carve-out; --resolve grants harness-backend-dev and harness-dev-ops, and this is the state gate run at every /harness entry"
+    - surface: .claude/skills/harness/bin/validate-digest.py
+      lane: main-session-direct
+      reason: "DEC-174 carve-out; --resolve grants harness-backend-dev and harness-dev-ops, and this file is the registered SubagentStop hook"
+    - surface: .claude/skills/harness/bin/run_identity.py
+      lane: main-session-direct
+      reason: "DEC-174 carve-out; --resolve grants harness-backend-dev and harness-dev-ops, but a module imported by two registered gate scripts is the enforcement layer and breaks every write when wrong"
+    - surface: tests/integration/test-check-domain.py
+      lane: main-session-direct
+      reason: "DEC-174 carve-out; --resolve grants harness-backend-dev, harness-dev-ops and harness-qa, and BRIEF Constraints extend DEC-174 to each gate's own tests"
+    - surface: tests/integration/test-check-state.py
+      lane: main-session-direct
+      reason: "DEC-174 carve-out; --resolve grants harness-backend-dev, harness-dev-ops and harness-qa, and BRIEF Constraints extend DEC-174 to each gate's own tests"
+    - surface: tests/integration/test-validate-digest.py
+      lane: main-session-direct
+      reason: "DEC-174 carve-out; --resolve grants harness-backend-dev, harness-dev-ops and harness-qa, and BRIEF Constraints extend DEC-174 to each gate's own tests"
+    - surface: tests/unit/test-run-identity.py
+      lane: main-session-direct
+      reason: "DEC-174 carve-out; --resolve grants harness-backend-dev, harness-dev-ops and harness-qa, and it is the test of an enforcement-layer module"
+    - surface: .claude/skills/harness/SKILL.md
+      lane: main-session-direct
+      reason: "ungranted surface; check-domain.sh --resolve at c369fb1f answers NOBODY, so DEC-179 makes it a declared main-session step"
+    - surface: .claude/skills/harness-team/SKILL.md
+      lane: main-session-direct
+      reason: "ungranted surface; check-domain.sh --resolve at c369fb1f answers NOBODY, so DEC-179 makes it a declared main-session step"
+    - surface: .harness/harness/docs/DECISIONS.md
+      lane: main-session-direct
+      reason: "--resolve grants harness-documentor, but superseding a signed decision's ruling is the operator's act carried out by the only tier with a user channel"
+    - surface: .harness/harness/docs/DECISIONS-INDEX.md
+      lane: main-session-direct
+      reason: "--resolve grants harness-documentor; regenerated in the same step that edits DECISIONS.md, so it moves with that file's lane"
+    - surface: .harness/harness/features/BUG-1305-run-state-clobber/notes/
+      lane: main-session-direct
+      reason: "--resolve answers harness-orchestrator for these note names; the tasks that write them are main-session-direct already, and the main session is ungoverned by the domain grant"
+
+decisions:
+  - id: D-01
+    choice: 'Prevention rests on run_uid, a machine-minted identity the checkpoint itself carries, and TWO compares deny, separated by WHAT EACH CAN SEE. run_uid lives inside the checkpoint, so the minted-identity compare is readable only where the prior parses: it stays inside the existing prior-checkpoint ladder and refuses a PRESENT parsing prior carrying a run_uid against an incoming checkpoint carrying a different one or none, on the Write and Edit routes. The WITNESS is a separate file, so it is the only identity available when the prior is absent, zero-byte or unparseable: the seed-field compare runs BEFORE that ladder and is SKIPPED whenever the prior parses to a mapping carrying a non-empty run_uid, deferring to the ladder''s more specific message. There is no acquisition refusal and no refusal keyed on an empty or absent prior, on any route - an owner recovering a zeroed or absent checkpoint agrees with its own witness on every seed field and passes. The write-once per-run-directory marker is therefore a WITNESS WITH TWO CONSUMERS and NOT detection only, and the earlier detection-only phrasing was a defect in this entry: its seed fields are a PRE denial input, and its run_uid is the detection input T-03 reads. What is a denial input NOWHERE is the SESSION IDENTITY the witness records - not on PRE, not on POST, not directly and not through a per-runtime table; it is forensic evidence a human reads when recovering a clobbered directory. The complete set of denial inputs is: the witness seed fields conflict() compares (run_id, feature, squad, host), and the prior checkpoint run_uid against the incoming one.'
+    because: 'a resumed owning run and a foreign run reusing the slug carry IDENTICAL seed fields and DIFFERENT session identities by construction, so a denial keyed on session disagreement refuses exactly the resumed-owner writes this feature exists to protect - _resolve_identity (harness_yaml.py:511-546) resolves a property of the SESSION, never of the RUN, and no fail-open row and no additional recorded field can separate the two cases at state.yaml write time. The discriminator that survives is a value minted per RUN and carried by that run own checkpoint: a resumed owner presents it because it reads it out of the file it is updating, and a foreign run cannot present it without deliberately copying it (D-11). The acquisition discriminator this replaces - CREATION versus CONTINUATION - was measured to refuse approximately only the owner recovering a lost checkpoint and approximately no foreign run (plan panel ranks 1 and 2), because an empty prior_state arises from a readable ZERO-BYTE file as well as from an absent one (check-domain.sh:1508-1518 at c369fb1f).'
+    dec: none
+  - id: D-02
+    choice: "Post-hoc detection is hosted by check-state.sh and is fed by the same marker the write guard reads; the marker is one mechanism with two consumers, not two artifacts."
+    because: "a clobbered checkpoint is definitionally silent about its own history, and building the witness twice guarantees the two copies disagree"
+    dec: none
+  - id: D-03
+    choice: "REQ-05's remedy is extend-compatible: the pure-append repair route is already allowed today, so the work is a regression test pinning that allowance plus a refusal message that names the append route, and no replace-style remedy is planned."
+    because: "DEC-208 ruling 3 signs that a recorded digest is extended and never replaced, and the diagnosis probe measured an append Edit at exit 0 on the pre-change tree"
+    dec: DEC-208
+  - id: D-04
+    choice: "The operator authorises a separate DEC-205 in-place rewrite of DEC-208 ruling 3's false Write-only scope sentence to the measured Write/Edit truth. REQ-06 separately corrects check-domain.sh's own inline comment."
+    because: "live check-domain.sh reconstructs Edit content for run digests and applies the preservation rule; leaving a measured-false present-tense decision would contradict DEC-205"
+    dec: DEC-208
+  - id: D-05
+    choice: "This feature touches validate-digest.py's check_artifact_file root resolution and fail-closed behaviour only; issue 1303 owns the code_grade and review_sha binding in the same file."
+    because: "the two flows edit one file in separate worktrees and may collide at merge, which the main session serialises; neither depends on nor blocks the other"
+    dec: none
+  - id: D-06
+    choice: "The operator DECLINED run-directory slug unification at signature. T-07, REQ-08 and SC-08 are retired; both grammars remain live and run_uid refusal absorbs equal-slug collisions."
+    because: "the change affects collision frequency rather than correctness, and the proposed supersession mechanics contradict DEC-205's in-place current-truth rule"
+    dec: DEC-145
+  - id: D-07
+    choice: "No task in this plan reads, parses or asserts run-directory slug internals; every remedy keys on recorded run identity."
+    because: "the two live grammars disagree, so a remedy coupled to either one is wrong in half the corpus and would need migrating when the doctrine task lands"
+    dec: none
+  - id: D-08
+    choice: "Mode B is closed inside validate-digest.py's already-registered SubagentStop hook by fixing check_artifact_file's root resolution and failing closed on a resolvable run directory with no digest; check-state.sh is NOT wired to a hook."
+    because: "that interpreter is already paid per spawn while check-state.sh's sweep grows with run history forever, and the /harness-entry instruction that would otherwise cover the gap is instruction-enforced with nobody having verified it executes"
+    dec: none
+  - id: D-09
+    choice: "Each automated criterion's pre-change failure is demonstrated at build time against a pinned copy of the pre-change script and recorded verbatim in notes/redproof-BUG-1305.md; no pre-change script is committed as a test fixture."
+    because: "a committed prior-script fixture rots against every later edit, and a test that fetches a historical blob is unreachable under a depth-1 CI checkout"
+    dec: none
+  - id: D-10
+    choice: "Every task touching check-domain.sh, check-state.sh, validate-digest.py, run_identity.py or their tests is main-session-direct with a DEC-174 reason."
+    because: "the harness plans changes to its own enforcement layer and does not execute them"
+    dec: DEC-174
+
+  - id: D-11
+    choice: "Mode A prevention keys on run_uid, a machine-minted collision-resistant identity carried as a new top-level key on the run checkpoint beside the human-legible run_id, and the refusal is the existing Issue 1124 identity compare re-keyed onto it - a PRESENT prior carrying a run_uid, against an incoming checkpoint carrying a different one or none, is refused on the Write and Edit routes. run_id keeps its meaning, its author and every display use it has today. No refusal is keyed on an empty or absent prior, and a prior carrying no run_uid is legacy that nothing new refuses."
+    because: "the acquisition refusal this replaces was measured to refuse approximately only the legitimate owner recovering a lost checkpoint and approximately no foreign run - the plan panel union finding at ranks 1 and 2 - because a foreign run reusing a slug always presents a PRESENT prior with equal seed fields. The Advisor consult recorded this mechanism as fallback Q2c and declined it only on the condition that a second identity signal could deny instead, and cycle 2 F-01 destroyed that condition by measuring that a resolved session identity cannot separate a resumed owner from a foreign run. A minted identity is the weakest thing that CAN separate them, because a foreign run has no way to hold the value except by copying it deliberately."
+    dec: none
+  - id: D-12
+    choice: "run_uid is minted by check-domain.sh in its existing PostToolUse mode, which already reads what landed - the hook mints the value, appends one run_uid line to the landed state.yaml by text, and records the same value in the write-once witness beside it. The PRE routes never mint. Both key vocabularies that reject unknown top-level keys, ALLOWED in check-domain.sh and CHECKPOINT_KEYS in check-state.sh, gain run_uid in the same task that introduces the field."
+    because: "minting has to happen where a shell observes every governed write, and POST is the only such place - a PreToolUse hook cannot alter a payload, the leads that author state.yaml hold no shell, and no program in the tree writes a run state.yaml. The cost is that the POST reporter becomes a writer of one line into the file it just read, which is why it appends a single top-level key by text rather than round-tripping the YAML, and never touches a file it could not parse."
+    dec: none
+  - id: D-13
+    choice: The detection invariant judges a run directory only where a WITNESS sits beside the checkpoint, and from there it reports three paths - an unreadable witness, a witness/checkpoint disagreement on a seed field, and a witness/checkpoint disagreement on run_uid. A directory carrying no witness is invisible to it, a checkpoint carrying no run_uid over a witness that carries one is not reported either, and no backfill of the historical corpus is planned or run.
+    because: "a one-shot seeder cannot keep up with a corpus that grew from 575 to 630 in one day across the control-plane root and every sibling worktree, so a witness-absent invariant would put a red state gate over dozens of legitimate historical directories at every /harness entry on the day this ships. Making the invariant self-limiting removes the migration and the false positives together, at the price of never judging a legacy directory - and a legacy directory is exactly the coverage that exists today, not a regression. The unreported checkpoint-without-run_uid case is conceded for the same reason: a legitimate write in a session where the hooks are not registered reaches that state, and INV-9 already asserts hook registration."
+    dec: none
+
+panel:
+  last_run: planpanel-c2-validator
+  cycle: 2
+  verdict: FAIL
+  severity_max: high
+  code_grade: n_a
+  cycles_used: 0
+  digest: .harness/harness/features/BUG-1305-run-state-clobber/runs/planpanel-c2-validator/digest.md
+  transcribed_by: harness-pm
+  transcribed_at: '2026-09-05'
+  transcription_rule: 'Every id is computed with panel_findings.py id and never typed.
+    --summary is this entry''s own summary: field, byte for byte; --reader is the
+    reader id .claude/skills/harness-team/teams/plan-panel.yaml declares. The lead
+    held no shell and assigned no PF- ids, so the scheme is the plan''s: a finding
+    both readers raised is computed with reader scope, carries the gating-higher of
+    the two severities, names both readers in readers: and states both severities
+    in the summary. Recomputing an id therefore requires the summary text unaltered;
+    editing a summary changes the id and orphans any ruling written against the old
+    one.'
+  readers:
+  - reader: should-not-exist
+    persona: fable-advisor
+    status: ran
+    findings: 7
+    note: 1 high, 2 med, 1 low, 3 info. Holds no write grant; its findings reach disk
+      only in the validator digest.
+  - reader: scope
+    persona: harness-code-reviewer
+    status: ran
+    findings: 5
+    note: 1 high, 3 med, 1 low. Its own note is notes/review-harness-code-reviewer-planpanel-c2.md.
+  - reader: goalcheck
+    persona: harness-pm
+    status: ran
+    note: 'Ran three rounds over this plan: notes/research-BUG-1305-goalcheck-plan-c1.md,
+      notes/research-BUG-1305-goalcheck-plan-c2.md and notes/research-BUG-1305-goalcheck-plan-c3.md.'
+  findings:
+  - id: PF-bffeb6421e742d92c9ef2c6234289fad
+    rank: 1
+    severity: high
+    reader: should-not-exist
+    readers:
+    - should-not-exist
+    summary: 'T-12 measures the wrong script: a main-session-direct probe executes
+      under the MAIN checkout''s pre-change check-domain.sh, so post_mint_observed:
+      no is guaranteed by construction and the mandatory ## Reported section would
+      publish a false claim that this feature is inert in practice.'
+    disposition: resolved
+    resolved_by: T-12
+    resolution: T-12 retired in place, station abandoned, traces and depends_on emptied,
+      verify inverted to assert its own note is not written; SC-12 retired in place
+      in BRIEF; SC-10's pointer re-aimed at the new REQ-01 disclosure that end-to-end
+      mint DELIVERY is unmeasured until this feature merges.
+  - id: PF-5b2dc81b4284b2ec4306504f09d0a0a4
+    rank: 2
+    severity: high
+    reader: scope
+    readers:
+    - scope
+    summary: .run-identity.json is matched by no guard on any route and no task T-01..T-12
+      adds a pattern, so destroying the sole input REQ-02 detection reads turns an
+      accepted undetected clobber into an undetectable one.
+    disposition: resolved
+    resolved_by: T-02
+    resolution: 'T-02 extended: harness_boundary.RE_RUN_IDENTITY, the Bash run-artifact
+      guard, and a check-domain.sh Write/Edit route denial, with tests in tests/unit/test-harness-boundary.py,
+      tests/integration/test-bash-write-guard.py and tests/integration/test-check-domain.py;
+      graded by the new SC-13.'
+  - id: PF-bf3d1974a749f7eaf7f59ecc803ee540
+    rank: 3
+    severity: med
+    reader: scope
+    readers:
+    - scope
+    - should-not-exist
+    summary: BRIEF Constraints forbids a project-wide suite while T-08 mandates run-unit-tests.sh
+      --kind unit and --kind integration, both repo-wide globs, and SC-07 is graded
+      on their results.
+    disposition: open
+    note: 'A signature-time ruling: the full run is genuinely necessary and the signed
+      Constraints bullet is what is wrong. Not spent a cycle on, per the panel''s
+      own budget guidance.'
+  - id: PF-f549ccb614b758a9da2a89cc94351d25
+    rank: 4
+    severity: med
+    reader: scope
+    readers:
+    - scope
+    - should-not-exist
+    summary: T-08's direction-two pairs say four and omit T-05's fail-closed return
+      2 in check_artifact_file, and SC-07's FAILS-if does not name the omission either.
+    disposition: resolved
+    resolved_by: T-08
+    resolution: 'T-08''s intent now names SIX pairs: the five of the first pass plus
+      the witness-guard pair, because this cycle''s rank-2 remedy itself added refusing
+      branches - the Bash write and removal denials in bash-write-guard.sh and the
+      Write/Edit route denial in check-domain.sh for .run-identity.json - after the
+      count had been fixed at five. Its permitted side is a Write of state.yaml and
+      a Write of digest.md in the SAME run directory at exit 0 plus an unaffected
+      Bash write to an unrelated ordinary file there. SC-07 counts six in both its
+      enumeration and its FAILS-if.'
+  - id: PF-fb4e9fcf23478184b4625b9fb861e01d
+    rank: 5
+    severity: med
+    reader: scope
+    readers:
+    - scope
+    summary: 'T-12/SC-12 date the PostToolUse-delivery assumption once and nothing
+      re-verifies it: check-state.sh INV-9 checks matcher registration, not delivery.'
+    disposition: open
+    note: 'Rank 1''s strike removed this finding''s subject rather than its substance:
+      nothing now dates the assumption at all. The gap is DISCLOSED at the signature
+      in REQ-01 and in SC-10, not closed, so the operator still rules on accepting
+      it.'
+  - id: PF-c6a783091c4aea86701e8bfb478b778e
+    rank: 6
+    severity: low
+    reader: should-not-exist
+    readers:
+    - should-not-exist
+    summary: 'T-07/REQ-08 is recommended for strike: with run_uid in place an equal-slug
+      collision is refused under either grammar, so the date-seq form buys collision
+      frequency only while building it bundles a DEC-145 supersession into a bug-fix
+      signature.'
+    disposition: resolved
+    note: "Resolved at signature by striking T-07/REQ-08/SC-08. The frequency-only benefit does not justify the work, and its proposed supersession mechanics contradict DEC-205."
+  - id: PF-6ddc77fdccacdc40c5e46142c6fac560
+    rank: 7
+    severity: low
+    reader: scope
+    readers:
+    - scope
+    - should-not-exist
+    summary: D-13's choice clause is narrower than the three paths T-03 actually reports;
+      T-03's body and SC-09 carry the correct broader set. Rated low by scope and
+      info by should-not-exist; neither severity is reassigned.
+    disposition: resolved
+    resolved_by: D-13
+    resolution: D-13's choice now names the three reported paths - unreadable witness,
+      seed-field disagreement, run_uid disagreement - and keeps every other clause
+      as signed.
+  - id: PF-e6f741cb180ce67ce67a5502a49fcd90
+    rank: 8
+    severity: info
+    reader: should-not-exist
+    readers:
+    - should-not-exist
+    summary: 'T-11 interrogated and judged KEEP: it measures a host property independent
+      of script version, and striking it orphans REQ-01''s NotebookEdit bullet and
+      SC-11.'
+    disposition: open
+    note: Recorded so a later reader knows T-11 was examined rather than skipped.
+      Strikeable only as the trio T-11 plus REQ-01's NotebookEdit bullet plus SC-11,
+      and that is the operator's call.
+  - id: PF-195f75a329d8acda7fc24810f62b0bee
+    rank: 9
+    severity: info
+    reader: should-not-exist
+    readers:
+    - should-not-exist
+    summary: The witness is load-bearing and not removable in favour of run_uid alone,
+      and Mode B is in scope by the issue's own title and the B-11 row.
+    disposition: open
+    note: Recorded so a later reader knows these two scope candidates were checked
+      rather than skipped. No action asked of the plan.
+tasks:
+  - id: T-01
+    title: Add run_identity.py - mint the run identity, record the write-once witness, compare identities
+    traces: [REQ-01, REQ-02]
+    change_type: logic
+    execution_mode: main-session-direct
+    execution_reason: "DEC-174 carve-out - a module imported by check-domain.sh and check-state.sh is enforcement-layer code the harness plans but does not execute"
+    depends_on: []
+    status: done
+    files:
+      - .claude/skills/harness/bin/run_identity.py
+      - tests/unit/test-run-identity.py
+    verify: |
+      python3 tests/unit/test-run-identity.py
+    intent: |
+      Create .claude/skills/harness/bin/run_identity.py, a stdlib-only module that imports no gate
+      script and no YAML parser, plus tests/unit/test-run-identity.py.
+
+      Public surface, exactly these nine names:
+
+      MARKER_NAME = ".run-identity.json"
+      class MarkerUnreadable(Exception)
+
+      marker_path(run_dir) -> str
+        os.path.join(run_dir, MARKER_NAME).
+
+      read_marker(run_dir) -> dict or None
+        Return None when the marker file does not exist. Parse it with json.load and return the
+        mapping. Raise MarkerUnreadable when the file exists but does not parse, is not a JSON
+        object, or cannot be opened. A caller must be able to fail closed on that exception and
+        must never be able to mistake an unreadable marker for an absent one.
+
+      mint_uid() -> str
+        Return uuid.uuid4().hex - 32 lowercase hex characters, 122 random bits from the platform
+        CSPRNG. NOTHING ELSE GOES INTO IT: no timestamp, no hostname, no pid, no directory name.
+        Every derivable component is a way for a run that did not mint the value to reconstruct it,
+        and this value is the whole of the collision resistance D-11 rests on. uuid4 is the stdlib
+        answer and this module takes it unmodified.
+
+      inject_uid(state_path, uid) -> bool
+        BEST EFFORT, NEVER RAISES. If the file already carries a line matching ^run_uid: at column
+        0, write nothing and return False. Otherwise append one line, exactly "run_uid: <uid>",
+        preceded by a newline if the file does not already end in one, and return True. Write to a
+        temp file in the same directory and os.replace() it, so an interrupted injection never
+        leaves a half-written checkpoint. Return False, never raise, on any OSError or UnicodeError.
+        A TEXT APPEND, NOT A YAML ROUND TRIP, and this is not a shortcut: re-emitting a parsed
+        checkpoint reorders keys, drops comments and reformats values in a file its author owns and
+        will read back. A hook that runs immediately after someone writes a file is the last place
+        that should reformat it. Say that in a comment.
+
+      record_seed(run_dir, doc, identity, run_uid) -> bool
+        WRITE ONCE. If marker_path(run_dir) already exists, write nothing and return False.
+        Otherwise write a JSON object with exactly the keys run_id, feature, squad, host, identity,
+        run_uid, created_at: the first four are str(doc.get(k)) when the key is present and None
+        when it is not; identity is the caller resolved identity string or None; run_uid is the
+        caller effective uid or None; created_at is a UTC ISO-8601 timestamp. Write to a temp file
+        in the same directory and os.replace() it onto the marker path. Return True.
+        Return False, never raise, when run_dir does not exist or the write fails for any reason:
+        recording is best effort and a hook must not break a legitimate write because the witness
+        could not be stored.
+
+      conflict(marker, doc) -> str or None
+        Return None when marker is None. Otherwise return a one-line reason string when the marker
+        and the incoming checkpoint cannot be the same run. EVERY ROW CARRIES THE SAME
+        RECORDED-NON-NONE GUARD, run_id INCLUDED:
+          - run_id recorded non-None in the marker and str(marker["run_id"]) != str(doc.get("run_id")):
+            the reason names both values;
+          - any of feature, squad, host recorded non-None in the marker and disagreeing with
+            str(doc.get(field)): the reason names the field and both values.
+        Check run_id first and return on the first disagreement, so the message is one sentence.
+        THE run_id GUARD IS LOAD-BEARING, NOT SYMMETRY FOR ITS OWN SAKE. record_seed writes None for
+        a key the first landed checkpoint did not carry, and nothing requires run_id on a first
+        write, so a witness can be BORN with run_id None. record_seed is WRITE-ONCE, so that witness
+        can never be corrected; an unguarded compare would then read str(None) != "A" for the
+        directory's OWN owner and refuse every later write of that run on both routes, with no
+        repair route through the guards. A witness born with a null field must never brand a run
+        directory unwritable, and write-once is exactly why the guard belongs here rather than in a
+        repair path. Say that in a comment on this function.
+        IT DOES NOT LOOK AT run_uid. The two predicates are separate on purpose: this one compares
+        the incoming write against the WITNESS of the directory first write, uid_conflict compares
+        it against the PRIOR CHECKPOINT, and merging them would make one message answer two
+        questions.
+
+      uid_conflict(prior_doc, doc) -> str or None
+        The minted-identity compare. BOTH ARGUMENTS ARE PARSED CHECKPOINTS, never markers.
+          - Return None when prior_doc is not a mapping, or carries no run_uid, or carries one that
+            is None or an empty string: that directory is LEGACY and nothing new refuses it. This
+            row is what keeps the historical corpus quiet without a migration (D-13);
+          - Return None when both carry run_uid and str() of the two are equal - the resumed owner;
+          - When doc carries a different run_uid: return a reason naming BOTH values and saying the
+            incoming checkpoint belongs to a different run than the one whose record is there;
+          - When doc carries no run_uid at all: return a reason naming the prior value, saying this
+            write cannot be shown to be an update of that run, that a run that owns the record
+            carries the run_uid line forward verbatim from the checkpoint it is updating, and that
+            the same value is recorded in the witness beside it. THIS IS THE MODAL BRANCH, not an
+            edge: a foreign run that has never written a checkpoint has no run_uid of its own to
+            carry, so an accidental slug collision arrives here and not at the different-value row.
+        It reads nothing else: no marker, no session, no directory name, no filesystem.
+
+      IDENTITY IS NOT A DENIAL INPUT ANYWHERE, AND THE RECORDED FIELD STAYS. record_seed keeps
+      writing the resolved session identity as one of its seven keys; that is the whole of the
+      session-identity signal this feature ships. Neither conflict() nor uid_conflict() may consult
+      it, and no gate in this feature consults it either: D-01 records that a resumed owning run
+      and a foreign run reusing the slug carry identical seed fields and different session
+      identities by construction, so any denial keyed on session disagreement refuses exactly the
+      writes this feature protects. Say all three things in one comment naming D-01 and D-11,
+      placed on conflict(): that the recorded identity is FORENSIC EVIDENCE a human reads out of
+      the witness file when recovering a clobbered run directory, that neither predicate may
+      consult it, and that no gate in this feature consumes it.
+
+      NOTHING IN THIS MODULE READS THE RUN-DIRECTORY NAME. It never parses, splits or asserts a
+      slug (D-07): the two live slug grammars disagree, so a mechanism coupled to either is wrong
+      in half the corpus.
+
+      tests/unit/test-run-identity.py follows the case-and-exit convention of the existing files in
+      tests/unit (each case prints an ok/FAIL line, the script exits non-zero if any case failed),
+      each case in its own tempfile.TemporaryDirectory, asserting:
+        - record_seed into a fresh directory returns True and the marker parses with the seven keys;
+        - a second record_seed with a different doc returns False and leaves the marker bytes byte
+          identical to the first write;
+        - record_seed against a directory that does not exist returns False and raises nothing;
+        - read_marker returns None for an absent marker, raises MarkerUnreadable for a truncated
+          file and for a JSON array;
+        - mint_uid matches ^[0-9a-f]{32}$ and 1000 calls return 1000 distinct values;
+        - inject_uid appends the line to a file that lacks it and the result parses as YAML with the
+          expected value; returns False and leaves the bytes identical when a run_uid line is
+          already present; inserts the separating newline when the file does not end in one; returns
+          False for a path that does not exist;
+        - conflict returns None for a doc identical to the marker, returns a reason containing both
+          run_id values when run_id differs, and returns a reason naming squad when run_id matches
+          and squad differs;
+        - THE run_id GUARD, ITS OWN CASE AND NAMED AS SUCH: a marker recorded by record_seed from a
+          doc carrying NO run_id (so the witness holds run_id None) against a doc that now supplies
+          run_id A returns None. Build the marker through record_seed rather than by hand, so the
+          case proves the born-null witness the write-once path actually produces. Without the
+          guard this returns a reason and the directory owner is refused forever;
+        - the same guard on one of the other three: a marker recorded from a doc carrying no squad,
+          against a doc that now supplies one, returns None;
+        - conflict returns None when marker and doc agree on all four seed fields and disagree on
+          run_uid, pinning that the two predicates are separate;
+        - uid_conflict returns None when the prior carries no run_uid, when it carries None, and
+          when both carry the same value; returns a reason containing both values when they differ;
+          and returns a reason containing the prior value when the incoming carries none.
+
+  - id: T-02
+    title: Mint the run identity at POST, record and guard the witness, and deny a foreign-run state.yaml write on both routes
+    traces:
+    - REQ-01
+    - REQ-02
+    - REQ-07
+    change_type: bugfix
+    execution_mode: main-session-direct
+    execution_reason: 'DEC-174 carve-out - check-domain.sh is a registered PreToolUse and PostToolUse gate script, bash-write-guard.sh is the registered Bash write guard, harness_boundary.py is the pattern module both import, and each gate''s own test file rides the same carve-out; --resolve at c369fb1f grants all three surfaces to harness-backend-dev and harness-dev-ops, and the routing is recorded here rather than in lanes: because no plan-merge.py verb reaches the lanes: block'
+    depends_on: [T-01]
+    status: done
+    files:
+    - .claude/skills/harness/bin/check-domain.sh
+    - .claude/skills/harness/bin/check-state.sh
+    - .claude/skills/harness/bin/bash-write-guard.sh
+    - .claude/skills/harness/bin/harness_boundary.py
+    - tests/integration/test-check-domain.py
+    - tests/integration/test-check-state.py
+    - tests/integration/test-bash-write-guard.py
+    - tests/unit/test-harness-boundary.py
+    - .harness/harness/features/BUG-1305-run-state-clobber/notes/redproof-BUG-1305.md
+    verify: |
+      grep -q '^## SC-01' .harness/harness/features/BUG-1305-run-state-clobber/notes/redproof-BUG-1305.md && grep -q '^## SC-10' .harness/harness/features/BUG-1305-run-state-clobber/notes/redproof-BUG-1305.md && python3 tests/unit/test-harness-boundary.py && python3 tests/integration/test-check-domain.py && python3 tests/integration/test-check-state.py && python3 tests/integration/test-bash-write-guard.py
+    intent: |
+      Mint the run identity where a shell can see every governed write, record the witness, and close
+      the seed-field half of the Mode-A prevention gap. The identity COMPARE is T-09; this task makes
+      the value exist. Both changes live in check-domain.sh RE_STATE_YAML handling, plus the two key
+      vocabularies that would otherwise reject the field this task introduces.
+
+      WRITE THE TEST CASES FIRST AND SHOW THEM RED, then implement. The red demonstration is part of
+      this task, not a nicety: build a temp root with isolated_bin(dest_root) from
+      .claude/skills/harness/bin/isolated_bin.py, overwrite the copied check-domain.sh with the
+      pre-change blob from `git show c369fb1f:.claude/skills/harness/bin/check-domain.sh`, and run
+      the new cases with CHECK_DOMAIN_BIN pointed at that copy (test-check-domain.py:28 already
+      reads that variable). Append to
+      .harness/harness/features/BUG-1305-run-state-clobber/notes/redproof-BUG-1305.md a section
+      headed exactly `## SC-01` carrying the exact commands and the VERBATIM pre-change output
+      showing each new refusal case failing there, and a section headed exactly `## SC-10` showing
+      that a landed checkpoint acquires no run_uid on that tree. Do not commit the pre-change copy
+      as a fixture (D-09).
+
+      1. THE KEY VOCABULARIES, FIRST, because everything else fails without them. Two independent
+      sets reject unknown top-level keys and both must learn run_uid in this task:
+        - check-domain.sh ALLOWED (:1450-1453 at c369fb1f, inside the RE_STATE_YAML branch) - without
+          it the shape gate refuses the very key the POST hook injects, on the author next write;
+        - check-state.sh CHECKPOINT_KEYS (:1390-1405 at c369fb1f) - without it INV-16 reports every
+          checkpoint carrying the field, which is every checkpoint written after this lands.
+      The comment at check-domain.sh:1444-1447 already says the KEY VOCABULARY stays in sync with
+      CHECKPOINT_KEYS; keep that true. Add one regression case to tests/integration/test-check-state.py
+      asserting that a checkpoint carrying run_uid produces no INV-16 finding, and one to
+      tests/integration/test-check-domain.py asserting a Write of such a checkpoint is not refused for
+      shape.
+
+      2. MINTING, AT POST, AND NOWHERE ELSE (D-12). In the post-mode branch that reads what landed -
+      the `elif target:` region at :1930-1950 at c369fb1f, re-derive the position before editing -
+      after the landed text has been read and only when it parses to a dict via harness_yaml:
+        - run_dir = os.path.dirname of the resolved absolute path; marker = run_identity.read_marker
+          (run_dir), catching MarkerUnreadable and treating it as no witness for THIS step - POST
+          reports, it does not deny, and a broken witness is T-03 subject;
+        - the EFFECTIVE UID is, in this order: the landed doc own run_uid if it carries a non-empty
+          one; else the witness recorded run_uid if it carries one; else run_identity.mint_uid().
+          That order is what makes the mechanism converge from any half-finished state - a checkpoint
+          that landed before the witness existed keeps its value, and an owner that RECOVERED a
+          deleted or zeroed checkpoint gets its ORIGINAL identity back from the witness rather than a
+          fresh one;
+        - if the landed doc carries no run_uid, call run_identity.inject_uid(absolute path, effective
+          uid) and ignore the result;
+        - call run_identity.record_seed(run_dir, doc, harness_yaml._resolve_identity(d), effective
+          uid) and ignore the result. record_seed is write-once and never raises, so the witness is
+          born in the SAME POST call that mints the value and there is no window in which one exists
+          without the other. _resolve_identity (harness_yaml.py:511) is the tree one identity
+          resolver and its underscore name is not a reason to build a second chain.
+      Everything here is best effort and nothing here exits non-zero: a POST hook that fails a write
+      because it could not mint would be a new refusal on a route that has already landed.
+
+      STATE THE FIRST-WRITE WINDOW HONESTLY, in the comment and in the note, AND NAME IT FOR WHAT IT
+      IS. Until a run directory receives one POST-governed landing it carries no run_uid and no
+      witness, so it is refused by nothing new and reported by nothing. That is today behaviour
+      exactly, and it is why no corpus backfill exists in this plan (D-13) - but "the legacy window"
+      is not the whole name for it. It is the RESIDUAL INSTANCE OF THE MODAL COLLISION this bug is
+      named for: two runs choosing the same fresh slug inside that window, the second landing before
+      the first run POST mints, collide exactly as issue 1305 describes; uid_conflict returns None by
+      its legacy row, the clobber is PERMITTED, and T-03 can never report it because no witness
+      exists. Write it that way in the comment and in the note. A reader told only "legacy window"
+      will not price it, and pricing it is the point.
+
+      3. PRE, THE SEED-FIELD REFUSAL - ONE INSERTION POINT, AND IT IS NOT INSIDE THE LADDER.
+      Place this compare inside the `if absolute_path is not None:` region, AFTER the prior_unreadable
+      refusal and BEFORE the `if prior_state:` ladder. Anchors, re-verified at source in the worktree
+      at c369fb1f before this instruction was written - re-derive them again before editing: the
+      region opens at :1508; the prior read and the prior_unreadable refusal occupy :1509-1529
+      (`if prior_unreadable:` at :1526, its `return out` at :1529); the ladder opens at :1530; the
+      Issue 1124 run_id compare is :1567-1574; the shape phase begins at :1581-1582.
+
+      THE TWO COMPARES ARE SEPARATED BY WHAT EACH CAN SEE, and that is why there is exactly one place
+      for each. run_uid lives INSIDE the checkpoint, so the minted-identity compare is readable only
+      where the prior parses - it stays in the ladder and is T-09's. The WITNESS is a SEPARATE FILE,
+      so it is the only identity available when the prior is absent, zero-byte or unparseable, and
+      that is the case this compare owns.
+
+      THE DEFERRAL IS PART OF THE RULE THE CODE IMPLEMENTS, not prose around it: SKIP this compare
+      whenever the prior parses to a mapping carrying a non-empty run_uid. That directory own
+      checkpoint identity is then available and T-09 compare owns the answer.
+
+      HOW TO EVALUATE THAT WITHOUT CHANGING ANY EXISTING MESSAGE OR EXIT. Parse the prior ONCE, above
+      the deferral check, and keep both outcomes:
+        - initialise prior_doc = None and prior_exc = None; when prior_state is non-empty, call
+          harness_yaml.load_str(prior_state, rel) inside try/except and keep the exception in
+          prior_exc instead of reporting it here;
+        - prior_has_uid = prior_exc is None and isinstance(prior_doc, dict) and
+          str(prior_doc.get("run_uid") or "").strip() != "";
+        - if prior_has_uid: skip this compare entirely and fall through to the ladder;
+        - otherwise import run_identity (the bin directory is already on sys.path in this script) and
+          call run_identity.read_marker(os.path.dirname(absolute_path)), catching
+          run_identity.MarkerUnreadable: on that exception append a finding headed "state.yaml run
+          identity (Issue 1305)." saying the run directory recorded identity cannot be read, so a
+          Write that could silently replace another run checkpoint is refused, and return out. FAIL
+          CLOSED, matching the sibling unreadable-prior branch directly above it;
+        - otherwise call run_identity.conflict(marker, doc) and, on a non-None reason, append the same
+          head, then the reason line, then the sentence already used by the Issue 1124 branch:
+          "Write this cycle's state into a run directory of its own." Return out.
+      THE LADDER THEN CONSUMES prior_doc AND prior_exc INSTEAD OF RE-PARSING, and every refusal it
+      already carries keeps its message, its exit code and its route BYTE-IDENTICAL: prior_exc
+      non-None emits the existing "run state already exists but does not parse" head with the same
+      exception text; a non-mapping prior_doc emits the existing not-a-mapping head; the Issue 1106
+      rows and the Issue 1124 compare at :1567-1574 are untouched. Do not add, remove or reword one
+      message in that ladder. Any other implementation shape is acceptable ONLY if it leaves every
+      existing message, exit code and route identical and the note says so explicitly.
+
+      NO REFUSAL IS KEYED ON AN EMPTY OR ABSENT PRIOR, and this placement introduces none: the compare
+      fires only on a DISAGREEMENT, and an owner rewriting a ZEROED or hand-deleted checkpoint
+      presents seed fields that AGREE with its own witness, so it passes (D-11). Say that in the
+      comment, and do not add a prior-empty refusal anywhere. A TRUNCATED prior - non-empty and
+      unparseable - is a DIFFERENT CASE and this task does not open it: it is refused by the
+      pre-existing Issue 1106 gap (b) branch when no witness disagrees, and by this compare when one
+      does. Reversing that fail-closed refusal is out of scope BY NATURE; BRIEF REQ-01 states it at
+      the signature and no clause in this plan promises otherwise.
+
+      PRECEDENCE, STATED ONCE HERE AND MIRRORED IN T-09: this compare answers first whenever the prior
+      carries no readable run_uid, and defers to the ladder whenever it does. One consequence to
+      expect rather than discover: a run directory holding a witness AND a prior that PARSES with NO
+      run_uid, against an incoming checkpoint whose run_id differs, now answers with this Issue 1305
+      witness wording rather than the Issue 1124 one. That is the intended ordering, no case in T-02,
+      T-09 or SC-01 asserts otherwise, and the case list below pins it.
+
+      The `if _no_parser: return out` early return above stays exactly as it is. DEC-171 is an
+      operator-ruled tradeoff and is not this feature to reverse; what covers a clobber arriving
+      through that route is REQ-02 detection, and that cover exists only if T-03 actually lands.
+      STATE THE MECHANISM HONESTLY, AS IT NOW STANDS: T-08 depends_on [T-02, T-03, T-05, T-06, T-09]
+      makes the REQ-07 evidence unproducible until all of them have landed, and SC-02 remains a
+      criterion of its own. Claim exactly that much and no more: the edge forces ORDER, and the
+      criterion is what forces DELIVERY.
+
+      CASES in tests/integration/test-check-domain.py, all against an isolated_bin root, added as one
+      new run_bug1305_marker_cases() function registered in main() alongside the existing
+      run_bug1106_edit_route_cases():
+        - Write route: run directory holding a witness for run_id A and NO state.yaml at all; a Write
+          of a state.yaml carrying run_id B exits 2 and the stderr contains both run ids and the words
+          "run identity";
+        - Edit route: the same directory and the same foreign checkpoint delivered as an Edit whose
+          old_string/new_string reconstruct to run_id B exits 2 with the same wording;
+        - Write route, prior present and UNPARSEABLE, witness present for run_id A, incoming run_id B:
+          exits 2 AND the stderr carries the Issue 1305 witness wording naming both run ids, NOT the
+          "does not parse" wording. Assert the wording, not merely the exit: the pre-change tree also
+          exits 2 here by the Issue 1106 gap (b) branch, so an exit-only assertion is not
+          discriminating;
+        - Write route, PRECEDENCE PINNED: witness for run_id A, prior state.yaml that PARSES for
+          run_id A and carries NO run_uid, incoming run_id B. Exits 2 with the Issue 1305 witness
+          wording and not the Issue 1124 wording - the ordering consequence named above;
+        - the same-run update: witness for run_id A, prior state.yaml for run_id A, Write of an
+          updated state.yaml for run_id A exits 0 - the legitimate DEC-154 upsert must stay open;
+        - THE RECOVERING OWNER, both forms, and both must exit 0: witness for run_id A present and the
+          prior state.yaml a readable ZERO-BYTE file; and the same witness with NO state.yaml at all.
+          Incoming carries run_id A and no run_uid in both. These are the B-11 hand-repair action;
+        - a run directory with NO witness behaves exactly as it does today: an incoming run_id equal
+          to the prior exits 0, a differing one exits 2 by the Issue 1124 branch;
+        - a witness file containing `{` and nothing else exits 2 with the unreadable-witness wording;
+        - THE DEFERRAL ITSELF is pinned by T-09's PRECEDENCE case (prior carrying U1, incoming run_id
+          B, expected Issue 1124 wording) and is not duplicated here; that case, the UNPARSEABLE-prior
+          case and the PRECEDENCE PINNED case above are the three that together fix the ordering.
+        - POST minting, four assertions in one case family: a state.yaml landing in a witness-less run
+          directory ends up carrying a run_uid matching ^[0-9a-f]{32}$ that the payload did not
+          contain, and the witness records the same value; a second POST for the same directory leaves
+          both unchanged; a payload that already carries a run_uid is left byte identical; and a
+          landed file that does not parse is left untouched with no witness written.
+
+      4. GUARD THE WITNESS. IT IS A RUN ARTIFACT AND NOTHING GUARDS IT TODAY (plan panel cycle 2,
+      rank 2). The witness this task creates is the ONLY input REQ-02 detection reads, and no pattern
+      on any route matches it: bash-write-guard.sh `_run_artifact_guard` (:762-763 at c369fb1f)
+      matches only harness_boundary.RE_RUN_DIGEST and RE_STATE_YAML (harness_boundary.py:42-45), and
+      check-domain.sh SHAPE_PATTERNS (:1185) is (RE_FEATURE_JSON, RE_STATE_YAML, RE_HANDOFF,
+      RE_STATE_MD, RE_CLAUDE_MD, RE_PLAN_YAML). Re-derive all three anchors before editing. Any
+      writer holding ordinary domain access to a run's `runs/<dir>/` - which every lead already has,
+      because it writes state.yaml and digest.md there - can today delete or overwrite the witness
+      through Bash, Write or Edit with no refusal from anything. That turns an accepted UNDETECTED
+      clobber into an UNDETECTABLE one with the forensic trail erased. The task that makes the witness
+      exist is the task that guards it, so it is guarded HERE, in the same three places the checkpoint
+      and the run digest already are.
+
+        a. harness_boundary.py, beside RE_RUN_DIGEST and RE_STATE_YAML at :42-45: add
+           RE_RUN_IDENTITY, anchored in exactly the same shape as its two siblings, matching
+           `^\.harness/[^/]+/features/[^/]+/runs/[^/]+/\.run-identity\.json$` case-insensitively.
+           Spell the filename from run_identity.MARKER_NAME's value rather than inventing a second
+           spelling of it. Extend the existing comment above the pair rather than writing a new one:
+           one definition, both guards import it, so the two write surfaces cannot silently disagree
+           about which paths are protected.
+        b. bash-write-guard.sh `_run_artifact_guard` (:744-767): add RE_RUN_IDENTITY to the match and
+           give the marker its OWN deny message rather than folding it into the digest/state.yaml
+           sentence, because the reason differs. The message says WHAT THE FILE IS - the run's
+           write-once identity witness, recorded at the run's first landed checkpoint - that it is
+           never rewritten or removed once written, and WHAT TO DO INSTEAD: a run that needs a record
+           of its own writes it into a run directory of its own, and a witness a human genuinely must
+           repair is repaired outside the guards. Keep the function's checkout-agnostic placement
+           ahead of the DEC-153 carve-out; its docstring's reason covers the marker unchanged.
+        c. check-domain.sh: import RE_RUN_IDENTITY beside the other harness_boundary patterns, add it
+           to SHAPE_PATTERNS (:1185), and add a branch in shape_problems (the function at :1203)
+           immediately after the RE_RUN_DIGEST branch that refuses ANY Write or Edit whose target
+           matches it, carrying the same three sentences as (b). It is a ROUTE denial and not a
+           content rule, exactly as RE_PLAN_YAML is - the comment at :1182-1184 states that split;
+           extend it rather than writing a second one. Refuse WHETHER OR NOT the file exists on disk:
+           no governed tool write ever legitimately produces this file, so an existence test buys
+           nothing, and a Write that CREATES a false witness in a directory holding none is as bad as
+           one that overwrites a true one.
+        d. DO NOT ADD THE MARKER TO SWEEP_GLOBS (:1016), and say why in the comment beside the
+           SHAPE_PATTERNS addition. The POST sweep reports on files it finds on disk, so a route
+           denial reached through the sweep would report EVERY legitimate witness in every run
+           directory, forever.
+
+      THE POST HOOK NEEDS NO EXEMPTION, AND THIS IS THE HALF A READER WILL DOUBT. record_seed writes
+      the witness from inside check-domain.sh's own POST process (step 2 above): it is not a governed
+      tool write, no PreToolUse hook and no Bash guard sees it, and nothing added here can refuse it.
+      The two halves AGREE rather than one covering for the other - record_seed is ITSELF write-once
+      (T-01: it returns False and writes nothing when the marker already exists), so the file is
+      written exactly once by the only writer that may write it, and every other route is refused by
+      path. Put both sentences in a comment on the check-domain.sh branch, naming record_seed.
+
+      CASES FOR THE GUARD, in three files:
+        - tests/unit/test-harness-boundary.py: RE_RUN_IDENTITY matches
+          .harness/harness/features/BUG-1305-run-state-clobber/runs/r1/.run-identity.json, matches it
+          case-insensitively, and does NOT match the sibling state.yaml, the sibling digest.md, a
+          .run-identity.json one directory ABOVE `runs/<dir>/`, or a path merely ending in that
+          filename outside a runs directory. Follow the file's existing case-and-exit convention;
+        - tests/integration/test-bash-write-guard.py: a Bash command that overwrites the marker and a
+          Bash command that removes it are both denied and the deny text names the witness, while a
+          Bash write to an unrelated ordinary file in the same run directory is unaffected. Drive the
+          guard the way the suite's existing cases drive it;
+        - tests/integration/test-check-domain.py, added to run_bug1305_marker_cases(): a Write to an
+          EXISTING marker exits 2 and the stderr names the witness; an Edit of an existing marker
+          exits 2; a Write CREATING a marker in a directory that holds none exits 2; and, in the same
+          run directory, a Write of state.yaml and a Write of digest.md are unaffected by this rule,
+          so the denial is shown to be scoped to the one filename rather than to the directory.
+      Show all three refusals RED against pinned pre-change copies of the two guard scripts, in the
+      `## SC-01` section of notes/redproof-BUG-1305.md this task already writes, under a
+      `witness guard` subheading: on the pre-change tree all three land with exit 0.
+
+  - id: T-03
+    title: Report an already-clobbered checkpoint from check-state.sh against the marker
+    traces: [REQ-02, REQ-03]
+    change_type: logic
+    execution_mode: main-session-direct
+    execution_reason: "DEC-174 carve-out - check-state.sh is the state gate script, and its own test file rides the same carve-out"
+    depends_on: [T-01]
+    status: done
+    files:
+      - .claude/skills/harness/bin/check-state.sh
+      - tests/integration/test-check-state.py
+      - .harness/harness/features/BUG-1305-run-state-clobber/notes/redproof-BUG-1305.md
+    verify: |
+      grep -q '^## SC-02' .harness/harness/features/BUG-1305-run-state-clobber/notes/redproof-BUG-1305.md && python3 tests/integration/test-check-state.py
+    intent: |
+      Add post-hoc clobber detection to check-state.sh, inside the existing per-run-directory loop
+      `for sy in glob.glob(os.path.join(H, "*", "features", "*", "runs", "*", "state.yaml")):`
+      (around :1426 at c369fb1f), immediately after the INV-16 shape block and before the INV-15
+      digest block, so one loop pass answers all three questions.
+
+      WRITE THE TEST CASES FIRST AND SHOW THEM RED. Build the fixture tree, copy the bin directory
+      with isolated_bin, overwrite the copied check-state.sh with `git show
+      c369fb1f:.claude/skills/harness/bin/check-state.sh`, and run the new cases with CHECK_STATE_BIN
+      pointed at that copy (test-check-state.py:22 already reads that variable). Append to
+      .harness/harness/features/BUG-1305-run-state-clobber/notes/redproof-BUG-1305.md a section
+      headed exactly `## SC-02` with the exact commands and the VERBATIM pre-change output showing
+      the violating fixture going UNREPORTED there.
+
+      Give the invariant the next unused INV number: list the existing ids with a grep for `INV-` in
+      check-state.sh and take the first integer above the highest one present. Do not reuse a number
+      and do not hard-code one from this instruction.
+
+      THE INVARIANT IS SELF-LIMITING BY CONSTRUCTION, and that is D-13 rather than an omission. It
+      judges a run directory only where the WITNESS beside the checkpoint exists; nothing backfills
+      the historical corpus, so no directory written before this feature, in this checkout or in any
+      sibling worktree or in the control-plane root, can turn this gate red on the day it ships. Say
+      that in the comment above the block, with D-13 named.
+
+      Behaviour. For each run directory, read its witness with run_identity.read_marker:
+        - MarkerUnreadable: append to `bad` a finding naming the run directory relative to H and
+          saying its recorded run identity cannot be read, so whether the checkpoint it holds belongs
+          to it cannot be determined;
+        - witness present and run_identity.conflict(witness, sdoc) returns a reason: append to `bad` a
+          finding that names the run directory relative to H, states that the checkpoint occupying
+          it records an identity that disagrees with the identity recorded when the directory was
+          first written, carries the reason string (which names the field and both values), and ends
+          with a recovery sentence telling the operator that the checkpoint the witness describes is
+          the record that was lost and that the occupying file is a different run;
+        - witness present carrying a run_uid, checkpoint carrying a DIFFERENT run_uid: append the same
+          shape of finding, naming both run_uid values. This is the minted-identity half and it is
+          what catches a clobber that agreed on every seed field - the modal collision, where two runs
+          share a slug and therefore a run_id;
+        - witness present carrying a run_uid and the checkpoint carrying NONE: append NOTHING, and
+          say why in the comment (D-13). A legitimate write from a session where the hooks are not
+          registered reaches exactly this state, INV-9 already asserts hook registration, and
+          reporting it here would turn a hook-registration defect into a clobber accusation;
+        - witness present carrying no run_uid, or witness present and everything agreeing: append
+          nothing;
+        - witness absent: append nothing, permanently and by design. Nothing in this plan seeds a
+          witness into a directory that predates the mechanism, so a witness-absent directory is
+          LEGACY and is judged by nothing. Do not add a marker-absent violation here or anywhere: it
+          was specified once, as T-10, and retired for the reason recorded in that task body.
+
+      THE MESSAGE MUST DISTINGUISH A CLOBBER FROM A MALFORMED CHECKPOINT, which is REQ-03: INV-16
+      existing finding says "non-checkpoint top-level key(s)" and speaks about shape; this one must
+      say the recorded identity disagrees with the directory it occupies and must never reuse the
+      shape wording. An operator reading only check-state.sh output must be able to tell which of the
+      two happened and which record to recover.
+
+      New cases in tests/integration/test-check-state.py, in one new function registered in main()
+      and folded into the existing final `ok_*` conjunction, over ONE fixture .harness tree that
+      contains ALL of the following so a single run proves them together:
+        - run directory X: witness for run_id A, state.yaml for run_id B - reported, and the emitted
+          text contains X directory name, both run ids, and does not contain INV-16
+          "non-checkpoint top-level key" wording;
+        - run directory V: witness and state.yaml agreeing on all four seed fields and carrying
+          DIFFERENT run_uid values - reported, and the emitted text contains both run_uid values.
+          This is the modal collision and it is the case no seed-field compare can see;
+        - run directory Y: witness and state.yaml both for run_id C with the same run_uid - not
+          reported anywhere in the output;
+        - run directory Z: no witness at all - not reported (SC-09);
+        - run directory L: witness carrying a run_uid, state.yaml carrying none - not reported
+          (SC-09);
+        - run directory W: witness file containing invalid JSON - reported with the unreadable
+          wording;
+        - assert the script exit code is 1 for that tree, and that a tree containing only Y, Z and L
+          exits 0 with no finding from this invariant, so it is shown to gate rather than merely to
+          print AND shown to be silent over legacy directories.
+
+  - id: T-04
+    title: RETIRED - measure whether the recorded session identity discriminates sibling lead runs
+    traces: []
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: "DEC-174 carve-out - the measurement reads markers written by the gate scripts this feature changes and reports on their behaviour; no squad executes against the enforcement layer"
+    depends_on: []
+    status: abandoned
+    files:
+      - .harness/harness/features/BUG-1305-run-state-clobber/notes/measure-run-identity-BUG-1305.md
+    verify: |
+      test ! -e .harness/harness/features/BUG-1305-run-state-clobber/notes/measure-run-identity-BUG-1305.md
+    intent: |
+      DO NOT EXECUTE THIS TASK. It is retired in place, station abandoned; plan-merge.py has no removal
+      verb, so a retired task is re-specified rather than deleted, and this body is the record of why.
+
+      What it was for: it measured whether the session identity recorded in each run directory's marker
+      distinguishes two different runs, and its answer was the enabling condition of T-09's conditional
+      identity denial.
+
+      Why it earns no place now. D-01 no longer admits the resolved session identity as a denial input on
+      any route, so nothing in this plan branches on the measurement's answer. A task whose only value was
+      a `yes` branch has no value once no gate reads that branch, and F-03 measured `inconclusive` to be
+      the near-certain outcome anyway: _visible (inflight_registry.py:252-259) retains its session filter
+      for non-OMP claims precisely because subagents of one Claude Code session share a session id, so two
+      sibling runs under the compatibility host carry the SAME identity - the runtime the residual is
+      about is the one the measurement could least answer.
+
+      What survives without it. What survives of the identity signal is the marker's recorded identity
+      FIELD, written by record_seed and read by a human recovering a clobbered run directory; no gate in
+      this feature consumes it. No identity-comparison PREDICATE is planned at all: the earlier draft had
+      T-01 write a boolean comparing the marker's recorded identity against a live one, with no caller,
+      and a predicate the enforcement layer carries and never calls is dead code, so it was struck from
+      T-01 rather than kept as a seam for a feature that does not exist.
+
+      COVERAGE MOVED, AND `traces:` IS NOW EMPTY BY DESIGN (cycle-4 F-09). This task traced REQ-01 while
+      it was live. REQ-01 is covered by T-01, T-02, T-09 and T-11 - every one of them live, T-12 having since been
+      retired with them carrying its share - so the
+      trace here bought nothing and cost something: a REQ-coverage count taken over the plan's `traces:`
+      lists read an abandoned task as coverage. The empty list is the record that the coverage moved, not
+      that this task never carried any. Do not restore it.
+
+      Consequences already applied elsewhere in this plan, listed so a reader can check them: T-09 no
+      longer depends on this task and no longer branches on its note; T-09's refusal is decidable from
+      on-disk state alone; no other task's depends_on named T-04. Nothing else in the graph moves.
+
+      The note this task would have produced is not written, and the verify below asserts exactly that.
+
+  - id: T-05
+    title: Make the SubagentStop digest check resolve deterministically and fail closed
+    traces: [REQ-04, REQ-07]
+    change_type: bugfix
+    execution_mode: main-session-direct
+    execution_reason: "DEC-174 carve-out - validate-digest.py is the registered SubagentStop hook, and its own test file rides the same carve-out"
+    depends_on: []
+    status: done
+    files:
+      - .claude/skills/harness/bin/validate-digest.py
+      - tests/integration/test-validate-digest.py
+      - .harness/harness/features/BUG-1305-run-state-clobber/notes/redproof-BUG-1305.md
+    verify: |
+      grep -q '^## SC-04' .harness/harness/features/BUG-1305-run-state-clobber/notes/redproof-BUG-1305.md && python3 tests/integration/test-validate-digest.py
+    intent: |
+      Close the Mode-B grading gap inside check_artifact_file (validate-digest.py, around :1486 at
+      c369fb1f). Scope is this function's root resolution and its fail-open branch and NOTHING else
+      in this file: issue 1303 owns the code_grade and review_sha binding here (D-05), and the two
+      changes are serialised at merge by the main session.
+
+      WRITE THE TEST CASES FIRST AND SHOW THEM RED. Copy the bin directory with isolated_bin,
+      overwrite the copied validate-digest.py with `git show
+      c369fb1f:.claude/skills/harness/bin/validate-digest.py`, and run the new cases against that
+      copy through the VALIDATE_DIGEST_BIN escape the suite already uses. Append to
+      .harness/harness/features/BUG-1305-run-state-clobber/notes/redproof-BUG-1305.md a section
+      headed exactly `## SC-04` with the exact commands and the VERBATIM pre-change output showing
+      the non-compliant fixture passing (exit 0) there.
+
+      Resolution, replacing the single-candidate `cands` construction: for a relative artifact path,
+      build candidates in this order and take the first that is a file:
+        1. the feature checkout resolved from harness_feature through inflight_registry.feature_root,
+           which is what the function does today;
+        2. the owner root from _root_or_none();
+        3. the root derived from this script's own realpath by walking up from
+           os.path.dirname(os.path.realpath(__file__)) to the checkout root - the same
+           cwd-independence discipline check-domain.sh documents at its :82-85.
+      A candidate list is not a licence to guess: every candidate is a root, never a path pattern,
+      and the artifact path is joined onto it unchanged.
+
+      Fail-closed rule, replacing the unconditional `return 0` in the not-found branch:
+        - if NO candidate root resolved at all (every root was None), keep today's behaviour: print
+          the existing stderr note and return 0. That is our lookup failure and must not block a
+          lead;
+        - if at least one candidate root resolved AND the directory that would contain the artifact
+          exists under it AND the file does not, return 2 with a message that names the resolved run
+          directory, states that the durable digest a successor reads is missing, and tells the lead
+          to write it at the named path. This is their contract violation, not our resolution bug,
+          and the digest file is the deliverable.
+      Update the docstring in the same edit so it describes what the function now does: the
+      "FAIL OPEN, LOUDLY when the file cannot be located or read" paragraph becomes fail-open only
+      for the no-root case, and the sentence naming check-state.sh INV-15 as the backstop must not
+      claim more than the backstop delivers - INV-15 runs on a /harness-entry instruction, not on a
+      hook, and nobody has verified that instruction is executed.
+
+      New cases in tests/integration/test-validate-digest.py, added as one new function registered in
+      main() next to run_hook_cases(), each building its own temp tree:
+        - a run directory whose digest.md exists but carries no `artifact:` line, with the lead's
+          return pointing at it: the hook exits 2, and the stderr names that run directory;
+        - a compliant digest.md in the same tree with a return pointing at it: exit 0, nothing
+          reported;
+        - the run directory exists and digest.md is absent: exit 2, stderr names the resolved run
+          directory and the missing file;
+        - no root resolves at all (the payload carries no harness_feature and the owner root is
+          unresolvable): exit 0 and the existing stderr note is printed - the fail-open that
+          survives;
+        - an absolute artifact path continues to be used verbatim, unchanged by this task;
+        - a return whose artifact does not end in digest.md still returns 0, unchanged.
+
+  - id: T-06
+    title: Pin the legal digest repair route and correct the guard's false record of itself
+    traces: [REQ-05, REQ-06, REQ-07]
+    change_type: bugfix
+    execution_mode: main-session-direct
+    execution_reason: "DEC-174 carve-out - check-domain.sh is a registered PreToolUse gate script, and its own test file rides the same carve-out"
+    depends_on:
+    - T-02
+    - T-09
+    status: done
+    files:
+      - .claude/skills/harness/bin/check-domain.sh
+      - tests/integration/test-check-domain.py
+      - .harness/harness/features/BUG-1305-run-state-clobber/notes/redproof-BUG-1305.md
+    verify: |
+      grep -q '^## SC-05' .harness/harness/features/BUG-1305-run-state-clobber/notes/redproof-BUG-1305.md && grep -q 'appended at the end' .claude/skills/harness/bin/check-domain.sh && ! grep -q 'intentionally Write/PRE-only' .claude/skills/harness/bin/check-domain.sh && python3 tests/integration/test-check-domain.py
+    intent: |
+      Two changes to the digest content guard in check-domain.sh, the `if RE_RUN_DIGEST.match(rel)`
+      branch (around :1236-1255 at c369fb1f), plus the cases that pin them.
+
+      1. REQ-06, the false record. The comment above the branch says this guard is "intentionally
+      Write/PRE-only: Edit and Bash carry no complete incoming payload to compare". That is
+      contradicted by this same file's Edit reconstruction below it (the `if not _post:` block around
+      :1905 reconstructs Edit content for RE_RUN_DIGEST, RE_STATE_YAML and RE_HANDOFF) and by direct
+      probe. Rewrite the comment to state what the guard does: it fires on the Write route and on the
+      Edit route, because Edit content is reconstructed from old_string/new_string against the
+      on-disk prior before this branch runs; Bash writes to a run digest are refused outright by
+      bash-write-guard.sh; POST is too late to refuse and is not this branch's route. Do not soften
+      it into "may also apply to Edit" - it does apply, and a hedge is the same defect again.
+
+      2. REQ-05, the refusal that does not say what is allowed. The denial at the
+      `elif prior.strip() and not content.startswith(prior)` branch currently reads "run digest
+      already holds a recorded digest; this Write would replace rather than extend it. Write this
+      cycle's digest into a run directory of its own." A lead repairing ITS OWN run's digest is told
+      only about a route that allocates a new run directory. Extend the message with the route the
+      guard already permits, using the phrase "appended at the end": a correction to this run's own
+      digest is allowed when it EXTENDS the recorded content, so the missing line must be appended at
+      the end rather than inserted, and a change that rewrites existing bytes needs a run directory
+      of its own. Keep the existing two sentences and add the permitted route to them; do not remove
+      or weaken the refusal. DEC-208 ruling 3 signs that a recorded digest is extended and never
+      replaced, so this task adds no allowance - it names the one that already exists (D-03).
+
+      NOTE FOR THE RECORD, and do not act on it: DEC-208 ruling 3's own scope sentence claims the
+      rule reaches the Write route only and that an Edit "reaches no enforcement point", which this
+      feature measured to be false. Amending a signed decision's text is the operator's act; it is
+      recorded as D-04 and carried up as an open question. This task corrects the CODE COMMENT only.
+
+      Cases in tests/integration/test-check-domain.py, added to the run_bug1305 family, over a run
+      directory holding a prior digest.md that carries a VERDICT block and no artifact: line:
+        - an Edit whose old_string is the file's last line and whose new_string is that line plus an
+          appended `artifact: notes/x.md` exits 0 - the legitimate self-repair, pinned as a
+          regression so a later tightening cannot silently close it;
+        - an Edit that inserts the same line BEFORE existing content exits 2, and the stderr contains
+          the phrase "appended at the end";
+        - a Write of a wholly different digest for a different run exits 2 - the cross-run
+          replacement stays refused, so the allowance above cannot be satisfied by weakening the
+          guard;
+        - a Write that is the prior plus appended text exits 0, unchanged from today.
+      Append to notes/redproof-BUG-1305.md a section headed exactly `## SC-05` recording, verbatim,
+      the pre-change behaviour of all four cases against the pinned copy from `git show
+      c369fb1f:.claude/skills/harness/bin/check-domain.sh` - the first and fourth are expected to
+      pass there already, and the note must SAY SO rather than imply the whole set was red. The
+      second case is the one that must be red on the pre-change tree, because the message it asserts
+      does not yet exist.
+
+  - id: T-07
+    title: RETIRED - run-directory slug grammar unification
+    traces: []
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: "signature-time strike: frequency-only scope whose proposed supersession mechanics contradict DEC-205"
+    depends_on: []
+    status: abandoned
+    files:
+      - .claude/skills/harness/SKILL.md
+      - .claude/skills/harness-team/SKILL.md
+      - .harness/harness/docs/DECISIONS.md
+      - .harness/harness/docs/DECISIONS-INDEX.md
+    verify: |
+      true
+    intent: |
+      DO NOT EXECUTE THIS TASK. It is retired in place at signature. With REQ-01's minted
+      run_uid, an equal-slug collision is refused under either live grammar, so unification
+      changes frequency rather than correctness. The original task also required a new entry
+      to supersede DEC-145 while leaving its old sentence standing, which directly contradicts
+      DEC-205: current truth is rewritten in place and supersession is deletion. Both grammars
+      remain live. No mechanism in this plan parses slug internals, so no other task changes.
+
+  - id: T-08
+    title: Prove no existing refusal was traded away
+    traces: [REQ-07]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: "DEC-174 carve-out - the assessment reads and runs the enforcement layer's own suites and reports on changes to them"
+    depends_on:
+    - T-02
+    - T-03
+    - T-05
+    - T-06
+    - T-09
+    status: done
+    files:
+      - .harness/harness/features/BUG-1305-run-state-clobber/notes/regression-delta-BUG-1305.md
+    verify: |
+      grep -q '^## Removed or altered assertions' .harness/harness/features/BUG-1305-run-state-clobber/notes/regression-delta-BUG-1305.md && grep -q '^## Newly refused writes' .harness/harness/features/BUG-1305-run-state-clobber/notes/regression-delta-BUG-1305.md && grep -q '^## Suite results' .harness/harness/features/BUG-1305-run-state-clobber/notes/regression-delta-BUG-1305.md && python3 tests/unit/test-run-identity.py && python3 tests/unit/test-harness-boundary.py && python3 tests/integration/test-check-domain.py && python3 tests/integration/test-check-state.py && python3 tests/integration/test-validate-digest.py && python3 tests/integration/test-bash-write-guard.py
+    intent: |
+      Produce the evidence SC-07 is graded on, after the code tasks have landed and before the review sha
+      is pinned. This task writes no code. REQ-07 is TWO-DIRECTIONAL and so is this note: no protection
+      traded away, AND no write that is legitimate today newly refused.
+
+      DIRECTION ONE - nothing removed or weakened. Diff every test file this feature touched against its
+      state at c369fb1f - tests/unit and tests/integration both - and enumerate EVERY assertion that was
+      removed, weakened, or had its expected value changed. For each one, say which task changed it and
+      why, and whether it was replaced by a stricter assertion or genuinely dropped. An assertion that
+      merely moved is not a change; an assertion whose expected exit code, expected message, or expected
+      route changed is.
+
+      DIRECTION TWO - nothing newly refused, except the one thing that is, which is disclosed rather than
+      hidden. EVERY refusing or reporting branch this feature adds is paired with a write that must
+      STILL be permitted, and the pairs are the six below. For each pair, quote the test function and
+      case name at the review sha that pins the permitted side, and record its observed exit code from
+      the suite run below:
+        - T-02 witness seed-field denial in check-domain.sh - permitted side: a LEGACY run directory,
+          carrying no witness at all, behaves exactly as at c369fb1f, an incoming run_id equal to the
+          prior exiting 0;
+        - T-09 minted-identity denial in check-domain.sh - permitted side: THE RESUMED OWNER. A prior
+          state.yaml for run_id A carrying run_uid U1 and a Write of an updated checkpoint for run_id A
+          carrying U1, delivered with session_id S2, exiting 0; AND BOTH RECOVERING-OWNER FORMS, a prior
+          that is a readable zero-byte file and a prior that is absent, each exiting 0. All three are what
+          D-01 and D-11 exist to protect;
+        - T-06 digest content guard message - permitted side: a lead own-run append repair via Edit
+          exiting 0;
+        - T-02 POST minting and T-03 detection invariant - permitted side: check-state.sh exiting 0, with
+          no finding from the new invariant, over a fixture tree of legacy run directories that hold
+          checkpoints and no witness.
+        - T-05 fail-closed `return 2` in validate-digest.py's check_artifact_file - permitted side: a run
+          directory whose digest.md EXISTS and is compliant, with the lead's return pointing at it, exiting
+          0, AND the no-root-resolves case that still fails open at exit 0. This is the FIFTH pair and it is
+          named because the earlier count of four was a set mismatch rather than an arithmetic slip: the
+          pairs enumerate {T-02-seed, T-09, T-06, T-02POST/T-03} and T-05's new refusing branch is in none
+          of them.
+        - T-02 witness guard route denials in bash-write-guard.sh and check-domain.sh - the refusing
+          branches this cycle's rank-2 remedy added: a Bash write to `.run-identity.json` and a Bash
+          removal of it are denied, and a Write and an Edit of it are denied. Permitted side: in the SAME
+          run directory, a Write of state.yaml and a Write of digest.md still exit 0, and a Bash write to
+          an unrelated ordinary file in that directory is unaffected - so the denial is shown scoped to
+          the one filename rather than to the directory. This is the SIXTH pair, added because the rank-2
+          remedy itself created a refusing branch after the count was fixed at five; SC-13 grades that
+          branch's own test coverage, and this pair is its place in the REQ-07 accounting.
+      Then run check-state.sh over THIS repository own .harness tree and record its exit code and any
+      run-directory findings verbatim. A non-zero exit whose findings name run directories that carry an
+      agreeing witness, or ANY finding from the new invariant against a directory carrying no witness, is
+      a REQ-07 failure in direction two and must be reported as such, not tuned away.
+
+      THE ONE NEWLY REFUSED WRITE, named in the note rather than discovered by a reader. An owner that
+      rewrites its own checkpoint from scratch and DROPS the run_uid line is refused where it was
+      permitted at c369fb1f. That is the disclosed cost of D-11, it is stated in BRIEF REQ-01, and the
+      note records the test case that pins its message and confirms the message names the exact line to
+      carry forward. Record it under the same heading, distinguished from the pairs above as INTENDED and
+      DISCLOSED. Any OTHER newly refused write is a failure.
+
+      SUITES. Run BOTH - `.claude/skills/harness/bin/run-unit-tests.sh --kind unit` and
+      `.claude/skills/harness/bin/run-unit-tests.sh --kind integration` - and record each one exit code
+      and its failure lines verbatim. Read the runner failure accounting before quoting a pass: count
+      the FAIL-prefixed lines rather than trusting an exit code alone, and say which of the two you relied
+      on. The verify below runs the six touched test files, because a full-suite run under
+      concurrent sibling load does not fit a 60-second bound; the full-suite evidence lives in this note
+      and is what SC-07 is graded on.
+
+      Write .harness/harness/features/BUG-1305-run-state-clobber/notes/regression-delta-BUG-1305.md with a
+      BLUF stating BOTH directions - whether any refusal that held at c369fb1f no longer holds, and
+      whether any write permitted at c369fb1f is now refused beyond the disclosed one - then three
+      sections headed EXACTLY as written here because the verify greps all three:
+        `## Removed or altered assertions` - the enumeration, or the single word none under it when there
+        are none; the heading is present either way.
+        `## Newly refused writes` - the six pairs above, each with its permitted-side case name and
+        observed exit code, the disclosed dropped-run_uid refusal, plus the check-state.sh run over this
+        repository own tree.
+        `## Suite results` - the two commands above, each with its exit code, its FAIL-line count, and any
+        failure lines verbatim.
+
+      IF ANY REFUSAL THAT HELD AT c369fb1f NO LONGER HOLDS, OR ANY WRITE PERMITTED AT c369fb1f IS NOW
+      REFUSED OTHER THAN THE DISCLOSED ONE, say so plainly in the BLUF and stop - that is a REQ-07 failure
+      and it is the operator call, not a thing to fix quietly inside this task.
+  - id: T-09
+    title: Refuse a checkpoint write whose minted run identity disagrees with the prior checkpoint's
+    traces:
+    - REQ-01
+    - REQ-07
+    change_type: bugfix
+    execution_mode: main-session-direct
+    execution_reason: "DEC-174 carve-out - check-domain.sh is a registered PreToolUse gate script and run_identity.py is a module imported by two registered gate scripts, so the harness plans this change and does not execute it"
+    depends_on:
+    - T-02
+    status: done
+    files:
+    - .claude/skills/harness/bin/check-domain.sh
+    - .claude/skills/harness-team/SKILL.md
+    - tests/integration/test-check-domain.py
+    - .harness/harness/features/BUG-1305-run-state-clobber/notes/redproof-BUG-1305.md
+    verify: |
+      grep -q '^## SC-01-identity' .harness/harness/features/BUG-1305-run-state-clobber/notes/redproof-BUG-1305.md && grep -Eq '^baseline_sha: [0-9a-f]{7,40}$' .harness/harness/features/BUG-1305-run-state-clobber/notes/redproof-BUG-1305.md && grep -q 'run_uid' .claude/skills/harness-team/SKILL.md && python3 tests/integration/test-check-domain.py
+    intent: |
+      Refuse the write whose MINTED run identity disagrees with the checkpoint already in the run
+      directory. This is the Issue 1124 identity compare re-keyed from the author-chosen run_id onto
+      the machine-minted run_uid T-02 introduces (D-11), and it is the branch a foreign run reusing a
+      slug actually reaches: two runs that pick the same directory name share a run_id and cannot
+      share a run_uid.
+
+      THE REFUSAL CONDITION, exactly. In check-domain.sh RE_STATE_YAML PRE branch, INSIDE the
+      existing `if prior_state:` ladder and immediately AFTER the Issue 1124
+      `str(prior_run_id) != str(new_run_id)` compare returns, call
+      run_identity.uid_conflict(prior_doc, doc) and deny on a non-None reason. Anchors re-verified at
+      source in the worktree at c369fb1f before this instruction was written, and to be re-derived
+      again before editing: the ladder opens at :1530, its unparseable-prior refusal head is at :1542,
+      and the Issue 1124 compare is :1567-1574. Both docs are already parsed when this runs: `doc` at
+      :1479, and prior_doc by the SINGLE prior parse T-02 moves above the ladder - after T-02 the
+      ladder consumes prior_doc and prior_exc rather than parsing again, and every message it emits is
+      byte-identical to c369fb1f. Nothing else is read.
+
+      Placing it inside `if prior_state:` is the whole design and not an accident of position:
+        - the ladder is entered only when a prior checkpoint exists and is non-empty, so NO refusal
+          in this task can fire on an empty or absent prior. An owner rewriting a ZEROED or
+          hand-deleted checkpoint - the B-11 recovery action - never reaches this code. The
+          earlier draft of this task denied on exactly that state and was measured to refuse
+          approximately only the recovering owner and approximately no foreign run; that is why it is
+          gone rather than narrowed. A TRUNCATED prior is not that case and is not opened by this
+          plan: it is non-empty and unparseable, so it is refused upstream by the pre-existing Issue
+          1106 gap (b) branch at :1542, or by T-02's witness compare when a witness disagrees;
+        - uid_conflict returns None when the prior carries no run_uid, so a LEGACY directory is
+          refused by nothing new. This is what keeps the historical corpus quiet without a backfill
+          (D-13).
+
+      FAIL OPEN, ENUMERATED. Do not deny when any of these holds, and give rows a, b, c and e a test
+      case:
+        a. prior_state is empty because the file is absent - the ladder is not entered;
+        b. prior_state is empty because the file is a readable ZERO-BYTE file - the ladder is not
+           entered either. These are TWO distinct code paths to the same empty local
+           (check-domain.sh:1508-1518 at c369fb1f: the FileNotFoundError branch with os.path.lexists
+           false, AND an ordinary open().read() of a zero-byte file), and both are legitimate owner
+           recovery. State both in the comment. Do not write that the empty value comes from one
+           branch only - that claim is measurably false against those lines;
+        c. the prior carries no run_uid - legacy, uid_conflict returns None;
+        d. prior_unreadable is True - already refused upstream by the branch at :1526-1529, so this
+           code is unreachable in that state. Assert the ordering in a comment; add no case;
+        e. prior and incoming carry the SAME run_uid - the resumed owner, whatever session it arrives
+           from. It reads the value out of the very file it is updating, so it always presents it;
+        f. absolute_path is None, and _no_parser - both are above this ladder and untouched.
+      NO SESSION IDENTITY IS READ HERE, and no live inflight claim is consulted. If a later reader is
+      tempted to add either, D-01 is the reason not to; put that sentence in the comment.
+
+      PRECEDENCE - ONE RULE, WRITTEN ONCE, AND IT DESCRIBES THE SAME CODE T-02 SPECIFIES. There are
+      exactly two compares and they are separated by what each can see. T-02's witness seed-field
+      compare sits BEFORE this ladder and fires only when the checkpoint own identity is unavailable -
+      prior absent, zero-byte, or present but not parsing to a mapping carrying a non-empty run_uid.
+      Whenever the prior DOES parse and carries a run_uid, that compare is skipped and this ladder
+      answers. Inside the ladder the order is unchanged from c369fb1f: the Issue 1106 missing-run_id
+      rows, then the Issue 1124 run_id compare, then this one. Two consequences a builder should
+      expect rather than discover:
+        - prior for run_id A carrying U1 against an incoming run_id B is refused with the EXISTING
+          Issue 1124 run_id wording, never with this one - the case below pins it, and it is the case
+          that proves the deferral works;
+        - a prior that parses with NO run_uid, in a directory that HAS a witness, is answered by
+          T-02's witness compare with the Issue 1305 wording rather than by the Issue 1124 branch.
+          That is intended, and T-02 carries the case that pins it.
+      Each message stays one-to-one with its condition.
+
+      THE ROUTES IT FIRES ON, named exactly. The Write route, where `content` is the payload; and the
+      Edit route, because check-domain.sh reconstructs Edit content for RE_STATE_YAML from
+      old_string/new_string against the on-disk prior before the shape phase runs (:1905-1923 at
+      c369fb1f) - so an Edit that rewrites or removes the run_uid line arrives here with the
+      reconstructed doc and is judged identically. Bash is refused wholesale by bash-write-guard.sh
+      _run_artifact_guard. POST neither denies nor reaches this code: it mints and records (T-02).
+      Give the Edit route its own case; unlike the retired acquisition condition, this one is
+      reachable on both.
+
+      THE MESSAGE. Append the head T-02 already uses, "state.yaml run identity (Issue 1305).", then
+      the reason line uid_conflict returned, then one route sentence:
+        - different run_uid: "Write this cycle's state into a run directory of its own.", the
+          sentence T-02 and the Issue 1124 branch already use;
+        - missing run_uid: name the prior value and the two ways forward in one sentence - if this
+          write belongs to that run, copy its `run_uid:` line from the checkpoint being updated, or
+          read the same value from .run-identity.json beside it, and carry it verbatim; if it does
+          not, write this cycle state into a run directory of its own.
+      PRINTING THE VALUE IS CORRECT AND IS NOT A LEAK: run_uid is a collision-avoidance token, not a
+      capability, and anyone who can write the directory can already read the file. The residual
+      REQ-01 discloses - a foreign run that deliberately copies the value - is not made worse by a
+      message, and pretending otherwise would cost the owner the one instruction it needs.
+
+      THE DOCTRINE THAT KEEPS THE OWNER OUT OF THIS BRANCH. .claude/skills/harness-team/SKILL.md:54-55
+      tells a lead to seed state.yaml with schema_version, run_id, feature, squad, host, status and
+      steps. Add one sentence there: state.yaml also carries run_uid, which the harness mints at the
+      first landed write; a lead never invents, edits or drops it, and every later write of that
+      checkpoint carries the same value read from the file itself. THIS IS NOT REQ-08 GRAMMAR CHANGE
+      and must not be folded into T-07: REQ-08 is strikeable at signature and this sentence is not.
+      Change nothing else in that file.
+
+      RED PROOF. Run `git rev-parse HEAD` first - the commit carrying T-02 - and record it as a
+      `baseline_sha:` line at column 0 under the section below. Build the isolated_bin root the suite
+      already uses, overwrite the copied check-domain.sh with that sha copy fetched by `git show`
+      with the sha spelled out in full (never a relative ref: T-02 lands as its own commit), run the
+      cases below with CHECK_DOMAIN_BIN pointed at it, and APPEND to
+      .harness/harness/features/BUG-1305-run-state-clobber/notes/redproof-BUG-1305.md a section
+      headed exactly `## SC-01-identity` carrying the baseline_sha line, the exact commands and the
+      VERBATIM output. The THREE refusal cases this branch adds - both MODAL COLLISION
+      routes and the different-run_uid Write - exit 0 on that tree, accepted as a routine upsert, and
+      exit 2 after this task. The fail-open cases pass on both trees, and the PRECEDENCE case exits 2
+      on both because the Issue 1124 branch answers it; SAY SO rather than implying the whole set was
+      red.
+
+      CASES in tests/integration/test-check-domain.py, one new run_bug1305_identity_cases()
+      registered in main() beside run_bug1305_marker_cases(), each on its own isolated_bin root:
+        - THE MODAL COLLISION, Write route: a run directory holding a prior state.yaml for run_id A,
+          feature F, squad S, host H carrying run_uid U1, and a Write of a state.yaml agreeing on all
+          four seed fields and carrying NO run_uid. Exits 2; the stderr contains U1 and the words
+          "run identity" and names no field disagreement. This is the equal-slug foreign run, refused
+          without any session signal;
+        - THE MODAL COLLISION, Edit route: the same prior, delivered as an Edit whose old_string and
+          new_string reconstruct to a checkpoint with the run_uid line removed. Exits 2;
+        - different run_uid, Write route: prior carrying U1, incoming carrying U2, all seed fields
+          equal. Exits 2 and the stderr contains BOTH values;
+        - THE RESUMED OWNER: prior for run_id A carrying U1, Write of an updated checkpoint for
+          run_id A carrying U1, delivered with HOOK_PAYLOAD session_id S2. Exits 0. Name it in the
+          test as BOTH the DEC-154 upsert allowance and the case an identity-keyed denial would
+          break, and carry a comment saying D-01 forbids such a denial and this case is the assertion
+          that would catch one;
+        - THE RECOVERING OWNER, both forms, both exit 0: prior state.yaml a readable ZERO-BYTE file,
+          and prior state.yaml absent, in a directory whose witness records run_uid U1, with an
+          incoming checkpoint for the same run_id carrying no run_uid;
+        - LEGACY: prior for run_id A carrying NO run_uid, incoming for run_id A carrying none. Exits
+          0 - today behaviour, unchanged;
+        - LEGACY, second form: prior carrying no run_uid, incoming carrying U2. Exits 0, because the
+          prior is what decides whether this directory is judged at all;
+        - PRECEDENCE, and it is also the deferral proof: prior for run_id A carrying U1, incoming for
+          run_id B carrying U1, in a run directory that HOLDS a witness for run_id A. Exits 2 with the
+          Issue 1124 run_id wording, not this branch and not T-02's witness wording. The witness must
+          be present in the fixture or the case proves nothing about the deferral.
+  - id: T-10
+    title: RETIRED - seed a marker into every existing run directory, then report a checkpoint that has none
+    traces: []
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: "DEC-174 carve-out - run_identity.py is imported by two registered gate scripts and check-state.sh is the state gate run at every /harness entry, so the harness plans this change and does not execute it"
+    depends_on: []
+    status: abandoned
+    files:
+    - .harness/harness/features/BUG-1305-run-state-clobber/notes/marker-seeding-BUG-1305.md
+    verify: |
+      test ! -e .harness/harness/features/BUG-1305-run-state-clobber/notes/marker-seeding-BUG-1305.md
+    intent: |
+      DO NOT EXECUTE THIS TASK. It is retired in place, station abandoned; plan-merge.py has no removal
+      verb, so a retired task is re-specified rather than deleted, and this body is the record of why.
+
+      What it was for: it seeded a write-once marker into every run directory that predates the mechanism,
+      then enabled a check-state.sh invariant reporting any checkpoint that still had none - the
+      "detection is total" half of REQ-02 as originally written.
+
+      Why it earns no place now. The corpus it backfills is machine-local, untracked and CONTINUOUSLY
+      GROWING: 630 run-directory state.yaml files at c369fb1f on 2026-09-05, up from 575 earlier the same
+      day, spread across the control-plane root and every sibling worktree, each of which keeps minting
+      marker-less run directories under the pre-fix hooks until this feature merges. A one-shot seeder run
+      inside this feature own build cannot cover directories written after it runs, so enabling a
+      marker-absent invariant in the same sequence puts a red state gate over dozens of legitimate
+      historical directories at every /harness entry on the day this ships - the failure mode where a
+      recurring red gate trains readers to ignore check-state output.
+
+      What replaces it: nothing, deliberately. D-13 makes the invariant SELF-LIMITING instead - T-03 judges
+      a run directory only where a witness exists beside the checkpoint, and no witness exists anywhere
+      until this feature POST hook writes one. A directory that predates the mechanism is therefore
+      invisible to the gate rather than reported by it, no migration is needed, and the beyond-brief scope
+      of rewriting the historical corpus goes with it. The cost is stated where it belongs: a legacy
+      directory is judged by nothing, which is exactly the coverage that exists today, and SC-09 now grades
+      that silence rather than a backfill remainder.
+
+      COVERAGE MOVED, AND `traces:` IS NOW EMPTY BY DESIGN (cycle-4 F-09). This task traced REQ-02 and
+      REQ-03 while it was live. REQ-02 is covered by T-01 and T-03, REQ-03 by T-03, both live, so the
+      traces here bought nothing and cost something: a REQ-coverage count taken over the plan's `traces:`
+      lists read an abandoned task as coverage and reported REQ-03 as doubly covered. The empty list is the
+      record that the coverage moved, not that this task never carried any. Do not restore it.
+
+      Consequences already applied elsewhere in this plan, listed so a reader can check them: T-03
+      marker-absent branch is permanent rather than superseded and carries its own comment saying so; T-08
+      depends_on no longer names this task and its direction-two pairs name the legacy-silence case
+      instead of a seeded-corpus one; SC-09 in BRIEF grades self-limitation; run_identity.py has no
+      seed_existing function and no --seed entry point, so no task in this plan writes one.
+
+      The seeding note this task would have produced - the one note in its `files:` list - is not
+      written, and the verify below asserts exactly that.
+  - id: T-11
+    title: Measure whether NotebookEdit can address a run state.yaml and whether the guard fires on it
+    traces: [REQ-01]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: "DEC-174 carve-out - the probe drives the registered PreToolUse and PostToolUse gate scripts with a live tool call and reports on their behaviour"
+    depends_on: []
+    status: done
+    files:
+      - .harness/harness/features/BUG-1305-run-state-clobber/notes/probe-notebookedit-BUG-1305.md
+    verify: |
+      grep -Eq '^route_reachable: (yes|no)$' .harness/harness/features/BUG-1305-run-state-clobber/notes/probe-notebookedit-BUG-1305.md && grep -Eq '^guard_fires: (yes|no|n_a)$' .harness/harness/features/BUG-1305-run-state-clobber/notes/probe-notebookedit-BUG-1305.md
+    intent: |
+      ONE probe, at most two tool calls, one recorded answer. This task MEASURES; it changes no
+      guard and fixes nothing. REQ-01 names NotebookEdit as believed-covered on an assumption
+      nobody verified, and check-domain.sh:1931 asserts in a comment that POST sees NotebookEdit.
+      Both claims are unmeasured. Settle them and record the answer.
+
+      STEP 1 - is the route reachable at all? Create /tmp/bug1305-probe/ with python3 os.makedirs,
+      then issue ONE NotebookEdit tool call whose notebook_path is
+      /tmp/bug1305-probe/state.yaml. That path is outside every checkout, so no domain rule and no
+      shape rule can confound the answer: the only question it asks is whether the tool accepts a
+      target that is not an .ipynb notebook. If the tool or the host refuses the call for that
+      reason, NotebookEdit cannot address a run state.yaml at all and the route does not exist:
+      record route_reachable: no and guard_fires: n_a with the verbatim refusal, and STOP. REQ-01
+      is answered and no guard question survives.
+
+      STEP 2 - only if step 1 actually wrote the file. Issue ONE more NotebookEdit call against
+      .harness/harness/features/BUG-1305-run-state-clobber/runs/probe-notebookedit/state.yaml in
+      this worktree, with content carrying a top-level key the checkpoint vocabulary forbids, for
+      example a findings key. That content is refused for EVERY writer by the RE_STATE_YAML shape
+      branch (check-domain.sh:1581-1596 at c369fb1f), governed or not: the main-session carve-out
+      at :310 and :328 is a DOMAIN carve-out and does not reach the shape phase, so the answer does
+      not depend on who runs the probe. Exit 2 carrying check-domain stderr means the host matcher
+      reaches NotebookEdit - record guard_fires: yes. The write landing with no denial means it does
+      not - record guard_fires: no. Remove the landed probe file and its run directory afterwards
+      with python3 os.remove and os.rmdir, never with a shell rm.
+
+      THE NOTE, at
+      .harness/harness/features/BUG-1305-run-state-clobber/notes/probe-notebookedit-BUG-1305.md.
+      A BLUF, then route_reachable and guard_fires each at column 0, then for each the exact
+      command issued and its VERBATIM output. Record the host and version the probe ran under,
+      because the answer is a property of the host matcher and not of this repository.
+
+      THE FOLLOW-THROUGH IS DEFINED, and it is a report rather than a fix. If route_reachable is
+      yes and guard_fires is no, the note carries a section headed exactly `## Reported` stating
+      that NotebookEdit is an ungoverned state.yaml write route, that this feature does NOT close
+      it, and what closing it would take - one matcher string in .claude/settings.json. Say the
+      same in your return so the goal-check carries it to the operator. Separately, if the
+      measurement disagrees with check-domain.sh:1931 comment claiming POST sees NotebookEdit,
+      record that the comment is a false claim about the code - the same defect class REQ-06 names -
+      under the same heading. Do not edit check-domain.sh in this task.
+  - id: T-12
+    title: RETIRED - observe one real end-to-end mint through the registered PostToolUse hook
+    traces: []
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: "DEC-174 carve-out - the probe drives the registered PostToolUse gate script with a live tool call and reports on its behaviour; no squad executes against the enforcement layer"
+    depends_on: []
+    status: abandoned
+    files:
+      - .harness/harness/features/BUG-1305-run-state-clobber/notes/probe-postmint-BUG-1305.md
+    verify: |
+      test ! -e .harness/harness/features/BUG-1305-run-state-clobber/notes/probe-postmint-BUG-1305.md
+    intent: |
+      DO NOT EXECUTE THIS TASK. It is retired in place, station abandoned; plan-merge.py has no removal
+      verb, so a retired task is re-specified rather than deleted, and this body is the record of why.
+
+      What it was for: ONE real Write tool call into a fresh run directory under this feature, recording
+      whether the registered PostToolUse hook minted a run_uid into the landed state.yaml and recorded the
+      witness beside it. It was the plan's only measurement of hook DELIVERY, as distinct from the minting
+      CODE that SC-10 exercises by invoking check-domain.sh --post directly.
+
+      WHY IT EARNS NO PLACE NOW: IT MEASURES THE WRONG SCRIPT, BY CONSTRUCTION AND NOT BY LUCK.
+      .claude/settings.json registers PostToolUse as
+      ${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/check-domain.sh --post. This task is
+      main-session-direct, so the executing session's project dir is the MAIN checkout and the script that
+      fires is main's PRE-CHANGE check-domain.sh, while T-02's minting lands only in this worktree.
+      post_mint_observed: no is therefore GUARANTEED BY CONSTRUCTION: the probe reports which checkout the
+      hook is registered against, never whether the host delivers PostToolUse. A guaranteed answer is not
+      a measurement.
+
+      WHY THAT IS NOT MERELY USELESS BUT HARMFUL. The follow-through was MANDATORY, not optional: on either
+      answer being no, this task had to write a `## Reported` section stating that POST minting does not
+      occur end to end on this host and that this feature's prevention and detection are both inert in
+      practice. That claim would be FALSE - it would report an artifact of the probe's own routing as a
+      defect in the feature - and it would enter the factory's durable record and the goal-check as one.
+      A false defect report is why the resolution is a strike rather than a re-specification of the probe.
+
+      COVERAGE MOVED, AND `traces:` IS NOW EMPTY BY DESIGN. This task traced REQ-01 while it was live.
+      REQ-01 is carried by T-01 (the minting and comparison module), T-02 (minting at POST and the witness
+      seed-field refusal), T-09 (the minted-identity refusal) and T-11 (the NotebookEdit route measurement)
+      - every one of them live - so the trace here bought nothing and cost something: a REQ-coverage count
+      taken over the plan's `traces:` lists reads an abandoned task as coverage. The empty list is the
+      record that the coverage moved, not that this task never carried any. Do not restore it.
+
+      WHAT SURVIVES WITHOUT IT. SC-10 proves the minting CODE over an isolated bin root and is explicit
+      that a direct --post invocation cannot observe delivery. The DELIVERY question is now DISCLOSED
+      rather than measured: BRIEF REQ-01 states, where the operator signs, that end-to-end mint delivery is
+      UNMEASURED until this feature merges, why measuring it before merge is not available, and what the
+      operator accepts by signing. That sentence is the honest replacement for this probe.
+
+      Consequences already applied elsewhere in this plan, listed so a reader can check them: no task's
+      depends_on names T-12; SC-12, the only criterion that graded it, is retired in place in BRIEF;
+      SC-10's pointer, which used to forward the delivery question to SC-12, now points at the BRIEF
+      disclosure instead. The probe note this task would have produced is not written, and the verify
+      below asserts exactly that.

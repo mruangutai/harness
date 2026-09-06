@@ -1182,6 +1182,13 @@ RE_CLAUDE_MD    = re.compile(r"^CLAUDE\.md$", _I)
 # Same non-import rationale as RE_STATE_YAML above.
 RE_RUN_DIGEST   = re.compile(r"^\.harness/[^/]+/features/[^/]+/runs/[^/]+/digest\.md$", _I)
 RE_PLAN_YAML    = re.compile(r"^\.harness/[^/]+/features/[^/]+/plan\.yaml$", _I)
+try:
+    import harness_boundary as _shape_boundary
+    RE_RUN_IDENTITY = _shape_boundary.RE_RUN_IDENTITY
+except Exception:
+    # The shape phase preserves the bootstrap repair route; governed domain writes
+    # still fail closed on the same missing module in _run_domain above.
+    RE_RUN_IDENTITY = re.compile(r"(?!x)x")
 # RE_RUN_DIGEST is deliberately absent from SHAPE_PATTERNS and the post-hoc sweep globs (FEAT-50).
 # That rule needs the content that existed BEFORE a whole-file Write. After the write, comparing
 # the file with itself cannot fire and would advertise enforcement that does not exist. It carries
@@ -1230,11 +1237,12 @@ RE_PLAN_YAML    = re.compile(r"^\.harness/[^/]+/features/[^/]+/plan\.yaml$", _I)
 # change: writing `Plan.yaml` over an existing plan.yaml keeps the original lowercase name, so
 # the sweep still finds the file. Only the pre-write route denial could be walked past.
 #
-# THE TWO PATTERN RULES POINT OPPOSITE WAYS ON PURPOSE: RE_RUN_DIGEST stays OUT of SHAPE_PATTERNS
-# because its check cannot fire after the fact (FEAT-50), while RE_PLAN_YAML goes IN because its
-# check is a route denial that must fire before it.
+# RE_RUN_DIGEST stays out because its content comparison is PRE-only. RE_PLAN_YAML
+# and RE_RUN_IDENTITY are route denials and therefore belong in SHAPE_PATTERNS.
+# The identity marker deliberately stays OUT of SWEEP_GLOBS: a POST sweep would
+# report every legitimate witness already on disk forever.
 SHAPE_PATTERNS = (RE_FEATURE_JSON, RE_STATE_YAML, RE_HANDOFF, RE_STATE_MD, RE_CLAUDE_MD,
-                  RE_PLAN_YAML)
+                  RE_PLAN_YAML, RE_RUN_IDENTITY)
 
 
 def has_shape_rules(rel):
@@ -1285,8 +1293,9 @@ def shape_problems(rel, content, display=None, absolute_path=None):
         out.append(f"  {ROUTING}")
 
     # Issue #1058: a lead reused a cycle's run directory and a plain digest.md overwrite
-    # destroyed the cycle-0 record. This guard is intentionally Write/PRE-only: Edit and
-    # Bash carry no complete incoming payload to compare, and POST is already too late.
+    # destroyed the cycle-0 record. This guard fires on Write and Edit: Edit content is
+    # reconstructed against the on-disk prior before this branch runs. Bash digest writes
+    # are refused outright by bash-write-guard.sh; POST is too late to refuse.
     if RE_RUN_DIGEST.match(rel) and absolute_path is not None:
         prior = None
         try:
@@ -1303,7 +1312,19 @@ def shape_problems(rel, content, display=None, absolute_path=None):
         elif prior.strip() and not content.startswith(prior):
             out.append(_head("run digest already holds a recorded digest; this Write "
                              "would replace rather than extend it. Write this cycle's "
-                             "digest into a run directory of its own."))
+                             "digest into a run directory of its own. A correction to this "
+                             "run's own digest is allowed when it extends the recorded "
+                             "content: the missing line must be appended at the end."))
+    if RE_RUN_IDENTITY.match(rel):
+        # record_seed writes this file from inside the POST process, outside every
+        # governed tool route, and is itself write-once. Every Write/Edit attempt
+        # is therefore an overwrite or forgery, whether or not a marker exists yet.
+        out.append(_head(
+            "this path is the run's write-once identity witness, recorded at the "
+            "run's first landed checkpoint. It is never rewritten or removed once "
+            "written. A run that needs a record of its own writes into a run directory "
+            "of its own; a witness a human genuinely must repair is repaired outside "
+            "the guards."))
     if RE_PLAN_YAML.match(rel):
         # THE VOCABULARY RULE, AND IT IS THE ONLY THING THE SWEEP CAN JUDGE (FEAT-41 T-09).
         # Every task status, and the top-level status WHEN PRESENT, must be a mandated station
@@ -1498,10 +1519,10 @@ def shape_problems(rel, content, display=None, absolute_path=None):
         # the LOADER RAISING, while check-state.sh still scans — same vocabulary, two
         # mechanisms. Do not "resync" them by reverting this to a regex scan: the scan
         # is what let a malformed file pass with its keys silently unread.
-        ALLOWED = {"schema_version", "run_id", "feature", "squad", "host", "status", "steps",
-                   "cycles_used", "cost", "flow", "task", "team", "branch", "worktree",
-                   "review_sha", "pinned_sha", "base_sha", "head_sha", "tip_sha", "commits",
-                   "verdict", "severity_max", "digest"}
+        ALLOWED = {"schema_version", "run_id", "run_uid", "feature", "squad", "host",
+                   "status", "steps", "cycles_used", "cost", "flow", "task", "team",
+                   "branch", "worktree", "review_sha", "pinned_sha", "base_sha",
+                   "head_sha", "tip_sha", "commits", "verdict", "severity_max", "digest"}
         # NO PARSER, in a bootstrap-grant session: the shape gate does not run.
         #
         # A line-scan fallback lived here briefly and was REMOVED at the user's ruling. The
@@ -1547,6 +1568,29 @@ def shape_problems(rel, content, display=None, absolute_path=None):
                        "consumes it later; the write is refused while you can still fix it.")
             return out
 
+        if _post and absolute_path is not None and isinstance(doc, dict):
+            # D-12/D-13: mint only after a governed landing. Until the first POST
+            # completes, a fresh same-slug collision remains the modal residual:
+            # neither uid_conflict nor detection has a witness to consult.
+            try:
+                import run_identity
+                run_dir = os.path.dirname(absolute_path)
+                try:
+                    marker = run_identity.read_marker(run_dir)
+                except run_identity.MarkerUnreadable:
+                    marker = None
+                landed_uid = doc.get("run_uid")
+                witness_uid = marker.get("run_uid") if isinstance(marker, dict) else None
+                effective_uid = landed_uid or witness_uid or run_identity.mint_uid()
+                if not landed_uid:
+                    run_identity.inject_uid(absolute_path, effective_uid)
+                run_identity.record_seed(
+                    run_dir, doc, harness_yaml._resolve_identity(d), effective_uid)
+            except Exception:
+                # POST recording is best effort and may never turn a landed write
+                # into a new refusal.
+                pass
+
         # Issue #1124: the digest guard above (#1058) fires only on digest.md, but a run
         # directory's state.yaml is written just as easily under a reused slug — and unlike
         # digest.md, state.yaml is LEGITIMATELY rewritten many times over a run's life
@@ -1568,28 +1612,45 @@ def shape_problems(rel, content, display=None, absolute_path=None):
                 else:
                     prior_unreadable = True
             except OSError:
-                # FAIL CLOSED, matching the sibling #1058 digest guard directly above: a
-                # prior file that lexists but cannot be opened (permission denied, is a
-                # directory, a transient I/O error) is not the same as no prior file — and
-                # treating it as "nothing to compare" would let the exact silent-overwrite
-                # this guard exists to catch straight through under an unreadable prior.
                 prior_unreadable = True
             if prior_unreadable:
                 out.append(_head("run state already exists but cannot be read safely; "
                                  "refusing a Write that could destroy its recorded content."))
                 return out
+
+            prior_doc = None
+            prior_exc = None
             if prior_state:
-                # Issue #1106, gap (b): a prior that exists but will not parse, or that
-                # parses but carries no run_id, used to fall through to `prior_doc = None` /
-                # `isinstance(..., dict)` failing silently — the exact silent-overwrite this
-                # guard exists to catch, just reached by a malformed or identity-less prior
-                # instead of an unreadable one. FAIL CLOSED on all three: unparseable prior,
-                # prior missing run_id, incoming missing run_id while a prior exists. None of
-                # these can be shown to be a legitimate upsert of THIS run, and "cannot
-                # verify" is not "allow" for an artifact this guard exists to protect.
                 try:
                     prior_doc = harness_yaml.load_str(prior_state, rel)
-                except Exception as prior_exc:
+                except Exception as exc:
+                    prior_exc = exc
+            prior_has_uid = (
+                prior_exc is None and isinstance(prior_doc, dict)
+                and str(prior_doc.get("run_uid") or "").strip() != "")
+
+            # The witness is the only identity available for an absent, zeroed, or
+            # unparseable prior. It answers first unless a readable checkpoint uid
+            # lets the minted-identity ladder own the decision.
+            if not prior_has_uid:
+                try:
+                    import run_identity
+                    marker = run_identity.read_marker(os.path.dirname(absolute_path))
+                except run_identity.MarkerUnreadable:
+                    out.append(_head("state.yaml run identity (Issue 1305)."))
+                    out.append(
+                        "  this run directory's recorded identity cannot be read, so a "
+                        "Write that could silently replace another run checkpoint is refused.")
+                    return out
+                reason = run_identity.conflict(marker, doc)
+                if reason:
+                    out.append(_head("state.yaml run identity (Issue 1305)."))
+                    out.append(f"  {reason}. Write this cycle's state into a run directory "
+                               "of its own.")
+                    return out
+
+            if prior_state:
+                if prior_exc is not None:
                     out.append(_head("run state already exists but does not parse; "
                                      "refusing a Write that could silently replace it."))
                     out.append(f"  {prior_exc}")
@@ -1622,6 +1683,27 @@ def shape_problems(rel, content, display=None, absolute_path=None):
                                f"{new_run_id!r} — a different run's state, not an upsert "
                                f"of this one. Write this cycle's state into a run "
                                f"directory of its own.")
+                    return out
+                # D-11: once a non-empty prior parses with a minted uid, that uid —
+                # not the author-chosen slug and never session identity or a live claim —
+                # decides whether a PRE write is an upsert. POST is not a write-refusal
+                # route and may just have minted the prior's uid itself. Absent and
+                # readable zero-byte priors never enter this ladder; an unreadable prior
+                # already returned above. A legacy prior has no uid and uid_conflict
+                # deliberately stays silent.
+                import run_identity
+                uid_reason = None if _post else run_identity.uid_conflict(prior_doc, doc)
+                if uid_reason:
+                    out.append(_head("state.yaml run identity (Issue 1305)."))
+                    incoming_uid = doc.get("run_uid") if isinstance(doc, dict) else None
+                    if incoming_uid is None or incoming_uid == "":
+                        out.append(
+                            f"  {uid_reason}; if this write does not belong to that run, "
+                            "write this cycle's state into a run directory of its own.")
+                    else:
+                        out.append(
+                            f"  {uid_reason}. Write this cycle's state into a run directory "
+                            "of its own.")
                     return out
 
         # T-17 / D-08: str() BOTH sides. A parsed key is not necessarily a string —
@@ -1924,9 +2006,9 @@ _UNREADABLE_EDIT = object()
 
 def _edit_reconstructed_content(absolute_path, old_string, new_string, replace_all):
     """Issue #1106, gap (a). The full file content Claude's Edit tool would produce, or
-    None when the edit itself is ambiguous or a no-op — in which case it is not this
-    gate's problem: the tool's own match-uniqueness requirement (never this hook) is what
-    refuses an old_string that is absent or, without `replace_all`, non-unique.
+    None when the payload cannot describe one unambiguous candidate. Callers guarding
+    governed artifacts must fail closed on None: OMP's Edit payload carries only a path,
+    and an unmatched or ambiguous replacement must not bypass content enforcement.
 
     THIS IS NOT A NAIVE READ OF THE PAYLOAD. FEAT-50's brief argued Edit "carries no
     complete incoming payload to compare" and left the route unguarded on that basis. That
@@ -1954,10 +2036,13 @@ def _edit_reconstructed_content(absolute_path, old_string, new_string, replace_a
 
 
 if not _post:
-    # PRE. Write supplies complete content. Edit is reconstructed only for the protected
-    # artifact identities whose contracts must reject an invalid candidate before mutation:
-    # run digests, run state, and handoff notes.
+    # PRE. The identity witness is denied by path alone: an Edit must not bypass the
+    # write-once rule merely because its target is absent or its old_string is ambiguous.
+    # Other protected artifacts need the complete candidate reconstructed before mutation.
     if (_tool == "Edit" and target
+            and RE_RUN_IDENTITY.match(_norm(target))):
+        targets = [(_norm(target), "", _show(target), _claimed_abs(target))]
+    elif (_tool == "Edit" and target
             and (RE_RUN_DIGEST.match(_norm(target))
                  or RE_STATE_YAML.match(_norm(target))
                  or RE_HANDOFF.match(_norm(target)))):
@@ -1970,7 +2055,21 @@ if not _post:
                   "candidate cannot be reconstructed safely.", file=sys.stderr)
             sys.exit(2)
         if _content is None:
-            sys.exit(0)
+            if RE_STATE_YAML.match(_norm(target)):
+                print(
+                    "check-domain: BLOCKED — state.yaml run identity and its witness "
+                    "cannot be verified because this Edit cannot be reconstructed from "
+                    "the tool payload (Issue 1305). Write the complete file instead.",
+                    file=sys.stderr,
+                )
+            else:
+                print(
+                    "check-domain: BLOCKED — this protected run artifact cannot be "
+                    "verified because the Edit cannot be reconstructed from the tool "
+                    "payload. Write the complete file instead.",
+                    file=sys.stderr,
+                )
+            sys.exit(2)
         targets = [(_norm(target), _content, _show(target), _claimed_abs(target))]
     elif _tool != "Write" or not target:
         sys.exit(0)
