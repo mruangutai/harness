@@ -1,0 +1,409 @@
+schema: plan/1
+feature: BUG-440-digest-verdict-reconciliation
+approval:
+  status: pending
+status: plan
+source_issues: [440]
+
+lanes:
+  resolved_at: 772790be52774eafe2971f9c44400e18b2d54275
+  measurement: "Every row was MEASURED, not inferred: check-domain.sh --resolve was run on each path with HEAD at 772790be52774eafe2971f9c44400e18b2d54275, and the verbatim answer is quoted in each row's resolve field."
+  rows:
+    - surface: .claude/skills/harness/bin/check-state.sh
+      lane: main-session-direct
+      resolve: harness-backend-dev harness-dev-ops
+      reason: "DEC-174 carve-out; the measured grant is overridden because the state gate cannot vouch for its own change - its green is the thing under test."
+    - surface: tests/integration/test-check-state.py
+      lane: main-session-direct
+      resolve: harness-backend-dev harness-dev-ops harness-qa
+      reason: "DEC-174 carve-out; a gate's own tests ride the carve-out with it, so the grant is overridden here too."
+    - surface: .harness/harness/features/BUG-440-digest-verdict-reconciliation/notes/
+      lane: main-session-direct
+      resolve: harness-orchestrator
+      reason: "the only task that writes this note is main-session-direct already, and the main session is ungoverned by the domain grant."
+
+decisions:
+  - id: D-01
+    choice: "The implementation, its regression cases and its red proof are ONE task, and test-first ordering is kept INSIDE that task: the case is written and observed red against the pre-change script before the check is added."
+    because: "the verify that proves either half needs both halves present, so splitting them parks a red gate between two tasks - the grounds FEAT-24 T-07 and BUG-1305 T-03 already carried check-state.sh with test-check-state.py in one task."
+    dec: none
+  - id: D-02
+    choice: "The new invariant is INV-37."
+    because: "INV-36 is the highest allocated number and a search for INV-37 and INV-38 across check-state.sh and tests/ returns nothing; those two files are the only ones in the repository that carry invariant numbers at all."
+    dec: none
+  - id: D-03
+    choice: "No DECISIONS.md or DECISIONS-INDEX.md entry is owed for INV-37, and no task in this plan touches either file."
+    because: "BUG-1305 added INV-36 with no decisions entry, and no document outside check-state.sh and its test names an invariant number - a doc row here would create the first such reference and a second home for the rule."
+    dec: none
+  - id: D-04
+    choice: The check is hosted inside the existing INV-15 branch and is fed by its own side structure - a dict keyed on the feature DIRECTORY PATH mapping run id to the LIST of verdicts every matching runs[] entry records (D-07 refines this from the single last-wins value first written), built in the earlier feature.json loop beside the unconditioned runs.append((...)) at check-state.sh:650-652, never beside code_reviewing_runs.append which is validator-only. The runs 3-tuple is not widened.
+    because: "INV-15 has already computed complete, host-in-LEADS, digest presence and structural validity, and the comment at check-state.sh:640-642 pins the tuple at three because INV-7 and INV-22 unpack exactly three; keying on the directory path rather than the bare feature name keeps two repos under one control plane from colliding."
+    dec: none
+  - id: D-05
+    choice: "The task verify runs ONLY the new case, by importing tests/integration/test-check-state.py and calling the case function; the whole file is left to the qa gate."
+    because: "the full file was measured at 51.9s at 772790be, which leaves no headroom under the 60s bar with siblings running, while the single case through the same invocation was measured at 0.58s."
+    dec: none
+  - id: D-06
+    choice: "check-plan-routes.py will print DEVIATION lines for the two granted-but-declared main-session-direct rows, and that output is accepted as correct rather than fixed."
+    because: "DEC-174 carve-outs are granted surfaces deliberately declared main-session-direct, the checker exits 0 and only VIOLATION lines gate, so re-lanning these rows would put the state gate's own change back into a squad."
+    dec: DEC-174
+
+  - id: D-07
+    choice: run_verdicts maps run id to the LIST of verdicts every matching feature.json runs[] entry records,
+      and INV-37 compares the digest verdict against each DISTINCT recorded value, emitting one finding
+      per distinct contradiction - not the single last-wins value a dict keyed on id would keep.
+    because: 'the operator-approved contract quantifies over feature.json runs[] ENTRIES, and duplicate
+      ids are real in the corpus rather than hypothetical: measured across the live control plane on 2026-09-06,
+      65 feature.json files carry 1002 runs[] entries and exactly one feature, FEAT-45-adversarial-plan-panel,
+      records id 2026-08-31-1-validator twice - both PASS, so the one live instance is benign, but the shape
+      is present. Nothing forbids it: runs[] rows are list items so the strict loader''s DuplicateKeyError
+      cannot fire, and no invariant asserts run-id uniqueness. Adding such an invariant would be new scope;
+      a list is not - it is the same three lines T-01 already touches, it leaves single-entry behaviour
+      byte-identical, and it stops the plan claiming to compare every entry while comparing one per id (panel
+      finding PF-ea2e1ae8c184fa68182114bb1966225f, reader should-not-exist, low).'
+    dec: none
+panel:
+  last_run: plan-panel-validator
+  cycle: 1
+  team: plan-panel
+  verdict: BLOCKED
+  severity_max: med
+  source_digest: .harness/harness/features/BUG-440-digest-verdict-reconciliation/runs/plan-panel-validator/digest.md
+  transcribed_by: harness-pm
+  transcribed_at: '2026-09-06'
+  transcription_rule: Every summary below is the validator lead's wording verbatim
+    from the digest's panel_findings block, and every id is panel_findings.py id --reader
+    <that reader> --summary <that exact summary>. No severity was reassigned, rounded,
+    promoted or demoted; every one is the reader's own.
+  readers:
+  - reader: should-not-exist
+    persona: fable-advisor
+    status: ran
+    reason: none
+    artifact: none
+    note: Holds no write grant; its three findings reach disk only through this transcription
+      and the panel digest.
+  - reader: scope
+    persona: harness-code-reviewer
+    status: ran
+    reason: none
+    artifact: none
+    note: RAN, and was NOT skipped. Its review completed; the write of notes/review-harness-code-reviewer-planpanel-c1.md
+      was refused by check-domain.sh claim_worktrees() unioning a stale live harness-code-reviewer
+      claim from FEAT-05-factory-doc-smoke. Its findings survive verbatim in the panel
+      digest and its full prose in history://Bug440Plan.MilitaryAmphibian.ScopeReview.
+      Harness defect, carried up as the lead's Q1.
+  - reader: goalcheck
+    persona: harness-pm
+    status: ran
+    reason: none
+    artifact: notes/research-BUG-440-digest-verdict-reconciliation-goalcheck-plan-c1.md
+    note: 'RAN outside the panel team, as the plan-phase product segment the orchestrator
+      sequenced before the panel: pm''s goal-check of the drafted plan against the
+      operator''s stated intent. Recorded for continuity; it is not a panel step and
+      it is NOT a skip.'
+  reader_coverage_note: 'All three readers INV-32 (check-state.sh:534-547) expects
+    are recorded. The plan-panel team declares two steps, should-not-exist and scope,
+    which is why the validator lead''s digest named two; the goalcheck reader is an
+    orchestrator-sequenced product segment rather than a team step, it ran for this
+    plan as notes/research-BUG-440-digest-verdict-reconciliation-goalcheck-plan-c1.md,
+    and it is recorded above with status ran. It is a reading that genuinely happened,
+    not a skip and not an invention. Precedent for recording an out-of-team goalcheck
+    reader: BUG-1286 and BUG-1305 plan.yaml.'
+  findings:
+  - id: PF-b884d6eeb8f166e13839f46191cb8866
+    reader: scope
+    severity: med
+    summary: T-01 intent anchors the run_verdicts side-dict 'beside the existing code_reviewing_runs.append(...)',
+      a line gated by `if _squad == "validator"` (check-state.sh:663-666), but run_verdicts
+      must capture every squad.
+    consequence: 'A literal reading nests the recording inside the validator-only
+      conditional, so product-squad runs are never compared - concretely 2 of the
+      BRIEF''s own 4 disclosed mismatches (FEAT-07/goalcheck-product, FEAT-22/2026-08-16-15-distill-product,
+      both squad: product) would go unflagged. Test-first ordering bounds the damage
+      to a wasted build iteration (fixture M reports zero INV-37 lines and fails T-01''s
+      verify), but the plan warns explicitly against the wrong `else:` at :1527 and
+      gives this anchor no equivalent guard.'
+    disposition: resolved
+    resolution: 'RESOLVED by plan text, not by a task: T-01 intent step 1 now anchors
+      the run_verdicts recording to the UNCONDITIONED runs.append((...)) at check-state.sh:650-652
+      and states in terms that no literal reader can nest it in the validator-only
+      branch at :665-666. Verified at source by pm on 2026-09-06. No resolved_by:
+      no task resolves it.'
+  - id: PF-3f3c8cbd75c6538ac820075bfc6efe9b
+    reader: should-not-exist
+    severity: low
+    summary: 'The signature ruling is a false dilemma: reconciling the four records
+      BEFORE merge dissolves day-one-red at zero scope cost, and that option is nowhere
+      offered.'
+    consequence: The four records are per-checkout data edits independent of this
+      code change. As written (BRIEF.md DISCLOSURE) the operator's only choices are
+      to accept 4 blocking findings at every /harness entry (harness.md:11-13, before
+      anything spawns) for an unbounded period, or bounce a correct plan for repair
+      scope it never needed. One sentence of sequencing advice in the disclosure removes
+      the dilemma; the mechanism needs no change.
+    disposition: resolved
+    resolution: 'RESOLVED by plan text, not by a task: BRIEF.md DISCLOSURE now offers
+      the third option the panel named - reconcile the four records FIRST, then merge,
+      at zero added scope - alongside accept-red and bounce-for-repair. The ruling
+      stays answerable and the operator stays its owner. No resolved_by.'
+  - id: PF-ea2e1ae8c184fa68182114bb1966225f
+    reader: should-not-exist
+    severity: low
+    summary: D-04's run_verdicts dict collapses duplicate runs[] ids last-wins, while
+      the operator contract quantifies over ENTRIES - a shadowed stale row keeps the
+      gate green over a live contradiction.
+    consequence: runs[] rows are list items, so the strict loader's DuplicateKeyError
+      (check-state.sh:1446-1455) never fires on two rows sharing an id, and no invariant
+      checks runs[] id uniqueness (INV-8's set at :823-826 only tests directory existence).
+      A corrective row appended beside a wrong one leaves both on disk; the dict keeps
+      the last, INV-37 stays silent, and a consumer reading the first row still sees
+      the contradicted verdict. Author flags the duplicate-id exposure as unmeasured.
+    disposition: resolved
+    resolution: 'RESOLVED by ruling D-07 plus plan text: the side structure becomes
+      run id -> LIST of recorded verdicts, one comparison per feature.json runs[]
+      entry, which is what the operator contract quantifies over. D-04''s choice and
+      T-01''s intent are amended to match. Ground: measured 2026-09-06 across the
+      live control plane - 65 feature.json, 1002 runs[] entries, duplicate ids in
+      exactly one feature (FEAT-45-adversarial-plan-panel, id 2026-08-31-1-validator
+      twice, both PASS, therefore benign today). No resolved_by.'
+  - id: PF-3d82c450255917a1e1a403dd329ce431
+    reader: scope
+    severity: low
+    summary: T-01's automated verify grep pins only `^## INV-37 red proof` in redproof-BUG-440.md,
+      not that the note records a genuine failure.
+    consequence: A heading-only or fabricated note passes the task's own gate identically
+      to a real captured red run, so SC-05's substance rests entirely on later inspection
+      - and T-01 is main-session-direct with no builder/reviewer split inside the
+      task.
+    disposition: resolved
+    resolution: 'RESOLVED by plan text, not by a task: T-01 verify now also requires
+      the red-proof note to carry the pinned mutant sha, the CHECK_STATE_BIN invocation
+      and a line beginning RESULT: RED, and T-01 intent step 4 mandates writing that
+      line. A bare heading no longer passes the task gate. No resolved_by.'
+  - id: PF-dcb6d405dd9dfba7c620224365930746
+    reader: should-not-exist
+    severity: info
+    summary: SC-05's red proof witnesses non-vacuity, not test-first ordering; goal-check
+      Ruling 1's ground ('the only evidence the ordering happened') overstates what
+      the artifact can witness.
+    consequence: CHECK_STATE_BIN against a git-show copy of 772790be is reproducible
+      at any time, including after the check was written. The note still earns its
+      cost (it proves the case CAN fail), but a reviewer grading 'Iron Law honoured'
+      from it trusts a claim the artifact structurally cannot ground. No build change
+      owed.
+    disposition: resolved
+    resolution: 'RESOLVED by note correction, conclusion unchanged: the goal-check
+      note''s Ruling 1 ground now says the red proof witnesses NON-VACUITY (the case
+      can fail against the pre-change script) rather than being the only evidence
+      test-first ordering happened. The ruling still keeps the note. No build change
+      owed, no resolved_by.'
+  dismissed:
+  - reader: scope
+    severity: info
+    summary: Six INFO entries asserting the plan is correct on blast radius, quantifier
+      direction, exact equality, D-05, D-01, and absence of orphan REQ/SC or tuple
+      widening.
+    reason: 'Assessed and dismissed as non-findings: each names a verification performed
+      and no consequence, and the team contract says a claim with no concrete consequence
+      is not a finding. Deduplicated against should-not-exist''s five identically-directed
+      agreements - both readers independently cleared the same five angles, which
+      is the panel''s substantive result and is recorded in the prose below rather
+      than as findings.'
+  adequacy_notes:
+  - scope's artifact never landed. Its findings survive only in this digest and in
+    its transcript; if pm transcribes panel.readers without this file, the review
+    has no durable home (Q1).
+  - 'Neither reader could exercise the change: nothing is built. Every finding is
+    a reading of plan text against source, so no runtime claim about INV-37''s behaviour
+    is verified by this panel.'
+  - Neither reader scanned the 298 claimed feature.json entries for duplicate run
+    ids, so F-03's exposure is unquantified and self-declared unverified by its author.
+  - No reader graded whether the four live mismatches are individually correct records
+    - the panel took the BRIEF's measurement as given; pm and the orchestrator measured
+    it independently, this panel did not re-measure.
+  - 'F-03''s exposure was UNMEASURED when the reader wrote it and is measured now:
+    65 feature.json files, 1002 runs[] entries, duplicate ids in exactly one feature
+    (FEAT-45-adversarial-plan-panel, 2026-08-31-1-validator twice, both PASS). Measured
+    by the orchestrator on 2026-09-06.'
+tasks:
+  - id: T-01
+    title: Add INV-37 to check-state.sh - a completed lead run's digest verdict must equal its feature.json entry
+    traces: [REQ-01, REQ-02, REQ-03, REQ-04]
+    change_type: bugfix
+    execution_mode: main-session-direct
+    execution_reason: "DEC-174 carve-out - check-state.sh is the state gate run at every /harness entry and its own tests ride the carve-out with it; the harness plans changes to its enforcement layer and does not dispatch them to a squad."
+    depends_on: []
+    status: ready
+    files:
+      - .claude/skills/harness/bin/check-state.sh
+      - tests/integration/test-check-state.py
+      - .harness/harness/features/BUG-440-digest-verdict-reconciliation/notes/redproof-BUG-440.md
+    verify: |
+      grep -q '^## INV-37 red proof' .harness/harness/features/BUG-440-digest-verdict-reconciliation/notes/redproof-BUG-440.md &&
+      grep -q '772790be52774eafe2971f9c44400e18b2d54275' .harness/harness/features/BUG-440-digest-verdict-reconciliation/notes/redproof-BUG-440.md &&
+      grep -q 'CHECK_STATE_BIN' .harness/harness/features/BUG-440-digest-verdict-reconciliation/notes/redproof-BUG-440.md &&
+      grep -q '^RESULT: RED' .harness/harness/features/BUG-440-digest-verdict-reconciliation/notes/redproof-BUG-440.md &&
+      python3 -c "import importlib.util as u, sys; s=u.spec_from_file_location('t','tests/integration/test-check-state.py'); mod=u.module_from_spec(s); s.loader.exec_module(mod); sys.exit(0 if mod.case_bug440_digest_verdict_reconciliation() else 1)"
+    intent: |
+      Make the state gate refuse a completed lead-hosted run whose durable digest contradicts the
+      verdict feature.json records for it. Measured on the control-plane root run tree on 2026-09-06, HEAD at
+      772790be52774eafe2971f9c44400e18b2d54275: 308 completed lead-hosted runs carry a digest, all 308
+      are structurally valid, 298 of those are CLAIMED by a feature.json runs[] entry and are therefore
+      compared (the other 10 run directories are unclaimed and out of scope by construction), and 4 of
+      the 298 contradict their entry. Nothing compares them today.
+
+      ORDER OF WORK, and it is not negotiable: write the test case FIRST, observe it RED against the
+      pre-change check-state.sh, record that red proof, and only then add the check.
+
+      ---- 1. THE SIDE STRUCTURE (check-state.sh, the feature.json loop at :604-666)
+
+      Before the loop, initialise `run_verdicts = {}`.
+
+      THE RECORDING GOES IMMEDIATELY AFTER THE UNCONDITIONED `runs.append((...))` AT :650-652, AT
+      EXACTLY ITS INDENTATION - the statement that runs for EVERY entry of EVERY squad, inside the
+      `for entry in (doc.get("runs") or [])` loop at :645-666 and inside NO `if` at all. DO NOT put it
+      beside `code_reviewing_runs.append(entry)` at :666: that line sits inside
+      `if _squad == "validator" and entry.get("code_grade") != "n_a":` at :665, so recording there
+      would capture validator runs only and silently miss every product-squad and eng-squad run -
+      including two of the four live mismatches this feature exists to surface
+      (FEAT-07/goalcheck-product and FEAT-22/2026-08-16-15-distill-product, both `squad: product`).
+      If the line you are about to write is indented deeper than `runs.append((...))`, it is wrong.
+
+      Record, reusing the values already computed for the tuple where convenient:
+
+        run_verdicts.setdefault(os.path.dirname(fy), {}).setdefault(
+            str(entry.get("id","")).strip(), []).append(str(entry.get("verdict","")).strip())
+
+      A LIST PER RUN ID, NEVER A SINGLE VALUE (D-07). `runs[]` rows are list items, so two rows may
+      carry the same `id` and nothing forbids it: the strict loader's DuplicateKeyError never fires on
+      list items, and no invariant asserts run-id uniqueness. Measured 2026-09-06 across the live
+      control plane: 65 feature.json files, 1002 `runs[]` entries, duplicate ids in exactly one feature
+      (FEAT-45-adversarial-plan-panel, id `2026-08-31-1-validator` twice, both `PASS`, therefore benign
+      today). A dict keyed on id would compare one entry per id while the approved contract quantifies
+      over ENTRIES.
+
+      DO NOT WIDEN THE `runs` 3-TUPLE. The comment at :640-642 pins it at three because INV-7 and the
+      INV-22 loop unpack exactly three; BUG-1080's exemption took its own list for the same reason and
+      this takes another. Key on the feature DIRECTORY PATH (`os.path.dirname(fy)`), never the bare
+      feature name: the INV-15 loop's glob is `H + "/*/features/*/runs/*/state.yaml"`, so two repos
+      under one control plane can carry the same feature name.
+
+      ---- 2. THE CHECK (check-state.sh, inside the INV-15 branch at :1516-1535)
+
+      In that branch, `complete` and `_host in LEADS` are already computed, `dg` is already resolved,
+      and the digest is already read and validated. Two changes:
+
+      (a) Read the digest text ONCE into a local (e.g. `_dtext`) and pass that local to
+          `_vd_mod.validate("lead", _dtext)`. Do not add a second `open()` of the same file - the
+          sweep re-validates the whole run history at every /harness entry, which is why INV-15
+          stopped forking an interpreter per run in the first place (:1408-1412).
+
+      (b) In a NEW `else:` arm on the `if _errs:` test at :1532 - that is, ONLY where `_errs` is
+          falsy, never the outer `else:` at :1527, which is entered for valid and invalid digests
+          alike - so a digest that fails the contract keeps exactly its current single finding and
+          gets nothing stacked on top (REQ-03(d)). There, compare the two verdicts:
+
+            _feat_dir = os.path.dirname(os.path.dirname(rundir))   # .../features/<FEAT>
+            _rid      = os.path.basename(rundir)
+            _recorded = run_verdicts.get(_feat_dir, {})
+
+          If `_rid` is NOT a key of `_recorded`, do nothing and report nothing: the comparison is
+          quantified FROM feature.json's runs list, so a run directory the record does not claim is
+          out of scope by construction (REQ-03(e)), and a feature whose feature.json is missing or
+          unparseable is already reported by the loop above. Test membership explicitly - never a
+          `.get()` chain that leaves both sides None and compares equal.
+
+          When `_rid` IS present, extract the digest verdict with the SAME two-step, tail-anchored
+          semantics validate-digest.py already implements at :1155-1160, byte for byte, with a
+          comment citing those lines:
+
+            _anchors = list(re.finditer(r"^\s*VERDICT:", _dtext, re.M))
+            _tail    = _dtext[_anchors[-1].start():] if _anchors else _dtext
+            _dm      = re.search(r"^\s*VERDICT:\s*(\S+)", _tail, re.M)
+
+          DO NOT invent a second regex convention and DO NOT restate the legal token set: the
+          comparison is plain string equality and needs none. `validate("lead", ...)` has already
+          rejected a digest with no VERDICT line (:1161-1162) and one whose token is outside VERDICTS
+          (:1163-1164), so in this arm `_dm` is non-None and its group is a legal token - no
+          unparseable branch is owed. Guard `_dm` only if you prefer a defensive `if _dm and ...`;
+          never report a finding for its absence.
+
+          Compare `_dm.group(1)` against EACH DISTINCT recorded value for that id -
+          `for _rv in dict.fromkeys(_recorded[_rid]):`, which preserves order and collapses
+          byte-identical duplicates - with EXACT string equality, and emit ONE finding per distinct
+          value that differs (D-07). One entry means exactly one comparison and at most one finding,
+          which is what fixture M asserts; two rows with the same id and the same verdict still yield
+          at most one; two rows contradicting each other yield one finding each, naming its own
+          recorded value. Both sides are already `.strip()`ed - the recorded values by step 1, the
+          digest token by `(\S+)`. NO case folding, no normalisation, no aliasing: `feature.json` carries values outside VERDICTS in
+          the live corpus (two FEAT-22 entries record `INCOMPLETE`) and exact equality is what makes
+          those visible.
+
+          On inequality append to `bad` - the BLOCKING list, never `warn` - ONE finding prefixed
+          `INV-37:` whose text names all five things: the feature name (`os.path.basename(_feat_dir)`),
+          the run id, the digest verdict, the feature.json verdict (`_rv`), and BOTH paths - the digest.md
+          path and the feature.json path, each relative to `H` as the neighbouring messages are. Say
+          which value came from which record, and that the gate does not decide which one is wrong.
+          Write NOTHING: no repair, no rewrite, no move of either file (REQ-04).
+
+      ---- 3. THE CASES (tests/integration/test-check-state.py)
+
+      One new function `case_bug440_digest_verdict_reconciliation()`, registered in `main()` and folded
+      into the final `and` conjunction at :4775-4784 - a case that is not in that conjunction never
+      gates. Model the fixture builders on `_bug1305_invariant_scaffold` and
+      `_bug1305_invariant_feature` (:4502-4557), but parameterise each run by host, status, verdict
+      and digest text; the BUG-1305 builders hardcode `verdict: PASS` and a non-lead host.
+
+      THE VALID LEAD DIGEST IS SYNTHETIC AND THE TEST MUST PROVE ITS OWN FIXTURE. No live lead digest
+      exists in a worktree (run directories are untracked; this worktree's feature tree has none).
+      Build the digest text in the test, import validate-digest.py from `_anchor_bin` the way this
+      file already imports siblings, and ASSERT `validate("lead", text) == []` for both the PASS and
+      FAIL variants before asserting anything about check-state.sh. Without that assertion a fixture
+      that drifts out of validity makes the whole case vacuously green. The lead schema fields are
+      branch, cycles_used, escalations, members, must_fix, sc_status, steps_run, team plus the
+      universal contract fields; derive the minimal passing text by running
+      `.agents/skills/harness/bin/validate-digest.py lead <file>` until it is clean.
+
+      ONE mixed fixture tree, one feature FEAT-TEST, with these runs - each asserted SEPARATELY, never
+      by a file-global count alone:
+        - M: status complete, host harness-eng-lead, valid digest VERDICT: FAIL, feature.json verdict
+             PASS. Expect exit 1 and EXACTLY ONE line containing `INV-37`, and assert SIX separate
+             substrings in it: FEAT-TEST, the run id M, FAIL, PASS, the digest.md path, the
+             feature.json path.
+        - E: complete, harness-product-lead, valid digest VERDICT: PASS, recorded PASS. No `INV-37`
+             line naming E.
+        - N: complete, host omp, valid digest VERDICT: FAIL, recorded PASS. No `INV-37` line naming N.
+        - I: status active, host harness-eng-lead, valid digest VERDICT: FAIL, recorded PASS. No
+             `INV-37` line naming I.
+        - G: complete, harness-eng-lead, NO digest.md, recorded PASS. Exactly ONE existing
+             missing-digest violation for G, and no `INV-37` line naming G.
+        - X: complete, harness-eng-lead, digest.md containing `# digest\n` (the invalid shape this
+             file already uses at :489-490), recorded PASS. Exactly ONE existing lead-digest-contract
+             violation for X, and no `INV-37` line naming X.
+        - O: a run DIRECTORY with state.yaml complete + harness-eng-lead + a valid FAIL digest and NO
+             entry in feature.json runs. Silent: no `INV-37` line naming O.
+      Then assert REQ-04 on this same tree: take a sha256 of feature.json and of every digest.md
+      before `run(tmp)` and again after, and assert every pair is equal.
+
+      A SECOND, CLEAN tree containing only run E: assert exit 0 and `INV-37` not in the output. This
+      is the control that separates a working check from one that fires on everything.
+
+      ---- 4. THE RED PROOF (notes/redproof-BUG-440.md)
+
+      Prove the new case FAILS against the pre-change script. Use `isolated_bin(dest_root)`
+      (.claude/skills/harness/bin/isolated_bin.py:8-14) to copy the whole bin tree into a temp root so
+      sibling imports resolve, then overwrite THAT COPY's check-state.sh with
+      `git show 772790be52774eafe2971f9c44400e18b2d54275:.claude/skills/harness/bin/check-state.sh`,
+      captured through python and written with python - bash-write-guard.sh denies shell redirects,
+      cp and mv. NEVER write the mutant into the live .claude/skills/harness/bin/. Run the new case
+      with `CHECK_STATE_BIN` (read at test-check-state.py:22) pointed at the copied script.
+
+      Write .harness/harness/features/BUG-440-digest-verdict-reconciliation/notes/redproof-BUG-440.md
+      with a heading spelled exactly `## INV-37 red proof`, the pinned sha
+      `772790be52774eafe2971f9c44400e18b2d54275` written out in full, the exact commands including the
+      `CHECK_STATE_BIN` invocation, the VERBATIM failing output, and - at column 0, on its own line - a
+      line beginning exactly `RESULT: RED` that then names the case and the value it returned, e.g.
+      `RESULT: RED - case_bug440_digest_verdict_reconciliation() returned False against the pre-change
+      check-state.sh`. The task `verify:` greps for all four, so a heading-only stub no longer passes
+      the task's own gate; write the line only if the run was genuinely red. Leave no temp copy behind in the repo before review_sha is pinned.
