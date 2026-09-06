@@ -14,7 +14,7 @@ import sys
 TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
 BIN_DIR = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
-MODULE_PATH = os.path.join(BIN_DIR, "expertise-merge.py")
+MODULE_PATH = os.environ.get("EXPERTISE_MERGE_BIN") or os.path.join(BIN_DIR, "expertise-merge.py")
 
 _spec = importlib.util.spec_from_file_location("expertise_merge_ops_under_test", MODULE_PATH)
 expertise_merge = importlib.util.module_from_spec(_spec)
@@ -259,6 +259,64 @@ def case_u16():
     check("u16: (b) drop leaves Open still present", "Open" in merged_b, list(merged_b))
 
 
+def _assert_malformed(secs, order, ops_payload, label):
+    """Shared MALFORMED OPS(12) shape assertion: raises, code 12, line starts MALFORMED OPS.
+    Guards against a non-MergeRefusal exception (e.g. an uncaught TypeError, VL-02's pre-fix
+    crash) escaping and silently aborting every later case in the suite."""
+    try:
+        resolve_ops(secs, order, ops_payload)
+        check(f"{label}: raises MergeRefusal", False, "no exception raised")
+    except MergeRefusal as e:
+        check(f"{label}: code is 12", e.code == 12, e.code)
+        check(f"{label}: line starts MALFORMED OPS", e.lines[0].startswith("MALFORMED OPS"), e.lines)
+    except Exception as e:
+        check(f"{label}: raises MergeRefusal, not {type(e).__name__}", False, repr(e))
+
+
+def case_u17():
+    """AN ENTRY EMBEDDING A NEWLINE IS A MALFORMED-OPS SHAPE REFUSAL (VL-01), not a value
+    `render` ever writes verbatim into a rendered file. `replace` keeps the base's own entry
+    count unchanged, matching the exact shape the exploit needs."""
+    for newline in ("\n", "\r"):
+        secs, order = base_sections([("Patterns", [("P-01", "one")])])
+        entry = f"harmless{newline}## Gotchas (max 15)"
+        _assert_malformed(secs, order, [op("replace", "Patterns", "P-01", entry)], f"u17: {newline!r} entry")
+
+
+def case_u18():
+    """A TARGET EMBEDDING A NEWLINE IS THE SAME MALFORMED-OPS SHAPE REFUSAL (VL-01) an entry
+    gets — target is written verbatim into a replace/drop refusal's stdout and, on add, into
+    the rendered file."""
+    for newline in ("\n", "\r"):
+        secs, order = base_sections([("Patterns", [("P-01", "one")])])
+        forged_target = f"P-99{newline}- P-77: forged"
+        _assert_malformed(secs, order, [op("add", "Patterns", forged_target, "harmless")], f"u18: {newline!r} target")
+
+
+def case_u19():
+    """A NON-STRING TARGET IS A MALFORMED-OPS SHAPE REFUSAL (VL-02), not an uncaught TypeError
+    escaping the file's documented exit contract."""
+    secs, order = base_sections([("Patterns", [("P-01", "one")])])
+    _assert_malformed(secs, order, [op("add", "Patterns", ["P-50", "x"], "x")], "u19")
+
+
+def case_u20():
+    """ADD AGAINST A DUPLICATED BASE ID IS AMBIGUOUS (VL-03, D-03(a)), exactly like
+    replace/drop on the identical base — never silently PRESERVED or wrongly CONFLICT."""
+    duplicated = [("P-01", "one"), ("P-07", "four-a"), ("P-07", "four-b")]
+    variants = (
+        ("a", "third totally different text"),  # used to be CONFLICT, exit 7
+        ("b", "four-b"),  # matches the surviving occurrence — used to be PRESERVED, exit 0
+    )
+    for label, entry in variants:
+        secs, order = base_sections([("Patterns", list(duplicated))])
+        try:
+            resolve_ops(secs, order, [op("add", "Patterns", "P-07", entry)])
+            check(f"u20: ({label}) MergeRefusal raised", False, "no exception raised")
+        except MergeRefusal as e:
+            check(f"u20: ({label}) code is 11", e.code == 11, e.code)
+
+
 def main():
     case_u1()
     case_u2()
@@ -275,6 +333,10 @@ def main():
     case_u14()
     case_u15()
     case_u16()
+    case_u17()
+    case_u18()
+    case_u19()
+    case_u20()
 
     fails = 0
     for name, ok, detail in RESULTS:

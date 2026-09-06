@@ -808,6 +808,85 @@ def case_contract_drift():
     )
 
 
+def _launch_case18_children(path, entries_a, ops_b):
+    """Launch child A (apply) and child B (ops) against the same file, both PIPE-captured."""
+    child_a = subprocess.Popen(
+        [sys.executable, CLI, "apply", "--file", path, "--entries", entries_a],
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+    )
+    child_b = subprocess.Popen(
+        [sys.executable, CLI, "ops", "--file", path, "--ops", ops_b],
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+    )
+    return child_a, child_b
+
+
+def _poll_case18_children(child_a, child_b, hold_window):
+    """Poll both children every 0.05s for `hold_window` seconds. Returns (premature, elapsed):
+    premature names whichever child exited early, or None if neither did."""
+    started = time.monotonic()
+    deadline = started + hold_window
+    while time.monotonic() < deadline:
+        if child_a.poll() is not None:
+            return "child A (apply)", time.monotonic() - started
+        if child_b.poll() is not None:
+            return "child B (ops)", time.monotonic() - started
+        time.sleep(0.05)
+    return None, time.monotonic() - started
+
+
+def _hold_lock_and_race_case18(lock_path, path, entries_a, ops_b, hold_window):
+    """Take the production lock ourselves, launch both children under it, and check neither
+    exits during the hold window — the D-09 regression this case exists to catch. NO
+    production test bypass anywhere in this call chain: no environment variable, no injected
+    sleep, no test-only flag, no edit of expertise-merge.py or harness_merge.py."""
+    with harness_merge.acquire(lock_path):
+        child_a, child_b = _launch_case18_children(path, entries_a, ops_b)
+        premature, held_wall_clock = _poll_case18_children(child_a, child_b, hold_window)
+    check(
+        f"case18: neither child exits during the {hold_window}s hold window while the "
+        f"test holds the production lock ({held_wall_clock:.2f}s observed)",
+        premature is None,
+        (
+            f"{premature} exited while the test held the lock — it did not take the "
+            "lock the core defines; this is the D-09 regression"
+        ) if premature else "",
+    )
+    return child_a, child_b
+
+
+def _await_case18_child(child, label):
+    """Wait up to 20s for `child` to exit once the lock is released, and check it exits 0."""
+    try:
+        out, err = child.communicate(timeout=20)
+        check(
+            f"case18: child {label} exits 0 once the lock is released",
+            child.returncode == 0,
+            f"exit {child.returncode}: {out + err}",
+        )
+    except subprocess.TimeoutExpired:
+        child.kill()
+        check(f"case18: child {label} completes within 20s of the lock being released", False, "")
+
+
+def _check_case18_final_state(path, marker):
+    content = open(path, encoding="utf-8").read()
+    entries = parse_section_entries(content, "Patterns")
+    ids = sorted(eid for eid, _ in entries)
+    expected_ids = sorted([f"P-{i:02d}" for i in range(1, 9)] + ["P-09", "P-10"])
+    check(
+        "case18: the Patterns id census is exactly the original eight plus P-09 and P-10",
+        ids == expected_ids,
+        ids,
+    )
+    texts = dict(entries)
+    check(
+        "case18: the P-07 entry carries child B's marker text",
+        texts.get("P-07") == marker,
+        content,
+    )
+
+
 def case_concurrent_writers(root):
     """Case 18 — CONCURRENT WRITERS (SC-11, D-09). Contention forced DETERMINISTICALLY by the
     test itself holding the production lock, with NO production test bypass: no environment
@@ -825,76 +904,10 @@ def case_concurrent_writers(root):
         [{"op": "replace", "target": "P-07", "section": "Patterns", "entry": marker}],
     )
 
-    lock_path = path + ".lock"
-    hold_window = 2.0
-    with harness_merge.acquire(lock_path):
-        child_a = subprocess.Popen(
-            [sys.executable, CLI, "apply", "--file", path, "--entries", entries_a],
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
-        )
-        child_b = subprocess.Popen(
-            [sys.executable, CLI, "ops", "--file", path, "--ops", ops_b],
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
-        )
-        started = time.monotonic()
-        deadline = started + hold_window
-        premature = None
-        while time.monotonic() < deadline:
-            if child_a.poll() is not None:
-                premature = "child A (apply)"
-                break
-            if child_b.poll() is not None:
-                premature = "child B (ops)"
-                break
-            time.sleep(0.05)
-        held_wall_clock = time.monotonic() - started
-        check(
-            f"case18: neither child exits during the {hold_window}s hold window while the "
-            f"test holds the production lock ({held_wall_clock:.2f}s observed)",
-            premature is None,
-            (
-                f"{premature} exited while the test held the lock — it did not take the "
-                "lock the core defines; this is the D-09 regression"
-            ) if premature else "",
-        )
-
-    try:
-        out_a, err_a = child_a.communicate(timeout=20)
-        check(
-            "case18: child A (apply) exits 0 once the lock is released",
-            child_a.returncode == 0,
-            f"exit {child_a.returncode}: {out_a + err_a}",
-        )
-    except subprocess.TimeoutExpired:
-        child_a.kill()
-        check("case18: child A (apply) completes within 20s of the lock being released", False, "")
-
-    try:
-        out_b, err_b = child_b.communicate(timeout=20)
-        check(
-            "case18: child B (ops) exits 0 once the lock is released",
-            child_b.returncode == 0,
-            f"exit {child_b.returncode}: {out_b + err_b}",
-        )
-    except subprocess.TimeoutExpired:
-        child_b.kill()
-        check("case18: child B (ops) completes within 20s of the lock being released", False, "")
-
-    content = open(path, encoding="utf-8").read()
-    entries = parse_section_entries(content, "Patterns")
-    ids = sorted(eid for eid, _ in entries)
-    expected_ids = sorted([f"P-{i:02d}" for i in range(1, 9)] + ["P-09", "P-10"])
-    check(
-        "case18: the Patterns id census is exactly the original eight plus P-09 and P-10",
-        ids == expected_ids,
-        ids,
-    )
-    texts = dict(entries)
-    check(
-        "case18: the P-07 entry carries child B's marker text",
-        texts.get("P-07") == marker,
-        content,
-    )
+    child_a, child_b = _hold_lock_and_race_case18(path + ".lock", path, entries_a, ops_b, 2.0)
+    _await_case18_child(child_a, "A (apply)")
+    _await_case18_child(child_b, "B (ops)")
+    _check_case18_final_state(path, marker)
 
 
 def case_multi_op_composition(root):
@@ -940,58 +953,59 @@ def case_multi_op_composition(root):
     )
 
 
-def case_malformed_ops_cli(root):
-    """Case 20 — MALFORMED OPS THROUGH THE CLI, WITH BYTE IDENTITY (D-02, D-05, SC-04). The
-    exit-12 shape branch's CLI half. (a)/(b) are the required-section ruling; u13 is their unit
-    half. (c) is the payload-shape refusal; u14 is its unit half."""
-    path = target(root, "case20")
-    three = [(f"P-{i:02d}", f"text {i}") for i in range(1, 4)]
-    write_file(path, [("Patterns", three)])
+def _assert_case20_malformed(path, ops_path, label, what, extra_checks):
+    """Run `ops_path` through the ops CLI and assert the shared MALFORMED OPS(12) shape: exit
+    code, the token itself, byte-identity — then each of `extra_checks` (message, substring)
+    pairs against the combined output. Returns the combined stdout+stderr."""
+    before = hashlib.sha256(open(path, "rb").read()).hexdigest()
+    r = run_ops(path, ops_path)
+    combined = r.stdout + r.stderr
+    check(f"case20: ({label}) {what} exits 12", r.returncode == 12, combined)
+    check(f"case20: ({label}) combined output carries MALFORMED OPS", "MALFORMED OPS" in combined, combined)
+    for message, token in extra_checks:
+        check(f"case20: ({label}) {message}", token in combined, combined)
+    after = hashlib.sha256(open(path, "rb").read()).hexdigest()
+    check(f"case20: ({label}) file sha256 is unchanged", after == before, (before, after))
+    return combined
 
-    # (a) — a well-formed replace op with the section key ABSENT.
-    before_a = hashlib.sha256(open(path, "rb").read()).hexdigest()
-    ops_a = write_ops(
+
+def _case20_missing_section_key(root, path):
+    """(a) — a well-formed replace op with the section key ABSENT."""
+    ops = write_ops(
         os.path.join(root, "case20a_ops.json"),
         [{"op": "replace", "target": "P-01", "entry": "new text"}],
     )
-    r_a = run_ops(path, ops_a)
-    combined_a = r_a.stdout + r_a.stderr
-    check("case20: (a) missing section key exits 12", r_a.returncode == 12, combined_a)
-    check("case20: (a) combined output carries MALFORMED OPS", "MALFORMED OPS" in combined_a, combined_a)
-    check("case20: (a) combined output names the offending key section", "section" in combined_a, combined_a)
-    check("case20: (a) combined output names the op's index", "index=0" in combined_a, combined_a)
-    after_a = hashlib.sha256(open(path, "rb").read()).hexdigest()
-    check("case20: (a) file sha256 is unchanged", after_a == before_a, (before_a, after_a))
-
-    entries_noop_a = os.path.join(root, "case20a_entries_noop.md")
-    write_entries(entries_noop_a, [("Patterns", [("P-01", "text 1")])])
-    r_a2 = run_apply(path, entries_noop_a)
+    _assert_case20_malformed(path, ops, "a", "missing section key", [
+        ("combined output names the offending key section", "section"),
+        ("combined output names the op's index", "index=0"),
+    ])
+    entries_noop = os.path.join(root, "case20a_entries_noop.md")
+    write_entries(entries_noop, [("Patterns", [("P-01", "text 1")])])
+    r2 = run_apply(path, entries_noop)
     check(
         "case20: (a) a following add-only apply still exits 0, so the file is still writable",
-        r_a2.returncode == 0,
-        r_a2.stdout + r_a2.stderr,
+        r2.returncode == 0,
+        r2.stdout + r2.stderr,
     )
 
-    # (b) — the same op with section present but the empty string.
-    before_b = hashlib.sha256(open(path, "rb").read()).hexdigest()
-    ops_b = write_ops(
+
+def _case20_empty_section_key(root, path):
+    """(b) — the same op with section present but the empty string."""
+    ops = write_ops(
         os.path.join(root, "case20b_ops.json"),
         [{"op": "replace", "target": "P-01", "section": "", "entry": "new text"}],
     )
-    r_b = run_ops(path, ops_b)
-    combined_b = r_b.stdout + r_b.stderr
-    check("case20: (b) empty section key exits 12", r_b.returncode == 12, combined_b)
-    check("case20: (b) combined output carries MALFORMED OPS", "MALFORMED OPS" in combined_b, combined_b)
-    check("case20: (b) combined output names the offending key section", "section" in combined_b, combined_b)
-    check("case20: (b) combined output names the op's index", "index=0" in combined_b, combined_b)
-    after_b = hashlib.sha256(open(path, "rb").read()).hexdigest()
-    check("case20: (b) file sha256 is unchanged", after_b == before_b, (before_b, after_b))
+    _assert_case20_malformed(path, ops, "b", "empty section key", [
+        ("combined output names the offending key section", "section"),
+        ("combined output names the op's index", "index=0"),
+    ])
 
-    # (c) — a DIGEST-shaped mapping rather than a bare list; the settled payload shape has no
-    # mapping wrapper (T-01), so this is written directly, never through write_ops.
-    before_c = hashlib.sha256(open(path, "rb").read()).hexdigest()
-    ops_c = os.path.join(root, "case20c_ops.json")
-    with open(ops_c, "w", encoding="utf-8") as f:
+
+def _case20_digest_mapping_payload(root, path):
+    """(c) — a DIGEST-shaped mapping rather than a bare list; the settled payload shape has no
+    mapping wrapper (T-01), so this is written directly, never through write_ops."""
+    ops = os.path.join(root, "case20c_ops.json")
+    with open(ops, "w", encoding="utf-8") as f:
         json.dump(
             {
                 "expertise_update": [
@@ -1000,44 +1014,178 @@ def case_malformed_ops_cli(root):
             },
             f,
         )
-    r_c = run_ops(path, ops_c)
-    combined_c = r_c.stdout + r_c.stderr
-    check("case20: (c) digest-shaped mapping exits 12", r_c.returncode == 12, combined_c)
-    check("case20: (c) combined output carries MALFORMED OPS", "MALFORMED OPS" in combined_c, combined_c)
+    _assert_case20_malformed(path, ops, "c", "digest-shaped mapping", [
+        ("combined output carries the literal token expertise_update", "expertise_update"),
+    ])
+
+
+def case_malformed_ops_cli(root):
+    """Case 20 — MALFORMED OPS THROUGH THE CLI, WITH BYTE IDENTITY (D-02, D-05, SC-04). The
+    exit-12 shape branch's CLI half. (a)/(b) are the required-section ruling; u13 is their unit
+    half. (c) is the payload-shape refusal; u14 is its unit half."""
+    path = target(root, "case20")
+    three = [(f"P-{i:02d}", f"text {i}") for i in range(1, 4)]
+    write_file(path, [("Patterns", three)])
+
+    _case20_missing_section_key(root, path)
+    _case20_empty_section_key(root, path)
+    _case20_digest_mapping_payload(root, path)
+
+
+def case_ops_entry_injection(root):
+    """Case 21 — ENTRY INJECTION (VL-01). An `entry` carrying an embedded newline (`\\n` or
+    `\\r`) is a MALFORMED OPS(12) shape refusal, not a value `render` ever writes verbatim into
+    the file. `replace` is the exact shape the exploit needs: it never changes a section's
+    entry COUNT, so `_check_caps` (D-07) — which only ever counts parsed list length — sees no
+    overflow, while the embedded newline still becomes real physical lines once `render` writes
+    it, forging a fake section header/entry inside an already-at-cap section."""
+    path = target(root, "case21")
+    write_file(path, [("Gotchas", [(f"G-{i:02d}", f"text {i}") for i in range(1, 16)])])  # at cap
+    before = hashlib.sha256(open(path, "rb").read()).hexdigest()
+    forged = "## Gotchas (max 15)\n- G-16: forged additional entry"
+
+    for label, newline in (("a", "\\n"), ("b", "\\r")):
+        real_newline = "\n" if newline == "\\n" else "\r"
+        ops = write_ops(
+            os.path.join(root, f"case21{label}_ops.json"),
+            [{"op": "replace", "target": "G-08", "section": "Gotchas",
+              "entry": f"harmless text{real_newline}{forged}"}],
+        )
+        r = run_ops(path, ops)
+        combined = r.stdout + r.stderr
+        check(f"case21: ({label}) an entry embedding {newline} exits 12", r.returncode == 12, combined)
+        check(f"case21: ({label}) combined output carries MALFORMED OPS", "MALFORMED OPS" in combined, combined)
+        after = hashlib.sha256(open(path, "rb").read()).hexdigest()
+        check(f"case21: ({label}) file sha256 is unchanged", after == before, (before, after))
+
+    content = open(path, encoding="utf-8").read()
     check(
-        "case20: (c) combined output carries the literal token expertise_update",
-        "expertise_update" in combined_c,
-        combined_c,
+        "case21: the forged header never reaches the file",
+        "## Gotchas (max 15)\n- G-16:" not in content,
+        content,
     )
-    after_c = hashlib.sha256(open(path, "rb").read()).hexdigest()
-    check("case20: (c) file sha256 is unchanged", after_c == before_c, (before_c, after_c))
 
 
-def main():
-    root = tempfile.mkdtemp(prefix="expertise-merge-test-")
-    try:
-        case_naive_last_writer_wins(root)
-        case_green_union(root)
-        case_concurrency_real(root)
-        case_divergent_text(root)
-        case_cap_overflow(root)
-        case_new_file(root)
-        case_destination_refusal(root)
-        case_cap_drift_detector()
-        case_stale_lock_recovery(root)
-        case_replace_at_capacity(root)
-        case_removal(root)
-        case_missing_target(root)
-        case_ambiguous_target(root)
-        case_atomic_failure(root)
-        case_add_only_compatibility(root)
-        case_contract_drift()
-        case_concurrent_writers(root)
-        case_multi_op_composition(root)
-        case_malformed_ops_cli(root)
-    finally:
-        shutil.rmtree(root, ignore_errors=True)
+def case_ops_target_injection(root):
+    """Case 22 — TARGET INJECTION (VL-01). A `target` carrying an embedded newline (`\\n` or
+    `\\r`) is the same MALFORMED OPS(12) shape refusal as an injected `entry` — `target` is
+    written verbatim into a replace/drop refusal's stdout and, on `add`, into the rendered file
+    itself, so it gets no weaker a check than `entry`."""
+    path = target(root, "case22")
+    write_file(path, [("Patterns", [("P-01", "one")])])
+    before = hashlib.sha256(open(path, "rb").read()).hexdigest()
 
+    for label, newline in (("a", "\\n"), ("b", "\\r")):
+        real_newline = "\n" if newline == "\\n" else "\r"
+        forged_target = f"P-99{real_newline}- P-77: forged via target"
+        ops = write_ops(
+            os.path.join(root, f"case22{label}_ops.json"),
+            [{"op": "add", "target": forged_target, "section": "Patterns", "entry": "harmless"}],
+        )
+        r = run_ops(path, ops)
+        combined = r.stdout + r.stderr
+        check(f"case22: ({label}) a target embedding {newline} exits 12", r.returncode == 12, combined)
+        check(f"case22: ({label}) combined output carries MALFORMED OPS", "MALFORMED OPS" in combined, combined)
+        after = hashlib.sha256(open(path, "rb").read()).hexdigest()
+        check(f"case22: ({label}) file sha256 is unchanged", after == before, (before, after))
+
+    content = open(path, encoding="utf-8").read()
+    check("case22: the forged line never reaches the file", "P-77" not in content, content)
+
+
+def case_ops_non_string_target(root):
+    """Case 23 — NON-STRING TARGET (VL-02). A `target` that is a JSON array is a MALFORMED
+    OPS(12) shape refusal, not an uncaught TypeError escaping the file's documented exit
+    contract (0/6/7/8/9/10/11/12)."""
+    path = target(root, "case23")
+    write_file(path, [("Patterns", [("P-01", "one")])])
+    before = hashlib.sha256(open(path, "rb").read()).hexdigest()
+
+    ops = write_ops(
+        os.path.join(root, "case23_ops.json"),
+        [{"op": "add", "target": ["P-50", "x"], "section": "Patterns", "entry": "x"}],
+    )
+    r = run_ops(path, ops)
+    combined = r.stdout + r.stderr
+    check("case23: a non-string target exits 12, not 1", r.returncode == 12, combined)
+    check("case23: combined output carries MALFORMED OPS", "MALFORMED OPS" in combined, combined)
+    check(
+        "case23: combined output carries no Python traceback",
+        "Traceback (most recent call last)" not in combined,
+        combined,
+    )
+    after = hashlib.sha256(open(path, "rb").read()).hexdigest()
+    check("case23: file sha256 is unchanged", after == before, (before, after))
+
+
+def _assert_case24_ambiguous(root, stem, label, what, entry_text, extra_checks):
+    """Write a base with `Patterns` carrying P-07 twice, propose an `add` of `entry_text`
+    against it, and assert the shared AMBIGUOUS TARGET(11) shape: exit code, the token, byte
+    identity — then each of `extra_checks` (message, substring) pairs against the output."""
+    duplicated = [("P-01", "one"), ("P-07", "four-a"), ("P-07", "four-b")]
+    path = target(root, stem)
+    write_file(path, [("Patterns", duplicated)])
+    before = hashlib.sha256(open(path, "rb").read()).hexdigest()
+    ops = write_ops(
+        os.path.join(root, f"{stem}_ops.json"),
+        [{"op": "add", "target": "P-07", "section": "Patterns", "entry": entry_text}],
+    )
+    r = run_ops(path, ops)
+    combined = r.stdout + r.stderr
+    check(f"case24: ({label}) {what}, not the pre-fix outcome", r.returncode == 11, combined)
+    check(f"case24: ({label}) combined output carries AMBIGUOUS TARGET", "AMBIGUOUS TARGET" in combined, combined)
+    for message, token in extra_checks:
+        check(f"case24: ({label}) {message}", token in combined, combined)
+    after = hashlib.sha256(open(path, "rb").read()).hexdigest()
+    check(f"case24: ({label}) file sha256 is unchanged", after == before, (before, after))
+
+
+def case_ops_add_duplicated_base(root):
+    """Case 24 — ADD AGAINST A DUPLICATED BASE (VL-03, D-03(a)). A base id appearing twice in
+    its own section is ambiguous for `add` exactly as it already is for `replace`/`drop` — the
+    (a) CONFLICT-today shape (proposed text matching neither occurrence) and the (b)
+    PRESERVED-today shape (proposed text matching the surviving, last-in-file occurrence) both
+    refuse AMBIGUOUS TARGET(11), never silently resolving against whichever occurrence `dict()`
+    happens to keep."""
+    _assert_case24_ambiguous(
+        root, "case24a", "a", "add matching neither occurrence exits 11",
+        "third totally different text",
+        [("combined output carries the id P-07", "P-07")],
+    )
+    _assert_case24_ambiguous(
+        root, "case24b", "b", "add matching the surviving occurrence exits 11",
+        "four-b",
+        [],
+    )
+
+
+def _run_all_cases(root):
+    case_naive_last_writer_wins(root)
+    case_green_union(root)
+    case_concurrency_real(root)
+    case_divergent_text(root)
+    case_cap_overflow(root)
+    case_new_file(root)
+    case_destination_refusal(root)
+    case_cap_drift_detector()
+    case_stale_lock_recovery(root)
+    case_replace_at_capacity(root)
+    case_removal(root)
+    case_missing_target(root)
+    case_ambiguous_target(root)
+    case_atomic_failure(root)
+    case_add_only_compatibility(root)
+    case_contract_drift()
+    case_concurrent_writers(root)
+    case_multi_op_composition(root)
+    case_malformed_ops_cli(root)
+    case_ops_entry_injection(root)
+    case_ops_target_injection(root)
+    case_ops_non_string_target(root)
+    case_ops_add_duplicated_base(root)
+
+
+def _report_results():
     fails = 0
     for name, ok, detail in RESULTS:
         if ok:
@@ -1045,6 +1193,17 @@ def main():
         else:
             fails += 1
             print(f"FAIL  {name}\n      | {detail}")
+    return fails
+
+
+def main():
+    root = tempfile.mkdtemp(prefix="expertise-merge-test-")
+    try:
+        _run_all_cases(root)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+    fails = _report_results()
 
     summary = "FAIL test-expertise-merge.py" if fails else "PASS test-expertise-merge.py"
     print(summary)

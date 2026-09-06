@@ -167,9 +167,25 @@ def _validate_verb(op, index):
     return verb
 
 
+def _reject_multiline(value, index, field):
+    """VL-01: an entry/target carrying an embedded newline (`\\n`, `\\r`, or the `\\r\\n` pair
+    — this catches all three, since every one of them contains one of the two characters) would
+    become a real physical line once `render` writes it verbatim, forging fake section
+    headers/entries that `_check_caps` (D-07) never sees because it only ever counts parsed list
+    length. Refuse it here, at the single Step A shape gate, rather than at each of render's /
+    `_rebuild_section`'s write sites — the apply path's `render` must not carry this policy
+    (REQ-07)."""
+    if "\n" in value or "\r" in value:
+        _malformed(index, f"{field} must be a single line")
+
+
 def _validate_target_section(op, index):
-    if not op.get("target"):
+    target = op.get("target")
+    if not target:
         _malformed(index, "missing required key target")
+    if not isinstance(target, str):
+        _malformed(index, f"target must be a string, not {type(target).__name__}")
+    _reject_multiline(target, index, "target")
     section = op.get("section")
     if not section:
         _malformed(index, "missing required key section")
@@ -178,12 +194,21 @@ def _validate_target_section(op, index):
     return section
 
 
+def _validate_entry_shape(entry, index):
+    """VL-02/VL-01 for the `entry` key: must be a string, and (VL-01) a single line."""
+    if not isinstance(entry, str):
+        _malformed(index, f"entry must be a string, not {type(entry).__name__}")
+    _reject_multiline(entry, index, "entry")
+
+
 def _validate_entry_and_keys(op, index, verb):
     has_entry = "entry" in op
     if verb in ("add", "replace") and not has_entry:
         _malformed(index, "missing required key entry")
     if verb == "drop" and has_entry:
         _malformed(index, "forbidden key entry for op=drop")
+    if has_entry:
+        _validate_entry_shape(op["entry"], index)
     extra = set(op.keys()) - _OP_KEYS[verb]
     if extra:
         _malformed(index, f"forbidden key {sorted(extra)[0]} for op={verb}")
@@ -200,16 +225,14 @@ def _parse_op(op, index):
     return verb, op["target"], section, op.get("entry")
 
 
-def _resolve_replace_or_drop(base_sections, section, target):
-    """Step B for replace/drop: exactly one candidate must exist in the op's own section."""
-    entries = base_sections.get(section, [])
-    matches = [eid for eid, _ in entries if eid == target]
-    if not matches:
-        raise harness_merge.MergeRefusal(
-            10,
-            [f"MISSING TARGET section={section} id={target} "
-             "reason=no entry with this id exists in this section"],
-        )
+def _base_matches(base_sections, section, target):
+    """The list of base entries in `section` whose id equals `target`, in file order."""
+    return [eid for eid, _ in base_sections.get(section, []) if eid == target]
+
+
+def _check_base_ambiguity(matches, section, target):
+    """A target id appearing more than once in its own section is ambiguous regardless of verb
+    (D-03(a)); raises MergeRefusal(11) with the same line shape every verb shares."""
     if len(matches) > 1:
         raise harness_merge.MergeRefusal(
             11,
@@ -218,13 +241,30 @@ def _resolve_replace_or_drop(base_sections, section, target):
         )
 
 
+def _resolve_replace_or_drop(base_sections, section, target):
+    """Step B for replace/drop: exactly one candidate must exist in the op's own section."""
+    matches = _base_matches(base_sections, section, target)
+    if not matches:
+        raise harness_merge.MergeRefusal(
+            10,
+            [f"MISSING TARGET section={section} id={target} "
+             "reason=no entry with this id exists in this section"],
+        )
+    _check_base_ambiguity(matches, section, target)
+
+
 def _resolve_add(base_sections, section, target, entry):
-    """Step B for add. Returns True when this add is a no-op PRESERVE (identical text already
-    present); raises MergeRefusal(7) — the existing CONFLICT line shape — when the id already
-    holds different text."""
-    existing = dict(base_sections.get(section, []))
-    if target not in existing:
+    """Step B for add. A duplicated base id is refused as AMBIGUOUS TARGET(11) before either
+    outcome below is considered (D-03(a), VL-03) — matching replace/drop on the identical base
+    shape rather than silently resolving against whichever occurrence `dict()` keeps last.
+    Otherwise returns True when this add is a no-op PRESERVE (identical text already present);
+    raises MergeRefusal(7) — the existing CONFLICT line shape — when the id already holds
+    different text."""
+    matches = _base_matches(base_sections, section, target)
+    _check_base_ambiguity(matches, section, target)
+    if not matches:
         return False
+    existing = dict(base_sections.get(section, []))
     if existing[target] == entry:
         return True
     raise harness_merge.MergeRefusal(
