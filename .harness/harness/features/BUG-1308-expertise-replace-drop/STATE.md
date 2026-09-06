@@ -7,10 +7,11 @@
 - squad: validator
 - status: in_review
 
-SHIP-READY, pending the operator's acceptance and the main-session-only GitHub steps. Validation is
-green: review panel cycle 4 PASS (severity_max `med`, no `must_fix`, VL-01 through VL-06 all closed),
-pm's final goal-check PASS (twelve of twelve criteria met). Cycles used 8 of 8 — the budget is
-EXHAUSTED, so a further gating finding would stop the feature rather than buy a fix.
+SHIP-READY, pending the main-session-only GitHub steps. Validation is green: review panel cycle 4
+PASS (severity_max `med`, no `must_fix`, VL-01 through VL-06 all closed), and the final goal-check
+plus operator amendment grade fourteen of fourteen criteria met. Cycles used 9 of 9: the Advisor
+authorized cycle 9 solely to repair seven feature-local artifact violations surfaced by the
+post-BUG-1305 canonical checker; production code and tests were untouched.
 
 Merged onto latest `origin/main` (`0f885a0a`, BUG-1305's ship state) at `cc16f721`, clean, no
 conflicts. Both the rebase onto `4b0d04e9` and this merge were performed by the MAIN SESSION:
@@ -68,14 +69,6 @@ WORKING SET. `BRIEF.md` · `plan.yaml` · `feature.json` ·
 
 ## Open Questions
 
-- **OPERATOR DECISION, non-blocking: adopt SC-13 and SC-14?** pm recommends two criteria and
-  deliberately did not adopt them, BRIEF being approval-gated. SC-13 covers REQ-03 clause 2 (cap
-  preservation under adversarial text, quantified over `str.splitlines()`'s boundary set derived at
-  test time rather than hardcoded); SC-14 covers target identity (a target `ENTRY_RE` does not parse
-  back out equal to itself exits 12, both failure shapes exercised, plus the no-lockout consequence
-  asserted directly). Both would grade MET today, so adoption changes no verdict — it makes two
-  surfaces graded rather than incidentally covered. Full wording in
-  `notes/research-BUG-1308-expertise-replace-drop-goalcheck-sc-c4.md` §4.
 - **Harness process, observed THREE times in this feature.** A REQ-falsifying panel finding creates
   no criterion, so consecutive goal-checks re-grade the same SC list and stay blind to the same
   class. VL-01, VL-05 and VL-06 each landed on a surface no SC named. Should a REQ-falsifying panel
@@ -90,16 +83,6 @@ WORKING SET. `BRIEF.md` · `plan.yaml` · `feature.json` ·
   fix it. Suggested fix: resolve `plan-task:`/`brief-sc:` against the feature-tree root per DEC-214's
   two-anchor rule, and widen `FINDING_RE` to the hex ids `panel_findings.py` mints. This section is
   the documented disk-only successor path and carries the handoff content.
-- Harness defect: `runs/<dir>/state.yaml` is UNGUARDED where `digest.md` is guarded, and nothing
-  stops an agent writing into an occupied run directory. `runs/2026-09-05-01-product/state.yaml` was
-  overwritten twice by two different product runs. Not restorable — `.gitignore:7` means it was
-  never tracked. Canonical record intact: that run's `digest.md` survives and `feature.json` `runs[]`
-  is unchanged.
-- Harness defect: the run-digest append-only guard refuses a REPLACING write, so a digest first
-  written without the §10.4 contract block cannot be corrected in place; qa worked around it with a
-  sibling run directory. Also `bash-write-guard.sh` blocked a redirect into a `mktemp -d` scratch
-  path and reported the target as `"xx"`, while the same content written by a python3 heredoc to an
-  explicit `/tmp` path was allowed.
 - Harness defect: the unit runner's discovery count is caller-dependent — 28, 29 and 74 files were
   reported from the same command by different callers, and it false-fails `test-plan-merge.py`
   unless invoked as `env -u HARNESS_AGENT_TYPE`. A zero FAIL count therefore does not bound what ran.

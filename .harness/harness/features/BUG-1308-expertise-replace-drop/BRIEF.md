@@ -146,6 +146,27 @@ vocabulary afterwards, so no agent is instructed to emit an op nothing can apply
   `tests/unit/test-expertise-ops.py` u11 (including its reversal) and u12 as the unit half.
   verify: automated        evidence: unit, integration
 
+- SC-13 (REQ-03, cap preservation under adversarial text): No `ops` operation can leave a section
+  over its cap, whatever text an op carries. For every character `str.splitlines()` treats as a
+  line boundary — the set derived at test time from `str.splitlines()` itself, never a hardcoded
+  character list — an `ops` proposal whose `entry` or whose `target` embeds that character exits 12
+  with `MALFORMED OPS`, the file's sha256 is unchanged, and the file re-parsed by
+  `parse_expertise` holds no section with more entries than its `CAPS` value. The at-capacity
+  variant is exercised explicitly: the same proposal against a section already holding its cap
+  re-parses at exactly the cap, never cap+1.
+  verify: automated        evidence: unit, integration
+- SC-14 (REQ-01, REQ-02, REQ-05, target identity): No `ops` operation can write a line the tool's
+  own parser cannot address as the id the op named. For every verb — `add`, `replace`, `drop` — a
+  `target` that `ENTRY_RE` does not parse back out equal to the target verbatim exits 12 with
+  `MALFORMED OPS` naming the offending target, and the file's sha256 is unchanged. Both failure
+  shapes are exercised: a target `ENTRY_RE` does not match at all (`PPPP-1`), and a target embedding
+  a shorter valid id that `ENTRY_RE` does match while capturing less than the whole target
+  (`P-01: fake prefix`). The grammar is asserted by round-trip through `ENTRY_RE`, never by a
+  re-typed character class, so the check cannot drift from the parser. The no-lockout consequence
+  is asserted directly: after a refused colon-prefix `add`, a legitimate `replace` of the embedded
+  id exits 0, not 11.
+  verify: automated        evidence: unit, integration
+
 ## Verification gaps
 
 - `component`, `ui` and `typecheck` carry `cmd: null` in `.harness/harness.json`. This feature touches

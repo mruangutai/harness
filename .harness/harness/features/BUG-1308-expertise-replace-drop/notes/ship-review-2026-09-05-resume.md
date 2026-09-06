@@ -1,6 +1,6 @@
 # BUG-1308 — ship review
 
-**Recommendation: SHIP.** Validation is green, all twelve success criteria are met, and the six
+**Recommendation: SHIP.** Validation is green, all fourteen success criteria are met, and the six
 defects found along the way are all closed and independently re-verified. Nothing gates.
 
 **Ship candidate:** `433df52092834f4358de234449c736ae554738e9`, on
@@ -64,17 +64,16 @@ Measured by the orchestrator on the merged tree, not relayed:
 - qa's gate PASSED; the panel's PASS was discriminated by mutation — neutering the new validator
   reddens `u21` across all three verbs while the positive control stays green.
 
-## Two decisions for you
+## Operator decisions
 
-1. **Adopt SC-13 and SC-14?** pm recommends both and deliberately did **not** adopt them, BRIEF being
-   approval-gated. SC-13 covers cap preservation under adversarial text; SC-14 covers target
-   identity. Both would grade *met today*, so adopting them changes no verdict — it converts two
-   surfaces from incidentally covered to graded. Full wording in
-   `notes/research-BUG-1308-expertise-replace-drop-goalcheck-sc-c4.md` §4. Given that three highs in
-   a row landed exactly where no criterion looked, I recommend adopting both.
-2. **Should a REQ-falsifying panel finding be required to propose a criterion alongside its fix?**
-   Observed three times in this one feature. Today a finding creates no criterion, so the next
-   goal-check re-grades the same blind list.
+1. **SC-13 and SC-14 adopted.** The operator's delegated Advisor adopted both as an approved BRIEF
+   amendment. SC-13 grades cap preservation under every boundary derived from `str.splitlines()`;
+   SC-14 grades target identity by round-trip through `ENTRY_RE`. Both are already MET by the
+   existing unit and integration evidence named in the final goal-check note, so this changes no
+   implementation or validation verdict.
+2. **REQ-falsifying findings must propose a criterion.** This process improvement is preserved as a
+   follow-up because VL-01, VL-05 and VL-06 each falsified a requirement on a surface no criterion
+   named.
 
 ## Proposed backlog
 
