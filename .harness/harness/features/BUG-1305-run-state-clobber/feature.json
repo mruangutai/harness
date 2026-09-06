@@ -1,0 +1,104 @@
+{
+  "feature_id": "BUG-1305-run-state-clobber",
+  "branch": "feat/BUG-1305-run-state-clobber",
+  "pr": null,
+  "review_sha": "none",
+  "cycles_used": 9,
+  "max_total_cycles": 9,
+  "runs": [
+    {
+      "id": "diag-eng",
+      "squad": "eng",
+      "verdict": "PASS",
+      "agent": "harness-eng-lead"
+    },
+    {
+      "id": "brief-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead"
+    },
+    {
+      "id": "advisor-c1-validator",
+      "squad": "validator",
+      "verdict": "PASS",
+      "agent": "harness-validator-lead",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "plan-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead"
+    },
+    {
+      "id": "goalcheck-plan-c1-product",
+      "squad": "product",
+      "verdict": "FAIL",
+      "agent": "harness-product-lead"
+    },
+    {
+      "id": "plan-fix-c1-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead"
+    },
+    {
+      "id": "goalcheck-plan-c2-product",
+      "squad": "product",
+      "verdict": "FAIL",
+      "agent": "harness-product-lead"
+    },
+    {
+      "id": "plan-fix-c2-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead"
+    },
+    {
+      "id": "planpanel-c1-validator",
+      "squad": "validator",
+      "verdict": "FAIL",
+      "agent": "harness-validator-lead",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "plan-fix-c3-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead"
+    },
+    {
+      "id": "goalcheck-plan-c3-product",
+      "squad": "product",
+      "verdict": "FAIL",
+      "agent": "harness-product-lead"
+    },
+    {
+      "id": "plan-fix-c4-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead"
+    },
+    {
+      "id": "planpanel-c2-validator",
+      "squad": "validator",
+      "verdict": "FAIL",
+      "agent": "harness-validator-lead",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "plan-fix-c5-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead"
+    },
+    {
+      "id": "budget-c1-validator",
+      "squad": "validator",
+      "verdict": "PASS",
+      "agent": "harness-validator-lead",
+      "code_grade": "n_a"
+    }
+  ]
+}
