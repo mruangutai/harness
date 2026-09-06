@@ -120,15 +120,20 @@ def conflict(marker, doc):
     return None
 
 
+def _minted_uid(doc):
+    if not isinstance(doc, _abc.Mapping):
+        return None
+    uid = doc.get("run_uid")
+    return None if uid is None or uid == "" else uid
+
+
 def uid_conflict(prior_doc, doc):
     """Return why an incoming checkpoint is not an update of a minted run."""
-    if not isinstance(prior_doc, _abc.Mapping):
+    prior = _minted_uid(prior_doc)
+    if prior is None:
         return None
-    prior = prior_doc.get("run_uid")
-    if prior is None or prior == "":
-        return None
-    incoming = doc.get("run_uid") if isinstance(doc, _abc.Mapping) else None
-    if incoming is not None and incoming != "" and str(incoming) == str(prior):
+    incoming = _minted_uid(doc)
+    if incoming is not None and str(incoming) == str(prior):
         return None
     if incoming is None or incoming == "":
         return (f"the existing checkpoint belongs to run_uid {prior!r}; this write cannot "

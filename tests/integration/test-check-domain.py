@@ -4743,125 +4743,178 @@ def run_bug1304_claim_set():
     return failures
 
 
-def run_bug1305_marker_cases():
-    """BUG-1305 SC-01/10: guard, seed-field precedence, and POST minting."""
-    results = []
+def _bug1305_marker_path(state_path):
+    return os.path.join(os.path.dirname(state_path), ".run-identity.json")
 
-    def add(name, ok, detail):
-        results.append((name, ok, detail))
 
-    def marker_path(state_path):
-        return os.path.join(os.path.dirname(state_path), ".run-identity.json")
+def _bug1305_write_marker(state_path, run_id="A", run_uid=None):
+    marker = {
+        "run_id": run_id, "feature": "FEAT-S-thing", "squad": "eng",
+        "host": "omp", "identity": "session", "run_uid": run_uid,
+        "created_at": "2026-09-05T00:00:00+00:00",
+    }
+    with open(_bug1305_marker_path(state_path), "w", encoding="utf-8") as fh:
+        json.dump(marker, fh)
 
-    def write_marker(state_path, run_id="A", run_uid=None):
-        marker = {
-            "run_id": run_id, "feature": "FEAT-S-thing", "squad": "eng",
-            "host": "omp", "identity": "session", "run_uid": run_uid,
-            "created_at": "2026-09-05T00:00:00+00:00",
-        }
-        with open(marker_path(state_path), "w", encoding="utf-8") as fh:
-            json.dump(marker, fh)
 
+def _bug1305_marker_foreign_refusals():
     root, state = _bug1124_state_fixture()
-    write_marker(state)
-    r = _bug1124_state_fire(
+    _bug1305_write_marker(state)
+    write = _bug1124_state_fire(
         root, state,
         "schema_version: 1\nrun_id: B\nfeature: FEAT-S-thing\nsquad: eng\nhost: omp\n")
-    add("foreign first Write is refused by witness", r.returncode == 2
-        and "Issue 1305" in r.stderr and "A" in r.stderr and "B" in r.stderr, r.stderr)
 
     root, state = _bug1124_state_fixture()
-    write_marker(state)
+    _bug1305_write_marker(state)
     _feat50_write_text(
         state, "schema_version: 1\nrun_id: A\nfeature: FEAT-S-thing\nsquad: eng\nhost: omp\n")
-    r = _fire_digest_edit(root, state, "run_id: A", "run_id: B")
-    add("foreign Edit is refused by witness", r.returncode == 2
-        and "Issue 1305" in r.stderr and "A" in r.stderr and "B" in r.stderr, r.stderr)
+    edit = _fire_digest_edit(root, state, "run_id: A", "run_id: B")
+    return [
+        ("foreign first Write is refused by witness", write.returncode == 2
+         and "Issue 1305" in write.stderr and "A" in write.stderr
+         and "B" in write.stderr, write.stderr),
+        ("foreign Edit is refused by witness", edit.returncode == 2
+         and "Issue 1305" in edit.stderr and "A" in edit.stderr
+         and "B" in edit.stderr, edit.stderr),
+    ]
 
+
+def _bug1305_marker_witness_precedence():
     root, state = _bug1124_state_fixture()
-    write_marker(state)
+    _bug1305_write_marker(state)
     _feat50_write_text(state, "{")
-    r = _bug1124_state_fire(root, state, "schema_version: 1\nrun_id: B\n")
-    add("witness outranks an unparseable prior", r.returncode == 2
-        and "Issue 1305" in r.stderr and "does not parse" not in r.stderr, r.stderr)
+    unparseable = _bug1124_state_fire(root, state, "schema_version: 1\nrun_id: B\n")
 
     root, state = _bug1124_state_fixture()
-    write_marker(state)
+    _bug1305_write_marker(state)
     _feat50_write_text(state, "schema_version: 1\nrun_id: A\n")
-    r = _bug1124_state_fire(root, state, "schema_version: 1\nrun_id: B\n")
-    add("witness outranks legacy run_id ladder", r.returncode == 2
-        and "Issue 1305" in r.stderr and "Issue 1124" not in r.stderr, r.stderr)
+    legacy = _bug1124_state_fire(root, state, "schema_version: 1\nrun_id: B\n")
+    return [
+        ("witness outranks an unparseable prior", unparseable.returncode == 2
+         and "Issue 1305" in unparseable.stderr
+         and "does not parse" not in unparseable.stderr, unparseable.stderr),
+        ("witness outranks legacy run_id ladder", legacy.returncode == 2
+         and "Issue 1305" in legacy.stderr
+         and "Issue 1124" not in legacy.stderr, legacy.stderr),
+    ]
 
+
+def _bug1305_marker_recovery_cases():
+    results = []
     for label, prior in (("absent", None), ("zero-byte", "")):
         root, state = _bug1124_state_fixture()
-        write_marker(state)
+        _bug1305_write_marker(state)
         if prior is not None:
             _feat50_write_text(state, prior)
-        r = _bug1124_state_fire(
+        response = _bug1124_state_fire(
             root, state,
             "schema_version: 1\nrun_id: A\nfeature: FEAT-S-thing\nsquad: eng\nhost: omp\n")
-        add(f"recovering owner with {label} prior is allowed", r.returncode == 0, r.stderr)
+        results.append((
+            f"recovering owner with {label} prior is allowed",
+            response.returncode == 0, response.stderr))
 
     root, state = _bug1124_state_fixture()
-    with open(marker_path(state), "w", encoding="utf-8") as fh:
+    with open(_bug1305_marker_path(state), "w", encoding="utf-8") as fh:
         fh.write("{")
-    r = _bug1124_state_fire(root, state, "schema_version: 1\nrun_id: A\n")
-    add("unreadable witness fails closed", r.returncode == 2
-        and "cannot be read" in r.stderr and "Issue 1305" in r.stderr, r.stderr)
+    response = _bug1124_state_fire(root, state, "schema_version: 1\nrun_id: A\n")
+    results.append((
+        "unreadable witness fails closed", response.returncode == 2
+        and "cannot be read" in response.stderr
+        and "Issue 1305" in response.stderr, response.stderr))
+    return results
 
+
+def _bug1305_marker_file_protection():
     root, state = _bug1124_state_fixture()
-    identity = marker_path(state)
+    identity = _bug1305_marker_path(state)
     with open(identity, "w", encoding="utf-8") as fh:
         fh.write("{}\n")
-    r = _bug1124_state_fire(root, identity, '{"run_id": "forged"}\n')
-    add("Write of existing witness is refused", r.returncode == 2
-        and "identity witness" in r.stderr, r.stderr)
-    r = _fire_digest_edit(root, identity, "{}", '{"run_id": "forged"}')
-    add("Edit of existing witness is refused", r.returncode == 2
-        and "identity witness" in r.stderr, r.stderr)
+    write = _bug1124_state_fire(root, identity, '{"run_id": "forged"}\n')
+    edit = _fire_digest_edit(root, identity, "{}", '{"run_id": "forged"}')
     os.unlink(identity)
-    r = _bug1124_state_fire(root, identity, '{"run_id": "forged"}\n')
-    add("Write creating false witness is refused", r.returncode == 2
-        and "identity witness" in r.stderr, r.stderr)
-    r = _bug1124_state_fire(root, state, "schema_version: 1\nrun_id: A\nrun_uid: U\n")
-    add("run_uid is a legal checkpoint key", r.returncode == 0, r.stderr)
+    create = _bug1124_state_fire(root, identity, '{"run_id": "forged"}\n')
+    legal = _bug1124_state_fire(
+        root, state, "schema_version: 1\nrun_id: A\nrun_uid: U\n")
+    return [
+        ("Write of existing witness is refused", write.returncode == 2
+         and "identity witness" in write.stderr, write.stderr),
+        ("Edit of existing witness is refused", edit.returncode == 2
+         and "identity witness" in edit.stderr, edit.stderr),
+        ("Write creating false witness is refused", create.returncode == 2
+         and "identity witness" in create.stderr, create.stderr),
+        ("run_uid is a legal checkpoint key", legal.returncode == 0, legal.stderr),
+    ]
 
-    root, state = _bug1124_state_fixture()
-    landed = "schema_version: 1\nrun_id: A\nfeature: FEAT-S-thing\nsquad: eng\nhost: omp\n"
-    _feat50_write_text(state, landed)
-    payload = {"tool_name": "Write", "hook_event_name": "PostToolUse",
-               "tool_input": {"file_path": state}}
-    r = fire_post(root, payload)
+
+def _bug1305_post_landing(root, state):
+    payload = {
+        "tool_name": "Write", "hook_event_name": "PostToolUse",
+        "tool_input": {"file_path": state},
+    }
+    response = fire_post(root, payload)
     after_first = open(state, "rb").read()
-    marker_first = open(marker_path(state), "rb").read() if os.path.isfile(marker_path(state)) else b""
+    marker_path = _bug1305_marker_path(state)
+    marker_first = open(marker_path, "rb").read() if os.path.isfile(marker_path) else b""
     parsed = yaml.safe_load(after_first.decode("utf-8"))
     marker_doc = json.loads(marker_first) if marker_first else {}
     uid = parsed.get("run_uid") if isinstance(parsed, dict) else None
-    add("POST mints uid and matching witness", r.returncode == 0
-        and re.fullmatch(r"[0-9a-f]{32}", str(uid or ""))
-        and marker_doc.get("run_uid") == uid, r.stderr)
-    fire_post(root, payload)
-    marker_second = (open(marker_path(state), "rb").read()
-                     if os.path.isfile(marker_path(state)) else b"")
-    add("second POST is byte stable",
-        open(state, "rb").read() == after_first
-        and marker_second == marker_first and bool(marker_first), "")
+    return response, payload, after_first, marker_first, marker_doc, uid
 
+
+def _bug1305_marker_post_mint_cases():
+    root, state = _bug1124_state_fixture()
+    landed = "schema_version: 1\nrun_id: A\nfeature: FEAT-S-thing\nsquad: eng\nhost: omp\n"
+    _feat50_write_text(state, landed)
+    response, payload, after_first, marker_first, marker_doc, uid = (
+        _bug1305_post_landing(root, state))
+    fire_post(root, payload)
+    marker_path = _bug1305_marker_path(state)
+    marker_second = open(marker_path, "rb").read() if os.path.isfile(marker_path) else b""
+    return [
+        ("POST mints uid and matching witness", response.returncode == 0
+         and re.fullmatch(r"[0-9a-f]{32}", str(uid or ""))
+         and marker_doc.get("run_uid") == uid, response.stderr),
+        ("second POST is byte stable", open(state, "rb").read() == after_first
+         and marker_second == marker_first and bool(marker_first), ""),
+    ]
+
+
+def _bug1305_marker_post_preservation_cases():
     root, state = _bug1124_state_fixture()
     explicit = "schema_version: 1\nrun_id: A\nrun_uid: fixed\n"
     _feat50_write_text(state, explicit)
     before = open(state, "rb").read()
-    fire_post(root, {"tool_name": "Write", "hook_event_name": "PostToolUse",
-                     "tool_input": {"file_path": state}})
-    add("POST preserves supplied uid bytes", open(state, "rb").read() == before, "")
+    fire_post(root, {
+        "tool_name": "Write", "hook_event_name": "PostToolUse",
+        "tool_input": {"file_path": state},
+    })
+    preserved = open(state, "rb").read() == before
 
     root, state = _bug1124_state_fixture()
     _feat50_write_text(state, "{")
-    fire_post(root, {"tool_name": "Write", "hook_event_name": "PostToolUse",
-                     "tool_input": {"file_path": state}})
-    add("POST leaves malformed checkpoint untouched",
-        open(state, encoding="utf-8").read() == "{" and not os.path.exists(marker_path(state)), "")
+    fire_post(root, {
+        "tool_name": "Write", "hook_event_name": "PostToolUse",
+        "tool_input": {"file_path": state},
+    })
+    malformed = (
+        open(state, encoding="utf-8").read() == "{"
+        and not os.path.exists(_bug1305_marker_path(state)))
+    return [
+        ("POST preserves supplied uid bytes", preserved, ""),
+        ("POST leaves malformed checkpoint untouched", malformed, ""),
+    ]
 
+
+def run_bug1305_marker_cases():
+    """BUG-1305 SC-01/10: guard, seed-field precedence, and POST minting."""
+    results = (
+        _bug1305_marker_foreign_refusals()
+        + _bug1305_marker_witness_precedence()
+        + _bug1305_marker_recovery_cases()
+        + _bug1305_marker_file_protection()
+        + _bug1305_marker_post_mint_cases()
+        + _bug1305_marker_post_preservation_cases()
+    )
     failures = 0
     for name, ok, detail in results:
         if ok:
@@ -4992,6 +5045,14 @@ def run_bug1305_identity_cases():
     return failures
 
 
+def run_bug1305_cases():
+    return (
+        run_bug1305_digest_repair_cases()
+        + run_bug1305_marker_cases()
+        + run_bug1305_identity_cases()
+    )
+
+
 def main():
     fails = 0
     for name, path, want, agent, tool in CASES:
@@ -5029,14 +5090,11 @@ def main():
     fails += run_t09()
     fails += run_feat51_orphan_write()
     fails += run_bug1106_edit_route_cases()
-    fails += run_bug1305_digest_repair_cases()
-    fails += run_bug1305_marker_cases()
-    fails += run_bug1305_identity_cases()
     fails += run_bug1106_shared_pattern_consistency()
     fails += run_handoff_done_when()
     fails += run_b2_cwd_independence()
     fails += run_bug1304_claim_set()
-    return fails
+    return fails + run_bug1305_cases()
 
 
 if __name__ == "__main__":
