@@ -4828,6 +4828,41 @@ def _bug1305_edit_reconstruction_cases():
     ]
 
 
+def _bug1305_unreconstructable_artifact_cases(label, root, path, prior):
+    absent = _fire_digest_edit(root, path, "missing", "replacement")
+    _feat50_write_text(path, prior)
+    unmatched = _fire_digest_edit(root, path, "missing", "replacement")
+    payload = {"tool_name": "Edit", "tool_input": {"file_path": path}}
+    omp_edit = subprocess.run(
+        [HOOK], input=json.dumps(payload), capture_output=True, text=True,
+        env=_env(root))
+    results = []
+    for shape, response in (
+        ("absent-prior", absent),
+        ("unmatched", unmatched),
+        ("omp file-path-only", omp_edit),
+    ):
+        allowed_route = "Write the complete file instead" in response.stderr
+        results.append((
+            f"{label} {shape} Edit fails closed",
+            response.returncode == 2 and allowed_route,
+            response.stderr,
+        ))
+    return results
+
+
+def _bug1305_nonstate_edit_reconstruction_cases():
+    digest_root, digest_path = _feat50_digest_fixture()
+    results = _bug1305_unreconstructable_artifact_cases(
+        "digest", digest_root, digest_path, "recorded digest\n")
+    with tempfile.TemporaryDirectory() as handoff_root:
+        _, handoff_path = _handoff_done_when_fixture(handoff_root)
+        results.extend(_bug1305_unreconstructable_artifact_cases(
+            "handoff", handoff_root, handoff_path,
+            _handoff_text("Scope: done\nAuthority: plan-task:T-03.verify")))
+    return results
+
+
 def _bug1305_marker_foreign_refusals():
     root, state = _bug1124_state_fixture()
     _bug1305_write_marker(state)
@@ -4990,6 +5025,7 @@ def run_bug1305_marker_cases():
     """BUG-1305 SC-01/10: guard, seed-field precedence, and POST minting."""
     results = (
         _bug1305_edit_reconstruction_cases()
+        + _bug1305_nonstate_edit_reconstruction_cases()
         + _bug1305_marker_foreign_refusals()
         + _bug1305_marker_witness_precedence()
         + _bug1305_marker_recovery_cases()
