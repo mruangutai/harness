@@ -2,8 +2,8 @@
   "feature_id": "FEAT-55-issue-types-created-work",
   "branch": "feat/issue-1289-issue-types",
   "pr": null,
-  "review_sha": "a4b0b4e693f28d2fb328c8260a9a27d0e9adf96f",
-  "cycles_used": 12,
+  "review_sha": "cd6a3c0dee795ca9261d0ecf2e67df09d2e47b86",
+  "cycles_used": 13,
   "max_total_cycles": 13,
   "max_total_runs": 40,
   "runs": [
@@ -230,6 +230,18 @@
       "squad": "eng",
       "verdict": "PASS",
       "agent": "harness-eng-lead"
+    },
+    {
+      "id": "2026-09-05-30-validator",
+      "squad": "validator",
+      "verdict": "FAIL",
+      "agent": "harness-validator-lead"
+    },
+    {
+      "id": "2026-09-05-31-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead"
     }
   ]
 }

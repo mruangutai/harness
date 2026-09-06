@@ -67,10 +67,9 @@ def _classify(repo):
     # NEVER append --repo here: `gh api graphql` rejects it ("unknown flag") on the
     # gh CLI version this probe was verified against - owner/name already travel as
     # GraphQL variables inside capability_query_args(repo), which is the whole of
-    # what a graphql call needs. gh-sync.py's detect_issue_types appends --repo
-    # anyway; that call path is exercised only against test-gh-sync.py's fake gh,
-    # which accepts any flag, so the incompatibility is invisible there (see this
-    # probe's own receipt/open_questions for the live finding).
+    # what a graphql call needs. gh-sync.py's detect_issue_types no longer appends
+    # --repo either (operator ruling F-02 / D-22): gh api has no --repo flag at all,
+    # so gh-sync.py now calls capability_query_args(repo) bare, same as here.
     r = subprocess.run(
         [GH] + gh_issue_types.capability_query_args(repo),
         capture_output=True, text=True)

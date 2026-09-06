@@ -170,6 +170,23 @@ def load_factory(feat_dir):
 FEATURE_JSON_BASENAME_TAIL = re.compile(r"(?:^|/)feature\.json$")
 
 
+def _factory_block(factory):
+    """Build the `factory:` dict written into feature.json (pure extraction from
+    `write_factory`'s `transform` closure; see that function for context)."""
+    return {
+        "repo": factory["repo"],
+        "parent": factory["parent"],
+        "issues": dict(sorted(factory["issues"].items())),
+        "items": dict(sorted(factory["items"].items())),
+        "edges": {
+            "parent": list(factory["edges"]["parent"]),
+            "blocked_by": {k: list(v)
+                           for k, v in sorted(factory["edges"]["blocked_by"].items())},
+        },
+        "typed": dict(sorted(factory.get("typed", {}).items())),
+    }
+
+
 def write_factory(feat_dir, factory, feat_id=None):
     """Write the `factory:` key into feature.json through
     feature_json_write.write_feature_json (DEC-199, stale-anchor-write-hazard cycle 3): the
@@ -228,18 +245,7 @@ def write_factory(feat_dir, factory, feat_id=None):
             doc = json.loads(base.decode("utf-8"))
             if not isinstance(doc, dict):
                 doc = {}
-        doc["factory"] = {
-            "repo": factory["repo"],
-            "parent": factory["parent"],
-            "issues": dict(sorted(factory["issues"].items())),
-            "items": dict(sorted(factory["items"].items())),
-            "edges": {
-                "parent": list(factory["edges"]["parent"]),
-                "blocked_by": {k: list(v)
-                               for k, v in sorted(factory["edges"]["blocked_by"].items())},
-            },
-            "typed": dict(sorted(factory.get("typed", {}).items())),
-        }
+        doc["factory"] = _factory_block(factory)
         return json.dumps(doc, indent=2) + "\n"
 
     feature_json_write.write_feature_json(path, transform, tail_regex=FEATURE_JSON_BASENAME_TAIL)
