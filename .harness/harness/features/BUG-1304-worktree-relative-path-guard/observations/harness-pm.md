@@ -25,3 +25,5 @@
   (`transcription_rule`, `cycle_2_verification`, 276-line `findings`, 61-line `history`) came back
   byte-identical — the source was already safe_dump-shaped. Verify text-block-wise, not just by value
   equality, before claiming non-goals are unchanged.
+- 2026-09-05: BUG-1304 goal-check — SC-07 named D-02 as carrying "how an ambiguous claim is treated"; the token appears nowhere in the plan decisions block, only inside tasks. Grading a criterion that maps clauses to D-NN ids means grepping the DECISIONS BLOCK RANGE for one distinctive token per clause, not the whole file: task prose satisfies a file-global grep and hides the gap.
+- 2026-09-05: BUG-1304 — an enumerated criterion whose only unproven clause is a stderr substring (SC-05 malformed-pointer case) grades not_met while the behaviour is provably correct at source; naming behaviour-correct/test-missing up front is what kept it out of the code lane.
