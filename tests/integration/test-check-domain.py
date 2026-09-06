@@ -4740,6 +4740,9 @@ def run_bug1304_claim_set():
         if not ok:
             failures += 1
             print("      " + detail)
+    return failures
+
+
 def run_bug1305_marker_cases():
     """BUG-1305 SC-01/10: guard, seed-field precedence, and POST minting."""
     results = []

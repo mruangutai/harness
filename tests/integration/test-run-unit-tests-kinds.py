@@ -46,7 +46,9 @@ def tree():
     (root / ".harness/team-config.yaml").write_text("teams: []\n")
     bin_dir = root / ".claude/skills/harness/bin"
     bin_dir.mkdir(parents=True)
-    for name in ("run-unit-tests.sh", "harness_boundary.py", "suite_layout.py", "run_pool.py"):
+    for name in (
+            "run-unit-tests.sh", "harness_boundary.py", "run_identity.py",
+            "suite_layout.py", "run_pool.py"):
         shutil.copy2(ROOT / ".claude/skills/harness/bin" / name, bin_dir / name)
     for kind in ("unit", "integration"):
         directory = root / "tests" / kind
