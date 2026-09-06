@@ -4649,10 +4649,6 @@ artifact: fixture/digest.md
     def build(tmp, entries, runs):
         h = _bug1305_invariant_scaffold(tmp)
         fdir = _bug1305_invariant_feature(tmp, h, entries)
-        with open(os.path.join(fdir, "feature.json"), "w") as fh:
-            fh.write("feature_id: FEAT-TEST\nreview_sha: none\ncycles_used: 0\nruns:\n")
-            for name, verdict in entries.items():
-                fh.write(f"  - id: {name}\n    squad: product\n    verdict: {verdict}\n")
         for name, host, status, text in runs:
             rdir = os.path.join(fdir, "runs", name)
             os.makedirs(rdir, exist_ok=True)
