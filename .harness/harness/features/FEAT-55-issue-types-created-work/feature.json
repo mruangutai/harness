@@ -1,7 +1,7 @@
 {
   "feature_id": "FEAT-55-issue-types-created-work",
   "branch": "feat/issue-1289-issue-types",
-  "pr": null,
+  "pr": 1389,
   "review_sha": "76ba5f41b655ad1000291cf88fd4228a916164ef",
   "cycles_used": 13,
   "max_total_cycles": 13,
