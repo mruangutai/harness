@@ -3,13 +3,14 @@
 ## Current
 
 - feature: BUG-1305-run-state-clobber
-- run: .harness/harness/features/BUG-1305-run-state-clobber/runs/review-c2-validator/state.yaml
+- run: none
 - squad: none
-- status: awaiting-user
-- station: review; review_sha e77b30ca; 11 of 11 live SCs met; delta panel readers PASS, lead ESCALATE on VL-01
-- briefing: notes/ship-review-2026-09-05-validate-c2.md; cycles 12/12, runs 23 against an informational 20
+- status: in-flight
+- station: review; review_sha e77b30ca held until the cycle-13 seam commit, then repinned at cycle 14
+- ruling: Advisor REQUIRE FIX through cycle 15. SC-01's overall MET status is VOID until the (a)-Edit half is red/green in-suite; the c2 reviewer's benign-None reasoning is invalidated and must not be cited. All other approvals stand.
+- cycles: 13/15
 
 ## Open Questions
 
-- Operator ruling: VL-01 (high) — REQ-01's seed-field refusal is absent on the Edit route with an absent prior checkpoint. Accept as a named residual (briefing row B-1) or authorise a thirteenth cycle to mirror the F-04 fix. Pre-existing, dormant on this host, Write route closed, detection unaffected.
-- Operator: ship decision on the briefing, including which backlog rows B-1 to B-16 to strike. Unstruck rows become issues on ship acceptance; SEC-01 is already filed as #1376.
+- Cycle 13 is main-session-direct under DEC-174: the None-fallthrough flip (None to exit 2 for RE_STATE_YAML, RE_RUN_DIGEST, RE_HANDOFF) with a routing message, three required red/green suite cases including the omp file_path-only payload, the do-no-harm permit set plus the valid-unique-old_string control, SC-01(f) unchanged, and an exact code grade. The orchestrator dispatches cycle 14 on the seam commit.
+- Operator: SEC-01 remains an accepted residual tracked at #1376; briefing rows B-1 to B-16 in notes/ship-review-2026-09-05-validate-c2.md are unstruck and B-1 is superseded by this ruling.

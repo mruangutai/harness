@@ -3830,23 +3830,25 @@ def run_bug1106_edit_route_cases():
                     "upsert via Edit is ALLOWED",
                     r.returncode == 0, f"exit {r.returncode}: {r.stderr[:200]}"))
 
-    # --- AMBIGUOUS/no-op edits are not this gate's problem: an old_string absent from
-    # the file, or non-unique without replace_all, is left to the tool's own match
-    # requirement — this hook must not crash or wrongly refuse either shape.
+    # --- An ambiguous or unmatched Edit payload cannot describe the candidate bytes.
+    # Governed artifacts fail closed and route the caller to a whole-file Write rather
+    # than assuming the editor will reject the operation before this hook matters.
     state_root3, state_path3 = _bug1124_state_fixture()
     _feat50_write_text(state_path3, "schema_version: 1\nrun_id: run-alpha\nstatus: building\n")
     r = _fire_digest_edit(state_root3, state_path3, "no-such-text-in-file", "replacement")
-    results.append(("bug1106 Edit route: an old_string ABSENT from the file is not this "
-                    "gate's problem (exit 0, the Edit tool itself would refuse it)",
-                    r.returncode == 0, f"exit {r.returncode}: {r.stderr[:200]}"))
+    results.append(("bug1106 Edit route: an unmatched old_string fails closed",
+                    r.returncode == 2
+                    and "Write the complete file instead" in r.stderr,
+                    f"exit {r.returncode}: {r.stderr[:200]}"))
 
     state_root4, state_path4 = _bug1124_state_fixture()
     _feat50_write_text(
         state_path4, "schema_version: 1\nrun_id: run-alpha\nstatus: x\nnote: x\n")
     r = _fire_digest_edit(state_root4, state_path4, "x", "y")
-    results.append(("bug1106 Edit route: a NON-UNIQUE old_string without replace_all is "
-                    "not this gate's problem (exit 0)",
-                    r.returncode == 0, f"exit {r.returncode}: {r.stderr[:200]}"))
+    results.append(("bug1106 Edit route: a non-unique old_string fails closed",
+                    r.returncode == 2
+                    and "Write the complete file instead" in r.stderr,
+                    f"exit {r.returncode}: {r.stderr[:200]}"))
 
     # --- An Edit to an UNRELATED file (not digest.md/state.yaml) is completely
     # unaffected by this widening — the PRE route stays Write-only for everything else.
@@ -4764,6 +4766,68 @@ def _bug1305_write_marker(state_path, run_id="A", run_uid=None):
         json.dump(marker, fh)
 
 
+def _bug1305_unverifiable_edit_result(name, response):
+    refused = (
+        response.returncode == 2
+        and "run identity" in response.stderr
+        and "witness" in response.stderr
+        and "Write the complete file instead" in response.stderr
+    )
+    return name, refused, response.stderr
+
+
+def _bug1305_absent_prior_edit_case():
+    root, state = _bug1124_state_fixture()
+    _bug1305_write_marker(state)
+    response = _fire_digest_edit(
+        root, state, "run_id: A", "run_id: B")
+    return _bug1305_unverifiable_edit_result(
+        "absent-prior Edit refuses unverifiable witness identity", response)
+
+
+def _bug1305_unmatched_edit_case():
+    root, state = _bug1124_state_fixture()
+    _bug1305_write_marker(state)
+    _feat50_write_text(
+        state, "schema_version: 1\nrun_id: A\nfeature: FEAT-S-thing\n"
+        "squad: eng\nhost: omp\n")
+    response = _fire_digest_edit(
+        root, state, "run_id: missing", "run_id: B")
+    return _bug1305_unverifiable_edit_result(
+        "unmatched state Edit refuses unverifiable witness identity", response)
+
+
+def _bug1305_omp_edit_cases():
+    root, state = _bug1124_state_fixture()
+    _bug1305_write_marker(state)
+    _feat50_write_text(
+        state, "schema_version: 1\nrun_id: A\nfeature: FEAT-S-thing\n"
+        "squad: eng\nhost: omp\nstatus: building\n")
+    payload = {"tool_name": "Edit", "tool_input": {"file_path": state}}
+    response = subprocess.run(
+        [HOOK], input=json.dumps(payload), capture_output=True, text=True,
+        env=_env(root))
+    refused = _bug1305_unverifiable_edit_result(
+        "omp file-path-only state Edit fails closed", response)
+
+    permitted = _fire_digest_edit(
+        root, state, "status: building", "status: review")
+    allowed = (
+        "uniquely reconstructable state Edit remains allowed",
+        permitted.returncode == 0,
+        permitted.stderr,
+    )
+    return [refused, allowed]
+
+
+def _bug1305_edit_reconstruction_cases():
+    return [
+        _bug1305_absent_prior_edit_case(),
+        _bug1305_unmatched_edit_case(),
+        *_bug1305_omp_edit_cases(),
+    ]
+
+
 def _bug1305_marker_foreign_refusals():
     root, state = _bug1124_state_fixture()
     _bug1305_write_marker(state)
@@ -4925,7 +4989,8 @@ def _bug1305_marker_post_preservation_cases():
 def run_bug1305_marker_cases():
     """BUG-1305 SC-01/10: guard, seed-field precedence, and POST minting."""
     results = (
-        _bug1305_marker_foreign_refusals()
+        _bug1305_edit_reconstruction_cases()
+        + _bug1305_marker_foreign_refusals()
         + _bug1305_marker_witness_precedence()
         + _bug1305_marker_recovery_cases()
         + _bug1305_marker_file_protection()

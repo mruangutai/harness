@@ -2006,9 +2006,9 @@ _UNREADABLE_EDIT = object()
 
 def _edit_reconstructed_content(absolute_path, old_string, new_string, replace_all):
     """Issue #1106, gap (a). The full file content Claude's Edit tool would produce, or
-    None when the edit itself is ambiguous or a no-op — in which case it is not this
-    gate's problem: the tool's own match-uniqueness requirement (never this hook) is what
-    refuses an old_string that is absent or, without `replace_all`, non-unique.
+    None when the payload cannot describe one unambiguous candidate. Callers guarding
+    governed artifacts must fail closed on None: OMP's Edit payload carries only a path,
+    and an unmatched or ambiguous replacement must not bypass content enforcement.
 
     THIS IS NOT A NAIVE READ OF THE PAYLOAD. FEAT-50's brief argued Edit "carries no
     complete incoming payload to compare" and left the route unguarded on that basis. That
@@ -2055,7 +2055,21 @@ if not _post:
                   "candidate cannot be reconstructed safely.", file=sys.stderr)
             sys.exit(2)
         if _content is None:
-            sys.exit(0)
+            if RE_STATE_YAML.match(_norm(target)):
+                print(
+                    "check-domain: BLOCKED — state.yaml run identity and its witness "
+                    "cannot be verified because this Edit cannot be reconstructed from "
+                    "the tool payload (Issue 1305). Write the complete file instead.",
+                    file=sys.stderr,
+                )
+            else:
+                print(
+                    "check-domain: BLOCKED — this protected run artifact cannot be "
+                    "verified because the Edit cannot be reconstructed from the tool "
+                    "payload. Write the complete file instead.",
+                    file=sys.stderr,
+                )
+            sys.exit(2)
         targets = [(_norm(target), _content, _show(target), _claimed_abs(target))]
     elif _tool != "Write" or not target:
         sys.exit(0)
