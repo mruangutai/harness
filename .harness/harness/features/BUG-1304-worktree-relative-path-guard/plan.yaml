@@ -4,7 +4,7 @@ approval:
   date: '2026-09-05'
   approved_by: mruangutai
   status: approved
-status: ready
+status: review
 source_issues: [1304]
 
 panel:
@@ -1653,7 +1653,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: "DEC-174 carve-out: the two runners it executes live under .claude/skills/harness/bin, and the change it verifies is entirely gate-script work the main session executes directly (DEC-179)."
     depends_on: [T-02, T-04, T-06, T-07]
-    status: building
+    status: done
     files:
       - .claude/skills/harness/bin/run-unit-tests.sh
       - .claude/skills/harness/bin/check-state.sh
