@@ -1484,23 +1484,15 @@ def _hook_feature_dir(text, feature):
 
 
 def check_artifact_file(agent, text, payload):
-    """DEC-156: a lead's WRITTEN digest.md must carry the same §10.4 block.
+    """DEC-156: validate the durable digest.md a lead's return names.
 
-    The FEAT-02 (kaya-ai) audit found all 14 run digest.md files were narrative
-    markdown with no contract block — every in-message return had passed this
-    hook, so nothing ever looked at the durable copy, which is the one a
-    successor context actually reads. Validate the file at the return's
-    `artifact:` path with the same schema, while the lead is still alive to fix
-    it.
-
-    FAIL OPEN, LOUDLY when the file cannot be located or read: a hook whose cwd
-    drifts (worktrees, unset CLAUDE_PROJECT_DIR) must not block a legitimate
-    lead on our own resolution bug. check-state.sh INV-15 is the deterministic
-    backstop that runs from repo root and catches what this pass-through misses.
-    Blocking is for THEIR contract violation, never our lookup failure.
+    Relative artifacts are resolved against the feature checkout first, then the
+    owner checkout, then this installed script's checkout. No-root lookup failure
+    remains loud and fail-open. Once a candidate run directory resolves, however,
+    an absent digest is the lead's contract violation and fails closed: the durable
+    file is what a successor reads. INV-15 is a later repository-entry check, not a
+    hook-delivery guarantee.
     """
-    # Same tail-anchor discipline as validate(): the real return is LAST, so an
-    # echoed template's `artifact:` line must not win. Take the final match.
     tail = text
     anchors = list(re.finditer(r"^\s*VERDICT:", text, re.M))
     if anchors:
@@ -1509,35 +1501,49 @@ def check_artifact_file(agent, text, payload):
     for m in re.finditer(r"^\s*artifact:\s*(\S+)", tail, re.M):
         pass
     if not m:
-        return 0  # validate() already required artifact:; nothing to resolve here.
+        return 0
     path = strip_comment(m.group(1)).strip("\"'")
     if not path.endswith("digest.md"):
-        # The lead artifact contract is <run_dir>/digest.md; a differently-named
-        # artifact is INV-15's finding (it can see the run dir), not this hook's.
         return 0
 
-    # ONE ROOT, NOT A CANDIDATE WALK (FEAT-42 T-17). Relative lead artifacts belong
-    # to the feature checkout named by this SubagentStop payload. Unlike the PreToolUse
-    # domain route, this hook already consumes harness_feature to resolve feature state;
-    # using it here follows that established input rather than creating a route dependency.
     if os.path.isabs(path):
         cands = [path]
     else:
+        roots = []
         owner_root = _root_or_none()
-        base = owner_root
         feature = payload.get("harness_feature")
         if owner_root and feature:
             try:
                 sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
                 import inflight_registry
-                base = inflight_registry.feature_root(owner_root, feature)
+                roots.append(inflight_registry.feature_root(owner_root, feature))
             except Exception:
-                base = owner_root
-        cands = [os.path.join(base or "", path)]
+                pass
+        roots.append(owner_root)
+        try:
+            roots.append(os.path.abspath(os.path.join(
+                os.path.dirname(os.path.realpath(__file__)), "../../../..")))
+        except (OSError, TypeError):
+            pass
+        roots = list(dict.fromkeys(root for root in roots if root))
+        cands = [os.path.join(root, path) for root in roots]
+
     found = next((candidate for candidate in cands if os.path.isfile(candidate)), None)
     if not found:
+        resolved = next(
+            (candidate for candidate in cands
+             if os.path.isdir(os.path.dirname(candidate))),
+            None)
+        if resolved:
+            run_dir = os.path.dirname(resolved)
+            print(
+                f"check-digest: {agent}'s durable digest is missing from resolved run "
+                f"directory {run_dir}; a successor reads this file. Write it at "
+                f"{resolved}.",
+                file=sys.stderr)
+            return 2
         print(f"check-digest: {agent}'s artifact {path} not found from the hook's vantage — "
-              f"file-shape check skipped; check-state.sh INV-15 will audit it from repo root.",
+              "file-shape check skipped because no candidate run directory resolved.",
               file=sys.stderr)
         return 0
     try:
@@ -1548,10 +1554,12 @@ def check_artifact_file(agent, text, payload):
         return 0
     if not ferrs:
         return 0
-    print(f"Your return is valid, but the digest FILE you wrote ({path}) does not carry the "
-          f"same contract block — and the file is what a successor context reads (DEC-156). "
-          f"Rewrite it as the §10.4 return (VERDICT / DIGEST / artifact), prose assessment "
-          f"below the block:", file=sys.stderr)
+    print(
+        f"Your return is valid, but the digest FILE you wrote ({found}) in resolved run "
+        f"directory {os.path.dirname(found)} does not carry the same contract block — "
+        "and the file is what a successor context reads (DEC-156). Rewrite it as the "
+        "§10.4 return (VERDICT / DIGEST / artifact), prose assessment below the block:",
+        file=sys.stderr)
     for e in ferrs:
         print(f"  - {e}", file=sys.stderr)
     return 2
