@@ -430,12 +430,13 @@ def case_19():
         copy = os.path.join(fake_bin, "check-plan-routes.py")
         with open(SCRIPT) as src, open(copy, "w") as dst:
             dst.write(src.read())
-        # THE RESOLVER GOES WITH IT (FEAT-42 T-13). This case neutralises both ROOT sources;
-        # it is not about a missing module. Without harness_boundary.py beside the copy the
-        # script dies on ImportError at exit 1 before it can refuse, and both assertions go
-        # red for a reason that has nothing to do with an unresolvable root.
-        shutil.copy(os.path.join(BIN_DIR, "harness_boundary.py"),
-                    os.path.join(fake_bin, "harness_boundary.py"))
+        # THE RESOLVER AND ITS DIRECT DEPENDENCY GO WITH IT (FEAT-42 T-13,
+        # BUG-1305 T-02). This case neutralises both ROOT sources; it is not about
+        # a missing module. Without these modules beside the copy the script dies on
+        # ImportError at exit 1 before it can refuse, and both assertions go red for
+        # a reason that has nothing to do with an unresolvable root.
+        for module in ("harness_boundary.py", "run_identity.py"):
+            shutil.copy(os.path.join(BIN_DIR, module), os.path.join(fake_bin, module))
         r = run(cwd=td, project_dir=td, script=copy)
         check("case_19b_unresolvable_root_exits_2_not_0", r.returncode == 2,
               f"exit {r.returncode} stdout={r.stdout[:200]!r} stderr={r.stderr[:200]!r}")

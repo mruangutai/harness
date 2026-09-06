@@ -1932,6 +1932,70 @@ def run_hook_cases():
     return fails
 
 
+def _bug1305_artifact_fire(artifact, root, feature=True, binary=VALIDATE):
+    msg = LEAD_BLOCK.replace(
+        "artifact: .harness/features/FEAT-01/runs/r1/digest.md",
+        f"artifact: {artifact}")
+    payload = {"agent_type": "harness-eng-lead", "last_assistant_message": msg}
+    if feature:
+        payload["harness_feature"] = "FEAT-X-thing"
+    env = dict(os.environ, HARNESS_PROJECT_DIR=root, CLAUDE_PROJECT_DIR=root)
+    if not feature:
+        env.pop("HARNESS_PROJECT_DIR", None)
+        env.pop("CLAUDE_PROJECT_DIR", None)
+    return subprocess.run(
+        [binary, "--hook"], input=json.dumps(payload), capture_output=True,
+        text=True, env=env)
+
+
+def _bug1305_artifact_expect(name, result, exit_code, mentions=()):
+    missing = [item for item in mentions if item.lower() not in result.stderr.lower()]
+    if result.returncode == exit_code and not missing:
+        print(f"ok    [bug1305-artifact] {name}")
+        return 0
+    print(f"FAIL  [bug1305-artifact] {name}")
+    print(f"      | expected exit {exit_code}, got {result.returncode}")
+    for item in missing:
+        print(f"      | stderr should mention {item!r}")
+    for line in result.stderr.strip().splitlines():
+        print(f"      | {line}")
+    return 1
+
+
+def _bug1305_relative_artifact_cases(worktree, rel, run_dir, fire):
+    failures = 0
+    with open(os.path.join(worktree, rel), "w", encoding="utf-8") as digest:
+        digest.write("# narrative digest, no contract block\n")
+    failures += _bug1305_artifact_expect(
+        "located non-compliant digest is refused", fire(rel), 2, (run_dir, "digest"))
+    with open(os.path.join(worktree, rel), "w", encoding="utf-8") as digest:
+        digest.write(LEAD_BLOCK)
+    failures += _bug1305_artifact_expect("located compliant digest passes", fire(rel), 0)
+    os.unlink(os.path.join(worktree, rel))
+    failures += _bug1305_artifact_expect(
+        "existing run directory without digest is refused",
+        fire(rel), 2, (run_dir, "digest.md", "missing"))
+    return failures
+
+
+def _bug1305_other_artifact_cases(root, iso_root, fire):
+    copied_validate = os.path.join(isolated_bin(iso_root), "validate-digest.py")
+    failures = _bug1305_artifact_expect(
+        "unresolvable artifact lookup still fails open",
+        fire("runs/absent/digest.md", feature=False, binary=copied_validate),
+        0, ("not found from the hook's vantage",))
+    absolute = os.path.join(root, "absolute", "digest.md")
+    os.makedirs(os.path.dirname(absolute), exist_ok=True)
+    with open(absolute, "w", encoding="utf-8") as digest:
+        digest.write("# narrative digest, no contract block\n")
+    failures += _bug1305_artifact_expect(
+        "absolute artifact path is used verbatim", fire(absolute), 2,
+        (os.path.dirname(absolute), "digest"))
+    failures += _bug1305_artifact_expect(
+        "non-digest artifact remains outside this check", fire("runs/r1/notes.md"), 0)
+    return failures
+
+
 def run_bug1305_artifact_resolution_cases():
     """BUG-1305 SC-04: distinguish lookup failure from a missing durable digest."""
     failures = 0
@@ -1945,64 +2009,10 @@ def run_bug1305_artifact_resolution_cases():
         rel = os.path.join("runs", "r1", "digest.md")
         run_dir = os.path.dirname(os.path.join(worktree, rel))
         os.makedirs(run_dir, exist_ok=True)
-        env = dict(os.environ, HARNESS_PROJECT_DIR=root, CLAUDE_PROJECT_DIR=root)
-
-        def fire(artifact, feature=True, binary=VALIDATE, call_env=env):
-            msg = LEAD_BLOCK.replace(
-                "artifact: .harness/features/FEAT-01/runs/r1/digest.md",
-                f"artifact: {artifact}")
-            payload = {"agent_type": "harness-eng-lead", "last_assistant_message": msg}
-            if feature:
-                payload["harness_feature"] = "FEAT-X-thing"
-            return subprocess.run(
-                [binary, "--hook"], input=json.dumps(payload), capture_output=True,
-                text=True, env=call_env)
-
-        def expect(name, result, exit_code, mentions=()):
-            nonlocal failures
-            missing = [item for item in mentions if item.lower() not in result.stderr.lower()]
-            if result.returncode == exit_code and not missing:
-                print(f"ok    [bug1305-artifact] {name}")
-                return
-            failures += 1
-            print(f"FAIL  [bug1305-artifact] {name}")
-            print(f"      | expected exit {exit_code}, got {result.returncode}")
-            for item in missing:
-                print(f"      | stderr should mention {item!r}")
-            for line in result.stderr.strip().splitlines():
-                print(f"      | {line}")
-
-        with open(os.path.join(worktree, rel), "w", encoding="utf-8") as digest:
-            digest.write("# narrative digest, no contract block\n")
-        expect("located non-compliant digest is refused", fire(rel), 2,
-               (run_dir, "digest"))
-
-        with open(os.path.join(worktree, rel), "w", encoding="utf-8") as digest:
-            digest.write(LEAD_BLOCK)
-        expect("located compliant digest passes", fire(rel), 0)
-
-        os.unlink(os.path.join(worktree, rel))
-        expect("existing run directory without digest is refused", fire(rel), 2,
-               (run_dir, "digest.md", "missing"))
-
-        copied = isolated_bin(iso_root)
-        copied_validate = os.path.join(copied, "validate-digest.py")
-        no_root_env = {key: value for key, value in os.environ.items()
-                       if key not in ("HARNESS_PROJECT_DIR", "CLAUDE_PROJECT_DIR")}
-        expect("unresolvable artifact lookup still fails open",
-               fire("runs/absent/digest.md", feature=False,
-                    binary=copied_validate, call_env=no_root_env),
-               0, ("not found from the hook's vantage",))
-
-        absolute = os.path.join(root, "absolute", "digest.md")
-        os.makedirs(os.path.dirname(absolute), exist_ok=True)
-        with open(absolute, "w", encoding="utf-8") as digest:
-            digest.write("# narrative digest, no contract block\n")
-        expect("absolute artifact path is used verbatim", fire(absolute), 2,
-               (os.path.dirname(absolute), "digest"))
-
-        expect("non-digest artifact remains outside this check",
-               fire("runs/r1/notes.md"), 0)
+        fire = lambda artifact, feature=True, binary=VALIDATE: _bug1305_artifact_fire(
+            artifact, root, feature, binary)
+        failures += _bug1305_relative_artifact_cases(worktree, rel, run_dir, fire)
+        failures += _bug1305_other_artifact_cases(root, iso_root, fire)
     finally:
         shutil.rmtree(root, ignore_errors=True)
         shutil.rmtree(iso_root, ignore_errors=True)
@@ -4216,14 +4226,15 @@ def run_empty_red_case():
 
 
 def _dec156_owner_root_mutant(source):
-    function = source.find("def check_artifact_file(")
-    start = source.find("    if os.path.isabs(path):\n", function)
-    end = source.find("    found = next(", start)
-    if function < 0 or start < 0 or end <= start:
+    start = source.find("def _durable_artifact_candidates(")
+    end = source.find("\ndef _missing_durable_artifact(", start)
+    if start < 0 or end <= start:
         return None
-    old_join = ('    cands = ([path] if os.path.isabs(path) else '
-                '[os.path.join(_root_or_none() or "", path)])\n')
-    return source[:start] + old_join + source[end:]
+    old_candidates = (
+        "def _durable_artifact_candidates(path, payload):\n"
+        "    return ([path] if os.path.isabs(path) else "
+        "[os.path.join(_root_or_none() or \"\", path)])\n\n")
+    return source[:start] + old_candidates + source[end + 1:]
 
 
 def _dec156_red_is_green(real, old):

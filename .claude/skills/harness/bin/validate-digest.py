@@ -1483,69 +1483,70 @@ def _hook_feature_dir(text, feature):
         return None
 
 
-def check_artifact_file(agent, text, payload):
-    """DEC-156: validate the durable digest.md a lead's return names.
-
-    Relative artifacts are resolved against the feature checkout first, then the
-    owner checkout, then this installed script's checkout. No-root lookup failure
-    remains loud and fail-open. Once a candidate run directory resolves, however,
-    an absent digest is the lead's contract violation and fails closed: the durable
-    file is what a successor reads. INV-15 is a later repository-entry check, not a
-    hook-delivery guarantee.
-    """
+def _durable_artifact_path(text):
     tail = text
     anchors = list(re.finditer(r"^\s*VERDICT:", text, re.M))
     if anchors:
         tail = text[anchors[-1].start():]
-    m = None
-    for m in re.finditer(r"^\s*artifact:\s*(\S+)", tail, re.M):
-        pass
-    if not m:
-        return 0
-    path = strip_comment(m.group(1)).strip("\"'")
-    if not path.endswith("digest.md"):
-        return 0
+    matches = list(re.finditer(r"^\s*artifact:\s*(\S+)", tail, re.M))
+    if not matches:
+        return None
+    path = strip_comment(matches[-1].group(1)).strip("\"'")
+    return path if path.endswith("digest.md") else None
 
+
+def _feature_artifact_root(owner_root, feature):
+    if not owner_root or not feature:
+        return None
+    try:
+        sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
+        import inflight_registry
+        return inflight_registry.feature_root(owner_root, feature)
+    except Exception:
+        return None
+
+
+def _script_checkout_root():
+    try:
+        return os.path.abspath(os.path.join(
+            os.path.dirname(os.path.realpath(__file__)), "../../../.."))
+    except (OSError, TypeError):
+        return None
+
+
+def _durable_artifact_candidates(path, payload):
     if os.path.isabs(path):
-        cands = [path]
-    else:
-        roots = []
-        owner_root = _root_or_none()
-        feature = payload.get("harness_feature")
-        if owner_root and feature:
-            try:
-                sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
-                import inflight_registry
-                roots.append(inflight_registry.feature_root(owner_root, feature))
-            except Exception:
-                pass
-        roots.append(owner_root)
-        try:
-            roots.append(os.path.abspath(os.path.join(
-                os.path.dirname(os.path.realpath(__file__)), "../../../..")))
-        except (OSError, TypeError):
-            pass
-        roots = list(dict.fromkeys(root for root in roots if root))
-        cands = [os.path.join(root, path) for root in roots]
+        return [path]
+    owner_root = _root_or_none()
+    roots = (
+        _feature_artifact_root(owner_root, payload.get("harness_feature")),
+        owner_root,
+        _script_checkout_root(),
+    )
+    unique_roots = dict.fromkeys(root for root in roots if root)
+    return [os.path.join(root, path) for root in unique_roots]
 
-    found = next((candidate for candidate in cands if os.path.isfile(candidate)), None)
-    if not found:
-        resolved = next(
-            (candidate for candidate in cands
-             if os.path.isdir(os.path.dirname(candidate))),
-            None)
-        if resolved:
-            run_dir = os.path.dirname(resolved)
-            print(
-                f"check-digest: {agent}'s durable digest is missing from resolved run "
-                f"directory {run_dir}; a successor reads this file. Write it at "
-                f"{resolved}.",
-                file=sys.stderr)
-            return 2
+
+def _missing_durable_artifact(agent, path, candidates):
+    resolved = next(
+        (candidate for candidate in candidates
+         if os.path.isdir(os.path.dirname(candidate))),
+        None)
+    if not resolved:
         print(f"check-digest: {agent}'s artifact {path} not found from the hook's vantage — "
               "file-shape check skipped because no candidate run directory resolved.",
               file=sys.stderr)
         return 0
+    run_dir = os.path.dirname(resolved)
+    print(
+        f"check-digest: {agent}'s durable digest is missing from resolved run "
+        f"directory {run_dir}; a successor reads this file. Write it at "
+        f"{resolved}.",
+        file=sys.stderr)
+    return 2
+
+
+def _validate_durable_artifact(agent, found):
     try:
         ferrs = validate(agent, open(found, encoding="utf-8").read())
     except Exception as e:
@@ -1560,9 +1561,29 @@ def check_artifact_file(agent, text, payload):
         "and the file is what a successor context reads (DEC-156). Rewrite it as the "
         "§10.4 return (VERDICT / DIGEST / artifact), prose assessment below the block:",
         file=sys.stderr)
-    for e in ferrs:
-        print(f"  - {e}", file=sys.stderr)
+    for error in ferrs:
+        print(f"  - {error}", file=sys.stderr)
     return 2
+
+
+def check_artifact_file(agent, text, payload):
+    """DEC-156: validate the durable digest.md a lead's return names.
+
+    Relative artifacts are resolved against the feature checkout first, then the
+    owner checkout, then this installed script's checkout. No-root lookup failure
+    remains loud and fail-open. Once a candidate run directory resolves, however,
+    an absent digest is the lead's contract violation and fails closed: the durable
+    file is what a successor reads. INV-15 is a later repository-entry check, not a
+    hook-delivery guarantee.
+    """
+    path = _durable_artifact_path(text)
+    if path is None:
+        return 0
+    candidates = _durable_artifact_candidates(path, payload)
+    found = next((candidate for candidate in candidates if os.path.isfile(candidate)), None)
+    if found is None:
+        return _missing_durable_artifact(agent, path, candidates)
+    return _validate_durable_artifact(agent, found)
 
 
 def _qa_claims_unconditional_pass(text):
