@@ -4,7 +4,7 @@
 orchestrator playbook carries only a pointer, so **read it by path before your first sync point of
 the run** (DEC-158 move 3).
 
-Predominantly outbound, and its read-backs are **bounded to an enumerated set** — seven purposes,
+Predominantly outbound, and its read-backs are **bounded to an enumerated set** — eight purposes,
 each with the surface that performs it (DEC-203 item 5).
 
 | Purpose | Surface |
@@ -16,9 +16,12 @@ each with the surface that performs it (DEC-203 item 5).
 | which merged pull request a recorded branch resolves to | `record-pr`, and `ship`, which calls it |
 | which children a card's ticket has | `ship` |
 | which closed tickets a repository holds, with their reasons and labels, and which station options its board declares | `/harness-init`, and `ship`, which calls the audit |
+| whether a target repository supports native Issue Types, and which native issue types a repository declares; the node identifier of an issue whose number Harness already recorded locally, read by gh_issue_types.node_id_args immediately before a type-apply; and the native type assigned to an issue Harness created, read back by tests/manual/probe-issue-types.py under its explicit create opt-in | The shared type-apply path in `<HARNESS_CONTROL_PLANE_ROOT>/.claude/skills/harness/bin/gh_issue_types.py`, used by `gh-sync.py` and `factory_decompose.py`, plus `tests/manual/probe-issue-types.py` for the read-back clause |
 
 **No read-back ever reaches an approval-gated artifact.** That is the only stated bound on what a
 read-back may do, and it is unconditional. The repo comes from `harness.json`, pinned at init.
+
+Where the repository declares native Issue Types, issues Harness creates carry a native type instead of the derived `bug` and `chore` labels; names are overridable at `<HARNESS_CONTROL_PLANE_ROOT>/.harness/harness.json` `github.issue_types`; and `harness`, `feature:<FEAT>`, `factory:claimed`, and `abandoned` are applied identically in both modes.
 
 **Anything posted is the user's own words or text the user signed (DEC-138).** A post takes its
 body from a file path, never from a string you assembled. Agents doing the work post nothing; they

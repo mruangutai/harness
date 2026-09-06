@@ -1,0 +1,91 @@
+<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>FEAT-55 — native issue types on created work: ship review</title><style>
+:root{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:ui-sans-serif,-apple-system,"Segoe UI","Helvetica Neue",Arial,sans-serif;
+}
+/* Token-level theming: components style through the tokens and never inside the
+   media query, so the viewer's explicit toggle can override the OS in BOTH
+   directions. */
+@media (prefers-color-scheme:dark){
+  :root{ --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+         --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733; }
+}
+:root[data-theme="dark"]{
+  --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+  --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733;
+}
+:root[data-theme="light"]{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+}
+*{box-sizing:border-box}
+body{margin:0; background:var(--paper); color:var(--ink);
+  font:400 16px/1.65 var(--sans); padding:clamp(1.5rem,5vw,4rem) clamp(1rem,5vw,2rem) 6rem}
+.wrap{max-width:56rem; margin:0 auto}
+/* Layout owns the spacing: gap between siblings, not per-element margins that
+   collapse or double. */
+.wrap{display:flex; flex-direction:column; gap:1rem}
+.eyebrow{font:500 11px/1 var(--mono); letter-spacing:.14em; text-transform:uppercase;
+  color:var(--quiet); margin:0}
+h1{font:600 clamp(1.6rem,4vw,2.3rem)/1.15 var(--sans); letter-spacing:-.02em;
+  margin:.4rem 0 .2rem; text-wrap:balance}
+h2{font:600 1.15rem/1.3 var(--sans); letter-spacing:-.01em; margin:2rem 0 0;
+  padding-top:1.25rem; border-top:1px solid var(--line); text-wrap:balance}
+h3{font:600 .98rem/1.4 var(--sans); margin:1.1rem 0 0}
+h4,h5,h6{font:500 11px/1.4 var(--mono); letter-spacing:.1em; text-transform:uppercase;
+  color:var(--quiet); margin:1rem 0 0}
+p,li{max-width:65ch; margin:0}
+ul,ol{margin:0; padding-left:1.4rem; display:flex; flex-direction:column; gap:.4rem}
+li>ul,li>ol{margin-top:.4rem}
+strong{font-weight:600}
+code{font:400 .875em/1.5 var(--mono); background:var(--sunk); padding:.1em .35em; border-radius:3px}
+pre{background:var(--sunk); border:1px solid var(--line); border-radius:6px;
+  padding:.85rem 1rem; overflow-x:auto; margin:0}
+pre code{background:none; padding:0}
+blockquote{margin:0; padding:.75rem 1rem; border-left:3px solid var(--accent);
+  background:var(--accent-soft); border-radius:0 5px 5px 0}
+blockquote p{max-width:none}
+hr{border:0; border-top:1px solid var(--line); margin:.5rem 0}
+/* Wide content pans inside its OWN container; the page body never scrolls sideways. */
+.scroll{overflow-x:auto; border:1px solid var(--line); border-radius:6px}
+table{border-collapse:collapse; width:100%; font-size:.9rem}
+th,td{text-align:left; padding:.6rem .8rem; border-bottom:1px solid var(--line); vertical-align:top}
+thead th{font:500 10px/1.3 var(--mono); letter-spacing:.11em; text-transform:uppercase;
+  color:var(--quiet); background:var(--sunk); white-space:nowrap}
+tbody tr:last-child td{border-bottom:0}
+/* Figures in a column line up. */
+td,th{font-variant-numeric:tabular-nums}
+.derived{color:var(--slate); font-size:.85rem; margin-top:2.5rem;
+  padding-top:1rem; border-top:1px solid var(--line)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style></head><body><div class='wrap'><p class='eyebrow'>Ship review · reading view</p><h1 id="feat-55-native-issue-types-on-created-work-ship-review">FEAT-55 — native issue types on created work: ship review</h1>
+<p><strong>FEAT-55 is ready to ship.</strong> Your four rulings closed every blocker. All twelve tasks are complete and verified, all twelve success criteria are met, every gate is green, and the review panel&#x27;s one gating finding has been fixed and confirmed closed by the reviewer that raised it.</p>
+<p>Two things you should know before you decide, neither of which blocks:</p>
+<ul><li><strong>The cycle budget is exactly spent</strong> — 13 of the 13 you authorised. One fix cycle was needed and it was the panel&#x27;s finding. If anything else surfaces, I cannot fix it without another raise.</li><li><strong>The GitHub mirror did not advance to Review.</strong> It refused, correctly, for a reason that is a harness defect rather than a problem with this feature. Detail below; it is never a gate.</li></ul>
+<h2 id="what-changed-since-the-last-briefing">What changed since the last briefing</h2>
+<div class="scroll"><table><thead><tr><th>Ruling</th><th>What I did</th><th>Cost</th></tr></thead><tbody><tr><td><strong>F-01</strong> schema authority</td><td>pm amended T-04 to own <code>feature-schema.json</code>; backend-dev declared the optional <code>typed</code> mapping on both closed objects. Recorded as decision <strong>D-21</strong></td><td>0 cycles</td></tr><tr><td><strong>F-02</strong> the dead query</td><td>The <code>--repo</code> flag and its false comment are gone; the test now pins the exact GraphQL <code>owner=</code>/<code>name=</code> values instead of flag presence. Recorded as decision <strong>D-22</strong></td><td>0 cycles</td></tr><tr><td><strong>F-03</strong> SC-10</td><td>Graded <strong>met</strong> on your ruling, cited to it. The optional live probe is backlog row B-1, not a gap</td><td>0 cycles</td></tr><tr><td><strong>F-04</strong> budget</td><td>Raised to 13 cycles / 40 runs</td><td>—</td></tr></tbody></table></div>
+<p><strong>The plan never needed re-signing.</strong> <code>plan-merge.py</code>&#x27;s amendment verbs preserve the approval bytes by construction, so your signature of 2026-09-05 still stands, with all five original rulings intact. I verified that on disk after the amendment rather than assuming it.</p>
+<h2 id="where-the-feature-stands">Where the feature stands</h2>
+<div class="scroll"><table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td>Tasks</td><td><strong>12 of 12</strong> complete and verified</td></tr><tr><td>Success criteria</td><td><strong>12 of 12 met</strong> — SC-10 on your ruling F-03</td></tr><tr><td>Requirements</td><td>REQ-01…REQ-11 all traced to a verified task</td></tr><tr><td>Test matrix (the only blocking gate)</td><td><strong>PASS</strong></td></tr><tr><td>Review panel</td><td><strong>PASS</strong> — one finding raised, fixed, and confirmed closed</td></tr><tr><td>Complexity grade over the diff</td><td><strong>zero high</strong></td></tr><tr><td>Committed at</td><td><code>76ba5f41</code> on <code>feat/issue-1289-issue-types</code></td></tr><tr><td>Cycles</td><td><strong>13 of 13 — spent</strong></td></tr><tr><td>Runs</td><td>39 of 40</td></tr></tbody></table></div>
+<p>Measured by me at the final commit, each suite separately with its own exit code and failure count — never a tail read, because a truncated capture already produced one false green on this feature: all ten FEAT-55 suites and the whole unit driver at <strong>exit 0, zero failures</strong>.</p>
+<h2 id="the-three-things-that-went-wrong-and-how-they-were-caught">The three things that went wrong, and how they were caught</h2>
+<p><strong>The qa gate failed on a two-line documentation defect.</strong> The new prose in <code>github-mirror.md</code> carried two file paths written the short way, and a repo-wide guard requires them anchored. The task that wrote that prose passed its own checks — its checks were narrower than the guard it had to not break. That file belongs to no agent&#x27;s domain, so you landed the fix yourself; I committed it and the guard went green.</p>
+<p><strong>The review panel caught a complexity regression this feature introduced.</strong> One serialization function in the factory crossed a maintainability threshold, and it crossed it because of a line <em>this feature added</em>. I checked the panel&#x27;s reasoning against the repository&#x27;s own grader before spending the last cycle on it — the premise held. The fix was a ten-line extraction, and the reviewer re-measured it rather than taking my word: the function and its new helper both clear the bar, the extraction changes no behaviour, and it found nothing new.</p>
+<p><strong>A comment that this feature made false was still shipping.</strong> Ruling F-02 ordered one false comment deleted; a second copy of the same claim lived in a file that ruling never touched. The panel found it. It is fixed, because a maintainer who believes it would revert correct code.</p>
+<h2 id="what-i-could-not-do">What I could not do</h2>
+<p><strong>The mirror did not move to Review.</strong> <code>gh-sync.py status … review</code> refused: <em>&quot;not every task in plan.yaml is done or abandoned.&quot;</em> It is right that no task reads done — but no task can, because this plan&#x27;s tasks carry no status field at all, and the verb that records one can only edit a field that already exists. It cannot create one. That is backlog row B-5, and I did not work around it: writing plan content outside that verb is exactly what the single-write-route rule forbids. The mirror is never a gate, and the plan on disk is the authority regardless.</p>
+<p><strong>Two archived run checkpoints were destroyed and are unrecoverable.</strong> Two different agents wrote this session&#x27;s checkpoint into an older run&#x27;s directory, because the runs tree is excluded from version control, so a search for existing runs returns nothing and a live directory reads as free. Both times the guard refused the <em>digest</em> write and allowed the <em>checkpoint</em> write. The lost files are spent archive artifacts and both affected runs&#x27; digests survived intact, so nothing of record was lost — but the guard has a hole in it. Backlog row B-6.</p>
+<h2 id="how-i-assembled-this">How I assembled this</h2>
+<p><strong>I spawned no reporting round.</strong> I read from disk:</p>
+<ul><li><code>notes/ship-review-2026-09-05-01-eng.md</code> — the previous, blocked-state briefing, which carries the plan and build phases</li><li><code>notes/research-FEAT-55-goalcheck-c1.md</code> — pm&#x27;s per-criterion goal-check</li><li><code>notes/qa-2026-09-05-01-validator.md</code> and <code>notes/review-harness-qa-c1.md</code> — the gate, twice</li><li><code>notes/review-harness-code-reviewer-c1.md</code>, <code>…-security-reviewer-c1.md</code>, <code>…-ui-reviewer-c1.md</code></li><li><code>runs/2026-09-05-30-validator/digest.md</code> and <code>runs/2026-09-05-32-validator/digest.md</code> — the panel and its re-check</li><li><code>STATE.md</code> and <code>plan.yaml</code></li></ul>
+<p>Every number in this briefing that gates a decision — the suite results, the complexity grades, the schema refusal, the missing <code>--repo</code> flag — is one I measured myself in this checkout.</p>
+<p><strong>One correction to the record:</strong> two test files were named in the wrong directories in an earlier dispatch. <code>test-factory-gh.py</code> lives under <code>tests/unit/</code>, and <code>test-anchor-directions.py</code> under <code>tests/integration/</code>. Both are green where they actually live, and every measurement in this briefing used the correct paths. Noted so a later reader does not read a stale exit 2 as a regression.</p>
+<h2 id="proposed-backlog">Proposed backlog</h2>
+<p>Anything you do not strike becomes an issue. <strong>Anything not on this list is forgotten.</strong></p>
+<div class="scroll"><table><thead><tr><th>ID</th><th>Nature</th><th>What</th></tr></thead><tbody><tr><td>B-1</td><td>chore</td><td><strong>Your ruling F-03&#x27;s follow-up.</strong> Run the live capability probe against an organization-owned repository with Issue Types enabled. It is the only check that can falsify the test double&#x27;s assumed API shape — everything today is verified against a fake</td></tr><tr><td>B-2</td><td>bug</td><td>An agent&#x27;s edit reported success, issued a new snapshot, and never reached disk; a re-read showed the old content and an identical retry was rejected as a duplicate. A write tool that reports success without writing can manufacture a false green anywhere</td></tr><tr><td>B-3</td><td>bug</td><td>The shell write guard blocked <code>cp</code> onto a protected file but allowed <code>python3 -c</code> to write the identical path in the same call — it reads command names, not what actually writes</td></tr><tr><td>B-4</td><td>bug</td><td>A truncated capture of the unit suite showed zero failures while the suite had failed four files. Captured output cannot be read for absence of failure</td></tr><tr><td>B-5</td><td>bug</td><td>The task-station verb cannot record any station on a plan whose tasks carry no status field — it edits an existing field and cannot create one — and it misreports the cause by naming the task it just called absent. This is what stopped the GitHub mirror above</td></tr><tr><td>B-6</td><td>bug</td><td>Two agents overwrote an older run&#x27;s checkpoint file because the runs tree is excluded from version control, so a search returns nothing and a live directory reads as free. The guard protects the digest in that directory but not the checkpoint</td></tr><tr><td>B-7</td><td>bug</td><td>An agent&#x27;s edit resolved a relative path against its process directory instead of its assigned worktree, briefly writing into the main checkout. It caught and reverted this itself</td></tr><tr><td>B-8</td><td>chore</td><td>A documentation task&#x27;s own checks passed while a repo-wide guard it had to not break was red. Every docs task touching a guarded file carries this hole</td></tr><tr><td>B-9</td><td>bug</td><td>The manual probe&#x27;s read-back builds its GraphQL query by string formatting instead of parameters, unlike every other call site. Reachable today only behind an operator-only flag on a host-only script, so nothing crosses a boundary — but it stops being safe the moment that function gets a second caller</td></tr><tr><td>B-10</td><td>chore</td><td>One legal configuration override key is exercised only at unit level on the backlog route; the criterion that binds it is fully covered elsewhere. A thin spot, not a gap</td></tr><tr><td>B-11</td><td>chore</td><td>Seven of the eight read-back rows are duplicated across two files with no drift protection; only this feature&#x27;s is guarded</td></tr><tr><td>B-12</td><td>chore</td><td>The backlog receipt is flat on disk while the plan&#x27;s prose describes it nested. Behaviour is unaffected; ratify one or correct the other</td></tr><tr><td>B-13</td><td>bug</td><td>The digest validator rejects a plan-phase review&#x27;s <code>code_grade: n_a</code> — the exact value the plan-phase panel is supposed to use</td></tr><tr><td>B-14</td><td>bug</td><td>A run digest cannot be repaired in place, so every malformed first write permanently costs a second run directory</td></tr><tr><td>B-15</td><td>chore</td><td>The plan-writing verb list omits <code>amend</code>, which every revision after the first needs</td></tr><tr><td>B-16</td><td>chore</td><td><code>amend --key</code> accepts only tasks and decisions, so an edit inside the panel block has no route</td></tr></tbody></table></div>
+<h2 id="what-happens-next">What happens next</h2>
+<p>Say ship and the main session merges, closes the mirror and files whichever backlog rows you leave standing. Nothing else is outstanding, and nothing is waiting on me.</p><p class='derived'>Derived from <code>ship-review-2026-09-05-02-eng.md</code> — the markdown is the record; do not edit this file. Regenerate with <code>bin/render-brief.py</code>.</p></div></body></html>

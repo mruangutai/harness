@@ -64,9 +64,12 @@ REPO IS PINNED, NEVER INFERRED. Every gh call passes --repo/-R from harness.json
 origin remote works right up until a fork or renamed remote publishes issues to the
 wrong org silently — the one failure here that is both outward-facing and quiet.
 
-LABELS DERIVE, MECHANICALLY (DEC-138): change_type config/scaffolding/infra/ci
--> `chore`; bugfix -> `bug`; anything else unlabeled. `harness` marks provenance on
-every issue. No agent judgment at sync time.
+LABELS DERIVE, MECHANICALLY (DEC-138), AS THE COMPATIBILITY PATH: change_type
+config/scaffolding/infra/ci -> `chore`; bugfix -> `bug`; anything else unlabeled.
+`harness` marks provenance on every issue. No agent judgment at sync time. Where the
+target repository declares native GitHub Issue Types instead (FEAT-55), every issue
+this file creates is typed from the mapping in `gh_issue_types.py` and the bug/chore
+labels above are not applied — the label derivation above is what runs when it does not.
 
 IDEMPOTENT. `open` records issue numbers into feature.json (`github:` block) as it
 creates; a re-run (resume after interruption — DEC-131 taught us flows die mid-step)
@@ -86,6 +89,7 @@ _BIN_DIR = os.path.dirname(os.path.realpath(__file__))
 sys.path.insert(0, _BIN_DIR)
 from gh_issues import (internal_id_args, attach_sub_issue_args, sub_issues_args,
                        detach_sub_issue_args)
+import gh_issue_types
 
 import feature_json_write
 import harness_merge
@@ -218,7 +222,7 @@ def gh_try(args):
 # ---------- config ----------
 
 def load_config(root):
-    """Return `(repo, board)`. `board` is `gh_board.load_board(root)` — a dict, or None when
+    """Return `(repo, board, issue_types)`. `board` is `gh_board.load_board(root)` — a dict, or None when
     `github.board` is an EXPLICIT null. An explicit null is the ONLY environmental precondition
     left (D-02, D-07): the issue lifecycle (open, abandon, ship)
     still runs; only station writes are skipped.
@@ -248,7 +252,8 @@ def load_config(root):
     board = gh_board.load_board(root)
     if board is None:
         print("gh-sync: no github.board configured — station writes are not attempted")
-    return repo, board
+    issue_types = gh_issue_types.overrides_from_config(cfg)
+    return repo, board, issue_types
 
 
 def _feature_station(feat_dir):
@@ -557,6 +562,12 @@ def load_recorded(feat_dir):
             if n is not None and re.fullmatch(r"T-\d+", str(k).strip()):
                 rec["issues"][str(k).strip()] = n
 
+    # PROVENANCE READS THE SAME WAY "issues" DOES, AND ABSENCE MEANS UNKNOWN (D-20): a
+    # `typed` key missing from a pre-FEAT-55 receipt is NOT a backfill candidate — it
+    # is unknown provenance, and stays that way forever.
+    typed = gh.get("typed")
+    rec["typed"] = dict(typed) if isinstance(typed, dict) else {}
+
     # T-02 (FEAT-26): source_issues is a MIRROR of plan.yaml's own top-level field (D-01 of
     # that task — the plan is truth, feature.json just reflects it), so a malformed value
     # here does not put issue creation at risk: a non-list value, or a non-integer member,
@@ -861,6 +872,13 @@ def save_recorded(feat_dir, rec):
             "issues": dict(sorted(rec["issues"].items())),
             "source_issues": list(rec["source_issues"]),
         }
+        # PROVENANCE IS RECORDED POSITIVELY (D-20): an absent or empty `typed` mapping
+        # means nothing has been created under native Issue Types on this route, and
+        # the key is omitted so a compatibility-mode receipt stays byte-identical to
+        # today's — the same tolerance `load_recorded` applies on the read side.
+        typed = rec.get("typed")
+        if typed:
+            doc["github"]["typed"] = dict(sorted(typed.items()))
         return json.dumps(doc, indent=2) + "\n"
 
     feature_json_write.write_feature_json(p, transform)
@@ -892,47 +910,144 @@ def finished_stations():
     return ("done", factory_config.TERMINAL_MARKER)
 
 
-def cmd_open(feat_dir, repo, parent_arg=None):
-    brief, tasks, rec = parse_brief(feat_dir), parse_tasks(feat_dir), load_recorded(feat_dir)
-    # T-02 (FEAT-26): refreshed from the plan on EVERY run — a re-plan that changes the
-    # source tickets is picked up by a re-run, because the plan is the truth and
-    # feature.json's github.source_issues is only ever the mirror.
-    rec["source_issues"] = parse_source_issues(feat_dir)
-    ensure_labels(repo, {"harness"} | {l for tk in tasks if (l := type_label(tk["change_type"]))})
+def detect_issue_types(repo):
+    """Detect ONCE PER INVOCATION, unconditionally, whether `repo` declares native
+    GitHub Issue Types (FEAT-55, REQ-05). Prints exactly one line when the state is
+    not "available" and NEVER calls `skip()` or exits — the absence of issue types
+    must not fail a run."""
+    r = subprocess.run([GH] + gh_issue_types.capability_query_args(repo),
+                        capture_output=True, text=True)
+    state, declared, message = gh_issue_types.classify_capability(r.returncode, r.stdout)
+    if state == "absent":
+        print(f"gh-sync: issue types unavailable on {repo} - labels only")
+    elif state == "query_failed":
+        print(f"gh-sync: issue types could not be determined on {repo} ({message}) - labels only")
+    return state, declared, message
 
-    if rec["milestone"] is None:
-        desc = (f"{brief['problem']}\n\n**Goal:** {brief['goal']}\n\n## Definition of done\n"
-                + "\n".join(f"- [ ] {sid}: {txt}" for sid, txt in brief["scs"]))
-        r = subprocess.run([GH, "api", "-X", "POST", f"repos/{repo}/milestones",
-                            "-f", f"title={brief['feat']}", "-f", f"description={desc}"],
-                           capture_output=True, text=True)
-        if r.returncode == 0:
-            rec["milestone"] = json.loads(r.stdout)["number"]
-            print(f"gh-sync: milestone #{rec['milestone']} created for {brief['feat']}")
-        else:
-            # LIVE SMOKE FINDING #3: 422 when the title already exists — a previous run
-            # created it and died before recording (or a human made one). Resolve by
-            # lookup instead of failing; anything else is a real environmental skip.
-            out = gh(["api", f"repos/{repo}/milestones", "-q",
-                      f'[.[] | select(.title == "{brief["feat"]}") | .number] | first'])
-            if not out or out == "null":
-                skip(f"milestone create failed and no existing one matches: "
-                     f"{(r.stderr or r.stdout).strip()[:200]}")
-            rec["milestone"] = int(out)
-            print(f"gh-sync: milestone #{rec['milestone']} recovered by title lookup")
-        # LIVE SMOKE FINDING #2: record the milestone IMMEDIATELY. The first live run
-        # created it, hit a downstream failure, exited before saving — and the re-run
-        # 422'd on the orphan. The record-after-every-create rule applies to the
-        # milestone too, not just issues (DEC-131, applied fully this time).
+
+def _parent_needs_type(rec, parent_arg):
+    """True when the parent will be CREATED this run, or is an already-recorded
+    "created" remnant section 6's backfill must still type (D-18, D-20). False when
+    the parent is already recorded or is being adopted through --parent — an adopted
+    parent is never typed (section 7)."""
+    if rec["parent"] is None and parent_arg is None:
+        return True
+    return rec.get("typed", {}).get("parent") == "created"
+
+
+def _task_needs_type(task, rec):
+    """True when this task sub-issue will be CREATED this run, or is an already-recorded
+    "created" remnant the backfill must still type."""
+    tid = task["id"]
+    if tid not in rec["issues"] and task.get("status") != factory_config.TERMINAL_MARKER:
+        return True
+    return rec.get("typed", {}).get(tid) == "created"
+
+
+def _required_issue_types(tasks, rec, parent_arg, issue_types):
+    """The native type NAMES this invocation needs declared, mapped to the CANONICAL
+    override key ("Bug"/"Feature"/"Task"/"parent") that produced each — every type
+    this run will CREATE, plus every already-recorded key section 6's backfill will
+    type. Raises `gh_issue_types.UnknownWorkNature` for an unmapped change_type."""
+    required = {}
+    if _parent_needs_type(rec, parent_arg):
+        required[gh_issue_types.type_for_parent(issue_types)] = gh_issue_types.PARENT_KEY
+    for task in tasks:
+        if not _task_needs_type(task, rec):
+            continue
+        name = gh_issue_types.type_for_change_type(task["change_type"], issue_types)
+        required[name] = gh_issue_types.DEFAULT_TYPE_BY_CHANGE_TYPE[task["change_type"]]
+    return required
+
+
+def _refuse_undeclared_issue_types(repo, tasks, rec, parent_arg, issue_types, declared):
+    """REQ-07: refuse before ANY issue create or type-apply when a required type name
+    is not declared by `repo`. An unmapped change_type is a caller error and refuses
+    the same way — exit 2, before any create."""
+    try:
+        required = _required_issue_types(tasks, rec, parent_arg, issue_types)
+    except gh_issue_types.UnknownWorkNature as exc:
+        print(str(exc), file=sys.stderr)
+        sys.exit(2)
+    missing = gh_issue_types.missing_types(set(required), declared)
+    if not missing:
+        return
+    for name in missing:
+        print(gh_issue_types.refusal_text(repo, name, required[name]), file=sys.stderr)
+    sys.exit(2)
+
+
+def apply_issue_type(repo, number, type_id):
+    """Apply a native Issue Type to an already-created issue (D-14): read its node id,
+    then `updateIssue` it through the GraphQL mutation. Both calls go through `gh()`,
+    so a failure here is the same environmental SKIP as any other gh() call in this
+    file — never a gate."""
+    node_id = gh(gh_issue_types.node_id_args(repo, number))
+    gh(gh_issue_types.apply_type_args(node_id, type_id), capture=False)
+
+
+def _backfill_issue_types(feat_dir, repo, tasks, rec, issue_types, declared):
+    """Apply the type for every key whose recorded provenance is EXACTLY "created" —
+    freshly created this run, or a remnant from a crashed prior one — then promote it
+    to True. NEVER creates, deletes, closes or searches for anything: every number
+    comes from the local receipt only (D-10, D-20). Runs only after the refusal check
+    in `_refuse_undeclared_issue_types` has passed."""
+    typed = rec["typed"]
+    if typed.get("parent") == "created":
+        type_id = declared[gh_issue_types.type_for_parent(issue_types)]
+        apply_issue_type(repo, rec["parent"], type_id)
+        typed["parent"] = True
         save_recorded(feat_dir, rec)
-    else:
-        print(f"gh-sync: milestone #{rec['milestone']} already recorded — skipping")
+    for task in tasks:
+        tid = task["id"]
+        if tid in rec["issues"] and typed.get(tid) == "created":
+            type_id = declared[gh_issue_types.type_for_change_type(task["change_type"], issue_types)]
+            apply_issue_type(repo, rec["issues"][tid], type_id)
+            typed[tid] = True
+            save_recorded(feat_dir, rec)
 
-    # D-01: the parent is adopted-or-created, its number recorded, never discovered.
+
+
+def _open_ensure_milestone(feat_dir, repo, brief, rec):
+    """The milestone half of `cmd_open`: create-or-recover, recording immediately."""
+    if rec["milestone"] is not None:
+        print(f"gh-sync: milestone #{rec['milestone']} already recorded — skipping")
+        return
+    desc = (f"{brief['problem']}\n\n**Goal:** {brief['goal']}\n\n## Definition of done\n"
+            + "\n".join(f"- [ ] {sid}: {txt}" for sid, txt in brief["scs"]))
+    r = subprocess.run([GH, "api", "-X", "POST", f"repos/{repo}/milestones",
+                        "-f", f"title={brief['feat']}", "-f", f"description={desc}"],
+                       capture_output=True, text=True)
+    if r.returncode == 0:
+        rec["milestone"] = json.loads(r.stdout)["number"]
+        print(f"gh-sync: milestone #{rec['milestone']} created for {brief['feat']}")
+    else:
+        # LIVE SMOKE FINDING #3: 422 when the title already exists — a previous run
+        # created it and died before recording (or a human made one). Resolve by
+        # lookup instead of failing; anything else is a real environmental skip.
+        out = gh(["api", f"repos/{repo}/milestones", "-q",
+                  f'[.[] | select(.title == "{brief["feat"]}") | .number] | first'])
+        if not out or out == "null":
+            skip(f"milestone create failed and no existing one matches: "
+                 f"{(r.stderr or r.stdout).strip()[:200]}")
+        rec["milestone"] = int(out)
+        print(f"gh-sync: milestone #{rec['milestone']} recovered by title lookup")
+    # LIVE SMOKE FINDING #2: record the milestone IMMEDIATELY. The first live run
+    # created it, hit a downstream failure, exited before saving — and the re-run
+    # 422'd on the orphan. The record-after-every-create rule applies to the
+    # milestone too, not just issues (DEC-131, applied fully this time).
+    save_recorded(feat_dir, rec)
+
+
+def _open_ensure_parent(feat_dir, repo, brief, rec, parent_arg, state):
+    """The parent half of `cmd_open`: adopted-or-created, its number recorded, never
+    discovered (D-01). An adopted parent is marked "adopted" and never typed (section 7)."""
     if rec["parent"] is not None:
         print(f"gh-sync: parent #{rec['parent']} already recorded — skipping")
     elif parent_arg is not None:
         rec["parent"] = int(parent_arg)
+        if state == "available":
+            rec["typed"]["parent"] = "adopted"
         save_recorded(feat_dir, rec)   # DEC-131: record immediately, same call as the number
         print(f"gh-sync: parent #{rec['parent']} adopted")
     else:
@@ -941,42 +1056,85 @@ def cmd_open(feat_dir, repo, parent_arg=None):
         url = gh(["issue", "create", "--repo", repo, "--title", title,
                   "--body", body, "--label", "harness"])
         rec["parent"] = int(url.rstrip("/").rsplit("/", 1)[-1])
+        if state == "available":
+            rec["typed"]["parent"] = "created"
         save_recorded(feat_dir, rec)
         print(f"gh-sync: parent #{rec['parent']} created")
 
-    for task in tasks:
-        if task.get("status") == factory_config.TERMINAL_MARKER:
-            print(f"gh-sync: {task['id']} is abandoned — no sub-issue created")
-            continue
-        if task["id"] in rec["issues"]:
-            print(f"gh-sync: {task['id']} already issue #{rec['issues'][task['id']]} — skipping")
-        else:
-            body = task["body"]
-            if task["absorbs"]:
-                body += "\n\nabsorbs: " + ", ".join(f"#{n}" for n in task["absorbs"])
-            labels = ["harness"] + ([type_label(task["change_type"])] if type_label(task["change_type"]) else [])
-            args = ["issue", "create", "--repo", repo,
-                    "--title", f"{brief['feat']} — {task['id']} — {task['title']}", "--body", body,
-                    "--milestone", brief["feat"]]
-            for l in labels:
-                args += ["--label", l]
-            url = gh(args)
-            num = int(url.rstrip("/").rsplit("/", 1)[-1])
-            rec["issues"][task["id"]] = num
-            save_recorded(feat_dir, rec)   # after EVERY create — a crash mid-loop must not orphan issues
-            print(f"gh-sync: {task['id']} -> issue #{num} [{', '.join(labels)}]")
 
-        # Attach to the parent — a separate receipt from the create, so a crash between
-        # recording the issue and attaching it is resumed rather than repeated or lost.
-        if task["id"] in rec["attached"]:
-            continue
-        child_num = rec["issues"][task["id"]]
-        child_id = gh(internal_id_args(repo, child_num))
-        gh(attach_sub_issue_args(repo, rec["parent"], child_id), capture=False)
-        rec["attached"].append(task["id"])
-        save_recorded(feat_dir, rec)
-        print(f"gh-sync: {task['id']} (issue #{child_num}) attached to parent #{rec['parent']}")
+def _open_create_task(feat_dir, repo, brief, rec, task, state):
+    """Create TASK's sub-issue when it is not yet recorded (section 5's label rule)."""
+    body = task["body"]
+    if task["absorbs"]:
+        body += "\n\nabsorbs: " + ", ".join(f"#{n}" for n in task["absorbs"])
+    if state == "available":
+        labels = ["harness"]
+    else:
+        labels = ["harness"] + ([type_label(task["change_type"])] if type_label(task["change_type"]) else [])
+    args = ["issue", "create", "--repo", repo,
+            "--title", f"{brief['feat']} — {task['id']} — {task['title']}", "--body", body,
+            "--milestone", brief["feat"]]
+    for l in labels:
+        args += ["--label", l]
+    url = gh(args)
+    num = int(url.rstrip("/").rsplit("/", 1)[-1])
+    rec["issues"][task["id"]] = num
+    if state == "available":
+        rec["typed"][task["id"]] = "created"
+    save_recorded(feat_dir, rec)   # after EVERY create — a crash mid-loop must not orphan issues
+    print(f"gh-sync: {task['id']} -> issue #{num} [{', '.join(labels)}]")
+
+
+def _open_attach_task(feat_dir, repo, rec, task):
+    """Attach TASK's already-recorded sub-issue to the parent — a separate receipt from
+    the create, so a crash between recording the issue and attaching it is resumed
+    rather than repeated or lost."""
+    if task["id"] in rec["attached"]:
+        return
+    child_num = rec["issues"][task["id"]]
+    child_id = gh(internal_id_args(repo, child_num))
+    gh(attach_sub_issue_args(repo, rec["parent"], child_id), capture=False)
+    rec["attached"].append(task["id"])
     save_recorded(feat_dir, rec)
+    print(f"gh-sync: {task['id']} (issue #{child_num}) attached to parent #{rec['parent']}")
+
+
+def _open_sync_task(feat_dir, repo, brief, rec, task, state):
+    """One task's whole sync step: skip abandoned, create-or-skip, then attach."""
+    if task.get("status") == factory_config.TERMINAL_MARKER:
+        print(f"gh-sync: {task['id']} is abandoned — no sub-issue created")
+        return
+    if task["id"] in rec["issues"]:
+        print(f"gh-sync: {task['id']} already issue #{rec['issues'][task['id']]} — skipping")
+    else:
+        _open_create_task(feat_dir, repo, brief, rec, task, state)
+    _open_attach_task(feat_dir, repo, rec, task)
+
+
+def cmd_open(feat_dir, repo, parent_arg=None, issue_types=None):
+    issue_types = issue_types or {}
+    state, declared, _message = detect_issue_types(repo)
+    brief, tasks, rec = parse_brief(feat_dir), parse_tasks(feat_dir), load_recorded(feat_dir)
+    # T-02 (FEAT-26): refreshed from the plan on EVERY run — a re-plan that changes the
+    # source tickets is picked up by a re-run, because the plan is the truth and
+    # feature.json's github.source_issues is only ever the mirror.
+    rec["source_issues"] = parse_source_issues(feat_dir)
+    rec.setdefault("typed", {})
+
+    if state == "available":
+        _refuse_undeclared_issue_types(repo, tasks, rec, parent_arg, issue_types, declared)
+        ensure_labels(repo, {"harness"})
+    else:
+        ensure_labels(repo, {"harness"} | {l for tk in tasks if (l := type_label(tk["change_type"]))})
+
+    _open_ensure_milestone(feat_dir, repo, brief, rec)
+    _open_ensure_parent(feat_dir, repo, brief, rec, parent_arg, state)
+    for task in tasks:
+        _open_sync_task(feat_dir, repo, brief, rec, task, state)
+    save_recorded(feat_dir, rec)
+
+    if state == "available":
+        _backfill_issue_types(feat_dir, repo, tasks, rec, issue_types, declared)
 
 
 def _projected_for(feat_dir, rec):
@@ -1407,26 +1565,181 @@ def cmd_abandon(feat_dir, repo, board, reason_file, yes=False):
     _record_station(feat_dir, factory_config.TERMINAL_MARKER)
 
 
-def cmd_backlog(feat_dir, repo, items):
-    """User-accepted residual findings -> plain backlog issues (DEC-138).
+def _backlog_receipt_path(feat_dir):
+    return os.path.join(feat_dir, "backlog-issues.json")
+
+
+def _load_backlog_receipt(feat_dir):
+    """backlog-issues.json (T-06, REQ-08): net-new, present ONLY on the available path
+    (D-13 as amended — compatibility mode never creates or reads it). Absent, empty or
+    non-mapping content reads as {}: this file has no legacy caller and no schema of its
+    own to enforce a louder refusal against, unlike load_recorded's feature.json."""
+    path = _backlog_receipt_path(feat_dir)
+    if not os.path.exists(path):
+        return {}
+    with open(path, encoding="utf-8") as f:
+        text = f.read()
+    if not text.strip():
+        return {}
+    try:
+        doc = json.loads(text)
+    except ValueError:
+        return {}
+    return doc if isinstance(doc, dict) else {}
+
+
+def _save_backlog_entry(feat_dir, key, entry):
+    """Merge one item's entry into backlog-issues.json through harness_merge.locked_update
+    DIRECTLY (T-06 intent section 5) — the same fcntl lock, same-directory tempfile, fsync
+    and os.replace load_recorded/save_recorded already use in this file for feature.json,
+    never a second lock or rename primitive and never a truncating open(path, "w"). A
+    crash mid-write leaves the receipt byte-identical to its previous content or
+    completely written — never truncated, because a reader that observes an empty receipt
+    re-creates issues that already exist (the exact defect gh-sync.py:441-449 documents)."""
+    path = _backlog_receipt_path(feat_dir)
+
+    def transform(base):
+        doc = {}
+        if base:
+            try:
+                loaded = json.loads(base.decode("utf-8"))
+            except ValueError:
+                loaded = None
+            if isinstance(loaded, dict):
+                doc = loaded
+        doc[key] = entry
+        return (json.dumps(doc, indent=2) + "\n").encode("utf-8")
+
+    harness_merge.locked_update(path, transform)
+
+
+def _parse_backlog_items(items):
+    """Validate every item BEFORE any creation (section 3): a bad nature or empty title
+    dies exactly as today, but over the WHOLE list first — never part way through a
+    create loop."""
+    parsed = []
+    for item in items:
+        nature, _, title = item.partition(":")
+        title = title.strip()
+        if nature not in ("bug", "chore", "enhancement") or not title:
+            die(f"backlog item must be nature:title (bug|chore|enhancement), got {item!r}")
+        parsed.append((nature, title, f"{nature}:{title}"))
+    return parsed
+
+
+def _required_backlog_issue_types(parsed, rec, issue_types):
+    """The native type NAMES this backlog invocation needs declared, mapped to the
+    canonical override key ("Bug"/"Feature"/"Task") that produced each — every item this
+    run will CREATE, plus every already-recorded item whose typed value is not yet True
+    (a crashed prior run's remnant — case H is the discriminating test). Raises
+    gh_issue_types.UnknownWorkNature for an unmapped nature."""
+    required = {}
+    for nature, _title, key in parsed:
+        entry = rec.get(key)
+        if isinstance(entry, dict) and entry.get("typed") is True:
+            continue
+        name = gh_issue_types.type_for_nature(nature, issue_types)
+        required[name] = gh_issue_types.DEFAULT_TYPE_BY_NATURE[nature]
+    return required
+
+
+def _refuse_undeclared_backlog_types(repo, parsed, rec, issue_types, declared):
+    """REQ-07 on the backlog route: refuse before ANY issue create or type-apply when a
+    required type name is not declared by `repo` — computed over the WHOLE item list,
+    already-recorded remnants included, before any create and before any type-apply."""
+    try:
+        required = _required_backlog_issue_types(parsed, rec, issue_types)
+    except gh_issue_types.UnknownWorkNature as exc:
+        print(str(exc), file=sys.stderr)
+        sys.exit(2)
+    missing = gh_issue_types.missing_types(set(required), declared)
+    if not missing:
+        return
+    for name in missing:
+        print(gh_issue_types.refusal_text(repo, name, required[name]), file=sys.stderr)
+    sys.exit(2)
+
+
+def _backlog_create(feat_dir, repo, feat, nature, title, key, state):
+    """Create one backlog item's issue (section 4's label rule) and, on the available
+    path only, record it immediately with typed false (DEC-131's record-after-every-
+    create rule) — never on the compatibility path, which has no receipt at all."""
+    if state == "available":
+        labels = ["harness"]
+    else:
+        labels = ["harness"] + ([nature] if nature != "enhancement" else [])
+    args = ["issue", "create", "--repo", repo, "--title", title,
+            "--body", f"Residual finding from {feat}, accepted at the ship briefing."]
+    for l in labels:
+        args += ["--label", l]
+    url = gh(args)
+    number = int(url.rstrip("/").rsplit("/", 1)[-1])
+    if state == "available":
+        _save_backlog_entry(feat_dir, key, {"number": number, "typed": False})
+    print(f"gh-sync: backlog issue #{number} [{', '.join(labels)}] — {title}")
+
+
+def _backlog_create_or_skip(feat_dir, repo, feat, nature, title, key):
+    """Available-path create-or-skip (section 5): read the receipt fresh at the top of
+    this item's step; an item already recorded with a number is never re-created and
+    never re-read from GitHub — the local receipt is the only key."""
+    rec = _load_backlog_receipt(feat_dir)
+    entry = rec.get(key)
+    if isinstance(entry, dict) and "number" in entry:
+        print(f"gh-sync: backlog item {key!r} already issue #{entry['number']} — skipping")
+        return
+    _backlog_create(feat_dir, repo, feat, nature, title, key, "available")
+
+
+def _backlog_apply_type(feat_dir, repo, key, nature, issue_types, declared):
+    """Available-path backfill (section 5), run AFTER every item has had its create-or-
+    skip step: apply the type for every item whose recorded typed value is not exactly
+    True — freshly created this run, or a remnant from a crashed prior one — then promote
+    it to True. Reads fresh so a create just recorded above is what this sees."""
+    rec = _load_backlog_receipt(feat_dir)
+    entry = rec.get(key)
+    if not isinstance(entry, dict) or entry.get("typed") is True:
+        return
+    type_id = declared[gh_issue_types.type_for_nature(nature, issue_types)]
+    apply_issue_type(repo, entry["number"], type_id)
+    entry["typed"] = True
+    _save_backlog_entry(feat_dir, key, entry)
+
+
+def cmd_backlog(feat_dir, repo, items, issue_types=None):
+    """User-accepted residual findings -> plain backlog issues (DEC-138, FEAT-55 T-06).
 
     Called by the MAIN SESSION after the briefing decision, with one arg per accepted
     residual as `nature:title` (nature: bug|chore|enhancement). No milestone — these
     belong to no feature yet; a later plan cycle may absorb them. This is the only
     entry point for findings: digests never write to GitHub directly.
+
+    Detection runs ONCE PER INVOCATION, unconditionally, as the FIRST statement — before
+    any validation and before the item loop (section 2). Where the repo does not declare
+    native Issue Types, this behaves byte for byte as it always has: no receipt is read
+    or written, no item is ever skipped, and a rerun duplicates exactly as it does today
+    (D-13, section 5) — a net-new file plus duplicate suppression on that path was never
+    granted. Creation happens for every item BEFORE any type is applied (a two-phase
+    split, matching cmd_open/_backfill_issue_types): a type-apply failure aborts the
+    whole invocation the same way any other gh() failure does, and must not orphan a
+    later item's create.
     """
+    state, declared, _message = detect_issue_types(repo)
+    issue_types = issue_types or {}
     feat = os.path.basename(os.path.abspath(feat_dir))
-    for item in items:
-        nature, _, title = item.partition(":")
-        if nature not in ("bug", "chore", "enhancement") or not title.strip():
-            die(f"backlog item must be nature:title (bug|chore|enhancement), got {item!r}")
-        labels = ["harness"] + ([nature] if nature != "enhancement" else [])
-        args = ["issue", "create", "--repo", repo, "--title", title.strip(),
-                "--body", f"Residual finding from {feat}, accepted at the ship briefing."]
-        for l in labels:
-            args += ["--label", l]
-        url = gh(args)
-        print(f"gh-sync: backlog issue #{url.rstrip('/').rsplit('/', 1)[-1]} [{', '.join(labels)}] — {title.strip()}")
+    parsed = _parse_backlog_items(items)
+
+    if state != "available":
+        for nature, title, key in parsed:
+            _backlog_create(feat_dir, repo, feat, nature, title, key, state)
+        return
+
+    rec = _load_backlog_receipt(feat_dir)
+    _refuse_undeclared_backlog_types(repo, parsed, rec, issue_types, declared)
+    for nature, title, key in parsed:
+        _backlog_create_or_skip(feat_dir, repo, feat, nature, title, key)
+    for nature, _title, key in parsed:
+        _backlog_apply_type(feat_dir, repo, key, nature, issue_types, declared)
 
 
 def cmd_ship(feat_dir, repo, board, body_file=None, pr_arg=None):
@@ -1750,7 +2063,7 @@ def main():
         # assertion (no fixed join-climb as the PRIMARY derivation) stays meaningful
         root = os.path.dirname(os.path.dirname(os.path.dirname(_abs)))
     try:
-        repo, board = load_config(root)
+        repo, board, issue_types = load_config(root)
     except factory_config.FleetError as e:
         # An unusable board declaration is a LOUD failure of the whole invocation (D-01,
         # D-02, D-07) — never a printed note followed by business as usual. Exit code 2
@@ -1764,7 +2077,7 @@ def main():
         print(f"gh-sync: {e}", file=sys.stderr)
         sys.exit(2)
     if cmd == "open":
-        cmd_open(feat_dir, repo, parent_arg)
+        cmd_open(feat_dir, repo, parent_arg, issue_types)
     elif cmd == "start-task":
         if len(argv) < 3:
             die("start-task needs a T-NN")
@@ -1776,7 +2089,7 @@ def main():
     elif cmd == "backlog":
         if len(argv) < 3:
             die("backlog needs at least one nature:title item")
-        cmd_backlog(feat_dir, repo, argv[2:])
+        cmd_backlog(feat_dir, repo, argv[2:], issue_types)
     elif cmd == "record-pr":
         _record_pr(feat_dir, repo, pr_arg)
     elif cmd == "status":

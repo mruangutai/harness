@@ -1,0 +1,259 @@
+{
+  "feature_id": "FEAT-55-issue-types-created-work",
+  "branch": "feat/issue-1289-issue-types",
+  "pr": null,
+  "review_sha": "76ba5f41b655ad1000291cf88fd4228a916164ef",
+  "cycles_used": 13,
+  "max_total_cycles": 13,
+  "max_total_runs": 40,
+  "runs": [
+    {
+      "id": "2026-09-04-01-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-pm"
+    },
+    {
+      "id": "2026-09-04-01-eng",
+      "squad": "eng",
+      "verdict": "PASS",
+      "agent": "harness-backend-dev"
+    },
+    {
+      "id": "2026-09-04-1-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-pm"
+    },
+    {
+      "id": "2026-09-04-04-product",
+      "squad": "product",
+      "verdict": "FAIL",
+      "agent": "harness-pm"
+    },
+    {
+      "id": "2026-09-04-05-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-pm"
+    },
+    {
+      "id": "2026-09-04-06-product",
+      "squad": "product",
+      "verdict": "FAIL",
+      "agent": "harness-pm"
+    },
+    {
+      "id": "2026-09-04-07-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-pm"
+    },
+    {
+      "id": "2026-09-04-08-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-pm"
+    },
+    {
+      "id": "2026-09-04-09-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-pm"
+    },
+    {
+      "id": "2026-09-04-10-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-pm"
+    },
+    {
+      "id": "2026-09-04-11-validator",
+      "squad": "validator",
+      "verdict": "FAIL",
+      "agent": "harness-code-reviewer",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-04-12-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-pm"
+    },
+    {
+      "id": "2026-09-04-13-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-pm"
+    },
+    {
+      "id": "2026-09-04-14-validator",
+      "squad": "validator",
+      "verdict": "FAIL",
+      "agent": "harness-code-reviewer",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-04-15-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-pm"
+    },
+    {
+      "id": "2026-09-04-16-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-pm"
+    },
+    {
+      "id": "2026-09-04-17-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-pm"
+    },
+    {
+      "id": "2026-09-04-18-validator",
+      "squad": "validator",
+      "verdict": "FAIL",
+      "agent": "harness-code-reviewer",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-04-20-validator",
+      "squad": "validator",
+      "verdict": "ESCALATE",
+      "agent": "fable-advisor",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-04-21-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-pm"
+    },
+    {
+      "id": "2026-09-04-22-validator",
+      "squad": "validator",
+      "verdict": "PASS",
+      "agent": "fable-advisor",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-05-23-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-pm"
+    },
+    {
+      "id": "2026-09-05-24-product",
+      "squad": "product",
+      "verdict": "FAIL",
+      "agent": "harness-pm"
+    },
+    {
+      "id": "2026-09-05-25-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-pm"
+    },
+    {
+      "id": "2026-09-05-27-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-pm"
+    },
+    {
+      "id": "2026-09-05-27-validator",
+      "squad": "validator",
+      "verdict": "PASS",
+      "agent": "harness-code-reviewer",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-05-28-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-pm"
+    },
+    {
+      "id": "2026-09-05-28-validator",
+      "squad": "validator",
+      "verdict": "PASS",
+      "agent": "fable-advisor",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-05-c8-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-pm"
+    },
+    {
+      "id": "2026-09-05-02-validator",
+      "squad": "validator",
+      "verdict": "PASS",
+      "agent": "harness-code-reviewer",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-05-01-eng",
+      "squad": "eng",
+      "verdict": "BLOCKED",
+      "agent": "harness-eng-lead"
+    },
+    {
+      "id": "2026-09-05-01-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-documentor"
+    },
+    {
+      "id": "2026-09-05-29-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead"
+    },
+    {
+      "id": "2026-09-05-02-eng",
+      "squad": "eng",
+      "verdict": "PASS",
+      "agent": "harness-eng-lead"
+    },
+    {
+      "id": "2026-09-05-01-validator",
+      "squad": "validator",
+      "verdict": "FAIL",
+      "agent": "harness-validator-lead"
+    },
+    {
+      "id": "2026-09-05-03-eng",
+      "squad": "eng",
+      "verdict": "PASS",
+      "agent": "harness-eng-lead"
+    },
+    {
+      "id": "2026-09-05-30-validator",
+      "squad": "validator",
+      "verdict": "FAIL",
+      "agent": "harness-validator-lead"
+    },
+    {
+      "id": "2026-09-05-31-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead"
+    },
+    {
+      "id": "2026-09-05-1-eng",
+      "squad": "eng",
+      "verdict": "PASS",
+      "agent": "harness-eng-lead"
+    },
+    {
+      "id": "2026-09-05-32-validator",
+      "squad": "validator",
+      "verdict": "PASS",
+      "agent": "harness-validator-lead"
+    }
+  ]
+}
