@@ -24,6 +24,7 @@ longer carries its own lock or replace primitive — see harness_merge.py's modu
 the lock dialect this tool now shares with plan-merge.py and observations-merge.py.
 """
 import argparse
+import json
 import os
 import re
 import sys
@@ -137,6 +138,277 @@ def compute_union(base_sections, base_order, prop_sections, prop_order):
                 seen.add(eid)
         merged[name] = merged_list
     return merged, order, conflicts
+
+
+# The distill contract's op verbs (BUG-1308, D-01, D-02). "merge" is deliberately absent: D-10
+# keeps it an authoring concept the contract rewrites into a replace plus a drop, never a verb
+# this tool applies.
+_OP_KEYS = {
+    "add": {"op", "target", "section", "entry", "why"},
+    "replace": {"op", "target", "section", "entry", "why"},
+    "drop": {"op", "target", "section", "why"},
+}
+
+
+def _malformed(index, message):
+    raise harness_merge.MergeRefusal(12, [f"MALFORMED OPS op index={index}: {message}"])
+
+
+def _validate_verb(op, index):
+    verb = op.get("op")
+    if verb == "merge":
+        raise harness_merge.MergeRefusal(
+            12,
+            ["MALFORMED OPS op=merge is not a mechanism op; express it as a replace on the "
+             "surviving id plus a drop of the absorbed id."],
+        )
+    if verb not in _OP_KEYS:
+        _malformed(index, f"unknown op verb {verb!r}; expected add, replace or drop")
+    return verb
+
+
+def _reject_multiline(value, index, field):
+    """VL-01: an entry/target carrying an embedded newline (`\\n`, `\\r`, or the `\\r\\n` pair
+    — this catches all three, since every one of them contains one of the two characters) would
+    become a real physical line once `render` writes it verbatim, forging fake section
+    headers/entries that `_check_caps` (D-07) never sees because it only ever counts parsed list
+    length. Refuse it here, at the single Step A shape gate, rather than at each of render's /
+    `_rebuild_section`'s write sites — the apply path's `render` must not carry this policy
+    SEC-01/F1 (fix cycle 2): the check below now refuses any value for which
+    `len(value.splitlines()) > 1` — the same boundary set `parse_expertise`'s `str.splitlines()`
+    call recognizes (as of this Python, `\\n \\r \\v \\f \\x1c \\x1d \\x1e \\x85 \\u2028 \\u2029`,
+    a superset of `\\n`/`\\r`) — so the validator and the parser share one definition of "a line"
+    and cannot diverge by construction, regardless of which characters a future Python release
+    adds to or removes from that set. The narrower `\\n`/`\\r` check retained below is now a
+    strict subset of this one and never fires on its own.
+    (REQ-07)."""
+    if "\n" in value or "\r" in value:
+        _malformed(index, f"{field} must be a single line")
+    if len(value.splitlines()) > 1:
+        _malformed(index, f"{field} must be a single line")
+
+
+def _validate_target_grammar(target, index):
+    """VL-06: refuse a `target` that `ENTRY_RE` would not parse back out unchanged from the
+    exact line `render` writes for it. Derived, not re-typed: this round-trips `target` through
+    `ENTRY_RE` itself via the synthetic line `f"- {target}: x"` `render` would produce, then
+    requires the anchored match's captured id equal `target` verbatim — never a second
+    hand-copied `[A-Za-z]{1,3}-\\d+` literal (REQ-07 forbids editing `ENTRY_RE`, and duplicating
+    its class is the VL-05 lesson this file already learned). `"PPPP-1"` fails to match at all;
+    `"P-01: fake prefix"` matches but captures `"P-01" != target`, so the containment vector
+    (a valid id embedded inside a longer target) is closed by the equality, not by a hand-rolled
+    anchor."""
+    match = ENTRY_RE.match(f"- {target}: x")
+    if not match or match.group(1) != target:
+        _malformed(index, f"target {target!r} does not match the entry id grammar")
+
+
+def _validate_target_section(op, index):
+    target = op.get("target")
+    if not target:
+        _malformed(index, "missing required key target")
+    if not isinstance(target, str):
+        _malformed(index, f"target must be a string, not {type(target).__name__}")
+    _reject_multiline(target, index, "target")
+    _validate_target_grammar(target, index)
+    section = op.get("section")
+    if not section:
+        _malformed(index, "missing required key section")
+    if section not in CAPS:
+        _malformed(index, f"section {section!r} is not one of Patterns, Gotchas, Outcomes, Open")
+    return section
+
+
+def _validate_entry_shape(entry, index):
+    """VL-02/VL-01 for the `entry` key: must be a string, and (VL-01) a single line."""
+    if not isinstance(entry, str):
+        _malformed(index, f"entry must be a string, not {type(entry).__name__}")
+    _reject_multiline(entry, index, "entry")
+
+
+def _validate_entry_and_keys(op, index, verb):
+    has_entry = "entry" in op
+    if verb in ("add", "replace") and not has_entry:
+        _malformed(index, "missing required key entry")
+    if verb == "drop" and has_entry:
+        _malformed(index, "forbidden key entry for op=drop")
+    if has_entry:
+        _validate_entry_shape(op["entry"], index)
+    extra = set(op.keys()) - _OP_KEYS[verb]
+    if extra:
+        _malformed(index, f"forbidden key {sorted(extra)[0]} for op={verb}")
+
+
+def _parse_op(op, index):
+    """Step A, shape. Returns (verb, target, section, entry_or_None). Raises
+    harness_merge.MergeRefusal(12, ...) for every shape violation; never mutates `op`."""
+    if not isinstance(op, dict):
+        _malformed(index, "op is not an object")
+    verb = _validate_verb(op, index)
+    section = _validate_target_section(op, index)
+    _validate_entry_and_keys(op, index, verb)
+    return verb, op["target"], section, op.get("entry")
+
+
+def _base_matches(base_sections, section, target):
+    """The list of base entries in `section` whose id equals `target`, in file order."""
+    return [eid for eid, _ in base_sections.get(section, []) if eid == target]
+
+
+def _check_base_ambiguity(matches, section, target):
+    """A target id appearing more than once in its own section is ambiguous regardless of verb
+    (D-03(a)); raises MergeRefusal(11) with the same line shape every verb shares."""
+    if len(matches) > 1:
+        raise harness_merge.MergeRefusal(
+            11,
+            [f"AMBIGUOUS TARGET section={section} id={target} "
+             f"reason=the id appears {len(matches)} times in section {section}"],
+        )
+
+
+def _resolve_replace_or_drop(base_sections, section, target):
+    """Step B for replace/drop: exactly one candidate must exist in the op's own section."""
+    matches = _base_matches(base_sections, section, target)
+    if not matches:
+        raise harness_merge.MergeRefusal(
+            10,
+            [f"MISSING TARGET section={section} id={target} "
+             "reason=no entry with this id exists in this section"],
+        )
+    _check_base_ambiguity(matches, section, target)
+
+
+def _resolve_add(base_sections, section, target, entry):
+    """Step B for add. A duplicated base id is refused as AMBIGUOUS TARGET(11) before either
+    outcome below is considered (D-03(a), VL-03) — matching replace/drop on the identical base
+    shape rather than silently resolving against whichever occurrence `dict()` keeps last.
+    Otherwise returns True when this add is a no-op PRESERVE (identical text already present);
+    raises MergeRefusal(7) — the existing CONFLICT line shape — when the id already holds
+    different text."""
+    matches = _base_matches(base_sections, section, target)
+    _check_base_ambiguity(matches, section, target)
+    if not matches:
+        return False
+    existing = dict(base_sections.get(section, []))
+    if existing[target] == entry:
+        return True
+    raise harness_merge.MergeRefusal(
+        7,
+        [
+            f"CONFLICT section={section} id={target}",
+            f"  existing text: {existing[target]}",
+            f"  proposed text: {entry}",
+        ],
+    )
+
+
+def _check_proposal_ambiguity(resolved):
+    """Step C: two ops resolving to the same (section, id) key, of any verb combination."""
+    seen = set()
+    for verb, section, target, entry, preserved in resolved:
+        key = (section, target)
+        if key in seen:
+            raise harness_merge.MergeRefusal(
+                11,
+                [f"AMBIGUOUS TARGET section={section} id={target} "
+                 "reason=two ops in one proposal name this target"],
+            )
+        seen.add(key)
+
+
+def _resolve_all(base_sections, parsed_ops):
+    """Steps B and C: every op resolves against the ORIGINAL base_sections, never against an
+    earlier op's result, before Step D applies anything."""
+    resolved = []
+    for verb, target, section, entry in parsed_ops:
+        if verb in ("replace", "drop"):
+            _resolve_replace_or_drop(base_sections, section, target)
+            preserved = False
+        else:
+            preserved = _resolve_add(base_sections, section, target, entry)
+        resolved.append((verb, section, target, entry, preserved))
+    _check_proposal_ambiguity(resolved)
+    return resolved
+
+
+def _rebuild_section(base_entries, section_ops, adds):
+    """The Step D invariant: walk the section's BASE entries in their original order, addressing
+    each by its (section, id) key, never by a position resolved earlier — then append this
+    section's adds, in proposal order. Never indexes into `base_entries` or `adds`."""
+    rebuilt = []
+    for eid, text in base_entries:
+        if eid in section_ops:
+            verb, new_text = section_ops[eid]
+            if verb == "replace":
+                rebuilt.append((eid, new_text))
+            # verb == "drop" -> emit nothing
+        else:
+            rebuilt.append((eid, text))
+    rebuilt.extend(adds)
+    return rebuilt
+
+
+def _apply_resolved(base_sections, base_order, resolved):
+    """Step D. A section every one of whose entries is dropped survives, empty, at its original
+    position in order; a section named only by an add is created and appended to order."""
+    ops_by_section = {}
+    adds_by_section = {}
+    for verb, section, target, entry, preserved in resolved:
+        if verb in ("replace", "drop"):
+            ops_by_section.setdefault(section, {})[target] = (verb, entry)
+        elif not preserved:
+            adds_by_section.setdefault(section, []).append((target, entry))
+
+    merged = {name: list(entries) for name, entries in base_sections.items()}
+    order = list(base_order)
+    for section in set(ops_by_section) | set(adds_by_section):
+        merged[section] = _rebuild_section(
+            base_sections.get(section, []),
+            ops_by_section.get(section, {}),
+            adds_by_section.get(section, []),
+        )
+        if section not in order:
+            order.append(section)
+    return merged, order
+
+
+def _check_caps(merged):
+    """Step E: caps evaluated once, on the final merged state (D-07)."""
+    for name, cap in CAPS.items():
+        size = len(merged.get(name, []))
+        if size > cap:
+            raise harness_merge.MergeRefusal(
+                8, [f"CAP EXCEEDED section={name} cap={cap} union_size={size}"]
+            )
+
+
+def _build_outcomes(resolved):
+    outcomes = []
+    for verb, section, target, entry, preserved in resolved:
+        if verb == "replace":
+            outcomes.append(("REPLACED", target))
+        elif verb == "drop":
+            outcomes.append(("DROPPED", target))
+        elif preserved:
+            outcomes.append(("PRESERVED", target))
+        else:
+            outcomes.append(("ADDED", target))
+    return outcomes
+
+
+def resolve_ops(base_sections, base_order, ops):
+    """PURE: no IO, no sys.exit, never mutates base_sections or base_order. Raises
+    harness_merge.MergeRefusal(code, lines) for every refusal (D-01..D-10). Returns
+    (merged, order, outcomes) where outcomes is the per-op verb in op order, paired with id."""
+    if not isinstance(ops, list):
+        raise harness_merge.MergeRefusal(
+            12, ["MALFORMED OPS payload is not a list; pass the expertise_update list itself"]
+        )
+    parsed_ops = [_parse_op(op, i) for i, op in enumerate(ops)]
+    resolved = _resolve_all(base_sections, parsed_ops)
+    merged, order = _apply_resolved(base_sections, base_order, resolved)
+    _check_caps(merged)
+    return merged, order, _build_outcomes(resolved)
 
 
 def default_title(file_path):
@@ -274,6 +546,58 @@ def cmd_apply(args):
     sys.exit(0)
 
 
+def cmd_ops(args):
+    """add/replace/drop against an Expertise file (D-01). Compatible with cmd_apply: same
+    destination refusal (exit 9, stderr), same lock file (D-09), refusal lines to stdout."""
+    file_path = args.file
+    try:
+        resolved = require_expertise_destination(file_path)
+    except harness_merge.MergeRefusal as refusal:
+        for line in refusal.lines:
+            print(line, file=sys.stderr)
+        sys.exit(refusal.code)
+
+    if args.ops == "-":
+        ops_text = sys.stdin.read()
+    else:
+        with open(args.ops, encoding="utf-8") as f:
+            ops_text = f.read()
+
+    result = {}
+
+    def transform(base_bytes):
+        try:
+            ops = json.loads(ops_text)
+        except json.JSONDecodeError as exc:
+            raise harness_merge.MergeRefusal(
+                12, [f"MALFORMED OPS could not decode JSON: {exc}"]
+            )
+
+        if base_bytes is not None:
+            title, base_sections, base_order, headers = parse_expertise(
+                base_bytes.decode("utf-8")
+            )
+        else:
+            title, base_sections, base_order, headers = None, {}, [], {}
+
+        merged, order, outcomes = resolve_ops(base_sections, base_order, ops)
+        result["outcomes"] = outcomes
+        out_title = title if title is not None else default_title(file_path)
+        return render(out_title, merged, order, headers).encode("utf-8")
+
+    try:
+        harness_merge.locked_update(resolved, transform)
+    except harness_merge.MergeRefusal as refusal:
+        for line in refusal.lines:
+            print(line)
+        sys.exit(refusal.code)
+
+    for verb, target in result.get("outcomes", []):
+        print(f"{verb} {target}")
+    print(f"APPLIED {file_path}")
+    sys.exit(0)
+
+
 def main():
     parser = argparse.ArgumentParser(prog="expertise-merge.py")
     sub = parser.add_subparsers(dest="cmd", required=True)
@@ -284,6 +608,15 @@ def main():
         "--entries", required=True, help="path to the proposed entries, or - for stdin"
     )
     p_apply.set_defaults(func=cmd_apply)
+
+    p_ops = sub.add_parser("ops", help="apply add/replace/drop ops to an Expertise file")
+    p_ops.add_argument("--file", required=True, help="path to the Expertise markdown file")
+    p_ops.add_argument(
+        "--ops",
+        required=True,
+        help="path to a JSON list of add/replace/drop ops, or - for stdin",
+    )
+    p_ops.set_defaults(func=cmd_ops)
 
     args = parser.parse_args()
     args.func(args)

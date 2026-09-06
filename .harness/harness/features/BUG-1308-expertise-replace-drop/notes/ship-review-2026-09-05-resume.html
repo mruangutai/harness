@@ -1,0 +1,86 @@
+<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>BUG-1308 — ship review</title><style>
+:root{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:ui-sans-serif,-apple-system,"Segoe UI","Helvetica Neue",Arial,sans-serif;
+}
+/* Token-level theming: components style through the tokens and never inside the
+   media query, so the viewer's explicit toggle can override the OS in BOTH
+   directions. */
+@media (prefers-color-scheme:dark){
+  :root{ --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+         --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733; }
+}
+:root[data-theme="dark"]{
+  --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+  --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733;
+}
+:root[data-theme="light"]{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+}
+*{box-sizing:border-box}
+body{margin:0; background:var(--paper); color:var(--ink);
+  font:400 16px/1.65 var(--sans); padding:clamp(1.5rem,5vw,4rem) clamp(1rem,5vw,2rem) 6rem}
+.wrap{max-width:56rem; margin:0 auto}
+/* Layout owns the spacing: gap between siblings, not per-element margins that
+   collapse or double. */
+.wrap{display:flex; flex-direction:column; gap:1rem}
+.eyebrow{font:500 11px/1 var(--mono); letter-spacing:.14em; text-transform:uppercase;
+  color:var(--quiet); margin:0}
+h1{font:600 clamp(1.6rem,4vw,2.3rem)/1.15 var(--sans); letter-spacing:-.02em;
+  margin:.4rem 0 .2rem; text-wrap:balance}
+h2{font:600 1.15rem/1.3 var(--sans); letter-spacing:-.01em; margin:2rem 0 0;
+  padding-top:1.25rem; border-top:1px solid var(--line); text-wrap:balance}
+h3{font:600 .98rem/1.4 var(--sans); margin:1.1rem 0 0}
+h4,h5,h6{font:500 11px/1.4 var(--mono); letter-spacing:.1em; text-transform:uppercase;
+  color:var(--quiet); margin:1rem 0 0}
+p,li{max-width:65ch; margin:0}
+ul,ol{margin:0; padding-left:1.4rem; display:flex; flex-direction:column; gap:.4rem}
+li>ul,li>ol{margin-top:.4rem}
+strong{font-weight:600}
+code{font:400 .875em/1.5 var(--mono); background:var(--sunk); padding:.1em .35em; border-radius:3px}
+pre{background:var(--sunk); border:1px solid var(--line); border-radius:6px;
+  padding:.85rem 1rem; overflow-x:auto; margin:0}
+pre code{background:none; padding:0}
+blockquote{margin:0; padding:.75rem 1rem; border-left:3px solid var(--accent);
+  background:var(--accent-soft); border-radius:0 5px 5px 0}
+blockquote p{max-width:none}
+hr{border:0; border-top:1px solid var(--line); margin:.5rem 0}
+/* Wide content pans inside its OWN container; the page body never scrolls sideways. */
+.scroll{overflow-x:auto; border:1px solid var(--line); border-radius:6px}
+table{border-collapse:collapse; width:100%; font-size:.9rem}
+th,td{text-align:left; padding:.6rem .8rem; border-bottom:1px solid var(--line); vertical-align:top}
+thead th{font:500 10px/1.3 var(--mono); letter-spacing:.11em; text-transform:uppercase;
+  color:var(--quiet); background:var(--sunk); white-space:nowrap}
+tbody tr:last-child td{border-bottom:0}
+/* Figures in a column line up. */
+td,th{font-variant-numeric:tabular-nums}
+.derived{color:var(--slate); font-size:.85rem; margin-top:2.5rem;
+  padding-top:1rem; border-top:1px solid var(--line)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style></head><body><div class='wrap'><p class='eyebrow'>Ship review · reading view</p><h1 id="bug-1308-ship-review">BUG-1308 — ship review</h1>
+<p><strong>Recommendation: SHIP.</strong> Validation is green, all fourteen success criteria are met, and the six defects found along the way are all closed and independently re-verified. Nothing gates.</p>
+<p><strong>Ship candidate:</strong> <code>433df52092834f4358de234449c736ae554738e9</code>, on <code>feat/BUG-1308-expertise-replace-drop</code>, merged onto latest <code>origin/main</code> (<code>0f885a0a</code>) with no conflicts. Branch clean. Cycles <strong>8 of 8 — budget exhausted</strong>, so any further gating finding stops the feature rather than buying a fix.</p>
+<p><strong>No report round was spawned</strong> (DEC-69). This briefing was assembled by reading these digests and notes directly:</p>
+<ul><li><code>runs/2026-09-05-01-eng/digest.md</code>, <code>runs/2026-09-05-02-validator/digest.md</code> (build, T-01/T-02)</li><li><code>runs/2026-09-05-t04-docs-product/digest.md</code>, <code>runs/2026-09-05-renumber-dec219-product/digest.md</code></li><li><code>runs/2026-09-05-qa-gate-validator/digest.md</code>, <code>runs/2026-09-05-simplify-eng/digest.md</code></li><li><code>runs/2026-09-05-2-eng/</code>, <code>runs/2026-09-05-3-eng/</code>, <code>runs/2026-09-05-e1b-product/digest.md</code></li><li><code>runs/2026-09-05-c4-validator/digest.md</code> (final panel), and pm&#x27;s goal-check note <code>notes/research-BUG-1308-expertise-replace-drop-goalcheck-sc-c4.md</code></li><li>The plan-phase digests under <code>runs/2026-09-05-plan-panel-c1/c2-validator/</code> and <code>runs/2026-09-05-goalcheck-c1..c3-product/</code>, inherited rather than run by this session.</li></ul>
+<h2 id="what-shipped">What shipped</h2>
+<p><code>expertise-merge.py</code> could only ever ADD to an Expertise file. A distillation could append an entry but never correct or retire one, so the reconciliation DEC-66 specified had no applier at all.</p>
+<p>BUG-1308 adds a second subcommand, <code>ops</code>, taking the distill contract&#x27;s own op objects as JSON from a file path — <code>add</code>, <code>replace</code>, <code>drop</code>. A target is keyed on section plus entry id, both required. Every op resolves against one base snapshot under the lock <code>apply</code> already holds, and each affected section is rebuilt in base order: one proposal is one order-independent rebuild, a replace rewrites its entry without moving it, and caps are checked once on the final state. <code>merge</code> stays an authoring concept, written as a replace plus a drop. Recorded in SPEC §5.3 and as <strong>DEC-219</strong>.</p>
+<h2 id="the-honest-part-three-panels-three-highs-the-tests-never-saw">The honest part: three panels, three highs the tests never saw</h2>
+<p>This is the finding worth your attention, more than the feature itself.</p>
+<div class="scroll"><table><thead><tr><th>Cycle</th><th>What the panel found</th><th>Status</th></tr></thead><tbody><tr><td>1</td><td><strong>VL-01</strong> — a newline inside an op entry injected a section header past the cap check. REQ-03 false as shipped. Plus VL-02/03/04.</td><td>closed <code>3488ca38</code></td></tr><tr><td>2</td><td><strong>VL-05</strong> — VL-01&#x27;s <em>root cause survived its own fix</em>. The validator rejected 2 characters; the parser&#x27;s <code>str.splitlines()</code> breaks on 10. A <code>U+2028</code> left 16 entries in a section capped at 15; a vertical tab silently moved entries between sections.</td><td>closed <code>8a0121b0</code></td></tr><tr><td>3</td><td><strong>VL-06</strong> — <code>target</code> was never matched against the id grammar. <code>add target=&quot;PPPP-1&quot;</code> reported success and persisted data the tool&#x27;s own parser could not see, which a later op then deleted. <code>add target=&quot;P-01: fake prefix&quot;</code> planted a duplicate id that <strong>locked that entry against every future replace and drop</strong> until hand repair.</td><td>closed <code>a737eb9d</code></td></tr><tr><td>4</td><td>Nothing gating. All six closed under fresh execution by two independent reviewers each.</td><td><strong>PASS</strong>, severity_max <code>med</code></td></tr></tbody></table></div>
+<p><strong>Every one of those landed on a surface no success criterion named.</strong> That is why twelve green criteria coexisted with a falsified requirement through two consecutive goal-checks. The suites were never wrong; they were never asked. Both later fixes were therefore made <em>derivational</em> rather than enumerated — the line check now asks the parser what a line is, and the grammar check round-trips through <code>ENTRY_RE</code> itself — so neither can drift from its source again.</p>
+<h2 id="verification">Verification</h2>
+<p>Measured by the orchestrator on the merged tree, not relayed:</p>
+<ul><li>unit exit 0, zero <code>FAIL</code>, 29 files · integration exit 0, zero <code>FAIL</code>, 46 files</li><li>T-04&#x27;s own <code>verify:</code> block passes verbatim; <code>test-gen-decisions-index.py</code> exit 0</li><li>Exploit probes run directly against the tool: newline, <code>U+2028</code>, <code>\x0b</code>, <code>\x85</code>, <code>PPPP-1</code> and <code>P-01: fake prefix</code> <strong>all refuse at exit 12 with the file&#x27;s sha256 byte-unchanged</strong>; positive controls <code>add P-09</code>, <code>replace P-01</code>, <code>drop G-01</code> each exit 0 — so the refusals are not passing by rejecting everything.</li><li><strong>REQ-07 holds mechanically:</strong> the diff of <code>expertise-merge.py</code> against <code>origin/main</code> removes <strong>zero</strong> lines across every cycle. The pre-existing <code>apply</code> path was never touched.</li><li>qa&#x27;s gate PASSED; the panel&#x27;s PASS was discriminated by mutation — neutering the new validator reddens <code>u21</code> across all three verbs while the positive control stays green.</li></ul>
+<h2 id="operator-decisions">Operator decisions</h2>
+<ol><li><strong>SC-13 and SC-14 adopted.</strong> The operator&#x27;s delegated Advisor adopted both as an approved BRIEF amendment. SC-13 grades cap preservation under every boundary derived from <code>str.splitlines()</code>; SC-14 grades target identity by round-trip through <code>ENTRY_RE</code>. Both are already MET by the existing unit and integration evidence named in the final goal-check note, so this changes no implementation or validation verdict.</li><li><strong>REQ-falsifying findings must propose a criterion.</strong> This process improvement is preserved as a follow-up because VL-01, VL-05 and VL-06 each falsified a requirement on a surface no criterion named.</li></ol>
+<h2 id="proposed-backlog">Proposed backlog</h2>
+<p>Unstruck rows become issues on ship acceptance. <strong>Anything not listed here dies silently.</strong></p>
+<div class="scroll"><table><thead><tr><th>ID</th><th>Nature</th><th>Item</th></tr></thead><tbody><tr><td>B-1</td><td>bug</td><td><strong>VLD-01</strong> No character-length cap on <code>target</code>/<code>entry</code>; <code>check-expertise.sh</code>&#x27;s <code>WORD_CAP=50</code> counts words, so a 10 KB single-token line passes clean. The file is injected whole into every spawn, so it taxes every later context.</td></tr><tr><td>B-2</td><td>enhancement</td><td><strong>VLD-02</strong> Python&#x27;s unicode-aware <code>\d</code> lets <code>P-١</code>/<code>P-０１</code> pass as ids distinct from <code>P-01</code>. Round-trips consistently, so it is human confusability only. Remedy narrows <code>ENTRY_RE</code>, which REQ-07 pinned — hence post-ship. Do this before B-3 and B-6.</td></tr><tr><td>B-3</td><td>chore</td><td><strong>VLD-03</strong> The exit-12 grammar refusal echoes the offending value but never states the shape that would pass.</td></tr><tr><td>B-4</td><td>bug</td><td><strong>VLD-04</strong> <code>cmd_ops</code> catches only <code>JSONDecodeError</code>; a deeply nested <code>--ops</code> payload raises an uncaught <code>RecursionError</code> at exit 1 instead of a documented refusal code. Fails closed, no data loss.</td></tr><tr><td>B-5</td><td>bug</td><td><strong>VLD-05</strong> Non-line-breaking control characters (ESC/ANSI, NUL, ZWSP) persist verbatim into the rendered file on a successful add.</td></tr><tr><td>B-6</td><td>chore</td><td><strong>VLD-06</strong> CLI-level grammar coverage is add-only; <code>replace</code>/<code>drop</code> are proven at the resolver. Buys a demonstration, not protection.</td></tr><tr><td>B-7</td><td>bug</td><td><strong>No shipped gate enforces Expertise id uniqueness.</strong> The panel showed the tool is internally consistent, not that the invariant is held. This is the load-bearing assumption behind the whole feature.</td></tr><tr><td>B-8</td><td>chore</td><td>SPEC §5.3&#x27;s <strong>apply-side</strong> citations are stale and predate this feature (<code>compute_union</code>, <code>cmd_apply</code>, <code>CAPS</code>, and an <code>acquire_lock</code> naming no live symbol). Deliberately left out of this diff.</td></tr><tr><td>B-9</td><td>enhancement</td><td>§5.3 pins behaviour to raw line ranges in a file that keeps moving — <strong>three realignments in one feature</strong>. Durable fix: cite stable symbol names, plus a generated check resolving every <code>file:line</code> cite in <code>docs/**</code> to the symbol the prose names.</td></tr><tr><td>B-10</td><td>bug</td><td><strong><code>handoff-*.md</code> cannot be written for a worktree-only feature.</strong> <code>handoff_done_when.py</code> resolves <code>feature_dir</code> against the project root, so <code>brief-sc:</code>/<code>plan-task:</code> never resolve; <code>FINDING_RE</code> wants <code>F-\d+</code> while this repo mints hex ids. Confirmed live at this HEAD.</td></tr><tr><td>B-11</td><td>bug</td><td><code>runs/&lt;dir&gt;/state.yaml</code> is unguarded where <code>digest.md</code> is guarded, and nothing stops a write into an occupied run dir. One checkpoint was destroyed twice here.</td></tr><tr><td>B-12</td><td>bug</td><td>The unit runner&#x27;s discovery count is caller-dependent (28/29/74 files from one command) and it false-fails <code>test-plan-merge.py</code> unless invoked <code>env -u HARNESS_AGENT_TYPE</code>. A zero FAIL count does not bound what ran.</td></tr><tr><td>B-13</td><td>bug</td><td>The run-digest append-only guard refuses a replacing write, so a digest cannot be corrected in place; and <code>bash-write-guard.sh</code> misreports a <code>mktemp -d</code> redirect target as <code>&quot;xx&quot;</code>.</td></tr></tbody></table></div>
+<h2 id="budget-note">Budget note</h2>
+<p><code>runs[]</code> stands at <strong>33 against an informational budget of 20</strong> (INV-22 notes, never blocks). The overrun is three adversarial panel cycles that each caught a high the suites could not, plus their fixes and two docs realignments. Each run returned a verdict and advanced the feature; none was churn. I would not have wanted to stop at 20.</p><p class='derived'>Derived from <code>ship-review-2026-09-05-resume.md</code> — the markdown is the record; do not edit this file. Regenerate with <code>bin/render-brief.py</code>.</p></div></body></html>

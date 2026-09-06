@@ -6897,3 +6897,36 @@ while failures in quarantine machinery itself, including an unimportable registr
 fail-open. This scope was ruled by the Advisor and authorized by the operator without overrule.
 
 Lineage: DEC-100, DEC-110, DEC-153, DEC-174, DEC-189, DEC-193, DEC-205, and DEC-208.
+
+## DEC-219 — Replace and drop are a second subcommand, `ops`, taking the contract's op objects as JSON
+
+**Chose:** `replace` and `drop` reach an Expertise file through a second subcommand of
+`expertise-merge.py`, `ops`, which takes the distill contract's `expertise_update` op objects
+(DEC-66) as a JSON list on `--ops`. A target is keyed on **section plus entry id, both required on
+every op** — an id is unique only inside its own section. Every op resolves against **one base
+snapshot** taken under the same lock `apply` already holds, never against an earlier op's result, and
+each affected section is then rebuilt in base order, so one proposal is one order-independent
+rebuild: a replace rewrites its entry without moving it, and caps are checked once on the final
+state. `merge`, the fourth verb DEC-66 named, stays an **authoring** concept with no mechanism
+behind it: it is written as a `replace` on the surviving id plus a `drop` of the absorbed one, and
+`op: merge` is refused with exactly that instruction. Three refusals join the existing set — `10
+MISSING TARGET`, `11 AMBIGUOUS TARGET`, `12 MALFORMED OPS`. Origin:
+`BUG-1308-expertise-replace-drop`.
+
+**Over:** a directive verb carried inside the `apply --entries` markdown stream — a `DROP P-04` line
+or a replace marker on an entry — which would have kept one subcommand and one payload format.
+
+**Because:** that stream is not merely this tool's input. `check-expertise.sh` parses the same
+Expertise entry format, so a verb inside it changes a format **two** tools read, and a literal entry
+whose text happened to look like the directive would be silently obeyed. The op objects are already
+structured data in the DIGEST, so `ops` transports what the contract already produces instead of
+inventing a second grammar. Until now the mechanism was add-only union merge (DEC-95's residue), so
+the distillation dispatch that DEC-145 made the only writer of Expertise could add entries but never
+correct or retire one — the reconciliation DEC-66 specified had no applier.
+
+**Tradeoff accepted:** two payload formats for one file class — markdown entries for `apply`,
+JSON ops for `ops` — and an author holding a YAML DIGEST must convert its ops to JSON by hand. An
+add-only proposal keeps going through `apply --entries` unchanged, so the split is paid only by
+proposals that rewrite or remove.
+
+**Record:** documented at SPEC §5.3. Refs: DEC-66, DEC-95, DEC-145.

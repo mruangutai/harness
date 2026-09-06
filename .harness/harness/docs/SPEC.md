@@ -929,6 +929,47 @@ A refusal is the signal to reconcile by hand — nothing is applied partially. B
 the atomic write and a cap-drift detector that reads `check-expertise.sh`'s own caps as text are
 covered at `test-expertise-merge.py:70-250`.
 
+**Replace and drop are a second subcommand, `ops`** (DEC-219). `apply --entries` stays add-only and
+an add-only proposal still goes through it unchanged; a proposal that rewrites or removes an entry
+runs:
+
+```bash
+.claude/skills/harness/bin/expertise-merge.py ops \
+    --file .harness/expertise/<agent>.md --ops <ops.json|->
+```
+
+`--ops` takes the DIGEST's `expertise_update` list as **JSON** — the same op objects this section
+opens with, verbs `add`, `replace` and `drop` (`cmd_ops`, `expertise-merge.py:549-598`). It shares
+`apply`'s lock file, its atomic write, and its exit **9** refusal of a `--file` that is not an
+Expertise file.
+
+**A target is keyed on section plus entry id, and both are required on every op** — an id is unique
+only inside its own section, so an op naming a bare `target` is refused rather than searched for
+(`_validate_target_section`, `:206-219`).
+
+**A replace rewrites the entry its key names without moving it.** A replace-only proposal therefore
+leaves the section's size and every ordinal exactly as it found them; only a `drop` shortens a
+section and only an `add` lengthens it (`_rebuild_section`, `:334-348`).
+
+**Order does not matter.** Every op resolves against **one base snapshot**, never against an earlier
+op's result, and each affected section is then rebuilt in base order — so the same proposal applied
+in any order yields the same file (`_resolve_all`, `:319-331`). Caps are checked **once, on the final
+state** against the same `CAPS` §5.2 states (`_check_caps`, `:375-382`), which is what makes a drop
+that frees room for an add legal inside one proposal.
+
+`merge` is an authoring concept, not a mechanism op: express it as a `replace` on the surviving id
+plus a `drop` of the absorbed one. `op: merge` is refused with that instruction (`_validate_verb`,
+`:157-167`).
+
+| Refusal `ops` adds beside `apply`'s 6, 7, 8 and 9 | Reports and exit |
+|---|---|
+| The op's section + id names no entry in the base file | **10 MISSING TARGET** `section=<s> id=<id>` (`:269-278`) |
+| The id appears twice in that section, or two ops in one proposal name the same target | **11 AMBIGUOUS TARGET** `section=<s> id=<id>` (`:258-266` plus `:305-316`) |
+| The payload is not a JSON list, or an op omits a required key, carries a forbidden one, names an unknown verb, gives an `entry` or `target` that is not a single-line string, or gives a `target` that does not match `ENTRY_RE`'s entry-id grammar — round-tripped through the exact line `render` would write for it, so the validator and the parser cannot diverge (`_validate_target_grammar`, `:191-203`) | **12 MALFORMED OPS** `op index=<i>: <reason>` (`:153-250` plus `:403-406`) |
+
+On success it prints one `ADDED`, `PRESERVED`, `REPLACED` or `DROPPED` line per op in op order, then
+a final `APPLIED <path>`.
+
 **It composes with hierarchy for free.** Under hierarchical mode a member's DIGEST goes to its lead,
 not the orchestrator — but `expertise_update` rides the **per-member block** the consolidated DIGEST
 already carries for `STATE.md` granularity (§2.3). No new channel. And because the DIGEST is
