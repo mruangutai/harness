@@ -41,6 +41,18 @@ LEGACY_FEATURE = "legacy"
 RELEASE_ALL_CMD = "python3 .agents/skills/harness/bin/inflight_registry.py release-all"
 
 
+class UnreadableRegistry(Exception):
+    """One or more existing claim registries could not be read safely."""
+
+    def __init__(self, paths):
+        if isinstance(paths, (str, bytes, os.PathLike)):
+            paths = [paths]
+        self.paths = tuple(sorted({os.fspath(path) for path in paths}))
+        super().__init__(
+            "unreadable in-flight claim registries: " + ", ".join(self.paths)
+        )
+
+
 def _registry_path(root):
     return os.path.join(root, REGISTRY_REL)
 
@@ -224,17 +236,33 @@ def _expire(claims, now):
             live.append(claim)
     return live, expired
 
+def _binding_retained(claim, now):
+    """Whether an expired dispatch claim must remain available to write guards."""
+    if not isinstance(claim, dict):
+        return False
+    started = claim.get("started_at")
+    if not _is_number(started):
+        return False
+    if claim.get("runtime") == "omp":
+        return _omp_claim_live(claim, now)
+    return now - started <= OMP_UNVERIFIED_TTL_SECONDS
+
+
 def _expire_where(claims, now, predicate):
-    kept = []
+    answer_live = []
+    retained = []
     expired = 0
     for claim in claims:
         if not predicate(claim):
-            kept.append(claim)
+            answer_live.append(claim)
+            retained.append(claim)
             continue
         live, count = _expire([claim], now)
-        kept.extend(live)
+        answer_live.extend(live)
         expired += count
-    return kept, expired
+        if live or _binding_retained(claim, now):
+            retained.append(claim)
+    return answer_live, retained, expired
 
 
 def _matches(claim, agent=None, feature=None, claim_id=None, agent_id=None, job_id=None):
@@ -257,6 +285,53 @@ def _visible(claim, feature=None, session=None):
     if session is not None and claim.get("runtime") != "omp":
         return claim.get("session") in (None, session)
     return True
+
+
+def live_claims(root, agent, now=None):
+    """Return claims that still bind ``agent`` to worktrees, without mutating state."""
+    path = _registry_path(root)
+    try:
+        with open(path, "r", encoding="utf-8", errors="strict") as handle:
+            text = handle.read()
+    except FileNotFoundError:
+        return []
+    except (OSError, UnicodeError) as error:
+        raise UnreadableRegistry(path) from error
+
+    try:
+        raw = json.loads(text)
+    except (json.JSONDecodeError, ValueError) as error:
+        raise UnreadableRegistry(path) from error
+    if not isinstance(raw, dict):
+        raise UnreadableRegistry(path)
+    is_v2 = (
+        raw.get("schema_version") == SCHEMA_VERSION
+        and isinstance(raw.get("claims"), list)
+    )
+    is_v1 = (
+        "schema_version" not in raw
+        and all(isinstance(key, str) and isinstance(entries, list)
+                for key, entries in raw.items())
+    )
+    if not (is_v2 or is_v1):
+        raise UnreadableRegistry(path)
+
+    claims = _parse(text, path)["claims"]
+    current = time.time() if now is None else now
+    live = []
+    for claim in claims:
+        if not _matches(claim, agent=agent) or not _visible(claim):
+            continue
+        started = claim.get("started_at")
+        if not _is_number(started):
+            continue
+        if claim.get("runtime") == "omp":
+            binding_live = _omp_claim_live(claim, current)
+        else:
+            binding_live = current - started <= OMP_UNVERIFIED_TTL_SECONDS
+        if binding_live:
+            live.append(claim)
+    return sorted(live, key=lambda claim: claim["started_at"])
 
 
 def is_single_flight(agent):
@@ -294,12 +369,12 @@ def orphan_write(root, agent, feature, session, now=None):
         return False
 
     def mutator(data):
-        live, _expired = _expire_where(
+        live, retained, _expired = _expire_where(
             data.get("claims", []),
             now,
             lambda claim: _matches(claim, feature=feature),
         )
-        data["claims"] = live
+        data["claims"] = retained
         feature_claims = [claim for claim in live if _matches(claim, feature=feature)]
         has_compatibility_claim = any(
             claim.get("runtime") != "omp" for claim in feature_claims
@@ -320,12 +395,12 @@ def live_claim(root, agent, now=None, session=None, feature=None):
         return None, 0
 
     def mutator(data):
-        live, expired = _expire_where(
+        live, retained, expired = _expire_where(
             data.get("claims", []),
             now,
             lambda claim: _matches(claim, agent=agent, feature=feature),
         )
-        data["claims"] = live
+        data["claims"] = retained
         visible = [c for c in live if _matches(c, agent=agent) and _visible(c, feature, session)]
         oldest = min(visible, key=lambda c: c["started_at"]) if visible else None
         return data, (oldest, expired)
@@ -340,14 +415,14 @@ def live_children(root, dispatcher, now=None, session=None, feature=None):
         return []
 
     def mutator(data):
-        live, _expired = _expire_where(
+        live, retained, _expired = _expire_where(
             data.get("claims", []),
             now,
             lambda claim: _matches(claim, feature=feature)
             and isinstance(claim, dict)
             and claim.get("dispatcher") == dispatcher,
         )
-        data["claims"] = live
+        data["claims"] = retained
         children = [
             (c.get("agent"), c)
             for c in live
@@ -372,7 +447,7 @@ def claim_with_receipt(
     now = now if now is not None else time.time()
 
     def mutator(data):
-        live, _expired = _expire_where(
+        live, retained, _expired = _expire_where(
             data.get("claims", []),
             now,
             lambda claim: _matches(claim, agent=agent, feature=feature),
@@ -380,7 +455,7 @@ def claim_with_receipt(
         if is_single_flight(agent) and any(
             _matches(c, agent=agent, feature=feature) for c in live
         ):
-            data["claims"] = live
+            data["claims"] = retained
             return data, None
         entry = {
             "claim_id": uuid.uuid4().hex,
@@ -402,7 +477,8 @@ def claim_with_receipt(
             if started_at is not None:
                 entry["supervisor_started_at"] = started_at
         live.append(entry)
-        data["claims"] = live
+        retained.append(entry)
+        data["claims"] = retained
         return data, dict(entry)
 
     return _update_registry(root, mutator)
@@ -429,7 +505,7 @@ def attach_runtime_identity(root, agent, feature, agent_id=None, job_id=None, cl
         return False
 
     def mutator(data):
-        live, _expired = _expire_where(
+        live, retained, _expired = _expire_where(
             data.get("claims", []),
             time.time(),
             lambda claim: _matches(
@@ -443,13 +519,13 @@ def attach_runtime_identity(root, agent, feature, agent_id=None, job_id=None, cl
             and not c.get("job_id")
         ]
         if len(matches) != 1:
-            data["claims"] = live
+            data["claims"] = retained
             return data, False
         if agent_id:
             matches[0]["agent_id"] = agent_id
         if job_id:
             matches[0]["job_id"] = job_id
-        data["claims"] = live
+        data["claims"] = retained
         return data, True
 
     return _update_registry(root, mutator)
@@ -469,12 +545,12 @@ def release(root, agent=None, feature=None, claim_id=None, agent_id=None, job_id
             agent_id=agent_id,
             job_id=job_id,
         )
-        live, _expired = _expire_where(
+        live, retained, _expired = _expire_where(
             data.get("claims", []), time.time(), selector_matches
         )
         matches = [claim for claim in live if selector_matches(claim)]
         if not matches:
-            data["claims"] = live
+            data["claims"] = retained
             return data, False
         if len(matches) != 1:
             selector = claim_id or agent_id or job_id or f"{feature or '*'}:{agent or '*'}"
@@ -483,10 +559,12 @@ def release(root, agent=None, feature=None, claim_id=None, agent_id=None, job_id
                 "claims match; removing none rather than guessing.",
                 file=sys.stderr,
             )
-            data["claims"] = live
+            data["claims"] = retained
             return data, 0
         target_id = matches[0].get("claim_id")
-        data["claims"] = [c for c in live if c.get("claim_id") != target_id]
+        data["claims"] = [
+            claim for claim in retained if claim.get("claim_id") != target_id
+        ]
         return data, True
 
     return _update_registry(root, mutator)
@@ -522,8 +600,11 @@ def reconcile(root, feature=None, now=None):
                 if isinstance(claim_entry, dict)
                 else None
             )
-            if expired and (feature is None or claim_feature == feature):
+            selected = feature is None or claim_feature == feature
+            if expired and selected:
                 removed += expired
+                if _binding_retained(claim_entry, now):
+                    kept.append(claim_entry)
             else:
                 kept.extend(live or [claim_entry])
         data["claims"] = kept
@@ -590,8 +671,10 @@ def _all_live(root, now=None):
         return []
 
     def mutator(data):
-        live, _expired = _expire(data.get("claims", []), now)
-        data["claims"] = live
+        live, retained, _expired = _expire_where(
+            data.get("claims", []), now, lambda _claim: True
+        )
+        data["claims"] = retained
         return data, live
 
     return _update_registry(root, mutator)

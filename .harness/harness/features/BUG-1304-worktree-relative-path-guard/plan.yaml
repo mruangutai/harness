@@ -1,0 +1,1696 @@
+schema: plan/1
+feature: BUG-1304-worktree-relative-path-guard
+approval:
+  date: '2026-09-05'
+  approved_by: mruangutai
+  status: approved
+status: review
+source_issues: [1304]
+
+panel:
+  last_run: 2026-09-05-09-validator
+  cycle: 3
+  transcription_rule: 'Finding ids are computed with panel_findings.py id --reader
+    <r> --summary <s> over the
+
+    summary transcribed here unaltered; the L-NN label is the panel-local name the
+    dispatch
+
+    and the repair notes use, and it is carried beside the computed id, never in place
+    of it.
+
+    '
+  cycle_2_verification: 'Cycle 2''s most important output: all five cycle-1 findings
+    L-01 through L-05 were independently re-verified CLOSED, against plan.yaml''s
+    own text AND against source line anchors re-grepped in the worktree, not against
+    pm''s cycle-1 repair note taken on trust. The reviewer re-counted T-03''s nine
+    and T-05''s eleven refusal cases itself and re-audited all ten verify: blocks
+    for can-it-fail-today. Evidence: notes/review-harness-code-reviewer-planpanel-c2.md.
+    Each cycle-1 finding below carries verified_closed_at_cycle: 2. Cycle 2''s FAIL
+    is carried entirely by the NEW findings F1 and F2, never by a reopened cycle-1
+    finding.'
+  readers:
+  - reader: scope
+    persona: harness-code-reviewer
+    status: ran
+    verdict: PASS
+    deviation: none
+    findings:
+    - PF-976e37a61a8066731119885a2a18b1a7
+    artifact: notes/review-harness-code-reviewer-planpanel-c3.md
+  - reader: should-not-exist
+    persona: fable-advisor
+    status: ran
+    verdict: PASS
+    deviation: "RETURN SHAPE. This reader returned a JSON object carrying extra top-level\
+      \ keys rather than the one fenced YAML mapping the contract asks for. Recorded,\
+      \ not normalised away, in the same spirit as the cycle-1 deviation under history:\
+      \ a later reader of this panel must be able to see that the shape differed.\
+      \ It did NOT weaken the result \u2014 the return was parseable, the verdict\
+      \ token was the reader's own word, every finding carried a severity rating,\
+      \ and on_fail did not fire."
+    contract_compliance: At cycle 3 this reader returned the contract token PASS,
+      so the verdict recorded here is the reader's own word and not a lead's mapping.
+      The cycle-1 non-contract-token deviation did not recur; the deviation recorded
+      above is one of SHAPE only.
+    findings:
+    - PF-38710650d22f8a915b45bbe8bb31988d
+    - PF-6c5cdabdc5b756059dbe4436ddd6103e
+    artifact: none
+    attribution_note: "F-C3-2 and F-C3-3 are attributed to this reader by the product\
+      \ lead, exactly as at cycle 2: they appear in no reviewer artifact, this was\
+      \ the only other reader that ran, and the advisor returned no artifact file.\
+      \ F-C3-3's sharper reading \u2014 that case 2 as written contradicts case 8\
+      \ rather than merely under-specifying a runtime \u2014 is the validator lead's\
+      \ assessment of the advisor's finding, not the advisor's own wording."
+  - reader: goalcheck
+    persona: harness-pm
+    status: skipped
+    verdict: none
+    findings: []
+    artifact: notes/research-BUG-1304-goalcheck-plan-c1.md
+    reason: Could not be established that a goalcheck reader ran in the recorded panel
+      cycle. The only goalcheck artifact on file is notes/research-BUG-1304-goalcheck-plan-c1.md,
+      whose own header reads cycle 1 and which describes this plan panel at cycle
+      0; the recorded cycle-3 run 2026-09-05-09-validator recorded exactly two steps,
+      scope and should-not-exist (runs/2026-09-05-09-validator/state.yaml), and no
+      run digest under runs/ names a goalcheck reader or cites that artifact. The
+      artifact is recorded here so a later reader can find what does exist.
+  history:
+  - cycle: 1
+    last_run: 2026-09-05-05-validator
+    readers:
+    - reader: harness-code-reviewer
+      persona: harness-code-reviewer
+      status: ran
+      verdict: FAIL
+      findings:
+      - PF-0afc7673196c450d317d61ad49cee122
+      - PF-0261296d8c551ac65eb4b17ed1d7f6d6
+      artifact: notes/review-harness-code-reviewer-planpanel-c1.md
+    - reader: fable-advisor
+      persona: fable-advisor
+      status: ran
+      verdict: FAIL
+      deviation: 'Returned the non-contract token FINDINGS in place of a VERDICT.
+        The validator lead
+
+        mapped it to FAIL for the roll-up. Recorded, not normalised away: the reader
+        did not
+
+        return a contract verdict, and a later reader of this panel must be able to
+        see that
+
+        the FAIL is the lead''s mapping rather than the reader''s own word.
+
+        '
+      findings:
+      - PF-46e37167844132ffd3f47b2594e7593f
+      - PF-0cb8c0e6452b98d08ebbda096419188a
+      - PF-75068d8beb1d03439e260834ae41a386
+      artifact: none
+  - cycle: 2
+    last_run: 2026-09-05-07-validator
+    readers:
+    - reader: harness-code-reviewer
+      persona: harness-code-reviewer
+      status: ran
+      verdict: FAIL
+      findings:
+      - PF-055b89703a96f6c82edc6d37e6fb973c
+      - PF-5b09773491bc20f90f69a59b84294788
+      artifact: notes/review-harness-code-reviewer-planpanel-c2.md
+    - reader: fable-advisor
+      persona: fable-advisor
+      status: ran
+      verdict: PASS
+      deviation: none
+      contract_compliance: At cycle 2 this reader returned the contract token PASS,
+        so the verdict recorded here is the reader's own word and not a lead's mapping.
+        The cycle-1 non-contract-token deviation recorded under history did NOT recur.
+      findings:
+      - PF-ab844e4aee4a085a94f6d02f099f5f9c
+      - PF-92716a13456619ae3f7d2c83af5a70ec
+      - PF-6cdded94c74f2ef14cef8e84fb47df6f
+      artifact: none
+      attribution_note: 'F3, F4 and F5 are attributed to this reader by the product
+        lead: they appear in no reviewer artifact, this was the only other reader
+        that ran, and a PASS is a verdict on the plan rather than an absence of advisory
+        findings.'
+  findings:
+  - id: PF-0afc7673196c450d317d61ad49cee122
+    label: L-01
+    severity: high
+    reader: harness-code-reviewer
+    summary: corrupt registry file silently empties S, so a bound agent reads unbound
+      and the governed main-checkout write is allowed
+    disposition: resolved
+    resolved_by: T-02
+    resolution: "REQ-05 extended with a third half \u2014 an unreadable or unrepresentable\
+      \ registry is a\nREFUSE case for an agent that would otherwise be bound. New\
+      \ SC-10 binds it with a\npaired well-formed control so it cannot be met vacuously.\
+      \ T-01 adds the raising cases\nand the absent-versus-unreadable pair, T-02 adds\
+      \ UnreadableRegistry and the single seam\nmessage, T-03 and T-05 add the route\
+      \ cases plus the paired control, T-04 and T-06 wire\nthe exception to exit 2\
+      \ without re-deriving the rule. D-10 records it as the advisor's\nREQ-05 pattern\
+      \ extended by pm, ratified at signature. case_8_corrupt_registry is cited\n\
+      as the write-path precedent the read path must not inherit.\n"
+    cycle: 1
+    verified_closed_at_cycle: 2
+  - id: PF-0261296d8c551ac65eb4b17ed1d7f6d6
+    label: L-02
+    severity: high
+    reader: harness-code-reviewer
+    summary: 'T-09 specifies the retention outcome but not the seam: two of the six
+      _expire_where callers are unnamed, and a shared-primitive fix regresses claim_with_receipt
+      single-flight admission to 86400s'
+    disposition: resolved
+    resolved_by: T-09
+    resolution: "T-09's intent rewritten to state the seam first \u2014 the file-content\
+      \ assignment and the\ncaller's own answer are computed separately, retention\
+      \ changes only what is WRITTEN \u2014\nthen to name all six _expire_where callers\
+      \ (orphan_write :297, live_claim :323-328,\nlive_children :343-349, claim_with_receipt\
+      \ :375, attach_runtime_identity :432, release\n:472) with what each must do,\
+      \ orphan_write and release explicitly retaining, plus\nreconcile :519 and _all_live\
+      \ :593. Assertion half (b) now covers a previously omitted\nsite (orphan_write\
+      \ or release) and adds case_bug1304_retention_admission, which asserts\nsingle-flight\
+      \ admission still ADMITS at 1200s. Answer per Advisor RULING B only; no\nthird\
+      \ seam answer invented.\n"
+    cycle: 1
+    verified_closed_at_cycle: 2
+  - id: PF-46e37167844132ffd3f47b2594e7593f
+    label: L-03
+    severity: med
+    reader: fable-advisor
+    summary: T-07's negative verify greps a lowercase clause the source spells with
+      a capital T, so the negation can never fail and obligation 3 can be skipped
+      green
+    disposition: resolved
+    resolved_by: T-07
+    resolution: 'T-07''s last conjunct is now case-insensitive and drops the leading
+      article:
+
+      ! grep -qi "Bash route keeps DEC-153''s blanket allow". Verified against
+
+      DECISIONS.md:5338, where the clause matches once today, so the negation is red
+      before
+
+      the rewrite and green after. The audit of the other nine verifies found one
+      more defect
+
+      of the same class, T-08''s grep for worktree_for_feature, which dispatch-guard.sh
+      already
+
+      satisfies at :174; it is replaced by a positive grep for the new call and a
+      negative
+
+      grep for the basename equality it removes.
+
+      '
+    cycle: 1
+    verified_closed_at_cycle: 2
+  - id: PF-0cb8c0e6452b98d08ebbda096419188a
+    label: L-04
+    severity: med
+    reader: fable-advisor
+    summary: SC-06 and SC-09 pre-change exit-0 assertions are satisfiable by the guards'
+      fail-open branches, so the discrimination proof passes on a guard that never
+      ran
+    disposition: resolved
+    resolved_by: T-03
+    resolution: 'SC-06 and SC-09 now require every pre-change call to prove the frozen
+      guard RAN: no
+
+      "enforcement OFF", "was not enforced" or "passing through" on its stderr, AND
+      a positive
+
+      control refused with exit 2 at the same frozen guard in the same isolated bin.
+      T-03 and
+
+      T-05 specify one helper, bug1304_assert_pre_change_allows, that every refusal
+      case calls,
+
+      and both verifies count its call sites. The Bash route''s fail-opens are silent
+
+      (bash-write-guard.sh:78-80, :267-269), so the positive control is named there
+      as the
+
+      load-bearing half; T-05 reuses the run-artifact refusal for it.
+
+      '
+    cycle: 1
+    verified_closed_at_cycle: 2
+  - id: PF-75068d8beb1d03439e260834ae41a386
+    label: L-05
+    severity: med
+    reader: fable-advisor
+    summary: 'T-08 and T-09 are framed symmetrically but are not: striking T-09 leaves
+      B-10 reachable on the suspend path, and no success criterion binds the retention
+      half'
+    disposition: resolved
+    resolved_by: T-09
+    resolution: 'T-09''s intent now opens by saying the strike OVERRIDES Advisor rulings
+      A and B, is not
+
+      symmetric with T-08''s strike, and leaves the founding incident reachable on
+      the routine
+
+      suspend path; OC-1 asks only where the closure lands, not whether the hole may
+      stay open.
+
+      D-09''s strike paragraph carries the same wording. New SC-11 binds the retention
+      half,
+
+      including the unchanged-dispatch-answer and admission halves, and states that
+      it is
+
+      struck with T-09 if the operator strikes the task.
+
+      '
+    cycle: 1
+    verified_closed_at_cycle: 2
+  - id: PF-055b89703a96f6c82edc6d37e6fb973c
+    label: F1
+    severity: high
+    reader: harness-code-reviewer
+    cycle: 2
+    summary: 'D-10''s unreadable-registry refusal has global blast radius REQ-03 does
+      not authorize: claim_worktrees scans every linked worktree''s registry before
+      the destination is known, so one corrupt registry anywhere refuses every governed
+      write factory-wide, including writes inside the writer''s own healthy assigned
+      worktree'
+    disposition: resolved
+    resolution: 'CLOSED by the fourth binding Advisor ruling, operator-authorised
+      with no overrules (notes/review-fable-advisor-plan-BUG-1304-f1-binding.md).
+      Remedy (a), partial-S allow, is SELECTED; remedy (b) is rejected because it
+      would amend REQ-03 to fit an implementation ordering. D-10 is RETAINED and now
+      states one selected rule. The refusal binds exactly the governed writes the
+      readable roots cannot place: a destination inside a worktree proven by a readable
+      registry stays allowed while an unrelated scanned registry is unreadable. REQ-03
+      is NOT amended. REQ-05 carries the scoping sentence, SC-12 binds both halves
+      on both routes, and T-02 carries the seam shape. No operator choice remains.'
+    resolved_by: T-02, T-03, T-05, BRIEF SC-12
+  - id: PF-5b09773491bc20f90f69a59b84294788
+    label: F2
+    severity: med
+    reader: harness-code-reviewer
+    cycle: 2
+    summary: harness_boundary.linked_worktrees is fail-OPEN on OSError and on an unreadable
+      pointer while REQ-05's registry input is now fail-CLOSED, so one predicate takes
+      opposite rules for its two inputs and the fail-open half is B-10's silent unbound-allow
+    disposition: separate_issue_required
+    resolution: 'NOT fixed here and NOT waived. The fourth binding ruling requires
+      it be FILED as its own issue, alongside OC-3 (validate-digest live_children
+      horizon) and the struck T-08 defect (dispatch-guard _root_for basename equality).
+      Recorded so the operator sees the asymmetry before signing: harness_boundary.linked_worktrees
+      is fail-OPEN on OSError and on an unreadable pointer while the registry input
+      is fail-CLOSED.'
+  - id: PF-ab844e4aee4a085a94f6d02f099f5f9c
+    label: F3
+    severity: low
+    reader: fable-advisor
+    cycle: 2
+    summary: 'T-02''s intent contradicts itself on absent versus unreadable: live_claims
+      is told to return [] when the file is absent or unparseable, while the same
+      task''s UnreadableRegistry paragraph, SC-10 and D-10 require an unparseable
+      file to raise'
+    disposition: resolved
+    resolved_by: T-02
+    resolution: 'T-02''s intent rewritten at first mention: an absent _registry_path(root)
+      returns [] and is legitimately empty, an EXISTING file that cannot be read as
+      a claim list RAISES UnreadableRegistry and never returns []. The ''absent or
+      unparseable'' phrasing is gone, so the task no longer contradicts its own UnreadableRegistry
+      paragraph, SC-10 or D-10.'
+  - id: PF-92716a13456619ae3f7d2c83af5a70ec
+    label: F4
+    severity: low
+    reader: fable-advisor
+    cycle: 2
+    summary: T-01's enumerated live_claims cases never back-date a PROVEN-identity
+      OMP claim past OMP_UNVERIFIED_TTL_SECONDS, so a backstop-only enumerator passes
+      all seven and D-09's proven-identity-binds-at-any-age ships unpinned
+    disposition: resolved
+    resolved_by: T-01
+    resolution: 'T-01 gains case 8: an OMP claim whose recorded supervisor identity
+      is PROVEN live, built exactly as case 5 builds it, back-dated MORE than OMP_UNVERIFIED_TTL_SECONDS
+      before the injected now, IS still returned. Cases 1-7 are unrenumbered because
+      case 2 cross-references case 5; the two trailing unreadable-registry cases in
+      the same file moved 8->9 and 9->10 so the file''s enumeration stays unique.
+      T-01''s verify is unchanged: test "$a$b" = "11" already covers it.'
+  - id: PF-6cdded94c74f2ef14cef8e84fb47df6f
+    label: F5
+    severity: info
+    reader: fable-advisor
+    cycle: 2
+    summary: the grep -c call-site floor in T-03 and T-05 also counts the helper's
+      own def bug1304_assert_pre_change_allows line, so the L-04 repair's only build-time
+      tooth carries one case of slack
+    disposition: resolved
+    resolved_by: T-03, T-05
+    resolution: 'Both verifies now pipe the match through grep -vc ''^ *def bug1304_assert_pre_change_allows'',
+      so the definition line is excluded and only call sites are counted. Floors stay
+      at -ge 9 (T-03) and -ge 11 (T-05), the counts the panel took independently,
+      so each floor is now met exactly and the slack is gone. Smoke-proved on a fixture
+      with one def and nine call sites: tightened count 9 (old count 10), and 8 call
+      sites fails the floor. Both blocks remain literal | scalars and run from the
+      repo root.'
+  - id: PF-976e37a61a8066731119885a2a18b1a7
+    label: F-C3-1
+    severity: med
+    reader: harness-code-reviewer
+    cycle: 3
+    summary: T-07's verify gates none of obligation 1c, so a doer can pass T-07 green
+      while omitting D-10's unreadable-registry doctrine from DECISIONS.md.
+    disposition: resolved
+    resolved_by: T-07
+    resolution: 'Cycle 10 added exactly one conjunct to T-07''s verify, before the
+      final negative check and inside the same literal | scalar: && grep -qi "readable
+      roots cannot place" .harness/harness/docs/DECISIONS.md. It binds obligation
+      1c''s SCOPE DOCTRINE rather than its vocabulary: the phrase is the tail of 1c''s
+      own mandated sentence THE REFUSAL BINDS EXACTLY THE GOVERNED WRITES THE READABLE
+      ROOTS CANNOT PLACE, which the task already requires the doer to write, so the
+      conjunct can pass. It is case-insensitive, the defect class cycle-1 finding
+      L-03 recorded. Verified it can FAIL: the phrase matches ZERO lines of DECISIONS.md
+      at c369fb1f before T-07 lands. No other conjunct, and nothing else in T-07,
+      was changed.'
+  - id: PF-38710650d22f8a915b45bbe8bb31988d
+    label: F-C3-2
+    severity: low
+    reader: fable-advisor
+    cycle: 3
+    summary: D-10's because and T-07 obligation 1c still state that no advisor ruled
+      on the unreadable-registry case and that the operator ratifies or strikes it
+      at signature, which the fourth binding ruling falsified.
+    disposition: resolved
+    resolved_by: D-10, T-07
+    resolution: "Both sentences corrected at cycle 10. D-10's because now opens THE\
+      \ SHAPE BEGAN AS THE ADVISOR'S REQ-05 PATTERN EXTENDED BY PM AT CYCLE 1, AND\
+      \ THE FOURTH BINDING RULING HAS SINCE RULED THE CASE ITSELF, and closes the\
+      \ paragraph with the fourth binding ruling SUBSEQUENTLY ruling on exactly this\
+      \ case, SELECTING remedy (a), the operator AUTHORISING it with NO overrules,\
+      \ and nothing left awaiting a ratify-or-strike at signature \u2014 so it no\
+      \ longer contradicts this same decision's later sentence that nothing about\
+      \ the unreadable-registry rule is left for the operator to pick between. T-07\
+      \ obligation 1c's closing provenance clause now instructs the doer to record\
+      \ the rule and its selected scope as RULED by the Advisor's fourth binding ruling\
+      \ and AUTHORISED by the operator with no overrules, keeping the clause's purpose\
+      \ that a later reader can tell which parts of the entry an advisor settled.\
+      \ Every other paragraph of D-10's because and every other sentence of obligation\
+      \ 1c is unchanged."
+  - id: PF-6c5cdabdc5b756059dbe4436ddd6103e
+    label: F-C3-3
+    severity: info
+    reader: fable-advisor
+    cycle: 3
+    summary: T-01 live_claims case 2 names no runtime, so read literally it contradicts
+      case 8's proven-identity OMP claim and duplicates case 7.
+    disposition: resolved
+    resolved_by: T-01
+    resolution: 'Resolved in ONE clause at cycle 10: T-01''s test-inflight-registry.py
+      live_claims case 2 now reads a NON-OMP claim (runtime absent or "claude") past
+      the BINDING horizon is not returned. That removes the literal contradiction
+      with case 8, which requires a PROVEN-identity OMP claim back-dated past OMP_UNVERIFIED_TTL_SECONDS
+      to STILL be returned. Nothing else changed: the panel judged case 2''s resulting
+      overlap with case 7 not worth cycle 10, so no case was restructured, renumbered,
+      merged or deleted, and T-01''s verify is untouched.'
+  cycle_2_disposition_update: F1 and F2 dispositions were rewritten by the orchestrator
+    after cycle 2 closed, on the fourth binding ruling. The readers, verdicts, finding
+    ids and summaries are untouched; only the dispositions and their resolution text
+    moved. Cycle 3 reads a panel with no open choice left in it.
+  cycle_3_verification: 'Cycle 3''s headline conclusion: all nine required_plan_repairs
+    from the fourth binding Advisor ruling (notes/review-fable-advisor-plan-BUG-1304-f1-binding.md)
+    were independently verified APPLIED FAITHFULLY at source, against plan.yaml and
+    BRIEF.md text rather than against pm''s cycle-8 repair note taken on trust. The
+    reviewer re-read every repaired anchor itself: REQ-05''s scoping sentence with
+    REQ-03 unamended, SC-12''s two halves on both routes, SC-10 disjoint from SC-12
+    at the fixture level, D-10''s selected remedy (a) with (b) reduced to one rejection
+    line, T-02''s three-clause seam shape, T-01''s rewritten case 7 and added case
+    8, T-03''s and T-05''s case pairs and exact floors, T-04''s and T-06''s resolved-destination
+    sentences, and T-07''s obligation 1c. It also re-checked T-08 for dangling depends_on
+    (none) and swept both files for a surviving open operator choice (none live).
+    Evidence: notes/review-harness-code-reviewer-planpanel-c3.md. Both readers returned
+    PASS; the only repair-adjacent gap, F-C3-1, is resolved by cycle 10''s signature-packaging
+    pass.'
+lanes:
+  resolved_at: c369fb1fdfc74a8f78edc9a2df2a8fea738afc94
+  rows:
+    - surface: .claude/skills/harness/bin/**
+      lane: main-session-direct
+      reason: "DEC-174 carve-out: check-domain.sh, bash-write-guard.sh, harness_boundary.py, inflight_registry.py and dispatch-guard.sh are registered gate scripts, so the harness plans them and the main session executes them."
+    - surface: tests/unit/**
+      lane: main-session-direct
+      reason: "DEC-174: a gate script's own tests are enforcement-layer files and move with the script they gate."
+    - surface: tests/integration/**
+      lane: main-session-direct
+      reason: "DEC-174: a gate script's own tests are enforcement-layer files and move with the script they gate."
+    - surface: .harness/harness/docs/DECISIONS.md
+      lane: main-session-direct
+      reason: "DEC-205 requires the doctrine rewrite to land in the same edit as the rule it corrects, and that edit is a DEC-174 gate-script edit."
+    - surface: .harness/harness/docs/DECISIONS-INDEX.md
+      lane: main-session-direct
+      reason: "Generated beside DECISIONS.md in the same landing; same DEC-174 carve-out."
+
+decisions:
+  - id: D-01
+    choice: "The binding key is CLAIM-SET MEMBERSHIP. Build S, the set of worktrees the writing persona holds a live claim in. Empty S means the agent is unbound and every governed write is allowed. Non-empty S allows a governed write only when its RESOLVED destination lies inside a member of S; otherwise exit 2, naming the members of S and the destination's proper home."
+    because: "Advisor ruling 2 Q1 rules it sound and binding: one predicate refuses both the measured B-10 main-checkout incident and the sibling-worktree direction, and its inputs are durable disk state (git worktree pointers plus persisted claims) that cannot misattribute. See notes/review-fable-advisor-plan-BUG-1304-binding-key.md."
+    dec: DEC-208
+
+  - id: D-02
+    choice: 'S is constructed by enumerating EVERY live claim held by the payload''s agent_type across ALL registries INCLUDING the owner-root registry, and resolving EACH claim''s own feature field through harness_boundary.worktree_for_feature(owner_root, feature). A claim contributes a member to S only when worktree_for_feature returns a real worktree; a claim whose feature has no linked worktree contributes nothing. S is NEVER derived from which registry file a claim happens to sit in. A claim whose feature resolves AMBIGUOUSLY — two or more prefix-matching worktrees, harness_boundary.AmbiguousWorktree — is neither guessed into S nor dropped from it: on both routes the governed write is refused with exit 2, naming the candidate worktrees the resolver declined to choose between.'
+    because: "Ruling 2 as first written fans out over linked_worktrees(owner_root) and asks live_claim(root=w) at each, which places a claim by the file it sits in. dispatch-guard.sh _root_for places a claim by basename equality (dispatch-guard.sh:122) with an owner_root fallback (:126), while worktree_for_feature matches by PREFIX because equality was measured false in this repository: its docstring records that equality alone leaves every short-form worktree unmatched and silently unbound (harness_boundary.py:215-221). Under a short-form worktree topology the file-derived construction empties S for every agent and allows every governed main-checkout write with every success criterion still green. Feature-field resolution also PRESERVES the ruling's Q3(b) allow: the main-checkout registry is scanned, but a claim for a feature with no linked worktree resolves to None, adds no member, and leaves S empty."
+    dec: none
+
+  - id: D-03
+    choice: "Two same-persona residues are ACCEPTED as a reasoned boundary, not deferred and not waived. FALSE-ALLOW: persona P dispatched for feature A writes into B's worktree while a concurrent P session holds B; set membership allows it, exact match would refuse it. FALSE-REFUSE: P holds a worktree'd claim while a concurrent P claim for an un-worktree'd feature writes the main checkout; S is non-empty so the write refuses, though REQ-01 calls that session unbound."
+    because: "Ruling 2 Q1 accepts both because they are forced by the identity available at the guard: exact match is unbuildable on Claude Code (no feature field on any write payload and no per-message hook to build a capture on), and on OMP buildable only through an untested currentFeature capture carrying a named wrong-feature-first branch whose miscapture would refuse the agent's legitimate writes AND allow the sibling harm. Both residues must appear verbatim in the DECISIONS.md entry T-07 lands."
+    dec: none
+
+  - id: D-04
+    choice: "Candidate B, a currentFeature payload key, is NOT re-proposed, and no per-host key or capability check is taken. One host-uniform predicate lives in the DEC-193 shared Python seam imported by both guards, fed only by agent_type, which both hosts already supply. No new payload plumbing."
+    because: 'DEC-208 ruling 2 already recorded the ground for rejecting a payload key, and it is quoted here from source (DECISIONS.md:6395-6396): a payload key is present only on the routes that happen to carry it, while git''s registry cannot drift. Ruling 2 Q2 adds that a per-host key would leave the compatibility host''s copies of the SAME guard scripts blind to the whole incident class, and that deferring the measured B-10 harm on a supported host is scope reduction the operator forbids. Two consequences follow and are recorded here so nobody re-opens them: ruling 2''s fail-open cases (d) capture-timing and (e) wrong-first-marker are MOOT, because the ruled key never reads currentFeature, so no test is scheduled for either; and ruling 2''s Q4, the OMP feature-capture coverage gap, is OUT of BUG-1304''s scope and is filed separately, because the ruled key binds to inflight_registry and harness_boundary only and touches none of that mechanism.'
+    dec: DEC-208
+
+  - id: D-05
+    choice: "The one legitimate outside-worktree write class, control-plane Expertise distillation, is carved out BY ROUTE and not by destination glob: python3 expertise-merge.py apply writes the control-plane root's .harness/expertise/<agent>.md at merge time from inside a worktree and stays allowed, because it is not among the Bash guard's extractable write findings (redirects, sed and perl -i, tee, mv and cp, rm, sponge, awk -i). It is pinned by a NEGATIVE test case, and REQ-06's refusal message for a control-plane Expertise destination redirects to that CLI, never to write it in your worktree."
+    because: "Advisor ruling 1 Q2 examined all four candidate classes plus the factory base and found no other legitimate cross-worktree governed write; stating the carve-out by route rather than by glob keeps the destination hard-gated for every route that IS extractable."
+    dec: DEC-153
+
+  - id: D-06
+    choice: "The assigned-worktree rule keys on the HARNESS BASE ONLY. DEC-193's second legal write location, workspace_root/<repo> under the DEC-189 two-base layout, is left UNBOUND by this rule."
+    because: "Advisor ruling 1 Q2 flags that no factory module links worktrees, so a factory-dispatched agent has no assigned worktree to compare a destination against and must read unbound; the plan states the limit explicitly rather than leaving a reader to infer it from the absence of a rule."
+    dec: DEC-193
+
+  - id: D-07
+    choice: "The recording form is a NEW DECISIONS.md entry with its DECISIONS-INDEX.md row, PLUS two SAME-EDIT REWRITES in the same landing: DEC-153's worktree carve-out clause narrowed from any disposable checkout to THE ASSIGNED worktree, and DEC-193's first surviving-divergence bullet, which currently reads that the Bash route keeps DEC-153's blanket allow. Neither is recorded as a dated sub-section, and DEC-153 is not superseded."
+    because: "Advisor ruling 1 Q4 applies DEC-205: a correction rewrites the entry it corrects, amendment is not an available form, and a plan-level D-NN alone fails because plans are per-feature while DEC-153 and DEC-193 would go on asserting the old truth in the authority every future reader opens."
+    dec: DEC-205
+
+  - id: D-08
+    choice: 'REQ-04 is decomposed as TWO DIFFERENT EDITS with their own tasks, files and verifies, never as one shared change. The Bash route NARROWS an existing blanket allow; the Write/Edit route EXTENDS binding from target-path-derived to claim-derived. The asymmetry is in the EDITS only; the refusal semantics the two edits install are IDENTICAL: both routes evaluate the same claim-set predicate from the shared harness_boundary seam and refuse with the same exit 2 and the same claim_set_refusal text, with no route-local additions.'
+    because: "Advisor ruling 1 obligation 3 records the asymmetry: the two routes start from opposite existing behaviours, so a single shared task would hide one of the two changes and its regression surface."
+    dec: none
+
+  - id: D-09
+    choice: |
+      BINDING LIVENESS AND DISPATCH LIVENESS ARE TWO QUESTIONS OVER ONE STORED CLAIM, and
+      this feature separates them.
+      THE BINDING ANSWER, used only by the guards' read-only enumerator
+      inflight_registry.live_claims: an OMP claim is live exactly when _omp_claim_live says
+      so, so a proven supervisor identity binds at any age; every non-OMP claim, meaning
+      runtime absent or "claude", which is the default every compatibility-host claim takes,
+      binds until OMP_UNVERIFIED_TTL_SECONDS have elapsed since started_at. The enumerator
+      MUST NOT filter with _expire and MUST NOT compare against CLAIM_TTL_SECONDS.
+      THE DISPATCH ANSWER IS UNCHANGED at CLAIM_TTL_SECONDS, 1200s: single-flight admission,
+      live_children and reconcile counts behave exactly as they do today, so FEAT-37's
+      unstranding of an interrupted compatibility-host run is preserved in full. THE SEAM
+      THAT MAKES BOTH TRUE AT ONCE: the record written back to the registry file and the
+      answer a caller returns are computed separately. Retention changes only what is
+      WRITTEN; every caller's returned answer stays at 1200s, single-flight admission most
+      of all.
+      THE 1200s HORIZON IS EXPLICITLY NOT ACCEPTED AS A BINDING HORIZON. It is the defect
+      this decision closes, not a residue: on the compatibility host it would empty the
+      claim set for every governed agent past twenty minutes, and the agent would then read
+      unbound and be allowed the exact main-checkout write that is this bug's founding
+      incident. The remedy proposed in the cycle-1 goal-check, that the enumerator reuse
+      _expire, is REJECTED for that reason.
+      THE SURVIVING RESIDUE IS ACCEPTED, NAMED: a claim past OMP_UNVERIFIED_TTL_SECONDS is
+      silently unbound, so a genuinely live compatibility-host agent older than the backstop
+      reads unbound and its governed main-checkout writes are allowed again.
+      THE BACKSTOP VALUE IS THE EXISTING OMP_UNVERIFIED_TTL_SECONDS, 86400s
+      (inflight_registry.py:36), AND IT IS RATIFIED, NOT PROPOSED. The fourth binding ruling
+      (notes/review-fable-advisor-plan-BUG-1304-f1-binding.md) ratified this exact constant: no new
+      constant, no different value, and no second binding horizon — a second one would turn this
+      decision's two questions over one stored claim into three numbers, one of them unmeasured. The
+      value carries its own measured justification at inflight_registry.py:30-35, and the accepted
+      residue above stands exactly as recorded here.
+      T-09 IS IN SCOPE AND THE REGISTRY-FILE RETENTION HALF LANDS IN THIS FEATURE. The same ruling
+      settled that too, on the ground the earlier draft recorded as the cost of striking it:
+      dispatch-guard.sh:197 calls the mutating live_claim on every dispatch and
+      validate-digest.py:1755-1760 calls live_children at every parent return, so a dispatch-expired
+      non-OMP claim would otherwise be deleted from the registry file on the routine suspend path, the
+      enumerator could not see it however correct its predicate is, the agent would read unbound, and
+      this bug's founding main-checkout write would be allowed again — a read-side-only guard is
+      ceremonial on that host. Advisor rulings A and B classified that as a DEFECT this feature must
+      close rather than a residue it may accept, the closure sits entirely inside files T-02 already
+      owns, and the answer/written seam split plus case_bug1304_retention_admission protects FEAT-37's
+      1200s single-flight admission. SC-11 binds the retention half and is not conditional on anything.
+    because: |
+      Advisor ruling 3 (notes/review-fable-advisor-plan-BUG-1304-ttl-residue.md) measured the
+      asymmetry and ruled it a DEFECT rather than a residue, on the two tests an accepted
+      residue must pass. It is closable here, inside the files T-02 already owns, because the
+      host capability limit recorded at inflight_registry.py:27-28 forces only the DISPATCH
+      presumption of death, not the binding one. And it is materially worse than D-03's two
+      residues, which never reopen the founding incident, whereas this one reopens it
+      verbatim on a supported host under routine conditions.
+      The residue that survives is accepted on the module's own recorded ground at
+      inflight_registry.py:30-35: no supervisor proof exists on the compatibility host, and a
+      claim that can never age out strands its parent's yield through validate-digest.py's
+      held-child gate forever. 86400s is well above the 7,200s longest measured leaf run, so
+      the horizon can never cut short a real agent.
+      D-03 stays EXACTLY as written and is not amended: its two residues are unbuildable-limit
+      residues of a different class, and folding this one into that entry would blur the
+      distinction between a limit and a defect.
+    dec: DEC-204
+  - id: D-10
+    choice: |
+      AN UNREADABLE OR UNREPRESENTABLE REGISTRY IS A REFUSE CASE FOR THE GOVERNED WRITES THE READABLE
+      ROOTS CANNOT PLACE — not an empty answer, and not a factory-wide stop. A registry file that EXISTS
+      among the scanned roots and cannot be read as a claim list — unparseable JSON, a payload that is not
+      a JSON object, or a mapping that is neither schema_version 2 nor migratable — makes
+      inflight_registry.live_claims raise UnreadableRegistry carrying that path.
+      THE ORDERING IS PART OF THIS DECISION AND IS SELECTED, not left open: the fourth binding ruling
+      (notes/review-fable-advisor-plan-BUG-1304-f1-binding.md) adopted remedy (a). For a governed write
+      with resolved absolute destination d, harness_boundary.claim_worktrees builds S_p from every
+      READABLE scanned registry while collecting the set U of unreadable registry paths, and then:
+        1. d lies inside a member of S_p — the ordinary allow path, whatever U holds;
+        2. U is empty — S_p is the full S and the ordinary D-01 rule applies unchanged, including the
+           empty-S unbound allow;
+        3. U is non-empty AND d lies inside no member of S_p — exit 2 on BOTH routes with ONE seam-built
+           message naming EVERY file in U. This clause covers both the empty S_p case, which is SC-10's
+           founding fixture, and the non-empty one.
+      An unreadable root is NEVER read as "no claims here". A MISSING registry file still returns an empty
+      list: absent and unreadable are different answers. The CLAIM/WRITE path is untouched — _parse keeps
+      its treat-as-empty fallback (inflight_registry.py:56-65) and case_8_corrupt_registry
+      (tests/integration/test-inflight-registry.py:329) stays green. Only the READ/REFUSAL path this
+      feature adds refuses.
+    because: |
+      THE SHAPE BEGAN AS THE ADVISOR'S REQ-05 PATTERN EXTENDED BY PM AT CYCLE 1, AND THE FOURTH
+      BINDING RULING HAS SINCE RULED THE CASE ITSELF. It is flagged that way deliberately, so the
+      operator reads where each half came from rather than a silent widening. Advisor
+      rulings 1 and 2 fixed REQ-05's shape — a record that exists, claims to carry the answer
+      and cannot be read is refused, never treated as absent — and enumerated the destination
+      .git pointer and claim ambiguity, but never reached the registry file itself. The
+      cycle-1 plan panel measured the consequence: live_claims spec'd to return an empty list
+      for a corrupt root empties S, the agent reads UNBOUND, and this bug's founding
+      main-checkout write is ALLOWED with every success criterion green — a fail-open under a
+      failure mode this codebase already names and tests elsewhere. At cycle 1 no advisor had yet reached the registry
+      file itself, so pm extended the existing pattern rather than inventing a rule. The FOURTH BINDING
+      RULING (notes/review-fable-advisor-plan-BUG-1304-f1-binding.md) SUBSEQUENTLY ruled on exactly
+      this case, SELECTED remedy (a), and the operator AUTHORISED that ruling with NO overrules.
+      Nothing here is left awaiting a ratify-or-strike at signature.
+      THE TRUE COST, STATED AT ITS ACTUAL SCOPE UNDER THE SELECTED REMEDY (a). The refusal binds every
+      governed write the READABLE roots cannot place, and NEVER a write whose resolved destination lies
+      inside a proven member of the partial S_p. Stated plainly: while a scanned registry file is
+      unreadable, an agent whose own claim is readable keeps writing inside its own assigned worktree, and
+      what is refused is the governed write the readable roots cannot account for — the main-checkout
+      write, the sibling-worktree write, and every governed write by an agent whose only claim sits in the
+      unreadable file. That is a per-write refusal, not a factory-wide stop. It is sound under any superset
+      of S: a destination already inside a proven member stays inside S however many members the unreadable
+      root would have added, so repairing the file can never revoke an allow this rule gave. The cost that
+      DOES remain is real and is what signature ratifies: an agent whose OWN claim sits in the unreadable
+      file is refused every governed write outside the worktrees the readable roots still prove for it,
+      until that file is repaired, and the refusal is loud and names every unreadable file. The
+      panel-cycle-2 wording of this paragraph — that the trade is FACTORY-WIDE, refusing even a write
+      inside the writer's own healthy worktree — described the ordering the plan carried BEFORE the fourth
+      binding ruling and no longer describes the plan; it is corrected here rather than left for a reader
+      to reconcile.
+      THE bash-write-guard.sh:684-694 COMPARISON NOW HOLDS IN SCOPE AS WELL AS DIRECTION. That manifest
+      refusal is bounded to the write whose own manifest cannot be read; under the selected remedy this
+      refusal is likewise bounded by the write itself — its own resolved destination decides whether the
+      unreadable root can matter to it. The gap panel cycle 2 named, that no criterion and no task case
+      exercised "my own destination and my own registry are healthy while an unrelated feature's registry
+      is corrupt", is CLOSED rather than disclosed: BRIEF SC-12 asserts exactly that pair on both routes,
+      generated by T-03 and T-05, and SC-10 keeps binding the refusal on its own disjoint fixture where the
+      agent's only claim is the corrupt one.
+      THE REMEDY IS SELECTED AND THE CHOICE IS CLOSED. Panel cycle 2 raised the blast radius as a HIGH
+      finding (PF-055b89703a96f6c82edc6d37e6fb973c, harness-code-reviewer,
+      notes/review-harness-code-reviewer-planpanel-c2.md); under DEC-176 neither pm nor a lead may accept a
+      HIGH finding, so it went to the advisor, and the operator authorised the fourth binding ruling
+      (notes/review-fable-advisor-plan-BUG-1304-f1-binding.md) with no overrules.
+      SELECTED — REMEDY (a), NARROW THE RULE TO THE WRITE THAT ASKED. Resolve the destination first,
+      compare it against the partial S_p built from the readable roots, and raise UnreadableRegistry only
+      when the answer would depend on an unreadable root. It keeps REQ-03 unamended, keeps the fail-closed
+      refusal for exactly the writes the readable roots cannot place, and covers SC-10's founding case
+      verbatim. The ordering it fixes is written into this decision's choice above and into T-02's intent;
+      the allow half it needs is BRIEF SC-12, whose evidence T-03 and T-05 generate.
+      REJECTED — REMEDY (b), KEEP THE GLOBAL RULE AND CARVE THE EXCEPTION INTO REQ-03: rejected because it
+      repairs the contradiction by amending REQ-03's promise to fit an implementation ordering, accepting a
+      factory-wide stop of every governed write as the price of a per-write question. Its proposed REQ-03
+      carve-out text was never written into BRIEF.md and is not written now.
+      Q1 IS RESOLVED WITH THIS PARAGRAPH RATHER THAN CARRIED FORWARD. pm's own question Q1
+      (notes/research-BUG-1304-plan-repair-panelc1.md:85-86) disclosed only the narrower REQ-01
+      unbound-agent scope, which the panel judged inadequate for exactly this reason; it was superseded by
+      the blast-radius paragraph above and is answered by the same ruling that selected remedy (a). Nothing
+      about the unreadable-registry rule is left for the operator to pick between.
+      A KNOWN ASYMMETRY, RECORDED AND NOT REPAIRED, SO THE OPERATOR SEES IT BEFORE SIGNING (panel
+      cycle 2 finding PF-5b09773491bc20f90f69a59b84294788, med, harness-code-reviewer; no task is
+      added for it and this feature does not widen to reach it). S has TWO inputs and this decision
+      makes only ONE of them fail-closed. The registry input is now fail-CLOSED. The worktree-pointer
+      input remains fail-OPEN: harness_boundary.linked_worktrees returns [] on any OSError listing
+      owner_root/.git/worktrees (harness_boundary.py:170-173, anchors re-verified in the worktree) and
+      silently skips a pointer file it cannot read (harness_boundary.py:177-183, re-verified), so an
+      I/O fault at the enumeration layer is indistinguishable from "no worktrees exist";
+      worktree_for_feature then resolves to None, a live claim in that worktree contributes nothing to
+      S, the agent reads UNBOUND and the governed main-checkout write is ALLOWED — B-10's silent
+      unbound-allow verbatim, one layer above the layer this decision closes. The feature also
+      repurposes linked_worktrees, written and documented as a REPORT primitive, as an ENFORCEMENT
+      input, which is what makes its report-grade tolerance load-bearing. Likelihood is lower than a
+      corrupt registry file, since it needs an I/O fault on the directory itself, hence med and not
+      high. Closing it is its own issue.
+    dec: none
+  - id: D-11
+    choice: |
+      THREE DEFECTS THIS FEATURE FOUND AND DELIBERATELY DOES NOT CLOSE ARE FILED AS THEIR OWN
+      ISSUES, and filing them is REQUIRED, not optional. They are recorded here in one place so a
+      struck task and two panel findings cannot quietly become forgotten ones:
+        1. dispatch-guard.sh _root_for places a claim by basename EQUALITY
+           (dispatch-guard.sh:122) with an owner-root fallback (:126), so a short-form worktree's
+           claim is written into the owner-root registry rather than its own. The fix is prefix
+           alignment through harness_boundary.worktree_for_feature. This is struck T-08's work,
+           cut by the fourth binding ruling (Q4) because the enforcement remedy resolves every
+           claim by its own feature field and is therefore placement-agnostic.
+        2. harness_boundary.linked_worktrees is fail-OPEN where this feature's registry input is
+           now fail-CLOSED: it returns [] on any OSError listing owner_root/.git/worktrees
+           (harness_boundary.py:170-173) and silently skips a pointer file it cannot read
+           (:177-183), so an I/O fault reads as "no worktrees exist" and the agent reads unbound.
+           Panel cycle 2 finding PF-5b09773491bc20f90f69a59b84294788, med.
+        3. validate-digest.py live_children (validate-digest.py:1755) cannot see a
+           compatibility-host child past CLAIM_TTL_SECONDS, so a parent can release and complete
+           while a long child still runs — a DEC-210 dispatch-side defect this guard work does not
+           own. Carried as OC-3 since Advisor ruling 3.
+      NO TASK IN THIS PLAN OWNS ANY OF THE THREE, and none of them is a residue this feature
+      accepts: each is a real defect with a named anchor, deferred to its own ticket rather than
+      absorbed into a two-gate bug fix.
+    because: |
+      The fourth binding ruling (notes/review-fable-advisor-plan-BUG-1304-f1-binding.md, Q4) struck
+      T-08 and made its follow-up issue REQUIRED in the same breath, "alongside the two already-named
+      separate issues". Before this decision those two lived only in prose — F2 inside D-10's
+      asymmetry paragraph, OC-3 only in STATE.md and the advisor notes — so the obligation was
+      recorded in three places and owned by none, which is exactly how a deferral turns into a
+      silent drop. One decision, signed once, is the weakest form that makes all three falsifiable:
+      after signature the operator can check three issues exist.
+      The alternative — widening this feature to close them — is what the ruling rejected: two of
+      the three live outside the two gate scripts this bug owns, and the third costs the remedy
+      nothing because T-02 resolves each claim's own feature field whatever registry file it sits
+      in.
+    dec: none
+tasks:
+  - id: T-01
+    title: Add the failing claim-set tests for the shared seam and the registry enumerator
+    traces: [REQ-01, REQ-02, REQ-05]
+    change_type: logic
+    execution_mode: main-session-direct
+    execution_reason: "DEC-174 carve-out: harness_boundary.py and inflight_registry.py are gate-script libraries, so their tests are enforcement-layer files the main session executes directly (DEC-179)."
+    depends_on: []
+    status: done
+    files:
+      - tests/unit/test-harness-boundary.py
+      - tests/integration/test-inflight-registry.py
+    verify: |
+      python3 tests/unit/test-harness-boundary.py; a=$?
+      python3 tests/integration/test-inflight-registry.py; b=$?
+      test "$a$b" = "11"
+    intent: |
+      Write tests FIRST, before any production code. Both files must exit 1 when you are
+      done, because neither function under test exists yet. A guard test that cannot go red
+      proves nothing.
+
+      In tests/integration/test-inflight-registry.py add a case function for a new READ-ONLY
+      enumerator inflight_registry.live_claims(root, agent, now=None) returning a list of
+      every live claim dict for that agent in that one registry, oldest first. It must be
+      read-only: unlike live_claim it must NOT rewrite the registry file, because it runs on
+      the PreToolUse path on every governed write. Assert, each as its own case:
+        1. two live claims for one agent in one registry are BOTH returned, with their own
+           feature fields intact (live_claim returns only the oldest, which is why this
+           function is needed);
+        2. a NON-OMP claim (runtime absent or "claude") past the BINDING horizon is not returned. The binding horizon is
+           OMP_UNVERIFIED_TTL_SECONDS, not CLAIM_TTL_SECONDS: back-date started_at further than
+           OMP_UNVERIFIED_TTL_SECONDS before the injected now and assert the claim is absent.
+           Do not write this case against CLAIM_TTL_SECONDS — under D-09 a claim in that window
+           is still binding, and case 5 below asserts exactly that;
+        3. calling live_claims does not change the bytes of the registry file on disk;
+        4. a missing registry file returns an empty list and raises nothing.
+      Then add the four D-09 binding-horizon cases, each its own case. Every one of them injects
+      time through the now= argument and back-dates the fixture's started_at; started_at is
+      stored data, so no clock is mocked and each case fails deterministically against an
+      implementation that filters with _expire or CLAIM_TTL_SECONDS:
+        5. an OMP claim (runtime "omp") whose recorded supervisor identity is PROVEN live and
+           whose started_at is back-dated far past CLAIM_TTL_SECONDS IS returned. Build the
+           proven identity the way _omp_claim_live checks it — a pid that is alive with a
+           matching recorded supervisor_started_at; use the test process's own pid and the value
+           inflight_registry._process_start_time reports for it, so the identity is genuinely
+           proven rather than stubbed;
+        6. a non-OMP claim (runtime absent or "claude") back-dated MORE than CLAIM_TTL_SECONDS
+           but LESS than OMP_UNVERIFIED_TTL_SECONDS before now IS returned by live_claims. This
+           is the case that goes red the moment anyone re-wires the enumerator to _expire, and it
+           is the assertion that keeps this bug's founding incident closed on the compatibility
+           host;
+        7. a non-OMP claim back-dated MORE than OMP_UNVERIFIED_TTL_SECONDS before now is NOT
+           returned. This pins the horizon from above and fails a binds-forever implementation.
+        8. an OMP claim (runtime "omp") whose recorded supervisor identity is PROVEN live and
+           whose started_at is back-dated MORE than OMP_UNVERIFIED_TTL_SECONDS before the injected
+           now IS still returned. Build the proven identity exactly the way case 5 does — the test
+           process's own pid together with the value inflight_registry._process_start_time reports
+           for it — so the identity is genuinely proven rather than stubbed. This is the assertion
+           that separates "a proven identity binds at ANY age" (D-09) from "everything binds until
+           86400s": a BACKSTOP-ONLY enumerator, one that ignores supervisor proof and simply binds
+           every claim until OMP_UNVERIFIED_TTL_SECONDS, passes cases 1 through 7 and goes RED only
+           here. Without it D-09's proven-identity half ships unpinned.
+      Wire the new function into the file's own aggregate so its failures are counted.
+
+      In tests/unit/test-harness-boundary.py add case_bug1304_claim_set and register it in
+      main() with the exact line: run_case(case_bug1304_claim_set)
+      It tests a new seam function
+      harness_boundary.claim_worktrees(owner_root, agent_type, destination), which returns S as a
+      sorted list of absolute worktree paths, built as follows and no other way: enumerate every
+      live claim held by agent_type across ALL registries, INCLUDING the owner-root registry
+      itself, and resolve EACH claim's own feature field through
+      harness_boundary.worktree_for_feature(owner_root, feature). A claim contributes
+      a member only when worktree_for_feature returns a real worktree. The third parameter is the
+      write's RESOLVED ABSOLUTE DESTINATION and it matters only when a scanned registry cannot be
+      read (D-10 clauses 1 and 3, cases 7 and 8 below); with every scanned registry readable the
+      returned S does not depend on it, so cases 1 through 6 may pass any resolved path.
+      Build fixtures with tempfile plus real .git pointer files, in the shape the existing
+      case_worktree_for_feature uses. Assert, each as its own case:
+        1. a claim whose feature is FEAT-32-concurrent-write-merge, held in a registry, with
+           a linked worktree whose BASENAME is FEAT-32, yields that worktree in S. This is
+           the prefix path and it is the case a registry-file-derived construction misses;
+        2. a claim recorded in the OWNER-ROOT registry whose feature DOES have a linked
+           worktree still yields that worktree in S, proving S is not derived from which
+           registry file the claim sits in. This case is also the unit-level discrimination
+           that T-03 case 7 and T-05 case 8 point at: at the subprocess level an allow cannot
+           distinguish "the owner-root registry was read and contributed nothing" from "the
+           owner-root registry was skipped", and this assertion is what separates them;
+        3. a claim whose feature has NO linked worktree contributes nothing, so S is empty
+           and the caller reads unbound;
+        4. an agent holding live claims in two different features with two linked worktrees
+           yields BOTH in S;
+        5. no live claim anywhere yields an empty S;
+        6. a claim whose feature resolves to two prefix-matching worktrees propagates
+           harness_boundary.AmbiguousWorktree rather than guessing or silently dropping it.
+      Also add a case for a new seam function
+      harness_boundary.claim_set_refusal(agent_type, claim_set, destination) returning the
+      REQ-06 refusal text: it must name every member of claim_set and the destination's
+      proper home, must never contain the words remove the worktree, and when the
+      destination is under the control-plane root's .harness/expertise/ it must advise the
+      sanctioned CLI python3 expertise-merge.py apply instead of advising the agent to write
+      it in its own worktree.
+
+      THE UNREADABLE-REGISTRY CASES (REQ-05, SC-10, SC-12, panel finding L-01). _parse treats an
+      unreadable registry as empty (inflight_registry.py:56-65), and case_8_corrupt_registry
+      (tests/integration/test-inflight-registry.py:329) pins that fallback deliberately FOR THE
+      CLAIM/WRITE PATH. The READ/REFUSAL path this bug adds must NOT inherit it: an unreadable
+      root leaves the claim set INCOMPLETE, and an incomplete claim set must never be reported as
+      an empty one, because empty means unbound and unbound means allowed. Do not modify
+      case_8_corrupt_registry; the write path keeps its behaviour and stays green.
+
+      In tests/integration/test-inflight-registry.py, two more cases on live_claims:
+        9. a root whose registry file EXISTS and holds unparseable JSON makes live_claims RAISE
+           inflight_registry.UnreadableRegistry, carrying that file's path, rather than returning
+           []. Assert the same for two more unreadable shapes, each its own check: a payload that
+           parses as JSON but is not an object (a list), and a mapping that is neither
+           schema_version 2 nor migratable by the v1 reader;
+       10. a MISSING registry file still returns [] and raises nothing. Absent and unreadable are
+           different answers and this case pins the pair against a later implementation that
+           collapses them; case 4 above is the absent half, this is the assertion that it stays
+           that way.
+
+      In tests/unit/test-harness-boundary.py, two more assertions inside case_bug1304_claim_set,
+      which together pin D-10's selected ordering — the refusal is scoped to the writes the
+      readable roots cannot place, so ONE of these two must go red under either wrong ordering:
+        7. THE REFUSAL HALF. With one scanned root's registry unreadable and a destination lying
+           OUTSIDE every member of the partial S built from the READABLE roots, claim_worktrees
+           RAISES UnreadableRegistry rather than dropping that root's contribution and returning a
+           smaller S. Assert the propagated exception carries every offending file path, because
+           the refusal message names the files the operator must repair. Assert it for an
+           unreadable OWNER-ROOT registry as well as for an unreadable linked-worktree registry,
+           so no root is exempt. This case goes red against an implementation that builds S from
+           the readable roots and then ignores the unreadable one.
+        8. THE ALLOW HALF (SC-12 at the unit level). With one root's registry unreadable and a
+           READABLE root proving a worktree that CONTAINS the destination, claim_worktrees RETURNS
+           that partial S and RAISES NOTHING. It is sound because a destination already inside a
+           proven member stays inside S however many members the unreadable root would have added.
+           This case goes red against an implementation that requires every scanned registry to be
+           readable before it compares the destination — the ordering this plan carried before the
+           fourth binding ruling. Assert the returned list contains the proving worktree.
+
+  - id: T-02
+    title: Implement claim_worktrees, claim_set_refusal and the read-only claim enumerator
+    traces: [REQ-01, REQ-02, REQ-05, REQ-06]
+    change_type: logic
+    execution_mode: main-session-direct
+    execution_reason: "DEC-174 carve-out: harness_boundary.py and inflight_registry.py are the shared libraries both registered gate scripts import (DEC-179)."
+    depends_on: [T-01]
+    status: done
+    files:
+      - .claude/skills/harness/bin/harness_boundary.py
+      - .claude/skills/harness/bin/inflight_registry.py
+    verify: |
+      python3 tests/unit/test-harness-boundary.py \
+        && python3 tests/integration/test-inflight-registry.py
+    intent: |
+      Make T-01's tests pass. Nothing more.
+
+      In inflight_registry.py add live_claims(root, agent, now=None) -> list of claim dicts.
+      READ-ONLY: read the registry JSON at _registry_path(root). ABSENT AND UNREADABLE ARE
+      DIFFERENT ANSWERS, from this first mention onward: when _registry_path(root) does NOT EXIST,
+      return [] — a root that carries no registry file holds no claims and is legitimately empty;
+      when it EXISTS but its contents cannot be read as a claim list, RAISE UnreadableRegistry as
+      the unreadable-root paragraph below specifies, and never return [] for it (D-10, SC-10).
+      Otherwise filter with the existing _matches(claim, agent=agent) and
+      _visible(claim) predicates, apply the BINDING liveness predicate below, sort by started_at
+      ascending. Default now to time.time() when the caller passes None, so tests can inject a
+      clock. It must not acquire the write lock and must not rewrite the file, because it runs on
+      the PreToolUse path of every governed write; live_claim mutates and is therefore the wrong
+      call here.
+
+      THE BINDING LIVENESS PREDICATE (D-09). Binding liveness and dispatch liveness are two
+      questions over one stored claim, and live_claims answers only the first: does this claim
+      still BIND its holder to a worktree? Apply exactly this and nothing else:
+        - a claim whose runtime is "omp" is live exactly when
+          inflight_registry._omp_claim_live(claim, now) says so — a proven (pid, start time)
+          identity is live at ANY age, and an unproven one falls to the module's
+          OMP_UNVERIFIED_TTL_SECONDS backstop;
+        - every other claim is a non-OMP claim — runtime absent or "claude", which is the default
+          every compatibility-host claim takes (claim_with_receipt and claim both default it, and
+          the v1 migration setdefaults it) — and is live until OMP_UNVERIFIED_TTL_SECONDS have
+          elapsed since its started_at, and not before.
+      live_claims MUST NOT filter with _expire and MUST NOT compare against CLAIM_TTL_SECONDS.
+      CLAIM_TTL_SECONDS is the DISPATCH presumption of death and it stays at 1200s for every
+      dispatch-side answer; reusing it here would empty S for every compatibility-host agent past
+      twenty minutes and re-allow this bug's founding incident on that host. A claim with a
+      missing or non-finite started_at is not live.
+
+      In harness_boundary.py add claim_worktrees(owner_root, agent_type, destination) -> sorted
+      list of absolute worktree paths. The THIRD PARAMETER is the write's RESOLVED ABSOLUTE
+      DESTINATION and it is required, not optional: the ordering paragraph below is the whole
+      reason it exists. Build the candidate registry roots as owner_root PLUS every
+      path in linked_worktrees(owner_root). For each root call
+      inflight_registry.live_claims(root, agent_type); for each returned claim read its own
+      feature field and call worktree_for_feature(owner_root, claim_feature). Add the result
+      to S only when it is not None. Deduplicate and sort. Let AmbiguousWorktree propagate to
+      the caller. Do NOT infer a worktree from which registry file the claim was read in:
+      that construction is the defect D-02 records, and under a short-form worktree topology
+      it empties S for every agent while every test still passes.
+      Import inflight_registry lazily inside the function so harness_boundary keeps its
+      standard-library-only import surface at module load.
+
+      Also add claim_set_refusal(agent_type, claim_set, destination) -> str, the single
+      REQ-06 message both routes print. It names agent_type, every member of claim_set, and
+      the destination, and states where the write belongs. It must never advise removing a
+      worktree. When destination resolves under the control-plane root's .harness/expertise/
+      the advice is to use the sanctioned CLI python3 expertise-merge.py apply, because that
+      destination is legitimately outside every worktree and is reached by route, not by
+      relocation (D-05).
+
+      THE UNREADABLE ROOT IS SURFACED, NOT SWALLOWED (REQ-05, SC-10, panel finding L-01). Add
+      class UnreadableRegistry(Exception) to inflight_registry and raise it from live_claims when
+      _registry_path(root) EXISTS but its contents cannot be read as a claim list: unparseable
+      JSON, a payload that is not a JSON object, or a mapping that is neither schema_version 2 nor
+      migratable by the existing v1 reader. Carry the offending path on the exception. A MISSING
+      file still returns [] — absent and unreadable are different answers. Do NOT change _parse and
+      do NOT change the claim/write path: case_8_corrupt_registry
+      (tests/integration/test-inflight-registry.py:329) pins that fallback for writes and must stay
+      green. live_claims is the read/refusal path, and inheriting the fallback there empties S for
+      an agent that may well be bound, which is allowed-by-silence.
+
+      THE ORDERING INSIDE claim_worktrees IS DECIDED, NOT OPEN, AND THIS IS THE RULE TO BUILD (D-10,
+      selected remedy (a) — notes/review-fable-advisor-plan-BUG-1304-f1-binding.md). For a governed
+      write with resolved absolute destination d, build S_p from every READABLE scanned registry —
+      the owner root plus every linked worktree — while COLLECTING, not raising on, the set U of
+      registry paths whose live_claims call raised UnreadableRegistry. Then decide in exactly this
+      order:
+        1. d lies inside a member of S_p — RETURN S_p without raising. This is the ordinary allow
+           path and it holds whatever U contains. It is sound under any superset of S: a destination
+           already inside a proven member stays inside S however many members an unreadable root
+           would have added;
+        2. U is empty — S_p IS the full S, so RETURN it and let the ordinary D-01 rule apply
+           unchanged in the caller, including the empty-S unbound allow;
+        3. U is non-empty AND d lies inside no member of S_p — RAISE UnreadableRegistry carrying
+           EVERY path in U, so the seam message can name every file the operator must repair. This
+           clause covers both an empty S_p, which is SC-10's founding fixture, and a non-empty one.
+      An unreadable root is NEVER read as "no claims here", and a MISSING registry file still
+      returns [] from live_claims: absent and unreadable stay different answers.
+      THE MEMBERSHIP TEST IN CLAUSE 1 USES THE SAME CONTAINMENT PRIMITIVE THE GUARDS USE for their
+      own destination-inside-a-member comparison, called from this one seam, so the two comparisons
+      cannot drift into two different answers about the same path. Do not hand-roll a prefix
+      comparison here.
+      AmbiguousWorktree still propagates to the caller exactly as it does today, and it is not
+      subject to this ordering: it means a claim the agent HOLDS cannot be placed, which no
+      destination can make irrelevant.
+
+      THE REFUSAL DECISION IS TAKEN ONCE, IN THIS SEAM, NEVER PER ROUTE (REQ-04: one predicate, one
+      message builder). Extend claim_set_refusal, or add a sibling builder beside it, so the seam
+      owns the unreadable case too: the message names the agent_type, EVERY registry file that could
+      not be read, and states that the agent's binding cannot be determined for THIS destination so
+      the write is refused rather than allowed, and it advises repairing or removing those files.
+      T-04 and T-06 only catch the exception and print what the seam returns; neither reimplements
+      the rule.
+
+  - id: T-03
+    title: Add the failing Write and Edit route claim-set cases to the check-domain suite
+    traces: [REQ-01, REQ-02, REQ-03, REQ-04, REQ-05, REQ-06]
+    change_type: logic
+    execution_mode: main-session-direct
+    execution_reason: "DEC-174 carve-out: check-domain.sh is a registered PreToolUse gate script and its suite is an enforcement-layer file (DEC-179)."
+    depends_on: [T-02]
+    status: done
+    files:
+    - tests/integration/test-check-domain.py
+    - tests/integration/fixtures/prior-check-domain.sh.fixture
+    verify: |
+      test -f tests/integration/fixtures/prior-check-domain.sh.fixture \
+        && grep -q 'def run_bug1304_claim_set' tests/integration/test-check-domain.py \
+        && grep -q 'fails += run_bug1304_claim_set()' tests/integration/test-check-domain.py \
+        && grep -q 'def bug1304_pre_change_hook' tests/integration/test-check-domain.py \
+        && grep -q 'def bug1304_assert_pre_change_allows' tests/integration/test-check-domain.py \
+        && n=$(grep 'bug1304_assert_pre_change_allows(' tests/integration/test-check-domain.py \
+             | grep -vc '^ *def bug1304_assert_pre_change_allows') \
+        && test "$n" -ge 10 \
+        && { python3 tests/integration/test-check-domain.py; test $? -eq 1; }
+    intent: |
+      Write these tests BEFORE T-04 touches check-domain.sh. The suite must exit 1 when you
+      are done: check-domain.sh does not yet consult the claim set, so every refusal case
+      below still exits 0 against the live hook.
+
+      DISCRIMINATION IS IN-TEST, NOT TRANSIENT (SC-06). A red suite that goes green when T-04
+      lands leaves nothing at review_sha showing these assertions can fail, so each refusal case
+      below must ALSO fire the identical payload at a FROZEN PRE-CHANGE COPY of check-domain.sh
+      and assert exit 0 there. Build it once, hermetically, following the vendored-revision
+      precedent at tests/integration/test-validate-digest.py:30-33 — CI checks out at depth 1,
+      so a `git show` against a historical sha is unreachable there and would make the proof
+      unrunnable in CI:
+        - add tests/integration/fixtures/prior-check-domain.sh.fixture as a byte copy of
+          .claude/skills/harness/bin/check-domain.sh taken while you write this task, i.e. before
+          T-04 edits it. That directory and the prior-<name>.fixture spelling are the existing
+          convention (tests/integration/fixtures/prior-validate-digest.py.fixture and its three
+          siblings); the .fixture suffix keeps the copy out of every script-discovery and lint
+          sweep, and suite_layout only inspects test-*.py shapes, so the file adds no layout
+          finding. Record its provenance sha in a comment at the top of run_bug1304_claim_set;
+        - add one helper, named exactly bug1304_pre_change_hook, that materialises a runnable
+          pre-change guard: call the suite's existing isolated_bin(dest) to copy the live bin
+          tree into a temp root, overwrite the copied check-domain.sh with the fixture's bytes,
+          chmod it 0o755, and return that path. The guard resolves its own libraries from
+          BASH_SOURCE, so the copy imports the copied tree, which is exactly the shape the
+          DISPATCH_GUARD_BIN override already relies on (tests/integration/test-dispatch-guard.py:32-35);
+        - EVERY refusal case below calls bug1304_pre_change_hook and asserts exit 0 from it with
+          the same payload that must exit 2 against the live hook. A case that only asserts the
+          live refusal is not discriminating and does not satisfy SC-06.
+
+      Add run_bug1304_claim_set() to tests/integration/test-check-domain.py and wire it into
+      main() with the exact line: fails += run_bug1304_claim_set()
+      Follow the file's existing shape: build a temp owner root plus real linked worktrees,
+      set both CLAUDE_PROJECT_DIR and HARNESS_PROJECT_DIR via _env, build every claim through
+      inflight_registry's own API rather than hand-written JSON, and assert exit codes
+      EXACTLY (2 blocks, 0 passes).
+
+      Cases, each asserted separately, all on the Write route and repeated on the Edit route
+      where the file's existing Edit-route helper allows:
+        1. SC-01. A governed agent holding one live claim for a feature with a linked
+           worktree writes a governed MAIN-CHECKOUT path spelled RELATIVE: exit 2, and
+           stderr names the worktree it holds.
+        2. SC-03. The same destination spelled ABSOLUTE: exit 2, identically.
+        3. Sibling direction. The same agent writes into a DIFFERENT feature's worktree:
+           exit 2.
+        4. SC-04 case 1 and 2. A write whose destination is inside the held worktree,
+           spelled relative and spelled absolute: exit 0 both times.
+        5. SC-04 case 3 and Q3(a). A governed agent holding NO live claim anywhere writes
+           the same main-checkout path: exit 0.
+        6. SC-04 case 4. A scratch write under a temporary directory outside every checkout:
+           exit 0.
+        7. SC-04 case 5 and Q3(b). A governed agent whose ONLY live claim names a feature
+           with NO linked worktree, with that claim recorded in the OWNER-ROOT registry,
+           writes the main checkout: exit 0. A subprocess exit code cannot by itself tell
+           "the owner-root registry was read and the claim contributed no member" from "the
+           owner-root registry was skipped" — both allow. The discrimination is supplied at
+           the unit level by T-01's claim_worktrees case 2, where a claim in the owner-root
+           registry whose feature DOES have a linked worktree still yields that worktree in S.
+           Cite that case by name in a comment here rather than asserting an unobservable, and
+           add the observable this level CAN carry: in the same fixture, give the agent a
+           SECOND live claim in the owner-root registry whose feature DOES have a linked
+           worktree, and assert that a main-checkout write then exits 2. A skipped owner-root
+           registry allows that write, so the pair discriminates through exit codes alone.
+        8. MULTI-CLAIM MEMBERSHIP ALLOW. A persona holding live claims in TWO linked
+           worktrees writes INSIDE one of them: exit 0. Without this case a construction
+           that refuses whenever it finds two or more candidates passes every other case.
+        9. SC-05, Q3(c). Destination checkout whose .git pointer does not parse, with S
+           non-empty: exit 2.
+       10. SC-05, ambiguity. A live claim whose feature resolves to two prefix-matching
+           worktrees: exit 2, and stderr names the candidates.
+       11. SC-08. SHORT-FORM WORKTREE. Linked worktree basename BUG-1304 while the feature
+           directory and the claim's feature field are BUG-1304-worktree-relative-path-guard.
+           A governed main-checkout write by the claim holder is STILL refused with exit 2.
+           This case is the one every other fixture misses, because they all build claims
+           inside a long-form-named worktree.
+       12. REQ-06 message. On any refusal above, assert the stderr contains the worktree the
+           agent holds and the destination's proper home, and does NOT contain advice to
+           remove a worktree.
+       13. SC-09. AGED COMPATIBILITY-HOST CLAIM (D-09, RULING D case 5). A governed agent holding a
+           live claim for a feature with a linked worktree, where the claim's runtime is
+           "claude" (the compatibility-host default) and its started_at is back-dated MORE
+           than inflight_registry.CLAIM_TTL_SECONDS but LESS than
+           inflight_registry.OMP_UNVERIFIED_TTL_SECONDS before now, writes a governed
+           MAIN-CHECKOUT path: exit 2, stderr naming the worktree it holds. Back-date by
+           writing started_at through inflight_registry's own API and then rewriting that one
+           stored field; started_at is stored data, so this case needs no clock mocking and is
+           deterministic. It goes red against any implementation that filters the enumerator
+           with _expire or CLAIM_TTL_SECONDS, which is the exact remedy RULING D rejected.
+           Assert exit 0 from bug1304_pre_change_hook for the same payload, as every refusal
+           case above does.
+
+      THE PRE-CHANGE CALL MUST PROVE THE FROZEN GUARD RAN (SC-06, panel finding L-04). An exit 0
+      out of a fail-open branch is NOT an unrefused write, so an exit-code-only pre-change
+      assertion is satisfiable by a guard that never reached the rule. check-domain.sh prints and
+      passes through on its quarantine-boundary exception (:1864-1869, "quarantine boundary was
+      not enforced ... passing through") and on a missing manifest (:383-386, "enforcement OFF").
+      Add ONE helper, named exactly bug1304_assert_pre_change_allows, and call it from EVERY
+      refusal case in place of a hand-written exit-code check. For each call it must:
+        - fire the identical payload at bug1304_pre_change_hook and assert exit 0;
+        - assert that call's stderr contains NONE of the substrings "enforcement OFF",
+          "was not enforced", "passing through";
+        - fire a POSITIVE CONTROL at the SAME frozen guard, in the same isolated bin tree and the
+          same environment: a governed agent writing a path outside its own domain, which the
+          pre-change guard already refuses today for reasons unrelated to the claim set. Assert
+          exit 2 from it. Without the control, a frozen guard that fail-opened before reaching any
+          rule reads as a discriminating allow, and SC-06's whole proof is vacuous.
+
+      Two more cases, each asserted separately, and both routed through
+      bug1304_assert_pre_change_allows like every other refusal case:
+       14. SC-10. UNREADABLE REGISTRY. A governed agent whose ONLY live claim sits in a registry
+           file that exists among the scanned roots and holds unparseable JSON writes a governed
+           MAIN-CHECKOUT path: exit 2, and stderr names that registry file. Build the fixture by
+           writing the claim through inflight_registry's own API and then corrupting that one file
+           on disk, so the claim is real before it becomes unreadable.
+       15. SC-10's PAIRED CONTROL, in the same fixture and the same case. Fire the identical
+           payload with that one registry file WELL-FORMED and holding no claim for this agent:
+           exit 0. This is what proves the refusal in case 14 is caused by unreadability rather
+           than by the ordinary claim-set rule or by a blanket refusal of governed writes — with a
+           readable claim present the write would be refused anyway, so the exit code alone
+           discriminates nothing.
+
+      THE SC-12 PAIR — THE REFUSAL IS SCOPED TO THE WRITES THE READABLE ROOTS CANNOT PLACE (D-10's
+      selected ordering). ONE fixture, DISJOINT from case 14's: the agent's OWN live claim sits in a
+      READABLE registry and proves its assigned worktree, and ONE UNRELATED scanned registry among
+      the same roots exists and holds unparseable JSON. Both halves fire the same agent identity
+      against the same fixture, and the pair is what makes either wrong ordering go red:
+       16. THE ALLOW HALF. A write whose destination is INSIDE the writer's own assigned worktree:
+           exit 0, with no pre-change call, because nothing is being refused. It goes red against
+           an implementation that requires every scanned registry to be readable before it compares
+           the destination.
+       17. THE REFUSAL HALF. A governed MAIN-CHECKOUT write by the SAME agent against the SAME
+           fixture: exit 2, and stderr names the unreadable registry file. Route it through
+           bug1304_assert_pre_change_allows like every other refusal case, so it carries SC-06's
+           full pre-change proof. It goes red against an implementation that builds the partial
+           claim set and then ignores the unreadable root.
+
+      THE CALL-SITE FLOOR IN verify IS AN EXACT COUNT, NOT A CUSHION. Ten cases refuse and therefore
+      call bug1304_assert_pre_change_allows: cases 1, 2, 3, 7's second-claim observable, 9, 10, 11,
+      13, 14 and 17. The verify counts exactly ten call sites, excluding the helper's own def line,
+      so the L-04 tooth carries zero slack: dropping any single pre-change call makes the count nine
+      and the verify fails.
+
+  - id: T-04
+    title: Bind the Write and Edit route to the claim set in check-domain.sh
+    traces: [REQ-01, REQ-02, REQ-03, REQ-04, REQ-05, REQ-06]
+    change_type: logic
+    execution_mode: main-session-direct
+    execution_reason: "DEC-174 carve-out: check-domain.sh is a registered PreToolUse gate script (DEC-179)."
+    depends_on: [T-02, T-03]
+    status: done
+    files:
+      - .claude/skills/harness/bin/check-domain.sh
+    verify: |
+      python3 tests/integration/test-check-domain.py
+    intent: |
+      This route EXTENDS an existing binding; it does not narrow one. Today
+      feature_checkout_guard (check-domain.sh:737-753) derives the feature id from the TARGET
+      PATH via RE_FEATURE_ARTIFACT (:734), so any destination carrying no feature id in its
+      path is unbound. Keep that guard exactly as it is and add a SECOND, claim-derived check
+      beside it that reaches the destinations the path-derived one cannot.
+
+      Add a function that runs on the same allow and shared verdict paths where
+      feature_checkout_guard is already called (:917 and :922), taking the resolved absolute
+      destination. It must:
+        - return immediately when agent_type is empty or does not start with harness- ,
+          because the main session is the DEC-174 executor of gate-script work and carries no
+          agent identity;
+        - call harness_boundary.claim_worktrees(root, agent_type, destination) to get S, passing
+          the RESOLVED ABSOLUTE DESTINATION as the third argument — the seam needs it to apply
+          D-10's selected ordering, and passing anything else there silently changes which writes
+          the unreadable-registry rule refuses;
+        - return immediately when S is empty: an unbound agent is out of the rule's scope
+          (REQ-01), and this is the Q3(a) and Q3(b) allow;
+        - otherwise resolve the destination's own checkout with the harness_boundary
+          primitive this file already uses, and exit 0 when it lies inside a member of S;
+        - otherwise print harness_boundary.claim_set_refusal(agent_type, S, destination) to
+          stderr and exit 2. Only exit 2 blocks (DEC-100).
+      An unparsed .git pointer on the DESTINATION checkout, with S non-empty, is a REFUSAL,
+      not a pass-through (Q3(c)). AmbiguousWorktree raised while building S is also a refusal
+      naming the candidates (REQ-05, bound but unplaceable).
+      A defect inside the guard's own code keeps failing open, unchanged: wrap the
+      inflight_registry import and any unexpected exception exactly the way the existing
+      quarantine branch does, and say on stderr that the boundary was not enforced.
+      The rule keys on the HARNESS BASE ONLY. Do not bind destinations under
+      workspace_root/<repo>, the DEC-189 two-base second location (D-06).
+
+      UNREADABLE REGISTRY (REQ-05, SC-10, SC-12, panel finding L-01). inflight_registry.UnreadableRegistry
+      raised while building S is a REFUSAL, and the rule is decided in the seam, not here: catch it
+      exactly where AmbiguousWorktree is caught, print the message T-02's seam builder returns for
+      it, and exit 2. Never treat it as an empty S — empty means unbound, and an unreadable root
+      means the question could not be answered. This exception is NOT a defect inside the guard's
+      own code, so it must NOT take the quarantine-style fail-open branch above; that branch stays
+      for genuinely unexpected exceptions. Because the destination was passed in, the seam raises
+      only for a destination the readable roots cannot place, so this catch never fires for a write
+      inside a worktree a readable registry already proved (SC-12's allow half).
+
+  - id: T-05
+    title: Add the failing Bash route claim-set cases to the bash-write-guard suite
+    traces: [REQ-01, REQ-02, REQ-03, REQ-04, REQ-05, REQ-06]
+    change_type: logic
+    execution_mode: main-session-direct
+    execution_reason: "DEC-174 carve-out: bash-write-guard.sh is a registered PreToolUse gate script and its suite is an enforcement-layer file (DEC-179)."
+    depends_on: [T-02]
+    status: done
+    files:
+    - tests/integration/test-bash-write-guard.py
+    - tests/integration/fixtures/prior-bash-write-guard.sh.fixture
+    verify: |
+      test -f tests/integration/fixtures/prior-bash-write-guard.sh.fixture \
+        && grep -q 'def run_bug1304_claim_set' tests/integration/test-bash-write-guard.py \
+        && grep -q 'fails += run_bug1304_claim_set()' tests/integration/test-bash-write-guard.py \
+        && grep -q 'def bug1304_pre_change_guard' tests/integration/test-bash-write-guard.py \
+        && grep -q 'def bug1304_assert_pre_change_allows' tests/integration/test-bash-write-guard.py \
+        && n=$(grep 'bug1304_assert_pre_change_allows(' tests/integration/test-bash-write-guard.py \
+             | grep -vc '^ *def bug1304_assert_pre_change_allows') \
+        && test "$n" -ge 12 \
+        && { python3 tests/integration/test-bash-write-guard.py; test $? -eq 1; }
+    intent: |
+      Write these tests BEFORE T-06 touches bash-write-guard.sh. The suite must exit 1 when
+      you are done: the DEC-153 carve-out at bash-write-guard.sh:794 still allows every
+      worktree-shaped write and the main-checkout cases are not yet claim-bound, so the
+      refusal cases below still exit 0 against the live guard.
+
+      DISCRIMINATION IS IN-TEST, NOT TRANSIENT (SC-06). A red suite that goes green when T-06
+      lands leaves nothing at review_sha showing these assertions can fail, so each refusal case
+      below must ALSO fire the identical payload at a FROZEN PRE-CHANGE COPY of
+      bash-write-guard.sh and assert exit 0 there. Build it once, hermetically, following the
+      vendored-revision precedent at tests/integration/test-validate-digest.py:30-33 — CI checks
+      out at depth 1, so a `git show` against a historical sha is unreachable there and would
+      make the proof unrunnable in CI:
+        - add tests/integration/fixtures/prior-bash-write-guard.sh.fixture as a byte copy of
+          .claude/skills/harness/bin/bash-write-guard.sh taken while you write this task, i.e.
+          before T-06 edits it. That directory and the prior-<name>.fixture spelling are the
+          existing convention (tests/integration/fixtures/prior-validate-digest.py.fixture and its
+          three siblings); the .fixture suffix keeps the copy out of every script-discovery and
+          lint sweep, and suite_layout only inspects test-*.py shapes, so the file adds no layout
+          finding. Record its provenance sha in a comment at the top of run_bug1304_claim_set;
+        - add one helper, named exactly bug1304_pre_change_guard, that materialises a runnable
+          pre-change guard: call the suite's existing isolated_bin(dest) to copy the live bin
+          tree into a temp root, overwrite the copied bash-write-guard.sh with the fixture's
+          bytes, chmod it 0o755, and return that path. The guard resolves its own libraries from
+          BASH_SOURCE, so the copy imports the copied tree, which is the shape the
+          DISPATCH_GUARD_BIN override already relies on (tests/integration/test-dispatch-guard.py:32-35);
+        - EVERY refusal case below calls bug1304_pre_change_guard and asserts exit 0 from it with
+          the same command that must exit 2 against the live guard. A case that only asserts the
+          live refusal is not discriminating and does not satisfy SC-06.
+
+      Add run_bug1304_claim_set() to tests/integration/test-bash-write-guard.py and wire it
+      into main() with the exact line: fails += run_bug1304_claim_set()
+      Follow the file's existing fire() helper and its exact-exit-code convention, and build
+      every claim through inflight_registry's own API.
+
+      Cases, each asserted separately:
+        1. SC-02. A governed agent holding one live claim for a feature with a linked
+           worktree runs a REDIRECT whose destination is a governed MAIN-CHECKOUT path
+           spelled relative: exit 2, stderr names the worktree it holds.
+        2. SC-02. The same destination through an in-place sed: exit 2. Its own case.
+        3. SC-03. The same destination spelled ABSOLUTE, through a redirect: exit 2.
+        4. Sibling direction. A redirect into a DIFFERENT feature's worktree: exit 2. This
+           is the case the DEC-153 blanket allow currently permits.
+        5. SC-04 cases 1 and 2. A redirect whose destination is inside the held worktree,
+           spelled relative and absolute: exit 0 both times. This is the DEC-153 rationale
+           surviving intact, narrowed to the assigned worktree.
+        6. SC-04 case 3 and Q3(a). A governed agent holding NO live claim writes the same
+           main-checkout path: exit 0.
+        7. SC-04 case 4. A scratch redirect under a temporary directory outside every
+           checkout: exit 0.
+        8. SC-04 case 5 and Q3(b). A governed agent whose ONLY live claim names a feature
+           with no linked worktree, recorded in the OWNER-ROOT registry, writes the main
+           checkout: exit 0. A subprocess exit code cannot by itself tell "the owner-root
+           registry was read and the claim contributed no member" from "the owner-root
+           registry was skipped" — both allow. The discrimination is supplied at the unit
+           level by T-01's claim_worktrees case 2, where a claim in the owner-root registry
+           whose feature DOES have a linked worktree still yields that worktree in S. Cite
+           that case by name in a comment here rather than asserting an unobservable, and add
+           the observable this level CAN carry: in the same fixture, give the agent a SECOND
+           live claim in the owner-root registry whose feature DOES have a linked worktree,
+           and assert that a main-checkout redirect then exits 2. A skipped owner-root
+           registry allows that redirect, so the pair discriminates through exit codes alone.
+        9. MULTI-CLAIM MEMBERSHIP ALLOW. A persona holding live claims in TWO linked
+           worktrees redirects INSIDE one of them: exit 0.
+       10. SC-05, Q3(c). Destination checkout whose .git pointer does not parse, S
+           non-empty: exit 2.
+       11. SC-05, ambiguity. A live claim whose feature resolves to two prefix-matching
+           worktrees: exit 2, naming the candidates.
+       12. SC-08. SHORT-FORM WORKTREE. Linked worktree basename BUG-1304 while the claim's
+           feature field is BUG-1304-worktree-relative-path-guard: a governed main-checkout
+           redirect by the claim holder is STILL refused with exit 2.
+       13. THE CONTROL-PLANE EXPERTISE NEGATIVE CASE (D-05). A governed agent holding a live
+           claim in a linked worktree runs
+           python3 .agents/skills/harness/bin/expertise-merge.py apply --file <control-plane
+           root>/.harness/expertise/<agent>.md --entries -
+           from inside that worktree: exit 0. The carve-out is BY ROUTE: that command is not
+           among the guard's extractable write findings (redirects, sed and perl -i, tee, mv
+           and cp, rm, sponge, awk -i), so it never reaches the claim-set check at all. Add
+           the paired POSITIVE control in the same case: a REDIRECT to that same
+           .harness/expertise/<agent>.md path IS an extractable write and exits 2, and its
+           stderr advises the expertise-merge.py CLI and does NOT advise writing it in the
+           agent's worktree (REQ-06, ruling 1 obligation 5). Without the positive control the
+           negative case is satisfied by a guard that allows the destination outright.
+       14. Regression floor. Assert the three existing behaviours REQ-03 protects still hold
+           under the new check: the run-artifact guard still refuses digest.md and state.yaml
+           inside a linked worktree, the fail-open-on-missing-manifest rule is unchanged, and
+           a /tmp path is still not_a_domain_question.
+       15. SC-09. AGED COMPATIBILITY-HOST CLAIM (D-09, RULING D case 5). A governed agent holding a
+           live claim for a feature with a linked worktree, where the claim's runtime is
+           "claude" (the compatibility-host default) and its started_at is back-dated MORE
+           than inflight_registry.CLAIM_TTL_SECONDS but LESS than
+           inflight_registry.OMP_UNVERIFIED_TTL_SECONDS before now, runs a REDIRECT to a
+           governed MAIN-CHECKOUT path: exit 2, stderr naming the worktree it holds.
+           Back-date by writing started_at through inflight_registry's own API and then
+           rewriting that one stored field; started_at is stored data, so this case needs no
+           clock mocking and is deterministic. It goes red against any implementation that
+           filters the enumerator with _expire or CLAIM_TTL_SECONDS, which is the exact remedy
+           RULING D rejected. Assert exit 0 from bug1304_pre_change_guard for the same
+           command, as every refusal case above does.
+
+      THE PRE-CHANGE CALL MUST PROVE THE FROZEN GUARD RAN (SC-06, panel finding L-04). An exit 0
+      out of a fail-open branch is NOT an unrefused write. On this route the fail-opens are
+      SILENT: bash-write-guard.sh exits 0 on an unparseable payload (:78-80) and on a missing
+      manifest (:267-269) without printing anything, so a stderr-marker check alone cannot see
+      them and the positive control below is the load-bearing half here. Add ONE helper, named
+      exactly bug1304_assert_pre_change_allows, and call it from EVERY refusal case in place of a
+      hand-written exit-code check. For each call it must:
+        - fire the identical command at bug1304_pre_change_guard and assert exit 0;
+        - assert that call's stderr contains NONE of the substrings "enforcement OFF",
+          "was not enforced", "passing through";
+        - fire a POSITIVE CONTROL at the SAME frozen guard, in the same isolated bin tree and the
+          same environment: the run-artifact refusal case 14 already exercises, a redirect to
+          digest.md inside a linked worktree, which the pre-change guard refuses today for reasons
+          unrelated to the claim set. Assert exit 2 from it. Without the control, a frozen guard
+          that fail-opened silently before reaching any rule reads as a discriminating allow, and
+          SC-06's whole proof is vacuous on this route.
+
+      Two more cases, each asserted separately, and both routed through
+      bug1304_assert_pre_change_allows like every other refusal case:
+       16. SC-10. UNREADABLE REGISTRY. A governed agent whose ONLY live claim sits in a registry
+           file that exists among the scanned roots and holds unparseable JSON runs a REDIRECT to a
+           governed MAIN-CHECKOUT path: exit 2, and stderr names that registry file. Build the
+           fixture by writing the claim through inflight_registry's own API and then corrupting
+           that one file on disk, so the claim is real before it becomes unreadable.
+       17. SC-10's PAIRED CONTROL, in the same fixture and the same case. Fire the identical
+           redirect with that one registry file WELL-FORMED and holding no claim for this agent:
+           exit 0. This is what proves the refusal in case 16 is caused by unreadability rather
+           than by the ordinary claim-set rule or by a blanket refusal of governed writes — with a
+           readable claim present the redirect would be refused anyway, so the exit code alone
+           discriminates nothing.
+
+      THE SC-12 PAIR ON THIS ROUTE — THE REFUSAL IS SCOPED TO THE WRITES THE READABLE ROOTS CANNOT
+      PLACE (D-10's selected ordering). ONE fixture, DISJOINT from case 16's: the agent's OWN live
+      claim sits in a READABLE registry and proves its assigned worktree, and ONE UNRELATED scanned
+      registry among the same roots exists and holds unparseable JSON. Both halves fire the same
+      agent identity against the same fixture:
+       18. THE ALLOW HALF. A REDIRECT whose destination is INSIDE the writer's own assigned
+           worktree: exit 0, with no pre-change call, because nothing is being refused. It goes red
+           against an implementation that requires every scanned registry to be readable before it
+           compares the destination.
+       19. THE REFUSAL HALF. A REDIRECT to a governed MAIN-CHECKOUT path by the SAME agent against
+           the SAME fixture: exit 2, and stderr names the unreadable registry file. Route it
+           through bug1304_assert_pre_change_allows like every other refusal case, so it carries
+           SC-06's full pre-change proof. It goes red against an implementation that builds the
+           partial claim set and then ignores the unreadable root.
+
+      THE CALL-SITE FLOOR IN verify IS AN EXACT COUNT, NOT A CUSHION. Twelve cases refuse and
+      therefore call bug1304_assert_pre_change_allows: cases 1, 2, 3, 4, 8's second-claim
+      observable, 10, 11, 12, 13's positive control, 15, 16 and 19. The verify counts exactly twelve
+      call sites, excluding the helper's own def line, so the L-04 tooth carries zero slack:
+      dropping any single pre-change call makes the count eleven and the verify fails.
+
+  - id: T-06
+    title: Narrow the DEC-153 blanket worktree allow to the assigned worktree in bash-write-guard.sh
+    traces: [REQ-01, REQ-02, REQ-03, REQ-04, REQ-05, REQ-06]
+    change_type: logic
+    execution_mode: main-session-direct
+    execution_reason: "DEC-174 carve-out: bash-write-guard.sh is a registered PreToolUse gate script (DEC-179)."
+    depends_on: [T-02, T-05]
+    status: done
+    files:
+      - .claude/skills/harness/bin/bash-write-guard.sh
+    verify: |
+      python3 tests/integration/test-bash-write-guard.py
+    intent: |
+      This route NARROWS an existing blanket allow; it is a DIFFERENT edit from T-04's, which
+      extends a binding. Do not treat the two as one shared change.
+
+      Today the per-finding DEC-153 carve-out at bash-write-guard.sh:794 continues on any rel
+      matching the leading .claude/worktrees/ segment, so a governed agent may write into ANY
+      worktree, not only its own. Narrow it: the continue applies only when the destination
+      lies inside a member of S, the claim set from
+      harness_boundary.claim_worktrees(root, agent_type, destination). Pass the RESOLVED ABSOLUTE
+      DESTINATION as the third argument, exactly as T-04 does: the seam needs it to apply D-10's
+      selected ordering, and passing anything else there silently changes which writes the
+      unreadable-registry rule refuses. When S is empty the agent is
+      unbound and the carve-out keeps its current blanket behaviour for worktree paths
+      (REQ-01, Q3(a) and Q3(b)). When S is non-empty and the destination is a worktree path
+      outside every member, print harness_boundary.claim_set_refusal(...) and exit 2.
+
+      Add the same claim-set check for MAIN-CHECKOUT destinations on this route, beside the
+      existing feature_checkout_guard calls (bash-write-guard.sh:841 and :845), with exactly
+      the behaviour T-04 specifies for the Write route: harness- personas only, empty S
+      returns, destination inside a member allows, otherwise exit 2 with the same message
+      from the same seam function. Both routes must refuse identically (REQ-04): one
+      predicate, one message builder, no route-local reimplementation.
+
+      IN-REPO DESTINATIONS ONLY, AND THIS CLAUSE IS LOAD-BEARING. The branch at
+      bash-write-guard.sh:840 that the feature_checkout_guard calls sit under fires on the
+      verdict allow AND on not_a_domain_question, and not_a_domain_question is exactly the
+      /tmp pass-through that SC-04 case 4 and T-05 case 14 require to keep exiting 0. Gate the
+      new claim-set check so it runs ONLY for destinations that resolve inside a checkout the
+      harness governs, and never for a not_a_domain_question verdict. The Write route has no
+      such overlap because not_a_domain_question returns earlier, at check-domain.sh:908, so
+      this clause is a Bash-route-only difference in placement, not a difference in the rule.
+
+      ORDERING IS BEHAVIOUR and must not change. The run-artifact guard stays AHEAD of the
+      DEC-153 carve-out, for the reason its own docstring gives at
+      bash-write-guard.sh:753-760, and both continues still run ahead of classify.
+
+      The control-plane Expertise CLI stays allowed because it is not an extractable write
+      finding, which is a property of the finding extractor and must NOT be re-stated as a
+      destination allow-list here (D-05).
+
+      The rule keys on the HARNESS BASE ONLY; leave workspace_root/<repo> unbound (D-06).
+
+      UNREADABLE REGISTRY (REQ-05, SC-10, SC-12, panel finding L-01). Identical to T-04's clause, from
+      the same seam and with the same message: inflight_registry.UnreadableRegistry raised while
+      building S is a REFUSAL — caught where AmbiguousWorktree is caught, printed from T-02's seam
+      builder, exit 2 — never an empty S, and never route-local logic. Because the destination was
+      passed in, the seam raises only for a destination the readable roots cannot place, so this catch
+      never fires for a redirect inside a worktree a readable registry already proved (SC-12's allow
+      half). Both routes refuse identically (REQ-04), which on this route means the check sits with the
+      main-checkout claim-set check added above and inside the same in-repo-destinations-only gate, so a
+      not_a_domain_question destination is still not this rule's business.
+
+  - id: T-07
+    title: Land the boundary decision and the two same-edit rewrites in DECISIONS.md
+    traces: [REQ-07]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: "DEC-174: the doctrine rewrite lands in the same edit as the gate-script change it corrects (DEC-205), which is main-session-direct work."
+    depends_on: [T-04, T-06]
+    status: done
+    files:
+      - .harness/harness/docs/DECISIONS.md
+      - .harness/harness/docs/DECISIONS-INDEX.md
+    verify: |
+      python3 .claude/skills/harness/bin/gen-decisions-index.py --stdout \
+        | diff - .harness/harness/docs/DECISIONS-INDEX.md \
+        && grep -q "CLAIM-SET MEMBERSHIP" .harness/harness/docs/DECISIONS.md \
+        && grep -q "the assigned worktree" .harness/harness/docs/DECISIONS.md \
+        && grep -q "OMP_UNVERIFIED_TTL_SECONDS" .harness/harness/docs/DECISIONS.md \
+        && grep -q "inflight_registry.py:30-35" .harness/harness/docs/DECISIONS.md \
+        && grep -qi "readable roots cannot place" .harness/harness/docs/DECISIONS.md \
+        && ! grep -qi "Bash route keeps DEC-153's blanket allow" .harness/harness/docs/DECISIONS.md
+    intent: |
+      Three obligations, ONE landing. Do not fold any of them into an implementation task.
+
+      1. NEW ENTRY. Allocate the next free DEC number by reading the highest one in
+      DECISIONS-INDEX.md at the moment you write; DEC-215 is the highest in this worktree at
+      c369fb1f and sibling flows are landing entries concurrently, so re-derive it rather
+      than trusting that number. The entry records CLAIM-SET MEMBERSHIP as the binding key:
+      S is the set of worktrees the writing persona holds a live claim in; empty S means
+      unbound and allowed; non-empty S allows a governed write only when its resolved
+      destination lies inside a member of S, else exit 2 naming S and the destination's
+      proper home. It states the construction of S explicitly: every live claim held by the
+      payload's agent_type across ALL registries including the owner-root registry, each
+      claim's own feature field resolved through worktree_for_feature, a claim contributing a
+      member only when that returns a real worktree. It states that the key is host-uniform,
+      lives in the DEC-193 shared Python seam, is fed only by agent_type, and adds no payload
+      plumbing, citing DEC-208 ruling 2's recorded ground for rejecting a payload key: a
+      payload key is present only on the routes that happen to carry it, while git's registry
+      cannot drift. It states BOTH accepted residues in full: the FALSE-ALLOW, where persona
+      P dispatched for feature A writes into B's worktree while a concurrent P session holds
+      B; and the FALSE-REFUSE, where P holds a worktree'd claim while a concurrent P claim
+      for an un-worktree'd feature writes the main checkout. It records them as accepted on
+      the stated ground that exact match is unbuildable on Claude Code and buildable on OMP
+      only through an untested capture with a named wrong-feature-first branch. It states
+      that the rule keys on the HARNESS BASE ONLY and leaves DEC-193's second legal location,
+      workspace_root/<repo> under DEC-189, unbound. It states the control-plane Expertise
+      carve-out by ROUTE. It refs DEC-100, DEC-110, DEC-153, DEC-174, DEC-193, DEC-205,
+      DEC-208.
+
+      1b. THE SAME ENTRY CARRIES D-09 IN FULL — its boundary and its residue verbatim, the
+      same pattern this entry already applies to D-03's two residues. Take the wording from
+      plan.yaml D-09 and do not paraphrase it into something weaker:
+        - THE BOUNDARY. Binding liveness and dispatch liveness are two questions over one
+          stored claim. The guards' enumerator answers BINDING liveness: an OMP claim through
+          _omp_claim_live, a non-OMP claim until OMP_UNVERIFIED_TTL_SECONDS. Every
+          dispatch-side answer — single-flight admission, live_children, reconcile counts —
+          keeps CLAIM_TTL_SECONDS at 1200s unchanged, so FEAT-37's unstranding is preserved.
+          The 1200s horizon is explicitly NOT accepted as a binding horizon: reusing it in the
+          enumerator would empty S for every compatibility-host agent past twenty minutes and
+          re-allow this bug's founding incident on that host.
+        - THE RESIDUE. Past-backstop silent unbinding is ACCEPTED, with its named reason
+          quoted from inflight_registry.py:30-35: no supervisor proof exists on the
+          compatibility host, and a claim that can never age out strands its parent's yield
+          through validate-digest.py's held-child gate forever. The backstop is the EXISTING
+          OMP_UNVERIFIED_TTL_SECONDS, 86400s, ratified rather than re-chosen — no new constant
+          and no second binding horizon — and it is well above the 7,200s longest measured leaf
+          run.
+        - THE REGISTRY-FILE RETENTION HALF LANDS IN THIS FEATURE, carried by T-09, and the entry
+          states it as shipped behaviour: a dispatch-expired non-OMP claim is RETAINED in the
+          registry file until the binding backstop, while every caller's returned answer stays
+          at 1200s. Write no conditional sentence about a strike: T-09 is in scope, settled by
+          the fourth binding ruling, and a doctrine entry hedging on it would misreport what
+          shipped.
+
+      2. SAME-EDIT REWRITE OF DEC-153. Rewrite its worktree carve-out clause in place so it
+      reads that bash-write-guard permits a governed agent's writes under THE ASSIGNED
+      worktree rather than under .claude/worktrees/** class-wide. Its rationale, its audit
+      findings and the orchestrator commit-pen sanction all stand; DEC-153 is NOT superseded
+      and gets NO dated sub-section (DEC-205).
+
+      3. SAME-EDIT REWRITE OF DEC-193. Its first surviving-divergence bullet currently reads,
+      verbatim at DECISIONS.md:5338-5339 in this worktree: "The Bash route keeps DEC-153's
+      blanket allow for governed agents writing under `.claude/worktrees/`, which the Write
+      route does not have." Re-verify that anchor before you edit, because the advisor note
+      cites 5334-5335 and the line has already drifted. Rewrite the bullet to state the
+      divergence that actually survives after T-06: both routes now bind a governed write to
+      the writer's claim set, and the Bash route's remaining carve-out is the assigned
+      worktree only.
+
+      Then regenerate the index with
+      python3 .claude/skills/harness/bin/gen-decisions-index.py
+      and hand-write the new row's " :: <ruling>" tail, which the generator does not produce.
+      Lengthening DEC-153 and DEC-193 shifts every later row's source anchor, so the
+      regeneration is required even though only one row's text is new.
+
+      1c. THE SAME ENTRY CARRIES D-10, the unreadable-registry refusal, in one sentence beside the
+      two residues: a registry file that exists among the scanned roots and cannot be read as a
+      claim list leaves the claim set INCOMPLETE, so the governed write is refused naming the file
+      to repair, and an unreadable root is never read as "no claims here"; the claim/write path
+      keeps its treat-as-empty fallback unchanged. Add the scope in the same breath, because the
+      rule is not global: THE REFUSAL BINDS EXACTLY THE GOVERNED WRITES THE READABLE ROOTS CANNOT
+      PLACE — a destination inside a worktree proven by a readable registry stays allowed while an
+      unrelated scanned registry is unreadable, which is why REQ-03's promise needed no amendment.
+      Record the rule and its selected scope as RULED by the Advisor's fourth binding ruling
+      (notes/review-fable-advisor-plan-BUG-1304-f1-binding.md) and AUTHORISED by the operator with no
+      overrules, so a later reader can tell which parts of this entry an advisor settled.
+
+  - id: T-08
+    title: STRUCK — dispatch-guard.sh _root_for prefix alignment, filed as its own issue (D-11)
+    traces: [REQ-01]
+    change_type: logic
+    execution_mode: main-session-direct
+    execution_reason: "DEC-174 carve-out: dispatch-guard.sh is a registered PreToolUse gate script (DEC-179)."
+    depends_on: [T-02]
+    status: abandoned
+    files:
+      - .claude/skills/harness/bin/dispatch-guard.sh
+      - tests/integration/test-dispatch-guard.py
+    verify: |
+      ! grep -q 'worktree_for_feature(owner_root, flow)' .claude/skills/harness/bin/dispatch-guard.sh
+    intent: |
+      STRUCK. This task lands NOTHING and is dispatched to nobody: its station is the terminal
+      marker, and it is retained in the plan only so the record shows what was considered and why
+      it was cut. The fourth binding ruling
+      (notes/review-fable-advisor-plan-BUG-1304-f1-binding.md, Q4) struck it, the operator
+      authorised that ruling with no overrules, and nothing here is an open choice any longer.
+
+      WHY IT WAS STRUCK. The enforcement remedy this bug ships is placement-agnostic: D-02 and T-02
+      scan the owner-root registry along with every linked worktree's and resolve EVERY claim by its
+      own feature field, and T-01's claim_worktrees case 2 pins exactly that. So a claim misplaced
+      into the owner-root registry still binds its holder, and aligning the registry's own layout
+      buys the remedy nothing. SC-08 already pins the behaviour this task's re-runs were meant to
+      cross-check — a short-form worktree refusal on both routes — and T-10 runs the full suite
+      regardless. Retaining it would widen a two-gate bug fix into a third gate script.
+
+      THE DEFECT IS REAL AND ITS FOLLOW-UP ISSUE IS REQUIRED, NOT OPTIONAL (D-11). dispatch-guard.sh
+      _root_for(flow) places a claim by os.path.basename(wt) == flow at dispatch-guard.sh:122, with
+      an owner_root fallback at :126. That is EQUALITY, and this repository measured the equality
+      premise false in its own source: worktree_for_feature's docstring at harness_boundary.py:215-221
+      records that four live worktrees were named FEAT-32 while every feature directory was
+      FEAT-32-concurrent-write-merge. The consequence is a short-form worktree's claim written into
+      the owner-root registry rather than its own. The fix, when the issue is taken: replace the loop
+      with harness_boundary.worktree_for_feature(owner_root, flow), keep the owner_root fallback when
+      it returns None, and keep dispatch-guard.sh's existing AmbiguousWorktree handling at :175-177,
+      which names the candidates and blocks rather than guessing. D-11 records the filing obligation
+      alongside this feature's two other deliberately unclosed defects.
+  - id: T-09
+    title: Retain a dispatch-expired non-OMP claim in the registry file until the binding backstop
+    traces: [REQ-01, REQ-05]
+    change_type: logic
+    execution_mode: main-session-direct
+    execution_reason: "DEC-174 carve-out: inflight_registry.py is a shared library both registered gate scripts import, and its suite is an enforcement-layer file (DEC-179)."
+    depends_on: [T-02]
+    status: done
+    files:
+      - .claude/skills/harness/bin/inflight_registry.py
+      - tests/integration/test-inflight-registry.py
+    verify: |
+      grep -q 'def case_bug1304_retention(' tests/integration/test-inflight-registry.py \
+        && grep -q 'def case_bug1304_retention_admission(' tests/integration/test-inflight-registry.py \
+        && grep -q 'case_bug1304_retention,' tests/integration/test-inflight-registry.py \
+        && grep -q 'case_bug1304_retention_admission,' tests/integration/test-inflight-registry.py \
+        && python3 tests/integration/test-inflight-registry.py \
+        && python3 tests/integration/test-dispatch-guard.py
+    intent: |
+      IN SCOPE, AND SETTLED. The fourth binding ruling
+      (notes/review-fable-advisor-plan-BUG-1304-f1-binding.md, Q2) ruled this task IN SCOPE and the
+      operator authorised that ruling with no overrules. It is not strikeable and no part of it is an
+      open question: Advisor rulings A and B
+      (notes/review-fable-advisor-plan-BUG-1304-ttl-residue.md) classified the compatibility-host TTL
+      asymmetry as a DEFECT this feature must close and named registry-FILE retention as one half of
+      the closing boundary, and the ruling agreed. THE HOLE IT CLOSES, so a later reader knows what
+      this task is worth: dispatch-guard.sh:197 calls the mutating live_claim on every dispatch and
+      validate-digest.py:1755-1760 calls live_children at every parent return, so without this task a
+      compatibility-host claim older than 1200s is DELETED FROM THE FILE on the routine suspend path,
+      the guards' enumerator cannot see it however correct its predicate is, the agent reads unbound,
+      and its governed main-checkout write is allowed — this bug's founding incident, verbatim, not a
+      residue. A read-side-only guard is ceremonial on that host. The closure sits entirely inside
+      files T-02 already owns, and SC-11 binds it.
+
+      Both halves below land TOGETHER, because assertion (b) is the only thing that catches
+      the suspend-path side-channel and it moves with the retention change.
+
+      TEST FIRST, exactly as T-01 precedes T-02. Write (b) before (a) and confirm the suite
+      exits 1 before you touch inflight_registry.py.
+
+      (a) THE RETENTION RULE, AND THE SEAM IT LANDS ON.
+
+      THE SEAM IS THE POINT OF THIS TASK. Inside every pruning function the list _expire_where
+      returns is used for TWO DIFFERENT PURPOSES: the FILE-CONTENT assignment
+      (data["claims"] = live) and the CALLER'S OWN ANSWER computation. Retention changes ONLY
+      WHAT IS WRITTEN BACK to the file. It must NEVER change what is RETURNED. Implement the two
+      as separately computable values — for example, have _expire_where produce a pair,
+      (answer_live, retained), where answer_live is exactly what it returns today and retained is
+      answer_live PLUS every claim that is dispatch-expired under CLAIM_TTL_SECONDS, younger than
+      OMP_UNVERIFIED_TTL_SECONDS, and not an OMP claim already proven dead — and have each caller
+      assign retained to data["claims"] while computing its answer from answer_live exactly as it
+      does today. A caller that writes retained into its ANSWER, or answer_live into the FILE, is
+      the defect this task exists to prevent. Do not solve it by changing the shared primitive
+      alone and letting every caller inherit one new meaning of live: that is the failure mode
+      named at claim_with_receipt below.
+
+      _expire_where is defined at inflight_registry.py:227 and has SIX callers. Every one of them
+      must RETAIN the record, and every one of them must return byte-for-byte the answer it gives
+      today:
+        - orphan_write (:297) — retains; its return value and the orphan marking it performs are
+          unchanged. It deletes the claim today, so leaving it out reopens the hole by itself
+          even if every other site is patched.
+        - live_claim (:323-328) — retains; still returns only the claims live at 1200s.
+        - live_children (:343-349) — retains; its child list and counts stay at 1200s.
+        - claim_with_receipt (:375) — retains; and its SINGLE-FLIGHT ADMISSION,
+          any(_matches(c, agent=agent, feature=feature) for c in live), MUST keep reading the
+          1200s answer list. If admission reads the retained list instead, a fresh same-agent
+          same-feature dispatch is refused for up to 86400s instead of 1200s — the FEAT-37
+          stranding D-09 forbids. This is the most dangerous site in the task and the reason the
+          record/answer split is stated before the site list.
+        - attach_runtime_identity (:432) — retains; the claim it selects and the identity it
+          attaches are unchanged.
+        - release (:472) — retains every claim its selector does not release; its selection, its
+          matches list and its return value are unchanged. Like orphan_write it deletes today,
+          so leaving it out reopens the hole by itself.
+      Two further sites, already named and unchanged in this repair: the per-claim prune in
+      reconcile (:519) and _all_live (:593) — retain in the file, return today's answers.
+
+      A claim past OMP_UNVERIFIED_TTL_SECONDS is pruned from the file as before, at every one of
+      these sites. The backstop is the EXISTING OMP_UNVERIFIED_TTL_SECONDS, 86400s
+      (inflight_registry.py:36), ratified by the fourth binding ruling: do not add a constant and do
+      not introduce a second horizon. Dispatch liveness does not change anywhere: CLAIM_TTL_SECONDS
+      stays 1200s and no dispatch-side answer moves (D-09). What changes is only that the record
+      survives to the binding backstop, so the guards' enumerator can still see it.
+
+      (b) THE ASSERTIONS, RULING D case (4). TWO case functions, both wired into the file's CASES
+      tuple by bare name, which is that file's convention. Back-date started_at as stored data in
+      both, so no clock is mocked and both are deterministic. Assert the FILE BYTES for every
+      presence claim, read back from the registry JSON, never a return value: a read-side-only
+      implementation returns the same answers and leaves the file pruned, which is the exact
+      defect these assertions exist to catch.
+
+        case_bug1304_retention — with an injected now that makes a non-OMP claim dispatch-expired
+        but under the backstop, run reconcile, live_children, AND at least one of the two sites
+        this task previously omitted, orphan_write or release. For EACH call assert both halves:
+        the claim is STILL PRESENT in the registry file on disk afterwards; AND that call's own
+        return value is exactly what it is today — excluded from reconcile's and live_children's
+        answers, and orphan_write's or release's own return value unchanged. Finish the case with
+        the horizon from above: a claim back-dated past OMP_UNVERIFIED_TTL_SECONDS is still gone
+        from the file after the same calls.
+
+        case_bug1304_retention_admission — SINGLE-FLIGHT ADMISSION UNCHANGED AT 1200s. With a
+        dispatch-expired-but-retained non-OMP claim for (agent, feature) present in the file,
+        assert that a fresh claim_with_receipt for the SAME agent and SAME feature is still
+        ADMITTED — it takes the claim and is not refused as a duplicate — and that the retained
+        record does not appear as a second live claim in that call's own answer. This case goes
+        red against a fix that changes the shared primitive alone, which is the FEAT-37 stranding
+        regression D-09 forbids; nothing else in this plan exercises the single-flight path, so
+        without this case that regression ships silently.
+
+  - id: T-10
+    title: Run the full suite and the state checker over the completed change
+    traces: [REQ-03, REQ-04]
+    change_type: scaffolding
+    execution_mode: main-session-direct
+    execution_reason: "DEC-174 carve-out: the two runners it executes live under .claude/skills/harness/bin, and the change it verifies is entirely gate-script work the main session executes directly (DEC-179)."
+    depends_on: [T-02, T-04, T-06, T-07]
+    status: done
+    files:
+      - .claude/skills/harness/bin/run-unit-tests.sh
+      - .claude/skills/harness/bin/check-state.sh
+    verify: |
+      bash .claude/skills/harness/bin/run-unit-tests.sh --kind all \
+        && bash .claude/skills/harness/bin/check-state.sh
+    intent: |
+      THIS TASK EDITS NOTHING. Its files list names the two runners it executes, not files
+      it modifies. Its deliverable is the two exit codes and the run output, attached to the
+      build digest.
+
+      WHY IT IS A TASK AND NOT A CLOSEOUT HABIT. This change mutates two registered
+      PreToolUse gates (check-domain.sh, bash-write-guard.sh) and two shared libraries
+      (harness_boundary.py, inflight_registry.py). A gate's blast radius is EVERY governed
+      write in the repository, and a shared-library change breaks callers that no guard
+      suite imports — the two guard suites T-03 and T-05 build, plus the registry suite T-01
+      and T-09 extend, are the widest verification the rest of this plan carries, and they
+      are narrower than the change. Nothing else in the plan runs the full suite or the state
+      checker, and both are named in the issue's own success definition.
+
+      RUN, IN THIS ORDER, FROM THE REPOSITORY ROOT, AND BOTH MUST EXIT 0:
+        bash .claude/skills/harness/bin/run-unit-tests.sh --kind all
+        bash .claude/skills/harness/bin/check-state.sh
+      The runner's own usage line records the accepted argument set
+      (run-unit-tests.sh:23); "--kind all" selects tests/unit/test-*.py plus
+      tests/integration/test-*.py, which is every suite in the repository, and the runner
+      exits 2 on a layout violation before it runs anything. check-state.sh takes no
+      arguments and resolves its own root; 0 means every invariant holds, 1 means
+      violations printed, 2 means it could not resolve a root. This is deliberately the
+      slowest verify in the plan and it is expected to exceed a minute.
+
+      ORDERING. It runs LAST, after every other task in the plan. Its depends_on names T-02,
+      T-04, T-06 and T-07. T-09 carries no depends_on edge to this task and none is added,
+      but T-09 stands unconditionally — the fourth binding ruling settled its scope — so this
+      task runs after T-09 as well. No task in this plan is strikeable any longer: T-08 is
+      struck and lands nothing, and every remaining task is in scope.
+
+      DO NOT bolt this onto another task's verify, and do not narrow it to the suites the
+      change happens to touch. A failure here is a real finding: report it, do not
+      re-scope it.

@@ -1,0 +1,85 @@
+<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>BUG-1304 — ship readiness review</title><style>
+:root{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:ui-sans-serif,-apple-system,"Segoe UI","Helvetica Neue",Arial,sans-serif;
+}
+/* Token-level theming: components style through the tokens and never inside the
+   media query, so the viewer's explicit toggle can override the OS in BOTH
+   directions. */
+@media (prefers-color-scheme:dark){
+  :root{ --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+         --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733; }
+}
+:root[data-theme="dark"]{
+  --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+  --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733;
+}
+:root[data-theme="light"]{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+}
+*{box-sizing:border-box}
+body{margin:0; background:var(--paper); color:var(--ink);
+  font:400 16px/1.65 var(--sans); padding:clamp(1.5rem,5vw,4rem) clamp(1rem,5vw,2rem) 6rem}
+.wrap{max-width:56rem; margin:0 auto}
+/* Layout owns the spacing: gap between siblings, not per-element margins that
+   collapse or double. */
+.wrap{display:flex; flex-direction:column; gap:1rem}
+.eyebrow{font:500 11px/1 var(--mono); letter-spacing:.14em; text-transform:uppercase;
+  color:var(--quiet); margin:0}
+h1{font:600 clamp(1.6rem,4vw,2.3rem)/1.15 var(--sans); letter-spacing:-.02em;
+  margin:.4rem 0 .2rem; text-wrap:balance}
+h2{font:600 1.15rem/1.3 var(--sans); letter-spacing:-.01em; margin:2rem 0 0;
+  padding-top:1.25rem; border-top:1px solid var(--line); text-wrap:balance}
+h3{font:600 .98rem/1.4 var(--sans); margin:1.1rem 0 0}
+h4,h5,h6{font:500 11px/1.4 var(--mono); letter-spacing:.1em; text-transform:uppercase;
+  color:var(--quiet); margin:1rem 0 0}
+p,li{max-width:65ch; margin:0}
+ul,ol{margin:0; padding-left:1.4rem; display:flex; flex-direction:column; gap:.4rem}
+li>ul,li>ol{margin-top:.4rem}
+strong{font-weight:600}
+code{font:400 .875em/1.5 var(--mono); background:var(--sunk); padding:.1em .35em; border-radius:3px}
+pre{background:var(--sunk); border:1px solid var(--line); border-radius:6px;
+  padding:.85rem 1rem; overflow-x:auto; margin:0}
+pre code{background:none; padding:0}
+blockquote{margin:0; padding:.75rem 1rem; border-left:3px solid var(--accent);
+  background:var(--accent-soft); border-radius:0 5px 5px 0}
+blockquote p{max-width:none}
+hr{border:0; border-top:1px solid var(--line); margin:.5rem 0}
+/* Wide content pans inside its OWN container; the page body never scrolls sideways. */
+.scroll{overflow-x:auto; border:1px solid var(--line); border-radius:6px}
+table{border-collapse:collapse; width:100%; font-size:.9rem}
+th,td{text-align:left; padding:.6rem .8rem; border-bottom:1px solid var(--line); vertical-align:top}
+thead th{font:500 10px/1.3 var(--mono); letter-spacing:.11em; text-transform:uppercase;
+  color:var(--quiet); background:var(--sunk); white-space:nowrap}
+tbody tr:last-child td{border-bottom:0}
+/* Figures in a column line up. */
+td,th{font-variant-numeric:tabular-nums}
+.derived{color:var(--slate); font-size:.85rem; margin-top:2.5rem;
+  padding-top:1rem; border-top:1px solid var(--line)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style></head><body><div class='wrap'><p class='eyebrow'>Ship review · reading view</p><h1 id="bug-1304-ship-readiness-review">BUG-1304 — ship readiness review</h1>
+<p><strong>BUG-1304 is ready to ship.</strong> Every gate that can pass has passed at the pinned commit <code>c5869301</code>: the reviewer panel returns PASS with an empty <code>must_fix</code>, all twelve success criteria are met, the blocking qa gate passes, the full suite is green with no loss of coverage, and <code>check-state.sh</code> reports zero violations. Nothing is waiting on a decision and nothing was waived. The merge itself is yours — the harness does not merge.</p>
+<p><strong>What it does.</strong> A governed agent given a feature worktree can now only write inside it. If it spells a path so the write would land in the main checkout, or in another feature&#x27;s checkout, both governed write routes refuse before the write happens and the message names where the write belongs. The rule turns on the write&#x27;s <strong>resolved destination</strong>, never on how the path was spelled — which matters because the two incidents that caused this bug were spelled relatively, but the identical damage done with an absolute path would have gone unrefused by a spelling rule. An agent holding no live claim, an agent whose claimed feature has no worktree, and the main session are all unbound and unaffected.</p>
+<h2 id="how-this-was-verified-and-how-much-of-it-you-should-trust">How this was verified — and how much of it you should trust</h2>
+<div class="scroll"><table><thead><tr><th>Gate</th><th>Result</th><th>Where</th></tr></thead><tbody><tr><td>Reviewer panel, cycle 2</td><td><strong>PASS</strong>, <code>severity_max: med</code>, <code>must_fix: []</code></td><td><code>runs/panel-c2-validator/digest.md</code></td></tr><tr><td>Goal-check, cycle 2</td><td><strong>PASS</strong>, 12 of 12 criteria met</td><td><code>runs/goalcheck-validate-c2-product/digest.md</code></td></tr><tr><td>qa gate (blocking — the only one)</td><td><strong>PASS</strong>, <code>matrix_ok: true</code></td><td><code>runs/qa-gate-validator/digest.md</code></td></tr><tr><td>SIMPLIFY</td><td><strong>PASS</strong>, empty</td><td><code>runs/simplify-eng/digest.md</code></td></tr><tr><td>UAT</td><td><strong>does not apply</strong> — BRIEF carries zero <code>verify: uat</code> criteria</td><td><code>BRIEF.md</code></td></tr><tr><td>Full suite at the pin</td><td>exit 0, 0 failures, <strong>73 files discovered — the same 73 as before the work began</strong></td><td>orchestrator-measured</td></tr><tr><td><code>check-state.sh</code></td><td>exit 0, zero violations</td><td>orchestrator-measured</td></tr></tbody></table></div>
+<p>Two things are worth knowing about the <em>quality</em> of that green, because a gate that cannot go red is worse than no gate.</p>
+<p><strong>The discrimination proof is the real product here.</strong> Every new refusal case is also fired against a frozen, byte-for-byte copy of the guard as it existed <em>before</em> this change, and must come back unrefused — otherwise the new assertion was never testing anything. That alone would not be enough, because these guards fail <em>open</em> at exit 0 in several branches, so an unrefused write and a guard that never ran look identical. So each pre-change call additionally proves the frozen guard actually ran: its output must carry none of the fail-open markers, <strong>and</strong> a positive control fired at the same frozen guard in the same environment must still be refused. Ten such proofs on the Write route, twelve on the Bash route.</p>
+<p><strong>One measurement was checked twice on purpose.</strong> Four functions were split late in the cycle to satisfy a complexity bar, and a split that quietly drops an assertion produces a <em>greener</em> suite — so the suite passing proves nothing about it. The code reviewer diffed the four functions byte-by-byte across the split and found every prior assertion intact, two of them strictly tightened; independently, the runtime count of pre-change proofs was measured at both commits and is unchanged at ten and twelve. The panel records honestly that nobody deleted an assertion and watched it go red, which is the one form of evidence not obtained.</p>
+<h2 id="what-was-found-and-fixed-along-the-way">What was found and fixed along the way</h2>
+<p>Cycle 1&#x27;s panel and goal-check both failed, and the two most valuable findings came from places nobody would have predicted.</p>
+<p><strong>The UI reviewer found the specification violation.</strong> It scoped itself out of rendered-UI review — correctly, there is no UI — and then audited the refusal <em>messages</em> as the operator interface. On the Bash route all three refusals were routed through a helper that appends &quot;File changes go through the Write tool&quot;. For a control-plane Expertise destination that advises a route which refuses the identical path with the identical text, and the requirement is explicit that this destination class gets the sanctioned merge command and nothing else. The code reviewer&#x27;s own lens could not see it. This is the argument for never letting a reviewer skip itself pre-emptively.</p>
+<p><strong>The goal-check found two gaps that were records, not behaviour.</strong> One criterion&#x27;s message content was correct in the code but unasserted in the tests on both routes; another required the plan to record how an ambiguously-resolving claim is treated, which the shipped decision recorded but the plan did not. Both were closed; neither was a defect in what the code does.</p>
+<p><strong>A binding conflict was ruled against the orchestrator, and the record says so.</strong> Narrowing this guard collided with an existing invariant about unreadable registries. The orchestrator argued the two never overlapped; the Advisor ruled otherwise and the losing reading is recorded in <code>STATE.md</code> beside the ruling rather than quietly dropped.</p>
+<h2 id="proposed-backlog">Proposed backlog</h2>
+<p>Nothing here gates the ship. <strong>Anything you strike from this table dies silently</strong>, so it is all listed, including the items the panel assessed and dismissed.</p>
+<div class="scroll"><table><thead><tr><th>ID</th><th>Nature</th><th>What</th></tr></thead><tbody><tr><td>B-1</td><td>bug</td><td>A bound agent can release its own claim through the sanctioned CLI over Bash and thereby unbind itself for a session. Not a regression — before this change the same agent could write the main checkout with no guard at all — and the BRIEF already records that registry mutation via a CLI call is not a governed write. <strong>The security reviewer rated this HIGH and wanted it gated; the orchestrator ruled it non-gating on the requirement text.</strong> Recorded so you can overrule.</td></tr><tr><td>B-2</td><td>bug</td><td>A hand-written registry entry missing its <code>feature</code> field passes through a broad exception handler instead of being refused. Pre-existing, and unreachable through the sanctioned CLI, which always populates the field.</td></tr><tr><td>B-3</td><td>chore</td><td>The claim-set builder enumerates linked worktrees once, then re-enumerates them per matching claim. Measured at ~1.24ms against a ~38ms interpreter floor with at most one claim in practice, so today&#x27;s saving is zero. The obvious fix was rejected as unsafe: it would restate a rule two criteria pin.</td></tr><tr><td>B-4</td><td>chore</td><td>Five functions sit one grade below their complexity bar (medium severity, non-gating). Four higher-severity ones were already split.</td></tr><tr><td>B-5</td><td>chore</td><td>Only the Bash test suite exercises the Expertise-destination refusal; the Write suite&#x27;s fixture lacks the grant needed to reach it. Both routes share one message builder and the UI reviewer rebuilt the fixture and got byte-identical output, so this buys a demonstration rather than protection.</td></tr><tr><td>B-6</td><td>chore</td><td>Two tasks&#x27; acceptance commands count call sites textually; the late splits moved that count while the runtime count held. A stale proxy inside an approved plan — record only, no defect behind it.</td></tr><tr><td>B-7</td><td>chore</td><td>One criterion asks the refusal to name &quot;the worktrees the agent holds&quot;, but in the ambiguous case the resolver fails while that set is still being built, so the refusal names the candidates instead. Graded clause by clause. Unmeetable as literally written rather than unimplemented.</td></tr><tr><td>B-8</td><td>bug</td><td><strong>Harness:</strong> the board invariant and the mirror contract contradict each other. A finished task&#x27;s card is required to sit at the done station, but no command writes that station before ship, and the exemption that hides this applies only once the feature reaches review. Every feature is red between its last task landing and its review transition. Cost here: the plan&#x27;s own final task could not pass until after the transition.</td></tr><tr><td>B-9</td><td>bug</td><td><strong>Harness:</strong> a panel record whose reader entries are keyed by persona instead of step name is reported as &quot;reader never ran&quot;, which reads as a missing record and sends the reader looking for the wrong thing.</td></tr><tr><td>B-10</td><td>bug</td><td><strong>Harness:</strong> the documented route for writing a plan&#x27;s panel record cannot amend an existing one — it exits with a conflict and writes nothing. A different, working command exists but is named nowhere in the playbook, so it has to be found by running the wrong one first.</td></tr><tr><td>B-11</td><td>bug</td><td><strong>Harness:</strong> a handoff note cannot be written from a worktree at all. The path is stripped of its worktree prefix but resolved against the main checkout, so a branch-only feature&#x27;s pointers never resolve and absolute ones are refused.</td></tr><tr><td>B-12</td><td>bug</td><td><strong>Harness:</strong> several subagents returned complete, well-formed results while the host reported the job as failed. A caller routing on that status alone would re-spend the spawn. Observed four times in this feature.</td></tr><tr><td>B-13</td><td>chore</td><td><strong>Harness:</strong> a run directory&#x27;s <code>state.yaml</code> is silently overwritten when a later run reuses its id; the digest beside it is protected and the state file is not. Happened three times here. Already owned by a sibling flow.</td></tr></tbody></table></div>
+<p>Three follow-ups were already filed as issues during planning and are <strong>not</strong> backlog rows: <strong>#1341</strong> (a worktree lookup that compares directory names where it should compare path prefixes — this is the defect behind the one struck task, and striking it was only legitimate because #1341 owns it), <strong>#1342</strong> (an unreadable worktree pointer fails open where the registry fails closed — now narrower than when filed, since the registry half was settled by ruling), and <strong>#1343</strong> (a liveness check that cannot see a compatibility-host child past twenty minutes).</p>
+<h2 id="cost">Cost</h2>
+<p>Fourteen rework cycles of a sixteen-cycle allowance, and twenty-one runs against an informational budget of twenty. <strong>Thirteen of the fourteen cycles were spent in planning, not building</strong> — three adversarial panel cycles and four binding rulings, on a change whose whole difficulty was deciding what to bind rather than how to bind it. The build itself passed every task first time; three amending commits followed, one of which was a thirty-three-word sentence against a thirty-word cap. The run count is over budget by one and that is informational, not a defect: on the three questions the invariant asks, the runs resolved real issues and advanced the criteria, and the plan phase&#x27;s length bought a design the panel could not fault at the second attempt.</p>
+<hr>
+<p><strong>No report round was spawned for this briefing.</strong> It was assembled by reading the run digests on disk, per DEC-69. Every digest under <code>runs/</code> was read or its conclusion read: the two eng digests, the ten product digests, the eight validator digests, and the four this orchestrator ran itself (<code>qa-gate-validator</code>, <code>simplify-eng</code>, <code>panel-c1-validator</code>/<code>panel-c2-validator</code>, <code>goalcheck-validate-product</code>/<code>goalcheck-validate-c2-product</code>). The plan phase&#x27;s findings were taken from <code>plan.yaml</code>&#x27;s own <code>panel</code> record — thirteen findings across three cycles, all dispositioned — rather than re-derived. <code>runs/2026-09-05-07-validator</code> is referenced in <code>feature.json</code> but its directory does not exist and could not be read; nothing else was missing.</p><p class='derived'>Derived from <code>ship-review-2026-09-05-validate-final.md</code> — the markdown is the record; do not edit this file. Regenerate with <code>bin/render-brief.py</code>.</p></div></body></html>

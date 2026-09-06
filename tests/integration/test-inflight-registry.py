@@ -39,6 +39,7 @@ import inflight_registry  # noqa: E402
 CLI = os.path.join(MODULE_DIR, "inflight_registry.py")
 
 ASSUMED_TTL_SECONDS = 3600
+ASSUMED_OMP_BACKSTOP_SECONDS = 86400
 
 RESULTS = []
 
@@ -1070,6 +1071,177 @@ def case_35_feature_root_cli():
     _ambiguous_feature_root_case()
 
 
+def _bug1304_claim(agent, feature, started_at, runtime="claude",
+                   supervisor_pid=None, supervisor_started_at=None):
+    claim = {
+        "agent": agent,
+        "dispatcher": "harness-orchestrator",
+        "cwd": "/fixture",
+        "feature": feature,
+        "runtime": runtime,
+        "started_at": started_at,
+    }
+    if supervisor_pid is not None:
+        claim["supervisor_pid"] = supervisor_pid
+    if supervisor_started_at is not None:
+        claim["supervisor_started_at"] = supervisor_started_at
+    return claim
+
+
+def case_36_live_claims_read_only_and_binding_horizon():
+    agent = "harness-backend-dev"
+    now = 2_000_000
+    root = tempfile.mkdtemp()
+    newer = _bug1304_claim(agent, "FEAT-32-beta", now - 10)
+    older = _bug1304_claim(agent, "FEAT-31-alpha", now - 20)
+    _write_raw(root, {"schema_version": 2, "claims": [newer, older]})
+    path = os.path.join(root, inflight_registry.REGISTRY_REL)
+    before = open(path, "rb").read()
+    found = inflight_registry.live_claims(root, agent, now=now)
+    after = open(path, "rb").read()
+    check("case36: live_claims returns every matching claim oldest first",
+          [claim.get("feature") for claim in found] == ["FEAT-31-alpha", "FEAT-32-beta"],
+          found)
+    check("case36: live_claims is byte-for-byte read only", before == after)
+
+    root = tempfile.mkdtemp()
+    _write_raw(root, {"schema_version": 2, "claims": [
+        _bug1304_claim(agent, "FEAT-expired",
+                       now - ASSUMED_OMP_BACKSTOP_SECONDS - 1),
+    ]})
+    check("case36: compatibility claim past binding backstop is absent",
+          inflight_registry.live_claims(root, agent, now=now) == [])
+
+    root = tempfile.mkdtemp()
+    _write_raw(root, {"schema_version": 2, "claims": [
+        _bug1304_claim(agent, "FEAT-between", now - ASSUMED_TTL_SECONDS - 1),
+    ]})
+    found = inflight_registry.live_claims(root, agent, now=now)
+    check("case36: compatibility claim between TTL and backstop still binds",
+          [claim.get("feature") for claim in found] == ["FEAT-between"], found)
+
+    root = tempfile.mkdtemp()
+    check("case36: missing registry returns an empty list",
+          inflight_registry.live_claims(root, agent, now=now) == [])
+
+    pid = os.getpid()
+    started = inflight_registry._process_start_time(pid)
+    check("case36: test process identity is measurable", started is not None, started)
+    if started is not None:
+        root = tempfile.mkdtemp()
+        ancient = now - ASSUMED_OMP_BACKSTOP_SECONDS - 1
+        _write_raw(root, {"schema_version": 2, "claims": [
+            _bug1304_claim(agent, "FEAT-omp-old", ancient, runtime="omp",
+                           supervisor_pid=pid, supervisor_started_at=started),
+        ]})
+        found = inflight_registry.live_claims(root, agent, now=now)
+        check("case36: proven OMP identity binds past the backstop",
+              [claim.get("feature") for claim in found] == ["FEAT-omp-old"], found)
+
+
+def case_37_live_claims_refuses_unreadable_registry():
+    agent = "harness-backend-dev"
+    shapes = (
+        ("unparseable json", "{"),
+        ("json list", "[]"),
+        ("unsupported mapping", '{"schema_version": 99, "claims": []}'),
+    )
+    for label, payload in shapes:
+        root = tempfile.mkdtemp()
+        path = os.path.join(root, inflight_registry.REGISTRY_REL)
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "w", encoding="utf-8") as handle:
+            handle.write(payload)
+        raised = None
+        try:
+            inflight_registry.live_claims(root, agent)
+        except inflight_registry.UnreadableRegistry as error:
+            raised = error
+        check(f"case37: {label} raises UnreadableRegistry naming its file",
+              raised is not None and path in str(raised), repr(raised))
+
+    missing = tempfile.mkdtemp()
+    check("case37: absent remains distinct from unreadable",
+          inflight_registry.live_claims(missing, agent) == [])
+
+
+def _bug1304_registry_features(root):
+    return [
+        claim.get("feature")
+        for claim in _read_raw(root).get("claims", [])
+        if isinstance(claim, dict)
+    ]
+
+
+def case_bug1304_retention():
+    agent = "harness-backend-dev"
+    feature = "BUG-1304-retained"
+    now = 3_000_000
+    expired = _bug1304_claim(agent, feature, now - ASSUMED_TTL_SECONDS - 1)
+
+    root = tempfile.mkdtemp()
+    _write_raw(root, {"schema_version": 2, "claims": [expired]})
+    removed = inflight_registry.reconcile(root, now=now)
+    check("bug1304 retention: reconcile answer still reports dispatch expiry",
+          removed == 1, removed)
+    check("bug1304 retention: reconcile keeps binding-age record on disk",
+          feature in _bug1304_registry_features(root))
+
+    root = tempfile.mkdtemp()
+    _write_raw(root, {"schema_version": 2, "claims": [expired]})
+    children = inflight_registry.live_children(
+        root, "harness-orchestrator", now=now, feature=feature)
+    check("bug1304 retention: live_children answer excludes dispatch-expired claim",
+          children == [], children)
+    check("bug1304 retention: live_children keeps binding-age record on disk",
+          feature in _bug1304_registry_features(root))
+
+    root = tempfile.mkdtemp()
+    _write_raw(root, {"schema_version": 2, "claims": [expired]})
+    orphan = inflight_registry.orphan_write(
+        root, agent, feature, session=None, now=now)
+    check("bug1304 retention: orphan_write answer remains false",
+          orphan is False, orphan)
+    check("bug1304 retention: orphan_write keeps binding-age record on disk",
+          feature in _bug1304_registry_features(root))
+
+    root = tempfile.mkdtemp()
+    ancient = _bug1304_claim(
+        agent, feature, now - ASSUMED_OMP_BACKSTOP_SECONDS - 1)
+    _write_raw(root, {"schema_version": 2, "claims": [ancient]})
+    removed = inflight_registry.reconcile(root, now=now)
+    check("bug1304 retention: backstop-expired record is still reported removed",
+          removed == 1, removed)
+    check("bug1304 retention: backstop-expired record is pruned from disk",
+          feature not in _bug1304_registry_features(root))
+
+
+def case_bug1304_retention_admission():
+    agent = "harness-pm"
+    feature = "BUG-1304-retained-admission"
+    now = 4_000_000
+    old = _bug1304_claim(agent, feature, now - ASSUMED_TTL_SECONDS - 1)
+    old["claim_id"] = "retained-old"
+    _write_raw(
+        root := tempfile.mkdtemp(),
+        {"schema_version": 2, "claims": [old]},
+    )
+    receipt = inflight_registry.claim_with_receipt(
+        root, agent, "harness-product-lead", "/fixture/new",
+        now=now, feature=feature)
+    check("bug1304 admission: retained claim does not block fresh single-flight",
+          isinstance(receipt, dict), receipt)
+    check("bug1304 admission: old binding record and new claim both remain on disk",
+          len(_read_raw(root).get("claims", [])) == 2, _read_raw(root))
+    visible, expired = inflight_registry.live_claim(
+        root, agent, now=now, feature=feature)
+    check("bug1304 admission: dispatch answer exposes only the fresh claim",
+          visible is not None
+          and visible.get("claim_id") == receipt.get("claim_id")
+          and expired == 1,
+          (visible, expired))
+
+
 CASES = (
     case_1_claim_then_live_claim, case_2_single_flight_and_parallel_asymmetry,
     case_2b_live_children_by_dispatcher, case_2c_live_children_expires_stale,
@@ -1091,6 +1263,10 @@ CASES = (
     case_30_own_claim_is_not_orphan_write, case_31_no_live_claim_fails_open,
     case_32_sessionless_claim_is_visible, case_33_orphan_write_omp_runtime_is_never_orphaned,
     case_34_children_refusal_names_suspension, case_35_feature_root_cli,
+    case_36_live_claims_read_only_and_binding_horizon,
+    case_37_live_claims_refuses_unreadable_registry,
+    case_bug1304_retention,
+    case_bug1304_retention_admission,
 )
 
 

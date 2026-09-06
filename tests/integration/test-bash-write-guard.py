@@ -961,6 +961,343 @@ def run_feat50_checkout_binding():
 
 
 
+def bug1304_pre_change_guard(dest):
+    copied_bin = isolated_bin(dest)
+    guard = os.path.join(copied_bin, "bash-write-guard.sh")
+    fixture_path = os.path.join(
+        TESTS_DIR, "fixtures", "prior-bash-write-guard.sh.fixture")
+    shutil.copyfile(fixture_path, guard)
+    os.chmod(guard, 0o755)
+    return guard
+
+
+def _bug1304_bash_fire(root, command, agent, guard=GUARD):
+    payload = {
+        "agent_type": agent,
+        "tool_name": "Bash",
+        "tool_input": {"command": command},
+    }
+    return subprocess.run(
+        [guard], input=json.dumps(payload), capture_output=True,
+        text=True, env=_env(root),
+    )
+
+
+def bug1304_assert_pre_change_allows(results, name, root, command, agent, control_path):
+    isolated = tempfile.mkdtemp()
+    prior = bug1304_pre_change_guard(isolated)
+    allowed = _bug1304_bash_fire(root, command, agent, guard=prior)
+    stderr = allowed.stderr or ""
+    control = _bug1304_bash_fire(
+        root, f"echo controlled > {control_path}", agent, guard=prior)
+    results.append((
+        name + " is allowed by the frozen pre-change guard",
+        allowed.returncode == 0
+        and not any(marker in stderr for marker in (
+            "enforcement OFF", "was not enforced", "passing through"))
+        and control.returncode == 2,
+        f"allow={allowed.returncode} control={control.returncode} stderr={stderr[:160]!r}",
+    ))
+    shutil.rmtree(isolated, ignore_errors=True)
+
+
+def _bug1304_bash_fixture():
+    manifest = FIXTURE_MANIFEST.replace(
+        '          - { path: ".", read: true }',
+        '          - { path: .harness/expertise/**, upsert: true }\n'
+        '          - { path: ".", read: true }',
+    )
+    root = fixture(manifest)
+    first = os.path.join(root, ".claude", "worktrees", "FEAT-1304-A")
+    second = os.path.join(root, ".claude", "worktrees", "FEAT-1304-B")
+    _linked_worktree(first, root, "A", manifest)
+    _linked_worktree(second, root, "B", manifest)
+    return root, first, second
+
+
+def _bug1304_bash_expect(results, root, agent, name, command, want, contains=None):
+    response = _bug1304_bash_fire(root, command, agent)
+    text = response.stdout + response.stderr
+    ok = response.returncode == want and (contains is None or contains in text)
+    results.append((name, ok, f"exit={response.returncode} output={text[:180]!r}"))
+    return response
+
+
+def _bug1304_bash_context(agent, inflight_registry):
+    root, first, second = _bug1304_bash_fixture()
+    inflight_registry.claim(
+        first, agent, "harness-eng-lead", first,
+        feature="FEAT-1304-A-claim-guard")
+    control_path = os.path.join(
+        first, ".harness", "harness", "features", "F", "runs", "r-eng", "digest.md")
+    return {
+        "root": root, "first": first, "second": second,
+        "control": control_path, "agent": agent,
+    }
+
+
+def _bug1304_bash_main_routes(results, context):
+    root = context["root"]
+    first = context["first"]
+    agent = context["agent"]
+    main_path = os.path.join(root, ".harness", "allowed", "main.md")
+    sibling_path = os.path.join(context["second"], ".harness", "allowed", "sibling.md")
+    cases = (
+        ("relative main", "echo x > .harness/allowed/main.md"),
+        ("in-place sed", "sed -i '' 's/a/b/' .harness/allowed/main.md"),
+        ("absolute main", f"echo x > {main_path}"),
+        ("sibling", f"echo x > {sibling_path}"),
+    )
+    for label, command in cases:
+        _bug1304_bash_expect(
+            results, root, agent, f"{label} write is refused", command, 2, first)
+        bug1304_assert_pre_change_allows(
+            results, label, root, command, agent, context["control"])
+
+    own_path = os.path.join(first, ".harness", "allowed", "own.md")
+    _bug1304_bash_expect(
+        results, root, agent, "relative held-worktree redirect remains allowed",
+        f"echo x > {os.path.relpath(own_path, root)}", 0)
+    _bug1304_bash_expect(
+        results, root, agent, "absolute held-worktree redirect remains allowed",
+        f"echo x > {own_path}", 0)
+
+
+def _bug1304_bash_unbound_routes(results, context):
+    agent = context["agent"]
+    unbound = fixture(FIXTURE_MANIFEST)
+    response = _bug1304_bash_fire(
+        unbound, "echo x > .harness/allowed/main.md", agent)
+    results.append(("unbound main redirect remains allowed",
+                    response.returncode == 0, f"exit={response.returncode}"))
+    scratch = os.path.join(tempfile.mkdtemp(), "scratch.md")
+    _bug1304_bash_expect(
+        results, context["root"], agent, "scratch redirect remains allowed",
+        f"echo x > {scratch}", 0)
+
+
+def _bug1304_bash_owner_claim(results, context, inflight_registry):
+    agent = context["agent"]
+    unmatched = fixture(FIXTURE_MANIFEST)
+    matching = os.path.join(unmatched, ".claude", "worktrees", "FEAT-1304-C")
+    _linked_worktree(matching, unmatched, "C", FIXTURE_MANIFEST)
+    inflight_registry.claim(
+        unmatched, agent, "harness-eng-lead", unmatched,
+        feature="FEAT-404-no-worktree")
+    command = "echo x > .harness/allowed/unmatched.md"
+    response = _bug1304_bash_fire(unmatched, command, agent)
+    results.append(("unresolved owner-root claim remains unbound",
+                    response.returncode == 0, f"exit={response.returncode}"))
+    inflight_registry.claim(
+        unmatched, agent, "harness-eng-lead", unmatched,
+        feature="FEAT-1304-C-linked")
+    _bug1304_bash_expect(
+        results, unmatched, agent, "owner-root matching claim refuses main redirect",
+        command, 2, matching)
+    control = os.path.join(
+        matching, ".harness", "harness", "features", "F", "runs", "r-eng", "digest.md")
+    bug1304_assert_pre_change_allows(
+        results, "owner-root matching claim", unmatched, command, agent, control)
+
+
+def _bug1304_bash_multi_and_malformed(results, context, inflight_registry):
+    root = context["root"]
+    agent = context["agent"]
+    second = context["second"]
+    inflight_registry.claim(
+        second, agent, "harness-eng-lead", second,
+        feature="FEAT-1304-B-claim-guard")
+    _bug1304_bash_expect(
+        results, root, agent, "two claims allow redirect inside either held worktree",
+        f"echo x > {os.path.join(second, '.harness', 'allowed', 'own.md')}", 0)
+
+    malformed = os.path.join(root, ".claude", "worktrees", "broken")
+    os.makedirs(malformed, exist_ok=True)
+    with open(os.path.join(malformed, ".git"), "w", encoding="utf-8") as handle:
+        handle.write("not-a-pointer\n")
+    command = f"echo x > {os.path.join(malformed, '.harness', 'allowed', 'x.md')}"
+    _bug1304_bash_expect(
+        results, root, agent,
+        "malformed worktree pointer refuses with nonempty claim set",
+        command, 2, context["first"])
+    bug1304_assert_pre_change_allows(
+        results, "malformed checkout", root, command, agent, context["control"])
+
+
+def _bug1304_bash_ambiguous(results, context, inflight_registry):
+    agent = context["agent"]
+    ambiguous = fixture(FIXTURE_MANIFEST)
+    first = os.path.join(ambiguous, ".claude", "worktrees", "FEAT")
+    second = os.path.join(ambiguous, ".claude", "worktrees", "FEAT-X")
+    _linked_worktree(first, ambiguous, "AMB1", FIXTURE_MANIFEST)
+    _linked_worktree(second, ambiguous, "AMB2", FIXTURE_MANIFEST)
+    inflight_registry.claim(
+        ambiguous, agent, "harness-eng-lead", ambiguous,
+        feature="FEAT-X-ambiguous")
+    command = "echo x > .harness/allowed/main.md"
+    _bug1304_bash_expect(
+        results, ambiguous, agent,
+        "ambiguous claim refuses and names candidates", command, 2, "FEAT, FEAT-X")
+    control = os.path.join(
+        first, ".harness", "harness", "features", "F", "runs", "r-eng", "digest.md")
+    bug1304_assert_pre_change_allows(
+        results, "ambiguous claim", ambiguous, command, agent, control)
+
+
+def _bug1304_bash_short_claim(results, context, inflight_registry):
+    agent = context["agent"]
+    root = fixture(FIXTURE_MANIFEST)
+    short = os.path.join(root, ".claude", "worktrees", "BUG-1304")
+    _linked_worktree(short, root, "SHORT", FIXTURE_MANIFEST)
+    inflight_registry.claim(
+        short, agent, "harness-eng-lead", short,
+        feature="BUG-1304-worktree-relative-path-guard")
+    command = "echo x > .harness/allowed/main.md"
+    _bug1304_bash_expect(
+        results, root, agent, "short-form claim refuses main redirect", command, 2)
+    control = os.path.join(
+        short, ".harness", "harness", "features", "F", "runs", "r-eng", "digest.md")
+    bug1304_assert_pre_change_allows(
+        results, "short-form", root, command, agent, control)
+
+
+def _bug1304_bash_expertise(results, context):
+    root = context["root"]
+    agent = context["agent"]
+    expertise = os.path.join(root, ".harness", "expertise", f"{agent}.md")
+    route = (
+        "python3 .agents/skills/harness/bin/expertise-merge.py apply "
+        f"--file {expertise} --entries -")
+    _bug1304_bash_expect(
+        results, root, agent, "sanctioned expertise merge route remains allowed", route, 0)
+    redirect = f"echo x > {expertise}"
+    response = _bug1304_bash_expect(
+        results, root, agent,
+        "direct expertise redirect is refused with sanctioned advice",
+        redirect, 2, "expertise-merge.py")
+    results.extend((
+        ("expertise refusal does not advise writing in worktree",
+         "write it from a bound worktree" not in response.stderr, response.stderr[:180]),
+        ("expertise refusal never suggests the unavailable Write route",
+         "Write tool" not in response.stderr, response.stderr[:180]),
+    ))
+    bug1304_assert_pre_change_allows(
+        results, "expertise redirect", root, redirect, agent, context["control"])
+
+
+def _bug1304_bash_existing_guards(results, context):
+    root = context["root"]
+    first = context["first"]
+    agent = context["agent"]
+    _bug1304_bash_expect(
+        results, root, agent, "run digest guard remains ahead of claim rule",
+        f"echo x > {context['control']}", 2)
+    state_path = os.path.join(
+        first, ".harness", "harness", "features", "F", "runs", "r-eng", "state.yaml")
+    _bug1304_bash_expect(
+        results, root, agent, "run state guard remains ahead of claim rule",
+        f"echo x > {state_path}", 2)
+    missing = tempfile.mkdtemp()
+    response = _bug1304_bash_fire(
+        missing, f"echo x > {os.path.join(missing, 'inside.md')}", agent)
+    results.append(("missing manifest fail-open remains unchanged",
+                    response.returncode == 0, f"exit={response.returncode}"))
+    _bug1304_bash_expect(
+        results, root, agent, "temporary path remains not-a-domain-question",
+        f"echo x > {os.path.join(tempfile.mkdtemp(), 'outside.md')}", 0)
+
+
+def _bug1304_bash_aged_claim(results, context, inflight_registry, time):
+    registry = os.path.join(context["first"], inflight_registry.REGISTRY_REL)
+    data = json.load(open(registry, encoding="utf-8"))
+    data["claims"][0]["started_at"] = (
+        time.time() - inflight_registry.CLAIM_TTL_SECONDS - 5)
+    with open(registry, "w", encoding="utf-8") as handle:
+        json.dump(data, handle)
+    command = "echo x > .harness/allowed/main.md"
+    _bug1304_bash_expect(
+        results, context["root"], context["agent"],
+        "aged compatibility claim still refuses", command, 2, context["first"])
+    bug1304_assert_pre_change_allows(
+        results, "aged claim", context["root"], command,
+        context["agent"], context["control"])
+
+
+def _bug1304_bash_unreadable(results, context, inflight_registry):
+    root, worktree, _ = _bug1304_bash_fixture()
+    agent = context["agent"]
+    inflight_registry.claim(
+        worktree, agent, "harness-eng-lead", worktree,
+        feature="FEAT-1304-A-unreadable")
+    registry = os.path.join(worktree, inflight_registry.REGISTRY_REL)
+    with open(registry, "w", encoding="utf-8") as handle:
+        handle.write("{")
+    command = "echo x > .harness/allowed/main.md"
+    _bug1304_bash_expect(
+        results, root, agent, "unreadable registry refuses and names file",
+        command, 2, registry)
+    control = os.path.join(
+        worktree, ".harness", "harness", "features", "F", "runs", "r-eng", "digest.md")
+    bug1304_assert_pre_change_allows(
+        results, "unreadable registry", root, command, agent, control)
+    with open(registry, "w", encoding="utf-8") as handle:
+        json.dump({"schema_version": 2, "claims": []}, handle)
+    response = _bug1304_bash_fire(root, command, agent)
+    results.append(("readable empty registry remains allowed",
+                    response.returncode == 0, f"exit={response.returncode}"))
+
+
+def _bug1304_bash_partial_registry(results, context, inflight_registry):
+    root, own, corrupt = _bug1304_bash_fixture()
+    agent = context["agent"]
+    inflight_registry.claim(
+        own, agent, "harness-eng-lead", own, feature="FEAT-1304-A-readable")
+    corrupt_registry = os.path.join(corrupt, inflight_registry.REGISTRY_REL)
+    os.makedirs(os.path.dirname(corrupt_registry), exist_ok=True)
+    with open(corrupt_registry, "w", encoding="utf-8") as handle:
+        handle.write("{")
+    own_command = f"echo x > {os.path.join(own, '.harness', 'allowed', 'inside.md')}"
+    response = _bug1304_bash_fire(root, own_command, agent)
+    results.append(("readable member allows despite unrelated unreadable registry",
+                    response.returncode == 0, f"exit={response.returncode}"))
+    command = "echo x > .harness/allowed/main.md"
+    _bug1304_bash_expect(
+        results, root, agent, "outside partial set refuses unreadable registry",
+        command, 2, corrupt_registry)
+    control = os.path.join(
+        own, ".harness", "harness", "features", "F", "runs", "r-eng", "digest.md")
+    bug1304_assert_pre_change_allows(
+        results, "partial unreadable", root, command, agent, control)
+
+
+def run_bug1304_claim_set():
+    """Issue #1304 claim-set cases; frozen guard provenance: a4e8ecf7."""
+    import inflight_registry
+    import time
+
+    results = []
+    context = _bug1304_bash_context("harness-backend-dev", inflight_registry)
+    _bug1304_bash_main_routes(results, context)
+    _bug1304_bash_unbound_routes(results, context)
+    _bug1304_bash_owner_claim(results, context, inflight_registry)
+    _bug1304_bash_multi_and_malformed(results, context, inflight_registry)
+    _bug1304_bash_ambiguous(results, context, inflight_registry)
+    _bug1304_bash_short_claim(results, context, inflight_registry)
+    _bug1304_bash_expertise(results, context)
+    _bug1304_bash_existing_guards(results, context)
+    _bug1304_bash_aged_claim(results, context, inflight_registry, time)
+    _bug1304_bash_unreadable(results, context, inflight_registry)
+    _bug1304_bash_partial_registry(results, context, inflight_registry)
+
+    failures = 0
+    for name, ok, detail in results:
+        print(("PASS " if ok else "FAIL "), "[bug1304]", name)
+        if not ok:
+            failures += 1
+            print("      " + detail)
+    return failures
+
+
 def main():
     fails = 0
     for name, cmd, want, agent in CASES:
@@ -983,6 +1320,7 @@ def main():
     fails += run_feat50_checkout_binding()
     fails += run_bug895_wrong_checkout()
     fails += run_bug1106_bash_route()
+    fails += run_bug1304_claim_set()
     return fails
 
 def run_bug895_wrong_checkout():

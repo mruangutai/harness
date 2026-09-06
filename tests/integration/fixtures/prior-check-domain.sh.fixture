@@ -767,55 +767,6 @@ def feature_checkout_guard(raw_rel, target_path):
         return
 
 
-def claim_checkout_guard(destination):
-    """Bind a governed harness-base write to the agent's live claim worktrees."""
-    if not agent or not agent.startswith("harness-"):
-        return
-    destination = harness_boundary.real(destination)
-    if not harness_boundary.inside(destination, harness_boundary.real(root)):
-        return
-    try:
-        claim_set = harness_boundary.claim_worktrees(root, agent, destination)
-    except harness_boundary.AmbiguousWorktree as exc:
-        print(
-            f"check-domain: BLOCKED — {agent} has an ambiguous worktree claim: {exc}",
-            file=sys.stderr,
-        )
-        sys.exit(2)
-    except Exception as exc:
-        try:
-            import inflight_registry
-            if isinstance(exc, inflight_registry.UnreadableRegistry):
-                print(
-                    "check-domain: BLOCKED — "
-                    + harness_boundary.claim_set_refusal(
-                        agent, [], destination, unreadable_paths=exc.paths
-                    ),
-                    file=sys.stderr,
-                )
-                sys.exit(2)
-        except SystemExit:
-            raise
-        except Exception:
-            pass
-        print(
-            "check-domain: claim-worktree boundary was not enforced; passing through "
-            f"because the guard failed internally: {exc}",
-            file=sys.stderr,
-        )
-        return
-    if not claim_set:
-        return
-    if any(harness_boundary.inside(destination, worktree) for worktree in claim_set):
-        return
-    print(
-        "check-domain: BLOCKED — "
-        + harness_boundary.claim_set_refusal(agent, claim_set, destination),
-        file=sys.stderr,
-    )
-    sys.exit(2)
-
-
 def domain_check():
     # T-12: the manifest is PARSED, not skimmed. The scanner this replaced matched the
     # literal text `name:`/`path:` line by line, so it never had to close a bracket or
@@ -964,13 +915,11 @@ def domain_check():
         # path would never fire. This is the difference between the words "except
         # ## Approval" being a COMMENT beside a grant and being enforced.
         feature_checkout_guard(_verdict["rel"], target)
-        claim_checkout_guard(_claimed_abs(target))
         approval_guard(rel, agent)
         return
 
     if _verdict["outcome"] == "shared":
         feature_checkout_guard(_verdict["rel"], target)
-        claim_checkout_guard(_claimed_abs(target))
         # Shared paths are owned by nobody and always serialized (DEC-85). Allow the
         # write, but say so — an unnoticed shared-file edit is how two agents collide.
         print(f"check-domain: {agent} is writing SHARED path {rel} "
