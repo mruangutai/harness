@@ -177,6 +177,18 @@
       "squad": "product",
       "verdict": "PASS",
       "agent": "harness-product-lead"
+    },
+    {
+      "id": "review-c5-validator",
+      "squad": "validator",
+      "verdict": "PASS",
+      "agent": "harness-validator-lead"
+    },
+    {
+      "id": "goalcheck-build-c5-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead"
     }
   ],
   "github": {

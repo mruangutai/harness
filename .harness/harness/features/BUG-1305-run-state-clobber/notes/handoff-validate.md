@@ -1,37 +1,37 @@
-# Handoff — BUG-1305-run-state-clobber, validate → ship — written at e77b30ca, seq-2
+# Handoff — BUG-1305-run-state-clobber, validate → ship — written at 252a18a9, seq-3
 
 ## Next
 
-Present `notes/ship-review-2026-09-05-validate-c2.md` to the operator and take the one open ruling:
-VL-01 accepted as a named residual (backlog row B-1), or a thirteenth cycle authorised to mirror the
-F-04 fix for `RE_STATE_YAML` ahead of `_edit_reconstructed_content`. On acceptance, ship is the main
-session's: `gh-sync.py ship <feature-dir> --body-file <that briefing>`, then merge, then the
-`post-merge` hook removes this checkout and feature-close distillation follows.
+Present `notes/ship-review-2026-09-05-final.md` to the operator for the ship decision and the
+backlog strikes. On acceptance the main session runs `gh-sync.py ship <feature-dir> --body-file
+<that briefing>` from the MAIN checkout, then `gh-sync.py backlog` for the unstruck rows, then merge;
+the `post-merge` hook removes this checkout and feature-close distillation follows. Four scratch
+worktrees named in the briefing's cleanup section must be removed first — INV-29 sees them.
 
 ## Trust
 
-- 11 of 11 live success criteria MET at the pin, re-derived not carried — runs/goalcheck-build-c2-product/digest.md — verified-at e77b30ca
-- Delta panel readers all PASS; lead verdict ESCALATE on VL-01 alone — runs/review-c2-validator/digest.md — verified-at e77b30ca
-- `review_sha` e77b30ca is code-identical to Main's fix commit 2728aa20 — `git diff --stat 2728aa20 e77b30ca` outside the feature dir is empty — verified-at e77b30ca
-- Mechanical grade exit 0; unit 28 files, integration 46 files, state checker exit 0 notes-only — runs/review-c2-validator/digest.md — Main-reported, not re-run by me — UNVERIFIED
-- This host's Edit refuses a nonexistent file_path, so the Edit-create class is dormant here — notes/receipt-harness-dev-ops-editprobe-c1.md — verified-at e77b30ca
+- SC-07 MET at the pin and every other live criterion carries — runs/goalcheck-build-c5-product digest, inline in its lead's return — verified-at 252a18a9
+- Production code byte-unchanged since the reviewed pin: `git diff 154ff2a0 252a18a9 -- .claude/skills` is empty — verified-at 252a18a9
+- The handoff PRE permit reddens under two independent live mutants — notes/review-harness-qa-c5.md — verified-at 252a18a9
+- Suites at the seam: test-check-domain exit 0 markers 27/27, integration 46 files 0 FAIL, checker exit 0 — Main-reported, not re-run by me — UNVERIFIED
+- Every governed Edit is forced to Write on this host: the omp bridge sends `{ file_path }` only — .omp/extensions/harness-hooks.ts preDomain edit branch — verified-at 252a18a9
 
 ## Dead ends
 
-- Fixing anything with a squad: every surface is main-session-direct under DEC-174 — plan.yaml `lanes.rows` — verified-at e77b30ca
-- A directory-shaped Bash guard for SEC-01 in this feature: ruled a follow-up, filed as #1376 — notes/review-harness-security-reviewer-c2.md — verified-at e77b30ca
-- Re-running the panel or the suites for the SC-11 evidence repair: production bytes unchanged by it — Advisor ruling relayed by Main — UNVERIFIED
-- Spending a cycle on the regression-delta citation rot: operator ruled against it — briefing row B-7 — verified-at e77b30ca
+- Fixing anything with a squad: every surface is main-session-direct under DEC-174 — plan.yaml lanes.rows — verified-at 252a18a9
+- A directory-shaped Bash guard for SEC-01: ruled a follow-up, filed as #1376 — notes/review-harness-security-reviewer-c2.md — verified-at 252a18a9
+- Spending cycle 18 on citation and provenance polish: operator ruled against it — briefing rows B-2 to B-4 — verified-at 252a18a9
+- Re-reviewing the guards or re-grading carried criteria: Advisor's revalidation scope, production bytes unchanged — agent://AdviseBug1305Sc07Conflict — UNVERIFIED
 
 ## Working set
 
-- .harness/harness/features/BUG-1305-run-state-clobber/notes/ship-review-2026-09-05-validate-c2.md
-- .harness/harness/features/BUG-1305-run-state-clobber/runs/review-c2-validator/digest.md
-- .harness/harness/features/BUG-1305-run-state-clobber/runs/goalcheck-build-c2-product/digest.md
+- .harness/harness/features/BUG-1305-run-state-clobber/notes/ship-review-2026-09-05-final.md
+- .harness/harness/features/BUG-1305-run-state-clobber/notes/research-BUG-1305-goalcheck-build-c5.md
+- .harness/harness/features/BUG-1305-run-state-clobber/notes/review-harness-qa-c5.md
 - .harness/harness/features/BUG-1305-run-state-clobber/feature.json
 - .harness/harness/features/BUG-1305-run-state-clobber/BRIEF.md
 
 ## Done when
 
-Scope: operator rules on VL-01 and the ship decision
-Authority: brief-sc:SC-01
+Scope: operator takes the ship decision and the backlog strikes
+Authority: brief-sc:SC-07

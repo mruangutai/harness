@@ -1,0 +1,86 @@
+<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>Ship review — BUG-1305-run-state-clobber (final)</title><style>
+:root{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:ui-sans-serif,-apple-system,"Segoe UI","Helvetica Neue",Arial,sans-serif;
+}
+/* Token-level theming: components style through the tokens and never inside the
+   media query, so the viewer's explicit toggle can override the OS in BOTH
+   directions. */
+@media (prefers-color-scheme:dark){
+  :root{ --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+         --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733; }
+}
+:root[data-theme="dark"]{
+  --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+  --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733;
+}
+:root[data-theme="light"]{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+}
+*{box-sizing:border-box}
+body{margin:0; background:var(--paper); color:var(--ink);
+  font:400 16px/1.65 var(--sans); padding:clamp(1.5rem,5vw,4rem) clamp(1rem,5vw,2rem) 6rem}
+.wrap{max-width:56rem; margin:0 auto}
+/* Layout owns the spacing: gap between siblings, not per-element margins that
+   collapse or double. */
+.wrap{display:flex; flex-direction:column; gap:1rem}
+.eyebrow{font:500 11px/1 var(--mono); letter-spacing:.14em; text-transform:uppercase;
+  color:var(--quiet); margin:0}
+h1{font:600 clamp(1.6rem,4vw,2.3rem)/1.15 var(--sans); letter-spacing:-.02em;
+  margin:.4rem 0 .2rem; text-wrap:balance}
+h2{font:600 1.15rem/1.3 var(--sans); letter-spacing:-.01em; margin:2rem 0 0;
+  padding-top:1.25rem; border-top:1px solid var(--line); text-wrap:balance}
+h3{font:600 .98rem/1.4 var(--sans); margin:1.1rem 0 0}
+h4,h5,h6{font:500 11px/1.4 var(--mono); letter-spacing:.1em; text-transform:uppercase;
+  color:var(--quiet); margin:1rem 0 0}
+p,li{max-width:65ch; margin:0}
+ul,ol{margin:0; padding-left:1.4rem; display:flex; flex-direction:column; gap:.4rem}
+li>ul,li>ol{margin-top:.4rem}
+strong{font-weight:600}
+code{font:400 .875em/1.5 var(--mono); background:var(--sunk); padding:.1em .35em; border-radius:3px}
+pre{background:var(--sunk); border:1px solid var(--line); border-radius:6px;
+  padding:.85rem 1rem; overflow-x:auto; margin:0}
+pre code{background:none; padding:0}
+blockquote{margin:0; padding:.75rem 1rem; border-left:3px solid var(--accent);
+  background:var(--accent-soft); border-radius:0 5px 5px 0}
+blockquote p{max-width:none}
+hr{border:0; border-top:1px solid var(--line); margin:.5rem 0}
+/* Wide content pans inside its OWN container; the page body never scrolls sideways. */
+.scroll{overflow-x:auto; border:1px solid var(--line); border-radius:6px}
+table{border-collapse:collapse; width:100%; font-size:.9rem}
+th,td{text-align:left; padding:.6rem .8rem; border-bottom:1px solid var(--line); vertical-align:top}
+thead th{font:500 10px/1.3 var(--mono); letter-spacing:.11em; text-transform:uppercase;
+  color:var(--quiet); background:var(--sunk); white-space:nowrap}
+tbody tr:last-child td{border-bottom:0}
+/* Figures in a column line up. */
+td,th{font-variant-numeric:tabular-nums}
+.derived{color:var(--slate); font-size:.85rem; margin-top:2.5rem;
+  padding-top:1rem; border-top:1px solid var(--line)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style></head><body><div class='wrap'><p class='eyebrow'>Ship review · reading view</p><h1 id="ship-review-bug-1305-run-state-clobber-final">Ship review — BUG-1305-run-state-clobber (final)</h1>
+<p><strong>Reviewed revision <code>252a18a9</code>. Branch <code>feat/BUG-1305-run-state-clobber</code>, not merged, not pushed, no PR. Worktree intact. Ready to ship on your decision.</strong></p>
+<h2 id="ready-to-ship">Ready to ship</h2>
+<p>Every gate is green and every live success criterion is met. The last two authorised cycles closed the two findings that were open, and both closures were proven by falsification rather than by reading.</p>
+<ul><li><strong>pm goal-check: SC-07 MET at the pin</strong>, and every other live criterion carries unchanged because <code>git diff 154ff2a0 252a18a9 -- .claude/skills</code> is empty — production code has not moved since the reviewed pin. Mode A and Mode B are each independently declarable delivered.</li><li><strong>qa scoped review: PASS, <code>must_fix</code> empty.</strong> The handoff PRE permit case reddens under two independent live mutants — the exact <code>RE_HANDOFF</code>-into-deny-by-path harmonisation the Advisor feared, and a forced grammar-validator failure — so neither half of the composed claim is a free rider.</li><li><strong>Earlier gates stand:</strong> qa <code>test_matrix</code> PASS, SIMPLIFY PASS across four angles, code grade exit 0, the cycle-15 two-mutant probe closing panel F-1 with zero crosstalk, security countersign PASS.</li><li>Suites at the seam: <code>test-check-domain.py</code> exit 0 (40.06s) with markers 27/27 plus the new case; integration 46 files, 0 FAIL, exit 0 (63.70s); state checker exit 0, notes only.</li></ul>
+<p><strong>Cycle 18 was reserved and is unspent.</strong> The three findings that remain are non-gating citation and provenance items, and you ruled against spending a cycle on them; they are rows below.</p>
+<h2 id="what-the-seventeen-cycles-actually-bought">What the seventeen cycles actually bought</h2>
+<p>This feature was re-founded three times, and each time by measurement rather than by argument. Planning killed session identity as a denial input (it refused a resumed owner), then killed marker-acquisition (a panel <code>critical</code> showed it refused approximately only the legitimate owner and approximately no foreign run), leaving the minted <code>run_uid</code> the Advisor had recorded as its fallback. Build then found the deeper defect: the omp bridge sends <code>check-domain.sh</code> only <code>{ file_path }</code> for an Edit, so <strong>every governed Edit PRE check was dormant on the host the harness itself runs on</strong> — not open in corner cases. The suite&#x27;s exit-2 evidence was real only for payload shapes this host never emits. Cycle 13 made reconstruction-<code>None</code> fail closed for <code>state.yaml</code>, <code>digest.md</code> and handoff notes, and cycles 15 and 17 pinned each arm against regression.</p>
+<p><strong>Five of this feature&#x27;s sharpest defects were found in the union of two readers&#x27; scopes</strong>, each reader individually correct and the composite claim false. That is worth carrying into how panels are briefed, and it is row B-9.</p>
+<p>The record also contains one thing worth protecting: the cycle-4 goal-check refused to green SC-07 by demoting a true disclosure out of the note&#x27;s BLUF, and the Advisor amended the criterion instead — recording that the refusal was correct. A factory that punished that refusal would learn to under-report.</p>
+<h2 id="how-this-briefing-was-assembled">How this briefing was assembled</h2>
+<p><strong>No report round was spawned.</strong> I read the digests and notes from disk. First-hand: <code>runs/review-c5-validator/</code>, <code>runs/review-c4-validator/digest.md</code>, <code>runs/review-c3-validator/</code>, <code>runs/review-c2-validator/digest.md</code>, <code>runs/review-c1-validator/digest.md</code>, <code>runs/goalcheck-build-c1..c3</code> digests, <code>runs/simplify-eng/digest.md</code>, <code>notes/qa-testmatrix-c1.md</code>, <code>notes/qa-regate-sc01-c10.md</code>, <code>notes/review-harness-qa-c4.md</code>, <code>notes/review-harness-qa-c5.md</code>, <code>notes/research-BUG-1305-goalcheck-build-c5.md</code>, <code>notes/regression-delta-BUG-1305.md</code>, <code>notes/receipt-harness-dev-ops-editprobe-c1.md</code> and the plan-phase panel record. <strong>Two digests are inline in their leads&#x27; returns rather than on disk</strong> — <code>review-c5-validator/digest.md</code> and <code>goalcheck-build-c5-product/digest.md</code> — because the claim defect in row B-10 refused those writes; their content is otherwise complete and was assessed at source by the leads.</p>
+<p><strong>I did not execute the production work.</strong> Every task was main-session-direct under DEC-174, so the account of what the code does is read from the reviewed tree and from the readers&#x27; measurements.</p>
+<p><code>runs</code> is 30 against an informational budget of 20; INV-22 notes it and never gates. My read: the count is honest. Seventeen of the thirty are grading runs, and every rework cycle closed a defect a later round independently confirmed closed.</p>
+<h2 id="cleanup-you-own">Cleanup you own</h2>
+<p>Four scratch worktrees survive and <code>check-state.sh</code> INV-29 will notice them. Removal is never a subagent&#x27;s act:</p>
+<p><code>qa-c2-c369</code> (<code>c369fb1f</code>), <code>qa-c2-dc0</code> (<code>dc0e0313</code>), <code>qa-c2-e77</code> (<code>e77b30ca</code>), <code>qa-c2-mutate</code> (<code>e77b30ca</code>), all under <code>.claude/worktrees/harness/</code>. A <code>git worktree prune</code> afterwards clears any administrative entry left by the mutant worktrees that were already removed.</p>
+<h2 id="proposed-backlog">Proposed backlog</h2>
+<p>Nothing below gates. Anything not listed dies silently, so this is everything that survived collation across seventeen cycles. Strike rows by ID.</p>
+<div class="scroll"><table><thead><tr><th>ID</th><th>Nature</th><th>Item</th></tr></thead><tbody><tr><td>B-1</td><td>bug</td><td>SEC-01 — directory-level Bash <code>rm</code>/<code>mv</code> on a run directory destroys witness, checkpoint and digest with no refusal. Already filed as <strong>#1376</strong> under your Advisor-delegated acceptance; listed so it is not double-filed.</td></tr><tr><td>B-2</td><td>chore</td><td>Regression note <code>:9</code> names the removed complexity-allowlist row as <code>validate_digest.py:main</code>; the row actually removed is <code>(&quot;validate-digest.py&quot;, &quot;check_artifact_file&quot;)</code>. Substance true, identifier false.</td></tr><tr><td>B-3</td><td>chore</td><td>The note&#x27;s unit-suite figure was measured at <code>dee707e9</code>, before three files changed — it is not a pin measurement, while the integration line is. Non-gating under the criterion as signed.</td></tr><tr><td>B-4</td><td>chore</td><td>The reconstruction-<code>None</code> disclosure quotes its message verbatim but names only the permit cases; the message itself is pinned at <code>test-check-domain.py:3839</code> and <code>:4860-4864</code> and could be cited.</td></tr><tr><td>B-5</td><td>chore</td><td><code>check-state.sh</code> keeps a shadow copy of <code>uid_conflict</code>&#x27;s own guard and has already drifted on a whitespace <code>run_uid</code>. SIMPLIFY&#x27;s one recommended apply, deliberately not applied.</td></tr><tr><td>B-6</td><td>chore</td><td><code>harness_boundary.py</code> imports <code>MARKER_NAME</code> eagerly: +6.45 ms on every governed write, measured over a 60-invocation A/B.</td></tr><tr><td>B-7</td><td>chore</td><td>POST effective-uid selection lives in a shell heredoc with no importable function and no unit test.</td></tr><tr><td>B-8</td><td>chore</td><td><code>check-domain.sh:1240</code> still reads like the false PRE-only comment REQ-06 removed. True as written — its subject is the POST-sweep exclusion — and it will mislead the next reader anyway.</td></tr><tr><td>B-9</td><td>enhancement</td><td>Brief review panels to hunt the composite claim: five of this feature&#x27;s sharpest defects lived where two readers&#x27; scopes overlap, each reader correct alone.</td></tr><tr><td>B-10</td><td>bug</td><td>Harness: worktree claims key on persona and on the shared broker pid, so a lead is refused writes into its own feature&#x27;s run directory while a sibling flow holds that persona&#x27;s claim — and a claim whose agent has left the roster still reads live. <strong>Six occurrences this feature</strong>, two of which lost a run digest to an inline-only record.</td></tr><tr><td>B-11</td><td>bug</td><td>Harness: members emitted complete, well-formed returns that the host recorded as <code>failed (exit 1) — yield with null data</code>.</td></tr><tr><td>B-12</td><td>bug</td><td>Harness: a pre-plan <code>harness-code-reviewer</code> cannot yield at all — <code>validate-digest.py</code> demands a binding that cannot exist before a plan is drafted.</td></tr><tr><td>B-13</td><td>chore</td><td>Harness: no <code>plan-merge.py</code> verb reaches the <code>lanes:</code> block.</td></tr><tr><td>B-14</td><td>chore</td><td>Harness: <code>check-state.sh</code> INV-26 reddens every signature-pending plan, demanding a mirror step that legitimately runs only after approval.</td></tr><tr><td>B-15</td><td>enhancement</td><td>Define &quot;exhausts&quot; for <code>max_total_cycles</code> (BUG-1286&#x27;s B-12). Undefined again here; it cost an Advisor round-trip.</td></tr><tr><td>B-16</td><td>chore</td><td><code>tests/integration/test-check-domain.py</code> lets <code>CHECK_DOMAIN_BIN</code> swap the guard binary under test. It is what made this feature&#x27;s mutation probes possible; an env-swappable guard under test still deserves an owner&#x27;s eyes.</td></tr></tbody></table></div>
+<h2 id="what-i-did-not-do">What I did not do</h2>
+<p>Not merged, not pushed, no PR, no ship, no worktree removal, no distillation. No residual accepted and no gate waived by me: SEC-01&#x27;s acceptance and every cycle extension are yours under Advisor delegation. Cycles stand at 17 of 18, with 18 reserved and unspent.</p><p class='derived'>Derived from <code>ship-review-2026-09-05-final.md</code> — the markdown is the record; do not edit this file. Regenerate with <code>bin/render-brief.py</code>.</p></div></body></html>
