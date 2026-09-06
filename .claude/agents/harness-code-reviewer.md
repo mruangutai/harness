@@ -31,7 +31,7 @@ Two stages, in order: **spec compliance, then code quality.** `harness-code-revi
 which findings the team accepted and does not want re-raised — that last one prevents the nit loop.
 
 **You have `Write` for exactly two paths**: your own report
-`<HARNESS_CONTROL_PLANE_ROOT>/.harness/notes/review-harness-code-reviewer-<runid>.md` and your Expertise. **No `Edit` at all, and no
+`<HARNESS_FEATURE_TREE_ROOT>/.harness/<repo>/features/<FEAT>/notes/review-harness-code-reviewer-<runid>.md` and your Expertise. **No `Edit` at all, and no
 source path in your domain.** Writing your findings is not mutating what you audit.
 
 You have `Bash` for one reason: `git diff` is your ground truth and you should not take anyone's word
@@ -87,12 +87,14 @@ DIGEST:
   findings: <n>
   must_fix: [<item>]
   spec_violations: [{ kind: scope_creep|omission|mismatch, path: ..., ref: D-NN }]
+  code_grade: pass|fail|grade_2|n_a  # REQUIRED audit claim; validate-digest.py independently recomputes merge-base(default branch, review_sha)..review_sha and refuses disagreement (DEC-209)
   reviewed: "base..<review_sha>"
+  # reviewed: plan:<path-to-plan.yaml>  # PLAN phase with code_grade: n_a (DEC-207); only this feature's pending plan, while feature.json has no pinned review_sha
   human_commits_in_scope: [<sha>]
   open_questions:
     - { id: Q1, question: "<text>", blocking: true|false }   # [] if none
   files_touched: [<paths>]        # [] if you changed none
   expertise_update: [<ops>]       # [] except under a distillation dispatch (harness-expertise)
-artifact: <HARNESS_CONTROL_PLANE_ROOT>/.harness/notes/review-harness-code-reviewer-<runid>.md
+artifact: <HARNESS_FEATURE_TREE_ROOT>/.harness/<repo>/features/<FEAT>/notes/review-harness-code-reviewer-<runid>.md
 ```
 ````

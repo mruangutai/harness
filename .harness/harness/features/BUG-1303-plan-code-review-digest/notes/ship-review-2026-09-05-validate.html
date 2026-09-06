@@ -1,0 +1,87 @@
+<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>BUG-1303 — ship review</title><style>
+:root{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:ui-sans-serif,-apple-system,"Segoe UI","Helvetica Neue",Arial,sans-serif;
+}
+/* Token-level theming: components style through the tokens and never inside the
+   media query, so the viewer's explicit toggle can override the OS in BOTH
+   directions. */
+@media (prefers-color-scheme:dark){
+  :root{ --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+         --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733; }
+}
+:root[data-theme="dark"]{
+  --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+  --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733;
+}
+:root[data-theme="light"]{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+}
+*{box-sizing:border-box}
+body{margin:0; background:var(--paper); color:var(--ink);
+  font:400 16px/1.65 var(--sans); padding:clamp(1.5rem,5vw,4rem) clamp(1rem,5vw,2rem) 6rem}
+.wrap{max-width:56rem; margin:0 auto}
+/* Layout owns the spacing: gap between siblings, not per-element margins that
+   collapse or double. */
+.wrap{display:flex; flex-direction:column; gap:1rem}
+.eyebrow{font:500 11px/1 var(--mono); letter-spacing:.14em; text-transform:uppercase;
+  color:var(--quiet); margin:0}
+h1{font:600 clamp(1.6rem,4vw,2.3rem)/1.15 var(--sans); letter-spacing:-.02em;
+  margin:.4rem 0 .2rem; text-wrap:balance}
+h2{font:600 1.15rem/1.3 var(--sans); letter-spacing:-.01em; margin:2rem 0 0;
+  padding-top:1.25rem; border-top:1px solid var(--line); text-wrap:balance}
+h3{font:600 .98rem/1.4 var(--sans); margin:1.1rem 0 0}
+h4,h5,h6{font:500 11px/1.4 var(--mono); letter-spacing:.1em; text-transform:uppercase;
+  color:var(--quiet); margin:1rem 0 0}
+p,li{max-width:65ch; margin:0}
+ul,ol{margin:0; padding-left:1.4rem; display:flex; flex-direction:column; gap:.4rem}
+li>ul,li>ol{margin-top:.4rem}
+strong{font-weight:600}
+code{font:400 .875em/1.5 var(--mono); background:var(--sunk); padding:.1em .35em; border-radius:3px}
+pre{background:var(--sunk); border:1px solid var(--line); border-radius:6px;
+  padding:.85rem 1rem; overflow-x:auto; margin:0}
+pre code{background:none; padding:0}
+blockquote{margin:0; padding:.75rem 1rem; border-left:3px solid var(--accent);
+  background:var(--accent-soft); border-radius:0 5px 5px 0}
+blockquote p{max-width:none}
+hr{border:0; border-top:1px solid var(--line); margin:.5rem 0}
+/* Wide content pans inside its OWN container; the page body never scrolls sideways. */
+.scroll{overflow-x:auto; border:1px solid var(--line); border-radius:6px}
+table{border-collapse:collapse; width:100%; font-size:.9rem}
+th,td{text-align:left; padding:.6rem .8rem; border-bottom:1px solid var(--line); vertical-align:top}
+thead th{font:500 10px/1.3 var(--mono); letter-spacing:.11em; text-transform:uppercase;
+  color:var(--quiet); background:var(--sunk); white-space:nowrap}
+tbody tr:last-child td{border-bottom:0}
+/* Figures in a column line up. */
+td,th{font-variant-numeric:tabular-nums}
+.derived{color:var(--slate); font-size:.85rem; margin-top:2.5rem;
+  padding-top:1rem; border-top:1px solid var(--line)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style></head><body><div class='wrap'><p class='eyebrow'>Ship review · reading view</p><h1 id="bug-1303-ship-review">BUG-1303 — ship review</h1>
+<p><strong>Ship-ready.</strong> All eight success criteria are met at the pinned commit, the reviewer panel closed with no <code>must_fix</code>, and every gate this repository runs is green. One decision is yours before or after the merge: F-02, below. Nothing is blocking.</p>
+<p><strong>Feature:</strong> BUG-1303-plan-code-review-digest · branch <code>feat/BUG-1303-plan-code-review-digest</code> · <code>review_sha</code> <strong>e2c800f1</strong> · base <code>63404ef0</code> · tree clean.</p>
+<hr>
+<h2 id="what-was-wrong-and-what-shipped">What was wrong, and what shipped</h2>
+<p>A code reviewer dispatched during the <strong>plan</strong> phase could not return a digest that validated. The validator had implemented plan-review mode for a while; the reviewer&#x27;s own persona file never documented it, so a reviewer following only the contract it was handed wrote a digest the validator refused. The defect was in the documentation half of a contract whose two halves nobody checked against each other.</p>
+<p>The fix is three things. The reviewer&#x27;s three contract sources now document the plan-phase form. <code>DEC-216</code> records the general rule — <strong>a persona&#x27;s documented output block is an enforced half of the digest contract</strong>, not commentary — and the test suite now enforces it for <strong>all sixteen personas</strong>, each with its own named pass line, with the persona set derived from the validator&#x27;s own registry so a seventeenth persona reddens the suite by name rather than shrinking a still-passing count.</p>
+<p><code>validate-digest.py</code> itself was deliberately not touched; the reviewed range contains no file under <code>.claude/skills/harness/bin/</code>, which is SC-04&#x27;s whole point.</p>
+<h2 id="where-the-phases-landed">Where the phases landed</h2>
+<p>I spawned <strong>no report round</strong>. This briefing is assembled from artifacts already on disk: <code>notes/handoff-plan.md</code>, <code>notes/handoff-build.md</code>, <code>notes/research-BUG-1303-panel-record.md</code>, <code>notes/qa-BUG-1303-build.md</code>, <code>notes/research-BUG-1303-goalcheck-validate-c5.md</code>, <code>notes/review-harness-{code-reviewer,qa,security-reviewer,ui-reviewer}-c4.md</code>, the two c5 confirmation notes, and the run digests <code>runs/2026-09-05-{08,13,14,17}-validator/digest.md</code>, <code>runs/2026-09-05-{13,14}-product/digest.md</code>, <code>runs/2026-09-05-mf2-eng/digest.md</code>. The earlier build-phase digests are represented through the two handoff notes rather than read individually.</p>
+<ul><li><strong>Plan.</strong> The adversarial panel ran three cycles and closed at cycle 3 with <code>severity_max: none</code>, both readers <code>ran</code>, eleven findings recorded in <code>plan.yaml</code>&#x27;s <code>panel:</code> key and <strong>zero left open</strong>. You signed BRIEF and plan with no overrule.</li><li><strong>Build.</strong> Four tasks, all at station <code>done</code>. QA returned FAIL on one thing only — the test-matrix floor, not this change&#x27;s tests, which were green and proven red-capable.</li><li><strong>The matrix ruling.</strong> That FAIL was the honest one: <code>test_matrix.bugfix.always</code> demanded a <code>unit</code> test, and this bugfix&#x27;s entire test surface is a contract guard over markdown across two trees — integration-shaped by construction. BUG-1128 hit the identical wall and was never ruled. The delegated Advisor ruled it as <strong>DEC-217</strong>: bugfix test kinds now follow the changed surface — <code>unit</code> when the diff touches runtime code, <code>integration</code> when the fix is confined to tests and contract docs. The main session implemented it. That closes F-01.</li><li><strong>Validate.</strong> The panel returned <strong>FAIL</strong> with two <code>must_fix</code>. Both were real; I re-derived each myself before spending the cycle on it. - <strong>MF-1 (high)</strong> — the DEC-217 index row carried hand-written tags no regeneration reproduces. This reddened the whole <code>integration</code> test bucket and made SC-06 literally false at the old pin. Regenerated: one row moved, ruling text untouched. - <strong>MF-2 (med)</strong> — the new suite retyped the literal <code>n_a</code> where SC-03 requires the value be derived from the validator&#x27;s own constant. It now probes the validator&#x27;s own plan-mode rule across <code>CODE_GRADE_VALUES</code> and keeps the single member that rule accepts, failing loudly if zero or several qualify. I confirmed independently that renaming the grade makes the derivation report red rather than silently defaulting. - The c5 confirmation pass ruled both <strong>RESOLVED</strong>, <code>matrix_ok: true</code>, <code>code_grade: pass</code>, <code>must_fix: []</code>, <code>severity_max: med</code>. The security and ui lenses were deliberately not re-run (recorded as carried forward with reasons, never presented as having run). - A final cycle went on nothing but bookkeeping: two of the squad&#x27;s own run digests failed the lead digest contract on shape, which held <code>check-state.sh</code> red on an otherwise finished feature. Both now validate. It cost a full cycle — see B-12.</li></ul>
+<h2 id="goal-check-8-of-8-met">Goal-check — 8 of 8 met</h2>
+<p><code>notes/research-BUG-1303-goalcheck-validate-c5.md</code>, graded at <code>e2c800f1</code>, content read with <code>git show</code> rather than from the working tree. SC-06 was PARTIAL at the superseded pin and is met at this one. No success criterion declares <code>verify: uat</code>, so <strong>no user acceptance test is required</strong> — the feature&#x27;s whole surface is a test suite and three documents.</p>
+<p><strong>Gates, all run by me at the pin:</strong> digest-validator suite exit 0, zero <code>FAIL</code> lines, <code>ALL PASSED</code> · <code>test-config-shape-matrix.py</code> 19/19 · <code>run-unit-tests.sh --kind integration</code> exit 0 over 46 files · index regeneration byte-identical · <code>check-state.sh</code> exit 0 with zero violations · working tree clean.</p>
+<p><strong>Budgets.</strong> 6 rework cycles of 8. <strong>19 runs of a budget of 20</strong> — informational only, and worth a sentence: the count is high because the plan panel ran three cycles and the validate phase ran a find-fix-confirm loop plus the digest-shape repair. Each run resolved a named finding; none was a retry of an unchanged input. The last one was pure record-keeping, which is what B-12 is about.</p>
+<h2 id="the-one-decision-f-02">The one decision — F-02</h2>
+<p>DEC-217 introduced two predicates, <code>touches_runtime_code</code> and <code>fix_confined_to_tests_and_contract_docs</code>. Its sibling DEC-212 documented its predicate in both QA skill files <strong>and</strong> asserted that documentation with a test. DEC-217&#x27;s two are documented in neither. QA evaluates these names against a diff at gate time out of its preloaded skills; the definitions live only in <code>DECISIONS.md</code>. The code reviewer rated this <code>high</code>; the validator lead reconciled it to <code>med</code> because the two predicates are exact complements, so no diff can require zero test kinds — the reachable harm is a wrongly-chosen kind, not an ungated ship. Both ratings are recorded.</p>
+<p>I did not fix it, and no squad could have: both files resolve to <code>NOBODY</code> under the domain guard. It is a main-session-only edit. <strong>Ship now and take it as B-1, or rule it first</strong> — it does not gate.</p>
+<h2 id="proposed-backlog">Proposed backlog</h2>
+<p>Unstruck rows become issues on ship acceptance. Anything not listed here dies silently.</p>
+<div class="scroll"><table><thead><tr><th>ID</th><th>Nature</th><th>Row</th></tr></thead><tbody><tr><td>B-1</td><td>bug</td><td>Document DEC-217&#x27;s two predicates in <code>harness-qa-gate/SKILL.md</code> and <code>harness-verification-rules/SKILL.md</code> and assert them in <code>test-config-shape-matrix.py</code>, as DEC-212&#x27;s predicate already is (F-02)</td></tr><tr><td>B-2</td><td>chore</td><td>Reconcile DEC-217&#x27;s worked example with its own predicates: applied literally to this very diff, <code>touches_runtime_code</code> is TRUE via <code>templates/harness.json</code>, so the matrix asks for <code>unit</code> where the decision&#x27;s prose says integration. Both kinds are present and green, so nothing is at risk — the wording is</td></tr><tr><td>B-3</td><td>bug</td><td><code>harness.json</code> keeps the <code>__bug_class__</code> / <code>match_bug_class</code> leg while <code>test_kinds</code> defines no such kind — a predicate that can never resolve, which DECISIONS.md:5074 already calls broken elsewhere</td></tr><tr><td>B-4</td><td>bug</td><td>A subagent&#x27;s job returns <code>failed (exit 1)</code> with &quot;yield with null data&quot; while its final message is a complete, valid return — and the job preview can show a superseded draft with the opposite verdict. Hit twice this run; routing on either signal would have discarded correct work or shipped a red gate</td></tr><tr><td>B-5</td><td>bug</td><td><code>check-domain.sh</code> guards <code>&lt;run_dir&gt;/digest.md</code> but not <code>&lt;run_dir&gt;/state.yaml</code>, and <code>runs/</code> is gitignored so a Glob of it looks empty — two leads independently overwrote an earlier run&#x27;s checkpoint this run. A stray <code>runs/2026-09-05-01-product/send-back-criteria.md</code> is also undeletable: my <code>rm</code> was correctly refused as out-of-domain</td></tr><tr><td>B-6</td><td>bug</td><td>Worktree path resolution: an agent&#x27;s injected persona text came from the STALE main-checkout copy, not the worktree&#x27;s fixed one — the reviewer of a fix to the reviewer&#x27;s contract was loaded with the pre-fix contract. Same root as <code>brief-sc:</code>/<code>plan-task:</code> handoff authorities being unusable from a worktree</td></tr><tr><td>B-7</td><td>chore</td><td><code>bash-write-guard.sh</code> parses the command line textually, refusing <code>plan-merge.py apply --proposal -</code> when the proposal contains an angle bracket; <code>amend --value-file -</code> is not wired to stdin although <code>apply --proposal -</code> is</td></tr><tr><td>B-8</td><td>chore</td><td>Dispatch text and docs template <code>gen-decisions-index.py --apply</code>; that flag does not exist (exit 2) — the bare invocation is the in-place write. Cost one send-back this run</td></tr><tr><td>B-9</td><td>enhancement</td><td><code>_reviewer_plan_mode_results</code> short-circuits on a derivation error and prints one FAIL line where eight assertions exist — it still gates, but a broken derivation under-reports</td></tr><tr><td>B-10</td><td>enhancement</td><td>SC-02&#x27;s two discrimination directions share a single report line; both are separately asserted, so this is diagnosability, not ever-greenness</td></tr><tr><td>B-11</td><td>chore</td><td><code>harness-qa</code>&#x27;s repository Expertise still says the bugfix floor &quot;stays at unit alone&quot; — false since DEC-217. Fix at the next distillation</td></tr><tr><td>B-12</td><td>bug</td><td>The run-digest guard refuses in-place replacement, so correcting one contract token in a digest spawned two extra run directories — each of which <code>check-state.sh</code> then graded — and the correction had to be appended BELOW the block it supersedes. Either permit a same-run correction that preserves every recorded verdict, or exempt superseded digests from the invariant</td></tr><tr><td>B-13</td><td>enhancement</td><td>A scoped panel that deliberately does not re-dispatch a reviewer has no contract-legal slot for it — <code>members[].status: skipped</code> is reserved for the optional advisor — so the honest record lives in an ad-hoc <code>not_rerun:</code> key the validator ignores rather than validates. Make it first-class</td></tr></tbody></table></div>
+<h2 id="one-thing-i-could-not-verify">One thing I could not verify</h2>
+<p>Test-first ordering for T-01 rests on the main session&#x27;s own report: commit <code>cdfce3cb</code> bundles T-01, T-02 and T-03, so no git artifact shows the declared red state. Carried from the build handoff unchanged rather than quietly dropped.</p><p class='derived'>Derived from <code>ship-review-2026-09-05-validate.md</code> — the markdown is the record; do not edit this file. Regenerate with <code>bin/render-brief.py</code>.</p></div></body></html>

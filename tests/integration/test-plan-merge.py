@@ -32,6 +32,14 @@ HERE = BIN_DIR
 CLI = os.environ.get("PLAN_MERGE_BIN") or os.path.join(HERE, "plan-merge.py")
 TEMPLATE_PLAN = os.path.join(HERE, "..", "templates", "plan.yaml")
 
+# This suite shells out to plan-merge.py, whose cmd_sign_approval reads HARNESS_AGENT_TYPE
+# from the process environment at .claude/skills/harness/bin/plan-merge.py line 1188 and
+# exits 10 for any non-empty value; a Harness agent's own shell carries that variable, so
+# without this pop 13 checks across six cases fail for the agent and pass for a human.
+# Popping once here covers run_apply, run_verb, and any raw subprocess.run or Popen a future
+# case writes, with no per-call-site rule.
+os.environ.pop("HARNESS_AGENT_TYPE", None)
+
 RESULTS = []
 
 
@@ -138,7 +146,9 @@ def run_verb(*argv, env=None):
     """Any verb, argv passed through verbatim — so a case can assert on argument handling
     itself rather than only on a well-formed invocation. `env=None` inherits this process's own
     environment (os.environ default); a case that must control HARNESS_AGENT_TYPE passes an
-    explicit mapping so the ambient test-runner environment can never leak a false pass."""
+    explicit mapping so the ambient test-runner environment can never leak a false pass. The
+    ambient HARNESS_AGENT_TYPE is already removed at module import, so env=None is hermetic on
+    its own and an explicit mapping is needed only when a case wants a specific identity."""
     return subprocess.run([sys.executable, CLI, *argv], capture_output=True, text=True, env=env)
 
 
