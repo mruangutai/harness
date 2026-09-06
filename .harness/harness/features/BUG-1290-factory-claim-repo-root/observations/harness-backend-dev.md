@@ -15,3 +15,9 @@
   module-level name a task calls dead.
 - 2026-09-05: T-04 — on the hardlinked pair .claude/skills/harness/bin/layout_migration.py and .agents/.../layout_migration.py (same inode), two successive `edit` calls reported success (fresh read/grep right after showed the new content) but a later independent `bash` check (sed/md5sum/stat -f %m) showed the on-disk bytes and mtime unchanged from before either edit, and a subsequent `read` also showed the stale pre-edit content — yet a re-`edit` attempt was rejected as stale against the tool's own (unpersisted) prior tag. Worked around with a bash/python3 in-place string replace, confirmed via stat -f %i (hardlink intact) and the task verify passing. Could not file via xd://report_issue: check-domain blocks harness-backend-dev from that path in this worktree.
 - 2026-09-05: altitude-pass analysis complete for BUG-1290 but Write tool blocked (claim collision test, will overwrite).
+- 2026-09-06: B-3 (T-01 fix cycle) — a fixture proving cache A discriminates keys can leave
+  cache B's keying wholly unexercised even when both caches share the same lookup call site;
+  the tell was both dual-repo segments carrying an identical empty map (`{"issues": {}}`), so
+  the second cache's accessor was never reached for one candidate. Fixed by giving the two
+  segments DIFFERENT, non-empty maps whose dependency ids also differ, so neither cache's
+  mutant reddens vacuously. See test-factory-claim.py build_features_root()/case 5b.

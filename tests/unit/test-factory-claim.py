@@ -333,9 +333,11 @@ def build_features_root():
     feature.json never maps).
 
     `.harness/kaya-ai/features` and `.harness/harness/features` each carry the SAME feature id,
-    SEG_FEATURE, with a DIFFERENT task DAG — kaya-ai's T-77 depends on an unresolvable T-88,
-    harness's T-77 is clear — so a case can prove a per-repository resolver reaches each
-    segment's own plan rather than one shared verdict (BUG-1290 5a/5b, SC-01/SC-02)."""
+    SEG_FEATURE, with DIFFERENT task DAGs and DIFFERENT non-empty issue maps — kaya-ai's T-77
+    depends on an unresolvable T-88 (its own map holds only T-77, never T-88), harness's T-77
+    depends on T-99 which its OWN map resolves to a closed issue — so a case can prove a
+    per-repository resolver reaches each segment's own plan AND ITS OWN ISSUE MAP, neither
+    cache served across repositories (BUG-1290 5a/5b, SC-01/SC-02)."""
     harness_root = tempfile.mkdtemp(prefix="claim-harness-")
     widget_features = os.path.join(harness_root, ".harness", "widget", "features")
 
@@ -373,12 +375,12 @@ def build_features_root():
     kaya_seg = os.path.join(harness_root, ".harness", "kaya-ai", "features", SEG_FEATURE)
     write_yaml(os.path.join(kaya_seg, "plan.yaml"),
                plan_dict(SEG_FEATURE, [task_dict("T-77", depends_on=["T-88"])]))
-    write_json(os.path.join(kaya_seg, "feature.json"), {"factory": {"issues": {}}})
+    write_json(os.path.join(kaya_seg, "feature.json"), {"factory": {"issues": {"T-77": 850}}})
 
     harness_seg = os.path.join(harness_root, ".harness", "harness", "features", SEG_FEATURE)
     write_yaml(os.path.join(harness_seg, "plan.yaml"),
-               plan_dict(SEG_FEATURE, [task_dict("T-77")]))
-    write_json(os.path.join(harness_seg, "feature.json"), {"factory": {"issues": {}}})
+               plan_dict(SEG_FEATURE, [task_dict("T-77", depends_on=["T-99"])]))
+    write_json(os.path.join(harness_seg, "feature.json"), {"factory": {"issues": {"T-99": 954}}})
 
     return harness_root
 
@@ -1174,9 +1176,11 @@ try:
 except Exception as exc:
     check(name_5a, False, repr(exc))
 
-# 5b. two candidates, same feature id, on two different repositories: each verdict matches its
-# own segment's plan (kaya-ai blocked, harness clear), and the second candidate is not served
-# the first's cached plan task or issue map.
+# 5b. two candidates, same feature id, on two different repositories, each with its OWN
+# non-empty issue map: each verdict matches its own segment's plan AND its own issue map
+# (kaya-ai blocked via its dep T-88, unresolvable in kaya's map; harness clear via its dep
+# T-99, which harness's own map resolves to a closed issue) — proving neither the plan cache
+# nor the issue-map cache is served across repositories.
 name_5b = "BUG-1290 5b: same feature id on two repositories resolves per-segment, no cache bleed"
 try:
     ws_5b = tempfile.mkdtemp(prefix="claim-ws-5b-")
@@ -1193,6 +1197,7 @@ try:
     rec.issue_data[952] = issue_data(
         952, "T-77 do the thing", labels=["harness", f"feature:{SEG_FEATURE}"],
     )
+    rec.issue_data[954] = issue_data(954, "T-99 do the thing", state="CLOSED")
     code, out, err = run_main(rec, ["--as", AS_LOGIN], fleet_dict=fleet_5b)
     check(name_5b,
           code == 0 and json.loads(out).get("issue") == 952
