@@ -42,9 +42,9 @@ STUB = {
         "legacy":   'for fy in glob.glob(os.path.join(H, "features", "*", "feature.json")):\n',
         "migrated": 'for fy in glob.glob(os.path.join(H, _repo, "features", "*", "feature.json")):\n',
     },
-    ".agents/skills/harness/bin/factory_claim.py": {
-        "legacy":   'FEATURES_ROOT = os.path.join(r(), ".harness", "features")\n',
-        "migrated": 'FEATURES_ROOT = os.path.join(r(), ".harness", _seg, "features")\n',
+    ".agents/skills/harness/bin/factory_config.py": {
+        "legacy":   'def features_root(repo_name):\n    return os.path.join(r(), ".harness", "features")\n',
+        "migrated": 'def features_root(repo_name):\n    seg = segment_of(repo_name)\n    return os.path.join(r(), ".harness", seg, "features")\n',
     },
     ".agents/skills/harness/bin/gen-decisions-index.py": {
         "legacy":   'HEADER = "the authority is docs/harness/DECISIONS.md"\n',

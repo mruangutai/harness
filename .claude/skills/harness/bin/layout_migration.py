@@ -89,7 +89,13 @@ READER_TABLE = [
     Row("features", ".agents/skills/harness/bin/check-plan-routes.py",
         r'"\.harness", "features"',
         r'"\.harness", [^,)]+, "features"'),  # balance: (
-    Row("features", ".agents/skills/harness/bin/factory_claim.py",
+    # factory_claim.py's own join was MOVED to factory_config.py:features_root in
+    # BUG-1290 T-03 (D-04): unlike FEAT-42's docs row above, which was REMOVED
+    # because after that change no file carried the path string at all, here the
+    # string moved wholesale to a successor file, so this row moves with it rather
+    # than being removed — the surface keeps five rows and factory_config.py stays
+    # under coupled-reader scrutiny for the rule it now owns.
+    Row("features", ".agents/skills/harness/bin/factory_config.py",
         r'"\.harness", "features"',
         r'"\.harness", [^,)]+, "features"'),  # balance: (
     Row("features", ".agents/skills/harness/bin/check-state.sh",
