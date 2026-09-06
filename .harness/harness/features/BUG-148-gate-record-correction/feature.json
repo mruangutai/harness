@@ -1,0 +1,38 @@
+{
+  "feature_id": "BUG-148-gate-record-correction",
+  "branch": "feat/BUG-148-gate-record-correction",
+  "pr": null,
+  "review_sha": "none",
+  "cycles_used": 2,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "2026-09-06-01-product",
+      "squad": "product",
+      "agent": "harness-pm",
+      "verdict": "PASS",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-06-02-product",
+      "squad": "product",
+      "agent": "harness-pm",
+      "verdict": "PASS",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-06-01-validator",
+      "squad": "validator",
+      "agent": "harness-code-reviewer",
+      "verdict": "PASS",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-06-03-product",
+      "squad": "product",
+      "agent": "harness-pm",
+      "verdict": "PASS",
+      "code_grade": "n_a"
+    }
+  ]
+}
