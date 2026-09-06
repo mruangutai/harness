@@ -2,7 +2,7 @@
   "feature_id": "BUG-1308-expertise-replace-drop",
   "branch": "feat/BUG-1308-expertise-replace-drop",
   "pr": null,
-  "review_sha": "none",
+  "review_sha": "4c76f0f51a7e8eddc871f5a721d92602762ac103",
   "cycles_used": 5,
   "max_total_cycles": 8,
   "runs": [
