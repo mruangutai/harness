@@ -1,10 +1,10 @@
 {
   "feature_id": "BUG-1308-expertise-replace-drop",
   "branch": "feat/BUG-1308-expertise-replace-drop",
-  "pr": null,
+  "pr": 1379,
   "review_sha": "433df52092834f4358de234449c736ae554738e9",
-  "cycles_used": 9,
-  "max_total_cycles": 9,
+  "cycles_used": 10,
+  "max_total_cycles": 10,
   "runs": [
     {
       "id": "2026-09-05-01-product",
