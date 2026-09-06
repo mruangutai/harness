@@ -4686,18 +4686,17 @@ def _bug440_mixed_case(validator):
     with tempfile.TemporaryDirectory() as tmp:
         _, code, out, unchanged = _bug440_validate_fixture(
             tmp, ("M", "E", "N", "I", "G", "X"), runs)
-    inv37 = [line for line in out.splitlines() if "INV-37" in line]
-    mismatch = [line for line in inv37 if "runs/M" in line]
+    lines = re.findall(r"^.*INV-37.*$", out, re.M)
+    line = lines[0] if len(lines) == 1 else ""
     expected = ("FEAT-TEST", "M", "FAIL", "PASS", "feature.json", "digest.md")
-    silent = ("E", "N", "I", "G", "X", "O")
+    silent = ("runs/E", "runs/N", "runs/I", "runs/G", "runs/X", "runs/O")
     return all((
-        code == 1, len(inv37) == 1, len(mismatch) == 1, unchanged,
-        all(token in mismatch[0] for token in expected),
-        not any(f"runs/{name}" in "\n".join(inv37) for name in silent),
-        sum("runs/G" in line and "digest.md is missing" in line for line in out.splitlines()) == 1,
-        sum("runs/X/digest.md" in line and "lead digest" in line for line in out.splitlines()) == 1,
+        code == 1, len(lines) == 1, unchanged,
+        all(token in line for token in expected),
+        not any(name in "\n".join(lines) for name in silent),
+        out.count("runs/G: run is complete but digest.md is missing") == 1,
+        out.count("runs/X/digest.md: does not satisfy the lead digest") == 1,
     ))
-
 
 def _bug440_blocking_case(validator):
     with tempfile.TemporaryDirectory() as tmp:
