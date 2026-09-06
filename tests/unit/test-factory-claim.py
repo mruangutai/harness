@@ -1181,8 +1181,12 @@ except Exception as exc:
 # (kaya-ai blocked via its dep T-88, unresolvable in kaya's map; harness clear via its dep
 # T-99, which harness's own map resolves to a closed issue) — proving neither the plan cache
 # nor the issue-map cache is served across repositories.
-name_5b = "BUG-1290 5b: same feature id on two repositories resolves per-segment, no cache bleed"
-try:
+#
+# The scenario builder and the predicate below are SHARED with 5g (B-16): 5g reruns this same
+# fleet under a mutant issue-map cache, so a future fixture edit cannot move one without the
+# other.
+def _run_5b_scenario():
+    """Builds and runs 5b's two-repository, one-feature-id fleet. Returns (code, out, err)."""
     ws_5b = tempfile.mkdtemp(prefix="claim-ws-5b-")
     fleet_5b = good_fleet_dict(
         ws_5b, repos=[repo_dict(REPO_KAYA), repo_dict(REPO_HARNESS_SEG)],
@@ -1198,12 +1202,31 @@ try:
         952, "T-77 do the thing", labels=["harness", f"feature:{SEG_FEATURE}"],
     )
     rec.issue_data[954] = issue_data(954, "T-99 do the thing", state="CLOSED")
-    code, out, err = run_main(rec, ["--as", AS_LOGIN], fleet_dict=fleet_5b)
-    check(name_5b,
-          code == 0 and json.loads(out).get("issue") == 952
-          and "951" in err and "unresolvable blocker" in err
-          and "no plan could be read" not in err,
-          (code, out, err))
+    return run_main(rec, ["--as", AS_LOGIN], fleet_dict=fleet_5b)
+
+
+def _5b_property_holds(code, out, err):
+    """True iff 5b's per-segment-resolution property holds: kaya-ai's 951 is refused
+    (unresolvable dep T-88, absent from kaya's own map) and harness's 952 is claimed (its own
+    map resolves dep T-99 to a closed issue). Total over any (code, out, err) — including a
+    mutant's exit-1/empty-stdout path — so it never raises."""
+    if code != 0:
+        return False
+    try:
+        payload = json.loads(out)
+    except (json.JSONDecodeError, TypeError):
+        return False
+    return (
+        payload.get("issue") == 952
+        and "951" in err and "unresolvable blocker" in err
+        and "no plan could be read" not in err
+    )
+
+
+name_5b = "BUG-1290 5b: same feature id on two repositories resolves per-segment, no cache bleed"
+try:
+    code, out, err = _run_5b_scenario()
+    check(name_5b, _5b_property_holds(code, out, err), (code, out, err))
 except Exception as exc:
     check(name_5b, False, repr(exc))
 
@@ -1272,6 +1295,32 @@ try:
     check(name_5f, counts == scanned, counts)
 except Exception as exc:
     check(name_5f, False, repr(exc))
+
+# 5g. B-16 self-defence: a mutant _BlockerCache that routes every repository's issue-map lookup
+# through the FIRST repository seen for a given feature id — collapsing the (repo, feature) key
+# B-3 introduced back to feature alone. This defends 5b's cache-bleed proof: it reddens if the
+# harness segment's fixture depends_on ("T-99") or its own issue-map entry stops being
+# load-bearing, because the mutant then changes nothing 5b's shared scenario can observe.
+name_5g = "BUG-1290 5g: collapsing the issue-map cache key to feature-only breaks 5b's property"
+try:
+    class _FeatureOnlyIssueMapCache(claim._BlockerCache):
+        def __init__(self):
+            super().__init__()
+            self._first_repo_for = {}
+
+        def issue_number(self, repo, feature, task_id):
+            canonical = self._first_repo_for.setdefault(feature, repo)
+            return super().issue_number(canonical, feature, task_id)
+
+    saved_blocker_cache = claim._BlockerCache
+    claim._BlockerCache = _FeatureOnlyIssueMapCache
+    try:
+        code, out, err = _run_5b_scenario()
+    finally:
+        claim._BlockerCache = saved_blocker_cache
+    check(name_5g, not _5b_property_holds(code, out, err), (code, out, err))
+except Exception as exc:
+    check(name_5g, False, repr(exc))
 
 
 print(f"\n{RAN - FAILS}/{RAN} checks passed." if FAILS == 0 else f"\n{FAILS} of {RAN} FAILING.")
