@@ -3,71 +3,57 @@
 ## Current
 
 - feature: FEAT-55-issue-types-created-work
-- run: .harness/harness/features/FEAT-55-issue-types-created-work/runs/2026-09-05-32-validator/digest.md
-- squad: validator
-- status: in_review
-- station: review (plan.yaml `status: review`; plan `approval.status: approved`, BRIEF `## Approval`
-  approved — both fragments signed 2026-09-05 by molchairuangutai and byte-intact after the
-  amendment, re-verified by me on disk)
-- mission: validate — COMPLETE. Ready for the operator's ship decision; nothing waits on me.
+- run: none — ship acceptance, no squad dispatched and no run appended
+- squad: none
+- status: awaiting_user — every act permitted to me is DONE; the merge is the one remaining act and
+  it is user-gated
+- station: review, UNCHANGED in plan.yaml. The feature has NOT reached `done`: the branch is
+  unmerged and `gh-sync.py ship` has not run. Writing `done` now would record a station the feature
+  has not reached, and that write belongs to the main session's `gh-sync.py ship`.
+- mission: ship — operator decision applied.
 
-- all four operator rulings (`notes/answers-build-blockers-20260905.md`) are applied, none costing a
-  cycle. F-04: budget raised by me to 13/40. F-01+F-02 plan half, run `2026-09-05-29-product` PASS:
-  pm amended T-04's `files:` to `[gh-sync.py, feature-schema.json, tests/integration/test-gh-sync.py]`
-  and its `intent`, and added D-21/D-22. `plan-merge.py amend`/`apply` preserve approval bytes by
-  construction (BUG-1128), so NO re-signature was required and none was taken. F-01+F-02 code half,
-  run `2026-09-05-02-eng` PASS: both `typed` mappings declared on the closed `github` and `factory`
-  schema objects; `+ ["--repo", repo]` and its false comment removed from the capability query;
-  test-gh-sync.py's assertion now accepts an `api graphql` line only with the exact `owner=implentio`
-  AND `name=fake` values. F-03: SC-10 graded MET on the ruling; the optional live probe is backlog
-  row B-1 in the briefing and nowhere else.
+- operator ship decision `notes/answers-ship-20260906.md`, handed to me by the main session (the
+  only path I trust, issue #671): ship FEAT-55; file backlog row **B-1 only**; B-2..B-16 are not
+  created in this ship action. Committed to the feature record this session.
+- **B-1 FILED — issue #1388**, https://github.com/mruangutai/harness/issues/1388, title "B-1: run
+  tests/manual/probe-issue-types.py --create-in against an organization-owned repo with Issue Types
+  enabled", labels `harness`+`chore`, state OPEN, verified by `gh issue view 1388`. Written by
+  `gh-sync.py backlog <feature-dir> "chore:<title>"`. **That verb is NOT idempotent** — it creates a
+  fresh issue per call and records nothing in feature.json, so it must not be re-run for B-1.
+- B-2..B-16 NOT created, per the ruling. They survive only in the briefing table
+  `notes/ship-review-2026-09-05-02-eng.md`.
+- approval gate re-verified on disk this session, both fragments (never one): BRIEF `## Approval`
+  reads `status: approved` / molchairuangutai / 2026-09-05, and plan `approval.status: approved`
+  with the same signer and date plus two `rulings`. Neither is writable by me; neither was touched.
 
-- gates, all green, measured by me per file with its own exit code and `^FAIL ` count — never a tail
-  read, because a truncated capture already produced one false green here. The ten FEAT-55 suites
-  (test-anchor-directions, test-issue-types-pin, test-issue-types, test-gh-issue-types, test-gh-sync,
-  test-gh-backlog-issue-types, test-factory-issue-types, test-factory-decompose, test-factory-gh,
-  test-factory-integration) every one exit 0 / FAIL 0; `.claude/skills/harness/bin/run-unit-tests.sh`
-  exit 0 / FAIL 0 with the status captured in a variable; `code-grade.py --base eb9d044e --head
-  76ba5f41` zero `SEVERITY: high`.
-
-- qa, run `2026-09-05-01-validator`, FAIL → resolved, 1 cycle. The blocking matrix was red on
-  test-anchor-directions.py: T-12's new prose in `.claude/skills/harness/references/github-mirror.md`
-  carried unanchored instruction paths at :19 and :24. I confirmed it (exit 1, two violations) and
-  `check-domain.sh --resolve` answered NOBODY — no squad, not me. The main session landed the fix;
-  I committed it and the gate went green.
-
-- SIMPLIFY, run `2026-09-05-03-eng`, PASS, 0 cycles. Reuse 0 findings (the D-11 extraction held
-  across all three callers), efficiency 0 apply-worthy, 4 low from the other two angles, one
-  behaviour-preserving fold-in applied to `gh_issue_types.py`.
-
-- panel, run `2026-09-05-30-validator` at pin `cd6a3c0d`, FAIL — ONE gating finding, and it was
-  real: `factory_decompose.write_factory.transform` graded 3 (ABC 20.5) in a bar-4 zone because THIS
-  diff's `"typed"` serialization line carried ABC past 20. I checked the premise with the repo's own
-  grader before spending the last cycle; it held. qa PASS, security PASS (one low in T-10's probe),
-  ui PASS after looking rather than declining blind.
-
-- fix, run `2026-09-05-1-eng`, PASS, the 13th and last cycle. `_factory_block` extracted; `transform`
-  now GRADE 4 / ABC 9.0 and the helper GRADE 4 / ABC 14.1 — it did not merely move the mass, which
-  is the specific way that remedy fails. Also corrected `probe-issue-types.py`'s comment asserting
-  gh-sync still appends `--repo` — falsified by D-22, twin of the one F-02 ordered deleted.
-
-- re-check, run `2026-09-05-32-validator`, PASS. Scoped to the two-file delta, routed to the reviewer
-  that raised the finding. Its own measurement: must_fix closed, extraction key-for-key
-  behaviour-preserving, comment accurate, suites green, nothing new. qa/security/ui verdicts are
-  INHERITED across that delta and the lead said so rather than hiding it.
-
-- goal-check, run `2026-09-05-31-product`, PASS. Twelve of twelve SCs MET at the pin, REQ-01..REQ-11
-  all traced to verified tasks, nothing routed to a fix cycle.
-
-- budget: `cycles_used` 13 of 13 — SPENT. `runs` 40 of 40 — at the informational bound (INV-22),
-  high because this plan was signed through five rounds of rulings instead of one. This session's
-  eight runs closed two rulings, four quality angles, a four-reviewer panel and the goal-check.
-
-- committed on `feat/issue-1289-issue-types` at `73ec0c64`; `review_sha` pinned at `76ba5f41`, and
-  `git diff 76ba5f41..HEAD -- .claude tests` is EMPTY, so the pin holds every reviewed line and the
-  commits after it are feature-record only. No merge, no PR.
-- briefing: `notes/ship-review-2026-09-05-02-eng.md` (+ rendered `.html`), sixteen-row proposed
-  backlog. SUPERSEDES `notes/ship-review-2026-09-05-01-eng.md`.
+- **MERGE NOT PERFORMED, and it is not mine to perform.** Measured this session:
+  - `git -C /Users/molchairuangutai/GitHub/harness switch main` → `bash-write-guard: BLOCKED — git
+    switch moves HEAD, and every harness agent is refused this for the duration of a run`. `merge`
+    is in the same `HEAD_MOVERS` set at `.claude/skills/harness/bin/bash-write-guard.sh:176`, so a
+    local merge is refused identically. The guard working, not a malfunction. DEC-153 keeps merge,
+    PR and deploy user-gated; the commit pen alone is mine.
+  - `gh-sync.py ship <this worktree's feature dir>` → exit 1, refused BEFORE any write or network
+    call: "resolves inside a worktree which is about to be deleted... Run ship against the main
+    checkout's copy." That copy cannot exist until the merge lands, so ship FOLLOWS the merge.
+- mirror state, measured not recalled: `feature.json` carries **no `github` key** — `gh-sync.py
+  open` never ran for FEAT-55, so there is no milestone, no parent and no sub-issue; `gh api
+  repos/mruangutai/harness/issues/1289/sub_issues` returns 0 and #1289 carries no milestone. `ship`
+  would `skip("no recorded milestone")` even from the right directory. I did NOT run `open` now: it
+  would create a milestone and twelve sub-issues for finished tasks purely to close them seconds
+  later, and no harness command can close an issue by hand if that proves wrong. Main session's
+  call, before `ship`, with `--parent 1289` if #1289 is to be adopted.
+- remaining sequence, all outside an orchestrator's grant: `git push -u origin
+  feat/issue-1289-issue-types` → PR and merge → optional `gh-sync.py open <main-checkout feature
+  dir> --parent 1289` → `gh-sync.py ship <main-checkout feature dir> --body-file
+  <that dir>/notes/ship-review-2026-09-05-02-eng.md` → the `post-merge` hook removes this worktree
+  (INV-29 refuses while it stands).
+- branch `feat/issue-1289-issue-types`, unpushed (`git ls-remote --heads origin` empty for it).
+  `review_sha` stays `76ba5f41`; `git diff 76ba5f41..HEAD -- .claude tests` is EMPTY, so every
+  reviewed line is under the pin and the later commits are feature-record only. Tree clean.
+- budget: `cycles_used` 13 of 13 and `runs` 40 of 40, both unchanged — this session dispatched
+  nobody and reworked nothing. Runs is at the informational INV-22 bound.
+- briefing: `notes/ship-review-2026-09-05-02-eng.md` (+ rendered `.html`), sixteen proposed backlog
+  rows, of which B-1 alone was accepted.
 - handoff: `notes/handoff-validate.md`; `notes/handoff-build.md` superseded.
 - intake: .harness/notes/grilling-issue-types-2026-09-04.md (source ticket #1289)
 
@@ -114,7 +100,10 @@ worked around, and one non-gating ratification.
 - Q16 (advisory, non-gating) — `probe-issue-types.py:97-101` `_read_back_issue_type` `%`-formats
   owner and name into GraphQL query TEXT rather than passing `-f owner=`/`-f name=` as every other
   call site does. Reachable only behind the operator's `--create-in` flag on a host-only probe, so
-  nothing crosses a boundary; unsafe the moment it gets an externally-sourced caller. Backlog B-9.
+  nothing crosses a boundary; unsafe the moment it gets an externally-sourced caller. Backlog B-9,
+  NOT filed — the ruling accepted B-1 only.
 - Q8, Q10, Q11 (carried from the plan phase) — `validate-digest.py` rejecting `code_grade: n_a` on a
   plan review; the `harness-spec-driven` verb list omitting `amend`; `amend --key` accepting only
   `tasks|decisions`.
+</content>
+<parameter name="i">Recording ship-acceptance state
