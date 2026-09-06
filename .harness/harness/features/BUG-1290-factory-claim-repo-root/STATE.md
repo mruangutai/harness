@@ -10,9 +10,9 @@
 The operator struck briefing row **B-3** and directed a fix cycle before the ship decision
 (`notes/answers-2026-09-06-b3.md`). **B-3 is closed.** `tests/unit/test-factory-claim.py`'s two
 BUG-1290 segment fixtures now carry NON-EMPTY, DIFFERING `factory.issues` maps, and the harness
-segment's `T-77` depends on a blocker only its own map resolves — so case 5b discriminates BOTH of
-`_BlockerCache`'s caches instead of only the plan cache. Test-only: no production file changed,
-+14/-9 in one file.
+segment's fixture task depends on a blocker only its own map resolves — so case 5b discriminates
+BOTH of `_BlockerCache`'s caches instead of only the plan cache. Test-only: no production file
+changed, +14/-9 in one file.
 
 Orchestrator's own before/after mutant control, measured independently of every squad
 (`/tmp/bug1290-orch-probe.py`): unmutated all `ok` on both trees; `_plans` re-keyed on `feature`
@@ -55,9 +55,9 @@ simplify send-backs on a 14-line test diff, machinery heavier than the change wa
   files. Re-scoped, the integration leg never fires and qa withdrew the finding explicitly. Cost one
   rework cycle. Briefing row B-22 proposes stating the diff object in the protocol.
 - Q3 (non-blocking, operator backlog, row B-16): SC-02's proof is **proven but not defended** —
-  deleting `depends_on=["T-99"]` at `tests/unit/test-factory-claim.py:382` returns 5b to the
-  pre-B-3 blind state with 124/124 still green. Reproduced by the orchestrator. pm graded SC-02
-  MET-with-residue; the panel did not gate it. Natural companion to B-1 and B-2.
+  deleting the harness fixture's `depends_on` fragment at `tests/unit/test-factory-claim.py:382`
+  returns 5b to the pre-B-3 blind state with 124/124 still green. Reproduced by the orchestrator.
+  pm graded SC-02 MET-with-residue; the panel did not gate it. Companion to rows B-1 and B-2.
 - Q4 (non-blocking, operator only, row B-10): the REQ-05 wording correction, carried unchanged. The
   operator gave no ruling and directed that approved artifacts stay unchanged.
 - Q5 (non-blocking, harness defects, rows B-11..B-15 and B-18..B-22): `check-domain` claim scoping;
@@ -65,3 +65,8 @@ simplify send-backs on a 14-line test diff, machinery heavier than the change wa
   cycle**; main-checkout leakage (no recurrence this cycle, re-checked); the test matrix keying a
   required kind on a directory label; the write-guard refusing a shell append to an agent's own
   in-domain path; reviewer `files_touched` under-reporting.
+- Q6 (pre-existing, NOT introduced by this cycle, and NOT fabricated closed): `check-state.sh`
+  reports this feature has no `notes/handoff-build.md` — the build seam was crossed without one by
+  the predecessor. Writing a "working memory" note now for a phase nobody ran would falsify the
+  record, so it stays open and reported. The successor is on the disk-only path, which the playbook
+  fully supports.

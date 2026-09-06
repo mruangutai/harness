@@ -7,10 +7,11 @@ Nothing else about the feature moved. Production code is **byte-identical** to t
 looking at yesterday — I measured it: `git diff 76e26386 7104aa43 -- .agents/ .claude/skills/` is
 empty. The entire delta is 14 added and 9 removed lines in one test file.
 
-**One thing in here deserves your push-back if you want to give it: the fix is proven but not
-defended.** That is row **B-16**, and it is the same *shape* of gap B-3 was. Detail below under
-"the one honest weakness". I am not calling it a gate and neither did the panel or the product
-manager; you may reasonably disagree.
+**Two things deserve your attention before you decide.** First, the fix is proven but not defended
+— row **B-16**, and it is the same *shape* of gap B-3 was. Second, and I did not know this
+yesterday: **the feature's own record has three pre-existing gate violations that yesterday's
+briefing did not disclose** — rows B-23 to B-25. Neither affects the delivered code. Both are
+below.
 
 ---
 
@@ -20,9 +21,9 @@ manager; you may reasonably disagree.
 id** under two different repository segments — `kaya-ai` and `harness`. Case `5b` polls both and
 proves neither repository is served the other's data.
 
-Before: both trees carried an **empty** `factory.issues` map, so the harness candidate's issue map
-was never consulted at all. The code was correct; nothing could see it. A mutant that re-keyed the
-issue-map cache on feature alone — throwing away the repository — broke nothing.
+Before: both trees carried an **empty** issue map, so the harness candidate's issue map was never
+consulted at all. The code was correct; nothing could see it. A mutant that re-keyed the issue-map
+cache on feature alone — throwing away the repository — broke nothing.
 
 After: each tree carries its **own, non-empty, different** issue map, and the harness tree's task
 now depends on a blocker that only *its own* map can resolve. Now the same mutant breaks case `5b`.
@@ -58,11 +59,11 @@ dependency ids, and I confirmed the plan half is still red.
 
 ---
 
-## The one honest weakness
+## The one honest weakness in the fix
 
 Row **B-16**. The property is proven **at this commit**, but nothing committed *defends* it.
 
-Delete one fragment — `depends_on=["T-99"]`, one line of the fixture — and case `5b` goes straight
+Delete one fragment — the harness fixture's `depends_on`, one line — and case `5b` goes straight
 back to the blind state B-3 described, while the suite still reports 124 of 124 passing. The panel
 found this; I reproduced it independently before writing this paragraph.
 
@@ -78,6 +79,35 @@ than three chores.
 and the underlying code has now been graded correct by five independent readers across two panels.
 But you asked for B-3 rather than shipping with it, so if you want B-16 closed the same way, say so
 — there is budget for exactly one more cycle of this size.
+
+---
+
+## The record's own gates — three violations I found and did not create
+
+I ran `check-state.sh` before writing this. It exits non-zero. Two of its findings were mine and I
+fixed them: a stray scratch worktree one of my QA dispatches left behind, and two fixture task ids
+in `STATE.md` that the invariant reads as references to plan tasks that do not exist. Both are
+gone; I re-ran the check to confirm.
+
+**Three remain on this feature, all predating this cycle, and none was disclosed in yesterday's
+briefing.** I am telling you because you are about to decide whether to ship.
+
+- **The plan-panel record is incomplete (B-23).** The invariant expects three readers recorded —
+  `scope`, `should-not-exist`, `goalcheck` — and reports all three as unrecorded. The plan's record
+  carries two steps and no `goalcheck`. I did not cause this and cannot fix it: the `panel:` key is
+  the product manager's to write, and `plan.yaml` is **byte-identical** to the tree you reviewed
+  yesterday, which is how I know the violation predates this cycle.
+- **The build phase left no handoff note (B-24).** The invariant flags it. I deliberately did *not*
+  write one. Authoring a "working memory" note for a phase nobody ran would be inventing a record,
+  and this document is worth less if I do that. The successor is on the disk-only path, which the
+  playbook fully supports.
+- **Run bookkeeping does not satisfy its own contracts (B-25).** Every run directory's `state.yaml`
+  carries keys the checkpoint schema forbids, and five run digests fail the lead digest contract.
+  This is systemic lead behaviour across both cycles, not a defect in the change.
+
+None of these touch the delivered code, the tests, or any success criterion. They are reasons the
+session-entry check will stay red until someone clears them, and you should not be surprised by
+that after shipping.
 
 ---
 
@@ -100,8 +130,7 @@ cycle did not move it. No amendment is owed and no criterion depends on it.
 **Correction to the record.** Yesterday's briefing and handoff asserted that "all five task verify
 commands pass on the committed tree." **That was false for T-01 and always was.** My predecessor
 verified the test *file* was green and recorded it as the *gate* being green. The two are not the
-same thing, and it took two squads independently tripping over it to surface. Recorded here rather
-than quietly fixed.
+same thing, and it took two squads independently tripping over it to surface.
 
 **2. "The test matrix demands an integration test and this diff has none."** QA failed the gate on
 this. **The failure was mine, not the change's.** I dispatched QA to grade the *incremental
@@ -146,8 +175,8 @@ I did not re-read them individually. If you want a phase re-derived from primary
 which.
 
 Every number in the "what actually changed" table, the empty production diff, the T-01 verify
-status on both trees, and the B-16 one-line-deletion result are **my own measurements**, not any
-agent's. Everything else is attributed above.
+status on both trees, the B-16 one-line-deletion result, and every `check-state.sh` finding above
+are **my own measurements**, not any agent's. Everything else is attributed.
 
 ---
 
@@ -169,8 +198,16 @@ had it fixed.** Rows B-16 onward are new since yesterday.
 | B-8 | chore | `_BlockerCache._plan` and `.issue_number` build the `(repo, feature)` key inline in two places rather than through one accessor. Declined at the pin boundary. |
 | B-9 | chore | `features_root(repo)` is resolved at three call sites in `_BlockerCache`. Measured inert (13.32 µs per call, at most twice per unique pair per poll). Shape note only. |
 | B-10 | chore | **REQ-05's wording correction.** The requirement says the segment rule is called by `factory_claim.py`; measured, it reaches it transitively through `features_root`. SC-06 is met on its own words. You declined to rule on it; queued here so it survives. |
-| B-16 | chore | **SC-02's new proof is not defended by anything committed.** Deleting `depends_on=["T-99"]` at `tests/unit/test-factory-claim.py:382` returns case `5b` to the pre-B-3 blind state with 124/124 still green. Remedy: a committed mutant discarding the repository at the issue-map seam. **Natural companion to B-1 and B-2 — one piece of work, not three.** |
-| B-17 | chore | **`build_features_root()`'s docstring overstates the fixture.** It presents both segments' issue maps as load-bearing; measured, only the harness side discriminates — kaya's `{"T-77": 850}` entry is inert. The same docstring now also restates case `5b`'s comment nearly verbatim. Reword, or make kaya's side load-bearing (which also discharges B-16). |
+| B-16 | chore | **SC-02's new proof is not defended by anything committed.** Deleting the harness fixture's `depends_on` fragment at `tests/unit/test-factory-claim.py:382` returns case `5b` to the pre-B-3 blind state with 124/124 still green. Remedy: a committed mutant discarding the repository at the issue-map seam. **Natural companion to B-1 and B-2 — one piece of work, not three.** |
+| B-17 | chore | **`build_features_root()`'s docstring overstates the fixture.** It presents both segments' issue maps as load-bearing; measured, only the harness side discriminates — the kaya side's entry is inert. The same docstring now also restates case `5b`'s comment nearly verbatim. Reword, or make the kaya side load-bearing (which also discharges B-16). |
+
+### The feature's record — pre-existing, not caused by this cycle
+
+| ID | Nature | Finding |
+|---|---|---|
+| B-23 | bug | **The plan-panel record is incomplete and `check-state.sh` INV-32 is red on it.** The invariant expects readers `scope`, `should-not-exist` and `goalcheck` recorded; it reports all three unrecorded, and the plan's `panel:` block carries two steps and no `goalcheck`. `plan.yaml` is byte-identical to the previous pin, so this predates this cycle. Only the product manager may write `panel:`. |
+| B-24 | chore | **No `notes/handoff-build.md` exists** — the build seam was crossed without one. Flagged by the invariant. Deliberately not fabricated after the fact. |
+| B-25 | chore | **Run bookkeeping fails its own contracts.** Every run's `state.yaml` carries keys the checkpoint schema forbids (`run_uid` from this cycle's leads; prose keys from yesterday's), and five run digests fail the lead digest contract. Systemic lead behaviour, both cycles. |
 
 ### Harness defects observed during these runs
 
@@ -182,12 +219,13 @@ Defects in the factory itself, not in the change. Listed because this repository
 | B-12 | bug | **Nothing stops a lead writing its digest into a run directory another run already owns**, and `runs/` is gitignored, so the overwrite is unrecoverable. Destroyed two digests yesterday. The guard *does* refuse this for the orchestrator; leads are not covered. |
 | B-13 | bug | **Edit-tool/filesystem desync on hardlinked files.** `Edit` reported success and read back new content while `sed`/`md5sum`/`stat` showed unchanged bytes. Compounded by `check-domain` blocking `xd://report_issue` from a worktree, so the member could not file it. |
 | B-14 | bug | **Lead dispatches return a null yield while complete, correct work sits on disk.** **Recurred twice this cycle**: the validation panel's own lead exited 1 while returning a well-formed `PASS`, and its code reviewer hit the same shape a second consecutive panel. Work survived only because I verified artifacts on disk instead of routing on job status. |
-| B-15 | bug | **Agents leak edits into the main checkout via relative paths.** Two incidents yesterday, one leaving the main tree's layout gate red. Nothing detected it automatically. *No recurrence this cycle — I re-checked; the working tree stayed confined to `tests/` and the feature directory.* |
-| B-18 | chore | **The test matrix keys a required test kind on a directory label, not on the changed surface.** `test_kinds.integration.detect` is `tests/integration/**`, so any fix-only cycle that strengthens unit-resident fixtures looks structurally ungate-able. This is the mechanism behind the withdrawn finding described above; it will recur. |
+| B-15 | bug | **Agents leak edits into the main checkout via relative paths.** Two incidents yesterday, one leaving the main tree's layout gate red. *No recurrence this cycle — I re-checked; the working tree stayed confined to `tests/` and the feature directory.* |
+| B-18 | chore | **The test matrix keys a required test kind on a directory label, not on the changed surface.** `test_kinds.integration.detect` is `tests/integration/**`, so any fix-only cycle that strengthens unit-resident fixtures looks structurally ungate-able. This is the mechanism behind the withdrawn finding above; it will recur. |
 | B-19 | bug | **The write-guard refuses an agent a shell append to its own in-domain path while permitting an editor write to the same path.** `harness-backend-dev` was refused `>>` on its own receipt and completed via a Python heredoc. Inconsistent enforcement between the two write routes. |
 | B-20 | bug | **Reviewer digests are parsed from the assistant-text fence rather than from `yield`'s structured data**, and agents burn turns rediscovering it. Second consecutive panel affected. |
 | B-21 | bug | **Two panel reviewers returned `files_touched: []` while their notes did land at the cited paths.** Self-reports understated what was written. A consumer trusting `files_touched` would conclude two reviewers produced nothing. |
 | B-22 | chore | **State the test matrix's diff object in the protocol.** A fix cycle is not a change type; the matrix grades the feature's change. Leaving it implicit cost one rework cycle in this run, on my error. |
+| B-26 | chore | **Agent scratch worktrees are not cleaned up and escape the invariant's naming.** One QA dispatch created `.claude/worktrees/qa-bug1290-b3-head`, outside the segment layout, which INV-29 could flag but not compose a removal command for. I removed it. Four similar `qa-c2-*` trees from yesterday's panel still stand. |
 
 ---
 
