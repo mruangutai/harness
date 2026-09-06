@@ -1,49 +1,49 @@
-# Handoff — BUG-1290-factory-claim-repo-root, ship → operator decision (3rd pass) — written at c488218e, seq-3
+# Handoff — BUG-1290-factory-claim-repo-root, ship → operator decision (4th pass) — written at ecc21dbe, seq-4
 
 ## Next
 
-Present `notes/ship-review-2026-09-06-13-ship.md` to the operator and take the ship/fix/re-scope/stop
-decision. **B-16 is CLOSED** — that was the operator's directed fix and it is done, gated, panel-
-reviewed and goal-checked. Two items carry the operator's real choices, both non-blocking and both
-in the briefing: a **wording ruling** (the directive said "must fail case `5b`"; case `5g` fails
-instead — graded faithful by two readers and by me) and row **B-27** (`5g`'s negation is fail-open
-against a mutant that merely raises; my recommendation is ship-and-backlog). On acceptance the main
-session — not the orchestrator — runs `gh-sync.py ship <feature-dir> --body-file <the briefing>`
-from the MAIN checkout (it refuses from inside a worktree, at exit 1, before any write), then
+Present `notes/ship-review-2026-09-06-19-ship.md` to the operator and take the ship/fix/re-scope/stop
+decision. **Both operator directives are CLOSED** — B-27 is fixed and the literal case-`5b` failure
+is delivered at two seams, including a printed `FAIL  BUG-1290 5b` line. Every gate is green, 9/9 SC
+MET, and this cycle spent ZERO rework budget. Nothing in the backlog gates. On acceptance the main
+session — not the orchestrator — runs `gh-sync.py ship <feature-dir> --body-file <the briefing>` from
+the MAIN checkout (it refuses from inside a worktree, at exit 1, before any write), then
 `gh-sync.py backlog` for every unstruck row, then the merge, then feature-close distillation.
 Nothing is shipped, merged or PR'd.
 
 ## Trust
 
-- B-16 closed: deleting the harness fixture's `depends_on=["T-99"]` reddens `5g` (1 of 125 FAILING) where it left 124/124 green before — orchestrator's own four-arm control `/tmp/b16-orch-control.py`, out-of-tree scaffold — verified-at c488218e
-- The two cases defend DIFFERENT fragments: emptying the harness issue map reddens `5b` and leaves `5g` green — same control, arm 3 — verified-at c488218e
-- B-27 is real and not live: replacing the mutant's `super()` call with a bare `raise` leaves both cases green at 125/125 — same control, arm 4 — verified-at c488218e
-- Production is byte-identical to the previous pin, so the c1/c2 panels' PASS over production still stands — `git diff --stat 7104aa43 c488218e -- .agents/ .claude/skills/` empty — verified-at c488218e
-- All nine SC MET, SC-02 re-graded from scratch on pm's own five-arm scaffold, residue DISCHARGED — `runs/2026-09-06-12-product/digest.md` — verified-at c488218e
-- Panel PASS `must_fix: []`, four reviewers RAN, none skipped; all four notes on disk (86/136/65/66 lines, counted) — `runs/2026-09-06-11-validator/digest.md` — verified-at c488218e
-- qa test-matrix PASS `matrix_ok: true` against the FEATURE's diff, not the increment — `notes/qa-2026-09-06-09-validator.md` — verified-at c488218e
-- Simplify empty pass, four angles, nothing applied, production untouched — `runs/2026-09-06-10-eng/digest.md` — verified-at c488218e
-- `/private/tmp/qa-b16-proof-worktree` removed cleanly; INV-25 no longer names it — `git worktree list` before and after — verified-at c488218e
-- Budgets: `cycles_used` 9 of a hard 10 (one spent on qa's send-back); 23 runs of an informational 20 — `feature.json` — verified-at c488218e
+- B-27 closed: a mutant whose `issue_number` merely raises now reddens `5g`; it left the suite green at 125/125 before — orchestrator's five-arm control `/tmp/b27-orch-control.py`, out-of-tree copies — verified-at 72a97b99
+- The literal form prints: the real suite emits `FAIL  BUG-1290 5b` under a module-level `_BlockerCache` key collapse — `tests/unit/test-factory-claim-mutation.py`, run directly, exit 0 with `KEY-COLLAPSE PROOF` — verified-at 72a97b99
+- The new arm can report RED: neutering the collapse leaves the mutant REACHED yet `5b` not red — `/tmp/b27-orch-control2.py` — verified-at 72a97b99
+- The in-suite verdict is case `5b`'s own: captured entry keyed by `name_5b`, `False`, cache restored before `5c` — same control, arm 5 — verified-at 72a97b99
+- Both previously-defended fragments survived the refactor: `depends_on=["T-99"]` deleted RED, issue map emptied RED on `5b` — same control, arms 3 and 4 — verified-at 72a97b99
+- Production byte-identical to the pin the earlier panels passed — `git diff --stat c488218e 72a97b99 -- .agents/ .claude/skills/ bin/` empty — verified-at 72a97b99
+- Panel PASS `must_fix: []`, four reviewers RAN, none skipped; `severity_max: med` carried entirely by two pre-existing grade-2 functions — `runs/2026-09-06-17-validator/digest.md` — verified-at 72a97b99
+- Goal-check 9/9 SC MET, every row re-derived this run — `runs/2026-09-06-18-product/digest.md` — verified-at 72a97b99
+- qa test-matrix PASS `matrix_ok: true` — `runs/2026-09-06-15-validator/digest.md` — verified-at 72a97b99
+- Simplify empty pass, two candidates declined on measured grounds, nothing applied — `runs/2026-09-06-16-eng/digest.md` — verified-at 72a97b99
+- Budgets: `cycles_used` 9 of the operator-raised hard 11, ZERO spent this cycle; 30 runs of an informational 20 — `feature.json` — verified-at ecc21dbe
 
 ## Dead ends
 
-- Do not re-litigate the five signed choices — `runs/2026-09-05-11-validator/digest.md` "The five signed choices" — verified-at c488218e
-- Do not treat T-01's red `verify:` as a defect or grounds for an amendment; settled three cycles running — `notes/ship-review-2026-09-06-07-ship.md` — verified-at c488218e
-- Do not grade the test matrix against a fix cycle's incremental diff; the object is `main`..`HEAD` — `notes/qa-2026-09-06-09-validator.md` — verified-at c488218e
-- Do not make the two fixture segments' plans uniform; the differing dep ids keep the plan-cache half of the proof alive — `runs/2026-09-06-04-eng/digest.md` — verified-at c488218e
-- Do not edit BRIEF.md or plan.yaml for REQ-05's wording; the operator declined to rule twice — `notes/answers-2026-09-06-b16.md` — verified-at c488218e
-- Do not spend the last rework cycle on B-27, B-28 or the literal-`5b` form without the operator's word; none of them gated and one send-back exhausts the hard budget — `notes/ship-review-2026-09-06-13-ship.md` — verified-at c488218e
+- Do not re-litigate the five signed choices — `runs/2026-09-05-11-validator/digest.md` "The five signed choices" — verified-at 72a97b99
+- Do not treat T-01's red `verify:` as a defect or grounds for an amendment; settled four cycles running — `notes/ship-review-2026-09-06-07-ship.md` — verified-at 72a97b99
+- Do not edit BRIEF.md or plan.yaml for REQ-05's wording; the operator declined to rule three times — `notes/answers-2026-09-06-b27.md` — verified-at 72a97b99
+- Do not grade the test matrix against a fix cycle's incremental diff; the object is `main`..`HEAD` — `notes/qa-2026-09-06-15-validator.md` — verified-at 72a97b99
+- Do not collapse the two files' duplicate expression of the property; the duplication IS the operator's directive, and simplify declined it on that ground — `runs/2026-09-06-16-eng/digest.md` — verified-at 72a97b99
+- Do not read `check-state.sh` run from this worktree as evidence about BUG-1290; it resolves features through the project root and reports zero mentions of this feature — `/tmp/cs.txt`, 814 lines — verified-at ecc21dbe
+- Do not fabricate `notes/handoff-build.md` for a phase nobody ran; it stays reported as row B-24 — `notes/ship-review-2026-09-06-19-ship.md` — verified-at ecc21dbe
 
 ## Working set
 
-- `.harness/harness/features/BUG-1290-factory-claim-repo-root/notes/ship-review-2026-09-06-13-ship.md`
+- `.harness/harness/features/BUG-1290-factory-claim-repo-root/notes/ship-review-2026-09-06-19-ship.md`
 - `.harness/harness/features/BUG-1290-factory-claim-repo-root/feature.json`
-- `.harness/harness/features/BUG-1290-factory-claim-repo-root/runs/2026-09-06-11-validator/digest.md`
-- `.harness/harness/features/BUG-1290-factory-claim-repo-root/runs/2026-09-06-12-product/digest.md`
-- `tests/unit/test-factory-claim.py`
+- `.harness/harness/features/BUG-1290-factory-claim-repo-root/runs/2026-09-06-17-validator/digest.md`
+- `.harness/harness/features/BUG-1290-factory-claim-repo-root/runs/2026-09-06-18-product/digest.md`
+- `tests/unit/test-factory-claim-mutation.py`
 
 ## Done when
 
-Scope: the operator returns a ship, fix, re-scope or stop decision on the third-pass briefing
-Authority: approval:.claude/worktrees/harness/BUG-1290-factory-claim-repo-root/.harness/harness/features/BUG-1290-factory-claim-repo-root/notes/ship-review-2026-09-06-13-ship.md#Your decision
+Scope: the operator returns a ship, fix, re-scope or stop decision on the fourth-pass briefing
+Authority: approval:.claude/worktrees/harness/BUG-1290-factory-claim-repo-root/.harness/harness/features/BUG-1290-factory-claim-repo-root/notes/ship-review-2026-09-06-19-ship.md#Your decision
