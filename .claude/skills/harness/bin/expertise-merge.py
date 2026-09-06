@@ -188,6 +188,21 @@ def _reject_multiline(value, index, field):
         _malformed(index, f"{field} must be a single line")
 
 
+def _validate_target_grammar(target, index):
+    """VL-06: refuse a `target` that `ENTRY_RE` would not parse back out unchanged from the
+    exact line `render` writes for it. Derived, not re-typed: this round-trips `target` through
+    `ENTRY_RE` itself via the synthetic line `f"- {target}: x"` `render` would produce, then
+    requires the anchored match's captured id equal `target` verbatim — never a second
+    hand-copied `[A-Za-z]{1,3}-\\d+` literal (REQ-07 forbids editing `ENTRY_RE`, and duplicating
+    its class is the VL-05 lesson this file already learned). `"PPPP-1"` fails to match at all;
+    `"P-01: fake prefix"` matches but captures `"P-01" != target`, so the containment vector
+    (a valid id embedded inside a longer target) is closed by the equality, not by a hand-rolled
+    anchor."""
+    match = ENTRY_RE.match(f"- {target}: x")
+    if not match or match.group(1) != target:
+        _malformed(index, f"target {target!r} does not match the entry id grammar")
+
+
 def _validate_target_section(op, index):
     target = op.get("target")
     if not target:
@@ -195,6 +210,7 @@ def _validate_target_section(op, index):
     if not isinstance(target, str):
         _malformed(index, f"target must be a string, not {type(target).__name__}")
     _reject_multiline(target, index, "target")
+    _validate_target_grammar(target, index)
     section = op.get("section")
     if not section:
         _malformed(index, "missing required key section")

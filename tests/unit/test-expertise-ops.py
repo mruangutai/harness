@@ -332,6 +332,32 @@ def case_u20():
             check(f"u20: ({label}) code is 11", e.code == 11, e.code)
 
 
+def case_u21():
+    """A TARGET ENTRY_RE WOULD NOT PARSE BACK OUT UNCHANGED IS THE SAME MALFORMED-OPS SHAPE
+    REFUSAL (VL-06). `_validate_target_grammar` round-trips `target` through `ENTRY_RE` via the
+    exact synthetic line `render` would produce, catching two distinct exploits the panel
+    measured: a too-long id `ENTRY_RE` cannot match at all (invisible on the very next
+    re-parse), and a target embedding a shorter valid id that `ENTRY_RE` DOES match, capturing
+    only the embedded id (forging a colliding, corrupted duplicate). Checked for every verb,
+    not just `add` — the Step-A gate this lives in runs before verb-specific resolution."""
+    secs, order = base_sections([("Patterns", [("P-01", "one")])])
+    _assert_malformed(secs, order, [op("add", "Patterns", "PPPP-1", "x")], "u21: add too-long id")
+    _assert_malformed(
+        secs, order, [op("add", "Patterns", "P-01: fake prefix", "x")], "u21: add embeds valid id"
+    )
+    _assert_malformed(secs, order, [op("replace", "Patterns", "PPPP-1", "x")], "u21: replace too-long id")
+    _assert_malformed(secs, order, [op("drop", "Patterns", "PPPP-1")], "u21: drop too-long id")
+
+
+def case_u22():
+    """A WELL-FORMED TARGET STILL SUCCEEDS (positive control) — VL-06's grammar check accepts
+    every id ENTRY_RE actually recognizes, so it cannot be passing by rejecting everything."""
+    secs, order = base_sections([("Patterns", [("P-01", "one")])])
+    merged, _, outcomes = resolve_ops(secs, order, [op("add", "Patterns", "P-02", "two")])
+    check("u22: well-formed add succeeds", ("ADDED", "P-02") in outcomes, outcomes)
+    check("u22: entry present in merged", ("P-02", "two") in merged["Patterns"], merged["Patterns"])
+
+
 def main():
     case_u1()
     case_u2()
@@ -352,6 +378,8 @@ def main():
     case_u18()
     case_u19()
     case_u20()
+    case_u21()
+    case_u22()
 
     fails = 0
     for name, ok, detail in RESULTS:

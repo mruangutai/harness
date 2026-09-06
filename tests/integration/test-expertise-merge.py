@@ -1228,6 +1228,85 @@ def case_ops_add_duplicated_base(root):
     )
 
 
+def _assert_case25_malformed(root, stem, base_sections_list, ops_list, label, extra_checks=()):
+    """Shared MALFORMED OPS(12) shape assertion for case25: exit code, the token, byte
+    identity — then each of `extra_checks` (message, substring) pairs against the output.
+    Returns the fixture path so the caller can re-parse it."""
+    path = target(root, stem)
+    write_file(path, base_sections_list)
+    before = hashlib.sha256(open(path, "rb").read()).hexdigest()
+    ops = write_ops(os.path.join(root, f"{stem}_ops.json"), ops_list)
+    r = run_ops(path, ops)
+    combined = r.stdout + r.stderr
+    check(f"case25: ({label}) exits 12", r.returncode == 12, combined)
+    check(f"case25: ({label}) combined output carries MALFORMED OPS", "MALFORMED OPS" in combined, combined)
+    for message, token in extra_checks:
+        check(f"case25: ({label}) {message}", token in combined, combined)
+    after = hashlib.sha256(open(path, "rb").read()).hexdigest()
+    check(f"case25: ({label}) file sha256 is unchanged", after == before, (before, after))
+    return path
+
+
+def case_ops_target_grammar(root):
+    """Case 25 — TARGET ID GRAMMAR (VL-06). An `add`'s `target` must be exactly the id
+    `ENTRY_RE` would parse back out of the line `render` writes for it — never merely a
+    non-empty, single-line string. Demonstrates both exploits the panel measured against the
+    pre-fix tool: (a) a too-long id (`PPPP-1`) that `ENTRY_RE` cannot match at all, which the
+    pre-fix code accepted, exit 0, then made invisible on the very next re-parse; (b) a target
+    embedding a shorter valid id (`P-01: fake prefix`) that `ENTRY_RE` DOES match — capturing
+    only `P-01`, not the full target — which the pre-fix code accepted, exit 0, forging a
+    second `P-01` that permanently locked out any future legitimate replace/drop of it."""
+    path_a = _assert_case25_malformed(
+        root, "case25a",
+        [("Gotchas", [("G-01", "one")])],
+        [{"op": "add", "target": "PPPP-1", "section": "Gotchas", "entry": "invisible entry test"}],
+        "too-long id vanishes on reparse",
+        [("combined output carries the malformed target", "PPPP-1")],
+    )
+    _, sections_a, _, _ = expertise_merge.parse_expertise(open(path_a, encoding="utf-8").read())
+    check("case25: (a) re-parsed Gotchas holds no new entry", len(sections_a["Gotchas"]) == 1, sections_a["Gotchas"])
+
+    path_b = _assert_case25_malformed(
+        root, "case25b",
+        [("Patterns", [("P-01", "existing pattern one.")])],
+        [{"op": "add", "target": "P-01: fake prefix", "section": "Patterns", "entry": "attacker text"}],
+        "id-embedding target refused, not aliased",
+        [("combined output carries the malformed target", "P-01: fake prefix")],
+    )
+    _, sections_b, _, _ = expertise_merge.parse_expertise(open(path_b, encoding="utf-8").read())
+    p01_count = sum(1 for eid, _ in sections_b.get("Patterns", []) if eid == "P-01")
+    check("case25: (b) re-parsed Patterns holds exactly one P-01", p01_count == 1, sections_b.get("Patterns"))
+
+    # The lockout is gone: a legitimate replace of P-01 now succeeds, proving the refused add
+    # never planted the ambiguous second occurrence the pre-fix tool used to leave behind.
+    ops_replace = write_ops(
+        os.path.join(root, "case25b_replace_ops.json"),
+        [{"op": "replace", "target": "P-01", "section": "Patterns", "entry": "legitimate update"}],
+    )
+    r_replace = run_ops(path_b, ops_replace)
+    check(
+        "case25: (b) a following legitimate replace of P-01 exits 0, not 11",
+        r_replace.returncode == 0,
+        r_replace.stdout + r_replace.stderr,
+    )
+
+
+def case_ops_target_grammar_well_formed(root):
+    """Case 26 — WELL-FORMED TARGET STILL SUCCEEDS (positive control). VL-06's grammar check
+    cannot be passing by rejecting every add — a target that is exactly the id `ENTRY_RE`
+    already recognizes must still be accepted."""
+    path = target(root, "case26")
+    write_file(path, [("Patterns", [("P-01", "one")])])
+    ops = write_ops(
+        os.path.join(root, "case26_ops.json"),
+        [{"op": "add", "target": "P-02", "section": "Patterns", "entry": "well formed"}],
+    )
+    r = run_ops(path, ops)
+    check("case26: well-formed add exits 0", r.returncode == 0, r.stdout + r.stderr)
+    content = open(path, encoding="utf-8").read()
+    check("case26: rendered file contains the new entry", "P-02: well formed" in content, content)
+
+
 def _run_all_cases(root):
     case_naive_last_writer_wins(root)
     case_green_union(root)
@@ -1252,6 +1331,8 @@ def _run_all_cases(root):
     case_ops_target_injection(root)
     case_ops_non_string_target(root)
     case_ops_add_duplicated_base(root)
+    case_ops_target_grammar(root)
+    case_ops_target_grammar_well_formed(root)
 
 
 def _report_results():
