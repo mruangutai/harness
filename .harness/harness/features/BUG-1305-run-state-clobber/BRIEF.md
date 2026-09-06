@@ -378,8 +378,11 @@ on the pre-change tree**, so a criterion cannot be met by an assertion that was 
   so the denial is scoped to the one filename rather than to the directory.
   The note also records
   `check-state.sh`'s exit code and findings over this repository's own `.harness` tree, and states
-  the one newly refused write this feature knowingly introduces — an owner that rewrites its
-  checkpoint and drops `run_uid` — with the test that pins its message.
+  the two newly refused write classes this feature knowingly introduces — an owner that rewrites
+  its checkpoint and drops `run_uid`; and an Edit of a governed `state.yaml`, `digest.md`, or
+  handoff note whose complete candidate cannot be reconstructed from the tool payload (unmatched
+  `old_string`, ambiguous `old_string` without `replace_all`, or a path-only payload — ordered by
+  the Advisor at cycle 13 in service of SC-01(a)) — each with the test that pins its message.
   **It FAILS if any of these holds:** an assertion present at `c369fb1f` is absent or weakened at the
   review sha and is not enumerated under the first heading; any one of the six permitted-write cases
   is absent from the suite at the review sha or is asserted to exit non-zero; `check-state.sh`
@@ -387,7 +390,11 @@ on the pre-change tree**, so a criterion cannot be met by an assertion that was 
   witness; either heading is
   absent; the `## Suite results` heading is absent, or records a non-zero exit or any FAIL line for
   either suite; or the note's BLUF states that a refusal holding at `c369fb1f` no longer holds, or
-  that a write permitted at `c369fb1f` is now refused other than the disclosed dropped-`run_uid` one.
+  that a write permitted at `c369fb1f` is now refused other than the two disclosed classes — the
+  dropped-`run_uid` checkpoint rewrite, and the reconstruction-`None` Edit of a governed artifact;
+  the latter disclosure FAILS in turn if the suite at the review sha does not assert an exit-0
+  permit for a uniquely reconstructable, content-valid Edit of each governed class it refuses:
+  `state.yaml`, `digest.md`, and the handoff note.
   verify: inspection
 - **SC-08 — RETIRED with struck REQ-08:** No grammar-unification artifact is required. This
   criterion is retained only to record the signature decision: the change was frequency-only and

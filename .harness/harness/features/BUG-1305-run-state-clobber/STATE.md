@@ -3,15 +3,15 @@
 ## Current
 
 - feature: BUG-1305-run-state-clobber
-- run: .harness/harness/features/BUG-1305-run-state-clobber/runs/goalcheck-build-c4-product/state.yaml
-- squad: none
-- status: awaiting-user
-- station: review; review_sha 154ff2a0; cycles 15/15 exhausted; runs 27 against an informational 20
-- gates: qa test_matrix PASS, SIMPLIFY PASS, panel F-1 CLOSED at cycle 15 by a two-mutant probe with zero crosstalk, code grade exit 0. SC-01 restored and met; SC-07 NOT MET.
-- held: awaiting Advisor ruling AdviseBug1305Sc07Conflict. Nothing may be amended or under-reported until it returns.
+- run: .harness/harness/features/BUG-1305-run-state-clobber/runs/brief-amend-c16-product/state.yaml
+- squad: product
+- status: in-flight
+- station: review; cycles 16/18; production code byte-identical to 154ff2a0
+- ruling (AdviseBug1305Sc07Conflict): AMEND SC-07, do not ship unmet. SC-07's carve-out was signed before the cycle-13 ruling that mandated the reconstruction-None fail-closed class in service of SC-01(a); the same delegated authority signed both and the later ruling controls. As written the criterion could only be greened by demoting a true disclosure out of the note BLUF, which is the under-reporting SC-07 exists to prevent; the goal-checker's refusal to launder it is recorded as correct. The handoff PRE permit is REQUIRED, not advisory. Cap through cycle 17, cycle 18 reserved solely for mechanical fixes to the amendment wording or the new test.
+- cycle 16 landed: SC-07 amended to the Advisor's exact wording (product lane); one handoff valid-reconstructable PRE-Edit permit case added and the regression note refreshed (main-session lane, DEC-174).
 
 ## Open Questions
 
-- SC-07 is not_met at the pin for a criterion-internal conflict, not a delivery gap: the note remedy is correct and both directions are satisfied in substance, but SC-07's final FAILS-if leg fires on the very disclosure direction two requires. Three operator options, none available to any cycle: accept not_met on the record and ship; widen SC-07's disclosure carve-out to name the Advisor-ordered reconstruction-None class; or authorise a one-clause reword that keeps the disclosure but moves it out of the note's BLUF, which demotes a material behaviour change out of the lead sentence.
-- Advisor is separately deciding whether permanent in-suite PRE permit coverage is required for the handoff arm: the cited valid-handoff Edit control resolves to a PostToolUse case, and pm measured the PRE permit by hand at the pin (exit 0) with the suite not pinning it.
-- Harness defect, fourth occurrence: worktree claims key on persona and on the shared broker pid, so a lead was refused writes into its own BUG-1305 run directory because of a stale harness-product-lead claim on BUG-1308 whose agent had already left the roster. Remedy named by the blocked lead: inflight_registry.py release --agent harness-product-lead --feature BUG-1308-expertise-replace-drop; it is another flow's registry and therefore the main session's act, not mine.
+- Cycle 17 is the last graded one: scoped re-review of the test-plus-brief-plus-note diff, then an SC-07-only re-grade. All other criteria carry without re-grade because .claude/skills is byte-unchanged since the reviewed pin.
+- SEC-01 remains an accepted residual tracked at #1376; briefing rows B-1 to B-16 in notes/ship-review-2026-09-05-validate-c2.md are unstruck, and B-1 is superseded by the cycle-13 fix.
+- Harness defect, fifth occurrence: persona-keyed worktree claims refused a lead its own BUG-1305 run-directory digest write three times in one run; the collated report had to be delivered inline. Remedy named by a blocked lead: inflight_registry.py release for the stale BUG-1308 harness-product-lead claim, which is another flow's registry and the main session's act.

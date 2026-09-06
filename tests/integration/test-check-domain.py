@@ -4277,6 +4277,20 @@ def _handoff_valid_pre_edit_cases(results, root, target, valid):
     with open(target, "w") as f:
         f.write(_handoff_text(valid))
     before = open(target, "rb").read()
+    permitted_edit = {
+        "tool_name": "Edit",
+        "tool_input": {
+            "file_path": target,
+            "old_string": "Scope: build complete",
+            "new_string": "Scope: build complete and verified",
+        },
+    }
+    _record_handoff_result(
+        results, "handoff valid reconstructable PRE-Edit remains allowed",
+        subprocess.run(
+            [HOOK], input=json.dumps(permitted_edit), capture_output=True,
+            text=True, env=_env(root)),
+        0)
     pre_edit = {"tool_name": "Edit",
                 "tool_input": {"file_path": target,
                                "old_string": "Scope: build complete",

@@ -3,8 +3,8 @@
   "branch": "feat/BUG-1305-run-state-clobber",
   "pr": null,
   "review_sha": "154ff2a03f4ff31f6d792e3d49d1f88f9595df89",
-  "cycles_used": 15,
-  "max_total_cycles": 15,
+  "cycles_used": 16,
+  "max_total_cycles": 18,
   "runs": [
     {
       "id": "diag-eng",

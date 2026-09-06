@@ -30,11 +30,11 @@ BLUF: foreign writers still cannot mutate an already minted run without its dura
 - `_bug1305_identity_refusal_cases` — `modal collision Edit removing uid is refused`: exit 2 with the same precedence and preservation guarantee.
 - `_bug1305_identity_refusal_cases` — `different minted uid Edit is refused`: exit 2 and names both prior `U1` and incoming `U2`, completing SC-01(b)'s Write/Edit pair.
 - Existing witness overwrite, false-witness creation, digest replacement, and digest insertion paths are likewise refused; same-owner resume, legacy checkpoints, append-only digest repair, and unrelated run-directory writes remain allowed as listed above.
-- Unreconstructable Edits of `state.yaml`, `digest.md`, and `handoff-*.md` — including OMP's path-only Edit payload — now exit 2 with an instruction to `Write the complete file instead`. This is paired with `uniquely reconstructable state Edit remains allowed` and the existing digest-append and valid-handoff Edit controls, so the rule is fail-closed on missing candidate bytes rather than a blanket path denial.
+- Unreconstructable Edits of `state.yaml`, `digest.md`, and `handoff-*.md` — including OMP's path-only Edit payload — now exit 2 with an instruction to `Write the complete file instead`. On OMP every Edit payload is path-only, so every Edit of these governed artifacts takes that refusal and must use Write. This is paired with `uniquely reconstructable state Edit remains allowed`, `digest Edit append repair remains allowed`, and `handoff valid reconstructable PRE-Edit remains allowed`, so the rule is fail-closed on missing candidate bytes rather than a blanket path denial.
 
 ## Suite results
 
 - `.claude/skills/harness/bin/run-unit-tests.sh --kind unit`: exit 0; 28 files; 0 lines beginning `FAIL`; 3.97s pool wall time.
-- `.claude/skills/harness/bin/run-unit-tests.sh --kind integration`: exit 0; 46 files; 0 lines beginning `FAIL`; 101.99s pool wall time.
+- `.claude/skills/harness/bin/run-unit-tests.sh --kind integration`: exit 0; 46 files; 0 lines beginning `FAIL`; 63.70s pool wall time at the cycle-16 seam.
 - From the control-plane root `/Users/molchairuangutai/GitHub/harness`, `bash .claude/skills/harness/bin/check-state.sh`: exit 0 with notes only; a search of the verbatim output found 0 `INV-36` lines.
 - Cycle-10 targeted replay of `run_bug1305_identity_cases`: exit 0; 10/10 cases passed. Against pinned pre-change hook `592e88dcf0b6dfcd75ca4c1d49451fa9003d2802`, exit 4; 6/10 passed, with the new different-uid Edit case red.
