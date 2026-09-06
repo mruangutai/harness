@@ -112,7 +112,7 @@ vocabulary afterwards, so no agent is instructed to emit an op nothing can apply
   subparser's own `--ops` help text names the accepted verbs `add`, `replace` and `drop`, which
   is what lets the probe set exceed `CONTRACT` when the contract text stops naming a verb.
   verify: automated        evidence: integration
-- SC-10: `.harness/harness/docs/DECISIONS-INDEX.md` carries a `DEC-218` row whose hand-written ruling
+- SC-10: `.harness/harness/docs/DECISIONS-INDEX.md` carries a `DEC-219` row whose hand-written ruling
   carries the literal string `replace and drop through the ops subcommand`, and
   `python3 tests/integration/test-gen-decisions-index.py`
   exits 0, so the index is what the generator produces.
