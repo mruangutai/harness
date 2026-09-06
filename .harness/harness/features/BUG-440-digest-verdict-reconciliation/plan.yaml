@@ -236,7 +236,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: "DEC-174 carve-out - check-state.sh is the state gate run at every /harness entry and its own tests ride the carve-out with it; the harness plans changes to its enforcement layer and does not dispatch them to a squad."
     depends_on: []
-    status: building
+    status: done
     files:
       - .claude/skills/harness/bin/check-state.sh
       - tests/integration/test-check-state.py
