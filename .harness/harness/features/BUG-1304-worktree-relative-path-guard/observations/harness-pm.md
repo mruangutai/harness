@@ -13,3 +13,15 @@
 - 2026-09-05: BUG-1304 c8 — a ruling's numbered repair list is a floor: D-09's backstop framing and BRIEF SC-11's "struck with T-09" header both carried open choices the ruling closed without naming them. Grep the whole pair of artifacts for the choice, not just the cited anchors.
 - 2026-09-05: BUG-1304 c10 — a multi-word `grep -q` conjunct in a verify is line-bound, so a phrase the doer may wrap across two lines goes red on correct work. False red, not false green, but worth pricing when choosing an anchor: prefer a fragment short enough that no plausible wrap splits it.
 - 2026-09-05: BUG-1304 c10 — for a "keep every other paragraph byte-identical" edit, generate the plan-merge value file with a script that loads the field from the file and does a single-occurrence str.replace (asserting count == 1), never by retyping. Pair it with --expect-sha256. Same trick proved the set-panel value file additive: deepcopy the old panel, assert every prior finding compares equal and set(added keys) is what you intended, BEFORE merging.
+- 2026-09-05: BUG-1304 panel re-key. plan-merge.py `apply` CANNOT edit an existing top-level `panel`:
+  `panel` is not in UNION_KEYS (plan-merge.py:104), so step 8 (:764-774) raises CONFLICT exit 7 on any
+  differing value. Observed exit 7 on this plan. The verb that works is `set-panel --value-file`
+  (:1040), which safe_dumps the supplied mapping and self-verifies by reload (:1063). A dispatch that
+  names `apply` as the sole route for a panel repair is naming a route that cannot run.
+- 2026-09-05: BUG-1304 — check-state INV-32 keys `panel.readers[]` by STEP name (`scope`,
+  `should-not-exist`, `goalcheck`), not persona. This plan wrote the persona there and INV-32 reported
+  "never ran or was not recorded" three times, which reads like a missing panel rather than a wrong key.
+- 2026-09-05: `set-panel` re-dumps the WHOLE panel, but on this plan every untouched sub-block
+  (`transcription_rule`, `cycle_2_verification`, 276-line `findings`, 61-line `history`) came back
+  byte-identical — the source was already safe_dump-shaped. Verify text-block-wise, not just by value
+  equality, before claiming non-goals are unchanged.

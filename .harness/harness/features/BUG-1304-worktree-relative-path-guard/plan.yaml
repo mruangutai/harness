@@ -4,7 +4,7 @@ approval:
   date: '2026-09-05'
   approved_by: mruangutai
   status: approved
-status: building
+status: ready
 source_issues: [1304]
 
 panel:
@@ -30,7 +30,7 @@ panel:
     is carried entirely by the NEW findings F1 and F2, never by a reopened cycle-1
     finding.'
   readers:
-  - reader: harness-code-reviewer
+  - reader: scope
     persona: harness-code-reviewer
     status: ran
     verdict: PASS
@@ -38,7 +38,7 @@ panel:
     findings:
     - PF-976e37a61a8066731119885a2a18b1a7
     artifact: notes/review-harness-code-reviewer-planpanel-c3.md
-  - reader: fable-advisor
+  - reader: should-not-exist
     persona: fable-advisor
     status: ran
     verdict: PASS
@@ -63,6 +63,19 @@ panel:
       \ F-C3-3's sharper reading \u2014 that case 2 as written contradicts case 8\
       \ rather than merely under-specifying a runtime \u2014 is the validator lead's\
       \ assessment of the advisor's finding, not the advisor's own wording."
+  - reader: goalcheck
+    persona: harness-pm
+    status: skipped
+    verdict: none
+    findings: []
+    artifact: notes/research-BUG-1304-goalcheck-plan-c1.md
+    reason: Could not be established that a goalcheck reader ran in the recorded panel
+      cycle. The only goalcheck artifact on file is notes/research-BUG-1304-goalcheck-plan-c1.md,
+      whose own header reads cycle 1 and which describes this plan panel at cycle
+      0; the recorded cycle-3 run 2026-09-05-09-validator recorded exactly two steps,
+      scope and should-not-exist (runs/2026-09-05-09-validator/state.yaml), and no
+      run digest under runs/ names a goalcheck reader or cites that artifact. The
+      artifact is recorded here so a later reader can find what does exist.
   history:
   - cycle: 1
     last_run: 2026-09-05-05-validator
@@ -680,7 +693,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: "DEC-174 carve-out: harness_boundary.py and inflight_registry.py are gate-script libraries, so their tests are enforcement-layer files the main session executes directly (DEC-179)."
     depends_on: []
-    status: ready
+    status: done
     files:
       - tests/unit/test-harness-boundary.py
       - tests/integration/test-inflight-registry.py
@@ -819,7 +832,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: "DEC-174 carve-out: harness_boundary.py and inflight_registry.py are the shared libraries both registered gate scripts import (DEC-179)."
     depends_on: [T-01]
-    status: ready
+    status: done
     files:
       - .claude/skills/harness/bin/harness_boundary.py
       - .claude/skills/harness/bin/inflight_registry.py
@@ -932,7 +945,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: "DEC-174 carve-out: check-domain.sh is a registered PreToolUse gate script and its suite is an enforcement-layer file (DEC-179)."
     depends_on: [T-02]
-    status: ready
+    status: done
     files:
     - tests/integration/test-check-domain.py
     - tests/integration/fixtures/prior-check-domain.sh.fixture
@@ -1094,7 +1107,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: "DEC-174 carve-out: check-domain.sh is a registered PreToolUse gate script (DEC-179)."
     depends_on: [T-02, T-03]
-    status: ready
+    status: done
     files:
       - .claude/skills/harness/bin/check-domain.sh
     verify: |
@@ -1148,7 +1161,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: "DEC-174 carve-out: bash-write-guard.sh is a registered PreToolUse gate script and its suite is an enforcement-layer file (DEC-179)."
     depends_on: [T-02]
-    status: ready
+    status: done
     files:
     - tests/integration/test-bash-write-guard.py
     - tests/integration/fixtures/prior-bash-write-guard.sh.fixture
@@ -1321,7 +1334,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: "DEC-174 carve-out: bash-write-guard.sh is a registered PreToolUse gate script (DEC-179)."
     depends_on: [T-02, T-05]
-    status: ready
+    status: done
     files:
       - .claude/skills/harness/bin/bash-write-guard.sh
     verify: |
@@ -1385,7 +1398,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: "DEC-174: the doctrine rewrite lands in the same edit as the gate-script change it corrects (DEC-205), which is main-session-direct work."
     depends_on: [T-04, T-06]
-    status: ready
+    status: done
     files:
       - .harness/harness/docs/DECISIONS.md
       - .harness/harness/docs/DECISIONS-INDEX.md
@@ -1530,7 +1543,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: "DEC-174 carve-out: inflight_registry.py is a shared library both registered gate scripts import, and its suite is an enforcement-layer file (DEC-179)."
     depends_on: [T-02]
-    status: ready
+    status: done
     files:
       - .claude/skills/harness/bin/inflight_registry.py
       - tests/integration/test-inflight-registry.py
@@ -1640,7 +1653,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: "DEC-174 carve-out: the two runners it executes live under .claude/skills/harness/bin, and the change it verifies is entirely gate-script work the main session executes directly (DEC-179)."
     depends_on: [T-02, T-04, T-06, T-07]
-    status: ready
+    status: building
     files:
       - .claude/skills/harness/bin/run-unit-tests.sh
       - .claude/skills/harness/bin/check-state.sh
