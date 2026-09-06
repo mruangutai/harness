@@ -457,7 +457,7 @@ decisions:
     dec: DEC-208
 
   - id: D-02
-    choice: "S is constructed by enumerating EVERY live claim held by the payload's agent_type across ALL registries INCLUDING the owner-root registry, and resolving EACH claim's own feature field through harness_boundary.worktree_for_feature(owner_root, feature). A claim contributes a member to S only when worktree_for_feature returns a real worktree; a claim whose feature has no linked worktree contributes nothing. S is NEVER derived from which registry file a claim happens to sit in."
+    choice: 'S is constructed by enumerating EVERY live claim held by the payload''s agent_type across ALL registries INCLUDING the owner-root registry, and resolving EACH claim''s own feature field through harness_boundary.worktree_for_feature(owner_root, feature). A claim contributes a member to S only when worktree_for_feature returns a real worktree; a claim whose feature has no linked worktree contributes nothing. S is NEVER derived from which registry file a claim happens to sit in. A claim whose feature resolves AMBIGUOUSLY — two or more prefix-matching worktrees, harness_boundary.AmbiguousWorktree — is neither guessed into S nor dropped from it: on both routes the governed write is refused with exit 2, naming the candidate worktrees the resolver declined to choose between.'
     because: "Ruling 2 as first written fans out over linked_worktrees(owner_root) and asks live_claim(root=w) at each, which places a claim by the file it sits in. dispatch-guard.sh _root_for places a claim by basename equality (dispatch-guard.sh:122) with an owner_root fallback (:126), while worktree_for_feature matches by PREFIX because equality was measured false in this repository: its docstring records that equality alone leaves every short-form worktree unmatched and silently unbound (harness_boundary.py:215-221). Under a short-form worktree topology the file-derived construction empties S for every agent and allows every governed main-checkout write with every success criterion still green. Feature-field resolution also PRESERVES the ruling's Q3(b) allow: the main-checkout registry is scanned, but a claim for a feature with no linked worktree resolves to None, adds no member, and leaves S empty."
     dec: none
 
@@ -487,7 +487,7 @@ decisions:
     dec: DEC-205
 
   - id: D-08
-    choice: "REQ-04 is decomposed as TWO DIFFERENT EDITS with their own tasks, files and verifies, never as one shared change. The Bash route NARROWS an existing blanket allow; the Write/Edit route EXTENDS binding from target-path-derived to claim-derived."
+    choice: 'REQ-04 is decomposed as TWO DIFFERENT EDITS with their own tasks, files and verifies, never as one shared change. The Bash route NARROWS an existing blanket allow; the Write/Edit route EXTENDS binding from target-path-derived to claim-derived. The asymmetry is in the EDITS only; the refusal semantics the two edits install are IDENTICAL: both routes evaluate the same claim-set predicate from the shared harness_boundary seam and refuse with the same exit 2 and the same claim_set_refusal text, with no route-local additions.'
     because: "Advisor ruling 1 obligation 3 records the asymmetry: the two routes start from opposite existing behaviours, so a single shared task would hide one of the two changes and its regression surface."
     dec: none
 
