@@ -484,7 +484,7 @@ def run_worktree():
     m_bin = os.path.join(m_tmp, "bin")
     os.makedirs(m_bin)
     for fn in ("check-domain.sh", "bash-write-guard.sh", "harness_boundary.py",
-               "harness_yaml.py"):
+               "harness_yaml.py", "run_identity.py"):
         shutil.copy(os.path.join(HERE, fn), os.path.join(m_bin, fn))
     for fn in ("check-domain.sh", "bash-write-guard.sh"):
         os.chmod(os.path.join(m_bin, fn), 0o755)
@@ -1378,9 +1378,12 @@ def _run_artifact_fixture():
     root = fixture(RUN_ARTIFACT_MANIFEST)
     digest_rel = ".harness/harness/features/FEAT-99-fixture/runs/r1/digest.md"
     state_rel = ".harness/harness/features/FEAT-99-fixture/runs/r1/state.yaml"
+    identity_rel = ".harness/harness/features/FEAT-99-fixture/runs/r1/.run-identity.json"
     other_rel = ".harness/harness/features/FEAT-99-fixture/runs/r1/notes.txt"
     os.makedirs(os.path.dirname(os.path.join(root, digest_rel)), exist_ok=True)
-    return root, digest_rel, state_rel, other_rel
+    with open(os.path.join(root, identity_rel), "w") as marker:
+        marker.write("{}\n")
+    return root, digest_rel, state_rel, identity_rel, other_rel
 
 
 def run_bug1106_bash_route():
@@ -1389,7 +1392,7 @@ def run_bug1106_bash_route():
     guard, issues #1124/#1106's state.yaml identity guard, both in check-domain.sh) is
     structurally impossible here — a route-only refusal is the weakest sufficient rule."""
     results = []
-    root, digest_rel, state_rel, other_rel = _run_artifact_fixture()
+    root, digest_rel, state_rel, identity_rel, other_rel = _run_artifact_fixture()
 
     r = fire(root, f"echo hi > {os.path.join(root, digest_rel)}")
     results.append(("bug1106 Bash route: a write to a run's digest.md is REFUSED",
@@ -1406,6 +1409,18 @@ def run_bug1106_bash_route():
         "bug1106 Bash route NEGATIVE CONTROL: an unrelated file in the same run "
         "directory is still ALLOWED — this is not a blanket run-dir Bash ban",
         r.returncode == 0, f"exit {r.returncode}: {r.stderr.strip()[:200]}"))
+
+    r = fire(root, f"echo hi > {os.path.join(root, identity_rel)}")
+    results.append((
+        "bug1305 Bash route: overwriting the write-once identity witness is refused",
+        r.returncode == 2 and "identity witness" in r.stderr,
+        f"exit {r.returncode}: {r.stderr.strip()[:250]}"))
+
+    r = fire(root, f"rm {os.path.join(root, identity_rel)}")
+    results.append((
+        "bug1305 Bash route: removing the write-once identity witness is refused",
+        r.returncode == 2 and "identity witness" in r.stderr,
+        f"exit {r.returncode}: {r.stderr.strip()[:250]}"))
 
     r = fire(root, f"echo hi | tee {os.path.join(root, digest_rel)}")
     results.append((

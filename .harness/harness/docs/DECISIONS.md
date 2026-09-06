@@ -6416,9 +6416,9 @@ revising its own digest inside one run. The shape route and not the sweep, becau
 AFTER the write, where the prior text is gone, so a check there could only compare a file with itself
 (DEC-154, DEC-156, DEC-180). Measurement: a lead reusing a run directory across cycles overwrote an
 earlier lead digest and destroyed the cycle-0 record. Scope, stated honestly: enforcement sits on the
-PRE payload route, which is Write-only, so an Edit, a NotebookEdit or a shell redirect reaches no
-enforcement point. That is accepted residual risk with the team playbook as its compensating control,
-not an oversight.
+PRE payload route for Write and Edit. The Edit path reconstructs the candidate content before applying
+the same preservation rule; NotebookEdit and shell redirects still reach no enforcement point. That
+residual risk is accepted with the team playbook as its compensating control, not an oversight.
 
 **4. The checkout binding is route-complete across both governed write surfaces.** Ruling 2's rule is
 enforced on the governed Bash write route too, through the same
@@ -6427,8 +6427,8 @@ enforced on the governed Bash write route too, through the same
 `.claude/skills/harness/bin/check-domain.sh:727-741`). A refusal on the tool route alone is a signpost
 to the shell, and that guard exists precisely because an agent routed around the other one (DEC-151,
 DEC-174), so a divergence between the two surfaces is a bypass by construction. Scope: this closes the
-CHECKOUT question only. Ruling 3's digest-preservation rule is NOT extended to Bash and stays
-Write-only.
+CHECKOUT question only. Ruling 3's digest-preservation rule is NOT extended to Bash and stays on the
+Write/Edit tool routes.
 
 **5. A lead's digest file is located in the checkout the lead is running in.** A relative `artifact:`
 path resolves against the FEATURE'S checkout via `inflight_registry.feature_root`, falling back to the

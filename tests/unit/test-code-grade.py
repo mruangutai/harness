@@ -257,7 +257,6 @@ SELF_GRADING_ALLOWLIST = {
     ("validate-digest.py", "bracket_depth"): 3,
     ("validate-digest.py", "parse_digest"): 1,
     ("validate-digest.py", "validate"): 1,
-    ("validate-digest.py", "check_artifact_file"): 2,
     ("validate-digest.py", "hook_mode"): 1,
 }
 

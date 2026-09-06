@@ -53,6 +53,8 @@ per-step directories for members — they write into their own domains.
 
 Seed `state.yaml` with `schema_version`, `run_id`, `feature`, `squad`, `host`, `status: running`,
 and one `steps:` entry per team step with `status: pending`.
+`state.yaml` also carries `run_uid`, which the harness mints on the first landed write; a lead never
+invents, edits, or drops it, and every later write carries the same value read from the file itself.
 
 **A team file carries EITHER a literal `steps:` DAG OR a `steps_from:` expansion rule.** With
 `steps_from:`, expand it into concrete steps FIRST, then seed exactly as above: read the source it

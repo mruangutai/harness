@@ -782,23 +782,23 @@ def _worktree_stripped(rel):
 
 
 def _run_artifact_guard(rel, absolute_path):
-    """Refuse a Bash write aimed at a run's digest.md or state.yaml (issue #1106, gap a).
+    """Refuse unsafe Bash writes to protected run artifacts.
 
-    The Write and Edit routes in check-domain.sh compare a proposed write against the
-    on-disk PRIOR content before it lands (issue #1058's digest prefix guard, issues
-    #1124/#1106's state.yaml run-identity guard). Bash has no equivalent: a shell command
-    carries no complete incoming payload to compare. A content guard is therefore
-    structurally impossible here, so a route denial is the weakest sufficient rule.
-
-    CHECKOUT-AGNOSTIC, DELIBERATELY (code review of PR #1249): unlike
-    `feature_checkout_guard`, whose whole question is "main checkout vs. worktree", this
-    rule is the same everywhere — Bash cannot safely write these two files in ANY
-    checkout, because the underlying gap (no payload to compare) does not depend on
-    which tree the write lands in. It must therefore run ahead of the DEC-153 worktree
-    carve-out below, not behind it: run artifacts normally live inside a feature's own
-    worktree (DEC-95), so placing this check where `feature_checkout_guard` sits would
-    make it inert for exactly the checkout run artifacts are usually written in.
+    Digest and checkpoint guards need complete incoming content, which Bash does
+    not provide. The identity marker is a different route rule: direct writes to
+    its path are refused because it is the run's write-once witness. Directory-level
+    removal can bypass this basename guard; that accepted residual is tracked by
+    issue #1376. This check is checkout-agnostic and stays ahead of the DEC-153
+    worktree carve-out.
     """
+    if harness_boundary.RE_RUN_IDENTITY.match(rel):
+        deny(
+            f"{absolute_path} is the run's write-once identity witness, recorded "
+            "at the run's first landed checkpoint. Its path is never directly rewritten "
+            "or removed once written. A run that needs a record of its own must write "
+            "into a run directory of its own; a witness a human genuinely must repair "
+            "is repaired outside the guards. Directory-level removal is a known residual "
+            "tracked by issue #1376.")
     if (harness_boundary.RE_RUN_DIGEST.match(rel)
             or harness_boundary.RE_STATE_YAML.match(rel)):
         deny(f"{absolute_path} is a run's digest.md or state.yaml. Bash carries no "

@@ -17,7 +17,7 @@ _anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
 _anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
 _anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
 _anchor_sys.path.insert(0, _anchor_bin)
-import json, os, shutil, subprocess, sys
+import json, os, re, shutil, subprocess, sys, yaml
 
 TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
@@ -95,6 +95,7 @@ case("the pre-move docs path is REFUSED after the migration",
 # These use a FIXTURE repo rather than the live one, so a malformed manifest can be
 # exercised without touching the manifest that governs this session.
 
+import errno
 import shutil
 import tempfile
 import time
@@ -1040,6 +1041,39 @@ def _legal_feature_json(nlines):
     return "\n".join(body + [""] * max(0, nlines - len(body))) + "\n"
 
 
+def _write_while_sweep_reads_fifo(root, payload, fifo_path, mid_write):
+    """Block the sweep after its start mark, then perform one write it already walked past."""
+    process = subprocess.Popen(
+        [HOOK, "--post"], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE, text=True, env=_env(root))
+    process.stdin.write(json.dumps(payload))
+    process.stdin.close()
+    process.stdin = None
+    writer = None
+    deadline = time.monotonic() + 30
+    try:
+        while writer is None:
+            try:
+                writer = os.open(fifo_path, os.O_WRONLY | os.O_NONBLOCK)
+            except OSError as error:
+                if error.errno != errno.ENXIO:
+                    raise
+                if process.poll() is not None or time.monotonic() >= deadline:
+                    raise RuntimeError("sweep never opened the FIFO — sync premise broke")
+                time.sleep(0.005)
+        os.unlink(fifo_path)
+        mid_write()
+        os.close(writer)
+        writer = None
+        return process.communicate(timeout=30)
+    finally:
+        if writer is not None:
+            os.close(writer)
+        if process.poll() is None:
+            process.kill()
+            process.communicate()
+
+
 def run_post():
     d = fixture(FIXTURE_MANIFEST)
     fdir = os.path.join(d, ".harness", "harness", "features", "FEAT-X")
@@ -1316,55 +1350,41 @@ def run_post():
     post("the same file, freshly touched, IS found",
          r.returncode == 2 and "budget is 300" in r.stderr, f"exit {r.returncode}")
 
-    # --- THE RACE, ASSERTED AS A PROPERTY (review HIGH-1). Round 2's stamp advanced to the
-    # moment the sweep FINISHED, so a file another agent wrote DURING the walk landed before
-    # the new mark and was reported by nobody — reproduced 40/40 at a 40 ms offset, and
-    # PERMANENT, because the stamp is global and shared. Worse than the repeat-reporting it
-    # replaced.
-    #
-    # A first draft of this case tried to stage the race with a backdated mtime and PASSED
-    # AGAINST THE DEFECT — the backdate was relative to the previous sweep's mark, which is
-    # exactly the quantity the bug moves, so both versions found the file. Assert the
-    # invariant itself instead: THE MARK IS THE SWEEP'S START. Padding makes the walk long
-    # enough that start and finish are far apart, which is what gives the assertion teeth.
-    _pad = os.path.join(fdir, "runs")
-    for _i in range(800):
-        _rd = os.path.join(_pad, f"pad{_i}")
-        os.makedirs(_rd, exist_ok=True)
-        with open(os.path.join(_rd, "state.yaml"), "w") as f:
-            f.write("schema_version: 1\nrun_id: pad\nstatus: complete\n")
+    # --- THE RACE, ASSERTED AS ORDERED BEHAVIOUR (review HIGH-1). A FIFO under the
+    # runs/state.yaml glob blocks the sweep after `_now` was captured. feature.json is
+    # globbed earlier, so writing it while the FIFO is open is provably mid-walk and too
+    # late for this pass. A start-stamped sweep must find it on the NEXT pass; an
+    # end-stamped sweep advances beyond the write and loses it permanently.
     write(10)
     fire_post(d, bash_payload)                        # settle: nothing fresh
-
-    # INTERPRETER START-UP IS MEASURED AND SUBTRACTED, because it dominates. `_now` is
-    # captured inside the Python body, so wall-clock from process launch to the stamp
-    # includes ~38 ms of start-up that has nothing to do with the walk. A first draft
-    # compared the mark against total process time and FAILED on correct code, reporting a
-    # 37 ms offset against a 53 ms total — measuring start-up, not the race window.
-    _t0i = time.time()
-    fire_post(d, bash_payload)                        # idle: start-up only
-    _idle = time.time() - _t0i
-
-    for _i in range(800):                             # make every pad file fresh again
-        os.utime(os.path.join(_pad, f"pad{_i}", "state.yaml"), None)
-    _t0 = time.time()
-    fire_post(d, bash_payload)
-    _loaded = time.time() - _t0
-    _mark = os.stat(os.path.join(d, ".harness", ".shape-sweep-stamp")).st_mtime
-    _walk = _loaded - _idle                           # the part that is actually the sweep
-    _offset = _mark - _t0                             # where the mark landed in the process
-    # Start-stamping puts the mark at ~_idle; end-stamping puts it at ~_idle + _walk.
-    # IS THE MARK NEARER THE START OF THE WALK OR ITS END? A fixed threshold discriminated
-    # by one millisecond and was luck, not a test; this compares the two hypotheses directly.
-    ok_mark = _walk > 0.015 and abs(_offset - _idle) < abs(_offset - _loaded)
-    post("the mark records the sweep's START, not its finish (the race window)",
-         ok_mark,
-         f"start-up {_idle*1000:.0f} ms, walk {_walk*1000:.0f} ms, mark at "
-         f"{_offset*1000:.0f} ms — distance to start {abs(_offset-_idle)*1000:.0f} ms vs "
-         f"to finish {abs(_offset-_loaded)*1000:.0f} ms (a walk under 15 ms means the case "
-         f"proved nothing and fails on purpose)")
-    for _i in range(800):
-        shutil.rmtree(os.path.join(_pad, f"pad{_i}"), ignore_errors=True)
+    fifo_dir = os.path.join(fdir, "runs", "fifo")
+    fifo_path = os.path.join(fifo_dir, "state.yaml")
+    os.makedirs(fifo_dir, exist_ok=True)
+    os.mkfifo(fifo_path)
+    sync_error = ""
+    blocked_stderr = ""
+    try:
+        _stdout, blocked_stderr = _write_while_sweep_reads_fifo(
+            d, bash_payload, fifo_path, lambda: write(400))
+    except (OSError, RuntimeError, subprocess.TimeoutExpired) as error:
+        sync_error = str(error)
+    finally:
+        if os.path.exists(fifo_path):
+            os.remove(fifo_path)
+        os.rmdir(fifo_dir)
+    following = fire_post(d, bash_payload)
+    kept_visible = (
+        not sync_error
+        and "budget is 300" not in blocked_stderr
+        and following.returncode == 2
+        and "budget is 300" in following.stderr
+        and rel_fy in following.stderr
+    )
+    post("a write made during the sweep remains visible to the next sweep",
+         kept_visible,
+         sync_error or
+         f"blocked sweep stderr={blocked_stderr[:120]!r}; next exit "
+         f"{following.returncode}: {following.stderr[:160]!r}")
 
     # --- AN UNREADABLE CANDIDATE MUST NOT ADVANCE THE MARK PAST ITSELF, or a transient
     # permission blip becomes a permanent blind spot by the same mechanism.
@@ -2292,6 +2312,8 @@ def run_sweep_clean_tracked():
             # exactly like a surviving mutant, which is why this is not left to chance.
             shutil.copy(os.path.join(HERE, "harness_boundary.py"),
                         os.path.join(d, "harness_boundary.py"))
+            shutil.copy(os.path.join(HERE, "run_identity.py"),
+                        os.path.join(d, "run_identity.py"))
             # Restore case A's exact state: the committed file clean again, nothing else
             # of FEAT-OLD's on disk changed.
             git(wt, ["checkout", "--", rel_state])
@@ -3808,23 +3830,25 @@ def run_bug1106_edit_route_cases():
                     "upsert via Edit is ALLOWED",
                     r.returncode == 0, f"exit {r.returncode}: {r.stderr[:200]}"))
 
-    # --- AMBIGUOUS/no-op edits are not this gate's problem: an old_string absent from
-    # the file, or non-unique without replace_all, is left to the tool's own match
-    # requirement — this hook must not crash or wrongly refuse either shape.
+    # --- An ambiguous or unmatched Edit payload cannot describe the candidate bytes.
+    # Governed artifacts fail closed and route the caller to a whole-file Write rather
+    # than assuming the editor will reject the operation before this hook matters.
     state_root3, state_path3 = _bug1124_state_fixture()
     _feat50_write_text(state_path3, "schema_version: 1\nrun_id: run-alpha\nstatus: building\n")
     r = _fire_digest_edit(state_root3, state_path3, "no-such-text-in-file", "replacement")
-    results.append(("bug1106 Edit route: an old_string ABSENT from the file is not this "
-                    "gate's problem (exit 0, the Edit tool itself would refuse it)",
-                    r.returncode == 0, f"exit {r.returncode}: {r.stderr[:200]}"))
+    results.append(("bug1106 Edit route: an unmatched old_string fails closed",
+                    r.returncode == 2
+                    and "Write the complete file instead" in r.stderr,
+                    f"exit {r.returncode}: {r.stderr[:200]}"))
 
     state_root4, state_path4 = _bug1124_state_fixture()
     _feat50_write_text(
         state_path4, "schema_version: 1\nrun_id: run-alpha\nstatus: x\nnote: x\n")
     r = _fire_digest_edit(state_root4, state_path4, "x", "y")
-    results.append(("bug1106 Edit route: a NON-UNIQUE old_string without replace_all is "
-                    "not this gate's problem (exit 0)",
-                    r.returncode == 0, f"exit {r.returncode}: {r.stderr[:200]}"))
+    results.append(("bug1106 Edit route: a non-unique old_string fails closed",
+                    r.returncode == 2
+                    and "Write the complete file instead" in r.stderr,
+                    f"exit {r.returncode}: {r.stderr[:200]}"))
 
     # --- An Edit to an UNRELATED file (not digest.md/state.yaml) is completely
     # unaffected by this widening — the PRE route stays Write-only for everything else.
@@ -3845,6 +3869,66 @@ def run_bug1106_edit_route_cases():
             print(f"FAIL  {name}\n      | {detail}")
     print(f"\n{len(results) - fails}/{len(results)} bug1106 Edit-route cases passed.")
     return fails
+def _bug1305_digest_write(root, path, content):
+    payload = {"tool_name": "Write",
+               "tool_input": {"file_path": path, "content": content}}
+    return subprocess.run(
+        [HOOK], input=json.dumps(payload), capture_output=True, text=True,
+        env=_env(root))
+
+
+def run_bug1305_digest_repair_cases():
+    """BUG-1305 SC-05: legal append repair and actionable refusal wording."""
+    prior = "VERDICT: PASS\nDIGEST:\n  headline: recorded\n"
+    artifact = "  artifact: notes/x.md\n"
+    results = []
+
+    root, path = _feat50_digest_fixture()
+    _feat50_write_text(path, prior)
+    response = _fire_digest_edit(
+        root, path, "  headline: recorded\n",
+        "  headline: recorded\n" + artifact)
+    results.append(("digest Edit append repair remains allowed",
+                    response.returncode == 0, response.stderr))
+
+    root, path = _feat50_digest_fixture()
+    _feat50_write_text(path, prior)
+    response = _fire_digest_edit(
+        root, path, "VERDICT: PASS\n", artifact + "VERDICT: PASS\n")
+    results.append(("digest Edit insertion is refused with append-at-end route",
+                    response.returncode == 2 and "appended at the end" in response.stderr,
+                    response.stderr))
+
+    root, path = _feat50_digest_fixture()
+    _feat50_write_text(path, prior)
+    response = _bug1305_digest_write(root, path, "wholly different digest\n")
+    results.append(("cross-run digest replacement remains refused",
+                    response.returncode == 2, response.stderr))
+
+    root, path = _feat50_digest_fixture()
+    _feat50_write_text(path, prior)
+    response = _bug1305_digest_write(root, path, prior + artifact)
+    results.append(("digest Write append remains allowed",
+                    response.returncode == 0, response.stderr))
+
+    root, path = _feat50_digest_fixture()
+    _feat50_write_text(path, prior)
+    _bug1305_write_marker(path)
+    response = _bug1305_digest_write(root, path, prior + artifact)
+    results.append(("digest Write append remains allowed beside identity witness",
+                    response.returncode == 0, response.stderr))
+
+    failures = 0
+    for name, ok, detail in results:
+        if ok:
+            print(f"ok    [bug1305-digest] {name}")
+        else:
+            failures += 1
+            print(f"FAIL  [bug1305-digest] {name}\n      | {str(detail).strip()[:300]}")
+    print(f"\n{len(results) - failures}/{len(results)} BUG-1305 digest cases passed.")
+    return failures
+
+
 
 
 def run_bug1106_shared_pattern_consistency():
@@ -4193,6 +4277,20 @@ def _handoff_valid_pre_edit_cases(results, root, target, valid):
     with open(target, "w") as f:
         f.write(_handoff_text(valid))
     before = open(target, "rb").read()
+    permitted_edit = {
+        "tool_name": "Edit",
+        "tool_input": {
+            "file_path": target,
+            "old_string": "Scope: build complete",
+            "new_string": "Scope: build complete and verified",
+        },
+    }
+    _record_handoff_result(
+        results, "handoff valid reconstructable PRE-Edit remains allowed",
+        subprocess.run(
+            [HOOK], input=json.dumps(permitted_edit), capture_output=True,
+            text=True, env=_env(root)),
+        0)
     pre_edit = {"tool_name": "Edit",
                 "tool_input": {"file_path": target,
                                "old_string": "Scope: build complete",
@@ -4668,6 +4766,427 @@ def run_bug1304_claim_set():
     return failures
 
 
+def _bug1305_marker_path(state_path):
+    return os.path.join(os.path.dirname(state_path), ".run-identity.json")
+
+
+def _bug1305_write_marker(state_path, run_id="A", run_uid=None):
+    marker = {
+        "run_id": run_id, "feature": "FEAT-S-thing", "squad": "eng",
+        "host": "omp", "identity": "session", "run_uid": run_uid,
+        "created_at": "2026-09-05T00:00:00+00:00",
+    }
+    with open(_bug1305_marker_path(state_path), "w", encoding="utf-8") as fh:
+        json.dump(marker, fh)
+
+
+def _bug1305_unverifiable_edit_result(name, response):
+    refused = (
+        response.returncode == 2
+        and "run identity" in response.stderr
+        and "witness" in response.stderr
+        and "Write the complete file instead" in response.stderr
+    )
+    return name, refused, response.stderr
+
+
+def _bug1305_absent_prior_edit_case():
+    root, state = _bug1124_state_fixture()
+    _bug1305_write_marker(state)
+    response = _fire_digest_edit(
+        root, state, "run_id: A", "run_id: B")
+    return _bug1305_unverifiable_edit_result(
+        "absent-prior Edit refuses unverifiable witness identity", response)
+
+
+def _bug1305_unmatched_edit_case():
+    root, state = _bug1124_state_fixture()
+    _bug1305_write_marker(state)
+    _feat50_write_text(
+        state, "schema_version: 1\nrun_id: A\nfeature: FEAT-S-thing\n"
+        "squad: eng\nhost: omp\n")
+    response = _fire_digest_edit(
+        root, state, "run_id: missing", "run_id: B")
+    return _bug1305_unverifiable_edit_result(
+        "unmatched state Edit refuses unverifiable witness identity", response)
+
+
+def _bug1305_omp_edit_cases():
+    root, state = _bug1124_state_fixture()
+    _bug1305_write_marker(state)
+    _feat50_write_text(
+        state, "schema_version: 1\nrun_id: A\nfeature: FEAT-S-thing\n"
+        "squad: eng\nhost: omp\nstatus: building\n")
+    payload = {"tool_name": "Edit", "tool_input": {"file_path": state}}
+    response = subprocess.run(
+        [HOOK], input=json.dumps(payload), capture_output=True, text=True,
+        env=_env(root))
+    refused = _bug1305_unverifiable_edit_result(
+        "omp file-path-only state Edit fails closed", response)
+
+    permitted = _fire_digest_edit(
+        root, state, "status: building", "status: review")
+    allowed = (
+        "uniquely reconstructable state Edit remains allowed",
+        permitted.returncode == 0,
+        permitted.stderr,
+    )
+    return [refused, allowed]
+
+
+def _bug1305_edit_reconstruction_cases():
+    return [
+        _bug1305_absent_prior_edit_case(),
+        _bug1305_unmatched_edit_case(),
+        *_bug1305_omp_edit_cases(),
+    ]
+
+
+def _bug1305_unreconstructable_artifact_cases(label, root, path, prior):
+    absent = _fire_digest_edit(root, path, "missing", "replacement")
+    _feat50_write_text(path, prior)
+    unmatched = _fire_digest_edit(root, path, "missing", "replacement")
+    payload = {"tool_name": "Edit", "tool_input": {"file_path": path}}
+    omp_edit = subprocess.run(
+        [HOOK], input=json.dumps(payload), capture_output=True, text=True,
+        env=_env(root))
+    results = []
+    for shape, response in (
+        ("absent-prior", absent),
+        ("unmatched", unmatched),
+        ("omp file-path-only", omp_edit),
+    ):
+        allowed_route = "Write the complete file instead" in response.stderr
+        results.append((
+            f"{label} {shape} Edit fails closed",
+            response.returncode == 2 and allowed_route,
+            response.stderr,
+        ))
+    return results
+
+
+def _bug1305_nonstate_edit_reconstruction_cases():
+    digest_root, digest_path = _feat50_digest_fixture()
+    results = _bug1305_unreconstructable_artifact_cases(
+        "digest", digest_root, digest_path, "recorded digest\n")
+    with tempfile.TemporaryDirectory() as handoff_root:
+        _, handoff_path = _handoff_done_when_fixture(handoff_root)
+        results.extend(_bug1305_unreconstructable_artifact_cases(
+            "handoff", handoff_root, handoff_path,
+            _handoff_text("Scope: done\nAuthority: plan-task:T-03.verify")))
+    return results
+
+
+def _bug1305_marker_foreign_refusals():
+    root, state = _bug1124_state_fixture()
+    _bug1305_write_marker(state)
+    write = _bug1124_state_fire(
+        root, state,
+        "schema_version: 1\nrun_id: B\nfeature: FEAT-S-thing\nsquad: eng\nhost: omp\n")
+
+    root, state = _bug1124_state_fixture()
+    _bug1305_write_marker(state)
+    _feat50_write_text(
+        state, "schema_version: 1\nrun_id: A\nfeature: FEAT-S-thing\nsquad: eng\nhost: omp\n")
+    edit = _fire_digest_edit(root, state, "run_id: A", "run_id: B")
+    return [
+        ("foreign first Write is refused by witness", write.returncode == 2
+         and "Issue 1305" in write.stderr and "A" in write.stderr
+         and "B" in write.stderr, write.stderr),
+        ("foreign Edit is refused by witness", edit.returncode == 2
+         and "Issue 1305" in edit.stderr and "A" in edit.stderr
+         and "B" in edit.stderr, edit.stderr),
+    ]
+
+
+def _bug1305_marker_witness_precedence():
+    root, state = _bug1124_state_fixture()
+    _bug1305_write_marker(state)
+    _feat50_write_text(state, "{")
+    unparseable = _bug1124_state_fire(root, state, "schema_version: 1\nrun_id: B\n")
+
+    root, state = _bug1124_state_fixture()
+    _bug1305_write_marker(state)
+    _feat50_write_text(state, "schema_version: 1\nrun_id: A\n")
+    legacy = _bug1124_state_fire(root, state, "schema_version: 1\nrun_id: B\n")
+    return [
+        ("witness outranks an unparseable prior", unparseable.returncode == 2
+         and "Issue 1305" in unparseable.stderr
+         and "does not parse" not in unparseable.stderr, unparseable.stderr),
+        ("witness outranks legacy run_id ladder", legacy.returncode == 2
+         and "Issue 1305" in legacy.stderr
+         and "Issue 1124" not in legacy.stderr, legacy.stderr),
+    ]
+
+
+def _bug1305_marker_recovery_cases():
+    results = []
+    for label, prior in (("absent", None), ("zero-byte", "")):
+        root, state = _bug1124_state_fixture()
+        _bug1305_write_marker(state)
+        if prior is not None:
+            _feat50_write_text(state, prior)
+        response = _bug1124_state_fire(
+            root, state,
+            "schema_version: 1\nrun_id: A\nfeature: FEAT-S-thing\nsquad: eng\nhost: omp\n")
+        results.append((
+            f"recovering owner with {label} prior is allowed",
+            response.returncode == 0, response.stderr))
+
+    root, state = _bug1124_state_fixture()
+    with open(_bug1305_marker_path(state), "w", encoding="utf-8") as fh:
+        fh.write("{")
+    response = _bug1124_state_fire(root, state, "schema_version: 1\nrun_id: A\n")
+    results.append((
+        "unreadable witness fails closed", response.returncode == 2
+        and "cannot be read" in response.stderr
+        and "Issue 1305" in response.stderr, response.stderr))
+    return results
+
+
+def _bug1305_marker_file_protection():
+    root, state = _bug1124_state_fixture()
+    identity = _bug1305_marker_path(state)
+    with open(identity, "w", encoding="utf-8") as fh:
+        fh.write("{}\n")
+    write = _bug1124_state_fire(root, identity, '{"run_id": "forged"}\n')
+    edit = _fire_digest_edit(root, identity, "{}", '{"run_id": "forged"}')
+    unmatched_edit = _fire_digest_edit(
+        root, identity, "not present", '{"run_id": "forged"}')
+    legal = _bug1124_state_fire(
+        root, state, "schema_version: 1\nrun_id: A\nrun_uid: U\n")
+    os.unlink(identity)
+    create = _bug1124_state_fire(root, identity, '{"run_id": "forged"}\n')
+    create_edit = _fire_digest_edit(
+        root, identity, "not present", '{"run_id": "forged"}')
+    return [
+        ("Write of existing witness is refused", write.returncode == 2
+         and "identity witness" in write.stderr, write.stderr),
+        ("Edit of existing witness is refused", edit.returncode == 2
+         and "identity witness" in edit.stderr, edit.stderr),
+        ("unmatched Edit of existing witness is refused",
+         unmatched_edit.returncode == 2
+         and "identity witness" in unmatched_edit.stderr, unmatched_edit.stderr),
+        ("run_uid is a legal checkpoint key beside identity witness",
+         legal.returncode == 0, legal.stderr),
+        ("Write creating false witness is refused", create.returncode == 2
+         and "identity witness" in create.stderr, create.stderr),
+        ("Edit creating false witness is refused", create_edit.returncode == 2
+         and "identity witness" in create_edit.stderr, create_edit.stderr),
+    ]
+
+
+def _bug1305_post_landing(root, state):
+    payload = {
+        "tool_name": "Write", "hook_event_name": "PostToolUse",
+        "tool_input": {"file_path": state},
+    }
+    response = fire_post(root, payload)
+    after_first = open(state, "rb").read()
+    marker_path = _bug1305_marker_path(state)
+    marker_first = open(marker_path, "rb").read() if os.path.isfile(marker_path) else b""
+    parsed = yaml.safe_load(after_first.decode("utf-8"))
+    marker_doc = json.loads(marker_first) if marker_first else {}
+    uid = parsed.get("run_uid") if isinstance(parsed, dict) else None
+    return response, payload, after_first, marker_first, marker_doc, uid
+
+
+def _bug1305_marker_post_mint_cases():
+    root, state = _bug1124_state_fixture()
+    landed = "schema_version: 1\nrun_id: A\nfeature: FEAT-S-thing\nsquad: eng\nhost: omp\n"
+    _feat50_write_text(state, landed)
+    response, payload, after_first, marker_first, marker_doc, uid = (
+        _bug1305_post_landing(root, state))
+    fire_post(root, payload)
+    marker_path = _bug1305_marker_path(state)
+    marker_second = open(marker_path, "rb").read() if os.path.isfile(marker_path) else b""
+    return [
+        ("POST mints uid and matching witness", response.returncode == 0
+         and re.fullmatch(r"[0-9a-f]{32}", str(uid or ""))
+         and marker_doc.get("run_uid") == uid, response.stderr),
+        ("second POST is byte stable", open(state, "rb").read() == after_first
+         and marker_second == marker_first and bool(marker_first), ""),
+    ]
+
+
+def _bug1305_marker_post_preservation_cases():
+    root, state = _bug1124_state_fixture()
+    explicit = "schema_version: 1\nrun_id: A\nrun_uid: fixed\n"
+    _feat50_write_text(state, explicit)
+    before = open(state, "rb").read()
+    fire_post(root, {
+        "tool_name": "Write", "hook_event_name": "PostToolUse",
+        "tool_input": {"file_path": state},
+    })
+    preserved = open(state, "rb").read() == before
+
+    root, state = _bug1124_state_fixture()
+    _feat50_write_text(state, "{")
+    fire_post(root, {
+        "tool_name": "Write", "hook_event_name": "PostToolUse",
+        "tool_input": {"file_path": state},
+    })
+    malformed = (
+        open(state, encoding="utf-8").read() == "{"
+        and not os.path.exists(_bug1305_marker_path(state)))
+    return [
+        ("POST preserves supplied uid bytes", preserved, ""),
+        ("POST leaves malformed checkpoint untouched", malformed, ""),
+    ]
+
+
+def run_bug1305_marker_cases():
+    """BUG-1305 SC-01/10: guard, seed-field precedence, and POST minting."""
+    results = (
+        _bug1305_edit_reconstruction_cases()
+        + _bug1305_nonstate_edit_reconstruction_cases()
+        + _bug1305_marker_foreign_refusals()
+        + _bug1305_marker_witness_precedence()
+        + _bug1305_marker_recovery_cases()
+        + _bug1305_marker_file_protection()
+        + _bug1305_marker_post_mint_cases()
+        + _bug1305_marker_post_preservation_cases()
+    )
+    failures = 0
+    for name, ok, detail in results:
+        if ok:
+            print(f"ok    [bug1305] {name}")
+        else:
+            failures += 1
+            print(f"FAIL  [bug1305] {name}\n      | {str(detail).strip()[:300]}")
+    print(f"\n{len(results) - failures}/{len(results)} BUG-1305 marker cases passed.")
+    return failures
+
+
+def _bug1305_identity_doc(run_id="A", run_uid=None, include_uid=True):
+    text = (
+        f"schema_version: 1\nrun_id: {run_id}\nfeature: FEAT-S-thing\n"
+        "squad: eng\nhost: omp\nstatus: building\n")
+    if include_uid and run_uid is not None:
+        text += f"run_uid: {run_uid}\n"
+    return text
+
+
+def _bug1305_write_identity_marker(state, run_id="A", run_uid="U1"):
+    marker = {
+        "run_id": run_id, "feature": "FEAT-S-thing", "squad": "eng",
+        "host": "omp", "identity": "session", "run_uid": run_uid,
+        "created_at": "2026-09-05T00:00:00+00:00",
+    }
+    with open(os.path.join(os.path.dirname(state), ".run-identity.json"),
+              "w", encoding="utf-8") as handle:
+        json.dump(marker, handle)
+
+
+def _bug1305_identity_write(prior, incoming, marker=False, session_id=None):
+    root, state = _bug1124_state_fixture()
+    if prior is not None:
+        _feat50_write_text(state, prior)
+    if marker:
+        _bug1305_write_identity_marker(state)
+    payload = {"tool_name": "Write",
+               "tool_input": {"file_path": state, "content": incoming}}
+    if session_id is not None:
+        payload["session_id"] = session_id
+    return subprocess.run(
+        [HOOK], input=json.dumps(payload), capture_output=True, text=True,
+        env=_env(root))
+
+
+def _bug1305_identity_edit(new_string=""):
+    root, state = _bug1124_state_fixture()
+    _feat50_write_text(state, _bug1305_identity_doc(run_uid="U1"))
+    payload = {
+        "tool_name": "Edit",
+        "tool_input": {
+            "file_path": state, "old_string": "run_uid: U1\n", "new_string": new_string,
+        },
+    }
+    return subprocess.run(
+        [HOOK], input=json.dumps(payload), capture_output=True, text=True,
+        env=_env(root))
+
+
+def _bug1305_identity_refusal_cases():
+    prior = _bug1305_identity_doc(run_uid="U1")
+    missing = _bug1305_identity_write(
+        prior, _bug1305_identity_doc(include_uid=False))
+    edit = _bug1305_identity_edit()
+    different_edit = _bug1305_identity_edit("run_uid: U2\n")
+    different = _bug1305_identity_write(
+        prior, _bug1305_identity_doc(run_uid="U2"))
+    precedence = _bug1305_identity_write(
+        prior, _bug1305_identity_doc(run_id="B", run_uid="U1"), marker=True)
+    return [
+        ("modal collision Write omitting uid is refused",
+         missing.returncode == 2 and "U1" in missing.stderr
+         and "run identity" in missing.stderr and "field disagreement" not in missing.stderr,
+         missing.stderr),
+        ("modal collision Edit removing uid is refused",
+         edit.returncode == 2 and "U1" in edit.stderr
+         and "run identity" in edit.stderr
+         and "field disagreement" not in edit.stderr, edit.stderr),
+        ("different minted uid is refused",
+         different.returncode == 2 and "U1" in different.stderr
+         and "U2" in different.stderr, different.stderr),
+        ("different minted uid Edit is refused",
+         different_edit.returncode == 2 and "U1" in different_edit.stderr
+         and "U2" in different_edit.stderr, different_edit.stderr),
+        ("run_id disagreement keeps Issue 1124 precedence",
+         precedence.returncode == 2 and "Issue #1124" in precedence.stderr
+         and "Issue 1305" not in precedence.stderr, precedence.stderr),
+    ]
+
+
+def _bug1305_identity_allow_cases():
+    prior = _bug1305_identity_doc(run_uid="U1")
+    incoming = _bug1305_identity_doc(run_uid="U1")
+    resumed = _bug1305_identity_write(prior, incoming, session_id="S2")
+    # D-01 forbids session-keyed ownership: this same-uid S2 update catches it.
+    absent = _bug1305_identity_write(
+        None, _bug1305_identity_doc(include_uid=False), marker=True)
+    zeroed = _bug1305_identity_write(
+        "", _bug1305_identity_doc(include_uid=False), marker=True)
+    legacy = _bug1305_identity_doc(include_uid=False)
+    legacy_same = _bug1305_identity_write(legacy, legacy)
+    legacy_new = _bug1305_identity_write(
+        legacy, _bug1305_identity_doc(run_uid="U2"))
+    return [
+        ("DEC-154 resumed owner with same uid remains allowed across sessions",
+         resumed.returncode == 0, resumed.stderr),
+        ("recovering owner with absent checkpoint remains allowed",
+         absent.returncode == 0, absent.stderr),
+        ("recovering owner with zero-byte checkpoint remains allowed",
+         zeroed.returncode == 0, zeroed.stderr),
+        ("legacy checkpoint without uid remains allowed",
+         legacy_same.returncode == 0, legacy_same.stderr),
+        ("legacy checkpoint accepts incoming uid",
+         legacy_new.returncode == 0, legacy_new.stderr),
+    ]
+
+
+def run_bug1305_identity_cases():
+    """BUG-1305 SC-01: prior checkpoint uid owns resumed-write admission."""
+    results = _bug1305_identity_refusal_cases() + _bug1305_identity_allow_cases()
+    failures = 0
+    for name, ok, detail in results:
+        if ok:
+            print(f"ok    [bug1305-identity] {name}")
+        else:
+            failures += 1
+            print(f"FAIL  [bug1305-identity] {name}\n      | {str(detail).strip()[:300]}")
+    print(f"\n{len(results) - failures}/{len(results)} BUG-1305 identity cases passed.")
+    return failures
+
+
+def run_bug1305_cases():
+    return (
+        run_bug1305_digest_repair_cases()
+        + run_bug1305_marker_cases()
+        + run_bug1305_identity_cases()
+    )
+
+
 def main():
     fails = 0
     for name, path, want, agent, tool in CASES:
@@ -4709,7 +5228,7 @@ def main():
     fails += run_handoff_done_when()
     fails += run_b2_cwd_independence()
     fails += run_bug1304_claim_set()
-    return fails
+    return fails + run_bug1305_cases()
 
 
 if __name__ == "__main__":

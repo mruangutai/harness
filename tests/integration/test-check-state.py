@@ -4499,6 +4499,122 @@ def case_inv35_hyphenated_key_block_scalar_is_exempt():
 
 
 
+def _bug1305_invariant_scaffold(tmp):
+    subprocess.run(["git", "init", "-q"], cwd=tmp, check=True, capture_output=True)
+    h = os.path.join(tmp, ".harness")
+    os.makedirs(h, exist_ok=True)
+    with open(os.path.join(h, "harness.json"), "w") as fh:
+        json.dump({
+            "github": {"sync": False, "repo": None},
+            "panel_era_start": None,
+            "budgets": {"max_total_runs": 20, "max_total_cycles": 20},
+        }, fh)
+    fleet_dir = os.path.join(h, "factory")
+    os.makedirs(fleet_dir, exist_ok=True)
+    with open(os.path.join(fleet_dir, "fleet.yaml"), "w") as fh:
+        fh.write("schema: factory-fleet/1\nrepos:\n"
+                 "  - name: example/harness\n    default_branch: main\n"
+                 f"workspace_root: {tmp}/fleet\n")
+    shutil.copy2(
+        os.path.join(_anchor_root, ".harness", "team-config.yaml"),
+        os.path.join(h, "team-config.yaml"))
+    fixture_agents = os.path.join(tmp, ".agents", "skills", "harness")
+    os.makedirs(fixture_agents, exist_ok=True)
+    os.symlink(_anchor_bin, os.path.join(fixture_agents, "bin"))
+    docs_dir = os.path.join(h, "harness", "docs")
+    os.makedirs(docs_dir, exist_ok=True)
+    shutil.copy2(
+        os.path.join(_anchor_root, ".harness", "harness", "docs", "SPEC.md"),
+        os.path.join(docs_dir, "SPEC.md"))
+    return h
+
+
+def _bug1305_invariant_feature(tmp, h, names):
+    fdir = os.path.join(h, "harness", "features", "FEAT-TEST")
+    os.makedirs(fdir, exist_ok=True)
+    with open(os.path.join(fdir, "plan.yaml"), "w") as fh:
+        fh.write("schema: plan/1\nfeature: FEAT-TEST\nstatus: plan\n"
+                 "station_only: true\ntasks: []\n")
+    with open(os.path.join(fdir, "feature.json"), "w") as fh:
+        fh.write("feature_id: FEAT-TEST\nreview_sha: none\ncycles_used: 0\nruns:\n")
+        for name in names:
+            fh.write(f"  - id: {name}\n    squad: product\n    verdict: PASS\n")
+    settings_src = os.path.join(
+        os.path.dirname(os.path.realpath(__file__)), "..", "..",
+        ".claude", "settings.json")
+    settings_dst = os.path.join(tmp, ".claude", "settings.json")
+    os.makedirs(os.path.dirname(settings_dst), exist_ok=True)
+    shutil.copy2(settings_src, settings_dst)
+    hooks_dir = os.path.join(tmp, _HOOKS_REL_T)
+    os.makedirs(hooks_dir, exist_ok=True)
+    post_merge = os.path.join(hooks_dir, "post-merge")
+    with open(post_merge, "w") as fh:
+        fh.write("#!/usr/bin/env bash\nexit 0\n")
+    os.chmod(post_merge, 0o755)
+    subprocess.run(
+        ["git", "config", "core.hooksPath", _HOOKS_REL_T],
+        cwd=tmp, check=True, capture_output=True)
+    return fdir
+
+
+def case_bug1305_run_identity_invariant():
+    """BUG-1305 SC-02/03/09: report clobbers and remain silent for owned/legacy runs."""
+    def build(tmp, names):
+        h = _bug1305_invariant_scaffold(tmp)
+        return _bug1305_invariant_feature(tmp, h, names)
+
+    def write_run(fdir, name, state, marker=None):
+        rdir = os.path.join(fdir, "runs", name)
+        os.makedirs(rdir, exist_ok=True)
+        with open(os.path.join(rdir, "state.yaml"), "w") as fh:
+            fh.write(state)
+        if marker is not None:
+            with open(os.path.join(rdir, ".run-identity.json"), "w") as fh:
+                if isinstance(marker, str):
+                    fh.write(marker)
+                else:
+                    json.dump(marker, fh)
+
+    base = {"feature": "FEAT-TEST", "squad": "product", "host": "omp",
+            "identity": "session", "created_at": "2026-09-05T00:00:00+00:00"}
+    with tempfile.TemporaryDirectory() as tmp:
+        names = ["X", "V", "Y", "Z", "L", "W"]
+        fdir = build(tmp, names)
+        write_run(fdir, "X", "run_id: B\nfeature: FEAT-TEST\nsquad: product\nhost: omp\n",
+                  {**base, "run_id": "A", "run_uid": None})
+        write_run(fdir, "V", "run_id: V\nfeature: FEAT-TEST\nsquad: product\nhost: omp\nrun_uid: U2\n",
+                  {**base, "run_id": "V", "run_uid": "U1"})
+        write_run(fdir, "Y", "run_id: Y\nfeature: FEAT-TEST\nsquad: product\nhost: omp\nrun_uid: SAME\n",
+                  {**base, "run_id": "Y", "run_uid": "SAME"})
+        write_run(fdir, "Z", "run_id: Z\nfeature: FEAT-TEST\nsquad: product\nhost: omp\n")
+        write_run(fdir, "L", "run_id: L\nfeature: FEAT-TEST\nsquad: product\nhost: omp\n",
+                  {**base, "run_id": "L", "run_uid": "OLD"})
+        write_run(fdir, "W", "run_id: W\nfeature: FEAT-TEST\nsquad: product\nhost: omp\n", "{")
+        code, out = run(tmp)
+        lines = [line for line in out.splitlines() if "INV-36" in line]
+        joined = "\n".join(lines)
+        bad_tree_ok = (code == 1 and len(lines) == 3 and all(x in joined for x in
+                       ("runs/X", "'A'", "'B'", "runs/V", "'U1'", "'U2'", "runs/W",
+                        "cannot be read")) and "non-checkpoint top-level key" not in joined)
+
+    with tempfile.TemporaryDirectory() as tmp:
+        names = ["Y", "Z", "L"]
+        fdir = build(tmp, names)
+        write_run(fdir, "Y", "run_id: Y\nfeature: FEAT-TEST\nsquad: product\nhost: omp\nrun_uid: SAME\n",
+                  {**base, "run_id": "Y", "run_uid": "SAME"})
+        write_run(fdir, "Z", "run_id: Z\nfeature: FEAT-TEST\nsquad: product\nhost: omp\n")
+        write_run(fdir, "L", "run_id: L\nfeature: FEAT-TEST\nsquad: product\nhost: omp\n",
+                  {**base, "run_id": "L", "run_uid": "OLD"})
+        clean_code, clean_out = run(tmp)
+        clean_ok = clean_code == 0 and "INV-36" not in clean_out
+
+    ok = bad_tree_ok and clean_ok
+    print(f"{'ok' if ok else 'FAIL'} - BUG-1305 INV-36 detects clobbers and stays silent on owned/legacy runs")
+    if not ok:
+        print(f"        bad_ok={bad_tree_ok}; clean exit={clean_code}; clean violations={[line for line in clean_out.splitlines() if 'VIOLATION' in line]}")
+    return ok
+
+
 def main():
     ok_a, code_a = case_a()
     ok_b, code_b = case_b()
@@ -4648,6 +4764,7 @@ def main():
         case_inv6_producer_is_documented(),
     ])
     ok_feat54_done_when = case_feat54_done_when()
+    ok_bug1305 = case_bug1305_run_identity_invariant()
 
     ok_exit_unchanged = code_a == code_b
     print(
@@ -4661,7 +4778,7 @@ def main():
             and ok_i28g and ok_i28h
             and ok_i29 and ok_i30 and ok_i31 and ok_i32 and ok_i32_severity
             and ok_i32_era and ok_i6_plan and ok_feat54_done_when
-            and ok_i33
+            and ok_bug1305 and ok_i33
             and ok_i34
             and ok_i35
             and ok_exit_unchanged):
