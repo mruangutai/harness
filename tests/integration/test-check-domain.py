@@ -95,6 +95,7 @@ case("the pre-move docs path is REFUSED after the migration",
 # These use a FIXTURE repo rather than the live one, so a malformed manifest can be
 # exercised without touching the manifest that governs this session.
 
+import errno
 import shutil
 import tempfile
 import time
@@ -1040,6 +1041,39 @@ def _legal_feature_json(nlines):
     return "\n".join(body + [""] * max(0, nlines - len(body))) + "\n"
 
 
+def _write_while_sweep_reads_fifo(root, payload, fifo_path, mid_write):
+    """Block the sweep after its start mark, then perform one write it already walked past."""
+    process = subprocess.Popen(
+        [HOOK, "--post"], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE, text=True, env=_env(root))
+    process.stdin.write(json.dumps(payload))
+    process.stdin.close()
+    process.stdin = None
+    writer = None
+    deadline = time.monotonic() + 30
+    try:
+        while writer is None:
+            try:
+                writer = os.open(fifo_path, os.O_WRONLY | os.O_NONBLOCK)
+            except OSError as error:
+                if error.errno != errno.ENXIO:
+                    raise
+                if process.poll() is not None or time.monotonic() >= deadline:
+                    raise RuntimeError("sweep never opened the FIFO — sync premise broke")
+                time.sleep(0.005)
+        os.unlink(fifo_path)
+        mid_write()
+        os.close(writer)
+        writer = None
+        return process.communicate(timeout=30)
+    finally:
+        if writer is not None:
+            os.close(writer)
+        if process.poll() is None:
+            process.kill()
+            process.communicate()
+
+
 def run_post():
     d = fixture(FIXTURE_MANIFEST)
     fdir = os.path.join(d, ".harness", "harness", "features", "FEAT-X")
@@ -1316,55 +1350,41 @@ def run_post():
     post("the same file, freshly touched, IS found",
          r.returncode == 2 and "budget is 300" in r.stderr, f"exit {r.returncode}")
 
-    # --- THE RACE, ASSERTED AS A PROPERTY (review HIGH-1). Round 2's stamp advanced to the
-    # moment the sweep FINISHED, so a file another agent wrote DURING the walk landed before
-    # the new mark and was reported by nobody — reproduced 40/40 at a 40 ms offset, and
-    # PERMANENT, because the stamp is global and shared. Worse than the repeat-reporting it
-    # replaced.
-    #
-    # A first draft of this case tried to stage the race with a backdated mtime and PASSED
-    # AGAINST THE DEFECT — the backdate was relative to the previous sweep's mark, which is
-    # exactly the quantity the bug moves, so both versions found the file. Assert the
-    # invariant itself instead: THE MARK IS THE SWEEP'S START. Padding makes the walk long
-    # enough that start and finish are far apart, which is what gives the assertion teeth.
-    _pad = os.path.join(fdir, "runs")
-    for _i in range(800):
-        _rd = os.path.join(_pad, f"pad{_i}")
-        os.makedirs(_rd, exist_ok=True)
-        with open(os.path.join(_rd, "state.yaml"), "w") as f:
-            f.write("schema_version: 1\nrun_id: pad\nstatus: complete\n")
+    # --- THE RACE, ASSERTED AS ORDERED BEHAVIOUR (review HIGH-1). A FIFO under the
+    # runs/state.yaml glob blocks the sweep after `_now` was captured. feature.json is
+    # globbed earlier, so writing it while the FIFO is open is provably mid-walk and too
+    # late for this pass. A start-stamped sweep must find it on the NEXT pass; an
+    # end-stamped sweep advances beyond the write and loses it permanently.
     write(10)
     fire_post(d, bash_payload)                        # settle: nothing fresh
-
-    # INTERPRETER START-UP IS MEASURED AND SUBTRACTED, because it dominates. `_now` is
-    # captured inside the Python body, so wall-clock from process launch to the stamp
-    # includes ~38 ms of start-up that has nothing to do with the walk. A first draft
-    # compared the mark against total process time and FAILED on correct code, reporting a
-    # 37 ms offset against a 53 ms total — measuring start-up, not the race window.
-    _t0i = time.time()
-    fire_post(d, bash_payload)                        # idle: start-up only
-    _idle = time.time() - _t0i
-
-    for _i in range(800):                             # make every pad file fresh again
-        os.utime(os.path.join(_pad, f"pad{_i}", "state.yaml"), None)
-    _t0 = time.time()
-    fire_post(d, bash_payload)
-    _loaded = time.time() - _t0
-    _mark = os.stat(os.path.join(d, ".harness", ".shape-sweep-stamp")).st_mtime
-    _walk = _loaded - _idle                           # the part that is actually the sweep
-    _offset = _mark - _t0                             # where the mark landed in the process
-    # Start-stamping puts the mark at ~_idle; end-stamping puts it at ~_idle + _walk.
-    # IS THE MARK NEARER THE START OF THE WALK OR ITS END? A fixed threshold discriminated
-    # by one millisecond and was luck, not a test; this compares the two hypotheses directly.
-    ok_mark = _walk > 0.015 and abs(_offset - _idle) < abs(_offset - _loaded)
-    post("the mark records the sweep's START, not its finish (the race window)",
-         ok_mark,
-         f"start-up {_idle*1000:.0f} ms, walk {_walk*1000:.0f} ms, mark at "
-         f"{_offset*1000:.0f} ms — distance to start {abs(_offset-_idle)*1000:.0f} ms vs "
-         f"to finish {abs(_offset-_loaded)*1000:.0f} ms (a walk under 15 ms means the case "
-         f"proved nothing and fails on purpose)")
-    for _i in range(800):
-        shutil.rmtree(os.path.join(_pad, f"pad{_i}"), ignore_errors=True)
+    fifo_dir = os.path.join(fdir, "runs", "fifo")
+    fifo_path = os.path.join(fifo_dir, "state.yaml")
+    os.makedirs(fifo_dir, exist_ok=True)
+    os.mkfifo(fifo_path)
+    sync_error = ""
+    blocked_stderr = ""
+    try:
+        _stdout, blocked_stderr = _write_while_sweep_reads_fifo(
+            d, bash_payload, fifo_path, lambda: write(400))
+    except (OSError, RuntimeError, subprocess.TimeoutExpired) as error:
+        sync_error = str(error)
+    finally:
+        if os.path.exists(fifo_path):
+            os.remove(fifo_path)
+        os.rmdir(fifo_dir)
+    following = fire_post(d, bash_payload)
+    kept_visible = (
+        not sync_error
+        and "budget is 300" not in blocked_stderr
+        and following.returncode == 2
+        and "budget is 300" in following.stderr
+        and rel_fy in following.stderr
+    )
+    post("a write made during the sweep remains visible to the next sweep",
+         kept_visible,
+         sync_error or
+         f"blocked sweep stderr={blocked_stderr[:120]!r}; next exit "
+         f"{following.returncode}: {following.stderr[:160]!r}")
 
     # --- AN UNREADABLE CANDIDATE MUST NOT ADVANCE THE MARK PAST ITSELF, or a transient
     # permission blip becomes a permanent blind spot by the same mechanism.
