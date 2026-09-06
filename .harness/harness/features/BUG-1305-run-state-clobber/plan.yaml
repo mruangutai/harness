@@ -1,8 +1,27 @@
 schema: plan/1
 feature: BUG-1305-run-state-clobber
-status: plan
+status: ready
 approval:
-  status: pending
+  date: '2026-09-05'
+  approved_by: operator
+  status: approved
+  rulings:
+    - finding: PF-bf3d1974a749f7eaf7f59ecc803ee540
+      who: operator
+      date: '2026-09-05'
+      reason: The contradictory constraint is corrected before signature; the full unit and integration regression suites are necessary to prove the enforcement change preserves existing refusals.
+    - finding: PF-fb4e9fcf23478184b4625b9fb861e01d
+      who: operator
+      date: '2026-09-05'
+      reason: The plan explicitly discloses that hook delivery is a host assumption not continuously reverified by INV-9; accept that residual rather than inventing an in-repo proof of host behavior.
+    - finding: PF-e6f741cb180ce67ce67a5502a49fcd90
+      who: operator
+      date: '2026-09-05'
+      reason: Keep the NotebookEdit probe because it measures an independent host property and is the evidence for the signed NotebookEdit residual in REQ-01 and SC-11.
+    - finding: PF-195f75a329d8acda7fc24810f62b0bee
+      who: operator
+      date: '2026-09-05'
+      reason: Keep the witness because it detects legacy or corrupt run-state clobbering that run_uid alone cannot, and keep Mode B because the source issue and B-11 explicitly include it.
 source_issues: [1305]
 
 lanes:
@@ -62,16 +81,16 @@ decisions:
     because: "DEC-208 ruling 3 signs that a recorded digest is extended and never replaced, and the diagnosis probe measured an append Edit at exit 0 on the pre-change tree"
     dec: DEC-208
   - id: D-04
-    choice: 'DEC-208 ruling 3''s scope sentence (the rule reaches the Write route only and an Edit reaches no enforcement point) is measured false, and whether this feature amends it is REPORTED FOR THE OPERATOR''S RULING AT SIGNATURE rather than settled by the plan: the two options carried up are (a) amend that entry''s scope sentence in a separate, operator-authorised act, or (b) knowingly leave the false clause standing. Neither this squad nor the orchestrator chooses; REQ-06''s correction of check-domain.sh''s own inline comment is in scope either way and is a statement about the code, not about the decision record.'
-    because: "amending the text of a signed decision is the operator's act, and the correction of check-domain.sh's own inline comment under REQ-06 is a separate, in-scope statement about the code"
+    choice: "The operator authorises a separate DEC-205 in-place rewrite of DEC-208 ruling 3's false Write-only scope sentence to the measured Write/Edit truth. REQ-06 separately corrects check-domain.sh's own inline comment."
+    because: "live check-domain.sh reconstructs Edit content for run digests and applies the preservation rule; leaving a measured-false present-tense decision would contradict DEC-205"
     dec: DEC-208
   - id: D-05
     choice: "This feature touches validate-digest.py's check_artifact_file root resolution and fail-closed behaviour only; issue 1303 owns the code_grade and review_sha binding in the same file."
     because: "the two flows edit one file in separate worktrees and may collide at merge, which the main session serialises; neither depends on nor blocks the other"
     dec: none
   - id: D-06
-    choice: "The run-directory slug grammar is unified on the harness-team date-seq form, and that choice is carried to the operator's signature rather than taken by the plan."
-    because: "DEC-145 and harness-team/SKILL.md prescribe different grammars and neither is canonical, so unifying them supersedes part of a signed decision"
+    choice: "The operator DECLINED run-directory slug unification at signature. T-07, REQ-08 and SC-08 are retired; both grammars remain live and run_uid refusal absorbs equal-slug collisions."
+    because: "the change affects collision frequency rather than correctness, and the proposed supersession mechanics contradict DEC-205's in-place current-truth rule"
     dec: DEC-145
   - id: D-07
     choice: "No task in this plan reads, parses or asserts run-directory slug internals; every remedy keys on recorded run identity."
@@ -227,9 +246,8 @@ panel:
       collision is refused under either grammar, so the date-seq form buys collision
       frequency only while building it bundles a DEC-145 supersession into a bug-fix
       signature.'
-    disposition: open
-    note: A recommendation to exercise a strike the plan already carries as a priced
-      choice (D-06/REQ-08/SC-08/T-07), not a defect. The operator's to take or decline.
+    disposition: resolved
+    note: "Resolved at signature by striking T-07/REQ-08/SC-08. The frequency-only benefit does not justify the work, and its proposed supersession mechanics contradict DEC-205."
   - id: PF-6ddc77fdccacdc40c5e46142c6fac560
     rank: 7
     severity: low
@@ -939,56 +957,27 @@ tasks:
       does not yet exist.
 
   - id: T-07
-    title: Unify the run-directory slug grammar on the date-seq form
-    traces:
-    - REQ-08
+    title: RETIRED - run-directory slug grammar unification
+    traces: []
     change_type: docs
     execution_mode: main-session-direct
-    execution_reason: "ungranted surface plus an operator act - check-domain.sh --resolve answers NOBODY for both SKILL.md files at c369fb1f, and superseding part of a signed decision is the main session's write"
+    execution_reason: "signature-time strike: frequency-only scope whose proposed supersession mechanics contradict DEC-205"
     depends_on: []
-    status: ready
+    status: abandoned
     files:
       - .claude/skills/harness/SKILL.md
       - .claude/skills/harness-team/SKILL.md
       - .harness/harness/docs/DECISIONS.md
       - .harness/harness/docs/DECISIONS-INDEX.md
     verify: |
-      grep -q 'seq>-<squad>' .claude/skills/harness/SKILL.md && ! grep -rq 'task-or-purpose' .claude/skills/harness/SKILL.md .claude/skills/harness-team/SKILL.md && python3 .claude/skills/harness/bin/check-decision-anchors.py
+      true
     intent: |
-      THIS TASK CARRIES A CHOICE TO THE OPERATOR'S SIGNATURE. It is D-06, and the operator approving
-      this plan is what authorises it. Do not execute it on any other authority.
-
-      Two documents prescribe different run-directory slug grammars and neither is canonical:
-      .claude/skills/harness/SKILL.md:272-274 says name run dirs `<task-or-purpose>-<squad>`, and
-      .claude/skills/harness-team/SKILL.md:45 says `runs/<YYYY-MM-DD>-<seq>-<squad>/`. DEC-145
-      (DECISIONS.md:3242-3243 at c369fb1f - re-derive the line before editing) is the only DECISIONS
-      entry that rules on this, and it prescribes the purpose-squad form in one incidental sentence.
-
-      Unify on the date-seq form, because it is the only one of the two with a per-cycle
-      discriminator built into the name, and the purpose-squad form structurally invites two cycles
-      sharing a purpose to share a directory - the collision this bug is about. Both forms end in
-      `-<squad>`, which is what the lead's domain glob keys on, so nothing that reads run directories
-      changes.
-
-      Edits:
-        - .claude/skills/harness/SKILL.md:272-274: replace the purpose-squad prescription with the
-          date-seq one, keeping the existing two clauses that the squad suffix is what the domain
-          glob keys on and that the feature id is never embedded. Give one example in the new form.
-        - .claude/skills/harness-team/SKILL.md: leave :45 as it is - it already carries the surviving
-          grammar - and check the rest of the file for any second spelling, correcting it if present.
-        - .harness/harness/docs/DECISIONS.md: add a new entry that supersedes DEC-145's run-directory
-          slug sentence and only that sentence, recording the grammar, the reason above, and that
-          no migration of existing run directories follows because no mechanism parses a slug
-          (D-07). DEC-145's own text stays as written: an entry is superseded, never rewritten.
-        - regenerate .harness/harness/docs/DECISIONS-INDEX.md with
-          `python3 .claude/skills/harness/bin/gen-decisions-index.py`, and hand-write the new row's
-          ` :: <ruling>` tail, which the generator does not produce. Regeneration alone shifts every
-          later row's source line, so the index must be regenerated even where no other text
-          changed.
-
-      NO MECHANISM CHANGE BELONGS IN THIS TASK. Nothing in this plan reads a slug (D-07), so this is
-      doctrine only. If you find live tooling that parses a run-directory slug, stop and report it as
-      an open question instead of widening this task.
+      DO NOT EXECUTE THIS TASK. It is retired in place at signature. With REQ-01's minted
+      run_uid, an equal-slug collision is refused under either live grammar, so unification
+      changes frequency rather than correctness. The original task also required a new entry
+      to supersede DEC-145 while leaving its old sentence standing, which directly contradicts
+      DEC-205: current truth is rewritten in place and supersession is deletion. Both grammars
+      remain live. No mechanism in this plan parses slug internals, so no other task changes.
 
   - id: T-08
     title: Prove no existing refusal was traded away

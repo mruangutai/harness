@@ -191,16 +191,11 @@ than freezing a defect into it.
   refuses the very writes it was built to protect can otherwise ship with every gate green. Tagged
   to both modes because the two remedies land on the same guard scripts and the same write routes,
   so each one's change is the other's regression risk.
-- **REQ-08 (doctrine — one run-directory slug grammar):** The harness prescribes exactly one
-  run-directory naming grammar. Today two documents prescribe different ones and a reader following
-  either is following the harness; the purpose-squad form has no per-cycle discriminator, which is
-  the shape of the collision Mode A is about. **Deliberately its own requirement so it can be struck
-  at signature — and here is what striking it costs.** With REQ-01's minted identity in place the
-  grammar is no longer a correctness lever: an equal-slug collision is REFUSED whether or not the
-  slug carries a date and a sequence. What the date-seq form buys is collision FREQUENCY — two cycles
-  sharing a purpose stop landing on the same directory name in the first place, so the refusal fires
-  rarely rather than routinely. Striking REQ-08 leaves both grammars live and makes the refusal a
-  more common event for the operator to see; it does not reopen the defect.
+- **REQ-08 — STRUCK at signature:** Run-directory slug unification is not part of this bug fix.
+  With REQ-01's minted identity, equal-slug collisions are refused under either live grammar, so
+  grammar unification changes collision frequency rather than correctness. The proposed
+  supersession mechanism also contradicts DEC-205, which requires an in-place rewrite of current
+  truth. Both grammars remain live; a later doctrine change may reconcile them under DEC-205.
 
 ## Constraints
 
@@ -227,21 +222,15 @@ than freezing a defect into it.
   is a criterion — SC-02 standing on its own — not the task graph. (This is DEC-171. It is *not*
   DEC-154, which rules that `state.yaml` is a checkpoint
   rather than a notebook — a different subject.)
-- **DEC-208 ruling 3 (bounds REQ-05, and carries one live choice to you).** A recorded run digest is
-  extended, never replaced. That rule stands and bounds REQ-05. Separately: that entry's own scope
-  sentence says the rule reaches the Write route only and that an Edit "reaches no enforcement
-  point", which this feature's diagnosis measured to be false — the Edit route is content-checked.
-  **The plan does not settle this and may not (D-04). It is your choice at signature: either amend
-  that scope sentence in a separate, authorised act, or knowingly leave the false clause standing in
-  the decision record.** REQ-06's correction of `check-domain.sh`'s own inline comment is in scope
-  either way — it is a statement about the code, not about the decision record.
-- **DEC-145 (this feature proposes to supersede it IN PART — only your signature authorises that).**
-  DEC-145 prescribes the `<purpose>-<squad>` run-directory grammar in one incidental sentence
-  (`DECISIONS.md:3242-3243` at c369fb1f), while `harness-team/SKILL.md:45` prescribes
-  `<YYYY-MM-DD>-<seq>-<squad>`. REQ-08 unifies them on the date-seq form, which supersedes that one
-  sentence of a signed decision and nothing else in it; DEC-145's own text is superseded, never
-  rewritten. Approving this brief authorises that supersession; striking REQ-08 declines it and
-  leaves both grammars live.
+- **DEC-208 ruling 3 (bounds REQ-05, corrected at signature).** A recorded run digest is extended,
+  never replaced. Its former Write-only scope sentence was measured false: check-domain reconstructs
+  Edit content and applies the same preservation rule. The operator authorized DEC-205's in-place
+  correction to state the current Write/Edit truth. REQ-06 separately corrects the gate's own stale
+  inline comment.
+- **DEC-145 (unchanged).** The operator declined the proposed run-directory grammar unification at
+  signature. DEC-145's purpose-squad sentence and harness-team's date-seq form both remain live;
+  REQ-01's `run_uid` refusal absorbs an equal-slug collision. No decision is superseded or rewritten
+  by this feature.
 - **DEC-213 (supplies).** Harness tests live under `tests/unit/**` and `tests/integration/**`, and
   the directory selects the kind.
 
@@ -251,7 +240,7 @@ than freezing a defect into it.
   `validate-digest.py` demanding `code_grade` and rejecting every value while `review_sha` is
   unpinned — belongs to #1303, not here**, even though `validate-digest.py` is also named in this
   diagnosis. That overlap is precisely the route by which scope would leak.
-- Focused tests only. No formatter, no linter, no build, no project-wide suite.
+- Focused tests drive implementation; after they pass, run the project-wide unit and integration suites to prove no existing refusal was traded away. No formatter, linter, or build.
 - Existing unrelated working-tree changes remain untouched.
 
 **Evidence that no longer exists:**
@@ -389,18 +378,9 @@ on the pre-change tree**, so a criterion cannot be met by an assertion that was 
   either suite; or the note's BLUF states that a refusal holding at `c369fb1f` no longer holds, or
   that a write permitted at `c369fb1f` is now refused other than the disclosed dropped-`run_uid` one.
   verify: inspection
-- **SC-08 (doctrine — one grammar, and the supersession is recorded):** Read at the pinned review
-  sha, the two documents T-07 changes prescribe exactly one run-directory slug grammar between them:
-  `git show REVIEW_SHA:.claude/skills/harness/SKILL.md` and
-  `git show REVIEW_SHA:.claude/skills/harness-team/SKILL.md` both prescribe the
-  `<YYYY-MM-DD>-<seq>-<squad>` form and neither prescribes the purpose-squad form; and
-  `git show REVIEW_SHA:.harness/harness/docs/DECISIONS.md` carries an entry that supersedes DEC-145's
-  run-directory sentence and only that sentence, with `DECISIONS-INDEX.md` regenerated to match.
-  **DEC-145's own purpose-squad sentence still standing in `DECISIONS.md` is not a failure — it is
-  the design:** an entry is superseded, never rewritten, so the decision record keeps both the old
-  ruling and the one that overrides it. Fails if either SKILL.md still prescribes the purpose-squad
-  form, if no superseding entry exists, or if DEC-145's own text was rewritten rather than superseded.
-  verify: inspection
+- **SC-08 — RETIRED with struck REQ-08:** No grammar-unification artifact is required. This
+  criterion is retained only to record the signature decision: the change was frequency-only and
+  its proposed supersession mechanics contradicted DEC-205.
 - **SC-09 (Mode A — detection is self-limiting, so nothing historical can redden it):** The new
   invariant judges a run directory only where a WITNESS sits beside the checkpoint. That is the
   whole of the limit, and it covers every path the checker reports: an unreadable witness, a
@@ -477,6 +457,6 @@ on the pre-change tree**, so a criterion cannot be met by an assertion that was 
 
 ## Approval
 
-status: pending
-approved-by:
-date:
+status: approved
+approved-by: operator
+date: 2026-09-05
