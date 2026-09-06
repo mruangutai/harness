@@ -159,6 +159,18 @@
       "squad": "product",
       "verdict": "FAIL",
       "agent": "harness-product-lead"
+    },
+    {
+      "id": "review-c4-validator",
+      "squad": "validator",
+      "verdict": "PASS",
+      "agent": "harness-validator-lead"
+    },
+    {
+      "id": "goalcheck-build-c4-product",
+      "squad": "product",
+      "verdict": "ESCALATE",
+      "agent": "harness-product-lead"
     }
   ],
   "github": {
