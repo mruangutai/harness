@@ -3,7 +3,7 @@
   "branch": "feat/BUG-1305-run-state-clobber",
   "pr": null,
   "review_sha": "5ed929bd",
-  "cycles_used": 14,
+  "cycles_used": 15,
   "max_total_cycles": 15,
   "runs": [
     {
@@ -146,6 +146,18 @@
       "id": "goalcheck-build-c2-product",
       "squad": "product",
       "verdict": "PASS",
+      "agent": "harness-product-lead"
+    },
+    {
+      "id": "review-c3-validator",
+      "squad": "validator",
+      "verdict": "FAIL",
+      "agent": "harness-validator-lead"
+    },
+    {
+      "id": "goalcheck-build-c3-product",
+      "squad": "product",
+      "verdict": "FAIL",
       "agent": "harness-product-lead"
     }
   ],
