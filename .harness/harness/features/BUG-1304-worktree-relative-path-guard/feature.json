@@ -126,6 +126,18 @@
       "squad": "product",
       "verdict": "FAIL",
       "agent": "harness-product-lead"
+    },
+    {
+      "id": "panel-c2-validator",
+      "squad": "validator",
+      "verdict": "PASS",
+      "agent": "harness-validator-lead"
+    },
+    {
+      "id": "goalcheck-validate-c2-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead"
     }
   ],
   "github": {

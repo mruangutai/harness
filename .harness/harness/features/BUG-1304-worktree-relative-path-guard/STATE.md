@@ -3,90 +3,80 @@
 ## Current
 
 - feature: BUG-1304-worktree-relative-path-guard
-- run: main-session-direct build, orchestrated by BuildBug1304 — COMPLETE
-- squad: none for the tasks; validator ran the qa gate, eng ran SIMPLIFY, both once, both PASS
-- status: review — build phase closed, review-ready, awaiting the validation panel
+- run: validate phase COMPLETE, orchestrated by BuildBug1304
+- squad: validator (panel c1, c2 + qa gate), product (goal-check c1, c2), eng (SIMPLIFY)
+- status: review — every gate passed, ship-ready, awaiting the operator's ship decision
 
-BUILD IS COMPLETE AND REVIEW-READY. plan.yaml station `review`; all nine live tasks `done`; T-08
-`abandoned` (struck, its defect owned by #1341). `review_sha` pinned at `af5ddd7a`, the station
-commit — a pin must both CONTAIN the work and not predate the station write, and INV-6 reported the
-earlier `6dd081a1` pin stale the moment plan.yaml moved. `check-state.sh` exits 0 with ZERO
-violations. `run-unit-tests.sh --kind all` exits 0 with 0 `^FAIL ` and 73 files discovered — the
-SAME 73 as the pre-build baseline, so the green is not a discovery collapse.
+VALIDATE IS CLOSED AND THE FEATURE IS SHIP-READY at `review_sha` **c5869301**. Panel PASS with
+`must_fix: []` and `severity_max: med`; goal-check PASS with all TWELVE criteria met; blocking qa
+gate PASS; SIMPLIFY PASS and empty; `check-state.sh` exit 0, zero violations; `run-unit-tests.sh
+--kind all` exit 0, 0 `^FAIL `, 73 files discovered — the SAME 73 as the pre-build baseline, so the
+green is not a discovery collapse. UAT DOES NOT APPLY: BRIEF.md carries ZERO `verify: uat` criteria,
+so `gates.uat: blocking_when_uat_criteria_exist` is satisfied vacuously; pm confirmed it explicitly
+rather than leaving it inferred. NOT merged, NOT shipped — both are the operator's.
 
-EVERY LIVE TASK VERIFIED BY THE ORCHESTRATOR, each task's own `verify:` block re-run VERBATIM at
-the named sha, never accepted on report:
-- T-01 `da37f082` red (a=1 b=1, and both reds for the RIGHT reason — `claim_worktrees` and
-  `live_claims` absent, not an unrelated crash) · T-02 `81a66bb3` green
-- T-03 `5a106acd` red, callsites=10 · T-05 `5facdf5e` red, callsites=12. In each the red count
-  EQUALS the callsite floor and every red is `[bug1304]`: zero pre-existing cases broke.
-- T-04 `62e5bf6d` green (+51/-0, a PURE ADDITION — DEC-153's carve-out was narrowed by ADDING the
-  assigned-worktree test, not by deleting its rationale) · T-06 `fb762215` green
-- T-09 `a4e8ecf7` green · T-07 `7a9c3cb4`+`6dd081a1` (DEC-218 + index, graded with
-  `git show <sha>:<path>` as SC-07 requires) · T-10 `af5ddd7a` green, both halves
-- merge `bfd99371` — origin/main brought DEC-216/217 from BUG-1303. DEC-218's body verified
-  BYTE-IDENTICAL across the merge; only its index anchor moved `@6792 -> @6844`.
+BRIEFING: `notes/ship-review-2026-09-05-validate-final.md` (+ rendered `.html`, never hand-authored).
+It carries thirteen proposed backlog rows B-1..B-13; ANYTHING NOT LISTED THERE DIES SILENTLY.
 
-AMENDING COMMITS, each charged one cycle: `83d17657` (11) — `claim_set_refusal` appended the CLI
-advice AFTER "write it from a bound worktree", violating REQ-06 and T-05:1155. `ad67d22b` (12) —
-FEAT-51 sibling repair under the ruling below. `6dd081a1` (13) — DEC-218's index ruling was 33
-words against a 30-word cap; T-07's `verify:` regenerates and diffs the index while the generator
-PRESERVES a hand-written ruling (`gen-decisions-index.py:71`), so the cap is asserted ONLY in the
-unit suite and no task's verify can reach it. That is why the whole suite is run, not the block.
+VALIDATE CYCLE 1 — both FAIL, three gating findings, all closed. Every premise verified at source
+before it was routed; a finding resting on a false premise buys a cycle for nothing.
+- F-01 (HIGH, REQ-06). `bash-write-guard.sh` routed all three claim refusals through `deny()`, which
+  appends "File changes go through the Write tool" — advice naming a route that refuses the identical
+  destination with identical text, where REQ-06 requires the control-plane expertise destination get
+  the sanctioned CLI and nothing else. FOUND BY THE UI REVIEWER, which scoped itself out of
+  rendered-UI review and then audited the refusal strings as the operator interface. The code
+  reviewer's own lens could not see it. Closed by `deny_bare()` (`bash-write-guard.sh:655`) at all
+  three sites; both routes' stderr now byte-identical modulo prefix, verified by fixture execution.
+- F-02 (HIGH x4, mechanical). `code-grade.py` FAILed on four high records. Closed by splitting
+  `claim_worktrees` and three test mega-functions; re-derived at this tier, exit 0, ZERO high.
+- MF-1 (SC-05, test lane). The refusal stderr clause was unasserted on BOTH routes — behaviour was
+  already correct at `harness_boundary.py:291,302`; only the proof was missing. Closed by a
+  `contains` argument on each malformed-pointer call.
+- MF-2 (SC-07, record lane). plan.yaml D-02 lacked the ambiguous-claim treatment; D-08 lacked the
+  identical-refusal-semantics clause (the product lead's own reservation, taken). Both landed at
+  `e9dbc91d` under an Advisor ruling that required NO fresh signature and NO re-run panel.
 
-GATES PASSED on `b64b2d53..6dd081a1`:
-- QA GATE (blocking; the project's only one) — PASS. `matrix_ok` true; test-first ordering verified
-  from the commit graph on all four red/green pairs; SC-06's `bug1304_assert_pre_change_allows`
-  confirmed to assert BOTH halves (quiet stderr AND a positive control still refused at the same
-  frozen guard) at all 10+12 call sites; the FEAT-51 `unimportable` case still asserts exit 0, so
-  quarantine's own fail-open remains pinned by a LIVE assertion. qa's stated limits, carried
-  forward honestly: red-at-the-test-commit was not re-executed, and no mutation testing was run.
-  `runs/qa-gate-validator/`.
-- SIMPLIFY — PASS and effectively EMPTY, which is a real outcome; nothing was invented to justify
-  the step. Apply was FLAG-ONLY under the DEC-174 carve-out. Reuse confirmed both routes reach the
-  SAME predicate and the SAME message builder, so the DEC-193 seam holds. `runs/simplify-eng/`.
+THE SPLITS WERE THE REAL CYCLE-2 RISK and were checked twice, because a split that drops an
+assertion produces a GREENER suite and the suite passing is therefore not evidence. (1) byte-level
+`git show af5ddd7a:` vs `git show c5869301:` diff of all four functions — every prior assertion
+intact, two strictly tightened; (2) RUNTIME pre-change assertion counts measured at BOTH pins,
+unchanged at 10 and 12. THE TEXTUAL CALL-SITE COUNT IS A FALSIFIED PROXY: it moved 10->8 and 12->9
+because the split hoisted calls into shared helpers, so T-03's and T-05's `-ge 10`/`-ge 12` greps
+now read red with correct delivery behind them (backlog B-6). The panel records honestly that
+nobody deleted an assertion and watched it go red — the one form of evidence not obtained.
 
-BACKLOG ROW from SIMPLIFY, filed not applied: `claim_worktrees` (harness_boundary.py:252-277)
-computes `linked_worktrees(owner_root)` for `roots`, then `worktree_for_feature` (:229) recomputes
-it per matching claim — 1+C enumerations per governed write, ~1.24ms against a ~38ms interpreter
-floor, C<=1 fleet-wide, so today's benefit is ZERO. The reader's call-local prefix helper was
-REJECTED by the eng lead: it would restate the prefix-match and `AmbiguousWorktree` rule that SC-05
-and SC-08 pin. Only safe form passes the computed candidate list into `worktree_for_feature`.
+MY RULING ON F-03, recorded with the dissent it overrode. The security reviewer rated the
+Bash-reachable claim-registry mutation (`inflight_registry release`/`release-all`) HIGH and
+must_fix; the validator lead rated it HIGH but non-gating. I ruled NON-GATING on a ground neither
+cited: BRIEF REQ-03 already records and the operator already APPROVED that
+`.harness/.inflight-claims.json` is mutated by a `python3` CLI call and that no such mutation is a
+governed write on either route. It is also not a regression — before BUG-1304 the same agent could
+write the main checkout with no guard at all, so self-unbinding restores the status quo ante.
+Backlog B-1 carries it WITH the security reviewer's dissent; the operator may overrule.
 
-CYCLE BUDGET — 13 of 16 under binding ruling `RuleBug1304FinalBudget` (hard ceiling 20, never a
-target; first-pass gate and panel runs cost ZERO, only a send-back charges; record and ledger
-repairs are zero-charge; past 16 needs a FRESH ruling with no contingent pre-authorisation).
-`len(runs)` 17 of `max_total_runs` 20 — informational, and the runs still earn their place: the
-plan phase spent thirteen resolving a design the panel twice sent back, and the build spent four.
+CYCLE BUDGET — 14 of 16 under `RuleBug1304FinalBudget` (hard ceiling 20, never a target; first-pass
+gate and panel runs cost ZERO; only a send-back charges; past 16 needs a FRESH ruling). Cycle 14 was
+the single cycle-1 send-back covering F-01, F-02 and MF-1; MF-2 was charged ZERO as a record repair.
+`len(runs)` is 21 against `max_total_runs` 20 — INFORMATIONAL, and surfaced rather than buried.
+THIRTEEN of the fourteen cycles were spent in PLANNING: three adversarial panel cycles and four
+binding rulings on a change whose difficulty was deciding WHAT to bind, not how. The build passed
+every task first time.
 
-NEXT: the validation panel against `af5ddd7a`, then pm's goal-check of all twelve SCs, then UAT if
-required, then ship. SC-07 must be graded with `git show af5ddd7a:<path>` and by DECISION ID —
-five boundary questions, each against the decision named for it — not by grepping the file.
-
-THE THREE REQUIRED FOLLOW-UPS ARE FILED AND OPEN (verified 2026-09-05). None may be implemented
-inside BUG-1304 — doing so expands an approved scope.
+THE THREE REQUIRED FOLLOW-UPS ARE FILED AND OPEN, and are NOT backlog rows. None was implemented
+inside BUG-1304 — doing so would expand an approved scope.
 - #1341 — `dispatch-guard.sh:122` `_root_for` basename equality should be `worktree_for_feature`
   prefix alignment. Struck T-08's defect; the strike is legitimate only because #1341 owns it.
-- #1342 — `linked_worktrees` fail-OPEN on OSError and on an unreadable pointer (F2). NOW NARROWER
-  than when filed: the ruling below settled the registry half, so only `linked_worktrees` remains.
+- #1342 — `linked_worktrees` fail-OPEN on OSError and on an unreadable pointer. NARROWER than when
+  filed: `RuleBug1304UnreadableConflict` settled the registry half, so only `linked_worktrees`
+  remains open, and the issue text still describes the wider scope.
 - #1343 — `validate-digest.py:1755` `live_children` cannot see a compatibility child past 1200s.
 
 BINDING RULING `RuleBug1304UnreadableConflict`, recorded WITH the reading that LOST. T-04's binding
-made FEAT-51's directory-at-the-registry-path case refuse where FEAT-51 pinned fail-open. The
-orchestrator argued no conflict existed — REQ-05 enumerates three fail-closed causes and a
-directory is an OSError, none of them; every `UnreadableRegistry` assertion in the tree uses a
-parse payload, so narrowing `live_claims:298` would have cost zero assertions. THE ADVISOR RULED
-OTHERWISE and it binds: keep `except (OSError, UnicodeError)`, narrow the FEAT-51 fixture. DEC-218
+made FEAT-51's directory-at-the-registry-path case refuse where FEAT-51 pinned fail-open. I argued
+no conflict existed — REQ-05 enumerates three fail-closed causes, a directory is an OSError and none
+of them, and every `UnreadableRegistry` assertion in the tree uses a parse payload, so narrowing
+`live_claims:298` would have cost zero assertions. THE ADVISOR RULED OTHERWISE and it binds. DEC-218
 carries all three consequences, including that quarantine machinery's own failures stay fail-open.
-
-RECORD REPAIRS COMPLETE, zero-charge: five digests now return `digest ok`; `plan.yaml
-panel.readers` re-keyed from PERSONA to STEP name, with `goalcheck` recorded `skipped` WITH a
-reason because no goalcheck reader ran in the recorded cycle-3 panel and a false `ran` is worse
-than an honest skip. In-place editing was impossible for all three digests —
-`check-domain.sh:1252` admits only a byte-prefix EXTENSION of a recorded run digest — so each is an
-appended canonical block with the original left superseded and every member FAIL preserved. Eight
-run dirs exist that `feature.json` never records and one recorded run has no dir; both are notes,
-not violations, and no verdict was backfilled for a run this orchestrator did not conduct.
 
 DEAD ENDS, do not re-open: the binding key (DEC-208 ruling 2 rejected a payload key); building S
 from which registry FILE a claim sits in; filtering the binding enumerator with `_expire` or
@@ -95,22 +85,23 @@ from which registry FILE a claim sits in; filtering the binding enumerator with 
 
 ## Open Questions
 
-- HARNESS DEFECT — INV-26 and the mirror contract disagree about a done task's card.
-  `gh_board.project` places a sub-issue at its own station "VERBATIM AND WITH NO EXCEPTION", so a
-  done task wants the done column, but NO subcommand writes that column before `ship`
-  (`gh-sync.py cmd_status` writes `ready` and `review` only). D-24's widening papers over it solely
-  while the feature's station is `review`, so every feature is red between its last task landing
-  and its review transition — and no command can clear it. Cost here: T-10's `verify:` could not
-  pass until the seam, which forced the last task to be sequenced after the station write.
-- HARNESS DEFECT — INV-32 reports a wrongly-KEYED but otherwise complete reader entry as "reader
-  <x> never ran or was not recorded", which reads as a missing panel record.
+- HARNESS DEFECT — INV-26 and the mirror contract contradict each other. `gh_board.project` places a
+  sub-issue at its own station "VERBATIM AND WITH NO EXCEPTION", so a done task wants the done
+  column, but NO subcommand writes that column before `ship` (`gh-sync.py cmd_status` writes `ready`
+  and `review` only). D-24's widening applies solely while the feature station is `review`, so every
+  feature is red between its last task landing and its review transition, and no command can clear
+  it. Cost here: T-10's `verify:` could not pass until after the station write. Backlog B-8.
+- HARNESS DEFECT — INV-32 reports a wrongly-KEYED but otherwise complete panel reader entry as
+  "reader <x> never ran or was not recorded", which reads as a missing panel record. Backlog B-9.
 - HARNESS DEFECT — `plan-merge.py apply` cannot amend an existing top-level `panel`: it is not in
   `UNION_KEYS` (`:104`), so the step-8 guard (`:764-774`) exits 7 CONFLICT and writes nothing. The
-  working verb is `set-panel --value-file` (`:1040`), which the orchestrator playbook never names.
+  working verb is `set-panel --value-file` (`:1040`), which the playbook never names. Backlog B-10.
 - HARNESS DEFECT — a handoff note cannot be written from a worktree. `check-domain.sh:1614` passes
-  `rel` worktree-STRIPPED with `root` the MAIN checkout while `FEATURE_RE` is `^`-anchored.
-  Measured both ways. BUG-1304's own defect class one layer up; needs its own issue.
+  `rel` worktree-STRIPPED with `root` the MAIN checkout while `FEATURE_RE` is `^`-anchored. Measured
+  both ways. This is BUG-1304's own defect class one layer up. Backlog B-11.
+- HARNESS DEFECT — subagents returned complete, well-formed VERDICT/DIGEST blocks while the host
+  reported `failed (exit 1)` with "yield called with null data". Observed FOUR times in this feature,
+  including the cycle-2 panel lead itself. A caller routing on that status alone re-spends the
+  spawn. Backlog B-12.
 - HARNESS DEFECT — `runs/*/state.yaml` is clobbered by a later run reusing a run id; `digest.md` is
-  guarded against replacement and `state.yaml` is not. BUG-1305 owns this class.
-- HARNESS DEFECT — two subagents returned well-formed VERDICT/DIGEST blocks while the task tool
-  reported `failed (exit 1)` with "yield called with null data".
+  guarded against replacement and `state.yaml` is not. BUG-1305 owns this class. Backlog B-13.
