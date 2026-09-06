@@ -1223,10 +1223,18 @@ def _5b_property_holds(code, out, err):
     )
 
 
+def _emit_5b(record):
+    """Runs 5b's scenario and reports its verdict through `record` under name_5b. `record` may
+    be `check` (the intact run, which prints and counts) or a non-printing capturing shim (5g's
+    self-defence run) — the SAME verdict-producing path either way, so 5g exercises case 5b
+    itself rather than a lookalike."""
+    code, out, err = _run_5b_scenario()
+    record(name_5b, _5b_property_holds(code, out, err), (code, out, err))
+
+
 name_5b = "BUG-1290 5b: same feature id on two repositories resolves per-segment, no cache bleed"
 try:
-    code, out, err = _run_5b_scenario()
-    check(name_5b, _5b_property_holds(code, out, err), (code, out, err))
+    _emit_5b(check)
 except Exception as exc:
     check(name_5b, False, repr(exc))
 
@@ -1298,10 +1306,17 @@ except Exception as exc:
 
 # 5g. B-16 self-defence: a mutant _BlockerCache that routes every repository's issue-map lookup
 # through the FIRST repository seen for a given feature id — collapsing the (repo, feature) key
-# B-3 introduced back to feature alone. This defends 5b's cache-bleed proof: it reddens if the
-# harness segment's fixture depends_on ("T-99") or its own issue-map entry stops being
-# load-bearing, because the mutant then changes nothing 5b's shared scenario can observe.
-name_5g = "BUG-1290 5g: collapsing the issue-map cache key to feature-only breaks 5b's property"
+# B-3 introduced back to feature alone. This defends 5b's cache-bleed proof by making CASE 5b
+# ITSELF fail: `_emit_5b` reruns under the mutant cache through a capturing shim (never
+# `check`, so this arm prints and counts nothing — the mutation never leaks into 5c-5f, which
+# run afterward against the real, restored cache). The captured 5b verdict must be False AND
+# must carry the SPECIFIC observable the mutation is expected to produce, not merely any
+# falsy shape a differently-broken mutant (e.g. one that raises instead of delegating) could
+# also produce: under the mutant, the harness segment's dep T-99 is looked up in kaya-ai's map
+# (kaya being the first repository seen for SEG_FEATURE), where it is absent, so issue 952 is
+# refused as an unresolvable blocker — exit 1, empty stdout, stderr naming 952 and
+# "unresolvable blocker", and NOT "no plan could be read".
+name_5g = "BUG-1290 5g: issue-map-cache mutation fails case 5b itself on its own specific observable"
 try:
     class _FeatureOnlyIssueMapCache(claim._BlockerCache):
         def __init__(self):
@@ -1312,13 +1327,27 @@ try:
             canonical = self._first_repo_for.setdefault(feature, repo)
             return super().issue_number(canonical, feature, task_id)
 
+    captured = {}
+
+    def _capture(name, cond, detail):
+        captured[name] = (cond, detail)
+
     saved_blocker_cache = claim._BlockerCache
     claim._BlockerCache = _FeatureOnlyIssueMapCache
     try:
-        code, out, err = _run_5b_scenario()
+        _emit_5b(_capture)
     finally:
         claim._BlockerCache = saved_blocker_cache
-    check(name_5g, not _5b_property_holds(code, out, err), (code, out, err))
+
+    mutant_cond, (mutant_code, mutant_out, mutant_err) = captured[name_5b]
+    check(name_5g,
+          not mutant_cond
+          and mutant_code == 1
+          and mutant_out == ""
+          and "952" in mutant_err
+          and "unresolvable blocker" in mutant_err
+          and "no plan could be read" not in mutant_err,
+          (mutant_cond, mutant_code, mutant_out, mutant_err))
 except Exception as exc:
     check(name_5g, False, repr(exc))
 

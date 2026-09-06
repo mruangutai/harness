@@ -17,6 +17,12 @@ BUG-1290's now-deleted FEATURES_ROOT hardcode produced. The proxy resolves attri
 call time, so it sits in front of the suite's own `factory_config.features_root`
 monkeypatch rather than replacing it (measured in
 notes/research-BUG-1290-factory-claim-repo-root-fix-c2.md).
+
+A second, independent arm below proves the operator's literal BUG-1290 directive at a different
+seam: under a mutation collapsing the issue-map cache key from (repo, feature) down to feature
+alone, the real suite must PRINT `FAIL  BUG-1290 5b`, not merely capture that verdict the way 5g
+(test-factory-claim.py) already does internally — B-27's lesson was that an unreached mutant
+"proving" a red case is fail-open in disguise, so this arm carries its own reached-marker too.
 """
 import os as _anchor_os, sys as _anchor_sys
 _anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
@@ -141,10 +147,66 @@ def _mutation_proof():
     return True
 
 
+def _mutate_and_run_key_collapse():
+    """Patches factory_claim._BlockerCache with a class collapsing the issue-map cache key from
+    (repo, feature) to feature alone — every repository's lookup for a given feature id then
+    routes through whichever repository was seen first, the exact defect B-3's (repo, feature)
+    keying closed. Runs the real suite, restores the real class in a finally — same shape as
+    `_mutate_and_run()`."""
+    real = factory_claim._BlockerCache
+
+    class _KeyCollapsingBlockerCache(real):
+        """The operator's literal BUG-1290 directive, proved at the issue-map-cache seam: under
+        this collapsed key the real suite must PRINT `FAIL  BUG-1290 5b`, not merely capture that
+        verdict the way test-factory-claim.py's 5g does internally — B-27's fail-open lesson is
+        why `_reached` below is asserted, not assumed."""
+
+        _reached = False
+
+        def __init__(self):
+            super().__init__()
+            self._first_repo_for = {}
+
+        def issue_number(self, repo, feature, task_id):
+            canonical = self._first_repo_for.setdefault(feature, repo)
+            if not _KeyCollapsingBlockerCache._reached:
+                print("MUTANT KEY-COLLAPSE ACTIVE", file=sys.__stdout__)
+                _KeyCollapsingBlockerCache._reached = True
+            return super().issue_number(canonical, feature, task_id)
+
+    factory_claim._BlockerCache = _KeyCollapsingBlockerCache
+    try:
+        output = _run_suite()
+    finally:
+        factory_claim._BlockerCache = real
+    return output, _KeyCollapsingBlockerCache._reached
+
+
+def _key_collapse_proof():
+    """Asserts the real suite PRINTS `FAIL  BUG-1290 5b` under the key-collapse mutant — the
+    literal requirement of the operator's directive, guarded by the reached-marker so an
+    unreached mutant cannot "prove" a red case it never caused (B-27)."""
+    output, reached = _mutate_and_run_key_collapse()
+    if not reached:
+        print("MUTANT NEVER REACHED (key-collapse arm)")
+        print("KEY-COLLAPSE PROOF: INCOMPLETE")
+        return False
+    line = _case_line(output, "FAIL", "5b")
+    if line is None:
+        print("KEY-COLLAPSE MISSING: 5b")
+        print("KEY-COLLAPSE PROOF: INCOMPLETE")
+        return False
+    print(line)
+    print("KEY-COLLAPSE PROOF: FAIL BUG-1290 5b printed")
+    return True
+
+
 def main():
     if not _baseline():
         sys.exit(1)
-    sys.exit(0 if _mutation_proof() else 1)
+    features_root_ok = _mutation_proof()
+    key_collapse_ok = _key_collapse_proof()
+    sys.exit(0 if (features_root_ok and key_collapse_ok) else 1)
 
 
 if __name__ == "__main__":
