@@ -5,13 +5,14 @@
 - feature: BUG-1308-expertise-replace-drop
 - run: .harness/harness/features/BUG-1308-expertise-replace-drop/runs/2026-09-05-review-panel-c4-validator/digest.md
 - squad: validator
-- status: in_review
+- status: shipped
 
-SHIP-READY, pending the main-session-only GitHub steps. Validation is green: review panel cycle 4
-PASS (severity_max `med`, no `must_fix`, VL-01 through VL-06 all closed), and the final goal-check
-plus operator amendment grade fourteen of fourteen criteria met. Cycles used 9 of 9: the Advisor
-authorized cycle 9 solely to repair seven feature-local artifact violations surfaced by the
-post-BUG-1305 canonical checker; production code and tests were untouched.
+SHIPPED through feature PR #1379; terminal state is being made durable by ship-state PR #1386.
+Validation is green: review panel cycle 4 PASS (severity_max `med`, no `must_fix`, VL-01 through
+VL-06 all closed), and the final goal-check plus operator amendment grade fourteen of fourteen
+criteria met. Cycles used 10 of 10: the Advisor authorized cycles 9 and 10 solely to repair
+feature-local artifact gates surfaced by the post-BUG-1305 checker and terminal transition;
+production code and tests were untouched.
 
 Merged onto latest `origin/main` (`0f885a0a`, BUG-1305's ship state) at `cc16f721`, clean, no
 conflicts. Both the rebase onto `4b0d04e9` and this merge were performed by the MAIN SESSION:
