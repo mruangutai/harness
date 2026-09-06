@@ -4,7 +4,7 @@ approval:
   date: '2026-09-05'
   approved_by: mruangutai
   status: approved
-status: ready
+status: building
 source_issues: [1290]
 
 lanes:
@@ -268,7 +268,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: []
-    status: ready
+    status: done
     files:
       - tests/unit/test-factory-claim.py
     verify: |
@@ -351,7 +351,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: [T-01]
-    status: ready
+    status: done
     files:
       - tests/integration/test-factory-integration.py
     verify: |
@@ -407,7 +407,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: [T-01, T-02]
-    status: ready
+    status: done
     files:
     - .agents/skills/harness/bin/factory_claim.py
     - .agents/skills/harness/bin/feature-worktree.py
@@ -473,7 +473,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: [T-03]
-    status: ready
+    status: done
     files:
     - .agents/skills/harness/bin/layout_migration.py
     - .agents/skills/harness/bin/layout_fixtures.py
@@ -554,7 +554,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: [T-03]
-    status: ready
+    status: done
     files:
       - tests/unit/test-factory-claim-mutation.py
     verify: |
