@@ -1681,6 +1681,25 @@ def shape_problems(rel, content, display=None, absolute_path=None):
                                f"of this one. Write this cycle's state into a run "
                                f"directory of its own.")
                     return out
+                # D-11: once a non-empty prior parses with a minted uid, that uid —
+                # not the author-chosen slug and never session identity or a live claim —
+                # decides whether this is an upsert. Absent and readable zero-byte priors
+                # never enter this ladder; an unreadable prior already returned above.
+                # A legacy prior has no uid and uid_conflict deliberately stays silent.
+                import run_identity
+                uid_reason = run_identity.uid_conflict(prior_doc, doc)
+                if uid_reason:
+                    out.append(_head("state.yaml run identity (Issue 1305)."))
+                    incoming_uid = doc.get("run_uid") if isinstance(doc, dict) else None
+                    if incoming_uid is None or incoming_uid == "":
+                        out.append(
+                            f"  {uid_reason}; if this write does not belong to that run, "
+                            "write this cycle's state into a run directory of its own.")
+                    else:
+                        out.append(
+                            f"  {uid_reason}. Write this cycle's state into a run directory "
+                            "of its own.")
+                    return out
 
         # T-17 / D-08: str() BOTH sides. A parsed key is not necessarily a string —
         # YAML 1.1 resolves `on:`, `off:`, `yes:`, `no:` to booleans and `01:` to an int —

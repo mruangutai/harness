@@ -97,3 +97,37 @@ FAIL - BUG-1305 INV-36 detects clobbers and stays silent on owned/legacy runs
 ```
 
 The pinned checker reported none of the three witness disagreements; it only rejected `run_uid` as an unknown checkpoint key.
+
+## SC-01-identity
+
+baseline_sha: 592e88dcf0b6dfcd75ca4c1d49451fa9003d2802
+
+Command with `CHECK_DOMAIN_BIN` pointed at the isolated-bin copy of
+`592e88dcf0b6dfcd75ca4c1d49451fa9003d2802:.claude/skills/harness/bin/check-domain.sh`:
+
+```text
+python3 -c 'import importlib.util; p="tests/integration/test-check-domain.py"; s=importlib.util.spec_from_file_location("cd", p); m=importlib.util.module_from_spec(s); s.loader.exec_module(m); raise SystemExit(m.run_bug1305_identity_cases())'
+```
+
+Verbatim output (exit 3):
+
+```text
+FAIL  [bug1305-identity] modal collision Write omitting uid is refused
+      |
+FAIL  [bug1305-identity] modal collision Edit removing uid is refused
+      |
+FAIL  [bug1305-identity] different minted uid is refused
+      |
+ok    [bug1305-identity] run_id disagreement keeps Issue 1124 precedence
+ok    [bug1305-identity] DEC-154 resumed owner with same uid remains allowed across sessions
+ok    [bug1305-identity] recovering owner with absent checkpoint remains allowed
+ok    [bug1305-identity] recovering owner with zero-byte checkpoint remains allowed
+ok    [bug1305-identity] legacy checkpoint without uid remains allowed
+ok    [bug1305-identity] legacy checkpoint accepts incoming uid
+
+6/9 BUG-1305 identity cases passed.
+```
+
+The three new minted-identity refusals were accepted as routine upserts by the baseline. The
+fail-open cases passed on both trees, while the run-id precedence case exited 2 on both because the
+existing Issue 1124 branch answered first.

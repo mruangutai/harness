@@ -4797,6 +4797,121 @@ def run_bug1305_marker_cases():
     return failures
 
 
+def _bug1305_identity_doc(run_id="A", run_uid=None, include_uid=True):
+    text = (
+        f"schema_version: 1\nrun_id: {run_id}\nfeature: FEAT-S-thing\n"
+        "squad: eng\nhost: omp\nstatus: building\n")
+    if include_uid and run_uid is not None:
+        text += f"run_uid: {run_uid}\n"
+    return text
+
+
+def _bug1305_write_identity_marker(state, run_id="A", run_uid="U1"):
+    marker = {
+        "run_id": run_id, "feature": "FEAT-S-thing", "squad": "eng",
+        "host": "omp", "identity": "session", "run_uid": run_uid,
+        "created_at": "2026-09-05T00:00:00+00:00",
+    }
+    with open(os.path.join(os.path.dirname(state), ".run-identity.json"),
+              "w", encoding="utf-8") as handle:
+        json.dump(marker, handle)
+
+
+def _bug1305_identity_write(prior, incoming, marker=False, session_id=None):
+    root, state = _bug1124_state_fixture()
+    if prior is not None:
+        _feat50_write_text(state, prior)
+    if marker:
+        _bug1305_write_identity_marker(state)
+    payload = {"tool_name": "Write",
+               "tool_input": {"file_path": state, "content": incoming}}
+    if session_id is not None:
+        payload["session_id"] = session_id
+    return subprocess.run(
+        [HOOK], input=json.dumps(payload), capture_output=True, text=True,
+        env=_env(root))
+
+
+def _bug1305_identity_edit():
+    root, state = _bug1124_state_fixture()
+    _feat50_write_text(state, _bug1305_identity_doc(run_uid="U1"))
+    payload = {
+        "tool_name": "Edit",
+        "tool_input": {
+            "file_path": state, "old_string": "run_uid: U1\n", "new_string": "",
+        },
+    }
+    return subprocess.run(
+        [HOOK], input=json.dumps(payload), capture_output=True, text=True,
+        env=_env(root))
+
+
+def _bug1305_identity_refusal_cases():
+    prior = _bug1305_identity_doc(run_uid="U1")
+    missing = _bug1305_identity_write(
+        prior, _bug1305_identity_doc(include_uid=False))
+    edit = _bug1305_identity_edit()
+    different = _bug1305_identity_write(
+        prior, _bug1305_identity_doc(run_uid="U2"))
+    precedence = _bug1305_identity_write(
+        prior, _bug1305_identity_doc(run_id="B", run_uid="U1"), marker=True)
+    return [
+        ("modal collision Write omitting uid is refused",
+         missing.returncode == 2 and "U1" in missing.stderr
+         and "run identity" in missing.stderr and "field disagreement" not in missing.stderr,
+         missing.stderr),
+        ("modal collision Edit removing uid is refused",
+         edit.returncode == 2 and "U1" in edit.stderr, edit.stderr),
+        ("different minted uid is refused",
+         different.returncode == 2 and "U1" in different.stderr
+         and "U2" in different.stderr, different.stderr),
+        ("run_id disagreement keeps Issue 1124 precedence",
+         precedence.returncode == 2 and "Issue #1124" in precedence.stderr
+         and "Issue 1305" not in precedence.stderr, precedence.stderr),
+    ]
+
+
+def _bug1305_identity_allow_cases():
+    prior = _bug1305_identity_doc(run_uid="U1")
+    incoming = _bug1305_identity_doc(run_uid="U1")
+    resumed = _bug1305_identity_write(prior, incoming, session_id="S2")
+    # D-01 forbids session-keyed ownership: this same-uid S2 update catches it.
+    absent = _bug1305_identity_write(
+        None, _bug1305_identity_doc(include_uid=False), marker=True)
+    zeroed = _bug1305_identity_write(
+        "", _bug1305_identity_doc(include_uid=False), marker=True)
+    legacy = _bug1305_identity_doc(include_uid=False)
+    legacy_same = _bug1305_identity_write(legacy, legacy)
+    legacy_new = _bug1305_identity_write(
+        legacy, _bug1305_identity_doc(run_uid="U2"))
+    return [
+        ("DEC-154 resumed owner with same uid remains allowed across sessions",
+         resumed.returncode == 0, resumed.stderr),
+        ("recovering owner with absent checkpoint remains allowed",
+         absent.returncode == 0, absent.stderr),
+        ("recovering owner with zero-byte checkpoint remains allowed",
+         zeroed.returncode == 0, zeroed.stderr),
+        ("legacy checkpoint without uid remains allowed",
+         legacy_same.returncode == 0, legacy_same.stderr),
+        ("legacy checkpoint accepts incoming uid",
+         legacy_new.returncode == 0, legacy_new.stderr),
+    ]
+
+
+def run_bug1305_identity_cases():
+    """BUG-1305 SC-01: prior checkpoint uid owns resumed-write admission."""
+    results = _bug1305_identity_refusal_cases() + _bug1305_identity_allow_cases()
+    failures = 0
+    for name, ok, detail in results:
+        if ok:
+            print(f"ok    [bug1305-identity] {name}")
+        else:
+            failures += 1
+            print(f"FAIL  [bug1305-identity] {name}\n      | {str(detail).strip()[:300]}")
+    print(f"\n{len(results) - failures}/{len(results)} BUG-1305 identity cases passed.")
+    return failures
+
+
 def main():
     fails = 0
     for name, path, want, agent, tool in CASES:
@@ -4835,6 +4950,7 @@ def main():
     fails += run_feat51_orphan_write()
     fails += run_bug1106_edit_route_cases()
     fails += run_bug1305_marker_cases()
+    fails += run_bug1305_identity_cases()
     fails += run_bug1106_shared_pattern_consistency()
     fails += run_handoff_done_when()
     fails += run_b2_cwd_independence()
