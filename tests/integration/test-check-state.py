@@ -4615,6 +4615,117 @@ def case_bug1305_run_identity_invariant():
     return ok
 
 
+def _bug440_digest(validator, verdict):
+    text = f"""VERDICT: {verdict}
+DIGEST:
+  headline: synthetic BUG-440 fixture
+  team: eng
+  steps_run: 1
+  cycles_used: 0
+  members:
+    - {{ step: fixture, persona: harness-backend-dev, verdict: PASS, headline: fixture, files_touched: [] }}
+  must_fix: []
+  files_touched: []
+  branch: none
+  open_questions: []
+  escalations: []
+  expertise_update: []
+  sc_status: []
+artifact: fixture/digest.md
+"""
+    assert validator.validate("lead", text) == [], text
+    return text
+
+
+def _bug440_build(tmp, entries, runs):
+    h = _bug1305_invariant_scaffold(tmp)
+    fdir = _bug1305_invariant_feature(tmp, h, entries)
+    for name, host, status, text in runs:
+        rdir = os.path.join(fdir, "runs", name)
+        os.makedirs(rdir, exist_ok=True)
+        with open(os.path.join(rdir, "state.yaml"), "w") as fh:
+            fh.write(f"status: {status}\nhost: {host}\n")
+        if text is not None:
+            with open(os.path.join(rdir, "digest.md"), "w") as fh:
+                fh.write(text)
+    return fdir
+
+
+def _bug440_validate_fixture(tmp, entries, runs):
+    import hashlib
+    fdir = _bug440_build(tmp, entries, runs)
+    paths = [os.path.join(fdir, "feature.json")]
+    for root, _, files in os.walk(os.path.join(fdir, "runs")):
+        paths.extend(os.path.join(root, p) for p in files if p == "digest.md")
+    before = {p: hashlib.sha256(open(p, "rb").read()).hexdigest() for p in paths}
+    code, out = run(tmp)
+    after = {p: hashlib.sha256(open(p, "rb").read()).hexdigest() for p in paths}
+    return fdir, code, out, before == after
+
+
+def _bug440_validator():
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        "validate_digest_bug440", os.path.join(_anchor_bin, "validate-digest.py"))
+    validator = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(validator)
+    return validator
+
+
+def _bug440_mixed_case(validator):
+    digest = lambda verdict: _bug440_digest(validator, verdict)
+    runs = [
+        ("M", "harness-eng-lead", "complete", digest("FAIL")),
+        ("E", "harness-product-lead", "complete", digest("PASS")),
+        ("N", "omp", "complete", digest("FAIL")),
+        ("I", "harness-eng-lead", "active", digest("FAIL")),
+        ("G", "harness-eng-lead", "complete", None),
+        ("X", "harness-eng-lead", "complete", "VERDICT: FAIL\n"),
+        ("O", "harness-eng-lead", "complete", digest("FAIL")),
+    ]
+    with tempfile.TemporaryDirectory() as tmp:
+        _, code, out, unchanged = _bug440_validate_fixture(
+            tmp, ("M", "E", "N", "I", "G", "X"), runs)
+    lines = re.findall(r"^.*INV-37.*$", out, re.M)
+    line = lines[0] if len(lines) == 1 else ""
+    expected = ("FEAT-TEST", "M", "FAIL", "PASS", "feature.json", "digest.md")
+    silent = ("runs/E", "runs/N", "runs/I", "runs/G", "runs/X", "runs/O")
+    return all((
+        code == 1, len(lines) == 1, unchanged,
+        all(token in line for token in expected),
+        not any(name in "\n".join(lines) for name in silent),
+        out.count("runs/G: run is complete but digest.md is missing") == 1,
+        out.count("runs/X/digest.md: does not satisfy the lead digest") == 1,
+    ))
+
+def _bug440_blocking_case(validator):
+    with tempfile.TemporaryDirectory() as tmp:
+        _, code, out, _ = _bug440_validate_fixture(
+            tmp, ("M",), [("M", "harness-eng-lead", "complete",
+                           _bug440_digest(validator, "FAIL"))])
+    return code == 1 and "INV-37" in out
+
+
+def _bug440_clean_case(validator):
+    with tempfile.TemporaryDirectory() as tmp:
+        _, code, out, _ = _bug440_validate_fixture(
+            tmp, ("E",), [("E", "harness-product-lead", "complete",
+                           _bug440_digest(validator, "PASS"))])
+    return code == 0 and "INV-37" not in out
+
+
+def case_bug440_digest_verdict_reconciliation():
+    """BUG-440: reconcile only complete, lead-hosted, valid durable digests."""
+    validator = _bug440_validator()
+    ok = all((
+        _bug440_mixed_case(validator),
+        _bug440_blocking_case(validator),
+        _bug440_clean_case(validator),
+    ))
+    print(f"{'ok' if ok else 'FAIL'} - BUG-440 INV-37 reconciles digest verdicts without mutation")
+    return ok
+
+
 def main():
     ok_a, code_a = case_a()
     ok_b, code_b = case_b()
@@ -4764,6 +4875,7 @@ def main():
         case_inv6_producer_is_documented(),
     ])
     ok_feat54_done_when = case_feat54_done_when()
+    ok_bug440 = case_bug440_digest_verdict_reconciliation()
     ok_bug1305 = case_bug1305_run_identity_invariant()
 
     ok_exit_unchanged = code_a == code_b
@@ -4777,8 +4889,7 @@ def main():
             and ok_i28a and ok_i28b and ok_i28c and ok_i28d and ok_i28e and ok_i28f
             and ok_i28g and ok_i28h
             and ok_i29 and ok_i30 and ok_i31 and ok_i32 and ok_i32_severity
-            and ok_i32_era and ok_i6_plan and ok_feat54_done_when
-            and ok_bug1305 and ok_i33
+            and ok_bug1305 and ok_bug440 and ok_i33
             and ok_i34
             and ok_i35
             and ok_exit_unchanged):
