@@ -2,7 +2,7 @@
   "feature_id": "BUG-1290-factory-claim-repo-root",
   "branch": "feat/BUG-1290-factory-claim-repo-root",
   "pr": null,
-  "review_sha": "76e2638622a8e4095d1ef11a769a0b598ff06e25",
+  "review_sha": "7104aa431c5e5a466ec94818bdfe476cefe86d6e",
   "cycles_used": 8,
   "max_total_cycles": 10,
   "runs": [
@@ -83,6 +83,42 @@
     },
     {
       "id": "2026-09-05-12-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-09-06-01-eng",
+      "squad": "eng",
+      "agent": "harness-eng-lead",
+      "verdict": "ESCALATE"
+    },
+    {
+      "id": "2026-09-06-02-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL"
+    },
+    {
+      "id": "2026-09-06-03-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-09-06-04-eng",
+      "squad": "eng",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-09-06-05-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-09-06-06-product",
       "squad": "product",
       "agent": "harness-product-lead",
       "verdict": "PASS"
