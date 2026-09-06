@@ -3,14 +3,13 @@
 ## Current
 
 - feature: BUG-1305-run-state-clobber
-- run: .harness/harness/features/BUG-1305-run-state-clobber/runs/qa-c1-validator/state.yaml
-- squad: validator
-- status: in-flight
-- station: review; all eight live tasks recorded done; review_sha pinned at the seam commit
-- gates so far: qa test_matrix PASS, SIMPLIFY PASS, SC-01 re-gate MET (cycle 10), code-grade exit 0 with 50 passing records after the cycle-11 refactor
+- run: .harness/harness/features/BUG-1305-run-state-clobber/runs/review-c2-validator/state.yaml
+- squad: none
+- status: awaiting-user
+- station: review; review_sha e77b30ca; 11 of 11 live SCs met; delta panel readers PASS, lead ESCALATE on VL-01
+- briefing: notes/ship-review-2026-09-05-validate-c2.md; cycles 12/12, runs 23 against an informational 20
 
 ## Open Questions
 
-- Main session: INV-26 reports no mirrored issues; gh-sync.py open has not run for this feature.
-- Main session: the scratch worktree .claude/worktrees/harness/qa-regate-sc01-baseline-c10 (detached 592e88dc) still stands and INV-29 will notice it. Removal is not a subagent's act.
-- Harness defect, twice observed: per-persona worktree claims are cross-feature exclusive, so a lead dispatched against BUG-1305 was refused writes into its own BUG-1305 run directory while holding claims on FEAT-55 and BUG-1308. The qa collated digest could not be persisted; its evidence is durable at notes/qa-testmatrix-c1.md.
+- Operator ruling: VL-01 (high) — REQ-01's seed-field refusal is absent on the Edit route with an absent prior checkpoint. Accept as a named residual (briefing row B-1) or authorise a thirteenth cycle to mirror the F-04 fix. Pre-existing, dormant on this host, Write route closed, detection unaffected.
+- Operator: ship decision on the briefing, including which backlog rows B-1 to B-16 to strike. Unstruck rows become issues on ship acceptance; SEC-01 is already filed as #1376.
