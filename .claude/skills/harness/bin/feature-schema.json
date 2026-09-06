@@ -82,6 +82,16 @@
           "type": "array",
           "items": { "type": "integer" },
           "description": "The GitHub issue numbers this feature was planned from, mirrored from plan.yaml's top-level source_issues by gh-sync.py open. Read by gh-sync.py's `closes` renderer. Absent or empty is legal: a feature planned before this key existed carries none, and a feature can be planned from no ticket at all."
+        },
+        "typed": {
+          "type": "object",
+          "additionalProperties": {
+            "oneOf": [
+              { "type": "string", "enum": ["created", "adopted"] },
+              { "const": true }
+            ]
+          },
+          "description": "Provenance of native GitHub Issue Type application, keyed by \"parent\" or a task id (D-20). \"created\" means Harness created the issue and has not yet applied its type; the promoted boolean true means Harness created it and applied the type; \"adopted\" means the number was adopted through --parent and Harness never created or types it. ABSENCE of an entry means provenance is UNKNOWN and is never typed - not on this run, not on any later one."
         }
       }
     },
@@ -102,6 +112,16 @@
             "parent": { "type": "array", "description": "Parent edges." },
             "blocked_by": { "type": "object", "description": "Blocking edges keyed by item." }
           }
+        },
+        "typed": {
+          "type": "object",
+          "additionalProperties": {
+            "oneOf": [
+              { "type": "string", "enum": ["created", "adopted"] },
+              { "const": true }
+            ]
+          },
+          "description": "Provenance of native GitHub Issue Type application, keyed by \"parent\" or a task id (D-20). \"created\" means Harness created the issue and has not yet applied its type; the promoted boolean true means Harness created it and applied the type; \"adopted\" means the number was adopted through --parent and Harness never created or types it. ABSENCE of an entry means provenance is UNKNOWN and is never typed - not on this run, not on any later one."
         }
       }
     }

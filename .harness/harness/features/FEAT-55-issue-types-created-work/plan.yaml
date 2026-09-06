@@ -166,6 +166,40 @@ decisions:
       recorded before this ships is never typed by a rerun, which is the acceptable side - it
       leaves an issue untyped rather than retyping an issue somebody else owns.
     dec: DEC-138
+  - id: D-21
+    choice: >-
+      the github object and the factory object in
+      .claude/skills/harness/bin/feature-schema.json each gain an OPTIONAL typed
+      mapping - values are the provenance strings created and adopted or the promoted
+      boolean true, neither is added to any required list, and both objects keep
+      additionalProperties false - and T-04 holds the sole files authority to write
+      that schema file.
+    because: >-
+      D-20 requires the typed mapping in BOTH feature.json github.typed and
+      factory.yaml typed, both objects declare additionalProperties false, so the first
+      save carrying one is refused verbatim with MergeRefusal(11) undeclared key typed,
+      and no signed task held feature-schema.json at all. Both declarations are folded
+      into T-04 rather than split with T-08 because T-04 must be green before T-06 and
+      T-08 can verify, and two tasks editing one file is a writer collision. Operator
+      ruling F-01, notes/answers-build-blockers-20260905.md, 2026-09-05.
+    dec: none
+  - id: D-22
+    choice: >-
+      the issue-types capability query is invoked as
+      gh_issue_types.capability_query_args(repo) with NO extra flags appended, and the
+      every-call-pins---repo assertion at tests/integration/test-gh-sync.py:765 is
+      amended by T-04 to verify the exact GraphQL owner= and name= values on an
+      api graphql line rather than the presence of a --repo flag.
+    because: >-
+      gh api has no --repo flag - measured on this host, gh 2.92.0 answers unknown flag
+      --repo - so the appended flag is green against a permissive test double and DEAD
+      against real gh; it existed only to satisfy that assertion. capability_query_args
+      already pins the repository with -f owner and -f name, the only form gh accepts
+      for a graphql query, and factory_gh.py:220 already calls it with no extra flags.
+      The amended assertion preserves exactly what the old one pinned - every call
+      targets the pinned repository, never the ambient one. Operator ruling F-02,
+      notes/answers-build-blockers-20260905.md, 2026-09-05.
+    dec: none
 panel:
   last_run: 2026-09-05-02-validator
   cycle: 5
@@ -831,15 +865,21 @@ tasks:
     execution_agent: harness-backend-dev
     depends_on: [T-03]
     files:
-      - .claude/skills/harness/bin/gh-sync.py
+    - .claude/skills/harness/bin/gh-sync.py
+    - .claude/skills/harness/bin/feature-schema.json
+    - tests/integration/test-gh-sync.py
     verify: |
       python3 tests/integration/test-gh-issue-types.py || exit 1
       python3 tests/integration/test-gh-sync.py
     intent: |
       Change .claude/skills/harness/bin/gh-sync.py so that gh-sync.py open types every issue
       it creates. tests/integration/test-gh-issue-types.py exists and is red; make it green
-      without editing it. tests/integration/test-gh-sync.py must ALSO still pass unchanged -
-      it is in your verify - because its label assertions are the compatibility-mode control.
+      without editing it. tests/integration/test-gh-sync.py must ALSO still pass - it is in
+      your verify - and its label assertions remain the compatibility-mode control. Exactly
+      ONE assertion in that file is amended by this task and by nothing else: the "every call
+      pins --repo" check at tests/integration/test-gh-sync.py:765, which section 3 replaces
+      with an assertion on the exact GraphQL owner and name values of the api graphql line.
+      Every other assertion in that file stays byte-for-byte unchanged.
       Do not touch cmd_backlog in this task; that is T-06.
 
       1. Import the shared module: add "import gh_issue_types" beside the existing
@@ -862,6 +902,18 @@ tasks:
            query_failed-> f"gh-sync: issue types could not be determined on {repo} ({message}) - labels only"
          Print nothing when available. Never call skip() and never exit from here: the absence
          of issue types must not fail a run.
+         THE CAPABILITY QUERY ARGV IS EXACTLY gh_issue_types.capability_query_args(repo), WITH
+         NO ADDITIONAL FLAGS APPENDED. gh api has no --repo flag - gh 2.92.0 answers "unknown
+         flag: --repo" - so appending one produces a call that is green against a permissive
+         test double and DEAD against real gh. The repository is pinned by -f owner=<owner> and
+         -f name=<name> inside capability_query_args (gh_issue_types.py:100-107), which is the
+         only form gh accepts for a graphql query; factory_gh.py:220 already calls it that way.
+         Consequently the "every call pins --repo" assertion at
+         tests/integration/test-gh-sync.py:765 is amended, in this task, to verify that an
+         api graphql invocation carries the exact GraphQL owner= and name= values for the
+         pinned repository rather than asserting the presence of a --repo flag. What it pins is
+         unchanged: every call targets the pinned repository, never the ambient one. Amend that
+         one assertion and nothing else in that file.
          Call it as the FIRST statement of cmd_open, before parse_brief and before any
          already-recorded skip branch. A rerun in which every task is already recorded makes
          zero creates and must still print exactly one line.
@@ -957,6 +1009,20 @@ tasks:
          repository declares native Issue Types, the type is applied from the mapping in
          gh_issue_types.py and the bug and chore labels are not applied, and that the label
          derivation described there is the compatibility path for repositories without them.
+
+      9. THE SCHEMA AUTHORITY FOR THE typed MAPPING - this task owns
+         .claude/skills/harness/bin/feature-schema.json and no other task does. Declare an
+         OPTIONAL "typed" property on BOTH closed objects in that file: the "github" object and
+         the "factory" object. Both carry "additionalProperties": false, so an undeclared key
+         is refused at the first save that carries one - measured verbatim:
+         MergeRefusal(11): undeclared key 'typed' at /factory. Without this declaration
+         sections 6 and 7 above cannot write their receipt at all.
+         Each "typed" value is an object whose values are the provenance strings D-20 fixes -
+         "created" and "adopted" - OR the promoted boolean true. Neither "typed" mapping is
+         added to any "required" list, and both objects keep "additionalProperties": false.
+         Give each property a description naming D-20 and stating that ABSENCE of an entry
+         means provenance is UNKNOWN and is never typed.
+         Amend nothing else in that schema file.
 
   - id: T-05
     title: Write the failing integration test for gh-sync backlog - receipt, typing and one diagnostic

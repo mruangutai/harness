@@ -915,12 +915,7 @@ def detect_issue_types(repo):
     GitHub Issue Types (FEAT-55, REQ-05). Prints exactly one line when the state is
     not "available" and NEVER calls `skip()` or exits — the absence of issue types
     must not fail a run."""
-    # REPO IS PINNED, NEVER INFERRED (this file's own module docstring): the query
-    # itself carries owner/name as separate GraphQL variables (gh has no --repo
-    # equivalent for a combined "owner/name" GraphQL argument), so --repo is passed
-    # here too, alongside it, purely so every gh call this file makes still names
-    # the pinned repo explicitly on the command line.
-    r = subprocess.run([GH] + gh_issue_types.capability_query_args(repo) + ["--repo", repo],
+    r = subprocess.run([GH] + gh_issue_types.capability_query_args(repo),
                         capture_output=True, text=True)
     state, declared, message = gh_issue_types.classify_capability(r.returncode, r.stdout)
     if state == "absent":

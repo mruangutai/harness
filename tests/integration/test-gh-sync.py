@@ -760,8 +760,11 @@ with tempfile.TemporaryDirectory() as tmp:
     check("parent title carries the H1 phrase",
           any("FEAT-05-export-fix — reliable csv export" in l for l in parent_create_lines),
           str(parent_create_lines))
-    check("every call pins --repo",
-          all("--repo implentio/fake" in l or "repos/implentio/fake" in l or l.startswith("auth") for l in log),
+    check("every call pins the pinned repo - --repo/repos flag, auth, or an api graphql "
+          "line carrying the exact owner=implentio and name=fake GraphQL values",
+          all("--repo implentio/fake" in l or "repos/implentio/fake" in l or l.startswith("auth")
+              or (l.startswith("api graphql") and "owner=implentio" in l and "name=fake" in l)
+              for l in log),
           str(log))
     create_lines = [l for l in log if "issue create" in l]
     check("T-01 unlabeled beyond harness (feature)",
