@@ -50,6 +50,7 @@ import sys, os, re, glob, json, subprocess
 
 sys.path.insert(0, sys.argv[2])
 import harness_yaml
+import run_identity
 try:
     import handoff_done_when
 except Exception as _handoff_done_when_error:
@@ -1389,7 +1390,7 @@ for sm in sorted(glob.glob(os.path.join(H, "*", "features", "*", "STATE.md"))):
 LEADS = {"harness-product-lead", "harness-eng-lead", "harness-validator-lead"}
 CHECKPOINT_KEYS = {
     # seed (harness-team §2)
-    "schema_version", "run_id", "feature", "squad", "host", "status", "steps",
+    "schema_version", "run_id", "run_uid", "feature", "squad", "host", "status", "steps",
     # loop bookkeeping
     "cycles_used",
     # The money key below is HISTORICAL-ONLY (DEC-178): nothing produces it any more,
@@ -1472,6 +1473,45 @@ for sy in glob.glob(os.path.join(H, "*", "features", "*", "runs", "*", "state.ya
                    f"only identifiers, enums, counters, paths and sequence markers "
                    f"(DEC-154). Findings and assessment prose belong in that run's "
                    f"digest.md; a one-line note: per step entry is the ceiling.")
+
+    # INV-36 (BUG-1305): D-13 makes this self-limiting. Only a run directory
+    # carrying the write-once witness is judged; witness-absent directories are
+    # permanently legacy and remain silent. A witness uid with no checkpoint uid
+    # is also silent: that can be a legitimate landing where POST did not run, and
+    # a hook-registration defect must not be mislabeled as a clobber.
+    _marker_path = run_identity.marker_path(rundir)
+    if os.path.lexists(_marker_path):
+        _run_rel = os.path.relpath(rundir, H)
+        try:
+            _marker = run_identity.read_marker(rundir)
+        except run_identity.MarkerUnreadable:
+            bad.append(
+                f"INV-36: {_run_rel}: its recorded run identity cannot be read, so "
+                "whether the checkpoint occupying this directory belongs to it cannot "
+                "be determined.")
+        else:
+            _reason = run_identity.conflict(_marker, sdoc)
+            if _reason:
+                bad.append(
+                    f"INV-36: {_run_rel}: the checkpoint occupying this run directory "
+                    "records an identity that disagrees with the identity recorded when "
+                    f"the directory was first written: {_reason}. The checkpoint the "
+                    "witness describes is the record that was lost; the occupying file "
+                    "belongs to a different run.")
+            else:
+                _wuid = _marker.get("run_uid") if isinstance(_marker, dict) else None
+                _suid = sdoc.get("run_uid")
+                if (_wuid is not None and str(_wuid).strip()
+                        and _suid is not None and str(_suid).strip()
+                        and str(_wuid) != str(_suid)):
+                    _uid_reason = run_identity.uid_conflict(
+                        {"run_uid": _wuid}, {"run_uid": _suid})
+                    bad.append(
+                        f"INV-36: {_run_rel}: the checkpoint occupying this run directory "
+                        "records an identity that disagrees with the identity recorded when "
+                        f"the directory was first written: {_uid_reason}. The checkpoint "
+                        "the witness describes is the record that was lost; the occupying "
+                        "file belongs to a different run.")
 
     # INV-15: the durable digest.
     _host = str(sdoc.get("host", "")).strip()
