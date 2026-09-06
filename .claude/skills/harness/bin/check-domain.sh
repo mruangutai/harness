@@ -2036,13 +2036,15 @@ def _edit_reconstructed_content(absolute_path, old_string, new_string, replace_a
 
 
 if not _post:
-    # PRE. Write supplies complete content. Edit is reconstructed only for the protected
-    # artifact identities whose contracts must reject an invalid candidate before mutation:
-    # run digests, run state, and handoff notes.
+    # PRE. The identity witness is denied by path alone: an Edit must not bypass the
+    # write-once rule merely because its target is absent or its old_string is ambiguous.
+    # Other protected artifacts need the complete candidate reconstructed before mutation.
     if (_tool == "Edit" and target
+            and RE_RUN_IDENTITY.match(_norm(target))):
+        targets = [(_norm(target), "", _show(target), _claimed_abs(target))]
+    elif (_tool == "Edit" and target
             and (RE_RUN_DIGEST.match(_norm(target))
                  or RE_STATE_YAML.match(_norm(target))
-                 or RE_RUN_IDENTITY.match(_norm(target))
                  or RE_HANDOFF.match(_norm(target)))):
         _ti = d.get("tool_input") or {}
         _content = _edit_reconstructed_content(

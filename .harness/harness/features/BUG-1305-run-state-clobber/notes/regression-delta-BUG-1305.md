@@ -35,5 +35,5 @@ BLUF: the only intentional compatibility refusal is a foreign writer attempting 
 
 - `.claude/skills/harness/bin/run-unit-tests.sh --kind unit`: exit 0; 28 files; 0 lines beginning `FAIL`; 3.97s pool wall time.
 - `.claude/skills/harness/bin/run-unit-tests.sh --kind integration`: exit 0; 46 files; 0 lines beginning `FAIL`; 101.99s pool wall time.
-- `bash .claude/skills/harness/bin/check-state.sh`: exit 0 with notes only; no INV-36/run-identity finding.
+- From the control-plane root `/Users/molchairuangutai/GitHub/harness`, `bash .claude/skills/harness/bin/check-state.sh`: exit 0 with notes only; a search of the verbatim output found 0 `INV-36` lines.
 - Cycle-10 targeted replay of `run_bug1305_identity_cases`: exit 0; 10/10 cases passed. Against pinned pre-change hook `592e88dcf0b6dfcd75ca4c1d49451fa9003d2802`, exit 4; 6/10 passed, with the new different-uid Edit case red.

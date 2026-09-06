@@ -3909,6 +3909,13 @@ def run_bug1305_digest_repair_cases():
     results.append(("digest Write append remains allowed",
                     response.returncode == 0, response.stderr))
 
+    root, path = _feat50_digest_fixture()
+    _feat50_write_text(path, prior)
+    _bug1305_write_marker(path)
+    response = _bug1305_digest_write(root, path, prior + artifact)
+    results.append(("digest Write append remains allowed beside identity witness",
+                    response.returncode == 0, response.stderr))
+
     failures = 0
     for name, ok, detail in results:
         if ok:
@@ -4831,18 +4838,28 @@ def _bug1305_marker_file_protection():
         fh.write("{}\n")
     write = _bug1124_state_fire(root, identity, '{"run_id": "forged"}\n')
     edit = _fire_digest_edit(root, identity, "{}", '{"run_id": "forged"}')
-    os.unlink(identity)
-    create = _bug1124_state_fire(root, identity, '{"run_id": "forged"}\n')
+    unmatched_edit = _fire_digest_edit(
+        root, identity, "not present", '{"run_id": "forged"}')
     legal = _bug1124_state_fire(
         root, state, "schema_version: 1\nrun_id: A\nrun_uid: U\n")
+    os.unlink(identity)
+    create = _bug1124_state_fire(root, identity, '{"run_id": "forged"}\n')
+    create_edit = _fire_digest_edit(
+        root, identity, "not present", '{"run_id": "forged"}')
     return [
         ("Write of existing witness is refused", write.returncode == 2
          and "identity witness" in write.stderr, write.stderr),
         ("Edit of existing witness is refused", edit.returncode == 2
          and "identity witness" in edit.stderr, edit.stderr),
+        ("unmatched Edit of existing witness is refused",
+         unmatched_edit.returncode == 2
+         and "identity witness" in unmatched_edit.stderr, unmatched_edit.stderr),
+        ("run_uid is a legal checkpoint key beside identity witness",
+         legal.returncode == 0, legal.stderr),
         ("Write creating false witness is refused", create.returncode == 2
          and "identity witness" in create.stderr, create.stderr),
-        ("run_uid is a legal checkpoint key", legal.returncode == 0, legal.stderr),
+        ("Edit creating false witness is refused", create_edit.returncode == 2
+         and "identity witness" in create_edit.stderr, create_edit.stderr),
     ]
 
 
@@ -4991,7 +5008,9 @@ def _bug1305_identity_refusal_cases():
          and "run identity" in missing.stderr and "field disagreement" not in missing.stderr,
          missing.stderr),
         ("modal collision Edit removing uid is refused",
-         edit.returncode == 2 and "U1" in edit.stderr, edit.stderr),
+         edit.returncode == 2 and "U1" in edit.stderr
+         and "run identity" in edit.stderr
+         and "field disagreement" not in edit.stderr, edit.stderr),
         ("different minted uid is refused",
          different.returncode == 2 and "U1" in different.stderr
          and "U2" in different.stderr, different.stderr),

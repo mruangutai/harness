@@ -166,6 +166,17 @@ than freezing a defect into it.
     names what the file is and what to do instead. The harness's own POST hook writes it from inside
     `check-domain.sh` rather than through a governed tool call, so it needs no exemption, and that
     writer is itself write-once. Graded by SC-13.
+  - **ACCEPTED RESIDUAL — directory-level removal (issue #1376).** The Bash guard matches
+    protected artifact basenames, so a governed `rm` or `mv` aimed at the containing run directory
+    can remove `state.yaml`, `digest.md`, and `.run-identity.json` without naming any protected
+    path. A witness-only patch would contradict REQ-07 by refusing a directory operation permitted
+    before this feature, while a complete rule first needs a doctrine for who may remove a run
+    directory and through which route; narrow `rm`/`mv` matching would still miss other filesystem
+    deletion routes. The operator delegated material ship decisions to Advisor, and Advisor
+    explicitly accepted this named residual while requiring issue #1376 to resolve the doctrine
+    and guard all three artifacts together. This acceptance does not claim the witness is
+    indestructible; it preserves the signed direct-path protection and makes the remaining boundary
+    explicit.
 - **REQ-03 (Mode A — detection is actionable):** The detection result names the affected run
   directory and distinguishes a clobbered checkpoint from a merely malformed one, so an operator
   reading only the checker's output knows what was lost and what to repair.

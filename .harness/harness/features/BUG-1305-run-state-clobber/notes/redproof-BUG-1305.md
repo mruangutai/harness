@@ -168,3 +168,67 @@ ok    [bug1305-digest] digest Write append remains allowed
 
 The legal Edit append and Write append already passed, and the cross-run replacement already
 failed closed. The red case was the insertion refusal's missing legal repair instruction.
+
+## SC-13
+
+The Bash witness refusals were replayed from the current test against the pinned pre-change
+`c369fb1f` guard in a detached worktree.
+
+Command:
+
+```text
+BASH_WRITE_GUARD_BIN=/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/qa-redproof-sc13-c11/.claude/skills/harness/bin/bash-write-guard.sh python3 -c 'import importlib.util; p="tests/integration/test-bash-write-guard.py"; s=importlib.util.spec_from_file_location("bg", p); m=importlib.util.module_from_spec(s); s.loader.exec_module(m); raise SystemExit(m.run_bug1106_bash_route())'
+```
+
+Verbatim discriminating output (the six unaffected passing cases are omitted outside this fence;
+exit 2):
+
+```text
+FAIL  bug1305 Bash route: overwriting the write-once identity witness is refused
+      | exit 0:
+FAIL  bug1305 Bash route: removing the write-once identity witness is refused
+      | exit 0:
+
+6/8 bug1106 Bash-route cases passed.
+```
+
+The same command against the live guard, with `BASH_WRITE_GUARD_BIN` unset, produced:
+
+```text
+ok    bug1305 Bash route: overwriting the write-once identity witness is refused
+ok    bug1305 Bash route: removing the write-once identity witness is refused
+
+8/8 bug1106 Bash-route cases passed.
+```
+
+The composed allow control also passed against both trees:
+`digest Write append remains allowed beside identity witness`.
+
+## Review F-04 — Edit path keyed before reconstruction
+
+Before the fix, the focused BUG-1305 replay used this command:
+
+```text
+python3 -c 'import importlib.util; p="tests/integration/test-check-domain.py"; s=importlib.util.spec_from_file_location("cd", p); m=importlib.util.module_from_spec(s); s.loader.exec_module(m); raise SystemExit(m.run_bug1305_digest_repair_cases()+m.run_bug1305_marker_cases()+m.run_bug1305_identity_cases())'
+```
+
+Verbatim discriminating output (exit 2):
+
+```text
+FAIL  [bug1305] unmatched Edit of existing witness is refused
+      |
+FAIL  [bug1305] Edit creating false witness is refused
+      |
+
+15/17 BUG-1305 marker cases passed.
+```
+
+After the PRE Edit branch was keyed on the witness path before content reconstruction, the same
+command produced:
+
+```text
+ok    [bug1305] unmatched Edit of existing witness is refused
+ok    [bug1305] Edit creating false witness is refused
+
+17/17 BUG-1305 marker cases passed.
+```
