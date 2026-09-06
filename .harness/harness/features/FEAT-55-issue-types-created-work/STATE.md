@@ -3,99 +3,111 @@
 ## Current
 
 - feature: FEAT-55-issue-types-created-work
-- run: .harness/harness/features/FEAT-55-issue-types-created-work/runs/2026-09-05-02-eng/digest.md
-- squad: eng
-- status: in_progress
-- station: building (plan.yaml `status: building`; plan `approval.status: approved`, BRIEF
-  `## Approval` approved — both fragments signed 2026-09-05 by molchairuangutai)
-- mission: build — the two build blockers are RULED, AMENDED and LANDED. All twelve tasks are now
-  complete and every one of them verifies. Remaining: qa test-matrix gate, SIMPLIFY, `review_sha`
-  pin, review panel, goal-check, ship briefing.
+- run: .harness/harness/features/FEAT-55-issue-types-created-work/runs/2026-09-05-32-validator/digest.md
+- squad: validator
+- status: in_review
+- station: review (plan.yaml `status: review`; plan `approval.status: approved`, BRIEF `## Approval`
+  approved — both fragments signed 2026-09-05 by molchairuangutai and byte-intact after the
+  amendment, re-verified by me on disk)
+- mission: validate — COMPLETE. Ready for the operator's ship decision; nothing waits on me.
 
-- the operator's rulings (`notes/answers-build-blockers-20260905.md`, 2026-09-05) were applied in
-  two segments, neither of which cost a cycle:
-  - F-04 (budget) — applied by me directly: `max_total_cycles` 10 → 13, `max_total_runs` 20 → 40.
-  - F-01 + F-02 (plan authority) — product segment, run `2026-09-05-29-product`, PASS. pm amended
-    T-04's `files:` to `[gh-sync.py, feature-schema.json, tests/integration/test-gh-sync.py]`,
-    amended T-04's `intent` with both corrections, and added decisions D-21 and D-22 recording the
-    rulings. `plan-merge.py amend`/`apply` preserve the approval bytes by construction (BUG-1128),
-    so NO re-signature was required and none was taken: I re-read the file and `approval.status`
-    still reads `approved`, `approved_by: molchairuangutai`, with all five original rulings present
-    (PF-bad4d518, PF-17e86df9, PF-f8e806d1, PF-bc6cbd0c, PF-e74a2da8).
-  - F-01 + F-02 (code) — eng segment, run `2026-09-05-02-eng`, PASS. backend-dev declared the two
-    optional `typed` mappings on feature-schema.json's `github` and `factory` objects (both keep
-    `additionalProperties: false`, neither is `required`), removed `+ ["--repo", repo]` and its
-    false comment from gh-sync.py's capability query, and amended test-gh-sync.py's repo-pinning
-    assertion to accept an `api graphql` line only when it carries the exact `owner=implentio` AND
-    `name=fake` GraphQL values.
-  - F-03 (SC-10) — the capability-absent verdict stands as the signed criterion's evidence. The
-    optional live probe against an organization-owned, Issue-Types-enabled repository is recorded
-    as backlog row B-9 in the ship briefing, and nowhere else.
+- all four operator rulings (`notes/answers-build-blockers-20260905.md`) are applied, none costing a
+  cycle. F-04: budget raised by me to 13/40. F-01+F-02 plan half, run `2026-09-05-29-product` PASS:
+  pm amended T-04's `files:` to `[gh-sync.py, feature-schema.json, tests/integration/test-gh-sync.py]`
+  and its `intent`, and added D-21/D-22. `plan-merge.py amend`/`apply` preserve approval bytes by
+  construction (BUG-1128), so NO re-signature was required and none was taken. F-01+F-02 code half,
+  run `2026-09-05-02-eng` PASS: both `typed` mappings declared on the closed `github` and `factory`
+  schema objects; `+ ["--repo", repo]` and its false comment removed from the capability query;
+  test-gh-sync.py's assertion now accepts an `api graphql` line only with the exact `owner=implentio`
+  AND `name=fake` values. F-03: SC-10 graded MET on the ruling; the optional live probe is backlog
+  row B-1 in the briefing and nowhere else.
 
-- I verified the landing at source rather than accepting the digest — the eng lead reported a
-  harness defect in which an `Edit` claimed success and never reached disk, which is exactly the
-  false-green shape a relayed claim cannot see. Measured by me in this worktree:
-  gh-sync.py:919-920 now reads `subprocess.run([GH] + gh_issue_types.capability_query_args(repo),`
-  with no `--repo` and no comment; both schema objects declare `typed`; test-gh-sync.py:763-768
-  carries the four-way check including `l.startswith("api graphql") and "owner=implentio" in l and
-  "name=fake" in l`.
+- gates, all green, measured by me per file with its own exit code and `^FAIL ` count — never a tail
+  read, because a truncated capture already produced one false green here. The ten FEAT-55 suites
+  (test-anchor-directions, test-issue-types-pin, test-issue-types, test-gh-issue-types, test-gh-sync,
+  test-gh-backlog-issue-types, test-factory-issue-types, test-factory-decompose, test-factory-gh,
+  test-factory-integration) every one exit 0 / FAIL 0; `.claude/skills/harness/bin/run-unit-tests.sh`
+  exit 0 / FAIL 0 with the status captured in a variable; `code-grade.py --base eb9d044e --head
+  76ba5f41` zero `SEVERITY: high`. Two directories are easy to get backwards:
+  `tests/unit/test-factory-gh.py` and `tests/integration/test-anchor-directions.py`.
 
-- all seven affected suites re-run by me, per-file exit code and per-file `FAIL` count, never a
-  tail read: test-gh-issue-types, test-gh-sync, test-gh-backlog-issue-types, test-factory-issue-types,
-  test-factory-decompose, test-factory-gh, test-factory-integration — every one exit 0, FAIL 0.
-  That is T-04's, T-06's and T-08's `verify:` in full plus the two pre-existing factory controls.
+- qa, run `2026-09-05-01-validator`, FAIL → resolved, 1 cycle. The blocking matrix was red on
+  test-anchor-directions.py: T-12's new prose in `.claude/skills/harness/references/github-mirror.md`
+  carried unanchored instruction paths at :19 and :24. I confirmed it (exit 1, two violations) and
+  `check-domain.sh --resolve` answered NOBODY — no squad, not me. The main session landed the fix;
+  I committed it and the gate went green.
 
-- tasks: all twelve complete and verified. T-01, T-02, T-03, T-05, T-07 (eng), T-04, T-06, T-08
-  (eng, unblocked this session), T-09, T-10 (dev-ops), T-11 (documentor), T-12
-  (main-session-direct). The T-11 → T-12 sequencing constraint was honoured.
+- SIMPLIFY, run `2026-09-05-03-eng`, PASS, 0 cycles. Reuse 0 findings (the D-11 extraction held
+  across all three callers), efficiency 0 apply-worthy, 4 low from the other two angles, one
+  behaviour-preserving fold-in applied to `gh_issue_types.py`.
 
-- budget: `cycles_used` 11 of 13 — both segments this session reported zero send-backs, so the
-  counter did not move. `runs` 34 of 40, now inside the informational budget again after F-04.
+- panel, run `2026-09-05-30-validator` at pin `cd6a3c0d`, FAIL — ONE gating finding, and it was
+  real: `factory_decompose.write_factory.transform` graded 3 (ABC 20.5) in a bar-4 zone because THIS
+  diff's `"typed"` serialization line carried ABC past 20. I checked the premise with the repo's own
+  grader before spending the last cycle; it held. qa PASS, security PASS (one low in T-10's probe),
+  ui PASS after looking rather than declining blind.
 
-- everything is committed on `feat/issue-1289-issue-types`. No merge, no PR. `review_sha` is
-  deliberately still `none`: the Building → Review seam is reached only after SIMPLIFY applies.
+- fix, run `2026-09-05-1-eng`, PASS, the 13th and last cycle. `_factory_block` extracted; `transform`
+  now GRADE 4 / ABC 9.0 and the helper GRADE 4 / ABC 14.1 — it did not merely move the mass, which
+  is the specific way that remedy fails. Also corrected `probe-issue-types.py`'s comment asserting
+  gh-sync still appends `--repo` — falsified by D-22, twin of the one F-02 ordered deleted.
 
-- briefing: `notes/ship-review-2026-09-05-01-eng.md` is the PREVIOUS, blocked-state briefing. It is
-  superseded once the ship briefing for this run is written.
-- handoff: `notes/handoff-build.md` — SUPERSEDED in substance; its `## Next` and both its dead ends
-  about qa and the pin were released by the rulings.
+- re-check, run `2026-09-05-32-validator`, PASS. Scoped to the two-file delta, routed to the reviewer
+  that raised the finding. Its own measurement: must_fix closed, extraction key-for-key
+  behaviour-preserving, comment accurate, suites green, nothing new. qa/security/ui verdicts are
+  INHERITED across that delta and the lead said so rather than hiding it.
+
+- goal-check, run `2026-09-05-31-product`, PASS. Twelve of twelve SCs MET at the pin, REQ-01..REQ-11
+  all traced to verified tasks, nothing routed to a fix cycle.
+
+- budget: `cycles_used` 13 of 13 — SPENT. `runs` 40 of 40 — at the informational bound (INV-22). The
+  count is high for one reason unchanged since the plan phase: this plan was signed through five
+  rounds of rulings instead of one. The runs earn their place — this session's eight closed two
+  rulings, four quality angles, a four-reviewer panel and the goal-check.
+
+- committed on `feat/issue-1289-issue-types` at `76ba5f41`; `review_sha` pinned there. No merge, no PR.
+- briefing: `notes/ship-review-2026-09-05-02-eng.md` (+ rendered `.html`), sixteen-row proposed
+  backlog. SUPERSEDES `notes/ship-review-2026-09-05-01-eng.md`.
+- handoff: `notes/handoff-validate.md`; `notes/handoff-build.md` superseded.
 - intake: .harness/notes/grilling-issue-types-2026-09-04.md (source ticket #1289)
 
 ## Open Questions
 
-No blocking questions. Every item below is a harness defect for the harness owner, raised rather
-than worked around, or a non-gating ratification.
+No blocking questions. One refusal I chose not to work around, harness defects raised rather than
+worked around, and one non-gating ratification.
 
-- Q3 (operator, non-blocking) — T-06 §5 specifies the backlog receipt as
-  `{"items": {"<nature>:<title>": …}}`, but T-05's red test seeds and reads those keys at the
-  document's top level and T-06 had to make it green unedited, so the on-disk receipt is FLAT.
-  Ratify the flat shape or correct the plan's prose. Behaviour is unaffected either way.
-- Q4 (harness defect) — `bash-write-guard.sh` blocked `cp` onto a file outside my domain but did
-  NOT block `python3 -c` writing the identical path in the identical shell call. It reads the
-  command line for known write verbs rather than the syscalls, so any interpreter is an open door.
-- Q5 (harness defect) — `plan-merge.py set-task-station` cannot record ANY task station on this
-  plan: its tasks carry no `status:` key and the verb only SPLICES an existing line, never inserts
-  one. It then misreports the cause as `T-01 is not in <file> — it carries: T-01, T-02`, naming the
-  task it just said was absent, and the enumeration grows by one per invocation. Only the FEATURE
-  station is recordable. Re-confirmed this session: all twelve tasks still carry no `status:` key.
-- Q6 (harness defect) — a truncated tool capture of `run-unit-tests.sh` silently produced a FALSE
-  GREEN. A gate whose output is captured-and-truncated cannot be read for absence of failure.
-- Q7 (harness defect) — the documentor's `Edit` resolved a relative section path against the
-  process cwd rather than the dispatch worktree, so four hunks first landed in the MAIN checkout's
-  DECISIONS.md. Detected and reverted; no residue, independently confirmed twice.
-- Q12 (harness defect, NEW, same class as Q6/Q7) — backend-dev's `Edit` on
-  `tests/integration/test-gh-sync.py` reported a successful apply and issued a new snapshot tag,
-  and the write never reached disk: re-reads returned pre-edit content and an identical retry was
-  rejected as byte-identical. It landed the change through another route and I verified the final
-  content at source. A write tool that reports success without writing can manufacture a false
-  green anywhere in the factory.
-- Q13 (harness defect, NEW) — the product lead's checkpoint write replaced
-  `runs/2026-09-05-01-product/state.yaml`, an eight-hour-old run's checkpoint, because the runs tree
-  is gitignored so its `Glob` returned no matches and the directory read as free. `check-domain`
-  guards a run's `digest.md` and refused that write; it does not guard `state.yaml`. The overwritten
-  file is unrecoverable — gitignored, so never committed — but it is a spent archive artifact and
-  that run's `digest.md` survived intact.
-- Q8..Q11 (harness defects, carried unchanged from the plan phase) — `validate-digest.py` rejecting
-  `code_grade: n_a` on a plan review; a first run digest being unrepairable in place; the
-  `harness-spec-driven` verb list omitting `amend`; and `amend --key` accepting only
-  `tasks|decisions`.
+- Q14 (harness defect, why the mirror is behind) — `gh-sync.py status <dir> review` REFUSED: "not
+  every task in plan.yaml is done or abandoned". Correct that none reads done — this plan's tasks
+  carry no `status:` key and `set-task-station` only SPLICES an existing line (Q5). I did NOT work
+  around it: writing plan content outside `plan-merge.py` is what D-04 forbids. Never a gate.
+- Q3 (operator, non-blocking) — T-06 §5 specifies the backlog receipt nested under `items`, but
+  T-05's red test seeds and reads those keys at the top level and T-06 had to make it green
+  unedited, so the on-disk receipt is FLAT. Ratify it or correct the prose; behaviour is unaffected.
+- Q4 — `bash-write-guard.sh` blocked `cp` onto a file outside my domain but NOT `python3 -c` writing
+  the identical path in the identical call. It reads the command line for write verbs, not syscalls.
+- Q5 — `set-task-station` records no station on a status-less plan, and misreports the cause as
+  `T-01 is not in <file> — it carries: T-01, T-02`, naming the task it just called absent; the
+  enumeration grows by one per invocation.
+- Q6 — a truncated capture of the unit driver produced a FALSE GREEN. Captured output cannot be read
+  for absence of failure.
+- Q7 — the documentor's `Edit` resolved a relative path against the process cwd, not the dispatch
+  worktree, briefly writing into the MAIN checkout. Detected, reverted, confirmed clean twice.
+- Q12 — backend-dev's `Edit` on `tests/integration/test-gh-sync.py` reported success and issued a new
+  snapshot tag while never reaching disk; a re-read returned pre-edit content and an identical retry
+  was rejected as byte-identical. It landed by another route; I verified the content at source.
+- Q13 — TWO agents wrote their checkpoint into `runs/2026-09-05-01-product/`, an older run's
+  directory, because the runs tree is gitignored so a `Glob` returns nothing and a live directory
+  reads as free. `check-domain` refused the `digest.md` write both times and allowed `state.yaml`
+  both times. Unrecoverable (`git checkout --` → "did not match any file(s) known to git"); spent
+  archive artifacts only, and both runs' digests survived.
+- Q15 (NEW) — the handoff shape gate resolves a `## Done when` authority pointer's relative path
+  against the MAIN checkout root, not the worktree the note is written in, so `brief-sc:` and
+  `plan-task:` cannot resolve from inside a worktree at all and every `finding:`/`approval:` pointer
+  needs a `.claude/worktrees/<...>/` prefix duplicating the feature path.
+- Q16 (advisory, non-gating) — `probe-issue-types.py:97-101` `_read_back_issue_type` `%`-formats
+  owner and name into GraphQL query TEXT rather than passing `-f owner=`/`-f name=` as every other
+  call site does. Reachable only behind the operator's `--create-in` flag on a host-only probe, so
+  nothing crosses a boundary; unsafe the moment it gets an externally-sourced caller. Backlog B-9.
+- Q8..Q11 (carried from the plan phase) — `validate-digest.py` rejecting `code_grade: n_a` on a plan
+  review; a first run digest unrepairable in place; the `harness-spec-driven` verb list omitting
+  `amend`; `amend --key` accepting only `tasks|decisions`.

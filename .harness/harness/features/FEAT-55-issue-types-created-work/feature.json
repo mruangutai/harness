@@ -2,7 +2,7 @@
   "feature_id": "FEAT-55-issue-types-created-work",
   "branch": "feat/issue-1289-issue-types",
   "pr": null,
-  "review_sha": "cd6a3c0dee795ca9261d0ecf2e67df09d2e47b86",
+  "review_sha": "76ba5f41b655ad1000291cf88fd4228a916164ef",
   "cycles_used": 13,
   "max_total_cycles": 13,
   "max_total_runs": 40,
@@ -242,6 +242,18 @@
       "squad": "product",
       "verdict": "PASS",
       "agent": "harness-product-lead"
+    },
+    {
+      "id": "2026-09-05-1-eng",
+      "squad": "eng",
+      "verdict": "PASS",
+      "agent": "harness-eng-lead"
+    },
+    {
+      "id": "2026-09-05-32-validator",
+      "squad": "validator",
+      "verdict": "PASS",
+      "agent": "harness-validator-lead"
     }
   ]
 }
