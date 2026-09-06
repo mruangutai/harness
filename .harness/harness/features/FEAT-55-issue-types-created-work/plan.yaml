@@ -1,6 +1,6 @@
 schema: plan/1
 feature: FEAT-55-issue-types-created-work
-status: building
+status: review
 approval:
   date: '2026-09-05'
   approved_by: molchairuangutai
