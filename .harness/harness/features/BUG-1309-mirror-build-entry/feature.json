@@ -1,0 +1,95 @@
+{
+  "feature_id": "BUG-1309-mirror-build-entry",
+  "branch": "feat/BUG-1309-mirror-build-entry",
+  "pr": null,
+  "review_sha": "none",
+  "cycles_used": 4,
+  "max_total_cycles": 10,
+  "max_total_runs": 20,
+  "runs": [
+    {
+      "id": "2026-09-06-1-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-06-01-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-06-02-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-06-c2-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-06-c3-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-06-gc2-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "FAIL",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-06-c4-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-06-c5-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-06-c6-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-06-01-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-06-c7-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-06-c8-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "code_grade": "n_a"
+    }
+  ]
+}
