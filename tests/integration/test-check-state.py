@@ -4663,15 +4663,18 @@ def _bug440_validate_fixture(tmp, entries, runs):
     return fdir, code, out, before == after
 
 
-def case_bug440_digest_verdict_reconciliation():
-    """BUG-440: reconcile only complete, lead-hosted, valid durable digests."""
+def _bug440_validator():
     import importlib.util
     spec = importlib.util.spec_from_file_location(
         "validate_digest_bug440", os.path.join(_anchor_bin, "validate-digest.py"))
     validator = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(validator)
+    return validator
+
+
+def _bug440_mixed_case(validator):
     digest = lambda verdict: _bug440_digest(validator, verdict)
-    mixed_runs = [
+    runs = [
         ("M", "harness-eng-lead", "complete", digest("FAIL")),
         ("E", "harness-product-lead", "complete", digest("PASS")),
         ("N", "omp", "complete", digest("FAIL")),
@@ -4682,27 +4685,44 @@ def case_bug440_digest_verdict_reconciliation():
     ]
     with tempfile.TemporaryDirectory() as tmp:
         _, code, out, unchanged = _bug440_validate_fixture(
-            tmp, ("M", "E", "N", "I", "G", "X"), mixed_runs)
-        inv37 = [line for line in out.splitlines() if "INV-37" in line]
-        mismatch = [line for line in inv37 if "runs/M" in line]
-        mixed_ok = (code == 1 and len(inv37) == 1 and len(mismatch) == 1 and unchanged
-                    and all(token in mismatch[0] for token in
-                            ("FEAT-TEST", "M", "FAIL", "PASS", "feature.json", "digest.md"))
-                    and not any(f"runs/{name}" in "\n".join(inv37)
-                                for name in ("E", "N", "I", "G", "X", "O"))
-                    and sum("runs/G" in line and "digest.md is missing" in line
-                            for line in out.splitlines()) == 1
-                    and sum("runs/X/digest.md" in line and "lead digest" in line
-                            for line in out.splitlines()) == 1)
+            tmp, ("M", "E", "N", "I", "G", "X"), runs)
+    inv37 = [line for line in out.splitlines() if "INV-37" in line]
+    mismatch = [line for line in inv37 if "runs/M" in line]
+    expected = ("FEAT-TEST", "M", "FAIL", "PASS", "feature.json", "digest.md")
+    silent = ("E", "N", "I", "G", "X", "O")
+    return all((
+        code == 1, len(inv37) == 1, len(mismatch) == 1, unchanged,
+        all(token in mismatch[0] for token in expected),
+        not any(f"runs/{name}" in "\n".join(inv37) for name in silent),
+        sum("runs/G" in line and "digest.md is missing" in line for line in out.splitlines()) == 1,
+        sum("runs/X/digest.md" in line and "lead digest" in line for line in out.splitlines()) == 1,
+    ))
+
+
+def _bug440_blocking_case(validator):
     with tempfile.TemporaryDirectory() as tmp:
-        _, mismatch_code, mismatch_out, _ = _bug440_validate_fixture(
-            tmp, ("M",), [("M", "harness-eng-lead", "complete", digest("FAIL"))])
-        blocking_ok = mismatch_code == 1 and "INV-37" in mismatch_out
+        _, code, out, _ = _bug440_validate_fixture(
+            tmp, ("M",), [("M", "harness-eng-lead", "complete",
+                           _bug440_digest(validator, "FAIL"))])
+    return code == 1 and "INV-37" in out
+
+
+def _bug440_clean_case(validator):
     with tempfile.TemporaryDirectory() as tmp:
-        _, clean_code, clean_out, _ = _bug440_validate_fixture(
-            tmp, ("E",), [("E", "harness-product-lead", "complete", digest("PASS"))])
-        clean_ok = clean_code == 0 and "INV-37" not in clean_out
-    ok = mixed_ok and blocking_ok and clean_ok
+        _, code, out, _ = _bug440_validate_fixture(
+            tmp, ("E",), [("E", "harness-product-lead", "complete",
+                           _bug440_digest(validator, "PASS"))])
+    return code == 0 and "INV-37" not in out
+
+
+def case_bug440_digest_verdict_reconciliation():
+    """BUG-440: reconcile only complete, lead-hosted, valid durable digests."""
+    validator = _bug440_validator()
+    ok = all((
+        _bug440_mixed_case(validator),
+        _bug440_blocking_case(validator),
+        _bug440_clean_case(validator),
+    ))
     print(f"{'ok' if ok else 'FAIL'} - BUG-440 INV-37 reconciles digest verdicts without mutation")
     return ok
 
