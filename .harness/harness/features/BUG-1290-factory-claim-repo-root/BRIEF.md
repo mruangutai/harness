@@ -131,4 +131,7 @@ segment rule living in exactly one place that both claim and `feature-worktree.p
 
 ## Approval
 
-status: pending
+status: approved
+approved-by: mruangutai
+date: 2026-09-05
+notes: D-01 split seam (segment_of + features_root, both in factory_config.py) accepted knowingly; T-03 workspace_path rewrite and T-04 case-22 comment reword kept in scope.
