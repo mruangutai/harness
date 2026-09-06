@@ -64,16 +64,7 @@ def type_for_change_type(change_type, overrides):
 
 
 def type_for_nature(nature, overrides):
-    if nature not in DEFAULT_TYPE_BY_NATURE:
-        raise UnknownWorkNature(
-            f"{nature!r} is not a known change_type, so no issue type is mapped for it - "
-            "add it to DEFAULT_TYPE_BY_CHANGE_TYPE or fix the plan"
-        )
-    default = DEFAULT_TYPE_BY_NATURE[nature]
-    override = overrides.get(default)
-    if isinstance(override, str) and override:
-        return override
-    return default
+    return _resolve(nature, DEFAULT_TYPE_BY_NATURE, overrides)
 
 
 def type_for_parent(overrides):

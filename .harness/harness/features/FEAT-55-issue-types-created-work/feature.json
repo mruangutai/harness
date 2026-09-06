@@ -3,7 +3,7 @@
   "branch": "feat/issue-1289-issue-types",
   "pr": null,
   "review_sha": "none",
-  "cycles_used": 11,
+  "cycles_used": 12,
   "max_total_cycles": 13,
   "max_total_runs": 40,
   "runs": [
@@ -218,6 +218,12 @@
       "squad": "eng",
       "verdict": "PASS",
       "agent": "harness-eng-lead"
+    },
+    {
+      "id": "2026-09-05-01-validator",
+      "squad": "validator",
+      "verdict": "FAIL",
+      "agent": "harness-validator-lead"
     }
   ]
 }
