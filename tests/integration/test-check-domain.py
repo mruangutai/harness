@@ -4908,13 +4908,13 @@ def _bug1305_identity_write(prior, incoming, marker=False, session_id=None):
         env=_env(root))
 
 
-def _bug1305_identity_edit():
+def _bug1305_identity_edit(new_string=""):
     root, state = _bug1124_state_fixture()
     _feat50_write_text(state, _bug1305_identity_doc(run_uid="U1"))
     payload = {
         "tool_name": "Edit",
         "tool_input": {
-            "file_path": state, "old_string": "run_uid: U1\n", "new_string": "",
+            "file_path": state, "old_string": "run_uid: U1\n", "new_string": new_string,
         },
     }
     return subprocess.run(
@@ -4927,6 +4927,7 @@ def _bug1305_identity_refusal_cases():
     missing = _bug1305_identity_write(
         prior, _bug1305_identity_doc(include_uid=False))
     edit = _bug1305_identity_edit()
+    different_edit = _bug1305_identity_edit("run_uid: U2\n")
     different = _bug1305_identity_write(
         prior, _bug1305_identity_doc(run_uid="U2"))
     precedence = _bug1305_identity_write(
@@ -4941,6 +4942,9 @@ def _bug1305_identity_refusal_cases():
         ("different minted uid is refused",
          different.returncode == 2 and "U1" in different.stderr
          and "U2" in different.stderr, different.stderr),
+        ("different minted uid Edit is refused",
+         different_edit.returncode == 2 and "U1" in different_edit.stderr
+         and "U2" in different_edit.stderr, different_edit.stderr),
         ("run_id disagreement keeps Issue 1124 precedence",
          precedence.returncode == 2 and "Issue #1124" in precedence.stderr
          and "Issue 1305" not in precedence.stderr, precedence.stderr),

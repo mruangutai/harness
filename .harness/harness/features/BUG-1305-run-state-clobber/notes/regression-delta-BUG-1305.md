@@ -28,10 +28,12 @@ BLUF: the only intentional compatibility refusal is a foreign writer attempting 
 
 - `_bug1305_identity_refusal_cases` — `modal collision Write omitting uid is refused`: exit 2, preserves prior `run_uid: U1`, and names the run-identity/carry-the-exact-`run_uid: U1` remedy.
 - `_bug1305_identity_refusal_cases` — `modal collision Edit removing uid is refused`: exit 2 with the same precedence and preservation guarantee.
-- Existing witness overwrite, false-witness creation, different-minted-uid, and digest replacement/insertion paths are likewise refused; same-owner resume, legacy checkpoints, append-only digest repair, and unrelated run-directory writes remain allowed as listed above.
+- `_bug1305_identity_refusal_cases` — `different minted uid Edit is refused`: exit 2 and names both prior `U1` and incoming `U2`, completing SC-01(b)'s Write/Edit pair.
+- Existing witness overwrite, false-witness creation, digest replacement, and digest insertion paths are likewise refused; same-owner resume, legacy checkpoints, append-only digest repair, and unrelated run-directory writes remain allowed as listed above.
 
 ## Suite results
 
 - `.claude/skills/harness/bin/run-unit-tests.sh --kind unit`: exit 0; 28 files; 0 lines beginning `FAIL`; 3.97s pool wall time.
 - `.claude/skills/harness/bin/run-unit-tests.sh --kind integration`: exit 0; 46 files; 0 lines beginning `FAIL`; 101.99s pool wall time.
 - `bash .claude/skills/harness/bin/check-state.sh`: exit 0 with notes only; no INV-36/run-identity finding.
+- Cycle-10 targeted replay of `run_bug1305_identity_cases`: exit 0; 10/10 cases passed. Against pinned pre-change hook `592e88dcf0b6dfcd75ca4c1d49451fa9003d2802`, exit 4; 6/10 passed, with the new different-uid Edit case red.

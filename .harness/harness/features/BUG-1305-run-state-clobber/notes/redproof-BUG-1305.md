@@ -132,6 +132,19 @@ The three new minted-identity refusals were accepted as routine upserts by the b
 fail-open cases passed on both trees, while the run-id precedence case exited 2 on both because the
 existing Issue 1124 branch answered first.
 
+### Cycle 10 Edit-route completion
+
+The cycle-10 coverage case ran against the same pinned pre-change hook and produced this additional
+discriminating failure (full run exit 4; 6/10 cases passed):
+
+```text
+FAIL  [bug1305-identity] different minted uid Edit is refused
+      |
+```
+
+The live hook passes that case at exit 0 while naming both `U1` and `U2`; the pinned hook treated
+the Edit as a routine checkpoint update.
+
 ## SC-05
 
 Command with `CHECK_DOMAIN_BIN` pointed at
