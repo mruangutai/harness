@@ -131,3 +131,27 @@ ok    [bug1305-identity] legacy checkpoint accepts incoming uid
 The three new minted-identity refusals were accepted as routine upserts by the baseline. The
 fail-open cases passed on both trees, while the run-id precedence case exited 2 on both because the
 existing Issue 1124 branch answered first.
+
+## SC-05
+
+Command with `CHECK_DOMAIN_BIN` pointed at
+`c369fb1f:.claude/skills/harness/bin/check-domain.sh` in an isolated bin:
+
+```text
+python3 -c 'import importlib.util; p="tests/integration/test-check-domain.py"; s=importlib.util.spec_from_file_location("cd", p); m=importlib.util.module_from_spec(s); s.loader.exec_module(m); raise SystemExit(m.run_bug1305_digest_repair_cases())'
+```
+
+Verbatim output (exit 1):
+
+```text
+ok    [bug1305-digest] digest Edit append repair remains allowed
+FAIL  [bug1305-digest] digest Edit insertion is refused with append-at-end route
+      | check-domain: BLOCKED — .claude/worktrees/FEAT-D/.harness/harness/features/FEAT-D-thing/runs/r1/digest.md: run digest already holds a recorded digest; this Write would replace rather than extend it. Write this cycle's digest into a run directory of its own.
+ok    [bug1305-digest] cross-run digest replacement remains refused
+ok    [bug1305-digest] digest Write append remains allowed
+
+3/4 BUG-1305 digest cases passed.
+```
+
+The legal Edit append and Write append already passed, and the cross-run replacement already
+failed closed. The red case was the insertion refusal's missing legal repair instruction.

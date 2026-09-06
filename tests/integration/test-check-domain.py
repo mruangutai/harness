@@ -3847,6 +3847,59 @@ def run_bug1106_edit_route_cases():
             print(f"FAIL  {name}\n      | {detail}")
     print(f"\n{len(results) - fails}/{len(results)} bug1106 Edit-route cases passed.")
     return fails
+def _bug1305_digest_write(root, path, content):
+    payload = {"tool_name": "Write",
+               "tool_input": {"file_path": path, "content": content}}
+    return subprocess.run(
+        [HOOK], input=json.dumps(payload), capture_output=True, text=True,
+        env=_env(root))
+
+
+def run_bug1305_digest_repair_cases():
+    """BUG-1305 SC-05: legal append repair and actionable refusal wording."""
+    prior = "VERDICT: PASS\nDIGEST:\n  headline: recorded\n"
+    artifact = "  artifact: notes/x.md\n"
+    results = []
+
+    root, path = _feat50_digest_fixture()
+    _feat50_write_text(path, prior)
+    response = _fire_digest_edit(
+        root, path, "  headline: recorded\n",
+        "  headline: recorded\n" + artifact)
+    results.append(("digest Edit append repair remains allowed",
+                    response.returncode == 0, response.stderr))
+
+    root, path = _feat50_digest_fixture()
+    _feat50_write_text(path, prior)
+    response = _fire_digest_edit(
+        root, path, "VERDICT: PASS\n", artifact + "VERDICT: PASS\n")
+    results.append(("digest Edit insertion is refused with append-at-end route",
+                    response.returncode == 2 and "appended at the end" in response.stderr,
+                    response.stderr))
+
+    root, path = _feat50_digest_fixture()
+    _feat50_write_text(path, prior)
+    response = _bug1305_digest_write(root, path, "wholly different digest\n")
+    results.append(("cross-run digest replacement remains refused",
+                    response.returncode == 2, response.stderr))
+
+    root, path = _feat50_digest_fixture()
+    _feat50_write_text(path, prior)
+    response = _bug1305_digest_write(root, path, prior + artifact)
+    results.append(("digest Write append remains allowed",
+                    response.returncode == 0, response.stderr))
+
+    failures = 0
+    for name, ok, detail in results:
+        if ok:
+            print(f"ok    [bug1305-digest] {name}")
+        else:
+            failures += 1
+            print(f"FAIL  [bug1305-digest] {name}\n      | {str(detail).strip()[:300]}")
+    print(f"\n{len(results) - failures}/{len(results)} BUG-1305 digest cases passed.")
+    return failures
+
+
 
 
 def run_bug1106_shared_pattern_consistency():
@@ -4949,6 +5002,7 @@ def main():
     fails += run_t09()
     fails += run_feat51_orphan_write()
     fails += run_bug1106_edit_route_cases()
+    fails += run_bug1305_digest_repair_cases()
     fails += run_bug1305_marker_cases()
     fails += run_bug1305_identity_cases()
     fails += run_bug1106_shared_pattern_consistency()
