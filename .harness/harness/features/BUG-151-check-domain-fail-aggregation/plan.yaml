@@ -140,7 +140,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: [T-01]
-    status: building
+    status: done
     files:
       - tests/integration/test-check-domain.py
     verify: |
