@@ -75,7 +75,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: []
-    status: review
+    status: done
     files:
       - tests/integration/test-harness-yaml.py
     verify: |
