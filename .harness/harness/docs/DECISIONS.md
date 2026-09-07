@@ -4305,8 +4305,14 @@ Raised by the user after a day of building FEAT-05 through the harness: *"my sen
 be using harness to build harness."* Substantially accepted, with the boundary drawn narrower than the
 full claim.
 
-**The evidence, all from 2026-08-03 and all on this repo.** Every gate was green —
-`run-unit-tests.sh`, `check-docs.sh`, `check-state.sh`, `gen-decisions-index.py --check` — while:
+**The evidence, all from 2026-08-03 and all on this repo.** `run-unit-tests.sh`, `check-docs.sh` and
+`check-state.sh` were green, and the fourth gate, `gen-decisions-index.py --check`, was no gate at
+all: `--check` was never a supported mode. Before argv validation landed at `ffbdbfa1` (2026-08-05),
+an unrecognized argument fell through to the WRITE path, so that exit 0 was a regeneration of
+`DECISIONS-INDEX.md` that overwrites exactly the drift a check would have reported; it could not
+prove index drift. Use
+`gen-decisions-index.py --stdout | diff - .harness/harness/docs/DECISIONS-INDEX.md`. Those three
+real gates were green while:
 
 - four `.harness` YAML files did not parse, `team-config.yaml` among them, its `[` unclosed since a
   space-`#` opens a comment inside a flow sequence, so **every key from `orchestrator:` onward was
