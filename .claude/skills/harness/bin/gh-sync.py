@@ -1181,6 +1181,20 @@ def _open_sync_task(feat_dir, repo, brief, rec, task, state):
     _open_attach_task(feat_dir, repo, rec, task)
 
 
+def _open_ensure_labels(repo, tasks, rec, parent_arg, issue_types, state, declared):
+    """ISSUE-TYPES concern (BUG-1309 grade fix): keeps `cmd_open`'s labels correct
+    regardless of whether this repo has GitHub's typed-issues feature — refuse an
+    undeclared type then label `harness` when it's available, or sweep every task's
+    change-type label when it isn't. Split out because typed-issue support is an
+    orthogonal reason to change from creating the milestone, the parent and the
+    sub-issues."""
+    if state == "available":
+        _refuse_undeclared_issue_types(repo, tasks, rec, parent_arg, issue_types, declared)
+        ensure_labels(repo, {"harness"})
+    else:
+        ensure_labels(repo, {"harness"} | {l for tk in tasks if (l := type_label(tk["change_type"]))})
+
+
 def cmd_open(feat_dir, repo, parent_arg=None, issue_types=None):
     issue_types = issue_types or {}
     state, declared, _message = detect_issue_types(repo)
@@ -1191,11 +1205,7 @@ def cmd_open(feat_dir, repo, parent_arg=None, issue_types=None):
     rec["source_issues"] = parse_source_issues(feat_dir)
     rec.setdefault("typed", {})
 
-    if state == "available":
-        _refuse_undeclared_issue_types(repo, tasks, rec, parent_arg, issue_types, declared)
-        ensure_labels(repo, {"harness"})
-    else:
-        ensure_labels(repo, {"harness"} | {l for tk in tasks if (l := type_label(tk["change_type"]))})
+    _open_ensure_labels(repo, tasks, rec, parent_arg, issue_types, state, declared)
 
     _open_ensure_milestone(feat_dir, repo, brief, rec)
     _open_ensure_parent(feat_dir, repo, brief, rec, parent_arg, state)
