@@ -1344,6 +1344,74 @@ def _projected_for(feat_dir, rec):
                f"placed from it — {exc}")
 
 
+def _build_entry_preflight(feat_dir, rec):
+    """Print the allowed recovery notice or refuse an unsafe Build start."""
+    entry = rec.get("build_entry")
+    feature_id = os.path.basename(feat_dir)
+    if entry is None and feature_id not in feature_schema.BUILD_ENTRY_ERA_EXEMPT:
+        command = feature_schema.recovery_command_for(feat_dir)
+        if command == "open":
+            refuse(f"this feature has no recorded build entry, so Build must not start. "
+                   f"Run gh-sync.py open {os.path.realpath(feat_dir)} first.")
+        refuse(f"this feature has no recorded build entry, and its own record says the work is "
+               f"already under way or finished, so creating the mirror now would mean task "
+               f"sub-issues for completed work. Run gh-sync.py recover-terminal "
+               f"{os.path.realpath(feat_dir)} --yes.")
+    if entry is None:
+        print(f"gh-sync: {feature_id} predates the build-entry receipt "
+              f"(feature_schema.BUILD_ENTRY_ERA_EXEMPT), so Build continues. Its terminal "
+              f"receipt is created only by an explicit operator-approved gh-sync.py "
+              f"recover-terminal {os.path.realpath(feat_dir)} --yes.", file=sys.stderr)
+    if entry == "recovery-required":
+        _build_entry_recovery_notice(feat_dir, feature_id)
+
+
+def _build_entry_recovery_notice(feat_dir, feature_id):
+    if feature_id in feature_schema.BUILD_ENTRY_ERA_EXEMPT:
+        print(f"gh-sync: build entry is recovery-required for {os.path.realpath(feat_dir)}; "
+              f"Build proceeds. This feature predates the build-entry receipt "
+              f"(feature_schema.BUILD_ENTRY_ERA_EXEMPT), so its merge is not refused; its "
+              f"terminal receipt is created only by an explicit operator-approved gh-sync.py "
+              f"recover-terminal {os.path.realpath(feat_dir)} --yes.", file=sys.stderr)
+        return
+    print(f"gh-sync: build entry is recovery-required for {os.path.realpath(feat_dir)}; "
+          f"Build proceeds, the MERGE is refused until gh-sync.py open records opened",
+          file=sys.stderr)
+
+
+def _record_task_building(feat_dir, tid):
+    plan_path = os.path.join(feat_dir, "plan.yaml")
+    if not os.path.isfile(plan_path):
+        return
+    written = subprocess.run(
+        [sys.executable, os.path.join(_BIN_DIR, "plan-merge.py"), "set-task-station",
+         "--file", plan_path, "--task", tid, "--station", "building"],
+        capture_output=True, text=True)
+    if written.returncode != 0:
+        refuse(f"could not record {tid} as building in {plan_path} — "
+               f"plan-merge.py set-task-station exited {written.returncode}: "
+               f"{(written.stderr or written.stdout).strip()}")
+
+
+def _closed_task_guard(repo, board, issue_num, tid):
+    if board is None:
+        return False
+    try:
+        stations = gh_board.board_stations(board, repo)
+        current_station, _ = gh_board.read_station(stations, issue_num)
+        state = (factory_gh.issue_view(repo, issue_num, ["state"]) or {}).get("state")
+    except factory_gh.GhError as exc:
+        print(f"gh-sync: ERROR - guard read failed for #{issue_num} ({tid}): {exc} "
+              f"— proceeding without the guard", file=sys.stderr)
+        return False
+    if state != "CLOSED" and current_station != "done":
+        return False
+    reason = "issue is CLOSED" if state == "CLOSED" else "card is already Done"
+    print(f"gh-sync: refusing #{issue_num} ({tid}) -> building: "
+          f"current station is {current_station!r}, {reason}")
+    return True
+
+
 def cmd_start_task(feat_dir, tid, repo, board):
     """`start-task <feature-dir> T-NN` — the orchestrator fires this in the same act it
     records the task's status as `building` in plan.yaml (D-04). Sets T-NN's OWN sub-issue
@@ -1371,90 +1439,22 @@ def cmd_start_task(feat_dir, tid, repo, board):
     refusing — a guard that cannot see the board must not silently stop moving cards.
     """
     rec = load_recorded(feat_dir)
-    entry = rec.get("build_entry")
-    feature_id = os.path.basename(feat_dir)
-    if entry is None:
-        if feature_id in feature_schema.BUILD_ENTRY_ERA_EXEMPT:
-            print(f"gh-sync: {feature_id} predates the build-entry receipt "
-                  f"(feature_schema.BUILD_ENTRY_ERA_EXEMPT), so Build continues. Its terminal "
-                  f"receipt is created only by an explicit operator-approved gh-sync.py "
-                  f"recover-terminal {os.path.realpath(feat_dir)} --yes.", file=sys.stderr)
-        else:
-            command = feature_schema.recovery_command_for(feat_dir)
-            if command == "open":
-                refuse(f"this feature has no recorded build entry, so Build must not start. "
-                       f"Run gh-sync.py open {os.path.realpath(feat_dir)} first.")
-            refuse(f"this feature has no recorded build entry, and its own record says the work "
-                   f"is already under way or finished, so creating the mirror now would mean "
-                   f"task sub-issues for completed work. Run gh-sync.py recover-terminal "
-                   f"{os.path.realpath(feat_dir)} --yes.")
-    if entry == "recovery-required":
-        if feature_id in feature_schema.BUILD_ENTRY_ERA_EXEMPT:
-            print(f"gh-sync: build entry is recovery-required for {os.path.realpath(feat_dir)}; "
-                  f"Build proceeds. This feature predates the build-entry receipt "
-                  f"(feature_schema.BUILD_ENTRY_ERA_EXEMPT), so its merge is not refused; its "
-                  f"terminal receipt is created only by an explicit operator-approved gh-sync.py "
-                  f"recover-terminal {os.path.realpath(feat_dir)} --yes.", file=sys.stderr)
-        else:
-            print(f"gh-sync: build entry is recovery-required for {os.path.realpath(feat_dir)}; "
-                  f"Build proceeds, the MERGE is refused until gh-sync.py open records opened",
-                  file=sys.stderr)
-
+    _build_entry_preflight(feat_dir, rec)
     if tid not in rec["issues"]:
         skip(f"{tid} has no recorded issue — nothing to start (was `open` run?)")
-
-    # THE PLAN WRITE, AND IT HAPPENS FIRST (FEAT-41 T-06). Until now this docstring claimed the
-    # orchestrator fires this "in the same act it records the task's status in plan.yaml", and
-    # the 54-line body contained no such write — the record depended entirely on a human or an
-    # agent remembering a second command. It is a subprocess call to plan-merge.py's
-    # set-task-station verb, because that tool owns every write to plan.yaml: it takes the shared
-    # lock and validates the station against harness.json before the file is opened.
-    #
-    # BEFORE THE BOARD, NOT AFTER: the plan is the truth and the board is the mirror, so a failed
-    # board write must never leave the plan unrecorded. A failed PLAN write, by contrast, must
-    # stop the whole command — writing a Building card for a task the plan does not call building
-    # is precisely the two-words-two-meanings drift this feature exists to end.
-    _plan_path = os.path.join(feat_dir, "plan.yaml")
-    if os.path.isfile(_plan_path):
-        _written = subprocess.run(
-            [sys.executable, os.path.join(_BIN_DIR, "plan-merge.py"), "set-task-station",
-             "--file", _plan_path, "--task", tid, "--station", "building"],
-            capture_output=True, text=True)
-        if _written.returncode != 0:
-            refuse(f"could not record {tid} as building in {_plan_path} — "
-                   f"plan-merge.py set-task-station exited {_written.returncode}: "
-                   f"{(_written.stderr or _written.stdout).strip()}")
-
-    if board is not None:
-        issue_num = rec["issues"][tid]
-        refused = False
-        try:
-            stations = gh_board.board_stations(board, repo)
-            current_station, _ = gh_board.read_station(stations, issue_num)
-            state = (factory_gh.issue_view(repo, issue_num, ["state"]) or {}).get("state")
-            # current_station is lowercase: gh_board.board_stations lowercases the board read.
-            if state == "CLOSED" or current_station == "done":
-                reason = "issue is CLOSED" if state == "CLOSED" else "card is already Done"
-                print(f"gh-sync: refusing #{issue_num} ({tid}) -> building: "
-                      f"current station is {current_station!r}, {reason}")
-                refused = True
-        except factory_gh.GhError as e:
-            print(f"gh-sync: ERROR - guard read failed for #{issue_num} ({tid}): {e} "
-                  f"— proceeding without the guard", file=sys.stderr)
-        if refused:
-            return
-
-        # THE STATION COMES FROM project, NEVER FROM THIS FUNCTION (FEAT-41 T-06). The plan write
-        # above is what makes the answer `building`; asking project rather than re-spelling it is
-        # what keeps one word meaning one thing. A task project declines to place gets no write
-        # and one line — the same silence every other placement miss gets.
-        _station = _projected_for(feat_dir, rec).get(issue_num)
-        if _station is None:
-            print(f"gh-sync: no station follows from the plan for #{issue_num} ({tid}) "
-                  f"— card not moved", file=sys.stderr)
-        else:
-            _place(board, repo, issue_num, _station, note=f" ({tid})")
-        _apply_parent_rule(feat_dir, repo, board)
+    _record_task_building(feat_dir, tid)
+    if board is None:
+        return
+    issue_num = rec["issues"][tid]
+    if _closed_task_guard(repo, board, issue_num, tid):
+        return
+    station = _projected_for(feat_dir, rec).get(issue_num)
+    if station is None:
+        print(f"gh-sync: no station follows from the plan for #{issue_num} ({tid}) "
+              f"— card not moved", file=sys.stderr)
+    else:
+        _place(board, repo, issue_num, station, note=f" ({tid})")
+    _apply_parent_rule(feat_dir, repo, board)
 
 
 def _status_plan_doc(feat_dir):

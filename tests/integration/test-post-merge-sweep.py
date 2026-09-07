@@ -872,6 +872,7 @@ def case_linked_worktree_main_checkout():
         results.append(("(i) the milestone close call reached gh for R's LANDED milestone (810)",
                          _has_line_with_all(log_text, "milestones/810", "state=closed"),
                          f"log={log_text!r}"))
+
         results.append(("(i) DIVERGENCE PROOF: WT_CALLER's own divergent milestone (811) was "
                          "NEVER closed — the sweep did not write into the wrong copy",
                          "milestones/811" not in log_text, f"log={log_text!r}"))
@@ -879,6 +880,60 @@ def case_linked_worktree_main_checkout():
                          "found and ship succeeded against the correct main-checkout copy",
                          not os.path.isdir(dest), f"dest={dest}"))
     return results
+def case_t07_build_entry_receipt():
+    names = (
+        "T-07 non-era absent build_entry keeps the worktree",
+        "T-07 recovery-required keeps the worktree",
+        "T-07 opened removes the worktree",
+        "T-07 recovered-terminal removes the worktree",
+        "T-07 unparseable feature.json keeps the worktree",
+        "T-07 sync false removes the worktree",
+        "T-07 era-exempt absent build_entry is swept",
+        "T-07 era-exempt recovery-required keeps the worktree",
+    )
+    shapes = (
+        ("FEAT-9001-fixture-non-era", None, True, False),
+        ("FEAT-9001-fixture-non-era", "recovery-required", True, False),
+        ("FEAT-9001-fixture-non-era", "opened", True, True),
+        ("FEAT-9001-fixture-non-era", "recovered-terminal", True, True),
+        ("FEAT-9001-fixture-non-era", "invalid", True, False),
+        ("FEAT-9001-fixture-non-era", "opened", False, True),
+        ("BUG-1030-stale-anchor-write-hazard", None, True, True),
+        ("BUG-1030-stale-anchor-write-hazard", "recovery-required", True, False),
+    )
+    results = []
+    for name, (feature, entry, sync, removed) in zip(names, shapes):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = _bootstrap_repo(os.path.join(tmp, "R"))
+            sweep = _install_fixture_bin(repo)
+            _commit_feature(repo, feature, "Done", milestone=9)
+            feature_path = os.path.join(repo, ".harness", "harness", "features", feature, "feature.json")
+            if entry == "invalid":
+                with open(feature_path, "w") as f:
+                    f.write("{")
+            else:
+                with open(feature_path) as f:
+                    document = json.load(f)
+                if entry is None:
+                    document["github"].pop("build_entry", None)
+                else:
+                    document["github"]["build_entry"] = entry
+                with open(feature_path, "w") as f:
+                    json.dump(document, f)
+            if not sync:
+                with open(os.path.join(repo, ".harness", "harness.json"), "w") as f:
+                    json.dump({"github": {"sync": False, "repo": "acme/repo-x", "board": None}}, f)
+            subprocess.run(["git", "add", "."], cwd=repo, capture_output=True)
+            subprocess.run(["git", "commit", "-qm", "set receipt"], cwd=repo, capture_output=True)
+            dest = _add_wt(repo, feature)
+            _, gh_env = _stub_gh(tmp)
+            _stub_ship(os.path.dirname(sweep), "gh-sync: terminal receipt recorded")
+            run = subprocess.run(["bash", sweep], cwd=repo, capture_output=True, text=True,
+                                 env=_sweep_env(repo, gh_env))
+            results.append((name, run.returncode == 0 and os.path.isdir(dest) != removed,
+                            f"stdout={run.stdout!r} dest={dest}"))
+    return results
+
 
 
 def main():
@@ -893,6 +948,7 @@ def main():
         + case_skip_is_not_success()
         + case_failed_is_not_success()
         + case_cwd_outside_repo()
+        + case_t07_build_entry_receipt()
         + case_linked_worktree_main_checkout()
     )
     ok = True

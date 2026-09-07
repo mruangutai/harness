@@ -27,22 +27,28 @@ def is_bin(token, name):
     return os.path.basename(token.strip("\\'\"$()`")) == name
 
 
-def merge_ref(command, depth=0):
-    tokens = words(command)
+def direct_merge(tokens):
     for index, token in enumerate(tokens):
         rest = tokens[index + 1:]
-        if is_bin(token, "gh") and len(rest) >= 2 and rest[:2] == ["pr", "merge"]:
+        if is_bin(token, "gh") and rest[:2] == ["pr", "merge"]:
             return ("gh", next((word for word in rest[2:] if word.isdigit()), None))
         if is_bin(token, "git"):
             args = [word for word in rest if not word.startswith("-")]
             if args and args[0] == "merge":
                 return ("git", args[1] if len(args) > 1 else None)
-    if depth < 3:
-        for token in tokens:
-            if len(token.split()) > 1:
-                found = merge_ref(token, depth + 1)
-                if found:
-                    return found
+    return None
+
+
+def merge_ref(command, depth=0):
+    tokens = words(command)
+    direct = direct_merge(tokens)
+    if direct or depth >= 3:
+        return direct
+    for token in tokens:
+        if len(token.split()) > 1:
+            nested = merge_ref(token, depth + 1)
+            if nested:
+                return nested
     return None
 
 
@@ -52,17 +58,21 @@ def local_branch(cwd):
     return result.stdout.strip() if result.returncode == 0 else "unknown"
 
 
+def gh_head(number, repo):
+    result = subprocess.run([os.environ.get("GH_BIN", "gh"), "pr", "view", number, "--repo", repo,
+                             "--json", "headRefName", "-q", ".headRefName"], capture_output=True, text=True)
+    text = (result.stderr or result.stdout).strip()
+    return result.stdout.strip(), text.splitlines()[0] if text else "gh pr view failed"
+
+
 def head_branch(command, cwd, repo):
     kind, value = merge_ref(command)
     if kind == "git" and value:
         return value.removeprefix("origin/"), None
-    if kind == "gh" and value:
-        result = subprocess.run([os.environ.get("GH_BIN", "gh"), "pr", "view", value, "--repo", repo,
-                                 "--json", "headRefName", "-q", ".headRefName"], capture_output=True, text=True)
-        if result.returncode == 0 and result.stdout.strip():
-            return result.stdout.strip(), None
-        return local_branch(cwd), (result.stderr or result.stdout).strip().splitlines()[0]
-    return local_branch(cwd), None
+    if kind != "gh" or not value:
+        return local_branch(cwd), None
+    branch, failure = gh_head(value, repo)
+    return (branch, None) if branch else (local_branch(cwd), failure)
 
 
 def feature_for(branch):
