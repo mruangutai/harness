@@ -631,7 +631,8 @@ status: approved
         os.path.join(feat, "feature.json"),
         feature_id=feat_name, status=feature_status,
         github={"milestone": milestone, "parent": parent, "parent_origin": "created",
-                "attached": list((issues or {}).keys()), "issues": issues or {}},
+                "build_entry": "opened", "attached": list((issues or {}).keys()),
+                "issues": issues or {}},
     )
     return feat
 
@@ -3584,5 +3585,42 @@ with tempfile.TemporaryDirectory() as tmpR7:
           and "recover-terminal" in rR7.stdout,
           f"rc={rR7.returncode} out={rR7.stdout!r}")
 
+
+def _without_build_entry(feat):
+    path = os.path.join(feat, "feature.json")
+    document = read_feature_json(path)
+    document["github"].pop("build_entry", None)
+    write_feature_json(path, feature_id=document["feature_id"], github=document["github"])
+
+
+with tempfile.TemporaryDirectory() as tmpT04:
+    install_gh(tmpT04, FAKE_GH_STATIONS)
+    feat = stage_station(tmpT04, "FEAT-9001-fixture-non-era", [("T-01", "ready")],
+                         issues={"T-01": 41})
+    _without_build_entry(feat)
+    result = run(["start-task", feat, "T-01"], tmpT04, {"FACTORY_GH": os.path.join(tmpT04, "gh")})
+    check("T-04 non-era absent refuses", result.returncode == 2 and "gh-sync.py open" in result.stdout,
+          result.stdout)
+    bug = stage_station(tmpT04, "BUG-9001-fixture-non-era", [("T-01", "ready")],
+                        issues={"T-01": 42})
+    _without_build_entry(bug)
+    result = run(["start-task", bug, "T-01"], tmpT04, {"FACTORY_GH": os.path.join(tmpT04, "gh")})
+    check("T-04 BUG-named non-era absent refuses", result.returncode == 2 and "gh-sync.py open" in result.stdout,
+          result.stdout)
+    write_plan_yaml(feat, "FEAT-9001-fixture-non-era", [("T-01", "done")])
+    result = run(["start-task", feat, "T-01"], tmpT04, {"FACTORY_GH": os.path.join(tmpT04, "gh")})
+    check("T-04 station discriminator", result.returncode == 2 and "recover-terminal" in result.stdout
+          and "open" not in result.stdout.lower(), result.stdout)
+    era = stage_station(tmpT04, "BUG-1030-stale-anchor-write-hazard", [("T-01", "ready")],
+                        issues={"T-01": 43})
+    _without_build_entry(era)
+    result = run(["start-task", era, "T-01"], tmpT04, {"FACTORY_GH": os.path.join(tmpT04, "gh")})
+    check("T-04 era-exempt continues", result.returncode == 0 and "predates" in result.stderr, result.stderr)
+    document = read_feature_json(os.path.join(era, "feature.json"))
+    document["github"]["build_entry"] = "recovery-required"
+    write_feature_json(os.path.join(era, "feature.json"), feature_id=document["feature_id"], github=document["github"])
+    result = run(["start-task", era, "T-01"], tmpT04, {"FACTORY_GH": os.path.join(tmpT04, "gh")})
+    check("T-04 era recovery-required does not claim a refusal", result.returncode == 0
+          and "is not refused" in result.stderr and "open" not in result.stderr.lower(), result.stderr)
 
 sys.exit(1 if fails else 0)

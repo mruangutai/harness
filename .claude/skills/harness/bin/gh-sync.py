@@ -105,6 +105,7 @@ from gh_issues import (internal_id_args, attach_sub_issue_args, sub_issues_args,
 import gh_issue_types
 
 import feature_json_write
+import feature_schema
 import harness_merge
 import factory_config
 import factory_gh
@@ -1370,6 +1371,35 @@ def cmd_start_task(feat_dir, tid, repo, board):
     refusing — a guard that cannot see the board must not silently stop moving cards.
     """
     rec = load_recorded(feat_dir)
+    entry = rec.get("build_entry")
+    feature_id = os.path.basename(feat_dir)
+    if entry is None:
+        if feature_id in feature_schema.BUILD_ENTRY_ERA_EXEMPT:
+            print(f"gh-sync: {feature_id} predates the build-entry receipt "
+                  f"(feature_schema.BUILD_ENTRY_ERA_EXEMPT), so Build continues. Its terminal "
+                  f"receipt is created only by an explicit operator-approved gh-sync.py "
+                  f"recover-terminal {os.path.realpath(feat_dir)} --yes.", file=sys.stderr)
+        else:
+            command = feature_schema.recovery_command_for(feat_dir)
+            if command == "open":
+                refuse(f"this feature has no recorded build entry, so Build must not start. "
+                       f"Run gh-sync.py open {os.path.realpath(feat_dir)} first.")
+            refuse(f"this feature has no recorded build entry, and its own record says the work "
+                   f"is already under way or finished, so creating the mirror now would mean "
+                   f"task sub-issues for completed work. Run gh-sync.py recover-terminal "
+                   f"{os.path.realpath(feat_dir)} --yes.")
+    if entry == "recovery-required":
+        if feature_id in feature_schema.BUILD_ENTRY_ERA_EXEMPT:
+            print(f"gh-sync: build entry is recovery-required for {os.path.realpath(feat_dir)}; "
+                  f"Build proceeds. This feature predates the build-entry receipt "
+                  f"(feature_schema.BUILD_ENTRY_ERA_EXEMPT), so its merge is not refused; its "
+                  f"terminal receipt is created only by an explicit operator-approved gh-sync.py "
+                  f"recover-terminal {os.path.realpath(feat_dir)} --yes.", file=sys.stderr)
+        else:
+            print(f"gh-sync: build entry is recovery-required for {os.path.realpath(feat_dir)}; "
+                  f"Build proceeds, the MERGE is refused until gh-sync.py open records opened",
+                  file=sys.stderr)
+
     if tid not in rec["issues"]:
         skip(f"{tid} has no recorded issue — nothing to start (was `open` run?)")
 
