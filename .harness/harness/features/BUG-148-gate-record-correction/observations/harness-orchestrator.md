@@ -46,3 +46,12 @@
   it means the in-place mechanism, and REQ-01 positively requires the FEAT-05 record to name the correction
   date that DEC-174 need not carry. Answered at rung 1 of the question ladder for zero cycles, and routed
   to SC-06's uat read, which asks exactly that register question.
+- 2026-09-06: SC-01/SC-02 clause checks gave FALSE NEGATIVES on a raw substring test because the
+  corrected prose is hard-wrapped — `--check` was never a / supported mode spans a newline. Normalise
+  whitespace before any substring grade of prose; the record is right and the measurement was wrong.
+- 2026-09-06: the review panel's only open question (REQ-04 ungraded by any criterion) was closable
+  by one `git diff --name-status`, and the validator lead could not close it because leads hold no
+  shell. A lead's non-blocking question is often a measurement waiting for a tier that has Bash.
+- 2026-09-06: an allowlist SC that admits "this feature's own directory" as a CLASS silently stops
+  grading any requirement about what inside that directory changed. SC-05 passed while REQ-04's
+  no-historical-artifact-modified clause had no grader at all.

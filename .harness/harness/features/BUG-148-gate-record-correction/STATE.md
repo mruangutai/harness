@@ -3,95 +3,81 @@
 ## Current
 
 - feature: BUG-148-gate-record-correction
-- run: .harness/harness/features/BUG-148-gate-record-correction/runs/2026-09-06-07-eng/state.yaml
-- squad: none (build phase complete; the validate-phase panel has not been dispatched)
-- status: build-complete, awaiting review
-- station: review (`plan.yaml` `status: review`; T-01 and T-02 both `done`, so the plan
-  derives review; parent #1417 and sub-issues #1418/#1419 written to match)
-- review_sha: `87e60330104e63b2efa366852a5e514f8eb73b36` (the seam commit). Re-pinned from
-  `f60d5d2` because INV-33 compares the pinned plan.yaml bytes against disk; free, since the
-  product diff between the two is empty
+- run: .harness/harness/features/BUG-148-gate-record-correction/runs/2026-09-06-08-validator/state.yaml
+- squad: none (validate phase COMPLETE; the reviewer panel returned and the run is recorded)
+- status: validate-complete, awaiting the operator's SC-06 read
+- station: review (`plan.yaml` `status: review`, unchanged — `done` is written at ship).
+  `gh-sync.py status <dir> review` re-run idempotently before the panel: parent #1417 and
+  sub-issues #1418/#1419 all confirmed at review.
+- review_sha: `87e60330104e63b2efa366852a5e514f8eb73b36`, UNMOVED through this phase. The three
+  commits after it (`0591c878`, `633ca8e2`, `43b4a4cd`) touch only this feature's own STATE.md,
+  feature.json and observations, so the pin still carries the whole product diff.
 
-**Both corrections LANDED and committed.** The operator signed BRIEF and plan on 2026-09-06
-(`c6c3a38`). T-01 rewrote DEC-174's evidence sentence in place and regenerated the index
-(`6a07635`, `[harness:t-01]`, `harness-documentor` via product-lead). T-02 rewrote FEAT-05
-`STATE.md`'s four-gates-green claim in place (`f60d5d2`, `[harness:t-02]`, orchestrator lane).
-The QA matrix gate PASSED and the SIMPLIFY pass was an empty pass.
+**The panel PASSED, clean.** `runs/2026-09-06-08-validator/digest.md` (harness-validator-lead,
+`review` team at cycle 0): four reviewers ran, none skipped, `severity_max: info`, `must_fix: []`,
+`matrix_ok: true`, **0 send-backs** — `cycles_used` stays 4 of 10. Each reviewer's note is at
+`notes/review-harness-<persona>-c0.md`.
 
-Both records now carry the same mechanism in the same terms, as D-05 ruling 3 binds: `--check`
-was never a supported mode; before argv validation landed at `ffbdbfa1` (2026-08-05) an
-unrecognized argument fell through to the WRITE path; so the 2026-08-03 exit 0 was a
-regeneration of `DECISIONS-INDEX.md` that overwrites exactly the drift a check would have
-reported. Both name the read-only `--stdout | diff` form, per D-05 ruling 2.
+- code (`harness-code-reviewer`) PASS — SC-01/02/03/05 met, every clause read separately and
+  whitespace-normalised; the DECISIONS-INDEX regeneration proven anchors-only by an `:NNN`-normalised
+  full-file diff that came back EMPTY; D-05 ruling 3's same-mechanism-same-terms confirmed by
+  side-by-side read, which is the only evidence that property can have.
+- qa (`harness-qa`) PASS, GATE-ONLY — `docs` required-kind set `[]` re-derived independently against
+  the pinned diff and `harness.json:238`. SC-04 AUDITED, not executed, by the operator's ruling for
+  this phase; cited to `notes/qa-BUG-148-2026-09-06.md:44-54`, with the transfer to this pin proven
+  by an empty `f60d5d27..87e6033` stat over the three product paths.
+- security PASS — no security surface; secret-shape census clean; the quoted-sha/code-line
+  disclosure question answered in both directions and dismissed.
+- ui PASS — scoped out on a measured extension census (every changed file `.md`/`.json`/`.yaml`),
+  not on a guess.
 
-Segments run, in order: T-01 (product-lead → documentor, PASS, 0 send-backs) → T-02
-(orchestrator lane, no spawned run) → qa matrix gate (validator-lead → qa, PASS, `matrix_ok:
-true`, 1 send-back) → SIMPLIFY (eng-lead, four angles, empty pass, 1 send-back).
-`cycles_used` is 4 of 10.
+**SC states at `87e6033`:** SC-01 met · SC-02 met · SC-03 met · SC-04 met (audited) · SC-05 met ·
+**SC-06 NOT MET — the operator's UAT read, the one remaining gate.** No UAT artifact exists on
+disk; it is being obtained separately and is not fabricated here.
 
-Evidence measured by this orchestrator, in this worktree, independently of every digest:
-- T-01 verify: exit 0. `Every gate was green` absent from the DEC-174 region; all five required
-  phrases present. `tests/integration/test-gen-decisions-index.py`: 14 ok, 0 FAIL, exit 0, with
-  `test_committed_index_matches_a_fresh_regeneration` and
-  `test_no_amendment_construct_survives_in_the_authority` both ok (SC-04).
-- T-02 verify: exit 0. `All four gates green` absent; all five phrases plus `2026-09-06`
-  present; `##` heading count still exactly 7.
-- SC-03 scope: `DECISIONS.md` changed 2 lines out / 10 in, all inside DEC-174's evidence
-  paragraph. No heading, defect bullet, "Self-hosting caught none of these" line or carve-out
-  table line appears as a `+`/`-` line.
-- `DECISIONS-INDEX.md`: 42 lines out / 42 in, and after normalising `:NNN` anchors every changed
-  line pairs exactly — the index moved ONLY in per-row source anchors, no row's text.
-- FEAT-05 `STATE.md`: 7 insertions / 2 deletions, nothing outside the target passage.
-- SC-05 scope: `git diff --name-only 41c16c7..f60d5d2` lists 17 paths, every one of them either
-  one of the three allowlisted records or inside this feature's own directory.
+Evidence measured by this orchestrator in this worktree, independently of every digest, at the pin:
+- SC-01: `Every gate was green` ABSENT from the `## DEC-174`..`## DEC-175` region; all four required
+  facts present after whitespace normalisation (the prose is hard-wrapped, so a raw substring test
+  gives a false negative on `--check` was never a / supported mode).
+- SC-02: `All four gates green` absent, `--check` 0 gone from the gate list, all four facts plus
+  `2026-09-06` present; file still 170 lines / 7 `##`, i.e. the pre-existing shape left as found.
+- SC-03: one hunk at `@@ -4305,8 +4305,16 @@`, entirely inside DEC-174's evidence paragraph.
+- SC-05: 23 paths — the three allowlisted records plus 20 inside this feature's own directory.
 
-**T-02 has no run entry, and that is not an omission.** Its `execution_agent` is
-`harness-orchestrator`, so it was executed in-lane with no spawned run: the same known
-under-count DEC-157 records for a main-session-direct segment. Its evidence is its verify
-above, its `[harness:t-02]` commit, and its `done` station in `plan.yaml`.
-
-**Route deviation on T-02, recorded not hidden.** D-04 requires `Edit` and forbids `Write`.
-This host exposes no `Edit` tool to the orchestrator, so the change was made as a surgical
-two-line splice that carries no whole-file content — the prohibition D-04 actually rests on
-(`check-domain.sh:1820-1824` refuses `Write` because only `Write` carries whole-file content).
-The guard saw the write and issued its expected non-blocking over-budget shape report. The
-pre-existing 120-line/2-heading violation is left exactly as found, per D-04.
+**REQ-04 closed at rung 1, not returned to the operator.** The panel's only open question (F-A,
+info) was that `no historical artifact is modified` is graded by no criterion, since SC-05 admits
+this feature's whole directory as a class. Measured here: `git diff --name-status 41c16c7..87e6033`
+shows every one of the 20 feature-dir paths as `A`, and exactly three `M` entries — the two
+`docs/` records and `FEAT-05-pyyaml-file-parsers/STATE.md`, which ARE the correction. No historical
+artifact was modified. The validator lead holds no shell, which is why it could not close this itself.
 
 ## Open Questions
 
-- Q1 (RESOLVED at rung 1, no operator needed): SIMPLIFY's altitude angle asked whether FEAT-05
-  `STATE.md`'s bold `Corrected 2026-09-06 under BUG-148:` lead-in narrates where DEC-174 states,
-  given D-05 ruling 1 says STATE.md matches DEC-174's treatment. Premise checked and it does not
-  hold: ruling 1's "treatment" is the in-place rewrite versus an appended dated note, not the
-  rhetorical register, and REQ-01 positively requires the FEAT-05 record to name the correction
-  date 2026-09-06 where DEC-174 is not required to carry one. The asymmetry is what the approved
-  BRIEF asks for. The register itself is exactly what SC-06 (`verify: uat`) puts to the
-  operator, so it is flagged for that read rather than costing a fix cycle.
-- Q2 (non-blocking, harness defect, for the harness owner): DEC-153's disposable-worktree
-  perturbation carve-out is unreachable for `harness-qa` on any non-`tests/**` path — both
-  guards deny, and a self-created sibling worktree is refused under DEC-218 claim binding. QA
-  reached its proof read-only here; that will not generalise. Raised by the validator lead.
-- Q3 (non-blocking, harness defect, for the schema owner): `harness-digest-dev` forbids
-  `suite: n/a` with `VERDICT: PASS` (DEC-173), but a read-only reviewer dispatch runs no suite,
-  so an honest reader has no legal value and one was pushed into reporting `suite: pass` for a
-  prose read. Raised by `harness-ai-dev` through the eng lead.
-- Q4 (non-blocking, advisory from QA): of SC-04's two named tests only
-  `test_committed_index_matches_a_fresh_regeneration` was proven red-capable (42 differing lines
-  against the stale index). `test_no_amendment_construct_survives_in_the_authority` was observed
-  green but never perturbed. Advisory only — SC-01/SC-03 inspection covers the same property by
-  a second route. Briefing-row candidate.
-- Q5 (non-blocking, still the main session's act): the untracked source copy of the grilling
-  artifact under `.harness/harness/notes/` has been removed and MUST NOT be restored. The
-  relocated copy inside this feature's `notes/` is the one the BRIEF cites.
-- Q6 (non-blocking, harness defect, for the harness owner): the handoff `## Done when` gate
-  cannot resolve `brief-sc:` or `plan-task:` pointers for a feature whose directory lives only
-  in a worktree. `handoff_done_when.py::_feature_dir` strips the `.claude/worktrees/<name>/`
-  prefix from the note's path but then joins the remainder to the MAIN checkout root, so it
-  looked for `<main-root>/.harness/harness/features/BUG-148-gate-record-correction` and refused
-  the Write with three "unresolved" lines. The two path-carrying pointer types (`finding:` and
-  `approval:`) resolve correctly against the same root, which is why `notes/handoff-build.md`
-  cites those instead of the SC ids the next action actually discharges. Measured here on
-  2026-09-06; same family as the main-checkout-copy-governs rule.
+- Q1 (RESOLVED at rung 1): SIMPLIFY's altitude angle asked whether FEAT-05 `STATE.md`'s bold
+  `Corrected 2026-09-06 under BUG-148:` lead-in narrates where DEC-174 states. Premise fails —
+  D-05 ruling 1's "treatment" is the in-place mechanism, not the rhetorical register, and REQ-01
+  positively requires the FEAT-05 record to name the date. The register itself is what SC-06 puts
+  to the operator; carry it into that read rather than pre-deciding it.
+- Q2 (non-blocking, harness defect): DEC-153's disposable-worktree perturbation carve-out is
+  unreachable for `harness-qa` on any non-`tests/**` path — both guards deny, and a self-created
+  sibling worktree is refused under DEC-218 claim binding.
+- Q3 (non-blocking, harness defect): `harness-digest-dev` forbids `suite: n/a` with `VERDICT: PASS`
+  (DEC-173), but a read-only reviewer dispatch runs no suite, so an honest reader has no legal value.
+- Q4 (non-blocking, advisory): of SC-04's two named tests only
+  `test_committed_index_matches_a_fresh_regeneration` was proven red-capable;
+  `test_no_amendment_construct_survives_in_the_authority` was observed green, never perturbed. The
+  panel dismissed it as non-gating on a stronger ground than QA's own — both edits are in-place
+  rewrites per D-01, so this diff cannot newly violate the property. Backlog row candidate.
+- Q5 (non-blocking, the main session's act): the untracked source copy of the grilling artifact
+  under `.harness/harness/notes/` was removed on purpose and MUST NOT be restored.
+- Q6 (non-blocking, harness defect): `handoff_done_when.py::_feature_dir` cannot resolve `brief-sc:`
+  or `plan-task:` pointers for a feature whose directory lives only in a worktree — it strips the
+  `.claude/worktrees/<name>/` prefix and rejoins to the MAIN checkout root. Both handoff notes cite
+  `finding:` and `approval:` pointers instead, which resolve against the same root.
+- Q7 (non-blocking, gap in this BRIEF, for the ship record): REQ-04's `no historical artifact is
+  modified` had no criterion grading it. It holds on measurement (see `## Current`), but a future
+  BRIEF of this shape should carve the feature's own directory out of the allowlist or state the
+  clause as its own SC. Backlog row candidate.
 - Panel findings `PF-a2df57f48de3e81d49745cfd1adaa20b` (med, accepted-by-design, disclosed in
-  BRIEF's Verification gaps) and `PF-b7b07ec7b7f6cacb3b894cae4bda2a04` (low, informational)
-  remain open by design; neither was ruled on and neither gates.
+  BRIEF's Verification gaps) and `PF-b7b07ec7b7f6cacb3b894cae4bda2a04` (low, informational) remain
+  open by design; neither was ruled on and neither gates.
