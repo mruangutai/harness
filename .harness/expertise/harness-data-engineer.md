@@ -24,5 +24,8 @@
 - G-06: WHEN claiming a "full read" of a file as your check DO also run a targeted probe for the failure mode under review (e.g. grep a stated rationale across the file for duplication) — a linear read can miss content that repeats without registering as a repeat.
 - G-07: WHEN two tasks' verify blocks both run the same full-suite command DO check whether each run proves a different task's own registration didn't break a drift invariant before flagging it as duplicate work — a repeated command can be two independent proofs, not one redundant one.
 - G-08: WHEN two code paths shell out to git and look duplicated DO check whether one reads the staged index (git ls-files) and the other a committed ref (git ls-tree) before calling it redundant — index-vs-ref is a semantic difference, and merging them changes correctness guarantees.
+- G-09: WHEN a suite reruns an identical scenario under a mutant or negative control DO check whether the rerun is the mechanism proving a property before flagging it as redundant — deliberate reruns at boundary steps are evidence the boundary exists, not wasted work.
+- G-10: WHEN grading the efficiency angle DO also check for unbounded resource accumulation (temp dirs, file handles, log growth) across repeated invocations, not only per-call time — a leak invisible in one run compounds silently across every CI invocation.
+- G-11: WHEN a composite key (e.g. a two-field cache key) is constructed inline at multiple call sites DO grade it as a divergence/correctness risk, not a performance cost — the failure mode is two hand-built keys drifting apart, not added latency.
 ## Outcomes (max 10)
 ## Open (max 5)
