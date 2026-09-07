@@ -116,6 +116,13 @@ HOOK_SPECS = [
                "override a member's pinned model per-dispatch; the tier design is "
                "unenforced and the spend is unattributed.",
     },
+    {
+        "event": "PreToolUse",
+        "script": "merge-gate.sh",
+        "matcher": "Bash",
+        "why": "Mirror build-entry merge gate (DEC-138). Absent -> a merge lands while a "
+               "build-entry receipt is still owed, silently.",
+    },
 ]
 DEPTH_KEY = "CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH"
 DEPTH_VAL = "3"

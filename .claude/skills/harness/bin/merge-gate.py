@@ -1,0 +1,122 @@
+#!/usr/bin/env python3
+"""PreToolUse guard for merges while a Build-entry mirror receipt is owed."""
+import glob
+import json
+import os
+import shlex
+import subprocess
+import sys
+
+sys.path.insert(0, os.path.dirname(__file__))
+import feature_schema
+
+ROOT = sys.argv[1]
+OPS = {";", "&", "&&", "|", "||", "(", ")", "<", ">", ">>", "\n"}
+
+
+def words(command):
+    try:
+        lexer = shlex.shlex(command, posix=True, punctuation_chars=True)
+        lexer.whitespace_split = True
+        return [word for word in lexer if word not in OPS]
+    except ValueError:
+        return command.split()
+
+
+def is_bin(token, name):
+    return os.path.basename(token.strip("\\'\"$()`")) == name
+
+
+def merge_ref(command, depth=0):
+    tokens = words(command)
+    for index, token in enumerate(tokens):
+        rest = tokens[index + 1:]
+        if is_bin(token, "gh") and len(rest) >= 2 and rest[:2] == ["pr", "merge"]:
+            return ("gh", next((word for word in rest[2:] if word.isdigit()), None))
+        if is_bin(token, "git"):
+            args = [word for word in rest if not word.startswith("-")]
+            if args and args[0] == "merge":
+                return ("git", args[1] if len(args) > 1 else None)
+    if depth < 3:
+        for token in tokens:
+            if len(token.split()) > 1:
+                found = merge_ref(token, depth + 1)
+                if found:
+                    return found
+    return None
+
+
+def local_branch(cwd):
+    result = subprocess.run(["git", "-C", cwd, "rev-parse", "--abbrev-ref", "HEAD"],
+                            capture_output=True, text=True)
+    return result.stdout.strip() if result.returncode == 0 else "unknown"
+
+
+def head_branch(command, cwd, repo):
+    kind, value = merge_ref(command)
+    if kind == "git" and value:
+        return value.removeprefix("origin/"), None
+    if kind == "gh" and value:
+        result = subprocess.run([os.environ.get("GH_BIN", "gh"), "pr", "view", value, "--repo", repo,
+                                 "--json", "headRefName", "-q", ".headRefName"], capture_output=True, text=True)
+        if result.returncode == 0 and result.stdout.strip():
+            return result.stdout.strip(), None
+        return local_branch(cwd), (result.stderr or result.stdout).strip().splitlines()[0]
+    return local_branch(cwd), None
+
+
+def feature_for(branch):
+    for path in glob.glob(os.path.join(ROOT, ".harness", "*", "features", "*", "feature.json")):
+        try:
+            with open(path) as f:
+                document = json.load(f)
+        except (OSError, json.JSONDecodeError):
+            continue
+        if document.get("branch") == branch:
+            return os.path.dirname(path), document
+    return None, None
+
+
+def deny(reason):
+    print(json.dumps({"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "deny", "permissionDecisionReason": reason}}))
+
+
+def repo_pinned(repo):
+    return isinstance(repo, str) and "/" in repo and bool(repo)
+
+
+def main():
+    try:
+        with open(os.path.join(ROOT, ".harness", "harness.json")) as f:
+            github = json.load(f).get("github") or {}
+        command = (json.load(sys.stdin).get("tool_input") or {}).get("command") or ""
+    except Exception:
+        return
+    if not github.get("sync") or not merge_ref(command):
+        return
+    branch, failure = head_branch(command, os.getcwd(), github.get("repo") or "")
+    feat_dir, document = feature_for(branch)
+    if document is None:
+        if failure:
+            print(f"merge-gate: could not verify this merge - the head branch could not be resolved through gh ({failure}) and the local branch {branch} owes no build-entry receipt; allowing it, because GitHub is a mirror and never a gate (DEC-138).", file=sys.stderr)
+        return
+    feat = os.path.basename(feat_dir)
+    entry = (document.get("github") or {}).get("build_entry")
+    if feat in feature_schema.BUILD_ENTRY_ERA_EXEMPT and entry is None:
+        print(f"merge-gate: {feat} predates the build-entry receipt (feature_schema.BUILD_ENTRY_ERA_EXEMPT), so this merge is allowed. Its terminal receipt is created only by an explicit operator-approved gh-sync.py recover-terminal {os.path.realpath(feat_dir)} --yes.", file=sys.stderr)
+        return
+    if entry in {"opened", "not-applicable", "recovered-terminal"}:
+        if failure:
+            print(f"merge-gate: could not verify this merge - the head branch could not be resolved through gh ({failure}) and the local branch {branch} owes no build-entry receipt; allowing it, because GitHub is a mirror and never a gate (DEC-138).", file=sys.stderr)
+        return
+    value = entry or "absent"
+    if not repo_pinned(github.get("repo")):
+        deny(f"merge-gate: {feat} records github.build_entry={value}, and this project has github.sync true with github.repo NOT pinned, so the mirror records nothing here and no receipt can ever be written for it (D-09). NO COMMAND CLEARS THIS BY ITSELF. Pin github.repo in {ROOT}/.harness/harness.json to the value of gh repo view --json nameWithOwner -q .nameWithOwner, or set github.sync to false, and then re-run the Build entry.")
+        return
+    command_name = feature_schema.recovery_command_for(feat_dir)
+    command_line = (f"python3 .claude/skills/harness/bin/gh-sync.py {command_name} {os.path.realpath(feat_dir)}" + (" --yes" if command_name == "recover-terminal" else ""))
+    deny(f"merge-gate: {feat} records github.build_entry={value}, so no Build entry receipt exists for it. This merge is denied until {command_line} records one.")
+
+
+if __name__ == "__main__":
+    main()

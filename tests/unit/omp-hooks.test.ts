@@ -278,6 +278,9 @@ describe("OMP task lifecycle adapter", () => {
     expect(scripts.indexOf("gh-close-gate.sh")).toBeGreaterThan(-1);
     expect(scripts.indexOf("gh-close-gate.sh")).toBeLessThan(scripts.indexOf("branch-create-gate.sh"));
     expect(scripts.indexOf("branch-create-gate.sh")).toBeLessThan(scripts.indexOf("bash-write-guard.sh"));
+    expect(scripts.indexOf("merge-gate.sh")).toBeGreaterThan(scripts.indexOf("bash-write-guard.sh"));
+    expect(scripts.indexOf("merge-gate.sh")).toBeGreaterThan(scripts.indexOf("plan-sign-gate.sh"));
+
   });
 
   // BUG-1132: plan-sign-gate.sh (REQ-05/DEC-120 — only the main session signs an approval) is
