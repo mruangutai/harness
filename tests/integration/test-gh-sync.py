@@ -3505,5 +3505,52 @@ with tempfile.TemporaryDirectory() as tmpDg:
           str(editsDg))
 
 
+# ---------------------------------------------------------------------------------------------
+# BUG-201 SIMPLIFY fold-in: refuse() grows an optional runtime-selected `stream` (default
+# unchanged — stdout), and _projected_for's inline "print to stderr, then sys.exit(2)" for a
+# plan that fails to load is replaced by refuse(msg, stream=sys.stderr). This section asserts
+# refuse()'s own contract directly (unit-level, via the already-imported _ghs module) so the
+# altitude fold-in cannot silently flip which stream either call writes to.
+# ---------------------------------------------------------------------------------------------
+import contextlib
+import io
+
+
+def _call_refuse(msg, **kwargs):
+    """Invoke _ghs.refuse and report what happened without ever letting an unexpected raise
+    (a TypeError from an as-yet-unsupported kwarg, say) abort the rest of this suite (P-04)."""
+    try:
+        _ghs.refuse(msg, **kwargs)
+        return ("returned", None)
+    except SystemExit as exc:
+        return ("exit", exc.code)
+    except TypeError as exc:
+        return ("typeerror", str(exc))
+
+
+_ro, _re = io.StringIO(), io.StringIO()
+with contextlib.redirect_stdout(_ro), contextlib.redirect_stderr(_re):
+    _outcome_default = _call_refuse("default stream unchanged")
+check("refuse() default: still exits 2, unaffected by the new parameter",
+      _outcome_default == ("exit", 2), _outcome_default)
+check("refuse() default: message on stdout, exactly as before",
+      "gh-sync: REFUSED — default stream unchanged" in _ro.getvalue(), _ro.getvalue())
+check("refuse() default: nothing written to stderr",
+      _re.getvalue() == "", _re.getvalue())
+
+_rso, _rse = io.StringIO(), io.StringIO()
+with contextlib.redirect_stdout(_rso), contextlib.redirect_stderr(_rse):
+    _outcome_stream = _call_refuse("stderr routed", stream=sys.stderr)
+check("refuse(stream=sys.stderr): exits 2",
+      _outcome_stream == ("exit", 2), _outcome_stream)
+check("refuse(stream=sys.stderr): message on stderr, not stdout",
+      "gh-sync: REFUSED — stderr routed" in _rse.getvalue() and _rso.getvalue() == "",
+      (_rso.getvalue(), _rse.getvalue()))
+
+# _projected_for's own dangling-plan case (BUG-201 case (d) above) already drives this through
+# the real subprocess and asserts exit 2 / one stderr line / no Traceback — unaffected by
+# routing through refuse(): those checks are the end-to-end regression guard for this fold-in.
+
+
 
 sys.exit(1 if fails else 0)

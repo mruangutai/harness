@@ -161,11 +161,19 @@ def die(msg):
     sys.exit(1)
 
 
-def refuse(msg):
+def refuse(msg, stream=None):
     """T-13's `status` subcommand refusals: a value or precondition failed validation,
     distinct from `die`'s exit 1 (a malformed dispatch) and from `skip`'s exit 0 (an
-    environmental precondition). Exit 2, one line, naming the offending value."""
-    print(f"gh-sync: REFUSED — {msg}")
+    environmental precondition). Exit 2, one line, naming the offending value.
+
+    `stream` defaults to stdout (unchanged) so every existing caller keeps writing there;
+    BUG-201's _projected_for is the one caller that needs the line on stderr instead, and
+    passes `stream=sys.stderr` rather than duplicating this shape inline. Resolved to
+    `sys.stdout` INSIDE the call, not as the parameter default — a default bound at def
+    time would capture whatever stdout was at import, not at the moment of the refusal."""
+    if stream is None:
+        stream = sys.stdout
+    print(f"gh-sync: REFUSED — {msg}", file=stream)
     sys.exit(2)
 
 
@@ -1161,12 +1169,9 @@ def _projected_for(feat_dir, rec):
         # depends_on) reached this except identically to an absent or unreadable file and was
         # swallowed to {} the same way — the operator was told "no station follows from the
         # plan" about a plan that never validated. refuse()'s own shape is exit 2/one line/no
-        # traceback (the sibling FleetError branch below); refuse() itself prints to stdout,
-        # so the line goes to stderr directly here, naming both the path and the validator's
-        # message, then exits 2 the same way.
-        print(f"gh-sync: REFUSED — the plan at {plan_path} failed to load — {exc}",
-              file=sys.stderr)
-        sys.exit(2)
+        # traceback (the sibling FleetError branch below); the line still needs to land on
+        # stderr rather than refuse()'s stdout default, so it is passed explicitly.
+        refuse(f"the plan at {plan_path} failed to load — {exc}", stream=sys.stderr)
     try:
         return gh_board.project(plan_doc, rec)
     except factory_config.FleetError as exc:
