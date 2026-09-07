@@ -171,7 +171,7 @@ tasks:
     execution_agent: harness-orchestrator
     depends_on:
     - T-01
-    status: ready
+    status: done
     files:
       - .harness/harness/features/FEAT-05-pyyaml-file-parsers/STATE.md
     verify: |
