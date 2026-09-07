@@ -1,9 +1,11 @@
 schema: plan/1
 feature: BUG-151-check-domain-fail-aggregation
 approval:
-  status: pending
+  date: '2026-09-07'
+  approved_by: operator
+  status: approved
 
-status: plan
+status: building
 
 source_issues: [151]
 
@@ -69,7 +71,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: []
-    status: ready
+    status: done
     files:
       - tests/integration/test-check-domain.py
     verify: |
@@ -138,7 +140,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: [T-01]
-    status: ready
+    status: building
     files:
       - tests/integration/test-check-domain.py
     verify: |
