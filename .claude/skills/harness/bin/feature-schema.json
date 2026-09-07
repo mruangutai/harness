@@ -92,6 +92,11 @@
             ]
           },
           "description": "Provenance of native GitHub Issue Type application, keyed by \"parent\" or a task id (D-20). \"created\" means Harness created the issue and has not yet applied its type; the promoted boolean true means Harness created it and applied the type; \"adopted\" means the number was adopted through --parent and Harness never created or types it. ABSENCE of an entry means provenance is UNKNOWN and is never typed - not on this run, not on any later one."
+        },
+        "build_entry": {
+          "type": "string",
+          "enum": ["opened", "recovery-required", "not-applicable", "recovered-terminal"],
+          "description": "The mirror Build DAG's own status, written by gh-sync.py. Five states, and absence is meaningful: \"opened\" - open completed with github.sync enabled and github.repo pinned; the milestone, the parent and every task sub-issue are recorded. \"recovery-required\" - sync was enabled and the repo pinned, but the run stopped on a temporary environmental no-go BEFORE any remote-mutating call; Build may proceed, but MERGE is refused until a re-run records opened. \"not-applicable\" - github.sync is false or absent, an approved no-mirror delivery mode that gates nothing; NOT reached when sync is enabled and github.repo is unpinned, which is a local configuration error that records nothing and blocks Build (D-09). \"recovered-terminal\" - written only by gh-sync.py recover-terminal for an already-merged feature whose mirror was never opened; milestone plus the parent and source issues only, never task sub-issues. ABSENT (the key is missing) - no Build entry ever completed: open never ran, or github.sync was enabled with github.repo unpinned, or the run failed after creating at least one remote object, or it exited on a caller or contract error; Build refuses."
         }
       }
     },

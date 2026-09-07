@@ -104,6 +104,41 @@
       "agent": "harness-validator-lead",
       "verdict": "PASS",
       "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-06-01-eng",
+      "squad": "eng",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS"
     }
-  ]
+  ],
+  "github": {
+    "milestone": 54,
+    "parent": 1407,
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03",
+      "T-04",
+      "T-05",
+      "T-06",
+      "T-07",
+      "T-08",
+      "T-09"
+    ],
+    "issues": {
+      "T-01": 1408,
+      "T-02": 1409,
+      "T-03": 1410,
+      "T-04": 1411,
+      "T-05": 1412,
+      "T-06": 1413,
+      "T-07": 1414,
+      "T-08": 1415,
+      "T-09": 1416
+    },
+    "source_issues": [
+      1390
+    ]
+  }
 }
