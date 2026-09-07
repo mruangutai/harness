@@ -76,6 +76,18 @@
       "verdict": "PASS",
       "agent": "harness-validator-lead",
       "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-07-02-eng",
+      "squad": "eng",
+      "verdict": "PASS",
+      "agent": "harness-eng-lead"
+    },
+    {
+      "id": "2026-09-07-03-eng",
+      "squad": "eng",
+      "verdict": "PASS",
+      "agent": "harness-eng-lead"
     }
   ]
 }

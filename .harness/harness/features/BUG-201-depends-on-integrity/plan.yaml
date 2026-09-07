@@ -498,7 +498,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: [T-03]
-    status: ready
+    status: done
     files:
       - tests/unit/test-factory-claim.py
       - tests/integration/test-gh-sync.py
@@ -569,7 +569,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: [T-05]
-    status: ready
+    status: done
     files:
       - .claude/skills/harness/bin/factory_claim.py
       - .claude/skills/harness/bin/gh-sync.py

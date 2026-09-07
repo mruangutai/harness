@@ -87,6 +87,7 @@ class _BlockerCache:
 
     def __init__(self):
         self._plans = {}
+        self._plan_errors = {}
         self._issue_maps = {}
 
     def plan_path(self, repo, feature):
@@ -99,20 +100,32 @@ class _BlockerCache:
         """The cached plan dict for (repo, feature), or None when it cannot be read. The sole
         file-reading path: task() and plan_loaded() both reach plan.yaml only through this
         method, so one poll reads each (repo, feature)'s plan.yaml exactly once no matter which
-        of them is asked first or how often."""
+        of them is asked first or how often. BUG-201: when the file EXISTS but load_plan raises
+        — a plan that parses but fails referential integrity, e.g. a dangling depends_on — the
+        validator's own message is kept in self._plan_errors so the caller can report the real
+        cause instead of the missing-or-unparseable text (D-05)."""
         key = (repo, feature)
         if key not in self._plans:
             path = self.plan_path(repo, feature)
             try:
                 plan = harness_yaml.load_plan(path)
-            except harness_yaml.YamlParseError:
+            except harness_yaml.YamlParseError as exc:
                 plan = None
+                if os.path.isfile(path):
+                    self._plan_errors[key] = str(exc)
             self._plans[key] = plan
         return self._plans[key]
 
     def plan_loaded(self, repo, feature):
         """True when (repo, feature)'s plan.yaml was read successfully."""
         return self._plan(repo, feature) is not None
+
+    def plan_error(self, repo, feature):
+        """The validator's own message for (repo, feature)'s plan.yaml, when the file EXISTS on
+        disk but load_plan raised — None when the plan loaded, or when there was no file to
+        raise on (BUG-201, D-05)."""
+        self._plan(repo, feature)
+        return self._plan_errors.get((repo, feature))
 
     def root_exists(self, repo):
         """True when repo's own features root directory exists."""
@@ -151,13 +164,18 @@ class _BlockerCache:
 
 def _blocker_gate(cache, repo, feature, task_id):
     """Return None when the candidate is clear, or a tuple describing why it is blocked:
-    ("no_plan", path, root_exists) — the feature resolves but its plan.yaml could not be read;
+    ("no_plan", path, root_exists) — the feature root or its plan.yaml is absent;
+    ("bad_plan", path, error) — the plan.yaml file EXISTS but load_plan raised — a dangling
+    depends_on is this case (BUG-201, D-05), and `error` is the validator's own message;
     ("edge_i", task_id) — the plan DID load but the title yields no matching plan task;
     ("unresolvable", dep) — a depends_on entry has no feature.json issue-map entry;
     ("open", dep, blocker_num) — the LAST depends_on entry (in order) whose blocker issue is
     still open — scanning every entry, never stopping at the first, is what MIXED BLOCKER SET
     requires (T-05 intent, SC-22)."""
     if not cache.plan_loaded(repo, feature):
+        error = cache.plan_error(repo, feature)
+        if error is not None:
+            return ("bad_plan", cache.plan_path(repo, feature), error)
         return ("no_plan", cache.plan_path(repo, feature), cache.root_exists(repo))
     task = cache.task(repo, feature, task_id)
     if task is None:
@@ -193,6 +211,15 @@ def _blocker_reason_text(gate, num):
         return (
             f"issue #{num} carries a feature: label that resolves, but no plan could be read "
             f"at {path} - the feature directory or its plan.yaml is missing or unparseable"
+        )
+    if kind == "bad_plan":
+        # BUG-201, D-05: the file EXISTS but load_plan raised (a dangling depends_on is this
+        # case) - the validator's own message reaches the operator instead of the
+        # missing-or-unparseable text above, which no_plan keeps verbatim for its own two cases.
+        path, error = gate[1], gate[2]
+        return (
+            f"issue #{num} carries a feature: label that resolves, but its plan.yaml at "
+            f"{path} failed to load - {error}"
         )
     if kind == "edge_i":
         return (

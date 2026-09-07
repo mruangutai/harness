@@ -1138,22 +1138,35 @@ def cmd_open(feat_dir, repo, parent_arg=None, issue_types=None):
 
 
 def _projected_for(feat_dir, rec):
-    """{issue number: station} for this feature, from gh_board.project — or {} when the plan
-    cannot be read.
+    """{issue number: station} for this feature, from gh_board.project — or {} when there is no
+    plan.yaml at all.
 
-    ONE PLACE ASKS THE QUESTION, so no caller re-derives a station. An unreadable or absent
-    plan yields an EMPTY mapping rather than raising: every caller already treats "no station
-    follows from the plan" as one printed line and no write, and the mirror never gates
-    (DEC-138). A plan carrying a station outside the vocabulary is the exception — project
-    raises, and that reaches the caller, because a vocabulary miss must not be silent.
+    ONE PLACE ASKS THE QUESTION, so no caller re-derives a station. An ABSENT plan yields an
+    EMPTY mapping rather than raising: every caller already treats "no station follows from
+    the plan" as one printed line and no write, and the mirror never gates (DEC-138). A plan
+    that EXISTS but fails to load is a different case (BUG-201, D-05): DEC-138's never-gates
+    is about not blocking a flow, not about dying in it, and a locally malformed signed
+    artifact is not "gh absent or unauthenticated" — it refuses loudly instead, the same
+    posture the FleetError branch below already takes for a vocabulary miss. A plan carrying
+    a station outside the vocabulary is the other exception — project raises, and that
+    reaches the caller, because a vocabulary miss must not be silent.
     """
     plan_path = os.path.join(feat_dir, "plan.yaml")
     if not os.path.isfile(plan_path):
         return {}
     try:
         plan_doc = harness_yaml.load_plan(plan_path)
-    except harness_yaml.YamlParseError:
-        return {}
+    except harness_yaml.YamlParseError as exc:
+        # BUG-201 (D-05): a plan.yaml that PARSES but fails referential integrity (a dangling
+        # depends_on) reached this except identically to an absent or unreadable file and was
+        # swallowed to {} the same way — the operator was told "no station follows from the
+        # plan" about a plan that never validated. refuse()'s own shape is exit 2/one line/no
+        # traceback (the sibling FleetError branch below); refuse() itself prints to stdout,
+        # so the line goes to stderr directly here, naming both the path and the validator's
+        # message, then exits 2 the same way.
+        print(f"gh-sync: REFUSED — the plan at {plan_path} failed to load — {exc}",
+              file=sys.stderr)
+        sys.exit(2)
     try:
         return gh_board.project(plan_doc, rec)
     except factory_config.FleetError as exc:
@@ -1253,16 +1266,22 @@ def cmd_start_task(feat_dir, tid, repo, board):
 
 
 def _status_plan_doc(feat_dir):
-    """plan.yaml, loaded and validated, or None on any failure (absent file, unparseable,
-    or schema-invalid). `status`'s two guarded transitions (Ready, Review) both need this
-    and both treat a failure to load as "the precondition is not met" rather than raising —
-    an unreadable plan cannot prove a signature or prove every task is done."""
+    """plan.yaml, loaded and validated, or None on any failure (absent file, unparseable, or
+    schema-invalid) — the failure is REPORTED, one stderr line, before it is returned.
+    `status`'s two guarded transitions (Ready, Review) both need this and both treat a
+    failure to load as "the precondition is not met" rather than raising — an unreadable
+    plan cannot prove a signature or prove every task is done. BUG-201 (D-05): a plan.yaml
+    that EXISTS but fails to load (a dangling depends_on, say) was swallowed identically to
+    an absent file, so the "station ready refused" line the guards below already print named
+    the wrong cause; this posture stays a decline rather than a gate (DEC-138) — no new exit
+    path, only the printed cause is new."""
     path = os.path.join(feat_dir, "plan.yaml")
     if not os.path.isfile(path):
         return None
     try:
         return harness_yaml.load_plan(path)
-    except harness_yaml.YamlParseError:
+    except harness_yaml.YamlParseError as exc:
+        print(f"gh-sync: the plan at {path} failed to load — {exc}", file=sys.stderr)
         return None
 
 
