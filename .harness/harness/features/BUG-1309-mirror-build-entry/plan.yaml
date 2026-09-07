@@ -1931,7 +1931,7 @@ tasks:
     execution_reason: DEC-174 enforcement carve-out - the plan's signed lanes row covering tests/integration/test-post-merge-sweep.py places each gate's own test inside the carve-out with the gate
     depends_on:
     - T-07
-    status: ready
+    status: done
     files:
       - tests/integration/test-post-merge-sweep.py
     verify: |

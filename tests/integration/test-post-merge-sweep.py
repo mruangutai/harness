@@ -892,6 +892,7 @@ def case_t07_build_entry_receipt():
         "T-07 sync false removes the worktree",
         "T-07 era-exempt absent build_entry is swept",
         "T-07 era-exempt recovery-required keeps the worktree",
+        "T-13 not-applicable removes the worktree",
     )
     shapes = (
         ("FEAT-9001-fixture-non-era", None, True, False),
@@ -902,6 +903,7 @@ def case_t07_build_entry_receipt():
         ("FEAT-9001-fixture-non-era", "opened", False, True),
         ("BUG-1030-stale-anchor-write-hazard", None, True, True),
         ("BUG-1030-stale-anchor-write-hazard", "recovery-required", True, False),
+        ("FEAT-9001-fixture-non-era", "not-applicable", True, True),
     )
     results = []
     for name, (feature, entry, sync, removed) in zip(names, shapes):
