@@ -45,3 +45,16 @@
 - 2026-09-06: BUG-1309 panel repair — set-panel's validator only type-checks last_run/cycle/readers/findings (plan-merge.py:1017-1037); the row schema is enforced downstream by check-state.sh:542-555, which reads persona/reason ONLY on the skipped branch. So a `ran` row is reader+status and nothing else.
 - 2026-09-06: check-state.sh resolves its root from its own location — grading a worktree feature requires running the WORKTREE's copy of the script; the main-root copy printed no BUG-1309 lines at all, which reads like "clean" and is actually "not examined".
 - 2026-09-06: rebuilding a panel value by loading plan['panel'] and appending one dict (never retyping summaries) is the only safe route past content-hash finding ids; safe_dump of the panel mapping alone is exactly what --value-file wants.
+- 2026-09-06: BUG-1309 T-09 verify amend dispatch arrived already satisfied — commit f4b2883d had applied the exact target value before spawn. Pre-check saved a redundant compare-and-swap; the same commit also moved approval.date backwards 2026-09-06 -> 2026-09-04 while leaving status approved, which plan-merge amend provably cannot do (AMENDABLE_KEYS = tasks, decisions). Reading git log for the target field, not just the field, is what surfaced the out-of-scope approval write.
+- 2026-09-06: BUG-1309 plan amend. Piping a plan-merge proposal through a quoted bash heredoc is
+  BLOCKED by bash-write-guard whenever the YAML body contains an angle-bracket placeholder: the
+  guard parses the whole command line textually and read "features/(placeholder):" as a redirect
+  target ":". Spell placeholders in words ("plus the feature name") in any heredoc body.
+- 2026-09-06: plan-merge.py apply added two tasks to an APPROVED plan and left approval.status
+  approved, with no ADDED-tasks reset. The doctrine ("re-planning resets approval") is not
+  mechanized in the tool; only sign-approval writes that mapping, and pm cannot. Raise it as an
+  open_question every time, because nothing else surfaces it.
+- 2026-09-06: check-domain.sh --resolve grants harness-backend-dev/dev-ops/qa on
+  post-merge-sweep.sh and check-state.sh themselves, so a team grant never settles DEC-174
+  carve-out membership. The usable line is EXERCISES A GATE vs IMPORTS A MODULE A GATE USES.
+- 2026-09-06: BUG-1309 R2 fix — re-aiming a unit case away from an integration guard is only honest if the unit input is one a fixture DIRECTORY cannot be (trailing slash, out-of-enum rec value), not merely one nobody wrote yet; probing _build_entry_preflight in-process found two live reds from one missing rstrip at gh-sync.py:1360, and a red case makes the task's own '^FAIL ' verify unsatisfiable, so the intent must say the task cannot reach VERIFY-PASS and route the fix out.

@@ -112,6 +112,49 @@ decisions:
     choice: Enabled github.sync with github.repo NOT pinned is a local configuration error, never the approved no-mirror mode - gh-sync.py open records NOTHING there, feature.json's github.build_entry stays ABSENT, and Build is therefore refused by T-04. The value not-applicable is written only by the sync-not-enabled skip, which fires when github.sync is false or absent. That state blocks BOTH halves of the lifecycle, not Build alone - T-05's merge gate self-gates on github.sync by itself, so with build_entry ABSENT it also DENIES EVERY harness-feature merge in the project - and the remedy for both halves is the CONFIGURATION fix, pinning github.repo in <root>/.harness/harness.json or setting github.sync to false, never gh-sync.py open, which records nothing in this state.
     because: 'The stated intent''s settled bullet 4 names local configuration and contract errors under enabled sync as blocking Build, and this is the case that clause exists for - the unpinned-repo skip is reachable only after the resolver has already found sync true. The out-of-scope protection covers a project that sets github.sync false or leaves GitHub unconfigured, never one that opted into the mirror and left the repo unpinned. Recording not-applicable there turns a misconfigured mirror project into an approved no-mirror one, which is precisely the silent loss of the mirror lifecycle the destination forbids. Bullets 4 and 5 do collide on this case; this reading was an ambiguity the orchestrator resolved on the operator''s behalf, disclosed here so the operator may overturn it at signature. The price of this reading, signed knowingly: T-05 therefore carries a SECOND verbatim deny reason for the unpinned branch (step 6, REPO UNPINNED) which names no command that clears it; a dedicated fixture case, "T-05 unpinned repo absent build_entry denies naming the configuration fix", covering THE CONFIG PAIR''s unpinned half; and a standing constraint that every OTHER T-05 fixture root pins github.repo to the literal "acme/widgets", or the pinned half goes uncovered.'
     dec: none
+  - id: D-10
+    choice: |
+      The unit floors the matrix requires for T-02, T-03, T-04 and T-06 are discharged by unit
+      coverage of the PURE decision seams those tasks introduced - feature_schema.recovery_command_for
+      and BUILD_ENTRY_ERA_EXEMPT membership, and gh-sync.py's record_build_entry, load_recorded and
+      save_recorded normalization, the skip record guard, _build_entry_preflight and the two
+      recover-terminal report helpers - each asserted as a decision table the subprocess suites do not
+      enumerate. T-07's retention branch gets NO unit test: post-merge-sweep.sh executes it inside a
+      python3 -I - heredoc fed on stdin (post-merge-sweep.sh:29-43), so nothing can import it, and its
+      only unit-reachable input is the era set, which T-11 covers. That cell stays discharged by
+      tests/integration/test-post-merge-sweep.py plus T-10's end-to-end case, recorded as a gap rather
+      than papered over.
+    because: |
+      DEC-217's Over clause forbids copying an already mutation-proven integration guard into
+      tests/unit to satisfy a directory label, so a unit test earns its place only by discriminating
+      something the integration bed cannot reach - which is why every case is a table row and why each
+      must be shown to redden under a mutation. Extracting the sweep's retention decision into an
+      importable module purely to manufacture a seam would be a runtime change made to satisfy a test
+      label, the same thing that clause forbids one level up, and it would touch the enforcement layer
+      under DEC-174 as well. A test-only task carries change_type scaffolding, not bugfix: the bugfix
+      row's second leg requires integration for a fix confined to tests, which a unit-test task cannot
+      satisfy and would turn the remedy into a fresh matrix failure. Precedent, same shape, same
+      reasoning: BUG-1308 T-02.
+    dec: DEC-217
+  - id: D-11
+    choice: |
+      tests/integration/test-hooks-install.py is inside the DEC-174 enforcement carve-out, so its
+      repair is main-session-direct, even though check-domain.sh --resolve grants it to
+      harness-backend-dev, harness-dev-ops and harness-qa. A unit test of a helper module a gate
+      merely imports - feature_schema's pure functions, gh-sync.py's recorders - is NOT in the
+      carve-out and stays team. The line is EXERCISES A GATE, never IMPORTS A MODULE A GATE USES.
+    because: |
+      DECISIONS.md:4360-4363 places the test file of each gate inside the carve-out and states that
+      the category governs and the enumeration only records it. Case (e) of that file runs a real git
+      merge through the tracked core.hooksPath post-merge shim and executes post-merge-sweep.sh end to
+      end (test-hooks-install.py:388-432), which is the same subject this plan's own lanes row already
+      routes main-session-direct for tests/integration/test-post-merge-sweep.py. --resolve grants team
+      for check-state.sh and post-merge-sweep.sh themselves, which is exactly why the carve-out rows in
+      this plan override it, so a team grant cannot settle the question. The narrower reading is
+      required because the wider one would pull tests/integration/test-gh-sync.py and
+      test-validate-feature-json.py into the carve-out, and this plan's signed lanes rows place both in
+      team.
+    dec: DEC-174
 panel:
   last_run: 2026-09-06-01-validator
   cycle: 0
@@ -1398,3 +1441,228 @@ tasks:
       produce it, so regeneration alone leaves the row without its one-line ruling. Lengthening
       an entry shifts every later anchor, so re-run the generator rather than editing the index
       by hand, then compare gen-decisions-index.py --stdout against the checked-in index.
+  - id: T-10
+    title: Record a Build-entry receipt in the FEAT-34 SC-14 merge fixture
+    traces:
+    - REQ-02
+    change_type: bugfix
+    execution_mode: main-session-direct
+    execution_reason: "DEC-174 carve-out (D-11) - case (e) of test-hooks-install.py runs the tracked post-merge shim and post-merge-sweep.sh end to end, so it is a hook's own test; the category governs (DECISIONS.md:4360-4363)"
+    depends_on: [T-07]
+    status: ready
+    files:
+      - tests/integration/test-hooks-install.py
+    verify: |
+      out=$(python3 tests/integration/test-hooks-install.py) || exit 1
+      if printf '%s\n' "$out" | grep -q '^FAIL:'; then exit 1; fi
+      for n in "(e-green) SC-14: the terminal feature" "(e-green) the sweep removed the worktree by the normal path, never the build-entry retention branch" "(e-red) RED PROOF: with the shim repointed"; do
+        printf '%s\n' "$out" | grep -qF "PASS: $n" || exit 1
+      done
+      echo VERIFY-PASS
+    intent: |
+      tests/integration/test-hooks-install.py case case_sc14_end_to_end_and_red_proof is RED at HEAD
+      and THE PRODUCTION CODE IS CORRECT. Do not touch post-merge-sweep.sh. The criterion this case
+      grades is FEAT-34's SC-14, not one of this BRIEF's - BUG-1309's success criteria end at SC-10 -
+      and the id stays in the case and assertion names because it is how a reader finds them in the
+      test file. Do not weaken what that FEAT-34 criterion grades: that the tracked core.hooksPath
+      post-merge hook fires on a real git merge and sweeps a terminal feature's worktree end to end,
+      with nothing hand-installed into .git/hooks/.
+
+      Cause, traced to source. _run_merge_and_check (test-hooks-install.py:388-432) commits its feature
+      with _commit_feature(clone, f"FEAT-90-{label}-thing", "Done", milestone=9001). _commit_feature
+      (:176-194) writes github = {"milestone": ...} and no build_entry, while _bootstrap_origin
+      (:128-144) writes harness.json with github.sync true. T-07's retention branch
+      (post-merge-sweep.sh:221-233) therefore KEEPS the worktree - sync enabled, build_entry absent,
+      and the synthetic name FEAT-90-e-green-thing can never be in
+      feature_schema.BUILD_ENTRY_ERA_EXEMPT. The fixture predates the field. Measured at plan time:
+      exactly one FAIL in this file, the (e-green) SC-14 assertion, whole file 4.6s.
+
+      Two edits, in this file only.
+
+      1. _commit_feature gains one optional parameter, build_entry=None, placed after milestone. When
+         it is not None the value is recorded at doc["github"]["build_entry"], creating the github
+         mapping first when milestone is None so the parameter works on its own. There is exactly ONE
+         call site (line 406), so no caller changes shape.
+
+      2. _run_merge_and_check passes build_entry="opened" on that call. Then, in the expect_removed
+         branch only, ADD one assertion after the existing SC-14 one, its name EXACTLY:
+
+           "the sweep removed the worktree by the normal path, never the build-entry retention branch"
+
+         (the surrounding code prefixes it with f"({label}) "). It holds when
+         "post-merge-sweep: removed" is in combined AND "records github.build_entry" is NOT in
+         combined. Leave the existing not os.path.isdir(dest) assertion exactly as it is - the new one
+         names WHY the worktree is gone, so the case can never green again on the retention branch
+         having fired.
+
+      Why a committed "opened" and not a fake-gh open run: the receipt is a local committed fact, and
+      routing through open would add a second remote-stub dependency to a case whose subject is the
+      hook, not the mirror.
+
+      The RED PROOF pass is STRENGTHENED by the same change, not weakened: with a receipt present, the
+      (e-red) worktree's survival is attributable only to the repointed shim, because the retention
+      branch that could also have kept it no longer fires. Keep expect_removed=False for it.
+
+      Order of work: run the file first and record the single failing line, add the new assertion and
+      observe it fail too, then land both edits and re-run. Report both states.
+  - id: T-11
+    title: Unit floor for the Build-entry decision seams
+    traces: [REQ-03, REQ-04, REQ-06, REQ-08, REQ-10]
+    change_type: scaffolding
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-02, T-03, T-04, T-06]
+    status: ready
+    files:
+      - tests/unit/test-feature-schema-build-entry.py
+      - tests/unit/test-gh-sync-build-entry.py
+    verify: |
+      out=$(python3 tests/unit/test-feature-schema-build-entry.py && python3 tests/unit/test-gh-sync-build-entry.py) || exit 1
+      if printf '%s\n' "$out" | grep -q '^FAIL '; then exit 1; fi
+      for n in 01 02 03 04 05 06 07 08 09 10 11 12 13 14 15 16 17 18 19 20 22 23 24 25 26 27 28 29 30; do
+        printf '%s\n' "$out" | grep -qF "PASS BE-$n " || exit 1
+      done
+      echo VERIFY-PASS
+    intent: |
+      Add the unit floor the test matrix requires for T-02, T-03, T-04 and T-06, as two new files
+      under tests/unit/. NO PRODUCTION CODE IS IN SCOPE - do not edit anything under
+      .claude/skills/harness/bin/. Every seam named below was exercised in-process at plan time, so an
+      import that fails is a real finding rather than a missing prerequisite.
+
+      WHY EACH CASE EARNS ITS PLACE. DEC-217's Over clause forbids copying an already mutation-proven
+      integration guard into tests/unit to satisfy a directory label. Every case below is a DECISION
+      TABLE row over a pure or in-process seam that tests/integration/test-gh-sync.py and
+      test-check-state.py reach at one or two points at most, never exhaustively.
+
+      CONVENTIONS, both files. python3 stdlib only. Resolve the bin directory as
+      tests/unit/test-handoff-done-when.py:7-10 does (ROOT = parents[2], sys.path.insert of
+      .claude/skills/harness/bin) and load gh-sync.py in-process as tests/unit/test-gh-cost-log.py:291
+      does (importlib.util.spec_from_file_location on the hyphenated filename). Report every case with
+      print(("PASS" if ok else "FAIL"), name, detail if not ok else ""), collect failures and
+      sys.exit(1) when any failed, exactly as tests/unit/test-handoff-done-when.py:15-18 does. EVERY
+      case name STARTS with its BE id below plus one space, as in "BE-05 plan status review returns
+      recover-terminal", because the task verify greps "PASS BE-NN " once per id and a renumbered or
+      absent case must fail it. That verify carries an EXPLICIT list of the TWENTY-NINE ids these two
+      files define: BE-21 is deliberately absent from the case set and from the list (see below).
+      Do NOT renumber BE-22 through BE-30 to close the gap - renumbering makes every one of them
+      miss its grep.
+
+      FIXTURES. A feature directory is a temp tree whose path ends with
+      .harness/harness/features/ plus the feature name. That path shape is load-bearing for the
+      fixtures' REALISM and for feature_json_write, NOT for recovery_command_for's decision:
+      recovery_command_for (feature_schema.py:324-326) keys on
+      os.path.basename(feat_dir.rstrip("/")) and reads no other segment. The function that reads the
+      segment after "features" is _feature_dir_name (feature_schema.py:307-321), whose only caller is
+      the RUNS_AGENT_EXEMPT lookup in _runs_agent_problems (feature_schema.py:351) - it is on no seam
+      this file drives, so do not write a case against it here. A feature.json fixture must be
+      schema-valid or feature_json_write refuses the save - the closed key set with
+      github = {milestone, parent, attached, issues, source_issues}, and build_entry added only where
+      the case wants one. Never write inside the real .harness tree.
+
+      FILE 1, tests/unit/test-feature-schema-build-entry.py, over feature_schema
+      (recovery_command_for at feature_schema.py:324, BUILD_ENTRY_ERA_EXEMPT at :226). Ten cases:
+        BE-01 an era-set member returns recover-terminal with no plan.yaml present at all
+        BE-02 an era-set member with a trailing slash on feat_dir still returns recover-terminal
+        BE-03 a non-era feature with no plan.yaml returns recover-terminal
+        BE-04 a non-era feature whose plan.yaml does not parse returns recover-terminal
+        BE-05 plan status review returns recover-terminal
+        BE-06 plan status done returns recover-terminal
+        BE-07 plan status building with one task status done returns recover-terminal
+        BE-08 plan status building with every task status ready returns open
+        BE-09 plan status building with an empty tasks list returns open
+        BE-10 membership is exact, never a prefix and never case-insensitive: "FEAT-01" is in the set
+              while "FEAT-01-suffix", "feat-01" and the synthetic fixture name FEAT-90-e-green-thing
+              are not
+      BE-10 is the property post-merge-sweep.sh:223 and gh-sync.py:1361 both branch on, and the one
+      the stale merge fixture in tests/integration/test-hooks-install.py turned on - the SC-14 that
+      fixture grades is FEAT-34's criterion, not this BRIEF's, which ends at SC-10 - so BE-10 is the
+      era set's real contract rather than a restatement of its contents. Do NOT assert the set's size
+      or full membership: the comment at feature_schema.py:222-225 makes it a per-project regenerated
+      value.
+
+      FILE 2, tests/unit/test-gh-sync-build-entry.py, over gh-sync.py loaded in-process. Nineteen
+      cases: BE-11 through BE-20 and BE-22 through BE-30. Read and write side (T-02):
+        BE-11 load_recorded normalizes an out-of-enum build_entry, "reopened", to None
+        BE-12 save_recorded of that record DROPS the key - no build_entry in the written feature.json
+        BE-13 record_build_entry writes recovery-required onto an absent field
+        BE-14 record_build_entry upgrades a recorded recovery-required to opened
+        BE-15 record_build_entry leaves opened in place when called with recovery-required
+      The skip record guard, all five branches (T-02 and the D-09 sentinel):
+        BE-16 armed, no remote write, no explicit value - records recovery-required, prints SKIP,
+              exits 0
+        BE-17 armed with build_entry=_NO_RECORD - records NOTHING, the key stays absent
+        BE-18 armed with remote_written True and an explicit "not-applicable" - records NOTHING
+        BE-19 armed but feature.json does not exist - records nothing and creates no file
+        BE-20 unarmed, _BUILD_ENTRY["feat_dir"] is None - records nothing
+      The Build refusal (T-04). Call _build_entry_preflight(feat_dir, rec) DIRECTLY with a constructed
+      rec, capturing stdout and stderr and catching SystemExit. Each of the TWO states below is one
+      the integration bed CANNOT construct, and neither restates any of the five T-04 guards that bed
+      already holds - "T-04 non-era absent refuses" (test-gh-sync.py:3602), "T-04 BUG-named non-era
+      absent refuses" (:3608), "T-04 station discriminator" (:3612), "T-04 era-exempt continues"
+      (:3618) and "T-04 era recovery-required does not claim a refusal" (:3623), each of which drives
+      start-task through a subprocess against a real fixture directory:
+        BE-22 _build_entry_preflight(era_dir + "/", {"build_entry": None}), era_dir's basename being
+              a BUILD_ENTRY_ERA_EXEMPT member - EXPECTED: no SystemExit, and stderr carrying
+              "predates" and naming that era feature name. THIS CASE IS RED AT HEAD, measured
+              in-process at plan time: it raises SystemExit 2 and prints the recover-terminal refusal
+              instead, because gh-sync.py:1360 computes the identity as os.path.basename(feat_dir)
+              with NO rstrip("/"), so the basename is "" and the era test at :1361 misses - while
+              recovery_command_for (feature_schema.py:326) DOES rstrip and resolves the SAME string
+              to an era member. The two disagree on one input; BE-02 pins the half that is right.
+              A trailing slash is a property of the ARGUMENT, not of the tree, and the bed builds
+              every feat_dir with os.path.join, so no fixture can be this input.
+        BE-23 _build_entry_preflight(era_dir + "/", {"build_entry": "recovery-required"}) -
+              EXPECTED: no SystemExit, stderr carrying "is not refused" and NOT the substring
+              "gh-sync.py open". THIS CASE IS RED AT HEAD, measured: the same missing rstrip at
+              gh-sync.py:1360 routes an era member into _build_entry_recovery_notice's NON-era branch
+              (gh-sync.py:1387-1389), whose line claims "the MERGE is refused until gh-sync.py open
+              records opened" - false for an era feature, whose merge SC-04 requires to be ALLOWED.
+              This is the same predicate the :3623 guard holds for the slash-free path and the
+              OPPOSITE outcome, so it cannot be a copy of a passing guard: it is the second
+              consequence of one defect, at a different branch and with a different observable.
+        BE-24 a recorded opened - no SystemExit and nothing printed at all
+      BE-22 and BE-23 DOCUMENT A DEFECT. Write them asserting the CORRECT behaviour, leave them
+      FAILING, and report them as failing. NO PRODUCTION CODE IS IN SCOPE for T-11: do not edit
+      gh-sync.py to green them, do not delete, rename or weaken them, and do not soften the
+      assertions to match today's output. ESCALATE the missing rstrip at gh-sync.py:1360 as its own
+      defect. Consequence for this task's own verify, stated so nobody mistakes it for a broken task:
+      the verify's '^FAIL ' grep exits 1 while either case is red, so T-11 CANNOT reach VERIFY-PASS
+      until that defect is fixed outside this task. Report PASS on the other 27 ids, FAIL on exactly
+      BE-22 and BE-23, and hand the fix decision to the operator.
+      BE-21 IS DELIBERATELY UNUSED, AND TWENTY-NINE IS THE INTENDED COUNT. It asked for
+      _build_entry_preflight(non_era_dir, {"build_entry": "reopened"}) with no SystemExit and both
+      streams empty, which is the SAME code path and the SAME observable as BE-24: the function
+      branches on entry IS None (gh-sync.py:1361, :1370) and then on entry == "recovery-required"
+      (:1375), so "opened", "reopened" and every other non-None value alike fall through both and
+      print nothing. Measured in-process at plan time: "reopened", "opened", "not-applicable", 42 and
+      "REOPENED" each return with no exit and two empty streams, byte for byte. Two rows over one path
+      differing only in the parameter value are the padding DEC-217's Over clause names, and BE-21's
+      stated point - that load_recorded's normalization at gh-sync.py:624-626 is the whole safety of
+      this guard - is already asserted by BE-11 and BE-12. Do not invent a thirtieth case to round the
+      count up, and do not reuse the id.
+      recover-terminal (T-03):
+        BE-25 _recover_terminal_conflict({"parent": 1289}, "1289") is None - the int() coercion is
+              load-bearing because main() passes --parent through as a STRING (gh-sync.py:2208)
+        BE-26 _recover_terminal_conflict({"parent": 1289}, "7") returns a message naming both 7 and
+              1289
+        BE-27 conflict is None when --parent is absent, and None when no parent is recorded
+        BE-28 _recover_terminal_report with milestone and parent recorded - creates == [] and both
+              adoption lines present
+        BE-29 _recover_terminal_report with neither recorded - creates is exactly
+              ["create the milestone", "create the parent"]
+        BE-30 _recover_terminal_report with a milestone recorded and --parent 9 given - creates is
+              exactly ["adopt parent #9 (given via --parent)"], and across all four adoption states
+              no returned line ever mentions a task or a sub-issue. That is SC-05's
+              zero-task-sub-issues property asserted at the report seam as an exact list, over states
+              the integration bed grades at one point
+      BE-16 through BE-20 each set module._BUILD_ENTRY["feat_dir"] and ["remote_written"] explicitly
+      before calling skip, capture stdout, and catch SystemExit. Assert the recorded value by
+      re-reading feature.json, and assert ABSENCE as key absence, never as a falsy value.
+
+      DISCRIMINATION PROOF, and it replaces red-before-green. No production code changes here, so no
+      case except BE-22 and BE-23 can be red first; say so plainly rather than claiming a red phase.
+      Instead prove each case CAN fail: for FILE 1 load a MUTATED COPY of feature_schema.py the way
+      tests/integration/test-validate-feature-json.py:680-684 already does, and for FILE 2 monkeypatch
+      one collaborator at a time on the in-process module object. One mutation at a time, recording
+      which BE ids redden under each. A case no mutation can redden is vacuous - report it instead of
+      keeping it. Put the mutation-to-reddened-ids table in your receipt.
