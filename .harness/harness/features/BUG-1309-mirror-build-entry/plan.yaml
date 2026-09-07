@@ -21,7 +21,7 @@ approval:
       who: Mike Ruangutai
       date: '2026-09-06'
       reason: resolved by disclosure — D-09 because names the c6 price
-status: building
+status: review
 source_issues: [1390]
 
 lanes:
