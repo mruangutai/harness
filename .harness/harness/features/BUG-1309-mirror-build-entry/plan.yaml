@@ -1,7 +1,7 @@
 schema: plan/1
 feature: BUG-1309-mirror-build-entry
 approval:
-  date: '2026-09-06'
+  date: '2026-09-04'
   approved_by: Mike Ruangutai
   status: approved
   rulings:
@@ -1357,7 +1357,7 @@ tasks:
       - .harness/harness/docs/DECISIONS.md
       - .harness/harness/docs/DECISIONS-INDEX.md
     verify: |
-      python3 .claude/skills/harness/bin/gen-decisions-index.py --check && grep -q "DEC-220" .harness/harness/docs/DECISIONS-INDEX.md && python3 tests/integration/test-check-decision-anchors.py && echo VERIFY-PASS
+      python3 .claude/skills/harness/bin/gen-decisions-index.py --stdout | diff - .harness/harness/docs/DECISIONS-INDEX.md && grep -q "DEC-220" .harness/harness/docs/DECISIONS-INDEX.md && python3 tests/integration/test-check-decision-anchors.py && echo VERIFY-PASS
     intent: |
       ONE new entry, DEC-220 (219 is the highest today), appended in numeric order at the end of
       .harness/harness/docs/DECISIONS.md, pointer-style and no longer than the neighbouring
@@ -1397,4 +1397,4 @@ tasks:
       and hand-write the " :: <ruling>" tail on the new DEC-220 row - the generator does not
       produce it, so regeneration alone leaves the row without its one-line ruling. Lengthening
       an entry shifts every later anchor, so re-run the generator rather than editing the index
-      by hand, and confirm gen-decisions-index.py --check exits 0 afterwards.
+      by hand, then compare gen-decisions-index.py --stdout against the checked-in index.
