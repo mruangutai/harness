@@ -1606,7 +1606,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: "DEC-174 carve-out (D-11) - case (e) of test-hooks-install.py runs the tracked post-merge shim and post-merge-sweep.sh end to end, so it is a hook's own test; the category governs (DECISIONS.md:4360-4363)"
     depends_on: [T-07]
-    status: ready
+    status: done
     files:
       - tests/integration/test-hooks-install.py
     verify: |
