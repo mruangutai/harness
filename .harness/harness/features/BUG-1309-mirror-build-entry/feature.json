@@ -2,7 +2,7 @@
   "feature_id": "BUG-1309-mirror-build-entry",
   "branch": "feat/BUG-1309-mirror-build-entry",
   "pr": null,
-  "review_sha": "none",
+  "review_sha": "6f64a21c5df24f8dd17c4f1bcf2c93e10563cf24",
   "cycles_used": 7,
   "max_total_cycles": 10,
   "max_total_runs": 20,
