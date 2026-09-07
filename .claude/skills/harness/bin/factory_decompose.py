@@ -113,7 +113,14 @@ def load_factory(feat_dir):
     factory = _empty_factory()
     if not os.path.exists(path):
         return factory
-    doc = harness_yaml.load_file(path)
+    # Issue #208: was a raw harness_yaml.load_file(path) — a malformed feature.json raised
+    # YamlParseError past the trap's `expected=` tuple, printing the class name instead of
+    # naming the file. refuse() exits via SystemExit, which factory_cli.run() propagates
+    # unchanged (never re-wrapped as "unexpected failure").
+    try:
+        doc = harness_yaml.load_file(path)
+    except harness_yaml.YamlParseError as e:
+        factory_cli.refuse(TOOL, "feature.json invalid", path, f"does not load: {e}")
     if not isinstance(doc, dict):
         return factory
     f = doc.get("factory")
@@ -468,7 +475,11 @@ def _main():
 
     # 2. the signed plan.
     plan_path = os.path.join(feat_dir, "plan.yaml")
-    plan = harness_yaml.load_plan(plan_path)
+    # Issue #208: same fix as load_factory above — was a raw harness_yaml.load_plan call.
+    try:
+        plan = harness_yaml.load_plan(plan_path)
+    except harness_yaml.YamlParseError as e:
+        factory_cli.refuse(TOOL, "plan does not load", plan_path, f"does not load: {e}")
     approval = plan.get("approval") or {}
     if approval.get("status") != "approved":
         factory_cli.refuse(
