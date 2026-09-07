@@ -367,6 +367,10 @@ def build_features_root():
         task_dict("T-06", depends_on=["T-02", "T-03", "T-04"]),
         task_dict("T-09"),
         task_dict("T-10", depends_on=["T-99"]),
+        task_dict("T-02"),
+        task_dict("T-03"),
+        task_dict("T-04"),
+        task_dict("T-99"),
     ]))
     write_json(os.path.join(block, "feature.json"), {
         "factory": {"issues": {"T-02": 601, "T-03": 602, "T-04": 603}},
@@ -374,12 +378,12 @@ def build_features_root():
 
     kaya_seg = os.path.join(harness_root, ".harness", "kaya-ai", "features", SEG_FEATURE)
     write_yaml(os.path.join(kaya_seg, "plan.yaml"),
-               plan_dict(SEG_FEATURE, [task_dict("T-77", depends_on=["T-88"])]))
+               plan_dict(SEG_FEATURE, [task_dict("T-77", depends_on=["T-88"]), task_dict("T-88")]))
     write_json(os.path.join(kaya_seg, "feature.json"), {"factory": {"issues": {"T-77": 850}}})
 
     harness_seg = os.path.join(harness_root, ".harness", "harness", "features", SEG_FEATURE)
     write_yaml(os.path.join(harness_seg, "plan.yaml"),
-               plan_dict(SEG_FEATURE, [task_dict("T-77", depends_on=["T-99"])]))
+               plan_dict(SEG_FEATURE, [task_dict("T-77", depends_on=["T-99"]), task_dict("T-99")]))
     write_json(os.path.join(harness_seg, "feature.json"), {"factory": {"issues": {"T-99": 954}}})
 
     return harness_root

@@ -3,7 +3,7 @@
   "branch": "feat/BUG-201-depends-on-integrity",
   "pr": null,
   "review_sha": "none",
-  "cycles_used": 1,
+  "cycles_used": 2,
   "max_total_cycles": 10,
   "runs": [
     {
@@ -59,6 +59,19 @@
     },
     {
       "id": "2026-09-07-03-validator",
+      "squad": "validator",
+      "verdict": "PASS",
+      "agent": "harness-validator-lead",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-07-01-eng",
+      "squad": "eng",
+      "verdict": "ESCALATE",
+      "agent": "harness-eng-lead"
+    },
+    {
+      "id": "2026-09-07-04-validator",
       "squad": "validator",
       "verdict": "PASS",
       "agent": "harness-validator-lead",

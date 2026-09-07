@@ -4,7 +4,7 @@ approval:
   date: '2026-09-07'
   approved_by: mruangutai
   status: approved
-status: plan
+status: building
 source_issues: [201]
 
 lanes:
@@ -301,7 +301,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: []
-    status: ready
+    status: done
     files:
       - tests/unit/test-plan-depends-on.py
     verify: |
@@ -359,7 +359,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: []
-    status: ready
+    status: done
     files:
       - tests/integration/test-plan-merge.py
     verify: |
@@ -398,9 +398,12 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: [T-01, T-02]
-    status: ready
+    status: done
     files:
-      - .claude/skills/harness/bin/harness_yaml.py
+    - .claude/skills/harness/bin/harness_yaml.py
+    - tests/unit/test-factory-claim.py
+    - tests/integration/test-check-plan-routes.py
+    - tests/integration/test-factory-decompose.py
     verify: |
       python3 tests/unit/test-plan-depends-on.py &&
       python3 tests/integration/test-plan-merge.py &&
@@ -465,7 +468,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: [T-03]
-    status: ready
+    status: done
     files:
       - tests/unit/test-plan-depends-on.py
     verify: |

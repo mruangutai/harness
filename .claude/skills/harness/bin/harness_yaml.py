@@ -340,6 +340,7 @@ def validate_plan_doc(doc, path):
         raise PlanSchemaError(path, "`tasks:` is missing or not a list")
     _validate_station_only(doc, tasks, path)
     _validate_plan_tasks(tasks, path)
+    _validate_plan_depends_on(tasks, path)
     return doc
 
 
@@ -385,6 +386,43 @@ def _validate_plan_tasks(tasks, path):
                 path,
                 f"{where} ({tid}) execution_mode {mode!r} — legal values are "
                 f"{', '.join(LEGAL_EXECUTION_MODES)}")
+
+
+def _validate_plan_depends_on(tasks, path):
+    """Reject any `depends_on` entry naming a task id absent from THIS plan (issue #201).
+
+    CALLED IMMEDIATELY AFTER `_validate_plan_tasks`, which has already guaranteed every
+    entry is a mapping carrying a unique id — so `known` may be built by indexing `t["id"]`
+    with no re-check of shape here.
+
+    WHAT THIS PREVENTS: a dangling edge surviving the signature and reaching decomposition
+    as a GitHub `blocked_by` edge pointing at nothing. Self-dependency, cycles and ordering
+    are OUT OF SCOPE by the operator's ruling — this is referential integrity only, not DAG
+    policy.
+    """
+    known = {str(t["id"]) for t in tasks}
+    dangling = []
+    for t in tasks:
+        raw = t.get("depends_on")
+        if raw is None or raw == []:
+            continue
+        if not isinstance(raw, list):
+            # A bare string is legal YAML but not a legal depends_on: iterated as-is it
+            # would walk CHARACTERS and report phantom missing ids instead of the real
+            # shape error.
+            raise PlanSchemaError(
+                path,
+                f"tasks ({t['id']}) `depends_on` must be a list of task ids, "
+                f"got {raw!r}")
+        tid = str(t["id"])
+        for entry in raw:
+            if str(entry) not in known:
+                dangling.append((tid, entry))
+
+    if dangling:
+        # D-02: ONE exception naming EVERY dangling edge, never just the first.
+        pairs = ", ".join(f"{tid} to {entry}" for tid, entry in dangling)
+        raise PlanSchemaError(path, f"depends_on names task ids absent from this plan - {pairs}")
 
 
 # --- Manifest domain walk (D-03) --------------------------------------------

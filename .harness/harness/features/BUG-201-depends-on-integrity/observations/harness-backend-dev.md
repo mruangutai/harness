@@ -1,0 +1,3 @@
+# Observations - harness-backend-dev
+
+- 2026-09-07: T-03 c2, worktree session — passing a bracket-header path like `[tests/unit/test-factory-claim.py#77BA]` from a `read` result straight into `edit` without the worktree-absolute prefix silently wrote to the main checkout instead of the active worktree (edit tool succeeded, new tag returned, but `git status` in the worktree showed no change). Caught by checking `git status --porcelain` in BOTH the worktree and the main checkout immediately after every edit, not just the worktree. Confirms G-18: pass the full absolute worktree path on every edit call, and verify in both trees, not one.
