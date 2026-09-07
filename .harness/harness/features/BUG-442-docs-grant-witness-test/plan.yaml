@@ -1,0 +1,217 @@
+schema: plan/1
+feature: BUG-442-docs-grant-witness-test
+approval:
+  status: pending
+status: plan
+source_issues: [442]
+
+lanes:
+  resolved_at: 6d969ed3
+  rows:
+    - surface: tests/integration/**
+      lane: team
+      agent: harness-backend-dev
+
+decisions:
+  - id: D-01
+    choice: The persona list is a test-local literal 16-name census plus a test-local recursive walk of the parsed manifest asserted equal to it, and no enumerator is added to harness_yaml.py
+    because: harness_yaml.py has no persona enumerator and adding one is production scope the intake excludes, while a walk-only domain of quantification shrinks silently when a persona is deleted, so the literal census is what makes the assertion exhaustive and the walk is what catches an addition
+    dec: none
+  - id: D-02
+    choice: The witness is a NEW pair of tests beside COLLECT_FIXTURE, never a rewrite of it, and every existing fixture literal survives byte-identical
+    because: the two assertions have different subjects, the equivalence fixture needs literal grant text to prove manifest_domains agrees with an independent reading of the manifest, while the witness needs a literal persona set with the grant text read live, so deriving either from the other destroys one of them
+    dec: none
+  - id: D-03
+    choice: The ability to report RED is proven by permanent in-file mutation cases that write scratch manifest copies into a temp root and re-run this same file as a subprocess with HARNESS_PROJECT_DIR repointed, not by a one-off manual mutation
+    because: the grant is correct today so the witness cannot be RED on the real tree, and a witness that cannot fail is the exact defect BUG-442 names, so the negative control has to live in the suite rather than in a transcript
+    dec: none
+
+panel:
+  last_run: 2026-09-07-03-validator
+  cycle: 0
+  readers:
+  - reader: should-not-exist
+    status: ran
+  - reader: scope
+    status: ran
+  findings:
+  - id: PF-eec88a681bbcecaea01bbe3a96006ece
+    severity: med
+    reader: scope
+    summary: 'verify: hard-codes the absolute worktree path four times, so the clause
+      becomes permanently unrunnable once the worktree is removed, and a verify that
+      stops being runnable stops being evidence'
+    disposition: resolved
+    resolved_by: T-01
+  - id: PF-069ce9cf7ae78da5ea431b12becc2753
+    severity: med
+    reader: scope
+    summary: a BUG442_MUTANT_CHILD value inherited by the parent run makes the mutation
+      test return at its guard having built zero mutants, and main() then prints ok,
+      indistinguishable from a discriminating run
+    disposition: resolved
+    resolved_by: T-01
+  - id: PF-a78628c47bc51834ac364dfadbcf2e75
+    severity: low
+    reader: scope
+    summary: T-01 step 4's rationale misdescribes main(); the check is sound, the
+      prose is wrong
+    disposition: resolved
+    resolved_by: T-01
+  - id: PF-049c59c515c538bc41da6616176f8987
+    severity: info
+    reader: scope
+    summary: 'the hand-pinned census is the reader''s judged feature, not a trap:
+      it forces a human to reconfirm the docs answer whenever the org roster changes,
+      and no action follows'
+    disposition: open
+tasks:
+  - id: T-01
+    title: Add an exhaustive docs-domain grant witness with a pinned persona census and its mutation negative controls
+    traces: [REQ-01, REQ-02, REQ-03, REQ-04, REQ-05]
+    change_type: bugfix
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: []
+    status: ready
+    files:
+      - tests/integration/test-harness-yaml.py
+    verify: |
+      python3 tests/integration/test-harness-yaml.py &&
+      python3 tests/integration/test-harness-yaml.py | grep -q '^ok   test_docs_domain_grant_is_exhaustive_over_every_persona$' &&
+      python3 tests/integration/test-harness-yaml.py | grep -q '^ok   test_docs_domain_witness_reddens_on_addition_removal_and_census_drift$'
+    intent: |
+      Edit ONLY tests/integration/test-harness-yaml.py in the worktree
+      /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-442-docs-grant-witness-test.
+      Do not touch .harness/team-config.yaml (the docs grant is CORRECT, issue #442 says so) and do
+      not touch .claude/skills/harness/bin/harness_yaml.py. Do not modify, reorder or reformat
+      SHARED_MANIFEST_PATHS, COLLECT_FIXTURE or
+      test_manifest_domains_matches_the_regex_walk_on_the_real_manifest. Your change is additive.
+
+      Add ONE module-level helper and TWO tests, then register both tests in the TESTS list (this
+      file collects from an explicit list, so an unregistered test never runs).
+
+      1. Literals, next to the new tests.
+
+      DOCS_GRANT_CENSUS - a frozenset of the 16 persona names, written out by hand, in this exact
+      membership: harness-orchestrator, harness-pm, harness-visual-designer, harness-documentor,
+      harness-frontend-dev, harness-backend-dev, harness-ai-dev, harness-data-engineer,
+      harness-dev-ops, harness-qa, harness-code-reviewer, harness-security-reviewer,
+      harness-ui-reviewer, harness-product-lead, harness-eng-lead, harness-validator-lead.
+      Comment it as the pinned domain of quantification, and say why it is a literal - a census
+      derived from the manifest shrinks when a persona is deleted, so the test would still pass.
+
+      EXPECTED_DOCS_GRANTS - the ANSWER, not a copy of the manifest text elsewhere:
+      one key, harness-documentor, mapping to the sorted list of its two docs globs, the plain
+      strings 'docs/**' and '.harness/*/docs/**'. Every other census member is expected to hold an
+      empty list. Comment that this is the whole point of the pin - grant text is read live from the
+      manifest through MANIFEST_PATH, and only the persona-to-answer mapping is a literal.
+
+      2. Helper: _docs_domain_census(manifest_path) returning a 2-tuple (personas, docs_grants).
+
+      import harness_yaml as hy inside the helper, matching the file's convention.
+      personas: parse once with hy.load_file(manifest_path) and walk the whole structure
+      recursively, exactly as manifest_domains does - for a dict, if it has a 'name' key whose value
+      is a str, collect that value, then recurse into every value; for a list, recurse into every
+      item. Return a set. This finds the bare top-level orchestrator, the 12 teams[].members[]
+      entries and the 3 leads[] entries. Team lead references of the shape
+      lead: { name: harness-eng-lead } collect the same three lead names already present under
+      leads:, so the set dedupes to 16 - do not special-case them.
+      docs_grants: for every name in personas, call hy.manifest_domains(manifest_path, name) and
+      keep from the returned mine list every glob whose slash-split segments contain the exact
+      segment 'docs'. Segment equality, not substring matching, so a path like
+      .harness/harness/docs/** is caught while README.md and a hypothetical docsite path are not.
+      Map each persona to the sorted list of its docs globs. Personas with none map to an empty
+      list, and every persona in personas must appear as a key.
+
+      3. test_docs_domain_grant_is_exhaustive_over_every_persona
+
+      Call the helper on the module-level MANIFEST_PATH - the repointable one resolved at lines
+      29-32 from HARNESS_PROJECT_DIR or CLAUDE_PROJECT_DIR. Then assert, with messages that print
+      the symmetric difference so a failure names the offending persona:
+        a. personas == DOCS_GRANT_CENSUS. Failure message must distinguish the two directions,
+           naming missing personas (a deletion or rename) and unexpected ones (an addition)
+           separately.
+        b. for EVERY name in sorted(DOCS_GRANT_CENSUS), its own assert that
+           docs_grants[name] == EXPECTED_DOCS_GRANTS.get(name, []). A per-persona assertion, never
+           one aggregate comparison of the two dicts and never a count - the failure has to say
+           which persona changed.
+      Docstring: cite BUG-442 and state both halves - an addition to any persona and a removal from
+      documentor must both fail here.
+
+      4. test_docs_domain_witness_reddens_on_addition_removal_and_census_drift
+
+      The negative control.
+
+      4a. The two BUG442_MUTANT_CHILD branches. The variable has TWO distinct jobs and they are NOT
+      the same check: the CHILD must not recurse, and the PARENT must never skip the ladder in
+      silence. A bare early return on presence serves only the first, and is itself the defect -
+      a value inherited by the parent makes this test return having built zero mutants while main()
+      prints ok for it, which is indistinguishable from a fully discriminating run.
+
+      The marker must therefore be one that inheritance cannot forge. The child is invoked with
+      HARNESS_PROJECT_DIR set to a fresh tempfile.TemporaryDirectory path, so set
+      BUG442_MUTANT_CHILD to that SAME path and have the child recognise itself by the two agreeing.
+      A stale exported value from an earlier repro cannot equal this run's fresh temp path.
+
+      Write exactly this, as the first two statements of the test body, before the manifest is read
+      and before any mutant text is built:
+
+          _child_token = os.environ.get('BUG442_MUTANT_CHILD')
+          if _child_token and _child_token == os.environ.get('HARNESS_PROJECT_DIR'):
+              return  # the child re-executes this whole file; it must not recurse into the ladder
+          assert _child_token is None, (
+              'BUG442_MUTANT_CHILD leaked into the parent environment (value %r): it does not match '
+              'this run of HARNESS_PROJECT_DIR, so it was not set by our own child invocation. The '
+              'negative control cannot be trusted while it is set, because the recursion guard would '
+              'return before building any mutant and main() would still print ok for this test.'
+              % (_child_token,)
+          )
+
+      The child branch preserves the guard's PURPOSE. The assert is the parent branch: an inherited
+      value now fails LOUDLY here instead of silently skipping the ladder. The child invocation in
+      4c is the ONLY place the variable is ever set - it is passed in that subprocess's
+      env={**os.environ, ...} and nowhere else in this file.
+
+      4b. The three mutants. Read the real manifest text with open(MANIFEST_PATH, encoding='utf-8').
+      Build three mutants by plain string replacement, asserting after each replace that the text
+      actually changed (a no-op replace would make the case vacuous):
+        M1 addition: find the line '      - name: harness-qa', then the FIRST line equal to
+           '        domain:' after it, and insert '          - { path: docs/**, upsert: true }'
+           immediately after that domain line. It MUST land inside qa's existing domain list -
+           a sequence item inserted straight after the name line is invalid YAML and would prove
+           nothing about the witness. qa's domain entries sit at 10 spaces, and harness-qa is
+           absent from COLLECT_FIXTURE, so only the new witness can catch this grant.
+        M2 removal: delete the line containing '{ path: .harness/*/docs/**' from documentor's block.
+        M3 census drift: replace '- name: harness-ui-reviewer' with '- nickname: harness-ui-reviewer'
+           so that mapping has no 'name' key and the walk discovers 15 personas against a census of
+           16 - the shrinking-domain trap.
+
+      4c. For each mutant, with tempfile.TemporaryDirectory() as tmp: os.makedirs a .harness
+      directory inside tmp, write the mutated text to tmp/.harness/team-config.yaml, then
+      subprocess.run([sys.executable, os.path.realpath(__file__)], capture_output=True, text=True,
+      env={**os.environ, 'HARNESS_PROJECT_DIR': tmp, 'BUG442_MUTANT_CHILD': tmp}).
+      The two values are deliberately the same string - that agreement is what 4a's child branch
+      recognises.
+      Assert three things per mutant, all of them:
+        - child.returncode == 1
+        - 'FAIL test_docs_domain_grant_is_exhaustive_over_every_persona' appears in child.stdout.
+          This is what attributes the red to the witness rather than to any other test the mutation
+          also disturbs. M2 also reddens the equivalence test, which is expected and fine.
+        - 'ok   test_bare_date_scalar_stays_str' appears in child.stdout. This is the anti-false-red
+          control. Be accurate about why it works: main() (test-harness-yaml.py:892-904) wraps EACH
+          test in its OWN try/except, so one failing test does not stop the others and an exception
+          in one test never makes the others print FAIL. That is exactly WHY this control
+          discriminates - in a genuine red, 'ok   test_bare_date_scalar_stays_str' appears in the
+          child's stdout ALONGSIDE the witness's FAIL line. The failure it rules out is an
+          import-time or whole-file parse failure that stops main() ever starting, in which case
+          NEITHER line appears. Keep the assertion exactly as specified; only this rationale changed.
+      Include each mutant's label in every assertion message.
+      Also assert, on the unmutated text written into a temp root the same way, that the child exits
+      0 - so the whole ladder is not passing because any repointed root fails.
+
+      5. Register both new functions in TESTS, after
+      test_manifest_domains_matches_the_regex_walk_on_the_real_manifest.
+
+      Style: plain assert, python3, stdlib only, no pytest, matching this file. Then run the task's
+      verify command and confirm it exits 0.
