@@ -389,6 +389,10 @@ def case_sc13_reporting_and_red_proof():
 # (e) SC-14, end to end — plus its RED PROOF (repointed shim).
 # ---------------------------------------------------------------------------------------------
 
+# GRADE-2 REASON: This SC-14 fixture deliberately keeps the setup, commit, linked-worktree,
+# real-merge, hook-observation, and retention assertions in one routine. Splitting those steps
+# would hide the shared clone/worktree state that the end-to-end contract must prove.
+
 def _run_merge_and_check(tmp, origin, label, expect_removed):
     """One full pass: clone -> real setup step -> commit a Done feature on a topic branch ->
     add its worktree -> checkout main -> real `git merge` -> assert the tracked hook fired via
