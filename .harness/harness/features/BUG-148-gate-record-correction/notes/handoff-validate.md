@@ -15,7 +15,7 @@ digest under Trust below.
 
 ## Trust
 
-- `review_sha` is `651e60e2`, RE-PINNED this cycle because the cycle-5 wording fix moved the product diff off `87e6033`; the one commit after it (`aceb7ec6`) touches only this feature's STATE.md, feature.json and observations — `git diff --name-only 651e60e2..HEAD` — verified-at aceb7ec6
+- `review_sha` is `651e60e2`, RE-PINNED this cycle because the cycle-5 wording fix moved the product diff off `87e6033`; every commit after it touches only this feature's own records, so the pin still carries the whole product diff — `git diff --name-only 651e60e2..HEAD` — verified-at aceb7ec6
 - DEC-174's evidence paragraph is 88 words over 8 lines, down from 115 over 10, with all five required strings present and `Every gate was green` absent — T-01's verify run verbatim over the `## DEC-174`..`## DEC-175` region — verified-at aceb7ec6
 - FEAT-05 `STATE.md` is byte-identical across both pins and absent from the cycle-5 commit — `git diff --quiet 87e6033 651e60e2 -- <that path>` — verified-at aceb7ec6
 - SC-01, SC-03 and SC-05 hold at the NEW pin on my own measurement: one hunk `@@ -4306,13 +4306,11 @@` inside the evidence paragraph, and `git diff --name-only 41c16c7..651e60e2` lists only the three allowlisted paths outside the feature dir — verified-at aceb7ec6
