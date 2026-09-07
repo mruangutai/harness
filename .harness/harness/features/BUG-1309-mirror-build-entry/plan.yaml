@@ -1,7 +1,26 @@
 schema: plan/1
 feature: BUG-1309-mirror-build-entry
 approval:
-  status: pending
+  date: '2026-09-06'
+  approved_by: Mike Ruangutai
+  status: approved
+  rulings:
+    - finding: PF-1aa3b36ca9f98cdaf25b30f16e72069f
+      who: Mike Ruangutai
+      date: '2026-09-06'
+      reason: standalone fifth gate accepted — ~2 extra Python spawns per Bash call; HOOK_SPECS makes consolidation unsafe; dispatcher work to B-1 backlog
+    - finding: PF-8bfef7ee69e3adc23a65c02cfd5debd4
+      who: Mike Ruangutai
+      date: '2026-09-06'
+      reason: accepted forward-only; vendored copies regenerate the set from their own feature dirs per the T-06 comment
+    - finding: PF-23f51fd8ee94dc42e9df11fbed42593b
+      who: Mike Ruangutai
+      date: '2026-09-06'
+      reason: accepted — era wording retained
+    - finding: PF-6030c547ed525627c274560e6edd9c05
+      who: Mike Ruangutai
+      date: '2026-09-06'
+      reason: resolved by disclosure — D-09 because names the c6 price
 status: plan
 source_issues: [1390]
 
@@ -107,6 +126,8 @@ panel:
   - reader: should-not-exist
     status: ran
   - reader: scope
+    status: ran
+  - reader: goalcheck
     status: ran
   findings:
   - id: PF-f1684ee3de7606a3e48a4bb9b545a8a9
