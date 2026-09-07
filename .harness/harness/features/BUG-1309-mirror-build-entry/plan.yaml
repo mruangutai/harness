@@ -1674,7 +1674,7 @@ tasks:
     - T-04
     - T-06
     - T-12
-    status: ready
+    status: done
     files:
       - tests/unit/test-feature-schema-build-entry.py
       - tests/unit/test-gh-sync-build-entry.py
