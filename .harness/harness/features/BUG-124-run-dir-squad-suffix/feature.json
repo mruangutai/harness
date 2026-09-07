@@ -1,0 +1,35 @@
+{
+  "feature_id": "BUG-124-run-dir-squad-suffix",
+  "branch": "feat/BUG-124-run-dir-squad-suffix",
+  "pr": null,
+  "review_sha": "none",
+  "cycles_used": 0,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "plan-draft-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "goalcheck-plan-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "planpanel-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "panel-record-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS"
+    }
+  ]
+}

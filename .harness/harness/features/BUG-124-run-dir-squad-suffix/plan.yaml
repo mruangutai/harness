@@ -1,0 +1,351 @@
+schema: plan/1
+feature: BUG-124-run-dir-squad-suffix
+approval:
+  status: pending
+status: plan
+source_issues: [124]
+lanes:
+  resolved_at: 6d969ed375f8458e32c47502ecdcc85bb9916635
+  rows:
+    - surface: .claude/skills/harness/bin/dispatch-guard.sh
+      lane: team
+      agent: harness-backend-dev | harness-dev-ops
+    - surface: .claude/skills/harness/bin/harness_boundary.py
+      lane: team
+      agent: harness-backend-dev | harness-dev-ops
+    - surface: tests/integration/test-dispatch-guard.py
+      lane: team
+      agent: harness-backend-dev | harness-dev-ops | harness-qa
+    - surface: tests/unit/test-harness-boundary.py
+      lane: team
+      agent: harness-backend-dev | harness-dev-ops | harness-qa
+    - surface: .claude/skills/harness/SKILL.md
+      lane: main-session-direct
+      reason: check-domain --resolve at the pinned sha answers NOBODY for this path
+    - surface: .harness/team-config.yaml
+      lane: main-session-direct
+      reason: NOBODY is granted it, and this fix reads it rather than editing it
+decisions:
+  - id: D-01
+    choice: >-
+      The dispatch-time rule is callee-INDEPENDENT shape validation: every
+      .harness/*/features/*/runs/<slug>/... path named in a governed dispatch prompt must match at
+      least one write grant whose pattern contains /runs/, and no ownership by the dispatched
+      persona is checked.
+    because: >-
+      A prompt may name a run-dir path the callee writes and one it merely reads and prose cannot
+      tell them apart, so a callee-specific rule generates false positives on legitimate read
+      references, while a path no lead at all can write is wrong whoever reads it. Scoping to the
+      run-dir grant family is also what makes the rule non-vacuous, since the orchestrator holds
+      .harness/*/features/** and a rule requiring only that the path resolve to at least one agent
+      would pass the reported defect unchanged.
+    dec: none
+  - id: D-02
+    choice: >-
+      The squad vocabulary and the compliant forms printed in the refusal are DERIVED from
+      .harness/team-config.yaml at runtime by harness_boundary.run_dir_grant_globs, and no squad
+      name is spelled literally in the guard or the library.
+    because: >-
+      A second vocabulary beside the manifest is treated as a defect in this repo, and a renamed or
+      added squad must change the gate with no second edit.
+    dec: none
+  - id: D-03
+    choice: >-
+      The manifest is parsed through harness_yaml in a SEPARATE non-isolated python invocation in
+      the shell half of dispatch-guard.sh, whose result crosses into the python3 -I body as the
+      environment variable HARNESS_RUN_DIR_GLOBS.
+    because: >-
+      DEC-171 requires a real PyYAML parse and strikes hand-rolled YAML regex readers of this
+      manifest, but PyYAML lives in the user site-packages that python3 -I excludes (measured at the
+      pinned sha: the isolated import fails while a plain import succeeds), so a parse inside the
+      isolated body would fail open on every dispatch and the gate would never fire. Dropping -I was
+      rejected because it weakens the isolation of a security gate and changes the invocation that
+      integration case 16 pins.
+    dec: none
+  - id: D-04
+    choice: >-
+      The check runs after the harness_boundary import and BEFORE the checkout resolution and the
+      single-flight claim, and on its own failure it falls through to the claim step rather than
+      exiting.
+    because: >-
+      A refusal recorded after a claim strands that claim in the registry, and an early exit 0 would
+      silently skip the claim the guard exists to record.
+    dec: none
+panel:
+  last_run: planpanel-validator
+  cycle: 0
+  readers:
+  - reader: should-not-exist
+    status: ran
+  - reader: scope
+    status: ran
+  findings:
+  - id: PF-d882b5400a23e07c2ab26d710e2219db
+    severity: high
+    reader: should-not-exist
+    summary: the gate scans free prose with no escape hatch, and T-02 specifies the
+      refusal to print the full anchored path tail, so pasting a refusal into a follow-up
+      dispatch is itself refused at exit 2 with no override
+    disposition: open
+  - id: PF-018d8e2a2c8c5293baade75381864e6c
+    severity: high
+    reader: scope
+    summary: 'a second anchored self-refusing site the goal-check missed: plan.yaml:87
+      (T-01 verify) also embeds an anchored eng-t01 path, not only plan.yaml:159 (T-02
+      verify); verify: is carried verbatim by contract, so a fix touching only T-02
+      leaves T-01 dispatchable-once-then-refused'
+    disposition: open
+  - id: PF-05e45a58b54f0e48cd92ee77670b5e60
+    severity: med
+    reader: scope
+    summary: T-01's verify and a permanent unit case pin len(g)==3 against the live
+      team-config.yaml, so a REQ-04-sanctioned fourth squad turns a checked-in test
+      red, falsifying REQ-04's own promise that no second edit is needed
+    disposition: open
+  - id: PF-64c48fa9fb3ddab5856f2f3eb462aeba
+    severity: med
+    reader: scope
+    summary: D-03's vocabulary-derivation subprocess is stderr-silenced and incapable
+      of failing, and no case tests its own breakage; a PyYAML-less hook python3 would
+      make the gate a permanent silent no-op indistinguishable from the benign REQ-05
+      skip; measured at 6d969ed3 on this machine, python3 resolves to /opt/homebrew/bin/python3
+      and import yaml succeeds there, under /usr/bin/python3 and under PATH=/usr/bin:/bin
+      python3, so the gate would not be a dead no-op in this environment and the remaining
+      substance is observability
+    disposition: open
+  - id: PF-4f1b6dc30897208c9312e691819108d9
+    severity: med
+    reader: scope
+    summary: T-03's verify greps four words, so an edit stating the wrong exit code
+      or condition, or dropping the compliant-form clause REQ-02 needs, still passes,
+      on a main-session-direct task with no reviewer
+    disposition: open
+  - id: PF-6e184d4c13c2f8966eb49de0b188d070
+    severity: low
+    reader: scope
+    summary: T-02's intent mis-cites check-domain.sh:103 as the source of sys.path.insert(0,
+      sys.argv[1]); the real insert is :125 using sys.argv[3] in a heredoc plus PYTHONPATH
+      pattern
+    disposition: open
+  - id: PF-5160f046083224c5063c1a46729aa9ec
+    severity: info
+    reader: should-not-exist
+    summary: 'explicit clean bill on the three existence questions: build the gate,
+      the three-task split is proportionate, D-03''s bridge follows house precedent'
+    disposition: open
+  - id: PF-b126afaed82b9b215606db591430fd8a
+    severity: high
+    reader: goalcheck
+    summary: T-02's verify at plan.yaml:159 embeds the literal anchored runs/eng-t01/digest.md
+      tail, carried verbatim into a member dispatch prompt, so once T-02 lands any
+      dispatch quoting that verify is refused by the gate it installed
+    disposition: open
+tasks:
+  - id: T-01
+    title: Add derived run-dir grant vocabulary and slug-shape helpers to harness_boundary
+    traces: [REQ-02, REQ-04, REQ-05]
+    change_type: logic
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: []
+    status: ready
+    files:
+      - .claude/skills/harness/bin/harness_boundary.py
+      - tests/unit/test-harness-boundary.py
+    verify: |
+      python3 tests/unit/test-harness-boundary.py && python3 -c 'import sys; sys.path.insert(0, ".claude/skills/harness/bin"); import harness_boundary as hb; g = hb.run_dir_grant_globs("."); assert len(g) == 3, g; assert hb.run_dir_slug_ok(("harness", "F", "t01-eng"), g), g; assert hb.run_dir_slug_ok(("harness", "F", "2026-08-26-2-plan-product"), g), g; assert not hb.run_dir_slug_ok(("harness", "F", "eng-t01"), g), g; assert hb.run_dir_refs("see /a/b/.harness/harness/features/F/runs/eng-t01/digest.md now") == [("harness", "F", "eng-t01")], hb.run_dir_refs("x"); assert sorted(hb.run_dir_forms(g)) == ["<task-or-purpose>-eng", "<task-or-purpose>-product", "<task-or-purpose>-validator"], hb.run_dir_forms(g)'
+    intent: |
+      Add four helpers to .claude/skills/harness/bin/harness_boundary.py and append unit cases for
+      them to tests/unit/test-harness-boundary.py. Write the failing cases FIRST and watch them fail.
+
+      WHY. A dispatcher can name a run-dir path in a dispatch prompt that the callee provably cannot
+      write. Every lead write grant keys on a TRAILING squad suffix: the only three grants in
+      .harness/team-config.yaml containing /runs/ are .harness/*/features/*/runs/*-product/**,
+      .harness/*/features/*/runs/*-eng/** and .harness/*/features/*/runs/*-validator/**. An inverted
+      slug such as eng-t01 resolves to a set excluding the callee lead. These helpers are the
+      mechanism; a sibling task wires them into dispatch-guard.sh.
+
+      THE API, exactly, with these names:
+
+      1. run_dir_grant_globs(root) -> sorted, de-duplicated list of str. Every write-grant glob
+         declared in <root>/.harness/team-config.yaml whose pattern text contains the substring
+         /runs/. Parse through harness_yaml (DEC-171: PyYAML is REQUIRED and hand-rolled YAML regex
+         readers of this manifest are struck, so do not scan lines). Walk the parsed document
+         generically: any mapping value that is a list of mappings carrying a path key is a grant
+         list, so a run-dir grant added under a role other than the leads key is still seen. Return
+         the empty list and NEVER raise when the manifest is absent, unreadable, does not parse, or
+         PyYAML is missing: the caller decides what an empty vocabulary means. Importing harness_yaml
+         at module top level is safe (it already wraps its yaml import in try/except and sets it to
+         None), but the parse call itself must sit inside try/except.
+      2. run_dir_refs(text) -> list of (repo, feature, slug) tuples, in order of first appearance,
+         de-duplicated. Every substring of the form .harness/<repo>/features/<feature>/runs/<slug> in
+         text. Anchor the regex on the literal .harness/ segment so an ABSOLUTE path yields the same
+         tail with no filesystem access - dispatch prompts use absolute paths, and they legitimately
+         name paths in another checkout that may not exist yet, which is why checkout_relative() is
+         deliberately NOT used here. The slug class accepts letters, digits, dot, underscore and
+         hyphen, stops at the next slash or whitespace, and a trailing dot or comma is stripped.
+      3. run_dir_slug_ok(ref, globs) -> bool. Synthesize
+         .harness/<repo>/features/<feature>/runs/<slug>/x from ref and return True when any glob in
+         globs matches it through the existing matches() in this module - the synthesized leaf is
+         what makes a bare run-DIRECTORY reference gradeable against a grant glob ending in /**. An
+         empty globs list returns False; treating cannot-check as ok belongs to the caller, not here.
+      4. run_dir_forms(globs) -> sorted list of str: for each glob, the compliant example form derived
+         from it, so .harness/*/features/*/runs/*-eng/** yields <task-or-purpose>-eng. Take the last
+         path segment before a trailing /**, replace a leading star with the literal text
+         <task-or-purpose>, and skip any glob whose run-dir segment carries no suffix. This is what a
+         refusal message prints, so no squad name is ever spelled literally anywhere in the guard or
+         this library.
+
+      TESTS. Append cases to tests/unit/test-harness-boundary.py using its existing
+      check(name, cond, detail) collector and its run_case/main structure, and register them in
+      main(). Do not edit an existing case. Every case asserts a VALUE, never merely that a call did
+      not raise. Cover: the live manifest yields exactly the three run-dir globs; a temp manifest
+      whose only run-dir grant names an invented squad yields exactly that one glob; an absent
+      manifest and a manifest of garbage bytes each yield the empty list; run_dir_refs finds the tail
+      inside an absolute path, de-duplicates a repeated path, and returns the empty list for text
+      naming no run dir; t01-eng, plan-product and 2026-08-26-2-plan-product pass run_dir_slug_ok
+      against the live globs while eng-t01 and plan_product fail; run_dir_forms returns the three
+      <task-or-purpose>-<squad> strings for the live manifest.
+
+      Do NOT edit .harness/team-config.yaml. This work reads it.
+  - id: T-02
+    title: Refuse a governed dispatch naming an unwritable run-dir slug in dispatch-guard
+    traces:
+    - REQ-01
+    - REQ-02
+    - REQ-03
+    - REQ-04
+    - REQ-05
+    change_type: bugfix
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-01]
+    status: ready
+    files:
+      - .claude/skills/harness/bin/dispatch-guard.sh
+      - tests/integration/test-dispatch-guard.py
+    verify: |
+      python3 tests/integration/test-dispatch-guard.py && python3 -c 'import json,sys;sys.stdout.write(json.dumps({"agent_type":"harness-orchestrator","tool_name":"Agent","tool_input":{"subagent_type":"harness-eng-lead","prompt":"HARNESS-FEATURE: BUG-124-run-dir-squad-suffix\n.harness/harness/features/BUG-124-run-dir-squad-suffix/runs/eng-t01/digest.md"}}))' | .claude/skills/harness/bin/dispatch-guard.sh 2>&1 | grep -q "eng-t01"
+    intent: |
+      Wire the run-dir shape check into .claude/skills/harness/bin/dispatch-guard.sh and APPEND
+      integration cases to tests/integration/test-dispatch-guard.py. Write the new cases FIRST and
+      watch them fail.
+
+      There is ONE dispatch-guard.sh: .agents/skills is a SYMLINK to .claude/skills. Edit the
+      .claude path named above.
+
+      THE RULE. Every run-dir path named anywhere in a governed dispatch prompt must match at least
+      one write grant whose pattern contains /runs/. Ownership by the dispatched persona is NOT
+      checked: a prompt may name a path the callee writes and a path it merely reads, prose cannot
+      tell them apart, and a callee-specific rule would refuse legitimate read references. A path no
+      lead at all can write is wrong whoever reads it. The rule is scoped to the run-dir grant FAMILY
+      and never to the whole grant set: the orchestrator holds .harness/*/features/**, so a rule of
+      the form the-named-path-must-resolve-to-at-least-one-agent is VACUOUS and would pass the exact
+      defect it was written for.
+
+      HOW THE VOCABULARY CROSSES THE ISOLATION BOUNDARY. The python body of this file runs under
+      python3 -I, which excludes the user site-packages where PyYAML lives - measured at the pinned
+      sha, the isolated import of yaml raises ModuleNotFoundError while a plain python3 -c import
+      succeeds. So derive the globs in the SHELL half and pass them in:
+        - after GUARD_BIN_DIR is computed (line 25 today) add ONE command substitution that runs a
+          NON-isolated python3 -c using the house idiom sys.path.pop(0) then
+          sys.path.insert(0, sys.argv[1]) - the same idiom check-domain.sh line 103 uses - imports
+          harness_boundary, resolves the root with resolve_root(bin_dir, strict=False) and prints
+          run_dir_grant_globs(root) one per line. Send its stderr to /dev/null and make it incapable
+          of failing the script; an empty value is a legal answer.
+        - pass the result as HARNESS_RUN_DIR_GLOBS on the existing
+          printf ... | HARNESS_GUARD_BIN_DIR=... python3 -I -c line, beside HARNESS_GUARD_BIN_DIR.
+          Do NOT drop -I and do not otherwise change that invocation: integration case 16 pins that
+          the guard runs under a system python with PATH set to /usr/bin:/bin.
+        - the new shell code must contain NO APOSTROPHES either, for the same reason the python body
+          must not.
+
+      NO APOSTROPHES ANYWHERE IN THE PYTHON BODY OR ITS COMMENTS. The whole program is one
+      single-quoted shell argument, so a lone apostrophe closes it and bash then parses python as
+      shell. The file says this itself. Stdlib only under -I, except modules imported from the guard
+      bin dir through HARNESS_GUARD_BIN_DIR, which is how harness_boundary and inflight_registry
+      already arrive.
+
+      WHERE IN THE FILE. Immediately AFTER the harness_boundary and inflight_registry import
+      try/except (lines 105-112 today) and BEFORE _root_for, the checkout resolution and the
+      single-flight claim. Two reasons, both binding: the check needs hb.matches, and a refusal
+      recorded after a claim STRANDS that claim in the registry - a success criterion asserts the
+      registry holds no claim for the dispatched persona after a refusal.
+
+      THE CHECK.
+        globs = every non-blank line of os.environ.get("HARNESS_RUN_DIR_GLOBS") or the empty string
+        refs  = hb.run_dir_refs(prompt)
+        refs and no globs -> print ONE stderr line saying the run-dir shape check was SKIPPED and why
+        (the vocabulary was empty), then FALL THROUGH to the claim step. Do not exit at all here: an
+        exit 0 would silently skip the claim this guard exists to record.
+        refs and globs -> bad = every ref for which hb.run_dir_slug_ok(ref, globs) is False; a
+        non-empty bad list prints the refusal and calls sys.exit(2).
+      Wrap the whole block in try/except Exception, print the exception to stderr and fall through.
+      FAIL-OPEN DISCIPLINE: only exit 2 blocks (DEC-100), and today exactly ONE branch in this file
+      fails closed - the missing HARNESS-FEATURE first line. This check joins the other group: it
+      blocks ONLY on a positive finding, and on any failure of its own (no vocabulary, unparseable
+      manifest, exception) it states the reason on stderr and does not block.
+
+      THE REFUSAL MESSAGE, so a dispatcher fixes it in one step. First line:
+      dispatch-guard: BLOCKED -- run-dir slug %r cannot be written by any squad lead. Then the full
+      offending path tail as it appeared. Then the compliant forms from hb.run_dir_forms(globs) on one
+      line. Then one line stating that the squad suffix TRAILS the purpose and that the parent
+      directory already carries the feature id. Every squad token in the message comes from
+      run_dir_forms - never a literal. Use percent-formatting.
+
+      TESTS, APPENDED. The docstring of tests/integration/test-dispatch-guard.py is explicit that a
+      cutover leaves the existing cases passing WITHOUT editing any of them; 48 checks pass at
+      6d969ed3 (python3 tests/integration/test-dispatch-guard.py, exit 0, 48 of 48 cases passed).
+      Register each new case in main() after case_17. Add a NEW local helper - do not edit _checkout -
+      that builds a throwaway checkout whose .harness/team-config.yaml carries run-dir grants for a
+      caller-supplied set of squads and copies the same personas _checkout copies. The existing
+      _checkout writes an empty agents mapping and therefore yields an EMPTY vocabulary, which is
+      exactly why every pinned case is unaffected. Pass env with CLAUDE_PROJECT_DIR and
+      HARNESS_PROJECT_DIR set to the throwaway root, as cases 6 to 17 do, so no new case reaches the
+      real registry. Every case asserts the exit code AND a distinguishing string, because a crash
+      also exits non-zero:
+        (a) a prompt naming a runs/eng-t01/digest.md path with a grant-carrying manifest: exit 2, and
+            stderr contains eng-t01 and the words run-dir slug.
+        (b) that same stderr names a compliant form ending in -eng.
+        (c) prompts naming t01-eng, plan-product and 2026-08-26-2-plan-product: exit is not 2.
+        (d) a prompt naming no run-dir path at all: exit is not 2 and stderr carries no run-dir slug
+            refusal.
+        (e) FAIL OPEN: the grant-less _checkout manifest and a prompt naming eng-t01: exit is not 2
+            and stderr says the check was skipped.
+        (f) DERIVED VOCABULARY: a manifest whose only run-dir grant is
+            .harness/*/features/*/runs/*-oddsquad/** - t01-oddsquad exits not 2, oddsquad-t01 exits 2,
+            and the refusal names oddsquad in its compliant form.
+        (g) a refusal records NO claim: after case (a), the throwaway registry holds no claim for the
+            dispatched persona. Use the existing _read_registry and _claims_for helpers.
+
+      RED PROOF, and record it. Copy the bin dir to a temp tree, replace dispatch-guard.sh in the copy
+      with the output of
+      git show 6d969ed375f8458e32c47502ecdcc85bb9916635:.claude/skills/harness/bin/dispatch-guard.sh,
+      run the suite with DISPATCH_GUARD_BIN pointed at that copy, and record the exact command and the
+      FAIL lines in your receipt at
+      .harness/harness/features/BUG-124-run-dir-squad-suffix/notes/receipt-<your-agent-name>-<runid>.md.
+      Cases (a), (b), (f) and (g) MUST fail there. A green gate that has not been shown capable of red
+      is not evidence.
+
+      Do NOT edit .harness/team-config.yaml. This fix reads it.
+  - id: T-03
+    title: State the mechanical run-dir slug refusal in the orchestrator playbook
+    traces: [REQ-02]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: check-domain --resolve answers NOBODY for .claude/skills/harness/SKILL.md at the pinned sha
+    depends_on: [T-02]
+    status: ready
+    files:
+      - .claude/skills/harness/SKILL.md
+    verify: |
+      grep -q "dispatch-guard.sh refuses" .claude/skills/harness/SKILL.md
+    intent: |
+      The Run-dir slugs paragraph at .claude/skills/harness/SKILL.md lines 272-274 states the
+      task-or-purpose then squad convention in prose and says the squad suffix is what the lead
+      domain glob keys on. After T-02 that convention is mechanically enforced, so the paragraph must
+      say so in one added sentence: dispatch-guard.sh refuses a governed dispatch that names a run-dir
+      path whose slug matches no run-dir write grant in .harness/team-config.yaml, at exit 2, naming
+      the slug and a compliant form. Keep the existing two sentences and the existing examples
+      unchanged; add nothing else and change no other section. The phrase dispatch-guard.sh refuses
+      must appear literally, because the verify greps for it.
