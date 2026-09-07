@@ -32,7 +32,8 @@ historical artifact was touched.
 ## Success criteria — all six met
 
 Graded by pm at `review_sha` `651e60e2`, each by its own declared method
-(`notes/research-BUG-148-goalcheck-delivery-c5.md`).
+(`notes/research-BUG-148-goalcheck-delivery-c5.md`). The pin has since moved to `ead8eb21` to carry
+that evidence; the diff between the two over the three product paths is empty.
 
 | SC | Method | Verdict | Evidence |
 |---|---|---|---|
@@ -75,11 +76,14 @@ length send-back. No fix loop ran twice on the same fault.
 - **Panel PASS pinned at superseded prose** — referred to `fable-advisor`, ruled ship. See point 2.
 - **The untracked QA verification note** — referred; ruled commit-under-a-corrected-name. It is now
   `notes/qa-digest-repair-verification-2026-09-07.md`; the `c1` suffix went because no cycle 1 ran.
+- **Whether to file the backlog rows below at merge** — referred; ruled **file none**. Your row-level
+  veto is not consumed by your advance authorisation of the ship phase.
 
 ## Proposed backlog
 
-Strike any row by ID. **Unstruck rows become backlog issues on acceptance; anything not listed here
-dies silently.**
+**No issue has been filed for any of these.** Filing happens mechanically at your acceptance, so
+strike any row by ID and the rest are created for you. **Unstruck rows become backlog issues;
+anything not listed here dies silently.**
 
 | ID | Nature | Row |
 |---|---|---|
@@ -88,7 +92,7 @@ dies silently.**
 | B-3 | bug | DEC-153's disposable-worktree perturbation carve-out is unreachable for `harness-qa` on any non-`tests/**` path — both guards deny, and a self-created sibling worktree is refused under DEC-218 claim binding. QA cannot prove red-capability where it matters most |
 | B-4 | bug | `harness-digest-dev` forbids `suite: n/a` with `VERDICT: PASS` (DEC-173), but a read-only reviewer dispatch runs no suite. An honest reader has no legal value for the field |
 | B-5 | bug | `handoff_done_when.py::_feature_dir` cannot resolve `brief-sc:` or `plan-task:` pointers for a feature whose directory lives only in a worktree — it strips the `.claude/worktrees/<name>/` prefix and rejoins to the main checkout root |
-| B-6 | bug | QA subagent wrapper return path: `yield` with null data exits 1 and re-emits. Advisor ruled it orthogonal to this feature; worst unfixed consequence is a spurious re-dispatch, not record corruption |
+| B-6 | bug | QA subagent wrapper return path: `yield` with null data exits 1 and re-emits. Orthogonal to this feature; worst unfixed consequence is a spurious re-dispatch, not record corruption. **The advisor recommends keeping this row** — but it is a row like any other and your strike outranks that |
 | B-7 | chore | Three INV-29 stale worktrees stand for features that already reached a terminal state — `BUG-440-digest-verdict-reconciliation`, `FEAT-55-issue-types-created-work`, `qa-bug440-c3-probe`. They are the only reason `check-state.sh` exits non-zero, and none concerns BUG-148 |
 
 Two plan-panel findings stay open **by design** and are not backlog rows:
