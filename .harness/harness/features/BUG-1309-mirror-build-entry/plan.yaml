@@ -385,7 +385,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: [T-02]
-    status: ready
+    status: building
     files:
       - .claude/skills/harness/bin/gh-sync.py
       - tests/integration/test-gh-sync.py
@@ -979,7 +979,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 enforcement carve-out - check-state.sh is the state validator, and the artifact under change is the artifact doing the checking
     depends_on: [T-01]
-    status: ready
+    status: done
     files:
     - .claude/skills/harness/bin/check-state.sh
     - .claude/skills/harness/bin/feature_schema.py
