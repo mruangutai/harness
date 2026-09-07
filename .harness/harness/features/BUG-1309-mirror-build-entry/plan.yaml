@@ -1299,7 +1299,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 enforcement carve-out reasoning does not apply, but check-domain.sh --resolve returns NOBODY for both files, so DEC-179 makes this a declared main-session step
     depends_on: []
-    status: ready
+    status: done
     files:
       - .claude/skills/harness/references/github-mirror.md
       - .claude/skills/harness/SKILL.md
