@@ -98,4 +98,6 @@ a shrunken persona census.
 
 ## Approval
 
-status: pending
+status: approved
+by: operator
+date: 2026-09-07

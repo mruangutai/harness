@@ -1,8 +1,10 @@
 schema: plan/1
 feature: BUG-442-docs-grant-witness-test
 approval:
-  status: pending
-status: plan
+  date: '2026-09-07'
+  approved_by: operator
+  status: approved
+status: building
 source_issues: [442]
 
 lanes:
@@ -73,7 +75,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: []
-    status: ready
+    status: building
     files:
       - tests/integration/test-harness-yaml.py
     verify: |
