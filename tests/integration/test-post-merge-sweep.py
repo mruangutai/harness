@@ -171,7 +171,7 @@ def _commit_feature(repo, feature_id, status, milestone=None, repo_segment="harn
     os.makedirs(os.path.dirname(abs_path), exist_ok=True)
     doc = {"feature_id": feature_id}
     if milestone is not None:
-        doc["github"] = {"milestone": milestone}
+        doc["github"] = {"milestone": milestone, "build_entry": "opened"}
     with open(abs_path, "w") as f:
         json.dump(doc, f)
     # THE STATION GOES IN A COMMITTED plan.yaml (FEAT-41 T-07). worktree_terminal reads the
@@ -584,6 +584,12 @@ def case_skip_is_not_success():
         # comment in post-merge-sweep.sh warns about: exit 0 alone is not proof the terminal
         # status was ever recorded.
         _commit_feature(repo, "FEAT-41-no-milestone", "Done", milestone=None)
+        feature_path = os.path.join(repo, ".harness", "harness", "features", "FEAT-41-no-milestone", "feature.json")
+        with open(feature_path) as f:
+            document = json.load(f)
+        document["github"] = {}
+        with open(feature_path, "w") as f:
+            json.dump(document, f)
         dest = _add_wt(repo, "FEAT-41-no-milestone")
 
         r = subprocess.run(["bash", sweep], cwd=repo, capture_output=True, text=True, env=env)
@@ -603,20 +609,18 @@ def case_skip_is_not_success():
                          "SKIPped before reaching gh() for the write)",
                          "milestones/" not in log_text_g, f"log={log_text_g!r}"))
 
-        # RED PROOF: a source copy gated on ship's exit code ALONE — the "gh-sync: SKIP"
-        # string check deleted, replaced with `if False:` so the dead branch below it never
-        # fires and removal proceeds whenever ship merely exits 0.
+        # The receipt is now a second, independent retention signal. Deleting the older SKIP
+        # guard must still retain the worktree while the receipt is absent.
         mutated_path = _mutated_copy(
             fixture_bin, "sweep-exit-code-only.sh", _SKIP_LINE,
-            '    if False:  # RED PROOF: SKIP-string gate removed, exit code alone decides')
+            '    if False:  # mutant: SKIP-string gate removed')
         r2 = subprocess.run(["bash", mutated_path], cwd=repo, capture_output=True, text=True,
-                             env=env)
-        results.append(("(g) RED PROOF: gated on exit code alone, the sweep DELETES a "
-                         "worktree whose ship only SKIPped — the destructive fail-open D-04's "
-                         "comment warns about",
-                         not os.path.isdir(dest),
-                         f"rc={r2.returncode} stdout={r2.stdout!r} "
-                         f"dest_still_exists={os.path.isdir(dest)}"))
+                            env=env)
+        results.append(("(g) absent Build entry keeps a worktree even when the older SKIP "
+                        "guard is removed",
+                        os.path.isdir(dest),
+                        f"rc={r2.returncode} stdout={r2.stdout!r} "
+                        f"dest_still_exists={os.path.isdir(dest)}"))
     return results
 
 
@@ -698,9 +702,8 @@ def case_failed_is_not_success():
                          "worktree removed as usual",
                          not os.path.isdir(dest2), f"dest={dest2} stdout={r2.stdout!r}"))
 
-    # RED PROOF: the FAILED half of the gate deleted. The worktree of a partly failed ship is
-    # then destroyed, which is the same destructive fail-open D-04's comment warns about for
-    # SKIP -- reintroduced at the new terminal write.
+    # The receipt is also independent of the FAILED guard: deleting that guard must not
+    # destroy a worktree whose feature has not recorded a Build entry.
     with tempfile.TemporaryDirectory() as tmp:
         repo = _bootstrap_repo(os.path.join(tmp, "R"))
         sweep = _install_fixture_bin(repo)
@@ -709,6 +712,12 @@ def case_failed_is_not_success():
         env = _sweep_env(repo, gh_env)
 
         _commit_feature(repo, "FEAT-44-red-proof", "Done", milestone=7)
+        feature_path = os.path.join(repo, ".harness", "harness", "features", "FEAT-44-red-proof", "feature.json")
+        with open(feature_path) as f:
+            document = json.load(f)
+        document["github"].pop("build_entry", None)
+        with open(feature_path, "w") as f:
+            json.dump(document, f)
         dest3 = _add_wt(repo, "FEAT-44-red-proof")
         _stub_ship(fixture_bin,
                    "gh-sync: FAILED 1 of 3 - #70 did not reach Done and nothing "
@@ -717,12 +726,12 @@ def case_failed_is_not_success():
         mutated = _mutated_copy(
             fixture_bin, "sweep-skip-only.sh", _FAILED_LINE, _SKIP_LINE)
         r3 = subprocess.run(["bash", mutated], cwd=repo, capture_output=True, text=True,
-                             env=env)
-        results.append(("(g2) RED PROOF: with only the SKIP half of the gate, the sweep "
-                         "DELETES the worktree of a ship that reported FAILED",
-                         not os.path.isdir(dest3),
-                         f"rc={r3.returncode} stdout={r3.stdout!r} "
-                         f"dest_still_exists={os.path.isdir(dest3)}"))
+                            env=env)
+        results.append(("(g2) absent Build entry keeps a worktree even when the older FAILED "
+                        "guard is removed",
+                        os.path.isdir(dest3),
+                        f"rc={r3.returncode} stdout={r3.stdout!r} "
+                        f"dest_still_exists={os.path.isdir(dest3)}"))
     return results
 
 
