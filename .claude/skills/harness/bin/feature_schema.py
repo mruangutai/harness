@@ -219,6 +219,88 @@ RUNS_AGENT_EXEMPT = {
     "FEAT-33-board-lifecycle-native": 4,
 }
 
+# Build-entry receipts were introduced by BUG-1309. Existing features cannot have one
+# retroactively without an explicit operator recovery. Generated at 71d4ba1f with:
+#   python3 -c "import glob,os;print(sorted(os.path.basename(p) for p in glob.glob('.harness/*/features/*')))"
+# When this file is vendored into another project at upgrade, regenerate this set THERE with the same command, from that project's feature directories.
+BUILD_ENTRY_ERA_EXEMPT = {
+    "BUG-1030-stale-anchor-write-hazard",
+    "BUG-1033-config-shape-matrix",
+    "BUG-1055-code-grade-absent-path",
+    "BUG-1071-inv32-era-guard",
+    "BUG-1080-inv6-plan-phase-runs",
+    "BUG-1081-code-grade-enforcement",
+    "BUG-1106-run-dir-route-guards",
+    "BUG-1124-run-dir-slug-overwrite",
+    "BUG-1128-plan-amend-verb",
+    "BUG-1157-approval-overrule",
+    "BUG-1187-locally-run-test-kind",
+    "BUG-1286-test-tree-enforcement",
+    "BUG-1302-suite-layout-fail-closed",
+    "BUG-1303-plan-code-review-digest",
+    "BUG-1304-worktree-relative-path-guard",
+    "BUG-1305-run-state-clobber",
+    "BUG-1306-agent-type-hermetic-tests",
+    "BUG-1308-expertise-replace-drop",
+    "BUG-1309-mirror-build-entry",
+    "BUG-613-expertise-near-budget",
+    "BUG-671-answers-provenance",
+    "BUG-720-plan-merge-yaml",
+    "BUG-981-fixture-secret-scrub",
+    "FEAT-01",
+    "FEAT-02",
+    "FEAT-03-subissue-mirror",
+    "FEAT-04-decisions-index",
+    "FEAT-05-pyyaml-file-parsers",
+    "FEAT-06-team-layer-inv6",
+    "FEAT-07-verify-teeth-batch-probe",
+    "FEAT-08-remove-cost-tracking",
+    "FEAT-09-plan-time-route-check",
+    "FEAT-10-software-factory",
+    "FEAT-11-graphql-field-resolve",
+    "FEAT-12-end-copy-distribution",
+    "FEAT-13-single-issue-board-lookup",
+    "FEAT-14-feature-json-schema",
+    "FEAT-15-domain-product-base",
+    "FEAT-16-factory-per-repo-board",
+    "FEAT-17-guard-boundaries",
+    "FEAT-18-board-truth",
+    "FEAT-19-central-product-config",
+    "FEAT-20-migration-detector",
+    "FEAT-21-features-layout-migration",
+    "FEAT-22-docs-layout-migration",
+    "FEAT-23-ship-flow-fixes",
+    "FEAT-24-config-responsibility-split",
+    "FEAT-25-claim-feature-root",
+    "FEAT-26-pr-linkage-recorded",
+    "FEAT-27-expertise-repository-tier",
+    "FEAT-28-ci-wiring-asserted",
+    "FEAT-29-graphql-budget",
+    "FEAT-30-worktree-per-feature",
+    "FEAT-31-orchestrator-context-watch",
+    "FEAT-32-concurrent-write-merge",
+    "FEAT-33-board-lifecycle-native",
+    "FEAT-34-worktree-act3-enforced",
+    "FEAT-35-orchestrator-stop-and-wake",
+    "FEAT-36-merge-gitignore-coverage",
+    "FEAT-37-lead-stop-and-wake",
+    "FEAT-38-decisions-current-knowledge",
+    "FEAT-40-harness-writes-done",
+    "FEAT-41-one-station-vocabulary",
+    "FEAT-42-one-root-resolver",
+    "FEAT-43-code-risk-grading",
+    "FEAT-44-omp-context-advisory",
+    "FEAT-45-adversarial-plan-panel",
+    "FEAT-47-tests-layout",
+    "FEAT-48-parallel-safe-suite",
+    "FEAT-50-run-artifact-integrity",
+    "FEAT-51-claude-code-lifecycle-safety",
+    "FEAT-52-factory-control-plane",
+    "FEAT-54-handoff-done-when",
+    "FEAT-55-issue-types-created-work",
+    "PR-922-omp-supervision",
+}
+
 _FEATURES_SEGMENT = "features"
 
 
@@ -237,6 +319,23 @@ def _feature_dir_name(display):
     except ValueError:
         return None
     return parts[i + 1] if i + 1 < len(parts) else None
+
+
+def recovery_command_for(feat_dir):
+    """The safe receipt command for a feature that has no Build-entry outcome."""
+    if os.path.basename(feat_dir.rstrip("/")) in BUILD_ENTRY_ERA_EXEMPT:
+        return "recover-terminal"
+    import harness_yaml
+    try:
+        plan = harness_yaml.load_file(os.path.join(feat_dir, "plan.yaml"))
+    except Exception:
+        return "recover-terminal"
+    if plan.get("status") in {"review", "done"}:
+        return "recover-terminal"
+    if any(task.get("status") == "done" for task in plan.get("tasks") or []
+           if isinstance(task, dict)):
+        return "recover-terminal"
+    return "open"
 
 
 def _runs_agent_problems(doc, display):
