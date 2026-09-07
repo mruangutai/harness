@@ -899,6 +899,36 @@ def case_sign_approval():
     finally:
         shutil.rmtree(root, ignore_errors=True)
 
+def case_sign_approval_preserves_existing_rulings():
+    """A re-signature must write approval.date outside pre-existing ruling records."""
+    root, plan = fixture_root()
+    try:
+        approval = (
+            "approval:\n"
+            "  status: pending\n"
+            "  rulings:\n"
+            "    - finding: PF-existing\n"
+            "      who: Operator\n"
+            "      date: '2026-09-01'\n"
+            "      reason: accepted earlier\n"
+        )
+        write(plan, render_plan(ids(1, 2), approval=approval))
+        result = run_verb("sign-approval", "--file", plan, "--by", "Mike Ruangutai",
+                          "--date", "2026-09-04")
+        signed = yaml.safe_load(read(plan))["approval"]
+        check("re-signing a ruled plan exits 0", result.returncode == 0,
+              f"rc={result.returncode} {result.stderr!r}")
+        check("re-signing a ruled plan writes the requested approval date",
+              signed.get("date") == "2026-09-04", repr(signed))
+        check("re-signing a ruled plan preserves its existing ruling",
+              signed.get("rulings") == [{
+                  "finding": "PF-existing", "who": "Operator", "date": "2026-09-01",
+                  "reason": "accepted earlier",
+              }], repr(signed))
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
 def case_1157_sign_approval_records_validated_overrules():
     """#1157: the sole approval writer must also write the risk acceptance INV-32 reads.
 
@@ -2062,6 +2092,7 @@ CASES = (
     case_amend_structured_list_field,
     case_illegal_station_exit_4,
     case_sign_approval,
+    case_sign_approval_preserves_existing_rulings,
     case_1157_sign_approval_records_validated_overrules,
     case_sign_approval_inserts_absent_mapping,
     case_f02_sign_approval_cannot_write_an_unparseable_signature,

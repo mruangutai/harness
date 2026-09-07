@@ -3616,6 +3616,10 @@ with tempfile.TemporaryDirectory() as tmpT04:
     _without_build_entry(era)
     result = run(["start-task", era, "T-01"], tmpT04, {"FACTORY_GH": os.path.join(tmpT04, "gh")})
     check("T-04 era-exempt continues", result.returncode == 0 and "predates" in result.stderr, result.stderr)
+    result = run(["start-task", era + "/", "T-01"], tmpT04,
+                 {"FACTORY_GH": os.path.join(tmpT04, "gh")})
+    check("T-12 era-exempt trailing slash continues", result.returncode == 0
+          and "predates" in result.stderr, result.stderr)
     document = read_feature_json(os.path.join(era, "feature.json"))
     document["github"]["build_entry"] = "recovery-required"
     write_feature_json(os.path.join(era, "feature.json"), feature_id=document["feature_id"], github=document["github"])

@@ -1117,7 +1117,7 @@ def _replace_signature_fields(body, fields):
     written = set()
     output = []
     for line in body:
-        match = re.match(r"^(\s+)(status|approved_by|date):\s*(.*)$", line)
+        match = re.match(r"^(  )(status|approved_by|date):\s*(.*)$", line)
         if not match or match.group(2) in written:
             output.append(line)
             continue

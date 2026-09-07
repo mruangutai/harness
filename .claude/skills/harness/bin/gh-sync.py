@@ -1357,7 +1357,7 @@ def _projected_for(feat_dir, rec):
 def _build_entry_preflight(feat_dir, rec):
     """Print the allowed recovery notice or refuse an unsafe Build start."""
     entry = rec.get("build_entry")
-    feature_id = os.path.basename(feat_dir)
+    feature_id = os.path.basename(feat_dir.rstrip("/"))
     if entry is None and feature_id not in feature_schema.BUILD_ENTRY_ERA_EXEMPT:
         command = feature_schema.recovery_command_for(feat_dir)
         if command == "open":

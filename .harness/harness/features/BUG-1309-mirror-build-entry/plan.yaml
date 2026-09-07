@@ -1859,7 +1859,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 enforcement carve-out - the edited line sits inside cmd_start_task's Build refusal preflight, the surface the plan's own lanes row "gh-sync.py start-task refusal" already places main-session-direct, and which T-04 carries; check-domain.sh --resolve returns harness-backend-dev and harness-dev-ops for the file itself, and the carve-out governs the refusal branch inside it
     depends_on: [T-04, T-06]
-    status: ready
+    status: done
     files:
       - .claude/skills/harness/bin/gh-sync.py
       - tests/integration/test-gh-sync.py
