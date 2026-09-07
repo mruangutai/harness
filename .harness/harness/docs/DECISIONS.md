@@ -4305,8 +4305,16 @@ Raised by the user after a day of building FEAT-05 through the harness: *"my sen
 be using harness to build harness."* Substantially accepted, with the boundary drawn narrower than the
 full claim.
 
-**The evidence, all from 2026-08-03 and all on this repo.** Every gate was green —
-`run-unit-tests.sh`, `check-docs.sh`, `check-state.sh`, `gen-decisions-index.py --check` — while:
+**The evidence, all from 2026-08-03 and all on this repo.** `run-unit-tests.sh`, `check-docs.sh` and
+`check-state.sh` were green, and the fourth gate recorded that day, `gen-decisions-index.py --check`,
+was no gate at all: `--check` was never a supported mode. Before argv validation landed at commit
+`ffbdbfa1` (2026-08-05, "perf(140): validate argv so `--help` stops rewriting the index"), `main()`
+read `stdout_mode = "--stdout" in sys.argv[1:]`, so an unrecognized `--check` fell through to the
+WRITE path: the run regenerated `DECISIONS-INDEX.md` in place and exited 0, and a regeneration
+overwrites exactly the drift a check would have reported, so it could not prove index drift one way
+or the other. The read-only form is
+`gen-decisions-index.py --stdout | diff - .harness/harness/docs/DECISIONS-INDEX.md`. Those three
+real gates were green while:
 
 - four `.harness` YAML files did not parse, `team-config.yaml` among them, its `[` unclosed since a
   space-`#` opens a comment inside a flow sequence, so **every key from `orchestrator:` onward was
