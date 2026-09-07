@@ -1144,7 +1144,7 @@ tasks:
     depends_on:
     - T-03
     - T-06
-    status: building
+    status: done
     files:
       - .claude/skills/harness/bin/post-merge-sweep.sh
       - tests/integration/test-post-merge-sweep.py
