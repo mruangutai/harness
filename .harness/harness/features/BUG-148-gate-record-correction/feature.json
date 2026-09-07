@@ -2,8 +2,8 @@
   "feature_id": "BUG-148-gate-record-correction",
   "branch": "feat/BUG-148-gate-record-correction",
   "pr": null,
-  "review_sha": "none",
-  "cycles_used": 2,
+  "review_sha": "f60d5d27d6e42ecfa899bfec51d73f66b6435c9f",
+  "cycles_used": 4,
   "max_total_cycles": 10,
   "runs": [
     {
@@ -45,6 +45,18 @@
       "id": "2026-09-06-05-product",
       "squad": "product",
       "agent": "harness-documentor",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-09-06-06-validator",
+      "squad": "validator",
+      "agent": "harness-qa",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-09-06-07-eng",
+      "squad": "eng",
+      "agent": "harness-eng-lead",
       "verdict": "PASS"
     }
   ],
