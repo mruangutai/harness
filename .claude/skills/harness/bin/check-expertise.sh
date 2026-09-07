@@ -40,6 +40,14 @@ python3 -I - "${files[@]}" <<'PY'
 import re, sys, os
 
 CAPS = {"Patterns": 15, "Gotchas": 15, "Outcomes": 10, "Open": 5}
+
+# Issue #254: the three sections whose id prefix has been 100% consistent across every
+# file in this repository (measured 2026-09-07 against every .harness/**/expertise/*.md:
+# zero violations). Open is deliberately NOT pinned here — live files disagree on its
+# prefix ('OQ-', 'O-' and 'Q-' all appear on disk) and forcing one would fail files that
+# are not wrong. The cross-section-collision check below still catches Open reusing a
+# prefix another section in the SAME file already owns, which is the actual defect shape.
+CANONICAL_PREFIX = {"Patterns": "P", "Gotchas": "G", "Outcomes": "O"}
 CRAFT_LINE_BUDGET = 150
 REPO_LINE_BUDGET = 40
 # Issue #613: "near budget" is within 1/NEAR_BUDGET_FRACTION of the tier's own line
@@ -162,6 +170,41 @@ for path in sys.argv[1:]:
         n = counts.get(sec, 0)
         if n > cap:
             problems.append(f"section {sec}: {n} entries — cap is {cap}")
+
+    # Issue #254: an id's prefix was never checked against its own section, nor against
+    # every OTHER id in the file — a `G-` entry could sit under a section that is not
+    # Gotchas, and two sections could mint the identical id independently. Live example,
+    # found while building this check and fixed alongside it:
+    # .harness/harness/expertise/harness-orchestrator.md carried `O-01` under BOTH
+    # Outcomes and Open — a `replace` op naming O-01 could not tell which rule it meant.
+    #
+    # NOT ENFORCED: numeric contiguity. Measured the same day: gaps are the normal
+    # residue of distillation displacing a resolved entry — present in at least 13 of
+    # this repository's own files (e.g. `harness-orchestrator.md`'s craft-tier Open
+    # section is missing OQ-02). A contiguity rule would fail all of them for correct,
+    # ordinary behaviour, so it is not part of this check.
+    prefix_owner = {}   # prefix -> the section that first claimed it in THIS file
+    seen_ids = {}        # "PREFIX-NN" -> first line number, in THIS file
+    for sec, eid, lno, text in entries:
+        if eid is None or sec is None:
+            continue
+        prefix = eid.split("-", 1)[0]
+        canon = CANONICAL_PREFIX.get(sec)
+        if canon is not None and prefix != canon:
+            problems.append(f"line {lno}: {eid} sits under {sec}, whose entries use "
+                            f"'{canon}-' — id prefix does not match its section")
+        elif prefix in prefix_owner and prefix_owner[prefix] != sec:
+            problems.append(f"line {lno}: {eid}'s prefix '{prefix}-' already belongs to "
+                            f"this file's {prefix_owner[prefix]} section — a mis-sectioned "
+                            f"id, or a collision, either way unfindable by prefix alone")
+        else:
+            prefix_owner.setdefault(prefix, sec)
+        if eid in seen_ids:
+            problems.append(f"line {lno}: duplicate id {eid} — first used at line "
+                            f"{seen_ids[eid]}; a repeated id makes a `replace` op "
+                            f"ambiguous about which entry it targets")
+        else:
+            seen_ids[eid] = lno
 
     for sec, eid, lno, text in entries:
         label = eid or f"entry at line {lno}"
