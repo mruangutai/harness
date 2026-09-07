@@ -3,53 +3,56 @@
 ## Current
 
 - feature: BUG-148-gate-record-correction
-- run: .harness/harness/features/BUG-148-gate-record-correction/runs/2026-09-06-08-validator/state.yaml
-- squad: none (validate phase COMPLETE; the reviewer panel returned and the run is recorded)
-- status: validate-complete, awaiting the operator's SC-06 read
-- station: review (`plan.yaml` `status: review`, unchanged — `done` is written at ship).
-  `gh-sync.py status <dir> review` re-run idempotently before the panel: parent #1417 and
-  sub-issues #1418/#1419 all confirmed at review.
-- review_sha: `87e60330104e63b2efa366852a5e514f8eb73b36`, UNMOVED through this phase. The three
-  commits after it (`0591c878`, `633ca8e2`, `43b4a4cd`) touch only this feature's own STATE.md,
-  feature.json and observations, so the pin still carries the whole product diff.
+- run: .harness/harness/features/BUG-148-gate-record-correction/runs/2026-09-07-01-product/digest.md
+- squad: none (cycle-5 wording fix landed; validate remains complete)
+- status: validate-complete, awaiting the operator's SC-06 re-read of the shortened DEC-174 passage
+- station: review (`plan.yaml` `status: review`, unchanged — `done` is written at ship)
+- review_sha: **re-pinned to `651e60e24f4181a8a29bcaf8d6719a3636fb59f7`**, the cycle-5 commit,
+  because the wording fix moved the product diff off `87e6033`. `cycles_used` 4 → **5** of 10.
 
-**The panel PASSED, clean.** `runs/2026-09-06-08-validator/digest.md` (harness-validator-lead,
-`review` team at cycle 0): four reviewers ran, none skipped, `severity_max: info`, `must_fix: []`,
-`matrix_ok: true`, **0 send-backs** — `cycles_used` stays 4 of 10. Each reviewer's note is at
-`notes/review-harness-<persona>-c0.md`.
+**Cycle 5 — the operator's SC-06 read: facts accepted, wording too long.** One dispatch,
+`runs/2026-09-07-01-product/digest.md` (harness-product-lead → harness-documentor), PASS, 0
+send-backs; the cycle is charged to the operator's send-back itself, not to the run.
 
-- code (`harness-code-reviewer`) PASS — SC-01/02/03/05 met, every clause read separately and
-  whitespace-normalised; the DECISIONS-INDEX regeneration proven anchors-only by an `:NNN`-normalised
-  full-file diff that came back EMPTY; D-05 ruling 3's same-mechanism-same-terms confirmed by
-  side-by-side read, which is the only evidence that property can have.
-- qa (`harness-qa`) PASS, GATE-ONLY — `docs` required-kind set `[]` re-derived independently against
-  the pinned diff and `harness.json:238`. SC-04 AUDITED, not executed, by the operator's ruling for
-  this phase; cited to `notes/qa-BUG-148-2026-09-06.md:44-54`, with the transfer to this pin proven
-  by an empty `f60d5d27..87e6033` stat over the three product paths.
-- security PASS — no security surface; secret-shape census clean; the quoted-sha/code-line
-  disclosure question answered in both directions and dismissed.
-- ui PASS — scoped out on a measured extension census (every changed file `.md`/`.json`/`.yaml`),
-  not on a guess.
+DEC-174's evidence paragraph is now **88 words over 8 lines, from 115 over 10** (−23%). The words
+came out of exactly three places, all narration rather than fact: the quoted commit subject
+`"perf(140): validate argv so --help stops rewriting the index"`, the source line
+`stdout_mode = "--stdout" in sys.argv[1:]`, and the trailing hedge `one way or the other`. Every
+required fact stands — three genuinely green gates named, `--check` never a supported mode, the
+pre-`ffbdbfa1` (2026-08-05) fall-through to the WRITE path and its exit 0, the regeneration that
+overwrote exactly the drift a check would have reported, and the read-only
+`--stdout | diff` form — and the paragraph still ends `while:` so the three defect bullets read as
+its continuation.
 
-**SC states at `87e6033`:** SC-01 met · SC-02 met · SC-03 met · SC-04 met (audited) · SC-05 met ·
-**SC-06 NOT MET — the operator's UAT read, the one remaining gate.** No UAT artifact exists on
-disk; it is being obtained separately and is not fabricated here.
+Measured by this orchestrator in this worktree at `651e60e2`, independently of the digest:
+- T-01's verify verbatim: `Every gate was green` ABSENT from the `## DEC-174`..`## DEC-175` region;
+  all five required strings PRESENT after whitespace/markup normalisation.
+- `tests/integration/test-gen-decisions-index.py` exit **0**, 14 `ok`, including
+  `test_committed_index_matches_a_fresh_regeneration`, `test_no_amendment_construct_survives_in_the_authority`
+  and `test_preserves_hand_written_rulings_by_dec_number` (SC-04's evidence, re-run at the new pin).
+- SC-03 shape: **one hunk**, `@@ -4306,13 +4306,11 @@`, wholly inside the evidence paragraph.
+- SC-05 shape: two modified product paths only — `DECISIONS.md` and `DECISIONS-INDEX.md`; the index
+  diff is **anchor-only** (normalising `@[0-9]+` → `@N`, zero unpaired changed lines), and DEC-174's
+  own row keeps `@4302` and its hand-written ruling verbatim.
+- **FEAT-05 `STATE.md` byte-identical**: `git status --porcelain` on that path returns zero bytes,
+  and it is absent from the cycle-5 commit's file list. It was read, never edited.
+- DEC-174's ruling paragraph, carve-out table, three defect bullets, gate's-test argument and
+  enumerated enforcement layer are unchanged; the region diff touches none of them.
+- **D-05 ruling 3 is now stronger, not weaker.** The shortened DEC-174 mechanism clause and
+  FEAT-05 `STATE.md:14-20` agree almost verbatim ("never a supported mode … an unrecognized
+  argument fell through to the WRITE path, so that exit 0 was a regeneration of `DECISIONS-INDEX.md`
+  that overwrites exactly the drift a check would have reported; it could not prove index drift"),
+  where before they agreed only in substance.
 
-Evidence measured by this orchestrator in this worktree, independently of every digest, at the pin:
-- SC-01: `Every gate was green` ABSENT from the `## DEC-174`..`## DEC-175` region; all four required
-  facts present after whitespace normalisation (the prose is hard-wrapped, so a raw substring test
-  gives a false negative on `--check` was never a / supported mode).
-- SC-02: `All four gates green` absent, `--check` 0 gone from the gate list, all four facts plus
-  `2026-09-06` present; file still 170 lines / 7 `##`, i.e. the pre-existing shape left as found.
-- SC-03: one hunk at `@@ -4305,8 +4305,16 @@`, entirely inside DEC-174's evidence paragraph.
-- SC-05: 23 paths — the three allowlisted records plus 20 inside this feature's own directory.
+**SC states at `651e60e2`:** SC-01 met · SC-02 met (unchanged file) · SC-03 met · SC-04 met
+(re-run, exit 0) · SC-05 met · **SC-06 NOT MET — the operator's re-read of the shortened passage is
+the one remaining gate.** No UAT artifact is on disk and none is fabricated here.
 
-**REQ-04 closed at rung 1, not returned to the operator.** The panel's only open question (F-A,
-info) was that `no historical artifact is modified` is graded by no criterion, since SC-05 admits
-this feature's whole directory as a class. Measured here: `git diff --name-status 41c16c7..87e6033`
-shows every one of the 20 feature-dir paths as `A`, and exactly three `M` entries — the two
-`docs/` records and `FEAT-05-pyyaml-file-parsers/STATE.md`, which ARE the correction. No historical
-artifact was modified. The validator lead holds no shell, which is why it could not close this itself.
+**The panel's PASS is recorded honestly.** `runs/2026-09-06-08-validator/digest.md` graded the
+PREVIOUS wording at `87e6033`; it was not re-run for a paragraph the operator himself sent back on
+length. What carries forward is mechanical and was re-measured above at the new pin; what grades
+wording is SC-06, which is exactly the gate still open. If the operator wants the panel re-run over
+the new prose rather than his own read, that is one validator dispatch.
 
 ## Open Questions
 

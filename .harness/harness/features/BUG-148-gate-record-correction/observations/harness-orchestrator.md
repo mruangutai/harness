@@ -55,3 +55,20 @@
 - 2026-09-06: an allowlist SC that admits "this feature's own directory" as a CLASS silently stops
   grading any requirement about what inside that directory changed. SC-05 passed while REQ-04's
   no-historical-artifact-modified clause had no grader at all.
+- 2026-09-07 (BUG-148, cycle 5): an operator UAT send-back on LENGTH is fixable without re-opening
+  facts if the dispatch names the three narration sites to delete (quoted commit subject, quoted
+  source line, trailing hedge) and a hard word/line ceiling. Documentor came back at 88/115 words
+  first try, 0 send-backs. Naming what to CUT beat asking for "shorter".
+- 2026-09-07 (BUG-148): when one of two records that must "state the same mechanism in the same
+  terms" is frozen by operator approval, hand the frozen passage's path AND line range to the
+  editing member and say it is the side that does not move. The rewrite then converged on near-
+  verbatim agreement, which is stronger evidence for that property than the side-by-side read the
+  panel had to do when both sides were free.
+- 2026-09-07 (BUG-148): a wording-only fix after a panel PASS moves review_sha and cannot inherit
+  the panel's verdict silently. Re-measuring the mechanical criteria myself at the new pin and
+  RECORDING that the panel graded the previous wording is the honest shape; the gate that actually
+  grades prose was the operator's read, which was already the open one.
+- 2026-09-07 (BUG-148): shortening an entry in DECISIONS.md forces the index regeneration even
+  though no row's text changes — every later row's `@NNNN` anchor shifts. Proof that the
+  regeneration is anchor-only: normalise `@[0-9]+` to `@N` over the changed lines and assert every
+  one occurs exactly twice (once `-`, once `+`); zero unpaired lines means no row's text moved.
