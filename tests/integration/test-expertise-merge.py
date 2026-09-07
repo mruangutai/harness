@@ -1307,6 +1307,58 @@ def case_ops_target_grammar_well_formed(root):
     check("case26: rendered file contains the new entry", "P-02: well formed" in content, content)
 
 
+def case_duplicate_proposal_ids(root):
+    """Case 27 — DUPLICATE PROPOSAL IDS (BUG-276). A proposal naming the same section+id twice
+    is refused at the CLI boundary, exit 11, AMBIGUOUS TARGET, before any transform runs —
+    covering the existing-destination path (a, b) and the absent-destination path (c), where
+    cmd_apply's transform runs with base_bytes None."""
+    # (a) different texts for the duplicated id, against an existing destination.
+    path_a = target(root, "case27a")
+    write_file(path_a, [("Patterns", [("P-01", "one")])])
+    before_a = hashlib.sha256(open(path_a, "rb").read()).hexdigest()
+    entries_a = os.path.join(root, "case27a_entries.md")
+    write_entries(entries_a, [("Patterns", [("P-02", "ALPHA"), ("P-02", "BRAVO")])])
+    r_a = run_apply(path_a, entries_a)
+    combined_a = r_a.stdout + r_a.stderr
+    check("case27a: duplicate ids exit 11", r_a.returncode == 11, combined_a)
+    check("case27a: message carries AMBIGUOUS TARGET, section, id and reason", (
+        "AMBIGUOUS TARGET" in combined_a
+        and "section=Patterns" in combined_a
+        and "id=P-02" in combined_a
+        and "reason=" in combined_a
+    ), combined_a)
+    after_a = hashlib.sha256(open(path_a, "rb").read()).hexdigest()
+    check("case27a: destination bytes unchanged", after_a == before_a, (before_a, after_a))
+
+    # (b) identical texts for the duplicated id, against an existing destination.
+    path_b = target(root, "case27b")
+    write_file(path_b, [("Patterns", [("P-01", "one")])])
+    before_b = hashlib.sha256(open(path_b, "rb").read()).hexdigest()
+    entries_b = os.path.join(root, "case27b_entries.md")
+    write_entries(entries_b, [("Patterns", [("P-02", "ALPHA"), ("P-02", "ALPHA")])])
+    r_b = run_apply(path_b, entries_b)
+    combined_b = r_b.stdout + r_b.stderr
+    check("case27b: identical duplicate ids exit 11", r_b.returncode == 11, combined_b)
+    check("case27b: message carries AMBIGUOUS TARGET, section, id and reason", (
+        "AMBIGUOUS TARGET" in combined_b
+        and "section=Patterns" in combined_b
+        and "id=P-02" in combined_b
+        and "reason=" in combined_b
+    ), combined_b)
+    after_b = hashlib.sha256(open(path_b, "rb").read()).hexdigest()
+    check("case27b: destination bytes unchanged", after_b == before_b, (before_b, after_b))
+
+    # (c) absent destination — cmd_apply's transform runs with base_bytes None.
+    path_c = target(root, "case27c")
+    entries_c = os.path.join(root, "case27c_entries.md")
+    write_entries(entries_c, [("Patterns", [("P-02", "ALPHA"), ("P-02", "BRAVO")])])
+    r_c = run_apply(path_c, entries_c)
+    combined_c = r_c.stdout + r_c.stderr
+    check("case27c: absent destination exits 11", r_c.returncode == 11, combined_c)
+    check("case27c: message carries AMBIGUOUS TARGET", "AMBIGUOUS TARGET" in combined_c, combined_c)
+    check("case27c: nothing created at the absent destination", os.path.exists(path_c) is False)
+
+
 def _run_all_cases(root):
     case_naive_last_writer_wins(root)
     case_green_union(root)
@@ -1333,6 +1385,7 @@ def _run_all_cases(root):
     case_ops_add_duplicated_base(root)
     case_ops_target_grammar(root)
     case_ops_target_grammar_well_formed(root)
+    case_duplicate_proposal_ids(root)
 
 
 def _report_results():

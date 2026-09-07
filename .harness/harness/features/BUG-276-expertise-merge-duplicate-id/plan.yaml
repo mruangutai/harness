@@ -290,7 +290,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: [T-01]
-    status: ready
+    status: done
     files:
       - tests/integration/test-expertise-merge.py
     verify: |
