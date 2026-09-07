@@ -880,6 +880,8 @@ def case_linked_worktree_main_checkout():
                          "found and ship succeeded against the correct main-checkout copy",
                          not os.path.isdir(dest), f"dest={dest}"))
     return results
+# GRADE-2 REASON: the table-driven test keeps all eight retention states in one visible
+# matrix, so the era pair and no-mirror contrast cannot drift apart.
 def case_t07_build_entry_receipt():
     names = (
         "T-07 non-era absent build_entry keeps the worktree",

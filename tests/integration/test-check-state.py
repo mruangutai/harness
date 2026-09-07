@@ -4616,6 +4616,8 @@ def case_bug1305_run_identity_invariant():
 
 
 # --- BUG-1309 T-06: the terminal mirror receipt must be a local invariant.
+# GRADE-2 REASON: the test intentionally drives each independent invariant state through
+# the external checker; splitting it would hide the fixture-to-checker contract.
 def case_t06_build_entry_invariant():
     def fixture(tmp, feature, station="done", build_entry=None, sync=True,
                 factory_issues=None, task_status=None):

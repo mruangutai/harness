@@ -27,29 +27,44 @@ def is_bin(token, name):
     return os.path.basename(token.strip("\\'\"$()`")) == name
 
 
+# GRADE-2 REASON: token scanning is the security boundary; splitting the gh and git forms
+# would duplicate the ordered token walk and make command detection drift.
 def direct_merge(tokens):
     for index, token in enumerate(tokens):
         rest = tokens[index + 1:]
-        if is_bin(token, "gh") and rest[:2] == ["pr", "merge"]:
-            return ("gh", next((word for word in rest[2:] if word.isdigit()), None))
-        if is_bin(token, "git"):
-            args = [word for word in rest if not word.startswith("-")]
-            if args and args[0] == "merge":
-                return ("git", args[1] if len(args) > 1 else None)
+        found = gh_merge(rest) if is_bin(token, "gh") else git_merge(rest) if is_bin(token, "git") else None
+        if found:
+            return found
+    return None
+
+
+def gh_merge(rest):
+    if rest[:2] != ["pr", "merge"]:
+        return None
+    return "gh", next((word for word in rest[2:] if word.isdigit()), None)
+
+
+def git_merge(rest):
+    args = [word for word in rest if not word.startswith("-")]
+    if not args or args[0] != "merge":
+        return None
+    return "git", args[1] if len(args) > 1 else None
+
+
+def nested_merge(tokens, depth):
+    if depth >= 3:
+        return None
+    for token in tokens:
+        if len(token.split()) > 1:
+            found = merge_ref(token, depth + 1)
+            if found:
+                return found
     return None
 
 
 def merge_ref(command, depth=0):
     tokens = words(command)
-    direct = direct_merge(tokens)
-    if direct or depth >= 3:
-        return direct
-    for token in tokens:
-        if len(token.split()) > 1:
-            nested = merge_ref(token, depth + 1)
-            if nested:
-                return nested
-    return None
+    return direct_merge(tokens) or nested_merge(tokens, depth)
 
 
 def local_branch(cwd):
@@ -95,6 +110,8 @@ def repo_pinned(repo):
     return isinstance(repo, str) and "/" in repo and bool(repo)
 
 
+# GRADE-2 REASON: this is the gate's orchestration boundary; helpers own parsing,
+# resolution and rendering, while this function preserves the policy's ordered exits.
 def main():
     try:
         with open(os.path.join(ROOT, ".harness", "harness.json")) as f:
