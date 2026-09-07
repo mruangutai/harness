@@ -91,7 +91,7 @@ decisions:
 
   - id: D-09
     choice: Enabled github.sync with github.repo NOT pinned is a local configuration error, never the approved no-mirror mode - gh-sync.py open records NOTHING there, feature.json's github.build_entry stays ABSENT, and Build is therefore refused by T-04. The value not-applicable is written only by the sync-not-enabled skip, which fires when github.sync is false or absent. That state blocks BOTH halves of the lifecycle, not Build alone - T-05's merge gate self-gates on github.sync by itself, so with build_entry ABSENT it also DENIES EVERY harness-feature merge in the project - and the remedy for both halves is the CONFIGURATION fix, pinning github.repo in <root>/.harness/harness.json or setting github.sync to false, never gh-sync.py open, which records nothing in this state.
-    because: The stated intent's settled bullet 4 names local configuration and contract errors under enabled sync as blocking Build, and this is the case that clause exists for - the unpinned-repo skip is reachable only after the resolver has already found sync true. The out-of-scope protection covers a project that sets github.sync false or leaves GitHub unconfigured, never one that opted into the mirror and left the repo unpinned. Recording not-applicable there turns a misconfigured mirror project into an approved no-mirror one, which is precisely the silent loss of the mirror lifecycle the destination forbids. Bullets 4 and 5 do collide on this case; this reading was an ambiguity the orchestrator resolved on the operator's behalf, disclosed here so the operator may overturn it at signature.
+    because: 'The stated intent''s settled bullet 4 names local configuration and contract errors under enabled sync as blocking Build, and this is the case that clause exists for - the unpinned-repo skip is reachable only after the resolver has already found sync true. The out-of-scope protection covers a project that sets github.sync false or leaves GitHub unconfigured, never one that opted into the mirror and left the repo unpinned. Recording not-applicable there turns a misconfigured mirror project into an approved no-mirror one, which is precisely the silent loss of the mirror lifecycle the destination forbids. Bullets 4 and 5 do collide on this case; this reading was an ambiguity the orchestrator resolved on the operator''s behalf, disclosed here so the operator may overturn it at signature. The price of this reading, signed knowingly: T-05 therefore carries a SECOND verbatim deny reason for the unpinned branch (step 6, REPO UNPINNED) which names no command that clears it; a dedicated fixture case, "T-05 unpinned repo absent build_entry denies naming the configuration fix", covering THE CONFIG PAIR''s unpinned half; and a standing constraint that every OTHER T-05 fixture root pins github.repo to the literal "acme/widgets", or the pinned half goes uncovered.'
     dec: none
 panel:
   last_run: 2026-09-06-01-validator
@@ -1024,9 +1024,15 @@ tasks:
         BUILD_ENTRY_ERA_EXEMPT - a frozen literal set of feature directory names, generated ONCE at
         the implementing commit with exactly:
           python3 -c "import glob,os;print(sorted(os.path.basename(p) for p in glob.glob('.harness/*/features/*')))"
-        Paste the output as the set literal, with a comment carrying that command verbatim and the
-        commit sha it was generated at. No feature.json on disk carries build_entry today, so an
-        unguarded invariant reports every feature at once. A feature absent from the set - which is
+        Paste the output as the set literal, with a comment carrying that command verbatim, the
+        commit sha it was generated at, and - as part of that SHIPPED comment's required text, on
+        its own line directly beside the command line and the sha - this sentence, VERBATIM,
+        character for character:
+          When this file is vendored into another project at upgrade, regenerate this set THERE with the same command, from that project's feature directories.
+        Those three - command, sha, sentence - are the comment's required content; the sentence is
+        text the doer writes into .claude/skills/harness/bin/feature_schema.py, not prose about it.
+        No feature.json on disk carries build_entry today, so an unguarded invariant reports every
+        feature at once. A feature absent from the set - which is
         every feature created from now on - is bound. Same shape as
         feature_schema.RUNS_AGENT_EXEMPT and BUG-1071's INV-32 era guard. BUG-1309 itself must be
         IN the set: it is planned before the field exists.
