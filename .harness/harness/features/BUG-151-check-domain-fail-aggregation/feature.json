@@ -1,0 +1,47 @@
+{
+  "feature_id": "BUG-151-check-domain-fail-aggregation",
+  "branch": "feat/BUG-151-check-domain-fail-aggregation",
+  "pr": null,
+  "review_sha": "none",
+  "cycles_used": 3,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "2026-09-07-01-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "goalcheck-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "planfix-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "plan-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-07-1-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-09-07-02-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS"
+    }
+  ]
+}

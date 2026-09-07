@@ -1,0 +1,219 @@
+schema: plan/1
+feature: BUG-151-check-domain-fail-aggregation
+approval:
+  status: pending
+
+status: plan
+
+source_issues: [151]
+
+panel:
+  last_run: plan-validator
+  cycle: 0
+  transcription_rule: Both surviving findings were reworded from the digest headings
+    to drop the deleted apparatus's own labels; ids are computed from the summary
+    strings recorded here, so they will not match ids computed from the digest headings.
+  readers:
+  - reader: should-not-exist
+    persona: fable-advisor
+    status: ran
+    verdict: PASS
+  - reader: scope
+    persona: harness-code-reviewer
+    status: ran
+    verdict: PASS
+  - reader: goalcheck
+    persona: harness-pm
+    status: ran
+    verdict: YES-WITH-FINDINGS
+  findings:
+  - id: PF-cf17fd813d058340727a00b9a33886cd
+    severity: med
+    reader: should-not-exist
+    summary: 'T-01''s probe-and-table measurement settles a choice with no observable
+      consequence: delete it and settle D-01 as agreement-of-zeroness'
+    disposition: resolved
+    resolved_by: T-01
+  - id: PF-009cd606d15c7da41e40a02e87ad8b39
+    severity: low
+    reader: should-not-exist
+    summary: 'T-01''s pre-edit baseline apparatus protects a false premise: the pre-change
+      file is pinned at 6d969ed3, and SC-03''s grading depends on a sha transcribed
+      through a receipt'
+    disposition: resolved
+    resolved_by: T-02
+lanes:
+  resolved_at: 6d969ed3
+  rows:
+    - surface: tests/integration/test-check-domain.py
+      lane: team
+      agent: harness-backend-dev
+
+decisions:
+  - id: D-01
+    choice: 'The safeguard asserts AGREEMENT OF ZERONESS, settled and not deferred to any measurement: a printed column-0 FAIL line together with a returned total of zero is a failure, and a non-zero returned total with no printed column-0 FAIL line is equally a failure. Strict per-block equality of printed FAIL lines against the returned total is explicitly NOT adopted.'
+    because: 'The two candidate invariants are exit-code-equivalent -- wherever they diverge, either the block''s own return or the problems count is already non-zero, so main() returns non-zero under either, and no measurement can move any exit code; and adopting strict equality from a four-of-twenty-four-block sample under one injected defect mode is exactly the false-alarm risk this decision was hedging against. Full reasoning: .harness/harness/features/BUG-151-check-domain-fail-aggregation/runs/plan-validator/digest.md'
+    dec: none
+  - id: D-02
+    choice: The block list is DISCOVERED by introspecting module globals for callables whose names
+      begin with run_, and the composite wrapper run_bug1305_cases is deleted so its three
+      sub-blocks are discovered directly.
+    because: 'An enumeration cannot notice a block nobody enumerated, so only discovery closes the defined-but-never-called direction; the composite would otherwise double-run its three sub-blocks once discovery is in place. DEPARTURE FROM THE ISSUE, stated so the signer sees it: issue #151 concluded that the arithmetic self-check alone catches both directions, and on disk it does not -- each block couples its printing to its return inside one function, so a block that is never called prints nothing and returns nothing, the arithmetic agrees with itself, and no check can fire. Discovery is therefore added ALONGSIDE the self-check, not instead of it.'
+    dec: none
+
+tasks:
+  - id: T-01
+    title: Add the aggregation safeguard and its permanent synthetic regression cases
+    traces: [REQ-01, REQ-03]
+    change_type: bugfix
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: []
+    status: ready
+    files:
+      - tests/integration/test-check-domain.py
+    verify: |
+      env -u HARNESS_AGENT_TYPE python3 -c "import importlib.util as u; s=u.spec_from_file_location('tcd','tests/integration/test-check-domain.py'); m=u.module_from_spec(s); s.loader.exec_module(m); assert callable(m._aggregation_verdict); assert m.run_bug151_selfcheck_cases()==0; print('PASS')"
+    intent: |
+      Add the aggregation safeguard and its permanent regression cases to
+      tests/integration/test-check-domain.py. Do NOT dissolve main()'s hand-written
+      "fails += run_x()" list here beyond the single line named in step 4 -- that is T-02.
+      Nothing outside this one file changes. Line numbers below are at 6d969ed3. This task is
+      purely ADDITIVE: it takes NO baseline measurement of any kind. The SC-03 no-regression
+      equality is owned end to end by T-02 step 8(a), which recovers the pre-change file from
+      the pinned commit 6d969ed3, so nothing here has to be captured before you edit.
+
+      STEP 1 -- write the regression cases FIRST and observe them fail (harness-tdd-enforcement).
+      Add, near main():
+
+        def run_bug151_selfcheck_cases():
+
+      It drives the safeguard on SYNTHETIC in-memory strings, never on a real suite run. Cases,
+      each asserting the verdict helper's return:
+        (a) captured "FAIL  x" with returned total 0 -- MUST yield a diagnostic. This is the
+            harmful form the whole ticket is about.
+        (b) captured "ok    x" with returned total 0 -- MUST yield None.
+        (c) captured "FAIL  x" with returned total 1 -- MUST yield None.
+        (d) captured "ok    x" with returned total 1 -- MUST yield a diagnostic: a counted
+            failure nobody printed is also a disagreement.
+        (e) captured text whose only FAIL text is on an INDENTED continuation line, with
+            returned total 0 -- MUST yield None. Only column-0 verdict lines count.
+        (f) two captured column-0 "FAIL" lines with returned total 1 -- MUST yield None,
+            unconditionally: both sides are non-zero and therefore AGREE under D-01's
+            agreement-of-zeroness, so a count mismatch of 2-against-1 is tolerated by design.
+            Name the case so a reader sees the tolerance is deliberate and not an oversight --
+            e.g. "two-printed-one-counted-agrees-on-zeroness".
+      CRITICAL: this block must NEVER echo a synthetic fixture string at column 0. Its own
+      output is only "ok    [bug151-selfcheck] NAME" or "FAIL  [bug151-selfcheck] NAME", with any
+      fixture text indented and truncated inside a detail line. A synthetic FAIL printed at
+      column 0 would make the outer safeguard fire on a green suite, which is SC-04.
+      It returns its failure count, like every other block in the file.
+      Run it now and record the failing state (the helper does not exist yet) in your receipt.
+
+      STEP 2 -- the capture object. Add a private tee class beside main():
+        class _AggTee: __init__(self, real) keeps real and an empty list of parts; write(s)
+        appends s to parts and returns real.write(s); flush() delegates to real.flush(); text()
+        returns "".join(parts).
+      It writes THROUGH to the real stdout so a human watching the 38s run still sees verdicts
+      live. Subprocess output is unaffected -- the helpers already capture with
+      capture_output=True.
+
+      STEP 3 -- the safeguard itself:
+        def _aggregation_verdict(label, captured_text, total): returns None when sound, else a
+        one-line diagnostic string naming label, the count of captured lines starting with
+        "FAIL" at column 0, and total.
+      Its predicate is AGREEMENT OF ZERONESS, per D-01: the diagnostic fires when
+      bool(printed) differs from bool(total), and only then. Strict equality of printed against
+      total is NOT the predicate. Keep it to a handful of lines and add no other behaviour.
+
+      STEP 4 -- so the new block is never itself an unsummed block, add exactly one line,
+      "fails += run_bug151_selfcheck_cases()", immediately before line 5231's return. T-02
+      deletes that whole list including this line.
+
+      Leave the false comment at 5207-5210 alone; T-02 owns its deletion.
+  - id: T-02
+    title: Replace the hand-written aggregation with discovery plus the safeguard
+    traces: [REQ-01, REQ-02, REQ-03, REQ-04]
+    change_type: bugfix
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-01]
+    status: ready
+    files:
+      - tests/integration/test-check-domain.py
+    verify: |
+      env -u HARNESS_AGENT_TYPE python3 -c "import subprocess,sys,importlib.util as u; p='tests/integration/test-check-domain.py'; r=subprocess.run([sys.executable,p],capture_output=True,text=True); L=r.stdout.splitlines(); ok=sum(1 for l in L if l.startswith('ok')); bad=sum(1 for l in L if l.startswith('FAIL')); s=u.spec_from_file_location('tcd',p); m=u.module_from_spec(s); s.loader.exec_module(m); blocks=[n for n in vars(m) if n.startswith('run_') and callable(getattr(m,n))]; print(r.returncode, ok, bad, len(blocks)); assert r.returncode==0; assert bad==0; assert 398<=ok; assert len(blocks)==24; assert 'run_bug1305_cases' not in blocks; print('PASS')"
+    intent: |
+      Dissolve main()'s hand-written aggregation in tests/integration/test-check-domain.py into
+      discovery plus T-01's safeguard. Nothing outside main() and run_bug1305_cases changes, and
+      no other file is touched. Line numbers below are at 6d969ed3. This task is a net DELETION.
+
+      1. DELETE the composite wrapper run_bug1305_cases (5182-5187). Its three sub-blocks
+         run_bug1305_digest_repair_cases, run_bug1305_marker_cases and run_bug1305_identity_cases
+         stay exactly as they are and become ordinary discovered blocks. Leaving the composite in
+         place would double-run all three once discovery is in force.
+
+      2. DELETE all 21 aggregation sites: the 20 "fails += run_x()" statements (5211-5230), the
+         "+ run_bug1305_cases()" term of the return (5231), and the one line T-01 added. No list
+         of block names survives anywhere in main().
+
+      3. DELETE the comment at 5207-5210. Its final sentence claims the aggregate "is asserted
+         non-negative so the shape of this line stays deliberate" and NO SUCH ASSERTION EXISTS
+         anywhere in main(). Replace it with a comment describing what the safeguard actually
+         asserts, or with nothing. Do not carry the false claim forward in any form.
+
+      4. DISCOVER the blocks. Iterate the module globals in DEFINITION ORDER -- dict insertion
+         order; do NOT sort -- and take every name/value pair whose name starts with "run_" and
+         whose value is callable. That is the complete block list. 24 blocks are expected after
+         step 1: the 23 pre-existing leaf blocks plus run_bug151_selfcheck_cases. The prefix is a
+         safe key because module-level helpers are named with a leading underscore, and the only
+         two non-underscore helpers, bug1304_pre_change_hook and bug1304_assert_pre_change_allows,
+         do not start with run_. If any block turns out to depend on the old call order, fix the
+         dependency inside that block; do not reintroduce an ordering list.
+
+      5. Run each discovered block inside contextlib.redirect_stdout(_AggTee(sys.stdout)) so its
+         output still reaches the terminal live while being recorded, then evaluate
+         _aggregation_verdict against that block's captured text and its returned total. Apply
+         the same capture and the same verdict to the CASES loop at the top of main() (5192-5206),
+         whose printed FAILs are exposed in exactly the same way today. Prior art for
+         redirect_stdout capture: tests/unit/test-factory-cli.py:40 and
+         tests/unit/test-factory-gh.py:81.
+
+      6. Accumulate every returned total into fails and every non-None verdict into a problems
+         list. After the loop, print each problem at column 0 with the FAIL prefix so a human
+         sees it, and return fails plus len(problems) -- a safeguard trip alone must exit the
+         suite non-zero even if every block returned 0.
+
+      7. Preserve the print convention exactly: per-case verdict lines at column 0 starting
+         "ok    " or "FAIL  ", every detail or continuation line indented. The safeguard's own
+         counting depends on it.
+
+      8. Record in your receipt, as SC-01(b) and SC-03 evidence:
+         (a) the WHOLE SC-03 no-regression equality, both halves taken here, in one place, at one
+             time -- T-01 takes no baseline and hands you nothing. Recover the pre-change file
+             with "git show 6d969ed3:tests/integration/test-check-domain.py" and write it, with
+             the Write tool, to a SIBLING path INSIDE tests/integration/ and NOT to /tmp, because
+             the module anchors ROOT and its bin imports off its own __file__, so a copy elsewhere
+             in the filesystem does not resolve. Name it tests/integration/_bug151_baseline.py:
+             run-unit-tests.sh collects tests/integration/test-*.py, so a name that does not begin
+             with "test-" cannot be globbed into the suite. Before running anything, confirm the
+             copy does not upset the layout gate -- ".claude/skills/harness/bin/run-unit-tests.sh
+             --check-layout" must still exit 0 while the sibling exists; this was checked at plan
+             time with this exact name and placement and exited 0. Then run the sibling copy and
+             collect the set of names on lines starting with "ok" at column 0; run the post-change
+             tests/integration/test-check-domain.py and collect the same set EXCLUDING names
+             containing "[bug151-selfcheck]"; and assert the two sets are EQUAL, with 0 lines
+             starting with "FAIL" at column 0 and exit 0 from BOTH runs. Record both set sizes and
+             the equality. Finally DELETE the sibling copy, and require "git status --porcelain"
+             to show no stray file from it before you report this task done.
+         (b) a one-off end-to-end red proof on a throwaway copy of main(), reachable by
+             importlib-loading the REAL file by path (again: the module anchors ROOT and its bin
+             imports off its own __file__, so a copy elsewhere in the filesystem does not
+             resolve): with a defect injected into a real block the suite exits 1, and it still
+             exits 1 when that block's contribution to the total is deleted as well. This is a
+             ONE-OFF MEASUREMENT for the receipt, not a permanent test -- a 38s mutated
+             end-to-end run does not earn a place in the suite. The permanent test is T-01's
+             synthetic block.
+
+      Note on cost: the suite takes 38s wall, so the verify command's 60s budget affords exactly
+      one full run and nothing more. Do not add a second run to it.
