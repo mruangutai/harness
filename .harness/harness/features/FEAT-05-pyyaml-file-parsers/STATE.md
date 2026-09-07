@@ -11,8 +11,13 @@ Phase `build` COMPLETE 2026-08-03. **All 17 tasks landed.** `review_sha` should 
 before the panel runs — `225cc98` was the baseline when the orchestrator was stood down, and
 twelve commits have landed since.
 
-**All four gates green:** `run-unit-tests.sh` 0 (11 suites), `check-docs.sh` 0,
-`check-state.sh` 0, `gen-decisions-index.py --check` 0. Every `.harness/**/*.yaml` parses.
+**Three gates green:** `run-unit-tests.sh` 0 (11 suites), `check-docs.sh` 0, `check-state.sh` 0.
+Every `.harness/**/*.yaml` parses. **Corrected 2026-09-06 under BUG-148:** the fourth entry logged
+on 2026-08-03, `gen-decisions-index.py --check` 0, was no gate at all — `--check` was never a
+supported mode, and before argv validation landed at `ffbdbfa1` (2026-08-05) an unrecognized
+argument fell through to the WRITE path, so that exit 0 was a regeneration of `DECISIONS-INDEX.md`
+that overwrites exactly the drift a check would have reported; it could not prove index drift. Use
+`gen-decisions-index.py --stdout | diff - .harness/harness/docs/DECISIONS-INDEX.md`.
 
 **Every open question is measured, none inferred.** Q3 (which hook copy fires), Q4 (session
 identity), Q6 (which validate-digest.py governs) were all settled by probe, and two of my own
