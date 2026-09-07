@@ -120,10 +120,10 @@ decisions:
       save_recorded normalization, the skip record guard, _build_entry_preflight and the two
       recover-terminal report helpers - each asserted as a decision table the subprocess suites do not
       enumerate. T-07's retention branch gets NO unit test: post-merge-sweep.sh executes it inside a
-      python3 -I - heredoc fed on stdin (post-merge-sweep.sh:29-43), so nothing can import it, and its
+      python3 -I - heredoc fed on stdin (post-merge-sweep.sh:29-293), so nothing can import it, and its
       only unit-reachable input is the era set, which T-11 covers. That cell stays discharged by
-      tests/integration/test-post-merge-sweep.py plus T-10's end-to-end case, recorded as a gap rather
-      than papered over.
+      tests/integration/test-post-merge-sweep.py plus T-10's end-to-end case, and its DISPOSITION is
+      D-12: the unit kind there is NOT-APPLICABLE, never an owed test recorded as a gap.
     because: |
       DEC-217's Over clause forbids copying an already mutation-proven integration guard into
       tests/unit to satisfy a directory label, so a unit test earns its place only by discriminating
@@ -155,9 +155,54 @@ decisions:
       test-validate-feature-json.py into the carve-out, and this plan's signed lanes rows place both in
       team.
     dec: DEC-174
+  - id: D-12
+    choice: |
+      For T-07's retention branch the test_matrix unit kind is NOT-APPLICABLE - not a deferred gap,
+      not an owed test, nothing to schedule later. The integration kind carries the coverage, and
+      it carries it across exactly three nodes: T-07's eight named cases, T-10's red-proof, and
+      T-13's "not-applicable" case, which closes the one member of the retention allow-set none of
+      T-07's eight cases reaches.
+      WHY IT IS UNOWNABLE, at source: post-merge-sweep.sh runs its ENTIRE Python body inside ONE
+      heredoc, python3 -I - fed on stdin, opened at post-merge-sweep.sh:29 and closed at :293, so
+      the retention arm - the sync_enabled block at :221-228, whose retention test is the elif at
+      :228 - is not importable, and NO tests/unit/** file can reach it without first extracting the
+      body into a module. THE RETENTION TEST IS :228, the elif over the allow-set; :222 is only the
+      entry = read that feeds it, and an earlier draft of this decision mis-cited :222 as the test
+      itself (panel c2 finding 4, should-not-exist, info). That extraction is refused by DEC-217's
+      Over clause, because its only purpose would be a directory label.
+      WHAT STANDS IN ITS PLACE: T-07's eight named integration cases in
+      tests/integration/test-post-merge-sweep.py, including the load-bearing era pair - era-exempt
+      with an ABSENT key is SWEPT, era-exempt recording recovery-required is KEPT - plus T-13's
+      paired complement, a recorded "not-applicable" under ENABLED sync being SWEPT, plus an
+      unplanned REAL red-proof: the stale merge fixture in tests/integration/test-hooks-install.py
+      went RED the moment the retention logic engaged, which T-10 repairs. A branch that reddens a
+      neighbouring feature's live end-to-end fixture is stronger evidence of load-bearing behaviour
+      than any unit test would have produced.
+      WHAT THIS IS NOT: it is narrow to a heredoc-hosted runtime surface. It is NOT a general
+      exemption from DEC-217's unit floor, which is RETAINED in full for ordinary code fixes,
+      including every other bugfix task in this plan. A disposition that reads as a general licence
+      is how a floor quietly disappears.
+    because: |
+      The unit floor exists to buy discrimination no other kind can reach. Where the surface admits
+      no import at all there is nothing for it to buy, and recording an owed test against it would
+      park a permanent false debt in the matrix that no future cycle can ever discharge. THE
+      DISPOSITION STANDS ON TWO FEET AND NO THIRD: DEC-217's Over clause, which already refuses a
+      test whose only purpose is a directory label, and the structural fact that the surface admits
+      no import at all, so no tests/unit/** file can reach the branch as it stands.
+      NO DEC-174 FORECLOSURE IS CLAIMED, and an earlier draft of this because: claimed one falsely
+      (panel c2 finding 3, scope, med). DEC-174's "library a gate calls" clause,
+      DECISIONS.md:4377-4380, SANCTIONS the extraction shape rather than barring it: a module a gate
+      imports is not itself a gate, a squad may write the library, and the cutover that makes a gate
+      use it is main-session-direct, proven by showing the gate's violation set is identical before
+      and after. That raises the PRICE of extraction - a main-session cutover with a
+      violation-set-identical proof - and it is not a bar. The refusal is DEC-217's alone.
+      Operator ruling, 2026-09-07, over the product lead's re-derivation of the heredoc bounds at
+      source. Adjacent and reconciled: D-10, which first recorded this cell and whose T-07 sentence
+      now defers to this decision for the disposition.
+    dec: DEC-217
 panel:
-  last_run: 2026-09-06-panelc1b-validator
-  cycle: 1
+  last_run: 2026-09-07-panelc2-validator
+  cycle: 2
   transcription_rule: 'Every summary is the validator lead''s digest text UNALTERED,
     so each id is the content hash of the reader''s own words; panel_findings.py only
     lowercases and collapses whitespace, so any rewording mints a new id and silently
@@ -177,16 +222,33 @@ panel:
     cycle 0''s own roster is recoverable from run 2026-09-06-01-validator. goalcheck
     also ran in cycle 0, under run 2026-09-06-01-validator and against the whole plan;
     this row records its cycle-1 run, performed by harness-pm over the amended tasks
-    T-10 and T-11, so no reader is left guessing which cycle the row speaks for.'
+    T-10 and T-11, so no reader is left guessing which cycle the row speaks for. Cycle
+    2: the roster is keyed by reader and holds one row per reader, so the two readers
+    that ran in panel c2 - should-not-exist and scope - carry cycle 2, while goalcheck''s
+    row RETAINS cycle 1, because no goalcheck reader ran in cycle 2 (panel c2''s scope
+    was T-12 and D-12 only). A reader is never marked as having run a cycle it did
+    not, so the goalcheck row speaks for its cycle-1 run and nothing later. Cycle
+    2''s scope reader is recorded ran because its WORK completed and its note on disk
+    was verified by reading it (notes/review-harness-code-reviewer-planpanel-c2.md);
+    only its return envelope was refused by validate-digest.py, reportedly on ''plan
+    review mode is only valid while approval.status is pending'' with review_sha none
+    and approval.status approved, so neither contract mode was satisfiable - a harness
+    defect and NOT a reader outcome, the same class the cycle-1 sentence above records.
+    Cycle 2''s four summaries are the digest findings table''s finding column UNALTERED,
+    which includes finding 2''s off-by-two citation of the sweep''s github.sync re-read
+    as post-merge-sweep.sh:216-217 when it is :214-215 (:216-217 is the feature.json
+    read); the lead re-derived that at source and the correction lives here and in
+    the fix text, never inside the finding, because any alteration mints a different
+    id.'
   readers:
   - reader: should-not-exist
     status: ran
     persona: fable-advisor
-    cycle: 1
+    cycle: 2
   - reader: scope
     status: ran
     persona: harness-code-reviewer
-    cycle: 1
+    cycle: 2
   - reader: goalcheck
     status: ran
     persona: harness-pm
@@ -286,6 +348,45 @@ panel:
       \ which are already red at HEAD and cannot be reddened by any mutation"
     disposition: resolved
     resolved_by: T-11
+  - id: PF-19b21c0368b50e92665fe15a49db267f
+    severity: med
+    reader: should-not-exist
+    summary: "The unit-ruling note's \"four heredoc-hosted bin scripts\" recurrence\
+      \ claim is false, so the repo-wide DEC-217 sibling its Q1 recommends should\
+      \ not be written on that evidence. `gh-close-gate.sh:59/:79` and `plan-sign-gate.sh:43/:62`\
+      \ say *\"THE DECISION LIVES IN A FILE, NOT A HEREDOC\"* and exec `.py` files\
+      \ \u2014 counter-examples, not instances. Only `post-merge-sweep.sh:29-293`\
+      \ and `bash-write-guard.sh:42` feed Python on stdin."
+    disposition: resolved
+    resolved_by: .harness/harness/features/BUG-1309-mirror-build-entry/notes/research-BUG-1309-mirror-build-entry-unit-ruling.md
+  - id: PF-14faae5d430e5c49df19e30751ad2784
+    severity: med
+    reader: scope
+    summary: 'D-12''s "the integration kind carries the coverage" is one state wider
+      than what was proven: `"not-applicable"`, the third member of the retention
+      allow-set, is exercised by none of T-07''s eight cases nor by T-10''s red-proof.
+      Reachable when `github.sync` flips on between Build entry and merge (the sweep
+      re-reads `sync` at `post-merge-sweep.sh:216-217`).'
+    disposition: resolved
+    resolved_by: T-13
+  - id: PF-98762207d33d7c905df8a1c0c410c33a
+    severity: med
+    reader: scope
+    summary: "D-12's `because:` cites DEC-174 as foreclosing the heredoc-extraction\
+      \ path; DEC-174's own *\"library a gate calls\"* clause (DECISIONS.md:4302-4403)\
+      \ explicitly sanctions that shape \u2014 squad writes the module, main session\
+      \ performs the cutover. The disposition survives on DEC-217's Over clause alone;\
+      \ the citation misdescribes what it cites."
+    disposition: resolved
+    resolved_by: D-12
+  - id: PF-67da25de71e5be289b53782778feed02
+    severity: info
+    reader: should-not-exist
+    summary: D-12 pins the retention test to `post-merge-sweep.sh:222`; the `elif`
+      is at `:228` and `:222` is the `entry =` read. Second inaccurate "verified at
+      source" claim in the same note.
+    disposition: resolved
+    resolved_by: D-12
 tasks:
   - id: T-01
     title: Declare github.build_entry in the feature.json schema
@@ -1822,3 +1923,71 @@ tasks:
       task's new case passes an ABSENT outcome, and the existing :3623 case passes recovery-required
       with NO trailing slash, so reverting line 1360 reddens BE-23 while :3623 stays green. Do NOT
       write a unit test in this task and do NOT touch tests/unit/.
+  - id: T-13
+    title: Cover the not-applicable retention case in the post-merge sweep bed
+    traces: [REQ-09, REQ-02]
+    change_type: scaffolding
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 enforcement carve-out - the plan's signed lanes row covering tests/integration/test-post-merge-sweep.py places each gate's own test inside the carve-out with the gate
+    depends_on:
+    - T-07
+    status: ready
+    files:
+      - tests/integration/test-post-merge-sweep.py
+    verify: |
+      out=$(python3 tests/integration/test-post-merge-sweep.py) || exit 1
+      if printf '%s\n' "$out" | grep -q '^FAIL:'; then exit 1; fi
+      printf '%s\n' "$out" | grep -qF "PASS: T-13 not-applicable removes the worktree" || exit 1
+      echo VERIFY-PASS
+    intent: |
+      Close the one member of the post-merge sweep's retention allow-set that no test reaches.
+      This task is TEST-ONLY - change nothing in .claude/skills/harness/bin/post-merge-sweep.sh,
+      and change no existing case.
+
+      THE CASE, literally: a merged feature whose feature.json records
+      github.build_entry "not-applicable" under an ENABLED github.sync has its worktree REMOVED
+      by the sweep. It is the paired complement of the states T-07's eight cases already cover -
+      "opened" and "recovered-terminal" remove, the absent key and "recovery-required" retain,
+      an unparseable document retains, sync-false removes - and "not-applicable" is exercised by
+      NOTHING today (grep tests/integration/test-post-merge-sweep.py for not-applicable at
+      bbe9bd0a - zero matches).
+
+      HOW TO ADD IT, as one row of the table that already exists. case_t07_build_entry_receipt
+      (tests/integration/test-post-merge-sweep.py:885-937) is a zip of a names tuple (:886-895)
+      and a shapes tuple (:896-905) whose members are
+      (feature_dir_name, build_entry_value, sync_enabled, expect_removed). Append ONE name and
+      ONE shape, keeping the existing eight names character-for-character identical so T-07's
+      own verify still passes -
+        name  "T-13 not-applicable removes the worktree"
+        shape ("FEAT-9001-fixture-non-era", "not-applicable", True, True)
+      - and add nothing to main()'s results tuple, because that function is already registered
+      there at :953. A NEW case function is the wrong shape here - it would duplicate the loop
+      body at :906-936 for a single row - but if one is written anyway it MUST be registered in
+      main()'s results tuple at :942-955, since a case function not summed there prints nothing
+      and this task's verify line can then never appear. The fixture directory name is LITERAL
+      and must stay the synthetic FEAT-9001-fixture-non-era, which
+      feature_schema.BUILD_ENTRY_ERA_EXEMPT cannot contain - a real feature directory name is IN
+      that frozen set and would silently invert the case.
+
+      THE BRANCH UNDER TEST is the elif at post-merge-sweep.sh:228 - elif entry not in the set
+      opened, not-applicable, recovered-terminal - and specifically its "not-applicable" member.
+      :222 is only the entry = read that feeds that test, and :223 is the era-exempt gate above
+      it. The row asserts the FALSE arm of :228 for a recorded "not-applicable", which falls
+      through to the feature-worktree.py remove call.
+
+      WHY THE STATE IS REACHABLE, and not dead code. The sweep re-reads the project's
+      github.sync from the MAIN CHECKOUT's .harness/harness.json at merge time
+      (post-merge-sweep.sh:214-215), whereas "not-applicable" is written at Build entry by the
+      sync-not-enabled skip (D-09). A project that flips github.sync ON between Build entry and
+      merge therefore arrives at :228 with "not-applicable" recorded under enabled sync. That is
+      the state this row pins, and it is why the case belongs in the sync-enabled table rather
+      than beside the sync-false row.
+
+      NO RED-FIRST CLAIM IS AVAILABLE HERE, and do not manufacture one. The production code
+      already handles this state correctly, so the row is GREEN the moment it is written - this
+      is a coverage gap found by panel c2, not a bug. Prove it discriminates instead, and record
+      the proof in the return - temporarily delete the "not-applicable" member from the allow-set
+      literal at post-merge-sweep.sh:228, re-run the bed, confirm the new row alone reddens while
+      the eight T-07 rows stay green, then RESTORE the literal and re-run to confirm the file is
+      byte-identical to HEAD and the bed is fully green. A row no mutation can redden is vacuous
+      and must be reported rather than kept.
