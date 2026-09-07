@@ -6,8 +6,11 @@
 - run: .harness/harness/features/BUG-148-gate-record-correction/runs/2026-09-06-07-eng/state.yaml
 - squad: none (build phase complete; the validate-phase panel has not been dispatched)
 - status: build-complete, awaiting review
-- station: building (`plan.yaml` `status: building`; T-01 and T-02 both `done`)
-- review_sha: pinned at the build tip — see `feature.json`
+- station: review (`plan.yaml` `status: review`; T-01 and T-02 both `done`, so the plan
+  derives review; parent #1417 and sub-issues #1418/#1419 written to match)
+- review_sha: `87e60330104e63b2efa366852a5e514f8eb73b36` (the seam commit). Re-pinned from
+  `f60d5d2` because INV-33 compares the pinned plan.yaml bytes against disk; free, since the
+  product diff between the two is empty
 
 **Both corrections LANDED and committed.** The operator signed BRIEF and plan on 2026-09-06
 (`c6c3a38`). T-01 rewrote DEC-174's evidence sentence in place and regenerated the index
