@@ -507,7 +507,7 @@ tasks:
     depends_on:
     - T-03
     - T-06
-    status: ready
+    status: done
     files:
       - .claude/skills/harness/bin/gh-sync.py
       - tests/integration/test-gh-sync.py
