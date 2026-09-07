@@ -18,6 +18,16 @@ origin's ref; one that doesn't (stale, or cut by an earlier claimless run) is fo
 origin's ref rather than checked out as is — the alternative is the same silent divergence this
 module exists to prevent, just entered from the local side instead of the create side.
 
+Before either point of no return the refresh branch checks two conditions with no bypass. The
+identity check compares the resolved real path of the computed workspace against the resolved
+real path of this control-plane checkout (harness_boundary.root_from_script, pure arithmetic —
+no environment read, no filesystem probe): identity, not "is a harness repository", because a
+factory workspace legitimately holding some OTHER harness checkout must still refresh normally,
+and a computed path that merely contains or is contained by the control plane already reads
+dirty under the second check. The dirty check runs `git status --porcelain` on an existing
+checkout and refuses on any tracked modification, staged content, or non-ignored untracked file
+before the first destructive command touches it.
+
 Every git invocation goes through the module-level run_git(args, cwd), which shells out to
 os.environ.get("FACTORY_GIT", "git"), resolved at CALL time (never cached at import), so a test
 can substitute a recorder or set the environment variable after import. git's own stdout and
@@ -33,6 +43,18 @@ import sys
 
 import factory_cli
 import factory_config
+import harness_boundary
+
+_BIN_DIR = os.path.dirname(os.path.abspath(__file__))
+
+
+def _control_plane_root():
+    """The control-plane checkout's root, by pure arithmetic — no environment read, no
+    filesystem probe (harness_boundary.root_from_script). Used only for identity comparison
+    against a computed workspace path; never through a resolver an environment override
+    could redirect.
+    """
+    return harness_boundary.root_from_script(_BIN_DIR)
 
 
 def run_git(args, cwd):
@@ -116,6 +138,30 @@ def _main():
 
     path = factory_config.workspace_path(fleet, args.repo)
     branch = f"factory/issue-{args.issue}"
+
+    if os.path.realpath(path) == os.path.realpath(_control_plane_root()):
+        factory_cli.refuse(
+            tool="workspace",
+            what="refusing to reset the harness control-plane checkout",
+            value=os.path.abspath(path),
+            next_step=(
+                "the control plane is never its own scratch workspace: point workspace_root "
+                "in fleet.yaml at a directory that is not this checkout"
+            ),
+        )
+
+    if os.path.isdir(os.path.join(path, ".git")):
+        dirt = run_git(["status", "--porcelain"], path)
+        if dirt.strip():
+            factory_cli.refuse(
+                tool="workspace",
+                what="refusing to reset a checkout with uncommitted changes",
+                value=os.path.abspath(path),
+                next_step=(
+                    "commit, stash or discard the work in that checkout, or point "
+                    "workspace_root at a scratch directory"
+                ),
+            )
 
     if not os.path.isdir(os.path.join(path, ".git")):
         # POINT OF NO RETURN: the first write into the workspace. workspace_root's parent may

@@ -81,6 +81,6 @@ nobody a way around it. A clean scratch checkout is prepared exactly as it is to
 
 ## Approval
 
-status: pending
-approved-by:
-date:
+status: approved
+approved-by: operator
+date: 2026-09-07
