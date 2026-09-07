@@ -16,6 +16,19 @@
                                            any recorded parent if given, THEN records the pr
                                            (T-03, FEAT-26). It closes NO issue: GitHub's
                                            Auto-close issue workflow does that (DEC-203)
+  gh-sync.py recover-terminal <feature-dir> [--parent <n>] [--yes]  operator-approved
+                                           recovery for an already-merged feature whose
+                                           mirror was never opened, or opened only in
+                                           part -> adopts whatever milestone/parent is
+                                           already recorded, creates only what is
+                                           missing, mirrors source_issues from
+                                           plan.yaml, creates ZERO task sub-issues, and
+                                           records build_entry "recovered-terminal"
+                                           (T-03, BUG-1309). Refuses (exit 2) ONLY when
+                                           --parent contradicts an already-recorded
+                                           parent; nothing else recorded already is a
+                                           refusal. Without --yes, reports every write
+                                           it would make and makes none
   gh-sync.py record-pr <feature-dir> [--pr <n>]  derive the pull request number from the
                                            recorded branch's exactly-one merged PR and
                                            record it, or record --pr directly (T-03,
@@ -1198,6 +1211,107 @@ def cmd_open(feat_dir, repo, parent_arg=None, issue_types=None):
     record_build_entry(feat_dir, "opened")
 
 
+def _recover_terminal_conflict(rec, parent_arg):
+    """The ONE refusal `recover-terminal` has (T-03): `--parent <n>` naming a number
+    that CONTRADICTS an already-recorded parent. Returns the refusal message, or None
+    when there is no contradiction — an already-recorded milestone, an already-recorded
+    parent (matching --parent or not given at all), a non-empty `github.issues`, and an
+    existing `build_entry` are NOT refusals; recover-terminal exists to make them
+    recoverable, not to reject them."""
+    if parent_arg is None or rec["parent"] is None:
+        return None
+    if int(parent_arg) == rec["parent"]:
+        return None
+    return (f"--parent {parent_arg} contradicts feature.json's recorded parent "
+            f"#{rec['parent']} — adopting either would silently strand the other")
+
+
+def _recover_terminal_report(rec, parent_arg):
+    """Every write `recover-terminal` would make against the CURRENT record, in
+    `cmd_abandon`'s report-and-ask shape (`_abandon_plan`): `creates` is what the
+    `--yes` path performs remotely; `adoptions` is the line for every part already
+    recorded, printed by BOTH paths so the operator sees what was not created either
+    way."""
+    creates = []
+    adoptions = []
+    if rec["milestone"] is None:
+        creates.append("create the milestone")
+    else:
+        adoptions.append(f"gh-sync: adopting recorded milestone {rec['milestone']}")
+    if rec["parent"] is not None:
+        adoptions.append(f"gh-sync: adopting recorded parent #{rec['parent']}")
+    elif parent_arg is not None:
+        creates.append(f"adopt parent #{parent_arg} (given via --parent)")
+    else:
+        creates.append("create the parent")
+    return creates, adoptions
+
+
+def _recover_terminal_apply(feat_dir, repo, rec, parent_arg):
+    """The `--yes` path's remote writes: create only what `rec` does not already
+    carry, by the SAME routes `cmd_open` uses (`_open_ensure_milestone`,
+    `_open_ensure_parent`, including the milestone's 422 title-lookup recovery), then
+    mirror `source_issues` from the plan and persist. Creates ZERO task sub-issues —
+    those are `_open_sync_task`'s job, and this never calls it; `rec["issues"]` round-
+    trips through `save_recorded` completely unexamined."""
+    brief = parse_brief(feat_dir)
+    if rec["milestone"] is None:
+        _open_ensure_milestone(feat_dir, repo, brief, rec)
+    if rec["parent"] is None:
+        _open_ensure_parent(feat_dir, repo, brief, rec, parent_arg, None)
+    rec["source_issues"] = parse_source_issues(feat_dir)
+    save_recorded(feat_dir, rec)
+
+
+def cmd_recover_terminal(feat_dir, repo, parent_arg=None, yes=False):
+    """`recover-terminal <feature-dir> [--parent <n>] [--yes]` (T-03, BUG-1309) — the
+    operator-approved recovery for an already-merged sync-enabled feature whose mirror
+    was never opened, or was opened only in part. This is the remedy `cmd_ship`'s own
+    "no recorded milestone" skip now names.
+
+    ADOPTS WHAT IS RECORDED, CREATES ONLY WHAT IS MISSING, AND THAT IS THE POINT.
+    FEAT-55, this bug's own subject, already records a milestone, a parent and twelve
+    task sub-issues with no `build_entry` — a remedy that refuses on the only feature
+    it exists for is a deadlock. All four states (both recorded, either alone,
+    neither) reach exit 0, creating only what is missing.
+
+    CREATES ZERO TASK SUB-ISSUES, EVER — see `_recover_terminal_apply`.
+
+    THE ONE REFUSAL IS A CONTRACT ERROR, NOT A CATEGORY — see
+    `_recover_terminal_conflict`. Everything else recorded already is adopted.
+
+    REPORT AND ASK, `cmd_abandon`'s shape: without `--yes`, prints every write it
+    would make plus the adoption line for every already-recorded part (from
+    `_recover_terminal_report`), makes none, and exits 0.
+
+    `record_build_entry(feat_dir, "recovered-terminal")` is the LAST STATEMENT of the
+    successful path — reaching it is itself the proof no `skip()` branch fired, the
+    same structural argument `cmd_open`'s own tail already makes. `main()` arms
+    `_BUILD_ENTRY` only for `open`, so a `gh` failure reached from here runs `skip()`
+    UNARMED: nothing is recorded, the field stays absent, and the feature stays
+    non-terminal — the same funnel `open` uses, never special-cased for this command.
+    """
+    rec = load_recorded(feat_dir)
+    conflict = _recover_terminal_conflict(rec, parent_arg)
+    if conflict is not None:
+        refuse(conflict)
+
+    creates, adoptions = _recover_terminal_report(rec, parent_arg)
+    if not yes:
+        for line in creates:
+            print(f"gh-sync: would {line}")
+        for line in adoptions:
+            print(line)
+        print("gh-sync: recover-terminal is a decision the operator makes — re-run "
+              "with --yes to create the terminal receipt")
+        return
+
+    for line in adoptions:
+        print(line)
+    _recover_terminal_apply(feat_dir, repo, rec, parent_arg)
+    record_build_entry(feat_dir, "recovered-terminal")
+
+
 def _projected_for(feat_dir, rec):
     """{issue number: station} for this feature, from gh_board.project — or {} when the plan
     cannot be read.
@@ -1858,7 +1972,10 @@ def cmd_ship(feat_dir, repo, board, body_file=None, pr_arg=None):
         body_file = post_body_path(body_file, "--body-file")
     rec = load_recorded(feat_dir)
     if rec["milestone"] is None:
-        skip("no recorded milestone — nothing to close")
+        skip(f"no recorded milestone — this feature never completed a Build entry, so "
+             f"there is nothing to close. Run gh-sync.py recover-terminal "
+             f"{os.path.abspath(feat_dir)} --yes to create the terminal receipt, then "
+             f"ship again.")
 
     # The comment is UNCONDITIONAL: posts on any recorded parent whatever its origin.
     if body_file is not None and rec["parent"] is not None:
@@ -2091,14 +2208,14 @@ def main():
         argv = argv[:i] + argv[i + 1:]
     if len(argv) < 2:
         die("usage: gh-sync.py open|start-task|abandon|ship|backlog|record-pr|"
-            "status "
+            "status|recover-terminal "
             "<feature-dir> [T-NN | nature:title ... | <Status>] [--parent <n>] "
             "[--reason-file <path>] [--body-file <path>] [--pr <n>] [--yes]")
     cmd, feat_dir = argv[0], argv[1]
     # A flag that silently does nothing teaches the operator it is harmless everywhere, and
     # the next place they try it is the one that closes tickets. It is a caller error.
-    if yes_flag and cmd != "abandon":
-        die(f"--yes is only accepted by abandon, not {cmd!r}")
+    if yes_flag and cmd not in ("abandon", "recover-terminal"):
+        die(f"--yes is only accepted by abandon and recover-terminal, not {cmd!r}")
     if not os.path.isdir(feat_dir):
         die(f"{feat_dir} is not a directory")
     # DEPTH-AGNOSTIC ROOT (FEAT-21 T-10): the old three-level climb was right for
@@ -2152,6 +2269,8 @@ def main():
         cmd_abandon(feat_dir, repo, board, reason_file, yes_flag)
     elif cmd == "ship":
         cmd_ship(feat_dir, repo, board, body_file, pr_arg)
+    elif cmd == "recover-terminal":
+        cmd_recover_terminal(feat_dir, repo, parent_arg, yes_flag)
     elif cmd == "backlog":
         if len(argv) < 3:
             die("backlog needs at least one nature:title item")

@@ -696,6 +696,36 @@ def moved_to_done(log):
     return out
 
 
+def stage_recover(tmp, feat_name, milestone=None, parent=None, issues=None, source_issues=None):
+    """A `recover-terminal` fixture (T-03, BUG-1309): `stage()`'s sync-enabled project plus
+    a plan.yaml carrying `source_issues`, and feature.json's `github` block pre-seeded with
+    whatever milestone/parent/issues a recovery scenario needs already recorded."""
+    feat = stage(tmp, feat_name=feat_name)
+    write_plan_yaml(feat, feat_name, [("T-01", "done")], source_issues=source_issues or [])
+    write_feature_json(
+        os.path.join(feat, "feature.json"), feature_id=feat_name,
+        github={"milestone": milestone, "parent": parent, "attached": [],
+                "issues": issues or {}, "source_issues": []},
+    )
+    return feat
+
+
+def create_calls(log):
+    """Log lines that CREATE something remotely: a milestone POST, or `issue create`
+    (parent or task sub-issue). Scoped to the PAYLOAD, never the path alone (P-03) —
+    the milestone title LOOKUP also mentions "milestones" but is a plain GET, never
+    `-X POST`, and must not count as a create."""
+    return [l for l in log
+            if ("api -X POST" in l and "milestones" in l) or "issue create" in l]
+
+
+def non_preflight_calls(log):
+    """Every logged call beyond `load_config`'s own unavoidable `gh auth status`
+    preflight — what a COMMAND's own logic invoked, so a dry-run or a refusal that
+    never touches `gh` at all can be asserted as making none."""
+    return [l for l in log if "auth status" not in l]
+
+
 fails = 0
 
 
@@ -3463,7 +3493,96 @@ with tempfile.TemporaryDirectory() as tmpT2h:
           f"rc={rT2h.returncode} github={ghT2h!r} out={rT2h.stdout!r}")
 
 
+# ---------- T-03 (BUG-1309): gh-sync.py recover-terminal ----------
+# The remedy every refusal this bug's OTHER tasks point at, for a feature that predates the
+# Build-entry receipt. FEAT-55, this bug's own subject, records milestone 52, parent 1289
+# and twelve task sub-issues 1391-1402 with NO build_entry (measured fact) -- the fixture
+# below reproduces exactly that shape.
 
+_FEAT55_ISSUES = {f"T-{i:02d}": 1390 + i for i in range(1, 13)}
+
+with tempfile.TemporaryDirectory() as tmpR1:
+    install_gh(tmpR1)
+    featR1 = stage_recover(tmpR1, "FEAT-70-t03-dry", source_issues=[501])
+    fj_path_R1 = os.path.join(featR1, "feature.json")
+    before_R1 = open(fj_path_R1, "rb").read()
+    rR1 = run(["recover-terminal", featR1], tmpR1)
+    after_R1 = open(fj_path_R1, "rb").read()
+    check("T-03 report and ask writes nothing",
+          rR1.returncode == 0 and "would" in rR1.stdout
+          and not non_preflight_calls(calls(tmpR1)) and before_R1 == after_R1,
+          f"rc={rR1.returncode} out={rR1.stdout!r} calls={calls(tmpR1)!r}")
+
+with tempfile.TemporaryDirectory() as tmpR2:
+    install_gh(tmpR2)
+    featR2 = stage_recover(tmpR2, "FEAT-70-t03-create", source_issues=[401, 402])
+    rR2 = run(["recover-terminal", featR2, "--yes"], tmpR2)
+    docR2 = read_feature_json(os.path.join(featR2, "feature.json"))
+    ghR2 = docR2.get("github") or {}
+    logR2 = calls(tmpR2)
+    check("T-03 recover-terminal creates milestone and parent only",
+          rR2.returncode == 0
+          and ghR2.get("milestone") is not None and ghR2.get("parent") is not None
+          and ghR2.get("issues") == {} and ghR2.get("source_issues") == [401, 402]
+          and ghR2.get("build_entry") == "recovered-terminal"
+          and len([l for l in logR2 if "issue create" in l]) == 1,
+          f"rc={rR2.returncode} github={ghR2!r} calls={logR2!r}")
+
+with tempfile.TemporaryDirectory() as tmpR3:
+    install_gh(tmpR3)
+    featR3 = stage_recover(tmpR3, "FEAT-70-t03-feat55", milestone=52, parent=1289,
+                           issues=dict(_FEAT55_ISSUES), source_issues=[1289])
+
+    rR3 = run(["recover-terminal", featR3, "--yes"], tmpR3)
+    docR3 = read_feature_json(os.path.join(featR3, "feature.json"))
+    ghR3 = docR3.get("github") or {}
+    check("T-03 FEAT-55 shape adopts and creates nothing",
+          rR3.returncode == 0 and ghR3.get("build_entry") == "recovered-terminal"
+          and ghR3.get("issues") == _FEAT55_ISSUES
+          and len(create_calls(calls(tmpR3))) == 0,
+          f"rc={rR3.returncode} github={ghR3!r} calls={calls(tmpR3)!r}")
+
+    n_before_R4 = len(calls(tmpR3))
+    rR4 = run(["recover-terminal", featR3, "--yes"], tmpR3)
+    logR4 = calls(tmpR3)[n_before_R4:]
+    docR4 = read_feature_json(os.path.join(featR3, "feature.json"))
+    ghR4 = docR4.get("github") or {}
+    check("T-03 second run is idempotent",
+          rR4.returncode == 0 and ghR4.get("issues") == _FEAT55_ISSUES
+          and len(create_calls(logR4)) == 0,
+          f"rc={rR4.returncode} github={ghR4!r} calls={logR4!r}")
+
+    fj_path_R5 = os.path.join(featR3, "feature.json")
+    before_R5 = open(fj_path_R5, "rb").read()
+    n_before_R5 = len(calls(tmpR3))
+    rR5 = run(["recover-terminal", featR3, "--parent", "999", "--yes"], tmpR3)
+    logR5 = calls(tmpR3)[n_before_R5:]
+    after_R5 = open(fj_path_R5, "rb").read()
+    both_R5 = rR5.stdout + rR5.stderr
+    check("T-03 parent contract error refuses",
+          rR5.returncode == 2 and "999" in both_R5 and "1289" in both_R5
+          and before_R5 == after_R5 and not non_preflight_calls(logR5),
+          f"rc={rR5.returncode} out={both_R5!r} calls={logR5!r}")
+
+with tempfile.TemporaryDirectory() as tmpR6:
+    install_gh(tmpR6, FAKE_GH_FAIL_FIRST)
+    featR6 = stage_recover(tmpR6, "FEAT-70-t03-ghfail")
+    rR6 = run(["recover-terminal", featR6, "--yes"], tmpR6)
+    docR6 = read_feature_json(os.path.join(featR6, "feature.json"))
+    ghR6 = docR6.get("github") or {}
+    check("T-03 gh failure records nothing",
+          rR6.returncode == 0 and "build_entry" not in ghR6
+          and "gh-sync: SKIP" in rR6.stdout,
+          f"rc={rR6.returncode} github={ghR6!r} out={rR6.stdout!r}")
+
+with tempfile.TemporaryDirectory() as tmpR7:
+    install_gh(tmpR7)
+    featR7 = stage(tmpR7, feat_name="FEAT-70-t03-ship-points")
+    rR7 = run(["ship", featR7], tmpR7)
+    check("T-03 ship names recover-terminal",
+          rR7.returncode == 0 and "gh-sync: SKIP" in rR7.stdout
+          and "recover-terminal" in rR7.stdout,
+          f"rc={rR7.returncode} out={rR7.stdout!r}")
 
 
 sys.exit(1 if fails else 0)
