@@ -1,44 +1,48 @@
-# Handoff — BUG-148-gate-record-correction, validate → ship — written at 43b4a4cd, seq-4
+# Handoff — BUG-148-gate-record-correction, validate → ship — written at aceb7ec6, seq-5
 
 ## Next
 
-Nothing is dispatchable until the operator's SC-06 read returns: it is the only ungraded
-criterion and the only remaining gate. When the answers file arrives (path handed by the main
-session — never discovered by globbing), dispatch `harness-product-lead` for pm's goal-check over
-ALL SIX criteria by their declared `verify:` methods, inputs
-`runs/2026-09-06-08-validator/digest.md` plus the operator's read, output
-`notes/research-BUG-148-goalcheck-ship-c0.md`. Then assemble the CEO briefing at
-`notes/ship-review-<runid>.md` from the eight run digests named in `feature.json` `runs:` — read
-them from disk, spawn no report round, and disclose that you did not. Backlog rows to propose:
-STATE.md Q4 (unperturbed test) and Q7 (REQ-04 ungraded by any criterion).
+Nothing is dispatchable until the operator's SC-06 read of the SHORTENED DEC-174 passage returns:
+it is the only ungraded criterion and the only remaining gate. When the answers file arrives (path
+handed by the main session — never discovered by globbing), dispatch `harness-product-lead` for
+pm's goal-check over ALL SIX criteria by their declared `verify:` methods, inputs
+`runs/2026-09-06-08-validator/digest.md`, `runs/2026-09-07-01-product/digest.md` and the operator's
+read, output `notes/research-BUG-148-goalcheck-ship-c0.md`. Then assemble the CEO briefing at
+`notes/ship-review-<runid>.md` from the ten run digests named in `feature.json` `runs:` — read them
+from disk, spawn no report round, disclose that you did not. Backlog rows to propose: STATE.md Q4
+(unperturbed test), Q7 (REQ-04 ungraded by any criterion) and the stale `2026-09-06-08-validator`
+digest under Trust below.
 
 ## Trust
 
-- The panel PASSED clean: four reviewers RAN, none skipped, `severity_max: info`, `must_fix: []`, `matrix_ok: true`, 0 send-backs — `runs/2026-09-06-08-validator/digest.md`, and its `state.yaml` reads `status: complete` with all four steps carrying a set `completed_at` — verified-at 43b4a4cd
-- SC-01, SC-02, SC-03 and SC-05 are met at the pin on my OWN measurement, not on a digest's claim — `git show 87e6033:<record>` with whitespace normalised, and `git diff 41c16c7..87e6033` — verified-at 43b4a4cd
-- REQ-04 holds: every feature-dir path in the pinned range is `A`, and the only three `M` entries are the two `docs/` records and `FEAT-05-pyyaml-file-parsers/STATE.md` — `git diff --name-status 41c16c7..87e6033` — verified-at 43b4a4cd
-- `review_sha` `87e6033` still carries the whole product diff: the three commits after it touch only this feature's STATE.md, feature.json and observations — `git diff --name-only 87e6033..HEAD` — verified-at 43b4a4cd
-- The board matches the plan: parent #1417 and sub-issues #1418/#1419 all at review — my own idempotent re-run of `gh-sync.py status <dir> review`, four confirming lines — verified-at 43b4a4cd
-- SC-04 was AUDITED this phase, never executed — the suite last ran in the qa segment, `notes/qa-BUG-148-2026-09-06.md:44-54`; its transfer to this pin rests on an empty `f60d5d27..87e6033` product stat, which is a transfer argument and not a fresh measurement — verified-at 43b4a4cd
+- `review_sha` is `651e60e2`, RE-PINNED this cycle because the cycle-5 wording fix moved the product diff off `87e6033`; the one commit after it (`aceb7ec6`) touches only this feature's STATE.md, feature.json and observations — `git diff --name-only 651e60e2..HEAD` — verified-at aceb7ec6
+- DEC-174's evidence paragraph is 88 words over 8 lines, down from 115 over 10, with all five required strings present and `Every gate was green` absent — T-01's verify run verbatim over the `## DEC-174`..`## DEC-175` region — verified-at aceb7ec6
+- FEAT-05 `STATE.md` is byte-identical across both pins and absent from the cycle-5 commit — `git diff --quiet 87e6033 651e60e2 -- <that path>` — verified-at aceb7ec6
+- SC-01, SC-03 and SC-05 hold at the NEW pin on my own measurement: one hunk `@@ -4306,13 +4306,11 @@` inside the evidence paragraph, and `git diff --name-only 41c16c7..651e60e2` lists only the three allowlisted paths outside the feature dir — verified-at aceb7ec6
+- SC-04 was EXECUTED this cycle, not audited: `tests/integration/test-gen-decisions-index.py` exit 0, 14 `ok`, both named tests among them — verified-at aceb7ec6
+- The index regeneration is anchor-only: normalising `@[0-9]+` → `@N` over the changed lines leaves zero unpaired lines, and DEC-174's row keeps `@4302` and its hand-written ruling verbatim — verified-at aceb7ec6
+- The panel PASSED clean but graded the PREVIOUS wording at `87e6033`; it was not re-run for the shortened prose, and the gate that grades prose is SC-06 — `runs/2026-09-06-08-validator/digest.md`; STATE.md `## Current` — verified-at aceb7ec6
+- `runs/2026-09-06-08-validator/digest.md` FAILS the lead digest contract (no fenced YAML: no VERDICT, no DIGEST, no artifact, ten missing fields) and reddens `check-state.sh`. Pre-existing, gitignored, untouched by cycle 5; not rewritten because authoring another run's record is not this tier's act — `validate-digest.py lead <that path>` — verified-at aceb7ec6
 
 ## Dead ends
 
-- Do not re-run the reviewer panel or any part of the test matrix for this diff: the panel is clean at the pin and the operator ruled the matrix not be re-run — `runs/2026-09-06-08-validator/digest.md`; STATE.md `## Current` — verified-at 43b4a4cd
-- Do not treat the panel's F-A (REQ-04 ungraded) as open: I measured it and it holds. It is a BRIEF-shape lesson for the backlog, not a finding to route — `git diff --name-status 41c16c7..87e6033` — verified-at 43b4a4cd
-- Do not re-open the FEAT-05 `Corrected 2026-09-06 under BUG-148:` register as a defect: SIMPLIFY raised it, the premise failed against REQ-01 and D-05 ruling 1, and it is now flagged FOR the SC-06 read — `plan.yaml` `decisions:` D-05; STATE.md Q1 — verified-at 43b4a4cd
-- Do not cite `brief-sc:` or `plan-task:` pointers in a handoff note here: the resolver rejoins to the MAIN checkout root and refuses the Write — STATE.md Q6 — verified-at 43b4a4cd
-- Do not re-pin `review_sha` or remove this worktree; removal is the main session's or the post-merge hook's act — `harness` skill, worktree section — verified-at 43b4a4cd
+- Do not re-run the reviewer panel or the test matrix for the mechanical criteria: all five were re-measured at the new pin this cycle — STATE.md `## Current` — verified-at aceb7ec6
+- Do not re-pin `review_sha` again unless a further commit changes a product path; record-only commits do not move it — `git diff --name-only 651e60e2..HEAD` — verified-at aceb7ec6
+- Do not edit FEAT-05 `STATE.md`: the operator approved it explicitly and DEC-174 is the side that moves — STATE.md `## Current`; `plan.yaml` `decisions:` D-05 — verified-at aceb7ec6
+- Do not re-open the FEAT-05 `Corrected 2026-09-06 under BUG-148:` register as a defect: the premise failed against REQ-01 and D-05 ruling 1, and it is flagged FOR the SC-06 read — STATE.md Q1 — verified-at aceb7ec6
+- Do not cite `brief-sc:` or `plan-task:` pointers in a handoff note here: the resolver rejoins to the MAIN checkout root and refuses the Write — STATE.md Q6 — verified-at aceb7ec6
+- Do not remove this worktree; removal is the main session's or the post-merge hook's act — `harness` skill, worktree section — verified-at aceb7ec6
 
 ## Working set
 
 - .harness/harness/features/BUG-148-gate-record-correction/STATE.md
 - .harness/harness/features/BUG-148-gate-record-correction/feature.json
-- .harness/harness/features/BUG-148-gate-record-correction/runs/2026-09-06-08-validator/digest.md
+- .harness/harness/features/BUG-148-gate-record-correction/runs/2026-09-07-01-product/digest.md
 - .harness/harness/features/BUG-148-gate-record-correction/BRIEF.md
-- .harness/harness/features/BUG-148-gate-record-correction/notes/qa-BUG-148-2026-09-06.md
+- .harness/harness/docs/DECISIONS.md
 
 ## Done when
 
-Scope: pm's six-criterion goal-check once the operator's SC-06 read returns, then the CEO briefing
+Scope: pm's six-criterion goal-check once the operator's SC-06 read of the shortened passage returns, then the CEO briefing
 Authority: finding:.claude/worktrees/harness/BUG-148-gate-record-correction/.harness/harness/features/BUG-148-gate-record-correction/notes/research-BUG-148-goalcheck-plan-c0.md#F-4
 Authority: approval:.claude/worktrees/harness/BUG-148-gate-record-correction/.harness/harness/features/BUG-148-gate-record-correction/BRIEF.md#Approval
