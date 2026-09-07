@@ -4306,13 +4306,11 @@ be using harness to build harness."* Substantially accepted, with the boundary d
 full claim.
 
 **The evidence, all from 2026-08-03 and all on this repo.** `run-unit-tests.sh`, `check-docs.sh` and
-`check-state.sh` were green, and the fourth gate recorded that day, `gen-decisions-index.py --check`,
-was no gate at all: `--check` was never a supported mode. Before argv validation landed at commit
-`ffbdbfa1` (2026-08-05, "perf(140): validate argv so `--help` stops rewriting the index"), `main()`
-read `stdout_mode = "--stdout" in sys.argv[1:]`, so an unrecognized `--check` fell through to the
-WRITE path: the run regenerated `DECISIONS-INDEX.md` in place and exited 0, and a regeneration
-overwrites exactly the drift a check would have reported, so it could not prove index drift one way
-or the other. The read-only form is
+`check-state.sh` were green, and the fourth gate, `gen-decisions-index.py --check`, was no gate at
+all: `--check` was never a supported mode. Before argv validation landed at `ffbdbfa1` (2026-08-05),
+an unrecognized argument fell through to the WRITE path, so that exit 0 was a regeneration of
+`DECISIONS-INDEX.md` that overwrites exactly the drift a check would have reported; it could not
+prove index drift. Use
 `gen-decisions-index.py --stdout | diff - .harness/harness/docs/DECISIONS-INDEX.md`. Those three
 real gates were green while:
 
