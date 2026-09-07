@@ -4,7 +4,7 @@ approval:
   date: '2026-09-06'
   approved_by: mruangutai
   status: approved
-status: building
+status: review
 source_issues: [148]
 
 lanes:
