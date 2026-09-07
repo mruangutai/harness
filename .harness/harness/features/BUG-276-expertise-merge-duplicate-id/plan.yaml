@@ -4,7 +4,7 @@ approval:
   date: '2026-09-07'
   approved_by: operator
   status: approved
-status: plan
+status: building
 source_issues: [276]
 
 lanes:
@@ -180,7 +180,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: []
-    status: ready
+    status: done
     files:
       - tests/unit/test-expertise-ops.py
       - .claude/skills/harness/bin/expertise-merge.py
