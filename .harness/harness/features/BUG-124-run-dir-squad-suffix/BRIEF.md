@@ -62,8 +62,11 @@ callee's own — an orchestrator dispatching `harness-eng-lead` and naming `runs
 ## Success Criteria
 
 - SC-01: The reported case is refused: a governed dispatch prompt naming
-  `.harness/harness/features/<feat>/runs/eng-t01/digest.md` exits 2, and stderr contains the string
-  `eng-t01`.
+  `[.]harness/harness/features/<feat>/runs/eng-t01/digest.md` exits 2, and stderr contains the string
+  `eng-t01`. The `[.]` is the D-05 escape, applied because this criterion quotes the path rather than
+  directing a write; the producing case restores the real `.harness/` anchor from it — the
+  `q.replace("[.]", ".")` idiom the plan's own `verify:` lines use — and it is that restored path the
+  prompt carries.
   verify: automated        evidence: integration
 - SC-02: The refusal is actionable: the same stderr also names a compliant form carrying a trailing
   squad suffix drawn from team-config.yaml.
@@ -90,6 +93,13 @@ callee's own — an orchestrator dispatching `harness-eng-lead` and naming `runs
   as the body of a second governed dispatch prompt (behind a valid `HARNESS-FEATURE:` first line),
   does not exit 2 and its own stderr carries no run-dir slug refusal. Deleting the anchor rewrite
   from the refusal message turns this case red.
+  verify: automated        evidence: integration
+- SC-09: The skip reason is distinguished, so a broken check is not mistaken for the benign REQ-05
+  skip: with a manifest that parses but declares no run-dir write grant, stderr states the
+  vocabulary is empty because the manifest declares no run-dir grant; with the derivation itself
+  broken (an unparseable manifest), stderr instead states that the vocabulary derivation subprocess
+  failed. Neither exits 2, and the two messages are not interchangeable — each case asserts the text
+  belonging to its own reason and asserts the absence of the other.
   verify: automated        evidence: integration
 
 ## Verification gaps

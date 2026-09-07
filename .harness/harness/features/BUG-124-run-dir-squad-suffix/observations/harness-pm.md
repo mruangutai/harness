@@ -30,3 +30,21 @@
 - 2026-09-07: BUG-124. `amend --field traces` refuses a list field until `--yaml-value` is passed on
   BOTH the `--show` and the write; the `--show` sha differs between the two modes, so showing
   without the flag and writing with it would have been a wasted round trip.
+- 2026-09-07: BUG-124 c1. plan-merge apply could not carry any of the five remedies: all five change
+  existing task/decision VALUES, and apply exits 7 CONFLICT on a changed value. Six
+  `amend --key … --id … --field … --expect-sha256 … --value-file` calls did it. Extracting each
+  field body from `amend --show` (drop the trailing sha256 line), doing asserted single-hit
+  `str.replace` on it, and writing the result back as the value file kept every untouched sentence
+  byte-identical — retyping a 200-line intent by hand would not have.
+- 2026-09-07: authoring a phrase-exact `verify:` over a MARKDOWN file, the wrap is the trap: a
+  `grep -q "matches no run-dir write grant"` fails the moment the doer wraps the sentence mid-phrase,
+  which makes a correct edit unverifiable. Normalizing first (`S=$(tr -s ' \t\n' ' ' < file)` then
+  `case "$S" in *"$p"*)`) survives wrapping, reports WHICH string is missing, and stayed a one-liner.
+  Proved it on a temp arm: red pre-change, green on the prescribed sentences hard-wrapped mid-phrase,
+  red again with the exit code slipped and with the compliant-form clause dropped.
+- 2026-09-07: for F-4 the fix was not "add a test" but "give the subprocess a failure channel":
+  run_dir_grant_globs never raises, so absent/unparseable/PyYAML-missing all return [] and are
+  indistinguishable from a grant-less manifest. Specifying one unguarded `harness_yaml.load_str`
+  call plus a captured exit status is what makes the two SKIPPED texts assertable at all.
+- 2026-09-07 (BUG-124, goal-check c1): adopting an escape SPELLING to close a self-refusing verify: silently rewrites every criterion that QUOTES the trigger path. BRIEF.md:65 (SC-01) went from "prompt naming .harness/.../runs/eng-t01 exits 2" to the [.] spelling, which under the new convention is exactly the form that must NOT exit 2 — the criterion reads as self-refuting even though its producing case (plan.yaml:378) is unambiguous. After any escape/anchor-breaking convention lands, re-read every SC that names the trigger.
+- 2026-09-07 (BUG-124, goal-check c1): verifying an absence claim over a plan needs a positive control from OUTSIDE the graded file. plan.yaml and BRIEF.md returned zero anchored run-dir refs; the same detector fired on three cycle-0 digest/note sites, which is what proved the search live rather than empty. Digests written before the convention keep the raw anchor and cannot be rewritten without falsifying the record.

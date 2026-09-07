@@ -55,12 +55,7 @@ decisions:
       the shell half of dispatch-guard.sh, whose result crosses into the python3 -I body as the
       environment variable HARNESS_RUN_DIR_GLOBS.
     because: >-
-      DEC-171 requires a real PyYAML parse and strikes hand-rolled YAML regex readers of this
-      manifest, but PyYAML lives in the user site-packages that python3 -I excludes (measured at the
-      pinned sha: the isolated import fails while a plain import succeeds), so a parse inside the
-      isolated body would fail open on every dispatch and the gate would never fire. Dropping -I was
-      rejected because it weakens the isolation of a security gate and changes the invocation that
-      integration case 16 pins.
+      DEC-171 requires a real PyYAML parse and strikes hand-rolled YAML regex readers of this manifest, but PyYAML lives in the user site-packages that python3 -I excludes (measured at the pinned sha: the isolated import fails while a plain import succeeds), so a parse inside the isolated body would fail open on every dispatch and the gate would never fire. Dropping -I was rejected because it weakens the isolation of a security gate and changes the invocation that integration case 16 pins. An orchestrator measurement dated 2026-09-07, taken at 6d969ed3 on this machine, bounds what remains at risk: import yaml SUCCEEDS under /opt/homebrew/bin/python3, under /usr/bin/python3 and under PATH=/usr/bin:/bin python3, while python3 -I -c import yaml fails. So the shell-half bridge is necessary, and the gate is not a dead no-op in this environment - which is why the plan panel blocking question about the python3 a live hook resolves is ANSWERED, and panel finding F-4 is an observability defect rather than a dead gate. What the measurement does not buy is silence: the derivation subprocess must still be able to report its own breakage, so T-02 gives it a non-zero exit on a failed parse and two distinguishable SKIPPED texts.
     dec: none
   - id: D-04
     choice: >-
@@ -176,7 +171,7 @@ tasks:
       - .claude/skills/harness/bin/harness_boundary.py
       - tests/unit/test-harness-boundary.py
     verify: |
-      python3 tests/unit/test-harness-boundary.py && python3 -c 'import sys; sys.path.insert(0, ".claude/skills/harness/bin"); import harness_boundary as hb; g = hb.run_dir_grant_globs("."); assert len(g) == 3, g; assert hb.run_dir_slug_ok(("harness", "F", "t01-eng"), g), g; assert hb.run_dir_slug_ok(("harness", "F", "2026-08-26-2-plan-product"), g), g; assert not hb.run_dir_slug_ok(("harness", "F", "eng-t01"), g), g; q = "see /a/b/[.]harness/harness/features/F/runs/eng-t01/digest.md now"; assert hb.run_dir_refs(q.replace("[.]", ".")) == [("harness", "F", "eng-t01")], hb.run_dir_refs(q.replace("[.]", ".")); assert hb.run_dir_refs(q) == [], hb.run_dir_refs(q); assert sorted(hb.run_dir_forms(g)) == ["<task-or-purpose>-eng", "<task-or-purpose>-product", "<task-or-purpose>-validator"], hb.run_dir_forms(g)'
+      python3 tests/unit/test-harness-boundary.py && python3 -c 'import sys; sys.path.insert(0, ".claude/skills/harness/bin"); import harness_boundary as hb; g = hb.run_dir_grant_globs("."); assert g and all("/runs/" in x for x in g), g; assert hb.run_dir_slug_ok(("harness", "F", "t01-eng"), g), g; assert hb.run_dir_slug_ok(("harness", "F", "2026-08-26-2-plan-product"), g), g; assert not hb.run_dir_slug_ok(("harness", "F", "eng-t01"), g), g; q = "see /a/b/[.]harness/harness/features/F/runs/eng-t01/digest.md now"; assert hb.run_dir_refs(q.replace("[.]", ".")) == [("harness", "F", "eng-t01")], hb.run_dir_refs(q.replace("[.]", ".")); assert hb.run_dir_refs(q) == [], hb.run_dir_refs(q); f = hb.run_dir_forms(g); assert f and all(x.startswith("<task-or-purpose>-") for x in f), f'
     intent: |
       Add four helpers to .claude/skills/harness/bin/harness_boundary.py and append unit cases for
       them to tests/unit/test-harness-boundary.py. Write the failing cases FIRST and watch them fail.
@@ -222,13 +217,21 @@ tasks:
       TESTS. Append cases to tests/unit/test-harness-boundary.py using its existing
       check(name, cond, detail) collector and its run_case/main structure, and register them in
       main(). Do not edit an existing case. Every case asserts a VALUE, never merely that a call did
-      not raise. Cover: the live manifest yields exactly the three run-dir globs; a temp manifest
+      not raise. Cover: every run-dir glob the live manifest yields contains /runs/; a temp manifest
       whose only run-dir grant names an invented squad yields exactly that one glob; an absent
       manifest and a manifest of garbage bytes each yield the empty list; run_dir_refs finds the tail
       inside an absolute path, de-duplicates a repeated path, and returns the empty list for text
       naming no run dir; t01-eng, plan-product and 2026-08-26-2-plan-product pass run_dir_slug_ok
-      against the live globs while eng-t01 and plan_product fail; run_dir_forms returns the three
-      <task-or-purpose>-<squad> strings for the live manifest.
+      against the live globs while eng-t01 and plan_product fail; run_dir_forms on that same synthetic invented-squad
+      manifest yields exactly the one derived form for that squad.
+
+      DO NOT PIN THE LIVE MANIFEST BY COUNT OR BY CONTENT. No case may assert how many run-dir
+      globs .harness/team-config.yaml yields, nor the exact set of forms it produces: REQ-04
+      promises that adding, renaming or removing a squad run-dir grant there needs no second edit
+      anywhere, and a count or an exact-forms list checked in here turns red on exactly that
+      sanctioned change. Assert SHAPE against the live manifest (every glob contains /runs/, the
+      known-good slugs pass, the inverted slug fails) and assert EXACT values only against a
+      synthetic manifest the test itself wrote.
 
       Do NOT edit .harness/team-config.yaml. This work reads it.
   - id: T-02
@@ -282,13 +285,28 @@ tasks:
       sha, the isolated import of yaml raises ModuleNotFoundError while a plain python3 -c import
       succeeds. So derive the globs in the SHELL half and pass them in:
         - after GUARD_BIN_DIR is computed (line 25 today) add ONE command substitution that runs a
-          NON-isolated python3 -c using the house idiom sys.path.pop(0) then
-          sys.path.insert(0, sys.argv[1]) - the same idiom check-domain.sh line 103 uses - imports
-          harness_boundary, resolves the root with resolve_root(bin_dir, strict=False) and prints
-          run_dir_grant_globs(root) one per line. Send its stderr to /dev/null and make it incapable
-          of failing the script; an empty value is a legal answer.
-        - pass the result as HARNESS_RUN_DIR_GLOBS on the existing
+          NON-isolated python3 -c which pops sys.path[0] and then inserts the guard bin dir handed to
+          it as an argument, imports harness_boundary and harness_yaml, resolves the root with
+          resolve_root(bin_dir, strict=False), parses the manifest once through
+          harness_yaml.load_str with NO try/except around that call, and then prints
+          run_dir_grant_globs(root) one per line. The house precedent for the sys.path handling is
+          check-domain.sh, and it is TWO lines, not one: line 103 runs
+          python3 -c with sys.path.pop(0) and feeds the real program in on stdin, and line 125 then
+          does sys.path.insert(0, _bin_dir) where _bin_dir comes from sys.argv[3]. There is no
+          sys.path.insert(0, sys.argv[1]) at line 103; copy the pop-then-insert-an-argument pair.
+        - THE BARE PARSE IS THE POINT (F-4). run_dir_grant_globs swallows an absent manifest, an
+          unparseable manifest and a missing PyYAML and returns the empty list for all three, which is
+          indistinguishable from a manifest that simply declares no run-dir grant. harness_yaml.load_str
+          raises MissingDependency or YamlParseError in exactly those cases, so leaving that one call
+          unguarded makes the subprocess exit NON-ZERO on a broken derivation while a grant-less
+          manifest still exits 0 with no output. The extra parse is of one small file and it is what
+          buys the distinction.
+        - keep the subprocess incapable of failing the script and keep its stderr on /dev/null, but
+          CAPTURE its status: write it as an if _globs=$(...); then _derived=0; else _derived=1; fi so
+          that set -uo pipefail cannot be tripped by a non-zero substitution, and pass BOTH
+          HARNESS_RUN_DIR_GLOBS and HARNESS_RUN_DIR_DERIVED on the existing
           printf ... | HARNESS_GUARD_BIN_DIR=... python3 -I -c line, beside HARNESS_GUARD_BIN_DIR.
+          An empty HARNESS_RUN_DIR_GLOBS remains a legal answer.
           Do NOT drop -I and do not otherwise change that invocation: integration case 16 pins that
           the guard runs under a system python with PATH set to /usr/bin:/bin.
         - the new shell code must contain NO APOSTROPHES either, for the same reason the python body
@@ -309,8 +327,18 @@ tasks:
       THE CHECK.
         globs = every non-blank line of os.environ.get("HARNESS_RUN_DIR_GLOBS") or the empty string
         refs  = hb.run_dir_refs(prompt)
-        refs and no globs -> print ONE stderr line saying the run-dir shape check was SKIPPED and why
-        (the vocabulary was empty), then FALL THROUGH to the claim step. Do not exit at all here: an
+        refs and no globs -> print ONE stderr line saying the run-dir shape check was SKIPPED, and
+        DISTINGUISH THE TWO REASONS by HARNESS_RUN_DIR_DERIVED (F-4). When it is 0 the derivation ran
+        and the manifest simply declares no run-dir grant, so the line reads: dispatch-guard: run-dir
+        shape check SKIPPED -- the manifest declares no run-dir write grant, so the slug vocabulary is
+        empty. When it is anything else, including unset, the derivation itself failed, so the line
+        reads instead: dispatch-guard: run-dir shape check SKIPPED -- the run-dir vocabulary derivation
+        failed (manifest unreadable, unparseable, or PyYAML unavailable to that python3). The two texts
+        are NOT interchangeable and neither contains the other, because a derivation that cannot report
+        its own breakage is a gate that reads green while doing nothing: a broken parse would be
+        indistinguishable from the benign REQ-05 skip and issue 124 would ship unfixed behind a green
+        suite. Fail-open behaviour is UNCHANGED - REQ-05 stands, only the observability changes. Then
+        FALL THROUGH to the claim step in both cases. Do not exit at all here: an
         exit 0 would silently skip the claim this guard exists to record.
         refs and globs -> bad = every ref for which hb.run_dir_slug_ok(ref, globs) is False; a
         non-empty bad list prints the refusal and calls sys.exit(2).
@@ -368,6 +396,12 @@ tasks:
             prompt without one hits the single fail-closed branch of the guard and would exit 2 for an
             unrelated reason, which would read as this case passing for the wrong cause - so also
             assert the stderr does not name a missing HARNESS-FEATURE line.
+        (i) DERIVATION BROKEN, and distinguished from (e): a throwaway checkout whose
+            .harness/team-config.yaml is garbage bytes that do not parse, and a prompt naming
+            eng-t01: exit is not 2, stderr says the run-dir vocabulary derivation failed, and stderr
+            does NOT carry the no-run-dir-write-grant text case (e) asserts. Case (e) asserts the
+            mirror image: its own text present, the derivation-failed text absent. Neither case can
+            pass against a single generic skip line, which is the whole point of the pair.
 
       RED PROOF, and record it. Copy the bin dir to a temp tree, replace dispatch-guard.sh in the copy
       with the output of
@@ -375,11 +409,12 @@ tasks:
       run the suite with DISPATCH_GUARD_BIN pointed at that copy, and record the exact command and the
       FAIL lines in your receipt at
       .harness/harness/features/BUG-124-run-dir-squad-suffix/notes/receipt-<your-agent-name>-<runid>.md.
-      Cases (a), (b), (f) and (g) MUST fail there. Cases (c), (d), (e) and (h) are not-blocked
+      Cases (a), (b), (f) and (g) MUST fail there. Cases (c), (d), (e), (h) and (i) are not-blocked
       assertions and pass against a guard that blocks nothing, so the pre-change file cannot falsify
-      them. Case (h) is falsified by a WRONG implementation of THIS task instead: prove it by
-      temporarily deleting the anchor rewrite from your refusal message, watching (h) fail at exit 2,
-      restoring it, and recording both runs in the same receipt. A case nothing can turn red is not
+      them. Cases (h) and (i) are falsified by a WRONG implementation of THIS task instead. Prove (h) by
+      temporarily deleting the anchor rewrite from your refusal message and watching it fail at exit 2.
+      Prove (i) and (e) by temporarily collapsing the two SKIPPED lines into one generic line and
+      watching one of the pair fail. Restore both, and record every run in the same receipt. A case nothing can turn red is not
       evidence.
 
       Do NOT edit .harness/team-config.yaml. This fix reads it.
@@ -396,16 +431,18 @@ tasks:
     files:
       - .claude/skills/harness/SKILL.md
     verify: |
-      grep -q "dispatch-guard.sh refuses" .claude/skills/harness/SKILL.md && grep -qF "[.]harness/" .claude/skills/harness/SKILL.md
+      S=$(tr -s ' \t\n' ' ' < .claude/skills/harness/SKILL.md); ok=1; for p in "dispatch-guard.sh refuses" "matches no run-dir write grant" "at exit 2" "and a compliant form" "not on ownership by the dispatched persona" "[.]harness/"; do case "$S" in *"$p"*) ;; *) echo "MISSING: $p"; ok=0;; esac; done; test "$ok" = 1
     intent: |
       The Run-dir slugs paragraph at .claude/skills/harness/SKILL.md lines 272-274 states the
       task-or-purpose then squad convention in prose and says the squad suffix is what the lead
       domain glob keys on. After T-02 that convention is mechanically enforced, so the paragraph must
       say so in TWO added sentences, and nothing more.
 
-      Sentence one, the enforcement: dispatch-guard.sh refuses a governed dispatch that names a
+      Sentence one, the enforcement. Write it with these phrases intact, because the verify checks each
+      of them and a paraphrase fails it: dispatch-guard.sh refuses a governed dispatch that names a
       run-dir path whose slug matches no run-dir write grant in .harness/team-config.yaml, at exit 2,
-      naming the slug and a compliant form.
+      naming the offending slug and a compliant form, and the check is on slug shape and is
+      not on ownership by the dispatched persona.
 
       Sentence two, the quoting convention (D-05): a run-dir path that is being QUOTED rather than
       written - in a plan verify: or intent: block, in a pasted refusal, in a bug report - is spelled
@@ -417,6 +454,15 @@ tasks:
       reaches only those already blocked. Write [.]harness/ literally, with the square brackets; do
       not describe it in words instead.
 
+      WHY THE VERIFY IS PHRASE-EXACT. This task is main-session-direct and has no reviewer, so a
+      transcription slip - stating exit 1, or saying the guard checks who OWNS the path rather than what
+      SHAPE the slug has, or dropping the compliant-form clause REQ-02 needs - would otherwise ship
+      uncaught behind a grep that binds four words. The verify therefore requires all six strings:
+      dispatch-guard.sh refuses / matches no run-dir write grant / at exit 2 / and a compliant form /
+      not on ownership by the dispatched persona / the literal [.]harness/. It normalizes runs of
+      whitespace to one space before matching, so wrapping the sentences across lines is fine; changing
+      their wording is not. None of the six strings is present in SKILL.md today, so the verify fails
+      before the edit and can only pass because of it.
+
       Keep the existing two sentences and the existing examples unchanged; add nothing else and change
-      no other section. The phrase dispatch-guard.sh refuses and the literal [.]harness/ must both
-      appear, because the verify greps for each.
+      no other section.
