@@ -32,6 +32,14 @@ and fixes it in one step before any work starts.
   removing a squad's run-dir grant there changes what is accepted, with no second edit anywhere.
 - REQ-05: When the vocabulary cannot be determined, the dispatch passes through and the reason is
   stated on stderr. The check never blocks on its own failure.
+- REQ-06: A dispatcher can quote a refusal — paste the guard's own output into the follow-up
+  dispatch that debugs, shares or escalates it — without that dispatch being refused for carrying
+  the quoted path.
+
+**Disclosed as detected by nothing:** this fix checks slug SHAPE against the run-dir grant family,
+not ownership by the callee, so a well-formed slug carrying a trailing squad suffix that is not the
+callee's own — an orchestrator dispatching `harness-eng-lead` and naming `runs/t01-product/digest.md`
+— passes every requirement above while still being unwritable by that callee (D-01).
 
 ## Constraints
 
@@ -77,6 +85,11 @@ and fixes it in one step before any work starts.
   verify: inspection
 - SC-07: A refusal strands no state: the refused dispatch records no claim — the registry holds no
   claim for the dispatched persona after an `eng-t01` refusal.
+  verify: automated        evidence: integration
+- SC-08: The refusal is paste-safe: the exact stderr emitted by an `eng-t01` refusal, used verbatim
+  as the body of a second governed dispatch prompt (behind a valid `HARNESS-FEATURE:` first line),
+  does not exit 2 and its own stderr carries no run-dir slug refusal. Deleting the anchor rewrite
+  from the refusal message turns this case red.
   verify: automated        evidence: integration
 
 ## Verification gaps

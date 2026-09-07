@@ -71,6 +71,29 @@ decisions:
       A refusal recorded after a claim strands that claim in the registry, and an early exit 0 would
       silently skip the claim the guard exists to record.
     dec: none
+  - id: D-05
+    choice: >-
+      A run-dir path that is QUOTED or illustrated rather than directed - in the guard refusal
+      message itself, in a plan verify: or intent: block, in a receipt, in a bug report - is
+      spelled with [.]harness/ in place of .harness/, which run_dir_refs cannot see because it
+      anchors on the literal .harness/ segment. The guard prints every path in its refusal in
+      that form, and the convention is stated once in the Run-dir slugs paragraph of
+      .claude/skills/harness/SKILL.md rather than left to be inferred from the refusal output.
+    because: >-
+      The reported case must still fail closed, so the escape cannot be an override flag or a
+      suppression token: it is a spelling that breaks the anchor, and a governed dispatch cannot
+      carry it by accident because a directive path has to resolve on disk for the callee to
+      write it while [.]harness resolves nowhere in any checkout. On panel Q2 the ruling is to
+      state it in SKILL.md, because a dispatcher who hits a FALSE refusal - a prompt that merely
+      quotes or illustrates a run-dir path rather than directing a write - is expected to
+      re-spell that one reference with the [.]harness/ anchor and re-dispatch with nothing else
+      changed, and the authors who most need the rule are the plan and dispatch writers who have
+      not been refused yet and whom the refusal output never reaches. Anchor-breaking the
+      refusal alone was rejected: it teaches the convention only by example, only after a block,
+      and leaves a reader unable to tell an escape from a typo. A typed marker such as a NOSCAN
+      token was rejected because anything a dispatcher can type into a quote can also be typed
+      into a directive, which is a suppression switch on a security gate.
+    dec: none
 panel:
   last_run: planpanel-validator
   cycle: 0
@@ -153,7 +176,7 @@ tasks:
       - .claude/skills/harness/bin/harness_boundary.py
       - tests/unit/test-harness-boundary.py
     verify: |
-      python3 tests/unit/test-harness-boundary.py && python3 -c 'import sys; sys.path.insert(0, ".claude/skills/harness/bin"); import harness_boundary as hb; g = hb.run_dir_grant_globs("."); assert len(g) == 3, g; assert hb.run_dir_slug_ok(("harness", "F", "t01-eng"), g), g; assert hb.run_dir_slug_ok(("harness", "F", "2026-08-26-2-plan-product"), g), g; assert not hb.run_dir_slug_ok(("harness", "F", "eng-t01"), g), g; assert hb.run_dir_refs("see /a/b/.harness/harness/features/F/runs/eng-t01/digest.md now") == [("harness", "F", "eng-t01")], hb.run_dir_refs("x"); assert sorted(hb.run_dir_forms(g)) == ["<task-or-purpose>-eng", "<task-or-purpose>-product", "<task-or-purpose>-validator"], hb.run_dir_forms(g)'
+      python3 tests/unit/test-harness-boundary.py && python3 -c 'import sys; sys.path.insert(0, ".claude/skills/harness/bin"); import harness_boundary as hb; g = hb.run_dir_grant_globs("."); assert len(g) == 3, g; assert hb.run_dir_slug_ok(("harness", "F", "t01-eng"), g), g; assert hb.run_dir_slug_ok(("harness", "F", "2026-08-26-2-plan-product"), g), g; assert not hb.run_dir_slug_ok(("harness", "F", "eng-t01"), g), g; q = "see /a/b/[.]harness/harness/features/F/runs/eng-t01/digest.md now"; assert hb.run_dir_refs(q.replace("[.]", ".")) == [("harness", "F", "eng-t01")], hb.run_dir_refs(q.replace("[.]", ".")); assert hb.run_dir_refs(q) == [], hb.run_dir_refs(q); assert sorted(hb.run_dir_forms(g)) == ["<task-or-purpose>-eng", "<task-or-purpose>-product", "<task-or-purpose>-validator"], hb.run_dir_forms(g)'
     intent: |
       Add four helpers to .claude/skills/harness/bin/harness_boundary.py and append unit cases for
       them to tests/unit/test-harness-boundary.py. Write the failing cases FIRST and watch them fail.
@@ -216,6 +239,7 @@ tasks:
     - REQ-03
     - REQ-04
     - REQ-05
+    - REQ-06
     change_type: bugfix
     execution_mode: team
     execution_agent: harness-backend-dev
@@ -225,7 +249,7 @@ tasks:
       - .claude/skills/harness/bin/dispatch-guard.sh
       - tests/integration/test-dispatch-guard.py
     verify: |
-      python3 tests/integration/test-dispatch-guard.py && python3 -c 'import json,sys;sys.stdout.write(json.dumps({"agent_type":"harness-orchestrator","tool_name":"Agent","tool_input":{"subagent_type":"harness-eng-lead","prompt":"HARNESS-FEATURE: BUG-124-run-dir-squad-suffix\n.harness/harness/features/BUG-124-run-dir-squad-suffix/runs/eng-t01/digest.md"}}))' | .claude/skills/harness/bin/dispatch-guard.sh 2>&1 | grep -q "eng-t01"
+      python3 tests/integration/test-dispatch-guard.py && python3 -c 'import json,sys;q = "HARNESS-FEATURE: BUG-124-run-dir-squad-suffix\n[.]harness/harness/features/BUG-124-run-dir-squad-suffix/runs/eng-t01/digest.md";sys.stdout.write(json.dumps({"agent_type":"harness-orchestrator","tool_name":"Agent","tool_input":{"subagent_type":"harness-eng-lead","prompt":q.replace("[.]", ".")}}))' | .claude/skills/harness/bin/dispatch-guard.sh 2>&1 | grep -q "eng-t01"
     intent: |
       Wire the run-dir shape check into .claude/skills/harness/bin/dispatch-guard.sh and APPEND
       integration cases to tests/integration/test-dispatch-guard.py. Write the new cases FIRST and
@@ -233,6 +257,16 @@ tasks:
 
       There is ONE dispatch-guard.sh: .agents/skills is a SYMLINK to .claude/skills. Edit the
       .claude path named above.
+
+      THE QUOTING CONVENTION (D-05), which this task implements and which the rest of this intent
+      uses. run_dir_refs anchors on the literal .harness/ segment, so a reference whose anchor is
+      broken is invisible to the check. A run-dir path that is being QUOTED or ILLUSTRATED rather than
+      directed - in a refusal message, in a plan verify: or intent: block, in a receipt, in a bug
+      report - is therefore spelled with [.]harness/ in place of .harness/, and nothing else about it
+      changes. A governed dispatch cannot carry that spelling by accident: a directive path must
+      resolve on disk for the callee to write it, [.]harness is not a directory in any checkout, and
+      any consumer handed one fails loudly rather than writing somewhere unintended. Wherever this
+      intent shows [.]harness/ below, write the real .harness/ anchor into the artifact you build.
 
       THE RULE. Every run-dir path named anywhere in a governed dispatch prompt must match at least
       one write grant whose pattern contains /runs/. Ownership by the dispatched persona is NOT
@@ -286,12 +320,21 @@ tasks:
       blocks ONLY on a positive finding, and on any failure of its own (no vocabulary, unparseable
       manifest, exception) it states the reason on stderr and does not block.
 
-      THE REFUSAL MESSAGE, so a dispatcher fixes it in one step. First line:
+      THE REFUSAL MESSAGE, so a dispatcher fixes it in one step AND so the message is safe to quote
+      back into a later dispatch. First line:
       dispatch-guard: BLOCKED -- run-dir slug %r cannot be written by any squad lead. Then the full
-      offending path tail as it appeared. Then the compliant forms from hb.run_dir_forms(globs) on one
-      line. Then one line stating that the squad suffix TRAILS the purpose and that the parent
-      directory already carries the feature id. Every squad token in the message comes from
-      run_dir_forms - never a literal. Use percent-formatting.
+      offending path tail as it appeared, EXCEPT that the literal .harness/ anchor is printed as
+      [.]harness/ - one str.replace of the anchor text, applied to every path this message prints.
+      NEVER print a raw anchored run-dir path. Then the compliant forms from hb.run_dir_forms(globs)
+      on one line; those are bare slug forms and carry no anchor at all. Then one line stating that
+      the squad suffix TRAILS the purpose and that the parent directory already carries the feature
+      id. Then ONE final line stating that a run-dir path being quoted rather than written is spelled
+      with [.]harness/ in place of .harness/, and that the paths in this message are already in that
+      form. Every squad token in the message comes from run_dir_forms - never a literal. Use
+      percent-formatting. WHY THIS IS BINDING: verify: and intent: text is carried verbatim into
+      member dispatch prompts, and a refusal gets pasted into the very dispatch that debugs it. A
+      message carrying its own raw anchor is refused at exit 2 by the check that printed it, with no
+      override - the gate would be a poison pill for the debugging flow its refusals start.
 
       TESTS, APPENDED. The docstring of tests/integration/test-dispatch-guard.py is explicit that a
       cutover leaves the existing cases passing WITHOUT editing any of them; 48 checks pass at
@@ -313,10 +356,18 @@ tasks:
         (e) FAIL OPEN: the grant-less _checkout manifest and a prompt naming eng-t01: exit is not 2
             and stderr says the check was skipped.
         (f) DERIVED VOCABULARY: a manifest whose only run-dir grant is
-            .harness/*/features/*/runs/*-oddsquad/** - t01-oddsquad exits not 2, oddsquad-t01 exits 2,
-            and the refusal names oddsquad in its compliant form.
+            [.]harness/*/features/*/runs/*-oddsquad/** - t01-oddsquad exits not 2, oddsquad-t01 exits
+            2, and the refusal names oddsquad in its compliant form.
         (g) a refusal records NO claim: after case (a), the throwaway registry holds no claim for the
             dispatched persona. Use the existing _read_registry and _claims_for helpers.
+        (h) PASTE-BACK, the case that proves the refusal is not a poison pill: capture the EXACT
+            stderr case (a) produced, build a second governed dispatch payload against the same
+            grant-carrying manifest whose prompt is a valid HARNESS-FEATURE: BUG-124-run-dir-squad-suffix
+            first line followed by that captured stderr verbatim, and assert exit is not 2 and its own
+            stderr carries no run-dir slug refusal. The HARNESS-FEATURE first line is REQUIRED: a
+            prompt without one hits the single fail-closed branch of the guard and would exit 2 for an
+            unrelated reason, which would read as this case passing for the wrong cause - so also
+            assert the stderr does not name a missing HARNESS-FEATURE line.
 
       RED PROOF, and record it. Copy the bin dir to a temp tree, replace dispatch-guard.sh in the copy
       with the output of
@@ -324,13 +375,19 @@ tasks:
       run the suite with DISPATCH_GUARD_BIN pointed at that copy, and record the exact command and the
       FAIL lines in your receipt at
       .harness/harness/features/BUG-124-run-dir-squad-suffix/notes/receipt-<your-agent-name>-<runid>.md.
-      Cases (a), (b), (f) and (g) MUST fail there. A green gate that has not been shown capable of red
-      is not evidence.
+      Cases (a), (b), (f) and (g) MUST fail there. Cases (c), (d), (e) and (h) are not-blocked
+      assertions and pass against a guard that blocks nothing, so the pre-change file cannot falsify
+      them. Case (h) is falsified by a WRONG implementation of THIS task instead: prove it by
+      temporarily deleting the anchor rewrite from your refusal message, watching (h) fail at exit 2,
+      restoring it, and recording both runs in the same receipt. A case nothing can turn red is not
+      evidence.
 
       Do NOT edit .harness/team-config.yaml. This fix reads it.
   - id: T-03
     title: State the mechanical run-dir slug refusal in the orchestrator playbook
-    traces: [REQ-02]
+    traces:
+    - REQ-02
+    - REQ-06
     change_type: docs
     execution_mode: main-session-direct
     execution_reason: check-domain --resolve answers NOBODY for .claude/skills/harness/SKILL.md at the pinned sha
@@ -339,13 +396,27 @@ tasks:
     files:
       - .claude/skills/harness/SKILL.md
     verify: |
-      grep -q "dispatch-guard.sh refuses" .claude/skills/harness/SKILL.md
+      grep -q "dispatch-guard.sh refuses" .claude/skills/harness/SKILL.md && grep -qF "[.]harness/" .claude/skills/harness/SKILL.md
     intent: |
       The Run-dir slugs paragraph at .claude/skills/harness/SKILL.md lines 272-274 states the
       task-or-purpose then squad convention in prose and says the squad suffix is what the lead
       domain glob keys on. After T-02 that convention is mechanically enforced, so the paragraph must
-      say so in one added sentence: dispatch-guard.sh refuses a governed dispatch that names a run-dir
-      path whose slug matches no run-dir write grant in .harness/team-config.yaml, at exit 2, naming
-      the slug and a compliant form. Keep the existing two sentences and the existing examples
-      unchanged; add nothing else and change no other section. The phrase dispatch-guard.sh refuses
-      must appear literally, because the verify greps for it.
+      say so in TWO added sentences, and nothing more.
+
+      Sentence one, the enforcement: dispatch-guard.sh refuses a governed dispatch that names a
+      run-dir path whose slug matches no run-dir write grant in .harness/team-config.yaml, at exit 2,
+      naming the slug and a compliant form.
+
+      Sentence two, the quoting convention (D-05): a run-dir path that is being QUOTED rather than
+      written - in a plan verify: or intent: block, in a pasted refusal, in a bug report - is spelled
+      with [.]harness/ in place of .harness/, which the check does not see, and the refusal message
+      already prints its own paths in that form.
+
+      Sentence two is here because a dispatcher who must know the escape is usually one who has NOT
+      yet been refused - the plan author writing a verify: block - and the refusal message alone
+      reaches only those already blocked. Write [.]harness/ literally, with the square brackets; do
+      not describe it in words instead.
+
+      Keep the existing two sentences and the existing examples unchanged; add nothing else and change
+      no other section. The phrase dispatch-guard.sh refuses and the literal [.]harness/ must both
+      appear, because the verify greps for each.
