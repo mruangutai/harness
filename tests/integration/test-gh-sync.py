@@ -1371,7 +1371,7 @@ json.dump({"feature_id": "F2"}, open(os.path.join(_d2, "feature.json"), "w"))
 _rec2 = _ghs.load_recorded(_d2)
 check("T-06C: a feature.json with no github: block returns the default, does not raise",
       _rec2 == {"milestone": None, "parent": None,
-                "attached": [], "issues": {}, "source_issues": []},
+                "attached": [], "issues": {}, "source_issues": [], "build_entry": None},
       str(_rec2))
 
 # ---------- fix1 Part B: three states must stay distinct, plus the fourth the operator's
@@ -1387,14 +1387,14 @@ _dabsent = nested_feature_dir("FEAT-fix1b-absent")
 _recAbsent = _ghs.load_recorded(_dabsent)
 check("fix1 B row1a: absent feature.json returns the default rec, does not raise",
       _recAbsent == {"milestone": None, "parent": None,
-                     "attached": [], "issues": {}, "source_issues": []},
+                     "attached": [], "issues": {}, "source_issues": [], "build_entry": None},
       str(_recAbsent))
 
 # Row 1b: file present, a dict, but NO github: key -> default rec (already _d2 above,
 # named here again for the fix1 spec's own enumeration).
 check("fix1 B row1b: dict present with no github key returns the default rec",
       _rec2 == {"milestone": None, "parent": None,
-                "attached": [], "issues": {}, "source_issues": []},
+                "attached": [], "issues": {}, "source_issues": [], "build_entry": None},
       str(_rec2))
 
 # Row 2: file present but a genuine ZERO-BYTE truncation -- the exact artifact
@@ -3335,6 +3335,134 @@ for _labelF, _breakF in (("absent plan.yaml", "unlink"),
               f"so the sweep keeps the worktree holding the only record of the station",
               any(lit in bothF for lit in _GATE_LITERALS),
               f"gates={_GATE_LITERALS} out={bothF[-700:]!r}")
+
+
+# ---------- T-02: gh-sync.py open records the Build-entry outcome ----------
+# D-04: a run failing AFTER any remote create records NOTHING (field absent). D-09:
+# github.sync true with github.repo unpinned records NOTHING via the explicit _NO_RECORD
+# sentinel; not-applicable belongs to the sync-not-enabled skip alone.
+
+FAKE_GH_FAIL_FIRST = """#!/bin/bash
+echo "$*" | tr '\n' '\001' >> "$FAKE_LOG"; echo >> "$FAKE_LOG"
+case "$1 $2" in
+  "auth status") exit 0 ;;
+esac
+echo "simulated failure" >&2
+exit 1
+"""
+
+# Milestone create succeeds (the FIRST remote-mutating call cmd_open makes); every OTHER
+# gh invocation fails, so the parent (or task) create right after it fails too — the
+# partial-remote-write shape D-04 must block.
+FAKE_GH_PARTIAL = """#!/bin/bash
+echo "$*" | tr '\n' '\001' >> "$FAKE_LOG"; echo >> "$FAKE_LOG"
+case "$1 $2" in
+  "auth status") exit 0 ;;
+  "api -X")
+    case "$*" in
+      *milestones\\ -f*) echo '{"number": 7}'; exit 0 ;;
+    esac
+    echo "simulated failure" >&2
+    exit 1 ;;
+esac
+echo "simulated failure" >&2
+exit 1
+"""
+
+with tempfile.TemporaryDirectory() as tmpT2a:
+    install_gh(tmpT2a, FAKE_GH)
+    featT2a = stage(tmpT2a, feat_name="FEAT-70-t02-opened")
+    rT2a = run(["open", featT2a], tmpT2a)
+    docT2a = read_feature_json(os.path.join(featT2a, "feature.json"))
+    ghT2a = docT2a.get("github") or {}
+    check("T-02 open records opened",
+          rT2a.returncode == 0 and ghT2a.get("build_entry") == "opened",
+          f"rc={rT2a.returncode} github={ghT2a!r} out={rT2a.stdout!r}")
+
+with tempfile.TemporaryDirectory() as tmpT2b:
+    install_gh(tmpT2b, FAKE_GH)
+    featT2b = stage(tmpT2b, sync=False, feat_name="FEAT-70-t02-syncfalse")
+    rT2b = run(["open", featT2b], tmpT2b)
+    docT2b = read_feature_json(os.path.join(featT2b, "feature.json"))
+    ghT2b = docT2b.get("github") or {}
+    check("T-02 sync false records not-applicable",
+          rT2b.returncode == 0 and ghT2b.get("build_entry") == "not-applicable"
+          and not calls(tmpT2b),
+          f"rc={rT2b.returncode} github={ghT2b!r} calls={calls(tmpT2b)!r}")
+
+with tempfile.TemporaryDirectory() as tmpT2c:
+    install_gh(tmpT2c, FAKE_GH)
+    featT2c = stage(tmpT2c, repo=None, feat_name="FEAT-70-t02-unpinned")
+    rT2c = run(["open", featT2c], tmpT2c)
+    docT2c = read_feature_json(os.path.join(featT2c, "feature.json"))
+    ghT2c = docT2c.get("github") or {}
+    check("T-02 unpinned repo records nothing",
+          rT2c.returncode == 0 and "build_entry" not in ghT2c,
+          f"rc={rT2c.returncode} github={ghT2c!r}")
+
+with tempfile.TemporaryDirectory() as tmpT2d:
+    install_gh(tmpT2d, FAKE_GH_FAIL_FIRST)
+    featT2d = stage(tmpT2d, feat_name="FEAT-70-t02-firstfail")
+    rT2d = run(["open", featT2d], tmpT2d)
+    docT2d = read_feature_json(os.path.join(featT2d, "feature.json"))
+    ghT2d = docT2d.get("github") or {}
+    check("T-02 first-call failure records recovery-required",
+          rT2d.returncode == 0 and ghT2d.get("build_entry") == "recovery-required",
+          f"rc={rT2d.returncode} github={ghT2d!r} out={rT2d.stdout!r}")
+
+with tempfile.TemporaryDirectory() as tmpT2e:
+    install_gh(tmpT2e, FAKE_GH_PARTIAL)
+    featT2e = stage(tmpT2e, feat_name="FEAT-70-t02-partial")
+    rT2e = run(["open", featT2e], tmpT2e)
+    docT2e = read_feature_json(os.path.join(featT2e, "feature.json"))
+    ghT2e = docT2e.get("github") or {}
+    check("T-02 partial remote write records nothing",
+          rT2e.returncode == 0 and "build_entry" not in ghT2e
+          and ghT2e.get("milestone") == 7,
+          f"rc={rT2e.returncode} github={ghT2e!r} out={rT2e.stdout!r}")
+
+with tempfile.TemporaryDirectory() as tmpT2f:
+    install_gh(tmpT2f, FAKE_GH)
+    featT2f = stage(tmpT2f, feat_name="FEAT-70-t02-secondopen")
+    run(["open", featT2f], tmpT2f)
+    n_before_f = len(calls(tmpT2f))
+    rT2f = run(["open", featT2f], tmpT2f)
+    new_f = calls(tmpT2f)[n_before_f:]
+    docT2f = read_feature_json(os.path.join(featT2f, "feature.json"))
+    ghT2f = docT2f.get("github") or {}
+    check("T-02 second open stays opened",
+          rT2f.returncode == 0 and ghT2f.get("build_entry") == "opened"
+          and not any("issue create" in l or "milestones" in l for l in new_f),
+          f"github={ghT2f!r} new_calls={new_f!r}")
+
+with tempfile.TemporaryDirectory() as tmpT2g:
+    install_gh(tmpT2g, FAKE_GH_FAIL_FIRST)
+    featT2g = stage(tmpT2g, feat_name="FEAT-70-t02-nodowngrade")
+    write_feature_json(
+        os.path.join(featT2g, "feature.json"),
+        feature_id="FEAT-70-t02-nodowngrade",
+        github={"milestone": None, "parent": None, "attached": [], "issues": {},
+                "build_entry": "opened"},
+    )
+    rT2g = run(["open", featT2g], tmpT2g)
+    docT2g = read_feature_json(os.path.join(featT2g, "feature.json"))
+    ghT2g = docT2g.get("github") or {}
+    check("T-02 opened never downgrades",
+          rT2g.returncode == 0 and ghT2g.get("build_entry") == "opened",
+          f"rc={rT2g.returncode} github={ghT2g!r} out={rT2g.stdout!r}")
+
+with tempfile.TemporaryDirectory() as tmpT2h:
+    install_gh(tmpT2h, FAKE_GH)
+    featT2h = stage(tmpT2h, feat_name="FEAT-70-t02-contracterror")
+    os.remove(os.path.join(featT2h, "BRIEF.md"))
+    rT2h = run(["open", featT2h], tmpT2h)
+    docT2h = read_feature_json(os.path.join(featT2h, "feature.json"))
+    ghT2h = docT2h.get("github", {})
+    check("T-02 contract error records nothing",
+          rT2h.returncode == 1 and "build_entry" not in ghT2h,
+          f"rc={rT2h.returncode} github={ghT2h!r} out={rT2h.stdout!r}")
+
+
 
 
 

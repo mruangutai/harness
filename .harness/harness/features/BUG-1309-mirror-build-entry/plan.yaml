@@ -256,7 +256,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: [T-01]
-    status: ready
+    status: done
     files:
       - .claude/skills/harness/bin/gh-sync.py
       - tests/integration/test-gh-sync.py

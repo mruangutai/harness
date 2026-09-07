@@ -149,10 +149,37 @@ def _place(board, repo, num, station, note="", failed=None, stations=None):
     return True
 
 
-def skip(msg):
-    """Environmental no-go: one loud line, exit 0. The mirror never gates."""
+def skip(msg, build_entry=None):
+    """Environmental no-go: one loud line, exit 0. The mirror never gates.
+
+    T-02: when `open` has armed `_BUILD_ENTRY` (main() does this before config
+    resolution, only for the `open` command) and no remote-mutating call has yet
+    succeeded this run, record the Build-entry outcome before exiting: `build_entry`
+    if given, else "recovery-required" (D-04 — a run that stopped before any
+    remote write). `_NO_RECORD` is the explicit "record nothing" sentinel (D-09):
+    the parameter's own default already means "recovery-required", so passing
+    nothing cannot ALSO mean "record nothing" — a caller wanting silence must say
+    so explicitly. Once a remote create has already succeeded this run, a later
+    skip is a partial mirror (D-04) and records nothing here, regardless of
+    `build_entry` — the field must stay absent, not be overwritten.
+
+    A feature.json that does not exist yet (an un-onboarded tree, or a feature
+    dir the orchestrator has not instantiated) is not a run any Build entry could
+    attach to — `save_recorded` REFUSES an absent file (T-02/FEAT-26), so this
+    checks for it first rather than letting that refusal replace the SKIP message
+    below with an unrelated one.
+    """
+    feat_dir = _BUILD_ENTRY["feat_dir"]
+    if (feat_dir is not None and not _BUILD_ENTRY["remote_written"]
+            and build_entry is not _NO_RECORD
+            and os.path.isfile(os.path.join(feat_dir, "feature.json"))):
+        record_build_entry(feat_dir, build_entry or "recovery-required")
     print(f"gh-sync: SKIP — {msg}")
     sys.exit(0)
+
+
+_BUILD_ENTRY = {"feat_dir": None, "remote_written": False}
+_NO_RECORD = object()
 
 
 def die(msg):
@@ -241,10 +268,11 @@ def load_config(root):
         skip(f"harness.json unreadable ({e})")
     g = cfg.get("github") or {}
     if not g.get("sync"):
-        skip("github.sync is not enabled for this project")
+        skip("github.sync is not enabled for this project", build_entry="not-applicable")
     repo = g.get("repo")
     if not repo or "/" not in str(repo):
-        skip("github.repo is not pinned — run /harness-init --upgrade to record it")
+        skip("github.repo is not pinned — run /harness-init --upgrade to record it",
+             build_entry=_NO_RECORD)
     if shutil.which(GH) is None:
         skip(f"{GH} not on PATH")
     if subprocess.run([GH, "auth", "status"], capture_output=True).returncode != 0:
@@ -499,7 +527,7 @@ def load_recorded(feat_dir):
     """
     path = os.path.join(feat_dir, "feature.json")
     rec = {"milestone": None, "parent": None, "attached": [], "issues": {},
-           "source_issues": []}
+           "source_issues": [], "build_entry": None}
     # ABSENCE is checked before parsing, not caught after it (review finding 4) — a
     # missing feature.json is a legitimate first sync, never an error.
     if not os.path.exists(path):
@@ -576,6 +604,12 @@ def load_recorded(feat_dir):
     si = gh.get("source_issues")
     if isinstance(si, list):
         rec["source_issues"] = [n for n in si if isinstance(n, int) and not isinstance(n, bool)]
+
+    # T-02 (BUG-1309): the Build-entry outcome, a closed enum plus ABSENCE as a fifth
+    # state — anything outside the enum reads as absent, never raises.
+    be = gh.get("build_entry")
+    rec["build_entry"] = be if be in ("opened", "recovery-required",
+                                       "not-applicable", "recovered-terminal") else None
     return rec
 
 
@@ -879,9 +913,28 @@ def save_recorded(feat_dir, rec):
         typed = rec.get("typed")
         if typed:
             doc["github"]["typed"] = dict(sorted(typed.items()))
+        # T-02 (BUG-1309): positively recorded, same shape as `typed` above — an absent
+        # or falsy value means nothing to write, so a receipt with no Build-entry outcome
+        # stays byte-identical to today's.
+        if rec.get("build_entry"):
+            doc["github"]["build_entry"] = rec["build_entry"]
         return json.dumps(doc, indent=2) + "\n"
 
     feature_json_write.write_feature_json(p, transform)
+
+
+def record_build_entry(feat_dir, value):
+    """Persist the Build-entry outcome (D-04/D-09) through `save_recorded` — never a
+    second write path to feature.json, so this inherits the lock, the same-directory
+    tempfile and the atomic replace. Never downgrades an already-"opened" record: once
+    a run has fully recorded, a later degraded outcome (e.g. a subsequent invocation's
+    early skip) must not erase it."""
+    rec = load_recorded(feat_dir)
+    if rec.get("build_entry") == "opened" and value != "opened":
+        return
+    rec["build_entry"] = value
+    save_recorded(feat_dir, rec)
+
 
 
 # ---------- commands ----------
@@ -1021,6 +1074,7 @@ def _open_ensure_milestone(feat_dir, repo, brief, rec):
     if r.returncode == 0:
         rec["milestone"] = json.loads(r.stdout)["number"]
         print(f"gh-sync: milestone #{rec['milestone']} created for {brief['feat']}")
+        _BUILD_ENTRY["remote_written"] = True
     else:
         # LIVE SMOKE FINDING #3: 422 when the title already exists — a previous run
         # created it and died before recording (or a human made one). Resolve by
@@ -1055,6 +1109,7 @@ def _open_ensure_parent(feat_dir, repo, brief, rec, parent_arg, state):
         body = f"{brief['problem']}\n\n**Goal:** {brief['goal']}"
         url = gh(["issue", "create", "--repo", repo, "--title", title,
                   "--body", body, "--label", "harness"])
+        _BUILD_ENTRY["remote_written"] = True
         rec["parent"] = int(url.rstrip("/").rsplit("/", 1)[-1])
         if state == "available":
             rec["typed"]["parent"] = "created"
@@ -1108,6 +1163,7 @@ def _open_sync_task(feat_dir, repo, brief, rec, task, state):
         print(f"gh-sync: {task['id']} already issue #{rec['issues'][task['id']]} — skipping")
     else:
         _open_create_task(feat_dir, repo, brief, rec, task, state)
+        _BUILD_ENTRY["remote_written"] = True
     _open_attach_task(feat_dir, repo, rec, task)
 
 
@@ -1135,6 +1191,11 @@ def cmd_open(feat_dir, repo, parent_arg=None, issue_types=None):
 
     if state == "available":
         _backfill_issue_types(feat_dir, repo, tasks, rec, issue_types, declared)
+
+    # T-02 (BUG-1309): the LAST statement of the successful path. Reaching it is itself
+    # the proof no skip branch fired (the same structural argument cmd_ship's docstring
+    # already makes for its own terminal station write).
+    record_build_entry(feat_dir, "opened")
 
 
 def _projected_for(feat_dir, rec):
@@ -2062,6 +2123,11 @@ def main():
         # today's behaviour, three parents up — spelled via dirname so the verify's
         # assertion (no fixed join-climb as the PRIMARY derivation) stays meaningful
         root = os.path.dirname(os.path.dirname(os.path.dirname(_abs)))
+    # T-02 (BUG-1309): armed only for `open` — main() is the one caller that knows the
+    # command before config resolution runs, and every skip() this run reaches after this
+    # point (including inside load_config) must be able to record an outcome.
+    if cmd == "open":
+        _BUILD_ENTRY["feat_dir"] = feat_dir
     try:
         repo, board, issue_types = load_config(root)
     except factory_config.FleetError as e:
