@@ -3,21 +3,30 @@
 ## Current
 
 - feature: BUG-148-gate-record-correction
-- run: .harness/harness/features/BUG-148-gate-record-correction/runs/2026-09-06-03-product/state.yaml
-- squad: none (plan phase complete; awaiting the operator's signature)
+- run: .harness/harness/features/BUG-148-gate-record-correction/runs/2026-09-06-04-product/state.yaml
+- squad: none (plan phase complete; the operator's rulings are applied, the signature is outstanding)
 - status: awaiting-user
 - station: plan (`plan.yaml` `status: plan`, `approval.status: pending`)
 
-**Plan phase COMPLETE, unsigned.** BRIEF.md (5 REQ, 6 SC, every SC declares its verify) and
-plan.yaml (2 tasks, 4 decisions, panel record) are drafted and signature-ready. Nothing was
+**Plan phase COMPLETE, unsigned, rulings applied.** BRIEF.md (5 REQ, 6 SC, every SC declares its
+verify) and plan.yaml (2 tasks, 5 decisions, panel record) are signature-ready. Nothing was
 corrected: DECISIONS.md, DECISIONS-INDEX.md and FEAT-05's STATE.md are byte-unchanged, and no
 historical artifact was touched.
 
 Segments run, in order: plan draft (pm) → goal-check of the drafted plan against the operator's
 grilling (pm, FAIL, 2 must_fix) → fix cycle (pm, both closed) → plan-panel (validator lead, both
-readers RAN, PASS, `severity_max: med`, `must_fix: []`, 5 findings) → panel transcription into
-plan.yaml `panel:` (pm). `check-plan-routes.py` exits 0; `check-state.sh` reports nothing against
-this feature except the expected "BRIEF.md is NOT approved" halt and the pending-approval note.
+readers RAN, PASS, `severity_max: med`, `must_fix: []`, 5 findings) → panel transcription (pm) →
+operator rulings applied (pm). `check-plan-routes.py` exits 0; `check-state.sh` reports nothing
+against this feature except the expected "BRIEF.md is NOT approved" halt and the pending note.
+
+**Operator rulings of 2026-09-06, recorded as D-05 and in the findings' dispositions:**
+(1) FEAT-05's STATE.md rewrites its false claim in place, matching DEC-174 — no appended note, and
+D-01's `because` now records this as a ruling rather than as a forced consequence
+(`PF-6b4a7af5de3e77e59af34e9a00b68548`, resolved). (2) The `--stdout | diff` form stays named in
+BOTH corrected records; REQ-03 stands (`PF-54450f537e28244ae73d9c0e48ae4efe`, resolved). (3) T-02's
+intent now binds its mechanism clause to T-01's and `depends_on: [T-01]`
+(`PF-ed3ec57922f582bd208169c1120d0946`, resolved). (4) The approved grilling artifact was relocated
+verbatim into this feature's `notes/`, inside SC-05's allowlist.
 
 Facts measured by this orchestrator, in this worktree, that the plan rests on:
 - `gen-decisions-index.py --check` today → exit 2, "unrecognized argument(s): --check. Wrote
@@ -39,15 +48,12 @@ in its `state.yaml`. The goal-check's own evidence survives at
 
 ## Open Questions
 
-- Q1 (BLOCKING, panel `PF-6b4a7af5de3e77e59af34e9a00b68548`, med): the operator settled on "add a
-  dated note"; D-01 rewrites each false sentence in place. Forced for DECISIONS.md (DEC-205 plus
-  `test_no_amendment_construct_survives_in_the_authority`); for FEAT-05's STATE.md it is a choice
-  supported by `check-domain.sh:1798-1800` ("`## Current` is replaced, never appended"), not a
-  requirement. Accept the rewrite, or have D-01 restate it as a choice?
-- Q2 (`PF-54450f537e28244ae73d9c0e48ae4efe`, low): REQ-03 embeds the `--stdout | diff` pipeline
-  verbatim in both records — plant the string twice, or name the script's docstring its single home?
-- Q3 (`PF-ed3ec57922f582bd208169c1120d0946`, low): require T-02's mechanism clause to match T-01's,
-  so the two corrected records cannot diverge while both verifies pass?
-- Q4 (non-panel): the grilling artifact `.harness/harness/notes/grilling-gate-record-correction-2026-09-06.md`
-  is untracked and outside the feature directory, which SC-05's allowlist does not admit. Commit it
-  under this feature's own `notes/`, or leave it uncommitted?
+- Q1 (BLOCKING, the one decision left): sign BRIEF.md `## Approval` and plan.yaml `approval:` —
+  `plan-merge.py sign-approval`, main session only. Both read `pending`.
+- Q2 (non-blocking, main session's act): the untracked source copy of the grilling artifact at
+  `.harness/harness/notes/grilling-gate-record-correction-2026-09-06.md` still exists. It resolves
+  to NOBODY, so no agent lane may delete it; the relocated copy under this feature's `notes/` is
+  the one the BRIEF cites.
+- Panel findings `PF-a2df57f48de3e81d49745cfd1adaa20b` (med, accepted-by-design, disclosed in
+  BRIEF's Verification gaps) and `PF-b7b07ec7b7f6cacb3b894cae4bda2a04` (low, informational) remain
+  open by design; neither was ruled on and neither gates.

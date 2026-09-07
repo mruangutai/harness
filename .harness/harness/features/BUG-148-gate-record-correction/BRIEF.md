@@ -141,6 +141,10 @@ exactly as written.
 - **DEC-120 — BLOCKS.** Only the main session records approval. `## Approval` stays `pending`.
 - Out of scope, by the user's settled call: issues #201 and #206 are separate later flows, and no
   new index-drift check is introduced here.
+- **Intake — SUPPLIES.** The grilling of 2026-09-06 is the interview that settled this scope,
+  including the two out-of-scope calls above. It is recorded at
+  `.harness/harness/features/BUG-148-gate-record-correction/notes/grilling-gate-record-correction-2026-09-06.md`,
+  inside this feature's own directory, which SC-05's allowlist already admits.
 
 ## Approval
 

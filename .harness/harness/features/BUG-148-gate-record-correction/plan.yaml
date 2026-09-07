@@ -29,11 +29,19 @@ decisions:
       gen-decisions-index.py --stdout | diff - .harness/harness/docs/DECISIONS-INDEX.md.
       Neither record gains an appended dated note or a new section.
     because: |
-      DEC-205 ends the amendment convention for DECISIONS.md - an entry states current truth and a
-      correction rewrites the entry it corrects - and the integration test
-      test_no_amendment_construct_survives_in_the_authority enforces it mechanically. STATE.md is
-      barred from a new section by its two-heading vocabulary. One shape for both keeps the two
-      records saying the same thing.
+      For DECISIONS.md the in-place rewrite is FORCED: DEC-205 ends the amendment convention - an entry
+      states current truth and a correction rewrites the entry it corrects - and the integration test
+      test_no_amendment_construct_survives_in_the_authority enforces it mechanically. For FEAT-05's
+      STATE.md it is NOT forced by any test: it is the operator's ruling of 2026-09-06, at signature
+      review, that the false claim is rewritten in place to match DEC-174's treatment, with no appended
+      dated note. That ruling is SUPPORTED, not compelled, by two things in check-domain.sh:1796-1806 -
+      its own characterisation of STATE.md as a current-truth record, carried as the rationale on the
+      120-line-budget denial ("It holds no history: the Current section is replaced, never appended"),
+      and its section-vocabulary bar, which denies any heading outside Current and Open Questions, so a
+      new dated SECTION is barred even though an inline dated note inside Current is not. No test
+      constrains STATE.md at all: test_no_amendment_construct_survives_in_the_authority opens
+      gdi.DECISIONS_PATH and nothing else (tests/integration/test-gen-decisions-index.py:836-874). One
+      shape for both keeps the two records saying the same thing.
     dec: DEC-205
   - id: D-02
     choice: |
@@ -65,6 +73,26 @@ decisions:
       Shrinking a completed feature's record is out of scope for a correction flow.
     dec: DEC-150
 
+  - id: D-05
+    choice: |
+      The operator's three rulings at the 2026-09-06 signature review, applied to this plan:
+      (1) PF-6b4a7af5de3e77e59af34e9a00b68548 - FEAT-05's STATE.md rewrites its false gate claim
+      IN PLACE, matching DEC-174's treatment in DECISIONS.md, with no appended dated note and no
+      new section; D-01 keeps its choice and its because now records this as a ruling rather than
+      as a forced consequence. (2) PF-54450f537e28244ae73d9c0e48ae4efe - the read-only form
+      gen-decisions-index.py --stdout | diff - .harness/harness/docs/DECISIONS-INDEX.md is
+      RETAINED and stays named in BOTH corrected records; REQ-03 stands exactly as written and no
+      copy is dropped. (3) PF-ed3ec57922f582bd208169c1120d0946 - the recommended clarification is
+      accepted: T-02's mechanism clause must state the same mechanism as T-01's landed sentence,
+      in the same terms, and T-02's intent now binds it with T-02 depends_on T-01.
+    because: |
+      These are the operator's own calls at signature review on 2026-09-06, taken in DEC-176's
+      single batched review pass, and they are recorded here so a later reader sees why the plan
+      reads as it does without re-opening the panel record. Each ruling names the panel finding it
+      discharges, and each finding's disposition names the ruling and where it landed. Approval
+      itself remains UNSIGNED: rulings applied at review are not a signature, and only the main
+      session writes the approval mapping (DEC-120).
+    dec: DEC-176
 tasks:
   - id: T-01
     title: Correct DEC-174's evidence sentence and regenerate the decisions index
@@ -139,7 +167,8 @@ tasks:
     change_type: docs
     execution_mode: team
     execution_agent: harness-orchestrator
-    depends_on: []
+    depends_on:
+    - T-01
     status: ready
     files:
       - .harness/harness/features/FEAT-05-pyyaml-file-parsers/STATE.md
@@ -177,6 +206,25 @@ tasks:
         - the read-only form, as the contiguous string
           gen-decisions-index.py --stdout | diff - .harness/harness/docs/DECISIONS-INDEX.md.
 
+      THE MECHANISM CLAUSE MUST MATCH T-01'S - BINDING. This is the operator's ruling of 2026-09-06 on
+      panel finding PF-ed3ec57922f582bd208169c1120d0946, recorded as D-05. Before writing the corrected
+      sentence, READ T-01's landed sentence in the DEC-174 region of .harness/harness/docs/DECISIONS.md
+      - which is why this task carries depends_on T-01 - and then state the SAME mechanism here, in the
+      same terms. All three clauses must be present, whatever wording T-01 chose for them:
+        - gen-decisions-index.py --check was never a supported mode;
+        - before argv validation landed at ffbdbfa1 (2026-08-05) an unrecognized argument fell through
+          to the WRITE path;
+        - so the 2026-08-03 exit 0 was a REGENERATION of DECISIONS-INDEX.md, which overwrites exactly
+          the drift a check would have reported.
+      You MUST NOT state a different or a narrower mechanism than T-01's. Keeping only "never a
+      supported mode" and dropping the fall-through or the regeneration is the narrower mechanism this
+      clause forbids. NO AUTOMATED CHECK DISCRIMINATES THIS AGREEMENT, and none is added: this task's
+      verify greps a fixed phrase list that a keyword-stuffed narrower text still satisfies, and a
+      cross-file grep of that same list against DECISIONS.md would only re-assert what T-01's own
+      verify already asserts - no new discrimination, for a second file dependency inside the verify.
+      The agreement therefore rests on this instruction and on SC-06, the operator's read of both
+      corrected passages.
+
       USE Edit, NEVER Write. The file is 165 lines against check-domain.sh's 120-line STATE.md budget
       and carries 7 headings against the 2 the vocabulary allows, so a Write carrying whole-file
       content is DENIED pre-hoc while an Edit is not. The PostToolUse shape report that fires on the
@@ -194,116 +242,229 @@ panel:
   source_digest: .harness/harness/features/BUG-148-gate-record-correction/runs/2026-09-06-01-validator/digest.md
   transcribed_by: harness-pm
   transcribed_at: '2026-09-06'
-  transcription_rule: |
-    Every summary, consequence and disposition below is the validator lead's own wording,
-    taken verbatim from the digest's §10.4 panel_findings block
-    (runs/2026-09-06-01-validator/digest.md:98-103), with only backtick markup removed and
-    an em dash rendered as a hyphen. No severity was reassigned, promoted, demoted or
-    normalised; each is the reader's own. No finding was dismissed and none was dropped: the
-    digest's opening BLUF says four surviving findings and its own appended corrections
-    section supersedes that count at five, which is what is recorded here. Ids are content
-    hashes computed with panel_findings.py id --reader <reader> --summary <this entry's
-    summary>, never typed: the lead holds no Bash and deliberately assigned none.
-    panel_findings.py normalises a summary by lowercasing it and collapsing whitespace, and
-    the summary field stored here normalises to exactly the string that was hashed, so any
-    reader can recompute an id from this file alone. Re-wording a summary mints a new id and
-    orphans any approval.rulings entry written against the old one.
-  reader_attribution: |
-    The fourth finding is the validator lead's own and stays attributed to reader
-    validator-lead, which is not one of the three plan-panel reader ids: neither lens could
-    see it, since each grades one task's internal consistency. It is recorded under its true
-    author rather than laundered into a reader's name.
+  transcription_rule: "Every summary, consequence and disposition below is the validator\
+    \ lead's own wording,\ntaken verbatim from the digest's \xA710.4 panel_findings\
+    \ block\n(runs/2026-09-06-01-validator/digest.md:98-103), with only backtick markup\
+    \ removed and\nan em dash rendered as a hyphen. No severity was reassigned, promoted,\
+    \ demoted or\nnormalised; each is the reader's own. No finding was dismissed and\
+    \ none was dropped: the\ndigest's opening BLUF says four surviving findings and\
+    \ its own appended corrections\nsection supersedes that count at five, which is\
+    \ what is recorded here. Ids are content\nhashes computed with panel_findings.py\
+    \ id --reader <reader> --summary <this entry's\nsummary>, never typed: the lead\
+    \ holds no Bash and deliberately assigned none.\npanel_findings.py normalises\
+    \ a summary by lowercasing it and collapsing whitespace, and\nthe summary field\
+    \ stored here normalises to exactly the string that was hashed, so any\nreader\
+    \ can recompute an id from this file alone. Re-wording a summary mints a new id\
+    \ and\norphans any approval.rulings entry written against the old one.\n"
+  reader_attribution: 'The fourth finding is the validator lead''s own and stays attributed
+    to reader
+
+    validator-lead, which is not one of the three plan-panel reader ids: neither lens
+    could
+
+    see it, since each grades one task''s internal consistency. It is recorded under
+    its true
+
+    author rather than laundered into a reader''s name.
+
+    '
   readers:
-    - reader: scope
-      persona: harness-code-reviewer
-      status: ran
-      verdict: PASS
-      artifact: .harness/harness/features/BUG-148-gate-record-correction/notes/review-harness-code-reviewer-planpanel-c0.md
-      note: |
-        Raised three of the five findings (two med, one low).
-    - reader: should-not-exist
-      persona: fable-advisor
-      status: ran
-      verdict: PASS
-      artifact: none
-      note: |
-        SHAPE DEVIATION, recorded by the lead and carried here on the reader, never on a
-        finding: it returned a JSON object with extra top-level keys
-        (reader/verdict/findings/verified) instead of a single fenced YAML mapping keyed only
-        findings. The findings list parsed unambiguously with every required key present, so the
-        lead accepted it as valid: no on_fail cycle was spent, and no content or severity was
-        altered. Its digest row's 'no verdict token - external persona' is corrected in the
-        digest's own appended corrections section: the return carried an equivalent advisory
-        judgement, rolled up as PASS.
-    - reader: goalcheck
-      persona: harness-pm
-      status: ran
-      artifact: .harness/harness/features/BUG-148-gate-record-correction/notes/research-BUG-148-goalcheck-plan-c0.md
-      note: |
-        Ran as a separate cycle-0 dispatch OUTSIDE runs/2026-09-06-01-validator, which is why
-        the validator digest records steps_run 2 and names only two readers. Recorded here
-        because a reader that ran is not distinguishable from one that never ran by findings
-        alone (INV-32). Its own F-1..F-5 are NOT transcribed as panel findings: they live in its
-        note, and the two the panel carried forward are here as the scope finding corroborating
-        F-2 and the scope finding re-deriving F-4.
+  - reader: scope
+    persona: harness-code-reviewer
+    status: ran
+    verdict: PASS
+    artifact: .harness/harness/features/BUG-148-gate-record-correction/notes/review-harness-code-reviewer-planpanel-c0.md
+    note: 'Raised three of the five findings (two med, one low).
+
+      '
+  - reader: should-not-exist
+    persona: fable-advisor
+    status: ran
+    verdict: PASS
+    artifact: none
+    note: 'SHAPE DEVIATION, recorded by the lead and carried here on the reader, never
+      on a
+
+      finding: it returned a JSON object with extra top-level keys
+
+      (reader/verdict/findings/verified) instead of a single fenced YAML mapping keyed
+      only
+
+      findings. The findings list parsed unambiguously with every required key present,
+      so the
+
+      lead accepted it as valid: no on_fail cycle was spent, and no content or severity
+      was
+
+      altered. Its digest row''s ''no verdict token - external persona'' is corrected
+      in the
+
+      digest''s own appended corrections section: the return carried an equivalent
+      advisory
+
+      judgement, rolled up as PASS.
+
+      '
+  - reader: goalcheck
+    persona: harness-pm
+    status: ran
+    artifact: .harness/harness/features/BUG-148-gate-record-correction/notes/research-BUG-148-goalcheck-plan-c0.md
+    note: 'Ran as a separate cycle-0 dispatch OUTSIDE runs/2026-09-06-01-validator,
+      which is why
+
+      the validator digest records steps_run 2 and names only two readers. Recorded
+      here
+
+      because a reader that ran is not distinguishable from one that never ran by
+      findings
+
+      alone (INV-32). Its own F-1..F-5 are NOT transcribed as panel findings: they
+      live in its
+
+      note, and the two the panel carried forward are here as the scope finding corroborating
+
+      F-2 and the scope finding re-deriving F-4.
+
+      '
   findings:
-    - id: PF-6b4a7af5de3e77e59af34e9a00b68548
-      reader: scope
-      severity: med
-      summary: |
-        D-01's because for STATE.md overclaims: check-domain.sh:1796-1805 bars a new ## section,
-        not an inline dated note in ## Current, so rewrite-vs-append is a preference there
-        presented as forced
-      consequence: |
-        operator settled on a dated note; the substitution reaches him nowhere before signature
-        and SC-06 asks a different question
-      disposition: |
-        open - needs one operator line at signature; corroborated by should-not-exist, which
-        declined to raise it separately as open goal-check F-2
-    - id: PF-54450f537e28244ae73d9c0e48ae4efe
-      reader: should-not-exist
-      severity: low
-      summary: |
-        REQ-03's verbatim --stdout | diff pipeline is plan-added scope the grilling never
-        settled, planting two more copies of a string whose path already drifted once
-      consequence: |
-        after the next path move a current-truth record again names an invocation that does not
-        work - BUG-148's own failure class, unguarded by any test
-      disposition: |
-        open - operator scope call; decide before the verify-tightening finding, the remedies
-        touch the same grep list
-    - id: PF-a2df57f48de3e81d49745cfd1adaa20b
-      reader: scope
-      severity: med
-      summary: |
-        both verifies forbid one exact stale phrase and require five present; neither forbids
-        the retained text still asserting gen-decisions-index.py --check 0 as bare fact
-      consequence: |
-        a keyword-stuffed correction passes every grep while the record still misleads; SC-06 is
-        the sole backstop
-      disposition: |
-        open, accepted-by-design - BRIEF's Verification gaps discloses it
-    - id: PF-ed3ec57922f582bd208169c1120d0946
-      reader: validator-lead
-      severity: low
-      summary: |
-        nothing makes the two corrected records agree with each other - T-01/T-02 both
-        depends_on [], different personas, neither verify reads the other's file; D-01's
-        one-shape-for-both is intention without enforcement
-      consequence: |
-        the two records can state materially different mechanisms with both verifies green,
-        re-creating the two-disagreeing-records class BUG-148 exists to close
-      disposition: |
-        open - lead finding, invisible from inside either lens; cheapest remedy is one sentence
-        in T-02's intent
-    - id: PF-b7b07ec7b7f6cacb3b894cae4bda2a04
-      reader: scope
-      severity: low
-      summary: |
-        SC-01/SC-02 restate T-01/T-02's own verifies via git show; only SC-03/04/05/06 measure
-        independently
-      consequence: |
-        six criteria read as six checks, substantively four
-      disposition: |
-        open, informational - concurs with goal-check F-4, re-derived not re-raised
+  - id: PF-6b4a7af5de3e77e59af34e9a00b68548
+    reader: scope
+    severity: med
+    summary: 'D-01''s because for STATE.md overclaims: check-domain.sh:1796-1805 bars
+      a new ## section,
+
+      not an inline dated note in ## Current, so rewrite-vs-append is a preference
+      there
+
+      presented as forced
+
+      '
+    consequence: 'operator settled on a dated note; the substitution reaches him nowhere
+      before signature
+
+      and SC-06 asks a different question
+
+      '
+    disposition: 'resolved - operator''s ruling of 2026-09-06, recorded as D-05: FEAT-05''s
+      STATE.md
+
+      rewrites the false claim IN PLACE, matching DEC-174''s treatment, with no appended
+      dated
+
+      note. D-01''s choice stands unchanged - the overclaim was in its because, which
+      now says
+
+      the DECISIONS.md half is forced by DEC-205 and
+
+      test_no_amendment_construct_survives_in_the_authority while the STATE.md half
+      is the
+
+      operator''s ruling, supported by check-domain.sh:1796-1806 and compelled by
+      no test.
+
+      '
+  - id: PF-54450f537e28244ae73d9c0e48ae4efe
+    reader: should-not-exist
+    severity: low
+    summary: 'REQ-03''s verbatim --stdout | diff pipeline is plan-added scope the
+      grilling never
+
+      settled, planting two more copies of a string whose path already drifted once
+
+      '
+    consequence: 'after the next path move a current-truth record again names an invocation
+      that does not
+
+      work - BUG-148''s own failure class, unguarded by any test
+
+      '
+    disposition: 'resolved - operator''s ruling of 2026-09-06, recorded as D-05: the
+      read-only form
+
+      gen-decisions-index.py --stdout | diff - .harness/harness/docs/DECISIONS-INDEX.md
+      is
+
+      RETAINED and stays named in BOTH corrected records. REQ-03 stands exactly as
+      written and
+
+      both verifies keep the string; the drift risk the reader named is accepted as
+      scope by
+
+      the operator rather than traded away, and no new index-drift check is introduced
+      here.
+
+      '
+  - id: PF-a2df57f48de3e81d49745cfd1adaa20b
+    reader: scope
+    severity: med
+    summary: 'both verifies forbid one exact stale phrase and require five present;
+      neither forbids
+
+      the retained text still asserting gen-decisions-index.py --check 0 as bare fact
+
+      '
+    consequence: 'a keyword-stuffed correction passes every grep while the record
+      still misleads; SC-06 is
+
+      the sole backstop
+
+      '
+    disposition: 'open, accepted-by-design - BRIEF''s Verification gaps discloses
+      it
+
+      '
+  - id: PF-ed3ec57922f582bd208169c1120d0946
+    reader: validator-lead
+    severity: low
+    summary: 'nothing makes the two corrected records agree with each other - T-01/T-02
+      both
+
+      depends_on [], different personas, neither verify reads the other''s file; D-01''s
+
+      one-shape-for-both is intention without enforcement
+
+      '
+    consequence: 'the two records can state materially different mechanisms with both
+      verifies green,
+
+      re-creating the two-disagreeing-records class BUG-148 exists to close
+
+      '
+    disposition: 'resolved - operator''s ruling of 2026-09-06, recorded as D-05, accepts
+      the recommended
+
+      remedy: T-02''s intent now carries a binding clause requiring its mechanism
+      sentence to
+
+      state the same mechanism as T-01''s landed sentence, in the same terms and naming
+      all
+
+      three clauses, and T-02 is depends_on T-01 so that sentence exists to be read.
+      No verify
+
+      was added: the phrase list T-02 already greps does not discriminate a narrower
+      text, and
+
+      a cross-file grep of that same list only re-asserts T-01''s own verify. T-02''s
+      intent says
+
+      so plainly rather than dressing it up as a check.
+
+      '
+  - id: PF-b7b07ec7b7f6cacb3b894cae4bda2a04
+    reader: scope
+    severity: low
+    summary: 'SC-01/SC-02 restate T-01/T-02''s own verifies via git show; only SC-03/04/05/06
+      measure
+
+      independently
+
+      '
+    consequence: 'six criteria read as six checks, substantively four
+
+      '
+    disposition: 'open, informational - concurs with goal-check F-4, re-derived not
+      re-raised
+
+      '
   dismissed: []
