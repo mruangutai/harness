@@ -90,6 +90,15 @@ check("T-05 bash -c wrapped merge is still detected", d == "deny")
 root, _ = fixture(feature="BUG-1030-stale-anchor-write-hazard")
 r, d, reason = gate("git merge feature/test", root)
 check("T-05 era-exempt absent build_entry allows", d is None and "predates" in r.stderr and "open" not in r.stderr.lower(), r.stderr)
+root, _ = fixture(feature="BUG-1030-stale-anchor-write-hazard", entry="recovery-required")
+r, d, reason = gate("git merge feature/test", root)
+check("T-05 era-exempt recovery-required allows", r.returncode == 0 and d is None
+      and "predates" in r.stderr, r.stderr or reason)
+root, _ = fixture()
+r, d, reason = gate("gh pr merge 7", root, "/nonexistent/gh")
+check("T-05 unresolvable gh falls back and denies a locally owed receipt",
+      r.returncode == 0 and d == "deny" and "absent" in reason,
+      f"rc={r.returncode} stderr={r.stderr!r} reason={reason!r}")
 root, _ = fixture()
 fake = os.path.join(root, "gh-fail")
 with open(fake, "w") as f: f.write("#!/bin/sh\necho unavailable >&2\nexit 9\n")

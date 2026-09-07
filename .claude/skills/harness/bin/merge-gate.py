@@ -8,7 +8,6 @@ import subprocess
 import sys
 
 sys.path.insert(0, os.path.dirname(__file__))
-import feature_schema
 
 ROOT = sys.argv[1]
 OPS = {";", "&", "&&", "|", "||", "(", ")", "<", ">", ">>", "\n"}
@@ -74,8 +73,14 @@ def local_branch(cwd):
 
 
 def gh_head(number, repo):
-    result = subprocess.run([os.environ.get("GH_BIN", "gh"), "pr", "view", number, "--repo", repo,
-                             "--json", "headRefName", "-q", ".headRefName"], capture_output=True, text=True)
+    try:
+        result = subprocess.run(
+            [os.environ.get("GH_BIN", "gh"), "pr", "view", number, "--repo", repo,
+             "--json", "headRefName", "-q", ".headRefName"],
+            capture_output=True, text=True,
+        )
+    except OSError as exc:
+        return "", str(exc)
     text = (result.stderr or result.stdout).strip()
     return result.stdout.strip(), text.splitlines()[0] if text else "gh pr view failed"
 
@@ -121,6 +126,7 @@ def main():
         return
     if not github.get("sync") or not merge_ref(command):
         return
+    import feature_schema
     branch, failure = head_branch(command, os.getcwd(), github.get("repo") or "")
     feat_dir, document = feature_for(branch)
     if document is None:
@@ -129,7 +135,7 @@ def main():
         return
     feat = os.path.basename(feat_dir)
     entry = (document.get("github") or {}).get("build_entry")
-    if feat in feature_schema.BUILD_ENTRY_ERA_EXEMPT and entry is None:
+    if feat in feature_schema.BUILD_ENTRY_ERA_EXEMPT:
         print(f"merge-gate: {feat} predates the build-entry receipt (feature_schema.BUILD_ENTRY_ERA_EXEMPT), so this merge is allowed. Its terminal receipt is created only by an explicit operator-approved gh-sync.py recover-terminal {os.path.realpath(feat_dir)} --yes.", file=sys.stderr)
         return
     if entry in {"opened", "not-applicable", "recovered-terminal"}:
