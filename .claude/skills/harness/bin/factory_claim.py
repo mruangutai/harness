@@ -22,11 +22,6 @@ that issue's state. An issue with no resolvable `feature:` label has no plan tas
 gated at all (D-09's tolerant read); a `feature:` label that resolves but whose plan.yaml cannot
 be read reports the absolute path that was tried (D-03), while one whose plan loads but holds no
 matching task is edge (i).
-
-FEATURES_ROOT resolves to `.harness/harness/features` under `harness_boundary.resolve_root`,
-never the current working directory — this tool runs from inside a workspace checkout of ANOTHER
-repository (T-06), and a cwd-relative path would silently read the wrong DAG or none at all
-(R-03).
 """
 import argparse
 import os
@@ -36,18 +31,11 @@ import sys
 import factory_cli
 import factory_config
 import factory_gh
-import harness_boundary
 import harness_yaml
 
 TOOL = "claim"
 
 _BIN_DIR = os.path.dirname(os.path.abspath(__file__))
-
-# Overridable for tests — read as a module global inside _main/_BlockerCache, never bound as a
-# default argument value, so a test monkeypatching this attribute after import is honoured.
-FEATURES_ROOT = os.path.join(
-    harness_boundary.resolve_root(_BIN_DIR), ".harness", "harness", "features"
-)
 
 _TASK_ID_RE = re.compile(r"(T-\d+)")
 
@@ -92,46 +80,48 @@ def _repo_name_of(item):
 
 
 class _BlockerCache:
-    """Caches each feature's plan.yaml and feature.json so a single poll reads each file once —
-    the cost model is per-blocker `issue_view` reads, not per-file reads (DESIGN.md C-2
-    amendment)."""
+    """Caches each (repo, feature) pair's plan.yaml and feature.json so a single poll reads each
+    file once — the cost model is per-blocker `issue_view` reads, not per-file reads (DESIGN.md
+    C-2 amendment). Keyed on (repo, feature), never on feature alone: two different repositories
+    can carry the same feature id under their own .harness/<segment>/features tree (D-02)."""
 
-    def __init__(self, features_root):
-        self._features_root = features_root
+    def __init__(self):
         self._plans = {}
         self._issue_maps = {}
 
-    def plan_path(self, feature):
-        """The absolute path to feature's plan.yaml under this cache's features root — the only
-        place absoluteness is established (REQ-02, SC-04)."""
-        return os.path.abspath(os.path.join(self._features_root, feature, "plan.yaml"))
+    def plan_path(self, repo, feature):
+        """The absolute path to (repo, feature)'s plan.yaml under repo's own features root — the
+        only place absoluteness is established (REQ-02, SC-04)."""
+        root = factory_config.features_root(repo)
+        return os.path.abspath(os.path.join(root, feature, "plan.yaml"))
 
-    def _plan(self, feature):
-        """The cached plan dict for feature, or None when it cannot be read. The sole file-reading
-        path: task() and plan_loaded() both reach plan.yaml only through this method, so one poll
-        reads each feature's plan.yaml exactly once no matter which of them is asked first or how
-        often."""
-        if feature not in self._plans:
-            path = self.plan_path(feature)
+    def _plan(self, repo, feature):
+        """The cached plan dict for (repo, feature), or None when it cannot be read. The sole
+        file-reading path: task() and plan_loaded() both reach plan.yaml only through this
+        method, so one poll reads each (repo, feature)'s plan.yaml exactly once no matter which
+        of them is asked first or how often."""
+        key = (repo, feature)
+        if key not in self._plans:
+            path = self.plan_path(repo, feature)
             try:
                 plan = harness_yaml.load_plan(path)
             except harness_yaml.YamlParseError:
                 plan = None
-            self._plans[feature] = plan
-        return self._plans[feature]
+            self._plans[key] = plan
+        return self._plans[key]
 
-    def plan_loaded(self, feature):
-        """True when feature's plan.yaml was read successfully."""
-        return self._plan(feature) is not None
+    def plan_loaded(self, repo, feature):
+        """True when (repo, feature)'s plan.yaml was read successfully."""
+        return self._plan(repo, feature) is not None
 
-    def root_exists(self):
-        """True when this cache's features root directory exists."""
-        return os.path.isdir(self._features_root)
+    def root_exists(self, repo):
+        """True when repo's own features root directory exists."""
+        return os.path.isdir(factory_config.features_root(repo))
 
-    def task(self, feature, task_id):
-        """The plan task dict for (feature, task_id), or None when the feature's plan.yaml
+    def task(self, repo, feature, task_id):
+        """The plan task dict for (repo, feature, task_id), or None when the feature's plan.yaml
         cannot be read, or contains no task with that id."""
-        plan = self._plan(feature)
+        plan = self._plan(repo, feature)
         if plan is None or task_id is None:
             return None
         for t in plan["tasks"]:
@@ -139,11 +129,13 @@ class _BlockerCache:
                 return t
         return None
 
-    def issue_number(self, feature, task_id):
-        """The blocker's issue number from that feature's feature.json `factory.issues` map, or
-        None when it is unresolvable."""
-        if feature not in self._issue_maps:
-            path = os.path.join(self._features_root, feature, "feature.json")
+    def issue_number(self, repo, feature, task_id):
+        """The blocker's issue number from (repo, feature)'s feature.json `factory.issues` map,
+        or None when it is unresolvable."""
+        key = (repo, feature)
+        if key not in self._issue_maps:
+            root = factory_config.features_root(repo)
+            path = os.path.join(root, feature, "feature.json")
             try:
                 doc = harness_yaml.load_file(path)
             except harness_yaml.YamlParseError:
@@ -153,8 +145,8 @@ class _BlockerCache:
                 f = doc.get("factory")
                 if isinstance(f, dict) and isinstance(f.get("issues"), dict):
                     issues = {str(k): v for k, v in f["issues"].items()}
-            self._issue_maps[feature] = issues
-        return self._issue_maps[feature].get(task_id)
+            self._issue_maps[key] = issues
+        return self._issue_maps[key].get(task_id)
 
 
 def _blocker_gate(cache, repo, feature, task_id):
@@ -165,9 +157,9 @@ def _blocker_gate(cache, repo, feature, task_id):
     ("open", dep, blocker_num) — the LAST depends_on entry (in order) whose blocker issue is
     still open — scanning every entry, never stopping at the first, is what MIXED BLOCKER SET
     requires (T-05 intent, SC-22)."""
-    if not cache.plan_loaded(feature):
-        return ("no_plan", cache.plan_path(feature), cache.root_exists())
-    task = cache.task(feature, task_id)
+    if not cache.plan_loaded(repo, feature):
+        return ("no_plan", cache.plan_path(repo, feature), cache.root_exists(repo))
+    task = cache.task(repo, feature, task_id)
     if task is None:
         return ("edge_i", task_id)
     depends_on = [str(d) for d in (task.get("depends_on") or [])]
@@ -175,12 +167,12 @@ def _blocker_gate(cache, repo, feature, task_id):
         return None
 
     for dep in depends_on:
-        if cache.issue_number(feature, dep) is None:
+        if cache.issue_number(repo, feature, dep) is None:
             return ("unresolvable", dep)
 
     open_blocker = None
     for dep in depends_on:
-        blocker_num = cache.issue_number(feature, dep)
+        blocker_num = cache.issue_number(repo, feature, dep)
         state = factory_gh.issue_view(repo, blocker_num, ["state"]).get("state")
         if state != "CLOSED":
             open_blocker = (dep, blocker_num)
@@ -338,7 +330,7 @@ def _main():
         factory_cli.nothing_to_do(TOOL, "no work available")
 
     # 5. the candidate loop.
-    cache = _BlockerCache(FEATURES_ROOT)
+    cache = _BlockerCache()
     winner = None
     for num, repo_name, item in candidates:
         issue = factory_gh.issue_view(

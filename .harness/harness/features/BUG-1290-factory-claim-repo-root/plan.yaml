@@ -1,0 +1,601 @@
+schema: plan/1
+feature: BUG-1290-factory-claim-repo-root
+approval:
+  date: '2026-09-05'
+  approved_by: mruangutai
+  status: approved
+status: review
+source_issues: [1290]
+
+lanes:
+  resolved_at: eb9d044e
+  rows:
+    - surface: .agents/skills/harness/bin/**
+      lane: team
+      agent: harness-backend-dev
+    - surface: tests/unit/**
+      lane: team
+      agent: harness-backend-dev
+    - surface: tests/integration/**
+      lane: team
+      agent: harness-backend-dev
+
+decisions:
+  - id: D-01
+    choice: >-
+      The segment rule and its composition are SPLIT, and both are homed in factory_config.py.
+      segment_of(repo_name) returns the fleet repository name after the owner and is the one shared
+      rule; it has three callers, factory_claim.py, feature-worktree.py:resolve_repo, and
+      factory_config.workspace_path, which re-implements that rule inline today.
+      features_root(repo_name) joins harness_boundary.resolve_root(_BIN_DIR), ".harness",
+      segment_of(repo_name) and "features"; it has exactly one caller, factory_claim.py.
+      DEVIATION FROM THE SETTLED WORDING, NAMED SO THE OPERATOR SIGNS IT KNOWINGLY: the wording settled
+      in grilling was ONE resolver function called by both factory_claim.py and
+      feature-worktree.py:resolve_repo. Under this shape the function both callers share is segment_of,
+      NOT a features-root function, and features_root is a thin single-caller wrapper. The module home
+      is also no longer engineering's free choice: it is pinned to factory_config.py.
+      THE SAME DEVIATION APPLIES TO THE TICKET, IN THE SAME WORDS: issue 1290's Scope bullet asks to add
+      ONE repo name to features root resolver and have both callers call it. Under this shape the
+      features-root resolver has exactly one caller and the function both callers share resolves the
+      SEGMENT, not the features root, so a signer grading this plan against the ticket sees the
+      identical deviation there and need not map the grilling wording onto it.
+    because: >-
+      Three measurements at eb9d044e retire both the one-function shape and the free home.
+      (1) feature-worktree.py:resolve_repo (:64-87) needs the SEGMENT and composes it with
+      factory_config.workspace_path's workspace_root (:382-387), not with the harness root, so a single
+      features-root function forces it to recover the segment as basename(dirname(...)) of a path built
+      for a different consumer, coupling the worktree CLI to the features layout.
+      (2) factory_config.workspace_path (:382-387) already performs the identical owner-strip and its
+      docstring claims to be the one place that derivation exists, so any home outside factory_config.py
+      leaves a second live derivation one file over that SC-06's scan would have to grow to catch.
+      (3) harness_boundary.py already holds a layout_fixtures.STUB entry (:53-56) keyed by path ALONE,
+      while READER_TABLE is keyed by (surface, path), so D-04's retarget onto it would produce a
+      duplicate dict key that the set-comparing import guard at layout_fixtures.py:68-71 does not catch.
+      factory_config.py holds neither a table row nor a STUB entry, and already imports
+      harness_boundary and defines _BIN_DIR (:34-37), so it needs no new import.
+    dec: none
+  - id: D-02
+    choice: >-
+      _BlockerCache takes no root at construction; it resolves the features root per candidate
+      from repo_name and keys its plan and issue-map caches on the pair of repository and
+      feature, never on feature alone.
+    because: >-
+      A FEAT-04 directory exists today under both .harness/harness/features and
+      .harness/kaya-ai/features, so a feature-only key serves one repository's plan to the other.
+    dec: none
+  - id: D-03
+    choice: >-
+      The single-home property is asserted by a source-scan case rather than by a behavioural probe, and
+      the scan matches the owner-strip BEHAVIOUR rather than one spelling. Its pattern is: a split,
+      rsplit, partition or rpartition on a slash literal applied to an identifier whose name starts with
+      repo, OR os.path.basename applied to such an identifier - as a regex,
+      \brepo\w*\s*\.\s*(?:r?split|r?partition)\s*\(\s*["']/["']|\bbasename\s*\(\s*repo\w*
+      The scan reads THREE files: factory_claim.py and feature-worktree.py must each contain ZERO
+      matches, and factory_config.py exactly one.
+    because: >-
+      The property is textual, that no second derivation exists, and a behavioural probe cannot prove a
+      negative over source text; the repository has precedent for source-scan drift guards at
+      tests/unit/test-no-distribution.py:371-372. The scan is AMENDED rather than replaced.
+      factory_config.py joins the scanned set because workspace_path (:382-387) carries a second live
+      derivation today that a two-file scan would ship green.
+      WHY THE PATTERN IS BEHAVIOURAL, NOT THE split-on-slash SPELLING: the first draft pinned
+      split("/", 1)[-1], so an rsplit, partition or basename re-derivation in feature-worktree.py would
+      have satisfied the scan while ticket 1290's Done-when bullet - no second owner-strip - stayed
+      undelivered under a green verify. MEASURED at eb9d044e: the pattern above matches exactly
+      feature-worktree.py:86 and factory_config.py:386 and nothing else in the three files; in
+      particular it does NOT match factory_claim.py:84 (url.rstrip("/").split("/")),
+      feature-worktree.py:203 (rest.split(" -> ", 1)) or :278 (r.stdout.split("\0")), so it is red for
+      the derivation that exists today and false-positives on no unrelated split in the scanned set.
+      THE RESIDUE IT CANNOT SEE, stated rather than implied: an owner-strip whose subject is first
+      copied into a differently-named local, one written as an index slice on repo.find("/"), and one
+      delegated to a fourth module. That residue is accepted because this change edits only the three
+      scanned files and every line of that diff is read at review, and because the behavioural half -
+      that feature-worktree.py still resolves the RIGHT segment after the edit - is covered by
+      tests/integration/test-feature-worktree.py inside T-03's verify, not by the scan.
+    dec: none
+  - id: D-04
+    choice: >-
+      layout_migration.READER_TABLE's factory_claim.py row (:92-94) is MOVED onto
+      .agents/skills/harness/bin/factory_config.py, the module that carries the .harness / segment /
+      features join after T-03, with layout_fixtures.STUB's key changed in the same edit. The features
+      surface keeps five reader rows. Removing the row outright was the alternative considered, and is
+      not taken.
+    because: >-
+      Once claim delegates, no regex on its text can tell legacy from migrated, so the reader classifies
+      as neither and the whole features surface goes CANNOT_VERIFY, which check-state.sh INV-27
+      (:2363-2367) reports as a failure.
+      CITATION CORRECTED: the FEAT-42 precedent recorded at layout_migration.py:98-104 is a REMOVAL, not
+      a move. factory_config.py's docs row was deleted because after that change NO file carried the
+      path string at all. Here a successor file does carry it, so the row moves rather than being
+      removed: the move keeps the module that now owns the rule under coupled-reader scrutiny, which
+      removal would forfeit, and it preserves the surface's reader count.
+      factory_config.py holds neither a READER_TABLE row nor a layout_fixtures.STUB entry today, so the
+      move creates no duplicate STUB key and needs no combined stub body carrying two surfaces'
+      fragments. That is the same fact D-01 relies on, and it is why the home pin and this row move must
+      land together.
+    dec: none
+
+panel:
+  last_run: 2026-09-05-06-validator
+  cycle: 1
+  team: plan-panel
+  verdict: FAIL
+  code_grade: n_a
+  send_backs: 0
+  transcription_rule: Every id computed with panel_findings.py id --reader <persona>
+    --summary <summary>, over the summary text recorded in this block verbatim; never
+    typed. The label field carries the panel's own human label for the same finding.
+  record_notes:
+  - 'Severity normalisation, disclosed by the validator lead: harness-code-reviewer
+    returned no finding (severity none) on its T-05 mechanism entry; it is recorded
+    here at info and merged into the single T05-mechanism finding.'
+  - harness-code-reviewer mislabelled that T-05 mechanism entry PANEL-03 (P2). The
+    entry is about the mutation proxy, not P2; the P2 verdict rests on should-not-exist
+    alone, which is where P2 was assigned.
+  - A-01's severity is transcribed unchanged at its reader's med. Its must_fix membership
+    was the validator lead's ranking, not a severity revision.
+  readers:
+  - step: scope
+    persona: harness-code-reviewer
+    status: ran
+    verdict: FAIL
+    contributed: PANEL-01, PANEL-02, the anchor audit (all exact), and the empirical
+      runpy proof for T-05
+  - step: should-not-exist
+    persona: fable-advisor
+    status: ran
+    verdict: 7 findings
+    contributed: A-01, the measured T-05 wall clock, and the P2 resolution
+  findings:
+  - id: PF-2cb94b52681b87f83e4c09f4bf93fe7c
+    label: PANEL-01
+    severity: high
+    reader: harness-code-reviewer
+    summary: 'T-02/T-03: case (H) FEAT-INTEG-TWOBOARD at test-factory-integration.py:1245-1246
+      builds its fixture on the literal harness segment while REPO is acme/widget,
+      sits outside every task''s files list, and reddens T-03''s own &&-chained verify
+      on a correct T-03.'
+    disposition: resolved
+    resolved_by: T-02
+    resolution: T-02 widened to migrate BOTH claim fixtures (:882 and :1246) onto
+      REPO's own segment, its no-second-case prohibition narrowed to adding cases
+      only, and its verify now asserts both the (F) and the (H) claim FAIL markers.
+      Scope was set by a whole-file grep, not by the two known line numbers; the other
+      .harness joins are named out of scope with reasons in T-02's intent.
+  - id: PF-2dc9c83c55edf75bf7b66988422a0be1
+    label: A-01
+    severity: med
+    reader: should-not-exist
+    summary: 'T-03/T-04: T-03''s inline os.path.join(..., ".harness", segment_of(repo_name),
+      "features") cannot be matched by the moved reader row''s migrated pattern "\.harness",
+      [^,)]+, "features", so factory_config.py classifies as neither, the features
+      surface goes CANNOT_VERIFY and both conjuncts of T-04''s verify go red on a
+      correct build.'
+    disposition: resolved
+    resolved_by: T-03
+    resolution: 'Reconciled in T-03, not T-04: features_root binds the segment to
+      a paren-free local (seg = segment_of(repo_name)) before the join, so the neighbouring
+      rows'' migrated pattern matches unchanged. Widening the moved row to [^,]+ was
+      the alternative and is not taken - it loosens a drift detector to fit the code
+      it watches. T-04''s intent now forbids that widening explicitly.'
+  - id: PF-e499f8b6c26d08c94800e0e4ba80a570
+    label: PANEL-02
+    severity: med
+    reader: harness-code-reviewer
+    summary: 'SC-05/REQ-07/T-01 step 2: the no-re-pinning clause is enforced only
+      by prose; no task step or verify command scans for a weakened replacement of
+      the two deleted module-scope cases. Advisory, not must_fix - a fully mechanical
+      scan cannot distinguish weakened from differently phrased.'
+    disposition: dismissed
+    resolution: 'Non-gating, no plan edit owed. The reader''s own reasoning: the residue
+      is the same class D-03 already accepts, and two conspicuously extra checks where
+      two clear deletions were instructed is what an ordinary diff read catches. The
+      lead declined the optional case-count invariant as an implementation commitment
+      beyond what the requirement forces.'
+  - id: PF-ccc522d40fdedffe858b99dd91075407
+    label: A-P1
+    severity: info
+    reader: should-not-exist
+    summary: 'F-04: prose is sufficient for the no-weakening clause, because a re-pin
+      scan is not specifiable without self-collision - case 5d must itself assert
+      resolution to .harness/harness/features, so any scan for re-pin-shaped text
+      false-positives on the case the plan mandates.'
+    disposition: dismissed
+    resolution: The decisive reason behind PANEL-02's dismissal. SC-05's hasattr case
+      and T-05's mutation proof carry the load-bearing properties independently, so
+      the worst plausible weakened conversion is dead weight rather than a mask.
+  - id: PF-77426c471b9516afd750045c3325ac2a
+    label: A-P2
+    severity: info
+    reader: should-not-exist
+    summary: 'F-07: rewriting workspace_path onto segment_of is legitimate scope,
+      not manufactured necessity - the operator''s settled one-place rule precedes
+      SC-06''s wording, and landing segment_of beside workspace_path without the rewrite
+      creates two live derivations in one module and falsifies workspace_path''s own
+      docstring in the same commit.'
+    disposition: dismissed
+    resolution: No plan edit owed. The reader hunted for other instances of the circular-forcing
+      shape and found none. Severity not stated by its reader; recorded at info as
+      a cleared, non-gating item.
+  - id: PF-6e7f1badf8039fee5ea506d689cb042a
+    label: P3-merged
+    severity: info
+    reader: should-not-exist
+    summary: 'F-08: T-04''s case-22 comment reword is legitimate and belongs in the
+      task - an unverifiable edit that prevents a false statement is owed by the task
+      that makes the statement false, and T-04''s substantive deliverable is already
+      gated by a probe that is red at eb9d044e.'
+    disposition: dismissed
+    resolution: Both readers concur; harness-code-reviewer's own PANEL-04 entry says
+      the same and is merged here. Non-gating, no plan edit owed. Severity not stated
+      by either reader; recorded at info.
+  - id: PF-44a651d61bd7f1be96864fc9b7256f46
+    label: T05-mechanism
+    severity: info
+    reader: harness-code-reviewer
+    summary: 'SC-08/T-05: no finding - the mutation proxy intercepts because factory_claim
+      resolves factory_config by LOAD_GLOBAL at call time, and the runpy.run_path
+      re-import concern was settled empirically; restore-at-exit is sufficient because
+      run_pool.py:61-62 runs each unit file as its own subprocess.'
+    disposition: dismissed
+    resolution: Cleared under hostile reading by both readers, and recorded as cleared.
+      Reviewer returned severity none; normalised to info by the validator lead. The
+      reviewer labelled this entry PANEL-03 (P2); that label is wrong - this entry
+      is the mutation proxy, and the P2 verdict rests on should-not-exist alone.
+  - id: PF-1739028a3476550daa7e79de84ac6f23
+    label: A-D03
+    severity: info
+    reader: should-not-exist
+    summary: 'D-03: the source scan earns its place - the disclosed residue is a reviewer''s
+      checklist rather than false confidence.'
+    disposition: dismissed
+    resolution: Cleared, no plan edit owed. Severity not stated by its reader; recorded
+      at info.
+  - id: PF-9f734a8fbce5f4176da5f3a1df9b01f5
+    label: A-D04
+    severity: info
+    reader: should-not-exist
+    summary: 'D-04: the layout-row tax is this bug''s own tax - T-03''s deletion is
+      what breaks the row, so deferring it ships INV-27 red.'
+    disposition: dismissed
+    resolution: Cleared, no plan edit owed. Severity not stated by its reader; recorded
+      at info.
+tasks:
+  - id: T-01
+    title: Write the failing unit coverage for per-repository claim resolution
+    traces: [REQ-01, REQ-02, REQ-03, REQ-04, REQ-05, REQ-06, REQ-07]
+    change_type: bugfix
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: []
+    status: done
+    files:
+      - tests/unit/test-factory-claim.py
+    verify: |
+      # PASS requires a FAIL marker line from EACH of the six new cases: one red case, an ImportError,
+      # or a non-discriminating 5d/5e/5f can no longer satisfy this task. Every new case's check() name
+      # begins "BUG-1290 5x:" and every case reports its own exception through check() rather than
+      # aborting the file (T-01 step 5), so a marker line exists even when the seam is absent.
+      # Measured at eb9d044e: tests/unit/test-factory-claim.py exits 0 with 120 ok lines and no FAIL
+      # line at all, so every grep below misses and this command exits 1, printing MISSING RED: 5a..5f.
+      cd /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-1290-factory-claim-repo-root && out=$(python3 tests/unit/test-factory-claim.py 2>&1); rc=0; for m in 5a 5b 5c 5d 5e 5f; do printf '%s\n' "$out" | grep -q "^FAIL  BUG-1290 $m" || { echo "MISSING RED: $m"; rc=1; }; done; test $rc -eq 0
+    intent: |
+      Write the failing unit coverage for BUG-1290 in tests/unit/test-factory-claim.py, before any
+      production change. This task also FIXES the shared seam's public shape: T-03 implements exactly
+      what these tests import, so record the choice in this file's docstring.
+
+      1. The seam is TWO module-level functions, both homed in factory_config.py (D-01). T-03 adds them
+         there; write the tests against them.
+         segment_of(repo_name) returns the fleet repository name after the owner, i.e. the part after
+         the first slash. Its input is always an owner-qualified fleet repository name such as
+         acme/widget or owner/harness. It is NOT the bare literal harness: that is
+         feature-worktree.py's own --repo CLI form, which returns early at :67-69 before reaching any
+         shared call, so write no case for it.
+         features_root(repo_name) returns os.path.join(harness_boundary.resolve_root(_BIN_DIR),
+         ".harness", segment_of(repo_name), "features"), using factory_config's existing _BIN_DIR (:37)
+         and its existing harness_boundary import (:34).
+         factory_claim must reach features_root through its imported factory_config module attribute, so
+         a monkeypatch of factory_config.features_root is honoured.
+      2. DELETE the two module-scope cases at :58-68 that pin the unpatched FEATURES_ROOT default,
+         together with the comment introducing them at :54-57 and the docstring sentences describing
+         them at :14-16. SEPARATELY, reword only the docstring's FEATURES_ROOT sentence at :7-8 to say
+         the features root is now resolved per candidate through a monkeypatched
+         factory_config.features_root; the rest of :7-12 documents the fixture rig, stays true, and
+         stays. Do not re-pin the deleted default anywhere, and do not convert the two deleted cases
+         into weaker assertions.
+      3. Replace run_main's FEATURES_ROOT save/patch/restore (:393-394, :420) and the B5-ter root swap
+         (:850-867) with a patch of the resolver seam: monkeypatch factory_config.features_root with a
+         FUNCTION OF repo_name that mirrors the real join into this file's fixture tree, i.e. it joins
+         the fixture harness root, ".harness", the part of repo_name after the first slash, and
+         "features". It must be a function of its argument, never a dict lookup or a constant: T-05's
+         mutation proof works by freezing that argument, and a constant patch would make the mutant
+         indistinguishable from the correct code.
+      4. Extend build_features_root() to lay down two segment roots under one temporary harness root,
+         .harness/kaya-ai/features and .harness/harness/features, each holding a feature directory with
+         the SAME id whose plan.yaml carries a DIFFERENT task DAG: one whose task is blocked, one whose
+         task is clear.
+      5. Add these cases, using the existing check(name, cond, detail) idiom and the Recorder-based
+         factory_gh patching. Add no test framework and spawn no subprocess.
+         NAMING IS PART OF THE CONTRACT: each case's check() name begins with the literal marker
+         "BUG-1290 5a: ", "BUG-1290 5b: " and so on through 5f, because this task's verify and T-05
+         both select cases by those markers.
+         EVERY CASE MUST EMIT ITS MARKER LINE EVEN WHEN THE SEAM IS ABSENT. Run each case body inside a
+         try/except that reports the exception through check(name, False, repr(exc)); at eb9d044e
+         factory_config carries neither function, and an uncaught AttributeError would abort the file
+         part-way and take the later markers with it.
+         a. a candidate on a served non-harness repository reads its own segment's plan and reaches the
+            blocker-gate verdict that plan implies, not no_plan (SC-01);
+         b. two candidates, same feature id, different repositories: each verdict matches its own
+            segment's plan, and the second candidate is not served the first's cached plan task or
+            issue map (SC-02);
+         c. a served repository whose segment root does not exist: the refusal is the existing no_plan
+            reason, and its message contains the resolved absolute path including that repository's
+            segment (SC-03);
+         d. a fixture fleet entry whose owner-qualified name ends in harness, e.g. owner/harness,
+            resolves to .harness/harness/features (SC-04);
+         e. after import, factory_claim exposes no FEATURES_ROOT attribute, asserted with hasattr, so an
+            alias or a fallback constant fails this case (SC-05);
+         f. a source scan reading factory_claim.py, feature-worktree.py AND factory_config.py from disk.
+            The scan matches the owner-strip BEHAVIOUR, not one spelling (D-03): compile
+            \brepo\w*\s*\.\s*(?:r?split|r?partition)\s*\(\s*["']/["']|\bbasename\s*\(\s*repo\w*
+            and require ZERO matches in each of the first two files and EXACTLY ONE in factory_config.py
+            (SC-06). Measured at eb9d044e: it matches feature-worktree.py:86 and factory_config.py:386
+            and nothing else in the three files, so this case is red today and an rsplit, partition,
+            rpartition or os.path.basename re-derivation cannot ship green past it.
+      Leave every production file untouched in this task.
+
+  - id: T-02
+    title: Move both integration claim fixtures onto the repository's own segment
+    traces: [REQ-01, REQ-07]
+    change_type: bugfix
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-01]
+    status: done
+    files:
+      - tests/integration/test-factory-integration.py
+    verify: |
+      # PASS requires BOTH claim markers RED: (F) and (H) each build their fixture on REPO's own segment
+      # (widget) while claim still hardcodes harness, so each reports no_plan and reddens. The exit code
+      # alone is NOT selective - this file has no case selection, one global FAILS counter and one
+      # sys.exit(1 if FAILS else 0), so any unrelated regression would read as the intended red.
+      # MEASURED at eb9d044e on this worktree, file unmodified: exit 0 in 9.3s, 131 ok lines, ZERO FAIL
+      # lines, with "ok    (F) claim exits 0" and "ok    (H) claim against the two-board fleet exits 0" -
+      # so both greps miss today and this command exits 1 until BOTH fixtures move (PANEL-01).
+      cd /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-1290-factory-claim-repo-root && out=$(python3 tests/integration/test-factory-integration.py 2>&1); printf '%s\n' "$out" | grep -q '^FAIL  (F) claim exits 0' && printf '%s\n' "$out" | grep -q '^FAIL  (H) claim against the two-board fleet exits 0'
+    intent: |
+      In tests/integration/test-factory-integration.py, move BOTH end-to-end cases that drive claim off
+      the hardcoded harness segment and onto the segment their own fleet entry implies, so each case
+      proves per-repository resolution end to end.
+
+      SCOPE, SETTLED BY PANEL-01 AND MEASURED BY A WHOLE-FILE GREP, NOT BY KNOWN LINE NUMBERS: grepping
+      this file for .harness at eb9d044e returns exactly TWO hardcoded features-root joins, :882 (case F,
+      FEAT-INTEG-HAPPY) and :1246 (case H, FEAT-INTEG-TWOBOARD), and both are inside this task. Every
+      other .harness join in the file is out of scope with its reason: :538-542 is the HARNESS_PROJECT_DIR
+      marker probe (docs/SPEC.md plus team-config.yaml, not a features root); :1404, :1452, :1495, :1558
+      and :1608 write a case's own .harness/harness.json (a file, not a features root); :1506 already
+      builds on the widget segment and drives board_lifecycle.py audit, not claim; :27, :30-31 and :429
+      are prose. Case (H) sits in this task because a correct T-03 would otherwise redden it - its fixture
+      is on the harness segment while its REPO is acme/widget - and that red is &&-chained inside T-03's
+      own verify.
+
+      1. At :879-883, build feat_dir from the segment of REPO (REPO is acme/widget at :487, so the
+         segment is widget) instead of the literal harness: join root, .harness, that segment, features,
+         feat. Derive the segment from REPO in the case rather than typing widget a second time. The
+         comment at :879-880 says the fixture lives where factory_claim's import-time FEATURES_ROOT will
+         look; that is false after the move, so reword it to say the fixture lives where claim resolves
+         REPO's own features root.
+      2. At :1245-1247, do the same for case (H) FEAT-INTEG-TWOBOARD. Its REPO is the same module-level
+         REPO (acme/widget), so its feat_dir moves onto the same derived segment. Derive the segment from
+         REPO here too; do not type widget. Touch none of case (H)'s other lines: its decompose call
+         passes feat_dir explicitly (:1257) and stays green, and its claim (:1263), land (:1270) and
+         gh-call assertions stay exactly as they are.
+      3. Update the file docstring at :28-30, which states that factory_claim's import-time
+         FEATURES_ROOT resolves under the case's temp root. It now resolves per candidate, to
+         <HARNESS_PROJECT_DIR>/.harness/<segment>/features.
+      4. Change nothing else. The decompose and claim assertions, the fake gh and git binaries and the
+         --fleet wiring all stay as they are in both cases, and NO NEW CASE IS ADDED. The prohibition
+         this task keeps is on ADDING a case; it no longer forbids editing case (H)'s fixture line, which
+         PANEL-01 moved into this task's scope.
+      BOTH cases are expected to FAIL until T-03 lands; that red state, in both of them, is what this
+      task delivers, and this task's verify asserts both markers rather than the file's exit code.
+
+  - id: T-03
+    title: Resolve the features root per repository and delete FEATURES_ROOT
+    traces: [REQ-01, REQ-02, REQ-03, REQ-04, REQ-05, REQ-06]
+    change_type: bugfix
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-01, T-02]
+    status: done
+    files:
+    - .agents/skills/harness/bin/factory_claim.py
+    - .agents/skills/harness/bin/feature-worktree.py
+    - .agents/skills/harness/bin/factory_config.py
+    verify: |
+      # PASS: all three suites exit 0 and no FEATURES_ROOT survives in factory_claim.py.
+      # test-feature-worktree.py is here because this task edits feature-worktree.py and drives
+      # resolve_repo through the CLI as a subprocess — SC-06's source scan is textual and cannot catch
+      # a wrong segment there. Measured at eb9d044e: exit 0 in 6.4s.
+      cd /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-1290-factory-claim-repo-root && python3 tests/unit/test-factory-claim.py && python3 tests/integration/test-factory-integration.py && python3 tests/integration/test-feature-worktree.py && python3 -c "import sys; t = open('.agents/skills/harness/bin/factory_claim.py').read(); sys.exit(1 if 'FEATURES_ROOT' in t else 0)"
+    intent: |
+      Make factory_claim resolve each candidate's features root from its repository, using the two
+      functions T-01's tests already fixed. Their home is factory_config.py and only factory_config.py
+      (D-01).
+
+      1. Add BOTH functions to factory_config.py, beside workspace_path:
+         segment_of(repo_name) returns repo_name.split("/", 1)[-1], the fleet repository name after the
+         owner. This is the one home of that rule.
+         features_root(repo_name) BINDS THE SEGMENT TO A LOCAL FIRST and then joins that local:
+           seg = segment_of(repo_name)
+           return os.path.join(harness_boundary.resolve_root(_BIN_DIR), ".harness", seg, "features")
+         reusing this module's existing _BIN_DIR (:37) and harness_boundary import (:34); add no new
+         import.
+         THE LOCAL IS LOAD-BEARING, NOT STYLE (A-01). layout_migration's features rows spell their
+         migrated pattern "\.harness", [^,)]+, "features" (layout_migration.py:91, :94) and their legacy
+         pattern "\.harness", "features", and [^,)]+ cannot cross the ) of an inline segment_of(repo_name)
+         call. MEASURED at eb9d044e against those exact row patterns: the inline spelling matches NEITHER
+         pattern, so T-04's moved row would classify this file as neither and take the whole features
+         surface to CANNOT_VERIFY, reddening both conjuncts of T-04's verify on a correct build; the
+         paren-free local matches migrated and not legacy, which is what T-04's probe and SC-09 require.
+         Do not inline the call, and do not loosen T-04's pattern instead - that route was considered and
+         is not taken.
+         Then rewrite workspace_path (:382-387) to call segment_of instead of restating the split, and
+         correct its docstring, which today claims to be the one place that derivation exists.
+         harness_boundary.py is NOT edited by this task.
+      2. In feature-worktree.py:resolve_repo (:64-87), take the segment from factory_config.segment_of
+         instead of the local repo.split("/", 1)[-1] at :86. The factory_config import at :77 already
+         covers it. Its return contract (owner_root, segment, default_branch) is unchanged, and the
+         repo == "harness" branch at :67-69 keeps returning the literal harness segment by its own
+         early return — it reaches no shared call and is not in the shared functions' contract.
+      3. In factory_claim.py, delete the FEATURES_ROOT module global with its comment (:46-50) and the
+         docstring paragraph describing the hardcode (:26-29). Introduce no alias, no fallback to the
+         old root and no new refusal path: an unknown repository is already refused by
+         factory_config.repo_entry and filtered out at candidate step 4.
+      4. _BlockerCache (:94-157) no longer takes a features root at construction. It resolves the root
+         per candidate by calling factory_config.features_root(repo_name), which the candidate loop
+         already holds at :343, and keys BOTH _plans (:101, :114-121) and _issue_maps (:102, :145-157)
+         on the (repo, feature) pair, never on feature alone. Its plan path stays absolute
+         (os.path.abspath, :107) and its root_exists check (:127-129) becomes a check of that
+         candidate's own resolved root, so the existing no_plan reason keeps naming the exact path that
+         was tried.
+      5. Update the construction site at :341 accordingly.
+      Touch no other segment derivation: post-merge-sweep.sh:163, quarantine.py:109,
+      worktree_terminal.py:107-129 and feature_schema.py:231 stay exactly as they are.
+      This task edits no test file. Both integration cases its verify runs, (F) and (H), were moved onto
+      REPO's own segment by T-02, so tests/integration/test-factory-integration.py goes green here only
+      when per-repository resolution is actually correct (PANEL-01).
+
+  - id: T-04
+    title: Retarget the layout detector's reader row onto the resolver's module
+    traces: [REQ-08]
+    change_type: bugfix
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-03]
+    status: done
+    files:
+    - .agents/skills/harness/bin/layout_migration.py
+    - .agents/skills/harness/bin/layout_fixtures.py
+    - tests/integration/test-layout-migration.py
+    verify: |
+      # PASS: the suite exits 0 AND the reader-row probe passes. The suite ALONE cannot see this task's
+      # work: case 22 (:421-429) asserts only "features: CLEAN - evidence migrated", which is already
+      # true at eb9d044e (measured: suite exit 0, case 22 ok) and stays true if the row is REMOVED
+      # instead of moved, or if the moved row's legacy pattern matches nothing. The probe asserts
+      # REQ-08 / SC-09 / D-04's five-row clause directly: five features rows, factory_config.py present
+      # and classified migrated on the real tree, factory_claim.py absent, and a LIVE pattern pair -
+      # legacy matches the legacy control string and not the migrated one, migrated matches the
+      # migrated control. Measured at eb9d044e: probe exits 1, printing READER ROW PROBE: FAIL with
+      # factory_claim.py still the row; the three pattern-ladder clauses already hold on that row.
+      cd /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-1290-factory-claim-repo-root && python3 tests/integration/test-layout-migration.py && python3 -c "
+      import sys, re; sys.path.insert(0, '.claude/skills/harness/bin')
+      import layout_migration as lm
+      R = [r for r in lm.READER_TABLE if r.surface == 'features']
+      P = [r.path for r in R]
+      T = '.agents/skills/harness/bin/factory_config.py'
+      row = [r for r in R if r.path == T]
+      d = dict(lm.scan('.').surfaces['features'].readers)
+      L = 'os.path.join(H, \".harness\", \"features\")'
+      M = 'os.path.join(H, \".harness\", seg, \"features\")'
+      ok = (len(R) == 5 and '.agents/skills/harness/bin/factory_claim.py' not in P and len(row) == 1
+            and d.get(T) == 'migrated'
+            and re.search(row[0].legacy, L) and not re.search(row[0].legacy, M)
+            and re.search(row[0].migrated, M))
+      print('READER ROW PROBE:', 'ok' if ok else 'FAIL', len(R), d)
+      sys.exit(0 if ok else 1)
+      "
+    intent: |
+      factory_claim.py stops carrying any .harness / features join in T-03, so
+      layout_migration.READER_TABLE's row for it (:92-94) can no longer tell legacy from migrated. It
+      then classifies as neither, which makes the whole features surface CANNOT_VERIFY and reddens
+      check-state.sh INV-27 (:2363-2367). Measured on the worktree at eb9d044e, before any task ran:
+      that surface is CLEAN and factory_claim.py classifies as migrated.
+
+      1. In layout_migration.py, MOVE that row onto .agents/skills/harness/bin/factory_config.py, which
+         after T-03 carries the join. Keep the row's surface (features) and both patterns in the same
+         regex spelling the neighbouring rows use: legacy the literal join of ".harness" and "features",
+         migrated the segment-carrying join.
+         DO NOT WIDEN EITHER PATTERN (A-01, reconciled in T-03, not here). The migrated pattern stays
+         exactly "\.harness", [^,)]+, "features" as :91 and :94 spell it. Widening it to [^,]+ so it could
+         cross an inline segment_of(repo_name) call was the alternative and is NOT taken: T-03 step 1
+         instead binds the segment to a paren-free local, so this spelling matches the resolver's real
+         text. MEASURED at eb9d044e: against the paren-free text ".harness", seg, "features" the migrated
+         pattern matches and the legacy pattern does not. Loosening a drift detector to fit the code it
+         watches is the weaker route; if the resolver you find inlines the call, that is a T-03 defect -
+         report it rather than widening this pattern.
+         Keep a trailing balance comment so the file's textual paren balance is unchanged (the reason is
+         stated at :83-88), and add a short comment recording why the claim row moved, in the shape of the
+         FEAT-42 precedent comment at :98-104 — noting in it that FEAT-42 REMOVED its row because no file
+         carried the string afterwards, whereas here the string moved to a successor file. Add and remove
+         no other row; the features surface keeps five.
+      2. In layout_fixtures.py, rename the corresponding STUB key (:45-48) to the new path in the SAME
+         edit, and update its legacy and migrated stub fragments so each matches only its own form of
+         the new row's patterns. The import-time guard at :68-71 compares STUB's keys to the table's
+         paths as SETS, so a one-sided edit is a loud import error in two suites. factory_config.py has
+         no existing STUB entry, so this rename creates no duplicate dict key; do not retarget the row
+         onto harness_boundary.py, which does have one (:53-56) and would collide silently.
+      3. In tests/integration/test-layout-migration.py, reword only case 22's comment at :422-425, which
+         names factory_claim.py as a features reader; that sentence is false after step 1. Change no
+         assertion: case 22's check at :426-429 asserts the real tree's features surface is CLEAN with
+         migrated evidence, which must still hold. It is NOT sufficient on its own — it stays green if
+         the row is removed rather than moved, and it never exercises the legacy pattern — so this
+         task's verify pairs the suite with a reader-row probe that asserts REQ-08 / SC-09 / D-04's
+         five-row clause directly, over the real table and the real tree. The probe is verify-level on
+         purpose: no assertion in this suite is rewritten by this task. The probe's control strings stay
+         as written: its migrated control is already the paren-free spelling T-03 step 1 mandates, so the
+         three-clause pattern ladder still discriminates unchanged (measured at eb9d044e: legacy matches
+         the legacy control, legacy misses the migrated control, migrated matches the migrated control).
+      Change no other surface.
+  - id: T-05
+    title: Mutation-prove the per-repository resolution at the unit boundary
+    traces: [REQ-07]
+    change_type: bugfix
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-03]
+    status: done
+    files:
+      - tests/unit/test-factory-claim-mutation.py
+    verify: |
+      # PASS is BOTH marker lines, never the exit code alone: at eb9d044e the file does not exist
+      # and python3 exits 2, which a status-only check would read as discrimination (measured:
+      # exit 2, "can't open file", no marker line). BASELINE proves the three cases are green
+      # unmutated; MUTATION PROOF proves the same three go red when per-repository resolution is
+      # removed. Either line missing is a failure.
+      cd /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-1290-factory-claim-repo-root && out=$(python3 tests/unit/test-factory-claim-mutation.py 2>&1); printf '%s\n' "$out" | grep -q '^BASELINE 3/3 ok' && printf '%s\n' "$out" | grep -q '^MUTATION PROOF: 3/3 cases reddened'
+    intent: |
+      Write tests/unit/test-factory-claim-mutation.py, the mutation proof SC-08 names. It is the
+      step that PERFORMS the revert-mutation and the command that CAPTURES its evidence: without
+      it, SC-08 rests on T-01's pre-change red alone, which is suite-granular and gone once T-03
+      lands. Add no framework, spawn no subprocess, and change no production file and no other
+      test file. The file must live in tests/unit/, be named test-*.py, and carry a name that
+      appears in neither suite already (suite_layout.py enforces all three).
+
+      1. Insert the bin directory on sys.path exactly as tests/unit/test-factory-claim.py does
+         (:18-22), then import factory_claim and factory_config.
+      2. BASELINE FIRST. Run tests/unit/test-factory-claim.py in-process, unmutated, with
+         runpy.run_path(path, run_name="__main__") inside contextlib.redirect_stdout, swallowing
+         the SystemExit it raises at the end. Require an "ok" marker line for each of
+         BUG-1290 5a, 5b and 5c. If any is missing or red, print which, print BASELINE INCOMPLETE
+         and exit 1 without running the mutant: a case that is red before mutation proves nothing.
+         Otherwise print BASELINE 3/3 ok.
+      3. INSTALL THE MUTANT: replace factory_claim's factory_config attribute with a small proxy
+         object whose __getattr__ delegates every name to the real module, EXCEPT features_root,
+         which it returns wrapped so the wrapper DISCARDS its repo_name argument and calls the
+         real (or suite-patched) function with one fixed owner-qualified fleet name whose segment
+         is harness. That is the post-change equivalent of the deleted FEATURES_ROOT hardcode: one
+         features root for every candidate. The wrapper prints MUTANT ACTIVE the first time it is
+         reached, so a proof that never entered the seam is visible instead of silently green.
+         The mechanism is measured, not assumed: with the proxy installed BEFORE the suite's own
+         monkeypatch of factory_config.features_root, a kaya-ai candidate still resolves to the
+         harness segment root, because the proxy resolves the attribute at CALL time. The
+         transcript is in notes/research-BUG-1290-factory-claim-repo-root-fix-c2.md. This is also
+         why T-01 step 3 requires the suite's patch to be a function of repo_name.
+      4. Re-run the same suite the same way under the mutant. Require a "FAIL" marker line for
+         each of BUG-1290 5a, 5b and 5c. Print each captured marker line, then print
+         MUTATION PROOF: 3/3 cases reddened and exit 0. If any of the three did not redden, print
+         which, print MUTATION PROOF: INCOMPLETE and exit 1 — a case that survives the removal of
+         per-repository resolution is not evidence for it.
+      5. Restore factory_claim.factory_config to the real module before exiting, so this file is
+         safe to run in the same interpreter as the rest of the unit suite.

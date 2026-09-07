@@ -4,16 +4,13 @@
 Nothing here spawns a subprocess and nothing touches a real board, repository, or this
 repository's own `.harness/harness/features/`. Every call `factory_claim` makes into `factory_gh`'s
 public functions is monkeypatched over a single `Recorder`, whose ordered `.calls` list is the
-evidence every assertion below is a projection of. `FEATURES_ROOT` is monkeypatched to a
-temporary directory built once by this file — `build_features_root()` — holding two fixture
+evidence every assertion below is a projection of. The features root is now resolved per
+candidate through a monkeypatched `factory_config.features_root`, built once by this file — `build_features_root()` — holding two fixture
 features: FEAT-01-demo (one unblocked task, used by every case that is not about the blocker
 gate) and FEAT-02-block (several tasks with varying `depends_on`, used by the seven blocker-gate
 cases, SC-22). Both are read via `factory_claim.harness_yaml`, never re-derived, so a case that
 needs to prove "no plan file consulted" monkeypatches `harness_yaml.load_plan` itself.
 
-The deliberate exception: two cases at module scope, immediately after `check()` is defined and
-before any fixture or patch runs, read `claim.FEATURES_ROOT` unpatched to pin the tool's own
-resolved default.
 """
 import os as _anchor_os, sys as _anchor_sys
 _anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
@@ -51,23 +48,6 @@ def check(name, cond, detail=""):
         print(f"FAIL  {name}" + (f"\n        {detail}" if detail else ""))
 
 
-# The deliberate exception to "nothing here touches this repository's own
-# `.harness/harness/features/`": these two cases read claim.FEATURES_ROOT at MODULE SCOPE, before
-# any other case's save-patch-restore machinery has touched it, so they observe the tool's real
-# unpatched default rather than a fixture standing in for it (D-04, REQ-03).
-check(
-    "the unpatched FEATURES_ROOT default is the migrated harness features tree",
-    claim.FEATURES_ROOT
-    == os.path.join(hb.resolve_root(claim._BIN_DIR), ".harness", "harness", "features"),
-    detail=repr(claim.FEATURES_ROOT),
-)
-check(
-    "the unpatched FEATURES_ROOT default names a directory that exists",
-    os.path.isdir(claim.FEATURES_ROOT),
-    detail=repr(claim.FEATURES_ROOT),
-)
-
-
 OWNER = "acme"
 BOARD = 3
 STATION_FIELD = "Status"
@@ -81,6 +61,14 @@ AS_LOGIN = "agent-1"
 REPO_B = "acme/gadget"
 BOARD_B = 5
 STATION_FIELD_B = "StatusB"
+
+# BUG-1290: fixture repositories/segment for the shared resolver seam (T-01 step 5). REPO_KAYA
+# is a served non-harness repository; REPO_HARNESS_SEG is D-04's own worked example, an
+# owner-qualified name ending in the literal "harness". Both carry the SAME feature id under
+# build_features_root()'s two extra segment roots, with different task DAGs.
+REPO_KAYA = "acme/kaya-ai"
+REPO_HARNESS_SEG = "acme/harness"
+SEG_FEATURE = "FEAT-99-seg"
 
 MUTATING_NAMES = ("add_label", "assign", "project_field_set")
 
@@ -334,13 +322,26 @@ def plan_dict(feat, tasks):
 
 
 def build_features_root():
-    """One shared fixture tree, built once. FEAT-01-demo carries a single unblocked task and
-    backs every case that is not about the blocker gate. FEAT-02-block backs the seven SC-22
-    cases: T-05 (single blocker), T-06 (three blockers, MIXED), T-09 (clear), T-10 (unresolvable
-    blocker naming T-99, which feature.json never maps)."""
-    root = tempfile.mkdtemp(prefix="claim-features-")
+    """One shared fixture tree, built once, laid out as a harness root — `.harness/<segment>/features`
+    per repository segment, because factory_config.features_root resolves per candidate from the
+    repository's own segment (BUG-1290, D-01/D-02) rather than from one shared directory.
 
-    demo = os.path.join(root, "FEAT-01-demo")
+    `.harness/widget/features` (REPO's own segment) carries FEAT-01-demo, a single unblocked task
+    used by every case that is not about the blocker gate, and FEAT-02-block, several tasks with
+    varying `depends_on` used by the seven blocker-gate cases (SC-22): T-05 (single blocker), T-06
+    (three blockers, MIXED), T-09 (clear), T-10 (unresolvable blocker naming T-99, which
+    feature.json never maps).
+
+    `.harness/kaya-ai/features` and `.harness/harness/features` each carry the SAME feature id,
+    SEG_FEATURE, with DIFFERENT task DAGs and DIFFERENT non-empty issue maps — kaya-ai's T-77
+    depends on an unresolvable T-88 (its own map holds only T-77, never T-88), harness's T-77
+    depends on T-99 which its OWN map resolves to a closed issue — so a case can prove a
+    per-repository resolver reaches each segment's own plan AND ITS OWN ISSUE MAP, neither
+    cache served across repositories (BUG-1290 5a/5b, SC-01/SC-02)."""
+    harness_root = tempfile.mkdtemp(prefix="claim-harness-")
+    widget_features = os.path.join(harness_root, ".harness", "widget", "features")
+
+    demo = os.path.join(widget_features, "FEAT-01-demo")
     write_yaml(os.path.join(demo, "plan.yaml"),
                plan_dict("FEAT-01-demo", [task_dict("T-01")]))
     # An eleven-key feature.json fixture, read end to end by issue_number below — not just a
@@ -360,7 +361,7 @@ def build_features_root():
         "factory": {"issues": {"T-01": 501}},
     })
 
-    block = os.path.join(root, "FEAT-02-block")
+    block = os.path.join(widget_features, "FEAT-02-block")
     write_yaml(os.path.join(block, "plan.yaml"), plan_dict("FEAT-02-block", [
         task_dict("T-05", depends_on=["T-02"]),
         task_dict("T-06", depends_on=["T-02", "T-03", "T-04"]),
@@ -371,17 +372,35 @@ def build_features_root():
         "factory": {"issues": {"T-02": 601, "T-03": 602, "T-04": 603}},
     })
 
-    return root
+    kaya_seg = os.path.join(harness_root, ".harness", "kaya-ai", "features", SEG_FEATURE)
+    write_yaml(os.path.join(kaya_seg, "plan.yaml"),
+               plan_dict(SEG_FEATURE, [task_dict("T-77", depends_on=["T-88"])]))
+    write_json(os.path.join(kaya_seg, "feature.json"), {"factory": {"issues": {"T-77": 850}}})
+
+    harness_seg = os.path.join(harness_root, ".harness", "harness", "features", SEG_FEATURE)
+    write_yaml(os.path.join(harness_seg, "plan.yaml"),
+               plan_dict(SEG_FEATURE, [task_dict("T-77", depends_on=["T-99"])]))
+    write_json(os.path.join(harness_seg, "feature.json"), {"factory": {"issues": {"T-99": 954}}})
+
+    return harness_root
 
 
-FEATURES_ROOT = build_features_root()
+FIXTURE_HARNESS_ROOT = build_features_root()
+
+
+def fixture_features_root(repo_name):
+    """Mirrors factory_config.features_root's real join into this file's own fixture tree — a
+    FUNCTION of repo_name, never a constant or dict lookup, so a mutation freezing this
+    argument is distinguishable from the correct join (T-05)."""
+    segment = repo_name.split("/", 1)[-1]
+    return os.path.join(FIXTURE_HARNESS_ROOT, ".harness", segment, "features")
 
 
 # --------------------------------------------------------------------------
 # Driver.
 # --------------------------------------------------------------------------
 
-def run_main(rec, extra_args, workspace_root=None, fleet_dict=None):
+def run_main(rec, extra_args, workspace_root=None, fleet_dict=None, features_root_fn=None):
     workspace_root = workspace_root or tempfile.mkdtemp(prefix="claim-ws-")
     fleet_dir = tempfile.mkdtemp(prefix="claim-fleet-")
     raw_fleet = fleet_dict if fleet_dict is not None else good_fleet_dict(workspace_root)
@@ -390,8 +409,10 @@ def run_main(rec, extra_args, workspace_root=None, fleet_dict=None):
     argv_saved = sys.argv
     sys.argv = ["factory_claim.py", "--fleet", fleet_path] + extra_args
     saved_gh = patch_gh(rec)
-    saved_features_root = claim.FEATURES_ROOT
-    claim.FEATURES_ROOT = FEATURES_ROOT
+    resolved_features_root_fn = features_root_fn or fixture_features_root
+    had_features_root = hasattr(fc, "features_root")
+    saved_features_root = getattr(fc, "features_root", None)
+    fc.features_root = resolved_features_root_fn
     # The board is resolved through factory_config.product_config, never from fleet.yaml
     # (T-02/T-03) — this tool is in-process (no subprocess), so the module-level function itself
     # is monkeypatched rather than faking a `gh` call.
@@ -417,7 +438,10 @@ def run_main(rec, extra_args, workspace_root=None, fleet_dict=None):
     finally:
         sys.argv = argv_saved
         unpatch_gh(saved_gh)
-        claim.FEATURES_ROOT = saved_features_root
+        if had_features_root:
+            fc.features_root = saved_features_root
+        else:
+            del fc.features_root
         fc.product_config = saved_product_config
     return code, out.getvalue(), err.getvalue()
 
@@ -847,25 +871,21 @@ check("(B5-bis) edge (i) reason distinct from open-blocker and unresolvable-bloc
       "no matching plan task" in err and "still open" not in err
       and "unresolvable blocker" not in err, err)
 
-# B5-ter. ABSENT FEATURES ROOT — a feature: label resolves but FEATURES_ROOT itself does not
-# exist, so no plan can ever be read for any feature. The refusal must name the real cause (the
-# path tried) rather than reusing edge (i)'s "no matching plan task" text, which blames the
-# title for a directory that was never there (D-03).
+# B5-ter. ABSENT FEATURES ROOT — a feature: label resolves but the resolved segment root itself
+# does not exist, so no plan can ever be read for any feature. The refusal must name the real
+# cause (the path tried) rather than reusing edge (i)'s "no matching plan task" text, which
+# blames the title for a directory that was never there (D-03).
 absent_root = os.path.join(tempfile.mkdtemp(prefix="claim-absent-"), "no-such-features-root")
 rec = Recorder()
 rec.items = [board_item("i1", 731, REPO)]
 rec.issue_data[731] = issue_data(
     731, "T-01 do the thing", labels=["harness", "feature:FEAT-01-demo"],
 )
-# run_main() always overwrites claim.FEATURES_ROOT from THIS module's own FEATURES_ROOT global
-# (see run_main's body) — patching claim.FEATURES_ROOT directly here would be silently clobbered,
-# so the root under test is swapped at the source run_main actually reads from.
-saved_root = FEATURES_ROOT
-FEATURES_ROOT = absent_root
-try:
-    code, out, err = run_main(rec, ["--as", AS_LOGIN])
-finally:
-    FEATURES_ROOT = saved_root
+# run_main()'s features_root_fn override reaches the resolver seam directly (BUG-1290) — no
+# module-global swap is needed once the root itself is a function argument.
+code, out, err = run_main(
+    rec, ["--as", AS_LOGIN], features_root_fn=lambda repo_name: absent_root,
+)
 check("(B5-ter) absent features root: the reason names the absolute path that was tried",
       absent_root in err, err)
 check("(B5-ter) absent features root: the reason does not use the edge (i) text",
@@ -1127,6 +1147,209 @@ check("(P6) SC-13: --repo on the sole served repository's empty ready station: s
 check("(P6) SC-13: stderr carries 'no work available'", "no work available" in err, err)
 check("(P6) SC-13: exit code is EXIT_NOTHING (1), not a silent 0",
       code == factory_cli.EXIT_NOTHING, code)
+
+
+
+# ==========================================================================
+# BUG-1290 5a-5f — the shared segment-resolution seam (D-01). factory_config carries neither
+# segment_of nor features_root at eb9d044e (T-03 adds them), so every case below runs inside
+# try/except and reports the exception through check() rather than aborting the file mid-run
+# and silencing every later marker.
+# ==========================================================================
+
+# 5a. a candidate on a served non-harness repository reads its OWN segment's plan and reaches
+# the blocker-gate verdict that plan implies (unresolvable, naming T-88), not no_plan.
+name_5a = "BUG-1290 5a: served non-harness repository reaches its own segment's blocker verdict, not no_plan"
+try:
+    ws_5a = tempfile.mkdtemp(prefix="claim-ws-5a-")
+    fleet_5a = good_fleet_dict(ws_5a, repos=[repo_dict(REPO_KAYA)])
+    rec = Recorder()
+    rec.items = [board_item("i1", 950, REPO_KAYA)]
+    rec.issue_data[950] = issue_data(
+        950, "T-77 do the thing", labels=["harness", f"feature:{SEG_FEATURE}"],
+    )
+    code, out, err = run_main(rec, ["--as", AS_LOGIN], fleet_dict=fleet_5a)
+    check(name_5a,
+          code == 1 and out == "" and "unresolvable blocker" in err
+          and "no plan could be read" not in err,
+          (code, out, err))
+except Exception as exc:
+    check(name_5a, False, repr(exc))
+
+# 5b. two candidates, same feature id, on two different repositories, each with its OWN
+# non-empty issue map: each verdict matches its own segment's plan AND its own issue map
+# (kaya-ai blocked via its dep T-88, unresolvable in kaya's map; harness clear via its dep
+# T-99, which harness's own map resolves to a closed issue) — proving neither the plan cache
+# nor the issue-map cache is served across repositories.
+#
+# The scenario builder and the predicate below are SHARED with 5g (B-16): 5g reruns this same
+# fleet under a mutant issue-map cache, so a future fixture edit cannot move one without the
+# other.
+def _run_5b_scenario():
+    """Builds and runs 5b's two-repository, one-feature-id fleet. Returns (code, out, err)."""
+    ws_5b = tempfile.mkdtemp(prefix="claim-ws-5b-")
+    fleet_5b = good_fleet_dict(
+        ws_5b, repos=[repo_dict(REPO_KAYA), repo_dict(REPO_HARNESS_SEG)],
+    )
+    rec = Recorder()
+    rec.items = [
+        board_item("i1", 951, REPO_KAYA), board_item("i2", 952, REPO_HARNESS_SEG),
+    ]
+    rec.issue_data[951] = issue_data(
+        951, "T-77 do the thing", labels=["harness", f"feature:{SEG_FEATURE}"],
+    )
+    rec.issue_data[952] = issue_data(
+        952, "T-77 do the thing", labels=["harness", f"feature:{SEG_FEATURE}"],
+    )
+    rec.issue_data[954] = issue_data(954, "T-99 do the thing", state="CLOSED")
+    return run_main(rec, ["--as", AS_LOGIN], fleet_dict=fleet_5b)
+
+
+def _5b_property_holds(code, out, err):
+    """True iff 5b's per-segment-resolution property holds: kaya-ai's 951 is refused
+    (unresolvable dep T-88, absent from kaya's own map) and harness's 952 is claimed (its own
+    map resolves dep T-99 to a closed issue). Total over any (code, out, err) — including a
+    mutant's exit-1/empty-stdout path — so it never raises."""
+    if code != 0:
+        return False
+    try:
+        payload = json.loads(out)
+    except (json.JSONDecodeError, TypeError):
+        return False
+    return (
+        payload.get("issue") == 952
+        and "951" in err and "unresolvable blocker" in err
+        and "no plan could be read" not in err
+    )
+
+
+def _emit_5b(record):
+    """Runs 5b's scenario and reports its verdict through `record` under name_5b. `record` may
+    be `check` (the intact run, which prints and counts) or a non-printing capturing shim (5g's
+    self-defence run) — the SAME verdict-producing path either way, so 5g exercises case 5b
+    itself rather than a lookalike."""
+    code, out, err = _run_5b_scenario()
+    record(name_5b, _5b_property_holds(code, out, err), (code, out, err))
+
+
+name_5b = "BUG-1290 5b: same feature id on two repositories resolves per-segment, no cache bleed"
+try:
+    _emit_5b(check)
+except Exception as exc:
+    check(name_5b, False, repr(exc))
+
+# 5c. a served repository whose segment root does not exist: the refusal is the EXISTING
+# no_plan reason, and its message contains the resolved absolute path including that
+# repository's own segment.
+name_5c = "BUG-1290 5c: absent segment root still refuses via no_plan, naming that segment's own path"
+try:
+    repo_missing = "acme/zzz-missing-segment"
+    ws_5c = tempfile.mkdtemp(prefix="claim-ws-5c-")
+    fleet_5c = good_fleet_dict(ws_5c, repos=[repo_dict(repo_missing)])
+    rec = Recorder()
+    rec.items = [board_item("i1", 953, repo_missing)]
+    rec.issue_data[953] = issue_data(
+        953, "T-01 do the thing", labels=["harness", "feature:FEAT-01-demo"],
+    )
+    code, out, err = run_main(rec, ["--as", AS_LOGIN], fleet_dict=fleet_5c)
+    expected_path = os.path.abspath(os.path.join(
+        FIXTURE_HARNESS_ROOT, ".harness", "zzz-missing-segment", "features",
+        "FEAT-01-demo", "plan.yaml",
+    ))
+    check(name_5c,
+          code == 1 and "no plan could be read" in err and expected_path in err,
+          (code, err, expected_path))
+except Exception as exc:
+    check(name_5c, False, repr(exc))
+
+# 5d. a fixture fleet entry whose owner-qualified name ends in "harness" resolves to
+# .harness/harness/features — the PRODUCTION join, called directly, unpatched.
+name_5d = "BUG-1290 5d: owner-qualified name ending in harness resolves to .harness/harness/features"
+try:
+    resolved = fc.features_root("owner/harness")
+    expected = os.path.join(
+        hb.resolve_root(claim._BIN_DIR), ".harness", "harness", "features",
+    )
+    check(name_5d, resolved == expected, (resolved, expected))
+except Exception as exc:
+    check(name_5d, False, repr(exc))
+
+# 5e. after import, factory_claim exposes no FEATURES_ROOT attribute — an alias or a fallback
+# constant fails this case.
+name_5e = "BUG-1290 5e: factory_claim exposes no FEATURES_ROOT attribute"
+try:
+    check(name_5e, not hasattr(claim, "FEATURES_ROOT"),
+          repr(getattr(claim, "FEATURES_ROOT", "<absent>")))
+except Exception as exc:
+    check(name_5e, False, repr(exc))
+
+# 5f. a source scan over factory_claim.py, feature-worktree.py and factory_config.py: the
+# owner-strip BEHAVIOUR (D-03), not one spelling, must appear ZERO times in the first two and
+# EXACTLY ONCE in factory_config.py.
+name_5f = "BUG-1290 5f: the owner-strip derivation lives in exactly one place, factory_config.py"
+try:
+    segment_scan = re.compile(
+        r"""\brepo\w*\s*\.\s*(?:r?split|r?partition)\s*\(\s*["']/["']|\bbasename\s*\(\s*repo\w*"""
+    )
+    scanned = {
+        "factory_claim.py": 0,
+        "feature-worktree.py": 0,
+        "factory_config.py": 1,
+    }
+    counts = {}
+    for filename in scanned:
+        with open(os.path.join(_anchor_bin, filename), "r", encoding="utf-8") as fh:
+            counts[filename] = len(segment_scan.findall(fh.read()))
+    check(name_5f, counts == scanned, counts)
+except Exception as exc:
+    check(name_5f, False, repr(exc))
+
+# 5g. B-16 self-defence: a mutant _BlockerCache that routes every repository's issue-map lookup
+# through the FIRST repository seen for a given feature id — collapsing the (repo, feature) key
+# B-3 introduced back to feature alone. This defends 5b's cache-bleed proof by making CASE 5b
+# ITSELF fail: `_emit_5b` reruns under the mutant cache through a capturing shim (never
+# `check`, so this arm prints and counts nothing — the mutation never leaks into 5c-5f, which
+# run afterward against the real, restored cache). The captured 5b verdict must be False AND
+# must carry the SPECIFIC observable the mutation is expected to produce, not merely any
+# falsy shape a differently-broken mutant (e.g. one that raises instead of delegating) could
+# also produce: under the mutant, the harness segment's dep T-99 is looked up in kaya-ai's map
+# (kaya being the first repository seen for SEG_FEATURE), where it is absent, so issue 952 is
+# refused as an unresolvable blocker — exit 1, empty stdout, stderr naming 952 and
+# "unresolvable blocker", and NOT "no plan could be read".
+name_5g = "BUG-1290 5g: issue-map-cache mutation fails case 5b itself on its own specific observable"
+try:
+    class _FeatureOnlyIssueMapCache(claim._BlockerCache):
+        def __init__(self):
+            super().__init__()
+            self._first_repo_for = {}
+
+        def issue_number(self, repo, feature, task_id):
+            canonical = self._first_repo_for.setdefault(feature, repo)
+            return super().issue_number(canonical, feature, task_id)
+
+    captured = {}
+
+    def _capture(name, cond, detail):
+        captured[name] = (cond, detail)
+
+    saved_blocker_cache = claim._BlockerCache
+    claim._BlockerCache = _FeatureOnlyIssueMapCache
+    try:
+        _emit_5b(_capture)
+    finally:
+        claim._BlockerCache = saved_blocker_cache
+
+    mutant_cond, (mutant_code, mutant_out, mutant_err) = captured[name_5b]
+    check(name_5g,
+          not mutant_cond
+          and mutant_code == 1
+          and mutant_out == ""
+          and "952" in mutant_err
+          and "unresolvable blocker" in mutant_err
+          and "no plan could be read" not in mutant_err,
+          (mutant_cond, mutant_code, mutant_out, mutant_err))
+except Exception as exc:
+    check(name_5g, False, repr(exc))
 
 
 print(f"\n{RAN - FAILS}/{RAN} checks passed." if FAILS == 0 else f"\n{FAILS} of {RAN} FAILING.")
