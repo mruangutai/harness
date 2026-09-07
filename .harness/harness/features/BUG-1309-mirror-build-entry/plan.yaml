@@ -1144,7 +1144,7 @@ tasks:
     depends_on:
     - T-03
     - T-06
-    status: done
+    status: building
     files:
       - .claude/skills/harness/bin/post-merge-sweep.sh
       - tests/integration/test-post-merge-sweep.py
@@ -1352,7 +1352,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-documentor
     depends_on: [T-04, T-05, T-06, T-07, T-08]
-    status: ready
+    status: building
     files:
       - .harness/harness/docs/DECISIONS.md
       - .harness/harness/docs/DECISIONS-INDEX.md
