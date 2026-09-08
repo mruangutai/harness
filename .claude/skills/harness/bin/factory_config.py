@@ -454,8 +454,8 @@ def _check_product_configs(fleet, repo_name):
     exit 1 for nothing-to-do) when any member is unreachable or the report came up short of the
     declared count."""
     if repo_name:
-        repo_entry(fleet, repo_name)
-        fleet = dict(fleet, repos=[e for e in fleet["repos"] if e["name"] == repo_name])
+        entry = repo_entry(fleet, repo_name)
+        fleet = dict(fleet, repos=[entry])
     report = product_config_report(fleet)
     ok_count = sum(1 for m in report if m["ok"])
     unreachable_count = len(report) - ok_count
