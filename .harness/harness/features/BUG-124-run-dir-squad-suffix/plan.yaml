@@ -497,7 +497,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: check-domain --resolve answers NOBODY for .claude/skills/harness/SKILL.md at the pinned sha
     depends_on: [T-02]
-    status: ready
+    status: done
     files:
       - .claude/skills/harness/SKILL.md
     verify: |
