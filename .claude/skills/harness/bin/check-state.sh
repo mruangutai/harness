@@ -370,13 +370,15 @@ for feat, doc in plan_docs.items():
 # the foot of this script on the cost of a dead invariant). The rule was right; its
 # retroactive reach was the defect.
 #
-# THE BOUNDARY IS PER-PROJECT CONFIG, NOT A LITERAL (panel finding F2). This file is
-# COPIED INTO EVERY ONBOARDED PROJECT by /harness-init, so a hardcoded date would export
-# one repository's history as another's gate: a project whose plans predate 2026-08-31
-# would have every one of them silently exempted, for a reason belonging to somebody
-# else's git log. `panel_era_start` is stamped per project and merged into an existing
-# config additively by upgrade-config.py, whose whole contract is "template fills gaps,
-# project values win".
+# THE BOUNDARY IS PER-PROJECT CONFIG, NOT A LITERAL (panel finding F2). One
+# control-plane clone runs this script against MANY product repositories, each
+# carrying its own `.harness/harness.json`, read from that repository's own default
+# branch, so a hardcoded date would still export one repository's history as another's
+# gate: a project whose plans predate 2026-08-31 would have every one of them silently
+# exempted, for a reason belonging to somebody else's git log. `panel_era_start` is
+# stamped per project and merged into an existing config additively by
+# upgrade-config.py, whose whole contract is "template fills gaps, project values
+# win".
 #
 # RESOLVED ONCE, ABOVE THE LOOP. The first cut assigned the boundary inside the per-plan
 # loop, which re-derived it 32 times and would have reported a single config defect once
