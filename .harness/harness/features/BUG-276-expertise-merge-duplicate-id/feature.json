@@ -1,7 +1,7 @@
 {
   "feature_id": "BUG-276-expertise-merge-duplicate-id",
   "branch": "feat/BUG-276-expertise-merge-duplicate-id",
-  "pr": null,
+  "pr": 1490,
   "review_sha": "a641a5b8",
   "cycles_used": 3,
   "max_total_cycles": 10,

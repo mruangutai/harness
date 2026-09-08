@@ -1,7 +1,7 @@
 {
   "feature_id": "BUG-151-check-domain-fail-aggregation",
   "branch": "feat/BUG-151-check-domain-fail-aggregation",
-  "pr": null,
+  "pr": 1494,
   "review_sha": "9b7b27d074924af2be46194536d6baca4ad4dd18",
   "cycles_used": 4,
   "max_total_cycles": 10,
