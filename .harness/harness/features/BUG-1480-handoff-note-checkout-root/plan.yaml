@@ -1,0 +1,226 @@
+schema: plan/1
+feature: BUG-1480-handoff-note-checkout-root
+approval:
+  date: '2026-09-07'
+  approved_by: mruangutai
+  status: approved
+status: ready
+source_issues: [1480]
+
+lanes:
+  resolved_at: 75cef65b1e3700f50686adbe5fb6fcda89df2401
+  rows:
+    - surface: .claude/skills/harness/bin/**
+      lane: main-session-direct
+      reason: "DEC-174 carve-out: check-domain.sh is a registered PreToolUse gate script, so the harness plans the change and the main session executes it."
+    - surface: tests/integration/**
+      lane: main-session-direct
+      reason: "DEC-174: a gate script's own tests are enforcement-layer files and move with the script they gate."
+
+decisions:
+  - id: D-01
+    choice: "BUG-1480 lands standalone off origin/main at 6d969ed375f8458e32c47502ecdcc85bb9916635 on its own PR, with no cherry-pick into BUG-201."
+    because: "The defect blocks every feature's DEC-159 handoff note, so its fix must not wait on an unrelated review cycle."
+    dec: none
+  - id: D-02
+    choice: "lanes.resolved_at records the main checkout HEAD 75cef65b1e3700f50686adbe5fb6fcda89df2401 observed at plan time; the branch base is 6d969ed375f8458e32c47502ecdcc85bb9916635."
+    because: "HEAD is what the lane rows were read against, and the base is what the PR diffs from; recording only one of the two makes the other unverifiable."
+    dec: none
+  - id: D-03
+    choice: "The checkout root is exposed by a new sibling helper beside _norm and consumed only at the handoff call site; _norm keeps returning a path string."
+    because: "Eleven other _norm call sites feed its value straight into pattern matching, so widening the return type would be a repo-wide change for a one-call-site defect."
+    dec: none
+
+panel:
+  last_run: 2026-09-07-01-validator
+  cycle: 0
+  readers:
+  - reader: should-not-exist
+    status: ran
+    persona: fable-advisor
+  - reader: scope
+    status: ran
+    persona: harness-code-reviewer
+  - reader: goalcheck
+    status: ran
+    persona: harness-pm
+  findings:
+  - id: PF-880e7f88ebb96fb0dc3a4f07f32fcd32
+    severity: med
+    reader: scope
+    summary: 'REQ-06 has no task tracing to it: absent from both T-01.traces and T-02.traces
+      though SC-07 grades T-02''s own change.'
+    disposition: resolved
+    resolved_by: T-02
+  - id: PF-bc6a76a833e3d2f5f991cf9a205b621c
+    severity: low
+    reader: scope
+    summary: BRIEF.md Constraints still spells _norm's call sites with pre-fix line
+      numbers that T-02's insertion shifts.
+    disposition: resolved
+  - id: PF-7b29d51a6c8f4b6dbdcba528ca92d5ff
+    severity: info
+    reader: should-not-exist
+    summary: REQ-06's INTENDED containment narrowing assumes no legitimate handoff
+      note cites a main-only artifact; defensible but unstated.
+    disposition: open
+tasks:
+  - id: T-01
+    title: Add a red integration case for a handoff note whose feature dir lives only in a linked worktree
+    traces: [REQ-01, REQ-04, REQ-05]
+    change_type: bugfix
+    execution_mode: main-session-direct
+    execution_reason: "DEC-174 carve-out: tests/integration/test-check-domain.py is the gate script's own test file, so it is enforcement-layer and executes main-session-direct."
+    depends_on: []
+    status: ready
+    files:
+      - tests/integration/test-check-domain.py
+    verify: |
+      cd /Users/molchairuangutai/GitHub/harness && grep -qE '^def _handoff_worktree_cases\(' tests/integration/test-check-domain.py && out="$(env -u HARNESS_AGENT_TYPE python3 tests/integration/test-check-domain.py 2>&1 || true)" && printf '%s\n' "$out" | grep -qE '^FAIL +handoff worktree-only feature dir resolves' && printf '%s\n' "$out" | grep -qE '^ok +handoff worktree-only main root has no feature dir'
+    intent: |
+      Add ONE new case group to tests/integration/test-check-domain.py proving that a handoff note
+      whose feature directory exists only inside a linked worktree is validated against THAT
+      worktree. Two of its rows are expected to FAIL until T-02 lands; that red is the point of this
+      task, and the verify command above passes only while row 1 is red and the fixture row is ok.
+
+      Write a new function, named exactly:
+
+        def _handoff_worktree_cases(results, root):
+
+      Place the DEFINITION immediately after _handoff_line_cap_cases (currently ends near line 4399).
+      Call it from run_handoff_done_when (line 4410) as the LAST call INSIDE the
+      `with tempfile.TemporaryDirectory() as root:` block, immediately after
+      _handoff_line_cap_cases(results, root, target, valid), and BEFORE the
+      `return _report_handoff_results(results)` line — that return sits OUTSIDE the with block (line
+      4424), so a group placed there would receive an already-deleted `root`. Pass the same temp
+      `root` the other groups receive.
+
+      Inside it, reuse the existing helpers and do not reinvent them:
+        - make_linked_worktree(root, wt_path, wt_id) at line 138 builds a REAL linked worktree,
+          writing both sides of the pointer pair. Call it with
+          wt_path = os.path.join(root, ".claude", "worktrees", "harness", "BUG-1480-wt")
+          and wt_id = "bug1480". Do NOT write a .harness/team-config.yaml inside the worktree:
+          the session must stay rooted at the main root, which is exactly the defect's shape.
+        - _handoff_text(body, trust_lines=1) at line 4140 builds the well-formed five-section note.
+        - _invoke_handoff(root, target, content) at line 4148 drives the hook with a Write payload
+          and env rooted at `root` (the MAIN root).
+        - _record_handoff_result(results, name, result, want, needles=None) at line 4132.
+
+      Materialise the feature directory INSIDE THE WORKTREE ONLY, at
+      <wt_path>/.harness/harness/features/BUG-1480-wt-fixture/ containing:
+        - plan.yaml with exactly the text "tasks:\n  - id: T-03\n    verify: python3 test.py\n".
+          The verify value must be NON-EMPTY and the task status must be NON-TERMINAL; an absent
+          status reads as ready. Do not give it status done: the comment at line 2584 records that
+          an already-satisfied authority is refused for a DIFFERENT reason, which would make the
+          case green or red for the wrong cause.
+        - BRIEF.md with "# BRIEF\n\n- SC-04: observable\n\n## Approval\n".
+        - an empty notes/ directory.
+      Assert, and record as its own result row named "handoff worktree-only main root has no
+      feature dir", that
+      os.path.exists(os.path.join(root, ".harness", "harness", "features", "BUG-1480-wt-fixture"))
+      is False. Without that row the case could pass because a main-root copy exists.
+
+      Then three result rows:
+        1. name "handoff worktree-only feature dir resolves" — target
+           <wt_path>/.harness/harness/features/BUG-1480-wt-fixture/notes/handoff-build.md, content
+           _handoff_text("Scope: build complete\nAuthority: plan-task:T-03.verify"), want 0.
+           This is the row that must be RED before T-02 and GREEN after.
+        2. NEGATIVE CONTROL, name "handoff worktree-only unresolvable pointer refused" — the same
+           target and a body citing Authority plan-task:T-99.verify, which does not exist in the
+           worktree plan. want 2 with needles ("T-99",). This row must be green both before and
+           after T-02, so the accepting row cannot pass vacuously. Leave its needles EXACTLY as
+           written and add nothing to them: this is the one vacuity control, and giving it a path
+           needle too would leave the group with no row that is green both ways.
+        3. name "handoff worktree-only brief-sc pointer refused" — same target, body
+           "Scope: build complete\nAuthority: brief-sc:SC-99", want 2, with needles that are a tuple
+           of TWO:
+
+             ("SC-99",
+              os.path.join("BUG-1480-wt", ".harness", "harness", "features",
+                           "BUG-1480-wt-fixture", "BRIEF.md"))
+
+           This row is a SECOND red-then-green row, NOT a pre-and-post-green control: its purpose is
+           to prove BRIEF.md is read from the WORKTREE copy. It must be RED before T-02 and GREEN
+           after. Pre-fix the refusal names the MAIN root's BRIEF.md — which does not exist, so the
+           detail is the read failure — and the second needle is absent from stderr; post-fix the
+           refusal names the worktree's BRIEF.md and both needles match. A needle on "SC-99" alone is
+           green pre-fix too, which is exactly why the row's stated proof needs the path needle.
+
+           The needle must be the trailing FRAGMENT above and never the absolute wt_path: the root the
+           T-02 fix passes through comes from harness_boundary.checkout_relative, which may return a
+           realpath-normalised spelling (/private/var/... rather than /var/... on macOS), so an
+           absolute-path needle can be spuriously red while the trailing fragment is stable. The
+           fragment is a safe substring because handoff_done_when._unresolved
+           (handoff_done_when.py:112-113) formats
+           "Authority pointer {pointer!r} is unresolved in {target}: {detail}" with target =
+           feature_dir / "BRIEF.md", on ONE line with no wrapping, and _record_handoff_result
+           (test-check-domain.py:4132-4137) does a case-insensitive substring test against stderr.
+
+      Touch nothing else in the file. Do not edit check-domain.sh in this task.
+
+  - id: T-02
+    title: Resolve the handoff note's authority pointers against the checkout the note stands in
+    traces:
+    - REQ-01
+    - REQ-02
+    - REQ-03
+    - REQ-04
+    - REQ-06
+    change_type: bugfix
+    execution_mode: main-session-direct
+    execution_reason: "DEC-174 carve-out: .claude/skills/harness/bin/check-domain.sh is a registered PreToolUse gate script, so it executes main-session-direct."
+    depends_on: [T-01]
+    status: ready
+    files:
+      - .claude/skills/harness/bin/check-domain.sh
+    verify: |
+      cd /Users/molchairuangutai/GitHub/harness && env -u HARNESS_AGENT_TYPE python3 tests/integration/test-check-domain.py
+    intent: |
+      Make the handoff branch of shape_problems validate a note against the checkout the note
+      stands in, so the T-01 case turns green and every pre-existing handoff case stays green.
+
+      The defect: _norm (lines 1114-1149) calls harness_boundary.checkout_relative(abs), which
+      returns the pair (checkout_root, path relative to that checkout). _norm keeps _ck[1] and
+      DISCARDS _ck[0]. The handoff branch at lines 1746-1748 then calls
+      handoff_done_when.problems(rel, content, root, resolve=True) with a worktree-relative `rel`
+      and the MAIN checkout `root`. handoff_done_when._feature_dir (handoff_done_when.py:51-54)
+      joins them, so resolution reads <main-checkout>/.harness/harness/features/<FEAT>/plan.yaml,
+      which does not exist for a feature living only in an unmerged worktree, and every pointer is
+      reported unresolved.
+
+      Add a SIBLING helper immediately after _norm (do not change _norm; its return contract is a
+      path string and eleven other call sites feed it into pattern matching):
+
+        def _checkout_root(path):
+            if not path:
+                return root
+            try:
+                import harness_boundary as _hb
+                _ck = _hb.checkout_relative(_claimed_abs(path))
+                if _ck is not None and _hb.real(_ck[0]) != _hb.real(root):
+                    return _ck[0]
+            except Exception:
+                pass
+            return root
+
+      The try/except Exception and the fallback to `root` are MANDATORY and must mirror _norm's
+      exactly: the docstring at lines 1137-1139 records why the shape phase must never gain a
+      fail-closed dependency, since that would block the main session on the very write that
+      repairs harness_boundary. Give the helper a short docstring saying it answers "which checkout
+      does this path stand in" and that it absorbs failure for that reason. Raise nothing, exit
+      nowhere, call sys.exit never.
+
+      Then change the single call at line 1748 to pass that root instead of `root`:
+
+        problems.extend(handoff_done_when.problems(
+            rel, content, _checkout_root(absolute_path), resolve=True))
+
+      absolute_path is already a parameter of shape_problems (line 1262) and may be None, which is
+      why the helper returns `root` for a falsy path. handoff_done_when._resolve_all does
+      Path(root) on whatever it receives (handoff_done_when.py:359-361), so a string is correct;
+      _read_target (handoff_done_when.py:78-79) also resolves containment against the same root, so
+      the note's safe-path bound moves to the worktree with it, which is the intended behaviour.
+
+      Change nothing else: not _norm, not _show, not any other call site, not any test file. The
+      full suite must exit 0 with every pre-existing handoff row still ok, which is what REQ-02
+      requires.
