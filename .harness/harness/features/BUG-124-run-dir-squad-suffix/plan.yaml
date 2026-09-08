@@ -25,7 +25,7 @@ approval:
       who: operator
       date: '2026-09-07'
       reason: stale dispositions already corrected by this transcription; recorded as historical, not a live defect
-status: review
+status: done
 source_issues: [124]
 lanes:
   resolved_at: 6d969ed375f8458e32c47502ecdcc85bb9916635
