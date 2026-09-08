@@ -4398,6 +4398,47 @@ def _handoff_line_cap_cases(results, root, target, valid):
         results, "handoff no per-section cap",
         _invoke_handoff(root, target, sixty), 0)
 
+def _handoff_worktree_cases(results, root):
+    wt_path = os.path.join(
+        root, ".claude", "worktrees", "harness", "BUG-1480-wt")
+    make_linked_worktree(root, wt_path, "bug1480")
+    feat = os.path.join(
+        wt_path, ".harness", "harness", "features", "BUG-1480-wt-fixture")
+    notes = os.path.join(feat, "notes")
+    os.makedirs(notes)
+    with open(os.path.join(feat, "plan.yaml"), "w") as f:
+        f.write("tasks:\n  - id: T-03\n    verify: python3 test.py\n")
+    with open(os.path.join(feat, "BRIEF.md"), "w") as f:
+        f.write("# BRIEF\n\n- SC-04: observable\n\n## Approval\n")
+    target = os.path.join(notes, "handoff-build.md")
+    main_feat = os.path.join(
+        root, ".harness", "harness", "features", "BUG-1480-wt-fixture")
+    results.append((
+        "handoff worktree-only main root has no feature dir",
+        not os.path.exists(main_feat), main_feat))
+    _record_handoff_result(
+        results, "handoff worktree-only feature dir resolves",
+        _invoke_handoff(
+            root, target,
+            _handoff_text("Scope: build complete\nAuthority: plan-task:T-03.verify")),
+        0)
+    _record_handoff_result(
+        results, "handoff worktree-only unresolvable pointer refused",
+        _invoke_handoff(
+            root, target,
+            _handoff_text("Scope: build complete\nAuthority: plan-task:T-99.verify")),
+        2, ("T-99",))
+    _record_handoff_result(
+        results, "handoff worktree-only brief-sc pointer refused",
+        _invoke_handoff(
+            root, target, _handoff_text("Scope: build complete\nAuthority: brief-sc:SC-99")),
+        2, (
+            "SC-99",
+            os.path.join(
+                "BUG-1480-wt", ".harness", "harness", "features",
+                "BUG-1480-wt-fixture", "BRIEF.md"),
+        ))
+
 
 def _report_handoff_results(results):
     fails = 0
@@ -4421,6 +4462,7 @@ def run_handoff_done_when():
         _handoff_validator_exception_case(results, root, valid)
         _handoff_existing_edit_cases(results, root, target, missing, valid)
         _handoff_line_cap_cases(results, root, target, valid)
+        _handoff_worktree_cases(results, root)
     return _report_handoff_results(results)
 
 
