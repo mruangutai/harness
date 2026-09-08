@@ -21,7 +21,7 @@ approval:
       who: Mike Ruangutai
       date: '2026-09-06'
       reason: resolved by disclosure — D-09 because names the c6 price
-status: review
+status: building
 source_issues: [1390]
 
 lanes:
@@ -200,6 +200,66 @@ decisions:
       source. Adjacent and reconciled: D-10, which first recorded this cell and whose T-07 sentence
       now defers to this decision for the disposition.
     dec: DEC-217
+  - id: D-13
+    choice: |
+      When two or more VALID, ATTRIBUTABLE feature records claim the resolved merge branch,
+      merge-gate.py DENIES deterministically and names EVERY claiming feature directory id, in a
+      stable sorted order, instead of taking the first glob.glob match. The standing attribution
+      bound is unchanged and restated in the task: a record owns a merge only if it is readable,
+      is a JSON object, and its top-level branch equals the resolved branch; every other record
+      in the scan is SKIPPED and can never impose a refusal, so ONE owner plus any amount of
+      noise is NOT ambiguity. Ambiguity is decided BEFORE the era gate, because the era rule
+      presupposes one identified feature, and no receipt command clears a duplicated branch
+      claim, so build_entry, the era set and recovery_command_for are not consulted in that
+      branch. T-05 intent amended; T-05 verify gains two case names.
+    because: |
+      PANEL-1 in runs/2026-09-08-panelc7-validator/digest.md - glob.glob guarantees no ordering,
+      so two well-formed records sharing a branch decided the merge by iteration luck, reproduced
+      5/5 in BOTH directions (bypass of this feature's own gate one way, a deny naming an
+      unrelated feature the other). Operator ruling R-1, notes/rulings-2026-09-08-panel-c7.md:
+      FIX by refusing ambiguity, with the explicit bound that R-1 must not resurrect cycle 11's
+      473d82cb scan-wide sentinel, which panel c5 FAILED and 894adc0f scoped back. Reporting an
+      unresolvable state beats resolving it silently; picking a winner is unfalsifiable from the
+      operator's side.
+    dec: DEC-174
+  - id: D-14
+    choice: |
+      merge-gate.py finds the git SUBCOMMAND by a FLAG-AWARE ORDERED WALK that consumes the value
+      of each value-taking git global option before testing the subcommand against "merge",
+      rather than dropping every "-"-prefixed token and testing args[0]. The value-taking globals
+      are specified as a CLASS with examples (-C, -c, --work-tree, --git-dir, --namespace,
+      --exec-path, --config-env, attached or in the next token), never as a closed list. Shell-
+      variable indirection and nesting past nested_merge's existing depth cap are recorded OUT of
+      scope. T-05 intent amended; T-05 verify gains three case names.
+    because: |
+      PANEL-2 in runs/2026-09-08-panelc7-validator/digest.md - the positional check shifted off by
+      one, so git -C <dir> merge X, git -c k=v merge X and git --work-tree <d> merge X were each a
+      SILENT ALLOW against an owing fixture, with no stderr and no audit trace; -C is used by
+      merge-gate.py's own local_branch() and by this repo's test helper. Operator ruling R-2 fixes
+      it in the parser and limits scope explicitly: a gate that never evaluates the shell cannot
+      resolve variable indirection, so both residues stay backlog rows. The class-not-list framing
+      keeps the spec no more specific than the requirement forces, since a closed list is a hole
+      the next unlisted global walks through.
+    dec: DEC-174
+  - id: D-15
+    choice: |
+      The non-era "recovery-required" notice in gh-sync.py DERIVES its command at emission time
+      from feature_schema.recovery_command_for(feat_dir) - the classifier merge-gate.py's own DENY
+      and T-04's absent-receipt branch already use - names exactly what it returns, carries
+      " --yes" only for "recover-terminal", and carries NO "open" token in any form on that horn.
+      The shipped sentence is retained verbatim on the "open" horn. The plan pins the BEHAVIOUR
+      plus its derivation source and NO second hardcoded string, and the era-exempt half is
+      untouched. T-04 intent amended.
+    because: |
+      PANEL-3 in runs/2026-09-08-panelc7-validator/digest.md - the non-era branch printed
+      "the MERGE is refused until gh-sync.py open records opened" unconditionally while the
+      classifier returned "recover-terminal" for the same feature in the same state and
+      merge-gate.py's deny printed "recover-terminal"; following the notice runs cmd_open, which
+      creates real GitHub sub-issues for finished work. Operator ruling R-3 takes the first horn of
+      the panel's Q1: derive through the classifier and AMEND the signed plan string, and does NOT
+      accept it as a signed-wording residue. A second pinned literal is the exact defect R-3 rules
+      out, so the amendment states the behaviour rather than a replacement verbatim string.
+    dec: none
 panel:
   last_run: 2026-09-07-panelc2-validator
   cycle: 2
@@ -707,14 +767,14 @@ tasks:
     depends_on:
     - T-03
     - T-06
-    status: done
+    status: building
     files:
       - .claude/skills/harness/bin/gh-sync.py
       - tests/integration/test-gh-sync.py
     verify: |
       out=$(python3 tests/integration/test-gh-sync.py) || exit 1
       if printf '%s\n' "$out" | grep -q '^FAIL'; then exit 1; fi
-      for n in "T-04 non-era absent refuses" "T-04 BUG-named non-era absent refuses" "T-04 station discriminator" "T-04 era-exempt continues" "T-04 era recovery-required does not claim a refusal"; do
+      for n in "T-04 non-era absent refuses" "T-04 BUG-named non-era absent refuses" "T-04 station discriminator" "T-04 era-exempt continues" "T-04 era recovery-required does not claim a refusal" "T-04 recovery-required non-era recover-terminal horn names the derived command"; do
         printf '%s\n' "$out" | grep -qF "ok    $n" || exit 1
       done
       echo VERIFY-PASS
@@ -773,12 +833,39 @@ tasks:
         post-merge-sweep.sh already documents as unsafe to read as success.
       - "recovery-required": print ONE line to stderr and CONTINUE. This is the settled policy: a
         recorded temporary environmental mirror failure gates the merge, never Build. WHICH line is
-        printed is decided by the era set, because T-05 ALLOWS the merge for an era feature and a
-        line asserting a refusal that will not happen is false. TWO literal strings, and the
-        feature's directory basename chooses between them:
-          NOT in feature_schema.BUILD_ENTRY_ERA_EXEMPT, verbatim:
-            "gh-sync: build entry is recovery-required for <feature-dir>; Build proceeds, the
-             MERGE is refused until gh-sync.py open records opened"
+        printed is decided FIRST by the era set, because T-05 ALLOWS the merge for an era feature and
+        a line asserting a refusal that will not happen is false. The feature's directory basename
+        chooses the branch:
+          NOT in feature_schema.BUILD_ENTRY_ERA_EXEMPT - the line says that Build proceeds and that
+          the MERGE stays refused until a Build-entry receipt is recorded, and it NAMES THE COMMAND
+          THAT WOULD RECORD ONE. THAT COMMAND IS DERIVED AT EMISSION TIME AND IS NOT PINNED HERE:
+              feature_schema.recovery_command_for(feat_dir)  ->  "open" | "recover-terminal"
+          the same classifier this task's own absent-receipt branch above already calls, and the same
+          one merge-gate.py's DENY calls (merge-gate.py:152-154). The emitted line names exactly the
+          command the classifier returned for THIS feature, and carries " --yes" when and only when
+          that command is "recover-terminal". Two requirements, and together they are the whole
+          contract for this line:
+            (a) when recovery_command_for returns "recover-terminal", the emitted line carries NO
+                "open" token in any form - not "gh-sync.py open", not "records opened", not as a
+                description of what open would do - for the same reason the recover-terminal refusal
+                line above carries none: an operator who reads the word and runs the command creates
+                task sub-issues for completed work;
+            (b) when it returns "open", the sentence that ships today is RETAINED, verbatim:
+                  "gh-sync: build entry is recovery-required for <feature-dir>; Build proceeds, the
+                   MERGE is refused until gh-sync.py open records opened"
+          NO SECOND HARDCODED STRING for the recover-terminal horn. Pinning a literal command in this
+          plan is precisely what let the emitted word contradict the classifier every sibling site
+          consults (PANEL-3, operator ruling R-3): what is pinned here is the BEHAVIOUR plus its
+          DERIVATION SOURCE, and the wording of that horn is the implementer's, bound only by (a) and
+          by naming the derived command.
+          The non-era "recovery-required" case further down this block asserts the substring
+          "MERGE is refused". Its fixture's plan.yaml records no task status, so
+          recovery_command_for returns "open" for it and the assertion lands on horn (b), unchanged.
+          Keep that fixture on that horn; the case itself is not amended.
+          The recover-terminal horn of this SAME non-era line is gated by its OWN named case,
+          "T-04 recovery-required non-era recover-terminal horn names the derived command", in the
+          case list below. The open horn stays specified exactly as it is by the unnamed bullet in
+          that list: it is not renamed, not re-fixtured and not "fixed" in this change.
           IN feature_schema.BUILD_ENTRY_ERA_EXEMPT, verbatim:
             "gh-sync: build entry is recovery-required for <feature-dir>; Build proceeds. This
              feature predates the build-entry receipt
@@ -787,8 +874,9 @@ tasks:
              <feature-dir> --yes."
         The era-facing line, like every other era-facing line in this change, carries no "open"
         token in any form - not as "gh-sync.py open", not as "records opened", not as a
-        description of what that command would do. The non-era line keeps its "open" clause, which
-        is what makes the two strings different sentences rather than one string with a name in it.
+        description of what that command would do. The two branches remain different sentences: the
+        era line DENIES a refusal, while the non-era line asserts one and names the command the
+        classifier derived for that feature.
       - "opened", "not-applicable", "recovered-terminal": no output, continue unchanged.
 
       Nothing else in cmd_start_task changes; the plan write, the closed-card guard and the
@@ -849,6 +937,24 @@ tasks:
         FEAT-9001-fixture-non-era and therefore NOT in the era set: exit 0, the card write is
         attempted, and stderr carries the substring "MERGE is refused" - assert that exact clause,
         not the lowercase word "merge", which the literal line above does not contain;
+      - "T-04 recovery-required non-era recover-terminal horn names the derived command": the
+        recover-terminal horn of that same non-era "recovery-required" line, which no case above
+        reaches. The fixture is a NON-ERA feature - staged under one of this task's two synthetic
+        non-era directory names, FEAT-9001-fixture-non-era or BUG-9001-fixture-non-era, never a real
+        feature directory name, which is in the frozen era set and would invert the case - whose
+        feature.json github block records build_entry "recovery-required", and whose plan.yaml
+        satisfies the RECOVER-TERMINAL HORN CONDITION of feature_schema.recovery_command_for: plan
+        status "review" or "done", OR any task carrying status done. Which of those the fixture uses
+        is the implementer's choice, because the case asserts the HORN and not a fixture shape. Run
+        the same start-task path the cases above run, and assert: exit 0, the card write is
+        attempted, and the emitted build-entry line on stderr NAMES "recover-terminal", carries the
+        " --yes" argument, and contains NO "open" token as a substring in any form (which also rules
+        out "opened" and "gh-sync.py open") - the same no-token discipline the era-facing line
+        already carries. Then assert AGREEMENT with the classifier: call
+        feature_schema.recovery_command_for on THAT SAME fixture feature directory and assert the
+        command named in the emitted line is the string it returned. Agreement with the classifier is
+        the property under test, so a second hardcoded expected command is a REJECTED return - the
+        assertion reads the classifier's answer, it does not restate it;
       - "T-04 era recovery-required does not claim a refusal": the same feature.json recording
         build_entry "recovery-required", staged under the directory name BUG-1071-inv32-era-guard,
         a member of the frozen BUILD_ENTRY_ERA_EXEMPT literal: exit 0, the card write is attempted,
@@ -876,7 +982,7 @@ tasks:
     depends_on:
     - T-02
     - T-06
-    status: done
+    status: building
     files:
     - .claude/skills/harness/bin/merge-gate.sh
     - .claude/skills/harness/bin/merge-gate.py
@@ -889,7 +995,7 @@ tasks:
     verify: |
       out=$(python3 tests/integration/test-merge-gate.py) || exit 1
       if printf '%s\n' "$out" | grep -q '^FAIL'; then exit 1; fi
-      for n in "T-05 recovery-required denies" "T-05 non-era absent build_entry denies" "T-05 unpinned repo absent build_entry denies naming the configuration fix" "T-05 opened allows" "T-05 not-applicable allows" "T-05 recovered-terminal allows" "T-05 sync false allows" "T-05 branch matching no feature allows" "T-05 non-merge command allows" "T-05 path-prefixed gh is still detected" "T-05 bash -c wrapped merge is still detected" "T-05 era-exempt absent build_entry allows" "T-05 gh outage with no matching feature allows" "T-05 gh outage with a feature owing a receipt denies"; do
+      for n in "T-05 recovery-required denies" "T-05 non-era absent build_entry denies" "T-05 unpinned repo absent build_entry denies naming the configuration fix" "T-05 opened allows" "T-05 not-applicable allows" "T-05 recovered-terminal allows" "T-05 sync false allows" "T-05 branch matching no feature allows" "T-05 non-merge command allows" "T-05 path-prefixed gh is still detected" "T-05 bash -c wrapped merge is still detected" "T-05 era-exempt absent build_entry allows" "T-05 gh outage with no matching feature allows" "T-05 gh outage with a feature owing a receipt denies" "T-05 duplicate valid records claiming the branch deny naming both" "T-05 single owner plus unrelated malformed record still allows" "T-05 git -C global flag merge is still detected" "T-05 git -c config global flag merge is still detected" "T-05 git --work-tree global flag merge is still detected"; do
         printf '%s\n' "$out" | grep -qF "ok    $n" || exit 1
       done
       python3 tests/unit/test-omp-hooks.py || exit 1
@@ -913,7 +1019,27 @@ tasks:
          uses - shlex, compare basenames, re-scan the argument of eval and bash -c, and fall
          back to a raw-text scan for a line that will not lex. A merge command is either a token
          whose basename is gh followed by the tokens pr and merge, or a token whose basename is
-         git followed by merge as its first non-flag argument. Anything else: exit 0.
+         git whose SUBCOMMAND is merge. Anything else: exit 0.
+         THE GIT SUBCOMMAND IS FOUND BY A FLAG-AWARE ORDERED WALK, never by taking the first
+         non-flag argument. Walk the tokens after the git token IN ORDER. At each step: if the token
+         is a VALUE-TAKING GIT GLOBAL OPTION whose value sits in the FOLLOWING token, CONSUME THAT
+         VALUE and continue past it; if it is a value-taking global with its value ATTACHED, or any
+         other option, skip that token alone; the first token that is not an option is the
+         SUBCOMMAND, and it is the ONLY token tested against "merge".
+         VALUE-TAKING GLOBALS ARE A CLASS, NOT A CLOSED LIST: the git global options that take an
+         argument, in either spelling - attached (-C<dir>, -ck=v, --git-dir=<d>, --work-tree=<d>) or
+         in the next token (-C <dir>, -c <k=v>, --work-tree <d>, --git-dir <d>, --namespace <n>,
+         --exec-path <p>, --config-env <k=e>). Those names are EXAMPLES; handle the class, and do not
+         read the enumeration as exhaustive.
+         WHY (PANEL-2, operator ruling R-2): dropping every "-"-prefixed token and then testing
+         args[0] shifts the check off by one, so git -C <dir> merge X, git -c k=v merge X and
+         git --work-tree <d> merge X each returned a SILENT ALLOW regardless of the receipt state -
+         no deny, no stderr, no audit trace, executed against an owing fixture. -C is not exotic:
+         merge-gate.py's own local_branch() and this repo's test helper both use it.
+         OUT OF SCOPE, by ruling R-2's explicit scope limit, recorded here and NOT fixed by this
+         task: shell-variable indirection (B=feature/x; git merge $B), which a gate that never
+         evaluates the shell cannot resolve, and nesting deeper than nested_merge's existing depth
+         cap. Both remain backlog rows and neither widens this task.
       3. RESOLVE THE HEAD BRANCH.
          - git merge <ref>: the ref as written, with a leading "origin/" stripped.
          - gh pr merge <n> where n is an integer: gh pr view <n> --repo <the pinned
@@ -925,9 +1051,31 @@ tasks:
          verdict. Fall back to the LOCAL resolution, git -C <cwd> rev-parse --abbrev-ref HEAD, and
          carry forward one flag saying the head branch is locally resolved rather than confirmed,
          plus the one-line gh failure text for the message at step 5.
-      4. LOCATE THE FEATURE. Scan <root>/.harness/*/features/*/feature.json for the one whose
-         top-level branch equals the resolved head branch. No match: exit 0 - this gate has
-         nothing to say about a merge that is not a harness feature.
+      4. LOCATE THE FEATURE. Scan <root>/.harness/*/features/*/feature.json for the record whose
+         top-level branch equals the resolved head branch.
+         ATTRIBUTION FIRST, AND IT IS UNCHANGED. A record OWNS this merge only if it is READABLE, is
+         a JSON OBJECT, and its top-level branch equals the resolved head branch. Every other record
+         in the scan - unreadable, non-object, or matching no branch - is SKIPPED and can NEVER
+         impose a refusal. That is the bound 894adc0f established after panel c5 FAILED 473d82cb's
+         scan-wide sentinel, and this amendment does not touch it: ONE owner plus ANY amount of such
+         noise is NOT ambiguity, and decides exactly as it decides today. The two regression cases
+         that fence it - "unrelated non-object feature record does not block healthy merge" and
+         "no-record branch ignores unrelated malformed record" - stay green, unmodified.
+         ZERO owners: exit 0 - this gate has nothing to say about a merge that is not a harness
+         feature.
+         ONE owner: that record is the located feature. Continue to step 5 unchanged.
+         TWO OR MORE OWNERS: DENY, deterministically. glob.glob guarantees no ordering, so taking
+         the first match decides the merge by directory-iteration luck - a bypass of this feature's
+         own gate in one direction and a deny naming an unrelated feature in the other, reproduced
+         5/5 in BOTH directions (PANEL-1, operator ruling R-1). Two or more valid, attributable
+         records claiming one branch is an UNRESOLVABLE state, and it must be REPORTED rather than
+         silently resolved: emit the deny through step 6's DENY SHAPE, naming EVERY claiming feature
+         directory id - all of them, in a stable sorted order so the message does not vary between
+         runs - and the resolved branch, and saying that the duplicated top-level branch field must
+         be corrected before this merge can be decided.
+         In THIS branch do not consult github.build_entry, the era set, or recovery_command_for: no
+         receipt command clears a duplicated branch claim, and the era rule presupposes ONE
+         identified feature, so ambiguity is decided BEFORE step 5's era gate rather than inside it.
       5. DECIDE, on the LOCAL record only.
          THE ERA GATE FIRST, before build_entry is read at all. If the located feature's directory
          basename is in feature_schema.BUILD_ENTRY_ERA_EXEMPT, ALLOW: exit 0, no permissionDecision
