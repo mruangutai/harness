@@ -1,7 +1,7 @@
 {
   "feature_id": "BUG-124-run-dir-squad-suffix",
   "branch": "feat/BUG-124-run-dir-squad-suffix",
-  "pr": null,
+  "pr": 1502,
   "review_sha": "4ed8b095524f9655ba65ab7a5cb2ab6c199bd2f2",
   "cycles_used": 7,
   "max_total_cycles": 10,
