@@ -42,7 +42,7 @@ blob's line numbers.
           symptom except an unattributed `FleetError` mid-build.
   answer yes/no: **would you have got the order right, and do you know why reversing it is
   dangerous rather than merely wrong?**
-  result:
+  result: yes, i would get the order right. no, it is not clear why reversing it is dangerous and wrong.
 
 - **U-02 (SC-09) · the ONE-FILE RULE — 2 min.** Skim the whole blob for anything it tells you to
   write **into `kaya-web`**. Anchors that answer it directly: **lines 14–17** and **lines 187–190**.
@@ -51,7 +51,7 @@ blob's line numbers.
           settings).
   answer yes/no: **does any step in the document ask you to write a file into `kaya-web` that the
   factory will not read?** (a "no" here is the PASS answer)
-  result:
+  result: yes, it states one file and no other file. instead lists what IS NOT installed.
 
 - **U-03 (SC-09) · the GAP, including no push access — 2 min.** Re-read **lines 160–168** (item 2)
   with this twist: `kaya-web`'s `main` is branch-protected and you **cannot** push to it.
@@ -60,7 +60,7 @@ blob's line numbers.
           delegates control of what the factory reads to whoever can push `main`.
   answer yes/no: **do you know what to do — and what not to do — during the window where the config
   has not landed?**
-  result:
+  result: yes, the skill.md explains it well.
 
 - **U-04 (SC-09) · `--check-product-configs` — 2 min.** Read **lines 172–180** (item 4).
   expect: you would run
@@ -69,7 +69,7 @@ blob's line numbers.
           create the central tree — and on exit 2 you would read the named
           `kaya-web@main:.harness/harness.json` and stop rather than proceed.
   answer yes/no: **would you have run it, at that moment, and known that exit 2 means stop?**
-  result:
+  result: yes.
 
 - **U-05 (SC-09) · the NARROWED STEP 1 — 1 min.** Read **lines 47–52** (`### 1. Install the eight
   prerequisites in this control-plane clone — HARD GATE`).
@@ -77,12 +77,13 @@ blob's line numbers.
           control-plane clone**, never to `kaya-web`.
   answer yes/no: **would you ever have run step 1 inside `kaya-web`?** (a "no" here is the PASS
   answer)
-  result:
+  result: yes. "control-plane clone" isn't clear. the control-plane is harness so "clone" means what exactly? we are not cloning or installing harness but it mentions eight prerequisites. 
 
 ## Your verdict — one line, you fill it in
 
 ```
-UAT: PASS | FAIL     (on FAIL, name the step that would have misled you and what you would have done wrong)
+UAT: FAIL. U-05 isn't clear. using the term "control plane clone" is ambiguous. to me, it reads as "clone harness" but it's followed by, "...nothing distributes 'bin/'", which is confusing.
+     (on FAIL, name the step that would have misled you and what you would have done wrong)
 ```
 
 **Only you set this.** On FAIL this consumes a fix cycle; the step you name is the work.

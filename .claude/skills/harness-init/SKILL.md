@@ -1,6 +1,6 @@
 ---
 name: harness-init
-description: Onboard a repository through the central model — land its harness.json on its default branch, register it in fleet.yaml, create its central tree, and install the control-plane prerequisites. Use when this control-plane clone has no .harness/, when a repository is absent from the fleet or its config is unreachable, or when a schema_version gap calls for --upgrade.
+description: Onboard a repository through the central model — land its harness.json on its default branch, register it in fleet.yaml, create its central tree, and install prerequisites in this harness checkout. Use when this harness checkout has no .harness/, when a repository is absent from the fleet or its config is unreachable, or when a schema_version gap calls for --upgrade.
 ---
 
 # Harness: Init
@@ -15,6 +15,9 @@ default branch and has no disk fallback.
 `.harness/harness.json`, and it counts only after it lands on that repository's default branch.
 Nothing else is installed there: no `team-config.yaml`, expertise, `.harness/products/`, `bin/`,
 hooks, or settings.
+
+**This harness checkout** is the working copy of the Harness repository you are standing in and running
+`/harness-init` from. It is not an instruction to clone or install Harness.
 
 **Run this in the main session.** Only the main session can call `AskUserQuestion` — a subagent has no
 channel to the user. Delegate the *mechanical detection* to `dev-ops`; never delegate the interview.
@@ -36,7 +39,7 @@ git rev-parse --show-toplevel 2>/dev/null || echo "NOT A GIT REPO"
   there is nothing to instantiate.
 - **CLI < 2.1.217** → below the floor for the spawn env vars. Stop; the depth setting will not take.
 - **Not a git repo** → warn but continue. Commit attribution and `review_sha` pinning will not work.
-- **`.harness/` already exists** → this control-plane clone is initialised. Route to `--upgrade`, do not re-run fresh.
+- **`.harness/` already exists** → this harness checkout is initialised. Route to `--upgrade`, do not re-run fresh.
 
 You will need permission to run the scripts in `.agents/skills/harness/bin/` and to write
 `.claude/settings.json`, which many setups gate as a sensitive file. Ask for it up front rather than
@@ -44,12 +47,14 @@ discovering it at step 1 — a denial there is a **stop**, not a detour (see bel
 
 ## Fresh init
 
-### 1. Install the eight prerequisites in this control-plane clone — HARD GATE, do this first
+### 1. Install the eight prerequisites in this harness checkout — HARD GATE, do this first
 
-These prerequisites and the per-clone hooks step belong to this control-plane clone, never to a
-product repository. Nothing distributes `bin/` any more (DEC-113); the enforcing
-hooks are registered in this clone's `.claude/settings.json` and resolve this clone's manifest; and
-`check-state.sh` INV-9 and INV-31 grade this clone against the step on every run.
+These prerequisites and the per-checkout hooks step belong to this harness checkout, never to a
+product repository. They register hooks and invoke scripts under `.claude/skills/harness/bin/` here;
+a product repository has no `bin/`, so hooks installed there would point at files that do not exist.
+Nothing distributes `bin/` any more (DEC-113). The enforcing hooks are registered in this harness
+checkout's `.claude/settings.json`, resolve this checkout's manifest, and `check-state.sh` INV-9 and
+INV-31 grade this checkout against the step on every run.
 ```bash
 .agents/skills/harness/bin/merge-settings.py . \
   --template .agents/skills/harness/templates/settings.snippet.json
@@ -59,11 +64,12 @@ python3 -c 'import yaml' 2>/dev/null && echo OK || echo MISSING          # the 7
 python3 -c 'import jsonschema' 2>/dev/null && echo OK || echo MISSING   # the 8th prerequisite
 ```
 
-#### The per-clone step: point git at the tracked hooks directory
+#### The per-checkout step: point git at the tracked hooks directory
 
 **This is NOT a ninth prerequisite and the count above does not change.** The eight are settings
-and packages a script merges into the project. This one is a git config a *clone* carries, so a
-fresh clone of an already-onboarded project still needs it and the eight will already be in place.
+and packages a script merges into this harness checkout. This one is a git config a checkout carries,
+so a fresh checkout of an already-onboarded Harness repository still needs it and the eight will
+already be in place.
 
 **Why it is needed at all.** The harness ships a tracked `post-merge` hook at
 `.claude/skills/harness/hooks/`, and git ignores it until `core.hooksPath` points there. Measured
@@ -187,7 +193,7 @@ config lands has no symptom except an unattributed `FleetError` mid-build.
 No `team-config.yaml` exists anywhere but the control plane; no `.harness/expertise/`,
 `.harness/products/`, `bin/`, hooks, or settings are written in a product repository. For the control
 plane itself, instantiate its own `.harness/harness.json` and `.harness/team-config.yaml` from the
-templates — this clone is the only place a `team-config.yaml` is instantiated.
+templates — this harness checkout is the only place a `team-config.yaml` is instantiated.
 
 ### 3. Interview — technical
 
@@ -350,8 +356,8 @@ it reads as though the decisions were made.
 ### 9. Verify, then warn about the restart
 
 ```bash
-.agents/skills/harness/bin/check-state.sh                 # this control-plane clone
-.agents/skills/harness/bin/merge-settings.py . --check    # this control-plane clone
+.agents/skills/harness/bin/check-state.sh                 # this harness checkout
+.agents/skills/harness/bin/merge-settings.py . --check    # this harness checkout
 python3 .claude/skills/harness/bin/factory_config.py --check-product-configs
 ```
 
@@ -373,7 +379,7 @@ when it is not is its own kind of wrong.
 
 ## `--upgrade`
 
-For a control-plane clone that is already initialised, after a newer harness has been deployed; for a
+For a harness checkout that is already initialised, after a newer harness has been deployed; for a
 fleet member, run it in that member's checkout and land its merged `harness.json` through step 2.
 
 ```bash
