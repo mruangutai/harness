@@ -1,0 +1,82 @@
+<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>Ship review — BUG-148-gate-record-correction</title><style>
+:root{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:ui-sans-serif,-apple-system,"Segoe UI","Helvetica Neue",Arial,sans-serif;
+}
+/* Token-level theming: components style through the tokens and never inside the
+   media query, so the viewer's explicit toggle can override the OS in BOTH
+   directions. */
+@media (prefers-color-scheme:dark){
+  :root{ --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+         --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733; }
+}
+:root[data-theme="dark"]{
+  --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+  --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733;
+}
+:root[data-theme="light"]{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+}
+*{box-sizing:border-box}
+body{margin:0; background:var(--paper); color:var(--ink);
+  font:400 16px/1.65 var(--sans); padding:clamp(1.5rem,5vw,4rem) clamp(1rem,5vw,2rem) 6rem}
+.wrap{max-width:56rem; margin:0 auto}
+/* Layout owns the spacing: gap between siblings, not per-element margins that
+   collapse or double. */
+.wrap{display:flex; flex-direction:column; gap:1rem}
+.eyebrow{font:500 11px/1 var(--mono); letter-spacing:.14em; text-transform:uppercase;
+  color:var(--quiet); margin:0}
+h1{font:600 clamp(1.6rem,4vw,2.3rem)/1.15 var(--sans); letter-spacing:-.02em;
+  margin:.4rem 0 .2rem; text-wrap:balance}
+h2{font:600 1.15rem/1.3 var(--sans); letter-spacing:-.01em; margin:2rem 0 0;
+  padding-top:1.25rem; border-top:1px solid var(--line); text-wrap:balance}
+h3{font:600 .98rem/1.4 var(--sans); margin:1.1rem 0 0}
+h4,h5,h6{font:500 11px/1.4 var(--mono); letter-spacing:.1em; text-transform:uppercase;
+  color:var(--quiet); margin:1rem 0 0}
+p,li{max-width:65ch; margin:0}
+ul,ol{margin:0; padding-left:1.4rem; display:flex; flex-direction:column; gap:.4rem}
+li>ul,li>ol{margin-top:.4rem}
+strong{font-weight:600}
+code{font:400 .875em/1.5 var(--mono); background:var(--sunk); padding:.1em .35em; border-radius:3px}
+pre{background:var(--sunk); border:1px solid var(--line); border-radius:6px;
+  padding:.85rem 1rem; overflow-x:auto; margin:0}
+pre code{background:none; padding:0}
+blockquote{margin:0; padding:.75rem 1rem; border-left:3px solid var(--accent);
+  background:var(--accent-soft); border-radius:0 5px 5px 0}
+blockquote p{max-width:none}
+hr{border:0; border-top:1px solid var(--line); margin:.5rem 0}
+/* Wide content pans inside its OWN container; the page body never scrolls sideways. */
+.scroll{overflow-x:auto; border:1px solid var(--line); border-radius:6px}
+table{border-collapse:collapse; width:100%; font-size:.9rem}
+th,td{text-align:left; padding:.6rem .8rem; border-bottom:1px solid var(--line); vertical-align:top}
+thead th{font:500 10px/1.3 var(--mono); letter-spacing:.11em; text-transform:uppercase;
+  color:var(--quiet); background:var(--sunk); white-space:nowrap}
+tbody tr:last-child td{border-bottom:0}
+/* Figures in a column line up. */
+td,th{font-variant-numeric:tabular-nums}
+.derived{color:var(--slate); font-size:.85rem; margin-top:2.5rem;
+  padding-top:1rem; border-top:1px solid var(--line)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style></head><body><div class='wrap'><p class='eyebrow'>Ship review · reading view</p><h1 id="ship-review-bug-148-gate-record-correction">Ship review — BUG-148-gate-record-correction</h1>
+<p><strong>Recommendation: ship.</strong> All six success criteria are met. The feature removes a false claim from two live records: DEC-174 and FEAT-05&#x27;s <code>STATE.md</code> both asserted that <code>gen-decisions-index.py --check</code> was a green gate. It never was — <code>--check</code> was not a supported mode, and before <code>ffbdbfa1</code> an unrecognised argument fell through to the <em>write</em> path, so the exit 0 that was cited as proof was a regeneration that overwrote exactly the drift a check would have reported. Both records now state that, in place, dated 2026-09-06. No ruling was rewritten and no historical artifact was touched.</p>
+<p><strong>Two things you should know before you accept this, both stated rather than smoothed:</strong></p>
+<ol><li><strong>You have not read the text that is now in the authority.</strong> You read FEAT-05&#x27;s passage and the <em>longer</em> DEC-174 paragraph at cycle 4, accepted the facts, and sent it back on length alone. The shortened paragraph (115 words/10 lines → 88/8) was cleared by <code>fable-advisor</code> under your standing authorisation, not by you. <code>notes/uat-BUG-148-sc06-c5.md</code> records exactly that.</li><li><strong>The reviewer panel graded the previous wording.</strong> Its PASS is pinned at <code>87e6033</code>; the wording fix moved the product diff to <code>651e60e2</code>, so no panel run has read the shortened prose. I referred this and the advisor ruled <strong>ship without a panel re-run</strong>: the only evidence gap at the current pin is <em>prose truth</em>, which the panel&#x27;s own adequacy note says it cannot grade and which SC-06 owns. Everything mechanical was re-measured at the new pin. If you want panel eyes on the new paragraph anyway, that is one validator dispatch and this briefing is where to say so.</li></ol>
+<p><strong>No report round was spawned.</strong> This briefing was assembled by reading the eleven run digests under <code>.harness/harness/features/BUG-148-gate-record-correction/runs/*/digest.md</code> directly — that is <code>2026-09-06-01-product</code>, <code>-01-validator</code>, <code>-02-product</code>, <code>-03-product</code>, <code>-04-product</code>, <code>-05-product</code>, <code>-06-validator</code>, <code>-07-eng</code>, <code>-08-validator</code>, <code>2026-09-07-01-product</code> and <code>2026-09-07-02-product</code> — plus <code>notes/uat-BUG-148-sc06-c5.md</code>, <code>notes/research-BUG-148-goalcheck-delivery-c5.md</code> and <code>notes/qa-digest-repair-verification-2026-09-07.md</code>.</p>
+<h2 id="success-criteria-all-six-met">Success criteria — all six met</h2>
+<p>Graded by pm at <code>review_sha</code> <code>651e60e2</code>, each by its own declared method (<code>notes/research-BUG-148-goalcheck-delivery-c5.md</code>). The pin has since moved to <code>ead8eb21</code> to carry that evidence; the diff between the two over the three product paths is empty.</p>
+<div class="scroll"><table><thead><tr><th>SC</th><th>Method</th><th>Verdict</th><th>Evidence</th></tr></thead><tbody><tr><td>SC-01</td><td>inspection</td><td><strong>met</strong></td><td><code>&quot;Every gate was green&quot;</code> absent from the <code>## DEC-174</code>..<code>## DEC-175</code> region; the four required facts each grepped separately, each present</td></tr><tr><td>SC-02</td><td>inspection</td><td><strong>met</strong></td><td>FEAT-05 <code>STATE.md</code> reads <code>Three gates green:</code>; all five required facts present separately, including the 2026-09-06 correction date</td></tr><tr><td>SC-03</td><td>inspection</td><td><strong>met</strong></td><td>one hunk, wholly inside DEC-174&#x27;s evidence paragraph; heading, defect bullets and carve-out table appear only as context</td></tr><tr><td>SC-04</td><td>automated</td><td><strong>met</strong></td><td><code>run-unit-tests.sh --kind integration</code> exit <strong>0</strong>, <strong>0</strong> <code>FAIL</code> lines, both named index tests <code>ok</code></td></tr><tr><td>SC-05</td><td>inspection</td><td><strong>met</strong></td><td>outside this feature&#x27;s own directory, exactly the three allowed paths changed</td></tr><tr><td>SC-06</td><td>uat</td><td><strong>met</strong></td><td>split attribution — see point 1 above</td></tr></tbody></table></div>
+<h2 id="what-each-squad-did">What each squad did</h2>
+<ul><li><strong>Product</strong> (7 runs, digests as listed). Wrote and twice repaired the plan (<code>2026-09-06-01</code>, <code>-02-product</code>), transcribed the plan panel&#x27;s five findings into <code>plan.yaml</code> (<code>-03-product</code>), applied your four signature rulings (<code>-04-product</code>), landed the DEC-174 correction (<code>-05-product</code>), shortened it on your send-back (<code>2026-09-07-01-product</code>), and ran the delivery goal-check (<code>2026-09-07-02-product</code>). All PASS.</li><li><strong>Validation</strong> (3 runs). Plan panel confirmed the correction&#x27;s load-bearing 2026-08-03 write-path claim <em>at source</em>, independently, by both readers — the correction writes truth, not a different guess (<code>2026-09-06-01-validator</code>). The QA gate passed on the docs-only change and, importantly, proved SC-04&#x27;s index test actually discriminates rather than merely reporting green (<code>-06-validator</code>). The reviewer panel ran four reviewers, skipped none, and returned zero blocking findings (<code>-08-validator</code>).</li><li><strong>Engineering</strong> (1 run). The simplify pass was an <strong>empty pass</strong> — three angles looked and declined; altitude&#x27;s single finding would have reversed a plan instruction you approved, so it became a briefing row instead of an edit (<code>2026-09-06-07-eng</code>). Nothing was invented to justify the step.</li></ul>
+<h2 id="budget">Budget</h2>
+<p><code>cycles_used</code> <strong>5</strong> of 10 · <code>len(runs)</code> <strong>11</strong> of 20. Both under budget; nothing to flag. The five cycles are all yours or the panel&#x27;s: two plan repairs, the panel record, your four rulings, and your length send-back. No fix loop ran twice on the same fault.</p>
+<h2 id="resolved-escalations">Resolved escalations</h2>
+<ul><li><strong>SIMPLIFY altitude, on FEAT-05&#x27;s bold <code>Corrected 2026-09-06 under BUG-148:</code> lead-in</strong> — resolved at rung 1 against BRIEF REQ-01, which positively requires the date, and carried into SC-06&#x27;s read rather than pre-decided. Cleared there.</li><li><strong>Panel PASS pinned at superseded prose</strong> — referred to <code>fable-advisor</code>, ruled ship. See point 2.</li><li><strong>The untracked QA verification note</strong> — referred; ruled commit-under-a-corrected-name. It is now <code>notes/qa-digest-repair-verification-2026-09-07.md</code>; the <code>c1</code> suffix went because no cycle 1 ran.</li><li><strong>Whether to file the backlog rows below at merge</strong> — referred; ruled <strong>file none</strong>. Your row-level veto is not consumed by your advance authorisation of the ship phase.</li></ul>
+<h2 id="proposed-backlog">Proposed backlog</h2>
+<p><strong>No issue has been filed for any of these.</strong> Filing happens mechanically at your acceptance, so strike any row by ID and the rest are created for you. <strong>Unstruck rows become backlog issues; anything not listed here dies silently.</strong></p>
+<div class="scroll"><table><thead><tr><th>ID</th><th>Nature</th><th>Row</th></tr></thead><tbody><tr><td>B-1</td><td>chore</td><td>REQ-04&#x27;s <em>&quot;no historical artifact is modified&quot;</em> had no criterion grading it. It holds on measurement, but a BRIEF of this shape should state it as its own SC or carve the feature&#x27;s own directory out of the allowlist</td></tr><tr><td>B-2</td><td>chore</td><td>Of SC-04&#x27;s two named tests only <code>test_committed_index_matches_a_fresh_regeneration</code> was ever proven red-capable; <code>test_no_amendment_construct_survives_in_the_authority</code> has only ever been observed green. Perturb it once and record the result</td></tr><tr><td>B-3</td><td>bug</td><td>DEC-153&#x27;s disposable-worktree perturbation carve-out is unreachable for <code>harness-qa</code> on any non-<code>tests/**</code> path — both guards deny, and a self-created sibling worktree is refused under DEC-218 claim binding. QA cannot prove red-capability where it matters most</td></tr><tr><td>B-4</td><td>bug</td><td><code>harness-digest-dev</code> forbids <code>suite: n/a</code> with <code>VERDICT: PASS</code> (DEC-173), but a read-only reviewer dispatch runs no suite. An honest reader has no legal value for the field</td></tr><tr><td>B-5</td><td>bug</td><td><code>handoff_done_when.py::_feature_dir</code> cannot resolve <code>brief-sc:</code> or <code>plan-task:</code> pointers for a feature whose directory lives only in a worktree — it strips the <code>.claude/worktrees/&lt;name&gt;/</code> prefix and rejoins to the main checkout root</td></tr><tr><td>B-6</td><td>bug</td><td>QA subagent wrapper return path: <code>yield</code> with null data exits 1 and re-emits. Orthogonal to this feature; worst unfixed consequence is a spurious re-dispatch, not record corruption. <strong>The advisor recommends keeping this row</strong> — but it is a row like any other and your strike outranks that</td></tr><tr><td>B-7</td><td>chore</td><td>Three INV-29 stale worktrees stand for features that already reached a terminal state — <code>BUG-440-digest-verdict-reconciliation</code>, <code>FEAT-55-issue-types-created-work</code>, <code>qa-bug440-c3-probe</code>. They are the only reason <code>check-state.sh</code> exits non-zero, and none concerns BUG-148</td></tr></tbody></table></div>
+<p>Two plan-panel findings stay open <strong>by design</strong> and are not backlog rows: <code>PF-a2df57f48de3e81d49745cfd1adaa20b</code> (med, accepted-by-design, disclosed in the BRIEF&#x27;s <em>Verification gaps</em>) and <code>PF-b7b07ec7b7f6cacb3b894cae4bda2a04</code> (low, informational). Neither was ruled on and neither gates.</p><p class='derived'>Derived from <code>ship-review-2026-09-07-03-ship.md</code> — the markdown is the record; do not edit this file. Regenerate with <code>bin/render-brief.py</code>.</p></div></body></html>

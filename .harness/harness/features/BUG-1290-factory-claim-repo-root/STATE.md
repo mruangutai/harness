@@ -3,9 +3,9 @@
 ## Current
 
 - feature: BUG-1290-factory-claim-repo-root
-- run: none in flight — feature-close distillation complete
+- run: none in flight — record repair on `chore/BUG-1290-factory-claim-repo-root` (2026-09-08)
 - squad: none
-- status: shipped, distilled
+- status: shipped, distilled, record repaired
 
 The operator accepted ship; the merge landed on `main` at `7a3640f1` and the worktree was removed by
 the `post-merge` hook. `gh-sync.py ship` posted the fourth-pass review on parent #1359, put
@@ -44,7 +44,17 @@ validation lead returned a duplicate repository entry to the ui reviewer, which 
 of an informational 20; my read is unchanged — the count records a long, honestly-worked bug, not a
 loop that failed to converge.
 
-Nothing else moved: no code, test, plan, brief, GitHub or ship-state change in this run.
+**Record repair, 2026-09-08 (advisor-mandated, no code change).** This feature's whole history sat
+on local `main` and had never reached `origin/main`, and its five outstanding record violations
+blocked BUG-201's integration. Repaired on `chore/BUG-1290-factory-claim-repo-root`: `panel.readers`
+was keyed on `step:`, which INV-32 does not read, so both validator-segment readers were reported as
+never having run — both are now keyed `reader:`; the product-segment `goalcheck` reader was never
+transcribed and is now recorded from its surviving artifact
+(`notes/research-BUG-1290-factory-claim-repo-root-goalcheck-plan-c1.md`); and `notes/handoff-build.md`
+and `notes/handoff-validate.md` were reconstructed and labelled as such. Measured: `check-state.sh`
+reports 15 violations on `main` and 10 on the branch, the difference being exactly these five rows
+and nothing else. No verdict, severity, disposition, finding id, finding text, code, test, brief,
+task or approval was changed.
 
 ## Open Questions
 
@@ -65,14 +75,17 @@ Nothing else moved: no code, test, plan, brief, GitHub or ship-state change in t
   Backlog row B-13 covers the desync itself; the unfilable half has no row.
 - Q4 (carried, non-blocking, operator only, row B-10): the REQ-05 wording correction. The operator
   has declined to rule three times and directed that approved artifacts stay unchanged.
-- Q5 (carried, pre-existing, row B-24): no `notes/handoff-build.md`. The build seam was crossed
-  without one by a predecessor; writing one now for a phase nobody ran would falsify the record.
+- Q5 (**closed 2026-09-08**, row B-24): `notes/handoff-build.md` and `notes/handoff-validate.md` were
+  both missing; the close-out declined to write them because a working-memory note for a seam nobody
+  handed off at would read as contemporaneous and falsify the record. The advisor ruled the honest
+  remedy is reconstruction that says so: both notes are labelled RECONSTRUCTED in their title, their
+  first Trust bullet states it, and every other bullet cites a surviving artifact by path.
 - Q6 (carried, harness defects already filed as backlog rows B-11..B-15, B-18..B-22, B-26, B-31,
   B-38): claim scoping, lead digest clobber, hardlink edit desync, null-yield returns, the matrix
   keying a required kind on a directory label, the write-guard's two routes disagreeing, reviewer
   `files_touched` under-reporting, the inert `match_bug_class` leg, and the reviewer
   digest-contract violation.
-- Q7 (**closed this run**): the previous close-out's open question on concurrent distillation racing
-  the shared Expertise corpus. Three squads ran concurrently with each member's checker scoped to
-  its own file and one corpus-wide check after all returned; both tiers exit 0 with no false
+- Q7 (**closed at distillation**): the previous close-out's open question on concurrent distillation
+  racing the shared Expertise corpus. Three squads ran concurrently with each member's checker scoped
+  to its own file and one corpus-wide check after all returned; both tiers exit 0 with no false
   failure. The remedy is now a craft rule.

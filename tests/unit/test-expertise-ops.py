@@ -358,6 +358,59 @@ def case_u22():
     check("u22: entry present in merged", ("P-02", "two") in merged["Patterns"], merged["Patterns"])
 
 
+def case_u23():
+    """A PROPOSAL NAMING THE SAME id TWICE IN ONE SECTION IS AMBIGUOUS ON THE PROPOSAL ALONE
+    (BUG-276): the first entry must not silently win over the second, regardless of base state.
+    """
+    # (a) different texts
+    secs, order = base_sections([("Patterns", [("P-01", "one")])])
+    prop_secs = {"Patterns": [("P-02", "ALPHA"), ("P-02", "BRAVO")]}
+    prop_order = ["Patterns"]
+    try:
+        compute_union(secs, order, prop_secs, prop_order)
+        check("u23a: MergeRefusal raised", False, "no exception raised")
+    except MergeRefusal as e:
+        check("u23a: different texts refuse with code 11", e.code == 11, e.code)
+        check("u23a: line starts AMBIGUOUS TARGET", e.lines[0].startswith("AMBIGUOUS TARGET"), e.lines)
+        check(
+            "u23a: line carries section, id and reason tokens",
+            "section=Patterns" in e.lines[0] and "id=P-02" in e.lines[0] and "reason=" in e.lines[0],
+            e.lines,
+        )
+
+    # (b) identical texts
+    secs, order = base_sections([("Patterns", [("P-01", "one")])])
+    prop_secs = {"Patterns": [("P-02", "ALPHA"), ("P-02", "ALPHA")]}
+    prop_order = ["Patterns"]
+    try:
+        compute_union(secs, order, prop_secs, prop_order)
+        check("u23b: MergeRefusal raised", False, "no exception raised")
+    except MergeRefusal as e:
+        check("u23b: identical texts refuse with code 11", e.code == 11, e.code)
+        check("u23b: line starts AMBIGUOUS TARGET", e.lines[0].startswith("AMBIGUOUS TARGET"), e.lines)
+        check(
+            "u23b: line carries section, id and reason tokens",
+            "section=Patterns" in e.lines[0] and "id=P-02" in e.lines[0] and "reason=" in e.lines[0],
+            e.lines,
+        )
+
+    # (c) no base
+    secs, order = {}, []
+    prop_secs = {"Patterns": [("P-02", "ALPHA"), ("P-02", "BRAVO")]}
+    prop_order = ["Patterns"]
+    try:
+        compute_union(secs, order, prop_secs, prop_order)
+        check("u23c: MergeRefusal raised", False, "no exception raised")
+    except MergeRefusal as e:
+        check("u23c: no base refuses with code 11", e.code == 11, e.code)
+        check("u23c: line starts AMBIGUOUS TARGET", e.lines[0].startswith("AMBIGUOUS TARGET"), e.lines)
+        check(
+            "u23c: line carries section, id and reason tokens",
+            "section=Patterns" in e.lines[0] and "id=P-02" in e.lines[0] and "reason=" in e.lines[0],
+            e.lines,
+        )
+
+
 def main():
     case_u1()
     case_u2()
@@ -380,6 +433,7 @@ def main():
     case_u20()
     case_u21()
     case_u22()
+    case_u23()
 
     fails = 0
     for name, ok, detail in RESULTS:

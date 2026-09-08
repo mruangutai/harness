@@ -134,18 +134,42 @@ panel:
     alone, which is where P2 was assigned.
   - A-01's severity is transcribed unchanged at its reader's med. Its must_fix membership
     was the validator lead's ranking, not a severity revision.
+  - 'Record repair, 2026-09-08, branch chore/BUG-1290-factory-claim-repo-root: the
+    two validator-segment reader entries were keyed on `step:`, which INV-32 does
+    not read, and the product-segment `goalcheck` reader was never transcribed at
+    all - so check-state.sh reported all three readers as never having run. Both existing
+    keys are now `reader:`; the goalcheck entry is transcribed from its surviving
+    artifact, which has been on disk since 2026-09-05. No verdict, severity, disposition,
+    finding id or finding text was changed.'
   readers:
-  - step: scope
+  - reader: scope
     persona: harness-code-reviewer
     status: ran
     verdict: FAIL
     contributed: PANEL-01, PANEL-02, the anchor audit (all exact), and the empirical
       runpy proof for T-05
-  - step: should-not-exist
+  - reader: should-not-exist
     persona: fable-advisor
     status: ran
     verdict: 7 findings
     contributed: A-01, the measured T-05 wall clock, and the P2 resolution
+  - reader: goalcheck
+    persona: harness-pm
+    status: ran
+    verdict: yes with 3 gaps
+    artifact: notes/research-BUG-1290-factory-claim-repo-root-goalcheck-plan-c1.md
+    contributed: 'F-01..F-08 against the DRAFTED plan, graded on the grilling note
+      and ticket 1290 rather than BRIEF.md. Disposition of all eight, so none is left
+      dangling: the three GATING ones - F-02 (SC-08 unreachable by its declared verify
+      method), F-03 (T-01''s aggregate non-zero verify satisfied by any single red
+      case) and F-05 (T-04''s case 22 greens on row removal and on a dead pattern)
+      - were closed by plan revision BEFORE the validator segment ran, which is why
+      they carry no PF id in findings below; T-05, the per-case 5a..5f markers in
+      T-01''s verify and the five-row reader probe in T-04''s verify are each that
+      revision. F-04, F-06, F-07 and F-08 were carried into the validator segment
+      and are recorded below as A-P1 (PANEL-02 is the same subject read independently),
+      A-D03, A-P2 and P3-merged. F-01 was not a plan edit: it rode to the operator
+      as Q1 of the plan handoff, with F-07 and F-08 riding beside it as Q3 and Q2.'
   findings:
   - id: PF-2cb94b52681b87f83e4c09f4bf93fe7c
     label: PANEL-01

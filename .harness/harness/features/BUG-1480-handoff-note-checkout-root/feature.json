@@ -1,0 +1,69 @@
+{
+  "feature_id": "BUG-1480-handoff-note-checkout-root",
+  "branch": "feat/BUG-1480-handoff-note-checkout-root",
+  "pr": 1497,
+  "review_sha": "4de92e751508f4144e4c1233fcfa715947532ee2",
+  "cycles_used": 0,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "2026-09-07-01-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead"
+    },
+    {
+      "id": "2026-09-07-02-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead"
+    },
+    {
+      "id": "2026-09-07-01-validator",
+      "squad": "validator",
+      "verdict": "PASS",
+      "agent": "harness-validator-lead",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-08-01-eng",
+      "squad": "eng",
+      "verdict": "PASS",
+      "agent": "harness-eng-lead"
+    },
+    {
+      "id": "2026-09-08-01-validator",
+      "squad": "validator",
+      "verdict": "PASS",
+      "agent": "harness-validator-lead"
+    },
+    {
+      "id": "2026-09-08-02-validator",
+      "squad": "validator",
+      "verdict": "PASS",
+      "agent": "harness-validator-lead"
+    },
+    {
+      "id": "2026-09-08-1-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead",
+      "code_grade": "n_a"
+    }
+  ],
+  "github": {
+    "milestone": 59,
+    "parent": 1483,
+    "attached": [
+      "T-01",
+      "T-02"
+    ],
+    "issues": {
+      "T-01": 1484,
+      "T-02": 1485
+    },
+    "source_issues": [
+      1480
+    ]
+  }
+}
