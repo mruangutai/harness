@@ -419,10 +419,11 @@ check("case 21: real root's harness/docs surface is CLEAN with migrated evidence
       code == 0 and "docs: CLEAN — evidence migrated" in docs_line, out)
 
 # ------------------------------------------------------------------- case 22
-# FEAT-25 T-03: the REAL tree's FEATURES surface, now that factory_claim.py is a
-# reader on it. Case 1 already scans the real root; this pins the features half
-# specifically — evidence at the migrated root and every FEATURES reader, including
-# factory_claim.py, speaking the migrated form.
+# FEAT-25 T-03 / BUG-1290 T-04: the REAL tree's FEATURES surface, now that
+# factory_config.py is a reader on it (factory_claim.py's join moved there in
+# BUG-1290 T-03; D-04 moved the reader row with it). Case 1 already scans the real
+# root; this pins the features half specifically — evidence at the migrated root
+# and every FEATURES reader, including factory_config.py, speaking the migrated form.
 code, out = run(REPO_ROOT)
 features_line = next((l for l in out.splitlines() if l.startswith("features:")), "")
 check("case 22: real root's harness/features surface is CLEAN with migrated evidence",

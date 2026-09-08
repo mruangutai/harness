@@ -9,5 +9,7 @@
 - G-06: WHEN reading a code-grade.py report DO remember it only lists functions with no pre-image (new) or a worsened grade versus base — it never emits an 'inherited, unrelated, unchanged' record, so a partition claiming that shape for any listed record is definitionally wrong.
 - G-07: WHEN reviewing run_pool.py's --mutation-check snapshot DO note `_record`'s `except OSError` swallows every OSError, not only FileNotFoundError — removing a watched directory's execute bit mid-run hides any file created inside it from both snapshots (open backlog row, unresolved as of this build).
 - G-08: WHEN reviewing suite_layout.py violations() DO check whether _registry_findings runs unconditionally on any successful git enumeration, independent of the self-ownership test -- it misfires on a checkout that does not itself ship suite_layout.py, past a narrower one-prefix assertion that misses it (open, unresolved).
+- G-09: WHEN reasoning about a chained verify: over test-factory-integration.py or test-factory-claim.py DO note both share one global FAILS counter and a single sys.exit(1 if FAILS) — any reddened case in the file fails the whole chain, not just the task's own diff.
+- G-10: WHEN verifying a monkeypatch/proxy substitution targets factory_claim.py's factory_config reference DO confirm it resolves via LOAD_GLOBAL at call time, not a snapshotted import — this module-level rebinding is what lets test-time patching of factory_config.features_root intercept production code without editing factory_claim itself.
 ## Outcomes (max 10)
 ## Open (max 5)

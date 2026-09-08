@@ -391,11 +391,28 @@ def board_station(fleet, repo_name, key):
     return station_column(key)
 
 
+def segment_of(repo_name):
+    """Return the fleet repository name after the owner — the part of an owner-qualified
+    `owner/repo` name after the first slash. This is the one home of that rule; every caller
+    (factory_claim.py, feature-worktree.py:resolve_repo, workspace_path below) calls it rather
+    than restating the split."""
+    return repo_name.split("/", 1)[-1]
+
+
+def features_root(repo_name):
+    """Return the absolute path to repo_name's own `.harness/<segment>/features` directory,
+    where segment is repo_name's own fleet segment (segment_of). The local is load-bearing, not
+    style (A-01): layout_migration's reader rows match this join only when the segment is bound
+    to a paren-free local before it, never when segment_of(repo_name) is inlined into the call."""
+    seg = segment_of(repo_name)
+    return os.path.join(harness_boundary.resolve_root(_BIN_DIR), ".harness", seg, "features")
+
+
 def workspace_path(fleet, repo_name):
-    """Return the absolute checkout path: workspace_root joined with the repository name
-    AFTER the owner. This is the one place that derivation exists — factory_workspace.py and
-    factory_land.py both call it rather than restating the rule."""
-    name = repo_name.split("/", 1)[-1]
+    """Return the absolute checkout path: workspace_root joined with the repository name after
+    the owner. segment_of is the one place that derivation exists — factory_workspace.py and
+    factory_land.py both call this function rather than restating the rule."""
+    name = segment_of(repo_name)
     return os.path.join(fleet["workspace_root"], name)
 
 
