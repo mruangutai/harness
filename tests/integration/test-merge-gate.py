@@ -172,6 +172,9 @@ for command, name in (
     (f"git -C {root} merge feature/test", "T-05 git -C global flag merge is still detected"),
     ("git -c core.pager=cat merge feature/test", "T-05 git -c config global flag merge is still detected"),
     (f"git --work-tree {root} merge feature/test", "T-05 git --work-tree global flag merge is still detected"),
+    ("git merge --no-ff feature/test", "T-05 git --no-ff merge is still detected"),
+    ("git merge --squash feature/test", "T-05 git --squash merge is still detected"),
+    ("git merge -m message feature/test", "T-05 git -m merge is still detected"),
 ):
     root, _ = fixture()
     r, d, reason = gate(command, root)

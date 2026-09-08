@@ -44,12 +44,16 @@ def gh_merge(rest):
 
 
 def git_merge(rest):
-    takes_value = {"-C", "-c", "--work-tree", "--git-dir", "--namespace", "--config-env",
-                   "--super-prefix"}
+    # Git accepts global options before the subcommand and merge-specific options after it. The
+    # value-taking sets name option classes, not an exhaustive parser of every Git release.
+    global_values = {"-C", "-c", "--work-tree", "--git-dir", "--namespace", "--config-env",
+                     "--super-prefix"}
+    merge_values = {"-m", "-s", "-X", "--message", "--strategy", "--strategy-option",
+                    "--into-name"}
     index = 0
     while index < len(rest):
         token = rest[index]
-        if token in takes_value:
+        if token in global_values:
             index += 2
             continue
         if token.startswith("-"):
@@ -57,7 +61,17 @@ def git_merge(rest):
             continue
         if token != "merge":
             return None
-        return "git", rest[index + 1] if index + 1 < len(rest) else None
+        index += 1
+        while index < len(rest):
+            token = rest[index]
+            if token in merge_values:
+                index += 2
+                continue
+            if token.startswith("-"):
+                index += 1
+                continue
+            return "git", token
+        return "git", None
     return None
 
 
