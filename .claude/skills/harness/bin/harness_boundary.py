@@ -19,7 +19,6 @@ the agent sees.
 import os
 import re
 import sys
-import harness_yaml
 from run_identity import MARKER_NAME as _RUN_IDENTITY_MARKER
 
 # THE LEGITIMATE WORKTREE LOCATION, named once. Every rule in this module that needs
@@ -823,7 +822,8 @@ def run_dir_grant_globs(root):
     `leads:` — so a run-dir grant declared under a new role is still found with no
     change here. Parsed through harness_yaml (DEC-171): no hand-rolled YAML regex
     reading of this manifest. Never raises: an absent, unreadable, unparseable
-    manifest, or a missing PyYAML, all yield `[]` — the caller decides what an empty
+    manifest, a missing `harness_yaml` module, or a missing PyYAML, all yield
+    `[]` — the caller decides what an empty
     vocabulary means (dispatch-guard.sh falls through rather than refusing on a
     manifest it cannot read; D-04).
     """
@@ -844,6 +844,7 @@ def run_dir_grant_globs(root):
                 walk(item)
 
     try:
+        import harness_yaml
         walk(harness_yaml.load_file(manifest_path))
     except Exception:
         return []
