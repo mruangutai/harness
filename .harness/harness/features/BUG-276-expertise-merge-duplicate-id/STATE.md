@@ -3,89 +3,74 @@
 ## Current
 
 - feature: BUG-276-expertise-merge-duplicate-id
-- run: .harness/harness/features/BUG-276-expertise-merge-duplicate-id/runs/2026-09-07-2-validator/state.yaml
-- squad: validator
+- run: .harness/harness/features/BUG-276-expertise-merge-duplicate-id/runs/2026-09-07-02-eng/digest.md
+- squad: eng
 - status: in_review
 
-VALIDATE ENTERED, PANEL RUN, PANEL RETURNED **FAIL** ON ONE MECHANICAL BLOCKER. Nothing about the
-FIX ITSELF is in doubt: spec compliance passed in full and all six SCs re-graded PASS. The blocker
-is a complexity-bar violation in one NEW TEST function. This section IS the validate handoff; a
-`notes/handoff-*.md` remains unwritable from a worktree (Q8).
+THE ONE GATING must_fix IS CLOSED. The validate panel's only blocker — `case_duplicate_proposal_ids`
+at GRADE 1 — is fixed, re-measured at the orchestrator's own tier, committed and re-pinned. This
+section IS the validate handoff; a `notes/handoff-*.md` remains unwritable from a worktree (Q8).
 
-- SEAM (both preconditions in one act, in the skill's order): `review_sha` pinned, then
-  `gh-sync.py status <feature-dir> review` (lowercase), which called `plan-merge.py
-  set-feature-station` and moved plan.yaml `status: building -> review`. The pin is
-  `ef8efd99a28cdabce9ac867c21b895e6cb0ea584` — the SEAM COMMIT, not the build tip `8d0aabeb`.
-  Deliberate: the station write lands in plan.yaml and INV-33 compares plan.yaml's BYTES at the pin
-  against disk, so a pin one commit below the station write is stale on arrival. `git diff
-  --name-only 8d0aabeb ef8efd99` is exactly feature.json + plan.yaml — no code path moved, so the
-  panel reviewed the tree the build produced.
-- PANEL (2026-09-07-2-validator, FAIL, recorded in feature.json). All FOUR steps RAN, none skipped:
-  code-reviewer FAIL; qa PASS (gate-only, `matrix_ok: true`, unit 520/0 exit 0, integration 1636/0
-  exit 0, both task `verify:` blocks exit 0); security-reviewer PASS (STRIDE Tampering traced as the
-  live axis, guard closes it, no partial-write window); ui-reviewer PASS (no rendered surface,
-  scoped out after looking, file census as its evidence). Notes:
-  `notes/review-harness-{code-reviewer,qa,security-reviewer,ui-reviewer}-c0.md` (tracked). Collated
-  digest `runs/2026-09-07-2-validator/digest.md` — **the runs tree is gitignored, so that digest
-  dies with this worktree; the four notes and this section are the durable record.**
-- THE ONE must_fix (high, gating) — **I re-measured it at my own tier, do not re-derive it**:
-  `env -u HARNESS_AGENT_TYPE python3 .claude/skills/harness/bin/code-grade.py --base 6d969ed3 --head
-  ef8efd99...` reports `tests/integration/test-expertise-merge.py:1310`
-  `case_duplicate_proposal_ids` at cyclomatic 7 / cognitive 2 / **ABC 47.9**, driver abc, **GRADE 1**
-  against the test-code bar of 3 — and grade 1 anywhere is a high finding that fails review under
-  `harness-code-risk-grading`. Cause: the three sub-cases each inline their own
-  write → hash → propose → run → assert sequence (~13 lines x3).
-  REMEDY, and its two traps: extract a **SIBLING** helper *in the shape of*
-  `_assert_case24_ambiguous` (`:1192-1209`) — that helper is **bound to the ops path**
-  (`write_ops`/`run_ops`) and is **NOT directly reusable** here; the reviewer read it and says so.
-  And **all three sub-cases must survive**: dropping `case27b` is signed-REJECTED (PF-d6fb0ad9), so
-  a "fix" that shrinks the function by deleting a case is a spec violation, not a remedy.
-  Owner: T-02's dev, via harness-eng-lead — that file is in T-02's declared set.
-- NOT a second finding, already correctly disposed: `tests/unit/test-expertise-ops.py:361`
-  `case_u23` grades **2** (cyc 10 / cog 9 / ABC 32.6), same grader run. The skill admits grade 2
-  with a written reason naming the function; the reviewer supplied one (three independently
-  load-bearing sub-case assertions) and the lead concurred. **Non-gating — do not reopen it, and do
-  not let a fix-cycle dev "helpfully" refactor it.**
-- `cycles_used` stays **2** of 10, DELIBERATELY not yet incremented: the lead reported 0 send-backs
-  inside the run, and the panel FAIL's rework increments when the FIX IS DISPATCHED. **The successor
-  increments to 3 in the same act as dispatching the fix** — once, there or here, never both.
-  `len(runs)` is 10 of an informational 20.
+- THE FIX (commit `a641a5b8`, one file: `tests/integration/test-expertise-merge.py`). New SIBLING
+  helper `_assert_case27_ambiguous(root, stem, exit_check_name, message_check_name, texts,
+  base_sections=None)` at `:1310-1338`, written against the APPLY path (`write_entries`/`run_apply`)
+  — NOT a generalisation of `_assert_case24_ambiguous`, which is bound to the ops path and stays
+  byte-identical at `:1190`. `base_sections=None` is the absent-destination seam: it skips both the
+  base write and the before-hash, so case27c still proves nothing is created. Three call sites at
+  `:1347`, `:1357`, `:1366`. Receipt: `notes/receipt-harness-backend-dev-t02-fix-grade1.md`.
+- RE-MEASURED AT MY OWN TIER — I ran the grader and the suites, I did not take the dev's numbers:
+  - `env -u HARNESS_AGENT_TYPE python3 .claude/skills/harness/bin/code-grade.py --base 6d969ed3
+    --head a641a5b8` → **`case_duplicate_proposal_ids` GRADE 5** (cyc 1 / cog 0 / ABC 3.0, was
+    grade 1 at ABC 47.9); **`_assert_case27_ambiguous` GRADE 3** (cyc 6 / cog 5 / ABC 25.2, bar 3);
+    `_check_proposal_duplicate_ids` GRADE 4 (bar 4, unchanged, production untouched).
+    **`PASSING: 3` — NO grade-1 function remains in the graded range.**
+  - Suites, `bash .claude/skills/harness/bin/run-unit-tests.sh` (bare = `--kind all`, so BOTH trees
+    ran): **exit 0, `^FAIL ` line count 0**, 80 files, 8-worker pool, 86.6s.
+    `test-expertise-merge.py (exit 0, 11.02s)` in that pool; standalone it reports 219 PASS / 0 FAIL,
+    exit 0 — the SAME 219 as before the refactor, so the check count did not drop.
+  - ASSERTION SURVIVAL read from the rewritten lines themselves, not from an exclusion proof: all
+    **nine** case27 checks pass under their ORIGINAL names (`case27{a,b,c}` exit / message / bytes
+    or existence). The four-token message assertion (`AMBIGUOUS TARGET` + `section=Patterns` +
+    `id=P-02` + `reason=`) is intact for (a) and (b); `case27b` (identical ALPHA/ALPHA texts) is
+    intact — its deletion is signed-REJECTED, PF-d6fb0ad9.
+- `review_sha` RE-PINNED to **`a641a5b8`**, the fix commit; the old `ef8efd99` no longer contains
+  the work under review. plan.yaml is unchanged since `ef8efd99` and still reads `status: review`
+  with `approval: approved`, so the pin contains the station write and INV-33 compares equal.
+- `cycles_used` incremented **2 → 3** of 10, once, in the act of dispatching the fix. `len(runs)` is
+  11 of an informational 20 — a long feature, but each run resolved a named finding.
+- NOT REOPENED, and must stay that way: `tests/unit/test-expertise-ops.py:361` `case_u23` still
+  grades **2** (cyc 10 / cog 9 / ABC 32.6) and still prints `REASON REQUIRED`. The panel disposed of
+  it with a written reason (three independently load-bearing sub-case assertions) and the lead
+  concurred. Grade 2 is admissible WITH a reason; it has one. `expertise-merge.py` untouched.
 
-NEXT, in this order, for the validate successor:
-  1. Fix cycle to **harness-eng-lead** (not the validator lead) for the one must_fix, with the LEAVE
-     list stated: leave `case_u23` alone, leave `expertise-merge.py` alone (grade 4, PASS,
-     behaviourally clean), keep all three case27 sub-cases. Increment `cycles_used` to 3 in that act.
-  2. Re-measure at your own tier: re-run `code-grade.py` over the same range, require
-     `case_duplicate_proposal_ids` at grade 3 or better, and re-run both suites. Two live hazards —
-     `run-unit-tests.sh` ends with the last script's own `N/N checks passed`, so count `^FAIL ` lines
-     and capture the exit status in a variable rather than reading the tail; and clear
-     `HARNESS_AGENT_TYPE` with `env -u` or the leaked value reddens the plan-merge approval checks
-     as a phantom regression.
-  3. Commit, then **RE-PIN `review_sha` at the new tip** — the old pin no longer contains the fix.
-  4. Re-review: this is a test refactor, so the risk is assertion loss, not behaviour. A targeted
-     code-reviewer re-run over the changed file suffices; a full four-step panel does not earn its
-     cost, since qa/security/ui graded a diff this fix does not touch. Do not accept an
-     exclusion-style proof over the file's OTHER lines — read the rewritten assertions themselves.
-  5. Only then the goal-check and the ship briefing. **This run did not ship and did not attempt to.**
+NEXT, for the successor:
+  1. The narrow re-review has been dispatched (see the run above / the validator run recorded in
+     feature.json). A test refactor's risk is assertion loss, not behaviour, so a targeted
+     code-reviewer over the changed file is the proportionate gate; qa/security/ui graded a diff
+     this fix does not touch.
+  2. On re-review PASS: the pm goal-check over the six SCs, then the ship briefing.
+  3. Q9 stands and gates the SHIP path, not this one: this feature has no GitHub parent, milestone
+     or sub-issues — `gh-sync.py open` has never run — so `ship` cannot reach Done until `open` does.
+     Run `gh-sync.py` from the MAIN checkout; it refuses at exit 1 from inside `.claude/worktrees/`.
 
-TRUST, verified at `ef8efd99` unless noted: approval `approved` on BRIEF and plan with NO
-`approval.rulings` (plan.yaml:3-7,176,286); the grade-1 and grade-2 numbers (I ran the grader, not
-the reviewer's word); all four reviewer notes and the run digest exist on disk (`ls`, this run);
-worktree clean at the build tip before the seam. UNVERIFIED, inherited and flagged by the lead
-itself: the authoring segment's MUTATION PROOF (that the six new checks CAN redden) was measured at
-`6d969ed3`, **not re-measured at the pin** — mitigated but not closed by the code-reviewer's
-independent finding that all six assertions bind observable behaviour rather than check names.
+TRUST, verified at `a641a5b8` unless noted: the two grades and the suite result (I ran both);
+the nine surviving case27 checks (read in the file AND observed passing by name); approval `approved`
+on BRIEF and plan with NO `approval.rulings`. UNVERIFIED, inherited and still flagged: the authoring
+segment's MUTATION PROOF (that the six new checks CAN redden) was measured at `6d969ed3` and never
+re-measured at a pin — mitigated, not closed, by the code-reviewer's finding that all six assertions
+bind observable behaviour rather than check names.
 
-DEAD ENDS for validate, all signed, and **no reviewer re-raised any of them**: D-07 (the
+DEAD ENDS for validate, all signed, none re-raised by any reviewer: D-07 (the
 `parse_expertise`/`render` silent drop stays unfixed — separate defect), D-09 (no exit-11 row in
 `harness-distill/SKILL.md`; lane NOBODY), D-04 (`check-expertise.sh` untouched), D-05 (no codes 10
 or 12 in the docstring — adding them FAILS SC-06), and `case27b` stays.
-WORKING SET: `tests/integration/test-expertise-merge.py` (fix target, plus `:1192-1209` for the
-helper shape), `notes/review-harness-code-reviewer-c0.md`, plan.yaml, BRIEF.md, feature.json.
+WORKING SET: `tests/integration/test-expertise-merge.py` (`:1310-1371`), `notes/receipt-harness-backend-dev-t02-fix-grade1.md`,
+`notes/review-harness-code-reviewer-c0.md`, plan.yaml, BRIEF.md, feature.json.
 
 ## Open Questions
 
-None blocking. The panel added three non-gating items; the earlier five stand.
+None blocking. The panel's three non-gating items and the earlier five stand, unchanged by this
+fix cycle.
 
 - Q11 (harness defect, for the harness owner): the `harness-security-reviewer` job exited NON-ZERO
   (exit 1) while returning a valid PASS block twice, having already written its note. The step ran
