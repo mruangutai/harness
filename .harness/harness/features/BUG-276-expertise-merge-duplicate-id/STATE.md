@@ -3,58 +3,64 @@
 ## Current
 
 - feature: BUG-276-expertise-merge-duplicate-id
-- run: .harness/harness/features/BUG-276-expertise-merge-duplicate-id/runs/2026-09-07-01-eng/state.yaml
-- squad: eng
-- status: in_progress
+- run: .harness/harness/features/BUG-276-expertise-merge-duplicate-id/runs/2026-09-07-2-validator/state.yaml
+- squad: validator
+- status: in_review
 
-BUILD PHASE COMPLETE — every build segment has landed and the worktree is clean at the branch tip.
-The Building → Review seam is the next act and is deliberately NOT taken in this run: `review_sha`
-is still `none`, and nothing has been pinned or synced. This section IS the build→validate handoff:
-`notes/handoff-build.md` could not be written from a worktree (Q8 below), so the successor's
-working memory lives here.
+BUILDING → REVIEW SEAM IS TAKEN. Both preconditions were performed in one act before any panel
+dispatch, in the order the harness skill fixes: `review_sha` pinned, then
+`gh-sync.py status <feature-dir> review` (lowercase station), which called
+`plan-merge.py set-feature-station` and moved plan.yaml `status: building -> review`. This section
+IS the build→validate handoff; a `notes/handoff-*.md` remains unwritable from a worktree (Q8).
 
-- Eng segment (2026-09-07-06-eng, PASS): T-01 at 88a627da, T-02 at 97e715d1, both tasks at station
-  `done` in plan.yaml. The interrupted predecessor had committed the code but never recorded the
-  run; that was reconciled at 2e1f7142 after the orchestrator re-ran both suites green at HEAD.
-- QA segment (2026-09-07-1-validator, PASS) — the project's one blocking gate, green on
-  measurement rather than on a receipt's word: both required matrix kinds satisfied (unit, plus
-  integration added above the floor for the CLI-boundary SCs), unit 520 PASS / 0 FAIL, integration
-  1513 PASS / 0 FAIL, both task `verify:` blocks verbatim at exit 0, and all six new checks proven
-  to redden under a live mutation of the guard's call site in a disposable copy — which closes
-  D-08's stated risk that a well-named check can pass on a weak assertion. All six SCs graded PASS
-  by qa (SC-06 by inspection, as the BRIEF declares). Artifact: notes/qa-BUG-276-c0.md.
-- SIMPLIFY (2026-09-07-01-eng, PASS): an EMPTY pass — four independent readers, zero applies, so
-  the tip is unmoved and `review_sha` may pin at it. Reuse settled both questions the diff raised
-  at source: `_check_proposal_duplicate_ids` walks raw proposal 2-tuples pre-resolution while
-  `_check_proposal_ambiguity` walks resolved 5-tuples that exist only after base comparison, so
-  they are different properties and D-02/D-03's separation stands; and the new cases already use
-  the files' existing fixture helpers. Efficiency measured the guard as O(n≤15) on a
-  once-per-distillation path. Seven findings reported-not-applied, all low or info.
+- The pin is `ef8efd99a28cdabce9ac867c21b895e6cb0ea584`, the seam commit itself, NOT the build tip
+  `8d0aabeb`. Deliberate: the station write lands in plan.yaml, and INV-33 compares plan.yaml's
+  BYTES at the pin against disk, so a pin one commit below the station write is STALE the moment it
+  is taken. `git diff --name-only 8d0aabeb ef8efd99` is exactly feature.json + plan.yaml — no code
+  path moved between the build tip and the pin, so the panel reviews the same tree the build
+  produced.
+- Mirror, non-gating: `gh-sync.py status` recorded the plan station and then printed
+  `no parent recorded for BUG-276-...` — this flow has never run `gh-sync.py open`, so it holds no
+  milestone, parent issue or sub-issues, and there were no cards to move to Review. `open` is a
+  ship-mission act (github-mirror.md), so the omission is on the ship path, not a defect here. The
+  mirror is never a gate.
+- Panel dispatched over the pin: the `review` team (code-reviewer, qa gate-only, security-reviewer,
+  ui-reviewer, four in one turn) to harness-validator-lead, run dir `2026-09-07-2-validator`. The
+  code under review is three files in `6d969ed3..ef8efd99`:
+  `.claude/skills/harness/bin/expertise-merge.py` (+24/-1), `tests/unit/test-expertise-ops.py`
+  (+54), `tests/integration/test-expertise-merge.py` (+53). Everything else in that range is
+  feature-directory bookkeeping.
 
-Both segments reported 0 send-backs, so `cycles_used` stays 2 of 10. `len(runs)` is 9 of an
-informational 20.
+Build phase, all complete and unchanged by the seam: eng (2026-09-07-06-eng, PASS) — T-01 at
+88a627da, T-02 at 97e715d1, both at station `done`; qa (2026-09-07-1-validator, PASS) — the one
+blocking gate, unit 520/0 and integration 1513/0, both task `verify:` blocks at exit 0, all six new
+checks proven to redden under a live mutation of the guard's call site, all six SCs PASS
+(notes/qa-BUG-276-c0.md); SIMPLIFY (2026-09-07-01-eng, PASS) — an EMPTY pass, four readers, zero
+applies, which is why the tip was pinnable unmoved. Zero send-backs reported, so `cycles_used`
+stays 2 of 10; `len(runs)` is 9 of an informational 20.
 
-NEXT, for the validate successor (one act at a time, in this order): pin `review_sha` in
-feature.json at the branch TIP via `feature-json-merge.py set-key` — not at the end of the code
-range 6d969ed3..97e715d1, because bookkeeping commits sit above it and a pin must CONTAIN the work
-— then `gh-sync.py status <feature-dir> review` with a LOWERCASE station, and only then dispatch
-the review panel to harness-validator-lead over that code range, spec compliance before code
-quality. Trust, all verified at 76066fbc unless noted: both tasks committed and at station `done`
-with approval `approved` and no rulings (plan.yaml:3-7,176,286); qa's tallies and its mutation
-proof (runs/2026-09-07-1-validator/digest.md); simplify empty (runs/2026-09-07-01-eng/digest.md);
-the defect is FIRST-wins, not the last-wins the ticket asserts (PF-15e24dab70b6caca5bf5ba4837356157).
-Dead ends for validate, all signed: D-07 (parse_expertise/render drop stays unfixed), D-09 (no
-exit-11 row in harness-distill/SKILL.md, lane NOBODY), D-04 (check-expertise.sh untouched), D-05
-(no codes 10 or 12 in the docstring — adding them FAILS SC-06). Working set: plan.yaml, BRIEF.md,
-notes/qa-BUG-276-c0.md, .claude/skills/harness/bin/expertise-merge.py, feature.json.
+NEXT, after the panel returns: record its verdict as a run in feature.json, route any `must_fix` to
+the owning lead as a fix cycle (increment `cycles_used`), and only on a clean panel proceed to the
+goal-check/ship phase — this dispatch stops at the panel and does not ship. Trust, verified at
+ef8efd99 unless noted: approval `approved` on both BRIEF and plan with no rulings
+(plan.yaml:3-7,176,286 — read at 76066fbc, unchanged since); the worktree was clean at the build
+tip before the seam (`git status --porcelain` empty at 8d0aabeb); the defect is FIRST-wins, not the
+last-wins the ticket asserts. Dead ends for validate, all signed and NOT to be re-litigated: D-07
+(the parse_expertise/render silent drop stays unfixed — separate defect), D-09 (no exit-11 row in
+harness-distill/SKILL.md; that file resolves to lane NOBODY), D-04 (check-expertise.sh untouched),
+D-05 (no codes 10 or 12 in the docstring — adding them FAILS SC-06). Working set: plan.yaml,
+BRIEF.md, notes/qa-BUG-276-c0.md, .claude/skills/harness/bin/expertise-merge.py, feature.json.
 
 ## Open Questions
 
 None blocking. The qa and simplify runs added four non-gating items; the signature-time four are
 settled or residual as recorded.
 
-- Q8 (harness defect, non-blocking, MEASURED this run — do not re-diagnose): a handoff note cannot
-  be written from inside a worktree. `check-domain`'s handoff-shape check resolves every authority
+- Q9 (mirror, non-blocking, briefing row): this feature has no GitHub parent, milestone or
+  sub-issues because `gh-sync.py open` never ran for it. Nothing gates on that, but the ship path
+  must run `open` before `ship` or the mirror will hold nothing to move to Done.
+- Q8 (harness defect, non-blocking, MEASURED — do not re-diagnose): a handoff note cannot be
+  written from inside a worktree. `check-domain`'s handoff-shape check resolves every authority
   pointer against the MAIN checkout — it reported `brief-sc:SC-06` and `brief-sc:SC-03` unresolved
   in `/Users/molchairuangutai/GitHub/harness/.harness/harness/features/BUG-276-.../BRIEF.md`,
   ENOENT, because the feature directory exists only in the worktree. Every legal authority type
