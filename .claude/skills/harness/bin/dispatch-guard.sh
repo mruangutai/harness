@@ -155,30 +155,31 @@ try:
     globs = [line for line in (os.environ.get("HARNESS_RUN_DIR_GLOBS") or "").splitlines()
              if line.strip()]
     refs = hb.run_dir_refs(prompt)
-    if refs and not globs:
-        if os.environ.get("HARNESS_RUN_DIR_DERIVED") == "0":
-            print("dispatch-guard: run-dir shape check SKIPPED -- the manifest declares no "
-                  "run-dir write grant, so the slug vocabulary is empty.", file=sys.stderr)
+    if refs:
+        if not globs:
+            if os.environ.get("HARNESS_RUN_DIR_DERIVED") == "0":
+                print("dispatch-guard: run-dir shape check SKIPPED -- the manifest declares no "
+                      "run-dir write grant, so the slug vocabulary is empty.", file=sys.stderr)
+            else:
+                print("dispatch-guard: run-dir shape check SKIPPED -- the run-dir vocabulary "
+                      "derivation failed (manifest unreadable, unparseable, or PyYAML unavailable "
+                      "to that python3).", file=sys.stderr)
         else:
-            print("dispatch-guard: run-dir shape check SKIPPED -- the run-dir vocabulary "
-                  "derivation failed (manifest unreadable, unparseable, or PyYAML unavailable "
-                  "to that python3).", file=sys.stderr)
-    elif refs and globs:
-        bad = [ref for ref in refs if not hb.run_dir_slug_ok(ref, globs)]
-        if bad:
-            forms = hb.run_dir_forms(globs)
-            for repo, feature_id, slug in bad:
-                tail = ".harness/%s/features/%s/runs/%s" % (repo, feature_id, slug)
-                print("dispatch-guard: BLOCKED -- run-dir slug %r cannot be written by any "
-                      "squad lead." % (slug,), file=sys.stderr)
-                print("  %s" % (tail.replace(".harness/", "[.]harness/"),), file=sys.stderr)
-            print("  compliant forms: %s" % (", ".join(forms),), file=sys.stderr)
-            print("  the squad suffix trails the purpose -- the parent directory already "
-                  "carries the feature id.", file=sys.stderr)
-            print("  a run-dir path being quoted rather than directed is spelled with "
-                  "[.]harness/ in place of .harness/; the paths above are already in that "
-                  "form.", file=sys.stderr)
-            sys.exit(2)
+            bad = [ref for ref in refs if not hb.run_dir_slug_ok(ref, globs)]
+            if bad:
+                forms = hb.run_dir_forms(globs)
+                for repo, feature_id, slug in bad:
+                    tail = ".harness/%s/features/%s/runs/%s" % (repo, feature_id, slug)
+                    print("dispatch-guard: BLOCKED -- run-dir slug %r cannot be written by any "
+                          "squad lead." % (slug,), file=sys.stderr)
+                    print("  %s" % (tail.replace(".harness/", "[.]harness/"),), file=sys.stderr)
+                print("  compliant forms: %s" % (", ".join(forms),), file=sys.stderr)
+                print("  the squad suffix trails the purpose -- the parent directory already "
+                      "carries the feature id.", file=sys.stderr)
+                print("  a run-dir path being quoted rather than directed is spelled with "
+                      "[.]harness/ in place of .harness/; the paths above are already in that "
+                      "form.", file=sys.stderr)
+                sys.exit(2)
 except SystemExit:
     raise
 except Exception as exc:

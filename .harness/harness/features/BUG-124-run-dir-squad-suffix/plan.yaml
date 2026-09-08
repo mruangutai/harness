@@ -25,7 +25,7 @@ approval:
       who: operator
       date: '2026-09-07'
       reason: stale dispositions already corrected by this transcription; recorded as historical, not a live defect
-status: building
+status: review
 source_issues: [124]
 lanes:
   resolved_at: 6d969ed375f8458e32c47502ecdcc85bb9916635
@@ -236,7 +236,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: []
-    status: building
+    status: review
     files:
       - .claude/skills/harness/bin/harness_boundary.py
       - tests/unit/test-harness-boundary.py
@@ -317,7 +317,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: [T-01]
-    status: building
+    status: review
     files:
       - .claude/skills/harness/bin/dispatch-guard.sh
       - tests/integration/test-dispatch-guard.py

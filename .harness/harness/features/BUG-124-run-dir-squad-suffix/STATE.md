@@ -3,81 +3,79 @@
 ## Current
 
 - feature: BUG-124-run-dir-squad-suffix
-- run: [.]harness/harness/features/BUG-124-run-dir-squad-suffix/runs/2026-09-07-4-validator/state.yaml
-- squad: validator
+- run: [.]harness/harness/features/BUG-124-run-dir-squad-suffix/runs/2026-09-08-1-eng/digest.md
+- squad: eng
 - status: in_progress
 
-**THE BLOCKING QA GATE IS CLOSED.** `matrix_ok: true`, `must_fix: []`, at `418a9eb6`. Eng and qa
-segments are both complete. Station `building`; T-01 and T-02 `building`; T-03 still `ready` and
-correctly undone. `cycles_used: 7` against budget 10; eleven runs against budget 20. No
-`review_sha` exists and none is owed until the seam, AFTER simplify.
+**THE BUILD IS CLOSED AND THE SEAM IS CROSSED.** The qa gate PASSed (`matrix_ok: true`,
+`must_fix: []`); SIMPLIFY ran and landed one behaviour-identical apply; the station is now `review`
+on the feature and on T-01 and T-02. T-03 stays `ready` and correctly undone —
+`execution_mode: main-session-direct`, a pre-ship main-session step, not a matrix gap.
+`cycles_used: 7` against budget 10 (SIMPLIFY reported 0 send-backs). Twelve runs against budget 20.
 
-**Next (cited to plan.yaml):** the SIMPLIFY segment — to `harness-eng-lead`, NOT the validator lead.
-Its dispatch MUST tell the lead to read `.agents/skills/harness-simplify/SKILL.md` first; it is not
-preloaded, and the four angles, the apply rules and the one-fix ceiling all live there. Re-run the
-suites after any apply. An empty pass is a real outcome. THEN, and only after simplify, pin
-`review_sha` and run `gh-sync.py status <feature-dir> review` before the panel is dispatched — an
-apply commit after the pin moves the tip and invalidates the panel's verdict.
+**Next (cited to plan.yaml):** the validation panel, dispatched to `harness-validator-lead` against
+the pinned `review_sha`. `gh-sync.py status <feature-dir> review` runs in the same act as the
+station write. After the panel: `must_fix` resolution, then STOP — ship is the main session's.
 
-**The cycle-3 defect and its fix, settled.** qa c3 ruled `matrix_ok: false`: four integration
-suites red, root-caused to T-01's bare top-level `import harness_yaml` at `harness_boundary.py:22`
-crashing under `python3 -I` in synthetic fixtures that copy `harness_boundary.py` without
-`harness_yaml.py`. Run `2026-09-07-3-eng` made the import lazy inside `run_dir_grant_globs`'s
-pre-existing `try:`/`except Exception: return []`. That run also SUPERSEDED qa c3's attribution of
-the fourth file (`test-check-domain.py` sweep/clean-tracked): it was a fourth masked instance of the
-one defect, not an independent pre-existing failure. Four files, one cause. `qa-c3.md` was
-deliberately NOT rewritten — the supersession is recorded in the 3-eng digest and in `qa-c4.md`.
+**SIMPLIFY, complete (`runs/2026-09-08-1-eng/digest.md`).** All four angles ran as separate
+parallel read-only spawns; none returned empty. Six findings, deduplicated. ONE apply, by
+`harness-backend-dev` (picked over `harness-dev-ops` — both hold `bin/**`; the author keeps the
+write, and dev-ops read the finding, so reader and fixer stay separate). The apply collapsed
+`dispatch-guard.sh`'s `if refs and not globs: / elif refs and globs:` into a single nest on `refs`,
+inner bodies byte-identical apart from indentation.
 
-Trust (claim — pointer — verified-at `418a9eb6`, ORCHESTRATOR-MEASURED unless attributed):
-- **The fix holds. I re-ran the full sweep myself rather than trusting the prior claim:**
+**Four SIMPLIFY skips, none gating, all four needed by the ship briefing as backlog rows** —
+reasons in the run digest: B-1 (chore) `run_dir_grant_globs`'s walker re-implements
+`harness_yaml.manifest_domains`' walk and drops its `not entry.get("read")` filter, two readers,
+deduplicated, carries Q6; B-2 (chore) `_RUN_DIR_REF_RE` spells the run-dir path shape a fourth time
+and the fix rewrites three PRE-EXISTING anchored regexes the diff never touched; B-3 (chore) the
+`test-dispatch-guard.py` persona-copy block duplicates `_checkout`'s and the fix edits PRE-EXISTING
+`_checkout()`, on which every other integration case depends; B-4 (enhancement) `dispatch-guard.sh`
+spawns the run-dir derivation subprocess unconditionally, measured ~64ms of ~105ms on every governed
+dispatch — highest value, deliberately unapplied because its alternative puts a SECOND spelling of
+the run-dir pattern in bash and drift from `hb.run_dir_refs` makes the guard fail OPEN.
+
+Trust (claim — pointer — verified-at `418a9eb6` unless restated; ORCHESTRATOR-MEASURED at the seam
+commit unless attributed):
+- **The apply is behaviour-identical — I read the diff myself, not the claim.** Every message
+  string, the `sys.exit(2)` path, the `hb.*` call sites and the
+  `try / except SystemExit: raise / except Exception` fail-open structure are unchanged;
+  `refs and not globs` / `elif refs and globs` over a list is exactly `if refs:` + `if not globs:` /
+  `else:`. `bash -n` clean. 24 insertions, 23 deletions, one file.
+- **The suite is green at the apply, re-measured BY ME, not tail-read:**
   `env -u HARNESS_AGENT_TYPE bash .claude/skills/harness/bin/run-unit-tests.sh` from the worktree
-  root → `RUNNER_EXIT=0`, `grep -c '^FAIL '` = 0, 5403 output lines, pool `8 workers, 80 files`.
-  Exit status captured into a variable, not tail-read; discovery volume checked, not just the code.
-- **The suite CAN report red — re-derived BY ME at this commit**, closing the one adequacy gap qa
-  named. `tests/integration/test-dispatch-guard.py` exits 0 with 0 FAIL against the current guard;
-  against the main checkout's pre-change copy (`DISPATCH_GUARD_BIN=...`, md5
-  `ca904b2906ad8d44662db428cb2dbc89`) it exits 1 with exactly 8 FAIL: 18a (x2), 18b, 18g,
-  21-message, 22 (x2), 23-message. qa's adequacy note called this carried-forward from cycle 1; it
-  is no longer carried forward.
-- qa's own gate (`notes/qa-c4.md`, 116 lines; `runs/2026-09-07-4-validator/digest.md`): both
-  required kinds satisfied by their configured commands, all four cycle-3-red files individually
-  green, 80/80 files discovered. Run state.yaml reads `status: complete`, step `qa-gate-c4`
-  `complete`/`PASS` — disk-confirmed, not taken from the digest.
-- ATTRIBUTED (eng lead, `2026-09-07-3-eng`): `import harness_yaml` matches exactly once in
-  `harness_boundary.py`, at the lazy site inside the `try:`. `run_dir_grant_globs`'s signature,
-  return and never-raises promise are unchanged. House precedent is `bash-write-guard.sh:45`.
-- Earlier trust from the eng segment stands unchanged at this commit: T-01 and T-02 `verify:` both
-  exit 0; both test files purely additive (183/0 and 115/0); `harness_boundary.py` gained no
-  changed symbol at T-01; operator signature on disk at `80ce35d1` (BRIEF `approved`, plan
-  `approval.status: approved` with five `rulings` overruling R-1..R-5).
-- Record reconciled this cycle: three runs executed on disk were absent from `feature.json`
-  (`2026-09-07-02-eng`, `2026-09-07-3-eng`, `2026-09-07-4-validator`) and are now appended.
-  `cycles_used` 5 → 7, which reconciles exactly: 1 (plan-panel FAIL routed) + 1 (2-validator FAIL
-  routed) + 3 (3-validator: 2 internal send-backs + 1 routed) + 2 (3-eng lead-reported send-backs).
-  The c4 gate reported 0.
+  root → `RUNNER_EXIT=0` (captured into a variable), `grep -c '^FAIL '` = 0, 5403 output lines,
+  pool `8 workers, 80 files`. **Discovery volume equals the pre-SIMPLIFY baseline** — 5403 lines,
+  80 files — so the green is not a gate that stopped discovering.
+- Earlier trust stands unchanged and is NOT re-derived here: the qa gate at `418a9eb6`
+  (`notes/qa-c4.md`, all four cycle-3-red files individually green, 80/80 discovered); the
+  adequacy A/B proving `test-dispatch-guard.py` CAN report red (8 FAIL against the main checkout's
+  pre-change guard, md5 `ca904b2906ad8d44662db428cb2dbc89`); T-01/T-02 `verify:` both exit 0; the
+  operator signature at `80ce35d1` (BRIEF `approved`, plan `approval.status: approved`, five
+  `rulings` overruling R-1..R-5).
+- ATTRIBUTED (eng lead, `2026-09-08-1-eng`), NOT independently re-measured because none of it
+  gates: the four angle readers and their finding counts; the ~64ms/~105ms EFFICIENCY measurement.
 
 Dead ends for the next phase:
 - Do NOT re-litigate R-1..R-5 (operator `approval.rulings`), the Q1 test-first ordering ruling, the
   `unit` kind ruling, the three `bugfix` predicate evaluations, the assertion-strength review, or
   the four behavioural-equivalence rulings. All closed across cycles 1–4.
-- Do NOT rewrite `qa-c3.md` to reflect the corrected attribution. Rewriting a recorded artifact to
-  look better falsifies the record; the supersession lives in the 3-eng digest and `qa-c4.md`.
-- Do NOT hand T-03 to a squad: `execution_mode: main-session-direct`, and `check-domain --resolve`
-  answers NOBODY for `.claude/skills/harness/SKILL.md`. It is a pre-ship main-session step, not a
-  matrix gap and not incomplete work.
-- Do NOT `cp` a fixture into `/tmp` or a scratch worktree to build an A/B — `bash-write-guard.sh`
-  refuses it, and cycle 3 already burned a step discovering that. Pointing `DISPATCH_GUARD_BIN` at
-  the main checkout's pre-change guard is the working route.
-- Do NOT pin `review_sha` before simplify lands; an apply commit after the pin invalidates the pin.
-- Do NOT edit `plan.yaml` by hand; `plan-merge.py` is the only write route and `approval:` is the
-  main session's alone.
-- Do NOT run the suites without `env -u HARNESS_AGENT_TYPE`; the tool's env leaks into test
-  subprocesses and reddens the plan-merge approval checks as a phantom regression.
-- The plan-phase handoff note still cannot be written (Q2b below). This `## Current` is the
-  supported disk-only substitute.
+- Do NOT re-flag B-1..B-4 as simplification findings. They were read, costed and deliberately
+  deferred; a panel may still rule on their CORRECTNESS.
+- Do NOT rewrite `qa-c3.md`. The corrected attribution lives in the 3-eng digest and `qa-c4.md`;
+  rewriting a recorded artifact to look better falsifies the record.
+- Do NOT hand T-03 to a squad: `check-domain --resolve` answers NOBODY for
+  `.claude/skills/harness/SKILL.md`.
+- Do NOT `cp` a fixture into `/tmp` or a scratch worktree for an A/B — `bash-write-guard.sh` refuses
+  it. Pointing `DISPATCH_GUARD_BIN` at the main checkout's pre-change guard is the working route.
+- Do NOT re-pin `review_sha` unless a commit lands that touches a reviewed code path. The pin sits
+  at the seam commit, whose `plan.yaml` bytes equal disk (INV-33 is a byte comparison).
+- Do NOT run the suites without `env -u HARNESS_AGENT_TYPE`.
+- The handoff note still cannot be written (Q2a). This `## Current` is the supported disk-only
+  substitute.
 
-Working set: plan.yaml (tasks at 231; T-03 at 491), notes/qa-c4.md,
-runs/2026-09-07-3-eng/digest.md, .claude/skills/harness/bin/harness_boundary.py,
+Working set: plan.yaml (tasks at 231; T-03 at 491), runs/2026-09-08-1-eng/digest.md,
+notes/qa-c4.md, .claude/skills/harness/bin/harness_boundary.py,
 .claude/skills/harness/bin/dispatch-guard.sh
 
 ## Open Questions
@@ -91,16 +89,17 @@ runs/2026-09-07-3-eng/digest.md, .claude/skills/harness/bin/harness_boundary.py,
   (:118-120), so a full run from inside this worktree cannot grade this feature.
 - Q5 (harness defect, raised by qa at the c4 gate, non-blocking, NOT a BUG-124 fix cycle):
   `test_matrix.bugfix`'s third leg `{__bug_class__, if: match_bug_class}` is structurally
-  unresolvable in this project — no bug-class taxonomy exists for the predicate to match against,
-  so the leg contributed nothing to any of the four BUG-124 gates. Pre-existing harness-config
-  condition; belongs to the harness owner.
+  unresolvable in this project — no bug-class taxonomy exists for the predicate to match against.
+  Pre-existing harness-config condition; belongs to the harness owner.
+- Q6 (raised by the eng lead at SIMPLIFY, non-blocking, ROUTED BY ME to the panel as in-scope):
+  `run_dir_grant_globs` counts any `/runs/` grant as a WRITE grant, so a future read-only `/runs/`
+  grant would let the guard accept a slug that squad cannot write. Latent, not live — no such grant
+  exists in `team-config.yaml` today. It stays backlog row B-1 unless the panel judges it gating.
 - Q3 (advisory, no task): three pre-D-05 artifacts keep raw anchored `eng-t01` paths
   (`runs/goalcheck-plan-product/digest.md:11`, `runs/planpanel-validator/digest.md:19`,
   `notes/research-BUG-124-goalcheck-plan-c0.md:67`). Pasting one verbatim into a dispatch will be
-  refused once the change reaches the main checkout — recoverable in one re-spelling. Left as-is on
-  purpose: rewriting a recorded artifact to look better falsifies the record.
+  refused once the change reaches the main checkout. Left as-is on purpose.
 - Q4 (operator, already accepted at signature): T-02's SECOND parse of `team-config.yaml` inside the
-  derivation subprocess. It shipped as designed and is what makes case 23 distinguishable from
-  case 21.
-- CLOSED this cycle: Q1 (T-02 test-first authoring order) — ruled in cycle 3, stands. The eng lead's
-  Q1 (should qa-c3.md carry a superseding note) — answered NO, see Dead ends.
+  derivation subprocess. It shipped as designed and is what makes case 23 distinguishable from 21.
+- CLOSED this cycle: the eng lead's SIMPLIFY Q1 — answered by me at rung 1 (see Q6): backlog row,
+  and named to the panel rather than suppressed.
