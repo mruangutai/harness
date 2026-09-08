@@ -120,12 +120,14 @@ with open(os.path.join(directory, "plan.yaml"), "w") as f:
     f.write("")
 r, d, reason = gate("git merge feature/test", root)
 check("T-05 empty plan fails closed", r.returncode == 0 and d == "deny"
-      and "could not evaluate" in reason, f"rc={r.returncode} reason={reason!r}")
-root, directory = fixture()
-with open(os.path.join(directory, "feature.json"), "w") as f:
+      and "FEAT-9001-fixture-non-era" in reason, f"rc={r.returncode} reason={reason!r}")
+root, directory = fixture(entry="opened")
+bad_directory = os.path.join(root, ".harness", "harness", "features", "FEAT-9002-unrelated-malformed")
+os.makedirs(bad_directory)
+with open(os.path.join(bad_directory, "feature.json"), "w") as f:
     json.dump([], f)
 r, d, reason = gate("git merge feature/test", root)
-check("T-05 non-object feature record fails closed", r.returncode == 0 and d == "deny"
-      and "could not evaluate" in reason, f"rc={r.returncode} reason={reason!r}")
+check("T-05 unrelated non-object feature record does not block healthy merge",
+      r.returncode == 0 and d is None, f"rc={r.returncode} reason={reason!r}")
 print("ALL PASSED" if not fails else f"{fails} FAILED")
 sys.exit(bool(fails))

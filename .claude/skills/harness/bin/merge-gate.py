@@ -102,6 +102,8 @@ def feature_for(branch):
                 document = json.load(f)
         except (OSError, json.JSONDecodeError):
             continue
+        if not isinstance(document, dict):
+            continue
         if document.get("branch") == branch:
             return os.path.dirname(path), document
     return None, None
@@ -126,6 +128,7 @@ def main():
         return
     if not github.get("sync") or not merge_ref(command):
         return
+    feat = "this feature"
     try:
         import feature_schema
         branch, failure = head_branch(command, os.getcwd(), github.get("repo") or "")
@@ -151,7 +154,7 @@ def main():
         command_line = (f"python3 .claude/skills/harness/bin/gh-sync.py {command_name} {os.path.realpath(feat_dir)}" + (" --yes" if command_name == "recover-terminal" else ""))
         deny(f"merge-gate: {feat} records github.build_entry={value}, so no Build entry receipt exists for it. This merge is denied until {command_line} records one.")
     except Exception:
-        deny("merge-gate: could not evaluate this feature's Build-entry receipt, so this merge is denied. Repair the feature record and re-run the merge.")
+        deny(f"merge-gate: could not evaluate {feat}'s Build-entry receipt, so this merge is denied. Repair the feature record and re-run the merge.")
 
 
 if __name__ == "__main__":
