@@ -99,8 +99,11 @@ inventing historical task issues. Identical for `FEAT-*` and `BUG-*` flows.
   names is chosen by the feature's own recorded station, so a feature whose work is already under
   way or finished is sent to `recover-terminal` and never to a bare `open` — and starts normally
   when the outcome reads `recovery-required`. For a feature that IS in that set, the same absent
-  outcome refuses nothing: Build CONTINUES at exit 0. The refusing assertion must be demonstrated
-  failing against the pre-change copy of the script before the fix is accepted.
+  outcome refuses nothing: Build CONTINUES at exit 0. The refusing assertion is DISCRIMINATING at
+  `review_sha`: run against the pre-change copy of the script recovered with `git show
+  <base>:.claude/skills/harness/bin/gh-sync.py`, or against a mutation of that production path, the
+  refusal case FAILS — and an assertion that cannot be made to redden is reported as
+  non-discriminating rather than kept.
   verify: automated        evidence: integration
 - SC-04: A merge command issued for a feature NOT in `feature_schema.BUILD_ENTRY_ERA_EXEMPT` whose
   Build-entry outcome reads `recovery-required`, or is absent under enabled sync, is denied with a
@@ -128,7 +131,10 @@ inventing historical task issues. Identical for `FEAT-*` and `BUG-*` flows.
 - SC-07: `check-state.sh` reports a violation for a sync-enabled feature that carries no Build-entry
   outcome even when its station is terminal AND every task status is absent — the exact FEAT-55
   shape — and reports nothing for the same fixture once the outcome is recorded. The violating
-  fixture must be shown passing `check-state.sh` before the invariant lands.
+  fixture is DISCRIMINATING at `review_sha`: pointed at the pre-change copy of the script recovered
+  with `git show <base>:.claude/skills/harness/bin/check-state.sh` (the `CHECK_STATE_BIN` escape),
+  or at a mutation of that production path, the violation case FAILS — and a case that cannot be
+  made to redden is reported as non-discriminating rather than kept.
   verify: automated        evidence: integration
 - SC-08: `feature-schema.json` declares the Build-entry field with its closed value set, a
   `feature.json` carrying a legal value validates, and one carrying an illegal value or a
