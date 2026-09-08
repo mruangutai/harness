@@ -370,7 +370,7 @@ def test_docs_domain_witness_reddens_on_addition_removal_and_census_drift():
         )
         assert 'ok   test_bare_date_scalar_stays_str' in child.stdout, (
             f"{label}: anti-false-red control missing — main() wraps each test in its own "
-            f"try/except (test-harness-yaml.py:892-904), so an unrelated test printing ok "
+            f"try/except (see main() at the foot of this file), so an unrelated test printing ok "
             f"alongside the witness's FAIL rules out an import-time or whole-file parse "
             f"failure that would have stopped main() before it printed anything\n"
             f"stdout:\n{child.stdout}"

@@ -3,7 +3,7 @@
   "branch": "feat/BUG-442-docs-grant-witness-test",
   "pr": null,
   "review_sha": "none",
-  "cycles_used": 1,
+  "cycles_used": 2,
   "max_total_cycles": 10,
   "runs": [
     {
@@ -42,6 +42,12 @@
       "squad": "validator",
       "verdict": "PASS",
       "agent": "harness-validator-lead"
+    },
+    {
+      "id": "2026-09-07-02-eng",
+      "squad": "eng",
+      "verdict": "PASS",
+      "agent": "harness-eng-lead"
     }
   ]
 }
