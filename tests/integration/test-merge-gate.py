@@ -108,6 +108,10 @@ with open(os.path.join(root, ".harness", "harness", "features", "FEAT-9001-fixtu
 doc["branch"] = "other"
 with open(os.path.join(root, ".harness", "harness", "features", "FEAT-9001-fixture-non-era", "feature.json"), "w") as f:
     json.dump(doc, f)
+bad_directory = os.path.join(root, ".harness", "harness", "features", "FEAT-9002-unrelated-malformed")
+os.makedirs(bad_directory)
+with open(os.path.join(bad_directory, "feature.json"), "w") as f:
+    json.dump([], f)
 r, d, _ = gate("gh pr merge 7", root, fake)
 check("T-05 gh outage with no matching feature allows", d is None and "could not verify" in r.stderr, r.stderr)
 doc["branch"] = "feature/test"
@@ -129,11 +133,18 @@ with open(os.path.join(bad_directory, "feature.json"), "w") as f:
 r, d, reason = gate("git merge feature/test", root)
 check("T-05 unrelated non-object feature record does not block healthy merge",
       r.returncode == 0 and d is None, f"rc={r.returncode} reason={reason!r}")
-root, directory = fixture()
+root, directory = fixture(entry="opened")
+with open(os.path.join(directory, "feature.json")) as f:
+    doc = json.load(f)
+doc["branch"] = "other"
 with open(os.path.join(directory, "feature.json"), "w") as f:
+    json.dump(doc, f)
+bad_directory = os.path.join(root, ".harness", "harness", "features", "FEAT-9002-unrelated-malformed")
+os.makedirs(bad_directory)
+with open(os.path.join(bad_directory, "feature.json"), "w") as f:
     json.dump([], f)
 r, d, reason = gate("git merge feature/test", root)
-check("T-05 unusable target record fails closed", r.returncode == 0 and d == "deny"
-      and "malformed feature record" in reason, f"rc={r.returncode} reason={reason!r}")
+check("T-05 no-record branch ignores unrelated malformed record",
+      r.returncode == 0 and d is None, f"rc={r.returncode} reason={reason!r}")
 print("ALL PASSED" if not fails else f"{fails} FAILED")
 sys.exit(bool(fails))

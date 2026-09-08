@@ -95,20 +95,18 @@ def head_branch(command, cwd, repo):
     return (branch, None) if branch else (local_branch(cwd), failure)
 
 
+# A record owns a merge only when its usable branch field matches. An unreadable or non-object
+# record cannot be attributed to the current branch, so it must not override a no-record decision.
 def feature_for(branch):
-    unusable = False
     for path in glob.glob(os.path.join(ROOT, ".harness", "*", "features", "*", "feature.json")):
         try:
             with open(path) as f:
                 document = json.load(f)
         except (OSError, json.JSONDecodeError):
             continue
-        if not isinstance(document, dict):
-            unusable = True
-            continue
-        if document.get("branch") == branch:
-            return os.path.dirname(path), document, False
-    return None, None, unusable
+        if isinstance(document, dict) and document.get("branch") == branch:
+            return os.path.dirname(path), document
+    return None, None
 
 def deny(reason):
     print(json.dumps({"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "deny", "permissionDecisionReason": reason}}))
@@ -133,11 +131,9 @@ def main():
     try:
         import feature_schema
         branch, failure = head_branch(command, os.getcwd(), github.get("repo") or "")
-        feat_dir, document, unusable = feature_for(branch)
+        feat_dir, document = feature_for(branch)
         if document is None:
-            if unusable:
-                deny("merge-gate: could not evaluate a feature's Build-entry receipt, so this merge is denied. Repair the malformed feature record and re-run the merge.")
-            elif failure:
+            if failure:
                 print(f"merge-gate: could not verify this merge - the head branch could not be resolved through gh ({failure}) and the local branch {branch} owes no build-entry receipt; allowing it, because GitHub is a mirror and never a gate (DEC-138).", file=sys.stderr)
             return
         feat = os.path.basename(feat_dir)
