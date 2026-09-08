@@ -1,10 +1,12 @@
 # Ship review — BUG-201-depends-on-integrity
 
-**Recommendation: ship.** A `depends_on` naming a task that does not exist in the plan is now
-refused at the one place both the reader and the writer already share, and the three consumers that
-used to swallow the refusal now say what actually went wrong. All nine success criteria are met,
-each verified by its own declared method at the reviewed commit. The reviewer panel raised one
-gating defect; it was fixed and re-validated. Nothing is outstanding that blocks the merge.
+**Recommendation: ship — and the merge needs you.** A `depends_on` naming a task that does not exist
+in the plan is now refused at the one place both the reader and the writer already share, and the
+three consumers that used to swallow the refusal now say what actually went wrong. All nine success
+criteria are met, each verified by its own declared method at the reviewed commit. The reviewer
+panel raised one gating defect; it was fixed and re-validated. **Nothing about BUG-201's code
+blocks the merge — but the pull request cannot merge, for two reasons that are both records and
+both outside this feature's authority.** Read "Merge status" next.
 
 **How this briefing was assembled — disclosure (DEC-69).** No report round was spawned. I read the
 run digests off disk:
@@ -16,6 +18,36 @@ run digests off disk:
 `runs/2026-09-07-04-eng`, `runs/2026-09-07-06-validator`, `runs/2026-09-07-05-product`
 (each `.../digest.md`). Phases I did not run myself — plan, and the first three build segments —
 are summarised from those digests, not from memory.
+
+## Merge status — PR #1476 is open and RED, and neither cause is BUG-201's code
+
+`main` requires the `integration` check and `enforce_admins` is on, so no override exists. The check
+reports seven violations, five of them another feature's.
+
+**Cause 1 — this branch is based on a commit that never reached `origin/main`.** Base `af859ee8` is
+not an ancestor of `origin/main` (merge-base `41c16c73`). The PR therefore carries **40 commits, of
+which 12 are BUG-201's**; the other 28 are BUG-1290-factory-claim-repo-root, merged into the local
+`main` and never pushed — its own PR number was never recorded either (INV-28). Five CI violations
+are BUG-1290's records: INV-32 for readers `goalcheck`, `scope` and `should-not-exist`, plus its
+missing `handoff-build.md` and `handoff-validate.md`. **I did not touch them.** Recording a panel
+reader that did not run would falsify the record, and they belong to a feature I was not dispatched
+against.
+
+**Cause 2 — BUG-201's own two rows are the harness defect filed below as B-1**, not an omission.
+`notes/handoff-plan.md` and `notes/handoff-build.md` cannot be written at all for a feature that
+lives only in a worktree: `check-domain.sh:1141-1149` takes the checkout-relative path from
+`harness_boundary.checkout_relative` and discards the worktree root, then passes that rel with the
+*main* root into `handoff_done_when.problems` (`:1748`), so every `Authority:` pointer is looked for
+in a checkout where the unmerged feature directory does not exist. Measured again today: the guard
+refused the write and named all three pointers. Bending a pointer to satisfy the gate would leave a
+false authority in the record, so it was not done.
+
+**What unblocks it — your call, and none of it is BUG-201 work.** (a) Fix B-1 (one line: carry
+`_ck[0]` as the root for the handoff check), which lets BUG-201 — and every future worktree feature —
+write its own notes; (b) decide what happens to BUG-1290's five record violations, which will redden
+the first PR that pushes local `main`'s backlog whatever else changes; (c) if you would rather land
+BUG-201 alone, it needs a base that is on `origin/main`, which is a history decision I have no
+authority to make.
 
 ## What shipped
 
@@ -83,9 +115,9 @@ Evidence: `notes/research-BUG-201-depends-on-integrity-goalcheck-ship-c1.md`.
 
 ## Open questions
 
-**None blocking.** Four wording findings (L-1, S-1, S-3, S-4) rode into your batched signature
-review on 2026-09-07 and signing accepted them; they are not re-opened here. Everything else that
-survived collation is in the backlog table below.
+**One, and it is yours to decide: the merge, above.** Four wording findings (L-1, S-1, S-3, S-4)
+rode into your batched signature review on 2026-09-07 and signing accepted them; they are not
+re-opened here. Everything else that survived collation is in the backlog table below.
 
 ## Budget
 
@@ -99,7 +131,7 @@ Unstruck rows become issues on ship acceptance. **Anything not listed dies silen
 
 | ID | Nature | What |
 |---|---|---|
-| B-1 | bug | `check-domain.sh` resolves a handoff note's checkout-relative path against the **main** checkout root, so no `notes/handoff-*.md` can be written for a feature that lives only in a worktree — every Authority pointer is unresolvable. Measured three times, most recently today with the live refusal. Fix: carry the worktree root from `harness_boundary.checkout_relative` and pass it as the root for the handoff check. This is why BUG-201's own handoff notes are written after the merge instead of at their seams. |
+| B-1 | bug | `check-domain.sh` resolves a handoff note's checkout-relative path against the **main** checkout root, so no `notes/handoff-*.md` can be written for a feature that lives only in a worktree — every Authority pointer is unresolvable. Measured three times, most recently today with the live refusal. Fix: carry the worktree root from `harness_boundary.checkout_relative` and pass it as the root for the handoff check. **This is half of why PR #1476 cannot merge.** |
 | B-2 | chore | `plan-merge.py` has no write route to the top-level `lanes` key (`AMENDABLE_KEYS == ("tasks","decisions")`), so `factory_claim.py` and `gh-sync.py` could not be listed in `lanes.rows` even though T-06 edits them. Advisor-settled for this plan; the gap is still there. |
 | B-3 | bug | `code-grade.py`'s pre-image lookup appears line-based rather than by qualname or body: `tests/unit/test-factory-claim.py:432 run_main` was graded as changed although its body is byte-identical at base and only its line offset moved. Raised independently at c1 and c2. |
 | B-4 | enhancement | The "one actionable line" diagnostic contract is not guaranteed: `str(exc)` can carry newlines for a generic parse error, and a crafted `depends_on` entry can carry control or ANSI bytes into the same stderr line. Advisory remedy: `repr()`-quote the entry in the join. Non-gating — same-trust actor, no sink parses it. |
@@ -111,3 +143,4 @@ Unstruck rows become issues on ship acceptance. **Anything not listed dies silen
 | B-10 | enhancement | Nothing pins the new rule against a *future* regression: the 12 cases reach every new line, but no mutation run confirms the suite reddens when the rule is broken. `test-factory-claim-mutation.py` covers the claim cache, not this. |
 | B-11 | chore | SC-03's `>= 67` corpus floor is a point-in-time property of the ambient corpus, not of this code; an unrelated archival would redden a structurally correct implementation. Recorded as a signed panel finding; the criterion is spent, the pattern is not. |
 | B-12 | chore | The now-unreachable skip branch in the decompose path: a dangling blocker is refused at load, so the branch that used to skip such an edge can no longer be reached. Ruled BACKLOG by the build-escalation advisor consult (Q-ADV-7). |
+| B-13 | bug | BUG-1290-factory-claim-repo-root is `done` on the local `main` but was never pushed and never had a PR recorded (INV-28), and its record carries five violations — three INV-32 readers plus two missing handoff notes. Any PR raised from a branch based on local `main` inherits them into the required CI check. **This is the other half of why PR #1476 cannot merge.** |
