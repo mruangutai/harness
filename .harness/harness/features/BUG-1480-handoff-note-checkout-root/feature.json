@@ -2,7 +2,7 @@
   "feature_id": "BUG-1480-handoff-note-checkout-root",
   "branch": "feat/BUG-1480-handoff-note-checkout-root",
   "pr": null,
-  "review_sha": "none",
+  "review_sha": "12a136938a96ecad3141d4b8ae799107953a0b43",
   "cycles_used": 0,
   "max_total_cycles": 10,
   "runs": [
@@ -24,6 +24,18 @@
       "verdict": "PASS",
       "agent": "harness-validator-lead",
       "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-08-01-eng",
+      "squad": "eng",
+      "verdict": "PASS",
+      "agent": "harness-eng-lead"
+    },
+    {
+      "id": "2026-09-08-01-validator",
+      "squad": "validator",
+      "verdict": "PASS",
+      "agent": "harness-validator-lead"
     }
   ],
   "github": {
