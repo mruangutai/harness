@@ -214,9 +214,11 @@ with `<feature-dir>` = `.harness/harness/features/BUG-1309-mirror-build-entry`, 
 argument **lowercase** — `gh-sync.py` refuses anything else. The mirror is never a gate: a failure
 here is reported, never a reason to stop.
 
-The other nine INV-26 rows (T-01..T-03, T-06..T-09 reading `review` while the plan says `done`, plus
-the parent) are **pre-existing** — they predate today's station moves and are written by `ship`. Do
-not chase them.
+The parent row is cleared by that third command: at `ea0bdd6b` the plan read `status: review` and the
+board agreed, so that row is new today and is the mirror catching up with the station move. The other
+seven rows (T-01..T-03, T-06..T-09 reading `review` while the plan says `done`) are **pre-existing** —
+they predate today's station moves, nothing closes a task sub-issue mid-flight (D-23), and `ship`
+writes them. Do not chase those.
 
 ---
 
