@@ -43,36 +43,43 @@ def gh_merge(rest):
     return "gh", next((word for word in rest[2:] if word.isdigit()), None)
 
 
-def git_merge(rest):
-    # Git accepts global options before the subcommand and merge-specific options after it. The
-    # value-taking sets name option classes, not an exhaustive parser of every Git release.
-    global_values = {"-C", "-c", "--work-tree", "--git-dir", "--namespace", "--config-env",
-                     "--super-prefix"}
-    merge_values = {"-m", "-s", "-X", "--message", "--strategy", "--strategy-option",
-                    "--into-name"}
+def option_end(tokens, index, values):
+    return index + 2 if tokens[index] in values else index + 1
+
+
+def first_subcommand(tokens, values):
     index = 0
-    while index < len(rest):
-        token = rest[index]
-        if token in global_values:
-            index += 2
+    while index < len(tokens):
+        if tokens[index].startswith("-"):
+            index = option_end(tokens, index, values)
             continue
-        if token.startswith("-"):
-            index += 1
-            continue
-        if token != "merge":
-            return None
-        index += 1
-        while index < len(rest):
-            token = rest[index]
-            if token in merge_values:
-                index += 2
-                continue
-            if token.startswith("-"):
-                index += 1
-                continue
-            return "git", token
-        return "git", None
+        return index
     return None
+
+
+def merge_target(tokens):
+    values = {"-F", "--file", "--cleanup", "--into-name", "-m", "--message", "-s",
+              "--strategy", "-X", "--strategy-option"}
+    index = 0
+    while index < len(tokens):
+        token = tokens[index]
+        if token in {"--abort", "--continue", "--quit"}:
+            return False, None
+        if token.startswith("-"):
+            index = option_end(tokens, index, values)
+            continue
+        return True, token
+    return True, None
+
+
+def git_merge(rest):
+    globals_with_values = {"-C", "-c", "--work-tree", "--git-dir", "--namespace",
+                           "--config-env", "--super-prefix", "--attr-source"}
+    index = first_subcommand(rest, globals_with_values)
+    if index is None or rest[index] != "merge":
+        return None
+    is_merge, target = merge_target(rest[index + 1:])
+    return ("git", target) if is_merge else None
 
 
 def nested_merge(tokens, depth):

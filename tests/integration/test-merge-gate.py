@@ -179,5 +179,22 @@ for command, name in (
     root, _ = fixture()
     r, d, reason = gate(command, root)
     check(name, r.returncode == 0 and d == "deny", f"rc={r.returncode} reason={reason!r}")
+for command, name in (
+    ("git merge -F /tmp/message feature/test", "T-05 merge -F detached value denies"),
+    ("git merge --cleanup strip feature/test", "T-05 merge --cleanup detached value denies"),
+    ("git --attr-source HEAD merge --no-ff feature/test", "T-05 global --attr-source before merge is still detected"),
+    ("git merge --file /tmp/message", "T-05 merge with no identifiable ref denies"),
+):
+    root, _ = fixture()
+    r, d, reason = gate(command, root)
+    check(name, r.returncode == 0 and d == "deny", f"rc={r.returncode} reason={reason!r}")
+for command, name in (
+    ("git merge --abort", "T-05 merge --abort on an owing branch allows"),
+    ("git merge --continue", "T-05 merge --continue on an owing branch allows"),
+    ("git merge --quit", "T-05 merge --quit on an owing branch allows"),
+):
+    root, _ = fixture()
+    r, d, reason = gate(command, root)
+    check(name, r.returncode == 0 and d is None, f"rc={r.returncode} reason={reason!r}")
 print("ALL PASSED" if not fails else f"{fails} FAILED")
 sys.exit(bool(fails))
