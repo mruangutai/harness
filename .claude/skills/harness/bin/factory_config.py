@@ -164,8 +164,20 @@ def load_fleet(path=FLEET_PATH):
     inherit-a-board-nobody-chose silence this feature removes) and, after FEAT-24 T-02, a
     repos[] entry that carries a `board` key of its own — the board no longer lives in fleet.yaml
     at all; it lives in that repository's own .harness/harness.json under github.board, read
-    remotely by product_config()/board_for() below."""
-    data = harness_yaml.load_file(path)
+    remotely by product_config()/board_for() below.
+
+    Issue #208: this is the ONE place every factory tool's fleet read runs through — the
+    module docstring's own claim. A malformed fleet.yaml raised harness_yaml.YamlParseError
+    past every caller's `expected=` tuple, none of which named it, so the CLI trap printed
+    the exception's CLASS NAME ("unexpected failure: YamlParseError: ...") instead of which
+    file failed to parse and where. Converting it to FleetError here — already expected by
+    every one of the six factory_cli.run() callers — fixes all of them without touching a
+    single tuple.
+    """
+    try:
+        data = harness_yaml.load_file(path)
+    except harness_yaml.YamlParseError as e:
+        raise FleetError("fleet file invalid", path, f"does not load: {e}")
     _require_mapping(data, path)
 
     if data.get("schema") != "factory-fleet/1":

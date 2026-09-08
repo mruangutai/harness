@@ -54,6 +54,28 @@ case("a feature token is a violation",
 case("entry without the XX-NN prefix is a violation",
      valid().replace("- P-01: WHEN", "- WHEN"), 1, "prefix")
 
+# --- Issue #254: id prefix must match its canonical section, must not collide with
+# another section's prefix in the same file, and must not repeat.
+case("id prefix mismatched to its canonical section is a violation",
+     valid().replace("- P-01: WHEN a thing happens DO the other thing.",
+                     "- G-01: WHEN a thing happens DO the other thing."),
+     1, "does not match its section")
+case("Open reusing a prefix Patterns already owns is a violation",
+     valid().replace("## Open (max 5)\n", "## Open (max 5)\n- P-02: A second rule with Patterns' own prefix.\n"),
+     1, "already belongs")
+case("the SAME id repeated across two sections is a violation — the live O-01 bug",
+     valid().replace("## Outcomes (max 10)\n", "## Outcomes (max 10)\n- O-01: An outcome.\n")
+            .replace("## Open (max 5)\n", "## Open (max 5)\n- O-01: An unrelated open question.\n"),
+     1, "duplicate id")
+case("the same id repeated within one section is a violation",
+     valid().replace("- P-01: WHEN a thing happens DO the other thing.",
+                     "- P-01: WHEN a thing happens DO the other thing.\n- P-01: A second, distinct rule."),
+     1, "duplicate id")
+case("a numeric GAP between ids is not a violation — distillation displaces entries; contiguity is not enforced",
+     valid().replace("- P-01: WHEN a thing happens DO the other thing.",
+                     "- P-01: WHEN a thing happens DO the other thing.\n- P-03: A later rule, P-02 having been displaced."),
+     0)
+
 def run():
     global fails
     for name, body, want, mentions, fname in CASES:
@@ -306,9 +328,10 @@ def run_extra():
         # THE HAPPY PATH: a genuinely well-formed, clean file that is also near budget
         # still reports OK and exits 0 — the advisory is visible, never blocking.
         happy = os.path.join(craft_dir, "harness-backend-dev.md")
-        entry = "- P-01: WHEN a thing happens DO the other thing.\n"
+        entries13 = "".join(f"- P-{n:02d}: WHEN a thing happens DO the other thing.\n"
+                            for n in range(1, 14))
         body = ("# Expertise — harness-backend-dev\n\n## Patterns (max 15)\n"
-               + entry * 13
+               + entries13
                + "\n" * 118
                + "## Gotchas (max 15)\n\n## Outcomes (max 10)\n\n## Open (max 5)\n")
         open(happy, "w").write(body)

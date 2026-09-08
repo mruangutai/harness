@@ -402,6 +402,41 @@ with tempfile.TemporaryDirectory() as td:
           rec.mutating_calls() == [], rec.mutating_calls())
 
 # ============================================================================
+# 1b. Issue #208: an UNPARSEABLE plan.yaml must exit 2 naming the file — not the
+# generic "unexpected failure: <ExceptionClassName>" the CLI trap prints for anything
+# outside its `expected=` tuple, which is what a raw harness_yaml.load_plan call let
+# an unwrapped YamlParseError produce before this fix.
+# ============================================================================
+with tempfile.TemporaryDirectory() as td:
+    feat_dir, fleet_path = make_feature(td, approved=True)
+    write_text(os.path.join(feat_dir, "plan.yaml"), "tasks: [\n  bad: [[[")
+    rec = Recorder()
+    code, out, err = run_publish(feat_dir, fleet_path, rec)
+    check("(1b) unparseable plan.yaml: exits 2", code == 2, f"code={code!r}")
+    check("(1b) unparseable plan.yaml: names the plan path on stderr",
+          os.path.join(feat_dir, "plan.yaml") in err, err)
+    check("(1b) unparseable plan.yaml: does not leak the exception class name",
+          "unexpected failure" not in err and "YamlParseError" not in err, err)
+    check("(1b) unparseable plan.yaml: zero mutating calls",
+          rec.mutating_calls() == [], rec.mutating_calls())
+
+# ============================================================================
+# 1c. Issue #208: an UNPARSEABLE feature.json — same fix, same shape, at load_factory.
+# ============================================================================
+with tempfile.TemporaryDirectory() as td:
+    feat_dir, fleet_path = make_feature(td, approved=True,
+                                         feature_json_extra="{ not: valid json [[[")
+    rec = Recorder()
+    code, out, err = run_publish(feat_dir, fleet_path, rec)
+    check("(1c) unparseable feature.json: exits 2", code == 2, f"code={code!r}")
+    check("(1c) unparseable feature.json: names the feature.json path on stderr",
+          os.path.join(feat_dir, "feature.json") in err, err)
+    check("(1c) unparseable feature.json: does not leak the exception class name",
+          "unexpected failure" not in err and "YamlParseError" not in err, err)
+    check("(1c) unparseable feature.json: zero mutating calls",
+          rec.mutating_calls() == [], rec.mutating_calls())
+
+# ============================================================================
 # 2. a signed two-task plan creates two issues, adds two board items, sets both stations
 # ============================================================================
 with tempfile.TemporaryDirectory() as td:
