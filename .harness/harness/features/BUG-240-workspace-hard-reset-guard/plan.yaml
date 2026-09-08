@@ -4,7 +4,7 @@ approval:
   date: '2026-09-07'
   approved_by: operator
   status: approved
-status: building
+status: review
 source_issues: [240]
 
 lanes:
