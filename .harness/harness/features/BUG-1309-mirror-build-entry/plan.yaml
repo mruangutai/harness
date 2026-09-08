@@ -1,7 +1,7 @@
 schema: plan/1
 feature: BUG-1309-mirror-build-entry
 approval:
-  date: '2026-09-04'
+  date: '2026-09-08'
   approved_by: Mike Ruangutai
   status: approved
   rulings:
