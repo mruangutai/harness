@@ -106,13 +106,22 @@ inventing historical task issues. Identical for `FEAT-*` and `BUG-*` flows.
   non-discriminating rather than kept.
   verify: automated        evidence: integration
 - SC-04: A merge command issued for a feature NOT in `feature_schema.BUILD_ENTRY_ERA_EXEMPT` whose
-  Build-entry outcome reads `recovery-required`, or is absent under enabled sync, is denied with a
-  reason naming the feature and the re-run command; the same command for a feature reading
-  `opened`, `not-applicable` or `recovered-terminal` is allowed, and for a feature that IS in that
-  set the merge is ALLOWED at exit 0 with no permission decision emitted. Every deny is earned by
-  the LOCAL receipt: when `gh` is unavailable and the head branch cannot be resolved remotely, a
-  merge that no local record condemns is ALLOWED, with one line on stderr saying the gate could
-  not verify.
+  Build-entry outcome reads `recovery-required`, or is absent under enabled sync, is denied — and
+  that single-owner deny carries a reason naming the feature and the re-run command; the same
+  command for a feature reading `opened`, `not-applicable` or `recovered-terminal` is allowed, and
+  for a feature that IS in that set the merge is ALLOWED at exit 0 with no permission decision
+  emitted. Where TWO OR MORE valid, attributable records — readable JSON objects whose top-level
+  `branch` equals the resolved merge branch — claim that branch, the merge is DENIED instead, with
+  EVERY claiming feature directory id named in a stable sorted order so the message does not vary
+  between runs, and a reason saying the duplicated top-level `branch` field must be corrected; NO
+  re-run or receipt command is offered on this deny, because none clears a duplicated claim, and
+  the deny is reached even when a claimant IS era-exempt — ambiguity is decided before the era
+  gate. ONE owner plus ANY amount of noise is NOT ambiguity: a record elsewhere in the scan that is
+  unreadable, malformed, a non-object, or carries a different branch changes NO verdict — a single
+  owner decides its merge exactly as it does when that record is absent, and a branch that no valid
+  record claims is ALLOWED while such a record exists. Every deny is earned by the LOCAL receipt:
+  when `gh` is unavailable and the head branch cannot be resolved remotely, a merge that no local
+  record condemns is ALLOWED, with one line on stderr saying the gate could not verify.
   verify: automated        evidence: integration
 - SC-05: The operator-approved recovery of an already-merged feature creates the milestone and the
   parent and source issues and ZERO task sub-issues — asserted as an exact count of the recorded
