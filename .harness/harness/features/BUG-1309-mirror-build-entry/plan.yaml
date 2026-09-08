@@ -305,6 +305,28 @@ decisions:
       the parser is decomposed. Gating inside T-05's own verify rather than in a separate quality
       task keeps the bar attached to the change that must clear it.
     dec: DEC-174
+  - id: D-18
+    choice: |
+      The three merge CONTROL operations - git merge --abort, git merge --continue and git merge
+      --quit - are graded by a NEW success criterion SC-11 appended to BRIEF.md, never by an
+      exclusion sentence added inside SC-04. SC-04's already-graded text is not reopened and stays
+      byte-identical; SC-11 carries the whole allow itself - the owing condition, the required exit
+      0 with no permissionDecision object on stdout, the recovery rationale, the three T-05 case
+      names that grade it, and the e374c9a2 discrimination requirement.
+    because: |
+      Operator ruling R-6 (notes/rulings-2026-09-08-c16-sc11.md) chose ADD SC-11 and declined both
+      the SC-04 exclusion sentence and the disclosed-gap option. The contradiction SC-11 resolves:
+      read literally, SC-04's first clause MANDATES A DENY for a merge command issued for a feature
+      whose Build-entry outcome is absent under enabled sync, and git merge --abort is a merge
+      command, so the allow R-4 clause 3 requires was condemned by a signed criterion; read
+      narrowly, SC-04 was merely silent and the shipped allow was graded by no criterion at all.
+      Amending SC-04 would reopen text three cycles of digests already grade, which is why the
+      criterion is new. THE CODE CONTRACT IS UNCHANGED: D-16 already specifies the control-operation
+      exemption and T-05's verify already gates the three case names, so SC-11 grades what the plan
+      already requires and adds no code obligation. DEC-132 governs the form: the wording and
+      numbering of success criteria are pm's, and adding a criterion beyond the operator's mandated
+      outcome is expected rather than merely permitted.
+    dec: DEC-132
 panel:
   last_run: 2026-09-07-panelc2-validator
   cycle: 2

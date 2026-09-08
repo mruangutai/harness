@@ -85,3 +85,13 @@
 - 2026-09-08: BUG-1309 c15 — the operator fix closed 6 of 7 c14 escapes; form 16 (git --exec-path <p> merge X) still silently allowed because git_merge() kept a CLOSED 7-name global set while signed T-05 step 2 forbade a closed list and named --exec-path as an example. Re-running the FULL c14 enumeration (not just the fixed subset) is what caught it; --attr-source behaves identically, attached spelling denies, which is why the bed reads complete.
 - 2026-09-08 (BUG-1309 c16): dispatch mandated plan-merge.py apply for a T-05 intent/verify REVISION; apply exits 7 CONFLICT on any changed value, so the only legal route was amend --expect-sha256 --value-file. apply was still correct for the two ADDED decisions. Both are plan-merge verbs, so the no-Edit/no-Write constraint held.
 - 2026-09-08 (BUG-1309 c16): T-05's enumerated case-name contract drifted from its own verify list (21 vs 26) because the D-13/D-14 amendments added names to verify only. Amending one half of a two-half contract is the failure mode; check both counts after every amendment.
+- 2026-09-08: BUG-1309 c16 — appended SC-11 to a signed BRIEF and D-18 to plan.yaml. Proving an
+  append-only BRIEF edit is cheapest with `git diff -U0 | grep '^@@'`: a single hunk header whose
+  OLD range is zero-length (`@@ -160,0 +161,12 @@`) proves every other section untouched without
+  diffing them one by one.
+- 2026-09-08: a criterion wrapped at the file's 100-column margin can split a quoted test-case name
+  across physical lines, so a line-oriented grep for the name reports 0 hits on text that is
+  present. Collapsed whitespace over the joined, stripped lines and counted per name instead.
+- 2026-09-08: the `edit` tool's PUT over a range I then re-wrapped left a duplicated tail line — the
+  replacement body re-flowed two lines into three and the following original line still carried the
+  old fold. Re-read the block after any reflow edit rather than trusting the echoed window.

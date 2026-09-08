@@ -158,6 +158,18 @@ inventing historical task issues. Identical for `FEAT-*` and `BUG-*` flows.
   normal merge command and sees it refused with a message they can act on without reading the
   source; after re-running `gh-sync.py open` the same command is allowed.
   verify: uat
+- SC-11: `git merge --abort`, `git merge --continue` and `git merge --quit`, issued on a branch
+  whose feature owes a Build-entry receipt — `github.build_entry` ABSENT under enabled sync, or
+  reading `recovery-required`, with the feature NOT in `feature_schema.BUILD_ENTRY_ERA_EXEMPT` —
+  are each ALLOWED: exit 0 with NO permissionDecision object on stdout. They are merge CONTROL
+  operations that recover an interrupted merge, not the merge action REQ-07 refuses. All three are
+  graded by the cases T-05 declares — `T-05 merge --abort on an owing branch allows`,
+  `T-05 merge --continue on an owing branch allows` and
+  `T-05 merge --quit on an owing branch allows`. Each is DISCRIMINATING at `review_sha`: run against
+  the pre-change copy recovered with
+  `git show e374c9a2:.claude/skills/harness/bin/merge-gate.py`, each case FAILS — and a case that
+  cannot be made to redden is reported as non-discriminating rather than kept.
+  verify: automated        evidence: integration
 
 ## Verification gaps
 

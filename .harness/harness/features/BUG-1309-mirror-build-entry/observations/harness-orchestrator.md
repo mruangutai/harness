@@ -51,3 +51,4 @@
 - 2026-09-08 (c16): `python3 -c` inline scripts against plan.yaml are refused by bash-write-guard —
   it reads `'intent'` inside the quoted script as a redirect target. Write the probe with the Write
   tool into /tmp and run the file (G-08 generalises: guard misparses quoted spans).
+- 2026-09-08 (BUG-1309, SC-11): an operator-approved BRIEF amendment cannot pass through 'reset approval to pending'. `.harness/*/features/*/BRIEF.md ## Approval` is a main_session.writes fragment and check-domain.sh's approval_guard denies pm AND the orchestrator; sign-approval is refused at the tool. So the correct intermediate state after an approval-gated amendment is an append-only edit leaving the OLD signature byte-identical and visibly stale, plus an explicit re-signature instruction returned up. Verified: pm's amendment landed as one hunk (@@ -160,0 +161,12 @@) with the approval block untouched.
