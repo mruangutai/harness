@@ -61,5 +61,20 @@
       "verdict": "PASS",
       "agent": "harness-eng-lead"
     }
-  ]
+  ],
+  "github": {
+    "milestone": 57,
+    "parent": 1473,
+    "attached": [
+      "T-01",
+      "T-02"
+    ],
+    "issues": {
+      "T-01": 1474,
+      "T-02": 1475
+    },
+    "source_issues": [
+      240
+    ]
+  }
 }
