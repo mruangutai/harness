@@ -388,6 +388,42 @@ def _validate_plan_tasks(tasks, path):
                 f"{', '.join(LEGAL_EXECUTION_MODES)}")
 
 
+def _depends_on_entries(t, path):
+    """Return the `depends_on` list for task `t`, coerced to a list of raw entries.
+
+    Returns `[]` when `depends_on` is absent or empty. Raises the same
+    `PlanSchemaError` its caller has always raised when the value is
+    present but not a list — bare-string rationale unchanged: a bare string is legal
+    YAML but not a legal depends_on: iterated as-is it would walk CHARACTERS and
+    report phantom missing ids instead of the real shape error.
+    """
+    raw = t.get("depends_on")
+    if raw is None or raw == []:
+        return []
+    if not isinstance(raw, list):
+        raise PlanSchemaError(
+            path,
+            f"tasks ({t['id']}) `depends_on` must be a list of task ids, "
+            f"got {raw!r}")
+    return raw
+
+
+def _dangling_edges(tasks, known, path):
+    """Return `(tid, entry)` pairs whose `entry` names a task id absent from `known`.
+
+    Outer loop over tasks in order, inner loop over entries in order — the exact
+    collection order the caller has always used, preserved so the
+    D-02 exception below lists pairs in the same order as before.
+    """
+    dangling = []
+    for t in tasks:
+        tid = str(t["id"])
+        for entry in _depends_on_entries(t, path):
+            if str(entry) not in known:
+                dangling.append((tid, entry))
+    return dangling
+
+
 def _validate_plan_depends_on(tasks, path):
     """Reject any `depends_on` entry naming a task id absent from THIS plan (issue #201).
 
@@ -401,23 +437,7 @@ def _validate_plan_depends_on(tasks, path):
     policy.
     """
     known = {str(t["id"]) for t in tasks}
-    dangling = []
-    for t in tasks:
-        raw = t.get("depends_on")
-        if raw is None or raw == []:
-            continue
-        if not isinstance(raw, list):
-            # A bare string is legal YAML but not a legal depends_on: iterated as-is it
-            # would walk CHARACTERS and report phantom missing ids instead of the real
-            # shape error.
-            raise PlanSchemaError(
-                path,
-                f"tasks ({t['id']}) `depends_on` must be a list of task ids, "
-                f"got {raw!r}")
-        tid = str(t["id"])
-        for entry in raw:
-            if str(entry) not in known:
-                dangling.append((tid, entry))
+    dangling = _dangling_edges(tasks, known, path)
 
     if dangling:
         # D-02: ONE exception naming EVERY dangling edge, never just the first.
