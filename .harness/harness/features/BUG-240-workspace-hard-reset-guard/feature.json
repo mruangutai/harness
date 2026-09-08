@@ -2,7 +2,7 @@
   "feature_id": "BUG-240-workspace-hard-reset-guard",
   "branch": "feat/BUG-240-workspace-hard-reset-guard",
   "pr": null,
-  "review_sha": "6cd80e1b798b0c1f6ab92b8cbde24cec4bb80e1f",
+  "review_sha": "ed047fde93d367d52d09d665bac8c6957667ac0c",
   "cycles_used": 4,
   "max_total_cycles": 10,
   "runs": [
@@ -54,6 +54,12 @@
       "squad": "validator",
       "verdict": "PASS",
       "agent": "harness-validator-lead"
+    },
+    {
+      "id": "2026-09-07-1-eng",
+      "squad": "eng",
+      "verdict": "PASS",
+      "agent": "harness-eng-lead"
     }
   ]
 }
