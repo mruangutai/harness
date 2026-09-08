@@ -3,83 +3,118 @@
 ## Current
 
 - feature: BUG-1309-mirror-build-entry
-- run: .harness/harness/features/BUG-1309-mirror-build-entry/runs/2026-09-08-c13-product/state.yaml
-- squad: product
-- station: **building** (unchanged; `plan.yaml:24` reads `status: building`). T-04 and T-05 are at
-  `building`, the other eleven tasks stay `done`. `review_sha` reads d8f4dc49 and is STALE by
-  construction — re-pin it at the tip of the direct implementation before any validator run (INV-6).
-- status: blocked on **main-session-direct implementation** (DEC-174) plus two operator acts, not on
-  a decision. Every question this feature raised for the operator is now answered.
-- **SC-04 is WIDENED, and the last open decision is closed.** The operator ruled the standing Q1 —
-  of widen SC-04 / add an SC / disclose in `## Verification gaps`, the ruling is **widen**, and the
-  other two are refused. pm amended `BRIEF.md` SC-04 in place, one hunk, 16 insertions and 7
-  deletions confined to that bullet: `BRIEF.md:108-125`, evidence and clause map in
-  `notes/research-BUG-1309-sc04-amend-c13.md`. SC-04 now grades three things instead of one —
-  (a) everything it graded before, with the reason-shape clause scoped to the single-owner deny;
-  (b) the deterministic duplicate-owner DENY, every claiming feature directory id named in stable
-  sorted order, no re-run or receipt command offered, decided BEFORE the era gate; (c) the
-  attribution bound as a graded REQUIREMENT — one owner plus any amount of noise is not ambiguity,
-  and a branch no valid record claims is ALLOWED while an unreadable, malformed, non-object or
-  differently-branched record sits elsewhere in the scan. (c) is what makes cycle 11's `473d82cb`
-  scan-wide sentinel falsifiable at criterion level: it denied exactly the merge (c) requires
-  allowed. `## Approval` was NOT touched — byte-identical, verified by diff.
-- the four operator rulings behind the amendment: `notes/rulings-2026-09-08-panel-c7.md` (R-0 BRIEF
-  re-signed at `ea0bdd6b`; R-1 refuse ambiguity; R-2 flag-aware parser; R-3 derive the recovery
-  command). The plan text was amended for them in cycle 13, two PASS passes,
-  `notes/research-BUG-1309-planamend-c13.md` and `-c13b.md`, with `approval:` byte-identical
-  throughout; decisions D-13/D-14/D-15 record the rulings.
-- **The plan signature must move, and the operator has said they will re-sign it.** `amend` holds
-  the approval bytes by design, so `plan.yaml:3-6` still reads `approved` / `date: '2026-09-04'`
-  over text amended 2026-09-08. The exact command and its preconditions are in the Open Questions
-  below. A bare re-sign PRESERVES the four existing `approval.rulings` entries (`plan.yaml:7-25`) —
-  verified in source, not assumed: `_approval_fields` (plan-merge.py:1081-1094) attaches `rulings`
-  only when `--overrule` is passed, and `_replace_signature_fields` (plan-merge.py:1116-1127)
-  rewrites the FIRST `status`, `approved_by` and `date` lines only, so each ruling's own nested
-  `date:` passes through untouched.
-- **The BRIEF signature needs no byte change.** `BRIEF.md ## Approval` already reads
-  `date: 2026-09-08`, and the SC-04 amendment was made on 2026-09-08 under the operator's own
-  ruling, so the recorded signature date already covers the amended text. There is no verb for the
-  BRIEF block; if the operator wants an explicit re-affirmation it is a hand edit of those three
-  lines by the main session, which alone holds that grant.
-- the implementation is fully specified for the main session in
-  `notes/direct-packet-2026-09-08-panel-c7.md` — three code edits (merge-gate.py `git_merge`,
-  merge-gate.py `feature_for` + caller, gh-sync.py `_build_entry_recovery_notice`), six test cases,
-  the exact verification commands, and the regression fence that must not move. No squad may execute
-  any of it.
-- cycles 13/14 — UNCHANGED by this round: the product lead reported zero send-backs, and an
-  operator ruling answered rather than reworked (DEC-157). One cycle remains. runs 42 against a
-  20-run budget (INV-22, informational, surfaced in the briefing).
-- the briefing at `notes/ship-review-2026-09-08-resume.md` is STALE on the three findings and now
-  also on SC-04; it is rewritten after the implementation lands, before the ship decision.
-- next, in order: main-session-direct implementation → re-pin `review_sha` → qa matrix → panel c8 →
-  goal-check including the widened SC-04 → SC-10 UAT → rewritten briefing → ship.
+- run: .harness/harness/features/BUG-1309-mirror-build-entry/runs/2026-09-08-c14-validator/state.yaml
+- squad: validator
+- station: **review** (`plan.yaml:24`; moved from `building` by `gh-sync.py status … review`, which also
+  put #1407 and its nine sub-issues at review). All thirteen tasks read `done`.
+- `review_sha`: **c8b23e03ce5ed6ecc5f667f0c8a4bb4496ababa9** — re-pinned at the current tip, which is
+  the first commit that CONTAINS the R-1/R-2/R-3 implementation. The prior d8f4dc49 pin predated it.
+- status: **NOT shippable.** The validate round ran and FAILED on a criterion, not on a gate.
+- **Both approvals are in place and cover the current text.** `plan.yaml:3-6` reads
+  `status: approved` / `Mike Ruangutai` / `date: '2026-09-08'`, with the four 2026-09-06
+  `approval.rulings` intact at `plan.yaml:7-25`. `BRIEF.md:181-185` reads `approved` /
+  `date: 2026-09-08`. STATE's former Q2 (the plan re-signature) is CLOSED.
+
+### What the gates say — green, and green is not enough
+
+Re-run by the orchestrator in the clean worktree at the pin, `env -u HARNESS_AGENT_TYPE`:
+`tests/integration/test-merge-gate.py` exit 0 ALL PASSED · `tests/integration/test-gh-sync.py` exit 0,
+323 ok / 0 FAIL · `tests/unit/test-gh-sync-build-entry.py` exit 0 · `tests/unit/test-feature-schema-build-entry.py`
+exit 0 · `tests/unit/test-omp-hooks.py` exit 0, 56 tests. The suite cannot see the defect below: no
+fixture anywhere in `tests/integration/test-merge-gate.py` puts an option between `merge` and the ref.
+
+### The gating finding — R-2 traded one hole for another (SC-04 clause (a), UNMET as BEHAVIOUR)
+
+`git_merge` (`merge-gate.py:47-60`) returns `rest[index + 1]` the moment it matches the `merge`
+token, so flag-skipping never resumes after the subcommand and the first option is taken as the
+branch. `feature_for` then finds no owner and `main` returns with no permission decision.
+
+Measured end-to-end through the real hook by the orchestrator, on a fixture recording
+`branch: feature/test` + `github.build_entry: recovery-required` (`/tmp/bug1309-probe-e2e.py`,
+driving the suite's own `fixture()`/`gate()` helpers):
+
+| command | decision |
+|---|---|
+| `git merge feature/test` | **deny** |
+| `git merge --no-ff feature/test` | **none — silent allow**, empty stdout AND empty stderr |
+| `git merge --squash feature/test` | **none — silent allow** |
+
+Against the pre-change source (`git show de04d841:.claude/skills/harness/bin/merge-gate.py`) the
+`--no-ff` and `--squash` forms resolved to `feature/test` and denied. **Those two are a regression
+this delta introduced.** The panel's scoping correction to the orchestrator's first, broader claim is
+accepted and recorded: `git merge -m 'msg' X` (old parse → `msg`) and `git -C /repo merge --no-ff X`
+(old parse → not detected at all) were ALREADY net-allow before the change, so they are pre-existing
+holes closed by the same remedy, not regressions.
+
+Three independent readers reached this: `harness-code-reviewer` and `harness-security-reviewer` in the
+c14 panel (`runs/2026-09-08-c14-validator/digest.md`, VP-01, high), `harness-pm` in the goal-check
+(`notes/research-BUG-1309-goalcheck-c14.md`, F-04a, 7 of 16 enumerated operator merge forms reach no
+deny), and the orchestrator's own probe above.
+
+### Routing — no lead owns the remedy
+
+`merge-gate.py` and `tests/integration/test-merge-gate.py` are DEC-174 enforcement-layer files. No
+squad may execute the fix, so this does not route to a lead and no fix cycle was opened. It returns to
+the operator through the main session, exactly as R-1/R-2/R-3 were delivered.
+
+### The rest of the panel — advisory, none gating on its own
+
+VP-02 (med) `takes_value` is a closed 7-name set omitting `--exec-path`, which signed T-05 step 2
+(`plan.yaml:1029-1033`) names as an example while requiring the CLASS be handled — same remedy site.
+VP-03 (med) SC-04's stable-sorted-order clause survives an unsorted mutant. VP-04 (med) no fixture
+combines `len(owners) > 1` with an era-exempt claimant, though source order is correct
+(`merge-gate.py:150-155` precedes `:157-159`). VP-05 (med) the `open` horn is asserted by no test
+(`grep -rn "MERGE is refused" tests/` → zero) and prints a command with no `<feature-dir>`; R-3
+mandated it verbatim, so it is contract-compliant, untested and unrunnable as printed at once.
+VP-06 (low) the delta's own `T-05 single owner plus unrelated malformed record still allows` case is
+NON-DISCRIMINATING — orchestrator-verified: `de04d841` already carried the `isinstance(document, dict)`
+guard at its line 107, so the case passes identically against the pre-change source.
+
+### Budget
+
+cycles 13/14 — **UNCHANGED**. Both leads reported zero send-backs, and the unmet SC was not
+re-dispatched to a squad because no squad may hold it (DEC-157 counts rework, and none occurred).
+One cycle remains. runs 44 against a 20-run budget (INV-22, informational).
+
+### SC-10 UAT — deliberately NOT requested
+
+Remediation is not accepted, so no UAT was requested. Two reasons it must wait: the operator would be
+hand-testing a build with a known silent-allow, and the script at
+`notes/uat-BUG-1309-mirror-build-entry.md` issues only the bare `git merge feature/uat-scratch` form
+(lines 155, 218, 239, 248, 274), so an operator PASS could not detect the escape. The script needs one
+`--no-ff` step before it is worth an operator's hour.
+
+### The canonical checker
+
+`check-state.sh` findings about shared external worktrees and board/task divergence are NOT this
+feature's current state and were not treated as clean or as cleared.
+
+### Next, in order
+
+operator fix of `git_merge` (resume the flag walk after `merge`, consume merge's own value-taking
+options, treat value-taking globals as a class) → regression cases for the post-subcommand-flag shape
+→ VP-03/VP-04/VP-05/VP-06 coverage in the same reserved bed → re-pin `review_sha` → re-run the panel
+over the new delta → re-run the goal-check → add a `--no-ff` UAT step → SC-10 UAT → rewritten briefing
+→ ship.
 
 ## Open Questions
 
-- Q1 — **CLOSED 2026-09-08.** SC-04 under-coverage of the ambiguity DENY. Operator ruled WIDEN;
-  applied at `BRIEF.md:108-125`, evidence `notes/research-BUG-1309-sc04-amend-c13.md`.
-- Q2 (blocking, operator — **the one actionable step**) — the amended plan must be re-signed. The
-  operator has stated the intent to re-sign. The main session runs, from the worktree
-  `/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-1309-mirror-build-entry`:
-
-      python3 /Users/molchairuangutai/GitHub/harness/.agents/skills/harness/bin/plan-merge.py \
-        sign-approval \
-        --file .harness/harness/features/BUG-1309-mirror-build-entry/plan.yaml \
-        --by 'Mike Ruangutai' --date 2026-09-08
-
-  Preconditions: no `--overrule` (the three panel-c7 highs were ruled FIX, not risk-accepted, so
-  nothing is being accepted); `HARNESS_AGENT_TYPE` must be ABSENT from the environment — the verb
-  refuses any governed agent at exit 10 from inside `cmd_sign_approval` itself, so the main session
-  runs it directly and never delegates it. Expected output: `SIGNED … by Mike Ruangutai on
-  2026-09-08` then `APPLIED …`. Afterwards `plan.yaml:3-6` reads `date: '2026-09-08'` with the four
-  2026-09-06 rulings intact at `plan.yaml:7-25`.
-- Q3 (blocking, operator) — SC-10 UAT: `notes/uat-BUG-1309-mirror-build-entry.md`, 8 steps.
-  Independent of R-1..R-3, but it must run BEFORE the worktree is released, because the script
-  points at that checkout.
-- Q4 (non-blocking, harness defect) — the `open` horn of the non-era recovery-required notice is
-  specified by an UNNAMED intent bullet and is asserted by no test today: `grep -rn "MERGE is
-  refused" tests/` returns nothing. Backlog row, or a later amendment.
-- Q5 (non-blocking, harness defect) — a harness-product-lead run returned a complete, well-formed
-  VERDICT/DIGEST/artifact and the host reported it `failed (exit 1)` with "Subagent called yield
-  with null data". A correct return read as a failed run; every claim in it was verified at source.
-- B-12 and the B-1..B-13 ship backlog in the stale briefing still await operator disposition.
+- Q1 (blocking, operator — **the one actionable step**) — SC-04 clause (a) is unmet as behaviour:
+  `git merge --no-ff <branch>` and `--squash` are a silent ALLOW where the pre-change gate denied.
+  Fix or overrule. Shape of the fix, for convenience only: resolve the branch as the first
+  non-option token AFTER `merge`, consuming merge's own value-taking options (`-m`, `-s`, `-X`,
+  `--into-name`), and treat value-taking globals as a CLASS rather than a closed set — which signed
+  T-05 step 2 already required. `merge-gate.py` and its test bed are DEC-174-reserved, so this cannot
+  be delegated.
+- Q2 (non-blocking, operator) — add a `--no-ff` step to the SC-10 UAT script, or accept that the hand
+  test cannot see clause-(a) escapes. No script edit proposed.
+- Q3 (non-blocking, coverage; depends on Q1) — VP-03/VP-04/VP-05/VP-06 are unpinned clauses and one
+  non-discriminating case. Reserved bed, so they land with the Q1 fix rather than after it.
+- Q4 (non-blocking, harness defect) — the `open` horn of the non-era recovery notice is specified by
+  an UNNAMED intent bullet and asserted by no test. Backlog row, or a later amendment.
+- Q5 (non-blocking, harness defect — **now observed twice**) — a lead run returned a complete,
+  well-formed VERDICT/DIGEST/artifact and the host reported it `failed (exit 1)` with "Subagent called
+  yield with null data". It happened to `harness-product-lead` earlier and to `harness-validator-lead`
+  in the c14 panel. Every claim in the c14 digest was verified against disk before it was used.
+- The stale briefing at `notes/ship-review-2026-09-08-resume.md` and its B-1..B-13 backlog still await
+  operator disposition; it is rewritten after the Q1 fix lands, before the ship decision.

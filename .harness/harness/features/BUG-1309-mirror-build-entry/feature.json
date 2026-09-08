@@ -2,7 +2,7 @@
   "feature_id": "BUG-1309-mirror-build-entry",
   "branch": "feat/BUG-1309-mirror-build-entry",
   "pr": null,
-  "review_sha": "d8f4dc49b591700eacae3d087740c3b04fe93bda",
+  "review_sha": "c8b23e03ce5ed6ecc5f667f0c8a4bb4496ababa9",
   "cycles_used": 13,
   "max_total_cycles": 14,
   "max_total_runs": 20,
@@ -284,6 +284,19 @@
       "squad": "product",
       "agent": "harness-product-lead",
       "verdict": "PASS",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-08-c14-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL"
+    },
+    {
+      "id": "2026-09-08-c14gc-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "FAIL",
       "code_grade": "n_a"
     }
   ],
