@@ -4,7 +4,7 @@ approval:
   date: '2026-09-07'
   approved_by: mruangutai
   status: approved
-status: building
+status: review
 source_issues: [201]
 
 lanes:
@@ -117,6 +117,9 @@ panel:
     status: ran
   - reader: should-not-exist
     persona: fable-advisor
+    status: ran
+  - reader: goalcheck
+    persona: harness-pm
     status: ran
   transcription_rule: Every c1 id was computed with panel_findings.py id --reader
     R --summary S over the summary EXACTLY as stored in this record (the tool lowercases
