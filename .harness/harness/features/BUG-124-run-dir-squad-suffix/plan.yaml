@@ -1,7 +1,30 @@
 schema: plan/1
 feature: BUG-124-run-dir-squad-suffix
 approval:
-  status: pending
+  date: '2026-09-07'
+  approved_by: operator
+  status: approved
+  rulings:
+    - finding: PF-334e1b370c596f88c39730bf43579f13
+      who: operator
+      date: '2026-09-07'
+      reason: escape spelling is write-time-checked by check-domain.sh regardless; accepted mid-run-cost tradeoff, not a bypass
+    - finding: PF-c996440943e296d047bc8707c587ad89
+      who: operator
+      date: '2026-09-07'
+      reason: doc-only ambiguity in how the convention is described to a human auditor; no runtime effect
+    - finding: PF-4ed20fe501059b1b0507f9eccfdc2fb7
+      who: operator
+      date: '2026-09-07'
+      reason: no live usage is a plain scalar today; accepted as a documented constraint on future edits
+    - finding: PF-20b1d027656f333f87b7c54ddf742281
+      who: operator
+      date: '2026-09-07'
+      reason: info-level coverage gap; accepted, follow-up test welcome but non-blocking
+    - finding: PF-fb7141e87d0ab54cb511a4c0dddcf184
+      who: operator
+      date: '2026-09-07'
+      reason: stale dispositions already corrected by this transcription; recorded as historical, not a live defect
 status: plan
 source_issues: [124]
 lanes:

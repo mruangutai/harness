@@ -110,6 +110,6 @@ callee's own — an orchestrator dispatching `harness-eng-lead` and naming `runs
 
 ## Approval
 
-status: pending
-approved-by:
-date:
+status: approved
+approved-by: operator
+date: 2026-09-07
