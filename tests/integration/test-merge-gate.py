@@ -129,5 +129,11 @@ with open(os.path.join(bad_directory, "feature.json"), "w") as f:
 r, d, reason = gate("git merge feature/test", root)
 check("T-05 unrelated non-object feature record does not block healthy merge",
       r.returncode == 0 and d is None, f"rc={r.returncode} reason={reason!r}")
+root, directory = fixture()
+with open(os.path.join(directory, "feature.json"), "w") as f:
+    json.dump([], f)
+r, d, reason = gate("git merge feature/test", root)
+check("T-05 unusable target record fails closed", r.returncode == 0 and d == "deny"
+      and "malformed feature record" in reason, f"rc={r.returncode} reason={reason!r}")
 print("ALL PASSED" if not fails else f"{fails} FAILED")
 sys.exit(bool(fails))

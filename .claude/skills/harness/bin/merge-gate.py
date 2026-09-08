@@ -96,6 +96,7 @@ def head_branch(command, cwd, repo):
 
 
 def feature_for(branch):
+    unusable = False
     for path in glob.glob(os.path.join(ROOT, ".harness", "*", "features", "*", "feature.json")):
         try:
             with open(path) as f:
@@ -103,11 +104,11 @@ def feature_for(branch):
         except (OSError, json.JSONDecodeError):
             continue
         if not isinstance(document, dict):
+            unusable = True
             continue
         if document.get("branch") == branch:
-            return os.path.dirname(path), document
-    return None, None
-
+            return os.path.dirname(path), document, False
+    return None, None, unusable
 
 def deny(reason):
     print(json.dumps({"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "deny", "permissionDecisionReason": reason}}))
@@ -132,9 +133,11 @@ def main():
     try:
         import feature_schema
         branch, failure = head_branch(command, os.getcwd(), github.get("repo") or "")
-        feat_dir, document = feature_for(branch)
+        feat_dir, document, unusable = feature_for(branch)
         if document is None:
-            if failure:
+            if unusable:
+                deny("merge-gate: could not evaluate a feature's Build-entry receipt, so this merge is denied. Repair the malformed feature record and re-run the merge.")
+            elif failure:
                 print(f"merge-gate: could not verify this merge - the head branch could not be resolved through gh ({failure}) and the local branch {branch} owes no build-entry receipt; allowing it, because GitHub is a mirror and never a gate (DEC-138).", file=sys.stderr)
             return
         feat = os.path.basename(feat_dir)
