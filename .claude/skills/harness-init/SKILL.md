@@ -159,8 +159,13 @@ config lands has no symptom except an unattributed `FleetError` mid-build.
    Delete its `_template` key; fill `test_kinds` in step 4 and the GitHub block in step 7.
 2. Land `.harness/harness.json` on that repository's `default_branch`. Harness has no write route
    into a product repository: `factory_workspace.py` writes no artifact into a checkout and no agent
-   domain covers a product's `.harness/`. The main session asks the operator for this commit or PR;
-   do not continue until it is on the default branch.
+   domain covers a product's `.harness/`. The main session asks the operator for this commit; if they
+   cannot push the protected branch or lack write access, open a PR against the default branch instead.
+   Onboarding remains incomplete until that PR merges, because `product_config` reads the default branch
+   and nothing else.
+
+   Landing this file delegates control of what the factory reads for this member to whoever can push its
+   default branch. Do not register the member unless that trust is intended.
 3. Only then add the member to `<control-plane>/.harness/factory/fleet.yaml` as
    `- name: <owner>/<repo>` with `default_branch: <branch>`. Nothing else goes in that file:
    `load_fleet` rejects a board at any level, and `workspace_root` is fleet-wide.

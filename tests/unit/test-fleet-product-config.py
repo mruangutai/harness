@@ -129,6 +129,15 @@ def stub_first_not_json_second_ok(repo, path, ref, _first=_FIRST_NAME):
     return json.dumps({"read": "ok"})
 
 
+def stub_first_unexpected_second_ok(repo, path, ref, _first=_FIRST_NAME):
+    """Raises a bare RuntimeError — neither FleetError nor factory_gh.GhError — for the FIRST
+    declared name, returns valid JSON for the second. V-2: product_config_report's except
+    clause must stay narrowed to FleetError; a widened `except Exception` would swallow this."""
+    if repo == _first:
+        raise RuntimeError("unexpected failure, not a GhError")
+    return json.dumps({"read": "ok"})
+
+
 # --- (a) two declared repos, stub returns valid JSON for both -> every entry ok --------------
 with tempfile.TemporaryDirectory() as td:
     fleet = fc.load_fleet(write_fleet(td, two_repo_fleet_dict()))
@@ -179,6 +188,28 @@ check("(c) invalid JSON content -> entry not ok, detail names the invalid-JSON f
 check("(c)/(d) len(report) equals len(fleet['repos'])",
       len(report_c) == len(fleet["repos"]), (len(report_c), len(fleet["repos"])))
 
+# --- (f) V-2: stub raises a bare RuntimeError (neither FleetError nor GhError) for the FIRST -
+# name -> product_config_report must PROPAGATE it, never fold it into an ok:False entry. This
+# distinguishes `except FleetError` from a widened `except Exception`: every stub above only
+# ever raises factory_gh.GhError, which product_config already converts to FleetError before
+# product_config_report's except clause sees it, so none of them exercise its narrowness.
+with tempfile.TemporaryDirectory() as td:
+    fleet = fc.load_fleet(write_fleet(td, two_repo_fleet_dict()))
+    with patched_file_at_ref(stub_first_unexpected_second_ok):
+        try:
+            fc.product_config_report(fleet)
+            _f_propagated = False
+            _f_detail = "product_config_report returned normally instead of propagating"
+        except RuntimeError as e:
+            _f_propagated = "unexpected failure" in str(e)
+            _f_detail = repr(e)
+        except Exception as e:
+            _f_propagated = False
+            _f_detail = f"wrong exception type propagated: {type(e).__name__}: {e}"
+check("(f) an exception that is neither FleetError nor GhError propagates out of "
+      "product_config_report instead of being reported as an ok:False entry",
+      _f_propagated, _f_detail)
+
 # --- entries carry the exact declared keys, the module's own path constant, and declaration ---
 # order (never a set/sorted comparison — order is the property under test).
 _shape_ok = all(
@@ -215,6 +246,17 @@ check("(e) stdout under failure parses as ONE JSON payload with declared/ok/unre
       _payload_e1_ok, _parsed_e1)
 check("(e) exactly one stderr line is written for the one unreachable member",
       len([l for l in err_e1.split("\n") if l]) == 1, repr(err_e1))
+
+# --- V-7: the one stderr line names the unreachable member's repo@ref:path triple EXACTLY ----
+# ONCE, behind the canonical "factory: config: " prefix — not once for factory_cli.fail's own
+# `value` and again inside the FleetError's own message text.
+_e1_lines = [l for l in err_e1.split("\n") if l]
+_e1_line = _e1_lines[0] if _e1_lines else ""
+_e1_token = f"{_FIRST_NAME}@{_FIRST_REF}:{fc._PRODUCT_CONFIG_PATH}"
+check("(g) V-7: the stderr line starts with the canonical 'factory: config: ' prefix",
+      _e1_line.startswith("factory: config: "), repr(_e1_line))
+check("(g) V-7: the repo@ref:path token appears exactly once in the stderr line, not twice",
+      _e1_line.count(_e1_token) == 1, (repr(_e1_line), _e1_token))
 
 # (e-2) every member succeeds -> _main() returns without raising SystemExit.
 with tempfile.TemporaryDirectory() as td:

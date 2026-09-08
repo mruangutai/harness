@@ -142,7 +142,7 @@ Run at every `/harness` entry. The real state is a matrix, not a binary:
 
 | Condition | Action |
 |---|---|
-| not registered in `.harness/factory/fleet.yaml`, or its own `harness.json` not readable at its `default_branch` | the repository is not onboarded — have the user run `/harness-init` |
+| not registered in `.harness/factory/fleet.yaml`, or its own `harness.json` not readable at its `default_branch`, or no central tree at `<control-plane>/.harness/<segment>/` | the repository is not onboarded — have the user run `/harness-init` |
 | BRIEF, no `PLAN.md` | delegate to pm (normal planning) |
 | **BRIEF with no `## Approval`** | **halt — surface to user. Nothing downstream may run against an unapproved goal** |
 | PLAN re-planned after approval | pm must **reset** `## Approval` to pending; a stale approval must never carry onto a changed task set |
@@ -447,7 +447,7 @@ fleet entry, because the failure of the reverse order has no symptom but an unat
 `FleetError` — `factory_config.py --check-product-configs` is what names it. An entry missing any
 of the four `board:` keys makes `load_fleet` raise, and because `check-domain.sh` then fails CLOSED
 the symptom is not a failed onboarding but every agent write in this repository BLOCKED
-(`.claude/skills/harness/bin/harness_boundary.py:158`). The first factory run against it
+(`.claude/skills/harness/bin/harness_boundary.py:711`). The first factory run against it
 clones it under `workspace_root`; that `harness.json` on its default branch is the only file the
 harness puts into a product repository.
 

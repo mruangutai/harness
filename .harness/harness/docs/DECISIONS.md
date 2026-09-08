@@ -6989,7 +6989,12 @@ on its default branch, its entry in `.harness/factory/fleet.yaml`, and its centr
 at `<control-plane>/.harness/<segment>/`. Nothing else is installed into a product repository, and
 `.harness/products/` is created nowhere. The three are ordered: registration comes **after** the
 config lands, because the failure of the reverse order has no symptom but an unattributed
-`FleetError`, and `factory_config.py --check-product-configs` is what names it.
+`FleetError`, and `factory_config.py --check-product-configs` is what names it — a check that is
+OPERATOR-RUN, with no standing invariant behind it. `check-state.sh` never reads a member's config
+from its remote, and its only network calls record nothing when the network is unavailable, because
+an offline environment must never become a red gate (`check-state.sh:2270-2273`). So nothing grades
+a fleet member's remote config on every run, and a member whose `harness.json` is deleted after
+onboarding stays invisible until the next build against it.
 
 **Over:** issue 206 item 2's central `.harness/products/<name>/harness.json`, and the pre-existing
 per-product scaffold that copied `team-config.yaml` into a project. Also over issue 203's scoped
@@ -7003,6 +7008,10 @@ nothing.
 `default_branch` with no disk fallback, so a central copy would be read by nothing;
 `check-domain.sh` resolves policy only from the control plane's own manifest; features and
 expertise already resolve centrally through `factory_config.features_root`; and the operator struck
-the central placement on 2026-08-18.
+the central placement on 2026-08-18. Reading from that branch also delegates trust: whoever can
+push a member's `default_branch` controls everything the factory reads for that member, including
+every `test_kinds.*.cmd`, which is a command the factory executes. A config that will not load
+fails closed, blocking writes rather than widening them, but a well-formed hostile one is screened
+by nothing — push access to a member's default branch is factory-level trust.
 
 **Record:** refs DEC-174, DEC-113, DEC-182, DEC-129.

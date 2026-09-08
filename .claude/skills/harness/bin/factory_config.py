@@ -467,10 +467,14 @@ def _check_product_configs(fleet, repo_name):
     })
     for m in report:
         if not m["ok"]:
-            factory_cli.fail(
-                "config", "product config unreachable",
-                f'{m["repo"]}@{m["ref"]}:{m["path"]}', m["detail"],
-            )
+            # Print the FleetError's own canonical line directly rather than routing back
+            # through factory_cli.fail: m["detail"] is already str(FleetError), itself built by
+            # factory_cli.body("what: value — next_step"), and its `value` is the SAME
+            # repo@ref:path triple factory_cli.fail's own `value` argument would repeat. Two
+            # near-synonymous reasons ("unreachable" here, "unreadable" in the FleetError) naming
+            # the same triple twice was V-7; this keeps the "factory: {tool}: " prefix and the
+            # canonical body grammar with the triple named exactly once.
+            print(f"factory: config: {m['detail']}", file=sys.stderr)
     if unreachable_count or len(report) != len(fleet["repos"]):
         sys.exit(factory_cli.EXIT_REFUSED)
 

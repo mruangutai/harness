@@ -189,4 +189,4 @@ To add a skill, create `.claude/skills/harness-<name>/SKILL.md` and add its name
 
 ## Factory repositories
 
-The Harness repository holds the organization and skills. Add a repository to `.harness/factory/fleet.yaml`; the factory materializes its checkout under the declared `workspace_root`. `/harness-init` registers the repository in `.harness/factory/fleet.yaml`, creates its central tree under `<control-plane>/.harness/<segment>/`, and lands its `harness.json` on its own default branch, which is the only file the harness puts in a product repository (DEC-220).
+The Harness repository holds the organization and skills. Add a repository to `.harness/factory/fleet.yaml`; the factory materializes its checkout under the declared `workspace_root`. `/harness-init` lands its `harness.json` on its own default branch — the only file the harness puts in a product repository — then registers the repository in `.harness/factory/fleet.yaml`, then creates its central tree under `<control-plane>/.harness/<segment>/`, in that order (DEC-220).
