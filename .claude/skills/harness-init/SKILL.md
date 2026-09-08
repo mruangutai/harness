@@ -1,20 +1,28 @@
 ---
 name: harness-init
-description: Onboard a project to the harness — interview the user, write .harness/, and install the eight platform prerequisites. Use when a project has no .harness/, when check-state.sh reports "not onboarded", or when a schema_version gap calls for --upgrade.
+description: Onboard a repository through the central model — land its harness.json on its default branch, register it in fleet.yaml, create its central tree, and install the control-plane prerequisites. Use when this control-plane clone has no .harness/, when a repository is absent from the fleet or its config is unreachable, or when a schema_version gap calls for --upgrade.
 ---
 
 # Harness: Init
 
-The onboarding interview. Harness is not copied into a product repository — the factory works on a
-checkout and reaches it remotely — so this is the one step that writes a project's artifacts.
+Onboarding a repository is exactly three things, in order: land that repository's own
+`.harness/harness.json` on its `default_branch`; register it in
+`.harness/factory/fleet.yaml`; then create its central per-segment tree at
+`<control-plane>/.harness/<segment>/`. The factory reads a fleet member's config remotely at its
+default branch and has no disk fallback.
+
+**One-file rule.** The only file onboarding puts in a product repository is its own
+`.harness/harness.json`, and it counts only after it lands on that repository's default branch.
+Nothing else is installed there: no `team-config.yaml`, expertise, `.harness/products/`, `bin/`,
+hooks, or settings.
 
 **Run this in the main session.** Only the main session can call `AskUserQuestion` — a subagent has no
 channel to the user. Delegate the *mechanical detection* to `dev-ops`; never delegate the interview.
 
 **The interview IS a grilling (DEC-164).** Load `harness-grilling` and run it: one question at a
 time with your recommendation, facts looked up rather than asked, destination named first, and the
-artifact written to `.harness/notes/`. Its answers seed `harness.json`, the domain description, and
-the first `.harness/glossary.md` terms.
+artifact written to `.harness/notes/`. Its answers seed the repository's own `harness.json`, and for
+the control plane its domain description and first `.harness/glossary.md` terms.
 
 ## Preflight — stop if any of these fails
 
@@ -28,7 +36,7 @@ git rev-parse --show-toplevel 2>/dev/null || echo "NOT A GIT REPO"
   there is nothing to instantiate.
 - **CLI < 2.1.217** → below the floor for the spawn env vars. Stop; the depth setting will not take.
 - **Not a git repo** → warn but continue. Commit attribution and `review_sha` pinning will not work.
-- **`.harness/` already exists** → this project is initialised. Route to `--upgrade`, do not re-run fresh.
+- **`.harness/` already exists** → this control-plane clone is initialised. Route to `--upgrade`, do not re-run fresh.
 
 You will need permission to run the scripts in `.agents/skills/harness/bin/` and to write
 `.claude/settings.json`, which many setups gate as a sensitive file. Ask for it up front rather than
@@ -36,8 +44,12 @@ discovering it at step 1 — a denial there is a **stop**, not a detour (see bel
 
 ## Fresh init
 
-### 1. Install the eight prerequisites — HARD GATE, do this first
+### 1. Install the eight prerequisites in this control-plane clone — HARD GATE, do this first
 
+These prerequisites and the per-clone hooks step belong to this control-plane clone, never to a
+product repository. Nothing distributes `bin/` since `deploy.sh` was deleted (DEC-113); the enforcing
+hooks are registered in this clone's `.claude/settings.json` and resolve this clone's manifest; and
+`check-state.sh` INV-9 and INV-31 grade this clone against the step on every run.
 ```bash
 .agents/skills/harness/bin/merge-settings.py . \
   --template .agents/skills/harness/templates/settings.snippet.json
@@ -138,22 +150,39 @@ refused one (observed in testing).
 The hooks are live **immediately, in this session** — steps 4 and 8 below run *with* enforcement
 on; nothing here waits on a restart (step 9 has the one real restart caveat).
 
-### 2. Scaffold `.harness/` from the templates
+### 2. Land `harness.json`, then register the repository
 
-```bash
-mkdir -p .harness/expertise
-cp .agents/skills/harness/templates/harness.json    .harness/harness.json
-cp .agents/skills/harness/templates/team-config.yaml .harness/team-config.yaml
-```
+This order is load-bearing: `product_config` has no disk fallback, so registering a member before its
+config lands has no symptom except an unattributed `FleetError` mid-build.
 
-Delete the `_template` key from `.harness/harness.json` — it is a template marker, not project state.
+1. Instantiate `.claude/skills/harness/templates/harness.json` into a checkout of the repository.
+   Delete its `_template` key; fill `test_kinds` in step 4 and the GitHub block in step 7.
+2. Land `.harness/harness.json` on that repository's `default_branch`. Harness has no write route
+   into a product repository: `factory_workspace.py` writes no artifact into a checkout and no agent
+   domain covers a product's `.harness/`. The main session asks the operator for this commit or PR;
+   do not continue until it is on the default branch.
+3. Only then add the member to `<control-plane>/.harness/factory/fleet.yaml` as
+   `- name: <owner>/<repo>` with `default_branch: <branch>`. Nothing else goes in that file:
+   `load_fleet` rejects a board at any level, and `workspace_root` is fleet-wide.
+4. Prove the config is reachable:
 
-The globs in the manifest are still placeholders at this point, and that is fine: `dev-ops` writes
-only `.harness/harness.json`, which the template already grants it. **The manifest must exist before
-any agent is spawned** — with no manifest `check-domain.sh` fails open and enforcement is simply off.
+   ```bash
+   python3 .claude/skills/harness/bin/factory_config.py --check-product-configs --repo <owner>/<repo>
+   ```
 
-`PLAN.md`, `STATE.md` and `DESIGN.md` are **not** written here. A plan is written when there is
-something to plan, and their owners instantiate them from the same templates.
+   It must exit 0. Exit 2 names `<repo>@<ref>:.harness/harness.json` and the reason: the config has
+   not landed or does not parse. Do not proceed on exit 2. A `--repo` success proves that member,
+   not the whole fleet.
+5. Create the central tree the factory reads:
+   `<control-plane>/.harness/<segment>/features/` and
+   `<control-plane>/.harness/<segment>/expertise/`, where `segment` is the portion of the name after
+   the owner (`factory_config.segment_of`). This is where the repository's `BRIEF.md`, `plan.yaml`,
+   and expertise live; `factory_config.features_root` resolves the first path.
+
+No `team-config.yaml` exists anywhere but the control plane; no `.harness/expertise/`,
+`.harness/products/`, `bin/`, hooks, or settings are written in a product repository. For the control
+plane itself, instantiate its own `.harness/harness.json` and `.harness/team-config.yaml` from the
+templates — this clone is the only place a `team-config.yaml` is instantiated.
 
 ### 3. Interview — technical
 
@@ -167,7 +196,10 @@ One batched `AskUserQuestion` call:
 
 Spawn `harness-dev-ops` with the answers from step 3. It must:
 
-- Determine the real test runner **for each kind** and write `test_kinds` into `.harness/harness.json`.
+- Determine the real test runner **for each kind** and write `test_kinds` into the control plane's
+  `.harness/harness.json`, or into a fleet member's own `.harness/harness.json` in its checkout under
+  `workspace_root`; the main session then lands the latter through step 2. `dev-ops` never writes
+  `fleet.yaml` or pushes a product config directly to a remote.
 - **Verify every `cmd` by running it.** A command that resolves but is misconfigured is worse than one
   that is absent — `node --test src/` reports `tests 1 / fail 1` for a module-load error, which reads
   exactly like a failing suite.
@@ -191,10 +223,14 @@ Spawn `harness-dev-ops` with the answers from step 3. It must:
 - Check the team conventions: is `@astryxdesign/core` present, is Supabase linked? Report, do not
   silently install.
 
-### 5. Seed the manifest
+### 5. Seed the control-plane manifest
 
-Replace every glob marked `# SEED` in `.harness/team-config.yaml` with the real path from dev-ops's
-report. **You** write this file — it is not in any agent's domain.
+Replace every glob marked `# SEED` in this control plane's `.harness/team-config.yaml` with the real
+path from dev-ops's report. **You** write this file — it is not in any agent's domain.
+
+`check-domain.sh` reads only the control plane's manifest. The live grants are repo-agnostic globs,
+and per-repository isolation is unbuilt (issue 495): `harness_boundary.glob_to_re` supports only
+`**`, `*`, `?`, and literals, so a per-repository glob is inexpressible today.
 
 Two rules that carry the write-scope guarantee:
 
@@ -215,7 +251,8 @@ a separate root. It is the one exception to the disjointness rule above, and it 
 ### 6. Interview — product, then the BRIEF
 
 Second `AskUserQuestion` round: the goal, requirements, constraints, and what "done" looks like from
-outside the code. Then write `.harness/features/<FEAT>/BRIEF.md` from the template.
+outside the code. Then write `<control-plane>/.harness/<segment>/features/<FEAT>/BRIEF.md` from the
+template; its plan artifact is `plan.yaml`, never `PLAN.md` (DEC-182).
 
 Follow the `harness-brief` skill's discipline: apply the **REQ test** (a requirement survives changing
 your mind about implementation), and give **every `SC-NN` a `verify:`** — `automated` (plus an
@@ -237,7 +274,7 @@ not finished onboarding.
 until they approve, and that `/harness` will keep saying so. A pending brief is a correct state; a
 brief you approved on their behalf is not.
 
-### GitHub Issues mirror — ask ONCE, here, so it is never forgotten (DEC-138)
+### GitHub Issues mirror — ask ONCE before step 2 lands the product config (DEC-138)
 
 Ask the user: **"Mirror features to GitHub Issues? (feature → milestone, tasks → issues, one-way
 outbound after your plan approval)"**
@@ -245,9 +282,11 @@ outbound after your plan approval)"**
 - **Yes** → run `gh repo view --json nameWithOwner -q .nameWithOwner` in the project, show the
   result, and get explicit confirmation — **the repo is pinned under the user's eyes, never
   inferred later** (a fork or renamed remote would publish to the wrong org silently). Write
-  `"github": { "sync": true, "repo": "<owner/name>" }` into `.harness/harness.json`.
-- **No** → write `"github": { "sync": false, "repo": null }` — an explicit off, not an absence.
-  INV-13 treats a missing block as "never asked" and nags; an explicit false is a decision.
+  `"github": { "sync": true, "repo": "<owner/name>" }` into the repository's own `.harness/harness.json`;
+  land it on its default branch through step 2.
+- **No** → write `"github": { "sync": false, "repo": null }` into that same product config — an
+  explicit off, not an absence. INV-13 treats a missing block as "never asked" and nags; an explicit
+  false is a decision.
 
 ### The project board — provision it, then read the workflow report (FEAT-33)
 
@@ -295,9 +334,10 @@ after init is invisible until the next init run.
 
 ### 8. Design pass — UI projects only
 
-If step 3 said there is a UI, offer it: `harness-visual-designer` establishes `.harness/features/<FEAT>/DESIGN.md`
-(palette in **both** themes, type scale, spacing, component direction), then `harness-ui-reviewer` in
-**mode A** judges whether that contract is sound before anything is built against it.
+If step 3 said there is a UI, offer it: `harness-visual-designer` establishes
+`<control-plane>/.harness/<segment>/features/<FEAT>/DESIGN.md` (palette in **both** themes, type
+scale, spacing, component direction), then `harness-ui-reviewer` in **mode A** judges whether that
+contract is sound before anything is built against it.
 
 Skip it entirely for a project with no user-facing surface. An empty `DESIGN.md` is worse than none —
 it reads as though the decisions were made.
@@ -305,12 +345,14 @@ it reads as though the decisions were made.
 ### 9. Verify, then warn about the restart
 
 ```bash
-.agents/skills/harness/bin/check-state.sh
-.agents/skills/harness/bin/merge-settings.py . --check
+.agents/skills/harness/bin/check-state.sh                 # this control-plane clone
+.agents/skills/harness/bin/merge-settings.py . --check    # this control-plane clone
+python3 .claude/skills/harness/bin/factory_config.py --check-product-configs
 ```
 
-`check-state.sh` must exit 0. It will not if the brief is pending (step 7) or the settings merge was
-skipped — both are real failures, not noise to talk past.
+`check-state.sh` must exit 0. The fleet check reads every declared member and must also exit 0. Either
+will fail if the brief is pending (step 7) or the settings merge was skipped; these are real failures,
+not noise to talk past.
 
 Then say this, explicitly, as the last thing — **but only if agent definitions were installed or
 updated during this same session:**
@@ -326,7 +368,8 @@ when it is not is its own kind of wrong.
 
 ## `--upgrade`
 
-For a project that is already initialised, after a newer harness has been deployed.
+For a control-plane clone that is already initialised, after a newer harness has been deployed; for a
+fleet member, run it in that member's checkout and land its merged `harness.json` through step 2.
 
 ```bash
 .agents/skills/harness/bin/upgrade-config.py .
@@ -338,12 +381,12 @@ For a project that is already initialised, after a newer harness has been deploy
 - `harness.json` is **merged** — new template entries added, every project value kept. `test_kinds.*.cmd`
   above all: dev-ops verified those by running them, and re-imposing the template's `null` would turn a
   working gate back into a soft skip.
-- `team-config.yaml` is **reported, never rewritten.** It is now READ with a real parser (DEC-171), but
-  writing it stays refused for a reason a parser does not fix: `safe_dump` does not preserve comments,
-  and the manifest is more comment than data — every `domain` glob is justified in prose beside it.
-  Round-tripping it would silently delete the reasoning that makes the harness's only write-scope
-  guarantee auditable. `upgrade-config.py` prints the exact new entries and **exits 1** — relay them and
-  add them by hand.
+- `team-config.yaml` is **reported, never rewritten.** It belongs only to the control plane; a product
+  repository has none to report. It is now READ with a real parser (DEC-171), but writing it stays
+  refused for a reason a parser does not fix: `safe_dump` does not preserve comments, and the manifest
+  is more comment than data — every `domain` glob is justified in prose beside it. Round-tripping it
+  would silently delete the reasoning that makes the harness's only write-scope guarantee auditable.
+  `upgrade-config.py` prints the exact new entries and **exits 1** — relay them and add them by hand.
 - **An existing checkout that pulls the PyYAML change must re-run `merge-gitignore.sh .`** (it is in the
   block above). The snippet gained `.harness/.pyyaml-bootstrap`, and `merge-gitignore.sh --check` reads
   its rule list from that snippet — so `--check` correctly goes **red on every already-initialised
@@ -367,4 +410,5 @@ For a project that is already initialised, after a newer harness has been deploy
 | "They described the goal to me, so it's approved" | Describing is not approving. Ask, then write what they answered |
 | "check-state says pending — close enough" | Nothing downstream may run against an unapproved brief. Onboarding is not done |
 | "I'll copy the new team-config over theirs" | Their `domain` globs are real and the template's are placeholders. Merge by hand |
+| "The repo is in fleet.yaml, so the factory can serve it" | Not until its `harness.json` is on its default branch. `product_config` has no fallback; run `--check-product-configs` |
 | "They can run a team now" | Not until they restart. Agent definitions are not live-reloaded |
