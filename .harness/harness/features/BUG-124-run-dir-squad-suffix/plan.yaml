@@ -236,7 +236,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: []
-    status: review
+    status: done
     files:
       - .claude/skills/harness/bin/harness_boundary.py
       - tests/unit/test-harness-boundary.py
@@ -317,7 +317,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: [T-01]
-    status: review
+    status: done
     files:
       - .claude/skills/harness/bin/dispatch-guard.sh
       - tests/integration/test-dispatch-guard.py

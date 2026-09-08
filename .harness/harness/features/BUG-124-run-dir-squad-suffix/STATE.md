@@ -8,14 +8,24 @@
 - status: in_progress
 
 **THE BUILD IS CLOSED AND THE SEAM IS CROSSED.** The qa gate PASSed (`matrix_ok: true`,
-`must_fix: []`); SIMPLIFY ran and landed one behaviour-identical apply; the station is now `review`
-on the feature and on T-01 and T-02. T-03 stays `ready` and correctly undone —
-`execution_mode: main-session-direct`, a pre-ship main-session step, not a matrix gap.
-`cycles_used: 7` against budget 10 (SIMPLIFY reported 0 send-backs). Twelve runs against budget 20.
+`must_fix: []`); SIMPLIFY ran and landed one behaviour-identical apply; the feature station is
+`review` and T-01 and T-02 are `done` (D-23: a task's station is `done` in the same act as its
+commit — `review` is the FEATURE's station, never a task's). T-03 stays `ready` and correctly
+undone: `execution_mode: main-session-direct`, `check-domain --resolve` answers NOBODY for
+`.claude/skills/harness/SKILL.md`. `cycles_used: 7` against budget 10 (SIMPLIFY reported 0
+send-backs). Twelve runs against budget 20.
 
 **Next (cited to plan.yaml):** the validation panel, dispatched to `harness-validator-lead` against
-the pinned `review_sha`. `gh-sync.py status <feature-dir> review` runs in the same act as the
-station write. After the panel: `must_fix` resolution, then STOP — ship is the main session's.
+the pinned `review_sha`. After the panel: `must_fix` resolution, then STOP — ship is the main
+session's, and T-03 is a named pre-ship main-session step, not a matrix gap and not squad work.
+
+**THE MIRROR REFUSED THE REVIEW STATION, TRUTHFULLY, AND IT IS NEVER A GATE.**
+`gh-sync.py status <feature-dir> review` → `REFUSED — station review refused — not every task in
+plan.yaml is done or abandoned` (`gh-sync.py:1318-1319`; `finished_stations()` is `done` and
+`abandoned` only). T-03 is `ready`, so the refusal is CORRECT about the plan and is not a defect to
+route. It refuses BEFORE `_record_station`, so the parent and sub-issue cards stay at Building until
+T-03 lands; plan.yaml on disk is the authority and already reads `review`. Re-run the same command
+once T-03 is done — it is idempotent. Do NOT falsify T-03's station to make the mirror pass.
 
 **SIMPLIFY, complete (`runs/2026-09-08-1-eng/digest.md`).** All four angles ran as separate
 parallel read-only spawns; none returned empty. Six findings, deduplicated. ONE apply, by
@@ -35,8 +45,8 @@ spawns the run-dir derivation subprocess unconditionally, measured ~64ms of ~105
 dispatch — highest value, deliberately unapplied because its alternative puts a SECOND spelling of
 the run-dir pattern in bash and drift from `hb.run_dir_refs` makes the guard fail OPEN.
 
-Trust (claim — pointer — verified-at `418a9eb6` unless restated; ORCHESTRATOR-MEASURED at the seam
-commit unless attributed):
+Trust (claim — pointer — verified-at the pinned `review_sha` unless restated; ORCHESTRATOR-MEASURED
+unless attributed):
 - **The apply is behaviour-identical — I read the diff myself, not the claim.** Every message
   string, the `sys.exit(2)` path, the `hb.*` call sites and the
   `try / except SystemExit: raise / except Exception` fail-open structure are unchanged;
@@ -47,6 +57,9 @@ commit unless attributed):
   root → `RUNNER_EXIT=0` (captured into a variable), `grep -c '^FAIL '` = 0, 5403 output lines,
   pool `8 workers, 80 files`. **Discovery volume equals the pre-SIMPLIFY baseline** — 5403 lines,
   80 files — so the green is not a gate that stopped discovering.
+- **The pin satisfies INV-33, checked not assumed:** `git show <review_sha>:plan.yaml | cmp -` against
+  disk is byte-equal. The pin was moved once, deliberately, after T-01/T-02's stations were corrected
+  from `review` to `done`; the code paths between the two commits are identical.
 - Earlier trust stands unchanged and is NOT re-derived here: the qa gate at `418a9eb6`
   (`notes/qa-c4.md`, all four cycle-3-red files individually green, 80/80 discovered); the
   adequacy A/B proving `test-dispatch-guard.py` CAN report red (8 FAIL against the main checkout's
@@ -64,12 +77,11 @@ Dead ends for the next phase:
   deferred; a panel may still rule on their CORRECTNESS.
 - Do NOT rewrite `qa-c3.md`. The corrected attribution lives in the 3-eng digest and `qa-c4.md`;
   rewriting a recorded artifact to look better falsifies the record.
-- Do NOT hand T-03 to a squad: `check-domain --resolve` answers NOBODY for
-  `.claude/skills/harness/SKILL.md`.
+- Do NOT hand T-03 to a squad, and do NOT mark it `done` to satisfy the mirror.
 - Do NOT `cp` a fixture into `/tmp` or a scratch worktree for an A/B — `bash-write-guard.sh` refuses
   it. Pointing `DISPATCH_GUARD_BIN` at the main checkout's pre-change guard is the working route.
-- Do NOT re-pin `review_sha` unless a commit lands that touches a reviewed code path. The pin sits
-  at the seam commit, whose `plan.yaml` bytes equal disk (INV-33 is a byte comparison).
+- Do NOT re-pin `review_sha` unless a commit lands that touches a reviewed code path OR changes
+  `plan.yaml` (INV-33 is a byte comparison over plan.yaml, not a commit comparison).
 - Do NOT run the suites without `env -u HARNESS_AGENT_TYPE`.
 - The handoff note still cannot be written (Q2a). This `## Current` is the supported disk-only
   substitute.
@@ -86,7 +98,10 @@ notes/qa-c4.md, .claude/skills/harness/bin/harness_boundary.py,
   from its own worktree-relative path (handoff_done_when.py:11,51-54), and an absolute pointer is
   separately refused as "is absolute" (:69-70), so there is NO legal spelling and no handoff note
   can be written at all. (b) `check-state.sh` globs the owner checkout's `.harness/*/features/*`
-  (:118-120), so a full run from inside this worktree cannot grade this feature.
+  (:118-120), so a full run from inside this worktree cannot grade this feature. (c) same class,
+  observed this cycle: `gh-sync.py` must be invoked from the WORKTREE for `status`, and from the
+  MAIN checkout for `ship` (it refuses a feature dir under `.claude/worktrees/`), so the two
+  subcommands of one tool disagree about which root to stand in.
 - Q5 (harness defect, raised by qa at the c4 gate, non-blocking, NOT a BUG-124 fix cycle):
   `test_matrix.bugfix`'s third leg `{__bug_class__, if: match_bug_class}` is structurally
   unresolvable in this project — no bug-class taxonomy exists for the predicate to match against.
