@@ -36,6 +36,8 @@ panel:
     status: ran
   - reader: scope
     status: ran
+  - reader: goalcheck
+    status: ran
   findings:
   - id: PF-eec88a681bbcecaea01bbe3a96006ece
     severity: med
