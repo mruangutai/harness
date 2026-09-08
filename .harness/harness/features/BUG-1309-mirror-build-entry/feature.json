@@ -245,6 +245,12 @@
       "squad": "validator",
       "agent": "harness-validator-lead",
       "verdict": "ESCALATE"
+    },
+    {
+      "id": "2026-09-07-06-validator-c5",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL"
     }
   ],
   "github": {
