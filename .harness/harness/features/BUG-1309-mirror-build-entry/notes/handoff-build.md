@@ -1,58 +1,55 @@
-# Handoff — BUG-1309-mirror-build-entry, build → validate — written at 5d672120, seq-1
+# Handoff — BUG-1309-mirror-build-entry, build (re-opened) — written at aee2ab19, seq-2
 
 ## Next
 
-Nothing dispatchable remains in any squad. The next act is the OPERATOR's, on four items batched
-into one sitting: rule on F-01, F-02 and F-03 in
-`.harness/harness/features/BUG-1309-mirror-build-entry/notes/ship-review-2026-09-08-resume.md`,
-re-sign `BRIEF.md ## Approval` (SC-03 and SC-07 were amended after the 2026-09-06 signature), and
-run the SC-10 hand test at `notes/uat-BUG-1309-mirror-build-entry.md`. Only after those does a ship
-dispatch make sense.
+The operator ruled FIX on all three panel-c7 highs and the plan now specifies those remedies, so the
+next act is the **main session's, by hand**: implement R-1, R-2 and R-3 exactly as
+`notes/direct-packet-2026-09-08-panel-c7.md` specifies — three code edits (`merge-gate.py`
+`git_merge`; `merge-gate.py` `feature_for` plus its caller; `gh-sync.py`
+`_build_entry_recovery_notice`) and six named test cases, five in
+`tests/integration/test-merge-gate.py`, one in `tests/integration/test-gh-sync.py`. All DEC-174
+enforcement-layer work; no squad may execute any of it, and the packet supersedes the briefing's
+F-01/F-02/F-03 sections. T-04 and T-05 are back at `building`; the other eleven tasks stay `done`.
+After it lands: re-pin `review_sha`, qa `test_matrix` re-run, review panel c8 over the delta, pm
+goal-check of the affected SCs, operator SC-10 UAT, rewritten briefing.
 
 ## Trust
 
-- All thirteen planned tasks are done and the blocking qa test_matrix gate passes — unit 33 files
-  exit 0, integration 50 files exit 0, `test-merge-gate.py` 19/19 —
-  `notes/review-harness-qa-c7.md` — verified-at 894adc0f
-- SC-01 through SC-09 are met with executed evidence; SC-10 is user-gated and unrun —
-  `runs/2026-09-08-amend-gc-product/digest.md` `sc_status` — verified-at 894adc0f
-- `merge-gate.py` and `merge-gate.sh` do not exist at merge-base 6ad7233f and arrive at 4338ee44
-  inside this feature's own range, so defects in them are IN SCOPE, not carry-forwards —
-  `git cat-file -e 6ad7233f:<path>` exit 128 — verified-at 894adc0f
-- `git -C <dir> merge X`, `git -c k=v merge X` and `git --work-tree <d> merge X` all return None
-  from `merge_ref`, so the gate silently allows them: `git_merge` strips every `-`-prefixed token
-  and then reads args[0], which is the FLAG VALUE — `merge-gate.py:44-48` — verified-at 894adc0f
-- `_build_entry_recovery_notice`'s non-era line names `open` while `recovery_command_for` returns
-  `recover-terminal` for the same feature, and the plan signs that string verbatim —
-  `gh-sync.py:1387-1389`, `feature_schema.py:324-338`, `plan.yaml:779-791` — verified-at 894adc0f
-- The UAT script is drift-free against the pinned code across all eight substantive steps and no
-  step reaches `gh-sync.py:1387-1389`, so F-03 need not be ruled on first —
-  `runs/2026-09-08-amend-gc-product/digest.md` Q2 — verified-at 894adc0f
-- `894adc0f..HEAD` touches `feature.json` alone, so the pin still covers every code change —
-  `git diff --stat 894adc0f HEAD` — verified-at 5d672120
+- Operator ruled FIX on PANEL-1/2/3 and re-signed the BRIEF — relayed inline by the main session,
+  transcribed in `notes/rulings-2026-09-08-panel-c7.md`; the BRIEF half verified-at `ea0bdd6b`
+- Plan amended: T-04 `intent` derives the recovery command, T-05 `intent` carries the flag-aware walk
+  and the two-or-more-owners DENY, T-05 `verify` gates 19 names and T-04's 6, D-13..D-15 added — read
+  at source — verified-at `d8f4dc49`
+- `approval:` bytes untouched; the plan still reads `date: '2026-09-04'` over text amended today —
+  `git diff -U0` earliest changed line 203, approval is 3-25 — verified-at `d8f4dc49`
+- INV-33 clear after the re-pin; ten INV-26 rows remain, the parent row new today and seven task rows
+  older (`git show ea0bdd6b:…plan.yaml` read `status: review`) — verified-at `aee2ab19`
+- The three code defects reproduce at the old pin, 5/5 both directions for PANEL-1 — panel c7's
+  security and ui reviewers, not re-measured here — UNVERIFIED
 
 ## Dead ends
 
-- Routing F-01 or F-02 to a squad — both edit `merge-gate.py`, a registered PreToolUse gate script,
-  and DEC-174 forbids the harness executing changes to its own gate scripts whatever
-  `check-domain.sh --resolve` answers — `plan.yaml` lanes row `merge-gate.sh and merge-gate.py`
-- Routing F-03 as a fix cycle — the code MATCHES the approved spec, so the remedy amends a signed
-  plan string and needs the operator, not a builder — `plan.yaml:779-791`
-- Grading novelty against the pin's parent — six cycles did, and it mislabels this feature's own new
-  files as carry-forwards — `runs/2026-09-08-panelc7-validator/digest.md` novelty-base step
-- Re-litigating the malformed-record posture — only a valid dict record whose branch matches owns a
-  merge; the cycle-5 scan-wide sentinel was removed as a FAIL — `merge-gate.py:97-109`
+- Never let an unattributable record cause a refusal: `473d82cb` did, panel c5 failed it, `894adc0f`
+  scoped it back — `notes/review-harness-qa-c5.md`
+- Never dispatch a squad at `merge-gate.py`, `gh-sync.py`'s Build-refusal branch or the gate tests —
+  `plan.yaml` lanes rows 34-36, 47-49, 73-75
+- Never order a plan-panel re-run for these amendments: `amend` leaves approval intact and never
+  resets it — `notes/rulings-2026-09-08-panel-c7.md`
+- Never host the new T-04 case in `tests/unit/test-gh-sync-build-entry.py`: T-04's `verify` greps the
+  integration runner's `ok    <name>` format — `notes/research-BUG-1309-planamend-c13b.md`
+- Never run `gh-sync.py` for this segment: a main-session-direct phase's mirror writes are the main
+  session's — `.claude/skills/harness/references/github-mirror.md`
 
 ## Working set
 
-- `.harness/harness/features/BUG-1309-mirror-build-entry/notes/ship-review-2026-09-08-resume.md`
-- `.harness/harness/features/BUG-1309-mirror-build-entry/runs/2026-09-08-panelc7-validator/digest.md`
-- `.harness/harness/features/BUG-1309-mirror-build-entry/runs/2026-09-08-amend-gc-product/digest.md`
-- `.harness/harness/features/BUG-1309-mirror-build-entry/notes/uat-BUG-1309-mirror-build-entry.md`
+- `.harness/harness/features/BUG-1309-mirror-build-entry/notes/direct-packet-2026-09-08-panel-c7.md`
+- `.harness/harness/features/BUG-1309-mirror-build-entry/notes/rulings-2026-09-08-panel-c7.md`
+- `.harness/harness/features/BUG-1309-mirror-build-entry/plan.yaml`
 - `.claude/skills/harness/bin/merge-gate.py`
+- `tests/integration/test-merge-gate.py`
 
 ## Done when
 
-Scope: operator rules on F-01/F-02/F-03, re-signs the amended BRIEF, and returns the SC-10 UAT result
-Authority: approval:.claude/worktrees/harness/BUG-1309-mirror-build-entry/.harness/harness/features/BUG-1309-mirror-build-entry/BRIEF.md#Approval
-Authority: finding:.claude/worktrees/harness/BUG-1309-mirror-build-entry/.harness/harness/features/BUG-1309-mirror-build-entry/notes/ship-review-2026-09-08-resume.md#F-01
+Scope: R-1/R-2/R-3 land with the six named cases green and the operator returns SC-10, SC-04 and the plan signature
+Authority: approval:.harness/harness/features/BUG-1309-mirror-build-entry/BRIEF.md#Approval
+Authority: finding:.harness/harness/features/BUG-1309-mirror-build-entry/notes/ship-review-2026-09-08-resume.md#F-01
