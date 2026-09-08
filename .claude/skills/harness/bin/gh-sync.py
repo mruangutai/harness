@@ -1384,8 +1384,15 @@ def _build_entry_recovery_notice(feat_dir, feature_id):
               f"terminal receipt is created only by an explicit operator-approved gh-sync.py "
               f"recover-terminal {os.path.realpath(feat_dir)} --yes.", file=sys.stderr)
         return
+    command = feature_schema.recovery_command_for(feat_dir)
+    if command == "open":
+        print(f"gh-sync: build entry is recovery-required for {os.path.realpath(feat_dir)}; "
+              f"Build proceeds, the MERGE is refused until gh-sync.py open records opened",
+              file=sys.stderr)
+        return
     print(f"gh-sync: build entry is recovery-required for {os.path.realpath(feat_dir)}; "
-          f"Build proceeds, the MERGE is refused until gh-sync.py open records opened",
+          f"Build proceeds, the MERGE is refused until gh-sync.py {command} "
+          f"{os.path.realpath(feat_dir)} --yes records the terminal receipt",
           file=sys.stderr)
 
 

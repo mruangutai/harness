@@ -146,5 +146,35 @@ with open(os.path.join(bad_directory, "feature.json"), "w") as f:
 r, d, reason = gate("git merge feature/test", root)
 check("T-05 no-record branch ignores unrelated malformed record",
       r.returncode == 0 and d is None, f"rc={r.returncode} reason={reason!r}")
+root, directory = fixture()
+duplicate_id = "FEAT-9002-fixture-duplicate"
+duplicate_directory = os.path.join(root, ".harness", "harness", "features", duplicate_id)
+os.makedirs(duplicate_directory)
+with open(os.path.join(duplicate_directory, "feature.json"), "w") as f:
+    json.dump({"feature_id": duplicate_id, "branch": "feature/test",
+               "github": {"build_entry": "opened"}}, f)
+r, d, reason = gate("git merge feature/test", root)
+_, repeated_d, repeated_reason = gate("git merge feature/test", root)
+check("T-05 duplicate valid records claiming the branch deny naming both",
+      r.returncode == 0 and d == repeated_d == "deny"
+      and "FEAT-9001-fixture-non-era" in reason and duplicate_id in reason
+      and "gh-sync.py" not in reason and reason == repeated_reason,
+      f"rc={r.returncode} reason={reason!r} repeated={repeated_reason!r}")
+root, directory = fixture(entry="opened")
+bad_directory = os.path.join(root, ".harness", "harness", "features", "FEAT-9002-unrelated-malformed")
+os.makedirs(bad_directory)
+with open(os.path.join(bad_directory, "feature.json"), "w") as f:
+    json.dump([], f)
+r, d, reason = gate("git merge feature/test", root)
+check("T-05 single owner plus unrelated malformed record still allows",
+      r.returncode == 0 and d is None, f"rc={r.returncode} reason={reason!r}")
+for command, name in (
+    (f"git -C {root} merge feature/test", "T-05 git -C global flag merge is still detected"),
+    ("git -c core.pager=cat merge feature/test", "T-05 git -c config global flag merge is still detected"),
+    (f"git --work-tree {root} merge feature/test", "T-05 git --work-tree global flag merge is still detected"),
+):
+    root, _ = fixture()
+    r, d, reason = gate(command, root)
+    check(name, r.returncode == 0 and d == "deny", f"rc={r.returncode} reason={reason!r}")
 print("ALL PASSED" if not fails else f"{fails} FAILED")
 sys.exit(bool(fails))

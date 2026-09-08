@@ -44,10 +44,21 @@ def gh_merge(rest):
 
 
 def git_merge(rest):
-    args = [word for word in rest if not word.startswith("-")]
-    if not args or args[0] != "merge":
-        return None
-    return "git", args[1] if len(args) > 1 else None
+    takes_value = {"-C", "-c", "--work-tree", "--git-dir", "--namespace", "--config-env",
+                   "--super-prefix"}
+    index = 0
+    while index < len(rest):
+        token = rest[index]
+        if token in takes_value:
+            index += 2
+            continue
+        if token.startswith("-"):
+            index += 1
+            continue
+        if token != "merge":
+            return None
+        return "git", rest[index + 1] if index + 1 < len(rest) else None
+    return None
 
 
 def nested_merge(tokens, depth):
@@ -95,9 +106,10 @@ def head_branch(command, cwd, repo):
     return (branch, None) if branch else (local_branch(cwd), failure)
 
 
-# A record owns a merge only when its usable branch field matches. An unreadable or non-object
-# record cannot be attributed to the current branch, so it must not override a no-record decision.
+# Only readable JSON objects with the matching branch can own a merge. Unattributable records are
+# ignored; duplicate owners must be surfaced rather than allowing glob iteration to choose one.
 def feature_for(branch):
+    owners = []
     for path in glob.glob(os.path.join(ROOT, ".harness", "*", "features", "*", "feature.json")):
         try:
             with open(path) as f:
@@ -105,8 +117,8 @@ def feature_for(branch):
         except (OSError, json.JSONDecodeError):
             continue
         if isinstance(document, dict) and document.get("branch") == branch:
-            return os.path.dirname(path), document
-    return None, None
+            owners.append((os.path.dirname(path), document))
+    return owners
 
 def deny(reason):
     print(json.dumps({"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "deny", "permissionDecisionReason": reason}}))
@@ -131,11 +143,16 @@ def main():
     try:
         import feature_schema
         branch, failure = head_branch(command, os.getcwd(), github.get("repo") or "")
-        feat_dir, document = feature_for(branch)
-        if document is None:
+        owners = feature_for(branch)
+        if not owners:
             if failure:
                 print(f"merge-gate: could not verify this merge - the head branch could not be resolved through gh ({failure}) and the local branch {branch} owes no build-entry receipt; allowing it, because GitHub is a mirror and never a gate (DEC-138).", file=sys.stderr)
             return
+        if len(owners) > 1:
+            names = ", ".join(sorted(os.path.basename(path) for path, _ in owners))
+            deny(f'merge-gate: {branch} is claimed by more than one feature record ({names}), so this merge cannot be attributed to one feature. Correct the duplicated top-level "branch" field in those feature.json records before merging; no receipt command clears this.')
+            return
+        feat_dir, document = owners[0]
         feat = os.path.basename(feat_dir)
         entry = (document.get("github") or {}).get("build_entry")
         if feat in feature_schema.BUILD_ENTRY_ERA_EXEMPT:

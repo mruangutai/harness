@@ -21,6 +21,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import feature_schema
 
 TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
@@ -3611,6 +3612,21 @@ with tempfile.TemporaryDirectory() as tmpT04:
     result = run(["start-task", feat, "T-01"], tmpT04, {"FACTORY_GH": os.path.join(tmpT04, "gh")})
     check("T-04 station discriminator", result.returncode == 2 and "recover-terminal" in result.stdout
           and "open" not in result.stdout.lower(), result.stdout)
+    recovery = stage_station(tmpT04, "FEAT-9002-fixture-recovery-terminal", [("T-01", "done")],
+                             issues={"T-01": 44})
+    recovery_document = read_feature_json(os.path.join(recovery, "feature.json"))
+    recovery_document["github"]["build_entry"] = "recovery-required"
+    write_feature_json(os.path.join(recovery, "feature.json"),
+                       feature_id=recovery_document["feature_id"],
+                       github=recovery_document["github"])
+    expected_command = feature_schema.recovery_command_for(recovery)
+    result = run(["start-task", recovery, "T-01"], tmpT04,
+                 {"FACTORY_GH": os.path.join(tmpT04, "gh")})
+    check("T-04 recovery-required non-era recover-terminal horn names the derived command",
+          result.returncode == 0 and expected_command == "recover-terminal"
+          and expected_command in result.stderr and " --yes" in result.stderr
+          and "open" not in result.stderr.lower(),
+          result.stderr)
     era = stage_station(tmpT04, "BUG-1030-stale-anchor-write-hazard", [("T-01", "ready")],
                         issues={"T-01": 43})
     _without_build_entry(era)
