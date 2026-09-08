@@ -2,8 +2,8 @@
   "feature_id": "BUG-151-check-domain-fail-aggregation",
   "branch": "feat/BUG-151-check-domain-fail-aggregation",
   "pr": null,
-  "review_sha": "e4efd77485204e1d554dab18a3a957b190f43af1",
-  "cycles_used": 3,
+  "review_sha": "9b7b27d074924af2be46194536d6baca4ad4dd18",
+  "cycles_used": 4,
   "max_total_cycles": 10,
   "runs": [
     {
@@ -60,6 +60,12 @@
       "squad": "eng",
       "agent": "harness-eng-lead",
       "verdict": "PASS"
+    },
+    {
+      "id": "2026-09-07-2-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL"
     }
   ]
 }
