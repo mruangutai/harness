@@ -47,7 +47,7 @@ discovering it at step 1 — a denial there is a **stop**, not a detour (see bel
 ### 1. Install the eight prerequisites in this control-plane clone — HARD GATE, do this first
 
 These prerequisites and the per-clone hooks step belong to this control-plane clone, never to a
-product repository. Nothing distributes `bin/` since `deploy.sh` was deleted (DEC-113); the enforcing
+product repository. Nothing distributes `bin/` any more (DEC-113); the enforcing
 hooks are registered in this clone's `.claude/settings.json` and resolve this clone's manifest; and
 `check-state.sh` INV-9 and INV-31 grade this clone against the step on every run.
 ```bash
