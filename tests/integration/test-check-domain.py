@@ -17,7 +17,7 @@ _anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
 _anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
 _anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
 _anchor_sys.path.insert(0, _anchor_bin)
-import contextlib, json, os, re, shutil, subprocess, sys, yaml
+import contextlib, io, json, os, re, shutil, subprocess, sys, yaml
 
 TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
@@ -5210,6 +5210,20 @@ def _aggregation_verdict(label, captured_text, total):
     return f"{label}: {printed} printed column-0 FAIL line(s) vs total={total}"
 
 
+def _run_block_captured(block_fn, label, stream=None):
+    """Runs block_fn() under a live-tee capture of stdout and returns
+    (total, verdict): the same tee-construction + redirect_stdout + call +
+    _aggregation_verdict sequence main()'s discovery loop uses for every
+    discovered "run_*" block (D-02). `stream` is the passthrough target the
+    tee also writes through to; it defaults to the real sys.stdout so
+    main()'s on-screen behaviour is unchanged when it calls this helper.
+    """
+    tee = _AggTee(stream if stream is not None else sys.stdout)
+    with contextlib.redirect_stdout(tee):
+        total = block_fn()
+    return total, _aggregation_verdict(label, tee.text(), total)
+
+
 def run_bug151_selfcheck_cases():
     """BUG-151: the aggregation safeguard must fire exactly on a zeroness disagreement
     between printed column-0 FAIL lines and a block's returned total (D-01), and must
@@ -5238,6 +5252,31 @@ def run_bug151_selfcheck_cases():
             fails += 1
             detail = str(verdict)[:120] if verdict is not None else "None"
             print(f"FAIL  [bug151-selfcheck] {name}\n      | verdict={detail}")
+
+    # Binds the safeguard to the REAL discovery-loop seam: a locally-defined,
+    # non-discoverable fake block (never module-level, never "run_"-prefixed)
+    # prints a column-0 FAIL line but returns 0 -- BUG-151's exact original
+    # defect shape -- and is run through _run_block_captured(), the same
+    # helper main()'s discovery loop calls. If the tee/redirect_stdout wrap
+    # inside that helper is ever removed, this fake block's printed FAIL is
+    # silently absorbed and the assertion below goes RED.
+    def _fake_fail_block():
+        print("FAIL  fake-block-prints-fail-returns-zero")
+        return 0
+
+    wiring_name = "wiring-seam-catches-print-fail-return-zero"
+    passthrough = io.StringIO()
+    try:
+        _, wiring_verdict = _run_block_captured(_fake_fail_block, "fake-block", stream=passthrough)
+    except Exception as exc:
+        fails += 1
+        print(f"FAIL  [bug151-selfcheck] {wiring_name}\n      | raised {exc!r}")
+    else:
+        if wiring_verdict is not None:
+            print(f"ok    [bug151-selfcheck] {wiring_name}")
+        else:
+            fails += 1
+            print(f"FAIL  [bug151-selfcheck] {wiring_name}\n      | verdict=None (seam failed to capture)")
     return fails
 
 
@@ -5267,19 +5306,16 @@ def main():
         problems.append(cases_verdict)
 
     # The block list is DISCOVERED, never hand-maintained: every module-level
-    # "run_*" callable, in definition order, runs under the same live-tee capture
-    # and the same _aggregation_verdict safeguard as the CASES loop above (D-02).
-    # A block whose printed column-0 FAIL lines disagree on zeroness with its
-    # returned total trips the safeguard (D-01), and a trip alone fails the suite
-    # even when every block's own total was 0.
+    # "run_*" callable, in definition order, runs under _run_block_captured()
+    # (D-02), the same tee-capture + _aggregation_verdict safeguard as the
+    # CASES loop above. A block whose printed column-0 FAIL lines disagree on
+    # zeroness with its returned total trips the safeguard (D-01), and a trip
+    # alone fails the suite even when every block's own total was 0.
     for block_name, block_fn in list(globals().items()):
         if not block_name.startswith("run_") or not callable(block_fn):
             continue
-        block_tee = _AggTee(sys.stdout)
-        with contextlib.redirect_stdout(block_tee):
-            total = block_fn()
+        total, block_verdict = _run_block_captured(block_fn, block_name)
         fails += total
-        block_verdict = _aggregation_verdict(block_name, block_tee.text(), total)
         if block_verdict is not None:
             problems.append(block_verdict)
 
