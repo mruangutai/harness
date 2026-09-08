@@ -340,6 +340,7 @@ def validate_plan_doc(doc, path):
         raise PlanSchemaError(path, "`tasks:` is missing or not a list")
     _validate_station_only(doc, tasks, path)
     _validate_plan_tasks(tasks, path)
+    _validate_plan_depends_on(tasks, path)
     return doc
 
 
@@ -385,6 +386,63 @@ def _validate_plan_tasks(tasks, path):
                 path,
                 f"{where} ({tid}) execution_mode {mode!r} — legal values are "
                 f"{', '.join(LEGAL_EXECUTION_MODES)}")
+
+
+def _depends_on_entries(t, path):
+    """Return the `depends_on` list for task `t`, coerced to a list of raw entries.
+
+    Returns `[]` when `depends_on` is absent or empty. Raises the same
+    `PlanSchemaError` its caller has always raised when the value is
+    present but not a list — bare-string rationale unchanged: a bare string is legal
+    YAML but not a legal depends_on: iterated as-is it would walk CHARACTERS and
+    report phantom missing ids instead of the real shape error.
+    """
+    raw = t.get("depends_on")
+    if raw is None or raw == []:
+        return []
+    if not isinstance(raw, list):
+        raise PlanSchemaError(
+            path,
+            f"tasks ({t['id']}) `depends_on` must be a list of task ids, "
+            f"got {raw!r}")
+    return raw
+
+
+def _dangling_edges(tasks, known, path):
+    """Return `(tid, entry)` pairs whose `entry` names a task id absent from `known`.
+
+    Outer loop over tasks in order, inner loop over entries in order — the exact
+    collection order the caller has always used, preserved so the
+    D-02 exception below lists pairs in the same order as before.
+    """
+    dangling = []
+    for t in tasks:
+        tid = str(t["id"])
+        for entry in _depends_on_entries(t, path):
+            if str(entry) not in known:
+                dangling.append((tid, entry))
+    return dangling
+
+
+def _validate_plan_depends_on(tasks, path):
+    """Reject any `depends_on` entry naming a task id absent from THIS plan (issue #201).
+
+    CALLED IMMEDIATELY AFTER `_validate_plan_tasks`, which has already guaranteed every
+    entry is a mapping carrying a unique id — so `known` may be built by indexing `t["id"]`
+    with no re-check of shape here.
+
+    WHAT THIS PREVENTS: a dangling edge surviving the signature and reaching decomposition
+    as a GitHub `blocked_by` edge pointing at nothing. Self-dependency, cycles and ordering
+    are OUT OF SCOPE by the operator's ruling — this is referential integrity only, not DAG
+    policy.
+    """
+    known = {str(t["id"]) for t in tasks}
+    dangling = _dangling_edges(tasks, known, path)
+
+    if dangling:
+        # D-02: ONE exception naming EVERY dangling edge, never just the first.
+        pairs = ", ".join(f"{tid} to {entry}" for tid, entry in dangling)
+        raise PlanSchemaError(path, f"depends_on names task ids absent from this plan - {pairs}")
 
 
 # --- Manifest domain walk (D-03) --------------------------------------------

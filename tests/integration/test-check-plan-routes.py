@@ -984,7 +984,9 @@ def case_23():
         '    execution_reason: ""\n'
         "    status: true\n"
         "    traces: [" + ", ".join(f"REQ-{i:03d}" for i in range(N_TRACES)) + "]\n"
-        "    depends_on: [" + ", ".join(f"T-{i:02d}" for i in range(N_DEPS)) + "]\n"
+        # depends_on filler: N_DEPS entries naming this plan's own task T-01 (self-reference
+        # is the rule's documented null action) so the fixture stays a legal, loadable plan.
+        "    depends_on: [" + ", ".join("T-01" for _ in range(N_DEPS)) + "]\n"
         "    files:\n" + "".join(f'      - "{GRANTED_PATH}"\n' for _ in range(N_FILES)) +
         "    verify: |\n" + "".join(f"      echo {i}\n" for i in range(N_VERIFY)) +
         # REQUIRED by load_plan, and deliberately NOT in BUDGETED_FIELDS — it is the

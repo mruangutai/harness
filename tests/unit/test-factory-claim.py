@@ -367,6 +367,10 @@ def build_features_root():
         task_dict("T-06", depends_on=["T-02", "T-03", "T-04"]),
         task_dict("T-09"),
         task_dict("T-10", depends_on=["T-99"]),
+        task_dict("T-02"),
+        task_dict("T-03"),
+        task_dict("T-04"),
+        task_dict("T-99"),
     ]))
     write_json(os.path.join(block, "feature.json"), {
         "factory": {"issues": {"T-02": 601, "T-03": 602, "T-04": 603}},
@@ -374,12 +378,12 @@ def build_features_root():
 
     kaya_seg = os.path.join(harness_root, ".harness", "kaya-ai", "features", SEG_FEATURE)
     write_yaml(os.path.join(kaya_seg, "plan.yaml"),
-               plan_dict(SEG_FEATURE, [task_dict("T-77", depends_on=["T-88"])]))
+               plan_dict(SEG_FEATURE, [task_dict("T-77", depends_on=["T-88"]), task_dict("T-88")]))
     write_json(os.path.join(kaya_seg, "feature.json"), {"factory": {"issues": {"T-77": 850}}})
 
     harness_seg = os.path.join(harness_root, ".harness", "harness", "features", SEG_FEATURE)
     write_yaml(os.path.join(harness_seg, "plan.yaml"),
-               plan_dict(SEG_FEATURE, [task_dict("T-77", depends_on=["T-99"])]))
+               plan_dict(SEG_FEATURE, [task_dict("T-77", depends_on=["T-99"]), task_dict("T-99")]))
     write_json(os.path.join(harness_seg, "feature.json"), {"factory": {"issues": {"T-99": 954}}})
 
     return harness_root
@@ -394,6 +398,31 @@ def fixture_features_root(repo_name):
     argument is distinguishable from the correct join (T-05)."""
     segment = repo_name.split("/", 1)[-1]
     return os.path.join(FIXTURE_HARNESS_ROOT, ".harness", segment, "features")
+
+
+# BUG-201 T-05 (D-05, REQ-05) — the shared dangling/legal depends_on fixture pair. Built as its
+# own two-task feature under REPO's OWN segment (the same "widget" tree build_features_root()
+# already resolves) — distinct from FEAT-02-block's T-10/T-99 case, which is an ISSUE-MAP miss
+# on a task the plan legally contains. Here T-02's `depends_on` names T-99, which is not one of
+# this plan's own tasks at all — the referential-integrity violation T-03 (harness_yaml.py) now
+# rejects at load. FEAT_DANGLING's T-02 depends on T-99 (absent from the plan, dangling);
+# FEAT_DANGLING_LEGAL's T-02 depends on T-01 (present, legal) — the paired fixture T-05's
+# intent requires, so a fixture merely broken some other way cannot be mistaken for the rule
+# firing.
+FEAT_DANGLING = "FEAT-201-dangling"
+FEAT_DANGLING_LEGAL = "FEAT-201-legal"
+DANGLING_BLOCKER_ISSUE = 1795  # FEAT_DANGLING_LEGAL's own T-01 blocker issue number.
+
+_dangling_widget_features = os.path.join(FIXTURE_HARNESS_ROOT, ".harness", "widget", "features")
+write_yaml(os.path.join(_dangling_widget_features, FEAT_DANGLING, "plan.yaml"),
+           plan_dict(FEAT_DANGLING, [task_dict("T-01"), task_dict("T-02", depends_on=["T-99"])]))
+write_json(os.path.join(_dangling_widget_features, FEAT_DANGLING, "feature.json"),
+           {"factory": {"issues": {}}})
+write_yaml(os.path.join(_dangling_widget_features, FEAT_DANGLING_LEGAL, "plan.yaml"),
+           plan_dict(FEAT_DANGLING_LEGAL,
+                     [task_dict("T-01"), task_dict("T-02", depends_on=["T-01"])]))
+write_json(os.path.join(_dangling_widget_features, FEAT_DANGLING_LEGAL, "feature.json"),
+           {"factory": {"issues": {"T-01": DANGLING_BLOCKER_ISSUE}}})
 
 
 # --------------------------------------------------------------------------
@@ -949,6 +978,86 @@ rec.issue_data[601] = issue_data(601, "T-02", state="OPEN")
 code, out, err = run_main(rec, ["--as", AS_LOGIN, "--issue", "700"])
 check("(B7) --issue on an issue this agent already owns exits 0, gate never blocks re-entry",
       code == 0 and json.loads(out).get("issue") == 700, (code, out))
+
+# ==========================================================================
+# D — BUG-201 (D-05, REQ-05): the two swallowing consumers' failing diagnosis cases (T-05).
+# T-06 (a separate, later dispatch) fixes factory_claim's no_plan reason text; until then
+# case (Da) below is RED.
+# ==========================================================================
+
+_dangling_plan_path = os.path.join(fixture_features_root(REPO), FEAT_DANGLING, "plan.yaml")
+_legal_plan_path = os.path.join(fixture_features_root(REPO), FEAT_DANGLING_LEGAL, "plan.yaml")
+
+try:
+    harness_yaml.load_plan(_dangling_plan_path)
+    check("(D0) load_plan RAISES on the dangling fixture (T-02 depends_on T-99, absent)",
+          False, "load_plan returned instead of raising")
+except harness_yaml.PlanSchemaError as exc:
+    check("(D0) load_plan RAISES on the dangling fixture (T-02 depends_on T-99, absent)",
+          "T-02" in str(exc) and "T-99" in str(exc), str(exc))
+
+try:
+    _legal_doc = harness_yaml.load_plan(_legal_plan_path)
+    check("(D0) load_plan RETURNS on the paired legal fixture (T-02 depends_on T-01, present)",
+          isinstance(_legal_doc, dict), _legal_doc)
+except Exception as exc:
+    check("(D0) load_plan RETURNS on the paired legal fixture (T-02 depends_on T-01, present)",
+          False, repr(exc))
+
+# (Da) THE DIAGNOSIS. Drive the blocker gate directly, exactly as the candidate loop does at
+# factory_claim.py:380-382, over a candidate resolving to the dangling fixture. No issue_view
+# call is reachable here — a dangling plan fails before any depends_on entry is walked — so
+# factory_gh needs no patching for this case.
+_saved_features_root_d = fc.features_root
+fc.features_root = fixture_features_root
+try:
+    _cache_a = claim._BlockerCache()
+    _gate_a = claim._blocker_gate(_cache_a, REPO, FEAT_DANGLING, "T-02")
+    _reason_a = claim._blocker_reason_text(_gate_a, 780)
+finally:
+    fc.features_root = _saved_features_root_d
+check("(Da) blocker-gate reason a caller receives names BOTH T-02 and T-99",
+      "T-02" in _reason_a and "T-99" in _reason_a, _reason_a)
+check("(Da) blocker-gate reason no longer carries the missing-or-unparseable wording "
+      "(factory_claim.py:193-196)",
+      "no plan could be read" not in _reason_a, _reason_a)
+
+# (Db) THE PAIRED CORRECT PLAN. The same candidate over the legal fixture, T-02's own blocker
+# (T-01) closed: the gate is CLEAR, exactly the verdict (B3)'s "all blockers closed" case
+# asserts (gate is None -> the candidate is claimed) — so a change that broke correct plans
+# reddens here.
+_saved_issue_view_d = factory_gh.issue_view
+factory_gh.issue_view = lambda repo, num, fields: {"state": "CLOSED"}
+fc.features_root = fixture_features_root
+try:
+    _cache_b = claim._BlockerCache()
+    _gate_b = claim._blocker_gate(_cache_b, REPO, FEAT_DANGLING_LEGAL, "T-02")
+finally:
+    fc.features_root = _saved_features_root_d
+    factory_gh.issue_view = _saved_issue_view_d
+check("(Db) blocker-gate over the legal fixture is CLEAR, exactly (B3)'s verdict",
+      _gate_b is None, _gate_b)
+
+# (Dc) NOT A CRASH, AND NOT A STOPPED POLL. A poll holding BOTH the dangling candidate and a
+# second, clear candidate: the dangling one is skipped without raising out of the loop, and the
+# clear one is STILL evaluated and STILL claimed — today's verdict for #790, unaffected by #780.
+rec_c = Recorder()
+rec_c.items = [board_item("i1", 780, REPO), board_item("i2", 790, REPO)]
+rec_c.issue_data[780] = issue_data(780, "T-02 do the thing",
+                                    labels=["harness", "feature:FEAT-201-dangling"])
+rec_c.issue_data[790] = issue_data(790, "T-02 do the thing",
+                                    labels=["harness", "feature:FEAT-201-legal"])
+rec_c.issue_data[DANGLING_BLOCKER_ISSUE] = issue_data(DANGLING_BLOCKER_ISSUE, "T-01",
+                                                        state="CLOSED")
+code_c, out_c, err_c = run_main(rec_c, ["--as", AS_LOGIN])
+check("(Dc) poll does not crash: exit 0, #790 claimed despite #780's dangling plan",
+      code_c == 0 and json.loads(out_c).get("issue") == 790, (code_c, out_c, err_c))
+check("(Dc) #790's create_ref is the only mutating call across the whole poll",
+      rec_c.create_ref_calls()
+      == [("create_ref", (REPO, "refs/heads/factory/issue-790", "deadbeef"))],
+      rec_c.create_ref_calls())
+check("(Dc) no traceback anywhere on stderr", "Traceback" not in err_c, err_c)
+
 
 
 # ==========================================================================

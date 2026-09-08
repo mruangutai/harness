@@ -22,6 +22,8 @@ import subprocess
 import sys
 import tempfile
 
+import harness_yaml
+
 TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
 BIN_DIR = os.path.join(ROOT, ".claude", "skills", "harness", "bin")
@@ -630,6 +632,71 @@ status: approved
     write_feature_json(
         os.path.join(feat, "feature.json"),
         feature_id=feat_name, status=feature_status,
+        github={"milestone": milestone, "parent": parent, "parent_origin": "created",
+                "attached": list((issues or {}).keys()), "issues": issues or {}},
+    )
+    return feat
+
+
+def write_dangling_plan_yaml(feat_dir, feat_name, t2_depends_on, approval=None,
+                              plan_station=None):
+    """A plan.yaml with exactly two complete tasks, T-01 and T-02, where T-02's `depends_on`
+    names `t2_depends_on` — BUG-201 T-05's shared fixture (D-05, REQ-05). Pass "T-99" for the
+    DANGLING plan (T-99 is not one of this plan's own tasks — the referential-integrity
+    violation T-03 rejects at load) and "T-01" for the paired LEGAL plan. Every
+    REQUIRED_TASK_FIELDS key is present for both tasks, in this file's own block-YAML house
+    style (T-05 intent), never json.dump — the same reason `write_plan_yaml` moved off it
+    (FEAT-41 T-16): plan-merge's verbs address a task by its own `- id: T-NN` line.
+    """
+    lines = ["schema: plan/1", f"feature: {feat_name}"]
+    if plan_station is not None:
+        lines.append(f"status: {plan_station}")
+    if approval is not None:
+        lines.append("approval:")
+        for key, value in approval.items():
+            lines.append(f"  {key}: {value}")
+    lines.append("tasks:")
+    for tid in ("T-01", "T-02"):
+        lines += [
+            f"  - id: {tid}",
+            f"    title: {tid}",
+            "    change_type: logic",
+            "    execution_mode: team",
+            "    files:",
+            "      - dummy.py",
+            "    verify: |",
+            "      true",
+            "    intent: |",
+            "      fixture",
+            "    status: ready",
+        ]
+        if tid == "T-02":
+            lines.append(f"    depends_on: [{t2_depends_on}]")
+    with open(os.path.join(feat_dir, "plan.yaml"), "w", encoding="utf-8") as f:
+        f.write("\n".join(lines) + "\n")
+
+
+def stage_depends_on(tmp, feat_name, t2_depends_on, repo="implentio/fake", board=True,
+                      sync=True, issues=None, parent=40, milestone=7,
+                      approval=None, plan_station="plan"):
+    """The BUG-201 T-05 shared fixture (D-05, REQ-05), staged the way `stage_station` already
+    stages a plan.yaml-backed feature — harness.json's github.board, feature.json recording
+    `issues`, and a plan.yaml built by `write_dangling_plan_yaml` instead of `write_plan_yaml`.
+    `approval` defaults to status `pending` and `plan_station` to `plan` — T-05's intent's own
+    words for "otherwise legal": feature, status plan, approval status pending, two complete
+    tasks.
+    """
+    feat = os.path.join(tmp, ".harness", "features", feat_name)
+    os.makedirs(feat)
+    write_harness_json_board(tmp, sync=sync, repo=repo, board=board)
+    write_dangling_plan_yaml(
+        feat, feat_name, t2_depends_on,
+        approval=approval if approval is not None else {"status": "pending"},
+        plan_station=plan_station,
+    )
+    write_feature_json(
+        os.path.join(feat, "feature.json"),
+        feature_id=feat_name, status=None,
         github={"milestone": milestone, "parent": parent, "parent_origin": "created",
                 "attached": list((issues or {}).keys()), "issues": issues or {}},
     )
@@ -3335,6 +3402,154 @@ for _labelF, _breakF in (("absent plan.yaml", "unlink"),
               f"so the sweep keeps the worktree holding the only record of the station",
               any(lit in bothF for lit in _GATE_LITERALS),
               f"gates={_GATE_LITERALS} out={bothF[-700:]!r}")
+
+
+# =============================================================================================
+# BUG-201 (D-05, REQ-05): the two swallowing consumers' failing diagnosis cases (T-05).
+# T-06 (a separate, later dispatch) fixes _projected_for and _status_plan_doc's swallowed
+# cause; until then case (d) below is RED.
+# =============================================================================================
+
+_DANGLING_FEAT = "FEAT-201-dangling"
+_LEGAL_FEAT = "FEAT-201-legal"
+
+with tempfile.TemporaryDirectory() as tmpD0:
+    _dangling_dir = os.path.join(tmpD0, ".harness", "features", _DANGLING_FEAT)
+    os.makedirs(_dangling_dir)
+    write_dangling_plan_yaml(_dangling_dir, _DANGLING_FEAT, "T-99",
+                              approval={"status": "pending"}, plan_station="plan")
+    _legal_dir = os.path.join(tmpD0, ".harness", "features", _LEGAL_FEAT)
+    os.makedirs(_legal_dir)
+    write_dangling_plan_yaml(_legal_dir, _LEGAL_FEAT, "T-01",
+                              approval={"status": "pending"}, plan_station="plan")
+    try:
+        harness_yaml.load_plan(os.path.join(_dangling_dir, "plan.yaml"))
+        check("(D0) load_plan RAISES on the dangling fixture (T-02 depends_on T-99, absent)",
+              False, "load_plan returned instead of raising")
+    except harness_yaml.PlanSchemaError as exc:
+        check("(D0) load_plan RAISES on the dangling fixture (T-02 depends_on T-99, absent)",
+              "T-02" in str(exc) and "T-99" in str(exc), str(exc))
+    try:
+        _legal_doc0 = harness_yaml.load_plan(os.path.join(_legal_dir, "plan.yaml"))
+        check("(D0) load_plan RETURNS on the paired legal fixture (T-02 depends_on T-01, "
+              "present)", isinstance(_legal_doc0, dict), _legal_doc0)
+    except Exception as exc:
+        check("(D0) load_plan RETURNS on the paired legal fixture (T-02 depends_on T-01, "
+              "present)", False, repr(exc))
+
+# (d) _projected_for REFUSES. start-task over the dangling fixture, a board configured, the
+# shape this file's own start-task cases already stage through stage_station — exit status
+# EXACTLY 2, one stderr line naming BOTH T-02 and T-99, no "Traceback" anywhere in the output.
+# NEVER status Ready here (T-05 intent): status Ready's approval guard refuses at exit 2 on its
+# own, so it cannot discriminate a fix that leaves _projected_for still returning {}.
+with tempfile.TemporaryDirectory() as tmpDd:
+    install_gh(tmpDd, FAKE_GH_STATIONS)
+    featDd = stage_depends_on(tmpDd, "FEAT-201-d", "T-99", issues={"T-02": 5501}, parent=40)
+    rDd = run(["start-task", featDd, "T-02"], tmpDd, {"FACTORY_GH": os.path.join(tmpDd, "gh")})
+    bothDd = rDd.stdout + rDd.stderr
+    linesDd = [l for l in bothDd.splitlines() if l.strip()]
+    check("(d) start-task over the dangling fixture: exit status EXACTLY 2",
+          rDd.returncode == 2, bothDd)
+    check("(d) exactly one stderr line names BOTH T-02 and T-99",
+          sum(1 for l in rDd.stderr.splitlines() if "T-02" in l and "T-99" in l) == 1,
+          rDd.stderr)
+    check("(d) no Traceback anywhere in the output", "Traceback" not in bothDd, bothDd)
+
+# (e) THE PAIRED ALLOW for (d): the same start-task invocation over the legal fixture behaves
+# as it does today — mirrors this file's own plain start-task success case (featN): exits 0
+# and writes T-02's OWN sub-issue card to Building.
+with tempfile.TemporaryDirectory() as tmpDe:
+    install_gh(tmpDe, FAKE_GH_STATIONS)
+    featDe = stage_depends_on(tmpDe, "FEAT-201-e", "T-01", issues={"T-01": 5601, "T-02": 5602},
+                               parent=40)
+    rDe = run(["start-task", featDe, "T-02"], tmpDe, {"FACTORY_GH": os.path.join(tmpDe, "gh")})
+    editsDe = [l for l in calls(tmpDe) if "project item-edit" in l]
+    check("(e) start-task over the legal fixture: exits 0, exactly as today",
+          rDe.returncode == 0, rDe.stdout + rDe.stderr)
+    check("(e) start-task sets T-02's OWN issue station to Building, exactly as today",
+          any("--id ITEM_5602" in l and "--single-select-option-id OPT_BUILDING" in l
+              for l in editsDe),
+          str(editsDe))
+
+# (f) _status_plan_doc DIAGNOSES WITHOUT GATING. `status <dangling> Ready` — today the ready
+# guard refuses at exit 2 with "station ready refused" because approval reads as absent
+# (approval.status is "pending", never "approved"). That pair is captured here FIRST, then the
+# new diagnostic line must be ADDITIVE to it — never a replacement, never a second exit code.
+with tempfile.TemporaryDirectory() as tmpDf:
+    install_gh(tmpDf, FAKE_GH_STATIONS)
+    featDf = stage_depends_on(tmpDf, "FEAT-201-f", "T-99", issues={"T-02": 5701}, parent=40)
+    rDf = run(["status", featDf, "ready"], tmpDf, {"FACTORY_GH": os.path.join(tmpDf, "gh")})
+    bothDf = rDf.stdout + rDf.stderr
+    check("(f) status Ready over the dangling fixture: exit status UNCHANGED from today (2)",
+          rDf.returncode == 2, bothDf)
+    check("(f) the existing refusal line is UNCHANGED from today (captured pair, additive)",
+          "station ready refused" in bothDf, bothDf)
+    check("(f) stderr ALSO carries a line naming BOTH T-02 and T-99, additive to the above",
+          any("T-02" in l and "T-99" in l for l in rDf.stderr.splitlines()), rDf.stderr)
+
+# (g) THE PAIRED ALLOW for (f): the same guarded transition (status Ready) over the legal
+# fixture, approval APPROVED, proceeds exactly as this file's own featSt2 case asserts — exits
+# 0 and writes every recorded sub-issue's card to Ready.
+with tempfile.TemporaryDirectory() as tmpDg:
+    install_gh(tmpDg, FAKE_GH_STATIONS)
+    featDg = stage_depends_on(tmpDg, "FEAT-201-g", "T-01", issues={"T-01": 5801, "T-02": 5802},
+                               parent=40, approval={"status": "approved"})
+    rDg = run(["status", featDg, "ready"], tmpDg, {"FACTORY_GH": os.path.join(tmpDg, "gh")})
+    editsDg = [l for l in calls(tmpDg) if "project item-edit" in l]
+    idsDg = {next(p for p in l.split() if p.startswith("ITEM_")) for l in editsDg}
+    check("(g) status Ready over the legal fixture: exits 0, exactly as today",
+          rDg.returncode == 0, rDg.stdout + rDg.stderr)
+    check("(g) status Ready over the legal fixture: both recorded sub-issues moved to Ready",
+          idsDg == {"ITEM_5801", "ITEM_5802"}
+          and all("OPT_READY" in l for l in editsDg),
+          str(editsDg))
+
+
+# ---------------------------------------------------------------------------------------------
+# BUG-201 SIMPLIFY fold-in: refuse() grows an optional runtime-selected `stream` (default
+# unchanged — stdout), and _projected_for's inline "print to stderr, then sys.exit(2)" for a
+# plan that fails to load is replaced by refuse(msg, stream=sys.stderr). This section asserts
+# refuse()'s own contract directly (unit-level, via the already-imported _ghs module) so the
+# altitude fold-in cannot silently flip which stream either call writes to.
+# ---------------------------------------------------------------------------------------------
+import contextlib
+import io
+
+
+def _call_refuse(msg, **kwargs):
+    """Invoke _ghs.refuse and report what happened without ever letting an unexpected raise
+    (a TypeError from an as-yet-unsupported kwarg, say) abort the rest of this suite (P-04)."""
+    try:
+        _ghs.refuse(msg, **kwargs)
+        return ("returned", None)
+    except SystemExit as exc:
+        return ("exit", exc.code)
+    except TypeError as exc:
+        return ("typeerror", str(exc))
+
+
+_ro, _re = io.StringIO(), io.StringIO()
+with contextlib.redirect_stdout(_ro), contextlib.redirect_stderr(_re):
+    _outcome_default = _call_refuse("default stream unchanged")
+check("refuse() default: still exits 2, unaffected by the new parameter",
+      _outcome_default == ("exit", 2), _outcome_default)
+check("refuse() default: message on stdout, exactly as before",
+      "gh-sync: REFUSED — default stream unchanged" in _ro.getvalue(), _ro.getvalue())
+check("refuse() default: nothing written to stderr",
+      _re.getvalue() == "", _re.getvalue())
+
+_rso, _rse = io.StringIO(), io.StringIO()
+with contextlib.redirect_stdout(_rso), contextlib.redirect_stderr(_rse):
+    _outcome_stream = _call_refuse("stderr routed", stream=sys.stderr)
+check("refuse(stream=sys.stderr): exits 2",
+      _outcome_stream == ("exit", 2), _outcome_stream)
+check("refuse(stream=sys.stderr): message on stderr, not stdout",
+      "gh-sync: REFUSED — stderr routed" in _rse.getvalue() and _rso.getvalue() == "",
+      (_rso.getvalue(), _rse.getvalue()))
+
+# _projected_for's own dangling-plan case (BUG-201 case (d) above) already drives this through
+# the real subprocess and asserts exit 2 / one stderr line / no Traceback — unaffected by
+# routing through refuse(): those checks are the end-to-end regression guard for this fold-in.
 
 
 
