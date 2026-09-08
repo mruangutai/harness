@@ -2,8 +2,8 @@
   "feature_id": "FEAT-56-central-onboarding-model",
   "branch": "feat/FEAT-56-central-onboarding-model",
   "pr": null,
-  "review_sha": "62debeaf9e77ecaf0423284220310abae0d3e706",
-  "cycles_used": 7,
+  "review_sha": "e62610608ec850dd5952ee2868c090ba16372701",
+  "cycles_used": 9,
   "max_total_cycles": 10,
   "max_total_runs": 20,
   "runs": [
@@ -92,6 +92,42 @@
       "squad": "validator",
       "verdict": "FAIL",
       "agent": "harness-qa"
+    },
+    {
+      "id": "2026-09-08-simplify-eng",
+      "squad": "eng",
+      "verdict": "PASS",
+      "agent": "harness-eng-lead"
+    },
+    {
+      "id": "2026-09-08-03-review-validator",
+      "squad": "validator",
+      "verdict": "PASS",
+      "agent": "harness-validator-lead"
+    },
+    {
+      "id": "fix-docs-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-documentor"
+    },
+    {
+      "id": "2026-09-08-06-fix-code-eng",
+      "squad": "eng",
+      "verdict": "PASS",
+      "agent": "harness-backend-dev"
+    },
+    {
+      "id": "2026-09-08-07-goalcheck-ship-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-pm"
+    },
+    {
+      "id": "2026-09-08-01-stalestrings-eng",
+      "squad": "eng",
+      "verdict": "PASS",
+      "agent": "harness-dev-ops"
     }
   ],
   "github": {
