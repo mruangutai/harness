@@ -90,12 +90,14 @@ decisions:
       into a directive, which is a suppression switch on a security gate.
     dec: none
 panel:
-  last_run: planpanel-validator
-  cycle: 0
+  last_run: planpanel-c1-validator
+  cycle: 1
   readers:
   - reader: should-not-exist
     status: ran
   - reader: scope
+    status: ran
+  - reader: goalcheck
     status: ran
   findings:
   - id: PF-d882b5400a23e07c2ab26d710e2219db
@@ -104,7 +106,7 @@ panel:
     summary: the gate scans free prose with no escape hatch, and T-02 specifies the
       refusal to print the full anchored path tail, so pasting a refusal into a follow-up
       dispatch is itself refused at exit 2 with no override
-    disposition: open
+    disposition: resolved
   - id: PF-018d8e2a2c8c5293baade75381864e6c
     severity: high
     reader: scope
@@ -112,14 +114,21 @@ panel:
       (T-01 verify) also embeds an anchored eng-t01 path, not only plan.yaml:159 (T-02
       verify); verify: is carried verbatim by contract, so a fix touching only T-02
       leaves T-01 dispatchable-once-then-refused'
-    disposition: open
+    disposition: resolved
+  - id: PF-b126afaed82b9b215606db591430fd8a
+    severity: high
+    reader: goalcheck
+    summary: T-02's verify at plan.yaml:159 embeds the literal anchored runs/eng-t01/digest.md
+      tail, carried verbatim into a member dispatch prompt, so once T-02 lands any
+      dispatch quoting that verify is refused by the gate it installed
+    disposition: resolved
   - id: PF-05e45a58b54f0e48cd92ee77670b5e60
     severity: med
     reader: scope
     summary: T-01's verify and a permanent unit case pin len(g)==3 against the live
       team-config.yaml, so a REQ-04-sanctioned fourth squad turns a checked-in test
       red, falsifying REQ-04's own promise that no second edit is needed
-    disposition: open
+    disposition: resolved
   - id: PF-64c48fa9fb3ddab5856f2f3eb462aeba
     severity: med
     reader: scope
@@ -130,33 +139,71 @@ panel:
       and import yaml succeeds there, under /usr/bin/python3 and under PATH=/usr/bin:/bin
       python3, so the gate would not be a dead no-op in this environment and the remaining
       substance is observability
-    disposition: open
+    disposition: resolved
   - id: PF-4f1b6dc30897208c9312e691819108d9
     severity: med
     reader: scope
     summary: T-03's verify greps four words, so an edit stating the wrong exit code
       or condition, or dropping the compliant-form clause REQ-02 needs, still passes,
       on a main-session-direct task with no reviewer
-    disposition: open
+    disposition: resolved
   - id: PF-6e184d4c13c2f8966eb49de0b188d070
     severity: low
     reader: scope
     summary: T-02's intent mis-cites check-domain.sh:103 as the source of sys.path.insert(0,
       sys.argv[1]); the real insert is :125 using sys.argv[3] in a heredoc plus PYTHONPATH
       pattern
-    disposition: open
+    disposition: resolved
   - id: PF-5160f046083224c5063c1a46729aa9ec
     severity: info
     reader: should-not-exist
     summary: 'explicit clean bill on the three existence questions: build the gate,
       the three-task split is proportionate, D-03''s bridge follows house precedent'
     disposition: open
-  - id: PF-b126afaed82b9b215606db591430fd8a
-    severity: high
-    reader: goalcheck
-    summary: T-02's verify at plan.yaml:159 embeds the literal anchored runs/eng-t01/digest.md
-      tail, carried verbatim into a member dispatch prompt, so once T-02 lands any
-      dispatch quoting that verify is refused by the gate it installed
+  - id: PF-334e1b370c596f88c39730bf43579f13
+    severity: med
+    reader: scope
+    summary: D-05's escape is a spelling, so it is typable into a DIRECTED path just
+      as D-05's own because objects for a NOSCAN token, and the refusal's final line
+      teaches it to every refused dispatcher including a true positive; detection
+      then moves from dispatch time to check-domain.sh write time (NOBODY, exit 2,
+      so no bypass), reproducing the mid-run cost BUG-124 exists to remove, and BRIEF.md
+      discloses the D-01 narrowing but not this residual.
+    disposition: open
+  - id: PF-c996440943e296d047bc8707c587ad89
+    severity: med
+    reader: scope
+    summary: In grep BRE/ERE, in an unescaped Python character class and in fnmatch,
+      [.]harness/ matches every REAL anchor, so an auditor sweeping for the convention's
+      own spelling gets every un-escaped site and no escaped one, silently; both readers
+      demonstrated it live, and the remedy is one caveat clause in T-03 sentence two.
+    disposition: open
+  - id: PF-4ed20fe501059b1b0507f9eccfdc2fb7
+    severity: med
+    reader: scope
+    summary: '[ is a YAML flow indicator, so an unquoted [.]harness/ at a plain-scalar
+      head raises ParserError in mapping-value, list-item and flow-mapping positions,
+      stopping a transcribed panel summary, a state.yaml value or a digest artifact
+      field from parsing; it fails loud, the plan''s own text survives only because
+      every verify and intent is a block scalar, and the convention text never says
+      so.'
+    disposition: open
+  - id: PF-20b1d027656f333f87b7c54ddf742281
+    severity: info
+    reader: should-not-exist
+    summary: T-02's intent mandates the refusal's convention-teaching final line but
+      no case letter and no mutation pins it, so deleting it leaves cases (a), (b),
+      (h) and the whole RED PROOF green and a builder can ship a refusal whose escaped
+      paths are unexplained to the dispatcher D-05's because worries about; remedy
+      is one assertion inside case (h).
+    disposition: open
+  - id: PF-fb7141e87d0ab54cb511a4c0dddcf184
+    severity: low
+    reader: scope
+    summary: All seven panel dispositions in plan.yaml still read open, so the plan
+      presents at signature as carrying seven live findings; also raised by the cycle-1
+      goal-check as Q1 and by STATE.md as Q2, and the remedy is pm transcribing this
+      run's panel block with computed PF- ids.
     disposition: open
 tasks:
   - id: T-01
