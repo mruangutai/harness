@@ -9,8 +9,10 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import harness_boundary
 
+# harness-init is excluded here because of the anchor rule, not because of ownership:
+# the anchor rule would rewrite its deliberately clone-relative core.hooksPath value.
 MAIN_SESSION_ONLY = (
-    "harness-init",  # main session only
+    "harness-init",  # anchor rule would rewrite its clone-relative core.hooksPath; runs only in the main session
     "harness-grilling",  # main session only
     "harness-wayfinding",  # main session only
 )

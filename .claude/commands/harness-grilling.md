@@ -4,8 +4,9 @@ Load `harness-grilling` and run it, here in the main session (no subagent has a 
 
 - **With a loose idea or a feature request** → grill it to clarity, write the artifact, then offer
   `/harness-plan` with the artifact path as pm's input. Do not start planning unasked.
-- **Inside onboarding** → `/harness-init` calls this as its interview; the answers seed
-  `harness.json`, the domain description, and the first glossary terms.
+- **Inside onboarding** → `/harness-init` calls this as its interview; the answers seed the
+  repository's own `harness.json` — which must land on its default branch — and, for the control plane,
+  its `team-config.yaml` domain description and `.harness/glossary.md` terms.
 - **Standalone** ("stress-test this", "grill me on X") → run it and write the artifact; nothing
   downstream is implied.
 

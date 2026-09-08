@@ -9,8 +9,10 @@ never do the feature's work yourself.
 ## 0. Gate
 
 Run `.claude/skills/harness/bin/check-state.sh`. Violations are surfaced to the user before
-anything spawns — except "BRIEF.md missing", which routes to `/harness-init`, and an unapproved
-BRIEF/PLAN, which routes to step 1.
+anything spawns — except when this clone has no `.harness/` at all, or the repository being worked is
+not in `.harness/factory/fleet.yaml`, which route to `/harness-init`. A registered fleet member with
+no feature yet has an empty `<control-plane>/.harness/<segment>/features/`, a normal state that routes
+to `/harness-plan`, not onboarding; an unapproved BRIEF/PLAN routes to step 1.
 
 ## 0b. Cut the worktree, before any orchestrator is spawned
 

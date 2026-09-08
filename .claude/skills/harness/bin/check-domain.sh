@@ -381,7 +381,9 @@ if _domain_phase:
     # the main session: the GOVERNED agent got LESS shape enforcement than the ungoverned
     # one. A missing manifest says nothing about how long a file may be.
     if not os.access(manifest, os.R_OK):
-        print(f"check-domain: no {manifest} — enforcement OFF (run /harness-init).",
+        print(f"check-domain: no {manifest} — enforcement OFF. That path is the control "
+              f"plane's own manifest; a product repository never carries one. Run "
+              f"/harness-init in the control-plane clone.",
               file=sys.stderr)
         _run_domain = False
 

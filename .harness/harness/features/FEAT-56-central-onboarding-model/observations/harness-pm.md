@@ -28,3 +28,10 @@
 - 2026-09-08: plan-merge amend refuses a list field with exit 4 unless --yaml-value is passed, and --show needs the same flag; the refusal message names the reason, so read it rather than reaching for apply (which would exit 7 CONFLICT on a shrunk list anyway). Dropped T-02's phantom tests/unit path this way.
 - 2026-09-08: set-panel REPLACES the whole panel mapping, so the safe route is to yaml.safe_load the plan's own panel, mutate in python, safe_dump to a temp value file — a hand-retyped mapping is a silent deletion of any finding you forget. Recorded goalcheck's two MISSING rows and repaired finding 7's id this way.
 - 2026-09-08: a panel finding whose id hashes an edited summary is unreconcilable against its own run digest; the fix is to restore the digest's original summary and recompute, keeping closure narrative in disposition/resolved_by. FEAT-56 finding 7: PF-38d92d6f... -> PF-7d760241...
+- 2026-09-08: plan-merge.py amend takes `--key tasks --id T-06`, not the `--task T-06` a dispatch
+  may spell; `--show` prints the current value plus the sha256 the compare-and-swap needs, and the
+  amend rewrites only that field's block, leaving `approval:` bytes untouched (verified: zero
+  approval lines in git diff).
+- 2026-09-08: to prove "everything else carried word for word" after amending one field, load the
+  task from `git show HEAD:<plan>` and from the tree with safe_load and diff the field — a plain
+  git diff of a folded/literal block cannot distinguish reflow from a content change.

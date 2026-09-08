@@ -417,7 +417,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: [T-01]
-    status: ready
+    status: done
     files:
     - .claude/skills/harness/bin/check-instruction-paths.py
     - .claude/skills/harness/bin/check-state.sh
@@ -598,7 +598,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: check-domain.sh --resolve on .claude/skills/harness/templates/** returns NOBODY at 4b5dbb23, a DEC-174 carve-out
     depends_on: [T-01]
-    status: ready
+    status: done
     files:
       - .claude/skills/harness/templates/README.md
       - .claude/skills/harness/templates/harness.json
@@ -687,7 +687,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: check-domain.sh --resolve on .claude/commands/**, .claude/agents/** and .omp/agents/** returns NOBODY at 4b5dbb23, a DEC-174 carve-out
     depends_on: [T-01]
-    status: ready
+    status: building
     files:
       - .claude/commands/harness.md
       - .claude/commands/harness-plan.md
@@ -726,19 +726,24 @@ tasks:
          answers seed the repository's own harness.json - the file that must land on its default
          branch - and, for the control plane, its team-config.yaml domain description and
          .harness/glossary.md terms. Keep the blocking-step-zero paragraph unchanged.
-      4. .claude/agents/harness-dev-ops.md, the test-runner detection job at ~52-53. The write
+      4. .omp/agents/harness-dev-ops.md is the CANONICAL source and is the file to EDIT: the
+         test-runner detection job at ~52-53. The write
          target today is spelled only as <HARNESS_CONTROL_PLANE_ROOT>/.harness/harness.json.
          Replace with both cases: for the control plane that path; for a fleet member, that
          repository's own .harness/harness.json in its checkout under the fleet's workspace_root,
          which the main session then lands on the repository's default branch - dev-ops never
          pushes and never writes .harness/factory/fleet.yaml. Keep the verify-every-cmd paragraph
          and everything after it unchanged.
-      5. .omp/agents/harness-dev-ops.md is a DISTINCT FILE in the adapter format, not a link. Do
-         not hand-edit it. Run
+      5. .claude/agents/harness-dev-ops.md is a DISTINCT FILE in the adapter format, not a link: it
+         is a GENERATED compatibility adapter, PRODUCED from the canonical .omp source. Do
+         not hand-edit it. After the canonical edit in item 4, run
            python3 .claude/skills/harness/bin/sync-agent-adapters.py --apply
-         to regenerate it from the .claude copy, then
+         which reads .omp/agents and writes the Claude adapter, then
            python3 .claude/skills/harness/bin/check-omp-port.py
-         which must print "OMP port surface: ok" and exit 0. If --apply rewrites other agent files
+         which must print "OMP port surface: ok" and exit 0. Editing the Claude adapter directly is
+         OVERWRITTEN by the next --apply, and that is how this was found: an edit to
+         .claude/agents/harness-dev-ops.md followed by --apply was overwritten with the old .omp
+         text. If --apply rewrites other agent files
          as a side effect, stop and report it rather than committing the sweep.
 
   - id: T-07
@@ -848,7 +853,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: check-domain.sh --resolve on .claude/skills/harness/references/github-mirror.md returns NOBODY at 4b5dbb23, a DEC-174 carve-out
     depends_on: [T-01]
-    status: ready
+    status: done
     files:
       - .claude/skills/harness/references/github-mirror.md
     verify: |
