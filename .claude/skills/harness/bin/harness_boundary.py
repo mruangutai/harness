@@ -804,3 +804,103 @@ def worktree_refusal_location(owner_root):
     if owner_root is None:
         return WORKTREES_SEGMENT + os.sep
     return os.path.join(owner_root, WORKTREES_SEGMENT) + os.sep
+
+
+# THE RUN-DIR GRANT VOCABULARY (BUG-124 T-01). A dispatcher can name a run-dir path
+# a governed callee provably cannot write — an inverted slug such as `eng-t01` instead
+# of `t01-eng` resolves to no lead's grant. These four helpers are the mechanism that
+# lets dispatch-guard.sh (T-02) catch that at dispatch time instead of at write time;
+# nothing here spells a squad name literally, so a renamed or added squad needs no
+# second edit (D-02).
+
+def run_dir_grant_globs(root):
+    """Every write-grant glob in `<root>/.harness/team-config.yaml` whose pattern
+    text contains the substring `/runs/`, sorted and de-duplicated.
+
+    Walked GENERICALLY: any list whose members are ALL mappings carrying a `path`
+    key is a grant list, wherever it sits in the parsed document — not only under
+    `leads:` — so a run-dir grant declared under a new role is still found with no
+    change here. Parsed through harness_yaml (DEC-171): no hand-rolled YAML regex
+    reading of this manifest. Never raises: an absent, unreadable, unparseable
+    manifest, a missing `harness_yaml` module, or a missing PyYAML, all yield
+    `[]` — the caller decides what an empty
+    vocabulary means (dispatch-guard.sh falls through rather than refusing on a
+    manifest it cannot read; D-04).
+    """
+    manifest_path = os.path.join(root, ".harness", "team-config.yaml")
+    found = set()
+
+    def walk(node):
+        if isinstance(node, dict):
+            for value in node.values():
+                walk(value)
+        elif isinstance(node, list):
+            if node and all(isinstance(item, dict) and "path" in item for item in node):
+                for item in node:
+                    pat = str(item["path"])
+                    if "/runs/" in pat:
+                        found.add(pat)
+            for item in node:
+                walk(item)
+
+    try:
+        import harness_yaml
+        walk(harness_yaml.load_file(manifest_path))
+    except Exception:
+        return []
+
+    return sorted(found)
+
+
+# Anchored on the literal `.harness/` segment (not `checkout_relative()`): a dispatch
+# prompt legitimately names an absolute path in another checkout that may not exist
+# yet, and this must read the tail with zero filesystem access. This is also what
+# makes the D-05 `[.]harness/` quoting spelling invisible here — the escaped form
+# never contains the literal substring `.harness/`.
+_RUN_DIR_REF_RE = re.compile(
+    r"\.harness/([^/\s]+)/features/([^/\s]+)/runs/([A-Za-z0-9._-]+)")
+
+
+def run_dir_refs(text):
+    """Every `.harness/<repo>/features/<feature>/runs/<slug>` reference in `text`,
+    as `(repo, feature, slug)` tuples, in order of first appearance, de-duplicated.
+    """
+    seen = set()
+    out = []
+    for m in _RUN_DIR_REF_RE.finditer(text):
+        ref = (m.group(1), m.group(2), m.group(3).rstrip(".,"))
+        if ref not in seen:
+            seen.add(ref)
+            out.append(ref)
+    return out
+
+
+def run_dir_slug_ok(ref, globs):
+    """Whether `ref = (repo, feature, slug)` names a run directory at least one of
+    `globs` can write. Synthesizes the run-dir's leaf — `.../runs/<slug>/x` — so a
+    bare directory reference is gradeable against a grant glob ending in `/**`.
+    `globs` empty means "cannot check", which is the CALLER's call, not this one's:
+    it returns False, never True.
+    """
+    if not globs:
+        return False
+    repo, feature, slug = ref
+    candidate = f".harness/{repo}/features/{feature}/runs/{slug}/x"
+    return any(matches(candidate, g) for g in globs)
+
+
+def run_dir_forms(globs):
+    """The compliant example form for each glob in `globs`, sorted and de-duplicated:
+    `.harness/*/features/*/runs/*-eng/**` yields `<task-or-purpose>-eng`. Takes the
+    last path segment before a trailing `/**`, replaces a leading `*` with the literal
+    text `<task-or-purpose>`, and skips any glob whose run-dir segment carries no
+    suffix (a bare `*`) or names a fixed literal instead of a wildcard suffix.
+    """
+    out = set()
+    for g in globs:
+        base = g[:-3] if g.endswith("/**") else g
+        segment = base.rsplit("/", 1)[-1]
+        if not segment.startswith("*") or segment == "*":
+            continue
+        out.add("<task-or-purpose>" + segment[1:])
+    return sorted(out)
