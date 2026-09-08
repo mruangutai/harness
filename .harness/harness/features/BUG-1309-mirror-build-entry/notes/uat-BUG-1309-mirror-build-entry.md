@@ -176,6 +176,35 @@ wrong with it, and what do I type next?*
 
 ---
 
+## Step 3b — The refusal survives the flags you actually type
+
+Nobody merges with a bare `git merge`. If the gate reads the FIRST option after `merge` as the
+branch name, every one of these would find no owner and be silently allowed — a deny you can only
+see when you type the command the way you really type it.
+
+```bash
+python3 /tmp/bug1309-uat-fixture.py $UAT_CHECKOUT recovery-required
+
+printf '{"tool_input":{"command":"git merge --no-ff feature/uat-scratch"}}' \
+  | HARNESS_PROJECT_DIR=$UAT_ROOT bash $UAT_CHECKOUT/.claude/skills/harness/bin/merge-gate.sh
+
+printf '{"tool_input":{"command":"git merge --squash feature/uat-scratch"}}' \
+  | HARNESS_PROJECT_DIR=$UAT_ROOT bash $UAT_CHECKOUT/.claude/skills/harness/bin/merge-gate.sh
+
+printf '{"tool_input":{"command":"git merge -m message feature/uat-scratch"}}' \
+  | HARNESS_PROJECT_DIR=$UAT_ROOT bash $UAT_CHECKOUT/.claude/skills/harness/bin/merge-gate.sh
+```
+
+**Observe:** THREE JSON lines, one per command, each carrying `"permissionDecision": "deny"` and
+each naming `FEAT-9001-uat-scratch` and `github.build_entry=recovery-required` — the same message
+you read in Step 3, unchanged by the flag.
+
+- **PASS** if all three print a `deny`.
+- **FAIL** if any one of them prints nothing. A silent allow here is the whole defect: the flag,
+  not the branch, was read as what you were merging.
+
+---
+
 ## Step 4 — The remedy it named is a real command
 
 ```bash
@@ -218,12 +247,18 @@ opened
 printf '{"tool_input":{"command":"git merge feature/uat-scratch"}}' \
   | HARNESS_PROJECT_DIR=$UAT_ROOT bash $UAT_CHECKOUT/.claude/skills/harness/bin/merge-gate.sh
 echo "exit=$?"
+
+printf '{"tool_input":{"command":"git merge --no-ff feature/uat-scratch"}}' \
+  | HARNESS_PROJECT_DIR=$UAT_ROOT bash $UAT_CHECKOUT/.claude/skills/harness/bin/merge-gate.sh
+echo "exit=$?"
 ```
 
-**Observe:** **no JSON at all**, and `exit=0`. Silence is the allow.
+**Observe:** **no JSON at all** from either command, and `exit=0` twice. Silence is the allow, and
+it must hold for the flag form too — a gate that denies `--no-ff` after the receipt is recorded
+would be over-refusing.
 
-- **PASS** if nothing is printed except `exit=0`.
-- **FAIL** if a `deny` reappears.
+- **PASS** if nothing is printed except the two `exit=0` lines.
+- **FAIL** if a `deny` reappears on either.
 
 ---
 
@@ -299,8 +334,9 @@ echo "removed"
 
 ## Your verdict
 
-SC-10 is **met** only if Steps 3, 5, 6 and 7 all PASS — a refusal you can act on without reading
-source, and the named remedy both existing and clearing the state. Steps 4 and 8 are supporting;
+SC-10 is **met** only if Steps 3, 3b, 5, 6 and 7 all PASS — a refusal you can act on without
+reading source, a refusal that survives the merge flags you actually type, and the named remedy
+both existing and clearing the state. Steps 4 and 8 are supporting;
 Steps 1, 2 and 9 are setup and teardown.
 
 Record the result where the ship decision is made. If any step FAILED, quote the message you

@@ -3,118 +3,118 @@
 ## Current
 
 - feature: BUG-1309-mirror-build-entry
-- run: .harness/harness/features/BUG-1309-mirror-build-entry/runs/2026-09-08-c14-validator/state.yaml
-- squad: validator
-- station: **review** (`plan.yaml:24`; moved from `building` by `gh-sync.py status … review`, which
-  also put #1407 and its nine sub-issues at review). All thirteen tasks read `done`.
-- `review_sha`: **da6da610b6576c6b844381377f2de0ab3daa5f62**. The panel and the goal-check both ran
-  against **c8b23e03**, the first commit that CONTAINS the R-1/R-2/R-3 implementation (the prior
-  d8f4dc49 pin predated it). The c14 record commit `da6da610` then wrote the station into `plan.yaml`,
-  tripping INV-33 while the pin sat behind it, so the pin moved forward. **The re-pin reviews nothing
-  new:** `git diff --name-only c8b23e03 da6da610` is confined to this feature's own directory and
-  touches ZERO code paths — verified, not assumed.
-- status: **NOT shippable.** The validate round ran and FAILED on a criterion, not on a gate.
-- **Both approvals cover the current text.** `plan.yaml:3-6` reads `approved` / `Mike Ruangutai` /
-  `date: '2026-09-08'`, the four 2026-09-06 `approval.rulings` intact at `plan.yaml:7-25`;
-  `BRIEF.md:181-185` reads `approved` / `date: 2026-09-08`. The former Q2 (plan re-signature) is CLOSED.
+- run: c15 validate — `runs/2026-09-08-c15-validator/` (panel + gate-only qa) and
+  `runs/2026-09-08-c15gc-product/` (goal-check), dispatched concurrently, read-only, disjoint files.
+- squad: validator + product
+- station: **review** (`plan.yaml:24`, unchanged). All thirteen tasks read `done`.
+- `review_sha`: **e374c9a29e4321968e4c2a6bbae045da9203440c** — re-pinned this round and verified
+  equal to HEAD before either run was dispatched. `plan.yaml` untouched since the pin, so INV-33
+  stays quiet.
+- status: **NOT shippable, and the cycle budget is EXHAUSTED** — `cycles_used` 14 of 14. No further
+  fix cycle may open without the operator raising the budget.
+- Both approvals still cover the current text (`plan.yaml:3-6`, `BRIEF.md:181-185`).
 
-### The gates are green, and green is not enough
+### What e374c9a2 fixed, measured not assumed
 
-Re-run by the orchestrator in the clean worktree at the pin, `env -u HARNESS_AGENT_TYPE`:
-`tests/integration/test-merge-gate.py` exit 0 ALL PASSED · `tests/integration/test-gh-sync.py` exit 0,
-323 ok / 0 FAIL · `tests/unit/test-gh-sync-build-entry.py`, `tests/unit/test-feature-schema-build-entry.py`
-exit 0 · `tests/unit/test-omp-hooks.py` exit 0, 56 tests. The suite cannot see the defect below: no
-fixture anywhere in `tests/integration/test-merge-gate.py` puts an option between `merge` and the ref.
+`git_merge()` now splits the old single `takes_value` set into `global_values` (pre-subcommand) and
+`merge_values` (post-subcommand) and keeps walking after the `merge` token instead of returning
+`rest[index + 1]`. Orchestrator measurement at this pin:
 
-### The gating finding — R-2 traded one hole for another (SC-04 clause (a), UNMET as BEHAVIOUR)
+- `tests/integration/test-merge-gate.py` exit 0, **27 cases ALL PASSED** (3 new: `--no-ff`,
+  `--squash`, `-m message`). `tests/integration/test-gh-sync.py` exit 0 / 323 ok / 0 FAIL;
+  `tests/unit/test-gh-sync-build-entry.py`, `test-feature-schema-build-entry.py`,
+  `test-omp-hooks.py` all exit 0.
+- End-to-end through the real hook (`/tmp/bug1309-final-probe.py`, 23 checks): 14 deny forms
+  (incl. `--no-ff`, `--squash`, `-m 'wip merge notes'`, `-s ours`, `-X ours`,
+  `--strategy-option=ours`, `--into-name main`, `git -c … merge --no-ff`, `bash -c` wrapped) all
+  DENY; 9 preserved bounds (healthy `opened`, era-exempt, `git merge-base`, `git commit -m 'merge
+  …'`, `git status`, no-record + malformed record, single owner + malformed record) emit NO
+  decision. **VP-01's named forms are closed**, and the 3 added test cases are DISCRIMINATING
+  against `da6da610` (parser-level old-vs-new diff).
 
-`git_merge` (`merge-gate.py:47-60`) returns `rest[index + 1]` the moment it matches the `merge` token,
-so flag-skipping never resumes after the subcommand and the first option is taken as the branch.
-`feature_for` then finds no owner and `main` returns with no permission decision.
+### Why it still does not pass — the CLASS survived the instances
 
-Measured end-to-end through the real hook by the orchestrator, on a fixture recording
-`branch: feature/test` + `github.build_entry: recovery-required` (`/tmp/bug1309-probe-e2e.py`, driving
-the suite's own `fixture()`/`gate()` helpers):
+Both sets are closed enumerations of option NAMES; signed T-05 step 2 (`plan.yaml:1029-1033`)
+required value-taking options be handled **as a class**. Three current defects, each re-derived by
+the orchestrator against **real git 2.50.1** (does git actually merge?) and the real hook (what does
+the gate decide?) — `/tmp/bug1309-c15-verify.py`:
 
-| command | decision |
-|---|---|
-| `git merge feature/test` | **deny** |
-| `git merge --no-ff feature/test` | **none — silent allow**, empty stdout AND empty stderr |
-| `git merge --squash feature/test` | **none — silent allow** |
+| form | real git | gate | verdict |
+|---|---|---|---|
+| `git merge -F <file> feature/test` | **MERGED** | **none — silent allow** | VF-01 high, fails OPEN |
+| `git merge --cleanup strip feature/test` | **MERGED** | **none — silent allow** | VF-01 high, fails OPEN |
+| `git --attr-source HEAD merge --no-ff feature/test` | **MERGED** | **none — silent allow** | VF-02 high, fails OPEN |
+| `git merge --abort` | n/a (rc 128) | **deny** | VF-03 med, NEW, fails CLOSED |
+| `--file=<f>` / `--cleanup=strip` / `--exec-path=<p> merge` | MERGED | deny | correct |
+| `git merge --no-ff feature/test` (control) | MERGED | deny | correct |
 
-Against the pre-change source (`git show de04d841:.claude/skills/harness/bin/merge-gate.py`) both
-escaping forms resolved to `feature/test` and denied. **They are a regression this delta introduced.**
-The panel's scoping correction to the orchestrator's first, broader claim is accepted and recorded:
-`git merge -m 'msg' X` (old parse → `msg`) and `git -C /repo merge --no-ff X` (old parse → not
-detected at all) were ALREADY net-allow before the change — pre-existing holes closed by the same
-remedy, not regressions.
+VF-03 is a regression this delta introduced: the parser returns `("git", None)` for
+`merge --abort/--continue/--quit`, `head_branch` falls back to `local_branch(cwd)`, and the
+operator's own merge-recovery commands are refused on a branch owing a receipt. The old parser
+returned `--abort` as the ref, found no owner, allowed.
 
-Three independent readers reached this: `harness-code-reviewer` and `harness-security-reviewer` in the
-c14 panel (`runs/2026-09-08-c14-validator/digest.md`, VP-01, high), `harness-pm` in the goal-check
-(`notes/research-BUG-1309-goalcheck-c14.md`, F-04a — 7 of 16 enumerated operator merge forms reach no
-deny; every other SC met, SC-10 pending-user), and the orchestrator's own probe above.
+**VF-04 — the code grade is a FAIL, not a 4.** Re-measured at this pin:
+`code-grade.py --base da6da610 --head e374c9a2` → `git_merge` CYCLOMATIC 8, COGNITIVE 15, ABC 16.1,
+**GRADE 3 / BAR 4 / RESULT FAIL / SEVERITY high**. The grade-4 figure carried into this round's
+dispatch is falsified by the tool at the current tip.
 
-### Routing — no lead owns the remedy
+### One reported finding is FALSE and must not buy a cycle
 
-`merge-gate.py` and `tests/integration/test-merge-gate.py` are DEC-174 enforcement-layer files. No
-squad may execute the fix, so this routes to no lead and no fix cycle was opened. It returns to the
-operator through the main session, exactly as R-1/R-2/R-3 were delivered.
+pm's goal-check made `git --exec-path <path> merge <branch>` ("form 16") its single blocking
+must_fix. **Real git does not merge there**: bare `--exec-path` with a detached argument prints the
+exec path and exits 0, so there is no merge for a gate to catch. The panel reached the same
+conclusion independently and recorded VP-02 MOOT. SC-04 clause (a) is unmet for VF-01/VF-02, not for
+form 16.
 
-### The rest of the panel — advisory, none gating alone; full text in the c14 validator digest
+### Panel dispositions, none gating alone
 
-VP-02 (med) `takes_value` omits `--exec-path`, which signed T-05 step 2 (`plan.yaml:1029-1033`) names
-while requiring the CLASS be handled — same remedy site. VP-03 (med) SC-04's stable-sorted-order clause
-survives an unsorted mutant. VP-04 (med) no fixture combines `len(owners) > 1` with an era-exempt
-claimant, though source order is correct (`merge-gate.py:150-155` precedes `:157-159`). VP-05 (med) the
-`open` horn is asserted by no test and prints a command with no `<feature-dir>`; R-3 mandated it
-verbatim, so it is contract-compliant, untested and unrunnable as printed at once. VP-06 (low) the
-delta's own `single owner plus unrelated malformed record still allows` case is NON-DISCRIMINATING —
-orchestrator-verified: `de04d841` already carried the `isinstance(document, dict)` guard at its line
-107, so it passes identically against the pre-change source.
+VP-02 moot (class survives as VF-02). VP-05 substantively falsified — the `open` deny does print the
+realpath'd feature dir (`merge-gate.py:183-184`); the untested-substring half stands, pre-existing.
+VP-03/VP-04/VP-06 unchanged and still open: `main()`/`feature_for()` carry zero changes in this
+delta. qa returned `matrix_ok: true` and noted correctly that the matrix is near-vacuous here — no
+matrix-required suite binds `git_merge`. Full text in the two run digests.
 
-### Budget
+### Routing — still no lead owns the remedy
 
-cycles 13/14 — **UNCHANGED**. Both leads reported zero send-backs, and the unmet SC was not
-re-dispatched to a squad because no squad may hold it (DEC-157 counts rework, and none occurred). One
-cycle remains. runs 44 against a 20-run budget (INV-22, informational).
+`merge-gate.py` and its integration bed are DEC-174 enforcement-layer files. Both leads reported
+**0 send-backs**; no fix cycle was opened because no squad may execute one. The increment to 14 is
+the unmet-SC re-validation itself (DEC-157), not squad rework.
 
-### SC-10 UAT — deliberately NOT requested
+### SC-10 UAT — script AMENDED, hand test still NOT requested
 
-Remediation is not accepted, so no UAT was requested. Two reasons it must wait: the operator would be
-hand-testing a build with a known silent-allow, and the script at
-`notes/uat-BUG-1309-mirror-build-entry.md` issues only the bare `git merge feature/uat-scratch` form
-(lines 155, 218, 239, 248, 274), so an operator PASS could not detect the escape.
+pm added **Step 3b** to `notes/uat-BUG-1309-mirror-build-entry.md` (+41/-5, verified on disk): three
+deny forms after the receipt is owed, a `--no-ff` over-refusal check in the post-`open` allow step,
+and a verdict line that now requires 3b. It deliberately does not cover `-F` / `--cleanup` /
+`--attr-source`; adding them today would encode a known FAIL. **No UAT requested**: the operator
+would be hand-testing a build with three measured silent allows.
 
 ### The canonical checker
 
 `check-state.sh` findings about shared external worktrees and board/task divergence are NOT this
-feature's current state and were not treated as clean or as cleared. Its BUG-1309 rows at this commit
-are the INV-22 run-count note, five referenced-but-pruned run dirs, and several run dirs on disk that
-`feature.json` does not record — pre-existing bookkeeping drift, none of it this round's work.
+feature's state and were not treated as cleared. Its BUG-1309 rows remain the INV-22 run-count note
+(46 runs against an informational 20) and pre-existing run-dir bookkeeping drift.
 
 ### Next, in order
 
-operator fix of `git_merge` → regression cases for the post-subcommand-flag shape → VP-03/VP-04/VP-05/
-VP-06 coverage in the same reserved bed → re-pin `review_sha` → re-run the panel over the new delta →
-re-run the goal-check → add a `--no-ff` UAT step → SC-10 UAT → rewritten briefing → ship.
+operator decision on Q1 → operator edit of `git_merge` closing the value-taking option CLASS and the
+`--abort` fallback → fixtures for the four shapes in the reserved bed → re-measure `code-grade` →
+re-pin → re-run panel and goal-check → extend UAT Step 3b → SC-10 UAT → rewritten briefing → ship.
 
 ## Open Questions
 
-- Q1 (blocking, operator — **the one actionable step**) — SC-04 clause (a) is unmet as behaviour:
-  `git merge --no-ff <branch>` and `--squash` are a silent ALLOW where the pre-change gate denied.
-  Fix or overrule. Shape of the fix, for convenience only: resolve the branch as the first non-option
-  token AFTER `merge`, consuming merge's own value-taking options (`-m`, `-s`, `-X`, `--into-name`),
-  and treat value-taking globals as a CLASS rather than a closed set — which signed T-05 step 2
-  already required. DEC-174-reserved, so it cannot be delegated.
-- Q2 (non-blocking, operator) — add a `--no-ff` step to the SC-10 UAT script, or accept that the hand
-  test cannot see clause-(a) escapes. No script edit proposed.
-- Q3 (non-blocking, coverage; depends on Q1) — VP-03/VP-04/VP-05/VP-06 are unpinned clauses and one
-  non-discriminating case. Reserved bed, so they land with the Q1 fix rather than after it.
-- Q4 (non-blocking, harness defect) — the `open` horn of the non-era recovery notice is specified by an
-  UNNAMED intent bullet and asserted by no test. Backlog row, or a later amendment.
-- Q5 (non-blocking, harness defect — **now observed twice**) — a lead run returned a complete,
-  well-formed VERDICT/DIGEST/artifact and the host reported it `failed (exit 1)` with "Subagent called
-  yield with null data": `harness-product-lead` earlier, `harness-validator-lead` in the c14 panel.
-  Every claim in the c14 digest was verified against disk before it was used.
-- The stale briefing at `notes/ship-review-2026-09-08-resume.md` and its B-1..B-13 backlog still await
-  operator disposition; it is rewritten after the Q1 fix lands, before the ship decision.
+- Q1 (blocking, operator — **budget-gating**) — SC-04 clause (a) is unmet for a CLASS, not a list:
+  `git merge -F <file> <ref>`, `git merge --cleanup <mode> <ref>` and `git --attr-source <t> merge
+  <ref>` all merge in real git and are silently ALLOWED. Fix (consume a detached value generically,
+  or fail CLOSED when the ref cannot be identified), or overrule the clause with a recorded ruling.
+  DEC-174-reserved, not delegable. **`cycles_used` 14 of 14** — either answer needs the budget
+  raised before another validate round may run.
+- Q2 (blocking-adjacent, operator) — VF-03: `git merge --abort/--continue/--quit` is now DENIED on a
+  branch owing a receipt. New regression of `e374c9a2`, fails closed. Same one edit as Q1.
+- Q3 (non-blocking, operator) — VF-04: `code-grade` reports `git_merge` GRADE 3 / BAR 4 / FAIL.
+- Q4 (non-blocking, coverage) — the reserved bed has no fixture for the value-taking-option class,
+  for `merge --abort`, or for SC-04 clause (c)'s unreadable-JSON / empty-file / non-string-branch
+  noise shapes (probe-proven only).
+- Q5 (non-blocking, harness defect) — a lead run returning a well-formed digest while the host
+  reports `failed (exit 1)` / "yield with null data" was seen in earlier rounds; NOT seen in c15.
+- The stale briefing at `notes/ship-review-2026-09-08-resume.md` and its B-1..B-13 backlog still
+  await operator disposition; rewritten after Q1 lands, before the ship decision.
