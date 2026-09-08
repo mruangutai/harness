@@ -28,6 +28,7 @@ no fleet file is read, nothing is written, and no GitHub call is made until a ca
 import argparse
 import json
 import os
+import sys
 
 import factory_cli
 import factory_gh
@@ -324,6 +325,34 @@ def product_config(fleet, repo_name):
     return doc
 
 
+def product_config_report(fleet):
+    """Return a reachability report: one entry per repository in fleet["repos"], IN DECLARATION
+    ORDER, each {"repo": name, "ref": entry default_branch, "path": _PRODUCT_CONFIG_PATH,
+    "ok": bool, "detail": str}. Calls product_config(fleet, name) for each and catches ONLY
+    FleetError — success sets ok True and detail "", a caught FleetError sets ok False and
+    detail str(exc). Any other exception propagates, because a report that swallows an
+    unexpected bug would report every member unreachable for the wrong reason.
+
+    Makes no other call, and does not clear or consult the process memo itself —
+    product_config already never memoises a failure.
+
+    The "ok" count in the returned entries is meaningful only READ BESIDE the declared count
+    (len(fleet["repos"])): a report over an empty repos list is vacuously all-ok."""
+    report = []
+    for entry in fleet["repos"]:
+        name = entry["name"]
+        ref = entry["default_branch"]
+        try:
+            product_config(fleet, name)
+            ok, detail = True, ""
+        except FleetError as e:
+            ok, detail = False, str(e)
+        report.append(
+            {"repo": name, "ref": ref, "path": _PRODUCT_CONFIG_PATH, "ok": ok, "detail": detail}
+        )
+    return report
+
+
 def board_for(fleet, repo_name):
     """Return repo_name's own board mapping, read from its product configuration
     (product_config above) at the key github.board, validated by validate_board. Raises
@@ -416,13 +445,63 @@ def workspace_path(fleet, repo_name):
     return os.path.join(fleet["workspace_root"], name)
 
 
+def _check_product_configs(fleet, repo_name):
+    """Handle --check-product-configs: optionally narrow `fleet` to one member (resolved
+    through repo_entry, so an undeclared --repo name raises FleetError and is refused by the
+    existing run() trap), build the reachability report, write the ONE stdout payload
+    (factory_cli.payload's own contract — a second payload would break the C-3 stream contract),
+    fail-log every unreachable member, and exit EXIT_REFUSED (2, never 1 — factory_cli reserves
+    exit 1 for nothing-to-do) when any member is unreachable or the report came up short of the
+    declared count."""
+    if repo_name:
+        repo_entry(fleet, repo_name)
+        fleet = dict(fleet, repos=[e for e in fleet["repos"] if e["name"] == repo_name])
+    report = product_config_report(fleet)
+    ok_count = sum(1 for m in report if m["ok"])
+    unreachable_count = len(report) - ok_count
+    factory_cli.payload({
+        "declared": len(fleet["repos"]),
+        "ok": ok_count,
+        "unreachable": unreachable_count,
+        "members": report,
+    })
+    for m in report:
+        if not m["ok"]:
+            factory_cli.fail(
+                "config", "product config unreachable",
+                f'{m["repo"]}@{m["ref"]}:{m["path"]}', m["detail"],
+            )
+    if unreachable_count or len(report) != len(fleet["repos"]):
+        sys.exit(factory_cli.EXIT_REFUSED)
+
+
 def _main():
     parser = argparse.ArgumentParser(prog="factory_config")
     parser.add_argument("--fleet", default=None, help="path to fleet.yaml (default: FLEET_PATH)")
     parser.add_argument("--show", action="store_true", help="print the resolved fleet as JSON")
+    # This makes a network read (product_config_report -> product_config -> file_at_ref, once
+    # per declared repo). check-state.sh runs at every /harness door and before every commit and
+    # deliberately makes no network call, so nothing about this flag is wired into it — the same
+    # precedent as the board-audit reachability cost, ruled once-at-onboarding rather than on
+    # every run.
+    parser.add_argument(
+        "--check-product-configs", action="store_true",
+        help="read every fleet member's own harness.json at its default_branch",
+    )
+    parser.add_argument(
+        "--repo", default=None,
+        help="restrict --check-product-configs to one fleet member (owner/name)",
+    )
     args = parser.parse_args()
 
     fleet = load_fleet(args.fleet) if args.fleet else load_fleet()
+
+    # --check-product-configs and --show are independent flags, but when both are given
+    # --check-product-configs wins and --show is not printed: factory_cli.payload writes the
+    # ONE stdout payload the C-3 stream contract allows, and two payloads would break it.
+    if args.check_product_configs:
+        _check_product_configs(fleet, args.repo)
+        return
 
     if args.show:
         payload = {"repos": fleet["repos"]}

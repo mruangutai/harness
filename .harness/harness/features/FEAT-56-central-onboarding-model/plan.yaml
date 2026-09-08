@@ -183,7 +183,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: []
-    status: ready
+    status: done
     files:
       - .claude/skills/harness/bin/factory_config.py
       - tests/unit/test-fleet-product-config.py
