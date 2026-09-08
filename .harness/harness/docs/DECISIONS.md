@@ -6981,3 +6981,28 @@ add-only proposal keeps going through `apply --entries` unchanged, so the split 
 proposals that rewrite or remove.
 
 **Record:** documented at SPEC §5.3. Refs: DEC-66, DEC-95, DEC-145.
+
+## DEC-220 — Onboarding is fleet registration plus one product-resident file
+
+**Chose:** onboarding a repository is exactly three things: its own `.harness/harness.json` landed
+on its default branch, its entry in `.harness/factory/fleet.yaml`, and its central per-segment tree
+at `<control-plane>/.harness/<segment>/`. Nothing else is installed into a product repository, and
+`.harness/products/` is created nowhere. The three are ordered: registration comes **after** the
+config lands, because the failure of the reverse order has no symptom but an unattributed
+`FleetError`, and `factory_config.py --check-product-configs` is what names it.
+
+**Over:** issue 206 item 2's central `.harness/products/<name>/harness.json`, and the pre-existing
+per-product scaffold that copied `team-config.yaml` into a project. Also over issue 203's scoped
+deletion of `harness-init`: issue 206 asked for issue 203 to be reconciled before either was picked
+up, and the reconciliation is a rewrite rather than a deletion — issue 203 is closed, the
+`deploy.sh` premise behind it is gone, and `.claude/skills/harness-init/SKILL.md` remains the only
+onboarding instruction of record, so the skill is rewritten to the central model and deleted by
+nothing.
+
+**Because:** `factory_config.product_config` reads a member's config from the remote at its
+`default_branch` with no disk fallback, so a central copy would be read by nothing;
+`check-domain.sh` resolves policy only from the control plane's own manifest; features and
+expertise already resolve centrally through `factory_config.features_root`; and the operator struck
+the central placement on 2026-08-18.
+
+**Record:** refs DEC-174, DEC-113, DEC-182, DEC-129.

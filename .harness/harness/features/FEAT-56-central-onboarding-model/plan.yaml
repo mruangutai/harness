@@ -753,7 +753,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-documentor
     depends_on: [T-01, T-02, T-04]
-    status: ready
+    status: done
     files:
       - .harness/harness/docs/SPEC.md
       - .harness/harness/docs/BUILD.md

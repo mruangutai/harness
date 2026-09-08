@@ -3,8 +3,9 @@
 Everything the harness knows about *this* project. Plain files, read and written by agents at spawn
 time — no engine, no build step, no database.
 
-**Written by `/harness-init`, the onboarding interview.** It writes this directory once, at
-onboarding; everything after that is written by the agents that own each path (see the table below).
+**Written by `/harness-init`, the onboarding interview.** It writes *this clone's* directory once,
+at onboarding; everything after that is written by the agents that own each path (see the table
+below). A fleet member gets no such directory — only its own `harness.json` (DEC-220).
 
 ## Layout
 
@@ -13,8 +14,8 @@ onboarding; everything after that is written by the agents that own each path (s
 | `BRIEF.md` | The **goal of record**: Goal, `REQ-NN`, Constraints, `SC-NN` (each with a `verify:` method), `## Approval`. Stable across the project. | `pm` drafts · **you** approve |
 | `PLAN.md` | Active plan: `## Decisions` (`D-NN`), `## Approval`, `## Features` (`FEAT-NN`), `## Tasks` (`T-NN`, each with `change_type:`) | `pm` — except `## Approval` |
 | `DESIGN.md` | The visual design contract: palette in both themes, type scale, spacing, component direction | `visual-designer` |
-| `team-config.yaml` | **The org as data** — membership, `consult-when` routing, and each agent's writable `domain`. Read by `check-domain.sh` on every write | `/harness-init`, seeded from detection |
-| `harness.json` | `test_matrix`, `test_kinds`, `gates`, `budgets`, `log_retention_days` | `/harness-init` · `dev-ops` fills `test_kinds` |
+| `team-config.yaml` | **The org as data** — membership, `consult-when` routing, and each agent's writable `domain`. Read by `check-domain.sh` on every write | `/harness-init`, **in this control plane only** — no product repository has one, seeded from detection |
+| `harness.json` | `test_matrix`, `test_kinds`, `gates`, `budgets`, `log_retention_days` | `/harness-init`, in **both** destinations — this control plane's own copy, and a fleet member's, which must land on that repository's default branch · `dev-ops` fills `test_kinds` |
 | `expertise/<agent>.md` | Per-agent durable **craft** — how that agent works, true wherever it works. Budget **150 lines**. Injected at every OMP task-agent start; the agent never reads it itself | each agent, its own file only |
 | `<repo>/expertise/<agent>.md` | Per-agent repository-specific knowledge. Budget **40 lines**. Injected by the same OMP lifecycle extension alongside craft knowledge | each agent, its own file only |
 | `efforts/<slug>/` | A pre-feature **wayfinding map** (`MAP.md` + `tickets/`): a vague idea being taken to plannable clarity across sittings. Local markdown, never the issue tracker (DEC-165). Retired or archived once its effort hands off to `/harness-plan` | the **main session** |
@@ -79,7 +80,10 @@ lead, so multi-squad lifecycles are sequenced by the orchestrator as one run per
 
 ## Getting started
 
-`BRIEF.md` missing means the project is not onboarded — run `/harness-init`.
+A repository is not onboarded when it is absent from `.harness/factory/fleet.yaml`, when its own
+`harness.json` is not readable at its default branch, or when it has no central tree at
+`<control-plane>/.harness/<segment>/` — run `/harness-init`. An empty `features/` directory is a
+normal state, not a sign of missing onboarding.
 
 Run `.agents/skills/harness/bin/check-state.sh` any time; it checks invariants that fail silently,
 including required lifecycle integration, approvals, and tasks missing `change_type`.

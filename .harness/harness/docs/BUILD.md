@@ -101,9 +101,10 @@ default means the org silently reshapes the next time it moves.
 independently by **omitting `Agent` from every member's `tools:` list**. Do that regardless of the
 setting; the depth cap is defence in depth, not the primary control.
 
-**`/harness-init` must write all five entries, and the state-consistency check must verify them** — a
-silent degradation to flat, to memoryless agents, to delegating members, or to unvalidated digests is
-exactly the failure class this design tries to avoid.
+**`/harness-init` must write all five entries in this control-plane clone, and the
+state-consistency check must verify them there** — a silent degradation to flat, to memoryless
+agents, to delegating members, or to unvalidated digests is exactly the failure class this design
+tries to avoid.
 
 ### 0b — Domain-enforcement hook — WORKING, via `settings.json` not frontmatter
 
@@ -373,7 +374,7 @@ was built; the Done-when block at the end records how each criterion was verifie
 
 ### What it is
 
-The onboarding interview, run **inside a target project**. It absorbs the deleted `bootstrap` team
+The onboarding interview, run **in the control-plane clone** (DEC-220). It absorbs the deleted `bootstrap` team
 (DEC-14). Delivered as a **flat skill** at `.claude/skills/harness-init/SKILL.md` — *not* a command,
 because commands do not distribute (DEC-06), and *not* nested, because a project skill is exactly one
 level under `.claude/skills/` (DEC-100).
@@ -385,12 +386,15 @@ It must run in the **main session**: only that tier can call `AskUserQuestion` (
 | Operation | Does | Touches project state? |
 |---|---|---|
 | the factory's workspace step | clones the repository the fleet declares into `workspace_root` (`bin/factory_workspace.py`) | **no** — it creates the checkout and writes no project artifact inside it |
-| **`/harness-init`** | writes every project artifact | yes, once |
+| **`/harness-init`** | writes this control plane's own artifacts, and lands the one product-resident file — that repository's `.harness/harness.json` | **one file only**, on that repository's default branch |
 
 Onboarding is a fleet entry plus init: adding `- name: <owner>/<repo>` to
 `.harness/factory/fleet.yaml` is what makes a repository reachable, and `/harness-init` is what
-writes its `.harness/` state. Nothing is copied into the repository, which is what keeps the
-first half dumb and safe.
+writes the control plane's own `.harness/` state. Exactly one file is copied into the repository —
+its own `.harness/harness.json`, and it must land on that repository's default branch (the
+`default_branch` its fleet entry declares), because the factory reads a member's config from that
+ref remotely and never from a checkout on disk (DEC-220). Nothing else is copied into the
+repository, which is what keeps the first half dumb and safe.
 
 ### What it writes — six artifacts
 
@@ -777,7 +781,7 @@ Beyond "build personas + assemble them." Prune freely.
 | 15 | `.gitignore` | **NET-NEW FILE.** See the detail block below. |
 | 16 | `.harness/README.md` | **REWRITE, not create** — it already exists and contradicts this design. See the detail block below. **Owner: `documentor`.** |
 | 17 | `.harness/team-config.yaml` | **NET-NEW.** The team manifest (SPEC §3.1): orchestrator, paths, `shared_context`, and the 3 teams with leads, members and `consult-when`. Read by the orchestrator at every `/harness` entry and by each lead when delegating. **This is what makes the org data rather than prose.** Ships alongside **`bin/check-domain.sh`** (net-new): generic and stateless — takes an agent name + a path, reads that agent's `domain` from the project's manifest, exits non-zero if out of scope. No project-specific globs; identical in every project. |
-| 18 | `/harness-init` + `templates/` | **DONE** (DEC-112). The onboarding interview (absorbs the deleted `bootstrap` team): project type + frameworks + requirements; writes `harness.json`, `team-config.yaml`, and a draft `BRIEF.md` for approval; optionally chains a design pass. Delegates mechanical detection to `dev-ops` for `domain` globs and `test_kinds`. Supports `--upgrade` to merge newer template entries while preserving project values, driven by `schema_version`. **This is what made the distribution half safe to be dumb, and it is what still writes a checked-out repository's `.harness/` state.** |
+| 18 | `/harness-init` + `templates/` | **DONE** (DEC-112). The onboarding interview (absorbs the deleted `bootstrap` team): project type + frameworks + requirements; writes `harness.json`, `team-config.yaml`, and a draft `BRIEF.md` for approval; optionally chains a design pass. Delegates mechanical detection to `dev-ops` for `domain` globs and `test_kinds`. Supports `--upgrade` to merge newer template entries while preserving project values, driven by `schema_version`. **This is what made the distribution half safe to be dumb, and it is what still writes a checked-out repository's `.harness/` state.** Amended by DEC-220: the manifest and the `BRIEF.md` are the control plane's, and the only artifact that lands in a product repository is its own `harness.json`, on that repository's default branch. |
 | 19 | `.claude/skills/harness-handoff/SKILL.md` | **NET-NEW FILE** — referenced everywhere, scheduled nowhere. The universal artifact-output discipline (BLUF, pointers-not-payloads, open-questions, bounded length) plus the autonomy-by-reversibility rule, read by all 16 agents. Create it in MVP step 1 alongside the first persona. A **flat** skill, not `rules/handoff.md` (DEC-100). |
 
 **Also net-new, and reshaped:** all seven rules become **skill directories**

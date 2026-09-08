@@ -131,9 +131,10 @@ hand-off to report, never a cue to search.
 
 **Feature-scoped artifacts live in the feature's folder** — `.harness/features/<FEAT>/notes/` (DEC-130). The path carries the feature id, so filenames no longer need to: `answers-<runid>.md`, `ship-review-<runid>.md`, `uat.md`, `research-*`, `review-<persona>-c<n>.md`. An earlier convention encoded the FEAT id in filenames under a flat `notes/`; it retired because the id was forgettable (observed on pm's first outing) while a directory cannot be. `.harness/notes/` remains for genuinely project-scoped artifacts only.
 
-Onboarding is handled by `/harness-init`, not a team (§3): it interviews you directly, writes
-`BRIEF.md` + `harness.json` + the manifest, and takes your approval. The round-trip above is the
-mechanism for every *subsequent* human-in-the-loop moment.
+Onboarding is handled by `/harness-init`, not a team (§3): it interviews you directly, lands that
+repository's own `harness.json` on its default branch, registers it in the fleet, creates its
+central per-segment tree, and takes your approval on the `BRIEF.md` written there. The round-trip
+above is the mechanism for every *subsequent* human-in-the-loop moment.
 
 ### 2.2 State-consistency check
 
@@ -141,14 +142,14 @@ Run at every `/harness` entry. The real state is a matrix, not a binary:
 
 | Condition | Action |
 |---|---|
-| no `BRIEF.md` | project not onboarded — tell the user to run `/harness-init` |
+| not registered in `.harness/factory/fleet.yaml`, or its own `harness.json` not readable at its `default_branch` | the repository is not onboarded — have the user run `/harness-init` |
 | BRIEF, no `PLAN.md` | delegate to pm (normal planning) |
 | **BRIEF with no `## Approval`** | **halt — surface to user. Nothing downstream may run against an unapproved goal** |
 | PLAN re-planned after approval | pm must **reset** `## Approval` to pending; a stale approval must never carry onto a changed task set |
 | PLAN with no `## Approval` | halt — surface to user for approval |
 | STATE points at a task absent from PLAN | halt — report inconsistency, offer repair |
 | PLAN task missing `change_type` | pm must fill it before the qa gate can apply |
-| template `schema_version` gap | tell the user to run `/harness-init --upgrade` |
+| template `schema_version` gap in the control-plane clone's own manifest | tell the user to run `/harness-init --upgrade` |
 | logs older than `log_retention_days` | prune opportunistically |
 
 ### 2.3 Writer ownership (concurrency safety)
@@ -437,26 +438,34 @@ end up disagreeing about where a checkout lives. `FLEET_PATH` is absolute for th
 tools run *inside another repository's checkout*, where a relative path would resolve against the
 wrong root.
 
-**Onboarding a repository is one edit, but not a small one:** add a `- name: <owner>/<repo>` entry
-under `repos:` in `.harness/factory/fleet.yaml` carrying its `default_branch` **and its own `board:`
-block — `owner`, `number`, `station_field` and `stations`, all four required**. An entry missing any
-of them makes `load_fleet` raise, and because `check-domain.sh` then fails CLOSED the symptom is not
-a failed onboarding but every agent write in this repository BLOCKED
+**Onboarding a repository is three things, in order (DEC-220):** land that repository's own
+`.harness/harness.json` on its `default_branch`; add a `- name: <owner>/<repo>` entry under
+`repos:` in `.harness/factory/fleet.yaml` carrying its `default_branch` **and its own `board:`
+block — `owner`, `number`, `station_field` and `stations`, all four required**; then create its
+central per-segment tree at `<control-plane>/.harness/<segment>/`. The config lands *before* the
+fleet entry, because the failure of the reverse order has no symptom but an unattributed
+`FleetError` — `factory_config.py --check-product-configs` is what names it. An entry missing any
+of the four `board:` keys makes `load_fleet` raise, and because `check-domain.sh` then fails CLOSED
+the symptom is not a failed onboarding but every agent write in this repository BLOCKED
 (`.claude/skills/harness/bin/harness_boundary.py:158`). The first factory run against it
-clones it under `workspace_root`; nothing is installed into it.
+clones it under `workspace_root`; that `harness.json` on its default branch is the only file the
+harness puts into a product repository.
 
 **Templates** live at `.claude/skills/harness/templates/`: `team-config.yaml`, `harness.json`,
 `BRIEF.md`, `PLAN.md`, `STATE.md`, `DESIGN.md`, `plan.yaml`, `gitignore.snippet` and the rest. They
 carry the canonical schema plus the generic org, with **placeholders** where a project differs, and
-`/harness-init` reads them from this repository at onboarding time.
+`/harness-init` reads them from the control-plane clone it runs in.
 
 **`/harness-init` is an interview:**
 
 1. **Technical** — project type (web app / API / CLI / library / data pipeline), frontend framework,
    backend framework.
 2. **Product** — what you're building: goal, requirements, constraints, success criteria.
-3. **Writes** — `harness.json` (`test_kinds` commands, `domain` globs, gates), `team-config.yaml`
-   (from template), and a **draft `BRIEF.md`**.
+3. **Writes the three** — that repository's own `harness.json` (`test_kinds` commands, `domain`
+   globs, gates) on its `default_branch`, its `repos:` entry in `.harness/factory/fleet.yaml`, and
+   its central per-segment tree at `<control-plane>/.harness/<segment>/` holding a **draft
+   `BRIEF.md`**. `team-config.yaml` is written from the template for the control-plane clone
+   alone; no manifest and no scaffold is copied into a product repository.
 4. **You approve the BRIEF** — the goal of record is signed before anything downstream runs (§2.2).
 5. **Offers a design pass** — if the project has a UI, chain `visual-designer` → `ui-reviewer(A)` to
    establish `DESIGN.md`.

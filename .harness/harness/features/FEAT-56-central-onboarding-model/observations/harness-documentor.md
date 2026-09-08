@@ -1,0 +1,4 @@
+# Observations - harness-documentor
+
+- 2026-09-08: FEAT-56 T-07 — `check-instruction-paths.py` scans only `.omp/agents`, `.claude/agents`, `harness-*/SKILL.md`, `references/` and `templates/` (:48-52). The task's acceptance claimed my new doc prose "introduces instruction paths" the checker would grade; `docs/` and `README.md` are not in its scan set at all, so the claim was unfalsifiable either way. Verified the checker's roots before reporting rather than inferring from its name.
+- 2026-09-08: FEAT-56 T-07 — the `edit` section header resolves relative paths against the process cwd, not the dispatch worktree. First DECISIONS.md hunk was refused by check-domain because cwd was the control-plane root while my claim was the worktree. Absolute paths in every hunk header fixed it; the two copies were byte-identical so the snapshot tag matched both (G-18 confirmed live).
