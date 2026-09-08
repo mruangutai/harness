@@ -3,17 +3,19 @@
 ## Current
 
 - feature: FEAT-56-central-onboarding-model
-- run: .harness/harness/features/FEAT-56-central-onboarding-model/runs/2026-09-08-04-plan-fix3-product/state.yaml
+- run: .harness/harness/features/FEAT-56-central-onboarding-model/runs/2026-09-08-07-goalcheck-ship-product/state.yaml
 - squad: none
 - status: awaiting-user
 
-Plan phase complete at 4b5dbb23. BRIEF.md carries 6 REQ and 10 SC; plan.yaml carries 8 tasks, 6
-decisions, and a panel record with all three readers `ran` and 13 findings, every open one at
-info/low/med. Three rework cycles spent: goal-check FAIL (two MISSING rows), panel FAIL (two med
-must_fix), and one send-back completing the panel record. Both approval fragments read pending.
-Blocked on the operator signature; nothing else in the plan phase remains.
+All eight tasks committed and at station done. qa gate green, SIMPLIFY applied before the pin,
+review panel PASS with must_fix [] and severity_max med, and every advisory finding except V-8
+closed. review_sha e6261060; nine of ten SCs met and re-run at that pin. Briefing written and
+rendered at notes/ship-review-2026-09-08-ship.md. Cycles 9 of 10; runs 20 of an informational 20.
+Nothing is left to build.
 
 ## Open Questions
 
-- Operator signature on BRIEF.md `## Approval` and plan.yaml `approval:` — the whole feature is
-  blocked on it. Main session only, via `plan-merge.py sign-approval`.
+- SC-09, the UAT at notes/uat-FEAT-56.md: the operator's PASS or FAIL. `gates.uat` is
+  `blocking_when_uat_criteria_exist`, so it gates the merge. Main session holds it.
+- Which of the briefing's backlog rows B-1..B-13 the operator strikes. Unstruck rows become issues
+  on acceptance; anything not listed dies silently.
