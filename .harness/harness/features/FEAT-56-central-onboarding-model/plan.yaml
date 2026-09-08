@@ -1,0 +1,866 @@
+schema: plan/1
+feature: FEAT-56-central-onboarding-model
+approval:
+  status: pending
+status: plan
+source_issues: [206]
+
+lanes:
+  resolved_at: 4b5dbb23
+  rows:
+    - surface: .claude/skills/harness/bin/**
+      lane: team
+      agent: harness-backend-dev | harness-dev-ops
+    - surface: tests/**
+      lane: team
+      agent: harness-backend-dev | harness-dev-ops | harness-qa
+    - surface: .harness/harness/docs/**
+      lane: team
+      agent: harness-documentor
+    - surface: README.md
+      lane: team
+      agent: harness-documentor
+    - surface: .harness/README.md
+      lane: team
+      agent: harness-documentor
+    - surface: .claude/skills/** outside harness/bin/
+      lane: main-session-direct
+      reason: resolves to NOBODY, DEC-174 carve-out, includes harness-init SKILL.md, templates and references
+    - surface: .claude/commands/**
+      lane: main-session-direct
+      reason: resolves to NOBODY, no agent domain grants the command surface
+    - surface: .claude/agents/** and .omp/agents/**
+      lane: main-session-direct
+      reason: resolves to NOBODY, and the two trees are distinct files kept in step by sync-agent-adapters.py
+    - surface: .harness/factory/fleet.yaml
+      lane: main-session-direct
+      reason: resolves to NOBODY, the fleet declaration is the operator's own record
+
+decisions:
+  - id: D-01
+    choice: Issue 206 item 2 is not built, and a central .harness/products/ tree is created nowhere.
+    because: The plan-phase advisor ruled it already satisfied in substance, and a central product config would be read by nothing since product_config reads only the remote at default_branch.
+    dec: DEC-174
+  - id: D-02
+    choice: Step 1's prerequisite install is narrowed to the control-plane clone rather than deleted.
+    because: check-state.sh INV-9 and INV-31 grade this clone against that step on every run and test-hooks-install.py asserts its command strings verbatim out of the skill.
+    dec: none
+  - id: D-03
+    choice: The pilot product's four already-committed stale .harness/ subtrees are out of scope, and the rewritten skill only stops producing them.
+    because: Deleting them is a write into a product default branch that no domain grants, and .harness/team-config.yaml is the boundary MARKER root_above reads, so removal is not reversible by a later cycle.
+    dec: none
+  - id: D-04
+    choice: Fleet registration comes LAST — the product's harness.json lands on its default branch first, then the repos entry is added, and factory_config --check-product-configs must exit 0 before anything else runs.
+    because: product_config has no disk fallback, so registering first opens a window whose only symptom is an unattributed FleetError mid-build, while ordering the steps this way makes the gap impossible and the check names any member that slipped through.
+    dec: none
+  - id: D-05
+    choice: harness-init stays in check-instruction-paths.py MAIN_SESSION_ONLY, and only its rationale comment is corrected.
+    because: The skill deliberately carries a clone-relative core.hooksPath value that the anchor rule would rewrite, and test-hooks-install.py asserts that value verbatim, so bringing the file under the anchor gate would break a live assertion to gain nothing.
+    dec: none
+
+  - id: D-06
+    choice: Issue 203's scoped deletion of harness-init and issue 206's rewrite of it are reconciled IN FAVOUR OF REWRITE, and no task in this plan deletes the skill.
+    because: Issue 203 is closed, the deploy.sh it was scoped around is absent from .claude/skills/harness/bin/, and .claude/skills/harness-init/SKILL.md still exists and is still the only onboarding instruction of record.
+    dec: none
+panel:
+  last_run: 2026-09-08-02-plan-panel-validator
+  cycle: 0
+  readers:
+  - reader: should-not-exist
+    status: ran
+  - reader: scope
+    status: ran
+  - reader: goalcheck
+    status: ran
+  findings:
+  - id: PF-1eaa38c5f6a2d3e01711128138170312
+    severity: med
+    reader: should-not-exist
+    summary: 'T-02''s verify is unsatisfiable: plan.yaml:314 runs check-domain.sh
+      (a bash script) through python3, which SyntaxErrors on `set -uo pipefail` regardless
+      of anything T-02 edits'
+    disposition: resolved
+    resolved_by: T-02
+  - id: PF-57bc46a64752a5d08568f2b7d9354e96
+    severity: med
+    reader: should-not-exist
+    summary: "SC-04's fifteen-file inspection is presence-only, and .claude/commands/harness.md\
+      \ and harness-grilling.md \u2014 model-executed routing prose \u2014 have no\
+      \ grep in T-06's verify; SPEC.md and BUILD.md have none in T-07's"
+    disposition: resolved
+    resolved_by: T-06, T-07
+  - id: PF-557e8589de7e7971b41b77d609f4bf1e
+    severity: low
+    reader: should-not-exist
+    summary: "T-02's permanent unit suite pins six operator-facing message strings\
+      \ as source text forever, so after this feature it can only redden on good rewordings\
+      \ \u2014 the rot mode REQ-06 itself names"
+    disposition: resolved
+    resolved_by: T-02
+  - id: PF-58fa27f5fd410345e4cb0545014864d6
+    severity: info
+    reader: should-not-exist
+    summary: SC-09 is a read, not a run; making the UAT execute step 9's fleet-wide
+      --check-product-configs turns the sole functional criterion behind the rewrite
+      into an observation at one network call
+    disposition: open
+  - id: PF-4d6298531d64e34b9d0ab91aa399e311
+    severity: med
+    reader: scope
+    summary: 'T-01''s acceptance cannot distinguish a correct rewrite from a keyword-compliant
+      one: grep -qF tests presence anywhere in a 370-line file and cannot see D-04''s
+      ordering claim; a marker-order check via grep -n line numbers is the cheap unused
+      discriminator'
+    disposition: resolved
+    resolved_by: T-01
+  - id: PF-eb1634cb74a591d50bc047d089c0d778
+    severity: med
+    reader: scope
+    summary: T-06's verify greps harness-plan.md and both dev-ops files but never
+      harness.md or harness-grilling.md, though harness.md:11-13's '## 0. Gate' is
+      the exact stale routing condition the feature exists to fix
+    disposition: resolved
+    resolved_by: T-06
+  - id: PF-7d76024145e414eeaf8eee356820f780
+    severity: low
+    reader: scope
+    summary: 'SC-01 is labelled verify: inspection although T-01''s own verify at
+      plan.yaml:168-172 already greps all four elements it claims; BRIEF''s Verification-gaps
+      section understates existing coverage'
+    disposition: resolved
+    resolved_by: T-01
+  - id: PF-ff668c9d91bd7353ffb373bcce3da189
+    severity: low
+    reader: scope
+    summary: templates/harness.json's _template field gets only a json.load validity
+      check in T-05's verify, no content assertion, though it is the text every future
+      onboarded operator reads at instantiation
+    disposition: open
+  - id: PF-59491b82216d9fa98824c449a5e5c7a5
+    severity: info
+    reader: scope
+    summary: "T-04's SC-05 stub-only grading matches established convention (test-factory-config.py\
+      \ stubs factory_gh.file_at_ref identically; factory_gh has its own unit file)\
+      \ \u2014 the lead's premise does not hold"
+    disposition: open
+  - id: PF-df9286312ab8275be67f4fa2a508c8ce
+    severity: info
+    reader: scope
+    summary: "T-01 depends_on:[T-04] is not an inversion \u2014 it sequences the doc\
+      \ after the flag it names lands; no cycle exists, though the dependency is not\
+      \ itself verify-enforced"
+    disposition: open
+  - id: PF-0dc1b21fc56278ddc20336225317b8dc
+    severity: info
+    reader: scope
+    summary: 'T-03 deletes no test: plan.yaml:389-457 names all eight sites with an
+      explicit disposition, four amended comment-only and four unchanged with stated
+      reasons'
+    disposition: open
+  - id: PF-ac9a3edd4eea3eeb49908cf69b474f1e
+    severity: unrated
+    reader: goalcheck
+    summary: 'Issue 206 orders issue 203 reconciled before either is picked up, and
+      the drafted plan discharged it with nothing: zero matches for 203 in BRIEF.md
+      or plan.yaml, the reconciliation living only in an ungated run digest'
+    disposition: resolved
+    resolved_by: T-07
+  - id: PF-d94deb76b4cd660a77ea3975421a6067
+    severity: unrated
+    reader: goalcheck
+    summary: 'Issue 168''s shipped-template parse error is live at 4b5dbb23, not hypothetical:
+      templates/team-config.yaml does not yaml.safe_load, no drafted task repaired
+      it, and T-05 item 3 asserted the false premise that it loads'
+    disposition: resolved
+    resolved_by: T-05
+tasks:
+  - id: T-04
+    title: Add a fleet product-config reachability report to factory_config, with a red-capable unit suite
+    traces: [REQ-05]
+    change_type: logic
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: []
+    status: ready
+    files:
+      - .claude/skills/harness/bin/factory_config.py
+      - tests/unit/test-fleet-product-config.py
+    verify: |
+      python3 tests/unit/test-fleet-product-config.py && python3 tests/unit/test-factory-config.py
+    intent: |
+      Add ONE function and ONE CLI flag to .claude/skills/harness/bin/factory_config.py, and a new
+      unit suite that proves both directions.
+
+      1. product_config_report(fleet)
+      Place it immediately after product_config and before board_for. It returns a LIST, one entry
+      per repository in fleet["repos"], IN DECLARATION ORDER, each a dict with exactly these keys:
+        {"repo": <name>, "ref": <entry default_branch>, "path": ".harness/harness.json",
+         "ok": <bool>, "detail": <str>}
+      For each entry it calls product_config(fleet, name) inside try/except FleetError. On success
+      ok is True and detail is the empty string. On FleetError ok is False and detail is str(exc).
+      It catches FleetError and nothing else — an unexpected exception must propagate, because a
+      report that swallows a bug reports every member as unreachable for the wrong reason. It makes
+      no other call and does not clear or consult the memo itself; product_config already never
+      memoises a failure. Use the module's existing _PRODUCT_CONFIG_PATH constant for the path
+      value rather than retyping the literal. Docstring: state that the ok count is only meaningful
+      beside the declared count, because a report over an empty repos list is vacuously all-ok.
+
+      2. The CLI flag
+      In _main(), add:
+        parser.add_argument("--check-product-configs", action="store_true",
+                            help="read every fleet member's own harness.json at its default_branch")
+      When set: build report = product_config_report(fleet); emit the single stdout payload through
+      factory_cli.payload with exactly this shape:
+        {"declared": len(fleet["repos"]), "ok": <count of ok>, "unreachable": <count of not ok>,
+         "members": report}
+      For every not-ok member ALSO write one stderr line through
+        factory_cli.fail("config", "product config unreachable",
+                         f'{m["repo"]}@{m["ref"]}:{m["path"]}', m["detail"])
+      Then, if the unreachable count is non-zero OR len(report) does not equal
+      len(fleet["repos"]), sys.exit(factory_cli.EXIT_REFUSED) — exit 2, NOT 1: factory_cli's
+      contract reserves exit 1 for nothing-to-do and states a tool never exits 1 for a failure.
+      Also accept an optional --repo <owner/name> that restricts the report to that one member,
+      resolving it through repo_entry so an undeclared name raises FleetError and is refused by
+      the existing run() trap. --check-product-configs and --show remain independent flags; when
+      both are given, --check-product-configs wins and --show is not printed, because
+      factory_cli.payload writes the ONE stdout payload and two payloads break the stream
+      contract. Say that in a comment.
+
+      3. NO invariant, NO check-state.sh change
+      This makes a network read. check-state.sh runs at every /harness door and before every
+      commit and deliberately makes no network call, so nothing in this task touches it. Put a
+      comment on the flag saying so, naming the board-audit precedent (the same cost was ruled
+      once-at-onboarding rather than every run).
+
+      4. tests/unit/test-fleet-product-config.py — TEST FIRST, and prove it can report red
+      Write this file BEFORE the code above and record its failure output. Follow
+      tests/unit/test-factory-config.py's conventions exactly: the same sys.path anchor preamble,
+      the same check()/FAILS/RAN accounting, the same patched_file_at_ref contextmanager shape
+      that swaps fc.factory_gh.file_at_ref on the imported module object. This file is UNIT: no
+      subprocess, no gh, no network, and never load_fleet() with no argument — always a fleet
+      written to a tempfile so FLEET_PATH's live binding cannot make a case pass for the wrong
+      reason. Cases, all five required:
+        (a) two declared repos, stub returns valid JSON for both -> every entry ok, the ok count
+            equals 2, the unreachable count is 0.
+        (b) two declared repos, stub raises factory_gh.GhError for the FIRST name and returns
+            valid JSON for the second -> exactly one entry not ok, it is the first, its detail
+            contains both the repo name and its default_branch, and the second is ok. Assert the
+            two entries INDIVIDUALLY by index, never by counting matches: a count is satisfied by
+            the conformer alone.
+        (c) stub returns "not { valid json" for one repo -> that entry not ok and its detail
+            names the invalid-JSON failure.
+        (d) len(report) equals len(fleet["repos"]) in every case above, asserted explicitly. A
+            report that examined nothing must not read as all-ok.
+        (e) _main() exit codes, in-process: patch sys.argv to
+            ["factory_config", "--fleet", <tempfile>, "--check-product-configs"], capture stdout
+            with contextlib.redirect_stdout and stderr with redirect_stderr, and assert
+            SystemExit.code is 2 under the failing stub of case (b) and that _main() returns
+            without raising SystemExit under the all-succeeding stub of case (a). Assert the
+            captured stdout parses as JSON and carries declared/ok/unreachable/members.
+      RED-CAPABILITY PROOF, required, and record it in your receipt: (i) the output of this file
+      run BEFORE the factory_config change, which must be a hard failure (import or AttributeError
+      on product_config_report) — a passing run here means the suite is asserting nothing; (ii)
+      after the change, delete the sys.exit(factory_cli.EXIT_REFUSED) line in a temp COPY of
+      factory_config.py, point the suite at it, and record that case (e) reddens while (a)-(d)
+      stay green. Report both FAIL-line counts verbatim. A gate whose discovery finds nothing
+      passes every check it has, which is exactly the failure this proof exists to exclude.
+
+  - id: T-01
+    title: Rewrite harness-init SKILL.md to the central onboarding model
+    traces: [REQ-01, REQ-02, REQ-05]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: check-domain.sh --resolve on .claude/skills/harness-init/SKILL.md returns NOBODY at 4b5dbb23, a DEC-174 carve-out
+    depends_on: [T-04]
+    status: ready
+    files:
+      - .claude/skills/harness-init/SKILL.md
+    verify: |
+      grep -qF 'factory/fleet.yaml' .claude/skills/harness-init/SKILL.md &&
+      grep -qF 'default_branch' .claude/skills/harness-init/SKILL.md &&
+      grep -qF '.harness/<segment>/' .claude/skills/harness-init/SKILL.md &&
+      grep -qF -- '--check-product-configs' .claude/skills/harness-init/SKILL.md &&
+      ! grep -qF 'templates/team-config.yaml' .claude/skills/harness-init/SKILL.md &&
+      DB=$(grep -niE 'default[ _-]branch' .claude/skills/harness-init/SKILL.md | head -1 | cut -d: -f1) &&
+      FL=$(grep -nF 'factory/fleet.yaml' .claude/skills/harness-init/SKILL.md | head -1 | cut -d: -f1) &&
+      SG=$(grep -nF '.harness/<segment>/' .claude/skills/harness-init/SKILL.md | head -1 | cut -d: -f1) &&
+      test "$DB" -lt "$FL" &&
+      test "$FL" -lt "$SG" &&
+      python3 tests/integration/test-hooks-install.py &&
+      python3 .claude/skills/harness/bin/check-instruction-paths.py
+    intent: |
+      Rewrite .claude/skills/harness-init/SKILL.md so it states the central onboarding model. The
+      model is settled and is not yours to re-decide: onboarding a repository is (1) its own
+      harness.json landed on its default branch, (2) its entry in
+      .harness/factory/fleet.yaml, (3) its central per-segment tree at
+      <control-plane>/.harness/<segment>/. Nothing else is installed into a product repository, and
+      .harness/products/ is created nowhere.
+
+      PRESERVE VERBATIM, and this is a live assertion, not a courtesy: the two command strings
+      git config --get core.hooksPath || echo "(unset)"
+      git config core.hooksPath .claude/skills/harness/hooks
+      plus the step-1 merge-settings command string. tests/integration/test-hooks-install.py
+      case_commands_verbatim_in_skill opens this file and asserts all three are present as literal
+      substrings. Do NOT change that test — it stays exactly as it is, and your verify runs it.
+
+      Preamble and frontmatter. Replace the description and the opening two paragraphs. The new
+      opening states the three-part model above in one paragraph, then the one-file rule: the ONLY
+      file onboarding puts in a product repository is that repository's own .harness/harness.json,
+      and it counts only once it is on the default branch, because factory_config.product_config
+      reads it from the remote at default_branch with no disk fallback and raises FleetError
+      otherwise. Keep the two existing rules unchanged: run this in the main session because only
+      it can call AskUserQuestion, and the interview IS a grilling (DEC-164).
+
+      Preflight. Keep all three checks. Amend the fourth bullet: ".harness/ already exists" is
+      about THIS clone, the control plane, and routes to --upgrade.
+
+      Step 1 — KEEP, NARROWED (do not delete it). Retitle to name its subject: the eight
+      prerequisites and the per-clone hooks step are installed in THIS control-plane clone, never
+      in a product repository. Add one short paragraph giving the mechanical reason: nothing
+      distributes bin/ since deploy.sh was deleted (DEC-113), the enforcing hooks are registered in
+      the control plane's own .claude/settings.json and resolve the control plane's own manifest,
+      and check-state.sh INV-9 and INV-31 grade this clone against this step on every run. Every
+      command block, the per-clone core.hooksPath sub-section, the PyYAML and jsonschema blocks,
+      the install-command quote from harness_yaml.INSTALL_COMMAND and the STOP rules stay as they
+      are.
+
+      Step 2 — REPLACE ENTIRELY. Its two cp lines die. The new step is titled for what it does:
+      land harness.json, then register the repository. In this order, and say why the order is
+      load-bearing (D-04: product_config has no disk fallback, so a member registered before its
+      config lands has no symptom but an unattributed FleetError mid-build):
+        a. Instantiate the product's config from
+           .claude/skills/harness/templates/harness.json into a checkout of THAT repository, delete
+           the _template key, and fill test_kinds (step 4) and the github block (step 7).
+        b. LAND IT on that repository's default branch. Harness has no write route into a product
+           repo: factory_workspace.py writes no artifact into a checkout and no agent domain covers
+           a product's .harness/. So this is an operator action the main session asks for by name -
+           a commit or PR in that repository - and onboarding does not continue until it is on the
+           default branch.
+        c. ONLY THEN add the member to <control-plane>/.harness/factory/fleet.yaml as
+           "- name: <owner>/<repo>" with "default_branch: <branch>". Nothing else goes in that file:
+           load_fleet REJECTS a board at any level, and workspace_root is fleet-wide.
+        d. Prove it is reachable:
+           python3 .claude/skills/harness/bin/factory_config.py --check-product-configs --repo <owner>/<repo>
+           It must exit 0. Exit 2 prints one stderr line naming <repo>@<ref>:.harness/harness.json
+           and the reason - the config has not landed, or does not parse. Do not proceed on exit 2.
+        e. Create the central per-segment tree the factory actually reads:
+           <control-plane>/.harness/<segment>/features/ and <control-plane>/.harness/<segment>/expertise/,
+           where segment is the part of the name after the owner (factory_config.segment_of). This is
+           where that repository's BRIEF, plan.yaml and expertise live -
+           factory_config.features_root resolves the first of the two.
+        State plainly what is NOT written: no team-config.yaml anywhere but the control plane, no
+        .harness/expertise/ inside a product repo, no .harness/products/ in either place, and no
+        bin/, hooks or settings.json in a product repo.
+        For the control plane itself, onboarding instantiates its own .harness/harness.json and
+        .harness/team-config.yaml from the templates - that is this clone, and it is the only place
+        a team-config.yaml is ever instantiated.
+
+      Step 3 — Interview, technical. UNCHANGED.
+
+      Step 4 — dev-ops detection. RE-TARGET the write destination and keep every rule about
+      verifying cmds, never inventing one, DEC-163 surfacing of null kinds, deleting a filled
+      kind's _reason, and the source-layout report. New destination wording: for the control plane,
+      <control-plane>/.harness/harness.json; for a fleet member, that repository's own
+      .harness/harness.json in its checkout under workspace_root, which then goes back through step
+      2b to reach the default branch. dev-ops never writes fleet.yaml and never writes a product's
+      config directly to a remote.
+
+      Step 5 — Seed the manifest. NARROW. It seeds the control plane's own
+      <control-plane>/.harness/team-config.yaml and nothing else: check-domain.sh reads only that
+      file, the live grants are repo-agnostic globs, and per-repo isolation is unbuilt (issue 495) -
+      harness_boundary.glob_to_re supports only **, *, ? and literals, so a per-repo glob is
+      inexpressible today. Keep both write-scope rules, the drop-a-SEED-glob rule and the qa
+      colocated-test exception verbatim. Delete any framing that suggests a product repository gets
+      a manifest.
+
+      Step 6 — Interview, product, then the BRIEF. RE-HOME the destination to
+      <control-plane>/.harness/<segment>/features/<FEAT>/BRIEF.md (factory_config.features_root),
+      and state that a new feature's plan artifact is plan.yaml, never PLAN.md (DEC-182). Keep the
+      harness-brief discipline paragraph.
+
+      Step 7 — Approval gate, mirror, board. Keep the approval rules verbatim. Amend the mirror and
+      board sub-sections on one point: the github block they produce - sync, repo, and the board
+      declaration - belongs in the repository's OWN harness.json, the file step 2 lands, so ask
+      these questions BEFORE step 2b or land a second commit carrying the answers. Keep the
+      board_lifecycle provision exit-code table, the default-columns warning, the user-owned-board
+      limit, the three-workflow hard gate and the accepted-cost paragraph unchanged.
+
+      Step 8 — Design pass. Destination becomes
+      <control-plane>/.harness/<segment>/features/<FEAT>/DESIGN.md. Otherwise unchanged.
+
+      Step 9 — Verify. Keep check-state.sh and merge-settings.py --check, stating they grade THIS
+      clone. Add the fleet check with no --repo argument, over every member:
+        python3 .claude/skills/harness/bin/factory_config.py --check-product-configs
+      Keep the DEC-100a restart caveat and its do-not-overstate paragraph verbatim.
+
+      --upgrade. State its subject explicitly, because today it is silent about it: for the control
+      plane it merges this clone's own .harness/harness.json and re-runs the two merge scripts; for
+      a fleet member it merges that member's harness.json in its checkout, which then goes back
+      through step 2b to the default branch. Keep the four existing bullets - the merge rule,
+      team-config.yaml reported-never-rewritten, the merge-gitignore re-run, and BRIEF/PLAN/DESIGN
+      untouched - and add that a product repository has no team-config.yaml to report on.
+
+      Red flags table. Keep every row. Add one: "The repo is in fleet.yaml, so the factory can
+      serve it" -> "Not until its harness.json is on its default branch. product_config has no
+      fallback; run --check-product-configs."
+
+      Finally, keep the file's own anchors honest: it is read by
+      tests/integration/test-post-merge-sweep.py and bin/post-merge-sweep.sh by SECTION, not by
+      line number, after T-03 re-anchors them, so do not add a line-numbered self-citation.
+
+  - id: T-02
+    title: Correct the six executable sites that assert the per-product install model
+    traces: [REQ-03]
+    change_type: bugfix
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-01]
+    status: ready
+    files:
+    - .claude/skills/harness/bin/check-instruction-paths.py
+    - .claude/skills/harness/bin/check-state.sh
+    - .claude/skills/harness/bin/check-domain.sh
+    - .claude/skills/harness/bin/upgrade-config.py
+    - .claude/skills/harness/bin/gh-sync.py
+    - .claude/skills/harness/bin/layout_migration.py
+    verify: |
+      grep -qF 'harness-init' .claude/skills/harness/bin/check-instruction-paths.py &&
+      grep -qF 'anchor rule' .claude/skills/harness/bin/check-instruction-paths.py &&
+      ! grep -qF '"harness-init",  # main session only' .claude/skills/harness/bin/check-instruction-paths.py &&
+      grep -qF 'control-plane clone' .claude/skills/harness/bin/check-state.sh &&
+      ! grep -qF 'project not onboarded. Run /harness-init.' .claude/skills/harness/bin/check-state.sh &&
+      grep -qF 'never carries one' .claude/skills/harness/bin/check-domain.sh &&
+      ! grep -qF 'enforcement OFF (run /harness-init)' .claude/skills/harness/bin/check-domain.sh &&
+      grep -qF 'default branch' .claude/skills/harness/bin/upgrade-config.py &&
+      grep -qF 'control-plane clone' .claude/skills/harness/bin/upgrade-config.py &&
+      grep -qF 'on its default branch' .claude/skills/harness/bin/gh-sync.py &&
+      ! grep -qF 'run /harness-init --upgrade to record it' .claude/skills/harness/bin/gh-sync.py &&
+      grep -qF 'only the control plane carries the fleet declaration' .claude/skills/harness/bin/layout_migration.py &&
+      ! grep -qF 'installs the whole bin/ into product repos' .claude/skills/harness/bin/layout_migration.py &&
+      python3 .claude/skills/harness/bin/check-instruction-paths.py &&
+      bash .claude/skills/harness/bin/check-domain.sh --resolve "$PWD/README.md"
+    intent: |
+      Six executable sites still assert that onboarding installs harness artifacts into a product
+      repository, or tell a user to run /harness-init to repair a product-side path. Correct each.
+
+      THE SIX PRESENT/ABSENT ASSERTIONS ARE A ONE-TIME BUILD GATE, NOT A TEST FILE. Every numbered
+      item below ends in a "Test asserts:" pair - a required substring PRESENT and the stale substring
+      ABSENT. Those pairs are carried by THIS TASK'S OWN verify block, one conjunct per file, never
+      one file-global search: a global grep is satisfied by five conforming sites and blind to the
+      sixth. RUN THE VERIFY BLOCK FIRST, against the unedited tree, and record its failure; then make
+      each file green. Do NOT create tests/unit/test-onboarding-model-strings.py, and do not land any
+      other permanent suite over these strings: a test asserting operator-message source text can only
+      redden on a good rewording after this feature, which is the rot mode REQ-06 itself names. The
+      durable record of these six corrections is SC-03's review, read at review_sha.
+
+      1. check-instruction-paths.py, MAIN_SESSION_ONLY at lines 12-16. KEEP the "harness-init"
+      entry - it is main-session-only and it deliberately carries a clone-relative
+      core.hooksPath value that the anchor rule would rewrite and that test-hooks-install.py
+      asserts verbatim (D-05). Replace its trailing "# main session only" comment with both
+      reasons in one clause, and add a two-line comment above the tuple recording that the
+      exclusion is about the anchor rule, not about ownership. Test asserts: the string
+      "harness-init" is still present in the file, and the bare comment "# main session only" no
+      longer appears on the harness-init line.
+
+      2. check-state.sh, four user-facing remedies. Each keeps its exit behaviour and gains the
+      clone as its subject:
+         a. line ~110: "harness: no .harness/ - project not onboarded. Run /harness-init." becomes
+            a message naming THIS clone: no .harness/ here, so this clone is not an onboarded
+            harness control plane, run /harness-init in the control-plane clone.
+         b. line ~286: the ".harness/harness.json missing - not onboarded (or half-onboarded)"
+            remedy gains ", in this clone" on its /harness-init instruction.
+         c. line ~2371: the INV-32 panel_era_start remedy keeps
+            "/harness-init --upgrade (upgrade-config.py)" and gains that it runs against this
+            clone's own harness.json.
+         d. lines ~2431-2436: the INV-31 rationale asserting the setup step "lives in
+            .claude/skills/harness-init/SKILL.md" stays, and gains one clause: that step's subject
+            is the control-plane clone.
+         Test asserts: the file contains "control-plane clone" and no longer contains the exact
+         string "project not onboarded. Run /harness-init."
+
+      3. check-domain.sh, the fail-open message at lines ~375-376. Today it prints
+      "check-domain: no {manifest} - enforcement OFF (run /harness-init)." which is false for a
+      product path: a product repository never carries a manifest and never will. New message,
+      keeping the f-string and the flag-not-exit behaviour untouched:
+      "check-domain: no {manifest} - enforcement OFF. That path is the control plane's own
+      manifest; a product repository never carries one. Run /harness-init in the control-plane
+      clone." Do not change _run_domain, do not turn the flag into an exit. Test asserts: the file
+      contains "never carries one" and no longer contains "enforcement OFF (run /harness-init)".
+
+      4. upgrade-config.py, the docstring at line 2 and the two remedies at ~187-188 and ~229-230.
+      Docstring: state the subject - it upgrades the control-plane clone's own .harness/harness.json,
+      and for a fleet member it upgrades that member's harness.json in a checkout, which must then
+      be committed to the repository's default branch to be read at all. Remedy at ~187: keep
+      "Run /harness-init (without --upgrade)" and name the clone. Remedy at ~229: the
+      team-config.yaml MISSING message gains that a team-config.yaml exists only in the control
+      plane, so this message is about this clone. Test asserts: the file contains "default branch"
+      and "control-plane clone".
+
+      5. gh-sync.py, the skip message at ~254-255. "github.repo is not pinned - run /harness-init
+      --upgrade to record it" becomes: github.repo is not pinned in this project's harness.json,
+      and for a fleet member that file lives in the member's own repository on its default branch.
+      Keep skip() and the surrounding control flow untouched. Test asserts: the file no longer
+      contains "run /harness-init --upgrade to record it" and does contain "on its default branch".
+
+      6. layout_migration.py, the MARKER rationale at ~121-125. The sentence "harness-init installs
+      the whole bin/ into product repos, so every onboarded product became applicable" is false
+      under the central model and is also the reason the first marker choice was wrong. Replace it
+      with the true reason a tree can hold every reader file yet not be the control plane: any copy
+      or worktree of the control plane carries bin/, while only the control plane carries the fleet
+      declaration - onboarding installs no bin/ into a product repository at all. Keep MARKER, the
+      D-04 reference, and every following sentence about applicability and segment authority. Test
+      asserts: the file no longer contains "installs the whole bin/ into product repos" and does
+      contain "only the control plane carries the fleet declaration".
+
+      Change nothing else in these six files. No behaviour, no exit code, no glob, no control flow:
+      messages, comments and one docstring only. Record in your receipt the verify block's failure
+      against the unedited tree and its green run after.
+
+  - id: T-03
+    title: Reconcile the onboarding-premise tests, amending comments and re-anchoring skill citations
+    traces: [REQ-06]
+    change_type: bugfix
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-01, T-02]
+    status: ready
+    files:
+      - tests/integration/test-layout-migration.py
+      - tests/integration/test-check-state.py
+      - tests/integration/test-hooks-install.py
+      - tests/integration/test-post-merge-sweep.py
+      - .claude/skills/harness/bin/post-merge-sweep.sh
+    verify: |
+      python3 tests/integration/test-layout-migration.py &&
+      python3 tests/integration/test-hooks-install.py &&
+      python3 tests/integration/test-post-merge-sweep.py &&
+      grep -qF "read from that repository's own harness.json" tests/integration/test-check-state.py &&
+      ! grep -qF 'SKILL.md:73' tests/integration/test-post-merge-sweep.py &&
+      ! grep -qF 'SKILL.md:73' .claude/skills/harness/bin/post-merge-sweep.sh
+    intent: |
+      The audit named fifteen test cases as resting on the old install behaviour. Most do not: they
+      grade a script or a temp clone, and the per-clone install step SURVIVES narrowed to the
+      control-plane clone, so their assertions stay correct. NO CASE IS DELETED in this task, and
+      the verdict for each named case is recorded below. Apply exactly these edits.
+
+      AMENDED - comment only, assertions untouched:
+      1. tests/integration/test-layout-migration.py, case 14 at ~250-254. The premise comment
+         "harness-init installs the whole bin/ into products, so every reader file EXISTS here" is
+         false. The FIXTURE is still right - readers present, marker absent - so keep build(tmp,
+         marker=False) and both checks exactly as they are, and replace only the comment: a copy or
+         worktree of the control plane carries every reader file while only the control plane
+         carries the fleet declaration, so this tree must be NOT APPLICABLE rather than
+         cannot-verify-forever.
+      2. tests/integration/test-check-state.py, the comment above
+         case_inv32_era_comes_from_project_config at ~3889-3890. "a literal compiled into a file
+         that /harness-init copies everywhere" is false. Replace with: the boundary is the
+         project's own, read from that repository's own harness.json, which for a fleet member
+         lives on its default branch. Use that wording - your verify greps for
+         "read from that repository's own harness.json". Do not touch the four assertions or the
+         mutation proof below them; do not run the whole file as your verify, it takes about 48s.
+      3. tests/integration/test-hooks-install.py, the module docstring at ~4. Add one clause naming
+         the subject: the per-clone step is the control-plane clone's. Change NOTHING else in this
+         file - case_commands_verbatim_in_skill, case_sc08_before_and_after, case_sc13_idempotence,
+         case_sc13_reporting_and_red_proof and case_sc14_end_to_end_and_red_proof all stay exactly
+         as they are, and your verify runs the file to prove it.
+
+      AMENDED - re-anchored, because a line citation into SKILL.md rots on the first edit:
+      4. tests/integration/test-post-merge-sweep.py at ~783-785 and
+         .claude/skills/harness/bin/post-merge-sweep.sh at ~68-69 both cite
+         "harness-init SKILL.md:73/:78" for why core.hooksPath is relative per worktree. T-01
+         renumbers those lines. Replace each line citation with the SECTION heading citation -
+         harness-init SKILL.md, the per-clone step section - keeping the surrounding sentence and
+         all behaviour. The .sh change is a comment only.
+
+      UNCHANGED, and each for a stated reason - assert this rather than assume it, by grepping each
+      file for "harness-init" and recording the result in your receipt:
+      5. tests/integration/test-merge-settings.py - case_matchers, case_agent_specs,
+         case_no_duplicate_write grade merge-settings.py, which stays live for the control-plane
+         clone. Its docstring clause "a gate harness-init calls HARD" remains true.
+      6. tests/integration/test-merge-gitignore.py - all seven named cases grade merge-gitignore.sh.
+         Measured at 4b5dbb23: the file contains no /harness-init reference at all.
+      7. tests/integration/test-upgrade-config.py - measured at 4b5dbb23: no /harness-init
+         reference. If the T-02 remedy strings turn out to be asserted anywhere here, amend the
+         assertion to the new string and SAY SO in your digest rather than editing T-02's message
+         back.
+      8. tests/fixtures/prior-check-domain.sh.fixture - a frozen prior copy of check-domain.sh.
+         DO NOT TOUCH IT. Editing it defeats the fixture.
+
+      If any file above reddens for a reason not listed here, stop and report it: a green suite
+      bought by weakening an assertion is worse than the failure.
+
+  - id: T-05
+    title: Correct the template surface to the central onboarding destinations
+    traces: [REQ-04]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: check-domain.sh --resolve on .claude/skills/harness/templates/** returns NOBODY at 4b5dbb23, a DEC-174 carve-out
+    depends_on: [T-01]
+    status: ready
+    files:
+      - .claude/skills/harness/templates/README.md
+      - .claude/skills/harness/templates/harness.json
+      - .claude/skills/harness/templates/team-config.yaml
+      - .claude/skills/harness/templates/BRIEF.md
+    verify: |
+      python3 -c "import yaml;yaml.safe_load(open('.claude/skills/harness/templates/team-config.yaml'))" &&
+      python3 -c "import json;json.load(open('.claude/skills/harness/templates/harness.json'))" &&
+      grep -qF 'default branch' .claude/skills/harness/templates/README.md &&
+      grep -qF '<segment>/features' .claude/skills/harness/templates/README.md &&
+      grep -qF 'instantiates this ONCE' .claude/skills/harness/templates/team-config.yaml &&
+      grep -qF '<segment>/features' .claude/skills/harness/templates/BRIEF.md &&
+      ! grep -qF 'Deploy copies' .claude/skills/harness/templates/README.md &&
+      ! grep -qF 'copies this to' .claude/skills/harness/templates/team-config.yaml
+    intent: |
+      Four template files still describe onboarding as a per-product scaffold. Correct them, and
+      change no schema: no key is added, removed or renamed anywhere in this task.
+
+      1. .claude/skills/harness/templates/README.md
+         a. The intro sentence "instantiated by /harness-init. They are read from here; nothing
+            copies them into a product repository" becomes precise rather than absolute: exactly
+            one instantiated file lands in a product repository - that repository's own
+            .harness/harness.json, on its default branch - and everything else is instantiated in
+            the control plane.
+         b. The Template/Instantiated-to/By table. harness.json's row gets BOTH destinations:
+            <HARNESS_CONTROL_PLANE_ROOT>/.harness/harness.json for the control plane, and a fleet
+            member's own .harness/harness.json on its default branch. team-config.yaml's row states
+            the control plane ONLY, and that a product repository never carries one. BRIEF.md,
+            plan.yaml, PLAN.md, STATE.md and DESIGN.md rows change their destination from
+            <HARNESS_FEATURE_TREE_ROOT>/.harness/features/<FEAT>/ to
+            <HARNESS_FEATURE_TREE_ROOT>/.harness/<segment>/features/<FEAT>/ - the pre-migration
+            spelling is wrong for every one of them. Keep every By and When cell as it is except
+            where the destination sentence forces it.
+         c. Strike the sentence "Deploy copies templates/ wholesale, so a non-template sitting at
+            this level would ship to every enrolled project as though it were one." deploy.sh is
+            deleted (DEC-113) and nothing distributes templates. Replace the reason to keep
+            examples/ separate with one that is still true: everything at this level is read as a
+            template by /harness-init.
+         d. The Versioning paragraph's "Deploy pushes a newer template but leaves the project's
+            instantiated file alone" becomes: the template in this repository moves ahead while an
+            instantiated file stays where it is, check-state.sh reports the gap, and the operator
+            runs /harness-init --upgrade against the clone that holds it. Keep the
+            never-clobbered guarantee for domain globs and test_kinds.*.cmd.
+      2. .claude/skills/harness/templates/harness.json
+         a. The _template value becomes exactly: "Canonical harness.json. /harness-init instantiates
+            this as the control plane's own .harness/harness.json, and as a fleet member's own
+            .harness/harness.json which must be committed to that repository's default branch -
+            factory_config.product_config reads it from the remote there, with no disk fallback.
+            dev-ops fills every test_kinds.cmd by RUNNING it. See templates/README.md."
+         b. github._note keeps every existing clause and gains one: for a fleet member this block
+            is read from that repository's own harness.json at its default_branch, so pinning it in
+            a checkout alone changes nothing.
+         Keep the file valid JSON and change no other key.
+      3. .claude/skills/harness/templates/team-config.yaml. TWO edits: a header correction, and a
+         REPAIR that is the point of this task's first verify check. Do NOT assume the file is
+         loadable - it is NOT. Measured at 4b5dbb23, from the worktree root:
+           python3 -c "import yaml;yaml.safe_load(open('.claude/skills/harness/templates/team-config.yaml'))"
+         raises yaml.parser.ParserError, "while parsing a flow sequence ... expected ',' or ']',
+         but got '<scalar>'", flow sequence opened at line 28 column 11, parse dying at line 33
+         column 1. This is issue 168, and it is live, not hypothetical.
+         a. Header line 3. "/harness-init copies this to .harness/team-config.yaml" becomes:
+            /harness-init instantiates this ONCE, as the control plane's own
+            .harness/team-config.yaml - check-domain.sh reads only that file and a product
+            repository never carries one. Keep the SEED rule and the identical-in-every-project
+            sentence.
+         b. REPAIR the flow sequence on main_session.writes: (line 28). Cause: the sequence holds
+            three UNQUOTED entries and the first two carry inline "## Approval" text. A plain YAML
+            scalar containing a space followed by "#" starts a comment, so the remainder of the
+            line - including the closing "]" - is discarded and the sequence is never terminated;
+            the parser runs on to "orchestrator:" and raises. Fix: quote EVERY entry of that
+            sequence, all three, with double quotes, so the line reads exactly:
+              writes: [".harness/features/*/BRIEF.md ## Approval", ".harness/features/*/PLAN.md ## Approval", ".harness/logs/**"]
+            THE RULE, and it is why all three are quoted rather than only the two that break today:
+            every entry in that sequence must be a quoted scalar, including ".harness/logs/**",
+            which needs no quoting at present - an unquoted entry is one later "#" away from
+            reopening this exact defect. Change no path text, add and remove no entry, alter no
+            other line, and add no comment. Then re-run the load command above: it must exit 0.
+      4. .claude/skills/harness/templates/BRIEF.md, the first comment line. Keep the ownership rule
+         and add the destination: it is written under
+         <HARNESS_FEATURE_TREE_ROOT>/.harness/<segment>/features/<FEAT>/BRIEF.md.
+
+  - id: T-06
+    title: Correct the command and dev-ops agent surface, regenerating the omp adapter
+    traces: [REQ-04]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: check-domain.sh --resolve on .claude/commands/**, .claude/agents/** and .omp/agents/** returns NOBODY at 4b5dbb23, a DEC-174 carve-out
+    depends_on: [T-01]
+    status: ready
+    files:
+      - .claude/commands/harness.md
+      - .claude/commands/harness-plan.md
+      - .claude/commands/harness-grilling.md
+      - .claude/agents/harness-dev-ops.md
+      - .omp/agents/harness-dev-ops.md
+    verify: |
+      python3 .claude/skills/harness/bin/check-omp-port.py &&
+      python3 .claude/skills/harness/bin/sync-agent-adapters.py --check &&
+      grep -qF 'factory/fleet.yaml' .claude/commands/harness-plan.md &&
+      grep -qF 'factory/fleet.yaml' .claude/commands/harness.md &&
+      ! grep -qF 'except "BRIEF.md missing", which routes to' .claude/commands/harness.md &&
+      grep -qF 'default branch' .claude/commands/harness-grilling.md &&
+      ! grep -qF 'the domain description, and the first glossary terms' .claude/commands/harness-grilling.md &&
+      grep -qF 'default branch' .claude/agents/harness-dev-ops.md &&
+      grep -qF 'default branch' .omp/agents/harness-dev-ops.md
+    intent: |
+      Four instructional surfaces route a session into onboarding on conditions that no longer
+      exist, and the dev-ops agent names the wrong write target for a served product.
+
+      1. .claude/commands/harness.md, the gate paragraph at ~line 12. Today "BRIEF.md missing"
+         routes to /harness-init. Restate the condition: route to /harness-init when THIS clone has
+         no .harness/ at all, or when the repository being worked is not in
+         .harness/factory/fleet.yaml. A fleet member that is registered but has no feature yet has
+         an EMPTY <control-plane>/.harness/<segment>/features/, which is a normal state and routes
+         to /harness-plan, not to onboarding. Keep the check-state.sh call and the unapproved-BRIEF
+         route unchanged.
+      2. .claude/commands/harness-plan.md, the Target state bullet at ~line 18. Replace "route to
+         /harness-init if the project has no .harness/ at all" with the real onboarding condition:
+         route to /harness-init when the repository is not registered in
+         .harness/factory/fleet.yaml, or its harness.json is not readable at its default branch, or
+         its central tree <control-plane>/.harness/<segment>/ is absent. Everything else in that
+         bullet - the pm write, the simplify pass, the panel sequencing - stays exactly as it is.
+      3. .claude/commands/harness-grilling.md, lines ~7 and ~12. "the answers seed harness.json,
+         the domain description, and the first glossary terms" becomes destination-accurate: the
+         answers seed the repository's own harness.json - the file that must land on its default
+         branch - and, for the control plane, its team-config.yaml domain description and
+         .harness/glossary.md terms. Keep the blocking-step-zero paragraph unchanged.
+      4. .claude/agents/harness-dev-ops.md, the test-runner detection job at ~52-53. The write
+         target today is spelled only as <HARNESS_CONTROL_PLANE_ROOT>/.harness/harness.json.
+         Replace with both cases: for the control plane that path; for a fleet member, that
+         repository's own .harness/harness.json in its checkout under the fleet's workspace_root,
+         which the main session then lands on the repository's default branch - dev-ops never
+         pushes and never writes .harness/factory/fleet.yaml. Keep the verify-every-cmd paragraph
+         and everything after it unchanged.
+      5. .omp/agents/harness-dev-ops.md is a DISTINCT FILE in the adapter format, not a link. Do
+         not hand-edit it. Run
+           python3 .claude/skills/harness/bin/sync-agent-adapters.py --apply
+         to regenerate it from the .claude copy, then
+           python3 .claude/skills/harness/bin/check-omp-port.py
+         which must print "OMP port surface: ok" and exit 0. If --apply rewrites other agent files
+         as a side effect, stop and report it rather than committing the sweep.
+
+  - id: T-07
+    title: Sweep the doc surface to the central onboarding model and record the decision
+    traces: [REQ-04]
+    change_type: docs
+    execution_mode: team
+    execution_agent: harness-documentor
+    depends_on: [T-01, T-02, T-04]
+    status: ready
+    files:
+      - .harness/harness/docs/SPEC.md
+      - .harness/harness/docs/BUILD.md
+      - .harness/harness/docs/DECISIONS.md
+      - .harness/harness/docs/DECISIONS-INDEX.md
+      - .harness/harness/docs/org.html
+      - README.md
+      - .harness/README.md
+    verify: |
+      python3 .claude/skills/harness/bin/gen-decisions-index.py --stdout | diff - .harness/harness/docs/DECISIONS-INDEX.md &&
+      grep -qF 'central onboarding model' .harness/harness/docs/DECISIONS-INDEX.md &&
+      ! grep -qF 'project not onboarded — tell the user to run' .harness/harness/docs/SPEC.md &&
+      ! grep -qF 'reads them from this repository at onboarding time' .harness/harness/docs/SPEC.md &&
+      grep -qF 'default branch' .harness/harness/docs/BUILD.md &&
+      ! grep -qF '| writes every project artifact | yes, once |' .harness/harness/docs/BUILD.md &&
+      grep -qF 'default branch' README.md &&
+      grep -qF 'default branch' .harness/README.md &&
+      grep -qF 'control plane' .harness/harness/docs/org.html
+    intent: |
+      Bring the documentation surface to the central onboarding model, and record the model as a
+      decision. Scope discipline: historical feature plans and notes under .harness/harness/features/**
+      are RECORD and are NOT edited (DEC-188), and the pre-migration .harness/features/<FEAT>/
+      spellings scattered through SPEC.md are LAYOUT drift, not onboarding drift - leave them, they
+      are another feature's work.
+
+      1. DECISIONS.md - a NEW entry, and it is the anchor the rest of this task cites. Compute the
+         number as the next free one: grep -n '^## DEC-' .harness/harness/docs/DECISIONS.md | tail -1
+         and take the next integer (DEC-219 is the last at 4b5dbb23; if another feature has landed
+         since, take what the grep says). Title: onboarding is fleet registration plus one
+         product-resident file. Body in the file's existing four-part shape:
+         Chose - onboarding a repository is exactly three things: its own .harness/harness.json
+         landed on its default branch, its entry in .harness/factory/fleet.yaml, and its central
+         per-segment tree at <control-plane>/.harness/<segment>/. Nothing else is installed into a
+         product repository, and .harness/products/ is created nowhere.
+         Over - issue 206 item 2's central .harness/products/<name>/harness.json, and the
+         pre-existing per-product scaffold that copied team-config.yaml into a project. Also over
+         issue 203's scoped DELETION of harness-init: issue 206 asked for issue 203 to be reconciled
+         before either was picked up, and the reconciliation is REWRITE rather than deletion - issue
+         203 is closed, the deploy.sh premise behind it is gone, and
+         .claude/skills/harness-init/SKILL.md remains the only onboarding instruction of record, so
+         the skill is rewritten to the central model and deleted by nothing.
+         Because - factory_config.product_config reads a member's config from the remote at
+         default_branch with no disk fallback, so a central copy would be read by nothing;
+         check-domain.sh resolves policy only from the control plane's own manifest; features and
+         expertise already resolve centrally through factory_config.features_root; and the operator
+         struck the central placement on 2026-08-18. Also record the ordering rule: registration
+         comes after the config lands, because the failure of the reverse order has no symptom but
+         an unattributed FleetError, and factory_config --check-product-configs is what names it.
+         Record - refs DEC-174, DEC-113, DEC-182, DEC-129.
+      2. DECISIONS-INDEX.md - regenerate with
+         python3 .claude/skills/harness/bin/gen-decisions-index.py
+         then HAND-WRITE the text after ' :: ' on the new row: the generator does not produce it.
+         The row text must contain the phrase "central onboarding model" - your verify greps for it.
+         Regeneration shifts every later @line anchor, so run the diff check in your verify after,
+         not before.
+      3. SPEC.md - two places, both present-tense claims:
+         a. the section 2.2 routing table rows "no BRIEF.md -> project not onboarded, tell the user
+            to run /harness-init" and "template schema_version gap -> run /harness-init --upgrade":
+            restate the first condition as not registered in the fleet or config not readable at the
+            default branch, and name the clone in the second.
+         b. the section 3.3 paragraph "Onboarding is handled by /harness-init, not a team: it
+            interviews you directly, writes BRIEF.md + harness.json + the manifest, and takes your
+            approval", plus the sentence that templates are read from this repository at onboarding
+            time, plus the five-step interview list: restate as the three-part model, with the
+            manifest written only for the control plane and the BRIEF written under the central
+            per-segment tree.
+      4. BUILD.md - amend ONLY present-tense claims, and leave every past-tense shipped record
+         (tasks 12, 13 and 18) as it stands:
+         a. the claim that /harness-init must write all five settings entries and that the state
+            check must verify them - keep it, name the control-plane clone as its subject.
+         b. the table row "/harness-init | writes every project artifact | yes, once" and the
+            paragraph after it ("Onboarding is a fleet entry plus init ... Nothing is copied into
+            the repository"): the paragraph is nearly right already - make it exact by naming the
+            one file that IS copied into the repository and where it must land, and correct the
+            table row to say it writes the control plane's artifacts and that one product file.
+         c. append one clause to task 18's row pointing at the new DEC number, without rewriting
+            the shipped spec text.
+      5. README.md, the Factory repositories paragraph at ~192. "/harness-init creates that
+         repository's state" becomes: /harness-init registers the repository in
+         .harness/factory/fleet.yaml, creates its central tree under
+         <control-plane>/.harness/<segment>/, and lands its harness.json on its own default branch,
+         which is the only file the harness puts in a product repository.
+      6. .harness/README.md - four places: the "Written by /harness-init ... It writes this
+         directory once" line becomes about THIS clone; the team-config.yaml owner row states the
+         control plane only; the harness.json owner row states both destinations, naming the
+         default branch for a member; and "BRIEF.md missing means the project is not onboarded - run
+         /harness-init" is replaced by the real condition (not in the fleet, config not readable at
+         the default branch, or no central tree) with an empty features directory called out as a
+         normal state.
+      7. org.html - the owner column cell for team-config.yaml, currently "/harness-init". Make it
+         name the control plane, and change no other cell, no class and no markup structure.
+
+  - id: T-08
+    title: Correct the github-mirror reference read-back rows for a fleet member's own board
+    traces: [REQ-04]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: check-domain.sh --resolve on .claude/skills/harness/references/github-mirror.md returns NOBODY at 4b5dbb23, a DEC-174 carve-out
+    depends_on: [T-01]
+    status: ready
+    files:
+      - .claude/skills/harness/references/github-mirror.md
+    verify: |
+      grep -qF 'default_branch' .claude/skills/harness/references/github-mirror.md &&
+      ! grep -qF 'pinned at init.' .claude/skills/harness/references/github-mirror.md
+    intent: |
+      Two rows of the read-back table bound a read-back to "/harness-init, and ship": the
+      board-native-workflows row and the closed-tickets-plus-station-options row. /harness-init
+      remains the onboarding entry, so the surface name stays correct - what is missing is WHICH
+      repository's board is read. Amend both Surface cells to say: /harness-init, at the
+      registration step, against the board declared in that repository's own harness.json at its
+      default_branch, and ship, which calls the audit. Then correct the closing sentence "The repo
+      comes from harness.json, pinned at init" - for a fleet member it is pinned in that
+      repository's own harness.json on its default_branch, which is the file onboarding lands
+      there; for the control plane it is this clone's own harness.json. Change no other row, and
+      keep the table's column structure and the unconditional no-read-back-reaches-an-approval-gated-artifact
+      rule exactly as they are.
