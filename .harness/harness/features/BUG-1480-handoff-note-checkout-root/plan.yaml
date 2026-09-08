@@ -72,7 +72,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: "DEC-174 carve-out: tests/integration/test-check-domain.py is the gate script's own test file, so it is enforcement-layer and executes main-session-direct."
     depends_on: []
-    status: ready
+    status: done
     files:
       - tests/integration/test-check-domain.py
     verify: |
@@ -170,7 +170,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: "DEC-174 carve-out: .claude/skills/harness/bin/check-domain.sh is a registered PreToolUse gate script, so it executes main-session-direct."
     depends_on: [T-01]
-    status: ready
+    status: done
     files:
       - .claude/skills/harness/bin/check-domain.sh
     verify: |
