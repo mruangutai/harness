@@ -272,7 +272,8 @@ place project Expertise changes.
 **Run-dir slugs:** name run dirs `<task-or-purpose>-<squad>` (`t04-fe-eng`, `plan-product`) — the
 squad suffix is what the lead's domain glob keys on; never embed the feature id, the parent dir
 already carries it. dispatch-guard.sh refuses a governed dispatch that names a run-dir path
-whose slug matches no run-dir write grant in `.harness/team-config.yaml`, at exit 2, naming the
+whose slug matches no run-dir write grant in `<HARNESS_CONTROL_PLANE_ROOT>/.harness/team-config.yaml`,
+at exit 2, naming the
 offending slug and a compliant form, and the check is on slug shape and is not on ownership by
 the dispatched persona. A run-dir path that is being QUOTED rather than written — in a plan
 `verify:` or `intent:` block, in a pasted refusal, in a bug report — is spelled with `[.]harness/`
