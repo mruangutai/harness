@@ -27,15 +27,17 @@ GUARD_BIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # BUG-124 T-02 -- derive the run-dir grant vocabulary in a NON-isolated
 # interpreter: PyYAML lives in the user site-packages that python3 -I
 # excludes (D-03). House precedent for the sys.path handling is
-# check-domain.sh: pop sys.path[0], then insert the guard bin dir handed to
-# it as an argument. The captured status is what lets the python body below
+# check-domain.sh: the LAUNCH LINE itself pops sys.path[0] before the
+# heredoc body below ever runs, so test-no-distribution.py case 7's
+# line-based scan sees the pop on the same line as the python3 call --
+# a pop buried a few lines into the heredoc body is invisible to that
+# scan (#556). The captured status is what lets the python body below
 # tell a benign grant-less manifest apart from a broken derivation (F-4):
 # HARNESS_RUN_DIR_DERIVED is 0 only when the bare parse below succeeded.
-if _globs=$(python3 -c '
+if _globs=$(python3 -c 'import sys; sys.path.pop(0); exec(compile(sys.stdin.read(), "<stdin>", "exec"))' "$GUARD_BIN_DIR" 2>/dev/null <<'PY'
 import os
 import sys
 
-sys.path.pop(0)
 sys.path.insert(0, sys.argv[1])
 
 import harness_boundary as hb
@@ -49,7 +51,8 @@ harness_yaml.load_str(text, manifest_path)
 
 for glob in hb.run_dir_grant_globs(root):
     print(glob)
-' "$GUARD_BIN_DIR" 2>/dev/null); then
+PY
+); then
     _derived=0
 else
     _derived=1
