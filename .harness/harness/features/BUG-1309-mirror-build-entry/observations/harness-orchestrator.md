@@ -35,3 +35,19 @@
   have done.
 - 2026-09-08 (BUG-1309 c15): a fix that patches the NAMED instances of a parser class passed a 27-case bed and my own 23-check hook probe, while the class defect survived in three unnamed forms (-F, --cleanup, --attr-source). What found them was asking the REAL dependency first — for each candidate token sequence, does real git actually perform the merge? — instead of only asking what the gate decides. That same question falsified one of the two reported blockers: pm's --exec-path form prints the exec path and exits, so there was no merge to gate.
 - 2026-09-08 (BUG-1309 c15): I wrote a full review_sha by extending an abbreviated sha from memory and feature-json-merge.py accepted it without complaint — no tool validates that a pin resolves at write time. Caught only because I re-read it against git rev-parse HEAD immediately after. Resolve the full sha with rev-parse and compare, every time.
+- 2026-09-08 (c16): the operator ruling that a fix be "comprehensive" turned into a PLAN gap, not a
+  code gap: two of its four clauses (merge control ops ALLOW, code-grade 4) were absent from the
+  signed plan, so handing the operator a packet alone would have had them implement unapproved
+  behaviour. Routing the ruling through pm BEFORE writing the packet cost one product run and made
+  the packet quotable from the plan.
+- 2026-09-08 (c16): pm's own read found SC-04 read literally MANDATES the deny the ruling reverses
+  (`git merge --abort` is a merge command) — an emergent-SC case I would have mis-routed as
+  approved-but-unmet. Asking "does this trace to a criterion?" as an explicit acceptance line in the
+  dispatch is what surfaced it.
+- 2026-09-08 (c16): a 10-line probe importing `merge_ref` and printing its return for ten command
+  forms verified every red-before-green claim in the packet in one call, including the three
+  preserved bounds. Cheaper and more discriminating than re-running the integration bed, and it
+  belongs in the packet-writing step rather than after it.
+- 2026-09-08 (c16): `python3 -c` inline scripts against plan.yaml are refused by bash-write-guard —
+  it reads `'intent'` inside the quoted script as a redirect target. Write the probe with the Write
+  tool into /tmp and run the file (G-08 generalises: guard misparses quoted spans).

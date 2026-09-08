@@ -21,7 +21,7 @@ approval:
       who: Mike Ruangutai
       date: '2026-09-06'
       reason: resolved by disclosure — D-09 because names the c6 price
-status: review
+status: building
 source_issues: [1390]
 
 lanes:
@@ -260,6 +260,51 @@ decisions:
       accept it as a signed-wording residue. A second pinned literal is the exact defect R-3 rules
       out, so the amendment states the behaviour rather than a replacement verbatim string.
     dec: none
+  - id: D-16
+    choice: |
+      merge-gate.py's command parser handles VALUE-TAKING OPTIONS AS A CLASS IN BOTH POSITIONS -
+      the git globals before the subcommand and the options of git merge after it, each in the
+      attached (--opt=value) and the detached (--opt value) spelling; it FAILS CLOSED when the
+      command is identified as a git merge but no ref token resolves, falling back to the existing
+      local branch resolution so the receipt rule decides; and it EXEMPTS the three merge CONTROL
+      operations - git merge --abort, --continue and --quit - which exit 0 with no
+      permissionDecision object on an owing branch as much as on any other, decided BEFORE the
+      fail-closed fallback. The mechanism is free: completing git's own documented value-taking
+      sets, inverting the unknown-option default in the global position, or otherwise. The
+      BEHAVIOUR is what T-05's verify gates, over seven new integration case names taking its
+      gated list from 19 to 26, each shown RED against e374c9a2 before it is shown green.
+    because: |
+      Operator ruling R-4 clauses 1-3 (notes/rulings-2026-09-08-c16-parser.md), over three forms
+      measured at review_sha e374c9a2 against REAL git 2.50.1 and the real hook: git merge -F
+      <file> <ref>, git merge --cleanup <mode> <ref> and git --attr-source <tree> merge --no-ff
+      <ref> are each MERGED by git and each a SILENT ALLOW by the gate - no deny, no stderr, no
+      audit trace - against a fixture owing a receipt. Two closed sets of option NAMES
+      (merge-gate.py:46-75) is the defect the signed class clause already forbade, and a set that
+      must be extended per option is a hole the next unlisted option walks through. The
+      fail-closed clause is bounded deliberately: it applies to an unreadable REF only and must
+      not widen into denying on an unreadable or non-matching RECORD, which is cycle 11's
+      473d82cb scan-wide sentinel that panel c5 FAILED and 894adc0f scoped back. The control-
+      operation exemption repairs VF-03, a regression e374c9a2 introduced by returning
+      ("git", None) for --abort/--continue/--quit so head_branch fell back to the local branch and
+      the operator's own merge-recovery commands were refused.
+    dec: DEC-174
+  - id: D-17
+    choice: |
+      git_merge is gated at code-grade 4 or better by T-05's OWN verify, which reads
+      code-grade.py --json over merge-gate.py and takes the minimum grade of git_merge, words,
+      direct_merge and gh_merge. main() is DELIBERATELY EXCLUDED from that qualname set. The
+      remedy for a failing grade is DECOMPOSITION of the ordered walk into named helpers - never a
+      suppression and never a change to the bar.
+    because: |
+      Operator ruling R-4 clause 4. Measured at review_sha e374c9a2: git_merge CYCLOMATIC 8,
+      COGNITIVE 15, ABC 16.1, GRADE 3, BAR 4, RESULT FAIL, SEVERITY high - the grade-4 figure
+      carried into the c15 dispatch was falsified by the tool at that tip, so the bar has to be
+      asserted by the task rather than assumed. main() in the same file grades 2 and also FAILS;
+      it carries zero changes in this delta, so it is pre-existing and out of scope, and including
+      it in the qualname set would make T-05's verify permanently unpassable no matter how well
+      the parser is decomposed. Gating inside T-05's own verify rather than in a separate quality
+      task keeps the bar attached to the change that must clear it.
+    dec: DEC-174
 panel:
   last_run: 2026-09-07-panelc2-validator
   cycle: 2
@@ -982,7 +1027,7 @@ tasks:
     depends_on:
     - T-02
     - T-06
-    status: done
+    status: building
     files:
     - .claude/skills/harness/bin/merge-gate.sh
     - .claude/skills/harness/bin/merge-gate.py
@@ -995,12 +1040,14 @@ tasks:
     verify: |
       out=$(python3 tests/integration/test-merge-gate.py) || exit 1
       if printf '%s\n' "$out" | grep -q '^FAIL'; then exit 1; fi
-      for n in "T-05 recovery-required denies" "T-05 non-era absent build_entry denies" "T-05 unpinned repo absent build_entry denies naming the configuration fix" "T-05 opened allows" "T-05 not-applicable allows" "T-05 recovered-terminal allows" "T-05 sync false allows" "T-05 branch matching no feature allows" "T-05 non-merge command allows" "T-05 path-prefixed gh is still detected" "T-05 bash -c wrapped merge is still detected" "T-05 era-exempt absent build_entry allows" "T-05 gh outage with no matching feature allows" "T-05 gh outage with a feature owing a receipt denies" "T-05 duplicate valid records claiming the branch deny naming both" "T-05 single owner plus unrelated malformed record still allows" "T-05 git -C global flag merge is still detected" "T-05 git -c config global flag merge is still detected" "T-05 git --work-tree global flag merge is still detected"; do
+      for n in "T-05 recovery-required denies" "T-05 non-era absent build_entry denies" "T-05 unpinned repo absent build_entry denies naming the configuration fix" "T-05 opened allows" "T-05 not-applicable allows" "T-05 recovered-terminal allows" "T-05 sync false allows" "T-05 branch matching no feature allows" "T-05 non-merge command allows" "T-05 path-prefixed gh is still detected" "T-05 bash -c wrapped merge is still detected" "T-05 era-exempt absent build_entry allows" "T-05 gh outage with no matching feature allows" "T-05 gh outage with a feature owing a receipt denies" "T-05 duplicate valid records claiming the branch deny naming both" "T-05 single owner plus unrelated malformed record still allows" "T-05 git -C global flag merge is still detected" "T-05 git -c config global flag merge is still detected" "T-05 git --work-tree global flag merge is still detected" "T-05 merge -F detached value denies" "T-05 merge --cleanup detached value denies" "T-05 global --attr-source before merge is still detected" "T-05 merge with no identifiable ref denies" "T-05 merge --abort on an owing branch allows" "T-05 merge --continue on an owing branch allows" "T-05 merge --quit on an owing branch allows"; do
         printf '%s\n' "$out" | grep -qF "ok    $n" || exit 1
       done
       python3 tests/unit/test-omp-hooks.py || exit 1
       chk=$(python3 .claude/skills/harness/bin/merge-settings.py . --check --template .claude/skills/harness/templates/settings.snippet.json) || exit 1
       printf '%s\n' "$chk" | grep -qF 'all 9 prerequisites present (8 hooks' || exit 1
+      g=$(python3 .claude/skills/harness/bin/code-grade.py .claude/skills/harness/bin/merge-gate.py --json | python3 -c "import json,sys; print(min(r['grade'] for r in json.load(sys.stdin)['records'] if r['qualname'] in ('git_merge','words','direct_merge','gh_merge')))") || exit 1
+      [ "$g" -ge 4 ] || exit 1
       echo VERIFY-PASS
     intent: |
       A new PreToolUse Bash gate that refuses the operator's merge while a mirror receipt is
@@ -1026,11 +1073,31 @@ tasks:
          VALUE and continue past it; if it is a value-taking global with its value ATTACHED, or any
          other option, skip that token alone; the first token that is not an option is the
          SUBCOMMAND, and it is the ONLY token tested against "merge".
-         VALUE-TAKING GLOBALS ARE A CLASS, NOT A CLOSED LIST: the git global options that take an
-         argument, in either spelling - attached (-C<dir>, -ck=v, --git-dir=<d>, --work-tree=<d>) or
-         in the next token (-C <dir>, -c <k=v>, --work-tree <d>, --git-dir <d>, --namespace <n>,
-         --exec-path <p>, --config-env <k=e>). Those names are EXAMPLES; handle the class, and do not
-         read the enumeration as exhaustive.
+         VALUE-TAKING OPTIONS ARE A CLASS, NOT A CLOSED LIST, AND THE CLASS RULE BINDS BOTH
+         POSITIONS: the git GLOBAL options that sit BEFORE the subcommand, and the options of
+         git merge ITSELF that sit AFTER it. In EACH position handle BOTH spellings - the value
+         ATTACHED (-C<dir>, -ck=v, --git-dir=<d>, --work-tree=<d>, --file=<f>, --cleanup=strip) and
+         the value in the FOLLOWING token (-C <dir>, -c <k=v>, --work-tree <d>, --git-dir <d>,
+         --namespace <n>, --exec-path <p>, --config-env <k=e>, --attr-source <tree>, -F <file>,
+         --cleanup <mode>). Those names are EXAMPLES in both positions; handle the class, and do not
+         read either enumeration as exhaustive.
+         THE THREE MEASURED ESCAPES that make this clause unmet at review_sha e374c9a2, each
+         re-derived by the orchestrator against REAL git 2.50.1 (does git actually merge?) AND the
+         real hook (what does the gate decide?) - STATE.md ## Current, /tmp/bug1309-c15-verify.py:
+         - git merge -F <file> feature/test          - real git MERGES; gate: SILENT ALLOW;
+         - git merge --cleanup strip feature/test    - real git MERGES; gate: SILENT ALLOW;
+         - git --attr-source HEAD merge --no-ff feature/test - real git MERGES; gate: SILENT ALLOW.
+         SILENT means exactly that: no deny, no stderr line, no audit trace, executed against a
+         fixture owing a receipt. All three must DENY after this change. The first two escape the
+         post-merge set and the third escapes the global set, which is why one position is not
+         enough. At the pin both sets are closed enumerations of option NAMES
+         (merge-gate.py:46-75) - the defect is the closed set, not the particular names missing
+         from it.
+         THE IMPLEMENTATION IS FREE; THE BEHAVIOUR IS PINNED. The operator may close the class by
+         completing git's own documented value-taking sets, by INVERTING the default for an
+         unrecognised option in the global position, or by any other mechanism. Nothing here
+         mandates or forbids a mechanism. What is graded is the behaviour: the three forms above
+         deny, and every bound named below stays green.
          WHY (PANEL-2, operator ruling R-2): dropping every "-"-prefixed token and then testing
          args[0] shifts the check off by one, so git -C <dir> merge X, git -c k=v merge X and
          git --work-tree <d> merge X each returned a SILENT ALLOW regardless of the receipt state -
@@ -1040,6 +1107,34 @@ tasks:
          task: shell-variable indirection (B=feature/x; git merge $B), which a gate that never
          evaluates the shell cannot resolve, and nesting deeper than nested_merge's existing depth
          cap. Both remain backlog rows and neither widens this task.
+         MERGE CONTROL OPERATIONS ARE NOT MERGES, AND THEY ALLOW. git merge --abort,
+         git merge --continue and git merge --quit move no branch and complete no merge, and they
+         are exactly what the operator needs while a merge is in trouble. Each exits 0 with NO
+         permissionDecision object, on a branch owing a receipt as much as on any other. THEY ARE
+         DECIDED BEFORE THE FAIL-CLOSED FALLBACK OF THE NEXT CLAUSE - the order is load-bearing,
+         because that fallback would otherwise resolve them to the local branch and deny them.
+         THE CURRENT DENY IS A REGRESSION e374c9a2 INTRODUCED (VF-03, STATE.md ## Current): the
+         parser returns ("git", None) for merge --abort/--continue/--quit, head_branch falls back
+         to local_branch(cwd), and the operator's own merge-recovery commands are refused on a
+         branch owing a receipt. The pre-delta parser returned --abort as the ref, matched no
+         owner, and allowed.
+         FAIL CLOSED WHEN THE MERGE IS IDENTIFIED AND ITS REF IS NOT. When the walk establishes
+         that the command IS a git merge - and it is not one of the three control operations above
+         - but resolves NO ref token, the gate does NOT return "not a merge" and does NOT exit 0 on
+         that ground. The head branch falls back to the EXISTING local resolution,
+         git -C <cwd> rev-parse --abbrev-ref HEAD, and step 5 decides on the local record exactly
+         as it does for any other merge. WHY: a bare git merge with MERGE_HEAD present completes a
+         real merge, so a ref the gate cannot read must never buy a silent allow.
+         THE BOUND THIS MUST NOT BREAK, in the same words step 4 already uses: ATTRIBUTION IS
+         UNCHANGED. A record OWNS this merge only if it is READABLE, is a JSON OBJECT, and its
+         top-level branch equals the resolved head branch; every other record in the scan is
+         SKIPPED and can NEVER impose a refusal, so ONE owner plus ANY amount of noise is NOT
+         ambiguity. Failing closed on an unreadable REF must NOT widen into denying on an
+         unreadable, non-object or non-matching RECORD elsewhere in the scan: that is cycle 11's
+         473d82cb scan-wide sentinel, which panel c5 FAILED and 894adc0f scoped back. The two
+         malformed-record fences (tests/integration/test-merge-gate.py:128-150), the no-record
+         branch, git merge-base, git commit -m 'merge ...' and every allow case in the existing bed
+         stay green, unmodified.
       3. RESOLVE THE HEAD BRANCH.
          - git merge <ref>: the ref as written, with a leading "origin/" stripped.
          - gh pr merge <n> where n is an integer: gh pr view <n> --repo <the pinned
@@ -1151,6 +1246,20 @@ tasks:
          THE DENY ITSELF IS UNCHANGED in both branches: an absent or "recovery-required" receipt
          under enabled sync denies, misconfigured project or not - a misconfigured mirror must fail
          loudly rather than become an approved no-mirror project (D-09). Only the remedy differs.
+
+      THE GRADE BAR. git_merge must grade 4 OR BETTER on
+      .claude/skills/harness/bin/code-grade.py, and this task's verify: asserts it. MEASURED AT
+      review_sha e374c9a2: CYCLOMATIC 8, COGNITIVE 15, ABC 16.1, GRADE 3, BAR 4, RESULT FAIL,
+      SEVERITY high (VF-04, STATE.md ## Current) - the grade-4 figure carried into the c15
+      dispatch was falsified by the tool at that tip. THE REMEDY IS DECOMPOSITION of the ordered
+      walk into NAMED HELPERS: never a suppression, never a grade comment that explains it away,
+      and never a change to the bar. A comprehensive parser that grades 3 is not accepted
+      (operator ruling R-4 clause 4).
+      SCOPE BOUND: main() in the same file grades 2 and also FAILS. It is PRE-EXISTING, it carries
+      zero changes in this delta, and it is OUT of this task. The bar binds git_merge and the
+      helpers THIS change introduces, and nothing else - which is why this task's verify: reads
+      the grade of git_merge, words, direct_merge and gh_merge only, and why main is deliberately
+      absent from that set. Pulling main in would make the verify permanently unpassable.
 
       REGISTER IT IN FOUR PLACES, or it does not run. THE FOUR ARRAYS ARE IN FOUR DIFFERENT
       ORDERS, so register by NAMED NEIGHBOUR plus the constraint below, never by an ordinal: an
@@ -1319,6 +1428,27 @@ tasks:
       - "T-05 era-exempt absent build_entry allows" - THE ERA PAIR's first half;
       - "T-05 gh outage with no matching feature allows" - the first outage case;
       - "T-05 gh outage with a feature owing a receipt denies" - the second outage case.
+      - "T-05 merge -F detached value denies" - git merge -F <file> feature/test, the first
+        measured silent allow;
+      - "T-05 merge --cleanup detached value denies" - git merge --cleanup strip feature/test, the
+        second measured silent allow;
+      - "T-05 global --attr-source before merge is still detected" -
+        git --attr-source HEAD merge --no-ff feature/test, the third measured silent allow, and the
+        one in the GLOBAL position;
+      - "T-05 merge with no identifiable ref denies" - the fail-closed net: a git merge form
+        carrying NO ref token at all, denied through the local-branch fallback;
+      - "T-05 merge --abort on an owing branch allows" - exit 0, stdout carries NO
+        permissionDecision object;
+      - "T-05 merge --continue on an owing branch allows" - the same, for --continue;
+      - "T-05 merge --quit on an owing branch allows" - the same, for --quit.
+      ALL SEVEN are staged on the FEAT-9001-fixture-non-era fixture OWING a receipt, in a fixture
+      root whose harness.json carries github.sync true and github.repo pinned to the literal
+      "acme/widgets", exactly as the existing cases are - the three allows included, because an
+      allow staged on a branch that owes nothing would pass vacuously.
+      DISCRIMINATION IS REQUIRED, by operator ruling R-4: each of these SEVEN must be shown RED
+      against e374c9a2 before it is shown green - the same present-tense discrimination
+      requirement SC-03 and SC-07 carry, applied here by ruling. An assertion that cannot be made
+      to redden is reported as non-discriminating rather than kept.
 
   - id: T-06
     title: Add check-state.sh INV-37 for a terminal feature with no Build-entry receipt
