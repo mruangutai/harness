@@ -139,7 +139,15 @@ def _main():
     path = factory_config.workspace_path(fleet, args.repo)
     branch = f"factory/issue-{args.issue}"
 
-    if os.path.realpath(path) == os.path.realpath(_control_plane_root()):
+    try:
+        is_control_plane = os.path.samefile(path, _control_plane_root())
+    except OSError:
+        # path (the ordinary not-yet-cloned workspace) doesn't exist yet: samefile can't stat
+        # it, so identity falls back to a spelling comparison — the clone-path case, not the
+        # self-checkout one this guard exists to catch.
+        is_control_plane = os.path.realpath(path) == os.path.realpath(_control_plane_root())
+
+    if is_control_plane:
         factory_cli.refuse(
             tool="workspace",
             what="refusing to reset the harness control-plane checkout",

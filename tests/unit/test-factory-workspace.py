@@ -473,6 +473,40 @@ try:
 except Exception as exc:
     check("BUG-240 no bypass: the parser rejects --force", False, str(exc))
 
+# --- BUG-240 case 8: case-mismatched spelling of the control plane: identity, not string match --
+with tempfile.TemporaryDirectory() as wr:
+    probe_dir = os.path.join(wr, "probe")
+    os.makedirs(probe_dir)
+    case_insensitive = os.path.isdir(os.path.join(wr, "PROBE"))
+    if not case_insensitive:
+        print("skip  BUG-240 case-mismatched self checkout: filesystem is case-sensitive, "
+              "premise does not apply here")
+    else:
+        os.makedirs(os.path.join(checkout_path(wr), ".git"))
+        cased_root = os.path.join(wr, "Widget")
+        _missing = object()
+        _prev = getattr(fw, "_control_plane_root", _missing)
+        setattr(fw, "_control_plane_root", lambda: cased_root)
+        try:
+            rec = Recorder(porcelain="")
+            code, out, err = run_main(rec, ["--repo", REPO, "--issue", str(ISSUE)], wr)
+            kinds = [c[0][0] for c in rec.calls]
+            err_lines = [l for l in err.split("\n") if l]
+            check("BUG-240 case-mismatched self checkout: refused via identity, not spelling",
+                  code == 2 and not any(k in ("fetch", "reset", "clone") for k in kinds)
+                  and len(err_lines) == 1 and "control-plane" in err_lines[0]
+                  and "uncommitted" not in err_lines[0],
+                  f"code={code!r} err={err!r} kinds={kinds}")
+        except Exception as exc:
+            check("BUG-240 case-mismatched self checkout: refused via identity, not spelling",
+                  False, str(exc))
+        finally:
+            if _prev is _missing:
+                if hasattr(fw, "_control_plane_root"):
+                    delattr(fw, "_control_plane_root")
+            else:
+                setattr(fw, "_control_plane_root", _prev)
+
 
 print(f"\n{RAN - FAILS}/{RAN} checks passed." if FAILS == 0 else f"\n{FAILS} of {RAN} FAILING.")
 sys.exit(1 if FAILS else 0)
