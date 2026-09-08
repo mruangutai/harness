@@ -33,3 +33,5 @@
   cycle: there is no lead to route it to, so cycles_used correctly stayed 13/14 while the feature
   became not-shippable. Counting it as rework would have exhausted the budget for work no squad could
   have done.
+- 2026-09-08 (BUG-1309 c15): a fix that patches the NAMED instances of a parser class passed a 27-case bed and my own 23-check hook probe, while the class defect survived in three unnamed forms (-F, --cleanup, --attr-source). What found them was asking the REAL dependency first — for each candidate token sequence, does real git actually perform the merge? — instead of only asking what the gate decides. That same question falsified one of the two reported blockers: pm's --exec-path form prints the exec path and exits, so there was no merge to gate.
+- 2026-09-08 (BUG-1309 c15): I wrote a full review_sha by extending an abbreviated sha from memory and feature-json-merge.py accepted it without complaint — no tool validates that a pin resolves at write time. Caught only because I re-read it against git rev-parse HEAD immediately after. Resolve the full sha with rev-parse and compare, every time.
