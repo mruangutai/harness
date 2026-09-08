@@ -8,8 +8,10 @@ place to discover it. Cases (D) and (E) below exist specifically to pin that: wh
 already carries factory/issue-<n> (the normal case, created remotely by factory_claim.py per
 D-05), the branch must be checked out TRACKING that ref, and no command may name
 origin/<default_branch> as the branch's start point; only when origin carries no such ref is
-origin/<default_branch> the legitimate start point. Nothing here spawns a subprocess or touches
-a real repository — run_git is monkeypatched with a recorder throughout.
+origin/<default_branch> the legitimate start point. Most cases here monkeypatch run_git with a
+recorder and spawn no subprocess; the BUG-240 cases that exercise the hard-reset guard are the
+exception — they build a real local bare origin and checkout via real_repo() and drive real
+git, with no network.
 """
 import os as _anchor_os, sys as _anchor_sys
 _anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
