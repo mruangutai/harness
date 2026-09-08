@@ -2,7 +2,7 @@
   "feature_id": "FEAT-56-central-onboarding-model",
   "branch": "feat/FEAT-56-central-onboarding-model",
   "pr": null,
-  "review_sha": "e62610608ec850dd5952ee2868c090ba16372701",
+  "review_sha": "400732247600ca5fbf5161a88e81a9245f972664",
   "cycles_used": 10,
   "max_total_cycles": 10,
   "max_total_runs": 20,
@@ -128,6 +128,12 @@
       "squad": "eng",
       "verdict": "PASS",
       "agent": "harness-dev-ops"
+    },
+    {
+      "id": "2026-09-08-uat-fix-main",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-orchestrator"
     }
   ],
   "github": {
