@@ -2,7 +2,7 @@
   "feature_id": "BUG-124-run-dir-squad-suffix",
   "branch": "feat/BUG-124-run-dir-squad-suffix",
   "pr": null,
-  "review_sha": "6c037de463fd2b7be0c6ffa4df04ce801aac86e2",
+  "review_sha": "4ed8b095524f9655ba65ab7a5cb2ab6c199bd2f2",
   "cycles_used": 7,
   "max_total_cycles": 10,
   "runs": [
@@ -98,5 +98,22 @@
       "agent": "harness-validator-lead",
       "verdict": "PASS"
     }
-  ]
+  ],
+  "github": {
+    "milestone": 62,
+    "parent": 1498,
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03"
+    ],
+    "issues": {
+      "T-01": 1499,
+      "T-02": 1500,
+      "T-03": 1501
+    },
+    "source_issues": [
+      124
+    ]
+  }
 }
