@@ -525,7 +525,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: [T-01, T-02]
-    status: ready
+    status: done
     files:
       - tests/integration/test-layout-migration.py
       - tests/integration/test-check-state.py

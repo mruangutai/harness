@@ -66,7 +66,8 @@ def _resolve_main_checkout_root(root):
     BIN_DIR-derived root from `harness_boundary.root_from_script(BIN_DIR)`, NEVER
     `os.getcwd()`). `root` answers "where
     do the bin scripts live" and can itself BE a linked worktree (a relative core.hooksPath
-    resolves per-worktree — harness-init SKILL.md:73/:78 — so each worktree gets its own hooks
+    resolves per-worktree — harness-init SKILL.md, the per-clone step section — so each worktree
+    gets its own hooks
     dir and its own copy of this script). This function answers a SEPARATE question — "which
     checkout holds the feature directory that actually landed" — and the two must never be fused
     into one value again (the measured defect this replaces: a linked worktree's OWN, possibly

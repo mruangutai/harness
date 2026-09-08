@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """test-hooks-install.py — the only automated evidence for SC-08, SC-13 and SC-14 (FEAT-34 T-13).
 
-WHAT THIS GRADES. `harness-init/SKILL.md`'s "per-clone step" (T-12) is prose, not a script: three
+WHAT THIS GRADES. `harness-init/SKILL.md`'s "per-clone step" (T-12) — the control-plane clone's
+own — is prose, not a script: three
 steps, of which only steps 1 and 2 carry literal command strings —
 
   step 1: `git config --get core.hooksPath || echo "(unset)"`

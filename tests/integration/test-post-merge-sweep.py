@@ -781,10 +781,10 @@ def case_cwd_outside_repo():
 
 # ---------------------------------------------------------------------------------------------
 # (i) LINKED WORKTREE, T-03/T-04 SECOND REWORK. The sweep's OWN on-disk location (BIN_DIR) can be
-# a LINKED WORKTREE, not the main checkout — a relative core.hooksPath (harness-init SKILL.md:73/
-# :78) resolves per-worktree, so each worktree gets its own hooks dir and its own copy of this
-# script. feat_dir must resolve under the MAIN checkout, never under whichever worktree the
-# script happens to be running from.
+# a LINKED WORKTREE, not the main checkout — a relative core.hooksPath (harness-init SKILL.md,
+# the per-clone step section) resolves per-worktree, so each worktree gets its own hooks dir and
+# its own copy of this script. feat_dir must resolve under the MAIN checkout, never under
+# whichever worktree the script happens to be running from.
 # ---------------------------------------------------------------------------------------------
 
 def case_linked_worktree_main_checkout():
