@@ -1,0 +1,371 @@
+schema: plan/1
+feature: BUG-276-expertise-merge-duplicate-id
+approval:
+  date: '2026-09-07'
+  approved_by: operator
+  status: approved
+status: review
+source_issues: [276]
+
+lanes:
+  resolved_at: 6d969ed3
+  rows:
+    - surface: .claude/skills/harness/bin/expertise-merge.py
+      lane: team
+      agent: harness-backend-dev
+    - surface: tests/unit/test-expertise-ops.py
+      lane: team
+      agent: harness-backend-dev
+    - surface: tests/integration/test-expertise-merge.py
+      lane: team
+      agent: harness-backend-dev
+
+decisions:
+  - id: D-01
+    choice: "Refuse with harness_merge.MergeRefusal(11) carrying the AMBIGUOUS TARGET line shape, rather than a new exit code or a fourth element on compute_union's return"
+    because: "It is the shape this same file already uses for this class on the ops path, and it keeps the three-value return that case_u10 unpacks"
+    dec: DEC-219
+  - id: D-02
+    choice: "Key the refusal on section plus id alone, so two duplicate entries refuse even when their texts are identical"
+    because: "_check_proposal_ambiguity compares no text either, and making the guard depend on text equality would let a numbering mistake pass whenever the collision happens to be a copy"
+    dec: none
+  - id: D-03
+    choice: "Run the proposal-duplicate check as compute_union's first statement, before any base comparison, so an ambiguous proposal exits 11 even where the same id also diverges from the base"
+    because: "An ambiguous proposal is not a well-formed merge input at all, and this keeps the check a pure property of the proposal, assertable with no base present"
+    dec: none
+  - id: D-04
+    choice: "check-expertise.sh is not modified"
+    because: "Its duplicate-id check already exists at lines 202-206 and cannot see this defect, because the drop happens before the file it inspects is written"
+    dec: none
+  - id: D-05
+    choice: Correct the module docstring's exit-code table to list every code the apply subcommand can return, adding 9 and 11 only
+    because: 'The docstring documents one subcommand, apply, and apply can return 0, 6, 7, 8, 9 and, after this fix, 11. Codes 10 and 12 are raised only on the ops path, so listing them would make SC-06 fail: SC-06 grades that no code is listed which apply cannot return. Documenting the ops path is unrequested work on a bug fix.'
+    dec: none
+  - id: D-06
+    choice: "The monotonic-entry-count and content-presence checks suggested by issue 276 are out of scope here"
+    because: 'Those standing checks would police every write route rather than this one input, and are a separate, larger surface. This ticket closes the route the operator narrowed to. It is not claimed that the measured loss is the only silent-reduction route: parse_expertise at expertise-merge.py lines 73 to 95 plus render at lines 103 to 111 discard any base line ENTRY_RE misses, on both the apply and the ops path, at exit 0. That is recorded as D-07 and stays reachable after this fix.'
+    dec: none
+
+  - id: D-07
+    choice: "The silent drop in parse_expertise plus render — any base line ENTRY_RE does not match is discarded at exit 0, on both the apply and the ops path — is recorded as a known, separate defect and is NOT fixed here; it is recommended to the operator as its own ticket at signature"
+    because: "It was found while goal-checking this plan and is measured in .harness/harness/features/BUG-276-expertise-merge-duplicate-id/notes/research-BUG-276-goalcheck-plan-c0.md finding F-01, which names parse_expertise at expertise-merge.py lines 73 to 95 and render at lines 103 to 111. It is a different route from the ambiguous-proposal input this ticket closes, no live Expertise file trips it today, and folding it in would widen a narrowed bug fix. Recording it is what stops the finding dying with this plan."
+    dec: none
+  - id: D-08
+    choice: "Both task verify blocks additionally assert the behaviour directly and name-independently — T-01 loads the module by path and asserts compute_union raises MergeRefusal with code 11 on a duplicated proposal id, T-02 drives the real CLI against a duplicate proposal in a temp directory and asserts exit 11 — rather than resting on the PASS check-name greps alone"
+    because: "Both suites print PASS followed by the check name for any truthy ok, at tests/unit/test-expertise-ops.py line 387 and tests/integration/test-expertise-merge.py line 1342, so a check named for the behaviour can pass on a weaker assertion and a name-only grep cannot tell. Binding a name rather than a behaviour is the gate weakness this org's doctrine warns about. Both additions were run at 6d969ed3 and exit non-zero on the pre-fix tree, in 0.05s and 1.25s, so the blocks stay single shell blocks well under 60 seconds."
+    dec: none
+  - id: D-09
+    choice: "The exit 11 row is NOT added to the agent-facing apply refusal table in .claude/skills/harness-distill/SKILL.md (the table headed Three refusals, and each wants a different response, at about lines 40 to 46, one row per code: 6 retry, 7 resolve it yourself, 8 curate, 9 fix the path); panel finding PF-8eac8a4b4f41d3ea8f759cdec6e73186 stays open and the operator is asked to settle it at signature"
+    because: "THE COST, stated rather than hidden: after this fix apply can return the new exit 11, so a distilling agent that meets that refusal consults the table it routes on and finds no row for it, and the only mention of 11 in the same file is the ops subcommand code list at about lines 135 to 141, a different context that invites the wrong response. THE REASON for excluding it: bash .agents/skills/harness/bin/check-domain.sh --resolve .claude/skills/harness-distill/SKILL.md returns NOBODY, and check-plan-routes.py treats a NOBODY path under team execution as a violation, so the remedy cannot be a line a dev writes alongside the guard - it would have to be an execution_mode main-session-direct task, widening a deliberately narrow bug fix beyond lanes.rows. THE OPERATOR'S CHOICE at signature: keep the exclusion as recorded here, or direct that the row be added, in which case this plan needs exactly one new main-session-direct task adding the single exit 11 row to that table plus one amendment to this decision. Neither is pre-written here."
+    dec: none
+panel:
+  last_run: 2026-09-07-03-validator
+  cycle: 0
+  readers:
+  - reader: should-not-exist
+    status: ran
+    persona: fable-advisor
+    note: Resolved and ran; returned 2 findings. Not skipped. Holds no write grant,
+      so its findings reach disk only through this record.
+  - reader: scope
+    status: ran
+    persona: harness-code-reviewer
+    note: Ran, verdict PASS, 1 finding; artifact .harness/harness/features/BUG-276-expertise-merge-duplicate-id/notes/review-harness-code-reviewer-planpanel-c0.md
+  - reader: goalcheck
+    status: ran
+    persona: harness-pm
+    note: Ran as the plan panel's PRODUCT segment, before the two-reader validator
+      segment; returned 6 findings. Artifact .harness/harness/features/BUG-276-expertise-merge-duplicate-id/notes/research-BUG-276-goalcheck-plan-c0.md.
+      The run left no run directory, which is why feature.json records it as 2026-09-07-goalcheck-product-no-rundir.
+  findings:
+  - id: PF-8eac8a4b4f41d3ea8f759cdec6e73186
+    severity: med
+    reader: should-not-exist
+    summary: harness-distill/SKILL.md's apply refusal table at lines 42-46 prescribes
+      one action per exit code (6, 7, 8, 9) and gains no row for the new exit 11,
+      so a distilling agent that meets the new refusal has no prescribed response;
+      the only mention of 11 in that file is under the ops subcommand.
+    disposition: open
+    note: Settled by decision D-09, which states that the row is not added by this
+      plan and names the cost; the choice is left to the operator at signature.
+  - id: PF-d6fb0ad9a0491cc93c7ac648cd092e8c
+    severity: low
+    reader: should-not-exist
+    summary: T-02 sub-case case27b (identical duplicate texts at the CLI) was argued
+      to be a same-path parameter row already covered by u23b plus case27a, and should
+      be dropped with SC-02's evidence re-pointed at unit.
+    disposition: open
+    note: REJECTED, case27b is kept. u23b hands compute_union an in-memory dict and
+      never touches parse_expertise, so case27b is the only planned probe driving
+      two byte-identical entry LINES through file to parse_expertise to compute_union;
+      the two are equivalent only because parse_expertise appends every ENTRY_RE match
+      with no dedup (expertise-merge.py lines 84-86), and a future identical-line
+      collapse at parse would silently restore exit 0 with case27b the only case that
+      would redden. The proposed remedy would also edit SC-02, an approval-gated BRIEF
+      criterion. The reader's own low severity is carried unchanged.
+  - id: PF-9f0a5387a328f3997e3d0b55b95e076d
+    severity: low
+    reader: scope
+    summary: T-02's intent cited hashlib.sha256 as case_atomic_failure at lines 597-606;
+      case_atomic_failure begins at line 583 and its sha256 calls are at 589 and 601,
+      so the cited range covers neither call.
+    disposition: resolved
+    resolved_by: T-02
+    note: T-02's intent citation was amended in this run to read 583 for the function
+      and 589 and 601 for its two sha256 calls; nothing else in the field changed.
+  - id: PF-59b9da56871cca170a7f66678c292035
+    severity: med
+    reader: goalcheck
+    summary: parse_expertise (expertise-merge.py:73-95) plus render (:103-111) silently
+      discard any base line ENTRY_RE misses, at exit 0, on both the apply and the
+      ops paths, so a second silent-reduction route survives this fix.
+    disposition: open
+    note: D-07 records it as a known, separate defect, deliberately out of scope here,
+      and recommends it to the operator as its own ticket at signature. It stays OPEN
+      because it is a real unfixed defect in the tool, not because anything about
+      this plan is unresolved.
+  - id: PF-fa07abe46cb1b84dc4cfa20dd9f63996
+    severity: high
+    reader: goalcheck
+    summary: The BRIEF attributed issue 276's field losses to this defect; those losses
+      (2026-08-12, a810c115) predate expertise-merge.py (2026-08-21, 47a9935a) by
+      nine days.
+    disposition: resolved
+    note: The BRIEF's Problem section was restated in run 2026-09-07-02-product so
+      it no longer attributes the field losses to this defect. Severity stays high
+      as found; a resolved finding gates nothing.
+  - id: PF-d92aa22ff6536470a2ea63c104c04546
+    severity: high
+    reader: goalcheck
+    summary: D-05 and T-01 step 3 instructed adding exit codes 10 and 12, which apply
+      cannot return, so the task as written would have failed its own SC-06.
+    disposition: resolved
+    resolved_by: T-01
+    note: D-05 and T-01 step 3 were trimmed to codes 9 and 11 only. Severity stays
+      high as found; a resolved finding gates nothing.
+  - id: PF-15e24dab70b6caca5bf5ba4837356157
+    severity: low
+    reader: goalcheck
+    summary: 'The operator''s own wording of the defect is inverted: it says the last-seen
+      entry wins, and compute_union (:136-138) is first-wins.'
+    disposition: open
+    note: 'Open ON PURPOSE: it is a correction the operator must READ at signature,
+      and marking it resolved would hide it. The plan and the BRIEF both follow the
+      measurement and record FIRST-wins.'
+  - id: PF-a61ef43ee533a58c480f0002e0be4b96
+    severity: med
+    reader: goalcheck
+    summary: Both task verify blocks grepped only for PASS check names, so a correctly-named
+      check could pass on a weaker assertion.
+    disposition: resolved
+    resolved_by: T-01
+    note: Both verify blocks gained a behavioural, name-independent tail under D-08.
+      The orchestrator ran both tails at 6d969ed3 and observed each exit 1 - T-02's
+      after the real CLI returned 0 and printed ADDED P-02, reproducing the defect
+      end to end.
+  - id: PF-1f9cd11c94c62290357384a3935fd1a0
+    severity: info
+    reader: goalcheck
+    summary: T-02's REQ-03/SC-04 trace promised no new evidence; the evidence is the
+      pre-existing case_add_only_compatibility.
+    disposition: resolved
+    resolved_by: T-02
+    note: T-02's intent now names the pre-existing case_add_only_compatibility as
+      the evidence for REQ-03/SC-04, so the trace no longer reads as new evidence.
+tasks:
+  - id: T-01
+    title: Refuse a duplicated section plus id inside one apply entries proposal
+    traces: [REQ-01, REQ-04]
+    change_type: bugfix
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: []
+    status: done
+    files:
+      - tests/unit/test-expertise-ops.py
+      - .claude/skills/harness/bin/expertise-merge.py
+    verify: |
+      # Green suite AND the three new u23 checks present and passing. Both suites already exit 0
+      # at 6d969ed3 without these cases, so the greps carry the name-level discrimination — and the
+      # final python3 asserts the BEHAVIOUR name-independently, because a PASS line is printed for
+      # any truthy ok and so a correctly-named check can pass on a weaker assertion (D-08).
+      out=$(env -u HARNESS_AGENT_TYPE python3 tests/unit/test-expertise-ops.py) &&
+      printf '%s\n' "$out" | grep -q '^PASS  u23a: different texts refuse with code 11' &&
+      printf '%s\n' "$out" | grep -q '^PASS  u23b: identical texts refuse with code 11' &&
+      printf '%s\n' "$out" | grep -q '^PASS  u23c: no base refuses with code 11' &&
+      python3 -c '
+      import importlib.util, sys
+      s = importlib.util.spec_from_file_location("m", ".claude/skills/harness/bin/expertise-merge.py")
+      m = importlib.util.module_from_spec(s)
+      s.loader.exec_module(m)
+      try:
+          m.compute_union({"Patterns": [("P-01", "one")]}, ["Patterns"],
+                          {"Patterns": [("P-02", "ALPHA"), ("P-02", "BRAVO")]}, ["Patterns"])
+      except m.harness_merge.MergeRefusal as e:
+          assert e.code == 11, e.code
+          assert e.lines[0].startswith("AMBIGUOUS TARGET"), e.lines
+          assert "section=Patterns" in e.lines[0] and "id=P-02" in e.lines[0], e.lines
+          sys.exit(0)
+      sys.exit(1)
+      '
+    intent: |
+      Close the silent-drop defect in expertise-merge.py's apply --entries merge, test first.
+
+      MEASURED PRE-FIX BEHAVIOUR at 6d969ed3, by calling the function directly: with base
+      {"Patterns": [("P-01","one")]} and proposal
+      {"Patterns": [("P-02","ALPHA"),("P-02","BRAVO")]}, compute_union returns
+      ({"Patterns": [("P-01","one"),("P-02","ALPHA")]}, ["Patterns"], []) — the FIRST entry wins,
+      BRAVO is discarded, conflicts is empty, no exception is raised, and the CLI exits 0 printing
+      ADDED P-02 once. That is the bug.
+
+      STEP 1, THE FAILING TEST, BEFORE ANY PRODUCTION EDIT.
+      In tests/unit/test-expertise-ops.py add case_u23() and register it in main() by adding a
+      case_u23() call to the explicit list at lines 361-382, immediately after case_u22().
+      Use the module-level bindings the file already has — compute_union at line 24, MergeRefusal
+      at line 25, the base_sections helper at line 46, the check(name, ok, detail) helper at line
+      42. Add no imports.
+      Three sub-cases, each following case_u9's structure at lines 131-139: the call inside a try,
+      a check(..., False, ...) on the no-exception path, the assertions in the except branch.
+
+      THE CHECK NAMES ARE PART OF THE CONTRACT. main() prints each passing check as
+      PASS, two spaces, then the name, and the task's verify command greps for three of them
+      anchored at line start. Use these names EXACTLY, character for character:
+        u23a: different texts refuse with code 11
+        u23b: identical texts refuse with code 11
+        u23c: no base refuses with code 11
+      Each is the name of that sub-case's e.code == 11 assertion. Name the remaining assertions
+      in the same per-sub-case style, prefix u23a / u23b / u23c, wording yours — for example
+      "u23a: line starts AMBIGUOUS TARGET" and "u23a: line carries section, id and reason tokens".
+      Name the no-exception-path check "u23a: MergeRefusal raised" and its siblings likewise. Do
+      not rename any pre-existing check.
+
+        (a) DIFFERENT texts. secs, order = base_sections([("Patterns", [("P-01","one")])]);
+            prop_secs = {"Patterns": [("P-02","ALPHA"), ("P-02","BRAVO")]};
+            prop_order = ["Patterns"]. compute_union(secs, order, prop_secs, prop_order) must
+            raise MergeRefusal. Assert e.code == 11; e.lines[0].startswith("AMBIGUOUS TARGET");
+            "section=Patterns" in e.lines[0]; "id=P-02" in e.lines[0]; "reason=" in e.lines[0].
+        (b) IDENTICAL texts. As (a), but both proposal entries carry the text "ALPHA". The same
+            assertions — code 11 and the same four line tokens.
+        (c) NO BASE. The same proposal as (a) against base sections {} and base order [].
+            The same assertions — code 11.
+      Run the verify command and OBSERVE it exit non-zero with the u23 checks FAILING, for the
+      reason recorded above. Do not proceed until they have been seen red.
+
+      STEP 2, THE GUARD.
+      In .claude/skills/harness/bin/expertise-merge.py, immediately above compute_union at line
+      114, add a helper _check_proposal_duplicate_ids(prop_sections, prop_order): for each section
+      name in prop_order, walk prop_sections.get(name, []) in order holding a set of the ids
+      already seen; on the second occurrence of an id raise
+      harness_merge.MergeRefusal(11, [f"AMBIGUOUS TARGET section={name} id={eid} reason=two
+      entries in one proposal name this target"]) as ONE line, in exactly that token order.
+      Compare no text at all. This mirrors _check_proposal_ambiguity at lines 305-317, whose
+      message differs only in saying ops where this one says entries.
+      Call the helper as the FIRST statement of compute_union's body, before the order list is
+      built, so the refusal is a property of the proposal alone and fires ahead of every base
+      comparison.
+      Do NOT change compute_union's return arity or its existing conflicts behaviour: case_u10 at
+      line 150 unpacks three values and pins the base-versus-proposal conflict path.
+      Add one clause to compute_union's docstring stating the new refusal.
+
+      STEP 3, THE DOCUMENTED INTERFACE.
+      The module docstring's exit-code table at lines 14-19 lists only 0, 6, 7 and 8, and the
+      docstring documents ONE subcommand: apply (line 12). apply can return 9, the destination
+      refusal raised by require_expertise_destination, and — after STEP 2 — 11. Neither is listed.
+      Add exactly TWO lines, in the table's existing style: 9 for the destination refusal raised by
+      require_expertise_destination, and 11 AMBIGUOUS TARGET.
+      Do NOT add 10 or 12. They are raised only on the ops path, apply cannot return them, and
+      SC-06 grades exactly that: no code listed that apply cannot return. Adding them would make
+      this task fail its own criterion.
+
+      CONSTRAINTS. python3 stdlib only, no new imports.
+      .agents/skills/harness/bin/expertise-merge.py is the SAME INODE as the .claude path — edit
+      the .claude path only, and add no sync step of any kind.
+      Then re-run the verify command: it exits 0, which requires both a green suite and all three
+      u23 marker lines, and no other case in the file reddens.
+
+  - id: T-02
+    title: Pin the apply duplicate-id refusal at the CLI including the absent-destination path
+    traces: [REQ-01, REQ-02, REQ-03]
+    change_type: bugfix
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-01]
+    status: done
+    files:
+      - tests/integration/test-expertise-merge.py
+    verify: |
+      # Green suite AND the three new case27 checks present and passing. The suite already exits 0
+      # at 6d969ed3 without these cases, so the greps carry the name-level discrimination — and the
+      # final python3 drives the real CLI in a temp tree and asserts exit 11 directly, because a
+      # PASS line is printed for any truthy ok and so a correctly-named check can pass on a weaker
+      # assertion (D-08).
+      out=$(env -u HARNESS_AGENT_TYPE python3 tests/integration/test-expertise-merge.py) &&
+      printf '%s\n' "$out" | grep -q '^PASS  case27a: duplicate ids exit 11' &&
+      printf '%s\n' "$out" | grep -q '^PASS  case27b: identical duplicate ids exit 11' &&
+      printf '%s\n' "$out" | grep -q '^PASS  case27c: absent destination exits 11' &&
+      python3 -c '
+      import os, subprocess, sys, tempfile
+      cli = os.path.abspath(".claude/skills/harness/bin/expertise-merge.py")
+      with tempfile.TemporaryDirectory() as d:
+          dd = os.path.join(d, ".harness", "expertise")
+          os.makedirs(dd)
+          dest = os.path.join(dd, "harness-pm.md")
+          open(dest, "w").write("# Expertise — harness-pm\n## Patterns\n- P-01: one\n")
+          ent = os.path.join(d, "entries.md")
+          open(ent, "w").write("## Patterns\n- P-02: ALPHA\n- P-02: BRAVO\n")
+          r = subprocess.run([sys.executable, cli, "apply", "--file", dest, "--entries", ent],
+                             capture_output=True, text=True)
+          c = r.stdout + r.stderr
+          assert r.returncode == 11, (r.returncode, c)
+          assert "AMBIGUOUS TARGET" in c and "id=P-02" in c, c
+      '
+    intent: |
+      Pin the duplicate-id refusal at the CLI boundary, which a unit test cannot reach: the exit
+      code, the message tokens, byte identity of an existing destination, and the
+      absent-destination path where cmd_apply's transform runs with base_bytes None.
+
+      Add case_duplicate_proposal_ids(root) to tests/integration/test-expertise-merge.py and
+      register it in _run_all_cases at lines 1310-1335, immediately after
+      case_ops_target_grammar_well_formed(root). Use only helpers the file already has:
+      target(root, stem) at line 88 for an Expertise-tier --file path, write_file at line 59,
+      write_entries at line 75, run_apply at line 102, check at line 55, and hashlib.sha256 as
+      case_atomic_failure, which begins at line 583, does at its two sha256 calls at lines 589
+      and 601. Add no imports.
+
+      THE CHECK NAMES ARE PART OF THE CONTRACT. _report_results prints each passing check as
+      PASS, two spaces, then the name, and the task's verify command greps for three of them
+      anchored at line start. Use these names EXACTLY, character for character:
+        case27a: duplicate ids exit 11
+        case27b: identical duplicate ids exit 11
+        case27c: absent destination exits 11
+      Each is the name of that sub-case's returncode == 11 assertion. Name the remaining
+      assertions in the same per-sub-case style, prefix case27a / case27b / case27c, wording
+      yours — for example "case27a: message carries AMBIGUOUS TARGET, section, id and reason" and
+      "case27a: destination bytes unchanged". Do not rename any pre-existing check.
+
+      Three sub-cases, all through apply --entries, each with its own fixture stem. In each, read
+      combined = r.stdout + r.stderr: cmd_apply prints refusal lines to STDOUT at line 538, so
+      assert nothing about which stream carries them.
+        (a) stem case27a, DIFFERENT texts.
+            write_file(target(root, "case27a"), [("Patterns", [("P-01", "one")])]); take the
+            sha256 of the file before the invocation; write_entries with
+            [("Patterns", [("P-02", "ALPHA"), ("P-02", "BRAVO")])]; r = run_apply(path, entries).
+            Assert r.returncode == 11; "AMBIGUOUS TARGET" in combined; "section=Patterns" in
+            combined; "id=P-02" in combined; "reason=" in combined; and the sha256 taken after
+            the invocation equals the one taken before. This is the assertion set
+            _assert_case24_ambiguous applies at lines 1190-1209 for the ops path.
+        (b) stem case27b, IDENTICAL texts. Both proposal entries carry the text "ALPHA". The same
+            five assertions plus the byte-identity check.
+        (c) stem case27c, ABSENT destination. Compute path = target(root, "case27c") but write NO
+            file there — case_new_file at line 256 is the exit-0 twin of this path. Propose the
+            same duplicated entries as (a). Assert r.returncode == 11; "AMBIGUOUS TARGET" in
+            combined; and os.path.exists(path) is False, so nothing was created.
+
+      DO NOT add a regression sub-case for exit 0, exit 7 or exit 8: case_add_only_compatibility
+      at line 614 already pins all three on this exact subcommand, and a copy would add no
+      discrimination. This is deliberate reuse, not an omission: SC-04's evidence IS that
+      pre-existing case at tests/integration/test-expertise-merge.py line 614, and the
+      REQ-03 trace on this task promises no NEW regression case. DO NOT modify any existing
+      case, helper or fixture.
+      Run the verify command BEFORE writing the case and observe it exit non-zero, then re-run it
+      after: it exits 0, which requires both a green suite and all three case27 marker lines.
