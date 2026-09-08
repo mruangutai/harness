@@ -3,23 +3,21 @@
 ## Current
 
 - feature: BUG-201-depends-on-integrity
-- mission: ship — build, QA, SIMPLIFY, the reviewer panel and the goal-check are COMPLETE and the
-  pull request is open. **The merge is BLOCKED on two record conditions, neither of them this
-  feature's code and neither inside this feature's authority.**
-- status: blocked (awaiting the operator's decision on the merge), station `review`
+- mission: ship — build, QA, SIMPLIFY, the reviewer panel and the goal-check are COMPLETE.
+  Both merge blockers are now CLEARED; the feature is merging.
+- status: in_review → shipping, station `review`
 - source ticket: issue #201 · intake `.harness/notes/grilling-depends-on-integrity-2026-09-06.md`
   · operator ruling `notes/answers-plan-c0.md` (2026-09-07, Q-A)
 - worktree: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-201-depends-on-integrity
-- branch `feat/BUG-201-depends-on-integrity`, base `af859ee8`, pushed. **PR #1476** (base `main`).
-  `review_sha` PINNED at `626bb59934b8801bf1abdc86379aa313e021c77b` (the MF-1 fix commit); commits
-  after it add notes and feature.json only, no source file differs from the pin.
+- branch `feat/BUG-201-depends-on-integrity`, base `af859ee8`. **PR #1476** (base `main`).
+  `review_sha` PINNED at `626bb59934b8801bf1abdc86379aa313e021c77b` (the MF-1 fix commit). The
+  pin is UNMOVED: everything added after it is `notes/` and `feature.json`, no source file
+  differs from the pin.
 - approval: SIGNED 2026-09-07 by mruangutai, both fragments.
 - budget: cycles_used 3 / 10 · runs 18 / 20 (informational; every run resolved something)
-- GitHub mirror: milestone #56, parent #1466, sub-issues #1467–#1472, source issue #201 — all seven
-  cards at the `review` station. `pr` stays null in feature.json: `record-pr` derives from a MERGED
-  pull request and this one has not merged.
+- GitHub mirror: milestone #56, parent #1466, sub-issues #1467–#1472, source issue #201.
 
-**Where the feature stands — the work is done and verified**
+**The work — done and verified, unchanged by this run**
 
 - All six tasks `status: done`; QA matrix PASS; SIMPLIFY applied its one permitted fold-in.
 - Reviewer panel c1 FAILed on ONE gating finding (MF-1: the new validator was itself code-risk
@@ -29,40 +27,37 @@
 - Ship goal-check PASS: SC-01..SC-09 all MET at the pin. No `verify: uat` criterion exists.
 - CEO briefing: `notes/ship-review-2026-09-07-ship.md` (+ rendered HTML), backlog B-1..B-13.
 
-**THE MERGE BLOCKER — measured, not inferred**
+**BOTH MERGE BLOCKERS CLEARED — measured, not inferred**
 
-`main` requires the `integration` check and `enforce_admins` is true, so no override path exists.
-The check fails with seven violations, five of which are another feature's.
+The `integration` check is required on `main` with `enforce_admins: true`, so no override path
+exists. It failed on seven record violations, five of them another feature's. Both causes are now
+resolved by work that landed on `origin/main`, not by any change to this feature's source.
 
-1. **The branch base never reached `origin/main`.** `af859ee8` is not an ancestor of `origin/main`
-   (merge-base `41c16c73`), so PR #1476 carries 40 commits of which only 12 are BUG-201's; the
-   other 28 are BUG-1290-factory-claim-repo-root, merged into local `main` and never pushed, with
-   no PR recorded (INV-28). Its five record violations — INV-32 for readers `goalcheck`, `scope`,
-   `should-not-exist`, plus missing `handoff-build.md` and `handoff-validate.md` — enter this PR's
-   CI. Not touched: recording a reader that did not run would falsify the record, and they belong
-   to a feature this run was not dispatched against.
-2. **BUG-201's own two rows are the harness defect below.** `notes/handoff-plan.md` and
-   `notes/handoff-build.md` cannot be written for a feature that exists only in a worktree.
-   `check-domain.sh`'s shape rel (`:1141-1149`) takes the checkout-relative path from
-   `harness_boundary.checkout_relative` and DISCARDS the worktree root, then passes that rel with
-   the MAIN root into `handoff_done_when.problems` (`:1748`), so every Authority pointer is looked
-   for in a checkout where the unmerged feature directory does not exist. Re-measured today: the
-   live guard refused the write and named all three pointers. **Not worked around** — a pointer
-   bent to satisfy the gate would be a false authority. Filed as backlog B-1; the fix is one line
-   (carry `_ck[0]` as the root for the handoff check) and it is a harness change, not a BUG-201
-   change, so this run did not make it: it is unplanned, unreviewed, and would not clear CI anyway
-   while condition 1 stands.
+1. **BUG-1290's five rows** — its three unrecorded panel readers and its two missing handoff
+   notes — were reconciled by PR #1503, merged to `origin/main`. Verified at `origin/main`:
+   all four `notes/handoff-*.md` present, all three readers `status: ran` in its `plan.yaml`.
+   This branch takes them by MERGING `origin/main`, never by rebasing (binding strategy: the
+   pinned source review must survive, and a rebase rewrites every reviewed commit).
+2. **BUG-201's own two rows** — `notes/handoff-plan.md` and `notes/handoff-build.md` — could not
+   be written from a worktree: `check-domain.sh` discarded the worktree root and looked for every
+   Authority pointer in the main checkout, where an unmerged feature dir does not exist. That was
+   backlog B-1, shipped as BUG-1480 in PR #1497. The guard now carries `_checkout_root(...)` into
+   `handoff_done_when.problems`, and both notes are written and pass the shape gate. They are
+   marked BACKFILLED in their own comments rather than presented as contemporaneous: they are
+   post-pin `notes/` additions only, which the ship strategy permits, and they touch no source.
 
-Fixing B-1 unblocks BUG-201's two rows and every future worktree feature. Condition 1 needs an
-operator decision about BUG-1290's unpushed work; it will redden the first PR that pushes local
-`main`'s backlog whatever else changes.
+`check-state.sh` from this worktree now reports ZERO BUG-201 violations. The BUG-1290 rows still
+appear here only because this branch has not yet taken the `origin/main` merge; they are absent
+from `origin/main` itself. The remaining INV-25/INV-29 rows are standing local worktrees and a
+stray `/private/tmp` checkout — workspace conditions, invisible to CI, none of them this feature's.
 
 ## Open Questions
 
-- Q-J (BLOCKING, operator): the merge. Fix B-1, and decide what happens to BUG-1290's five record
-  violations — or give BUG-201 a base that is on `origin/main`, which is a history decision no agent
-  here has the authority to make.
-- Q-D (non-blocking, harness owner): the handoff-note defect. Backlog B-1.
+- Q-D (RESOLVED, was non-blocking): the handoff-note worktree-root defect. Shipped as BUG-1480 /
+  PR #1497. Backlog B-1 is discharged.
+- Q-J (RESOLVED, was blocking): the merge. BUG-1290's record violations reconciled by PR #1503;
+  BUG-201's two rows written under the BUG-1480 fix. No operator history decision was needed —
+  the base is reached by merge, not by rewriting it.
 - Q-E (non-blocking, dev-ops chore): `plan-merge.py` has no write route to the top-level `lanes`
   key. Advisor-settled for this plan. Backlog B-2.
 - Q-H (non-blocking, harness owner): `code-grade.py`'s pre-image lookup grades an unchanged function
