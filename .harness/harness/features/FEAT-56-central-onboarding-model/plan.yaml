@@ -687,7 +687,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: check-domain.sh --resolve on .claude/commands/**, .claude/agents/** and .omp/agents/** returns NOBODY at 4b5dbb23, a DEC-174 carve-out
     depends_on: [T-01]
-    status: building
+    status: done
     files:
       - .claude/commands/harness.md
       - .claude/commands/harness-plan.md
