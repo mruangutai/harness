@@ -195,3 +195,4 @@ inventing historical task issues. Identical for `FEAT-*` and `BUG-*` flows.
 status: approved
 approved-by: Mike Ruangutai
 date: 2026-09-08
+re-signed: 2026-09-08 over SC-11 (operator ruling R-6, notes/rulings-2026-09-08-c16-sc11.md)
