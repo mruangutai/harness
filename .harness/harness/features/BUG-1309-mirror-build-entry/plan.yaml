@@ -767,7 +767,7 @@ tasks:
     depends_on:
     - T-03
     - T-06
-    status: building
+    status: done
     files:
       - .claude/skills/harness/bin/gh-sync.py
       - tests/integration/test-gh-sync.py
@@ -982,7 +982,7 @@ tasks:
     depends_on:
     - T-02
     - T-06
-    status: building
+    status: done
     files:
     - .claude/skills/harness/bin/merge-gate.sh
     - .claude/skills/harness/bin/merge-gate.py
