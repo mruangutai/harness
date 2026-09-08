@@ -80,5 +80,20 @@
       "verdict": "PASS",
       "agent": "harness-validator-lead"
     }
-  ]
+  ],
+  "github": {
+    "milestone": 60,
+    "parent": 1487,
+    "attached": [
+      "T-01",
+      "T-02"
+    ],
+    "issues": {
+      "T-01": 1488,
+      "T-02": 1489
+    },
+    "source_issues": [
+      276
+    ]
+  }
 }
