@@ -176,6 +176,6 @@ than discovered by a mid-build exception.
 
 ## Approval
 
-status: pending
-approved-by:
-date:
+status: approved
+approved-by: molchairuangutai
+date: 2026-09-08
