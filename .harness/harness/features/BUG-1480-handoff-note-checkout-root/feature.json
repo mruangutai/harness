@@ -2,7 +2,7 @@
   "feature_id": "BUG-1480-handoff-note-checkout-root",
   "branch": "feat/BUG-1480-handoff-note-checkout-root",
   "pr": null,
-  "review_sha": "12a136938a96ecad3141d4b8ae799107953a0b43",
+  "review_sha": "4de92e751508f4144e4c1233fcfa715947532ee2",
   "cycles_used": 0,
   "max_total_cycles": 10,
   "runs": [
