@@ -31,3 +31,21 @@
   the gate; I refused it because it hard-codes a path that dies with the worktree.
 - 2026-09-07 (BUG-240): one segment per dispatch held. Three lead dispatches completed at 11m54s,
   17m27s and 5m13s where the old multi-segment pattern was killed at ~14 min twice.
+- 2026-09-07: a panel re-run over a one-commit fix stayed WIDE on purpose and it paid. All four
+  reviewers got the full two-file diff, not the delta; code-reviewer then found F-C1-01 in the
+  OSError fallback the fix INTRODUCED, which a delta-scoped re-run framed as "did F-PANEL-01 get
+  fixed" could not have surfaced. Narrow means the fix scope, never the reading scope.
+- 2026-09-07: the lead re-rated a reviewer's med to low on an unreproduced ARGUMENT (denial hits
+  both spellings -> isdir False -> clone arm -> git clone refuses at exit 2). Plausible and I let
+  it stand as non-gating, but I recorded IN STATE.md that it is an argument and that no reviewer
+  reproduced it. A re-rating whose basis is not recorded is indistinguishable later from one that
+  was measured.
+- 2026-09-07: STATE.md's shape gate is 120 lines and it fired at 133 on a phase-closing rewrite.
+  The over-run was entirely archival: per-finding narrative that already lives in the run digests.
+  Write the ## Current replacement as pointers plus the delta, and the budget is never close.
+- 2026-09-07: before dispatching a panel at an inherited pin, `git diff --name-only <pin>..HEAD`
+  settles in one call whether later bookkeeping commits invalidate it. Here both later commits were
+  feature-dir only, so the pin held and no re-pin was needed — cheaper than reasoning about it.
+- 2026-09-07: I re-ran the blocking gate myself after the qa step reported it green. Same numbers
+  (exit 0, 0 FAIL, 39 ok, 0 skip). Cost one call; the alternative was carrying the only blocking
+  gate in the project on a digest field.
