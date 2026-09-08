@@ -24,7 +24,38 @@ payload=$(cat)
 # copied tree and the guard imports THAT copy of inflight_registry.py.
 GUARD_BIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-printf '%s' "$payload" | HARNESS_GUARD_BIN_DIR="$GUARD_BIN_DIR" python3 -I -c '
+# BUG-124 T-02 -- derive the run-dir grant vocabulary in a NON-isolated
+# interpreter: PyYAML lives in the user site-packages that python3 -I
+# excludes (D-03). House precedent for the sys.path handling is
+# check-domain.sh: pop sys.path[0], then insert the guard bin dir handed to
+# it as an argument. The captured status is what lets the python body below
+# tell a benign grant-less manifest apart from a broken derivation (F-4):
+# HARNESS_RUN_DIR_DERIVED is 0 only when the bare parse below succeeded.
+if _globs=$(python3 -c '
+import os
+import sys
+
+sys.path.pop(0)
+sys.path.insert(0, sys.argv[1])
+
+import harness_boundary as hb
+import harness_yaml
+
+root = hb.resolve_root(sys.argv[1], strict=False)
+manifest_path = os.path.join(root, ".harness", "team-config.yaml")
+with open(manifest_path, encoding="utf-8") as fh:
+    text = fh.read()
+harness_yaml.load_str(text, manifest_path)
+
+for glob in hb.run_dir_grant_globs(root):
+    print(glob)
+' "$GUARD_BIN_DIR" 2>/dev/null); then
+    _derived=0
+else
+    _derived=1
+fi
+
+printf '%s' "$payload" | HARNESS_GUARD_BIN_DIR="$GUARD_BIN_DIR" HARNESS_RUN_DIR_GLOBS="$_globs" HARNESS_RUN_DIR_DERIVED="$_derived" python3 -I -c '
 import sys, json, os
 
 try:
@@ -110,6 +141,46 @@ except Exception as exc:
     print("dispatch-guard: registry libraries unavailable (%s) — passing through." % (exc,),
           file=sys.stderr)
     sys.exit(0)
+
+# BUG-124 T-02 — the run-dir shape check. MUST sit here: it needs hb.run_dir_refs,
+# hb.run_dir_slug_ok and hb.run_dir_forms, and it MUST run before the checkout
+# resolution and the single-flight claim below — a refusal recorded after a claim
+# strands that claim in the registry (D-04). Fails OPEN on its own breakage (no
+# vocabulary, unparseable manifest, an exception) — only a POSITIVE finding
+# blocks (DEC-100).
+try:
+    globs = [line for line in (os.environ.get("HARNESS_RUN_DIR_GLOBS") or "").splitlines()
+             if line.strip()]
+    refs = hb.run_dir_refs(prompt)
+    if refs and not globs:
+        if os.environ.get("HARNESS_RUN_DIR_DERIVED") == "0":
+            print("dispatch-guard: run-dir shape check SKIPPED -- the manifest declares no "
+                  "run-dir write grant, so the slug vocabulary is empty.", file=sys.stderr)
+        else:
+            print("dispatch-guard: run-dir shape check SKIPPED -- the run-dir vocabulary "
+                  "derivation failed (manifest unreadable, unparseable, or PyYAML unavailable "
+                  "to that python3).", file=sys.stderr)
+    elif refs and globs:
+        bad = [ref for ref in refs if not hb.run_dir_slug_ok(ref, globs)]
+        if bad:
+            forms = hb.run_dir_forms(globs)
+            for repo, feature_id, slug in bad:
+                tail = ".harness/%s/features/%s/runs/%s" % (repo, feature_id, slug)
+                print("dispatch-guard: BLOCKED -- run-dir slug %r cannot be written by any "
+                      "squad lead." % (slug,), file=sys.stderr)
+                print("  %s" % (tail.replace(".harness/", "[.]harness/"),), file=sys.stderr)
+            print("  compliant forms: %s" % (", ".join(forms),), file=sys.stderr)
+            print("  the squad suffix trails the purpose -- the parent directory already "
+                  "carries the feature id.", file=sys.stderr)
+            print("  a run-dir path being quoted rather than directed is spelled with "
+                  "[.]harness/ in place of .harness/; the paths above are already in that "
+                  "form.", file=sys.stderr)
+            sys.exit(2)
+except SystemExit:
+    raise
+except Exception as exc:
+    print("dispatch-guard: run-dir shape check failed (%s: %s) -- passing through."
+          % (type(exc).__name__, exc), file=sys.stderr)
 
 
 def _root_for(flow):
