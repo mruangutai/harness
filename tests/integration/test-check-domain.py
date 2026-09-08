@@ -17,7 +17,7 @@ _anchor_tests = _anchor_os.path.dirname(_anchor_os.path.abspath(__file__))
 _anchor_root = _anchor_os.path.abspath(_anchor_os.path.join(_anchor_tests, "..", ".."))
 _anchor_bin = _anchor_os.path.join(_anchor_root, ".claude", "skills", "harness", "bin")
 _anchor_sys.path.insert(0, _anchor_bin)
-import json, os, re, shutil, subprocess, sys, yaml
+import contextlib, io, json, os, re, shutil, subprocess, sys, yaml
 
 TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(TESTS_DIR, "..", ".."))
@@ -4398,6 +4398,47 @@ def _handoff_line_cap_cases(results, root, target, valid):
         results, "handoff no per-section cap",
         _invoke_handoff(root, target, sixty), 0)
 
+def _handoff_worktree_cases(results, root):
+    wt_path = os.path.join(
+        root, ".claude", "worktrees", "harness", "BUG-1480-wt")
+    make_linked_worktree(root, wt_path, "bug1480")
+    feat = os.path.join(
+        wt_path, ".harness", "harness", "features", "BUG-1480-wt-fixture")
+    notes = os.path.join(feat, "notes")
+    os.makedirs(notes)
+    with open(os.path.join(feat, "plan.yaml"), "w") as f:
+        f.write("tasks:\n  - id: T-03\n    verify: python3 test.py\n")
+    with open(os.path.join(feat, "BRIEF.md"), "w") as f:
+        f.write("# BRIEF\n\n- SC-04: observable\n\n## Approval\n")
+    target = os.path.join(notes, "handoff-build.md")
+    main_feat = os.path.join(
+        root, ".harness", "harness", "features", "BUG-1480-wt-fixture")
+    results.append((
+        "handoff worktree-only main root has no feature dir",
+        not os.path.exists(main_feat), main_feat))
+    _record_handoff_result(
+        results, "handoff worktree-only feature dir resolves",
+        _invoke_handoff(
+            root, target,
+            _handoff_text("Scope: build complete\nAuthority: plan-task:T-03.verify")),
+        0)
+    _record_handoff_result(
+        results, "handoff worktree-only unresolvable pointer refused",
+        _invoke_handoff(
+            root, target,
+            _handoff_text("Scope: build complete\nAuthority: plan-task:T-99.verify")),
+        2, ("T-99",))
+    _record_handoff_result(
+        results, "handoff worktree-only brief-sc pointer refused",
+        _invoke_handoff(
+            root, target, _handoff_text("Scope: build complete\nAuthority: brief-sc:SC-99")),
+        2, (
+            "SC-99",
+            os.path.join(
+                "BUG-1480-wt", ".harness", "harness", "features",
+                "BUG-1480-wt-fixture", "BRIEF.md"),
+        ))
+
 
 def _report_handoff_results(results):
     fails = 0
@@ -4421,6 +4462,7 @@ def run_handoff_done_when():
         _handoff_validator_exception_case(results, root, valid)
         _handoff_existing_edit_cases(results, root, target, missing, valid)
         _handoff_line_cap_cases(results, root, target, valid)
+        _handoff_worktree_cases(results, root)
     return _report_handoff_results(results)
 
 
@@ -5179,56 +5221,149 @@ def run_bug1305_identity_cases():
     return failures
 
 
-def run_bug1305_cases():
-    return (
-        run_bug1305_digest_repair_cases()
-        + run_bug1305_marker_cases()
-        + run_bug1305_identity_cases()
-    )
+class _AggTee:
+    """Captures written text while still writing through to the real stream, so a
+    human watching the run live still sees verdicts as they print.
+    """
+
+    def __init__(self, real):
+        self.real = real
+        self.parts = []
+
+    def write(self, s):
+        self.parts.append(s)
+        return self.real.write(s)
+
+    def flush(self):
+        self.real.flush()
+
+    def text(self):
+        return "".join(self.parts)
+
+
+def _aggregation_verdict(label, captured_text, total):
+    """None when a block's printed column-0 FAIL lines agree with its returned total
+    on ZERONESS (D-01): the diagnostic fires only when one side is zero and the other
+    is not. Strict equality of the printed count against total is NOT the predicate.
+    """
+    printed = sum(1 for line in captured_text.splitlines() if line.startswith("FAIL"))
+    if bool(printed) == bool(total):
+        return None
+    return f"{label}: {printed} printed column-0 FAIL line(s) vs total={total}"
+
+
+def _run_block_captured(block_fn, label, stream=None):
+    """Runs block_fn() under a live-tee capture of stdout and returns
+    (total, verdict): the same tee-construction + redirect_stdout + call +
+    _aggregation_verdict sequence main()'s discovery loop uses for every
+    discovered "run_*" block (D-02). `stream` is the passthrough target the
+    tee also writes through to; it defaults to the real sys.stdout so
+    main()'s on-screen behaviour is unchanged when it calls this helper.
+    """
+    tee = _AggTee(stream if stream is not None else sys.stdout)
+    with contextlib.redirect_stdout(tee):
+        total = block_fn()
+    return total, _aggregation_verdict(label, tee.text(), total)
+
+
+def run_bug151_selfcheck_cases():
+    """BUG-151: the aggregation safeguard must fire exactly on a zeroness disagreement
+    between printed column-0 FAIL lines and a block's returned total (D-01), and must
+    tolerate any disagreement in COUNT once both sides are already non-zero.
+    """
+    cases = [
+        ("printed-fail-zero-total", "FAIL  x\n", 0, True),
+        ("printed-ok-zero-total", "ok    x\n", 0, False),
+        ("printed-fail-nonzero-total", "FAIL  x\n", 1, False),
+        ("printed-ok-nonzero-total", "ok    x\n", 1, True),
+        ("indented-fail-does-not-count", "ok    x\n      | FAIL inside a detail line\n", 0, False),
+        ("two-printed-one-counted-agrees-on-zeroness", "FAIL  x\nFAIL  y\n", 1, False),
+    ]
+    fails = 0
+    for name, captured, total, expect_diagnostic in cases:
+        try:
+            verdict = _aggregation_verdict(name, captured, total)
+        except Exception as exc:
+            fails += 1
+            print(f"FAIL  [bug151-selfcheck] {name}\n      | raised {exc!r}")
+            continue
+        got_diagnostic = verdict is not None
+        if got_diagnostic == expect_diagnostic:
+            print(f"ok    [bug151-selfcheck] {name}")
+        else:
+            fails += 1
+            detail = str(verdict)[:120] if verdict is not None else "None"
+            print(f"FAIL  [bug151-selfcheck] {name}\n      | verdict={detail}")
+
+    # Binds the safeguard to the REAL discovery-loop seam: a locally-defined,
+    # non-discoverable fake block (never module-level, never "run_"-prefixed)
+    # prints a column-0 FAIL line but returns 0 -- BUG-151's exact original
+    # defect shape -- and is run through _run_block_captured(), the same
+    # helper main()'s discovery loop calls. If the tee/redirect_stdout wrap
+    # inside that helper is ever removed, this fake block's printed FAIL is
+    # silently absorbed and the assertion below goes RED.
+    def _fake_fail_block():
+        print("FAIL  fake-block-prints-fail-returns-zero")
+        return 0
+
+    wiring_name = "wiring-seam-catches-print-fail-return-zero"
+    passthrough = io.StringIO()
+    try:
+        _, wiring_verdict = _run_block_captured(_fake_fail_block, "fake-block", stream=passthrough)
+    except Exception as exc:
+        fails += 1
+        print(f"FAIL  [bug151-selfcheck] {wiring_name}\n      | raised {exc!r}")
+    else:
+        if wiring_verdict is not None:
+            print(f"ok    [bug151-selfcheck] {wiring_name}")
+        else:
+            fails += 1
+            print(f"FAIL  [bug151-selfcheck] {wiring_name}\n      | verdict=None (seam failed to capture)")
+    return fails
 
 
 def main():
     fails = 0
-    for name, path, want, agent, tool in CASES:
-        payload = {"agent_type": agent, "tool_name": tool,
-                   "tool_input": {"file_path": path, "content": "x"}}
-        r = subprocess.run([HOOK], input=json.dumps(payload),
-                           capture_output=True, text=True,
-                           env=_env(ROOT))
-        if r.returncode != want:
-            fails += 1
-            verb = "should have BLOCKED (2)" if want == 2 else "should have PASSED (0)"
-            print(f"FAIL  {name}\n        {verb}, got {r.returncode}")
-            for l in (r.stdout + r.stderr).strip().splitlines()[:2]:
-                print(f"      | {l}")
-        else:
-            print(f"ok    {name}")
-    print(f"\n{len(CASES) - fails}/{len(CASES)} cases passed.\n")
-    # EACH `fails +=` IS ITSELF THE REACHABILITY OF ITS BLOCK. Dropping seven characters
-    # from any one of these leaves the block running and printing while its result is
-    # discarded — the suite goes green with the cases visibly FAILing on screen. The
-    # aggregate below is asserted non-negative so the shape of this line stays deliberate.
-    fails += run_t12()
-    fails += run_fleet()
-    fails += run_resolve()
-    fails += run_post()
-    fails += run_schema()
-    fails += run_worktree()
-    fails += run_worktree_grant_parity()
-    fails += run_worktree_deep_shape()
-    fails += run_sweep_clean_tracked()
-    fails += run_runs_agent_write_path()
-    fails += run_t14()
-    fails += run_feat50_artifact_integrity()
-    fails += run_bug895_wrong_checkout_cases()
-    fails += run_t09()
-    fails += run_feat51_orphan_write()
-    fails += run_bug1106_edit_route_cases()
-    fails += run_bug1106_shared_pattern_consistency()
-    fails += run_handoff_done_when()
-    fails += run_b2_cwd_independence()
-    fails += run_bug1304_claim_set()
-    return fails + run_bug1305_cases()
+    problems = []
+
+    cases_tee = _AggTee(sys.stdout)
+    with contextlib.redirect_stdout(cases_tee):
+        for name, path, want, agent, tool in CASES:
+            payload = {"agent_type": agent, "tool_name": tool,
+                       "tool_input": {"file_path": path, "content": "x"}}
+            r = subprocess.run([HOOK], input=json.dumps(payload),
+                               capture_output=True, text=True,
+                               env=_env(ROOT))
+            if r.returncode != want:
+                fails += 1
+                verb = "should have BLOCKED (2)" if want == 2 else "should have PASSED (0)"
+                print(f"FAIL  {name}\n        {verb}, got {r.returncode}")
+                for l in (r.stdout + r.stderr).strip().splitlines()[:2]:
+                    print(f"      | {l}")
+            else:
+                print(f"ok    {name}")
+        print(f"\n{len(CASES) - fails}/{len(CASES)} cases passed.\n")
+    cases_verdict = _aggregation_verdict("CASES", cases_tee.text(), fails)
+    if cases_verdict is not None:
+        problems.append(cases_verdict)
+
+    # The block list is DISCOVERED, never hand-maintained: every module-level
+    # "run_*" callable, in definition order, runs under _run_block_captured()
+    # (D-02), the same tee-capture + _aggregation_verdict safeguard as the
+    # CASES loop above. A block whose printed column-0 FAIL lines disagree on
+    # zeroness with its returned total trips the safeguard (D-01), and a trip
+    # alone fails the suite even when every block's own total was 0.
+    for block_name, block_fn in list(globals().items()):
+        if not block_name.startswith("run_") or not callable(block_fn):
+            continue
+        total, block_verdict = _run_block_captured(block_fn, block_name)
+        fails += total
+        if block_verdict is not None:
+            problems.append(block_verdict)
+
+    for problem in problems:
+        print(f"FAIL  aggregation safeguard: {problem}")
+    return fails + len(problems)
 
 
 if __name__ == "__main__":

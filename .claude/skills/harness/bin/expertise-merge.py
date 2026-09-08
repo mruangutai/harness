@@ -16,6 +16,8 @@ Exit codes are part of the interface (T-07 routes an agent's behaviour on them):
     6  could not acquire the lock within the retry budget
     7  the same section+id exists on both sides with different text — nothing applied
     8  the union would exceed a DEC-145 section cap — nothing applied
+    9  --file is not an Expertise file destination — nothing applied
+    11 AMBIGUOUS TARGET — the same id appears more than once for one target — nothing applied
 
 python3 stdlib only, no third-party imports, so this runs on any machine that runs the harness.
 
@@ -111,11 +113,31 @@ def render(title, sections, order, headers):
     return "\n".join(out) + "\n"
 
 
+def _check_proposal_duplicate_ids(prop_sections, prop_order):
+    """A proposal naming the same id twice within one section is ambiguous on the proposal
+    alone, before any base comparison: raises MergeRefusal(11) on the second occurrence,
+    comparing no text at all. Mirrors _check_proposal_ambiguity, whose message differs only in
+    saying ops where this one says entries."""
+    for name in prop_order:
+        seen = set()
+        for eid, _ in prop_sections.get(name, []):
+            if eid in seen:
+                raise harness_merge.MergeRefusal(
+                    11,
+                    [f"AMBIGUOUS TARGET section={name} id={eid} "
+                     "reason=two entries in one proposal name this target"],
+                )
+            seen.add(eid)
+
+
 def compute_union(base_sections, base_order, prop_sections, prop_order):
     """The UNION, keyed by section and id, preserving existing order and appending new ids in
     the order the proposal gives them. Returns (merged, order, conflicts). A conflict is
     (section, id, base_text, proposed_text) for the same id carrying different text — nothing
-    is dropped to produce this return; the caller decides whether it is safe to write."""
+    is dropped to produce this return; the caller decides whether it is safe to write. Refuses
+    with MergeRefusal(11) before any base comparison if the proposal itself names the same
+    (section, id) twice."""
+    _check_proposal_duplicate_ids(prop_sections, prop_order)
     order = list(base_order)
     for name in prop_order:
         if name not in order:

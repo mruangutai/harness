@@ -1161,6 +1161,23 @@ check(
     _fleet_reads,
 )
 
+# --- Issue #208: a fleet.yaml that does not even PARSE must raise FleetError, not the raw
+# harness_yaml.YamlParseError. Before the fix this propagated past every caller's
+# `expected=` tuple (none named YamlParseError) and the CLI trap printed the exception's
+# class name instead of naming the file.
+with tempfile.TemporaryDirectory() as td:
+    _bad_path = os.path.join(td, "fleet.yaml")
+    open(_bad_path, "w", encoding="utf-8").write("repos: [\n  bad: [[[")
+    try:
+        fc.load_fleet(_bad_path)
+        check("(X) issue #208: unparseable fleet.yaml raises FleetError", False, "did not raise")
+    except fc.FleetError as e:
+        check("(X) issue #208: unparseable fleet.yaml raises FleetError", True)
+        check("(X) issue #208: the FleetError names the file path", _bad_path in str(e), str(e))
+    except Exception as e:
+        check("(X) issue #208: unparseable fleet.yaml raises FleetError", False,
+              f"raised {type(e).__name__} instead: {e}")
+
 
 print(f"\n{RAN - FAILS}/{RAN} checks passed." if FAILS == 0 else f"\n{FAILS} of {RAN} FAILING.")
 sys.exit(1 if FAILS else 0)

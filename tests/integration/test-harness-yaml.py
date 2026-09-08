@@ -196,6 +196,186 @@ def test_manifest_domains_matches_the_regex_walk_on_the_real_manifest():
         )
 
 
+
+# BUG-442: a hand-pinned domain of quantification. A census derived from the
+# manifest itself (e.g. by walking teams[].members[] + leads[]) would shrink
+# silently the moment a persona is deleted or renamed, and the exhaustiveness
+# test below would keep passing over a smaller and smaller set. Pinning the
+# 16 names by hand is what makes "an addition to any persona" and "a removal
+# from documentor" both provably caught — see the reddening test below.
+DOCS_GRANT_CENSUS = frozenset([
+    "harness-orchestrator",
+    "harness-pm",
+    "harness-visual-designer",
+    "harness-documentor",
+    "harness-frontend-dev",
+    "harness-backend-dev",
+    "harness-ai-dev",
+    "harness-data-engineer",
+    "harness-dev-ops",
+    "harness-qa",
+    "harness-code-reviewer",
+    "harness-security-reviewer",
+    "harness-ui-reviewer",
+    "harness-product-lead",
+    "harness-eng-lead",
+    "harness-validator-lead",
+])
+
+# The ANSWER, not a second copy of the manifest's grant text (that would only
+# prove the copy agrees with itself). Grant text is read LIVE from the real
+# manifest through MANIFEST_PATH by _docs_domain_census(); only this
+# persona -> expected-answer mapping is a literal. Every census member not
+# listed here is expected to hold an empty list.
+EXPECTED_DOCS_GRANTS = {
+    "harness-documentor": sorted(["docs/**", ".harness/*/docs/**"]),
+}
+
+
+def _docs_domain_census(manifest_path):
+    """Return (personas, docs_grants): every persona name reachable anywhere
+    in the parsed manifest, and for each the sorted list of its `mine` globs
+    whose slash-split segments contain the exact segment 'docs'."""
+    import harness_yaml as hy
+
+    parsed = hy.load_file(manifest_path)
+    personas = set()
+
+    def walk(node):
+        if isinstance(node, dict):
+            name = node.get("name")
+            if isinstance(name, str):
+                personas.add(name)
+            for value in node.values():
+                walk(value)
+        elif isinstance(node, list):
+            for item in node:
+                walk(item)
+
+    walk(parsed)
+
+    docs_grants = {}
+    for name in personas:
+        mine, _shared = hy.manifest_domains(manifest_path, name)
+        docs_grants[name] = sorted(
+            path for path in mine if "docs" in path.split("/")
+        )
+
+    return personas, docs_grants
+
+
+def test_docs_domain_grant_is_exhaustive_over_every_persona():
+    """BUG-442: the docs domain (path glob containing a literal 'docs'
+    segment) must be exactly what EXPECTED_DOCS_GRANTS says it is, for every
+    persona in the pinned DOCS_GRANT_CENSUS. An addition of a docs grant to
+    any other persona, or a removal of either of documentor's two docs
+    globs, must both fail an assertion here."""
+    personas, docs_grants = _docs_domain_census(MANIFEST_PATH)
+
+    missing = DOCS_GRANT_CENSUS - personas
+    unexpected = personas - DOCS_GRANT_CENSUS
+    assert personas == DOCS_GRANT_CENSUS, (
+        f"persona set drifted from the pinned census\n"
+        f"  missing (deleted/renamed):  {sorted(missing)!r}\n"
+        f"  unexpected (added):         {sorted(unexpected)!r}"
+    )
+
+    for name in sorted(DOCS_GRANT_CENSUS):
+        expected = EXPECTED_DOCS_GRANTS.get(name, [])
+        assert docs_grants[name] == expected, (
+            f"{name}: docs grant mismatch\n"
+            f"  got:      {docs_grants[name]!r}\n"
+            f"  expected: {expected!r}"
+        )
+
+
+def test_docs_domain_witness_reddens_on_addition_removal_and_census_drift():
+    """BUG-442 negative control: the witness above must actually be capable
+    of failing. Proves it with three permanent in-file mutations of the real
+    manifest text (addition to harness-qa, removal from harness-documentor,
+    a census-drift rename dropping harness-ui-reviewer's `name` key), each
+    written to a scratch manifest in a temp root and re-run as a subprocess
+    with HARNESS_PROJECT_DIR repointed there. The grant is correct today, so
+    this is the only place RED-capability can be demonstrated without
+    breaking the real .harness/team-config.yaml (a signed non-goal)."""
+    _child_token = os.environ.get('BUG442_MUTANT_CHILD')
+    if _child_token and _child_token == os.environ.get('HARNESS_PROJECT_DIR'):
+        return  # the child re-executes this whole file; it must not recurse into the ladder
+    assert _child_token is None, (
+        'BUG442_MUTANT_CHILD leaked into the parent environment (value %r): it does not match '
+        'this run of HARNESS_PROJECT_DIR, so it was not set by our own child invocation. The '
+        'negative control cannot be trusted while it is set, because the recursion guard would '
+        'return before building any mutant and main() would still print ok for this test.'
+        % (_child_token,)
+    )
+
+    with open(MANIFEST_PATH, encoding='utf-8') as fh:
+        real_text = fh.read()
+
+    qa_marker = '      - name: harness-qa'
+    qa_idx = real_text.index(qa_marker)
+    domain_idx = real_text.index('        domain:', qa_idx)
+    domain_line_end = real_text.index('\n', domain_idx) + 1
+    m1_text = (
+        real_text[:domain_line_end]
+        + '          - { path: docs/**, upsert: true }\n'
+        + real_text[domain_line_end:]
+    )
+    assert m1_text != real_text, "M1 addition: string replacement was a no-op"
+
+    m2_needle = None
+    for line in real_text.splitlines(keepends=True):
+        if '{ path: .harness/*/docs/**' in line:
+            m2_needle = line
+            break
+    assert m2_needle is not None, "M2 removal: could not find documentor's docs glob line"
+    m2_text = real_text.replace(m2_needle, '', 1)
+    assert m2_text != real_text, "M2 removal: string replacement was a no-op"
+
+    m3_text = real_text.replace(
+        '- name: harness-ui-reviewer', '- nickname: harness-ui-reviewer', 1
+    )
+    assert m3_text != real_text, "M3 census drift: string replacement was a no-op"
+
+    def _run_child(manifest_text):
+        with tempfile.TemporaryDirectory() as tmp:
+            os.makedirs(os.path.join(tmp, '.harness'), exist_ok=True)
+            with open(os.path.join(tmp, '.harness', 'team-config.yaml'), 'w', encoding='utf-8') as fh:
+                fh.write(manifest_text)
+            return subprocess.run(
+                [sys.executable, os.path.realpath(__file__)],
+                capture_output=True, text=True,
+                env={**os.environ, 'HARNESS_PROJECT_DIR': tmp, 'BUG442_MUTANT_CHILD': tmp},
+            )
+
+    control = _run_child(real_text)
+    assert control.returncode == 0, (
+        f"control (unmutated manifest, repointed root) must exit 0:\n"
+        f"stdout:\n{control.stdout}\nstderr:\n{control.stderr}"
+    )
+
+    for label, mutant_text in (
+        ("M1 addition", m1_text),
+        ("M2 removal", m2_text),
+        ("M3 census drift", m3_text),
+    ):
+        child = _run_child(mutant_text)
+        assert child.returncode == 1, (
+            f"{label}: expected the mutated manifest to redden the child (returncode 1), "
+            f"got {child.returncode}\nstdout:\n{child.stdout}\nstderr:\n{child.stderr}"
+        )
+        assert 'FAIL test_docs_domain_grant_is_exhaustive_over_every_persona' in child.stdout, (
+            f"{label}: witness did not report FAIL for the exhaustiveness test\n"
+            f"stdout:\n{child.stdout}"
+        )
+        assert 'ok   test_bare_date_scalar_stays_str' in child.stdout, (
+            f"{label}: anti-false-red control missing — main() wraps each test in its own "
+            f"try/except (see main() at the foot of this file), so an unrelated test printing ok "
+            f"alongside the witness's FAIL rules out an import-time or whole-file parse "
+            f"failure that would have stopped main() before it printed anything\n"
+            f"stdout:\n{child.stdout}"
+        )
+
 def test_manifest_domains_excludes_non_canonical_read_true():
     """D-13: read: yes / read: True resolve truthy under safe_load and must be
     excluded from `mine`, same as the canonical read: true. read: no entries
@@ -867,6 +1047,8 @@ TESTS = [
     test_bare_date_scalar_stays_str,
     test_int_and_bool_resolvers_are_not_stripped,
     test_manifest_domains_matches_the_regex_walk_on_the_real_manifest,
+    test_docs_domain_grant_is_exhaustive_over_every_persona,
+    test_docs_domain_witness_reddens_on_addition_removal_and_census_drift,
     test_manifest_domains_excludes_non_canonical_read_true,
     test_bootstrap_marker_lifecycle,
     test_marker_self_unlinks_when_yaml_imports,

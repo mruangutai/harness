@@ -1148,6 +1148,19 @@ def _norm(path):
         pass
     return rel
 
+def _checkout_root(path):
+    """Which checkout does this path stand in? Absorb failures to keep shape non-gating."""
+    if not path:
+        return root
+    try:
+        import harness_boundary as _hb
+        _ck = _hb.checkout_relative(_claimed_abs(path))
+        if _ck is not None and _hb.real(_ck[0]) != _hb.real(root):
+            return _ck[0]
+    except Exception:
+        pass
+    return root
+
 
 # THE VERB IS MODE-DEPENDENT, and this was a review finding. In PRE the write is genuinely
 # refused. In POST it already LANDED — exit 2 there only carries stderr back to the agent —
@@ -1745,7 +1758,8 @@ def shape_problems(rel, content, display=None, absolute_path=None):
                             f" unvalidated digest did (DEC-156).")
         try:
             import handoff_done_when
-            problems.extend(handoff_done_when.problems(rel, content, root, resolve=True))
+            problems.extend(handoff_done_when.problems(
+                rel, content, _checkout_root(absolute_path), resolve=True))
         except Exception as exc:
             problems.append("the Done when validator handoff_done_when.py failed — "
                             f"REFUSING the write ({type(exc).__name__}: {exc})")
