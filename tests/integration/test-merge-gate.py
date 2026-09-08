@@ -115,5 +115,17 @@ with open(os.path.join(root, ".harness", "harness", "features", "FEAT-9001-fixtu
     json.dump(doc, f)
 r, d, reason = gate("gh pr merge 7", root, fake)
 check("T-05 gh outage with a feature owing a receipt denies", d == "deny" and "could not verify" not in reason, reason)
+root, directory = fixture()
+with open(os.path.join(directory, "plan.yaml"), "w") as f:
+    f.write("")
+r, d, reason = gate("git merge feature/test", root)
+check("T-05 empty plan fails closed", r.returncode == 0 and d == "deny"
+      and "could not evaluate" in reason, f"rc={r.returncode} reason={reason!r}")
+root, directory = fixture()
+with open(os.path.join(directory, "feature.json"), "w") as f:
+    json.dump([], f)
+r, d, reason = gate("git merge feature/test", root)
+check("T-05 non-object feature record fails closed", r.returncode == 0 and d == "deny"
+      and "could not evaluate" in reason, f"rc={r.returncode} reason={reason!r}")
 print("ALL PASSED" if not fails else f"{fails} FAILED")
 sys.exit(bool(fails))

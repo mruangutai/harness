@@ -126,29 +126,32 @@ def main():
         return
     if not github.get("sync") or not merge_ref(command):
         return
-    import feature_schema
-    branch, failure = head_branch(command, os.getcwd(), github.get("repo") or "")
-    feat_dir, document = feature_for(branch)
-    if document is None:
-        if failure:
-            print(f"merge-gate: could not verify this merge - the head branch could not be resolved through gh ({failure}) and the local branch {branch} owes no build-entry receipt; allowing it, because GitHub is a mirror and never a gate (DEC-138).", file=sys.stderr)
-        return
-    feat = os.path.basename(feat_dir)
-    entry = (document.get("github") or {}).get("build_entry")
-    if feat in feature_schema.BUILD_ENTRY_ERA_EXEMPT:
-        print(f"merge-gate: {feat} predates the build-entry receipt (feature_schema.BUILD_ENTRY_ERA_EXEMPT), so this merge is allowed. Its terminal receipt is created only by an explicit operator-approved gh-sync.py recover-terminal {os.path.realpath(feat_dir)} --yes.", file=sys.stderr)
-        return
-    if entry in {"opened", "not-applicable", "recovered-terminal"}:
-        if failure:
-            print(f"merge-gate: could not verify this merge - the head branch could not be resolved through gh ({failure}) and the local branch {branch} owes no build-entry receipt; allowing it, because GitHub is a mirror and never a gate (DEC-138).", file=sys.stderr)
-        return
-    value = entry or "absent"
-    if not repo_pinned(github.get("repo")):
-        deny(f"merge-gate: {feat} records github.build_entry={value}, and this project has github.sync true with github.repo NOT pinned, so the mirror records nothing here and no receipt can ever be written for it (D-09). NO COMMAND CLEARS THIS BY ITSELF. Pin github.repo in {ROOT}/.harness/harness.json to the value of gh repo view --json nameWithOwner -q .nameWithOwner, or set github.sync to false, and then re-run the Build entry.")
-        return
-    command_name = feature_schema.recovery_command_for(feat_dir)
-    command_line = (f"python3 .claude/skills/harness/bin/gh-sync.py {command_name} {os.path.realpath(feat_dir)}" + (" --yes" if command_name == "recover-terminal" else ""))
-    deny(f"merge-gate: {feat} records github.build_entry={value}, so no Build entry receipt exists for it. This merge is denied until {command_line} records one.")
+    try:
+        import feature_schema
+        branch, failure = head_branch(command, os.getcwd(), github.get("repo") or "")
+        feat_dir, document = feature_for(branch)
+        if document is None:
+            if failure:
+                print(f"merge-gate: could not verify this merge - the head branch could not be resolved through gh ({failure}) and the local branch {branch} owes no build-entry receipt; allowing it, because GitHub is a mirror and never a gate (DEC-138).", file=sys.stderr)
+            return
+        feat = os.path.basename(feat_dir)
+        entry = (document.get("github") or {}).get("build_entry")
+        if feat in feature_schema.BUILD_ENTRY_ERA_EXEMPT:
+            print(f"merge-gate: {feat} predates the build-entry receipt (feature_schema.BUILD_ENTRY_ERA_EXEMPT), so this merge is allowed. Its terminal receipt is created only by an explicit operator-approved gh-sync.py recover-terminal {os.path.realpath(feat_dir)} --yes.", file=sys.stderr)
+            return
+        if entry in {"opened", "not-applicable", "recovered-terminal"}:
+            if failure:
+                print(f"merge-gate: could not verify this merge - the head branch could not be resolved through gh ({failure}) and the local branch {branch} owes no build-entry receipt; allowing it, because GitHub is a mirror and never a gate (DEC-138).", file=sys.stderr)
+            return
+        value = entry or "absent"
+        if not repo_pinned(github.get("repo")):
+            deny(f"merge-gate: {feat} records github.build_entry={value}, and this project has github.sync true with github.repo NOT pinned, so the mirror records nothing here and no receipt can ever be written for it (D-09). NO COMMAND CLEARS THIS BY ITSELF. Pin github.repo in {ROOT}/.harness/harness.json to the value of gh repo view --json nameWithOwner -q .nameWithOwner, or set github.sync to false, and then re-run the Build entry.")
+            return
+        command_name = feature_schema.recovery_command_for(feat_dir)
+        command_line = (f"python3 .claude/skills/harness/bin/gh-sync.py {command_name} {os.path.realpath(feat_dir)}" + (" --yes" if command_name == "recover-terminal" else ""))
+        deny(f"merge-gate: {feat} records github.build_entry={value}, so no Build entry receipt exists for it. This merge is denied until {command_line} records one.")
+    except Exception:
+        deny("merge-gate: could not evaluate this feature's Build-entry receipt, so this merge is denied. Repair the feature record and re-run the merge.")
 
 
 if __name__ == "__main__":
