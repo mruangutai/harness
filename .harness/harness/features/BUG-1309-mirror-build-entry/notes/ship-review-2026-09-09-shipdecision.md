@@ -14,7 +14,8 @@ Three other things moved with it, and nothing else in this briefing did:
 - The **cycles** line below now reads **18 of 17 — over by one**. The recording round sent one step
   back inside itself, and a reported send-back is a cycle (DEC-157). It changes nothing you have
   been asked to decide, but see the line for what it forecloses.
-- **Row B-30** is new, at the bottom of the backlog table.
+- The missing durable digest for `c19uatsteps-product` was restored at
+  `runs/c19uatsteps-product/digest.md`; **B-30 is resolved and removed** from the proposed backlog.
 - The SC-10 section's citation of the FIRST relay is corrected from `:360-403` to `:362-403` — the
   heading is at 362; 360 is the separator.
 
@@ -33,7 +34,7 @@ you, plus one side decision you can settle in the same sitting: which backlog ro
 | # | Item | What I need |
 |---|---|---|
 | **1** | **Ship, or not.** The feature is at station `review`, `review_sha` pinned to `4857818b`, branch `feat/BUG-1309-mirror-build-entry` unmerged | **"ship"** — or "fix X", "re-scope", "stop". Nothing happens without it |
-| **2** | **The backlog table below (B-1 … B-30).** Strike any row by ID. Unstruck rows become GitHub backlog issues when you accept the ship; **anything not listed there dies silently, so I listed everything I could source** | Struck IDs, or "keep all" |
+| **2** | **The backlog table below (B-1 … B-29).** Strike any row by ID. Unstruck rows become GitHub backlog issues when you accept the ship; **anything not listed there dies silently, so I listed everything I could source** | Struck IDs, or "keep all" |
 | 3 — **closed** | **Optional — UAT step coverage.** **CLOSED 2026-09-09 by your "flag uat pass for these four".** Steps 3b, 5, 6 and 7 each carry an operator PASS at `notes/uat-BUG-1309-mirror-build-entry.md:405-463` | Nothing. It never gated the ship, and it is no longer open |
 
 ## SC-10 — what was recorded, and at what fidelity
@@ -158,23 +159,23 @@ table was never disposed of.
 | ID | Item | Nature |
 |---|---|---|
 | B-1 | Gate-dispatcher consolidation plus the `HOOK_SPECS` gaps (you already accepted the fifth standalone gate) | enhancement |
-| B-2 | `gh-sync.py`'s no-op remedy string (anchor `:247` from 2026-09-08 has since shifted; needs re-locating) | bug |
+| B-2 | [`#1545`](https://github.com/mruangutai/harness/issues/1545) — `gh-sync.py` no-op remedy string; **P2** | bug |
 | B-3 | The 17 unrecovered sync-enabled legacy feature directories | chore |
 | B-4 | The nonexistent `gen-decisions-index --check` clause in four features' plans | chore |
-| B-5 | `gh-sync.py`'s unguarded `int()` (anchor `:1234` from 2026-09-08; may have shifted) | bug |
-| B-6 | `merge-gate.py:163` interpolates the literal `this feature` when the git binary is unresolvable — fails closed, still present at the pin (I re-checked) | bug |
-| B-7 | The DEC-138 stderr line says "owes no build-entry receipt" where the record is HELD — diagnostics only | bug |
+| B-5 | [`#1542`](https://github.com/mruangutai/harness/issues/1542) — guard `gh-sync.py`'s unguarded `int()`; **P2** | bug |
+| B-6 | [`#1552`](https://github.com/mruangutai/harness/issues/1552) — name the feature when the git binary is unresolvable; **P2** | bug |
+| B-7 | [`#1543`](https://github.com/mruangutai/harness/issues/1543) — correct held build-entry receipt diagnostic; **P3** | bug |
 | B-8 | Three different spellings of "Build entry receipt" across the messages | chore |
 | B-9 | `test-check-state.py`'s "INV-37 message discriminator" case is vacuously green — asserts a token absent from an empty line | chore |
 | B-10 | `test-merge-gate.py`'s "gh outage with no matching feature allows" does not discriminate a cycle-5 sentinel reintroduction | chore |
-| B-11 | Handoff `Authority:` pointers (`plan-task:`, `brief-sc:`) cannot resolve for a feature living only in a worktree | bug |
+| B-11 | [`#1548`](https://github.com/mruangutai/harness/issues/1548) — resolve handoff authority pointers from feature worktrees; **P2** | bug |
 | B-12 | The reviewer dispatch template does not state the canonical novelty range — how six cycles read "pre-existing" as "pre-existing since two commits ago" | enhancement |
 | B-13 | SC-04 clause (f): add a `"branch" in reason` conjunct at `test-merge-gate.py:159-163` | chore |
 | B-14 | SC-04 Gap B: reorder the fixture so the era-exempt claimant sorts into `owners[0]`, making the ordering case discriminating | chore |
 | B-15 | Defend `{feat}`: assert on the reason region *before* `Run:` at `test-merge-gate.py:68-69` and `:102` | chore |
-| B-16 | `merge-gate.py:188` (the repo-unpinned deny) still opens with `{feat} records github.build_entry={value}` — the exact jargon you rejected for `:192` — and splices a bare `(D-09)` into operator prose. **The panel's one med** | bug |
-| B-17 | `merge-gate.py:180` leaks the raw constant name `feature_schema.BUILD_ENTRY_ERA_EXEMPT` into operator-facing stderr | bug |
-| B-18 | `merge_target` matches `--abort`/`--continue`/`--quit` by exact token equality, so `git merge --abo` is DENIED where git would accept it. Over-deny, never a bypass | bug |
+| B-16 | [`#1546`](https://github.com/mruangutai/harness/issues/1546) — make the repo-unpinned merge denial actionable; **P1** | bug |
+| B-17 | [`#1550`](https://github.com/mruangutai/harness/issues/1550) — remove raw era-exempt constant from merge-gate stderr; **P2** | bug |
+| B-18 | [`#1551`](https://github.com/mruangutai/harness/issues/1551) — accept abbreviated Git merge action flags; **P2** | bug |
 | B-19 | T-05's grade assertion takes `min()` over four helpers and never names `option_end`, `first_subcommand` or `merge_target` (satisfied in fact, 5/5/4) | chore |
 | B-20 | T-05's enumerated case-name contract lists 21 names while its `verify` gates 26 | chore |
 | B-21 | The UAT script has no step exercising the duplicate-claimant ambiguity refusal at all | chore |
@@ -182,11 +183,10 @@ table was never disposed of.
 | B-23 | Shell-variable indirection (`B=feature/x; git merge $B`) and a fourth-level `bash -c` nest past the depth cap — explicitly NOT ruled in under R-2 | enhancement |
 | B-24 | The `unit` matrix cell for copy-only deltas is satisfied by a file that cannot observe the copy | chore |
 | B-25 | `notes/rulings-2026-09-08-c19-copy.md` §5.3 cites the `recover-terminal` expectation as "Step 6 (`:300`)"; it is Step 7 at `:303` | chore |
-| B-26 | Harness defect, 6th sighting: an agent returned a complete fenced digest while the host recorded `failed (exit 1) — subagent called yield with null data` | bug |
-| B-27 | Harness defect: `bash-write-guard.sh` blocks `cp` and shell redirection for a read-only role but not `python3 -c "open(path,'w')"` | bug |
-| B-28 | Harness defect: `validate-digest.py` appears to have accepted a raw JSON object with no ```yaml fence — possible fail-open in fence detection | bug |
+| B-26 | [`#1549`](https://github.com/mruangutai/harness/issues/1549) — preserve complete agent digest on null-yield host failure; **P2** | bug |
+| B-27 | [`#1544`](https://github.com/mruangutai/harness/issues/1544) — close Python write bypass in bash-write-guard; **P1** | bug |
+| B-28 | [`#1547`](https://github.com/mruangutai/harness/issues/1547) — reject unfenced JSON in validate-digest; **P1** | bug |
 | B-29 | Policy: should a copy edit plus its dependent test re-anchor be split into a failing-test commit then a fix commit, for test-first auditability? | chore |
-| B-30 | Harness defect (new, 2026-09-09): the per-step-recording product run returned its digest inline and wrote **no run directory** — `runs/c19uat-product/` still describes the earlier round — so `feature.json`'s entry for it points at no digest on disk. A run that leaves no artifact cannot be audited later | bug |
 
 ## What happens when you say ship
 

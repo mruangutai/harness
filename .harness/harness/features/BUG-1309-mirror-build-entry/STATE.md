@@ -4,9 +4,10 @@
 
 - feature: BUG-1309-mirror-build-entry
 - run: **ship phase — SC-10 fully itemised, briefing amended, awaiting the operator's ship
-  instruction.** `runs/c19uatsteps-product` (product lead: pm, PASS, ONE send-back). No validator
-  run was dispatched or owed: this round wrote records only; the c19 code delta stays graded at the
-  pin.
+  instruction.** `runs/c19uatsteps-product` (product lead: pm, PASS, ONE send-back) now has its
+  durable `digest.md`, `state.yaml`, and `.run-identity.json` restored from the original inline
+  product-lead return. No validator run was dispatched or owed: this round wrote records only; the
+  c19 code delta stays graded at the pin.
 - **SC-10 = MET by the operator, and now itemised.** A SECOND main-session inline relay on
   2026-09-09 carried their verbatim instruction "flag uat pass for these four" against an execution
   report: Step 3b's six flagged merge forms all denied; Step 5's `open` setting
@@ -27,7 +28,7 @@
   re-signature owed.**
 - **Briefing amended and re-rendered:** `notes/ship-review-2026-09-09-shipdecision.md` (+ `.html`
   via `render-brief.py`). Decision item 3 — the optional UAT step confirmation — is struck as
-  **CLOSED**, leaving **two** operator items: ship-or-not, and the backlog table, now B-1..B-30. A
+  **CLOSED**, leaving **two** operator items: ship-or-not, and the backlog table, B-1..B-29. A
   dated amendment block names what moved; nothing was quietly deleted.
 - station: **review** (`plan.yaml` unchanged — `done` belongs to the ship act). `review_sha`
   **unchanged at `4857818bb1408813c7a38311d9e4ffc20373427e`**: records only were written, and
@@ -44,13 +45,14 @@
 ### Evidence, measured rather than relayed
 
 - `git diff --numstat`: UAT note `60 0`; goal-check note `39 14`; pm observations `1 0`. Plus the
-  amended briefing, its HTML, `STATE.md`, `feature.json`, `notes/handoff-ship.md`.
+  amended briefing, its HTML, `STATE.md`, `feature.json`, `notes/handoff-ship.md`, and the restored
+  `runs/c19uatsteps-product/` artifact.
 - New section extent `:405-463` (the note's last line); the FIRST relay's heading is at `:362`,
   which corrected the briefing's older `:360-403` citation.
 - `feature.json` after the write: `cycles_used` 18, `max_total_cycles` 17, 57 runs, pin unchanged.
-- **The lead left no run directory.** It returned inline; `runs/c19uat-product/` still describes the
-  EARLIER round (`state.yaml`: one step, `358 -> 403 lines`). The run is recorded in `feature.json`
-  because it happened, with its entry pointing at no digest on disk. Row B-30.
+- The formerly missing product-run artifact is restored at `runs/c19uatsteps-product/`; the digest
+  attributes its reconstruction to the original inline return and preserves that the original
+  creation timestamp is unavailable. **B-30 is resolved.**
 
 ### Next, in order
 
@@ -109,9 +111,7 @@
   readout. Their second inline relay, "flag uat pass for these four", gives Steps 3b, 5, 6 and 7 an
   individual PASS (`notes/uat-BUG-1309-mirror-build-entry.md:405-463`). Never gated the ship; the
   briefing's item 3 is struck closed.
-- **Q15 (NEW, non-blocking, harness defect)** — the product lead returned this round's digest inline
-  and wrote no `runs/<run-dir>/`, so a recorded run has no digest on disk to audit. Row B-30.
-- **Q16 (NEW, non-blocking, operator decision)** — `cycles_used` is 18 of 17. Raising
+- **Q15 (non-blocking, operator decision)** — `cycles_used` is 18 of 17. Raising
   `max_total_cycles` is the operator's call and precedes ANY fix cycle; it is not needed to ship.
 - **SC-10 is CLOSED and itemised (2026-09-09). The last open item is the operator's ship
   instruction — no agent work remains.**

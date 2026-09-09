@@ -4,7 +4,7 @@
 
 **Nothing is dispatchable, and no agent work remains.** The next act is the OPERATOR's: read
 `notes/ship-review-2026-09-09-shipdecision.md` (amended 2026-09-09) and return ship / fix /
-re-scope / stop plus struck IDs from its B-1..B-30 table. Its third item, the optional UAT step
+re-scope / stop plus struck IDs from its B-1..B-29 table. Its third item, the optional UAT step
 confirmation, is CLOSED. On "ship" the act is the MAIN SESSION's: `gh-sync.py ship` **from the main
 checkout** (it refuses a feature dir inside `.claude/worktrees/`) with that briefing as
 `--body-file`, then the operator's merge, then the `post-merge` hook removes this worktree, then
@@ -23,8 +23,8 @@ distillation — never before the merge (DEC-145). Do not re-dispatch any lead.
   under R-7 §4 — `plan.yaml:3-6`, git history — verified-at 9c07f557
 - Gate state at the pin: integration 36 ok / 0 FAIL / rc=0; panel PASS, `must_fix: []` —
   `notes/qa-c19-copy.md`, `runs/c19copy-validator/digest.md` — verified-at 4857818b
-- `cycles_used` 18 of 17 — one OVER, from the lead's reported send-back in the recording round; and
-  that run left no run dir, so its entry cites no digest — `feature.json` — verified-at a826673
+- `cycles_used` 18 of 17 — one OVER, from the lead's reported send-back in the recording round —
+  `feature.json` — verified-at a826673
 - Test-first ORDER for 4857818b — **UNVERIFIED**, unrecoverable: one commit, no intermediate red —
   `notes/qa-c19-copy.md`, STATE.md Q12 — UNVERIFIED
 
