@@ -2,7 +2,7 @@
   "feature_id": "BUG-1309-mirror-build-entry",
   "branch": "feat/BUG-1309-mirror-build-entry",
   "pr": null,
-  "review_sha": "e374c9a29e4321968e4c2a6bbae045da9203440c",
+  "review_sha": "94b5e465d498a9943890734223e69c390b0a77ad",
   "cycles_used": 15,
   "max_total_cycles": 16,
   "max_total_runs": 20,
@@ -323,6 +323,18 @@
       "squad": "product",
       "agent": "harness-product-lead",
       "verdict": "PASS"
+    },
+    {
+      "id": "2026-09-08-c17-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-09-08-c17gc-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "ESCALATE"
     }
   ],
   "github": {

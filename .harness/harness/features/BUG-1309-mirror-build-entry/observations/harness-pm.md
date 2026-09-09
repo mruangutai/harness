@@ -95,3 +95,4 @@
 - 2026-09-08: the `edit` tool's PUT over a range I then re-wrapped left a duplicated tail line — the
   replacement body re-flowed two lines into three and the following original line still carried the
   old fold. Re-read the block after any reflow edit rather than trusting the echoed window.
+- 2026-09-08: BUG-1309 c17 goal-check — test-merge-gate.py cases 18 and 21 ("unrelated non-object feature record does not block healthy merge" / "single owner plus unrelated malformed record still allows") build byte-identical fixtures (both json.dump([])), so a four-kind noise clause reads as covered while three kinds have no case. Two differently-NAMED cases are not two measurements; diff the fixtures, not the names.

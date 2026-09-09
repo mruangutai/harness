@@ -21,7 +21,7 @@ approval:
       who: Mike Ruangutai
       date: '2026-09-06'
       reason: resolved by disclosure — D-09 because names the c6 price
-status: building
+status: review
 source_issues: [1390]
 
 lanes:
@@ -1049,7 +1049,7 @@ tasks:
     depends_on:
     - T-02
     - T-06
-    status: building
+    status: done
     files:
     - .claude/skills/harness/bin/merge-gate.sh
     - .claude/skills/harness/bin/merge-gate.py
