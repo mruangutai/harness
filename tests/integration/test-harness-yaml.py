@@ -80,6 +80,7 @@ COLLECT_FIXTURE = {
             ".harness/*/features/*/notes/research-*.md",
             ".harness/notes/research-*.md",
             ".harness/*/features/*/notes/uat-*.md",
+            ".harness/*/features/*/notes/receipt-harness-pm-*.md",
             ".harness/glossary.md",
             ".harness/expertise/harness-pm.md",
             ".harness/*/expertise/harness-pm.md",

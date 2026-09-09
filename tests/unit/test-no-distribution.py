@@ -374,9 +374,16 @@ DELETED_NAMES = ("harness_root", "_repo_root_from_script", "_root_from", "_resol
 
 def case6():
     tracked = git_ls_files()
+    # `test-` PREFIX, PLUS THE SUPPORT MODULES THE POLE-FILE SPLIT (#1527) EXTRACTED. Every
+    # file under tests/ used to be `test-*.py` and therefore exempt; splitting the three pole
+    # files moved shared helpers — env builders among them — into `*_support.py` siblings that
+    # the runner's glob must NOT select, so they cannot carry the prefix. Exempting exactly
+    # that suffix keeps the scan's reach unchanged rather than widening it to all of tests/,
+    # which would stop scanning tests/manual's probes.
     scanned = [
         f for f in tracked
         if not os.path.basename(f).startswith("test-")
+        and not os.path.basename(f).endswith("_support.py")
         and os.path.basename(f) != "harness_boundary.py"
         and not f.endswith(".md")
         and not f.startswith(EXCLUDED_PREFIXES)

@@ -116,6 +116,7 @@ teams:
           - { path: .harness/*/features/*/notes/research-*.md, upsert: true }   # the PATH carries the FEAT id (DEC-130)
           - { path: .harness/notes/research-*.md, upsert: true }            # project-scoped research only
           - { path: .harness/*/features/*/notes/uat-*.md, upsert: true }
+          - { path: .harness/*/features/*/notes/receipt-harness-pm-*.md, upsert: true }   # issue #46/#71: harness-handoff mandates a receipt path pm previously had no grant for
           - { path: .harness/glossary.md, upsert: true }                  # ubiquitous language (DEC-149)
           - { path: .harness/expertise/harness-pm.md, upsert: true }
           - { path: .harness/*/expertise/harness-pm.md, upsert: true }  # repository tier, 40-line budget
