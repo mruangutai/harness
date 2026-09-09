@@ -76,15 +76,32 @@ task, every active task traces at least one REQ, and no task cites a REQ that do
   struck B-2, so this also stays as it is.
 - `validate-digest.py lead` on the last run's digest: `digest ok`.
 
-## One thing that went wrong in the machinery, recorded not proposed
+## A correction to the c1 packet, and one thing that affects the build phase
 
-The product lead completed this run correctly but could not write its own run directory: a stale
-`harness-product-lead` worktree claim on `FEAT-57-review-latency`, registered against its persona
-mid-run by a concurrent flow, refused every write after the first two succeeded. The claim had
-expired by the time the run returned (`inflight_registry.py list` → `NO CLAIMS`), so I wrote the
-digest from the lead's returned DIGEST and closed its `state.yaml`, disclosing that in the file
-itself. You struck B-6, which covers the neighbouring transport defect; this one is recorded in
-`runs/sigfix-c2-product/digest.md` and nowhere else.
+The product lead completed this run correctly but could not write its own run directory: every
+write after the first two was refused with
+`harness-product-lead holds worktree claim(s): .../FEAT-57-review-latency`.
+
+**In the c1 packet I told you that claim had cleared. That was wrong, and the evidence I gave for
+it was worthless.** I had run `inflight_registry.py list` from the main checkout and read
+`NO CLAIMS`; `REGISTRY_REL` resolves `.harness/.inflight-claims.json` per ROOT, so that command
+reports on the main checkout and says nothing whatever about another worktree's registry.
+Re-measured properly after the FEAT-56 flow corrected me: `list --root <FEAT-57 worktree>` shows
+two claims registered at 2026-09-09T18:49:11Z under `supervisor_pid 9988`, and `ps` confirms 9988
+is a running `omp` process whose start time matches the record's `supervisor_started_at`. **The
+claim is live.** I released nothing, so no running flow was harmed — the action was right for the
+wrong reason. I landed the lead's digest from my own tier instead, carrying its fenced contract
+block, and disclosed the substitution in the file.
+
+**Why this matters to your signature and not just to my bookkeeping.** `check-domain.sh` enforces
+single-flight by agent TYPE across every linked worktree, not per feature. So while another flow
+holds `harness-product-lead` or `harness-eng-lead`, this feature's build-phase dispatches will hit
+the same wall — mid-run, after earlier writes to the same path have succeeded, which is what makes
+it read as a transient. The blast radius is run bookkeeping only: `notes/` paths are granted per
+persona and are not what the claim blocks, so durable artifacts land fine and a lead can return its
+digest inline for the tier above to write. The FEAT-56 flow has hit this seven times today and has
+already escalated it to you as a structural collision; I am not re-proposing it, only telling you
+it will shape how the build phase runs if FEAT-56 and FEAT-57 are still live when you sign.
 
 ## Budget
 
@@ -102,4 +119,4 @@ All under
 - `notes/research-FEAT-104-triage-c0.md` — the measurement and per-key triage
 - `notes/research-FEAT-104-goalcheck-plan-c0.md` and `notes/research-FEAT-104-planfix-c1.md`
 - `notes/review-harness-code-reviewer-planpanel-c1.md`
-- `runs/sigfix-c2-product/digest.md` — this pass's record
+- `runs/sigfix-c2-product/digest.md` — this pass's record, carrying the same correction
