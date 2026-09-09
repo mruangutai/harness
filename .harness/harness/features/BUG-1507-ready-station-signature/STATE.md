@@ -92,11 +92,10 @@ Log (condensed 2026-09-09 to the INV-23 budget; the detail lives in `notes/` and
 - 2026-09-09: MIRROR REPAIRED (INV-26 was red): this feature had never been mirrored, which is also
   why SC-01's clause (c) had no cards to observe. `gh-sync.py open` created milestone #64, parent
   #1517 and sub-issues #1518-#1522; `status ... review` then moved all six to the review station.
-- 2026-09-09: run `2026-09-08-panelrow-product` PASS — INV-32 was red: the plan `panel:` record
-  listed two readers where the invariant expects three, so the goal-check that DID run (runs
-  `2026-09-08-01-product` and `2026-09-08-1-product`) read as never recorded. pm added
-  `{ reader: goalcheck, status: ran }` through `plan-merge.py set-panel`; the diff is 2 insertions,
-  the four `PF-` ids and the approval are byte-identical. `cycles_used` 2 -> 3, counted as rework.
+- 2026-09-09: run `2026-09-08-panelrow-product` PASS — INV-32 was red: `panel:` listed two readers
+  where the invariant expects three, so the goal-check that DID run (runs `2026-09-08-01-product`,
+  `2026-09-08-1-product`) read as never recorded. pm added `{ reader: goalcheck, status: ran }` via
+  `plan-merge.py set-panel`: 2 insertions, `PF-` ids and approval byte-identical. Cycles 2 -> 3.
 
 ## Open Questions
 
