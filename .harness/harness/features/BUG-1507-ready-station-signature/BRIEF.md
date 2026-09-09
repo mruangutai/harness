@@ -211,6 +211,6 @@ names, no schema change, no station-enum work.
 
 ## Approval
 
-status: pending
-approved-by:
-date:
+status: approved
+approved-by: operator
+date: 2026-09-08
