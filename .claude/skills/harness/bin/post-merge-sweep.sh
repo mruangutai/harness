@@ -27,6 +27,7 @@ done
 BIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 POST_MERGE_SWEEP_BIN_DIR="$BIN_DIR" POST_MERGE_SWEEP_DRY_RUN="$DRY_RUN" python3 -I - <<'PYEOF'
+import json
 import os
 import subprocess
 import sys
@@ -38,6 +39,7 @@ sys.path.insert(0, BIN_DIR)
 import harness_boundary    # noqa: E402  (FEAT-42 T-09: the one root resolver)
 import worktree_terminal   # noqa: E402  (D-02: the one shared eligibility predicate)
 import factory_config      # noqa: E402
+import feature_schema       # noqa: E402
 
 
 # THE REPOSITORY ROOT COMES FROM harness_boundary.root_from_script(BIN_DIR), and main() below
@@ -207,6 +209,28 @@ def _handle_record(rec, main_checkout_root, cwd_real):
         print(f"post-merge-sweep: SKIP removal of {path} — gh-sync ship reported FAILED, so at "
               f"least one card never reached the done station")
         return
+
+    try:
+        with open(os.path.join(main_checkout_root, ".harness", "harness.json")) as f:
+            sync_enabled = bool((json.load(f).get("github") or {}).get("sync"))
+        with open(os.path.join(feat_dir, "feature.json")) as f:
+            feature_doc = json.load(f)
+    except (OSError, json.JSONDecodeError) as exc:
+        print(f"post-merge-sweep: SKIP removal of {path} — could not read Build entry receipt: {exc}")
+        return
+    if sync_enabled:
+        entry = (feature_doc.get("github") or {}).get("build_entry")
+        if entry is None and feature_id in feature_schema.BUILD_ENTRY_ERA_EXEMPT:
+            print(f"post-merge-sweep: {feature_id} predates the build-entry receipt "
+                  f"(feature_schema.BUILD_ENTRY_ERA_EXEMPT), so the worktree is removed normally. "
+                  f"Its terminal receipt is created only by an explicit operator-approved gh-sync.py "
+                  f"recover-terminal {os.path.realpath(feat_dir)} --yes.")
+        elif entry not in {"opened", "not-applicable", "recovered-terminal"}:
+            value = entry or "absent"
+            print(f"post-merge-sweep: SKIP removal of {path} — {feature_id} records "
+                  f"github.build_entry={value}, so no Build entry receipt exists. The worktree stays "
+                  f"until gh-sync.py recover-terminal {os.path.realpath(feat_dir)} --yes and ship both succeed.")
+            return
 
     # NO FORCE FLAG. feature-worktree.py remove already declines a dirty tree at exit 4 and an
     # unlanded artifact at exit 5; those refusals print and the sweep moves to the next record.

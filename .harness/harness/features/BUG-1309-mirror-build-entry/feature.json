@@ -1,0 +1,411 @@
+{
+  "feature_id": "BUG-1309-mirror-build-entry",
+  "branch": "feat/BUG-1309-mirror-build-entry",
+  "pr": null,
+  "review_sha": "4857818bb1408813c7a38311d9e4ffc20373427e",
+  "cycles_used": 18,
+  "max_total_cycles": 17,
+  "max_total_runs": 20,
+  "runs": [
+    {
+      "id": "2026-09-06-1-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-06-01-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-06-02-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-06-c2-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-06-c3-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-06-gc2-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "FAIL",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-06-c4-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-06-c5-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-06-c6-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-06-01-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-06-c7-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-06-c8-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-06-c9-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-06-02-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-06-01-eng",
+      "squad": "eng",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-09-06-02-eng",
+      "squad": "eng",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-09-06-03-eng",
+      "squad": "eng",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-09-06-t09-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-09-06-qa-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL"
+    },
+    {
+      "id": "2026-09-06-qagate-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-06-gcnew-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-06-c10-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-06-panelc1b-validator",
+      "squad": "validator",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-06-c11-product",
+      "squad": "validator",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-06-c12-product",
+      "squad": "validator",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-06-gcrow-product",
+      "squad": "validator",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-07-1-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-07-panelc2-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-07-01-eng",
+      "squad": "eng",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-09-07-02-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-09-07-simplify-eng",
+      "squad": "eng",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-09-07-review-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL"
+    },
+    {
+      "id": "2026-09-07-05-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL"
+    },
+    {
+      "id": "2026-09-07-01-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-09-07-06-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL"
+    },
+    {
+      "id": "2026-09-07-07-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "ESCALATE"
+    },
+    {
+      "id": "2026-09-07-06-validator-c5",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL"
+    },
+    {
+      "id": "2026-09-08-panelc7-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "ESCALATE"
+    },
+    {
+      "id": "2026-09-08-amend-gc-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-08-planamend-c13-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-08-c13b-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-08-sc04amend-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-08-c14-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL"
+    },
+    {
+      "id": "2026-09-08-c14gc-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "FAIL",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-08-c15-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "ESCALATE"
+    },
+    {
+      "id": "2026-09-08-c15gc-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "ESCALATE"
+    },
+    {
+      "id": "2026-09-08-c16-planamend-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "2026-09-08-1-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-09-08-c17-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-09-08-c17gc-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "ESCALATE"
+    },
+    {
+      "id": "2026-09-08-c18-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "ESCALATE"
+    },
+    {
+      "id": "2026-09-08-c18gc-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "ESCALATE"
+    },
+    {
+      "id": "2026-09-08-c19copy-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-09-09-c19copy-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-09-09-01-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-09-09-c19uat-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "c19uatsteps-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS"
+    }
+  ],
+  "github": {
+    "milestone": 54,
+    "parent": 1407,
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03",
+      "T-04",
+      "T-05",
+      "T-06",
+      "T-07",
+      "T-08",
+      "T-09"
+    ],
+    "issues": {
+      "T-01": 1408,
+      "T-02": 1409,
+      "T-03": 1410,
+      "T-04": 1411,
+      "T-05": 1412,
+      "T-06": 1413,
+      "T-07": 1414,
+      "T-08": 1415,
+      "T-09": 1416
+    },
+    "source_issues": [
+      1390
+    ]
+  }
+}

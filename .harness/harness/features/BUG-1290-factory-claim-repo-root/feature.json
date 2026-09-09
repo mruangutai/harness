@@ -227,6 +227,7 @@
     },
     "source_issues": [
       1290
-    ]
+    ],
+    "build_entry": "recovered-terminal"
   }
 }

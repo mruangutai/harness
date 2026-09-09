@@ -141,6 +141,7 @@
     },
     "source_issues": [
       201
-    ]
+    ],
+    "build_entry": "recovered-terminal"
   }
 }

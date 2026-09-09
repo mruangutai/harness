@@ -2002,6 +2002,47 @@ if _wt29 is not None:
             bad.append(_head29 + " Its path did not resolve to a repository and id, so no "
                                  "removal command can be composed for it.")
 
+# --- INV-37 (BUG-1309): an enabled mirror must leave a Build-entry receipt.
+# This deliberately runs regardless of station and task state. INV-26 correctly skips
+# terminal and all-ready plans for board placement; neither condition proves a mirror ran.
+try:
+    import feature_schema as _fs37
+except Exception as _fs37e:
+    _fs37 = None
+    bad.append("INV-37 CANNOT RUN: feature_schema.py did not import (%s: %s), so a missing "
+               "Build-entry receipt would go unreported." % (type(_fs37e).__name__, _fs37e))
+
+try:
+    _sync37 = bool((json.loads(read(os.path.join(H, "harness.json")) or "{}")
+                    .get("github") or {}).get("sync"))
+except Exception:
+    _sync37 = False
+
+if _fs37 is not None and _sync37:
+    for _fp37 in sorted(glob.glob(os.path.join(H, "*", "features", "*"))):
+        _feat37 = os.path.basename(_fp37)
+        if _feat37 in _fs37.BUILD_ENTRY_ERA_EXEMPT or _feat37 not in plan_docs:
+            continue
+        try:
+            _doc37 = json.load(open(os.path.join(_fp37, "feature.json"), encoding="utf-8"))
+        except Exception:
+            _doc37 = {}
+        if ((_doc37.get("factory") or {}).get("issues")
+                or (_doc37.get("github") or {}).get("build_entry") is not None):
+            continue
+        _cmd37 = _fs37.recovery_command_for(_fp37)
+        if _cmd37 == "open":
+            bad.append(f"INV-37 {_feat37}: github.sync is enabled but feature.json records no "
+                       f"github.build_entry, so no Build entry outcome was ever recorded and "
+                       f"the board cannot be telling the truth about this feature - run "
+                       f"gh-sync.py open {_fp37}.")
+        else:
+            bad.append(f"INV-37 {_feat37}: github.sync is enabled but feature.json records no "
+                       f"github.build_entry, and the feature's own record says the work is "
+                       f"already under way or finished, so creating the mirror now would mean "
+                       f"task sub-issues for completed work - run gh-sync.py recover-terminal "
+                       f"{_fp37} --yes.")
+
 # --- INV-26 BEGINS — the marker T-05's verify slices on. Without it the slice is EMPTY and
 # every literal-absence grep below trivially passes, which is the vacuous-grep failure this
 # feature exists to remove. The verify's positive control requires derive_station INSIDE the

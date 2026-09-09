@@ -16,6 +16,19 @@
                                            any recorded parent if given, THEN records the pr
                                            (T-03, FEAT-26). It closes NO issue: GitHub's
                                            Auto-close issue workflow does that (DEC-203)
+  gh-sync.py recover-terminal <feature-dir> [--parent <n>] [--yes]  operator-approved
+                                           recovery for an already-merged feature whose
+                                           mirror was never opened, or opened only in
+                                           part -> adopts whatever milestone/parent is
+                                           already recorded, creates only what is
+                                           missing, mirrors source_issues from
+                                           plan.yaml, creates ZERO task sub-issues, and
+                                           records build_entry "recovered-terminal"
+                                           (T-03, BUG-1309). Refuses (exit 2) ONLY when
+                                           --parent contradicts an already-recorded
+                                           parent; nothing else recorded already is a
+                                           refusal. Without --yes, reports every write
+                                           it would make and makes none
   gh-sync.py record-pr <feature-dir> [--pr <n>]  derive the pull request number from the
                                            recorded branch's exactly-one merged PR and
                                            record it, or record --pr directly (T-03,
@@ -92,6 +105,7 @@ from gh_issues import (internal_id_args, attach_sub_issue_args, sub_issues_args,
 import gh_issue_types
 
 import feature_json_write
+import feature_schema
 import harness_merge
 import factory_config
 import factory_gh
@@ -149,10 +163,37 @@ def _place(board, repo, num, station, note="", failed=None, stations=None):
     return True
 
 
-def skip(msg):
-    """Environmental no-go: one loud line, exit 0. The mirror never gates."""
+def skip(msg, build_entry=None):
+    """Environmental no-go: one loud line, exit 0. The mirror never gates.
+
+    T-02: when `open` has armed `_BUILD_ENTRY` (main() does this before config
+    resolution, only for the `open` command) and no remote-mutating call has yet
+    succeeded this run, record the Build-entry outcome before exiting: `build_entry`
+    if given, else "recovery-required" (D-04 — a run that stopped before any
+    remote write). `_NO_RECORD` is the explicit "record nothing" sentinel (D-09):
+    the parameter's own default already means "recovery-required", so passing
+    nothing cannot ALSO mean "record nothing" — a caller wanting silence must say
+    so explicitly. Once a remote create has already succeeded this run, a later
+    skip is a partial mirror (D-04) and records nothing here, regardless of
+    `build_entry` — the field must stay absent, not be overwritten.
+
+    A feature.json that does not exist yet (an un-onboarded tree, or a feature
+    dir the orchestrator has not instantiated) is not a run any Build entry could
+    attach to — `save_recorded` REFUSES an absent file (T-02/FEAT-26), so this
+    checks for it first rather than letting that refusal replace the SKIP message
+    below with an unrelated one.
+    """
+    feat_dir = _BUILD_ENTRY["feat_dir"]
+    if (feat_dir is not None and not _BUILD_ENTRY["remote_written"]
+            and build_entry is not _NO_RECORD
+            and os.path.isfile(os.path.join(feat_dir, "feature.json"))):
+        record_build_entry(feat_dir, build_entry or "recovery-required")
     print(f"gh-sync: SKIP — {msg}")
     sys.exit(0)
+
+
+_BUILD_ENTRY = {"feat_dir": None, "remote_written": False}
+_NO_RECORD = object()
 
 
 def die(msg):
@@ -249,10 +290,11 @@ def load_config(root):
         skip(f"harness.json unreadable ({e})")
     g = cfg.get("github") or {}
     if not g.get("sync"):
-        skip("github.sync is not enabled for this project")
+        skip("github.sync is not enabled for this project", build_entry="not-applicable")
     repo = g.get("repo")
     if not repo or "/" not in str(repo):
-        skip("github.repo is not pinned — run /harness-init --upgrade to record it")
+        skip("github.repo is not pinned — run /harness-init --upgrade to record it",
+             build_entry=_NO_RECORD)
     if shutil.which(GH) is None:
         skip(f"{GH} not on PATH")
     if subprocess.run([GH, "auth", "status"], capture_output=True).returncode != 0:
@@ -507,7 +549,7 @@ def load_recorded(feat_dir):
     """
     path = os.path.join(feat_dir, "feature.json")
     rec = {"milestone": None, "parent": None, "attached": [], "issues": {},
-           "source_issues": []}
+           "source_issues": [], "build_entry": None}
     # ABSENCE is checked before parsing, not caught after it (review finding 4) — a
     # missing feature.json is a legitimate first sync, never an error.
     if not os.path.exists(path):
@@ -584,6 +626,12 @@ def load_recorded(feat_dir):
     si = gh.get("source_issues")
     if isinstance(si, list):
         rec["source_issues"] = [n for n in si if isinstance(n, int) and not isinstance(n, bool)]
+
+    # T-02 (BUG-1309): the Build-entry outcome, a closed enum plus ABSENCE as a fifth
+    # state — anything outside the enum reads as absent, never raises.
+    be = gh.get("build_entry")
+    rec["build_entry"] = be if be in ("opened", "recovery-required",
+                                       "not-applicable", "recovered-terminal") else None
     return rec
 
 
@@ -887,9 +935,28 @@ def save_recorded(feat_dir, rec):
         typed = rec.get("typed")
         if typed:
             doc["github"]["typed"] = dict(sorted(typed.items()))
+        # T-02 (BUG-1309): positively recorded, same shape as `typed` above — an absent
+        # or falsy value means nothing to write, so a receipt with no Build-entry outcome
+        # stays byte-identical to today's.
+        if rec.get("build_entry"):
+            doc["github"]["build_entry"] = rec["build_entry"]
         return json.dumps(doc, indent=2) + "\n"
 
     feature_json_write.write_feature_json(p, transform)
+
+
+def record_build_entry(feat_dir, value):
+    """Persist the Build-entry outcome (D-04/D-09) through `save_recorded` — never a
+    second write path to feature.json, so this inherits the lock, the same-directory
+    tempfile and the atomic replace. Never downgrades an already-"opened" record: once
+    a run has fully recorded, a later degraded outcome (e.g. a subsequent invocation's
+    early skip) must not erase it."""
+    rec = load_recorded(feat_dir)
+    if rec.get("build_entry") == "opened" and value != "opened":
+        return
+    rec["build_entry"] = value
+    save_recorded(feat_dir, rec)
+
 
 
 # ---------- commands ----------
@@ -1029,6 +1096,7 @@ def _open_ensure_milestone(feat_dir, repo, brief, rec):
     if r.returncode == 0:
         rec["milestone"] = json.loads(r.stdout)["number"]
         print(f"gh-sync: milestone #{rec['milestone']} created for {brief['feat']}")
+        _BUILD_ENTRY["remote_written"] = True
     else:
         # LIVE SMOKE FINDING #3: 422 when the title already exists — a previous run
         # created it and died before recording (or a human made one). Resolve by
@@ -1063,6 +1131,7 @@ def _open_ensure_parent(feat_dir, repo, brief, rec, parent_arg, state):
         body = f"{brief['problem']}\n\n**Goal:** {brief['goal']}"
         url = gh(["issue", "create", "--repo", repo, "--title", title,
                   "--body", body, "--label", "harness"])
+        _BUILD_ENTRY["remote_written"] = True
         rec["parent"] = int(url.rstrip("/").rsplit("/", 1)[-1])
         if state == "available":
             rec["typed"]["parent"] = "created"
@@ -1116,7 +1185,22 @@ def _open_sync_task(feat_dir, repo, brief, rec, task, state):
         print(f"gh-sync: {task['id']} already issue #{rec['issues'][task['id']]} — skipping")
     else:
         _open_create_task(feat_dir, repo, brief, rec, task, state)
+        _BUILD_ENTRY["remote_written"] = True
     _open_attach_task(feat_dir, repo, rec, task)
+
+
+def _open_ensure_labels(repo, tasks, rec, parent_arg, issue_types, state, declared):
+    """ISSUE-TYPES concern (BUG-1309 grade fix): keeps `cmd_open`'s labels correct
+    regardless of whether this repo has GitHub's typed-issues feature — refuse an
+    undeclared type then label `harness` when it's available, or sweep every task's
+    change-type label when it isn't. Split out because typed-issue support is an
+    orthogonal reason to change from creating the milestone, the parent and the
+    sub-issues."""
+    if state == "available":
+        _refuse_undeclared_issue_types(repo, tasks, rec, parent_arg, issue_types, declared)
+        ensure_labels(repo, {"harness"})
+    else:
+        ensure_labels(repo, {"harness"} | {l for tk in tasks if (l := type_label(tk["change_type"]))})
 
 
 def cmd_open(feat_dir, repo, parent_arg=None, issue_types=None):
@@ -1129,11 +1213,7 @@ def cmd_open(feat_dir, repo, parent_arg=None, issue_types=None):
     rec["source_issues"] = parse_source_issues(feat_dir)
     rec.setdefault("typed", {})
 
-    if state == "available":
-        _refuse_undeclared_issue_types(repo, tasks, rec, parent_arg, issue_types, declared)
-        ensure_labels(repo, {"harness"})
-    else:
-        ensure_labels(repo, {"harness"} | {l for tk in tasks if (l := type_label(tk["change_type"]))})
+    _open_ensure_labels(repo, tasks, rec, parent_arg, issue_types, state, declared)
 
     _open_ensure_milestone(feat_dir, repo, brief, rec)
     _open_ensure_parent(feat_dir, repo, brief, rec, parent_arg, state)
@@ -1143,6 +1223,112 @@ def cmd_open(feat_dir, repo, parent_arg=None, issue_types=None):
 
     if state == "available":
         _backfill_issue_types(feat_dir, repo, tasks, rec, issue_types, declared)
+
+    # T-02 (BUG-1309): the LAST statement of the successful path. Reaching it is itself
+    # the proof no skip branch fired (the same structural argument cmd_ship's docstring
+    # already makes for its own terminal station write).
+    record_build_entry(feat_dir, "opened")
+
+
+def _recover_terminal_conflict(rec, parent_arg):
+    """The ONE refusal `recover-terminal` has (T-03): `--parent <n>` naming a number
+    that CONTRADICTS an already-recorded parent. Returns the refusal message, or None
+    when there is no contradiction — an already-recorded milestone, an already-recorded
+    parent (matching --parent or not given at all), a non-empty `github.issues`, and an
+    existing `build_entry` are NOT refusals; recover-terminal exists to make them
+    recoverable, not to reject them."""
+    if parent_arg is None or rec["parent"] is None:
+        return None
+    if int(parent_arg) == rec["parent"]:
+        return None
+    return (f"--parent {parent_arg} contradicts feature.json's recorded parent "
+            f"#{rec['parent']} — adopting either would silently strand the other")
+
+
+def _recover_terminal_report(rec, parent_arg):
+    """Every write `recover-terminal` would make against the CURRENT record, in
+    `cmd_abandon`'s report-and-ask shape (`_abandon_plan`): `creates` is what the
+    `--yes` path performs remotely; `adoptions` is the line for every part already
+    recorded, printed by BOTH paths so the operator sees what was not created either
+    way."""
+    creates = []
+    adoptions = []
+    if rec["milestone"] is None:
+        creates.append("create the milestone")
+    else:
+        adoptions.append(f"gh-sync: adopting recorded milestone {rec['milestone']}")
+    if rec["parent"] is not None:
+        adoptions.append(f"gh-sync: adopting recorded parent #{rec['parent']}")
+    elif parent_arg is not None:
+        creates.append(f"adopt parent #{parent_arg} (given via --parent)")
+    else:
+        creates.append("create the parent")
+    return creates, adoptions
+
+
+def _recover_terminal_apply(feat_dir, repo, rec, parent_arg):
+    """The `--yes` path's remote writes: create only what `rec` does not already
+    carry, by the SAME routes `cmd_open` uses (`_open_ensure_milestone`,
+    `_open_ensure_parent`, including the milestone's 422 title-lookup recovery), then
+    mirror `source_issues` from the plan and persist. Creates ZERO task sub-issues —
+    those are `_open_sync_task`'s job, and this never calls it; `rec["issues"]` round-
+    trips through `save_recorded` completely unexamined."""
+    brief = parse_brief(feat_dir)
+    if rec["milestone"] is None:
+        _open_ensure_milestone(feat_dir, repo, brief, rec)
+    if rec["parent"] is None:
+        _open_ensure_parent(feat_dir, repo, brief, rec, parent_arg, None)
+    rec["source_issues"] = parse_source_issues(feat_dir)
+    save_recorded(feat_dir, rec)
+
+
+def cmd_recover_terminal(feat_dir, repo, parent_arg=None, yes=False):
+    """`recover-terminal <feature-dir> [--parent <n>] [--yes]` (T-03, BUG-1309) — the
+    operator-approved recovery for an already-merged sync-enabled feature whose mirror
+    was never opened, or was opened only in part. This is the remedy `cmd_ship`'s own
+    "no recorded milestone" skip now names.
+
+    ADOPTS WHAT IS RECORDED, CREATES ONLY WHAT IS MISSING, AND THAT IS THE POINT.
+    FEAT-55, this bug's own subject, already records a milestone, a parent and twelve
+    task sub-issues with no `build_entry` — a remedy that refuses on the only feature
+    it exists for is a deadlock. All four states (both recorded, either alone,
+    neither) reach exit 0, creating only what is missing.
+
+    CREATES ZERO TASK SUB-ISSUES, EVER — see `_recover_terminal_apply`.
+
+    THE ONE REFUSAL IS A CONTRACT ERROR, NOT A CATEGORY — see
+    `_recover_terminal_conflict`. Everything else recorded already is adopted.
+
+    REPORT AND ASK, `cmd_abandon`'s shape: without `--yes`, prints every write it
+    would make plus the adoption line for every already-recorded part (from
+    `_recover_terminal_report`), makes none, and exits 0.
+
+    `record_build_entry(feat_dir, "recovered-terminal")` is the LAST STATEMENT of the
+    successful path — reaching it is itself the proof no `skip()` branch fired, the
+    same structural argument `cmd_open`'s own tail already makes. `main()` arms
+    `_BUILD_ENTRY` only for `open`, so a `gh` failure reached from here runs `skip()`
+    UNARMED: nothing is recorded, the field stays absent, and the feature stays
+    non-terminal — the same funnel `open` uses, never special-cased for this command.
+    """
+    rec = load_recorded(feat_dir)
+    conflict = _recover_terminal_conflict(rec, parent_arg)
+    if conflict is not None:
+        refuse(conflict)
+
+    creates, adoptions = _recover_terminal_report(rec, parent_arg)
+    if not yes:
+        for line in creates:
+            print(f"gh-sync: would {line}")
+        for line in adoptions:
+            print(line)
+        print("gh-sync: recover-terminal is a decision the operator makes — re-run "
+              "with --yes to create the terminal receipt")
+        return
+
+    for line in adoptions:
+        print(line)
+    _recover_terminal_apply(feat_dir, repo, rec, parent_arg)
+    record_build_entry(feat_dir, "recovered-terminal")
 
 
 def _projected_for(feat_dir, rec):
@@ -1186,6 +1372,81 @@ def _projected_for(feat_dir, rec):
                f"placed from it — {exc}")
 
 
+def _build_entry_preflight(feat_dir, rec):
+    """Print the allowed recovery notice or refuse an unsafe Build start."""
+    entry = rec.get("build_entry")
+    feature_id = os.path.basename(feat_dir.rstrip("/"))
+    if entry is None and feature_id not in feature_schema.BUILD_ENTRY_ERA_EXEMPT:
+        command = feature_schema.recovery_command_for(feat_dir)
+        if command == "open":
+            refuse(f"this feature has no recorded build entry, so Build must not start. "
+                   f"Run gh-sync.py open {os.path.realpath(feat_dir)} first.")
+        refuse(f"this feature has no recorded build entry, and its own record says the work is "
+               f"already under way or finished, so creating the mirror now would mean task "
+               f"sub-issues for completed work. Run gh-sync.py recover-terminal "
+               f"{os.path.realpath(feat_dir)} --yes.")
+    if entry is None:
+        print(f"gh-sync: {feature_id} predates the build-entry receipt "
+              f"(feature_schema.BUILD_ENTRY_ERA_EXEMPT), so Build continues. Its terminal "
+              f"receipt is created only by an explicit operator-approved gh-sync.py "
+              f"recover-terminal {os.path.realpath(feat_dir)} --yes.", file=sys.stderr)
+    if entry == "recovery-required":
+        _build_entry_recovery_notice(feat_dir, feature_id)
+
+
+def _build_entry_recovery_notice(feat_dir, feature_id):
+    if feature_id in feature_schema.BUILD_ENTRY_ERA_EXEMPT:
+        print(f"gh-sync: build entry is recovery-required for {os.path.realpath(feat_dir)}; "
+              f"Build proceeds. This feature predates the build-entry receipt "
+              f"(feature_schema.BUILD_ENTRY_ERA_EXEMPT), so its merge is not refused; its "
+              f"terminal receipt is created only by an explicit operator-approved gh-sync.py "
+              f"recover-terminal {os.path.realpath(feat_dir)} --yes.", file=sys.stderr)
+        return
+    command = feature_schema.recovery_command_for(feat_dir)
+    if command == "open":
+        print(f"gh-sync: build entry is recovery-required for {os.path.realpath(feat_dir)}; "
+              f"Build proceeds, the MERGE is refused until gh-sync.py open records opened",
+              file=sys.stderr)
+        return
+    print(f"gh-sync: build entry is recovery-required for {os.path.realpath(feat_dir)}; "
+          f"Build proceeds, the MERGE is refused until gh-sync.py {command} "
+          f"{os.path.realpath(feat_dir)} --yes records the terminal receipt",
+          file=sys.stderr)
+
+
+def _record_task_building(feat_dir, tid):
+    plan_path = os.path.join(feat_dir, "plan.yaml")
+    if not os.path.isfile(plan_path):
+        return
+    written = subprocess.run(
+        [sys.executable, os.path.join(_BIN_DIR, "plan-merge.py"), "set-task-station",
+         "--file", plan_path, "--task", tid, "--station", "building"],
+        capture_output=True, text=True)
+    if written.returncode != 0:
+        refuse(f"could not record {tid} as building in {plan_path} — "
+               f"plan-merge.py set-task-station exited {written.returncode}: "
+               f"{(written.stderr or written.stdout).strip()}")
+
+
+def _closed_task_guard(repo, board, issue_num, tid):
+    if board is None:
+        return False
+    try:
+        stations = gh_board.board_stations(board, repo)
+        current_station, _ = gh_board.read_station(stations, issue_num)
+        state = (factory_gh.issue_view(repo, issue_num, ["state"]) or {}).get("state")
+    except factory_gh.GhError as exc:
+        print(f"gh-sync: ERROR - guard read failed for #{issue_num} ({tid}): {exc} "
+              f"— proceeding without the guard", file=sys.stderr)
+        return False
+    if state != "CLOSED" and current_station != "done":
+        return False
+    reason = "issue is CLOSED" if state == "CLOSED" else "card is already Done"
+    print(f"gh-sync: refusing #{issue_num} ({tid}) -> building: "
+          f"current station is {current_station!r}, {reason}")
+    return True
+
+
 def cmd_start_task(feat_dir, tid, repo, board):
     """`start-task <feature-dir> T-NN` — the orchestrator fires this in the same act it
     records the task's status as `building` in plan.yaml (D-04). Sets T-NN's OWN sub-issue
@@ -1213,61 +1474,22 @@ def cmd_start_task(feat_dir, tid, repo, board):
     refusing — a guard that cannot see the board must not silently stop moving cards.
     """
     rec = load_recorded(feat_dir)
+    _build_entry_preflight(feat_dir, rec)
     if tid not in rec["issues"]:
         skip(f"{tid} has no recorded issue — nothing to start (was `open` run?)")
-
-    # THE PLAN WRITE, AND IT HAPPENS FIRST (FEAT-41 T-06). Until now this docstring claimed the
-    # orchestrator fires this "in the same act it records the task's status in plan.yaml", and
-    # the 54-line body contained no such write — the record depended entirely on a human or an
-    # agent remembering a second command. It is a subprocess call to plan-merge.py's
-    # set-task-station verb, because that tool owns every write to plan.yaml: it takes the shared
-    # lock and validates the station against harness.json before the file is opened.
-    #
-    # BEFORE THE BOARD, NOT AFTER: the plan is the truth and the board is the mirror, so a failed
-    # board write must never leave the plan unrecorded. A failed PLAN write, by contrast, must
-    # stop the whole command — writing a Building card for a task the plan does not call building
-    # is precisely the two-words-two-meanings drift this feature exists to end.
-    _plan_path = os.path.join(feat_dir, "plan.yaml")
-    if os.path.isfile(_plan_path):
-        _written = subprocess.run(
-            [sys.executable, os.path.join(_BIN_DIR, "plan-merge.py"), "set-task-station",
-             "--file", _plan_path, "--task", tid, "--station", "building"],
-            capture_output=True, text=True)
-        if _written.returncode != 0:
-            refuse(f"could not record {tid} as building in {_plan_path} — "
-                   f"plan-merge.py set-task-station exited {_written.returncode}: "
-                   f"{(_written.stderr or _written.stdout).strip()}")
-
-    if board is not None:
-        issue_num = rec["issues"][tid]
-        refused = False
-        try:
-            stations = gh_board.board_stations(board, repo)
-            current_station, _ = gh_board.read_station(stations, issue_num)
-            state = (factory_gh.issue_view(repo, issue_num, ["state"]) or {}).get("state")
-            # current_station is lowercase: gh_board.board_stations lowercases the board read.
-            if state == "CLOSED" or current_station == "done":
-                reason = "issue is CLOSED" if state == "CLOSED" else "card is already Done"
-                print(f"gh-sync: refusing #{issue_num} ({tid}) -> building: "
-                      f"current station is {current_station!r}, {reason}")
-                refused = True
-        except factory_gh.GhError as e:
-            print(f"gh-sync: ERROR - guard read failed for #{issue_num} ({tid}): {e} "
-                  f"— proceeding without the guard", file=sys.stderr)
-        if refused:
-            return
-
-        # THE STATION COMES FROM project, NEVER FROM THIS FUNCTION (FEAT-41 T-06). The plan write
-        # above is what makes the answer `building`; asking project rather than re-spelling it is
-        # what keeps one word meaning one thing. A task project declines to place gets no write
-        # and one line — the same silence every other placement miss gets.
-        _station = _projected_for(feat_dir, rec).get(issue_num)
-        if _station is None:
-            print(f"gh-sync: no station follows from the plan for #{issue_num} ({tid}) "
-                  f"— card not moved", file=sys.stderr)
-        else:
-            _place(board, repo, issue_num, _station, note=f" ({tid})")
-        _apply_parent_rule(feat_dir, repo, board)
+    _record_task_building(feat_dir, tid)
+    if board is None:
+        return
+    issue_num = rec["issues"][tid]
+    if _closed_task_guard(repo, board, issue_num, tid):
+        return
+    station = _projected_for(feat_dir, rec).get(issue_num)
+    if station is None:
+        print(f"gh-sync: no station follows from the plan for #{issue_num} ({tid}) "
+              f"— card not moved", file=sys.stderr)
+    else:
+        _place(board, repo, issue_num, station, note=f" ({tid})")
+    _apply_parent_rule(feat_dir, repo, board)
 
 
 def _status_plan_doc(feat_dir):
@@ -1837,7 +2059,10 @@ def cmd_ship(feat_dir, repo, board, body_file=None, pr_arg=None):
         body_file = post_body_path(body_file, "--body-file")
     rec = load_recorded(feat_dir)
     if rec["milestone"] is None:
-        skip("no recorded milestone — nothing to close")
+        skip(f"no recorded milestone — this feature never completed a Build entry, so "
+             f"there is nothing to close. Run gh-sync.py recover-terminal "
+             f"{os.path.abspath(feat_dir)} --yes to create the terminal receipt, then "
+             f"ship again.")
 
     # The comment is UNCONDITIONAL: posts on any recorded parent whatever its origin.
     if body_file is not None and rec["parent"] is not None:
@@ -2070,14 +2295,14 @@ def main():
         argv = argv[:i] + argv[i + 1:]
     if len(argv) < 2:
         die("usage: gh-sync.py open|start-task|abandon|ship|backlog|record-pr|"
-            "status "
+            "status|recover-terminal "
             "<feature-dir> [T-NN | nature:title ... | <Status>] [--parent <n>] "
             "[--reason-file <path>] [--body-file <path>] [--pr <n>] [--yes]")
     cmd, feat_dir = argv[0], argv[1]
     # A flag that silently does nothing teaches the operator it is harmless everywhere, and
     # the next place they try it is the one that closes tickets. It is a caller error.
-    if yes_flag and cmd != "abandon":
-        die(f"--yes is only accepted by abandon, not {cmd!r}")
+    if yes_flag and cmd not in ("abandon", "recover-terminal"):
+        die(f"--yes is only accepted by abandon and recover-terminal, not {cmd!r}")
     if not os.path.isdir(feat_dir):
         die(f"{feat_dir} is not a directory")
     # DEPTH-AGNOSTIC ROOT (FEAT-21 T-10): the old three-level climb was right for
@@ -2102,6 +2327,11 @@ def main():
         # today's behaviour, three parents up — spelled via dirname so the verify's
         # assertion (no fixed join-climb as the PRIMARY derivation) stays meaningful
         root = os.path.dirname(os.path.dirname(os.path.dirname(_abs)))
+    # T-02 (BUG-1309): armed only for `open` — main() is the one caller that knows the
+    # command before config resolution runs, and every skip() this run reaches after this
+    # point (including inside load_config) must be able to record an outcome.
+    if cmd == "open":
+        _BUILD_ENTRY["feat_dir"] = feat_dir
     try:
         repo, board, issue_types = load_config(root)
     except factory_config.FleetError as e:
@@ -2126,6 +2356,8 @@ def main():
         cmd_abandon(feat_dir, repo, board, reason_file, yes_flag)
     elif cmd == "ship":
         cmd_ship(feat_dir, repo, board, body_file, pr_arg)
+    elif cmd == "recover-terminal":
+        cmd_recover_terminal(feat_dir, repo, parent_arg, yes_flag)
     elif cmd == "backlog":
         if len(argv) < 3:
             die("backlog needs at least one nature:title item")

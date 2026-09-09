@@ -4615,6 +4615,89 @@ def case_bug1305_run_identity_invariant():
     return ok
 
 
+# --- BUG-1309 T-06: the terminal mirror receipt must be a local invariant.
+# GRADE-2 REASON: the test intentionally drives each independent invariant state through
+# the external checker; splitting it would hide the fixture-to-checker contract.
+def case_t06_build_entry_invariant():
+    def fixture(tmp, feature, station="done", build_entry=None, sync=True,
+                factory_issues=None, task_status=None):
+        h = os.path.join(tmp, ".harness")
+        feat_dir = os.path.join(h, "harness", "features", feature)
+        os.makedirs(feat_dir, exist_ok=True)
+        with open(os.path.join(h, "harness.json"), "w", encoding="utf-8") as f:
+            json.dump({"github": {"sync": sync, "repo": "acme/widgets"}}, f)
+        github = {} if build_entry is None else {"build_entry": build_entry}
+        doc = {"feature_id": feature, "github": github}
+        if factory_issues is not None:
+            doc["factory"] = {"issues": factory_issues}
+        with open(os.path.join(feat_dir, "feature.json"), "w", encoding="utf-8") as f:
+            json.dump(doc, f)
+        task = {
+            "id": "T-01",
+            "title": "fixture task",
+            "change_type": "bugfix",
+            "execution_mode": "main-session-direct",
+            "files": ["fixture"],
+            "verify": "true",
+            "intent": "fixture",
+        }
+        if task_status is not None:
+            task["status"] = task_status
+        with open(os.path.join(feat_dir, "plan.yaml"), "w", encoding="utf-8") as f:
+            f.write(f"schema: plan/1\nfeature: {feature}\nstatus: {station}\ntasks:\n"
+                    f"  - {json.dumps(task)}\n")
+        return feat_dir
+
+    def check(name, condition):
+        print(f"{'ok' if condition else 'FAIL'} - {name}")
+        return condition
+
+    outcomes = []
+    with tempfile.TemporaryDirectory() as tmp:
+        fixture(tmp, "FEAT-9001-fixture-non-era")
+        _, out = run(tmp)
+        line = next((x for x in out.splitlines() if "INV-37" in x), "")
+        outcomes.append(check("T-06 INV-37 fires at a done station with no task statuses",
+                              "FEAT-9001-fixture-non-era" in line and "recover-terminal" in line))
+        outcomes.append(check("T-06 INV-37 message discriminator names recover-terminal only",
+                              "open" not in line))
+    for name, entry, sync, factory in (
+        ("T-06 INV-37 silent on build_entry opened", "opened", True, None),
+        ("T-06 INV-37 silent on build_entry recovered-terminal", "recovered-terminal", True, None),
+        ("T-06 INV-37 silent when github.sync is false", None, False, None),
+        ("T-06 INV-37 silent on a feature with factory.issues", None, True, {"T-01": 9}),
+    ):
+        with tempfile.TemporaryDirectory() as tmp:
+            fixture(tmp, "FEAT-9001-fixture-non-era", build_entry=entry, sync=sync,
+                    factory_issues=factory)
+            _, out = run(tmp)
+            outcomes.append(check(name, "INV-37" not in out))
+    with tempfile.TemporaryDirectory() as tmp:
+        fixture(tmp, "BUG-1030-stale-anchor-write-hazard")
+        _, out = run(tmp)
+        outcomes.append(check("T-06 INV-37 silent on an era-exempt feature", "INV-37" not in out))
+
+    import feature_schema
+    with tempfile.TemporaryDirectory() as tmp:
+        non_era = fixture(tmp, "FEAT-9001-fixture-non-era", station="building")
+        outcomes.append(check("T-06 recovery_command_for returns open for a non-era building plan",
+                              getattr(feature_schema, "recovery_command_for", lambda _: None)(non_era)
+                              == "open"))
+    trigger_results = []
+    for feature, station, task_status in (
+        ("BUG-1030-stale-anchor-write-hazard", "building", None),
+        ("FEAT-9001-fixture-non-era", "review", None),
+        ("FEAT-9001-fixture-non-era", "building", "done"),
+    ):
+        with tempfile.TemporaryDirectory() as tmp:
+            feat_dir = fixture(tmp, feature, station=station, task_status=task_status)
+            trigger_results.append(
+                getattr(feature_schema, "recovery_command_for", lambda _: None)(feat_dir)
+                == "recover-terminal"
+            )
+    outcomes.append(check("T-06 recovery_command_for returns recover-terminal for each trigger alone",
+                          all(trigger_results)))
+    return all(outcomes)
 def _bug440_digest(validator, verdict):
     text = f"""VERDICT: {verdict}
 DIGEST:
@@ -4877,6 +4960,8 @@ def main():
     ok_feat54_done_when = case_feat54_done_when()
     ok_bug440 = case_bug440_digest_verdict_reconciliation()
     ok_bug1305 = case_bug1305_run_identity_invariant()
+    ok_t06 = case_t06_build_entry_invariant()
+
 
     ok_exit_unchanged = code_a == code_b
     print(
@@ -4889,7 +4974,8 @@ def main():
             and ok_i28a and ok_i28b and ok_i28c and ok_i28d and ok_i28e and ok_i28f
             and ok_i28g and ok_i28h
             and ok_i29 and ok_i30 and ok_i31 and ok_i32 and ok_i32_severity
-            and ok_bug1305 and ok_bug440 and ok_i33
+            and ok_i32_era and ok_i6_plan and ok_feat54_done_when
+            and ok_bug1305 and ok_i33 and ok_t06 and ok_bug440
             and ok_i34
             and ok_i35
             and ok_exit_unchanged):

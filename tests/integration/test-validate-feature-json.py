@@ -517,6 +517,51 @@ def case_accepted_github_block_without_source_issues():
 
 
 # ---------------------------------------------------------------------------
+# BUG-1309 T-01 — github.build_entry, the root of the mirror-build DAG. The
+# enum is CLOSED (additionalProperties false at the github level too), so a
+# neighbouring misspelling must be refused the same way an unrelated
+# undeclared sibling already is above.
+# ---------------------------------------------------------------------------
+
+
+def case_accepted_github_build_entry_each_legal_value():
+    for value in ("opened", "recovery-required", "not-applicable", "recovered-terminal"):
+        doc = full_doc()
+        doc["github"]["build_entry"] = value
+        problems = clean(doc)
+        check(f"accepted_github_build_entry_{value}", problems == [], problems)
+
+
+def case_rejected_github_build_entry_illegal_value():
+    for value in ("opened ", "reopened"):
+        doc = full_doc()
+        doc["github"]["build_entry"] = value
+        problems = clean(doc)
+        # The message must NAME the enum, not merely reject the value — a
+        # bare "problems != []" cannot tell a rejected enum from a rejection
+        # for some unrelated reason.
+        named = any("is not one of" in p and "recovered-terminal" in p for p in problems)
+        check(f"rejected_github_build_entry_illegal_value_{value!r}",
+              problems != [] and named, problems)
+
+
+def case_rejected_github_build_entry_hyphen_misspelling():
+    doc = full_doc()
+    doc["github"]["build-entry"] = "opened"
+    problems = clean(doc)
+    named = any("'build-entry'" in p for p in problems)
+    redirected = any(REDIRECT_SENTENCE in p for p in problems)
+    check("rejected_github_build_entry_hyphen_misspelling",
+          problems != [] and named and redirected, problems)
+
+
+def case_accepted_github_block_without_build_entry():
+    doc = full_doc()
+    doc["github"].pop("build_entry", None)
+    problems = clean(doc)
+    check("accepted_github_block_without_build_entry", problems == [], problems)
+
+# ---------------------------------------------------------------------------
 # SC-07's positional agent rule (FEAT-31 T-15). Read D-23.
 #
 # The two halves are in tension: a NEW entry omitting `agent` must be refused, and
@@ -756,6 +801,12 @@ def main():
     case_rejected_source_issues_quoted_number()
     case_rejected_undeclared_sibling_of_source_issues()
     case_accepted_github_block_without_source_issues()
+
+    # BUG-1309 T-01 — github.build_entry
+    case_accepted_github_build_entry_each_legal_value()
+    case_rejected_github_build_entry_illegal_value()
+    case_rejected_github_build_entry_hyphen_misspelling()
+    case_accepted_github_block_without_build_entry()
 
     # FEAT-31 T-15 — SC-07's positional agent rule.
     case_t15_refused_when_absent_from_map()
