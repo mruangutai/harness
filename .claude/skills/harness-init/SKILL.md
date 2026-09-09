@@ -45,7 +45,10 @@ You will need permission to run the scripts in `.agents/skills/harness/bin/` and
 `.claude/settings.json`, which many setups gate as a sensitive file. Ask for it up front rather than
 discovering it at step 1 — a denial there is a **stop**, not a detour (see below).
 
-## Fresh init
+## Track A — bootstrap this harness checkout
+
+Use this track once when this harness checkout has no `.harness/`, or `check-state.sh` reports it
+unconfigured. It prepares the Harness checkout that will serve repositories; it does not register one.
 
 ### 1. Install the eight prerequisites in this harness checkout — HARD GATE, do this first
 
@@ -155,6 +158,89 @@ refused one (observed in testing).
 
 The hooks are live **immediately, in this session** — steps 4 and 8 below run *with* enforcement
 on; nothing here waits on a restart (step 9 has the one real restart caveat).
+### 5. Seed the control-plane manifest
+
+Replace every glob marked `# SEED` in this control plane's `.harness/team-config.yaml` with the real
+path from dev-ops's report. **You** write this file — it is not in any agent's domain.
+
+`check-domain.sh` reads only the control plane's manifest. The live grants are repo-agnostic globs,
+and per-repository isolation is unbuilt (issue 495): `harness_boundary.glob_to_re` supports only
+`**`, `*`, `?`, and literals, so a per-repository glob is inexpressible today.
+
+Two rules that carry the write-scope guarantee:
+
+- **Two devs must never share a writable path.** If frontend and backend genuinely live in one tree,
+  split by subdirectory; if they cannot be split, say so and let the user decide. Overlapping domains
+  void the parallel-safety claim silently.
+- **Never widen a domain to `**` to make a block go away.** An unseeded glob fails *closed* — the agent
+  is blocked with a message naming its permitted paths. That is the loud, safe direction.
+
+Drop a `# SEED` glob entirely if the project has no such directory (no `evals/`, no `migrations/`).
+A glob matching nothing is better than a glob matching everything.
+
+**One overlap is deliberate: qa's colocated-test glob.** `**/*.test.*` sits inside the devs' source
+roots on purpose — both qa and a dev legitimately write tests, and they never run concurrently on the
+same file. **Keep it if the project colocates tests**; drop it only if the project keeps all tests under
+a separate root. It is the one exception to the disjointness rule above, and it is not an oversight.
+### 9. Verify, then warn about the restart
+
+```bash
+.agents/skills/harness/bin/check-state.sh                 # this harness checkout
+.agents/skills/harness/bin/merge-settings.py . --check    # this harness checkout
+python3 .claude/skills/harness/bin/factory_config.py --check-product-configs
+```
+
+`check-state.sh` must exit 0. The fleet check reads every declared member and must also exit 0. Either
+will fail if the brief is pending (step 7) or the settings merge was skipped; these are real failures,
+not noise to talk past.
+
+Then say this, explicitly, as the last thing — **but only if agent definitions were installed or
+updated during this same session:**
+
+> **Restart Claude Code before running a team.** Agent definitions are not live-reloaded (DEC-100a), so
+> agents installed in this session are not spawnable yet. Without a restart the first team fails with
+> "Agent type not found" and no explanation.
+
+**Do not overstate this.** The hooks written in step 1 *are* live immediately — verified — and agents
+that deploy installed before this session started are spawnable now, which is why steps 4 and 8 work.
+The restart is about **newly written agent files**, nothing else. Telling a user their harness is inert
+when it is not is its own kind of wrong.
+
+## `--upgrade`
+
+For a harness checkout that is already initialised, after a newer harness has been deployed; for a
+fleet member, run it in that member's checkout and land its merged `harness.json` through step 2.
+
+```bash
+.agents/skills/harness/bin/upgrade-config.py .
+.agents/skills/harness/bin/merge-settings.py . \
+  --template .agents/skills/harness/templates/settings.snippet.json
+.agents/skills/harness/bin/merge-gitignore.sh .
+```
+
+- `harness.json` is **merged** — new template entries added, every project value kept. `test_kinds.*.cmd`
+  above all: dev-ops verified those by running them, and re-imposing the template's `null` would turn a
+  working gate back into a soft skip.
+- `team-config.yaml` is **reported, never rewritten.** It belongs only to the control plane; a product
+  repository has none to report. It is now READ with a real parser (DEC-171), but writing it stays
+  refused for a reason a parser does not fix: `safe_dump` does not preserve comments, and the manifest
+  is more comment than data — every `domain` glob is justified in prose beside it. Round-tripping it
+  would silently delete the reasoning that makes the harness's only write-scope guarantee auditable.
+  `upgrade-config.py` prints the exact new entries and **exits 1** — relay them and add them by hand.
+- **An existing checkout that pulls the PyYAML change must re-run `merge-gitignore.sh .`** (it is in the
+  block above). The snippet gained `.harness/.pyyaml-bootstrap`, and `merge-gitignore.sh --check` reads
+  its rule list from that snippet — so `--check` correctly goes **red on every already-initialised
+  project** until it is re-run. The script is idempotent and preserves the project's own rules. Skipping
+  it means the write hooks' bootstrap marker lands untracked, dirtying the tree, and a dirty tree halts
+  the next team run with `BLOCKED` on the harness's own artifact.
+- **`BRIEF.md`, `PLAN.md` and `DESIGN.md` are never touched by an upgrade.** They are the project's
+  content, not its schema.
+
+## Track B — register a repository into this configured fleet
+
+Use this track when this Harness checkout is already configured and you are adding a repository to its
+fleet. **Do not run Track A's steps again for the repository.** Track B lands the repository's config,
+registers it, and creates its central tree.
 
 ### 2. Land `harness.json`, then register the repository
 
@@ -234,30 +320,6 @@ Spawn `harness-dev-ops` with the answers from step 3. It must:
 - Check the team conventions: is `@astryxdesign/core` present, is Supabase linked? Report, do not
   silently install.
 
-### 5. Seed the control-plane manifest
-
-Replace every glob marked `# SEED` in this control plane's `.harness/team-config.yaml` with the real
-path from dev-ops's report. **You** write this file — it is not in any agent's domain.
-
-`check-domain.sh` reads only the control plane's manifest. The live grants are repo-agnostic globs,
-and per-repository isolation is unbuilt (issue 495): `harness_boundary.glob_to_re` supports only
-`**`, `*`, `?`, and literals, so a per-repository glob is inexpressible today.
-
-Two rules that carry the write-scope guarantee:
-
-- **Two devs must never share a writable path.** If frontend and backend genuinely live in one tree,
-  split by subdirectory; if they cannot be split, say so and let the user decide. Overlapping domains
-  void the parallel-safety claim silently.
-- **Never widen a domain to `**` to make a block go away.** An unseeded glob fails *closed* — the agent
-  is blocked with a message naming its permitted paths. That is the loud, safe direction.
-
-Drop a `# SEED` glob entirely if the project has no such directory (no `evals/`, no `migrations/`).
-A glob matching nothing is better than a glob matching everything.
-
-**One overlap is deliberate: qa's colocated-test glob.** `**/*.test.*` sits inside the devs' source
-roots on purpose — both qa and a dev legitimately write tests, and they never run concurrently on the
-same file. **Keep it if the project colocates tests**; drop it only if the project keeps all tests under
-a separate root. It is the one exception to the disjointness rule above, and it is not an oversight.
 
 ### 6. Interview — product, then the BRIEF
 
@@ -353,59 +415,6 @@ contract is sound before anything is built against it.
 Skip it entirely for a project with no user-facing surface. An empty `DESIGN.md` is worse than none —
 it reads as though the decisions were made.
 
-### 9. Verify, then warn about the restart
-
-```bash
-.agents/skills/harness/bin/check-state.sh                 # this harness checkout
-.agents/skills/harness/bin/merge-settings.py . --check    # this harness checkout
-python3 .claude/skills/harness/bin/factory_config.py --check-product-configs
-```
-
-`check-state.sh` must exit 0. The fleet check reads every declared member and must also exit 0. Either
-will fail if the brief is pending (step 7) or the settings merge was skipped; these are real failures,
-not noise to talk past.
-
-Then say this, explicitly, as the last thing — **but only if agent definitions were installed or
-updated during this same session:**
-
-> **Restart Claude Code before running a team.** Agent definitions are not live-reloaded (DEC-100a), so
-> agents installed in this session are not spawnable yet. Without a restart the first team fails with
-> "Agent type not found" and no explanation.
-
-**Do not overstate this.** The hooks written in step 1 *are* live immediately — verified — and agents
-that deploy installed before this session started are spawnable now, which is why steps 4 and 8 work.
-The restart is about **newly written agent files**, nothing else. Telling a user their harness is inert
-when it is not is its own kind of wrong.
-
-## `--upgrade`
-
-For a harness checkout that is already initialised, after a newer harness has been deployed; for a
-fleet member, run it in that member's checkout and land its merged `harness.json` through step 2.
-
-```bash
-.agents/skills/harness/bin/upgrade-config.py .
-.agents/skills/harness/bin/merge-settings.py . \
-  --template .agents/skills/harness/templates/settings.snippet.json
-.agents/skills/harness/bin/merge-gitignore.sh .
-```
-
-- `harness.json` is **merged** — new template entries added, every project value kept. `test_kinds.*.cmd`
-  above all: dev-ops verified those by running them, and re-imposing the template's `null` would turn a
-  working gate back into a soft skip.
-- `team-config.yaml` is **reported, never rewritten.** It belongs only to the control plane; a product
-  repository has none to report. It is now READ with a real parser (DEC-171), but writing it stays
-  refused for a reason a parser does not fix: `safe_dump` does not preserve comments, and the manifest
-  is more comment than data — every `domain` glob is justified in prose beside it. Round-tripping it
-  would silently delete the reasoning that makes the harness's only write-scope guarantee auditable.
-  `upgrade-config.py` prints the exact new entries and **exits 1** — relay them and add them by hand.
-- **An existing checkout that pulls the PyYAML change must re-run `merge-gitignore.sh .`** (it is in the
-  block above). The snippet gained `.harness/.pyyaml-bootstrap`, and `merge-gitignore.sh --check` reads
-  its rule list from that snippet — so `--check` correctly goes **red on every already-initialised
-  project** until it is re-run. The script is idempotent and preserves the project's own rules. Skipping
-  it means the write hooks' bootstrap marker lands untracked, dirtying the tree, and a dirty tree halts
-  the next team run with `BLOCKED` on the harness's own artifact.
-- **`BRIEF.md`, `PLAN.md` and `DESIGN.md` are never touched by an upgrade.** They are the project's
-  content, not its schema.
 
 ## Red flags
 
