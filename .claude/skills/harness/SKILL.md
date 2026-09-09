@@ -146,7 +146,11 @@ are orchestrator-sequenced squad segments, in this order.
    first, then `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/teams/build.yaml` (`harness-team/SKILL.md` step 1). **You
    choose WHICH tasks go to `eng-lead`**; **the lead routes each one to the specialist that owns
    it** by `consult-when`. Two different decisions — it routes, it does not revisit your selection.
-3. **The qa segment**, a validator-squad segment. `harness-qa` writes and runs the tests and
+   **As the segment starts dispatching — not after it finishes — record the FEATURE's own
+   station** with `plan-merge.py set-feature-station --station building`. That is the feature's
+   station and not a task's: `gh-sync.py start-task` writes only the task's, so without this
+   write nothing advances the feature (BUG-1507).
+2. **The qa segment**, a validator-squad segment. `harness-qa` writes and runs the tests and
    enforces the `test_matrix` hard gate (`harness.json` `gates.qa_gate: blocking`, the project's
    only blocking gate). On failure, `loop_back` to the dev that owns the task. The build is not done
    until the matrix passes.
@@ -275,7 +279,14 @@ place project Expertise changes.
 
 **Run-dir slugs:** name run dirs `<task-or-purpose>-<squad>` (`t04-fe-eng`, `plan-product`) — the
 squad suffix is what the lead's domain glob keys on; never embed the feature id, the parent dir
-already carries it.
+already carries it. dispatch-guard.sh refuses a governed dispatch that names a run-dir path
+whose slug matches no run-dir write grant in `<HARNESS_CONTROL_PLANE_ROOT>/.harness/team-config.yaml`,
+at exit 2, naming the
+offending slug and a compliant form, and the check is on slug shape and is not on ownership by
+the dispatched persona. A run-dir path that is being QUOTED rather than written — in a plan
+`verify:` or `intent:` block, in a pasted refusal, in a bug report — is spelled with `[.]harness/`
+in place of `.harness/`, which the check does not see, and the refusal message already prints its
+own paths in that form.
 
 ## The worktree — you work in it, you never create or remove it (DEC-95, DEC-193)
 

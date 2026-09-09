@@ -1,0 +1,437 @@
+schema: plan/1
+feature: BUG-1507-ready-station-signature
+status: done
+approval:
+  date: '2026-09-08'
+  approved_by: operator
+  status: approved
+source_issues: [1507]
+
+lanes:
+  resolved_at: 4b5dbb23
+  rows:
+    - surface: .claude/commands/harness-plan.md
+      lane: main-session-direct
+      reason: check-domain.sh --resolve returns NOBODY at 4b5dbb23, so no squad domain grants the write
+    - surface: .claude/skills/harness/references/github-mirror.md
+      lane: main-session-direct
+      reason: check-domain.sh --resolve returns NOBODY at 4b5dbb23, so no squad domain grants the write
+    - surface: .claude/skills/harness/SKILL.md
+      lane: main-session-direct
+      reason: check-domain.sh --resolve returns NOBODY at 4b5dbb23, so no squad domain grants the write
+    - surface: .claude/skills/harness/bin/gh-sync.py
+      lane: team
+      agent: harness-backend-dev
+    - surface: tests/integration/test-station-argument-spelling.py
+      lane: team
+      agent: harness-backend-dev
+
+decisions:
+  - id: D-01
+    choice: The first Definition-of-Done bullet is read as reading (a) - the documented signature STEP already contains the gh-sync.py status call, so correcting its spelling satisfies "no extra manual command needed", and sign-approval is NOT changed to trigger a board write
+    because: reading (b) is a code change to the signature path, which the issue's own scope line excludes, and the operator can strike this reading at signature if they meant the other one
+    dec: none
+  - id: D-02
+    choice: cmd_status gets a Building entry in its STATION WRITES docstring list and building is NOT added to the early-return tuple, so no executable line of gh-sync.py changes
+    because: load_recorded raises SystemExit on an unparseable or non-mapping feature.json at gh-sync.py lines 522-539, so short-circuiting before that read would change observable behaviour in exactly the case the tuple is supposed to be neutral about, and the issue asks for a stated decision rather than a code change
+    dec: none
+  - id: D-03
+    choice: The plan carries a witness task (T-05) asserting every station argument in the instruction scope names a token the invoked tool accepts
+    because: the plan itself types T-01 and T-02 as bugfix, and harness.json test_matrix then maps bugfix with fix_confined_to_tests_and_contract_docs to integration - so the witness is this plan's own change_type choice made explicit rather than an obligation imposed from outside, and the operator can strike it at signature by retyping those two tasks as docs, at which point the matrix demands nothing; the load-bearing ground for keeping it is that FEAT-41 D-14 already fixed this defect class once and it regressed into the two files this plan repairs
+    dec: none
+  - id: D-04
+    choice: A capitalized station word is a COMMAND ARGUMENT, and must be lowercased, exactly when it is the token that follows a tool name and that tool's first argument - gh-sync.py status DIR TOKEN, or board-station.py NUMBER TOKEN; every other capitalized station word names the board COLUMN and stays capitalized
+    because: factory_config.station_column is the one place a capitalized column name is produced and the board's columns really are capitalized, so a column name in prose or in a table label is correct while every CLI argument is validated against the lowercase vocabulary
+    dec: none
+  - id: D-05
+    choice: The witness sweeps only .claude/commands/*.md and .claude/skills/**/*.md, on whitespace-collapsed text, and asserts nothing about any other file
+    because: gh-sync.py line 116 quotes the old capitalized spelling deliberately as history and everything under .harness/harness/features is an immutable record, so a wider sweep would redden on text that must not change, and collapsing whitespace is what makes the line-wrapped occurrence at github-mirror.md lines 55-56 visible at all
+    dec: none
+  - id: D-06
+    choice: harness-plan.md line 11's board-station.py Plan argument is fixed in the same task as line 24's, although the issue enumerates only line 24
+    because: it is measured dead at 4b5dbb23 - exit 2, the tool answers that 'Plan' is not a station - it is the same defect class in the same file, and it sits inside the witness scope so leaving it makes T-05 unable to go green
+    dec: none
+
+panel:
+  last_run: 2026-09-08-01-validator
+  cycle: 0
+  transcription_rule: summaries are the validator lead's panel_findings strings unaltered;
+    panel_findings.py normalizes by lowercasing and collapsing whitespace only
+  readers:
+  - reader: should-not-exist
+    status: ran
+  - reader: scope
+    status: ran
+  - reader: goalcheck
+    status: ran
+  findings:
+  - id: PF-4d48a7518cc7333294cad13b27fdaed6
+    reader: should-not-exist
+    severity: med
+    summary: T-05's self-reinvocation machinery (module-level BUG1507_SCOPE_ROOT override,
+      case-4 skip rows, the 5a recursion guard, two subprocess self-invocations) should
+      not be built; SC-03's as-a-subprocess wording is what mandates it
+    disposition: resolved
+    resolved_by: T-05
+  - id: PF-f0a35051dae0d5f3a0b09b52a6a8b862
+    reader: scope
+    severity: med
+    summary: T-02 verify (plan.yaml:113) checks the phrase 'set-feature-station --station
+      building' is present but never that plan-merge.py (or any tool) precedes it
+    disposition: resolved
+    resolved_by: T-02
+  - id: PF-0274cfb40625bb45a968c559d773bcfd
+    reader: scope
+    severity: med
+    summary: T-03 verify (plan.yaml:181) slices the whole four-segment build-phase
+      block, not segment 1 alone, so it can't tell whether the instruction landed
+      in 'the eng segment' as required
+    disposition: resolved
+    resolved_by: T-03
+  - id: PF-41dcf8d793040a3bae0c6a120579d480
+    reader: should-not-exist
+    severity: low
+    summary: "D-03's lead justification presents an elective obligation as external\
+      \ \u2014 the matrix only demands T-05's integration evidence because the plan\
+      \ itself typed T-01/T-02 as bugfix"
+    disposition: resolved
+    resolved_by: D-03
+tasks:
+  - id: T-01
+    title: Lowercase both station arguments in the plan mission command file
+    traces: [REQ-01]
+    change_type: bugfix
+    execution_mode: main-session-direct
+    execution_reason: check-domain.sh --resolve returns NOBODY for this path at 4b5dbb23, so no squad domain grants the write
+    depends_on: []
+    status: done
+    files:
+      - .claude/commands/harness-plan.md
+    verify: |
+      python3 -c "import re,sys; t=re.sub(r'\s+',' ',open('.claude/commands/harness-plan.md',encoding='utf-8').read()); m=re.findall(r'(?:gh-sync\.py status|board-station\.py) \S+ ([A-Za-z_]+)',t); print(m); sys.exit(0 if len(m)==2 and all(x.islower() for x in m) else 1)"
+    intent: |
+      Edit ONLY .claude/commands/harness-plan.md in the worktree
+      /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-1507-ready-station-signature.
+      Two token changes, nothing else. Do not reflow paragraphs, do not renumber bullets, do not
+      rewrite any sentence beyond the two tokens named below.
+
+      THE RULE THAT DECIDES WHICH OCCURRENCES CHANGE (plan D-04). A capitalized station word is a
+      COMMAND ARGUMENT, and must be lowercased, exactly when it is the token that follows a tool
+      name and that tool's own first argument - the shapes are "gh-sync.py status DIR TOKEN" and
+      "board-station.py NUMBER TOKEN". Every other capitalized station word in this file names the
+      GitHub board COLUMN and is correct as written, because the board's columns are capitalized
+      and factory_config.station_column is what produces them.
+
+      CHANGE 1, line 11. The kickoff step reads
+      board-station.py <issue-number> Plan
+      Change the argument Plan to plan. Measured at 4b5dbb23: that command exits 2 with
+      "board-station: 'Plan' is not a station - expected one of: backlog, plan, ready, building,
+      review, done", so the documented kickoff write has never fired.
+
+      CHANGE 2, line 24. The signature step reads
+      gh-sync.py status <feature-dir> Ready
+      Change the argument Ready to ready. gh-sync.py refuses an unrecognised station at lines
+      1324-1325 before any write, and the lowercase CLI contract is stated in that file's own
+      comment at lines 114-117.
+
+      THE LEAVE LIST - do not touch any of these, they are column names:
+      - line 25, "moves the task sub-issues to Ready" (in backticks) - the column.
+      - line 26, "a card at Ready is proof of a signature" - the column.
+      - line 11's prose "the source ticket moves to Plan" - the column.
+      - any other capitalized station word in this file that is not the token immediately after a
+        tool name and its first argument.
+
+      Nothing else in this file changes. Then run the task's verify command and confirm it exits 0;
+      it collapses whitespace before matching, finds exactly two command arguments, and requires
+      both to be lowercase.
+
+  - id: T-02
+    title: Lowercase the three station arguments in the github mirror reference and name the feature-station writer in its Building row
+    traces: [REQ-01, REQ-04]
+    change_type: bugfix
+    execution_mode: main-session-direct
+    execution_reason: check-domain.sh --resolve returns NOBODY for this path at 4b5dbb23, so no squad domain grants the write
+    depends_on: []
+    status: done
+    files:
+      - .claude/skills/harness/references/github-mirror.md
+    verify: |
+      python3 -c "import re,sys; p='.claude/skills/harness/references/github-mirror.md'; t=re.sub(r'\s+',' ',open(p,encoding='utf-8').read()); m=re.findall(r'(?:gh-sync\.py status|board-station\.py) \S+ ([A-Za-z_]+)',t); print(m); sys.exit(0 if len(m)==3 and all(x.islower() for x in m) and 'plan-merge.py set-feature-station --station building' in t else 1)"
+    intent: |
+      Edit ONLY .claude/skills/harness/references/github-mirror.md in the worktree
+      /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-1507-ready-station-signature.
+      Four changes. Do not reflow the long table rows, do not reorder rows, do not rewrite any
+      sentence beyond what is named here.
+
+      THE RULE THAT DECIDES WHICH OCCURRENCES CHANGE (plan D-04). A capitalized station word is a
+      COMMAND ARGUMENT, and must be lowercased, exactly when it is the token that follows a tool
+      name and that tool's own first argument - the shape here is "gh-sync.py status DIR TOKEN".
+      Every other capitalized station word in this file names the GitHub board COLUMN and is
+      correct as written. This file already states the lowercase rule itself, in the "a phase
+      transition happens" row at line 44, which says the station is recorded lowercase through
+      plan-merge.py set-feature-station. The file currently contradicts that row in three places;
+      these changes make it agree with itself.
+
+      CHANGE 1, the prose paragraph at lines 54-57, immediately after the first table. It reads
+      "The parent leaves Building when the panel kickoff runs gh-sync.py status <feature-dir>
+      Review". The command is line-wrapped there - the tool name ends line 55 and the argument
+      begins line 56. Lowercase the Review ARGUMENT to review. Leave the word Building in that
+      same sentence exactly as it is: it names the column the parent leaves. Leave the following
+      sentence's Done as it is, also a column.
+
+      CHANGE 2, line 94, the Ready row of the "who writes each station" table. Its writer cell
+      reads "the signature, via gh-sync.py status <dir> Ready". Lowercase that argument to ready.
+      Leave the row LABEL cell, which is the bolded word Ready, exactly as it is - it is the
+      column name and the table's left column is a list of column names.
+
+      CHANGE 3, line 96, the Review row of the same table. Its writer cell reads "the validation
+      panel kickoff, via gh-sync.py status <dir> Review". Lowercase that argument to review. Leave
+      the bolded row label Review as it is.
+
+      CHANGE 4, line 95, the Building row of the same table. Today its writer cell names only
+      gh-sync.py start-task, which writes a TASK's station and never the feature's, so the table
+      is silent about the one write BUG-1507 adds. Leave the bolded row label Building as it is
+      and replace the writer cell - everything after the second pipe on that line - with a cell
+      that says both of these things, in this order, in the terse style of the neighbouring rows:
+      first, that the task CARDS are written by gh-sync.py start-task, by execution_mode as the
+      table above says, and that it writes the task's station and never the feature's; second,
+      that the FEATURE's own station is written by plan-merge.py set-feature-station --station
+      building, run by the orchestrator when the eng segment starts dispatching build work, citing
+      BUG-1507. Wrap each command name in backticks and bold nothing inside the cell, matching the
+      surrounding rows' typography. THE BACKTICK SPAN AROUND THE SECOND COMMAND MUST ENCLOSE THE
+      WHOLE INVOCATION, flags included: open one span before plan-merge.py and close it only after
+      the word building, so that set-feature-station --station building sits inside a single span
+      with nothing between set-feature-station and --station but one space. Do NOT close the span
+      after set-feature-station and leave --station building outside it: this task's verify searches
+      the whitespace-collapsed file for the contiguous literal text
+      set-feature-station --station building, and a closing backtick inside that span breaks the
+      literal and reddens the verify on an otherwise correct edit. Keep it to one table line - this
+      file's rows are long single lines and the table must stay parseable.
+
+      Nothing else in this file changes. Then run the task's verify command and confirm it exits 0;
+      it collapses whitespace before matching, so the line-wrapped occurrence from CHANGE 1 is
+      visible to it, it requires exactly three command arguments all lowercase, and it requires the
+      set-feature-station --station building text CHANGE 4 adds.
+
+  - id: T-03
+    title: Instruct the orchestrator to record the feature station as building when the eng segment starts dispatching
+    traces: [REQ-02]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: check-domain.sh --resolve returns NOBODY for this path at 4b5dbb23, so no squad domain grants the write
+    depends_on: []
+    status: done
+    files:
+      - .claude/skills/harness/SKILL.md
+    verify: |
+      python3 -c "import re,sys; t=open('.claude/skills/harness/SKILL.md',encoding='utf-8').read(); blk=t.split('## The build phase')[1].split('## Routing a lead')[0]; a='The eng segment.'; b='The qa segment'; ok=blk.count(a)==1 and blk.count(b)==1; seg=re.sub(r'\s+',' ',blk.split(a)[1].split(b)[0]) if ok else ''; print(ok, len(seg)); sys.exit(0 if ok and seg.strip() and 'plan-merge.py set-feature-station --station building' in seg else 1)"
+    intent: |
+      Edit ONLY .claude/skills/harness/SKILL.md in the worktree
+      /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-1507-ready-station-signature.
+      One addition, inside the section that begins "## The build phase - four segments you sequence
+      yourself" at line 136 and ends before "## Routing a lead's return".
+
+      Add to segment 1, "The eng segment" (lines 141-144), an instruction that BEFORE dispatching
+      the build team the orchestrator records the FEATURE's own station as building, with
+      plan-merge.py set-feature-station --station building. Say three things and no more: that this
+      is the feature's own station and not a task's, that gh-sync.py start-task writes only the
+      task's station so nothing else advances the feature, and that the write happens as the eng
+      segment starts dispatching rather than after it finishes. Cite BUG-1507.
+
+      MATCH SEGMENT 4's EXISTING STYLE for the review station, at lines 156-159: a short imperative
+      sentence naming the exact command, inside the numbered segment, with the citation in
+      parentheses. Do not add a fifth segment, do not renumber the four, do not restate the whole
+      station vocabulary - line 96 of this file already carries it.
+
+      This file is the ONLY place the build-phase segment list exists. Measured at 4b5dbb23:
+      git grep for "eng segment" and "build phase" across .claude, docs and .omp returns this
+      section and nothing else; .claude/agents/harness-orchestrator.md carries the station-write
+      verbs at its line 96 but no build-phase segment list, so no second site needs this
+      instruction.
+
+      Nothing else in this file changes. Then run the task's verify command and confirm it exits 0;
+      it slices the build-phase section on both sides before searching, so a match anywhere else in
+      the file does not satisfy it.
+
+  - id: T-04
+    title: State in cmd_status's docstring what the building station does, changing no executable line
+    traces: [REQ-03, REQ-06]
+    change_type: docs
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: []
+    status: done
+    files:
+      - .claude/skills/harness/bin/gh-sync.py
+    verify: |
+      python3 -c "import ast,re,sys; p='.claude/skills/harness/bin/gh-sync.py'; t=open(p,encoding='utf-8').read(); ast.parse(t); d=t.split('def cmd_status(')[1].split('\"\"\"')[1]; sys.exit(0 if re.search(r'^    - Building[:,] ',d,re.M) else 1)" &&
+      grep -qF 'if board is None or station in ("plan", "done", factory_config.TERMINAL_MARKER):' .claude/skills/harness/bin/gh-sync.py
+    intent: |
+      Edit ONLY .claude/skills/harness/bin/gh-sync.py in the worktree
+      /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-1507-ready-station-signature,
+      and inside it edit ONLY cmd_status's docstring. NO EXECUTABLE LINE OF THIS FILE MAY CHANGE -
+      not one character outside the triple-quoted docstring that starts at line 1294. This task
+      must not change any observable behaviour of any command.
+
+      The docstring's STATION WRITES list at lines 1304-1315 enumerates Ready, Review, and a
+      combined "Plan, Done, Abandoned: no station write at all" bullet. Building appears nowhere in
+      it, so the one station this subcommand accepts but says nothing about is the one whose
+      behaviour a reader has to derive from the code.
+
+      Add a bullet for Building to that list, formatted exactly like its siblings: four spaces, a
+      hyphen, a space, then "Building: " and the text. It must state what the code actually does,
+      which is measured, not inferred:
+      - _record_station runs, so plan.yaml's own station IS recorded as building.
+      - the early-return guard at line 1347 lists plan, done and the terminal marker, and does NOT
+        list building, so control falls through it.
+      - neither the ready branch (line 1352) nor the review branch (line 1368) fires, so NO CARD IS
+        WRITTEN by this subcommand for building.
+      - the parent card reaches the board's Building column by derivation from the task statuses
+        gh-sync.py start-task writes, which is why no card write belongs here.
+      - and one clause on who actually calls this: nothing does, for building. The orchestrator
+        records the feature's building station through plan-merge.py set-feature-station --station
+        building (the instruction BUG-1507 adds to SKILL.md's build phase), so this subcommand's
+        building path exists as a stated contract rather than as a live caller. Say so in the
+        bullet, so a later reader does not read the unused path as an oversight and "complete" it
+        by adding building to the line 1347 tuple - which the next paragraph forbids.
+
+      Then state the decision rather than leaving it as a fallthrough (plan D-02): recording the
+      plan station and writing no card is the INTENDED behaviour for building, and building is
+      deliberately NOT added to the line 1347 tuple. Give the reason in one clause: load_recorded,
+      which the fallthrough reaches, raises SystemExit on an unparseable or non-mapping feature.json
+      at lines 522-539, so short-circuiting building past it would change observable behaviour in
+      exactly the case the tuple is meant to be neutral about. Cite BUG-1507.
+
+      Do NOT add building to the tuple. Do NOT touch the ready approval refusal at lines 1327-1331.
+      Do NOT reflow or reword any other bullet of the docstring.
+
+      Then run the task's verify command and confirm it exits 0; it parses the file with ast to
+      prove it still compiles, requires the new Building bullet inside cmd_status's own docstring,
+      and asserts the line 1347 tuple line is byte-identical.
+
+  - id: T-05
+    title: Add an integration witness asserting every station argument in the instruction scope names an accepted station
+    traces: [REQ-05]
+    change_type: bugfix
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-01, T-02]
+    status: done
+    files:
+      - tests/integration/test-station-argument-spelling.py
+    verify: |
+      python3 tests/integration/test-station-argument-spelling.py &&
+      python3 tests/integration/test-station-argument-spelling.py | grep -q '^PASS - every station argument in the instruction scope is an accepted station$' &&
+      python3 tests/integration/test-station-argument-spelling.py | grep -q '^PASS - the sweep reddens on a reintroduced capital$'
+    intent: |
+      Create ONE new file, tests/integration/test-station-argument-spelling.py, in the worktree
+      /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/BUG-1507-ready-station-signature.
+      Touch no other file. python3, stdlib only, no pytest. Match the harness of
+      tests/integration/test-check-instruction-paths.py: a module-level RESULTS list, a
+      check(name, ok, detail="") helper that appends and prints "PASS - " or "FAIL - " plus the
+      name, a main() that runs the cases and raises SystemExit(1) if any row is false, and the
+      standard __main__ guard. tests/integration/test-*.py is what run-unit-tests.sh --kind
+      integration globs, so the filename must keep that shape.
+
+      WHY THIS FILE EXISTS: FEAT-41 D-14 migrated the station CLI argument to lowercase and left
+      two instruction files behind teaching a spelling both tools hard-refuse. Nothing could catch
+      that. This file is that witness.
+
+      THE SWEEP IS A PURE FUNCTION OF A ROOT, AND IS CALLED IN-PROCESS. Every helper below takes an
+      explicit root argument. There is NO environment variable that repoints the scope, no
+      module-level scope override, no subprocess re-invocation of this file, and therefore no
+      recursion guard and no conditionally-skipped rows. The negative control in case 5 calls the
+      same helpers on a scratch root inside the same process. This is deliberate and is the shape
+      the sibling test uses (tests/integration/test-check-instruction-paths.py lines 25-26 pass an
+      explicit --root to the checker rather than repointing it through the environment): a scope
+      override read at import time would make every positive-control row conditional, and a stale
+      export would then let the whole file print PASS while sweeping zero repo files.
+
+      1. Module-level setup.
+
+      HERE = dirname(abspath(__file__)); REPO_ROOT = abspath(join(HERE, "..", "..")).
+      sys.path.insert(0, join(REPO_ROOT, ".claude", "skills", "harness", "bin")) and import
+      factory_config.
+
+      ACCEPTED SETS ARE DERIVED, NEVER SPELLED. gh-sync.py status accepts
+      set(factory_config.MANDATED_STATIONS) | {factory_config.TERMINAL_MARKER}, matching gh-sync.py's
+      own STATION_VALUES at line 122. board-station.py accepts set(factory_config.MANDATED_STATIONS)
+      only - its own docstring says the terminal marker names no column and it validates against
+      MANDATED_STATIONS. Comment both, and say a hand-written list here would be the same defect
+      the file is testing for. Expose them as one mapping from tool name to accepted set, so
+      offenders() below needs no branching.
+
+      EXPECTED_FILES = the three basenames harness-plan.md, github-mirror.md, SKILL.md.
+      MIN_OCCURRENCES = 6, the number measured in this scope at 4b5dbb23.
+
+      2. Helper: scope_files(root) -> sorted list of paths.
+      glob(join(root, ".claude", "commands", "*.md")) plus
+      glob(join(root, ".claude", "skills", "**", "*.md"), recursive=True), deduplicated and sorted.
+      Nothing else is in scope (plan D-05): gh-sync.py line 116 quotes the old capitalized spelling
+      as history, and everything under .harness/harness/features is an immutable record, so a wider
+      sweep would redden on text that must not change.
+
+      3. Helper: occurrences(root) -> list of (path, tool, token) tuples.
+      For each scope file, read it utf-8, then COLLAPSE WHITESPACE with re.sub(r"\s+", " ", text)
+      before matching. The collapse is load-bearing and not a convenience: the occurrence FEAT-41's
+      migration missed sits at github-mirror.md lines 55-56 with the tool name ending one line and
+      its argument beginning the next, so a line-anchored pattern is blind to exactly the case this
+      file exists for.
+      Pattern: re.compile(r"(gh-sync\.py status|board-station\.py) \S+ ([A-Za-z_][A-Za-z_-]*)").
+      Group 1 is the tool, group 2 is the station argument - both tools take the shape TOOL FIRSTARG
+      STATION. A placeholder argument like <station> cannot match, because the character class does
+      not admit a leading angle bracket, so a template line is correctly ignored.
+
+      4. Helper: offenders(root) -> list of (path, tool, token) tuples, one for every occurrence
+      whose token is not in that tool's accepted set. This is the single predicate both cases below
+      assert on, which is what lets the negative control run in-process.
+
+      5. case_every_argument_is_accepted, always over REPO_ROOT and over nothing else. As SEPARATE
+      check() rows so a failure names the cause, and every row is unconditional - none of them may
+      be skipped, for any reason:
+        a. the scope is non-empty: len(scope_files(REPO_ROOT)) > 0.
+        b. len(occurrences(REPO_ROOT)) >= MIN_OCCURRENCES, detail printing the count found - an
+           empty or narrowed sweep must not pass by finding nothing.
+        c. every name in EXPECTED_FILES appears among the basenames of the occurrence paths, one
+           check() row per expected file - the positive control that the sweep actually reaches the
+           three files the defect lived in.
+        d. ONE check() row named exactly
+           "every station argument in the instruction scope is an accepted station"
+           whose ok is offenders(REPO_ROOT) == [], and whose detail lists every offender as path,
+           tool and token. The verify command greps for this exact label, so it must be spelled
+           character for character.
+
+      6. case_reddens_on_a_reintroduced_capital - the permanent negative control, in-process.
+
+      6a. With tempfile.TemporaryDirectory() as tmp: for each of the two real files
+      .claude/commands/harness-plan.md and .claude/skills/harness/references/github-mirror.md,
+      os.makedirs the same relative directory under tmp and shutil.copy the file there. Assert
+      offenders(tmp) == [] on the unmutated copy FIRST, as its own check() row named
+      "the unmutated scratch copy reports no offender" - the anti-false-red control, which without
+      it would let the ladder be green merely because any scratch root reports offenders.
+
+      6b. Then mutate ONE occurrence in the copy of harness-plan.md by replacing the exact text
+      "status <feature-dir> ready" with "status <feature-dir> Ready", asserting the text actually
+      changed first - a no-op replace would make the case vacuous.
+
+      6c. ONE check() row named exactly
+      "the sweep reddens on a reintroduced capital"
+      whose ok requires ALL of: offenders(tmp) is non-empty, and one of its tuples names the
+      harness-plan.md copy with tool "gh-sync.py status" and token "Ready". The second half is what
+      attributes the red to the capital this case reintroduced rather than to any other difference
+      in the scratch root. Detail prints the offender list. Spell the label character for character;
+      the verify command greps for it.
+
+      7. main() runs case_every_argument_is_accepted then
+      case_reddens_on_a_reintroduced_capital, and raises SystemExit(1) if any RESULTS row is false.
+
+      8. RED EVIDENCE, one-off, recorded not asserted. After the file passes, stage the pre-fix
+      copies into a scratch root with
+      git show 4b5dbb23:.claude/commands/harness-plan.md and
+      git show 4b5dbb23:.claude/skills/harness/references/github-mirror.md, then import this file
+      as a module and print offenders(<that root>), and paste the offender list into your receipt.
+      Do NOT make that a permanent assertion in the file: the tests.yml checkout is shallow, so a
+      pinned historical sha is unreachable in CI and a permanent assertion on it would be
+      unmeetable there.
+
+      Then run the task's verify command and confirm it exits 0.

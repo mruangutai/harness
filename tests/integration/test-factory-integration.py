@@ -26,8 +26,9 @@ by recorder in test-factory-workspace.py, and are exercised for REAL only in the
 HARNESS_PROJECT_DIR IS THE ROOT-REDIRECT SEAM, NOT A WORKAROUND: harness_boundary.resolve_root()
 honours HARNESS_PROJECT_DIR only when `.harness/team-config.yaml` (its MARKER) is readable
 underneath it. Every case sets HARNESS_PROJECT_DIR to its own temp root carrying both that
-MARKER and a stub SPEC.md, so `factory_claim.py`'s import-time FEATURES_ROOT resolves under
-the temp root instead of this checkout's real `.harness/harness/features`. This is also why a case's
+MARKER and a stub SPEC.md, so `factory_claim.py` resolves each candidate's features root under
+<HARNESS_PROJECT_DIR>/.harness/<segment>/features, never this checkout's real `.harness/harness/features`.
+This is also why a case's
 own `.harness/factory/fleet.yaml` is never created next to the probe — every case passes `--fleet`
 explicitly and the DEFAULT FLEET_PATH is left to 404, which is exactly what the "no arguments" and
 "missing --fleet" cases need. Every case asserts stderr never contains a discard notice — that
@@ -876,10 +877,10 @@ with tempfile.TemporaryDirectory() as td:
     git_log = os.path.join(td, "git_log.txt")
     env["FACTORY_GIT_LOG"] = git_log
 
-    # The fixture plan lives exactly where factory_claim's (import-time) FEATURES_ROOT will
-    # look for it under this case's HARNESS_PROJECT_DIR: <root>/.harness/harness/features/<feature>.
+    # The fixture plan lives exactly where claim resolves REPO's own features root: this case's
+    # HARNESS_PROJECT_DIR joined with .harness, REPO's own segment, and features.
     feat = "FEAT-INTEG-HAPPY"
-    feat_dir = os.path.join(root, ".harness", "harness", "features", feat)
+    feat_dir = os.path.join(root, ".harness", REPO.split("/", 1)[-1], "features", feat)
     os.makedirs(feat_dir, exist_ok=True)
     write_yaml(os.path.join(feat_dir, "plan.yaml"), {
         "schema": "plan/1", "feature": feat, "approval": {"status": "approved"},
@@ -1243,7 +1244,7 @@ with tempfile.TemporaryDirectory() as td:
     env["GH_CALL_LOG"] = call_log
 
     feat = "FEAT-INTEG-TWOBOARD"
-    feat_dir = os.path.join(root, ".harness", "harness", "features", feat)
+    feat_dir = os.path.join(root, ".harness", REPO.split("/", 1)[-1], "features", feat)
     os.makedirs(feat_dir, exist_ok=True)
     write_yaml(os.path.join(feat_dir, "plan.yaml"), {
         "schema": "plan/1", "feature": feat, "approval": {"status": "approved"},

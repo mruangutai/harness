@@ -202,11 +202,19 @@ def die(msg):
     sys.exit(1)
 
 
-def refuse(msg):
+def refuse(msg, stream=None):
     """T-13's `status` subcommand refusals: a value or precondition failed validation,
     distinct from `die`'s exit 1 (a malformed dispatch) and from `skip`'s exit 0 (an
-    environmental precondition). Exit 2, one line, naming the offending value."""
-    print(f"gh-sync: REFUSED — {msg}")
+    environmental precondition). Exit 2, one line, naming the offending value.
+
+    `stream` defaults to stdout (unchanged) so every existing caller keeps writing there;
+    BUG-201's _projected_for is the one caller that needs the line on stderr instead, and
+    passes `stream=sys.stderr` rather than duplicating this shape inline. Resolved to
+    `sys.stdout` INSIDE the call, not as the parameter default — a default bound at def
+    time would capture whatever stdout was at import, not at the moment of the refusal."""
+    if stream is None:
+        stream = sys.stdout
+    print(f"gh-sync: REFUSED — {msg}", file=stream)
     sys.exit(2)
 
 
@@ -1324,22 +1332,32 @@ def cmd_recover_terminal(feat_dir, repo, parent_arg=None, yes=False):
 
 
 def _projected_for(feat_dir, rec):
-    """{issue number: station} for this feature, from gh_board.project — or {} when the plan
-    cannot be read.
+    """{issue number: station} for this feature, from gh_board.project — or {} when there is no
+    plan.yaml at all.
 
-    ONE PLACE ASKS THE QUESTION, so no caller re-derives a station. An unreadable or absent
-    plan yields an EMPTY mapping rather than raising: every caller already treats "no station
-    follows from the plan" as one printed line and no write, and the mirror never gates
-    (DEC-138). A plan carrying a station outside the vocabulary is the exception — project
-    raises, and that reaches the caller, because a vocabulary miss must not be silent.
+    ONE PLACE ASKS THE QUESTION, so no caller re-derives a station. An ABSENT plan yields an
+    EMPTY mapping rather than raising: every caller already treats "no station follows from
+    the plan" as one printed line and no write, and the mirror never gates (DEC-138). A plan
+    that EXISTS but fails to load is a different case (BUG-201, D-05): DEC-138's never-gates
+    is about not blocking a flow, not about dying in it, and a locally malformed signed
+    artifact is not "gh absent or unauthenticated" — it refuses loudly instead, the same
+    posture the FleetError branch below already takes for a vocabulary miss. A plan carrying
+    a station outside the vocabulary is the other exception — project raises, and that
+    reaches the caller, because a vocabulary miss must not be silent.
     """
     plan_path = os.path.join(feat_dir, "plan.yaml")
     if not os.path.isfile(plan_path):
         return {}
     try:
         plan_doc = harness_yaml.load_plan(plan_path)
-    except harness_yaml.YamlParseError:
-        return {}
+    except harness_yaml.YamlParseError as exc:
+        # BUG-201 (D-05): a plan.yaml that PARSES but fails referential integrity (a dangling
+        # depends_on) reached this except identically to an absent or unreadable file and was
+        # swallowed to {} the same way — the operator was told "no station follows from the
+        # plan" about a plan that never validated. refuse()'s own shape is exit 2/one line/no
+        # traceback (the sibling FleetError branch below); the line still needs to land on
+        # stderr rather than refuse()'s stdout default, so it is passed explicitly.
+        refuse(f"the plan at {plan_path} failed to load — {exc}", stream=sys.stderr)
     try:
         return gh_board.project(plan_doc, rec)
     except factory_config.FleetError as exc:
@@ -1475,16 +1493,22 @@ def cmd_start_task(feat_dir, tid, repo, board):
 
 
 def _status_plan_doc(feat_dir):
-    """plan.yaml, loaded and validated, or None on any failure (absent file, unparseable,
-    or schema-invalid). `status`'s two guarded transitions (Ready, Review) both need this
-    and both treat a failure to load as "the precondition is not met" rather than raising —
-    an unreadable plan cannot prove a signature or prove every task is done."""
+    """plan.yaml, loaded and validated, or None on any failure (absent file, unparseable, or
+    schema-invalid) — the failure is REPORTED, one stderr line, before it is returned.
+    `status`'s two guarded transitions (Ready, Review) both need this and both treat a
+    failure to load as "the precondition is not met" rather than raising — an unreadable
+    plan cannot prove a signature or prove every task is done. BUG-201 (D-05): a plan.yaml
+    that EXISTS but fails to load (a dangling depends_on, say) was swallowed identically to
+    an absent file, so the "station ready refused" line the guards below already print named
+    the wrong cause; this posture stays a decline rather than a gate (DEC-138) — no new exit
+    path, only the printed cause is new."""
     path = os.path.join(feat_dir, "plan.yaml")
     if not os.path.isfile(path):
         return None
     try:
         return harness_yaml.load_plan(path)
-    except harness_yaml.YamlParseError:
+    except harness_yaml.YamlParseError as exc:
+        print(f"gh-sync: the plan at {path} failed to load — {exc}", file=sys.stderr)
         return None
 
 
@@ -1507,6 +1531,22 @@ def cmd_status(feat_dir, station, repo, board):
       the lowercase `"review"` (operator ruling, D-23) — one `gh_board.set_station` call
       each. A parent that is not recorded prints one stderr line and the sub-issue writes
       still proceed; this does not raise and does not restate INV-21's finding.
+    - Building: `_record_station` records plan.yaml's own station as `building`, and the
+      early-return guard just below (unchanged) does not list `building`, so control falls
+      through it; neither the ready branch nor the review branch fires, so NO CARD IS WRITTEN
+      by this subcommand for building — the parent card reaches the board's Building column
+      by derivation from the task statuses `gh-sync.py start-task` writes. Nothing calls this
+      subcommand for building today: the orchestrator records the feature's building station
+      through `plan-merge.py set-feature-station --station building` (BUG-1507's addition to
+      SKILL.md's build phase, already landed on this branch), so this path is a stated
+      contract, not a live caller.
+
+      This is intentional (D-02), not a fallthrough left unstated: recording the station and
+      writing no card is the INTENDED behaviour for building, and building is deliberately not
+      added to the tuple below, because `load_recorded` — which the fallthrough reaches — raises
+      SystemExit on an unparseable or non-mapping feature.json, so short-circuiting building past
+      it would change observable behaviour in exactly the case the tuple is meant to be neutral
+      about (BUG-1507).
     - Plan, Done, Abandoned: no station write at all (Plan is board-station.py's own write;
       Done is written by `ship` alone, which is the only writer of the done station, so a
       Done feature's cards are already there by the time this runs; Abandoned has no column

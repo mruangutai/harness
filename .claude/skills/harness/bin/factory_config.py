@@ -164,8 +164,20 @@ def load_fleet(path=FLEET_PATH):
     inherit-a-board-nobody-chose silence this feature removes) and, after FEAT-24 T-02, a
     repos[] entry that carries a `board` key of its own — the board no longer lives in fleet.yaml
     at all; it lives in that repository's own .harness/harness.json under github.board, read
-    remotely by product_config()/board_for() below."""
-    data = harness_yaml.load_file(path)
+    remotely by product_config()/board_for() below.
+
+    Issue #208: this is the ONE place every factory tool's fleet read runs through — the
+    module docstring's own claim. A malformed fleet.yaml raised harness_yaml.YamlParseError
+    past every caller's `expected=` tuple, none of which named it, so the CLI trap printed
+    the exception's CLASS NAME ("unexpected failure: YamlParseError: ...") instead of which
+    file failed to parse and where. Converting it to FleetError here — already expected by
+    every one of the six factory_cli.run() callers — fixes all of them without touching a
+    single tuple.
+    """
+    try:
+        data = harness_yaml.load_file(path)
+    except harness_yaml.YamlParseError as e:
+        raise FleetError("fleet file invalid", path, f"does not load: {e}")
     _require_mapping(data, path)
 
     if data.get("schema") != "factory-fleet/1":
@@ -379,11 +391,28 @@ def board_station(fleet, repo_name, key):
     return station_column(key)
 
 
+def segment_of(repo_name):
+    """Return the fleet repository name after the owner — the part of an owner-qualified
+    `owner/repo` name after the first slash. This is the one home of that rule; every caller
+    (factory_claim.py, feature-worktree.py:resolve_repo, workspace_path below) calls it rather
+    than restating the split."""
+    return repo_name.split("/", 1)[-1]
+
+
+def features_root(repo_name):
+    """Return the absolute path to repo_name's own `.harness/<segment>/features` directory,
+    where segment is repo_name's own fleet segment (segment_of). The local is load-bearing, not
+    style (A-01): layout_migration's reader rows match this join only when the segment is bound
+    to a paren-free local before it, never when segment_of(repo_name) is inlined into the call."""
+    seg = segment_of(repo_name)
+    return os.path.join(harness_boundary.resolve_root(_BIN_DIR), ".harness", seg, "features")
+
+
 def workspace_path(fleet, repo_name):
-    """Return the absolute checkout path: workspace_root joined with the repository name
-    AFTER the owner. This is the one place that derivation exists — factory_workspace.py and
-    factory_land.py both call it rather than restating the rule."""
-    name = repo_name.split("/", 1)[-1]
+    """Return the absolute checkout path: workspace_root joined with the repository name after
+    the owner. segment_of is the one place that derivation exists — factory_workspace.py and
+    factory_land.py both call this function rather than restating the rule."""
+    name = segment_of(repo_name)
     return os.path.join(fleet["workspace_root"], name)
 
 

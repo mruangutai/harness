@@ -1,0 +1,54 @@
+{
+  "feature_id": "BUG-440-digest-verdict-reconciliation",
+  "branch": "feat/BUG-440-digest-verdict-reconciliation",
+  "pr": null,
+  "review_sha": "442e0d24b25b92b1223eb18b7d16b3a0ff5b3280",
+  "cycles_used": 1,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "plan-draft-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "plan-goalcheck-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "plan-panel-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "BLOCKED",
+      "code_grade": "n_a"
+    },
+    {
+      "id": "plan-record-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "plan-record-fix-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS"
+    }
+  ],
+  "github": {
+    "milestone": 53,
+    "parent": 1403,
+    "attached": [
+      "T-01"
+    ],
+    "issues": {
+      "T-01": 1404
+    },
+    "source_issues": [
+      440
+    ]
+  }
+}

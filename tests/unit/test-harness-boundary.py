@@ -579,6 +579,115 @@ def case_tests_are_target_side_control_plane_only():
         check(f"{path} remains product-side",
               not mod.is_control_plane_target(path))
 
+def write_synthetic_run_dir_manifest(root, squad):
+    """A temp team-config.yaml whose only `/runs/` grant names an invented squad."""
+    harness_dir = os.path.join(root, ".harness")
+    os.makedirs(harness_dir, exist_ok=True)
+    path = os.path.join(harness_dir, "team-config.yaml")
+    with open(path, "w") as fh:
+        fh.write(
+            "schema_version: 1\n"
+            "leads:\n"
+            f"  - name: harness-{squad}-lead\n"
+            f"    squad: {squad}\n"
+            "    domain:\n"
+            f"      - {{ path: .harness/*/features/*/runs/*-{squad}/**, upsert: true }}\n"
+            "      - { path: .harness/expertise/harness-invented-lead.md, upsert: true }\n"
+        )
+    return path
+
+
+# ============================== run_dir_grant_globs ==============================
+
+def case_run_dir_grant_globs_live_shape():
+    mod = hb()
+    globs = mod.run_dir_grant_globs(ROOT)
+    check("run_dir_grant_globs_live_nonempty", bool(globs), f"got {globs!r}")
+    check("run_dir_grant_globs_live_all_contain_runs_segment",
+          all("/runs/" in g for g in globs), f"got {globs!r}")
+    check("run_dir_grant_globs_live_sorted_deduped",
+          globs == sorted(set(globs)), f"got {globs!r}")
+
+
+def case_run_dir_grant_globs_synthetic():
+    mod = hb()
+    tmp = tempfile.mkdtemp()
+    try:
+        write_synthetic_run_dir_manifest(tmp, "gizmo")
+        got = mod.run_dir_grant_globs(tmp)
+        expected = [".harness/*/features/*/runs/*-gizmo/**"]
+        check("run_dir_grant_globs_synthetic_exact", got == expected,
+              f"expected {expected!r}, got {got!r}")
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
+def case_run_dir_grant_globs_absent_and_garbage():
+    mod = hb()
+    tmp = tempfile.mkdtemp()
+    try:
+        got_absent = mod.run_dir_grant_globs(tmp)
+        check("run_dir_grant_globs_absent_manifest_empty", got_absent == [],
+              f"got {got_absent!r}")
+
+        harness_dir = os.path.join(tmp, ".harness")
+        os.makedirs(harness_dir, exist_ok=True)
+        with open(os.path.join(harness_dir, "team-config.yaml"), "wb") as fh:
+            fh.write(b"\xff\xfe\x00garbage not yaml [[[")
+        got_garbage = mod.run_dir_grant_globs(tmp)
+        check("run_dir_grant_globs_garbage_manifest_empty", got_garbage == [],
+              f"got {got_garbage!r}")
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
+# ============================== run_dir_refs ==============================
+
+def case_run_dir_refs():
+    mod = hb()
+    absolute = ("see /a/b/.harness/harness/features/F/runs/eng-t01/digest.md "
+                "and again /a/b/.harness/harness/features/F/runs/eng-t01/digest.md now")
+    got = mod.run_dir_refs(absolute)
+    check("run_dir_refs_finds_tail_in_absolute_path_and_dedupes_repeat",
+          got == [("harness", "F", "eng-t01")], f"got {got!r}")
+
+    no_run_dir = "nothing here names a run directory at all"
+    got_none = mod.run_dir_refs(no_run_dir)
+    check("run_dir_refs_empty_for_no_run_dir", got_none == [], f"got {got_none!r}")
+
+
+# ============================== run_dir_slug_ok ==============================
+
+def case_run_dir_slug_ok():
+    mod = hb()
+    globs = mod.run_dir_grant_globs(ROOT)
+    for slug in ("t01-eng", "plan-product", "2026-08-26-2-plan-product"):
+        ref = ("harness", "F", slug)
+        check(f"run_dir_slug_ok_accepts_{slug}",
+              mod.run_dir_slug_ok(ref, globs), f"ref={ref!r} globs={globs!r}")
+    for slug in ("eng-t01", "plan_product"):
+        ref = ("harness", "F", slug)
+        check(f"run_dir_slug_ok_rejects_{slug}",
+              not mod.run_dir_slug_ok(ref, globs), f"ref={ref!r} globs={globs!r}")
+    check("run_dir_slug_ok_empty_globs_is_false",
+          not mod.run_dir_slug_ok(("harness", "F", "t01-eng"), []))
+
+
+# ============================== run_dir_forms ==============================
+
+def case_run_dir_forms():
+    mod = hb()
+    tmp = tempfile.mkdtemp()
+    try:
+        write_synthetic_run_dir_manifest(tmp, "gizmo")
+        globs = mod.run_dir_grant_globs(tmp)
+        got = mod.run_dir_forms(globs)
+        check("run_dir_forms_synthetic_exact",
+              got == ["<task-or-purpose>-gizmo"], f"got {got!r}")
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
 
 def main():
     run_case(case_marker_constant)
@@ -591,6 +700,12 @@ def main():
     run_case(case_real_keeps_one_namespace_when_unresolvable)
     run_case(case_run_identity_pattern)
     run_case(case_tests_are_target_side_control_plane_only)
+    run_case(case_run_dir_grant_globs_live_shape)
+    run_case(case_run_dir_grant_globs_synthetic)
+    run_case(case_run_dir_grant_globs_absent_and_garbage)
+    run_case(case_run_dir_refs)
+    run_case(case_run_dir_slug_ok)
+    run_case(case_run_dir_forms)
 
 
     if failures:

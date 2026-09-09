@@ -42,6 +42,10 @@ FEATURE_LINE = "HARNESS-FEATURE: FEAT-42-one-root-resolver"
 # The checked-in personas are resolved from the guard's own control-plane root.
 FEATURE_TREE_ROOT = os.path.realpath(os.path.join(BIN_DIR, "../../../.."))
 
+# BUG-124 T-02: the run-dir slug cases below use the FEATURE this task itself belongs
+# to, matching the plan's own verify command, rather than the pre-existing FEATURE_LINE.
+RUNDIR_FEATURE_LINE = "HARNESS-FEATURE: BUG-124-run-dir-squad-suffix"
+
 
 def check(name, ok, detail=""):
     RESULTS.append((name, ok, detail))
@@ -148,6 +152,33 @@ def _checkout():
     os.makedirs(os.path.join(tmp, ".harness"))
     with open(os.path.join(tmp, ".harness", "team-config.yaml"), "w") as fh:
         fh.write("agents: {}\n")
+    os.makedirs(os.path.join(tmp, ".omp", "agents"))
+    for persona in ("harness-backend-dev", "harness-product-lead"):
+        shutil.copyfile(
+            os.path.join(FEATURE_TREE_ROOT, ".omp", "agents", persona + ".md"),
+            os.path.join(tmp, ".omp", "agents", persona + ".md"),
+        )
+    return tmp
+
+def _checkout_with_run_dir_grants(suffixes):
+    """A throwaway checkout whose `leads:` carry a run-dir write grant for each of
+    `suffixes` (BUG-124 T-02) -- copies the same personas `_checkout` copies, and does
+    not edit `_checkout` itself, so every case built on THAT helper keeps its empty
+    vocabulary. `suffixes` are bare strings, e.g. `["eng"]` yields the glob
+    `.harness/*/features/*/runs/*-eng/**`, exactly the shape a real lead grant carries.
+    """
+    tmp = tempfile.mkdtemp()
+    os.makedirs(os.path.join(tmp, ".harness"))
+    leads = "".join(
+        "  - name: harness-%s-lead\n"
+        "    squad: %s\n"
+        "    domain:\n"
+        "      - { path: .harness/*/features/*/runs/*-%s/**, upsert: true }\n"
+        % (suffix, suffix, suffix)
+        for suffix in suffixes
+    )
+    with open(os.path.join(tmp, ".harness", "team-config.yaml"), "w") as fh:
+        fh.write("agents: {}\nleads:\n" + leads)
     os.makedirs(os.path.join(tmp, ".omp", "agents"))
     for persona in ("harness-backend-dev", "harness-product-lead"):
         shutil.copyfile(
@@ -499,6 +530,152 @@ def case_17_shell_less_persona_requires_matching_feature_root():
         shutil.rmtree(root, ignore_errors=True)
 
 
+# ---------------------------------------------------------------------------
+# BUG-124 T-02 -- the run-dir slug shape check. Every case here uses its own
+# throwaway checkout via _checkout_with_run_dir_grants (never _checkout with an
+# edit), with CLAUDE_PROJECT_DIR/HARNESS_PROJECT_DIR pointed at it, so none of
+# these cases can touch the real registry or the real team-config.yaml.
+# ---------------------------------------------------------------------------
+
+
+def case_18_inverted_slug_refused_no_claim_and_paste_back_safe():
+    """(a) an inverted run-dir slug is refused; (b) the refusal names a compliant
+    form; (g) the refusal strands no claim for the dispatched persona; (h) pasting
+    the exact refusal back into a follow-up dispatch is itself never refused,
+    because the anchor it prints is already broken (D-05)."""
+    reg = _load_registry_module()
+    root = _checkout_with_run_dir_grants(["eng"])
+    try:
+        env = {"CLAUDE_PROJECT_DIR": root, "HARNESS_PROJECT_DIR": root}
+        tail = (".harness/harness/features/BUG-124-run-dir-squad-suffix/runs/"
+                "eng-t01/digest.md")
+        r = fire({"agent_type": "harness-orchestrator", "tool_name": "Agent",
+                  "tool_input": {"subagent_type": "harness-eng-lead",
+                                 "prompt": RUNDIR_FEATURE_LINE + "\n" + tail}},
+                 env=env)
+        check("case 18a: an inverted run-dir slug is refused", r.returncode == 2, r.stderr)
+        check("case 18a/b: stderr names the slug and the run-dir slug wording",
+              "eng-t01" in r.stderr and "run-dir slug" in r.stderr, r.stderr)
+        check("case 18b: stderr names a compliant form ending in -eng",
+              "<task-or-purpose>-eng" in r.stderr, r.stderr)
+        data = _read_registry(root, reg)
+        check("case 18g: the refusal strands no claim for the dispatched persona",
+              _claims_for(data, "harness-eng-lead") == [], data)
+
+        r2 = fire({"agent_type": "harness-orchestrator", "tool_name": "Agent",
+                   "tool_input": {"subagent_type": "harness-eng-lead",
+                                  "prompt": RUNDIR_FEATURE_LINE + "\n" + r.stderr}},
+                  env=env)
+        check("case 18h: pasting the refusal back is not itself refused",
+              r2.returncode != 2, r2.stderr)
+        check("case 18h: the paste-back carries no run-dir slug refusal",
+              "run-dir slug" not in r2.stderr, r2.stderr)
+        check("case 18h: the paste-back is not refused for a missing feature line",
+              "no valid first-line feature" not in r2.stderr, r2.stderr)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_19_matching_slugs_not_refused():
+    """(c) t01-eng, plan-product and 2026-08-26-2-plan-product all resolve to a
+    grant and are never refused."""
+    root = _checkout_with_run_dir_grants(["eng", "product"])
+    try:
+        env = {"CLAUDE_PROJECT_DIR": root, "HARNESS_PROJECT_DIR": root}
+        for slug in ("t01-eng", "plan-product", "2026-08-26-2-plan-product"):
+            tail = (".harness/harness/features/BUG-124-run-dir-squad-suffix/runs/%s/x"
+                    % (slug,))
+            r = fire({"agent_type": "harness-orchestrator", "tool_name": "Agent",
+                      "tool_input": {"subagent_type": "harness-eng-lead",
+                                     "prompt": RUNDIR_FEATURE_LINE + "\n" + tail}},
+                     env=env)
+            check("case 19: slug %s is not refused" % (slug,), r.returncode != 2, r.stderr)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_20_no_run_dir_reference_untouched():
+    """(d) a prompt naming no run-dir path at all is untouched by the check."""
+    root = _checkout_with_run_dir_grants(["eng"])
+    try:
+        env = {"CLAUDE_PROJECT_DIR": root, "HARNESS_PROJECT_DIR": root}
+        r = fire({"agent_type": "harness-orchestrator", "tool_name": "Agent",
+                  "tool_input": {"subagent_type": "harness-eng-lead",
+                                 "prompt": RUNDIR_FEATURE_LINE + "\nbuild the thing"}},
+                 env=env)
+        check("case 20: no run-dir reference is not refused", r.returncode != 2, r.stderr)
+        check("case 20: stderr carries no run-dir slug refusal",
+              "run-dir slug" not in r.stderr, r.stderr)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_21_grant_less_manifest_fails_open_and_says_so():
+    """(e) FAIL OPEN: a manifest with no run-dir grant at all skips the check and says
+    the vocabulary is empty by manifest declaration -- not that derivation failed."""
+    root = _checkout()
+    try:
+        env = {"CLAUDE_PROJECT_DIR": root, "HARNESS_PROJECT_DIR": root}
+        tail = ".harness/harness/features/BUG-124-run-dir-squad-suffix/runs/eng-t01/digest.md"
+        r = fire({"agent_type": "harness-orchestrator", "tool_name": "Agent",
+                  "tool_input": {"subagent_type": "harness-eng-lead",
+                                 "prompt": RUNDIR_FEATURE_LINE + "\n" + tail}},
+                 env=env)
+        check("case 21: a grant-less manifest is not refused", r.returncode != 2, r.stderr)
+        check("case 21: stderr says the manifest declares no run-dir write grant",
+              "the manifest declares no run-dir write grant" in r.stderr, r.stderr)
+        check("case 21: stderr does not claim the derivation failed",
+              "derivation failed" not in r.stderr, r.stderr)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_22_derived_vocabulary_matches_invented_squad():
+    """(f) the vocabulary is DERIVED, not hardcoded: an invented squad suffix with no
+    code change is recognized both ways, and named in the refusal by its own form."""
+    root = _checkout_with_run_dir_grants(["oddsquad"])
+    try:
+        env = {"CLAUDE_PROJECT_DIR": root, "HARNESS_PROJECT_DIR": root}
+        good = ".harness/harness/features/BUG-124-run-dir-squad-suffix/runs/t01-oddsquad/x"
+        bad = ".harness/harness/features/BUG-124-run-dir-squad-suffix/runs/oddsquad-t01/x"
+        r_good = fire({"agent_type": "harness-orchestrator", "tool_name": "Agent",
+                       "tool_input": {"subagent_type": "harness-eng-lead",
+                                      "prompt": RUNDIR_FEATURE_LINE + "\n" + good}},
+                      env=env)
+        r_bad = fire({"agent_type": "harness-orchestrator", "tool_name": "Agent",
+                      "tool_input": {"subagent_type": "harness-eng-lead",
+                                     "prompt": RUNDIR_FEATURE_LINE + "\n" + bad}},
+                     env=env)
+        check("case 22: t01-oddsquad is not refused", r_good.returncode != 2, r_good.stderr)
+        check("case 22: oddsquad-t01 is refused", r_bad.returncode == 2, r_bad.stderr)
+        check("case 22: the refusal names oddsquad in its compliant form",
+              "<task-or-purpose>-oddsquad" in r_bad.stderr, r_bad.stderr)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_23_broken_derivation_distinguished_from_grant_less():
+    """(i) a manifest that does not parse fails the DERIVATION, and the SKIPPED line
+    says so -- never the benign no-run-dir-grant text case 21 asserts (F-4)."""
+    root = _checkout()
+    try:
+        with open(os.path.join(root, ".harness", "team-config.yaml"), "w") as fh:
+            fh.write("leads: [\n")
+        env = {"CLAUDE_PROJECT_DIR": root, "HARNESS_PROJECT_DIR": root}
+        tail = ".harness/harness/features/BUG-124-run-dir-squad-suffix/runs/eng-t01/digest.md"
+        r = fire({"agent_type": "harness-orchestrator", "tool_name": "Agent",
+                  "tool_input": {"subagent_type": "harness-eng-lead",
+                                 "prompt": RUNDIR_FEATURE_LINE + "\n" + tail}},
+                 env=env)
+        check("case 23: an unparseable manifest is not refused", r.returncode != 2, r.stderr)
+        check("case 23: stderr says the run-dir vocabulary derivation failed",
+              "the run-dir vocabulary derivation failed" in r.stderr, r.stderr)
+        check("case 23: stderr does not carry the no-run-dir-grant text",
+              "the manifest declares no run-dir write grant" not in r.stderr, r.stderr)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
 def main():
     # ISOLATE THE WHOLE RUN, and do it HERE rather than in any case.
     #
@@ -544,6 +721,12 @@ def main():
     case_15_omp_dispatch_records_supervisor_and_receipt()
     case_16_system_python_compatibility()
     case_17_shell_less_persona_requires_matching_feature_root()
+    case_18_inverted_slug_refused_no_claim_and_paste_back_safe()
+    case_19_matching_slugs_not_refused()
+    case_20_no_run_dir_reference_untouched()
+    case_21_grant_less_manifest_fails_open_and_says_so()
+    case_22_derived_vocabulary_matches_invented_squad()
+    case_23_broken_derivation_distinguished_from_grant_less()
 
     failed = 0
     for name, ok, detail in RESULTS:

@@ -1,0 +1,632 @@
+schema: plan/1
+feature: BUG-201-depends-on-integrity
+approval:
+  date: '2026-09-07'
+  approved_by: mruangutai
+  status: approved
+status: done
+source_issues: [201]
+
+lanes:
+  resolved_at: af859ee8
+  rows:
+    - surface: .claude/skills/harness/bin/harness_yaml.py
+      lane: team
+      agent: harness-backend-dev
+    - surface: tests/unit/**
+      lane: team
+      agent: harness-backend-dev
+    - surface: tests/integration/**
+      lane: team
+      agent: harness-backend-dev
+
+decisions:
+  - id: D-01
+    choice: |
+      The rule lives in exactly one place, a helper called by validate_plan_doc, and no separate
+      checker is added beside check-plan-routes.py.
+    because: |
+      validate_plan_doc is the single home the reader load_plan and the writer plan-merge already
+      share, extracted so the two cannot disagree (FEAT-41 HIGH-1), so one edit covers both routes
+      with no new wiring; a checker beside check-plan-routes.py would cover only the pre-signature
+      read and leave plan-merge apply free to write the dangling edge that issue 201 reports.
+    dec: DEC-182
+  - id: D-02
+    choice: |
+      The rejection is a PlanSchemaError naming EVERY dangling edge in the document in one message,
+      each as an offending task id paired with the missing id, never the first edge only.
+    because: |
+      A task renamed during a plan revision usually breaks several edges at once, so a first-only
+      message costs one edit-and-reload round trip per edge; PlanSchemaError is the existing class
+      for a document that parses but no consumer can act on, and every caller already catches it as
+      YamlParseError, so no caller changes.
+    dec: none
+  - id: D-03
+    choice: |
+      Every task in this plan is execution_mode team, dispatched to harness-backend-dev. No task is
+      main-session-direct.
+    because: |
+      DEC-174 rules, in the paragraph headed Where the line falls for a library a gate calls, that
+      "A module a gate imports is not itself a gate. A squad may write the library, and the cutover
+      that makes a gate use it is main-session-direct, proven by showing the gate's violation set is
+      identical before and after." harness_yaml.py is such a library and this feature performs NO
+      cutover: at af859ee8 check-plan-routes.py already calls load_plan and plan-merge.py already
+      calls validate_plan_doc, so no hand wires a gate to anything it did not already use, and the
+      changed gate behaviour arrives entirely through a library the ruling leaves squad-writable.
+      The proof DEC-174 attaches to a cutover holds here anyway: measured at af859ee8, all 67
+      committed plan.yaml files load and none carries a dangling reference, so the gates' violation
+      set over the live corpus is identical before and after.
+      DEC-174's own list settles the rest, and it is cited by its anchor text rather than
+      paraphrased: the paragraph in .harness/harness/docs/DECISIONS.md whose first words are "The
+      enforcement layer, enumerated:" names check-domain.sh, bash-write-guard.sh, validate-digest.py,
+      check-state.sh, check-plan-routes.py, dispatch-guard.sh, and the test file of each. NONE of the
+      five surfaces this plan now touches appears in it - harness_yaml.py (T-03), factory_claim.py
+      and gh-sync.py (T-06), and the two test trees, neither of which holds the test file of a gate
+      in that enumeration.
+      The two consumer surfaces T-06 adds sit in the SAME lane as the surfaces already here, measured
+      rather than assumed: check-domain.sh --resolve, run once per path from the main checkout on
+      2026-09-07, returns harness-backend-dev and harness-dev-ops for harness_yaml.py,
+      factory_claim.py and gh-sync.py alike. The widened scope therefore needs no second lane and no
+      second agent, and this stays one recorded reading carried by the one signature. Recorded here
+      rather than in lanes.rows because plan-merge.py has no verb that can write the lanes key:
+      apply exits 7 CONFLICT on it and amend accepts only tasks and decisions, both observed
+      2026-09-07.
+    dec: DEC-174
+  - id: D-04
+    choice: |
+      The corpus non-regression guard walks the live plan corpus AND the same walk is run against a
+      throwaway root holding one dangling plan, which it must report.
+    because: |
+      A walk that silently matched nothing and a rule that had stopped checking anything both leave
+      a bare all-pass reading identical, so the paired fixture is what makes the guard
+      discriminating; its baseline is the af859ee8 measurement recorded in the BRIEF, 67 files, 67
+      loading, 0 failing, 0 dangling.
+    dec: DEC-174
+
+  - id: D-05
+    choice: |
+      A consumer that cannot act on a plan reports the specific PlanSchemaError text, and the
+      posture differs per site by what that site's caller can already do. gh-sync _projected_for
+      refuses through the existing refuse() helper - exit 2, one actionable line, never a
+      traceback. gh-sync _status_plan_doc prints one actionable stderr line and returns None as
+      before, leaving its callers' existing declines untouched. factory_claim still returns no
+      plan but carries the validator's message into a new blocker reason, so the poll keeps
+      evaluating every other candidate.
+    because: |
+      DEC-138 rules that the mirror never gates, and the case it rules on is named in the same
+      sentence: gh absent or unauthenticated, so the flow succeeds and reports the sync skipped. A
+      locally malformed signed artifact is not that case, and gh-sync has already decided it in
+      this very function - the FleetError branch at gh-sync.py:1160-1168 refuses a station outside
+      the vocabulary at exit 2 with one actionable line, recording that DEC-138's never-gates is
+      about not blocking a flow, not about dying in it. A dangling depends_on is the same class of
+      fault reaching the same function, so it takes the same posture rather than a new one.
+      _status_plan_doc is different in kind: cmd_status's two guarded transitions already decline
+      correctly and non-gatingly on a None doc (gh-sync.py:1306-1307 and :1318-1319), so the only
+      defect there is the cause reported, and adding an exit would convert a designed decline into
+      a gate DEC-138 forbids. factory_claim is a poller over many candidates: raising would abort
+      the evaluation of every candidate after the bad one, so the fix is the reason text - issue
+      201's complaint is being told the feature directory or its plan.yaml is missing or
+      unparseable (factory_claim.py:190-198) when the real cause was a typed task id.
+    dec: DEC-138
+panel:
+  last_run: 2026-09-07-02-validator
+  cycle: 1
+  readers:
+  - reader: scope
+    persona: harness-code-reviewer
+    status: ran
+  - reader: should-not-exist
+    persona: fable-advisor
+    status: ran
+  - reader: goalcheck
+    persona: harness-pm
+    status: ran
+  transcription_rule: Every c1 id was computed with panel_findings.py id --reader
+    R --summary S over the summary EXACTLY as stored in this record (the tool lowercases
+    and collapses whitespace and nothing else). The ten c0 ids are copied byte-for-byte
+    from the cycle-0 record and were never recomputed. Severities are the reader's
+    own and were never reassigned; a dismissed finding keeps its severity and carries
+    its reason in its summary.
+  findings:
+  - id: PF-1bb624638a292163221a033f48299c75
+    reader: should-not-exist
+    severity: med
+    summary: 'V-1 (SNE-C1-1): REQ-04''s second-half proof bound three of the four
+      consumers PF-e9eff4 named - factory_decompose.py:471 calls load_plan and tests/integration/test-factory-decompose.py
+      existed unbound, and check-state.sh:140 is the same shape with test-check-state.py
+      likewise unbound, so a T-03 regression reddening only those paths would ship
+      with every verify green. REPAIRED before signature: both suites are now named
+      in BRIEF SC-07 and appended to T-03''s and T-06''s verify blocks (ten suites
+      each), and SC-07 now carries the two consumer anchors factory_decompose.py:471
+      and check-state.sh:140 plus the closed six-file consumer enumeration, so a reader
+      can check it rather than trust it.'
+    disposition: repaired
+    resolved_by: none - repaired in the specification itself (BRIEF SC-07 and the
+      T-03/T-06 verify blocks), no new task
+  - id: PF-bb5964976c94a52d32f2541e0991e318
+    reader: lead
+    severity: info
+    summary: SC-09's UNCHANGED clause and T-05 case f, written to stop a designed
+      decline becoming a gate, are also what keep _projected_for's cmd_status caller
+      at gh-sync.py:1336 unreachable - relaxing case f would silently open a call
+      site nothing asserts
+    disposition: open
+  - id: PF-12330e2e8dc4e28d6b859a14cac0a7ef
+    reader: scope
+    severity: low
+    summary: SC-03's >= 67 floor is a point-in-time property of the ambient corpus,
+      not of this feature's code, so archival or cleanup dropping the count below
+      67 misgrades a structurally correct implementation as failing
+    disposition: open
+  - id: PF-726041115dadc5110715a73178163cc5
+    reader: scope
+    severity: low
+    summary: 'S-2: SC-04''s verify: inspection named no search term - an inspector
+      holding only its sentence could not execute the grep without importing T-03''s
+      intent. REPAIRED before signature: SC-04 now names _validate_plan_depends_on,
+      the helper T-03''s intent creates, and states what the grep must find - exactly
+      one definition and exactly one call site, both inside .claude/skills/harness/bin/harness_yaml.py,
+      no further match in the tree, and no second implementation of the rule under
+      any name in plan-merge.py, check-plan-routes.py or any other consumer. verify:
+      inspection is unchanged.'
+    disposition: repaired
+    resolved_by: none - repaired in BRIEF SC-04's own wording, no new task
+  - id: PF-503d26206743326a59d476eb5c180a9f
+    reader: scope
+    severity: info
+    summary: SC-05's exact-FAIL-set enumeration (cases 1,3,5,6c) misgrades a correct
+      build if an unrelated extra failure appears in the same recorded run - inherent
+      to exact enumeration, noted not disputed
+    disposition: open
+  - id: PF-d39b83247c7c5e77b6c9e48b2000f159
+    reader: scope
+    severity: info
+    summary: SC-01 read in total isolation is satisfiable by a hard-coded T-02/T-99
+      special case; closed in practice by T-01's paired-allow and mixed-type cases
+      living in the same evidence file
+    disposition: open
+  - id: PF-4159ab1bcf22c07161717884266ada0d
+    reader: scope
+    severity: med
+    summary: 'SCOPE-C1-01: DISMISSED as FALSIFIED at source by the panel lead. Its
+      premise was that an approved-but-dangling plan passes cmd_status''s ready approval
+      guard and reaches the bulk-placement loop''s _projected_for call at gh-sync.py:1336.
+      It cannot: the guard reads approval THROUGH _status_plan_doc, which returns
+      None for a dangling plan (gh-sync.py:1263-1266, a return T-06 explicitly keeps),
+      so (plan_doc or {}).get(''approval'') is {} and the guard refuses at exit 2
+      at gh-sync.py:1306-1307 before the loop. Severity preserved at the reader''s
+      own med; excluded from the roll-up. The craft reasoning about a shared helper
+      acquiring a new posture is sound; the instance is wrong.'
+    disposition: dismissed
+  - id: PF-cd8aa259e0683e34c794bdceb83ffd91
+    reader: should-not-exist
+    severity: info
+    summary: 'SNE-C1-3: DISMISSED as resolved rather than carried as a defect - CONFIRMED
+      and promoted into the digest''s adjudication section. It is the reachability
+      analysis that retires SCOPE-C1-01 and resolves the advisor consult''s routed
+      Q1 in the plan''s favour (no new task, no new SC), and it answers that T-04''s
+      walk is not a duplicate of test-harness-yaml-corpus.py, whose scan() calls parse-only
+      load_file and never load_plan. Carrying it as a row would spend the operator
+      a row on a resolution.'
+    disposition: dismissed
+  - id: PF-936429436e9b8b37b464c637bab1e979
+    reader: should-not-exist
+    severity: info
+    summary: 'SNE-C1-2: DISMISSED as resolved - the c0-repair roll-up, folded into
+      the digest''s c0-repair verification section where it is cross-checked against
+      scope''s independent pass rather than duplicated (nine of ten claimed repairs
+      REAL, PF-e9eff4 PARTIAL and carried as V-1).'
+    disposition: dismissed
+  - id: PF-d26198866e2756a2288bf70a4226659b
+    reader: goalcheck
+    severity: med
+    summary: factory_claim.py:108-109 swallows the load refusal to plan = None and
+      gh-sync.py:1155/:1265 swallow it to {}/None, so a signed or out-of-band plan
+      carrying a dangling depends_on edge is reported as no plan could be read rather
+      than as the real cause
+    disposition: delivered
+  - id: PF-6dda61c31b87efdc801848fb78af21fa
+    reader: goalcheck
+    severity: med
+    summary: SC-02's literal words (exits non-zero and leaves the target file byte-identical)
+      are passed by a plan-merge that refuses every apply, and by exit 9 when --file
+      never resolves, so a deny-everything write route can green the criterion
+    disposition: repaired
+  - id: PF-cc2bcfa945e44f6616257a66db45325d
+    reader: goalcheck
+    severity: low
+    summary: "SC-05's the recorded run fails is satisfied by a FAIL from any cause\
+      \ \u2014 an import error or a missing fixture reads identically to the assertion\
+      \ failing for the right reason"
+    disposition: repaired
+  - id: PF-e9eff4c667f72ba3c65f06fecbc161d0
+    reader: goalcheck
+    severity: low
+    summary: 'No task proves a CORRECT plan''s consumers behave as before (REQ-04''s
+      second half): T-03''s verify runs four suites, none belonging to check-plan-routes.py,
+      gh-sync.py, factory_claim.py or factory_decompose.py -- c1 disposition, honestly:
+      the c1 repair was PARTIAL. It bound suites for check-plan-routes.py, gh-sync.py
+      and factory_claim.py and DROPPED factory_decompose.py, which this finding''s
+      own text enumerated; the panel raised that as V-1 (PF-1bb624638a292163221a033f48299c75).
+      It is completed only now, by adding tests/integration/test-factory-decompose.py
+      and tests/integration/test-check-state.py to BRIEF SC-07 and to both T-03''s
+      and T-06''s verify blocks. Recorded as repaired as of this transcription, not
+      as of the c1 build.'
+    disposition: repaired
+  - id: PF-4e86832239a56c223544656261a83cd7
+    reader: goalcheck
+    severity: low
+    summary: D-03's lane reading rests on one DEC-174 sentence (a module a gate imports
+      is not itself a gate); if the operator reads the following sentence as absolute,
+      T-03's execution_mode must move to main-session-direct
+    disposition: settled_by_ruling
+  - id: PF-4f91801bd1344ae2e8d1818b26cbd518
+    reader: goalcheck
+    severity: info
+    summary: check-plan-routes.py reports PlanSchemaError as exit 2 (the checker does
+      not load the plan) rather than as a routing violation, and that exit-2 stop
+      is what is graded as satisfying before it can be consumed
+    disposition: unchanged_deliberately
+  - id: PF-092cbd0b966447a02c1a6c5188f25c27
+    reader: goalcheck
+    severity: info
+    summary: "Accepting a self-dependency is the null action rather than added policy\
+      \ \u2014 with known as the set of all task ids a self-reference is in known\
+      \ by construction \u2014 so T-03's ACCEPTED sentence describes no new behaviour"
+    disposition: repaired
+  - id: PF-7beea12ebdabef0e2f946b763f7be080
+    reader: goalcheck
+    severity: low
+    summary: 'SC-03''s literal required post-change result of 67 load is already false:
+      the corpus is 68 live plans including this feature''s own plan.yaml, so qa grading
+      SC-03 on its own words measures 68 against a required 67; SC-03 re-graded met
+      to partial'
+    disposition: repaired
+  - id: PF-3116cd3b98020bc5b450be865f3754bb
+    reader: should-not-exist
+    severity: low
+    summary: "T-01 case 6 cannot fail any plausible implementation while claiming\
+      \ to pin str coercion \u2014 a later edit dropping str() ships green and a quoted-id\
+      \ merge proposal gets a phantom dangling-edge rejection with no red test"
+    disposition: repaired
+  - id: PF-e159de1959db1573573a45c1ed92a175
+    reader: should-not-exist
+    severity: info
+    summary: "The non-list depends_on rejection is the one widening beyond the operator's\
+      \ missing-ids-only ruling \u2014 declared not silent, exposure measured at zero,\
+      \ recorded so the signature covers it knowingly"
+    disposition: repaired
+tasks:
+  - id: T-01
+    title: Write the failing unit test for the depends_on reference rule
+    traces: [REQ-01, REQ-02]
+    change_type: bugfix
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: []
+    status: done
+    files:
+      - tests/unit/test-plan-depends-on.py
+    verify: |
+      python3 tests/unit/test-plan-depends-on.py
+    intent: |
+      Create tests/unit/test-plan-depends-on.py, stdlib plus PyYAML only, in the house style of the
+      existing files in tests/unit: a sys.path insert of .claude/skills/harness/bin derived from
+      os.path.abspath(__file__), one check(name, ok, detail) helper printing an ok or FAIL line per
+      case, a COUNTED total (never a frozen literal), and sys.exit(1) if any case failed.
+
+      python3 tests/unit/test-plan-depends-on.py is a command that FAILS at base sha af859ee8 and
+      passes once the rule lands. That failing run is this task's deliverable proof: run the command
+      when the file is written and record the literal FAIL lines you observe. The run must IMPORT
+      cleanly and reach its cases - an ImportError or a fixture error is a broken test, not a red one,
+      and SC-05 grades which cases emit the FAIL.
+
+      Build every fixture in memory as a dict and validate it by calling
+      harness_yaml.validate_plan_doc(doc, "fixture") directly. A legal task is a mapping carrying
+      every field REQUIRED_TASK_FIELDS names - id, title, change_type, execution_mode, files,
+      verify, intent - with execution_mode team. Write ONE helper, _task(tid, depends_on=None),
+      returning that mapping, so a later change to REQUIRED_TASK_FIELDS breaks one place.
+
+      Cases, each asserting what a consumer observes:
+      1. Tasks T-01 and T-02 where T-02 carries depends_on [T-99]: validate_plan_doc raises
+         harness_yaml.PlanSchemaError and str of the exception contains BOTH T-02 and T-99.
+      2. THE PAIRED ALLOW, the same document with T-02 carrying depends_on [T-01]: validate_plan_doc
+         returns and raises nothing. Without this case a deny-everything implementation passes 1.
+      3. Two dangling edges in one document, T-02 depends_on [T-98] and T-03 depends_on [T-99]:
+         exactly one exception is raised and its message contains T-98 AND T-99. This is D-02.
+      4. depends_on absent, depends_on None, and depends_on the empty list: all three accepted.
+      5. depends_on given as the bare string T-01 instead of a list: PlanSchemaError naming the
+         offending task id and the depends_on field. ALSO assert the message contains no
+         single-character missing id, so an implementation that iterated the string's characters and
+         reported four phantom ids fails this case.
+      6. MIXED id TYPES, which is what the str coercion is actually for. Three sub-assertions:
+         a. tasks carrying the INTEGER ids 1 and 2, where task 2 carries depends_on ["1"] - the id as
+            a STRING, the shape a quoted id in a YAML proposal produces - is ACCEPTED;
+         b. the mirror, tasks carrying the STRING ids "1" and "2" where task 2 carries depends_on [1],
+            is ACCEPTED;
+         c. tasks carrying the integer ids 1 and 2 with depends_on [3] is REJECTED and 3 appears in
+            the message.
+         THE VARIANT THIS CASE CATCHES, named here so no later reader deletes it as coverage padding:
+         an implementation that coerces on ONE SIDE ONLY - known built from str(t["id"]) while the
+         entry is compared raw, or the reverse - accepts every same-type document and gives both (a)
+         and (b) a phantom dangling-edge rejection. A same-type case (integer ids with an integer
+         depends_on) is green under that variant and under correct code alike, which is exactly why it
+         is not what this case asserts.
+
+      Assert on the ids and the field name only, never on the rest of the wording. Add NO case for
+      self-dependency, cycles or task ordering: the operator ruled all three out of scope.
+  - id: T-02
+    title: Add the write-route refusal case for a dangling depends_on to the plan-merge suite
+    traces: [REQ-03]
+    change_type: bugfix
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: []
+    status: done
+    files:
+      - tests/integration/test-plan-merge.py
+    verify: |
+      python3 tests/integration/test-plan-merge.py
+    intent: |
+      Append one case pair to tests/integration/test-plan-merge.py, in that file's existing style and
+      using its existing fixture helpers wherever they fit. This command FAILS until T-03 lands and
+      passes afterwards; record the FAIL line you observe.
+
+      The case proves the WRITE route refuses a dangling edge, which is what stops one being signed.
+
+      Fixture: a temporary directory holding a plan.yaml that is a LEGAL plan - feature, status plan,
+      approval status pending, and two complete tasks T-01 and T-02 with no dangling edge. Assert
+      first that harness_yaml.load_plan accepts that base, because plan-merge only refuses a merge
+      that makes a LEGAL plan illegal (plan-merge.py _verify_spliced), so a base that was already
+      illegal would prove nothing.
+
+      Place the fixture where plan-merge's own _resolve_plan accepts it; if a bare temporary path is
+      refused with exit 9, put it under the temporary directory at
+      .harness/harness/features/BUG-FIXTURE/plan.yaml. Do NOT weaken any assertion to accommodate a
+      resolution failure: exit 9 means the fixture is mis-built, not that the refusal fired.
+
+      a. THE REFUSAL. A proposal adding a task T-03 whose depends_on is [T-99]. Run
+         python3 .claude/skills/harness/bin/plan-merge.py apply, passing --file the fixture plan.yaml
+         and --proposal the proposal file, through subprocess with HARNESS_AGENT_TYPE REMOVED from the
+         child environment. Assert the exit status is exactly 5, that the combined output contains
+         ILLEGAL PLAN and T-99, and that the sha256 of the fixture file is byte-identical to what it
+         was before the call. Asserting merely non-zero is satisfied by exit 9, which is the fixture
+         never being resolved at all.
+      b. THE PAIRED ALLOW. The same proposal with depends_on [T-01] instead: exit status 0, and the
+         reloaded plan.yaml carries T-03. Without b, a plan-merge that refused every apply passes a.
+  - id: T-03
+    title: Reject a depends_on entry naming a task absent from the plan, inside validate_plan_doc
+    traces: [REQ-01, REQ-02, REQ-03, REQ-04]
+    change_type: bugfix
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-01, T-02]
+    status: done
+    files:
+    - .claude/skills/harness/bin/harness_yaml.py
+    - tests/unit/test-factory-claim.py
+    - tests/integration/test-check-plan-routes.py
+    - tests/integration/test-factory-decompose.py
+    verify: |
+      python3 tests/unit/test-plan-depends-on.py &&
+      python3 tests/integration/test-plan-merge.py &&
+      python3 tests/unit/test-harness-yaml-corpus.py &&
+      python3 tests/integration/test-harness-yaml.py &&
+      python3 tests/unit/test-factory-claim.py &&
+      python3 tests/unit/test-factory-claim-mutation.py &&
+      python3 tests/integration/test-gh-sync.py &&
+      python3 tests/integration/test-check-plan-routes.py &&
+      python3 tests/integration/test-factory-decompose.py &&
+      python3 tests/integration/test-check-state.py
+    intent: |
+      Add referential-integrity validation of depends_on to the ONE home the reader and the writer
+      share. Touch NO other file. Do not edit plan-merge.py or check-plan-routes.py and do not add a
+      second checker: at af859ee8 plan-merge.py already calls validate_plan_doc through
+      _schema_error and check-plan-routes.py already calls load_plan, so both routes inherit this
+      rule with no new wiring. How the CONSUMERS report this error is T-06's task, not yours: raise it
+      here and change no consumer.
+
+      Write a module-level helper beside _validate_plan_tasks in
+      .claude/skills/harness/bin/harness_yaml.py:
+
+        def _validate_plan_depends_on(tasks, path)
+
+      and call it from validate_plan_doc IMMEDIATELY AFTER _validate_plan_tasks(tasks, path). The
+      order is load-bearing: _validate_plan_tasks has already guaranteed every entry is a mapping
+      carrying a unique id, so this helper may index the id without re-checking shape.
+
+      Behaviour:
+      - known is the set of str(t["id"]) over every task.
+      - For each task, raw is t.get("depends_on"). None and the empty list are legal and mean no
+        dependencies; skip them.
+      - If raw is not a list, raise PlanSchemaError naming the task id and the depends_on field and
+        saying it must be a list of task ids. This is not DAG policy: a bare string would otherwise
+        iterate as characters and report phantom missing ids.
+      - Otherwise collect, in the order they appear and ACROSS ALL TASKS, every pair of offending
+        task id and entry whose str is not in known.
+      - If any pair was collected, raise exactly ONE PlanSchemaError whose message names both members
+        of every pair, in the style of the existing raises in this module, for example: depends_on
+        names task ids absent from this plan - T-02 to T-98, T-03 to T-99. Never stop at the first.
+
+      Self-dependency, cycles and ordering are OUT OF SCOPE by the operator's ruling: add no cycle
+      detection, no ordering check and no self-reference check.
+
+      NON-NORMATIVE NOTE, describing the null action of the rule above and NOT a behaviour to
+      implement: because known is the set of ALL task ids, a task whose depends_on names its own id is
+      in known by construction, so it passes without any code saying so. Write no branch, no special
+      case and no test for it.
+
+      Keep the surrounding comment discipline: say what the rule prevents - a dangling edge
+      surviving the signature and reaching decomposition as a GitHub blocked_by edge pointing at
+      nothing, issue 201 - rather than restating the code.
+
+      Measured at af859ee8 in the main checkout: all 67 committed plan.yaml files under
+      .harness/harness/features/ load and none carries a dangling reference (68 in this feature's own
+      worktree, which includes this plan.yaml), so no migration, grandfathering or exemption is needed
+      and you must add none.
+  - id: T-04
+    title: Add the live-corpus non-regression guard to the depends_on unit test
+    traces: [REQ-04]
+    change_type: bugfix
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-03]
+    status: done
+    files:
+      - tests/unit/test-plan-depends-on.py
+    verify: |
+      python3 tests/unit/test-plan-depends-on.py && python3 tests/unit/test-harness-yaml-corpus.py
+    intent: |
+      Append two cases to tests/unit/test-plan-depends-on.py, and factor the walk they share into one
+      function, walk(root), returning the number of plan.yaml files found and the list of
+      path-and-message failures.
+
+      Case A, THE LIVE CORPUS. Glob every .harness/harness/features/*/plan.yaml under the repository
+      root, resolved the way tests/unit/test-harness-yaml-corpus.py resolves it - HARNESS_PROJECT_DIR
+      or CLAUDE_PROJECT_DIR, else os.getcwd() - call harness_yaml.load_plan on each, and assert BOTH
+      that the number of files found is AT LEAST 67 and that none raised, naming every path that did
+      in the failure detail. The count floor is the vacuity guard: measured at af859ee8 the corpus was
+      67 files, all loading, none dangling, so a walk that suddenly matches nothing must fail rather
+      than pass silently. Never assert the count EQUALS 67 - features are added.
+
+      Case B, THE PAIRED DETECTOR. Under tempfile.TemporaryDirectory build a throwaway root holding
+      one .harness/harness/features/FEAT-XX/plan.yaml whose single task carries a dangling
+      depends_on, run the SAME walk against that root, and assert it reports exactly one failure
+      naming that path. Without case B, case A reads identically to a load_plan that had stopped
+      checking anything at all.
+  - id: T-05
+    title: Write the failing consumer-diagnosis cases for the two swallowing consumers
+    traces: [REQ-05]
+    change_type: bugfix
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-03]
+    status: done
+    files:
+      - tests/unit/test-factory-claim.py
+      - tests/integration/test-gh-sync.py
+    verify: |
+      python3 tests/unit/test-factory-claim.py &&
+      python3 tests/integration/test-gh-sync.py
+    intent: |
+      Add cases to two EXISTING suites, each in that file's own house style and using its own
+      fixture helpers. Both commands FAIL until T-06 lands and pass afterwards; record the literal
+      FAIL lines you observe, they are this task's deliverable proof. This task depends on T-03
+      because the specific PlanSchemaError these cases assert on only EXISTS once T-03's rule has
+      landed.
+
+      THE SHARED FIXTURE, built the way each file already builds a feature directory: a plan.yaml
+      that PARSES and is otherwise legal - feature, status plan, approval status pending, two
+      complete tasks T-01 and T-02 - where T-02 carries depends_on [T-99]. Assert first, in each
+      file, that harness_yaml.load_plan RAISES on that fixture and RETURNS on the paired legal one
+      (T-02 carrying depends_on [T-01]), so a fixture that was merely broken in some other way
+      cannot be mistaken for the rule firing.
+
+      Assert only on the two ids T-02 and T-99, never on the rest of the wording. Where the site
+      prints, ALSO assert the operator is no longer told the wrong cause: the phrase "no plan
+      could be read" must be absent from factory_claim's reason, and "Traceback" must be absent
+      from gh-sync's output.
+
+      In tests/unit/test-factory-claim.py:
+      a. THE DIAGNOSIS. Drive the blocker gate over a candidate resolving to the dangling fixture
+         and assert the reason text a caller receives contains BOTH T-02 and T-99 and does not
+         carry the missing-or-unparseable wording at factory_claim.py:193-196.
+      b. THE PAIRED CORRECT PLAN. The same candidate over the legal fixture: the blocker verdict is
+         exactly today's - assert the same verdict this file's existing clear-candidate case
+         asserts, so a change that broke correct plans reddens here.
+      c. NOT A CRASH, AND NOT A STOPPED POLL. The gate returns rather than raising, and a second
+         candidate in the same poll whose plan is legal is still evaluated and still gets today's
+         verdict. Without c, an implementation that let the exception escape would pass a.
+
+      In tests/integration/test-gh-sync.py:
+      d. _projected_for REFUSES. Through subprocess, run start-task over the dangling fixture -
+         gh-sync start-task <fixture> T-NN with a board configured, the shape this file's existing
+         start-task cases already stage through stage_station - and assert exit status EXACTLY 2,
+         one stderr line containing both T-02 and T-99, and no "Traceback" anywhere in the output.
+         USE start-task, NEVER status Ready, for this case: status Ready's approval guard refuses at
+         exit 2 on its own (gh-sync.py:1306-1307), so a build that fixed only _status_plan_doc would
+         green a status-Ready reading of this case while _projected_for still returned {}. start-task
+         discriminates - with _projected_for unchanged the station is simply absent, the command
+         prints "no station follows from the plan" and exits 0. The plan write start-task makes first
+         does not refuse the dangling fixture: set-task-station validates only the station name
+         against harness.json and takes no schema check (plan-merge.py cmd_set_task_station). Exit 2
+         plus the no-traceback assertion are what pin the house pattern at gh-sync.py:1160-1168;
+         asserting merely non-zero is satisfied by a crash, which is the posture that comment forbids.
+      e. THE PAIRED ALLOW for d: the same start-task invocation over the legal fixture behaves as it
+         does today - assert the outcome this file's existing start-task case asserts.
+      f. _status_plan_doc DIAGNOSES WITHOUT GATING. Run gh-sync status <fixture> Ready over the
+         dangling fixture and assert BOTH that stderr carries a line containing T-02 and T-99, AND
+         that the exit status and the existing refusal line are UNCHANGED from today - today the
+         ready guard refuses at exit 2 with "station ready refused" because approval reads as
+         absent (gh-sync.py:1306-1307). Capture that current pair first and assert the new line is
+         ADDITIVE to it. This case is what stops T-06 from turning a designed decline into a gate.
+      g. THE PAIRED ALLOW for f: over the legal fixture the same guarded transition proceeds
+         exactly as this file's existing case for it asserts.
+
+      Add NO case for self-dependency, cycles or task ordering: the operator ruled all three out of
+      scope.
+  - id: T-06
+    title: Surface the specific validation error at the three consumer swallow sites
+    traces: [REQ-04, REQ-05]
+    change_type: bugfix
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-05]
+    status: done
+    files:
+      - .claude/skills/harness/bin/factory_claim.py
+      - .claude/skills/harness/bin/gh-sync.py
+    verify: |
+      python3 tests/unit/test-factory-claim.py &&
+      python3 tests/unit/test-factory-claim-mutation.py &&
+      python3 tests/integration/test-gh-sync.py &&
+      python3 tests/integration/test-check-plan-routes.py &&
+      python3 tests/integration/test-harness-yaml.py &&
+      python3 tests/integration/test-plan-merge.py &&
+      python3 tests/unit/test-harness-yaml-corpus.py &&
+      python3 tests/unit/test-plan-depends-on.py &&
+      python3 tests/integration/test-factory-decompose.py &&
+      python3 tests/integration/test-check-state.py
+    intent: |
+      Make each of the three swallow sites surface the specific PlanSchemaError T-03 raises, in the
+      per-site posture D-05 records. Touch NO other file, and change NO other behaviour: every
+      posture below is chosen so a CORRECT plan's path through these two files is the path it takes
+      today. You VALIDATE nothing here - the rule is T-03's; this task only reports what it raised.
+
+      .claude/skills/harness/bin/factory_claim.py - _plan (:106-109) and the blocker gate:
+      - Keep returning None from _plan. The poll evaluates many candidates and an exception here
+        would abort every candidate after the bad one. Retain the exception text instead - a second
+        cache keyed the same (repo, feature) way beside self._plans, holding str(exc) - and add a
+        new blocker kind, bad_plan, carrying the path and that text.
+      - _blocker_gate returns bad_plan INSTEAD of no_plan when the plan file EXISTS and load_plan
+        raised. _blocker_reason_text renders it as one line naming the file and the validator's own
+        message, so the T-02 to T-99 pair reaches the operator. no_plan keeps its exact current
+        text for the two cases it was written for - the feature root absent, and the directory or
+        plan.yaml absent (:186-196).
+      - Do NOT change WHICH candidates are blocked. A plan that does not load is still blocked,
+        exactly as today; only the reason text changes.
+
+      .claude/skills/harness/bin/gh-sync.py - _projected_for (:1153-1156):
+      - Replace the bare except harness_yaml.YamlParseError: return {} with a refusal in the shape
+        this function's own sibling branch already uses at :1160-1168 - refuse(...), so exit is 2,
+        ONE actionable line, never a traceback - naming the plan path and interpolating the
+        exception so both ids are in the line.
+      - Keep the absent-file return {} at :1151-1152 exactly as it is: no plan is not a malformed
+        plan, and that path is DEC-138's own case.
+      - Update the docstring at :1141-1148, which today states that an unreadable plan yields an
+        empty mapping, so it states the new posture and cites DEC-138 the way the sibling comment
+        beneath it does.
+
+      .claude/skills/harness/bin/gh-sync.py - _status_plan_doc (:1263-1266):
+      - Print ONE actionable stderr line naming the plan path and interpolating the exception, then
+        return None as before. Do NOT refuse and do NOT raise: cmd_status's two guarded transitions
+        already decline correctly on a None doc (:1306-1307, :1318-1319), so the exit status and
+        the flow stay exactly as they are and only the cause reaching the operator is new. Without
+        this line the operator is told "station ready refused - plan.yaml's approval.status is not
+        'approved'" about a plan that never loaded.
+      - Update the docstring at :1256-1259 so it says the failure is reported before it is
+        returned.
+
+      Add no new exception class and no new import. Comment discipline as elsewhere in these files:
+      say what the change prevents - an operator told the wrong cause for a plan that carries a
+      dangling depends_on, issue 201 - rather than restating the code.

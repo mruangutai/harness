@@ -2063,6 +2063,133 @@ def case_amend_duplicate_id_is_refused():
 
 
 
+# ---------------------------------------------------------------------------
+# BUG-201 — a `depends_on` entry naming a task absent from the plan must not
+# survive `apply`. `_verify_spliced` already refuses any merge that turns a
+# LEGAL base plan into an ILLEGAL one (exit 5, "ILLEGAL PLAN"); this proves
+# that guard covers a dangling depends_on edge specifically, once
+# harness_yaml.validate_plan_doc knows to check it (T-03). Until T-03 lands
+# the apply below SUCCEEDS where it must refuse, so case (a) is the RED half.
+# ---------------------------------------------------------------------------
+
+
+def _bug201_base_plan():
+    """A LEGAL plan per harness_yaml.load_plan: schema, feature, plan status, approval
+    status pending, and two COMPLETE tasks (every REQUIRED_TASK_FIELDS field) with no
+    dangling depends_on edge — T-02 depends on T-01, which is present.
+
+    Asserting load_plan accepts this BEFORE the refusal case is what makes the refusal mean
+    something: plan-merge only refuses a merge that makes a LEGAL plan illegal
+    (plan-merge.py's `_verify_spliced`), so a base that was already illegal would prove
+    nothing about the merge."""
+    return (
+        "schema: plan/1\n"
+        "feature: FEAT-99-fixture\n"
+        "status: plan\n"
+        "approval:\n"
+        "  status: pending\n"
+        "tasks:\n"
+        "  - id: T-01\n"
+        "    title: first task\n"
+        "    change_type: logic\n"
+        "    execution_mode: main-session-direct\n"
+        "    files: [a.py]\n"
+        "    verify: run it\n"
+        "    intent: do it\n"
+        "    status: done\n"
+        "    depends_on: []\n"
+        "  - id: T-02\n"
+        "    title: second task\n"
+        "    change_type: logic\n"
+        "    execution_mode: main-session-direct\n"
+        "    files: [b.py]\n"
+        "    verify: run it\n"
+        "    intent: do it\n"
+        "    status: done\n"
+        "    depends_on: [T-01]\n"
+    )
+
+
+def _bug201_proposal(depends_on_target):
+    """A proposal adding one complete task T-03, depending on `depends_on_target` only —
+    the single variable between case (a)'s refusal and case (b)'s paired allow. No
+    `approval:` key, so the merge takes the exit-0 no-approval-key path case 10b already
+    covers rather than exercising a second, unrelated refusal."""
+    return (
+        "schema: plan/1\n"
+        "feature: FEAT-99-fixture\n"
+        "tasks:\n"
+        "  - id: T-03\n"
+        "    title: third task\n"
+        "    change_type: logic\n"
+        "    execution_mode: main-session-direct\n"
+        "    files: [c.py]\n"
+        "    verify: run it\n"
+        "    intent: do it\n"
+        "    status: pending\n"
+        f"    depends_on: [{depends_on_target}]\n"
+    )
+
+
+def case_bug201_apply_refuses_dangling_depends_on():
+    """BUG-201. A `depends_on` entry naming a task absent from the same plan must not
+    survive `apply` as a signable, dangling GitHub `blocked_by` edge.
+
+    a and b use INDEPENDENT fixtures (case 10's own pattern), not one plan.yaml mutated
+    twice: (a) is expected to be REFUSED before T-03 lands, but isn't yet (that is the RED),
+    so a shared fixture would leave T-03 already present with depends_on: [T-99] and turn
+    (b)'s apply into an unrelated CONFLICT rather than a clean paired allow.
+
+    a. THE REFUSAL. T-03's proposal names depends_on: [T-99], and T-99 is nowhere in the
+       plan. Exit 5, ILLEGAL PLAN and T-99 both named in the combined output, and the base
+       file byte-identical to before the call — a refusal that still wrote a partial splice
+       would be worse than no refusal at all.
+    b. THE PAIRED ALLOW. Same proposal, depends_on: [T-01] instead — a real task id, against
+       its own fresh copy of the same base. Exit 0, T-03 lands. Without this half, a
+       plan-merge that refused every apply would pass (a) vacuously.
+    """
+    import harness_yaml
+
+    root_a, plan_a = fixture_root(prefix="plan-merge-test-bug201a-")
+    try:
+        base = write(plan_a, _bug201_base_plan())
+        loads_clean = True
+        try:
+            harness_yaml.load_plan(plan_a)
+        except Exception:
+            loads_clean = False
+        check("bug201: the fixture base is a LEGAL plan (harness_yaml.load_plan accepts it)",
+              loads_clean, "load_plan raised on the fixture base — this case would prove nothing")
+
+        proposal_a = os.path.join(root_a, "proposal-dangling.yaml")
+        write(proposal_a, _bug201_proposal("T-99"))
+        r_a = run_apply(plan_a, proposal_a)
+        out_a = r_a.stdout + r_a.stderr
+        check("bug201a: apply refuses a dangling depends_on with exit 5",
+              r_a.returncode == 5, f"rc={r_a.returncode} out={out_a}")
+        check("bug201a: refusal names ILLEGAL PLAN", "ILLEGAL PLAN" in out_a, out_a)
+        check("bug201a: refusal names the dangling id T-99", "T-99" in out_a, out_a)
+        after_a = read(plan_a)
+        check("bug201a: base file is byte identical to before the refused apply",
+              after_a == base, repr((base, after_a)))
+    finally:
+        shutil.rmtree(root_a, ignore_errors=True)
+
+    root_b, plan_b = fixture_root(prefix="plan-merge-test-bug201b-")
+    try:
+        write(plan_b, _bug201_base_plan())
+        proposal_b = os.path.join(root_b, "proposal-allowed.yaml")
+        write(proposal_b, _bug201_proposal("T-01"))
+        r_b = run_apply(plan_b, proposal_b)
+        check("bug201b: the paired apply naming a real dependency exits 0",
+              r_b.returncode == 0, f"rc={r_b.returncode} out={r_b.stdout + r_b.stderr}")
+        after_b = read(plan_b)
+        check("bug201b: T-03 is present after the allowed apply", "- id: T-03\n" in after_b, after_b)
+    finally:
+        shutil.rmtree(root_b, ignore_errors=True)
+
+
+
 # THE CASE LIST IS DATA, NOT CONTROL FLOW (BUG-1128 panel F3).
 #
 # `main` was a flat sequence of one call per line, and every case this feature added made
@@ -2126,6 +2253,7 @@ CASES = (
     case_amend_f1_all_four_block_forms_round_trip,
     case_amend_f1_non_text_field_is_refused,
     case_amend_f2_under_lock_hash_is_pinned,
+    case_bug201_apply_refuses_dangling_depends_on,
 )
 
 

@@ -1,0 +1,395 @@
+schema: plan/1
+feature: BUG-240-workspace-hard-reset-guard
+approval:
+  date: '2026-09-07'
+  approved_by: operator
+  status: approved
+status: done
+source_issues: [240]
+
+lanes:
+  resolved_at: 6d969ed375f8458e32c47502ecdcc85bb9916635
+  rows:
+    - surface: .claude/skills/harness/bin/factory_workspace.py
+      lane: team
+      agent: harness-backend-dev | harness-dev-ops
+    - surface: tests/unit/test-factory-workspace.py
+      lane: team
+      agent: harness-backend-dev | harness-dev-ops | harness-qa
+
+decisions:
+  - id: D-01
+    choice: |
+      The self-checkout guard compares the resolved real path of the computed workspace path
+      against the resolved real path of this control-plane checkout, and refuses only on identity
+      of the two paths. It does not refuse because the target is some harness-onboarded
+      repository.
+    because: |
+      harness is legitimately a fleet repo, so a factory checkout of harness at a workspace_root
+      elsewhere is a DIFFERENT checkout and must still work; and the containment case, a computed
+      path that merely CONTAINS the control plane, already refuses under the uncommitted-work
+      condition, because a nested checkout is untracked-not-ignored content.
+    dec: none
+
+panel:
+  last_run: 2026-09-07-01-validator
+  cycle: 0
+  readers:
+  - reader: should-not-exist
+    persona: fable-advisor
+    status: ran
+  - reader: scope
+    persona: harness-code-reviewer
+    status: ran
+  - reader: goalcheck
+    persona: harness-pm
+    status: ran
+  findings:
+  - id: PF-77b1ddb6889fe9e108e4325b66c41a40
+    severity: med
+    reader: scope
+    summary: "`_control_plane_root()`'s real `resolve_root` path is never exercised:\
+      \ both REQ-01 cases replace it with a lambda, so a `HARNESS_PROJECT_DIR` pointing\
+      \ at another onboarded checkout is honoured **silently** and the identity guard\
+      \ compares against the wrong root \u2014 the 2026-08-10 near-miss goes unrefused\
+      \ and nothing in the suite reddens."
+    disposition: resolved
+    resolved_by: T-02
+  - id: PF-a6616ff1558ea680fc77f54d42579e21
+    severity: info
+    reader: should-not-exist
+    summary: "Cases 2/5's \"stderr holds exactly one non-empty line\" can redden a\
+      \ **correct** T-02: post-T-02 the real-git cases call the real `_control_plane_root()`,\
+      \ and `resolve_root` prints a `discarding HARNESS_PROJECT_DIR=\u2026` line to\
+      \ `sys.stderr` when the override is set but carries no MARKER. Neither the suite\
+      \ nor `run-unit-tests.sh` sanitises the variable."
+    disposition: resolved
+    resolved_by: T-01
+  - id: PF-1414b1a16d9c271f2793225d4ea61f1f
+    severity: med
+    reader: should-not-exist
+    summary: 'Case 5''s bespoke fixture is mandated on the premise that `run_main`
+      cannot express the case, but the stubbed `_control_plane_root` makes the elaborate
+      half inert: the tmproot marker file is never read once the stub is installed,
+      and the hand-rolled `_main` driver duplicates `run_main`''s argv/monkeypatch
+      idiom and will drift from it. Cost: ~25 lines a reviewer must defend that protect
+      nothing case 6 does not.'
+    disposition: resolved
+    resolved_by: T-01
+  - id: PF-d795aab03bf4a49e7ef3ef6614024cdf
+    severity: low
+    reader: should-not-exist
+    summary: "Case 7's source-text scan for `--force`/`--yes`/`FACTORY_FORCE` catches\
+      \ only three exact spellings, while permanently forbidding the module's own\
+      \ docstring from naming the thing it refuses \u2014 the natural sentence \"\
+      there is deliberately no `--force` flag\", the issue's own language, reddens\
+      \ the suite."
+    disposition: open
+  - id: PF-ff733189ddbdfca901c0d587800cb8c4
+    severity: low
+    reader: scope
+    summary: D-01's containment reasoning ("a nested checkout is untracked-not-ignored
+      content", so containment needs no dedicated refusal) has no fixture confirming
+      `status --porcelain` actually reports it. The premise ships unverified.
+    disposition: open
+  - id: PF-431ac7611df9e9f693cc55960324e0e9
+    severity: critical
+    reader: goalcheck
+    summary: T-01 case 7 asserts `os.environ` occurs exactly once in factory_workspace.py;
+      it occurs three times at :22, :39 and :48 at 6d969ed, so both T-01's and T-02's
+      verify chains are unsatisfiable as drafted.
+    disposition: resolved
+    resolved_by: T-01
+  - id: PF-96c11e8a1933bb7957d176eba16621bf
+    severity: unrated
+    reader: goalcheck
+    summary: Case 5's pre-T-02 FAIL comes from `_control_plane_root` being absent
+      rather than from the destructive behaviour for the self-checkout condition,
+      so REQ-01's discrimination is unproven in the red state.
+    disposition: resolved
+    resolved_by: T-01
+  - id: PF-7bec78635ffb233ec6a99618f15cde1d
+    severity: unrated
+    reader: goalcheck
+    summary: No case asserts the `fetch` then `checkout <default_branch>` then `reset
+      --hard` ordering that SC-04 names; existing cases assert only clone-first, fetch-present
+      and issue-branch-last.
+    disposition: resolved
+    resolved_by: T-01
+  - id: PF-33f44e35ac81b9c0007e93eadec4716e
+    severity: unrated
+    reader: goalcheck
+    summary: 'Case 5 needs a repo-name-override fixture the named helper cannot express:
+      `good_fleet_dict`/`run_main` hardcode REPO = acme/widget.'
+    disposition: resolved
+    resolved_by: T-01
+  - id: PF-b7504dbc772ba8f0c0111aadae5c80dd
+    severity: unrated
+    reader: goalcheck
+    summary: The intake note cites `workspace_path` at factory_config.py:399-404;
+      it is actually at 394-399.
+    disposition: resolved
+tasks:
+  - id: T-01
+    title: Add the failing guard cases to the factory_workspace unit suite
+    traces: [REQ-01, REQ-02, REQ-03, REQ-04, REQ-05, REQ-06]
+    success_criteria: [SC-01, SC-02, SC-03, SC-04, SC-06]
+    change_type: scaffolding
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: []
+    status: done
+    files:
+      - tests/unit/test-factory-workspace.py
+    verify: |
+      cd "$(git rev-parse --show-toplevel)"
+      out=$(python3 tests/unit/test-factory-workspace.py); rc=$?
+      test "$rc" = 1 \
+        && test "$(printf '%s\n' "$out" | grep -c '^FAIL  ')" = 4 \
+        && printf '%s\n' "$out" | grep -q '^FAIL  BUG-240 dirty tracked: exits 2 before any fetch' \
+        && printf '%s\n' "$out" | grep -q '^FAIL  BUG-240 dirty tracked: refusal line names the path and the uncommitted-work condition' \
+        && printf '%s\n' "$out" | grep -q '^FAIL  BUG-240 dirty tracked: the modified file survives byte-identical' \
+        && printf '%s\n' "$out" | grep -q '^FAIL  BUG-240 self checkout: refused when clean, naming the self-checkout condition' \
+        && printf '%s\n' "$out" | grep -q '^ok    BUG-240 ignored-only dirt: not refused' \
+        && printf '%s\n' "$out" | grep -q '^ok    BUG-240 other harness checkout: onboarded but not the control plane is not refused' \
+        && printf '%s\n' "$out" | grep -q '^ok    BUG-240 no bypass: the parser rejects --force' \
+        && printf '%s\n' "$out" | grep -q '^ok    BUG-240 existing checkout: refresh order is fetch, checkout default, reset --hard'
+    intent: |
+      This task writes tests ONLY. Do not edit any file under .claude/skills/harness/bin here: the
+      production guard is T-02, and this suite must be red before it is written.
+
+      Two facts you cannot see from the files alone:
+      (i) .agents/skills is a symlink to ../.claude/skills, so there is exactly ONE production
+      file and its canonical spelling is .claude/skills/harness/bin/factory_workspace.py.
+      (ii) git status --porcelain already means exactly the dirty predicate this bug names -
+      tracked modifications, staged content, and untracked files that are not ignored - and lists
+      ignored files only under --ignored. Do not hand-roll any classification of dirt.
+
+      Append the seven cases below to tests/unit/test-factory-workspace.py, after the existing case
+      (K), and add ONE further check inside the existing case (B) block as the last paragraph
+      instructs. Reuse that file's own idiom: the module-level check(name, cond, detail) counter, the
+      Recorder run_git stand-in, run_main(rec, extra_args, workspace_root), checkout_path(wr) and
+      tempfile.TemporaryDirectory. Every case name begins with the literal prefix "BUG-240 ", and all
+      eight names - the seven cases and the one added (B) check - are matched verbatim by this task's
+      verify command, so spell them exactly. Report any exception a case raises through
+      check(name, False, str(exc)) rather than letting it abort the file, so code T-02 has not written
+      yet produces a FAIL line rather than a traceback that hides the remaining cases.
+      Emit each of the eight names from EXACTLY ONE check(name, cond, detail) call: where a case
+      asserts several things, conjoin them into that one call's condition and put enough in the
+      failing detail to diagnose which conjunct failed. Do not split a case across several
+      differently-named checks the way the existing (A), (D) and (F2) blocks do, and add no further
+      check name to this file - the verify command asserts the total number of "FAIL  " lines, so one
+      extra name reddens a correct implementation. That total is deliberate: before T-02 exactly four
+      of the eight are red - cases 1, 2, 3 and 5 - and pinning the total also catches any PRE-EXISTING
+      check going red as a side effect of the new fixtures, because the real-git helper and the
+      _control_plane_root stand-in both mutate module and filesystem state that other cases read. The
+      exception rule above obeys the same arithmetic: a case that raises reports through its own single
+      check(name, False, str(exc)), so an exception still costs exactly one line.
+
+      Environment hygiene, required in EVERY case that asserts on stderr CONTENT (cases 2 and 5) and
+      in EVERY real-git driver (cases 2, 3 and 4), and not an assertion of its own: before the run,
+      remove HARNESS_PROJECT_DIR from os.environ - prev = os.environ.pop("HARNESS_PROJECT_DIR", None)
+      - and restore it in a finally, putting the previous value back only when prev is not None.
+      Reason: harness_boundary.resolve_root reads that variable and, when it is set but carries no
+      .harness/team-config.yaml marker, prints a "discarding HARNESS_PROJECT_DIR=..." line to stderr
+      (harness_boundary.py:78-86); factory_config delegates its own root resolution to that resolver
+      (factory_config.py:56-58), so an agent or operator shell with the variable set reddens a CORRECT
+      build through factory_config's resolution rather than through anything the guard does, against
+      the "stderr holds exactly one non-empty line" assertions. Popping it from os.environ also strips
+      it from the environment any subprocess these fixtures spawn inherits. Do not rename any case and
+      add no check name for this.
+
+      Extend Recorder with a constructor keyword porcelain="" and answer any argv whose first
+      element is "status" with that string, leaving every other answer as it is today.
+
+      Write one helper, real_repo(wr), used by cases 2, 3 and 4. It builds a REAL pair of
+      repositories with subprocess so the refresh path can run end to end with no network: a bare
+      repository at wr/origin.git created with git init --bare -b main; a working checkout at
+      checkout_path(wr) created with git init -b main, git config user.email and user.name set
+      locally, one committed file tracked.txt holding known bytes, git remote add origin pointing
+      at the bare path, and git push -u origin main. Return the checkout path. Cases using this
+      helper must NOT monkeypatch run_git - run_main installs the recorder, so those cases call
+      fw._main through their own small driver that leaves fw.run_git alone, or pass the real
+      fw.run_git as the recorder argument. Real git here is safe and fast: every remote is a local
+      path.
+
+      Case 1 - name "BUG-240 dirty tracked: exits 2 before any fetch".
+      Recorder-based. Build a temporary workspace_root, create checkout_path(wr)/.git so the
+      existing-checkout branch is taken, run run_main with Recorder(porcelain=" M tracked.txt\n"),
+      and assert the exit code is 2 AND that no recorded call has first element "fetch", "reset" or
+      "clone".
+
+      Case 2 - name "BUG-240 dirty tracked: refusal line names the path and the uncommitted-work condition".
+      Use real_repo(wr), then overwrite tracked.txt with different bytes so the checkout carries an
+      uncommitted tracked modification. Run the tool with real git. Assert stderr holds exactly one
+      non-empty line, that it begins with "factory: workspace: ", that it contains the absolute
+      checkout path, that it contains the word "uncommitted", and that it does NOT contain
+      "unexpected failure" - that string is factory_cli.run's trap, and a refusal arriving through
+      the trap is the failure mode this bug forbids. Assert the exit code is 2.
+
+      Case 3 - name "BUG-240 dirty tracked: the modified file survives byte-identical".
+      Same fixture and same run as case 2, with the second content chosen as known bytes. After the
+      run read tracked.txt back in binary and assert its bytes equal the second content exactly. This
+      case reproduces the defect: without the guard the refresh reaches git reset --hard origin/main
+      against a real repository and the modification is destroyed, so the case is red before T-02 and
+      green after it.
+
+      Case 4 - name "BUG-240 ignored-only dirt: not refused".
+      Use real_repo(wr), then commit a .gitignore whose single line is "junk/" and push it, then
+      create junk/scratch.txt after the commit so the only untracked content is ignored. Run the tool
+      with real git. Assert the exit code is 0 or None, that junk/scratch.txt still exists, and that
+      git rev-parse --abbrev-ref HEAD in the checkout reports factory/issue-42 - the refresh and the
+      issue-branch checkout both completed.
+
+      Case 5 - name "BUG-240 self checkout: refused when clean, naming the self-checkout condition".
+      T-02 introduces a module-level function fw._control_plane_root() returning the control-plane
+      checkout path. Install a stand-in for it UNCONDITIONALLY -
+      setattr(fw, "_control_plane_root", lambda: checkout_path(wr)) - inside a try/finally that
+      restores whatever was there before: take missing = object(), read
+      prev = getattr(fw, "_control_plane_root", missing) before the setattr, and in the finally
+      setattr prev back, or delattr(fw, "_control_plane_root") when prev is the sentinel. Do NOT
+      branch on whether the attribute already exists and do NOT report its absence through check():
+      before T-02 it does not exist, and a case red on a missing symbol never exercises the refusal
+      at all. Installed unconditionally, this case is red before T-02 because the tool actually
+      reached the destructive commands - which is the defect itself - and green after it.
+
+      Case 5's fixture, run and assertions: build a temporary workspace_root wr and create
+      checkout_path(wr)/.git so the existing-checkout branch is taken, with the stand-in above aimed
+      at checkout_path(wr). The computed workspace path then IS the stubbed control plane, so this
+      case needs nothing bespoke: no fleet repo-name override, no hand-built fleet dict, no
+      write_fleet call and no hand-rolled _main driver - drive it with run_main and a plain
+      Recorder() whose porcelain answer is "" so the target reads CLEAN. Assert the exit code is 2,
+      that no recorded call has first element "fetch", "reset" or "clone", that stderr holds exactly
+      one non-empty line, that that line contains checkout_path(wr), and that it names the
+      self-checkout condition rather than the uncommitted one: it must contain "control-plane" and
+      must NOT contain "uncommitted".
+
+      Case 6 - name "BUG-240 other harness checkout: onboarded but not the control plane is not refused".
+      This is D-01's negative half, which nothing else covers: a target checkout that IS
+      harness-onboarded but is NOT this control plane must NOT be refused. Build a temporary
+      workspace_root wr, create checkout_path(wr)/.git so the existing-checkout branch is taken, and
+      create checkout_path(wr)/.harness/team-config.yaml so the target looks like an onboarded
+      harness checkout. That marker file is load-bearing and must be created: it is the only fixture
+      pinning D-01's choice that the predicate is identity-of-checkout and not
+      is-a-harness-repository. Install fw._control_plane_root with setattr returning a DIFFERENT
+      temporary directory, under the same sentinel try/finally discipline as case 5. run_main is
+      usable as it stands here, because the default REPO and checkout_path pair is exactly what this
+      case wants: run it with a plain Recorder() whose porcelain answer is "". Assert the exit code
+      is 0 or None AND that some recorded call has first element "fetch" - the refresh proceeded.
+      This is the case that proves the predicate is identity of the checkout, not
+      is-a-harness-repository, which is what D-01 chose. It is green before T-02, because the tool
+      refuses nothing today, and it must still be green after it.
+
+      Case 7 - name "BUG-240 no bypass: the parser rejects --force".
+      Run run_main with extra_args ["--repo", REPO, "--issue", str(ISSUE), "--force"] and assert the
+      exit code is 2, which argparse already produces for an unrecognised argument. Then read the
+      source text of fw.__file__ and assert it contains none of the substrings "--force", "--yes" and
+      "FACTORY_FORCE". Assert NO occurrence count of anything, and do not restore one: an earlier
+      draft of this case required the environment-lookup token used by run_git to appear exactly once
+      in the source text, which is false at 6d969ed - it appears three times, as docstring text at
+      lines 22 and 39 plus the single live FACTORY_GIT lookup at line 48 - and that clause made BOTH
+      tasks' verify commands unpassable. A count over a whole source file also reddens on any
+      legitimate future edit unrelated to a bypass, so it is an over-pin; the three bypass spellings
+      above are what REQ-06 actually forbids. Do not assert the absence of the word "force" alone
+      either: _checkout_issue_branch's docstring legitimately says "force-aligned". This case is
+      green before and after T-02; it exists so a later edit that adds an escape hatch reddens the
+      suite.
+
+      One further check, inside the EXISTING case (B) block (tests/unit/test-factory-workspace.py
+      :156-164), not a new case. Its name is
+      "BUG-240 existing checkout: refresh order is fetch, checkout default, reset --hard".
+      SC-04 says a clean scratch checkout still refreshes with the same git commands in the same
+      order, and nothing asserts the order; (B) is the one fixture that already exercises a clean
+      EXISTING checkout through the Recorder, and BUG-240 case 4 runs against real git with no
+      recorder so it cannot carry the assertion. Add exactly ONE check, and keep the BUG-240 prefix
+      in its name so its provenance stays visible. Shape it so T-02 cannot break it: do NOT slice
+      rec.calls[0:3], because T-02 adds a status --porcelain call ahead of the refresh and the
+      Recorder also records branch --list and for-each-ref probes. Filter the recorded calls to those
+      whose first element is one of "clone", "fetch", "checkout", "reset", and assert that the
+      filtered argv sequence BEGINS with ("fetch", "origin"), then ("checkout", DEFAULT_BRANCH), then
+      ("reset", "--hard", f"origin/{DEFAULT_BRANCH}"), that no "clone" appears in it, and that the
+      LAST recorded call of the whole run is the issue-branch checkout. Written that way it is green
+      before T-02 and stays green after it.
+      </content>
+      <parameter name="i">Writing amended T-01 intent
+
+  - id: T-02
+    title: Refuse a self-checkout or a dirty target before the first destructive git command
+    traces: [REQ-01, REQ-02, REQ-03, REQ-04, REQ-05, REQ-06]
+    success_criteria: [SC-01, SC-02, SC-03, SC-04, SC-05, SC-06]
+    change_type: bugfix
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-01]
+    status: done
+    files:
+      - .claude/skills/harness/bin/factory_workspace.py
+    verify: |
+      cd "$(git rev-parse --show-toplevel)"
+      python3 tests/unit/test-factory-workspace.py \
+        && bash .agents/skills/harness/bin/run-unit-tests.sh --kind unit
+    intent: |
+      T-01 has already written the failing cases. Do not weaken, rename or delete any of them; make
+      them pass. .agents/skills is a symlink to ../.claude/skills, so there is exactly ONE file to
+      edit and its canonical spelling is .claude/skills/harness/bin/factory_workspace.py.
+
+      Add harness_boundary to the module's imports - factory_config already imports it from the
+      same bin directory - and a module-level _BIN_DIR = os.path.dirname(os.path.abspath(__file__)),
+      the same line factory_config carries.
+
+      Add a module-level function _control_plane_root() returning
+      harness_boundary.root_from_script(_BIN_DIR). Reuse that resolver: do not write a
+      fourth private walk-up copy of the idiom, and never probe for a bare .harness DIRECTORY.
+      harness_boundary.MARKER is .harness/team-config.yaml, and the bare-directory probe is the
+      recorded fail-open that resolved $HOME as a root. Use root_from_script and NOT
+      resolve_root, and do not switch it back: resolve_root reads HARNESS_PROJECT_DIR
+      (harness_boundary.py:66-94), so an environment variable could redirect what this guard
+      believes its own checkout is - silently unprotecting the real control plane, which is the
+      exact failure REQ-01 exists to prevent - and when that override is set but carries no MARKER
+      it also prints a "discarding HARNESS_PROJECT_DIR=..." line to stderr
+      (harness_boundary.py:82-86), which would redden a CORRECT build against T-01 case 2's
+      "stderr holds exactly one non-empty line" assertion. root_from_script is documented in
+      harness_boundary (harness_boundary.py:57-64) as pure arithmetic with ZERO environment reads
+      and ZERO filesystem access, which is exactly the question this guard asks: which checkout is
+      this running code in. It is still harness_boundary reuse, so the no-fourth-private-copy
+      constraint holds.
+
+      In _main(), immediately after path = factory_config.workspace_path(fleet, args.repo) and the
+      branch assignment, and BEFORE the if not os.path.isdir(os.path.join(path, ".git")) branch,
+      insert the guard in this order.
+
+      First the identity check. When os.path.realpath(path) equals
+      os.path.realpath(_control_plane_root()), call factory_cli.refuse with tool "workspace", what
+      "refusing to reset the harness control-plane checkout", value os.path.abspath(path), and
+      next_step "the control plane is never its own scratch workspace: point workspace_root in
+      fleet.yaml at a directory that is not this checkout". Identity of the two resolved real paths
+      is the whole predicate: a computed path that merely contains, or is contained by, the control
+      plane is not this condition, and a harness checkout somewhere else is a legitimate factory
+      workspace.
+
+      Second the dirty check, and only when the checkout already exists - keep it inside an
+      os.path.isdir(os.path.join(path, ".git")) test so a missing checkout still clones with no
+      extra git call, which the existing case (A) asserts. Call
+      dirt = run_git(["status", "--porcelain"], path) and, when dirt.strip() is non-empty, call
+      factory_cli.refuse with tool "workspace", what "refusing to reset a checkout with uncommitted
+      changes", value os.path.abspath(path), and next_step "commit, stash or discard the work in
+      that checkout, or point workspace_root at a scratch directory". Pass no --ignored flag: plain
+      --porcelain is exactly the stated predicate, so ignored-only content reads clean and is not
+      refused.
+
+      Both refusals go through factory_cli.refuse, which prints the one canonical stderr line and
+      exits 2 (EXIT_REFUSED). Never produce a refusal by letting a git command fail into run_git's
+      RuntimeError: factory_cli.run traps that as an unexpected failure with a different, wordier
+      line, and T-01 case 2 asserts that string is absent.
+
+      Add no flag, no argument and no environment variable that bypasses either refusal. The
+      argument parser keeps exactly --repo, --issue and --fleet.
+
+      Update the module docstring with one short paragraph recording that the refresh branch is now
+      guarded before its first destructive command by these two conditions, and why the identity
+      predicate is identity rather than is-a-harness-repository. That paragraph must not contain the
+      strings --force, --yes or FACTORY_FORCE, because T-01 case 7 asserts the absence of those three
+      substrings from this file's source text. Leave the rest of the module, including
+      _checkout_issue_branch, unchanged.
+      </content>
+      <parameter name="i">Writing amended T-02 intent

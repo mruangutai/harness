@@ -83,7 +83,7 @@ def resolve_repo(repo):
         sys.exit(2)
 
     owner_root = factory_config.workspace_path(fleet, repo)
-    segment = repo.split("/", 1)[-1]
+    segment = factory_config.segment_of(repo)
     return owner_root, segment, entry["default_branch"]
 
 
