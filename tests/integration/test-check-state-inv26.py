@@ -110,11 +110,37 @@ def _inv26_fixture(root, feat, task_status, card_status, parent_status,
                                         if it.get("status") is not None else None)}
                   for it in items],
         "pageInfo": {"hasNextPage": False, "endCursor": None}}}}}})
+    # THREE SHAPES NOW, and the third arrived by repeating the lesson the paragraph above
+    # records. Issue #1541 replaced INV-26's whole-board read with a BY-ISSUE one
+    # (gh_board.board_stations_for -> factory_gh.issue_stations), whose response is keyed by
+    # `i<number>` alias under `repository`. A fake serving only the two older shapes answers
+    # that query with `repository: null`, the read raises, check-state.sh's bare except
+    # swallows it, and every assertion here passes vacuously again — which is exactly how
+    # this was caught: fourteen named cases went red at once.
+    #
+    # Every known card is emitted as an alias. A card the query asks about that is NOT here
+    # comes back absent, which is the "not on the board" answer v.5 asserts on.
+    byissue = json.dumps({"data": {"repository": {
+        "i%d" % it["content"]["number"]: {
+            "number": it["content"]["number"],
+            "projectItems": {
+                "pageInfo": {"hasNextPage": False},
+                "nodes": [{"project": {"number": 3},
+                           "fieldValueByName": ({"name": it["status"]}
+                                                if it.get("status") is not None else None)}],
+            },
+        }
+        for it in items}}})
     fake = os.path.join(root, "fake-gh")
     with open(fake, "w") as f:
         f.write("#!/bin/bash\ncase \"$1 $2\" in\n"
                 "  \"auth status\") exit 0 ;;\n"
-                "  \"api graphql\") cat <<'GQL'\n" + gql + "\nGQL\n    exit 0 ;;\n"
+                "  \"api graphql\")\n"
+                "    case \"$*\" in\n"
+                "      *\"projectItems(first: 20)\"*) cat <<'BYISSUE'\n" + byissue + "\nBYISSUE\n"
+                "        exit 0 ;;\n"
+                "    esac\n"
+                "    cat <<'GQL'\n" + gql + "\nGQL\n    exit 0 ;;\n"
                 "esac\n"
                 "cat <<'EOF'\n" + page + "\nEOF\n")
     os.chmod(fake, 0o755)

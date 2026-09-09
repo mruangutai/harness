@@ -282,6 +282,55 @@ with tempfile.TemporaryDirectory() as tmp:
     check("board_stations: item with content null does not crash and is not in output",
           isinstance(st, dict) and len(st) == 0, repr(st))
 
+# ---------------- board_stations_for (issue #1541) ----------------
+# The targeted counterpart. It must speak the SAME vocabulary as board_stations — lowercased
+# values, absent means off the board, None means on it with no value — because `read_station`
+# reads either map without knowing which produced it.
+
+with tempfile.TemporaryDirectory() as tmp:
+    fake_gh(tmp, json.dumps({"data": {"repository": {
+        "i326": {"number": 326, "projectItems": {"pageInfo": {"hasNextPage": False}, "nodes": [
+            {"project": {"number": 3}, "fieldValueByName": {"name": "Building"}}]}},
+        "i327": {"number": 327, "projectItems": {"pageInfo": {"hasNextPage": False}, "nodes": [
+            {"project": {"number": 3}, "fieldValueByName": None}]}},
+        "i328": None,
+    }}}))
+    board = {"owner": "mruangutai", "number": 3, "station_field": "Status"}
+    try:
+        st = gh_board.board_stations_for(board, "mruangutai/harness", [326, 327, 328])
+    except Exception as exc:  # noqa: BLE001 — a mutation that raises IS the failure, caught here
+        st = f"<raised {exc!r}>"
+    # The same case boundary board_stations holds: the board answered "Building", and asserting
+    # the capitalised form is ABSENT is the half that catches a pass-through implementation.
+    check("board_stations_for: a board value is lowercased on read",
+          isinstance(st, dict) and st.get(326) == "building", repr(st))
+    check("board_stations_for: no capitalised station survives the read",
+          isinstance(st, dict)
+          and not any(isinstance(v, str) and v != v.lower() for v in st.values()), repr(st))
+    check("board_stations_for: on the board with no value is PRESENT with None",
+          isinstance(st, dict) and 327 in st and st[327] is None, repr(st))
+    check("board_stations_for: an issue that is not on the board is ABSENT, not None",
+          isinstance(st, dict) and 328 not in st, repr(st))
+    # read_station is the consumer both maps feed; proving it reads this one keeps the two
+    # producers interchangeable, which is the whole reason the vocabulary had to match.
+    check("board_stations_for: read_station tells its absent apart from its None",
+          isinstance(st, dict)
+          and gh_board.read_station(st, 327) == (None, "no station set")
+          and gh_board.read_station(st, 328) == (None, "not on the board"), repr(st))
+
+with tempfile.TemporaryDirectory() as tmp:
+    # A gh that EXITS 3 for any argv. If an empty number set reached the network at all, this
+    # would raise and the check below would redden — which is the only way to assert "no call"
+    # through a fake binary rather than an in-process recorder.
+    fake_gh_failing(tmp)
+    board = {"owner": "mruangutai", "number": 3, "station_field": "Status"}
+    try:
+        st = gh_board.board_stations_for(board, "mruangutai/harness", [])
+    except Exception as exc:  # noqa: BLE001
+        st = f"<raised {exc!r}>"
+    check("board_stations_for: an empty number set touches no network and returns {}",
+          st == {}, repr(st))
+
 # ---------------- read_station ----------------
 
 # read_station is a pure lookup and never converts case; its inputs come from board_stations,

@@ -2109,15 +2109,48 @@ if _inv26_board:
     except Exception:
         _gh_ok = False
 
+    # THE CANDIDATE SET IS BUILT FROM DISK FIRST, so the network is touched only if there is
+    # something to ask about. That is INV-30's posture one screen below, and it is the one this
+    # invariant was missing (issue #1541): the whole-board read downloaded every card the board
+    # has ever held — 918 items over ten sequential `gh` processes, 11.25s of this script's
+    # 14.3s — to answer questions about the handful of features actually in flight. Measured
+    # 2026-09-09, that handful was FOURTEEN features carrying ZERO mirrored issues, so the
+    # entire download was compared against nothing.
+    #
+    # The skip conditions here are a SUPERSET of the loop's below, deliberately: an extra issue
+    # number costs one alias in a batched query, while a missing one would make the loop report
+    # CANNOT VERIFY for a card that is on the board. Over-asking is cheap; under-asking lies.
+    _numbers26 = set()
+    for _fp26 in sorted(glob.glob(os.path.join(H, "*", "features", "*"))):
+        if not plan_docs.get(os.path.basename(_fp26)):
+            continue
+        if station_of(_fp26) in ("done", TERMINAL_MARKER):
+            continue
+        try:
+            _fj26 = json.load(open(os.path.join(_fp26, "feature.json"), encoding="utf-8"))
+        except Exception:
+            continue
+        _gblk26 = _fj26.get("github") or {}
+        if isinstance(_gblk26.get("parent"), int):
+            _numbers26.add(_gblk26["parent"])
+        for _n26 in (_gblk26.get("issues") or {}).values():
+            if isinstance(_n26, int):
+                _numbers26.add(_n26)
+
     _stations = None
     if _gh_ok:
-        # A FAILED OR TRUNCATED BOARD READ RECORDS NOTHING. board_stations already refuses a
-        # truncated page by raising, which is what keeps a partial read from being reported
-        # as an empty column — but the remedy here is silence, not a red gate, because the
-        # network is not the tree.
+        # A FAILED BOARD READ RECORDS NOTHING. board_stations_for already refuses a truncated
+        # read by raising, which is what keeps a partial read from being reported as an empty
+        # column — but the remedy here is silence, not a red gate, because the network is not
+        # the tree.
+        #
+        # AN EMPTY CANDIDATE SET IS AN EMPTY MAP, NOT None. None skips the whole comparison
+        # block below, and that block carries findings that need no board at all — the
+        # mirror-never-ran clause among them. Nothing to look up is not the same as nothing
+        # to check.
         try:
             os.environ["FACTORY_GH"] = _gh_bin
-            _stations = _gb.board_stations(_inv26_board, _repo26)
+            _stations = _gb.board_stations_for(_inv26_board, _repo26, _numbers26)
         except Exception:
             _stations = None
 
