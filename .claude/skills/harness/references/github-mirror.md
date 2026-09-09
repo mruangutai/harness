@@ -40,14 +40,21 @@ phase it is itself running. Every other row, and every other case, is the **main
 
 | When | Owner | Run |
 |---|---|---|
-| mission ship, right after the approval gate passes | **orchestrator** | `gh-sync.py open <feature-dir>` — milestone + one **parent** issue (adopted or created) + one **sub-issue** per T-NN (re-run safe: already-recorded ids skip) |
+| Build entry — immediately after the plan's signed approval, before the first task starts | **orchestrator** | `gh-sync.py open <feature-dir>` — milestone + one **parent** issue (adopted or created) + one **sub-issue** per T-NN (re-run safe: already-recorded ids skip) |
 | a task starts | **by `execution_mode`**: the **orchestrator** for a `team` task, the **main session** for a `main-session-direct` one | `gh-sync.py start-task <feature-dir> T-NN` — moves that task's card to `Building` and re-derives the parent. **Set the task's status to `building` in `plan.yaml` FIRST, in the same act** |
 | a task's `[harness:t-NN]` commit is recorded | **by `execution_mode`**, as above | **Record the task's status as `done` in `plan.yaml`, in the same act as the commit — and run nothing else.** **Nothing closes a task sub-issue** (D-23). It stays OPEN so it can hold its column through Building and Review, and closes when `ship` writes its card to the done station and GitHub's `Auto-close issue` workflow follows. Sub-issues hold `Review` from validate entry until the panel returns clean; a closed issue's card stays where it is. **`abandon` is the only command in `gh-sync.py` that closes an issue directly, and it asks the operator first** (DEC-203 item 8). The `absorbs:` citation is STRUCK (DEC-188, via DEC-138): a task cites nothing, and an issue the feature does is a ticket in its own right |
 | a phase transition happens | **by `execution_mode` of the phase's own work**: the **orchestrator** for a phase it is running, the **main session** for a phase it holds itself — plan, ship acceptance, and any `main-session-direct` segment | `gh-sync.py status <feature-dir> <station>` — records `plan.yaml`'s station (lowercase, through `plan-merge.py set-feature-station`) and writes the station changes that phase implies. `plan.yaml` is the authority and the card is its mirror (FEAT-41). Run it **in the same act** that records the phase: the station record and the card write are one act, not two |
+| an already-merged feature never opened its mirror | **main session, on the operator's explicit approval** | `gh-sync.py recover-terminal <feature-dir> --yes` — milestone plus the parent and source issues only, never task sub-issues |
 | the feature is abandoned | **main session** | `gh-sync.py abandon <feature-dir> --reason-file <path> [--yes]` — **it reports and asks.** Without `--yes` it prints every write it would make and makes none. With `--yes` it detaches each sub-issue from the parent, closes it and the parent `not_planned`, labels them `abandoned`, PATCHes the milestone shut, and returns every card to the **backlog** station — abandoned work is not done work. The parent closes whatever its history; the operator's confirmation replaces the old origin gate |
 | the main session relays the user's shipped acceptance | **main session** | `gh-sync.py ship <feature-dir> [--body-file <path>]` — posts that file as the ship review on the parent, and **with no `--body-file` it posts nothing**. PATCHes the milestone shut, and lands **every recorded card** at the done station: task sub-issues first, then `source_issues`, then the parent. It **skips any card that still has an open child** and prints one line naming that child. It closes no issue at all — GitHub's `Auto-close issue` workflow follows the station write. Two summary literals: `gh-sync: HELD` when anything was held, and `gh-sync: FAILED` for every card that did not reach the done station and that nothing downstream reports — a failed write, a board read that failed, or a child list that could not be read. All three are the same outcome to the operator, so they share one literal. `post-merge-sweep.sh` declines the worktree removal on the second — the mirror still never gates a GitHub write, and a worktree is not one |
 | residual findings become backlog | **main session** | `gh-sync.py backlog <feature-dir> <items>` — plain issues, labelled by nature, no milestone (DEC-138) |
 | the pull request has merged | **main session** | `gh-sync.py record-pr <feature-dir> [--pr N]` — derives the number from the recorded branch when that branch carries **exactly one** merged pull request, leaves `pr` alone otherwise, and **never overwrites a number already recorded**. `ship` runs it too, so the ordinary flow needs no separate call |
+
+Build entry records `feature.json` `github.build_entry`: `opened`, `recovery-required`,
+`not-applicable`, or `recovered-terminal`; its absence means no Build entry completed. Build
+refuses an absent receipt and proceeds on `recovery-required`; that state gates the merge until
+`gh-sync.py open` records `opened`. Ship is post-merge terminal finalization only: it finalizes
+merged code, records terminal local state, performs recorded mirror transitions, and releases the worktree.
 
 **Update `plan.yaml`, THEN run the subcommand.** The parent card's station is *derived* from task
 statuses, so the plan must already carry the new one. Running `start-task` before recording
@@ -55,7 +62,7 @@ statuses, so the plan must already carry the new one. Running `start-task` befor
 
 **Recording `done` is the whole of the per-commit act** (D-23) — nothing derives a station from a
 task's completion. The parent leaves `Building` when the panel kickoff runs `gh-sync.py status
-<feature-dir> Review`, and reaches `Done` when `ship` writes its card there — GitHub closes the issue
+<feature-dir> review`, and reaches `Done` when `ship` writes its card there — GitHub closes the issue
 behind that write.
 
 ## Wake and recovery are reads of durable receipts, not GitHub polls
@@ -93,9 +100,9 @@ inside a subagent run is not something the operator reads.
 |---|---|
 | **Backlog** | whoever files the ticket. Not the harness |
 | **Plan** | `board-station.py`, at the `/harness-plan` door |
-| **Ready** | the signature, via `gh-sync.py status <dir> Ready`. Moves the **task sub-issues**, **never the parent** (D-18) |
-| **Building** | `gh-sync.py start-task`, by `execution_mode` as the table above says |
-| **Review** | the validation panel kickoff, via `gh-sync.py status <dir> Review`. It moves the **parent AND every sub-issue** (D-23) |
+| **Ready** | the signature, via `gh-sync.py status <dir> ready`. Moves the **task sub-issues**, **never the parent** (D-18) |
+| **Building** | the task CARDS, via `gh-sync.py start-task`, by `execution_mode` as the table above says — it writes the TASK's station, never the feature's. The FEATURE's own station is written in `plan.yaml` by `plan-merge.py set-feature-station --station building`, run by the orchestrator when the eng segment starts dispatching build work (BUG-1507) |
+| **Review** | the validation panel kickoff, via `gh-sync.py status <dir> review`. It moves the **parent AND every sub-issue** (D-23) |
 | **Done** | **the harness**, at `gh-sync.py ship`, which writes this station on every recorded card. GitHub's `Auto-close issue` workflow then turns that write into a close |
 
 The Review row exists because a board was measured holding zero items at that station (DEC-138,

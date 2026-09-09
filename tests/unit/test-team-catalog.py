@@ -239,15 +239,15 @@ except Exception as e:
 # EMF-5's "eighth check": without this, a later edit could delete the red-first
 # fixtures and every other check in this file would still pass.
 try:
-    tcs = read(os.path.join(REPO, "tests", "integration", "test-check-state.py"))
+    tcs = read(os.path.join(REPO, "tests", "integration", "test-check-state-plans.py"))
     n_none = tcs.count("review_sha: none")
     n_sha = tcs.count("review_sha: 1ce886a")
-    check("(10) test-check-state.py still carries T-01's INV-6 fixtures "
+    check("(10) test-check-state-plans.py still carries T-01's INV-6 fixtures "
           "(`review_sha: none` >= 2, `review_sha: 1ce886a` >= 1) — SC-01",
           n_none >= 2 and n_sha >= 1,
           f"none={n_none} sha={n_sha}")
 except Exception as e:
-    check("(10) test-check-state.py still carries T-01's INV-6 fixtures "
+    check("(10) test-check-state-plans.py still carries T-01's INV-6 fixtures "
           "(`review_sha: none` >= 2, `review_sha: 1ce886a` >= 1) — SC-01", False, e)
 
 print(f"\n{ran - fails}/{ran} checks passed." if fails == 0 else f"\n{fails} of {ran} FAILING.")

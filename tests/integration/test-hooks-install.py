@@ -174,14 +174,18 @@ def _clone(origin, dest):
     return dest
 
 
-def _commit_feature(repo, feature_id, status, milestone=None, repo_segment="harness"):
+def _commit_feature(repo, feature_id, status, milestone=None, build_entry=None, repo_segment="harness"):
     import json
     rel = os.path.join(".harness", repo_segment, "features", feature_id, "feature.json")
     abs_path = os.path.join(repo, rel)
     os.makedirs(os.path.dirname(abs_path), exist_ok=True)
     doc = {"feature_id": feature_id}
+    if milestone is not None or build_entry is not None:
+        doc["github"] = {}
     if milestone is not None:
-        doc["github"] = {"milestone": milestone}
+        doc["github"]["milestone"] = milestone
+    if build_entry is not None:
+        doc["github"]["build_entry"] = build_entry
     with open(abs_path, "w") as f:
         json.dump(doc, f)
     # THE STATION GOES IN A COMMITTED plan.yaml (FEAT-41 T-07). worktree_terminal reads the LANDED
@@ -386,6 +390,10 @@ def case_sc13_reporting_and_red_proof():
 # (e) SC-14, end to end — plus its RED PROOF (repointed shim).
 # ---------------------------------------------------------------------------------------------
 
+# GRADE-2 REASON: This SC-14 fixture deliberately keeps the setup, commit, linked-worktree,
+# real-merge, hook-observation, and retention assertions in one routine. Splitting those steps
+# would hide the shared clone/worktree state that the end-to-end contract must prove.
+
 def _run_merge_and_check(tmp, origin, label, expect_removed):
     """One full pass: clone -> real setup step -> commit a Done feature on a topic branch ->
     add its worktree -> checkout main -> real `git merge` -> assert the tracked hook fired via
@@ -404,7 +412,8 @@ def _run_merge_and_check(tmp, origin, label, expect_removed):
     env = _sweep_env(clone, gh_env)
 
     _git(["checkout", "-qb", "topic"], cwd=clone)
-    _commit_feature(clone, f"FEAT-90-{label}-thing", "Done", milestone=9001)
+    _commit_feature(clone, f"FEAT-90-{label}-thing", "Done", milestone=9001,
+                    build_entry="opened")
     dest = _add_wt(clone, f"FEAT-90-{label}-thing", ref="topic", new_branch=f"wt-{label}")
     _git(["checkout", "-q", "main"], cwd=clone)
 
@@ -420,6 +429,11 @@ def _run_merge_and_check(tmp, origin, label, expect_removed):
         results.append((f"({label}) SC-14: the terminal feature's worktree is gone after a "
                          "real merge, with NOTHING hand-installed into .git/hooks/",
                          not os.path.isdir(dest), f"dest={dest} stdout+stderr={combined!r}"))
+        results.append((f"({label}) the sweep removed the worktree by the normal path, never the "
+                         "build-entry retention branch",
+                        "post-merge-sweep: removed" in combined
+                        and "records github.build_entry" not in combined,
+                        f"stdout+stderr={combined!r}"))
     else:
         # The mutated shim execs a sweep that does not exist, so the shim itself reports that
         # and returns before the sweep (and its root-resolution print) ever runs — there is no

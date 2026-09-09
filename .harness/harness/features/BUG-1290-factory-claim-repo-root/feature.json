@@ -1,7 +1,7 @@
 {
   "feature_id": "BUG-1290-factory-claim-repo-root",
   "branch": "feat/BUG-1290-factory-claim-repo-root",
-  "pr": null,
+  "pr": 1503,
   "review_sha": "72a97b9942832169af84479ae36487398d27ca39",
   "cycles_used": 10,
   "max_total_cycles": 11,
@@ -227,6 +227,7 @@
     },
     "source_issues": [
       1290
-    ]
+    ],
+    "build_entry": "recovered-terminal"
   }
 }

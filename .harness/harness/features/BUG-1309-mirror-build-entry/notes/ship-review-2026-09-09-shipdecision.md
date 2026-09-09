@@ -1,0 +1,230 @@
+# Ship review — BUG-1309-mirror-build-entry — 2026-09-09
+
+## Amendment — 2026-09-09, later the same day
+
+**Decision item 3 is CLOSED, by you.** You reviewed an execution report of the remaining gating UAT
+steps and instructed "flag uat pass for these four": Steps **3b, 5, 6 and 7** now each carry an
+individual operator PASS, recorded at
+`notes/uat-BUG-1309-mirror-build-entry.md:405-463`. **Two items are left in front of you, not
+three:** ship-or-not, and the backlog table. SC-10 was already met and is **not** re-graded by this
+— what changed is that the per-step record is no longer absent.
+
+Three other things moved with it, and nothing else in this briefing did:
+
+- The **cycles** line below now reads **18 of 17 — over by one**. The recording round sent one step
+  back inside itself, and a reported send-back is a cycle (DEC-157). It changes nothing you have
+  been asked to decide, but see the line for what it forecloses.
+- The missing durable digest for `c19uatsteps-product` was restored at
+  `runs/c19uatsteps-product/digest.md`; **B-30 is resolved and removed** from the proposed backlog.
+- The SC-10 section's citation of the FIRST relay is corrected from `:360-403` to `:362-403` — the
+  heading is at 362; 360 is the separator.
+
+## The decision in one paragraph
+
+**This is ready to ship, and the only thing missing is your instruction to do it.** All eleven
+success criteria are met — including SC-10, which you closed yourself today by judging the revised
+merge-gate refusal message clear and actionable, and whose five-step verdict rule you then itemised
+step by step. The blocking test-matrix gate is green, the c19 review panel returned PASS with an
+empty `must_fix`, and no finding at any severity gates. Nothing is left for a squad to build,
+nothing is left for a squad to check, and no cycle is being requested. What remains is one word from
+you, plus one side decision you can settle in the same sitting: which backlog rows to keep.
+
+## What you need to decide — two items, one sitting
+
+| # | Item | What I need |
+|---|---|---|
+| **1** | **Ship, or not.** The feature is at station `review`, `review_sha` pinned to `4857818b`, branch `feat/BUG-1309-mirror-build-entry` unmerged | **"ship"** — or "fix X", "re-scope", "stop". Nothing happens without it |
+| **2** | **The backlog table below (B-1 … B-29).** Strike any row by ID. Unstruck rows become GitHub backlog issues when you accept the ship; **anything not listed there dies silently, so I listed everything I could source** | Struck IDs, or "keep all" |
+| 3 — **closed** | **Optional — UAT step coverage.** **CLOSED 2026-09-09 by your "flag uat pass for these four".** Steps 3b, 5, 6 and 7 each carry an operator PASS at `notes/uat-BUG-1309-mirror-build-entry.md:405-463` | Nothing. It never gated the ship, and it is no longer open |
+
+## SC-10 — what was recorded, and at what fidelity
+
+Your result is transcribed in two appended sections, neither of which altered a byte of the script
+you ran:
+
+1. **The first relay** — `notes/uat-BUG-1309-mirror-build-entry.md:362-403`, appended only, 45 added
+   lines and 0 deletions. It records that the relay reached the harness inline through the main
+   session on 2026-09-09, that you judged the message **clear and actionable**, and that you
+   reported **"pass"** — attributed to that channel, never restated as something an agent measured.
+   The message you were judging:
+
+```
+merge-gate: FEAT-9001-uat-scratch needs its GitHub mirror recovery completed before this merge can continue. Run: python3 .claude/skills/harness/bin/gh-sync.py open /private/tmp/bug1309-uat/.harness/harness/features/FEAT-9001-uat-scratch
+```
+
+2. **The per-step confirmation** — `:405-463`, appended only, a further 60 added lines and 0
+   deletions (I verified both with `git diff --numstat`, and re-verified that no pre-existing
+   heading moved). It records your instruction "flag uat pass for these four" against the execution
+   report you had read: Step 3b's **six** flagged merge forms all denied; Step 5's `gh-sync.py open`
+   setting `build_entry` to `opened`; Step 6 allowing both the plain merge and `--no-ff` silently;
+   Step 7's `recover-terminal` creating **no** task issues, setting `recovered-terminal`, and the
+   merge allowed afterwards. Each is paired with that step's own recorded PASS condition, so you can
+   see the reported observation answers what the script asked.
+
+**The limit that was here is gone, and I am saying so rather than quietly deleting it.** This
+briefing previously carried one open fidelity limit: the script's verdict rule asks for Steps 3, 3b,
+5, 6 and 7 to each pass, and the first relay carried an overall pass plus your judgement of the Step
+3 wording, with no per-step readout. That gap was recorded, never inferred away — and your second
+relay closed it. Step 3 is carried by the wording judgement; 3b, 5, 6 and 7 by the confirmation. The
+five-step rule is itemised on the record. **What did not change: SC-10's verdict.** It was met on
+the first relay, by the only method that can close it, and nothing here upgrades or re-derives it.
+
+The second recorded limit stands untouched and is not a gap in your result: there is no
+`answers-<runid>.md` for either round, none was sought and none was authored (issue #671). Steps 4
+and 8 (supporting) and 1, 2, 9 (setup and teardown) were not itemised by you and are not asserted.
+
+## Where the feature stands
+
+- **Goal-check: 11 of 11 criteria met** — `notes/research-BUG-1309-c19-uat-sc10.md`, one row per
+  criterion with a cited evidence path. Two rows deserve their exact wording:
+  - **SC-04 is met BY YOUR RULING** accepting both evidence gaps on inspected-correct source
+    (`notes/research-BUG-1309-c18-sc04-ruling.md`) — **not** by new automated evidence. The
+    behaviour is correct at `merge-gate.py:172` and `:174`; what is missing is automated coverage of
+    the ambiguity deny's wording and a fixture ordering that would let one case redden. Rows B-13
+    and B-14 are those two remedies, still unscheduled.
+  - **SC-09 is `verify: inspection`** by the brief's own declaration, checked at the pin.
+- **Test-matrix gate (the project's only blocking gate): PASS.** Integration suite at the pin
+  rc=0, 36 ok, 0 FAIL, matching the c18 baseline — `notes/qa-c19-copy.md`. T-05's own `verify`
+  printed `VERIFY-PASS` with `code_grade` 4 against a floor of ≥4.
+- **Review panel (c19): PASS**, `must_fix: []`, `severity_max: med`, four readers ran and none was
+  skipped or declined — `runs/c19copy-validator/digest.md`. Its one med against this feature's own
+  code is row B-16.
+- **Approval: both signatures are in place.** `BRIEF.md ## Approval` approved, re-signed 2026-09-08
+  over SC-11. `plan.yaml approval` approved, re-signed 2026-09-08 (commit `de04d841`, after the
+  D-13…D-15 amendments). D-19 was appended additively afterwards under ruling R-7 §4, which owes no
+  re-signature, and pm re-checked the criterion texts rather than assuming it.
+- **Cycles: 18 of 17 — one over the cap.** Every earlier run today sent nothing back; the
+  per-step-recording round did — the product lead sent one step back to correct an over-stated
+  "nothing else was touched" claim in its own note, and a reported send-back is a cycle (DEC-157).
+  I recorded it rather than rounding it away. **What that forecloses:** nothing you have been asked
+  to decide, and nothing about the ship. But if your answer is "fix X" on any backlog row, that fix
+  needs you to raise `max_total_cycles` first — which is exactly why every residual below is a
+  backlog row rather than a fix cycle.
+- **Runs: 57 against a 20-run budget (informational, INV-22).** My read: the count is honest but it
+  is no longer cheap. This feature absorbed eleven adversarial plan/review cycles, a silent-allow
+  class that took three cycles to close completely, one withdrawn acceptance that had to be redone
+  on a correctly-stated question, and a copy rewrite you asked for at the end. Each closed something
+  real. But the last several cycles closed evidence and wording rather than behaviour, which is what
+  convergence looks like from the inside — I would not spend a 58th run here.
+
+## What changed since the 2026-09-08 briefing
+
+That briefing put four items in front of you. All four are closed:
+
+1. **F-01 and F-02** (nondeterministic branch attribution; the parser walking past `git -C <dir>
+   merge`) — you ruled FIX as **R-1/R-2**, and both landed main-session-direct. The parser rewrite
+   was then measured by three independent method families finding **zero silent allows** across
+   39 + 27 + man-page enumeration (`runs/c17-validator/digest.md`), after c14 and c15 caught two
+   further escape forms the first attempt missed (`runs/2026-09-08-c14-validator/digest.md`,
+   `runs/2026-09-08-c15-validator/digest.md`).
+2. **F-03** (the notice naming `open` where the classifier says `recover-terminal`) — ruled FIX as
+   **R-3**; the notice now derives its command from `feature_schema.recovery_command_for`, recorded
+   as D-15.
+3. **The re-signature** — done, twice: the amended BRIEF on 2026-09-08, then the plan.
+4. **SC-10** — done today, by you, twice over: the wording judgement, then the per-step pass.
+
+Two things you added along the way: **SC-11** (merge `--abort`/`--continue`/`--quit` must stay
+allowed on a branch that owes a receipt — ruling R-6, D-18), and the **c19 refusal copy** you chose
+verbatim, which is the sentence you judged today (ruling R-7).
+
+One item on the old backlog is **resolved incidentally and I struck it myself**: `merge-gate.py`'s
+module-scope `feature_schema` import — the ~50-60 ms on every Bash call — is now a deferred import
+inside the deny path (measured at the pin, `merge-gate.py:164`).
+
+## Residual risks you are accepting if you ship
+
+None of these gates. All are recorded, none is waived.
+
+1. **SC-04's evidence is a ruling, not automation** — see above. Rows B-13, B-14.
+2. **"Names the feature" is proven but undefended.** The message contains the feature name twice at
+   the pin, but no test can *fail* if `{feat}` is deleted, because the rendered path also carries the
+   id. Behaviour correct, evidence incidental. Row B-15.
+3. **Test-first order for the c19 copy commit cannot be established from the git record.** Source
+   and both test hunks are in one commit with no intermediate red. qa reported this as unknowable
+   rather than assuming either way, and I am not restating your pre-edit red observation as
+   verified. Rows B-29 (policy) — the honest record is in STATE.md Q12.
+4. **`code_grade` is exactly 4 against a floor of ≥4** — zero margin, so any complexity added to
+   `git_merge` reddens T-05's verify.
+5. **The `unit` matrix cell for the copy delta is satisfied procedurally**, by a test file the copy
+   cannot affect; `integration` carries it substantively and was mutation-proven. Row B-24.
+6. **Two standing gaps you already signed** (`BRIEF.md ## Verification gaps`): a live `gh pr merge`
+   against real GitHub is never exercised, and **17 sync-enabled legacy feature directories remain
+   knowingly unrecovered** — row B-3 is the only place that work is tracked.
+
+## Proposed backlog — strike any row by ID; anything not listed dies silently
+
+Rows carried from the 2026-09-08 briefing keep their content but are renumbered here, because that
+table was never disposed of.
+
+| ID | Item | Nature |
+|---|---|---|
+| B-1 | Gate-dispatcher consolidation plus the `HOOK_SPECS` gaps (you already accepted the fifth standalone gate) | enhancement |
+| B-2 | [`#1545`](https://github.com/mruangutai/harness/issues/1545) — `gh-sync.py` no-op remedy string; **P2** | bug |
+| B-3 | The 17 unrecovered sync-enabled legacy feature directories | chore |
+| B-4 | The nonexistent `gen-decisions-index --check` clause in four features' plans | chore |
+| B-5 | [`#1542`](https://github.com/mruangutai/harness/issues/1542) — guard `gh-sync.py`'s unguarded `int()`; **P2** | bug |
+| B-6 | [`#1552`](https://github.com/mruangutai/harness/issues/1552) — name the feature when the git binary is unresolvable; **P2** | bug |
+| B-7 | [`#1543`](https://github.com/mruangutai/harness/issues/1543) — correct held build-entry receipt diagnostic; **P3** | bug |
+| B-8 | Three different spellings of "Build entry receipt" across the messages | chore |
+| B-9 | `test-check-state.py`'s "INV-37 message discriminator" case is vacuously green — asserts a token absent from an empty line | chore |
+| B-10 | `test-merge-gate.py`'s "gh outage with no matching feature allows" does not discriminate a cycle-5 sentinel reintroduction | chore |
+| B-11 | [`#1548`](https://github.com/mruangutai/harness/issues/1548) — resolve handoff authority pointers from feature worktrees; **P2** | bug |
+| B-12 | The reviewer dispatch template does not state the canonical novelty range — how six cycles read "pre-existing" as "pre-existing since two commits ago" | enhancement |
+| B-13 | SC-04 clause (f): add a `"branch" in reason` conjunct at `test-merge-gate.py:159-163` | chore |
+| B-14 | SC-04 Gap B: reorder the fixture so the era-exempt claimant sorts into `owners[0]`, making the ordering case discriminating | chore |
+| B-15 | Defend `{feat}`: assert on the reason region *before* `Run:` at `test-merge-gate.py:68-69` and `:102` | chore |
+| B-16 | [`#1546`](https://github.com/mruangutai/harness/issues/1546) — make the repo-unpinned merge denial actionable; **P1** | bug |
+| B-17 | [`#1550`](https://github.com/mruangutai/harness/issues/1550) — remove raw era-exempt constant from merge-gate stderr; **P2** | bug |
+| B-18 | [`#1551`](https://github.com/mruangutai/harness/issues/1551) — accept abbreviated Git merge action flags; **P2** | bug |
+| B-19 | T-05's grade assertion takes `min()` over four helpers and never names `option_end`, `first_subcommand` or `merge_target` (satisfied in fact, 5/5/4) | chore |
+| B-20 | T-05's enumerated case-name contract lists 21 names while its `verify` gates 26 | chore |
+| B-21 | The UAT script has no step exercising the duplicate-claimant ambiguity refusal at all | chore |
+| B-22 | Fixture calibration: SC-04 clause (k) asserts the stderr content but not that the note is one line; the `chmod 0` fixture in clause (i) is non-claiming | chore |
+| B-23 | Shell-variable indirection (`B=feature/x; git merge $B`) and a fourth-level `bash -c` nest past the depth cap — explicitly NOT ruled in under R-2 | enhancement |
+| B-24 | The `unit` matrix cell for copy-only deltas is satisfied by a file that cannot observe the copy | chore |
+| B-25 | `notes/rulings-2026-09-08-c19-copy.md` §5.3 cites the `recover-terminal` expectation as "Step 6 (`:300`)"; it is Step 7 at `:303` | chore |
+| B-26 | [`#1549`](https://github.com/mruangutai/harness/issues/1549) — preserve complete agent digest on null-yield host failure; **P2** | bug |
+| B-27 | [`#1544`](https://github.com/mruangutai/harness/issues/1544) — close Python write bypass in bash-write-guard; **P1** | bug |
+| B-28 | [`#1547`](https://github.com/mruangutai/harness/issues/1547) — reject unfenced JSON in validate-digest; **P1** | bug |
+| B-29 | Policy: should a copy edit plus its dependent test re-anchor be split into a failing-test commit then a fix commit, for test-first auditability? | chore |
+
+## What happens when you say ship
+
+For your visibility, not as a request: the main session runs `gh-sync.py ship` from the main
+checkout with this briefing as the issue body, the unstruck rows above become backlog issues, the PR
+merges under your hand, the `post-merge` hook removes the worktree, and only then does
+feature-close distillation run. I did not run any of it, and I hold no authority to.
+
+## How this briefing was assembled — disclosure
+
+**No report round was spawned.** I read the digests and notes on disk, as the playbook requires.
+The load-bearing sources: `runs/c19copy-validator/digest.md` and `runs/2026-09-09-01-product/digest.md`
+(the c19 validate round), `runs/c19uat-product/digest.md` with
+`notes/research-BUG-1309-c19-uat-sc10.md` and `notes/uat-BUG-1309-mirror-build-entry.md` (today's
+SC-10 recording), `notes/research-BUG-1309-c18-sc04-ruling.md` and
+`notes/research-BUG-1309-goalcheck-c18.md` (SC-04 and SC-11),
+`notes/rulings-2026-09-08-panel-c7.md` and `notes/rulings-2026-09-08-c19-copy.md` (your rulings),
+`runs/2026-09-08-panelc7-validator/digest.md`, `runs/2026-09-08-c14-validator/digest.md`,
+`runs/2026-09-08-c15-validator/digest.md` and `runs/c17-validator/digest.md` (the silent-allow class,
+closed), `notes/qa-c19-copy.md` (the gate), `notes/ship-review-2026-09-08-resume.md` (the prior
+briefing, whose backlog this table subsumes), and the `headline:` line of **all 55 run digests** on
+disk for plan- and build-phase coverage. I did not read the plan- and build-phase digests in full;
+their headlines plus `STATE.md`, `feature.json` and `notes/handoff-validate.md` carried what this
+decision needs.
+
+**What I re-verified myself rather than relaying:** the append-only shape of the UAT edit
+(`git diff --numstat` — 45/0) and the appended section's fidelity to the relay; that both approval
+signatures read `approved` and that the plan's was re-signed *after* the D-13…D-15 amendments
+(commit `de04d841`); that D-13…D-19 are all present in `plan.yaml`; that `merge-gate.py`'s
+`this feature` fallback survives at the pin (row B-6) while the module-scope import that was row
+B-6 on 2026-09-08 does not — that one I struck on my own measurement.
+
+**For the amendment at the top, added by the successor who recorded your per-step pass:** the
+sources were your relayed instruction itself, the product lead's returned digest for that round,
+and the two files it wrote — `notes/uat-BUG-1309-mirror-build-entry.md` and
+`notes/research-BUG-1309-c19-uat-sc10.md`. **What I measured myself rather than relaying:**
+`git diff --numstat` on the worktree, showing `60 / 0` on the UAT note (insertions only, so the
+script is still byte-unchanged) and `39 / 14` on the goal-check note; that the new section runs from
+`:405` to the note's last line, `:463`; and that the first relay's heading sits at `:362`, which is
+what corrected the older citation. **Nothing in the amendment is an agent's judgement of a UAT
+step** — every step verdict in it is yours.

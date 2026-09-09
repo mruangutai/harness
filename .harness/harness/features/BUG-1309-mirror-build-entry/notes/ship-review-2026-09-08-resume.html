@@ -1,0 +1,82 @@
+<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>Ship review — BUG-1309-mirror-build-entry — 2026-09-08</title><style>
+:root{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:ui-sans-serif,-apple-system,"Segoe UI","Helvetica Neue",Arial,sans-serif;
+}
+/* Token-level theming: components style through the tokens and never inside the
+   media query, so the viewer's explicit toggle can override the OS in BOTH
+   directions. */
+@media (prefers-color-scheme:dark){
+  :root{ --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+         --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733; }
+}
+:root[data-theme="dark"]{
+  --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+  --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733;
+}
+:root[data-theme="light"]{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+}
+*{box-sizing:border-box}
+body{margin:0; background:var(--paper); color:var(--ink);
+  font:400 16px/1.65 var(--sans); padding:clamp(1.5rem,5vw,4rem) clamp(1rem,5vw,2rem) 6rem}
+.wrap{max-width:56rem; margin:0 auto}
+/* Layout owns the spacing: gap between siblings, not per-element margins that
+   collapse or double. */
+.wrap{display:flex; flex-direction:column; gap:1rem}
+.eyebrow{font:500 11px/1 var(--mono); letter-spacing:.14em; text-transform:uppercase;
+  color:var(--quiet); margin:0}
+h1{font:600 clamp(1.6rem,4vw,2.3rem)/1.15 var(--sans); letter-spacing:-.02em;
+  margin:.4rem 0 .2rem; text-wrap:balance}
+h2{font:600 1.15rem/1.3 var(--sans); letter-spacing:-.01em; margin:2rem 0 0;
+  padding-top:1.25rem; border-top:1px solid var(--line); text-wrap:balance}
+h3{font:600 .98rem/1.4 var(--sans); margin:1.1rem 0 0}
+h4,h5,h6{font:500 11px/1.4 var(--mono); letter-spacing:.1em; text-transform:uppercase;
+  color:var(--quiet); margin:1rem 0 0}
+p,li{max-width:65ch; margin:0}
+ul,ol{margin:0; padding-left:1.4rem; display:flex; flex-direction:column; gap:.4rem}
+li>ul,li>ol{margin-top:.4rem}
+strong{font-weight:600}
+code{font:400 .875em/1.5 var(--mono); background:var(--sunk); padding:.1em .35em; border-radius:3px}
+pre{background:var(--sunk); border:1px solid var(--line); border-radius:6px;
+  padding:.85rem 1rem; overflow-x:auto; margin:0}
+pre code{background:none; padding:0}
+blockquote{margin:0; padding:.75rem 1rem; border-left:3px solid var(--accent);
+  background:var(--accent-soft); border-radius:0 5px 5px 0}
+blockquote p{max-width:none}
+hr{border:0; border-top:1px solid var(--line); margin:.5rem 0}
+/* Wide content pans inside its OWN container; the page body never scrolls sideways. */
+.scroll{overflow-x:auto; border:1px solid var(--line); border-radius:6px}
+table{border-collapse:collapse; width:100%; font-size:.9rem}
+th,td{text-align:left; padding:.6rem .8rem; border-bottom:1px solid var(--line); vertical-align:top}
+thead th{font:500 10px/1.3 var(--mono); letter-spacing:.11em; text-transform:uppercase;
+  color:var(--quiet); background:var(--sunk); white-space:nowrap}
+tbody tr:last-child td{border-bottom:0}
+/* Figures in a column line up. */
+td,th{font-variant-numeric:tabular-nums}
+.derived{color:var(--slate); font-size:.85rem; margin-top:2.5rem;
+  padding-top:1rem; border-top:1px solid var(--line)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style></head><body><div class='wrap'><p class='eyebrow'>Ship review · reading view</p><h1 id="ship-review-bug-1309-mirror-build-entry-2026-09-08">Ship review — BUG-1309-mirror-build-entry — 2026-09-08</h1>
+<h2 id="the-decision-in-one-paragraph">The decision in one paragraph</h2>
+<p><strong>Do not ship yet, and nothing is left for a squad to build.</strong> The feature is code-complete and measured: all thirteen tasks are done, the blocking test-matrix gate is green, and nine of the ten success criteria are met with executed evidence at the pinned commit <code>894adc0f</code>. Four things now need <strong>you</strong>, and only you — they are batched here so one sitting closes them. A fresh review panel, run today because the previous one was lost to a provider interruption, found <strong>three high-severity defects in code this feature itself introduces</strong>, and every remedy sits in a lane the harness is forbidden to execute in. That is the whole of what stands between here and a merge.</p>
+<h2 id="what-you-must-do-four-items">What you must do — four items</h2>
+<div class="scroll"><table><thead><tr><th>#</th><th>Item</th><th>Why it is yours</th></tr></thead><tbody><tr><td><strong>1</strong></td><td>Rule on <strong>F-01</strong> and <strong>F-02</strong>, two fail-open/misfire defects in <code>merge-gate.py</code></td><td>The remedy edits a registered PreToolUse gate script. DEC-174 forbids the harness executing changes to its own gate scripts, whatever <code>check-domain.sh</code> resolves</td></tr><tr><td><strong>2</strong></td><td>Rule on <strong>F-03</strong>, a wrong remedy command in <code>gh-sync.py</code></td><td>The code <strong>matches</strong> the approved spec — <code>plan.yaml:779-791</code> dictates the string verbatim. Fixing it amends a signed plan, which needs your signature, not a fix cycle</td></tr><tr><td><strong>3</strong></td><td><strong>Re-sign</strong> <code>BRIEF.md ## Approval</code></td><td>SC-03 and SC-07 were amended today on your ruling. The 2026-09-06 signature no longer covers the file on disk</td></tr><tr><td><strong>4</strong></td><td>Run the <strong>SC-10 hand test</strong> — <code>notes/uat-BUG-1309-mirror-build-entry.md</code>, 8 steps, ~10 minutes</td><td>SC-10 is <code>verify: uat</code>. No agent may grade it. The script was verified drift-free against the pinned code today</td></tr></tbody></table></div>
+<p>Item 4 does <strong>not</strong> depend on items 1–3: pm confirmed at its own tier that no UAT step reaches the <code>gh-sync.py</code> line F-03 concerns, so your ten minutes are not wasted by ruling later. Run it whenever suits. It must be run <strong>before the worktree is released</strong> — the script points at that checkout.</p>
+<h2 id="the-three-gating-findings">The three gating findings</h2>
+<p><strong>F-01 — <code>merge-gate.py:98-109</code>, high, security-reviewer.</strong> <code>feature_for</code> returns the FIRST <code>glob.glob</code> match and <code>glob.glob</code> guarantees no ordering, so when two well-formed records carry the same <code>branch</code> value the merge is decided nondeterministically — in one direction a feature that owes a receipt merges silently (the gate defeats itself), in the other a healthy merge is DENIED naming an unrelated feature. Reproduced 5/5 in both directions. No committed test binds a duplicate-branch fixture. <em>Options:</em> order the glob and refuse on ambiguity; or accept and record.</p>
+<p><strong>F-02 — <code>merge-gate.py:44-48</code>, high, security-reviewer.</strong> <code>git_merge</code> strips every <code>-</code>-prefixed token and then reads <code>args[0]</code>, so the VALUE of a value-taking global flag lands in that slot: <code>git -C &lt;dir&gt; merge X</code>, <code>git -c k=v merge X</code> and <code>git --work-tree &lt;d&gt; merge X</code> all fall straight through and the gate allows the merge silently, whatever the receipt says. I re-ran this myself against the pinned script: <code>merge_ref</code> returns <code>None</code> for all three, and <code>git -C</code> is the idiom <code>merge-gate.py</code>&#x27;s own <code>local_branch()</code> uses. <em>Options:</em> teach the parser the value-taking flags; or accept a gate that ordinary git usage walks past.</p>
+<p><strong>F-03 — <code>gh-sync.py:1387-1389</code>, high, ui-reviewer.</strong> The non-era <code>recovery-required</code> notice tells you to run <code>gh-sync.py open</code>, while <code>feature_schema.recovery_command_for</code> and <code>merge-gate.py</code>&#x27;s own deny both say <code>recover-terminal</code> for the same feature in the same state. Following the notice runs <code>cmd_open</code>, which creates real GitHub sub-issues for already-finished work. <strong>The plan signs that string deliberately</strong> — it reasons the non-era line &quot;keeps its <code>open</code> clause&quot;. <em>Options:</em> amend the plan so the notice derives its command like every sibling site; or keep the signed wording and record the contradiction under <code>BRIEF.md ## Verification gaps</code>.</p>
+<h2 id="where-the-feature-stands">Where the feature stands</h2>
+<ul><li><strong>Goal-check at <code>894adc0f</code>:</strong> SC-01 … SC-09 <strong>met</strong>, each with executed evidence — see the <code>sc_status</code> table in <code>runs/2026-09-08-amend-gc-product/digest.md</code>. SC-10 <strong>user-gated</strong>.</li><li><strong>Test-matrix gate:</strong> PASS. Unit 33 files exit 0, integration 50 files exit 0, <code>test-merge-gate.py</code> 19/19, no cell missing; T-07&#x27;s unit cell is not-applicable per D-12.</li><li><strong>The SC amendment you ruled on:</strong> both criteria kept their teeth. The unevidenceable &quot;must be shown red before the fix landed&quot; became &quot;is DISCRIMINATING at <code>review_sha</code>&quot; — and pm then <em>ran</em> both: the pre-change <code>gh-sync.py</code> fails all five SC-03 cases, the pre-change <code>check-state.sh</code> fails the SC-07 violation case.</li><li><strong>Cycles:</strong> 12 of 14. Neither of today&#x27;s two runs sent anything back, so neither cost a cycle.</li><li><strong>Runs: 37 against a 20-run budget (INV-22, informational).</strong> My read: the count is honest, not waste — this feature absorbed eleven adversarial panel cycles and each closed something real, and today&#x27;s two runs found three highs six earlier cycles had misfiled. It is a long feature that has been earning its length, but F-01/F-02 show the panel is still finding gate-integrity defects, so do not read the count as evidence of convergence.</li></ul>
+<h2 id="the-one-thing-that-changed-how-this-run-was-judged">The one thing that changed how this run was judged</h2>
+<p>Six review cycles established &quot;is this new?&quot; against the <strong>pin&#x27;s parent commit</strong> and therefore reported F-01 and F-03 as pre-existing carry-forwards, out of scope. The panel lead ordered the measurement against the true merge-base instead, and I re-ran it myself: <code>merge-gate.py</code> and <code>merge-gate.sh</code> <strong>do not exist</strong> at <code>6ad7233f</code> and arrive at <code>4338ee44</code>, inside this feature&#x27;s own range. They are this feature&#x27;s code. That single measurement is what promoted two advisories into gating findings.</p>
+<h2 id="proposed-backlog-strike-any-row-by-id-anything-not-listed-here-dies-silently">Proposed backlog — strike any row by ID; anything not listed here dies silently</h2>
+<div class="scroll"><table><thead><tr><th>ID</th><th>Item</th><th>Nature</th></tr></thead><tbody><tr><td>B-1</td><td>Gate-dispatcher consolidation plus the <code>HOOK_SPECS</code> gaps (operator already accepted the fifth standalone gate)</td><td>enhancement</td></tr><tr><td>B-2</td><td><code>gh-sync.py:247</code>&#x27;s no-op remedy string</td><td>bug</td></tr><tr><td>B-3</td><td>The 17 unrecovered sync-enabled features</td><td>chore</td></tr><tr><td>B-4</td><td>The nonexistent <code>gen-decisions-index --check</code> clause in four features&#x27; plans</td><td>chore</td></tr><tr><td>B-5</td><td><code>gh-sync.py:1234</code>&#x27;s unguarded <code>int()</code></td><td>bug</td></tr><tr><td>B-6</td><td><code>merge-gate.py:11</code> imports <code>feature_schema</code> at module scope, ~50-60 ms on every Bash call</td><td>enhancement</td></tr><tr><td>B-7</td><td><code>merge-gate.py</code> DENY interpolates the literal <code>this feature</code> when the git binary is unresolvable — fails closed, med</td><td>bug</td></tr><tr><td>B-8</td><td>The DEC-138 stderr line says &quot;owes no build-entry receipt&quot; where the record is HELD — diagnostics only, low</td><td>bug</td></tr><tr><td>B-9</td><td>Three different spellings of &quot;Build entry receipt&quot; across the messages</td><td>chore</td></tr><tr><td>B-10</td><td><code>test-check-state.py</code>&#x27;s &quot;INV-37 message discriminator&quot; case is vacuously green — asserts a token absent from an empty line</td><td>chore</td></tr><tr><td>B-11</td><td><code>test-merge-gate.py</code>&#x27;s &quot;gh outage with no matching feature allows&quot; does not itself discriminate a cycle-5 sentinel reintroduction</td><td>chore</td></tr><tr><td>B-12</td><td>Handoff <code>Authority:</code> pointers <code>plan-task:</code> and <code>brief-sc:</code> cannot resolve for a feature living only in a worktree — the checker joins the feature path to the main checkout root</td><td>bug</td></tr><tr><td>B-13</td><td>The reviewer dispatch template does not state the canonical novelty range, which is how six cycles read &quot;pre-existing&quot; as &quot;pre-existing since two commits ago&quot;</td><td>enhancement</td></tr></tbody></table></div>
+<h2 id="how-this-briefing-was-assembled-disclosure">How this briefing was assembled — disclosure</h2>
+<p><strong>No report round was spawned.</strong> I read the digests and notes on disk. The load-bearing ones: <code>runs/2026-09-08-panelc7-validator/digest.md</code> (today&#x27;s panel), <code>runs/2026-09-08-amend-gc-product/digest.md</code> (today&#x27;s amendment and goal-check), <code>notes/review-harness-{code-reviewer,qa,security-reviewer,ui-reviewer}-c7.md</code>, <code>notes/qa-matrix-gate-BUG-1309-rerun.md</code> (the gate), <code>notes/research-BUG-1309-goalcheck-amend-c13.md</code>, <code>notes/uat-BUG-1309-mirror-build-entry.md</code>, and the <code>headline:</code> line of every one of the 30 run digests on disk for plan- and build-phase coverage. I did not read the plan- and build-phase digests in full — their headlines plus <code>STATE.md</code> and <code>feature.json</code> carried what this decision needs. I re-verified four claims myself rather than relaying them: the merge-base novelty of <code>merge-gate.py</code>, F-02&#x27;s parser miss (executed), F-03&#x27;s source contradiction, and that <code>894adc0f..HEAD</code> touches <code>feature.json</code> alone, so the pin still covers all code.</p><p class='derived'>Derived from <code>ship-review-2026-09-08-resume.md</code> — the markdown is the record; do not edit this file. Regenerate with <code>bin/render-brief.py</code>.</p></div></body></html>

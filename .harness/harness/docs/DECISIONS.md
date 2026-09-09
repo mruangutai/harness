@@ -6986,6 +6986,38 @@ proposals that rewrite or remove.
 
 **Record:** documented at SPEC §5.3. Refs: DEC-66, DEC-95, DEC-145.
 
+## DEC-220 — Build entry opens the mirror and leaves a local receipt; Ship is post-merge terminal finalization only
+
+**Chose:** the mirror is opened at **Build entry** — the transition immediately after signed plan
+approval — and never at Ship, which keeps post-merge terminal finalization only. `gh-sync.py open`
+records `feature.json` `github.build_entry` as `opened`, `recovery-required` or `not-applicable`,
+and ABSENCE is the fifth state, meaning no Build entry completed. `gh-sync.py start-task` refuses on
+absence and proceeds on `recovery-required`, which instead gates the merge through the registered
+PreToolUse Bash gate `merge-gate.sh` (`.claude/settings.json:48`). A partial remote write and a
+caller or contract error record nothing (`gh-sync.py:289`), so both leave the receipt absent and
+block Build.
+
+**Recovery is explicit and never retroactive.** An already-merged sync-enabled feature whose mirror
+was never opened is recovered by `gh-sync.py recover-terminal <feat> --yes`, which creates the
+milestone and the parent and source issues only — never historical task sub-issues — and records
+`recovered-terminal` (`gh-sync.py:1277-1323`). While GitHub is unavailable that recovery stays
+non-terminal and `post-merge-sweep.sh` keeps the worktree (`post-merge-sweep.sh:222-231`).
+`check-state.sh` INV-37 reports a sync-enabled feature carrying no receipt even when its station is
+terminal and its task statuses are absent (`check-state.sh:1983-2018`). One frozen set,
+`feature_schema.BUILD_ENTRY_ERA_EXEMPT`, bounds INV-37 and both refusals to the post-receipt era.
+
+**Over:** making the mirror a gate on GitHub itself — DEC-138 forbids it, and every refusal here
+reads the LOCAL receipt; running `open` after the merge, which would create historical task
+sub-issues for finished work; and an age-based escalation of a stale `recovery-required` receipt,
+which produces no behavior the state check does not already produce.
+
+**Because:** FEAT-55 (issue 1390) was approved, built, reviewed and merged with `github.sync` true
+and never opened its mirror; ship then exited 0 through its no-recorded-milestone skip with no
+terminal station write, and no gate saw it. The retired doctrine phrase "mission ship, right after
+the approval gate passes" named the terminal phase for a transition that belongs at Build entry.
+
+**Record:** the signed BUG-1309 plan, 2026-09-06. Refs: DEC-138, DEC-146, DEC-174, DEC-179,
+DEC-191, DEC-203.
 ## DEC-220 — Onboarding is fleet registration plus one product-resident file
 
 **Chose:** onboarding a repository is exactly three things: its own `.harness/harness.json` landed

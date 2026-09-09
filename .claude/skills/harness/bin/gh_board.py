@@ -344,6 +344,30 @@ def board_stations(board, repo):
     return out
 
 
+def board_stations_for(board, repo, numbers):
+    """`board_stations`, restricted to the issue numbers a caller already knows it needs.
+
+    Same output vocabulary, same lowercasing, same absent-vs-None distinction — so
+    `read_station` reads either map without knowing which produced it. What differs is the
+    cost: this asks GitHub about `numbers`, while `board_stations` downloads every card the
+    board has ever held and filters client-side (issue #1541).
+
+    Use this wherever the numbers are known. `board_stations` stays for the one caller that
+    genuinely needs the whole board — `board_lifecycle`'s closed-issue sweep, which asks the
+    inverse question.
+
+    An empty `numbers` makes NO call and returns an empty map — a caller with nothing to check
+    must not pay for a board read to discover that. The guard lives in `issue_stations`, where
+    the requests are actually issued, and NOT a second time here: a duplicate was written, and
+    deleting it changed no test, which is how it was found. One guard, at the loop it protects.
+    """
+    raw = factory_gh.issue_stations(
+        repo, board["number"], board["station_field"], numbers,
+    )
+    return {num: (station.lower() if isinstance(station, str) else station)
+            for num, station in raw.items()}
+
+
 def read_station(stations, issue_number):
     """(station, reason) — pure, no I/O.
 

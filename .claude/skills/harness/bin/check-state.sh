@@ -2005,6 +2005,47 @@ if _wt29 is not None:
             bad.append(_head29 + " Its path did not resolve to a repository and id, so no "
                                  "removal command can be composed for it.")
 
+# --- INV-37 (BUG-1309): an enabled mirror must leave a Build-entry receipt.
+# This deliberately runs regardless of station and task state. INV-26 correctly skips
+# terminal and all-ready plans for board placement; neither condition proves a mirror ran.
+try:
+    import feature_schema as _fs37
+except Exception as _fs37e:
+    _fs37 = None
+    bad.append("INV-37 CANNOT RUN: feature_schema.py did not import (%s: %s), so a missing "
+               "Build-entry receipt would go unreported." % (type(_fs37e).__name__, _fs37e))
+
+try:
+    _sync37 = bool((json.loads(read(os.path.join(H, "harness.json")) or "{}")
+                    .get("github") or {}).get("sync"))
+except Exception:
+    _sync37 = False
+
+if _fs37 is not None and _sync37:
+    for _fp37 in sorted(glob.glob(os.path.join(H, "*", "features", "*"))):
+        _feat37 = os.path.basename(_fp37)
+        if _feat37 in _fs37.BUILD_ENTRY_ERA_EXEMPT or _feat37 not in plan_docs:
+            continue
+        try:
+            _doc37 = json.load(open(os.path.join(_fp37, "feature.json"), encoding="utf-8"))
+        except Exception:
+            _doc37 = {}
+        if ((_doc37.get("factory") or {}).get("issues")
+                or (_doc37.get("github") or {}).get("build_entry") is not None):
+            continue
+        _cmd37 = _fs37.recovery_command_for(_fp37)
+        if _cmd37 == "open":
+            bad.append(f"INV-37 {_feat37}: github.sync is enabled but feature.json records no "
+                       f"github.build_entry, so no Build entry outcome was ever recorded and "
+                       f"the board cannot be telling the truth about this feature - run "
+                       f"gh-sync.py open {_fp37}.")
+        else:
+            bad.append(f"INV-37 {_feat37}: github.sync is enabled but feature.json records no "
+                       f"github.build_entry, and the feature's own record says the work is "
+                       f"already under way or finished, so creating the mirror now would mean "
+                       f"task sub-issues for completed work - run gh-sync.py recover-terminal "
+                       f"{_fp37} --yes.")
+
 # --- INV-26 BEGINS — the marker T-05's verify slices on. Without it the slice is EMPTY and
 # every literal-absence grep below trivially passes, which is the vacuous-grep failure this
 # feature exists to remove. The verify's positive control requires derive_station INSIDE the
@@ -2071,15 +2112,48 @@ if _inv26_board:
     except Exception:
         _gh_ok = False
 
+    # THE CANDIDATE SET IS BUILT FROM DISK FIRST, so the network is touched only if there is
+    # something to ask about. That is INV-30's posture one screen below, and it is the one this
+    # invariant was missing (issue #1541): the whole-board read downloaded every card the board
+    # has ever held — 918 items over ten sequential `gh` processes, 11.25s of this script's
+    # 14.3s — to answer questions about the handful of features actually in flight. Measured
+    # 2026-09-09, that handful was FOURTEEN features carrying ZERO mirrored issues, so the
+    # entire download was compared against nothing.
+    #
+    # The skip conditions here are a SUPERSET of the loop's below, deliberately: an extra issue
+    # number costs one alias in a batched query, while a missing one would make the loop report
+    # CANNOT VERIFY for a card that is on the board. Over-asking is cheap; under-asking lies.
+    _numbers26 = set()
+    for _fp26 in sorted(glob.glob(os.path.join(H, "*", "features", "*"))):
+        if not plan_docs.get(os.path.basename(_fp26)):
+            continue
+        if station_of(_fp26) in ("done", TERMINAL_MARKER):
+            continue
+        try:
+            _fj26 = json.load(open(os.path.join(_fp26, "feature.json"), encoding="utf-8"))
+        except Exception:
+            continue
+        _gblk26 = _fj26.get("github") or {}
+        if isinstance(_gblk26.get("parent"), int):
+            _numbers26.add(_gblk26["parent"])
+        for _n26 in (_gblk26.get("issues") or {}).values():
+            if isinstance(_n26, int):
+                _numbers26.add(_n26)
+
     _stations = None
     if _gh_ok:
-        # A FAILED OR TRUNCATED BOARD READ RECORDS NOTHING. board_stations already refuses a
-        # truncated page by raising, which is what keeps a partial read from being reported
-        # as an empty column — but the remedy here is silence, not a red gate, because the
-        # network is not the tree.
+        # A FAILED BOARD READ RECORDS NOTHING. board_stations_for already refuses a truncated
+        # read by raising, which is what keeps a partial read from being reported as an empty
+        # column — but the remedy here is silence, not a red gate, because the network is not
+        # the tree.
+        #
+        # AN EMPTY CANDIDATE SET IS AN EMPTY MAP, NOT None. None skips the whole comparison
+        # block below, and that block carries findings that need no board at all — the
+        # mirror-never-ran clause among them. Nothing to look up is not the same as nothing
+        # to check.
         try:
             os.environ["FACTORY_GH"] = _gh_bin
-            _stations = _gb.board_stations(_inv26_board, _repo26)
+            _stations = _gb.board_stations_for(_inv26_board, _repo26, _numbers26)
         except Exception:
             _stations = None
 

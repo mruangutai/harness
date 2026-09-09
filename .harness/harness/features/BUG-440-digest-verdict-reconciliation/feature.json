@@ -1,7 +1,7 @@
 {
   "feature_id": "BUG-440-digest-verdict-reconciliation",
   "branch": "feat/BUG-440-digest-verdict-reconciliation",
-  "pr": null,
+  "pr": 1405,
   "review_sha": "442e0d24b25b92b1223eb18b7d16b3a0ff5b3280",
   "cycles_used": 1,
   "max_total_cycles": 10,
@@ -49,6 +49,7 @@
     },
     "source_issues": [
       440
-    ]
+    ],
+    "build_entry": "recovered-terminal"
   }
 }

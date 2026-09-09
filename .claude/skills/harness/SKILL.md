@@ -133,27 +133,35 @@ accept their risk. Under DEC-176 they enter the operator's one batched signature
 a separate pre-signature fix dispatch; only an `approval.rulings` entry written by the main
 session's `sign-approval --overrule PF-ID:<reason>` records that acceptance.
 
-## The build phase — four segments you sequence yourself
+## The build phase — five segments you sequence yourself
 
 A `build` team is single-squad by construction (DEC-118), so it is only the eng segment. The rest
 are orchestrator-sequenced squad segments, in this order.
 
-1. **The eng segment.** Dispatch the named `build` team — resolve it `<HARNESS_CONTROL_PLANE_ROOT>/.harness/teams/build.yaml`
+1. **Build entry.** Immediately after signed approval and before dispatching any task, run
+   `gh-sync.py open <feature-dir>`. It records `feature.json` `github.build_entry`; Build does not
+   start without one because `gh-sync.py start-task` refuses at exit 2 when it is absent.
+   `recovery-required` may proceed, but gates merge until the main session re-runs idempotent `open`.
+2. **The eng segment.** Dispatch the named `build` team — resolve it `<HARNESS_CONTROL_PLANE_ROOT>/.harness/teams/build.yaml`
    first, then `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness/teams/build.yaml` (`harness-team/SKILL.md` step 1). **You
    choose WHICH tasks go to `eng-lead`**; **the lead routes each one to the specialist that owns
    it** by `consult-when`. Two different decisions — it routes, it does not revisit your selection.
+   **As the segment starts dispatching — not after it finishes — record the FEATURE's own
+   station** with `plan-merge.py set-feature-station --station building`. That is the feature's
+   station and not a task's: `gh-sync.py start-task` writes only the task's, so without this
+   write nothing advances the feature (BUG-1507).
 2. **The qa segment**, a validator-squad segment. `harness-qa` writes and runs the tests and
    enforces the `test_matrix` hard gate (`harness.json` `gates.qa_gate: blocking`, the project's
    only blocking gate). On failure, `loop_back` to the dev that owns the task. The build is not done
    until the matrix passes.
-3. **SIMPLIFY, the last build step** — once the matrix is green and **BEFORE `review_sha` is
+4. **SIMPLIFY, the last build step** — once the matrix is green and **BEFORE `review_sha` is
    pinned**, because an apply commit after the pin moves the tip and invalidates the panel's
    verdict. Sequence it to `harness-eng-lead`, never the validator lead. **The dispatch must tell
    the lead to read `<HARNESS_CONTROL_PLANE_ROOT>/.agents/skills/harness-simplify/SKILL.md` first** — it is not preloaded, and
    the four angles, the apply rules and the one-fix ceiling all live there. Re-run the suites after
    the apply, before the pin. An empty pass is a real outcome; nothing is invented to justify the
    step.
-4. **Entering validate**, pin `review_sha` (INV-6) and run `gh-sync.py status <feature-dir> review`
+5. **Entering validate**, pin `review_sha` (INV-6) and run `gh-sync.py status <feature-dir> review`
    BEFORE the panel is dispatched. Both preconditions sit together on purpose: the pin fixes what is
    reviewed, the station write puts the parent and every sub-issue at review. The station argument is
    LOWERCASE — one vocabulary, and `gh-sync.py` refuses anything else (FEAT-41).

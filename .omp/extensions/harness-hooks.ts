@@ -699,6 +699,7 @@ export function registerHarnessHooks(pi: any, policyRunner: PolicyRunner = runPo
         policyRunner(ctx.cwd, "branch-create-gate.sh", [], payload),
         policyRunner(ctx.cwd, "bash-write-guard.sh", [], payload),
         policyRunner(ctx.cwd, "plan-sign-gate.sh", [], payload),
+        policyRunner(ctx.cwd, "merge-gate.sh", [], payload),
       ]);
       // #1103: the identity signal cmd_sign_approval (plan-merge.py) now checks on its own,
       // rather than only the text-parsing denylist above. This is the SAME `currentAgent` the
