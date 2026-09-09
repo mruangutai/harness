@@ -1,7 +1,7 @@
 ---
 name: harness-grilling
 user-invocable: false
-description: Dialog to clarity before anything is built — a relentless one-question-at-a-time interview that names the destination, settles the decision tree, and records fog and out-of-scope. Blocking step zero of /harness-plan and of onboarding. Run by the main session only.
+description: Dialog to clarity before anything is built — a relentless one-question-at-a-time interview that names the destination, settles the decision tree, and records fog and out-of-scope. Blocking step zero of /harness-plan. Run by the main session only.
 ---
 
 # Grilling — reach shared understanding before the org spends a spawn
@@ -20,7 +20,8 @@ Three ways in, and they differ only in what follows:
 
 - **A loose idea or a feature request** — grill it to clarity, write the artifact, then offer
   `/harness-plan` with the artifact path as pm's input. Do not start planning unasked.
-- **Inside onboarding** — `harness-init` runs this as its interview.
+- **Inside repository registration** — `harness-add-repo` runs the technical interview; `harness-init`
+  runs this checkout's interview.
 - **Standalone** ("stress-test this", "grill me on X") — write the artifact and stop. Nothing
   downstream is implied.
 

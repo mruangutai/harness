@@ -81,7 +81,7 @@ Four files plus `harness.json` and one directory:
 | `.harness/features/<FEAT>/PLAN.md` | Active plan: `## Decisions` (D-NN), `## Approval` (user marker + date), `## Features` (FEAT-NN: name, `traces:` REQs, its tasks — §11), `## Tasks` (T-NN: paths, intent, `verify:`, `traces:`, `feature:`, `change_type:`, `status:`). | all personas | `harness-pm` (except `## Approval` → orchestrator) |
 | `.harness/features/<FEAT>/STATE.md` | Live handoff digest **per flow** — `## Current` (a *pointer* to the in-flight run's `state.yaml`, not a copy) + `## Open Questions`. Nothing else. **Bounded by construction** — no rotation rule needed. Per-feature since DEC-120: with N concurrent flows a single project-level file would have N writers | that flow's agents at spawn | **that feature's orchestrator only** |
 | `.harness/logs/<YYYY-MM-DD>.md` | Append-only **cross-flow** stream, one file per day: flow started, escalation raised, question answered, briefing held. Per-flow detail lives in that feature's `STATE.md` and run dirs. **Not loaded at spawn.** Pruned on a recurring schedule. | on request only | **main session only** — kept single-writer by being the one thing above the flows (DEC-120) |
-| `.harness/features/<FEAT>/DESIGN.md` | Visual design contract: palette, type scale, spacing, component direction, light/dark. Established during `/harness-init`'s design pass; the authority UI work implements against. | frontend-dev, documentor, ui-reviewer | `harness-visual-designer` |
+| `.harness/features/<FEAT>/DESIGN.md` | Visual design contract: palette, type scale, spacing, component direction, light/dark. Established by the design pass in `/harness-plan`; the authority UI work implements against. | frontend-dev, documentor, ui-reviewer | `harness-visual-designer` |
 | `.harness/notes/` | Durable artifacts, **feature-scoped where they belong to a feature**: `research-<topic>.md`, `mockups/*.html`, `prototypes/<FEAT>/`, `review-<persona>-<runid>.md`, `uat-<FEAT>.md`, `ship-review-<FEAT>-<runid>.md`, `answers-<FEAT>-<runid>.md`, `feedback.md` (leads-only read), `history/`. | pm, documentor, reviewers, leads | pm, visual-designer, reviewers, orchestrator (`feedback.md`, `ship-review-*`) · **`answers-*` is main-session-only by contract** (§2.1, issue #671) though the manifest still carries a legacy orchestrator grant on it — the orchestrator never exercises it |
 
 Also present: `.harness/harness.json` (config — gates, `test_matrix`, `test_kinds`,
@@ -131,10 +131,13 @@ hand-off to report, never a cue to search.
 
 **Feature-scoped artifacts live in the feature's folder** — `.harness/features/<FEAT>/notes/` (DEC-130). The path carries the feature id, so filenames no longer need to: `answers-<runid>.md`, `ship-review-<runid>.md`, `uat.md`, `research-*`, `review-<persona>-c<n>.md`. An earlier convention encoded the FEAT id in filenames under a flat `notes/`; it retired because the id was forgettable (observed on pm's first outing) while a directory cannot be. `.harness/notes/` remains for genuinely project-scoped artifacts only.
 
-Onboarding is handled by `/harness-init`, not a team (§3): it interviews you directly, lands that
-repository's own `harness.json` on its default branch, registers it in the fleet, creates its
-central per-segment tree, and takes your approval on the `BRIEF.md` written there. The round-trip
-above is the mechanism for every *subsequent* human-in-the-loop moment.
+Onboarding is two skills, not a team (§3), and neither is a command. `harness-init` configures a
+harness checkout — the eight prerequisites, this clone's `.harness/`, its `team-config.yaml` and its
+own `harness.json` — and carries `--upgrade`. `harness-add-repo` registers a repository into an
+already-configured control plane: it interviews you directly, lands that repository's own
+`harness.json` on its default branch, registers it in the fleet, then creates its central
+per-segment tree. The first `BRIEF.md`, its approval and any design pass are `/harness-plan`'s work
+(DEC-221). The round-trip above is the mechanism for every *subsequent* human-in-the-loop moment.
 
 ### 2.2 State-consistency check
 
@@ -142,14 +145,14 @@ Run at every `/harness` entry. The real state is a matrix, not a binary:
 
 | Condition | Action |
 |---|---|
-| not registered in `.harness/factory/fleet.yaml`, or its own `harness.json` not readable at its `default_branch`, or no central tree at `<control-plane>/.harness/<segment>/` | the repository is not onboarded — have the user run `/harness-init` |
+| not registered in `.harness/factory/fleet.yaml`, or its own `harness.json` not readable at its `default_branch`, or no central tree at `<control-plane>/.harness/<segment>/` | the repository is not onboarded — have the user run the `harness-add-repo` skill |
 | BRIEF, no `PLAN.md` | delegate to pm (normal planning) |
 | **BRIEF with no `## Approval`** | **halt — surface to user. Nothing downstream may run against an unapproved goal** |
 | PLAN re-planned after approval | pm must **reset** `## Approval` to pending; a stale approval must never carry onto a changed task set |
 | PLAN with no `## Approval` | halt — surface to user for approval |
 | STATE points at a task absent from PLAN | halt — report inconsistency, offer repair |
 | PLAN task missing `change_type` | pm must fill it before the qa gate can apply |
-| template `schema_version` gap in the control-plane clone's own manifest | tell the user to run `/harness-init --upgrade` |
+| template `schema_version` gap in the control-plane clone's own manifest | tell the user to run `harness-init` with `--upgrade` |
 | logs older than `log_retention_days` | prune opportunistically |
 
 ### 2.3 Writer ownership (concurrency safety)
@@ -403,8 +406,8 @@ touches, so they are never re-litigated per feature and never re-derived from pr
 **Astryx is not globally available as a Claude Code capability.** It is an npm package (`@astryxdesign/core`,
 React ≥19 peer, StyleX internal, runtime `defineTheme` with `[light, dark]` tuples) plus a reference
 clone. "Ensure it's available" therefore means a real provisioning step per project, not an
-assumption — `/harness-init` delegates the check to `dev-ops`, and a missing dependency is reported,
-not silently worked around.
+assumption — `harness-add-repo` delegates the check to `dev-ops`, and a missing dependency is
+reported, not silently worked around.
 
 **How conventions bind:**
 
@@ -416,8 +419,8 @@ not silently worked around.
   (`PLAN.md ## Decisions`), not a silent drift.
 - **Deviating from a convention requires a `## Decisions` entry** and therefore your approval. An
   agent may not quietly choose a different substrate because it found one more convenient.
-- The templates in this repository carry the default conventions, so a project onboarded by
-  `/harness-init` inherits them without configuration (§3.3, *The fleet — how a repository reaches the harness*).
+- The templates in this repository carry the default conventions, so a repository registered by
+  `harness-add-repo` inherits them without configuration (§3.3, *The fleet — how a repository reaches the harness*).
 
 ### 3.3 The fleet — how a repository reaches the harness
 
@@ -454,21 +457,24 @@ harness puts into a product repository.
 **Templates** live at `.claude/skills/harness/templates/`: `team-config.yaml`, `harness.json`,
 `BRIEF.md`, `PLAN.md`, `STATE.md`, `DESIGN.md`, `plan.yaml`, `gitignore.snippet` and the rest. They
 carry the canonical schema plus the generic org, with **placeholders** where a project differs, and
-`/harness-init` reads them from the control-plane clone it runs in.
+`harness-init` and `harness-add-repo` read them from the control-plane clone they run in.
 
-**`/harness-init` is an interview:**
+**Onboarding is two skills (DEC-221).** `harness-init` configures the harness checkout you are
+standing in — the eight prerequisites, the tracked hooks directory, this clone's `.harness/`, its
+`team-config.yaml` and its own `harness.json` — and it owns `--upgrade`.
+
+**`harness-add-repo` is the registration interview:**
 
 1. **Technical** — project type (web app / API / CLI / library / data pipeline), frontend framework,
    backend framework.
-2. **Product** — what you're building: goal, requirements, constraints, success criteria.
-3. **Writes the three** — that repository's own `harness.json` (`test_kinds` commands, `domain`
-   globs, gates) on its `default_branch`, its `repos:` entry in `.harness/factory/fleet.yaml`, and
-   its central per-segment tree at `<control-plane>/.harness/<segment>/` holding a **draft
-   `BRIEF.md`**. `team-config.yaml` is written from the template for the control-plane clone
-   alone; no manifest and no scaffold is copied into a product repository.
-4. **You approve the BRIEF** — the goal of record is signed before anything downstream runs (§2.2).
-5. **Offers a design pass** — if the project has a UI, chain `visual-designer` → `ui-reviewer(A)` to
-   establish `DESIGN.md`.
+2. **Writes the three, in order** — that repository's own `harness.json` (`test_kinds` commands,
+   `domain` globs, gates) on its `default_branch`, its `repos:` entry in
+   `.harness/factory/fleet.yaml`, and its central per-segment tree at
+   `<control-plane>/.harness/<segment>/`. `team-config.yaml` belongs to the control-plane clone
+   alone and is written there by `harness-init`; no manifest and no scaffold is copied into a
+   product repository.
+3. **Then `/harness-plan`** — the first `BRIEF.md`, its approval and any design pass are
+   `/harness-plan`'s work, never onboarding's. A registered member with no BRIEF routes there (§2.2).
 
 Mechanical detection (test-runner discovery, source layout → `domain` globs) is delegated to
 **`dev-ops`**; the interview itself runs in the **main session**, because only it can call
@@ -480,7 +486,7 @@ obviously-irrelevant reviewer from a specific panel.
 
 **Template versioning handles org changes.** Templates carry a `schema_version`. When the harness
 adds an agent, the template in this repository moves ahead while the project's own manifest stays
-where it is; the state check notices the version gap and tells you to run `/harness-init --upgrade`,
+where it is; the state check notices the version gap and tells you to run `harness-init` with `--upgrade`,
 which merges new entries while preserving your `domain` values.
 
 ### 3.4 The roster
@@ -1360,7 +1366,7 @@ table's "if touches DB/external" cells silently vanish and high-risk changes shi
 - **`test_kinds` supplies two things** without which "missing required kind → FAIL" is not
   computable: how to *detect* a kind's presence in a diff (`detect` globs), and *what command runs
   it* (`cmd`, per project).
-- **Owner: `dev-ops`.** During `/harness-init`, dev-ops detects the project's test runner and writes
+- **Owner: `dev-ops`.** During `harness-add-repo`, dev-ops detects the project's test runner and writes
   `test_kinds` into `.harness/harness.json`. **An unresolvable or missing `cmd` is a distinct LOUD
   third state** (`VERDICT: BLOCKED — test command unresolved`), never folded into the
   not-applicable soft skip: a silently no-op'd hard gate is worse than a halt.

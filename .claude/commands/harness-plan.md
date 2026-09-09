@@ -15,9 +15,9 @@ Read `.claude/commands/harness.md` and follow it with **mission: plan**. The dif
   the harness did not create — moving it is deliberate: the harness moves any card it is pointed
   at and closes only cards it created. Best-effort: a board failure prints one line and planning
   continues.
-- **Target state:** BRIEF approved (write it via `pm` if absent — or route to `/harness-init` per the
-  Gate check in step 0 above, including registration in `.harness/factory/fleet.yaml`), then the
-  plan-feature sequence run by the orchestrator: product-lead's squad plans, the eng squad runs the
+- **Target state:** BRIEF approved (write it via pm if absent — or route to `/harness-plan` per the
+  Gate check in step 0 above), then the plan-feature sequence run by the orchestrator: product-lead's
+  squad plans, the eng squad runs the
   four-angle simplify pass over the plan surface (`.claude/skills/harness-simplify/SKILL.md`) — FLAG-ONLY,
   findings return to `harness-pm`, which applies them to its own draft before the signature, because
   `check-domain.sh` grants `plan.yaml` and `BRIEF.md` to pm alone (D-03) — eng-lead reviews architecture,

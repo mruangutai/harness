@@ -283,7 +283,7 @@
           <tr><td><code>features/&lt;F&gt;/BRIEF.md</code></td><td>The goal of record — requirements and success criteria, each declaring how it gets verified</td><td class="owner o-prod">pm<span class="o-you"> · you sign</span></td></tr>
           <tr><td><code>features/&lt;F&gt;/PLAN.md</code></td><td>Decisions, features, and fully specified tasks each carrying a <code>change_type</code></td><td class="owner o-prod">pm<span class="o-you"> · you sign</span></td></tr>
           <tr><td><code>features/&lt;F&gt;/DESIGN.md</code></td><td>The visual contract: palette in both themes, type scale, spacing, component direction</td><td class="owner o-prod">visual-designer</td></tr>
-          <tr><td><code>team-config.yaml</code></td><td>The org as data — membership, routing, and every agent's writable domain</td><td class="owner o-you">/harness-init · control plane only</td></tr>
+          <tr><td><code>team-config.yaml</code></td><td>The org as data — membership, routing, and every agent's writable domain</td><td class="owner o-you"><code>harness-init</code> skill · control plane only</td></tr>
           <tr><td><code>features/&lt;F&gt;/STATE.md</code></td><td>That flow's live pointer and open questions. One per feature, so concurrent flows never share a writer</td><td class="owner o-orch">orchestrator</td></tr>
           <tr><td><code>features/&lt;F&gt;/feature.json</code></td><td>Execution facts: branch, pinned review SHA, cycles used</td><td class="owner o-orch">orchestrator</td></tr>
           <tr><td><code>…/runs/&lt;r&gt;/state.yaml</code></td><td>One team run: per-step checkpoints, verdicts, retries</td><td class="owner o-eng">that run's lead</td></tr>
@@ -325,6 +325,8 @@
       <table>
         <thead><tr><th>You say</th><th>What runs</th><th>Ends with</th></tr></thead>
         <tbody>
+          <tr><td>"set this checkout up"</td><td><b><code>harness-init</code></b> — a skill, not a command: configures a fresh Harness checkout (prerequisites, hooks, this clone's <code>.harness/</code>); <code>--upgrade</code> closes a <code>schema_version</code> gap</td><td>a configured control plane</td></tr>
+          <tr><td>"add this repo to the fleet"</td><td><b><code>harness-add-repo</code></b> — a skill, not a command: lands that repository's own <code>harness.json</code> on its default branch, registers it in <code>fleet.yaml</code>, creates its central per-segment tree</td><td>a registered member — its first BRIEF is <code>/harness-plan</code>'s (DEC-221)</td></tr>
           <tr><td>"what should we do next?"</td><td><b>triage</b> — pm reads the backlog (GitHub Issues), the codebase map, shipped history</td><td>ranked candidates; you pick</td></tr>
           <tr><td><code>/harness-plan</code></td><td><b>plan</b> — pm authors BRIEF (<code>## Problem</code> first) + PLAN; eng architecture review; design pass</td><td>one signature: PLAN + prototype</td></tr>
           <tr><td><code>/harness-ship</code></td><td><b>ship</b> — build test-first → qa gate → review panel vs a pinned SHA → pm goal-check → the loop runs until the <em>success criteria</em> pass, not until tasks run out</td><td>the CEO briefing; ship / fix / stop is yours</td></tr>
@@ -342,7 +344,7 @@
   </section>
 
   <footer>
-    Reference diagram · updated 2026-08-06 (through DEC-181) · generated from <code>SPEC.md</code> §2–§13 and <code>team-config.yaml</code>.
+    Reference diagram · updated 2026-09-09 (through DEC-221) · generated from <code>SPEC.md</code> §2–§13 and <code>team-config.yaml</code>.
     Squad colors are the ones the manifest already assigns.
   </footer>
 </div>

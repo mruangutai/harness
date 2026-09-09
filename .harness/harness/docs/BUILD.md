@@ -101,7 +101,7 @@ default means the org silently reshapes the next time it moves.
 independently by **omitting `Agent` from every member's `tools:` list**. Do that regardless of the
 setting; the depth cap is defence in depth, not the primary control.
 
-**`/harness-init` must write all five entries in this control-plane clone, and the
+**`harness-init` must write all five entries in this control-plane clone, and the
 state-consistency check must verify them there** — a silent degradation to flat, to memoryless
 agents, to delegating members, or to unvalidated digests is exactly the failure class this design
 tries to avoid.
@@ -371,6 +371,15 @@ fixtures. D5 and D4 ride along inside the real flow's prompts.
 
 **Self-contained: everything needed to build this without prior conversation.** The spec below is what
 was built; the Done-when block at the end records how each criterion was verified.
+
+**Present state (DEC-221): onboarding is two skills, and this section is the record of what task 12
+delivered, not a description of today's split.** `harness-init` configures a harness checkout — the
+prerequisites, this clone's `.harness/`, its `team-config.yaml` and its own `harness.json` — and it
+keeps `--upgrade`. `harness-add-repo` registers a repository into an already-configured control
+plane: that repository's own `harness.json` on its `default_branch`, its `fleet.yaml` entry, then
+its central per-segment tree. The first `BRIEF.md`, its approval and any design pass are
+`/harness-plan`'s, so the division-of-labour table and the interview steps below name `/harness-init`
+for jobs `harness-add-repo` now owns.
 
 ### What it is
 
@@ -945,7 +954,8 @@ new system with GSD still available, then cut over and retire `.planning/`.
 | `.harness/team-config.yaml` | **new** — team manifest (membership + `consult-when` routing + `domain` write scope) |
 | `.claude/skills/harness/bin/check-domain.sh` | **new** — domain-enforcement hook script (the one deliberate exception to files-only) |
 | `.claude/skills/harness/templates/*` | **new** — schema templates read from this repository at onboarding (team-config, harness.json, BRIEF/PLAN/STATE/DESIGN, gitignore) |
-| `.claude/skills/harness-init/SKILL.md` | **done** — `/harness-init` project scaffolder. **FLAT**, not `harness/init/`: a project skill is exactly one level under `.claude/skills/` and a nested dir is undiscoverable (DEC-100) |
+| `.claude/skills/harness-init/SKILL.md` | **done** — configures a harness checkout (DEC-221). **FLAT**, not `harness/init/`: a project skill is exactly one level under `.claude/skills/` and a nested dir is undiscoverable (DEC-100) |
+| `.claude/skills/harness-add-repo/SKILL.md` | **done** — registers a repository into a configured control plane (DEC-221): its own `harness.json` on its default branch, its `fleet.yaml` entry, its central per-segment tree. Also FLAT |
 | `.claude/skills/harness/bin/merge-settings.py`, `merge-gitignore.sh`, `upgrade-config.py` | **done** — deterministic, idempotent merges. Prose cannot be trusted to preserve a project's own hooks |
 | `.claude/skills/harness-handoff/SKILL.md` | **new** — universal artifact discipline (all 16 agents) |
 | `.claude/skills/harness-<name>/SKILL.md` × 7 | **restructured, FLAT** (DEC-100) — rules become skills for `skills:` preload; `handoff`, `expertise`, `zero-micro-management` are net-new |

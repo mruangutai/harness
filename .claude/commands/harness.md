@@ -9,12 +9,12 @@ never do the feature's work yourself.
 ## 0. Gate
 
 Run `.claude/skills/harness/bin/check-state.sh`. Violations are surfaced to the user before
-anything spawns — except when this clone has no `.harness/` at all, the repository is not in
-`.harness/factory/fleet.yaml`, its `harness.json` is not readable at its default branch, or its central
-tree `<control-plane>/.harness/<segment>/` is absent; these conditions route to `/harness-init`. A
-registered fleet member with an empty `<control-plane>/.harness/<segment>/features/` has no feature
-yet, a normal state that routes to `/harness-plan`, not onboarding; an unapproved BRIEF/PLAN routes to
-step 1.
+anything spawns — except when this clone has no `.harness/` at all; that condition routes to the
+`harness-init` skill. A repository not in `.harness/factory/fleet.yaml`, with a `harness.json` not
+readable at its default branch, or with no central tree `<control-plane>/.harness/<segment>/` routes
+to the `harness-add-repo` skill. A registered fleet member with an empty
+`<control-plane>/.harness/<segment>/features/` has no feature yet, a normal state that routes to
+`/harness-plan`, not onboarding; an unapproved BRIEF/PLAN routes to step 1.
 
 ## 0b. Cut the worktree, before any orchestrator is spawned
 

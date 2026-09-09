@@ -7015,3 +7015,39 @@ fails closed, blocking writes rather than widening them, but a well-formed hosti
 by nothing — push access to a member's default branch is factory-level trust.
 
 **Record:** refs DEC-174, DEC-113, DEC-182, DEC-129.
+
+## DEC-221 — Onboarding is two skills: `harness-init` configures a checkout, `harness-add-repo` registers a repository
+
+**Chose:** onboarding is **two artifacts**, not one. `.claude/skills/harness-init/SKILL.md` is the
+first-time configuration of a harness checkout — the eight prerequisites, the tracked hooks
+directory, this clone's `.harness/`, its `team-config.yaml` and its own `harness.json` — and it
+keeps `--upgrade`. `.claude/skills/harness-add-repo/SKILL.md` registers a repository into an
+already-configured control plane: land that repository's own `.harness/harness.json` on its
+`default_branch`, add its `repos:` entry to `.harness/factory/fleet.yaml`, then create its central
+per-segment tree at `<control-plane>/.harness/<segment>/`. The seam is the old skill's own two
+tracks: **Track A plus `--upgrade` stays** in `harness-init`, and **Track B moves** to
+`harness-add-repo` **minus its BRIEF, approval and design steps**. Those three are `/harness-plan`'s
+work — the first `BRIEF.md`, its approval and any design pass belong there, and a configured fleet
+member that has no BRIEF routes to `/harness-plan`, never back into onboarding. Both are skills;
+neither is a command. The canonical root for command doors is `.omp/commands`, with `.claude/commands`
+adapters generated from it, because a door authored only under `.claude/commands` is discovered by
+one provider.
+
+**Over:** one combined onboarding skill with two tracks, which forced every reader of either half
+through the other and made "am I onboarded?" a question with two different answers. Also over a
+**symlinked `.claude/commands`**: rejected because no test in this repository can exercise Claude
+Code's own discovery, so a symlink's behaviour under it would be asserted by nothing, whereas a
+generated adapter is an ordinary file both providers read and a test can assert byte-for-byte. Also
+over leaving the first `BRIEF.md`, its approval and the design pass inside onboarding, where they
+duplicated `/harness-plan` and made registration wait on a product conversation.
+
+**Because:** the two jobs have different preconditions, different audiences and different failure
+modes. Configuring a checkout needs templates, `.claude/settings.json` and hooks in the checkout you
+are standing in; registering a repository needs `gh`, push access to another repository's default
+branch, and an already-configured control plane to register into — its preflight can only STOP and
+route to `harness-init`. DEC-220 fixed what registration *is* but left it inside a skill whose other
+half configures a checkout. DEC-06 is **not overturned** here: its conclusion — the runner is a
+skill, not a command — is exactly what `harness-add-repo` conforms to, and only its distribution
+premise expired, when `deploy.sh` was deleted in commit 45859123.
+
+**Record:** refs DEC-220, DEC-06, DEC-120, DEC-174.

@@ -1808,7 +1808,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: check-domain.sh --resolve returns NOBODY for .omp/agents and .claude/agents at 12f74ea8, and the two trees are distinct files kept in step by sync-agent-adapters.py
     depends_on: [T-11]
-    status: ready
+    status: done
     files:
       - .omp/agents/harness-dev-ops.md
       - .omp/agents/harness-visual-designer.md
@@ -1861,7 +1861,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-documentor
     depends_on: [T-11]
-    status: ready
+    status: done
     files:
       - .harness/harness/docs/DECISIONS.md
       - .harness/harness/docs/DECISIONS-INDEX.md
@@ -2012,7 +2012,7 @@ tasks:
     execution_agent: harness-dev-ops
     depends_on:
       - T-11
-    status: ready
+    status: done
     files:
       - .harness/harness.json
     verify: |
@@ -2048,7 +2048,7 @@ tasks:
     execution_reason: check-domain.sh --resolve returns NOBODY for all four paths at 97fe447f, the DEC-174 carve-out covering .harness/team-config.yaml and .claude/skills outside harness/bin
     depends_on:
       - T-11
-    status: ready
+    status: done
     files:
       - .harness/team-config.yaml
       - .claude/skills/harness/templates/harness.json

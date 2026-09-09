@@ -8,7 +8,6 @@
 # Nothing is declared twice.
 
 schema_version: 1
-cli_min_version: "2.1.217"        # floor for the spawn env vars (DEC-83)
 
 # The MAIN SESSION is the user channel and nothing else: it spawns orchestrators,
 # relays their questions to you, and writes `## Approval` and the cross-flow log.
