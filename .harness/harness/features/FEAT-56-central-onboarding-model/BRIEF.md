@@ -321,6 +321,18 @@ construction; no grade of it is carried, and SC-11 and SC-12 replace it, one per
 - **`check-state.sh` deliberately makes no network call**, so no every-run invariant can grade a
   fleet member's remote `harness.json`. REQ-05 is discharged by an operator-run check (SC-05), which
   means a member whose config is deleted after onboarding stays invisible until the next build.
+- **One gate is KNOWN-RED on this branch until merge, by construction.**
+  `tests/integration/test-check-plan-routes.py` fails 6 cases and
+  `check-plan-routes.py` reports `1 violation(s) across 5 plan(s)`: the violation is the
+  owner-manifest deviation, raised because T-19 removed `cli_min_version` from this branch's
+  `.harness/team-config.yaml` under D-13 while the main checkout still carries it at line 11, and
+  `check-plan-routes.py:896-899` counts any semantic difference from the owner manifest as one
+  violation. The tool is behaving as designed — comment-only branch differences are tolerated, a
+  removed key is not. The operator ACCEPTED this single violation under D-14 as an expected
+  pre-merge condition, so the qa gate may pass with it outstanding while citing D-14; it clears at
+  merge, when the owner manifest becomes this branch's manifest. Nothing else in the suite is
+  excused: every per-task route line still reports OK, and a second violation of any kind is a
+  failure.
 
 ## Approval
 

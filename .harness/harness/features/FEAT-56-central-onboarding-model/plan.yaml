@@ -172,6 +172,40 @@ decisions:
       the key as a documented unenforced floor, was overridden and is recorded here only so the
       override is not mistaken for agreement.
     dec: DEC-83
+  - id: D-14
+    choice: |
+      RULED BY THE OPERATOR, 2026-09-09: the single manifest-deviation violation that
+      check-plan-routes.py reports from this branch is ACCEPTED as an expected pre-merge condition
+      until FEAT-56 merges, and the qa gate MAY pass with it outstanding PROVIDED the gate report
+      cites this decision by id (D-14). Neither the gate nor T-19 is touched. Two alternatives were
+      named and both REJECTED by the operator: (a) altering check-plan-routes.py so that removing a
+      key stops counting as a manifest deviation — rejected because it amends a gate so that this
+      feature's own change passes, which is the gate-weakening the factory forbids, and because the
+      tool's tolerance boundary is deliberate rather than accidental
+      (case_41_t09_comment_only_manifest_difference_is_NOT_a_deviation PASSES, so comment-only branch
+      edits were tolerated by design and semantic ones were not, and a removed key is semantic);
+      (b) reverting T-19's removal and deferring it to a post-merge chore — rejected because it
+      contradicts the operator's own D-13, which ordered cli_min_version removed from all five sites.
+      The product lead's recommendation was route (a)-accept as well; this entry is the OPERATOR's
+      ruling, and the agreement is recorded only so the ruling is not mistaken for its recommender's.
+    because: |
+      Measured on this branch: check-plan-routes.py reports 1 violation(s) across 5 plan(s), and
+      tests/integration/test-check-plan-routes.py fails 6 cases. The DEVIATION line names this
+      worktree's .harness/team-config.yaml against the main checkout's, which still carries
+      cli_min_version at line 11 because T-19 removed it here under D-13 and the owner manifest is
+      only updated at merge; check-plan-routes.py:896-899 counts ANY manifest deviation as one
+      violation. The tool is therefore behaving AS DESIGNED: routes are resolved against the owner
+      manifest because that is what the hook consults, and the deviation is the honest report that
+      branch and owner disagree. This is a structural property, not a defect of this feature: any
+      feature that edits the shared owner manifest reddens this check from every worktree of its
+      branch until merge, and FEAT-56 is simply the first to do so, on the operator's own
+      instruction. The condition vanishes at merge by construction, when the owner manifest becomes
+      the branch's manifest.
+      SCOPE AND EXPIRY: the acceptance covers exactly ONE violation — the .harness/team-config.yaml
+      owner-manifest deviation — and expires at merge. It is NOT a general licence for
+      check-plan-routes.py violations. A second violation, of any kind, or this one persisting after
+      the merge lands, is a failure and not covered here.
+    dec: none
 panel:
   last_run: 2026-09-08-08-plan-panel-c1-validator
   cycle: 1
