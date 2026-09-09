@@ -9,144 +9,113 @@
 - status: in_review (panel clean; awaiting the main session's PR and merge)
 - station: `review` (plan.yaml line 3), written by `gh-sync.py status <feature-dir> review`
 - review_sha: `ac5e24e51f2520e273580f66c372b5bd143001f1`
+- mirror: milestone #64, parent #1517, sub-issues #1518-#1522, all six at the review station
+- cycles_used: 3 of 10 · runs: 10 of 20
 
-Log:
+Log (condensed 2026-09-09 to the INV-23 budget; the detail lives in `notes/` and `runs/*/digest.md`):
 
-- 2026-09-08: station `plan` — feature instantiated from templates; mission PLAN opened against
-  issue #1507. Premises re-verified on disk in the worktree before any dispatch: `harness-plan.md:24`
-  carries `status <feature-dir> Ready`; `github-mirror.md:94,96` carry `status <dir> Ready` /
-  `status <dir> Review`; `SKILL.md`'s build phase (136-153) names no feature-level `building` write;
-  `gh-sync.py` `cmd_status` docstring (1305-1317) enumerates Ready/Review/Plan/Done/Abandoned and
-  omits Building. `.agents/skills` is a symlink to `../.claude/skills`, so `.claude/...` is the one
+- 2026-09-08: station `plan`. Premises re-verified on disk before any dispatch: `harness-plan.md:24`
+  carried `status <feature-dir> Ready`; `github-mirror.md:94,96` carried `Ready`/`Review`;
+  `SKILL.md`'s build phase named no feature-level `building` write; `cmd_status`'s docstring omitted
+  Building. `.agents/skills` is a symlink to `../.claude/skills`, so `.claude/...` is the one
   canonical, git-tracked path for all four surfaces.
-- 2026-09-08: run `plan-product` PASS — pm drafted BRIEF.md (6 REQ, 10 SC) and plan.yaml (5 tasks,
-  6 decisions, `status: plan`, `approval.status: pending`). It found a FIFTH live instance of the
-  same defect at `harness-plan.md:11` (`board-station.py <n> Plan`) and folded it in as D-06 under
-  disclosure. Orchestrator independently confirmed that instance: `board-station.py` validates its
-  station argument against `factory_config.station_names(board)`, which returns the six lowercase
-  MANDATED_STATIONS, so `board-station.py <n> Plan` refuses at exit 2 exactly as
-  `gh-sync.py status <dir> Ready` does. The `/harness-plan` kickoff board write has been dead too.
-- 2026-09-08: run `2026-09-08-01-product` FAIL — plan-phase panel segment 1, pm's goal-check of the
-  drafted plan against the operator's stated intent. 3 of 5 Definition-of-Done bullets discharged;
-  9 findings (0 high/critical, 5 med after lead re-rank, 2 low, 2 info). All repairs BRIEF-only.
-  Note at `notes/research-BUG-1507-goalcheck-plan-c0.md`. `cycles_used` 0 -> 1.
-- 2026-09-08: RECORD CORRECTION, disclosed rather than silently rewritten. The orchestrator had
-  appended the draft run as id `2026-09-08-01-product` with `code_grade: n_a`. Two errors: the
-  goal-check lead then named its own run DIRECTORY `2026-09-08-01-product`, so one id labelled two
-  different runs and `check-state.sh`'s `run_verdicts` would have collapsed a PASS and a FAIL onto
-  it; and `code_grade` belongs only to a validator run (`check-state.sh` reads it only when
-  `squad == "validator"`). Corrected: the draft run now carries the id of its own run directory,
-  `plan-product`, and no `code_grade`; the goal-check run keeps `2026-09-08-01-product` and carries
-  its true verdict, FAIL. No verdict or outcome was altered by this correction.
-- 2026-09-08: run `2026-09-08-1-product` PASS — fix cycle. R-1..R-7 landed against F-01..F-07;
-  F-08 accepted, F-09 declined with reason. Orchestrator ruled Q1 to the disclosure route (the
-  issue's own scope line excludes the code work) and Q2 to yes.
+- 2026-09-08: run `plan-product` PASS — BRIEF (6 REQ, 10 SC) and plan.yaml (5 tasks, 6 decisions)
+  drafted. pm found a FIFTH live instance at `harness-plan.md:11` (`board-station.py <n> Plan`) and
+  folded it in as D-06; the orchestrator confirmed it dead independently (exit 2).
+- 2026-09-08: run `2026-09-08-01-product` FAIL — the plan panel's goal-check against the operator's
+  stated intent: 3 of 5 DoD bullets discharged, 9 findings, all repairs BRIEF-only.
+  `notes/research-BUG-1507-goalcheck-plan-c0.md`. `cycles_used` 0 -> 1.
+- 2026-09-08: RECORD CORRECTION, disclosed. The draft run had been appended under the id the
+  goal-check lead later gave its own run DIRECTORY, so one id labelled two runs with opposite
+  verdicts, and it carried a `code_grade` that belongs only to a validator run. Ids and keys
+  corrected; no verdict or outcome altered.
+- 2026-09-08: run `2026-09-08-1-product` PASS — fix cycle, R-1..R-7 landed, F-08 accepted, F-09
+  declined with reason. Q1 ruled to the disclosure route, Q2 to yes.
 - 2026-09-08: run `2026-09-08-01-validator` PASS — plan-panel, `cycle: 0`, `severity_max: med`,
-  `must_fix: []`. BOTH readers ran; neither was skipped. 4 findings: two `scope` findings that the
-  T-02 and T-03 `verify:` commands prove phrase-presence rather than the binding their REQ needs;
-  one `should-not-exist` finding against T-05's self-reinvocation machinery; one low against D-03's
-  circular justification.
-- 2026-09-08: run `2026-09-08-02-product` PASS (1 send-back inside the run) — the panel record.
-  All four findings resolved and transcribed into `plan.yaml`'s `panel:` key with computed `PF-`
-  ids. `cycles_used` 1 -> 2.
-- 2026-09-08: orchestrator verification at its own tier, none of it delegated: all four `PF-` ids
-  recomputed with `panel_findings.py` (4/4 matched); all five `verify:` commands run from the
-  worktree root, each RED (T-01..T-04 exit 1, T-05 exit 2 file-absent); `check-plan-routes.py`
-  0 violations exit 0; zero backticks in any plan value; `handoff_done_when.py` exit 0. Additionally
-  probed that T-02's and T-03's REPAIRED gates can report GREEN — mutated text in memory, no file
-  touched: each returns 0 on the correct fix and 1 on the exact near-miss its finding named. A gate
-  that cannot go green blocks the build as surely as one that cannot go red ships a defect.
-- 2026-09-08: PLAN PHASE CLOSED at the operator signature gate. `notes/handoff-plan.md` written.
-  `approval.status` stays `pending` in both plan.yaml and BRIEF.md — only the main session signs.
-- 2026-09-08: OPERATOR SIGNED (plan.yaml `approval.status: approved`, BRIEF `## Approval`
-  approved, at acc8bf63). Both open questions ruled by the operator: Q1 — accept the disclosed
-  limit that task-card Ready exclusivity (`gh_board.py` code work) stays out of scope; Q2 — keep
-  both T-05 and D-06, strike neither, retype nothing. The main session then ran the post-signature
-  `gh-sync.py status <feature-dir> ready` and recorded SC-01's transcript at
-  `notes/sc01-ready-write-transcript.md` (partial: (a) and (b) met, (c) not applicable — zero
-  sub-issues recorded).
-- 2026-09-09: BUILD PHASE OPENED, station `ready` -> `building`. The orchestrator ran
-  `plan-merge.py set-feature-station --station building` on this feature's own `plan.yaml` at the
-  moment the eng segment began, BY HAND from the worktree copy of T-03's instruction (the
-  control-plane checkout does not carry it until this branch merges). Observed `status: building`
-  at plan.yaml line 3; SC-05's record written to `notes/sc05-building-write-transcript.md`.
-- 2026-09-09: T-01, T-02, T-03 landed main-session-direct by the orchestrator (the DEC-174
-  carve-out `plan.yaml` `lanes:` records — `check-domain.sh --resolve` returns NOBODY for all three
-  `.claude/` doc surfaces). Commits `e5223f10` (T-01), `d9caec31` (T-02), `3063b1dc` (T-03). Each
-  task's own `verify:` re-run by the orchestrator after the edit: all three exit 0, each having
-  been RED on the same tree before the edit. T-02 additionally names `plan.yaml` explicitly in the
-  Building row so SC-06's "which writes the card and which writes the plan" is answerable from the
-  row alone.
-- 2026-09-09: run `2026-09-08-t04-t05-eng` PASS, 0 send-backs — `harness-eng-lead` hosted the
-  `build` team and routed both tasks to `harness-backend-dev`. T-04's Building bullet plus D-02's
-  decision paragraph added to `cmd_status`'s docstring (16 insertions, zero deletions, every line
-  inside the docstring — SC-08 holds); T-05's witness created with the accepted sets DERIVED from
-  `factory_config` and an in-process negative control, no subprocess self-reinvocation and no
-  conditionally skipped row (the disposition of PF-4d48a751). Orchestrator re-ran both `verify:`
-  blocks itself: T-04 exit 0, T-05 exit 0 with 8 PASS rows and 0 FAIL. Committed `64bc9351`.
-  `cycles_used` unchanged at 2 — a clean first-pass run adds none (DEC-157).
-- 2026-09-09: run `2026-09-08-qa-validator` PASS, 0 send-backs — the blocking `qa_gate`.
-  `integration` is the only kind the matrix demands, for the three `bugfix` tasks (T-01, T-02,
-  T-05); the two `docs` tasks require none. All three discharge to
-  `tests/integration/test-station-argument-spelling.py`, which the lead verified can report RED
-  rather than only green. SC-02, SC-03 and SC-09 all PASS; `must_fix: []`. The orchestrator re-ran
-  the two SC-09 suites itself: both exit 0. Note at `notes/qa-BUG-1507-build.md`.
-- 2026-09-09: run `2026-09-08-01-simplify-eng` PASS — SIMPLIFY, the last build step, run BEFORE
-  the pin. All four angles read the five-path diff; the pass is EMPTY BY RULE, not by omission.
-  Two findings, neither appliable: a redundant conjunct at the witness's line 139 (dropping it
-  would weaken an assertion after the qa gate) and a residual that D-05's `because:` does not name
-  every directory the sweep glob excludes (its only remedy edits a signed `plan.yaml`, which pm
-  alone may write). Both carried as non-blocking backlog rows. Working tree clean at `287aafb5`.
-- 2026-09-09: BUILD -> VALIDATE seam. `gh-sync.py status <feature-dir> review` run (lowercase),
-  plan station `building` -> `review`; no parent issue is recorded for this feature, so no card
-  was written and the mirror reported that in one line, exit 0. `review_sha` pinned at the seam
-  commit, which contains every deliverable and no later code change.
-- 2026-09-09: run `2026-09-08-panel-validator` PASS — the validate panel, `cycle: 0`, at the pinned
-  `ac5e24e5`. ALL FOUR readers ran; none skipped. `severity_max: med`, `must_fix: []`,
-  `code_grade: grade_2` (one accepted grade-2 function with its reason on file). Five findings, none
-  gating: VL-01 (med, the lead's own — the witness cannot see the `plan-merge.py
-  set-feature-station --station <token>` shape that T-02 and T-03 add to the swept corpus), F-01
-  (low, the `verify:` chain's BrokenPipeError under `pipefail`, not exploited because
-  `run-unit-tests.sh` executes the file directly), F-02 (med, accepted code-risk grade 2), and two
-  assessed-and-dismissed info rows. Reviewer notes at `notes/review-harness-{code-reviewer,qa,
-  security-reviewer,ui-reviewer}-c0.md`.
-- 2026-09-09: VL-01 measured by the orchestrator rather than relayed, at
-  `notes/vl-01-plan-merge-shape-measurement.md`: the unguarded shape occurs TWICE in the swept
-  scope, both `building`, both accepted — the gap is latent, nothing ships broken, and the
-  placeholder `--station <name>` is already excluded correctly by the witness's character class.
-  NOT routed as a fix cycle: T-05's signed `intent:` spells the pattern character for character, so
-  widening it would amend an approved plan without approval. Carried up as a non-blocking backlog
-  row with its cost measured (one alternation, one accepted-set entry, `MIN_OCCURRENCES` 6 -> 8).
-- 2026-09-09: RECORD CORRECTION, disclosed rather than silently repaired. Two things.
-  (1) The qa segment was first appended to `feature.json` under the id `2026-09-08-qa-validator`
-  while its run DIRECTORY is `2026-09-08-03-qa-validator`; the id now matches the directory, the
-  same class of error this feature already corrected once in the plan phase.
-  (2) While probing whether `feature-json-merge.py set-key` accepts a non-scalar, the orchestrator
-  ran it against `runs` and it ACCEPTED an array, overwriting the whole runs list with the single
-  probe entry. It was restored in the next call from this STATE.md log and the run directories on
-  disk: nine runs, verdicts unchanged, `2026-09-08-01-validator` keeping its `code_grade: n_a` and
-  every code-grading run correctly omitting the key. No verdict was altered. The probe was
-  careless — `set-key`'s own help says "scalar", and it does not enforce that; raised as Q5.
+  `must_fix: []`, both readers ran. 4 findings: two `scope` (T-02's and T-03's `verify:` proved
+  phrase-presence rather than binding), one `should-not-exist` (T-05's self-reinvocation
+  machinery), one low against D-03's circular justification.
+- 2026-09-08: run `2026-09-08-02-product` PASS (1 send-back) — the panel record: all four findings
+  resolved and transcribed into `plan.yaml`'s `panel:` with computed `PF-` ids.
+  `cycles_used` 1 -> 2.
+- 2026-09-08: orchestrator verification at its own tier, none delegated: 4/4 `PF-` ids recomputed;
+  all five `verify:` commands run and each RED; `check-plan-routes.py` 0 violations; and a probe
+  that T-02's and T-03's repaired gates can report GREEN on the correct fix and RED on the exact
+  near-miss each finding named. PLAN PHASE CLOSED at the signature gate; `notes/handoff-plan.md`.
+- 2026-09-08: OPERATOR SIGNED at acc8bf63. Q1 — accept the disclosed limit, task-card Ready
+  exclusivity (`gh_board.py`) stays out of scope. Q2 — keep both T-05 and D-06, retype nothing. The
+  main session ran the post-signature `gh-sync.py status <feature-dir> ready` and recorded SC-01's
+  transcript at `notes/sc01-ready-write-transcript.md` (partial: (a) and (b) met, (c) not applicable
+  — zero sub-issues were recorded at that moment).
+- 2026-09-09: BUILD PHASE OPENED, station `ready` -> `building`, by
+  `plan-merge.py set-feature-station --station building` run BY HAND from the worktree copy of
+  T-03's instruction (the control-plane checkout does not carry it until this branch merges).
+  Observed `status: building`; SC-05's record at `notes/sc05-building-write-transcript.md`.
+- 2026-09-09: T-01, T-02, T-03 landed main-session-direct by the orchestrator (the DEC-174 carve-out
+  `plan.yaml` `lanes:` records). Commits `e5223f10`, `d9caec31`, `3063b1dc`. Each task's own
+  `verify:` re-run after its edit: all three exit 0, each RED on the same tree beforehand. T-02's
+  Building row names `plan.yaml` explicitly, so SC-06 is answerable from the row alone.
+- 2026-09-09: run `2026-09-08-t04-t05-eng` PASS, 0 send-backs — eng-lead hosted the `build` team and
+  routed both tasks to `harness-backend-dev`. T-04: 16 docstring insertions, zero deletions, no
+  executable line touched (SC-08). T-05: the witness, accepted sets DERIVED from `factory_config`,
+  in-process negative control, no self-reinvocation. Orchestrator re-ran both `verify:` blocks
+  itself: exit 0 and exit 0, 8 PASS rows / 0 FAIL. Commit `64bc9351`.
+- 2026-09-09: run `2026-09-08-03-qa-validator` PASS — the blocking `qa_gate`. `integration` is the
+  only kind the matrix demands (T-01, T-02, T-05; the two `docs` tasks require none), all three
+  discharged by the new witness, which the lead verified can report RED and not merely green.
+  SC-02, SC-03, SC-09 PASS; `must_fix: []`. `notes/qa-BUG-1507-build.md`.
+- 2026-09-09: run `2026-09-08-01-simplify-eng` PASS — SIMPLIFY before the pin. All four angles read
+  the five-path diff; EMPTY BY RULE. Two non-appliable findings (a redundant conjunct whose removal
+  would weaken an assertion after the gate; a residual that D-05's `because:` does not name every
+  excluded directory, whose remedy edits a signed plan). Tree clean at `287aafb5`.
+- 2026-09-09: BUILD -> VALIDATE seam. `gh-sync.py status <feature-dir> review` run lowercase;
+  `review_sha` pinned at the seam commit `ac5e24e5`, which contains every deliverable, the only
+  later commits being record writes that touch no code path.
+- 2026-09-09: run `2026-09-08-panel-validator` PASS — the validate panel at the pin. All four
+  readers RAN, none skipped. `severity_max: med`, `must_fix: []`, `code_grade: grade_2`. Findings:
+  VL-01 (med), F-01 (low, a `BrokenPipeError` in the `verify:` chain under `pipefail`, unexploited
+  because `run-unit-tests.sh` executes the file directly), F-02 (med, an accepted grade-2 function
+  with its reason on file), and two assessed-and-dismissed info rows.
+- 2026-09-09: VL-01 MEASURED by the orchestrator rather than relayed —
+  `notes/vl-01-plan-merge-shape-measurement.md`. The shape the witness cannot see occurs twice in
+  the swept scope, both `building`, both accepted: the gap is latent, nothing ships broken, and the
+  `--station <name>` placeholder is already excluded correctly. NOT routed as a fix cycle, because
+  T-05's signed `intent:` spells the pattern character for character. Carried up as a backlog row
+  with its cost measured (one alternation, one accepted-set entry, `MIN_OCCURRENCES` 6 -> 8).
+- 2026-09-09: RECORD CORRECTION, disclosed rather than silently repaired. (1) The qa segment was
+  first appended under an id that did not match its run DIRECTORY; the id now matches. (2) While
+  probing whether `feature-json-merge.py set-key` accepts a non-scalar, the orchestrator ran it
+  against `runs` and it ACCEPTED an array, overwriting the whole runs list with the single probe
+  entry. Restored in the next call from this log and the run directories on disk: nine runs,
+  verdicts unchanged, `code_grade: n_a` kept only on the plan-phase validator run. No verdict was
+  altered. The probe was careless; the tool's silence about it is raised as Q5.
+- 2026-09-09: MIRROR REPAIRED (INV-26 was red): this feature had never been mirrored, which is also
+  why SC-01's clause (c) had no cards to observe. `gh-sync.py open` created milestone #64, parent
+  #1517 and sub-issues #1518-#1522; `status ... review` then moved all six to the review station.
+- 2026-09-09: run `2026-09-08-panelrow-product` PASS — INV-32 was red: the plan `panel:` record
+  listed two readers where the invariant expects three, so the goal-check that DID run (runs
+  `2026-09-08-01-product` and `2026-09-08-1-product`) read as never recorded. pm added
+  `{ reader: goalcheck, status: ran }` through `plan-merge.py set-panel`; the diff is 2 insertions,
+  the four `PF-` ids and the approval are byte-identical. `cycles_used` 2 -> 3, counted as rework.
 
 ## Open Questions
 
-- Q1 RESOLVED by the operator at signature: accept the disclosed limit. Task-card Ready
-  exclusivity is `gh_board.py` code work the issue's own scope line excludes; the limit stays
-  disclosed in BRIEF.md `## Constraints`.
-- Q2 RESOLVED by the operator at signature: keep both T-05 and D-06; strike neither, retype
-  neither T-01 nor T-02 to `docs`.
+- Q1 RESOLVED by the operator at signature: accept the disclosed limit — task-card Ready
+  exclusivity is `gh_board.py` code work the issue's own scope line excludes.
+- Q2 RESOLVED by the operator at signature: keep both T-05 and D-06; retype neither T-01 nor T-02.
 - Q3 (harness owner, not a work item): a subagent return delivered as task status
   `failed (exit 1)` with "Subagent called yield with null data" while the transcript carried a
-  complete, well-formed VERDICT/DIGEST/artifact block and every claimed artifact was present and
-  correct on disk. Observed twice in the plan phase, by two different tiers. A tier routing on the
-  tool status alone discards a passing run.
+  complete, well-formed VERDICT/DIGEST/artifact block and every claimed artifact was on disk.
+  Observed five times across this feature now, at three tiers. A tier routing on the tool status
+  alone discards a passing run.
 - Q4 (harness owner, not a work item): the orchestrator playbook and the plan.yaml template both
   say `plan-merge.py apply` "unions by id", which reads as though re-emitting a same-id item with a
-  corrected body changes it. It does not — `apply` refuses at exit 7 CONFLICT
-  (`plan-merge.py:738-742`); the verb that changes a value is `amend`. A pm reading the current
-  wording takes exit 7 as a gate failure.
+  corrected body changes it. It does not — `apply` refuses at exit 7 CONFLICT; the verb that changes
+  a value is `amend`. A pm reading the current wording takes exit 7 as a gate failure.
 - Q5 (harness owner, not a work item): `feature-json-merge.py set-key` is documented as setting a
-  top-level key to a JSON SCALAR value, and it accepts a JSON array without complaint — so a single
-  mistaken call silently replaces the whole `runs` history, which is the one part of `feature.json`
-  no other verb can reconstruct. Either the verb should refuse a non-scalar, or `runs` should be
-  named as a protected key.
+  top-level key to a JSON SCALAR and accepts a JSON array without complaint, so one mistaken call
+  silently replaces the whole `runs` history — the one part of `feature.json` no other verb can
+  reconstruct. Either it should refuse a non-scalar, or `runs` should be a protected key.
+- Q6 (for the operator, non-blocking): VL-01 as a backlog row — widen the witness to the
+  `plan-merge.py set-feature-station --station <token>` shape that this feature itself added to the
+  swept corpus. Latent today; cost measured in `notes/vl-01-plan-merge-shape-measurement.md`.

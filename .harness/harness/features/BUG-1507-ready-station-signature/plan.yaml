@@ -62,6 +62,8 @@ panel:
     status: ran
   - reader: scope
     status: ran
+  - reader: goalcheck
+    status: ran
   findings:
   - id: PF-4d48a7518cc7333294cad13b27fdaed6
     reader: should-not-exist
