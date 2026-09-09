@@ -3,41 +3,41 @@
 ## Current
 
 - feature: FEAT-56-central-onboarding-model
-- run: .harness/harness/features/FEAT-56-central-onboarding-model/runs/2026-09-09-01-opamend-c2-product/state.yaml
+- run: .harness/harness/features/FEAT-56-central-onboarding-model/runs/goalcheck-ship-c2-product/state.yaml
 - squad: none
 - status: awaiting-user
 
-Revised in place on the operator's re-scope of 2026-09-08, then amended on their two signature
-conditions of 2026-09-09. Signature-ready. Two artifacts: `harness-init` isolated to first-time
-configuration of a fresh Harness checkout, and a new provider-neutral `harness-add-repo` skill
-registering a repository into the configured control plane; the OMP command-door port lands in this
-same feature; first-BRIEF, approval and design move out of onboarding, routing to `/harness-plan`.
+Revised in place on the operator's re-scope of 2026-09-08, amended on their three signature
+conditions, signed 2026-09-09, and built out. SHIP-READY at `review_sha` 8ff5197f, pushed, with
+ZERO `check-state.sh` violations.
 
-plan.yaml: 17 tasks — T-01..T-08 `done` with landed commits, T-09..T-17 `ready`. Decisions D-01..D-13.
-Station `plan`. Panel recorded at cycle 1: all three readers `ran`, 34 findings, zero open above
-`low`. BRIEF.md: 14 live success criteria (SC-09 struck when the re-scope killed its subject), no
-prior grade retained. check-plan-routes 0 violations. cycles_used 15 of 22.
+Onboarding is now two artifacts: `harness-init`, a six-step fresh-checkout procedure with no CLI
+version check, and `harness-add-repo`, a three-step provider-neutral registration skill. `.omp/commands/`
+is the canonical door root with generated `.claude/commands/` adapters, enforced by
+`sync-command-adapters.py` and a `check-omp-port.py` door block — the defect being that the four
+`/harness*` doors were invisible under OMP and fell through silently as prompt text. First BRIEF,
+approval and design route to `/harness-plan`. The dead `cli_min_version` key is gone from all five
+config sites and DEC-83 is amended.
 
-THE OPERATOR'S TWO CONDITIONS, both applied and verified at source. D-12 removes the Claude CLI
-2.1.217 floor from `harness-init`'s preflight ENTIRELY — not kept, not made runtime-conditional, and
-not downgraded to a warning; the conditional form was pm's earlier compromise and the operator
-overruled it. SC-15 is a required live OMP UAT: the operator opens an OMP session and confirms
-`/harness-plan` resolves from `.omp/commands`, with both FAIL shapes named and distinguishable.
+Twenty tasks done. qa gate satisfied under D-14. SIMPLIFY applied before the pin. Review panel cycle
+2: `must_fix: []`, severity_max med, all four cycle-1 findings independently closed; one further
+advisory taken anyway, the door-delegation guard. Goal-check: eleven of sixteen criteria met, every
+grade re-taken at this pin rather than inherited across the five pin moves. SC-07 red on exactly the
+six D-14 cases. SC-09 struck. cycles_used 20 of 22.
 
-Blocked only on the operator signature. No build has started — T-09 onward would build against an
-unapproved task set.
+Blocked only on the operator. No PR opened; no build work remains.
 
 ## Open Questions
 
-- Operator signature on BRIEF.md `## Approval` and plan.yaml `approval:`, via `plan-merge.py
-  sign-approval`. Main session only. No `--overrule` flags: no finding is open above `low`.
-- D-13, recorded OPEN with no task: `cli_min_version: "2.1.217"` remains in six files and in signed
-  DEC-83. With no onboarding step reading it, it is either a documented Claude Code compatibility
-  floor that no gate enforces or it is dead config. pm recommends keeping the key and amending
-  DEC-83 to say the former. Touches a signed decision, so it is the operator's to rule at signature.
-- Harness defect for a ticket of its own: `check-domain` enforces single-flight by agent TYPE across
-  every linked worktree, so a concurrently-running feature's squad refuses this feature's squad
-  writes mid-run. Measured: a live BUG-1309 review panel holds six persona claims at one live
-  supervisor PID. NOT stale-claim debris — do not release them. Two releases were already made
-  against BUG-1309 on an empty-roster reading, and the potential impact on that flow is recorded for
-  its owner.
+- The UAT at `notes/uat-FEAT-56-c2.md` — three distinct walkthroughs, about fifteen minutes,
+  PASS/FAIL only the operator sets. `gates.uat` is `blocking_when_uat_criteria_exist` and SC-11,
+  SC-12 and SC-15 all exist, so it gates the merge. It is also the ONLY evidence that either
+  procedure actually works: no runner grades an instruction being followed, and nothing observes a
+  live provider resolving a door. This feature's UAT has failed three times — on ambiguous jargon,
+  then misleading structure, then wrong scope — so it is not a formality.
+- Backlog disposition, rows C-1..C-16 in `notes/ship-review-2026-09-09-ship.md`. Unstruck rows become
+  issues; anything not listed dies silently. Seven are harness defects rather than this feature's
+  residue.
+- On a UAT FAIL there is room for exactly one fix cycle before `max_total_cycles` binds. The operator
+  has already raised it twice. A FAIL line naming the specific misleading step lets one cycle close
+  it; a bare FAIL may not.
