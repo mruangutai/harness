@@ -97,6 +97,21 @@ risk.
 
 ## OD-5 — strike T-02: **BLOCKED, no legal route exists**
 
+**Correction, 2026-09-09 — the premise of this whole section is now false, and T-02 no longer
+exists.** Everything below was TRUE as read at this worktree's HEAD `25918bd2`: the worktree's
+`plan-merge.py` carries no delete verb, so at the time of this run OD-5 genuinely had no legal
+route and leaving T-02 in place was the correct refusal. The gap was then closed by human commit
+`11541475` on 2026-09-09 ("plan-merge.py: add delete-items, the verb that removes whole tasks and
+decisions"), which lives at the control plane and not on this branch — option (2) below, taken by
+the operator. T-02 was therefore **removed outright** from `plan.yaml`, by that verb invoked from
+the control-plane copy against this worktree's plan file, under operator ruling OD-5. The plan now
+carries nine tasks (T-01, T-03..T-10) and no T-02 entry at all; last cycle's in-place strike text
+on `T-02.title`/`T-02.intent`, described below, went with the entry. Q1 at the foot of this note is
+answered and closed: neither option (1) nor "leave the record as it is" — a removal.
+The stale statements below are left standing deliberately, so the correction is auditable rather
+than invisible. Removal receipt and the read-back are in
+`notes/research-FEAT-104-od5-t02-strike.md`, `## Cycle 3`.
+
 I confirmed this at source rather than on my lead's word, and **I agree with the finding.**
 
 - `VERBS` — `plan-merge.py:1669-1680` — is exactly `apply`, `add-tasks`, `set-task-station`,

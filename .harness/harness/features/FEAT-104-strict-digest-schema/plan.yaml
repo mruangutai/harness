@@ -263,35 +263,6 @@ tasks:
       NOT contain the literal undeclared digest key, so T-04 is not. If you ever find both true, the
       fixture was taken after T-04 and is wrong; retake it, never weaken the assertion.
 
-  - id: T-02
-    title: ABANDONED - subsumed by T-01, which now lands the declaration and its documentation together
-    traces: [REQ-07]
-    change_type: docs
-    execution_mode: main-session-direct
-    execution_reason: check-domain --resolve returns NOBODY for skills and agent templates
-    depends_on: [T-01]
-    status: abandoned
-    files:
-      - .claude/skills/harness-team/SKILL.md
-      - .claude/agents/harness-validator-lead.md
-      - .omp/agents/harness-validator-lead.md
-    verify: |
-      # T-02 is at station abandoned and is never dispatched. Its work is PART 3 and PART 4 of T-01,
-      # whose verify covers both halves. Nothing to run here.
-      true
-    intent: |
-      DO NOT DISPATCH. Station abandoned; the work moved into T-01 PART 3 and PART 4 verbatim.
-      Why it moved: as two tasks, T-01's own intent predicted that run_documented_contract_cases
-      would FAIL at T-01's completion, because the lead block did not yet document adequacy_notes -
-      while T-01's verify demanded ALL PASSED. The two clauses could not both hold, and any doer of
-      T-01 was instructed to end in a red suite. Landing the declaration and the documentation as one
-      commit is also what keeps this feature's own lead returns valid from the first commit onward,
-      since a lead omitting a required adequacy_notes exits 2.
-      The record is kept rather than deleted so a later reader can see the merge instead of a gap in
-      the id sequence. REQ-07 is delivered by T-01; this id's traces row is retained only so the
-      abandoned record stays well-formed, and it is not counted in the traceability tables in
-      notes/research-FEAT-104-planfix-c1.md.
-
   - id: T-03
     title: Stop the instruction surfaces asking for ad-hoc digest fields
     traces: [REQ-01, REQ-03]

@@ -3,30 +3,26 @@
 ## Current
 
 - feature: FEAT-104-strict-digest-schema
-- run: .harness/harness/features/FEAT-104-strict-digest-schema/runs/sigfix-c2-product/state.yaml
+- run: .harness/harness/features/FEAT-104-strict-digest-schema/runs/od5b-c3-product/state.yaml
 - squad: none
 - status: awaiting-user
 
-Plan phase complete; operator rulings from the signature review APPLIED. OD-1 (hermetic inert
-fixture remedy, closing the high panel finding), OD-2 (three passthrough rows dropped), OD-3 and
-OD-4 (precision corrections) all landed and verified on disk by the orchestrator; OD-6 was already
-carried by T-09. All four `PF-` findings now read `disposition: resolved` with ids, severities,
-readers and evidence unchanged. Backlog rows B-1..B-6 all struck by the operator and recorded
-nowhere.
+Plan phase complete. ALL SIX operator rulings from the signature review are executed and verified on
+disk. The plan now carries nine tasks — T-01, T-03..T-10 — with nothing dangling, twelve decisions,
+and a `panel:` whose four `PF-` findings all read `disposition: resolved` with ids, severities,
+readers and evidence unchanged. Backlog rows B-1..B-6 were all struck by the operator and are
+recorded nowhere.
 
-OD-5 (strike T-02) is BLOCKED: `plan-merge.py` has no delete verb — `apply` adds and never deletes,
-`amend` replaces one field of one named item. Nothing was hand-edited and no route was invented.
+`check-state.sh` now reports one FEAT-104 violation: BRIEF not approved, which is the signature gate
+itself. BRIEF.md and plan.yaml are both `pending`; only the main session signs.
 
-BRIEF.md and plan.yaml remain `pending`; only the main session signs. Corrected packet:
-`notes/ship-review-plan-signature-c2.md`, superseding the c1 packet. cycles_used 3/10, runs 7/20.
+The full record of what each ruling changed, including two statements of mine that were wrong and
+had to be corrected, is in `notes/ship-review-plan-signature-c3.md`. It supersedes the c2 packet,
+which is kept on disk because a correction is only legible beside the statement it corrects.
+cycles_used 4/10, runs 9/20.
 
 ## Open Questions
 
-- OD-5: no legal route to remove a task. Amend T-02's title/intent to record the strike in place
-  (recommended — one command, reversible), or add a guarded delete verb to `plan-merge.py` as its
-  own feature. Operator's call.
-- The passthrough table: the ruling named three rows to drop; with D-02's bar repaired,
-  `matrix_ok` and `coverage_gaps` are grounded only by a commented line T-01 will create
-  (`plan.yaml:205-213`). Accept, or strike those two as well.
-- The signature itself. Two `check-state.sh` violations stand at the gate: BRIEF not approved (the
-  gate working), and the INV-26 false positive the struck B-1 leaves in place.
+- The signature itself. That is the only thing outstanding.
+- One cosmetic, non-blocking residual inside T-01's `intent:` is named in the c3 packet along with
+  the single `plan-merge.py amend` that closes it, should the operator want it gone before signing.
