@@ -1,6 +1,6 @@
 schema: plan/1
 feature: BUG-1507-ready-station-signature
-status: review
+status: done
 approval:
   date: '2026-09-08'
   approved_by: operator
