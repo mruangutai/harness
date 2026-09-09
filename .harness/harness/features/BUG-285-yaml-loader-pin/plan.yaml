@@ -1,7 +1,9 @@
 schema: plan/1
 feature: BUG-285-yaml-loader-pin
 approval:
-  status: pending
+  date: '2026-09-09'
+  approved_by: mruangutai
+  status: approved
 status: plan
 source_issues: [285]
 
