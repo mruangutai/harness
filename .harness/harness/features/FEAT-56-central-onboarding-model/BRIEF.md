@@ -281,6 +281,19 @@ construction; no grade of it is carried, and SC-11 and SC-12 replace it, one per
   session actually resolves `/harness-plan` from `.omp/commands/` is observed by the operator in a
   live session — recorded in the UAT notes, not gated. `.omp/config.yml` cannot be exercised by a
   test in this repository.
+- **REQ-09's "actually reachable through OMP" has no criterion of any method that requires the
+  OBSERVATION, and this is stated here rather than fixed.** SC-13's clauses prove internal
+  consistency: that the four doors exist under `.omp/commands/`, that each `.claude/commands`
+  adapter is that door's bytes plus a banner, and that a Claude-only door reddens
+  `sync-command-adapters.py --check`. Every one of them is satisfied just as well by a WRONG
+  canonical root — a root OMP does not read would pass all four clauses and fail exactly as
+  silently as the bug this feature exists to fix. Both cycle-1 panel readers independently
+  confirmed `.omp/commands` is the correct root TODAY against `omp://config-usage.md`, a
+  documentation read; nothing executable in this repository can confirm it, and no inspection can
+  see a root that becomes wrong later. The residual risk is doc-versus-runtime drift, carried by no
+  criterion. Adding a `uat` clause (the operator opens an OMP session and confirms `/harness-plan`
+  resolves from `.omp/commands/`) is the only method that could see it; that is a scope change and
+  stays with the operator as an open question at signature.
 - **`check-state.sh` deliberately makes no network call**, so no every-run invariant can grade a
   fleet member's remote `harness.json`. REQ-05 is discharged by an operator-run check (SC-05), which
   means a member whose config is deleted after onboarding stays invisible until the next build.

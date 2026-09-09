@@ -130,16 +130,46 @@ decisions:
       Commands carry no frontmatter, so the adapter is a copy plus a banner rather than a
       transformation.
     dec: none
+  - id: D-12
+    choice: |
+      harness-init's preflight KEEPS the claude CLI 2.1.217 floor, but as a check CONDITIONAL ON THE
+      RUNTIME IN USE: a hard STOP when the operator is running under Claude Code, and no stop at all
+      under any other runtime. The floor is neither deleted nor left unconditional, and
+      harness-add-repo carries no provider CLI check of any kind.
+    because: |
+      The floor is real but Claude-Code-specific: .claude/skills/harness-init/SKILL.md:40 states its
+      own reason as "below the floor for the spawn env vars", which is DEC-83's nesting-depth
+      setting, a Claude Code mechanism. Deleting it would drop a live gate for Claude Code operators;
+      keeping it unconditional would leave a Claude-Code-only hard STOP in the very artifact the
+      operator isolated, against the governing "work with Claude Code, OpenAI, and other providers
+      rather than implementing a Claude-Code-only path". The operator may rule the other way at
+      signature: deleting the floor costs Claude Code operators a real preflight, and keeping it
+      unconditional costs every non-Claude operator the ability to run harness-init at all.
+    dec: DEC-83
 panel:
-  last_run: 2026-09-08-02-plan-panel-validator
-  cycle: 0
+  last_run: 2026-09-08-08-plan-panel-c1-validator
+  cycle: 1
+  transcription_rule: Every id is panel_findings.finding_id(reader, summary) over
+    the summary exactly as recorded here. Cycle-1 panel summaries are the validator
+    lead's consolidated digest verbatim, except that the two findings both readers
+    raised name the second reader inline and the two open findings carry the lead's
+    disposition reason, which is what the dispatch required.
   readers:
   - reader: should-not-exist
+    persona: fable-advisor
     status: ran
+    note: 7 findings, max med; no write grant, its findings reach disk only through
+      the consolidated digest
   - reader: scope
+    persona: harness-code-reviewer
     status: ran
+    artifact: notes/review-harness-code-reviewer-planpanel-c1.md
   - reader: goalcheck
+    persona: harness-pm
     status: ran
+    artifact: notes/research-FEAT-56-goalcheck-plan-c1.md
+    note: ran as segment 1 of cycle 1; its four must_fix findings were closed by the
+      replanfix cycle before the two adversarial readers ran
   findings:
   - id: PF-1eaa38c5f6a2d3e01711128138170312
     severity: med
@@ -241,6 +271,214 @@ panel:
       it, and T-05 item 3 asserted the false premise that it loads'
     disposition: resolved
     resolved_by: T-05
+  - id: PF-b2a7c45f8e1708fe4589cdcddb5d613d
+    severity: high
+    reader: scope
+    summary: T-10's verify has zero guard against dangling internal step-number references,
+      though its own intent names two (:251 'step 4 ... step 7', :290 'step 7') that
+      must be repointed; harness-add-repo ends with three steps and T-17's split test
+      checks only absence tokens and ordering markers
+    disposition: resolved
+    resolved_by: T-10
+  - id: PF-cfcdf8b53aa5a6cb5a41748d60fac309
+    severity: med
+    reader: should-not-exist
+    summary: "The grilling note at SKILL.md:25-28 moves into harness-add-repo with\
+      \ its control-plane clause intact while T-11's opening rewrite never keeps it\
+      \ for harness-init \u2014 the SECOND orphaned-and-misplaced sentence; no verify\
+      \ in either task greps 'grilling'"
+    disposition: resolved
+    resolved_by: T-10, T-11
+  - id: PF-60f611587b225d74db59833deb17ab5f
+    severity: med
+    reader: should-not-exist
+    summary: 'Two of T-10''s five registration Red-flags rows are manifest-seeding
+      rows belonging to harness-init''s kept step 5 (:427 no-evals, :429 agent-got-blocked
+      restate step 5''s own # SEED glob rules at :178 and :175); the goal-check verified
+      the partition was complete, never that it was correct'
+    disposition: resolved
+    resolved_by: T-10, T-11
+  - id: PF-16dbd6212079277a4eac6be3aeeec0d5
+    severity: med
+    reader: should-not-exist
+    summary: "harness-init keeps 'claude --version' and the CLI < 2.1.217 hard STOP\
+      \ (:34, :40, inside T-11's kept :30-46) \u2014 a Claude-Code-only gate surviving\
+      \ in the artifact the operator isolated, against the governing 'rather than\
+      \ implementing a Claude-Code-only path'; no task removes it and the plan decides\
+      \ it neither way"
+    disposition: resolved
+    resolved_by: T-11
+  - id: PF-82781cbae5e7a8c8d440455d431d97fe
+    severity: med
+    reader: scope
+    summary: "T-11 gained positive greps for the second sentence of :279-282 but never\
+      \ the matching negative for the first \u2014 nothing bans 'anywhere but the\
+      \ control plane' from surviving in harness-init, one line above an explicit\
+      \ KEEP, though its whole subject is what gets written into a product repository"
+    disposition: resolved
+    resolved_by: T-11
+  - id: PF-a0d82591546e0b153eefa3bbb4613bf3
+    severity: low
+    reader: should-not-exist
+    summary: 'T-17''s red-capability instruction names the wrong pin: the merge-base
+      4b5dbb23 predates T-01 and contains no ''Track B'' and no ''factory/fleet.yaml'',
+      so the split test''s core assertions pass vacuously and the recorded proof demonstrates
+      nothing; the correct pin is 12f74ea8'
+    disposition: resolved
+    resolved_by: T-17
+  - id: PF-45db77ad3303179780d44a0b4bf27740
+    severity: low
+    reader: should-not-exist
+    summary: T-13 hand-authors four adapter banners that T-14's generator must reproduce
+      byte-for-byte with the banner specified only as prose, and T-14's dev-ops lane
+      cannot run --apply to reconcile because .claude/commands is main-session in
+      the plan's own lane table; the tempting failure is weakening --check to body-only
+    disposition: resolved
+    resolved_by: T-14
+  - id: PF-d9e7263a13320844aa6602537f5b2ec3
+    severity: low
+    reader: scope
+    summary: "T-12 and T-16 depend on T-11 but consume only T-10's output \u2014 neither\
+      \ files: nor verify: reads harness-init/SKILL.md; independently re-derived by\
+      \ both readers, scope and should-not-exist, no cycle, cost is parallelism and\
+      \ a record a future replan will re-serialize from. ASSESSED, NOT ACTED: both\
+      \ edges stay. The edge is conservative and its only cost is parallelism; re-pointing\
+      \ a settled ordering immediately before signature buys a speedup the lane table\
+      \ does not cash, and recording the finding here is what stops a future replan\
+      \ from re-serializing work that was never ordered."
+    disposition: open
+  - id: PF-c8c892ef1b397b110f80cbf3c6bcadb6
+    severity: low
+    reader: scope
+    summary: "REQ-09's 'actually reachable through OMP' still has no criterion of\
+      \ any method requiring the observation; SC-13's four clauses prove .omp/commands-to-.claude/commands\
+      \ consistency and none can see a wrong canonical root, which fails as silently\
+      \ as the bug being fixed; both readers, scope and should-not-exist, confirmed\
+      \ the root is correct today against omp://config-usage.md. ACTED IN BRIEF.md\
+      \ ONLY: the gap is now stated in BRIEF.md's ## Verification gaps naming REQ-09,\
+      \ what SC-13's clauses do prove and what no clause can see. No success criterion\
+      \ was added or altered \u2014 a uat clause is a scope change and stays with\
+      \ the operator as an open question."
+    disposition: open
+  - id: PF-eba717adbce00db20c60ed830f12d8b3
+    severity: info
+    reader: scope
+    summary: "DISMISSED LEAD \u2014 T-11's positive greps pin only keywords, not the\
+      \ KEEPs. Reason: scope spot-checked the one weak conjunct: test_kinds alone\
+      \ does not discriminate (--upgrade at :221 carries it) and is deliberately paired\
+      \ with harness-dev-ops, which --upgrade does not carry; five of six positives\
+      \ redden on the whole-range-cut mutant"
+    disposition: open
+  - id: PF-a985221b792aac1a6c0e1d07b8d41c1d
+    severity: info
+    reader: scope
+    summary: "DISMISSED LEAD \u2014 T-15's intent and verify are still mutually unsatisfiable.\
+      \ Reason: scope built a scratch pair and ran T-15's grep conjuncts to exit 0\
+      \ \u2014 independently satisfiable as amended, not adopted from the fix cycle's\
+      \ self-report"
+    disposition: open
+  - id: PF-01bebf7c2ff8000aeba5e0bd3bf8df36
+    severity: info
+    reader: scope
+    summary: "DISMISSED LEAD \u2014 T-11's four 'step 2' phrase bans are a trap a\
+      \ doer cannot follow. Reason: the ban set deliberately excludes the bare string\
+      \ 'step 2', a legitimate post-cut step 2 exists, and one worked rewording generalizes\
+      \ to the other three sites"
+    disposition: open
+  - id: PF-3605365901818c000094eddbcd529389
+    severity: info
+    reader: should-not-exist
+    summary: "DISMISSED LEAD \u2014 T-17 is the only qa-lane task for a nine-task\
+      \ change. Reason: dismissed as framed and superseded by cycle-1 finding 6 \u2014\
+      \ the count is not the defect; T-17 covers five files and T-14 carries two integration\
+      \ suites of its own. What is wrong is that T-17's red-capability proof is pinned\
+      \ where its core assertions pass vacuously"
+    disposition: open
+  - id: PF-d11e327059a6eb44600714f226e100e6
+    severity: info
+    reader: scope
+    summary: "DISMISSED LEAD \u2014 orphan REQs, invalid trace citations, backwards\
+      \ or cyclic edges, a verify anchored on content a predecessor deletes. Reason:\
+      \ scope checked all 17 tasks' traces against REQ-01..REQ-10: full coverage both\
+      \ directions, no invalid id, no cycle, no such verify"
+    disposition: open
+  - id: PF-616eed484b83e7bc005c8b0a09095022
+    severity: info
+    reader: scope
+    summary: "DISMISSED LEAD \u2014 templates/harness.json _template stub-only grading\
+      \ (cycle-0 open finding). Reason: out of scope \u2014 concerns T-05, which is\
+      \ done and settled by contract item 3"
+    disposition: open
+  - id: PF-021985e48732fc18c0d0cccd83ef6b0e
+    severity: info
+    reader: scope
+    summary: "DISMISSED LEAD \u2014 the canonical root .omp/commands is wrong. Reason:\
+      \ dismissed as a defect and folded into cycle-1 finding 9 as a gap \u2014 both\
+      \ readers, scope and should-not-exist, independently confirmed it correct today\
+      \ against omp://config-usage.md; only forward-looking regression detection is\
+      \ unresolved"
+    disposition: open
+  - id: PF-7765c5401a50fb7140cbac8eac1da5ac
+    severity: info
+    reader: scope
+    summary: "DISMISSED LEAD \u2014 T-15's depends_on [T-11] is habitual and should\
+      \ be re-pointed at T-10. Reason: readers split, scope and should-not-exist;\
+      \ the validator lead resolved in favour of keeping it \u2014 a plan edge orders\
+      \ work, not only greps, and T-15 writes a factual claim about a file only T-11\
+      \ makes factual. Only T-12 and T-16 survive as habitual, which is cycle-1 finding\
+      \ 8"
+    disposition: open
+  - id: PF-80153fe2bf62a9e870470d0c447e14c9
+    severity: unrated
+    reader: goalcheck
+    summary: "ROW 5 MISSING \u2014 harness-init/SKILL.md:279-282 ('For the control\
+      \ plane itself, instantiate its own .harness/harness.json and .harness/team-config.yaml\
+      \ from the templates') sits inside T-10's moved :245-283 AND inside T-11's deleted\
+      \ :239-418. No task re-homes it. Consequence: the cut harness-init installs\
+      \ the eight prerequisites, then tells the operator to seed '# SEED' globs in\
+      \ a team-config.yaml that was never instantiated, and step 9's check-state.sh\
+      \ cannot exit 0 on a checkout with no .harness/harness.json. Verified at source\
+      \ by the lead. Fix belongs to T-11 (explicit KEEP) plus T-10 (strike :279-282\
+      \ from what moves in)."
+    disposition: resolved
+    resolved_by: T-10, T-11
+  - id: PF-70f0ee22ce04d45beb9368eb3552483f
+    severity: unrated
+    reader: goalcheck
+    summary: "ROW 5 MISSING, second half \u2014 the technical interview :284-291 and\
+      \ dev-ops detection :292-323 also leave harness-init entirely, while SURVIVING\
+      \ step 5 at :163-164 still demands 'the real path from dev-ops's report' (lead-verified).\
+      \ T-11's verify is all absence-greps plus the two hooks strings; it never greps\
+      \ dev-ops, harness.json or team-config, so the hole is invisible to the gate\
+      \ that is supposed to close the task."
+    disposition: resolved
+    resolved_by: T-11
+  - id: PF-04c858310e221ea596a8a07e2eaf22c8
+    severity: unrated
+    reader: goalcheck
+    summary: "T-15 IS UNSATISFIABLE AS WRITTEN \u2014 lead finding, not pm's. Its\
+      \ intent (plan.yaml:1399-1401) orders 'detection ... lives in the harness-add-repo\
+      \ skill for a fleet member and in harness-init for this control plane's own\
+      \ harness.json. Say both'; its verify (plan.yaml:1381) asserts '! grep -q harness-init\
+      \ .omp/agents/harness-dev-ops.md'. The two cannot both hold. Consequence: T-15\
+      \ returns BLOCKED at build, and the contradiction is the second, independent\
+      \ witness to the row-5 hole \u2014 the plan's own text believes detection stayed\
+      \ in harness-init while T-11 deletes it."
+    disposition: resolved
+    resolved_by: T-15
+  - id: PF-9a043869f16c865892656b1bf0dbce30
+    severity: unrated
+    reader: goalcheck
+    summary: "ROW 6 PARTIAL, re-ranked to blocking (DEC-124) because it lands in T-10,\
+      \ the next task to execute \u2014 because :245-283 moves verbatim, the team-config\
+      \ instantiation sentence lands INSIDE the registration skill, and T-10's ban\
+      \ '! grep -qF templates/team-config.yaml' does not match its wording ('from\
+      \ the templates'). Consequence: an operator registering a fleet member is instructed\
+      \ to instantiate a team-config.yaml in a product repo \u2014 the exact one-file-rule\
+      \ violation this feature exists to stop \u2014 and SC-01's ban, T-10's verify\
+      \ and T-17's split test all look elsewhere."
+    disposition: resolved
+    resolved_by: T-10
 tasks:
   - id: T-04
     title: Add a fleet product-config reachability report to factory_config, with a red-capable unit suite
@@ -996,11 +1234,21 @@ tasks:
       ! cat "$F" | tr '\n' ' ' | grep -qF 'the only place a' &&
       ! grep -qF "into the control plane's" "$F" &&
       grep -qF 'anywhere but the control plane' "$F" &&
+      grep -qF 'IS a grilling' "$F" &&
+      ! cat "$F" | tr '\n' ' ' | grep -qF 'for the control plane its domain description' &&
+      ! grep -qF "I'll point ai-dev at" "$F" &&
+      ! grep -qF 'The agent got blocked' "$F" &&
       ! grep -q 'The approval gate' "$F" &&
       ! grep -q 'then the BRIEF' "$F" &&
       ! grep -q 'Design pass' "$F" &&
       ! grep -q 'harness-visual-designer' "$F" &&
       grep -qF -- '--check-product-configs' "$F" &&
+      grep -qE '^### 1\.' "$F" &&
+      grep -qE '^### 2\.' "$F" &&
+      grep -qE '^### 3\.' "$F" &&
+      ! grep -qE '^### [4-9]\.' "$F" &&
+      ! grep -qE 'steps? [4-9]' "$F" &&
+      ! grep -qE 'steps? [1-9] and [4-9]' "$F" &&
       DB=$(grep -niE 'default[ _-]branch' "$F" | head -1 | cut -d: -f1) &&
       FL=$(grep -nF 'factory/fleet.yaml' "$F" | head -1 | cut -d: -f1) &&
       SG=$(grep -nF '.harness/<segment>/' "$F" | head -1 | cut -d: -f1) &&
@@ -1024,18 +1272,27 @@ tasks:
         bullet (see WHAT MUST NOT MOVE IN);
       - the GitHub Issues mirror subsection, :350-363;
       - the project board subsection, :364-407.
-      Renumber the steps 1, 2, 3 in that order and repoint every internal cross-reference: the
-      phrases "through step 2" and "before step 2 lands the product config" both refer to what
-      becomes step 1 here. The measured internal references at 12f74ea8, all of which move in with the
-      prose and must be repointed: :251 "fill test_kinds in step 4 and the GitHub block in step 7",
-      :290 "decides whether step 7 runs at all", :298 "the main session then lands the latter through
-      step 2", :350 "ask ONCE before step 2 lands the product config", :359 "land it on its default
+      Renumber the steps 1, 2, 3 in that order, as "### 1.", "### 2." and "### 3." headings — the verify
+      requires all three and fails on any "### 4." to "### 9." heading, because a ban on stale step numbers
+      is satisfiable by a document that numbers nothing.
+
+      REPOINT EVERY INTERNAL CROSS-REFERENCE, and this is a correctness bound: after the renumbering this
+      document has exactly THREE steps, so a surviving citation of a step 4 to step 9 names a step that
+      does not exist and the verify FAILS on it (it bans "steps? [4-9]" and the compound form
+      "steps? [1-9] and [4-9]"). The phrases "through step 2" and "before step 2 lands the product config"
+      both refer to what becomes step 1 here. The measured internal references at 12f74ea8, all of which
+      move in with the prose and must be repointed: :251 "fill test_kinds in step 4 and the GitHub block in
+      step 7", :290 "decides whether step 7 runs at all", :298 "the main session then lands the latter
+      through step 2", :350 "ask ONCE before step 2 lands the product config", :359 "land it on its default
       branch through step 2". Two of them, :251 and :290, point at steps 6 to 8, which do NOT move in:
       :251 must name the new step for test_kinds and drop the GitHub-block clause into the step that now
       holds the mirror question, and :290 asked whether the design pass runs, which no longer exists, so
-      the question goes with it unless it also gates something you are keeping. Say which you did.
+      the question goes with it unless it also gates something you are keeping — reword it without a step
+      number rather than repointing it at a step it does not gate. Say which you did for each site. The
+      bare string "step 2" is deliberately NOT banned: a legitimate step 2 exists here after renumbering,
+      so a wrongly-pointed step 2 is caught by reading the five sites above, not by the grep.
 
-      WHAT MUST NOT MOVE IN, and this is a correctness bound rather than a tidy-up. Two anchors, both
+      WHAT MUST NOT MOVE IN, and this is a correctness bound rather than a tidy-up. Three anchors, all
       inside ranges named above:
       - The SECOND sentence of the paragraph at :279-282 — it begins mid-line at :280 with "For the
         control plane itself, instantiate its own .harness/harness.json and .harness/team-config.yaml
@@ -1051,6 +1308,12 @@ tasks:
         into the member's own .harness/harness.json in its checkout under workspace_root, which the main
         session then lands through this skill's step 1. Detection for THIS checkout's own harness.json is
         harness-init's (T-11 keeps it there). The verify bans "into the control plane's".
+      - The CONTROL-PLANE CLAUSE of the grilling note at :25-28. The note itself moves in (see below), but
+        its closing clause "and for the control plane its domain description and first .harness/glossary.md
+        terms" describes seeding the CONTROL PLANE, which this skill never touches, and it wraps across
+        :27-28, so the verify bans it through tr as "for the control plane its domain description". What
+        moves in is the note minus that clause: the interview is a grilling, load harness-grilling, and its
+        answers seed the repository's own harness.json.
 
       WHAT DOES NOT MOVE IN, and this is the operator's ruling rather than a simplification (D-09):
       step 6 interview product then the BRIEF, step 7 the approval gate, step 8 design pass. They
@@ -1076,23 +1339,28 @@ tasks:
         re-registration; say what to check instead of adding a duplicate entry.
       Do NOT check the claude CLI version or any other provider CLI: this skill must be executable
       under any provider, which is the operator's ruling (answers-rescope item 3), and the verify
-      asserts the string claude --version is absent.
+      asserts the string claude --version is absent. This is unconditional here and differs from
+      harness-init, where D-12 keeps the floor as a runtime-conditional check.
 
       Write frontmatter with name harness-add-repo and a description that says when to load it,
       adding a repository to an already-configured fleet, and that says nothing about configuring a
-      checkout. Keep the run-in-the-main-session note and the interview-is-a-grilling note: the
-      technical interview still needs AskUserQuestion. Keep the ordered central-model statement
-      FIRST, in the order the config lands before the fleet entry before the central tree (D-04):
-      the verify compares the first line number of each of the three markers and fails if they are
-      out of order.
+      checkout. Keep the run-in-the-main-session note and the interview-is-a-grilling note, the latter
+      trimmed as WHAT MUST NOT MOVE IN says: the technical interview still needs AskUserQuestion, and the
+      verify greps "IS a grilling" positively while banning the flattened control-plane clause. Keep the
+      ordered central-model statement FIRST, in the order the config lands before the fleet entry before
+      the central tree (D-04): the verify compares the first line number of each of the three markers and
+      fails if they are out of order.
 
       Take exactly the Red flags rows that belong to registration, and leave the rest for T-11. By
-      measured content at :419-434 the registration rows are: the repo-is-in-fleet.yaml row, the
-      dev-ops-filled-the-cmd row, the npm-test row, the agent-got-blocked row, and the
-      project-has-no-evals row. The prerequisite-install, hook and restart rows stay with harness-init,
-      and so does the "I'll copy the new team-config over theirs" row: its advice presumes a
-      team-config.yaml exists in the repository being touched, which the prohibition moving in at :279
-      forbids, so carrying it here would contradict that prohibition inside one file. It applies to
+      measured content at :419-434 the registration rows are THREE: the repo-is-in-fleet.yaml row (:433),
+      the dev-ops-filled-the-cmd row (:425) and the npm-test row (:428). The no-evals row (:427) and the
+      agent-got-blocked row (:429) are NOT registration rows and stay with harness-init: both restate the
+      # SEED glob rules of harness-init's kept step 5 at :175 and :178, which is manifest seeding rather
+      than registration, and T-11 keeps them with a positive grep while this task's verify bans
+      "I'll point ai-dev at" and "The agent got blocked". The prerequisite-install, hook and restart rows
+      stay with harness-init, and so does the "I'll copy the new team-config over theirs" row: its advice
+      presumes a team-config.yaml exists in the repository being touched, which the prohibition moving in
+      at :279 forbids, so carrying it here would contradict that prohibition inside one file. It applies to
       harness-init's --upgrade section, where :224 already says team-config.yaml is reported and never
       rewritten. The describing-is-not-approving row and the check-state-says-pending row are dropped
       from both files, because neither artifact takes an approval any more (D-09).
@@ -1124,6 +1392,13 @@ tasks:
       ! grep -q 'through step 2' "$F" &&
       ! grep -qF "fleet member's own" "$F" &&
       ! grep -qF 'lands the latter' "$F" &&
+      ! grep -qF 'anywhere but the control plane' "$F" &&
+      ! grep -qF "seed the repository's own" "$F" &&
+      ! grep -qF 'Stop; the depth setting will not take' "$F" &&
+      cat "$F" | tr '\n' ' ' | grep -qF 'only when running under Claude Code' &&
+      grep -qF 'IS a grilling' "$F" &&
+      grep -qF "I'll point ai-dev at" "$F" &&
+      grep -qF 'The agent got blocked' "$F" &&
       grep -qF 'instantiate its own' "$F" &&
       cat "$F" | tr '\n' ' ' | grep -qF 'from the templates' &&
       grep -qF 'Interview' "$F" &&
@@ -1141,7 +1416,7 @@ tasks:
       .claude/skills/harness-add-repo/SKILL.md holding the registration content; delete that content
       here, never move it, and do not edit the new file.
 
-      DELETE, by measured anchor at 12f74ea8: Track B, SKILL.md:239 to :418, EXCEPT the three KEEPs named
+      DELETE, by measured anchor at 12f74ea8: Track B, SKILL.md:239 to :418, EXCEPT the KEEPs named
       below. Concretely that deletes the Track B heading and preamble :239-243, step 2 land harness.json
       then register the repository :245-278, the first sentence of the paragraph at :279-280, the GitHub
       Issues mirror :350-363, the project board :364-407, and steps 6, 7 and 8 at :324-348 and :408-417.
@@ -1155,9 +1430,21 @@ tasks:
         git config core.hooksPath .claude/skills/harness/hooks
       exactly as they appear. tests/integration/test-hooks-install.py reads them out of this file.
 
-      KEEP FROM INSIDE THE DELETED RANGE — three things, each EXPLICITLY, not by a range boundary. Each
-      is part of configuring THIS checkout, which is the job the operator isolated this skill to, and
-      none of the three exists anywhere else in the tree:
+      AMEND THE PREFLIGHT'S CLAUDE-CLI GATE, and this is D-12 rather than a tidy-up. The preflight keeps
+      the claude --version probe and the 2.1.217 floor, but the floor becomes CONDITIONAL ON THE RUNTIME IN
+      USE instead of an unconditional hard stop: today's bullet at :40 reads "CLI < 2.1.217 → below the
+      floor for the spawn env vars. Stop; the depth setting will not take." Rewrite it so it stops only
+      when the operator is running under Claude Code, and says that another runtime continues past it
+      because the floor is that runtime's spawn-env-var mechanism (DEC-83's nesting-depth setting), not a
+      Harness prerequisite. Make the probe line itself conditional in the same way. The bullet MUST carry
+      the phrase "only when running under Claude Code" and MUST NOT carry "Stop; the depth setting will not
+      take": the verify greps the first through tr, because the bullet wraps, and bans the second, which is
+      the unconditional STOP as written today. Do not delete the floor and do not keep it unconditional —
+      either one decides D-12 the wrong way.
+
+      KEEP FROM INSIDE THE DELETED RANGE OR THE REWRITTEN OPENING — four things, each EXPLICITLY, not by a
+      range boundary. Each is part of configuring THIS checkout, which is the job the operator isolated
+      this skill to, and none of the four exists anywhere else in the tree:
 
       (a) THE CONTROL-PLANE INSTANTIATION INSTRUCTION, the second sentence of :279-282: "For the control
       plane itself, instantiate its own .harness/harness.json and .harness/team-config.yaml from the
@@ -1168,7 +1455,9 @@ tasks:
       sentence of that paragraph — "No team-config.yaml exists anywhere but the control plane; no
       .harness/expertise/, .harness/products/, bin/, hooks, or settings are written in a product
       repository" — is a prohibition addressed to whoever registers a product repository, so it goes with
-      T-10 and does NOT stay here.
+      T-10 and does NOT stay here. It sits one line above KEEP (a) and is therefore the clause most likely
+      to survive by inertia, so the verify BANS "anywhere but the control plane" in this file; T-10's
+      verify requires that same string in harness-add-repo, and exactly one file may carry it.
 
       (b) THE TECHNICAL INTERVIEW, :284-291, kept as written except one clause: STRIKE "decides whether
       step 7 runs at all" from the user-facing-UI bullet. D-09 removed the design pass, so that clause
@@ -1186,12 +1475,23 @@ tasks:
       factory/fleet.yaml ban (measured at 12f74ea8, factory/fleet.yaml occurs only at :10 and :261, and
       both of those leave).
 
-      WHY (a) and (c) are not optional, and this is the hole this task exists to close. Surviving step 5
-      at :163-164 says to replace every # SEED glob "with the real path from dev-ops's report" — delete
+      (d) THE INTERVIEW-IS-A-GRILLING NOTE, :25-28, kept for THIS artifact and not only moved to T-10's.
+      The technical interview (b) survives here, it is an AskUserQuestion interview, and DEC-164 says the
+      interview is a grilling — without the note the surviving interview loses its instruction to load
+      harness-grilling. Keep the note WITH its control-plane clause ("and for the control plane its domain
+      description and first .harness/glossary.md terms"), which is this checkout's own seeding, and STRIKE
+      the registration clause "Its answers seed the repository's own harness.json": a repository's own
+      harness.json is harness-add-repo's business after the split. The verify greps "IS a grilling"
+      positively and bans "seed the repository's own". T-10 takes the mirror image of this note, trimmed
+      the other way.
+
+      WHY (a), (c) and (d) are not optional, and this is the hole this task exists to close. Surviving step
+      5 at :163-164 says to replace every # SEED glob "with the real path from dev-ops's report" — delete
       (c) and a step the cut KEEPS depends on a report nothing in the skill produces. Surviving step 9 at
       :188-193 requires check-state.sh to exit 0 — on a fresh checkout with no instantiated
       .harness/harness.json that is unreachable, so deleting (a) leaves the procedure unable to finish
-      itself.
+      itself. And the surviving interview (b) is run by a main session that is told nowhere else to load
+      harness-grilling, which is (d).
 
       RENUMBER into SIX steps, in exactly this order, and drop both Track headings: with one track there
       is nothing to distinguish, and a lone Track A heading is the dangling half of a pair.
@@ -1235,13 +1535,19 @@ tasks:
       checkout you are standing in, that registering a repository is the harness-add-repo skill's job,
       and that a configured fleet repository which has no BRIEF yet goes to /harness-plan (D-09). Update
       the frontmatter description the same way: it must not claim to onboard a repository. Keep the
-      this-harness-checkout definition and the main-session note.
+      this-harness-checkout definition, the main-session note and the grilling note (d).
 
-      SPLIT the Red flags table at :419-434 with T-10. Keep the prerequisite-install row, the
-      script-was-denied row, the they-must-restart row, the they-can-run-a-team row and the "I'll copy
-      the new team-config over theirs" row: that last one presumes a team-config.yaml in the repository
-      being touched, which only this checkout has, and it is the --upgrade section's advice (:224,
-      team-config.yaml is reported and never rewritten). T-10 takes the registration rows. DROP the
+      SPLIT the Red flags table at :419-434 with T-10. Keep SEVEN rows: the prerequisite-install row, the
+      script-was-denied row, the they-must-restart row, the they-can-run-a-team row, the "I'll copy the new
+      team-config over theirs" row, the no-evals row (:427) and the agent-got-blocked row (:429). The
+      team-config row presumes a team-config.yaml in the repository being touched, which only this checkout
+      has, and it is the --upgrade section's advice (:224, team-config.yaml is reported and never
+      rewritten). The last two are MANIFEST-SEEDING rows, not registration rows: each restates a rule of
+      this file's kept step 5 — the no-evals row restates :178 ("Drop a # SEED glob entirely if the project
+      has no such directory") and the agent-got-blocked row restates :175 ("Never widen a domain to ** to
+      make a block go away") — so they must stay where their subject lives, and the verify greps
+      "I'll point ai-dev at" and "The agent got blocked" positively while T-10's bans both. T-10 takes the
+      three registration rows: repo-is-in-fleet.yaml, dev-ops-filled-the-cmd and npm-test. DROP the
       describing-is-not-approving row and the check-state-says-pending row from both files: neither
       artifact takes an approval any more, so both rows would be advice about work this skill no longer
       does.
@@ -1421,6 +1727,17 @@ tasks:
         the state at 12f74ea8, and a checker that tolerates it proves nothing.
       - --apply writes the adapters and prints what it changed.
       Resolve the project root the way its sibling does; do not add a second root resolver.
+
+      THE BANNER COMPARISON STAYS BYTE-EXACT, and this is the one clause that decides how a mismatch is
+      settled. T-13 hand-authored its four adapter banners from prose, so this generator's expected banner
+      may differ from them byte for byte; if --check reddens on the real tree for that reason, reconcile it
+      by RE-AUTHORING T-13's four .claude/commands files to the generator's exact bytes — a main-session
+      write, because .claude/commands is main-session in this plan's lane table and this task's dev-ops
+      lane cannot run --apply against the real tree. NEVER reconcile it by weakening --check to a body-only
+      comparison: the banner is the only thing that distinguishes a generated adapter from a hand-authored
+      Claude-only door, which is precisely the state REQ-10 exists to catch. If you cannot get the four
+      files reconciled from this lane, return the exact expected banner bytes and stop; do not relax the
+      check.
 
       2. .claude/skills/harness/bin/check-omp-port.py: add a command-door block beside the existing
       sync-agent-adapters invocation near the end of check(). Two independent assertions, because
@@ -1616,9 +1933,14 @@ tasks:
         harness-init, asserted separately per file.
       - .claude/skills/harness-add-repo/SKILL.md has a Preflight heading and does not match the
         string claude --version: the registration procedure must be executable under any provider.
-      RED-CAPABILITY, and record it in your receipt: run this file against a temp copy of the
-      pre-T-11 SKILL.md, taken from this feature branch's merge-base, and report which cases fail. A
-      case that cannot fail is asserting nothing.
+      RED-CAPABILITY, and record it in your receipt: run this file against a temp copy of
+      .claude/skills/harness-init/SKILL.md taken at COMMIT 12f74ea8 —
+      git show 12f74ea8:.claude/skills/harness-init/SKILL.md — and report which cases fail. Use that
+      commit and no other, and do NOT use this feature branch's merge-base: the merge-base predates T-01,
+      its SKILL.md contains neither Track B nor factory/fleet.yaml, so the harness-init token cases would
+      pass VACUOUSLY there and the recorded proof would demonstrate nothing. 12f74ea8 is the pin SC-14's
+      own RED statement measures, and it carries Track B twice and factory/fleet.yaml twice. A case that
+      cannot fail is asserting nothing.
 
       2. tests/unit/test-no-distribution.py: case1_presence_four_other_command_doors_survive counts
       harness*.md under .claude/commands and requires at least four. After T-13 those four are

@@ -47,3 +47,21 @@
 - 2026-09-08: FEAT-56. `test_kinds` is a non-discriminating positive grep for harness-init/SKILL.md: `--upgrade` at :221 carries `test_kinds.*.cmd`, so it stays green with the whole detection step deleted. Paired it with `harness-dev-ops`, measured on a mutant that deletes :239-418 whole.
 - 2026-09-08: FEAT-56. The control-plane instantiation paragraph at harness-init/SKILL.md:279-282 splits MID-LINE at :280 (prohibition sentence ends, instantiation sentence begins on the same physical line), so "move :245-283" and "move :245-280" both describe a wrong cut; the intent had to name the sentence boundary, not a line.
 - 2026-09-08: FEAT-56 T-11 — narrowing a sweep ban from `steps? [4-9]` to `steps? [7-9]`, to admit values that had become legitimate, silently unguarded two sites that spelled the banned value as the SECOND half of a compound reference ("steps 4 and 8"). The task intent enumerated seven dangling sites and asserted the verify saw each; after the narrowing only five were seen, and the assertion inside the intent stayed true-looking. Lesson: after narrowing any sweep pattern, re-run the OLD pattern and diff the hit sets — every line the old pattern caught and the new one does not is either intentionally legitimate or a hole, and there is no third case. The fix shape that preserved both properties was a second conjunct admitting only valid pairs (`steps? [1-9] and [7-9]`), not a widening of the first.
+- 2026-09-08 (FEAT-56 panelfix-c1): a dispatch demanded every amended `verify` be RED today, but
+  three of T-11's new conjuncts were KEEP positives over content already in the file — green by
+  construction. Recording them as red would have been false; I graded them against a whole-range-cut
+  mutant and a rows-removed mutant instead and said plainly in the artifact which four were red and
+  which three could not be. A KEEP guard's discrimination is against the CUT, never against the
+  pre-change tree.
+- 2026-09-08 (FEAT-56 panelfix-c1): a step-number ban set (`! grep -qE 'steps? [4-9]'`) is satisfied
+  by a document that numbers nothing, so it needs heading positives (`^### 1\.` .. `^### 3\.`) beside
+  it. Proved by mutating the good scratch document to strip the numbers from its headings: every ban
+  passed and only the positives fired.
+- 2026-09-08 (FEAT-56 panelfix-c1): building a FULL scratch document shaped as the intent prescribes
+  (not a paragraph fragment) let the whole 30-line T-10 verify run to exit 0, which is the only way
+  the `DB < FL < SG` line-number conjuncts and `check-instruction-paths.py` get exercised at all. The
+  panel's own adequacy note said the previous cycle never did this.
+- 2026-09-08 (FEAT-56 panelfix-c1): `set-panel` replaces the whole mapping, so carried findings must
+  be copied as the exact dicts loaded from disk. Verifying all 13 against
+  `panel_findings.finding_id` before writing took one loop and would have caught any drift; all 13
+  verified.
