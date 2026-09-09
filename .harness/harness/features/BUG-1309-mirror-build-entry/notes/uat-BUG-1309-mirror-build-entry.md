@@ -401,3 +401,63 @@ Two limits, recorded plainly because the record must not read as more than the r
 2. **No answers file, and none to be sought or authored.** There is no `notes/answers-<runid>.md` on
    disk for this round and no such path was named. Per issue #671 nobody may go looking for one and
    nobody may author one; the inline relay above is the whole channel of record.
+
+---
+
+## Operator result — SC-10 per-step confirmation — 2026-09-09
+
+**A SECOND main-session inline relay, at the fidelity it arrived — nothing here was measured by an
+agent.** Channel: main-session inline relay to the orchestrator, 2026-09-09. The operator was
+presented an execution report of this script's remaining gating steps and instructed, verbatim:
+
+> flag uat pass for these four
+
+That instruction **is** the UAT judgement for those four steps — the criterion's declared method,
+delivered a second time. It is **not** an agent re-test: no step of this script was executed by the
+transcriber, and no sentence below may be read as an agent measurement. This section is a
+TRANSCRIPTION of that relay by `harness-pm`; it is evidence of the relay, never a substitute for it
+— the same provenance shape as the `## Operator result — SC-10 — 2026-09-09` section above, whose
+content is not restated here as new evidence.
+
+### The four steps, each carrying an operator PASS
+
+Each step below pairs the observation the operator was judging, as it was reported to them, with a
+clause of that step's OWN recorded PASS condition in this script — so a reader can see that the
+reported observation answers the condition the script asked for.
+
+1. **Step 3b** (heading `:181`, PASS condition `:216-218`) — **PASS**, per the operator.
+   Reported observation: all six flagged forms were DENIED — no silent allow on any of the six.
+   Its own condition: *"PASS if all six print a `deny`"* — a silent allow on any of the six being
+   "the whole defect".
+2. **Step 5** (heading `:235`, PASS condition `:253-254`) — **PASS**, per the operator.
+   Reported observation: the `gh-sync.py open` remedy set `build_entry` to `opened`.
+   Its own condition: *"PASS if it prints `opened`"*.
+3. **Step 6** (heading `:258`, PASS condition `:274-275`) — **PASS**, per the operator.
+   Reported observation: both the normal `git merge` and the `--no-ff` form were silently allowed.
+   Its own condition: *"PASS if nothing is printed except the two `exit=0` lines"*.
+4. **Step 7** (heading `:279`, PASS condition `:308-311`) — **PASS**, per the operator.
+   Reported observation: `recover-terminal` produced NO task issues, set `build_entry` to
+   `recovered-terminal`, and the merge was allowed afterwards.
+   Its own condition: *"PASS if all four hold — especially that `task issues = {}` is empty"*, and
+   that the merge is not still denied afterwards.
+
+### What this closes
+
+**Fidelity limit 1 of the section above — "No per-step itemisation" — is CLOSED.** This script's own
+`## Your verdict` rule (`:351-354`) requires Steps 3, 3b, 5, 6 and 7 each to PASS. Step 3 carries the
+operator's CLEAR-and-ACTIONABLE wording judgement, recorded in the prior section; Steps 3b, 5, 6 and
+7 carry the operator's PASS, recorded here. The five-step rule is therefore itemised on the record.
+
+**SC-10's status is unchanged.** It was already **MET** on the first relay, by the operator's own
+judgement, and this section does **not** re-grade, upgrade or re-derive it. What changed is only that
+the per-step record is no longer absent.
+
+### What this does not change
+
+- **Fidelity limit 2 stands verbatim**: there is no `notes/answers-<runid>.md` on disk for this round
+  and no such path was named. Per issue #671 nobody may go looking for one and nobody may author
+  one; the inline relays are the whole channel of record.
+- **Steps 4 and 8 (supporting) and Steps 1, 2 and 9 (setup and teardown) were NOT itemised by the
+  operator and are NOT asserted here.** The relay named four steps; only those four are recorded.
+- No criterion text moves. **No BRIEF amendment and no re-signature is owed.** The pin
+  `4857818bb1408813c7a38311d9e4ffc20373427e` does not move, and no cycle is opened by this section.

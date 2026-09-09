@@ -1,42 +1,76 @@
 # Ship review — BUG-1309-mirror-build-entry — 2026-09-09
 
+## Amendment — 2026-09-09, later the same day
+
+**Decision item 3 is CLOSED, by you.** You reviewed an execution report of the remaining gating UAT
+steps and instructed "flag uat pass for these four": Steps **3b, 5, 6 and 7** now each carry an
+individual operator PASS, recorded at
+`notes/uat-BUG-1309-mirror-build-entry.md:405-463`. **Two items are left in front of you, not
+three:** ship-or-not, and the backlog table. SC-10 was already met and is **not** re-graded by this
+— what changed is that the per-step record is no longer absent.
+
+Three other things moved with it, and nothing else in this briefing did:
+
+- The **cycles** line below now reads **18 of 17 — over by one**. The recording round sent one step
+  back inside itself, and a reported send-back is a cycle (DEC-157). It changes nothing you have
+  been asked to decide, but see the line for what it forecloses.
+- **Row B-30** is new, at the bottom of the backlog table.
+- The SC-10 section's citation of the FIRST relay is corrected from `:360-403` to `:362-403` — the
+  heading is at 362; 360 is the separator.
+
 ## The decision in one paragraph
 
 **This is ready to ship, and the only thing missing is your instruction to do it.** All eleven
 success criteria are met — including SC-10, which you closed yourself today by judging the revised
-merge-gate refusal message clear and actionable. The blocking test-matrix gate is green, the c19
-review panel returned PASS with an empty `must_fix`, and no finding at any severity gates. Nothing
-is left for a squad to build, nothing is left for a squad to check, and no cycle is being requested
-— the budget is spent at 17 of 17 and this briefing needs none of it. What remains is one word from
-you, plus two optional side decisions you can settle in the same sitting: which backlog rows to
-keep, and whether you want to confirm the UAT step coverage below.
+merge-gate refusal message clear and actionable, and whose five-step verdict rule you then itemised
+step by step. The blocking test-matrix gate is green, the c19 review panel returned PASS with an
+empty `must_fix`, and no finding at any severity gates. Nothing is left for a squad to build,
+nothing is left for a squad to check, and no cycle is being requested. What remains is one word from
+you, plus one side decision you can settle in the same sitting: which backlog rows to keep.
 
-## What you need to decide — three items, one sitting
+## What you need to decide — two items, one sitting
 
 | # | Item | What I need |
 |---|---|---|
 | **1** | **Ship, or not.** The feature is at station `review`, `review_sha` pinned to `4857818b`, branch `feat/BUG-1309-mirror-build-entry` unmerged | **"ship"** — or "fix X", "re-scope", "stop". Nothing happens without it |
-| **2** | **The backlog table below (B-1 … B-29).** Strike any row by ID. Unstruck rows become GitHub backlog issues when you accept the ship; **anything not listed there dies silently, so I listed everything I could source** | Struck IDs, or "keep all" |
-| **3** | **Optional — UAT step coverage.** Your result reached me as an overall "pass" plus your judgement of the refusal wording, without a per-step readout. SC-10 is recorded MET on that, and I did not re-grade you | Either nothing, or "Steps 3b/5/6/7 also passed" for the record. **This does not gate the ship** |
+| **2** | **The backlog table below (B-1 … B-30).** Strike any row by ID. Unstruck rows become GitHub backlog issues when you accept the ship; **anything not listed there dies silently, so I listed everything I could source** | Struck IDs, or "keep all" |
+| 3 — **closed** | **Optional — UAT step coverage.** **CLOSED 2026-09-09 by your "flag uat pass for these four".** Steps 3b, 5, 6 and 7 each carry an operator PASS at `notes/uat-BUG-1309-mirror-build-entry.md:405-463` | Nothing. It never gated the ship, and it is no longer open |
 
 ## SC-10 — what was recorded, and at what fidelity
 
-Your result is transcribed at `notes/uat-BUG-1309-mirror-build-entry.md:360-403` — appended only,
-45 added lines and 0 deletions, so the script you ran is byte-unchanged. It records that the relay
-reached the harness inline through the main session on 2026-09-09, that you judged the message
-**clear and actionable**, and that you reported **"pass"** — attributed to that channel, never
-restated as something an agent measured. The message you were judging:
+Your result is transcribed in two appended sections, neither of which altered a byte of the script
+you ran:
+
+1. **The first relay** — `notes/uat-BUG-1309-mirror-build-entry.md:362-403`, appended only, 45 added
+   lines and 0 deletions. It records that the relay reached the harness inline through the main
+   session on 2026-09-09, that you judged the message **clear and actionable**, and that you
+   reported **"pass"** — attributed to that channel, never restated as something an agent measured.
+   The message you were judging:
 
 ```
 merge-gate: FEAT-9001-uat-scratch needs its GitHub mirror recovery completed before this merge can continue. Run: python3 .claude/skills/harness/bin/gh-sync.py open /private/tmp/bug1309-uat/.harness/harness/features/FEAT-9001-uat-scratch
 ```
 
-**The one limit, stated rather than smoothed over.** The script's own verdict rule asks for Steps 3,
-3b, 5, 6 and 7 to each pass; the relay carried an overall pass and your explicit judgement of the
-Step 3 wording. That licenses recording SC-10 as met — your judgement *is* the criterion's declared
-method, and no agent may substitute for it. It does not license citing that section as per-step
-evidence, and nobody resolved the difference by guessing in either direction. Item 3 above is how
-you close it if you want it closed.
+2. **The per-step confirmation** — `:405-463`, appended only, a further 60 added lines and 0
+   deletions (I verified both with `git diff --numstat`, and re-verified that no pre-existing
+   heading moved). It records your instruction "flag uat pass for these four" against the execution
+   report you had read: Step 3b's **six** flagged merge forms all denied; Step 5's `gh-sync.py open`
+   setting `build_entry` to `opened`; Step 6 allowing both the plain merge and `--no-ff` silently;
+   Step 7's `recover-terminal` creating **no** task issues, setting `recovered-terminal`, and the
+   merge allowed afterwards. Each is paired with that step's own recorded PASS condition, so you can
+   see the reported observation answers what the script asked.
+
+**The limit that was here is gone, and I am saying so rather than quietly deleting it.** This
+briefing previously carried one open fidelity limit: the script's verdict rule asks for Steps 3, 3b,
+5, 6 and 7 to each pass, and the first relay carried an overall pass plus your judgement of the Step
+3 wording, with no per-step readout. That gap was recorded, never inferred away — and your second
+relay closed it. Step 3 is carried by the wording judgement; 3b, 5, 6 and 7 by the confirmation. The
+five-step rule is itemised on the record. **What did not change: SC-10's verdict.** It was met on
+the first relay, by the only method that can close it, and nothing here upgrades or re-derives it.
+
+The second recorded limit stands untouched and is not a gap in your result: there is no
+`answers-<runid>.md` for either round, none was sought and none was authored (issue #671). Steps 4
+and 8 (supporting) and 1, 2, 9 (setup and teardown) were not itemised by you and are not asserted.
 
 ## Where the feature stands
 
@@ -58,15 +92,19 @@ you close it if you want it closed.
   over SC-11. `plan.yaml approval` approved, re-signed 2026-09-08 (commit `de04d841`, after the
   D-13…D-15 amendments). D-19 was appended additively afterwards under ruling R-7 §4, which owes no
   re-signature, and pm re-checked the criterion texts rather than assuming it.
-- **Cycles: 17 of 17 — exhausted.** Today's two runs sent nothing back, so neither cost a cycle. Any
-  further fix work needs you to raise the cap, which is why every residual below is a backlog row
-  rather than a fix cycle.
-- **Runs: 55 against a 20-run budget (informational, INV-22).** My read: the count is honest but it
+- **Cycles: 18 of 17 — one over the cap.** Every earlier run today sent nothing back; the
+  per-step-recording round did — the product lead sent one step back to correct an over-stated
+  "nothing else was touched" claim in its own note, and a reported send-back is a cycle (DEC-157).
+  I recorded it rather than rounding it away. **What that forecloses:** nothing you have been asked
+  to decide, and nothing about the ship. But if your answer is "fix X" on any backlog row, that fix
+  needs you to raise `max_total_cycles` first — which is exactly why every residual below is a
+  backlog row rather than a fix cycle.
+- **Runs: 57 against a 20-run budget (informational, INV-22).** My read: the count is honest but it
   is no longer cheap. This feature absorbed eleven adversarial plan/review cycles, a silent-allow
   class that took three cycles to close completely, one withdrawn acceptance that had to be redone
   on a correctly-stated question, and a copy rewrite you asked for at the end. Each closed something
-  real. But the last four cycles closed evidence and wording rather than behaviour, which is what
-  convergence looks like from the inside — I would not spend a 56th run here.
+  real. But the last several cycles closed evidence and wording rather than behaviour, which is what
+  convergence looks like from the inside — I would not spend a 58th run here.
 
 ## What changed since the 2026-09-08 briefing
 
@@ -82,7 +120,7 @@ That briefing put four items in front of you. All four are closed:
    **R-3**; the notice now derives its command from `feature_schema.recovery_command_for`, recorded
    as D-15.
 3. **The re-signature** — done, twice: the amended BRIEF on 2026-09-08, then the plan.
-4. **SC-10** — done today, by you.
+4. **SC-10** — done today, by you, twice over: the wording judgement, then the per-step pass.
 
 Two things you added along the way: **SC-11** (merge `--abort`/`--continue`/`--quit` must stay
 allowed on a branch that owes a receipt — ruling R-6, D-18), and the **c19 refusal copy** you chose
@@ -148,6 +186,7 @@ table was never disposed of.
 | B-27 | Harness defect: `bash-write-guard.sh` blocks `cp` and shell redirection for a read-only role but not `python3 -c "open(path,'w')"` | bug |
 | B-28 | Harness defect: `validate-digest.py` appears to have accepted a raw JSON object with no ```yaml fence — possible fail-open in fence detection | bug |
 | B-29 | Policy: should a copy edit plus its dependent test re-anchor be split into a failing-test commit then a fix commit, for test-first auditability? | chore |
+| B-30 | Harness defect (new, 2026-09-09): the per-step-recording product run returned its digest inline and wrote **no run directory** — `runs/c19uat-product/` still describes the earlier round — so `feature.json`'s entry for it points at no digest on disk. A run that leaves no artifact cannot be audited later | bug |
 
 ## What happens when you say ship
 
@@ -179,3 +218,13 @@ signatures read `approved` and that the plan's was re-signed *after* the D-13…
 (commit `de04d841`); that D-13…D-19 are all present in `plan.yaml`; that `merge-gate.py`'s
 `this feature` fallback survives at the pin (row B-6) while the module-scope import that was row
 B-6 on 2026-09-08 does not — that one I struck on my own measurement.
+
+**For the amendment at the top, added by the successor who recorded your per-step pass:** the
+sources were your relayed instruction itself, the product lead's returned digest for that round,
+and the two files it wrote — `notes/uat-BUG-1309-mirror-build-entry.md` and
+`notes/research-BUG-1309-c19-uat-sc10.md`. **What I measured myself rather than relaying:**
+`git diff --numstat` on the worktree, showing `60 / 0` on the UAT note (insertions only, so the
+script is still byte-unchanged) and `39 / 14` on the goal-check note; that the new section runs from
+`:405` to the note's last line, `:463`; and that the first relay's heading sits at `:362`, which is
+what corrected the older citation. **Nothing in the amendment is an agent's judgement of a UAT
+step** — every step verdict in it is yours.

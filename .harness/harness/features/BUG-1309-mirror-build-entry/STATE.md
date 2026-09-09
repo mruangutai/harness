@@ -3,67 +3,64 @@
 ## Current
 
 - feature: BUG-1309-mirror-build-entry
-- run: **ship phase — SC-10 recorded, briefing written, awaiting the operator's ship instruction.**
-  `runs/2026-09-09-c19uat-product/` (product lead: pm, PASS, zero send-backs). No validator run was
-  dispatched and none is owed: the c19 copy delta is fully graded at the pin.
-- **SC-10 = MET, by the operator.** Their result reached the harness as a main-session inline relay
-  on 2026-09-09 — the revised merge-gate refusal message judged CLEAR and ACTIONABLE, reported
-  "pass" — and is transcribed at `notes/uat-BUG-1309-mirror-build-entry.md:360-403`, append-only,
-  **45 insertions / 0 deletions verified with `git diff --numstat`**, so the script itself is
-  byte-unchanged. Attributed to that channel throughout, never restated as an agent measurement.
-  **Fidelity limit, recorded and NOT resolved by inference:** the relay carried an overall "pass"
-  plus the Step 3 wording judgement, and no per-step readout of the note's own five-step verdict
-  rule (Steps 3, 3b, 5, 6, 7). One optional confirmation line for the operator, not a downgrade,
-  and the operator was not re-graded.
-- **Goal-check: 11 of 11 criteria met — the goal is fully met.**
-  `notes/research-BUG-1309-c19-uat-sc10.md`, one row per SC with a cited evidence path. SC-04 reads
-  met **by operator ruling** on inspected-correct source, explicitly NOT by new automated evidence;
-  SC-09 is `verify: inspection` by the brief's own declaration; SC-10 carries the relay as its
-  provenance. pm re-read the SC-04 and SC-10 criterion texts: **no BRIEF amendment and no
-  re-signature are owed** — no criterion text moves.
-- **Briefing written and rendered:** `notes/ship-review-2026-09-09-shipdecision.md` (+ `.html` via
-  `render-brief.py`, never hand-authored). It subsumes the undisposed B-1..B-13 of
-  `notes/ship-review-2026-09-08-resume.md` into one fresh table **B-1..B-29** and names the three
-  operator items: ship-or-not, strike backlog rows, optional UAT step confirmation.
-- station: **review** (`plan.yaml` `status:`, unchanged — `done` belongs to the ship act, which has
-  not happened). `review_sha` **unchanged at `4857818bb1408813c7a38311d9e4ffc20373427e`**: this
-  phase wrote only feature-dir artifacts, and re-pinning would claim the panel reviewed a tree it
-  never saw.
-- budget: **`cycles_used` 17 of `max_total_cycles` 17 — UNCHANGED.** The product run reported zero
-  send-backs and a clean first-pass run adds zero cycles (DEC-157). Any further fix work needs the
-  operator to raise the cap, which is why every residual is a backlog row and not a fix cycle.
-  `len(runs)` **56** of `max_total_runs` 20 — INFORMATIONAL (INV-22). My read, in the briefing too:
-  honest but no longer cheap — the last four cycles closed evidence and wording rather than
-  behaviour, which is what convergence looks like from the inside; a 57th run would not earn its
-  place.
-- mirror: unchanged — parent #1407 and nine sub-issues at review. No station moved, so no
-  `gh-sync.py` write was owed. Nothing shipped, merged, pushed, or removed; `HEAD` never moved.
-- quarantine: `quarantine.py list --feature BUG-1309-mirror-build-entry` → empty.
+- run: **ship phase — SC-10 fully itemised, briefing amended, awaiting the operator's ship
+  instruction.** `runs/c19uatsteps-product` (product lead: pm, PASS, ONE send-back). No validator
+  run was dispatched or owed: this round wrote records only; the c19 code delta stays graded at the
+  pin.
+- **SC-10 = MET by the operator, and now itemised.** A SECOND main-session inline relay on
+  2026-09-09 carried their verbatim instruction "flag uat pass for these four" against an execution
+  report: Step 3b's six flagged merge forms all denied; Step 5's `open` setting
+  `build_entry=opened`; Step 6 allowing plain merge and `--no-ff` silently; Step 7's
+  `recover-terminal` creating no task issues, setting `recovered-terminal`, merge then allowed.
+  Transcribed at `notes/uat-BUG-1309-mirror-build-entry.md:405-463`, append-only — **60 insertions /
+  0 deletions by `git diff --numstat`**, so the script is byte-unchanged and no heading moved.
+  **No step was executed or re-tested by any agent.**
+- **Yesterday's fidelity gap is CLOSED, not inferred away.** The first relay carried an overall
+  "pass" plus the Step 3 wording judgement and no per-step readout; the second answers it, so the
+  script's five-step rule (3, 3b, 5, 6, 7) is itemised. **SC-10's verdict does not move** — met on
+  the first relay, not re-graded or re-derived. Limit 2 (no answers file, none sought or authored,
+  issue #671) stands. Steps 4, 8 and 1, 2, 9 were not itemised and are not asserted.
+- **Goal-check: 11 of 11 met** — `notes/research-BUG-1309-c19-uat-sc10.md`; its two passages that
+  presented the confirmation as outstanding now read closed, and its Non-modification paragraph was
+  re-derived at HEAD `a826673` instead of overstating the tree's stillness. SC-04 met **by operator
+  ruling**, not by new automated evidence; SC-09 is `verify: inspection`. **No BRIEF amendment or
+  re-signature owed.**
+- **Briefing amended and re-rendered:** `notes/ship-review-2026-09-09-shipdecision.md` (+ `.html`
+  via `render-brief.py`). Decision item 3 — the optional UAT step confirmation — is struck as
+  **CLOSED**, leaving **two** operator items: ship-or-not, and the backlog table, now B-1..B-30. A
+  dated amendment block names what moved; nothing was quietly deleted.
+- station: **review** (`plan.yaml` unchanged — `done` belongs to the ship act). `review_sha`
+  **unchanged at `4857818bb1408813c7a38311d9e4ffc20373427e`**: records only were written, and
+  re-pinning would claim the panel reviewed a tree it never saw.
+- budget: **`cycles_used` 18 of 17 — ONE OVER, recorded rather than rounded away.** The lead
+  reported one send-back inside this round (pm's Non-modification paragraph returned for
+  correction), and a reported send-back is a cycle (DEC-157). **The crossing forecloses fix work**:
+  any "fix X" needs the operator to raise the cap first. No fix loop was running. `len(runs)` **57**
+  of 20 — INFORMATIONAL (INV-22); read unchanged, in the briefing.
+- mirror: unchanged — parent #1407 and nine sub-issues at review; no station moved, so no
+  `gh-sync.py` write was owed. Nothing shipped, merged, pushed, committed or removed; `HEAD` stands
+  at `a826673` and never moved.
 
-### Evidence for this phase, measured rather than relayed
+### Evidence, measured rather than relayed
 
-- **Append-only shape of the UAT edit:** `git diff --numstat` → `45 0` on the UAT note; the only
-  other working-tree changes are pm's new goal-check note and its observations bullet.
-- **Both approval signatures, checked in both fragments (G-09):** `BRIEF.md ## Approval`
-  `status: approved`, re-signed 2026-09-08 over SC-11; `plan.yaml approval` `status: approved`,
-  `date: '2026-09-08'`. Walked the plan's commit history: the re-sign commit **`de04d841`** lands
-  AFTER `d8f4dc49` (the D-13..D-15 amendment), so the plan signature covers those amendments. D-19
-  was appended afterwards under ruling R-7 §4, which owes no re-signature. D-13 … D-19 are all
-  present (`plan.yaml:203,225,244,263,291,308,330`).
-- **Old backlog row struck on my own measurement:** the 2026-09-08 briefing's B-6 (module-scope
-  `feature_schema` import costing ~50-60 ms per Bash call) is **resolved** — at the pin the import
-  is deferred inside the deny path (`merge-gate.py:164`). Its sibling `feat = "this feature"`
-  fallback **does** survive at `:163` and is carried as the new B-6.
+- `git diff --numstat`: UAT note `60 0`; goal-check note `39 14`; pm observations `1 0`. Plus the
+  amended briefing, its HTML, `STATE.md`, `feature.json`, `notes/handoff-ship.md`.
+- New section extent `:405-463` (the note's last line); the FIRST relay's heading is at `:362`,
+  which corrected the briefing's older `:360-403` citation.
+- `feature.json` after the write: `cycles_used` 18, `max_total_cycles` 17, 57 runs, pin unchanged.
+- **The lead left no run directory.** It returned inline; `runs/c19uat-product/` still describes the
+  EARLIER round (`state.yaml`: one step, `358 -> 403 lines`). The run is recorded in `feature.json`
+  because it happened, with its entry pointing at no digest on disk. Row B-30.
 
 ### Next, in order
 
-1. **The operator's ship instruction** — the only open act. The briefing asks for: ship / fix /
-   re-scope / stop, struck backlog IDs, and optionally whether Steps 3b/5/6/7 also passed. Nothing
-   is dispatchable until it arrives; no agent work remains.
+1. **The operator's ship instruction** — the only open act; the briefing asks two things now: ship /
+   fix / re-scope / stop, and struck backlog IDs. Nothing is dispatchable until it arrives.
 2. On "ship": the main session runs `gh-sync.py ship` **from the main checkout** (it refuses a
-   feature dir inside `.claude/worktrees/`) with the briefing as `--body-file`, unstruck rows become
-   backlog issues, the PR merges under the operator's hand, the `post-merge` hook removes this
-   worktree, and feature-close distillation runs only after the merge (DEC-145).
+   feature dir inside `.claude/worktrees/`) with the briefing as `--body-file`; unstruck rows become
+   backlog issues; the PR merges under the operator's hand; the `post-merge` hook removes this
+   worktree; distillation runs only after the merge (DEC-145).
+3. On "fix X": **raise `max_total_cycles` first** — at 18 of 17 no cycle may be opened (DEC-157).
 
 ## Open Questions
 
@@ -108,8 +105,13 @@
 - Q13 (documentation, trivial) — `notes/rulings-2026-09-08-c19-copy.md` §5.3 cites the
   `recover-terminal … --yes` / not-`open` expectation as "Step 6 (`:300`)"; it is Step 7 at `:303`.
   Stale anchor in the ruling note, not in the UAT. Row B-25.
-- **Q14 (NEW 2026-09-09, non-blocking, optional confirmation)** — the SC-10 relay carried no
-  per-step readout. Whether Steps 3b, 5, 6 and 7 were each individually observed to PASS is not in
-  the record and was not inferred. The briefing offers it as one line; it does not gate the ship.
-- **SC-10 is CLOSED (2026-09-09). The last open item is the operator's ship instruction — no agent
-  work remains on this feature.**
+- **Q14 (RESOLVED 2026-09-09 by the operator)** — raised because the first relay carried no per-step
+  readout. Their second inline relay, "flag uat pass for these four", gives Steps 3b, 5, 6 and 7 an
+  individual PASS (`notes/uat-BUG-1309-mirror-build-entry.md:405-463`). Never gated the ship; the
+  briefing's item 3 is struck closed.
+- **Q15 (NEW, non-blocking, harness defect)** — the product lead returned this round's digest inline
+  and wrote no `runs/<run-dir>/`, so a recorded run has no digest on disk to audit. Row B-30.
+- **Q16 (NEW, non-blocking, operator decision)** — `cycles_used` is 18 of 17. Raising
+  `max_total_cycles` is the operator's call and precedes ANY fix cycle; it is not needed to ship.
+- **SC-10 is CLOSED and itemised (2026-09-09). The last open item is the operator's ship
+  instruction — no agent work remains.**

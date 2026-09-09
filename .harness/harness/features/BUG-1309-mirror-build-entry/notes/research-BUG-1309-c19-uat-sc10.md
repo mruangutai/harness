@@ -42,10 +42,15 @@ grade, and no criterion is waived, partial or deferred.
 - **SC-10 (`BRIEF.md:157-160`)** — "sees it refused with a message they can act on without reading
   the source; after re-running `gh-sync.py open` the same command is allowed." The operator's
   overall "pass" plus their explicit CLEAR-and-ACTIONABLE judgement of the refusal wording is the
-  criterion's declared method delivered in full. What the relay does not carry is a per-step
-  itemisation of the script's own five-step rule (Steps 3, 3b, 5, 6, 7) — the second half of the
-  criterion is covered by the operator's overall verdict, not by a separately reported Step 5/6
-  observation. Recorded as a limit, not resolved by inference, not a downgrade.
+  criterion's declared method delivered in full. What the FIRST relay did not carry was a per-step
+  itemisation of the script's own five-step rule (Steps 3, 3b, 5, 6, 7); that gap WAS recorded here
+  as a fidelity limit — never inferred away and never treated as a downgrade — and it HAS SINCE
+  BEEN CLOSED. On 2026-09-09 a SECOND main-session inline relay carried the operator's instruction
+  "flag uat pass for these four", giving Steps 3b, 5, 6 and 7 an individual operator PASS; Step 3
+  was already carried by the wording judgement. Transcribed at
+  `notes/uat-BUG-1309-mirror-build-entry.md:405-463` § `Operator result — SC-10 per-step
+  confirmation — 2026-09-09`. SC-10's verdict is unchanged by that closure: it was already **met**
+  on the first relay and is not re-graded, upgraded or re-derived.
 - **Approval** — `BRIEF.md ## Approval` approved, re-signed 2026-09-08 over SC-11; `plan.yaml
   approval` approved, re-signed 2026-09-08 (commit `de04d841`), with D-19 applied additively
   afterwards under ruling R-7 §4, which owes no re-signature. **No amendment, no re-signature.**
@@ -73,16 +78,36 @@ grade, and no criterion is waived, partial or deferred.
    a live `gh pr merge` is never exercised, and 17 sync-enabled legacy feature directories are
    KNOWINGLY UNRECOVERED (`BRIEF.md:174-191`).
 
-Plus one optional confirmation line the ship decision may carry to the operator: *were Steps 3b, 5,
-6 and 7 also PASS?* — see the fidelity limit above. The validator panel's advisories are the
-orchestrator's and are deliberately not re-derived here.
+The one confirmation the ship decision was to carry to the operator — whether Steps 3b, 5, 6 and 7
+were also PASS — is **no longer open**. It was answered on 2026-09-09 by a SECOND main-session
+inline relay of the operator's instruction "flag uat pass for these four", transcribed at
+`notes/uat-BUG-1309-mirror-build-entry.md:405-463` § `Operator result — SC-10 per-step
+confirmation — 2026-09-09`. Nothing about SC-10's verdict moves with it. The validator panel's
+advisories are the orchestrator's and are deliberately not re-derived here.
 
 ## Non-modification
 
-Files written in this dispatch: this note, and `notes/uat-BUG-1309-mirror-build-entry.md` — one
-appended `## Operator result` section, 45 insertions / 0 deletions, verified with
-`git diff --numstat`. No step renumbered, no PASS/FAIL rule reworded, no quoted expectation touched.
-`BRIEF.md`, `plan.yaml` (every approval byte), `feature.json`, `STATE.md`, `merge-gate.py`,
-`merge-gate.sh`, `test-merge-gate.py`, every other source, test and agent note, and
-`runs/c19uat-product/` are **untouched**. No suite, formatter or linter run; no cycle opened; no
-answers file authored or sought; nothing shipped, merged, committed or pushed; `HEAD` unmoved.
+Files written in the FIRST dispatch of this round: this note, and
+`notes/uat-BUG-1309-mirror-build-entry.md` — one appended `## Operator result` section,
+45 insertions / 0 deletions, verified with `git diff --numstat`. A SECOND dispatch on 2026-09-09
+wrote exactly the same two files again: a further APPEND-ONLY section on the UAT note
+(`## Operator result — SC-10 per-step confirmation — 2026-09-09`, at `:405-463`; 60 insertions /
+0 deletions against `HEAD` a826673, 105 insertions / 0 deletions cumulative against the pre-round
+file at 9c07f557, final length 463 lines), and the two passages of this note that presented the
+per-step confirmation as outstanding or optional, rewritten as closed. No step renumbered, no
+PASS/FAIL rule reworded, no quoted expectation touched. A THIRD dispatch on 2026-09-09 rewrote
+this paragraph and nothing else, to disclose the file named next and to re-derive every figure in
+it at `HEAD` a826673. The ONLY other path any of the three dispatches wrote is
+`observations/harness-pm.md` — the Expertise hot layer: one appended bullet in each of the first
+two dispatches and none in the third (2 insertions / 0 deletions cumulative against 9c07f557),
+mandated by `harness-expertise` and never injected into any spawn.
+Excluding that one file: `BRIEF.md`, `plan.yaml` (every approval byte), `feature.json`,
+`STATE.md`, `merge-gate.py`, `merge-gate.sh`, `test-merge-gate.py`, every other source, test and
+agent note, and `runs/c19uat-product/` are **untouched** by these dispatches. None of them ran a
+suite, formatter or linter; none opened a cycle, authored or sought an answers file, or shipped,
+merged, committed or pushed anything.
+Not theirs, and recorded here so no sentence above overstates the tree's stillness: the
+orchestrator's own ship-phase commits e7358ec — which carried the first dispatch's two notes plus
+`STATE.md`, `feature.json`, `notes/handoff-ship.md` and the ship briefing — and a826673 moved
+`HEAD` from 9c07f557 to a826673. The review pin
+`4857818bb1408813c7a38311d9e4ffc20373427e` is unchanged and was not re-pinned.
