@@ -356,3 +356,48 @@ Steps 1, 2 and 9 are setup and teardown.
 Record the result where the ship decision is made. If any step FAILED, quote the message you
 actually saw and say what you would have needed it to tell you — the wording is the deliverable
 here, and only you can judge it.
+
+---
+
+## Operator result — SC-10 — 2026-09-09
+
+**The result, at the fidelity it arrived — nothing here was measured by an agent.** Relayed inline
+by the main session to the orchestrator on 2026-09-09: the operator was presented this script for
+SC-10, judged the revised merge-gate refusal message **CLEAR and ACTIONABLE**, and reported
+**"pass"**. Channel: main-session inline relay, 2026-09-09. This section is a TRANSCRIPTION of that
+relay by `harness-pm`; it is evidence of the relay, never a substitute for it — the same provenance
+shape `notes/rulings-2026-09-08-panel-c7.md` uses. No step of this script was executed by the
+transcriber, and no sentence below restates a step as run.
+
+**The verdict it closes: SC-10 = MET**, by the operator's own judgement. `BRIEF.md:157-160` declares
+SC-10 `verify: uat`, and the operator's judgement is the only method that can close it. It is not
+waived, not partial, and not carried by any automated or inspection evidence.
+
+**The recorded PASS condition it answers** — this note's own Step 3 (`:175-177`), quoted:
+
+> **PASS** if the message names the feature, says what is wrong, and gives you a command you could
+> run without opening any source file.
+
+**The message the operator was judging** — the c19 copy, quoted from
+`notes/rulings-2026-09-08-c19-copy.md` §2 (rendered for this script's fixture):
+
+```
+merge-gate: FEAT-9001-uat-scratch needs its GitHub mirror recovery completed before this merge can continue. Run: python3 .claude/skills/harness/bin/gh-sync.py open /private/tmp/bug1309-uat/.harness/harness/features/FEAT-9001-uat-scratch
+```
+
+### Fidelity limits of the relay — stated, not resolved
+
+Two limits, recorded plainly because the record must not read as more than the relay carried:
+
+1. **No per-step itemisation.** The relay carried an overall **"pass"** plus the operator's judgement
+   of the refusal message. It did **NOT** itemise this note's own verdict rule
+   (`## Your verdict`: Steps 3, 3b, 5, 6 and 7 each PASS). What that licenses: recording SC-10 as
+   MET on the operator's overall result and their explicit judgement of the Step 3 wording — the
+   criterion's declared method, delivered. What it does **not** license: asserting that each of the
+   five gating steps was individually observed to PASS, or citing this section as per-step evidence.
+   The gap is **not** resolved by inference in either direction, the operator is not re-graded, and
+   SC-10 is **not** downgraded over it. It is ONE confirmation line the ship decision may carry, at
+   the operator's option: *"were Steps 3b, 5, 6 and 7 also PASS?"*
+2. **No answers file, and none to be sought or authored.** There is no `notes/answers-<runid>.md` on
+   disk for this round and no such path was named. Per issue #671 nobody may go looking for one and
+   nobody may author one; the inline relay above is the whole channel of record.
