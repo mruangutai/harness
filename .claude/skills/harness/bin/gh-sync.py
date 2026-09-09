@@ -1432,7 +1432,9 @@ def _closed_task_guard(repo, board, issue_num, tid):
     if board is None:
         return False
     try:
-        stations = gh_board.board_stations(board, repo)
+        # ONE ISSUE, not the whole board (issue #1541). This guard has exactly one subject and
+        # used to download every card the board has ever held to look it up.
+        stations = gh_board.board_stations_for(board, repo, [issue_num])
         current_station, _ = gh_board.read_station(stations, issue_num)
         state = (factory_gh.issue_view(repo, issue_num, ["state"]) or {}).get("state")
     except factory_gh.GhError as exc:
@@ -1464,10 +1466,11 @@ def cmd_start_task(feat_dir, tid, repo, board):
     refused. A refusal is NOT a failure: exit code and control flow are unchanged (DEC-146
     keeps the station flip best-effort; DEC-138 forbids the mirror from gating a flow).
 
-    ADDED COST: start-task now performs ONE board read (`gh_board.board_stations`, reused for
-    both halves of the guard — no second board read) and ONE issue read (`factory_gh.issue_view`
-    for `state`) before its writes, where before it performed none. Squarely inside DEC-203's
-    second sanctioned purpose — learning which station an item is at.
+    ADDED COST: start-task performs ONE board read (`gh_board.board_stations_for` for the single
+    issue it is about to move — issue #1541 replaced the whole-board read that stood here, which
+    downloaded every card the board has ever held to answer one lookup) and ONE issue read
+    (`factory_gh.issue_view` for `state`) before its writes, where before it performed none.
+    Squarely inside DEC-203's second sanctioned purpose — learning which station an item is at.
 
     A gh or network failure during EITHER read must not gate either: caught, printed as one
     line, and control falls through to the ORIGINAL behaviour (attempt the write) rather than
@@ -2082,15 +2085,24 @@ def cmd_ship(feat_dir, repo, board, body_file=None, pr_arg=None):
     sources = list(rec["source_issues"])
     parents = [rec["parent"]] if rec["parent"] is not None else []
 
-    # Step 3 — ONE targeted, cost-1 board read for every card's current station.
+    # Step 3 — ONE board read for the cards this ship already knows about. It is NOT the whole
+    # set: `first_open_child` discovers a parent's children from a `sub_issues` read during the
+    # pass, and those numbers are fetched there, when they are known (issue #1541). The first
+    # draft of this change asked only for the three groups below and reported every discovered
+    # child as "not on the board" — the ship suite caught it, and the lesson is written here
+    # rather than left for the next person: a targeted read must follow every number the code
+    # can reach, not only the ones on disk.
     try:
-        stations = gh_board.board_stations(board, repo)
+        stations = gh_board.board_stations_for(
+            board, repo, list(children) + list(sources) + list(parents),
+        )
     except Exception as e:  # factory_gh.GhError and anything it wraps
         print(f"gh-sync: ERROR - board read failed, no card moved: {e}", file=sys.stderr)
         stations = None
 
     held = []      # (card number, the child that held it)
     failed = []    # card numbers whose station write failed
+    asked = set(children) | set(sources) | set(parents)  # numbers step 3 already requested
 
     def write_done(num):
         """Write one card's done station and, ON SUCCESS, REFRESH THE MAP IN PLACE.
@@ -2133,6 +2145,14 @@ def cmd_ship(feat_dir, repo, board, body_file=None, pr_arg=None):
         kids = json.loads(raw) if raw and raw.strip() else []
         numbers = sorted(int(k["number"]) for k in kids
                          if isinstance(k, dict) and k.get("number") is not None)
+        # THE DISCOVERED CHILDREN ARE FETCHED HERE, because here is the first moment they are
+        # known. `asked` keeps a number that is genuinely off the board from being re-requested
+        # on a later parent: absent-after-asking and never-asked look identical in `stations`,
+        # and only one of them warrants another round trip.
+        missing = [n for n in numbers if n not in stations and n not in asked]
+        if missing:
+            asked.update(missing)
+            stations.update(gh_board.board_stations_for(board, repo, missing))
         for kid in numbers:
             station, reason = gh_board.read_station(stations or {}, kid)
             if station == done:
