@@ -3,10 +3,12 @@
 ## Current
 
 - feature: BUG-1507-ready-station-signature
-- run: BUILD PHASE CLOSED — five tasks landed, qa_gate green, SIMPLIFY empty; validate panel next
-- squad: validator (the panel)
-- status: in_review
+- run: VALIDATE PASSED at `ac5e24e5` — panel `must_fix: []`, `severity_max: med`, all four readers
+  ran. Returned to the main session, which owns PR open, CI watch, merge and `gh-sync.py ship`
+- squad: none — the orchestrator's build+validate mission is complete
+- status: in_review (panel clean; awaiting the main session's PR and merge)
 - station: `review` (plan.yaml line 3), written by `gh-sync.py status <feature-dir> review`
+- review_sha: `ac5e24e51f2520e273580f66c372b5bd143001f1`
 
 Log:
 
@@ -99,6 +101,32 @@ Log:
   plan station `building` -> `review`; no parent issue is recorded for this feature, so no card
   was written and the mirror reported that in one line, exit 0. `review_sha` pinned at the seam
   commit, which contains every deliverable and no later code change.
+- 2026-09-09: run `2026-09-08-panel-validator` PASS — the validate panel, `cycle: 0`, at the pinned
+  `ac5e24e5`. ALL FOUR readers ran; none skipped. `severity_max: med`, `must_fix: []`,
+  `code_grade: grade_2` (one accepted grade-2 function with its reason on file). Five findings, none
+  gating: VL-01 (med, the lead's own — the witness cannot see the `plan-merge.py
+  set-feature-station --station <token>` shape that T-02 and T-03 add to the swept corpus), F-01
+  (low, the `verify:` chain's BrokenPipeError under `pipefail`, not exploited because
+  `run-unit-tests.sh` executes the file directly), F-02 (med, accepted code-risk grade 2), and two
+  assessed-and-dismissed info rows. Reviewer notes at `notes/review-harness-{code-reviewer,qa,
+  security-reviewer,ui-reviewer}-c0.md`.
+- 2026-09-09: VL-01 measured by the orchestrator rather than relayed, at
+  `notes/vl-01-plan-merge-shape-measurement.md`: the unguarded shape occurs TWICE in the swept
+  scope, both `building`, both accepted — the gap is latent, nothing ships broken, and the
+  placeholder `--station <name>` is already excluded correctly by the witness's character class.
+  NOT routed as a fix cycle: T-05's signed `intent:` spells the pattern character for character, so
+  widening it would amend an approved plan without approval. Carried up as a non-blocking backlog
+  row with its cost measured (one alternation, one accepted-set entry, `MIN_OCCURRENCES` 6 -> 8).
+- 2026-09-09: RECORD CORRECTION, disclosed rather than silently repaired. Two things.
+  (1) The qa segment was first appended to `feature.json` under the id `2026-09-08-qa-validator`
+  while its run DIRECTORY is `2026-09-08-03-qa-validator`; the id now matches the directory, the
+  same class of error this feature already corrected once in the plan phase.
+  (2) While probing whether `feature-json-merge.py set-key` accepts a non-scalar, the orchestrator
+  ran it against `runs` and it ACCEPTED an array, overwriting the whole runs list with the single
+  probe entry. It was restored in the next call from this STATE.md log and the run directories on
+  disk: nine runs, verdicts unchanged, `2026-09-08-01-validator` keeping its `code_grade: n_a` and
+  every code-grading run correctly omitting the key. No verdict was altered. The probe was
+  careless — `set-key`'s own help says "scalar", and it does not enforce that; raised as Q5.
 
 ## Open Questions
 
@@ -117,3 +145,8 @@ Log:
   corrected body changes it. It does not — `apply` refuses at exit 7 CONFLICT
   (`plan-merge.py:738-742`); the verb that changes a value is `amend`. A pm reading the current
   wording takes exit 7 as a gate failure.
+- Q5 (harness owner, not a work item): `feature-json-merge.py set-key` is documented as setting a
+  top-level key to a JSON SCALAR value, and it accepts a JSON array without complaint — so a single
+  mistaken call silently replaces the whole `runs` history, which is the one part of `feature.json`
+  no other verb can reconstruct. Either the verb should refuse a non-scalar, or `runs` should be
+  named as a protected key.

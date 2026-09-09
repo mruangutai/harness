@@ -44,7 +44,7 @@
       "agent": "harness-eng-lead"
     },
     {
-      "id": "2026-09-08-qa-validator",
+      "id": "2026-09-08-03-qa-validator",
       "squad": "validator",
       "verdict": "PASS",
       "agent": "harness-validator-lead"
@@ -54,6 +54,12 @@
       "squad": "eng",
       "verdict": "PASS",
       "agent": "harness-eng-lead"
+    },
+    {
+      "id": "2026-09-08-panel-validator",
+      "squad": "validator",
+      "verdict": "PASS",
+      "agent": "harness-validator-lead"
     }
   ]
 }
