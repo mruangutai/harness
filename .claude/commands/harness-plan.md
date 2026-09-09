@@ -8,7 +8,7 @@ Read `.claude/commands/harness.md` and follow it with **mission: plan**. The dif
   the same hand-off — pass `.harness/efforts/<slug>/MAP.md` (DEC-165). Already have either
   artifact? Cite it and move on. Skipping it is the user's explicit call, never your assumption.
 - **KICKOFF: the source ticket moves to Plan** — before the BRIEF work begins, run
-  `python3 .claude/skills/harness/bin/board-station.py <issue-number> Plan` from the repo root.
+  `python3 .claude/skills/harness/bin/board-station.py <issue-number> plan` from the repo root.
   The ticket is the issue the user names in the opening ask or in answer to step zero; no separate
   question is asked for it, and the number is an issue of `harness.json`'s `github.repo`. When
   **no ticket is named**, write nothing and ask nothing. The source is usually a wayfinding ticket
@@ -21,7 +21,7 @@ Read `.claude/commands/harness.md` and follow it with **mission: plan**. The dif
 - **Terminus:** ONE approval, taken by you — the user signs PLAN **and** the prototype (if the
   feature needs one) together. Completing plan is NOT a briefing (§10.3).
   **The signature is immediately followed by**
-  `python3 .claude/skills/harness/bin/gh-sync.py status <feature-dir> Ready`, which moves the
+  `python3 .claude/skills/harness/bin/gh-sync.py status <feature-dir> ready`, which moves the
   task sub-issues to `Ready` and never the parent. It **refuses unless `approval.status` is
   `approved`**, so a card at Ready is proof of a signature rather than a claim about one.
 - After approval, offer `/harness-ship` — do not start it unasked.
