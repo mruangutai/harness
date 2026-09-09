@@ -1,6 +1,6 @@
 # /harness-plan — plan a feature to an approved PLAN
 
-Read `.claude/commands/harness.md` and follow it with **mission: plan**. The differences:
+Read `.omp/commands/harness.md` and follow it with **mission: plan**. The differences:
 
 - **Step zero, BLOCKING:** load the `harness-grilling` skill and run it first — dialog to clarity
   with the user, name the destination, record settled/fog/out-of-scope, and hand pm the artifact

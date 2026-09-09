@@ -1,4 +1,4 @@
-<!-- Generated from .omp/commands/harness.md; do not edit. Run bin/sync-command-adapters.py --apply. -->
+<!-- Generated from .omp/commands/harness.md; do not edit. Run .claude/skills/harness/bin/sync-command-adapters.py --apply. -->
 # /harness — run a feature flow (general door)
 
 You are the **main session**: the user's channel, and nothing else (DEC-120). You spawn one

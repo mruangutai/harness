@@ -12,13 +12,26 @@ import argparse
 import sys
 from pathlib import Path
 
-BANNER = "<!-- Generated from .omp/commands/{name}; do not edit. Run bin/sync-command-adapters.py --apply. -->\n"
+BANNER = (
+    "<!-- Generated from .omp/commands/{name}; do not edit. "
+    "Run .claude/skills/harness/bin/sync-command-adapters.py --apply. -->\n"
+)
+
+# The four canonical doors every checkout must carry. Absence of one of these is an operator
+# error (a door deleted from .omp/commands/ without deleting its adapter), not adapter drift —
+# canonical_paths() below only ever describes what currently EXISTS, so it cannot see an absence
+# on its own; this list is what makes that absence detectable.
+REQUIRED_DOORS = ("harness.md", "harness-plan.md", "harness-ship.md", "harness-grilling.md")
 
 
 def canonical_paths(canonical_dir: Path) -> list[Path]:
     paths = {canonical_dir / "harness.md"}
     paths.update(canonical_dir.glob("harness-*.md"))
     return sorted(p for p in paths if p.is_file())
+
+
+def missing_required_doors(canonical_dir: Path) -> list[str]:
+    return [name for name in REQUIRED_DOORS if not (canonical_dir / name).is_file()]
 
 
 def expected_adapters(canonical_dir: Path) -> dict[str, str]:
@@ -31,6 +44,16 @@ def expected_adapters(canonical_dir: Path) -> dict[str, str]:
 def sync(root: Path, check: bool) -> int:
     canonical_dir = root / ".omp" / "commands"
     adapter_dir = root / ".claude" / "commands"
+
+    missing = missing_required_doors(canonical_dir)
+    if missing:
+        for name in missing:
+            print(
+                f"sync-command-adapters: required canonical door missing from .omp/commands/: {name}",
+                file=sys.stderr,
+            )
+        return 1
+
     expected = expected_adapters(canonical_dir)
     actual_names = {path.name for path in adapter_dir.glob("harness*.md")} if adapter_dir.exists() else set()
     drift: list[str] = []
