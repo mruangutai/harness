@@ -3,36 +3,34 @@
 ## Current
 
 - feature: FEAT-56-central-onboarding-model
-- run: none
+- run: .harness/harness/features/FEAT-56-central-onboarding-model/runs/2026-09-08-panelfix-c1-product/state.yaml
 - squad: none
 - status: awaiting-user
 
-RE-SCOPED BY THE OPERATOR AT THE UAT GATE, 2026-09-08. Do not ship. The built work at
-`review_sha` 9b72dd4b is complete and green — eight tasks done, qa gate green, review panel PASS,
-nine of ten SCs met — but SC-09 FAILED a third time on a finding that is not a defect in the
-delivery: it rejects the SCOPE. The operator confirms the central-model goal and rejects the
-Claude-Code-only implementation and the combined command.
+Revised in place on the operator's re-scope of 2026-09-08 and now SIGNATURE-READY at 52f8866a,
+pushed. Two artifacts: `harness-init` isolated to first-time configuration of a fresh Harness
+checkout, and a new provider-neutral `harness-add-repo` skill registering a repository into the
+configured control plane; the OMP command-door port lands in this same feature; first-BRIEF,
+approval and design move out of onboarding, routing to `/harness-plan`.
 
-Their required outcome, as relayed by the main session: OMP must expose provider-neutral onboarding
-usable with Claude Code, OpenAI or any model provider; `harness-init` becomes ONLY fresh Harness
-configuration; adding a repository becomes a separate, clearer command, `harness-add-repo` unless
-source conventions require another established name.
+plan.yaml: 17 tasks — T-01..T-08 `done` with landed commits, T-09..T-17 `ready`. 12 decisions.
+Station `plan`. Panel complete at cycle 1: all three readers `ran`, 34 findings, zero open above
+`low`, every id verifying. BRIEF.md: 13 SCs, no prior grade retained. check-plan-routes 0
+violations. cycles_used 13 of 22.
 
-Consequences already recorded: feature station returned to `plan`; UAT and ship readiness
-invalidated; `cycles_used` 11 of a raised `max_total_cycles` 11, so the budget is SPENT and a
-revised plan needs a new figure recorded before any build resumes. The approval on both fragments
-still reads approved for the OLD task set and must be reset to pending by the main session — no
-agent, this one included, may write it.
-
-Nothing is reverted. The delivered work stands as the substrate the revision builds on.
+Blocked only on the operator signature. Nothing else in the plan phase remains, and no build has
+started — T-09 onward would be building against an unapproved task set.
 
 ## Open Questions
 
-- The approval on BRIEF.md and plan.yaml must be RESET to pending: the task set is materially
-  changing and the old signature cannot carry it. Main session only.
-- `max_total_cycles` must be raised again, or the revision must be scoped to fit no further rework.
-  11 of 11 are spent. An operator decision, recorded in feature.json.
-- Whether the revision proceeds inside FEAT-56 or as a successor feature: the delivered central
-  model is sound and shipped-ready, and the new scope adds provider neutrality and a command split.
-  pm's recommendation is required and the operator decides.
-- Backlog rows B-1..B-13 remain undisposed. No PR, no issues, held as instructed.
+- Operator signature on BRIEF.md `## Approval` and plan.yaml `approval:`, via `plan-merge.py
+  sign-approval`. Main session only. No `--overrule` flags needed: no finding is open above `low`.
+- D-12 wants the operator's eye before they sign: `harness-init` keeps the CLI 2.1.217 floor as a
+  runtime-conditional check — a hard STOP under Claude Code, no stop under any other runtime —
+  rather than an unconditional Claude-only STOP. pm decided it because the panel found the plan had
+  left it undecided, and it sits against the operator's own "rather than implementing a
+  Claude-Code-only path". Overridable either way.
+- Harness defect for a ticket of its own, six recurrences this feature: `check-domain` enforces
+  single-flight by agent TYPE across every linked worktree, so any concurrently-running feature
+  holding `harness-pm` or `harness-validator-lead` refuses this feature's squad writes mid-run.
+  Structural, not stale-claim debris.
