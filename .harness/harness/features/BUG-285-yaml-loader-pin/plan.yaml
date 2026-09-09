@@ -1,0 +1,150 @@
+schema: plan/1
+feature: BUG-285-yaml-loader-pin
+approval:
+  status: pending
+status: plan
+source_issues: [285]
+
+lanes:
+  resolved_at: 7e0c2ec148c05786d2cbbc1bf1f352c3e0403738
+  rows:
+    - surface: tests/**
+      lane: team
+      agent: harness-qa
+
+decisions:
+  - id: D-01
+    choice: The discriminating fixture is a YAML block mapping, feature_id then a nested github key, not JSON carrying a hash comment.
+    because: A block mapping is YAML-only syntax that still parses to a MAPPING, so it isolates the unpinned parse guard from the already-pinned isinstance guard at gh-sync.py line 535.
+    dec: none
+  - id: D-02
+    choice: T-01 is dispatched to harness-qa, not to harness-backend-dev or harness-dev-ops.
+    because: All three resolve for tests/**, but only qa's consult-when names writing regression tests and closing coverage gaps, which is the whole of this change; backend-dev's names service logic and dev-ops's names test-runner setup, not fixtures.
+    dec: none
+  - id: D-03
+    choice: change_type is bugfix, and the only required kind is integration.
+    because: DEC-217 binds a bugfix confined to tests to the integration kind; touches_runtime_code is false here, so unit is not demanded, and integration is active with a real runner.
+    dec: DEC-217
+  - id: D-04
+    choice: The able-to-fail proof is a throwaway mutation probe against a COPY of gh-sync.py in a tempdir, recorded as a transcript, never committed as a test.
+    because: .agents/skills is a symlink to .claude/skills, so the reader is one inode and an in-place probe edit would be a live-tree edit of production code this bug forbids touching.
+    dec: none
+
+panel:
+  last_run: 2026-09-09-01-planpanel-validator
+  cycle: 0
+  readers:
+  - reader: should-not-exist
+    status: ran
+    persona: fable-advisor
+  - reader: scope
+    status: ran
+    persona: harness-code-reviewer
+  findings:
+  - id: PF-2242299b369215b13ad577fe4279d52e
+    severity: info
+    reader: should-not-exist
+    summary: "SC-03's mutation probe is demonstration, not coverage \u2014 its redness\
+      \ is analytically entailed by SC-01 plus gh-sync.py:523-554, and its delivery\
+      \ chain (note to DIGEST to orchestrator pathspec commit to git-show grading)\
+      \ is the likeliest source of a false not_met at build time."
+    disposition: open
+tasks:
+  - id: T-01
+    title: Pin feature.json's JSON parser with a YAML-only fixture in the gh-sync integration suite
+    traces: [REQ-01, REQ-02, REQ-03, REQ-04]
+    change_type: bugfix
+    execution_mode: team
+    execution_agent: harness-qa
+    depends_on: []
+    status: ready
+    files:
+      - tests/integration/test-gh-sync.py
+    verify: |
+      env -u HARNESS_AGENT_TYPE python3 tests/integration/test-gh-sync.py
+    intent: |
+      Add ONE new case block to tests/integration/test-gh-sync.py that pins load_recorded's choice
+      of parser for feature.json: a document a YAML loader accepts as a mapping and a JSON parser
+      rejects must be REFUSED. No production-code change is in scope. Do not edit
+      .claude/skills/harness/bin/gh-sync.py, and do not edit any file other than
+      tests/integration/test-gh-sync.py and your own notes file under this feature's notes/
+      directory.
+
+      WHY (state this in the block's own comment): load_recorded at gh-sync.py:484 parses with
+      json.loads(text) at :523 inside a try that raises SystemExit("... does not parse ...") at
+      :524-531, and has a second guard, "if not isinstance(doc, dict)", at :535. Every existing
+      fixture in the region is JSON, and JSON is a YAML subset, so all of them load identically
+      under either parser. The zero-byte fixture at :1470-1480 cannot detect a swap either, because
+      a YAML loader returns None for the empty string, so that document is refused by the isinstance
+      guard rather than by the parse guard. The parse guard is therefore unpinned.
+
+      INSERTION POINT: immediately after the T-06 Part C case 2 check that ends at line 1442 (the
+      check named 'T-06C: a feature.json with no github: block returns the default, does not raise'),
+      and before the fix1 Part B comment block that begins at line 1444 with '---------- fix1 Part B:
+      three states must stay distinct'. If those line numbers have drifted, re-locate by those two
+      literal strings.
+
+      HELPERS ALREADY IN THE FILE, use them and add no new import: nested_feature_dir(feat_name) at
+      line 144 returns a fresh tempdir feature directory; the gh-sync module handle _ghs is loaded
+      from BIN_DIR at lines 1406-1410; harness_yaml is imported at line 25; check(name, cond, detail)
+      is at line 769; json and os are imported at lines 17-18.
+
+      WHAT TO WRITE, in this order:
+
+      1. The fixture text, as a python string literal, exactly:
+         "feature_id: F1\ngithub:\n  parent: 40\n"
+         That is a YAML block mapping: valid YAML, invalid JSON.
+
+      2. The discriminating property, asserted in BOTH DIRECTIONS as two separate named checks. One
+         half alone is not enough: if only the YAML half is asserted, a later edit can turn the
+         fixture into plain JSON and the case silently degrades into a meaningless
+         'malformed input is rejected'.
+         - check that harness_yaml.load_str(text, "BUG-285 fixture") returns a dict equal to
+           {"feature_id": "F1", "github": {"parent": 40}} - so a YAML loader accepts it AS A MAPPING
+           and would reach past the isinstance guard at gh-sync.py:535.
+         - check that json.loads(text) raises ValueError - call it inside a try, and fail the check
+           if it returns instead of raising.
+
+      3. The refusal. Write the text to os.path.join(nested_feature_dir("FEAT-bug285-yaml-only"),
+         "feature.json"), call _ghs.load_recorded on that directory inside a try, and assert on the
+         MESSAGE: str(e) must contain the feature.json path AND the substring "does not parse". Both
+         conditions in one check, joined with and. Do NOT write an or-chain of alternative wordings
+         and do NOT accept a bare 'it raised' - an unrelated SystemExit must not satisfy this case.
+         If load_recorded returns instead of raising, emit a failing check whose detail is the
+         returned rec, in the same shape as the neighbouring cases at lines 1474-1480.
+
+      4. Change nothing else. Do not modify, rename, delete or retarget any existing check, fixture
+         or comment anywhere in the file.
+
+      THEN PROVE THE NEW ASSERTION CAN FAIL, as a throwaway probe that leaves no trace in the tree:
+
+      a. Write a throwaway python script in a tempdir, NOT in the repo tree.
+      b. shutil.copy the real .claude/skills/harness/bin/gh-sync.py into a tempdir. NEVER edit the
+         real file in place: .agents/skills is a symlink to .claude/skills, so that file is a single
+         inode reached by both spellings and an in-place probe edit is a live-tree edit.
+      c. In the COPY ONLY, replace the single parse call at :523, "doc = json.loads(text)", with
+         "doc = harness_yaml.load_str(text, path)". No new import is needed: gh-sync.py:101 already
+         carries "import harness_yaml", and load_str(text, where) at harness_yaml.py:207 is the
+         general YAML entry point. That one-token change is the whole mutant.
+      d. Insert the real BIN_DIR at sys.path[0] - the same insert the test file does at line 16 - then
+         load the copy with importlib.util.spec_from_file_location, so the copy's sibling imports
+         resolve out of the real bin directory.
+      e. Assert the MUTANT does NOT raise on the fixture and returns parent 40. That is the red state
+         of the new assertion, and returning parent 40 also proves the probe reached the parse branch
+         rather than an earlier guard. Then load the REAL module the same way and assert it raises
+         SystemExit whose message contains "does not parse". Print both outcomes.
+      f. Record both transcripts verbatim, plus the exact commands you ran, in your own notes file
+         under this feature's notes/ directory - name it notes/qa-<runid>.md, the path your domain
+         grants (team-config.yaml:259) - and LEAVE that file in place. Do NOT run git commit: the
+         commit pen is the orchestrator's (DEC-153), and it stages by explicit pathspec. Report the
+         note's exact path as your DIGEST artifact so the orchestrator commits it alongside the test
+         change - SC-03 is graded with "git show <review_sha>:<that path>", so a note absent from that
+         commit grades not_met however good the proof. Then delete the throwaway script and its
+         tempdir. Nothing under tests/ or .claude/ may be left changed by the probe.
+
+      FINALLY: run the verify command from the worktree root and record its exact tallies in the same
+      notes file - the exit code, the count of lines beginning "ok", and the count of lines beginning
+      "FAIL". The pre-change baseline, measured in this worktree at sha 7e0c2ec, is exit 0 with 318
+      "ok" and 0 "FAIL" in 36.9s, so afterwards expect exit 0, more than 318 "ok", and 0 "FAIL". The
+      "env -u HARNESS_AGENT_TYPE" prefix is load-bearing: without it the agent tool's environment
+      leaks into the test subprocesses.
