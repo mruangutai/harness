@@ -123,6 +123,22 @@ def _central_model_marker_cases(text, source_label):
     return results
 
 
+def case_central_model_marker_order_regression():
+    """Synthetic proof the ordering clause can redden: the 12f74ea8 blob has no
+    harness-add-repo/SKILL.md to exercise it (qa-FEAT-56-c2.md §4), so this binds the
+    discriminator directly instead of resting on that accident."""
+    ordered = f"{DEFAULT_BRANCH_MARKER}\n{FLEET_MARKER}\n{SEGMENT_MARKER}\n"
+    reversed_ = f"{SEGMENT_MARKER}\n{FLEET_MARKER}\n{DEFAULT_BRANCH_MARKER}\n"
+    ordered_last = _central_model_marker_cases(ordered, "synthetic (correct order)")[-1]
+    reversed_last = _central_model_marker_cases(reversed_, "synthetic (reversed order)")[-1]
+    return [
+        ("synthetic ordering regression: correctly-ordered markers pass the ordering clause",
+         ordered_last[1], ordered_last[2]),
+        ("synthetic ordering regression: reversed markers fail the ordering clause",
+         not reversed_last[1], reversed_last[2]),
+    ]
+
+
 def case_init_no_addrepo_markers():
     text = open(SKILL_INIT, encoding="utf-8").read()
     return _harness_init_token_cases(text, "harness-init/SKILL.md")
@@ -191,6 +207,7 @@ def main():
         + case_add_repo_central_model_markers_in_order()
         + case_command_doors_do_not_cite_harness_init()
         + case_cli_probe_strings_absent_from_both_cut_skills()
+        + case_central_model_marker_order_regression()
     )
     ok = True
     for name, passed, detail in results:
