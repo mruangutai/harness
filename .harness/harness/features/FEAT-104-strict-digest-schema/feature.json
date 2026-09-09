@@ -66,6 +66,13 @@
       "verdict": "PASS",
       "agent": "harness-product-lead",
       "code_grade": "n_a"
+    },
+    {
+      "id": "q2-c4-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead",
+      "code_grade": "n_a"
     }
   ]
 }

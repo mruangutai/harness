@@ -1,0 +1,95 @@
+<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>FEAT-104 — final plan signature packet (c4)</title><style>
+:root{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:ui-sans-serif,-apple-system,"Segoe UI","Helvetica Neue",Arial,sans-serif;
+}
+/* Token-level theming: components style through the tokens and never inside the
+   media query, so the viewer's explicit toggle can override the OS in BOTH
+   directions. */
+@media (prefers-color-scheme:dark){
+  :root{ --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+         --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733; }
+}
+:root[data-theme="dark"]{
+  --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+  --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733;
+}
+:root[data-theme="light"]{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+}
+*{box-sizing:border-box}
+body{margin:0; background:var(--paper); color:var(--ink);
+  font:400 16px/1.65 var(--sans); padding:clamp(1.5rem,5vw,4rem) clamp(1rem,5vw,2rem) 6rem}
+.wrap{max-width:56rem; margin:0 auto}
+/* Layout owns the spacing: gap between siblings, not per-element margins that
+   collapse or double. */
+.wrap{display:flex; flex-direction:column; gap:1rem}
+.eyebrow{font:500 11px/1 var(--mono); letter-spacing:.14em; text-transform:uppercase;
+  color:var(--quiet); margin:0}
+h1{font:600 clamp(1.6rem,4vw,2.3rem)/1.15 var(--sans); letter-spacing:-.02em;
+  margin:.4rem 0 .2rem; text-wrap:balance}
+h2{font:600 1.15rem/1.3 var(--sans); letter-spacing:-.01em; margin:2rem 0 0;
+  padding-top:1.25rem; border-top:1px solid var(--line); text-wrap:balance}
+h3{font:600 .98rem/1.4 var(--sans); margin:1.1rem 0 0}
+h4,h5,h6{font:500 11px/1.4 var(--mono); letter-spacing:.1em; text-transform:uppercase;
+  color:var(--quiet); margin:1rem 0 0}
+p,li{max-width:65ch; margin:0}
+ul,ol{margin:0; padding-left:1.4rem; display:flex; flex-direction:column; gap:.4rem}
+li>ul,li>ol{margin-top:.4rem}
+strong{font-weight:600}
+code{font:400 .875em/1.5 var(--mono); background:var(--sunk); padding:.1em .35em; border-radius:3px}
+pre{background:var(--sunk); border:1px solid var(--line); border-radius:6px;
+  padding:.85rem 1rem; overflow-x:auto; margin:0}
+pre code{background:none; padding:0}
+blockquote{margin:0; padding:.75rem 1rem; border-left:3px solid var(--accent);
+  background:var(--accent-soft); border-radius:0 5px 5px 0}
+blockquote p{max-width:none}
+hr{border:0; border-top:1px solid var(--line); margin:.5rem 0}
+/* Wide content pans inside its OWN container; the page body never scrolls sideways. */
+.scroll{overflow-x:auto; border:1px solid var(--line); border-radius:6px}
+table{border-collapse:collapse; width:100%; font-size:.9rem}
+th,td{text-align:left; padding:.6rem .8rem; border-bottom:1px solid var(--line); vertical-align:top}
+thead th{font:500 10px/1.3 var(--mono); letter-spacing:.11em; text-transform:uppercase;
+  color:var(--quiet); background:var(--sunk); white-space:nowrap}
+tbody tr:last-child td{border-bottom:0}
+/* Figures in a column line up. */
+td,th{font-variant-numeric:tabular-nums}
+.derived{color:var(--slate); font-size:.85rem; margin-top:2.5rem;
+  padding-top:1rem; border-top:1px solid var(--line)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style></head><body><div class='wrap'><p class='eyebrow'>Ship review · reading view</p><h1 id="feat-104-final-plan-signature-packet-c4">FEAT-104 — final plan signature packet (c4)</h1>
+<p><strong>Ready to sign.</strong> All six rulings executed, Q2 closed, and <code>check-state.sh</code> is down to a single FEAT-104 violation: &quot;BRIEF.md is NOT approved&quot; — the signature gate itself. Nothing is implemented and nothing is signed.</p>
+<p>Supersedes <code>c3</code>, which is kept on disk with <code>c2</code> because each carries a statement of mine that was later found wrong, and a correction is only legible beside what it corrects.</p>
+<h2 id="rulings-all-six-executed-and-verified-on-disk">Rulings — all six executed and verified on disk</h2>
+<div class="scroll"><table><thead><tr><th>Ruling</th><th>State</th></tr></thead><tbody><tr><td>OD-1 — hermetic inert fixture remedy</td><td>APPLIED — <code>plan.yaml:108,120,255,563,577</code>, <code>BRIEF.md:74-88</code></td></tr><tr><td>OD-2 — drop <code>failures</code>/<code>suite</code>/<code>kinds</code></td><td>APPLIED — 5 passthrough rows, D-02&#x27;s bar repaired</td></tr><tr><td>OD-3 — T-01 PART 1 precision correction</td><td>APPLIED — <code>plan.yaml:141-147</code></td></tr><tr><td>OD-4 — SC-11 precision correction</td><td>APPLIED — <code>BRIEF.md:105-108</code></td></tr><tr><td>OD-5 — strike T-02</td><td><strong>EXECUTED — T-02 REMOVED</strong> by <code>delete-items</code>; nine tasks remain</td></tr><tr><td>OD-6 — correct DEC-126</td><td>VERIFIED, already carried by T-09&#x27;s WRITE 2, one clause</td></tr><tr><td>B-1..B-6</td><td>ALL STRUCK — none appears as task, decision, issue or note</td></tr></tbody></table></div>
+<h2 id="q2-closed">Q2 closed</h2>
+<p><code>T-01.intent</code>&#x27;s opening sentence read &quot;the former T-02, which is abandoned&quot;. It now reads <strong>&quot;the former T-02, which the operator struck under ruling OD-5 on 2026-09-09 and removed from this plan&quot;</strong>. The field went 10432 → 10498 characters; the diff is one hunk, and two assertions passed <em>before</em> the write — exactly one occurrence replaced, and a length delta equal to the replacement&#x27;s own 66. Every other T-01 field is byte-identical against <code>git show HEAD:</code>. The word <code>abandon</code> now occurs nowhere in <code>plan.yaml</code>.</p>
+<p><strong>Correction to c3:</strong> that packet gave you <code>plan-merge.py amend --task T-01 --field intent --value &quot;...&quot;</code> as the command to close this. <strong>That interface does not exist.</strong> The real one, which I have now checked against <code>amend --help</code> myself, is:</p>
+<pre><code>plan-merge.py amend --file &lt;plan.yaml&gt; --key tasks --id T-01 --field intent \
+  --show                                   # prints the field and its sha256
+plan-merge.py amend --file &lt;plan.yaml&gt; --key tasks --id T-01 --field intent \
+  --expect-sha256 &lt;that sha&gt; --value-file &lt;path&gt;</code></pre>
+<p>pm caught it at source rather than following my dispatch literally. This is the <strong>second</strong> premise I asserted from this worktree&#x27;s stale copy of <code>plan-merge.py</code> — the same root cause as the delete-verb error one cycle earlier, and the reason I now check the control-plane copy first.</p>
+<h2 id="what-you-are-signing">What you are signing</h2>
+<p><code>BRIEF.md</code> — 9 requirements, 15 success criteria, each with a verification method: <strong>13 <code>automated</code></strong> on the <code>integration</code> runner, <strong>1 <code>inspection</code></strong> (SC-12&#x27;s sha256 run-artifact manifest), <strong>1 <code>uat</code></strong> (SC-13 — you read the DEC-174 carve-out diff; no automated gate substitutes).</p>
+<p><code>plan.yaml</code> — 12 decisions, <strong>9 tasks</strong> (T-01, T-03..T-10), the <code>lanes:</code> routing table resolving every literal path through <code>check-domain.sh --resolve</code>, and <code>panel:</code> with three readers recorded <code>ran</code> and all four <code>PF-</code> findings at <code>disposition: resolved</code>, ids, severities, readers and evidence unchanged.</p>
+<p>Traceability closed both ways: every REQ has at least one SC and at least one task, every task traces at least one REQ, no task cites a REQ that does not exist. Nothing dangles after the removal.</p>
+<p>The substance is unchanged from the plan you reviewed: unknown keys on a new digest return get rejected instead of ignored, the same inside a run <code>state.yaml</code> <code>steps[]</code> entry where nothing governs them today, a declared free-form-inside <code>evidence:</code> container so per-step evidence keeps a legal home, and <strong>issue #37 resolved in-feature</strong> — <code>adequacy_notes</code> becomes a required lead field.</p>
+<h2 id="gate-state">Gate state</h2>
+<ul><li><code>check-state.sh</code> — <strong>one</strong> FEAT-104 violation: BRIEF not approved. The gate working.</li><li><code>check-plan-routes.py</code> — exit 1, <code>1 violation(s)</code>, the pre-existing manifest deviation (this worktree&#x27;s <code>.harness/team-config.yaml</code> is behind the owner root by <code>4d81e460</code>). No task violation. You struck B-2, so it stays.</li><li><code>validate-digest.py lead</code> — <code>digest ok</code> on every run digest in this feature.</li></ul>
+<h2 id="the-record-s-own-corrections-in-one-place">The record&#x27;s own corrections, in one place</h2>
+<p>Four statements of mine were wrong during this signature cycle and each is corrected in place with the original left readable:</p>
+<ol><li>&quot;The FEAT-57 claim had cleared&quot; — it had not; I read a per-ROOT registry from the wrong root.</li><li>&quot;The PID is alive, so the claim is live&quot; — that proves the supervisor lives, not the run; the discriminating read showed the live run backs FEAT-57&#x27;s <em>validator</em> claim, not the product-lead one that blocked me.</li><li>&quot;<code>plan-merge.py</code> has no delete verb&quot; — true at this worktree&#x27;s HEAD, false at the control plane, where a human landed <code>delete-items</code> the same day. pm refused to write on the false premise, which is why OD-5 was executed rather than approximated.</li><li>The <code>amend</code> interface above.</li></ol>
+<p>Three of the four share one root cause: <strong>I read something true of the checkout I was standing in as true of the system.</strong> It is logged as a rule rather than as an incident.</p>
+<h2 id="the-cross-worktree-claim">The cross-worktree claim</h2>
+<p><code>FEAT-57-review-latency</code> held live <code>harness-product-lead</code> and <code>harness-pm</code> claims through this cycle and refused a lead&#x27;s <code>runs/**</code> write twice more. Each time the lead returned its digest inline with the fenced contract block and I landed it from my tier; <code>plan.yaml</code> and <code>notes/</code> writes were never refused. Blast radius is run bookkeeping only, now confirmed four times across two features. FEAT-56 owns the escalation to you and carries it as three separate defects. I am citing, not re-filing. Only the type-scoped single-flight bears on this signature: it will shape the build phase while another flow holds a lead persona.</p>
+<h2 id="budget">Budget</h2>
+<p><code>cycles_used: 4</code> of 10. <code>runs: 10</code> of an informational 20. Both healthy; every run resolved findings and advanced the criteria.</p>
+<h2 id="artifacts">Artifacts</h2>
+<p>Under <code>/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-104-strict-digest-schema/.harness/harness/features/FEAT-104-strict-digest-schema/</code>:</p>
+<ul><li><code>BRIEF.md</code> and <code>plan.yaml</code> — both <code>pending</code></li><li><code>notes/research-FEAT-104-triage-c0.md</code> — the measurement and per-key triage</li><li><code>notes/research-FEAT-104-goalcheck-plan-c0.md</code>, <code>notes/research-FEAT-104-planfix-c1.md</code>, <code>notes/research-FEAT-104-sigfix-c2.md</code>, <code>notes/research-FEAT-104-od5-t02-strike.md</code>, <code>notes/research-t01-intent-amend.md</code></li><li><code>notes/review-harness-code-reviewer-planpanel-c1.md</code> — the panel&#x27;s <code>scope</code> reader</li><li><code>runs/*/digest.md</code> — ten runs, every one validating</li><li><code>notes/ship-review-plan-signature-c2.md</code> and <code>c3</code> — superseded, kept legible</li></ul><p class='derived'>Derived from <code>ship-review-plan-signature-c4.md</code> — the markdown is the record; do not edit this file. Regenerate with <code>bin/render-brief.py</code>.</p></div></body></html>

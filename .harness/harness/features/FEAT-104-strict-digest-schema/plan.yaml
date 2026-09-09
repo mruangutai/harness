@@ -122,9 +122,10 @@ tasks:
       if grep -q 'undeclared digest key' "$F"; then exit 1; fi
       python3 .claude/skills/harness/bin/sync-agent-adapters.py --check || exit 1
     intent: |
-      This task subsumes the former T-02, which is abandoned: the declaration and its documentation
-      land as ONE commit, because a lead return omitting adequacy_notes exits 2 from the first of the
-      two onward and this feature's own build runs are lead returns.
+      This task subsumes the former T-02, which the operator struck under ruling OD-5 on 2026-09-09
+      and removed from this plan: the declaration and its documentation land as ONE commit, because a
+      lead return omitting adequacy_notes exits 2 from the first of the two onward and this feature's
+      own build runs are lead returns.
 
       PART 1, in .claude/skills/harness/bin/validate-digest.py, beside SCHEMAS (currently lines
       183 to 229), add TWO module-level mappings.
