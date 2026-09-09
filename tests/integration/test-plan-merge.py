@@ -2189,6 +2189,489 @@ def case_bug201_apply_refuses_dangling_depends_on():
         shutil.rmtree(root_b, ignore_errors=True)
 
 
+# ---------------------------------------------------------------------------
+# `delete-items` — the verb the add-only property left missing.
+#
+# EVERY REFUSAL CASE ALSO ASSERTS THE FILE IS BYTE-IDENTICAL AFTERWARDS. A refusal that had
+# already half-written its deletion would be worse than no refusal, and `locked_update`'s
+# promise — a raised MergeRefusal writes nothing — is only a promise until something checks it
+# on this path too.
+# ---------------------------------------------------------------------------
+
+_DELETE_CHUNKS = (
+    ("preamble", "# a preamble comment that belongs to the document\n"),
+    ("head", "schema: plan/1\nfeature: FEAT-99-fixture\n\n"
+             "approval:\n  status: pending\n"
+             "  # a trailing comment inside the approval block\n\n"
+             "tasks:\n"),
+    ("T-01", "  - id: T-01\n    title: first\n    verify: |\n      run it\n    status: ready\n"),
+    ("note", "  # a document NOTE between two items, belonging to neither\n"),
+    ("T-02", "  - id: T-02\n    title: second\n    status: ready\n"),
+    ("T-03", "  - id: T-03\n    title: third\n    status: ready\n"),
+    ("gap", "\n"),
+    ("decisions", "decisions:\n"),
+    ("D-01", "  - id: D-01\n    choice: keep this one\n"),
+    ("D-02", "  - id: D-02\n    choice: drop this one\n"),
+    ("D-02-gap", "\n"),
+    ("tail", "panel:\n  cycle: 1\n"),
+)
+
+
+def _delete_plan(without=()):
+    """The delete fixture, or the same fixture with named chunks omitted.
+
+    THE EXPECTATION IS DERIVED BY OMITTING CHUNKS, never by re-rendering. That is what turns
+    "every surviving line is byte-identical" into an assertion: a dumper round trip would
+    reformat the whole plan, drop every comment, and still `safe_load` equal to this.
+    """
+    return "".join(text for name, text in _DELETE_CHUNKS if name not in without)
+
+
+def case_delete_items_removes_whole_items_and_leaves_every_other_byte_identical():
+    """THE GREEN PATH: two items, from two different lists, in one call.
+
+    T-01 is the FIRST task and D-02 is the LAST decision, deliberately. An item's text range
+    runs from its own dash line to the NEXT dash line, and the last item's to the end of the
+    key's block — so those raw bounds would take the document `# NOTE` between T-01 and T-02
+    with T-01. The `# NOTE` is the document's and must survive; the blank line D-02 carries is
+    D-02's own separator and must go with it, or five consecutive deletions leave five blank
+    lines behind. The byte-identity check is what proves both.
+
+    A MUTANT THAT REDDENS THIS: rendering the result through `yaml.safe_dump` instead of
+    filtering lines. It loads identically and every comment, the blank lines and the `verify: |`
+    form are gone.
+    """
+    root, plan = fixture_root()
+    try:
+        write(plan, _delete_plan())
+        r = run_verb("delete-items", "--file", plan, "--task", "T-01", "--decision", "D-02",
+                     "--reason", "the operator ruled lever 6 out of scope")
+        after = read(plan)
+        check("delete: a two-list multi-item delete exits 0", r.returncode == 0,
+              f"rc={r.returncode} {r.stderr[:400]!r}")
+        check("delete: the receipt names every id that went",
+              "DELETED tasks:T-01" in r.stdout and "DELETED decisions:D-02" in r.stdout,
+              r.stdout)
+        check("delete: the receipt states the reason",
+              "reason: the operator ruled lever 6 out of scope" in r.stdout, r.stdout)
+        check("delete: and the reason is NOT written into the plan",
+              "out of scope" not in after, after)
+        check("delete: EVERY surviving byte is identical (chunk-derived expectation)",
+              after == _delete_plan(without=("T-01", "D-02", "D-02-gap")), repr(after))
+        check("delete: the document NOTE after the deleted first task survives",
+              "# a document NOTE" in after, after)
+        check("delete: the blank line the deleted last decision carried goes with it",
+              "choice: keep this one\npanel:\n" in after, repr(after))
+        loaded = yaml.safe_load(after)
+        check("delete: the survivors are exactly the items not named",
+              [t["id"] for t in loaded["tasks"]] == ["T-02", "T-03"]
+              and [d["id"] for d in loaded["decisions"]] == ["D-01"], repr(loaded))
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def _delete_block_plan():
+    return ("schema: plan/1\nfeature: FEAT-99-fixture\ntasks:\n"
+            "  - id: T-01\n    title: first\n    verify: |\n"
+            "      run it\n"
+            "      # a shell comment that is CONTENT of the block body\n"
+            "  # a document NOTE that is not\n"
+            "  - id: T-02\n    title: second\n    status: ready\n")
+
+
+def case_delete_items_boundary_splits_block_content_from_document_comments():
+    """THE TWO-SIDED BOUNDARY, which is where a delete goes wrong quietly.
+
+    Inside a `|` body a `#` line is CONTENT — a shell comment in a verify script, `_trim_tail`'s
+    own measured lesson — so it goes WITH the item. Between two items a `#` line is DOCUMENT, so
+    it stays. BOTH wrong answers leave a file that loads and passes the schema: one orphans a
+    fragment of the deleted task's verify script inside `tasks:`, the other silently deletes a
+    note nobody asked to lose.
+
+    MUTANTS THAT REDDEN THIS: returning the raw dash-to-dash `end` from `_item_delete_end` (the
+    NOTE disappears), or trimming trailing comments without the block-scalar floor (the shell
+    comment survives as orphaned text).
+    """
+    root, plan = fixture_root()
+    try:
+        write(plan, _delete_block_plan())
+        r = run_verb("delete-items", "--file", plan, "--task", "T-01",
+                     "--reason", "the task is out of scope")
+        after = read(plan)
+        check("delete: deleting a task whose last line is a block-body comment exits 0",
+              r.returncode == 0, f"rc={r.returncode} {r.stderr[:400]!r}")
+        check("delete: the `#` line inside the `|` body went with the item",
+              "a shell comment" not in after, after)
+        check("delete: the `#` line between the items did not",
+              "# a document NOTE that is not" in after, after)
+        check("delete: and nothing else moved",
+              after == ("schema: plan/1\nfeature: FEAT-99-fixture\ntasks:\n"
+                        "  # a document NOTE that is not\n"
+                        "  - id: T-02\n    title: second\n    status: ready\n"), repr(after))
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_delete_items_leaves_no_blank_line_residue():
+    """MEASURED ON FEAT-57's REAL plan.yaml, which is why this case exists at all.
+
+    Its tasks are separated by a blank line after a `|` body, and the ten items the operator
+    ruled out of scope are consecutive. Treating those blanks as the DOCUMENT's — the rule
+    every other splice in this file follows, because a REPLACEMENT leaves them where they were
+    — left four blank lines stranded at end of file and made `git diff` report insertions on a
+    pure deletion. An item owns the whitespace that follows it, so N consecutive deletions
+    leave N-1 separators and no residue.
+
+    A MUTANT THAT REDDENS THIS: `return _before_trailing_comments(lines[:end], floor)` — the
+    rule this case was written to retire.
+    """
+    root, plan = fixture_root()
+    try:
+        head = "schema: plan/1\nfeature: FEAT-99-fixture\ntasks:\n"
+        item = "  - id: {0}\n    intent: |\n      do {0}\n\n"
+        write(plan, head + "".join(item.format(t) for t in ("T-01", "T-02", "T-03"))
+              + "  - id: T-04\n    intent: |\n      do T-04\n")
+        r = run_verb("delete-items", "--file", plan, "--task", "T-02", "--task", "T-03",
+                     "--reason", "two consecutive blank-separated items go")
+        after = read(plan)
+        check("delete: two consecutive blank-separated items delete cleanly",
+              r.returncode == 0, f"rc={r.returncode} {r.stderr[:400]!r}")
+        check("delete: exactly one separator survives, with no blank-line residue",
+              after == head + item.format("T-01")
+              + "  - id: T-04\n    intent: |\n      do T-04\n", repr(after))
+        check("delete: and the blank INSIDE no body was disturbed",
+              [t["id"] for t in yaml.safe_load(after)["tasks"]] == ["T-01", "T-04"],
+              repr(after))
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_delete_items_refuses_an_absent_id_and_writes_nothing_at_all():
+    """A TYPO'D ID IS NEVER A NO-OP (exit 3), and the whole call is refused, not the bad half.
+
+    A caller who mistyped one of ten ids and was told the deletion happened would then believe
+    a scope removal that never occurred — which is why T-01 below, a perfectly valid target
+    named in the SAME call, must still be present afterwards.
+
+    The ids listed are SCOPED to the list the miss was in, the precedent `_task_status_line`
+    set: offering decision ids for a `--task` miss invites a retry that fails for an unrelated
+    reason.
+
+    A MUTANT THAT REDDENS THIS: skipping unknown ids instead of raising — the tempting
+    "idempotent delete" that reports success for a command that did nothing.
+    """
+    root, plan = fixture_root()
+    try:
+        before = write(plan, _delete_plan())
+        r = run_verb("delete-items", "--file", plan, "--task", "T-01", "--task", "T-99",
+                     "--reason", "one of these ids is a typo")
+        out = r.stdout + r.stderr
+        check("delete: an absent id is refused with exit 3", r.returncode == 3,
+              f"rc={r.returncode} out={out[:300]!r}")
+        check("delete: the refusal names the id that is not there", "T-99" in out, out)
+        check("delete: and lists the ids that are, scoped to that list",
+              "T-01, T-02, T-03" in out and "D-01" not in out, out)
+        check("delete: the valid id named in the same call is NOT deleted",
+              read(plan) == before, "the plan changed on a refused call")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_delete_items_refuses_its_own_bad_command_line():
+    """THE THREE ARGV REFUSALS, all exit 2 and all before the lock is ever taken.
+
+    a. THE SAME ID TWICE. De-duplicating silently would swallow the likelier explanation —
+       that one of the other ids the caller typed is wrong.
+    b. NO --task AND NO --decision. A delete naming nothing is a write with no subject;
+       reporting success for it teaches the caller that a mistyped flag worked.
+    c. AN EMPTY --reason. The reason is never written into the plan, so an empty one defeats
+       the only two things it is for: naming why in a refusal, and stopping a reflex delete.
+
+    MUTANTS: `set(...)`-ing the requested ids, dropping the empty-`requested` guard, or making
+    `--reason` optional / accepting whitespace.
+    """
+    root, plan = fixture_root()
+    try:
+        before = write(plan, _delete_plan())
+        repeated = run_verb("delete-items", "--file", plan, "--task", "T-01", "--task", "T-01",
+                            "--reason", "twice")
+        check("delete: the same id twice is refused with exit 2", repeated.returncode == 2,
+              f"rc={repeated.returncode} out={(repeated.stdout + repeated.stderr)[:300]!r}")
+        check("delete: naming the id that was repeated",
+              "T-01" in repeated.stdout + repeated.stderr, repeated.stderr)
+        nothing = run_verb("delete-items", "--file", plan, "--reason", "nothing named")
+        check("delete: no --task and no --decision is refused with exit 2",
+              nothing.returncode == 2, f"rc={nothing.returncode} {nothing.stderr[:200]!r}")
+        blank = run_verb("delete-items", "--file", plan, "--task", "T-01", "--reason", "   ")
+        check("delete: an empty --reason is refused with exit 2", blank.returncode == 2,
+              f"rc={blank.returncode} {blank.stderr[:200]!r}")
+        check("delete: none of the three refusals touched the file", read(plan) == before,
+              "the plan changed on a refused call")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def _delete_dangling_plan(legal=True):
+    """T-01, T-02 depending on T-01, T-03 independent — legal, or the same shape with the
+    required task fields stripped so the plan schema already refuses it.
+
+    THE ILLEGAL VARIANT IS THE POINT OF THIS CASE. `harness_yaml` refuses a plan whose
+    `depends_on` names an absent task (#201), and delete-items holds its result to the schema —
+    but only DO NO HARM, so a base that was already illegal skips that check entirely. That is
+    most plans a scope removal runs against, and it is exactly where the schema cannot be the
+    net.
+    """
+    if not legal:
+        return ("schema: plan/1\nfeature: FEAT-99-fixture\ntasks:\n"
+                "  - id: T-01\n    title: first\n"
+                "  - id: T-02\n    title: second\n    depends_on: [T-01]\n")
+    body = ""
+    for tid, dep in (("T-01", "[]"), ("T-02", "[T-01]"), ("T-03", "[]")):
+        body += (f"  - id: {tid}\n    title: task {tid}\n    change_type: logic\n"
+                 f"    execution_mode: main-session-direct\n    files: [{tid}.py]\n"
+                 f"    verify: run it\n    intent: do it\n    status: done\n"
+                 f"    depends_on: {dep}\n")
+    return ("schema: plan/1\nfeature: FEAT-99-fixture\nstatus: plan\n"
+            "approval:\n  status: pending\ntasks:\n" + body)
+
+
+def case_delete_items_refuses_a_dangling_depends_on():
+    """THE REFUSAL A WRONG IMPLEMENTATION STILL PASSES EVERY OTHER CHECK ON (#201's class).
+
+    Deleting T-01 while T-02 still says `depends_on: [T-01]` leaves a file that loads, splices
+    cleanly, and reports exactly the id it was asked to remove. Only the graph is broken.
+
+    a. LEGAL BASE. Exit 4, and the refusal names the edge `T-02 depends_on T-01` — which the
+       schema's own complaint cannot do, because it fires on the finished document rather than
+       on the request.
+    b. ALREADY-ILLEGAL BASE — the half that matters. Do-no-harm skips the schema check when the
+       base was not legal to begin with, so here the explicit check is the ONLY thing between
+       the caller and a dangling edge. Dropping that check leaves (a) refusing via the schema
+       and turns THIS into a silent exit-0 write.
+    c. THE PAIRED ALLOW. Deleting T-01 AND T-02 together exits 0: the edge does not survive, so
+       there is nothing dangling. Without this half, a verb that refused every delete naming a
+       dependency would pass (a) and (b) vacuously.
+    """
+    import harness_yaml
+
+    root_a, plan_a = fixture_root(prefix="plan-merge-test-del-a-")
+    try:
+        before = write(plan_a, _delete_dangling_plan())
+        legal = True
+        try:
+            harness_yaml.load_plan(plan_a)
+        except Exception:  # noqa: BLE001
+            legal = False
+        check("delete-dangling: the fixture base IS a legal plan (or (a) proves nothing)",
+              legal, "load_plan raised on the legal fixture")
+        r = run_verb("delete-items", "--file", plan_a, "--task", "T-01", "--reason", "descope")
+        out = r.stdout + r.stderr
+        check("delete-dangling a: a delete that would dangle an edge is refused with exit 4",
+              r.returncode == 4, f"rc={r.returncode} out={out[:300]!r}")
+        check("delete-dangling a: and the refusal names the edge, not just the id",
+              "T-02 depends_on T-01" in out, out)
+        check("delete-dangling a: the plan is byte-identical after the refusal",
+              read(plan_a) == before, "the plan changed on a refused call")
+    finally:
+        shutil.rmtree(root_a, ignore_errors=True)
+
+    root_b, plan_b = fixture_root(prefix="plan-merge-test-del-b-")
+    try:
+        before = write(plan_b, _delete_dangling_plan(legal=False))
+        already_illegal = False
+        try:
+            harness_yaml.load_plan(plan_b)
+        except harness_yaml.PlanSchemaError:
+            already_illegal = True
+        check("delete-dangling b: the fixture base is ALREADY schema-illegal, so do-no-harm "
+              "skips the schema check (or (b) proves nothing)",
+              already_illegal, "the fixture is schema-legal: this case would not isolate the "
+                               "explicit check")
+        r = run_verb("delete-items", "--file", plan_b, "--task", "T-01", "--reason", "descope")
+        out = r.stdout + r.stderr
+        check("delete-dangling b: the edge is refused even where the schema cannot see it",
+              r.returncode == 4, f"rc={r.returncode} out={out[:300]!r}")
+        check("delete-dangling b: naming the edge", "T-02 depends_on T-01" in out, out)
+        check("delete-dangling b: and nothing was written", read(plan_b) == before,
+              "a dangling depends_on was written at exit 0" if r.returncode == 0
+              else "the plan changed on a refused call")
+    finally:
+        shutil.rmtree(root_b, ignore_errors=True)
+
+    root_c, plan_c = fixture_root(prefix="plan-merge-test-del-c-")
+    try:
+        write(plan_c, _delete_dangling_plan())
+        r = run_verb("delete-items", "--file", plan_c, "--task", "T-01", "--task", "T-02",
+                     "--reason", "both ends of the edge are out of scope")
+        check("delete-dangling c: deleting BOTH ends of the edge in one call exits 0",
+              r.returncode == 0, f"rc={r.returncode} out={(r.stdout + r.stderr)[:300]!r}")
+        survivors = yaml.safe_load(read(plan_c))["tasks"]
+        check("delete-dangling c: and only the independent task is left",
+              [t["id"] for t in survivors] == ["T-03"], repr(survivors))
+    finally:
+        shutil.rmtree(root_c, ignore_errors=True)
+
+
+def case_delete_items_refuses_a_duplicate_id_in_the_plan():
+    """`_sole_item`'s rule, applied to deletion: two items carrying one id cannot be told apart,
+    so binding to the first match is a guess about which one the operator meant.
+
+    A MUTANT THAT REDDENS THIS: taking `hits[0]` instead of requiring exactly one.
+    """
+    root, plan = fixture_root()
+    try:
+        before = write(plan, "schema: plan/1\nfeature: FEAT-99-fixture\ntasks:\n"
+                             "  - id: T-01\n    title: first\n    status: ready\n"
+                             "  - id: T-01\n    title: also first\n    status: ready\n")
+        r = run_verb("delete-items", "--file", plan, "--task", "T-01", "--reason", "descope")
+        out = r.stdout + r.stderr
+        check("delete: an id carried twice by the plan is refused, not resolved to the first",
+              r.returncode != 0 and "2 time(s)" in out, f"rc={r.returncode} out={out[:300]!r}")
+        check("delete: and the ambiguous plan is unchanged", read(plan) == before,
+              "the plan changed on a refused call")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_delete_items_refuses_a_deletion_that_breaks_the_schema():
+    """DO NO HARM, from the other direction: the base is legal, so the RESULT must be too.
+
+    Deleting the only task empties `tasks:`, and the schema requires an emptied plan to SAY it
+    is a station-only record. The verb cannot write that marker — `apply` was stopped from
+    minting it (HIGH-1) — so the honest answer is a refusal.
+
+    A MUTANT THAT REDDENS THIS: dropping the `_schema_error` block from `_deleted_bytes`.
+    """
+    root, plan = fixture_root()
+    try:
+        before = write(plan, _schema_valid_plan())
+        r = run_verb("delete-items", "--file", plan, "--task", "T-01", "--reason", "descope")
+        out = r.stdout + r.stderr
+        check("delete: a deletion that makes a legal plan illegal is refused with exit 5",
+              r.returncode == 5 and "ILLEGAL PLAN" in out, f"rc={r.returncode} out={out[:300]!r}")
+        check("delete: and the legal plan survives byte-identical", read(plan) == before,
+              "the plan changed on a refused call")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_delete_items_refuses_an_unparseable_base():
+    """`amend`'s panel-V4 lesson: a base that does not parse must refuse CLEANLY and say which
+    document is at fault, rather than crash or blame its own splice.
+
+    A MUTANT THAT REDDENS THIS: parsing the base outside the try, or after the splice.
+    """
+    root, plan = fixture_root()
+    try:
+        before = write(plan, "schema: plan/1\nfeature: FEAT-99-fixture\ntasks:\n"
+                             "  - id: T-01\n    title: 'unterminated\n")
+        r = run_verb("delete-items", "--file", plan, "--task", "T-01", "--reason", "descope")
+        out = r.stdout + r.stderr
+        check("delete: an unparseable base is refused with exit 5",
+              r.returncode == 5, f"rc={r.returncode} out={out[:300]!r}")
+        check("delete: and the refusal blames the plan on disk, not the splice",
+              "does not parse" in out, out)
+        check("delete: leaving the broken file exactly as it was", read(plan) == before,
+              "the plan changed on a refused call")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_delete_items_inherits_the_destination_and_lock_refusals():
+    """delete-items is not a second write route: same destination guard, same lock.
+
+    THE LOCK REFUSAL IS OBSERVED, NOT ASSERTED ABOUT. The test process holds an exclusive flock
+    on the plan's own lock file and then runs the verb, so exit 6 comes from the real retry
+    budget. It costs harness_merge.LOCK_TIMEOUT_SECONDS of wall clock once, which is what a
+    guarantee nobody has to take on faith costs.
+
+    A MUTANT THAT REDDENS THIS: writing the file directly instead of through
+    `harness_merge.locked_update` — the tempting simplification, and the one that reintroduces
+    #628.
+    """
+    import fcntl
+
+    root, plan = fixture_root()
+    try:
+        before = write(plan, _delete_plan())
+        outside = os.path.join(root, "not-a-plan.yaml")
+        write(outside, _delete_plan())
+        stray = run_verb("delete-items", "--file", outside, "--task", "T-01",
+                         "--reason", "wrong destination")
+        check("delete: a --file that is not a plan.yaml under features/ is refused with exit 9",
+              stray.returncode == 9, f"rc={stray.returncode} {stray.stderr[:200]!r}")
+
+        held = os.open(plan + ".lock", os.O_CREAT | os.O_RDWR)
+        try:
+            fcntl.flock(held, fcntl.LOCK_EX)
+            locked = run_verb("delete-items", "--file", plan, "--task", "T-01",
+                              "--reason", "the lock is held elsewhere")
+        finally:
+            os.close(held)
+        out = locked.stdout + locked.stderr
+        check("delete: an unacquirable lock is refused with exit 6",
+              locked.returncode == 6, f"rc={locked.returncode} out={out[:300]!r}")
+        check("delete: naming the lock it could not take", "LOCKED" in out, out)
+        check("delete: and the plan is untouched while another writer holds the lock",
+              read(plan) == before, "the plan changed while the lock was held elsewhere")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_delete_items_verify_catches_a_boundary_error_that_still_parses():
+    """THE CHECK NO CORRECT IMPLEMENTATION CAN TRIGGER, TESTED DIRECTLY — the F2 remedy.
+
+    A range one line long merges the next item's `- id:` line into the deleted one; a range one
+    line short leaves an orphaned field on the neighbour. Both results LOAD, both pass the
+    schema, and an id-only check sees neither. So `_verify_deletion` is handed a document with
+    exactly that damage and must refuse it, its negative control proves it is not refusing
+    everything, and the wiring is asserted at the source level and labelled for what it is.
+
+    MUTANTS: comparing ids instead of whole items (the missing-field half goes green), or
+    deleting the call from `_deleted_bytes` (the reachability check goes red).
+    """
+    mod = _load_pm()
+    base_doc = yaml.safe_load(_delete_plan())
+    requested = [("tasks", "T-01")]
+
+    lost_a_field = _delete_plan(without=("T-01",)).replace("    title: second\n", "")
+    raised = None
+    try:
+        mod._verify_deletion(lost_a_field.encode("utf-8"), base_doc, requested)
+    except mod.harness_merge.MergeRefusal as exc:
+        raised = exc
+    check("delete-verify: a survivor that quietly lost a field is refused with exit 5",
+          raised is not None and raised.code == 5, f"raised={raised!r}")
+    check("delete-verify: and the refusal says the ids matched, so it was a boundary error",
+          raised is not None and any("boundary" in line for line in raised.lines),
+          f"lines={getattr(raised, 'lines', None)!r}")
+
+    took_two = _delete_plan(without=("T-01", "T-02"))
+    raised_two = None
+    try:
+        mod._verify_deletion(took_two.encode("utf-8"), base_doc, requested)
+    except mod.harness_merge.MergeRefusal as exc:
+        raised_two = exc
+    check("delete-verify: a splice that took an item nobody named is refused, naming both id "
+          "lists",
+          raised_two is not None and any("T-02" in line for line in raised_two.lines),
+          f"raised={raised_two!r}")
+
+    accepted = None
+    try:
+        accepted = mod._verify_deletion(
+            _delete_plan(without=("T-01",)).encode("utf-8"), base_doc, requested)
+    except mod.harness_merge.MergeRefusal as exc:
+        accepted = exc
+    check("delete-verify: the CORRECT deletion is accepted (or this case refuses everything)",
+          isinstance(accepted, dict), f"got={accepted!r}")
+
+    src = read(CLI)
+    check("delete-verify: and the check is WIRED IN (reachability, not behaviour)",
+          "_verify_deletion(spliced, base_doc, requested)" in src,
+          "the verification call site is gone: the guarantee is unreachable")
+
+
 
 # THE CASE LIST IS DATA, NOT CONTROL FLOW (BUG-1128 panel F3).
 #
@@ -2254,6 +2737,17 @@ CASES = (
     case_amend_f1_non_text_field_is_refused,
     case_amend_f2_under_lock_hash_is_pinned,
     case_bug201_apply_refuses_dangling_depends_on,
+    case_delete_items_removes_whole_items_and_leaves_every_other_byte_identical,
+    case_delete_items_boundary_splits_block_content_from_document_comments,
+    case_delete_items_leaves_no_blank_line_residue,
+    case_delete_items_refuses_an_absent_id_and_writes_nothing_at_all,
+    case_delete_items_refuses_its_own_bad_command_line,
+    case_delete_items_refuses_a_dangling_depends_on,
+    case_delete_items_refuses_a_duplicate_id_in_the_plan,
+    case_delete_items_refuses_a_deletion_that_breaks_the_schema,
+    case_delete_items_refuses_an_unparseable_base,
+    case_delete_items_inherits_the_destination_and_lock_refusals,
+    case_delete_items_verify_catches_a_boundary_error_that_still_parses,
 )
 
 
