@@ -1792,6 +1792,121 @@ check("run_gh: budget-read failure preserves the original rate-limit stderr as d
       exc3 is not None and "was submitted too quickly" in (exc3.stderr or ""), f"exc={exc3!r}")
 
 
+# ---------------- issue_stations: the BY-ISSUE board read (issue #1541) ----------------
+# The contract this replaces a whole-board download with. Every case below asserts something a
+# caller can observe: how many gh processes ran, and whether "not on the board" survives as a
+# distinct answer from "on the board with no station". Those two collapsing into each other is
+# what `read_station` exists to report, so a merge here would silence it everywhere.
+def _issue_node(project_number, station):
+    field_value = None if station is None else {"name": station}
+    return {"project": {"number": project_number}, "fieldValueByName": field_value}
+
+
+def _issue_stations_payload(entries, has_next=False):
+    """entries: {alias_number: [node, ...] or None}. None means GraphQL resolved the issue null."""
+    repo_block = {}
+    for num, nodes in entries.items():
+        if nodes is None:
+            repo_block["i%d" % num] = None
+        else:
+            repo_block["i%d" % num] = {
+                "number": num,
+                "projectItems": {"pageInfo": {"hasNextPage": has_next}, "nodes": nodes},
+            }
+    return json.dumps({"data": {"repository": repo_block}})
+
+
+# ---- the invariant the issue turns on: nothing in flight costs nothing ----
+fake, calls = recorder([])
+fgh.subprocess.run = fake
+try:
+    empty_stations = fgh.issue_stations("o/r", 3, "Station", [])
+    empty_exc = None
+except Exception as e:
+    empty_stations, empty_exc = None, e
+restore()
+check("issue_stations: an empty number set makes ZERO gh calls",
+      empty_exc is None and len(calls) == 0, f"calls={calls} exc={empty_exc}")
+check("issue_stations: an empty number set returns an empty map, not None",
+      empty_stations == {}, f"got={empty_stations!r}")
+
+# ---- the three answers, in one request ----
+# #5 stationed, #6 on the board with no value, #7 on a DIFFERENT board only, #8 resolves null.
+MIXED_JSON = _issue_stations_payload({
+    5: [_issue_node(3, "Review")],
+    6: [_issue_node(3, None)],
+    7: [_issue_node(9, "Ready")],
+    8: None,
+})
+fake, calls = recorder([Result(0, stdout=MIXED_JSON)])
+fgh.subprocess.run = fake
+try:
+    mixed = fgh.issue_stations("o/r", 3, "Station", [5, 6, 7, 8])
+    mixed_exc = None
+except Exception as e:
+    mixed, mixed_exc = None, e
+    if isinstance(e, fgh.GhError):
+        RAISED.append(e)
+restore()
+check("issue_stations: four issues cost exactly ONE gh call",
+      mixed_exc is None and len(calls) == 1, f"calls={len(calls)} exc={mixed_exc}")
+check("issue_stations: an issue on the board carries its station verbatim",
+      mixed is not None and mixed.get(5) == "Review", f"got={mixed!r}")
+check("issue_stations: an issue on the board with no field value is PRESENT with None",
+      mixed is not None and 6 in mixed and mixed[6] is None, f"got={mixed!r}")
+check("issue_stations: a card on a DIFFERENT project is not answered for this one",
+      mixed is not None and 7 not in mixed, f"got={mixed!r}")
+check("issue_stations: an issue GraphQL resolves null is absent, not an error",
+      mixed is not None and 8 not in mixed, f"got={mixed!r}")
+
+# ---- batching: the call count grows with in-flight work, 50x more slowly than it ----
+BATCH_ONE = _issue_stations_payload({n: [_issue_node(3, "Ready")] for n in range(1, 51)})
+BATCH_TWO = _issue_stations_payload({51: [_issue_node(3, "Doing")]})
+fake, calls = recorder([Result(0, stdout=BATCH_ONE), Result(0, stdout=BATCH_TWO)])
+fgh.subprocess.run = fake
+try:
+    batched = fgh.issue_stations("o/r", 3, "Station", list(range(1, 52)))
+    batch_exc = None
+except Exception as e:
+    batched, batch_exc = None, e
+    if isinstance(e, fgh.GhError):
+        RAISED.append(e)
+restore()
+check("issue_stations: 51 issues take exactly TWO calls at a batch of 50",
+      batch_exc is None and len(calls) == 2, f"calls={len(calls)} exc={batch_exc}")
+check("issue_stations: both batches' results are merged, none dropped",
+      batched is not None and len(batched) == 51 and batched.get(51) == "Doing",
+      f"n={len(batched or {})} got51={(batched or {}).get(51)!r}")
+
+# ---- a null repository is loud: it would otherwise read as every card being off the board ----
+fake, calls = recorder([Result(0, stdout=json.dumps({"data": {"repository": None}}))])
+fgh.subprocess.run = fake
+try:
+    fgh.issue_stations("o/r", 3, "Station", [5])
+    null_repo_exc = None
+except Exception as e:
+    null_repo_exc = e
+    if isinstance(e, fgh.GhError):
+        RAISED.append(e)
+restore()
+check("issue_stations: a null repository RAISES rather than reporting an empty board",
+      isinstance(null_repo_exc, fgh.GhError), f"exc={null_repo_exc!r}")
+
+# ---- a truncated projectItems page is loud for the same reason ----
+TRUNCATED_JSON = _issue_stations_payload({5: [_issue_node(9, "Ready")]}, has_next=True)
+fake, calls = recorder([Result(0, stdout=TRUNCATED_JSON)])
+fgh.subprocess.run = fake
+try:
+    fgh.issue_stations("o/r", 3, "Station", [5])
+    truncated_exc = None
+except Exception as e:
+    truncated_exc = e
+    if isinstance(e, fgh.GhError):
+        RAISED.append(e)
+restore()
+check("issue_stations: an issue whose project items are truncated RAISES, never reports absent",
+      isinstance(truncated_exc, fgh.GhError), f"exc={truncated_exc!r}")
+
 # ---------------- every GhError raised above: em dash, concrete value, no class name/traceback --
 check("GhError invariant: at least one case was collected", len(RAISED) >= 10, f"n={len(RAISED)}")
 for exc in RAISED:

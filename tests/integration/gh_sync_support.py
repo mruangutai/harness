@@ -240,6 +240,20 @@ case "$*" in
   *"ProjectV2SingleSelectField"*)
     printf '{"data":{"repositoryOwner":{"__typename":"User","projectV2":{"id":"PVT_PROJ","field":{"id":"FIELD_STATUS","name":"Status","options":[{"id":"OPT_BACKLOG","name":"Backlog"},{"id":"OPT_PLAN","name":"Plan"},{"id":"OPT_READY","name":"Ready"},{"id":"OPT_BUILDING","name":"Building"},{"id":"OPT_REVIEW","name":"Review"},{"id":"OPT_DONE","name":"Done"}]}}}}}\\n'
     exit 0 ;;
+  *"projectItems(first: 20)"*)
+    # THE BY-ISSUE GUARD READ (issue #1541), gh_board.board_stations_for. Same three
+    # variables and same meanings as the whole-board branch below — only the response shape
+    # differs. An alias the query did not ask about is never emitted, so a lookup for any
+    # number other than GUARD_ISSUE reads as "not on the board", exactly as the whole-board
+    # fake's single node made it.
+    if [ -z "$GUARD_STATION_NAME" ]; then
+      fv=null
+    else
+      fv='{"name":"'"$GUARD_STATION_NAME"'"}'
+    fi
+    num="${GUARD_ISSUE:-326}"
+    printf '{"data":{"repository":{"i%s":{"number":%s,"projectItems":{"pageInfo":{"hasNextPage":false},"nodes":[{"project":{"number":3},"fieldValueByName":%s}]}}}}}\\n' "$num" "$num" "$fv"
+    exit 0 ;;
   *"items(first: 100, after:"*)
     # T-07's guard read (gh_board.board_stations). GUARD_ISSUE/GUARD_STATION_NAME/GUARD_STATE
     # default to empty when unset — an unset GUARD_STATION_NAME reports no station (null),
@@ -297,6 +311,9 @@ case "$*" in
   *"ProjectV2SingleSelectField"*)
     printf '{"data":{"repositoryOwner":{"__typename":"User","projectV2":{"id":"PVT_PROJ","field":{"id":"FIELD_STATUS","name":"Status","options":[{"id":"OPT_BACKLOG","name":"Backlog"},{"id":"OPT_PLAN","name":"Plan"},{"id":"OPT_READY","name":"Ready"},{"id":"OPT_BUILDING","name":"Building"},{"id":"OPT_REVIEW","name":"Review"},{"id":"OPT_DONE","name":"Done"}]}}}}}\\n'
     exit 0 ;;
+  *"projectItems(first: 20)"*)
+    echo "simulated network failure" >&2
+    exit 1 ;;
   *"items(first: 100, after:"*)
     echo "simulated network failure" >&2
     exit 1 ;;
@@ -343,6 +360,15 @@ case "$*" in
     exit 0 ;;
   *"ProjectV2SingleSelectField"*)
     printf '{"data":{"repositoryOwner":{"__typename":"User","projectV2":{"id":"PVT_PROJ","field":{"id":"FIELD_STATUS","name":"Status","options":[{"id":"OPT_TODO","name":"Todo"},{"id":"OPT_PLANNED","name":"Planned"},{"id":"OPT_QUEUED","name":"Queued"},{"id":"OPT_DOING","name":"Doing"},{"id":"OPT_CHECKING","name":"Checking"},{"id":"OPT_SHIPPED","name":"Shipped"}]}}}}}\\n'
+    exit 0 ;;
+  *"projectItems(first: 20)"*)
+    if [ -z "$GUARD_STATION_NAME" ]; then
+      fv=null
+    else
+      fv='{"name":"'"$GUARD_STATION_NAME"'"}'
+    fi
+    num="${GUARD_ISSUE:-326}"
+    printf '{"data":{"repository":{"i%s":{"number":%s,"projectItems":{"pageInfo":{"hasNextPage":false},"nodes":[{"project":{"number":3},"fieldValueByName":%s}]}}}}}\\n' "$num" "$num" "$fv"
     exit 0 ;;
   *"items(first: 100, after:"*)
     if [ -z "$GUARD_STATION_NAME" ]; then
@@ -463,6 +489,33 @@ case "$*" in
     exit 0 ;;
   *"workflows(first: 50)"*)
     printf '{"data":{"user":{"projectV2":{"workflows":{"nodes":[{"name":"Item closed","enabled":true,"number":1},{"name":"Auto-close issue","enabled":true,"number":2},{"name":"Pull request merged","enabled":true,"number":3}]}}}}}\\n'
+    exit 0 ;;
+  *"projectItems(first: 20)"*)
+    # THE BY-ISSUE BOARD READ (issue #1541). It answers ONLY for the aliases the query asked
+    # about: a number absent from SHIP_STATIONS comes back as a null alias, which is the same
+    # answer the whole-board branch below gives by omitting its node — "not on the board".
+    # SHIP_BOARD_STATE still wins, so the board still REMEMBERS a write made earlier in the run.
+    asked=$(echo "$*" | grep -oE 'issue\\(number: [0-9]+\\)' | grep -oE '[0-9]+')
+    out=""; sep=""
+    for n in $asked; do
+      st=""; found=0
+      for pair in $SHIP_STATIONS; do
+        pn="${pair%%=*}"
+        if [ "$pn" = "$n" ]; then found=1; st="${pair#*=}"; fi
+      done
+      if [ -n "$SHIP_BOARD_STATE" ] && [ -f "$SHIP_BOARD_STATE" ]; then
+        later=$(grep -E "^$n=" "$SHIP_BOARD_STATE" | tail -1)
+        if [ -n "$later" ]; then found=1; st="${later#*=}"; fi
+      fi
+      if [ "$found" = "1" ]; then
+        if [ -z "$st" ]; then fv=null; else fv='{"name":"'"$st"'"}'; fi
+        out="$out$sep\\"i$n\\":{\\"number\\":$n,\\"projectItems\\":{\\"pageInfo\\":{\\"hasNextPage\\":false},\\"nodes\\":[{\\"project\\":{\\"number\\":3},\\"fieldValueByName\\":$fv}]}}"
+      else
+        out="$out$sep\\"i$n\\":null"
+      fi
+      sep=","
+    done
+    printf '{"data":{"repository":{%s}}}\\n' "$out"
     exit 0 ;;
   *"items(first: 100, after:"*)
     nodes=""; sep=""
