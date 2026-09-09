@@ -74,6 +74,10 @@ red if any of them regresses to a Claude-only path.
   the same text Claude Code reads; no door is authored only where a single provider can discover it.
 - REQ-10: A regression of any door to a Claude-only path fails a check, rather than failing open as
   prompt text.
+- REQ-11: The harness declares no `cli_min_version` in any configuration file it carries or ships,
+  and the CLI version band survives in `DEC-83` and `BUILD.md` as the documented compatibility
+  fact a reader consults rather than as a floor any config declares. Ruled by the operator on
+  2026-09-09 (D-13), after `D-12` removed the only onboarding step that read a CLI version.
 
 ## Constraints
 
@@ -247,11 +251,44 @@ construction; no grade of it is carried, and SC-11 and SC-12 replace it, one per
   sends a BRIEF-less fleet member to `/harness-plan`. `python3
   tests/integration/test-onboarding-split.py` exits 0, asserting per file and per token at
   `<review_sha>`: `harness-init/SKILL.md` matches none of `Track B`, `factory/fleet.yaml`,
-  `The approval gate`, `then the BRIEF`, `Design pass`, `harness-visual-designer`;
-  `harness-add-repo/SKILL.md` matches none of `The approval gate`, `then the BRIEF`, `Design pass`,
-  `harness-visual-designer`; and neither `.claude/commands/harness-plan.md` nor
-  `.claude/commands/harness-grilling.md` matches `harness-init`. RED at `12f74ea8`: the file does
-  not exist, and `harness-init/SKILL.md` matches `Track B` twice and `factory/fleet.yaml` twice.
+  `The approval gate`, `then the BRIEF`, `Design pass`, `harness-visual-designer`,
+  `claude --version`, `2.1.217`; `harness-add-repo/SKILL.md` matches none of
+  `The approval gate`, `then the BRIEF`, `Design pass`, `harness-visual-designer`; and neither
+  `.claude/commands/harness-plan.md` nor `.claude/commands/harness-grilling.md` matches
+  `harness-init`. RED at `12f74ea8`: the file does not exist, and `harness-init/SKILL.md`
+  matches `Track B` twice, `factory/fleet.yaml` twice, `claude --version` once and `2.1.217`
+  once.
+  verify: automated        evidence: integration
+- SC-15: The operator opens an OMP session in this repository and confirms that `/harness-plan`
+  resolves from `.omp/commands/`. About a minute, and only they can run it: in the session they
+  type `/harness-plan` and observe what the session does with it. PASS only if the door is
+  RECOGNISED as a command and its instruction runs. It FAILS in either of two ways, and the
+  operator records WHICH: (a) it does not resolve at all — the text comes back as an ordinary
+  prompt or as an unknown command, which is the original bug this feature exists to fix; or (b) it
+  resolves, but from some root other than `.omp/commands/`. The two are told apart in one step:
+  before opening the session, add a marker line to `.omp/commands/harness-plan.md` (for example
+  `<!-- OMP-ROOT-PROBE -->` plus an instruction to echo it first); if the door runs and the marker
+  is honoured, the session read that file and it is a PASS; if the door runs but the marker is
+  absent, it resolved from another root and it is FAIL (b). Revert the marker afterwards. They
+  write PASS or FAIL with the failure letter or a one-line reason; nobody else may set it.
+  verify: uat
+- SC-16: No configuration file declares `cli_min_version`, checked ONE FILE AT A TIME and never by
+  one file-global search — four conforming sites satisfy a global grep and are blind to the fifth.
+  For each of `.harness/harness.json`, `.claude/skills/harness/templates/harness.json` and
+  `.claude/skills/harness/templates/examples/harness.kaya-ai.json`, `git show
+  <review_sha>:<path>` parses with `json.load` and the loaded mapping lacks the key; for each of
+  `.harness/team-config.yaml` and `.claude/skills/harness/templates/team-config.yaml` it parses
+  with `yaml.safe_load`, the loaded mapping lacks the key, and the blob matches neither
+  `cli_min_version` nor the trailing comment `floor for the spawn env vars`. And the amendment
+  landed: `git show <review_sha>:.harness/harness/docs/BUILD.md` matches `cli_min_version`
+  nowhere, while `git show <review_sha>:.harness/harness/docs/DECISIONS.md` matches both
+  `cli_min_version` — DEC-83 names the key it no longer declares — and the band row `2.1.172`,
+  which must survive the amendment. RED at `97fe447f`: all five configs carry the key
+  (`.harness/harness.json:3`, `.harness/team-config.yaml:11`,
+  `.claude/skills/harness/templates/harness.json:4`,
+  `.claude/skills/harness/templates/team-config.yaml:22`,
+  `.claude/skills/harness/templates/examples/harness.kaya-ai.json:4`), `BUILD.md:426` carries it
+  in its key enumeration, and `DECISIONS.md` matches it nowhere.
   verify: automated        evidence: integration
 
 ## Verification gaps
@@ -270,30 +307,17 @@ construction; no grade of it is carried, and SC-11 and SC-12 replace it, one per
 - **The struck SC-09 is not replaced by an automated criterion, and could not be.** It was an
   operator judgement about a procedure's fitness. SC-11 and SC-12 are the same kind of judgement,
   split per artifact, and remain `not_met` until the operator executes each script.
-- **SC-01, SC-02, SC-10 and SC-13's first two clauses name an exact command, not a file the runner
-  discovers.** Their `evidence: integration` label is the nearest ACTIVE kind, but the assertions
-  live in a task `verify:` block or a one-line interpreter call, so running the integration suite
-  alone does not grade them. Each is graded by executing the command the criterion names, at
-  `<review_sha>`. SC-13's third clause and SC-14 are the exception: they are permanent test files
-  the integration suite discovers and runs.
-- **No gate proves a door is DISCOVERED by a provider.** SC-13 proves the four doors exist at the
-  neutral root with identical text and that a Claude-only door reddens the check. Whether an OMP
-  session actually resolves `/harness-plan` from `.omp/commands/` is observed by the operator in a
-  live session — recorded in the UAT notes, not gated. `.omp/config.yml` cannot be exercised by a
-  test in this repository.
-- **REQ-09's "actually reachable through OMP" has no criterion of any method that requires the
-  OBSERVATION, and this is stated here rather than fixed.** SC-13's clauses prove internal
-  consistency: that the four doors exist under `.omp/commands/`, that each `.claude/commands`
-  adapter is that door's bytes plus a banner, and that a Claude-only door reddens
-  `sync-command-adapters.py --check`. Every one of them is satisfied just as well by a WRONG
-  canonical root — a root OMP does not read would pass all four clauses and fail exactly as
-  silently as the bug this feature exists to fix. Both cycle-1 panel readers independently
-  confirmed `.omp/commands` is the correct root TODAY against `omp://config-usage.md`, a
-  documentation read; nothing executable in this repository can confirm it, and no inspection can
-  see a root that becomes wrong later. The residual risk is doc-versus-runtime drift, carried by no
-  criterion. Adding a `uat` clause (the operator opens an OMP session and confirms `/harness-plan`
-  resolves from `.omp/commands/`) is the only method that could see it; that is a scope change and
-  stays with the operator as an open question at signature.
+- **SC-01, SC-02, SC-10, SC-16 and SC-13's first two clauses name an exact command, not a file the
+  runner discovers.** Their `evidence: integration` label is the nearest ACTIVE kind, but the
+  assertions live in a task `verify:` block or a one-line interpreter call, so running the
+  integration suite alone does not grade them. Each is graded by executing the command the
+  criterion names, at `<review_sha>`. SC-13's third clause and SC-14 are the exception: they are
+  permanent test files the integration suite discovers and runs.
+- **No AUTOMATED gate proves a door is DISCOVERED by a provider.** SC-13 proves the four doors exist
+  at the neutral root with identical text and that a Claude-only door reddens the check. Whether an
+  OMP session actually resolves `/harness-plan` from `.omp/commands/` is observed by the operator in
+  a live session — gated by SC-15 (`uat`), which is required and blocks the ship decision, but which
+  no runner can take over: `.omp/config.yml` cannot be exercised by a test in this repository.
 - **`check-state.sh` deliberately makes no network call**, so no every-run invariant can grade a
   fleet member's remote `harness.json`. REQ-05 is discharged by an operator-run check (SC-05), which
   means a member whose config is deleted after onboarding stays invisible until the next build.

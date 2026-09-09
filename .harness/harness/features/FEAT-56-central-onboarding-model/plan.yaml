@@ -132,19 +132,43 @@ decisions:
     dec: none
   - id: D-12
     choice: |
-      harness-init's preflight KEEPS the claude CLI 2.1.217 floor, but as a check CONDITIONAL ON THE
-      RUNTIME IN USE: a hard STOP when the operator is running under Claude Code, and no stop at all
-      under any other runtime. The floor is neither deleted nor left unconditional, and
-      harness-add-repo carries no provider CLI check of any kind.
+      harness-init's preflight carries NO Claude CLI version check of any kind: both the
+      claude --version probe line and the CLI under 2.1.217 STOP bullet are DELETED from it. The floor
+      is not kept, not made runtime-conditional, and not replaced by a warning; it leaves the preflight
+      entirely. harness-add-repo still carries no provider CLI check of any kind, unchanged. The
+      operator ruled this on 2026-09-09, overriding pm's earlier runtime-conditional draft.
     because: |
-      The floor is real but Claude-Code-specific: .claude/skills/harness-init/SKILL.md:40 states its
-      own reason as "below the floor for the spawn env vars", which is DEC-83's nesting-depth
-      setting, a Claude Code mechanism. Deleting it would drop a live gate for Claude Code operators;
-      keeping it unconditional would leave a Claude-Code-only hard STOP in the very artifact the
-      operator isolated, against the governing "work with Claude Code, OpenAI, and other providers
-      rather than implementing a Claude-Code-only path". The operator may rule the other way at
-      signature: deleting the floor costs Claude Code operators a real preflight, and keeping it
-      unconditional costs every non-Claude operator the ability to run harness-init at all.
+      The operator's ruling of 2026-09-09, recorded as theirs and not as pm's. The floor's own stated
+      reason was the spawn env vars, which is DEC-83's nesting-depth setting and therefore a Claude Code
+      mechanism, and this artifact is being isolated to fresh-checkout configuration under a
+      provider-neutral doctrine, so a Claude-Code-only gate has no home in it. The accepted cost: Claude
+      Code operators lose a live preflight check. D-13 records the cascade this leaves open.
+    dec: DEC-83
+  - id: D-13
+    choice: |
+      RULED BY THE OPERATOR, 2026-09-09: the cli_min_version key is REMOVED from every config site
+      that carries it, and DEC-83 is amended to match. The five sites are .harness/harness.json:3,
+      .harness/team-config.yaml:11, .claude/skills/harness/templates/harness.json:4,
+      .claude/skills/harness/templates/team-config.yaml:22 and
+      .claude/skills/harness/templates/examples/harness.kaya-ai.json:4 — measured at 97fe447f, all
+      five present. T-18 removes it from this project's live config, T-19 from the four sites that
+      resolve to NOBODY, T-20 amends DEC-83 and BUILD.md. The CLI version band 2.1.172–2.1.216 /
+      2.1.217–2.1.218 / >=2.1.219 SURVIVES in DEC-83 and BUILD.md as the documented compatibility
+      fact; what leaves is the DECLARED floor, in config and in the doctrine sentence that told
+      readers to pin it. The operator overrode pm's earlier recommendation, which was to keep the key
+      as a documented, unenforced floor.
+    because: |
+      The operator's ruling of 2026-09-09, recorded as theirs and not as pm's. The ground: D-12
+      severed the key from its only enforcement point, and nothing in the tree reads it — no reader,
+      no schema entry, and no reference anywhere under .claude/skills/harness/bin/ (measured at
+      97fe447f: the only non-config occurrence in the whole tree is one prose line,
+      .harness/harness/docs/BUILD.md:426, which enumerates harness.json's keys). A value five config
+      files declare and no code consults reads as load-bearing to every later reader, which is the
+      cost the ruling removes. The accepted cost: the compatibility floor is no longer declared
+      anywhere machine-readable, so a run under a CLI below 2.1.217 is documented but ungated —
+      DEC-83's band table is what a reader consults instead. pm's contrary recommendation, to keep
+      the key as a documented unenforced floor, was overridden and is recorded here only so the
+      override is not mistaken for agreement.
     dec: DEC-83
 panel:
   last_run: 2026-09-08-08-plan-panel-c1-validator
@@ -1339,8 +1363,10 @@ tasks:
         re-registration; say what to check instead of adding a duplicate entry.
       Do NOT check the claude CLI version or any other provider CLI: this skill must be executable
       under any provider, which is the operator's ruling (answers-rescope item 3), and the verify
-      asserts the string claude --version is absent. This is unconditional here and differs from
-      harness-init, where D-12 keeps the floor as a runtime-conditional check.
+      asserts the string claude --version is absent. This is unconditional here, and
+      harness-init no longer differs: under D-12 as the operator ruled it on 2026-09-09, T-11 deletes the
+      claude --version probe and the 2.1.217 floor from harness-init's preflight outright, so neither
+      onboarding artifact checks any provider CLI version.
 
       Write frontmatter with name harness-add-repo and a description that says when to load it,
       adding a repository to an already-configured fleet, and that says nothing about configuring a
@@ -1395,7 +1421,8 @@ tasks:
       ! grep -qF 'anywhere but the control plane' "$F" &&
       ! grep -qF "seed the repository's own" "$F" &&
       ! grep -qF 'Stop; the depth setting will not take' "$F" &&
-      cat "$F" | tr '\n' ' ' | grep -qF 'only when running under Claude Code' &&
+      ! grep -qF 'claude --version' "$F" &&
+      ! grep -qF '2.1.217' "$F" &&
       grep -qF 'IS a grilling' "$F" &&
       grep -qF "I'll point ai-dev at" "$F" &&
       grep -qF 'The agent got blocked' "$F" &&
@@ -1430,17 +1457,18 @@ tasks:
         git config core.hooksPath .claude/skills/harness/hooks
       exactly as they appear. tests/integration/test-hooks-install.py reads them out of this file.
 
-      AMEND THE PREFLIGHT'S CLAUDE-CLI GATE, and this is D-12 rather than a tidy-up. The preflight keeps
-      the claude --version probe and the 2.1.217 floor, but the floor becomes CONDITIONAL ON THE RUNTIME IN
-      USE instead of an unconditional hard stop: today's bullet at :40 reads "CLI < 2.1.217 → below the
-      floor for the spawn env vars. Stop; the depth setting will not take." Rewrite it so it stops only
-      when the operator is running under Claude Code, and says that another runtime continues past it
-      because the floor is that runtime's spawn-env-var mechanism (DEC-83's nesting-depth setting), not a
-      Harness prerequisite. Make the probe line itself conditional in the same way. The bullet MUST carry
-      the phrase "only when running under Claude Code" and MUST NOT carry "Stop; the depth setting will not
-      take": the verify greps the first through tr, because the bullet wraps, and bans the second, which is
-      the unconditional STOP as written today. Do not delete the floor and do not keep it unconditional —
-      either one decides D-12 the wrong way.
+      DELETE THE PREFLIGHT'S CLAUDE-CLI GATE ENTIRELY, and this is D-12 as the operator ruled it on
+      2026-09-09 rather than a tidy-up. Two lines go, both re-measured at HEAD before this was written:
+      the bare probe line reading claude --version inside the preflight's fenced block, SKILL.md:34, and
+      the whole bullet at SKILL.md:40, which today reads "CLI < 2.1.217 → below the floor for the spawn
+      env vars. Stop; the depth setting will not take." Re-measure both anchors yourself before editing;
+      they have moved twice already. Delete those two lines and nothing else: the preflight keeps its
+      templates probe and its git rev-parse probe, and keeps the no-templates, not-a-git-repo and
+      .harness-already-exists STOP bullets, all unchanged. Why: the floor's own stated reason is the spawn
+      env vars, which is DEC-83's nesting-depth setting and therefore a Claude Code mechanism, and this
+      skill is provider-neutral now. Do NOT replace it with a runtime-conditional check, a warning or a
+      note — no Claude CLI version check of any kind survives in this file. The verify asserts the absence
+      of both claude --version and 2.1.217, and still bans the STOP prose, so a reworded floor fails it.
 
       KEEP FROM INSIDE THE DELETED RANGE OR THE REWRITTEN OPENING — four things, each EXPLICITLY, not by a
       range boundary. Each is part of configuring THIS checkout, which is the job the operator isolated
@@ -1931,16 +1959,24 @@ tasks:
         ordering claim.
       - .claude/commands/harness-plan.md and .claude/commands/harness-grilling.md each match no
         harness-init, asserted separately per file.
-      - .claude/skills/harness-add-repo/SKILL.md has a Preflight heading and does not match the
-        string claude --version: the registration procedure must be executable under any provider.
+      - The CLI-probe strings are absent from BOTH cut skills, asserted per file and per token, one
+        assertion per token naming its token in the failure message:
+        .claude/skills/harness-add-repo/SKILL.md has a Preflight heading and does not match the
+        string claude --version, and .claude/skills/harness-init/SKILL.md matches neither the string
+        claude --version nor the string 2.1.217. Both procedures must be executable under any
+        provider. The harness-init pair is the PERMANENT guard on the operator's ruling that the CLI
+        floor leaves that preflight entirely: T-11's own verify asserts the deletion once, at build
+        time, and stops existing the moment T-11 is done, so without these two assertions a later
+        edit re-adding the STOP reddens nothing.
       RED-CAPABILITY, and record it in your receipt: run this file against a temp copy of
       .claude/skills/harness-init/SKILL.md taken at COMMIT 12f74ea8 —
       git show 12f74ea8:.claude/skills/harness-init/SKILL.md — and report which cases fail. Use that
       commit and no other, and do NOT use this feature branch's merge-base: the merge-base predates T-01,
       its SKILL.md contains neither Track B nor factory/fleet.yaml, so the harness-init token cases would
       pass VACUOUSLY there and the recorded proof would demonstrate nothing. 12f74ea8 is the pin SC-14's
-      own RED statement measures, and it carries Track B twice and factory/fleet.yaml twice. A case that
-      cannot fail is asserting nothing.
+      own RED statement measures, and it carries Track B twice, factory/fleet.yaml twice, claude --version
+      once and 2.1.217 once, so every harness-init token assertion above can be observed failing there.
+      A case that cannot fail is asserting nothing.
 
       2. tests/unit/test-no-distribution.py: case1_presence_four_other_command_doors_survive counts
       harness*.md under .claude/commands and requires at least four. After T-13 those four are
@@ -1953,7 +1989,9 @@ tasks:
       .claude/skills/harness-init/SKILL.md. Track A stays there, so the case survives; confirm it
       passes and re-anchor any line-number or step-number citation in its comments onto the new
       numbering. Do not weaken the verbatim assertion: T-11 preserves both command strings exactly
-      because this case reads them.
+      because this case reads them. Its two verbatim strings are the git config hooksPath read and the
+      git config hooksPath write; neither contains claude --version or 2.1.217, so the new absence
+      assertions in case 1 do not contradict it.
 
       4. tests/integration/test-post-merge-sweep.py around :783-785 and
       tests/integration/test-layout-migration.py around :250-254 both cite a harness-init SKILL.md
@@ -1963,3 +2001,174 @@ tasks:
 
       DELETE nothing without recording the reason in your receipt, and add no test that pins prose
       wording this feature removes: that rot mode is exactly what REQ-06 forbids.
+  - id: T-18
+    title: Remove the dead cli_min_version key from this project's live harness.json
+    traces:
+      - REQ-11
+    change_type: config
+    execution_mode: team
+    execution_agent: harness-dev-ops
+    depends_on:
+      - T-11
+    status: ready
+    files:
+      - .harness/harness.json
+    verify: |
+      python3 -c "import json,sys;d=json.load(open('.harness/harness.json'));sys.exit(1 if 'cli_min_version' in d else 0)" &&
+      ! grep -q cli_min_version .harness/harness.json &&
+      test "$(bash .claude/skills/harness/bin/check-state.sh | grep -c 'INV-')" -gt 0
+    intent: |
+      Delete the whole line 3 of .harness/harness.json, `"cli_min_version": "2.1.217",` — the key,
+      its value and its trailing comma. Measured at 97fe447f it sits between `"schema_version": 2`
+      on line 2 and `"_panel_era_start_note"` on line 4, so removing the entire line leaves valid
+      JSON with no dangling comma; re-derive the line number before editing and remove the key
+      wherever it now sits. Add nothing, rename nothing, reorder nothing, and touch no other key —
+      in particular not `schema_version`, which is a different key and stays.
+
+      Why: the operator ruled on 2026-09-09 (D-13) that the key is removed everywhere. Nothing in
+      the tree reads it — no reader, no schema entry, no reference under
+      .claude/skills/harness/bin/ — so this is a deletion of dead config, not a behaviour change.
+
+      This file is THIS PROJECT'S LIVE CONFIG: every check-state.sh invariant, the test matrix and
+      the domain machinery load it, so a broken parse here breaks every gate at once. That is why
+      the verify does three things and not one. First `json.load` plus an assertion that the loaded
+      mapping lacks the key — a grep alone cannot see a trailing comma or a truncated object.
+      Second the grep, which catches the key surviving inside a comment-like string. Third
+      check-state.sh, asserted only to STILL RUN and emit invariant lines: it reports pre-existing
+      VIOLATION lines at HEAD (an unapproved BRIEF among them), so its exit code is not 0 today and
+      requiring 0 would be a verify nobody can pass. It takes about 17 seconds, measured.
+  - id: T-19
+    title: Remove cli_min_version from the four config sites no agent domain grants
+    traces:
+      - REQ-11
+    change_type: config
+    execution_mode: main-session-direct
+    execution_reason: check-domain.sh --resolve returns NOBODY for all four paths at 97fe447f, the DEC-174 carve-out covering .harness/team-config.yaml and .claude/skills outside harness/bin
+    depends_on:
+      - T-11
+    status: ready
+    files:
+      - .harness/team-config.yaml
+      - .claude/skills/harness/templates/harness.json
+      - .claude/skills/harness/templates/team-config.yaml
+      - .claude/skills/harness/templates/examples/harness.kaya-ai.json
+    verify: |
+      python3 -c "import yaml,sys;d=yaml.safe_load(open('.harness/team-config.yaml'));sys.exit(1 if 'cli_min_version' in d else 0)" &&
+      python3 -c "import yaml,sys;d=yaml.safe_load(open('.claude/skills/harness/templates/team-config.yaml'));sys.exit(1 if 'cli_min_version' in d else 0)" &&
+      python3 -c "import json,sys;d=json.load(open('.claude/skills/harness/templates/harness.json'));sys.exit(1 if 'cli_min_version' in d else 0)" &&
+      python3 -c "import json,sys;d=json.load(open('.claude/skills/harness/templates/examples/harness.kaya-ai.json'));sys.exit(1 if 'cli_min_version' in d else 0)" &&
+      ! grep -q cli_min_version .harness/team-config.yaml &&
+      ! grep -q cli_min_version .claude/skills/harness/templates/team-config.yaml &&
+      ! grep -q cli_min_version .claude/skills/harness/templates/harness.json &&
+      ! grep -q cli_min_version .claude/skills/harness/templates/examples/harness.kaya-ai.json &&
+      ! grep -q 'floor for the spawn env vars' .harness/team-config.yaml &&
+      ! grep -q 'floor for the spawn env vars' .claude/skills/harness/templates/team-config.yaml
+    intent: |
+      Four files, one edit each, per the operator's ruling of 2026-09-09 (D-13). Sites measured at
+      97fe447f; re-derive each line number before editing.
+
+      1. .harness/team-config.yaml:11 — `cli_min_version: "2.1.217"        # floor for the spawn
+         env vars (DEC-83)`. THE WHOLE LINE GOES, trailing comment included: the comment exists
+         only to explain the key, so leaving it behind strands a rationale for a setting that is
+         no longer there. Leave the surrounding blank lines as they are.
+      2. .claude/skills/harness/templates/team-config.yaml:22 — the identical line, with the same
+         trailing comment, immediately below `schema_version: 1` on line 21. Same rule: the whole
+         line, comment included. Do not reflow or re-quote anything else in this file — its
+         main_session.writes flow sequence parses as YAML only since issue 168 was fixed, and this
+         task's verify reloads it.
+      3. .claude/skills/harness/templates/harness.json:4 — `"cli_min_version": "2.1.217",`, the
+         whole line including its trailing comma.
+      4. .claude/skills/harness/templates/examples/harness.kaya-ai.json:4 — the same line, same
+         rule.
+
+      Remove nothing else. `schema_version` in both YAML files and both JSON files is a different
+      key and stays. Add no replacement key, no comment recording the removal, and no explanatory
+      note — the record of why lives in DEC-83 and is T-20's work.
+
+      The verify checks PER FILE and in two ways per file, because removing a key from YAML or JSON
+      can leave a trailing comma or a dangling comment that a grep cannot see: each file is loaded
+      with json.load or yaml.safe_load and the loaded mapping asserted to lack the key, then greped
+      for the literal token, then — for the two YAML files — greped for the trailing comment text.
+      A single file-global search over four files is satisfied by three conforming sites and blind
+      to the fourth.
+  - id: T-20
+    title: Amend DEC-83 and BUILD.md — the version band survives, the declared floor does not
+    traces:
+      - REQ-11
+    change_type: docs
+    execution_mode: team
+    execution_agent: harness-documentor
+    depends_on:
+      - T-11
+      - T-18
+      - T-19
+    status: ready
+    files:
+      - .harness/harness/docs/DECISIONS.md
+      - .harness/harness/docs/DECISIONS-INDEX.md
+      - .harness/harness/docs/BUILD.md
+    verify: |
+      ! grep -q cli_min_version .harness/harness/docs/BUILD.md &&
+      grep -q cli_min_version .harness/harness/docs/DECISIONS.md &&
+      grep -q '2.1.172' .harness/harness/docs/DECISIONS.md &&
+      grep -q '2.1.172' .harness/harness/docs/BUILD.md &&
+      grep -q '2.1.219' .harness/harness/docs/BUILD.md &&
+      python3 .claude/skills/harness/bin/check-decision-anchors.py &&
+      python3 .claude/skills/harness/bin/gen-decisions-index.py --stdout | diff - .harness/harness/docs/DECISIONS-INDEX.md
+    intent: |
+      The operator ruled on 2026-09-09 (D-13) that the cli_min_version key is removed from all five
+      config sites — T-18 and T-19 do that — and that DEC-83 is amended to match. This task is the
+      amendment. It is a CORRECTION OF TWO SENTENCES, not a deletion of the decision: DEC-83's
+      subject is the nesting default, not the version key, and its verified quote and band table
+      are real CLI behaviour that stays true. Sites measured at 97fe447f; re-derive each anchor
+      before editing.
+
+      THE SHAPE, and it is not an appended sub-section. DECISIONS.md's own header and DEC-205
+      (.harness/harness/docs/DECISIONS.md:6326) end the amendment convention: an entry states
+      current truth in its own voice, a correction REWRITES the sentence it corrects, and there are
+      no dated sub-sections and no attributions. So do not add an "Amended by FEAT-56" paragraph —
+      the one at :5327 predates DEC-205 and is not the house form. Rewrite in place, present tense,
+      undated. Write NO new DEC-NN entry: this is not a new decision.
+
+      WHAT SURVIVES, untouched:
+      - DECISIONS.md:957-969 — the verified `env-vars` quote, the CLI version-band table
+        (2.1.172-2.1.216 / 2.1.217-2.1.218 / >=2.1.219) and the what-the-earlier-reading-got-wrong
+        paragraph. All still true of the CLI.
+      - BUILD.md:33, :78, :85-86, :88-94 — the version-band table and the nesting-default
+        narrative. True CLI behaviour.
+      - BUILD.md:517 and :521-522 — the doc-verification table rows, including "Requires CLI >=
+        2.1.217". These are a behavioural record of what was verified and stay; if :517's framing
+        reads as an instruction to pin rather than as a record of a verified fact, repoint it at
+        DEC-83's band table in one clause and say so in your receipt.
+
+      WHAT CHANGES, three sentences:
+      1. DECISIONS.md:977, the Consequences bullet "**Pin CLI >= 2.1.217** — the floor for all
+         three spawn env vars. Nothing pinned a version before." Rewrite it to state current truth:
+         the harness DECLARES no cli_min_version in any configuration file — not in
+         .harness/harness.json, not in .harness/team-config.yaml, and not in the three
+         templates — because nothing ever read it: no reader, no schema entry, no reference under
+         .claude/skills/harness/bin/. The 2.1.217 band remains the documented compatibility fact
+         above, consulted by a reader rather than enforced by a gate, and the spawn env vars are
+         still only available from that band on. Name the key literally, `cli_min_version`, so a
+         future scan that greps for it finds the reason it is gone rather than nothing at all —
+         the verify asserts the token is present in this file for exactly that reason.
+      2. BUILD.md:96, "**Pin the harness at CLI >= 2.1.217**, which is the floor for all three
+         spawn env vars, and set the depth explicitly to `3` in every project." The pin doctrine is
+         falsified by the removal: rewrite the first clause so it records the compatibility band as
+         a fact a reader checks, with no instruction to declare it in config, and keep the
+         set-the-depth-explicitly instruction and the sentence after it exactly as they are. Do NOT
+         name the key here — the verify asserts BUILD.md matches `cli_min_version` nowhere.
+      3. BUILD.md:426, the enumeration of .harness/harness.json's keys ending `..., "schema_version",
+         "cli_min_version": "2.1.217"`. DROP the cli_min_version item outright and fix the
+         punctuation of the list. That one IS a key reference and the key is gone.
+
+      Then regenerate the index: python3 .claude/skills/harness/bin/gen-decisions-index.py, whose
+      output must diff clean against .harness/harness/docs/DECISIONS-INDEX.md. Rewriting DEC-83's
+      bullet changes that entry's length, and the index stores a per-row source line, so every
+      later row's anchor shifts even though no row's text changes. Run
+      python3 .claude/skills/harness/bin/check-decision-anchors.py as well; it examined 34 anchors
+      with 0 failures at 97fe447f, so any failure it reports is yours. The three `2.1.172` and
+      `2.1.219` greps in the verify are PRESERVATION guards, already green at HEAD and not
+      discriminating: they exist so a doer who deletes the band table instead of amending the
+      doctrine reddens the task. The two discriminating conjuncts are the BUILD.md absence and the
+      DECISIONS.md presence of the token, both RED at 97fe447f.
