@@ -1,4 +1,5 @@
-<!-- TEMPLATE — /harness-init writes the first draft; harness-pm owns it thereafter,
+<!-- TEMPLATE — /harness-plan writes the first draft under
+     <HARNESS_FEATURE_TREE_ROOT>/.harness/<segment>/features/<FEAT>/BRIEF.md; harness-pm owns it thereafter,
      EXCEPT `## Approval`, which only the orchestrator writes (SPEC 2.3). Nothing
      downstream may run against an unapproved brief. Replace every <angle-bracket>. -->
 

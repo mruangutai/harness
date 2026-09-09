@@ -248,10 +248,9 @@ with tempfile.TemporaryDirectory() as tmp:
 # of THIS suite, not the CI step: the CI step's zero-count assertion is protected by
 # nothing (DEC-183), whereas these cases redden the required unit suite.
 with tempfile.TemporaryDirectory() as tmp:
-    # THE ONBOARDED-PRODUCT SHAPE (code-review blocker 1): harness-init installs the
-    # whole bin/ into products, so every reader file EXISTS here — what a product
-    # lacks is the fleet declaration. This tree must be NOT APPLICABLE, not
-    # cannot-verify-forever.
+    # THE ONBOARDED-PRODUCT SHAPE (code-review blocker 1): a copy or worktree of the
+    # control plane carries every reader file, while only the control plane carries the
+    # fleet declaration. This tree must be NOT APPLICABLE, not cannot-verify-forever.
     build(tmp, marker=False)
     code, out = run(tmp)
     check("case 14: readers present but no fleet marker -> exit 0, NOT APPLICABLE",

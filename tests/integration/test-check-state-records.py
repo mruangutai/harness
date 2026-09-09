@@ -519,9 +519,10 @@ def case_inv32_era_guard_is_load_bearing():
         shutil.rmtree(iso_root, ignore_errors=True)
 
 
-# BUG-1071 F2 — the boundary is the PROJECT'S, read from harness.json, not a literal
-# compiled into a file that /harness-init copies everywhere. These four pin that the value
-# actually comes from config and that every unreadable state fails closed.
+# BUG-1071 F2 — the boundary is the PROJECT'S, read from that repository's own harness.json —
+# which for a fleet member lives on its default branch — not a literal compiled into the
+# checker. These four pin that the value actually comes from config and that every unreadable
+# state fails closed.
 def case_inv32_era_comes_from_project_config():
     """The SAME plan is exempt or graded depending only on the project's own
     `panel_era_start`. This is the case a hardcoded literal cannot pass: a plan signed

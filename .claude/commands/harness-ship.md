@@ -1,6 +1,7 @@
+<!-- Generated from .omp/commands/harness-ship.md; do not edit. Run .claude/skills/harness/bin/sync-command-adapters.py --apply. -->
 # /harness-ship — build, validate, and bring a planned feature to the ship decision
 
-Read `.claude/commands/harness.md` and follow it with **mission: ship**. The differences:
+Read `.omp/commands/harness.md` and follow it with **mission: ship**. The differences:
 
 - **Precondition, hard:** BRIEF *and* PLAN both `status: approved`. Anything less routes to
   `/harness-plan` — the orchestrator will refuse anyway (playbook step 1), so catch it here.

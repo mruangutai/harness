@@ -1,7 +1,6 @@
 {
   "_comment": "Pilot config for kaya-ai. Commands verified against the repo 2026-07-26: pyproject testpaths=tests, web/vitest.config.ts projects unit+storybook. NO Playwright installed -> ui.cmd is null, which the qa gate reports as a not-applicable soft skip.",
   "schema_version": 1,
-  "cli_min_version": "2.1.217",
 
   "test_matrix": {
     "logic":        { "always": ["unit"] },

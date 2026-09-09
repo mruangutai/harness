@@ -108,7 +108,7 @@ def station_of(feat_dir):
 
 
 if not os.path.isdir(H):
-    print("harness: no .harness/ — project not onboarded. Run /harness-init.")
+    print("harness: no .harness/ here — this clone is not an onboarded harness control plane. Run /harness-init in the control-plane clone.")
     sys.exit(1)
 
 # D-08 (FEAT-21 T-05), the OTHER half of the signed trade: dict KEYS stay bare basenames
@@ -284,7 +284,7 @@ def has_approval_block(txt):
 # Onboarding itself is signalled by harness.json + team-config.yaml (DEC-129), not a BRIEF:
 # a freshly-onboarded project legitimately has zero features yet.
 if not os.path.isfile(os.path.join(H, "harness.json")):
-    bad.append(".harness/harness.json missing — not onboarded (or half-onboarded). Run /harness-init.")
+    bad.append(".harness/harness.json missing — not onboarded (or half-onboarded). Run /harness-init, in this clone.")
 # AN ABANDONED FEATURE'S BRIEF IS NEVER APPROVED, and that is the point rather than a
 # defect: it was planned and retired without being signed. Halting /harness entry over an
 # unapproved brief on a feature nobody will build trains the operator to ignore the gate,
@@ -370,13 +370,15 @@ for feat, doc in plan_docs.items():
 # the foot of this script on the cost of a dead invariant). The rule was right; its
 # retroactive reach was the defect.
 #
-# THE BOUNDARY IS PER-PROJECT CONFIG, NOT A LITERAL (panel finding F2). This file is
-# COPIED INTO EVERY ONBOARDED PROJECT by /harness-init, so a hardcoded date would export
-# one repository's history as another's gate: a project whose plans predate 2026-08-31
-# would have every one of them silently exempted, for a reason belonging to somebody
-# else's git log. `panel_era_start` is stamped per project and merged into an existing
-# config additively by upgrade-config.py, whose whole contract is "template fills gaps,
-# project values win".
+# THE BOUNDARY IS PER-PROJECT CONFIG, NOT A LITERAL (panel finding F2). One
+# control-plane clone runs this script against MANY product repositories, each
+# carrying its own `.harness/harness.json`, read from that repository's own default
+# branch, so a hardcoded date would still export one repository's history as another's
+# gate: a project whose plans predate 2026-08-31 would have every one of them silently
+# exempted, for a reason belonging to somebody else's git log. `panel_era_start` is
+# stamped per project and merged into an existing config additively by
+# upgrade-config.py, whose whole contract is "template fills gaps, project values
+# win".
 #
 # RESOLVED ONCE, ABOVE THE LOOP. The first cut assigned the boundary inside the per-plan
 # loop, which re-derived it 32 times and would have reported a single config defect once
@@ -404,8 +406,9 @@ else:
         # it says so, once, and names the command that fixes it.
         bad.append("INV-32: .harness/harness.json has no `panel_era_start`, so no panel "
                    "era can be resolved. Run /harness-init --upgrade (upgrade-config.py) "
-                   "to merge the key in, then set it to the date the adversarial panel "
-                   "became available here, or null if this project never predated it.")
+                   "against this clone's own harness.json, then set it to the date the "
+                   "adversarial panel became available here, or null if this project never "
+                   "predated it.")
         _era_start = None
     elif _era_raw is None:
         # null means THIS PROJECT HAS NO PRE-PANEL ERA -- the template default, and the
@@ -2504,8 +2507,9 @@ if _lmod is not None:
 
 # --- INV-31 (FEAT-40 T-08, REQ-02/REQ-09): this clone's merge hook is not installed.
 #
-# WHY IT EXISTS AT ALL. The setup step lives in `.claude/skills/harness-init/SKILL.md`, and an
-# already-onboarded clone NEVER RE-RUNS IT. A doc step reaches a clone once; an invariant
+# WHY IT EXISTS AT ALL. The setup step lives in `.claude/skills/harness-init/SKILL.md`, whose
+# subject is the control-plane clone, and an already-onboarded clone NEVER RE-RUNS IT. A doc
+# step reaches a clone once; an invariant
 # reaches every clone, every run. Measured at cc84b29 on this very checkout,
 # `core.hooksPath` read `/Users/molchairuangutai/GitHub/harness/.git/hooks`, a directory
 # holding fourteen files every one of which is a `.sample` — so `gh-sync.py ship` never ran at

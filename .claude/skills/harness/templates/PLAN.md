@@ -1,6 +1,6 @@
 <!-- TEMPLATE — harness-pm owns this file, EXCEPT `## Approval`, which only the
-     orchestrator writes (SPEC 2.3). /harness-init does NOT create it: a plan is
-     written when there is something to plan. Replace every <angle-bracket>. -->
+     orchestrator writes (SPEC 2.3). /harness-plan creates the plan when there is
+     something to plan. Replace every <angle-bracket>. -->
 
 # PLAN — <milestone or feature set>
 

@@ -164,6 +164,22 @@ def check(root: Path) -> list[str]:
             errors.append(result.stderr.strip() or "Claude agent adapters are stale")
     else:
         errors.append("sync-agent-adapters.py is missing")
+
+    command_dir = root / ".omp" / "commands"
+    for door in ("harness", "harness-plan", "harness-ship", "harness-grilling"):
+        if not (command_dir / f"{door}.md").is_file():
+            errors.append(f".omp/commands/{door}.md is missing; {door} has no provider-neutral door")
+    command_sync = root / ".agents" / "skills" / "harness" / "bin" / "sync-command-adapters.py"
+    if command_sync.is_file():
+        result = subprocess.run(
+            [sys.executable, str(command_sync), "--root", str(root), "--check"],
+            text=True,
+            capture_output=True,
+        )
+        if result.returncode != 0:
+            errors.append(result.stderr.strip() or "Claude command adapters are stale")
+    else:
+        errors.append("sync-command-adapters.py is missing")
     return errors
 
 

@@ -974,7 +974,11 @@ carries the version markers and wins.
 - **Set depth explicitly to `2` in every project.** It is the only value correct in all three bands.
 - **The primary control is capability, not the setting:** omit `Agent` from every worker's `tools:`. The
   depth cap is defence in depth.
-- **Pin CLI ≥ 2.1.217** — the floor for all three spawn env vars. Nothing pinned a version before.
+- **No `cli_min_version` is declared in any configuration file** — not in `.harness/harness.json`, not in
+  `.harness/team-config.yaml`, and not in the three templates — because nothing ever read it: no reader, no
+  schema entry, no reference under `.claude/skills/harness/bin/`. The 2.1.217 floor stands as the
+  documented compatibility fact of the band table above, consulted by a reader rather than enforced by a
+  gate; the three spawn env vars are available only from that band on.
 - **The GSD explanation offered for that reading is withdrawn.** It claimed GSD grants the spawn tool to none of its ~30
   agents "because nesting was off by default" — but nesting was *on* by default for the entire
   2.1.172–2.1.216 band, so that reasoning fails. GSD's flat topology is an unexplained data point, not
@@ -7014,3 +7018,73 @@ the approval gate passes" named the terminal phase for a transition that belongs
 
 **Record:** the signed BUG-1309 plan, 2026-09-06. Refs: DEC-138, DEC-146, DEC-174, DEC-179,
 DEC-191, DEC-203.
+
+## DEC-221 — Onboarding is fleet registration plus one product-resident file
+
+**Chose:** onboarding a repository is exactly three things: its own `.harness/harness.json` landed
+on its default branch, its entry in `.harness/factory/fleet.yaml`, and its central per-segment tree
+at `<control-plane>/.harness/<segment>/`. Nothing else is installed into a product repository, and
+`.harness/products/` is created nowhere. The three are ordered: registration comes **after** the
+config lands, because the failure of the reverse order has no symptom but an unattributed
+`FleetError`, and `factory_config.py --check-product-configs` is what names it — a check that is
+OPERATOR-RUN, with no standing invariant behind it. `check-state.sh` never reads a member's config
+from its remote, and its only network calls record nothing when the network is unavailable, because
+an offline environment must never become a red gate (`check-state.sh:2270-2273`). So nothing grades
+a fleet member's remote config on every run, and a member whose `harness.json` is deleted after
+onboarding stays invisible until the next build against it.
+
+**Over:** issue 206 item 2's central `.harness/products/<name>/harness.json`, and the pre-existing
+per-product scaffold that copied `team-config.yaml` into a project. Also over issue 203's scoped
+deletion of `harness-init`: issue 206 asked for issue 203 to be reconciled before either was picked
+up, and the reconciliation is a rewrite rather than a deletion — issue 203 is closed, the
+`deploy.sh` premise behind it is gone, and `.claude/skills/harness-init/SKILL.md` remains the only
+onboarding instruction of record, so the skill is rewritten to the central model and deleted by
+nothing.
+
+**Because:** `factory_config.product_config` reads a member's config from the remote at its
+`default_branch` with no disk fallback, so a central copy would be read by nothing;
+`check-domain.sh` resolves policy only from the control plane's own manifest; features and
+expertise already resolve centrally through `factory_config.features_root`; and the operator struck
+the central placement on 2026-08-18. Reading from that branch also delegates trust: whoever can
+push a member's `default_branch` controls everything the factory reads for that member, including
+every `test_kinds.*.cmd`, which is a command the factory executes. A config that will not load
+fails closed, blocking writes rather than widening them, but a well-formed hostile one is screened
+by nothing — push access to a member's default branch is factory-level trust.
+
+**Record:** refs DEC-174, DEC-113, DEC-182, DEC-129.
+
+## DEC-222 — Onboarding is two skills: `harness-init` configures a checkout, `harness-add-repo` registers a repository
+
+**Chose:** onboarding is **two artifacts**, not one. `.claude/skills/harness-init/SKILL.md` is the
+first-time configuration of a harness checkout — the eight prerequisites, the tracked hooks
+directory, this clone's `.harness/`, its `team-config.yaml` and its own `harness.json` — and it
+keeps `--upgrade`. `.claude/skills/harness-add-repo/SKILL.md` registers a repository into an
+already-configured control plane: land that repository's own `.harness/harness.json` on its
+`default_branch`, add its `repos:` entry to `.harness/factory/fleet.yaml`, then create its central
+per-segment tree at `<control-plane>/.harness/<segment>/`. The seam is the old skill's own two
+tracks: **Track A plus `--upgrade` stays** in `harness-init`, and **Track B moves** to
+`harness-add-repo` **minus its BRIEF, approval and design steps**. Those three are `/harness-plan`'s
+work — the first `BRIEF.md`, its approval and any design pass belong there, and a configured fleet
+member that has no BRIEF routes to `/harness-plan`, never back into onboarding. Both are skills;
+neither is a command. The canonical root for command doors is `.omp/commands`, with `.claude/commands`
+adapters generated from it, because a door authored only under `.claude/commands` is discovered by
+one provider.
+
+**Over:** one combined onboarding skill with two tracks, which forced every reader of either half
+through the other and made "am I onboarded?" a question with two different answers. Also over a
+**symlinked `.claude/commands`**: rejected because no test in this repository can exercise Claude
+Code's own discovery, so a symlink's behaviour under it would be asserted by nothing, whereas a
+generated adapter is an ordinary file both providers read and a test can assert byte-for-byte. Also
+over leaving the first `BRIEF.md`, its approval and the design pass inside onboarding, where they
+duplicated `/harness-plan` and made registration wait on a product conversation.
+
+**Because:** the two jobs have different preconditions, different audiences and different failure
+modes. Configuring a checkout needs templates, `.claude/settings.json` and hooks in the checkout you
+are standing in; registering a repository needs `gh`, push access to another repository's default
+branch, and an already-configured control plane to register into — its preflight can only STOP and
+route to `harness-init`. DEC-221 fixed what registration *is* but left it inside a skill whose other
+half configures a checkout. DEC-06 is **not overturned** here: its conclusion — the runner is a
+skill, not a command — is exactly what `harness-add-repo` conforms to, and only its distribution
+premise expired, when `deploy.sh` was deleted in commit 45859123.
+
+**Record:** refs DEC-221, DEC-06, DEC-120, DEC-174.

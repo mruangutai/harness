@@ -118,10 +118,11 @@ READER_TABLE = [
 
 # The one positive control for applicability (D-04, amended post-review): a root
 # without this marker is not the harness CONTROL PLANE and the scan is NOT
-# APPLICABLE. The first marker was check-state.sh's own path — wrong, because
-# harness-init installs the whole bin/ into product repos, so every onboarded
-# product became "applicable" with no layout evidence and went cannot-verify
-# forever. The fleet declaration is the one file only the control plane carries:
+# APPLICABLE. The first marker was check-state.sh's own path — wrong, because any copy or
+# worktree of the control plane carries every reader file, and only the control plane carries the fleet declaration.
+# Onboarding installs no bin/ into a product repository at all: that marker gave every
+# onboarded product "applicable" with no layout evidence and went cannot-verify forever.
+# The fleet declaration is the one file only the control plane carries:
 # products are DECLARED IN it, never holders OF it. It also feeds the
 # migrated-evidence scan below, so applicability and segment authority come from
 # the same fact. Case 1 scans the real root and demands non-zero counts — that

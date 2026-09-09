@@ -1,6 +1,7 @@
+<!-- Generated from .omp/commands/harness-plan.md; do not edit. Run .claude/skills/harness/bin/sync-command-adapters.py --apply. -->
 # /harness-plan — plan a feature to an approved PLAN
 
-Read `.claude/commands/harness.md` and follow it with **mission: plan**. The differences:
+Read `.omp/commands/harness.md` and follow it with **mission: plan**. The differences:
 
 - **Step zero, BLOCKING:** load the `harness-grilling` skill and run it first — dialog to clarity
   with the user, name the destination, record settled/fog/out-of-scope, and hand pm the artifact
@@ -15,9 +16,19 @@ Read `.claude/commands/harness.md` and follow it with **mission: plan**. The dif
   the harness did not create — moving it is deliberate: the harness moves any card it is pointed
   at and closes only cards it created. Best-effort: a board failure prints one line and planning
   continues.
-- **Target state:** BRIEF approved (write it via `pm` if absent — or route to `/harness-init` if the
-  project has no `.harness/` at all), then the plan-feature sequence run by the orchestrator:
-  product-lead's squad plans, the eng squad runs the four-angle simplify pass over the plan surface (`.claude/skills/harness-simplify/SKILL.md`) — FLAG-ONLY, findings return to `harness-pm`, which applies them to its own draft before the signature, because `check-domain.sh` grants `plan.yaml` and `BRIEF.md` to pm alone (D-03) — eng-lead reviews architecture, ui-reviewer checks the design contract, then the adversarial plan panel runs as two orchestrator-sequenced segments per DEC-118: product-lead hosts pm's goal-check against the operator's stated intent, then validator-lead hosts the `plan-panel` team, whose result pm records in plan.yaml's top-level `panel` key before presentation. It runs on EVERY plan with no size threshold or opt-in. A high, critical, or unrated finding withholds presentation until resolved or the operator records an overrule in `approval.rulings`; under DEC-176 all findings enter the ONE batched review pass rather than opening a separate pre-signature fix dispatch.
+- **Target state:** BRIEF approved (write it via pm if absent — or route to `/harness-plan` per the
+  Gate check in step 0 above), then the plan-feature sequence run by the orchestrator: product-lead's
+  squad plans, the eng squad runs the
+  four-angle simplify pass over the plan surface (`.claude/skills/harness-simplify/SKILL.md`) — FLAG-ONLY,
+  findings return to `harness-pm`, which applies them to its own draft before the signature, because
+  `check-domain.sh` grants `plan.yaml` and `BRIEF.md` to pm alone (D-03) — eng-lead reviews architecture,
+  ui-reviewer checks the design contract, then the adversarial plan panel runs as two
+  orchestrator-sequenced segments per DEC-118: product-lead hosts pm's goal-check against the operator's
+  stated intent, then validator-lead hosts the `plan-panel` team, whose result pm records in plan.yaml's
+  top-level `panel` key before presentation. It runs on EVERY plan with no size threshold or opt-in. A
+  high, critical, or unrated finding withholds presentation until resolved or the operator records an
+  overrule in `approval.rulings`; under DEC-176 all findings enter the ONE batched review pass rather
+  than opening a separate pre-signature fix dispatch.
 - **Terminus:** ONE approval, taken by you — the user signs PLAN **and** the prototype (if the
   feature needs one) together. Completing plan is NOT a briefing (§10.3).
   **The signature is immediately followed by**

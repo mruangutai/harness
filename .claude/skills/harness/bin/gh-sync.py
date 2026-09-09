@@ -293,7 +293,8 @@ def load_config(root):
         skip("github.sync is not enabled for this project", build_entry="not-applicable")
     repo = g.get("repo")
     if not repo or "/" not in str(repo):
-        skip("github.repo is not pinned — run /harness-init --upgrade to record it",
+        skip("github.repo is not pinned in this project's harness.json; for a fleet member, "
+             "that file lives in the member's own repository on its default branch",
              build_entry=_NO_RECORD)
     if shutil.which(GH) is None:
         skip(f"{GH} not on PATH")

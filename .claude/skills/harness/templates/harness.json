@@ -1,8 +1,7 @@
 {
-  "_template": "Canonical harness.json. /harness-init copies this to .harness/harness.json and dev-ops fills every test_kinds.cmd by RUNNING it. See templates/README.md.",
+  "_template": "Canonical harness.json. harness-init instantiates this as the control plane's own .harness/harness.json. harness-add-repo instantiates a fleet member's own .harness/harness.json which must be committed to that repository's default branch - factory_config.product_config reads it from the remote there, with no disk fallback. dev-ops fills every test_kinds.cmd by RUNNING it. See templates/README.md.",
   "schema_version": 2,
-  "cli_min_version": "2.1.217",
-  "_panel_era_start_note": "The date the adversarial plan panel (FEAT-45) became available in THIS project. INV-32 does not grade a plan signed before it, because a plan signed before the panel existed cannot carry a record of one. null means this project has no pre-panel era, so every approved plan is graded \u2014 the right value for a project onboarded after FEAT-45. check-state.sh is copied into every onboarded project, so this MUST be per-project: a hardcoded date would export one repository's history as another's gate (BUG-1071 panel finding F2).",
+  "_panel_era_start_note": "The date the adversarial plan panel (FEAT-45) became available in THIS project. INV-32 does not grade a plan signed before it, because a plan signed before the panel existed cannot carry a record of one. null means this project has no pre-panel era, so every approved plan is graded \u2014 the right value for a project onboarded after FEAT-45. This MUST be per-project because each repository's own harness.json is read from its own default branch: a hardcoded date would export one repository's history as another's gate (BUG-1071 panel finding F2).",
   "panel_era_start": null,
   "_test_matrix_note": "change_type -> required test kinds. A FLOOR, not a ceiling: qa may add kinds it infers from the diff, never drop below. Predicate names in `when` are FIXED DATA so the gate is auditable; qa evaluates them against the diff.",
   "test_matrix": {
@@ -164,7 +163,7 @@
     "merge": "user_gated"
   },
   "github": {
-    "_note": "GitHub Issues mirror (DEC-138). sync is asked ONCE at /harness-init; repo is pinned there from `gh repo view` under the user's eyes and NEVER re-inferred per call. One-way outbound after plan approval; gh absent = skip-and-report, never a gate.",
+    "_note": "GitHub Issues mirror (DEC-138). sync is asked ONCE by harness-add-repo; repo is pinned there from `gh repo view` under the user's eyes and NEVER re-inferred per call. For a fleet member this block is read from that repository's own harness.json at its default_branch, so pinning it in a checkout alone changes nothing. One-way outbound after plan approval; gh absent = skip-and-report, never a gate.",
     "sync": false,
     "repo": null,
     "_board_note": "Project board for the station mirror (FEAT-18): owner, number, station_field, and stations — an ORDERED LIST of exactly the six lowercase names backlog, plan, ready, building, review, done. THE SIX ARE FIXED AND MAY NOT BE RENAMED, REORDERED OR EXTENDED (FEAT-41 T-01); factory_config.MANDATED_STATIONS is the mandate the declaration is checked against, so the list is a checksum rather than a place to choose names. The board's column names are DERIVED from the six by factory_config.station_column(), the one place a capitalised station name is produced, so store no capitals here. Extra columns you add to the board yourself are untouched by the harness. Everything resolves by name at runtime, never by a pinned id. null = this project has no board and no station is ever written. A board that is present but incomplete is a loud error naming the offending key, never a silently disabled feature.",

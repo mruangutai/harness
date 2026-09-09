@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 """`/harness-init --upgrade`: merge newer template entries without clobbering the project.
 
+This upgrades the control-plane clone's own .harness/harness.json. For a fleet member, it
+upgrades that member's harness.json in a checkout, which must then be committed to the
+repository's default branch to be read at all.
+
   upgrade-config.py <project-root> [--check] [--templates <dir>]
 
   (default)  merge harness.json and REPORT on team-config.yaml. Idempotent.
@@ -184,8 +188,8 @@ def main():
     p_json = os.path.join(root, ".harness", "harness.json")
     t_json = os.path.join(tdir, "harness.json")
     if not os.path.isfile(p_json):
-        print(f"upgrade-config: no {p_json} — this project is not initialised. "
-              f"Run /harness-init (without --upgrade).")
+        print(f"upgrade-config: no {p_json} — this control-plane clone is not initialised. "
+              f"Run /harness-init (without --upgrade) in this clone.")
         return 1
     try:
         proj, tmpl = load_json(p_json), load_json(t_json)
@@ -227,7 +231,9 @@ def main():
     t_yaml = os.path.join(tdir, "team-config.yaml")
     if not os.path.isfile(p_yaml):
         print(f"team-config.yaml: MISSING at {p_yaml} — domain enforcement is off "
-              f"(check-domain.sh fails open without a manifest). Run /harness-init.")
+              f"(check-domain.sh fails open without a manifest). A team-config.yaml exists "
+              f"only in the control plane, so this message is about this clone. Run "
+              f"/harness-init.")
         gaps.append("team-config.yaml")
     else:
         pt, tt = open(p_yaml, encoding="utf-8").read(), open(t_yaml, encoding="utf-8").read()

@@ -50,8 +50,12 @@ the user decide. Being trusted is a reason for more care, not less.
 
 ## Job: test-runner detection
 
-During `/harness-init` you determine what this project can actually run and write `test_kinds` into
-`<HARNESS_CONTROL_PLANE_ROOT>/.harness/harness.json`: the `detect` globs and the real `cmd` per kind.
+During the `harness-init` skill you determine what this control plane can actually run and write
+`test_kinds` into `<HARNESS_CONTROL_PLANE_ROOT>/.harness/harness.json`. During the
+`harness-add-repo` skill you determine what a fleet member can run and write `test_kinds` into that
+repository's own `harness.json` in its checkout under the fleet's `workspace_root`. The main session
+then lands the member's config on the repository's default branch; dev-ops never pushes and never
+writes `<HARNESS_CONTROL_PLANE_ROOT>/.harness/factory/fleet.yaml`.
 
 **Verify every cmd by running it.** A resolving-but-misconfigured cmd reads exactly like a failing
 suite (a module-load error reports as `tests 1 / fail 1`); qa discriminates on failure kind, but do

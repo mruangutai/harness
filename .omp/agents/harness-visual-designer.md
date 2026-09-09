@@ -39,7 +39,7 @@ Palette, type scale, spacing, component direction, light/dark. Concrete values, 
 number `frontend-dev` can implement and `ui-reviewer` can check. "Generous spacing" is not a contract;
 a scale is.
 
-Established during `/harness-init`'s design pass, then extended as features need it. `ui-reviewer`
+Established under `/harness-plan`, then extended as features need it. `ui-reviewer`
 mode A grades whether it is sound **before** anything is built.
 
 ## Job 2 — The interaction call

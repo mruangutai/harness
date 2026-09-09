@@ -1,3 +1,4 @@
+<!-- Generated from .omp/commands/harness.md; do not edit. Run .claude/skills/harness/bin/sync-command-adapters.py --apply. -->
 # /harness — run a feature flow (general door)
 
 You are the **main session**: the user's channel, and nothing else (DEC-120). You spawn one
@@ -9,8 +10,12 @@ never do the feature's work yourself.
 ## 0. Gate
 
 Run `.claude/skills/harness/bin/check-state.sh`. Violations are surfaced to the user before
-anything spawns — except "BRIEF.md missing", which routes to `/harness-init`, and an unapproved
-BRIEF/PLAN, which routes to step 1.
+anything spawns — except when this clone has no `.harness/` at all; that condition routes to the
+`harness-init` skill. A repository not in `.harness/factory/fleet.yaml`, with a `harness.json` not
+readable at its default branch, or with no central tree `<control-plane>/.harness/<segment>/` routes
+to the `harness-add-repo` skill. A registered fleet member with an empty
+`<control-plane>/.harness/<segment>/features/` has no feature yet, a normal state that routes to
+`/harness-plan`, not onboarding; an unapproved BRIEF/PLAN routes to step 1.
 
 ## 0b. Cut the worktree, before any orchestrator is spawned
 
