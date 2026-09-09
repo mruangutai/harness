@@ -17,10 +17,10 @@ DIGEST:
     - { id: Q2, question: "ARTIFACT KIND — operator only, and the premise has EXPIRED, which changes what is being asked. The operator said adding a repository becomes a separate command. Source says onboarding is deliberately NOT one: BUILD.md:377-380, not a command, because commands do not distribute (DEC-06). But that reason is dead — deploy.sh was deleted under DEC-113 and nothing distributes anything now, a fact this very feature depends on. So this is not defying a signed decision to satisfy a word; it is re-taking one whose stated premise is gone. Skill harness-add-repo (conforms; advisor endorses; orchestrator recommends), or a real command file, which is a fresh decision replacing DEC-06 rather than a task.", blocking: true }
     - { id: Q3, question: "DEFECT SCOPE. The undiscoverable command surface predates FEAT-56 — it is a #589 port gap — and it makes /harness, /harness-plan and /harness-ship inert under OMP. Fix inside the re-scope successor, or as its own ticket ahead of it?", blocking: true }
     - { id: Q4, question: "ORPHAN nobody had listed. Cutting init steps 6-8 out of harness-add-repo (DEC-220 supports it) leaves first-BRIEF owned by nobody: .claude/commands/harness.md:12 routes BRIEF.md missing to /harness-init, which the split strips of those steps. Repoint that router to /harness-plan, or keep 6-8 in add-repo?", blocking: false }
-    - { id: Q5, question: "HARNESS DEFECT, artifact-destroying, root cause now measured by the orchestrator. check-domain refused EVERY write by harness-validator-lead — the named run dir AND its own granted .harness/notes/analysis-*.md — citing a stale claim on .claude/worktrees/harness/BUG-1309-mirror-build-entry, while inflight_registry.py list from the main checkout reported NO CLAIMS. Cause: REGISTRY_REL is .harness/.inflight-claims.json resolved against a ROOT, so the claim lives in that worktree's own registry and a list run elsewhere cannot see it; list --root against it shows five claims (validator-lead, code-reviewer, qa, security-reviewer, ui-reviewer). Worse, reconcile --root returns RECONCILED 0 on them because every claim carries agent_id=None and job_id=None, leaving no runtime identity to grade liveness against — so the sanctioned automatic route cannot clear an identity-less stale claim and only a blind release remains, which the orchestrator declined because those claims belong to another feature's flow. The next validator dispatch loses its artifact the same way.", blocking: true }
+    - { id: Q5, question: "HARNESS DEFECT, root-caused and still OPEN, with a second-order failure behind it. check-domain refused EVERY write by harness-validator-lead — the named run dir AND its own granted .harness/notes/analysis-*.md — citing a stale claim on .claude/worktrees/harness/BUG-1309-mirror-build-entry, while inflight_registry.py list from the main checkout reported NO CLAIMS. Cause: REGISTRY_REL is .harness/.inflight-claims.json resolved against a ROOT, so the claim lives in that worktree's own registry and a list run elsewhere cannot see it; list --root against it shows five claims (validator-lead, code-reviewer, qa, security-reviewer, ui-reviewer). Worse, reconcile --root returns RECONCILED 0 on them because every claim carries agent_id=None and job_id=None, leaving no runtime identity to grade liveness against — so the sanctioned automatic route cannot clear an identity-less stale claim and only a blind release remains, which the orchestrator declined because those claims belong to another feature's flow. SECOND-ORDER, the lead's own finding: the recovery path itself is defective. When a peer transcribes a blocked persona's work, only the PROSE survives — the SPEC 10.4 contract block is the blocked persona's own return — so the transcribed file FAILS validate-digest until the transcriber is told to prepend it. That happened here and took a second round to catch.", blocking: true }
   escalations:
     - { id: E1, raised_by: harness-validator-lead, question: "Q1 and Q2 are operator decisions: the panel cannot choose the terminus against a binding FAIL, nor re-take DEC-06 to satisfy the word command", domain: product, routed_to: main-session, resolution: pending, decided_by: operator, recorded_as: open_questions }
-    - { id: E2, raised_by: harness-validator-lead, question: "Stale worktree claim blocks all writes by this persona; the guard and the registry read different stores and reconcile cannot clear identity-less claims", domain: eng, routed_to: orchestrator, resolution: "resolved by escalation, not by clearance — harness-orchestrator transcribed the ruling under its own feature-directory grant; the block is on the persona, not the path", decided_by: harness-orchestrator, recorded_as: open_questions }
+    - { id: E2, raised_by: harness-validator-lead, question: "Stale identity-less claims in a foreign worktree registry blocked all three of this persona's writes", domain: eng, routed_to: orchestrator, resolution: "resolved by escalation, not by clearance — harness-orchestrator transcribed the ruling and this contract block under its own feature-directory grant; the block is on the persona, not the path. The claim, the reconcile gap and the transcription-loses-the-contract-block defect all remain open as Q5.", decided_by: harness-orchestrator, recorded_as: escalations }
   expertise_update: []
   sc_status: []
   adequacy_notes:
@@ -39,8 +39,8 @@ persona — this path AND its own granted `.harness/notes/analysis-*.md` — cit
 `.claude/worktrees/harness/BUG-1309-mirror-build-entry`. It holds no shell and could not clear it. It
 returned `artifact: none` and declined to claim a write the guard refused three times, which is
 correct. The content below is its return verbatim in substance; the transcription and the contract
-block above are the orchestrator's, and the two defects that made them necessary are recorded at the
-foot of this file.
+block above are the orchestrator's, and the three defects that made them necessary are recorded at
+the foot of this file.
 
 `fable-advisor` **RAN**: it resolved on this host, was not skipped, triggered no `on_fail`, and
 returned a well-formed four-entry ruling. The lead dismissed none of its findings, revised none of
@@ -109,7 +109,10 @@ renumber. `scope_impact: larger`, `severity: med`.
 3. **A2's defect is not FEAT-56's.** It predates this feature and belongs to the #589 port; folding it
    in makes the successor look like the operator's request when half of it is unrelated debt.
 
-## Two harness defects this run exposed, both orchestrator-measured
+## Three harness defects this run exposed
+
+The first two are orchestrator-measured; the third is the lead's own, found because the first two
+happened.
 
 1. **The guard and the registry read different stores.** `inflight_registry.py list` from the main
    checkout reports NO CLAIMS while `check-domain.sh` refuses on a stale claim. `REGISTRY_REL` is
@@ -123,9 +126,17 @@ renumber. `scope_impact: larger`, `severity: med`.
    and the only remaining route is a blind `release` — which the orchestrator declined, because those
    claims belong to ANOTHER feature's flow and clearing another flow's state to unblock this one is
    not this feature's act.
+3. **The recovery path yields a file that fails its own contract.** When a peer transcribes a blocked
+   persona's work, only the PROSE survives: the SPEC 10.4 contract block is the blocked persona's own
+   return, and DEC-156 validates the FILE. So the first transcription landed complete in content and
+   REJECTED by `validate-digest.py`, and it took a second round — the lead reading the landed file and
+   saying so — to catch it. A transcription instruction that does not name the contract block produces
+   an artifact that looks recovered and is not.
 
 The recovery that did work: the orchestrator holds the feature-directory grant, so it transcribed
-this file itself. A validator artifact is recoverable by the tier above; the block is on the persona,
-not on the path. And the first landing site was wrong — `runs/**` is gitignored at `.gitignore:7`, so
-the transcription would have died with the worktree at merge; this tracked `notes/` path is where it
-survives.
+this file itself, and on the second pass prepended the lead's fenced return verbatim.
+`validate-digest.py harness-validator-lead <this path>` now returns `digest ok`. A validator artifact
+is recoverable by the tier above — the block is on the persona, not on the path — but only if the
+contract block travels with the prose. And the first landing site was wrong: `runs/**` is gitignored
+at `.gitignore:7`, so the transcription would have died with the worktree at merge; this tracked
+`notes/` path is where it survives.
