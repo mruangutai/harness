@@ -3,7 +3,7 @@
   "branch": "feat/FEAT-56-central-onboarding-model",
   "pr": null,
   "review_sha": "443514327559cb1603256b4dbacafb65b0188902",
-  "cycles_used": 18,
+  "cycles_used": 19,
   "max_total_cycles": 22,
   "max_total_runs": 20,
   "runs": [
@@ -277,6 +277,18 @@
     },
     {
       "id": "2026-09-09-panelfix-c2-eng",
+      "squad": "eng",
+      "verdict": "PASS",
+      "agent": "harness-dev-ops"
+    },
+    {
+      "id": "review-c3-validator",
+      "squad": "validator",
+      "verdict": "PASS",
+      "agent": "harness-validator-lead"
+    },
+    {
+      "id": "2026-09-09-doorguard-eng",
       "squad": "eng",
       "verdict": "PASS",
       "agent": "harness-dev-ops"

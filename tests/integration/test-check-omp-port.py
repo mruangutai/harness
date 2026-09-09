@@ -232,6 +232,32 @@ def case_required_doors_pinned_to_sync_command_adapters():
     return results
 
 
+def case_no_canonical_door_delegates_to_adapter():
+    """F2: a canonical door under `.omp/commands/` must never reference `.claude/commands` —
+    adapters are GENERATED from canon and banner-marked do-not-edit, so a canonical door
+    pointing at an adapter makes the source depend on its own output, and every door breaks
+    silently the moment an adapter moves. Per-file, one assertion per door: a directory-wide
+    `any()` would be satisfied by three conforming doors and blind to the fourth."""
+    command_dir = ROOT / ".omp" / "commands"
+    doors = sorted(command_dir.glob("*.md"))
+    required = set(_sync_command_adapters_module().REQUIRED_DOORS)
+    results = [
+        (
+            "canonical command doors are discovered and cover the required set",
+            bool(doors) and required.issubset({p.name for p in doors}),
+            f"found: {sorted(p.name for p in doors)}",
+        )
+    ]
+    for door in doors:
+        text = door.read_text(encoding="utf-8")
+        results.append((
+            f".omp/commands/{door.name} does not delegate to .claude/commands",
+            ".claude/commands" not in text,
+            f".omp/commands/{door.name} references .claude/commands",
+        ))
+    return results
+
+
 CASES = (
     case_symlink_topology,
     case_live_tree_passes,
@@ -246,6 +272,7 @@ CASES = (
     case_missing_command_door_fails,
     case_absent_canonical_command_root_fails,
     case_required_doors_pinned_to_sync_command_adapters,
+    case_no_canonical_door_delegates_to_adapter,
 )
 
 
