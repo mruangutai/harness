@@ -10,7 +10,12 @@
   session (it is `execution_mode: main-session-direct`); the feature station and the mirror write
   were mine, as the phase owner.
 - `review_sha`: **re-pinned to `94b5e465d498a9943890734223e69c390b0a77ad`** before any validator ran
-  (INV-6), which is HEAD of the worktree and the commit carrying the parser fix.
+  (INV-6) — that is the commit carrying the parser fix, and it is what the panel and the goal-check
+  graded. **Moved forward to `b5eb8f8e95bfa2d6d3bbf664a07fe70cdd9ed3d7`** after this round's record
+  commit, because that commit writes the feature station into `plan.yaml` and INV-33 compares the
+  plan at the pin against the plan on disk. The move is free and changes nothing that was reviewed:
+  `git diff --name-only 94b5e465..b5eb8f8e -- ':!<feature-dir>'` is EMPTY — every path in that range
+  is this feature's own record.
 - mirror: `gh-sync.py status <feature-dir> review` ran — parent #1407 and all nine sub-issues
   (#1408-#1416) are at review.
 - budget: **`cycles_used` 15 of `max_total_cycles` 16 — NOT incremented.** Both leads reported ZERO

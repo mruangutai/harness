@@ -1,4 +1,4 @@
-# Handoff — BUG-1309-mirror-build-entry, validate → ship decision — written at 94b5e465, seq-1
+# Handoff — BUG-1309-mirror-build-entry, validate → ship decision — written at b5eb8f8e, seq-1
 
 ## Next
 
@@ -14,12 +14,13 @@ action. No fix is dispatchable inside this budget.
 
 ## Trust
 
-- The parser fix is committed and HEAD: `git -C <wt> rev-parse HEAD` → `94b5e465` — verified-at 94b5e465
-- `review_sha` re-pinned to `94b5e465` before any validator ran — `feature.json` `review_sha` — verified-at 94b5e465
+- The parser fix is committed at `94b5e465`; the panel and the goal-check both graded that commit — `feature.json` runs c17 — verified-at 94b5e465
+- `review_sha` was pinned to `94b5e465` before any validator ran, then moved to `b5eb8f8e` after the
+  record commit for INV-33; the code diff between them is EMPTY — `git diff --name-only 94b5e465..b5eb8f8e -- ':!<feature-dir>'` — verified-at b5eb8f8e
 - T-05 reads `status: done`, feature station reads `review`; the T-05 write was the main session's
   (main-session-direct), the feature station write mine — `plan.yaml:24`, `plan.yaml` T-05 — verified-at 94b5e465
 - GitHub mirror is at review: parent #1407 and all nine sub-issues — `gh-sync.py status … review` output — verified-at 94b5e465
-- Panel c17 PASS, `severity_max: low`, `must_fix: []`, matrix_ok true, 0 send-backs — `runs/c17-validator/digest.md` — verified-at 94b5e465
+- Panel c17 PASS, `severity_max: low`, `must_fix: []`, `matrix_ok: true`, 0 send-backs — `runs/c17-validator/digest.md` — verified-at 94b5e465
 - SC-11 MET; its three case names pass individually and each reddens at `e374c9a2` — `notes/qa-c17.md:50-63` — verified-at 94b5e465
 - SC-04 gap C is real: the two "noise" cases use byte-identical `json.dump([])` fixtures, so only the
   non-object kind of four is exercised — `git show 94b5e465:tests/integration/test-merge-gate.py:128-135,163-170` — verified-at 94b5e465
