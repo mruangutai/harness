@@ -53,7 +53,7 @@ statuses, so the plan must already carry the new one. Running `start-task` befor
 
 **Recording `done` is the whole of the per-commit act** (D-23) — nothing derives a station from a
 task's completion. The parent leaves `Building` when the panel kickoff runs `gh-sync.py status
-<feature-dir> Review`, and reaches `Done` when `ship` writes its card there — GitHub closes the issue
+<feature-dir> review`, and reaches `Done` when `ship` writes its card there — GitHub closes the issue
 behind that write.
 
 ## Wake and recovery are reads of durable receipts, not GitHub polls
@@ -91,9 +91,9 @@ inside a subagent run is not something the operator reads.
 |---|---|
 | **Backlog** | whoever files the ticket. Not the harness |
 | **Plan** | `board-station.py`, at the `/harness-plan` door |
-| **Ready** | the signature, via `gh-sync.py status <dir> Ready`. Moves the **task sub-issues**, **never the parent** (D-18) |
-| **Building** | `gh-sync.py start-task`, by `execution_mode` as the table above says |
-| **Review** | the validation panel kickoff, via `gh-sync.py status <dir> Review`. It moves the **parent AND every sub-issue** (D-23) |
+| **Ready** | the signature, via `gh-sync.py status <dir> ready`. Moves the **task sub-issues**, **never the parent** (D-18) |
+| **Building** | the task CARDS, via `gh-sync.py start-task`, by `execution_mode` as the table above says — it writes the TASK's station, never the feature's. The FEATURE's own station is written in `plan.yaml` by `plan-merge.py set-feature-station --station building`, run by the orchestrator when the eng segment starts dispatching build work (BUG-1507) |
+| **Review** | the validation panel kickoff, via `gh-sync.py status <dir> review`. It moves the **parent AND every sub-issue** (D-23) |
 | **Done** | **the harness**, at `gh-sync.py ship`, which writes this station on every recorded card. GitHub's `Auto-close issue` workflow then turns that write into a close |
 
 The Review row exists because a board was measured holding zero items at that station (DEC-138,
