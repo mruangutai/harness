@@ -86,34 +86,12 @@ One batched `AskUserQuestion` call:
 - **Frontend framework** (if any) and **backend framework/language**
 - **Does this project have a user-facing UI?**
 
-Spawn `harness-dev-ops` with the answers. It must:
-
-- Determine the real test runner **for each kind** and write `test_kinds` into the fleet member's own
-  `.harness/harness.json` in its checkout under `workspace_root`; the main session then lands the
-  latter through step 1. `dev-ops` never writes `fleet.yaml` or pushes a product config directly to a
-  remote.
-- **Verify every `cmd` by running it.** A command that resolves but is misconfigured is worse than one
-  that is absent — `node --test src/` reports `tests 1 / fail 1` for a module-load error, which reads
-  exactly like a failing suite.
-- **Never invent a plausible command.** A kind with no runner keeps `cmd: null`, and its placeholder
-  `_reason` is **replaced with the real one** ("no Playwright in this project", "no eval harness yet").
-  `qa` treats null as a not-applicable soft skip; an invented command turns a hard gate into a silent
-  no-op, which is strictly worse than no gate.
-- **Surface every remaining `cmd: null` to the user as a DECISION, not a footnote (DEC-163).**
-  Cross-reference each against what the project actually has: a null `ui` runner in a project with a
-  real UI, a null `eval` with real LLM code, a null `integration` with a real database. For each,
-  `AskUserQuestion`: stand the runner up now (a dev-ops task), or accept the gap knowing SCs can
-  never rest on that kind. Record the answer; an accepted gap belongs in the backlog. A null kind
-  that reaches the first feature unspoken becomes a permanent blind spot nobody chose.
-- **Delete the `_reason` on any kind whose `cmd` it fills.** Every kind ships with
-  `_reason: "unset — dev-ops has not run detection yet"`. Leaving that next to a command dev-ops has
-  since verified states a falsehood about the project's own config.
-- Keep worktree and vendor dirs in every `exclude`, or a diff scan multiplies each test file per
-  checkout.
-- **Report the source layout** in its DIGEST — frontend root, backend root, prompt/agent dir, migrations
-  dir, test root, docs root — for the next step. It does not write the manifest itself.
-- Check the team conventions: is `@astryxdesign/core` present, is Supabase linked? Report, do not
-  silently install.
+Spawn `harness-dev-ops` with the answers. It follows the same dev-ops contract as harness-init's
+“Delegate detection to dev-ops” section — verify every cmd, never invent
+one, surface every null as a DECISION, keep worktree/vendor dirs excluded, report source layout —
+with one difference: it writes test_kinds into the fleet member's own harness.json in its checkout
+under workspace_root; the main session lands that file through step 1, rather than the control
+plane's own harness.json.
 
 ### 3. GitHub Issues mirror and project board
 
