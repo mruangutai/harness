@@ -193,13 +193,27 @@ printf '{"tool_input":{"command":"git merge --squash feature/uat-scratch"}}' \
 
 printf '{"tool_input":{"command":"git merge -m message feature/uat-scratch"}}' \
   | HARNESS_PROJECT_DIR=$UAT_ROOT bash $UAT_CHECKOUT/.claude/skills/harness/bin/merge-gate.sh
+
+printf '{"tool_input":{"command":"git merge -F /tmp/message feature/uat-scratch"}}' \
+  | HARNESS_PROJECT_DIR=$UAT_ROOT bash $UAT_CHECKOUT/.claude/skills/harness/bin/merge-gate.sh
+
+printf '{"tool_input":{"command":"git merge --cleanup strip feature/uat-scratch"}}' \
+  | HARNESS_PROJECT_DIR=$UAT_ROOT bash $UAT_CHECKOUT/.claude/skills/harness/bin/merge-gate.sh
+
+printf '{"tool_input":{"command":"git --attr-source HEAD merge --no-ff feature/uat-scratch"}}' \
+  | HARNESS_PROJECT_DIR=$UAT_ROOT bash $UAT_CHECKOUT/.claude/skills/harness/bin/merge-gate.sh
 ```
 
-**Observe:** THREE JSON lines, one per command, each carrying `"permissionDecision": "deny"` and
-each naming `FEAT-9001-uat-scratch` and `github.build_entry=recovery-required` — the same message
-you read in Step 3, unchanged by the flag.
+The last three matter most: the first two carry a detached VALUE after `merge` (`/tmp/message`,
+`strip`) and the third a detached value in the GLOBAL position before it (`HEAD`) — exactly the
+forms that were silent allows before this fix. `/tmp/message` need not exist: the gate parses the
+command string and never executes git.
 
-- **PASS** if all three print a `deny`.
+**Observe:** SIX JSON lines, one per command, each carrying `"permissionDecision": "deny"` and
+each naming `FEAT-9001-uat-scratch` and `github.build_entry=recovery-required` — the same
+actionable receipt-recovery message you read in Step 3, unchanged by the flag.
+
+- **PASS** if all six print a `deny`.
 - **FAIL** if any one of them prints nothing. A silent allow here is the whole defect: the flag,
   not the branch, was read as what you were merging.
 
