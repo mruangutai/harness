@@ -1,53 +1,44 @@
-# Handoff — BUG-1309-mirror-build-entry, validate → ship decision — written at b5eb8f8e, seq-1
+# Handoff — BUG-1309-mirror-build-entry, validate → ship decision — written at 9fe5cf31, seq-2
 
 ## Next
 
-Return SC-04's three evidence gaps to the operator and do NOT dispatch anything until they rule.
-The parser remediation itself is graded clean at the pin; what is unresolved is whether SC-04 may be
-signed off on inspected-correct behaviour with three of its ten clauses carried by no automated
-case (`notes/research-BUG-1309-goalcheck-c17.md` "SC-04 — UNMET", gaps A/B/C). The operator's three
-options, in the goal-check's own words: record a ruling accepting the gaps; carry them as a
-follow-up bug; or authorise ONE additive test-only cycle on `tests/integration/test-merge-gate.py`
-(which would take `cycles_used` to 16 of 16, the cap). Only after that ruling does the UAT Step 3b
-amendment (one pm spawn, product lead) and then the operator's SC-10 hand test become the next
-action. No fix is dispatchable inside this budget.
+Return SC-04's ONE remaining evidence gap to the operator together with the SC-10 hand test, and
+dispatch NOTHING until they rule. The budget is spent — `cycles_used` 16 of 16 — so no fix is
+dispatchable and no cycle exists to spend on the gap. The operator's two options, in pm's words
+(`notes/research-BUG-1309-goalcheck-c18.md`, Q1): accept the clause-(f) wording gap with a recorded
+ruling on inspected-correct behaviour, or defer it as a follow-up bug and hold SC-04 unmet. The
+UAT Step 3b amendment stays gated off until that ruling; SC-10 is runnable by hand right now,
+unamended, and its pass rule at `uat-...md:337-340` already names Step 3b.
 
 ## Trust
 
-- The parser fix is committed at `94b5e465`; the panel and the goal-check both graded that commit — `feature.json` runs c17 — verified-at 94b5e465
-- `review_sha` was pinned to `94b5e465` before any validator ran, then moved to `b5eb8f8e` after the
-  record commit for INV-33; the code diff between them is EMPTY — `git diff --name-only 94b5e465..b5eb8f8e -- ':!<feature-dir>'` — verified-at b5eb8f8e
-- T-05 reads `status: done`, feature station reads `review`; the T-05 write was the main session's
-  (main-session-direct), the feature station write mine — `plan.yaml:24`, `plan.yaml` T-05 — verified-at 94b5e465
-- GitHub mirror is at review: parent #1407 and all nine sub-issues — `gh-sync.py status … review` output — verified-at 94b5e465
-- Panel c17 PASS, `severity_max: low`, `must_fix: []`, `matrix_ok: true`, 0 send-backs — `runs/c17-validator/digest.md` — verified-at 94b5e465
-- SC-11 MET; its three case names pass individually and each reddens at `e374c9a2` — `notes/qa-c17.md:50-63` — verified-at 94b5e465
-- SC-04 gap C is real: the two "noise" cases use byte-identical `json.dump([])` fixtures, so only the
-  non-object kind of four is exercised — `git show 94b5e465:tests/integration/test-merge-gate.py:128-135,163-170` — verified-at 94b5e465
-- SC-04 gap B is real: neither duplicate claimant is in `BUILD_ENTRY_ERA_EXEMPT` (0 matches) — `feature_schema.py:226` — verified-at 94b5e465
-- SC-04 gap A is real: no single-owner receipt deny asserts the feature id; `:65` asserts the state,
-  `:67` the command, and the id assertion at `:126-127` is the fail-closed deny — verified-at 94b5e465
+- The only change this cycle is `9fe5cf31`, `tests/integration/test-merge-gate.py` +37/-1, additive assertions, no production source — `git show --stat 9fe5cf31` — verified-at 9fe5cf31
+- `review_sha` was re-pinned to `9fe5cf31` BEFORE any validator ran; `plan.yaml` and `BRIEF.md` are byte-unchanged this cycle, so no post-record re-pin is owed — `feature.json:5` — verified-at 9fe5cf31
+- Suite at the pin: 36 ok, 0 FAIL, `ALL PASSED`, rc=0 from a variable; `matrix_ok: true`; panel PASS, `severity_max: med`, `must_fix: []`, four reviewers ran — `notes/qa-c18.md`, `runs/c18-validator/digest.md` — verified-at 9fe5cf31
+- Gap A and gap C are CLOSED by mutation: every one of gap C's four arms reddens its case when removed — `notes/qa-c18.md` section 3 — verified-at 9fe5cf31
+- SC-04 clause (f) has no assertion: production emits `Correct the duplicated top-level "branch" field` at `merge-gate.py:174`; the carrying case at `test-merge-gate.py:159-163` asserts ids, `gh-sync.py` absence and run-to-run equality only; whole-file grep for `duplicat`/`Correct`/`more than one` returns fixture ids alone — verified-at 9fe5cf31
+- The clause-(f) gap is NOT new breakage: c17's clause table had ten rows and no row for it — `notes/research-BUG-1309-goalcheck-c17.md:44-56` — verified-at 9fe5cf31
+- Gap B's case does not redden against an `owners[0]`-keyed era hoist: `glob.glob` returns fixtures in creation order here and the non-era fixture is created first — reproduced by the orchestrator in a scratch tree — verified-at 9fe5cf31
+- SC-11 MET at this pin; no production file changed in `94b5e465..9fe5cf31` and the commit's hunks miss the SC-11 loop — `notes/research-BUG-1309-goalcheck-c18.md` section 3 — verified-at 9fe5cf31
+- The UAT file is byte-unchanged: Step 3b still has three commands and a three-line rule — `notes/uat-BUG-1309-mirror-build-entry.md:179-210` — verified-at 9fe5cf31
 
 ## Dead ends
 
-- pm's rationale for gap B says `BUILD_ENTRY_ERA_EXEMPT` holds "only BUG-* ids"; it holds 54 FEAT-
-  ids too. The GAP still stands on the fixture ids — do not re-litigate the gap, do not reuse the
-  rationale — `feature_schema.py:226`, `grep -c FEAT-` → 54 — verified-at 94b5e465
-- c15's SC-04 blocker (form 16, `git --exec-path <p> merge <branch>`) is CLOSED and must not be
-  reopened: real git prints the exec path and never runs the subcommand — `notes/research-BUG-1309-goalcheck-c17.md` "The c15 residual" — verified-at 94b5e465
-- `git merge` in any form cannot be probed from inside a run: `bash-write-guard.sh` refuses the
-  command name outright, including in a throwaway `/tmp` repo — refusal text observed this run — verified-at 94b5e465
+- Do NOT re-litigate gap B as a production defect. `merge-gate.py:167-181` guards on `len(owners)` alone, never on `owners[0]`'s identity, so the ordering is correct in source; the weakness is in the fixture — verified-at 9fe5cf31
+- Do NOT accept the code reviewer's c18 reading that gap B's case is ordering-binding. Its mutant shape leaves the length check below the hoist, so that mutant denies and the case passes — `notes/review-harness-code-reviewer-c18.md:62-78`, overruled by the lead on two measurements — verified-at 9fe5cf31
+- Do NOT amend UAT Step 3b before the operator rules. The gate is the operator's own "if and only if SC-04 and SC-11 are met", and pm correctly declined to open the file — `runs/c18gc-product/digest.md` — verified-at 9fe5cf31
+- `git merge` in any form still cannot be probed from inside a run: `bash-write-guard.sh` refuses the command name outright, including in a throwaway `/tmp` repo — refusal text observed at c17 — verified-at 94b5e465
 
 ## Working set
 
-- `.harness/harness/features/BUG-1309-mirror-build-entry/notes/research-BUG-1309-goalcheck-c17.md`
-- `.harness/harness/features/BUG-1309-mirror-build-entry/runs/c17-validator/digest.md`
-- `.harness/harness/features/BUG-1309-mirror-build-entry/notes/qa-c17.md`
+- `.harness/harness/features/BUG-1309-mirror-build-entry/notes/research-BUG-1309-goalcheck-c18.md`
+- `.harness/harness/features/BUG-1309-mirror-build-entry/notes/qa-c18.md`
 - `.harness/harness/features/BUG-1309-mirror-build-entry/notes/uat-BUG-1309-mirror-build-entry.md`
+- `.harness/harness/features/BUG-1309-mirror-build-entry/runs/c18-validator/digest.md`
 - `.harness/harness/features/BUG-1309-mirror-build-entry/feature.json`
 
 ## Done when
 
-Scope: operator rules on SC-04's three evidence gaps, then SC-10 is hand-tested
+Scope: operator rules on SC-04 clause (f), and SC-10 is hand-tested
 Authority: brief-sc:SC-04
 Authority: brief-sc:SC-10
