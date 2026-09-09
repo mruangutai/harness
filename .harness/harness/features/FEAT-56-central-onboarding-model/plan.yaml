@@ -991,6 +991,11 @@ tasks:
       grep -q '^## Preflight' "$F" &&
       ! grep -q 'claude --version' "$F" &&
       ! grep -qF 'templates/team-config.yaml' "$F" &&
+      ! grep -qF 'instantiate its own' "$F" &&
+      ! cat "$F" | tr '\n' ' ' | grep -qF 'from the templates' &&
+      ! cat "$F" | tr '\n' ' ' | grep -qF 'the only place a' &&
+      ! grep -qF "into the control plane's" "$F" &&
+      grep -qF 'anywhere but the control plane' "$F" &&
       ! grep -q 'The approval gate' "$F" &&
       ! grep -q 'then the BRIEF' "$F" &&
       ! grep -q 'Design pass' "$F" &&
@@ -1010,9 +1015,13 @@ tasks:
 
       WHAT MOVES IN, by measured anchor at 12f74ea8:
       - the three-things opening paragraph and the one-file rule, SKILL.md:8-17;
-      - Track B's step 2, land harness.json then register the repository, :245-283;
+      - Track B's step 2, land harness.json then register the repository, :245-278, PLUS the one-file
+        PROHIBITION that opens the paragraph at :279 and ends mid-line at :280 with "...are written in a
+        product repository." It is addressed to exactly the operator this skill serves, so it belongs
+        here, and the verify asserts it is present by grepping "anywhere but the control plane";
       - step 3, interview technical, :284-291;
-      - step 4, delegate detection to dev-ops, :292-323;
+      - step 4, delegate detection to dev-ops, :292-323, MINUS the control-plane half of its first
+        bullet (see WHAT MUST NOT MOVE IN);
       - the GitHub Issues mirror subsection, :350-363;
       - the project board subsection, :364-407.
       Renumber the steps 1, 2, 3 in that order and repoint every internal cross-reference: the
@@ -1025,6 +1034,23 @@ tasks:
       :251 must name the new step for test_kinds and drop the GitHub-block clause into the step that now
       holds the mirror question, and :290 asked whether the design pass runs, which no longer exists, so
       the question goes with it unless it also gates something you are keeping. Say which you did.
+
+      WHAT MUST NOT MOVE IN, and this is a correctness bound rather than a tidy-up. Two anchors, both
+      inside ranges named above:
+      - The SECOND sentence of the paragraph at :279-282 — it begins mid-line at :280 with "For the
+        control plane itself, instantiate its own .harness/harness.json and .harness/team-config.yaml
+        from the templates — this harness checkout is the only place a team-config.yaml is instantiated."
+        Carrying that into a REGISTRATION skill instructs an operator registering a fleet member to
+        instantiate a team-config.yaml, which is the exact one-file-rule violation this feature exists to
+        stop, and it contradicts the prohibition in the sentence immediately before it. It stays in
+        harness-init, where T-11 keeps it explicitly. The verify bans "instantiate its own", the
+        flattened "from the templates" and the flattened "the only place a"; it is flattened because the
+        sentence wraps across :281-282 and a phrase grep would otherwise miss it.
+      - The control-plane half of the detection bullet at :296-298: "write test_kinds into the control
+        plane's .harness/harness.json, or". What moves in is the fleet-member half — write test_kinds
+        into the member's own .harness/harness.json in its checkout under workspace_root, which the main
+        session then lands through this skill's step 1. Detection for THIS checkout's own harness.json is
+        harness-init's (T-11 keeps it there). The verify bans "into the control plane's".
 
       WHAT DOES NOT MOVE IN, and this is the operator's ruling rather than a simplification (D-09):
       step 6 interview product then the BRIEF, step 7 the approval gate, step 8 design pass. They
@@ -1061,12 +1087,15 @@ tasks:
       out of order.
 
       Take exactly the Red flags rows that belong to registration, and leave the rest for T-11. By
-      measured content at :419-434 the registration rows are: the team-config copy row, the
-      repo-is-in-fleet.yaml row, the dev-ops-filled-the-cmd row, the npm-test row, the
-      agent-got-blocked row, and the project-has-no-evals row. The prerequisite-install, hook and
-      restart rows stay with harness-init. The describing-is-not-approving row and the
-      check-state-says-pending row are dropped from both files, because neither artifact takes an
-      approval any more (D-09).
+      measured content at :419-434 the registration rows are: the repo-is-in-fleet.yaml row, the
+      dev-ops-filled-the-cmd row, the npm-test row, the agent-got-blocked row, and the
+      project-has-no-evals row. The prerequisite-install, hook and restart rows stay with harness-init,
+      and so does the "I'll copy the new team-config over theirs" row: its advice presumes a
+      team-config.yaml exists in the repository being touched, which the prohibition moving in at :279
+      forbids, so carrying it here would contradict that prohibition inside one file. It applies to
+      harness-init's --upgrade section, where :224 already says team-config.yaml is reported and never
+      rewritten. The describing-is-not-approving row and the check-state-says-pending row are dropped
+      from both files, because neither artifact takes an approval any more (D-09).
   - id: T-11
     title: Cut harness-init back to a fresh-checkout procedure and resolve its dangling step references
     traces: [REQ-01, REQ-02, REQ-08]
@@ -1087,69 +1116,135 @@ tasks:
       ! grep -q 'then the BRIEF' "$F" &&
       ! grep -q 'Design pass' "$F" &&
       ! grep -q 'harness-visual-designer' "$F" &&
-      ! grep -qE 'steps? [4-9]' "$F" &&
+      ! grep -qE 'steps? [7-9]' "$F" &&
+      ! grep -qE 'steps? [1-9] and [7-9]' "$F" &&
       ! grep -q 'before step 2' "$F" &&
       ! grep -q 'skip to step 2' "$F" &&
       ! cat "$F" | tr '\n' ' ' | grep -q 'proceed to step 2' &&
       ! grep -q 'through step 2' "$F" &&
+      ! grep -qF "fleet member's own" "$F" &&
+      ! grep -qF 'lands the latter' "$F" &&
+      grep -qF 'instantiate its own' "$F" &&
+      cat "$F" | tr '\n' ' ' | grep -qF 'from the templates' &&
+      grep -qF 'Interview' "$F" &&
+      grep -qF 'Project type' "$F" &&
+      grep -qF 'harness-dev-ops' "$F" &&
+      grep -qF 'test_kinds' "$F" &&
       grep -q 'harness-add-repo' "$F" &&
       grep -qF 'git config core.hooksPath .claude/skills/harness/hooks' "$F" &&
       grep -qF 'git config --get core.hooksPath' "$F" &&
       python3 tests/integration/test-hooks-install.py &&
       python3 .claude/skills/harness/bin/check-instruction-paths.py
     intent: |
-      Cut .claude/skills/harness-init/SKILL.md down to what it now is: the first-time configuration
-      of a fresh Harness checkout, and nothing else. T-10 has already created
-      .claude/skills/harness-add-repo/SKILL.md holding the content you delete here; delete it, never
-      move it, and do not edit the new file.
+      Cut .claude/skills/harness-init/SKILL.md down to what it now is: the first-time configuration of a
+      fresh Harness checkout, and nothing else. T-10 has already created
+      .claude/skills/harness-add-repo/SKILL.md holding the registration content; delete that content
+      here, never move it, and do not edit the new file.
 
-      DELETE, by measured anchor at 12f74ea8: the whole of Track B, SKILL.md:239 to :418, which is
-      steps 2, 3 and 4, the GitHub Issues mirror subsection, the project board subsection, and steps
-      6, 7 and 8. The registration half moved to harness-add-repo (T-10) and steps 6 to 8 are
-      dropped from onboarding altogether (D-09).
+      DELETE, by measured anchor at 12f74ea8: Track B, SKILL.md:239 to :418, EXCEPT the three KEEPs named
+      below. Concretely that deletes the Track B heading and preamble :239-243, step 2 land harness.json
+      then register the repository :245-278, the first sentence of the paragraph at :279-280, the GitHub
+      Issues mirror :350-363, the project board :364-407, and steps 6, 7 and 8 at :324-348 and :408-417.
+      The registration half moved to harness-add-repo (T-10) and steps 6 to 8 are dropped from onboarding
+      altogether (D-09).
 
-      KEEP: the preflight at :30-46, step 1 at :53-160, step 5 at :161-184, step 9 at :185-208, and
-      the --upgrade section at :209-238. PRESERVE VERBATIM, and this is a live assertion rather than
-      a courtesy, the two command strings that read
+      KEEP FROM TRACK A: the preflight at :30-46, step 1 at :53-160, step 5 at :161-184, step 9 at
+      :185-208, and the --upgrade section at :209-238. PRESERVE VERBATIM, and this is a live assertion
+      rather than a courtesy, the two command strings that read
         git config --get core.hooksPath || echo "(unset)"
         git config core.hooksPath .claude/skills/harness/hooks
       exactly as they appear. tests/integration/test-hooks-install.py reads them out of this file.
 
-      RENUMBER the three surviving steps 1, 2, 3 and drop both Track headings: with one track there
-      is nothing to distinguish, and a lone Track A heading is the dangling half of a pair.
+      KEEP FROM INSIDE THE DELETED RANGE — three things, each EXPLICITLY, not by a range boundary. Each
+      is part of configuring THIS checkout, which is the job the operator isolated this skill to, and
+      none of the three exists anywhere else in the tree:
 
-      RESOLVE EVERY DANGLING STEP REFERENCE. SEVEN sites in the SURVIVING regions cite a step number
-      that leaves with Track B or a gate that leaves with D-09. All seven measured at 12f74ea8, and the
-      verify sees each of them:
+      (a) THE CONTROL-PLANE INSTANTIATION INSTRUCTION, the second sentence of :279-282: "For the control
+      plane itself, instantiate its own .harness/harness.json and .harness/team-config.yaml from the
+      templates — this harness checkout is the only place a team-config.yaml is instantiated." Measured
+      at 12f74ea8 this is the ONLY instruction in the tree that instantiates this checkout's own config.
+      Keep the phrase "instantiate its own" and the phrase "from the templates": the verify greps the
+      first literally and the second through tr, because the sentence wraps across :281-282. The FIRST
+      sentence of that paragraph — "No team-config.yaml exists anywhere but the control plane; no
+      .harness/expertise/, .harness/products/, bin/, hooks, or settings are written in a product
+      repository" — is a prohibition addressed to whoever registers a product repository, so it goes with
+      T-10 and does NOT stay here.
+
+      (b) THE TECHNICAL INTERVIEW, :284-291, kept as written except one clause: STRIKE "decides whether
+      step 7 runs at all" from the user-facing-UI bullet. D-09 removed the design pass, so that clause
+      names a gate that no longer exists. Keep the QUESTION: dev-ops needs it to judge a null ui runner
+      against a project that has a real UI (:307-312). Replace the struck clause with a short one saying
+      that, so the bullet still says why it is asked.
+
+      (c) DEV-OPS DETECTION, :292-323, RESTRICTED to this checkout. In the first bullet keep "Determine
+      the real test runner for each kind and write test_kinds into the control plane's
+      .harness/harness.json" and DELETE the fleet-member half: "or into a fleet member's own
+      .harness/harness.json in its checkout under workspace_root; the main session then lands the latter
+      through step 2". That half is harness-add-repo's, moved in by T-10, and the verify bans both
+      "fleet member's own" and "lands the latter". Keep every other bullet unchanged, including "dev-ops
+      never writes fleet.yaml": it carries no factory/ prefix, so it does not collide with the verify's
+      factory/fleet.yaml ban (measured at 12f74ea8, factory/fleet.yaml occurs only at :10 and :261, and
+      both of those leave).
+
+      WHY (a) and (c) are not optional, and this is the hole this task exists to close. Surviving step 5
+      at :163-164 says to replace every # SEED glob "with the real path from dev-ops's report" — delete
+      (c) and a step the cut KEEPS depends on a report nothing in the skill produces. Surviving step 9 at
+      :188-193 requires check-state.sh to exit 0 — on a fresh checkout with no instantiated
+      .harness/harness.json that is unreachable, so deleting (a) leaves the procedure unable to finish
+      itself.
+
+      RENUMBER into SIX steps, in exactly this order, and drop both Track headings: with one track there
+      is nothing to distinguish, and a lone Track A heading is the dangling half of a pair.
+        1. Install the eight prerequisites — today's step 1, unchanged.
+        2. Instantiate this checkout's own config — KEEP (a), promoted to its own step. It must precede
+           steps 3 to 5: detection writes test_kinds INTO .harness/harness.json, and step 5 rewrites
+           .harness/team-config.yaml's # SEED globs, so both need the file to exist.
+        3. Interview — technical — KEEP (b), placed here because dev-ops runs on its answers.
+        4. Delegate detection to dev-ops — KEEP (c).
+        5. Seed the control-plane manifest — today's step 5, which consumes step 4's report.
+        6. Verify, then warn about the restart — today's step 9.
+      Six is the whole numbering; there is no step 7, 8 or 9, and the verify bans any surviving reference
+      to one.
+
+      RESOLVE EVERY DANGLING STEP REFERENCE. SEVEN sites in the SURVIVING regions cite a step number that
+      leaves with Track B or a gate that leaves with D-09. All seven measured at 12f74ea8, and the verify
+      sees each of them:
       - :65 "must exit 0 before step 2", inside step 1;
       - :83 "Never skip to step 2";
       - :155-156 "Do not proceed to step 2", which WRAPS ACROSS A LINE BREAK, which is why the verify
         flattens the file through tr before grepping for it;
       - :159-160 "steps 4 and 8 below run with enforcement on" and "step 9 has the one real restart
-        caveat";
+        caveat" — the steps that now run with enforcement on are 4 and 5, and the restart caveat is
+        step 6;
       - :194 "will fail if the brief is pending (step 7)", inside step 9. This one is substantive, not a
         renumbering: there is no brief and no approval gate in this skill any more (D-09), so the clause
         must be deleted rather than repointed. The verify bans the string "brief is pending";
-      - :205 "which is why steps 4 and 8 work";
+      - :205 "which is why steps 4 and 8 work" — now step 4 alone;
       - :212 "land its merged harness.json through step 2", inside --upgrade. This is the one that points
         OUTSIDE this file after the split: rewrite it to say that for a fleet member the merged
         harness.json lands through the harness-add-repo skill, naming that skill.
-      Repoint the rest at the surviving step numbers. The verify bans any surviving "steps? [4-9]" and
-      each stale step-2 phrase by name; it deliberately does NOT ban the bare string "step 2", because
-      after renumbering a legitimate step 2 exists in this file.
+      The verify bans any surviving "steps? [7-9]", any compound reference "steps? [1-9] and [7-9]" —
+      that second ban is what catches the two "steps 4 and 8" sites, and it admits their corrected form
+      "steps 4 and 5" — and each stale step-2 phrase by name, so repoint each
+      of the four step-2 sites by rewording rather than by renumbering ("before you go on", not "before
+      step 2"); it deliberately does NOT ban the bare string "step 2", because after renumbering a
+      legitimate step 2 exists in this file.
 
       REWRITE the opening so it describes one job. The three-things paragraph and the one-file rule
-      belong to registration and move out; in their place, state that this skill configures the
-      harness checkout you are standing in, that registering a repository is the harness-add-repo
-      skill's job, and that a configured fleet repository which has no BRIEF yet goes to
-      /harness-plan (D-09). Update the frontmatter description the same way: it must not claim to
-      onboard a repository. Keep the this-harness-checkout definition and the main-session note.
+      belong to registration and move out; in their place, state that this skill configures the harness
+      checkout you are standing in, that registering a repository is the harness-add-repo skill's job,
+      and that a configured fleet repository which has no BRIEF yet goes to /harness-plan (D-09). Update
+      the frontmatter description the same way: it must not claim to onboard a repository. Keep the
+      this-harness-checkout definition and the main-session note.
 
       SPLIT the Red flags table at :419-434 with T-10. Keep the prerequisite-install row, the
-      script-was-denied row, the they-must-restart row and the they-can-run-a-team row. T-10 takes
-      the registration rows. DROP the describing-is-not-approving row and the
-      check-state-says-pending row from both files: neither artifact takes an approval any more, so
-      both rows would be advice about work this skill no longer does.
+      script-was-denied row, the they-must-restart row, the they-can-run-a-team row and the "I'll copy
+      the new team-config over theirs" row: that last one presumes a team-config.yaml in the repository
+      being touched, which only this checkout has, and it is the --upgrade section's advice (:224,
+      team-config.yaml is reported and never rewritten). T-10 takes the registration rows. DROP the
+      describing-is-not-approving row and the check-state-says-pending row from both files: neither
+      artifact takes an approval any more, so both rows would be advice about work this skill no longer
+      does.
   - id: T-12
     title: Repoint every main-session-owned instruction surface at the right one of the two artifacts
     traces: [REQ-03, REQ-04, REQ-08]
@@ -1373,11 +1468,14 @@ tasks:
       - .claude/agents/harness-dev-ops.md
       - .claude/agents/harness-visual-designer.md
     verify: |
-      ! grep -q 'harness-init' .omp/agents/harness-dev-ops.md &&
-      grep -q 'harness-add-repo' .omp/agents/harness-dev-ops.md &&
+      ! grep -qF '`/harness-init`' .omp/agents/harness-dev-ops.md &&
+      grep -qF 'harness-init' .omp/agents/harness-dev-ops.md &&
+      grep -qF 'harness-add-repo' .omp/agents/harness-dev-ops.md &&
       ! grep -q 'harness-init' .omp/agents/harness-visual-designer.md &&
       grep -q 'harness-plan' .omp/agents/harness-visual-designer.md &&
-      ! grep -q 'harness-init' .claude/agents/harness-dev-ops.md &&
+      ! grep -qF '`/harness-init`' .claude/agents/harness-dev-ops.md &&
+      grep -qF 'harness-init' .claude/agents/harness-dev-ops.md &&
+      grep -qF 'harness-add-repo' .claude/agents/harness-dev-ops.md &&
       ! grep -q 'harness-init' .claude/agents/harness-visual-designer.md &&
       python3 .claude/skills/harness/bin/sync-agent-adapters.py --root . --check &&
       python3 .claude/skills/harness/bin/check-omp-port.py
@@ -1394,11 +1492,19 @@ tasks:
       - .omp/agents/harness-dev-ops.md:53, "During /harness-init you determine what this project can
         actually run and write test_kinds". That is the detection step, which now lives in the
         harness-add-repo skill for a fleet member and in harness-init for this control plane's own
-        harness.json. Say both, and name the skills rather than a slash command: neither is a command
-        (D-10).
+        harness.json (T-11 keeps it there explicitly). Say BOTH, and name each as a SKILL — the bare
+        token harness-init, never the slash spelling /harness-init, because neither is a command (D-10)
+        and the slash form is the stale claim that detection happens inside a slash-command onboarding
+        run. The verify enforces exactly that: it bans the backticked slash spelling and REQUIRES the
+        bare token harness-init plus harness-add-repo to be present, so the file must name both skills
+        without slashing either. A blanket ban on harness-init here would contradict this instruction and
+        is deliberately not used.
       - .omp/agents/harness-visual-designer.md:42, "Established during /harness-init's design pass".
         There is no design pass in onboarding any more (D-09). The DESIGN.md contract is established
-        under /harness-plan, then extended as features need it. Rewrite the clause to say so.
+        under /harness-plan, then extended as features need it. Rewrite the clause to say so. Here the
+        blanket ban IS correct: measured at 12f74ea8 that line is the file's ONLY occurrence of
+        harness-init, and the split leaves this agent with no relationship to either onboarding artifact,
+        so nothing in it should name one.
       Change nothing else in either file: not the frontmatter, not the model alias, not
       autoloadSkills, not the HARNESS_AGENT_ID marker, all of which check-omp-port.py asserts.
   - id: T-16

@@ -140,16 +140,25 @@ red if any of them regresses to a Claude-only path.
 
 ## Success Criteria
 
-Five criteria were MET by the delivered T-01..T-08 work. They are carried forward so the record
-stays whole, each marked `already met`, and this revision does NOT re-prove them: SC-02, SC-05,
-SC-06, SC-07, SC-10. **SC-09 is STRUCK** — it graded the operator reading `harness-init` as the
+Five criteria were graded MET against the delivered T-01..T-08 work at `12f74ea8`: SC-02, SC-05,
+SC-06, SC-07 and SC-10. **No grade is carried forward, and every one of the five is re-taken at
+`<review_sha>`.** Four of them have a subject this revision rewrites — SC-02's blob by T-11,
+SC-10's file by T-12, SC-06's unit suite by T-17, SC-07's integration suites by T-14 and T-17 — so
+a `12f74ea8` grade would be a statement about a different artifact. SC-05's subject is genuinely
+untouched (no task's `files:` names `factory_config.py` or `test-fleet-product-config.py`), and it
+is still re-taken, because a grade observed at another pin is not evidence about this one. The
+per-SC paragraphs below say the same thing; if a later goal-check finds this preamble and a
+paragraph disagreeing, the paragraph is wrong and both must be fixed before the grade is taken.
+**SC-09 is STRUCK** — it graded the operator reading `harness-init` as the
 procedure they would run to onboard the next repository, which the split makes false by
 construction; no grade of it is carried, and SC-11 and SC-12 replace it, one per resulting artifact.
 
 - SC-01: `git show <review_sha>:.claude/skills/harness-add-repo/SKILL.md` states all three elements
   of the central model — `harness.json` landing on the product's `default_branch`, registration in
   `.harness/factory/fleet.yaml`, and the central tree `<control-plane>/.harness/<segment>/` — **in
-  that order**, and contains no instruction to copy `team-config.yaml` into a project. Order is the
+  that order**, and contains no instruction to instantiate or to copy a `team-config.yaml` — not
+  into a project and not for the control plane, whose own instantiation instruction stays in
+  `harness-init` (T-11). Order is the
   discriminator: D-04 makes the config land BEFORE fleet registration, and presence anywhere in a
   long file cannot see that claim. Graded by running T-10's `verify` block verbatim at
   `<review_sha>`. RED at `12f74ea8`: the file does not exist.
@@ -157,9 +166,9 @@ construction; no grade of it is carried, and SC-11 and SC-12 replace it, one per
 - SC-02: `git show <review_sha>:.claude/skills/harness-init/SKILL.md` still carries the per-clone
   install step scoped to the control-plane clone — both `git config --get core.hooksPath || echo
   "(unset)"` and `git config core.hooksPath .claude/skills/harness/hooks` present verbatim — and
-  `python3 tests/integration/test-hooks-install.py` exits 0 against it. **Already met** at
-  `12f74ea8` by delivered work; carried only as a REGRESSION check, because T-11 edits that same
-  blob and renumbers the steps around those two commands.
+  `python3 tests/integration/test-hooks-install.py` exits 0 against it. Graded ONLY at
+  `<review_sha>`: T-11 rewrites this blob, renumbers the steps around those two commands and now
+  also keeps three sections inside it, so no `12f74ea8` grade is retained.
   verify: automated        evidence: integration
 - SC-03: Each of the six named executable sites states the central model AND names the artifact that
   owns the job its remedy describes, checked one file at a time, never by one file-global search:
@@ -184,15 +193,18 @@ construction; no grade of it is carried, and SC-11 and SC-12 replace it, one per
   read fails for one declared repository and succeeds for another, the report marks exactly that
   repository not-ok with a detail naming `<repo>@<ref>:.harness/harness.json`, and the CLI exits 2;
   with a stub that succeeds for both, it exits 0 and its ok count equals the declared count.
-  **Already met** at `12f74ea8` — 18/18 in `tests/unit/test-fleet-product-config.py`; no task in
-  this revision touches `factory_config.py`, so it is not re-proved.
+  Graded at `<review_sha>` by re-running `tests/unit/test-fleet-product-config.py` (18/18 at
+  `12f74ea8`, issue-free). No task in this revision touches `factory_config.py`, so the re-take is
+  expected to reproduce that result — but the grade of record is the one taken at the new pin.
   verify: automated        evidence: unit
 - SC-06: `.agents/skills/harness/bin/run-unit-tests.sh --kind unit` exits 0 at `<review_sha>`.
-  **Already met** at `12f74ea8`; carried as the standing gate over the revision's own diff.
+  Graded at `<review_sha>` only: T-17 rewrites `tests/unit/test-no-distribution.py`, so this is the
+  standing gate over the revision's own diff and no earlier grade is retained.
   verify: automated        evidence: unit
 - SC-07: `.agents/skills/harness/bin/run-unit-tests.sh --kind integration` exits 0 at
-  `<review_sha>`, with no case reporting a skip for a missing skill anchor. **Already met** at
-  `12f74ea8`; carried as the standing gate over the revision's own diff.
+  `<review_sha>`, with no case reporting a skip for a missing skill anchor. Graded at
+  `<review_sha>` only: T-14 and T-17 add and rewrite integration suites, so this is the standing
+  gate over the revision's own diff and no earlier grade is retained.
   verify: automated        evidence: integration
 - SC-08: With the new skill present, `python3 .claude/skills/harness/bin/check-instruction-paths.py`
   exits 0 with zero violations, and `python3 .claude/skills/harness/bin/check-omp-port.py` prints
@@ -201,8 +213,8 @@ construction; no grade of it is carried, and SC-11 and SC-12 replace it, one per
   verify: automated        evidence: integration
 - SC-10: The shipped template `.claude/skills/harness/templates/team-config.yaml` loads as YAML:
   `python3 -c "import yaml;yaml.safe_load(open('.claude/skills/harness/templates/team-config.yaml'))"`
-  exits 0 at `<review_sha>`. **Already met** at `12f74ea8` (issue #168); carried as a regression
-  check only, because T-12 edits that file's comment header.
+  exits 0 at `<review_sha>`. Graded at `<review_sha>` only: T-12 edits that file's comment header,
+  so the `12f74ea8` grade (issue #168) is about a different blob and is not retained.
   verify: automated        evidence: integration
 - SC-11: The operator runs `harness-init` as a FRESH-CHECKOUT procedure and it works as one. About
   ten minutes, from the UAT script: they read the skill top to bottom against a scratch clone of
