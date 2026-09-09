@@ -1,7 +1,9 @@
 schema: plan/1
 feature: FEAT-56-central-onboarding-model
 approval:
-  status: pending
+  date: '2026-09-09'
+  approved_by: molchairuangutai
+  status: approved
 status: plan
 source_issues: [206]
 

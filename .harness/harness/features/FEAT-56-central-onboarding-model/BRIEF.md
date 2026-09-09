@@ -300,7 +300,7 @@ construction; no grade of it is carried, and SC-11 and SC-12 replace it, one per
 - **No runner grades an instruction being FOLLOWED.** Both skills are prose executed by a model and
   an operator. What the suite proves of them is structural: that the ordered central-model statement
   MOVED to `harness-add-repo` and left `harness-init` (SC-01, SC-14), that the two command strings a
-  test reads out of Track A survive (SC-02), and that the gates around them stay green (SC-06,
+  test reads out of Track A survive (SC-02), that the gates around them stay green (SC-06,
   SC-07, SC-08). Whether either procedure actually onboards anything is carried by SC-11 and SC-12
   (uat) and by nothing else. A dry run against a real new repository is not in scope and is
   therefore not proven.
@@ -324,6 +324,6 @@ construction; no grade of it is carried, and SC-11 and SC-12 replace it, one per
 
 ## Approval
 
-status: pending
-approved-by:
-date:
+status: approved
+approved-by: molchairuangutai
+date: 2026-09-09
