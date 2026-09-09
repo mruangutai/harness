@@ -3,7 +3,7 @@
   "branch": "feat/FEAT-56-central-onboarding-model",
   "pr": null,
   "review_sha": "8ff5197f047748f6fd791f7f9a08d3ea54b80535",
-  "cycles_used": 19,
+  "cycles_used": 20,
   "max_total_cycles": 22,
   "max_total_runs": 20,
   "runs": [
@@ -292,6 +292,12 @@
       "squad": "eng",
       "verdict": "PASS",
       "agent": "harness-dev-ops"
+    },
+    {
+      "id": "goalcheck-ship-c2-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-pm"
     }
   ],
   "github": {
