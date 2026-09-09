@@ -158,13 +158,15 @@ printf '{"tool_input":{"command":"git merge feature/uat-scratch"}}' \
 
 **Observe:** a JSON line with `"permissionDecision": "deny"` and a reason reading roughly:
 
-> merge-gate: FEAT-9001-uat-scratch records github.build_entry=recovery-required, so no Build entry
-> receipt exists for it. This merge is denied until `python3
-> .claude/skills/harness/bin/gh-sync.py open /tmp/bug1309-uat/.harness/harness/features/FEAT-9001-uat-scratch`
-> records one.
+> merge-gate: FEAT-9001-uat-scratch needs its GitHub mirror recovery completed before this merge
+> can continue. Run: python3 .claude/skills/harness/bin/gh-sync.py open
+> /private/tmp/bug1309-uat/.harness/harness/features/FEAT-9001-uat-scratch
 
 On macOS the path in the message reads `/private/tmp/bug1309-uat/...` — that is the same directory
 as `/tmp/bug1309-uat`, resolved. Not a defect.
+
+That is the c19 copy the operator chose (`notes/rulings-2026-09-08-c19-copy.md` §2); it is the text
+this step expects, and it is emitted only once the `merge-gate.py:192` edit has landed.
 
 **This is the step you are really judging.** Read that sentence as if you had just been interrupted
 mid-merge and knew nothing about this feature. Ask yourself: *which feature is at fault, what is
@@ -206,9 +208,10 @@ printf '{"tool_input":{"command":"git --attr-source HEAD merge --no-ff feature/u
 
 `-F /tmp/message` needs no such file to exist: the gate reads the command text and git is never run.
 
-**Observe:** SIX JSON lines, one per command, each carrying `"permissionDecision": "deny"` and
-each naming `FEAT-9001-uat-scratch` and `github.build_entry=recovery-required` — the same message
-you read in Step 3, unchanged by the flag.
+**Observe:** SIX JSON lines, one per command, each carrying `"permissionDecision": "deny"`, and each
+naming `FEAT-9001-uat-scratch` and carrying the same sentence you read in Step 3 — `needs its GitHub
+mirror recovery completed before this merge can continue. Run: python3
+.claude/skills/harness/bin/gh-sync.py open …` — unchanged by the flag.
 
 - **PASS** if all six print a `deny`.
 - **FAIL** if any one of them prints nothing. A silent allow on any of the six is the whole defect:
