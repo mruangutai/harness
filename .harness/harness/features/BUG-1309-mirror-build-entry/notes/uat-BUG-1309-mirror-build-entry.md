@@ -193,15 +193,26 @@ printf '{"tool_input":{"command":"git merge --squash feature/uat-scratch"}}' \
 
 printf '{"tool_input":{"command":"git merge -m message feature/uat-scratch"}}' \
   | HARNESS_PROJECT_DIR=$UAT_ROOT bash $UAT_CHECKOUT/.claude/skills/harness/bin/merge-gate.sh
+
+printf '{"tool_input":{"command":"git merge -F /tmp/message feature/uat-scratch"}}' \
+  | HARNESS_PROJECT_DIR=$UAT_ROOT bash $UAT_CHECKOUT/.claude/skills/harness/bin/merge-gate.sh
+
+printf '{"tool_input":{"command":"git merge --cleanup strip feature/uat-scratch"}}' \
+  | HARNESS_PROJECT_DIR=$UAT_ROOT bash $UAT_CHECKOUT/.claude/skills/harness/bin/merge-gate.sh
+
+printf '{"tool_input":{"command":"git --attr-source HEAD merge --no-ff feature/uat-scratch"}}' \
+  | HARNESS_PROJECT_DIR=$UAT_ROOT bash $UAT_CHECKOUT/.claude/skills/harness/bin/merge-gate.sh
 ```
 
-**Observe:** THREE JSON lines, one per command, each carrying `"permissionDecision": "deny"` and
+`-F /tmp/message` needs no such file to exist: the gate reads the command text and git is never run.
+
+**Observe:** SIX JSON lines, one per command, each carrying `"permissionDecision": "deny"` and
 each naming `FEAT-9001-uat-scratch` and `github.build_entry=recovery-required` — the same message
 you read in Step 3, unchanged by the flag.
 
-- **PASS** if all three print a `deny`.
-- **FAIL** if any one of them prints nothing. A silent allow here is the whole defect: the flag,
-  not the branch, was read as what you were merging.
+- **PASS** if all six print a `deny`.
+- **FAIL** if any one of them prints nothing. A silent allow on any of the six is the whole defect:
+  the flag, or the option's own argument, not the branch, was read as what you were merging.
 
 ---
 
