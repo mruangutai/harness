@@ -4,7 +4,7 @@ approval:
   date: '2026-09-09'
   approved_by: molchairuangutai
   status: approved
-status: ready
+status: review
 source_issues: [206]
 
 lanes:
