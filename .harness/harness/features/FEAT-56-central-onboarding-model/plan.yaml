@@ -1246,7 +1246,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: check-domain.sh --resolve on .claude/skills/harness-add-repo/SKILL.md returns NOBODY at 12f74ea8, a DEC-174 carve-out
     depends_on: [T-09]
-    status: ready
+    status: done
     files:
       - .claude/skills/harness-add-repo/SKILL.md
     verify: |
