@@ -7018,7 +7018,8 @@ the approval gate passes" named the terminal phase for a transition that belongs
 
 **Record:** the signed BUG-1309 plan, 2026-09-06. Refs: DEC-138, DEC-146, DEC-174, DEC-179,
 DEC-191, DEC-203.
-## DEC-220 — Onboarding is fleet registration plus one product-resident file
+
+## DEC-221 — Onboarding is fleet registration plus one product-resident file
 
 **Chose:** onboarding a repository is exactly three things: its own `.harness/harness.json` landed
 on its default branch, its entry in `.harness/factory/fleet.yaml`, and its central per-segment tree
@@ -7052,7 +7053,7 @@ by nothing — push access to a member's default branch is factory-level trust.
 
 **Record:** refs DEC-174, DEC-113, DEC-182, DEC-129.
 
-## DEC-221 — Onboarding is two skills: `harness-init` configures a checkout, `harness-add-repo` registers a repository
+## DEC-222 — Onboarding is two skills: `harness-init` configures a checkout, `harness-add-repo` registers a repository
 
 **Chose:** onboarding is **two artifacts**, not one. `.claude/skills/harness-init/SKILL.md` is the
 first-time configuration of a harness checkout — the eight prerequisites, the tracked hooks
@@ -7081,9 +7082,9 @@ duplicated `/harness-plan` and made registration wait on a product conversation.
 modes. Configuring a checkout needs templates, `.claude/settings.json` and hooks in the checkout you
 are standing in; registering a repository needs `gh`, push access to another repository's default
 branch, and an already-configured control plane to register into — its preflight can only STOP and
-route to `harness-init`. DEC-220 fixed what registration *is* but left it inside a skill whose other
+route to `harness-init`. DEC-221 fixed what registration *is* but left it inside a skill whose other
 half configures a checkout. DEC-06 is **not overturned** here: its conclusion — the runner is a
 skill, not a command — is exactly what `harness-add-repo` conforms to, and only its distribution
 premise expired, when `deploy.sh` was deleted in commit 45859123.
 
-**Record:** refs DEC-220, DEC-06, DEC-120, DEC-174.
+**Record:** refs DEC-221, DEC-06, DEC-120, DEC-174.

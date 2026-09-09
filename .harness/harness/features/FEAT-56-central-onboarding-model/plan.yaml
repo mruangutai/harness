@@ -42,7 +42,7 @@ decisions:
   - id: D-01
     choice: Issue 206 item 2 is not built, and a central .harness/products/ tree is created nowhere.
     because: The plan-phase advisor ruled it already satisfied in substance, and a central product config would be read by nothing since product_config reads only the remote at default_branch.
-    dec: DEC-174
+    dec: DEC-221
   - id: D-02
     choice: Step 1's prerequisite install is narrowed to the control-plane clone rather than deleted.
     because: check-state.sh INV-9 and INV-31 grade this clone against that step on every run and test-hooks-install.py asserts its command strings verbatim out of the skill.
@@ -88,7 +88,7 @@ decisions:
       runs once against an unconfigured checkout, Track B runs repeatedly against a configured one.
       Steps 6 to 8 leave entirely because they are the first BRIEF, its approval and the design pass,
       which are plan work rather than onboarding work (D-09).
-    dec: DEC-220
+    dec: DEC-222
   - id: D-09
     choice: |
       First-BRIEF, approval and design work leave onboarding altogether. A configured fleet
@@ -900,7 +900,7 @@ tasks:
       python3 tests/integration/test-layout-migration.py &&
       python3 tests/integration/test-hooks-install.py &&
       python3 tests/integration/test-post-merge-sweep.py &&
-      grep -qF "read from that repository's own harness.json" tests/integration/test-check-state.py &&
+      grep -qF "read from that repository's own harness.json" tests/integration/test-check-state-records.py &&
       ! grep -qF 'SKILL.md:73' tests/integration/test-post-merge-sweep.py &&
       ! grep -qF 'SKILL.md:73' .claude/skills/harness/bin/post-merge-sweep.sh
     intent: |

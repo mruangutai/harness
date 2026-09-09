@@ -137,7 +137,7 @@ own `harness.json` — and carries `--upgrade`. `harness-add-repo` registers a r
 already-configured control plane: it interviews you directly, lands that repository's own
 `harness.json` on its default branch, registers it in the fleet, then creates its central
 per-segment tree. The first `BRIEF.md`, its approval and any design pass are `/harness-plan`'s work
-(DEC-221). The round-trip above is the mechanism for every *subsequent* human-in-the-loop moment.
+(DEC-222). The round-trip above is the mechanism for every *subsequent* human-in-the-loop moment.
 
 ### 2.2 State-consistency check
 
@@ -441,7 +441,7 @@ end up disagreeing about where a checkout lives. `FLEET_PATH` is absolute for th
 tools run *inside another repository's checkout*, where a relative path would resolve against the
 wrong root.
 
-**Onboarding a repository is three things, in order (DEC-220):** land that repository's own
+**Onboarding a repository is three things, in order (DEC-221):** land that repository's own
 `.harness/harness.json` on its `default_branch`; add a `- name: <owner>/<repo>` entry under
 `repos:` in `.harness/factory/fleet.yaml` carrying its `default_branch` **and its own `board:`
 block — `owner`, `number`, `station_field` and `stations`, all four required**; then create its
@@ -459,7 +459,7 @@ harness puts into a product repository.
 carry the canonical schema plus the generic org, with **placeholders** where a project differs, and
 `harness-init` and `harness-add-repo` read them from the control-plane clone they run in.
 
-**Onboarding is two skills (DEC-221).** `harness-init` configures the harness checkout you are
+**Onboarding is two skills (DEC-222).** `harness-init` configures the harness checkout you are
 standing in — the eight prerequisites, the tracked hooks directory, this clone's `.harness/`, its
 `team-config.yaml` and its own `harness.json` — and it owns `--upgrade`.
 

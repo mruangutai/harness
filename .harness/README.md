@@ -6,7 +6,7 @@ time — no engine, no build step, no database.
 **Written by the `harness-init` skill, which configures this checkout.** It writes *this clone's*
 directory once; everything after that is written by the agents that own each path (see the table
 below). A fleet member gets no such directory — only its own `harness.json`, landed there by the
-`harness-add-repo` skill (DEC-220, DEC-221).
+`harness-add-repo` skill (DEC-221, DEC-222).
 
 ## Layout
 

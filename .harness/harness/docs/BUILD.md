@@ -374,7 +374,7 @@ fixtures. D5 and D4 ride along inside the real flow's prompts.
 **Self-contained: everything needed to build this without prior conversation.** The spec below is what
 was built; the Done-when block at the end records how each criterion was verified.
 
-**Present state (DEC-221): onboarding is two skills, and this section is the record of what task 12
+**Present state (DEC-222): onboarding is two skills, and this section is the record of what task 12
 delivered, not a description of today's split.** `harness-init` configures a harness checkout — the
 prerequisites, this clone's `.harness/`, its `team-config.yaml` and its own `harness.json` — and it
 keeps `--upgrade`. `harness-add-repo` registers a repository into an already-configured control
@@ -385,7 +385,7 @@ for jobs `harness-add-repo` now owns.
 
 ### What it is
 
-The onboarding interview, run **in the control-plane clone** (DEC-220). It absorbs the deleted `bootstrap` team
+The onboarding interview, run **in the control-plane clone** (DEC-221). It absorbs the deleted `bootstrap` team
 (DEC-14). Delivered as a **flat skill** at `.claude/skills/harness-init/SKILL.md` — *not* a command,
 because commands do not distribute (DEC-06), and *not* nested, because a project skill is exactly one
 level under `.claude/skills/` (DEC-100).
@@ -404,7 +404,7 @@ Onboarding is a fleet entry plus init: adding `- name: <owner>/<repo>` to
 writes the control plane's own `.harness/` state. Exactly one file is copied into the repository —
 its own `.harness/harness.json`, and it must land on that repository's default branch (the
 `default_branch` its fleet entry declares), because the factory reads a member's config from that
-ref remotely and never from a checkout on disk (DEC-220). Nothing else is copied into the
+ref remotely and never from a checkout on disk (DEC-221). Nothing else is copied into the
 repository, which is what keeps the first half dumb and safe.
 
 ### What it writes — six artifacts
@@ -792,7 +792,7 @@ Beyond "build personas + assemble them." Prune freely.
 | 15 | `.gitignore` | **NET-NEW FILE.** See the detail block below. |
 | 16 | `.harness/README.md` | **REWRITE, not create** — it already exists and contradicts this design. See the detail block below. **Owner: `documentor`.** |
 | 17 | `.harness/team-config.yaml` | **NET-NEW.** The team manifest (SPEC §3.1): orchestrator, paths, `shared_context`, and the 3 teams with leads, members and `consult-when`. Read by the orchestrator at every `/harness` entry and by each lead when delegating. **This is what makes the org data rather than prose.** Ships alongside **`bin/check-domain.sh`** (net-new): generic and stateless — takes an agent name + a path, reads that agent's `domain` from the project's manifest, exits non-zero if out of scope. No project-specific globs; identical in every project. |
-| 18 | `/harness-init` + `templates/` | **DONE** (DEC-112). The onboarding interview (absorbs the deleted `bootstrap` team): project type + frameworks + requirements; writes `harness.json`, `team-config.yaml`, and a draft `BRIEF.md` for approval; optionally chains a design pass. Delegates mechanical detection to `dev-ops` for `domain` globs and `test_kinds`. Supports `--upgrade` to merge newer template entries while preserving project values, driven by `schema_version`. **This is what made the distribution half safe to be dumb, and it is what still writes a checked-out repository's `.harness/` state.** Amended by DEC-220: the manifest and the `BRIEF.md` are the control plane's, and the only artifact that lands in a product repository is its own `harness.json`, on that repository's default branch. |
+| 18 | `/harness-init` + `templates/` | **DONE** (DEC-112). The onboarding interview (absorbs the deleted `bootstrap` team): project type + frameworks + requirements; writes `harness.json`, `team-config.yaml`, and a draft `BRIEF.md` for approval; optionally chains a design pass. Delegates mechanical detection to `dev-ops` for `domain` globs and `test_kinds`. Supports `--upgrade` to merge newer template entries while preserving project values, driven by `schema_version`. **This is what made the distribution half safe to be dumb, and it is what still writes a checked-out repository's `.harness/` state.** Amended by DEC-221: the manifest and the `BRIEF.md` are the control plane's, and the only artifact that lands in a product repository is its own `harness.json`, on that repository's default branch. |
 | 19 | `.claude/skills/harness-handoff/SKILL.md` | **NET-NEW FILE** — referenced everywhere, scheduled nowhere. The universal artifact-output discipline (BLUF, pointers-not-payloads, open-questions, bounded length) plus the autonomy-by-reversibility rule, read by all 16 agents. Create it in MVP step 1 alongside the first persona. A **flat** skill, not `rules/handoff.md` (DEC-100). |
 
 **Also net-new, and reshaped:** all seven rules become **skill directories**
@@ -956,8 +956,8 @@ new system with GSD still available, then cut over and retire `.planning/`.
 | `.harness/team-config.yaml` | **new** — team manifest (membership + `consult-when` routing + `domain` write scope) |
 | `.claude/skills/harness/bin/check-domain.sh` | **new** — domain-enforcement hook script (the one deliberate exception to files-only) |
 | `.claude/skills/harness/templates/*` | **new** — schema templates read from this repository at onboarding (team-config, harness.json, BRIEF/PLAN/STATE/DESIGN, gitignore) |
-| `.claude/skills/harness-init/SKILL.md` | **done** — configures a harness checkout (DEC-221). **FLAT**, not `harness/init/`: a project skill is exactly one level under `.claude/skills/` and a nested dir is undiscoverable (DEC-100) |
-| `.claude/skills/harness-add-repo/SKILL.md` | **done** — registers a repository into a configured control plane (DEC-221): its own `harness.json` on its default branch, its `fleet.yaml` entry, its central per-segment tree. Also FLAT |
+| `.claude/skills/harness-init/SKILL.md` | **done** — configures a harness checkout (DEC-222). **FLAT**, not `harness/init/`: a project skill is exactly one level under `.claude/skills/` and a nested dir is undiscoverable (DEC-100) |
+| `.claude/skills/harness-add-repo/SKILL.md` | **done** — registers a repository into a configured control plane (DEC-222): its own `harness.json` on its default branch, its `fleet.yaml` entry, its central per-segment tree. Also FLAT |
 | `.claude/skills/harness/bin/merge-settings.py`, `merge-gitignore.sh`, `upgrade-config.py` | **done** — deterministic, idempotent merges. Prose cannot be trusted to preserve a project's own hooks |
 | `.claude/skills/harness-handoff/SKILL.md` | **new** — universal artifact discipline (all 16 agents) |
 | `.claude/skills/harness-<name>/SKILL.md` × 7 | **restructured, FLAT** (DEC-100) — rules become skills for `skills:` preload; `handoff`, `expertise`, `zero-micro-management` are net-new |

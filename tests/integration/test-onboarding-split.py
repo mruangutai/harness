@@ -2,7 +2,7 @@
 """test-onboarding-split.py — the automated evidence for SC-14's onboarding split (FEAT-56 T-17).
 
 WHAT THIS GRADES. FEAT-56 cut the one combined onboarding skill into two: `harness-init`
-(fresh-checkout configuration only) and `harness-add-repo` (fleet-member registration only, DEC-221).
+(fresh-checkout configuration only) and `harness-add-repo` (fleet-member registration only, DEC-222).
 The two must stay disjoint — neither skill's prose may re-absorb the other's concerns — and the two
 canonical planning doors (`/harness-plan`, `/harness-grilling`) must never point back at `harness-init`
 as though registration still lived there.

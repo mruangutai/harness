@@ -81,7 +81,7 @@ def case1():
                        if f.startswith("harness") and f.endswith(".md")]
     # Four doors, not six: /harness-map and /harness-deepen were deleted when the
     # codebase map tier was retired (DEC-149 records the removal). After the onboarding
-    # split (DEC-221) the four canonical doors live under .omp/commands, and
+    # split (DEC-222) the four canonical doors live under .omp/commands, and
     # .claude/commands holds four generated adapters pointing at them — the guard is that
     # a distribution sweep does not take either root's doors with it.
     check("case1_presence_canonical_four_doors_survive", len(canonical_cmds) >= 4,

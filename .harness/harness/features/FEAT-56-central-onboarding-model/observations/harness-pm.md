@@ -78,3 +78,23 @@
 - 2026-09-09: FEAT-56 ship goal-check. review_sha differed from HEAD by exactly one record commit touching feature.json only; establishing that with `git diff --stat <pin> HEAD` up front let every automated criterion be graded by running the command in the worktree, with the pin-equality stated per criterion instead of building a temp checkout.
 - 2026-09-09: FEAT-56 SC-04 quantified over 23 files; 7 of them named NEITHER onboarding artifact. Six were correct-by-removal — each carried a wrong `/harness-init` claim at the prior pin and now points at `/harness-plan`. Grading a zero-match file needs the PRIOR pin's grep as the citation, or the absence reads as an omission rather than as the deliverable.
 - 2026-09-09: FEAT-56 UAT round 4. Rounds 1-3 failed on jargon, structure and shape; the fix that mattered was naming the literal absolute directory in a paste-able `cd` and writing 'create nothing' beside every read instruction, because the operator had read 'clone' as an imperative.
+- 2026-09-09: FEAT-56 post-merge renumber — plan.yaml D-08.dec DEC-220 to DEC-221 by referent preservation (verified the pre-merge title at 6835db61 rather than trusting the dispatch); D-08 choice text actually matches the entry now numbered DEC-222, left as a non-blocking open question because correcting a signed plan is not a renumber.
+- 2026-09-09: FEAT-56 T-03. A signed `verify:` clause greped a file origin/main had deleted (a
+  six-way split). Amended the path only, and DEC-205 was the deciding cite, not rule 15: its own
+  worked precedent is three anchors naming "a path the tree no longer has" being REPAIRED. Framing
+  that settled it: `verify:` is a standing specification, not a record of a past run, so amending a
+  pointer to moved-but-unchanged content preserves the assertion's meaning while refusing preserves
+  only its syntax. Reusable test — did the content change, or only its address?
+- 2026-09-09: FEAT-56. `plan-merge.py amend --value-file` is a real `open()`, no stdin support (unlike
+  `apply --proposal -`), so a scratch file is unavoidable; put it in /tmp so `git status` stays clean
+  and the one-file-changed constraint holds.
+- 2026-09-09: FEAT-56. `plan-merge amend` rewrites the whole plan.yaml but PRESERVED a sibling's
+  landed-uncommitted hunk elsewhere in the file (a D-NN renumber). Confirm that with `git diff` after
+  every amend on a dirty tree rather than assuming it — the splice is per-field but the write is whole-file.
+- 2026-09-09: FEAT-56. Amending only `verify:` leaves the SAME dead path live in the task's `files:`
+  list and `intent:` prose. Scoping a rot fix to one field is legitimate but partial; intent prose is
+  the literal dispatch string, so a re-dispatch still sends its doer to a nonexistent file. Raise the
+  siblings as open questions in the same return.
+- 2026-09-09: FEAT-56 — a citation audit that only checks the cited id EXISTS cannot see a citation aimed at the WRONG entry: plan D-08 carried dec: DEC-220 pre-renumber (already wrong), the +1 renumber moved it to DEC-221 and preserved the error, and occurrence counts, index diffs and anchor checks all stayed clean. Third instance of the class in one integration. When auditing a trace, match each pointer's SUBJECT against the entry header, never its existence.
+- 2026-09-09: FEAT-56 — auditing the whole decisions: block rather than the handed item found a second mis-map (D-01 -> DEC-174 where DEC-221's Over: strikes D-01's own subject verbatim) plus the inverse class (D-11 promoted into DEC-222 but carrying dec: none). The handed defect is rarely the only one; the hole it leaves (nothing mapping to DEC-221) was the same single error seen from the other side.
+- 2026-09-09: FEAT-56 — check-domain's worktree-claim guard blocked my Write/Edit into MY OWN feature tree for two consecutive attempts, reporting 'harness-pm holds worktree claim(s): .../FEAT-57-review-latency' — a concurrent unrelated harness-pm's claim, matched by agent-TYPE alone (same root cause as the BUG-276 qa note). Both registries read 'claims: []' a minute later and the identical edit succeeded, so the block is transient and retry is the remedy; plan-merge.py and observations-merge.py through Bash were never blocked.
