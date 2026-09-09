@@ -62,7 +62,8 @@ def denial(command, **kwargs):
 
 
 r, d, reason, _ = denial("git merge feature/test", entry="recovery-required")
-check("T-05 recovery-required denies", r.returncode == 0 and d == "deny" and "recovery-required" in reason, reason)
+check("T-05 recovery-required denies", r.returncode == 0 and d == "deny"
+      and "needs its GitHub mirror recovery completed" in reason, reason)
 r, d, reason, _ = denial("git merge feature/test")
 check("T-05 non-era absent build_entry denies naming feature and re-run command",
       d == "deny" and "FEAT-9001-fixture-non-era" in reason and "gh-sync.py open" in reason, reason)
@@ -98,7 +99,8 @@ check("T-05 era-exempt recovery-required allows", r.returncode == 0 and d is Non
 root, _ = fixture()
 r, d, reason = gate("gh pr merge 7", root, "/nonexistent/gh")
 check("T-05 unresolvable gh falls back and denies a locally owed receipt",
-      r.returncode == 0 and d == "deny" and "absent" in reason,
+      r.returncode == 0 and d == "deny" and "FEAT-9001-fixture-non-era" in reason
+      and "gh-sync.py open" in reason,
       f"rc={r.returncode} stderr={r.stderr!r} reason={reason!r}")
 root, _ = fixture()
 fake = os.path.join(root, "gh-fail")

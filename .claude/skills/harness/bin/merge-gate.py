@@ -189,7 +189,7 @@ def main():
             return
         command_name = feature_schema.recovery_command_for(feat_dir)
         command_line = (f"python3 .claude/skills/harness/bin/gh-sync.py {command_name} {os.path.realpath(feat_dir)}" + (" --yes" if command_name == "recover-terminal" else ""))
-        deny(f"merge-gate: {feat} records github.build_entry={value}, so no Build entry receipt exists for it. This merge is denied until {command_line} records one.")
+        deny(f"merge-gate: {feat} needs its GitHub mirror recovery completed before this merge can continue. Run: {command_line}")
     except Exception:
         deny(f"merge-gate: could not evaluate {feat}'s Build-entry receipt, so this merge is denied. Repair the feature record and re-run the merge.")
 
