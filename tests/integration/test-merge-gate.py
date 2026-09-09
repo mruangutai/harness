@@ -64,7 +64,8 @@ def denial(command, **kwargs):
 r, d, reason, _ = denial("git merge feature/test", entry="recovery-required")
 check("T-05 recovery-required denies", r.returncode == 0 and d == "deny" and "recovery-required" in reason, reason)
 r, d, reason, _ = denial("git merge feature/test")
-check("T-05 non-era absent build_entry denies", d == "deny" and "gh-sync.py open" in reason, reason)
+check("T-05 non-era absent build_entry denies naming feature and re-run command",
+      d == "deny" and "FEAT-9001-fixture-non-era" in reason and "gh-sync.py open" in reason, reason)
 r, d, reason, _ = denial("git merge feature/test", repo=None)
 check("T-05 unpinned repo absent build_entry denies naming the configuration fix", d == "deny" and "NOT pinned" in reason and "open" not in reason.lower(), reason)
 for entry, name in (("opened", "T-05 opened allows"), ("not-applicable", "T-05 not-applicable allows"), ("recovered-terminal", "T-05 recovered-terminal allows")):
@@ -160,6 +161,17 @@ check("T-05 duplicate valid records claiming the branch deny naming both",
       and "FEAT-9001-fixture-non-era" in reason and duplicate_id in reason
       and "gh-sync.py" not in reason and reason == repeated_reason,
       f"rc={r.returncode} reason={reason!r} repeated={repeated_reason!r}")
+root, directory = fixture()
+era_id = "BUG-1030-stale-anchor-write-hazard"
+era_directory = os.path.join(root, ".harness", "harness", "features", era_id)
+os.makedirs(era_directory)
+with open(os.path.join(era_directory, "feature.json"), "w") as f:
+    json.dump({"feature_id": era_id, "branch": "feature/test",
+               "github": {"build_entry": "opened"}}, f)
+r, d, reason = gate("git merge feature/test", root)
+check("T-05 duplicate era-exempt claimant still denies before era gate",
+      r.returncode == 0 and d == "deny" and "FEAT-9001-fixture-non-era" in reason
+      and era_id in reason and "gh-sync.py" not in reason, reason)
 root, directory = fixture(entry="opened")
 bad_directory = os.path.join(root, ".harness", "harness", "features", "FEAT-9002-unrelated-malformed")
 os.makedirs(bad_directory)
@@ -167,6 +179,30 @@ with open(os.path.join(bad_directory, "feature.json"), "w") as f:
     json.dump([], f)
 r, d, reason = gate("git merge feature/test", root)
 check("T-05 single owner plus unrelated malformed record still allows",
+      r.returncode == 0 and d is None, f"rc={r.returncode} reason={reason!r}")
+root, directory = fixture(entry="opened")
+for name, content in (
+    ("FEAT-9002-unreadable", None),
+    ("FEAT-9003-malformed", "{"),
+    ("FEAT-9004-non-object", []),
+    ("FEAT-9005-different-branch", {"feature_id": "FEAT-9005-different-branch",
+                                     "branch": "other", "github": {}}),
+):
+    noise_directory = os.path.join(root, ".harness", "harness", "features", name)
+    os.makedirs(noise_directory)
+    noise_file = os.path.join(noise_directory, "feature.json")
+    if content is None:
+        with open(noise_file, "w") as f:
+            json.dump({}, f)
+        os.chmod(noise_file, 0)
+    else:
+        with open(noise_file, "w") as f:
+            if isinstance(content, str):
+                f.write(content)
+            else:
+                json.dump(content, f)
+r, d, reason = gate("git merge feature/test", root)
+check("T-05 single owner ignores unreadable malformed non-object and different-branch noise",
       r.returncode == 0 and d is None, f"rc={r.returncode} reason={reason!r}")
 for command, name in (
     (f"git -C {root} merge feature/test", "T-05 git -C global flag merge is still detected"),
