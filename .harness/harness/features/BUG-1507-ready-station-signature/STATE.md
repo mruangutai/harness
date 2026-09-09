@@ -8,7 +8,7 @@
 - squad: none — the orchestrator's build+validate mission is complete
 - status: in_review (panel clean; awaiting the main session's PR and merge)
 - station: `review` (plan.yaml line 3), written by `gh-sync.py status <feature-dir> review`
-- review_sha: `ac5e24e51f2520e273580f66c372b5bd143001f1`
+- review_sha: `df9ccd0147748bd6e7dd4cd8eab4add301a1ba21` (re-pinned; zero code-path delta from the reviewed `ac5e24e5`)
 - mirror: milestone #64, parent #1517, sub-issues #1518-#1522, all six at the review station
 - cycles_used: 3 of 10 · runs: 10 of 20
 
@@ -69,8 +69,10 @@ Log (condensed 2026-09-09 to the INV-23 budget; the detail lives in `notes/` and
   would weaken an assertion after the gate; a residual that D-05's `because:` does not name every
   excluded directory, whose remedy edits a signed plan). Tree clean at `287aafb5`.
 - 2026-09-09: BUILD -> VALIDATE seam. `gh-sync.py status <feature-dir> review` run lowercase;
-  `review_sha` pinned at the seam commit `ac5e24e5`, which contains every deliverable, the only
-  later commits being record writes that touch no code path.
+  `review_sha` pinned at the seam commit `ac5e24e5`. Later RE-PINNED to `df9ccd01` because INV-33
+  reads a pin as stale once `plan.yaml` moves (the goalcheck reader row did). Free and disclosed,
+  not a re-review: `git diff ac5e24e5 df9ccd01 -- .claude tests docs .github` is EMPTY, so the
+  panel's verdict covers byte-identical code at both.
 - 2026-09-09: run `2026-09-08-panel-validator` PASS — the validate panel at the pin. All four
   readers RAN, none skipped. `severity_max: med`, `must_fix: []`, `code_grade: grade_2`. Findings:
   VL-01 (med), F-01 (low, a `BrokenPipeError` in the `verify:` chain under `pipefail`, unexploited

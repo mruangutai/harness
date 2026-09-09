@@ -14,8 +14,9 @@ The one residual to carry forward is VL-01, as a backlog row, not a fix — see 
   skipped — `feature.json` run `2026-09-08-panel-validator` and
   `notes/review-harness-{code-reviewer,qa,security-reviewer,ui-reviewer}-c0.md` —
   verified-at ac5e24e5.
-- `review_sha` is `ac5e24e5`, and it CONTAINS every deliverable: the only later commits write
-  records (`feature.json`, `STATE.md`, `notes/`) and touch no code path — verified-at 31b4c8a3.
+- `review_sha` is `df9ccd01`, re-pinned from the reviewed `ac5e24e5` after INV-33 (a pin goes
+  stale when `plan.yaml` moves). The panel's verdict still covers it: `git diff ac5e24e5
+  df9ccd01 -- .claude tests docs .github` is EMPTY — verified-at df9ccd01.
 - SC-04, SC-06, SC-07 and SC-10 re-checked by the orchestrator at the pin itself with
   `git show ac5e24e5:<path>` rather than a working-tree read — SKILL.md:146,
   github-mirror.md:95, gh-sync.py:1312, and an EMPTY diff for factory_config.py / harness.json /
